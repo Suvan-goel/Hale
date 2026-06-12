@@ -1,0 +1,174 @@
+# PROJECT CONTEXT — Longevity App (V1)
+
+> This file is the project's source of truth for product rules, pose-detection knowledge, and
+> architecture. Future sessions depend on it. Do not delete content; update carefully.
+> Significant decisions are logged in `docs/decisions.md`.
+
+## What we are building
+
+A consumer mobile app for adults ~45–65 that measures how their body is aging — strength,
+balance, mobility — using only the phone camera, then delivers voice-guided home training
+targeting their weakest domain. Core loop: monthly camera-graded "Movement Check-Up"
+(validated clinical tests: 30-second chair stand with per-rep rise velocity, balance holds,
+Timed Up and Go, shoulder flexion peak, hinge reach) → per-domain "ages" vs published norms →
+4-week training block → re-test. The camera is a **measuring instrument, never a form judge**.
+Strategic frame: CV is the sensor; adherence is the product. The founder team previously built
+a gym form-feedback app (Forma) on MediaPipe + React Native; this context distills a year of
+its hard-won pose-detection and architecture knowledge. You have none of that code — these
+notes are the transfer.
+
+## Product laws (non-negotiable design rules, validated in user interviews)
+
+1. **Never show self-view camera video.** Render a clean skeleton on a dark background. Users
+   this age want presence without a mirror.
+2. **Audio-first.** Voice guides everything; after propping the phone, the user never touches
+   the screen until the session ends. Auto-start when framed, auto-advance between items, rest
+   timers spoken.
+3. **Silence by default.** The camera speaks only on high-confidence findings. No rep-by-rep
+   form critique, ever — one false positive kills trust permanently. High precision, low
+   recall, or nothing.
+4. **No medical claims.** Wellness-side language only. "Movement age," never "fall-risk
+   diagnosis." Domain ages lead; any composite score is secondary garnish.
+5. **No gamification** (streak-shaming, badges, social feeds). This demographic responds to
+   evidence and routine.
+6. **Zero-equipment start.** Chair, wall, floor, bottom stair, cushion. Every exercise must
+   have a zero-equipment regression so a missing item substitutes, never blocks.
+
+## Hard-won pose-detection knowledge (MediaPipe, mobile, real homes)
+
+- **Engine:** MediaPipe Tasks Vision PoseLandmarker (33 landmarks), run **fully native**
+  (Android: `com.google.mediapipe:tasks-vision`, CameraX; iOS: `MediaPipeTasksVision` pod,
+  AVFoundation) inside a local Expo module exposing a `PoseDetectionView` that owns camera +
+  inference and emits one landmark-array event per frame to JS at ~30fps. Never push camera
+  frames across the JS bridge. Use VIDEO running mode with monotonic timestamps; GPU delegate
+  on Android; start with the `lite` model for 30fps on mid-range devices, upgrade to `full`
+  only if profiling allows.
+- **Detection confidence:** the 0.5 default misses side-on poses. **0.35 worked** for side
+  views in production. Expect Android to need patch-package fixes for MediaPipe gradle/runtime
+  quirks; budget for it.
+- **Per-frame visibility scores are noisy and untrustworthy.** Gate all decisions on
+  reliability **smoothed over windows, per limb chain** (e.g., shoulder→hip→knee→ankle), not
+  raw per-frame visibility.
+- **Side-view movements:** the far-side limb is garbage (occlusion). Dynamically select the
+  reliable near side; require only 1 reliable limb chain for side-view items, 2 for front-view
+  bilateral items. Encode a per-movement camera-view spec (side vs front + required chains)
+  and surface a live "camera readiness" status from it.
+- **Subject validity:** before processing, verify the skeleton is a plausible present human
+  (landmark dispersion, proportions, size in frame). Without this, furniture and wall art
+  become subjects.
+- **Subject-gone handling (painful lesson):** when the subject leaves frame mid-activity, emit
+  an explicit tracking-interruption and **reset rep/hold state machines**. Otherwise re-entry
+  double-counts reps.
+- **Warmup gate:** the first ~1–2 s of detection are unstable. Never count anything until a
+  stability window passes.
+- **Jitter:** raw landmarks jitter at 30fps. Smooth angles/positions (EMA or One-Euro filter)
+  before thresholding, and use **hysteresis** (separate up/down thresholds) on all rep-state
+  transitions or you will double-count.
+- **2D pose cannot see rotation** (transverse plane) — except head yaw, which is estimable
+  from nose/ear landmark geometry. Design every graded movement in the sagittal or frontal
+  plane.
+- **Units (critical for this product):** never use absolute pixels. Define a body-unit scale
+  (median hip-to-ankle landmark distance captured during a calibration stance) and express all
+  distances and velocities in body units; angles in degrees. Camera distance varies between
+  sessions, and the product's entire payload is **longitudinal trends** — between-session
+  setup variance is the #1 measurement threat. The framing/placement flow ("stand where you
+  stood last time — you're framed") is measurement hygiene, not just UX.
+- **Rise velocity** (the headline metric, a leg-power proxy): vertical velocity of the
+  smoothed hip midpoint during the concentric phase of a chair stand, in body units/sec;
+  record per-rep mean and peak, and the session mean. At 30fps a rise spans ~25–45 frames;
+  per-rep values jitter but the session mean over 10+ reps is robust.
+- **Lighting:** warm/dim domestic evening lighting degrades detection well before it looks
+  dark to a human. Build a pre-flight check (sample detection confidence + landmark stability
+  for ~2 s; if poor, voice prompt: "turn on the main light").
+- **Hot path rules (30fps):** the per-frame update path must be pure, synchronous,
+  allocation-free — mutate pre-allocated structures, use refs, `.push()` not spread. Throttle
+  UI state updates to ~10fps. Keep React render cycles out of the frame path entirely.
+
+## Architecture requirements (proven pattern — replicate it)
+
+- **Registry pattern:** one `MovementDefinition` per file (id, display name, camera-view spec,
+  grading config, voice script, progression/regression links, equipment tag), all internals
+  module-private, registered in a central registry. Screens are movement-agnostic; adding a
+  movement never touches player code.
+- **Four grading archetypes as shared primitives** — every assessment and exercise composes
+  these; build them once, test them hard:
+  1. `RepCycleTracker` — angle-threshold cycles with hysteresis + smoothing (chair stands,
+     push-ups, curls…)
+  2. `HoldTracker` — timed hold with configurable termination conditions (balance: raised-foot
+     touchdown via ankle-landmark separation/height; plus sway proxy = SD of pelvis-midpoint x
+     in body units)
+  3. `TimedTaskTracker` — state machine with start-pose, phase transitions, end-pose,
+     wall-clock per phase (TUG, floor get-up)
+  4. `MaxRomTracker` — peak angle/distance capture per session (shoulder flexion, hinge reach)
+
+  Plus a `RepVelocity` derivative layered on RepCycleTracker.
+- **Record/replay from day one (non-negotiable):** a dev-mode recorder writing timestamped
+  landmark frames to JSONL, and a headless replay harness that feeds recordings through the
+  full pipeline and asserts outputs (rep counts, hold durations, velocities). This is how
+  thresholds get tuned and regressions get caught without a human performing chair stands at
+  every code change. It was essential on the previous project; build it in Stage 1, not later.
+- **Audio:** pre-generate and bundle voice lines as audio files (one-time TTS generation is
+  fine); do not depend on runtime TTS APIs in the session path (latency + failure modes). One
+  voice line at a time; if busy, drop lower-priority lines rather than queueing stale ones.
+  iOS audio mode: MixWithOthers-equivalent interruption mode, recording disabled — **audio
+  configuration must never interrupt the camera session** (this caused real production pain).
+- **Data:** local-only for V1 (no accounts, no backend). SQLite or JSON store for
+  results/history with a schema version field from day one. Landmark recordings behind a dev
+  toggle.
+
+## Platform learnings (React Native / Expo — apply with judgment to current versions)
+
+Use the **latest stable Expo SDK** and current RN — research what's current before pinning; do
+not blindly inherit these pins. But know the history:
+
+- On RN 0.79.x, a `jsinspector-modern` bug (`LOG(FATAL)` on WebSocket reconnection) crashed
+  iOS debug builds under Hermes; the workaround was JSC on iOS + testing in Release. **Check
+  whether your RN version has the upstream fix; verify iOS debug-build stability on a real
+  device in week one**, and if you hit it, switch iOS to JSC and test Release.
+- Config files (`app.config.js`, `babel.config.js`, `metro.config.js`): CommonJS only.
+- If any chance of JSC: no `btoa`/`atob`, and `FileReader.readAsDataURL` hangs on binary
+  blobs — use `arrayBuffer()` + pure-JS base64.
+- Animations: core `Animated` only. Reanimated caused iOS crashes in the predecessor and was
+  removed; do not add it without explicit approval.
+- Never add a native dependency that isn't imported in code; verify autolinking + a clean
+  prebuild after each native dep; `npx tsc --noEmit` and `npx expo config` must always pass;
+  debug overlays behind `__DEV__`.
+- Iterate primarily on an Android device (fastest loop), verify iOS regularly including
+  Release mode. Both platforms must work.
+
+## Assessment battery — protocols and scoring (V1)
+
+All voice-guided, phone propped at ~hip height, user 2.5–3.2 m away. Norms: encode published
+reference tables with sources cited in code comments — Rikli & Jones Senior Fitness Test norms
+(30s chair stand, ages 60–94), Bohannon reference values (single-leg stance across adult ages;
+TUG meta-analysis norms). For ages 45–59 where tables thin out, use published reference
+equations where available and **label extrapolated bands as estimates** in both code and UI.
+Output per-domain results (Strength/Power, Balance, Mobility) as "typical of age X" ranges,
+never false precision.
+
+1. **30-second chair stand** (side view): reps + per-rep rise velocity (body units/s) +
+   session mean. Detect hand-push-off on thighs only as a logged flag, not a user-facing
+   critique.
+2. **Balance ladder** (front view): feet-together → semi-tandem → tandem → single-leg, eyes
+   open then closed (voice-confirmed). Timed to termination (raised-foot touchdown); record
+   sway proxy. Safety script: fingertips near a counter.
+3. **Timed Up and Go** (side-lateral framing so the 3 m walk path crosses the frame): timed
+   from seat-off to re-seated, turn detected via hip-x velocity reversal. If the room can't
+   fit it, offer a short-path variant and flag results as non-standard.
+4. **Shoulder flexion peak** (side view): standing straight-arm forward raise, peak
+   upper-arm-to-trunk angle via MaxRomTracker.
+5. **Hinge reach** (side view): standing forward fold, wrist-to-floor distance in body units
+   at max.
+
+## V1 non-goals (do not build)
+
+Accounts/backend/sync, payments, push notifications, ML/learned form feedback, social
+features, PDF reports, passive monitoring, rotation-graded movements (except neck yaw),
+floor-pose grading beyond bridge, any form-quality critique.
+
+## Working agreements
+
+Incremental commits per milestone with clear messages. Ask before adding heavy dependencies or
+deviating from the architecture above. When a pose-detection behavior surprises you, capture a
+landmark recording of it and add a replay test before fixing. Maintain a `docs/decisions.md`
+log of significant choices.
