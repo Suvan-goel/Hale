@@ -39,3 +39,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# MediaPipe model binaries (scripts/download-models.sh)
+*.task

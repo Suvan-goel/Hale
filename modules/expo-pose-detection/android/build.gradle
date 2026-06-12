@@ -1,0 +1,29 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.posedetection'
+version = '0.1.0'
+
+android {
+  namespace "expo.modules.posedetection"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+  }
+  lintOptions {
+    abortOnError false
+  }
+  androidResources {
+    // .task model files are mmap'd by MediaPipe; APK compression breaks loading.
+    noCompress += ['task', 'tflite']
+  }
+}
+
+dependencies {
+  implementation 'com.google.mediapipe:tasks-vision:0.10.35'
+  implementation 'androidx.camera:camera-core:1.6.1'
+  implementation 'androidx.camera:camera-camera2:1.6.1'
+  implementation 'androidx.camera:camera-lifecycle:1.6.1'
+}
