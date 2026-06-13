@@ -1,0 +1,34 @@
+{
+  "frameCount": 240,
+  "durationMs": 7967,
+  "meanFps": 29.998745,
+  "finalState": "tracking",
+  "bodyUnit": 0.330609,
+  "events": [
+    {
+      "type": "subject-acquired",
+      "timestampMs": 233
+    },
+    {
+      "type": "tracking-started",
+      "timestampMs": 1733
+    },
+    {
+      "type": "calibration-complete",
+      "timestampMs": 3233
+    }
+  ],
+  "stateFrames": {
+    "no-subject": 7,
+    "warmup": 45,
+    "tracking": 188,
+    "interrupted": 0
+  },
+  "meanChainReliability": {
+    "head": 0.145625,
+    "leftSide": 0.145625,
+    "rightSide": 0.922292,
+    "leftArm": 0.145625,
+    "rightArm": 0.922292
+  }
+}

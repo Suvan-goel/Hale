@@ -1,0 +1,46 @@
+{
+  "frameCount": 330,
+  "durationMs": 10967,
+  "meanFps": 29.999088,
+  "finalState": "tracking",
+  "bodyUnit": 0.328925,
+  "events": [
+    {
+      "type": "subject-acquired",
+      "timestampMs": 233
+    },
+    {
+      "type": "tracking-started",
+      "timestampMs": 1733
+    },
+    {
+      "type": "calibration-complete",
+      "timestampMs": 3233
+    },
+    {
+      "type": "subject-gone",
+      "timestampMs": 5333
+    },
+    {
+      "type": "subject-acquired",
+      "timestampMs": 6233
+    },
+    {
+      "type": "tracking-started",
+      "timestampMs": 7733
+    }
+  ],
+  "stateFrames": {
+    "no-subject": 7,
+    "warmup": 90,
+    "tracking": 206,
+    "interrupted": 27
+  },
+  "meanChainReliability": {
+    "head": 0.843485,
+    "leftSide": 0.843485,
+    "rightSide": 0.843485,
+    "leftArm": 0.843485,
+    "rightArm": 0.843485
+  }
+}
