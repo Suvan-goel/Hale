@@ -15,7 +15,12 @@
  */
 
 import { VoiceCueKey, voicePriority } from '../audio/cues';
-import { GraderUpdate, MovementDefinition, MovementGrader, MovementResultBase } from '../movements';
+import {
+  GraderUpdate,
+  MovementDefinition,
+  MovementGrader,
+  MovementResultBase,
+} from '../movements';
 import { PipelineFrameOutput } from '../pose/pipeline';
 import { PreflightPrompt, PreflightStatus } from '../preflight/preflight';
 
@@ -53,6 +58,13 @@ export interface SessionControllerConfig {
   countdownStepMs: number;
   /** Pause after the result sentence before the session counts as done. */
   resultLingerMs: number;
+  /**
+   * Hard cap on the active window for grader-terminated items (durationMs ===
+   * null). A grader that never signals completion (subject wandered off, a
+   * detector wedged) must not hang the whole battery — finish() is called and
+   * the item ends. Generous: real balance/TUG items end far sooner.
+   */
+  maxActiveMs: number;
 }
 
 export const DEFAULT_SESSION_CONFIG: SessionControllerConfig = {
@@ -60,6 +72,7 @@ export const DEFAULT_SESSION_CONFIG: SessionControllerConfig = {
   postInstructionsDwellMs: 2500,
   countdownStepMs: 1000,
   resultLingerMs: 800,
+  maxActiveMs: 180000,
 };
 
 const COUNTDOWN: readonly VoiceCueKey[] = ['countdown-three', 'countdown-two', 'countdown-one', 'go'];
@@ -69,7 +82,8 @@ export class SessionController<R extends MovementResultBase = MovementResultBase
 
   private readonly config: SessionControllerConfig;
   private readonly grader: MovementGrader<R>;
-  private readonly durationMs: number;
+  /** Fixed active-window length, or null for grader-terminated items. */
+  private readonly durationMs: number | null;
   private readonly update_: SessionFrameUpdate = {
     phase: 'preflight',
     voice: null,
@@ -94,10 +108,9 @@ export class SessionController<R extends MovementResultBase = MovementResultBase
     definition: MovementDefinition<R>,
     config: SessionControllerConfig = DEFAULT_SESSION_CONFIG
   ) {
-    if (definition.durationMs === null) {
-      throw new Error(`movement '${definition.id}' has no fixed duration; V1 flow needs one`);
-    }
     this.definition = definition;
+    // null duration = grader-terminated (balance ladder, TUG): the grader's
+    // own state machine decides when the item is done; maxActiveMs is the cap.
     this.durationMs = definition.durationMs;
     this.config = config;
     this.grader = definition.createGrader();
@@ -182,13 +195,22 @@ export class SessionController<R extends MovementResultBase = MovementResultBase
         u.playRepSound = graderUpdate.repCredited;
         u.repCount = graderUpdate.repCount;
         u.measuring = graderUpdate.measuring;
-        u.remainingMs = Math.max(0, this.durationMs - (ts - this.activeStartMs));
-        if (ts - this.activeStartMs >= this.durationMs) {
+        // Relay any mid-activity narration the grader requested (balance stage
+        // cues, eyes-closed prompts). A closing cue below may override it.
+        if (graderUpdate.voice) u.voice = graderUpdate.voice;
+
+        const elapsed = ts - this.activeStartMs;
+        const clockEnded = this.durationMs !== null && elapsed >= this.durationMs;
+        const safetyEnded = this.durationMs === null && elapsed >= this.config.maxActiveMs;
+        u.remainingMs = this.durationMs !== null ? Math.max(0, this.durationMs - elapsed) : NaN;
+
+        if (clockEnded || graderUpdate.complete || safetyEnded) {
           this.finishedResult = this.grader.finish(ts);
           this.phase = 'result';
           this.resultSpokenAtMs = -1;
-          u.voice = { cues: ['times-up'], priority: voicePriority('times-up') };
-          u.remainingMs = 0;
+          const endCue = this.definition.voice.endCue;
+          if (endCue) u.voice = { cues: [endCue], priority: voicePriority(endCue) };
+          if (this.durationMs !== null) u.remainingMs = 0;
         }
         break;
       }

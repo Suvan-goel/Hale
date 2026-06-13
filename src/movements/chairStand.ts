@@ -82,6 +82,8 @@ class ChairStandGrader implements MovementGrader<ChairStandResult> {
     repCredited: false,
     repCount: 0,
     measuring: false,
+    complete: false, // fixed-duration item: the controller's clock ends it
+    voice: null,
   };
 
   private sideIsLeft = false;
@@ -235,6 +237,7 @@ export const chairStandDefinition: MovementDefinition<ChairStandResult> = {
   durationMs: 30000,
   voice: {
     instructions: ['chair-stand-intro', 'chair-stand-setup'],
+    endCue: 'times-up',
   },
   createGrader: () => new ChairStandGrader(DEFAULT_CHAIR_STAND_CONFIG),
   resultCues(result: ChairStandResult): VoiceCueKey[] {

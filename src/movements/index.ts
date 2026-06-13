@@ -14,6 +14,7 @@ export type {
   CameraViewSpec,
   EquipmentTag,
   GraderUpdate,
+  GraderVoice,
   MovementDefinition,
   MovementGrader,
   MovementResultBase,

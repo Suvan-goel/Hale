@@ -26,6 +26,18 @@ export type EquipmentTag = 'none' | 'chair' | 'wall' | 'floor' | 'stair' | 'cush
 export interface MovementVoiceScript {
   /** Spoken in order once the user is framed, before the countdown. */
   instructions: readonly VoiceCueKey[];
+  /**
+   * Spoken when the active window closes (clock or grader-termination),
+   * before the result sentence. Chair stand uses 'times-up' ("Time! Have a
+   * seat…"); omit for items where no closing line reads naturally.
+   */
+  endCue?: VoiceCueKey;
+}
+
+/** A voice line (or stitched sequence) a grader wants spoken mid-activity. */
+export interface GraderVoice {
+  cues: VoiceCueKey[];
+  priority: number;
 }
 
 export interface MovementResultBase {
@@ -43,6 +55,19 @@ export interface GraderUpdate {
   repCount: number;
   /** False while warmup/interruption/missing calibration blocks grading. */
   measuring: boolean;
+  /**
+   * Grader-terminated items (balance ladder, TUG): true once the item has
+   * finished and the active window should close. Fixed-duration items
+   * (chair stand, ROM holds) leave this false — the controller's clock ends
+   * them.
+   */
+  complete: boolean;
+  /**
+   * A voice line the grader wants spoken THIS frame (balance stage cues,
+   * eyes-closed prompts); null on almost every frame. Reused object — the
+   * controller relays it synchronously.
+   */
+  voice: GraderVoice | null;
 }
 
 export interface MovementGrader<R extends MovementResultBase = MovementResultBase> {
