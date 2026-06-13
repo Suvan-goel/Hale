@@ -42,3 +42,7 @@ yarn-error.*
 
 # MediaPipe model binaries (scripts/download-models.sh)
 *.task
+
+# native module build artifacts
+modules/**/android/build/
+modules/**/.cxx/
