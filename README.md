@@ -17,6 +17,15 @@ bundled pre-generated audio, and noise-floor tooling
 ([docs/noise-floor-report.md](docs/noise-floor-report.md) — synthetic dry
 run passed at 0.44% CV; real-data run pending recordings).
 
+**Stage 3 status:** the full Movement Check-Up — all five assessments
+(chair stand, Timed Up and Go, balance ladder, shoulder flexion, hinge
+reach), the voice-guided battery orchestrator with re-framing and graceful
+skip, published-norm per-domain "movement ages", a results screen with the
+weakest-domain focus and longitudinal trends, and schema-versioned local
+history — wired end-to-end (`home → check-up → results`). End-to-end on a
+physical device is still pending (the camera/MediaPipe path can't run on an
+emulator).
+
 ## Setup
 
 ```bash

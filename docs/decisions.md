@@ -102,3 +102,34 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 - **Synthetic chair-stand generator drives hip height, not joint angles** (two-link IK
   derives the knee angle), so true hip velocity is piecewise-linear and known exactly —
   that's what makes "velocity within tolerance" assertions honest.
+
+## 2026-06-14 — Stage 3 M6: wire the Check-Up flow into the app
+
+- **Integration milestone, not new logic.** The battery orchestrator, the five definitions,
+  norms/scoring, history, and both `CheckUpScreen`/`ResultsScreen` already existed and were
+  unit-tested (M1–M5); they were just never reachable. M6 adds only the glue: a `HomeScreen`,
+  an App-level screen state machine, and the `HistoryStore` instantiation. No grading or
+  scoring code was touched or duplicated.
+- **Plain App-level navigation, no router** (consistent with the Stage 1 decision to skip
+  expo-router). `App.tsx` holds a 5-state `Screen` union (`home` → `checkup` → `results`, plus
+  `dev-assessment`/`dev-live` behind `__DEV__`). The Stage 2 single-chair-stand screen and the
+  live dev view are preserved as dev-only entries rather than deleted — they remain the fastest
+  way to exercise one item / the raw pipeline.
+- **Home mounts no camera.** Making `home` the default (not the assessment screen) means a cold
+  launch renders a stable UI without touching MediaPipe — the camera mounts only when the user
+  begins a check-up. Convenient side effect: the app no longer hits the emulator's MediaPipe
+  GPU-inference crash just by opening (the emulator still can't run an actual check-up — that
+  needs a real device).
+- **Persist-then-reload feeds trends.** On completion `App` calls `store.save(checkUp)`
+  synchronously, navigates to `ResultsScreen` with the raw `checkUp` (drives the current
+  domain cards), and reloads `loadAll()` into `history` (drives the trend sparklines, now
+  including the just-saved point). The results screen reads the current score from the live
+  `checkUp` and trends from `history`, so a brief reload race can only delay a sparkline, never
+  the headline.
+- **`HistoryStore` is constructed with `expoHistoryFs`** (the only place the native
+  expo-file-system adapter enters app code — pure modules and tests still use `createMemoryFs`).
+  The wired seam (finished CheckUp → save → loadAll across a restart → score + trends, including
+  the skip/unmeasured + NaN→null round-trip) is guarded by a new integration test
+  (`src/checkup/__tests__/checkupFlow.integration.test.ts`); 148 tests pass, typecheck clean,
+  full Android bundle compiles. End-to-end on-device run of the battery still pending a physical
+  device (emulator MediaPipe limitation).
