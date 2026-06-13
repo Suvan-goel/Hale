@@ -28,7 +28,8 @@
     "typecheck": "tsc --noEmit",
     "replay": "tsx scripts/replay.ts",
     "fixtures": "tsx scripts/generate-fixtures.ts",
-    "audio": "tsx scripts/generate-audio.ts"
+    "audio": "tsx scripts/generate-audio.ts",
+    "noise-floor": "tsx scripts/noise-floor.ts"
   },
   "jest": {
     "preset": "jest-expo",

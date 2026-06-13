@@ -10,6 +10,13 @@ for the decision log.
 module, pure-TS pose pipeline, skeleton renderer, record/replay harness,
 pre-flight check).
 
+**Stage 2 status:** grading engine (four shared primitives + RepVelocity),
+movement registry with the 30-second chair stand (reps, per-rep rise
+velocity in body units/s, push-off flag), voice-guided assessment flow with
+bundled pre-generated audio, and noise-floor tooling
+([docs/noise-floor-report.md](docs/noise-floor-report.md) — synthetic dry
+run passed at 0.44% CV; real-data run pending recordings).
+
 ## Setup
 
 ```bash
@@ -33,6 +40,10 @@ npm test                # jest unit + fixture-replay tests
 npm run replay -- <recording.jsonl>             # headless pipeline replay
 npm run replay -- <rec.jsonl> --assert <expected.json>
 npm run fixtures        # regenerate committed synthetic fixtures
+npm run audio           # regenerate bundled voice lines + chime (macOS only)
+npm run noise-floor -- recordings/   # rise-velocity CV analysis
+npm run noise-floor -- --synthetic   # setup-variance dry run
+./scripts/pull-recordings.sh         # pull device recordings (Android)
 ```
 
 Landmark recordings: in a dev build, use the overlay's record button; files
@@ -53,7 +64,17 @@ a regression test.
 - `src/render/` — skeleton-on-black renderer (imperative SVG path updates
   at 30fps; React state only for the `__DEV__` overlay at 10fps).
 - `src/preflight/` — framing/distance/lighting pre-flight state machine.
-- `src/recording/` + `src/replay/` — JSONL recorder, replay summaries.
-- `scripts/` — replay CLI, fixture generation, model download.
+- `src/grading/` — the four grading archetypes (RepCycle, Hold, TimedTask,
+  MaxRom) + RepVelocity. Pure TS, allocation-free per-frame updates.
+- `src/movements/` — MovementDefinition registry; one movement per file
+  (first: 30s chair stand). Screens are movement-agnostic.
+- `src/assessment/` — voice-guided session controller (pure TS state
+  machine, replay-testable).
+- `src/audio/` — cue keys, generated asset manifest, expo-audio playback
+  channels (one voice line at a time, priority-drop).
+- `src/recording/` + `src/replay/` — JSONL recorder, replay summaries,
+  headless grading replays, noise-floor analysis.
+- `scripts/` — replay CLI, fixture generation, model download, audio
+  generation, noise-floor CLI, recording pull.
 
 `android/` and `ios/` are generated (`npx expo prebuild`) and gitignored.
