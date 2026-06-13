@@ -6,9 +6,30 @@
  */
 
 import './chairStand';
+import './balanceLadder';
+import './tug';
+import './shoulderFlexion';
+import './hingeReach';
 
 export { CHAIR_STAND_ID } from './chairStand';
 export type { ChairStandRepStat, ChairStandResult } from './chairStand';
+export {
+  BALANCE_LADDER_ID,
+  DEFAULT_BALANCE_STAGES,
+} from './balanceLadder';
+export type {
+  BalanceResult,
+  BalanceStageConfig,
+  BalanceStageResult,
+  BalanceStance,
+  BalanceTermination,
+} from './balanceLadder';
+export { TUG_ID } from './tug';
+export type { TugResult } from './tug';
+export { SHOULDER_FLEXION_ID } from './shoulderFlexion';
+export type { ShoulderFlexionResult } from './shoulderFlexion';
+export { HINGE_REACH_ID } from './hingeReach';
+export type { HingeReachResult } from './hingeReach';
 export { getMovement, listMovements, registerMovement } from './registry';
 export type {
   CameraViewSpec,

@@ -23,6 +23,26 @@ export type VoiceCueKey =
   // Chair-stand instructions.
   | 'chair-stand-intro'
   | 'chair-stand-setup'
+  // Balance ladder instructions + stage cues (spoken mid-activity).
+  | 'balance-intro'
+  | 'balance-setup'
+  | 'balance-feet-together'
+  | 'balance-semi-tandem'
+  | 'balance-tandem'
+  | 'balance-single-leg'
+  | 'close-your-eyes'
+  | 'open-your-eyes'
+  // Timed Up and Go instructions.
+  | 'tug-intro'
+  | 'tug-setup'
+  // Shoulder flexion instructions + closing cue.
+  | 'shoulder-intro'
+  | 'shoulder-setup'
+  | 'relax-arm'
+  // Hinge reach instructions + closing cue.
+  | 'hinge-intro'
+  | 'hinge-setup'
+  | 'stand-tall'
   // Session flow.
   | 'countdown-three'
   | 'countdown-two'
@@ -33,6 +53,7 @@ export type VoiceCueKey =
   | 'you-completed'
   | 'stands-suffix'
   | 'no-reps'
+  | 'item-complete'
   | NumberCueKey;
 
 /** Non-voice session sounds; play on their own channel, may overlap voice. */
@@ -49,14 +70,31 @@ export function voicePriority(cue: VoiceCueKey): number {
     case 'countdown-one':
     case 'go':
     case 'times-up':
-      return 10;
+    case 'relax-arm':
+    case 'stand-tall':
+      return 10; // window-closing / countdown cues
     case 'you-completed':
     case 'stands-suffix':
     case 'no-reps':
-      return 9;
+    case 'item-complete':
+      return 9; // result lines
     case 'chair-stand-intro':
     case 'chair-stand-setup':
-      return 8;
+    case 'balance-intro':
+    case 'balance-setup':
+    case 'balance-feet-together':
+    case 'balance-semi-tandem':
+    case 'balance-tandem':
+    case 'balance-single-leg':
+    case 'close-your-eyes':
+    case 'open-your-eyes':
+    case 'tug-intro':
+    case 'tug-setup':
+    case 'shoulder-intro':
+    case 'shoulder-setup':
+    case 'hinge-intro':
+    case 'hinge-setup':
+      return 8; // instructions + balance stage narration
     default:
       return 5; // pre-flight framing prompts
   }

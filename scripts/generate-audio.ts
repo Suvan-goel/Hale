@@ -40,6 +40,45 @@ const LINES: Record<string, string> = {
   'chair-stand-setup':
     'Cross your arms over your chest. When I say go, stand up all the way, ' +
     'then sit back down, and repeat as many times as you can until I say time.',
+  // Balance ladder.
+  'balance-intro':
+    'Next, a few short balance holds. Stand near a kitchen counter or sturdy ' +
+    'chair, so you can rest your fingertips on it if you need to steady yourself.',
+  'balance-setup':
+    "I'll tell you how to place your feet for each hold. Keep each position " +
+    'until I tell you the next one, or until you need to touch down.',
+  'balance-feet-together': 'Place your feet together, side by side.',
+  'balance-semi-tandem':
+    'Slide one foot half a step forward, so its instep touches your other big toe.',
+  'balance-tandem': 'Place one foot directly in front of the other, heel to toe.',
+  'balance-single-leg': 'Now stand on one leg, lifting your other foot just off the floor.',
+  'close-your-eyes': 'Keep holding, and gently close your eyes.',
+  'open-your-eyes': 'You can open your eyes now.',
+  // Timed Up and Go.
+  'tug-intro':
+    'Next, up and go. Put a sturdy chair side-on to the phone, with a clear ' +
+    'three meter walking path in front of you.',
+  'tug-setup':
+    'Sit in the chair. When I say go, stand up, walk to the end of the path at ' +
+    'a comfortable pace, turn around, walk back, and sit down.',
+  // Shoulder flexion.
+  'shoulder-intro':
+    'Next, a shoulder reach. Turn so your side faces the phone, and stand tall ' +
+    'with your arm relaxed at your side.',
+  'shoulder-setup':
+    'When I say go, raise that arm straight out in front of you and up as high ' +
+    'as it comfortably goes, and hold it there.',
+  'relax-arm': 'Lovely. Lower your arm and relax.',
+  // Hinge reach.
+  'hinge-intro':
+    'Last one, a forward reach. Stay side-on to the phone, standing tall with ' +
+    'your feet under your hips.',
+  'hinge-setup':
+    'When I say go, slowly fold forward from your hips and reach your hands ' +
+    'toward the floor, as far as is comfortable, and hold.',
+  'stand-tall': "That's great. Slowly roll back up to standing.",
+  // Shared result acknowledgement.
+  'item-complete': 'Nicely done.',
   // Session flow.
   'countdown-three': 'Three.',
   'countdown-two': 'Two.',
