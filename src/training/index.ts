@@ -15,3 +15,18 @@ export type {
   TrainingPlayerConfig,
   TrainingSessionResult,
 } from './sessionPlayer';
+export {
+  DEFAULT_PROGRESSION_CONFIG,
+  applySession,
+  applySessionResult,
+  decideLevel,
+  initialProgressionState,
+  summarizeItem,
+  velocityTrend,
+} from './progression';
+export type {
+  ExerciseSessionSummary,
+  ProgressionAction,
+  ProgressionConfig,
+  ProgressionState,
+} from './progression';
