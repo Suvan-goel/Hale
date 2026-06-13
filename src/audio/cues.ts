@@ -43,6 +43,13 @@ export type VoiceCueKey =
   | 'hinge-intro'
   | 'hinge-setup'
   | 'stand-tall'
+  // Check-Up battery orchestration (between-item transitions).
+  | 'checkup-intro'
+  | 'checkup-complete'
+  | 'turn-side-on'
+  | 'face-forward'
+  | 'next-exercise'
+  | 'exercise-skipped'
   // Session flow.
   | 'countdown-three'
   | 'countdown-two'
@@ -77,7 +84,13 @@ export function voicePriority(cue: VoiceCueKey): number {
     case 'stands-suffix':
     case 'no-reps':
     case 'item-complete':
-      return 9; // result lines
+    case 'checkup-intro':
+    case 'checkup-complete':
+    case 'turn-side-on':
+    case 'face-forward':
+    case 'next-exercise':
+    case 'exercise-skipped':
+      return 9; // result lines + between-item transition guidance
     case 'chair-stand-intro':
     case 'chair-stand-setup':
     case 'balance-intro':

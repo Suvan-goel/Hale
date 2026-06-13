@@ -79,6 +79,16 @@ const LINES: Record<string, string> = {
   'stand-tall': "That's great. Slowly roll back up to standing.",
   // Shared result acknowledgement.
   'item-complete': 'Nicely done.',
+  // Check-Up battery orchestration.
+  'checkup-intro':
+    "Welcome to your Movement Check-Up. We'll do five short movements together. " +
+    "Just follow my voice — you won't need to touch the screen. Let's begin.",
+  'checkup-complete':
+    "That's the whole check-up — really well done. Your results are ready on the screen.",
+  'turn-side-on': 'For the next movement, please turn so your side faces the phone.',
+  'face-forward': 'For the next movement, please turn to face the phone.',
+  'next-exercise': "Nice work. Let's set up the next movement.",
+  'exercise-skipped': "No problem — we'll skip this one for now and move on.",
   // Session flow.
   'countdown-three': 'Three.',
   'countdown-two': 'Two.',
