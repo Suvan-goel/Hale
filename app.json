@@ -5,13 +5,15 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "plugins": ["./modules/expo-pose-detection/app.plugin.js"],
     "userInterfaceStyle": "dark",
     "backgroundColor": "#000000",
     "ios": {
       "supportsTablet": false,
       "infoPlist": {
         "NSCameraUsageDescription": "The camera measures your movement as a skeleton outline. Camera video is never shown or stored."
-      }
+      },
+      "bundleIdentifier": "com.suvangoel.longevityapp"
     },
     "android": {
       "adaptiveIcon": {

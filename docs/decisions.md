@@ -52,3 +52,9 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
   transforms expo-modules-core; overriding it breaks the test bootstrap.
 - **Model binaries not committed** (5.7MB each, regenerable): `scripts/download-models.sh`
   must run after clone and before prebuild, or the app throws `model-not-bundled` at runtime.
+- **APK model compression (caught in verification):** AGP Deflate-compresses `.task` assets by
+  default and library-level `androidResources.noCompress` does NOT govern final APK packaging —
+  MediaPipe mmaps models, so this breaks at runtime. Fixed with a config plugin
+  (`modules/expo-pose-detection/app.plugin.js`) that injects `noCompress += ["task","tflite"]`
+  into the generated app build.gradle; verified by `unzip -v` showing `Stored` for the asset.
+  This is the predicted "MediaPipe gradle quirk" — the budget for it was real.
