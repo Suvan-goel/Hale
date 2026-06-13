@@ -1,0 +1,34 @@
+/**
+ * Shared Movement Check-Up result container. Produced by the orchestrator
+ * (src/checkup/checkup.ts), consumed by scoring (src/scoring) and persisted by
+ * history (src/history). Kept dependency-light (only movement result types) so
+ * everything downstream can import it without cycles.
+ *
+ * A check-up always yields one item per battery movement; a test the user
+ * skipped or that produced no usable measurement is recorded explicitly so the
+ * results screen can show "not measured this time" without special-casing.
+ */
+
+import { MovementResultBase } from '../movements';
+
+export type CheckUpItemStatus = 'measured' | 'skipped' | 'unmeasured';
+
+export interface CheckUpItem {
+  movementId: string;
+  status: CheckUpItemStatus;
+  /** The grader result; null when skipped. Present-but-unmeasured carries the
+   * grader's own `no-measurement` flag. */
+  result: MovementResultBase | null;
+}
+
+export interface CheckUp {
+  /** ISO-8601 timestamp the check-up started. */
+  startedAt: string;
+  /** Body-unit scale captured for the session (diagnostic / drift check). */
+  bodyUnit: number | null;
+  items: CheckUpItem[];
+}
+
+export function findItem(checkUp: CheckUp, movementId: string): CheckUpItem | undefined {
+  return checkUp.items.find((i) => i.movementId === movementId);
+}
