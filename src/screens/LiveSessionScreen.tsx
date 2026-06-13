@@ -18,6 +18,8 @@ import {
 } from '../../modules/expo-pose-detection';
 import { CHAIN_COUNT } from '../pose/chains';
 import { PosePipeline } from '../pose/pipeline';
+import { PreflightCheck, PreflightPrompt } from '../preflight/preflight';
+import { PreflightBanner } from '../preflight/PreflightBanner';
 import { LandmarkRecorder } from '../recording/recorder';
 import { DevOverlay, OverlaySnapshot } from '../render/DevOverlay';
 import { SkeletonView, SkeletonViewHandle } from '../render/SkeletonView';
@@ -37,10 +39,15 @@ const INITIAL_SNAPSHOT: OverlaySnapshot = {
 export function LiveSessionScreen() {
   const [pipeline] = React.useState(() => new PosePipeline());
   const [recorder] = React.useState(() => new LandmarkRecorder());
+  const [preflight] = React.useState(() => new PreflightCheck());
   const skeletonRef = React.useRef<SkeletonViewHandle>(null);
   const lastUiUpdateRef = React.useRef(0);
   const inferenceMsRef = React.useRef(0);
   const [snapshot, setSnapshot] = React.useState<OverlaySnapshot>(INITIAL_SNAPSHOT);
+  const [prompt, setPrompt] = React.useState<{ key: PreflightPrompt; progress: number }>({
+    key: 'step-into-frame',
+    progress: 0,
+  });
   const [lastError, setLastError] = React.useState<string | null>(null);
 
   const onLandmarks = React.useCallback(
@@ -49,10 +56,17 @@ export function LiveSessionScreen() {
       recorder.record(event);
       const out = pipeline.process(event);
       skeletonRef.current?.update(out, event.sourceWidth / event.sourceHeight);
+      const status = preflight.update(out);
       inferenceMsRef.current = event.inferenceMs;
 
       if (event.timestampMs - lastUiUpdateRef.current >= UI_UPDATE_INTERVAL_MS) {
         lastUiUpdateRef.current = event.timestampMs;
+        setPrompt((prev) =>
+          prev.key === status.prompt &&
+          Math.abs(prev.progress - status.sampleProgress) < 0.15
+            ? prev // unchanged — skip the re-render entirely
+            : { key: status.prompt, progress: status.sampleProgress }
+        );
         if (__DEV__) {
           setSnapshot({
             state: out.state,
@@ -66,7 +80,7 @@ export function LiveSessionScreen() {
         }
       }
     },
-    [pipeline, recorder]
+    [pipeline, recorder, preflight]
   );
 
   const onPoseError = React.useCallback((e: { nativeEvent: PoseErrorEventPayload }) => {
@@ -86,6 +100,7 @@ export function LiveSessionScreen() {
     <View style={styles.container}>
       <PoseDetectionView active style={StyleSheet.absoluteFill} onLandmarks={onLandmarks} onPoseError={onPoseError} />
       <SkeletonView ref={skeletonRef} mirrored />
+      <PreflightBanner prompt={prompt.key} sampleProgress={prompt.progress} />
       <DevOverlay snapshot={snapshot} onToggleRecording={onToggleRecording} />
       {lastError !== null && __DEV__ && (
         <Text style={styles.error} numberOfLines={2}>

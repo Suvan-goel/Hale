@@ -79,6 +79,11 @@ export interface PipelineFrameOutput {
   state: TrackingState;
   /** Smoothed frame. Valid only when frame.hasPose. */
   frame: PoseFrame;
+  /**
+   * Unsmoothed frame for consumers that need raw signal quality (the
+   * pre-flight lighting check measures jitter that smoothing would hide).
+   */
+  rawFrame: PoseFrame;
   /** Windowed reliability per chain, indexed by CHAIN_IDS order. */
   chainReliability: Float64Array;
   reliableSideChains: number;
@@ -115,6 +120,7 @@ export class PosePipeline {
     this.output = {
       state: 'no-subject',
       frame: this.smoothedFrame,
+      rawFrame: this.rawFrame,
       chainReliability: this.chains.reliability,
       reliableSideChains: 0,
       validity: { valid: false, reason: 'no-pose' },
