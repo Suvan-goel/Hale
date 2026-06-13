@@ -50,6 +50,34 @@ export type VoiceCueKey =
   | 'face-forward'
   | 'next-exercise'
   | 'exercise-skipped'
+  // Training exercise instructions (one per family).
+  | 'ex-sit-to-stand'
+  | 'ex-squat'
+  | 'ex-step-up'
+  | 'ex-heel-raise'
+  | 'ex-glute-bridge'
+  | 'ex-push-up'
+  | 'ex-overhead'
+  | 'ex-hip-hinge'
+  | 'ex-balance'
+  | 'ex-hamstring-reach'
+  | 'ex-neck-rotation'
+  | 'ex-march'
+  // Training session flow (player orchestration + autoregulation).
+  | 'training-intro'
+  | 'thats-your-set'
+  | 'rest-now'
+  | 'next-up'
+  | 'last-set'
+  | 'set-done'
+  | 'cooldown-now'
+  | 'session-complete'
+  | 'time-to-retest'
+  // Weekly micro-check.
+  | 'microcheck-intro'
+  | 'microcheck-chair'
+  | 'microcheck-balance'
+  | 'microcheck-complete'
   // Session flow.
   | 'countdown-three'
   | 'countdown-two'
@@ -90,7 +118,18 @@ export function voicePriority(cue: VoiceCueKey): number {
     case 'face-forward':
     case 'next-exercise':
     case 'exercise-skipped':
-      return 9; // result lines + between-item transition guidance
+    case 'thats-your-set':
+    case 'training-intro':
+    case 'rest-now':
+    case 'next-up':
+    case 'last-set':
+    case 'set-done':
+    case 'cooldown-now':
+    case 'session-complete':
+    case 'time-to-retest':
+    case 'microcheck-intro':
+    case 'microcheck-complete':
+      return 9; // result lines + between-item / between-set transition guidance
     case 'chair-stand-intro':
     case 'chair-stand-setup':
     case 'balance-intro':
@@ -107,7 +146,21 @@ export function voicePriority(cue: VoiceCueKey): number {
     case 'shoulder-setup':
     case 'hinge-intro':
     case 'hinge-setup':
-      return 8; // instructions + balance stage narration
+    case 'ex-sit-to-stand':
+    case 'ex-squat':
+    case 'ex-step-up':
+    case 'ex-heel-raise':
+    case 'ex-glute-bridge':
+    case 'ex-push-up':
+    case 'ex-overhead':
+    case 'ex-hip-hinge':
+    case 'ex-balance':
+    case 'ex-hamstring-reach':
+    case 'ex-neck-rotation':
+    case 'ex-march':
+    case 'microcheck-chair':
+    case 'microcheck-balance':
+      return 8; // instructions + exercise narration
     default:
       return 5; // pre-flight framing prompts
   }

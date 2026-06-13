@@ -30,6 +30,23 @@ export function angleAtDeg(frame: PoseFrame, a: LM, vertex: LM, b: LM): number {
 }
 
 /**
+ * Estimated head yaw, degrees, signed: 0 facing the camera, positive turning
+ * toward the subject's right. 2D pose can't see transverse rotation EXCEPT head
+ * yaw, which the nose/ear geometry betrays (CLAUDE.md): facing forward the nose
+ * sits centred between the ears; turning brings it toward the leading ear. We
+ * report the nose's offset from the ear midpoint as a fraction of ear
+ * separation (~±0.5 at a near-full turn) scaled to ~±90°. A rough proxy — only
+ * the peak magnitude is graded (neck-rotation ROM), never a precise angle.
+ */
+export function headYawDeg(frame: PoseFrame): number {
+  const earSep = Math.abs(frame.xs[LM.LEFT_EAR] - frame.xs[LM.RIGHT_EAR]);
+  if (earSep === 0) return 0;
+  const earMidX = (frame.xs[LM.LEFT_EAR] + frame.xs[LM.RIGHT_EAR]) * 0.5;
+  const ratio = (frame.xs[LM.NOSE] - earMidX) / earSep;
+  return ratio * 180;
+}
+
+/**
  * Distance from landmark `p` to the segment a→b (normalized units). Used for
  * e.g. wrist-to-thigh proximity (hand-push-off detection on chair stands).
  */

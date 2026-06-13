@@ -20,8 +20,13 @@ export interface CameraViewSpec {
   requiredReliableSideChains: 1 | 2;
 }
 
-/** Zero-equipment start: anything beyond these must have a regression. */
-export type EquipmentTag = 'none' | 'chair' | 'wall' | 'floor' | 'stair' | 'cushion';
+/**
+ * Zero-equipment start: anything beyond 'none' must have a regression/
+ * substitute. 'band' (a resistance band) and 'stair' are the only training-
+ * only tags a user might lack — block assignment + the session player consult
+ * the equipment profile and substitute when one is missing.
+ */
+export type EquipmentTag = 'none' | 'chair' | 'wall' | 'floor' | 'stair' | 'cushion' | 'band';
 
 export interface MovementVoiceScript {
   /** Spoken in order once the user is framed, before the countdown. */
