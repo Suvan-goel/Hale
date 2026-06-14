@@ -99,6 +99,67 @@ const LINES: Record<string, string> = {
   'you-completed': 'You completed',
   'stands-suffix': 'chair stands. Well done.',
   'no-reps': "We couldn't measure any stands that time. We can try again whenever you like.",
+  // Training exercise instructions (one per family).
+  'ex-sit-to-stand':
+    'Sit-to-stands. Sit tall in the middle of the chair, feet flat. When I say ' +
+    'go, stand all the way up and sit back down, with control.',
+  'ex-squat':
+    'Squats. Feet about hip width apart, a chair behind you for support if you ' +
+    'like. Lower down as if to sit, then stand back up.',
+  'ex-step-up':
+    'Step-ups. Stand facing your step. Step up with one foot, bring the other ' +
+    'to meet it, then step back down, leading with the same foot.',
+  'ex-heel-raise':
+    'Heel raises. Stand tall, fingertips on a wall or counter for balance. Rise ' +
+    'up onto the balls of your feet, then lower slowly.',
+  'ex-glute-bridge':
+    'Glute bridge. Lie on your back, knees bent, feet flat. Lift your hips ' +
+    'toward the ceiling, squeeze, and lower.',
+  'ex-push-up':
+    'Push-ups. Hands shoulder width apart against the wall or floor. Lower ' +
+    'yourself in with control, then press back out.',
+  'ex-overhead':
+    'Overhead reach. Stand tall. Reach both arms up overhead as far as is ' +
+    'comfortable, then lower.',
+  'ex-hip-hinge':
+    'Hip hinge. Stand a step in front of the wall, feet under your hips. Push ' +
+    'your hips back to tap the wall, keeping your back long, then stand tall.',
+  'ex-balance':
+    'A balance hold. Get into the position I describe, fingertips near a ' +
+    'counter, and hold steady until you need to touch down.',
+  'ex-hamstring-reach':
+    'Seated hamstring reach. Sit tall on the edge of the chair, one leg straight ' +
+    'out, heel on the floor. Reach gently toward your toes and hold.',
+  'ex-neck-rotation':
+    'Neck rotations. Face the phone, sitting or standing tall. Slowly turn your ' +
+    'head to look over one shoulder, then the other.',
+  'ex-march':
+    'Marching. Stand tall and march on the spot, driving each knee up nice and ' +
+    'high, with a steady rhythm.',
+  // Training session flow.
+  'training-intro':
+    "Time to train. We'll move through a few exercises together. Just follow my " +
+    "voice — you won't need to touch the screen. Let's begin.",
+  'thats-your-set': "Good — that's your set.",
+  'rest-now': 'Nice work. Take a rest.',
+  'next-up': "Let's set up the next exercise.",
+  'last-set': 'Rest up. This is your last set.',
+  'set-done': 'Good set.',
+  'cooldown-now': 'Last part — a gentle cooldown to finish.',
+  'session-complete':
+    "That's your session — really well done. Have some water and enjoy your day.",
+  'time-to-retest':
+    "You've finished your four week block. It's a great time for a new " +
+    'check-up, to see how far you have come.',
+  // Weekly micro-check.
+  'microcheck-intro': "A quick check-in to track your progress. It'll only take a minute.",
+  'microcheck-chair':
+    'Five quick chair stands. Sit tall, arms crossed, and when I say go, stand ' +
+    'up and sit down five times, as quickly as you safely can.',
+  'microcheck-balance':
+    'A one-leg balance. Fingertips near a counter, stand on one leg and hold as ' +
+    'long as you can.',
+  'microcheck-complete': "Got it — that's logged. Nice work.",
 };
 
 const NUMBER_WORDS = [

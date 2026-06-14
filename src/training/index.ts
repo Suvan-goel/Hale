@@ -51,3 +51,20 @@ export type {
   MicroCheckResult,
   MicroCheckType,
 } from './microCheck';
+export { TrainingStore } from './store';
+export {
+  TRAINING_SCHEMA_VERSION,
+  defaultTrainingState,
+  deserializeMicroCheck,
+  deserializeTrainingState,
+  serializeMicroCheck,
+  serializeTrainingState,
+} from './serialize';
+export type { BlockProgress, TrainingState } from './serialize';
+export {
+  nextSessionExercises,
+  nextSessionPlan,
+  recordCompletedSession,
+  retestDue,
+  startBlock,
+} from './state';
