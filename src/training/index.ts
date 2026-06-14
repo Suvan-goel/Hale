@@ -30,3 +30,12 @@ export type {
   ProgressionConfig,
   ProgressionState,
 } from './progression';
+export {
+  DEFAULT_EQUIPMENT,
+  blockComplete,
+  buildBlock,
+  resolveSession,
+  resolveSlot,
+  totalSessions,
+} from './block';
+export type { EquipmentProfile, SessionPlan, SlotAssignment, TrainingBlock } from './block';
