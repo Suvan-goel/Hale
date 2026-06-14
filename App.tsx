@@ -7,17 +7,36 @@ import { configureSessionAudio } from './src/audio/voicePlayer';
 import { CheckUp } from './src/checkup';
 import { HistoryStore, StoredCheckUp } from './src/history';
 import { expoHistoryFs } from './src/history/fsAdapter';
+import { scoreCheckUp } from './src/scoring';
 import { AssessmentScreen } from './src/screens/AssessmentScreen';
 import { CheckUpScreen } from './src/screens/CheckUpScreen';
-import { HomeScreen } from './src/screens/HomeScreen';
+import { HomeScreen, ActivePlan } from './src/screens/HomeScreen';
 import { LiveSessionScreen } from './src/screens/LiveSessionScreen';
+import { MicroCheckScreen } from './src/screens/MicroCheckScreen';
 import { ResultsScreen } from './src/screens/ResultsScreen';
+import { TrainingSessionScreen } from './src/screens/TrainingSessionScreen';
+import {
+  EquipmentProfile,
+  MicroCheckResult,
+  TrainingState,
+  TrainingStore,
+  TrainingSessionResult,
+  buildBlock,
+  defaultTrainingState,
+  microCheckTrendPoints,
+  nextSessionExercises,
+  nextSessionPlan,
+  recordCompletedSession,
+  retestDue,
+  startBlock,
+  totalSessions,
+} from './src/training';
 
 type PermissionState = 'checking' | 'granted' | 'denied';
-type Screen = 'home' | 'checkup' | 'results' | 'dev-assessment' | 'dev-live';
+type Screen = 'home' | 'checkup' | 'results' | 'training' | 'microcheck' | 'dev-assessment' | 'dev-live';
 
 /** Screens that mount the camera; gated on permission + audio configuration. */
-const CAMERA_SCREENS = new Set<Screen>(['checkup', 'dev-assessment', 'dev-live']);
+const CAMERA_SCREENS = new Set<Screen>(['checkup', 'training', 'microcheck', 'dev-assessment', 'dev-live']);
 
 export default function App() {
   const [permission, setPermission] = React.useState<PermissionState>('checking');
@@ -26,12 +45,15 @@ export default function App() {
   const [audioReady, setAudioReady] = React.useState(false);
   const [screen, setScreen] = React.useState<Screen>('home');
 
-  // Local-only history (no accounts/backend in V1). One store for the app,
-  // loaded once on launch so Home can show the last check-up immediately and
-  // Results has trend data the moment a check-up finishes.
+  // Local-only stores (no accounts/backend in V1), loaded once on launch.
   const [store] = React.useState(() => new HistoryStore(expoHistoryFs));
+  const [trainingStore] = React.useState(() => new TrainingStore(expoHistoryFs));
   const [history, setHistory] = React.useState<StoredCheckUp[]>([]);
   const [lastResult, setLastResult] = React.useState<CheckUp | null>(null);
+  const [training, setTraining] = React.useState<TrainingState>(() => defaultTrainingState());
+  const [microChecks, setMicroChecks] = React.useState<MicroCheckResult[]>([]);
+  // The exercise ids of the session about to run (resolved at launch).
+  const [sessionIds, setSessionIds] = React.useState<string[]>([]);
 
   React.useEffect(() => {
     requestCameraPermissionsAsync()
@@ -41,13 +63,26 @@ export default function App() {
       .catch((e) => console.warn('[audio] mode configuration failed', e))
       .finally(() => setAudioReady(true));
     store.loadAll().then(setHistory).catch(() => setHistory([]));
-  }, [store]);
+    trainingStore.loadState().then(setTraining).catch(() => {});
+    trainingStore.loadMicroChecks().then(setMicroChecks).catch(() => {});
+  }, [store, trainingStore]);
 
   const goHome = React.useCallback(() => setScreen('home'), []);
 
-  // A finished battery: persist it, show it, and reload history so its own
-  // point appears in the trends. Save is synchronous; the reload feeds trends.
-  const handleComplete = React.useCallback(
+  const persistTraining = React.useCallback(
+    (next: TrainingState) => {
+      setTraining(next);
+      try {
+        trainingStore.saveState(next);
+      } catch (e) {
+        console.warn('[training] save failed', e);
+      }
+    },
+    [trainingStore]
+  );
+
+  // A finished check-up: persist it, show it, reload history (feeds trends).
+  const handleCheckUpComplete = React.useCallback(
     (checkUp: CheckUp) => {
       try {
         store.save(checkUp);
@@ -61,6 +96,50 @@ export default function App() {
     [store]
   );
 
+  // From Results: build a block biased to the weakest domain and begin it.
+  const handleStartPlan = React.useCallback(() => {
+    if (!lastResult) return;
+    const score = scoreCheckUp(lastResult);
+    const block = buildBlock(score, training.equipment, new Date().toISOString());
+    persistTraining(startBlock(training, block));
+    setScreen('home');
+  }, [lastResult, training, persistTraining]);
+
+  const handleStartSession = React.useCallback(() => {
+    const ids = nextSessionExercises(training);
+    if (!ids || ids.length === 0) return;
+    setSessionIds(ids);
+    setScreen('training');
+  }, [training]);
+
+  const handleSessionComplete = React.useCallback(
+    (result: TrainingSessionResult) => {
+      persistTraining(recordCompletedSession(training, result, new Date().toISOString()));
+      setScreen('home');
+    },
+    [training, persistTraining]
+  );
+
+  const handleMicroCheckComplete = React.useCallback(
+    (result: MicroCheckResult) => {
+      try {
+        trainingStore.saveMicroCheck(result);
+      } catch (e) {
+        console.warn('[training] micro-check save failed', e);
+      }
+      setMicroChecks((prev) => [...prev, result]);
+      setScreen('home');
+    },
+    [trainingStore]
+  );
+
+  const toggleEquipment = React.useCallback(
+    (key: keyof EquipmentProfile) => {
+      persistTraining({ ...training, equipment: { ...training.equipment, [key]: !training.equipment[key] } });
+    },
+    [training, persistTraining]
+  );
+
   const viewLast = React.useCallback(() => {
     const latest = history[history.length - 1];
     if (latest) {
@@ -69,12 +148,31 @@ export default function App() {
     }
   }, [history]);
 
+  // The next session of an active, unfinished block (for Home's "This week" card).
+  const plan: ActivePlan | null = React.useMemo(() => {
+    const next = nextSessionPlan(training);
+    if (!next || !training.block) return null;
+    return {
+      week: next.week,
+      sessionNumber: training.progress.completedSessions + 1,
+      totalSessions: totalSessions(training.block),
+    };
+  }, [training]);
+
+  const extraTrendPoints = React.useMemo(() => microCheckTrendPoints(microChecks), [microChecks]);
+
   const home = (
     <HomeScreen
       lastCheckUp={history.length > 0 ? history[history.length - 1] : null}
       checkUpCount={history.length}
+      plan={plan}
+      retestDue={retestDue(training)}
+      equipment={training.equipment}
       onBegin={() => setScreen('checkup')}
       onViewLast={viewLast}
+      onStartSession={handleStartSession}
+      onMicroCheck={() => setScreen('microcheck')}
+      onToggleEquipment={toggleEquipment}
     />
   );
 
@@ -105,9 +203,19 @@ export default function App() {
     <View style={styles.container}>
       <StatusBar style="light" />
       {screen === 'checkup' ? (
-        <CheckUpScreen onComplete={handleComplete} />
+        <CheckUpScreen onComplete={handleCheckUpComplete} />
       ) : screen === 'results' && lastResult ? (
-        <ResultsScreen checkUp={lastResult} history={history} onDone={goHome} />
+        <ResultsScreen
+          checkUp={lastResult}
+          history={history}
+          extraTrendPoints={extraTrendPoints}
+          onDone={goHome}
+          onStartPlan={handleStartPlan}
+        />
+      ) : screen === 'training' && sessionIds.length > 0 ? (
+        <TrainingSessionScreen exerciseIds={sessionIds} onComplete={handleSessionComplete} />
+      ) : screen === 'microcheck' ? (
+        <MicroCheckScreen type="chair-power" onComplete={handleMicroCheckComplete} />
       ) : screen === 'dev-assessment' ? (
         <AssessmentScreen />
       ) : screen === 'dev-live' ? (

@@ -11,20 +11,29 @@ import * as React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { CheckUp } from '../checkup/types';
-import { StoredCheckUp, computeTrends, MetricTrend } from '../history';
+import { ExtraTrendPoint, StoredCheckUp, computeTrends, MetricTrend } from '../history';
 import { CheckUpScore, DOMAIN_LABEL, DomainResult, scoreCheckUp } from '../scoring';
 
 export function ResultsScreen({
   checkUp,
   history,
   onDone,
+  onStartPlan,
+  extraTrendPoints = [],
 }: {
   checkUp: CheckUp;
   history: StoredCheckUp[];
   onDone: () => void;
+  /** Build a training block from this check-up and begin it (present when there's a measured focus). */
+  onStartPlan?: () => void;
+  /** Weekly micro-check points to merge into the trend line. */
+  extraTrendPoints?: ExtraTrendPoint[];
 }) {
   const score: CheckUpScore = React.useMemo(() => scoreCheckUp(checkUp), [checkUp]);
-  const trends = React.useMemo(() => computeTrends(history).filter((t) => t.points.length >= 2), [history]);
+  const trends = React.useMemo(
+    () => computeTrends(history, extraTrendPoints).filter((t) => t.points.length >= 2),
+    [history, extraTrendPoints]
+  );
 
   return (
     <View style={styles.container}>
@@ -60,8 +69,13 @@ export function ResultsScreen({
           </Text>
         )}
 
-        <Pressable style={styles.button} onPress={onDone}>
-          <Text style={styles.buttonText}>Done</Text>
+        {onStartPlan && score.weakestDomain ? (
+          <Pressable style={styles.button} onPress={onStartPlan}>
+            <Text style={styles.buttonText}>Start your plan</Text>
+          </Pressable>
+        ) : null}
+        <Pressable style={onStartPlan && score.weakestDomain ? styles.ghostButton : styles.button} onPress={onDone}>
+          <Text style={onStartPlan && score.weakestDomain ? styles.ghostText : styles.buttonText}>Done</Text>
         </Pressable>
       </ScrollView>
     </View>
@@ -201,4 +215,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: { color: '#E8F4EA', fontSize: 17, fontWeight: '500' },
+  ghostButton: { marginTop: 14, paddingVertical: 12, alignItems: 'center' },
+  ghostText: { color: '#6F8A77', fontSize: 15 },
 });
