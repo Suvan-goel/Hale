@@ -39,3 +39,15 @@ export {
   totalSessions,
 } from './block';
 export type { EquipmentProfile, SessionPlan, SlotAssignment, TrainingBlock } from './block';
+export {
+  DEFAULT_MICROCHECK_CONFIG,
+  MicroCheckRunner,
+  microCheckTrendPoints,
+} from './microCheck';
+export type {
+  MicroCheckConfig,
+  MicroCheckFrameUpdate,
+  MicroCheckPhase,
+  MicroCheckResult,
+  MicroCheckType,
+} from './microCheck';

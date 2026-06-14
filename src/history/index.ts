@@ -9,4 +9,4 @@ export type { StoredCheckUp } from './serialize';
 export { HistoryStore, createMemoryFs } from './store';
 export type { HistoryFs } from './store';
 export { computeTrends, hasTrend } from './trends';
-export type { MetricTrend, TrendPoint } from './trends';
+export type { ExtraTrendPoint, MetricTrend, TrendPoint } from './trends';

@@ -109,9 +109,21 @@ const METRICS: MetricSpec[] = [
   },
 ];
 
+/**
+ * Extra trend points sourced outside the check-up (the weekly micro-check feeds
+ * rise-velocity / single-leg-balance between full check-ups). Kept structural —
+ * `key` matches a MetricSpec.key — so history stays decoupled from training.
+ */
+export interface ExtraTrendPoint {
+  key: string;
+  at: string;
+  value: number;
+}
+
 /** Chronological trends. Records are sorted by start time; only metrics with
- * at least one measured point are returned. */
-export function computeTrends(records: StoredCheckUp[]): MetricTrend[] {
+ * at least one measured point are returned. `extra` points (e.g. micro-checks)
+ * are merged into the matching metric and re-sorted by timestamp. */
+export function computeTrends(records: StoredCheckUp[], extra: ExtraTrendPoint[] = []): MetricTrend[] {
   const sorted = [...records].sort((a, b) => a.checkUp.startedAt.localeCompare(b.checkUp.startedAt));
   const trends: MetricTrend[] = [];
   for (const spec of METRICS) {
@@ -120,7 +132,11 @@ export function computeTrends(records: StoredCheckUp[]): MetricTrend[] {
       const value = spec.extract(rec.checkUp);
       if (value !== null) points.push({ at: rec.checkUp.startedAt, value });
     }
+    for (const p of extra) {
+      if (p.key === spec.key && Number.isFinite(p.value)) points.push({ at: p.at, value: p.value });
+    }
     if (points.length === 0) continue;
+    points.sort((a, b) => a.at.localeCompare(b.at));
     const delta = points.length >= 2 ? points[points.length - 1].value - points[0].value : null;
     trends.push({
       key: spec.key,
