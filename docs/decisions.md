@@ -133,3 +133,55 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
   (`src/checkup/__tests__/checkupFlow.integration.test.ts`); 148 tests pass, typecheck clean,
   full Android bundle compiles. End-to-end on-device run of the battery still pending a physical
   device (emulator MediaPipe limitation).
+
+## 2026-06-14 — Stage 4: training sessions (the loop closes)
+
+- **Training exercises got a PARALLEL registry, not an overload of `MovementDefinition`.**
+  `src/exercises/` (`ExerciseDefinition` + registry) mirrors the assessment movement pattern but
+  is its own thing because training has a different lifecycle: multi-set with spoken rest,
+  velocity autoregulation, and a progression ladder. It **reuses the four grading primitives**
+  and the shared `CameraViewSpec`/`EquipmentTag`/`GraderVoice` types — no measurement logic is
+  duplicated. `src/training/` holds the orchestration (player, progression, block, micro-check,
+  store). Rejected: bolting sets/levels onto the assessment `MovementDefinition` (would bloat the
+  one-shot measurement path that the check-up depends on).
+- **One family per file (not strictly one definition per file).** A ladder (cushion → standard →
+  slow-eccentric → power STS) is naturally one item with linked levels; each level still
+  `registerExercise()`s individually and carries `progressionId`/`regressionId`. A catalog test
+  enforces ladder integrity (contiguous levels, symmetric links, links resolve).
+- **Three set-grader bases compose the primitives** (`RepsSetGrader`=RepVelocity, `HoldSetGrader`,
+  `RomSetGrader`); each exercise file supplies only a thin landmark→signal config (which joint
+  cycles, which landmark rises). Near-side selection + the subject-gone reset discipline are
+  lifted verbatim from the chair-stand grader. Deep replay coverage lives on the knee/hip-driven
+  rep path (the chair-stand synthetic is the workhorse); the other per-exercise landmark choices
+  are validated structurally (registry/links/construction) and await on-device tuning — the same
+  depth distribution as the assessment side.
+- **Velocity autoregulation is the leg-power-aware "stop the set":** >25% below the SET'S OWN
+  best for 2 consecutive reps ends the set, voiced "good, that's your set" and logged as a NORMAL
+  completion (never a failure). It's a pure scalar `VelocityAutoregulator` composed into
+  `RepsSetGrader` and proven end-to-end through the player on a real decaying-velocity recording.
+- **Progression is deterministic rules, no ML** (V1 non-goal): promote on full completion + no
+  autoregulation + velocity ≥ personal trend (first time, no trend → completion alone promotes);
+  demote on a genuine struggle or *early* autoregulation; hold otherwise (including a normal late
+  autoregulation stop, and any unmeasured/skipped session — we never demote on a tracking
+  failure). Levels clamp to the family ladder; velocity trend = rolling per-exercise mean.
+- **Block stores SLOTS, resolves levels at LAUNCH.** A 12-session 4-week block keeps a fixed
+  ~20-min slot template; the player resolves slot → family's *current* level (from
+  `ProgressionState`) + equipment substitution each session, so progression stays live across the
+  block. Bias = the weak domain's primary slot leads and the finisher targets it. Confirmed
+  product decision: a small **local equipment profile** (chair/wall/floor/cushion assumed;
+  `stair`/`band` toggles) drives substitution deterministically — no per-session prompts (keeps
+  audio-first/no-touch intact). No-stair → step-up becomes power sit-to-stand (the "one
+  auto-substitution" acceptance); no-band → press becomes reach.
+- **The re-test "schedule" is an in-app marker, not an OS notification** (push notifications are a
+  V1 non-goal): completing all 12 sessions stamps `retestDueAt`, which Home surfaces as "time to
+  re-test". The weekly **micro-check** (5 fast chair stands → rise velocity, or a single-leg hold)
+  reuses the set graders and feeds the EXISTING trend keys via an optional `extra` arg on
+  `computeTrends` (history stays decoupled from training via a structural `ExtraTrendPoint`).
+- **Persistence mirrors the history store:** schema-versioned `TrainingStore` over the same
+  injectable `HistoryFs` — one mutable `training-state.json` + an append-only micro-check log,
+  NaN→null round-trip, forward-compatible version skipping. 201 tests pass, typecheck + expo
+  config clean. The acceptance pieces that are testable headless are covered (full-session replay
+  with one autoregulation trigger + one equipment substitution, progression promote/demote, block
+  completion → re-test, fresh-user check-up→block→session with no dead ends); the **hands-free
+  on-device 20-minute run remains the open frontier** — the emulator can't run MediaPipe, so it
+  needs a physical device, consistent with Stage 3.
