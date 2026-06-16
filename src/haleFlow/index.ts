@@ -1,4 +1,5 @@
 export * from './assessments';
+export * from './appLifecycle';
 export * from './copy';
 export * from './manualCheckup';
 export * from './microCheck';

@@ -1,0 +1,328 @@
+import {
+  createLifeGoal,
+  createMovementBlockFromAssessment,
+  defaultAdherenceStoreState,
+  makeTrainingSessionCompletion,
+  type MovementBlock,
+  type MovementSafetyProfile,
+} from '../../adherence';
+import { syntheticCheckUp } from '../../checkup/devFixture';
+import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../../history';
+import { defaultPreferences, type UserProfile } from '../../profile';
+import { type CheckUpScore, type Domain, type DomainResult, scoreCheckUp } from '../../scoring';
+import { DEFAULT_EQUIPMENT, buildBlock, defaultTrainingState, startBlock } from '../../training';
+import {
+  getHaleAppLifecycle,
+  getMovementSnapshot,
+  getWeekSessionStatuses,
+} from '../appLifecycle';
+
+const START = '2026-06-01T08:00:00.000Z';
+
+function safety(): MovementSafetyProfile {
+  return {
+    id: 'safety-1',
+    userId: 'local-device-user',
+    age: 61,
+    activityLevel: 'lightly_active',
+    feelsSafeStandingFromChair: true,
+    feelsSafeBalancing: true,
+    availableEquipment: ['chair', 'wall'],
+    preferredWorkoutDays: ['Mon', 'Wed', 'Fri'],
+    createdAt: START,
+    updatedAt: START,
+  };
+}
+
+function profile(): UserProfile {
+  const prefs = defaultPreferences();
+  const lifeGoal = createLifeGoal({ category: 'stairs', nowIso: START });
+  return {
+    ...prefs.profile,
+    name: 'Sam',
+    age: 61,
+    goal: 'Keep stairs feeling manageable',
+    lifeGoal,
+    safetyProfile: safety(),
+  };
+}
+
+function baseline(startedAt = START): StoredCheckUp {
+  return {
+    schemaVersion: HISTORY_SCHEMA_VERSION,
+    checkUp: syntheticCheckUp(startedAt),
+  };
+}
+
+function activeBlock(startDate = START): MovementBlock {
+  const checkUp = baseline(startDate).checkUp;
+  return createMovementBlockFromAssessment({
+    latestAssessment: { score: scoreCheckUp(checkUp), id: checkUp.startedAt },
+    lifeGoal: profile().lifeGoal,
+    startDate,
+  });
+}
+
+function completed(block: MovementBlock, completedAt: string, sessionNumber = 1) {
+  return makeTrainingSessionCompletion({
+    block,
+    sessionType: sessionNumber === 0 ? 'micro_check' : sessionNumber === 1 ? 'starter' : 'standard',
+    completedAt,
+    plannedDate: sessionNumber === 0 ? 'micro-check' : `session-${sessionNumber}`,
+  });
+}
+
+function domainResult(domain: Domain, age: number, measured = true): DomainResult {
+  return {
+    domain,
+    label: domain,
+    measured,
+    ageLow: age - 2,
+    ageHigh: age + 2,
+    estimated: false,
+    interpretation: 'Measured range.',
+    rows: [],
+  };
+}
+
+function score(): CheckUpScore {
+  return {
+    startedAt: START,
+    weakestDomain: 'mobility',
+    domains: [
+      domainResult('strength', 50),
+      domainResult('balance', 65),
+      domainResult('mobility', 80),
+    ],
+  };
+}
+
+describe('getHaleAppLifecycle', () => {
+  it('asks incomplete profiles to finish onboarding first', () => {
+    const result = getHaleAppLifecycle({
+      profile: defaultPreferences().profile,
+      history: [baseline()],
+      training: defaultTrainingState(),
+      adherence: defaultAdherenceStoreState(),
+      today: START,
+    });
+
+    expect(result.state).toBe('needs_onboarding');
+    expect(result.primaryAction.type).toBe('start_onboarding');
+  });
+
+  it('asks profiled users for their first Movement Check-Up', () => {
+    const result = getHaleAppLifecycle({
+      profile: profile(),
+      history: [],
+      training: defaultTrainingState(),
+      adherence: defaultAdherenceStoreState(),
+      today: START,
+    });
+
+    expect(result.state).toBe('needs_baseline_checkup');
+    expect(result.primaryAction.type).toBe('start_checkup');
+  });
+
+  it('asks for block creation after baseline when no active plan exists', () => {
+    const result = getHaleAppLifecycle({
+      profile: profile(),
+      history: [baseline()],
+      training: defaultTrainingState(),
+      adherence: defaultAdherenceStoreState(),
+      today: START,
+    });
+
+    expect(result.state).toBe('needs_block_creation');
+    expect(result.primaryAction.type).toBe('create_block');
+  });
+
+  it('recognizes the first Hale Session for a new active block', () => {
+    const block = activeBlock();
+    const result = getHaleAppLifecycle({
+      profile: profile(),
+      history: [baseline()],
+      training: defaultTrainingState(),
+      adherence: { ...defaultAdherenceStoreState(), blocks: [block] },
+      today: '2026-06-02T08:00:00.000Z',
+    });
+
+    expect(result.state).toBe('first_session_ready');
+    expect(result.primaryAction.type).toBe('start_first_session');
+    expect(result.activeBlockSummary?.weekNumber).toBe(1);
+  });
+
+  it('routes to the normal training day after the weekly micro-check is done', () => {
+    const block = activeBlock();
+    const completions = [
+      completed(block, '2026-06-02T08:00:00.000Z', 1),
+      completed(block, '2026-06-02T09:00:00.000Z', 0),
+    ];
+    const result = getHaleAppLifecycle({
+      profile: profile(),
+      history: [baseline()],
+      training: defaultTrainingState(),
+      adherence: { ...defaultAdherenceStoreState(), blocks: [block], completions },
+      today: '2026-06-03T08:00:00.000Z',
+    });
+
+    expect(result.state).toBe('normal_training_day');
+    expect(result.primaryAction.type).toBe('start_today_session');
+  });
+
+  it('surfaces the weekly micro-check after a weekly session is recorded', () => {
+    const block = activeBlock();
+    const result = getHaleAppLifecycle({
+      profile: profile(),
+      history: [baseline()],
+      training: defaultTrainingState(),
+      adherence: {
+        ...defaultAdherenceStoreState(),
+        blocks: [block],
+        completions: [completed(block, '2026-06-02T08:00:00.000Z', 1)],
+      },
+      today: '2026-06-03T08:00:00.000Z',
+    });
+
+    expect(result.state).toBe('weekly_micro_check_due');
+    expect(result.primaryAction.type).toBe('start_micro_check');
+  });
+
+  it('marks the week complete once the weekly session target is met', () => {
+    const block = activeBlock();
+    const result = getHaleAppLifecycle({
+      profile: profile(),
+      history: [baseline()],
+      training: defaultTrainingState(),
+      adherence: {
+        ...defaultAdherenceStoreState(),
+        blocks: [block],
+        completions: [
+          completed(block, '2026-06-02T08:00:00.000Z', 1),
+          completed(block, '2026-06-04T08:00:00.000Z', 2),
+          completed(block, '2026-06-06T08:00:00.000Z', 3),
+        ],
+      },
+      today: '2026-06-06T12:00:00.000Z',
+    });
+
+    expect(result.state).toBe('week_complete');
+    expect(result.primaryAction.type).toBe('explore_extra_sessions');
+  });
+
+  it('surfaces the monthly re-test once the block reaches four weeks', () => {
+    const block = activeBlock();
+    const result = getHaleAppLifecycle({
+      profile: profile(),
+      history: [baseline()],
+      training: defaultTrainingState(),
+      adherence: { ...defaultAdherenceStoreState(), blocks: [block] },
+      today: '2026-06-29T08:00:00.000Z',
+    });
+
+    expect(result.state).toBe('monthly_retest_due');
+    expect(result.primaryAction.type).toBe('start_retest');
+  });
+
+  it('offers a clean slate after 14 inactive days inside an active block', () => {
+    const block = activeBlock();
+    const result = getHaleAppLifecycle({
+      profile: profile(),
+      history: [baseline()],
+      training: defaultTrainingState(),
+      adherence: {
+        ...defaultAdherenceStoreState(),
+        blocks: [block],
+        completions: [completed(block, '2026-06-02T08:00:00.000Z', 1)],
+      },
+      today: '2026-06-17T08:00:00.000Z',
+    });
+
+    expect(result.state).toBe('inactive_restart');
+    expect(result.primaryAction.type).toBe('start_gentle_restart');
+  });
+
+  it('handles old minimal state and legacy training blocks without crashing', () => {
+    const first = getHaleAppLifecycle({
+      profile: profile(),
+      history: [baseline()],
+      training: defaultTrainingState(),
+      adherence: undefined,
+      today: START,
+    });
+    const legacyTraining = startBlock(
+      defaultTrainingState(),
+      buildBlock(scoreCheckUp(baseline().checkUp), DEFAULT_EQUIPMENT, START)
+    );
+    const second = getHaleAppLifecycle({
+      profile: profile(),
+      history: [baseline()],
+      training: legacyTraining,
+      adherence: defaultAdherenceStoreState(),
+      today: START,
+    });
+
+    expect(first.state).toBe('needs_block_creation');
+    expect(second.state).toBe('first_session_ready');
+    expect(second.activeBlockSummary?.sessionsTargetThisWeek).toBe(3);
+  });
+});
+
+describe('lifecycle view models', () => {
+  it('maps movement-age ranges to warm snapshot bands', () => {
+    expect(getMovementSnapshot({ score: score() })).toEqual({
+      strengthPower: 'strong',
+      balance: 'building',
+      mobility: 'starting_point',
+    });
+  });
+
+  it('omits movement snapshot rows when no measured score exists', () => {
+    expect(getMovementSnapshot({ score: null })).toBeUndefined();
+    expect(
+      getMovementSnapshot({
+        score: {
+          ...score(),
+          domains: [
+            domainResult('strength', 50, false),
+            domainResult('balance', 65, false),
+            domainResult('mobility', 80, false),
+          ],
+        },
+      })
+    ).toBeUndefined();
+  });
+
+  it('marks 0, 1, and 3 session weeks as next/protected/later correctly', () => {
+    const block = activeBlock();
+    expect(getWeekSessionStatuses({ adherence: { ...defaultAdherenceStoreState(), blocks: [block] }, today: START }).map((s) => s.status)).toEqual([
+      'next',
+      'later',
+      'later',
+    ]);
+    expect(
+      getWeekSessionStatuses({
+        adherence: {
+          ...defaultAdherenceStoreState(),
+          blocks: [block],
+          completions: [completed(block, '2026-06-02T08:00:00.000Z', 1)],
+        },
+        today: '2026-06-03T08:00:00.000Z',
+      }).map((s) => s.status)
+    ).toEqual(['complete', 'next', 'later']);
+    expect(
+      getWeekSessionStatuses({
+        adherence: {
+          ...defaultAdherenceStoreState(),
+          blocks: [block],
+          completions: [
+            completed(block, '2026-06-02T08:00:00.000Z', 1),
+            completed(block, '2026-06-04T08:00:00.000Z', 2),
+            completed(block, '2026-06-06T08:00:00.000Z', 3),
+          ],
+        },
+        today: '2026-06-06T12:00:00.000Z',
+      }).map((s) => s.status)
+    ).toEqual(['complete', 'complete', 'complete']);
+  });
+});

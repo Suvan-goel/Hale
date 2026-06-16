@@ -14,12 +14,10 @@ import {
   LifeGoal,
   LifeGoalOnboardingScreen,
   MovementAssessment,
-  MovementBlockReport,
   MovementSafetyProfile,
   RestartSessionScreen,
   SupportConnection,
   SessionCompletionScreen,
-  SupportCircleScreen,
   TrainingSessionCompletion,
   TrainingSessionCompletionType,
   WeeklySummaryScreen,
@@ -45,10 +43,13 @@ import { syntheticCheckUp } from './src/checkup/devFixture';
 import {
   createMovementAssessment,
   createMovementBlockReport,
+  getHaleAppLifecycle,
   getMicroCheckForBlock,
-  getNextBestAction,
   latestOfficialAssessment,
-  NextBestAction,
+  planTodayHaleSession,
+  updateExerciseProgressionFromSession,
+  type HaleSessionPlan,
+  type TodaySessionPreferences,
 } from './src/haleFlow';
 import { HistoryStore, StoredCheckUp } from './src/history';
 import { expoHistoryFs } from './src/history/fsAdapter';
@@ -64,14 +65,17 @@ import { CheckUpScore, scoreCheckUp } from './src/scoring';
 import { AssessmentScreen } from './src/screens/AssessmentScreen';
 import { CameraSetupScreen } from './src/screens/CameraSetupScreen';
 import { CheckUpScreen } from './src/screens/CheckUpScreen';
-import { HomeScreen, ActivePlan } from './src/screens/HomeScreen';
-import { LearnScreen } from './src/screens/LearnScreen';
+import { ExploreScreen } from './src/screens/ExploreScreen';
 import { LiveSessionScreen } from './src/screens/LiveSessionScreen';
 import { ManualCheckupStartScreen } from './src/screens/ManualCheckupStartScreen';
 import { MicroCheckScreen } from './src/screens/MicroCheckScreen';
+import { PlanScreen } from './src/screens/PlanScreen';
+import { ProgressScreen } from './src/screens/ProgressScreen';
 import { ResultsScreen } from './src/screens/ResultsScreen';
 import { SafetyProfileScreen } from './src/screens/SafetyProfileScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
+import { SessionPreviewScreen } from './src/screens/SessionPreviewScreen';
+import { TodayScreen } from './src/screens/TodayScreen';
 import { TrainingSessionScreen } from './src/screens/TrainingSessionScreen';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
 import {
@@ -83,12 +87,9 @@ import {
   buildBlock,
   defaultTrainingState,
   microCheckTrendPoints,
-  nextSessionExercises,
-  nextSessionPlan,
   recordCompletedSession,
   retestDue,
   startBlock,
-  totalSessions,
 } from './src/training';
 import { colors, radius, spacing, type } from './src/theme';
 
@@ -101,6 +102,7 @@ type Flow =
   | 'manual-checkup'
   | 'checkup'
   | 'results'
+  | 'session-preview'
   | 'training'
   | 'microcheck'
   | 'life-goal'
@@ -109,6 +111,7 @@ type Flow =
   | 'weekly-summary'
   | 'block-report'
   | 'session-complete'
+  | 'settings'
   | 'dev-assessment'
   | 'dev-live';
 
@@ -131,7 +134,7 @@ export default function App() {
 
   // Navigation: which bottom tab is showing, and whether a full-screen flow is
   // on top of it (a flow hides the tab bar; null means "show the tabs").
-  const [tab, setTab] = React.useState<TabKey>('home');
+  const [tab, setTab] = React.useState<TabKey>('today');
   const [flow, setFlow] = React.useState<Flow | null>(null);
 
   // Local-only stores (no accounts/backend in V1), loaded once on launch.
@@ -157,6 +160,7 @@ export default function App() {
   // The exercise ids of the session about to run (resolved at launch).
   const [sessionIds, setSessionIds] = React.useState<string[]>([]);
   const [sessionType, setSessionType] = React.useState<TrainingSessionCompletionType>('standard');
+  const [activeSessionPlan, setActiveSessionPlan] = React.useState<HaleSessionPlan | null>(null);
   const [lastCompletion, setLastCompletion] = React.useState<TrainingSessionCompletion | null>(null);
 
   React.useEffect(() => {
@@ -183,7 +187,9 @@ export default function App() {
 
   const goHome = React.useCallback(() => {
     setFlow(null);
-    setTab('home');
+    setTab('today');
+    setSessionIds([]);
+    setActiveSessionPlan(null);
   }, []);
 
   const persistTraining = React.useCallback(
@@ -313,25 +319,16 @@ export default function App() {
     });
   }, [adherence.assessments, history]);
 
-  const latestReport: MovementBlockReport | null = React.useMemo(() => {
-    if (adherence.reports.length === 0) return null;
-    const blockId = displayMovementBlock?.id;
-    const reports = blockId ? adherence.reports.filter((r) => r.blockId === blockId) : adherence.reports;
-    if (reports.length === 0) return null;
-    return reports.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
-  }, [adherence.reports, displayMovementBlock]);
-
-  const nextBestAction: NextBestAction = React.useMemo(
+  const lifecycle = React.useMemo(
     () =>
-      getNextBestAction({
+      getHaleAppLifecycle({
         profile: prefs.profile,
-        lifeGoal: prefs.profile.lifeGoal,
-        latestAssessment,
-        activeBlock: activeMovementBlock,
-        sessionCompletions: adherence.completions,
-        latestReport,
+        history,
+        training,
+        adherence,
+        today: new Date().toISOString(),
       }),
-    [activeMovementBlock, adherence.completions, latestAssessment, latestReport, prefs.profile]
+    [adherence, history, prefs.profile, training]
   );
 
   const requestCameraPermission = React.useCallback(() => {
@@ -465,36 +462,60 @@ export default function App() {
     setFlow('block-intro');
   }, [adherence, lastResult, persistAdherence, persistTraining, prefs.profile, training]);
 
-  const handleStartSession = React.useCallback(() => {
-    const ids = nextSessionExercises(training);
-    if (!ids || ids.length === 0) return;
-    setSessionType(training.progress.completedSessions === 0 ? 'starter' : 'standard');
-    setSessionIds(ids);
-    setFlow('training');
-  }, [training]);
+  const handleStartSession = React.useCallback(
+    (
+      preferences?: TodaySessionPreferences & {
+        lifecycleState?: typeof lifecycle.state;
+        presetId?: string;
+      }
+    ) => {
+      const plan = planTodayHaleSession({
+        safetyProfile: prefs.profile.safetyProfile,
+        lifeGoal: prefs.profile.lifeGoal,
+        activeBlock: activeMovementBlock,
+        training,
+        lifecycleState: preferences?.lifecycleState ?? lifecycle.state,
+        recentCompletions: adherence.completions,
+        adjustment: preferences?.adjustment,
+        painArea: preferences?.painArea,
+        today: new Date(),
+        presetId: preferences?.presetId,
+      });
+      setActiveSessionPlan(plan);
+      setFlow('session-preview');
+    },
+    [activeMovementBlock, adherence.completions, lifecycle.state, prefs.profile.lifeGoal, prefs.profile.safetyProfile, training]
+  );
 
   const handleStartRestartSession = React.useCallback(() => {
-    const ids = nextSessionExercises(training);
-    if (!ids || ids.length === 0) return;
-    setSessionType('restart');
-    setSessionIds(ids.slice(0, Math.min(4, ids.length)));
+    handleStartSession({ adjustment: 'gentler', lifecycleState: 'inactive_restart' });
+  }, [handleStartSession]);
+
+  const beginPlannedSession = React.useCallback(() => {
+    if (!activeSessionPlan || activeSessionPlan.exercises.length === 0) return;
+    setSessionType(activeSessionPlan.sessionType);
+    setSessionIds(activeSessionPlan.exercises.map((exercise) => exercise.id));
     setFlow('training');
-  }, [training]);
+  }, [activeSessionPlan]);
 
   const handleSessionComplete = React.useCallback(
     (result: TrainingSessionResult) => {
       const completedAt = new Date().toISOString();
-      persistTraining(recordCompletedSession(training, result, completedAt));
+      const sessionPlan = activeSessionPlan;
+      if (sessionPlan?.sessionType !== 'retest_prep') {
+        persistTraining(recordCompletedSession(training, result, completedAt));
+      }
       const block = activeMovementBlock;
       if (block) {
         const started = Date.parse(result.startedAt);
         const ended = Date.parse(completedAt);
-        const durationMinutes = Number.isFinite(started) && Number.isFinite(ended) ? Math.max(1, Math.round((ended - started) / 60000)) : undefined;
+        const durationMinutes = sessionPlan?.estimatedMinutes ??
+          (Number.isFinite(started) && Number.isFinite(ended) ? Math.max(1, Math.round((ended - started) / 60000)) : undefined);
         const completion = makeTrainingSessionCompletion({
           block,
-          sessionType,
+          sessionType: sessionPlan?.sessionType ?? sessionType,
           completedAt,
-          plannedDate: `session-${training.progress.completedSessions + 1}`,
+          plannedDate: sessionPlan?.metadata?.plannedDateKey ?? `session-${training.progress.completedSessions + 1}`,
           durationMinutes,
         });
         let nextAdherence = recordTrainingSessionCompletion(adherence, completion);
@@ -513,12 +534,22 @@ export default function App() {
         );
         persistAdherence(nextAdherence);
         setLastCompletion(completion);
+        if (sessionPlan && sessionPlan.metadata?.source !== 'legacy_fallback') {
+          try {
+            // TODO(Stage 4): persist returned ladder progress once the dynamic
+            // ladder-progress store is added. For now this safely exercises the
+            // progression update path without changing storage schemas.
+            updateExerciseProgressionFromSession({ sessionPlan, completion });
+          } catch (e) {
+            console.warn('[training] dynamic progression update failed', e);
+          }
+        }
         setFlow('session-complete');
       } else {
         goHome();
       }
     },
-    [activeMovementBlock, adherence, goHome, lastScore, persistAdherence, persistTraining, prefs.profile, sessionType, training]
+    [activeMovementBlock, activeSessionPlan, adherence, goHome, lastScore, persistAdherence, persistTraining, prefs.profile, sessionType, training]
   );
 
   const handleMicroCheckComplete = React.useCallback(
@@ -554,8 +585,20 @@ export default function App() {
         ...adherence,
         completions: adherence.completions.map((c) => (c.id === lastCompletion.id ? nextCompletion : c)),
       });
+      if (activeSessionPlan && activeSessionPlan.metadata?.source !== 'legacy_fallback') {
+        try {
+          updateExerciseProgressionFromSession({
+            sessionPlan: activeSessionPlan,
+            completion: nextCompletion,
+            perceivedEffort: feedback.perceivedEffort,
+            painReported: feedback.painReported,
+          });
+        } catch (e) {
+          console.warn('[training] dynamic feedback update failed', e);
+        }
+      }
     },
-    [adherence, lastCompletion, persistAdherence]
+    [activeSessionPlan, adherence, lastCompletion, persistAdherence]
   );
 
   const toggleEquipment = React.useCallback(
@@ -631,16 +674,43 @@ export default function App() {
     setFlow('block-intro');
   }, [adherence, history, persistAdherence, persistTraining, prefs.profile, training]);
 
-  // The next session of an active, unfinished block (for Home's "This week" card).
-  const plan: ActivePlan | null = React.useMemo(() => {
-    const next = nextSessionPlan(training);
-    if (!next || !training.block) return null;
-    return {
-      week: next.week,
-      sessionNumber: training.progress.completedSessions + 1,
-      totalSessions: totalSessions(training.block),
-    };
-  }, [training]);
+  const handleTodayPrimaryAction = React.useCallback((preferences?: TodaySessionPreferences | null) => {
+    switch (lifecycle.primaryAction.type) {
+      case 'start_onboarding':
+        setFlow(prefs.profile.lifeGoal ? 'safety-profile' : 'welcome');
+        return;
+      case 'start_checkup':
+        setFlow('camera-setup');
+        return;
+      case 'create_block':
+        handleStartNextBlock();
+        return;
+      case 'start_first_session':
+      case 'start_today_session':
+        handleStartSession(preferences ?? undefined);
+        return;
+      case 'start_micro_check':
+        setFlow('microcheck');
+        return;
+      case 'start_retest':
+        beginCheckUp('official_retest');
+        return;
+      case 'start_gentle_restart':
+        handleStartSession({ ...(preferences ?? {}), adjustment: preferences?.adjustment ?? 'gentler', lifecycleState: 'inactive_restart' });
+        return;
+      case 'explore_extra_sessions':
+        handleStartSession({ ...(preferences ?? {}), lifecycleState: 'week_complete', presetId: 'preset-mobility-reset' });
+        return;
+      default:
+        handleStartSession(preferences ?? undefined);
+    }
+  }, [
+    beginCheckUp,
+    handleStartNextBlock,
+    handleStartSession,
+    lifecycle.primaryAction.type,
+    prefs.profile.lifeGoal,
+  ]);
 
   const extraTrendPoints = React.useMemo(() => microCheckTrendPoints(microChecks), [microChecks]);
   const reportPreviousScore = React.useMemo(() => {
@@ -778,6 +848,12 @@ export default function App() {
             onDone={goHome}
             onStartPlan={handleStartPlan}
           />
+        ) : flow === 'session-preview' && activeSessionPlan ? (
+          <SessionPreviewScreen
+            plan={activeSessionPlan}
+            onStart={beginPlannedSession}
+            onCancel={goHome}
+          />
         ) : flow === 'training' && sessionIds.length > 0 ? (
           <TrainingSessionScreen
             exerciseIds={sessionIds}
@@ -839,6 +915,15 @@ export default function App() {
             onFeedback={handleSessionFeedback}
             onDone={goHome}
           />
+        ) : flow === 'settings' ? (
+          <SettingsScreen
+            profile={prefs.profile}
+            settings={prefs.settings}
+            equipment={training.equipment}
+            onProfileChange={onProfileChange}
+            onSettingsChange={onSettingsChange}
+            onToggleEquipment={toggleEquipment}
+          />
         ) : flow === 'dev-assessment' ? (
           <AssessmentScreen />
         ) : flow === 'dev-live' ? (
@@ -847,7 +932,7 @@ export default function App() {
           // Defensive: an unsatisfiable flow (e.g. results with no result) falls back home.
           <View />
         )}
-        {__DEV__ && (flow === 'dev-assessment' || flow === 'dev-live') ? (
+        {flow === 'settings' || (__DEV__ && (flow === 'dev-assessment' || flow === 'dev-live')) ? (
           <Pressable style={styles.back} onPress={goHome}>
             <Text style={styles.backText}>Back</Text>
           </Pressable>
@@ -861,60 +946,39 @@ export default function App() {
     <View style={styles.container}>
       <StatusBar style="dark" />
       <View style={styles.tabContent}>
-        {tab === 'home' ? (
-          <HomeScreen
+        {tab === 'today' ? (
+          <TodayScreen
             profile={prefs.profile}
-            lastCheckUp={history.length > 0 ? history[history.length - 1] : null}
-            score={lastScore}
-            checkUpCount={history.length}
-            nextBestAction={nextBestAction}
-            plan={plan}
-            retestDue={retestDue(training)}
-            lifeGoal={prefs.profile.lifeGoal}
-            currentBlock={displayMovementBlock}
-            adherenceCompletions={adherence.completions}
-            supportConnection={supportConnection}
-            onNextBestAction={handleRoute}
-            onBeginCheckUp={() => (latestAssessment ? openManualCheckup() : setFlow('camera-setup'))}
-            onRetestCheckUp={() => beginCheckUp('official_retest')}
-            onViewLast={viewLast}
-            onStartWorkout={handleStartSession}
-            onStartRestart={() => setFlow('restart-intro')}
-            onMicroCheck={() => setFlow('microcheck')}
-            onChooseLifeGoal={() => setFlow('life-goal')}
-            onOpenSupportCircle={() => {
-              setFlow(null);
-              setTab('family');
-            }}
-            onWeeklySummary={() => setFlow('weekly-summary')}
-            onViewReport={() => setFlow('block-report')}
+            lifecycle={lifecycle}
+            onPrimaryAction={handleTodayPrimaryAction}
+            onOpenSettings={() => setFlow('settings')}
           />
-        ) : tab === 'learn' ? (
-          <LearnScreen />
-        ) : tab === 'family' ? (
-          <SupportCircleScreen
-            connections={adherence.supportConnections}
-            block={displayMovementBlock}
-            completions={adherence.completions}
-            latestMilestone={newestMilestone}
-            onSaveConnection={handleSaveSupportConnection}
-            onRemoveConnection={handleRemoveSupportConnection}
+        ) : tab === 'plan' ? (
+          <PlanScreen
+            activeBlockSummary={lifecycle.activeBlockSummary}
+            weekSessionStatuses={lifecycle.weekSessionStatuses ?? []}
+            onCreateBlock={handleStartNextBlock}
+            onStartSession={handleStartSession}
+            onOpenSettings={() => setFlow('settings')}
+          />
+        ) : tab === 'progress' ? (
+          <ProgressScreen
+            latestCheckUp={history.length > 0 ? history[history.length - 1] : null}
+            score={lastScore}
+            movementSnapshot={lifecycle.movementSnapshot}
+            checkUpCount={history.length}
+            onBeginCheckUp={() => (latestAssessment ? openManualCheckup() : setFlow('camera-setup'))}
+            onViewLatest={viewLast}
+            onOpenSettings={() => setFlow('settings')}
           />
         ) : (
-          <SettingsScreen
-            profile={prefs.profile}
-            settings={prefs.settings}
-            equipment={training.equipment}
-            onProfileChange={onProfileChange}
-            onSettingsChange={onSettingsChange}
-            onToggleEquipment={toggleEquipment}
-          />
+          <ExploreScreen equipment={training.equipment} onOpenSettings={() => setFlow('settings')} />
         )}
       </View>
 
       <TabBar active={tab} onChange={setTab} />
 
-      {__DEV__ && tab === 'home' ? (
+      {__DEV__ && tab === 'today' ? (
         <View style={styles.devRow}>
           <Pressable style={styles.devChip} onPress={() => handleCheckUpComplete(syntheticCheckUp())}>
             <Text style={styles.devChipText}>dev: skip check-up</Text>

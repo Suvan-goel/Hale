@@ -10,27 +10,27 @@ import * as React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, minTapTarget, radius, shadow, spacing, type } from '../theme';
-import { FamilyIcon, HomeIcon, IconProps, LearnIcon, SettingsIcon } from './icons';
+import { ExploreIcon, IconProps, PlanIcon, ProgressIcon, TodayIcon } from './icons';
 
-export type TabKey = 'home' | 'learn' | 'family' | 'settings';
+export type TabKey = 'today' | 'plan' | 'progress' | 'explore';
 
-interface TabDef {
+export interface TabDef {
   key: TabKey;
   label: string;
   Icon: (p: IconProps) => React.JSX.Element;
 }
 
-const TABS: TabDef[] = [
-  { key: 'home', label: 'Home', Icon: HomeIcon },
-  { key: 'learn', label: 'Discover', Icon: LearnIcon },
-  { key: 'family', label: 'Support', Icon: FamilyIcon },
-  { key: 'settings', label: 'Profile', Icon: SettingsIcon },
+export const TAB_DEFS: readonly TabDef[] = [
+  { key: 'today', label: 'Today', Icon: TodayIcon },
+  { key: 'plan', label: 'Plan', Icon: PlanIcon },
+  { key: 'progress', label: 'Progress', Icon: ProgressIcon },
+  { key: 'explore', label: 'Explore', Icon: ExploreIcon },
 ];
 
 export function TabBar({ active, onChange }: { active: TabKey; onChange: (key: TabKey) => void }) {
   return (
     <View style={styles.bar}>
-      {TABS.map((tab) => {
+      {TAB_DEFS.map((tab) => {
         const selected = tab.key === active;
         const tint = selected ? colors.onAccent : colors.textTertiary;
         const labelTint = selected ? colors.accentDeep : colors.textSecondary;

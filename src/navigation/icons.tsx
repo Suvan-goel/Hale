@@ -39,6 +39,60 @@ export function HomeIcon({ size, color, strokeWidth = 1.8 }: IconProps) {
   );
 }
 
+export function TodayIcon({ size, color, strokeWidth = 1.8 }: IconProps) {
+  const s = common(color, strokeWidth);
+  return (
+    <Frame size={size}>
+      <Circle cx={12} cy={12} r={4.2} {...s} />
+      <Path d="M12 3.8 V5.5" {...s} />
+      <Path d="M12 18.5 V20.2" {...s} />
+      <Path d="M3.8 12 H5.5" {...s} />
+      <Path d="M18.5 12 H20.2" {...s} />
+      <Path d="M6.2 6.2 L7.4 7.4" {...s} />
+      <Path d="M16.6 16.6 L17.8 17.8" {...s} />
+      <Path d="M17.8 6.2 L16.6 7.4" {...s} />
+      <Path d="M7.4 16.6 L6.2 17.8" {...s} />
+    </Frame>
+  );
+}
+
+export function PlanIcon({ size, color, strokeWidth = 1.8 }: IconProps) {
+  const s = common(color, strokeWidth);
+  return (
+    <Frame size={size}>
+      <Path d="M5 5.5 H19 V19 H5 Z" {...s} />
+      <Path d="M5 9 H19" {...s} />
+      <Path d="M8 4 V7" {...s} />
+      <Path d="M16 4 V7" {...s} />
+      <Path d="M8.2 12.4 H10.2" {...s} />
+      <Path d="M13.8 12.4 H15.8" {...s} />
+      <Path d="M8.2 15.8 H10.2" {...s} />
+      <Path d="M13.8 15.8 H15.8" {...s} />
+    </Frame>
+  );
+}
+
+export function ProgressIcon({ size, color, strokeWidth = 1.8 }: IconProps) {
+  const s = common(color, strokeWidth);
+  return (
+    <Frame size={size}>
+      <Path d="M4.5 18.5 H20" {...s} />
+      <Path d="M6 15.5 L10 11.5 L13 14 L18.8 7.2" {...s} />
+      <Path d="M15.6 7.2 H18.8 V10.4" {...s} />
+    </Frame>
+  );
+}
+
+export function ExploreIcon({ size, color, strokeWidth = 1.8 }: IconProps) {
+  const s = common(color, strokeWidth);
+  return (
+    <Frame size={size}>
+      <Circle cx={12} cy={12} r={7.4} {...s} />
+      <Path d="M9.6 14.4 L11.1 10.8 L14.4 9.6 L12.9 13.2 Z" {...s} />
+    </Frame>
+  );
+}
+
 export function LearnIcon({ size, color, strokeWidth = 1.8 }: IconProps) {
   const s = common(color, strokeWidth);
   return (

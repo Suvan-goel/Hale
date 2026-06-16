@@ -1,0 +1,287 @@
+import * as React from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+
+import {
+  Card,
+  Eyebrow,
+  HealthMetricRow,
+  MaterialCard,
+  MetricRing,
+  PrimaryButton,
+  Screen,
+  SectionHeader,
+  SettingsIconButton,
+} from '../components/ui';
+import type {
+  HaleAppLifecycleResult,
+  MovementSnapshot,
+  MovementSnapshotBand,
+  TodaySessionAdjustment,
+} from '../haleFlow';
+import type { UserProfile } from '../profile';
+import type { PainArea } from '../training';
+import { colors, radius, spacing, type } from '../theme';
+
+type SnapshotKey = keyof MovementSnapshot;
+
+const SNAPSHOT_ROWS: readonly { key: SnapshotKey; icon: string; title: string }[] = [
+  { key: 'strengthPower', icon: 'S', title: 'Strength / Power' },
+  { key: 'balance', icon: 'B', title: 'Balance' },
+  { key: 'mobility', icon: 'M', title: 'Mobility' },
+];
+
+const PAIN_AREAS: readonly { label: string; value: PainArea }[] = [
+  { label: 'Knee', value: 'knee' },
+  { label: 'Hip', value: 'hip' },
+  { label: 'Back', value: 'back' },
+  { label: 'Shoulder', value: 'shoulder' },
+  { label: 'Ankle', value: 'ankle' },
+  { label: 'Neck', value: 'neck' },
+  { label: 'Other', value: 'other' },
+];
+
+export function TodayScreen({
+  profile,
+  lifecycle,
+  onPrimaryAction,
+  onOpenSettings,
+}: {
+  profile: UserProfile;
+  lifecycle: HaleAppLifecycleResult;
+  onPrimaryAction: (preferences?: { adjustment?: TodaySessionAdjustment | null; painArea?: PainArea | null }) => void;
+  onOpenSettings: () => void;
+}) {
+  const [adjustment, setAdjustment] = React.useState<TodaySessionAdjustment | null>(null);
+  const [painArea, setPainArea] = React.useState<PainArea | null>(null);
+  const block = lifecycle.activeBlockSummary;
+  const snapshot = lifecycle.movementSnapshot;
+  const measuredCount = SNAPSHOT_ROWS.filter((row) => snapshot?.[row.key]).length;
+  const progress = block
+    ? block.sessionsCompleteThisWeek / Math.max(1, block.sessionsTargetThisWeek)
+    : measuredCount / SNAPSHOT_ROWS.length;
+  const ringValue = block
+    ? `${block.sessionsCompleteThisWeek}/${block.sessionsTargetThisWeek}`
+    : `${measuredCount}/${SNAPSHOT_ROWS.length}`;
+  const ringLabel = block ? 'this week' : 'domains';
+  const canAdjustSession =
+    lifecycle.state === 'first_session_ready' ||
+    lifecycle.state === 'normal_training_day' ||
+    lifecycle.state === 'inactive_restart' ||
+    lifecycle.state === 'week_complete';
+  const selectedPainArea = adjustment === 'something_hurts' ? painArea : null;
+
+  return (
+    <Screen>
+      <View style={styles.header}>
+        <View style={styles.headerCopy}>
+          <Text style={styles.greeting}>
+            {greeting()}
+            {profile.name ? `, ${profile.name}` : ''}
+          </Text>
+          <Text style={styles.tagline}>Hale knows what you need today. Press Start and listen.</Text>
+        </View>
+        <SettingsIconButton onPress={onOpenSettings} />
+      </View>
+
+      <MaterialCard>
+        <View style={styles.primaryTop}>
+          <View style={styles.primaryCopy}>
+            <Eyebrow>{"Today's Hale Session"}</Eyebrow>
+            <Text style={styles.primaryTitle}>{lifecycle.primaryAction.title}</Text>
+            <Text style={styles.primaryBody}>{lifecycle.primaryAction.subtitle}</Text>
+          </View>
+          <MetricRing
+            size={104}
+            progress={progress}
+            value={ringValue}
+            label={ringLabel}
+          />
+        </View>
+        <View style={styles.startWrap}>
+          <PrimaryButton
+            title={lifecycle.primaryAction.ctaLabel}
+            onPress={() => onPrimaryAction({ adjustment, painArea: selectedPainArea })}
+          />
+        </View>
+        {canAdjustSession ? (
+          <>
+            <View style={styles.adjustments}>
+              <AdjustmentButton
+                label="Make it shorter"
+                selected={adjustment === 'shorter'}
+                onPress={() => setAdjustment((value) => (value === 'shorter' ? null : 'shorter'))}
+              />
+              <AdjustmentButton
+                label="Make it gentler"
+                selected={adjustment === 'gentler'}
+                onPress={() => setAdjustment((value) => (value === 'gentler' ? null : 'gentler'))}
+              />
+              <AdjustmentButton
+                label="No equipment today"
+                selected={adjustment === 'no_equipment'}
+                onPress={() => setAdjustment((value) => (value === 'no_equipment' ? null : 'no_equipment'))}
+              />
+              <AdjustmentButton
+                label="Something hurts"
+                selected={adjustment === 'something_hurts'}
+                onPress={() => setAdjustment((value) => (value === 'something_hurts' ? null : 'something_hurts'))}
+              />
+            </View>
+            {adjustment === 'something_hurts' ? (
+              <View style={styles.painAreas}>
+                {PAIN_AREAS.map((area) => (
+                  <AdjustmentButton
+                    key={area.value}
+                    label={area.label}
+                    selected={painArea === area.value}
+                    onPress={() => setPainArea((value) => (value === area.value ? null : area.value))}
+                  />
+                ))}
+              </View>
+            ) : null}
+            {adjustment ? (
+              <Text style={styles.adjustmentNote}>{adjustmentCopy(adjustment)}</Text>
+            ) : null}
+          </>
+        ) : null}
+      </MaterialCard>
+
+      <Card>
+        <SectionHeader title="Your 4-week block" />
+        <View style={styles.blockRow}>
+          <SnapshotTile label="Block" value={block ? `Week ${block.weekNumber} of ${block.totalWeeks}` : 'Ready after check-up'} />
+          <SnapshotTile
+            label="Re-test"
+            value={block?.retestInDays !== undefined ? `In ${block.retestInDays} days` : 'After your block'}
+          />
+        </View>
+        <Text style={styles.cardBody}>
+          {block
+            ? `${block.focusTitle}. ${block.sessionsCompleteThisWeek} of ${block.sessionsTargetThisWeek} sessions are done this week.`
+            : 'Complete your Movement Check-Up to create a plan-led block.'}
+        </Text>
+      </Card>
+
+      <Card>
+        <SectionHeader title="Movement snapshot" />
+        {SNAPSHOT_ROWS.map((row) => {
+          const band = snapshot?.[row.key];
+          return (
+            <HealthMetricRow
+              key={row.key}
+              icon={row.icon}
+              label={row.title}
+              value={band ? bandValue(band) : 'Baseline pending'}
+              status={band ? bandStatus(band) : 'Movement Check-Up'}
+            />
+          );
+        })}
+      </Card>
+    </Screen>
+  );
+}
+
+function AdjustmentButton({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.adjustment, selected && styles.adjustmentSelected, pressed && styles.pressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      accessibilityLabel={label}
+    >
+      <Text style={[styles.adjustmentText, selected && styles.adjustmentTextSelected]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function SnapshotTile({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.snapshotTile}>
+      <Text style={styles.snapshotValue}>{value}</Text>
+      <Text style={styles.snapshotLabel}>{label}</Text>
+    </View>
+  );
+}
+
+function greeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function adjustmentCopy(adjustment: TodaySessionAdjustment): string {
+  if (adjustment === 'shorter') return 'Today will favor a shorter session length.';
+  if (adjustment === 'gentler') return 'Today will keep the session calmer and more supported.';
+  if (adjustment === 'no_equipment') return 'Today will prefer zero-equipment choices where possible.';
+  return 'Move only in a comfortable range. You can stop at any time.';
+}
+
+function bandValue(band: MovementSnapshotBand): string {
+  if (band === 'strong') return 'Strong';
+  if (band === 'building') return 'Building';
+  return 'Starting point';
+}
+
+function bandStatus(band: MovementSnapshotBand): string {
+  if (band === 'strong') return 'Protect progress';
+  if (band === 'building') return 'Keep building';
+  return 'Fresh focus';
+}
+
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+  },
+  headerCopy: { flex: 1 },
+  greeting: { ...type.display },
+  tagline: { ...type.body, color: colors.textSecondary, marginTop: spacing.sm },
+  primaryTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
+  primaryCopy: { flex: 1 },
+  primaryTitle: { ...type.h1, marginTop: spacing.sm },
+  primaryBody: { ...type.bodySmall, color: colors.textSecondary, marginTop: spacing.sm },
+  startWrap: { marginTop: spacing.xl },
+  adjustments: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.lg },
+  painAreas: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
+  adjustment: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.input,
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderColor: colors.borderHairline,
+  },
+  adjustmentSelected: { backgroundColor: colors.bgSage, borderColor: colors.sage },
+  adjustmentText: { ...type.caption, color: colors.textSecondary },
+  adjustmentTextSelected: { color: colors.accentDeep },
+  adjustmentNote: { ...type.caption, color: colors.sageDeep, marginTop: spacing.sm },
+  blockRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.md },
+  snapshotTile: {
+    flex: 1,
+    minHeight: 82,
+    borderRadius: radius.input,
+    backgroundColor: colors.bgElevated,
+    borderWidth: 1,
+    borderColor: colors.borderHairline,
+    padding: spacing.lg,
+    justifyContent: 'center',
+  },
+  snapshotValue: { ...type.h3 },
+  snapshotLabel: { ...type.caption, marginTop: 2 },
+  cardBody: { ...type.bodySmall, color: colors.textSecondary, marginTop: spacing.md },
+  pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
+});

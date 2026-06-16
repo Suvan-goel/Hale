@@ -10,6 +10,7 @@ import type {
   TrainingSessionCompletionType,
 } from '../adherence';
 import type { CheckUpScore } from '../scoring';
+import type { DailyReadiness, PainArea, SessionSource } from '../training/workoutGeneration';
 
 export type HaleUserFlowState =
   | 'needs_life_goal'
@@ -96,8 +97,24 @@ export interface HaleExercise {
   durationSeconds?: number;
   targetReps?: number;
   targetSets?: number;
+  estimatedMinutes?: number;
   requiresEquipment?: string[];
+  rationale?: string;
   safetyNotes?: string[];
+}
+
+export type HaleSessionPlanSource = SessionSource | 'legacy_fallback';
+
+export interface HaleSessionPlanMetadata {
+  source: HaleSessionPlanSource;
+  generatedSessionId?: string;
+  templateId?: string;
+  plannedDateKey?: string;
+  readiness?: DailyReadiness;
+  painAreas?: readonly PainArea[];
+  guidance?: readonly string[];
+  equipmentNeeded?: readonly string[];
+  fallbackReason?: string;
 }
 
 export interface HaleSessionPlan {
@@ -109,6 +126,7 @@ export interface HaleSessionPlan {
   estimatedMinutes: number;
   focusDomain: MovementDomain;
   exercises: HaleExercise[];
+  metadata?: HaleSessionPlanMetadata;
 }
 
 export interface MicroCheckDefinition {

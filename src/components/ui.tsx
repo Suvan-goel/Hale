@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
+import { SettingsIcon } from '../navigation/icons';
 import { colors, fonts, minTapTarget, radius, shadow, spacing, type } from '../theme';
 
 export function Screen({
@@ -180,6 +181,25 @@ export function ScreenHeader({
       <Text style={styles.headerTitle}>{title}</Text>
       {subtitle ? <Text style={styles.headerSubtitle}>{subtitle}</Text> : null}
     </View>
+  );
+}
+
+export function SettingsIconButton({
+  onPress,
+  accessibilityLabel = 'Open profile and settings',
+}: {
+  onPress: () => void;
+  accessibilityLabel?: string;
+}) {
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+    >
+      <SettingsIcon size={22} color={colors.accentDeep} />
+    </Pressable>
   );
 }
 
@@ -430,6 +450,16 @@ const styles = StyleSheet.create({
   header: { gap: spacing.sm },
   headerTitle: { ...type.display },
   headerSubtitle: { ...type.body, color: colors.textSecondary, maxWidth: 320 },
+  iconButton: {
+    width: minTapTarget,
+    height: minTapTarget,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderColor: colors.borderHairline,
+  },
   sectionHeader: {
     minHeight: 32,
     flexDirection: 'row',
