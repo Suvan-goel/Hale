@@ -4,7 +4,7 @@
     "slug": "hale",
     "version": "0.1.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/ios-icon.png",
     "plugins": [
       "./modules/expo-pose-detection/app.plugin.js",
       "expo-audio",
@@ -14,17 +14,17 @@
     "backgroundColor": "#F7F2EA",
     "ios": {
       "supportsTablet": false,
+      "icon": "./assets/ios-icon.png",
       "infoPlist": {
         "NSCameraUsageDescription": "The camera measures your movement as a skeleton outline. Camera video is never shown or stored."
       },
       "bundleIdentifier": "com.suvangoel.hale"
     },
     "android": {
+      "icon": "./assets/android-icon.png",
       "adaptiveIcon": {
-        "backgroundColor": "#000000",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#F7F2EA",
+        "foregroundImage": "./assets/android-icon.png"
       },
       "permissions": [
         "android.permission.CAMERA"

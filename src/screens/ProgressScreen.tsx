@@ -12,9 +12,11 @@ import {
   SettingsIconButton,
   StatusBadge,
 } from '../components/ui';
+import { getExerciseLadder } from '../exercises';
 import type { MovementSnapshot, MovementSnapshotBand } from '../haleFlow';
 import type { StoredCheckUp } from '../history';
 import { CheckUpScore, Domain } from '../scoring';
+import type { LadderProgress } from '../training';
 import { colors, spacing, type } from '../theme';
 
 type SnapshotKey = keyof MovementSnapshot;
@@ -37,6 +39,14 @@ const SNAPSHOT_ROWS: readonly { key: SnapshotKey; title: string }[] = [
   { key: 'mobility', title: 'Mobility' },
 ];
 
+const LADDER_ROWS: readonly { ladderId: string; label: string }[] = [
+  { ladderId: 'sit-to-stand', label: 'Sit-to-Stand' },
+  { ladderId: 'balance', label: 'Balance' },
+  { ladderId: 'push', label: 'Push' },
+  { ladderId: 'pull-upper-back', label: 'Pull / Upper Back' },
+  { ladderId: 'mobility-flexibility', label: 'Mobility' },
+];
+
 export function ProgressScreen({
   latestCheckUp,
   score,
@@ -45,6 +55,7 @@ export function ProgressScreen({
   onBeginCheckUp,
   onViewLatest,
   onOpenSettings,
+  ladderProgressById = {},
 }: {
   latestCheckUp: StoredCheckUp | null;
   score: CheckUpScore | null;
@@ -53,9 +64,11 @@ export function ProgressScreen({
   onBeginCheckUp: () => void;
   onViewLatest: () => void;
   onOpenSettings: () => void;
+  ladderProgressById?: Record<string, LadderProgress>;
 }) {
   const measured = score ? score.domains.filter((domain) => domain.measured) : [];
   const snapshotCount = SNAPSHOT_ROWS.filter((row) => movementSnapshot?.[row.key]).length;
+  const ladderRows = LADDER_ROWS.map((row) => ({ ...row, progress: ladderProgressById[row.ladderId] })).filter((row) => !!row.progress);
   return (
     <Screen>
       <View style={styles.header}>
@@ -132,10 +145,21 @@ export function ProgressScreen({
         )}
       </Card>
 
-      <EmptyState
-        title="Ladder progress"
-        body="Exercise ladder levels will appear as Hale connects completed sessions with progression history."
-      />
+      <Card>
+        <SectionHeader title="Movement ladder progress" />
+        {ladderRows.length > 0 ? (
+          ladderRows.map((row) => (
+            <HealthMetricRow
+              key={row.ladderId}
+              label={row.label}
+              value={levelLabel(row.ladderId, row.progress!.currentLevelId)}
+              status={ladderStatus(row.progress!)}
+            />
+          ))
+        ) : (
+          <Text style={styles.cardBody}>Current levels appear here after Hale has session feedback to learn from.</Text>
+        )}
+      </Card>
 
       <EmptyState
         title="Re-test history"
@@ -161,6 +185,21 @@ function formatDate(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return 'recently';
   return date.toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
+}
+
+function levelLabel(ladderId: string, levelId: string): string {
+  try {
+    return getExerciseLadder(ladderId).levels.find((level) => level.id === levelId)?.name ?? 'Current level';
+  } catch {
+    return 'Current level';
+  }
+}
+
+function ladderStatus(progress: LadderProgress): string {
+  if (progress.lastPain) return 'Comfort first';
+  if (progress.lastTrackingQuality === 'poor') return 'Repeat setup';
+  if (progress.readyToProgress) return 'Building well';
+  return 'Current level';
 }
 
 const styles = StyleSheet.create({

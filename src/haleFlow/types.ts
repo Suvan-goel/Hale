@@ -10,7 +10,7 @@ import type {
   TrainingSessionCompletionType,
 } from '../adherence';
 import type { CheckUpScore } from '../scoring';
-import type { DailyReadiness, PainArea, SessionSource } from '../training/workoutGeneration';
+import type { DailyReadiness, PainArea, SessionSlotType, SessionSource } from '../training/workoutGeneration';
 
 export type HaleUserFlowState =
   | 'needs_life_goal'
@@ -115,6 +115,18 @@ export interface HaleSessionPlanMetadata {
   guidance?: readonly string[];
   equipmentNeeded?: readonly string[];
   fallbackReason?: string;
+  generatedExercises?: readonly HaleGeneratedExerciseMetadata[];
+}
+
+export interface HaleGeneratedExerciseMetadata {
+  exerciseId: string;
+  ladderId?: string;
+  levelId?: string;
+  slotType?: SessionSlotType;
+  sets?: number;
+  repsPerSet?: number;
+  secondsPerSet?: number;
+  measurementTier?: 'measured' | 'camera_assisted' | 'voice_guided';
 }
 
 export interface HaleSessionPlan {

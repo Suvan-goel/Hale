@@ -7,17 +7,19 @@ import { colors, spacing, type } from '../theme';
 export function WelcomeScreen({
   onStart,
   onDone,
+  showDashboardLink = true,
 }: {
   onStart: () => void;
   onDone: () => void;
+  showDashboardLink?: boolean;
 }) {
   const [showHow, setShowHow] = React.useState(false);
   return (
     <Screen>
       <ScreenHeader
         eyebrow="Hale"
-        title="Measure how your body is aging"
-        subtitle="Hale uses your phone camera to check your strength, balance, and mobility, then gives you a 4-week plan to improve your weakest area."
+        title="Stay stronger, steadier, and more mobile as you age."
+        subtitle="Hale uses your phone camera to check your movement and create a simple 4-week plan."
       />
 
       <Card style={styles.card}>
@@ -33,16 +35,16 @@ export function WelcomeScreen({
       {showHow ? (
         <Card style={styles.card}>
           <Step n="1" title="Check up" body="Measure strength, balance, and mobility." />
-          <Step n="2" title="Train" body="Follow a 4-week block built around your weakest area." />
+          <Step n="2" title="Train" body="Follow a 4-week block built around what will help most." />
           <Step n="3" title="Re-test" body="Repeat the Movement Check-Up at the end of the block." />
           <Step n="4" title="See progress" body="Use the report to choose the next focus." />
         </Card>
       ) : null}
 
       <View style={styles.actions}>
-        <PrimaryButton title="Start my Movement Check-Up" onPress={onStart} />
+        <PrimaryButton title="Start Movement Check-Up" onPress={onStart} />
         <SecondaryButton title={showHow ? 'Hide how it works' : 'How it works'} onPress={() => setShowHow((v) => !v)} />
-        <SecondaryButton title="Go to dashboard" onPress={onDone} />
+        {showDashboardLink ? <SecondaryButton title="Go to dashboard" onPress={onDone} /> : null}
       </View>
     </Screen>
   );

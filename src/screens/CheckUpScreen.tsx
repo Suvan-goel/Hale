@@ -166,7 +166,7 @@ export function CheckUpScreen({
         ) : (
           <>
             <Text style={styles.progress}>
-              Exercise {Math.min(snapshot.itemIndex + 1, TOTAL_ITEMS)} of {TOTAL_ITEMS}
+              Test {Math.min(snapshot.itemIndex + 1, TOTAL_ITEMS)} of {TOTAL_ITEMS}
             </Text>
             {snapshot.movementName ? <Text style={styles.movement}>{snapshot.movementName}</Text> : null}
             {isChairStandActive ? (

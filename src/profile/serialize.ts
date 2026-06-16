@@ -7,15 +7,29 @@
 
 import { LIFE_GOAL_CATEGORIES } from '../adherence';
 import type { ActivityLevel, AvailableEquipment, LifeGoal, MovementSafetyProfile } from '../adherence';
-import { AppSettings, EMPTY_PROFILE, Preferences, UserProfile } from './types';
+import { AppSettings, EMPTY_PROFILE, OnboardingState, OnboardingStep, Preferences, UserProfile } from './types';
 import { DEFAULT_VOICE_ID, VOICE_OPTIONS } from './voices';
 
-export const PREFERENCES_SCHEMA_VERSION = 3;
+export const PREFERENCES_SCHEMA_VERSION = 4;
+
+const ONBOARDING_STEPS: OnboardingStep[] = [
+  'welcome',
+  'life_goal',
+  'safety_profile',
+  'equipment',
+  'camera_explanation',
+  'camera_setup',
+  'baseline_checkup',
+  'results',
+  'create_block',
+  'complete',
+];
 
 export function defaultPreferences(): Preferences {
   return {
     profile: { ...EMPTY_PROFILE },
     settings: { voiceId: DEFAULT_VOICE_ID, remindersEnabled: false },
+    onboarding: defaultOnboardingState(),
   };
 }
 
@@ -35,6 +49,17 @@ export function deserializePreferences(json: string): Preferences | null {
   return {
     profile: validProfile(obj.profile),
     settings: validSettings(obj.settings),
+    onboarding: validOnboarding(obj.onboarding),
+  };
+}
+
+function defaultOnboardingState(): OnboardingState {
+  return {
+    currentStep: 'welcome',
+    selectedEquipment: [],
+    baselineResultId: null,
+    completedAt: null,
+    updatedAt: null,
   };
 }
 
@@ -130,5 +155,24 @@ function validSettings(v: unknown): AppSettings {
   return {
     voiceId: voiceKnown ? (s.voiceId as string) : def.voiceId,
     remindersEnabled: typeof s.remindersEnabled === 'boolean' ? s.remindersEnabled : def.remindersEnabled,
+  };
+}
+
+function validOnboarding(v: unknown): OnboardingState {
+  const def = defaultOnboardingState();
+  if (typeof v !== 'object' || v === null) return def;
+  const o = v as Partial<OnboardingState>;
+  const currentStep =
+    typeof o.currentStep === 'string' && ONBOARDING_STEPS.includes(o.currentStep as OnboardingStep)
+      ? (o.currentStep as OnboardingStep)
+      : def.currentStep;
+  return {
+    currentStep,
+    selectedEquipment: Array.isArray(o.selectedEquipment)
+      ? o.selectedEquipment.filter((item): item is string => typeof item === 'string')
+      : [],
+    baselineResultId: typeof o.baselineResultId === 'string' ? o.baselineResultId : null,
+    completedAt: typeof o.completedAt === 'string' ? o.completedAt : null,
+    updatedAt: typeof o.updatedAt === 'string' ? o.updatedAt : null,
   };
 }

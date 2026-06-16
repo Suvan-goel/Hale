@@ -8,6 +8,7 @@ import { requestCameraPermissionsAsync } from './modules/expo-pose-detection';
 import {
   AdherenceStore,
   AdherenceStoreState,
+  AvailableEquipment,
   BlockIntroScreen,
   BlockReportScreen,
   CheckupType,
@@ -43,19 +44,23 @@ import { syntheticCheckUp } from './src/checkup/devFixture';
 import {
   createMovementAssessment,
   createMovementBlockReport,
+  createGeneratedSessionSummary,
   getHaleAppLifecycle,
   getMicroCheckForBlock,
   latestOfficialAssessment,
   planTodayHaleSession,
   updateExerciseProgressionFromSession,
   type HaleSessionPlan,
+  type PlanSessionId,
   type TodaySessionPreferences,
 } from './src/haleFlow';
 import { HistoryStore, StoredCheckUp } from './src/history';
 import { expoHistoryFs } from './src/history/fsAdapter';
 import { TabBar, TabKey } from './src/navigation/TabBar';
+import { deriveOnboardingStep } from './src/onboarding/state';
 import {
   AppSettings,
+  OnboardingStep,
   Preferences,
   ProfileStore,
   UserProfile,
@@ -63,12 +68,16 @@ import {
 } from './src/profile';
 import { CheckUpScore, scoreCheckUp } from './src/scoring';
 import { AssessmentScreen } from './src/screens/AssessmentScreen';
+import { CameraExplanationScreen } from './src/screens/CameraExplanationScreen';
 import { CameraSetupScreen } from './src/screens/CameraSetupScreen';
 import { CheckUpScreen } from './src/screens/CheckUpScreen';
 import { ExploreScreen } from './src/screens/ExploreScreen';
 import { LiveSessionScreen } from './src/screens/LiveSessionScreen';
 import { ManualCheckupStartScreen } from './src/screens/ManualCheckupStartScreen';
 import { MicroCheckScreen } from './src/screens/MicroCheckScreen';
+import { OnboardingBlockScreen } from './src/screens/OnboardingBlockScreen';
+import { OnboardingEquipmentScreen } from './src/screens/OnboardingEquipmentScreen';
+import { OnboardingResultsScreen } from './src/screens/OnboardingResultsScreen';
 import { PlanScreen } from './src/screens/PlanScreen';
 import { ProgressScreen } from './src/screens/ProgressScreen';
 import { ResultsScreen } from './src/screens/ResultsScreen';
@@ -81,15 +90,20 @@ import { WelcomeScreen } from './src/screens/WelcomeScreen';
 import {
   EquipmentProfile,
   MicroCheckResult,
+  PainArea,
+  PersistedPostSessionFeedback,
+  TrainingIntensityPreference,
   TrainingState,
   TrainingStore,
   TrainingSessionResult,
+  TrackingQuality,
   buildBlock,
   defaultTrainingState,
   microCheckTrendPoints,
   recordCompletedSession,
   retestDue,
   startBlock,
+  upsertGeneratedSessionSummary,
 } from './src/training';
 import { colors, radius, spacing, type } from './src/theme';
 
@@ -97,6 +111,8 @@ type PermissionState = 'checking' | 'granted' | 'denied';
 /** Full-screen flows launched on top of the tab shell (hands-free sessions + dev tools). */
 type Flow =
   | 'welcome'
+  | 'equipment'
+  | 'camera-explanation'
   | 'safety-profile'
   | 'camera-setup'
   | 'manual-checkup'
@@ -106,6 +122,7 @@ type Flow =
   | 'training'
   | 'microcheck'
   | 'life-goal'
+  | 'onboarding-block'
   | 'block-intro'
   | 'restart-intro'
   | 'weekly-summary'
@@ -117,6 +134,29 @@ type Flow =
 
 /** Flows that mount the camera; gated on permission + audio configuration. */
 const CAMERA_FLOWS = new Set<Flow>(['checkup', 'training', 'microcheck', 'dev-assessment', 'dev-live']);
+
+function flowForOnboardingStep(step: OnboardingStep): Flow | null {
+  switch (step) {
+    case 'welcome':
+      return 'welcome';
+    case 'life_goal':
+      return 'life-goal';
+    case 'safety_profile':
+      return 'safety-profile';
+    case 'equipment':
+      return 'equipment';
+    case 'camera_explanation':
+      return 'camera-explanation';
+    case 'camera_setup':
+    case 'baseline_checkup':
+      return 'camera-setup';
+    case 'results':
+    case 'create_block':
+      return 'results';
+    case 'complete':
+      return null;
+  }
+}
 
 export default function App() {
   // Fonts are bundled (no runtime fetch); gate the first paint until they load
@@ -151,7 +191,6 @@ export default function App() {
   const [historyReady, setHistoryReady] = React.useState(false);
   const [profileReady, setProfileReady] = React.useState(false);
   const [adherenceReady, setAdherenceReady] = React.useState(false);
-  const [autoWelcomeShown, setAutoWelcomeShown] = React.useState(false);
   const [pendingCheckup, setPendingCheckup] = React.useState<{
     type: CheckupType;
     sourceBlockId?: string;
@@ -162,6 +201,7 @@ export default function App() {
   const [sessionType, setSessionType] = React.useState<TrainingSessionCompletionType>('standard');
   const [activeSessionPlan, setActiveSessionPlan] = React.useState<HaleSessionPlan | null>(null);
   const [lastCompletion, setLastCompletion] = React.useState<TrainingSessionCompletion | null>(null);
+  const [lastSessionResult, setLastSessionResult] = React.useState<TrainingSessionResult | null>(null);
 
   React.useEffect(() => {
     requestCameraPermissionsAsync()
@@ -177,19 +217,12 @@ export default function App() {
     adherenceStore.load().then(setAdherence).catch(() => {}).finally(() => setAdherenceReady(true));
   }, [store, trainingStore, profileStore, adherenceStore]);
 
-  React.useEffect(() => {
-    if (!historyReady || !profileReady || !adherenceReady || autoWelcomeShown || flow !== null) return;
-    if (history.length === 0 && !prefs.profile.lifeGoal) {
-      setAutoWelcomeShown(true);
-      setFlow('welcome');
-    }
-  }, [adherenceReady, autoWelcomeShown, flow, history.length, historyReady, prefs.profile.lifeGoal, profileReady]);
-
   const goHome = React.useCallback(() => {
     setFlow(null);
     setTab('today');
     setSessionIds([]);
     setActiveSessionPlan(null);
+    setLastSessionResult(null);
   }, []);
 
   const persistTraining = React.useCallback(
@@ -228,6 +261,27 @@ export default function App() {
     [adherenceStore]
   );
 
+  const activeMovementBlock = React.useMemo(() => getActiveMovementBlock(adherence.blocks), [adherence.blocks]);
+  const displayMovementBlock = React.useMemo(
+    () => activeMovementBlock ?? getLatestMovementBlock(adherence.blocks),
+    [activeMovementBlock, adherence.blocks]
+  );
+  const onboardingStep = React.useMemo(
+    () => deriveOnboardingStep({ prefs, history, activeBlock: activeMovementBlock }),
+    [activeMovementBlock, history, prefs]
+  );
+  const onboardingIncomplete = onboardingStep !== 'complete';
+  const latestStoredCheckUp = history.length > 0 ? history[history.length - 1].checkUp : null;
+  const visibleResult = lastResult ?? latestStoredCheckUp;
+  const showOnboardingResult =
+    onboardingIncomplete && (prefs.onboarding.currentStep === 'results' || prefs.onboarding.currentStep === 'create_block');
+
+  React.useEffect(() => {
+    if (!historyReady || !profileReady || !adherenceReady || flow !== null) return;
+    const nextFlow = flowForOnboardingStep(onboardingStep);
+    if (nextFlow) setFlow(nextFlow);
+  }, [adherenceReady, flow, historyReady, onboardingStep, profileReady]);
+
   const onProfileChange = React.useCallback(
     (profile: UserProfile) => persistPrefs({ ...prefs, profile }),
     [prefs, persistPrefs]
@@ -239,6 +293,7 @@ export default function App() {
 
   const onLifeGoalSave = React.useCallback(
     (lifeGoal: LifeGoal) => {
+      const now = new Date().toISOString();
       persistPrefs({
         ...prefs,
         profile: {
@@ -246,20 +301,22 @@ export default function App() {
           lifeGoal,
           goal: getLifeGoalDisplayText(lifeGoal),
         },
+        onboarding: onboardingIncomplete
+          ? { ...prefs.onboarding, currentStep: 'safety_profile', updatedAt: now }
+          : prefs.onboarding,
       });
-      if (!prefs.profile.safetyProfile) {
+      if (onboardingIncomplete) {
         setFlow('safety-profile');
-      } else if (history.length === 0) {
-        setFlow('camera-setup');
       } else {
         goHome();
       }
     },
-    [goHome, history.length, persistPrefs, prefs]
+    [goHome, onboardingIncomplete, persistPrefs, prefs]
   );
 
   const onSafetyProfileSave = React.useCallback(
     (safetyProfile: MovementSafetyProfile, age: number | null) => {
+      const now = new Date().toISOString();
       persistPrefs({
         ...prefs,
         profile: {
@@ -267,28 +324,77 @@ export default function App() {
           age,
           safetyProfile,
         },
+        onboarding: onboardingIncomplete
+          ? { ...prefs.onboarding, currentStep: 'equipment', updatedAt: now }
+          : prefs.onboarding,
       });
       persistTraining({
         ...training,
         equipment: {
           stair: safetyProfile.availableEquipment.includes('stairs'),
           band: safetyProfile.availableEquipment.includes('resistance_band'),
+          miniBand: training.equipment.miniBand,
+          load: training.equipment.load,
         },
       });
-      if (history.length === 0) {
-        setFlow('camera-setup');
+      if (onboardingIncomplete) {
+        setFlow('equipment');
       } else {
         goHome();
       }
     },
-    [goHome, history.length, persistPrefs, persistTraining, prefs, training]
+    [goHome, onboardingIncomplete, persistPrefs, persistTraining, prefs, training]
   );
 
-  const activeMovementBlock = React.useMemo(() => getActiveMovementBlock(adherence.blocks), [adherence.blocks]);
-  const displayMovementBlock = React.useMemo(
-    () => activeMovementBlock ?? getLatestMovementBlock(adherence.blocks),
-    [activeMovementBlock, adherence.blocks]
+  const handleEquipmentSave = React.useCallback(
+    (input: { selectedEquipment: string[]; availableEquipment: AvailableEquipment[]; equipment: EquipmentProfile }) => {
+      const now = new Date().toISOString();
+      const existingSafetyProfile = prefs.profile.safetyProfile;
+      persistPrefs({
+        ...prefs,
+        profile: existingSafetyProfile
+          ? {
+              ...prefs.profile,
+              safetyProfile: {
+                ...existingSafetyProfile,
+                availableEquipment: input.availableEquipment,
+                updatedAt: now,
+              },
+            }
+          : prefs.profile,
+        onboarding: {
+          ...prefs.onboarding,
+          currentStep: 'camera_explanation',
+          selectedEquipment: input.selectedEquipment,
+          updatedAt: now,
+        },
+      });
+      persistTraining({ ...training, equipment: input.equipment });
+      setFlow('camera-explanation');
+    },
+    [persistPrefs, persistTraining, prefs, training]
   );
+
+  const handleCameraExplanationContinue = React.useCallback(() => {
+    const now = new Date().toISOString();
+    persistPrefs({
+      ...prefs,
+      onboarding: { ...prefs.onboarding, currentStep: 'camera_setup', updatedAt: now },
+    });
+    setFlow('camera-setup');
+  }, [persistPrefs, prefs]);
+
+  const handleWelcomeStart = React.useCallback(() => {
+    if (onboardingIncomplete) {
+      const now = new Date().toISOString();
+      persistPrefs({
+        ...prefs,
+        onboarding: { ...prefs.onboarding, currentStep: 'life_goal', updatedAt: now },
+      });
+    }
+    setFlow('life-goal');
+  }, [onboardingIncomplete, persistPrefs, prefs]);
+
   const supportConnection = React.useMemo(
     () => adherence.supportConnections.find((c) => c.status !== 'removed') ?? null,
     [adherence.supportConnections]
@@ -353,6 +459,15 @@ export default function App() {
     },
     [activeMovementBlock, latestAssessment]
   );
+
+  const beginOnboardingCheckUp = React.useCallback(() => {
+    const now = new Date().toISOString();
+    persistPrefs({
+      ...prefs,
+      onboarding: { ...prefs.onboarding, currentStep: 'baseline_checkup', updatedAt: now },
+    });
+    beginCheckUp('baseline');
+  }, [beginCheckUp, persistPrefs, prefs]);
 
   // A finished check-up: persist it, show it, reload history (feeds trends).
   const handleCheckUpComplete = React.useCallback(
@@ -426,21 +541,33 @@ export default function App() {
         setFlow('block-report');
       } else {
         persistAdherence(nextAdherence);
+        if (onboardingIncomplete) {
+          persistPrefs({
+            ...prefs,
+            onboarding: {
+              ...prefs.onboarding,
+              currentStep: 'results',
+              baselineResultId: checkUp.startedAt,
+              updatedAt: completedAt,
+            },
+          });
+        }
         setPendingCheckup(null);
         setFlow('results');
       }
     },
-    [activeMovementBlock, adherence, history, pendingCheckup, persistAdherence, prefs.profile, store, training]
+    [activeMovementBlock, adherence, history, onboardingIncomplete, pendingCheckup, persistAdherence, persistPrefs, prefs, store, training]
   );
 
   // From Results: build a block biased to the weakest domain and begin it.
-  const handleStartPlan = React.useCallback(() => {
-    if (!lastResult) return;
+  const handleStartPlan = React.useCallback((mode: 'standard' | 'onboarding' = 'standard') => {
+    const sourceResult = visibleResult;
+    if (!sourceResult) return;
     const now = new Date().toISOString();
-    const score = scoreCheckUp(lastResult);
+    const score = scoreCheckUp(sourceResult);
     const block = buildBlock(score, training.equipment, now);
     const movementBlock = createMovementBlockFromAssessment({
-      latestAssessment: { score, id: lastResult.startedAt },
+      latestAssessment: { score, id: sourceResult.startedAt },
       lifeGoal: prefs.profile.lifeGoal,
       startDate: now,
     });
@@ -459,14 +586,29 @@ export default function App() {
     );
     persistAdherence(nextAdherence);
     persistTraining(startBlock(training, block));
-    setFlow('block-intro');
-  }, [adherence, lastResult, persistAdherence, persistTraining, prefs.profile, training]);
+    setLastResult(sourceResult);
+    if (mode === 'onboarding') {
+      persistPrefs({
+        ...prefs,
+        onboarding: {
+          ...prefs.onboarding,
+          currentStep: 'complete',
+          completedAt: now,
+          updatedAt: now,
+        },
+      });
+      setFlow('onboarding-block');
+    } else {
+      setFlow('block-intro');
+    }
+  }, [adherence, persistAdherence, persistPrefs, persistTraining, prefs, training, visibleResult]);
 
   const handleStartSession = React.useCallback(
     (
       preferences?: TodaySessionPreferences & {
         lifecycleState?: typeof lifecycle.state;
         presetId?: string;
+        targetSessionTemplateId?: PlanSessionId | string;
       }
     ) => {
       const plan = planTodayHaleSession({
@@ -478,8 +620,12 @@ export default function App() {
         recentCompletions: adherence.completions,
         adjustment: preferences?.adjustment,
         painArea: preferences?.painArea,
+        readiness: preferences?.adjustment
+          ? undefined
+          : readinessForTrainingPreference(training.planPreferences.preferredIntensity),
         today: new Date(),
         presetId: preferences?.presetId,
+        targetSessionTemplateId: preferences?.targetSessionTemplateId,
       });
       setActiveSessionPlan(plan);
       setFlow('session-preview');
@@ -491,10 +637,18 @@ export default function App() {
     handleStartSession({ adjustment: 'gentler', lifecycleState: 'inactive_restart' });
   }, [handleStartSession]);
 
+  const handleStartPlanSession = React.useCallback(
+    (targetSessionTemplateId: PlanSessionId) => {
+      handleStartSession({ targetSessionTemplateId });
+    },
+    [handleStartSession]
+  );
+
   const beginPlannedSession = React.useCallback(() => {
     if (!activeSessionPlan || activeSessionPlan.exercises.length === 0) return;
     setSessionType(activeSessionPlan.sessionType);
     setSessionIds(activeSessionPlan.exercises.map((exercise) => exercise.id));
+    setLastSessionResult(null);
     setFlow('training');
   }, [activeSessionPlan]);
 
@@ -502,9 +656,26 @@ export default function App() {
     (result: TrainingSessionResult) => {
       const completedAt = new Date().toISOString();
       const sessionPlan = activeSessionPlan;
+      setLastSessionResult(result);
+      let nextTraining = training;
+      let trainingChanged = false;
       if (sessionPlan?.sessionType !== 'retest_prep') {
-        persistTraining(recordCompletedSession(training, result, completedAt));
+        nextTraining = recordCompletedSession(nextTraining, result, completedAt);
+        trainingChanged = true;
       }
+      if (sessionPlan && sessionPlan.metadata?.source !== 'legacy_fallback') {
+        const summary = createGeneratedSessionSummary({
+          sessionPlan,
+          completedAt,
+          durationMinutes: sessionPlan.estimatedMinutes,
+        });
+        nextTraining = {
+          ...nextTraining,
+          generatedSessionSummaries: upsertGeneratedSessionSummary(nextTraining.generatedSessionSummaries, summary),
+        };
+        trainingChanged = true;
+      }
+      if (trainingChanged) persistTraining(nextTraining);
       const block = activeMovementBlock;
       if (block) {
         const started = Date.parse(result.startedAt);
@@ -534,16 +705,6 @@ export default function App() {
         );
         persistAdherence(nextAdherence);
         setLastCompletion(completion);
-        if (sessionPlan && sessionPlan.metadata?.source !== 'legacy_fallback') {
-          try {
-            // TODO(Stage 4): persist returned ladder progress once the dynamic
-            // ladder-progress store is added. For now this safely exercises the
-            // progression update path without changing storage schemas.
-            updateExerciseProgressionFromSession({ sessionPlan, completion });
-          } catch (e) {
-            console.warn('[training] dynamic progression update failed', e);
-          }
-        }
         setFlow('session-complete');
       } else {
         goHome();
@@ -577,28 +738,69 @@ export default function App() {
   );
 
   const handleSessionFeedback = React.useCallback(
-    (feedback: { perceivedEffort?: 1 | 2 | 3 | 4 | 5; painReported?: boolean }) => {
+    (feedback: {
+      perceivedEffort?: 1 | 2 | 3 | 4 | 5;
+      painReported?: boolean;
+      painArea?: PainArea;
+      completed?: boolean;
+      trackingQuality?: TrackingQuality;
+    }) => {
       if (!lastCompletion) return;
       const nextCompletion = { ...lastCompletion, ...feedback };
+      const submittedAt = new Date().toISOString();
+      const persistedFeedback: PersistedPostSessionFeedback = {
+        sessionId: activeSessionPlan?.metadata?.generatedSessionId ?? activeSessionPlan?.id ?? lastCompletion.id,
+        rpe: feedback.perceivedEffort,
+        discomfort: feedback.painReported,
+        painArea: feedback.painReported ? feedback.painArea : undefined,
+        completed: feedback.completed ?? true,
+        trackingQuality: feedback.trackingQuality ?? 'good',
+        submittedAt,
+      };
       setLastCompletion(nextCompletion);
       persistAdherence({
         ...adherence,
         completions: adherence.completions.map((c) => (c.id === lastCompletion.id ? nextCompletion : c)),
       });
+      let nextTraining: TrainingState = {
+        ...training,
+        lastPostSessionFeedback: persistedFeedback,
+      };
+      if (activeSessionPlan) {
+        const summary = createGeneratedSessionSummary({
+          sessionPlan: activeSessionPlan,
+          completedAt: nextCompletion.completedAt,
+          durationMinutes: nextCompletion.durationMinutes,
+          feedback: persistedFeedback,
+        });
+        if (activeSessionPlan.metadata?.source !== 'legacy_fallback') {
+          nextTraining = {
+            ...nextTraining,
+            generatedSessionSummaries: upsertGeneratedSessionSummary(nextTraining.generatedSessionSummaries, summary),
+          };
+        }
+      }
       if (activeSessionPlan && activeSessionPlan.metadata?.source !== 'legacy_fallback') {
         try {
-          updateExerciseProgressionFromSession({
+          const ladderProgressById = updateExerciseProgressionFromSession({
             sessionPlan: activeSessionPlan,
             completion: nextCompletion,
+            previousProgress: training.ladderProgressById,
+            sessionResult: lastSessionResult,
             perceivedEffort: feedback.perceivedEffort,
             painReported: feedback.painReported,
+            painAreas: feedback.painReported && feedback.painArea ? [feedback.painArea] : [],
+            completed: feedback.completed ?? true,
+            trackingQuality: feedback.trackingQuality ?? 'good',
           });
+          nextTraining = { ...nextTraining, ladderProgressById };
         } catch (e) {
           console.warn('[training] dynamic feedback update failed', e);
         }
       }
+      persistTraining(nextTraining);
     },
-    [activeSessionPlan, adherence, lastCompletion, persistAdherence]
+    [activeSessionPlan, adherence, lastCompletion, lastSessionResult, persistAdherence, persistTraining, training]
   );
 
   const toggleEquipment = React.useCallback(
@@ -606,6 +808,38 @@ export default function App() {
       persistTraining({ ...training, equipment: { ...training.equipment, [key]: !training.equipment[key] } });
     },
     [training, persistTraining]
+  );
+
+  const handlePreferredWorkoutDaysChange = React.useCallback(
+    (preferredWorkoutDays: string[]) => {
+      const safetyProfile = prefs.profile.safetyProfile;
+      if (!safetyProfile) return;
+      persistPrefs({
+        ...prefs,
+        profile: {
+          ...prefs.profile,
+          safetyProfile: {
+            ...safetyProfile,
+            preferredWorkoutDays,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      });
+    },
+    [persistPrefs, prefs]
+  );
+
+  const handleTrainingIntensityChange = React.useCallback(
+    (preferredIntensity: TrainingIntensityPreference) => {
+      persistTraining({
+        ...training,
+        planPreferences: {
+          ...training.planPreferences,
+          preferredIntensity,
+        },
+      });
+    },
+    [persistTraining, training]
   );
 
   const handleSaveSupportConnection = React.useCallback(
@@ -677,7 +911,7 @@ export default function App() {
   const handleTodayPrimaryAction = React.useCallback((preferences?: TodaySessionPreferences | null) => {
     switch (lifecycle.primaryAction.type) {
       case 'start_onboarding':
-        setFlow(prefs.profile.lifeGoal ? 'safety-profile' : 'welcome');
+        setFlow(flowForOnboardingStep(onboardingStep) ?? 'welcome');
         return;
       case 'start_checkup':
         setFlow('camera-setup');
@@ -709,7 +943,7 @@ export default function App() {
     handleStartNextBlock,
     handleStartSession,
     lifecycle.primaryAction.type,
-    prefs.profile.lifeGoal,
+    onboardingStep,
   ]);
 
   const extraTrendPoints = React.useMemo(() => microCheckTrendPoints(microChecks), [microChecks]);
@@ -734,6 +968,12 @@ export default function App() {
           return;
         case 'safety-profile':
           setFlow('safety-profile');
+          return;
+        case 'equipment':
+          setFlow('equipment');
+          return;
+        case 'camera-explanation':
+          setFlow('camera-explanation');
           return;
         case 'camera-setup':
           setFlow('camera-setup');
@@ -819,15 +1059,32 @@ export default function App() {
       <View style={styles.container}>
         <StatusBar style="dark" />
         {flow === 'welcome' ? (
-          <WelcomeScreen onStart={() => setFlow('life-goal')} onDone={goHome} />
+          <WelcomeScreen onStart={handleWelcomeStart} onDone={goHome} showDashboardLink={!onboardingIncomplete} />
         ) : flow === 'safety-profile' ? (
-          <SafetyProfileScreen profile={prefs.profile} onSave={onSafetyProfileSave} onCancel={goHome} />
+          <SafetyProfileScreen
+            profile={prefs.profile}
+            onSave={onSafetyProfileSave}
+            onCancel={() => (onboardingIncomplete ? setFlow('life-goal') : goHome())}
+          />
+        ) : flow === 'equipment' ? (
+          <OnboardingEquipmentScreen
+            selectedEquipment={prefs.onboarding.selectedEquipment}
+            onSave={handleEquipmentSave}
+            onBack={() => setFlow('safety-profile')}
+          />
+        ) : flow === 'camera-explanation' ? (
+          <CameraExplanationScreen
+            permissionGranted={permission === 'granted'}
+            onRequestPermission={requestCameraPermission}
+            onContinue={handleCameraExplanationContinue}
+            onBack={() => setFlow('equipment')}
+          />
         ) : flow === 'camera-setup' ? (
           <CameraSetupScreen
             permissionGranted={permission === 'granted'}
             onRequestPermission={requestCameraPermission}
-            onBegin={() => beginCheckUp(latestAssessment ? 'manual_extra' : 'baseline')}
-            onCancel={goHome}
+            onBegin={() => (onboardingIncomplete ? beginOnboardingCheckUp() : beginCheckUp(latestAssessment ? 'manual_extra' : 'baseline'))}
+            onCancel={() => (onboardingIncomplete ? setFlow('camera-explanation') : goHome())}
           />
         ) : flow === 'manual-checkup' ? (
           <ManualCheckupStartScreen
@@ -840,14 +1097,21 @@ export default function App() {
           />
         ) : flow === 'checkup' ? (
           <CheckUpScreen onComplete={handleCheckUpComplete} voiceId={prefs.settings.voiceId} />
-        ) : flow === 'results' && lastResult ? (
-          <ResultsScreen
-            checkUp={lastResult}
-            history={history}
-            extraTrendPoints={extraTrendPoints}
-            onDone={goHome}
-            onStartPlan={handleStartPlan}
-          />
+        ) : flow === 'results' && visibleResult ? (
+          showOnboardingResult ? (
+            <OnboardingResultsScreen
+              checkUp={visibleResult}
+              onCreateBlock={() => handleStartPlan('onboarding')}
+            />
+          ) : (
+            <ResultsScreen
+              checkUp={visibleResult}
+              history={history}
+              extraTrendPoints={extraTrendPoints}
+              onDone={goHome}
+              onStartPlan={handleStartPlan}
+            />
+          )
         ) : flow === 'session-preview' && activeSessionPlan ? (
           <SessionPreviewScreen
             plan={activeSessionPlan}
@@ -870,7 +1134,13 @@ export default function App() {
           <LifeGoalOnboardingScreen
             initialGoal={prefs.profile.lifeGoal}
             onSave={onLifeGoalSave}
-            onCancel={goHome}
+            onCancel={() => (onboardingIncomplete ? setFlow('welcome') : goHome())}
+          />
+        ) : flow === 'onboarding-block' && displayMovementBlock ? (
+          <OnboardingBlockScreen
+            block={displayMovementBlock}
+            onStartSession={() => handleStartSession({ lifecycleState: 'first_session_ready' })}
+            onGoToday={goHome}
           />
         ) : flow === 'block-intro' && displayMovementBlock ? (
           <BlockIntroScreen
@@ -955,11 +1225,20 @@ export default function App() {
           />
         ) : tab === 'plan' ? (
           <PlanScreen
+            lifecycleState={lifecycle.state}
+            lifeGoalText={prefs.profile.lifeGoal ? getLifeGoalDisplayText(prefs.profile.lifeGoal) : prefs.profile.goal}
             activeBlockSummary={lifecycle.activeBlockSummary}
             weekSessionStatuses={lifecycle.weekSessionStatuses ?? []}
+            preferredDays={prefs.profile.safetyProfile?.preferredWorkoutDays ?? []}
+            preferredIntensity={training.planPreferences.preferredIntensity}
+            onStartOnboarding={() => setFlow(flowForOnboardingStep(onboardingStep) ?? 'welcome')}
+            onStartCheckUp={() => setFlow('camera-setup')}
             onCreateBlock={handleStartNextBlock}
-            onStartSession={handleStartSession}
+            onStartPlanSession={handleStartPlanSession}
+            onStartRetest={() => beginCheckUp('official_retest')}
             onOpenSettings={() => setFlow('settings')}
+            onPreferredDaysChange={handlePreferredWorkoutDaysChange}
+            onIntensityChange={handleTrainingIntensityChange}
           />
         ) : tab === 'progress' ? (
           <ProgressScreen
@@ -967,6 +1246,7 @@ export default function App() {
             score={lastScore}
             movementSnapshot={lifecycle.movementSnapshot}
             checkUpCount={history.length}
+            ladderProgressById={training.ladderProgressById}
             onBeginCheckUp={() => (latestAssessment ? openManualCheckup() : setFlow('camera-setup'))}
             onViewLatest={viewLast}
             onOpenSettings={() => setFlow('settings')}
@@ -993,6 +1273,11 @@ export default function App() {
       ) : null}
     </View>
   );
+}
+
+function readinessForTrainingPreference(preference: TrainingIntensityPreference) {
+  if (preference === 'gentle') return 'low_energy' as const;
+  return undefined;
 }
 
 const styles = StyleSheet.create({

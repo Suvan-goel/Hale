@@ -6,7 +6,7 @@ import {
   type MovementSafetyProfile,
 } from '../../adherence';
 import { syntheticCheckUp } from '../../checkup/devFixture';
-import { hasExercise, STS_STANDARD_ID } from '../../exercises';
+import { hasExercise, STS_SLOW_ECC_ID, STS_STANDARD_ID } from '../../exercises';
 import { scoreCheckUp } from '../../scoring';
 import {
   DEFAULT_EQUIPMENT,
@@ -17,7 +17,9 @@ import {
   type TrainingSessionResult,
 } from '../../training';
 import type { GeneratedSession, LadderProgress } from '../../training/workoutGeneration';
+import { generateTodaySession as generateRawTodaySession } from '../../training/workoutGeneration';
 import {
+  createGeneratedSessionSummary,
   planTodayHaleSession,
   updateExerciseProgressionFromSession,
 } from '../sessionPlanning';
@@ -87,6 +89,71 @@ describe('planTodayHaleSession', () => {
     expect(plan.title).toBeTruthy();
     expect(plan.estimatedMinutes).toBeGreaterThan(0);
     expect(plan.exercises.length).toBeGreaterThan(0);
+    expect(plan.exercises.every((exercise) => hasExercise(exercise.id))).toBe(true);
+  });
+
+  it('uses persisted training ladder progress when no override is supplied', () => {
+    let captured: unknown;
+    const plan = planTodayHaleSession({
+      activeBlock: block(),
+      training: { ...legacyTraining(), ladderProgressById: ladderProgress() },
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      today: START,
+      generateSession: (input) => {
+        captured = input.ladderProgress;
+        return generateRawTodaySession(input);
+      },
+    });
+
+    expect(plan.metadata?.source).toBe('block_generated');
+    expect((captured as Record<string, LadderProgress>)['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
+  });
+
+  it('can target a requested Plan session template while staying on the dynamic path', () => {
+    let capturedTemplateId: string | undefined;
+    const plan = planTodayHaleSession({
+      activeBlock: block(),
+      training: legacyTraining(),
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      today: START,
+      targetSessionTemplateId: 'session_b',
+      generateSession: (input) => {
+        capturedTemplateId = input.template?.id;
+        return generateRawTodaySession(input);
+      },
+    });
+
+    expect(capturedTemplateId).toMatch(/-B$/);
+    expect(plan.metadata?.source).toBe('block_generated');
+    expect(plan.metadata?.templateId).toMatch(/-B$/);
+  });
+
+  it('uses defaults when ladder progress is missing and tolerates unknown stored levels', () => {
+    const plan = planTodayHaleSession({
+      activeBlock: block(),
+      training: {
+        ...legacyTraining(),
+        ladderProgressById: {
+          'sit-to-stand': {
+            ladderId: 'sit-to-stand',
+            currentLevelId: 'unknown-level',
+            completedSessionsAtLevel: 0,
+            failedSessionsAtLevel: 0,
+            recentCompletionRates: [],
+            recentRpe: [],
+            recentPain: [],
+            updatedAt: START,
+          },
+        },
+      },
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      today: START,
+    });
+
+    expect(plan.metadata?.source).toBe('block_generated');
     expect(plan.exercises.every((exercise) => hasExercise(exercise.id))).toBe(true);
   });
 
@@ -201,9 +268,164 @@ describe('planTodayHaleSession', () => {
     });
 
     expect(nextTraining.progress.completedSessions).toBe(1);
-    expect(() => updateExerciseProgressionFromSession({ sessionPlan: plan, completion })).not.toThrow();
+    expect(updateExerciseProgressionFromSession({ sessionPlan: plan, completion })).toBeTruthy();
+  });
+
+  it('stores enough generated session metadata for completion updates', () => {
+    const plan = planTodayHaleSession({
+      activeBlock: block(),
+      training: legacyTraining(),
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      today: START,
+      generateSession: () => singleSitToStandGeneratedSession(),
+    });
+    const summary = createGeneratedSessionSummary({
+      sessionPlan: plan,
+      completedAt: '2026-06-01T09:00:00.000Z',
+      durationMinutes: 20,
+    });
+
+    expect(summary.source).toBe('block_generated');
+    expect(summary.templateId).toBe('strength-A');
+    expect(summary.exerciseIds).toEqual([STS_STANDARD_ID]);
+    expect(summary.exercises?.[0]).toMatchObject({
+      exerciseId: STS_STANDARD_ID,
+      ladderId: 'sit-to-stand',
+      levelId: STS_STANDARD_ID,
+      slotType: 'lower_body_strength',
+    });
+  });
+
+  it('updates ladder progress after two easy generated completions', () => {
+    const plan = planTodayHaleSession({
+      activeBlock: block(),
+      training: legacyTraining(),
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      today: START,
+      generateSession: () => singleSitToStandGeneratedSession(),
+    });
+    const firstCompletion = makeTrainingSessionCompletion({
+      block: block(),
+      sessionType: plan.sessionType,
+      completedAt: '2026-06-01T09:00:00.000Z',
+      plannedDate: plan.metadata?.plannedDateKey,
+    });
+    const first = updateExerciseProgressionFromSession({
+      sessionPlan: plan,
+      completion: firstCompletion,
+      sessionResult: { startedAt: START, items: [{ exerciseId: STS_STANDARD_ID, status: 'completed', sets: [] }] },
+      perceivedEffort: 2,
+      painReported: false,
+      trackingQuality: 'good',
+    });
+    const second = updateExerciseProgressionFromSession({
+      previousProgress: first,
+      sessionPlan: plan,
+      completion: { ...firstCompletion, completedAt: '2026-06-03T09:00:00.000Z' },
+      sessionResult: { startedAt: START, items: [{ exerciseId: STS_STANDARD_ID, status: 'completed', sets: [] }] },
+      perceivedEffort: 2,
+      painReported: false,
+      trackingQuality: 'good',
+    });
+
+    expect(first['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
+    expect(second['sit-to-stand'].currentLevelId).toBe(STS_SLOW_ECC_ID);
+  });
+
+  it('does not progress after high effort, pain, or poor tracking', () => {
+    const plan = planTodayHaleSession({
+      activeBlock: block(),
+      training: legacyTraining(),
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      today: START,
+      generateSession: () => singleSitToStandGeneratedSession(),
+    });
+    const completion = makeTrainingSessionCompletion({
+      block: block(),
+      sessionType: plan.sessionType,
+      completedAt: '2026-06-01T09:00:00.000Z',
+      plannedDate: plan.metadata?.plannedDateKey,
+    });
+    const oneGood = updateExerciseProgressionFromSession({
+      sessionPlan: plan,
+      completion,
+      sessionResult: { startedAt: START, items: [{ exerciseId: STS_STANDARD_ID, status: 'completed', sets: [] }] },
+      perceivedEffort: 2,
+      painReported: false,
+      trackingQuality: 'good',
+    });
+    const painful = updateExerciseProgressionFromSession({
+      previousProgress: oneGood,
+      sessionPlan: plan,
+      completion: { ...completion, completedAt: '2026-06-03T09:00:00.000Z' },
+      sessionResult: { startedAt: START, items: [{ exerciseId: STS_STANDARD_ID, status: 'completed', sets: [] }] },
+      perceivedEffort: 5,
+      painReported: true,
+      painAreas: ['knee'],
+      trackingQuality: 'good',
+    });
+    const poorTracking = updateExerciseProgressionFromSession({
+      previousProgress: oneGood,
+      sessionPlan: plan,
+      completion: { ...completion, completedAt: '2026-06-04T09:00:00.000Z' },
+      sessionResult: { startedAt: START, items: [{ exerciseId: STS_STANDARD_ID, status: 'completed', sets: [] }] },
+      perceivedEffort: 2,
+      painReported: false,
+      trackingQuality: 'poor',
+    });
+
+    expect(painful['sit-to-stand'].currentLevelId).not.toBe(STS_SLOW_ECC_ID);
+    expect(painful['sit-to-stand'].lastPainArea).toBe('knee');
+    expect(poorTracking['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
+    expect(poorTracking['sit-to-stand'].failedSessionsAtLevel).toBe(0);
   });
 });
+
+function singleSitToStandGeneratedSession(): GeneratedSession {
+  return {
+    id: 'generated-sit-to-stand',
+    blockId: 'movement-block-test',
+    templateId: 'strength-A',
+    source: 'block_generated',
+    title: 'Strength Session A',
+    focusDomain: 'strength_power',
+    dayLabel: 'A',
+    estimatedMinutes: 12,
+    readiness: 'ready',
+    painAreas: [],
+    weekStatus: 'session_due',
+    skippedSlots: [],
+    guidance: [],
+    exercises: [
+      {
+        id: 'lower-strength-a-sit-to-stand-standard-1',
+        exerciseId: STS_STANDARD_ID,
+        ladderId: 'sit-to-stand',
+        ladderTitle: 'Sit-to-Stand',
+        levelId: STS_STANDARD_ID,
+        level: 1,
+        name: 'Standard Sit-to-Stand',
+        slotType: 'lower_body_strength',
+        domain: 'strength_power',
+        kind: 'reps',
+        releaseStatus: 'v1_core',
+        measurementTier: 'measured',
+        cameraView: 'side',
+        equipment: ['chair'],
+        instructions: 'Stand from the chair with control.',
+        whyItMatters: 'Build chair-rise strength.',
+        sets: 2,
+        repsPerSet: 8,
+        restSeconds: 30,
+        estimatedMinutes: 4,
+        rationale: 'Test generated metadata.',
+      },
+    ],
+  };
+}
 
 function unsupportedGeneratedSession(): GeneratedSession {
   return {

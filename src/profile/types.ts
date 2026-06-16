@@ -32,10 +32,31 @@ export interface AppSettings {
   remindersEnabled: boolean;
 }
 
+export type OnboardingStep =
+  | 'welcome'
+  | 'life_goal'
+  | 'safety_profile'
+  | 'equipment'
+  | 'camera_explanation'
+  | 'camera_setup'
+  | 'baseline_checkup'
+  | 'results'
+  | 'create_block'
+  | 'complete';
+
+export interface OnboardingState {
+  currentStep: OnboardingStep;
+  selectedEquipment: string[];
+  baselineResultId: string | null;
+  completedAt: string | null;
+  updatedAt: string | null;
+}
+
 /** The whole persisted preferences record (one file, schema-versioned). */
 export interface Preferences {
   profile: UserProfile;
   settings: AppSettings;
+  onboarding: OnboardingState;
 }
 
 export const EMPTY_PROFILE: UserProfile = {

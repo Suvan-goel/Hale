@@ -70,7 +70,7 @@ function completion(
 describe('life goal relevance', () => {
   it('maps life goals to training domains and display copy', () => {
     const goal = createLifeGoal({ category: 'stairs', nowIso: START });
-    expect(getLifeGoalDisplayText(goal)).toBe('Feel steady on stairs');
+    expect(getLifeGoalDisplayText(goal)).toBe('Climb stairs more easily');
     expect(getLifeGoalTrainingRelevance(goal).primaryDomains).toEqual(['strength_power', 'balance']);
   });
 });

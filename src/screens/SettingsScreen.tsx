@@ -146,6 +146,12 @@ export function SettingsScreen({
           onValueChange={() => onToggleEquipment('stair')}
         />
         <ToggleRow label="A resistance band" value={equipment.band} onValueChange={() => onToggleEquipment('band')} />
+        <ToggleRow label="A mini band" value={!!equipment.miniBand} onValueChange={() => onToggleEquipment('miniBand')} />
+        <ToggleRow
+          label="A backpack or light weights"
+          value={!!equipment.load}
+          onValueChange={() => onToggleEquipment('load')}
+        />
       </Card>
     </Screen>
   );

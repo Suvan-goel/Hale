@@ -81,6 +81,13 @@ export type {
   DebugWorkoutExercisePreview,
   DebugWorkoutScenarioPreview,
 } from './debugWorkoutScenarios';
+export { upsertGeneratedSessionSummary } from './dynamicState';
+export type {
+  PersistedGeneratedExerciseSummary,
+  PersistedGeneratedSessionSummary,
+  PersistedPostSessionFeedback,
+  PersistedSessionSource,
+} from './dynamicState';
 export {
   DEFAULT_MICROCHECK_CONFIG,
   MicroCheckRunner,
@@ -96,13 +103,14 @@ export type {
 export { TrainingStore } from './store';
 export {
   TRAINING_SCHEMA_VERSION,
+  defaultTrainingPlanPreferences,
   defaultTrainingState,
   deserializeMicroCheck,
   deserializeTrainingState,
   serializeMicroCheck,
   serializeTrainingState,
 } from './serialize';
-export type { BlockProgress, TrainingState } from './serialize';
+export type { BlockProgress, TrainingIntensityPreference, TrainingPlanPreferences, TrainingState } from './serialize';
 export {
   nextSessionExercises,
   nextSessionPlan,

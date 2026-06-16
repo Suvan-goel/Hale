@@ -325,4 +325,54 @@ describe('lifecycle view models', () => {
       }).map((s) => s.status)
     ).toEqual(['complete', 'complete', 'complete']);
   });
+
+  it('counts generated session template completions toward weekly A/B/C status', () => {
+    const block = activeBlock();
+    const completions = [
+      makeTrainingSessionCompletion({
+        block,
+        sessionType: 'starter',
+        completedAt: '2026-06-02T08:00:00.000Z',
+        plannedDate: 'balance-A:2026-06-02',
+      }),
+      makeTrainingSessionCompletion({
+        block,
+        sessionType: 'standard',
+        completedAt: '2026-06-04T08:00:00.000Z',
+        plannedDate: 'balance-B:2026-06-04',
+      }),
+    ];
+
+    expect(
+      getWeekSessionStatuses({
+        adherence: { ...defaultAdherenceStoreState(), blocks: [block], completions },
+        today: '2026-06-04T12:00:00.000Z',
+      }).map((s) => s.status)
+    ).toEqual(['complete', 'complete', 'next']);
+  });
+
+  it('uses generated session summaries when old completion records lack template ids', () => {
+    const block = activeBlock();
+
+    expect(
+      getWeekSessionStatuses({
+        adherence: { ...defaultAdherenceStoreState(), blocks: [block] },
+        training: {
+          ...defaultTrainingState(),
+          generatedSessionSummaries: [
+            {
+              id: 'generated-b',
+              blockId: block.id,
+              source: 'block_generated',
+              templateId: 'balance-B',
+              title: 'Balance Session B',
+              completedAt: '2026-06-04T08:00:00.000Z',
+              exerciseIds: [],
+            },
+          ],
+        },
+        today: '2026-06-04T12:00:00.000Z',
+      }).map((s) => s.status)
+    ).toEqual(['next', 'complete', 'later']);
+  });
 });

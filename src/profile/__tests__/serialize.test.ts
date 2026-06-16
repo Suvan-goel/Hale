@@ -16,6 +16,13 @@ describe('preferences serialize', () => {
   const sample: Preferences = {
     profile: { name: 'Margaret', age: 58, goal: 'Stay steady on the stairs', lifeGoal, safetyProfile: null },
     settings: { voiceId: 'clara', remindersEnabled: true },
+    onboarding: {
+      currentStep: 'complete',
+      selectedEquipment: ['chair', 'wall'],
+      baselineResultId: 'checkup-1',
+      completedAt: '2026-06-16T09:00:00.000Z',
+      updatedAt: '2026-06-16T09:00:00.000Z',
+    },
   };
 
   it('round-trips a full record', () => {
@@ -23,7 +30,7 @@ describe('preferences serialize', () => {
   });
 
   it('writes a schema version', () => {
-    expect(JSON.parse(serializePreferences(sample)).schemaVersion).toBe(3);
+    expect(JSON.parse(serializePreferences(sample)).schemaVersion).toBe(4);
   });
 
   it('returns null on malformed JSON', () => {
@@ -54,6 +61,13 @@ describe('ProfileStore', () => {
     const prefs: Preferences = {
       profile: { name: 'David', age: 66, goal: '', lifeGoal: null, safetyProfile: null },
       settings: { voiceId: 'clara', remindersEnabled: true },
+      onboarding: {
+        currentStep: 'welcome',
+        selectedEquipment: [],
+        baselineResultId: null,
+        completedAt: null,
+        updatedAt: null,
+      },
     };
     new ProfileStore(fs).save(prefs);
     expect(await new ProfileStore(fs).load()).toEqual(prefs);

@@ -18,20 +18,22 @@ export function CameraSetupScreen({
   return (
     <Screen>
       <ScreenHeader
-        eyebrow="Camera setup"
-        title="Prepare for your Movement Check-Up"
-        subtitle="Prop your phone against a wall at about hip height. Step back until your whole body is visible."
+        eyebrow="Step 6 of 10"
+        title="Set up your space"
+        subtitle="A calm setup makes your Movement Check-Up easier to follow."
       />
 
       <Card style={styles.card}>
         <View style={styles.head}>
-          <Text style={styles.title}>What you need</Text>
+          <Text style={styles.title}>Before you begin</Text>
           <StatusBadge label={permissionGranted ? 'Camera ready' : 'Permission needed'} tone={permissionGranted ? 'good' : 'gold'} />
         </View>
-        <SetupItem n="1" text="A sturdy chair for sit-to-stand movements." />
-        <SetupItem n="2" text="A wall, counter, or chair nearby for balance support." />
-        <SetupItem n="3" text="Enough light for Hale to track your skeleton clearly." />
-        <SetupItem n="4" text="Enough space to stand and move safely." />
+        <SetupItem n="1" text="Set your phone side-on when asked." />
+        <SetupItem n="2" text="Make sure your full body is visible." />
+        <SetupItem n="3" text="Use a stable chair." />
+        <SetupItem n="4" text="Keep support nearby for balance." />
+        <SetupItem n="5" text="Move slowly and comfortably." />
+        <SetupItem n="6" text="Use good lighting." />
       </Card>
 
       <Card style={styles.card}>
@@ -43,7 +45,7 @@ export function CameraSetupScreen({
 
       <View style={styles.actions}>
         {permissionGranted ? (
-          <PrimaryButton title="Begin check-up" onPress={onBegin} />
+          <PrimaryButton title="I'm set up" onPress={onBegin} />
         ) : (
           <PrimaryButton title="Allow camera" onPress={onRequestPermission} />
         )}

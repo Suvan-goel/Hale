@@ -16,6 +16,7 @@ import type { StoredCheckUp } from '../history';
 import type { UserProfile } from '../profile';
 import { scoreCheckUp, type CheckUpScore } from '../scoring';
 import type { TrainingState } from '../training';
+import { PLAN_SESSION_IDS, planSessionIdForTemplateId, type PlanSessionId } from './sessionIds';
 
 export type HaleLifecycleState =
   | 'needs_onboarding'
@@ -85,10 +86,12 @@ export interface MovementSnapshot {
 }
 
 export interface WeekSessionStatus {
-  id: 'session_a' | 'session_b' | 'session_c';
+  id: PlanSessionId;
   title: string;
   status: 'complete' | 'next' | 'later';
   focus: string;
+  templateId?: string;
+  completedAt?: string;
 }
 
 export function getHaleAppLifecycle(input: HaleAppLifecycleInput): HaleAppLifecycleResult {
@@ -256,17 +259,35 @@ export function getActiveBlockSummary(input: HaleAppLifecycleInput): ActiveBlock
 export function getWeekSessionStatuses(input: HaleAppLifecycleInput): WeekSessionStatus[] {
   const today = normalizeToday(input.today);
   const activeBlock = getActiveBlock(input);
-  const completedThisWeek = activeBlock
+  const focus = activeBlock ? shortFocus(activeBlock.focusDomain) : 'capability';
+  const completedById = activeBlock ? weeklyTemplateCompletions(input, activeBlock, today) : new Map<PlanSessionId, { templateId?: string; completedAt?: string }>();
+  const fallbackCompletedThisWeek = activeBlock
     ? sessionsCompletedThisWeek(activeBlock, input.adherence?.completions ?? [], today)
     : Math.min(3, input.training?.progress.completedSessions ?? 0);
-  const count = Math.max(0, Math.min(3, completedThisWeek));
-  const focus = activeBlock ? shortFocus(activeBlock.focusDomain) : 'capability';
+  const fallbackCount = Math.max(0, Math.min(3, fallbackCompletedThisWeek));
+  const usingTemplateStatus = completedById.size > 0;
+  let nextAssigned = false;
 
-  return [
-    { id: 'session_a', title: 'Session A', status: statusForIndex(0, count), focus: 'Strength foundation' },
-    { id: 'session_b', title: 'Session B', status: statusForIndex(1, count), focus: 'Movement control' },
-    { id: 'session_c', title: 'Session C', status: statusForIndex(2, count), focus: `Full-body ${focus}` },
-  ];
+  return PLAN_SESSION_IDS.map((id, index) => {
+    const completion = completedById.get(id);
+    let status: WeekSessionStatus['status'];
+    if (completion) {
+      status = 'complete';
+    } else if (usingTemplateStatus) {
+      status = nextAssigned ? 'later' : 'next';
+      nextAssigned = true;
+    } else {
+      status = statusForIndex(index, fallbackCount);
+    }
+    return {
+      id,
+      title: `Session ${String.fromCharCode(65 + index)}`,
+      status,
+      focus: index === 0 ? 'Strength foundation' : index === 1 ? 'Movement control' : `Full-body ${focus}`,
+      templateId: completion?.templateId,
+      completedAt: completion?.completedAt,
+    };
+  });
 }
 
 export function getMovementSnapshot(input: { score?: CheckUpScore | null }): MovementSnapshot | undefined {
@@ -355,6 +376,43 @@ function statusForIndex(index: number, completedCount: number): WeekSessionStatu
   if (index < completedCount) return 'complete';
   if (index === completedCount) return 'next';
   return 'later';
+}
+
+function weeklyTemplateCompletions(
+  input: HaleAppLifecycleInput,
+  block: MovementBlock,
+  today: string
+): Map<PlanSessionId, { templateId?: string; completedAt?: string }> {
+  const out = new Map<PlanSessionId, { templateId?: string; completedAt?: string }>();
+  const inWeek = isInBlockWeek(block, today);
+  for (const completion of completedTrainingSessions(block, input.adherence?.completions ?? [])) {
+    if (!inWeek(completion.completedAt)) continue;
+    const id = planSessionIdForTemplateId(completion.plannedDate);
+    if (id) out.set(id, { templateId: templateIdFromPlannedDate(completion.plannedDate), completedAt: completion.completedAt });
+  }
+  for (const summary of input.training?.generatedSessionSummaries ?? []) {
+    if (!summary.completedAt || (summary.blockId && summary.blockId !== block.id)) continue;
+    if (!inWeek(summary.completedAt)) continue;
+    const id = planSessionIdForTemplateId(summary.templateId);
+    if (id && !out.has(id)) out.set(id, { templateId: summary.templateId, completedAt: summary.completedAt });
+  }
+  return out;
+}
+
+function templateIdFromPlannedDate(plannedDate: string | undefined): string | undefined {
+  return plannedDate?.split(':')[0];
+}
+
+function isInBlockWeek(block: MovementBlock, today: string): (value: string) => boolean {
+  const week = currentWeekProgress(block, [], today).weekNumber;
+  const start = new Date(block.startDate);
+  start.setUTCDate(start.getUTCDate() + (week - 1) * 7);
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 7);
+  return (value: string) => {
+    const date = new Date(value);
+    return Number.isFinite(date.getTime()) && date >= start && date < end;
+  };
 }
 
 // Existing scoring expresses a domain as a movement-age range. Lower movement

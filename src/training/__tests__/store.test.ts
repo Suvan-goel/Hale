@@ -57,6 +57,94 @@ describe('TrainingStore persistence', () => {
   it('skips a record from an unknown schema version', () => {
     expect(deserializeTrainingState(JSON.stringify({ schemaVersion: 99, payload: {} }))).toBeNull();
   });
+
+  it('loads old minimal v1 state with empty dynamic progress fields', () => {
+    const parsed = deserializeTrainingState(
+      JSON.stringify({
+        schemaVersion: 1,
+        payload: {
+          block: null,
+          progression: { levels: {}, velHistory: {} },
+          equipment: { stair: false, band: false },
+          progress: { completedSessions: 0, lastSessionAt: null, retestDueAt: null },
+        },
+      })
+    );
+
+    expect(parsed?.ladderProgressById).toEqual({});
+    expect(parsed?.generatedSessionSummaries).toEqual([]);
+    expect(parsed?.lastPostSessionFeedback).toBeNull();
+    expect(parsed?.planPreferences.preferredIntensity).toBe('standard');
+  });
+
+  it('persists dynamic ladder progress and generated session summaries', async () => {
+    const files = new Map<string, string>();
+    const store = new TrainingStore(createMemoryFs(files));
+    const state = {
+      ...defaultTrainingState(),
+      ladderProgressById: {
+        'sit-to-stand': {
+          ladderId: 'sit-to-stand',
+          currentLevelId: STS_STANDARD_ID,
+          currentLevelIndex: 1,
+          completedSessionsAtLevel: 1,
+          failedSessionsAtLevel: 0,
+          recentCompletionRates: [1],
+          recentRpe: [2],
+          recentPain: [false],
+          lastRpe: 2,
+          lastPain: false,
+          lastTrackingQuality: 'good' as const,
+          lastCompletedAt: '2026-06-16T09:00:00.000Z',
+          readyToProgress: true,
+          updatedAt: '2026-06-16T09:00:00.000Z',
+        },
+      },
+      generatedSessionSummaries: [
+        {
+          id: 'generated-session-1',
+          blockId: 'block-1',
+          source: 'block_generated' as const,
+          templateId: 'strength-A',
+          title: 'Strength Session A',
+          completedAt: '2026-06-16T09:00:00.000Z',
+          exerciseIds: [STS_STANDARD_ID],
+          ladderIds: ['sit-to-stand'],
+          readiness: 'ready' as const,
+          durationMinutes: 20,
+        },
+      ],
+      lastPostSessionFeedback: {
+        sessionId: 'generated-session-1',
+        rpe: 2 as const,
+        discomfort: false,
+        completed: true,
+        trackingQuality: 'good' as const,
+        submittedAt: '2026-06-16T09:05:00.000Z',
+      },
+    };
+
+    store.saveState(state);
+    const reloaded = await new TrainingStore(createMemoryFs(files)).loadState();
+
+    expect(reloaded.ladderProgressById['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
+    expect(reloaded.generatedSessionSummaries[0].templateId).toBe('strength-A');
+    expect(reloaded.lastPostSessionFeedback?.rpe).toBe(2);
+    expect(reloaded.planPreferences.preferredIntensity).toBe('standard');
+  });
+
+  it('persists local plan preferences', async () => {
+    const files = new Map<string, string>();
+    const store = new TrainingStore(createMemoryFs(files));
+    store.saveState({
+      ...defaultTrainingState(),
+      planPreferences: { preferredIntensity: 'gentle' },
+    });
+
+    const reloaded = await new TrainingStore(createMemoryFs(files)).loadState();
+
+    expect(reloaded.planPreferences.preferredIntensity).toBe('gentle');
+  });
 });
 
 describe('session-completion glue', () => {

@@ -71,12 +71,19 @@ export interface TrainingBlock {
 export interface LadderProgress {
   ladderId: string;
   currentLevelId: string;
+  currentLevelIndex?: number;
+  recentCompletions?: number;
+  recentFailures?: number;
   completedSessionsAtLevel: number;
   failedSessionsAtLevel: number;
   recentCompletionRates: readonly number[];
   recentRpe: readonly number[];
   recentPain: readonly boolean[];
+  lastRpe?: number;
+  lastPain?: boolean;
+  lastPainArea?: PainArea;
   lastTrackingQuality?: TrackingQuality;
+  lastCompletedAt?: string;
   readyToProgress?: boolean;
   updatedAt: string;
 }
@@ -495,12 +502,19 @@ export function updateLadderProgressAfterSession(
     next[ladderId] = {
       ladderId,
       currentLevelId,
+      currentLevelIndex: levelIndex(ladderId, currentLevelId),
+      recentCompletions: recentCompletionRates.filter((rate) => rate >= 0.85).length,
+      recentFailures: recentCompletionRates.filter((rate) => rate < 0.6).length,
       completedSessionsAtLevel,
       failedSessionsAtLevel,
       recentCompletionRates,
       recentRpe,
       recentPain,
+      lastRpe: rpe,
+      lastPain: pain,
+      lastPainArea: feedback.painAreas?.[0],
       lastTrackingQuality: tracking,
+      lastCompletedAt: completedAt,
       readyToProgress,
       updatedAt: completedAt,
     };
@@ -970,6 +984,11 @@ function adjacentLevelId(ladderId: string, currentLevelId: string, direction: -1
   const idx = Math.max(0, ladder.levels.findIndex((level) => level.id === currentLevelId));
   const nextIdx = Math.min(Math.max(0, idx + direction), ladder.levels.length - 1);
   return ladder.levels[nextIdx].id;
+}
+
+function levelIndex(ladderId: string, currentLevelId: string): number {
+  const ladder = getExerciseLadder(ladderId);
+  return Math.max(0, ladder.levels.findIndex((level) => level.id === currentLevelId));
 }
 
 function levelName(ladder: ExerciseLadder, levelId: string): string {

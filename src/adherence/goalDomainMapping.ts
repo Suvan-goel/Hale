@@ -7,19 +7,28 @@ import type {
 import { LOCAL_USER_ID } from './types';
 
 export const LIFE_GOAL_PRESETS: { category: LifeGoalCategory; label: string }[] = [
-  { category: 'grandchildren', label: 'Keep up with my children or grandchildren' },
-  { category: 'stairs', label: 'Feel steady on stairs' },
-  { category: 'travel', label: 'Travel without worrying about long walks' },
-  { category: 'walking_hiking_sport', label: 'Keep walking, hiking, or playing sport' },
-  { category: 'gardening_hobbies', label: 'Garden or do hobbies comfortably' },
-  { category: 'floor_confidence', label: 'Get up from the floor confidently' },
-  { category: 'carrying_loads', label: 'Carry shopping and everyday loads' },
-  { category: 'independence', label: 'Stay independent as I age' },
-  { category: 'noticed_decline', label: 'Feel stronger after noticing decline' },
+  { category: 'stairs', label: 'Climb stairs more easily' },
+  { category: 'walking_hiking_sport', label: 'Keep up on walks' },
+  { category: 'travel', label: 'Travel comfortably' },
+  { category: 'grandchildren', label: 'Play with children/grandchildren' },
+  { category: 'gardening_hobbies', label: 'Feel less stiff' },
+  { category: 'independence', label: 'Stay independent' },
+  { category: 'noticed_decline', label: 'Get stronger overall' },
   { category: 'custom', label: 'Something else' },
 ];
 
-export const LIFE_GOAL_CATEGORIES = LIFE_GOAL_PRESETS.map((p) => p.category);
+export const LIFE_GOAL_CATEGORIES: LifeGoalCategory[] = [
+  'grandchildren',
+  'stairs',
+  'travel',
+  'walking_hiking_sport',
+  'gardening_hobbies',
+  'floor_confidence',
+  'carrying_loads',
+  'independence',
+  'noticed_decline',
+  'custom',
+];
 
 export function createLifeGoal({
   category,
