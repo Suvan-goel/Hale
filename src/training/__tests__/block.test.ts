@@ -47,12 +47,12 @@ describe('weakest-domain bias', () => {
   });
 
   it('balance → balance finisher and balance leads', () => {
-    expect(finisherFamily(score('balance'))).toBe('balance');
+    expect(finisherFamily(score('balance'))).toBe('lateral-stability');
     expect(firstSlot(score('balance')).slot).toBe('balance');
   });
 
   it('mobility → mobility finisher and a mobility item leads', () => {
-    expect(finisherFamily(score('mobility'))).toBe('hamstring-reach');
+    expect(finisherFamily(score('mobility'))).toBe('mobility-flexibility');
     expect(firstSlot(score('mobility')).family).toBe('hamstring-reach');
   });
 

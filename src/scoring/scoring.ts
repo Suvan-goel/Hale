@@ -5,7 +5,8 @@
  *
  * Domain → primary age-mapped metric (others are shown as supporting detail):
  *   Strength & Power → chair-stand reps   (Rikli & Jones norm)
- *   Balance          → Timed Up and Go    (Bohannon norm) + single-leg hold
+ *   Balance          → single-leg hold    (Bohannon norm); TUG remains a
+ *                      historical supporting row when older check-ups have it
  *   Mobility         → shoulder flexion    (estimated norm) + forward reach
  *
  * Rise velocity and forward-reach are body-unit trend metrics with no
@@ -27,7 +28,7 @@ import {
   TUG_ID,
   TugResult,
 } from '../movements';
-import { AgeNorm, CHAIR_STAND_REPS_NORM, inferAge, SHOULDER_FLEXION_NORM, TUG_SECONDS_NORM } from './norms';
+import { AgeNorm, CHAIR_STAND_REPS_NORM, inferAge, SHOULDER_FLEXION_NORM, SINGLE_LEG_STANCE_NORM } from './norms';
 
 export type Domain = 'strength' | 'balance' | 'mobility';
 
@@ -159,9 +160,8 @@ function balanceDomain(checkUp: CheckUp): DomainResult {
       measured: Number.isFinite(slSec),
     },
   ];
-  if (!tug || !tug.completed || !Number.isFinite(tug.totalSec)) return unmeasured('balance', rows);
-  const m = mapAge('balance', TUG_SECONDS_NORM, tug.totalSec);
-  // A short single-leg hold corroborates a balance worth working on.
+  if (!Number.isFinite(slSec)) return unmeasured('balance', rows);
+  const m = mapAge('balance', SINGLE_LEG_STANCE_NORM, slSec);
   let interpretation = m.interpretation;
   if (Number.isFinite(slSec) && slSec < 8) {
     interpretation += ' Holding a one-leg stand was tricky — a good thing to practise.';

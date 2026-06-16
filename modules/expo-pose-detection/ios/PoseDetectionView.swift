@@ -7,9 +7,9 @@ private let landmarkStride = 5
 
 /**
  * Owns AVCaptureSession + MediaPipe PoseLandmarker. No preview layer is ever
- * attached — the view renders solid black and emits one landmark event per
- * frame. Inference runs synchronously in VIDEO mode on the capture queue with
- * monotonic timestamps.
+ * attached — the view renders a solid warm-cream canvas (the app's bg-base) and
+ * emits one landmark event per frame; the JS skeleton is drawn on top. Inference
+ * runs synchronously in VIDEO mode on the capture queue with monotonic timestamps.
  */
 class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate {
   let onLandmarks = EventDispatcher()
@@ -34,7 +34,8 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
 
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
-    backgroundColor = .black
+    // bg-base (#F7F2EA) — keep in sync with the JS theme token (src/theme).
+    backgroundColor = UIColor(red: 0xF7 / 255.0, green: 0xF2 / 255.0, blue: 0xEA / 255.0, alpha: 1.0)
   }
 
   func setActiveProp(_ value: Bool) {

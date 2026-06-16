@@ -2,7 +2,7 @@
  * Movement Check-Up orchestrator — the single ~10-minute voice-guided battery.
  *
  * Pure-TS state machine (frame-timestamp driven, replay-testable) that chains
- * the five assessments via per-item SessionControllers:
+ * the V1 official assessments via per-item SessionControllers:
  *
  *   intro → [ transition → item ] × N → complete → done
  *
@@ -31,8 +31,16 @@ import {
 } from '../assessment/sessionController';
 import { CheckUp, CheckUpItem } from './types';
 
-/** Battery order: side-view items grouped, one turn to front for balance. */
+/** Official V1 battery: TUG is kept implemented, but hidden from normal flow. */
 export const DEFAULT_BATTERY: readonly string[] = [
+  'chair-stand-30s',
+  'balance-ladder',
+  'shoulder-flexion-peak',
+  'hinge-reach',
+];
+
+/** Dev/beta battery for the technically fragile home-space walking task. */
+export const BETA_BATTERY_WITH_TUG: readonly string[] = [
   'chair-stand-30s',
   'timed-up-and-go',
   'balance-ladder',

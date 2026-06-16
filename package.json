@@ -1,11 +1,14 @@
 {
-  "name": "longevity-app",
+  "name": "hale",
   "version": "0.1.0",
   "main": "index.ts",
   "dependencies": {
+    "@expo-google-fonts/fraunces": "^0.4.1",
+    "@expo-google-fonts/inter": "^0.4.2",
     "expo": "~56.0.11",
     "expo-audio": "~56.0.12",
     "expo-file-system": "~56.0.8",
+    "expo-font": "~56.0.7",
     "expo-status-bar": "~56.0.4",
     "react": "19.2.3",
     "react-native": "0.85.3",
@@ -29,7 +32,8 @@
     "replay": "tsx scripts/replay.ts",
     "fixtures": "tsx scripts/generate-fixtures.ts",
     "audio": "tsx scripts/generate-audio.ts",
-    "noise-floor": "tsx scripts/noise-floor.ts"
+    "noise-floor": "tsx scripts/noise-floor.ts",
+    "skeleton-preview": "tsx scripts/skeleton-preview.ts"
   },
   "jest": {
     "preset": "jest-expo",

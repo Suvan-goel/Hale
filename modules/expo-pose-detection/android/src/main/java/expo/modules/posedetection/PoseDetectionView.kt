@@ -3,7 +3,9 @@ package expo.modules.posedetection
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.Matrix
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -21,7 +23,6 @@ import androidx.lifecycle.LifecycleRegistry
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.core.Delegate
-import com.google.mediapipe.tasks.vision.core.ImageProcessingOptions
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarker
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
@@ -36,9 +37,10 @@ private const val LANDMARK_STRIDE = 5
 
 /**
  * Owns CameraX + MediaPipe PoseLandmarker. No preview surface is ever
- * attached — the view renders solid black and emits one landmark event per
- * analyzed frame. Inference runs synchronously in VIDEO mode on a dedicated
- * single-thread executor with monotonic timestamps.
+ * attached — the view renders a solid warm-cream canvas (the app's bg-base) and
+ * emits one landmark event per analyzed frame; the JS skeleton is drawn on top.
+ * Inference runs synchronously in VIDEO mode on a dedicated single-thread
+ * executor with monotonic timestamps.
  */
 class PoseDetectionView(context: Context, appContext: AppContext) :
   ExpoView(context, appContext), LifecycleOwner {
@@ -70,7 +72,8 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
   private var minPresenceConfidence = 0.35f
 
   init {
-    setBackgroundColor(Color.BLACK)
+    // bg-base (#F7F2EA) — keep in sync with the JS theme token (src/theme).
+    setBackgroundColor(Color.parseColor("#F7F2EA"))
     lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
   }
 
@@ -215,25 +218,29 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
       if (timestampMs <= lastTimestampMs) timestampMs = lastTimestampMs + 1
       lastTimestampMs = timestampMs
 
+      // Physically rotate the frame to upright BEFORE inference, rather than
+      // relying on ImageProcessingOptions.setRotationDegrees — that proved
+      // unreliable for BitmapImageBuilder inputs (landmarks came back in the
+      // raw landscape sensor space, so a standing person rendered rotated 90°).
+      // Rotating the pixels guarantees upright, unmirrored landmarks; the JS
+      // renderer handles front-camera mirroring on display.
       val rotation = imageProxy.imageInfo.rotationDegrees
-      val bitmap = imageProxy.toBitmap()
+      val raw = imageProxy.toBitmap()
       imageProxy.close()
+      val bitmap = if (rotation != 0) {
+        val matrix = Matrix().apply { postRotate(rotation.toFloat()) }
+        Bitmap.createBitmap(raw, 0, 0, raw.width, raw.height, matrix, true)
+      } else {
+        raw
+      }
 
       val mpImage = BitmapImageBuilder(bitmap).build()
-      // Let MediaPipe handle rotation internally; output landmarks are
-      // normalized in the upright (rotated) image space.
-      val processingOptions = ImageProcessingOptions.builder()
-        .setRotationDegrees(rotation)
-        .build()
-
       val start = SystemClock.elapsedRealtime()
-      val result = landmarker.detectForVideo(mpImage, processingOptions, timestampMs)
+      val result = landmarker.detectForVideo(mpImage, timestampMs)
       val inferenceMs = SystemClock.elapsedRealtime() - start
 
-      val upright = rotation == 90 || rotation == 270
-      val width = if (upright) bitmap.height else bitmap.width
-      val height = if (upright) bitmap.width else bitmap.height
-      dispatchResult(result, timestampMs, inferenceMs, width, height)
+      // Bitmap is now upright, so its dimensions are the upright source size.
+      dispatchResult(result, timestampMs, inferenceMs, bitmap.width, bitmap.height)
     } catch (e: Exception) {
       imageProxy.close()
       mainHandler.post {

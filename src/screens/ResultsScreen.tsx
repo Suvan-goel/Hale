@@ -1,18 +1,23 @@
 /**
- * Results screen: three domain ages with one-sentence interpretations, the
- * weakest-domain focus callout, per-test detail rows, and (once ≥2 check-ups
- * exist) trend bars — rise velocity and one-leg balance especially.
- *
- * Wellness-side language only (product law 4): "typical of age X–Y", never a
- * diagnosis. Domain ages lead; there is no composite score.
+ * Results screen: domain ages first, then supporting measurements and trends.
+ * Wellness-side language only — "typical of age X-Y", never a diagnosis.
  */
 
 import * as React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import Svg, { Circle, Polyline } from 'react-native-svg';
 
 import { CheckUp } from '../checkup/types';
-import { ExtraTrendPoint, StoredCheckUp, computeTrends, MetricTrend } from '../history';
+import { Card, HealthMetricRow, MaterialCard, PrimaryButton, Screen, SecondaryButton, StatusBadge } from '../components/ui';
+import { ExtraTrendPoint, MetricTrend, StoredCheckUp, computeTrends } from '../history';
 import { CheckUpScore, DOMAIN_LABEL, DomainResult, scoreCheckUp } from '../scoring';
+import { colors, fonts, radius, spacing, type } from '../theme';
+
+const DOMAIN_ICON: Record<string, string> = {
+  strength: 'S',
+  balance: 'B',
+  mobility: 'M',
+};
 
 export function ResultsScreen({
   checkUp,
@@ -34,64 +39,93 @@ export function ResultsScreen({
     () => computeTrends(history, extraTrendPoints).filter((t) => t.points.length >= 2),
     [history, extraTrendPoints]
   );
+  const measured = score.domains.filter((d) => d.measured);
+  const focusLabel = score.weakestDomain ? DOMAIN_LABEL[score.weakestDomain] : null;
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.title}>Your Movement Check-Up</Text>
-        <Text style={styles.subtitle}>How your body is moving today</Text>
+    <Screen>
+      <View style={styles.header}>
+        <Text style={styles.title}>Your Movement Dashboard</Text>
+        <Text style={styles.subtitle}>
+          Typical age ranges from today’s guided check-up, with trends as you build history.
+        </Text>
+      </View>
 
-        {score.weakestDomain ? (
-          <View style={styles.focus}>
-            <Text style={styles.focusLabel}>Where to focus</Text>
-            <Text style={styles.focusValue}>{DOMAIN_LABEL[score.weakestDomain]}</Text>
-            <Text style={styles.focusBody}>
-              This area looks like the best place to put your training next.
-            </Text>
-          </View>
-        ) : null}
-
-        {score.domains.map((d) => (
-          <DomainCard key={d.domain} domain={d} isFocus={d.domain === score.weakestDomain} />
-        ))}
-
-        {trends.length > 0 ? (
-          <View style={styles.trends}>
-            <Text style={styles.sectionTitle}>Your trend</Text>
-            <Text style={styles.subtitle}>Across {history.length} check-ups</Text>
-            {trends.map((t) => (
-              <TrendRow key={t.key} trend={t} />
-            ))}
-          </View>
-        ) : (
-          <Text style={styles.trendHint}>
-            Come back for another check-up to start seeing your trends over time.
+      {focusLabel ? (
+        <MaterialCard>
+          <Text style={styles.focusLabel}>Where to focus next</Text>
+          <Text style={styles.focusValue}>{focusLabel}</Text>
+          <Text style={styles.focusBody}>
+            This looks like the most useful area for your next four-week training block.
           </Text>
-        )}
+        </MaterialCard>
+      ) : null}
 
+      <View style={styles.summaryGrid}>
+        <SummaryTile label="Domains measured" value={`${measured.length}/3`} />
+        <SummaryTile label="Check-ups in history" value={`${history.length}`} />
+      </View>
+
+      {score.domains.map((d) => (
+        <DomainCard key={d.domain} domain={d} isFocus={d.domain === score.weakestDomain} />
+      ))}
+
+      {trends.length > 0 ? (
+        <Card>
+          <Text style={styles.sectionTitle}>Trends</Text>
+          <Text style={styles.sectionSubtle}>Small changes matter most when they repeat over time.</Text>
+          {trends.map((t) => (
+            <TrendRow key={t.key} trend={t} />
+          ))}
+        </Card>
+      ) : (
+        <Card>
+          <Text style={styles.sectionTitle}>Trends</Text>
+          <Text style={styles.sectionSubtle}>
+            Come back for another check-up to start seeing your movement trends over time.
+          </Text>
+        </Card>
+      )}
+
+      <View style={styles.actions}>
         {onStartPlan && score.weakestDomain ? (
-          <Pressable style={styles.button} onPress={onStartPlan}>
-            <Text style={styles.buttonText}>Start your plan</Text>
-          </Pressable>
-        ) : null}
-        <Pressable style={onStartPlan && score.weakestDomain ? styles.ghostButton : styles.button} onPress={onDone}>
-          <Text style={onStartPlan && score.weakestDomain ? styles.ghostText : styles.buttonText}>Done</Text>
-        </Pressable>
-      </ScrollView>
+          <>
+            <PrimaryButton title="Create my 4-week block" onPress={onStartPlan} />
+            <SecondaryButton title="Done" onPress={onDone} />
+          </>
+        ) : (
+          <PrimaryButton title="Done" onPress={onDone} />
+        )}
+      </View>
+    </Screen>
+  );
+}
+
+function SummaryTile({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.summaryTile}>
+      <Text style={styles.summaryValue}>{value}</Text>
+      <Text style={styles.summaryLabel}>{label}</Text>
     </View>
   );
 }
 
 function DomainCard({ domain, isFocus }: { domain: DomainResult; isFocus: boolean }) {
   return (
-    <View style={[styles.card, isFocus && styles.cardFocus]}>
-      <View style={styles.cardHead}>
-        <Text style={styles.cardLabel}>{domain.label}</Text>
-        {isFocus ? <Text style={styles.badge}>Focus</Text> : null}
+    <Card style={isFocus ? styles.focusCard : undefined}>
+      <View style={styles.domainHead}>
+        <View style={styles.domainTitleRow}>
+          <View style={styles.domainIcon}>
+            <Text style={styles.domainIconText}>{DOMAIN_ICON[domain.domain]}</Text>
+          </View>
+          <Text style={styles.domainTitle}>{domain.label}</Text>
+        </View>
+        {isFocus ? <StatusBadge label="Focus" tone="gold" /> : null}
       </View>
+
       {domain.measured ? (
         <Text style={styles.age}>
-          Typical of age {domain.ageLow}–{domain.ageHigh}
+          Typical of age {domain.ageLow}-{domain.ageHigh}
           {domain.estimated ? ' (estimate)' : ''}
         </Text>
       ) : (
@@ -100,13 +134,15 @@ function DomainCard({ domain, isFocus }: { domain: DomainResult; isFocus: boolea
       <Text style={styles.interp}>{domain.interpretation}</Text>
       <View style={styles.rows}>
         {domain.rows.map((r) => (
-          <View key={r.label} style={styles.row}>
-            <Text style={styles.rowLabel}>{r.label}</Text>
-            <Text style={[styles.rowValue, !r.measured && styles.rowValueMuted]}>{r.display}</Text>
-          </View>
+          <HealthMetricRow
+            key={r.label}
+            label={r.label}
+            value={r.display}
+            status={r.measured ? 'Measured' : 'Not captured'}
+          />
         ))}
       </View>
-    </View>
+    </Card>
   );
 }
 
@@ -118,103 +154,106 @@ function TrendRow({ trend }: { trend: MetricTrend }) {
   const delta = trend.delta ?? 0;
   const improved = trend.betterIsHigher ? delta > 0 : delta < 0;
   const flat = Math.abs(delta) < 1e-9;
-  const arrow = flat ? '→' : improved ? '▲' : '▼';
-  const color = flat ? '#9DB8A4' : improved ? '#7FC8A0' : '#D8A657';
-  const sign = delta > 0 ? '+' : '';
+  const color = flat ? colors.textSecondary : improved ? colors.positive : colors.caution;
+  const latest = trend.points[trend.points.length - 1].value;
+  const change = `${delta > 0 ? '+' : ''}${formatDelta(delta)} ${trend.unit}`;
+  const points = buildPolyline(values, min, span);
 
   return (
     <View style={styles.trendRow}>
       <View style={styles.trendHeader}>
-        <Text style={styles.trendLabel}>{trend.label}</Text>
-        <Text style={[styles.trendDelta, { color }]}>
-          {arrow} {sign}
-          {formatDelta(delta)} {trend.unit}
-        </Text>
+        <View>
+          <Text style={styles.trendLabel}>{trend.label}</Text>
+          <Text style={styles.trendMeta}>
+            Latest {formatDelta(latest)} {trend.unit}
+          </Text>
+        </View>
+        <View style={styles.trendDeltaWrap}>
+          <Text style={[styles.trendDelta, { color }]}>{change}</Text>
+          <Text style={styles.trendDeltaMeta}>{flat ? 'stable' : improved ? 'improving' : 'watch'}</Text>
+        </View>
       </View>
-      <View style={styles.spark}>
-        {trend.points.map((p, i) => (
-          <View
-            key={i}
-            style={[
-              styles.sparkBar,
-              {
-                height: 6 + ((p.value - min) / span) * 32,
-                backgroundColor: i === trend.points.length - 1 ? color : '#2C4233',
-              },
-            ]}
-          />
-        ))}
-      </View>
+      <Svg width={240} height={72} style={styles.chart}>
+        <Polyline points="0,58 240,58" stroke={colors.divider} strokeWidth={1} fill="none" />
+        <Polyline points="0,36 240,36" stroke={colors.divider} strokeWidth={1} fill="none" />
+        <Polyline points={points} fill="none" stroke={color} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+        {trend.points.map((p, i) => {
+          const x = trend.points.length === 1 ? 120 : (i / (trend.points.length - 1)) * 224 + 8;
+          const y = 58 - ((p.value - min) / span) * 44;
+          return <Circle key={`${p.at}-${i}`} cx={x} cy={y} r={3.5} fill={i === trend.points.length - 1 ? color : colors.sage} />;
+        })}
+      </Svg>
     </View>
   );
 }
 
-function formatDelta(delta: number): string {
-  const abs = Math.abs(delta);
-  return abs >= 10 ? abs.toFixed(0) : abs.toFixed(2);
+function buildPolyline(values: number[], min: number, span: number): string {
+  if (values.length === 1) return '8,58 232,58';
+  return values
+    .map((value, i) => {
+      const x = (i / (values.length - 1)) * 224 + 8;
+      const y = 58 - ((value - min) / span) * 44;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
+}
+
+function formatDelta(value: number): string {
+  const abs = Math.abs(value);
+  return abs >= 10 ? value.toFixed(0) : value.toFixed(2);
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  scroll: { padding: 20, paddingTop: 64, paddingBottom: 48 },
-  title: { color: '#E8F4EA', fontSize: 26, fontWeight: '400' },
-  subtitle: { color: '#6F8A77', fontSize: 14, marginTop: 2 },
-  sectionTitle: { color: '#E8F4EA', fontSize: 20, fontWeight: '400' },
-  focus: {
-    marginTop: 20,
-    padding: 16,
-    borderRadius: 14,
-    backgroundColor: '#13251A',
+  header: { gap: spacing.sm },
+  title: { ...type.display },
+  subtitle: { ...type.body, color: colors.textSecondary },
+  focusLabel: { ...type.label, color: colors.accentDeep },
+  focusValue: { ...type.h1, marginTop: spacing.sm },
+  focusBody: { ...type.bodySmall, color: colors.textSecondary, marginTop: spacing.sm },
+  summaryGrid: { flexDirection: 'row', gap: spacing.md },
+  summaryTile: {
+    flex: 1,
+    minHeight: 96,
+    borderRadius: radius.card,
+    padding: spacing.lg,
+    backgroundColor: colors.bgSurface,
     borderWidth: 1,
-    borderColor: '#2C4233',
+    borderColor: colors.borderHairline,
+    justifyContent: 'center',
   },
-  focusLabel: { color: '#7FC8A0', fontSize: 12, letterSpacing: 1, textTransform: 'uppercase' },
-  focusValue: { color: '#E8F4EA', fontSize: 22, fontWeight: '500', marginTop: 4 },
-  focusBody: { color: '#9DB8A4', fontSize: 15, lineHeight: 21, marginTop: 6 },
-  card: { marginTop: 16, padding: 16, borderRadius: 14, backgroundColor: '#0E1A12' },
-  cardFocus: { borderWidth: 1, borderColor: '#2C4233' },
-  cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardLabel: { color: '#E8F4EA', fontSize: 18, fontWeight: '500' },
-  badge: {
-    color: '#0E1A12',
-    backgroundColor: '#7FC8A0',
-    fontSize: 11,
-    fontWeight: '700',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  age: { color: '#CFE6D5', fontSize: 16, marginTop: 8 },
-  ageMuted: { color: '#6F8A77', fontSize: 16, marginTop: 8, fontStyle: 'italic' },
-  interp: { color: '#9DB8A4', fontSize: 15, lineHeight: 21, marginTop: 6 },
-  rows: { marginTop: 12 },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 6,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#1C2A20',
-  },
-  rowLabel: { color: '#9DB8A4', fontSize: 14 },
-  rowValue: { color: '#E8F4EA', fontSize: 14, fontVariant: ['tabular-nums'] },
-  rowValueMuted: { color: '#5A6F61' },
-  trends: { marginTop: 28 },
-  trendHint: { color: '#6F8A77', fontSize: 14, lineHeight: 20, marginTop: 28 },
-  trendRow: { marginTop: 16 },
-  trendHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
-  trendLabel: { color: '#CFE6D5', fontSize: 15 },
-  trendDelta: { fontSize: 14, fontVariant: ['tabular-nums'] },
-  spark: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, marginTop: 8, height: 40 },
-  sparkBar: { flex: 1, borderRadius: 3 },
-  button: {
-    marginTop: 36,
-    backgroundColor: '#1A2B1E',
-    paddingVertical: 16,
-    borderRadius: 14,
+  summaryValue: { ...type.h1, fontVariant: ['tabular-nums'] },
+  summaryLabel: { ...type.caption, marginTop: spacing.xs },
+  focusCard: { borderColor: colors.accentGold, backgroundColor: colors.bgElevated },
+  domainHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  domainTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, flex: 1 },
+  domainIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accentSoft,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  buttonText: { color: '#E8F4EA', fontSize: 17, fontWeight: '500' },
-  ghostButton: { marginTop: 14, paddingVertical: 12, alignItems: 'center' },
-  ghostText: { color: '#6F8A77', fontSize: 15 },
+  domainIconText: { ...type.label, color: colors.accentDeep },
+  domainTitle: { ...type.h2, flex: 1 },
+  age: { ...type.h3, color: colors.accentDeep, marginTop: spacing.lg },
+  ageMuted: { ...type.bodySmall, color: colors.textTertiary, marginTop: spacing.lg },
+  interp: { ...type.bodySmall, color: colors.textSecondary, marginTop: spacing.sm },
+  rows: { marginTop: spacing.lg },
+  sectionTitle: { ...type.h2 },
+  sectionSubtle: { ...type.bodySmall, color: colors.textSecondary, marginTop: spacing.sm },
+  trendRow: {
+    paddingTop: spacing.lg,
+    marginTop: spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
+  },
+  trendHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.md },
+  trendLabel: { ...type.h3 },
+  trendMeta: { ...type.caption, color: colors.textTertiary, marginTop: 2 },
+  trendDeltaWrap: { alignItems: 'flex-end' },
+  trendDelta: { ...type.bodySmall, fontFamily: fonts.sansMedium, fontVariant: ['tabular-nums'] },
+  trendDeltaMeta: { ...type.caption, color: colors.textTertiary, marginTop: 2 },
+  chart: { marginTop: spacing.md, alignSelf: 'center' },
+  actions: { gap: spacing.md },
 });

@@ -94,7 +94,7 @@ function validProgression(v: unknown): ProgressionState | null {
 function validEquipment(v: unknown): EquipmentProfile | null {
   if (!v || typeof v !== 'object') return null;
   const e = v as Partial<EquipmentProfile>;
-  return { stair: !!e.stair, band: !!e.band };
+  return { stair: !!e.stair, band: !!e.band, miniBand: !!e.miniBand, load: !!e.load };
 }
 
 function validProgress(v: unknown): BlockProgress | null {
@@ -108,7 +108,7 @@ function validProgress(v: unknown): BlockProgress | null {
   };
 }
 
-const MICRO_TYPES: MicroCheckType[] = ['chair-power', 'single-leg-balance'];
+const MICRO_TYPES: MicroCheckType[] = ['chair-power', 'single-leg-balance', 'mobility-reach'];
 
 export function serializeMicroCheck(result: MicroCheckResult): string {
   const env: Envelope<MicroCheckResult> = { schemaVersion: TRAINING_SCHEMA_VERSION, payload: result };

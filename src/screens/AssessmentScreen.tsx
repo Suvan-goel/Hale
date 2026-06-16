@@ -25,6 +25,8 @@ import { PosePipeline } from '../pose/pipeline';
 import { PreflightCheck } from '../preflight/preflight';
 import { LandmarkRecorder } from '../recording/recorder';
 import { SkeletonView, SkeletonViewHandle } from '../render/SkeletonView';
+import type { PoseAvatarMeasurementState } from '../render/poseAvatarTypes';
+import { colors, radius, shadow, spacing, type } from '../theme';
 
 const UI_UPDATE_INTERVAL_MS = 100;
 
@@ -113,11 +115,17 @@ export function AssessmentScreen() {
   const onPoseError = React.useCallback((e: { nativeEvent: PoseErrorEventPayload }) => {
     console.warn('[pose]', e.nativeEvent.message);
   }, []);
+  const avatarMeasurementState = assessmentAvatarState(snapshot.phase);
 
   return (
     <View style={styles.container}>
       <PoseDetectionView active style={StyleSheet.absoluteFill} onLandmarks={onLandmarks} onPoseError={onPoseError} />
-      <SkeletonView ref={skeletonRef} mirrored />
+      <SkeletonView
+        ref={skeletonRef}
+        mirrored
+        measurementState={avatarMeasurementState}
+        activeDomain="strength_power"
+      />
       {snapshot.phase === 'active' ? (
         <View pointerEvents="none" style={styles.hud}>
           <Text style={styles.repCount}>{snapshot.repCount}</Text>
@@ -140,31 +148,47 @@ export function AssessmentScreen() {
   );
 }
 
+function assessmentAvatarState(phase: AssessmentPhase): PoseAvatarMeasurementState {
+  switch (phase) {
+    case 'preflight':
+      return 'framing';
+    case 'instructions':
+    case 'countdown':
+      return 'ready';
+    case 'active':
+      return 'checkup';
+    case 'result':
+    case 'done':
+      return 'success';
+  }
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: colors.bgBase,
   },
   hud: {
     position: 'absolute',
-    top: 80,
-    left: 0,
-    right: 0,
+    top: spacing.huge,
+    left: spacing.xxl,
+    right: spacing.xxl,
     alignItems: 'center',
+    padding: spacing.xl,
+    borderRadius: radius.panel,
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderColor: colors.borderHairline,
+    ...shadow.soft,
   },
   caption: {
-    color: '#9DB8A4',
-    fontSize: 18,
+    ...type.body,
+    color: colors.textSecondary,
   },
   repCount: {
-    color: '#E8F4EA',
-    fontSize: 96,
-    fontVariant: ['tabular-nums'],
-    fontWeight: '200',
+    ...type.metric,
   },
   timer: {
-    color: '#9DB8A4',
-    fontSize: 28,
-    fontVariant: ['tabular-nums'],
+    ...type.metricSmall,
   },
 });

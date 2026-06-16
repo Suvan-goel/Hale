@@ -31,7 +31,13 @@ export type TrainingSlot =
   | 'mobility';
 
 /** How a set is graded — maps to which primitive the set grader wraps. */
-export type ExerciseKind = 'reps' | 'hold' | 'rom';
+export type ExerciseKind = 'reps' | 'hold' | 'rom' | 'timer';
+
+export type MeasurementTier = 'measured' | 'camera_assisted' | 'voice_guided';
+
+export type ReleaseStatus = 'v1_core' | 'v1_optional' | 'post_v1_beta' | 'hidden_legacy';
+
+export type ExerciseDomain = 'strength_power' | 'balance_stability' | 'mobility_flexibility';
 
 export interface ExercisePrescription {
   sets: number;
@@ -41,6 +47,8 @@ export interface ExercisePrescription {
   holdSec?: number;
   /** rom kind: fixed capture-window seconds per set (the player's clock ends it). */
   captureSec?: number;
+  /** timer kind: simple completion window for voice-guided or lightly camera-assisted work. */
+  timerSec?: number;
   /** Spoken rest between sets (and before the next item). */
   restSec: number;
   /** Velocity autoregulation applies (rep-based strength items only). */

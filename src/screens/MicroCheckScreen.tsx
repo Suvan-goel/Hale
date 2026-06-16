@@ -17,6 +17,11 @@ import { PosePipeline } from '../pose/pipeline';
 import { PreflightCheck } from '../preflight/preflight';
 import { LandmarkRecorder } from '../recording/recorder';
 import { SkeletonView, SkeletonViewHandle } from '../render/SkeletonView';
+import type {
+  PoseAvatarActiveDomain,
+  PoseAvatarMeasurementState,
+} from '../render/poseAvatarTypes';
+import { colors, radius, shadow, spacing, type } from '../theme';
 import { MicroCheckPhase, MicroCheckResult, MicroCheckRunner, MicroCheckType } from '../training/microCheck';
 
 const UI_UPDATE_INTERVAL_MS = 100;
@@ -24,6 +29,7 @@ const UI_UPDATE_INTERVAL_MS = 100;
 const TITLE: Record<MicroCheckType, string> = {
   'chair-power': 'Quick Power Check',
   'single-leg-balance': 'Quick Balance Check',
+  'mobility-reach': 'Quick Mobility Check',
 };
 
 const PHASE_CAPTION: Partial<Record<MicroCheckPhase, string>> = {
@@ -41,14 +47,16 @@ interface Snapshot {
 export function MicroCheckScreen({
   type,
   onComplete,
+  voiceId,
 }: {
   type: MicroCheckType;
   onComplete: (result: MicroCheckResult) => void;
+  voiceId?: string;
 }) {
   const [pipeline] = React.useState(() => new PosePipeline());
   const [preflight] = React.useState(() => new PreflightCheck());
   const [runner] = React.useState(() => new MicroCheckRunner(type, new Date().toISOString(), preflight));
-  const [voice] = React.useState(() => new VoiceChannel());
+  const [voice] = React.useState(() => new VoiceChannel(voiceId));
   const [sfx] = React.useState(() => new SfxChannel());
   const [recorder] = React.useState(() => new LandmarkRecorder());
   const skeletonRef = React.useRef<SkeletonViewHandle>(null);
@@ -99,11 +107,18 @@ export function MicroCheckScreen({
   }, []);
 
   const active = snapshot.phase === 'active';
+  const avatarMeasurementState = microCheckAvatarState(snapshot.phase);
+  const avatarDomain = domainForMicroCheck(type);
 
   return (
     <View style={styles.container}>
       <PoseDetectionView active style={StyleSheet.absoluteFill} onLandmarks={onLandmarks} onPoseError={onPoseError} />
-      <SkeletonView ref={skeletonRef} mirrored />
+      <SkeletonView
+        ref={skeletonRef}
+        mirrored
+        measurementState={avatarMeasurementState}
+        activeDomain={avatarDomain}
+      />
       <View pointerEvents="none" style={styles.hud}>
         {snapshot.phase === 'done' ? (
           <Text style={styles.caption}>Nice — that's logged.</Text>
@@ -114,6 +129,8 @@ export function MicroCheckScreen({
               <Text style={styles.big}>{snapshot.repCount}</Text>
             ) : active && type === 'single-leg-balance' ? (
               <Text style={styles.big}>{Number.isFinite(snapshot.holdSec) ? `${Math.floor(snapshot.holdSec)}s` : '—'}</Text>
+            ) : active && type === 'mobility-reach' ? (
+              <Text style={styles.caption}>Reach comfortably and return tall.</Text>
             ) : (
               <Text style={styles.caption}>{PHASE_CAPTION[snapshot.phase] ?? 'Measuring…'}</Text>
             )}
@@ -124,10 +141,42 @@ export function MicroCheckScreen({
   );
 }
 
+function microCheckAvatarState(phase: MicroCheckPhase): PoseAvatarMeasurementState {
+  switch (phase) {
+    case 'preflight':
+      return 'framing';
+    case 'instructions':
+    case 'countdown':
+      return 'ready';
+    case 'active':
+      return 'micro_check';
+    case 'done':
+      return 'success';
+  }
+}
+
+function domainForMicroCheck(type: MicroCheckType): PoseAvatarActiveDomain {
+  if (type === 'chair-power') return 'strength_power';
+  if (type === 'single-leg-balance') return 'balance';
+  return 'mobility';
+}
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  hud: { position: 'absolute', top: 72, left: 0, right: 0, alignItems: 'center' },
-  title: { color: '#E8F4EA', fontSize: 24, fontWeight: '300' },
-  caption: { color: '#9DB8A4', fontSize: 18, marginTop: 10 },
-  big: { color: '#E8F4EA', fontSize: 96, fontVariant: ['tabular-nums'], fontWeight: '200', marginTop: 8 },
+  container: { flex: 1, backgroundColor: colors.bgBase },
+  hud: {
+    position: 'absolute',
+    top: spacing.huge,
+    left: spacing.xxl,
+    right: spacing.xxl,
+    alignItems: 'center',
+    padding: spacing.xl,
+    borderRadius: radius.panel,
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderColor: colors.borderHairline,
+    ...shadow.soft,
+  },
+  title: { ...type.h1, textAlign: 'center' },
+  caption: { ...type.body, color: colors.textSecondary, marginTop: 10 },
+  big: { ...type.metric, marginTop: 8 },
 });

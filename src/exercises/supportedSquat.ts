@@ -15,6 +15,9 @@ const FAMILY = 'squat';
 
 export const SQUAT_SUPPORTED_ID = 'squat-supported';
 export const SQUAT_FREE_ID = 'squat-free';
+export const SQUAT_SLOW_ECC_ID = 'squat-slow-eccentric';
+export const SQUAT_LOADED_ID = 'squat-loaded';
+export const SPLIT_SQUAT_SUPPORTED_ID = 'chair-supported-split-squat';
 
 export const squatLevels: ExerciseDefinition[] = [
   {
@@ -42,8 +45,54 @@ export const squatLevels: ExerciseDefinition[] = [
     kind: 'reps',
     prescription: { sets: 3, repsPerSet: 12, restSec: 60, autoregulate: true },
     voice: { instructions: ['ex-squat'] },
+    progressionId: SQUAT_SLOW_ECC_ID,
     regressionId: SQUAT_SUPPORTED_ID,
     createGrader: repsGrader({ exerciseId: SQUAT_FREE_ID, signal: SIGNAL, upEnterDeg: 160, downEnterDeg: 120, targetReps: 12, autoregulate: true }),
+  },
+  {
+    id: SQUAT_SLOW_ECC_ID,
+    displayName: 'Slow-Lower Squat',
+    family: FAMILY,
+    level: 3,
+    slot: 'lower-push',
+    cameraView: SIDE,
+    equipment: ['none'],
+    kind: 'reps',
+    prescription: { sets: 3, repsPerSet: 8, restSec: 60, autoregulate: true },
+    voice: { instructions: ['ex-squat'] },
+    progressionId: SQUAT_LOADED_ID,
+    regressionId: SQUAT_FREE_ID,
+    createGrader: repsGrader({ exerciseId: SQUAT_SLOW_ECC_ID, signal: SIGNAL, upEnterDeg: 160, downEnterDeg: 120, targetReps: 8, autoregulate: true }),
+  },
+  {
+    id: SQUAT_LOADED_ID,
+    displayName: 'Loaded Squat',
+    family: FAMILY,
+    level: 4,
+    slot: 'lower-push',
+    cameraView: SIDE,
+    equipment: ['backpack_or_weight'],
+    kind: 'reps',
+    prescription: { sets: 3, repsPerSet: 8, restSec: 75, autoregulate: true },
+    voice: { instructions: ['ex-squat'] },
+    progressionId: SPLIT_SQUAT_SUPPORTED_ID,
+    regressionId: SQUAT_SLOW_ECC_ID,
+    substituteId: SQUAT_SLOW_ECC_ID,
+    createGrader: repsGrader({ exerciseId: SQUAT_LOADED_ID, signal: SIGNAL, upEnterDeg: 160, downEnterDeg: 120, targetReps: 8, autoregulate: true }),
+  },
+  {
+    id: SPLIT_SQUAT_SUPPORTED_ID,
+    displayName: 'Chair-Supported Split Squat',
+    family: FAMILY,
+    level: 5,
+    slot: 'lower-push',
+    cameraView: SIDE,
+    equipment: ['chair'],
+    kind: 'reps',
+    prescription: { sets: 2, repsPerSet: 8, restSec: 75, autoregulate: false },
+    voice: { instructions: ['ex-squat'] },
+    regressionId: SQUAT_LOADED_ID,
+    createGrader: repsGrader({ exerciseId: SPLIT_SQUAT_SUPPORTED_ID, signal: SIGNAL, upEnterDeg: 160, downEnterDeg: 125, targetReps: 8, autoregulate: false }),
   },
 ];
 

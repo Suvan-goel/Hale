@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
   s.name           = 'ExpoPoseDetection'
   s.version        = '0.1.0'
-  s.summary        = 'Native camera + MediaPipe PoseLandmarker for the Longevity app'
+  s.summary        = 'Native camera + MediaPipe PoseLandmarker for the Hale app'
   s.description    = 'Owns the camera and pose inference; emits landmark events to JS. No camera preview is ever rendered.'
   s.author         = ''
   s.homepage       = 'https://docs.expo.dev/modules/'

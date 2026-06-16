@@ -445,3 +445,67 @@ export class RomSetGrader implements ExerciseSetGrader {
     this.live.measuring = false;
   }
 }
+
+// ---------------------------------------------------------------------------
+// TimerSetGrader
+// ---------------------------------------------------------------------------
+
+export interface TimerSetConfig {
+  exerciseId: string;
+  targetSec: number;
+}
+
+/**
+ * Safe fallback for V1 mobility and simple camera-assisted drills where pose is
+ * useful for setup/presence but not robust enough for scoring. The player owns
+ * the clock; this grader simply reports completion without requiring landmarks.
+ */
+export class TimerSetGrader implements ExerciseSetGrader {
+  private readonly config: TimerSetConfig;
+  private readonly live: SetGraderUpdate = freshUpdate();
+  private startMs = -1;
+
+  constructor(config: TimerSetConfig) {
+    this.config = config;
+  }
+
+  update(out: PipelineFrameOutput): SetGraderUpdate {
+    const ts = out.frame.timestampMs;
+    if (this.startMs < 0) this.startMs = ts;
+    this.live.repCredited = false;
+    this.live.repCount = 0;
+    this.live.measuring = true;
+    this.live.holdMs = Math.max(0, ts - this.startMs);
+    this.live.autoregulationStop = false;
+    this.live.complete = this.live.holdMs >= this.config.targetSec * 1000;
+    this.live.voice = null;
+    return this.live;
+  }
+
+  finish(timestampMs: number): SetResult {
+    const elapsedMs =
+      this.startMs >= 0 ? Math.max(0, timestampMs - this.startMs) : this.config.targetSec * 1000;
+    return {
+      exerciseId: this.config.exerciseId,
+      reps: 0,
+      meanVel: NaN,
+      holdSec: elapsedMs / 1000,
+      romPeak: NaN,
+      autoregulated: false,
+      reachedTarget: elapsedMs >= this.config.targetSec * 1000 - 1,
+      interruptions: 0,
+      flags: [],
+    };
+  }
+
+  reset(): void {
+    this.startMs = -1;
+    this.live.repCredited = false;
+    this.live.repCount = 0;
+    this.live.measuring = false;
+    this.live.holdMs = 0;
+    this.live.autoregulationStop = false;
+    this.live.complete = false;
+    this.live.voice = null;
+  }
+}

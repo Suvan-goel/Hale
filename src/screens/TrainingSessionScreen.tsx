@@ -15,11 +15,16 @@ import {
   PoseErrorEventPayload,
 } from '../../modules/expo-pose-detection';
 import { SfxChannel, VoiceChannel } from '../audio/voicePlayer';
-import { getExercise } from '../exercises';
+import { getExercise, type ExerciseDefinition } from '../exercises';
 import { PosePipeline } from '../pose/pipeline';
 import { PreflightCheck } from '../preflight/preflight';
 import { LandmarkRecorder } from '../recording/recorder';
 import { SkeletonView, SkeletonViewHandle } from '../render/SkeletonView';
+import type {
+  PoseAvatarActiveDomain,
+  PoseAvatarMeasurementState,
+} from '../render/poseAvatarTypes';
+import { colors, radius, shadow, spacing, type } from '../theme';
 import {
   TrainingPhase,
   TrainingSessionPlayer,
@@ -32,10 +37,12 @@ interface Snapshot {
   phase: TrainingPhase;
   itemIndex: number;
   totalItems: number;
+  exerciseId: string | null;
   exerciseName: string | null;
+  activeDomain: PoseAvatarActiveDomain | null;
   setIndex: number;
   totalSets: number;
-  kind: 'reps' | 'hold' | 'rom' | null;
+  kind: 'reps' | 'hold' | 'rom' | 'timer' | null;
   repCount: number;
   holdSec: number;
   restSec: number;
@@ -45,7 +52,9 @@ const INITIAL: Snapshot = {
   phase: 'intro',
   itemIndex: 0,
   totalItems: 0,
+  exerciseId: null,
   exerciseName: null,
+  activeDomain: null,
   setIndex: 0,
   totalSets: 0,
   kind: null,
@@ -64,16 +73,18 @@ const PHASE_CAPTION: Partial<Record<TrainingPhase, string>> = {
 export function TrainingSessionScreen({
   exerciseIds,
   onComplete,
+  voiceId,
 }: {
   exerciseIds: string[];
   onComplete: (result: TrainingSessionResult) => void;
+  voiceId?: string;
 }) {
   const [pipeline] = React.useState(() => new PosePipeline());
   const [preflight] = React.useState(() => new PreflightCheck());
   const [player] = React.useState(
     () => new TrainingSessionPlayer(new Date().toISOString(), exerciseIds, preflight)
   );
-  const [voice] = React.useState(() => new VoiceChannel());
+  const [voice] = React.useState(() => new VoiceChannel(voiceId));
   const [sfx] = React.useState(() => new SfxChannel());
   const [recorder] = React.useState(() => new LandmarkRecorder());
   const skeletonRef = React.useRef<SkeletonViewHandle>(null);
@@ -115,7 +126,9 @@ export function TrainingSessionScreen({
           phase: u.phase,
           itemIndex: u.itemIndex,
           totalItems: exerciseIds.length,
+          exerciseId: u.currentExerciseId,
           exerciseName: def ? def.displayName : null,
+          activeDomain: def ? domainForTrainingExercise(def) : null,
           setIndex: u.setIndex,
           totalSets: u.totalSets,
           kind: def ? def.kind : null,
@@ -135,12 +148,18 @@ export function TrainingSessionScreen({
 
   const inSet = snapshot.phase === 'set';
   const showReps = inSet && snapshot.kind === 'reps';
-  const showHold = inSet && snapshot.kind === 'hold';
+  const showHold = inSet && (snapshot.kind === 'hold' || snapshot.kind === 'timer');
+  const avatarMeasurementState = trainingAvatarState(snapshot.phase);
 
   return (
     <View style={styles.container}>
       <PoseDetectionView active style={StyleSheet.absoluteFill} onLandmarks={onLandmarks} onPoseError={onPoseError} />
-      <SkeletonView ref={skeletonRef} mirrored />
+      <SkeletonView
+        ref={skeletonRef}
+        mirrored
+        measurementState={avatarMeasurementState}
+        activeDomain={snapshot.activeDomain}
+      />
       <View pointerEvents="none" style={styles.hud}>
         {snapshot.phase === 'intro' ? (
           <Text style={styles.caption}>Starting your session…</Text>
@@ -177,7 +196,9 @@ function sameSnapshot(a: Snapshot, b: Snapshot): boolean {
   return (
     a.phase === b.phase &&
     a.itemIndex === b.itemIndex &&
+    a.exerciseId === b.exerciseId &&
     a.exerciseName === b.exerciseName &&
+    a.activeDomain === b.activeDomain &&
     a.setIndex === b.setIndex &&
     a.totalSets === b.totalSets &&
     a.repCount === b.repCount &&
@@ -186,11 +207,51 @@ function sameSnapshot(a: Snapshot, b: Snapshot): boolean {
   );
 }
 
+function trainingAvatarState(phase: TrainingPhase): PoseAvatarMeasurementState {
+  switch (phase) {
+    case 'preflight':
+      return 'framing';
+    case 'instructions':
+    case 'countdown':
+      return 'ready';
+    case 'set':
+      return 'training';
+    case 'rest':
+      return 'rest';
+    case 'complete':
+    case 'done':
+      return 'success';
+    case 'intro':
+    case 'transition':
+    default:
+      return 'setup';
+  }
+}
+
+function domainForTrainingExercise(definition: ExerciseDefinition): PoseAvatarActiveDomain {
+  if (definition.slot === 'balance') return 'balance';
+  if (definition.slot === 'mobility') return 'mobility';
+  if (definition.family.includes('mobility') || definition.family.includes('reach')) return 'mobility';
+  return 'strength_power';
+}
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  hud: { position: 'absolute', top: 72, left: 0, right: 0, alignItems: 'center' },
-  progress: { color: '#6F8A77', fontSize: 14, letterSpacing: 1, textTransform: 'uppercase', marginTop: 4 },
-  movement: { color: '#E8F4EA', fontSize: 24, fontWeight: '300', marginTop: 6 },
-  caption: { color: '#9DB8A4', fontSize: 18, marginTop: 10 },
-  big: { color: '#E8F4EA', fontSize: 96, fontVariant: ['tabular-nums'], fontWeight: '200' },
+  container: { flex: 1, backgroundColor: colors.bgBase },
+  hud: {
+    position: 'absolute',
+    top: spacing.huge,
+    left: spacing.xxl,
+    right: spacing.xxl,
+    alignItems: 'center',
+    padding: spacing.xl,
+    borderRadius: radius.panel,
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderColor: colors.borderHairline,
+    ...shadow.soft,
+  },
+  progress: { ...type.label, color: colors.sageDeep, marginTop: 4 },
+  movement: { ...type.h1, marginTop: 6, textAlign: 'center' },
+  caption: { ...type.body, color: colors.textSecondary, marginTop: 10 },
+  big: { ...type.metric },
 });

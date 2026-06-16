@@ -18,6 +18,7 @@ export const STS_CUSHION_ID = 'sts-cushion';
 export const STS_STANDARD_ID = 'sts-standard';
 export const STS_SLOW_ECC_ID = 'sts-slow-eccentric';
 export const STS_POWER_ID = 'sts-power';
+export const LOADED_STS_ID = 'loaded-sit-to-stand';
 
 export const sitToStandLevels: ExerciseDefinition[] = [
   {
@@ -76,8 +77,26 @@ export const sitToStandLevels: ExerciseDefinition[] = [
     // Drive up fast: the set ends on velocity autoregulation, not a fixed count.
     prescription: { sets: 3, repsPerSet: 12, restSec: 75, autoregulate: true },
     voice: { instructions: ['ex-sit-to-stand'] },
+    progressionId: LOADED_STS_ID,
     regressionId: STS_SLOW_ECC_ID,
     createGrader: repsGrader({ exerciseId: STS_POWER_ID, signal: SIGNAL, upEnterDeg: 155, downEnterDeg: 110, targetReps: 12, autoregulate: true }),
+  },
+  {
+    id: LOADED_STS_ID,
+    displayName: 'Loaded Sit-to-Stand',
+    family: FAMILY,
+    level: 5,
+    slot: 'lower-push',
+    cameraView: SIDE,
+    equipment: ['chair', 'backpack_or_weight'],
+    kind: 'reps',
+    prescription: { sets: 3, repsPerSet: 8, restSec: 75, autoregulate: true },
+    // Spoken audio for this exact level is not bundled yet; written ladder
+    // instructions carry the load-selection detail until audio is regenerated.
+    voice: { instructions: ['ex-sit-to-stand'] },
+    regressionId: STS_POWER_ID,
+    substituteId: STS_POWER_ID,
+    createGrader: repsGrader({ exerciseId: LOADED_STS_ID, signal: SIGNAL, upEnterDeg: 155, downEnterDeg: 110, targetReps: 8, autoregulate: true }),
   },
 ];
 

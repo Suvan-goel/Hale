@@ -1,22 +1,23 @@
 {
   "expo": {
-    "name": "Longevity",
-    "slug": "longevity-app",
+    "name": "Hale",
+    "slug": "hale",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "plugins": [
       "./modules/expo-pose-detection/app.plugin.js",
-      "expo-audio"
+      "expo-audio",
+      "expo-font"
     ],
-    "userInterfaceStyle": "dark",
-    "backgroundColor": "#000000",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#F7F2EA",
     "ios": {
       "supportsTablet": false,
       "infoPlist": {
         "NSCameraUsageDescription": "The camera measures your movement as a skeleton outline. Camera video is never shown or stored."
       },
-      "bundleIdentifier": "com.suvangoel.longevityapp"
+      "bundleIdentifier": "com.suvangoel.hale"
     },
     "android": {
       "adaptiveIcon": {
@@ -29,7 +30,7 @@
         "android.permission.CAMERA"
       ],
       "predictiveBackGestureEnabled": false,
-      "package": "com.suvangoel.longevityapp"
+      "package": "com.suvangoel.hale"
     }
   }
 }

@@ -15,6 +15,7 @@ import {
   RepsSetGrader,
   RomSetGrader,
   RomSignal,
+  TimerSetGrader,
 } from './setGraders';
 import { ExerciseSetGrader } from './types';
 
@@ -70,4 +71,8 @@ export function holdGrader(p: HoldParams): () => ExerciseSetGrader {
 
 export function romGrader(exerciseId: string, signal: RomSignal): () => ExerciseSetGrader {
   return () => new RomSetGrader({ exerciseId, signal, emaAlpha: 0.3 });
+}
+
+export function timerGrader(exerciseId: string, targetSec: number): () => ExerciseSetGrader {
+  return () => new TimerSetGrader({ exerciseId, targetSec });
 }

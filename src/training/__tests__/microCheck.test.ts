@@ -9,6 +9,7 @@ import { computeTrends } from '../../history';
 import { PosePipeline } from '../../pose/pipeline';
 import { balanceSession } from '../../pose/testing/syntheticBalance';
 import { chairStandSession } from '../../pose/testing/syntheticChairStand';
+import { hingeReachSession } from '../../pose/testing/syntheticRom';
 import { RawLandmarkEvent } from '../../pose/types';
 import { PreflightCheck } from '../../preflight/preflight';
 import {
@@ -68,6 +69,15 @@ describe('MicroCheckRunner', () => {
     expect(result!.measured).toBe(true);
     expect(result!.value).toBeGreaterThan(4);
   });
+
+  it('mobility-reach: captures a comfortable reach angle', () => {
+    const session = hingeReachSession({ seed: 73, calibrationMs: 14000, peakFoldDeg: 82 });
+    const result = runMicroCheck('mobility-reach', pad(session.frames, 2600));
+    expect(result).not.toBeNull();
+    expect(result!.measured).toBe(true);
+    expect(result!.reps).toBe(0);
+    expect(result!.value).toBeLessThan(150);
+  });
 });
 
 describe('micro-checks feed the trend line', () => {
@@ -75,12 +85,14 @@ describe('micro-checks feed the trend line', () => {
     const results: MicroCheckResult[] = [
       { type: 'chair-power', startedAt: '2026-06-21T08:00:00.000Z', value: 0.42, reps: 5, measured: true },
       { type: 'single-leg-balance', startedAt: '2026-06-21T08:05:00.000Z', value: 18, reps: 0, measured: true },
+      { type: 'mobility-reach', startedAt: '2026-06-21T08:08:00.000Z', value: 126, reps: 0, measured: true },
       { type: 'chair-power', startedAt: '2026-06-21T08:10:00.000Z', value: NaN, reps: 0, measured: false },
     ];
     const points = microCheckTrendPoints(results);
-    expect(points).toHaveLength(2);
+    expect(points).toHaveLength(3);
     expect(points.find((p) => p.key === 'rise-velocity')!.value).toBeCloseTo(0.42, 5);
     expect(points.find((p) => p.key === 'single-leg-balance')!.value).toBe(18);
+    expect(points.find((p) => p.key === 'seated-reach-angle')!.value).toBe(126);
   });
 
   it('merges micro-check points into computeTrends, chronologically', () => {
@@ -92,5 +104,17 @@ describe('micro-checks feed the trend line', () => {
     const rise = trends.find((t) => t.key === 'rise-velocity')!;
     expect(rise.points.map((p) => p.value)).toEqual([0.4, 0.46]); // sorted by time
     expect(rise.delta).toBeCloseTo(0.06, 5);
+  });
+
+  it('merges mobility micro-checks into a mobility trend', () => {
+    const extra = microCheckTrendPoints([
+      { type: 'mobility-reach', startedAt: '2026-06-10T08:00:00.000Z', value: 132, reps: 0, measured: true },
+      { type: 'mobility-reach', startedAt: '2026-06-21T08:00:00.000Z', value: 124, reps: 0, measured: true },
+    ]);
+    const trends = computeTrends([], extra);
+    const reach = trends.find((t) => t.key === 'seated-reach-angle')!;
+    expect(reach.label).toBe('Seated reach');
+    expect(reach.betterIsHigher).toBe(false);
+    expect(reach.delta).toBe(-8);
   });
 });

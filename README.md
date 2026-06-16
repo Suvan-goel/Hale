@@ -1,4 +1,4 @@
-# Longevity App
+# Hale
 
 Camera-measured movement health for adults 45–65: monthly voice-guided
 Movement Check-Ups graded by pose detection, per-domain "movement ages",

@@ -18,11 +18,25 @@ export interface OneEuroConfig {
 
 /**
  * Starting point for 30fps normalized pose landmarks; tune via replay
- * recordings, not on-device guesswork.
+ * recordings, not on-device guesswork. This is the MEASUREMENT smoothing —
+ * stability-biased, since rep counts and rise velocity ride on it.
  */
 export const DEFAULT_ONE_EURO: OneEuroConfig = {
   minCutoff: 1.2,
   beta: 0.6,
+  dCutoff: 1.0,
+};
+
+/**
+ * Lighter One-Euro for the on-screen FIGURE only (never feeds grading). The
+ * display wants responsiveness — low lag between a real move and the figure
+ * moving — not the stability the measurement path needs. A higher rest cutoff
+ * and stronger speed coefficient cut perceived latency; the bold filled
+ * silhouette hides the small extra jitter a thin skeleton would have shown.
+ */
+export const DISPLAY_ONE_EURO: OneEuroConfig = {
+  minCutoff: 2.6,
+  beta: 1.5,
   dCutoff: 1.0,
 };
 

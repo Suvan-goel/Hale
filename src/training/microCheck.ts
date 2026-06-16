@@ -1,9 +1,10 @@
 /**
  * Weekly micro-check — a ~60-second single-item check between full Check-Ups,
  * feeding the trend line so progress stays visible without a 10-minute battery.
- * Two flavours, both reusing the existing set graders:
+ * Three flavours, all reusing the existing set graders:
  *   chair-power        — 5 fast chair stands → rise velocity (RepsSetGrader)
  *   single-leg-balance — a single-leg hold → seconds (HoldSetGrader)
+ *   mobility-reach     — seated hamstring reach → peak hip angle (RomSetGrader)
  *
  * MicroCheckRunner is a compact pure-TS state machine (preflight → instructions
  * → countdown → active → done), the same audio-first, frame-timestamp-driven
@@ -15,18 +16,18 @@
 import { VoiceCueKey, voicePriority } from '../audio/cues';
 import { VoiceRequest } from '../assessment/sessionController';
 import { ExerciseSetGrader, SetResult } from '../exercises';
-import { HoldSetGrader, RepsSetGrader } from '../exercises/setGraders';
+import { HoldSetGrader, RepsSetGrader, RomSetGrader } from '../exercises/setGraders';
 import { AUTOREG_VOICE } from '../exercises/common';
 import { ExtraTrendPoint } from '../history';
 import { PipelineFrameOutput } from '../pose/pipeline';
 import { PreflightCheck, PreflightPrompt } from '../preflight/preflight';
 
-export type MicroCheckType = 'chair-power' | 'single-leg-balance';
+export type MicroCheckType = 'chair-power' | 'single-leg-balance' | 'mobility-reach';
 
 export interface MicroCheckResult {
   type: MicroCheckType;
   startedAt: string;
-  /** Rise velocity (bu/s) for chair-power; hold seconds for single-leg-balance. */
+  /** Rise velocity (bu/s), hold seconds, or peak reach angle depending on type. */
   value: number;
   /** Chair stands credited (chair-power); 0 otherwise. */
   reps: number;
@@ -68,6 +69,7 @@ const COUNTDOWN: readonly VoiceCueKey[] = ['countdown-three', 'countdown-two', '
 const INTRO_CUE: Record<MicroCheckType, VoiceCueKey> = {
   'chair-power': 'microcheck-chair',
   'single-leg-balance': 'microcheck-balance',
+  'mobility-reach': 'ex-hamstring-reach',
 };
 
 export class MicroCheckRunner {
@@ -205,13 +207,21 @@ export class MicroCheckRunner {
         reps: set.reps,
         measured: set.reps > 0 && Number.isFinite(set.meanVel),
       };
-    } else {
+    } else if (this.type === 'single-leg-balance') {
       this.finished = {
         type: this.type,
         startedAt: this.startedAtIso,
         value: set.holdSec,
         reps: 0,
         measured: Number.isFinite(set.holdSec) && set.holdSec > 0,
+      };
+    } else {
+      this.finished = {
+        type: this.type,
+        startedAt: this.startedAtIso,
+        value: set.romPeak,
+        reps: 0,
+        measured: Number.isFinite(set.romPeak),
       };
     }
   }
@@ -232,6 +242,13 @@ function makeGrader(type: MicroCheckType, config: MicroCheckConfig): ExerciseSet
       autoregVoice: AUTOREG_VOICE,
     });
   }
+  if (type === 'mobility-reach') {
+    return new RomSetGrader({
+      exerciseId: 'micro-mobility-reach',
+      signal: { kind: 'angle', a: 'shoulder', vertex: 'hip', b: 'knee', direction: 'min' },
+      emaAlpha: 0.3,
+    });
+  }
   return new HoldSetGrader({
     exerciseId: 'micro-single-leg',
     condition: 'single-leg',
@@ -249,7 +266,12 @@ export function microCheckTrendPoints(results: readonly MicroCheckResult[]): Ext
   const out: ExtraTrendPoint[] = [];
   for (const r of results) {
     if (!r.measured) continue;
-    const key = r.type === 'chair-power' ? 'rise-velocity' : 'single-leg-balance';
+    const key =
+      r.type === 'chair-power'
+        ? 'rise-velocity'
+        : r.type === 'single-leg-balance'
+          ? 'single-leg-balance'
+          : 'seated-reach-angle';
     out.push({ key, at: r.startedAt, value: r.value });
   }
   return out;

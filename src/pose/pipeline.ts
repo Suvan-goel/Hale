@@ -20,7 +20,7 @@
 
 import { BodyScaleCalibrator, CalibrationConfig, DEFAULT_CALIBRATION_CONFIG } from './calibration';
 import { ChainReliabilityTracker, RELIABLE_THRESHOLD } from './chains';
-import { DEFAULT_ONE_EURO, OneEuroConfig, PoseSmoother } from './filters';
+import { DEFAULT_ONE_EURO, DISPLAY_ONE_EURO, OneEuroConfig, PoseSmoother } from './filters';
 import {
   checkSubjectValidity,
   DEFAULT_VALIDITY_CONFIG,
@@ -44,6 +44,8 @@ export interface PoseEvent {
 
 export interface PipelineConfig {
   oneEuro: OneEuroConfig;
+  /** Lighter smoothing for the on-screen figure only (responsiveness over stability). */
+  displayOneEuro: OneEuroConfig;
   validity: ValidityConfig;
   calibration: CalibrationConfig;
   /** Frames in the chain-reliability window (15 ≈ 500ms at 30fps). */
@@ -64,6 +66,7 @@ export interface PipelineConfig {
 
 export const DEFAULT_PIPELINE_CONFIG: PipelineConfig = {
   oneEuro: DEFAULT_ONE_EURO,
+  displayOneEuro: DISPLAY_ONE_EURO,
   validity: DEFAULT_VALIDITY_CONFIG,
   calibration: DEFAULT_CALIBRATION_CONFIG,
   reliabilityWindowFrames: 15,
@@ -84,6 +87,11 @@ export interface PipelineFrameOutput {
    * pre-flight lighting check measures jitter that smoothing would hide).
    */
   rawFrame: PoseFrame;
+  /**
+   * Lightly-smoothed frame for RENDERING the figure only — lower lag than the
+   * measurement `frame`. Valid only when hasPose. Never use for grading.
+   */
+  displayFrame: PoseFrame;
   /** Windowed reliability per chain, indexed by CHAIN_IDS order. */
   chainReliability: Float64Array;
   reliableSideChains: number;
@@ -102,8 +110,10 @@ export class PosePipeline {
   readonly calibrator: BodyScaleCalibrator;
 
   private readonly smoother: PoseSmoother;
+  private readonly displaySmoother: PoseSmoother;
   private readonly rawFrame = createPoseFrame();
   private readonly smoothedFrame = createPoseFrame();
+  private readonly displayFrame = createPoseFrame();
   private readonly output: PipelineFrameOutput;
 
   private state: TrackingState = 'no-subject';
@@ -115,12 +125,14 @@ export class PosePipeline {
   constructor(config: PipelineConfig = DEFAULT_PIPELINE_CONFIG) {
     this.config = config;
     this.smoother = new PoseSmoother(config.oneEuro);
+    this.displaySmoother = new PoseSmoother(config.displayOneEuro);
     this.chains = new ChainReliabilityTracker(config.reliabilityWindowFrames);
     this.calibrator = new BodyScaleCalibrator(config.calibration);
     this.output = {
       state: 'no-subject',
       frame: this.smoothedFrame,
       rawFrame: this.rawFrame,
+      displayFrame: this.displayFrame,
       chainReliability: this.chains.reliability,
       reliableSideChains: 0,
       validity: { valid: false, reason: 'no-pose' },
@@ -155,6 +167,8 @@ export class PosePipeline {
 
     parseLandmarkEvent(event, this.rawFrame);
     this.smoother.apply(this.rawFrame, this.smoothedFrame);
+    // Separate, lighter smoothing for the rendered figure (lower lag).
+    this.displaySmoother.apply(this.rawFrame, this.displayFrame);
     this.chains.update(this.smoothedFrame);
     checkSubjectValidity(this.smoothedFrame, out.validity, this.config.validity);
 
@@ -182,6 +196,7 @@ export class PosePipeline {
           // Never tracked yet — drop out silently, no interruption event.
           this.state = 'no-subject';
           this.smoother.reset();
+          this.displaySmoother.reset();
         } else if (present && ts - this.warmupStartMs >= this.config.warmupMs) {
           this.state = 'tracking';
           this.pushEvent(out, 'tracking-started', ts);
@@ -192,6 +207,7 @@ export class PosePipeline {
         if (!present && this.consecutiveAbsent > this.config.subjectGoneFrames) {
           this.state = 'interrupted';
           this.smoother.reset();
+          this.displaySmoother.reset();
           this.pushEvent(out, 'subject-gone', ts);
         }
         break;
@@ -218,6 +234,7 @@ export class PosePipeline {
       this.state = 'interrupted';
     }
     this.smoother.reset();
+    this.displaySmoother.reset();
     this.chains.reset();
     this.consecutiveAbsent = 0;
   }

@@ -40,6 +40,48 @@ export {
 } from './block';
 export type { EquipmentProfile, SessionPlan, SlotAssignment, TrainingBlock } from './block';
 export {
+  createSessionTemplatesForFocus,
+  createTrainingBlockFromAssessment,
+  generatePresetSession,
+  generateTodaySession as generateDynamicTodaySession,
+  getExtraSessionPreset,
+  getTemplateSelection,
+  listExtraSessionPresets,
+  scoreDomainFromTrainingDomain,
+  selectNextSessionTemplate,
+  trainingDomainFromScoreDomain,
+  updateLadderProgressAfterSession,
+} from './workoutGeneration';
+export type {
+  CompletedExerciseResult,
+  CompletedGeneratedSession,
+  DailyReadiness,
+  GeneratedExercise,
+  GeneratedSession,
+  GenerateSessionInput,
+  LadderProgress,
+  PainArea,
+  PostSessionFeedback,
+  RecentSessionSummary,
+  SessionSlot,
+  SessionSlotType,
+  SessionSource,
+  SessionTemplate,
+  TemplateSelection,
+  TrackingQuality,
+  TrainingBlock as DynamicTrainingBlock,
+  TrainingDomain,
+} from './workoutGeneration';
+export {
+  formatDebugWorkoutScenario,
+  formatDebugWorkoutScenarios,
+  generateDebugWorkoutScenarios,
+} from './debugWorkoutScenarios';
+export type {
+  DebugWorkoutExercisePreview,
+  DebugWorkoutScenarioPreview,
+} from './debugWorkoutScenarios';
+export {
   DEFAULT_MICROCHECK_CONFIG,
   MicroCheckRunner,
   microCheckTrendPoints,

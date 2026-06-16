@@ -3,7 +3,8 @@
  * extracts each headline metric from the raw results, drops unmeasured points,
  * and reports first→latest change. Rise velocity (leg power) and single-leg
  * balance time are the trends that matter most (CLAUDE.md), but every age-
- * mapped metric gets one.
+ * mapped metric gets one. Mobility micro-checks add a seated-reach angle trend
+ * without pretending it is the full forward-reach assessment metric.
  */
 
 import { findItem } from '../checkup/types';
@@ -107,11 +108,18 @@ const METRICS: MetricSpec[] = [
     betterIsHigher: false, // smaller wrist-to-floor distance is better
     extract: (c) => finiteOrNull(usable<HingeReachResult>(c, HINGE_REACH_ID)?.reachBu),
   },
+  {
+    key: 'seated-reach-angle',
+    label: 'Seated reach',
+    unit: '°',
+    betterIsHigher: false, // smaller hip angle means a deeper comfortable reach
+    extract: () => null,
+  },
 ];
 
 /**
  * Extra trend points sourced outside the check-up (the weekly micro-check feeds
- * rise-velocity / single-leg-balance between full check-ups). Kept structural —
+ * rise-velocity / balance / mobility points between full check-ups). Kept structural —
  * `key` matches a MetricSpec.key — so history stays decoupled from training.
  */
 export interface ExtraTrendPoint {

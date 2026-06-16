@@ -4,6 +4,7 @@
  */
 
 export {
+  BETA_BATTERY_WITH_TUG,
   CheckUpOrchestrator,
   DEFAULT_BATTERY,
   DEFAULT_CHECKUP_CONFIG,

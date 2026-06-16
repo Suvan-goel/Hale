@@ -39,7 +39,7 @@ export const overheadLevels: ExerciseDefinition[] = [
     level: 2,
     slot: 'pull-reach',
     cameraView: SIDE,
-    equipment: ['band'],
+    equipment: ['long_band'],
     kind: 'reps',
     prescription: { sets: 3, repsPerSet: 12, restSec: 50, autoregulate: true },
     voice: { instructions: ['ex-overhead'] },

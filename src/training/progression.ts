@@ -57,7 +57,7 @@ export interface ExerciseSessionSummary {
   exerciseId: string;
   family: string;
   level: number;
-  kind: 'reps' | 'hold' | 'rom';
+  kind: 'reps' | 'hold' | 'rom' | 'timer';
   /** Mean of finite per-set mean velocities (reps kind); NaN otherwise. */
   meanVel: number;
   /** Reps credited across all sets (reps kind); 0 otherwise. */
@@ -94,6 +94,17 @@ export function summarizeItem(item: TrainingItemResult, def: ExerciseDefinition)
     };
   }
   if (def.kind === 'hold') {
+    return {
+      ...base,
+      meanVel: NaN,
+      totalReps: 0,
+      targetReps: 0,
+      reachedAllTargets: ranAll && sets.every((s) => s.reachedTarget),
+      autoregulated: false,
+      measured: sets.some((s) => Number.isFinite(s.holdSec) && s.holdSec > 0),
+    };
+  }
+  if (def.kind === 'timer') {
     return {
       ...base,
       meanVel: NaN,

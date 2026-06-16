@@ -16,8 +16,9 @@
 
 import { AudioPlayer, createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 
-import { AudioCueKey, VoiceCueKey } from './cues';
-import { AUDIO_MANIFEST } from './manifest';
+import { SfxCueKey, VoiceCueKey } from './cues';
+import { SFX_MANIFEST, VOICE_MANIFEST } from './manifest';
+import { DEFAULT_VOICE_ID } from '../profile/voices';
 
 /** Call once at app start, BEFORE the pose camera mounts. */
 export async function configureSessionAudio(): Promise<void> {
@@ -30,10 +31,23 @@ export async function configureSessionAudio(): Promise<void> {
   });
 }
 
-function assetFor(cue: AudioCueKey): number {
-  const asset = AUDIO_MANIFEST[cue];
+/**
+ * Resolve a voice cue to a bundled asset for the chosen trainer voice, falling
+ * back to the default voice for any cue that voice hasn't been generated yet
+ * (so a partially-bundled voice still speaks, in its own voice where it can).
+ */
+function voiceAssetFor(voiceId: string, cue: VoiceCueKey): number {
+  const asset = VOICE_MANIFEST[voiceId]?.[cue] ?? VOICE_MANIFEST[DEFAULT_VOICE_ID]?.[cue];
   if (asset === undefined) {
     throw new Error(`no bundled audio for cue '${cue}' — run npm run audio`);
+  }
+  return asset;
+}
+
+function sfxAssetFor(cue: SfxCueKey): number {
+  const asset = SFX_MANIFEST[cue];
+  if (asset === undefined) {
+    throw new Error(`no bundled audio for sfx '${cue}' — run npm run audio`);
   }
   return asset;
 }
@@ -43,6 +57,9 @@ export class VoiceChannel {
   private pendingCues: VoiceCueKey[] = [];
   private currentPriority = -1;
   private playing = false;
+
+  /** @param voiceId selected trainer voice (see src/profile/voices.ts). */
+  constructor(private readonly voiceId: string = DEFAULT_VOICE_ID) {}
 
   get busy(): boolean {
     return this.playing;
@@ -75,7 +92,7 @@ export class VoiceChannel {
 
   private playCue(cue: VoiceCueKey): void {
     this.releasePlayer();
-    const player = createAudioPlayer(assetFor(cue));
+    const player = createAudioPlayer(voiceAssetFor(this.voiceId, cue));
     this.player = player;
     player.addListener('playbackStatusUpdate', (status) => {
       if (!status.didJustFinish || this.player !== player) return;
@@ -104,9 +121,9 @@ export class VoiceChannel {
 export class SfxChannel {
   private player: AudioPlayer | null = null;
 
-  play(cue: AudioCueKey = 'rep-credit'): void {
+  play(cue: SfxCueKey = 'rep-credit'): void {
     if (!this.player) {
-      this.player = createAudioPlayer(assetFor(cue));
+      this.player = createAudioPlayer(sfxAssetFor(cue));
     }
     void this.player.seekTo(0);
     this.player.play();

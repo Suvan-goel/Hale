@@ -89,6 +89,30 @@ export const TUG_SECONDS_NORM: AgeNorm = {
 };
 
 /**
+ * Single-limb stance, eyes open — seconds. Bohannon RW. "Single limb stance
+ * times: a descriptive meta-analysis of data from individuals at least 60
+ * years of age." Top Geriatr Rehabil 2006;22(1):70–77. Reported means:
+ * 60–69 = 27.0s, 70–79 = 17.2s, 80–99 = 8.5s. Ages <60 are extrapolated
+ * estimates for V1's younger users.
+ */
+export const SINGLE_LEG_STANCE_NORM: AgeNorm = {
+  metric: 'single-leg-stance-seconds',
+  unit: 's',
+  betterIsHigher: true,
+  anchors: [
+    { age: 50, typical: 35.0 }, // estimate
+    { age: 55, typical: 31.0 }, // estimate
+    { age: 65, typical: 27.0 },
+    { age: 75, typical: 17.2 },
+    { age: 85, typical: 8.5 },
+  ],
+  realAgeMin: 60,
+  realAgeMax: 99,
+  estimated: false,
+  source: 'Bohannon, Top Geriatr Rehabil 2006;22(1):70–77 (single-limb stance meta-analysis)',
+};
+
+/**
  * Shoulder flexion active ROM — degrees. Age-specific norms are sparse;
  * these are typical active-flexion values with the well-documented gradual
  * age-related decline (e.g. Norkin & White goniometry; aging-shoulder ROM

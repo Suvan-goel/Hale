@@ -10,6 +10,23 @@ const VIEWPORT: SkeletonViewport = {
   mirrored: false,
 };
 
+// The figure is built from one torso path + tapered limbs + neck + ellipse head.
+// Each is one subpath, so counting leading "M" commands counts shapes.
+//
+// Bright shapes when every chain is reliable:
+//   torso (one shouldered path)                      = 1
+//   arms:  2 upper + 2 fore                          = 4
+//   legs:  2 thigh + 2 shin                          = 4
+//   feet:  2                                          = 2
+//   neck (with the head chain reliable)              = 1
+//                                                    -----
+//                                                   = 12
+const BRIGHT_ALL = 12;
+
+function shapes(path: string): number {
+  return (path.match(/M/g) ?? []).length;
+}
+
 function frameFor(reliabilities: Partial<Record<(typeof CHAIN_IDS)[number], number>>) {
   const frame = createPoseFrame();
   parseLandmarkEvent(makeFrame(0, mulberry32(61), { noiseAmp: 0 }), frame);
@@ -20,32 +37,41 @@ function frameFor(reliabilities: Partial<Record<(typeof CHAIN_IDS)[number], numb
   return { frame, rel };
 }
 
-describe('buildSkeletonPaths', () => {
-  it('puts all bones in the bright path when every chain is reliable', () => {
+describe('buildSkeletonPaths (mannequin)', () => {
+  it('fills the whole figure bright when every chain is reliable', () => {
     const { frame, rel } = frameFor({});
     const out = emptySkeletonPaths();
     buildSkeletonPaths(frame, rel, VIEWPORT, out);
-    expect(out.bright.split('M').length - 1).toBe(18); // all 18 bones
+    expect(shapes(out.bright)).toBe(BRIGHT_ALL);
     expect(out.dim).toBe('');
-    expect(out.joints).not.toBe('');
+    expect(out.head).not.toBe('');
   });
 
-  it('moves far-side bones to the dim path when that chain degrades', () => {
+  it('moves far-side limbs to the dim layer when that side degrades', () => {
     const { frame, rel } = frameFor({ leftSide: 0.2, leftArm: 0.2 });
     const out = emptySkeletonPaths();
     buildSkeletonPaths(frame, rel, VIEWPORT, out);
-    // left torso side + 4 left leg/foot bones + 2 left arm bones = 7 dim
-    expect(out.dim.split('M').length - 1).toBe(7);
-    expect(out.bright.split('M').length - 1).toBe(11);
+    // left: 2 arm + 2 leg + 1 foot = 5 dim; torso stays bright (right side ok).
+    expect(shapes(out.dim)).toBe(5);
+    expect(shapes(out.bright)).toBe(BRIGHT_ALL - 5);
   });
 
-  it('keeps the torso cross-bones bright if at least one side chain is reliable', () => {
+  it('keeps the torso bright if at least one side chain is reliable', () => {
     const { frame, rel } = frameFor({ leftSide: 0.1 });
     const out = emptySkeletonPaths();
     buildSkeletonPaths(frame, rel, VIEWPORT, out);
-    // shoulder line + hip line stay bright (gated on max of side chains)
-    expect(out.bright).toContain('M');
-    expect(out.bright.split('M').length - 1).toBe(13);
+    // only the left leg + foot drop out (3); the torso is gated on the max side.
+    expect(shapes(out.dim)).toBe(3);
+    expect(shapes(out.bright)).toBe(BRIGHT_ALL - 3);
+  });
+
+  it('mutes the head into the dim layer when the head chain is weak', () => {
+    const { frame, rel } = frameFor({ head: 0.1 });
+    const out = emptySkeletonPaths();
+    buildSkeletonPaths(frame, rel, VIEWPORT, out);
+    expect(out.head).toBe('');
+    // neck + head ellipse fall to dim = 2 shapes.
+    expect(shapes(out.dim)).toBe(2);
   });
 
   it('mirrors x when mirrored (front camera)', () => {

@@ -122,7 +122,7 @@ export class TrainingSessionPlayer {
 
   private grader: ExerciseSetGrader | null = null;
   private setStartMs = 0;
-  /** Fixed set duration (rom capture window); null = grader-terminated. */
+  /** Fixed set duration (rom/timer capture window); null = grader-terminated. */
   private setDurationMs: number | null = null;
   private currentSets: SetResult[] = [];
 
@@ -309,7 +309,12 @@ export class TrainingSessionPlayer {
         const def = this.definitions[this.itemIndex];
         this.grader = def.createGrader();
         this.setStartMs = ts;
-        this.setDurationMs = def.kind === 'rom' ? (def.prescription.captureSec ?? 12) * 1000 : null;
+        this.setDurationMs =
+          def.kind === 'rom'
+            ? (def.prescription.captureSec ?? 12) * 1000
+            : def.kind === 'timer'
+              ? (def.prescription.timerSec ?? def.prescription.holdSec ?? 20) * 1000
+              : null;
         this.phase = 'set';
       }
     }

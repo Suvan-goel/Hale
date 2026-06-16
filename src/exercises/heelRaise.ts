@@ -5,7 +5,7 @@
  * is off — this is an endurance item graded purely on reps.
  */
 
-import { repsGrader } from './common';
+import { repsGrader, timerGrader } from './common';
 import { ExerciseDefinition } from './types';
 import { registerExercise } from './registry';
 
@@ -15,6 +15,7 @@ const FAMILY = 'heel-raise';
 
 export const HEEL_RAISE_SUPPORTED_ID = 'heel-raise-supported';
 export const HEEL_RAISE_FREE_ID = 'heel-raise-free';
+export const TOE_RAISE_SUPPORTED_ID = 'toe-raise-supported';
 
 export const heelRaiseLevels: ExerciseDefinition[] = [
   {
@@ -42,8 +43,23 @@ export const heelRaiseLevels: ExerciseDefinition[] = [
     kind: 'reps',
     prescription: { sets: 3, repsPerSet: 18, restSec: 40, autoregulate: false },
     voice: { instructions: ['ex-heel-raise'] },
+    progressionId: TOE_RAISE_SUPPORTED_ID,
     regressionId: HEEL_RAISE_SUPPORTED_ID,
     createGrader: repsGrader({ exerciseId: HEEL_RAISE_FREE_ID, signal: SIGNAL, upEnterDeg: 150, downEnterDeg: 120, targetReps: 18, autoregulate: false }),
+  },
+  {
+    id: TOE_RAISE_SUPPORTED_ID,
+    displayName: 'Supported Toe Raise',
+    family: FAMILY,
+    level: 3,
+    slot: 'lower-push',
+    cameraView: SIDE,
+    equipment: ['wall'],
+    kind: 'timer',
+    prescription: { sets: 2, timerSec: 30, restSec: 30, autoregulate: false },
+    voice: { instructions: ['ex-heel-raise'] },
+    regressionId: HEEL_RAISE_FREE_ID,
+    createGrader: timerGrader(TOE_RAISE_SUPPORTED_ID, 30),
   },
 ];
 

@@ -71,16 +71,13 @@ function framedStanding(seed = 7): (ts: number) => RawLandmarkEvent {
 describe('Check-Up orchestrator — full battery', () => {
   const config: CheckUpConfig = {
     ...DEFAULT_CHECKUP_CONFIG,
-    // Cap the grader-terminated TUG (the static subject never sits) so the
-    // headless run stays short; everything else uses production timings.
     session: { ...DEFAULT_SESSION_CONFIG, maxActiveMs: 8000 },
   };
 
-  it('runs all five items in order and finishes with a coherent CheckUp', () => {
+  it('runs the official V1 items in order and finishes with a coherent CheckUp', () => {
     const run = runBattery(config, framedStanding());
     expect(run.checkUp.items.map((i) => i.movementId)).toEqual([
       'chair-stand-30s',
-      'timed-up-and-go',
       'balance-ladder',
       'shoulder-flexion-peak',
       'hinge-reach',
@@ -89,9 +86,7 @@ describe('Check-Up orchestrator — full battery', () => {
     for (const item of run.checkUp.items) {
       expect(['measured', 'unmeasured', 'skipped']).toContain(item.status);
     }
-    // The static subject never sits, so TUG is unmeasured — and that's fine.
-    const tug = run.checkUp.items.find((i) => i.movementId === 'timed-up-and-go')!;
-    expect(tug.status).toBe('unmeasured');
+    expect(run.checkUp.items.some((i) => i.movementId === 'timed-up-and-go')).toBe(false);
     expect(run.checkUp.bodyUnit).not.toBeNull();
     // Acceptance: the whole voice-guided battery fits comfortably under 12 min
     // (this feed runs balance's full ~67s schedule, a representative upper bound).
@@ -102,7 +97,7 @@ describe('Check-Up orchestrator — full battery', () => {
     const run = runBattery(config, framedStanding());
     expect(run.spoken[0]).toBe('checkup-intro');
     expect(run.spoken).toContain('checkup-complete');
-    // TUG → balance crosses side→front; balance → shoulder crosses front→side.
+    // Chair stand → balance crosses side→front; balance → shoulder crosses front→side.
     expect(run.spoken).toContain('face-forward');
     expect(run.spoken).toContain('turn-side-on');
     expect(run.spoken.indexOf('checkup-complete')).toBe(run.spoken.length - 1);

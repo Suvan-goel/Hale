@@ -1,8 +1,8 @@
 /**
- * Loaded march in place (side view) — power/functional finisher. March driving
- * the knees up (hold water bottles to load it). Graded on the near-side knee
- * cycle: the knee flexes as it lifts (angle drops) and extends as the foot
- * returns (angle rises), so each down→up commit credits one near-side march
+ * March in place (side view) — power/functional finisher. March driving the
+ * knees up. Graded on the near-side knee cycle: the knee flexes as it lifts
+ * (angle drops) and extends as the foot returns (angle rises), so each down→up
+ * commit credits one near-side march
  * step. Endurance/coordination item — velocity autoregulation off.
  */
 
@@ -14,7 +14,7 @@ export const LOADED_MARCH_ID = 'loaded-march';
 
 export const loadedMarchDefinition: ExerciseDefinition = {
   id: LOADED_MARCH_ID,
-  displayName: 'Loaded March',
+  displayName: 'March in Place',
   family: 'march',
   level: 1,
   slot: 'power',

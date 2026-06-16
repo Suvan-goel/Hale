@@ -46,3 +46,8 @@ yarn-error.*
 # native module build artifacts
 modules/**/android/build/
 modules/**/.cxx/
+
+# Dev mannequin preview output (npm run skeleton-preview)
+skeleton-preview.svg
+skeleton-preview.svg.png
+skeleton-preview.png

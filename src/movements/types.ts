@@ -16,7 +16,7 @@ import { PipelineFrameOutput } from '../pose/pipeline';
  * front-view bilateral items. Drives the live camera-readiness status.
  */
 export interface CameraViewSpec {
-  view: 'side' | 'front';
+  view: 'side' | 'front' | 'side_oblique' | 'not_required';
   requiredReliableSideChains: 1 | 2;
 }
 
@@ -26,7 +26,19 @@ export interface CameraViewSpec {
  * only tags a user might lack — block assignment + the session player consult
  * the equipment profile and substitute when one is missing.
  */
-export type EquipmentTag = 'none' | 'chair' | 'wall' | 'floor' | 'stair' | 'cushion' | 'band';
+export type EquipmentTag =
+  | 'none'
+  | 'chair'
+  | 'cushion'
+  | 'wall'
+  | 'counter'
+  | 'floor'
+  | 'stair'
+  | 'band'
+  | 'long_band'
+  | 'mini_band'
+  | 'door_anchor'
+  | 'backpack_or_weight';
 
 export interface MovementVoiceScript {
   /** Spoken in order once the user is framed, before the countdown. */

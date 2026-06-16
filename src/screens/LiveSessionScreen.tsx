@@ -23,6 +23,8 @@ import { PreflightBanner } from '../preflight/PreflightBanner';
 import { LandmarkRecorder } from '../recording/recorder';
 import { DevOverlay, OverlaySnapshot } from '../render/DevOverlay';
 import { SkeletonView, SkeletonViewHandle } from '../render/SkeletonView';
+import type { PoseAvatarMeasurementState } from '../render/poseAvatarTypes';
+import { colors, spacing, type } from '../theme';
 
 const UI_UPDATE_INTERVAL_MS = 100; // ~10fps for React state
 
@@ -95,11 +97,12 @@ export function LiveSessionScreen() {
       recorder.start();
     }
   }, [recorder]);
+  const avatarMeasurementState = liveAvatarState(prompt.key);
 
   return (
     <View style={styles.container}>
       <PoseDetectionView active style={StyleSheet.absoluteFill} onLandmarks={onLandmarks} onPoseError={onPoseError} />
-      <SkeletonView ref={skeletonRef} mirrored />
+      <SkeletonView ref={skeletonRef} mirrored measurementState={avatarMeasurementState} />
       <PreflightBanner prompt={prompt.key} sampleProgress={prompt.progress} />
       <DevOverlay snapshot={snapshot} onToggleRecording={onToggleRecording} />
       {lastError !== null && __DEV__ && (
@@ -111,18 +114,25 @@ export function LiveSessionScreen() {
   );
 }
 
+function liveAvatarState(prompt: PreflightPrompt): PoseAvatarMeasurementState {
+  if (prompt === 'ready') return 'ready';
+  if (prompt === 'step-into-frame') return 'setup';
+  return 'framing';
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: colors.bgBase,
   },
   error: {
     position: 'absolute',
     bottom: 40,
-    left: 16,
-    right: 16,
-    color: '#E07A5F',
-    fontSize: 12,
+    left: spacing.lg,
+    right: spacing.lg,
+    color: colors.error,
+    fontFamily: type.label.fontFamily,
+    fontSize: type.label.fontSize,
     textAlign: 'center',
   },
 });

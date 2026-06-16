@@ -7,6 +7,7 @@
 import * as React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { colors, radius, shadow, spacing, type } from '../theme';
 import type { PreflightPrompt } from './preflight';
 
 const PROMPT_TEXT: Record<PreflightPrompt, string> = {
@@ -40,15 +41,21 @@ export function PreflightBanner({ prompt, sampleProgress }: Props) {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 64,
-    left: 24,
-    right: 24,
+    bottom: spacing.huge,
+    left: spacing.xxl,
+    right: spacing.xxl,
     alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderColor: colors.borderHairline,
+    ...shadow.soft,
   },
   text: {
-    color: '#E8F4EA',
-    fontSize: 18,
-    lineHeight: 26,
+    ...type.bodySmall,
+    color: colors.accentDeep,
     textAlign: 'center',
   },
 });

@@ -23,9 +23,11 @@ import { ProgressionState } from './progression';
 export interface EquipmentProfile {
   stair: boolean;
   band: boolean;
+  miniBand?: boolean;
+  load?: boolean;
 }
 
-export const DEFAULT_EQUIPMENT: EquipmentProfile = { stair: false, band: false };
+export const DEFAULT_EQUIPMENT: EquipmentProfile = { stair: false, band: false, miniBand: false, load: false };
 
 export interface SlotAssignment {
   slot: TrainingSlot;
@@ -54,32 +56,46 @@ export interface TrainingBlock {
 const WEEKS = 4;
 const SESSIONS_PER_WEEK = 3;
 
-/** Base ~20-minute template, in default performance order. */
-const BASE_TEMPLATE: SlotAssignment[] = [
-  { slot: 'lower-push', family: 'sit-to-stand' },
-  { slot: 'hinge', family: 'hip-hinge' },
-  { slot: 'upper-push', family: 'push-up' },
-  { slot: 'pull-reach', family: 'overhead' },
-  { slot: 'balance', family: 'balance' },
-  { slot: 'power', family: 'step-up' }, // finisher — overridden by the weak domain
-  { slot: 'mobility', family: 'hamstring-reach' },
-  { slot: 'mobility', family: 'neck-rotation' },
+/** Three-session week template: lower + upper + balance/stability + mobility. */
+const WEEK_TEMPLATE: readonly SlotAssignment[][] = [
+  [
+    { slot: 'lower-push', family: 'sit-to-stand' },
+    { slot: 'pull-reach', family: 'pull-upper-back' },
+    { slot: 'balance', family: 'balance' },
+    { slot: 'mobility', family: 'hamstring-reach' },
+  ],
+  [
+    { slot: 'lower-push', family: 'squat' },
+    { slot: 'upper-push', family: 'push-up' },
+    { slot: 'balance', family: 'lateral-stability' },
+    { slot: 'mobility', family: 'mobility-flexibility' },
+  ],
+  [
+    { slot: 'hinge', family: 'hip-hinge' },
+    { slot: 'pull-reach', family: 'overhead' },
+    { slot: 'balance', family: 'balance' },
+    { slot: 'mobility', family: 'mobility-flexibility' },
+  ],
 ];
 
 /** Per weak domain: which slot leads (done fresh) and which finisher targets it. */
 const DOMAIN_BIAS: Record<Domain, { primaryFamily: string; finisherFamily: string }> = {
   strength: { primaryFamily: 'sit-to-stand', finisherFamily: 'step-up' },
-  balance: { primaryFamily: 'balance', finisherFamily: 'balance' },
-  mobility: { primaryFamily: 'hamstring-reach', finisherFamily: 'hamstring-reach' },
+  balance: { primaryFamily: 'balance', finisherFamily: 'lateral-stability' },
+  mobility: { primaryFamily: 'hamstring-reach', finisherFamily: 'mobility-flexibility' },
 };
 
-function biasedTemplate(weakest: Domain | null): SlotAssignment[] {
-  const template = BASE_TEMPLATE.map((s) => ({ ...s }));
+function biasedTemplate(base: readonly SlotAssignment[], weakest: Domain | null): SlotAssignment[] {
+  const template = base.map((s) => ({ ...s }));
   if (!weakest) return template;
   const bias = DOMAIN_BIAS[weakest];
-  // Target the finisher slot at the weak domain.
+  // Add/target a finisher at the weak domain.
   const finisher = template.find((s) => s.slot === 'power');
-  if (finisher) finisher.family = bias.finisherFamily;
+  if (finisher) {
+    finisher.family = bias.finisherFamily;
+  } else {
+    template.push({ slot: 'power', family: bias.finisherFamily });
+  }
   // Move the weak domain's primary slot to the front so it's done fresh.
   const primaryIdx = template.findIndex((s) => s.family === bias.primaryFamily);
   if (primaryIdx > 0) {
@@ -95,9 +111,10 @@ export function buildBlock(
   createdAtIso: string
 ): TrainingBlock {
   const weakest = score.weakestDomain;
-  const template = biasedTemplate(weakest);
   const sessions: SessionPlan[] = [];
   for (let i = 0; i < WEEKS * SESSIONS_PER_WEEK; i++) {
+    const base = WEEK_TEMPLATE[i % WEEK_TEMPLATE.length];
+    const template = biasedTemplate(base, weakest);
     sessions.push({
       index: i,
       week: Math.floor(i / SESSIONS_PER_WEEK) + 1,
@@ -129,8 +146,15 @@ export function resolveSlot(
 /** Swap to the zero-equipment substitute if a required item is missing. */
 function substituteForEquipment(def: ExerciseDefinition, equipment: EquipmentProfile): ExerciseDefinition {
   const needsStair = def.equipment.includes('stair');
-  const needsBand = def.equipment.includes('band');
-  if ((needsStair && !equipment.stair) || (needsBand && !equipment.band)) {
+  const needsBand = def.equipment.includes('band') || def.equipment.includes('long_band');
+  const needsMiniBand = def.equipment.includes('mini_band');
+  const needsLoad = def.equipment.includes('backpack_or_weight');
+  if (
+    (needsStair && !equipment.stair) ||
+    (needsBand && !equipment.band) ||
+    (needsMiniBand && !equipment.miniBand) ||
+    (needsLoad && !equipment.load)
+  ) {
     if (def.substituteId) return getExercise(def.substituteId);
   }
   return def;

@@ -99,10 +99,11 @@ describe('domain scoring', () => {
   });
 
   it('picks the oldest measured domain as weakest', () => {
-    // Slow TUG → balance reads old; strong chair stand → strength reads young.
+    // Short one-leg hold → balance reads old; strong chair stand → strength reads young.
     const items: CheckUp['items'] = [
       measured(CHAIR_STAND_ID, { reps: 18, repStats: [], sessionMeanVel: 0.3, sessionMeanPeakVel: 0.4, pushOffDetected: false }),
       measured(TUG_ID, { totalSec: 11.3, completed: true, turnDetected: true, peakExcursionBu: 1.9, nonStandardShortPath: false }),
+      measured(BALANCE_LADDER_ID, { stages: [], singleLegEyesOpenSec: 6 }),
       measured(SHOULDER_FLEXION_ID, { peakFlexionDeg: 160 }),
     ];
     expect(scoreCheckUp(checkUp(items)).weakestDomain).toBe('balance');
@@ -112,6 +113,7 @@ describe('domain scoring', () => {
     const items: CheckUp['items'] = [
       { movementId: CHAIR_STAND_ID, status: 'skipped', result: null },
       measured(TUG_ID, { totalSec: 8.1, completed: true, turnDetected: true, peakExcursionBu: 1.9, nonStandardShortPath: false }),
+      measured(BALANCE_LADDER_ID, { stages: [], singleLegEyesOpenSec: 18 }),
       // shoulder present but unmeasured (no-measurement flag)
       { movementId: SHOULDER_FLEXION_ID, status: 'measured', result: { movementId: SHOULDER_FLEXION_ID, flags: ['no-measurement'], interruptions: 0, peakFlexionDeg: NaN } as never },
     ];

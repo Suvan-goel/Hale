@@ -8,6 +8,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CHAIN_IDS } from '../pose/chains';
 import type { TrackingState } from '../pose/pipeline';
+import { colors, monoFamily, radius, spacing } from '../theme';
 
 export interface OverlaySnapshot {
   state: TrackingState;
@@ -58,30 +59,32 @@ export function DevOverlay({ snapshot, onToggleRecording }: Props) {
 }
 
 const styles = StyleSheet.create({
+  // Dev-only diagnostics; a translucent ink panel reads over the cream canvas
+  // and skeleton without competing with the product UI.
   container: {
     position: 'absolute',
     top: 60,
-    left: 12,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    borderRadius: 8,
-    padding: 8,
+    left: spacing.md,
+    backgroundColor: colors.debugOverlay,
+    borderRadius: radius.sm,
+    padding: spacing.sm,
   },
   line: {
-    color: '#9FE2BF',
-    fontFamily: 'monospace' as const,
+    color: colors.onAccent,
+    fontFamily: monoFamily,
     fontSize: 11,
     lineHeight: 15,
   },
   button: {
-    marginTop: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-    backgroundColor: '#1E2B25',
+    marginTop: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.sm,
+    backgroundColor: colors.accent,
     alignSelf: 'flex-start',
   },
   buttonText: {
-    color: '#E8F4EA',
+    color: colors.onAccent,
     fontSize: 12,
   },
 });

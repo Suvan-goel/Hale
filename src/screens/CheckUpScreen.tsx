@@ -27,6 +27,11 @@ import { PosePipeline } from '../pose/pipeline';
 import { PreflightCheck } from '../preflight/preflight';
 import { LandmarkRecorder } from '../recording/recorder';
 import { SkeletonView, SkeletonViewHandle } from '../render/SkeletonView';
+import type {
+  PoseAvatarActiveDomain,
+  PoseAvatarMeasurementState,
+} from '../render/poseAvatarTypes';
+import { colors, radius, shadow, spacing, type } from '../theme';
 
 const UI_UPDATE_INTERVAL_MS = 100;
 const TOTAL_ITEMS = DEFAULT_BATTERY.length;
@@ -34,6 +39,7 @@ const TOTAL_ITEMS = DEFAULT_BATTERY.length;
 interface Snapshot {
   phase: CheckUpPhase;
   itemIndex: number;
+  movementId: string | null;
   movementName: string | null;
   itemPhase: AssessmentPhase | null;
   repCount: number;
@@ -43,6 +49,7 @@ interface Snapshot {
 const INITIAL: Snapshot = {
   phase: 'intro',
   itemIndex: 0,
+  movementId: null,
   movementName: null,
   itemPhase: null,
   repCount: 0,
@@ -58,13 +65,19 @@ const ITEM_CAPTION: Record<AssessmentPhase, string> = {
   done: '',
 };
 
-export function CheckUpScreen({ onComplete }: { onComplete: (checkUp: CheckUp) => void }) {
+export function CheckUpScreen({
+  onComplete,
+  voiceId,
+}: {
+  onComplete: (checkUp: CheckUp) => void;
+  voiceId?: string;
+}) {
   const [pipeline] = React.useState(() => new PosePipeline());
   const [preflight] = React.useState(() => new PreflightCheck());
   const [orchestrator] = React.useState(
     () => new CheckUpOrchestrator(new Date().toISOString(), preflight)
   );
-  const [voice] = React.useState(() => new VoiceChannel());
+  const [voice] = React.useState(() => new VoiceChannel(voiceId));
   const [sfx] = React.useState(() => new SfxChannel());
   const [recorder] = React.useState(() => new LandmarkRecorder());
   const skeletonRef = React.useRef<SkeletonViewHandle>(null);
@@ -105,6 +118,7 @@ export function CheckUpScreen({ onComplete }: { onComplete: (checkUp: CheckUp) =
         const next: Snapshot = {
           phase: u.phase,
           itemIndex: u.itemIndex,
+          movementId: u.currentMovementId,
           movementName,
           itemPhase: u.item ? u.item.phase : null,
           repCount: u.item ? u.item.repCount : 0,
@@ -113,6 +127,7 @@ export function CheckUpScreen({ onComplete }: { onComplete: (checkUp: CheckUp) =
         setSnapshot((prev) =>
           prev.phase === next.phase &&
           prev.itemIndex === next.itemIndex &&
+          prev.movementId === next.movementId &&
           prev.movementName === next.movementName &&
           prev.itemPhase === next.itemPhase &&
           prev.repCount === next.repCount &&
@@ -131,11 +146,18 @@ export function CheckUpScreen({ onComplete }: { onComplete: (checkUp: CheckUp) =
 
   const isChairStandActive =
     snapshot.movementName === '30-Second Chair Stand' && snapshot.itemPhase === 'active';
+  const avatarMeasurementState = checkupAvatarState(snapshot);
+  const avatarDomain = domainForCheckupMovement(snapshot.movementId);
 
   return (
     <View style={styles.container}>
       <PoseDetectionView active style={StyleSheet.absoluteFill} onLandmarks={onLandmarks} onPoseError={onPoseError} />
-      <SkeletonView ref={skeletonRef} mirrored />
+      <SkeletonView
+        ref={skeletonRef}
+        mirrored
+        measurementState={avatarMeasurementState}
+        activeDomain={avatarDomain}
+      />
       <View pointerEvents="none" style={styles.hud}>
         {snapshot.phase === 'intro' ? (
           <Text style={styles.caption}>Starting your check-up…</Text>
@@ -164,12 +186,49 @@ export function CheckUpScreen({ onComplete }: { onComplete: (checkUp: CheckUp) =
   );
 }
 
+function checkupAvatarState(snapshot: Snapshot): PoseAvatarMeasurementState {
+  if (snapshot.phase === 'complete' || snapshot.phase === 'done') return 'success';
+  if (snapshot.phase === 'intro' || snapshot.phase === 'transition') return 'setup';
+  if (snapshot.itemPhase === 'preflight') return 'framing';
+  if (snapshot.itemPhase === 'instructions' || snapshot.itemPhase === 'countdown') return 'ready';
+  if (snapshot.itemPhase === 'active') return 'checkup';
+  if (snapshot.itemPhase === 'result' || snapshot.itemPhase === 'done') return 'success';
+  return 'checkup';
+}
+
+function domainForCheckupMovement(movementId: string | null): PoseAvatarActiveDomain | null {
+  switch (movementId) {
+    case 'chair-stand-30s':
+      return 'strength_power';
+    case 'balance-ladder':
+    case 'timed-up-and-go':
+      return 'balance';
+    case 'shoulder-flexion-peak':
+    case 'hinge-reach':
+      return 'mobility';
+    default:
+      return null;
+  }
+}
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  hud: { position: 'absolute', top: 72, left: 0, right: 0, alignItems: 'center' },
-  progress: { color: '#6F8A77', fontSize: 14, letterSpacing: 1, textTransform: 'uppercase' },
-  movement: { color: '#E8F4EA', fontSize: 24, fontWeight: '300', marginTop: 6 },
-  caption: { color: '#9DB8A4', fontSize: 18, marginTop: 10 },
-  repCount: { color: '#E8F4EA', fontSize: 96, fontVariant: ['tabular-nums'], fontWeight: '200' },
-  timer: { color: '#9DB8A4', fontSize: 28, fontVariant: ['tabular-nums'] },
+  container: { flex: 1, backgroundColor: colors.bgBase },
+  hud: {
+    position: 'absolute',
+    top: spacing.huge,
+    left: spacing.xxl,
+    right: spacing.xxl,
+    alignItems: 'center',
+    padding: spacing.xl,
+    borderRadius: radius.panel,
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderColor: colors.borderHairline,
+    ...shadow.soft,
+  },
+  progress: { ...type.label, color: colors.sageDeep },
+  movement: { ...type.h1, marginTop: 6, textAlign: 'center' },
+  caption: { ...type.body, color: colors.textSecondary, marginTop: 10 },
+  repCount: { ...type.metric },
+  timer: { ...type.metricSmall, marginTop: 4 },
 });
