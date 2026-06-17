@@ -159,6 +159,21 @@ describe('point-cloud body geometry', () => {
     );
   });
 
+  it('routes active thigh dots into the muscle-focus path', () => {
+    const out = createPointCloudBodyGeometry();
+
+    buildPointCloudBodyGeometry(mappedStandingPose(), out, {
+      pointCloudBodyEnabled: true,
+      density: 'medium',
+      maxDots: 800,
+      activeBodyParts: ['leftThigh', 'rightThigh'],
+    });
+
+    expect(out.thighDotCount).toBeGreaterThan(0);
+    expect(out.activeDotCount).toBe(out.thighDotCount);
+    expect(out.activeDotPath.length + out.softActiveDotPath.length).toBeGreaterThan(0);
+  });
+
   it('respects the configured absolute dot cap including keypoints', () => {
     const out = createPointCloudBodyGeometry();
 

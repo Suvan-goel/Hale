@@ -71,11 +71,12 @@ import {
 } from './src/profile';
 import { CheckUpScore, scoreCheckUp } from './src/scoring';
 import {
-  getCurrentSession,
-  subscribeToAuthChanges,
+  AuthProvider,
   syncLocalPreferencesToRemote,
+  useAuth,
 } from './src/services/backend';
 import { AssessmentScreen } from './src/screens/AssessmentScreen';
+import { AuthScreen } from './src/screens/AuthScreen';
 import { CameraExplanationScreen } from './src/screens/CameraExplanationScreen';
 import { CameraSetupScreen } from './src/screens/CameraSetupScreen';
 import { CheckUpScreen } from './src/screens/CheckUpScreen';
@@ -172,6 +173,14 @@ function flowForOnboardingStep(step: OnboardingStep): Flow | null {
 }
 
 export default function App() {
+  return (
+    <AuthProvider>
+      <AppGate />
+    </AuthProvider>
+  );
+}
+
+function AppGate() {
   // Fonts are bundled (no runtime fetch); gate the first paint until they load
   // so headings never flash in a fallback face.
   const [fontsLoaded] = useFonts({
@@ -180,6 +189,21 @@ export default function App() {
     Inter_400Regular,
     Inter_500Medium,
   });
+  const auth = useAuth();
+
+  if (!fontsLoaded || auth.loading) {
+    return <AuthLoadingScreen />;
+  }
+
+  if (!auth.isSignedIn) {
+    return <AuthScreen />;
+  }
+
+  return <HaleApp />;
+}
+
+function HaleApp() {
+  const { isSignedIn: backendSignedIn } = useAuth();
   const [permission, setPermission] = React.useState<PermissionState>('checking');
   // Audio mode must be configured BEFORE the camera mounts — audio session
   // changes must never interrupt a running camera session.
@@ -204,7 +228,6 @@ export default function App() {
   const [historyReady, setHistoryReady] = React.useState(false);
   const [profileReady, setProfileReady] = React.useState(false);
   const [adherenceReady, setAdherenceReady] = React.useState(false);
-  const [backendSignedIn, setBackendSignedIn] = React.useState(false);
   const [pendingCheckup, setPendingCheckup] = React.useState<{
     type: CheckupType;
     sourceBlockId?: string;
@@ -238,31 +261,12 @@ export default function App() {
   }, [store, trainingStore, profileStore, adherenceStore]);
 
   React.useEffect(() => {
-    let mounted = true;
-    getCurrentSession()
-      .then((session) => {
-        if (mounted) setBackendSignedIn(Boolean(session?.user));
-      })
-      .catch((e) => {
-        console.warn('[profile-sync] Supabase session check failed', e);
-        if (mounted) setBackendSignedIn(false);
-      });
-
-    const unsubscribe = subscribeToAuthChanges((state) => {
-      if (!mounted) return;
-      setBackendSignedIn(state.isSignedIn);
-      if (state.isSignedIn) {
-        remoteProfileHydrationAttemptedRef.current = false;
-      } else {
-        lastProfileSyncFingerprintRef.current = null;
-      }
-    });
-
-    return () => {
-      mounted = false;
-      unsubscribe();
-    };
-  }, []);
+    if (backendSignedIn) {
+      remoteProfileHydrationAttemptedRef.current = false;
+    } else {
+      lastProfileSyncFingerprintRef.current = null;
+    }
+  }, [backendSignedIn]);
 
   React.useEffect(() => {
     return () => {
@@ -1257,15 +1261,6 @@ export default function App() {
 
   const cameraReady = permission === 'granted' && audioReady;
 
-  // Hold the first paint until bundled fonts are ready (warm ivory splash).
-  if (!fontsLoaded) {
-    return (
-      <View style={styles.container}>
-        <StatusBar style="dark" />
-      </View>
-    );
-  }
-
   // Camera flows need permission + audio first; everything else renders freely.
   if (flow !== null && CAMERA_FLOWS.has(flow) && !cameraReady) {
     return (
@@ -1560,6 +1555,16 @@ function sessionIntensityForTrainingPreference(preference: TrainingIntensityPref
   return 'standard';
 }
 
+function AuthLoadingScreen() {
+  return (
+    <View style={[styles.container, styles.splash]}>
+      <StatusBar style="dark" />
+      <Text style={styles.splashBrand}>Hale</Text>
+      <Text style={styles.splashText}>Preparing your account...</Text>
+    </View>
+  );
+}
+
 function syncAvailableEquipment(
   current: readonly AvailableEquipment[],
   equipment: EquipmentProfile
@@ -1595,6 +1600,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bgBase,
+  },
+  splash: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+  },
+  splashBrand: {
+    ...type.h1,
+    color: colors.accentDeep,
+  },
+  splashText: {
+    ...type.caption,
+    marginTop: spacing.sm,
+    textAlign: 'center',
   },
   tabContent: {
     flex: 1,

@@ -23,6 +23,7 @@ import { SetupHelpPanel } from '../preflight/SetupHelpPanel';
 import { FRAMING_READY_COPY } from '../preflight/setupCopy';
 import { LandmarkRecorder } from '../recording/recorder';
 import { SkeletonView, SkeletonViewHandle } from '../render/SkeletonView';
+import { pointCloudBodyPartsForTrainingExercise } from '../render/poseAvatarMuscleFocus';
 import type {
   PoseAvatarActiveDomain,
   PoseAvatarMeasurementState,
@@ -175,6 +176,13 @@ export function TrainingSessionScreen({
   const showReps = inSet && snapshot.kind === 'reps';
   const showHold = inSet && (snapshot.kind === 'hold' || snapshot.kind === 'timer' || !!snapshot.validTimeCaption);
   const avatarMeasurementState = trainingAvatarState(snapshot.phase);
+  const avatarActiveBodyParts = React.useMemo(
+    () =>
+      snapshot.exerciseId
+        ? pointCloudBodyPartsForTrainingExercise(getExercise(snapshot.exerciseId))
+        : undefined,
+    [snapshot.exerciseId]
+  );
   const canControl = snapshot.phase !== 'complete' && snapshot.phase !== 'done';
   const canRepeat = snapshot.exerciseId !== null;
   const canSkip =
@@ -268,6 +276,7 @@ export function TrainingSessionScreen({
               fit="contain"
               lowLatencyMode
               pointCloudBodyMaxDots={260}
+              pointCloudBodyActiveParts={avatarActiveBodyParts}
               measurementState={avatarMeasurementState}
               activeDomain={snapshot.activeDomain}
             />

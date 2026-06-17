@@ -680,6 +680,18 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
   changes only radius, not dot count. Presentation-only; no pose, scoring, workout, or check-up
   logic changed.
 
+## 2026-06-17 — Point-cloud avatar muscle-focus colour
+
+- **Change:** the point-cloud avatar can now render selected body-region dots in a restrained
+  olive focus colour (`colors.restorativeGreen`). Training sessions map the current exercise to
+  coarse body regions: sit-to-stand/squats highlight thighs for quads, bridge/hinge highlight
+  hips/thighs, calf work highlights lower legs/feet, and upper-body work highlights torso/arms.
+- **Boundary:** this is educational feedback about the current exercise target, not form feedback
+  or scoring. It does not affect pose inference, rep counting, grading, progression, check-ups, or
+  workout logic.
+- **Performance:** active dots remain batched into SVG path buckets; no per-dot React components
+  were added.
+
 ## 2026-06-17 — Live avatar low-latency display
 
 - **Finding:** the default point-cloud avatar is visually richer, but dense point-cloud path
