@@ -113,6 +113,19 @@ export {
 } from './serialize';
 export type { BlockProgress, TrainingIntensityPreference, TrainingPlanPreferences, TrainingState } from './serialize';
 export {
+  VALID_TIME_PROGRESSION_ENABLED,
+  classifyValidTimePerformance,
+  summarizeValidTimeItem,
+  summarizeValidTimeSets,
+  validTimeSessionSummaryCards,
+} from './validTimeProgression';
+export type {
+  ValidTimeProgressionConfig,
+  ValidTimeProgressionSignal,
+  ValidTimeProgressionSummary,
+  ValidTimeSessionSummaryCard,
+} from './validTimeProgression';
+export {
   nextSessionExercises,
   nextSessionPlan,
   recordCompletedSession,

@@ -70,6 +70,11 @@ import {
   defaultPreferences,
 } from './src/profile';
 import { CheckUpScore, scoreCheckUp } from './src/scoring';
+import {
+  getCurrentSession,
+  subscribeToAuthChanges,
+  syncLocalPreferencesToRemote,
+} from './src/services/backend';
 import { AssessmentScreen } from './src/screens/AssessmentScreen';
 import { CameraExplanationScreen } from './src/screens/CameraExplanationScreen';
 import { CameraSetupScreen } from './src/screens/CameraSetupScreen';
@@ -108,6 +113,7 @@ import {
   retestDue,
   startBlock,
   upsertGeneratedSessionSummary,
+  validTimeSessionSummaryCards,
   type SessionIntensity,
 } from './src/training';
 import { colors, radius, spacing, type } from './src/theme';
@@ -198,6 +204,7 @@ export default function App() {
   const [historyReady, setHistoryReady] = React.useState(false);
   const [profileReady, setProfileReady] = React.useState(false);
   const [adherenceReady, setAdherenceReady] = React.useState(false);
+  const [backendSignedIn, setBackendSignedIn] = React.useState(false);
   const [pendingCheckup, setPendingCheckup] = React.useState<{
     type: CheckupType;
     sourceBlockId?: string;
@@ -212,6 +219,9 @@ export default function App() {
   const [reportBlock, setReportBlock] = React.useState<MovementBlock | null>(null);
   const [selectedLadderId, setSelectedLadderId] = React.useState<string | null>(null);
   const [selectedLearnId, setSelectedLearnId] = React.useState<string | null>(null);
+  const profileSyncTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastProfileSyncFingerprintRef = React.useRef<string | null>(null);
+  const remoteProfileHydrationAttemptedRef = React.useRef(false);
 
   React.useEffect(() => {
     requestCameraPermissionsAsync()
@@ -226,6 +236,41 @@ export default function App() {
     profileStore.load().then(setPrefs).catch(() => {}).finally(() => setProfileReady(true));
     adherenceStore.load().then(setAdherence).catch(() => {}).finally(() => setAdherenceReady(true));
   }, [store, trainingStore, profileStore, adherenceStore]);
+
+  React.useEffect(() => {
+    let mounted = true;
+    getCurrentSession()
+      .then((session) => {
+        if (mounted) setBackendSignedIn(Boolean(session?.user));
+      })
+      .catch((e) => {
+        console.warn('[profile-sync] Supabase session check failed', e);
+        if (mounted) setBackendSignedIn(false);
+      });
+
+    const unsubscribe = subscribeToAuthChanges((state) => {
+      if (!mounted) return;
+      setBackendSignedIn(state.isSignedIn);
+      if (state.isSignedIn) {
+        remoteProfileHydrationAttemptedRef.current = false;
+      } else {
+        lastProfileSyncFingerprintRef.current = null;
+      }
+    });
+
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  React.useEffect(() => {
+    return () => {
+      if (profileSyncTimerRef.current) {
+        clearTimeout(profileSyncTimerRef.current);
+      }
+    };
+  }, []);
 
   const goHome = React.useCallback(() => {
     setFlow(null);
@@ -268,6 +313,49 @@ export default function App() {
     },
     [profileStore]
   );
+
+  const queueProfileSync = React.useCallback(
+    (nextPrefs: Preferences, options: { hydrateLocalFromRemote?: boolean } = {}) => {
+      const fingerprint = JSON.stringify(nextPrefs);
+      if (!options.hydrateLocalFromRemote && lastProfileSyncFingerprintRef.current === fingerprint) {
+        return;
+      }
+      if (profileSyncTimerRef.current) {
+        clearTimeout(profileSyncTimerRef.current);
+      }
+
+      profileSyncTimerRef.current = setTimeout(() => {
+        void syncLocalPreferencesToRemote(nextPrefs, {
+          hydrateLocalFromRemote: options.hydrateLocalFromRemote,
+          hydrateRoutingFields: false,
+        }).then((result) => {
+          if (result.status === 'signed_out' || result.status === 'failed') return;
+
+          if (result.status === 'hydrated' && result.preferences) {
+            const hydratedFingerprint = JSON.stringify(result.preferences);
+            lastProfileSyncFingerprintRef.current = hydratedFingerprint;
+            setPrefs(result.preferences);
+            try {
+              profileStore.save(result.preferences);
+            } catch (e) {
+              console.warn('[profile] save failed after remote hydration', e);
+            }
+            return;
+          }
+
+          lastProfileSyncFingerprintRef.current = fingerprint;
+        });
+      }, 750);
+    },
+    [profileStore]
+  );
+
+  React.useEffect(() => {
+    if (!profileReady || !backendSignedIn) return;
+    const hydrateLocalFromRemote = !remoteProfileHydrationAttemptedRef.current;
+    remoteProfileHydrationAttemptedRef.current = true;
+    queueProfileSync(prefs, { hydrateLocalFromRemote });
+  }, [backendSignedIn, prefs, profileReady, queueProfileSync]);
 
   const persistAdherence = React.useCallback(
     (next: AdherenceStoreState) => {
@@ -1330,6 +1418,7 @@ export default function App() {
             block={displayMovementBlock}
             lifeGoal={prefs.profile.lifeGoal}
             completion={lastCompletion}
+            validTimeSummaries={validTimeSessionSummaryCards(lastSessionResult)}
             onMicroCheck={() => setFlow('microcheck')}
             onFeedback={handleSessionFeedback}
             onDone={goHome}

@@ -49,6 +49,7 @@ import {
   type TrainingBlock as DynamicTrainingBlock,
   type TrainingDomain,
 } from '../training/workoutGeneration';
+import { summarizeValidTimeItem } from '../training/validTimeProgression';
 import { getSessionIntroCopy } from './copy';
 import { dayLabelForPlanSessionId, type PlanSessionId } from './sessionIds';
 import type { ExerciseFamily, HaleExercise, HaleSessionPlan } from './types';
@@ -585,6 +586,7 @@ function completedExerciseResultsForPlan(
     .map((exercise) => {
       const item = items.get(exercise.exerciseId);
       const completed = completedOverride ?? (item ? item.status !== 'skipped' : true);
+      const validTime = summarizeValidTimeItem(item);
       return {
         ladderId: exercise.ladderId as string,
         levelId: exercise.levelId ?? exercise.exerciseId,
@@ -592,6 +594,7 @@ function completedExerciseResultsForPlan(
         perceivedEffort: feedback.perceivedEffort,
         painReported: feedback.painReported,
         trackingQuality: feedback.trackingQuality ?? 'good',
+        ...(validTime ? { validTime } : {}),
       };
     });
 }

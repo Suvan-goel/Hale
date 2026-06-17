@@ -129,10 +129,34 @@ describe('point-cloud body geometry', () => {
       lowLatencyMode: true,
     });
 
-    expect(normal.dotCount).toBeGreaterThanOrEqual(550);
+    expect(normal.dotCount).toBeGreaterThanOrEqual(740);
     expect(normal.dotCount).toBeLessThanOrEqual(800);
     expect(low.dotCount).toBeLessThan(normal.dotCount);
     expect(low.dotCount).toBeLessThanOrEqual(400);
+  });
+
+  it('scales rendered dot radii without increasing dot count', () => {
+    const pose = mappedStandingPose();
+    const small = createPointCloudBodyGeometry();
+    const large = createPointCloudBodyGeometry();
+
+    buildPointCloudBodyGeometry(pose, small, {
+      pointCloudBodyEnabled: true,
+      density: 'medium',
+      maxDots: 800,
+      dotScale: 1,
+    });
+    buildPointCloudBodyGeometry(pose, large, {
+      pointCloudBodyEnabled: true,
+      density: 'medium',
+      maxDots: 800,
+      dotScale: 1.4,
+    });
+
+    expect(large.dotCount).toBe(small.dotCount);
+    expect(firstRadius(large.torsoDotPath || large.softTorsoDotPath)).toBeGreaterThan(
+      firstRadius(small.torsoDotPath || small.softTorsoDotPath)
+    );
   });
 
   it('respects the configured absolute dot cap including keypoints', () => {
@@ -219,3 +243,9 @@ describe('point-cloud body geometry', () => {
     spy.mockRestore();
   });
 });
+
+function firstRadius(path: string): number {
+  const match = path.match(/a([0-9.]+) [0-9.]+/);
+  expect(match).not.toBeNull();
+  return Number(match![1]);
+}

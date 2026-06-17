@@ -1,4 +1,6 @@
 import {
+  BALANCE_FEET_TOGETHER_ID,
+  BALANCE_TANDEM_ID,
   PUSHUP_INCLINE_ID,
   PUSHUP_STANDARD_ID,
   STS_SLOW_ECC_ID,
@@ -16,6 +18,7 @@ import {
   type LadderProgress,
 } from '../workoutGeneration';
 import { formatDebugWorkoutScenarios, generateDebugWorkoutScenarios } from '../debugWorkoutScenarios';
+import type { ValidTimeProgressionSignal, ValidTimeProgressionSummary } from '../validTimeProgression';
 
 const START = '2026-06-01T08:00:00.000Z';
 
@@ -181,6 +184,199 @@ describe('dynamic workout generation', () => {
     expect(first['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
     expect(first['sit-to-stand'].readyToProgress).toBe(true);
     expect(second['sit-to-stand'].currentLevelId).toBe(STS_SLOW_ECC_ID);
+  });
+
+  it('lets strong valid-time work use the existing two-exposure progression rule', () => {
+    const first = updateLadderProgressAfterSession(
+      {},
+      {
+        completedAt: START,
+        exercises: [
+          {
+            ladderId: 'balance',
+            levelId: BALANCE_FEET_TOGETHER_ID,
+            completionRate: 1,
+            perceivedEffort: 2,
+            painReported: false,
+            trackingQuality: 'good',
+            validTime: validTimeSummary('strong'),
+          },
+        ],
+      }
+    );
+    const second = updateLadderProgressAfterSession(first, {
+      completedAt: '2026-06-03T08:00:00.000Z',
+      exercises: [
+        {
+          ladderId: 'balance',
+          levelId: BALANCE_FEET_TOGETHER_ID,
+          completionRate: 1,
+          perceivedEffort: 2,
+          painReported: false,
+          trackingQuality: 'good',
+          validTime: validTimeSummary('strong'),
+        },
+      ],
+    });
+
+    expect(first.balance.currentLevelId).toBe(BALANCE_FEET_TOGETHER_ID);
+    expect(first.balance.readyToProgress).toBe(true);
+    expect(second.balance.currentLevelId).toBe(BALANCE_TANDEM_ID);
+  });
+
+  it('holds a valid-time level when the target is reached with resets', () => {
+    const first = updateLadderProgressAfterSession(
+      {},
+      {
+        completedAt: START,
+        exercises: [
+          {
+            ladderId: 'balance',
+            levelId: BALANCE_FEET_TOGETHER_ID,
+            completionRate: 1,
+            perceivedEffort: 2,
+            painReported: false,
+            trackingQuality: 'good',
+            validTime: validTimeSummary('completed_with_resets'),
+          },
+        ],
+      }
+    );
+    const second = updateLadderProgressAfterSession(first, {
+      completedAt: '2026-06-03T08:00:00.000Z',
+      exercises: [
+        {
+          ladderId: 'balance',
+          levelId: BALANCE_FEET_TOGETHER_ID,
+          completionRate: 1,
+          perceivedEffort: 2,
+          painReported: false,
+          trackingQuality: 'good',
+          validTime: validTimeSummary('completed_with_resets'),
+        },
+      ],
+    });
+
+    expect(first.balance.currentLevelId).toBe(BALANCE_FEET_TOGETHER_ID);
+    expect(first.balance.readyToProgress).toBe(false);
+    expect(first.balance.completedSessionsAtLevel).toBe(0);
+    expect(second.balance.currentLevelId).toBe(BALANCE_FEET_TOGETHER_ID);
+  });
+
+  it('restores pre-Phase-3 behavior when valid-time progression is disabled', () => {
+    const first = updateLadderProgressAfterSession(
+      {},
+      {
+        completedAt: START,
+        exercises: [
+          {
+            ladderId: 'balance',
+            levelId: BALANCE_FEET_TOGETHER_ID,
+            completionRate: 1,
+            perceivedEffort: 2,
+            painReported: false,
+            trackingQuality: 'good',
+            validTime: validTimeSummary('completed_with_resets'),
+          },
+        ],
+      },
+      {},
+      { validTimeProgressionEnabled: false }
+    );
+    const second = updateLadderProgressAfterSession(
+      first,
+      {
+        completedAt: '2026-06-03T08:00:00.000Z',
+        exercises: [
+          {
+            ladderId: 'balance',
+            levelId: BALANCE_FEET_TOGETHER_ID,
+            completionRate: 1,
+            perceivedEffort: 2,
+            painReported: false,
+            trackingQuality: 'good',
+            validTime: validTimeSummary('completed_with_resets'),
+          },
+        ],
+      },
+      {},
+      { validTimeProgressionEnabled: false }
+    );
+
+    expect(first.balance.readyToProgress).toBe(true);
+    expect(second.balance.currentLevelId).toBe(BALANCE_TANDEM_ID);
+  });
+
+  it('treats incomplete valid-time work as repeated difficulty, not a one-off regression', () => {
+    const first = updateLadderProgressAfterSession(
+      {},
+      {
+        completedAt: START,
+        exercises: [
+          {
+            ladderId: 'balance',
+            levelId: BALANCE_TANDEM_ID,
+            completionRate: 1,
+            perceivedEffort: 3,
+            painReported: false,
+            trackingQuality: 'good',
+            validTime: validTimeSummary('incomplete'),
+          },
+        ],
+      }
+    );
+    const second = updateLadderProgressAfterSession(first, {
+      completedAt: '2026-06-03T08:00:00.000Z',
+      exercises: [
+        {
+          ladderId: 'balance',
+          levelId: BALANCE_TANDEM_ID,
+          completionRate: 1,
+          perceivedEffort: 3,
+          painReported: false,
+          trackingQuality: 'good',
+          validTime: validTimeSummary('incomplete'),
+        },
+      ],
+    });
+
+    expect(first.balance.currentLevelId).toBe(BALANCE_TANDEM_ID);
+    expect(first.balance.failedSessionsAtLevel).toBe(1);
+    expect(second.balance.currentLevelId).toBe(BALANCE_FEET_TOGETHER_ID);
+  });
+
+  it('repeats the level instead of demoting when valid-time tracking is uncertain', () => {
+    const progress: Record<string, LadderProgress> = {
+      balance: {
+        ladderId: 'balance',
+        currentLevelId: BALANCE_TANDEM_ID,
+        completedSessionsAtLevel: 1,
+        failedSessionsAtLevel: 1,
+        recentCompletionRates: [0.5],
+        recentRpe: [4],
+        recentPain: [false],
+        updatedAt: START,
+      },
+    };
+    const next = updateLadderProgressAfterSession(progress, {
+      completedAt: '2026-06-03T08:00:00.000Z',
+      exercises: [
+        {
+          ladderId: 'balance',
+          levelId: BALANCE_TANDEM_ID,
+          completionRate: 0.3,
+          perceivedEffort: 4,
+          painReported: false,
+          trackingQuality: 'good',
+          validTime: validTimeSummary('tracking_uncertain'),
+        },
+      ],
+    });
+
+    expect(next.balance.currentLevelId).toBe(BALANCE_TANDEM_ID);
+    expect(next.balance.completedSessionsAtLevel).toBe(0);
+    expect(next.balance.failedSessionsAtLevel).toBe(1);
+    expect(next.balance.readyToProgress).toBe(false);
   });
 
   it('regresses or holds gently when pain, struggle, or poor tracking appears', () => {
@@ -378,3 +574,20 @@ describe('dynamic workout generation', () => {
     expect(sessions.flatMap((session) => session.exercises).some((exercise) => exercise.ladderId === 'pull-upper-back')).toBe(true);
   });
 });
+
+function validTimeSummary(signal: ValidTimeProgressionSignal): ValidTimeProgressionSummary {
+  return {
+    signal,
+    setCount: 1,
+    targetValidSeconds: 20,
+    accumulatedValidSeconds: signal === 'incomplete' ? 12 : 20,
+    wallClockSeconds: signal === 'completed_with_resets' ? 40 : 22,
+    pauseCount: signal === 'completed_with_resets' ? 3 : 0,
+    longestContinuousValidSeconds: signal === 'completed_with_resets' ? 10 : signal === 'incomplete' ? 12 : 20,
+    positionLostEvents: signal === 'completed_with_resets' ? 3 : 0,
+    trackingLostSeconds: signal === 'tracking_uncertain' ? 8 : 0,
+    completedByValidTime: signal !== 'incomplete' && signal !== 'tracking_uncertain',
+    endedBySafetyCap: signal === 'incomplete',
+    validationMode: 'strict_valid_position',
+  };
+}

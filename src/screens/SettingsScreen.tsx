@@ -17,6 +17,7 @@ import {
   ToggleRow,
 } from '../components/ui';
 import { AppSettings, UserProfile, VOICE_OPTIONS } from '../profile';
+import { AuthProvider, useAuth } from '../services/backend';
 import { EquipmentProfile, TrainingIntensityPreference } from '../training';
 import { colors, radius, spacing, type } from '../theme';
 
@@ -28,23 +29,7 @@ const INTENSITY_OPTIONS: readonly { id: TrainingIntensityPreference; label: stri
   { id: 'more_challenge', label: 'More challenge', body: 'A stronger ask' },
 ];
 
-export function SettingsScreen({
-  profile,
-  settings,
-  equipment,
-  supportConnection,
-  preferredDays,
-  preferredIntensity,
-  onProfileChange,
-  onSettingsChange,
-  onToggleEquipment,
-  onToggleAvailableEquipment,
-  onPreferredDaysChange,
-  onIntensityChange,
-  onOpenLifeGoal,
-  onOpenSafetyProfile,
-  onOpenCameraSetup,
-}: {
+type SettingsScreenProps = {
   profile: UserProfile;
   settings: AppSettings;
   equipment: EquipmentProfile;
@@ -60,7 +45,33 @@ export function SettingsScreen({
   onOpenLifeGoal: () => void;
   onOpenSafetyProfile: () => void;
   onOpenCameraSetup: () => void;
-}) {
+};
+
+export function SettingsScreen(props: SettingsScreenProps) {
+  return (
+    <AuthProvider>
+      <SettingsScreenContent {...props} />
+    </AuthProvider>
+  );
+}
+
+function SettingsScreenContent({
+  profile,
+  settings,
+  equipment,
+  supportConnection,
+  preferredDays,
+  preferredIntensity,
+  onProfileChange,
+  onSettingsChange,
+  onToggleEquipment,
+  onToggleAvailableEquipment,
+  onPreferredDaysChange,
+  onIntensityChange,
+  onOpenLifeGoal,
+  onOpenSafetyProfile,
+  onOpenCameraSetup,
+}: SettingsScreenProps) {
   const [name, setName] = React.useState(profile.name);
   const [goal, setGoal] = React.useState(profile.goal);
   const [ageText, setAgeText] = React.useState(profile.age === null ? '' : String(profile.age));
@@ -136,6 +147,8 @@ export function SettingsScreen({
           <SecondaryButton title="Edit safety profile" onPress={onOpenSafetyProfile} style={styles.rowButton} />
         </View>
       </Card>
+
+      <AccountCard />
 
       <Card>
         <Eyebrow>Health and safety</Eyebrow>
@@ -307,6 +320,163 @@ export function SettingsScreen({
   );
 }
 
+type AccountMode = 'sign-in' | 'sign-up';
+
+function AccountCard() {
+  const { error, isSignedIn, loading, profile, refreshProfile, signIn, signOut, signUp, user } = useAuth();
+  const [mode, setMode] = React.useState<AccountMode>('sign-in');
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [fullName, setFullName] = React.useState('');
+  const [localError, setLocalError] = React.useState<string | null>(null);
+  const [notice, setNotice] = React.useState<string | null>(null);
+  const authError = localError ?? error;
+
+  const changeMode = (nextMode: AccountMode) => {
+    setMode(nextMode);
+    setLocalError(null);
+    setNotice(null);
+  };
+
+  const submit = async () => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) {
+      setLocalError('Enter an email and password.');
+      return;
+    }
+
+    setLocalError(null);
+    setNotice(null);
+
+    try {
+      const next = mode === 'sign-up'
+        ? await signUp(trimmedEmail, password, fullName)
+        : await signIn(trimmedEmail, password);
+
+      if (next.isSignedIn) {
+        await refreshProfile();
+        setNotice('Signed in. Hale still saves progress locally until sync is added.');
+      } else {
+        setNotice('Check your email to confirm the account, then sign in here.');
+      }
+      setPassword('');
+    } catch (err) {
+      setLocalError(messageFromError(err));
+    }
+  };
+
+  const submitSignOut = async () => {
+    setLocalError(null);
+    setNotice(null);
+    try {
+      await signOut();
+      setPassword('');
+      setNotice('Signed out. Hale still works on this device.');
+    } catch (err) {
+      setLocalError(messageFromError(err));
+    }
+  };
+
+  return (
+    <Card>
+      <View style={styles.sectionHead}>
+        <Eyebrow>Account</Eyebrow>
+        <StatusBadge label={isSignedIn ? 'Signed in' : 'Optional'} tone={isSignedIn ? 'good' : 'gold'} />
+      </View>
+      <Text style={styles.sectionHint}>
+        Create an account to prepare progress sync. Hale still works on this device while signed out.
+      </Text>
+
+      {isSignedIn ? (
+        <View style={styles.accountStack}>
+          <InfoRow label="Email" value={user?.email ?? 'Signed in'} />
+          <InfoRow label="Name" value={profile?.full_name ?? 'Not set'} />
+          <Pressable
+            style={({ pressed }) => [styles.accountSecondaryButton, pressed && styles.pressed]}
+            onPress={submitSignOut}
+            accessibilityRole="button"
+            accessibilityLabel="Sign out"
+          >
+            <Text style={styles.accountSecondaryButtonText}>{loading ? 'Signing out...' : 'Sign out'}</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <View style={styles.accountStack}>
+          <View style={styles.accountModeRow}>
+            <Segment label="Sign in" selected={mode === 'sign-in'} onPress={() => changeMode('sign-in')} compact />
+            <Segment label="Sign up" selected={mode === 'sign-up'} onPress={() => changeMode('sign-up')} compact />
+          </View>
+          {mode === 'sign-up' ? (
+            <Field label="Full name optional">
+              <TextInput
+                style={styles.input}
+                value={fullName}
+                onChangeText={setFullName}
+                placeholder="Your name"
+                placeholderTextColor={colors.textTertiary}
+                returnKeyType="next"
+                accessibilityLabel="Full name"
+              />
+            </Field>
+          ) : null}
+          <Field label="Email">
+            <TextInput
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              placeholder="you@example.com"
+              placeholderTextColor={colors.textTertiary}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              textContentType="emailAddress"
+              returnKeyType="next"
+              accessibilityLabel="Email"
+            />
+          </Field>
+          <Field label="Password">
+            <TextInput
+              style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Password"
+              placeholderTextColor={colors.textTertiary}
+              autoCapitalize="none"
+              autoCorrect={false}
+              secureTextEntry
+              textContentType={mode === 'sign-up' ? 'newPassword' : 'password'}
+              returnKeyType="done"
+              accessibilityLabel="Password"
+            />
+          </Field>
+          <Pressable
+            style={({ pressed }) => [
+              styles.accountPrimaryButton,
+              loading && styles.accountButtonDisabled,
+              pressed && !loading && styles.pressed,
+            ]}
+            onPress={submit}
+            disabled={loading}
+            accessibilityRole="button"
+            accessibilityLabel={mode === 'sign-up' ? 'Create account' : 'Sign in'}
+          >
+            <Text style={styles.accountPrimaryButtonText}>
+              {loading ? 'Working...' : mode === 'sign-up' ? 'Create account' : 'Sign in'}
+            </Text>
+          </Pressable>
+        </View>
+      )}
+
+      {notice ? <Text style={styles.accountNotice}>{notice}</Text> : null}
+      {authError ? <Text style={styles.accountError}>{authError}</Text> : null}
+    </Card>
+  );
+}
+
+function messageFromError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <View style={styles.field}>
@@ -391,6 +561,33 @@ const styles = StyleSheet.create({
   buttonRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginTop: spacing.lg },
   rowButton: { flexGrow: 1, flexBasis: '45%', shadowOpacity: 0 },
   fullButton: { marginTop: spacing.lg, shadowOpacity: 0 },
+  accountStack: { marginTop: spacing.lg },
+  accountModeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  accountPrimaryButton: {
+    minHeight: 54,
+    marginTop: spacing.lg,
+    borderRadius: radius.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+    backgroundColor: colors.accentDeep,
+  },
+  accountPrimaryButtonText: { ...type.button },
+  accountSecondaryButton: {
+    minHeight: 54,
+    marginTop: spacing.lg,
+    borderRadius: radius.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+    backgroundColor: colors.elevatedCard,
+    borderWidth: 1,
+    borderColor: colors.borderHairline,
+  },
+  accountSecondaryButtonText: { ...type.button, color: colors.accentDeep },
+  accountButtonDisabled: { opacity: 0.58 },
+  accountNotice: { ...type.caption, color: colors.sageDeep, marginTop: spacing.md },
+  accountError: { ...type.caption, color: colors.error, marginTop: spacing.md },
   infoRow: {
     minHeight: 48,
     flexDirection: 'row',

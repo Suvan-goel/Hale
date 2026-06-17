@@ -43,6 +43,7 @@ describe('resolvePoseAvatarConfig', () => {
     expect(config.pointCloudBodyShowConnections).toBe(false);
     expect(config.pointCloudBodyShowSkeletonLines).toBe(false);
     expect(config.pointCloudBodyShowKeypoints).toBe(true);
+    expect(config.pointCloudBodyDotScale).toBe(1.26);
     expect(config.pointCloudBodyOpacity).toBe(1);
     expect(config.confidenceFadingEnabled).toBe(true);
     expect(config.confidenceIntensityEnabled).toBe(true);
@@ -69,6 +70,7 @@ describe('resolvePoseAvatarConfig', () => {
     expect(config.pointCloudBodyMaxDots).toBeLessThanOrEqual(450);
     expect(config.pointCloudBodyShowConnections).toBe(false);
     expect(config.pointCloudBodyShowSkeletonLines).toBe(false);
+    expect(config.pointCloudBodyDotScale).toBe(1.16);
     expect(config.torsoVolumeDots).toBeLessThan(40);
     expect(config.headVolumeDots).toBeLessThan(16);
     expect(config.reacquisitionFadeEnabled).toBe(false);
@@ -149,6 +151,7 @@ describe('resolvePoseAvatarConfig', () => {
         EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_CONNECTION_MAX_LINES: '48',
         EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_SKELETON_LINES: 'off',
         EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_KEYPOINTS: 'off',
+        EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_DOT_SCALE: '1.4',
         EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_OPACITY: '0.7',
       }
     );
@@ -161,6 +164,7 @@ describe('resolvePoseAvatarConfig', () => {
     expect(config.pointCloudBodyConnectionMaxLines).toBe(48);
     expect(config.pointCloudBodyShowSkeletonLines).toBe(false);
     expect(config.pointCloudBodyShowKeypoints).toBe(false);
+    expect(config.pointCloudBodyDotScale).toBe(1.4);
     expect(config.pointCloudBodyOpacity).toBe(0.7);
   });
 

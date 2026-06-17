@@ -62,6 +62,7 @@ export const PoseAvatarRenderer = React.forwardRef<
     pointCloudBodyConnectionMaxLines: config.pointCloudBodyConnectionMaxLines,
     pointCloudBodyShowSkeletonLines: config.pointCloudBodyShowSkeletonLines,
     pointCloudBodyShowKeypoints: config.pointCloudBodyShowKeypoints,
+    pointCloudBodyDotScale: config.pointCloudBodyDotScale,
     pointCloudBodyOpacity: config.pointCloudBodyOpacity,
     confidenceFadingEnabled: config.confidenceFadingEnabled,
     confidenceIntensityEnabled: config.confidenceIntensityEnabled,

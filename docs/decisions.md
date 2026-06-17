@@ -667,6 +667,19 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
   is presentation-only and does not change pose inference, grading, scoring, workout, or check-up
   logic.
 
+## 2026-06-17 — Point-cloud avatar visibility tuning
+
+- **Finding:** the new body renderer read correctly as a body, but the medium preset still looked
+  too sparse on device. Raising dot size is the cheapest visibility win because it keeps the same
+  number of SVG paths and avoids per-dot React components.
+- **Change:** medium density now fills closer to the existing 800-dot cap, and
+  `pointCloudBodyDotScale` defaults to `1.26` in normal mode and `1.16` in low-latency mode. The
+  value can be tuned with `EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_DOT_SCALE`. Low-latency mode
+  still uses the low density and a lower cap.
+- **Guardrail:** tests assert medium density remains capped, low-latency stays lower, and dot-scale
+  changes only radius, not dot count. Presentation-only; no pose, scoring, workout, or check-up
+  logic changed.
+
 ## 2026-06-17 — Live avatar low-latency display
 
 - **Finding:** the default point-cloud avatar is visually richer, but dense point-cloud path
@@ -748,3 +761,14 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 - **UX boundary:** no runtime TTS or new bundled voice cues were added. Broad timer captions use
   supportive visible copy such as "Get into position", "Keep moving", and
   "Timer paused - return to position".
+
+## 2026-06-17 — Phase 3 conservative valid-time progression
+
+- **Change:** generated-session ladder progression now consumes valid-time metadata through a
+  feature-flagged classifier. Strong valid-time work can count toward the existing repeated-exposure
+  progression rule, reset-heavy completions get credit without advancing, incomplete valid-time work
+  is treated as repeat difficulty, and tracking-uncertain attempts repeat the level without demotion.
+- **Rollback:** `VALID_TIME_PROGRESSION_ENABLED` gates only the Phase 3 progression interpretation.
+  Phase 1/2 valid-time timers and metadata emission continue unchanged when Phase 3 is disabled.
+- **UX boundary:** session completion can show at most a few plain-language steady-time notes. It does
+  not expose raw tracking ratios, medical claims, or form critique.

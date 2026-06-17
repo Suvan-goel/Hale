@@ -48,6 +48,8 @@ export interface PointCloudBodyGeometryOptions {
   showConnections?: boolean;
   connectionMaxLines?: number;
   showKeypoints?: boolean;
+  activeBodyParts?: readonly PointCloudBodyPart[];
+  dotScale?: number;
   opacity?: number;
   radiusMultiplier?: number;
 }
@@ -61,6 +63,8 @@ export interface PointCloudBodyGeometry {
   softLimbDotPath: string;
   extremityDotPath: string;
   softExtremityDotPath: string;
+  activeDotPath: string;
+  softActiveDotPath: string;
   keypointDotPath: string;
   connectionPath: string;
   dotXs: Float64Array;
@@ -78,11 +82,13 @@ export interface PointCloudBodyGeometry {
   lowerLegDotCount: number;
   handDotCount: number;
   footDotCount: number;
+  activeDotCount: number;
   keypointDotCount: number;
   connectionLineCount: number;
   skippedBodyPartCount: number;
   opacityScale: number;
   bodyPartDotCounts: Record<PointCloudBodyPart, number>;
+  activeBodyPartMask: Record<PointCloudBodyPart, boolean>;
 }
 
 export interface TorsoBodyDotSeed {
@@ -162,14 +168,14 @@ const COUNT_PRESETS: Record<PointCloudBodyDensity, PointCloudBodyCounts> = {
     connectionMaxLines: 0,
   },
   medium: {
-    torso: 190,
-    head: 65,
-    upperArm: 34,
-    forearm: 28,
-    thigh: 58,
-    lowerLeg: 46,
-    hand: 16,
-    foot: 18,
+    torso: 235,
+    head: 75,
+    upperArm: 42,
+    forearm: 34,
+    thigh: 70,
+    lowerLeg: 55,
+    hand: 20,
+    foot: 22,
     maxDots: DEFAULT_MAX_DOTS,
     connectionMaxLines: 120,
   },
@@ -203,6 +209,8 @@ export function createPointCloudBodyGeometry(maxDots = ABSOLUTE_MAX_DOTS): Point
     softLimbDotPath: '',
     extremityDotPath: '',
     softExtremityDotPath: '',
+    activeDotPath: '',
+    softActiveDotPath: '',
     keypointDotPath: '',
     connectionPath: '',
     dotXs: new Float64Array(capacity),
@@ -220,11 +228,13 @@ export function createPointCloudBodyGeometry(maxDots = ABSOLUTE_MAX_DOTS): Point
     lowerLegDotCount: 0,
     handDotCount: 0,
     footDotCount: 0,
+    activeDotCount: 0,
     keypointDotCount: 0,
     connectionLineCount: 0,
     skippedBodyPartCount: 0,
     opacityScale: 1,
     bodyPartDotCounts: createBodyPartCountMap(),
+    activeBodyPartMask: createBodyPartMask(),
   };
 }
 
@@ -237,6 +247,8 @@ export function emptyPointCloudBodyGeometry(out: PointCloudBodyGeometry): void {
   out.softLimbDotPath = '';
   out.extremityDotPath = '';
   out.softExtremityDotPath = '';
+  out.activeDotPath = '';
+  out.softActiveDotPath = '';
   out.keypointDotPath = '';
   out.connectionPath = '';
   out.dotCount = 0;
@@ -248,12 +260,15 @@ export function emptyPointCloudBodyGeometry(out: PointCloudBodyGeometry): void {
   out.lowerLegDotCount = 0;
   out.handDotCount = 0;
   out.footDotCount = 0;
+  out.activeDotCount = 0;
   out.keypointDotCount = 0;
   out.connectionLineCount = 0;
   out.skippedBodyPartCount = 0;
   out.opacityScale = 1;
   for (let i = 0; i < POINT_CLOUD_BODY_PARTS.length; i++) {
-    out.bodyPartDotCounts[POINT_CLOUD_BODY_PARTS[i]] = 0;
+    const part = POINT_CLOUD_BODY_PARTS[i];
+    out.bodyPartDotCounts[part] = 0;
+    out.activeBodyPartMask[part] = false;
   }
 }
 
@@ -264,6 +279,7 @@ export function buildPointCloudBodyGeometry(
 ): void {
   emptyPointCloudBodyGeometry(out);
   if (!pose.hasPose || options.pointCloudBodyEnabled === false) return;
+  applyActiveBodyParts(out, options.activeBodyParts);
 
   const minConfidence = options.minConfidence ?? DEFAULT_MIN_CONFIDENCE;
   const density = options.lowLatencyMode ? 'low' : options.density ?? 'medium';
@@ -280,7 +296,9 @@ export function buildPointCloudBodyGeometry(
     connectionMaxLines: options.connectionMaxLines,
   });
   const bodyRef = estimateBodyReference(pose);
-  const radiusMultiplier = clamp(options.radiusMultiplier ?? 1, 0.65, 1.15);
+  const visualRadiusMultiplier = clamp(options.radiusMultiplier ?? 1, 0.65, 1.16);
+  const dotScale = clamp(options.dotScale ?? 1, 0.75, 1.6);
+  const radiusMultiplier = clamp(visualRadiusMultiplier * dotScale, 0.65, 1.8);
   const showConnections = options.showConnections === true && !options.lowLatencyMode;
   const connectionMaxLines = showConnections ? counts.connectionMaxLines : 0;
 
@@ -808,58 +826,73 @@ function addDot(
   out.dotCount++;
   out.bodyPartDotCounts[part]++;
   const path = circlePath(x, y, radius);
+  const active = out.activeBodyPartMask[part];
   switch (part) {
     case 'torso':
       out.torsoXs[out.torsoDotCount] = x;
       out.torsoYs[out.torsoDotCount] = y;
       out.torsoDotCount++;
-      if (soft) out.softTorsoDotPath += path;
+      if (active) addActiveDot(out, path, soft);
+      else if (soft) out.softTorsoDotPath += path;
       else out.torsoDotPath += path;
       break;
     case 'head':
       out.headXs[out.headDotCount] = x;
       out.headYs[out.headDotCount] = y;
       out.headDotCount++;
-      if (soft) out.softHeadDotPath += path;
+      if (active) addActiveDot(out, path, soft);
+      else if (soft) out.softHeadDotPath += path;
       else out.headDotPath += path;
       break;
     case 'leftUpperArm':
     case 'rightUpperArm':
       out.upperArmDotCount++;
-      if (soft) out.softLimbDotPath += path;
+      if (active) addActiveDot(out, path, soft);
+      else if (soft) out.softLimbDotPath += path;
       else out.limbDotPath += path;
       break;
     case 'leftForearm':
     case 'rightForearm':
       out.forearmDotCount++;
-      if (soft) out.softLimbDotPath += path;
+      if (active) addActiveDot(out, path, soft);
+      else if (soft) out.softLimbDotPath += path;
       else out.limbDotPath += path;
       break;
     case 'leftThigh':
     case 'rightThigh':
       out.thighDotCount++;
-      if (soft) out.softLimbDotPath += path;
+      if (active) addActiveDot(out, path, soft);
+      else if (soft) out.softLimbDotPath += path;
       else out.limbDotPath += path;
       break;
     case 'leftLowerLeg':
     case 'rightLowerLeg':
       out.lowerLegDotCount++;
-      if (soft) out.softLimbDotPath += path;
+      if (active) addActiveDot(out, path, soft);
+      else if (soft) out.softLimbDotPath += path;
       else out.limbDotPath += path;
       break;
     case 'leftHand':
     case 'rightHand':
       out.handDotCount++;
-      if (soft) out.softExtremityDotPath += path;
+      if (active) addActiveDot(out, path, soft);
+      else if (soft) out.softExtremityDotPath += path;
       else out.extremityDotPath += path;
       break;
     case 'leftFoot':
     case 'rightFoot':
       out.footDotCount++;
-      if (soft) out.softExtremityDotPath += path;
+      if (active) addActiveDot(out, path, soft);
+      else if (soft) out.softExtremityDotPath += path;
       else out.extremityDotPath += path;
       break;
   }
+}
+
+function addActiveDot(out: PointCloudBodyGeometry, path: string, soft: boolean): void {
+  out.activeDotCount++;
+  if (soft) out.softActiveDotPath += path;
+  else out.activeDotPath += path;
 }
 
 function addConnection(
@@ -927,6 +960,35 @@ function createBodyPartCountMap(): Record<PointCloudBodyPart, number> {
     leftFoot: 0,
     rightFoot: 0,
   };
+}
+
+function createBodyPartMask(): Record<PointCloudBodyPart, boolean> {
+  return {
+    torso: false,
+    head: false,
+    leftUpperArm: false,
+    rightUpperArm: false,
+    leftForearm: false,
+    rightForearm: false,
+    leftThigh: false,
+    rightThigh: false,
+    leftLowerLeg: false,
+    rightLowerLeg: false,
+    leftHand: false,
+    rightHand: false,
+    leftFoot: false,
+    rightFoot: false,
+  };
+}
+
+function applyActiveBodyParts(
+  out: PointCloudBodyGeometry,
+  activeBodyParts: readonly PointCloudBodyPart[] | undefined
+): void {
+  if (!activeBodyParts) return;
+  for (let i = 0; i < activeBodyParts.length; i++) {
+    out.activeBodyPartMask[activeBodyParts[i]] = true;
+  }
 }
 
 function landmarkIsRenderable(

@@ -42,6 +42,7 @@ export interface PoseAvatarPerformanceSnapshot {
   pointCloudBodyShowConnections?: boolean;
   pointCloudBodyShowSkeletonLines?: boolean;
   pointCloudBodyShowKeypoints?: boolean;
+  pointCloudBodyDotScale?: number;
   pointCloudBodyOpacity?: number;
   upperArmDotCount?: number;
   forearmDotCount?: number;
@@ -50,6 +51,7 @@ export interface PoseAvatarPerformanceSnapshot {
   handDotCount?: number;
   footDotCount?: number;
   keypointDotCount?: number;
+  activeDotCount?: number;
   connectionLineCount?: number;
   skippedBodyPartCount?: number;
   lowLatencyMode: boolean;
@@ -139,6 +141,7 @@ export function maybeLogPoseAvatarPerformance(
           `bodyConn=${snapshot.pointCloudBodyShowConnections ? 'on' : 'off'} ` +
           `bodySkeleton=${snapshot.pointCloudBodyShowSkeletonLines ? 'on' : 'off'} ` +
           `bodyKeys=${snapshot.pointCloudBodyShowKeypoints ? 'on' : 'off'} ` +
+          `bodyDotScale=${(snapshot.pointCloudBodyDotScale ?? 1).toFixed(2)} ` +
           `bodyOpacity=${(snapshot.pointCloudBodyOpacity ?? 1).toFixed(2)} `
         : '') +
       `confFade=${snapshot.confidenceFadingEnabled ? 'on' : 'off'} ` +
@@ -159,7 +162,8 @@ export function maybeLogPoseAvatarPerformance(
         ? `upperArm=${snapshot.upperArmDotCount} forearm=${snapshot.forearmDotCount ?? 0} ` +
           `thigh=${snapshot.thighDotCount ?? 0} lowerLeg=${snapshot.lowerLegDotCount ?? 0} ` +
           `hand=${snapshot.handDotCount ?? 0} foot=${snapshot.footDotCount ?? 0} ` +
-          `keys=${snapshot.keypointDotCount ?? 0} connections=${snapshot.connectionLineCount ?? 0} `
+          `keys=${snapshot.keypointDotCount ?? 0} active=${snapshot.activeDotCount ?? 0} ` +
+          `connections=${snapshot.connectionLineCount ?? 0} `
         : '') +
       `volumeDots=${snapshot.volumeDotCount} dots=${snapshot.dotCount} ` +
       `lines=${snapshot.lineCount} geometry=${snapshot.geometryMs.toFixed(1)}ms ` +

@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Card, PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../../components/ui';
 import { colors, spacing, type } from '../../theme';
-import type { PainArea, TrackingQuality } from '../../training';
+import type { PainArea, TrackingQuality, ValidTimeSessionSummaryCard } from '../../training';
 import { getProtectionCopy } from '../adherenceCopy';
 import type { LifeGoal, MovementBlock, TrainingSessionCompletion } from '../types';
 
@@ -37,6 +37,7 @@ export function SessionCompletionScreen({
   block,
   lifeGoal,
   completion,
+  validTimeSummaries = [],
   onMicroCheck,
   onFeedback,
   onDone,
@@ -44,6 +45,7 @@ export function SessionCompletionScreen({
   block: MovementBlock;
   lifeGoal?: LifeGoal | null;
   completion?: TrainingSessionCompletion | null;
+  validTimeSummaries?: readonly ValidTimeSessionSummaryCard[];
   onMicroCheck: () => void;
   onFeedback?: (feedback: SessionFeedbackInput) => void;
   onDone: () => void;
@@ -74,6 +76,19 @@ export function SessionCompletionScreen({
         <Text style={styles.title}>{restarted ? 'Clean slate, moving again' : 'This helps Hale adjust your next session.'}</Text>
         <Text style={styles.body}>Move only in a comfortable range.</Text>
       </Card>
+      {validTimeSummaries.length > 0 ? (
+        <Card style={styles.card}>
+          <Text style={styles.title}>Steady time</Text>
+          {validTimeSummaries.map((summary) => (
+            <View key={summary.exerciseId} style={styles.summaryBlock}>
+              <Text style={styles.summaryTitle}>{summary.title}</Text>
+              {summary.lines.map((line) => (
+                <Text key={line} style={styles.body}>{line}</Text>
+              ))}
+            </View>
+          ))}
+        </Card>
+      ) : null}
       <Card style={styles.card}>
         <Text style={styles.title}>How did it feel?</Text>
         <View style={styles.effortRow}>
@@ -159,6 +174,8 @@ const styles = StyleSheet.create({
   card: { gap: spacing.sm },
   title: { ...type.h2 },
   body: { ...type.bodySmall, color: colors.textSecondary },
+  summaryBlock: { gap: 2 },
+  summaryTitle: { ...type.bodySmall, color: colors.textPrimary, fontWeight: '500' },
   effortRow: { flexDirection: 'row', gap: spacing.sm },
   effort: {
     flex: 1,

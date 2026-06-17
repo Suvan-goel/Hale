@@ -62,6 +62,7 @@ export interface PoseAvatarResolvedConfig {
   pointCloudBodyConnectionMaxLines: number;
   pointCloudBodyShowSkeletonLines: boolean;
   pointCloudBodyShowKeypoints: boolean;
+  pointCloudBodyDotScale: number;
   pointCloudBodyOpacity: number;
   confidenceFadingEnabled: boolean;
   confidenceIntensityEnabled: boolean;
@@ -409,6 +410,13 @@ export function resolvePoseAvatarConfig(
     ),
     pointCloudBodyShowSkeletonLines: pointCloudBodyShowSkeletonLines && !lowLatencyMode,
     pointCloudBodyShowKeypoints,
+    pointCloudBodyDotScale: resolveNumber(
+      props.pointCloudBodyDotScale,
+      env.EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_DOT_SCALE,
+      lowLatencyMode ? 1.16 : 1.26,
+      0.75,
+      1.6
+    ),
     pointCloudBodyOpacity: resolveNumber(
       props.pointCloudBodyOpacity,
       env.EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_OPACITY,

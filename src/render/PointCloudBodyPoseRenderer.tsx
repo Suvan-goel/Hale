@@ -53,6 +53,8 @@ interface PointCloudBodyPaths {
   softLimbDotPath: string;
   extremityDotPath: string;
   softExtremityDotPath: string;
+  activeDotPath: string;
+  softActiveDotPath: string;
   keypointDotPath: string;
   connectionPath: string;
   skeletonLinePath: string;
@@ -68,6 +70,7 @@ interface PointCloudBodyPaths {
   bodyVolumeOpacityMultiplier: number;
   connectionOpacity: number;
   skeletonLineOpacity: number;
+  activeDotOpacityMultiplier: number;
   setupGuideOpacity: number;
   scanLineOpacity: number;
 }
@@ -81,6 +84,8 @@ const EMPTY_PATHS: PointCloudBodyPaths = {
   softLimbDotPath: '',
   extremityDotPath: '',
   softExtremityDotPath: '',
+  activeDotPath: '',
+  softActiveDotPath: '',
   keypointDotPath: '',
   connectionPath: '',
   skeletonLinePath: '',
@@ -96,6 +101,7 @@ const EMPTY_PATHS: PointCloudBodyPaths = {
   bodyVolumeOpacityMultiplier: 1,
   connectionOpacity: 0,
   skeletonLineOpacity: 0,
+  activeDotOpacityMultiplier: 1,
   setupGuideOpacity: 0,
   scanLineOpacity: 0,
 };
@@ -126,6 +132,8 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
     pointCloudBodyConnectionMaxLines = 120,
     pointCloudBodyShowSkeletonLines = false,
     pointCloudBodyShowKeypoints = true,
+    pointCloudBodyActiveParts,
+    pointCloudBodyDotScale = 1.26,
     pointCloudBodyOpacity = 1,
     confidenceFadingEnabled = true,
     confidenceIntensityEnabled = true,
@@ -178,6 +186,8 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
     pendingPaths.current.softLimbDotPath = next.softLimbDotPath;
     pendingPaths.current.extremityDotPath = next.extremityDotPath;
     pendingPaths.current.softExtremityDotPath = next.softExtremityDotPath;
+    pendingPaths.current.activeDotPath = next.activeDotPath;
+    pendingPaths.current.softActiveDotPath = next.softActiveDotPath;
     pendingPaths.current.keypointDotPath = next.keypointDotPath;
     pendingPaths.current.connectionPath = next.connectionPath;
     pendingPaths.current.skeletonLinePath = next.skeletonLinePath;
@@ -193,6 +203,7 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
     pendingPaths.current.bodyVolumeOpacityMultiplier = next.bodyVolumeOpacityMultiplier;
     pendingPaths.current.connectionOpacity = next.connectionOpacity;
     pendingPaths.current.skeletonLineOpacity = next.skeletonLineOpacity;
+    pendingPaths.current.activeDotOpacityMultiplier = next.activeDotOpacityMultiplier;
     pendingPaths.current.setupGuideOpacity = next.setupGuideOpacity;
     pendingPaths.current.scanLineOpacity = next.scanLineOpacity;
     if (rafRef.current !== null) return;
@@ -303,6 +314,7 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
               pointCloudBodyShowConnections,
               pointCloudBodyShowSkeletonLines,
               pointCloudBodyShowKeypoints,
+              pointCloudBodyDotScale,
               pointCloudBodyOpacity,
               connectionLineCount: 0,
               skippedBodyPartCount: 0,
@@ -377,6 +389,8 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
         showConnections: pointCloudBodyShowConnections,
         connectionMaxLines: pointCloudBodyConnectionMaxLines,
         showKeypoints: pointCloudBodyShowKeypoints,
+        activeBodyParts: pointCloudBodyActiveParts,
+        dotScale: pointCloudBodyDotScale,
         opacity: pointCloudBodyOpacity,
         radiusMultiplier: measurementVisual.radiusMultiplier,
       });
@@ -457,6 +471,7 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
           pointCloudBodyShowConnections,
           pointCloudBodyShowSkeletonLines,
           pointCloudBodyShowKeypoints,
+          pointCloudBodyDotScale,
           pointCloudBodyOpacity,
           upperArmDotCount: bodyGeometry.current.upperArmDotCount,
           forearmDotCount: bodyGeometry.current.forearmDotCount,
@@ -465,6 +480,7 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
           handDotCount: bodyGeometry.current.handDotCount,
           footDotCount: bodyGeometry.current.footDotCount,
           keypointDotCount: bodyGeometry.current.keypointDotCount,
+          activeDotCount: bodyGeometry.current.activeDotCount,
           connectionLineCount: bodyGeometry.current.connectionLineCount,
           skippedBodyPartCount: bodyGeometry.current.skippedBodyPartCount,
         },
@@ -481,6 +497,8 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
         softLimbDotPath: bodyGeometry.current.softLimbDotPath,
         extremityDotPath: bodyGeometry.current.extremityDotPath,
         softExtremityDotPath: bodyGeometry.current.softExtremityDotPath,
+        activeDotPath: bodyGeometry.current.activeDotPath,
+        softActiveDotPath: bodyGeometry.current.softActiveDotPath,
         keypointDotPath: bodyGeometry.current.keypointDotPath,
         connectionPath: bodyGeometry.current.connectionPath,
         skeletonLinePath: pointCloudBodyShowSkeletonLines ? skeletonGeometry.current.linePath : '',
@@ -496,6 +514,7 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
         bodyVolumeOpacityMultiplier: measurementVisual.bodyVolumeOpacityMultiplier,
         connectionOpacity: pointCloudBodyConnectionOpacity,
         skeletonLineOpacity: pointCloudBodyShowSkeletonLines ? 0.055 : 0,
+        activeDotOpacityMultiplier: pointCloudBodyActiveParts && pointCloudBodyActiveParts.length > 0 ? 1 : 0,
         setupGuideOpacity: measurementVisual.setupGuideOpacity,
         scanLineOpacity: measurementVisual.scanLineOpacity,
       });
@@ -518,7 +537,9 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
     mirrored,
     pointCloudBodyConnectionMaxLines,
     pointCloudBodyConnectionOpacity,
+    pointCloudBodyActiveParts,
     pointCloudBodyDensity,
+    pointCloudBodyDotScale,
     pointCloudBodyEnabled,
     pointCloudBodyMaxDots,
     pointCloudBodyOpacity,
@@ -681,6 +702,28 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
           fill={skeleton.figureTop}
           fillOpacity={
             (0.58 + paths.pulse * 0.65) *
+            paths.bodyOpacity *
+            paths.avatarOpacity *
+            paths.bodyVolumeOpacityMultiplier
+          }
+        />
+        <Path
+          d={paths.softActiveDotPath || EMPTY_D}
+          fill={colors.restorativeGreen}
+          fillOpacity={
+            0.34 *
+            paths.activeDotOpacityMultiplier *
+            paths.bodyOpacity *
+            paths.avatarOpacity *
+            paths.bodyVolumeOpacityMultiplier
+          }
+        />
+        <Path
+          d={paths.activeDotPath || EMPTY_D}
+          fill={colors.restorativeGreen}
+          fillOpacity={
+            (0.82 + paths.pulse * 0.5) *
+            paths.activeDotOpacityMultiplier *
             paths.bodyOpacity *
             paths.avatarOpacity *
             paths.bodyVolumeOpacityMultiplier

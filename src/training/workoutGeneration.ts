@@ -11,6 +11,11 @@ import {
 } from '../exercises';
 import type { AvailableEquipment, MovementSafetyProfile } from '../adherence';
 import type { CheckUpScore, Domain } from '../scoring';
+import {
+  DEFAULT_VALID_TIME_PROGRESSION_CONFIG,
+  type ValidTimeProgressionConfig,
+  type ValidTimeProgressionSummary,
+} from './validTimeProgression';
 
 export type TrainingDomain = 'strength_power' | 'balance_stability' | 'mobility_flexibility';
 export type SessionSource = 'block_generated' | 'preset' | 'manual';
@@ -170,6 +175,7 @@ export interface CompletedExerciseResult {
   perceivedEffort?: 1 | 2 | 3 | 4 | 5;
   painReported?: boolean;
   trackingQuality?: TrackingQuality;
+  validTime?: ValidTimeProgressionSummary;
 }
 
 export interface CompletedGeneratedSession {
@@ -454,7 +460,8 @@ export function generatePresetSession(
 export function updateLadderProgressAfterSession(
   previousProgress: Record<string, LadderProgress>,
   completedSession: CompletedGeneratedSession,
-  feedback: PostSessionFeedback = {}
+  feedback: PostSessionFeedback = {},
+  config: ValidTimeProgressionConfig = DEFAULT_VALID_TIME_PROGRESSION_CONFIG
 ): Record<string, LadderProgress> {
   const next: Record<string, LadderProgress> = { ...previousProgress };
   const completedAt = feedback.completedAt ?? completedSession.completedAt ?? new Date().toISOString();
@@ -472,6 +479,9 @@ export function updateLadderProgressAfterSession(
     const rpe = result.perceivedEffort ?? feedback.perceivedEffort;
     const pain = result.painReported ?? feedback.painReported ?? false;
     const tracking = result.trackingQuality ?? feedback.trackingQuality ?? 'good';
+    const validTimeSignal = config.validTimeProgressionEnabled
+      ? result.validTime?.signal ?? 'not_applicable'
+      : 'not_applicable';
     const recentCompletionRates = appendRecent(progress.recentCompletionRates, completionRate);
     const recentRpe = rpe ? appendRecent(progress.recentRpe, rpe) : progress.recentRpe;
     const recentPain = appendRecent(progress.recentPain, pain);
@@ -483,9 +493,15 @@ export function updateLadderProgressAfterSession(
     let failedSessionsAtLevel = progress.failedSessionsAtLevel;
     let readyToProgress = progress.readyToProgress;
 
-    if (tracking === 'poor') {
+    if (tracking === 'poor' || validTimeSignal === 'tracking_uncertain') {
+      completedSessionsAtLevel = 0;
       readyToProgress = false;
-    } else if (pain || (Number.isFinite(averageRpe) && averageRpe >= 5) || completionRate < 0.6) {
+    } else if (
+      pain ||
+      (Number.isFinite(averageRpe) && averageRpe >= 5) ||
+      completionRate < 0.6 ||
+      validTimeSignal === 'incomplete'
+    ) {
       failedSessionsAtLevel += 1;
       completedSessionsAtLevel = 0;
       readyToProgress = false;
@@ -493,6 +509,10 @@ export function updateLadderProgressAfterSession(
         currentLevelId = adjacentLevelId(ladderId, currentLevelId, -1);
         failedSessionsAtLevel = 0;
       }
+    } else if (validTimeSignal === 'completed_with_resets') {
+      completedSessionsAtLevel = 0;
+      failedSessionsAtLevel = 0;
+      readyToProgress = false;
     } else if (completionRate >= 0.85 && (!Number.isFinite(averageRpe) || averageRpe <= 3)) {
       completedSessionsAtLevel += 1;
       failedSessionsAtLevel = 0;

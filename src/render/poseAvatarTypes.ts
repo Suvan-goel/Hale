@@ -3,7 +3,7 @@ import type {
   ConfidenceAnimationStrength,
   PoseAvatarRecognitionEvent,
 } from './confidenceVisuals';
-import type { PointCloudBodyDensity } from './pointCloudBodyGeometry';
+import type { PointCloudBodyDensity, PointCloudBodyPart } from './pointCloudBodyGeometry';
 
 export type PoseAvatarRendererMode = 'classic' | 'constellation' | 'point_cloud_body';
 
@@ -72,6 +72,8 @@ export interface PoseAvatarRendererProps {
   pointCloudBodyConnectionMaxLines?: number;
   pointCloudBodyShowSkeletonLines?: boolean;
   pointCloudBodyShowKeypoints?: boolean;
+  pointCloudBodyActiveParts?: readonly PointCloudBodyPart[];
+  pointCloudBodyDotScale?: number;
   pointCloudBodyOpacity?: number;
   confidenceFadingEnabled?: boolean;
   confidenceIntensityEnabled?: boolean;
