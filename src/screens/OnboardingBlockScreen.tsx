@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import type { MovementBlock } from '../adherence';
-import { Card, PrimaryButton, Screen, ScreenHeader, SecondaryButton, StatusBadge } from '../components/ui';
+import { Card, ListRow, PrimaryButton, Screen, ScreenHeader, SecondaryButton, StatusBadge, Typography } from '../components/ui';
 import { blockFocusCopy } from '../onboarding/results';
-import { colors, spacing, type } from '../theme';
+import { spacing } from '../theme';
 
 export function OnboardingBlockScreen({
   block,
@@ -25,10 +25,10 @@ export function OnboardingBlockScreen({
 
       <Card style={styles.card}>
         <View style={styles.head}>
-          <Text style={styles.title}>Focus</Text>
+          <Typography variant="h2">Focus</Typography>
           <StatusBadge label="Ready" tone="good" />
         </View>
-        <Text style={styles.focus}>{blockFocusCopy(toTrainingFocus(block.focusDomain))}</Text>
+        <Typography variant="h1">{blockFocusCopy(toTrainingFocus(block.focusDomain))}</Typography>
         <Row label="Plan" value="3 sessions per week" />
         <Row label="Time" value="About 20 minutes each" />
         <Row label="Re-test" value="In 4 weeks to see what changed" />
@@ -43,12 +43,7 @@ export function OnboardingBlockScreen({
 }
 
 function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.row}>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.value}>{value}</Text>
-    </View>
-  );
+  return <ListRow title={label} value={value} />;
 }
 
 function toTrainingFocus(domain: MovementBlock['focusDomain']) {
@@ -60,10 +55,5 @@ function toTrainingFocus(domain: MovementBlock['focusDomain']) {
 const styles = StyleSheet.create({
   card: { gap: spacing.lg },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
-  title: { ...type.h2 },
-  focus: { ...type.h1 },
-  row: { gap: spacing.xs },
-  label: { ...type.label, color: colors.textSecondary },
-  value: { ...type.bodySmall, color: colors.textSecondary },
   actions: { gap: spacing.md },
 });

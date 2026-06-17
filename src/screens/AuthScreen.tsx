@@ -1,9 +1,10 @@
 import * as React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 import { AccountAuthCard } from '../components/AccountAuthCard';
-import { colors, spacing, type } from '../theme';
+import { Typography } from '../components/ui';
+import { colors, fonts, spacing, type } from '../theme';
 
 export function AuthScreen() {
   return (
@@ -15,11 +16,11 @@ export function AuthScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.hero}>
-          <Text style={styles.brand}>Hale</Text>
-          <Text style={styles.title}>Keep your movement progress connected.</Text>
-          <Text style={styles.subtitle}>
-            Sign in to save your Movement Check-Up results, training blocks, and monthly progress history.
-          </Text>
+          <Typography variant="h3" color={colors.accent} style={styles.wordmark}>Hale</Typography>
+          <Typography variant="display" style={styles.title}>Keep your movement progress connected.</Typography>
+          <Typography variant="body" color={colors.textSecondary} style={styles.subtitle}>
+            Save your Movement Check-Up results, training blocks, and monthly progress history.
+          </Typography>
         </View>
         <AccountAuthCard context="required" />
       </ScrollView>
@@ -34,25 +35,23 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.huge,
+    paddingTop: spacing.huge + spacing.xl,
     paddingBottom: spacing.xxxl,
+    gap: spacing.xxl,
   },
   hero: {
-    marginBottom: spacing.lg,
+    gap: spacing.md,
+    maxWidth: 380,
   },
-  brand: {
-    ...type.label,
-    color: colors.warningClay,
-    marginBottom: spacing.md,
+  wordmark: {
+    fontFamily: fonts.sansMedium,
   },
   title: {
-    ...type.h1,
+    ...type.display,
   },
   subtitle: {
-    ...type.bodySmall,
-    color: colors.textSecondary,
-    marginTop: spacing.md,
+    maxWidth: 360,
   },
 });

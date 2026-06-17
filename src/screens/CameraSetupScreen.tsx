@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, PrimaryButton, Screen, ScreenHeader, SecondaryButton, StatusBadge } from '../components/ui';
-import { colors, spacing, type } from '../theme';
+import { Card, ListRow, PrimaryButton, Screen, ScreenHeader, SecondaryButton, StatusBadge, Typography } from '../components/ui';
+import { colors, radius, spacing, type } from '../theme';
 
 export function CameraSetupScreen({
   permissionGranted,
@@ -27,7 +27,7 @@ export function CameraSetupScreen({
 
       <Card style={styles.card}>
         <View style={styles.head}>
-          <Text style={styles.title}>Before you begin</Text>
+          <Typography variant="h2">Before you begin</Typography>
           <StatusBadge label={permissionGranted ? 'Camera ready' : 'Permission needed'} tone={permissionGranted ? 'good' : 'gold'} />
         </View>
         <SetupItem n="1" text="Set your phone side-on when asked." />
@@ -39,10 +39,10 @@ export function CameraSetupScreen({
       </Card>
 
       <Card style={styles.card}>
-        <Text style={styles.title}>Privacy</Text>
-        <Text style={styles.body}>
+        <Typography variant="h2">Privacy</Typography>
+        <Typography variant="bodySmall" color={colors.textSecondary}>
           Video is never shown. Hale renders a clean skeleton and stores only movement results unless developer recording is explicitly enabled.
-        </Text>
+        </Typography>
       </Card>
 
       <View style={styles.actions}>
@@ -61,29 +61,28 @@ export function CameraSetupScreen({
 
 function SetupItem({ n, text }: { n: string; text: string }) {
   return (
-    <View style={styles.item}>
-      <View style={styles.mark}>
-        <Text style={styles.markText}>{n}</Text>
-      </View>
-      <Text style={styles.body}>{text}</Text>
-    </View>
+    <ListRow
+      title={text}
+      leading={
+        <View style={styles.mark}>
+          <Text style={styles.markText}>{n}</Text>
+        </View>
+      }
+    />
   );
 }
 
 const styles = StyleSheet.create({
   card: { gap: spacing.md },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
-  title: { ...type.h2 },
-  item: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 52 },
   mark: {
     width: 34,
     height: 34,
-    borderRadius: 17,
+    borderRadius: radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.accentSoft,
   },
   markText: { ...type.caption, color: colors.accentDeep },
-  body: { ...type.bodySmall, color: colors.textSecondary, flex: 1 },
   actions: { gap: spacing.md },
 });

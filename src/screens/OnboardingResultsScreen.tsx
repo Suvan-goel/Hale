@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import type { CheckUp } from '../checkup';
-import { Card, HealthMetricRow, MaterialCard, PrimaryButton, Screen, StatusBadge } from '../components/ui';
+import { Card, HealthMetricRow, MaterialCard, PrimaryButton, Screen, StatusBadge, Typography } from '../components/ui';
 import {
   bandLabel,
   onboardingDomainSummaries,
@@ -10,7 +10,7 @@ import {
   onboardingFocusDomain,
 } from '../onboarding/results';
 import { scoreCheckUp } from '../scoring';
-import { colors, spacing, type } from '../theme';
+import { colors, spacing } from '../theme';
 
 const ICONS = {
   strength_power: 'S',
@@ -31,15 +31,17 @@ export function OnboardingResultsScreen({
   return (
     <Screen>
       <View style={styles.header}>
-        <Text style={styles.step}>Step 8 of 10</Text>
-        <Text style={styles.title}>Your Movement Check-Up results</Text>
-        <Text style={styles.subtitle}>Here is the simple picture from today’s baseline.</Text>
+        <Typography variant="label" color={colors.accentDeep}>Step 8 of 10</Typography>
+        <Typography variant="display">Your Movement Check-Up results</Typography>
+        <Typography variant="body" color={colors.textSecondary}>Here is the simple picture from today’s baseline.</Typography>
       </View>
 
       <MaterialCard>
-        <Text style={styles.focusLabel}>Your main opportunity</Text>
-        <Text style={styles.focusValue}>{onboardingFocusCopy(focus)}</Text>
-        <Text style={styles.body}>Hale will use this to shape your first 4-week block.</Text>
+        <Typography variant="label" color={colors.accentDeep}>Your main opportunity</Typography>
+        <Typography variant="h1" style={styles.focusValue}>{onboardingFocusCopy(focus)}</Typography>
+        <Typography variant="bodySmall" color={colors.textSecondary} style={styles.body}>
+          Hale will use this to shape your first 4-week block.
+        </Typography>
       </MaterialCard>
 
       <Card style={styles.card}>
@@ -56,10 +58,12 @@ export function OnboardingResultsScreen({
 
       <Card style={styles.card}>
         <View style={styles.noteHead}>
-          <Text style={styles.noteTitle}>What happens next</Text>
+          <Typography variant="h2">What happens next</Typography>
           <StatusBadge label="4-week block" tone="gold" />
         </View>
-        <Text style={styles.body}>You will get three calm Hale Sessions each week, then re-test in 4 weeks to see what changed.</Text>
+        <Typography variant="bodySmall" color={colors.textSecondary} style={styles.body}>
+          You will get three calm Hale Sessions each week, then re-test in 4 weeks to see what changed.
+        </Typography>
       </Card>
 
       <PrimaryButton title="Create my 4-week block" onPress={onCreateBlock} />
@@ -69,13 +73,8 @@ export function OnboardingResultsScreen({
 
 const styles = StyleSheet.create({
   header: { gap: spacing.sm },
-  step: { ...type.label, color: colors.accentDeep },
-  title: { ...type.display },
-  subtitle: { ...type.body, color: colors.textSecondary },
-  focusLabel: { ...type.label, color: colors.accentDeep },
-  focusValue: { ...type.h1, marginTop: spacing.sm },
-  body: { ...type.bodySmall, color: colors.textSecondary, marginTop: spacing.sm },
+  focusValue: { marginTop: spacing.sm },
+  body: { marginTop: spacing.sm },
   card: { gap: spacing.md },
   noteHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
-  noteTitle: { ...type.h2 },
 });

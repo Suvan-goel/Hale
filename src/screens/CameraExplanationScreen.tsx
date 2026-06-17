@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { Card, PrimaryButton, Screen, ScreenHeader, SecondaryButton, StatusBadge } from '../components/ui';
-import { colors, spacing, type } from '../theme';
+import { Card, ListRow, PrimaryButton, Screen, ScreenHeader, SecondaryButton, StatusBadge, Typography } from '../components/ui';
+import { spacing } from '../theme';
 
 export function CameraExplanationScreen({
   permissionGranted,
@@ -25,15 +25,12 @@ export function CameraExplanationScreen({
 
       <Card style={styles.card}>
         <View style={styles.head}>
-          <Text style={styles.title}>Movement Check-Up</Text>
+          <Typography variant="h2">Movement Check-Up</Typography>
           <StatusBadge label={permissionGranted ? 'Camera ready' : 'Permission needed'} tone={permissionGranted ? 'good' : 'gold'} />
         </View>
-        <Text style={styles.body}>
-          Hale uses your camera to measure simple movements like standing from a chair, balance holds, and shoulder reach.
-        </Text>
-        <Text style={styles.body}>We use this to track timing, range, and progress.</Text>
-        <Text style={styles.body}>You see a clean skeleton, never a self-view camera mirror.</Text>
-        <Text style={styles.body}>Movement recordings stay behind a developer toggle and are off for normal sessions.</Text>
+        <ListRow title="Measure movement" subtitle="Chair stands, balance holds, and shoulder reach become simple progress signals." />
+        <ListRow title="See a skeleton" subtitle="You see a clean outline, never a self-view camera mirror." />
+        <ListRow title="Stay private" subtitle="Recordings stay behind a developer toggle and are off for normal sessions." />
       </Card>
 
       <View style={styles.actions}>
@@ -52,7 +49,5 @@ export function CameraExplanationScreen({
 const styles = StyleSheet.create({
   card: { gap: spacing.md },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
-  title: { ...type.h2 },
-  body: { ...type.bodySmall, color: colors.textSecondary },
   actions: { gap: spacing.md },
 });

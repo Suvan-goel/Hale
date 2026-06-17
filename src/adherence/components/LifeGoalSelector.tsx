@@ -1,10 +1,23 @@
 import * as React from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { PrimaryButton, SecondaryButton } from '../../components/ui';
-import { colors, radius, spacing, type } from '../../theme';
+import { Input, ListRow, PrimaryButton, SecondaryButton } from '../../components/ui';
+import { colors, spacing } from '../../theme';
 import { LIFE_GOAL_PRESETS, createLifeGoal } from '../goalDomainMapping';
 import type { LifeGoal, LifeGoalCategory } from '../types';
+
+const LIFE_GOAL_HINTS: Record<LifeGoalCategory, string> = {
+  grandchildren: 'Build strength and mobility for getting low, standing up, and keeping pace.',
+  stairs: 'Support leg power and steady confidence on steps.',
+  travel: 'Prepare for walking, carrying, and moving comfortably away from home.',
+  walking_hiking_sport: 'Protect the strength and balance that keep outings enjoyable.',
+  gardening_hobbies: 'Keep everyday bending, reaching, and lifting comfortable.',
+  floor_confidence: 'Build the strength and mobility used getting down and back up.',
+  carrying_loads: 'Support everyday strength for bags, groceries, and home tasks.',
+  independence: 'Keep strength, balance, and mobility working together.',
+  noticed_decline: 'Start where your Movement Check-Up says support matters most.',
+  custom: 'Tell Hale what staying capable means to you.',
+};
 
 export function LifeGoalSelector({
   initialGoal,
@@ -25,30 +38,27 @@ export function LifeGoalSelector({
         {LIFE_GOAL_PRESETS.map((option) => {
           const active = option.category === selected;
           return (
-            <Pressable
+            <ListRow
               key={option.category}
-              style={({ pressed }) => [styles.option, active && styles.optionActive, pressed && styles.pressed]}
+              title={option.label}
+              subtitle={LIFE_GOAL_HINTS[option.category]}
+              variant="inset"
+              style={[styles.option, active && styles.optionActive]}
               onPress={() => setSelected(option.category)}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: active }}
               accessibilityLabel={option.label}
-            >
-              <View style={[styles.optionMark, active && styles.optionMarkActive]}>
-                {active ? <View style={styles.optionMarkDot} /> : null}
-              </View>
-              <Text style={[styles.optionText, active && styles.optionTextActive]}>{option.label}</Text>
-            </Pressable>
+              selected={active}
+              leading={<View style={[styles.optionMark, active && styles.optionMarkActive]} />}
+            />
           );
         })}
       </View>
 
       {selected === 'custom' ? (
-        <TextInput
-          style={styles.input}
+        <Input
+          label="Your reason"
           value={customText}
           onChangeText={setCustomText}
           placeholder="Write your own reason"
-          placeholderTextColor={colors.textTertiary}
           multiline
           accessibilityLabel="Custom life goal"
         />
@@ -61,7 +71,7 @@ export function LifeGoalSelector({
             if (!canSave) return;
             onSave(createLifeGoal({ category: selected, customText }));
           }}
-          style={!canSave ? styles.disabled : undefined}
+          disabled={!canSave}
         />
         {onCancel ? <SecondaryButton title="Not now" onPress={onCancel} /> : null}
       </View>
@@ -73,51 +83,17 @@ const styles = StyleSheet.create({
   wrap: { gap: spacing.lg },
   options: { gap: spacing.md },
   option: {
-    minHeight: 72,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    borderRadius: radius.card,
-    backgroundColor: colors.bgSurface,
-    borderWidth: 1,
-    borderColor: colors.borderHairline,
+    minHeight: 82,
   },
   optionActive: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
   optionMark: {
-    width: 28,
-    height: 28,
-    borderRadius: radius.pill,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     borderWidth: 1,
-    borderColor: colors.warmBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.elevatedCard,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
-  optionMarkActive: {
-    backgroundColor: colors.oliveSage,
-    borderColor: colors.oliveSage,
-  },
-  optionMarkDot: {
-    width: 10,
-    height: 10,
-    borderRadius: radius.pill,
-    backgroundColor: colors.textOnDark,
-  },
-  optionText: { ...type.body, color: colors.textPrimary, flex: 1 },
-  optionTextActive: { color: colors.accentDeep },
-  input: {
-    ...type.body,
-    minHeight: 92,
-    borderRadius: radius.input,
-    borderWidth: 1,
-    borderColor: colors.borderHairline,
-    backgroundColor: colors.bgSurface,
-    padding: spacing.lg,
-    textAlignVertical: 'top',
-  },
+  optionMarkActive: { backgroundColor: colors.accent, borderColor: colors.accent },
   actions: { gap: spacing.md },
-  disabled: { opacity: 0.5 },
-  pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
 });

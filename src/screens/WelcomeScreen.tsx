@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, PrimaryButton, Screen, ScreenHeader, SecondaryButton, StatusBadge } from '../components/ui';
+import { Card, ListRow, PrimaryButton, Screen, SecondaryButton, Typography } from '../components/ui';
 import { colors, spacing, type } from '../theme';
 
 export function WelcomeScreen({
@@ -17,21 +17,27 @@ export function WelcomeScreen({
   return (
     <Screen>
       <View style={styles.brandPanel}>
-        <Image source={require('../../assets/icon.png')} style={styles.logo} resizeMode="contain" />
-        <Text style={styles.brandName}>Hale</Text>
-        <Text style={styles.brandLine}>Longevity is built daily.</Text>
+        <Typography variant="h2" color={colors.accent}>Hale</Typography>
+        <Typography variant="bodySmall" color={colors.textSecondary}>Longevity is built daily.</Typography>
       </View>
 
-      <ScreenHeader
-        eyebrow="Hale"
-        title="Stay stronger, steadier, and more mobile as you age."
-        subtitle="Hale uses your phone camera to check your movement and create a simple 4-week plan."
-      />
+      <View style={styles.heroCopy}>
+        <Typography variant="label" color={colors.accentDeep}>Movement health</Typography>
+        <Typography variant="display">Stay strong, steady, and mobile.</Typography>
+        <Typography variant="body" color={colors.textSecondary}>
+          Hale gives you a phone-camera Movement Check-Up and a personalised 4-week plan to help you protect your movement over time.
+        </Typography>
+      </View>
+
+      <Card style={styles.card}>
+        <ValueRow n="1" title="Measure your movement" body="Check strength, balance, and mobility with a guided camera session." />
+        <ValueRow n="2" title="Train what matters" body="Follow a calm 4-week block built around your priority area." />
+        <ValueRow n="3" title="Re-test monthly" body="Repeat your Movement Check-Up to see what is changing." />
+      </Card>
 
       <Card style={styles.card}>
         <View style={styles.head}>
           <Text style={styles.title}>Private by design</Text>
-          <StatusBadge label="No video view" tone="gold" />
         </View>
         <Text style={styles.body}>
           You appear as a clean skeleton outline while Hale measures movement. The camera is a measuring instrument, not a mirror.
@@ -48,11 +54,25 @@ export function WelcomeScreen({
       ) : null}
 
       <View style={styles.actions}>
-        <PrimaryButton title="Start Movement Check-Up" onPress={onStart} />
+        <PrimaryButton title="Get started" onPress={onStart} />
         <SecondaryButton title={showHow ? 'Hide how it works' : 'How it works'} onPress={() => setShowHow((v) => !v)} />
         {showDashboardLink ? <SecondaryButton title="Go to dashboard" onPress={onDone} /> : null}
       </View>
     </Screen>
+  );
+}
+
+function ValueRow({ n, title, body }: { n: string; title: string; body: string }) {
+  return (
+    <ListRow
+      title={title}
+      subtitle={body}
+      leading={
+        <View style={styles.valueMark}>
+          <Text style={styles.valueMarkText}>{n}</Text>
+        </View>
+      }
+    />
   );
 }
 
@@ -72,21 +92,10 @@ function Step({ n, title, body }: { n: string; title: string; body: string }) {
 
 const styles = StyleSheet.create({
   brandPanel: {
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.xl,
-    borderRadius: 32,
-    backgroundColor: colors.warmMineralCream,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
+    alignItems: 'flex-start',
+    gap: spacing.xs,
   },
-  logo: {
-    width: 92,
-    height: 92,
-    borderRadius: 24,
-  },
-  brandName: { ...type.display, fontSize: 44, lineHeight: 50, color: colors.oliveSage },
-  brandLine: { ...type.bodySmall, color: colors.textSecondary },
+  heroCopy: { gap: spacing.md },
   card: { gap: spacing.md },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   title: { ...type.h2 },
@@ -95,14 +104,25 @@ const styles = StyleSheet.create({
   stepMark: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.accentSoft,
+    backgroundColor: colors.cardSubtle,
+    borderWidth: 1,
+    borderColor: colors.accentBorder,
   },
   stepMarkText: { ...type.h3, color: colors.accentDeep },
   stepCopy: { flex: 1 },
   stepTitle: { ...type.h3 },
   stepBody: { ...type.caption, marginTop: 2 },
+  valueMark: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.accentSoft,
+  },
+  valueMarkText: { ...type.caption, color: colors.accentDeep, fontFamily: type.button.fontFamily },
   actions: { gap: spacing.md },
 });

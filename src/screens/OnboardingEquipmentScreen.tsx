@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import type { AvailableEquipment } from '../adherence';
-import { Card, PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../components/ui';
+import { Card, ListRow, PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../components/ui';
 import type { EquipmentProfile } from '../training';
-import { colors, radius, spacing, type } from '../theme';
+import { colors, spacing } from '../theme';
 
 export type OnboardingEquipmentId =
   | 'chair'
@@ -88,15 +88,15 @@ export function OnboardingEquipmentScreen({
 
 function Choice({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   return (
-    <Pressable
-      style={({ pressed }) => [styles.choice, selected && styles.choiceSelected, pressed && styles.pressed]}
+    <ListRow
+      title={label}
+      variant="inset"
+      style={[styles.choice, selected && styles.choiceSelected]}
       onPress={onPress}
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
       accessibilityLabel={label}
-    >
-      <Text style={[styles.choiceText, selected && styles.choiceTextSelected]}>{label}</Text>
-    </Pressable>
+      selected={selected}
+      trailing={<View style={[styles.choiceMark, selected && styles.choiceMarkSelected]} />}
+    />
   );
 }
 
@@ -123,18 +123,19 @@ const styles = StyleSheet.create({
   card: { gap: spacing.md },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   choice: {
-    minHeight: 56,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: radius.input,
-    backgroundColor: colors.bgSurface,
-    borderWidth: 1,
-    borderColor: colors.borderHairline,
+    flexGrow: 1,
+    flexBasis: '45%',
+    minHeight: 58,
   },
   choiceSelected: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
-  choiceText: { ...type.bodySmall, color: colors.textSecondary },
-  choiceTextSelected: { color: colors.accentDeep },
+  choiceMark: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  choiceMarkSelected: { backgroundColor: colors.accent, borderColor: colors.accent },
   actions: { gap: spacing.md },
-  pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
 });

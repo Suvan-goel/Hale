@@ -12,13 +12,17 @@ import {
   StyleSheet,
   Switch,
   Text,
+  TextInput,
+  TextInputProps,
+  TextProps,
+  TextStyle,
   View,
   ViewStyle,
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
 import { SettingsIcon } from '../navigation/icons';
-import { colors, fonts, minTapTarget, radius, shadow, spacing, type } from '../theme';
+import { colors, componentStyles, fonts, minTapTarget, radius, shadow, spacing, type } from '../theme';
 
 export function Screen({
   children,
@@ -42,8 +46,49 @@ export function Screen({
 export const AppScreen = Screen;
 export const ScreenContainer = Screen;
 
-export function Card({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
-  return <View style={[styles.card, style]}>{children}</View>;
+export type TypographyVariant = keyof typeof type;
+
+export function Typography({
+  variant = 'body',
+  color,
+  align,
+  children,
+  style,
+  ...textProps
+}: TextProps & {
+  variant?: TypographyVariant;
+  color?: string;
+  align?: TextStyle['textAlign'];
+}) {
+  return (
+    <Text
+      {...textProps}
+      style={[
+        type[variant],
+        color ? { color } : null,
+        align ? { textAlign: align } : null,
+        style,
+      ]}
+    >
+      {children}
+    </Text>
+  );
+}
+
+export const HaleText = Typography;
+
+export type CardVariant = 'base' | 'elevated' | 'flat' | 'feature';
+
+export function Card({
+  children,
+  style,
+  variant = 'base',
+}: {
+  children: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
+  variant?: CardVariant;
+}) {
+  return <View style={[componentStyles.card[variant], style]}>{children}</View>;
 }
 
 export const PremiumCard = Card;
@@ -75,27 +120,70 @@ export function MaterialCard({
   return <View style={[styles.materialCard, style]}>{children}</View>;
 }
 
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+
+export function Button({
+  title,
+  onPress,
+  variant = 'primary',
+  disabled = false,
+  accessibilityLabel,
+  style,
+  textStyle,
+}: {
+  title: string;
+  onPress: () => void;
+  variant?: ButtonVariant;
+  disabled?: boolean;
+  accessibilityLabel?: string;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
+}) {
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        componentStyles.button.base,
+        componentStyles.button[variant],
+        disabled && styles.disabled,
+        pressed && !disabled && (variant === 'primary' ? styles.primaryPressed : styles.pressed),
+        style,
+      ]}
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? title}
+      accessibilityState={disabled ? { disabled } : undefined}
+    >
+      <Text
+        style={[
+          styles.buttonText,
+          variant === 'primary' && styles.primaryButtonText,
+          variant === 'secondary' && styles.secondaryButtonText,
+          variant === 'ghost' && styles.ghostButtonText,
+          variant === 'danger' && styles.dangerButtonText,
+          textStyle,
+        ]}
+      >
+        {title}
+      </Text>
+    </Pressable>
+  );
+}
+
 export function PrimaryButton({
   title,
   onPress,
   accessibilityLabel,
   style,
+  disabled,
 }: {
   title: string;
   onPress: () => void;
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
+  disabled?: boolean;
 }) {
-  return (
-    <Pressable
-      style={({ pressed }) => [styles.primary, pressed && styles.primaryPressed, style]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? title}
-    >
-      <Text style={styles.primaryText}>{title}</Text>
-    </Pressable>
-  );
+  return <Button title={title} onPress={onPress} accessibilityLabel={accessibilityLabel} style={style} disabled={disabled} />;
 }
 
 export function SecondaryButton({
@@ -109,29 +197,11 @@ export function SecondaryButton({
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
 }) {
-  return (
-    <Pressable
-      style={({ pressed }) => [styles.secondary, pressed && styles.pressed, style]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? title}
-    >
-      <Text style={styles.secondaryText}>{title}</Text>
-    </Pressable>
-  );
+  return <Button title={title} onPress={onPress} variant="secondary" accessibilityLabel={accessibilityLabel} style={style} />;
 }
 
 export function GhostButton({ title, onPress }: { title: string; onPress: () => void }) {
-  return (
-    <Pressable
-      style={({ pressed }) => [styles.ghost, pressed && styles.pressed]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={title}
-    >
-      <Text style={styles.ghostText}>{title}</Text>
-    </Pressable>
-  );
+  return <Button title={title} onPress={onPress} variant="ghost" />;
 }
 
 export function HaleButton({
@@ -154,6 +224,58 @@ export function HaleButton({
     return <GhostButton title={title} onPress={onPress} />;
   }
   return <PrimaryButton title={title} onPress={onPress} accessibilityLabel={accessibilityLabel} style={style} />;
+}
+
+export function Input({
+  label,
+  helperText,
+  errorText,
+  containerStyle,
+  inputStyle,
+  multiline,
+  placeholderTextColor = colors.textTertiary,
+  accessibilityLabel,
+  onBlur,
+  onFocus,
+  ...inputProps
+}: TextInputProps & {
+  label?: string;
+  helperText?: string;
+  errorText?: string;
+  containerStyle?: StyleProp<ViewStyle>;
+  inputStyle?: StyleProp<TextStyle>;
+}) {
+  const [focused, setFocused] = React.useState(false);
+  const describedBy = errorText ?? helperText;
+  return (
+    <View style={[componentStyles.input.field, containerStyle]}>
+      {label ? <Text style={styles.inputLabel}>{label}</Text> : null}
+      <TextInput
+        {...inputProps}
+        multiline={multiline}
+        placeholderTextColor={placeholderTextColor}
+        accessibilityLabel={accessibilityLabel ?? label}
+        onBlur={(event) => {
+          setFocused(false);
+          onBlur?.(event);
+        }}
+        onFocus={(event) => {
+          setFocused(true);
+          onFocus?.(event);
+        }}
+        style={[
+          styles.input,
+          multiline && componentStyles.input.multiline,
+          focused && styles.inputFocused,
+          errorText && componentStyles.input.error,
+          inputStyle,
+        ]}
+      />
+      {describedBy ? (
+        <Text style={[styles.inputHelp, errorText && styles.inputError]}>{describedBy}</Text>
+      ) : null}
+    </View>
+  );
 }
 
 export function Eyebrow({ children }: { children: React.ReactNode }) {
@@ -236,15 +358,34 @@ export function Pill({
   selected?: boolean;
   onPress?: () => void;
 }) {
+  return <Chip label={label} selected={selected} onPress={onPress} />;
+}
+
+export function Chip({
+  label,
+  selected,
+  onPress,
+  style,
+}: {
+  label: string;
+  selected?: boolean;
+  onPress?: () => void;
+  style?: StyleProp<ViewStyle>;
+}) {
   const content = (
-    <Text style={[styles.pillText, selected && styles.pillTextSelected]} numberOfLines={1}>
+    <Text style={[styles.chipText, selected && styles.chipTextSelected]} numberOfLines={1}>
       {label}
     </Text>
   );
-  if (!onPress) return <View style={[styles.pill, selected && styles.pillSelected]}>{content}</View>;
+  if (!onPress) return <View style={[componentStyles.chip.base, selected && componentStyles.chip.selected, style]}>{content}</View>;
   return (
     <Pressable
-      style={({ pressed }) => [styles.pill, selected && styles.pillSelected, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        componentStyles.chip.base,
+        selected && componentStyles.chip.selected,
+        pressed && styles.pressed,
+        style,
+      ]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected }}
@@ -252,6 +393,41 @@ export function Pill({
     >
       {content}
     </Pressable>
+  );
+}
+
+export function SegmentedTabs<T extends string>({
+  options,
+  value,
+  onChange,
+  style,
+}: {
+  options: readonly { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+  style?: StyleProp<ViewStyle>;
+}) {
+  return (
+    <View style={[styles.segmentedTabs, style]} accessibilityRole="tablist">
+      {options.map((option) => (
+        <Pressable
+          key={option.value}
+          style={({ pressed }) => [
+            styles.segmentedTab,
+            option.value === value && styles.segmentedTabActive,
+            pressed && styles.pressed,
+          ]}
+          onPress={() => onChange(option.value)}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: option.value === value }}
+          accessibilityLabel={option.label}
+        >
+          <Text style={[styles.segmentedTabText, option.value === value && styles.segmentedTabTextActive]}>
+            {option.label}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
   );
 }
 
@@ -275,6 +451,61 @@ export function StatusBadge({
         {label}
       </Text>
     </View>
+  );
+}
+
+export function ListRow({
+  title,
+  subtitle,
+  value,
+  status,
+  leading,
+  trailing,
+  onPress,
+  variant = 'base',
+  selected,
+  style,
+  accessibilityLabel,
+}: {
+  title: string;
+  subtitle?: string;
+  value?: string;
+  status?: string;
+  leading?: React.ReactNode;
+  trailing?: React.ReactNode;
+  onPress?: () => void;
+  variant?: 'base' | 'inset';
+  selected?: boolean;
+  style?: StyleProp<ViewStyle>;
+  accessibilityLabel?: string;
+}) {
+  const content = (
+    <>
+      {leading ? <View style={styles.listLeading}>{leading}</View> : null}
+      <View style={styles.listCopy}>
+        <Text style={styles.listTitle}>{title}</Text>
+        {subtitle ? <Text style={styles.listSubtitle}>{subtitle}</Text> : null}
+      </View>
+      {value || status ? (
+        <View style={styles.listMeta}>
+          {value ? <Text style={styles.listValue}>{value}</Text> : null}
+          {status ? <Text style={styles.listStatus}>{status}</Text> : null}
+        </View>
+      ) : null}
+      {trailing}
+    </>
+  );
+  if (!onPress) return <View style={[componentStyles.listRow[variant], style]}>{content}</View>;
+  return (
+    <Pressable
+      style={({ pressed }) => [componentStyles.listRow[variant], pressed && styles.pressed, style]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? `${title}${subtitle ? `: ${subtitle}` : ''}`}
+      accessibilityState={selected ? { selected } : undefined}
+    >
+      {content}
+    </Pressable>
   );
 }
 
@@ -343,6 +574,28 @@ export function MetricRing({
 }
 
 export const ProgressRing = MetricRing;
+
+export function ProgressBar({
+  progress,
+  accessibilityLabel,
+  style,
+}: {
+  progress: number;
+  accessibilityLabel?: string;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const clamped = Math.max(0, Math.min(1, progress));
+  return (
+    <View
+      style={[componentStyles.progress.track, style]}
+      accessibilityRole="progressbar"
+      accessibilityValue={{ min: 0, max: 100, now: Math.round(clamped * 100) }}
+      accessibilityLabel={accessibilityLabel}
+    >
+      <View style={[componentStyles.progress.fill, { width: `${clamped * 100}%` }]} />
+    </View>
+  );
+}
 
 export function DailyPlanItem({
   icon,
@@ -481,13 +734,12 @@ const styles = StyleSheet.create({
   iconButton: {
     width: minTapTarget,
     height: minTapTarget,
-    borderRadius: radius.input,
+    borderRadius: radius.button,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.elevatedCard,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.warmBorder,
-    ...shadow.soft,
   },
   sectionHeader: {
     minHeight: 32,
@@ -508,13 +760,21 @@ const styles = StyleSheet.create({
     ...shadow.soft,
   },
   materialCard: {
-    padding: spacing.xl,
-    borderRadius: radius.card,
-    backgroundColor: colors.bgSurface,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    ...shadow.lifted,
+    ...componentStyles.card.elevated,
   },
+  buttonText: { ...type.button },
+  primaryButtonText: { color: colors.buttonText },
+  secondaryButtonText: { ...type.button, color: colors.accentDeep },
+  ghostButtonText: { ...type.bodySmall, fontFamily: fonts.sansMedium, color: colors.accentDeep },
+  dangerButtonText: { ...type.button, color: colors.error },
+  disabled: { opacity: 0.52 },
+  input: { ...type.body, ...componentStyles.input.base },
+  inputFocused: {
+    borderColor: colors.accent,
+  },
+  inputLabel: { ...type.caption, color: colors.textSecondary },
+  inputHelp: { ...type.caption, color: colors.textTertiary },
+  inputError: { color: colors.error },
   pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
   primary: {
     backgroundColor: colors.accent,
@@ -526,9 +786,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.accent,
-    ...shadow.soft,
   },
-  primaryPressed: { backgroundColor: colors.accentDeep, transform: [{ scale: 0.99 }] },
+  primaryPressed: { backgroundColor: colors.accentHover, transform: [{ scale: 0.99 }] },
   primaryText: { ...type.button },
   secondary: {
     backgroundColor: colors.surface,
@@ -550,19 +809,27 @@ const styles = StyleSheet.create({
     borderRadius: radius.input,
   },
   ghostText: { ...type.bodySmall, color: colors.accentDeep },
-  pill: {
-    minHeight: 38,
-    paddingHorizontal: spacing.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.input,
-    backgroundColor: colors.bgSurface,
-    borderWidth: 1,
-    borderColor: colors.borderHairline,
+  chipText: { ...type.caption, fontFamily: fonts.sansMedium, color: colors.textSecondary },
+  chipTextSelected: { color: colors.accentDeep },
+  segmentedTabs: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: spacing.xl,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.borderSubtle,
   },
-  pillSelected: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
-  pillText: { ...type.caption, fontFamily: fonts.sansMedium, color: colors.textSecondary },
-  pillTextSelected: { color: colors.accentDeep },
+  segmentedTab: {
+    minHeight: 42,
+    justifyContent: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+    marginBottom: -StyleSheet.hairlineWidth,
+  },
+  segmentedTabActive: {
+    borderBottomColor: colors.accent,
+  },
+  segmentedTabText: { ...type.bodySmall, fontFamily: fonts.sansMedium, color: colors.textMuted },
+  segmentedTabTextActive: { color: colors.accent },
   badge: {
     alignSelf: 'flex-start',
     borderRadius: radius.sm,
@@ -597,6 +864,13 @@ const styles = StyleSheet.create({
   ringCenter: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   ringValue: { ...type.h2, fontVariant: ['tabular-nums'], color: colors.accentDeep },
   ringLabel: { ...type.caption, color: colors.sageDeep, marginTop: -2 },
+  listLeading: { alignItems: 'center', justifyContent: 'center' },
+  listCopy: { flex: 1, minWidth: 0 },
+  listTitle: { ...type.bodySmall, fontFamily: fonts.sansMedium },
+  listSubtitle: { ...type.caption, marginTop: 2 },
+  listMeta: { alignItems: 'flex-end', maxWidth: 140 },
+  listValue: { ...type.bodySmall, fontFamily: fonts.sansMedium, color: colors.accentDeep, textAlign: 'right' },
+  listStatus: { ...type.caption, color: colors.textTertiary, marginTop: 2, textAlign: 'right' },
   planRow: {
     minHeight: 70,
     flexDirection: 'row',

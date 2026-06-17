@@ -1526,20 +1526,6 @@ function HaleApp() {
       </View>
 
       <TabBar active={tab} onChange={setTab} />
-
-      {__DEV__ && tab === 'today' ? (
-        <View style={styles.devRow}>
-          <Pressable style={styles.devChip} onPress={() => handleCheckUpComplete(syntheticCheckUp())}>
-            <Text style={styles.devChipText}>dev: skip check-up</Text>
-          </Pressable>
-          <Pressable style={styles.devChip} onPress={() => setFlow('dev-assessment')}>
-            <Text style={styles.devChipText}>dev: chair stand</Text>
-          </Pressable>
-          <Pressable style={styles.devChip} onPress={() => setFlow('dev-live')}>
-            <Text style={styles.devChipText}>dev: live view</Text>
-          </Pressable>
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -1644,24 +1630,5 @@ const styles = StyleSheet.create({
   backText: {
     ...type.bodySmall,
     color: colors.accentDeep,
-  },
-  devRow: {
-    position: 'absolute',
-    bottom: 92,
-    right: spacing.lg,
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  devChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.sm,
-    backgroundColor: colors.bgElevated,
-    borderWidth: 1,
-    borderColor: colors.borderHairline,
-  },
-  devChipText: {
-    ...type.label,
-    color: colors.textSecondary,
   },
 });

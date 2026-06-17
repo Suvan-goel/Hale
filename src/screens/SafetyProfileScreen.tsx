@@ -1,14 +1,14 @@
 import * as React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import {
   ActivityLevel,
   LOCAL_USER_ID,
   MovementSafetyProfile,
 } from '../adherence';
-import { Card, PrimaryButton, Screen, ScreenHeader, SecondaryButton, ToggleRow } from '../components/ui';
+import { Card, ListRow, PrimaryButton, Screen, ScreenHeader, SecondaryButton, ToggleRow, Typography } from '../components/ui';
 import { UserProfile } from '../profile';
-import { colors, radius, spacing, type } from '../theme';
+import { colors, spacing, type } from '../theme';
 
 const AGE_OPTIONS = [
   { label: 'Under 45', value: 44 },
@@ -75,7 +75,7 @@ export function SafetyProfileScreen({
       />
 
       <Card style={styles.card}>
-        <Text style={styles.title}>Age range</Text>
+        <Typography variant="h2">Age range</Typography>
         <View style={styles.grid}>
           {AGE_OPTIONS.map((option) => (
             <Choice
@@ -89,7 +89,7 @@ export function SafetyProfileScreen({
       </Card>
 
       <Card style={styles.card}>
-        <Text style={styles.title}>Current activity level</Text>
+        <Typography variant="h2">Current activity level</Typography>
         <View style={styles.grid}>
           {ACTIVITY_OPTIONS.map((option) => (
             <Choice
@@ -103,7 +103,7 @@ export function SafetyProfileScreen({
       </Card>
 
       <Card style={styles.card}>
-        <Text style={styles.title}>Any area that often bothers you?</Text>
+        <Typography variant="h2">Any area that often bothers you?</Typography>
         <View style={styles.grid}>
           {PAIN_OPTIONS.map((option) => (
             <Choice
@@ -132,36 +132,36 @@ export function SafetyProfileScreen({
 
 function Choice({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   return (
-    <Pressable
-      style={({ pressed }) => [styles.choice, selected && styles.choiceSelected, pressed && styles.pressed]}
+    <ListRow
+      title={label}
+      variant="inset"
+      style={[styles.choice, selected && styles.choiceSelected]}
       onPress={onPress}
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
       accessibilityLabel={label}
-    >
-      <Text style={[styles.choiceText, selected && styles.choiceTextSelected]}>{label}</Text>
-    </Pressable>
+      selected={selected}
+      trailing={<View style={[styles.choiceMark, selected && styles.choiceMarkSelected]} />}
+    />
   );
 }
 
 const styles = StyleSheet.create({
   card: { gap: spacing.md },
-  title: { ...type.h2 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   choice: {
-    minHeight: 52,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: radius.input,
-    backgroundColor: colors.bgSurface,
-    borderWidth: 1,
-    borderColor: colors.borderHairline,
+    flexGrow: 1,
+    flexBasis: '45%',
+    minHeight: 58,
   },
   choiceSelected: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
-  choiceText: { ...type.caption, color: colors.textSecondary },
-  choiceTextSelected: { color: colors.accentDeep },
+  choiceMark: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  choiceMarkSelected: { backgroundColor: colors.accent, borderColor: colors.accent },
   gentle: { ...type.bodySmall, color: colors.textSecondary },
   actions: { gap: spacing.md },
-  pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
 });

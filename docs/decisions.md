@@ -809,3 +809,24 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 - **Scope boundary:** this was a visual/design-system refactor only. Auth logic, backend calls,
   onboarding flow, check-up/session state machines, pose detection, scoring, workout generation, and
   sync contracts were not rewritten.
+
+## 2026-06-17 — Stage 1 shared UI primitives
+
+- **Change:** the theme now exposes reusable component recipes for cards, buttons, inputs, chips,
+  list rows, and progress bars. `src/components/ui.tsx` now provides generic `Button`, `Input`,
+  `Typography`, `Chip`, `SegmentedTabs`, `ListRow`, and `ProgressBar` primitives while preserving
+  existing aliases such as `ScreenContainer`, `Card`, `PrimaryButton`, `SecondaryButton`, `Pill`,
+  and `MetricRing`.
+- **Scope boundary:** no individual screen was redesigned in this stage. Existing screens can adopt
+  the new primitives incrementally without changing route names, auth/backend behavior, pose logic,
+  scoring, workout generation, or state flow.
+
+## 2026-06-17 — Stage 2 auth and onboarding visual refactor
+
+- **Change:** the signed-out auth gate and first-run onboarding screens now use the Stage 1 premium
+  primitives for refined cards, inputs, segmented mode switching, option rows, setup rows, summary
+  cards, and calm primary/secondary actions.
+- **Scope boundary:** the refactor is visual/layout only. Supabase auth methods, onboarding state,
+  profile persistence, camera permission flow, check-up creation, block creation, route names, pose
+  detection, scoring, workout generation, dashboard, progress, training/session, and profile/settings
+  logic were not rewritten.

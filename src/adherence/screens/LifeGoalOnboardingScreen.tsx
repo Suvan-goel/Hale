@@ -16,6 +16,7 @@ export function LifeGoalOnboardingScreen({
   return (
     <Screen>
       <ScreenHeader
+        eyebrow="Step 2 of 10"
         title="What do you want your body to keep letting you do?"
         subtitle="Hale will shape your plan around the strength, balance, and mobility that matter most to your life."
       />

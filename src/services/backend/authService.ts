@@ -13,6 +13,7 @@ export type AuthChangeCallback = (state: AuthState) => void;
 
 const OAUTH_REDIRECT_SCHEME = 'hale';
 const OAUTH_REDIRECT_PATH = 'auth/callback';
+const GOOGLE_PROVIDER = 'google';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -46,6 +47,24 @@ function socialAuthRedirectUrl(): string {
     scheme: OAUTH_REDIRECT_SCHEME,
     path: OAUTH_REDIRECT_PATH,
   });
+}
+
+function devAuthLog(message: string, details?: Record<string, unknown>): void {
+  if (!__DEV__) return;
+  if (details) {
+    console.log(`[auth] ${message}`, details);
+  } else {
+    console.log(`[auth] ${message}`);
+  }
+}
+
+function safeUrlHostPath(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.host}${parsed.pathname}`;
+  } catch {
+    return 'unparseable-url';
+  }
 }
 
 function messageFromUnknown(error: unknown): string {
@@ -90,12 +109,36 @@ async function createSessionFromOAuthUrl(url: string): Promise<AuthSession> {
     throw new Error(`OAuth provider returned ${errorCode}.`);
   }
 
+  const providerError = typeof params.error === 'string' ? params.error : undefined;
+  const providerErrorCode = typeof params.error_code === 'string' ? params.error_code : undefined;
+  const providerErrorDescription = typeof params.error_description === 'string'
+    ? params.error_description
+    : undefined;
+
+  if (providerError || providerErrorCode || providerErrorDescription) {
+    throw new Error(
+      `OAuth provider returned ${providerErrorDescription ?? providerErrorCode ?? providerError ?? 'an error'}.`
+    );
+  }
+
+  const authCode = typeof params.code === 'string' ? params.code : undefined;
+  if (authCode) {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(authCode);
+
+    if (error) throw error;
+    if (!data.session) {
+      throw new Error('Google sign-in completed, but Supabase did not create a session.');
+    }
+
+    return data.session;
+  }
+
   const accessToken = typeof params.access_token === 'string' ? params.access_token : undefined;
   const refreshToken = typeof params.refresh_token === 'string' ? params.refresh_token : undefined;
 
   if (!accessToken || !refreshToken) {
     throw new Error(
-      'OAuth sign-in did not return a Supabase session. Check the provider and redirect URL configuration.'
+      'Google sign-in returned without a Supabase session. Check the provider and redirect URL configuration.'
     );
   }
 
@@ -106,7 +149,7 @@ async function createSessionFromOAuthUrl(url: string): Promise<AuthSession> {
 
   if (error) throw error;
   if (!data.session) {
-    throw new Error('OAuth sign-in completed, but Supabase did not create a session.');
+    throw new Error('Google sign-in completed, but Supabase did not create a session.');
   }
 
   return data.session;
@@ -152,9 +195,11 @@ export async function signInWithEmail(email: string, password: string): Promise<
 export async function signInWithGoogle(): Promise<AuthState> {
   const redirectTo = socialAuthRedirectUrl();
 
-  // TODO(supabase-auth): Enable Google in Supabase Auth and add hale://** to Redirect URLs.
+  devAuthLog('Google sign-in started');
+  devAuthLog('Google sign-in redirectTo', { redirectTo });
+
   const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
+    provider: GOOGLE_PROVIDER,
     options: {
       redirectTo,
       skipBrowserRedirect: true,
@@ -163,21 +208,45 @@ export async function signInWithGoogle(): Promise<AuthState> {
 
   if (error) throw error;
   if (!data?.url) {
-    throw new Error('Google sign-in is not configured yet. Enable Google in Supabase Auth.');
+    throw new Error('Google sign-in could not start because Supabase did not return an OAuth URL.');
   }
+
+  devAuthLog('Google sign-in OAuth URL', { url: safeUrlHostPath(data.url) });
 
   const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+  devAuthLog('Google sign-in browser result', {
+    type: result.type,
+    callbackUrlReceived: result.type === 'success' && Boolean(result.url),
+  });
 
   if (result.type === 'success') {
-    const session = await createSessionFromOAuthUrl(result.url);
-    return stateWithProfile(session);
+    if (!result.url) {
+      throw new Error('Google sign-in returned without a callback URL.');
+    }
+
+    devAuthLog('Google sign-in callback received', { url: safeUrlHostPath(result.url) });
+
+    try {
+      const session = await createSessionFromOAuthUrl(result.url);
+      devAuthLog('Google sign-in Supabase session exchange succeeded');
+      return stateWithProfile(session);
+    } catch (exchangeError) {
+      devAuthLog('Google sign-in Supabase session exchange failed', {
+        message: messageFromUnknown(exchangeError),
+      });
+      throw new Error(`Google sign-in could not create a Hale session: ${messageFromUnknown(exchangeError)}`);
+    }
   }
 
-  if (result.type === 'cancel' || result.type === 'dismiss') {
+  if (result.type === 'cancel') {
     throw new Error('Google sign-in was cancelled.');
   }
 
-  throw new Error(`Google sign-in did not complete (${result.type}).`);
+  if (result.type === 'dismiss') {
+    throw new Error('Google sign-in closed before Hale received the callback.');
+  }
+
+  throw new Error(`Google sign-in did not complete (${result.type}). Try again from Hale.`);
 }
 
 export async function signInWithApple(): Promise<AuthState> {
