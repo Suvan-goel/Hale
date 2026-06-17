@@ -784,3 +784,28 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
   Phase 1/2 valid-time timers and metadata emission continue unchanged when Phase 3 is disabled.
 - **UX boundary:** session completion can show at most a few plain-language steady-time notes. It does
   not expose raw tracking ratios, medical claims, or form critique.
+
+## 2026-06-17 — Supabase social auth app-side support
+
+- **Change:** required account access now supports Google on iOS/Android through Supabase OAuth with
+  the app scheme redirect, while Apple sign-in uses native iOS credentials exchanged with Supabase via
+  `signInWithIdToken`.
+- **Config:** the Expo app registers the `hale` scheme, keeps `expo-web-browser` configured for the
+  OAuth browser session, and enables the Apple sign-in config plugin/entitlement path. Provider
+  client secrets stay in Supabase, Google Cloud, and Apple dashboards, never in the mobile app.
+- **Scope boundary:** email/password auth remains available. Check-ups, movement blocks, training
+  state, session completions, micro-checks, scoring, pose logic, and local file-backed stores are not
+  connected to Supabase in this step.
+
+## 2026-06-17 — Refined premium visual system
+
+- **Change:** the central theme now uses the refined warm longevity palette (`bg-base #F6F0E7`,
+  restrained cream surfaces, deep olive actions, soft sage selected states, and quieter clay accents).
+  Shared cards, inputs, buttons, chips, badges, tab chrome, onboarding choices, and camera HUD panels
+  use less-rounded shapes and subtler shadows.
+- **Auth screen:** the signed-out account gate now uses calmer copy focused on keeping Movement
+  Check-Up results, training blocks, and monthly progress history connected. The required badge was
+  removed from this gate; signed-in account state still appears quietly in settings.
+- **Scope boundary:** this was a visual/design-system refactor only. Auth logic, backend calls,
+  onboarding flow, check-up/session state machines, pose detection, scoring, workout generation, and
+  sync contracts were not rewritten.

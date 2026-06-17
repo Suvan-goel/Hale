@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderHairline,
   },
-  optionActive: { backgroundColor: colors.sageMist, borderColor: colors.restorativeGreen },
+  optionActive: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
   optionMark: {
     width: 28,
     height: 28,

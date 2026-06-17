@@ -113,11 +113,11 @@ const styles = StyleSheet.create({
   filters: { gap: spacing.sm, paddingRight: spacing.xxl },
   featured: {
     overflow: 'hidden',
-    borderRadius: radius.xl,
+    borderRadius: radius.panel,
     backgroundColor: colors.bgSurface,
     borderWidth: 1,
     borderColor: colors.borderHairline,
-    ...shadow.lifted,
+    ...shadow.soft,
   },
   pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
   featuredVisual: {

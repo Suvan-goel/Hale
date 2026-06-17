@@ -2,7 +2,9 @@ import * as React from 'react';
 
 import {
   getCurrentSession,
+  signInWithApple as signInWithAppleSupabase,
   signInWithEmail,
+  signInWithGoogle as signInWithGoogleSupabase,
   signOut as signOutWithSupabase,
   signUpWithEmail,
   subscribeToAuthChanges,
@@ -15,6 +17,8 @@ const AUTH_TIMEOUT_MS = 7000;
 interface AuthContextValue extends AuthState {
   signUp: (email: string, password: string, fullName?: string) => Promise<AuthState>;
   signIn: (email: string, password: string) => Promise<AuthState>;
+  signInWithGoogle: () => Promise<AuthState>;
+  signInWithApple: () => Promise<AuthState>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<BackendProfile | null>;
 }
@@ -143,6 +147,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const signInWithGoogle = React.useCallback(async () => {
+    setState((current) => ({ ...current, loading: true, error: null }));
+    try {
+      const next = await signInWithGoogleSupabase();
+      setState(next);
+      return next;
+    } catch (error) {
+      const message = messageFromError(error);
+      setState((current) => ({ ...current, loading: false, error: message }));
+      throw error;
+    }
+  }, []);
+
+  const signInWithApple = React.useCallback(async () => {
+    setState((current) => ({ ...current, loading: true, error: null }));
+    try {
+      const next = await signInWithAppleSupabase();
+      setState(next);
+      return next;
+    } catch (error) {
+      const message = messageFromError(error);
+      setState((current) => ({ ...current, loading: false, error: message }));
+      throw error;
+    }
+  }, []);
+
   const signOut = React.useCallback(async () => {
     setState((current) => ({ ...current, loading: true, error: null }));
     try {
@@ -160,10 +190,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ...state,
       signUp,
       signIn,
+      signInWithGoogle,
+      signInWithApple,
       signOut,
       refreshProfile,
     }),
-    [refreshProfile, signIn, signOut, signUp, state]
+    [refreshProfile, signIn, signInWithApple, signInWithGoogle, signOut, signUp, state]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

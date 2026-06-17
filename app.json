@@ -3,18 +3,27 @@
     "name": "Hale",
     "slug": "hale",
     "version": "0.1.0",
+    "scheme": "hale",
     "orientation": "portrait",
     "icon": "./assets/ios-icon.png",
     "plugins": [
       "./modules/expo-pose-detection/app.plugin.js",
       "expo-audio",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-web-browser",
+        {
+          "experimentalLauncherActivity": false
+        }
+      ],
+      "expo-apple-authentication"
     ],
     "userInterfaceStyle": "light",
-    "backgroundColor": "#F4EFE6",
+    "backgroundColor": "#F6F0E7",
     "ios": {
       "supportsTablet": false,
       "icon": "./assets/ios-icon.png",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "The camera measures your movement as a skeleton outline. Camera video is never shown or stored."
       },
@@ -23,7 +32,7 @@
     "android": {
       "icon": "./assets/android-icon.png",
       "adaptiveIcon": {
-        "backgroundColor": "#F4EFE6",
+        "backgroundColor": "#F6F0E7",
         "foregroundImage": "./assets/android-icon.png"
       },
       "permissions": [

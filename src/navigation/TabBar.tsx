@@ -57,13 +57,15 @@ export function TabBar({ active, onChange }: { active: TabKey; onChange: (key: T
 const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
-    backgroundColor: colors.cardBackground,
+    backgroundColor: colors.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.warmBorder,
+    borderTopColor: colors.border,
     paddingTop: spacing.md,
     paddingBottom: spacing.xl, // home-indicator breathing room
     ...shadow.soft,
-    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.018,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: -2 },
   },
   tab: {
     flex: 1,
@@ -73,13 +75,13 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   iconWrap: {
-    width: 42,
+    width: 38,
     height: 30,
-    borderRadius: radius.pill,
+    borderRadius: radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconWrapActive: { backgroundColor: colors.sageMist },
+  iconWrapActive: { backgroundColor: colors.accentSoft },
   label: {
     ...type.caption,
     fontSize: 12,

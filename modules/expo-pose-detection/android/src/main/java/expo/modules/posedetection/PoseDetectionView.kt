@@ -72,8 +72,8 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
   private var minPresenceConfidence = 0.35f
 
   init {
-    // bg-base (#F4EFE6) - keep in sync with the JS theme token (src/theme).
-    setBackgroundColor(Color.parseColor("#F4EFE6"))
+    // bg-base (#F6F0E7) - keep in sync with the JS theme token (src/theme).
+    setBackgroundColor(Color.parseColor("#F6F0E7"))
     lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
   }
 

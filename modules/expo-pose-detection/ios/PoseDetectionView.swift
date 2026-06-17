@@ -34,8 +34,8 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
 
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
-    // bg-base (#F4EFE6) - keep in sync with the JS theme token (src/theme).
-    backgroundColor = UIColor(red: 0xF4 / 255.0, green: 0xEF / 255.0, blue: 0xE6 / 255.0, alpha: 1.0)
+    // bg-base (#F6F0E7) - keep in sync with the JS theme token (src/theme).
+    backgroundColor = UIColor(red: 0xF6 / 255.0, green: 0xF0 / 255.0, blue: 0xE7 / 255.0, alpha: 1.0)
   }
 
   func setActiveProp(_ value: Bool) {

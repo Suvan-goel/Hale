@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
   categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.sm },
   categoryPill: {
     minHeight: 28,
-    borderRadius: radius.pill,
+    borderRadius: radius.sm,
     paddingHorizontal: spacing.md,
     justifyContent: 'center',
     backgroundColor: colors.bgGold,

@@ -16,9 +16,9 @@ export function AuthScreen() {
       >
         <View style={styles.hero}>
           <Text style={styles.brand}>Hale</Text>
-          <Text style={styles.title}>Your movement age, measured month by month.</Text>
+          <Text style={styles.title}>Keep your movement progress connected.</Text>
           <Text style={styles.subtitle}>
-            Sign in to save your setup and keep your Hale progress connected to your account.
+            Sign in to save your Movement Check-Up results, training blocks, and monthly progress history.
           </Text>
         </View>
         <AccountAuthCard context="required" />
@@ -36,21 +36,22 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.huge,
+    paddingTop: spacing.huge,
+    paddingBottom: spacing.xxxl,
   },
   hero: {
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
   brand: {
     ...type.label,
-    color: colors.accentGold,
+    color: colors.warningClay,
     marginBottom: spacing.md,
   },
   title: {
     ...type.h1,
   },
   subtitle: {
-    ...type.body,
+    ...type.bodySmall,
     color: colors.textSecondary,
     marginTop: spacing.md,
   },

@@ -1636,7 +1636,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     minHeight: 48,
     justifyContent: 'center',
-    borderRadius: radius.pill,
+    borderRadius: radius.button,
     backgroundColor: colors.bgSurface,
     borderWidth: 1,
     borderColor: colors.borderHairline,
@@ -1655,7 +1655,7 @@ const styles = StyleSheet.create({
   devChip: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
+    borderRadius: radius.sm,
     backgroundColor: colors.bgElevated,
     borderWidth: 1,
     borderColor: colors.borderHairline,

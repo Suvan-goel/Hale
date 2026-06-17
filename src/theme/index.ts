@@ -3,11 +3,10 @@
  * radii and depth. Screens and shared components reference these tokens rather
  * than hardcoding repeated visual values.
  *
- * The aesthetic: premium longevity wellness. Soft ivory canvas, rounded
- * porcelain cards, deep olive-sage action colour, warm sandstone surfaces, and
- * restrained amber-clay detail. The product should feel calm, trustworthy,
- * readable, and daily-use friendly for adults 50+, never clinical or
- * fitness-gimmicky.
+ * The aesthetic: premium longevity wellness. Warm ivory canvas, restrained
+ * cream cards, deep olive-sage action colour, and quiet clay detail. The
+ * product should feel calm, trustworthy, readable, and daily-use friendly for
+ * adults 50+, never clinical, toy-like, or fitness-gimmicky.
  *
  * Single light theme. `bgBase` is mirrored in the native camera view, app.json,
  * and the skeleton preview script, so keep those values in sync when it changes.
@@ -20,49 +19,61 @@ import { Platform, TextStyle, ViewStyle } from 'react-native';
  * ------------------------------------------------------------------------- */
 
 export const colors = {
-  // Requested brand palette.
-  warmMineralCream: '#D8CEBA',
-  warmStone: '#D6CAB4',
-  softIvory: '#F4EFE6',
+  // Refined premium palette.
+  background: '#F6F0E7',
+  surface: '#FFFDF7',
+  card: '#FBF7EF',
+  elevatedCard: '#FFFFFF',
+  primaryText: '#20261F',
+  secondaryText: '#706A60',
+  mutedText: '#8A8377',
+  accent: '#4F5A45',
+  accentDark: '#30382D',
+  accentSoft: '#DDE3D4',
+  border: '#E7DDCB',
+  subtleBorder: '#EFE6D8',
+  buttonText: '#F8F3EA',
+  warningClay: '#B9824A',
+
+  // Descriptive legacy names retained for existing call sites.
+  warmMineralCream: '#EAE0D1',
+  warmStone: '#D8CCB7',
+  softIvory: '#F6F0E7',
   porcelain: '#FBF7EF',
   oliveSage: '#4F5A45',
-  oliveSageDark: '#252A22',
+  oliveSageDark: '#30382D',
   sageMist: '#DDE3D4',
-  restorativeGreen: '#6F7F5D',
-  textPrimary: '#252A22',
-  textSecondary: '#6F6A5F',
-  textMuted: '#8C8678',
+  restorativeGreen: '#5F6D52',
+  textPrimary: '#20261F',
+  textSecondary: '#706A60',
+  textMuted: '#8A8377',
   textOnDark: '#F8F3EA',
-  warmBorder: '#E5DCCB',
-  subtleBorder: '#EEE6D8',
+  warmBorder: '#E7DDCB',
   amberClay: '#B9824A',
-  appBackground: '#F4EFE6',
+  appBackground: '#F6F0E7',
   cardBackground: '#FBF7EF',
-  elevatedCard: '#FFFAF2',
 
   // Compatibility aliases used across the current app.
-  bgBase: '#F4EFE6',
+  bgBase: '#F6F0E7',
   bgSurface: '#FBF7EF',
-  bgElevated: '#FFFAF2',
-  bgMaterial: '#D8CEBA',
+  bgElevated: '#FFFFFF',
+  bgMaterial: '#EAE0D1',
   bgSage: '#DDE3D4',
-  bgGold: '#EEE0C4',
-  borderHairline: '#E5DCCB',
-  divider: '#EEE6D8',
-  textTertiary: '#8C8678',
-  accent: '#4F5A45',
-  accentDeep: '#252A22',
-  accentSoft: '#DDE3D4',
-  sage: '#6F7F5D',
+  bgGold: '#F0E3CB',
+  borderHairline: '#E7DDCB',
+  divider: '#EFE6D8',
+  textTertiary: '#8A8377',
+  accentDeep: '#30382D',
+  sage: '#5F6D52',
   sageDeep: '#4F5A45',
   accentGold: '#B9824A',
-  goldBorder: '#DEC79C',
+  goldBorder: '#D9BE91',
   positive: '#4F5A45',
   caution: '#B9824A',
-  cautionSoft: '#F4E4D4',
-  cautionBorder: '#E4C4A4',
+  cautionSoft: '#F4E5D3',
+  cautionBorder: '#E2C29F',
   error: '#A35A50',
-  debugOverlay: 'rgba(37,42,34,0.86)',
+  debugOverlay: 'rgba(32,38,31,0.86)',
   onAccent: '#F8F3EA',
 } as const;
 
@@ -78,14 +89,14 @@ export const fonts = {
 } as const;
 
 export const type = {
-  display: { fontFamily: fonts.serifMedium, fontSize: 34, lineHeight: 40, letterSpacing: 0, color: colors.textPrimary },
-  h1: { fontFamily: fonts.serifMedium, fontSize: 29, lineHeight: 35, letterSpacing: 0, color: colors.textPrimary },
-  h2: { fontFamily: fonts.serifMedium, fontSize: 22, lineHeight: 29, letterSpacing: 0, color: colors.textPrimary },
+  display: { fontFamily: fonts.serifMedium, fontSize: 32, lineHeight: 38, letterSpacing: 0, color: colors.textPrimary },
+  h1: { fontFamily: fonts.serifMedium, fontSize: 28, lineHeight: 34, letterSpacing: 0, color: colors.textPrimary },
+  h2: { fontFamily: fonts.serifMedium, fontSize: 21, lineHeight: 28, letterSpacing: 0, color: colors.textPrimary },
   h3: { fontFamily: fonts.sansMedium, fontSize: 18, lineHeight: 25, letterSpacing: 0, color: colors.textPrimary },
 
-  body: { fontFamily: fonts.sansRegular, fontSize: 17, lineHeight: 27, letterSpacing: 0, color: colors.textPrimary },
-  bodySmall: { fontFamily: fonts.sansRegular, fontSize: 16, lineHeight: 24, letterSpacing: 0, color: colors.textPrimary },
-  caption: { fontFamily: fonts.sansRegular, fontSize: 15, lineHeight: 22, letterSpacing: 0, color: colors.textSecondary },
+  body: { fontFamily: fonts.sansRegular, fontSize: 16, lineHeight: 25, letterSpacing: 0, color: colors.textPrimary },
+  bodySmall: { fontFamily: fonts.sansRegular, fontSize: 15, lineHeight: 23, letterSpacing: 0, color: colors.textPrimary },
+  caption: { fontFamily: fonts.sansRegular, fontSize: 14, lineHeight: 20, letterSpacing: 0, color: colors.textSecondary },
   label: {
     fontFamily: fonts.sansMedium,
     fontSize: 12,
@@ -122,12 +133,13 @@ export const spacing = {
  * ------------------------------------------------------------------------- */
 
 export const radius = {
-  input: 18,
-  card: 24,
-  panel: 28,
-  xl: 32,
+  input: 16,
+  button: 20,
+  card: 22,
+  panel: 24,
+  xl: 26,
   pill: 999,
-  sm: 12,
+  sm: 10,
 } as const;
 
 /** Minimum comfortable tap target for the 50+ audience. */
@@ -136,17 +148,17 @@ export const minTapTarget = 48;
 export const shadow = {
   soft: {
     shadowColor: 'rgba(72,58,38,1)',
-    shadowOpacity: 0.045,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 2,
+    shadowOpacity: 0.028,
+    shadowRadius: 9,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
   } satisfies ViewStyle,
   lifted: {
     shadowColor: 'rgba(72,58,38,1)',
-    shadowOpacity: 0.075,
-    shadowRadius: 26,
-    shadowOffset: { width: 0, height: 14 },
-    elevation: 4,
+    shadowOpacity: 0.045,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2,
   } satisfies ViewStyle,
 } as const;
 
@@ -157,7 +169,7 @@ export const shadow = {
 export const skeleton = {
   background: colors.bgBase,
   figureTop: '#4F5A45',
-  figureBottom: '#252A22',
+  figureBottom: '#30382D',
   bright: colors.textPrimary,
   dim: '#B7AF9E',
 } as const;

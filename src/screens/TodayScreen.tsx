@@ -96,7 +96,6 @@ export function TodayScreen({
       </Card>
 
       <View style={styles.featureCard}>
-        <View style={styles.featureGlow} />
         <View style={styles.primaryCopy}>
           <Text style={styles.featureEyebrow}>Today’s movement session</Text>
           <Text style={styles.featureTitle}>{lifecycle.primaryAction.title}</Text>
@@ -292,16 +291,6 @@ const styles = StyleSheet.create({
     borderColor: colors.oliveSage,
     gap: spacing.lg,
   },
-  featureGlow: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: radius.pill,
-    right: -42,
-    top: -52,
-    backgroundColor: colors.warmStone,
-    opacity: 0.22,
-  },
   primaryCopy: { flex: 1 },
   featureEyebrow: { ...type.label, color: colors.textOnDark },
   featureTitle: { ...type.h1, color: colors.textOnDark, marginTop: spacing.sm },
@@ -310,7 +299,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     minHeight: 48,
     justifyContent: 'center',
-    borderRadius: radius.pill,
+    borderRadius: radius.button,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     backgroundColor: colors.elevatedCard,
@@ -328,7 +317,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderHairline,
   },
-  adjustmentSelected: { backgroundColor: colors.sageMist, borderColor: colors.restorativeGreen },
+  adjustmentSelected: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
   adjustmentText: { ...type.caption, color: colors.textSecondary },
   adjustmentTextSelected: { color: colors.accentDeep },
   adjustmentNote: { ...type.caption, color: colors.sageDeep, marginTop: spacing.sm },

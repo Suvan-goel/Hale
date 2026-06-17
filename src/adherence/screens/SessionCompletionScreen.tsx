@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderHairline,
   },
-  choiceSelected: { backgroundColor: colors.bgGold, borderColor: colors.goldBorder },
+  choiceSelected: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
   choiceText: { ...type.bodySmall, color: colors.textSecondary },
   choiceTextSelected: { color: colors.accentDeep },
   pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },

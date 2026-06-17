@@ -47,10 +47,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderRadius: radius.pill,
-    backgroundColor: colors.bgSurface,
+    borderRadius: radius.input,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.borderHairline,
+    borderColor: colors.border,
     ...shadow.soft,
   },
   text: {
