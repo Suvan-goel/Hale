@@ -12,6 +12,7 @@ export type PointCloudBodyDensity = 'low' | 'medium' | 'high';
 
 export type PointCloudBodyPart =
   | 'torso'
+  | 'neck'
   | 'head'
   | 'leftUpperArm'
   | 'rightUpperArm'
@@ -28,6 +29,7 @@ export type PointCloudBodyPart =
 
 export interface PointCloudBodyCounts {
   torso: number;
+  neck: number;
   head: number;
   upperArm: number;
   forearm: number;
@@ -75,6 +77,7 @@ export interface PointCloudBodyGeometry {
   headYs: Float64Array;
   dotCount: number;
   torsoDotCount: number;
+  neckDotCount: number;
   headDotCount: number;
   upperArmDotCount: number;
   forearmDotCount: number;
@@ -115,7 +118,7 @@ export interface EllipseDotSeed {
 
 const DEFAULT_MIN_CONFIDENCE = 0.35;
 const DEFAULT_MAX_DOTS = 800;
-const LOW_LATENCY_MAX_DOTS = 400;
+const LOW_LATENCY_MAX_DOTS = 560;
 const ABSOLUTE_MAX_DOTS = 900;
 const KEYPOINTS: readonly LM[] = [
   LM.NOSE,
@@ -139,6 +142,7 @@ const KEYPOINTS: readonly LM[] = [
 
 const POINT_CLOUD_BODY_PARTS: readonly PointCloudBodyPart[] = [
   'torso',
+  'neck',
   'head',
   'leftUpperArm',
   'rightUpperArm',
@@ -156,38 +160,41 @@ const POINT_CLOUD_BODY_PARTS: readonly PointCloudBodyPart[] = [
 
 const COUNT_PRESETS: Record<PointCloudBodyDensity, PointCloudBodyCounts> = {
   low: {
-    torso: 95,
-    head: 34,
-    upperArm: 18,
-    forearm: 15,
-    thigh: 30,
-    lowerLeg: 22,
-    hand: 8,
-    foot: 9,
+    torso: 140,
+    neck: 24,
+    head: 50,
+    upperArm: 24,
+    forearm: 20,
+    thigh: 42,
+    lowerLeg: 31,
+    hand: 20,
+    foot: 22,
     maxDots: LOW_LATENCY_MAX_DOTS,
     connectionMaxLines: 0,
   },
   medium: {
     torso: 235,
+    neck: 36,
     head: 75,
     upperArm: 42,
     forearm: 34,
     thigh: 70,
     lowerLeg: 55,
-    hand: 20,
-    foot: 22,
+    hand: 34,
+    foot: 36,
     maxDots: DEFAULT_MAX_DOTS,
     connectionMaxLines: 120,
   },
   high: {
     torso: 240,
+    neck: 42,
     head: 85,
     upperArm: 44,
     forearm: 36,
     thigh: 74,
     lowerLeg: 58,
-    hand: 22,
-    foot: 24,
+    hand: 42,
+    foot: 46,
     maxDots: ABSOLUTE_MAX_DOTS,
     connectionMaxLines: 140,
   },
@@ -221,6 +228,7 @@ export function createPointCloudBodyGeometry(maxDots = ABSOLUTE_MAX_DOTS): Point
     headYs: new Float64Array(capacity),
     dotCount: 0,
     torsoDotCount: 0,
+    neckDotCount: 0,
     headDotCount: 0,
     upperArmDotCount: 0,
     forearmDotCount: 0,
@@ -253,6 +261,7 @@ export function emptyPointCloudBodyGeometry(out: PointCloudBodyGeometry): void {
   out.connectionPath = '';
   out.dotCount = 0;
   out.torsoDotCount = 0;
+  out.neckDotCount = 0;
   out.headDotCount = 0;
   out.upperArmDotCount = 0;
   out.forearmDotCount = 0;
@@ -297,13 +306,14 @@ export function buildPointCloudBodyGeometry(
   });
   const bodyRef = estimateBodyReference(pose);
   const visualRadiusMultiplier = clamp(options.radiusMultiplier ?? 1, 0.65, 1.16);
-  const dotScale = clamp(options.dotScale ?? 1, 0.75, 1.6);
-  const radiusMultiplier = clamp(visualRadiusMultiplier * dotScale, 0.65, 1.8);
+  const dotScale = clamp(options.dotScale ?? 1, 0.75, 2.2);
+  const radiusMultiplier = clamp(visualRadiusMultiplier * dotScale, 0.65, 2.2);
   const showConnections = options.showConnections === true && !options.lowLatencyMode;
   const connectionMaxLines = showConnections ? counts.connectionMaxLines : 0;
 
   appendTorso(pose, out, counts.torso, minConfidence, bodyRef, radiusMultiplier, showConnections, connectionMaxLines);
   appendHead(pose, out, counts.head, minConfidence, bodyRef, radiusMultiplier, showConnections, connectionMaxLines);
+  appendNeckBridge(pose, out, counts.neck, minConfidence, bodyRef, radiusMultiplier, showConnections, connectionMaxLines);
   appendLimbCapsule(
     pose,
     out,
@@ -433,8 +443,8 @@ export function buildPointCloudBodyGeometry(
     counts.hand,
     minConfidence,
     bodyRef,
+    0.064,
     0.045,
-    0.034,
     radiusMultiplier,
     showConnections,
     connectionMaxLines
@@ -448,8 +458,8 @@ export function buildPointCloudBodyGeometry(
     counts.hand,
     minConfidence,
     bodyRef,
+    0.064,
     0.045,
-    0.034,
     radiusMultiplier,
     showConnections,
     connectionMaxLines
@@ -463,8 +473,8 @@ export function buildPointCloudBodyGeometry(
     counts.foot,
     minConfidence,
     bodyRef,
-    0.06,
-    0.035,
+    0.088,
+    0.048,
     radiusMultiplier,
     showConnections,
     connectionMaxLines
@@ -478,8 +488,8 @@ export function buildPointCloudBodyGeometry(
     counts.foot,
     minConfidence,
     bodyRef,
-    0.06,
-    0.035,
+    0.088,
+    0.048,
     radiusMultiplier,
     showConnections,
     connectionMaxLines
@@ -505,6 +515,7 @@ export function resolvePointCloudBodyCounts(options: {
   );
   const total =
     preset.torso +
+    preset.neck +
     preset.head +
     2 *
       (preset.upperArm +
@@ -516,6 +527,7 @@ export function resolvePointCloudBodyCounts(options: {
   const scale = total > maxDots && total > 0 ? maxDots / total : 1;
   return {
     torso: Math.floor(preset.torso * scale),
+    neck: Math.floor(preset.neck * scale),
     head: Math.floor(preset.head * scale),
     upperArm: Math.floor(preset.upperArm * scale),
     forearm: Math.floor(preset.forearm * scale),
@@ -637,7 +649,7 @@ function appendTorso(
   let hasPrevious = false;
   for (let i = 0; i < seeds.length && out.dotCount < out.dotXs.length; i++) {
     const point = mapPointCloudTorsoSeedToPoint(seeds[i], torso);
-    const radius = clamp(bodyRef * (0.0036 + seeds[i].radiusSeed * 0.0032) * radiusMultiplier, 0.8, 2.55);
+    const radius = clamp(bodyRef * (0.0036 + seeds[i].radiusSeed * 0.0032) * radiusMultiplier, 0.8, 3.15);
     const soft = seeds[i].opacitySeed < 0.26 || torso.estimated;
     addDot(out, 'torso', point.x, point.y, radius, soft);
     if (showConnections && hasPrevious && i % 5 === 0) {
@@ -673,7 +685,7 @@ function appendHead(
   let hasPrevious = false;
   for (let i = 0; i < seeds.length && out.dotCount < out.dotXs.length; i++) {
     const point = mapHeadBodySeedToPoint(seeds[i], head);
-    const radius = clamp(bodyRef * (0.0035 + seeds[i].radiusSeed * 0.0025) * radiusMultiplier, 0.78, 2.25);
+    const radius = clamp(bodyRef * (0.0035 + seeds[i].radiusSeed * 0.0025) * radiusMultiplier, 0.78, 2.8);
     const soft = seeds[i].opacitySeed < 0.32 || head.confidence < 0.58;
     addDot(out, 'head', point.x, point.y, radius, soft);
     if (showConnections && hasPrevious && i % 6 === 0) {
@@ -684,6 +696,59 @@ function appendHead(
     hasPrevious = true;
   }
   out.opacityScale = Math.min(out.opacityScale, confidenceOpacity(head.confidence, minConfidence));
+}
+
+function appendNeckBridge(
+  pose: ScreenPoseLandmarks,
+  out: PointCloudBodyGeometry,
+  count: number,
+  minConfidence: number,
+  bodyRef: number,
+  radiusMultiplier: number,
+  showConnections: boolean,
+  connectionMaxLines: number
+): void {
+  if (count <= 0) return;
+  const head = getHeadEstimate(pose, minConfidence);
+  if (
+    head === null ||
+    !landmarkIsRenderable(pose, LM.LEFT_SHOULDER, minConfidence) ||
+    !landmarkIsRenderable(pose, LM.RIGHT_SHOULDER, minConfidence)
+  ) {
+    out.skippedBodyPartCount++;
+    return;
+  }
+
+  const shoulderMid = midpoint(pointFor(pose, LM.LEFT_SHOULDER), pointFor(pose, LM.RIGHT_SHOULDER));
+  const neckTop = lerpPoint(shoulderMid, head.center, 0.72);
+  const neckBase = lerpPoint(shoulderMid, head.center, 0.16);
+  const confidence = Math.min(
+    head.confidence,
+    landmarkConfidence(pose, LM.LEFT_SHOULDER),
+    landmarkConfidence(pose, LM.RIGHT_SHOULDER)
+  );
+  const seeds = generateCapsuleDotSeeds(count, 'neckBridge');
+  const startHalfWidth = Math.min(bodyRef * 0.078, head.rx * 0.72);
+  const endHalfWidth = Math.min(bodyRef * 0.052, head.rx * 0.55);
+  let previousX = 0;
+  let previousY = 0;
+  let hasPrevious = false;
+
+  for (let i = 0; i < seeds.length && out.dotCount < out.dotXs.length; i++) {
+    const seed = seeds[i];
+    const point = mapCapsuleSeedToPoint(seed, neckBase, neckTop, startHalfWidth, endHalfWidth);
+    const widthAtT = lerp(startHalfWidth, endHalfWidth, clamp(seed.t + seed.tangentJitter, 0, 1));
+    const radius = clamp(widthAtT * (0.09 + seed.radiusSeed * 0.065) * radiusMultiplier, 0.78, 2.55);
+    const soft = seed.opacitySeed < 0.22 || confidence < 0.56;
+    addDot(out, 'neck', point.x, point.y, radius, soft);
+    if (showConnections && hasPrevious && i % 5 === 0) {
+      addConnection(out, previousX, previousY, point.x, point.y, connectionMaxLines);
+    }
+    previousX = point.x;
+    previousY = point.y;
+    hasPrevious = true;
+  }
+  out.opacityScale = Math.min(out.opacityScale, confidenceOpacity(confidence, minConfidence));
 }
 
 function appendLimbCapsule(
@@ -722,7 +787,7 @@ function appendLimbCapsule(
     const t = clamp(seed.t + seed.tangentJitter, 0, 1);
     const point = mapCapsuleSeedToPoint(seed, start, end, startHalfWidth, endHalfWidth);
     const widthAtT = lerp(startHalfWidth, endHalfWidth, t);
-    const radius = clamp(widthAtT * (0.085 + seed.radiusSeed * 0.06) * radiusMultiplier, 0.72, 2.1);
+    const radius = clamp(widthAtT * (0.085 + seed.radiusSeed * 0.06) * radiusMultiplier, 0.72, 2.65);
     const soft = seed.opacitySeed < 0.26 || confidence < 0.56;
     addDot(out, part, point.x, point.y, radius, soft);
     if (showConnections && hasPrevious && i % 5 === 0) {
@@ -756,11 +821,14 @@ function appendExtremityCluster(
     return;
   }
 
-  const center = pointFor(pose, centerLm);
-  const direction = landmarkIsRenderable(pose, directionLm, minConfidence * 0.75)
+  const root = pointFor(pose, centerLm);
+  const hasDirection = landmarkIsRenderable(pose, directionLm, minConfidence * 0.75);
+  const directionPoint = hasDirection ? pointFor(pose, directionLm) : root;
+  const center = hasDirection ? lerpPoint(root, directionPoint, 0.45) : root;
+  const direction = hasDirection
     ? normalize({
-        x: pose.xs[directionLm] - center.x,
-        y: pose.ys[directionLm] - center.y,
+        x: directionPoint.x - root.x,
+        y: directionPoint.y - root.y,
       })
     : { x: 1, y: 0 };
   const normal = { x: -direction.y, y: direction.x };
@@ -780,7 +848,7 @@ function appendExtremityCluster(
     const localY = (seeds[i].v * 2 - 1) * ry;
     const x = center.x + direction.x * localX + normal.x * localY;
     const y = center.y + direction.y * localX + normal.y * localY;
-    const radius = clamp(bodyRef * (0.0034 + seeds[i].radiusSeed * 0.0023) * radiusMultiplier, 0.7, 1.9);
+    const radius = clamp(bodyRef * (0.0034 + seeds[i].radiusSeed * 0.0023) * radiusMultiplier, 0.7, 2.4);
     const soft = seeds[i].opacitySeed < 0.36 || confidence < 0.58;
     addDot(out, part, x, y, radius, soft);
     if (showConnections && hasPrevious && i % 4 === 0) {
@@ -800,7 +868,7 @@ function appendKeypoints(
   bodyRef: number,
   radiusMultiplier: number
 ): void {
-  const radius = clamp(bodyRef * 0.0062 * radiusMultiplier, 1.15, 2.65);
+  const radius = clamp(bodyRef * 0.0062 * radiusMultiplier, 1.15, 3.1);
   for (let i = 0; i < KEYPOINTS.length && out.dotCount < out.dotXs.length; i++) {
     const lm = KEYPOINTS[i];
     if (!landmarkIsRenderable(pose, lm, minConfidence)) continue;
@@ -832,6 +900,12 @@ function addDot(
       out.torsoXs[out.torsoDotCount] = x;
       out.torsoYs[out.torsoDotCount] = y;
       out.torsoDotCount++;
+      if (active) addActiveDot(out, path, soft);
+      else if (soft) out.softTorsoDotPath += path;
+      else out.torsoDotPath += path;
+      break;
+    case 'neck':
+      out.neckDotCount++;
       if (active) addActiveDot(out, path, soft);
       else if (soft) out.softTorsoDotPath += path;
       else out.torsoDotPath += path;
@@ -946,6 +1020,7 @@ function getEllipseSeeds(
 function createBodyPartCountMap(): Record<PointCloudBodyPart, number> {
   return {
     torso: 0,
+    neck: 0,
     head: 0,
     leftUpperArm: 0,
     rightUpperArm: 0,
@@ -965,6 +1040,7 @@ function createBodyPartCountMap(): Record<PointCloudBodyPart, number> {
 function createBodyPartMask(): Record<PointCloudBodyPart, boolean> {
   return {
     torso: false,
+    neck: false,
     head: false,
     leftUpperArm: false,
     rightUpperArm: false,

@@ -381,14 +381,14 @@ export function resolvePoseAvatarConfig(
         ? 'low'
         : props.pointCloudBodyDensity ??
           parsePointCloudBodyDensity(env.EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_DENSITY) ??
-          'medium',
+          'high',
     pointCloudBodyMaxDots: Math.round(
       resolveNumber(
         props.pointCloudBodyMaxDots,
         env.EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_MAX_DOTS,
-        lowLatencyMode ? 400 : 800,
+        lowLatencyMode ? 520 : 900,
         120,
-        lowLatencyMode ? 450 : 900
+        lowLatencyMode ? 560 : 900
       )
     ),
     pointCloudBodyShowConnections: pointCloudBodyShowConnections && !lowLatencyMode,
@@ -413,9 +413,9 @@ export function resolvePoseAvatarConfig(
     pointCloudBodyDotScale: resolveNumber(
       props.pointCloudBodyDotScale,
       env.EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_DOT_SCALE,
-      lowLatencyMode ? 1.16 : 1.26,
+      lowLatencyMode ? 1.42 : 1.72,
       0.75,
-      1.6
+      2.2
     ),
     pointCloudBodyOpacity: resolveNumber(
       props.pointCloudBodyOpacity,

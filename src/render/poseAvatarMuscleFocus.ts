@@ -12,6 +12,7 @@ const FEET: readonly PointCloudBodyPart[] = ['leftFoot', 'rightFoot'];
 const UPPER_ARMS: readonly PointCloudBodyPart[] = ['leftUpperArm', 'rightUpperArm'];
 const FOREARMS: readonly PointCloudBodyPart[] = ['leftForearm', 'rightForearm'];
 const TORSO: readonly PointCloudBodyPart[] = ['torso'];
+const NECK: readonly PointCloudBodyPart[] = ['neck'];
 const HEAD: readonly PointCloudBodyPart[] = ['head'];
 
 export function pointCloudBodyPartsForTrainingExercise(
@@ -43,7 +44,7 @@ export function pointCloudBodyPartsForTrainingExercise(
     case 'hamstring-reach':
       return uniqueParts(THIGHS, LOWER_LEGS);
     case 'neck-rotation':
-      return HEAD;
+      return uniqueParts(HEAD, NECK);
     case 'mobility-flexibility':
       return mobilityFocusParts(exercise.id);
     default:

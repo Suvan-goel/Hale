@@ -69,7 +69,7 @@ export interface SessionControllerConfig {
 }
 
 export const DEFAULT_SESSION_CONFIG: SessionControllerConfig = {
-  promptRepeatMs: 4000,
+  promptRepeatMs: 10000,
   postInstructionsDwellMs: 2500,
   countdownStepMs: 1000,
   resultLingerMs: 800,

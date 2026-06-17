@@ -82,7 +82,6 @@ export function AssessmentScreen() {
       const event = e.nativeEvent;
       if (__DEV__) recorder.record(event);
       const out = pipeline.process(event);
-      skeletonRef.current?.update(out, event.sourceWidth / event.sourceHeight);
       const status = preflight.update(out);
       const update = controller.update(out, status, voice.busy);
 
@@ -108,6 +107,7 @@ export function AssessmentScreen() {
             : next
         );
       }
+      skeletonRef.current?.update(out, event.sourceWidth / event.sourceHeight);
     },
     [pipeline, preflight, controller, voice, sfx, recorder]
   );
@@ -119,14 +119,29 @@ export function AssessmentScreen() {
 
   return (
     <View style={styles.container}>
-      <PoseDetectionView active style={StyleSheet.absoluteFill} onLandmarks={onLandmarks} onPoseError={onPoseError} />
+      <PoseDetectionView
+        active
+        modelVariant="lite"
+        style={StyleSheet.absoluteFill}
+        onLandmarks={onLandmarks}
+        onPoseError={onPoseError}
+      />
       <SkeletonView
         ref={skeletonRef}
         mirrored
-        lowLatencyMode
-        pointCloudBodyMaxDots={260}
+        frameSource="raw"
+        smoothingEnabled={false}
+        pointCloudBodyDensity="high"
+        pointCloudBodyMaxDots={900}
+        pointCloudBodyDotScale={1.72}
+        confidenceFadingEnabled={false}
+        confidenceIntensityEnabled={false}
+        reacquisitionFadeEnabled={false}
+        recognitionPulseEnabled={false}
         measurementState={avatarMeasurementState}
         activeDomain="strength_power"
+        setupGuidesEnabled={false}
+        stateTransitionsEnabled={false}
       />
       {snapshot.phase === 'active' ? (
         <View pointerEvents="none" style={styles.hud}>

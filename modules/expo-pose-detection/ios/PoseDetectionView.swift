@@ -27,15 +27,15 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
   // Props (defaults mirror the JS-side defaults).
   private var active = false
   private var cameraFacing = "front"
-  private var modelVariant = "full"
+  private var modelVariant = "lite"
   private var minDetectionConfidence: Float = 0.35
   private var minTrackingConfidence: Float = 0.35
   private var minPresenceConfidence: Float = 0.35
 
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
-    // bg-base (#F6F0E7) - keep in sync with the JS theme token (src/theme).
-    backgroundColor = UIColor(red: 0xF6 / 255.0, green: 0xF0 / 255.0, blue: 0xE7 / 255.0, alpha: 1.0)
+    // bg-base (#F7F5EF) - keep in sync with the JS theme token (src/theme).
+    backgroundColor = UIColor(red: 0xF7 / 255.0, green: 0xF5 / 255.0, blue: 0xEF / 255.0, alpha: 1.0)
   }
 
   func setActiveProp(_ value: Bool) {

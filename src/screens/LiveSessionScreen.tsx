@@ -57,7 +57,6 @@ export function LiveSessionScreen() {
       const event = e.nativeEvent;
       recorder.record(event);
       const out = pipeline.process(event);
-      skeletonRef.current?.update(out, event.sourceWidth / event.sourceHeight);
       const status = preflight.update(out);
       inferenceMsRef.current = event.inferenceMs;
 
@@ -81,6 +80,7 @@ export function LiveSessionScreen() {
           });
         }
       }
+      skeletonRef.current?.update(out, event.sourceWidth / event.sourceHeight);
     },
     [pipeline, recorder, preflight]
   );
@@ -101,13 +101,28 @@ export function LiveSessionScreen() {
 
   return (
     <View style={styles.container}>
-      <PoseDetectionView active style={StyleSheet.absoluteFill} onLandmarks={onLandmarks} onPoseError={onPoseError} />
+      <PoseDetectionView
+        active
+        modelVariant="lite"
+        style={StyleSheet.absoluteFill}
+        onLandmarks={onLandmarks}
+        onPoseError={onPoseError}
+      />
       <SkeletonView
         ref={skeletonRef}
         mirrored
-        lowLatencyMode
-        pointCloudBodyMaxDots={260}
+        frameSource="raw"
+        smoothingEnabled={false}
+        pointCloudBodyDensity="high"
+        pointCloudBodyMaxDots={900}
+        pointCloudBodyDotScale={1.72}
+        confidenceFadingEnabled={false}
+        confidenceIntensityEnabled={false}
+        reacquisitionFadeEnabled={false}
+        recognitionPulseEnabled={false}
         measurementState={avatarMeasurementState}
+        setupGuidesEnabled={false}
+        stateTransitionsEnabled={false}
       />
       <PreflightBanner prompt={prompt.key} sampleProgress={prompt.progress} />
       <DevOverlay snapshot={snapshot} onToggleRecording={onToggleRecording} />

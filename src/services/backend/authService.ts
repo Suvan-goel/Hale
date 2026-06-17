@@ -2,7 +2,7 @@ import { makeRedirectUri } from 'expo-auth-session';
 import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as WebBrowser from 'expo-web-browser';
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 
 import { supabase } from '../../lib/supabase';
 
@@ -13,9 +13,18 @@ export type AuthChangeCallback = (state: AuthState) => void;
 
 const OAUTH_REDIRECT_SCHEME = 'hale';
 const OAUTH_REDIRECT_PATH = 'auth/callback';
+const OAUTH_REDIRECT_URL = `${OAUTH_REDIRECT_SCHEME}://${OAUTH_REDIRECT_PATH}`;
 const GOOGLE_PROVIDER = 'google';
+const OAUTH_PROFILE_TIMEOUT_MS = 7000;
 
 WebBrowser.maybeCompleteAuthSession();
+
+let pendingOAuthCallback:
+  | {
+      redirectTo: string;
+      resolve: (url: string) => void;
+    }
+  | null = null;
 
 function authState(
   session: AuthSession | null,
@@ -43,10 +52,12 @@ function normalizedFullName(fullName?: string): string | undefined {
 }
 
 function socialAuthRedirectUrl(): string {
-  return makeRedirectUri({
+  const redirectUrl = makeRedirectUri({
     scheme: OAUTH_REDIRECT_SCHEME,
     path: OAUTH_REDIRECT_PATH,
   });
+
+  return redirectUrl === OAUTH_REDIRECT_URL ? redirectUrl : OAUTH_REDIRECT_URL;
 }
 
 function devAuthLog(message: string, details?: Record<string, unknown>): void {
@@ -69,6 +80,70 @@ function safeUrlHostPath(url: string): string {
 
 function messageFromUnknown(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function isAuthCallbackUrl(url: string, redirectTo = OAUTH_REDIRECT_URL): boolean {
+  if (url.startsWith(redirectTo)) return true;
+
+  try {
+    const parsed = new URL(url);
+    const callbackPath = parsed.pathname.replace(/^\/|\/$/g, '');
+    return parsed.protocol === `${OAUTH_REDIRECT_SCHEME}:` &&
+      parsed.host === 'auth' &&
+      callbackPath === 'callback';
+  } catch {
+    return false;
+  }
+}
+
+function handleIncomingAuthUrl(url: string, source: 'event' | 'initial' = 'event'): void {
+  devAuthLog('incoming URL received', { source, url: safeUrlHostPath(url) });
+
+  if (!isAuthCallbackUrl(url, pendingOAuthCallback?.redirectTo ?? OAUTH_REDIRECT_URL)) return;
+
+  devAuthLog('incoming URL matched auth callback', { source, url: safeUrlHostPath(url) });
+
+  const callback = pendingOAuthCallback;
+  pendingOAuthCallback = null;
+  callback?.resolve(url);
+}
+
+function waitForOAuthCallbackUrl(redirectTo: string): Promise<string> {
+  pendingOAuthCallback = null;
+
+  return new Promise((resolve) => {
+    pendingOAuthCallback = { redirectTo, resolve };
+  });
+}
+
+function clearPendingOAuthCallback(): void {
+  pendingOAuthCallback = null;
+}
+
+function resultUrlHostPath(result: WebBrowser.WebBrowserAuthSessionResult): string | undefined {
+  if (result.type !== 'success' || !('url' in result) || !result.url) return undefined;
+  return safeUrlHostPath(result.url);
+}
+
+function logAuthSessionResult(result: WebBrowser.WebBrowserAuthSessionResult): void {
+  devAuthLog('Google sign-in openAuthSessionAsync resolved', {
+    type: result.type,
+    urlExists: result.type === 'success' && 'url' in result && Boolean(result.url),
+    url: resultUrlHostPath(result),
+  });
+}
+
+async function withTimeout<T>(promise: Promise<T>, label: string, timeoutMs: number): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeout = setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
 }
 
 function isAppleCancel(error: unknown): boolean {
@@ -102,6 +177,22 @@ async function stateWithProfile(session: AuthSession | null, fallbackUser?: Auth
   return authState(session, session.user, profile);
 }
 
+async function stateWithProfileAfterOAuth(session: AuthSession): Promise<AuthState> {
+  try {
+    devAuthLog('Google sign-in profile refresh started');
+    const profile = await withTimeout(
+      ensureCurrentProfile(),
+      'Google sign-in profile refresh',
+      OAUTH_PROFILE_TIMEOUT_MS
+    );
+    devAuthLog('Google sign-in profile refresh succeeded', { hasProfile: Boolean(profile) });
+    return authState(session, session.user, profile);
+  } catch (profileError) {
+    console.warn(`[auth] Google sign-in profile refresh failed after session exchange: ${messageFromUnknown(profileError)}`);
+    return authState(session, session.user);
+  }
+}
+
 async function createSessionFromOAuthUrl(url: string): Promise<AuthSession> {
   const { params, errorCode } = QueryParams.getQueryParams(url);
 
@@ -123,13 +214,19 @@ async function createSessionFromOAuthUrl(url: string): Promise<AuthSession> {
 
   const authCode = typeof params.code === 'string' ? params.code : undefined;
   if (authCode) {
+    devAuthLog('Google sign-in exchangeCodeForSession started');
     const { data, error } = await supabase.auth.exchangeCodeForSession(authCode);
 
-    if (error) throw error;
+    if (error) {
+      devAuthLog('Google sign-in exchangeCodeForSession failed', { message: error.message });
+      throw error;
+    }
     if (!data.session) {
+      devAuthLog('Google sign-in exchangeCodeForSession failed', { message: 'No session returned' });
       throw new Error('Google sign-in completed, but Supabase did not create a session.');
     }
 
+    devAuthLog('Google sign-in exchangeCodeForSession succeeded');
     return data.session;
   }
 
@@ -158,6 +255,7 @@ async function createSessionFromOAuthUrl(url: string): Promise<AuthSession> {
 export async function getCurrentSession(): Promise<AuthSession | null> {
   const { data, error } = await supabase.auth.getSession();
   if (error) throw error;
+  devAuthLog('Supabase getSession returned', { hasSession: Boolean(data.session) });
   return data.session;
 }
 
@@ -213,14 +311,44 @@ export async function signInWithGoogle(): Promise<AuthState> {
 
   devAuthLog('Google sign-in OAuth URL', { url: safeUrlHostPath(data.url) });
 
-  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-  devAuthLog('Google sign-in browser result', {
+  const callbackUrlPromise = waitForOAuthCallbackUrl(redirectTo).then((url) => ({
+    type: 'success' as const,
+    url,
+    source: 'linking' as const,
+  }));
+  const authSessionOptions = Platform.OS === 'android'
+    ? { createTask: false, useProxyActivity: false }
+    : undefined;
+
+  devAuthLog('Google sign-in opening OAuth URL with openAuthSessionAsync', {
+    redirectTo,
+    url: safeUrlHostPath(data.url),
+    androidOptions: Platform.OS === 'android' ? authSessionOptions : undefined,
+  });
+
+  const authSessionPromise = WebBrowser
+    .openAuthSessionAsync(data.url, redirectTo, authSessionOptions)
+    .then((result) => {
+      logAuthSessionResult(result);
+      return { ...result, source: 'auth-session' as const };
+    });
+
+  let result: Awaited<typeof authSessionPromise> | Awaited<typeof callbackUrlPromise>;
+  try {
+    result = await Promise.race([authSessionPromise, callbackUrlPromise]);
+  } finally {
+    clearPendingOAuthCallback();
+  }
+
+  devAuthLog('Google sign-in browser/callback result selected', {
+    source: result.source,
     type: result.type,
-    callbackUrlReceived: result.type === 'success' && Boolean(result.url),
+    callbackUrlReceived: result.type === 'success' && 'url' in result && Boolean(result.url),
+    url: result.type === 'success' && 'url' in result && result.url ? safeUrlHostPath(result.url) : undefined,
   });
 
   if (result.type === 'success') {
-    if (!result.url) {
+    if (!('url' in result) || !result.url) {
       throw new Error('Google sign-in returned without a callback URL.');
     }
 
@@ -228,8 +356,9 @@ export async function signInWithGoogle(): Promise<AuthState> {
 
     try {
       const session = await createSessionFromOAuthUrl(result.url);
-      devAuthLog('Google sign-in Supabase session exchange succeeded');
-      return stateWithProfile(session);
+      const currentSession = await getCurrentSession();
+      devAuthLog('Google sign-in session confirmed after callback', { hasSession: Boolean(currentSession) });
+      return stateWithProfileAfterOAuth(session);
     } catch (exchangeError) {
       devAuthLog('Google sign-in Supabase session exchange failed', {
         message: messageFromUnknown(exchangeError),
@@ -319,9 +448,20 @@ export async function signOut(): Promise<void> {
 export function subscribeToAuthChanges(callback: AuthChangeCallback): () => void {
   const {
     data: { subscription },
-  } = supabase.auth.onAuthStateChange((_event, session) => {
+  } = supabase.auth.onAuthStateChange((event, session) => {
+    devAuthLog('Supabase auth state changed', { event, hasSession: Boolean(session) });
     callback(authState(session));
   });
 
   return () => subscription.unsubscribe();
+}
+
+export function subscribeToAuthDeepLinks(): () => void {
+  if (Platform.OS === 'web') return () => {};
+
+  const subscription = Linking.addEventListener('url', (event) => {
+    handleIncomingAuthUrl(event.url);
+  });
+
+  return () => subscription.remove();
 }

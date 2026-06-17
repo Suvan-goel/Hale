@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import type { PipelineFrameOutput } from '../pose/pipeline';
-import { colors, skeleton } from '../theme';
+import { colors } from '../theme';
 import {
   createAvatarVisualState,
   getPoseAverageConfidence,
@@ -107,6 +107,10 @@ const EMPTY_PATHS: PointCloudBodyPaths = {
 };
 
 const EMPTY_D = 'M-9-9';
+const POINT_CLOUD_DOT_COLOR = colors.textPrimary;
+const POINT_CLOUD_DOT_OPACITY = 0.92;
+const POINT_CLOUD_TARGET_DOT_OPACITY = 0.96;
+const POINT_CLOUD_KEYPOINT_OPACITY = 0.56;
 
 export const PointCloudBodyPoseRenderer = React.forwardRef<
   PoseAvatarRendererHandle,
@@ -308,6 +312,7 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
               skippedLandmarks: CONSTELLATION_KEYPOINTS.length,
               updateFps: 0,
               frameAgeMs: null,
+              inferenceMs: output.inferenceMs,
               bodyStyle: 'point_cloud_body',
               pointCloudBodyDensity,
               pointCloudBodyMaxDots,
@@ -329,6 +334,13 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
         resetAvatarVisualState(visualState.current);
         return;
       }
+
+      // Visual-only backpressure: if the previous SVG update has not painted
+      // yet, drop this avatar frame and let the next native pose event win.
+      // Workout/check-up logic has already consumed the frame before calling
+      // the renderer; this only prevents stale 900-dot path generation from
+      // building up on the JS event path.
+      if (rafRef.current !== null) return;
 
       const wallNow = Date.now();
       const updateTiming = markPoseAvatarUpdate(perf.current, frame.timestampMs, wallNow);
@@ -465,6 +477,7 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
           skippedLandmarks: bodyGeometry.current.skippedBodyPartCount,
           updateFps: updateTiming.updateFps,
           frameAgeMs: updateTiming.frameAgeMs,
+          inferenceMs: output.inferenceMs,
           bodyStyle: 'point_cloud_body',
           pointCloudBodyDensity,
           pointCloudBodyMaxDots,
@@ -594,7 +607,7 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
         />
         <Path
           d={paths.connectionPath || EMPTY_D}
-          stroke={skeleton.figureTop}
+          stroke={POINT_CLOUD_DOT_COLOR}
           strokeOpacity={paths.connectionOpacity * paths.avatarOpacity * paths.bodyVolumeOpacityMultiplier}
           strokeWidth={0.8}
           strokeLinecap="round"
@@ -602,7 +615,7 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
         />
         <Path
           d={paths.skeletonLinePath || EMPTY_D}
-          stroke={skeleton.figureTop}
+          stroke={POINT_CLOUD_DOT_COLOR}
           strokeOpacity={paths.skeletonLineOpacity * paths.avatarOpacity}
           strokeWidth={paths.lineWidth}
           strokeLinecap="round"
@@ -611,7 +624,7 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
         />
         <Path
           d={paths.skeletonMediumLinePath || EMPTY_D}
-          stroke={skeleton.figureTop}
+          stroke={POINT_CLOUD_DOT_COLOR}
           strokeOpacity={paths.skeletonLineOpacity * 0.7 * paths.avatarOpacity}
           strokeWidth={paths.lineWidth}
           strokeLinecap="round"
@@ -620,7 +633,7 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
         />
         <Path
           d={paths.skeletonLowLinePath || EMPTY_D}
-          stroke={skeleton.figureTop}
+          stroke={POINT_CLOUD_DOT_COLOR}
           strokeOpacity={paths.skeletonLineOpacity * 0.45 * paths.avatarOpacity}
           strokeWidth={paths.lineWidth}
           strokeLinecap="round"
@@ -629,110 +642,58 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
         />
         <Path
           d={paths.softTorsoDotPath || EMPTY_D}
-          fill={skeleton.figureTop}
-          fillOpacity={
-            0.28 *
-            paths.bodyOpacity *
-            paths.avatarOpacity *
-            paths.bodyVolumeOpacityMultiplier
-          }
+          fill={POINT_CLOUD_DOT_COLOR}
+          fillOpacity={POINT_CLOUD_DOT_OPACITY}
         />
         <Path
           d={paths.torsoDotPath || EMPTY_D}
-          fill={skeleton.figureTop}
-          fillOpacity={
-            (0.7 + paths.pulse) *
-            paths.bodyOpacity *
-            paths.avatarOpacity *
-            paths.bodyVolumeOpacityMultiplier
-          }
+          fill={POINT_CLOUD_DOT_COLOR}
+          fillOpacity={POINT_CLOUD_DOT_OPACITY}
         />
         <Path
           d={paths.softLimbDotPath || EMPTY_D}
-          fill={skeleton.figureTop}
-          fillOpacity={
-            0.24 *
-            paths.bodyOpacity *
-            paths.avatarOpacity *
-            paths.bodyVolumeOpacityMultiplier
-          }
+          fill={POINT_CLOUD_DOT_COLOR}
+          fillOpacity={POINT_CLOUD_DOT_OPACITY}
         />
         <Path
           d={paths.limbDotPath || EMPTY_D}
-          fill={skeleton.figureTop}
-          fillOpacity={
-            (0.62 + paths.pulse * 0.8) *
-            paths.bodyOpacity *
-            paths.avatarOpacity *
-            paths.bodyVolumeOpacityMultiplier
-          }
+          fill={POINT_CLOUD_DOT_COLOR}
+          fillOpacity={POINT_CLOUD_DOT_OPACITY}
         />
         <Path
           d={paths.softHeadDotPath || EMPTY_D}
-          fill={colors.accentGold}
-          fillOpacity={
-            0.24 *
-            paths.bodyOpacity *
-            paths.avatarOpacity *
-            paths.bodyVolumeOpacityMultiplier
-          }
+          fill={POINT_CLOUD_DOT_COLOR}
+          fillOpacity={POINT_CLOUD_DOT_OPACITY}
         />
         <Path
           d={paths.headDotPath || EMPTY_D}
-          fill={skeleton.figureTop}
-          fillOpacity={
-            (0.68 + paths.pulse * 0.75) *
-            paths.bodyOpacity *
-            paths.avatarOpacity *
-            paths.bodyVolumeOpacityMultiplier
-          }
+          fill={POINT_CLOUD_DOT_COLOR}
+          fillOpacity={POINT_CLOUD_DOT_OPACITY}
         />
         <Path
           d={paths.softExtremityDotPath || EMPTY_D}
-          fill={colors.accentGold}
-          fillOpacity={
-            0.2 *
-            paths.bodyOpacity *
-            paths.avatarOpacity *
-            paths.bodyVolumeOpacityMultiplier
-          }
+          fill={POINT_CLOUD_DOT_COLOR}
+          fillOpacity={POINT_CLOUD_DOT_OPACITY}
         />
         <Path
           d={paths.extremityDotPath || EMPTY_D}
-          fill={skeleton.figureTop}
-          fillOpacity={
-            (0.58 + paths.pulse * 0.65) *
-            paths.bodyOpacity *
-            paths.avatarOpacity *
-            paths.bodyVolumeOpacityMultiplier
-          }
+          fill={POINT_CLOUD_DOT_COLOR}
+          fillOpacity={POINT_CLOUD_DOT_OPACITY}
         />
         <Path
           d={paths.softActiveDotPath || EMPTY_D}
           fill={colors.restorativeGreen}
-          fillOpacity={
-            0.34 *
-            paths.activeDotOpacityMultiplier *
-            paths.bodyOpacity *
-            paths.avatarOpacity *
-            paths.bodyVolumeOpacityMultiplier
-          }
+          fillOpacity={POINT_CLOUD_TARGET_DOT_OPACITY * paths.activeDotOpacityMultiplier}
         />
         <Path
           d={paths.activeDotPath || EMPTY_D}
           fill={colors.restorativeGreen}
-          fillOpacity={
-            (0.82 + paths.pulse * 0.5) *
-            paths.activeDotOpacityMultiplier *
-            paths.bodyOpacity *
-            paths.avatarOpacity *
-            paths.bodyVolumeOpacityMultiplier
-          }
+          fillOpacity={POINT_CLOUD_TARGET_DOT_OPACITY * paths.activeDotOpacityMultiplier}
         />
         <Path
           d={paths.keypointDotPath || EMPTY_D}
-          fill={skeleton.bright}
-          fillOpacity={0.26 * paths.avatarOpacity * paths.keypointOpacityMultiplier}
+          fill={POINT_CLOUD_DOT_COLOR}
+          fillOpacity={POINT_CLOUD_KEYPOINT_OPACITY}
         />
       </Svg>
     </View>

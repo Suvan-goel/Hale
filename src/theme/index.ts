@@ -317,10 +317,10 @@ export const componentStyles = {
 
 export const skeleton = {
   background: colors.bgBase,
-  figureTop: '#4F5A45',
-  figureBottom: '#30382D',
+  figureTop: '#526B55',
+  figureBottom: '#1E2D23',
   bright: colors.textPrimary,
-  dim: '#B7AF9E',
+  dim: '#B7B2A8',
 } as const;
 
 export const motion = {

@@ -114,6 +114,13 @@ describe('PosePipeline state machine', () => {
     expect(finalBodyUnit!).toBeLessThan(0.5);
   });
 
+  it('carries native inference timing for latency diagnostics', () => {
+    const pipeline = new PosePipeline();
+    const out = pipeline.process({ ...standingSession(50, 0, 1)[0], inferenceMs: 18.4 });
+
+    expect(out.inferenceMs).toBe(18.4);
+  });
+
   it('side-on subject (one reliable chain) still tracks — required for side-view items', () => {
     const pipeline = new PosePipeline();
     const rng = mulberry32(43);

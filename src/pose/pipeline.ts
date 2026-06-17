@@ -80,6 +80,8 @@ export const DEFAULT_PIPELINE_CONFIG: PipelineConfig = {
 
 export interface PipelineFrameOutput {
   state: TrackingState;
+  /** Native model inference runtime for the source frame, when provided. */
+  inferenceMs?: number | null;
   /** Smoothed frame. Valid only when frame.hasPose. */
   frame: PoseFrame;
   /**
@@ -130,6 +132,7 @@ export class PosePipeline {
     this.calibrator = new BodyScaleCalibrator(config.calibration);
     this.output = {
       state: 'no-subject',
+      inferenceMs: null,
       frame: this.smoothedFrame,
       rawFrame: this.rawFrame,
       displayFrame: this.displayFrame,
@@ -150,6 +153,7 @@ export class PosePipeline {
     const out = this.output;
     out.events.length = 0;
     const ts = event.timestampMs;
+    out.inferenceMs = typeof event.inferenceMs === 'number' ? event.inferenceMs : null;
 
     // Stream gap (camera stall, app backgrounded) = interruption: stale
     // filter/window state must not bleed across the gap.

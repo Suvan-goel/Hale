@@ -1,6 +1,7 @@
 import {
   getExercise,
   HEEL_RAISE_SUPPORTED_ID,
+  NECK_ROTATION_ID,
   PUSHUP_WALL_ID,
   STS_STANDARD_ID,
   WALL_CALF_STRETCH_ID,
@@ -37,6 +38,13 @@ describe('pose avatar muscle focus', () => {
       'rightLowerLeg',
       'leftFoot',
       'rightFoot',
+    ]);
+  });
+
+  it('maps neck mobility to the head and neck bridge', () => {
+    expect(pointCloudBodyPartsForTrainingExercise(getExercise(NECK_ROTATION_ID))).toEqual([
+      'head',
+      'neck',
     ]);
   });
 

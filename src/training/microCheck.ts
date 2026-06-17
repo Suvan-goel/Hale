@@ -58,7 +58,7 @@ export interface MicroCheckConfig {
 }
 
 export const DEFAULT_MICROCHECK_CONFIG: MicroCheckConfig = {
-  promptRepeatMs: 4000,
+  promptRepeatMs: 10000,
   postInstructionsDwellMs: 2000,
   countdownStepMs: 1000,
   maxActiveMs: 45000,

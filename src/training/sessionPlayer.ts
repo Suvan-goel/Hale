@@ -80,7 +80,7 @@ export interface TrainingPlayerConfig {
 }
 
 export const DEFAULT_TRAINING_CONFIG: TrainingPlayerConfig = {
-  promptRepeatMs: 4000,
+  promptRepeatMs: 10000,
   postInstructionsDwellMs: 2000,
   countdownStepMs: 1000,
   transitionDwellMs: 1500,

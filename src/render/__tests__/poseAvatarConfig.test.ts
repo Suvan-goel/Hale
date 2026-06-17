@@ -38,12 +38,12 @@ describe('resolvePoseAvatarConfig', () => {
     expect(config.sampledDotsEnabled).toBe(true);
     expect(config.bodyVolumeEnabled).toBe(true);
     expect(config.pointCloudBodyEnabled).toBe(true);
-    expect(config.pointCloudBodyDensity).toBe('medium');
-    expect(config.pointCloudBodyMaxDots).toBe(800);
+    expect(config.pointCloudBodyDensity).toBe('high');
+    expect(config.pointCloudBodyMaxDots).toBe(900);
     expect(config.pointCloudBodyShowConnections).toBe(false);
     expect(config.pointCloudBodyShowSkeletonLines).toBe(false);
     expect(config.pointCloudBodyShowKeypoints).toBe(true);
-    expect(config.pointCloudBodyDotScale).toBe(1.26);
+    expect(config.pointCloudBodyDotScale).toBe(1.72);
     expect(config.pointCloudBodyOpacity).toBe(1);
     expect(config.confidenceFadingEnabled).toBe(true);
     expect(config.confidenceIntensityEnabled).toBe(true);
@@ -67,10 +67,10 @@ describe('resolvePoseAvatarConfig', () => {
     expect(config.sampleDensity).toBeLessThan(0.7);
     expect(config.maxVolumeDots).toBeLessThanOrEqual(60);
     expect(config.pointCloudBodyDensity).toBe('low');
-    expect(config.pointCloudBodyMaxDots).toBeLessThanOrEqual(450);
+    expect(config.pointCloudBodyMaxDots).toBeLessThanOrEqual(560);
     expect(config.pointCloudBodyShowConnections).toBe(false);
     expect(config.pointCloudBodyShowSkeletonLines).toBe(false);
-    expect(config.pointCloudBodyDotScale).toBe(1.16);
+    expect(config.pointCloudBodyDotScale).toBe(1.42);
     expect(config.torsoVolumeDots).toBeLessThan(40);
     expect(config.headVolumeDots).toBeLessThan(16);
     expect(config.reacquisitionFadeEnabled).toBe(false);

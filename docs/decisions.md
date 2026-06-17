@@ -692,24 +692,41 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 - **Performance:** active dots remain batched into SVG path buckets; no per-dot React components
   were added.
 
-## 2026-06-17 — Live avatar low-latency display
+## 2026-06-17 — Live avatar high-visibility display
 
-- **Finding:** the default point-cloud avatar is visually richer, but dense point-cloud path
-  generation plus display smoothing can make the on-screen figure visibly lag behind the user on
-  live camera screens.
-- **Change:** check-up, training, micro-check, dev assessment, and live camera screens now pass
-  `lowLatencyMode` to `SkeletonView` and cap the point-cloud body to 260 dots. This disables
-  display-only smoothing/state transitions and reduces SVG path work for the live measurement view.
+- **Finding:** the 260-dot low-latency live avatar was responsive but too hard to read on device.
+- **Change:** check-up, training, micro-check, dev assessment, and live camera screens now use the
+  high-density point-cloud body with a 900-dot cap and larger `pointCloudBodyDotScale`, while
+  keeping display smoothing disabled for responsiveness. Normal point-cloud defaults were also
+  raised to high density / 900 dots / larger dots, and low-latency mode remains available as a
+  smaller fallback rather than the hard-coded live default.
+- **Colour rule:** non-target body dots render in the app's near-black text colour. Training target
+  muscle dots remain the only coloured dots, using restrained olive `colors.restorativeGreen`.
+- **Stability rule:** visible point-cloud dots use stable opacity buckets rather than per-frame
+  confidence/body-opacity multipliers. Tracking confidence may still remove unrenderable body parts
+  or the whole avatar when pose is lost, but valid dots should not pulse lighter/darker during
+  normal movement.
+- **Completeness rule:** the point-cloud body includes a dedicated neck bridge between head and
+  torso, denser hand/foot clusters, and hand/foot centers biased toward index/toe landmarks so the
+  figure reads as continuous rather than joint-only at the extremities.
 - **Boundary:** pose inference, measurement smoothing, rep/hold state machines, scoring, and workout
-  generation are unchanged. The low-latency setting affects only the displayed avatar.
+  generation are unchanged. This affects only the displayed avatar.
 
-## 2026-06-17 — Full pose model default
+## 2026-06-17 — Live pose latency correction
 
-- **Change:** the app now defaults `PoseDetectionView` to MediaPipe's `pose_landmarker_full.task`
-  on both Android and iOS, with `lite` still available via the explicit `modelVariant` prop for
-  profiling or low-power fallback experiments.
-- **Bundling:** `scripts/download-models.sh` now fetches both `lite` and `full` model binaries
-  because model files remain regenerable local artifacts rather than committed source.
+- **Finding:** the live avatar still lagged because the camera module had drifted to MediaPipe's
+  heavier `pose_landmarker_full.task` default, and the 900-dot avatar could rebuild redundant SVG
+  paths while a previous visual update was still waiting to paint.
+- **Change:** `PoseDetectionView` defaults back to `pose_landmarker_lite.task` in JS, Android, and
+  iOS, and all live camera screens pass `modelVariant="lite"` explicitly. The full model remains
+  bundled and available through the explicit prop for profiling or non-live experiments.
+- **Renderer:** live avatar screens explicitly use raw frame coordinates, disable renderer-level
+  smoothing/fades/pulses/state transitions, and the point-cloud renderer now drops visual-only frames
+  while a prior SVG update is pending. Live frame callbacks now run measurement/preflight/session
+  logic before invoking the avatar renderer so dense dot generation cannot hold up rep/hold/check-up
+  state.
+- **Diagnostics:** native `inferenceMs` is carried through the JS pose pipeline into the avatar
+  performance log so future profiling can separate model runtime from geometry/render cost.
 - **Runtime:** native pose estimation still requests the GPU delegate first and falls back to CPU if
   the delegate is unavailable on a device or simulator.
 
@@ -726,9 +743,9 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 
 ## 2026-06-17 — Gentler framing prompt cadence
 
-- **Change:** framing voice prompts now have a hard two-second minimum gap between spoken prompts,
+- **Change:** framing voice prompts now have a hard five-second minimum gap between spoken prompts,
   even when the requested correction changes from one frame window to the next. Unchanged prompts
-  keep the slower four-second repeat cadence.
+  keep the slower ten-second repeat cadence.
 - **Scope:** the rule is shared by the check-up assessment controller, training session player, and
   micro-check runner so setup guidance feels calm across live camera flows.
 
@@ -830,3 +847,33 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
   profile persistence, camera permission flow, check-up creation, block creation, route names, pose
   detection, scoring, workout generation, dashboard, progress, training/session, and profile/settings
   logic were not rewritten.
+
+## 2026-06-17 — Stage 2 premium health-tech correction
+
+- **Change:** the visual system was corrected away from warm spa/beige styling toward a crisper
+  premium health-tech direction: `bgBase #F7F5EF`, white cards, restrained borders, deep-green
+  actions, smaller radii, near-flat shadows, sans-led headings, text-tab auth switching, focused
+  inputs, and quieter badges.
+- **Auth/onboarding:** the signed-out account gate now removes placeholder app-icon branding, uses
+  the required "Keep your movement progress connected." copy, trims repeated explanatory text, and
+  presents account access in a flatter white card with 14-20 px shape language. Onboarding option
+  rows use the same white-card foundation with calmer selected states and non-dot markers.
+- **Scope boundary:** this correction remains visual-only. Auth handlers, Supabase calls, onboarding
+  state, route names, camera permission flow, check-up/session logic, pose detection, scoring,
+  workout generation, and sync contracts were not rewritten.
+
+## 2026-06-17 — No standing target on recording screens
+
+- **Change:** live recording screens disable the avatar setup guide target so the recording area only
+  shows the pose avatar and screen chrome.
+- **Scope boundary:** camera inference, framing readiness checks, voice prompts, workout/check-up
+  progression, and measurement logic are unchanged.
+
+## 2026-06-17 — Full-width recording viewport
+
+- **Change:** the main check-up and workout recording pages now size the visible pose-avatar viewport
+  to the full phone width and derive height from the portrait camera aspect ratio. Text and fallback
+  action controls are stacked in separate bands above and below the viewport; short screens can scroll
+  rather than overlapping the avatar.
+- **Scope boundary:** pose estimation, camera capture, contain-fit avatar mapping, framing prompts,
+  and workout/check-up progression are unchanged.

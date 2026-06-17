@@ -87,6 +87,8 @@ export function copyPoseFrame(src: PoseFrame, dst: PoseFrame): void {
 /** Shape of the native onLandmarks payload (and of recorded JSONL frames). */
 export interface RawLandmarkEvent {
   timestampMs: number;
+  /** Native pose-model runtime for this frame, when available. */
+  inferenceMs?: number;
   /** Flat [x, y, z, visibility, presence] * 33, or empty when no pose. */
   landmarks: ArrayLike<number>;
 }

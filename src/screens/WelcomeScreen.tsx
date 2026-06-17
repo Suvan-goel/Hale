@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   valueMark: {
     width: 38,
     height: 38,
-    borderRadius: radius.sm,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.accentSoft,

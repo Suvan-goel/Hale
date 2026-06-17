@@ -78,6 +78,7 @@ export interface PoseAvatarPerformanceSnapshot {
   skippedLandmarks: number;
   updateFps: number;
   frameAgeMs: number | null;
+  inferenceMs?: number | null;
 }
 
 const LOG_INTERVAL_MS = 3000;
@@ -168,6 +169,7 @@ export function maybeLogPoseAvatarPerformance(
       `volumeDots=${snapshot.volumeDotCount} dots=${snapshot.dotCount} ` +
       `lines=${snapshot.lineCount} geometry=${snapshot.geometryMs.toFixed(1)}ms ` +
       `updateFps=${snapshot.updateFps.toFixed(0)} ` +
+      `inference=${snapshot.inferenceMs === null || snapshot.inferenceMs === undefined ? 'n/a' : `${snapshot.inferenceMs.toFixed(1)}ms`} ` +
       `frameAge=${snapshot.frameAgeMs === null ? 'n/a' : `${snapshot.frameAgeMs.toFixed(0)}ms`} ` +
       `skipped=${snapshot.skippedLandmarks}` +
       (snapshot.skippedBodyPartCount !== undefined ? ` bodySkipped=${snapshot.skippedBodyPartCount}` : '')

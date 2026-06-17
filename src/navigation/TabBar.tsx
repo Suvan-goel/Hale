@@ -32,8 +32,8 @@ export function TabBar({ active, onChange }: { active: TabKey; onChange: (key: T
     <View style={styles.bar}>
       {TAB_DEFS.map((tab) => {
         const selected = tab.key === active;
-        const tint = selected ? colors.oliveSage : colors.textMuted;
-        const labelTint = selected ? colors.oliveSage : colors.textSecondary;
+        const tint = selected ? colors.accent : colors.textMuted;
+        const labelTint = selected ? colors.accent : colors.textMuted;
         return (
           <Pressable
             key={tab.key}
@@ -43,9 +43,10 @@ export function TabBar({ active, onChange }: { active: TabKey; onChange: (key: T
             accessibilityState={{ selected }}
             accessibilityLabel={tab.label}
           >
-            <View style={[styles.iconWrap, selected && styles.iconWrapActive]}>
+            <View style={styles.iconWrap}>
               <tab.Icon color={tint} strokeWidth={selected ? 2.1 : 1.8} />
             </View>
+            <View style={[styles.activeLine, selected && styles.activeLineVisible]} />
             <Text style={[styles.label, selected && styles.labelActive, { color: labelTint }]}>{tab.label}</Text>
           </Pressable>
         );
@@ -57,14 +58,14 @@ export function TabBar({ active, onChange }: { active: TabKey; onChange: (key: T
 const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
-    backgroundColor: colors.surface,
+    backgroundColor: '#FCFAF6',
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    borderTopColor: '#E4DCCE',
     paddingTop: spacing.md,
     paddingBottom: spacing.xl, // home-indicator breathing room
     ...shadow.soft,
-    shadowOpacity: 0.018,
-    shadowRadius: 8,
+    shadowOpacity: 0.012,
+    shadowRadius: 6,
     shadowOffset: { width: 0, height: -2 },
   },
   tab: {
@@ -76,12 +77,18 @@ const styles = StyleSheet.create({
   },
   iconWrap: {
     width: 38,
-    height: 30,
+    height: 26,
     borderRadius: radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconWrapActive: { backgroundColor: colors.accentSoft },
+  activeLine: {
+    width: 18,
+    height: 2,
+    borderRadius: radius.pill,
+    backgroundColor: 'transparent',
+  },
+  activeLineVisible: { backgroundColor: colors.accent },
   label: {
     ...type.caption,
     fontSize: 12,

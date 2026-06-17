@@ -1,6 +1,6 @@
 import type { VoiceCueKey } from '../audio/cues';
 
-export const MIN_FRAMING_PROMPT_GAP_MS = 2000;
+export const MIN_FRAMING_PROMPT_GAP_MS = 5000;
 
 export function shouldSpeakFramingPrompt({
   cue,

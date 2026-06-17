@@ -842,7 +842,7 @@ const styles = StyleSheet.create({
   badgeGood: { backgroundColor: colors.accentSoft, borderColor: colors.border },
   badgeAttention: { backgroundColor: colors.cautionSoft, borderColor: colors.cautionBorder },
   badgeGold: { backgroundColor: colors.surface, borderColor: colors.goldBorder },
-  badgeText: { ...type.label, color: colors.textSecondary },
+  badgeText: { ...type.caption, fontFamily: fonts.sansMedium, color: colors.textSecondary },
   badgeGoodText: { color: colors.accentDeep },
   badgeAttentionText: { color: colors.caution },
   badgeGoldText: { color: colors.accentDeep },

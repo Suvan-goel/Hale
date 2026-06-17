@@ -78,7 +78,6 @@ export function MicroCheckScreen({
       const event = e.nativeEvent;
       if (__DEV__) recorder.record(event);
       const out = pipeline.process(event);
-      skeletonRef.current?.update(out, event.sourceWidth / event.sourceHeight);
       const u = runner.update(out, voice.busy);
 
       if (u.voice) voice.speak(u.voice.cues, u.voice.priority);
@@ -98,6 +97,7 @@ export function MicroCheckScreen({
           prev.phase === next.phase && prev.repCount === next.repCount && prev.holdSec === next.holdSec ? prev : next
         );
       }
+      skeletonRef.current?.update(out, event.sourceWidth / event.sourceHeight);
     },
     [pipeline, runner, voice, sfx, recorder, onComplete]
   );
@@ -112,14 +112,29 @@ export function MicroCheckScreen({
 
   return (
     <View style={styles.container}>
-      <PoseDetectionView active style={StyleSheet.absoluteFill} onLandmarks={onLandmarks} onPoseError={onPoseError} />
+      <PoseDetectionView
+        active
+        modelVariant="lite"
+        style={StyleSheet.absoluteFill}
+        onLandmarks={onLandmarks}
+        onPoseError={onPoseError}
+      />
       <SkeletonView
         ref={skeletonRef}
         mirrored
-        lowLatencyMode
-        pointCloudBodyMaxDots={260}
+        frameSource="raw"
+        smoothingEnabled={false}
+        pointCloudBodyDensity="high"
+        pointCloudBodyMaxDots={900}
+        pointCloudBodyDotScale={1.72}
+        confidenceFadingEnabled={false}
+        confidenceIntensityEnabled={false}
+        reacquisitionFadeEnabled={false}
+        recognitionPulseEnabled={false}
         measurementState={avatarMeasurementState}
         activeDomain={avatarDomain}
+        setupGuidesEnabled={false}
+        stateTransitionsEnabled={false}
       />
       <View pointerEvents="none" style={styles.hud}>
         {snapshot.phase === 'done' ? (

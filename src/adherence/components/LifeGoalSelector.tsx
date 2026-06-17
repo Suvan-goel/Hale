@@ -85,13 +85,13 @@ const styles = StyleSheet.create({
   option: {
     minHeight: 82,
   },
-  optionActive: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
+  optionActive: { backgroundColor: colors.accentSoft, borderColor: colors.accentBorder },
   optionMark: {
     width: 14,
     height: 14,
-    borderRadius: 7,
+    borderRadius: 4,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.accentBorder,
     backgroundColor: colors.surface,
   },
   optionMarkActive: { backgroundColor: colors.accent, borderColor: colors.accent },

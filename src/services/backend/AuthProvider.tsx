@@ -8,6 +8,7 @@ import {
   signOut as signOutWithSupabase,
   signUpWithEmail,
   subscribeToAuthChanges,
+  subscribeToAuthDeepLinks,
 } from './authService';
 import { ensureCurrentProfile } from './profileService';
 import type { AuthSession, AuthState, BackendProfile } from './types';
@@ -104,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     void hydrate();
 
+    const unsubscribeDeepLinks = subscribeToAuthDeepLinks();
     const unsubscribe = subscribeToAuthChanges((next) => {
       if (!mounted) return;
       setState((current) => ({
@@ -117,6 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       mounted = false;
+      unsubscribeDeepLinks();
       unsubscribe();
     };
   }, [refreshProfile]);

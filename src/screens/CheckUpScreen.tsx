@@ -11,7 +11,7 @@
  */
 
 import * as React from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import {
   LandmarksEventPayload,
@@ -117,12 +117,15 @@ export function CheckUpScreen({
       lastFrameTimestampRef.current = event.timestampMs;
       if (__DEV__) recorder.record(event);
       const out = pipeline.process(event);
-      skeletonRef.current?.update(out, event.sourceWidth / event.sourceHeight);
+      const sourceAspect = event.sourceWidth / event.sourceHeight;
       if (resumePendingRef.current) {
         orchestrator.shiftTiming(Math.max(0, event.timestampMs - pauseStartedAtRef.current));
         resumePendingRef.current = false;
       }
-      if (pausedRef.current) return;
+      if (pausedRef.current) {
+        skeletonRef.current?.update(out, sourceAspect);
+        return;
+      }
       const u = orchestrator.update(out, voice.busy);
 
       if (u.voice) voice.speak(u.voice.cues, u.voice.priority);
@@ -163,6 +166,7 @@ export function CheckUpScreen({
             : next
         );
       }
+      skeletonRef.current?.update(out, sourceAspect);
     },
     [pipeline, orchestrator, voice, sfx, recorder, onComplete]
   );
@@ -221,8 +225,19 @@ export function CheckUpScreen({
 
   return (
     <View style={styles.container}>
-      <PoseDetectionView active style={StyleSheet.absoluteFill} onLandmarks={onLandmarks} onPoseError={onPoseError} />
-      <View style={styles.layout}>
+      <PoseDetectionView
+        active
+        modelVariant="lite"
+        style={StyleSheet.absoluteFill}
+        onLandmarks={onLandmarks}
+        onPoseError={onPoseError}
+      />
+      <ScrollView
+        style={styles.layout}
+        contentContainerStyle={styles.layoutContent}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
         <View pointerEvents="none" style={styles.hud}>
           {snapshot.phase === 'intro' ? (
             <>
@@ -257,10 +272,19 @@ export function CheckUpScreen({
               ref={skeletonRef}
               mirrored
               fit="contain"
-              lowLatencyMode
-              pointCloudBodyMaxDots={260}
+              frameSource="raw"
+              smoothingEnabled={false}
+              pointCloudBodyDensity="high"
+              pointCloudBodyMaxDots={900}
+              pointCloudBodyDotScale={1.72}
+              confidenceFadingEnabled={false}
+              confidenceIntensityEnabled={false}
+              reacquisitionFadeEnabled={false}
+              recognitionPulseEnabled={false}
               measurementState={avatarMeasurementState}
               activeDomain={avatarDomain}
+              setupGuidesEnabled={false}
+              stateTransitionsEnabled={false}
             />
           </View>
         </View>
@@ -292,7 +316,7 @@ export function CheckUpScreen({
             </View>
           ) : null}
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -356,13 +380,18 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bgBase },
   layout: {
     flex: 1,
-    paddingTop: spacing.xl,
-    paddingHorizontal: spacing.lg,
+  },
+  layoutContent: {
+    minHeight: '100%',
+    paddingTop: spacing.md,
     paddingBottom: spacing.lg,
+    gap: spacing.md,
   },
   hud: {
+    marginHorizontal: spacing.lg,
     alignItems: 'center',
-    padding: spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
     borderRadius: radius.card,
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -370,16 +399,14 @@ const styles = StyleSheet.create({
     ...shadow.soft,
   },
   progress: { ...type.label, color: colors.sageDeep },
-  movement: { ...type.h1, marginTop: 6, textAlign: 'center' },
-  caption: { ...type.body, color: colors.textSecondary, marginTop: 10 },
+  movement: { ...type.h1, marginTop: 4, textAlign: 'center' },
+  caption: { ...type.body, color: colors.textSecondary, marginTop: 6, textAlign: 'center' },
   intro: { ...type.bodySmall, color: colors.textPrimary, marginTop: spacing.sm, textAlign: 'center' },
   repCount: { ...type.metric },
   timer: { ...type.metricSmall, marginTop: 4 },
   avatarSlot: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.md,
   },
   avatarViewport: {
     position: 'relative',
@@ -390,6 +417,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   bottomPanel: {
+    paddingHorizontal: spacing.lg,
     gap: spacing.md,
     alignItems: 'stretch',
   },

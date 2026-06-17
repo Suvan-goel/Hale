@@ -174,6 +174,22 @@ describe('point-cloud body geometry', () => {
     expect(out.activeDotPath.length + out.softActiveDotPath.length).toBeGreaterThan(0);
   });
 
+  it('fills the neck bridge and denser extremities for a complete figure', () => {
+    const out = createPointCloudBodyGeometry();
+
+    buildPointCloudBodyGeometry(mappedStandingPose(), out, {
+      pointCloudBodyEnabled: true,
+      density: 'high',
+      maxDots: 900,
+    });
+
+    expect(out.bodyPartDotCounts.neck).toBeGreaterThan(25);
+    expect(out.neckDotCount).toBe(out.bodyPartDotCounts.neck);
+    expect(out.handDotCount).toBeGreaterThan(70);
+    expect(out.footDotCount).toBeGreaterThan(78);
+    expect(out.dotCount).toBeLessThanOrEqual(900);
+  });
+
   it('respects the configured absolute dot cap including keypoints', () => {
     const out = createPointCloudBodyGeometry();
 

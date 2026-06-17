@@ -8,7 +8,7 @@
  */
 
 import * as React from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import {
   LandmarksEventPayload,
@@ -125,12 +125,15 @@ export function TrainingSessionScreen({
       lastFrameTimestampRef.current = event.timestampMs;
       if (__DEV__) recorder.record(event);
       const out = pipeline.process(event);
-      skeletonRef.current?.update(out, event.sourceWidth / event.sourceHeight);
+      const sourceAspect = event.sourceWidth / event.sourceHeight;
       if (resumePendingRef.current) {
         player.shiftTiming(Math.max(0, event.timestampMs - pauseStartedAtRef.current));
         resumePendingRef.current = false;
       }
-      if (pausedRef.current) return;
+      if (pausedRef.current) {
+        skeletonRef.current?.update(out, sourceAspect);
+        return;
+      }
       const u = player.update(out, voice.busy);
 
       if (u.voice) voice.speak(u.voice.cues, u.voice.priority);
@@ -164,6 +167,7 @@ export function TrainingSessionScreen({
         };
         setSnapshot((prev) => (sameSnapshot(prev, next) ? prev : next));
       }
+      skeletonRef.current?.update(out, sourceAspect);
     },
     [pipeline, player, voice, sfx, recorder, onComplete, exerciseIds.length]
   );
@@ -234,8 +238,19 @@ export function TrainingSessionScreen({
 
   return (
     <View style={styles.container}>
-      <PoseDetectionView active style={StyleSheet.absoluteFill} onLandmarks={onLandmarks} onPoseError={onPoseError} />
-      <View style={styles.layout}>
+      <PoseDetectionView
+        active
+        modelVariant="lite"
+        style={StyleSheet.absoluteFill}
+        onLandmarks={onLandmarks}
+        onPoseError={onPoseError}
+      />
+      <ScrollView
+        style={styles.layout}
+        contentContainerStyle={styles.layoutContent}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
         <View pointerEvents="none" style={styles.hud}>
           {snapshot.phase === 'intro' ? (
             <Text style={styles.caption}>Starting your session…</Text>
@@ -274,11 +289,20 @@ export function TrainingSessionScreen({
               ref={skeletonRef}
               mirrored
               fit="contain"
-              lowLatencyMode
-              pointCloudBodyMaxDots={260}
+              frameSource="raw"
+              smoothingEnabled={false}
+              pointCloudBodyDensity="high"
+              pointCloudBodyMaxDots={900}
+              pointCloudBodyDotScale={1.72}
+              confidenceFadingEnabled={false}
+              confidenceIntensityEnabled={false}
+              reacquisitionFadeEnabled={false}
+              recognitionPulseEnabled={false}
               pointCloudBodyActiveParts={avatarActiveBodyParts}
               measurementState={avatarMeasurementState}
               activeDomain={snapshot.activeDomain}
+              setupGuidesEnabled={false}
+              stateTransitionsEnabled={false}
             />
           </View>
         </View>
@@ -310,7 +334,7 @@ export function TrainingSessionScreen({
             </View>
           ) : null}
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -394,13 +418,18 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bgBase },
   layout: {
     flex: 1,
-    paddingTop: spacing.xl,
-    paddingHorizontal: spacing.lg,
+  },
+  layoutContent: {
+    minHeight: '100%',
+    paddingTop: spacing.md,
     paddingBottom: spacing.lg,
+    gap: spacing.md,
   },
   hud: {
+    marginHorizontal: spacing.lg,
     alignItems: 'center',
-    padding: spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
     borderRadius: radius.card,
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -408,14 +437,12 @@ const styles = StyleSheet.create({
     ...shadow.soft,
   },
   progress: { ...type.label, color: colors.sageDeep, marginTop: 4 },
-  movement: { ...type.h1, marginTop: 6, textAlign: 'center' },
-  caption: { ...type.body, color: colors.textSecondary, marginTop: 10 },
+  movement: { ...type.h1, marginTop: 4, textAlign: 'center' },
+  caption: { ...type.body, color: colors.textSecondary, marginTop: 6, textAlign: 'center' },
   big: { ...type.metric },
   avatarSlot: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.md,
   },
   avatarViewport: {
     position: 'relative',
@@ -426,6 +453,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   bottomPanel: {
+    paddingHorizontal: spacing.lg,
     gap: spacing.md,
     alignItems: 'stretch',
   },

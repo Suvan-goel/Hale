@@ -19,7 +19,7 @@
       "expo-apple-authentication"
     ],
     "userInterfaceStyle": "light",
-    "backgroundColor": "#F6F0E7",
+    "backgroundColor": "#F7F5EF",
     "ios": {
       "supportsTablet": false,
       "icon": "./assets/ios-icon.png",
@@ -32,7 +32,7 @@
     "android": {
       "icon": "./assets/android-icon.png",
       "adaptiveIcon": {
-        "backgroundColor": "#F6F0E7",
+        "backgroundColor": "#F7F5EF",
         "foregroundImage": "./assets/android-icon.png"
       },
       "permissions": [

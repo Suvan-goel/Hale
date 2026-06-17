@@ -8,10 +8,12 @@
 import { VoiceCueKey } from '../../audio/cues';
 import { CHAIR_STAND_ID, ChairStandResult, getMovement } from '../../movements';
 import { PosePipeline } from '../../pose/pipeline';
+import type { PipelineFrameOutput } from '../../pose/pipeline';
 import { chairStandSession } from '../../pose/testing/syntheticChairStand';
-import { makeFrame, mulberry32, timestamps30fps } from '../../pose/testing/syntheticPose';
+import { timestamps30fps } from '../../pose/testing/syntheticPose';
 import { RawLandmarkEvent } from '../../pose/types';
 import { PreflightCheck } from '../../preflight/preflight';
+import type { PreflightPrompt, PreflightStatus } from '../../preflight/preflight';
 import { AssessmentPhase, SessionController } from '../sessionController';
 
 const CUE_PLAY_MS = 1800; // fake per-line playback duration
@@ -54,6 +56,22 @@ function runFlow(frames: RawLandmarkEvent[]): FlowRun {
   return { phases, spoken, repSounds, finalRepCount, controller };
 }
 
+function outputAt(timestampMs: number): PipelineFrameOutput {
+  return {
+    frame: { timestampMs },
+    bodyUnit: null,
+  } as PipelineFrameOutput;
+}
+
+function framingStatus(prompt: PreflightPrompt): PreflightStatus {
+  return {
+    phase: 'framing',
+    prompt,
+    bodyHeightFraction: 0.7,
+    sampleProgress: 0,
+  };
+}
+
 describe('SessionController — voice-guided chair stand', () => {
   it('runs the full flow: preflight → instructions → countdown → active → result → done', () => {
     // The subject stands (listening) for 15s, then performs 8 reps; the 30s
@@ -92,7 +110,7 @@ describe('SessionController — voice-guided chair stand', () => {
   });
 
   it('throttles an unchanged framing prompt', () => {
-    // 12s of empty frames: 'step-into-frame' repeats at promptRepeatMs (4s),
+    // 12s of empty frames: 'step-into-frame' repeats at promptRepeatMs (10s),
     // not per frame.
     const frames: RawLandmarkEvent[] = timestamps30fps(0, 360).map((t) => ({
       timestampMs: t,
@@ -101,21 +119,24 @@ describe('SessionController — voice-guided chair stand', () => {
     const run = runFlow(frames);
     expect(run.phases).toEqual(['preflight']);
     const prompts = run.spoken.filter((c) => c === 'step-into-frame');
-    expect(prompts.length).toBeGreaterThanOrEqual(2);
-    expect(prompts.length).toBeLessThanOrEqual(4); // ~12s / 4s + first
+    expect(prompts.length).toBeGreaterThanOrEqual(1);
+    expect(prompts.length).toBeLessThanOrEqual(2); // ~12s / 10s + first
   });
 
   it('speaks a changed prompt after the gentle framing-prompt gap', () => {
-    const rng = mulberry32(11);
-    const frames: RawLandmarkEvent[] = [
-      // Subject appears but stands too close for two seconds…
-      ...timestamps30fps(0, 60).map((t) => makeFrame(t, rng, { scale: 1.35 })),
-      // …then steps back to a good distance long enough for the gentle prompt gap.
-      ...timestamps30fps(2000, 120).map((t) => makeFrame(t, rng)),
-    ];
-    const run = runFlow(frames);
-    expect(run.spoken).toContain('step-back');
-    expect(run.spoken).toContain('hold-still');
-    expect(run.spoken.indexOf('hold-still')).toBeGreaterThan(run.spoken.indexOf('step-back'));
+    const controller = new SessionController<ChairStandResult>(
+      getMovement(CHAIR_STAND_ID) as never
+    );
+    const spoken: VoiceCueKey[] = [];
+    const update = (timestampMs: number, prompt: PreflightPrompt) => {
+      const result = controller.update(outputAt(timestampMs), framingStatus(prompt), false);
+      if (result.voice) spoken.push(...result.voice.cues);
+    };
+
+    update(0, 'step-back');
+    update(4999, 'step-closer');
+    update(5000, 'step-closer');
+
+    expect(spoken).toEqual(['step-back', 'step-closer']);
   });
 });
