@@ -90,7 +90,7 @@ export function PlanScreen({
       <View style={styles.header}>
         <View style={styles.headerCopy}>
           <Eyebrow>Plan</Eyebrow>
-          <Text style={styles.title}>Your 4-Week Block</Text>
+          <Text style={styles.title}>Your 4-week block</Text>
           <Text style={styles.subtitle}>
             {goalText ? `Built around your goal: ${goalText}.` : 'A simple plan for becoming stronger, steadier, and more mobile.'}
           </Text>
@@ -134,7 +134,12 @@ export function PlanScreen({
                 tone={completed >= activeBlockSummary.sessionsTargetThisWeek ? 'good' : 'neutral'}
               />
             </View>
-            <View style={styles.progressRail} accessibilityLabel="Weekly session progress">
+            <View
+              style={styles.progressRail}
+              accessibilityRole="progressbar"
+              accessibilityLabel="Weekly session progress"
+              accessibilityValue={{ min: 0, max: 100, now: Math.round(progress * 100) }}
+            >
               <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
             </View>
           </Card>
@@ -155,7 +160,7 @@ export function PlanScreen({
               {retest.due ? <StatusBadge label="Ready" tone="gold" /> : null}
             </View>
             <Text style={styles.cardBody}>{retest.body}</Text>
-            {retest.due ? <PrimaryButton title="Start Re-Test" onPress={onStartRetest} style={styles.primaryCta} /> : null}
+            {retest.due ? <PrimaryButton title="Start re-test" onPress={onStartRetest} style={styles.primaryCta} /> : null}
           </Card>
 
           <Card>
@@ -240,7 +245,7 @@ function SessionCard({ session, onStart }: { session: WeekSessionStatus; onStart
         </View>
         <Text style={styles.cardBody}>{copy.body}</Text>
         {next ? (
-          <SecondaryButton title="Start" onPress={onStart} style={styles.sessionButton} />
+          <SecondaryButton title="Start" accessibilityLabel={`Start ${copy.title}`} onPress={onStart} style={styles.sessionButton} />
         ) : complete ? (
           <Text style={styles.sessionNote}>Complete for this week.</Text>
         ) : (

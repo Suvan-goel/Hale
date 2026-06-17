@@ -119,7 +119,7 @@ export function SafetyProfileScreen({
           value={supportNearby}
           onValueChange={setSupportNearby}
         />
-        <Text style={styles.gentle}>Hale is not a medical diagnosis. Move only in a comfortable range.</Text>
+        <Text style={styles.gentle}>Hale is not medical care. Move only in a comfortable range.</Text>
       </Card>
 
       <View style={styles.actions}>

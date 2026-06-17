@@ -79,7 +79,7 @@ export function CurrentBlockCard({
         {complete ? (
           <PrimaryButton title="View 4-week report" onPress={onReport} />
         ) : readyForRetest ? (
-          <PrimaryButton title="Begin Re-Test" onPress={onRetest} />
+          <PrimaryButton title="Begin re-test" onPress={onRetest} />
         ) : recoveryMode ? (
           <PrimaryButton title={recovery.cta} onPress={onStartRestart} />
         ) : (

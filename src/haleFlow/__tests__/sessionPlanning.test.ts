@@ -19,6 +19,7 @@ import {
 import type { GeneratedSession, LadderProgress } from '../../training/workoutGeneration';
 import { generateTodaySession as generateRawTodaySession } from '../../training/workoutGeneration';
 import {
+  countsTowardMainPlan,
   createGeneratedSessionSummary,
   planLadderPracticeSession,
   planTodayHaleSession,
@@ -87,6 +88,7 @@ describe('planTodayHaleSession', () => {
     });
 
     expect(plan.metadata?.source).toBe('block_generated');
+    expect(countsTowardMainPlan(plan)).toBe(true);
     expect(plan.title).toBeTruthy();
     expect(plan.estimatedMinutes).toBeGreaterThan(0);
     expect(plan.exercises.length).toBeGreaterThan(0);
@@ -183,6 +185,7 @@ describe('planTodayHaleSession', () => {
     });
 
     expect(plan.metadata?.source).toBe('preset');
+    expect(countsTowardMainPlan(plan)).toBe(false);
     expect(plan.blockId).toBe('explore-extra-session');
     expect(plan.exercises.length).toBeGreaterThan(0);
     expect(plan.exercises.every((exercise) => hasExercise(exercise.id))).toBe(true);
@@ -199,6 +202,7 @@ describe('planTodayHaleSession', () => {
     });
 
     expect(plan?.metadata?.source).toBe('manual');
+    expect(countsTowardMainPlan(plan)).toBe(false);
     expect(plan?.metadata?.templateId).toBe('practice-sit-to-stand');
     expect(plan?.exercises).toHaveLength(1);
     expect(plan?.exercises.every((exercise) => hasExercise(exercise.id))).toBe(true);
@@ -306,6 +310,34 @@ describe('planTodayHaleSession', () => {
 
     expect(nextTraining.progress.completedSessions).toBe(1);
     expect(updateExerciseProgressionFromSession({ sessionPlan: plan, completion })).toBeTruthy();
+  });
+
+  it('keeps optional extra sessions out of main plan completion paths', () => {
+    const extraPlan = planTodayHaleSession({
+      activeBlock: null,
+      training: legacyTraining(),
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      presetId: 'preset-quick-full-body',
+      today: START,
+    });
+    const practicePlan = planLadderPracticeSession({
+      ladderId: 'sit-to-stand',
+      activeBlock: block(),
+      training: { ...legacyTraining(), ladderProgressById: ladderProgress() },
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      today: START,
+    });
+    const retestPrep: typeof extraPlan = {
+      ...extraPlan,
+      metadata: { ...(extraPlan.metadata ?? {}), source: 'block_generated' },
+      sessionType: 'retest_prep',
+    };
+
+    expect(countsTowardMainPlan(extraPlan)).toBe(false);
+    expect(countsTowardMainPlan(practicePlan)).toBe(false);
+    expect(countsTowardMainPlan(retestPrep)).toBe(false);
   });
 
   it('stores enough generated session metadata for completion updates', () => {

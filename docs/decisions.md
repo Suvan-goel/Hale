@@ -625,3 +625,14 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
   an available renderer state for the future official re-test flow rather than being inferred.
 - **Verification:** render utility tests cover measurement states, tracking quality, domain
   emphasis, config flags, and geometry overlays. Typecheck and the render test suite pass.
+
+## 2026-06-17 — Stage 8 polish guardrails
+
+- **Optional Explore and ladder-practice sessions stay outside the main plan.** A shared
+  `countsTowardMainPlan` helper now gates main block completion, weekly adherence, and ladder
+  progression for `preset`, `manual`, and `retest_prep` sessions. Their generated summaries can
+  still be saved locally for continuity. Rejected: letting optional practice advance the primary
+  block, because Explore should support the plan rather than quietly reshape it.
+- **Stage 8 QA is documented in `docs/hale-v1-manual-qa.md`.** The checklist covers first-run,
+  returning-user, Plan A/B/C, Progress/re-test/report, Explore, old state, and accessibility
+  passes without adding new product features.

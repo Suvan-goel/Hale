@@ -84,8 +84,8 @@ export function SessionPreviewScreen({
       ) : null}
 
       <View style={styles.actions}>
-        <PrimaryButton title="Start Session" onPress={onStart} style={styles.action} />
-        <SecondaryButton title="Back" onPress={onCancel} style={styles.action} />
+        <PrimaryButton title="Start Session" accessibilityLabel={`Start ${plan.title}`} onPress={onStart} style={styles.action} />
+        <SecondaryButton title="Back" accessibilityLabel="Back to Today" onPress={onCancel} style={styles.action} />
       </View>
     </Screen>
   );

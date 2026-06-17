@@ -322,11 +322,11 @@ export function HomeScreen({
       <View style={styles.actions}>
         {plan && !retestDue ? (
           <>
-            <PrimaryButton title="Start Workout" onPress={onStartWorkout} />
+            <PrimaryButton title="Start Hale Session" onPress={onStartWorkout} />
             <SecondaryButton title="Start Movement Check-Up" onPress={onBeginCheckUp} />
           </>
         ) : (
-          <PrimaryButton title={retestDue ? 'Begin Re-Test' : 'Begin Check-Up'} onPress={retestDue ? onRetestCheckUp : onBeginCheckUp} />
+          <PrimaryButton title={retestDue ? 'Begin re-test' : 'Begin Movement Check-Up'} onPress={retestDue ? onRetestCheckUp : onBeginCheckUp} />
         )}
       </View>
     </Screen>

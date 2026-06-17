@@ -160,14 +160,14 @@ export function getTodayPrimaryAction(state: HaleLifecycleState): TodayPrimaryAc
         type: 'start_checkup',
         title: 'Ready for your first Movement Check-Up?',
         subtitle: 'Check strength, balance, and mobility from home.',
-        ctaLabel: 'Start Check-Up',
+        ctaLabel: 'Start Movement Check-Up',
       };
     case 'needs_block_creation':
       return {
         type: 'create_block',
         title: 'Your results are ready',
         subtitle: 'Create your first 4-week block from your Movement Check-Up.',
-        ctaLabel: 'Create 4-Week Block',
+        ctaLabel: 'Create 4-week block',
         tone: 'progress',
       };
     case 'first_session_ready':
@@ -183,7 +183,7 @@ export function getTodayPrimaryAction(state: HaleLifecycleState): TodayPrimaryAc
         type: 'start_micro_check',
         title: '60-second check-in',
         subtitle: 'A quick check to keep your block on track.',
-        ctaLabel: 'Start Micro-Check',
+        ctaLabel: 'Start micro-check',
         tone: 'progress',
       };
     case 'monthly_retest_due':
@@ -191,7 +191,7 @@ export function getTodayPrimaryAction(state: HaleLifecycleState): TodayPrimaryAc
         type: 'start_retest',
         title: "It's time to re-test",
         subtitle: 'Repeat your Movement Check-Up to see what changed.',
-        ctaLabel: 'Start Re-Test',
+        ctaLabel: 'Start re-test',
         tone: 'retest',
       };
     case 'week_complete':

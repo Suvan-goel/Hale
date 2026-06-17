@@ -106,7 +106,7 @@ describe('progressViewModel', () => {
     });
     expect(getRetestDueSummary({ activeBlock: block, today: '2026-06-29T08:00:00.000Z', hasBaseline: true })).toMatchObject({
       due: true,
-      ctaLabel: 'Start Re-Test',
+      ctaLabel: 'Start re-test',
     });
   });
 

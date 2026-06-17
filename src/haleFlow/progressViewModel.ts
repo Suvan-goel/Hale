@@ -193,7 +193,7 @@ export function getRetestDueSummary({
     return {
       title: "It's time to re-test",
       body: 'Repeat your Movement Check-Up to see what changed.',
-      ctaLabel: 'Start Re-Test',
+      ctaLabel: 'Start re-test',
       due: true,
     };
   }

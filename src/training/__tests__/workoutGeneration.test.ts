@@ -324,9 +324,10 @@ describe('dynamic workout generation', () => {
     expect(byId.travel_true_no_equipment.exercises.flatMap((exercise) => exercise.equipmentRequired)).toEqual(
       expect.arrayContaining(['none'])
     );
-    expect(byId.travel_true_no_equipment.exercises.flatMap((exercise) => exercise.equipmentRequired)).not.toEqual(
-      expect.arrayContaining(['chair', 'wall', 'wall/counter support', 'stair', 'long_band', 'backpack_or_weight'])
-    );
+    const travelEquipment = byId.travel_true_no_equipment.exercises.flatMap((exercise) => exercise.equipmentRequired);
+    for (const forbidden of ['chair', 'wall', 'wall/counter support', 'stair', 'long_band', 'backpack_or_weight']) {
+      expect(travelEquipment).not.toContain(forbidden);
+    }
     expect(byId.beginner_long_band.exercises.every((exercise) => !exercise.prescription.startsWith('3 x'))).toBe(true);
     expect(byId.beginner_long_band.exercises.some((exercise) => exercise.ladderId === 'pull-upper-back')).toBe(true);
     expect(byId.no_band_upper_pull.exercises.flatMap((exercise) => exercise.equipmentRequired)).not.toContain('long_band');

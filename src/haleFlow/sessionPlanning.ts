@@ -278,6 +278,13 @@ export function adaptGeneratedSessionToHaleSessionPlan(
   };
 }
 
+export function countsTowardMainPlan(sessionPlan: HaleSessionPlan | null | undefined): boolean {
+  if (!sessionPlan) return true;
+  if (sessionPlan.sessionType === 'retest_prep') return false;
+  const source = sessionPlan.metadata?.source;
+  return source !== 'preset' && source !== 'manual';
+}
+
 function placeholderBlockForGenerated(generated: GeneratedSession, today: string | Date | undefined): MovementBlock {
   const now = iso(today ?? new Date());
   const focusDomain = toMovementDomain(generated.focusDomain);

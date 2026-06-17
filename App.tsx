@@ -46,6 +46,7 @@ import {
   createMovementAssessment,
   createMovementBlockReport,
   createGeneratedSessionSummary,
+  countsTowardMainPlan,
   getHaleAppLifecycle,
   getMicroCheckForBlock,
   latestOfficialAssessment,
@@ -739,12 +740,11 @@ export default function App() {
     (result: TrainingSessionResult) => {
       const completedAt = new Date().toISOString();
       const sessionPlan = activeSessionPlan;
-      const isExtraPractice =
-        sessionPlan?.metadata?.source === 'preset' || sessionPlan?.metadata?.source === 'manual';
+      const countsTowardPlan = countsTowardMainPlan(sessionPlan);
       setLastSessionResult(result);
       let nextTraining = training;
       let trainingChanged = false;
-      if (sessionPlan?.sessionType !== 'retest_prep' && !isExtraPractice) {
+      if (countsTowardPlan) {
         nextTraining = recordCompletedSession(nextTraining, result, completedAt);
         trainingChanged = true;
       }
@@ -774,7 +774,7 @@ export default function App() {
           plannedDate: sessionPlan?.metadata?.plannedDateKey ?? `session-${training.progress.completedSessions + 1}`,
           durationMinutes,
         });
-        if (!isExtraPractice) {
+        if (countsTowardPlan) {
           let nextAdherence = recordTrainingSessionCompletion(adherence, completion);
           const updatedBlock = nextAdherence.blocks.find((b) => b.id === block.id) ?? block;
           nextAdherence = mergeMilestones(
@@ -867,7 +867,11 @@ export default function App() {
           };
         }
       }
-      if (activeSessionPlan && activeSessionPlan.metadata?.source !== 'legacy_fallback') {
+      if (
+        activeSessionPlan &&
+        activeSessionPlan.metadata?.source !== 'legacy_fallback' &&
+        countsTowardMainPlan(activeSessionPlan)
+      ) {
         try {
           const ladderProgressById = updateExerciseProgressionFromSession({
             sessionPlan: activeSessionPlan,
@@ -1186,7 +1190,7 @@ export default function App() {
               : 'Camera access is needed to measure your movement. Video is never shown or stored — you appear only as a skeleton outline.'}
           </Text>
           {permission === 'denied' ? (
-            <Pressable style={styles.back} onPress={goHome}>
+            <Pressable style={styles.back} onPress={goHome} accessibilityRole="button" accessibilityLabel="Back to Today">
               <Text style={styles.backText}>Back</Text>
             </Pressable>
           ) : null}
@@ -1370,7 +1374,7 @@ export default function App() {
           <View />
         )}
         {flow === 'settings' || (__DEV__ && (flow === 'dev-assessment' || flow === 'dev-live')) ? (
-          <Pressable style={styles.back} onPress={goHome}>
+          <Pressable style={styles.back} onPress={goHome} accessibilityRole="button" accessibilityLabel="Back to Today">
             <Text style={styles.backText}>Back</Text>
           </Pressable>
         ) : null}

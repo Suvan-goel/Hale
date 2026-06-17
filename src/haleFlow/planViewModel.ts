@@ -41,7 +41,7 @@ export function getPlanEmptyStateCopy(state: HaleLifecycleState): PlanEmptyState
   return {
     title: 'Create your 4-week block',
     body: 'Your Movement Check-Up is ready to become a simple plan for strength, steadiness, and mobility.',
-    ctaLabel: 'Create 4-Week Block',
+    ctaLabel: 'Create 4-week block',
     action: 'create_block',
   };
 }

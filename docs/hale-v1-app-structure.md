@@ -40,7 +40,7 @@ Current flow:
 
 - `WelcomeScreen` -> `LifeGoalOnboardingScreen` -> `SafetyProfileScreen` -> `CameraSetupScreen` -> `CheckUpScreen` -> `ResultsScreen` -> `BlockIntroScreen`.
 - The target V1 flow wants:
-  - Welcome -> Life Goal -> Safety/Profile -> Equipment -> Camera Explanation -> Camera Setup Tutorial -> Baseline Movement Check-Up -> Results -> Create 4-Week Block -> Start First Session.
+  - Welcome -> Life Goal -> Safety/Profile -> Equipment -> Camera Explanation -> Camera Setup Tutorial -> Baseline Movement Check-Up -> Results -> Create 4-week block -> Start First Session.
 
 Current state storage:
 

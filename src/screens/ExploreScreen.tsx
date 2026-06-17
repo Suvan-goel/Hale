@@ -172,7 +172,7 @@ function ExtraSessionTile({
           <Text style={styles.disabledText}>{disabledReason}</Text>
         </View>
       ) : (
-        <SmallAction label="Start" onPress={onStart} />
+        <SmallAction label="Start" accessibilityLabel={`Start ${title}`} onPress={onStart} />
       )}
     </View>
   );
@@ -241,13 +241,21 @@ function LearnTile({
   );
 }
 
-function SmallAction({ label, onPress }: { label: string; onPress: () => void }) {
+function SmallAction({
+  label,
+  accessibilityLabel,
+  onPress,
+}: {
+  label: string;
+  accessibilityLabel?: string;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       style={({ pressed }) => [styles.smallAction, pressed && styles.pressed]}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
     >
       <Text style={styles.smallActionText}>{label}</Text>
     </Pressable>
