@@ -4,202 +4,217 @@ import { StyleSheet, Text, View } from 'react-native';
 import {
   Card,
   EmptyState,
+  Eyebrow,
   HealthMetricRow,
-  MetricCard,
   PrimaryButton,
   Screen,
+  SecondaryButton,
   SectionHeader,
   SettingsIconButton,
   StatusBadge,
 } from '../components/ui';
-import { getExerciseLadder } from '../exercises';
-import type { MovementSnapshot, MovementSnapshotBand } from '../haleFlow';
+import type { MovementBlock, MovementBlockReport, TrainingSessionCompletion } from '../adherence';
+import {
+  getBlockReportSummaries,
+  getDomainProgressCards,
+  getLadderProgressCards,
+  getLatestCheckUpSummary,
+  getRetestDueSummary,
+  getRetestHistory,
+} from '../haleFlow';
 import type { StoredCheckUp } from '../history';
-import { CheckUpScore, Domain } from '../scoring';
+import type { Domain } from '../scoring';
 import type { LadderProgress } from '../training';
-import { colors, spacing, type } from '../theme';
+import { colors, radius, spacing, type } from '../theme';
 
-type SnapshotKey = keyof MovementSnapshot;
-
-const DOMAIN_INITIAL: Record<Domain, string> = {
-  strength: 'S',
-  balance: 'B',
-  mobility: 'M',
-};
-
-const DOMAIN_TITLES: Record<Domain, string> = {
+const DOMAIN_LABEL: Record<Domain, string> = {
   strength: 'Strength / Power',
   balance: 'Balance',
   mobility: 'Mobility',
 };
 
-const SNAPSHOT_ROWS: readonly { key: SnapshotKey; title: string }[] = [
-  { key: 'strengthPower', title: 'Strength / Power' },
-  { key: 'balance', title: 'Balance' },
-  { key: 'mobility', title: 'Mobility' },
-];
-
-const LADDER_ROWS: readonly { ladderId: string; label: string }[] = [
-  { ladderId: 'sit-to-stand', label: 'Sit-to-Stand' },
-  { ladderId: 'balance', label: 'Balance' },
-  { ladderId: 'push', label: 'Push' },
-  { ladderId: 'pull-upper-back', label: 'Pull / Upper Back' },
-  { ladderId: 'mobility-flexibility', label: 'Mobility' },
-];
-
 export function ProgressScreen({
-  latestCheckUp,
-  score,
-  movementSnapshot,
-  checkUpCount,
-  onBeginCheckUp,
-  onViewLatest,
-  onOpenSettings,
+  history,
+  activeBlock,
+  blocks,
+  reports,
+  completions,
   ladderProgressById = {},
+  today,
+  onBeginCheckUp,
+  onStartRetest,
+  onViewLatest,
+  onViewReport,
+  onOpenSettings,
 }: {
-  latestCheckUp: StoredCheckUp | null;
-  score: CheckUpScore | null;
-  movementSnapshot?: MovementSnapshot;
-  checkUpCount: number;
-  onBeginCheckUp: () => void;
-  onViewLatest: () => void;
-  onOpenSettings: () => void;
+  history: readonly StoredCheckUp[];
+  activeBlock?: MovementBlock | null;
+  blocks: readonly MovementBlock[];
+  reports: readonly MovementBlockReport[];
+  completions: readonly TrainingSessionCompletion[];
   ladderProgressById?: Record<string, LadderProgress>;
+  today: string;
+  onBeginCheckUp: () => void;
+  onStartRetest: () => void;
+  onViewLatest: () => void;
+  onViewReport: (blockId: string) => void;
+  onOpenSettings: () => void;
 }) {
-  const measured = score ? score.domains.filter((domain) => domain.measured) : [];
-  const snapshotCount = SNAPSHOT_ROWS.filter((row) => movementSnapshot?.[row.key]).length;
-  const ladderRows = LADDER_ROWS.map((row) => ({ ...row, progress: ladderProgressById[row.ladderId] })).filter((row) => !!row.progress);
+  const latest = getLatestCheckUpSummary(history);
+  const domainCards = getDomainProgressCards(history);
+  const ladderCards = getLadderProgressCards(ladderProgressById);
+  const blockReports = getBlockReportSummaries({ blocks, reports, completions });
+  const retestHistory = getRetestHistory(history);
+  const retest = getRetestDueSummary({ activeBlock, today, hasBaseline: history.length > 0 });
+  const completedSessions = completions.filter((completion) =>
+    completion.sessionType === 'starter' || completion.sessionType === 'standard' || completion.sessionType === 'restart'
+  ).length;
+
   return (
     <Screen>
       <View style={styles.header}>
         <View style={styles.headerCopy}>
           <Text style={styles.title}>Movement Progress</Text>
-          <Text style={styles.subtitle}>Your Movement Check-Up history and block progress build here.</Text>
+          <Text style={styles.subtitle}>See how your strength, balance, and mobility are changing over time.</Text>
         </View>
         <SettingsIconButton onPress={onOpenSettings} />
       </View>
 
-      <Card>
-        <View style={styles.latestHead}>
-          <View style={styles.headerCopy}>
-            <Text style={styles.cardTitle}>Latest Movement Check-Up</Text>
-            <Text style={styles.cardBody}>
-              {latestCheckUp
-                ? `Saved ${formatDate(latestCheckUp.checkUp.startedAt)}`
-                : 'Complete your first Movement Check-Up to see your baseline.'}
-            </Text>
+      {!latest ? (
+        <EmptyState
+          title="Complete your first Movement Check-Up to see your baseline."
+          body="Hale will use it to build your 4-week block and start tracking progress."
+          actionLabel="Start Movement Check-Up"
+          onAction={onBeginCheckUp}
+        />
+      ) : (
+        <>
+          <Card>
+            <View style={styles.latestHead}>
+              <View style={styles.headerCopy}>
+                <Eyebrow>Latest Movement Check-Up</Eyebrow>
+                <Text style={styles.cardTitle}>{latest.dateLabel}</Text>
+                <Text style={styles.cardBody}>{latest.focusTitle}</Text>
+              </View>
+              <StatusBadge label="Saved" tone="good" />
+            </View>
+            <View style={styles.bandGrid}>
+              {(['strength', 'balance', 'mobility'] as Domain[]).map((domain) => (
+                <View key={domain} style={styles.bandCard}>
+                  <Text style={styles.bandLabel}>{DOMAIN_LABEL[domain]}</Text>
+                  <Text style={styles.bandValue}>{bandLabel(latest.bands[domain])}</Text>
+                </View>
+              ))}
+            </View>
+            <SecondaryButton title="View latest" onPress={onViewLatest} style={styles.viewLatestButton} />
+          </Card>
+
+          <View style={styles.metricGrid}>
+            <SmallMetric label="Check-ups" value={`${history.length}`} detail={history.length > 1 ? 'comparison ready' : 'baseline saved'} />
+            <SmallMetric label="Hale Sessions" value={`${completedSessions}`} detail="in your history" />
           </View>
-          <StatusBadge label={latestCheckUp ? 'Baseline saved' : 'Not started'} tone={latestCheckUp ? 'good' : 'gold'} />
-        </View>
-        <View style={styles.actionWrap}>
-          <PrimaryButton title={latestCheckUp ? 'View latest' : 'Start Movement Check-Up'} onPress={latestCheckUp ? onViewLatest : onBeginCheckUp} />
-        </View>
-      </Card>
 
-      <View style={styles.metricGrid}>
-        <MetricCard
-          label="Check-ups"
-          value={`${checkUpCount}`}
-          detail={checkUpCount > 0 ? 'trend building' : 'clean slate'}
-        />
-        <MetricCard
-          label="Domains"
-          value={`${snapshotCount || measured.length}/3`}
-          detail={snapshotCount > 0 || measured.length > 0 ? 'measured' : 'baseline pending'}
-        />
-      </View>
+          <Card>
+            <SectionHeader title="Domain progress" />
+            <View style={styles.domainList}>
+              {domainCards.map((card) => (
+                <View key={card.domain} style={styles.domainCard}>
+                  <View style={styles.domainHead}>
+                    <Text style={styles.domainTitle}>{card.title}</Text>
+                    <StatusBadge label={trendLabel(card.trend)} tone={card.trend === 'improved' ? 'good' : 'neutral'} />
+                  </View>
+                  <Text style={styles.metricLine}>{card.metric}</Text>
+                  <Text style={styles.cardBody}>{card.body}</Text>
+                </View>
+              ))}
+            </View>
+          </Card>
 
-      <Card>
-        <SectionHeader title="Movement snapshot" />
-        {movementSnapshot ? (
-          SNAPSHOT_ROWS.map((row) => {
-            const band = movementSnapshot[row.key];
-            return (
-              <HealthMetricRow
-                key={row.key}
-                label={row.title}
-                value={band ? bandValue(band) : 'Baseline pending'}
-                status={band ? bandStatus(band) : 'Movement Check-Up'}
-              />
-            );
-          })
-        ) : (
-          <Text style={styles.cardBody}>Complete your first Movement Check-Up to see Strength / Power, Balance, and Mobility.</Text>
-        )}
-      </Card>
+          <Card>
+            <SectionHeader title="Movement ladder progress" />
+            {ladderCards.length > 0 ? (
+              ladderCards.map((card) => (
+                <HealthMetricRow
+                  key={card.ladderId}
+                  label={card.title}
+                  value={card.levelName}
+                  status={card.status}
+                />
+              ))
+            ) : (
+              <Text style={styles.cardBody}>Complete a few Hale Sessions to see your movement ladder progress.</Text>
+            )}
+          </Card>
 
-      <Card>
-        <SectionHeader title="Movement ages" />
-        {score ? (
-          score.domains.map((domain) => (
-            <HealthMetricRow
-              key={domain.domain}
-              icon={DOMAIN_INITIAL[domain.domain]}
-              label={DOMAIN_TITLES[domain.domain]}
-              value={domain.measured ? `Age ${domain.ageLow}-${domain.ageHigh}` : 'Baseline pending'}
-              status={domain.measured ? (domain.estimated ? 'Estimate' : 'Measured') : 'Next check-up'}
-            />
-          ))
-        ) : (
-          <Text style={styles.cardBody}>Movement-age ranges appear after a completed check-up.</Text>
-        )}
-      </Card>
+          <Card>
+            <SectionHeader title="4-week block reports" />
+            {blockReports.length > 0 ? (
+              blockReports.map((report) => (
+                <View key={report.blockId} style={styles.reportRow}>
+                  <View style={styles.headerCopy}>
+                    <Text style={styles.reportTitle}>{report.dateRange}</Text>
+                    <Text style={styles.cardBody}>{report.focus} · {report.sessions}</Text>
+                    <Text style={styles.reportChange}>{report.mainChange}</Text>
+                  </View>
+                  <SecondaryButton title="View report" onPress={() => onViewReport(report.blockId)} style={styles.reportButton} />
+                </View>
+              ))
+            ) : (
+              <Text style={styles.cardBody}>Your first 4-week report appears after a re-test.</Text>
+            )}
+          </Card>
 
-      <Card>
-        <SectionHeader title="Movement ladder progress" />
-        {ladderRows.length > 0 ? (
-          ladderRows.map((row) => (
-            <HealthMetricRow
-              key={row.ladderId}
-              label={row.label}
-              value={levelLabel(row.ladderId, row.progress!.currentLevelId)}
-              status={ladderStatus(row.progress!)}
-            />
-          ))
-        ) : (
-          <Text style={styles.cardBody}>Current levels appear here after Hale has session feedback to learn from.</Text>
-        )}
-      </Card>
+          <Card>
+            <SectionHeader title="Re-test history" />
+            {retestHistory.map((entry) => (
+              <View key={entry.id} style={styles.historyRow}>
+                <Text style={styles.historyDate}>{entry.dateLabel}</Text>
+                <View style={styles.historyBands}>
+                  {(['strength', 'balance', 'mobility'] as Domain[]).map((domain) => (
+                    <View key={domain} style={styles.historyBand}>
+                      <Text style={styles.historyBandText}>{DOMAIN_LABEL[domain]}: {bandLabel(entry.bands[domain])}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ))}
+          </Card>
 
-      <EmptyState
-        title="Re-test history"
-        body="Monthly re-tests will show how your 4-week blocks are helping you stay capable."
-      />
+          <Card>
+            <SectionHeader title={retest.title} />
+            <Text style={styles.cardBody}>{retest.body}</Text>
+            {retest.due && retest.ctaLabel ? (
+              <PrimaryButton title={retest.ctaLabel} onPress={onStartRetest} style={styles.retestButton} />
+            ) : null}
+          </Card>
+        </>
+      )}
     </Screen>
   );
 }
 
-function bandValue(band: MovementSnapshotBand): string {
+function SmallMetric({ label, value, detail }: { label: string; value: string; detail: string }) {
+  return (
+    <View style={styles.smallMetric}>
+      <Text style={styles.smallMetricLabel}>{label}</Text>
+      <Text style={styles.smallMetricValue}>{value}</Text>
+      <Text style={styles.smallMetricDetail}>{detail}</Text>
+    </View>
+  );
+}
+
+function bandLabel(band: 'starting_point' | 'building' | 'strong' | 'pending'): string {
   if (band === 'strong') return 'Strong';
   if (band === 'building') return 'Building';
+  if (band === 'starting_point') return 'Starting point';
   return 'Starting point';
 }
 
-function bandStatus(band: MovementSnapshotBand): string {
-  if (band === 'strong') return 'Protect progress';
-  if (band === 'building') return 'Keep building';
-  return 'Fresh focus';
-}
-
-function formatDate(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return 'recently';
-  return date.toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
-}
-
-function levelLabel(ladderId: string, levelId: string): string {
-  try {
-    return getExerciseLadder(ladderId).levels.find((level) => level.id === levelId)?.name ?? 'Current level';
-  } catch {
-    return 'Current level';
-  }
-}
-
-function ladderStatus(progress: LadderProgress): string {
-  if (progress.lastPain) return 'Comfort first';
-  if (progress.lastTrackingQuality === 'poor') return 'Repeat setup';
-  if (progress.readyToProgress) return 'Building well';
-  return 'Current level';
+function trendLabel(trend: string): string {
+  if (trend === 'improved') return 'Building';
+  if (trend === 'held_steady') return 'Held steady';
+  if (trend === 'lower') return 'Adjusted';
+  return 'Starting point';
 }
 
 const styles = StyleSheet.create({
@@ -209,12 +224,66 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.lg,
   },
-  headerCopy: { flex: 1 },
+  headerCopy: { flex: 1, minWidth: 0 },
   title: { ...type.display },
   subtitle: { ...type.body, color: colors.textSecondary, marginTop: spacing.sm },
-  latestHead: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
-  cardTitle: { ...type.h2 },
-  cardBody: { ...type.bodySmall, color: colors.textSecondary, marginTop: spacing.sm },
-  actionWrap: { marginTop: spacing.lg },
+  latestHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
+  cardTitle: { ...type.h2, marginTop: spacing.sm },
+  cardBody: { ...type.bodySmall, color: colors.textSecondary, marginTop: spacing.xs },
+  bandGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginTop: spacing.lg },
+  bandCard: {
+    flexGrow: 1,
+    flexBasis: 140,
+    minHeight: 82,
+    padding: spacing.md,
+    borderRadius: radius.input,
+    backgroundColor: colors.bgSage,
+  },
+  bandLabel: { ...type.caption, color: colors.sageDeep },
+  bandValue: { ...type.h3, marginTop: spacing.xs },
+  viewLatestButton: { marginTop: spacing.lg, shadowOpacity: 0 },
   metricGrid: { flexDirection: 'row', gap: spacing.md },
+  smallMetric: {
+    flex: 1,
+    minHeight: 112,
+    padding: spacing.lg,
+    borderRadius: radius.card,
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderColor: colors.borderHairline,
+  },
+  smallMetricLabel: { ...type.label },
+  smallMetricValue: { ...type.metricSmall, color: colors.accentDeep, marginTop: spacing.sm },
+  smallMetricDetail: { ...type.caption, marginTop: spacing.xs },
+  domainList: { marginTop: spacing.md },
+  domainCard: {
+    paddingVertical: spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
+  },
+  domainHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  domainTitle: { ...type.h3, flex: 1 },
+  metricLine: { ...type.bodySmall, color: colors.accentDeep, marginTop: spacing.sm },
+  reportRow: {
+    minHeight: 96,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
+  },
+  reportTitle: { ...type.h3 },
+  reportChange: { ...type.caption, color: colors.sageDeep, marginTop: spacing.sm },
+  reportButton: { minWidth: 112, shadowOpacity: 0 },
+  historyRow: {
+    paddingVertical: spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
+  },
+  historyDate: { ...type.h3 },
+  historyBands: { gap: spacing.xs, marginTop: spacing.sm },
+  historyBand: { minHeight: 26, justifyContent: 'center' },
+  historyBandText: { ...type.caption },
+  retestButton: { marginTop: spacing.lg },
 });

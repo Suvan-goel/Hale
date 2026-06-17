@@ -16,6 +16,7 @@ export type TrainingDomain = 'strength_power' | 'balance_stability' | 'mobility_
 export type SessionSource = 'block_generated' | 'preset' | 'manual';
 export type DailyReadiness = 'ready' | 'a_bit_stiff' | 'low_energy' | 'something_hurts' | 'short_on_time';
 export type PainArea = 'knee' | 'hip' | 'back' | 'shoulder' | 'ankle' | 'neck' | 'other';
+export type SessionIntensity = 'beginner' | 'standard' | 'advanced';
 
 export type SessionSlotType =
   | 'lower_body_strength'
@@ -114,6 +115,7 @@ export interface GenerateSessionInput {
   recentSessions?: readonly RecentSessionSummary[];
   source?: SessionSource;
   includeOptionalLevels?: boolean;
+  sessionIntensity?: SessionIntensity;
 }
 
 export interface GeneratedExercise {
@@ -152,6 +154,7 @@ export interface GeneratedSession {
   focusDomain: TrainingDomain;
   dayLabel: SessionTemplate['dayLabel'];
   estimatedMinutes: number;
+  durationLabel: string;
   readiness: DailyReadiness;
   painAreas: readonly PainArea[];
   weekStatus: 'session_due' | 'week_complete' | 'block_complete' | 'preset';
@@ -368,6 +371,7 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
       focusDomain: input.block?.focusDomain ?? 'strength_power',
       dayLabel: 'Extra',
       estimatedMinutes: 0,
+      durationLabel: '0 min',
       readiness,
       painAreas,
       weekStatus: selection.status === 'block_complete' ? 'block_complete' : 'week_complete',
@@ -378,6 +382,7 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
   }
 
   const workingTemplate = applyReadinessToTemplate(template, readiness, painAreas);
+  const sessionIntensity = input.sessionIntensity ?? 'standard';
   const usedExerciseIds = new Set<string>();
   const skippedSlots: string[] = [];
   const exercises: GeneratedExercise[] = [];
@@ -389,6 +394,7 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
       equipment,
       painAreas,
       readiness,
+      sessionIntensity,
       ladderProgress: input.ladderProgress ?? {},
       includeOptionalLevels: input.includeOptionalLevels ?? false,
       usedExerciseIds,
@@ -403,6 +409,8 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
         slot,
         selected,
         readiness,
+        sessionIntensity,
+        painAreas,
         isFirstStrength: exercises.every((e) => e.domain !== 'strength_power'),
         index,
       })
@@ -419,6 +427,7 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
     focusDomain: workingTemplate.focusDomain,
     dayLabel: workingTemplate.dayLabel,
     estimatedMinutes,
+    durationLabel: durationLabel(estimatedMinutes, readiness),
     readiness,
     painAreas,
     weekStatus: source === 'preset' ? 'preset' : selection.status === 'block_complete' ? 'block_complete' : 'session_due',
@@ -655,10 +664,11 @@ const EXTRA_SESSION_PRESETS: readonly SessionTemplate[] = [
     slot('steady-lateral', 'lateral_stability', 'Side-to-side control', 'balance_stability', ['lateral-stability']),
     slot('steady-ankle', 'ankle', 'Ankle support', 'strength_power', ['heel-toe-raise', 'mobility-flexibility']),
   ], 'preset'),
-  template('preset-no-equipment-strength', 'No-Equipment Strength', 'Extra', 'strength_power', 15, [
-    slot('noeq-squat', 'lower_body_strength', 'Lower-body strength', 'strength_power', ['squat', 'sit-to-stand']),
-    slot('noeq-hinge', 'posterior_chain', 'Hinge and glutes', 'strength_power', ['hinge-glutes']),
+  template('preset-no-equipment-strength', 'No Optional Equipment Strength', 'Extra', 'strength_power', 15, [
+    slot('noeq-chair', 'lower_body_strength', 'Chair-rise strength', 'strength_power', ['sit-to-stand', 'squat']),
     slot('noeq-push', 'upper_body_push', 'Upper-body push', 'strength_power', ['push', 'shoulder-reach-press']),
+    slot('noeq-balance', 'balance', 'Steady balance', 'balance_stability', ['balance']),
+    slot('noeq-mobility', 'mobility', 'Mobility reset', 'mobility_flexibility', ['mobility-flexibility', 'shoulder-reach-press']),
   ], 'preset'),
   template('preset-band-upper-back', 'Band Upper-Back', 'Extra', 'strength_power', 15, [
     slot('band-row', 'upper_body_pull', 'Band row', 'strength_power', ['pull-upper-back']),
@@ -682,6 +692,7 @@ interface SelectionInput {
   equipment: readonly AvailableEquipment[];
   painAreas: readonly PainArea[];
   readiness: DailyReadiness;
+  sessionIntensity: SessionIntensity;
   ladderProgress: Record<string, LadderProgress>;
   includeOptionalLevels: boolean;
   usedExerciseIds: Set<string>;
@@ -705,11 +716,14 @@ function selectExerciseForSlot(input: SelectionInput): SelectedExercise | null {
     if (!ladder) continue;
     const selected = selectLevelFromLadder(ladder, input);
     if (selected) {
+      const firstPreferred = resolveLadderId(input.slot.preferredLadderIds[0]);
+      const substitutions =
+        ladderId === firstPreferred
+          ? selected.substitutions
+          : fallbackReasons(input.slot, selected.ladder, input.equipment);
       return {
         ...selected,
-        substitutions: ladderId === resolveLadderId(input.slot.preferredLadderIds[0])
-          ? selected.substitutions
-          : [`Used ${selected.ladder.title} because ${input.slot.title.toLowerCase()} needed a safer fit today.`],
+        substitutions,
       };
     }
   }
@@ -721,7 +735,7 @@ function selectLevelFromLadder(
   input: SelectionInput
 ): SelectedExercise | null {
   const progress = input.ladderProgress[ladder.id];
-  const desiredIndex = desiredLevelIndex(ladder, progress, input.readiness);
+  const desiredIndex = desiredLevelIndex(ladder, progress, input.readiness, input.sessionIntensity);
   const order = levelSearchOrder(ladder.levels.length, desiredIndex);
   for (const idx of order) {
     const level = ladder.levels[idx];
@@ -744,10 +758,12 @@ function selectLevelFromLadder(
 function desiredLevelIndex(
   ladder: ExerciseLadder,
   progress: LadderProgress | undefined,
-  readiness: DailyReadiness
+  readiness: DailyReadiness,
+  sessionIntensity: SessionIntensity
 ): number {
   const desiredId = progress?.currentLevelId ?? ladder.defaultLevelId;
   let idx = Math.max(0, ladder.levels.findIndex((level) => level.id === desiredId));
+  if (sessionIntensity === 'beginner' && !progress && idx > 0) idx -= 1;
   if ((readiness === 'low_energy' || readiness === 'something_hurts') && idx > 0) idx -= 1;
   return idx;
 }
@@ -759,16 +775,72 @@ function levelSearchOrder(length: number, desiredIndex: number): number[] {
   return out;
 }
 
+function fallbackReasons(
+  slot: SessionSlot,
+  ladder: ExerciseLadder,
+  available: readonly AvailableEquipment[]
+): string[] {
+  const noBandPull =
+    slot.type === 'upper_body_pull' &&
+    slot.preferredLadderIds.map(resolveLadderId).includes('pull-upper-back') &&
+    ladder.id !== 'pull-upper-back' &&
+    !available.includes('resistance_band');
+  if (noBandPull) {
+    return ['A resistance band is needed for upper-back pulling work. Today we will use shoulder mobility instead.'];
+  }
+  return [`Used ${ladder.title} because ${slot.title.toLowerCase()} needed a safer fit today.`];
+}
+
+function beginnerPrescription(input: {
+  slot: SessionSlot;
+  exercise: ExerciseDefinition;
+  level: ExerciseLevel;
+  sets: number;
+  repsPerSet?: number;
+  secondsPerSet?: number;
+}): { sets: number; repsPerSet?: number; secondsPerSet?: number } {
+  let { sets, repsPerSet, secondsPerSet } = input;
+  const id = input.level.id;
+
+  if (input.level.domain === 'strength_power') {
+    sets = Math.min(sets, 2);
+    if (repsPerSet) {
+      if (id.includes('sts-cushion')) repsPerSet = Math.min(repsPerSet, 8);
+      else if (id.includes('sts-standard')) repsPerSet = Math.min(repsPerSet, 10);
+      else if (input.slot.type === 'upper_body_push') repsPerSet = Math.min(repsPerSet, 8);
+      else repsPerSet = Math.min(repsPerSet, 8);
+    }
+  }
+
+  if (input.level.domain === 'balance_stability') {
+    sets = Math.min(sets, 2);
+    if (repsPerSet) repsPerSet = Math.min(repsPerSet, 8);
+    if (secondsPerSet) secondsPerSet = Math.min(secondsPerSet, 20);
+  }
+
+  if (input.level.domain === 'mobility_flexibility') {
+    sets = input.exercise.kind === 'rom' || input.exercise.kind === 'timer' ? Math.min(sets, 1) : Math.min(sets, 2);
+    if (repsPerSet) repsPerSet = Math.min(repsPerSet, 8);
+    if (secondsPerSet) secondsPerSet = Math.max(20, Math.min(secondsPerSet, 30));
+  }
+
+  return { sets, repsPerSet, secondsPerSet };
+}
+
 function toGeneratedExercise({
   slot,
   selected,
   readiness,
+  sessionIntensity,
+  painAreas,
   isFirstStrength,
   index,
 }: {
   slot: SessionSlot;
   selected: SelectedExercise;
   readiness: DailyReadiness;
+  sessionIntensity: SessionIntensity;
+  painAreas: readonly PainArea[];
   isFirstStrength: boolean;
   index: number;
 }): GeneratedExercise {
@@ -777,10 +849,27 @@ function toGeneratedExercise({
   let repsPerSet = base.repsPerSet;
   let secondsPerSet = base.holdSec ?? base.captureSec ?? base.timerSec;
 
+  if (sessionIntensity === 'beginner') {
+    const beginner = beginnerPrescription({
+      slot,
+      exercise: selected.def,
+      level: selected.level,
+      sets,
+      repsPerSet,
+      secondsPerSet,
+    });
+    sets = beginner.sets;
+    repsPerSet = beginner.repsPerSet;
+    secondsPerSet = beginner.secondsPerSet;
+  }
   if (readiness === 'short_on_time') {
     sets = Math.min(sets, slot.domain === 'strength_power' ? 2 : 1);
   } else if (readiness === 'low_energy' || readiness === 'something_hurts') {
     sets = Math.max(1, sets - 1);
+  }
+  if (painAreas.includes('knee') && selected.ladder.id === 'lateral-stability') {
+    sets = 1;
+    secondsPerSet = secondsPerSet ? Math.min(secondsPerSet, 20) : 20;
   }
   if (readiness === 'a_bit_stiff' && isFirstStrength && selected.level.domain === 'strength_power') {
     if (repsPerSet) repsPerSet = Math.max(4, Math.round(repsPerSet * 0.85));
@@ -883,6 +972,7 @@ function isPainContraindicated(
   for (const area of painAreas) {
     if (area === 'knee') {
       if (ladder.id === 'step-up') return true;
+      if (ladder.id === 'lateral-stability') return true;
       if (key.includes('split_squat')) return true;
       if (ladder.id === 'squat') return true;
       if (key.includes('sts_power') || key.includes('loaded_sit_to_stand')) return true;
@@ -924,16 +1014,16 @@ function guidanceForSession(
   const guidance: string[] = [];
   if (readiness === 'a_bit_stiff') guidance.push('Mobility comes first today, with the first strength item eased back.');
   if (readiness === 'low_energy') guidance.push('Sets are reduced today. Keep the effort comfortable.');
-  if (readiness === 'short_on_time') guidance.push('This is a 10-minute version with one strength, one balance, and one mobility item.');
+  if (readiness === 'short_on_time') guidance.push('This is about 10 minutes, with one strength, one balance, and one mobility item.');
   if (readiness === 'something_hurts' || painAreas.length > 0) {
-    guidance.push('Today avoids the area you flagged and keeps the session gentle.');
+    guidance.push('Today avoids the area you flagged and keeps the session gentle. Move only in a comfortable range. You can stop at any time.');
   }
   if (skippedSlots.length > 0) guidance.push('Some planned slots were skipped because they did not fit today\'s setup.');
   return guidance;
 }
 
 function titleForReadiness(title: string, readiness: DailyReadiness): string {
-  if (readiness === 'short_on_time') return `10-Minute ${title}`;
+  if (readiness === 'short_on_time') return `Short ${title}`;
   if (readiness === 'something_hurts') return `Gentle ${title}`;
   if (readiness === 'low_energy') return `Steady ${title}`;
   return title;
@@ -957,6 +1047,11 @@ function estimateSessionMinutes(
   if (readiness === 'short_on_time') return 10;
   const estimated = sum(exercises.map((e) => e.estimatedMinutes)) + Math.max(1, exercises.length - 1);
   return Math.max(Math.min(templateMinutes, estimated), Math.min(templateMinutes, 12));
+}
+
+function durationLabel(minutes: number, readiness: DailyReadiness): string {
+  if (readiness === 'short_on_time') return 'About 10 min';
+  return `${minutes} min`;
 }
 
 function existingOrInitialProgress(

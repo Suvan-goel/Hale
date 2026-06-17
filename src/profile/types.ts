@@ -30,6 +30,13 @@ export interface AppSettings {
    * docs/decisions.md). Off by default; gentle, never streak-shaming (Law 5).
    */
   remindersEnabled: boolean;
+  /** Local equipment preference used by setup screens; no camera/session dependency. */
+  phoneStandAvailable: boolean;
+  /**
+   * Local support-circle sharing preference. V1 stores the choice only; no
+   * account, backend, invite, or data sharing is created from this setting.
+   */
+  supportSharingLevel: 'private' | 'completion_only' | 'progress_summary' | 'detailed';
 }
 
 export type OnboardingStep =

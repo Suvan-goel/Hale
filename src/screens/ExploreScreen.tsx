@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import type { MovementSafetyProfile } from '../adherence';
 import {
   Card,
   PrimaryButton,
@@ -9,57 +10,56 @@ import {
   SettingsIconButton,
   StatusBadge,
 } from '../components/ui';
-import type { EquipmentProfile } from '../training';
-import { colors, radius, spacing, type } from '../theme';
-
-const EXTRA_SESSIONS = [
-  '10-Minute Mobility Reset',
-  'Gentle Restart Session',
-  'Steady Balance Practice',
-  'No-Equipment Strength',
-  'Band Upper-Back',
-  'Stairs Confidence',
-  'Quick Full-Body Hale Session',
-] as const;
-
-const LADDERS = [
-  'Sit-to-Stand',
-  'Squat',
-  'Step-Up',
-  'Heel & Toe Raises',
-  'Push',
-  'Pull / Upper Back',
-  'Balance',
-  'Lateral Stability',
-  'Hinge & Glutes',
-  'Shoulder Reach & Press',
-  'Mobility',
-] as const;
-
-const LEARN = [
-  'Why chair-rise strength matters',
-  'Why balance improves with practice',
-  'How to set up your camera',
-  'How to choose a resistance band',
-  'What to do if a movement feels uncomfortable',
-  'Why re-testing monthly matters',
-] as const;
+import {
+  getEquipmentSetupSummary,
+  getExtraSessionCards,
+  getLearnCards,
+  getMovementLadderCards,
+} from '../haleFlow';
+import type { AppSettings } from '../profile';
+import type { EquipmentProfile, LadderProgress } from '../training';
+import { colors, fonts, radius, spacing, type } from '../theme';
 
 export function ExploreScreen({
   equipment,
+  safetyProfile,
+  settings,
+  ladderProgressById,
+  onStartExtraSession,
+  onOpenLadder,
+  onOpenLearn,
   onOpenSettings,
 }: {
   equipment: EquipmentProfile;
+  safetyProfile?: MovementSafetyProfile | null;
+  settings: AppSettings;
+  ladderProgressById: Record<string, LadderProgress>;
+  onStartExtraSession: (presetId: string) => void;
+  onOpenLadder: (ladderId: string) => void;
+  onOpenLearn: (articleId: string) => void;
   onOpenSettings: () => void;
 }) {
-  const [selected, setSelected] = React.useState<string | null>(null);
+  const extraSessions = React.useMemo(
+    () => getExtraSessionCards({ equipment, safetyProfile, ladderProgressById }),
+    [equipment, ladderProgressById, safetyProfile]
+  );
+  const ladders = React.useMemo(
+    () => getMovementLadderCards({ ladderProgressById }),
+    [ladderProgressById]
+  );
+  const learnCards = React.useMemo(() => getLearnCards(), []);
+  const equipmentSummary = React.useMemo(
+    () => getEquipmentSetupSummary({ equipment, safetyProfile, settings }),
+    [equipment, safetyProfile, settings]
+  );
+
   return (
     <Screen>
       <View style={styles.header}>
         <View style={styles.headerCopy}>
           <Text style={styles.title}>Explore</Text>
           <Text style={styles.subtitle}>
-            Extra practice and learning live here. Today remains the place to press Start.
+            Optional practice and short guides. Today is still the place to press Start.
           </Text>
         </View>
         <SettingsIconButton onPress={onOpenSettings} />
@@ -67,15 +67,19 @@ export function ExploreScreen({
 
       <Card>
         <SectionHeader title="Extra Sessions" />
-        <Text style={styles.sectionBody}>Optional support for days when you want a clean slate or a focused reset.</Text>
+        <Text style={styles.sectionBody}>Focused sessions for reset days, restarts, or a little extra practice.</Text>
         <View style={styles.grid}>
-          {EXTRA_SESSIONS.map((title) => (
-            <ExploreCard
-              key={title}
-              title={title}
-              body={extraSessionBody(title)}
-              selected={selected === title}
-              onPress={() => setSelected(title)}
+          {extraSessions.map((session) => (
+            <ExtraSessionTile
+              key={session.id}
+              title={session.title}
+              body={session.body}
+              durationLabel={session.durationLabel}
+              focusLabel={session.focusLabel}
+              equipmentLabel={session.equipmentLabel}
+              disabled={session.disabled}
+              disabledReason={session.disabledReason}
+              onStart={() => onStartExtraSession(session.id)}
             />
           ))}
         </View>
@@ -83,15 +87,18 @@ export function ExploreScreen({
 
       <Card>
         <SectionHeader title="Movement Ladders" />
-        <Text style={styles.sectionBody}>See how exercises progress from supported starts to stronger variations.</Text>
+        <Text style={styles.sectionBody}>See your current level and how Hale progresses each movement.</Text>
         <View style={styles.grid}>
-          {LADDERS.map((title) => (
-            <ExploreCard
-              key={title}
-              title={title}
-              body="Simple progressions for your 4-week block"
-              selected={selected === title}
-              onPress={() => setSelected(title)}
+          {ladders.map((ladder) => (
+            <LadderTile
+              key={ladder.id}
+              title={ladder.title}
+              body={ladder.body}
+              currentLevelName={ladder.currentLevelName}
+              domainLabel={ladder.domainLabel}
+              equipmentLabel={ladder.equipmentLabel}
+              measurementLabel={ladder.measurementLabel}
+              onOpen={() => onOpenLadder(ladder.id)}
             />
           ))}
         </View>
@@ -100,13 +107,13 @@ export function ExploreScreen({
       <Card>
         <SectionHeader title="Learn" />
         <View style={styles.list}>
-          {LEARN.map((title) => (
-            <ExploreCard
-              key={title}
-              title={title}
-              body="Short read"
-              selected={selected === title}
-              onPress={() => setSelected(title)}
+          {learnCards.map((article) => (
+            <LearnTile
+              key={article.id}
+              title={article.title}
+              body={article.body}
+              readTimeLabel={article.readTimeLabel}
+              onOpen={() => onOpenLearn(article.id)}
             />
           ))}
         </View>
@@ -116,9 +123,9 @@ export function ExploreScreen({
         <View style={styles.equipmentHead}>
           <View style={styles.headerCopy}>
             <Text style={styles.cardTitle}>Equipment setup</Text>
-            <Text style={styles.sectionBody}>
-              Hale can use {equipmentSummary(equipment)} today, and keeps chair, wall, floor, and cushion options available.
-            </Text>
+            <Text style={styles.sectionBody}>Available: {equipmentSummary.availableLabel}.</Text>
+            <Text style={styles.sectionBody}>Not marked: {equipmentSummary.missingOptionalLabel}.</Text>
+            <Text style={styles.sectionBody}>{equipmentSummary.phoneStandLabel}.</Text>
           </View>
           <StatusBadge label="On device" tone="gold" />
         </View>
@@ -126,54 +133,125 @@ export function ExploreScreen({
           <PrimaryButton title="Open equipment settings" onPress={onOpenSettings} />
         </View>
       </Card>
-
-      {selected ? <Text style={styles.note}>{selected} is selected for preview.</Text> : null}
     </Screen>
   );
 }
 
-function ExploreCard({
+function ExtraSessionTile({
   title,
   body,
-  selected,
-  onPress,
+  durationLabel,
+  focusLabel,
+  equipmentLabel,
+  disabled,
+  disabledReason,
+  onStart,
 }: {
   title: string;
   body: string;
-  selected: boolean;
-  onPress: () => void;
+  durationLabel: string;
+  focusLabel: string;
+  equipmentLabel: string;
+  disabled: boolean;
+  disabledReason?: string;
+  onStart: () => void;
+}) {
+  return (
+    <View style={[styles.tile, disabled && styles.tileDisabled]}>
+      <View style={styles.tileCopy}>
+        <Text style={styles.tileTitle}>{title}</Text>
+        <Text style={styles.tileBody}>{body}</Text>
+      </View>
+      <View style={styles.badgeRow}>
+        <StatusBadge label={durationLabel} tone="gold" />
+        <StatusBadge label={focusLabel} tone="neutral" />
+      </View>
+      <Text style={styles.tileMeta}>{equipmentLabel}</Text>
+      {disabled ? (
+        <View style={styles.disabledAction}>
+          <Text style={styles.disabledText}>{disabledReason}</Text>
+        </View>
+      ) : (
+        <SmallAction label="Start" onPress={onStart} />
+      )}
+    </View>
+  );
+}
+
+function LadderTile({
+  title,
+  body,
+  currentLevelName,
+  domainLabel,
+  equipmentLabel,
+  measurementLabel,
+  onOpen,
+}: {
+  title: string;
+  body: string;
+  currentLevelName: string;
+  domainLabel: string;
+  equipmentLabel: string;
+  measurementLabel: string;
+  onOpen: () => void;
 }) {
   return (
     <Pressable
-      style={({ pressed }) => [styles.exploreCard, selected && styles.exploreCardSelected, pressed && styles.pressed]}
-      onPress={onPress}
+      style={({ pressed }) => [styles.tile, pressed && styles.pressed]}
+      onPress={onOpen}
       accessibilityRole="button"
-      accessibilityState={{ selected }}
-      accessibilityLabel={title}
+      accessibilityLabel={`${title} ladder`}
     >
-      <Text style={styles.exploreTitle}>{title}</Text>
-      <Text style={styles.exploreBody}>{body}</Text>
+      <Text style={styles.tileTitle}>{title}</Text>
+      <Text style={styles.tileBody}>{body}</Text>
+      <View style={styles.badgeRow}>
+        <StatusBadge label={domainLabel} tone="neutral" />
+        <StatusBadge label={measurementLabel} tone="gold" />
+      </View>
+      <Text style={styles.tileMeta}>Current: {currentLevelName}</Text>
+      <Text style={styles.tileMeta}>Equipment: {equipmentLabel}</Text>
     </Pressable>
   );
 }
 
-function extraSessionBody(title: string): string {
-  if (title.includes('No-Equipment')) return 'Uses zero-equipment substitutions';
-  if (title.includes('Band')) return 'Uses a resistance band when available';
-  if (title.includes('Stairs')) return 'Uses a bottom stair when available';
-  return 'Optional support outside the main block';
+function LearnTile({
+  title,
+  body,
+  readTimeLabel,
+  onOpen,
+}: {
+  title: string;
+  body: string;
+  readTimeLabel: string;
+  onOpen: () => void;
+}) {
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.learnRow, pressed && styles.pressed]}
+      onPress={onOpen}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+    >
+      <View style={styles.learnCopy}>
+        <Text style={styles.tileTitle}>{title}</Text>
+        <Text style={styles.tileBody}>{body}</Text>
+      </View>
+      <StatusBadge label={readTimeLabel} tone="gold" />
+    </Pressable>
+  );
 }
 
-function equipmentSummary(equipment: EquipmentProfile): string {
-  const items = [
-    equipment.stair ? 'a bottom stair' : null,
-    equipment.band ? 'a resistance band' : null,
-    equipment.miniBand ? 'a mini band' : null,
-    equipment.load ? 'a backpack or light load' : null,
-  ].filter(Boolean);
-  if (items.length === 0) return 'zero-equipment choices';
-  if (items.length === 1) return items[0] ?? 'zero-equipment choices';
-  return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+function SmallAction({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.smallAction, pressed && styles.pressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <Text style={styles.smallActionText}>{label}</Text>
+    </Pressable>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -189,9 +267,9 @@ const styles = StyleSheet.create({
   sectionBody: { ...type.bodySmall, color: colors.textSecondary, marginTop: spacing.sm },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginTop: spacing.lg },
   list: { gap: spacing.md, marginTop: spacing.lg },
-  exploreCard: {
-    minHeight: 96,
-    minWidth: 136,
+  tile: {
+    minHeight: 190,
+    minWidth: 148,
     flexGrow: 1,
     flexBasis: '45%',
     padding: spacing.lg,
@@ -199,14 +277,46 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgElevated,
     borderWidth: 1,
     borderColor: colors.borderHairline,
-    justifyContent: 'center',
+    gap: spacing.md,
   },
-  exploreCardSelected: { backgroundColor: colors.bgSage, borderColor: colors.sage },
-  exploreTitle: { ...type.h3 },
-  exploreBody: { ...type.caption, marginTop: spacing.xs },
+  tileDisabled: { opacity: 0.72 },
+  tileCopy: { flex: 1 },
+  tileTitle: { ...type.h3 },
+  tileBody: { ...type.caption, marginTop: spacing.xs },
+  tileMeta: { ...type.caption, color: colors.textSecondary },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  smallAction: {
+    minHeight: 42,
+    borderRadius: radius.input,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.accent,
+    paddingHorizontal: spacing.md,
+  },
+  smallActionText: { ...type.button, fontFamily: fonts.sansMedium },
+  disabledAction: {
+    minHeight: 42,
+    borderRadius: radius.input,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderColor: colors.borderHairline,
+  },
+  disabledText: { ...type.caption, color: colors.textSecondary, textAlign: 'center' },
+  learnRow: {
+    minHeight: 86,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
+  },
+  learnCopy: { flex: 1 },
   equipmentHead: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
   cardTitle: { ...type.h2 },
   actionWrap: { marginTop: spacing.lg },
-  note: { ...type.caption, color: colors.sageDeep, textAlign: 'center' },
   pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
 });

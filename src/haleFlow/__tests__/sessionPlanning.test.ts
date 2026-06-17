@@ -20,6 +20,7 @@ import type { GeneratedSession, LadderProgress } from '../../training/workoutGen
 import { generateTodaySession as generateRawTodaySession } from '../../training/workoutGeneration';
 import {
   createGeneratedSessionSummary,
+  planLadderPracticeSession,
   planTodayHaleSession,
   updateExerciseProgressionFromSession,
 } from '../sessionPlanning';
@@ -169,6 +170,42 @@ describe('planTodayHaleSession', () => {
     expect(plan.metadata?.source).toBe('legacy_fallback');
     expect(plan.metadata?.fallbackReason).toContain('no active movement block');
     expect(plan.exercises.length).toBeGreaterThan(0);
+  });
+
+  it('can generate an extra preset without an active movement block', () => {
+    const plan = planTodayHaleSession({
+      activeBlock: null,
+      training: legacyTraining(),
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      presetId: 'preset-quick-full-body',
+      today: START,
+    });
+
+    expect(plan.metadata?.source).toBe('preset');
+    expect(plan.blockId).toBe('explore-extra-session');
+    expect(plan.exercises.length).toBeGreaterThan(0);
+    expect(plan.exercises.every((exercise) => hasExercise(exercise.id))).toBe(true);
+  });
+
+  it('creates a player-compatible ladder practice session', () => {
+    const plan = planLadderPracticeSession({
+      ladderId: 'sit-to-stand',
+      activeBlock: block(),
+      training: { ...legacyTraining(), ladderProgressById: ladderProgress() },
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      today: START,
+    });
+
+    expect(plan?.metadata?.source).toBe('manual');
+    expect(plan?.metadata?.templateId).toBe('practice-sit-to-stand');
+    expect(plan?.exercises).toHaveLength(1);
+    expect(plan?.exercises.every((exercise) => hasExercise(exercise.id))).toBe(true);
+    expect(plan?.metadata?.generatedExercises?.[0]).toMatchObject({
+      ladderId: 'sit-to-stand',
+      levelId: STS_STANDARD_ID,
+    });
   });
 
   it('falls back to legacy planning when generated exercise IDs are unsupported', () => {
@@ -394,6 +431,7 @@ function singleSitToStandGeneratedSession(): GeneratedSession {
     focusDomain: 'strength_power',
     dayLabel: 'A',
     estimatedMinutes: 12,
+    durationLabel: '12 min',
     readiness: 'ready',
     painAreas: [],
     weekStatus: 'session_due',
@@ -437,6 +475,7 @@ function unsupportedGeneratedSession(): GeneratedSession {
     focusDomain: 'strength_power',
     dayLabel: 'A',
     estimatedMinutes: 12,
+    durationLabel: '12 min',
     readiness: 'ready',
     painAreas: [],
     weekStatus: 'session_due',

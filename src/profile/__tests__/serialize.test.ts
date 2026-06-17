@@ -15,7 +15,12 @@ describe('preferences serialize', () => {
   });
   const sample: Preferences = {
     profile: { name: 'Margaret', age: 58, goal: 'Stay steady on the stairs', lifeGoal, safetyProfile: null },
-    settings: { voiceId: 'clara', remindersEnabled: true },
+    settings: {
+      voiceId: 'clara',
+      remindersEnabled: true,
+      phoneStandAvailable: true,
+      supportSharingLevel: 'private',
+    },
     onboarding: {
       currentStep: 'complete',
       selectedEquipment: ['chair', 'wall'],
@@ -48,6 +53,18 @@ describe('preferences serialize', () => {
     );
     expect(parsed?.settings.voiceId).toBe('clara');
   });
+
+  it('backfills newer local settings for older records', () => {
+    const parsed = deserializePreferences(
+      JSON.stringify({ settings: { voiceId: 'clara', remindersEnabled: true } })
+    );
+    expect(parsed?.settings).toMatchObject({
+      voiceId: 'clara',
+      remindersEnabled: true,
+      phoneStandAvailable: false,
+      supportSharingLevel: 'private',
+    });
+  });
 });
 
 describe('ProfileStore', () => {
@@ -60,7 +77,12 @@ describe('ProfileStore', () => {
     const fs = createMemoryFs();
     const prefs: Preferences = {
       profile: { name: 'David', age: 66, goal: '', lifeGoal: null, safetyProfile: null },
-      settings: { voiceId: 'clara', remindersEnabled: true },
+      settings: {
+        voiceId: 'clara',
+        remindersEnabled: true,
+        phoneStandAvailable: false,
+        supportSharingLevel: 'private',
+      },
       onboarding: {
         currentStep: 'welcome',
         selectedEquipment: [],

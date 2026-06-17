@@ -76,19 +76,21 @@ describe('dynamic workout generation', () => {
     expect(equipment).not.toContain('backpack_or_weight');
   });
 
-  it('keeps a no-equipment preset free of chair, wall, counter, stair, and band requirements', () => {
+  it('treats the no-equipment quick preset as no optional equipment at home', () => {
     const session = generatePresetSession({
       presetId: 'preset-no-equipment-strength',
       today: START,
-      availableEquipment: ['none'],
+      availableEquipment: ['chair', 'wall'],
+      sessionIntensity: 'beginner',
     });
 
     const equipment = session.exercises.flatMap((exercise) => exercise.equipment);
-    expect(equipment).not.toContain('chair');
-    expect(equipment).not.toContain('wall');
-    expect(equipment).not.toContain('counter');
     expect(equipment).not.toContain('stair');
     expect(equipment).not.toContain('long_band');
+    expect(equipment).not.toContain('mini_band');
+    expect(equipment).not.toContain('backpack_or_weight');
+    expect(session.exercises.map((exercise) => exercise.exerciseId)).toContain('sts-cushion');
+    expect(session.exercises.map((exercise) => exercise.exerciseId)).toContain('push-up-wall');
   });
 
   it('compresses short-on-time sessions to strength, balance, and mobility', () => {
@@ -229,7 +231,7 @@ describe('dynamic workout generation', () => {
       '10-Minute Mobility Reset',
       'Gentle Restart Session',
       'Steady Balance Practice',
-      'No-Equipment Strength',
+      'No Optional Equipment Strength',
       'Band Upper-Back',
       'Stairs Confidence',
       'Quick Full-Body Hale Session',
@@ -278,8 +280,8 @@ describe('dynamic workout generation', () => {
     const previews = generateDebugWorkoutScenarios();
     expect(previews).toHaveLength(12);
     expect(previews.map((preview) => preview.id)).toEqual([
-      'beginner_no_equipment',
-      'beginner_chair_wall',
+      'beginner_no_optional_equipment',
+      'travel_true_no_equipment',
       'beginner_long_band',
       'strength_power_weakest',
       'balance_stability_weakest',
@@ -312,13 +314,36 @@ describe('dynamic workout generation', () => {
     const exerciseText = (id: string) => JSON.stringify(byId[id].exercises).toLowerCase();
     const allText = JSON.stringify(previews).toLowerCase();
 
-    expect(byId.short_on_time.estimatedMinutes).toBeLessThanOrEqual(10);
+    expect(byId.short_on_time.estimatedMinutes).toBe(10);
+    expect(byId.short_on_time.durationLabel.toLowerCase()).toContain('about 10');
     expect(byId.short_on_time.exercises.length).toBeLessThanOrEqual(3);
+    expect(byId.beginner_no_optional_equipment.exercises.map((exercise) => exercise.exerciseId)).toEqual(
+      expect.arrayContaining(['sts-cushion', 'push-up-wall', 'balance-feet-together-hold'])
+    );
+    expect(byId.beginner_no_optional_equipment.exercises.every((exercise) => !exercise.prescription.startsWith('3 x'))).toBe(true);
+    expect(byId.travel_true_no_equipment.exercises.flatMap((exercise) => exercise.equipmentRequired)).toEqual(
+      expect.arrayContaining(['none'])
+    );
+    expect(byId.travel_true_no_equipment.exercises.flatMap((exercise) => exercise.equipmentRequired)).not.toEqual(
+      expect.arrayContaining(['chair', 'wall', 'wall/counter support', 'stair', 'long_band', 'backpack_or_weight'])
+    );
+    expect(byId.beginner_long_band.exercises.every((exercise) => !exercise.prescription.startsWith('3 x'))).toBe(true);
     expect(byId.beginner_long_band.exercises.some((exercise) => exercise.ladderId === 'pull-upper-back')).toBe(true);
     expect(byId.no_band_upper_pull.exercises.flatMap((exercise) => exercise.equipmentRequired)).not.toContain('long_band');
     expect(byId.no_band_upper_pull.exercises.some((exercise) => exercise.fallbackReason)).toBe(true);
+    expect(JSON.stringify(byId.no_band_upper_pull.exercises).toLowerCase()).toMatch(/resistance band|no band|shoulder mobility/);
     expect(exerciseText('knee_pain')).not.toMatch(/step-up|split-squat|squat-free|squat-slow|squat-loaded/);
+    expect(exerciseText('knee_pain')).not.toMatch(/mini-band-lateral-walk/);
+    const kneeSideStep = byId.knee_pain.exercises.find((exercise) => exercise.exerciseId === 'supported-side-step');
+    if (kneeSideStep) {
+      expect(kneeSideStep.prescription).toMatch(/1 x 20s/);
+      expect(`${kneeSideStep.rationale} ${kneeSideStep.fallbackReason ?? ''}`.toLowerCase()).toMatch(/gentle|comfortable/);
+    }
     expect(exerciseText('shoulder_pain')).not.toMatch(/push-up|overhead|press|pull-apart/);
+    expect(byId.stronger_ready_to_progress.title).toBe('Stronger user ready to progress');
+    expect(byId.stronger_ready_to_progress.exercises.map((exercise) => exercise.exerciseId)).toEqual(
+      expect.arrayContaining(['loaded-sit-to-stand', 'standing-band-row', 'balance-tandem-hold', 'thoracic-rotation'])
+    );
 
     for (const preview of previews) {
       const equipment = preview.exercises.flatMap((exercise) => exercise.equipmentRequired);
@@ -327,7 +352,7 @@ describe('dynamic workout generation', () => {
       }
       if (preview.id !== 'stronger_ready_to_progress') {
         expect(equipment).not.toContain('backpack_or_weight');
-        expect(JSON.stringify(preview.exercises).toLowerCase()).not.toContain('loaded');
+        expect(preview.exercises.map((exercise) => exercise.name.toLowerCase()).join(' ')).not.toContain('loaded');
       }
       if (!['beginner_long_band', 'strength_power_weakest', 'low_energy_day', 'stronger_ready_to_progress'].includes(preview.id)) {
         expect(equipment).not.toContain('long_band');
@@ -336,8 +361,8 @@ describe('dynamic workout generation', () => {
 
     expect(allText).not.toMatch(/up and go|timed up|tug/);
     expect(allText).not.toContain('neck-rotation');
-    expect(allText).not.toMatch(/diagnosis|treatment|fall risk|frailty|medical-grade/);
-    expect(formatDebugWorkoutScenarios(previews)).toContain('Beginner, no equipment');
+    expect(allText).not.toMatch(/diagnosis|treatment|fall risk|frailty|failed|skipped workout|lost streak|medical-grade/);
+    expect(formatDebugWorkoutScenarios(previews)).toContain('Beginner, no optional equipment');
   });
 
   it('keeps pulling in the weekly mix when a band is available', () => {

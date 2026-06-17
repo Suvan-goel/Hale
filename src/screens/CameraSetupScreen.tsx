@@ -8,11 +8,13 @@ export function CameraSetupScreen({
   permissionGranted,
   onRequestPermission,
   onBegin,
+  onDevSkipCheckUp,
   onCancel,
 }: {
   permissionGranted: boolean;
   onRequestPermission: () => void;
   onBegin: () => void;
+  onDevSkipCheckUp?: () => void;
   onCancel: () => void;
 }) {
   return (
@@ -50,6 +52,7 @@ export function CameraSetupScreen({
           <PrimaryButton title="Allow camera" onPress={onRequestPermission} />
         )}
         {!permissionGranted ? <SecondaryButton title="Continue with setup anyway" onPress={onBegin} /> : null}
+        {onDevSkipCheckUp ? <SecondaryButton title="dev: skip Movement Check-Up" onPress={onDevSkipCheckUp} /> : null}
         <SecondaryButton title="Back" onPress={onCancel} />
       </View>
     </Screen>

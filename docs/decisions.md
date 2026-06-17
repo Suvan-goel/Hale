@@ -590,6 +590,24 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
   exercise counts, equipment gates, pull coverage with bands, pain substitutions, no default TUG or
   neck rotations, and no banned medical language.
 
+## 2026-06-17 — Workout preview product-quality refinements
+
+- **No-equipment language now matches Hale's home context.** The no-equipment quick preset is labeled
+  and generated as "No Optional Equipment": no band, mini-band, stair, or load, while still assuming
+  ordinary home supports such as a chair and wall/counter. The debug utility has a separate
+  travel/true-no-equipment scenario for bodyweight-only days.
+- **Beginner previews are gentler.** `GenerateSessionInput.sessionIntensity` lets dev/debug and
+  low-confidence paths request easier starting levels and lower-volume prescriptions without
+  weakening normal block sessions. Beginner examples now favor cushion sit-to-stand, wall push-ups,
+  short balance holds, and simple mobility.
+- **Fallback copy is clearer.** No-band upper-body pull fallbacks now explicitly say that a resistance
+  band is needed for upper-back pulling work and that shoulder mobility is being used today instead.
+- **Pain guardrails are calmer.** Knee pain avoids step-up, squat, split squat, and lateral-stability
+  ladders; the fallback uses balance or mobility instead. Pain guidance says to move only in a
+  comfortable range and stop at any time, without medical language.
+- **Short sessions avoid false precision.** Generated sessions keep `estimatedMinutes: 10` for layout
+  and planning, while debug/user-facing preview copy uses `durationLabel: "About 10 min"`.
+
 ## 2026-06-16 — Pose avatar Phase 4 measurement states
 
 - **Constellation avatar is now context-aware.** The renderer accepts optional measurement states

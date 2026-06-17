@@ -28,7 +28,12 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
 export function defaultPreferences(): Preferences {
   return {
     profile: { ...EMPTY_PROFILE },
-    settings: { voiceId: DEFAULT_VOICE_ID, remindersEnabled: false },
+    settings: {
+      voiceId: DEFAULT_VOICE_ID,
+      remindersEnabled: false,
+      phoneStandAvailable: false,
+      supportSharingLevel: 'private',
+    },
     onboarding: defaultOnboardingState(),
   };
 }
@@ -152,9 +157,19 @@ function validSettings(v: unknown): AppSettings {
   if (typeof v !== 'object' || v === null) return def;
   const s = v as Partial<AppSettings>;
   const voiceKnown = typeof s.voiceId === 'string' && VOICE_OPTIONS.some((o) => o.id === s.voiceId);
+  const supportSharingLevel =
+    s.supportSharingLevel === 'private' ||
+    s.supportSharingLevel === 'completion_only' ||
+    s.supportSharingLevel === 'progress_summary' ||
+    s.supportSharingLevel === 'detailed'
+      ? s.supportSharingLevel
+      : def.supportSharingLevel;
   return {
     voiceId: voiceKnown ? (s.voiceId as string) : def.voiceId,
     remindersEnabled: typeof s.remindersEnabled === 'boolean' ? s.remindersEnabled : def.remindersEnabled,
+    phoneStandAvailable:
+      typeof s.phoneStandAvailable === 'boolean' ? s.phoneStandAvailable : def.phoneStandAvailable,
+    supportSharingLevel,
   };
 }
 

@@ -14,8 +14,10 @@ import {
 import { domainLabel } from '../adherence/goalDomainMapping';
 import {
   getExercise,
+  getExerciseLadder,
   hasExercise,
   type ExerciseDefinition,
+  type ExerciseLevel,
 } from '../exercises';
 import type { EquipmentTag } from '../movements';
 import type { HaleLifecycleState } from './appLifecycle';
@@ -41,6 +43,7 @@ import {
   type PainArea,
   type PostSessionFeedback,
   type SessionSource,
+  type SessionIntensity,
   type SessionTemplate,
   type TrackingQuality,
   type TrainingBlock as DynamicTrainingBlock,
@@ -72,7 +75,19 @@ export interface PlanTodayHaleSessionInput extends TodaySessionPreferences {
   presetId?: string;
   targetSessionTemplateId?: PlanSessionId | string;
   source?: SessionSource;
+  includeOptionalLevels?: boolean;
+  sessionIntensity?: SessionIntensity;
   generateSession?: (input: GenerateSessionInput) => GeneratedSession;
+}
+
+export interface PlanLadderPracticeSessionInput {
+  ladderId: string;
+  safetyProfile?: MovementSafetyProfile | null;
+  lifeGoal?: LifeGoal | null;
+  activeBlock?: MovementBlock | null;
+  training?: TrainingState | null;
+  ladderProgress?: Record<string, LadderProgress>;
+  today?: string | Date;
 }
 
 export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSessionPlan {
@@ -98,6 +113,8 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         recentSessions: recentSessionsFor(input),
         today: input.today,
         source: input.source,
+        includeOptionalLevels: input.includeOptionalLevels,
+        sessionIntensity: input.sessionIntensity,
       });
       const adapted = adaptGeneratedSessionToHaleSessionPlan(generated, {
         activeBlock,
@@ -125,11 +142,104 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
     }
   }
 
+  if (presetId) {
+    try {
+      const generated = (input.generateSession ?? generateDynamicTodaySession)({
+        block: null,
+        presetId,
+        safetyProfile: input.safetyProfile,
+        availableEquipment: availableEquipmentFor(input),
+        dailyReadiness: readiness,
+        painAreas,
+        ladderProgress: input.ladderProgress ?? input.training?.ladderProgressById ?? {},
+        recentSessions: recentSessionsFor(input),
+        today: input.today,
+        source: input.source,
+        includeOptionalLevels: input.includeOptionalLevels,
+        sessionIntensity: input.sessionIntensity,
+      });
+      const adapted = adaptGeneratedSessionToHaleSessionPlan(generated, {
+        activeBlock: placeholderBlockForGenerated(generated, input.today),
+        lifeGoal: input.lifeGoal,
+        sessionType,
+      });
+      const validation = validatePlayableExerciseIds(adapted.exercises);
+      if (adapted.exercises.length > 0 && validation.ok) return adapted;
+      return legacyFallbackPlan({
+        ...input,
+        sessionType,
+        reason:
+          adapted.exercises.length === 0
+            ? 'generated preset had no playable exercises'
+            : `generated preset included unsupported exercise ids: ${validation.unsupported.join(', ')}`,
+      });
+    } catch (error) {
+      return legacyFallbackPlan({
+        ...input,
+        sessionType,
+        reason: error instanceof Error ? error.message : 'preset session generation threw',
+      });
+    }
+  }
+
   return legacyFallbackPlan({
     ...input,
     sessionType,
     reason: 'no active movement block available for dynamic planning',
   });
+}
+
+export function planLadderPracticeSession(input: PlanLadderPracticeSessionInput): HaleSessionPlan | null {
+  let ladder;
+  try {
+    ladder = getExerciseLadder(input.ladderId);
+  } catch {
+    return null;
+  }
+  if (ladder.releaseStatus !== 'v1_core') return null;
+  const coreLevels = ladder.levels.filter((level) => level.releaseStatus === 'v1_core');
+  if (coreLevels.length === 0) return null;
+  const progress = (input.ladderProgress ?? input.training?.ladderProgressById ?? {})[ladder.id];
+  const preferred = coreLevels.find((level) => level.id === progress?.currentLevelId) ??
+    coreLevels.find((level) => level.id === ladder.defaultLevelId) ??
+    coreLevels[0];
+  const available = availableEquipmentFor(input);
+  const level = practiceLevelFor(coreLevels, preferred, available);
+  if (!level || !hasExercise(level.id)) return null;
+  const definition = getExercise(level.id);
+  const exercise = toPracticeHaleExercise(ladder.id, ladder.title, ladder.whyItMatters, level, definition);
+  const today = input.today ?? new Date();
+  const activeBlock = input.activeBlock ?? placeholderBlockForPractice(ladder.id, level, today);
+  const focusDomain = toMovementDomain(level.domain);
+  return {
+    id: `manual-practice-${ladder.id}-${dateKey(today)}`,
+    blockId: activeBlock.id,
+    title: `${ladder.title} Practice`,
+    purposeCopy: `${ladder.whyItMatters} This focused practice sits outside your main Today session.`,
+    sessionType: 'standard',
+    estimatedMinutes: Math.max(6, exercise.estimatedMinutes ?? 8),
+    focusDomain,
+    exercises: [exercise],
+    metadata: {
+      source: 'manual',
+      generatedSessionId: `manual-practice-${ladder.id}-${dateKey(today)}`,
+      templateId: `practice-${ladder.id}`,
+      plannedDateKey: `practice-${ladder.id}:${dateKey(today)}`,
+      guidance: ['Focused practice from your movement ladder. Keep support nearby and move comfortably.'],
+      equipmentNeeded: equipmentNeeded([exercise]),
+      generatedExercises: [
+        {
+          exerciseId: exercise.id,
+          ladderId: ladder.id,
+          levelId: level.id,
+          sets: exercise.targetSets,
+          repsPerSet: exercise.targetReps,
+          secondsPerSet: exercise.durationSeconds,
+          measurementTier: exercise.measurementTier,
+        },
+      ],
+    },
+  };
 }
 
 export function adaptGeneratedSessionToHaleSessionPlan(
@@ -166,6 +276,114 @@ export function adaptGeneratedSessionToHaleSessionPlan(
       generatedExercises: generated.exercises.map(toGeneratedExerciseMetadata),
     },
   };
+}
+
+function placeholderBlockForGenerated(generated: GeneratedSession, today: string | Date | undefined): MovementBlock {
+  const now = iso(today ?? new Date());
+  const focusDomain = toMovementDomain(generated.focusDomain);
+  return {
+    id: generated.blockId ?? 'explore-extra-session',
+    userId: 'local-device-user',
+    status: 'active',
+    startDate: now,
+    endDate: now,
+    retestDate: now,
+    focusDomain,
+    secondaryDomains: ['strength_power', 'balance', 'mobility'].filter(
+      (domain): domain is MovementDomain => domain !== focusDomain
+    ),
+    sessionsPerWeekTarget: 0,
+    totalPlannedSessions: 0,
+    completedSessions: 0,
+    microChecksCompleted: 0,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+function placeholderBlockForPractice(ladderId: string, level: ExerciseLevel, today: string | Date): MovementBlock {
+  const now = iso(today);
+  const focusDomain = toMovementDomain(level.domain);
+  return {
+    id: `practice-${ladderId}`,
+    userId: 'local-device-user',
+    status: 'active',
+    startDate: now,
+    endDate: now,
+    retestDate: now,
+    focusDomain,
+    secondaryDomains: ['strength_power', 'balance', 'mobility'].filter(
+      (domain): domain is MovementDomain => domain !== focusDomain
+    ),
+    sessionsPerWeekTarget: 0,
+    totalPlannedSessions: 0,
+    completedSessions: 0,
+    microChecksCompleted: 0,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+function practiceLevelFor(
+  coreLevels: readonly ExerciseLevel[],
+  preferred: ExerciseLevel,
+  available: readonly AvailableEquipment[]
+): ExerciseLevel | null {
+  const preferredIndex = Math.max(0, coreLevels.findIndex((level) => level.id === preferred.id));
+  for (let idx = preferredIndex; idx >= 0; idx--) {
+    const level = coreLevels[idx];
+    if (equipmentSupportsTags(level.equipment, available)) return level;
+  }
+  for (let idx = preferredIndex + 1; idx < coreLevels.length; idx++) {
+    const level = coreLevels[idx];
+    if (equipmentSupportsTags(level.equipment, available)) return level;
+  }
+  return null;
+}
+
+function toPracticeHaleExercise(
+  ladderId: string,
+  ladderTitle: string,
+  whyItMatters: string,
+  level: ExerciseLevel,
+  definition: ExerciseDefinition
+): HaleExercise {
+  return {
+    id: level.id,
+    ladderId,
+    ladderTitle,
+    family: familyForDefinition(definition),
+    name: level.name,
+    domain: toMovementDomain(level.domain),
+    level: level.level,
+    releaseStatus: level.releaseStatus,
+    measurementTier: level.measurementTier,
+    cameraView: level.cameraView,
+    instructions: level.instructions,
+    whyItMatters,
+    durationSeconds:
+      definition.prescription.holdSec ?? definition.prescription.captureSec ?? definition.prescription.timerSec,
+    targetReps: definition.prescription.repsPerSet,
+    targetSets: definition.prescription.sets,
+    estimatedMinutes: estimatePracticeMinutes(definition),
+    requiresEquipment: level.equipment.map((e) => String(e)),
+    rationale: `${level.name} from the ${ladderTitle} ladder.`,
+    safetyNotes:
+      level.equipment.includes('counter') || level.equipment.includes('wall') || level.equipment.includes('chair')
+        ? ['Keep support nearby and stop if anything feels unsafe.']
+        : undefined,
+  };
+}
+
+function estimatePracticeMinutes(definition: ExerciseDefinition): number {
+  const prescription = definition.prescription;
+  const seconds =
+    prescription.holdSec ??
+    prescription.captureSec ??
+    prescription.timerSec ??
+    (prescription.repsPerSet ? prescription.repsPerSet * 4 : 30);
+  const total = prescription.sets * seconds + Math.max(0, prescription.sets - 1) * prescription.restSec + 40;
+  return Math.max(4, Math.ceil(total / 60));
 }
 
 export function generateTodaySession({
@@ -417,9 +635,11 @@ function presetIdFor(
 
 function availableEquipmentFor(input: PlanTodayHaleSessionInput): readonly AvailableEquipment[] {
   if (input.adjustment === 'no_equipment') return ['chair', 'wall'];
-  const set = new Set<AvailableEquipment>(input.safetyProfile?.availableEquipment ?? ['chair', 'wall']);
-  set.add('chair');
-  set.add('wall');
+  const baseEquipment = input.safetyProfile?.availableEquipment;
+  const set = new Set<AvailableEquipment>(
+    baseEquipment && baseEquipment.length > 0 ? baseEquipment : ['chair', 'wall']
+  );
+  if (set.size > 1) set.delete('none');
   const equipment = input.training?.equipment ?? DEFAULT_EQUIPMENT;
   applyEquipmentProfile(set, equipment);
   return Array.from(set);
@@ -438,6 +658,22 @@ function applyEquipmentProfile(set: Set<AvailableEquipment>, equipment: Equipmen
     set.delete('backpack');
     set.delete('dumbbells');
   }
+}
+
+function equipmentSupportsTags(required: readonly EquipmentTag[], available: readonly AvailableEquipment[]): boolean {
+  if (required.length === 0) return true;
+  for (const tag of required) {
+    if (tag === 'none' || tag === 'floor') continue;
+    if (tag === 'cushion' && !available.includes('chair')) return false;
+    if (tag === 'chair' && !available.includes('chair')) return false;
+    if (tag === 'wall' && !available.includes('wall')) return false;
+    if (tag === 'counter' && !available.includes('wall') && !available.includes('chair')) return false;
+    if (tag === 'stair' && !available.includes('stairs')) return false;
+    if ((tag === 'long_band' || tag === 'door_anchor') && !available.includes('resistance_band')) return false;
+    if (tag === 'mini_band' && !available.includes('mini_band')) return false;
+    if (tag === 'backpack_or_weight' && !available.includes('backpack') && !available.includes('dumbbells')) return false;
+  }
+  return true;
 }
 
 function toDynamicTrainingBlock(block: MovementBlock): DynamicTrainingBlock {

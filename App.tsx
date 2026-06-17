@@ -15,6 +15,7 @@ import {
   LifeGoal,
   LifeGoalOnboardingScreen,
   MovementAssessment,
+  MovementBlock,
   MovementSafetyProfile,
   RestartSessionScreen,
   SupportConnection,
@@ -48,6 +49,7 @@ import {
   getHaleAppLifecycle,
   getMicroCheckForBlock,
   latestOfficialAssessment,
+  planLadderPracticeSession,
   planTodayHaleSession,
   updateExerciseProgressionFromSession,
   type HaleSessionPlan,
@@ -72,6 +74,7 @@ import { CameraExplanationScreen } from './src/screens/CameraExplanationScreen';
 import { CameraSetupScreen } from './src/screens/CameraSetupScreen';
 import { CheckUpScreen } from './src/screens/CheckUpScreen';
 import { ExploreScreen } from './src/screens/ExploreScreen';
+import { LadderDetailScreen, LearnDetailScreen } from './src/screens/ExploreDetailScreens';
 import { LiveSessionScreen } from './src/screens/LiveSessionScreen';
 import { ManualCheckupStartScreen } from './src/screens/ManualCheckupStartScreen';
 import { MicroCheckScreen } from './src/screens/MicroCheckScreen';
@@ -104,6 +107,7 @@ import {
   retestDue,
   startBlock,
   upsertGeneratedSessionSummary,
+  type SessionIntensity,
 } from './src/training';
 import { colors, radius, spacing, type } from './src/theme';
 
@@ -129,6 +133,8 @@ type Flow =
   | 'block-report'
   | 'session-complete'
   | 'settings'
+  | 'ladder-detail'
+  | 'learn-detail'
   | 'dev-assessment'
   | 'dev-live';
 
@@ -202,6 +208,9 @@ export default function App() {
   const [activeSessionPlan, setActiveSessionPlan] = React.useState<HaleSessionPlan | null>(null);
   const [lastCompletion, setLastCompletion] = React.useState<TrainingSessionCompletion | null>(null);
   const [lastSessionResult, setLastSessionResult] = React.useState<TrainingSessionResult | null>(null);
+  const [reportBlock, setReportBlock] = React.useState<MovementBlock | null>(null);
+  const [selectedLadderId, setSelectedLadderId] = React.useState<string | null>(null);
+  const [selectedLearnId, setSelectedLearnId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     requestCameraPermissionsAsync()
@@ -223,6 +232,16 @@ export default function App() {
     setSessionIds([]);
     setActiveSessionPlan(null);
     setLastSessionResult(null);
+    setReportBlock(null);
+    setSelectedLadderId(null);
+    setSelectedLearnId(null);
+  }, []);
+
+  const goExplore = React.useCallback(() => {
+    setFlow(null);
+    setTab('explore');
+    setSelectedLadderId(null);
+    setSelectedLearnId(null);
   }, []);
 
   const persistTraining = React.useCallback(
@@ -362,6 +381,10 @@ export default function App() {
               },
             }
           : prefs.profile,
+        settings: {
+          ...prefs.settings,
+          phoneStandAvailable: input.selectedEquipment.includes('phone_stand'),
+        },
         onboarding: {
           ...prefs.onboarding,
           currentStep: 'camera_explanation',
@@ -471,12 +494,13 @@ export default function App() {
 
   // A finished check-up: persist it, show it, reload history (feeds trends).
   const handleCheckUpComplete = React.useCallback(
-    (checkUp: CheckUp) => {
+    (checkUp: CheckUp, checkupOverride?: typeof pendingCheckup) => {
       const completedAt = new Date().toISOString();
       const block = activeMovementBlock;
       const score = scoreCheckUp(checkUp);
+      const resolvedPendingCheckup = checkupOverride ?? pendingCheckup;
       const checkupType =
-        pendingCheckup?.type ??
+        resolvedPendingCheckup?.type ??
         (block && (retestDue(training) || getAdherenceState(block, adherence.completions, completedAt) === 'ready_for_retest')
           ? 'official_retest'
           : history.length === 0
@@ -491,9 +515,9 @@ export default function App() {
         checkUpId: checkUp.startedAt,
         type: checkupType,
         score,
-        sourceBlockId: pendingCheckup?.sourceBlockId ?? (isRetest ? block?.id : undefined),
+        sourceBlockId: resolvedPendingCheckup?.sourceBlockId ?? (isRetest ? block?.id : undefined),
         completedAt,
-        isOfficialForProgress: pendingCheckup?.isOfficialForProgress,
+        isOfficialForProgress: resolvedPendingCheckup?.isOfficialForProgress,
       });
       try {
         store.save(checkUp);
@@ -535,8 +559,17 @@ export default function App() {
             nowIso: completedAt,
           })
         );
+        const nextTrainingBlock = buildBlock(score, training.equipment, completedAt);
+        const nextMovementBlock = createMovementBlockFromAssessment({
+          latestAssessment: { score, id: checkUp.startedAt },
+          lifeGoal: prefs.profile.lifeGoal,
+          startDate: completedAt,
+        });
+        nextAdherence = upsertMovementBlock(nextAdherence, nextMovementBlock);
         persistAdherence(nextAdherence);
+        persistTraining(startBlock(training, nextTrainingBlock));
         setLastCompletion(completion);
+        setReportBlock(updatedBlock);
         setPendingCheckup(null);
         setFlow('block-report');
       } else {
@@ -556,8 +589,16 @@ export default function App() {
         setFlow('results');
       }
     },
-    [activeMovementBlock, adherence, history, onboardingIncomplete, pendingCheckup, persistAdherence, persistPrefs, prefs, store, training]
+    [activeMovementBlock, adherence, history, onboardingIncomplete, pendingCheckup, persistAdherence, persistPrefs, persistTraining, prefs, store, training]
   );
+
+  const skipOnboardingCheckUpForDev = React.useCallback(() => {
+    if (!__DEV__) return;
+    handleCheckUpComplete(syntheticCheckUp(), {
+      type: 'baseline',
+      isOfficialForProgress: true,
+    });
+  }, [handleCheckUpComplete]);
 
   // From Results: build a block biased to the weakest domain and begin it.
   const handleStartPlan = React.useCallback((mode: 'standard' | 'onboarding' = 'standard') => {
@@ -609,6 +650,8 @@ export default function App() {
         lifecycleState?: typeof lifecycle.state;
         presetId?: string;
         targetSessionTemplateId?: PlanSessionId | string;
+        includeOptionalLevels?: boolean;
+        sessionIntensity?: SessionIntensity;
       }
     ) => {
       const plan = planTodayHaleSession({
@@ -623,9 +666,11 @@ export default function App() {
         readiness: preferences?.adjustment
           ? undefined
           : readinessForTrainingPreference(training.planPreferences.preferredIntensity),
+        sessionIntensity: preferences?.sessionIntensity ?? sessionIntensityForTrainingPreference(training.planPreferences.preferredIntensity),
         today: new Date(),
         presetId: preferences?.presetId,
         targetSessionTemplateId: preferences?.targetSessionTemplateId,
+        includeOptionalLevels: preferences?.includeOptionalLevels,
       });
       setActiveSessionPlan(plan);
       setFlow('session-preview');
@@ -644,6 +689,44 @@ export default function App() {
     [handleStartSession]
   );
 
+  const handleStartExtraSession = React.useCallback(
+    (presetId: string) => {
+      handleStartSession({
+        presetId,
+        includeOptionalLevels: false,
+        sessionIntensity: sessionIntensityForTrainingPreference(training.planPreferences.preferredIntensity),
+      });
+    },
+    [handleStartSession, training.planPreferences.preferredIntensity]
+  );
+
+  const openLadderDetail = React.useCallback((ladderId: string) => {
+    setSelectedLadderId(ladderId);
+    setFlow('ladder-detail');
+  }, []);
+
+  const openLearnDetail = React.useCallback((articleId: string) => {
+    setSelectedLearnId(articleId);
+    setFlow('learn-detail');
+  }, []);
+
+  const handleStartLadderPractice = React.useCallback(
+    (ladderId: string) => {
+      const plan = planLadderPracticeSession({
+        ladderId,
+        safetyProfile: prefs.profile.safetyProfile,
+        lifeGoal: prefs.profile.lifeGoal,
+        activeBlock: activeMovementBlock,
+        training,
+        today: new Date(),
+      });
+      if (!plan || plan.exercises.length === 0) return;
+      setActiveSessionPlan(plan);
+      setFlow('session-preview');
+    },
+    [activeMovementBlock, prefs.profile.lifeGoal, prefs.profile.safetyProfile, training]
+  );
+
   const beginPlannedSession = React.useCallback(() => {
     if (!activeSessionPlan || activeSessionPlan.exercises.length === 0) return;
     setSessionType(activeSessionPlan.sessionType);
@@ -656,10 +739,12 @@ export default function App() {
     (result: TrainingSessionResult) => {
       const completedAt = new Date().toISOString();
       const sessionPlan = activeSessionPlan;
+      const isExtraPractice =
+        sessionPlan?.metadata?.source === 'preset' || sessionPlan?.metadata?.source === 'manual';
       setLastSessionResult(result);
       let nextTraining = training;
       let trainingChanged = false;
-      if (sessionPlan?.sessionType !== 'retest_prep') {
+      if (sessionPlan?.sessionType !== 'retest_prep' && !isExtraPractice) {
         nextTraining = recordCompletedSession(nextTraining, result, completedAt);
         trainingChanged = true;
       }
@@ -689,21 +774,23 @@ export default function App() {
           plannedDate: sessionPlan?.metadata?.plannedDateKey ?? `session-${training.progress.completedSessions + 1}`,
           durationMinutes,
         });
-        let nextAdherence = recordTrainingSessionCompletion(adherence, completion);
-        const updatedBlock = nextAdherence.blocks.find((b) => b.id === block.id) ?? block;
-        nextAdherence = mergeMilestones(
-          nextAdherence,
-          generateMilestones({
-            user: prefs.profile,
-            block: updatedBlock,
-            lifeGoal: prefs.profile.lifeGoal,
-            latestAssessment: lastScore,
-            completions: nextAdherence.completions,
-            existing: nextAdherence.milestones,
-            nowIso: completedAt,
-          })
-        );
-        persistAdherence(nextAdherence);
+        if (!isExtraPractice) {
+          let nextAdherence = recordTrainingSessionCompletion(adherence, completion);
+          const updatedBlock = nextAdherence.blocks.find((b) => b.id === block.id) ?? block;
+          nextAdherence = mergeMilestones(
+            nextAdherence,
+            generateMilestones({
+              user: prefs.profile,
+              block: updatedBlock,
+              lifeGoal: prefs.profile.lifeGoal,
+              latestAssessment: lastScore,
+              completions: nextAdherence.completions,
+              existing: nextAdherence.milestones,
+              nowIso: completedAt,
+            })
+          );
+          persistAdherence(nextAdherence);
+        }
         setLastCompletion(completion);
         setFlow('session-complete');
       } else {
@@ -805,9 +892,44 @@ export default function App() {
 
   const toggleEquipment = React.useCallback(
     (key: keyof EquipmentProfile) => {
-      persistTraining({ ...training, equipment: { ...training.equipment, [key]: !training.equipment[key] } });
+      const nextEquipment = { ...training.equipment, [key]: !training.equipment[key] };
+      persistTraining({ ...training, equipment: nextEquipment });
+      const safetyProfile = prefs.profile.safetyProfile;
+      if (safetyProfile) {
+        persistPrefs({
+          ...prefs,
+          profile: {
+            ...prefs.profile,
+            safetyProfile: {
+              ...safetyProfile,
+              availableEquipment: syncAvailableEquipment(safetyProfile.availableEquipment, nextEquipment),
+              updatedAt: new Date().toISOString(),
+            },
+          },
+        });
+      }
     },
-    [training, persistTraining]
+    [persistPrefs, persistTraining, prefs, training]
+  );
+
+  const toggleAvailableEquipment = React.useCallback(
+    (item: AvailableEquipment) => {
+      const safetyProfile = prefs.profile.safetyProfile;
+      if (!safetyProfile) return;
+      const availableEquipment = toggleAvailableEquipmentItem(safetyProfile.availableEquipment, item);
+      persistPrefs({
+        ...prefs,
+        profile: {
+          ...prefs.profile,
+          safetyProfile: {
+            ...safetyProfile,
+            availableEquipment,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      });
+    },
+    [persistPrefs, prefs]
   );
 
   const handlePreferredWorkoutDaysChange = React.useCallback(
@@ -877,15 +999,16 @@ export default function App() {
 
   const handleStartNextBlock = React.useCallback(() => {
     const latest = history[history.length - 1];
-    if (!latest) {
+    const sourceResult = lastResult ?? latest?.checkUp;
+    if (!sourceResult) {
       setFlow('checkup');
       return;
     }
     const now = new Date().toISOString();
-    const score = scoreCheckUp(latest.checkUp);
+    const score = scoreCheckUp(sourceResult);
     const block = buildBlock(score, training.equipment, now);
     const movementBlock = createMovementBlockFromAssessment({
-      latestAssessment: { score, id: latest.checkUp.startedAt },
+      latestAssessment: { score, id: sourceResult.startedAt },
       lifeGoal: prefs.profile.lifeGoal,
       startDate: now,
     });
@@ -902,11 +1025,11 @@ export default function App() {
         nowIso: now,
       })
     );
-    setLastResult(latest.checkUp);
+    setLastResult(sourceResult);
     persistAdherence(nextAdherence);
     persistTraining(startBlock(training, block));
     setFlow('block-intro');
-  }, [adherence, history, persistAdherence, persistTraining, prefs.profile, training]);
+  }, [adherence, history, lastResult, persistAdherence, persistTraining, prefs.profile, training]);
 
   const handleTodayPrimaryAction = React.useCallback((preferences?: TodaySessionPreferences | null) => {
     switch (lifecycle.primaryAction.type) {
@@ -947,18 +1070,37 @@ export default function App() {
   ]);
 
   const extraTrendPoints = React.useMemo(() => microCheckTrendPoints(microChecks), [microChecks]);
+  const reportDisplayBlock = React.useMemo(
+    () => reportBlock ?? displayMovementBlock,
+    [displayMovementBlock, reportBlock]
+  );
+  const reportRecord = React.useMemo(
+    () => (reportDisplayBlock ? adherence.reports.find((report) => report.blockId === reportDisplayBlock.id) : undefined),
+    [adherence.reports, reportDisplayBlock]
+  );
   const reportPreviousScore = React.useMemo(() => {
-    if (!displayMovementBlock?.sourceAssessmentId) return null;
-    const previous = history.find((h) => h.checkUp.startedAt === displayMovementBlock.sourceAssessmentId);
+    if (!reportDisplayBlock?.sourceAssessmentId) return null;
+    const previous = history.find((h) => h.checkUp.startedAt === reportDisplayBlock.sourceAssessmentId);
     return previous ? scoreCheckUp(previous.checkUp) : null;
-  }, [displayMovementBlock, history]);
+  }, [history, reportDisplayBlock]);
   const reportLatestScore = React.useMemo(() => {
-    if (lastResult) return scoreCheckUp(lastResult);
-    const latest = history[history.length - 1];
-    return latest ? scoreCheckUp(latest.checkUp) : null;
-  }, [history, lastResult]);
+    const retestAssessment = adherence.assessments.find((assessment) => assessment.id === reportRecord?.retestAssessmentId);
+    const checkUpId = retestAssessment?.results?.rawMetrics?.checkUpId;
+    const fromHistory = checkUpId ? history.find((h) => h.checkUp.startedAt === checkUpId)?.checkUp : null;
+    const checkUp = fromHistory ?? (lastResult?.startedAt === checkUpId ? lastResult : null) ?? lastResult ?? history[history.length - 1]?.checkUp;
+    return checkUp ? scoreCheckUp(checkUp) : null;
+  }, [adherence.assessments, history, lastResult, reportRecord]);
 
   const openManualCheckup = React.useCallback(() => setFlow('manual-checkup'), []);
+
+  const openBlockReport = React.useCallback(
+    (blockId: string) => {
+      const block = adherence.blocks.find((item) => item.id === blockId) ?? null;
+      setReportBlock(block);
+      setFlow('block-report');
+    },
+    [adherence.blocks]
+  );
 
   const handleRoute = React.useCallback(
     (route: string | undefined) => {
@@ -1084,6 +1226,7 @@ export default function App() {
             permissionGranted={permission === 'granted'}
             onRequestPermission={requestCameraPermission}
             onBegin={() => (onboardingIncomplete ? beginOnboardingCheckUp() : beginCheckUp(latestAssessment ? 'manual_extra' : 'baseline'))}
+            onDevSkipCheckUp={__DEV__ && onboardingIncomplete ? skipOnboardingCheckUpForDev : undefined}
             onCancel={() => (onboardingIncomplete ? setFlow('camera-explanation') : goHome())}
           />
         ) : flow === 'manual-checkup' ? (
@@ -1165,15 +1308,16 @@ export default function App() {
             supportConnection={supportConnection}
             onDone={goHome}
           />
-        ) : flow === 'block-report' && displayMovementBlock ? (
+        ) : flow === 'block-report' && reportDisplayBlock ? (
           <BlockReportScreen
-            block={displayMovementBlock}
+            block={reportDisplayBlock}
             lifeGoal={prefs.profile.lifeGoal}
             completions={adherence.completions}
             previousScore={reportPreviousScore}
             latestScore={reportLatestScore}
             milestone={newestMilestone}
-            onStartNextBlock={handleStartNextBlock}
+            nextBlockReady={!!activeMovementBlock && activeMovementBlock.id !== reportDisplayBlock.id}
+            onStartNextBlock={activeMovementBlock && activeMovementBlock.id !== reportDisplayBlock.id ? goHome : handleStartNextBlock}
             onDone={goHome}
           />
         ) : flow === 'session-complete' && displayMovementBlock ? (
@@ -1185,14 +1329,37 @@ export default function App() {
             onFeedback={handleSessionFeedback}
             onDone={goHome}
           />
+        ) : flow === 'ladder-detail' && selectedLadderId ? (
+          <LadderDetailScreen
+            ladderId={selectedLadderId}
+            ladderProgressById={training.ladderProgressById}
+            onPractice={() => handleStartLadderPractice(selectedLadderId)}
+            onDone={goExplore}
+          />
+        ) : flow === 'learn-detail' && selectedLearnId ? (
+          <LearnDetailScreen
+            articleId={selectedLearnId}
+            onCameraSetup={() => setFlow('camera-setup')}
+            onEquipment={() => setFlow('settings')}
+            onDone={goExplore}
+          />
         ) : flow === 'settings' ? (
           <SettingsScreen
             profile={prefs.profile}
             settings={prefs.settings}
             equipment={training.equipment}
+            supportConnection={supportConnection}
+            preferredDays={prefs.profile.safetyProfile?.preferredWorkoutDays ?? []}
+            preferredIntensity={training.planPreferences.preferredIntensity}
             onProfileChange={onProfileChange}
             onSettingsChange={onSettingsChange}
             onToggleEquipment={toggleEquipment}
+            onToggleAvailableEquipment={toggleAvailableEquipment}
+            onPreferredDaysChange={handlePreferredWorkoutDaysChange}
+            onIntensityChange={handleTrainingIntensityChange}
+            onOpenLifeGoal={() => setFlow('life-goal')}
+            onOpenSafetyProfile={() => setFlow('safety-profile')}
+            onOpenCameraSetup={() => setFlow('camera-setup')}
           />
         ) : flow === 'dev-assessment' ? (
           <AssessmentScreen />
@@ -1242,17 +1409,30 @@ export default function App() {
           />
         ) : tab === 'progress' ? (
           <ProgressScreen
-            latestCheckUp={history.length > 0 ? history[history.length - 1] : null}
-            score={lastScore}
-            movementSnapshot={lifecycle.movementSnapshot}
-            checkUpCount={history.length}
+            history={history}
+            activeBlock={activeMovementBlock}
+            blocks={adherence.blocks}
+            reports={adherence.reports}
+            completions={adherence.completions}
             ladderProgressById={training.ladderProgressById}
+            today={new Date().toISOString()}
             onBeginCheckUp={() => (latestAssessment ? openManualCheckup() : setFlow('camera-setup'))}
+            onStartRetest={() => beginCheckUp('official_retest')}
             onViewLatest={viewLast}
+            onViewReport={openBlockReport}
             onOpenSettings={() => setFlow('settings')}
           />
         ) : (
-          <ExploreScreen equipment={training.equipment} onOpenSettings={() => setFlow('settings')} />
+          <ExploreScreen
+            equipment={training.equipment}
+            safetyProfile={prefs.profile.safetyProfile}
+            settings={prefs.settings}
+            ladderProgressById={training.ladderProgressById}
+            onStartExtraSession={handleStartExtraSession}
+            onOpenLadder={openLadderDetail}
+            onOpenLearn={openLearnDetail}
+            onOpenSettings={() => setFlow('settings')}
+          />
         )}
       </View>
 
@@ -1278,6 +1458,43 @@ export default function App() {
 function readinessForTrainingPreference(preference: TrainingIntensityPreference) {
   if (preference === 'gentle') return 'low_energy' as const;
   return undefined;
+}
+
+function sessionIntensityForTrainingPreference(preference: TrainingIntensityPreference): SessionIntensity {
+  if (preference === 'gentle') return 'beginner';
+  if (preference === 'more_challenge') return 'advanced';
+  return 'standard';
+}
+
+function syncAvailableEquipment(
+  current: readonly AvailableEquipment[],
+  equipment: EquipmentProfile
+): AvailableEquipment[] {
+  const set = new Set<AvailableEquipment>(current.length > 0 ? current : ['chair', 'wall']);
+  set.delete('none');
+  if (equipment.stair) set.add('stairs');
+  else set.delete('stairs');
+  if (equipment.band) set.add('resistance_band');
+  else set.delete('resistance_band');
+  if (equipment.miniBand) set.add('mini_band');
+  else set.delete('mini_band');
+  if (equipment.load) set.add('backpack');
+  else {
+    set.delete('backpack');
+    set.delete('dumbbells');
+  }
+  return set.size > 0 ? Array.from(set) : ['none'];
+}
+
+function toggleAvailableEquipmentItem(
+  current: readonly AvailableEquipment[],
+  item: AvailableEquipment
+): AvailableEquipment[] {
+  const set = new Set<AvailableEquipment>(current.length > 0 ? current : ['chair', 'wall']);
+  set.delete('none');
+  if (set.has(item)) set.delete(item);
+  else set.add(item);
+  return set.size > 0 ? Array.from(set) : ['none'];
 }
 
 const styles = StyleSheet.create({

@@ -65,6 +65,7 @@ export type {
   RecentSessionSummary,
   SessionSlot,
   SessionSlotType,
+  SessionIntensity,
   SessionSource,
   SessionTemplate,
   TemplateSelection,
