@@ -66,14 +66,14 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
   // Props (defaults mirror the JS-side defaults).
   private var active = false
   private var cameraFacing = "front"
-  private var modelVariant = "lite"
+  private var modelVariant = "full"
   private var minDetectionConfidence = 0.35f
   private var minTrackingConfidence = 0.35f
   private var minPresenceConfidence = 0.35f
 
   init {
-    // bg-base (#F7F2EA) — keep in sync with the JS theme token (src/theme).
-    setBackgroundColor(Color.parseColor("#F7F2EA"))
+    // bg-base (#F4EFE6) - keep in sync with the JS theme token (src/theme).
+    setBackgroundColor(Color.parseColor("#F4EFE6"))
     lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
   }
 

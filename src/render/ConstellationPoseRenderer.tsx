@@ -124,6 +124,7 @@ export const ConstellationPoseRenderer = React.forwardRef<
 >(function ConstellationPoseRenderer(
   {
     mirrored = true,
+    fit = 'cover',
     minConfidence = 0.35,
     smoothingEnabled = true,
     adaptiveSmoothingEnabled = true,
@@ -338,7 +339,7 @@ export const ConstellationPoseRenderer = React.forwardRef<
       const updateTiming = markPoseAvatarUpdate(perf.current, frame.timestampMs, wallNow);
       mapPoseFrameToScreenPose(
         frame,
-        { width, height, sourceAspect, mirrored },
+        { width, height, sourceAspect, mirrored, fit },
         screenPose.current
       );
 

@@ -4,7 +4,7 @@
  * Deterministic (all timing from frame timestamps). Verifies the player chains
  * items, runs every prescribed set with spoken rest between them, speaks the
  * intro / closing / view-change cues, finishes with a coherent result, and
- * skips an item that never gets framed without blocking the session.
+ * waits for an explicit user skip when setup cannot get a clear reading.
  *
  * Rep/velocity/autoregulation RELAY through the player is asserted in the M3
  * test (a real decaying-velocity recording); here the subject stands still, so
@@ -19,6 +19,7 @@ import { RawLandmarkEvent } from '../../pose/types';
 import { PreflightCheck } from '../../preflight/preflight';
 import {
   DEFAULT_TRAINING_CONFIG,
+  TrainingFrameUpdate,
   TrainingPlayerConfig,
   TrainingSessionPlayer,
   TrainingSessionResult,
@@ -37,7 +38,8 @@ function runSession(
   exerciseIds: string[],
   frameAt: (ts: number) => RawLandmarkEvent,
   config: TrainingPlayerConfig,
-  maxFrames = 60000
+  maxFrames = 60000,
+  onUpdate?: (update: TrainingFrameUpdate, player: TrainingSessionPlayer) => void
 ): RunResult {
   const pipeline = new PosePipeline();
   const preflight = new PreflightCheck();
@@ -50,6 +52,7 @@ function runSession(
   for (let frames = 0; frames < maxFrames; frames++, ts += FRAME_MS) {
     const out = pipeline.process(frameAt(Math.round(ts)));
     const u = player.update(out, ts < voiceBusyUntil);
+    onUpdate?.(u, player);
     phasesSeen.add(u.phase);
     if (u.voice) {
       spoken.push(...(u.voice.cues as VoiceCueKey[]));
@@ -99,16 +102,28 @@ describe('TrainingSessionPlayer — full session', () => {
   });
 });
 
-describe('TrainingSessionPlayer — graceful skip', () => {
-  it('skips an item that never gets framed and still finishes', () => {
+describe('TrainingSessionPlayer — setup issue choices', () => {
+  it('surfaces setup trouble and records skipped items only after the user chooses skip', () => {
     const config: TrainingPlayerConfig = { ...DEFAULT_TRAINING_CONFIG, maxFramingMs: 3000 };
-    const run = runSession([STS_STANDARD_ID, NECK_ROTATION_ID], (ts) => ({ timestampMs: ts, landmarks: [] }), config, 8000);
+    let setupIssues = 0;
+    const run = runSession(
+      [STS_STANDARD_ID, NECK_ROTATION_ID],
+      (ts) => ({ timestampMs: ts, landmarks: [] }),
+      config,
+      8000,
+      (u, player) => {
+        if (!u.setupIssue) return;
+        setupIssues++;
+        player.skipCurrentItem();
+      }
+    );
     expect(run.result.items).toHaveLength(2);
     for (const item of run.result.items) {
       expect(item.status).toBe('skipped');
       expect(item.sets).toHaveLength(0);
     }
-    expect(run.spoken.filter((c) => c === 'exercise-skipped').length).toBe(2);
+    expect(setupIssues).toBe(2);
+    expect(run.spoken.filter((c) => c === 'exercise-skipped').length).toBe(0);
     expect(run.spoken[run.spoken.length - 1]).toBe('session-complete');
   });
 });

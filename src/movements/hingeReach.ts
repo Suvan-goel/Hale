@@ -14,8 +14,15 @@
 import { VoiceCueKey } from '../audio/cues';
 import { MaxRomOutput, MaxRomTracker } from '../grading';
 import { CHAIN_IDS } from '../pose/chains';
+import { angleAtDeg } from '../pose/geometry';
 import { PipelineFrameOutput } from '../pose/pipeline';
 import { LM } from '../pose/types';
+import {
+  ValidTimeAccumulator,
+  createValidTimeAccumulator,
+  getValidTimeResult,
+  validTimeConfigForTarget,
+} from '../exercises/validTime';
 import { GraderUpdate, MovementDefinition, MovementGrader, MovementResultBase } from './types';
 import { registerMovement } from './registry';
 
@@ -32,15 +39,20 @@ export interface HingeReachResult extends MovementResultBase {
 export interface HingeReachConfig {
   emaAlpha: number;
   captureDurationMs: number;
+  validCaptureMs: number;
 }
 
 export const DEFAULT_HINGE_REACH_CONFIG: HingeReachConfig = {
   emaAlpha: 0.3,
   captureDurationMs: 9000,
+  validCaptureMs: 3000,
 };
 
 class HingeReachGrader implements MovementGrader<HingeReachResult> {
+  private readonly config: HingeReachConfig;
   private readonly rom: MaxRomTracker;
+  private readonly fallbackRom: MaxRomTracker;
+  private readonly validTime: ValidTimeAccumulator;
   private readonly liveUpdate: GraderUpdate = {
     repCredited: false,
     repCount: 0,
@@ -53,9 +65,13 @@ class HingeReachGrader implements MovementGrader<HingeReachResult> {
   private sideLocked = false;
   private interruptions = 0;
   private romOut: MaxRomOutput | null = null;
+  private fallbackRomOut: MaxRomOutput | null = null;
 
   constructor(config: HingeReachConfig) {
+    this.config = config;
     this.rom = new MaxRomTracker({ emaAlpha: config.emaAlpha, direction: 'min' });
+    this.fallbackRom = new MaxRomTracker({ emaAlpha: config.emaAlpha, direction: 'min' });
+    this.validTime = createValidTimeAccumulator(validTimeConfigForTarget(config.validCaptureMs));
   }
 
   update(out: PipelineFrameOutput): GraderUpdate {
@@ -64,13 +80,22 @@ class HingeReachGrader implements MovementGrader<HingeReachResult> {
       if (out.events[i].type === 'subject-gone') {
         this.interruptions++;
         this.rom.resetState();
+        this.fallbackRom.resetState();
         this.sideLocked = false;
       }
     }
 
     const measuring = out.state === 'tracking' && out.frame.hasPose && out.bodyUnit !== null;
     live.measuring = measuring;
-    if (!measuring) return live;
+    live.complete = false;
+    if (!measuring) {
+      this.validTime.update({
+        nowMs: out.frame.timestampMs,
+        isPositionValid: false,
+        isTrackingReliable: false,
+      });
+      return live;
+    }
 
     if (!this.sideLocked) {
       this.sideIsLeft =
@@ -83,32 +108,53 @@ class HingeReachGrader implements MovementGrader<HingeReachResult> {
     const ankle = this.sideIsLeft ? LM.LEFT_ANKLE : LM.RIGHT_ANKLE;
     const heel = this.sideIsLeft ? LM.LEFT_HEEL : LM.RIGHT_HEEL;
     const foot = this.sideIsLeft ? LM.LEFT_FOOT_INDEX : LM.RIGHT_FOOT_INDEX;
+    const shoulder = this.sideIsLeft ? LM.LEFT_SHOULDER : LM.RIGHT_SHOULDER;
+    const hip = this.sideIsLeft ? LM.LEFT_HIP : LM.RIGHT_HIP;
+    const knee = this.sideIsLeft ? LM.LEFT_KNEE : LM.RIGHT_KNEE;
 
     // Image y grows downward, so the floor is the largest foot-cluster y.
     const floorY = Math.max(frame.ys[ankle], frame.ys[heel], frame.ys[foot]);
     const wristToFloorBu = (floorY - frame.ys[wrist]) / bodyUnit;
-    this.romOut = this.rom.update(wristToFloorBu, frame.timestampMs);
+    this.fallbackRomOut = this.fallbackRom.update(wristToFloorBu, frame.timestampMs);
+    const trunkAngle = angleAtDeg(frame, shoulder, hip, knee);
+    const positionValid = trunkAngle <= 165;
+    const snap = this.validTime.update({
+      nowMs: frame.timestampMs,
+      isPositionValid: positionValid,
+      isTrackingReliable: true,
+    });
+    if (positionValid && (snap.state === 'counting' || snap.state === 'grace' || snap.state === 'complete')) {
+      this.romOut = this.rom.update(wristToFloorBu, frame.timestampMs);
+    }
     return live;
   }
 
   finish(): HingeReachResult {
     const flags: string[] = [];
     if (this.interruptions > 0) flags.push('tracking-interrupted');
-    const peak = this.romOut ? this.romOut.peak : NaN;
+    const peak = this.romOut && Number.isFinite(this.romOut.peak)
+      ? this.romOut.peak
+      : this.fallbackRomOut
+        ? this.fallbackRomOut.peak
+        : NaN;
     if (Number.isNaN(peak)) flags.push('no-measurement');
     return {
       movementId: HINGE_REACH_ID,
       reachBu: peak,
       flags,
       interruptions: this.interruptions,
+      validTime: getValidTimeResult(this.validTime.snapshot, this.config.validCaptureMs),
     };
   }
 
   reset(): void {
     this.rom.reset();
+    this.fallbackRom.reset();
+    this.validTime.reset();
     this.sideLocked = false;
     this.interruptions = 0;
     this.romOut = null;
+    this.fallbackRomOut = null;
     this.liveUpdate.measuring = false;
   }
 }

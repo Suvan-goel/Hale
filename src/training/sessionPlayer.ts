@@ -11,15 +11,18 @@
  * item re-frames (placement memory — "same spot, you're framed"), a turn cue is
  * spoken when the camera view changes, sets auto-advance with spoken rest, rep
  * credits chime, and velocity autoregulation can end a strength set early
- * ("good, that's your set"). An item that can't get framed in time is skipped
- * rather than blocking the session (product law 6).
+ * ("good, that's your set"). If setup can't get a clear reading in time, the
+ * player latches a setup-issue state and waits for the screen/user to retry or
+ * skip rather than silently advancing.
  */
 
 import { VoiceCueKey, voicePriority } from '../audio/cues';
 import { VoiceRequest } from '../assessment/sessionController';
 import { ExerciseDefinition, ExerciseSetGrader, SetResult, getExercise } from '../exercises';
+import type { ValidTimeState } from '../exercises/validTime';
 import { PipelineFrameOutput } from '../pose/pipeline';
 import { PreflightCheck, PreflightPrompt, PreflightStatus } from '../preflight/preflight';
+import { shouldSpeakFramingPrompt } from '../preflight/promptTiming';
 
 export type TrainingPhase =
   | 'intro'
@@ -59,6 +62,10 @@ export interface TrainingFrameUpdate {
   /** ms left on a set capture clock or a rest timer; NaN otherwise. */
   remainingMs: number;
   measuring: boolean;
+  validTimeState: ValidTimeState | null;
+  validTimeCaption: string | null;
+  /** True after setup has timed out and the UI must ask the user what to do. */
+  setupIssue: boolean;
 }
 
 export interface TrainingPlayerConfig {
@@ -101,6 +108,9 @@ export class TrainingSessionPlayer {
     holdMs: 0,
     remainingMs: NaN,
     measuring: false,
+    validTimeState: null,
+    validTimeCaption: null,
+    setupIssue: false,
   };
 
   private phase: TrainingPhase = 'intro';
@@ -111,6 +121,8 @@ export class TrainingSessionPlayer {
   private transitionEnteredMs = 0;
   private transitionCuePending: VoiceCueKey | null = null;
   private itemEnteredMs = 0;
+  private lastTimestampMs = 0;
+  private setupIssue = false;
 
   private instructionsEnteredMs = 0;
   private instructionsIdleAtMs = -1;
@@ -149,13 +161,56 @@ export class TrainingSessionPlayer {
     return this.finished;
   }
 
+  retrySetup(): void {
+    if (this.phase !== 'preflight') return;
+    this.setupIssue = false;
+    this.preflight.reset();
+    this.itemEnteredMs = this.lastTimestampMs;
+    this.lastPromptCue = null;
+    this.lastPromptAtMs = -Infinity;
+  }
+
+  skipCurrentItem(): boolean {
+    if (this.itemIndex < 0 || this.itemIndex >= this.definitions.length) return false;
+    if (
+      this.phase === 'intro' ||
+      this.phase === 'transition' ||
+      this.phase === 'complete' ||
+      this.phase === 'done'
+    ) {
+      return false;
+    }
+    this.setupIssue = false;
+    this.results.push({ exerciseId: this.definitions[this.itemIndex].id, status: 'skipped', sets: [] });
+    this.currentSets = [];
+    this.advanceItem(this.lastTimestampMs);
+    return true;
+  }
+
+  shiftTiming(deltaMs: number): void {
+    if (deltaMs <= 0) return;
+    this.transitionEnteredMs += deltaMs;
+    this.itemEnteredMs += deltaMs;
+    this.instructionsEnteredMs += deltaMs;
+    if (this.instructionsIdleAtMs >= 0) this.instructionsIdleAtMs += deltaMs;
+    if (Number.isFinite(this.lastPromptAtMs)) this.lastPromptAtMs += deltaMs;
+    this.countdownStartMs += deltaMs;
+    this.setStartMs += deltaMs;
+    this.restEnteredMs += deltaMs;
+    this.preflight.shiftTiming(deltaMs);
+  }
+
   update(out: PipelineFrameOutput, voiceBusy: boolean): TrainingFrameUpdate {
     const u = this.update_;
     u.voice = null;
     u.playRepSound = false;
     u.remainingMs = NaN;
     u.measuring = false;
+    u.validTimeState = null;
+    u.validTimeCaption = null;
+    u.setupIssue = this.setupIssue;
     const ts = out.frame.timestampMs;
+    this.lastTimestampMs = ts;
     const status = this.preflight.update(out);
 
     switch (this.phase) {
@@ -250,6 +305,10 @@ export class TrainingSessionPlayer {
   }
 
   private runPreflight(out: PipelineFrameOutput, status: PreflightStatus, ts: number, u: TrainingFrameUpdate): void {
+    if (this.setupIssue) {
+      u.setupIssue = true;
+      return;
+    }
     if (status.phase === 'ready' && out.bodyUnit !== null) {
       const def = this.definitions[this.itemIndex];
       this.phase = 'instructions';
@@ -261,16 +320,22 @@ export class TrainingSessionPlayer {
       };
       return;
     }
-    // Skip an item that can't get framed in time (never blocks the session).
+    // Ask the user what to do instead of silently skipping.
     if (ts - this.itemEnteredMs >= this.config.maxFramingMs) {
-      this.results.push({ exerciseId: this.definitions[this.itemIndex].id, status: 'skipped', sets: [] });
-      u.voice = cue('exercise-skipped');
-      this.advanceItem(ts);
+      this.setupIssue = true;
+      u.setupIssue = true;
       return;
     }
     const c = promptCue(status.prompt);
-    const changed = c !== this.lastPromptCue;
-    if (changed || ts - this.lastPromptAtMs >= this.config.promptRepeatMs) {
+    if (
+      shouldSpeakFramingPrompt({
+        cue: c,
+        lastCue: this.lastPromptCue,
+        lastSpokenAtMs: this.lastPromptAtMs,
+        nowMs: ts,
+        repeatMs: this.config.promptRepeatMs,
+      })
+    ) {
       this.lastPromptCue = c;
       this.lastPromptAtMs = ts;
       u.voice = cue(c);
@@ -310,7 +375,9 @@ export class TrainingSessionPlayer {
         this.grader = def.createGrader();
         this.setStartMs = ts;
         this.setDurationMs =
-          def.kind === 'rom'
+          def.timing?.mode === 'valid_time'
+            ? null
+            : def.kind === 'rom'
             ? (def.prescription.captureSec ?? 12) * 1000
             : def.kind === 'timer'
               ? (def.prescription.timerSec ?? def.prescription.holdSec ?? 20) * 1000
@@ -327,12 +394,18 @@ export class TrainingSessionPlayer {
     u.repCount = g.repCount;
     u.holdMs = g.holdMs;
     u.measuring = g.measuring;
+    u.validTimeState = g.validTimeState ?? null;
+    u.validTimeCaption = g.validTimeCaption ?? null;
     if (g.voice) u.voice = { cues: g.voice.cues, priority: g.voice.priority };
 
     const elapsed = ts - this.setStartMs;
     const clockEnded = this.setDurationMs !== null && elapsed >= this.setDurationMs;
     const safetyEnded = this.setDurationMs === null && elapsed >= this.config.setSafetyMs;
-    u.remainingMs = this.setDurationMs !== null ? Math.max(0, this.setDurationMs - elapsed) : NaN;
+    u.remainingMs = Number.isFinite(g.remainingMs)
+      ? (g.remainingMs as number)
+      : this.setDurationMs !== null
+        ? Math.max(0, this.setDurationMs - elapsed)
+        : NaN;
 
     if (g.complete || clockEnded || safetyEnded) {
       this.currentSets.push(grader.finish(ts));

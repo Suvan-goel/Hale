@@ -16,12 +16,12 @@ import { buildSkeletonPaths, emptySkeletonPaths } from '../src/render/skeletonGe
 // Theme literals inlined (importing src/theme would pull in react-native, which
 // the tsx/esbuild runner can't transform). Keep in sync with src/theme tokens.
 const skeleton = {
-  background: '#F7F2EA',
-  figureTop: '#31584A', // soft gradient — lit forest green at the top
-  figureBottom: '#102A24', // settling to green-black ink at the base
-  dim: '#B7B19F', // muted, lower-contrast for occluded parts
+  background: '#F4EFE6',
+  figureTop: '#4F5A45', // soft gradient - lit olive-sage at the top
+  figureBottom: '#252A22', // settling to olive-black ink at the base
+  dim: '#B7AF9E', // muted, lower-contrast for occluded parts
 };
-const colors = { bgBase: '#F7F2EA' };
+const colors = { bgBase: '#F4EFE6' };
 
 const WIDTH = 390;
 const HEIGHT = 844;

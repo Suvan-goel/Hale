@@ -12,10 +12,11 @@
  * The PosePipeline is NOT reset between items: body-unit calibration is done
  * once and reused for the whole session (the setup is constant).
  *
- * Graceful skip (never blocks the battery): if an item can't get framed within
- * `maxFramingMs`, it's recorded `skipped`; if it finishes with a grader
- * `no-measurement` flag, it's recorded `unmeasured`. Either way the battery
- * moves on and still yields a coherent CheckUp.
+ * Setup trouble is explicit: if an item can't get framed within
+ * `maxFramingMs`, the orchestrator latches a setup-issue state and waits for
+ * the screen/user to retry or skip. If skipped, it is recorded `skipped`; if it
+ * finishes with a grader `no-measurement` flag, it's recorded `unmeasured`.
+ * Either way the battery can still yield a coherent CheckUp.
  */
 
 import { VoiceCueKey, voicePriority } from '../audio/cues';
@@ -58,6 +59,9 @@ export interface CheckUpFrameUpdate {
   playRepSound: boolean;
   /** The active item's per-frame session update (HUD mirror), or null. */
   item: SessionFrameUpdate | null;
+  /** True after setup has timed out and the UI must ask the user what to do. */
+  setupIssue: boolean;
+  totalItems: number;
 }
 
 export interface CheckUpConfig {
@@ -89,6 +93,8 @@ export class CheckUpOrchestrator {
     voice: null,
     playRepSound: false,
     item: null,
+    setupIssue: false,
+    totalItems: 0,
   };
 
   private phase: CheckUpPhase = 'intro';
@@ -98,6 +104,8 @@ export class CheckUpOrchestrator {
   private transitionEnteredMs = 0;
   private transitionCuePending: VoiceCueKey | null = null;
   private itemEnteredMs = 0;
+  private lastTimestampMs = 0;
+  private setupIssue = false;
   private completeSpoken = false;
   private bodyUnit: number | null = null;
   private finished: CheckUp | null = null;
@@ -121,14 +129,47 @@ export class CheckUpOrchestrator {
     return this.finished;
   }
 
+  get totalItems(): number {
+    return this.definitions.length;
+  }
+
+  retrySetup(): void {
+    if (this.phase !== 'item' || !this.controller) return;
+    this.setupIssue = false;
+    this.preflight.reset();
+    this.controller.reset();
+    this.itemEnteredMs = this.lastTimestampMs;
+  }
+
+  skipCurrentItem(): boolean {
+    if (this.phase !== 'item' || this.itemIndex < 0 || this.itemIndex >= this.definitions.length) {
+      return false;
+    }
+    this.setupIssue = false;
+    this.recordSkip();
+    this.advance(this.lastTimestampMs);
+    return true;
+  }
+
+  shiftTiming(deltaMs: number): void {
+    if (deltaMs <= 0) return;
+    this.transitionEnteredMs += deltaMs;
+    this.itemEnteredMs += deltaMs;
+    this.preflight.shiftTiming(deltaMs);
+    this.controller?.shiftTiming(deltaMs);
+  }
+
   /** Feed one pipeline frame; drives pre-flight + the active item internally. */
   update(out: PipelineFrameOutput, voiceBusy: boolean): CheckUpFrameUpdate {
     const u = this.update_;
     u.voice = null;
     u.playRepSound = false;
     u.item = null;
+    u.setupIssue = this.setupIssue;
+    u.totalItems = this.definitions.length;
     if (out.bodyUnit !== null) this.bodyUnit = out.bodyUnit;
     const ts = out.frame.timestampMs;
+    this.lastTimestampMs = ts;
     const status = this.preflight.update(out);
 
     switch (this.phase) {
@@ -216,16 +257,21 @@ export class CheckUpOrchestrator {
     u: CheckUpFrameUpdate
   ): void {
     const controller = this.controller as SessionController;
+    if (this.setupIssue) {
+      u.setupIssue = true;
+      u.item = setupIssueItemUpdate;
+      return;
+    }
     const itemUpdate = controller.update(out, status, voiceBusy);
     u.item = itemUpdate;
     if (itemUpdate.voice) u.voice = itemUpdate.voice;
     u.playRepSound = itemUpdate.playRepSound;
 
-    // Skip an item that can't get framed in time (never blocks the battery).
+    // Ask the user what to do instead of silently skipping.
     if (itemUpdate.phase === 'preflight' && ts - this.itemEnteredMs >= this.config.maxFramingMs) {
-      this.recordSkip();
-      u.voice = { cues: ['exercise-skipped'], priority: voicePriority('exercise-skipped') };
-      this.advance(ts);
+      this.setupIssue = true;
+      u.setupIssue = true;
+      u.item = setupIssueItemUpdate;
       return;
     }
 
@@ -272,3 +318,12 @@ export class CheckUpOrchestrator {
     };
   }
 }
+
+const setupIssueItemUpdate: SessionFrameUpdate = {
+  phase: 'preflight',
+  voice: null,
+  playRepSound: false,
+  repCount: 0,
+  remainingMs: NaN,
+  measuring: false,
+};

@@ -40,12 +40,14 @@ export function Screen({
 }
 
 export const AppScreen = Screen;
+export const ScreenContainer = Screen;
 
 export function Card({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
   return <View style={[styles.card, style]}>{children}</View>;
 }
 
 export const PremiumCard = Card;
+export const HaleCard = Card;
 
 export function MaterialCard({
   children,
@@ -130,6 +132,28 @@ export function GhostButton({ title, onPress }: { title: string; onPress: () => 
       <Text style={styles.ghostText}>{title}</Text>
     </Pressable>
   );
+}
+
+export function HaleButton({
+  title,
+  onPress,
+  variant = 'primary',
+  accessibilityLabel,
+  style,
+}: {
+  title: string;
+  onPress: () => void;
+  variant?: 'primary' | 'secondary' | 'ghost';
+  accessibilityLabel?: string;
+  style?: StyleProp<ViewStyle>;
+}) {
+  if (variant === 'secondary') {
+    return <SecondaryButton title={title} onPress={onPress} accessibilityLabel={accessibilityLabel} style={style} />;
+  }
+  if (variant === 'ghost') {
+    return <GhostButton title={title} onPress={onPress} />;
+  }
+  return <PrimaryButton title={title} onPress={onPress} accessibilityLabel={accessibilityLabel} style={style} />;
 }
 
 export function Eyebrow({ children }: { children: React.ReactNode }) {
@@ -297,12 +321,12 @@ export function MetricRing({
   return (
     <View style={[styles.ring, { width: size, height: size }]}>
       <Svg width={size} height={size}>
-        <Circle cx={center} cy={center} r={r} stroke={colors.accentSoft} strokeWidth={stroke} fill="none" />
+        <Circle cx={center} cy={center} r={r} stroke={colors.sageMist} strokeWidth={stroke} fill="none" />
         <Circle
           cx={center}
           cy={center}
           r={r}
-          stroke={colors.sage}
+          stroke={colors.oliveSage}
           strokeWidth={stroke}
           fill="none"
           strokeLinecap="round"
@@ -317,6 +341,8 @@ export function MetricRing({
     </View>
   );
 }
+
+export const ProgressRing = MetricRing;
 
 export function DailyPlanItem({
   icon,
@@ -362,6 +388,8 @@ export function DailyPlanItem({
     </Pressable>
   );
 }
+
+export const PremiumListRow = DailyPlanItem;
 
 export function HealthMetricRow({
   label,
@@ -442,9 +470,9 @@ export function ToggleRow({
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bgBase },
   screenContent: {
-    paddingHorizontal: spacing.xxl,
+    paddingHorizontal: spacing.xl,
     paddingTop: spacing.huge,
-    paddingBottom: spacing.huge,
+    paddingBottom: spacing.xxxl,
     gap: spacing.xl,
   },
   header: { gap: spacing.sm },
@@ -456,9 +484,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.bgSurface,
+    backgroundColor: colors.elevatedCard,
     borderWidth: 1,
-    borderColor: colors.borderHairline,
+    borderColor: colors.warmBorder,
+    ...shadow.soft,
   },
   sectionHeader: {
     minHeight: 32,
@@ -471,7 +500,7 @@ const styles = StyleSheet.create({
   sectionAction: { minHeight: 32, justifyContent: 'center' },
   sectionActionText: { ...type.label, color: colors.accentDeep },
   card: {
-    padding: spacing.xxl,
+    padding: spacing.xl,
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
     borderWidth: 1,
@@ -479,11 +508,11 @@ const styles = StyleSheet.create({
     ...shadow.soft,
   },
   materialCard: {
-    padding: spacing.xxl,
+    padding: spacing.xl,
     borderRadius: radius.panel,
-    backgroundColor: colors.bgMaterial,
+    backgroundColor: colors.warmMineralCream,
     borderWidth: 1,
-    borderColor: colors.borderHairline,
+    borderColor: colors.warmBorder,
     ...shadow.lifted,
   },
   pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
@@ -492,23 +521,25 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.xl,
     minHeight: minTapTarget,
-    borderRadius: radius.input,
+    borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.accent,
     ...shadow.lifted,
   },
   primaryPressed: { backgroundColor: colors.accentDeep, transform: [{ scale: 0.99 }] },
   primaryText: { ...type.button },
   secondary: {
-    backgroundColor: colors.bgSurface,
+    backgroundColor: colors.sageMist,
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.xl,
     minHeight: minTapTarget,
-    borderRadius: radius.input,
+    borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colors.borderHairline,
+    borderColor: colors.sageMist,
   },
   secondaryText: { ...type.button, color: colors.accentDeep },
   ghost: {
@@ -516,12 +547,12 @@ const styles = StyleSheet.create({
     minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radius.input,
+    borderRadius: radius.pill,
   },
   ghostText: { ...type.bodySmall, color: colors.accentDeep },
   pill: {
-    minHeight: 36,
-    paddingHorizontal: spacing.md,
+    minHeight: 40,
+    paddingHorizontal: spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.pill,
@@ -537,7 +568,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
-    backgroundColor: colors.bgElevated,
+    backgroundColor: colors.elevatedCard,
     borderWidth: 1,
     borderColor: colors.borderHairline,
   },
@@ -553,7 +584,7 @@ const styles = StyleSheet.create({
     minWidth: 136,
     padding: spacing.lg,
     borderRadius: radius.card,
-    backgroundColor: colors.bgSurface,
+    backgroundColor: colors.elevatedCard,
     borderWidth: 1,
     borderColor: colors.borderHairline,
     gap: spacing.sm,
@@ -579,7 +610,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: radius.pill,
-    backgroundColor: colors.bgSage,
+    backgroundColor: colors.sageMist,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -604,7 +635,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: radius.pill,
-    backgroundColor: colors.accentSoft,
+    backgroundColor: colors.sageMist,
     alignItems: 'center',
     justifyContent: 'center',
   },

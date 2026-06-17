@@ -6,6 +6,7 @@ import type {
   PoseAvatarRendererMode,
   PoseAvatarTrackingQuality,
 } from './poseAvatarTypes';
+import type { PointCloudBodyDensity } from './pointCloudBodyGeometry';
 import type {
   ConfidenceAnimationStrength,
   PoseVisualTrackingState,
@@ -35,6 +36,22 @@ export interface PoseAvatarPerformanceSnapshot {
   torsoDotCount: number;
   headDotCount: number;
   volumeDotCount: number;
+  bodyStyle?: 'classic' | 'constellation' | 'point_cloud_body';
+  pointCloudBodyDensity?: PointCloudBodyDensity;
+  pointCloudBodyMaxDots?: number;
+  pointCloudBodyShowConnections?: boolean;
+  pointCloudBodyShowSkeletonLines?: boolean;
+  pointCloudBodyShowKeypoints?: boolean;
+  pointCloudBodyOpacity?: number;
+  upperArmDotCount?: number;
+  forearmDotCount?: number;
+  thighDotCount?: number;
+  lowerLegDotCount?: number;
+  handDotCount?: number;
+  footDotCount?: number;
+  keypointDotCount?: number;
+  connectionLineCount?: number;
+  skippedBodyPartCount?: number;
   lowLatencyMode: boolean;
   confidenceFadingEnabled: boolean;
   confidenceIntensityEnabled: boolean;
@@ -116,6 +133,14 @@ export function maybeLogPoseAvatarPerformance(
       `speed=${snapshot.movementSpeedPxPerSec.toFixed(0)}px/s ` +
       `samples=${snapshot.sampledDotsEnabled ? 'on' : 'off'} ` +
       `volume=${snapshot.bodyVolumeEnabled ? 'on' : 'off'} ` +
+      (snapshot.bodyStyle
+        ? `bodyStyle=${snapshot.bodyStyle} density=${snapshot.pointCloudBodyDensity ?? 'n/a'} ` +
+          `bodyMax=${snapshot.pointCloudBodyMaxDots ?? 'n/a'} ` +
+          `bodyConn=${snapshot.pointCloudBodyShowConnections ? 'on' : 'off'} ` +
+          `bodySkeleton=${snapshot.pointCloudBodyShowSkeletonLines ? 'on' : 'off'} ` +
+          `bodyKeys=${snapshot.pointCloudBodyShowKeypoints ? 'on' : 'off'} ` +
+          `bodyOpacity=${(snapshot.pointCloudBodyOpacity ?? 1).toFixed(2)} `
+        : '') +
       `confFade=${snapshot.confidenceFadingEnabled ? 'on' : 'off'} ` +
       `confIntensity=${snapshot.confidenceIntensityEnabled ? 'on' : 'off'} ` +
       `reacqFade=${snapshot.reacquisitionFadeEnabled ? 'on' : 'off'} ` +
@@ -130,10 +155,17 @@ export function maybeLogPoseAvatarPerformance(
       `track=${snapshot.visualTrackingState} avgConf=${snapshot.averageConfidence.toFixed(2)} ` +
       `pulse=${snapshot.recognitionPulseActive ? 'on' : 'off'} ` +
       `torso=${snapshot.torsoDotCount} head=${snapshot.headDotCount} ` +
+      (snapshot.upperArmDotCount !== undefined
+        ? `upperArm=${snapshot.upperArmDotCount} forearm=${snapshot.forearmDotCount ?? 0} ` +
+          `thigh=${snapshot.thighDotCount ?? 0} lowerLeg=${snapshot.lowerLegDotCount ?? 0} ` +
+          `hand=${snapshot.handDotCount ?? 0} foot=${snapshot.footDotCount ?? 0} ` +
+          `keys=${snapshot.keypointDotCount ?? 0} connections=${snapshot.connectionLineCount ?? 0} `
+        : '') +
       `volumeDots=${snapshot.volumeDotCount} dots=${snapshot.dotCount} ` +
       `lines=${snapshot.lineCount} geometry=${snapshot.geometryMs.toFixed(1)}ms ` +
       `updateFps=${snapshot.updateFps.toFixed(0)} ` +
       `frameAge=${snapshot.frameAgeMs === null ? 'n/a' : `${snapshot.frameAgeMs.toFixed(0)}ms`} ` +
-      `skipped=${snapshot.skippedLandmarks}`
+      `skipped=${snapshot.skippedLandmarks}` +
+      (snapshot.skippedBodyPartCount !== undefined ? ` bodySkipped=${snapshot.skippedBodyPartCount}` : '')
   );
 }

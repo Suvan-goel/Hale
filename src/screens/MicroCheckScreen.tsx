@@ -116,6 +116,8 @@ export function MicroCheckScreen({
       <SkeletonView
         ref={skeletonRef}
         mirrored
+        lowLatencyMode
+        pointCloudBodyMaxDots={260}
         measurementState={avatarMeasurementState}
         activeDomain={avatarDomain}
       />
@@ -166,14 +168,14 @@ const styles = StyleSheet.create({
   hud: {
     position: 'absolute',
     top: spacing.huge,
-    left: spacing.xxl,
-    right: spacing.xxl,
+    left: spacing.xl,
+    right: spacing.xl,
     alignItems: 'center',
     padding: spacing.xl,
     borderRadius: radius.panel,
-    backgroundColor: colors.bgSurface,
+    backgroundColor: colors.elevatedCard,
     borderWidth: 1,
-    borderColor: colors.borderHairline,
+    borderColor: colors.warmBorder,
     ...shadow.soft,
   },
   title: { ...type.h1, textAlign: 'center' },

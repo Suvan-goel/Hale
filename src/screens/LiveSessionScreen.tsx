@@ -102,7 +102,13 @@ export function LiveSessionScreen() {
   return (
     <View style={styles.container}>
       <PoseDetectionView active style={StyleSheet.absoluteFill} onLandmarks={onLandmarks} onPoseError={onPoseError} />
-      <SkeletonView ref={skeletonRef} mirrored measurementState={avatarMeasurementState} />
+      <SkeletonView
+        ref={skeletonRef}
+        mirrored
+        lowLatencyMode
+        pointCloudBodyMaxDots={260}
+        measurementState={avatarMeasurementState}
+      />
       <PreflightBanner prompt={prompt.key} sampleProgress={prompt.progress} />
       <DevOverlay snapshot={snapshot} onToggleRecording={onToggleRecording} />
       {lastError !== null && __DEV__ && (

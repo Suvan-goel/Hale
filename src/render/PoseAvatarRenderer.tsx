@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ClassicPoseRenderer } from './ClassicPoseRenderer';
 import { ConstellationPoseRenderer } from './ConstellationPoseRenderer';
+import { PointCloudBodyPoseRenderer } from './PointCloudBodyPoseRenderer';
 import {
   POSE_AVATAR_DEBUG_VARIANTS,
   PoseAvatarDebugVariant,
@@ -53,6 +54,15 @@ export const PoseAvatarRenderer = React.forwardRef<
     torsoVolumeDots: config.torsoVolumeDots,
     headVolumeDots: config.headVolumeDots,
     shoulderHipDensityDots: config.shoulderHipDensityDots,
+    pointCloudBodyEnabled: config.pointCloudBodyEnabled,
+    pointCloudBodyDensity: config.pointCloudBodyDensity,
+    pointCloudBodyMaxDots: config.pointCloudBodyMaxDots,
+    pointCloudBodyShowConnections: config.pointCloudBodyShowConnections,
+    pointCloudBodyConnectionOpacity: config.pointCloudBodyConnectionOpacity,
+    pointCloudBodyConnectionMaxLines: config.pointCloudBodyConnectionMaxLines,
+    pointCloudBodyShowSkeletonLines: config.pointCloudBodyShowSkeletonLines,
+    pointCloudBodyShowKeypoints: config.pointCloudBodyShowKeypoints,
+    pointCloudBodyOpacity: config.pointCloudBodyOpacity,
     confidenceFadingEnabled: config.confidenceFadingEnabled,
     confidenceIntensityEnabled: config.confidenceIntensityEnabled,
     reacquisitionFadeEnabled: config.reacquisitionFadeEnabled,
@@ -71,7 +81,9 @@ export const PoseAvatarRenderer = React.forwardRef<
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      {config.mode === 'constellation' ? (
+      {config.mode === 'point_cloud_body' ? (
+        <PointCloudBodyPoseRenderer ref={innerRef} {...rendererProps} />
+      ) : config.mode === 'constellation' ? (
         <ConstellationPoseRenderer ref={innerRef} {...rendererProps} />
       ) : (
         <ClassicPoseRenderer ref={innerRef} {...rendererProps} />
@@ -138,6 +150,18 @@ function labelForVariant(variant: PoseAvatarDebugVariant): string {
   switch (variant) {
     case 'classic':
       return 'classic';
+    case 'point-cloud-body':
+      return 'body';
+    case 'point-cloud-body-connections-on':
+      return 'body links';
+    case 'point-cloud-body-connections-off':
+      return 'body no links';
+    case 'point-cloud-body-skeleton-lines-on':
+      return 'body bones';
+    case 'point-cloud-body-keypoints-off':
+      return 'body no joints';
+    case 'point-cloud-body-low-latency':
+      return 'body low';
     case 'constellation-smoothing-off':
       return 'smooth off';
     case 'constellation-smoothing-on':

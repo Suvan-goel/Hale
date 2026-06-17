@@ -26,7 +26,7 @@
 import { CHAIN_IDS, ChainId, RELIABLE_THRESHOLD } from '../pose/chains';
 import { LM, PoseFrame } from '../pose/types';
 import {
-  computeCoverTransform,
+  computeViewportTransform,
   mapLandmarkX,
   mapLandmarkY,
   PoseScreenViewport,
@@ -81,7 +81,7 @@ export function emptySkeletonPaths(): SkeletonPaths {
 }
 
 /**
- * Builds aspect-preserving "cover" figure path strings for the current frame.
+ * Builds aspect-preserving figure path strings for the current frame.
  * Mutates `out`. Call only when frame.hasPose.
  */
 export function buildSkeletonPaths(
@@ -91,7 +91,7 @@ export function buildSkeletonPaths(
   out: SkeletonPaths,
   threshold = RELIABLE_THRESHOLD
 ): void {
-  const transform = computeCoverTransform(viewport);
+  const transform = computeViewportTransform(viewport);
   const X = (lm: LM): number => mapLandmarkX(frame, lm, transform);
   const Y = (lm: LM): number => mapLandmarkY(frame, lm, transform);
 

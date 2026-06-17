@@ -21,6 +21,7 @@ import { AUTOREG_VOICE } from '../exercises/common';
 import { ExtraTrendPoint } from '../history';
 import { PipelineFrameOutput } from '../pose/pipeline';
 import { PreflightCheck, PreflightPrompt } from '../preflight/preflight';
+import { shouldSpeakFramingPrompt } from '../preflight/promptTiming';
 
 export type MicroCheckType = 'chair-power' | 'single-leg-balance' | 'mobility-reach';
 
@@ -137,7 +138,15 @@ export class MicroCheckRunner {
           break;
         }
         const c = promptCue(status.prompt);
-        if (c !== this.lastPromptCue || ts - this.lastPromptAtMs >= this.config.promptRepeatMs) {
+        if (
+          shouldSpeakFramingPrompt({
+            cue: c,
+            lastCue: this.lastPromptCue,
+            lastSpokenAtMs: this.lastPromptAtMs,
+            nowMs: ts,
+            repeatMs: this.config.promptRepeatMs,
+          })
+        ) {
           this.lastPromptCue = c;
           this.lastPromptAtMs = ts;
           u.voice = { cues: [c], priority: voicePriority(c) };
@@ -258,6 +267,7 @@ function makeGrader(type: MicroCheckType, config: MicroCheckConfig): ExerciseSet
     bridgeUpDeg: 150,
     startDebounceFrames: 4,
     endDebounceFrames: 4,
+    validTime: false,
   });
 }
 

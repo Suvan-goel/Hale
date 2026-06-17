@@ -26,11 +26,9 @@ download() {
   echo "✓ $file → android assets + ios assets"
 }
 
-# V1 ships lite only (30fps on mid-range devices). Pass `full` to also fetch
-# the full model for profiling experiments.
+# V1 defaults to full for stronger landmark quality, while keeping lite bundled
+# for explicit overrides and profiling comparisons.
 download lite
-if [[ "${1:-}" == "full" ]]; then
-  download full
-fi
+download full
 
 echo "Done."

@@ -14,7 +14,12 @@ import { RawLandmarkEvent } from '../../pose/types';
 import { PreflightCheck } from '../../preflight/preflight';
 import { DEFAULT_SESSION_CONFIG } from '../../assessment/sessionController';
 import { CheckUp } from '../types';
-import { CheckUpConfig, CheckUpOrchestrator, DEFAULT_CHECKUP_CONFIG } from '../checkup';
+import {
+  CheckUpConfig,
+  CheckUpFrameUpdate,
+  CheckUpOrchestrator,
+  DEFAULT_CHECKUP_CONFIG,
+} from '../checkup';
 
 const CUE_PLAY_MS = 1500;
 const FRAME_MS = 1000 / 30;
@@ -33,7 +38,8 @@ interface RunResult {
 function runBattery(
   config: CheckUpConfig,
   frameAt: (ts: number) => RawLandmarkEvent,
-  maxFrames = 40000
+  maxFrames = 40000,
+  onUpdate?: (update: CheckUpFrameUpdate, orchestrator: CheckUpOrchestrator) => void
 ): RunResult {
   const pipeline = new PosePipeline();
   const preflight = new PreflightCheck();
@@ -48,6 +54,7 @@ function runBattery(
     const out = pipeline.process(frameAt(Math.round(ts)));
     const voiceBusy = ts < voiceBusyUntil;
     const u = orchestrator.update(out, voiceBusy);
+    onUpdate?.(u, orchestrator);
     phasesSeen.add(u.phase);
     if (u.voice) {
       spoken.push(...u.voice.cues);
@@ -106,21 +113,32 @@ describe('Check-Up orchestrator — full battery', () => {
   });
 });
 
-describe('Check-Up orchestrator — graceful skip', () => {
-  it('skips items that never get framed and still produces a full CheckUp', () => {
+describe('Check-Up orchestrator — setup issue choices', () => {
+  it('surfaces setup trouble and records skipped items only after the user chooses skip', () => {
     const config: CheckUpConfig = {
       ...DEFAULT_CHECKUP_CONFIG,
       battery: ['chair-stand-30s', 'shoulder-flexion-peak'],
       maxFramingMs: 3000,
     };
+    let setupIssues = 0;
     // No subject ever appears: empty frames the whole time.
-    const run = runBattery(config, (ts) => ({ timestampMs: ts, landmarks: [] }), 6000);
+    const run = runBattery(
+      config,
+      (ts) => ({ timestampMs: ts, landmarks: [] }),
+      6000,
+      (u, orchestrator) => {
+        if (!u.setupIssue) return;
+        setupIssues++;
+        orchestrator.skipCurrentItem();
+      }
+    );
     expect(run.checkUp.items).toHaveLength(2);
     for (const item of run.checkUp.items) {
       expect(item.status).toBe('skipped');
       expect(item.result).toBeNull();
     }
-    expect(run.spoken.filter((c) => c === 'exercise-skipped').length).toBe(2);
+    expect(setupIssues).toBe(2);
+    expect(run.spoken.filter((c) => c === 'exercise-skipped').length).toBe(0);
     expect(run.spoken).toContain('checkup-complete');
   });
 });

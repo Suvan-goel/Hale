@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexBasis: '45%',
     padding: spacing.lg,
-    borderRadius: radius.card,
+    borderRadius: radius.panel,
     backgroundColor: colors.bgElevated,
     borderWidth: 1,
     borderColor: colors.borderHairline,
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   smallAction: {
     minHeight: 42,
-    borderRadius: radius.input,
+    borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.accent,
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
   smallActionText: { ...type.button, fontFamily: fonts.sansMedium },
   disabledAction: {
     minHeight: 42,
-    borderRadius: radius.input,
+    borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.md,

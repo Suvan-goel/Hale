@@ -1,14 +1,24 @@
 import { resolvePoseAvatarConfig, resolvePoseAvatarRendererMode } from '../poseAvatarConfig';
 
 describe('resolvePoseAvatarRendererMode', () => {
-  it('accepts classic and constellation', () => {
+  it('accepts classic, constellation, and point-cloud body', () => {
     expect(resolvePoseAvatarRendererMode('classic')).toBe('classic');
     expect(resolvePoseAvatarRendererMode('constellation')).toBe('constellation');
+    expect(resolvePoseAvatarRendererMode('point_cloud_body')).toBe('point_cloud_body');
   });
 
-  it('defaults to constellation when no explicit value is set', () => {
-    expect(resolvePoseAvatarRendererMode(undefined)).toBe('constellation');
-    expect(resolvePoseAvatarRendererMode('')).toBe('constellation');
+  it('defaults to point-cloud body when no explicit value is set', () => {
+    expect(resolvePoseAvatarRendererMode(undefined, undefined)).toBe('point_cloud_body');
+    expect(resolvePoseAvatarRendererMode('', undefined)).toBe('point_cloud_body');
+  });
+
+  it('can resolve the body style env to the point-cloud body renderer', () => {
+    expect(resolvePoseAvatarRendererMode(undefined, 'point_cloud_body')).toBe(
+      'point_cloud_body'
+    );
+    expect(resolvePoseAvatarRendererMode(undefined, 'skeleton_constellation')).toBe(
+      'constellation'
+    );
   });
 
   it('falls back to classic for invalid explicit values', () => {
@@ -17,16 +27,23 @@ describe('resolvePoseAvatarRendererMode', () => {
 });
 
 describe('resolvePoseAvatarConfig', () => {
-  it('defaults to responsive constellation rendering', () => {
+  it('defaults to responsive point-cloud body rendering', () => {
     const config = resolvePoseAvatarConfig({}, {});
 
-    expect(config.mode).toBe('constellation');
+    expect(config.mode).toBe('point_cloud_body');
     expect(config.frameSource).toBe('raw');
     expect(config.smoothingEnabled).toBe(true);
     expect(config.adaptiveSmoothingEnabled).toBe(true);
     expect(config.smoothingAlpha).toBeGreaterThanOrEqual(0.75);
     expect(config.sampledDotsEnabled).toBe(true);
     expect(config.bodyVolumeEnabled).toBe(true);
+    expect(config.pointCloudBodyEnabled).toBe(true);
+    expect(config.pointCloudBodyDensity).toBe('medium');
+    expect(config.pointCloudBodyMaxDots).toBe(800);
+    expect(config.pointCloudBodyShowConnections).toBe(false);
+    expect(config.pointCloudBodyShowSkeletonLines).toBe(false);
+    expect(config.pointCloudBodyShowKeypoints).toBe(true);
+    expect(config.pointCloudBodyOpacity).toBe(1);
     expect(config.confidenceFadingEnabled).toBe(true);
     expect(config.confidenceIntensityEnabled).toBe(true);
     expect(config.reacquisitionFadeEnabled).toBe(true);
@@ -48,6 +65,10 @@ describe('resolvePoseAvatarConfig', () => {
     expect(config.maxDots).toBeLessThan(120);
     expect(config.sampleDensity).toBeLessThan(0.7);
     expect(config.maxVolumeDots).toBeLessThanOrEqual(60);
+    expect(config.pointCloudBodyDensity).toBe('low');
+    expect(config.pointCloudBodyMaxDots).toBeLessThanOrEqual(450);
+    expect(config.pointCloudBodyShowConnections).toBe(false);
+    expect(config.pointCloudBodyShowSkeletonLines).toBe(false);
     expect(config.torsoVolumeDots).toBeLessThan(40);
     expect(config.headVolumeDots).toBeLessThan(16);
     expect(config.reacquisitionFadeEnabled).toBe(false);
@@ -65,6 +86,18 @@ describe('resolvePoseAvatarConfig', () => {
         { EXPO_PUBLIC_POSE_AVATAR_DEBUG_VARIANT: 'classic' }
       ).mode
     ).toBe('classic');
+    const pointCloud = resolvePoseAvatarConfig(
+      {},
+      { EXPO_PUBLIC_POSE_AVATAR_DEBUG_VARIANT: 'point-cloud-body-connections-on' }
+    );
+    expect(pointCloud.mode).toBe('point_cloud_body');
+    expect(pointCloud.pointCloudBodyShowConnections).toBe(true);
+    expect(
+      resolvePoseAvatarConfig(
+        {},
+        { EXPO_PUBLIC_POSE_AVATAR_DEBUG_VARIANT: 'point-cloud-body-skeleton-lines-on' }
+      ).pointCloudBodyShowSkeletonLines
+    ).toBe(true);
     expect(
       resolvePoseAvatarConfig(
         {},
@@ -102,6 +135,33 @@ describe('resolvePoseAvatarConfig', () => {
     expect(lowLatency.lowLatencyMode).toBe(true);
     expect(lowLatency.stateTransitionsEnabled).toBe(false);
     expect(lowLatency.scanLineEnabled).toBe(false);
+  });
+
+  it('allows point-cloud body env overrides', () => {
+    const config = resolvePoseAvatarConfig(
+      {},
+      {
+        EXPO_PUBLIC_POSE_AVATAR_BODY_STYLE: 'point_cloud_body',
+        EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_DENSITY: 'high',
+        EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_MAX_DOTS: '720',
+        EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_CONNECTIONS: 'on',
+        EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_CONNECTION_OPACITY: '0.08',
+        EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_CONNECTION_MAX_LINES: '48',
+        EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_SKELETON_LINES: 'off',
+        EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_KEYPOINTS: 'off',
+        EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_OPACITY: '0.7',
+      }
+    );
+
+    expect(config.mode).toBe('point_cloud_body');
+    expect(config.pointCloudBodyDensity).toBe('high');
+    expect(config.pointCloudBodyMaxDots).toBe(720);
+    expect(config.pointCloudBodyShowConnections).toBe(true);
+    expect(config.pointCloudBodyConnectionOpacity).toBe(0.08);
+    expect(config.pointCloudBodyConnectionMaxLines).toBe(48);
+    expect(config.pointCloudBodyShowSkeletonLines).toBe(false);
+    expect(config.pointCloudBodyShowKeypoints).toBe(false);
+    expect(config.pointCloudBodyOpacity).toBe(0.7);
   });
 
   it('allows explicit env overrides for smoothing and sampled dots', () => {

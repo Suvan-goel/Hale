@@ -20,9 +20,14 @@ export const seatedHamstringReachDefinition: ExerciseDefinition = {
   cameraView: { view: 'side', requiredReliableSideChains: 1 },
   equipment: ['chair'],
   kind: 'rom',
+  timing: { mode: 'valid_time' },
   prescription: { sets: 2, captureSec: 12, restSec: 20, autoregulate: false },
   voice: { instructions: ['ex-hamstring-reach'] },
-  createGrader: romGrader(HAMSTRING_REACH_ID, { kind: 'angle', a: 'shoulder', vertex: 'hip', b: 'knee', direction: 'min' }),
+  createGrader: romGrader(
+    HAMSTRING_REACH_ID,
+    { kind: 'angle', a: 'shoulder', vertex: 'hip', b: 'knee', direction: 'min' },
+    { targetSec: 12, predicate: 'seated-hamstring-reach' }
+  ),
 };
 
 registerExercise(seatedHamstringReachDefinition);

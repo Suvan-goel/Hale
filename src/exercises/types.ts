@@ -14,6 +14,7 @@
 import { VoiceCueKey } from '../audio/cues';
 import { CameraViewSpec, EquipmentTag, GraderVoice } from '../movements';
 import { PipelineFrameOutput } from '../pose/pipeline';
+import type { ValidTimeResult, ValidTimeState } from './validTime';
 
 /**
  * Block-template slots. A 4-week block is built from these (lower-push, hinge,
@@ -77,6 +78,8 @@ export interface SetResult {
   reachedTarget: boolean;
   interruptions: number;
   flags: string[];
+  /** Optional Phase 1 valid active-time metadata. Absent for legacy/rep sets. */
+  validTime?: ValidTimeResult;
 }
 
 /** Live per-frame surface the player needs; reused object — never retain. */
@@ -88,6 +91,11 @@ export interface SetGraderUpdate {
   measuring: boolean;
   /** Running maintained-hold duration in ms (hold kind); 0 otherwise. */
   holdMs: number;
+  /** Grader-owned valid time remaining in ms; NaN/undefined when not applicable. */
+  remainingMs?: number;
+  /** Current valid-time state for supportive UI captions; null/undefined outside valid-time sets. */
+  validTimeState?: ValidTimeState | null;
+  validTimeCaption?: string | null;
   /** Velocity dropped >25% below the set's best for 2 consecutive reps. */
   autoregulationStop: boolean;
   /**
@@ -121,6 +129,8 @@ export interface ExerciseDefinition {
   /** What THIS variant needs; a variant beyond the user's profile is substituted. */
   equipment: readonly EquipmentTag[];
   kind: ExerciseKind;
+  /** Optional set timing override. Omitted means current player-owned defaults. */
+  timing?: { mode: 'player_clock' | 'valid_time' };
   prescription: ExercisePrescription;
   voice: ExerciseVoiceScript;
   /** Registry id of the next harder level (absent at the top of the ladder). */

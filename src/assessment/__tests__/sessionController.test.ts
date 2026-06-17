@@ -105,13 +105,13 @@ describe('SessionController — voice-guided chair stand', () => {
     expect(prompts.length).toBeLessThanOrEqual(4); // ~12s / 4s + first
   });
 
-  it('speaks a changed prompt immediately', () => {
+  it('speaks a changed prompt after the gentle framing-prompt gap', () => {
     const rng = mulberry32(11);
     const frames: RawLandmarkEvent[] = [
       // Subject appears but stands too close for two seconds…
       ...timestamps30fps(0, 60).map((t) => makeFrame(t, rng, { scale: 1.35 })),
-      // …then steps back to a good distance.
-      ...timestamps30fps(2000, 60).map((t) => makeFrame(t, rng)),
+      // …then steps back to a good distance long enough for the gentle prompt gap.
+      ...timestamps30fps(2000, 120).map((t) => makeFrame(t, rng)),
     ];
     const run = runFlow(frames);
     expect(run.spoken).toContain('step-back');

@@ -3,10 +3,13 @@ import type {
   ConfidenceAnimationStrength,
   PoseAvatarRecognitionEvent,
 } from './confidenceVisuals';
+import type { PointCloudBodyDensity } from './pointCloudBodyGeometry';
 
-export type PoseAvatarRendererMode = 'classic' | 'constellation';
+export type PoseAvatarRendererMode = 'classic' | 'constellation' | 'point_cloud_body';
 
 export type PoseAvatarFrameSource = 'raw' | 'display';
+
+export type PoseAvatarFit = 'cover' | 'contain';
 
 export type PoseAvatarMeasurementState =
   | 'idle'
@@ -36,6 +39,7 @@ export interface PoseAvatarRendererHandle {
 
 export interface PoseAvatarRendererProps {
   mirrored?: boolean;
+  fit?: PoseAvatarFit;
   mode?: PoseAvatarRendererMode;
   measurementState?: PoseAvatarMeasurementState;
   activeDomain?: PoseAvatarActiveDomain | null;
@@ -60,6 +64,15 @@ export interface PoseAvatarRendererProps {
   torsoVolumeDots?: number;
   headVolumeDots?: number;
   shoulderHipDensityDots?: number;
+  pointCloudBodyEnabled?: boolean;
+  pointCloudBodyDensity?: PointCloudBodyDensity;
+  pointCloudBodyMaxDots?: number;
+  pointCloudBodyShowConnections?: boolean;
+  pointCloudBodyConnectionOpacity?: number;
+  pointCloudBodyConnectionMaxLines?: number;
+  pointCloudBodyShowSkeletonLines?: boolean;
+  pointCloudBodyShowKeypoints?: boolean;
+  pointCloudBodyOpacity?: number;
   confidenceFadingEnabled?: boolean;
   confidenceIntensityEnabled?: boolean;
   reacquisitionFadeEnabled?: boolean;

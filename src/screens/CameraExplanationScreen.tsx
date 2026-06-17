@@ -32,7 +32,8 @@ export function CameraExplanationScreen({
           Hale uses your camera to measure simple movements like standing from a chair, balance holds, and shoulder reach.
         </Text>
         <Text style={styles.body}>We use this to track timing, range, and progress.</Text>
-        <Text style={styles.body}>Raw video is not shared by default.</Text>
+        <Text style={styles.body}>You see a clean skeleton, never a self-view camera mirror.</Text>
+        <Text style={styles.body}>Movement recordings stay behind a developer toggle and are off for normal sessions.</Text>
       </Card>
 
       <View style={styles.actions}>

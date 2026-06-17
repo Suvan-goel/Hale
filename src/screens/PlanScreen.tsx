@@ -102,20 +102,20 @@ export function PlanScreen({
         <EmptyPlanState lifecycleState={lifecycleState} onAction={runEmptyAction} />
       ) : (
         <>
-          <Card>
+          <Card style={styles.featuredBlock}>
             <View style={styles.statusHead}>
               <View style={styles.headerCopy}>
-                <Eyebrow>Active block</Eyebrow>
-                <Text style={styles.cardTitle}>{focusCopy.title}</Text>
+                <Text style={styles.featureEyebrow}>Featured block</Text>
+                <Text style={styles.featureTitle}>{focusCopy.title}</Text>
               </View>
               <StatusBadge label={`Week ${activeBlockSummary.weekNumber}`} tone="gold" />
             </View>
-            <Text style={styles.cardBody}>{focusCopy.body}</Text>
+            <Text style={styles.featureBody}>{focusCopy.body}</Text>
             {nextSession ? (
-              <PrimaryButton
+              <SecondaryButton
                 title={`Start ${nextSession.title}`}
                 onPress={() => onStartPlanSession(nextSession.id)}
-                style={styles.primaryCta}
+                style={styles.featureCta}
               />
             ) : null}
           </Card>
@@ -296,6 +296,21 @@ const styles = StyleSheet.create({
   title: { ...type.display, marginTop: spacing.sm },
   subtitle: { ...type.body, color: colors.textSecondary, marginTop: spacing.sm },
   statusHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
+  featuredBlock: {
+    backgroundColor: colors.oliveSage,
+    borderColor: colors.oliveSage,
+  },
+  featureEyebrow: { ...type.label, color: colors.textOnDark },
+  featureTitle: { ...type.h1, color: colors.textOnDark, marginTop: spacing.sm },
+  featureBody: { ...type.bodySmall, color: colors.textOnDark, opacity: 0.88, marginTop: spacing.md },
+  featureCta: {
+    alignSelf: 'flex-start',
+    marginTop: spacing.xl,
+    backgroundColor: colors.elevatedCard,
+    borderColor: colors.elevatedCard,
+    minWidth: 176,
+    shadowOpacity: 0,
+  },
   cardTitle: { ...type.h2, marginTop: spacing.sm },
   cardBody: { ...type.bodySmall, color: colors.textSecondary, marginTop: spacing.xs },
   primaryCta: { marginTop: spacing.xl },

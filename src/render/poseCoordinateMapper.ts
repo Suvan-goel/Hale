@@ -1,5 +1,7 @@
 import { LANDMARK_COUNT, LM, PoseFrame } from '../pose/types';
 
+export type PoseViewportFit = 'cover' | 'contain';
+
 export interface PoseScreenViewport {
   width: number;
   height: number;
@@ -7,9 +9,11 @@ export interface PoseScreenViewport {
   sourceAspect: number;
   /** Mirror x for front camera so the figure moves like a mirror image. */
   mirrored: boolean;
+  /** `cover` fills the viewport; `contain` keeps the entire camera coordinate plane visible. */
+  fit?: PoseViewportFit;
 }
 
-export interface PoseCoverTransform {
+export interface PoseViewportTransform {
   sx: number;
   sy: number;
   ox: number;
@@ -46,15 +50,16 @@ export function copyScreenPoseLandmarks(src: ScreenPoseLandmarks, dst: ScreenPos
   dst.presence.set(src.presence);
 }
 
-export function computeCoverTransform(viewport: PoseScreenViewport): PoseCoverTransform {
-  const { width, height, sourceAspect, mirrored } = viewport;
+export function computeViewportTransform(viewport: PoseScreenViewport): PoseViewportTransform {
+  const { width, height, sourceAspect, mirrored, fit = 'cover' } = viewport;
   const viewAspect = width / height;
   let sx: number;
   let sy: number;
   let ox = 0;
   let oy = 0;
 
-  if (viewAspect > sourceAspect) {
+  const useWidth = fit === 'cover' ? viewAspect > sourceAspect : viewAspect < sourceAspect;
+  if (useWidth) {
     sx = width;
     sy = width / sourceAspect;
     oy = (height - sy) / 2;
@@ -67,19 +72,27 @@ export function computeCoverTransform(viewport: PoseScreenViewport): PoseCoverTr
   return { sx, sy, ox, oy, mirrored };
 }
 
-export function mapNormalizedX(x: number, transform: PoseCoverTransform): number {
+export function computeCoverTransform(viewport: PoseScreenViewport): PoseViewportTransform {
+  return computeViewportTransform({ ...viewport, fit: 'cover' });
+}
+
+export function computeContainTransform(viewport: PoseScreenViewport): PoseViewportTransform {
+  return computeViewportTransform({ ...viewport, fit: 'contain' });
+}
+
+export function mapNormalizedX(x: number, transform: PoseViewportTransform): number {
   return (transform.mirrored ? 1 - x : x) * transform.sx + transform.ox;
 }
 
-export function mapNormalizedY(y: number, transform: PoseCoverTransform): number {
+export function mapNormalizedY(y: number, transform: PoseViewportTransform): number {
   return y * transform.sy + transform.oy;
 }
 
-export function mapLandmarkX(frame: PoseFrame, lm: LM, transform: PoseCoverTransform): number {
+export function mapLandmarkX(frame: PoseFrame, lm: LM, transform: PoseViewportTransform): number {
   return mapNormalizedX(frame.xs[lm], transform);
 }
 
-export function mapLandmarkY(frame: PoseFrame, lm: LM, transform: PoseCoverTransform): number {
+export function mapLandmarkY(frame: PoseFrame, lm: LM, transform: PoseViewportTransform): number {
   return mapNormalizedY(frame.ys[lm], transform);
 }
 
@@ -92,7 +105,7 @@ export function mapPoseFrameToScreenPose(
   out.hasPose = frame.hasPose;
   if (!frame.hasPose) return;
 
-  const transform = computeCoverTransform(viewport);
+  const transform = computeViewportTransform(viewport);
   for (let i = 0; i < LANDMARK_COUNT; i++) {
     out.xs[i] = mapNormalizedX(frame.xs[i], transform);
     out.ys[i] = mapNormalizedY(frame.ys[i], transform);

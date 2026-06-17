@@ -33,6 +33,9 @@ export function LifeGoalSelector({
               accessibilityState={{ selected: active }}
               accessibilityLabel={option.label}
             >
+              <View style={[styles.optionMark, active && styles.optionMarkActive]}>
+                {active ? <View style={styles.optionMarkDot} /> : null}
+              </View>
               <Text style={[styles.optionText, active && styles.optionTextActive]}>{option.label}</Text>
             </Pressable>
           );
@@ -70,17 +73,39 @@ const styles = StyleSheet.create({
   wrap: { gap: spacing.lg },
   options: { gap: spacing.md },
   option: {
-    minHeight: 56,
-    justifyContent: 'center',
+    minHeight: 72,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: radius.input,
+    paddingVertical: spacing.lg,
+    borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
     borderWidth: 1,
     borderColor: colors.borderHairline,
   },
-  optionActive: { backgroundColor: colors.bgSage, borderColor: colors.sage },
-  optionText: { ...type.bodySmall, color: colors.textPrimary },
+  optionActive: { backgroundColor: colors.sageMist, borderColor: colors.restorativeGreen },
+  optionMark: {
+    width: 28,
+    height: 28,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.elevatedCard,
+  },
+  optionMarkActive: {
+    backgroundColor: colors.oliveSage,
+    borderColor: colors.oliveSage,
+  },
+  optionMarkDot: {
+    width: 10,
+    height: 10,
+    borderRadius: radius.pill,
+    backgroundColor: colors.textOnDark,
+  },
+  optionText: { ...type.body, color: colors.textPrimary, flex: 1 },
   optionTextActive: { color: colors.accentDeep },
   input: {
     ...type.body,

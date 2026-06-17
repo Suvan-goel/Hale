@@ -21,6 +21,8 @@ describe('hinge reach — acceptance', () => {
     expect(result.flags).not.toContain('no-measurement');
     expect(result.reachBu).toBeGreaterThan(0);
     expect(result.reachBu).toBeLessThan(0.45); // close to the floor
+    expect(result.validTime).toBeTruthy();
+    expect(result.validTime?.accumulatedValidSeconds).toBeGreaterThan(0);
   });
 
   it('a deeper fold reaches lower than a shallow one', () => {

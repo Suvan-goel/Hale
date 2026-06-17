@@ -3,11 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
   Card,
-  Eyebrow,
   HealthMetricRow,
-  MaterialCard,
   MetricRing,
-  PrimaryButton,
   Screen,
   SectionHeader,
   SettingsIconButton,
@@ -83,26 +80,36 @@ export function TodayScreen({
         <SettingsIconButton onPress={onOpenSettings} />
       </View>
 
-      <MaterialCard>
-        <View style={styles.primaryTop}>
-          <View style={styles.primaryCopy}>
-            <Eyebrow>{"Today's Hale Session"}</Eyebrow>
-            <Text style={styles.primaryTitle}>{lifecycle.primaryAction.title}</Text>
-            <Text style={styles.primaryBody}>{lifecycle.primaryAction.subtitle}</Text>
+      <Card style={styles.progressCard}>
+        <View style={styles.progressHead}>
+          <SectionHeader title="Daily Progress" />
+          <Text style={styles.progressMeta}>{block ? block.focusTitle : 'Movement baseline'}</Text>
+        </View>
+        <View style={styles.progressBody}>
+          <MetricRing size={118} progress={progress} value={ringValue} label={ringLabel} />
+          <View style={styles.progressRows}>
+            <MiniProgressRow label="Strength" value={snapshot?.strengthPower ? bandValue(snapshot.strengthPower) : 'Pending'} />
+            <MiniProgressRow label="Balance" value={snapshot?.balance ? bandValue(snapshot.balance) : 'Pending'} />
+            <MiniProgressRow label="Mobility" value={snapshot?.mobility ? bandValue(snapshot.mobility) : 'Pending'} />
           </View>
-          <MetricRing
-            size={104}
-            progress={progress}
-            value={ringValue}
-            label={ringLabel}
-          />
         </View>
-        <View style={styles.startWrap}>
-          <PrimaryButton
-            title={lifecycle.primaryAction.ctaLabel}
-            onPress={() => onPrimaryAction({ adjustment, painArea: selectedPainArea })}
-          />
+      </Card>
+
+      <View style={styles.featureCard}>
+        <View style={styles.featureGlow} />
+        <View style={styles.primaryCopy}>
+          <Text style={styles.featureEyebrow}>Today’s movement session</Text>
+          <Text style={styles.featureTitle}>{lifecycle.primaryAction.title}</Text>
+          <Text style={styles.featureBody}>{lifecycle.primaryAction.subtitle}</Text>
         </View>
+        <Pressable
+          style={({ pressed }) => [styles.featureButton, pressed && styles.pressed]}
+          onPress={() => onPrimaryAction({ adjustment, painArea: selectedPainArea })}
+          accessibilityRole="button"
+          accessibilityLabel={lifecycle.primaryAction.ctaLabel}
+        >
+          <Text style={styles.featureButtonText}>{lifecycle.primaryAction.ctaLabel}</Text>
+        </Pressable>
         {canAdjustSession ? (
           <>
             <View style={styles.adjustments}>
@@ -144,7 +151,7 @@ export function TodayScreen({
             ) : null}
           </>
         ) : null}
-      </MaterialCard>
+      </View>
 
       <Card>
         <SectionHeader title="Your 4-week block" />
@@ -178,6 +185,15 @@ export function TodayScreen({
         })}
       </Card>
     </Screen>
+  );
+}
+
+function MiniProgressRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.miniProgressRow}>
+      <Text style={styles.miniLabel}>{label}</Text>
+      <Text style={styles.miniValue}>{value}</Text>
+    </View>
   );
 }
 
@@ -248,11 +264,58 @@ const styles = StyleSheet.create({
   headerCopy: { flex: 1 },
   greeting: { ...type.display },
   tagline: { ...type.body, color: colors.textSecondary, marginTop: spacing.sm },
-  primaryTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
+  progressCard: { gap: spacing.lg },
+  progressHead: { gap: spacing.xs },
+  progressMeta: { ...type.caption, color: colors.textSecondary },
+  progressBody: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
+  progressRows: { flex: 1, gap: spacing.sm },
+  miniProgressRow: {
+    minHeight: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.input,
+    backgroundColor: colors.elevatedCard,
+    borderWidth: 1,
+    borderColor: colors.subtleBorder,
+  },
+  miniLabel: { ...type.caption, color: colors.textSecondary },
+  miniValue: { ...type.bodySmall, color: colors.accentDeep, fontFamily: type.button.fontFamily },
+  featureCard: {
+    overflow: 'hidden',
+    borderRadius: radius.panel,
+    padding: spacing.xl,
+    backgroundColor: colors.oliveSage,
+    borderWidth: 1,
+    borderColor: colors.oliveSage,
+    gap: spacing.lg,
+  },
+  featureGlow: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: radius.pill,
+    right: -42,
+    top: -52,
+    backgroundColor: colors.warmStone,
+    opacity: 0.22,
+  },
   primaryCopy: { flex: 1 },
-  primaryTitle: { ...type.h1, marginTop: spacing.sm },
-  primaryBody: { ...type.bodySmall, color: colors.textSecondary, marginTop: spacing.sm },
-  startWrap: { marginTop: spacing.xl },
+  featureEyebrow: { ...type.label, color: colors.textOnDark },
+  featureTitle: { ...type.h1, color: colors.textOnDark, marginTop: spacing.sm },
+  featureBody: { ...type.bodySmall, color: colors.textOnDark, opacity: 0.86, marginTop: spacing.sm },
+  featureButton: {
+    alignSelf: 'flex-start',
+    minHeight: 48,
+    justifyContent: 'center',
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.elevatedCard,
+  },
+  featureButtonText: { ...type.button, color: colors.oliveSageDark },
   adjustments: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.lg },
   painAreas: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   adjustment: {
@@ -261,11 +324,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radius.input,
-    backgroundColor: colors.bgSurface,
+    backgroundColor: colors.elevatedCard,
     borderWidth: 1,
     borderColor: colors.borderHairline,
   },
-  adjustmentSelected: { backgroundColor: colors.bgSage, borderColor: colors.sage },
+  adjustmentSelected: { backgroundColor: colors.sageMist, borderColor: colors.restorativeGreen },
   adjustmentText: { ...type.caption, color: colors.textSecondary },
   adjustmentTextSelected: { color: colors.accentDeep },
   adjustmentNote: { ...type.caption, color: colors.sageDeep, marginTop: spacing.sm },

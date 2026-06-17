@@ -23,6 +23,7 @@ import {
 } from '../movements';
 import { PipelineFrameOutput } from '../pose/pipeline';
 import { PreflightPrompt, PreflightStatus } from '../preflight/preflight';
+import { shouldSpeakFramingPrompt } from '../preflight/promptTiming';
 
 export type AssessmentPhase =
   | 'preflight'
@@ -146,8 +147,15 @@ export class SessionController<R extends MovementResultBase = MovementResultBase
           break;
         }
         const cue = promptCue(preflight.prompt);
-        const changed = cue !== this.lastPromptCue;
-        if (changed || ts - this.lastPromptAtMs >= this.config.promptRepeatMs) {
+        if (
+          shouldSpeakFramingPrompt({
+            cue,
+            lastCue: this.lastPromptCue,
+            lastSpokenAtMs: this.lastPromptAtMs,
+            nowMs: ts,
+            repeatMs: this.config.promptRepeatMs,
+          })
+        ) {
           this.lastPromptCue = cue;
           this.lastPromptAtMs = ts;
           u.voice = { cues: [cue], priority: voicePriority(cue) };
@@ -248,6 +256,16 @@ export class SessionController<R extends MovementResultBase = MovementResultBase
     this.resultSpokenAtMs = -1;
     this.grader.reset();
     this.update_.repCount = 0;
+  }
+
+  shiftTiming(deltaMs: number): void {
+    if (deltaMs <= 0) return;
+    if (Number.isFinite(this.lastPromptAtMs)) this.lastPromptAtMs += deltaMs;
+    this.instructionsEnteredAtMs += deltaMs;
+    if (this.instructionsIdleAtMs >= 0) this.instructionsIdleAtMs += deltaMs;
+    this.countdownStartMs += deltaMs;
+    this.activeStartMs += deltaMs;
+    if (this.resultSpokenAtMs >= 0) this.resultSpokenAtMs += deltaMs;
   }
 }
 

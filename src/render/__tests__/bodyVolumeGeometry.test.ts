@@ -6,6 +6,7 @@ import {
   generateHeadDotSeeds,
   generateTorsoDotSeeds,
   getHeadEstimate,
+  getTorsoEstimate,
   mapHeadSeedToScreenPoint,
   Point,
 } from '../bodyVolumeGeometry';
@@ -86,10 +87,34 @@ describe('body volume geometry', () => {
     }
   });
 
-  it('returns no torso dots when torso landmarks are low confidence', () => {
+  it('keeps torso volume in side view when the far side is low confidence', () => {
     const pose = mappedStandingPose();
-    pose.visibility[LM.LEFT_HIP] = 0.1;
-    pose.presence[LM.LEFT_HIP] = 0.1;
+    for (const lm of [LM.RIGHT_SHOULDER, LM.RIGHT_HIP]) {
+      pose.visibility[lm] = 0.1;
+      pose.presence[lm] = 0.1;
+    }
+    const out = createBodyVolumeGeometry();
+
+    buildBodyVolumeGeometry(pose, out, {
+      bodyVolumeEnabled: true,
+      torsoVolumeEnabled: true,
+      headVolumeEnabled: false,
+      torsoDotCount: 80,
+    });
+
+    const estimate = getTorsoEstimate(pose);
+    expect(estimate).not.toBeNull();
+    expect(estimate!.estimated).toBe(true);
+    expect(out.torsoDotCount).toBeGreaterThan(40);
+    expect(out.skippedVolumeSections).toBe(0);
+  });
+
+  it('returns no torso dots when no shoulder-hip side is reliable', () => {
+    const pose = mappedStandingPose();
+    for (const lm of [LM.LEFT_SHOULDER, LM.RIGHT_SHOULDER, LM.LEFT_HIP, LM.RIGHT_HIP]) {
+      pose.visibility[lm] = 0.1;
+      pose.presence[lm] = 0.1;
+    }
     const out = createBodyVolumeGeometry();
 
     buildBodyVolumeGeometry(pose, out, {

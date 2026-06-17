@@ -5,9 +5,16 @@ import type {
   PoseAvatarRendererMode,
   PoseAvatarRendererProps,
 } from './poseAvatarTypes';
+import type { PointCloudBodyDensity } from './pointCloudBodyGeometry';
 
 export type PoseAvatarDebugVariant =
   | 'classic'
+  | 'point-cloud-body'
+  | 'point-cloud-body-connections-on'
+  | 'point-cloud-body-connections-off'
+  | 'point-cloud-body-skeleton-lines-on'
+  | 'point-cloud-body-keypoints-off'
+  | 'point-cloud-body-low-latency'
   | 'constellation-smoothing-off'
   | 'constellation-smoothing-on'
   | 'constellation-sampled-dots-off'
@@ -47,6 +54,15 @@ export interface PoseAvatarResolvedConfig {
   torsoVolumeDots: number;
   headVolumeDots: number;
   shoulderHipDensityDots: number;
+  pointCloudBodyEnabled: boolean;
+  pointCloudBodyDensity: PointCloudBodyDensity;
+  pointCloudBodyMaxDots: number;
+  pointCloudBodyShowConnections: boolean;
+  pointCloudBodyConnectionOpacity: number;
+  pointCloudBodyConnectionMaxLines: number;
+  pointCloudBodyShowSkeletonLines: boolean;
+  pointCloudBodyShowKeypoints: boolean;
+  pointCloudBodyOpacity: number;
   confidenceFadingEnabled: boolean;
   confidenceIntensityEnabled: boolean;
   reacquisitionFadeEnabled: boolean;
@@ -63,16 +79,23 @@ export interface PoseAvatarResolvedConfig {
 
 type Env = Record<string, string | undefined>;
 
-export const DEFAULT_POSE_AVATAR_RENDERER_MODE: PoseAvatarRendererMode = 'constellation';
+export const DEFAULT_POSE_AVATAR_RENDERER_MODE: PoseAvatarRendererMode = 'point_cloud_body';
 export const INVALID_POSE_AVATAR_RENDERER_MODE_FALLBACK: PoseAvatarRendererMode = 'classic';
 
 export const POSE_AVATAR_RENDERER_ENV = 'EXPO_PUBLIC_POSE_AVATAR_RENDERER';
+export const POSE_AVATAR_BODY_STYLE_ENV = 'EXPO_PUBLIC_POSE_AVATAR_BODY_STYLE';
 export const POSE_AVATAR_DEBUG_VARIANT_ENV = 'EXPO_PUBLIC_POSE_AVATAR_DEBUG_VARIANT';
 export const POSE_AVATAR_LOW_LATENCY_ENV = 'POSE_AVATAR_LOW_LATENCY_MODE';
 export const POSE_AVATAR_PUBLIC_LOW_LATENCY_ENV = 'EXPO_PUBLIC_POSE_AVATAR_LOW_LATENCY_MODE';
 
 export const POSE_AVATAR_DEBUG_VARIANTS: readonly PoseAvatarDebugVariant[] = [
   'classic',
+  'point-cloud-body',
+  'point-cloud-body-connections-on',
+  'point-cloud-body-connections-off',
+  'point-cloud-body-skeleton-lines-on',
+  'point-cloud-body-keypoints-off',
+  'point-cloud-body-low-latency',
   'constellation-smoothing-off',
   'constellation-smoothing-on',
   'constellation-sampled-dots-off',
@@ -89,10 +112,14 @@ export const POSE_AVATAR_DEBUG_VARIANTS: readonly PoseAvatarDebugVariant[] = [
 ];
 
 export function resolvePoseAvatarRendererMode(
-  value = process.env.EXPO_PUBLIC_POSE_AVATAR_RENDERER
+  value = process.env.EXPO_PUBLIC_POSE_AVATAR_RENDERER,
+  bodyStyle = process.env.EXPO_PUBLIC_POSE_AVATAR_BODY_STYLE
 ): PoseAvatarRendererMode {
-  if (value === undefined || value === '') return DEFAULT_POSE_AVATAR_RENDERER_MODE;
-  return value === 'constellation' || value === 'classic'
+  if (value === undefined || value === '') {
+    const styleMode = parseBodyStyleMode(bodyStyle);
+    return styleMode ?? DEFAULT_POSE_AVATAR_RENDERER_MODE;
+  }
+  return value === 'constellation' || value === 'classic' || value === 'point_cloud_body'
     ? value
     : INVALID_POSE_AVATAR_RENDERER_MODE_FALLBACK;
 }
@@ -114,7 +141,12 @@ export function resolvePoseAvatarConfig(
   const phase3Enabled = parseOnOff(env.EXPO_PUBLIC_POSE_AVATAR_PHASE3) ?? true;
   const phase4Enabled = parseOnOff(env.EXPO_PUBLIC_POSE_AVATAR_PHASE4) ?? true;
 
-  let mode = props.mode ?? resolvePoseAvatarRendererMode(env.EXPO_PUBLIC_POSE_AVATAR_RENDERER);
+  let mode =
+    props.mode ??
+    resolvePoseAvatarRendererMode(
+      env.EXPO_PUBLIC_POSE_AVATAR_RENDERER,
+      env.EXPO_PUBLIC_POSE_AVATAR_BODY_STYLE
+    );
   let smoothingEnabled =
     props.smoothingEnabled ??
     parseOnOff(env.EXPO_PUBLIC_POSE_AVATAR_SMOOTHING) ??
@@ -148,9 +180,37 @@ export function resolvePoseAvatarConfig(
     (phase4Enabled
       ? (parseOnOff(env.EXPO_PUBLIC_POSE_AVATAR_SCAN_LINE) ?? false) && !lowLatencyMode
       : false);
+  let pointCloudBodyEnabled =
+    props.pointCloudBodyEnabled ??
+    parseOnOff(env.EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY) ??
+    mode === 'point_cloud_body';
+  let pointCloudBodyShowConnections =
+    props.pointCloudBodyShowConnections ??
+    parseOnOff(env.EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_CONNECTIONS) ??
+    false;
+  let pointCloudBodyShowSkeletonLines =
+    props.pointCloudBodyShowSkeletonLines ??
+    parseOnOff(env.EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_SKELETON_LINES) ??
+    false;
+  let pointCloudBodyShowKeypoints =
+    props.pointCloudBodyShowKeypoints ??
+    parseOnOff(env.EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_KEYPOINTS) ??
+    true;
 
   if (explicitVariant !== null) {
-    mode = explicitVariant === 'classic' ? 'classic' : 'constellation';
+    mode =
+      explicitVariant === 'classic'
+        ? 'classic'
+        : explicitVariant.startsWith('point-cloud-body')
+          ? 'point_cloud_body'
+          : 'constellation';
+    if (explicitVariant.startsWith('point-cloud-body')) pointCloudBodyEnabled = true;
+    if (explicitVariant === 'point-cloud-body-connections-on') pointCloudBodyShowConnections = true;
+    if (explicitVariant === 'point-cloud-body-connections-off') pointCloudBodyShowConnections = false;
+    if (explicitVariant === 'point-cloud-body-skeleton-lines-on') {
+      pointCloudBodyShowSkeletonLines = true;
+    }
+    if (explicitVariant === 'point-cloud-body-keypoints-off') pointCloudBodyShowKeypoints = false;
     if (explicitVariant === 'constellation-smoothing-off') smoothingEnabled = false;
     if (explicitVariant === 'constellation-smoothing-on') smoothingEnabled = true;
     if (explicitVariant === 'constellation-sampled-dots-off') sampledDotsEnabled = false;
@@ -170,6 +230,18 @@ export function resolvePoseAvatarConfig(
       stateTransitionsEnabled = false;
       scanLineEnabled = false;
     }
+    if (explicitVariant === 'point-cloud-body-low-latency') {
+      lowLatencyMode = true;
+      smoothingEnabled = false;
+      stateTransitionsEnabled = false;
+      scanLineEnabled = false;
+      pointCloudBodyShowConnections = false;
+      pointCloudBodyShowSkeletonLines = false;
+    }
+  }
+
+  if (mode === 'point_cloud_body' && !pointCloudBodyEnabled) {
+    mode = 'constellation';
   }
 
   const adaptiveSmoothingEnabled =
@@ -302,6 +374,48 @@ export function resolvePoseAvatarConfig(
         40
       )
     ),
+    pointCloudBodyEnabled,
+    pointCloudBodyDensity:
+      lowLatencyMode
+        ? 'low'
+        : props.pointCloudBodyDensity ??
+          parsePointCloudBodyDensity(env.EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_DENSITY) ??
+          'medium',
+    pointCloudBodyMaxDots: Math.round(
+      resolveNumber(
+        props.pointCloudBodyMaxDots,
+        env.EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_MAX_DOTS,
+        lowLatencyMode ? 400 : 800,
+        120,
+        lowLatencyMode ? 450 : 900
+      )
+    ),
+    pointCloudBodyShowConnections: pointCloudBodyShowConnections && !lowLatencyMode,
+    pointCloudBodyConnectionOpacity: resolveNumber(
+      props.pointCloudBodyConnectionOpacity,
+      env.EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_CONNECTION_OPACITY,
+      0.055,
+      0,
+      0.12
+    ),
+    pointCloudBodyConnectionMaxLines: Math.round(
+      resolveNumber(
+        props.pointCloudBodyConnectionMaxLines,
+        env.EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_CONNECTION_MAX_LINES,
+        lowLatencyMode ? 0 : 120,
+        0,
+        160
+      )
+    ),
+    pointCloudBodyShowSkeletonLines: pointCloudBodyShowSkeletonLines && !lowLatencyMode,
+    pointCloudBodyShowKeypoints,
+    pointCloudBodyOpacity: resolveNumber(
+      props.pointCloudBodyOpacity,
+      env.EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_OPACITY,
+      1,
+      0,
+      1
+    ),
     confidenceFadingEnabled:
       props.confidenceFadingEnabled ??
       (phase3Enabled
@@ -352,6 +466,18 @@ function parseMeasurementStateIntensity(
   value: string | undefined
 ): PoseAvatarMeasurementStateIntensity | null {
   if (value === 'off' || value === 'subtle' || value === 'medium') return value;
+  return null;
+}
+
+function parsePointCloudBodyDensity(value: string | undefined): PointCloudBodyDensity | null {
+  if (value === 'low' || value === 'medium' || value === 'high') return value;
+  return null;
+}
+
+function parseBodyStyleMode(value: string | undefined): PoseAvatarRendererMode | null {
+  if (value === 'point_cloud_body') return 'point_cloud_body';
+  if (value === 'constellation' || value === 'skeleton_constellation') return 'constellation';
+  if (value === 'classic') return 'classic';
   return null;
 }
 

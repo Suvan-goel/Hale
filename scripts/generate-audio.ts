@@ -46,7 +46,7 @@ const LINES: Record<string, string> = {
   'step-closer': 'Take a small step closer.',
   'hold-still': 'Great. Hold still for a moment.',
   'turn-on-light': "It's a little dark in here. Please turn on the main light.",
-  'framing-ready': 'Perfect. Stay right there.',
+  'framing-ready': 'That looks good. Stay there.',
   // Chair stand.
   'chair-stand-intro':
     'Next, the thirty second chair stand. Place a sturdy chair so you sit ' +
@@ -96,7 +96,8 @@ const LINES: Record<string, string> = {
   'item-complete': 'Nicely done.',
   // Check-Up battery orchestration.
   'checkup-intro':
-    "Welcome to your Movement Check-Up. We'll do five short movements together. " +
+    "Welcome to your Movement Check-Up. We'll guide you through a few short movements " +
+    'to check strength, balance, and mobility. ' +
     "Just follow my voice — you won't need to touch the screen. Let's begin.",
   'checkup-complete':
     "That's the whole check-up — really well done. Your results are ready on the screen.",

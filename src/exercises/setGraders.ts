@@ -25,6 +25,16 @@ import { PipelineFrameOutput } from '../pose/pipeline';
 import { LM, PoseFrame } from '../pose/types';
 import { AutoregulatorConfig, DEFAULT_AUTOREGULATOR_CONFIG, VelocityAutoregulator } from './autoregulation';
 import { ExerciseSetGrader, SetGraderUpdate, SetResult } from './types';
+import {
+  ValidTimeAccumulator,
+  ValidTimeAccumulatorSnapshot,
+  TimerValidationMode,
+  broadSetupValidTimeConfigForTarget,
+  createValidTimeAccumulator,
+  getValidTimeResult,
+  validTimeCaptionForState,
+  validTimeConfigForTarget,
+} from './validTime';
 
 const LEFT_SIDE_CHAIN = CHAIN_IDS.indexOf('leftSide');
 const RIGHT_SIDE_CHAIN = CHAIN_IDS.indexOf('rightSide');
@@ -63,6 +73,9 @@ function freshUpdate(): SetGraderUpdate {
     repCount: 0,
     measuring: false,
     holdMs: 0,
+    remainingMs: NaN,
+    validTimeState: null,
+    validTimeCaption: null,
     autoregulationStop: false,
     complete: false,
     voice: null,
@@ -264,11 +277,13 @@ export interface HoldSetConfig {
   bridgeUpDeg: number;
   startDebounceFrames: number;
   endDebounceFrames: number;
+  validTime: boolean;
 }
 
 export class HoldSetGrader implements ExerciseSetGrader {
   private readonly config: HoldSetConfig;
   private readonly tracker: HoldTracker;
+  private readonly validTime: ValidTimeAccumulator | null;
   private readonly live: SetGraderUpdate = freshUpdate();
   private holdOut: HoldOutput | null = null;
   private interruptions = 0;
@@ -280,6 +295,9 @@ export class HoldSetGrader implements ExerciseSetGrader {
       endDebounceFrames: config.endDebounceFrames,
       maxHoldMs: config.targetSec * 1000,
     });
+    this.validTime = config.validTime
+      ? createValidTimeAccumulator(validTimeConfigForTarget(config.targetSec * 1000))
+      : null;
   }
 
   update(out: PipelineFrameOutput): SetGraderUpdate {
@@ -287,22 +305,32 @@ export class HoldSetGrader implements ExerciseSetGrader {
     live.voice = null;
     live.complete = false;
     live.repCredited = false;
+    live.validTimeState = null;
+    live.validTimeCaption = null;
+    live.remainingMs = NaN;
 
     for (let i = 0; i < out.events.length; i++) {
       if (out.events[i].type === 'subject-gone') {
         this.interruptions++;
-        this.tracker.interrupt();
+        if (!this.validTime) this.tracker.interrupt();
       }
     }
 
     const measuring = out.state === 'tracking' && out.frame.hasPose && out.bodyUnit !== null;
     if (!measuring) {
+      if (this.validTime) {
+        this.updateValidTime(out.frame.timestampMs, false, false, live);
+      }
       live.measuring = false;
       return live;
     }
     const frame = out.frame;
     const bodyUnit = out.bodyUnit as number;
     const met = this.conditionMet(frame, bodyUnit);
+    if (this.validTime) {
+      this.updateValidTime(frame.timestampMs, met, true, live);
+      return live;
+    }
     const sway = ((frame.xs[LM.LEFT_HIP] + frame.xs[LM.RIGHT_HIP]) * 0.5) / bodyUnit;
     this.holdOut = this.tracker.update(met, sway, frame.timestampMs);
 
@@ -311,6 +339,26 @@ export class HoldSetGrader implements ExerciseSetGrader {
     // Set completes when the hold ends (target reached, foot down, or step).
     live.complete = this.holdOut.phase === 'ended';
     return live;
+  }
+
+  private updateValidTime(
+    timestampMs: number,
+    positionValid: boolean,
+    trackingReliable: boolean,
+    live: SetGraderUpdate
+  ): void {
+    const vt = this.validTime as ValidTimeAccumulator;
+    const snap = vt.update({
+      nowMs: timestampMs,
+      isPositionValid: positionValid,
+      isTrackingReliable: trackingReliable,
+    });
+    live.holdMs = snap.accumulatedValidMs;
+    live.remainingMs = Math.max(0, this.config.targetSec * 1000 - snap.accumulatedValidMs);
+    live.validTimeState = snap.state;
+    live.validTimeCaption = validTimeCaptionForState(snap.state);
+    live.measuring = snap.state === 'counting' || snap.state === 'grace';
+    live.complete = snap.state === 'complete' || snap.state === 'safety_cap';
   }
 
   private conditionMet(frame: PoseFrame, bodyUnit: number): boolean {
@@ -328,6 +376,25 @@ export class HoldSetGrader implements ExerciseSetGrader {
   }
 
   finish(): SetResult {
+    if (this.validTime) {
+      const snap = this.validTime.snapshot;
+      const flags: string[] = [];
+      if (this.interruptions > 0) flags.push('tracking-interrupted');
+      if (snap.accumulatedValidMs <= 0) flags.push('no-measurement');
+      if (snap.endedBySafetyCap) flags.push('valid-time-safety-cap');
+      return {
+        exerciseId: this.config.exerciseId,
+        reps: 0,
+        meanVel: NaN,
+        holdSec: snap.accumulatedValidMs > 0 ? snap.accumulatedValidMs / 1000 : NaN,
+        romPeak: NaN,
+        autoregulated: false,
+        reachedTarget: snap.completedByValidTime,
+        interruptions: this.interruptions,
+        flags,
+        validTime: getValidTimeResult(snap, this.config.targetSec * 1000),
+      };
+    }
     const o = this.holdOut;
     const flags: string[] = [];
     if (this.interruptions > 0) flags.push('tracking-interrupted');
@@ -350,11 +417,15 @@ export class HoldSetGrader implements ExerciseSetGrader {
 
   reset(): void {
     this.tracker.reset();
+    this.validTime?.reset();
     this.holdOut = null;
     this.interruptions = 0;
     this.live.measuring = false;
     this.live.complete = false;
     this.live.holdMs = 0;
+    this.live.remainingMs = NaN;
+    this.live.validTimeState = null;
+    this.live.validTimeCaption = null;
     this.live.voice = null;
   }
 }
@@ -368,62 +439,142 @@ export type RomSignal =
   | { kind: 'angle'; a: SideLandmark; vertex: SideLandmark; b: SideLandmark; direction: 'max' | 'min' }
   | { kind: 'head-yaw' };
 
+export type RomValidTimePredicate = 'seated-hamstring-reach';
+
 export interface RomSetConfig {
   exerciseId: string;
   signal: RomSignal;
   emaAlpha: number;
+  validTime?: {
+    targetSec: number;
+    predicate: RomValidTimePredicate;
+  };
 }
 
 export class RomSetGrader implements ExerciseSetGrader {
   private readonly config: RomSetConfig;
   private readonly rom: MaxRomTracker;
+  private readonly fallbackRom: MaxRomTracker;
+  private readonly validTime: ValidTimeAccumulator | null;
   private readonly live: SetGraderUpdate = freshUpdate();
   private sideIsLeft = false;
   private sideLocked = false;
   private interruptions = 0;
   private romOut: MaxRomOutput | null = null;
+  private fallbackRomOut: MaxRomOutput | null = null;
 
   constructor(config: RomSetConfig) {
     this.config = config;
     const direction = config.signal.kind === 'angle' ? config.signal.direction : 'max';
     this.rom = new MaxRomTracker({ emaAlpha: config.emaAlpha, direction });
+    this.fallbackRom = new MaxRomTracker({ emaAlpha: config.emaAlpha, direction });
+    this.validTime = config.validTime
+      ? createValidTimeAccumulator(validTimeConfigForTarget(config.validTime.targetSec * 1000))
+      : null;
   }
 
   update(out: PipelineFrameOutput): SetGraderUpdate {
     const live = this.live;
+    live.repCredited = false;
+    live.complete = false;
+    live.validTimeState = null;
+    live.validTimeCaption = null;
+    live.remainingMs = NaN;
     for (let i = 0; i < out.events.length; i++) {
       if (out.events[i].type === 'subject-gone') {
         this.interruptions++;
         this.rom.resetState();
+        this.fallbackRom.resetState();
         this.sideLocked = false;
       }
     }
     // An angle/yaw needs no body-unit scale, only a stably tracked pose.
     const measuring = out.state === 'tracking' && out.frame.hasPose;
     live.measuring = measuring;
-    if (!measuring) return live;
+    if (!measuring) {
+      if (this.validTime) {
+        const snap = this.validTime.update({
+          nowMs: out.frame.timestampMs,
+          isPositionValid: false,
+          isTrackingReliable: false,
+        });
+        this.applyValidTimeToLive(snap, live);
+        live.measuring = false;
+      }
+      return live;
+    }
 
     const frame = out.frame;
-    const sig = this.config.signal;
-    let value: number;
-    if (sig.kind === 'head-yaw') {
-      value = Math.abs(headYawDeg(frame));
-    } else {
-      if (!this.sideLocked) {
-        this.sideIsLeft = out.chainReliability[LEFT_SIDE_CHAIN] >= out.chainReliability[RIGHT_SIDE_CHAIN];
-        this.sideLocked = true;
+    const value = this.signalValue(frame, out);
+    this.fallbackRomOut = this.fallbackRom.update(value, frame.timestampMs);
+
+    if (this.validTime) {
+      const positionValid = this.validRomPosition(out, value);
+      const snap = this.validTime.update({
+        nowMs: frame.timestampMs,
+        isPositionValid: positionValid,
+        isTrackingReliable: measuring,
+      });
+      this.applyValidTimeToLive(snap, live);
+      if (positionValid && (snap.state === 'counting' || snap.state === 'grace' || snap.state === 'complete')) {
+        this.romOut = this.rom.update(value, frame.timestampMs);
       }
-      value = angleAtDeg(frame, side(sig.a, this.sideIsLeft), side(sig.vertex, this.sideIsLeft), side(sig.b, this.sideIsLeft));
+      return live;
     }
+
     this.romOut = this.rom.update(value, frame.timestampMs);
     return live;
+  }
+
+  private signalValue(frame: PoseFrame, out: PipelineFrameOutput): number {
+    const sig = this.config.signal;
+    if (sig.kind === 'head-yaw') {
+      return Math.abs(headYawDeg(frame));
+    }
+    if (!this.sideLocked) {
+      this.sideIsLeft = out.chainReliability[LEFT_SIDE_CHAIN] >= out.chainReliability[RIGHT_SIDE_CHAIN];
+      this.sideLocked = true;
+    }
+    return angleAtDeg(frame, side(sig.a, this.sideIsLeft), side(sig.vertex, this.sideIsLeft), side(sig.b, this.sideIsLeft));
+  }
+
+  private validRomPosition(out: PipelineFrameOutput, value: number): boolean {
+    if (!this.config.validTime || out.state !== 'tracking' || !out.frame.hasPose || out.bodyUnit === null) {
+      return false;
+    }
+    if (this.config.validTime.predicate === 'seated-hamstring-reach') {
+      const hip = side('hip', this.sideIsLeft);
+      const knee = side('knee', this.sideIsLeft);
+      const ankle = side('ankle', this.sideIsLeft);
+      const kneeAngle = angleAtDeg(out.frame, hip, knee, ankle);
+      return value <= 165 && kneeAngle >= 135;
+    }
+    return false;
+  }
+
+  private applyValidTimeToLive(
+    snap: ValidTimeAccumulatorSnapshot,
+    live: SetGraderUpdate
+  ): void {
+    const targetMs = (this.config.validTime?.targetSec ?? 0) * 1000;
+    live.holdMs = snap.accumulatedValidMs;
+    live.remainingMs = Math.max(0, targetMs - snap.accumulatedValidMs);
+    live.validTimeState = snap.state;
+    live.validTimeCaption = validTimeCaptionForState(snap.state);
+    live.measuring = snap.state === 'counting' || snap.state === 'grace';
+    live.complete = snap.state === 'complete' || snap.state === 'safety_cap';
   }
 
   finish(): SetResult {
     const flags: string[] = [];
     if (this.interruptions > 0) flags.push('tracking-interrupted');
-    const peak = this.romOut ? this.romOut.peak : NaN;
+    const peak = this.romOut && Number.isFinite(this.romOut.peak)
+      ? this.romOut.peak
+      : this.fallbackRomOut
+        ? this.fallbackRomOut.peak
+        : NaN;
     if (Number.isNaN(peak)) flags.push('no-measurement');
+    if (this.validTime?.snapshot.endedBySafetyCap) flags.push('valid-time-safety-cap');
     return {
       exerciseId: this.config.exerciseId,
       reps: 0,
@@ -431,18 +582,28 @@ export class RomSetGrader implements ExerciseSetGrader {
       holdSec: NaN,
       romPeak: peak,
       autoregulated: false,
-      reachedTarget: !Number.isNaN(peak),
+      reachedTarget: this.validTime ? this.validTime.snapshot.completedByValidTime : !Number.isNaN(peak),
       interruptions: this.interruptions,
       flags,
+      validTime: this.validTime && this.config.validTime
+        ? getValidTimeResult(this.validTime.snapshot, this.config.validTime.targetSec * 1000)
+        : undefined,
     };
   }
 
   reset(): void {
     this.rom.reset();
+    this.fallbackRom.reset();
+    this.validTime?.reset();
     this.sideLocked = false;
     this.interruptions = 0;
     this.romOut = null;
+    this.fallbackRomOut = null;
     this.live.measuring = false;
+    this.live.holdMs = 0;
+    this.live.remainingMs = NaN;
+    this.live.validTimeState = null;
+    this.live.validTimeCaption = null;
   }
 }
 
@@ -450,39 +611,185 @@ export class RomSetGrader implements ExerciseSetGrader {
 // TimerSetGrader
 // ---------------------------------------------------------------------------
 
+export type TimerValidTimePredicate =
+  | 'subject-visible'
+  | 'front-upright'
+  | 'front-lateral'
+  | 'side-stretch';
+
 export interface TimerSetConfig {
   exerciseId: string;
   targetSec: number;
+  validTime?: {
+    validationMode: TimerValidationMode;
+    predicate: TimerValidTimePredicate;
+  };
+}
+
+const VISIBILITY_MIN = 0.25;
+const UPRIGHT_TORSO_MIN_BU = 0.35;
+const FRONT_UPRIGHT_LANDMARKS = [
+  LM.LEFT_SHOULDER,
+  LM.RIGHT_SHOULDER,
+  LM.LEFT_HIP,
+  LM.RIGHT_HIP,
+] as const;
+const FRONT_LATERAL_LANDMARKS = [
+  LM.LEFT_SHOULDER,
+  LM.RIGHT_SHOULDER,
+  LM.LEFT_HIP,
+  LM.RIGHT_HIP,
+  LM.LEFT_KNEE,
+  LM.RIGHT_KNEE,
+  LM.LEFT_ANKLE,
+  LM.RIGHT_ANKLE,
+] as const;
+
+function visibleEnough(frame: PoseFrame, landmark: LM): boolean {
+  return frame.visibility[landmark] >= VISIBILITY_MIN && frame.presence[landmark] >= VISIBILITY_MIN;
+}
+
+function landmarksVisible(frame: PoseFrame, landmarks: readonly LM[]): boolean {
+  for (let i = 0; i < landmarks.length; i++) {
+    if (!visibleEnough(frame, landmarks[i])) return false;
+  }
+  return true;
+}
+
+function midpointTorsoUpright(frame: PoseFrame, bodyUnit: number): boolean {
+  const shoulderY = (frame.ys[LM.LEFT_SHOULDER] + frame.ys[LM.RIGHT_SHOULDER]) * 0.5;
+  const hipY = (frame.ys[LM.LEFT_HIP] + frame.ys[LM.RIGHT_HIP]) * 0.5;
+  return (hipY - shoulderY) / bodyUnit >= UPRIGHT_TORSO_MIN_BU;
+}
+
+function sideTorsoUpright(frame: PoseFrame, bodyUnit: number, isLeft: boolean): boolean {
+  const shoulder = side('shoulder', isLeft);
+  const hip = side('hip', isLeft);
+  return (frame.ys[hip] - frame.ys[shoulder]) / bodyUnit >= UPRIGHT_TORSO_MIN_BU;
+}
+
+function sideChainVisible(frame: PoseFrame, isLeft: boolean): boolean {
+  return (
+    visibleEnough(frame, side('shoulder', isLeft)) &&
+    visibleEnough(frame, side('hip', isLeft)) &&
+    visibleEnough(frame, side('knee', isLeft)) &&
+    visibleEnough(frame, side('ankle', isLeft))
+  );
 }
 
 /**
  * Safe fallback for V1 mobility and simple camera-assisted drills where pose is
- * useful for setup/presence but not robust enough for scoring. The player owns
- * the clock; this grader simply reports completion without requiring landmarks.
+ * useful for setup/presence but not robust enough for scoring. By default the
+ * player owns the clock; opt-in valid-time timers instead count only broad,
+ * supportive setup time without judging exact form.
  */
 export class TimerSetGrader implements ExerciseSetGrader {
   private readonly config: TimerSetConfig;
+  private readonly validTime: ValidTimeAccumulator | null;
   private readonly live: SetGraderUpdate = freshUpdate();
   private startMs = -1;
+  private interruptions = 0;
 
   constructor(config: TimerSetConfig) {
     this.config = config;
+    if (config.validTime) {
+      const targetMs = config.targetSec * 1000;
+      const timing =
+        config.validTime.validationMode === 'broad_setup_gated'
+          ? broadSetupValidTimeConfigForTarget(targetMs)
+          : validTimeConfigForTarget(targetMs);
+      this.validTime = createValidTimeAccumulator(timing);
+    } else {
+      this.validTime = null;
+    }
   }
 
   update(out: PipelineFrameOutput): SetGraderUpdate {
     const ts = out.frame.timestampMs;
+    if (this.validTime) {
+      for (let i = 0; i < out.events.length; i++) {
+        if (out.events[i].type === 'subject-gone') this.interruptions++;
+      }
+      const trackingReliable = out.state === 'tracking' && out.frame.hasPose;
+      const positionValid = trackingReliable && this.validTimerPosition(out);
+      const snap = this.validTime.update({
+        nowMs: ts,
+        isPositionValid: positionValid,
+        isTrackingReliable: trackingReliable,
+      });
+      this.live.repCredited = false;
+      this.live.repCount = 0;
+      this.live.measuring = snap.state === 'counting' || snap.state === 'grace';
+      this.live.holdMs = snap.accumulatedValidMs;
+      this.live.remainingMs = Math.max(0, this.config.targetSec * 1000 - snap.accumulatedValidMs);
+      this.live.validTimeState = snap.state;
+      this.live.validTimeCaption = validTimeCaptionForState(snap.state, this.config.validTime?.validationMode);
+      this.live.autoregulationStop = false;
+      this.live.complete = snap.state === 'complete' || snap.state === 'safety_cap';
+      this.live.voice = null;
+      return this.live;
+    }
+
     if (this.startMs < 0) this.startMs = ts;
     this.live.repCredited = false;
     this.live.repCount = 0;
     this.live.measuring = true;
     this.live.holdMs = Math.max(0, ts - this.startMs);
+    this.live.remainingMs = NaN;
+    this.live.validTimeState = null;
+    this.live.validTimeCaption = null;
     this.live.autoregulationStop = false;
     this.live.complete = this.live.holdMs >= this.config.targetSec * 1000;
     this.live.voice = null;
     return this.live;
   }
 
+  private validTimerPosition(out: PipelineFrameOutput): boolean {
+    const vt = this.config.validTime;
+    if (!vt || out.state !== 'tracking' || !out.frame.hasPose) return false;
+    if (vt.validationMode === 'subject_visible_only' || vt.predicate === 'subject-visible') {
+      return true;
+    }
+    if (out.bodyUnit === null) return false;
+    const frame = out.frame;
+    const bodyUnit = out.bodyUnit;
+    if (vt.predicate === 'front-upright') {
+      return landmarksVisible(frame, FRONT_UPRIGHT_LANDMARKS) && midpointTorsoUpright(frame, bodyUnit);
+    }
+    if (vt.predicate === 'front-lateral') {
+      return landmarksVisible(frame, FRONT_LATERAL_LANDMARKS) && midpointTorsoUpright(frame, bodyUnit);
+    }
+    if (vt.predicate === 'side-stretch') {
+      const nearIsLeft = out.chainReliability[LEFT_SIDE_CHAIN] >= out.chainReliability[RIGHT_SIDE_CHAIN];
+      return sideChainVisible(frame, nearIsLeft) && sideTorsoUpright(frame, bodyUnit, nearIsLeft);
+    }
+    return false;
+  }
+
   finish(timestampMs: number): SetResult {
+    if (this.validTime && this.config.validTime) {
+      const snap = this.validTime.snapshot;
+      const flags: string[] = [];
+      if (this.interruptions > 0) flags.push('tracking-interrupted');
+      if (snap.accumulatedValidMs <= 0) flags.push('no-measurement');
+      if (snap.endedBySafetyCap) flags.push('valid-time-safety-cap');
+      return {
+        exerciseId: this.config.exerciseId,
+        reps: 0,
+        meanVel: NaN,
+        holdSec: snap.accumulatedValidMs > 0 ? snap.accumulatedValidMs / 1000 : NaN,
+        romPeak: NaN,
+        autoregulated: false,
+        reachedTarget: snap.completedByValidTime,
+        interruptions: this.interruptions,
+        flags,
+        validTime: getValidTimeResult(
+          snap,
+          this.config.targetSec * 1000,
+          this.config.validTime.validationMode
+        ),
+      };
+    }
     const elapsedMs =
       this.startMs >= 0 ? Math.max(0, timestampMs - this.startMs) : this.config.targetSec * 1000;
     return {
@@ -500,10 +807,15 @@ export class TimerSetGrader implements ExerciseSetGrader {
 
   reset(): void {
     this.startMs = -1;
+    this.interruptions = 0;
+    this.validTime?.reset();
     this.live.repCredited = false;
     this.live.repCount = 0;
     this.live.measuring = false;
     this.live.holdMs = 0;
+    this.live.remainingMs = NaN;
+    this.live.validTimeState = null;
+    this.live.validTimeCaption = null;
     this.live.autoregulationStop = false;
     this.live.complete = false;
     this.live.voice = null;

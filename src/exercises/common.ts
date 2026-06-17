@@ -15,9 +15,12 @@ import {
   RepsSetGrader,
   RomSetGrader,
   RomSignal,
+  RomValidTimePredicate,
   TimerSetGrader,
+  TimerValidTimePredicate,
 } from './setGraders';
 import { ExerciseSetGrader } from './types';
+import { TimerValidationMode } from './validTime';
 
 export const AUTOREG_VOICE: GraderVoice = {
   cues: ['thats-your-set'],
@@ -66,13 +69,22 @@ export function holdGrader(p: HoldParams): () => ExerciseSetGrader {
       bridgeUpDeg: 150,
       startDebounceFrames: 4,
       endDebounceFrames: 4,
+      validTime: true,
     });
 }
 
-export function romGrader(exerciseId: string, signal: RomSignal): () => ExerciseSetGrader {
-  return () => new RomSetGrader({ exerciseId, signal, emaAlpha: 0.3 });
+export function romGrader(
+  exerciseId: string,
+  signal: RomSignal,
+  validTime?: { targetSec: number; predicate: RomValidTimePredicate }
+): () => ExerciseSetGrader {
+  return () => new RomSetGrader({ exerciseId, signal, emaAlpha: 0.3, validTime });
 }
 
-export function timerGrader(exerciseId: string, targetSec: number): () => ExerciseSetGrader {
-  return () => new TimerSetGrader({ exerciseId, targetSec });
+export function timerGrader(
+  exerciseId: string,
+  targetSec: number,
+  validTime?: { validationMode: TimerValidationMode; predicate: TimerValidTimePredicate }
+): () => ExerciseSetGrader {
+  return () => new TimerSetGrader({ exerciseId, targetSec, validTime });
 }

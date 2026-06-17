@@ -32,8 +32,8 @@ export function TabBar({ active, onChange }: { active: TabKey; onChange: (key: T
     <View style={styles.bar}>
       {TAB_DEFS.map((tab) => {
         const selected = tab.key === active;
-        const tint = selected ? colors.onAccent : colors.textTertiary;
-        const labelTint = selected ? colors.accentDeep : colors.textSecondary;
+        const tint = selected ? colors.oliveSage : colors.textMuted;
+        const labelTint = selected ? colors.oliveSage : colors.textSecondary;
         return (
           <Pressable
             key={tab.key}
@@ -57,11 +57,11 @@ export function TabBar({ active, onChange }: { active: TabKey; onChange: (key: T
 const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
-    backgroundColor: colors.bgSurface,
+    backgroundColor: colors.cardBackground,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.borderHairline,
+    borderTopColor: colors.warmBorder,
     paddingTop: spacing.md,
-    paddingBottom: spacing.xxl, // home-indicator breathing room
+    paddingBottom: spacing.xl, // home-indicator breathing room
     ...shadow.soft,
     shadowOffset: { width: 0, height: -4 },
   },
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconWrapActive: { backgroundColor: colors.accent },
+  iconWrapActive: { backgroundColor: colors.sageMist },
   label: {
     ...type.caption,
     fontSize: 12,

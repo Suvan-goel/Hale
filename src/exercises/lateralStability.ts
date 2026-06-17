@@ -24,10 +24,14 @@ export const lateralStabilityLevels: ExerciseDefinition[] = [
     cameraView: FRONT,
     equipment: ['counter'],
     kind: 'timer',
+    timing: { mode: 'valid_time' },
     prescription: { sets: 2, timerSec: 30, restSec: 30, autoregulate: false },
     voice: { instructions: [] },
     progressionId: LATERAL_WALK_MINI_BAND_ID,
-    createGrader: timerGrader(SIDE_STEP_SUPPORTED_ID, 30),
+    createGrader: timerGrader(SIDE_STEP_SUPPORTED_ID, 30, {
+      validationMode: 'broad_setup_gated',
+      predicate: 'front-lateral',
+    }),
   },
   {
     id: LATERAL_WALK_MINI_BAND_ID,
@@ -38,11 +42,15 @@ export const lateralStabilityLevels: ExerciseDefinition[] = [
     cameraView: FRONT,
     equipment: ['mini_band'],
     kind: 'timer',
+    timing: { mode: 'valid_time' },
     prescription: { sets: 2, timerSec: 30, restSec: 35, autoregulate: false },
     voice: { instructions: [] },
     regressionId: SIDE_STEP_SUPPORTED_ID,
     substituteId: SIDE_STEP_SUPPORTED_ID,
-    createGrader: timerGrader(LATERAL_WALK_MINI_BAND_ID, 30),
+    createGrader: timerGrader(LATERAL_WALK_MINI_BAND_ID, 30, {
+      validationMode: 'broad_setup_gated',
+      predicate: 'front-lateral',
+    }),
   },
 ];
 

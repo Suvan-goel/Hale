@@ -1243,7 +1243,7 @@ export default function App() {
             onCancel={goHome}
           />
         ) : flow === 'checkup' ? (
-          <CheckUpScreen onComplete={handleCheckUpComplete} voiceId={prefs.settings.voiceId} />
+          <CheckUpScreen onComplete={handleCheckUpComplete} onCancel={goHome} voiceId={prefs.settings.voiceId} />
         ) : flow === 'results' && visibleResult ? (
           showOnboardingResult ? (
             <OnboardingResultsScreen
@@ -1269,6 +1269,7 @@ export default function App() {
           <TrainingSessionScreen
             exerciseIds={sessionIds}
             onComplete={handleSessionComplete}
+            onCancel={goHome}
             voiceId={prefs.settings.voiceId}
           />
         ) : flow === 'microcheck' ? (

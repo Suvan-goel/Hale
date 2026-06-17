@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   tile: {
     flex: 1,
     padding: spacing.lg,
-    borderRadius: 8,
+    borderRadius: 22,
     backgroundColor: colors.bgElevated,
     borderWidth: 1,
     borderColor: colors.borderHairline,

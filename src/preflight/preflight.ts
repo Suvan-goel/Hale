@@ -242,6 +242,13 @@ export class PreflightCheck {
     this.toWaiting();
     this.status.phase = 'waiting-for-subject';
   }
+
+  shiftTiming(deltaMs: number): void {
+    if (deltaMs <= 0) return;
+    if (this.framingGoodSinceMs >= 0) this.framingGoodSinceMs += deltaMs;
+    if (this.sampleStartMs >= 0) this.sampleStartMs += deltaMs;
+    if (this.failedAtMs >= 0) this.failedAtMs += deltaMs;
+  }
 }
 
 /** nose→lowest-ankle vertical span as a fraction of frame height. */

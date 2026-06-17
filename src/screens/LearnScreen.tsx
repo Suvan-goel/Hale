@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   filters: { gap: spacing.sm, paddingRight: spacing.xxl },
   featured: {
     overflow: 'hidden',
-    borderRadius: radius.panel,
+    borderRadius: radius.xl,
     backgroundColor: colors.bgSurface,
     borderWidth: 1,
     borderColor: colors.borderHairline,

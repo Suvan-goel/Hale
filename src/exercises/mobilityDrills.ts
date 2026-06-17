@@ -24,9 +24,13 @@ export const mobilityDrillDefinitions: ExerciseDefinition[] = [
     cameraView: { view: 'front', requiredReliableSideChains: 2 },
     equipment: ['none'],
     kind: 'timer',
+    timing: { mode: 'valid_time' },
     prescription: { sets: 2, timerSec: 30, restSec: 20, autoregulate: false },
     voice: { instructions: [] },
-    createGrader: timerGrader(THORACIC_ROTATION_ID, 30),
+    createGrader: timerGrader(THORACIC_ROTATION_ID, 30, {
+      validationMode: 'broad_setup_gated',
+      predicate: 'front-upright',
+    }),
   },
   {
     id: HIP_FLEXOR_STRETCH_ID,
@@ -37,9 +41,13 @@ export const mobilityDrillDefinitions: ExerciseDefinition[] = [
     cameraView: { view: 'side', requiredReliableSideChains: 1 },
     equipment: ['chair'],
     kind: 'timer',
+    timing: { mode: 'valid_time' },
     prescription: { sets: 2, timerSec: 30, restSec: 15, autoregulate: false },
     voice: { instructions: [] },
-    createGrader: timerGrader(HIP_FLEXOR_STRETCH_ID, 30),
+    createGrader: timerGrader(HIP_FLEXOR_STRETCH_ID, 30, {
+      validationMode: 'broad_setup_gated',
+      predicate: 'side-stretch',
+    }),
   },
   {
     id: WALL_CALF_STRETCH_ID,
@@ -50,9 +58,13 @@ export const mobilityDrillDefinitions: ExerciseDefinition[] = [
     cameraView: { view: 'side', requiredReliableSideChains: 1 },
     equipment: ['wall'],
     kind: 'timer',
+    timing: { mode: 'valid_time' },
     prescription: { sets: 2, timerSec: 30, restSec: 15, autoregulate: false },
     voice: { instructions: [] },
-    createGrader: timerGrader(WALL_CALF_STRETCH_ID, 30),
+    createGrader: timerGrader(WALL_CALF_STRETCH_ID, 30, {
+      validationMode: 'broad_setup_gated',
+      predicate: 'side-stretch',
+    }),
   },
 ];
 

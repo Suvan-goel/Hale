@@ -1,4 +1,4 @@
-import { CHAIR_STAND_ID, getMovement, listMovements, registerMovement } from '../index';
+import { CHAIR_STAND_ID, TUG_ID, getMovement, listMovements, registerMovement } from '../index';
 
 describe('movement registry', () => {
   it('serves the chair-stand definition by id', () => {
@@ -20,6 +20,11 @@ describe('movement registry', () => {
 
   it('lists registered movements', () => {
     expect(listMovements().map((d) => d.id)).toContain(CHAIR_STAND_ID);
+  });
+
+  it('keeps fixed/beta assessment timing unchanged', () => {
+    expect(getMovement(CHAIR_STAND_ID).durationMs).toBe(30000);
+    expect(getMovement(TUG_ID).durationMs).toBeNull();
   });
 
   it('every definition creates an independent grader', () => {

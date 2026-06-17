@@ -11,7 +11,7 @@
       "expo-font"
     ],
     "userInterfaceStyle": "light",
-    "backgroundColor": "#F7F2EA",
+    "backgroundColor": "#F4EFE6",
     "ios": {
       "supportsTablet": false,
       "icon": "./assets/ios-icon.png",
@@ -23,7 +23,7 @@
     "android": {
       "icon": "./assets/android-icon.png",
       "adaptiveIcon": {
-        "backgroundColor": "#F7F2EA",
+        "backgroundColor": "#F4EFE6",
         "foregroundImage": "./assets/android-icon.png"
       },
       "permissions": [

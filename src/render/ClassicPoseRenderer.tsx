@@ -23,6 +23,7 @@ export const ClassicPoseRenderer = React.forwardRef<
 >(function ClassicPoseRenderer(
   {
     mirrored = true,
+    fit = 'cover',
     debug = false,
     measurementState,
     activeDomain = null,
@@ -58,7 +59,7 @@ export const ClassicPoseRenderer = React.forwardRef<
         buildSkeletonPaths(
           frame,
           output.chainReliability,
-          { width, height, sourceAspect, mirrored },
+          { width, height, sourceAspect, mirrored, fit },
           scratch.current
         );
         visibleRef.current = true;

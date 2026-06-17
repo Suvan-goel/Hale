@@ -1,5 +1,6 @@
 import { createPoseFrame } from '../../pose/types';
 import {
+  computeContainTransform,
   computeCoverTransform,
   createScreenPoseLandmarks,
   mapNormalizedX,
@@ -22,6 +23,14 @@ describe('pose coordinate mapper', () => {
     expect(transform.sx).toBeCloseTo(633, 0);
     expect(transform.ox).toBeCloseTo(-121.5, 1);
     expect(transform.oy).toBe(0);
+  });
+
+  it('contain-fits the whole camera source into the view without cropping', () => {
+    const transform = computeContainTransform(VIEWPORT);
+    expect(transform.sx).toBe(390);
+    expect(transform.sy).toBe(520);
+    expect(transform.ox).toBe(0);
+    expect(transform.oy).toBe(162);
   });
 
   it('mirrors x without changing y', () => {

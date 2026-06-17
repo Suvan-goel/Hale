@@ -24,6 +24,8 @@ describe('shoulder flexion peak — acceptance', () => {
     expect(result.interruptions).toBe(0);
     expect(result.flags).not.toContain('no-measurement');
     expect(Math.abs(result.peakFlexionDeg - session.truth.peakDeg)).toBeLessThan(8);
+    expect(result.validTime).toBeTruthy();
+    expect(result.validTime?.accumulatedValidSeconds).toBeGreaterThan(0);
   });
 
   it('measures from either facing side', () => {

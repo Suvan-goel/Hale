@@ -25,6 +25,7 @@ export const gluteBridgeLevels: ExerciseDefinition[] = [
     cameraView: SIDE,
     equipment: ['floor'],
     kind: 'hold',
+    timing: { mode: 'valid_time' },
     prescription: { sets: 3, holdSec: 20, restSec: 40, autoregulate: false },
     voice: { instructions: ['ex-glute-bridge'] },
     progressionId: BRIDGE_REPS_ID,

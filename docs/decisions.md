@@ -10,8 +10,8 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 - **Continuous Native Generation (CNG):** `android/` and `ios/` are gitignored and produced by
   `npx expo prebuild`. The only native code we own lives in `modules/expo-pose-detection`.
 - **MediaPipe model binaries are not committed.** `scripts/download-models.sh` fetches
-  `pose_landmarker_lite.task` into the module's Android assets and iOS resources. Run it once
-  after clone, before prebuild.
+  `pose_landmarker_lite.task` and `pose_landmarker_full.task` into the module's Android assets
+  and iOS resources. Run it once after clone, before prebuild.
 - **Pipeline is pure TS with zero React/Expo imports** (`src/pose/`), so the identical code
   runs on-device and in the headless replay CLI / Jest. This is what makes record/replay
   deterministic.
@@ -50,8 +50,8 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
   valid); calibration stillness gate uses EMA'd hip speed (raw jitter was resetting it).
 - **jest-expo:** don't override `transformIgnorePatterns` — the preset's default is what
   transforms expo-modules-core; overriding it breaks the test bootstrap.
-- **Model binaries not committed** (5.7MB each, regenerable): `scripts/download-models.sh`
-  must run after clone and before prebuild, or the app throws `model-not-bundled` at runtime.
+- **Model binaries not committed** (regenerable): `scripts/download-models.sh` must run after
+  clone and before prebuild, or the app throws `model-not-bundled` at runtime.
 - **APK model compression (caught in verification):** AGP Deflate-compresses `.task` assets by
   default and library-level `androidResources.noCompress` does NOT govern final APK packaging —
   MediaPipe mmaps models, so this breaks at runtime. Fixed with a config plugin
@@ -626,6 +626,18 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 - **Verification:** render utility tests cover measurement states, tracking quality, domain
   emphasis, config flags, and geometry overlays. Typecheck and the render test suite pass.
 
+## 2026-06-17 — Side-view tolerant avatar volume
+
+- **Finding:** Phase 2 body volume was enabled by default, but the torso layer required both
+  shoulders and both hips above confidence. In Hale's side-view movements, the far-side
+  shoulder/hip often fall below confidence, so the volume layer could disappear and leave only the
+  Phase 1 skeleton lines/dots.
+- **Change:** torso volume now uses the full shoulder/hip quadrilateral when all four landmarks are
+  reliable, and falls back to a conservative one-side shoulder-to-hip estimate when exactly one side
+  is reliable. The fallback is lower-opacity and presentation-only; it does not change pose
+  inference, grading, scoring, or session logic.
+- **Verification:** body-volume tests now cover far-side occlusion and all-torso-low confidence.
+
 ## 2026-06-17 — Stage 8 polish guardrails
 
 - **Optional Explore and ladder-practice sessions stay outside the main plan.** A shared
@@ -636,3 +648,103 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 - **Stage 8 QA is documented in `docs/hale-v1-manual-qa.md`.** The checklist covers first-run,
   returning-user, Plan A/B/C, Progress/re-test/report, Explore, old state, and accessibility
   passes without adding new product features.
+
+## 2026-06-17 — Point-cloud body avatar default
+
+- **Finding:** enabling all existing avatar phases still rendered a skeleton-forward
+  constellation. Phase 2 added torso/head volume, but limbs remained bone lines plus sampled
+  points, so the "full avatar" could still read visually as a skeleton.
+- **Change:** added a renderer mode, `point_cloud_body`, and made it the default. It builds a
+  deterministic body-part point cloud: head ellipse, tapered torso, capsule volumes for arms and
+  legs, and small hand/foot clusters. Skeleton lines are off by default; keypoints are subtle; local
+  dot connections are optional. `EXPO_PUBLIC_POSE_AVATAR_BODY_STYLE=point_cloud_body` and
+  `EXPO_PUBLIC_POSE_AVATAR_RENDERER=point_cloud_body` both select the new body renderer.
+- **Performance guardrails:** normal density targets a body-like 550-850 visible dots under an
+  800-dot default cap; low-latency mode uses the low density, caps at 400 by default, disables
+  optional connections/skeleton lines, and keeps the renderer path batched as SVG paths rather than
+  per-dot React components.
+- **Compatibility:** classic and constellation debug variants remain available for comparison. This
+  is presentation-only and does not change pose inference, grading, scoring, workout, or check-up
+  logic.
+
+## 2026-06-17 — Live avatar low-latency display
+
+- **Finding:** the default point-cloud avatar is visually richer, but dense point-cloud path
+  generation plus display smoothing can make the on-screen figure visibly lag behind the user on
+  live camera screens.
+- **Change:** check-up, training, micro-check, dev assessment, and live camera screens now pass
+  `lowLatencyMode` to `SkeletonView` and cap the point-cloud body to 260 dots. This disables
+  display-only smoothing/state transitions and reduces SVG path work for the live measurement view.
+- **Boundary:** pose inference, measurement smoothing, rep/hold state machines, scoring, and workout
+  generation are unchanged. The low-latency setting affects only the displayed avatar.
+
+## 2026-06-17 — Full pose model default
+
+- **Change:** the app now defaults `PoseDetectionView` to MediaPipe's `pose_landmarker_full.task`
+  on both Android and iOS, with `lite` still available via the explicit `modelVariant` prop for
+  profiling or low-power fallback experiments.
+- **Bundling:** `scripts/download-models.sh` now fetches both `lite` and `full` model binaries
+  because model files remain regenerable local artifacts rather than committed source.
+- **Runtime:** native pose estimation still requests the GPU delegate first and falls back to CPU if
+  the delegate is unavailable on a device or simulator.
+
+## 2026-06-17 — Setup trust controls for live flows
+
+- **Change:** check-up and workout setup timeouts now surface an explicit setup-help state instead
+  of silently auto-skipping. Users can try again, open setup help, or skip the current movement /
+  exercise, and skipped items are still recorded as skipped/missing rather than completed.
+- **Controls:** live check-up and workout screens now keep visible Pause, Repeat, Help, Skip, and
+  Stop controls while preserving the hands-free default voice flow.
+- **Copy:** the check-up intro visible text uses the active battery count, the generated-audio
+  source now uses a generic no-count check-up intro, and the framing-ready cue is softened to
+  "That looks good. Stay there."
+
+## 2026-06-17 — Gentler framing prompt cadence
+
+- **Change:** framing voice prompts now have a hard two-second minimum gap between spoken prompts,
+  even when the requested correction changes from one frame window to the next. Unchanged prompts
+  keep the slower four-second repeat cadence.
+- **Scope:** the rule is shared by the check-up assessment controller, training session player, and
+  micro-check runner so setup guidance feels calm across live camera flows.
+
+## 2026-06-17 — Unobstructed recording viewport
+
+- **Change:** live check-up and workout screens now place the pose avatar in a bounded, centered
+  portrait viewport with all instructions, counts, timers, setup help, and controls arranged above
+  or below it. Nothing user-facing overlays the avatar viewport.
+- **Display fit:** avatar mapping now supports `contain` in addition to the prior full-screen
+  `cover` behavior. Recording screens opt into `contain` so the full camera coordinate plane remains
+  visible on any phone aspect ratio; other renderers keep the existing default.
+- **Boundary:** camera video is still never displayed. The native camera view remains the sensor
+  layer; only the pose-derived avatar layout changed.
+
+## 2026-06-17 — Phase 1 valid active-time timers
+
+- **Change:** a generic valid-time accumulator now gates Phase 1 training holds/captures: balance
+  holds, bridge hold, and seated hamstring reach. These sets wait for a brief valid setup, count
+  accumulated valid time, tolerate short landmark jitter, pause on sustained invalid/tracking loss,
+  resume after reacquisition, and store optional valid-time metadata on set results.
+- **Assessment boundary:** shoulder flexion and hinge reach still use the existing fixed check-up
+  capture windows for protocol stability, but their graders prefer stable valid samples when
+  available and store optional valid-time metadata. Chair stand, balance ladder, TUG, rep-based
+  training, and later broad setup-gated timers are unchanged.
+- **UX boundary:** no runtime TTS or new bundled voice cues were added; pause/resume guidance is
+  visible workout copy only, using supportive language.
+
+## 2026-06-17 — Phase 2 broad setup-gated workout timers
+
+- **Change:** selected timer-based training drills now opt in to `broad_setup_gated` valid time:
+  thoracic rotation, supported hip flexor stretch, wall calf stretch, supported side step, and
+  mini-band lateral walk. They reuse the Phase 1 `ValidTimeAccumulator` with a more forgiving
+  500 ms start/resume debounce, 1.5 s grace, and 2.0 s sustained-loss pause threshold.
+- **Pose boundary:** these predicates are broad setup gates, not form judges. They check for a
+  plausible tracked subject, expected view visibility, upright setup, and coarse participation
+  where reliable; they deliberately avoid exact hip extension, heel-down, rotation range, step
+  width, knee angle, or band-tension scoring.
+- **Scope boundary:** March in Place and Overhead Reach remain rep-based; toe/heel raises,
+  band pull-aparts, row variants, band overhead press, rep-based exercises, 30-second chair stand,
+  and TUG were not converted. Broad timers remain explicit per-exercise opt-ins rather than a
+  default for every timer.
+- **UX boundary:** no runtime TTS or new bundled voice cues were added. Broad timer captions use
+  supportive visible copy such as "Get into position", "Keep moving", and
+  "Timer paused - return to position".

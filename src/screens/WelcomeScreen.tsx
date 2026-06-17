@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { Card, PrimaryButton, Screen, ScreenHeader, SecondaryButton, StatusBadge } from '../components/ui';
 import { colors, spacing, type } from '../theme';
@@ -16,6 +16,12 @@ export function WelcomeScreen({
   const [showHow, setShowHow] = React.useState(false);
   return (
     <Screen>
+      <View style={styles.brandPanel}>
+        <Image source={require('../../assets/icon.png')} style={styles.logo} resizeMode="contain" />
+        <Text style={styles.brandName}>Hale</Text>
+        <Text style={styles.brandLine}>Longevity is built daily.</Text>
+      </View>
+
       <ScreenHeader
         eyebrow="Hale"
         title="Stay stronger, steadier, and more mobile as you age."
@@ -65,6 +71,22 @@ function Step({ n, title, body }: { n: string; title: string; body: string }) {
 }
 
 const styles = StyleSheet.create({
+  brandPanel: {
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.xl,
+    borderRadius: 32,
+    backgroundColor: colors.warmMineralCream,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+  },
+  logo: {
+    width: 92,
+    height: 92,
+    borderRadius: 24,
+  },
+  brandName: { ...type.display, fontSize: 44, lineHeight: 50, color: colors.oliveSage },
+  brandLine: { ...type.bodySmall, color: colors.textSecondary },
   card: { gap: spacing.md },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   title: { ...type.h2 },

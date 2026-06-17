@@ -22,6 +22,15 @@ export interface HeadEstimate {
   confidence: number;
 }
 
+export interface TorsoEstimate {
+  leftShoulder: Point;
+  rightShoulder: Point;
+  leftHip: Point;
+  rightHip: Point;
+  confidence: number;
+  estimated: boolean;
+}
+
 export interface BodyVolumeGeometryOptions {
   minConfidence?: number;
   bodyVolumeEnabled?: boolean;
@@ -110,12 +119,12 @@ export function buildBodyVolumeGeometry(
   let remaining = maxVolumeDots;
 
   if (options.torsoVolumeEnabled !== false && remaining > 0) {
-    const torsoConfidence = getTorsoConfidence(pose);
-    if (torsoConfidence >= minConfidence && torsoLandmarksRenderable(pose, minConfidence)) {
+    const torso = getTorsoEstimate(pose, minConfidence);
+    if (torso !== null && torso.confidence >= minConfidence) {
       const requested = Math.min(options.torsoDotCount ?? 86, remaining);
-      appendTorsoDots(pose, out, requested, torsoConfidence, radiusMultiplier);
+      appendTorsoDots(torso, out, requested, radiusMultiplier);
       remaining -= out.torsoDotCount;
-      out.opacityScale = Math.min(out.opacityScale, confidenceOpacity(torsoConfidence, minConfidence));
+      out.opacityScale = Math.min(out.opacityScale, confidenceOpacity(torso.confidence, minConfidence));
     } else {
       out.skippedVolumeSections++;
     }
@@ -134,10 +143,10 @@ export function buildBodyVolumeGeometry(
   }
 
   if (options.shoulderHipDensityEnabled === true && remaining > 0) {
-    const torsoConfidence = getTorsoConfidence(pose);
-    if (torsoConfidence >= minConfidence && torsoLandmarksRenderable(pose, minConfidence)) {
+    const torso = getTorsoEstimate(pose, minConfidence);
+    if (torso !== null && torso.confidence >= minConfidence) {
       const requested = Math.min(options.shoulderHipDotCount ?? 16, remaining);
-      appendShoulderHipAccents(pose, out, requested, radiusMultiplier);
+      appendShoulderHipAccents(torso, out, requested, radiusMultiplier);
     } else {
       out.skippedVolumeSections++;
     }
@@ -160,6 +169,78 @@ export function getTorsoConfidence(pose: ScreenPoseLandmarks): number {
     landmarkConfidence(pose, LM.LEFT_HIP),
     landmarkConfidence(pose, LM.RIGHT_HIP)
   );
+}
+
+export function getTorsoEstimate(
+  pose: ScreenPoseLandmarks,
+  minConfidence = DEFAULT_MIN_CONFIDENCE
+): TorsoEstimate | null {
+  if (!pose.hasPose) return null;
+  const leftShoulderConfidence = landmarkConfidence(pose, LM.LEFT_SHOULDER);
+  const rightShoulderConfidence = landmarkConfidence(pose, LM.RIGHT_SHOULDER);
+  const leftHipConfidence = landmarkConfidence(pose, LM.LEFT_HIP);
+  const rightHipConfidence = landmarkConfidence(pose, LM.RIGHT_HIP);
+  const fullConfidence = Math.min(
+    leftShoulderConfidence,
+    rightShoulderConfidence,
+    leftHipConfidence,
+    rightHipConfidence
+  );
+
+  if (fullConfidence >= minConfidence && torsoLandmarksFinite(pose)) {
+    return {
+      leftShoulder: pointFor(pose, LM.LEFT_SHOULDER),
+      rightShoulder: pointFor(pose, LM.RIGHT_SHOULDER),
+      leftHip: pointFor(pose, LM.LEFT_HIP),
+      rightHip: pointFor(pose, LM.RIGHT_HIP),
+      confidence: fullConfidence,
+      estimated: false,
+    };
+  }
+
+  const leftSideConfidence = Math.min(leftShoulderConfidence, leftHipConfidence);
+  const rightSideConfidence = Math.min(rightShoulderConfidence, rightHipConfidence);
+  const useLeft =
+    leftSideConfidence >= minConfidence &&
+    (leftSideConfidence >= rightSideConfidence || rightSideConfidence < minConfidence);
+  const useRight = !useLeft && rightSideConfidence >= minConfidence;
+  if (!useLeft && !useRight) return null;
+
+  const shoulderLm = useLeft ? LM.LEFT_SHOULDER : LM.RIGHT_SHOULDER;
+  const hipLm = useLeft ? LM.LEFT_HIP : LM.RIGHT_HIP;
+  if (!landmarkFinite(pose, shoulderLm) || !landmarkFinite(pose, hipLm)) return null;
+
+  const shoulder = pointFor(pose, shoulderLm);
+  const hip = pointFor(pose, hipLm);
+  const torsoLen = distance(shoulder, hip);
+  if (!Number.isFinite(torsoLen) || torsoLen < 12) return null;
+
+  const axis = normalize({ x: hip.x - shoulder.x, y: hip.y - shoulder.y });
+  const normal = { x: -axis.y, y: axis.x };
+  const width = clamp(torsoLen * 0.24, 18, 56);
+  const shoulderHalf = width * 0.56;
+  const hipHalf = width * 0.5;
+
+  return {
+    leftShoulder: {
+      x: shoulder.x - normal.x * shoulderHalf,
+      y: shoulder.y - normal.y * shoulderHalf,
+    },
+    rightShoulder: {
+      x: shoulder.x + normal.x * shoulderHalf,
+      y: shoulder.y + normal.y * shoulderHalf,
+    },
+    leftHip: {
+      x: hip.x - normal.x * hipHalf,
+      y: hip.y - normal.y * hipHalf,
+    },
+    rightHip: {
+      x: hip.x + normal.x * hipHalf,
+      y: hip.y + normal.y * hipHalf,
+    },
+    confidence: Math.max(leftSideConfidence, rightSideConfidence) * 0.82,
+    estimated: true,
+  };
 }
 
 export function getHeadEstimate(
@@ -262,16 +343,12 @@ export function mapHeadSeedToScreenPoint(seed: VolumeDotSeed, estimate: HeadEsti
 }
 
 function appendTorsoDots(
-  pose: ScreenPoseLandmarks,
+  torso: TorsoEstimate,
   out: BodyVolumeGeometry,
   count: number,
-  confidence: number,
   radiusMultiplier: number
 ): void {
-  const leftShoulder = pointFor(pose, LM.LEFT_SHOULDER);
-  const rightShoulder = pointFor(pose, LM.RIGHT_SHOULDER);
-  const leftHip = pointFor(pose, LM.LEFT_HIP);
-  const rightHip = pointFor(pose, LM.RIGHT_HIP);
+  const { leftShoulder, rightShoulder, leftHip, rightHip, confidence } = torso;
   const torsoRef = Math.max(distance(leftShoulder, leftHip), distance(rightShoulder, rightHip), 80);
   const seeds = generateTorsoDotSeeds(count);
   for (let i = 0; i < seeds.length; i++) {
@@ -300,7 +377,7 @@ function appendHeadDots(
 }
 
 function appendShoulderHipAccents(
-  pose: ScreenPoseLandmarks,
+  torso: TorsoEstimate,
   out: BodyVolumeGeometry,
   count: number,
   radiusMultiplier: number
@@ -309,8 +386,8 @@ function appendShoulderHipAccents(
   const half = Math.ceil(seeds.length / 2);
   for (let i = 0; i < seeds.length; i++) {
     const shoulder = i < half;
-    const a = pointFor(pose, shoulder ? LM.LEFT_SHOULDER : LM.LEFT_HIP);
-    const b = pointFor(pose, shoulder ? LM.RIGHT_SHOULDER : LM.RIGHT_HIP);
+    const a = shoulder ? torso.leftShoulder : torso.leftHip;
+    const b = shoulder ? torso.rightShoulder : torso.rightHip;
     const line = lerpPoint(a, b, seeds[i].u);
     const dx = b.x - a.x;
     const dy = b.y - a.y;
@@ -387,22 +464,17 @@ function getCachedSeeds(
   return seeds;
 }
 
-function torsoLandmarksRenderable(pose: ScreenPoseLandmarks, minConfidence: number): boolean {
+function torsoLandmarksFinite(pose: ScreenPoseLandmarks): boolean {
   return (
-    landmarkRenderable(pose, LM.LEFT_SHOULDER, minConfidence) &&
-    landmarkRenderable(pose, LM.RIGHT_SHOULDER, minConfidence) &&
-    landmarkRenderable(pose, LM.LEFT_HIP, minConfidence) &&
-    landmarkRenderable(pose, LM.RIGHT_HIP, minConfidence)
+    landmarkFinite(pose, LM.LEFT_SHOULDER) &&
+    landmarkFinite(pose, LM.RIGHT_SHOULDER) &&
+    landmarkFinite(pose, LM.LEFT_HIP) &&
+    landmarkFinite(pose, LM.RIGHT_HIP)
   );
 }
 
-function landmarkRenderable(pose: ScreenPoseLandmarks, lm: LM, minConfidence: number): boolean {
-  return (
-    pose.hasPose &&
-    Number.isFinite(pose.xs[lm]) &&
-    Number.isFinite(pose.ys[lm]) &&
-    landmarkConfidence(pose, lm) >= minConfidence
-  );
+function landmarkFinite(pose: ScreenPoseLandmarks, lm: LM): boolean {
+  return pose.hasPose && Number.isFinite(pose.xs[lm]) && Number.isFinite(pose.ys[lm]);
 }
 
 function landmarkConfidence(pose: ScreenPoseLandmarks, lm: LM): number {

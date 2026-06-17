@@ -8,6 +8,7 @@
 
 import { VoiceCueKey } from '../audio/cues';
 import { PipelineFrameOutput } from '../pose/pipeline';
+import type { ValidTimeResult } from '../exercises/validTime';
 
 /**
  * Per-movement camera-view spec: which way the user faces and how many
@@ -63,6 +64,8 @@ export interface MovementResultBase {
   flags: string[];
   /** Tracking interruptions during the active window. */
   interruptions: number;
+  /** Optional valid active-time metadata for gated capture windows. */
+  validTime?: ValidTimeResult;
 }
 
 /** Live per-frame surface the player needs; reused object — never retain. */
