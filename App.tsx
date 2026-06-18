@@ -82,6 +82,7 @@ import {
   syncRecentMovementCheckupsToRemote,
   syncRecentTrainingSessionCompletionsToRemote,
   syncLocalPreferencesToRemote,
+  syncTrainingStateToRemote,
   syncTrainingSessionCompletionToRemote,
   useAuth,
 } from './src/services/backend';
@@ -279,7 +280,9 @@ function HaleApp() {
   const [selectedLadderId, setSelectedLadderId] = React.useState<string | null>(null);
   const [selectedLearnId, setSelectedLearnId] = React.useState<string | null>(null);
   const profileSyncTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const trainingStateSyncTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastProfileSyncFingerprintRef = React.useRef<string | null>(null);
+  const lastTrainingStateSyncFingerprintRef = React.useRef<string | null>(null);
   const lastCheckupSyncFingerprintRef = React.useRef<string | null>(null);
   const lastBlockSyncFingerprintRef = React.useRef<string | null>(null);
   const lastSessionSyncFingerprintRef = React.useRef<string | null>(null);
@@ -306,11 +309,16 @@ function HaleApp() {
       remoteProfileHydrationAttemptedRef.current = false;
     } else {
       lastProfileSyncFingerprintRef.current = null;
+      lastTrainingStateSyncFingerprintRef.current = null;
       lastCheckupSyncFingerprintRef.current = null;
       lastBlockSyncFingerprintRef.current = null;
       lastSessionSyncFingerprintRef.current = null;
       lastMicroCheckSyncFingerprintRef.current = null;
       lastBlockReportSyncFingerprintRef.current = null;
+      if (trainingStateSyncTimerRef.current) {
+        clearTimeout(trainingStateSyncTimerRef.current);
+        trainingStateSyncTimerRef.current = null;
+      }
     }
   }, [backendSignedIn]);
 
@@ -318,6 +326,9 @@ function HaleApp() {
     return () => {
       if (profileSyncTimerRef.current) {
         clearTimeout(profileSyncTimerRef.current);
+      }
+      if (trainingStateSyncTimerRef.current) {
+        clearTimeout(trainingStateSyncTimerRef.current);
       }
     };
   }, []);
@@ -408,6 +419,33 @@ function HaleApp() {
     remoteProfileHydrationAttemptedRef.current = true;
     queueProfileSync(prefs, { hydrateLocalFromRemote });
   }, [backendSignedIn, prefs, profileReady, queueProfileSync]);
+
+  React.useEffect(() => {
+    if (!backendSignedIn || !trainingReady) return;
+    const fingerprint = JSON.stringify({
+      block: training.block,
+      progression: training.progression,
+      equipment: training.equipment,
+      progress: training.progress,
+      ladderProgressById: training.ladderProgressById,
+      generatedSessionSummaries: training.generatedSessionSummaries,
+      lastPostSessionFeedback: training.lastPostSessionFeedback,
+      planPreferences: training.planPreferences,
+    });
+
+    if (lastTrainingStateSyncFingerprintRef.current === fingerprint) return;
+    if (trainingStateSyncTimerRef.current) {
+      clearTimeout(trainingStateSyncTimerRef.current);
+    }
+
+    trainingStateSyncTimerRef.current = setTimeout(() => {
+      void syncTrainingStateToRemote({ training }).then((result) => {
+        if (result.status === 'synced') {
+          lastTrainingStateSyncFingerprintRef.current = fingerprint;
+        }
+      });
+    }, 1000);
+  }, [backendSignedIn, training, trainingReady]);
 
   React.useEffect(() => {
     if (!backendSignedIn || !historyReady || !adherenceReady) return;

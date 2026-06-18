@@ -297,9 +297,9 @@ async function findExistingRemoteReport(
 ): Promise<ExistingReportResolution> {
   const byLocalReportId = await supabase
     .from('movement_block_reports')
-    .select('id, report_json')
+    .select('id, report_json, local_report_id')
     .eq('user_id', userId)
-    .contains('report_json', { localReportId })
+    .eq('local_report_id', localReportId)
     .limit(1)
     .maybeSingle();
 

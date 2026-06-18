@@ -195,6 +195,12 @@ describe('movement block report sync mapping', () => {
     expect(payload.from_checkup_id).toBe('remote-from-checkup');
     expect(payload.to_checkup_id).toBe('remote-to-checkup');
     expect(payload.created_at).toBe(createdAt);
+    expect(payload).not.toHaveProperty('local_report_id');
+    expect(payload.report_json).toEqual(
+      expect.objectContaining({
+        localReportId: 'block-report-movement-block-1',
+      })
+    );
 
     const reportJson = JSON.stringify(payload.report_json);
     expect(reportJson).toContain('block-report-movement-block-1');
@@ -255,9 +261,8 @@ describe('movement block report sync mapping', () => {
     expect(blockLookup.eq).toHaveBeenCalledWith('local_block_id', 'movement-block-1');
     expect(fromLookup.eq).toHaveBeenCalledWith('local_checkup_id', '2026-06-17T11:40:00.000Z');
     expect(toLookup.eq).toHaveBeenCalledWith('local_checkup_id', '2026-07-15T12:00:00.000Z');
-    expect(existingByLocalId.contains).toHaveBeenCalledWith('report_json', {
-      localReportId: 'block-report-insert-once',
-    });
+    expect(existingByLocalId.eq).toHaveBeenCalledWith('local_report_id', 'block-report-insert-once');
+    expect(existingByLocalId.contains).not.toHaveBeenCalled();
     expect(insert).toHaveBeenCalledTimes(1);
     expect(insert).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -300,6 +305,8 @@ describe('movement block report sync mapping', () => {
     });
 
     expect(result.status).toBe('synced');
+    expect(existingByLocalId.eq).toHaveBeenCalledWith('local_report_id', 'block-report-existing');
+    expect(existingByLocalId.contains).not.toHaveBeenCalled();
     expect(update.update).toHaveBeenCalledWith(
       expect.objectContaining({
         report_json: expect.objectContaining({
@@ -333,5 +340,22 @@ describe('movement block report sync mapping', () => {
 
     expect(result.status).toBe('failed');
     expect(insert).not.toHaveBeenCalled();
+  });
+
+  it('generates a stable fallback localReportId when the local report id is missing', () => {
+    const payload = mapLocalBlockReportToRemotePayload(
+      {
+        report: report({ id: ' ' }),
+        movementBlock: movementBlock(),
+      },
+      'user-123'
+    );
+
+    expect(payload.report_json).toEqual(
+      expect.objectContaining({
+        localReportId: expect.stringMatching(/^block-report-/),
+      })
+    );
+    expect(JSON.stringify(payload.report_json)).not.toContain('"localReportId":" "');
   });
 });

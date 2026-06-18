@@ -706,9 +706,10 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
   confidence/body-opacity multipliers. Tracking confidence may still remove unrenderable body parts
   or the whole avatar when pose is lost, but valid dots should not pulse lighter/darker during
   normal movement.
-- **Completeness rule:** the point-cloud body includes a dedicated neck bridge between head and
-  torso, denser hand/foot clusters, and hand/foot centers biased toward index/toe landmarks so the
-  figure reads as continuous rather than joint-only at the extremities.
+- **Completeness rule:** the point-cloud body keeps denser hand/foot clusters and hand/foot centers
+  biased toward index/toe landmarks so the figure reads as continuous at the extremities. The head
+  is rendered slightly larger than the raw estimate and joins the torso through a sparse, narrow
+  neck connector so the figure reads as connected without a heavy dotted neck column.
 - **Boundary:** pose inference, measurement smoothing, rep/hold state machines, scoring, and workout
   generation are unchanged. This affects only the displayed avatar.
 

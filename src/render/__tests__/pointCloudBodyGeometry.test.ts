@@ -174,7 +174,7 @@ describe('point-cloud body geometry', () => {
     expect(out.activeDotPath.length + out.softActiveDotPath.length).toBeGreaterThan(0);
   });
 
-  it('fills the neck bridge and denser extremities for a complete figure', () => {
+  it('uses a slim neck connector while keeping denser extremities for a complete figure', () => {
     const out = createPointCloudBodyGeometry();
 
     buildPointCloudBodyGeometry(mappedStandingPose(), out, {
@@ -183,11 +183,42 @@ describe('point-cloud body geometry', () => {
       maxDots: 900,
     });
 
-    expect(out.bodyPartDotCounts.neck).toBeGreaterThan(25);
+    expect(out.bodyPartDotCounts.neck).toBeGreaterThan(8);
+    expect(out.bodyPartDotCounts.neck).toBeLessThanOrEqual(16);
     expect(out.neckDotCount).toBe(out.bodyPartDotCounts.neck);
     expect(out.handDotCount).toBeGreaterThan(70);
     expect(out.footDotCount).toBeGreaterThan(78);
     expect(out.dotCount).toBeLessThanOrEqual(900);
+  });
+
+  it('renders the point-cloud head slightly larger than the raw head estimate', () => {
+    const pose = mappedStandingPose();
+    const estimate = getHeadEstimate(pose);
+    expect(estimate).not.toBeNull();
+    const out = createPointCloudBodyGeometry();
+
+    buildPointCloudBodyGeometry(pose, out, {
+      pointCloudBodyEnabled: true,
+      density: 'high',
+      maxDots: 900,
+    });
+
+    const rawSeeds = generateHeadBodyDotSeeds(out.headDotCount);
+    let rawMaxNormalizedRadiusSq = 0;
+    for (const seed of rawSeeds) {
+      const point = mapHeadBodySeedToPoint(seed, estimate!);
+      const nx = (point.x - estimate!.center.x) / estimate!.rx;
+      const ny = (point.y - estimate!.center.y) / estimate!.ry;
+      rawMaxNormalizedRadiusSq = Math.max(rawMaxNormalizedRadiusSq, nx * nx + ny * ny);
+    }
+
+    let renderedMaxNormalizedRadiusSq = 0;
+    for (let i = 0; i < out.headDotCount; i++) {
+      const nx = (out.headXs[i] - estimate!.center.x) / estimate!.rx;
+      const ny = (out.headYs[i] - estimate!.center.y) / estimate!.ry;
+      renderedMaxNormalizedRadiusSq = Math.max(renderedMaxNormalizedRadiusSq, nx * nx + ny * ny);
+    }
+    expect(renderedMaxNormalizedRadiusSq).toBeGreaterThan(rawMaxNormalizedRadiusSq * 1.12);
   });
 
   it('respects the configured absolute dot cap including keypoints', () => {

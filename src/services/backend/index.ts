@@ -7,4 +7,5 @@ export * from './microCheckSyncService';
 export * from './profileService';
 export * from './profileSyncService';
 export * from './sessionSyncService';
+export * from './trainingStateSyncService';
 export * from './types';

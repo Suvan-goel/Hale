@@ -120,6 +120,7 @@ const DEFAULT_MIN_CONFIDENCE = 0.35;
 const DEFAULT_MAX_DOTS = 800;
 const LOW_LATENCY_MAX_DOTS = 560;
 const ABSOLUTE_MAX_DOTS = 900;
+const POINT_CLOUD_HEAD_SCALE = 1.08;
 const KEYPOINTS: readonly LM[] = [
   LM.NOSE,
   LM.LEFT_EAR,
@@ -161,7 +162,7 @@ const POINT_CLOUD_BODY_PARTS: readonly PointCloudBodyPart[] = [
 const COUNT_PRESETS: Record<PointCloudBodyDensity, PointCloudBodyCounts> = {
   low: {
     torso: 140,
-    neck: 24,
+    neck: 8,
     head: 50,
     upperArm: 24,
     forearm: 20,
@@ -174,7 +175,7 @@ const COUNT_PRESETS: Record<PointCloudBodyDensity, PointCloudBodyCounts> = {
   },
   medium: {
     torso: 235,
-    neck: 36,
+    neck: 12,
     head: 75,
     upperArm: 42,
     forearm: 34,
@@ -187,7 +188,7 @@ const COUNT_PRESETS: Record<PointCloudBodyDensity, PointCloudBodyCounts> = {
   },
   high: {
     torso: 240,
-    neck: 42,
+    neck: 16,
     head: 85,
     upperArm: 44,
     forearm: 36,
@@ -679,12 +680,13 @@ function appendHead(
     return;
   }
 
+  const visualHead = scaleHeadEstimate(head, POINT_CLOUD_HEAD_SCALE);
   const seeds = generateHeadBodyDotSeeds(count);
   let previousX = 0;
   let previousY = 0;
   let hasPrevious = false;
   for (let i = 0; i < seeds.length && out.dotCount < out.dotXs.length; i++) {
-    const point = mapHeadBodySeedToPoint(seeds[i], head);
+    const point = mapHeadBodySeedToPoint(seeds[i], visualHead);
     const radius = clamp(bodyRef * (0.0035 + seeds[i].radiusSeed * 0.0025) * radiusMultiplier, 0.78, 2.8);
     const soft = seeds[i].opacitySeed < 0.32 || head.confidence < 0.58;
     addDot(out, 'head', point.x, point.y, radius, soft);
@@ -720,16 +722,21 @@ function appendNeckBridge(
   }
 
   const shoulderMid = midpoint(pointFor(pose, LM.LEFT_SHOULDER), pointFor(pose, LM.RIGHT_SHOULDER));
-  const neckTop = lerpPoint(shoulderMid, head.center, 0.72);
-  const neckBase = lerpPoint(shoulderMid, head.center, 0.16);
+  const visualHead = scaleHeadEstimate(head, POINT_CLOUD_HEAD_SCALE);
+  const neckAxisDx = shoulderMid.x - visualHead.center.x;
+  const neckAxisDy = shoulderMid.y - visualHead.center.y;
+  const neckAxisLen = Math.hypot(neckAxisDx, neckAxisDy) || 1;
+  const headBottomT = clamp((Math.min(visualHead.ry * 0.74, neckAxisLen * 0.34)) / neckAxisLen, 0.18, 0.38);
+  const neckTop = lerpPoint(visualHead.center, shoulderMid, headBottomT);
+  const neckBase = lerpPoint(shoulderMid, visualHead.center, 0.2);
   const confidence = Math.min(
     head.confidence,
     landmarkConfidence(pose, LM.LEFT_SHOULDER),
     landmarkConfidence(pose, LM.RIGHT_SHOULDER)
   );
   const seeds = generateCapsuleDotSeeds(count, 'neckBridge');
-  const startHalfWidth = Math.min(bodyRef * 0.078, head.rx * 0.72);
-  const endHalfWidth = Math.min(bodyRef * 0.052, head.rx * 0.55);
+  const startHalfWidth = Math.min(bodyRef * 0.038, visualHead.rx * 0.34);
+  const endHalfWidth = Math.min(bodyRef * 0.028, visualHead.rx * 0.26);
   let previousX = 0;
   let previousY = 0;
   let hasPrevious = false;
@@ -738,8 +745,8 @@ function appendNeckBridge(
     const seed = seeds[i];
     const point = mapCapsuleSeedToPoint(seed, neckBase, neckTop, startHalfWidth, endHalfWidth);
     const widthAtT = lerp(startHalfWidth, endHalfWidth, clamp(seed.t + seed.tangentJitter, 0, 1));
-    const radius = clamp(widthAtT * (0.09 + seed.radiusSeed * 0.065) * radiusMultiplier, 0.78, 2.55);
-    const soft = seed.opacitySeed < 0.22 || confidence < 0.56;
+    const radius = clamp(widthAtT * (0.11 + seed.radiusSeed * 0.055) * radiusMultiplier, 0.58, 1.7);
+    const soft = seed.opacitySeed < 0.16 || confidence < 0.56;
     addDot(out, 'neck', point.x, point.y, radius, soft);
     if (showConnections && hasPrevious && i % 5 === 0) {
       addConnection(out, previousX, previousY, point.x, point.y, connectionMaxLines);
@@ -749,6 +756,15 @@ function appendNeckBridge(
     hasPrevious = true;
   }
   out.opacityScale = Math.min(out.opacityScale, confidenceOpacity(confidence, minConfidence));
+}
+
+function scaleHeadEstimate(head: HeadEstimate, scale: number): HeadEstimate {
+  return {
+    center: head.center,
+    rx: head.rx * scale,
+    ry: head.ry * scale,
+    confidence: head.confidence,
+  };
 }
 
 function appendLimbCapsule(

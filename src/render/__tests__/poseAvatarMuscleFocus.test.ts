@@ -41,7 +41,7 @@ describe('pose avatar muscle focus', () => {
     ]);
   });
 
-  it('maps neck mobility to the head and neck bridge', () => {
+  it('maps neck mobility to the head and slim neck connector', () => {
     expect(pointCloudBodyPartsForTrainingExercise(getExercise(NECK_ROTATION_ID))).toEqual([
       'head',
       'neck',
