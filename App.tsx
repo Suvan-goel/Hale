@@ -84,6 +84,13 @@ import {
   syncLocalPreferencesToRemote,
   syncTrainingStateToRemote,
   syncTrainingSessionCompletionToRemote,
+  isLocalStateEmptyForRestore,
+  restoreRemoteStateIfLocalEmpty,
+  shouldCommitLaunchSyncFingerprint,
+  shouldRetryLaunchSync,
+  shouldSyncTrainingStateAfterLaunchRestore,
+  type LaunchRestoreOutcome,
+  type RestoreStatus,
   useAuth,
 } from './src/services/backend';
 import { AssessmentScreen } from './src/screens/AssessmentScreen';
@@ -159,6 +166,7 @@ type Flow =
 
 /** Flows that mount the camera; gated on permission + audio configuration. */
 const CAMERA_FLOWS = new Set<Flow>(['checkup', 'training', 'microcheck', 'dev-assessment', 'dev-live']);
+const LAUNCH_SYNC_RETRY_DELAY_MS = 5000;
 
 function flowForOnboardingStep(step: OnboardingStep): Flow | null {
   switch (step) {
@@ -207,6 +215,20 @@ function isSyncableWorkoutCompletionType(type: TrainingSessionCompletionType): b
   return type === 'standard' || type === 'starter' || type === 'restart' || type === 'retest_prep';
 }
 
+function launchRestoreOutcomeFromStatus(status: RestoreStatus): LaunchRestoreOutcome {
+  switch (status) {
+    case 'skipped_local_not_empty':
+      return 'skipped_non_empty_local';
+    case 'remote_empty':
+      return 'no_remote_data';
+    case 'signed_out':
+    case 'restored':
+    case 'failed':
+    case 'timeout':
+      return status;
+  }
+}
+
 export default function App() {
   return (
     <AuthProvider>
@@ -230,7 +252,7 @@ function AppGate() {
     return <AuthLoadingScreen />;
   }
 
-  if (!auth.isSignedIn) {
+  if (!auth.isSignedIn || auth.isPasswordRecovery) {
     return <AuthScreen />;
   }
 
@@ -265,6 +287,10 @@ function HaleApp() {
   const [trainingReady, setTrainingReady] = React.useState(false);
   const [microChecksReady, setMicroChecksReady] = React.useState(false);
   const [adherenceReady, setAdherenceReady] = React.useState(false);
+  const [restoreReady, setRestoreReady] = React.useState(false);
+  const [restoreOutcome, setRestoreOutcome] = React.useState<LaunchRestoreOutcome>('pending');
+  const [localWasEmptyAtRestore, setLocalWasEmptyAtRestore] = React.useState(false);
+  const [launchSyncRetryTick, setLaunchSyncRetryTick] = React.useState(0);
   const [pendingCheckup, setPendingCheckup] = React.useState<{
     type: CheckupType;
     sourceBlockId?: string;
@@ -289,6 +315,8 @@ function HaleApp() {
   const lastMicroCheckSyncFingerprintRef = React.useRef<string | null>(null);
   const lastBlockReportSyncFingerprintRef = React.useRef<string | null>(null);
   const remoteProfileHydrationAttemptedRef = React.useRef(false);
+  const remoteRestoreAttemptedRef = React.useRef(false);
+  const launchSyncRetryTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   React.useEffect(() => {
     requestCameraPermissionsAsync()
@@ -307,6 +335,10 @@ function HaleApp() {
   React.useEffect(() => {
     if (backendSignedIn) {
       remoteProfileHydrationAttemptedRef.current = false;
+      remoteRestoreAttemptedRef.current = false;
+      setRestoreOutcome('pending');
+      setLocalWasEmptyAtRestore(false);
+      setRestoreReady(false);
     } else {
       lastProfileSyncFingerprintRef.current = null;
       lastTrainingStateSyncFingerprintRef.current = null;
@@ -315,6 +347,14 @@ function HaleApp() {
       lastSessionSyncFingerprintRef.current = null;
       lastMicroCheckSyncFingerprintRef.current = null;
       lastBlockReportSyncFingerprintRef.current = null;
+      remoteRestoreAttemptedRef.current = false;
+      setRestoreOutcome('signed_out');
+      setLocalWasEmptyAtRestore(false);
+      if (launchSyncRetryTimerRef.current) {
+        clearTimeout(launchSyncRetryTimerRef.current);
+        launchSyncRetryTimerRef.current = null;
+      }
+      setRestoreReady(false);
       if (trainingStateSyncTimerRef.current) {
         clearTimeout(trainingStateSyncTimerRef.current);
         trainingStateSyncTimerRef.current = null;
@@ -330,8 +370,109 @@ function HaleApp() {
       if (trainingStateSyncTimerRef.current) {
         clearTimeout(trainingStateSyncTimerRef.current);
       }
+      if (launchSyncRetryTimerRef.current) {
+        clearTimeout(launchSyncRetryTimerRef.current);
+      }
     };
   }, []);
+
+  const scheduleLaunchSyncRetry = React.useCallback(() => {
+    if (launchSyncRetryTimerRef.current) return;
+
+    launchSyncRetryTimerRef.current = setTimeout(() => {
+      launchSyncRetryTimerRef.current = null;
+      setLaunchSyncRetryTick((tick) => tick + 1);
+    }, LAUNCH_SYNC_RETRY_DELAY_MS);
+  }, []);
+
+  React.useEffect(() => {
+    if (!backendSignedIn) return;
+    if (!historyReady || !profileReady || !trainingReady || !microChecksReady || !adherenceReady) return;
+    if (remoteRestoreAttemptedRef.current) return;
+    if (flow !== null) {
+      remoteRestoreAttemptedRef.current = true;
+      setRestoreOutcome('skipped_active_flow');
+      setLocalWasEmptyAtRestore(false);
+      setRestoreReady(true);
+      return;
+    }
+
+    remoteRestoreAttemptedRef.current = true;
+    const launchLocalState = {
+      preferences: prefs,
+      history,
+      training,
+      microChecks,
+      adherence,
+    };
+    setLocalWasEmptyAtRestore(isLocalStateEmptyForRestore(launchLocalState));
+    let cancelled = false;
+
+    void restoreRemoteStateIfLocalEmpty({
+      local: launchLocalState,
+      stores: {
+        profileStore,
+        historyStore: store,
+        trainingStore,
+        adherenceStore,
+      },
+    })
+      .then((result) => {
+        if (cancelled) return;
+        setRestoreOutcome(launchRestoreOutcomeFromStatus(result.status));
+
+        if (result.status === 'restored' && result.restoredState) {
+          setPrefs(result.restoredState.preferences);
+          setHistory(result.restoredState.history);
+          setTraining(result.restoredState.training);
+          setMicroChecks(result.restoredState.microChecks);
+          setAdherence(result.restoredState.adherence);
+          lastProfileSyncFingerprintRef.current = null;
+          lastTrainingStateSyncFingerprintRef.current = null;
+          lastCheckupSyncFingerprintRef.current = null;
+          lastBlockSyncFingerprintRef.current = null;
+          lastSessionSyncFingerprintRef.current = null;
+          lastMicroCheckSyncFingerprintRef.current = null;
+          lastBlockReportSyncFingerprintRef.current = null;
+        }
+
+        if (__DEV__) {
+          console.log(`[restore] launch restore status=${result.status}`);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setRestoreOutcome('failed');
+          console.warn('[restore] launch restore failed', error);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setRestoreReady(true);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    adherence,
+    adherenceReady,
+    backendSignedIn,
+    flow,
+    history,
+    historyReady,
+    microChecks,
+    microChecksReady,
+    prefs,
+    profileReady,
+    profileStore,
+    adherenceStore,
+    store,
+    training,
+    trainingReady,
+    trainingStore,
+  ]);
 
   const goHome = React.useCallback(() => {
     setFlow(null);
@@ -414,14 +555,27 @@ function HaleApp() {
   );
 
   React.useEffect(() => {
-    if (!profileReady || !backendSignedIn) return;
+    if (!profileReady || !backendSignedIn || !restoreReady) return;
     const hydrateLocalFromRemote = !remoteProfileHydrationAttemptedRef.current;
     remoteProfileHydrationAttemptedRef.current = true;
     queueProfileSync(prefs, { hydrateLocalFromRemote });
-  }, [backendSignedIn, prefs, profileReady, queueProfileSync]);
+  }, [backendSignedIn, prefs, profileReady, queueProfileSync, restoreReady]);
 
   React.useEffect(() => {
-    if (!backendSignedIn || !trainingReady) return;
+    if (!backendSignedIn || !trainingReady || !restoreReady) return;
+    if (
+      !shouldSyncTrainingStateAfterLaunchRestore({
+        localWasEmptyAtRestore,
+        restoreOutcome,
+        training,
+      })
+    ) {
+      if (__DEV__) {
+        console.log(`[training-state-sync] launch sync blocked after restore ${restoreOutcome}`);
+      }
+      return;
+    }
+
     const fingerprint = JSON.stringify({
       block: training.block,
       progression: training.progression,
@@ -442,13 +596,24 @@ function HaleApp() {
       void syncTrainingStateToRemote({ training }).then((result) => {
         if (result.status === 'synced') {
           lastTrainingStateSyncFingerprintRef.current = fingerprint;
+        } else if (shouldRetryLaunchSync([result])) {
+          scheduleLaunchSyncRetry();
         }
       });
     }, 1000);
-  }, [backendSignedIn, training, trainingReady]);
+  }, [
+    backendSignedIn,
+    launchSyncRetryTick,
+    localWasEmptyAtRestore,
+    restoreOutcome,
+    restoreReady,
+    scheduleLaunchSyncRetry,
+    training,
+    trainingReady,
+  ]);
 
   React.useEffect(() => {
-    if (!backendSignedIn || !historyReady || !adherenceReady) return;
+    if (!backendSignedIn || !historyReady || !adherenceReady || !restoreReady) return;
     const fingerprint = JSON.stringify({
       checkups: history.map((record) => record.checkUp.startedAt),
       assessments: adherence.assessments.map((assessment) => [
@@ -460,11 +625,16 @@ function HaleApp() {
     });
 
     if (lastCheckupSyncFingerprintRef.current === fingerprint) return;
-    lastCheckupSyncFingerprintRef.current = fingerprint;
 
     void syncRecentMovementCheckupsToRemote(history, {
       assessments: adherence.assessments,
     }).then((results) => {
+      if (shouldCommitLaunchSyncFingerprint(results)) {
+        lastCheckupSyncFingerprintRef.current = fingerprint;
+      }
+      if (shouldRetryLaunchSync(results)) {
+        scheduleLaunchSyncRetry();
+      }
       if (__DEV__) {
         const synced = results.filter((result) => result.status === 'synced').length;
         const failed = results.filter((result) => result.status === 'failed').length;
@@ -472,11 +642,23 @@ function HaleApp() {
           console.log(`[checkup-sync] launch sync complete synced=${synced} failed=${failed}`);
         }
       }
+    }).catch((error) => {
+      console.warn('[checkup-sync] launch sync failed', error);
+      scheduleLaunchSyncRetry();
     });
-  }, [adherence.assessments, adherenceReady, backendSignedIn, history, historyReady]);
+  }, [
+    adherence.assessments,
+    adherenceReady,
+    backendSignedIn,
+    history,
+    historyReady,
+    launchSyncRetryTick,
+    restoreReady,
+    scheduleLaunchSyncRetry,
+  ]);
 
   React.useEffect(() => {
-    if (!backendSignedIn || !adherenceReady || !trainingReady || adherence.blocks.length === 0) return;
+    if (!backendSignedIn || !adherenceReady || !trainingReady || !restoreReady || adherence.blocks.length === 0) return;
     const fingerprint = JSON.stringify({
       blocks: adherence.blocks.map((block) => [
         block.id,
@@ -495,9 +677,14 @@ function HaleApp() {
     });
 
     if (lastBlockSyncFingerprintRef.current === fingerprint) return;
-    lastBlockSyncFingerprintRef.current = fingerprint;
 
     void syncRecentMovementBlocksToRemote(adherence.blocks, { training }).then((results) => {
+      if (shouldCommitLaunchSyncFingerprint(results)) {
+        lastBlockSyncFingerprintRef.current = fingerprint;
+      }
+      if (shouldRetryLaunchSync(results)) {
+        scheduleLaunchSyncRetry();
+      }
       if (__DEV__) {
         const synced = results.filter((result) => result.status === 'synced').length;
         const failed = results.filter((result) => result.status === 'failed').length;
@@ -505,11 +692,24 @@ function HaleApp() {
           console.log(`[block-sync] launch sync complete synced=${synced} failed=${failed}`);
         }
       }
+    }).catch((error) => {
+      console.warn('[block-sync] launch sync failed', error);
+      scheduleLaunchSyncRetry();
     });
-  }, [adherence.blocks, adherenceReady, backendSignedIn, history, training, trainingReady]);
+  }, [
+    adherence.blocks,
+    adherenceReady,
+    backendSignedIn,
+    history,
+    launchSyncRetryTick,
+    restoreReady,
+    scheduleLaunchSyncRetry,
+    training,
+    trainingReady,
+  ]);
 
   React.useEffect(() => {
-    if (!backendSignedIn || !adherenceReady || !trainingReady || adherence.completions.length === 0) return;
+    if (!backendSignedIn || !adherenceReady || !trainingReady || !restoreReady || adherence.completions.length === 0) return;
     const fingerprint = JSON.stringify({
       completions: adherence.completions.map((completion) => [
         completion.id,
@@ -534,12 +734,17 @@ function HaleApp() {
     });
 
     if (lastSessionSyncFingerprintRef.current === fingerprint) return;
-    lastSessionSyncFingerprintRef.current = fingerprint;
 
     void syncRecentTrainingSessionCompletionsToRemote(adherence.completions, {
       blocks: adherence.blocks,
       generatedSummaries: training.generatedSessionSummaries,
     }).then((results) => {
+      if (shouldCommitLaunchSyncFingerprint(results)) {
+        lastSessionSyncFingerprintRef.current = fingerprint;
+      }
+      if (shouldRetryLaunchSync(results)) {
+        scheduleLaunchSyncRetry();
+      }
       if (__DEV__) {
         const synced = results.filter((result) => result.status === 'synced').length;
         const failed = results.filter((result) => result.status === 'failed').length;
@@ -547,11 +752,24 @@ function HaleApp() {
           console.log(`[session-sync] launch sync complete synced=${synced} failed=${failed}`);
         }
       }
+    }).catch((error) => {
+      console.warn('[session-sync] launch sync failed', error);
+      scheduleLaunchSyncRetry();
     });
-  }, [adherence.blocks, adherence.completions, adherenceReady, backendSignedIn, training.generatedSessionSummaries, trainingReady]);
+  }, [
+    adherence.blocks,
+    adherence.completions,
+    adherenceReady,
+    backendSignedIn,
+    launchSyncRetryTick,
+    restoreReady,
+    scheduleLaunchSyncRetry,
+    training.generatedSessionSummaries,
+    trainingReady,
+  ]);
 
   React.useEffect(() => {
-    if (!backendSignedIn || !adherenceReady || !microChecksReady || microChecks.length === 0) return;
+    if (!backendSignedIn || !adherenceReady || !microChecksReady || !restoreReady || microChecks.length === 0) return;
     const fingerprint = JSON.stringify({
       microChecks: microChecks.map((result) => [
         result.type,
@@ -567,12 +785,17 @@ function HaleApp() {
     });
 
     if (lastMicroCheckSyncFingerprintRef.current === fingerprint) return;
-    lastMicroCheckSyncFingerprintRef.current = fingerprint;
 
     void syncRecentMicroChecksToRemote(microChecks, {
       blocks: adherence.blocks,
       completions: adherence.completions,
     }).then((results) => {
+      if (shouldCommitLaunchSyncFingerprint(results)) {
+        lastMicroCheckSyncFingerprintRef.current = fingerprint;
+      }
+      if (shouldRetryLaunchSync(results)) {
+        scheduleLaunchSyncRetry();
+      }
       if (__DEV__) {
         const synced = results.filter((result) => result.status === 'synced').length;
         const failed = results.filter((result) => result.status === 'failed').length;
@@ -580,11 +803,24 @@ function HaleApp() {
           console.log(`[microcheck-sync] launch sync complete synced=${synced} failed=${failed}`);
         }
       }
+    }).catch((error) => {
+      console.warn('[microcheck-sync] launch sync failed', error);
+      scheduleLaunchSyncRetry();
     });
-  }, [adherence.blocks, adherence.completions, adherenceReady, backendSignedIn, microChecks, microChecksReady]);
+  }, [
+    adherence.blocks,
+    adherence.completions,
+    adherenceReady,
+    backendSignedIn,
+    launchSyncRetryTick,
+    microChecks,
+    microChecksReady,
+    restoreReady,
+    scheduleLaunchSyncRetry,
+  ]);
 
   React.useEffect(() => {
-    if (!backendSignedIn || !adherenceReady || adherence.reports.length === 0) return;
+    if (!backendSignedIn || !adherenceReady || !restoreReady || adherence.reports.length === 0) return;
     const fingerprint = JSON.stringify({
       reports: adherence.reports.map((report) => [
         report.id,
@@ -611,13 +847,18 @@ function HaleApp() {
     });
 
     if (lastBlockReportSyncFingerprintRef.current === fingerprint) return;
-    lastBlockReportSyncFingerprintRef.current = fingerprint;
 
     void syncRecentMovementBlockReportsToRemote(adherence.reports, {
       blocks: adherence.blocks,
       assessments: adherence.assessments,
       completions: adherence.completions,
     }).then((results) => {
+      if (shouldCommitLaunchSyncFingerprint(results)) {
+        lastBlockReportSyncFingerprintRef.current = fingerprint;
+      }
+      if (shouldRetryLaunchSync(results)) {
+        scheduleLaunchSyncRetry();
+      }
       if (__DEV__) {
         const synced = results.filter((result) => result.status === 'synced').length;
         const failed = results.filter((result) => result.status === 'failed').length;
@@ -625,8 +866,21 @@ function HaleApp() {
           console.log(`[block-report-sync] launch sync complete synced=${synced} failed=${failed}`);
         }
       }
+    }).catch((error) => {
+      console.warn('[block-report-sync] launch sync failed', error);
+      scheduleLaunchSyncRetry();
     });
-  }, [adherence.assessments, adherence.blocks, adherence.completions, adherence.reports, adherenceReady, backendSignedIn]);
+  }, [
+    adherence.assessments,
+    adherence.blocks,
+    adherence.completions,
+    adherence.reports,
+    adherenceReady,
+    backendSignedIn,
+    launchSyncRetryTick,
+    restoreReady,
+    scheduleLaunchSyncRetry,
+  ]);
 
   const persistAdherence = React.useCallback(
     (next: AdherenceStoreState) => {
@@ -658,10 +912,10 @@ function HaleApp() {
     onboardingIncomplete && (prefs.onboarding.currentStep === 'results' || prefs.onboarding.currentStep === 'create_block');
 
   React.useEffect(() => {
-    if (!historyReady || !profileReady || !adherenceReady || flow !== null) return;
+    if (!historyReady || !profileReady || !adherenceReady || !restoreReady || flow !== null) return;
     const nextFlow = flowForOnboardingStep(onboardingStep);
     if (nextFlow) setFlow(nextFlow);
-  }, [adherenceReady, flow, historyReady, onboardingStep, profileReady]);
+  }, [adherenceReady, flow, historyReady, onboardingStep, profileReady, restoreReady]);
 
   const onProfileChange = React.useCallback(
     (profile: UserProfile) => persistPrefs({ ...prefs, profile }),
@@ -1670,6 +1924,10 @@ function HaleApp() {
   );
 
   const cameraReady = permission === 'granted' && audioReady;
+
+  if (!restoreReady) {
+    return <AuthLoadingScreen />;
+  }
 
   // Camera flows need permission + audio first; everything else renders freely.
   if (flow !== null && CAMERA_FLOWS.has(flow) && !cameraReady) {

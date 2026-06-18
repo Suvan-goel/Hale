@@ -41,5 +41,6 @@ export interface AuthState {
   profile: BackendProfile | null;
   loading: boolean;
   isSignedIn: boolean;
+  isPasswordRecovery: boolean;
   error: string | null;
 }

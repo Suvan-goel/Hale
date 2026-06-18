@@ -30,7 +30,8 @@ function authState(
   session: AuthSession | null,
   user: AuthUser | null = session?.user ?? null,
   profile: BackendProfile | null = null,
-  error: string | null = null
+  error: string | null = null,
+  isPasswordRecovery = false
 ): AuthState {
   return {
     session,
@@ -38,6 +39,7 @@ function authState(
     profile,
     loading: false,
     isSignedIn: Boolean(session?.user),
+    isPasswordRecovery,
     error,
   };
 }
@@ -58,6 +60,12 @@ function socialAuthRedirectUrl(): string {
   });
 
   return redirectUrl === OAUTH_REDIRECT_URL ? redirectUrl : OAUTH_REDIRECT_URL;
+}
+
+// Supabase dashboard setup: add hale://auth/callback under Auth URL Configuration
+// redirect URLs, and keep password-reset emails using the Supabase confirmation URL.
+function passwordResetRedirectUrl(): string {
+  return OAUTH_REDIRECT_URL;
 }
 
 function devAuthLog(message: string, details?: Record<string, unknown>): void {
@@ -82,6 +90,15 @@ function messageFromUnknown(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function authCallbackType(url: string): string | undefined {
+  const { params } = QueryParams.getQueryParams(url);
+  return typeof params.type === 'string' ? params.type : undefined;
+}
+
+function isPasswordRecoveryUrl(url: string): boolean {
+  return authCallbackType(url) === 'recovery';
+}
+
 function isAuthCallbackUrl(url: string, redirectTo = OAUTH_REDIRECT_URL): boolean {
   if (url.startsWith(redirectTo)) return true;
 
@@ -96,16 +113,36 @@ function isAuthCallbackUrl(url: string, redirectTo = OAUTH_REDIRECT_URL): boolea
   }
 }
 
-function handleIncomingAuthUrl(url: string, source: 'event' | 'initial' = 'event'): void {
+async function handleIncomingAuthUrl(
+  url: string,
+  source: 'event' | 'initial' = 'event',
+  callback?: AuthChangeCallback
+): Promise<void> {
   devAuthLog('incoming URL received', { source, url: safeUrlHostPath(url) });
 
   if (!isAuthCallbackUrl(url, pendingOAuthCallback?.redirectTo ?? OAUTH_REDIRECT_URL)) return;
 
   devAuthLog('incoming URL matched auth callback', { source, url: safeUrlHostPath(url) });
 
-  const callback = pendingOAuthCallback;
+  const pendingCallback = pendingOAuthCallback;
   pendingOAuthCallback = null;
-  callback?.resolve(url);
+  if (pendingCallback) {
+    pendingCallback.resolve(url);
+    return;
+  }
+
+  try {
+    const session = await createSessionFromAuthUrl(url);
+    const nextState = await stateWithProfile(session);
+    callback?.({
+      ...nextState,
+      isPasswordRecovery: isPasswordRecoveryUrl(url),
+    });
+  } catch (error) {
+    const message = messageFromUnknown(error);
+    console.warn(`[auth] incoming auth callback failed: ${message}`);
+    callback?.(authState(null, null, null, message));
+  }
 }
 
 function waitForOAuthCallbackUrl(redirectTo: string): Promise<string> {
@@ -193,7 +230,7 @@ async function stateWithProfileAfterOAuth(session: AuthSession): Promise<AuthSta
   }
 }
 
-async function createSessionFromOAuthUrl(url: string): Promise<AuthSession> {
+async function createSessionFromAuthUrl(url: string): Promise<AuthSession> {
   const { params, errorCode } = QueryParams.getQueryParams(url);
 
   if (errorCode) {
@@ -214,19 +251,19 @@ async function createSessionFromOAuthUrl(url: string): Promise<AuthSession> {
 
   const authCode = typeof params.code === 'string' ? params.code : undefined;
   if (authCode) {
-    devAuthLog('Google sign-in exchangeCodeForSession started');
+    devAuthLog('auth callback exchangeCodeForSession started');
     const { data, error } = await supabase.auth.exchangeCodeForSession(authCode);
 
     if (error) {
-      devAuthLog('Google sign-in exchangeCodeForSession failed', { message: error.message });
+      devAuthLog('auth callback exchangeCodeForSession failed', { message: error.message });
       throw error;
     }
     if (!data.session) {
-      devAuthLog('Google sign-in exchangeCodeForSession failed', { message: 'No session returned' });
-      throw new Error('Google sign-in completed, but Supabase did not create a session.');
+      devAuthLog('auth callback exchangeCodeForSession failed', { message: 'No session returned' });
+      throw new Error('Supabase auth callback completed, but did not create a session.');
     }
 
-    devAuthLog('Google sign-in exchangeCodeForSession succeeded');
+    devAuthLog('auth callback exchangeCodeForSession succeeded');
     return data.session;
   }
 
@@ -235,7 +272,7 @@ async function createSessionFromOAuthUrl(url: string): Promise<AuthSession> {
 
   if (!accessToken || !refreshToken) {
     throw new Error(
-      'Google sign-in returned without a Supabase session. Check the provider and redirect URL configuration.'
+      'Supabase auth callback returned without a session. Check the provider and redirect URL configuration.'
     );
   }
 
@@ -246,7 +283,7 @@ async function createSessionFromOAuthUrl(url: string): Promise<AuthSession> {
 
   if (error) throw error;
   if (!data.session) {
-    throw new Error('Google sign-in completed, but Supabase did not create a session.');
+    throw new Error('Supabase auth callback completed, but did not create a session.');
   }
 
   return data.session;
@@ -288,6 +325,25 @@ export async function signInWithEmail(email: string, password: string): Promise<
 
   if (error) throw error;
   return stateWithProfile(data.session, data.user);
+}
+
+export async function sendPasswordResetEmail(email: string): Promise<void> {
+  const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail(email), {
+    redirectTo: passwordResetRedirectUrl(),
+  });
+
+  if (error) throw error;
+}
+
+export async function updatePassword(newPassword: string): Promise<AuthState> {
+  const { data, error } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+
+  if (error) throw error;
+
+  const session = await getCurrentSession();
+  return stateWithProfile(session, data.user);
 }
 
 export async function signInWithGoogle(): Promise<AuthState> {
@@ -355,7 +411,7 @@ export async function signInWithGoogle(): Promise<AuthState> {
     devAuthLog('Google sign-in callback received', { url: safeUrlHostPath(result.url) });
 
     try {
-      const session = await createSessionFromOAuthUrl(result.url);
+      const session = await createSessionFromAuthUrl(result.url);
       const currentSession = await getCurrentSession();
       devAuthLog('Google sign-in session confirmed after callback', { hasSession: Boolean(currentSession) });
       return stateWithProfileAfterOAuth(session);
@@ -450,18 +506,32 @@ export function subscribeToAuthChanges(callback: AuthChangeCallback): () => void
     data: { subscription },
   } = supabase.auth.onAuthStateChange((event, session) => {
     devAuthLog('Supabase auth state changed', { event, hasSession: Boolean(session) });
-    callback(authState(session));
+    callback(authState(session, session?.user ?? null, null, null, event === 'PASSWORD_RECOVERY'));
   });
 
   return () => subscription.unsubscribe();
 }
 
-export function subscribeToAuthDeepLinks(): () => void {
+export function subscribeToAuthDeepLinks(callback?: AuthChangeCallback): () => void {
   if (Platform.OS === 'web') return () => {};
 
+  let active = true;
   const subscription = Linking.addEventListener('url', (event) => {
-    handleIncomingAuthUrl(event.url);
+    void handleIncomingAuthUrl(event.url, 'event', callback);
   });
 
-  return () => subscription.remove();
+  void Linking.getInitialURL()
+    .then((url) => {
+      if (active && url) {
+        void handleIncomingAuthUrl(url, 'initial', callback);
+      }
+    })
+    .catch((error) => {
+      console.warn(`[auth] initial auth URL read failed: ${messageFromUnknown(error)}`);
+    });
+
+  return () => {
+    active = false;
+    subscription.remove();
+  };
 }

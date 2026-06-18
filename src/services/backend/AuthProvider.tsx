@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import {
   getCurrentSession,
+  sendPasswordResetEmail,
   signInWithApple as signInWithAppleSupabase,
   signInWithEmail,
   signInWithGoogle as signInWithGoogleSupabase,
@@ -9,6 +10,7 @@ import {
   signUpWithEmail,
   subscribeToAuthChanges,
   subscribeToAuthDeepLinks,
+  updatePassword as updatePasswordWithSupabase,
 } from './authService';
 import { ensureCurrentProfile } from './profileService';
 import type { AuthSession, AuthState, BackendProfile } from './types';
@@ -20,6 +22,8 @@ interface AuthContextValue extends AuthState {
   signIn: (email: string, password: string) => Promise<AuthState>;
   signInWithGoogle: () => Promise<AuthState>;
   signInWithApple: () => Promise<AuthState>;
+  resetPassword: (email: string) => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<AuthState>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<BackendProfile | null>;
 }
@@ -33,6 +37,7 @@ function emptyAuthState(loading: boolean): AuthState {
     profile: null,
     loading,
     isSignedIn: false,
+    isPasswordRecovery: false,
     error: null,
   };
 }
@@ -57,6 +62,17 @@ async function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
 async function profileForSession(session: AuthSession | null): Promise<BackendProfile | null> {
   if (!session?.user) return null;
   return withTimeout(ensureCurrentProfile(), 'Supabase profile load');
+}
+
+function mergeIncomingAuthState(current: AuthState, next: AuthState): AuthState {
+  const isPasswordRecovery = next.isPasswordRecovery || (current.isPasswordRecovery && next.isSignedIn);
+  return {
+    ...current,
+    ...next,
+    isPasswordRecovery,
+    profile: next.isSignedIn ? current.profile : null,
+    loading: false,
+  };
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -94,6 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           profile,
           loading: false,
           isSignedIn: Boolean(session?.user),
+          isPasswordRecovery: false,
           error: null,
         });
       } catch (error) {
@@ -105,16 +122,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     void hydrate();
 
-    const unsubscribeDeepLinks = subscribeToAuthDeepLinks();
+    const unsubscribeDeepLinks = subscribeToAuthDeepLinks((next) => {
+      if (!mounted) return;
+      let shouldRefreshProfile = false;
+      setState((current) => {
+        const merged = mergeIncomingAuthState(current, next);
+        shouldRefreshProfile = merged.isSignedIn && !merged.isPasswordRecovery;
+        return merged;
+      });
+      if (shouldRefreshProfile) void refreshProfile();
+    });
     const unsubscribe = subscribeToAuthChanges((next) => {
       if (!mounted) return;
-      setState((current) => ({
-        ...current,
-        ...next,
-        profile: next.isSignedIn ? current.profile : null,
-        loading: false,
-      }));
-      if (next.isSignedIn) void refreshProfile();
+      let shouldRefreshProfile = false;
+      setState((current) => {
+        const merged = mergeIncomingAuthState(current, next);
+        shouldRefreshProfile = merged.isSignedIn && !merged.isPasswordRecovery;
+        return merged;
+      });
+      if (shouldRefreshProfile) void refreshProfile();
     });
 
     return () => {
@@ -176,6 +202,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const resetPassword = React.useCallback(async (email: string) => {
+    setState((current) => ({ ...current, loading: true, error: null }));
+    try {
+      await sendPasswordResetEmail(email);
+      setState((current) => ({ ...current, loading: false, error: null }));
+    } catch (error) {
+      const message = messageFromError(error);
+      setState((current) => ({ ...current, loading: false, error: message }));
+      throw error;
+    }
+  }, []);
+
+  const updatePassword = React.useCallback(async (newPassword: string) => {
+    setState((current) => ({ ...current, loading: true, error: null }));
+    try {
+      const next = await updatePasswordWithSupabase(newPassword);
+      setState({
+        ...next,
+        isPasswordRecovery: false,
+        loading: false,
+        error: null,
+      });
+      return next;
+    } catch (error) {
+      const message = messageFromError(error);
+      setState((current) => ({ ...current, loading: false, error: message }));
+      throw error;
+    }
+  }, []);
+
   const signOut = React.useCallback(async () => {
     setState((current) => ({ ...current, loading: true, error: null }));
     try {
@@ -195,10 +251,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signIn,
       signInWithGoogle,
       signInWithApple,
+      resetPassword,
+      updatePassword,
       signOut,
       refreshProfile,
     }),
-    [refreshProfile, signIn, signInWithApple, signInWithGoogle, signOut, signUp, state]
+    [refreshProfile, resetPassword, signIn, signInWithApple, signInWithGoogle, signOut, signUp, state, updatePassword]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

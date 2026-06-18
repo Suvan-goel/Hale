@@ -4,9 +4,10 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useAuth } from '../services/backend';
 import { colors, radius, spacing, type } from '../theme';
+import { ACCOUNT_SIGNED_IN_COPY, isAppleSignInEnabled } from './accountAuthConfig';
 import { Button, Card, Input, ListRow, SegmentedTabs, StatusBadge, Typography } from './ui';
 
-type AccountMode = 'sign-in' | 'sign-up';
+type AccountMode = 'sign-in' | 'sign-up' | 'forgot-password';
 
 export function AccountAuthCard({
   context,
@@ -17,30 +18,37 @@ export function AccountAuthCard({
 }) {
   const {
     error,
+    isPasswordRecovery,
     isSignedIn,
     loading,
     profile,
     refreshProfile,
+    resetPassword,
     signIn,
     signInWithApple,
     signInWithGoogle,
     signOut,
     signUp,
+    updatePassword,
     user,
   } = useAuth();
   const [mode, setMode] = React.useState<AccountMode>(initialMode);
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [newPassword, setNewPassword] = React.useState('');
+  const [confirmPassword, setConfirmPassword] = React.useState('');
   const [fullName, setFullName] = React.useState('');
   const [appleAvailable, setAppleAvailable] = React.useState(false);
   const [localError, setLocalError] = React.useState<string | null>(null);
   const [notice, setNotice] = React.useState<string | null>(null);
   const authError = localError ?? error;
-  const title = context === 'required' ? 'Account access' : 'Account';
+  const title = isPasswordRecovery ? 'Set a new password' : context === 'required' ? 'Account access' : 'Account';
   const showGoogleButton = Platform.OS === 'ios' || Platform.OS === 'android';
-  const showAppleButton = Platform.OS === 'ios' && appleAvailable;
+  const appleSignInEnabled = isAppleSignInEnabled();
+  const showAppleButton = appleSignInEnabled && Platform.OS === 'ios' && appleAvailable;
 
   React.useEffect(() => {
+    if (!appleSignInEnabled) return undefined;
     if (Platform.OS !== 'ios') return undefined;
 
     let mounted = true;
@@ -55,7 +63,7 @@ export function AccountAuthCard({
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [appleSignInEnabled]);
 
   const changeMode = (nextMode: AccountMode) => {
     setMode(nextMode);
@@ -85,6 +93,48 @@ export function AccountAuthCard({
         setNotice('Check your email to confirm the account, then sign in here.');
       }
       setPassword('');
+    } catch (err) {
+      setLocalError(messageFromError(err));
+    }
+  };
+
+  const submitPasswordReset = async () => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setLocalError('Enter the email you use for Hale.');
+      return;
+    }
+
+    setLocalError(null);
+    setNotice(null);
+
+    try {
+      await resetPassword(trimmedEmail);
+      setNotice('Check your email for a password reset link from Hale.');
+      setMode('sign-in');
+    } catch (err) {
+      setLocalError(messageFromError(err));
+    }
+  };
+
+  const submitNewPassword = async () => {
+    if (newPassword.length < 8) {
+      setLocalError('Use at least 8 characters for your new password.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setLocalError('The passwords do not match.');
+      return;
+    }
+
+    setLocalError(null);
+    setNotice(null);
+
+    try {
+      await updatePassword(newPassword);
+      setNewPassword('');
+      setConfirmPassword('');
+      setNotice('Password updated. Hale is ready.');
     } catch (err) {
       setLocalError(messageFromError(err));
     }
@@ -124,12 +174,50 @@ export function AccountAuthCard({
         {isSignedIn ? <StatusBadge label="Signed in" tone="good" /> : null}
       </View>
       <Typography variant="caption" color={colors.textSecondary} style={styles.sectionHint}>
-        {isSignedIn
-          ? 'Your account is active. Hale saves profile setup to your account while movement data stays local for now.'
+        {isPasswordRecovery
+          ? 'Choose a new password to finish restoring access to your Hale account.'
+          : isSignedIn
+          ? ACCOUNT_SIGNED_IN_COPY
           : 'Sign in or create an account to keep your progress saved.'}
       </Typography>
 
-      {isSignedIn ? (
+      {isPasswordRecovery ? (
+        <View style={styles.stack}>
+          <Input
+            label="New password"
+            value={newPassword}
+            onChangeText={setNewPassword}
+            placeholder="At least 8 characters"
+            autoCapitalize="none"
+            autoCorrect={false}
+            secureTextEntry
+            textContentType="newPassword"
+            returnKeyType="next"
+            accessibilityLabel="New password"
+            containerStyle={styles.field}
+          />
+          <Input
+            label="Confirm password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            placeholder="Repeat new password"
+            autoCapitalize="none"
+            autoCorrect={false}
+            secureTextEntry
+            textContentType="newPassword"
+            returnKeyType="done"
+            accessibilityLabel="Confirm password"
+            containerStyle={styles.field}
+          />
+          <Button
+            title={loading ? 'Updating...' : 'Update password'}
+            onPress={submitNewPassword}
+            disabled={loading}
+            accessibilityLabel="Update password"
+            style={styles.submitButton}
+          />
+        </View>
+      ) : isSignedIn ? (
         <View style={styles.stack}>
           <ListRow title="Email" value={user?.email ?? 'Signed in'} />
           <ListRow title="Name" value={profile?.full_name ?? 'Not set'} />
@@ -137,15 +225,21 @@ export function AccountAuthCard({
         </View>
       ) : (
         <View style={styles.stack}>
-          <SegmentedTabs
-            value={mode}
-            onChange={changeMode}
-            options={[
-              { value: 'sign-in', label: 'Sign in' },
-              { value: 'sign-up', label: 'Sign up' },
-            ]}
-          />
-          {showGoogleButton || showAppleButton ? (
+          {mode === 'forgot-password' ? (
+            <Typography variant="bodySmall" color={colors.textSecondary}>
+              Enter your email and Hale will send a secure password reset link.
+            </Typography>
+          ) : (
+            <SegmentedTabs
+              value={mode}
+              onChange={changeMode}
+              options={[
+                { value: 'sign-in', label: 'Sign in' },
+                { value: 'sign-up', label: 'Sign up' },
+              ]}
+            />
+          )}
+          {mode !== 'forgot-password' && (showGoogleButton || showAppleButton) ? (
             <View style={styles.socialStack}>
               {showGoogleButton ? (
                 <SocialButton
@@ -193,26 +287,48 @@ export function AccountAuthCard({
             accessibilityLabel="Email"
             containerStyle={styles.field}
           />
-          <Input
-            label="Password"
-            value={password}
-            onChangeText={setPassword}
-            placeholder="Password"
-            autoCapitalize="none"
-            autoCorrect={false}
-            secureTextEntry
-            textContentType={mode === 'sign-up' ? 'newPassword' : 'password'}
-            returnKeyType="done"
-            accessibilityLabel="Password"
-            containerStyle={styles.field}
-          />
-          <Button
-            title={loading ? 'Working...' : mode === 'sign-up' ? 'Create account' : 'Sign in'}
-            onPress={submit}
-            disabled={loading}
-            accessibilityLabel={mode === 'sign-up' ? 'Create account' : 'Sign in'}
-            style={styles.submitButton}
-          />
+          {mode !== 'forgot-password' ? (
+            <Input
+              label="Password"
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Password"
+              autoCapitalize="none"
+              autoCorrect={false}
+              secureTextEntry
+              textContentType={mode === 'sign-up' ? 'newPassword' : 'password'}
+              returnKeyType="done"
+              accessibilityLabel="Password"
+              containerStyle={styles.field}
+            />
+          ) : null}
+          {mode === 'forgot-password' ? (
+            <Button
+              title={loading ? 'Sending...' : 'Send reset email'}
+              onPress={submitPasswordReset}
+              disabled={loading}
+              accessibilityLabel="Send reset email"
+              style={styles.submitButton}
+            />
+          ) : (
+            <Button
+              title={loading ? 'Working...' : mode === 'sign-up' ? 'Create account' : 'Sign in'}
+              onPress={submit}
+              disabled={loading}
+              accessibilityLabel={mode === 'sign-up' ? 'Create account' : 'Sign in'}
+              style={styles.submitButton}
+            />
+          )}
+          {mode === 'sign-in' ? (
+            <Pressable
+              style={({ pressed }) => [styles.forgotLink, pressed && styles.pressed]}
+              onPress={() => changeMode('forgot-password')}
+              accessibilityRole="button"
+              accessibilityLabel="Forgot password"
+            >
+              <Text style={styles.forgotLinkText}>Forgot password?</Text>
+            </Pressable>
+          ) : null}
           <Pressable
             style={({ pressed }) => [styles.modeLink, pressed && styles.pressed]}
             onPress={() => changeMode(mode === 'sign-in' ? 'sign-up' : 'sign-in')}
@@ -220,7 +336,11 @@ export function AccountAuthCard({
             accessibilityLabel={mode === 'sign-in' ? 'Create an account' : 'Sign in instead'}
           >
             <Text style={styles.modeLinkText}>
-              {mode === 'sign-in' ? 'New to Hale? Create an account' : 'Already have an account? Sign in'}
+              {mode === 'sign-in'
+                ? 'New to Hale? Create an account'
+                : mode === 'sign-up'
+                  ? 'Already have an account? Sign in'
+                  : 'Back to sign in'}
             </Text>
           </Pressable>
         </View>
@@ -295,6 +415,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  forgotLink: {
+    minHeight: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  forgotLinkText: { ...type.caption, color: colors.accentDeep, fontFamily: type.button.fontFamily, textAlign: 'center' },
   modeLinkText: { ...type.bodySmall, color: colors.accentDeep, fontFamily: type.button.fontFamily, textAlign: 'center' },
   message: { marginTop: spacing.md },
   pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
