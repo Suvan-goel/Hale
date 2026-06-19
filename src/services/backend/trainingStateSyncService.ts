@@ -10,6 +10,7 @@ import {
 
 import { getCurrentSession } from './authService';
 import type { BackendJson } from './types';
+import { addBreadcrumb } from '../observability/sentry';
 
 type TrainingStateSyncStatus = 'signed_out' | 'synced' | 'failed' | 'skipped';
 
@@ -59,6 +60,7 @@ export async function syncTrainingStateToRemote(
       if (__DEV__) {
         console.log('[training-state-sync] started');
       }
+      addBreadcrumb('sync category started', { category: 'training_state' });
 
       const { error } = await supabase
         .from('training_state')
@@ -71,6 +73,7 @@ export async function syncTrainingStateToRemote(
       if (__DEV__) {
         console.log('[training-state-sync] synced');
       }
+      addBreadcrumb('sync category succeeded', { category: 'training_state' });
 
       return { status: 'synced' };
     } finally {
@@ -78,6 +81,7 @@ export async function syncTrainingStateToRemote(
     }
   } catch (error) {
     console.warn('[training-state-sync] Supabase training state sync failed', error);
+    addBreadcrumb('sync category failed', { category: 'training_state' });
     return { status: 'failed', error };
   }
 }

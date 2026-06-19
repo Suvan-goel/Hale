@@ -24,6 +24,7 @@ import { deserializeAdherenceState } from '../../adherence/serialize';
 import { defaultPreferences, type Preferences } from '../../profile';
 import { scoreCheckUp } from '../../scoring';
 import { supabase } from '../../lib/supabase';
+import { addBreadcrumb, captureError } from '../observability/sentry';
 
 import { getCurrentSession } from './authService';
 import { mergeRemoteProfileIntoLocal } from './profileSyncService';
@@ -189,6 +190,7 @@ const CHECKUP_STATUSES: CheckupStatus[] = ['not_started', 'in_progress', 'comple
 
 export async function restoreRemoteStateIfLocalEmpty(input: RestoreRemoteStateInput): Promise<RestoreResult> {
   if (!isLocalStateEmptyForRestore(input.local)) {
+    addBreadcrumb('restore skipped', { status: 'skipped_local_not_empty' });
     return {
       status: 'skipped_local_not_empty',
       skippedReason: 'Local Hale state already has profile, check-up, block, training, or progress data.',
@@ -229,6 +231,12 @@ export async function restoreRemoteStateIfLocalEmpty(input: RestoreRemoteStateIn
     };
   } catch (error) {
     console.warn('[restore] Remote-to-local restore failed', error);
+    addBreadcrumb('restore failed', { status: isTimeoutError(error) ? 'timeout' : 'failed' });
+    captureError(error, {
+      area: 'restore',
+      action: 'remote_to_local_restore',
+      timeout: isTimeoutError(error),
+    });
     return { status: isTimeoutError(error) ? 'timeout' : 'failed', gaps: [], error };
   }
 }
@@ -535,6 +543,7 @@ async function fetchRemoteProfile(
   if (error) {
     fetchErrors.profiles = error;
     console.warn('[restore] Profile fetch failed', error);
+    addBreadcrumb('restore table fetch failed', { table: 'profiles' });
     return null;
   }
 
@@ -554,6 +563,7 @@ async function fetchRemoteTrainingState(
   if (error) {
     fetchErrors.training_state = error;
     console.warn('[restore] Training state fetch failed', error);
+    addBreadcrumb('restore table fetch failed', { table: 'training_state' });
     return null;
   }
 
@@ -572,6 +582,7 @@ async function fetchRemoteRows<T>(
   if (error) {
     fetchErrors[table] = error;
     console.warn(`[restore] ${table} fetch failed`, error);
+    addBreadcrumb('restore table fetch failed', { table });
     return [];
   }
 
@@ -772,6 +783,11 @@ function safeWrite(label: string, write: () => void): void {
     write();
   } catch (error) {
     console.warn(`[restore] Failed to persist restored ${label}`, error);
+    captureError(error, {
+      area: 'restore',
+      action: 'persist_restored_local_state',
+      label,
+    });
   }
 }
 

@@ -74,7 +74,7 @@ function SetupItem({ n, text }: { n: string; text: string }) {
 
 const styles = StyleSheet.create({
   card: { gap: spacing.md },
-  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  head: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md, flexWrap: 'wrap' },
   mark: {
     width: 34,
     height: 34,

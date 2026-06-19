@@ -1,5 +1,7 @@
 import * as React from 'react';
 
+import { addBreadcrumb, captureError, setUserContext } from '../observability/sentry';
+
 import {
   getCurrentSession,
   sendPasswordResetEmail,
@@ -91,6 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       const message = messageFromError(error);
       console.warn(`[auth] profile refresh failed: ${message}`);
+      captureError(error, { area: 'auth', action: 'refresh_profile' });
       setState((current) => ({ ...current, loading: false, error: message }));
       return null;
     }
@@ -104,6 +107,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const session = await withTimeout(getCurrentSession(), 'Supabase session load');
         const profile = await profileForSession(session);
         if (!mounted) return;
+        setUserContext(session?.user ?? null);
+        addBreadcrumb('auth session hydrated', { signedIn: Boolean(session?.user) });
         setState({
           session,
           user: session?.user ?? null,
@@ -116,6 +121,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         const message = messageFromError(error);
         console.warn(`[auth] session load failed: ${message}`);
+        setUserContext(null);
+        captureError(error, { area: 'auth', action: 'hydrate_session' });
         if (mounted) setState({ ...emptyAuthState(false), error: message });
       }
     }
@@ -130,6 +137,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         shouldRefreshProfile = merged.isSignedIn && !merged.isPasswordRecovery;
         return merged;
       });
+      setUserContext(next.user);
+      addBreadcrumb('auth state changed', {
+        source: 'deep_link',
+        signedIn: next.isSignedIn,
+        passwordRecovery: next.isPasswordRecovery,
+      });
       if (shouldRefreshProfile) void refreshProfile();
     });
     const unsubscribe = subscribeToAuthChanges((next) => {
@@ -139,6 +152,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const merged = mergeIncomingAuthState(current, next);
         shouldRefreshProfile = merged.isSignedIn && !merged.isPasswordRecovery;
         return merged;
+      });
+      setUserContext(next.user);
+      addBreadcrumb('auth state changed', {
+        source: 'supabase',
+        signedIn: next.isSignedIn,
+        passwordRecovery: next.isPasswordRecovery,
       });
       if (shouldRefreshProfile) void refreshProfile();
     });
@@ -154,10 +173,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setState((current) => ({ ...current, loading: true, error: null }));
     try {
       const next = await signUpWithEmail(email, password, fullName);
+      setUserContext(next.user);
+      addBreadcrumb('auth action completed', { action: 'sign_up', signedIn: next.isSignedIn });
       setState(next);
       return next;
     } catch (error) {
       const message = messageFromError(error);
+      captureError(error, { area: 'auth', action: 'sign_up' });
       setState((current) => ({ ...current, loading: false, error: message }));
       throw error;
     }
@@ -167,10 +189,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setState((current) => ({ ...current, loading: true, error: null }));
     try {
       const next = await signInWithEmail(email, password);
+      setUserContext(next.user);
+      addBreadcrumb('auth action completed', { action: 'sign_in_email', signedIn: next.isSignedIn });
       setState(next);
       return next;
     } catch (error) {
       const message = messageFromError(error);
+      captureError(error, { area: 'auth', action: 'sign_in_email' });
       setState((current) => ({ ...current, loading: false, error: message }));
       throw error;
     }
@@ -180,10 +205,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setState((current) => ({ ...current, loading: true, error: null }));
     try {
       const next = await signInWithGoogleSupabase();
+      setUserContext(next.user);
+      addBreadcrumb('auth action completed', { action: 'sign_in_google', signedIn: next.isSignedIn });
       setState(next);
       return next;
     } catch (error) {
       const message = messageFromError(error);
+      captureError(error, { area: 'auth', action: 'sign_in_google' });
       setState((current) => ({ ...current, loading: false, error: message }));
       throw error;
     }
@@ -193,10 +221,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setState((current) => ({ ...current, loading: true, error: null }));
     try {
       const next = await signInWithAppleSupabase();
+      setUserContext(next.user);
+      addBreadcrumb('auth action completed', { action: 'sign_in_apple', signedIn: next.isSignedIn });
       setState(next);
       return next;
     } catch (error) {
       const message = messageFromError(error);
+      captureError(error, { area: 'auth', action: 'sign_in_apple' });
       setState((current) => ({ ...current, loading: false, error: message }));
       throw error;
     }
@@ -206,9 +237,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setState((current) => ({ ...current, loading: true, error: null }));
     try {
       await sendPasswordResetEmail(email);
+      addBreadcrumb('auth action completed', { action: 'reset_password' });
       setState((current) => ({ ...current, loading: false, error: null }));
     } catch (error) {
       const message = messageFromError(error);
+      captureError(error, { area: 'auth', action: 'reset_password' });
       setState((current) => ({ ...current, loading: false, error: message }));
       throw error;
     }
@@ -224,9 +257,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading: false,
         error: null,
       });
+      setUserContext(next.user);
+      addBreadcrumb('auth action completed', { action: 'update_password', signedIn: next.isSignedIn });
       return next;
     } catch (error) {
       const message = messageFromError(error);
+      captureError(error, { area: 'auth', action: 'update_password' });
       setState((current) => ({ ...current, loading: false, error: message }));
       throw error;
     }
@@ -236,9 +272,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setState((current) => ({ ...current, loading: true, error: null }));
     try {
       await signOutWithSupabase();
+      setUserContext(null);
+      addBreadcrumb('auth state changed', { source: 'sign_out', signedIn: false });
       setState(emptyAuthState(false));
     } catch (error) {
       const message = messageFromError(error);
+      captureError(error, { area: 'auth', action: 'sign_out' });
       setState((current) => ({ ...current, loading: false, error: message }));
       throw error;
     }

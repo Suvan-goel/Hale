@@ -140,7 +140,7 @@ function movementDomainForScoreDomain(domain: Domain): MovementDomain {
 
 const styles = StyleSheet.create({
   card: { gap: spacing.md },
-  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  head: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md, flexWrap: 'wrap' },
   title: { ...type.h2 },
   body: { ...type.bodySmall, color: colors.textSecondary },
   row: { gap: spacing.xs },

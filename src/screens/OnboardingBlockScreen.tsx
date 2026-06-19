@@ -54,6 +54,6 @@ function toTrainingFocus(domain: MovementBlock['focusDomain']) {
 
 const styles = StyleSheet.create({
   card: { gap: spacing.lg },
-  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  head: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md, flexWrap: 'wrap' },
   actions: { gap: spacing.md },
 });

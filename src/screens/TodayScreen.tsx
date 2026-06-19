@@ -7,6 +7,7 @@ import {
   StyleProp,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
   ViewStyle,
 } from 'react-native';
@@ -21,7 +22,7 @@ import type {
 import { PlanIcon, SettingsIcon } from '../navigation/icons';
 import type { UserProfile } from '../profile';
 import type { PainArea } from '../training';
-import { colors, fonts, radius, spacing, type } from '../theme';
+import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 
 type SnapshotKey = keyof MovementSnapshot;
 
@@ -56,6 +57,8 @@ export function TodayScreen({
 }) {
   const [sessionMenuVisible, setSessionMenuVisible] = React.useState(false);
   const [imageFailed, setImageFailed] = React.useState(false);
+  const { width } = useWindowDimensions();
+  const compact = width < 390;
   const block = lifecycle.activeBlockSummary;
   const snapshot = lifecycle.movementSnapshot;
   const measuredCount = SNAPSHOT_ROWS.filter((row) => snapshot?.[row.key]).length;
@@ -126,13 +129,14 @@ export function TodayScreen({
 
         <PremiumCard style={styles.progressCard}>
           <View style={styles.progressHeader}>
-            <Text style={styles.cardTitle}>Daily Progress</Text>
-            <View style={styles.infoMark}>
-              <Text style={styles.infoText}>i</Text>
+            <View style={styles.cardHeading}>
+              <Text style={styles.cardTitle}>Movement snapshot</Text>
+              <Text style={styles.cardSubtitle}>{weekLabel}</Text>
             </View>
+            <Text style={styles.cardKicker}>{block ? `Week ${block.weekNumber}` : progressValue}</Text>
           </View>
-          <View style={styles.progressBody}>
-            <ProgressRing progress={progress} value={progressValue} label={progressLabel} />
+          <View style={[styles.progressBody, compact && styles.progressBodyCompact]}>
+            <ProgressRing progress={progress} value={progressValue} label={progressLabel} size={compact ? 112 : 124} />
             <View style={styles.metricRows}>
               {SNAPSHOT_ROWS.map((row) => {
                 const band = snapshot?.[row.key];
@@ -152,6 +156,7 @@ export function TodayScreen({
         {imageFailed ? (
           <View style={[styles.focusCard, styles.focusFallback]}>
             <SessionCardContent
+              compact={compact}
               label={isSessionAction ? 'Daily Focus' : 'Today'}
               title={sessionTitle}
               subtitle={sessionSubtitle}
@@ -169,6 +174,7 @@ export function TodayScreen({
           >
             <View style={styles.focusOverlay} />
             <SessionCardContent
+              compact={compact}
               label={isSessionAction ? 'Daily Focus' : 'Today'}
               title={sessionTitle}
               subtitle={sessionSubtitle}
@@ -180,8 +186,7 @@ export function TodayScreen({
 
         <View style={styles.upcomingSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Upcoming</Text>
-            <Text style={styles.sectionAction}>See All</Text>
+            <Text style={styles.sectionTitle}>Next up</Text>
           </View>
           <Pressable
             style={({ pressed }) => [styles.upcomingRow, pressed && styles.pressed]}
@@ -203,7 +208,7 @@ export function TodayScreen({
         <PremiumCard style={styles.weekCard}>
           <View style={styles.weekTop}>
             <View style={styles.weekCopy}>
-              <Text style={styles.cardTitle}>This week</Text>
+              <Text style={styles.cardTitle}>Weekly rhythm</Text>
               <Text style={styles.weekLabel}>{weekLabel}</Text>
             </View>
             <Text style={styles.weekMeta}>{block ? `Week ${block.weekNumber}` : progressValue}</Text>
@@ -228,12 +233,14 @@ function PremiumCard({ children, style }: { children: React.ReactNode; style?: S
 }
 
 function SessionCardContent({
+  compact,
   label,
   title,
   subtitle,
   ctaLabel,
   onPress,
 }: {
+  compact?: boolean;
   label: string;
   title: string;
   subtitle: string;
@@ -241,7 +248,7 @@ function SessionCardContent({
   onPress: () => void;
 }) {
   return (
-    <View style={styles.focusContent}>
+    <View style={[styles.focusContent, compact && styles.focusContentCompact]}>
       <Text style={styles.focusLabel}>{label}</Text>
       <Text style={styles.focusTitle}>{title}</Text>
       <Text style={styles.focusSubtitle}>{subtitle}</Text>
@@ -258,8 +265,7 @@ function SessionCardContent({
   );
 }
 
-function ProgressRing({ progress, value, label }: { progress: number; value: string; label: string }) {
-  const size = 124;
+function ProgressRing({ progress, value, label, size = 124 }: { progress: number; value: string; label: string; size?: number }) {
   const stroke = 10;
   const center = size / 2;
   const r = (size - stroke) / 2;
@@ -269,12 +275,12 @@ function ProgressRing({ progress, value, label }: { progress: number; value: str
   return (
     <View style={[styles.ring, { width: size, height: size }]}>
       <Svg width={size} height={size}>
-        <Circle cx={center} cy={center} r={r} stroke="#E5E2D8" strokeWidth={stroke} fill="none" />
+        <Circle cx={center} cy={center} r={r} stroke={colors.bgSage} strokeWidth={stroke} fill="none" />
         <Circle
           cx={center}
           cy={center}
           r={r}
-          stroke="#4F5A45"
+          stroke={colors.sage}
           strokeWidth={stroke}
           fill="none"
           strokeLinecap="round"
@@ -432,12 +438,15 @@ function bandValue(band: MovementSnapshotBand): string {
 const styles = StyleSheet.create({
   background: {
     flex: 1,
-    backgroundColor: '#F7F2EA',
+    backgroundColor: colors.bgBase,
   },
   scroller: {
     flex: 1,
   },
   content: {
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.huge,
     paddingBottom: spacing.xxxl,
@@ -451,14 +460,14 @@ const styles = StyleSheet.create({
   },
   headerCopy: { flex: 1, minWidth: 0 },
   greeting: {
-    color: '#1F261F',
+    color: colors.textSecondary,
     fontFamily: fonts.serifRegular,
-    fontSize: 26,
-    lineHeight: 32,
+    fontSize: 23,
+    lineHeight: 30,
     letterSpacing: 0,
   },
   name: {
-    color: '#1F261F',
+    color: colors.textPrimary,
     fontFamily: fonts.serifMedium,
     fontSize: 34,
     lineHeight: 39,
@@ -467,49 +476,45 @@ const styles = StyleSheet.create({
   iconButton: {
     width: 46,
     height: 46,
-    borderRadius: 15,
+    borderRadius: radius.button,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderColor: colors.borderHairline,
   },
   card: {
-    borderRadius: 24,
+    borderRadius: radius.panel,
     padding: spacing.xl,
-    backgroundColor: '#FCFAF6',
+    backgroundColor: colors.bgSurface,
     borderWidth: 1,
-    borderColor: '#E7DDCB',
-    shadowColor: '#2B2418',
-    shadowOpacity: 0.05,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 2,
+    borderColor: colors.borderSubtle,
+    ...shadow.soft,
   },
   progressCard: {
     marginTop: spacing.lg,
   },
   progressHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
   },
+  cardHeading: { flex: 1, minWidth: 0 },
   cardTitle: {
     ...type.h3,
-    color: '#1F261F',
+    color: colors.textPrimary,
   },
-  infoMark: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#8A887F',
-  },
-  infoText: {
+  cardSubtitle: {
     ...type.caption,
-    color: '#60645D',
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  cardKicker: {
+    ...type.caption,
+    color: colors.accentDeep,
     fontFamily: fonts.sansMedium,
-    fontSize: 11,
-    lineHeight: 14,
+    textAlign: 'right',
   },
   progressBody: {
     flexDirection: 'row',
@@ -517,10 +522,14 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
     marginTop: spacing.lg,
   },
+  progressBodyCompact: {
+    alignItems: 'flex-start',
+    gap: spacing.lg,
+  },
   ring: { alignItems: 'center', justifyContent: 'center' },
   ringCenter: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   ringValue: {
-    color: '#26382C',
+    color: colors.accentDeep,
     fontFamily: fonts.sansMedium,
     fontSize: 25,
     lineHeight: 30,
@@ -529,7 +538,7 @@ const styles = StyleSheet.create({
   },
   ringLabel: {
     ...type.caption,
-    color: '#26382C',
+    color: colors.sageDeep,
     marginTop: -1,
   },
   metricRows: {
@@ -548,11 +557,11 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E6ECE3',
+    backgroundColor: colors.accentSoft,
   },
   metricIconText: {
     ...type.caption,
-    color: '#4F5A45',
+    color: colors.sageDeep,
     fontFamily: fonts.sansMedium,
     fontSize: 12,
   },
@@ -562,58 +571,58 @@ const styles = StyleSheet.create({
   },
   metricLabel: {
     ...type.bodySmall,
-    color: '#1F261F',
+    color: colors.textPrimary,
     fontFamily: fonts.sansMedium,
   },
   metricValue: {
     ...type.caption,
-    color: '#60645D',
+    color: colors.textSecondary,
     marginTop: 1,
   },
   focusCard: {
     minHeight: 228,
     overflow: 'hidden',
-    borderRadius: 24,
+    borderRadius: radius.panel,
     borderWidth: 1,
-    borderColor: 'rgba(231,221,203,0.62)',
-    shadowColor: '#2B2418',
-    shadowOpacity: 0.07,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 2,
+    borderColor: colors.borderSubtle,
+    ...shadow.lifted,
   },
   focusImage: {
-    borderRadius: 24,
+    borderRadius: radius.panel,
   },
   focusFallback: {
-    backgroundColor: '#53624D',
+    backgroundColor: colors.sage,
   },
   focusOverlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(25,36,28,0.24)',
+    backgroundColor: 'rgba(22,28,24,0.30)',
   },
   focusContent: {
-    width: '62%',
+    width: '66%',
     minHeight: 228,
     justifyContent: 'center',
     padding: spacing.xl,
   },
+  focusContentCompact: {
+    width: '78%',
+    paddingRight: spacing.lg,
+  },
   focusLabel: {
     ...type.bodySmall,
-    color: '#F8F3EA',
+    color: colors.textOnDark,
     opacity: 0.88,
   },
   focusTitle: {
-    color: '#F8F3EA',
+    color: colors.textOnDark,
     fontFamily: fonts.serifMedium,
-    fontSize: 31,
+    fontSize: 30,
     lineHeight: 36,
     letterSpacing: 0,
     marginTop: spacing.sm,
   },
   focusSubtitle: {
     ...type.caption,
-    color: '#F8F3EA',
+    color: colors.textOnDark,
     marginTop: spacing.sm,
     maxWidth: 260,
   },
@@ -626,9 +635,9 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    backgroundColor: '#F8F3EA',
+    backgroundColor: colors.bgBase,
     borderWidth: 1,
-    borderColor: 'rgba(231,221,203,0.8)',
+    borderColor: colors.borderSubtle,
     marginTop: spacing.lg,
   },
   focusButtonPressed: {
@@ -637,12 +646,12 @@ const styles = StyleSheet.create({
   },
   focusButtonText: {
     ...type.bodySmall,
-    color: '#26382C',
+    color: colors.accentDeep,
     fontFamily: fonts.sansMedium,
   },
   focusButtonArrow: {
     ...type.bodySmall,
-    color: '#26382C',
+    color: colors.accentDeep,
     fontFamily: fonts.sansMedium,
     marginTop: -1,
   },
@@ -657,37 +666,28 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...type.h3,
-    color: '#1F261F',
-  },
-  sectionAction: {
-    ...type.caption,
-    color: '#60645D',
-    fontFamily: fonts.sansMedium,
+    color: colors.textPrimary,
   },
   upcomingRow: {
     minHeight: 72,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    borderRadius: 20,
+    borderRadius: radius.card,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    backgroundColor: '#FCFAF6',
+    backgroundColor: colors.bgSurface,
     borderWidth: 1,
-    borderColor: '#EFE6D8',
-    shadowColor: '#2B2418',
-    shadowOpacity: 0.035,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 1,
+    borderColor: colors.borderSubtle,
+    ...shadow.soft,
   },
   upcomingIcon: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: radius.input,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F4EFE6',
+    backgroundColor: colors.bgMaterial,
   },
   upcomingCopy: {
     flex: 1,
@@ -695,17 +695,17 @@ const styles = StyleSheet.create({
   },
   upcomingTitle: {
     ...type.bodySmall,
-    color: '#1F261F',
+    color: colors.textPrimary,
     fontFamily: fonts.sansMedium,
   },
   upcomingMeta: {
     ...type.caption,
-    color: '#60645D',
+    color: colors.textSecondary,
     marginTop: 1,
   },
   chevron: {
     ...type.h2,
-    color: '#60645D',
+    color: colors.textTertiary,
   },
   weekCard: {
     gap: spacing.md,
@@ -722,24 +722,24 @@ const styles = StyleSheet.create({
   },
   weekLabel: {
     ...type.caption,
-    color: '#60645D',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   weekMeta: {
     ...type.bodySmall,
-    color: '#26382C',
+    color: colors.accentDeep,
     fontFamily: fonts.sansMedium,
   },
   progressTrack: {
     height: 6,
     borderRadius: radius.pill,
-    backgroundColor: '#E8E4DA',
+    backgroundColor: colors.bgMaterial,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     borderRadius: radius.pill,
-    backgroundColor: '#4F5A45',
+    backgroundColor: colors.sage,
   },
   modalRoot: {
     flex: 1,
@@ -747,30 +747,26 @@ const styles = StyleSheet.create({
   },
   modalScrim: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(31,38,31,0.28)',
+    backgroundColor: 'rgba(22,28,24,0.32)',
   },
   sheet: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: radius.panel,
+    borderTopRightRadius: radius.panel,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.xl,
     paddingBottom: spacing.xxxl,
-    backgroundColor: '#FCFAF6',
+    backgroundColor: colors.bgSurface,
     borderWidth: 1,
-    borderColor: '#E7DDCB',
-    shadowColor: '#2B2418',
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: -8 },
-    elevation: 8,
+    borderColor: colors.borderHairline,
+    ...shadow.lifted,
   },
   sheetTitle: {
     ...type.h2,
-    color: '#1F261F',
+    color: colors.textPrimary,
   },
   sheetSubtitle: {
     ...type.bodySmall,
-    color: '#60645D',
+    color: colors.textSecondary,
     marginTop: spacing.xs,
   },
   menuOptions: {
@@ -784,40 +780,40 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderRadius: 16,
     paddingHorizontal: spacing.lg,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.bgSurface,
     borderWidth: 1,
-    borderColor: '#EFE6D8',
+    borderColor: colors.borderSubtle,
   },
   menuOptionSelected: {
-    backgroundColor: '#E6ECE3',
-    borderColor: '#B9C7B8',
+    backgroundColor: colors.accentSoft,
+    borderColor: colors.accentBorder,
   },
   menuOptionText: {
     ...type.bodySmall,
-    color: '#1F261F',
+    color: colors.textPrimary,
     fontFamily: fonts.sansMedium,
   },
   menuOptionTextSelected: {
-    color: '#26382C',
+    color: colors.accentDeep,
   },
   menuRadio: {
     width: 12,
     height: 12,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#B9C7B8',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.accentBorder,
+    backgroundColor: colors.bgSurface,
   },
   menuRadioSelected: {
-    backgroundColor: '#26382C',
-    borderColor: '#26382C',
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   painMenu: {
     marginTop: spacing.lg,
   },
   painTitle: {
     ...type.caption,
-    color: '#60645D',
+    color: colors.textSecondary,
     fontFamily: fonts.sansMedium,
   },
   painOptions: {
@@ -832,36 +828,36 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
-    borderColor: '#D8D2C6',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.borderHairline,
+    backgroundColor: colors.bgSurface,
   },
   painChipSelected: {
-    backgroundColor: '#E6ECE3',
-    borderColor: '#B9C7B8',
+    backgroundColor: colors.accentSoft,
+    borderColor: colors.accentBorder,
   },
   painChipText: {
     ...type.caption,
-    color: '#60645D',
+    color: colors.textSecondary,
     fontFamily: fonts.sansMedium,
   },
   painChipTextSelected: {
-    color: '#26382C',
+    color: colors.accentDeep,
   },
   sheetPrimary: {
     minHeight: 54,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 16,
-    backgroundColor: '#26382C',
+    backgroundColor: colors.accent,
     marginTop: spacing.lg,
   },
   sheetPrimaryPressed: {
-    backgroundColor: '#1E2D23',
+    backgroundColor: colors.accentHover,
     transform: [{ scale: 0.99 }],
   },
   sheetPrimaryText: {
     ...type.button,
-    color: '#F8F3EA',
+    color: colors.onAccent,
   },
   sheetCancel: {
     minHeight: 44,
@@ -871,7 +867,7 @@ const styles = StyleSheet.create({
   },
   sheetCancelText: {
     ...type.bodySmall,
-    color: '#60645D',
+    color: colors.textSecondary,
     fontFamily: fonts.sansMedium,
   },
   pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },

@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
   row: { gap: spacing.xs },
   label: { ...type.label },
   value: { ...type.bodySmall, color: colors.textSecondary },
-  supportHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  supportHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md, flexWrap: 'wrap' },
   title: { ...type.h2 },
   body: { ...type.bodySmall, color: colors.textSecondary },
 });

@@ -152,7 +152,7 @@ function LevelSummary({ title, level }: { title: string; level: LadderLevelView 
 }
 
 const styles = StyleSheet.create({
-  cardHead: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
+  cardHead: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start', flexWrap: 'wrap' },
   copy: { flex: 1 },
   cardTitle: { ...type.h2 },
   body: { ...type.bodySmall, color: colors.textSecondary, marginTop: spacing.sm },
@@ -160,8 +160,9 @@ const styles = StyleSheet.create({
   levelSummary: {
     minHeight: 66,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: spacing.md,
+    flexWrap: 'wrap',
     paddingVertical: spacing.md,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.divider,

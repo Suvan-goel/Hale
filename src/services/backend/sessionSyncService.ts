@@ -7,6 +7,7 @@ import type {
   TrainingSessionResult,
 } from '../../training';
 import { supabase } from '../../lib/supabase';
+import { addBreadcrumb } from '../observability/sentry';
 
 import { getCurrentSession } from './authService';
 import type { BackendJson } from './types';
@@ -117,6 +118,11 @@ export async function syncTrainingSessionCompletionToRemote(
           `[session-sync] started local_session_id=${localSessionId} status=${payload.status}`
         );
       }
+      addBreadcrumb('sync category started', {
+        category: 'session_completions',
+        localSessionId,
+        status: payload.status,
+      });
 
       const { error } = await supabase
         .from('training_session_completions')
@@ -131,6 +137,11 @@ export async function syncTrainingSessionCompletionToRemote(
           `[session-sync] synced local_session_id=${localSessionId} status=${payload.status}`
         );
       }
+      addBreadcrumb('sync category succeeded', {
+        category: 'session_completions',
+        localSessionId,
+        status: payload.status,
+      });
 
       return { status: 'synced', localSessionId };
     } finally {
@@ -138,6 +149,10 @@ export async function syncTrainingSessionCompletionToRemote(
     }
   } catch (error) {
     console.warn(`[session-sync] Supabase session completion sync failed for ${localSessionId}`, error);
+    addBreadcrumb('sync category failed', {
+      category: 'session_completions',
+      localSessionId,
+    });
     return { status: 'failed', localSessionId, error };
   }
 }

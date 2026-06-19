@@ -76,5 +76,5 @@ const styles = StyleSheet.create({
   focusValue: { marginTop: spacing.sm },
   body: { marginTop: spacing.sm },
   card: { gap: spacing.md },
-  noteHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  noteHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md, flexWrap: 'wrap' },
 });

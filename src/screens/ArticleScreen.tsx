@@ -46,6 +46,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgBase,
   },
   container: {
+    width: '100%',
+    maxWidth: 640,
+    alignSelf: 'center',
     paddingHorizontal: spacing.xxl,
     paddingTop: spacing.huge,
     paddingBottom: spacing.huge,

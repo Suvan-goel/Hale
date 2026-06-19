@@ -22,6 +22,8 @@ export interface HistoryFs {
   /** File contents, or null if absent/unreadable. */
   read(name: string): Promise<string | null>;
   write(name: string, content: string): void;
+  /** Delete a file if the adapter supports removal. Missing files should be treated as a no-op. */
+  delete?(name: string): void;
 }
 
 /** In-memory adapter for tests/dev; pass a shared Map to simulate a restart. */
@@ -31,6 +33,9 @@ export function createMemoryFs(files: Map<string, string> = new Map()): HistoryF
     read: (name) => Promise.resolve(files.has(name) ? (files.get(name) as string) : null),
     write: (name, content) => {
       files.set(name, content);
+    },
+    delete: (name) => {
+      files.delete(name);
     },
   };
 }

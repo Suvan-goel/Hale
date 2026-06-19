@@ -5,6 +5,7 @@ import {
   deserializePreferences,
   type Preferences,
 } from '../../profile';
+import { addBreadcrumb } from '../observability/sentry';
 import { getCurrentSession } from './authService';
 import { getCurrentProfile, upsertCurrentProfile } from './profileService';
 import type { BackendJson, BackendProfile, BackendProfileUpdate } from './types';
@@ -100,6 +101,7 @@ export async function syncLocalPreferencesToRemote(
     const session = await getCurrentSession();
     if (!session) return { status: 'signed_out' };
 
+    addBreadcrumb('sync category started', { category: 'profile_preferences' });
     const remoteProfile = await loadRemoteProfile();
     const remoteAwarePrefs = mergeRemoteProfileIntoLocal(remoteProfile, localPrefs, {
       hydrateRoutingFields: true,
@@ -111,13 +113,19 @@ export async function syncLocalPreferencesToRemote(
         hydrateRoutingFields: options.hydrateRoutingFields === true,
       });
       if (!sameJson(hydratedPrefs, localPrefs)) {
+        addBreadcrumb('sync category completed', {
+          category: 'profile_preferences',
+          status: 'hydrated',
+        });
         return { status: 'hydrated', profile, preferences: hydratedPrefs };
       }
     }
 
+    addBreadcrumb('sync category succeeded', { category: 'profile_preferences' });
     return { status: 'synced', profile };
   } catch (error) {
     console.warn('[profile-sync] Supabase profile sync failed', error);
+    addBreadcrumb('sync category failed', { category: 'profile_preferences' });
     return { status: 'failed', error };
   }
 }

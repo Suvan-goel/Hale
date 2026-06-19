@@ -5,6 +5,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { Linking, Platform } from 'react-native';
 
 import { supabase } from '../../lib/supabase';
+import { addBreadcrumb, captureError } from '../observability/sentry';
 
 import { ensureCurrentProfile, upsertCurrentProfile } from './profileService';
 import type { AuthSession, AuthState, AuthUser, BackendProfile } from './types';
@@ -141,6 +142,7 @@ async function handleIncomingAuthUrl(
   } catch (error) {
     const message = messageFromUnknown(error);
     console.warn(`[auth] incoming auth callback failed: ${message}`);
+    captureError(error, { area: 'auth', action: 'incoming_auth_callback' });
     callback?.(authState(null, null, null, message));
   }
 }
@@ -226,6 +228,7 @@ async function stateWithProfileAfterOAuth(session: AuthSession): Promise<AuthSta
     return authState(session, session.user, profile);
   } catch (profileError) {
     console.warn(`[auth] Google sign-in profile refresh failed after session exchange: ${messageFromUnknown(profileError)}`);
+    captureError(profileError, { area: 'auth', action: 'google_profile_refresh' });
     return authState(session, session.user);
   }
 }
@@ -483,6 +486,7 @@ export async function signInWithApple(): Promise<AuthState> {
         await upsertCurrentProfile({ full_name: fullName });
       } catch (profileError) {
         console.warn(`[auth] Apple profile name save failed: ${messageFromUnknown(profileError)}`);
+        captureError(profileError, { area: 'auth', action: 'apple_profile_name_save' });
       }
     }
 
@@ -506,6 +510,11 @@ export function subscribeToAuthChanges(callback: AuthChangeCallback): () => void
     data: { subscription },
   } = supabase.auth.onAuthStateChange((event, session) => {
     devAuthLog('Supabase auth state changed', { event, hasSession: Boolean(session) });
+    addBreadcrumb('auth state changed', {
+      event,
+      signedIn: Boolean(session?.user),
+      passwordRecovery: event === 'PASSWORD_RECOVERY',
+    });
     callback(authState(session, session?.user ?? null, null, null, event === 'PASSWORD_RECOVERY'));
   });
 
@@ -528,6 +537,7 @@ export function subscribeToAuthDeepLinks(callback?: AuthChangeCallback): () => v
     })
     .catch((error) => {
       console.warn(`[auth] initial auth URL read failed: ${messageFromUnknown(error)}`);
+      captureError(error, { area: 'auth', action: 'initial_auth_url' });
     });
 
   return () => {

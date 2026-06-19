@@ -176,9 +176,10 @@ const styles = StyleSheet.create({
   body: { ...type.bodySmall, color: colors.textSecondary },
   summaryBlock: { gap: 2 },
   summaryTitle: { ...type.bodySmall, color: colors.textPrimary, fontWeight: '500' },
-  effortRow: { flexDirection: 'row', gap: spacing.sm },
+  effortRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   effort: {
     flex: 1,
+    minWidth: 92,
     minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
@@ -195,6 +196,7 @@ const styles = StyleSheet.create({
   painAreas: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   choice: {
     flexGrow: 1,
+    minWidth: 92,
     minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',

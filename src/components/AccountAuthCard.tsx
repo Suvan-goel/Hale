@@ -2,8 +2,18 @@ import * as React from 'react';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { useAuth } from '../services/backend';
+import {
+  clearLocalHaleData,
+  requestCloudAccountDeletion,
+  shareHaleDataExport,
+  useAuth,
+} from '../services/backend';
 import { colors, radius, spacing, type } from '../theme';
+import {
+  DELETE_CONFIRMATION_WORD,
+  canConfirmAccountDataAction,
+  type AccountDataAction,
+} from './accountDeletionConfig';
 import { ACCOUNT_SIGNED_IN_COPY, isAppleSignInEnabled } from './accountAuthConfig';
 import { Button, Card, Input, ListRow, SegmentedTabs, StatusBadge, Typography } from './ui';
 
@@ -39,6 +49,10 @@ export function AccountAuthCard({
   const [confirmPassword, setConfirmPassword] = React.useState('');
   const [fullName, setFullName] = React.useState('');
   const [appleAvailable, setAppleAvailable] = React.useState(false);
+  const [pendingDataAction, setPendingDataAction] = React.useState<AccountDataAction | null>(null);
+  const [confirmationText, setConfirmationText] = React.useState('');
+  const [dataActionLoading, setDataActionLoading] = React.useState(false);
+  const [exportLoading, setExportLoading] = React.useState(false);
   const [localError, setLocalError] = React.useState<string | null>(null);
   const [notice, setNotice] = React.useState<string | null>(null);
   const authError = localError ?? error;
@@ -167,6 +181,75 @@ export function AccountAuthCard({
     }
   };
 
+  const submitExportData = async () => {
+    if (!isSignedIn) {
+      setLocalError('Sign in before exporting your Hale data.');
+      return;
+    }
+
+    setExportLoading(true);
+    setLocalError(null);
+    setNotice(null);
+
+    try {
+      const result = await shareHaleDataExport();
+      setNotice(`Export ready: ${result.filename}`);
+    } catch (err) {
+      setLocalError(messageFromError(err));
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const beginDataAction = (action: AccountDataAction) => {
+    setPendingDataAction(action);
+    setConfirmationText('');
+    setLocalError(null);
+    setNotice(null);
+  };
+
+  const cancelDataAction = () => {
+    setPendingDataAction(null);
+    setConfirmationText('');
+    setLocalError(null);
+  };
+
+  const confirmDataAction = async () => {
+    if (!pendingDataAction) return;
+    if (!isSignedIn) {
+      setLocalError('Sign in before changing account data.');
+      return;
+    }
+    if (!canConfirmAccountDataAction(pendingDataAction, confirmationText)) {
+      setLocalError(`Type ${DELETE_CONFIRMATION_WORD} to confirm account deletion.`);
+      return;
+    }
+
+    setDataActionLoading(true);
+    setLocalError(null);
+    setNotice(null);
+
+    try {
+      if (pendingDataAction === 'delete-account') {
+        await requestCloudAccountDeletion();
+      }
+
+      const result = await clearLocalHaleData();
+      if (result.failures.length > 0) {
+        throw new Error('Some local Hale data could not be deleted. Please try again.');
+      }
+
+      await signOut();
+      setNotice('Local Hale data was deleted from this device.');
+    } catch (err) {
+      setLocalError(messageFromError(err));
+    } finally {
+      setDataActionLoading(false);
+      setPendingDataAction(null);
+      setConfirmationText('');
+    }
+  };
+
   return (
     <Card style={context === 'required' ? styles.authCard : undefined}>
       <View style={styles.sectionHead}>
@@ -221,7 +304,78 @@ export function AccountAuthCard({
         <View style={styles.stack}>
           <ListRow title="Email" value={user?.email ?? 'Signed in'} />
           <ListRow title="Name" value={profile?.full_name ?? 'Not set'} />
+          {context === 'settings' ? (
+            <Button
+              title={exportLoading ? 'Preparing export...' : 'Export my data'}
+              variant="secondary"
+              onPress={submitExportData}
+              disabled={loading || exportLoading || dataActionLoading}
+            />
+          ) : null}
           <Button title={loading ? 'Signing out...' : 'Sign out'} variant="secondary" onPress={submitSignOut} disabled={loading} />
+          {context === 'settings' ? (
+            <View style={styles.dangerZone}>
+              <Typography variant="label" color={colors.error}>Account data</Typography>
+              <Typography variant="caption" color={colors.textSecondary} style={styles.dangerCopy}>
+                Delete local data from this device, or request full account deletion when Hale’s secure server function is available.
+              </Typography>
+              {pendingDataAction ? (
+                <View style={styles.confirmPanel}>
+                  <Typography variant="bodySmall" color={colors.textPrimary}>
+                    {pendingDataAction === 'delete-account'
+                      ? 'Delete account is permanent and will require a secure cloud deletion function. Local data will not be cleared unless cloud deletion succeeds.'
+                      : 'This deletes Hale data stored on this device and signs you out. Synced account data is not deleted.'}
+                  </Typography>
+                  {pendingDataAction === 'delete-account' ? (
+                    <Input
+                      label={`Type ${DELETE_CONFIRMATION_WORD} to confirm`}
+                      value={confirmationText}
+                      onChangeText={setConfirmationText}
+                      placeholder={DELETE_CONFIRMATION_WORD}
+                      autoCapitalize="characters"
+                      autoCorrect={false}
+                      returnKeyType="done"
+                      accessibilityLabel="Delete account confirmation"
+                      containerStyle={styles.field}
+                    />
+                  ) : null}
+                  <View style={styles.dangerButtonRow}>
+                    <Button
+                      title={dataActionLoading ? 'Working...' : pendingDataAction === 'delete-account' ? 'Delete account' : 'Delete local data'}
+                      variant="danger"
+                      onPress={confirmDataAction}
+                      disabled={dataActionLoading || loading}
+                      style={styles.dangerButton}
+                    />
+                    <Button
+                      title="Cancel"
+                      variant="ghost"
+                      onPress={cancelDataAction}
+                      disabled={dataActionLoading || loading}
+                      style={styles.dangerButton}
+                    />
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.dangerButtonRow}>
+                  <Button
+                    title="Delete local data only"
+                    variant="secondary"
+                    onPress={() => beginDataAction('clear-local-data')}
+                    disabled={loading || dataActionLoading}
+                    style={styles.dangerButton}
+                  />
+                  <Button
+                    title="Delete account"
+                    variant="danger"
+                    onPress={() => beginDataAction('delete-account')}
+                    disabled={loading || dataActionLoading}
+                    style={styles.dangerButton}
+                  />
+                </View>
+              )}
+            </View>
+          ) : null}
         </View>
       ) : (
         <View style={styles.stack}>
@@ -406,6 +560,23 @@ const styles = StyleSheet.create({
   },
   dividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: colors.divider },
   dividerText: { ...type.caption, color: colors.textTertiary },
+  dangerZone: {
+    marginTop: spacing.lg,
+    paddingTop: spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
+  },
+  dangerCopy: { marginTop: spacing.xs },
+  confirmPanel: {
+    marginTop: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.input,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.subtleBorder,
+  },
+  dangerButtonRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
+  dangerButton: { flexGrow: 1, flexBasis: '45%', shadowOpacity: 0 },
   field: {},
   submitButton: {
     marginTop: spacing.xs,

@@ -60,7 +60,7 @@ function Row({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   card: { gap: spacing.lg },
-  row: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  row: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, flexWrap: 'wrap' },
   rowCopy: { flex: 1 },
   label: { ...type.label },
   value: { ...type.h2, marginTop: spacing.xs },

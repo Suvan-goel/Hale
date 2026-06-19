@@ -125,6 +125,7 @@ const styles = StyleSheet.create({
   choice: {
     flexGrow: 1,
     flexBasis: '45%',
+    minWidth: 160,
     minHeight: 58,
   },
   choiceSelected: { backgroundColor: colors.accentSoft, borderColor: colors.accentBorder },

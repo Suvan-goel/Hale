@@ -37,4 +37,12 @@ export const expoHistoryFs: HistoryFs = {
     const file = new File(checkupsDir(), name);
     file.write(content);
   },
+  delete(name) {
+    try {
+      const file = new File(checkupsDir(), name);
+      if (file.exists) file.delete();
+    } catch {
+      // Local deletion should be idempotent; callers aggregate failures when needed.
+    }
+  },
 };

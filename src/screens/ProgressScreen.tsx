@@ -242,9 +242,10 @@ const styles = StyleSheet.create({
   bandLabel: { ...type.caption, color: colors.sageDeep },
   bandValue: { ...type.h3, marginTop: spacing.xs },
   viewLatestButton: { marginTop: spacing.lg, shadowOpacity: 0 },
-  metricGrid: { flexDirection: 'row', gap: spacing.md },
+  metricGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   smallMetric: {
     flex: 1,
+    minWidth: 150,
     minHeight: 112,
     padding: spacing.lg,
     borderRadius: radius.card,
@@ -266,8 +267,7 @@ const styles = StyleSheet.create({
   metricLine: { ...type.bodySmall, color: colors.accentDeep, marginTop: spacing.sm },
   reportRow: {
     minHeight: 96,
-    flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: spacing.md,
     paddingVertical: spacing.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
   },
   reportTitle: { ...type.h3 },
   reportChange: { ...type.caption, color: colors.sageDeep, marginTop: spacing.sm },
-  reportButton: { minWidth: 112, shadowOpacity: 0 },
+  reportButton: { minWidth: 132, shadowOpacity: 0 },
   historyRow: {
     paddingVertical: spacing.lg,
     borderTopWidth: StyleSheet.hairlineWidth,

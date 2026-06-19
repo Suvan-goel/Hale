@@ -1,6 +1,7 @@
 import type { MovementBlock, MovementBlockStatus, MovementDomain } from '../../adherence';
 import type { TrainingBlock, TrainingState } from '../../training';
 import { supabase } from '../../lib/supabase';
+import { addBreadcrumb } from '../observability/sentry';
 
 import { getCurrentSession } from './authService';
 import type { BackendJson } from './types';
@@ -92,6 +93,12 @@ export async function syncMovementBlockToRemote(
           `[block-sync] started local_block_id=${localBlockId} focus_domain=${focusDomain} status=${input.block.status}`
         );
       }
+      addBreadcrumb('sync category started', {
+        category: 'movement_blocks',
+        localBlockId,
+        focusDomain,
+        status: input.block.status,
+      });
 
       const { error } = await supabase
         .from('movement_blocks')
@@ -106,6 +113,12 @@ export async function syncMovementBlockToRemote(
           `[block-sync] synced local_block_id=${localBlockId} focus_domain=${focusDomain} status=${payload.status}`
         );
       }
+      addBreadcrumb('sync category succeeded', {
+        category: 'movement_blocks',
+        localBlockId,
+        focusDomain,
+        status: payload.status,
+      });
 
       return { status: 'synced', localBlockId, focusDomain };
     } finally {
@@ -113,6 +126,11 @@ export async function syncMovementBlockToRemote(
     }
   } catch (error) {
     console.warn(`[block-sync] Supabase block sync failed for ${localBlockId}`, error);
+    addBreadcrumb('sync category failed', {
+      category: 'movement_blocks',
+      localBlockId,
+      focusDomain,
+    });
     return { status: 'failed', localBlockId, focusDomain, error };
   }
 }

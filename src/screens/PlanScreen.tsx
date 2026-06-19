@@ -102,7 +102,7 @@ export function PlanScreen({
         <EmptyPlanState lifecycleState={lifecycleState} onAction={runEmptyAction} />
       ) : (
         <>
-          <Card style={styles.featuredBlock}>
+          <Card variant="feature" style={styles.featuredBlock}>
             <View style={styles.statusHead}>
               <View style={styles.headerCopy}>
                 <Text style={styles.featureEyebrow}>Featured block</Text>
@@ -292,13 +292,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.lg,
   },
-  headerCopy: { flex: 1 },
+  headerCopy: { flex: 1, minWidth: 0 },
   title: { ...type.display, marginTop: spacing.sm },
   subtitle: { ...type.body, color: colors.textSecondary, marginTop: spacing.sm },
   statusHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
   featuredBlock: {
-    backgroundColor: colors.oliveSage,
-    borderColor: colors.oliveSage,
+    gap: spacing.md,
   },
   featureEyebrow: { ...type.label, color: colors.textOnDark },
   featureTitle: { ...type.h1, color: colors.textOnDark, marginTop: spacing.sm },
@@ -317,9 +316,10 @@ const styles = StyleSheet.create({
   weekMetricRow: {
     marginTop: spacing.md,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: spacing.md,
+    flexWrap: 'wrap',
   },
   weekValue: { ...type.metricSmall, color: colors.accentDeep },
   progressRail: {
@@ -357,9 +357,10 @@ const styles = StyleSheet.create({
   sessionCopy: { flex: 1, minWidth: 0 },
   sessionTitleRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: spacing.sm,
+    flexWrap: 'wrap',
   },
   sessionTitle: { ...type.h3, flex: 1 },
   categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.sm },
@@ -378,7 +379,7 @@ const styles = StyleSheet.create({
   adjustmentRow: {
     minHeight: 84,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: spacing.md,
     paddingVertical: spacing.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -386,7 +387,7 @@ const styles = StyleSheet.create({
   },
   adjustmentTitle: { ...type.h3 },
   adjustmentValue: { ...type.caption, color: colors.accentDeep, marginTop: spacing.sm },
-  adjustmentButton: { minWidth: 82, shadowOpacity: 0 },
+  adjustmentButton: { minWidth: 92, shadowOpacity: 0 },
   chipGroup: {
     flexDirection: 'row',
     flexWrap: 'wrap',

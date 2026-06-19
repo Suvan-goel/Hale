@@ -65,7 +65,7 @@ export function ExploreScreen({
         <SettingsIconButton onPress={onOpenSettings} />
       </View>
 
-      <Card>
+      <View style={styles.section}>
         <SectionHeader title="Extra Sessions" />
         <Text style={styles.sectionBody}>Focused sessions for reset days, restarts, or a little extra practice.</Text>
         <View style={styles.grid}>
@@ -83,9 +83,9 @@ export function ExploreScreen({
             />
           ))}
         </View>
-      </Card>
+      </View>
 
-      <Card>
+      <View style={styles.section}>
         <SectionHeader title="Movement Ladders" />
         <Text style={styles.sectionBody}>See your current level and how Hale progresses each movement.</Text>
         <View style={styles.grid}>
@@ -102,9 +102,9 @@ export function ExploreScreen({
             />
           ))}
         </View>
-      </Card>
+      </View>
 
-      <Card>
+      <View style={styles.section}>
         <SectionHeader title="Learn" />
         <View style={styles.list}>
           {learnCards.map((article) => (
@@ -117,7 +117,7 @@ export function ExploreScreen({
             />
           ))}
         </View>
-      </Card>
+      </View>
 
       <Card>
         <View style={styles.equipmentHead}>
@@ -272,19 +272,20 @@ const styles = StyleSheet.create({
   headerCopy: { flex: 1 },
   title: { ...type.display },
   subtitle: { ...type.body, color: colors.textSecondary, marginTop: spacing.sm },
+  section: { gap: spacing.sm },
   sectionBody: { ...type.bodySmall, color: colors.textSecondary, marginTop: spacing.sm },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginTop: spacing.lg },
   list: { gap: spacing.md, marginTop: spacing.lg },
   tile: {
-    minHeight: 190,
-    minWidth: 148,
+    minHeight: 178,
+    minWidth: 168,
     flexGrow: 1,
     flexBasis: '45%',
     padding: spacing.lg,
-    borderRadius: radius.card,
-    backgroundColor: colors.bgElevated,
+    borderRadius: radius.input,
+    backgroundColor: colors.bgSurface,
     borderWidth: 1,
-    borderColor: colors.borderHairline,
+    borderColor: colors.borderSubtle,
     gap: spacing.md,
   },
   tileDisabled: { opacity: 0.72 },
@@ -314,13 +315,15 @@ const styles = StyleSheet.create({
   },
   disabledText: { ...type.caption, color: colors.textSecondary, textAlign: 'center' },
   learnRow: {
-    minHeight: 86,
+    minHeight: 94,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: spacing.md,
-    paddingVertical: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.divider,
+    padding: spacing.lg,
+    borderRadius: radius.input,
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
   learnCopy: { flex: 1 },
   equipmentHead: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },

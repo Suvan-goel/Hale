@@ -1,6 +1,7 @@
 import type { MovementBlock, TrainingSessionCompletion } from '../../adherence';
 import type { MicroCheckResult, MicroCheckType } from '../../training';
 import { supabase } from '../../lib/supabase';
+import { addBreadcrumb } from '../observability/sentry';
 
 import { getCurrentSession } from './authService';
 import type { BackendJson } from './types';
@@ -80,6 +81,11 @@ export async function syncMicroCheckToRemote(input: MicroCheckSyncInput): Promis
       if (__DEV__) {
         console.log(`[microcheck-sync] started local_micro_check_id=${localMicroCheckId} domain=${domain}`);
       }
+      addBreadcrumb('sync category started', {
+        category: 'micro_checks',
+        localMicroCheckId,
+        domain,
+      });
 
       const { error } = await supabase
         .from('micro_checks')
@@ -92,6 +98,11 @@ export async function syncMicroCheckToRemote(input: MicroCheckSyncInput): Promis
       if (__DEV__) {
         console.log(`[microcheck-sync] synced local_micro_check_id=${localMicroCheckId} domain=${domain}`);
       }
+      addBreadcrumb('sync category succeeded', {
+        category: 'micro_checks',
+        localMicroCheckId,
+        domain,
+      });
 
       return { status: 'synced', localMicroCheckId, domain };
     } finally {
@@ -99,6 +110,11 @@ export async function syncMicroCheckToRemote(input: MicroCheckSyncInput): Promis
     }
   } catch (error) {
     console.warn(`[microcheck-sync] Supabase micro-check sync failed for ${localMicroCheckId}`, error);
+    addBreadcrumb('sync category failed', {
+      category: 'micro_checks',
+      localMicroCheckId,
+      domain,
+    });
     return { status: 'failed', localMicroCheckId, domain, error };
   }
 }

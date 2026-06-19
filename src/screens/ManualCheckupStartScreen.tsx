@@ -60,7 +60,7 @@ export function ManualCheckupStartScreen({
 
 const styles = StyleSheet.create({
   card: { gap: spacing.md },
-  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  head: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md, flexWrap: 'wrap' },
   title: { ...type.h2 },
   body: { ...type.bodySmall, color: colors.textSecondary },
   note: { ...type.caption, color: colors.sageDeep },

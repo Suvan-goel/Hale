@@ -3,6 +3,7 @@ import type { CheckUp } from '../../checkup';
 import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../../history';
 import { scoreCheckUp, type CheckUpScore, type Domain } from '../../scoring';
 import { supabase } from '../../lib/supabase';
+import { addBreadcrumb } from '../observability/sentry';
 import { getCurrentSession } from './authService';
 import type { BackendJson } from './types';
 
@@ -64,6 +65,11 @@ export async function syncMovementCheckupToRemote(
     }
 
     inFlightSyncs.add(syncKey);
+    addBreadcrumb('sync category started', {
+      category: 'checkups',
+      localCheckupId,
+      checkupType,
+    });
     if (__DEV__) {
       console.log(`[checkup-sync] started local_checkup_id=${localCheckupId} checkup_type=${checkupType}`);
     }
@@ -81,12 +87,22 @@ export async function syncMovementCheckupToRemote(
       }
 
       successfulSyncs.add(syncKey);
+      addBreadcrumb('sync category succeeded', {
+        category: 'checkups',
+        localCheckupId,
+        checkupType,
+      });
       return { status: 'synced', localCheckupId, checkupType };
     } finally {
       inFlightSyncs.delete(syncKey);
     }
   } catch (error) {
     console.warn(`[checkup-sync] Supabase check-up sync failed for ${localCheckupId}`, error);
+    addBreadcrumb('sync category failed', {
+      category: 'checkups',
+      localCheckupId,
+      checkupType,
+    });
     return { status: 'failed', localCheckupId, checkupType, error };
   }
 }

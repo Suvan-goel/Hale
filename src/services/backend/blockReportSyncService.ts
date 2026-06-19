@@ -6,6 +6,7 @@ import {
   type TrainingSessionCompletion,
 } from '../../adherence';
 import { supabase } from '../../lib/supabase';
+import { addBreadcrumb } from '../observability/sentry';
 
 import { getCurrentSession } from './authService';
 import type { BackendJson } from './types';
@@ -123,6 +124,10 @@ export async function syncMovementBlockReportToRemote(
       if (__DEV__) {
         console.log(`[block-report-sync] started local_report_id=${localReportId}`);
       }
+      addBreadcrumb('sync category started', {
+        category: 'block_reports',
+        localReportId,
+      });
 
       const { error } = existingReport.id
         ? await supabase
@@ -139,6 +144,10 @@ export async function syncMovementBlockReportToRemote(
       if (__DEV__) {
         console.log(`[block-report-sync] synced local_report_id=${localReportId}`);
       }
+      addBreadcrumb('sync category succeeded', {
+        category: 'block_reports',
+        localReportId,
+      });
 
       return { status: 'synced', localReportId };
     } finally {
@@ -146,6 +155,10 @@ export async function syncMovementBlockReportToRemote(
     }
   } catch (error) {
     console.warn(`[block-report-sync] Supabase report sync failed for ${localReportId}`, error);
+    addBreadcrumb('sync category failed', {
+      category: 'block_reports',
+      localReportId,
+    });
     return { status: 'failed', localReportId, error };
   }
 }

@@ -301,7 +301,7 @@ function SettingsScreenContent({
       <Card>
         <Eyebrow>Privacy</Eyebrow>
         <InfoRow label="Account" value="Required" />
-        <InfoRow label="Storage" value="Local movement data; profile sync" />
+        <InfoRow label="Storage" value="Progress syncs to your account" />
         <InfoRow label="Camera" value="Skeleton view only" />
       </Card>
 

@@ -723,6 +723,9 @@ export function ToggleRow({
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bgBase },
   screenContent: {
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.huge,
     paddingBottom: spacing.xxxl,
@@ -730,7 +733,7 @@ const styles = StyleSheet.create({
   },
   header: { gap: spacing.sm },
   headerTitle: { ...type.display },
-  headerSubtitle: { ...type.body, color: colors.textSecondary, maxWidth: 320 },
+  headerSubtitle: { ...type.body, color: colors.textSecondary, maxWidth: 460 },
   iconButton: {
     width: minTapTarget,
     height: minTapTarget,
@@ -814,7 +817,7 @@ const styles = StyleSheet.create({
   segmentedTabs: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: spacing.xl,
+    gap: spacing.lg,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.borderSubtle,
   },
@@ -848,7 +851,7 @@ const styles = StyleSheet.create({
   badgeGoldText: { color: colors.accentDeep },
   metricCard: {
     flex: 1,
-    minWidth: 136,
+    minWidth: 150,
     padding: spacing.lg,
     borderRadius: radius.input,
     backgroundColor: colors.elevatedCard,

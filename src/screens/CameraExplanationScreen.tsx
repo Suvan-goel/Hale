@@ -48,6 +48,6 @@ export function CameraExplanationScreen({
 
 const styles = StyleSheet.create({
   card: { gap: spacing.md },
-  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  head: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md, flexWrap: 'wrap' },
   actions: { gap: spacing.md },
 });

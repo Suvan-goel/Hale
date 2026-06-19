@@ -103,15 +103,15 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   card: { gap: spacing.lg },
-  head: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
+  head: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, flexWrap: 'wrap' },
   copy: { flex: 1 },
   eyebrow: { ...type.label },
   title: { ...type.h1, marginTop: spacing.xs },
   body: { ...type.bodySmall, color: colors.textSecondary },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   meta: { ...type.caption, color: colors.sageDeep },
-  statGrid: { flexDirection: 'row', gap: spacing.md },
-  stat: { flex: 1, paddingTop: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.divider },
+  statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  stat: { flex: 1, minWidth: 130, paddingTop: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.divider },
   statValue: { ...type.h3, textTransform: 'capitalize', fontVariant: ['tabular-nums'] },
   statLabel: { ...type.caption, marginTop: 2 },
   protection: { ...type.h3, color: colors.accentDeep },

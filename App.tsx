@@ -93,6 +93,12 @@ import {
   type RestoreStatus,
   useAuth,
 } from './src/services/backend';
+import {
+  addBreadcrumb,
+  captureError,
+  initObservability,
+  wrapWithObservability,
+} from './src/services/observability/sentry';
 import { AssessmentScreen } from './src/screens/AssessmentScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { CameraExplanationScreen } from './src/screens/CameraExplanationScreen';
@@ -168,6 +174,8 @@ type Flow =
 const CAMERA_FLOWS = new Set<Flow>(['checkup', 'training', 'microcheck', 'dev-assessment', 'dev-live']);
 const LAUNCH_SYNC_RETRY_DELAY_MS = 5000;
 
+initObservability();
+
 function flowForOnboardingStep(step: OnboardingStep): Flow | null {
   switch (step) {
     case 'welcome':
@@ -229,13 +237,23 @@ function launchRestoreOutcomeFromStatus(status: RestoreStatus): LaunchRestoreOut
   }
 }
 
-export default function App() {
+function syncStatusCounts(results: readonly { status?: string }[]): Record<string, number> {
+  return results.reduce<Record<string, number>>((counts, result) => {
+    const status = result.status ?? 'unknown';
+    counts[status] = (counts[status] ?? 0) + 1;
+    return counts;
+  }, {});
+}
+
+function App() {
   return (
     <AuthProvider>
       <AppGate />
     </AuthProvider>
   );
 }
+
+export default wrapWithObservability(App);
 
 function AppGate() {
   // Fonts are bundled (no runtime fetch); gate the first paint until they load
@@ -319,17 +337,35 @@ function HaleApp() {
   const launchSyncRetryTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   React.useEffect(() => {
+    addBreadcrumb('app startup hydration started', { area: 'startup' });
     requestCameraPermissionsAsync()
       .then((response) => setPermission(response.granted ? 'granted' : 'denied'))
-      .catch(() => setPermission('denied'));
+      .catch((error) => {
+        captureError(error, { area: 'startup', action: 'camera_permission' });
+        setPermission('denied');
+      });
     configureSessionAudio()
-      .catch((e) => console.warn('[audio] mode configuration failed', e))
+      .catch((error) => {
+        console.warn('[audio] mode configuration failed', error);
+        captureError(error, { area: 'startup', action: 'audio_configuration' });
+      })
       .finally(() => setAudioReady(true));
-    store.loadAll().then(setHistory).catch(() => setHistory([])).finally(() => setHistoryReady(true));
-    trainingStore.loadState().then(setTraining).catch(() => {}).finally(() => setTrainingReady(true));
-    trainingStore.loadMicroChecks().then(setMicroChecks).catch(() => {}).finally(() => setMicroChecksReady(true));
-    profileStore.load().then(setPrefs).catch(() => {}).finally(() => setProfileReady(true));
-    adherenceStore.load().then(setAdherence).catch(() => {}).finally(() => setAdherenceReady(true));
+    store.loadAll().then(setHistory).catch((error) => {
+      captureError(error, { area: 'startup', action: 'load_history' });
+      setHistory([]);
+    }).finally(() => setHistoryReady(true));
+    trainingStore.loadState().then(setTraining).catch((error) => {
+      captureError(error, { area: 'startup', action: 'load_training_state' });
+    }).finally(() => setTrainingReady(true));
+    trainingStore.loadMicroChecks().then(setMicroChecks).catch((error) => {
+      captureError(error, { area: 'startup', action: 'load_micro_checks' });
+    }).finally(() => setMicroChecksReady(true));
+    profileStore.load().then(setPrefs).catch((error) => {
+      captureError(error, { area: 'startup', action: 'load_profile_preferences' });
+    }).finally(() => setProfileReady(true));
+    adherenceStore.load().then(setAdherence).catch((error) => {
+      captureError(error, { area: 'startup', action: 'load_adherence_state' });
+    }).finally(() => setAdherenceReady(true));
   }, [store, trainingStore, profileStore, adherenceStore]);
 
   React.useEffect(() => {
@@ -394,6 +430,7 @@ function HaleApp() {
       setRestoreOutcome('skipped_active_flow');
       setLocalWasEmptyAtRestore(false);
       setRestoreReady(true);
+      addBreadcrumb('restore skipped', { status: 'skipped_active_flow' });
       return;
     }
 
@@ -406,6 +443,9 @@ function HaleApp() {
       adherence,
     };
     setLocalWasEmptyAtRestore(isLocalStateEmptyForRestore(launchLocalState));
+    addBreadcrumb('restore started', {
+      localWasEmpty: isLocalStateEmptyForRestore(launchLocalState),
+    });
     let cancelled = false;
 
     void restoreRemoteStateIfLocalEmpty({
@@ -420,6 +460,11 @@ function HaleApp() {
       .then((result) => {
         if (cancelled) return;
         setRestoreOutcome(launchRestoreOutcomeFromStatus(result.status));
+        addBreadcrumb('restore completed', {
+          status: result.status,
+          gaps: result.gaps.length,
+          restoredCounts: result.restoredCounts,
+        });
 
         if (result.status === 'restored' && result.restoredState) {
           setPrefs(result.restoredState.preferences);
@@ -444,6 +489,7 @@ function HaleApp() {
         if (!cancelled) {
           setRestoreOutcome('failed');
           console.warn('[restore] launch restore failed', error);
+          captureError(error, { area: 'restore', action: 'launch_restore' });
         }
       })
       .finally(() => {
@@ -529,10 +575,15 @@ function HaleApp() {
       }
 
       profileSyncTimerRef.current = setTimeout(() => {
+        addBreadcrumb('sync category started', { category: 'profile_preferences' });
         void syncLocalPreferencesToRemote(nextPrefs, {
           hydrateLocalFromRemote: options.hydrateLocalFromRemote,
           hydrateRoutingFields: false,
         }).then((result) => {
+          addBreadcrumb('sync category completed', {
+            category: 'profile_preferences',
+            status: result.status,
+          });
           if (result.status === 'signed_out' || result.status === 'failed') return;
 
           if (result.status === 'hydrated' && result.preferences) {
@@ -548,6 +599,9 @@ function HaleApp() {
           }
 
           lastProfileSyncFingerprintRef.current = fingerprint;
+        }).catch((error) => {
+          console.warn('[profile-sync] launch sync failed', error);
+          addBreadcrumb('sync category failed', { category: 'profile_preferences' });
         });
       }, 750);
     },
@@ -573,6 +627,11 @@ function HaleApp() {
       if (__DEV__) {
         console.log(`[training-state-sync] launch sync blocked after restore ${restoreOutcome}`);
       }
+      addBreadcrumb('sync category skipped', {
+        category: 'training_state',
+        reason: 'restore_guard',
+        restoreOutcome,
+      });
       return;
     }
 
@@ -593,12 +652,21 @@ function HaleApp() {
     }
 
     trainingStateSyncTimerRef.current = setTimeout(() => {
+      addBreadcrumb('sync category started', { category: 'training_state' });
       void syncTrainingStateToRemote({ training }).then((result) => {
+        addBreadcrumb('sync category completed', {
+          category: 'training_state',
+          status: result.status,
+        });
         if (result.status === 'synced') {
           lastTrainingStateSyncFingerprintRef.current = fingerprint;
         } else if (shouldRetryLaunchSync([result])) {
           scheduleLaunchSyncRetry();
         }
+      }).catch((error) => {
+        console.warn('[training-state-sync] launch sync failed', error);
+        addBreadcrumb('sync category failed', { category: 'training_state' });
+        scheduleLaunchSyncRetry();
       });
     }, 1000);
   }, [
@@ -626,9 +694,14 @@ function HaleApp() {
 
     if (lastCheckupSyncFingerprintRef.current === fingerprint) return;
 
+    addBreadcrumb('sync category started', { category: 'checkups' });
     void syncRecentMovementCheckupsToRemote(history, {
       assessments: adherence.assessments,
     }).then((results) => {
+      addBreadcrumb('sync category completed', {
+        category: 'checkups',
+        ...syncStatusCounts(results),
+      });
       if (shouldCommitLaunchSyncFingerprint(results)) {
         lastCheckupSyncFingerprintRef.current = fingerprint;
       }
@@ -644,6 +717,7 @@ function HaleApp() {
       }
     }).catch((error) => {
       console.warn('[checkup-sync] launch sync failed', error);
+      addBreadcrumb('sync category failed', { category: 'checkups' });
       scheduleLaunchSyncRetry();
     });
   }, [
@@ -678,7 +752,12 @@ function HaleApp() {
 
     if (lastBlockSyncFingerprintRef.current === fingerprint) return;
 
+    addBreadcrumb('sync category started', { category: 'movement_blocks' });
     void syncRecentMovementBlocksToRemote(adherence.blocks, { training }).then((results) => {
+      addBreadcrumb('sync category completed', {
+        category: 'movement_blocks',
+        ...syncStatusCounts(results),
+      });
       if (shouldCommitLaunchSyncFingerprint(results)) {
         lastBlockSyncFingerprintRef.current = fingerprint;
       }
@@ -694,6 +773,7 @@ function HaleApp() {
       }
     }).catch((error) => {
       console.warn('[block-sync] launch sync failed', error);
+      addBreadcrumb('sync category failed', { category: 'movement_blocks' });
       scheduleLaunchSyncRetry();
     });
   }, [
@@ -735,10 +815,15 @@ function HaleApp() {
 
     if (lastSessionSyncFingerprintRef.current === fingerprint) return;
 
+    addBreadcrumb('sync category started', { category: 'session_completions' });
     void syncRecentTrainingSessionCompletionsToRemote(adherence.completions, {
       blocks: adherence.blocks,
       generatedSummaries: training.generatedSessionSummaries,
     }).then((results) => {
+      addBreadcrumb('sync category completed', {
+        category: 'session_completions',
+        ...syncStatusCounts(results),
+      });
       if (shouldCommitLaunchSyncFingerprint(results)) {
         lastSessionSyncFingerprintRef.current = fingerprint;
       }
@@ -754,6 +839,7 @@ function HaleApp() {
       }
     }).catch((error) => {
       console.warn('[session-sync] launch sync failed', error);
+      addBreadcrumb('sync category failed', { category: 'session_completions' });
       scheduleLaunchSyncRetry();
     });
   }, [
@@ -786,10 +872,15 @@ function HaleApp() {
 
     if (lastMicroCheckSyncFingerprintRef.current === fingerprint) return;
 
+    addBreadcrumb('sync category started', { category: 'micro_checks' });
     void syncRecentMicroChecksToRemote(microChecks, {
       blocks: adherence.blocks,
       completions: adherence.completions,
     }).then((results) => {
+      addBreadcrumb('sync category completed', {
+        category: 'micro_checks',
+        ...syncStatusCounts(results),
+      });
       if (shouldCommitLaunchSyncFingerprint(results)) {
         lastMicroCheckSyncFingerprintRef.current = fingerprint;
       }
@@ -805,6 +896,7 @@ function HaleApp() {
       }
     }).catch((error) => {
       console.warn('[microcheck-sync] launch sync failed', error);
+      addBreadcrumb('sync category failed', { category: 'micro_checks' });
       scheduleLaunchSyncRetry();
     });
   }, [
@@ -848,11 +940,16 @@ function HaleApp() {
 
     if (lastBlockReportSyncFingerprintRef.current === fingerprint) return;
 
+    addBreadcrumb('sync category started', { category: 'block_reports' });
     void syncRecentMovementBlockReportsToRemote(adherence.reports, {
       blocks: adherence.blocks,
       assessments: adherence.assessments,
       completions: adherence.completions,
     }).then((results) => {
+      addBreadcrumb('sync category completed', {
+        category: 'block_reports',
+        ...syncStatusCounts(results),
+      });
       if (shouldCommitLaunchSyncFingerprint(results)) {
         lastBlockReportSyncFingerprintRef.current = fingerprint;
       }
@@ -868,6 +965,7 @@ function HaleApp() {
       }
     }).catch((error) => {
       console.warn('[block-report-sync] launch sync failed', error);
+      addBreadcrumb('sync category failed', { category: 'block_reports' });
       scheduleLaunchSyncRetry();
     });
   }, [

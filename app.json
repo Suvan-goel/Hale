@@ -16,7 +16,8 @@
           "experimentalLauncherActivity": false
         }
       ],
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      "@sentry/react-native/expo"
     ],
     "userInterfaceStyle": "light",
     "backgroundColor": "#F7F5EF",
