@@ -7,7 +7,7 @@
  * and the training block it seeds. Fed through the normal completion path, so
  * it scores and persists exactly like a real result.
  *
- * Values are plausible for the target demographic and biased so Strength/Power
+ * Values are plausible for the target demographic and biased so Balance
  * lands as the weakest domain, making the generated block non-trivial. Not
  * imported by production paths; gate any call site on `__DEV__`.
  */
@@ -59,7 +59,7 @@ export function syntheticCheckUp(startedAt: string = new Date().toISOString()): 
     flags: [],
     interruptions: 0,
     stages: [],
-    singleLegEyesOpenSec: 14,
+    singleLegEyesOpenSec: 8,
   };
   const shoulder: ShoulderFlexionResult = {
     movementId: SHOULDER_FLEXION_ID,

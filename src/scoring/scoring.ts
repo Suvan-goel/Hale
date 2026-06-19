@@ -15,20 +15,13 @@
  * estimated or extrapolated. Wellness-side language only — never a diagnosis.
  */
 
-import { CheckUp, CheckUpItem, findItem } from '../checkup/types';
-import {
-  BALANCE_LADDER_ID,
-  BalanceResult,
-  CHAIR_STAND_ID,
-  ChairStandResult,
-  HINGE_REACH_ID,
-  HingeReachResult,
-  SHOULDER_FLEXION_ID,
-  ShoulderFlexionResult,
-  TUG_ID,
-  TugResult,
-} from '../movements';
+import { CheckUp } from '../checkup/types';
 import { AgeNorm, CHAIR_STAND_REPS_NORM, inferAge, SHOULDER_FLEXION_NORM, SINGLE_LEG_STANCE_NORM } from './norms';
+import {
+  ScoringInputIssue,
+  ValidatedScoringInputs,
+  validateCheckUpForScoring,
+} from './scoringInputValidation';
 
 export type Domain = 'strength' | 'balance' | 'mobility';
 
@@ -64,13 +57,12 @@ export interface CheckUpScore {
   weakestDomain: Domain | null;
 }
 
-const NO_VALUE = '—';
-
-function usableResult<T>(item: CheckUpItem | undefined): T | null {
-  if (!item || item.status !== 'measured' || !item.result) return null;
-  if (item.result.flags.includes('no-measurement')) return null;
-  return item.result as unknown as T;
+export interface CheckUpScoreWithDiagnostics {
+  score: CheckUpScore;
+  issues: ScoringInputIssue[];
 }
+
+const NO_VALUE = '—';
 
 /** "early 60s" / "mid 50s" / "late 70s". */
 export function ageToPhrase(age: number): string {
@@ -122,8 +114,31 @@ function unmeasured(domain: Domain, rows: MetricRow[]): DomainResult {
   };
 }
 
-function strengthDomain(checkUp: CheckUp): DomainResult {
-  const cs = usableResult<ChairStandResult>(findItem(checkUp, CHAIR_STAND_ID));
+function measuredDomain(domain: Domain, m: AgeMapping, rows: MetricRow[]): DomainResult {
+  const result: DomainResult = {
+    domain,
+    label: DOMAIN_LABEL[domain],
+    measured: true,
+    ...m,
+    rows,
+  };
+  if (!domainResultIsSafe(result)) return unmeasured(domain, rows);
+  return result;
+}
+
+function domainResultIsSafe(result: DomainResult): boolean {
+  return (
+    result.measured &&
+    Number.isFinite(result.ageLow) &&
+    Number.isFinite(result.ageHigh) &&
+    result.ageLow <= result.ageHigh
+  );
+}
+
+function strengthDomain(inputs: ValidatedScoringInputs): DomainResult {
+  const cs = inputs.chairStand;
+  const sessionMeanVel = cs?.sessionMeanVel;
+  const hasSessionMeanVel = typeof sessionMeanVel === 'number' && Number.isFinite(sessionMeanVel);
   const rows: MetricRow[] = [
     {
       label: 'Chair stands in 30s',
@@ -132,27 +147,27 @@ function strengthDomain(checkUp: CheckUp): DomainResult {
     },
     {
       label: 'Rise velocity',
-      display: cs && Number.isFinite(cs.sessionMeanVel) ? `${cs.sessionMeanVel.toFixed(2)} bu/s` : NO_VALUE,
-      measured: !!cs && Number.isFinite(cs.sessionMeanVel),
+      display: hasSessionMeanVel ? `${sessionMeanVel.toFixed(2)} bu/s` : NO_VALUE,
+      measured: hasSessionMeanVel,
     },
   ];
-  if (!cs || cs.reps <= 0) return unmeasured('strength', rows);
+  if (!cs) return unmeasured('strength', rows);
   const m = mapAge('strength', CHAIR_STAND_REPS_NORM, cs.reps);
-  return { domain: 'strength', label: DOMAIN_LABEL.strength, measured: true, ...m, rows };
+  return measuredDomain('strength', m, rows);
 }
 
-function balanceDomain(checkUp: CheckUp): DomainResult {
-  const tug = usableResult<TugResult>(findItem(checkUp, TUG_ID));
-  const bal = usableResult<BalanceResult>(findItem(checkUp, BALANCE_LADDER_ID));
+function balanceDomain(inputs: ValidatedScoringInputs): DomainResult {
+  const tug = inputs.tug;
+  const bal = inputs.balanceLadder;
   const slSec = bal ? bal.singleLegEyesOpenSec : NaN;
   const rows: MetricRow[] = [
     {
       label: 'Up-and-go time',
       display:
-        tug && tug.completed && Number.isFinite(tug.totalSec)
+        tug
           ? `${tug.totalSec.toFixed(1)} s${tug.nonStandardShortPath ? ' (short path)' : ''}`
           : NO_VALUE,
-      measured: !!tug && tug.completed,
+      measured: !!tug,
     },
     {
       label: 'One-leg balance',
@@ -163,15 +178,15 @@ function balanceDomain(checkUp: CheckUp): DomainResult {
   if (!Number.isFinite(slSec)) return unmeasured('balance', rows);
   const m = mapAge('balance', SINGLE_LEG_STANCE_NORM, slSec);
   let interpretation = m.interpretation;
-  if (Number.isFinite(slSec) && slSec < 8) {
+  if (slSec < 8) {
     interpretation += ' Holding a one-leg stand was tricky — a good thing to practise.';
   }
-  return { domain: 'balance', label: DOMAIN_LABEL.balance, measured: true, ...m, interpretation, rows };
+  return measuredDomain('balance', { ...m, interpretation }, rows);
 }
 
-function mobilityDomain(checkUp: CheckUp): DomainResult {
-  const sh = usableResult<ShoulderFlexionResult>(findItem(checkUp, SHOULDER_FLEXION_ID));
-  const hinge = usableResult<HingeReachResult>(findItem(checkUp, HINGE_REACH_ID));
+function mobilityDomain(inputs: ValidatedScoringInputs): DomainResult {
+  const sh = inputs.shoulderFlexion;
+  const hinge = inputs.hingeReach;
   const rows: MetricRow[] = [
     {
       label: 'Shoulder reach',
@@ -184,23 +199,31 @@ function mobilityDomain(checkUp: CheckUp): DomainResult {
       measured: !!hinge && Number.isFinite(hinge.reachBu),
     },
   ];
-  if (!sh || !Number.isFinite(sh.peakFlexionDeg)) return unmeasured('mobility', rows);
+  if (!sh) return unmeasured('mobility', rows);
   const m = mapAge('mobility', SHOULDER_FLEXION_NORM, sh.peakFlexionDeg);
-  return { domain: 'mobility', label: DOMAIN_LABEL.mobility, measured: true, ...m, rows };
+  return measuredDomain('mobility', m, rows);
 }
 
-export function scoreCheckUp(checkUp: CheckUp): CheckUpScore {
-  const domains = [strengthDomain(checkUp), balanceDomain(checkUp), mobilityDomain(checkUp)];
+export function scoreCheckUpWithDiagnostics(checkUp: CheckUp): CheckUpScoreWithDiagnostics {
+  const inputs = validateCheckUpForScoring(checkUp);
+  const domains = [strengthDomain(inputs), balanceDomain(inputs), mobilityDomain(inputs)];
   // Weakest = oldest measured domain (highest range midpoint).
   let weakestDomain: Domain | null = null;
   let oldest = -Infinity;
   for (const d of domains) {
-    if (!d.measured) continue;
+    if (!domainResultIsSafe(d)) continue;
     const mid = (d.ageLow + d.ageHigh) / 2;
     if (mid > oldest) {
       oldest = mid;
       weakestDomain = d.domain;
     }
   }
-  return { startedAt: checkUp.startedAt, domains, weakestDomain };
+  return {
+    score: { startedAt: inputs.startedAt, domains, weakestDomain },
+    issues: inputs.issues,
+  };
+}
+
+export function scoreCheckUp(checkUp: CheckUp): CheckUpScore {
+  return scoreCheckUpWithDiagnostics(checkUp).score;
 }

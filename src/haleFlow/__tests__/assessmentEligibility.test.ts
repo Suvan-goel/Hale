@@ -1,5 +1,6 @@
 import { DEFAULT_BATTERY } from '../../checkup';
 import type { CheckUp } from '../../checkup/types';
+import { BALANCE_LADDER_ID, CHAIR_STAND_ID } from '../../movements';
 import { createMovementBlockFromAssessment, tryCreateMovementBlockFromAssessment } from '../../adherence';
 import type { MovementAssessment } from '../../adherence/types';
 import type { CheckUpScore, Domain, DomainResult } from '../../scoring';
@@ -83,6 +84,14 @@ function noMeasurementCheckUp(): CheckUp {
   };
 }
 
+function measuredItem(movementId: string, result: Record<string, unknown>): CheckUp['items'][number] {
+  return {
+    movementId,
+    status: 'measured',
+    result: { movementId, flags: [], interruptions: 0, ...result } as never,
+  };
+}
+
 describe('assessment block-creation eligibility', () => {
   it('accepts a fully valid score and preserves the explicit focus domain', () => {
     const inputScore = score('mobility');
@@ -135,6 +144,69 @@ describe('assessment block-creation eligibility', () => {
     expect(() => createMovementBlockFromAssessment({ latestAssessment: inputScore })).toThrow(
       'Cannot create movement block from ineligible assessment'
     );
+  });
+
+  it('rejects malformed scoring inputs before block eligibility', () => {
+    const inputScore = scoreCheckUp({
+      startedAt: START,
+      bodyUnit: 1,
+      items: [
+        measuredItem(CHAIR_STAND_ID, {
+          reps: '14',
+          repStats: [],
+          sessionMeanVel: 0.22,
+          sessionMeanPeakVel: 0.3,
+          pushOffDetected: false,
+        }),
+      ],
+    });
+    const resultAssessment = createMovementAssessment({
+      checkUpId: inputScore.startedAt,
+      type: 'baseline',
+      score: inputScore,
+      completedAt: inputScore.startedAt,
+      isOfficialForProgress: true,
+    });
+
+    expect(inputScore.weakestDomain).toBeNull();
+    expect(resultAssessment.status).toBe('invalid');
+    expect(getBlockCreationEligibility({ score: inputScore, assessment: resultAssessment })).toEqual({
+      eligible: false,
+      reason: 'assessment_not_completed',
+      measuredDomains: [],
+    });
+  });
+
+  it('preserves valid domains when a sibling movement is malformed', () => {
+    const inputScore = scoreCheckUp({
+      startedAt: START,
+      bodyUnit: 1,
+      items: [
+        measuredItem(CHAIR_STAND_ID, {
+          reps: '14',
+          repStats: [],
+          sessionMeanVel: 0.22,
+          sessionMeanPeakVel: 0.3,
+          pushOffDetected: false,
+        }),
+        measuredItem(BALANCE_LADDER_ID, { stages: [], singleLegEyesOpenSec: 9 }),
+      ],
+    });
+    const resultAssessment = createMovementAssessment({
+      checkUpId: inputScore.startedAt,
+      type: 'baseline',
+      score: inputScore,
+      completedAt: inputScore.startedAt,
+      isOfficialForProgress: true,
+    });
+
+    expect(inputScore.weakestDomain).toBe('balance');
+    expect(resultAssessment.status).toBe('completed');
+    expect(getBlockCreationEligibility({ score: inputScore, assessment: resultAssessment })).toMatchObject({
+      eligible: true,
+      focusDomain: 'balance',
+      measuredDomains: ['balance'],
+    });
   });
 
   it('rejects a null weakest domain even when another domain is measured', () => {

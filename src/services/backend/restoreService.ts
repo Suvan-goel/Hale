@@ -482,13 +482,18 @@ function mapRemoteAssessmentsToLocal(
     const derivedAssessment = asRecord(asRecord(row.derived_scores_json).assessment);
     const type = validCheckupType(derivedAssessment.type) ?? mapRemoteCheckupType(row.checkup_type);
     const completedAt = normalizedString(derivedAssessment.completedAt) ?? normalizedString(row.completed_at) ?? checkUp.startedAt;
+    const score = scoreCheckUp(checkUp);
+    const restoredStatus = restoredAssessmentStatus(
+      validCheckupStatus(derivedAssessment.status) ?? validCheckupStatus(row.status),
+      score
+    );
     const assessment = createMovementAssessment({
       checkUpId: checkUp.startedAt,
       type,
-      score: scoreCheckUp(checkUp),
+      score,
       sourceBlockId: normalizedString(derivedAssessment.sourceBlockId),
       completedAt,
-      status: validCheckupStatus(derivedAssessment.status) ?? validCheckupStatus(row.status) ?? undefined,
+      status: restoredStatus,
       isOfficialForProgress:
         typeof derivedAssessment.isOfficialForProgress === 'boolean'
           ? derivedAssessment.isOfficialForProgress
@@ -513,6 +518,17 @@ function mapRemoteAssessmentsToLocal(
   }
 
   return assessments.sort((a, b) => (a.completedAt ?? a.createdAt).localeCompare(b.completedAt ?? b.createdAt));
+}
+
+function restoredAssessmentStatus(
+  remoteStatus: CheckupStatus | null,
+  score: ReturnType<typeof scoreCheckUp>
+): CheckupStatus | undefined {
+  if (remoteStatus !== 'completed') return remoteStatus ?? undefined;
+  const hasMeasuredDomain = score.domains.some(
+    (domain) => domain.measured && Number.isFinite(domain.ageLow) && Number.isFinite(domain.ageHigh)
+  );
+  return hasMeasuredDomain ? remoteStatus : undefined;
 }
 
 async function fetchRemoteProfile(

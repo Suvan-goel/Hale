@@ -98,8 +98,8 @@ function fullCheckUp(startedAt: string, m: Metrics): CheckUp {
 describe('Check-Up flow integration — persist, reload, score, trend', () => {
   it('saves two check-ups, reloads them oldest-first, and scores the latest into three domains', async () => {
     const store = new HistoryStore(createMemoryFs());
-    store.save(fullCheckUp('2026-05-01T09:00:00.000Z', { reps: 14, vel: 0.3, tugSec: 9.0, balanceSec: 12, shoulderDeg: 158, hingeBu: 0.4 }));
-    store.save(fullCheckUp('2026-06-01T09:00:00.000Z', { reps: 16, vel: 0.34, tugSec: 8.5, balanceSec: 15, shoulderDeg: 160, hingeBu: 0.35 }));
+    store.save(fullCheckUp('2026-05-01T09:00:00.000Z', { reps: 14, vel: 0.3, tugSec: 9.0, balanceSec: 8, shoulderDeg: 158, hingeBu: 0.4 }));
+    store.save(fullCheckUp('2026-06-01T09:00:00.000Z', { reps: 16, vel: 0.34, tugSec: 8.5, balanceSec: 11, shoulderDeg: 160, hingeBu: 0.35 }));
 
     const loaded = await store.loadAll();
     expect(loaded.map((r) => r.checkUp.startedAt)).toEqual([
@@ -115,8 +115,8 @@ describe('Check-Up flow integration — persist, reload, score, trend', () => {
 
   it('contributes the headline metrics (rise velocity, one-leg balance) to the trends', async () => {
     const store = new HistoryStore(createMemoryFs());
-    store.save(fullCheckUp('2026-05-01T09:00:00.000Z', { reps: 14, vel: 0.3, tugSec: 9.0, balanceSec: 12, shoulderDeg: 158, hingeBu: 0.4 }));
-    store.save(fullCheckUp('2026-06-01T09:00:00.000Z', { reps: 16, vel: 0.34, tugSec: 8.5, balanceSec: 15, shoulderDeg: 160, hingeBu: 0.35 }));
+    store.save(fullCheckUp('2026-05-01T09:00:00.000Z', { reps: 14, vel: 0.3, tugSec: 9.0, balanceSec: 8, shoulderDeg: 158, hingeBu: 0.4 }));
+    store.save(fullCheckUp('2026-06-01T09:00:00.000Z', { reps: 16, vel: 0.34, tugSec: 8.5, balanceSec: 11, shoulderDeg: 160, hingeBu: 0.35 }));
 
     const trends = computeTrends(await store.loadAll());
     const vel = trends.find((t) => t.key === 'rise-velocity');
@@ -131,8 +131,8 @@ describe('Check-Up flow integration — persist, reload, score, trend', () => {
   it('survives a restart — a fresh store over the same files reloads the history', async () => {
     const files = new Map<string, string>();
     const before = new HistoryStore(createMemoryFs(files));
-    before.save(fullCheckUp('2026-05-01T09:00:00.000Z', { reps: 14, vel: 0.3, tugSec: 9.0, balanceSec: 12, shoulderDeg: 158, hingeBu: 0.4 }));
-    before.save(fullCheckUp('2026-06-01T09:00:00.000Z', { reps: 16, vel: 0.34, tugSec: 8.5, balanceSec: 15, shoulderDeg: 160, hingeBu: 0.35 }));
+    before.save(fullCheckUp('2026-05-01T09:00:00.000Z', { reps: 14, vel: 0.3, tugSec: 9.0, balanceSec: 8, shoulderDeg: 158, hingeBu: 0.4 }));
+    before.save(fullCheckUp('2026-06-01T09:00:00.000Z', { reps: 16, vel: 0.34, tugSec: 8.5, balanceSec: 11, shoulderDeg: 160, hingeBu: 0.35 }));
 
     const afterRestart = new HistoryStore(createMemoryFs(files)); // App relaunch: load on mount
     const loaded = await afterRestart.loadAll();

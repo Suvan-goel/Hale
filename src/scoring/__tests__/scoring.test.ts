@@ -113,7 +113,7 @@ describe('domain scoring', () => {
     const items: CheckUp['items'] = [
       { movementId: CHAIR_STAND_ID, status: 'skipped', result: null },
       measured(TUG_ID, { totalSec: 8.1, completed: true, turnDetected: true, peakExcursionBu: 1.9, nonStandardShortPath: false }),
-      measured(BALANCE_LADDER_ID, { stages: [], singleLegEyesOpenSec: 18 }),
+      measured(BALANCE_LADDER_ID, { stages: [], singleLegEyesOpenSec: 10 }),
       // shoulder present but unmeasured (no-measurement flag)
       { movementId: SHOULDER_FLEXION_ID, status: 'measured', result: { movementId: SHOULDER_FLEXION_ID, flags: ['no-measurement'], interruptions: 0, peakFlexionDeg: NaN } as never },
     ];

@@ -70,7 +70,7 @@ import {
   UserProfile,
   defaultPreferences,
 } from './src/profile';
-import { CheckUpScore, scoreCheckUp } from './src/scoring';
+import { CheckUpScore, ScoringInputIssue, scoreCheckUp, scoreCheckUpWithDiagnostics } from './src/scoring';
 import {
   AuthProvider,
   syncMovementBlockReportToRemote,
@@ -173,6 +173,7 @@ type Flow =
 /** Flows that mount the camera; gated on permission + audio configuration. */
 const CAMERA_FLOWS = new Set<Flow>(['checkup', 'training', 'microcheck', 'dev-assessment', 'dev-live']);
 const LAUNCH_SYNC_RETRY_DELAY_MS = 5000;
+const EXPECTED_SCORING_INPUT_ISSUES = new Set<ScoringInputIssue['code']>(['no_measurement']);
 
 initObservability();
 
@@ -197,6 +198,31 @@ function flowForOnboardingStep(step: OnboardingStep): Flow | null {
     case 'complete':
       return null;
   }
+}
+
+function recordScoringInputIssues(
+  context: string,
+  issues: readonly ScoringInputIssue[],
+  checkupType?: CheckupType
+): void {
+  const unexpected = issues.filter((issue) => !EXPECTED_SCORING_INPUT_ISSUES.has(issue.code));
+  if (unexpected.length === 0) return;
+  addBreadcrumb('scoring input validation issues', {
+    area: 'scoring_input_validation',
+    context,
+    checkupType,
+    issueCount: unexpected.length,
+    issueCodes: uniqueStrings(unexpected.map((issue) => issue.code)),
+    movementIds: uniqueStrings(
+      unexpected
+        .map((issue) => issue.movementId)
+        .filter((movementId): movementId is string => typeof movementId === 'string')
+    ),
+  });
+}
+
+function uniqueStrings(values: readonly string[]): string[] {
+  return [...new Set(values)].sort();
 }
 
 function blockNumberForBlocks(blocks: readonly MovementBlock[], blockId: string): number | undefined {
@@ -1256,7 +1282,7 @@ function HaleApp() {
     (checkUp: CheckUp, checkupOverride?: typeof pendingCheckup) => {
       const completedAt = new Date().toISOString();
       const block = activeMovementBlock;
-      const score = scoreCheckUp(checkUp);
+      const { score, issues: scoringInputIssues } = scoreCheckUpWithDiagnostics(checkUp);
       const resolvedPendingCheckup = checkupOverride ?? pendingCheckup;
       const checkupType =
         resolvedPendingCheckup?.type ??
@@ -1265,6 +1291,7 @@ function HaleApp() {
           : history.length === 0
             ? 'baseline'
             : 'manual_extra');
+      recordScoringInputIssues('checkup_completion', scoringInputIssues, checkupType);
       const isRetest =
         !!block &&
         (checkupType === 'official_retest' ||

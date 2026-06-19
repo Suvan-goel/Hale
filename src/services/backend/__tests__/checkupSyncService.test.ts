@@ -98,4 +98,23 @@ describe('movement check-up sync mapping', () => {
 
     expect(payload.checkup_type).toBe('unknown');
   });
+
+  it('omits malformed movement scores from derived remote fields without dropping other domains', () => {
+    const malformed = checkUp();
+    (malformed.items[0].result as unknown as Record<string, unknown>).reps = '14';
+
+    const payload = mapLocalCheckupToRemotePayload(
+      {
+        checkUp: malformed,
+        checkupType: 'baseline',
+      },
+      'user-123'
+    );
+
+    expect(payload.strength_power_score).toBeUndefined();
+    expect(payload.balance_score).toEqual(expect.any(Number));
+    expect(payload.mobility_score).toEqual(expect.any(Number));
+    expect(payload.weakest_domain).not.toBe('strength_power');
+    expect(JSON.stringify(payload.derived_scores_json)).not.toContain('14 reps');
+  });
 });

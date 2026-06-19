@@ -140,4 +140,32 @@ describe('trends', () => {
     expect(trends.find((t) => t.key === 'single-leg-balance')!.points).toHaveLength(3);
     expect(trends.find((t) => t.key === 'shoulder-flexion')).toBeUndefined();
   });
+
+  it('drops malformed and duplicated stored scoring inputs from trends', () => {
+    const valid = makeCheckUp('2026-06-01T10:00:00.000Z', { reps: 12, vel: 0.2, singleLeg: 8 });
+    const malformed = makeCheckUp('2026-06-15T10:00:00.000Z', { reps: 14, vel: 0.24, singleLeg: 999 });
+    const duplicate = makeCheckUp('2026-06-29T10:00:00.000Z', { reps: 15, vel: 0.3, singleLeg: 10 });
+
+    (malformed.items[0].result as unknown as Record<string, unknown>).reps = '14';
+    duplicate.items.unshift({
+      movementId: CHAIR_STAND_ID,
+      status: 'measured',
+      result: {
+        movementId: CHAIR_STAND_ID,
+        flags: [],
+        interruptions: 0,
+        reps: 20,
+        repStats: [],
+        sessionMeanVel: 0.4,
+        sessionMeanPeakVel: 0.5,
+        pushOffDetected: false,
+      } as never,
+    });
+
+    const trends = computeTrends([valid, malformed, duplicate].map((checkUp) => deserializeCheckUp(serializeCheckUp(checkUp))!));
+
+    expect(trends.find((t) => t.key === 'chair-stands')!.points.map((p) => p.value)).toEqual([12]);
+    expect(trends.find((t) => t.key === 'rise-velocity')!.points.map((p) => p.value)).toEqual([0.2]);
+    expect(trends.find((t) => t.key === 'single-leg-balance')!.points.map((p) => p.value)).toEqual([8, 10]);
+  });
 });

@@ -7,19 +7,7 @@
  * without pretending it is the full forward-reach assessment metric.
  */
 
-import { findItem } from '../checkup/types';
-import {
-  BALANCE_LADDER_ID,
-  BalanceResult,
-  CHAIR_STAND_ID,
-  ChairStandResult,
-  HINGE_REACH_ID,
-  HingeReachResult,
-  SHOULDER_FLEXION_ID,
-  ShoulderFlexionResult,
-  TUG_ID,
-  TugResult,
-} from '../movements';
+import { validateCheckUpForScoring } from '../scoring/scoringInputValidation';
 import { StoredCheckUp } from './serialize';
 
 export interface TrendPoint {
@@ -48,13 +36,6 @@ interface MetricSpec {
   extract: Extractor;
 }
 
-function usable<T>(checkUp: StoredCheckUp['checkUp'], movementId: string): T | null {
-  const item = findItem(checkUp, movementId);
-  if (!item || item.status !== 'measured' || !item.result) return null;
-  if (item.result.flags.includes('no-measurement')) return null;
-  return item.result as unknown as T;
-}
-
 function finiteOrNull(v: number | undefined): number | null {
   return typeof v === 'number' && Number.isFinite(v) ? v : null;
 }
@@ -65,48 +46,42 @@ const METRICS: MetricSpec[] = [
     label: 'Rise velocity',
     unit: 'bu/s',
     betterIsHigher: true,
-    extract: (c) => finiteOrNull(usable<ChairStandResult>(c, CHAIR_STAND_ID)?.sessionMeanVel),
+    extract: (c) => finiteOrNull(validateCheckUpForScoring(c).chairStand?.sessionMeanVel),
   },
   {
     key: 'chair-stands',
     label: 'Chair stands',
     unit: 'reps',
     betterIsHigher: true,
-    extract: (c) => {
-      const r = usable<ChairStandResult>(c, CHAIR_STAND_ID);
-      return r && r.reps > 0 ? r.reps : null;
-    },
+    extract: (c) => finiteOrNull(validateCheckUpForScoring(c).chairStand?.reps),
   },
   {
     key: 'single-leg-balance',
     label: 'One-leg balance',
     unit: 's',
     betterIsHigher: true,
-    extract: (c) => finiteOrNull(usable<BalanceResult>(c, BALANCE_LADDER_ID)?.singleLegEyesOpenSec),
+    extract: (c) => finiteOrNull(validateCheckUpForScoring(c).balanceLadder?.singleLegEyesOpenSec),
   },
   {
     key: 'tug-time',
     label: 'Up-and-go time',
     unit: 's',
     betterIsHigher: false,
-    extract: (c) => {
-      const r = usable<TugResult>(c, TUG_ID);
-      return r && r.completed ? finiteOrNull(r.totalSec) : null;
-    },
+    extract: (c) => finiteOrNull(validateCheckUpForScoring(c).tug?.totalSec),
   },
   {
     key: 'shoulder-flexion',
     label: 'Shoulder reach',
     unit: '°',
     betterIsHigher: true,
-    extract: (c) => finiteOrNull(usable<ShoulderFlexionResult>(c, SHOULDER_FLEXION_ID)?.peakFlexionDeg),
+    extract: (c) => finiteOrNull(validateCheckUpForScoring(c).shoulderFlexion?.peakFlexionDeg),
   },
   {
     key: 'forward-reach',
     label: 'Forward reach',
     unit: 'bu',
     betterIsHigher: false, // smaller wrist-to-floor distance is better
-    extract: (c) => finiteOrNull(usable<HingeReachResult>(c, HINGE_REACH_ID)?.reachBu),
+    extract: (c) => finiteOrNull(validateCheckUpForScoring(c).hingeReach?.reachBu),
   },
   {
     key: 'seated-reach-angle',

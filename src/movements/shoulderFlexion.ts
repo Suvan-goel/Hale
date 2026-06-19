@@ -30,6 +30,8 @@ import { GraderUpdate, MovementDefinition, MovementGrader, MovementResultBase } 
 import { registerMovement } from './registry';
 
 export const SHOULDER_FLEXION_ID = 'shoulder-flexion-peak';
+export const MIN_VALID_SHOULDER_FLEXION_DEG = 35;
+export const MAX_VALID_SHOULDER_FLEXION_DEG = 180;
 
 const LEFT_SIDE_CHAIN = CHAIN_IDS.indexOf('leftSide');
 const RIGHT_SIDE_CHAIN = CHAIN_IDS.indexOf('rightSide');
@@ -109,7 +111,7 @@ class ShoulderFlexionGrader implements MovementGrader<ShoulderFlexionResult> {
 
     const angle = angleAtDeg(out.frame, hip, shoulder, elbow);
     const torsoUpright = out.frame.ys[shoulder] < out.frame.ys[hip];
-    const positionValid = torsoUpright && angle >= 35;
+    const positionValid = torsoUpright && angle >= MIN_VALID_SHOULDER_FLEXION_DEG;
     const snap = this.validTime.update({
       nowMs: out.frame.timestampMs,
       isPositionValid: positionValid,

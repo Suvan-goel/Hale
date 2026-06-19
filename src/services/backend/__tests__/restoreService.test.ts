@@ -415,4 +415,52 @@ describe('remote restore service', () => {
       blockReports: 0,
     });
   });
+
+  it('does not restore malformed raw check-up data as a completed usable assessment', () => {
+    const malformed = checkUp();
+    malformed.items = [malformed.items[0]];
+    (malformed.items[0].result as unknown as Record<string, unknown>).reps = '14';
+
+    const snapshot: RemoteHaleSnapshot = {
+      profile: null,
+      movementCheckups: [
+        {
+          id: 'remote-malformed-checkup',
+          local_checkup_id: startedAt,
+          checkup_type: 'baseline',
+          status: 'completed',
+          derived_scores_json: {
+            schemaVersion: 1,
+            assessment: {
+              type: 'baseline',
+              status: 'completed',
+              completedAt: '2026-06-17T12:08:00.000Z',
+              isOfficialForProgress: true,
+            },
+          },
+          raw_checkup_json: backendJson({
+            schemaVersion: HISTORY_SCHEMA_VERSION,
+            checkUp: malformed,
+          }),
+          created_locally_at: startedAt,
+          completed_at: '2026-06-17T12:08:00.000Z',
+          created_at: '2026-06-17T12:08:30.000Z',
+        },
+      ],
+      movementBlocks: [],
+      trainingState: null,
+      trainingSessionCompletions: [],
+      microChecks: [],
+      movementBlockReports: [],
+      fetchErrors: {},
+    };
+
+    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
+
+    expect(mapped.state.history).toHaveLength(1);
+    expect(mapped.state.adherence.assessments).toHaveLength(1);
+    expect(mapped.state.adherence.assessments[0].status).toBe('invalid');
+    expect(mapped.state.adherence.assessments[0].results?.weakestDomain).toBeUndefined();
+    expect(mapped.state.adherence.assessments[0].results?.confidence).toBe('low');
+  });
 });
