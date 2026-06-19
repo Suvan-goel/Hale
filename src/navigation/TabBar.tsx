@@ -58,9 +58,9 @@ export function TabBar({ active, onChange }: { active: TabKey; onChange: (key: T
 const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
-    backgroundColor: '#FCFAF6',
+    backgroundColor: colors.bgSurface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E4DCCE',
+    borderTopColor: colors.borderHairline,
     paddingTop: spacing.md,
     paddingBottom: spacing.xl, // home-indicator breathing room
     ...shadow.soft,

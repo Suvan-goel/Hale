@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     paddingHorizontal: spacing.sm,
     paddingVertical: 6,
-    backgroundColor: 'rgba(255,253,248,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
   debugButtonActive: {
     backgroundColor: colors.onAccent,

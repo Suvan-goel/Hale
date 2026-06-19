@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  ImageBackground,
   Modal,
   Pressable,
   ScrollView,
@@ -25,8 +24,6 @@ import type { PainArea } from '../training';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 
 type SnapshotKey = keyof MovementSnapshot;
-
-const sessionCardImage = require('../../assets/images/hale-todays-session-card.png');
 
 const SNAPSHOT_ROWS: readonly { key: SnapshotKey; short: string; title: string }[] = [
   { key: 'strengthPower', short: 'S', title: 'Strength' },
@@ -56,7 +53,6 @@ export function TodayScreen({
   onOpenSettings: () => void;
 }) {
   const [sessionMenuVisible, setSessionMenuVisible] = React.useState(false);
-  const [imageFailed, setImageFailed] = React.useState(false);
   const { width } = useWindowDimensions();
   const compact = width < 390;
   const block = lifecycle.activeBlockSummary;
@@ -153,36 +149,23 @@ export function TodayScreen({
           </View>
         </PremiumCard>
 
-        {imageFailed ? (
-          <View style={[styles.focusCard, styles.focusFallback]}>
-            <SessionCardContent
-              compact={compact}
-              label={isSessionAction ? 'Daily Focus' : 'Today'}
-              title={sessionTitle}
-              subtitle={sessionSubtitle}
-              ctaLabel={isSessionAction ? 'Start Session' : actionCta(lifecycle.primaryAction.ctaLabel)}
-              onPress={handleStartPress}
-            />
+        <View style={styles.focusCard}>
+          <View pointerEvents="none" style={styles.focusTexture}>
+            <View style={styles.focusTexturePanel} />
+            <View style={[styles.focusTextureLine, styles.focusTextureLineOne]} />
+            <View style={[styles.focusTextureLine, styles.focusTextureLineTwo]} />
+            <View style={[styles.focusTextureLine, styles.focusTextureLineThree]} />
+            <View style={styles.focusTextureAccent} />
           </View>
-        ) : (
-          <ImageBackground
-            source={sessionCardImage}
-            resizeMode="cover"
-            style={styles.focusCard}
-            imageStyle={styles.focusImage}
-            onError={() => setImageFailed(true)}
-          >
-            <View style={styles.focusOverlay} />
-            <SessionCardContent
-              compact={compact}
-              label={isSessionAction ? 'Daily Focus' : 'Today'}
-              title={sessionTitle}
-              subtitle={sessionSubtitle}
-              ctaLabel={isSessionAction ? 'Start Session' : actionCta(lifecycle.primaryAction.ctaLabel)}
-              onPress={handleStartPress}
-            />
-          </ImageBackground>
-        )}
+          <SessionCardContent
+            compact={compact}
+            label={isSessionAction ? 'Daily Focus' : 'Today'}
+            title={sessionTitle}
+            subtitle={sessionSubtitle}
+            ctaLabel={isSessionAction ? 'Start Session' : actionCta(lifecycle.primaryAction.ctaLabel)}
+            onPress={handleStartPress}
+          />
+        </View>
 
         <View style={styles.upcomingSection}>
           <View style={styles.sectionHeader}>
@@ -280,7 +263,7 @@ function ProgressRing({ progress, value, label, size = 124 }: { progress: number
           cx={center}
           cy={center}
           r={r}
-          stroke={colors.sage}
+          stroke={colors.positive}
           strokeWidth={stroke}
           fill="none"
           strokeLinecap="round"
@@ -529,7 +512,7 @@ const styles = StyleSheet.create({
   ring: { alignItems: 'center', justifyContent: 'center' },
   ringCenter: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   ringValue: {
-    color: colors.accentDeep,
+    color: colors.accent,
     fontFamily: fonts.sansMedium,
     fontSize: 25,
     lineHeight: 30,
@@ -561,7 +544,7 @@ const styles = StyleSheet.create({
   },
   metricIconText: {
     ...type.caption,
-    color: colors.sageDeep,
+    color: colors.accent,
     fontFamily: fonts.sansMedium,
     fontSize: 12,
   },
@@ -583,37 +566,74 @@ const styles = StyleSheet.create({
     minHeight: 228,
     overflow: 'hidden',
     borderRadius: radius.panel,
+    backgroundColor: colors.accent,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
+    borderColor: colors.accentHover,
     ...shadow.lifted,
   },
-  focusImage: {
-    borderRadius: radius.panel,
-  },
-  focusFallback: {
-    backgroundColor: colors.sage,
-  },
-  focusOverlay: {
+  focusTexture: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(22,28,24,0.30)',
+  },
+  focusTexturePanel: {
+    position: 'absolute',
+    top: 0,
+    right: -28,
+    bottom: 0,
+    width: '44%',
+    backgroundColor: colors.accentHover,
+    opacity: 0.24,
+  },
+  focusTextureLine: {
+    position: 'absolute',
+    height: 2,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bgSurface,
+    opacity: 0.14,
+    transform: [{ rotate: '-18deg' }],
+  },
+  focusTextureLineOne: {
+    width: 170,
+    right: -12,
+    top: 54,
+  },
+  focusTextureLineTwo: {
+    width: 132,
+    right: 24,
+    top: 104,
+  },
+  focusTextureLineThree: {
+    width: 184,
+    right: -28,
+    bottom: 54,
+  },
+  focusTextureAccent: {
+    position: 'absolute',
+    right: 34,
+    bottom: 34,
+    width: 58,
+    height: 3,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accentGold,
+    opacity: 0.52,
   },
   focusContent: {
-    width: '66%',
+    width: '72%',
     minHeight: 228,
     justifyContent: 'center',
     padding: spacing.xl,
+    zIndex: 1,
   },
   focusContentCompact: {
-    width: '78%',
+    width: '76%',
     paddingRight: spacing.lg,
   },
   focusLabel: {
     ...type.bodySmall,
-    color: colors.textOnDark,
-    opacity: 0.88,
+    color: colors.bgGold,
+    fontFamily: fonts.sansMedium,
   },
   focusTitle: {
-    color: colors.textOnDark,
+    color: colors.onAccent,
     fontFamily: fonts.serifMedium,
     fontSize: 30,
     lineHeight: 36,
@@ -622,7 +642,7 @@ const styles = StyleSheet.create({
   },
   focusSubtitle: {
     ...type.caption,
-    color: colors.textOnDark,
+    color: colors.bgGold,
     marginTop: spacing.sm,
     maxWidth: 260,
   },
@@ -635,13 +655,14 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    backgroundColor: colors.bgBase,
+    backgroundColor: colors.bgSurface,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
+    borderColor: colors.bgSurface,
     marginTop: spacing.lg,
   },
   focusButtonPressed: {
-    opacity: 0.88,
+    backgroundColor: colors.bgGold,
+    borderColor: colors.bgGold,
     transform: [{ scale: 0.99 }],
   },
   focusButtonText: {
@@ -688,6 +709,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.bgMaterial,
+    borderWidth: 1,
+    borderColor: colors.borderHairline,
   },
   upcomingCopy: {
     flex: 1,
@@ -733,13 +756,13 @@ const styles = StyleSheet.create({
   progressTrack: {
     height: 6,
     borderRadius: radius.pill,
-    backgroundColor: colors.bgMaterial,
+    backgroundColor: colors.bgSage,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     borderRadius: radius.pill,
-    backgroundColor: colors.sage,
+    backgroundColor: colors.positive,
   },
   modalRoot: {
     flex: 1,
@@ -747,7 +770,7 @@ const styles = StyleSheet.create({
   },
   modalScrim: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(22,28,24,0.32)',
+    backgroundColor: 'rgba(17,20,18,0.32)',
   },
   sheet: {
     borderTopLeftRadius: radius.panel,
@@ -805,8 +828,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgSurface,
   },
   menuRadioSelected: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
+    backgroundColor: colors.positive,
+    borderColor: colors.positive,
   },
   painMenu: {
     marginTop: spacing.lg,

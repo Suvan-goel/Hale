@@ -24,8 +24,11 @@ notes are the transfer.
    backdrop is the design-system `bg-base` canvas with a contrasting filled figure; the native
    `PoseDetectionView` background is held in sync on both platforms. The app's visual identity
    was redesigned 2026-06-16 to a warm premium longevity system inspired by consumer wellness
-   dashboards — ivory `bg-base #F7F2EA`, cream raised cards, deep forest-green primary action,
-   sage support tones, restrained champagne-gold accents, and a green-black figure gradient.
+   dashboards; on 2026-06-19 the colour system was strengthened to a mature premium
+   warm-stone + inky-green palette — `bgBase #F7F5EF`, white cards, elevated `#FBFAF7`
+   surfaces, `accent #123C2E`, `accentDeep #0B2B21`, progress/success `#007A5A`,
+   soft fills `#EEF4EF/#F5F8F5`, text `#111412/#68706A/#8A908A`, stone borders
+   `#E4E0D6/#D8D3C8`, restrained `#A98243` milestone accents, and an inky green figure gradient.
    All tokens live in `src/theme`; no screen hardcodes colour. See docs/decisions.md.)*
 2. **Audio-first.** Voice guides everything; after propping the phone, the user never touches
    the screen until the session ends. Auto-start when framed, auto-advance between items, rest

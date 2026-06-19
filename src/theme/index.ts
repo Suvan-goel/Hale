@@ -3,8 +3,8 @@
  * radii and depth. Screens and shared components reference these tokens rather
  * than hardcoding repeated visual values.
  *
- * The aesthetic: clean premium health-tech. Warm neutral canvas, crisp white
- * surfaces, restrained deep-green action colour, and quiet dividers. The
+ * The aesthetic: clean premium longevity. Warm stone canvas, crisp white
+ * surfaces, inky green action colour, and quiet stone dividers. The
  * product should feel calm, trustworthy, readable, and daily-use friendly for
  * adults 50+, never clinical, toy-like, or fitness-gimmicky.
  *
@@ -18,71 +18,91 @@ import { Platform, TextStyle, ViewStyle } from 'react-native';
  * Colour — crisp premium palette
  * ------------------------------------------------------------------------- */
 
+export const palette = {
+  appBackground: '#F7F5EF',
+  cardSurface: '#FFFFFF',
+  elevatedSurface: '#FBFAF7',
+  ink: '#111412',
+  secondaryText: '#68706A',
+  tertiaryText: '#8A908A',
+  brandGreen: '#123C2E',
+  brandGreenPressed: '#0B2B21',
+  emeraldAccent: '#007A5A',
+  softGreenFill: '#EEF4EF',
+  verySoftGreenFill: '#F5F8F5',
+  border: '#E4E0D6',
+  strongBorder: '#D8D3C8',
+  warmPremiumAccent: '#A98243',
+  softGoldFill: '#F4EFE4',
+  softShadow: 'rgba(17,20,18,0.08)',
+} as const;
+
 export const colors = {
-  // Refined premium palette.
-  background: '#F7F5EF',
-  backgroundAlt: '#F2F0EA',
-  surface: '#FFFFFF',
-  surfaceWarm: '#FCFAF5',
-  card: '#FFFFFF',
-  cardSubtle: '#F9F7F1',
-  elevatedCard: '#FFFFFF',
-  primaryText: '#161C18',
-  secondaryText: '#5F635C',
-  mutedText: '#8A8E86',
-  accent: '#26382C',
-  accentHover: '#1E2D23',
-  accentDark: '#26382C',
-  accentSoft: '#E5ECE4',
-  accentBorder: '#B9C7B8',
-  border: '#E4E1D8',
-  borderSubtle: '#EDEAE2',
-  subtleBorder: '#EDEAE2',
-  inputBorder: '#DCD8CE',
-  buttonText: '#F7F5EF',
-  warningClay: '#9A6A3D',
-  success: '#526B55',
+  // Premium warm-stone + inky-green palette.
+  background: palette.appBackground,
+  backgroundAlt: palette.elevatedSurface,
+  surface: palette.cardSurface,
+  surfaceWarm: palette.elevatedSurface,
+  card: palette.cardSurface,
+  cardSubtle: palette.elevatedSurface,
+  elevatedCard: palette.elevatedSurface,
+  primaryText: palette.ink,
+  secondaryText: palette.secondaryText,
+  mutedText: palette.tertiaryText,
+  accent: palette.brandGreen,
+  accentHover: palette.brandGreenPressed,
+  accentDark: palette.brandGreenPressed,
+  accentSoft: palette.softGreenFill,
+  accentBorder: palette.strongBorder,
+  border: palette.border,
+  borderSubtle: palette.border,
+  subtleBorder: palette.border,
+  inputBorder: palette.strongBorder,
+  buttonText: palette.cardSurface,
+  warningClay: palette.warmPremiumAccent,
+  success: palette.emeraldAccent,
 
   // Descriptive legacy names retained for existing call sites.
-  warmMineralCream: '#F2F0EA',
-  warmStone: '#E4E1D8',
-  softIvory: '#F7F5EF',
-  porcelain: '#FFFFFF',
-  oliveSage: '#26382C',
-  oliveSageDark: '#1E2D23',
-  sageMist: '#E5ECE4',
-  restorativeGreen: '#526B55',
-  textPrimary: '#161C18',
-  textSecondary: '#5F635C',
-  textMuted: '#8A8E86',
-  textOnDark: '#F7F5EF',
-  warmBorder: '#E4E1D8',
-  amberClay: '#9A6A3D',
-  appBackground: '#F7F5EF',
-  cardBackground: '#FFFFFF',
+  warmMineralCream: palette.appBackground,
+  warmStone: palette.border,
+  softIvory: palette.appBackground,
+  porcelain: palette.cardSurface,
+  oliveSage: palette.brandGreen,
+  oliveSageDark: palette.brandGreenPressed,
+  sageMist: palette.softGreenFill,
+  restorativeGreen: palette.brandGreen,
+  textPrimary: palette.ink,
+  textSecondary: palette.secondaryText,
+  textMuted: palette.tertiaryText,
+  textOnDark: palette.cardSurface,
+  warmBorder: palette.border,
+  amberClay: palette.warmPremiumAccent,
+  appBackground: palette.appBackground,
+  cardBackground: palette.cardSurface,
 
   // Compatibility aliases used across the current app.
-  bgBase: '#F7F5EF',
-  bgSurface: '#FFFFFF',
-  bgElevated: '#FFFFFF',
-  bgMaterial: '#F2F0EA',
-  bgSage: '#E5ECE4',
-  bgGold: '#F9F7F1',
-  borderHairline: '#E4E1D8',
-  divider: '#EDEAE2',
-  textTertiary: '#8A8E86',
-  accentDeep: '#26382C',
-  sage: '#526B55',
-  sageDeep: '#26382C',
-  accentGold: '#7B704E',
-  goldBorder: '#D8D1C0',
-  positive: '#526B55',
-  caution: '#9A6A3D',
-  cautionSoft: '#F9F1E8',
-  cautionBorder: '#E4D5C4',
+  bgBase: palette.appBackground,
+  bgSurface: palette.cardSurface,
+  bgElevated: palette.elevatedSurface,
+  bgMaterial: palette.elevatedSurface,
+  bgSage: palette.verySoftGreenFill,
+  bgGold: palette.softGoldFill,
+  borderHairline: palette.border,
+  divider: palette.border,
+  textTertiary: palette.tertiaryText,
+  accentDeep: palette.brandGreenPressed,
+  sage: palette.softGreenFill,
+  sageDeep: palette.brandGreen,
+  accentGold: palette.warmPremiumAccent,
+  goldBorder: palette.strongBorder,
+  positive: palette.emeraldAccent,
+  caution: palette.warmPremiumAccent,
+  cautionSoft: palette.softGoldFill,
+  cautionBorder: palette.strongBorder,
   error: '#B85C50',
-  debugOverlay: 'rgba(22,28,24,0.86)',
-  onAccent: '#F7F5EF',
+  debugOverlay: 'rgba(17,20,18,0.86)',
+  shadowSoft: palette.softShadow,
+  onAccent: palette.cardSurface,
 } as const;
 
 /* ----------------------------------------------------------------------------
@@ -155,16 +175,16 @@ export const minTapTarget = 48;
 
 export const shadow = {
   soft: {
-    shadowColor: 'rgba(22,28,24,1)',
-    shadowOpacity: 0.012,
+    shadowColor: 'rgba(17,20,18,1)',
+    shadowOpacity: 0.035,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 0,
   } satisfies ViewStyle,
   lifted: {
-    shadowColor: 'rgba(22,28,24,1)',
-    shadowOpacity: 0.024,
-    shadowRadius: 10,
+    shadowColor: 'rgba(17,20,18,1)',
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
     elevation: 1,
   } satisfies ViewStyle,
@@ -306,7 +326,7 @@ export const componentStyles = {
     fill: {
       height: '100%',
       borderRadius: radius.pill,
-      backgroundColor: colors.accent,
+      backgroundColor: colors.positive,
     } satisfies ViewStyle,
   },
 } as const;
@@ -317,10 +337,10 @@ export const componentStyles = {
 
 export const skeleton = {
   background: colors.bgBase,
-  figureTop: '#526B55',
-  figureBottom: '#1E2D23',
+  figureTop: palette.brandGreen,
+  figureBottom: palette.brandGreenPressed,
   bright: colors.textPrimary,
-  dim: '#B7B2A8',
+  dim: colors.textTertiary,
 } as const;
 
 export const motion = {

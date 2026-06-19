@@ -37,7 +37,7 @@ private const val LANDMARK_STRIDE = 5
 
 /**
  * Owns CameraX + MediaPipe PoseLandmarker. No preview surface is ever
- * attached — the view renders a solid warm-cream canvas (the app's bg-base) and
+ * attached — the view renders a solid warm-stone canvas (the app's bg-base) and
  * emits one landmark event per analyzed frame; the JS skeleton is drawn on top.
  * Inference runs synchronously in VIDEO mode on a dedicated single-thread
  * executor with monotonic timestamps.

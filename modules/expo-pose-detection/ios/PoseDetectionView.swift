@@ -7,7 +7,7 @@ private let landmarkStride = 5
 
 /**
  * Owns AVCaptureSession + MediaPipe PoseLandmarker. No preview layer is ever
- * attached — the view renders a solid warm-cream canvas (the app's bg-base) and
+ * attached — the view renders a solid warm-stone canvas (the app's bg-base) and
  * emits one landmark event per frame; the JS skeleton is drawn on top. Inference
  * runs synchronously in VIDEO mode on the capture queue with monotonic timestamps.
  */

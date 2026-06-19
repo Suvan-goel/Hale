@@ -878,3 +878,45 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
   rather than overlapping the avatar.
 - **Scope boundary:** pose estimation, camera capture, contain-fit avatar mapping, framing prompts,
   and workout/check-up progression are unchanged.
+
+## 2026-06-19 — White-stone + deep-emerald colour refinement
+
+- **Change:** the central theme moved from the warm cream/olive system to a cleaner premium
+  longevity palette: `bgBase #F7F7F3`, white cards/surfaces, `accent #0F4A36`,
+  `accentHover #0A3627`, `accentSoft #DDE9E1`, secondary sage `#B9CABC`, text `#111814`,
+  secondary text `#69726C`, dividers `#E7E5DD`, and milestone accent `#B89B5E`.
+- **Mirrors:** `app.json`, both native `PoseDetectionView` backgrounds, and the skeleton preview
+  script were kept in sync with the new `bgBase`; the pose figure gradient now uses deep emerald.
+- **Scope boundary:** this was a colour-system polish pass only. Layout, copy, onboarding flow,
+  auth/backend sync, pose detection, check-up/session state machines, scoring, and workout
+  generation were not changed.
+
+## 2026-06-19 — Stronger white-stone + emerald colour polish
+
+- **Change:** the central palette was strengthened so the app no longer reads as cream/olive:
+  `bgBase #F8F9F6`, white cards, elevated `#FCFCFA` surfaces, primary emerald `#005C43`,
+  deep emerald `#073B2D`, pressed emerald `#03402F`, soft emerald fill `#E7F2ED`, pale mint
+  fill `#F0F7F3`, text `#111714/#68736D/#8B938D`, borders `#E1E6DF`, and milestone accent
+  `#B79A5B`.
+- **Today card:** the Daily Focus card moved away from the dark image-overlay treatment to a white
+  premium card with charcoal/emerald copy, a pale mint detail area, and an emerald primary CTA.
+- **Mirrors:** `app.json`, both native `PoseDetectionView` backgrounds, and the skeleton preview
+  script were kept in sync with the cooler `bgBase`; the pose figure gradient now uses the stronger
+  emerald tokens.
+- **Scope boundary:** this remains a visual colour/card-styling pass only. Layout flow, copy,
+  onboarding, auth/backend sync, pose detection, check-up/session state machines, scoring, and
+  workout generation were not changed.
+
+## 2026-06-19 — Warm-stone + inky-green premium correction
+
+- **Change:** the central palette moved away from mint-heavy wellness styling toward a warmer,
+  more mature longevity identity: `bgBase #F7F5EF`, white cards, elevated `#FBFAF7` surfaces,
+  primary ink `#111412`, secondary text `#68706A`, tertiary text `#8A908A`, brand green
+  `#123C2E`, pressed green `#0B2B21`, progress/success emerald `#007A5A`, soft fills
+  `#EEF4EF/#F5F8F5`, stone borders `#E4E0D6/#D8D3C8`, warm accent `#A98243`, and soft gold
+  fill `#F4EFE4`.
+- **Today card:** the Daily Focus card returned to a deep brand-green hero treatment with
+  warm-white copy, a warm-white CTA, and only restrained line texture, removing the generic pale
+  mint illustration panel.
+- **Scope boundary:** visual palette and card styling only. App logic, navigation, auth/backend
+  sync, pose detection, check-up flow, training generation, and product copy are unchanged.
