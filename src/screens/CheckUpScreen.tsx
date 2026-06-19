@@ -49,6 +49,7 @@ interface Snapshot {
   repCount: number;
   remainingSec: number;
   setupIssue: boolean;
+  setupCaption: string | null;
   totalItems: number;
 }
 
@@ -61,6 +62,7 @@ const INITIAL: Snapshot = {
   repCount: 0,
   remainingSec: NaN,
   setupIssue: false,
+  setupCaption: null,
   totalItems: TOTAL_ITEMS,
 };
 
@@ -150,6 +152,7 @@ export function CheckUpScreen({
           repCount: u.item ? u.item.repCount : 0,
           remainingSec: u.item ? Math.ceil(u.item.remainingMs / 1000) : NaN,
           setupIssue: u.setupIssue,
+          setupCaption: u.item ? u.item.setupCaption : null,
           totalItems: u.totalItems,
         };
         setSnapshot((prev) =>
@@ -161,6 +164,7 @@ export function CheckUpScreen({
           prev.repCount === next.repCount &&
           prev.remainingSec === next.remainingSec &&
           prev.setupIssue === next.setupIssue &&
+          prev.setupCaption === next.setupCaption &&
           prev.totalItems === next.totalItems
             ? prev
             : next
@@ -258,9 +262,14 @@ export function CheckUpScreen({
                   {Number.isFinite(snapshot.remainingSec) ? (
                     <Text style={styles.timer}>{snapshot.remainingSec}s</Text>
                   ) : null}
+                  {snapshot.setupCaption ? (
+                    <Text style={styles.caption}>{snapshot.setupCaption}</Text>
+                  ) : null}
                 </>
               ) : snapshot.itemPhase ? (
-                <Text style={styles.caption}>{ITEM_CAPTION[snapshot.itemPhase]}</Text>
+                <Text style={styles.caption}>
+                  {snapshot.setupCaption ?? ITEM_CAPTION[snapshot.itemPhase]}
+                </Text>
               ) : null}
             </>
           )}

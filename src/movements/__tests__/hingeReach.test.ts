@@ -23,6 +23,7 @@ describe('hinge reach — acceptance', () => {
     expect(result.reachBu).toBeLessThan(0.45); // close to the floor
     expect(result.validTime).toBeTruthy();
     expect(result.validTime?.accumulatedValidSeconds).toBeGreaterThan(0);
+    expect(result.validTime?.completedByValidTime).toBe(true);
   });
 
   it('a deeper fold reaches lower than a shallow one', () => {
@@ -31,9 +32,18 @@ describe('hinge reach — acceptance', () => {
     expect(deep.result.reachBu).toBeLessThan(shallow.result.reachBu);
   });
 
-  it('standing only (no fold) records a large distance', () => {
+  it('standing only (no fold) records no official measurement', () => {
     const { result } = grade({ seed: 33, peakFoldDeg: 0, foldMs: 100, holdMs: 100 });
-    expect(result.reachBu).toBeGreaterThan(0.6);
+    expect(result.flags).toContain('no-measurement');
+    expect(result.validTime?.completedByValidTime).toBe(false);
+    expect(Number.isNaN(result.reachBu)).toBe(true);
+  });
+
+  it('does not publish a fallback reach when the valid capture window is too short', () => {
+    const { result } = grade({ seed: 34, peakFoldDeg: 85, foldMs: 100, holdMs: 100 });
+    expect(result.flags).toContain('no-measurement');
+    expect(result.validTime?.completedByValidTime).toBe(false);
+    expect(Number.isNaN(result.reachBu)).toBe(true);
   });
 
   it('is camera-distance invariant (body-unit normalized)', () => {
@@ -46,7 +56,7 @@ describe('hinge reach — acceptance', () => {
     const { result } = grade({
       seed: 55,
       peakFoldDeg: 85,
-      goneWindows: [{ startMs: 8200, endMs: 9200 }],
+      goneWindows: [{ startMs: 9600, endMs: 10600 }],
     });
     expect(result.interruptions).toBeGreaterThanOrEqual(1);
     expect(result.flags).toContain('tracking-interrupted');

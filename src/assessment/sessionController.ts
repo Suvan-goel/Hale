@@ -21,8 +21,9 @@ import {
   MovementGrader,
   MovementResultBase,
 } from '../movements';
-import { PipelineFrameOutput } from '../pose/pipeline';
+import { PipelineFrameOutput, PoseEvent } from '../pose/pipeline';
 import { PreflightPrompt, PreflightStatus } from '../preflight/preflight';
+import type { MovementCameraReadinessResult } from '../preflight/movementCameraReadiness';
 import { shouldSpeakFramingPrompt } from '../preflight/promptTiming';
 
 export type AssessmentPhase =
@@ -49,6 +50,8 @@ export interface SessionFrameUpdate {
   remainingMs: number;
   /** Whether the grader is actually measuring (active phase only). */
   measuring: boolean;
+  /** Movement-specific setup guidance for the HUD; null = phase default. */
+  setupCaption: string | null;
 }
 
 export interface SessionControllerConfig {
@@ -92,7 +95,12 @@ export class SessionController<R extends MovementResultBase = MovementResultBase
     repCount: 0,
     remainingMs: NaN,
     measuring: false,
+    setupCaption: null,
   };
+  private readonly interruptionEvent: PoseEvent = { type: 'tracking-interrupted', timestampMs: 0 };
+  private readonly interruptionEvents: PoseEvent[] = [this.interruptionEvent];
+  private readonly emptyInterruptionEvents: PoseEvent[] = [];
+  private readonly interruptedOut = {} as PipelineFrameOutput;
 
   private phase: AssessmentPhase = 'preflight';
   private lastPromptCue: VoiceCueKey | null = null;
@@ -104,6 +112,7 @@ export class SessionController<R extends MovementResultBase = MovementResultBase
   private activeStartMs = 0;
   private finishedResult: R | null = null;
   private resultSpokenAtMs = -1;
+  private activeCameraInterrupted = false;
 
   constructor(
     definition: MovementDefinition<R>,
@@ -125,6 +134,7 @@ export class SessionController<R extends MovementResultBase = MovementResultBase
   update(
     out: PipelineFrameOutput,
     preflight: PreflightStatus,
+    cameraReadiness: MovementCameraReadinessResult,
     voiceBusy: boolean
   ): SessionFrameUpdate {
     const u = this.update_;
@@ -132,11 +142,13 @@ export class SessionController<R extends MovementResultBase = MovementResultBase
     u.playRepSound = false;
     u.remainingMs = NaN;
     u.measuring = false;
+    u.setupCaption = null;
     const ts = out.frame.timestampMs;
 
     switch (this.phase) {
       case 'preflight': {
-        if (preflight.phase === 'ready' && out.bodyUnit !== null) {
+        const block = setupBlock(preflight, cameraReadiness, out);
+        if (block === null) {
           this.phase = 'instructions';
           this.instructionsEnteredAtMs = ts;
           this.instructionsIdleAtMs = -1;
@@ -146,24 +158,20 @@ export class SessionController<R extends MovementResultBase = MovementResultBase
           };
           break;
         }
-        const cue = promptCue(preflight.prompt);
-        if (
-          shouldSpeakFramingPrompt({
-            cue,
-            lastCue: this.lastPromptCue,
-            lastSpokenAtMs: this.lastPromptAtMs,
-            nowMs: ts,
-            repeatMs: this.config.promptRepeatMs,
-          })
-        ) {
-          this.lastPromptCue = cue;
-          this.lastPromptAtMs = ts;
-          u.voice = { cues: [cue], priority: voicePriority(cue) };
-        }
+        u.setupCaption = block.caption;
+        this.maybeSpeakSetupPrompt(u, block.cue, ts);
         break;
       }
 
       case 'instructions': {
+        const block = setupBlock(preflight, cameraReadiness, out);
+        if (block !== null) {
+          this.phase = 'preflight';
+          this.instructionsIdleAtMs = -1;
+          u.setupCaption = block.caption;
+          this.maybeSpeakSetupPrompt(u, block.cue, ts);
+          break;
+        }
         // Give playback a beat to report busy before trusting "idle".
         if (ts - this.instructionsEnteredAtMs < 1000) break;
         if (voiceBusy) {
@@ -182,6 +190,14 @@ export class SessionController<R extends MovementResultBase = MovementResultBase
       }
 
       case 'countdown': {
+        const block = setupBlock(preflight, cameraReadiness, out);
+        if (block !== null) {
+          this.phase = 'preflight';
+          this.countdownStep = 0;
+          u.setupCaption = block.caption;
+          this.maybeSpeakSetupPrompt(u, block.cue, ts);
+          break;
+        }
         if (
           this.countdownStep < COUNTDOWN.length &&
           ts - this.countdownStartMs >= this.countdownStep * this.config.countdownStepMs
@@ -192,6 +208,7 @@ export class SessionController<R extends MovementResultBase = MovementResultBase
           if (cue === 'go') {
             this.phase = 'active';
             this.activeStartMs = ts;
+            this.activeCameraInterrupted = false;
             this.grader.reset();
           }
         }
@@ -199,7 +216,18 @@ export class SessionController<R extends MovementResultBase = MovementResultBase
       }
 
       case 'active': {
-        const graderUpdate: GraderUpdate = this.grader.update(out);
+        const block = setupBlock(preflight, cameraReadiness, out);
+        const measuringReady = block === null && out.state === 'tracking';
+        let graderOut = out;
+        if (!measuringReady) {
+          u.setupCaption = block?.caption ?? null;
+          if (block !== null) this.maybeSpeakSetupPrompt(u, block.cue, ts);
+          graderOut = this.trackingInterruptedFrame(out, ts, !this.activeCameraInterrupted);
+          this.activeCameraInterrupted = true;
+        } else {
+          this.activeCameraInterrupted = false;
+        }
+        const graderUpdate: GraderUpdate = this.grader.update(graderOut);
         u.playRepSound = graderUpdate.repCredited;
         u.repCount = graderUpdate.repCount;
         u.measuring = graderUpdate.measuring;
@@ -254,8 +282,10 @@ export class SessionController<R extends MovementResultBase = MovementResultBase
     this.countdownStep = 0;
     this.finishedResult = null;
     this.resultSpokenAtMs = -1;
+    this.activeCameraInterrupted = false;
     this.grader.reset();
     this.update_.repCount = 0;
+    this.update_.setupCaption = null;
   }
 
   shiftTiming(deltaMs: number): void {
@@ -267,8 +297,62 @@ export class SessionController<R extends MovementResultBase = MovementResultBase
     this.activeStartMs += deltaMs;
     if (this.resultSpokenAtMs >= 0) this.resultSpokenAtMs += deltaMs;
   }
+
+  private maybeSpeakSetupPrompt(u: SessionFrameUpdate, cue: VoiceCueKey, ts: number): void {
+    if (
+      shouldSpeakFramingPrompt({
+        cue,
+        lastCue: this.lastPromptCue,
+        lastSpokenAtMs: this.lastPromptAtMs,
+        nowMs: ts,
+        repeatMs: this.config.promptRepeatMs,
+      })
+    ) {
+      this.lastPromptCue = cue;
+      this.lastPromptAtMs = ts;
+      u.voice = { cues: [cue], priority: voicePriority(cue) };
+    }
+  }
+
+  private trackingInterruptedFrame(
+    out: PipelineFrameOutput,
+    timestampMs: number,
+    emitEvent: boolean
+  ): PipelineFrameOutput {
+    this.interruptionEvent.timestampMs = timestampMs;
+    const interrupted = this.interruptedOut;
+    interrupted.state = 'interrupted';
+    interrupted.inferenceMs = out.inferenceMs;
+    interrupted.frame = out.frame;
+    interrupted.rawFrame = out.rawFrame;
+    interrupted.displayFrame = out.displayFrame;
+    interrupted.chainReliability = out.chainReliability;
+    interrupted.reliableSideChains = out.reliableSideChains;
+    interrupted.validity = out.validity;
+    interrupted.bodyUnit = out.bodyUnit;
+    interrupted.events = emitEvent ? this.interruptionEvents : this.emptyInterruptionEvents;
+    interrupted.fps = out.fps;
+    return interrupted;
+  }
 }
 
 function promptCue(prompt: PreflightPrompt): VoiceCueKey {
   return prompt === 'ready' ? 'framing-ready' : prompt;
+}
+
+function setupBlock(
+  preflight: PreflightStatus,
+  cameraReadiness: MovementCameraReadinessResult,
+  out: PipelineFrameOutput
+): { cue: VoiceCueKey; caption: string | null } | null {
+  if (preflight.phase !== 'ready') {
+    return { cue: promptCue(preflight.prompt), caption: null };
+  }
+  if (out.bodyUnit === null) {
+    return { cue: 'hold-still', caption: 'Hold still while we calibrate your body scale.' };
+  }
+  if (!cameraReadiness.ready) {
+    return { cue: cameraReadiness.promptCue, caption: cameraReadiness.setupCaption };
+  }
+  return null;
 }

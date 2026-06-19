@@ -51,7 +51,6 @@ export const DEFAULT_HINGE_REACH_CONFIG: HingeReachConfig = {
 class HingeReachGrader implements MovementGrader<HingeReachResult> {
   private readonly config: HingeReachConfig;
   private readonly rom: MaxRomTracker;
-  private readonly fallbackRom: MaxRomTracker;
   private readonly validTime: ValidTimeAccumulator;
   private readonly liveUpdate: GraderUpdate = {
     repCredited: false,
@@ -65,22 +64,19 @@ class HingeReachGrader implements MovementGrader<HingeReachResult> {
   private sideLocked = false;
   private interruptions = 0;
   private romOut: MaxRomOutput | null = null;
-  private fallbackRomOut: MaxRomOutput | null = null;
 
   constructor(config: HingeReachConfig) {
     this.config = config;
     this.rom = new MaxRomTracker({ emaAlpha: config.emaAlpha, direction: 'min' });
-    this.fallbackRom = new MaxRomTracker({ emaAlpha: config.emaAlpha, direction: 'min' });
     this.validTime = createValidTimeAccumulator(validTimeConfigForTarget(config.validCaptureMs));
   }
 
   update(out: PipelineFrameOutput): GraderUpdate {
     const live = this.liveUpdate;
     for (let i = 0; i < out.events.length; i++) {
-      if (out.events[i].type === 'subject-gone') {
+      if (out.events[i].type === 'subject-gone' || out.events[i].type === 'tracking-interrupted') {
         this.interruptions++;
         this.rom.resetState();
-        this.fallbackRom.resetState();
         this.sideLocked = false;
       }
     }
@@ -115,7 +111,6 @@ class HingeReachGrader implements MovementGrader<HingeReachResult> {
     // Image y grows downward, so the floor is the largest foot-cluster y.
     const floorY = Math.max(frame.ys[ankle], frame.ys[heel], frame.ys[foot]);
     const wristToFloorBu = (floorY - frame.ys[wrist]) / bodyUnit;
-    this.fallbackRomOut = this.fallbackRom.update(wristToFloorBu, frame.timestampMs);
     const trunkAngle = angleAtDeg(frame, shoulder, hip, knee);
     const positionValid = trunkAngle <= 165;
     const snap = this.validTime.update({
@@ -132,29 +127,26 @@ class HingeReachGrader implements MovementGrader<HingeReachResult> {
   finish(): HingeReachResult {
     const flags: string[] = [];
     if (this.interruptions > 0) flags.push('tracking-interrupted');
-    const peak = this.romOut && Number.isFinite(this.romOut.peak)
+    const validTime = getValidTimeResult(this.validTime.snapshot, this.config.validCaptureMs);
+    const peak = validTime.completedByValidTime && this.romOut && Number.isFinite(this.romOut.peak)
       ? this.romOut.peak
-      : this.fallbackRomOut
-        ? this.fallbackRomOut.peak
-        : NaN;
+      : NaN;
     if (Number.isNaN(peak)) flags.push('no-measurement');
     return {
       movementId: HINGE_REACH_ID,
       reachBu: peak,
       flags,
       interruptions: this.interruptions,
-      validTime: getValidTimeResult(this.validTime.snapshot, this.config.validCaptureMs),
+      validTime,
     };
   }
 
   reset(): void {
     this.rom.reset();
-    this.fallbackRom.reset();
     this.validTime.reset();
     this.sideLocked = false;
     this.interruptions = 0;
     this.romOut = null;
-    this.fallbackRomOut = null;
     this.liveUpdate.measuring = false;
   }
 }

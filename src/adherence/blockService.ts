@@ -1,4 +1,10 @@
 import type { CheckUpScore, Domain } from '../scoring';
+import {
+  getBlockCreationEligibility,
+  movementDomainFromScoreDomainStrict,
+  type BlockCreationEligibility,
+  type BlockCreationIneligibilityReason,
+} from '../haleFlow/assessmentEligibility';
 import { addDaysIso } from './dateUtils';
 import { getLifeGoalTrainingRelevance } from './goalDomainMapping';
 import type { AssessmentForBlock, LifeGoal, MovementBlock, MovementDomain } from './types';
@@ -7,13 +13,59 @@ import { LOCAL_USER_ID } from './types';
 const ALL_DOMAINS: MovementDomain[] = ['strength_power', 'balance', 'mobility'];
 
 export function movementDomainFromScoreDomain(domain: Domain | null | undefined): MovementDomain {
-  if (domain === 'balance') return 'balance';
-  if (domain === 'mobility') return 'mobility';
+  const mapped = movementDomainFromScoreDomainOrNull(domain);
+  // Compatibility display fallback only. Block creation must use
+  // getBlockCreationEligibility so missing evidence never becomes strength.
+  if (mapped) return mapped;
   return 'strength_power';
+}
+
+export function movementDomainFromScoreDomainOrNull(domain: Domain | MovementDomain | null | undefined): MovementDomain | null {
+  return movementDomainFromScoreDomainStrict(domain);
 }
 
 export function scoreDomainFromMovementDomain(domain: MovementDomain): Domain {
   return domain === 'strength_power' ? 'strength' : domain;
+}
+
+export class IneligibleMovementBlockError extends Error {
+  readonly reason: BlockCreationIneligibilityReason;
+  readonly measuredDomainCount: number;
+
+  constructor(eligibility: Extract<BlockCreationEligibility, { eligible: false }>) {
+    super(`Cannot create movement block from ineligible assessment: ${eligibility.reason}`);
+    this.name = 'IneligibleMovementBlockError';
+    this.reason = eligibility.reason;
+    this.measuredDomainCount = eligibility.measuredDomains.length;
+  }
+}
+
+export type CreateMovementBlockResult =
+  | { ok: true; block: MovementBlock }
+  | ({ ok: false } & Extract<BlockCreationEligibility, { eligible: false }>);
+
+export function tryCreateMovementBlockFromAssessment(args: {
+  userId?: string;
+  latestAssessment?: AssessmentForBlock | CheckUpScore | null;
+  lifeGoal?: LifeGoal | null;
+  startDate?: string;
+}): CreateMovementBlockResult {
+  const normalized = normalizeAssessmentForBlock(args.latestAssessment);
+  const eligibility = getBlockCreationEligibility({ score: normalized.score, assessment: normalized.assessment });
+  if (!eligibility.eligible) {
+    return { ok: false, ...eligibility };
+  }
+
+  return {
+    ok: true,
+    block: buildMovementBlock({
+      userId: args.userId ?? LOCAL_USER_ID,
+      sourceAssessmentId: normalized.sourceAssessmentId,
+      lifeGoal: args.lifeGoal,
+      startDate: args.startDate ?? new Date().toISOString(),
+      focusDomain: eligibility.focusDomain,
+    }),
+  };
 }
 
 export function createMovementBlockFromAssessment({
@@ -27,16 +79,24 @@ export function createMovementBlockFromAssessment({
   lifeGoal?: LifeGoal | null;
   startDate?: string;
 }): MovementBlock {
-  let score: CheckUpScore | null | undefined;
-  let sourceAssessmentId: string | undefined;
-  if (isAssessmentForBlock(latestAssessment)) {
-    score = latestAssessment.score;
-    sourceAssessmentId = latestAssessment.id;
-  } else {
-    score = latestAssessment;
-    sourceAssessmentId = latestAssessment?.startedAt;
-  }
-  const focusDomain = movementDomainFromScoreDomain(score?.weakestDomain);
+  const result = tryCreateMovementBlockFromAssessment({ userId, latestAssessment, lifeGoal, startDate });
+  if (!result.ok) throw new IneligibleMovementBlockError(result);
+  return result.block;
+}
+
+function buildMovementBlock({
+  userId,
+  sourceAssessmentId,
+  lifeGoal,
+  startDate,
+  focusDomain,
+}: {
+  userId: string;
+  sourceAssessmentId?: string;
+  lifeGoal?: LifeGoal | null;
+  startDate: string;
+  focusDomain: MovementDomain;
+}): MovementBlock {
   const relevance = getLifeGoalTrainingRelevance(lifeGoal);
   const goalDomains = relevance.primaryDomains.filter((d) => d !== focusDomain);
   const secondaryDomains = uniqueDomains([...goalDomains, ...ALL_DOMAINS.filter((d) => d !== focusDomain)]).slice(0, 2);
@@ -60,6 +120,17 @@ export function createMovementBlockFromAssessment({
     createdAt: startDate,
     updatedAt: startDate,
   };
+}
+
+function normalizeAssessmentForBlock(latestAssessment: AssessmentForBlock | CheckUpScore | null | undefined): {
+  score: CheckUpScore | null;
+  assessment?: AssessmentForBlock['assessment'];
+  sourceAssessmentId?: string;
+} {
+  if (isAssessmentForBlock(latestAssessment)) {
+    return { score: latestAssessment.score, assessment: latestAssessment.assessment, sourceAssessmentId: latestAssessment.id };
+  }
+  return { score: latestAssessment ?? null, sourceAssessmentId: latestAssessment?.startedAt };
 }
 
 function isAssessmentForBlock(v: unknown): v is AssessmentForBlock {

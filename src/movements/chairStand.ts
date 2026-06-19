@@ -114,7 +114,7 @@ class ChairStandGrader implements MovementGrader<ChairStandResult> {
     // The painful lesson, encoded: an interruption resets the rep state
     // machine so re-entry can never double-count. Credited reps survive.
     for (let i = 0; i < out.events.length; i++) {
-      if (out.events[i].type === 'subject-gone') {
+      if (out.events[i].type === 'subject-gone' || out.events[i].type === 'tracking-interrupted') {
         this.interruptions++;
         this.velocity.resetState();
         this.inAscent = false;

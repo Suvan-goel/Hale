@@ -9,6 +9,7 @@
 
 import { VoiceCueKey } from '../../audio/cues';
 import { PosePipeline } from '../../pose/pipeline';
+import { shoulderFlexionSession } from '../../pose/testing/syntheticRom';
 import { makeFrame, mulberry32 } from '../../pose/testing/syntheticPose';
 import { RawLandmarkEvent } from '../../pose/types';
 import { PreflightCheck } from '../../preflight/preflight';
@@ -37,7 +38,7 @@ interface RunResult {
  */
 function runBattery(
   config: CheckUpConfig,
-  frameAt: (ts: number) => RawLandmarkEvent,
+  frameAt: (ts: number, movementId: string | null) => RawLandmarkEvent,
   maxFrames = 40000,
   onUpdate?: (update: CheckUpFrameUpdate, orchestrator: CheckUpOrchestrator) => void
 ): RunResult {
@@ -49,11 +50,13 @@ function runBattery(
   let voiceBusyUntil = -1;
   let ts = 0;
   let frames = 0;
+  let currentMovementId: string | null = null;
 
   for (; frames < maxFrames; frames++, ts += FRAME_MS) {
-    const out = pipeline.process(frameAt(Math.round(ts)));
+    const out = pipeline.process(frameAt(Math.round(ts), currentMovementId));
     const voiceBusy = ts < voiceBusyUntil;
     const u = orchestrator.update(out, voiceBusy);
+    currentMovementId = u.currentMovementId;
     onUpdate?.(u, orchestrator);
     phasesSeen.add(u.phase);
     if (u.voice) {
@@ -67,12 +70,16 @@ function runBattery(
   return { checkUp, spoken, phasesSeen, frames };
 }
 
-// A continuously well-framed, still standing subject (front pose tracks for
-// every item; side items just pick a side). Movements aren't performed, so
-// graders measure their static defaults — enough to exercise orchestration.
-function framedStanding(seed = 7): (ts: number) => RawLandmarkEvent {
+// A continuously well-framed, still standing subject in the movement's required
+// camera view. Movements aren't performed, so graders measure static defaults —
+// enough to exercise orchestration without bypassing the movement view gate.
+function framedForMovement(seed = 7): (ts: number, movementId: string | null) => RawLandmarkEvent {
   const rng = mulberry32(seed);
-  return (ts: number) => makeFrame(ts, rng);
+  const side = shoulderFlexionSession({ seed, calibrationMs: 100, noiseAmp: 0 }).frames[0];
+  return (ts: number, movementId: string | null) => {
+    if (movementId === 'balance-ladder') return makeFrame(ts, rng, { noiseAmp: 0 });
+    return { ...side, timestampMs: ts };
+  };
 }
 
 describe('Check-Up orchestrator — full battery', () => {
@@ -82,7 +89,7 @@ describe('Check-Up orchestrator — full battery', () => {
   };
 
   it('runs the official V1 items in order and finishes with a coherent CheckUp', () => {
-    const run = runBattery(config, framedStanding());
+    const run = runBattery(config, framedForMovement());
     expect(run.checkUp.items.map((i) => i.movementId)).toEqual([
       'chair-stand-30s',
       'balance-ladder',
@@ -101,7 +108,7 @@ describe('Check-Up orchestrator — full battery', () => {
   });
 
   it('speaks the intro, the closing line, and view-change transition cues', () => {
-    const run = runBattery(config, framedStanding());
+    const run = runBattery(config, framedForMovement());
     expect(run.spoken[0]).toBe('checkup-intro');
     expect(run.spoken).toContain('checkup-complete');
     // Chair stand → balance crosses side→front; balance → shoulder crosses front→side.
@@ -140,5 +147,31 @@ describe('Check-Up orchestrator — setup issue choices', () => {
     expect(setupIssues).toBe(2);
     expect(run.spoken.filter((c) => c === 'exercise-skipped').length).toBe(0);
     expect(run.spoken).toContain('checkup-complete');
+  });
+
+  it('blocks a side-view item that stays front-facing until the user explicitly skips', () => {
+    const config: CheckUpConfig = {
+      ...DEFAULT_CHECKUP_CONFIG,
+      battery: ['chair-stand-30s'],
+      maxFramingMs: 9000,
+    };
+    let setupIssues = 0;
+    const frontOnly = framedForMovement(14);
+    const run = runBattery(
+      config,
+      (ts) => frontOnly(ts, 'balance-ladder'),
+      12000,
+      (u, orchestrator) => {
+        if (!u.setupIssue) return;
+        setupIssues++;
+        orchestrator.skipCurrentItem();
+      }
+    );
+
+    expect(setupIssues).toBe(1);
+    expect(run.spoken).toContain('turn-side-on');
+    expect(run.checkUp.items).toEqual([
+      { movementId: 'chair-stand-30s', status: 'skipped', result: null },
+    ]);
   });
 });

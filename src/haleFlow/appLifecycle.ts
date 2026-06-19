@@ -16,6 +16,7 @@ import type { StoredCheckUp } from '../history';
 import type { UserProfile } from '../profile';
 import { scoreCheckUp, type CheckUpScore } from '../scoring';
 import type { TrainingState } from '../training';
+import { getBlockCreationEligibility } from './assessmentEligibility';
 import { PLAN_SESSION_IDS, planSessionIdForTemplateId, type PlanSessionId } from './sessionIds';
 
 export type HaleLifecycleState =
@@ -97,7 +98,7 @@ export interface WeekSessionStatus {
 export function getHaleAppLifecycle(input: HaleAppLifecycleInput): HaleAppLifecycleResult {
   const today = normalizeToday(input.today);
   const activeBlock = getActiveBlock(input);
-  const latestScore = latestCheckUpScore(input.history);
+  const latestScore = latestUsableCheckUpScore(input.history);
   const hasBaseline = !!latestScore || hasOfficialAssessment(input.adherence);
   const activeBlockSummary = getActiveBlockSummary({ ...input, today });
   const movementSnapshot = getMovementSnapshot({ score: latestScore });
@@ -348,13 +349,19 @@ function getActiveBlock(input: HaleAppLifecycleInput): MovementBlock | null {
   return getActiveMovementBlock(blocks);
 }
 
-function latestCheckUpScore(history: HaleAppLifecycleInput['history']): CheckUpScore | null {
-  const latest = history && history.length > 0 ? history[history.length - 1] : null;
-  return latest ? scoreCheckUp(latest.checkUp) : null;
+function latestUsableCheckUpScore(history: HaleAppLifecycleInput['history']): CheckUpScore | null {
+  if (!history) return null;
+  for (let i = history.length - 1; i >= 0; i -= 1) {
+    const score = scoreCheckUp(history[i].checkUp);
+    if (getBlockCreationEligibility({ score }).eligible) return score;
+  }
+  return null;
 }
 
 function hasOfficialAssessment(adherence: AdherenceStoreState | null | undefined): boolean {
-  return !!adherence?.assessments.some((assessment) => assessment.isOfficialForProgress && assessment.status === 'completed');
+  return !!adherence?.assessments.some(
+    (assessment) => assessment.isOfficialForProgress && getBlockCreationEligibility({ assessment }).eligible
+  );
 }
 
 function hasCompletedFirstRunProfile(profile: UserProfile | null | undefined): boolean {

@@ -22,6 +22,7 @@
 import { VoiceCueKey, voicePriority } from '../audio/cues';
 import { getMovement, MovementDefinition, MovementResultBase } from '../movements';
 import { PipelineFrameOutput } from '../pose/pipeline';
+import { MovementCameraReadinessTracker } from '../preflight/movementCameraReadiness';
 import { PreflightCheck, PreflightStatus } from '../preflight/preflight';
 import {
   DEFAULT_SESSION_CONFIG,
@@ -85,6 +86,7 @@ export class CheckUpOrchestrator {
   private readonly startedAtIso: string;
   private readonly definitions: MovementDefinition[];
   private readonly preflight: PreflightCheck;
+  private readonly movementCameraReadiness = new MovementCameraReadinessTracker();
   private readonly items: CheckUpItem[] = [];
   private readonly update_: CheckUpFrameUpdate = {
     phase: 'intro',
@@ -137,6 +139,7 @@ export class CheckUpOrchestrator {
     if (this.phase !== 'item' || !this.controller) return;
     this.setupIssue = false;
     this.preflight.reset();
+    this.movementCameraReadiness.reset();
     this.controller.reset();
     this.itemEnteredMs = this.lastTimestampMs;
   }
@@ -156,6 +159,7 @@ export class CheckUpOrchestrator {
     this.transitionEnteredMs += deltaMs;
     this.itemEnteredMs += deltaMs;
     this.preflight.shiftTiming(deltaMs);
+    this.movementCameraReadiness.shiftTiming(deltaMs);
     this.controller?.shiftTiming(deltaMs);
   }
 
@@ -222,6 +226,7 @@ export class CheckUpOrchestrator {
     this.transitionCuePending = this.transitionCue(index);
     // Each item re-frames from scratch (pre-flight 'ready' is otherwise sticky).
     this.preflight.reset();
+    this.movementCameraReadiness.reset();
   }
 
   /** Turn cue when the view changes; a gentle "next" otherwise; none for item 0. */
@@ -262,7 +267,9 @@ export class CheckUpOrchestrator {
       u.item = setupIssueItemUpdate;
       return;
     }
-    const itemUpdate = controller.update(out, status, voiceBusy);
+    const definition = this.definitions[this.itemIndex];
+    const cameraStatus = this.movementCameraReadiness.update(out, definition.cameraView);
+    const itemUpdate = controller.update(out, status, cameraStatus, voiceBusy);
     u.item = itemUpdate;
     if (itemUpdate.voice) u.voice = itemUpdate.voice;
     u.playRepSound = itemUpdate.playRepSound;
@@ -326,4 +333,5 @@ const setupIssueItemUpdate: SessionFrameUpdate = {
   repCount: 0,
   remainingMs: NaN,
   measuring: false,
+  setupCaption: null,
 };

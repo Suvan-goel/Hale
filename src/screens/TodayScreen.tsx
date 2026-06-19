@@ -1,16 +1,17 @@
 import * as React from 'react';
 import {
+  Image,
   Modal,
   Pressable,
   ScrollView,
-  StyleProp,
   StyleSheet,
   Text,
   useWindowDimensions,
   View,
-  ViewStyle,
 } from 'react-native';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+
+const HERO_IMAGE = require('../../assets/images/hale-home-hero-premium.png');
 
 import type {
   HaleAppLifecycleResult,
@@ -18,10 +19,10 @@ import type {
   MovementSnapshotBand,
   TodaySessionAdjustment,
 } from '../haleFlow';
-import { PlanIcon, SettingsIcon } from '../navigation/icons';
+import { BellIcon, CalendarIcon } from '../navigation/icons';
 import type { UserProfile } from '../profile';
 import type { PainArea } from '../training';
-import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { colors, fonts, radius, shadow, spacing, todayHomeColors, type } from '../theme';
 
 type SnapshotKey = keyof MovementSnapshot;
 
@@ -54,7 +55,7 @@ export function TodayScreen({
 }) {
   const [sessionMenuVisible, setSessionMenuVisible] = React.useState(false);
   const { width } = useWindowDimensions();
-  const compact = width < 390;
+  const compact = width < 430;
   const block = lifecycle.activeBlockSummary;
   const snapshot = lifecycle.movementSnapshot;
   const measuredCount = SNAPSHOT_ROWS.filter((row) => snapshot?.[row.key]).length;
@@ -64,10 +65,8 @@ export function TodayScreen({
   const progressValue = block
     ? `${block.sessionsCompleteThisWeek}/${block.sessionsTargetThisWeek}`
     : `${measuredCount}/${SNAPSHOT_ROWS.length}`;
-  const progressLabel = block ? 'this week' : 'domains';
-  const weekLabel = block
-    ? `${block.sessionsCompleteThisWeek} of ${block.sessionsTargetThisWeek} sessions completed`
-    : `${measuredCount} of ${SNAPSHOT_ROWS.length} domains measured`;
+  const progressNoun = block ? 'sessions' : 'domains';
+  const progressVerb = block ? 'completed' : 'measured';
   const canAdjustSession =
     lifecycle.state === 'first_session_ready' ||
     lifecycle.state === 'normal_training_day' ||
@@ -82,7 +81,7 @@ export function TodayScreen({
     ? '10-15 min focused movement to build strength, balance, and mobility.'
     : actionSubtitle(lifecycle.primaryAction.subtitle);
   const upcomingTitle = block ? block.focusTitle : actionTitle(lifecycle.primaryAction.title);
-  const upcomingMeta = isSessionAction ? 'Today - 20 min' : 'Today - next step';
+  const upcomingMeta = isSessionAction ? 'Today · 20 min' : 'Today · next step';
 
   const startWith = React.useCallback(
     (adjustment?: TodaySessionAdjustment | null, painArea?: PainArea | null) => {
@@ -119,87 +118,29 @@ export function TodayScreen({
             accessibilityRole="button"
             accessibilityLabel="Open profile and settings"
           >
-            <SettingsIcon size={24} color={colors.accent} strokeWidth={1.8} />
+            <BellIcon size={24} color={todayHomeColors.headingGreen} strokeWidth={1.8} />
           </Pressable>
         </View>
 
-        <PremiumCard style={styles.progressCard}>
-          <View style={styles.progressHeader}>
-            <View style={styles.cardHeading}>
-              <Text style={styles.cardTitle}>Movement snapshot</Text>
-              <Text style={styles.cardSubtitle}>{weekLabel}</Text>
-            </View>
-            <Text style={styles.cardKicker}>{block ? `Week ${block.weekNumber}` : progressValue}</Text>
-          </View>
-          <View style={[styles.progressBody, compact && styles.progressBodyCompact]}>
-            <ProgressRing progress={progress} value={progressValue} label={progressLabel} size={compact ? 112 : 124} />
-            <View style={styles.metricRows}>
-              {SNAPSHOT_ROWS.map((row) => {
-                const band = snapshot?.[row.key];
-                return (
-                  <MetricRow
-                    key={row.key}
-                    icon={row.short}
-                    label={row.title}
-                    value={band ? bandValue(band) : 'Pending'}
-                  />
-                );
-              })}
-            </View>
-          </View>
-        </PremiumCard>
+        <MovementSnapshotCard
+          compact={compact}
+          progress={progress}
+          progressValue={progressValue}
+          progressNoun={progressNoun}
+          progressVerb={progressVerb}
+          snapshot={snapshot}
+        />
 
-        <View style={styles.focusCard}>
-          <View pointerEvents="none" style={styles.focusTexture}>
-            <View style={styles.focusTexturePanel} />
-            <View style={[styles.focusTextureLine, styles.focusTextureLineOne]} />
-            <View style={[styles.focusTextureLine, styles.focusTextureLineTwo]} />
-            <View style={[styles.focusTextureLine, styles.focusTextureLineThree]} />
-            <View style={styles.focusTextureAccent} />
-          </View>
-          <SessionCardContent
-            compact={compact}
-            label={isSessionAction ? 'Daily Focus' : 'Today'}
-            title={sessionTitle}
-            subtitle={sessionSubtitle}
-            ctaLabel={isSessionAction ? 'Start Session' : actionCta(lifecycle.primaryAction.ctaLabel)}
-            onPress={handleStartPress}
-          />
-        </View>
+        <DailyFocusCard
+          compact={compact}
+          label={isSessionAction ? 'Daily focus' : 'Today'}
+          title={sessionTitle}
+          subtitle={sessionSubtitle}
+          ctaLabel={isSessionAction ? 'Start Session' : actionCta(lifecycle.primaryAction.ctaLabel)}
+          onPress={handleStartPress}
+        />
 
-        <View style={styles.upcomingSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Next up</Text>
-          </View>
-          <Pressable
-            style={({ pressed }) => [styles.upcomingRow, pressed && styles.pressed]}
-            onPress={handleStartPress}
-            accessibilityRole="button"
-            accessibilityLabel={`Start ${upcomingTitle}`}
-          >
-            <View style={styles.upcomingIcon}>
-              <PlanIcon size={22} color={colors.accent} strokeWidth={1.8} />
-            </View>
-            <View style={styles.upcomingCopy}>
-              <Text style={styles.upcomingTitle}>{upcomingTitle}</Text>
-              <Text style={styles.upcomingMeta}>{upcomingMeta}</Text>
-            </View>
-            <Text style={styles.chevron}>›</Text>
-          </Pressable>
-        </View>
-
-        <PremiumCard style={styles.weekCard}>
-          <View style={styles.weekTop}>
-            <View style={styles.weekCopy}>
-              <Text style={styles.cardTitle}>Weekly rhythm</Text>
-              <Text style={styles.weekLabel}>{weekLabel}</Text>
-            </View>
-            <Text style={styles.weekMeta}>{block ? `Week ${block.weekNumber}` : progressValue}</Text>
-          </View>
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${Math.max(0, Math.min(1, progress)) * 100}%` }]} />
-          </View>
-        </PremiumCard>
+        <NextUpCard title={upcomingTitle} meta={upcomingMeta} onPress={handleStartPress} />
       </ScrollView>
 
       <SessionStartMenu
@@ -211,11 +152,79 @@ export function TodayScreen({
   );
 }
 
-function PremiumCard({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
-  return <View style={[styles.card, style]}>{children}</View>;
+function MovementSnapshotCard({
+  compact,
+  progress,
+  progressValue,
+  progressNoun,
+  progressVerb,
+  snapshot,
+}: {
+  compact: boolean;
+  progress: number;
+  progressValue: string;
+  progressNoun: string;
+  progressVerb: string;
+  snapshot: MovementSnapshot | null | undefined;
+}) {
+  return (
+    <View style={styles.snapshotCard}>
+      <Text style={styles.snapshotTitle}>Movement snapshot</Text>
+      <View style={[styles.snapshotBody, compact && styles.snapshotBodyCompact]}>
+        <ProgressRing
+          progress={progress}
+          value={progressValue}
+          noun={progressNoun}
+          verb={progressVerb}
+          size={compact ? 136 : 148}
+        />
+        <View style={styles.metricRows}>
+          {SNAPSHOT_ROWS.map((row, index) => {
+            const band = snapshot?.[row.key];
+            return (
+              <MetricRow
+                key={row.key}
+                domain={row.key}
+                label={row.title}
+                value={band ? bandValue(band) : 'Pending'}
+                last={index === SNAPSHOT_ROWS.length - 1}
+              />
+            );
+          })}
+        </View>
+      </View>
+    </View>
+  );
 }
 
-function SessionCardContent({
+/**
+ * Green wash over the hero photo so the headline/body stay legible on the left
+ * while the figure on the right reads through. Horizontal pass keeps the text
+ * column on solid green; vertical pass darkens the base behind the CTA pill.
+ */
+function FocusScrim() {
+  return (
+    <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
+      <Defs>
+        <LinearGradient id="focusScrimH" x1="0" y1="0" x2="1" y2="0">
+          <Stop offset="0" stopColor={todayHomeColors.heroDeep} stopOpacity={0.72} />
+          <Stop offset="0.42" stopColor={todayHomeColors.hero} stopOpacity={0.5} />
+          <Stop offset="0.68" stopColor={todayHomeColors.hero} stopOpacity={0.08} />
+          <Stop offset="1" stopColor={todayHomeColors.hero} stopOpacity={0} />
+        </LinearGradient>
+        <LinearGradient id="focusScrimV" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0.5" stopColor={todayHomeColors.heroDeep} stopOpacity={0} />
+          <Stop offset="1" stopColor={todayHomeColors.heroDeep} stopOpacity={0.2} />
+        </LinearGradient>
+      </Defs>
+      <Rect x="0" y="0" width="100%" height="100%" fill={todayHomeColors.hero} opacity={0.18} />
+      <Rect x="0" y="0" width="100%" height="100%" fill="url(#focusScrimH)" />
+      <Rect x="0" y="0" width="100%" height="100%" fill="url(#focusScrimV)" />
+    </Svg>
+  );
+}
+
+function DailyFocusCard({
   compact,
   label,
   title,
@@ -230,67 +239,169 @@ function SessionCardContent({
   ctaLabel: string;
   onPress: () => void;
 }) {
+  const displayCta = ctaLabel === 'Start Session' ? 'Start session' : ctaLabel;
+  const displayTitle = title === 'Move with intention' ? 'Move with\nintention' : title;
   return (
-    <View style={[styles.focusContent, compact && styles.focusContentCompact]}>
-      <Text style={styles.focusLabel}>{label}</Text>
-      <Text style={styles.focusTitle}>{title}</Text>
-      <Text style={styles.focusSubtitle}>{subtitle}</Text>
-      <Pressable
-        style={({ pressed }) => [styles.focusButton, pressed && styles.focusButtonPressed]}
-        onPress={onPress}
-        accessibilityRole="button"
-        accessibilityLabel={ctaLabel}
-      >
-        <Text style={styles.focusButtonText}>{ctaLabel}</Text>
-        <Text style={styles.focusButtonArrow}>›</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-function ProgressRing({ progress, value, label, size = 124 }: { progress: number; value: string; label: string; size?: number }) {
-  const stroke = 10;
-  const center = size / 2;
-  const r = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * r;
-  const clamped = Math.max(0, Math.min(1, progress));
-
-  return (
-    <View style={[styles.ring, { width: size, height: size }]}>
-      <Svg width={size} height={size}>
-        <Circle cx={center} cy={center} r={r} stroke={colors.bgSage} strokeWidth={stroke} fill="none" />
-        <Circle
-          cx={center}
-          cy={center}
-          r={r}
-          stroke={colors.positive}
-          strokeWidth={stroke}
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray={`${circumference} ${circumference}`}
-          strokeDashoffset={circumference * (1 - clamped)}
-          transform={`rotate(-90 ${center} ${center})`}
-        />
-      </Svg>
-      <View style={styles.ringCenter}>
-        <Text style={styles.ringValue}>{value}</Text>
-        <Text style={styles.ringLabel}>{label}</Text>
+    <View style={[styles.focusCard, compact && styles.focusCardCompact]}>
+      <Image source={HERO_IMAGE} style={styles.focusImage} resizeMode="cover" accessible={false} />
+      <FocusScrim />
+      <View style={[styles.focusContent, compact && styles.focusContentCompact]}>
+        <Text style={styles.focusLabel}>{label}</Text>
+        <Text style={[styles.focusTitle, compact && styles.focusTitleCompact]}>{displayTitle}</Text>
+        <Text style={styles.focusSubtitle}>{subtitle}</Text>
+        <Pressable
+          style={({ pressed }) => [styles.focusButton, pressed && styles.focusButtonPressed]}
+          onPress={onPress}
+          accessibilityRole="button"
+          accessibilityLabel={ctaLabel}
+        >
+          <Text style={styles.focusButtonText}>{displayCta}</Text>
+          <Text style={styles.focusButtonArrow}>›</Text>
+        </Pressable>
       </View>
     </View>
   );
 }
 
-function MetricRow({ icon, label, value }: { icon: string; label: string; value: string }) {
+function NextUpCard({ title, meta, onPress }: { title: string; meta: string; onPress: () => void }) {
   return (
-    <View style={styles.metricRow}>
+    <Pressable
+      style={({ pressed }) => [styles.nextCard, pressed && styles.pressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Start ${title}`}
+    >
+      <Text style={styles.nextLabel}>Next up</Text>
+      <View style={styles.nextBody}>
+        <View style={styles.nextIcon}>
+          <CalendarIcon size={22} color={todayHomeColors.headingGreen} strokeWidth={1.8} />
+        </View>
+        <View style={styles.nextCopy}>
+          <Text style={styles.nextTitle}>{title}</Text>
+          <Text style={styles.nextMeta}>{meta}</Text>
+        </View>
+        <Text style={styles.nextChevron}>›</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+function ProgressRing({
+  progress,
+  value,
+  noun,
+  verb,
+  size = 154,
+}: {
+  progress: number;
+  value: string;
+  noun: string;
+  verb: string;
+  size?: number;
+}) {
+  const stroke = 9;
+  const center = size / 2;
+  const r = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * r;
+  const clamped = Math.max(0, Math.min(1, progress));
+  const visualProgress = clamped === 0 ? 0.025 : clamped;
+  const [current = value, total = ''] = value.split('/');
+
+  return (
+    <View style={[styles.ring, { width: size, height: size }]}>
+      <Svg width={size} height={size}>
+        <Circle cx={center} cy={center} r={r} stroke={todayHomeColors.ringTrack} strokeWidth={stroke} fill="none" />
+        <Circle
+          cx={center}
+          cy={center}
+          r={r}
+          stroke={todayHomeColors.headingGreen}
+          strokeWidth={stroke}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDashoffset={circumference * (1 - visualProgress)}
+          transform={`rotate(-90 ${center} ${center})`}
+        />
+      </Svg>
+      <View style={styles.ringCenter}>
+        <Text style={styles.ringValue}>
+          {current}
+          {total ? <Text style={styles.ringJoin}> of </Text> : null}
+          {total ? <Text>{total}</Text> : null}
+        </Text>
+        <Text style={styles.ringLabel}>{noun}</Text>
+        <Text style={styles.ringLabel}>{verb}</Text>
+      </View>
+    </View>
+  );
+}
+
+function MetricRow({
+  domain,
+  label,
+  value,
+  last,
+}: {
+  domain: SnapshotKey;
+  label: string;
+  value: string;
+  last: boolean;
+}) {
+  return (
+    <View style={[styles.metricRow, !last && styles.metricRowDivider]}>
       <View style={styles.metricIcon}>
-        <Text style={styles.metricIconText}>{icon}</Text>
+        <DomainGlyph domain={domain} />
       </View>
       <View style={styles.metricCopy}>
         <Text style={styles.metricLabel}>{label}</Text>
         <Text style={styles.metricValue}>{value}</Text>
       </View>
     </View>
+  );
+}
+
+function DomainGlyph({ domain }: { domain: SnapshotKey }) {
+  const s = {
+    stroke: todayHomeColors.headingGreen,
+    strokeWidth: 1.8,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    fill: 'none' as const,
+  };
+
+  if (domain === 'strengthPower') {
+    return (
+      <Svg width={22} height={22} viewBox="0 0 24 24">
+        <Path d="M4.8 10 V14" {...s} />
+        <Path d="M7.2 8.5 V15.5" {...s} />
+        <Path d="M9.4 11.8 H14.6" {...s} />
+        <Path d="M16.8 8.5 V15.5" {...s} />
+        <Path d="M19.2 10 V14" {...s} />
+      </Svg>
+    );
+  }
+
+  if (domain === 'balance') {
+    return (
+      <Svg width={22} height={22} viewBox="0 0 24 24">
+        <Path d="M12 5 V18" {...s} />
+        <Path d="M7 8 H17" {...s} />
+        <Path d="M8 8 L5.8 14 H10.2 Z" {...s} />
+        <Path d="M16 8 L13.8 14 H18.2 Z" {...s} />
+        <Path d="M8 18 H16" {...s} />
+      </Svg>
+    );
+  }
+
+  return (
+    <Svg width={28} height={28} viewBox="0 0 24 24">
+      <Circle cx={12} cy={5.7} r={1.5} {...s} />
+      <Path d="M12 8 V13" {...s} />
+      <Path d="M8 10 L12 12 L16 10" {...s} />
+      <Path d="M12 13 L8.7 18" {...s} />
+      <Path d="M12 13 L15.6 18.5" {...s} />
+    </Svg>
   );
 }
 
@@ -421,348 +532,300 @@ function bandValue(band: MovementSnapshotBand): string {
 const styles = StyleSheet.create({
   background: {
     flex: 1,
-    backgroundColor: colors.bgBase,
+    backgroundColor: todayHomeColors.background,
   },
   scroller: {
     flex: 1,
   },
   content: {
+    flexGrow: 1,
     width: '100%',
     maxWidth: 560,
     alignSelf: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.huge,
-    paddingBottom: spacing.xxxl,
-    gap: spacing.lg,
+    paddingTop: 42,
+    paddingBottom: spacing.lg,
+    gap: 16,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: spacing.lg,
+    gap: spacing.xl,
   },
   headerCopy: { flex: 1, minWidth: 0 },
   greeting: {
-    color: colors.textSecondary,
+    color: todayHomeColors.headingGreen,
     fontFamily: fonts.serifRegular,
-    fontSize: 23,
-    lineHeight: 30,
+    fontSize: 22,
+    lineHeight: 28,
     letterSpacing: 0,
   },
   name: {
-    color: colors.textPrimary,
+    color: todayHomeColors.headingGreen,
     fontFamily: fonts.serifMedium,
-    fontSize: 34,
-    lineHeight: 39,
+    fontSize: 36,
+    lineHeight: 41,
     letterSpacing: 0,
   },
   iconButton: {
-    width: 46,
-    height: 46,
-    borderRadius: radius.button,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.bgSurface,
+    backgroundColor: 'transparent',
+  },
+  snapshotCard: {
+    borderRadius: 22,
+    paddingHorizontal: 22,
+    paddingVertical: 18,
+    backgroundColor: todayHomeColors.card,
     borderWidth: 1,
-    borderColor: colors.borderHairline,
+    borderColor: todayHomeColors.border,
+    shadowColor: todayHomeColors.shadow,
+    shadowOpacity: 1,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 1,
   },
-  card: {
-    borderRadius: radius.panel,
-    padding: spacing.xl,
-    backgroundColor: colors.bgSurface,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    ...shadow.soft,
-  },
-  progressCard: {
-    marginTop: spacing.lg,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-  },
-  cardHeading: { flex: 1, minWidth: 0 },
-  cardTitle: {
-    ...type.h3,
-    color: colors.textPrimary,
-  },
-  cardSubtitle: {
-    ...type.caption,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  cardKicker: {
-    ...type.caption,
-    color: colors.accentDeep,
+  snapshotTitle: {
+    color: todayHomeColors.primaryText,
     fontFamily: fonts.sansMedium,
-    textAlign: 'right',
+    fontSize: 18,
+    lineHeight: 24,
+    letterSpacing: 0,
   },
-  progressBody: {
+  snapshotBody: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xl,
-    marginTop: spacing.lg,
+    gap: 20,
+    marginTop: 20,
   },
-  progressBodyCompact: {
-    alignItems: 'flex-start',
-    gap: spacing.lg,
+  snapshotBodyCompact: {
+    gap: spacing.xl,
   },
   ring: { alignItems: 'center', justifyContent: 'center' },
   ringCenter: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   ringValue: {
-    color: colors.accent,
-    fontFamily: fonts.sansMedium,
-    fontSize: 25,
-    lineHeight: 30,
+    color: todayHomeColors.headingGreen,
+    fontFamily: fonts.serifMedium,
+    fontSize: 32,
+    lineHeight: 37,
     letterSpacing: 0,
     fontVariant: ['tabular-nums'],
   },
+  ringJoin: {
+    color: todayHomeColors.primaryText,
+    fontFamily: fonts.sansRegular,
+    fontSize: 14,
+    lineHeight: 20,
+  },
   ringLabel: {
-    ...type.caption,
-    color: colors.sageDeep,
-    marginTop: -1,
+    color: todayHomeColors.primaryText,
+    fontFamily: fonts.sansRegular,
+    fontSize: 14,
+    lineHeight: 19,
+    letterSpacing: 0,
   },
   metricRows: {
     flex: 1,
-    gap: spacing.md,
+    minWidth: 0,
+    gap: 10,
   },
   metricRow: {
-    minHeight: 38,
+    minHeight: 40,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: 10,
+    paddingVertical: 4,
+  },
+  metricRowDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(229,222,210,0.22)',
   },
   metricIcon: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 30,
+    height: 30,
+    borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.accentSoft,
-  },
-  metricIconText: {
-    ...type.caption,
-    color: colors.accent,
-    fontFamily: fonts.sansMedium,
-    fontSize: 12,
+    backgroundColor: 'transparent',
   },
   metricCopy: {
     flex: 1,
     minWidth: 0,
   },
   metricLabel: {
-    ...type.bodySmall,
-    color: colors.textPrimary,
+    color: todayHomeColors.primaryText,
     fontFamily: fonts.sansMedium,
+    fontSize: 14,
+    lineHeight: 18,
+    letterSpacing: 0,
   },
   metricValue: {
-    ...type.caption,
-    color: colors.textSecondary,
-    marginTop: 1,
+    color: todayHomeColors.secondaryText,
+    fontFamily: fonts.sansRegular,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0,
+    marginTop: 2,
   },
   focusCard: {
-    minHeight: 228,
     overflow: 'hidden',
-    borderRadius: radius.panel,
-    backgroundColor: colors.accent,
+    borderRadius: 28,
+    backgroundColor: todayHomeColors.hero,
     borderWidth: 1,
-    borderColor: colors.accentHover,
-    ...shadow.lifted,
+    borderColor: todayHomeColors.heroDeep,
+    shadowColor: todayHomeColors.shadow,
+    shadowOpacity: 1,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 7 },
+    elevation: 2,
   },
-  focusTexture: {
-    ...StyleSheet.absoluteFill,
+  focusCardCompact: {
+    borderRadius: 26,
   },
-  focusTexturePanel: {
+  focusImage: {
     position: 'absolute',
     top: 0,
-    right: -28,
+    right: -34,
     bottom: 0,
-    width: '44%',
-    backgroundColor: colors.accentHover,
-    opacity: 0.24,
-  },
-  focusTextureLine: {
-    position: 'absolute',
-    height: 2,
-    borderRadius: radius.pill,
-    backgroundColor: colors.bgSurface,
-    opacity: 0.14,
-    transform: [{ rotate: '-18deg' }],
-  },
-  focusTextureLineOne: {
-    width: 170,
-    right: -12,
-    top: 54,
-  },
-  focusTextureLineTwo: {
-    width: 132,
-    right: 24,
-    top: 104,
-  },
-  focusTextureLineThree: {
-    width: 184,
-    right: -28,
-    bottom: 54,
-  },
-  focusTextureAccent: {
-    position: 'absolute',
-    right: 34,
-    bottom: 34,
-    width: 58,
-    height: 3,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accentGold,
-    opacity: 0.52,
+    width: '112%',
+    height: '100%',
   },
   focusContent: {
-    width: '72%',
-    minHeight: 228,
-    justifyContent: 'center',
-    padding: spacing.xl,
+    paddingVertical: 20,
+    paddingHorizontal: 20,
     zIndex: 1,
   },
   focusContentCompact: {
-    width: '76%',
-    paddingRight: spacing.lg,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
   },
   focusLabel: {
-    ...type.bodySmall,
-    color: colors.bgGold,
-    fontFamily: fonts.sansMedium,
+    color: todayHomeColors.warmWhite,
+    fontFamily: fonts.sansRegular,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0,
   },
   focusTitle: {
-    color: colors.onAccent,
+    color: todayHomeColors.warmWhite,
     fontFamily: fonts.serifMedium,
-    fontSize: 30,
-    lineHeight: 36,
+    fontSize: 28,
+    lineHeight: 32,
     letterSpacing: 0,
-    marginTop: spacing.sm,
+    marginTop: 10,
+    maxWidth: '64%',
+  },
+  focusTitleCompact: {
+    fontSize: 25,
+    lineHeight: 29,
   },
   focusSubtitle: {
-    ...type.caption,
-    color: colors.bgGold,
-    marginTop: spacing.sm,
-    maxWidth: 260,
+    color: todayHomeColors.warmWhite,
+    fontFamily: fonts.sansRegular,
+    fontSize: 14,
+    lineHeight: 19,
+    letterSpacing: 0,
+    marginTop: 9,
+    maxWidth: '58%',
   },
   focusButton: {
+    marginTop: 18,
     alignSelf: 'flex-start',
     minHeight: 42,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     borderRadius: 21,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.bgSurface,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    backgroundColor: todayHomeColors.warmWhite,
     borderWidth: 1,
-    borderColor: colors.bgSurface,
-    marginTop: spacing.lg,
+    borderColor: todayHomeColors.warmWhite,
   },
   focusButtonPressed: {
-    backgroundColor: colors.bgGold,
-    borderColor: colors.bgGold,
+    opacity: 0.9,
     transform: [{ scale: 0.99 }],
   },
   focusButtonText: {
-    ...type.bodySmall,
-    color: colors.accentDeep,
+    color: todayHomeColors.headingGreen,
     fontFamily: fonts.sansMedium,
+    fontSize: 15,
+    lineHeight: 19,
+    letterSpacing: 0,
   },
   focusButtonArrow: {
-    ...type.bodySmall,
-    color: colors.accentDeep,
+    color: todayHomeColors.headingGreen,
     fontFamily: fonts.sansMedium,
-    marginTop: -1,
+    fontSize: 22,
+    lineHeight: 22,
+    marginTop: -2,
   },
-  upcomingSection: {
-    gap: spacing.md,
-    marginTop: spacing.sm,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  sectionTitle: {
-    ...type.h3,
-    color: colors.textPrimary,
-  },
-  upcomingRow: {
-    minHeight: 72,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    borderRadius: radius.card,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.bgSurface,
+  nextCard: {
+    minHeight: 80,
+    borderRadius: 22,
+    paddingHorizontal: 18,
+    paddingVertical: 15,
+    backgroundColor: todayHomeColors.card,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    ...shadow.soft,
+    borderColor: todayHomeColors.border,
+    shadowColor: todayHomeColors.shadow,
+    shadowOpacity: 1,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 1,
   },
-  upcomingIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.input,
+  nextLabel: {
+    color: todayHomeColors.primaryText,
+    fontFamily: fonts.sansRegular,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: 0,
+  },
+  nextBody: {
+    minHeight: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 9,
+  },
+  nextIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.bgMaterial,
-    borderWidth: 1,
-    borderColor: colors.borderHairline,
+    backgroundColor: todayHomeColors.iconFill,
   },
-  upcomingCopy: {
+  nextCopy: {
     flex: 1,
     minWidth: 0,
   },
-  upcomingTitle: {
-    ...type.bodySmall,
-    color: colors.textPrimary,
+  nextTitle: {
+    color: todayHomeColors.primaryText,
     fontFamily: fonts.sansMedium,
+    fontSize: 16,
+    lineHeight: 21,
+    letterSpacing: 0,
   },
-  upcomingMeta: {
-    ...type.caption,
-    color: colors.textSecondary,
-    marginTop: 1,
+  nextMeta: {
+    color: todayHomeColors.secondaryText,
+    fontFamily: fonts.sansRegular,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0,
+    marginTop: 4,
   },
-  chevron: {
-    ...type.h2,
-    color: colors.textTertiary,
-  },
-  weekCard: {
-    gap: spacing.md,
-  },
-  weekTop: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-  },
-  weekCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  weekLabel: {
-    ...type.caption,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  weekMeta: {
-    ...type.bodySmall,
-    color: colors.accentDeep,
-    fontFamily: fonts.sansMedium,
-  },
-  progressTrack: {
-    height: 6,
-    borderRadius: radius.pill,
-    backgroundColor: colors.bgSage,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: radius.pill,
-    backgroundColor: colors.positive,
+  nextChevron: {
+    color: todayHomeColors.secondaryText,
+    fontFamily: fonts.sansRegular,
+    fontSize: 32,
+    lineHeight: 32,
+    marginLeft: spacing.sm,
   },
   modalRoot: {
     flex: 1,

@@ -258,6 +258,7 @@ export interface AdherenceStoreState {
 export interface AssessmentForBlock {
   score: CheckUpScore;
   id?: string;
+  assessment?: MovementAssessment | null;
 }
 
 export interface LifeGoalTrainingRelevance {

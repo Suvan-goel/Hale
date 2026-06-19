@@ -5,7 +5,7 @@ import { Card, PrimaryButton, Screen, ScreenHeader, SecondaryButton, StatusBadge
 import { CheckUpScore, type Domain } from '../../scoring';
 import { colors, spacing, type } from '../../theme';
 import { blockProgress } from '../adherenceState';
-import { movementDomainFromScoreDomain } from '../blockService';
+import { movementDomainFromScoreDomainOrNull } from '../blockService';
 import { domainLabel, getLifeGoalDisplayText } from '../goalDomainMapping';
 import type { IdentityMilestone, LifeGoal, MovementBlock, MovementDomain, TrainingSessionCompletion } from '../types';
 
@@ -35,7 +35,9 @@ export function BlockReportScreen({
     domainChange(domain, previousScore, latestScore)
   );
   const main = mainChange(domainChanges);
-  const nextFocus = latestScore ? domainLabel(movementDomainFromScoreDomain(latestScore.weakestDomain)) : domainLabel(block.focusDomain);
+  const nextFocus = latestScore
+    ? domainLabel(movementDomainFromScoreDomainOrNull(latestScore.weakestDomain) ?? block.focusDomain)
+    : domainLabel(block.focusDomain);
 
   return (
     <Screen>

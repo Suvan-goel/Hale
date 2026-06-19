@@ -9,6 +9,7 @@ import Svg, { Circle, Polyline } from 'react-native-svg';
 
 import { CheckUp } from '../checkup/types';
 import { Card, HealthMetricRow, MaterialCard, PrimaryButton, Screen, SecondaryButton, StatusBadge } from '../components/ui';
+import { getAssessmentResultState } from '../haleFlow/assessmentResultState';
 import { ExtraTrendPoint, MetricTrend, StoredCheckUp, computeTrends } from '../history';
 import { CheckUpScore, DOMAIN_LABEL, DomainResult, scoreCheckUp } from '../scoring';
 import { colors, fonts, radius, spacing, type } from '../theme';
@@ -24,6 +25,7 @@ export function ResultsScreen({
   history,
   onDone,
   onStartPlan,
+  onRetake,
   extraTrendPoints = [],
 }: {
   checkUp: CheckUp;
@@ -31,10 +33,12 @@ export function ResultsScreen({
   onDone: () => void;
   /** Build a training block from this check-up and begin it (present when there's a measured focus). */
   onStartPlan?: () => void;
+  onRetake?: () => void;
   /** Weekly micro-check points to merge into the trend line. */
   extraTrendPoints?: ExtraTrendPoint[];
 }) {
   const score: CheckUpScore = React.useMemo(() => scoreCheckUp(checkUp), [checkUp]);
+  const resultState = React.useMemo(() => getAssessmentResultState({ score }), [score]);
   const trends = React.useMemo(
     () => computeTrends(history, extraTrendPoints).filter((t) => t.points.length >= 2),
     [history, extraTrendPoints]
@@ -51,7 +55,7 @@ export function ResultsScreen({
         </Text>
       </View>
 
-      {focusLabel ? (
+      {resultState.canCreateBlock && focusLabel ? (
         <MaterialCard>
           <Text style={styles.focusLabel}>Where to focus next</Text>
           <Text style={styles.focusValue}>{focusLabel}</Text>
@@ -59,7 +63,15 @@ export function ResultsScreen({
             This looks like the most useful area for your next four-week training block.
           </Text>
         </MaterialCard>
-      ) : null}
+      ) : (
+        <MaterialCard>
+          <Text style={styles.focusLabel}>Retake needed</Text>
+          <Text style={styles.focusValue}>{resultState.recoveryTitle}</Text>
+          <Text style={styles.focusBody}>
+            {resultState.recoveryBody}
+          </Text>
+        </MaterialCard>
+      )}
 
       <View style={styles.summaryGrid}>
         <SummaryTile label="Domains measured" value={`${measured.length}/3`} />
@@ -88,9 +100,14 @@ export function ResultsScreen({
       )}
 
       <View style={styles.actions}>
-        {onStartPlan && score.weakestDomain ? (
+        {onStartPlan && resultState.canCreateBlock ? (
           <>
             <PrimaryButton title="Create my 4-week block" onPress={onStartPlan} />
+            <SecondaryButton title="Done" onPress={onDone} />
+          </>
+        ) : onRetake && !resultState.canCreateBlock ? (
+          <>
+            <PrimaryButton title="Retake Movement Check-Up" onPress={onRetake} />
             <SecondaryButton title="Done" onPress={onDone} />
           </>
         ) : (

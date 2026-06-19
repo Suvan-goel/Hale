@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import type { CheckUp } from '../checkup';
 import { Card, HealthMetricRow, MaterialCard, PrimaryButton, Screen, StatusBadge, Typography } from '../components/ui';
+import { getAssessmentResultState } from '../haleFlow/assessmentResultState';
 import {
   bandLabel,
   onboardingDomainSummaries,
@@ -21,12 +22,15 @@ const ICONS = {
 export function OnboardingResultsScreen({
   checkUp,
   onCreateBlock,
+  onRetake,
 }: {
   checkUp: CheckUp;
   onCreateBlock: () => void;
+  onRetake: () => void;
 }) {
   const score = React.useMemo(() => scoreCheckUp(checkUp), [checkUp]);
-  const focus = onboardingFocusDomain(score);
+  const resultState = React.useMemo(() => getAssessmentResultState({ score }), [score]);
+  const focus = resultState.canCreateBlock ? onboardingFocusDomain(score) : null;
   const summaries = onboardingDomainSummaries(score);
   return (
     <Screen>
@@ -36,13 +40,23 @@ export function OnboardingResultsScreen({
         <Typography variant="body" color={colors.textSecondary}>Here is the simple picture from today’s baseline.</Typography>
       </View>
 
-      <MaterialCard>
-        <Typography variant="label" color={colors.accentDeep}>Your main opportunity</Typography>
-        <Typography variant="h1" style={styles.focusValue}>{onboardingFocusCopy(focus)}</Typography>
-        <Typography variant="bodySmall" color={colors.textSecondary} style={styles.body}>
-          Hale will use this to shape your first 4-week block.
-        </Typography>
-      </MaterialCard>
+      {focus ? (
+        <MaterialCard>
+          <Typography variant="label" color={colors.accentDeep}>Your main opportunity</Typography>
+          <Typography variant="h1" style={styles.focusValue}>{onboardingFocusCopy(focus)}</Typography>
+          <Typography variant="bodySmall" color={colors.textSecondary} style={styles.body}>
+            Hale will use this to shape your first 4-week block.
+          </Typography>
+        </MaterialCard>
+      ) : (
+        <MaterialCard>
+          <Typography variant="label" color={colors.accentDeep}>Retake needed</Typography>
+          <Typography variant="h1" style={styles.focusValue}>{resultState.recoveryTitle}</Typography>
+          <Typography variant="bodySmall" color={colors.textSecondary} style={styles.body}>
+            {resultState.recoveryBody}
+          </Typography>
+        </MaterialCard>
+      )}
 
       <Card style={styles.card}>
         {summaries.map((domain) => (
@@ -51,22 +65,28 @@ export function OnboardingResultsScreen({
             icon={ICONS[domain.key]}
             label={domain.title}
             value={bandLabel(domain.band)}
-            status={domain.key === focus ? 'Main focus' : 'Baseline'}
+            status={focus && domain.key === focus ? 'Main focus' : 'Baseline'}
           />
         ))}
       </Card>
 
-      <Card style={styles.card}>
-        <View style={styles.noteHead}>
-          <Typography variant="h2">What happens next</Typography>
-          <StatusBadge label="4-week block" tone="gold" />
-        </View>
-        <Typography variant="bodySmall" color={colors.textSecondary} style={styles.body}>
-          You will get three calm Hale Sessions each week, then re-test in 4 weeks to see what changed.
-        </Typography>
-      </Card>
+      {resultState.canCreateBlock ? (
+        <Card style={styles.card}>
+          <View style={styles.noteHead}>
+            <Typography variant="h2">What happens next</Typography>
+            <StatusBadge label="4-week block" tone="gold" />
+          </View>
+          <Typography variant="bodySmall" color={colors.textSecondary} style={styles.body}>
+            You will get three calm Hale Sessions each week, then re-test in 4 weeks to see what changed.
+          </Typography>
+        </Card>
+      ) : null}
 
-      <PrimaryButton title="Create my 4-week block" onPress={onCreateBlock} />
+      {resultState.canCreateBlock ? (
+        <PrimaryButton title="Create my 4-week block" onPress={onCreateBlock} />
+      ) : (
+        <PrimaryButton title="Retake Movement Check-Up" onPress={onRetake} />
+      )}
     </Screen>
   );
 }

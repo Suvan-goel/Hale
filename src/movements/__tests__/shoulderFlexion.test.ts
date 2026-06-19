@@ -26,6 +26,7 @@ describe('shoulder flexion peak — acceptance', () => {
     expect(Math.abs(result.peakFlexionDeg - session.truth.peakDeg)).toBeLessThan(8);
     expect(result.validTime).toBeTruthy();
     expect(result.validTime?.accumulatedValidSeconds).toBeGreaterThan(0);
+    expect(result.validTime?.completedByValidTime).toBe(true);
   });
 
   it('measures from either facing side', () => {
@@ -39,12 +40,19 @@ describe('shoulder flexion peak — acceptance', () => {
     expect(Math.abs(result.peakFlexionDeg - 95)).toBeLessThan(10);
   });
 
+  it('does not publish a fallback peak when the valid capture window is too short', () => {
+    const { result } = grade({ seed: 34, peakDeg: 165, riseMs: 200, holdMs: 100 });
+    expect(result.validTime?.completedByValidTime).toBe(false);
+    expect(result.flags).toContain('no-measurement');
+    expect(Number.isNaN(result.peakFlexionDeg)).toBe(true);
+  });
+
   it('a mid-hold interruption is flagged but the peak survives', () => {
     // Gone window inside the hold; the arm reached peak before it.
     const { result } = grade({
       seed: 44,
       peakDeg: 160,
-      goneWindows: [{ startMs: 8000, endMs: 9000 }],
+      goneWindows: [{ startMs: 9500, endMs: 10500 }],
     });
     expect(result.interruptions).toBeGreaterThanOrEqual(1);
     expect(result.flags).toContain('tracking-interrupted');

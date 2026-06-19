@@ -35,6 +35,7 @@ export type PoseEventType =
   | 'subject-acquired'
   | 'tracking-started'
   | 'subject-gone'
+  | 'tracking-interrupted'
   | 'calibration-complete';
 
 export interface PoseEvent {

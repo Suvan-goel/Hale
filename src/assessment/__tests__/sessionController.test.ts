@@ -10,8 +10,10 @@ import { CHAIR_STAND_ID, ChairStandResult, getMovement } from '../../movements';
 import { PosePipeline } from '../../pose/pipeline';
 import type { PipelineFrameOutput } from '../../pose/pipeline';
 import { chairStandSession } from '../../pose/testing/syntheticChairStand';
-import { timestamps30fps } from '../../pose/testing/syntheticPose';
-import { RawLandmarkEvent } from '../../pose/types';
+import { makeFrame, mulberry32, timestamps30fps } from '../../pose/testing/syntheticPose';
+import { createPoseFrame, parseLandmarkEvent, RawLandmarkEvent } from '../../pose/types';
+import type { MovementCameraReadinessResult } from '../../preflight/movementCameraReadiness';
+import { MovementCameraReadinessTracker } from '../../preflight/movementCameraReadiness';
 import { PreflightCheck } from '../../preflight/preflight';
 import type { PreflightPrompt, PreflightStatus } from '../../preflight/preflight';
 import { AssessmentPhase, SessionController } from '../sessionController';
@@ -29,9 +31,9 @@ interface FlowRun {
 function runFlow(frames: RawLandmarkEvent[]): FlowRun {
   const pipeline = new PosePipeline();
   const preflight = new PreflightCheck();
-  const controller = new SessionController<ChairStandResult>(
-    getMovement(CHAIR_STAND_ID) as never
-  );
+  const definition = getMovement(CHAIR_STAND_ID);
+  const controller = new SessionController<ChairStandResult>(definition as never);
+  const cameraReadiness = new MovementCameraReadinessTracker();
 
   const phases: AssessmentPhase[] = [];
   const spoken: VoiceCueKey[] = [];
@@ -42,8 +44,9 @@ function runFlow(frames: RawLandmarkEvent[]): FlowRun {
   for (const frame of frames) {
     const out = pipeline.process(frame);
     const status = preflight.update(out);
+    const cameraStatus = cameraReadiness.update(out, definition.cameraView);
     const voiceBusy = frame.timestampMs < voiceBusyUntil;
-    const update = controller.update(out, status, voiceBusy);
+    const update = controller.update(out, status, cameraStatus, voiceBusy);
 
     if (update.voice) {
       spoken.push(...update.voice.cues);
@@ -69,6 +72,47 @@ function framingStatus(prompt: PreflightPrompt): PreflightStatus {
     prompt,
     bodyHeightFraction: 0.7,
     sampleProgress: 0,
+  };
+}
+
+function readyStatus(): PreflightStatus {
+  return {
+    phase: 'ready',
+    prompt: 'ready',
+    bodyHeightFraction: 0.7,
+    sampleProgress: 1,
+  };
+}
+
+function cameraReady(overrides: Partial<MovementCameraReadinessResult> = {}): MovementCameraReadinessResult {
+  return {
+    ready: true,
+    requiredView: 'side',
+    detectedView: 'side',
+    requiredReliableSideChains: 1,
+    reliableSideChains: 1,
+    stableForMs: 500,
+    reason: 'ready',
+    promptCue: 'hold-still',
+    setupCaption: null,
+    ...overrides,
+  };
+}
+
+function outputFromRaw(raw: RawLandmarkEvent): PipelineFrameOutput {
+  const frame = createPoseFrame();
+  parseLandmarkEvent(raw, frame);
+  return {
+    state: 'tracking',
+    frame,
+    rawFrame: frame,
+    displayFrame: frame,
+    chainReliability: new Float64Array([0.95, 0.95]),
+    reliableSideChains: 2,
+    validity: { valid: true, reason: 'ok' },
+    bodyUnit: 0.32,
+    events: [],
+    fps: 30,
   };
 }
 
@@ -129,7 +173,7 @@ describe('SessionController — voice-guided chair stand', () => {
     );
     const spoken: VoiceCueKey[] = [];
     const update = (timestampMs: number, prompt: PreflightPrompt) => {
-      const result = controller.update(outputAt(timestampMs), framingStatus(prompt), false);
+      const result = controller.update(outputAt(timestampMs), framingStatus(prompt), cameraReady(), false);
       if (result.voice) spoken.push(...result.voice.cues);
     };
 
@@ -138,5 +182,19 @@ describe('SessionController — voice-guided chair stand', () => {
     update(5000, 'step-closer');
 
     expect(spoken).toEqual(['step-back', 'step-closer']);
+  });
+
+  it('does not enter instructions when the movement-specific view is wrong', () => {
+    const definition = getMovement(CHAIR_STAND_ID);
+    const controller = new SessionController<ChairStandResult>(definition as never);
+    const readiness = new MovementCameraReadinessTracker({ stableMs: 500 });
+    const front = outputFromRaw(makeFrame(0, mulberry32(5), { noiseAmp: 0 }));
+    const cameraStatus = readiness.update(front, definition.cameraView);
+
+    const update = controller.update(front, readyStatus(), cameraStatus, false);
+
+    expect(update.phase).toBe('preflight');
+    expect(update.setupCaption).toBe('Turn so your side faces the camera.');
+    expect(update.voice?.cues).toEqual(['turn-side-on']);
   });
 });

@@ -1,7 +1,7 @@
 import {
   LOCAL_USER_ID,
   blockProgress,
-  movementDomainFromScoreDomain,
+  movementDomainFromScoreDomainOrNull,
   scoreDomainFromMovementDomain,
   type MovementAssessment,
   type MovementBlock,
@@ -46,7 +46,9 @@ export function createMovementBlockReport({
     totalPlannedSessions: progress.totalSessions,
     microChecksCompleted: progress.microChecksCompleted,
     domainChanges,
-    recommendedNextFocusDomain: latestScore ? movementDomainFromScoreDomain(latestScore.weakestDomain) : block.focusDomain,
+    recommendedNextFocusDomain: latestScore
+      ? movementDomainFromScoreDomainOrNull(latestScore.weakestDomain) ?? block.focusDomain
+      : block.focusDomain,
   };
 }
 

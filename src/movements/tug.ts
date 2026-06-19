@@ -116,7 +116,7 @@ class TugGrader implements MovementGrader<TugResult> {
     live.complete = false;
 
     for (let i = 0; i < out.events.length; i++) {
-      if (out.events[i].type === 'subject-gone') {
+      if (out.events[i].type === 'subject-gone' || out.events[i].type === 'tracking-interrupted') {
         this.interruptions++;
         this.task.abort();
         this.hasPrev = false;

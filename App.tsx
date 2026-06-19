@@ -47,9 +47,10 @@ import {
   createMovementBlockReport,
   createGeneratedSessionSummary,
   countsTowardMainPlan,
+  getBlockCreationEligibility,
   getHaleAppLifecycle,
   getMicroCheckForBlock,
-  latestOfficialAssessment,
+  latestUsableOfficialAssessment,
   planLadderPracticeSession,
   planTodayHaleSession,
   updateExerciseProgressionFromSession,
@@ -164,7 +165,6 @@ type Flow =
   | 'weekly-summary'
   | 'block-report'
   | 'session-complete'
-  | 'settings'
   | 'ladder-detail'
   | 'learn-detail'
   | 'dev-assessment'
@@ -245,6 +245,21 @@ function syncStatusCounts(results: readonly { status?: string }[]): Record<strin
   }, {});
 }
 
+function assessmentForCheckUp(
+  assessments: readonly MovementAssessment[],
+  checkUpStartedAt: string
+): MovementAssessment | null {
+  return (
+    assessments
+      .slice()
+      .sort((a, b) => (b.completedAt ?? b.createdAt).localeCompare(a.completedAt ?? a.createdAt))
+      .find((assessment) => {
+        const checkUpId = assessment.results?.rawMetrics?.checkUpId;
+        return checkUpId === checkUpStartedAt || assessment.createdAt === checkUpStartedAt;
+      }) ?? null
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -296,6 +311,7 @@ function HaleApp() {
   const [adherenceStore] = React.useState(() => new AdherenceStore(expoHistoryFs));
   const [history, setHistory] = React.useState<StoredCheckUp[]>([]);
   const [lastResult, setLastResult] = React.useState<CheckUp | null>(null);
+  const [lastResultCheckupType, setLastResultCheckupType] = React.useState<CheckupType | null>(null);
   const [training, setTraining] = React.useState<TrainingState>(() => defaultTrainingState());
   const [adherence, setAdherence] = React.useState<AdherenceStoreState>(() => defaultAdherenceStoreState());
   const [microChecks, setMicroChecks] = React.useState<MicroCheckResult[]>([]);
@@ -534,6 +550,13 @@ function HaleApp() {
   const goExplore = React.useCallback(() => {
     setFlow(null);
     setTab('explore');
+    setSelectedLadderId(null);
+    setSelectedLearnId(null);
+  }, []);
+
+  const goProfile = React.useCallback(() => {
+    setFlow(null);
+    setTab('profile');
     setSelectedLadderId(null);
     setSelectedLearnId(null);
   }, []);
@@ -994,6 +1017,24 @@ function HaleApp() {
     [adherenceStore]
   );
 
+  const recordBlockedBlockCreation = React.useCallback(
+    (
+      source: string,
+      eligibility: ReturnType<typeof getBlockCreationEligibility>,
+      checkupType?: CheckupType | null
+    ) => {
+      if (eligibility.eligible) return;
+      addBreadcrumb('block creation blocked', {
+        area: 'assessment_validity',
+        source,
+        reason: eligibility.reason,
+        checkupType: checkupType ?? 'unknown',
+        measuredDomainCount: eligibility.measuredDomains.length,
+      });
+    },
+    []
+  );
+
   const activeMovementBlock = React.useMemo(() => getActiveMovementBlock(adherence.blocks), [adherence.blocks]);
   const displayMovementBlock = React.useMemo(
     () => activeMovementBlock ?? getLatestMovementBlock(adherence.blocks),
@@ -1144,22 +1185,26 @@ function HaleApp() {
   }, [history]);
 
   const latestAssessment: MovementAssessment | null = React.useMemo(() => {
-    const official = latestOfficialAssessment(adherence.assessments);
+    const official = latestUsableOfficialAssessment(adherence.assessments);
     if (official) return official;
     if (adherence.assessments.length > 0) {
-      return adherence.assessments
+      const usable = adherence.assessments
         .slice()
-        .sort((a, b) => (b.completedAt ?? b.createdAt).localeCompare(a.completedAt ?? a.createdAt))[0];
+        .sort((a, b) => (b.completedAt ?? b.createdAt).localeCompare(a.completedAt ?? a.createdAt))
+        .find((assessment) => getBlockCreationEligibility({ assessment }).eligible);
+      if (usable) return usable;
     }
     const latest = history[history.length - 1];
     if (!latest) return null;
-    return createMovementAssessment({
+    const score = scoreCheckUp(latest.checkUp);
+    const fallbackAssessment = createMovementAssessment({
       checkUpId: latest.checkUp.startedAt,
       type: 'baseline',
-      score: scoreCheckUp(latest.checkUp),
+      score,
       completedAt: latest.checkUp.startedAt,
       isOfficialForProgress: true,
     });
+    return getBlockCreationEligibility({ score, assessment: fallbackAssessment }).eligible ? fallbackAssessment : null;
   }, [adherence.assessments, history]);
 
   const lifecycle = React.useMemo(
@@ -1233,6 +1278,7 @@ function HaleApp() {
         completedAt,
         isOfficialForProgress: resolvedPendingCheckup?.isOfficialForProgress,
       });
+      const eligibility = getBlockCreationEligibility({ score, assessment });
       let localHistorySaved = false;
       try {
         store.save(checkUp);
@@ -1251,9 +1297,17 @@ function HaleApp() {
         });
       }
       setLastResult(checkUp);
+      setLastResultCheckupType(checkupType);
       store.loadAll().then(setHistory).catch(() => {});
       let nextAdherence = upsertMovementAssessment(adherence, assessment);
       if (isRetest && block) {
+        if (!eligibility.eligible) {
+          recordBlockedBlockCreation('official_retest_completion', eligibility, checkupType);
+          persistAdherence(nextAdherence);
+          setPendingCheckup(null);
+          setFlow('results');
+          return;
+        }
         const completion = makeTrainingSessionCompletion({ block, sessionType: 'retest', completedAt, plannedDate: 'retest' });
         nextAdherence = recordTrainingSessionCompletion(nextAdherence, completion);
         nextAdherence = markMovementBlockComplete(nextAdherence, block.id, completedAt);
@@ -1285,7 +1339,7 @@ function HaleApp() {
         nextAdherence = upsertMovementBlockReport(nextAdherence, blockReport);
         const nextTrainingBlock = buildBlock(score, training.equipment, completedAt);
         const nextMovementBlock = createMovementBlockFromAssessment({
-          latestAssessment: { score, id: checkUp.startedAt },
+          latestAssessment: { score, id: checkUp.startedAt, assessment },
           lifeGoal: prefs.profile.lifeGoal,
           startDate: completedAt,
         });
@@ -1338,7 +1392,7 @@ function HaleApp() {
         setFlow('results');
       }
     },
-    [activeMovementBlock, adherence, backendSignedIn, history, onboardingIncomplete, pendingCheckup, persistAdherence, persistPrefs, persistTraining, prefs, store, training]
+    [activeMovementBlock, adherence, backendSignedIn, history, onboardingIncomplete, pendingCheckup, persistAdherence, persistPrefs, persistTraining, prefs, recordBlockedBlockCreation, store, training]
   );
 
   const skipOnboardingCheckUpForDev = React.useCallback(() => {
@@ -1355,9 +1409,18 @@ function HaleApp() {
     if (!sourceResult) return;
     const now = new Date().toISOString();
     const score = scoreCheckUp(sourceResult);
+    const sourceAssessment = assessmentForCheckUp(adherence.assessments, sourceResult.startedAt);
+    const eligibility = getBlockCreationEligibility({ score, assessment: sourceAssessment });
+    if (!eligibility.eligible) {
+      recordBlockedBlockCreation('start_plan', eligibility, sourceAssessment?.type);
+      setLastResult(sourceResult);
+      setLastResultCheckupType(sourceAssessment?.type ?? null);
+      setFlow('results');
+      return;
+    }
     const block = buildBlock(score, training.equipment, now);
     const movementBlock = createMovementBlockFromAssessment({
-      latestAssessment: { score, id: sourceResult.startedAt },
+      latestAssessment: { score, id: sourceResult.startedAt, assessment: sourceAssessment },
       lifeGoal: prefs.profile.lifeGoal,
       startDate: now,
     });
@@ -1401,7 +1464,7 @@ function HaleApp() {
     } else {
       setFlow('block-intro');
     }
-  }, [adherence, backendSignedIn, persistAdherence, persistPrefs, persistTraining, prefs, training, visibleResult]);
+  }, [adherence, backendSignedIn, persistAdherence, persistPrefs, persistTraining, prefs, recordBlockedBlockCreation, training, visibleResult]);
 
   const handleStartSession = React.useCallback(
     (
@@ -1841,6 +1904,7 @@ function HaleApp() {
     const latest = history[history.length - 1];
     if (latest) {
       setLastResult(latest.checkUp);
+      setLastResultCheckupType(null);
       setFlow('results');
     }
   }, [history]);
@@ -1854,9 +1918,18 @@ function HaleApp() {
     }
     const now = new Date().toISOString();
     const score = scoreCheckUp(sourceResult);
+    const sourceAssessment = assessmentForCheckUp(adherence.assessments, sourceResult.startedAt);
+    const eligibility = getBlockCreationEligibility({ score, assessment: sourceAssessment });
+    if (!eligibility.eligible) {
+      recordBlockedBlockCreation('start_next_block', eligibility, sourceAssessment?.type);
+      setLastResult(sourceResult);
+      setLastResultCheckupType(sourceAssessment?.type ?? null);
+      setFlow('results');
+      return;
+    }
     const block = buildBlock(score, training.equipment, now);
     const movementBlock = createMovementBlockFromAssessment({
-      latestAssessment: { score, id: sourceResult.startedAt },
+      latestAssessment: { score, id: sourceResult.startedAt, assessment: sourceAssessment },
       lifeGoal: prefs.profile.lifeGoal,
       startDate: now,
     });
@@ -1887,7 +1960,23 @@ function HaleApp() {
       });
     }
     setFlow('block-intro');
-  }, [adherence, backendSignedIn, history, lastResult, persistAdherence, persistTraining, prefs.profile, training]);
+  }, [adherence, backendSignedIn, history, lastResult, persistAdherence, persistTraining, prefs.profile, recordBlockedBlockCreation, training]);
+
+  const handleRetakeVisibleResult = React.useCallback(() => {
+    if (lastResultCheckupType === 'official_retest') {
+      beginCheckUp('official_retest');
+      return;
+    }
+    if (lastResultCheckupType === 'manual_extra' || lastResultCheckupType === 'quick_recheck') {
+      beginCheckUp(lastResultCheckupType);
+      return;
+    }
+    if (onboardingIncomplete) {
+      setFlow('camera-setup');
+      return;
+    }
+    beginCheckUp('baseline_retake');
+  }, [beginCheckUp, lastResultCheckupType, onboardingIncomplete]);
 
   const handleTodayPrimaryAction = React.useCallback((preferences?: TodaySessionPreferences | null) => {
     switch (lifecycle.primaryAction.type) {
@@ -2098,6 +2187,7 @@ function HaleApp() {
             <OnboardingResultsScreen
               checkUp={visibleResult}
               onCreateBlock={() => handleStartPlan('onboarding')}
+              onRetake={handleRetakeVisibleResult}
             />
           ) : (
             <ResultsScreen
@@ -2106,6 +2196,7 @@ function HaleApp() {
               extraTrendPoints={extraTrendPoints}
               onDone={goHome}
               onStartPlan={handleStartPlan}
+              onRetake={handleRetakeVisibleResult}
             />
           )
         ) : flow === 'session-preview' && activeSessionPlan ? (
@@ -2195,26 +2286,8 @@ function HaleApp() {
           <LearnDetailScreen
             articleId={selectedLearnId}
             onCameraSetup={() => setFlow('camera-setup')}
-            onEquipment={() => setFlow('settings')}
+            onEquipment={goProfile}
             onDone={goExplore}
-          />
-        ) : flow === 'settings' ? (
-          <SettingsScreen
-            profile={prefs.profile}
-            settings={prefs.settings}
-            equipment={training.equipment}
-            supportConnection={supportConnection}
-            preferredDays={prefs.profile.safetyProfile?.preferredWorkoutDays ?? []}
-            preferredIntensity={training.planPreferences.preferredIntensity}
-            onProfileChange={onProfileChange}
-            onSettingsChange={onSettingsChange}
-            onToggleEquipment={toggleEquipment}
-            onToggleAvailableEquipment={toggleAvailableEquipment}
-            onPreferredDaysChange={handlePreferredWorkoutDaysChange}
-            onIntensityChange={handleTrainingIntensityChange}
-            onOpenLifeGoal={() => setFlow('life-goal')}
-            onOpenSafetyProfile={() => setFlow('safety-profile')}
-            onOpenCameraSetup={() => setFlow('camera-setup')}
           />
         ) : flow === 'dev-assessment' ? (
           <AssessmentScreen />
@@ -2224,7 +2297,7 @@ function HaleApp() {
           // Defensive: an unsatisfiable flow (e.g. results with no result) falls back home.
           <View />
         )}
-        {flow === 'settings' || (__DEV__ && (flow === 'dev-assessment' || flow === 'dev-live')) ? (
+        {__DEV__ && (flow === 'dev-assessment' || flow === 'dev-live') ? (
           <Pressable style={styles.back} onPress={goHome} accessibilityRole="button" accessibilityLabel="Back to Today">
             <Text style={styles.backText}>Back</Text>
           </Pressable>
@@ -2243,7 +2316,7 @@ function HaleApp() {
             profile={prefs.profile}
             lifecycle={lifecycle}
             onPrimaryAction={handleTodayPrimaryAction}
-            onOpenSettings={() => setFlow('settings')}
+            onOpenSettings={goProfile}
           />
         ) : tab === 'plan' ? (
           <PlanScreen
@@ -2258,7 +2331,7 @@ function HaleApp() {
             onCreateBlock={handleStartNextBlock}
             onStartPlanSession={handleStartPlanSession}
             onStartRetest={() => beginCheckUp('official_retest')}
-            onOpenSettings={() => setFlow('settings')}
+            onOpenSettings={goProfile}
             onPreferredDaysChange={handlePreferredWorkoutDaysChange}
             onIntensityChange={handleTrainingIntensityChange}
           />
@@ -2275,9 +2348,9 @@ function HaleApp() {
             onStartRetest={() => beginCheckUp('official_retest')}
             onViewLatest={viewLast}
             onViewReport={openBlockReport}
-            onOpenSettings={() => setFlow('settings')}
+            onOpenSettings={goProfile}
           />
-        ) : (
+        ) : tab === 'explore' ? (
           <ExploreScreen
             equipment={training.equipment}
             safetyProfile={prefs.profile.safetyProfile}
@@ -2286,7 +2359,25 @@ function HaleApp() {
             onStartExtraSession={handleStartExtraSession}
             onOpenLadder={openLadderDetail}
             onOpenLearn={openLearnDetail}
-            onOpenSettings={() => setFlow('settings')}
+            onOpenSettings={goProfile}
+          />
+        ) : (
+          <SettingsScreen
+            profile={prefs.profile}
+            settings={prefs.settings}
+            equipment={training.equipment}
+            supportConnection={supportConnection}
+            preferredDays={prefs.profile.safetyProfile?.preferredWorkoutDays ?? []}
+            preferredIntensity={training.planPreferences.preferredIntensity}
+            onProfileChange={onProfileChange}
+            onSettingsChange={onSettingsChange}
+            onToggleEquipment={toggleEquipment}
+            onToggleAvailableEquipment={toggleAvailableEquipment}
+            onPreferredDaysChange={handlePreferredWorkoutDaysChange}
+            onIntensityChange={handleTrainingIntensityChange}
+            onOpenLifeGoal={() => setFlow('life-goal')}
+            onOpenSafetyProfile={() => setFlow('safety-profile')}
+            onOpenCameraSetup={() => setFlow('camera-setup')}
           />
         )}
       </View>

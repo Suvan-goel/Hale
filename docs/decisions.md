@@ -920,3 +920,16 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
   mint illustration panel.
 - **Scope boundary:** visual palette and card styling only. App logic, navigation, auth/backend
   sync, pose detection, check-up flow, training generation, and product copy are unchanged.
+
+## 2026-06-19 — Reference-aligned Profile tab
+
+- **Change:** Profile now lives as the fifth bottom-tab destination instead of opening as a
+  full-screen settings flow. The default Profile surface was simplified to a reference-style hub:
+  profile summary card, compact settings rows, account row, export/sign-out actions, and a delete
+  account link.
+- **Interaction:** editable details, plan preferences, trainer voice, equipment, privacy, and help
+  remain available behind row taps so the first view stays visually calm while preserving the local
+  setup controls.
+- **Scope boundary:** profile presentation/navigation only. Auth handlers, account deletion/export
+  services, local profile persistence, plan generation, reminders, camera setup, pose detection,
+  check-up/session state machines, and backend sync contracts are unchanged.

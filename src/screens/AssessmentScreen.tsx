@@ -22,6 +22,7 @@ import { SfxChannel, VoiceChannel } from '../audio/voicePlayer';
 import { AssessmentPhase, SessionController } from '../assessment/sessionController';
 import { CHAIR_STAND_ID, ChairStandResult, getMovement } from '../movements';
 import { PosePipeline } from '../pose/pipeline';
+import { MovementCameraReadinessTracker } from '../preflight/movementCameraReadiness';
 import { PreflightCheck } from '../preflight/preflight';
 import { LandmarkRecorder } from '../recording/recorder';
 import { SkeletonView, SkeletonViewHandle } from '../render/SkeletonView';
@@ -35,6 +36,7 @@ interface ScreenSnapshot {
   repCount: number;
   remainingSec: number;
   measuring: boolean;
+  setupCaption: string | null;
   result: ChairStandResult | null;
 }
 
@@ -43,6 +45,7 @@ const INITIAL_SNAPSHOT: ScreenSnapshot = {
   repCount: 0,
   remainingSec: NaN,
   measuring: false,
+  setupCaption: null,
   result: null,
 };
 
@@ -58,8 +61,10 @@ const PHASE_CAPTIONS: Record<AssessmentPhase, string> = {
 export function AssessmentScreen() {
   const [pipeline] = React.useState(() => new PosePipeline());
   const [preflight] = React.useState(() => new PreflightCheck());
+  const [movementCameraReadiness] = React.useState(() => new MovementCameraReadinessTracker());
+  const [definition] = React.useState(() => getMovement(CHAIR_STAND_ID));
   const [controller] = React.useState(
-    () => new SessionController<ChairStandResult>(getMovement(CHAIR_STAND_ID) as never)
+    () => new SessionController<ChairStandResult>(definition as never)
   );
   const [voice] = React.useState(() => new VoiceChannel());
   const [sfx] = React.useState(() => new SfxChannel());
@@ -83,7 +88,8 @@ export function AssessmentScreen() {
       if (__DEV__) recorder.record(event);
       const out = pipeline.process(event);
       const status = preflight.update(out);
-      const update = controller.update(out, status, voice.busy);
+      const cameraStatus = movementCameraReadiness.update(out, definition.cameraView);
+      const update = controller.update(out, status, cameraStatus, voice.busy);
 
       if (update.voice) voice.speak(update.voice.cues, update.voice.priority);
       if (update.playRepSound) sfx.play('rep-credit');
@@ -95,6 +101,7 @@ export function AssessmentScreen() {
           repCount: update.repCount,
           remainingSec: Math.ceil(update.remainingMs / 1000),
           measuring: update.measuring,
+          setupCaption: update.setupCaption,
           result: controller.result,
         };
         setSnapshot((prev) =>
@@ -102,6 +109,7 @@ export function AssessmentScreen() {
           prev.repCount === next.repCount &&
           prev.remainingSec === next.remainingSec &&
           prev.measuring === next.measuring &&
+          prev.setupCaption === next.setupCaption &&
           prev.result === next.result
             ? prev
             : next
@@ -109,7 +117,7 @@ export function AssessmentScreen() {
       }
       skeletonRef.current?.update(out, event.sourceWidth / event.sourceHeight);
     },
-    [pipeline, preflight, controller, voice, sfx, recorder]
+    [pipeline, preflight, movementCameraReadiness, definition, controller, voice, sfx, recorder]
   );
 
   const onPoseError = React.useCallback((e: { nativeEvent: PoseErrorEventPayload }) => {
@@ -158,7 +166,9 @@ export function AssessmentScreen() {
         </View>
       ) : (
         <View pointerEvents="none" style={styles.hud}>
-          <Text style={styles.caption}>{PHASE_CAPTIONS[snapshot.phase]}</Text>
+          <Text style={styles.caption}>
+            {snapshot.setupCaption ?? PHASE_CAPTIONS[snapshot.phase]}
+          </Text>
         </View>
       )}
     </View>

@@ -1,5 +1,11 @@
-import { LOCAL_USER_ID, movementDomainFromScoreDomain, type CheckupType, type MovementAssessment } from '../adherence';
+import { LOCAL_USER_ID, type CheckupType, type MovementAssessment } from '../adherence/types';
 import type { CheckUpScore, DomainResult } from '../scoring';
+import {
+  getBlockCreationEligibility,
+  isMovementAssessmentUsableForTraining,
+  measuredMovementDomainsFromScore,
+  movementDomainFromScoreDomainStrict,
+} from './assessmentEligibility';
 import type { CreateAssessmentInput } from './types';
 
 export function createMovementAssessment({
@@ -27,9 +33,11 @@ export function createMovementAssessment({
           strengthPowerScore: scoreForDomain(score, 'strength'),
           balanceScore: scoreForDomain(score, 'balance'),
           mobilityScore: scoreForDomain(score, 'mobility'),
-          weakestDomain: movementDomainFromScoreDomain(score.weakestDomain),
+          ...(movementDomainFromScoreDomainStrict(score.weakestDomain)
+            ? { weakestDomain: movementDomainFromScoreDomainStrict(score.weakestDomain) ?? undefined }
+            : {}),
           confidence,
-          rawMetrics: { checkUpId: score.startedAt, measuredDomains: measuredDomains(score).length },
+          rawMetrics: { checkUpId: score.startedAt, measuredDomains: measuredMovementDomainsFromScore(score).length },
         }
       : {
           confidence: 'low',
@@ -46,7 +54,21 @@ export function isOfficialCheckupType(type: CheckupType): boolean {
 export function latestOfficialAssessment(
   assessments: readonly MovementAssessment[]
 ): MovementAssessment | null {
+  return latestUsableOfficialAssessment(assessments);
+}
+
+export function latestOfficialAssessmentAttempt(
+  assessments: readonly MovementAssessment[]
+): MovementAssessment | null {
   const official = assessments.filter((a) => a.isOfficialForProgress);
+  if (official.length === 0) return null;
+  return official.slice().sort((a, b) => (b.completedAt ?? b.createdAt).localeCompare(a.completedAt ?? a.createdAt))[0];
+}
+
+export function latestUsableOfficialAssessment(
+  assessments: readonly MovementAssessment[]
+): MovementAssessment | null {
+  const official = assessments.filter((a) => a.isOfficialForProgress && isMovementAssessmentUsableForTraining(a));
   if (official.length === 0) return null;
   return official.slice().sort((a, b) => (b.completedAt ?? b.createdAt).localeCompare(a.completedAt ?? a.createdAt))[0];
 }
@@ -62,22 +84,18 @@ export function canReplaceBaselineWithRetake({
 }): boolean {
   if (!confirmed || !original) return false;
   if (original.type !== 'baseline' || retake.type !== 'baseline_retake') return false;
-  return retake.status === 'completed' && retake.isOfficialForProgress;
+  return retake.isOfficialForProgress && getBlockCreationEligibility({ assessment: retake }).eligible;
 }
 
 function confidenceFromScore(score: CheckUpScore): 'low' | 'medium' | 'high' {
-  const measured = measuredDomains(score).length;
+  const measured = measuredMovementDomainsFromScore(score).length;
   if (measured >= 3) return 'high';
   if (measured >= 1) return 'medium';
   return 'low';
 }
 
-function measuredDomains(score: CheckUpScore): DomainResult[] {
-  return score.domains.filter((d) => d.measured);
-}
-
 function scoreForDomain(score: CheckUpScore, domain: DomainResult['domain']): number | undefined {
   const result = score.domains.find((d) => d.domain === domain);
-  if (!result?.measured) return undefined;
+  if (!result?.measured || !Number.isFinite(result.ageLow) || !Number.isFinite(result.ageHigh)) return undefined;
   return (result.ageLow + result.ageHigh) / 2;
 }

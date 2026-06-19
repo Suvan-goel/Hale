@@ -40,6 +40,21 @@ function storedCheckUp(): StoredCheckUp {
   return { schemaVersion: HISTORY_SCHEMA_VERSION, checkUp: syntheticCheckUp(START) };
 }
 
+function noMeasurementStoredCheckUp(): StoredCheckUp {
+  return {
+    schemaVersion: HISTORY_SCHEMA_VERSION,
+    checkUp: {
+      startedAt: START,
+      bodyUnit: 1,
+      items: DEFAULT_BATTERY.map((movementId) => ({
+        movementId,
+        status: 'measured' as const,
+        result: { movementId, flags: ['no-measurement'], interruptions: 0 },
+      })),
+    },
+  };
+}
+
 function onboardingPrefs() {
   const prefs = defaultPreferences();
   prefs.profile.lifeGoal = createLifeGoal({ category: 'stairs', nowIso: START });
@@ -74,6 +89,12 @@ describe('Hale V1 onboarding state', () => {
     const prefs = onboardingPrefs();
     prefs.onboarding.currentStep = 'results';
     expect(deriveOnboardingStep({ prefs, history: [storedCheckUp()] })).toBe('results');
+  });
+
+  it('does not treat an invalid baseline attempt as onboarding-ready on restart', () => {
+    const prefs = onboardingPrefs();
+    prefs.onboarding.currentStep = 'results';
+    expect(deriveOnboardingStep({ prefs, history: [noMeasurementStoredCheckUp()] })).toBe('camera_setup');
   });
 
   it('treats an active 4-week block as onboarding complete', () => {

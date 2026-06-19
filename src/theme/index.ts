@@ -105,6 +105,25 @@ export const colors = {
   onAccent: palette.cardSurface,
 } as const;
 
+export const todayHomeColors = {
+  background: '#F7F2EA',
+  card: '#FFFDF8',
+  cardAlt: '#FFFCF6',
+  iconFill: '#E7ECDF',
+  ringTrack: '#ECE7DA',
+  border: '#E5DED2',
+  shadow: 'rgba(32,45,36,0.06)',
+  primaryText: '#142019',
+  headingGreen: '#2F4A36',
+  secondaryText: '#62685F',
+  mutedText: '#7B8178',
+  primary: '#2F4A36',
+  hero: '#55644C',
+  heroDeep: '#243B2C',
+  tabActive: '#3E5C3F',
+  warmWhite: '#FFFDF8',
+} as const;
+
 /* ----------------------------------------------------------------------------
  * Typography — modern sans-led hierarchy with restrained serif available
  * ------------------------------------------------------------------------- */

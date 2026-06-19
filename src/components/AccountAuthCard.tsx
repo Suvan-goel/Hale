@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import Svg, { Path, Rect } from 'react-native-svg';
 
 import {
   clearLocalHaleData,
@@ -8,7 +9,7 @@ import {
   shareHaleDataExport,
   useAuth,
 } from '../services/backend';
-import { colors, radius, spacing, type } from '../theme';
+import { colors, radius, shadow, spacing, type } from '../theme';
 import {
   DELETE_CONFIRMATION_WORD,
   canConfirmAccountDataAction,
@@ -249,6 +250,103 @@ export function AccountAuthCard({
       setConfirmationText('');
     }
   };
+
+  if (context === 'settings' && isSignedIn) {
+    return (
+      <View style={styles.compactAccountStack}>
+        <View style={styles.compactAccountCard}>
+          <View style={styles.compactAccountIcon}>
+            <MailIcon />
+          </View>
+          <View style={styles.compactAccountCopy}>
+            <Text style={styles.compactAccountTitle}>Account</Text>
+            <Text style={styles.compactAccountEmail} numberOfLines={2} selectable>
+              {user?.email ?? 'Signed in'}
+            </Text>
+          </View>
+          <Text style={styles.compactChevron}>{'>'}</Text>
+        </View>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.exportButton,
+            (loading || exportLoading || dataActionLoading) && styles.compactActionDisabled,
+            pressed && !(loading || exportLoading || dataActionLoading) && styles.pressed,
+          ]}
+          onPress={submitExportData}
+          disabled={loading || exportLoading || dataActionLoading}
+          accessibilityRole="button"
+          accessibilityLabel="Export my data"
+        >
+          <DownloadIcon color={colors.onAccent} />
+          <Text style={styles.exportButtonText}>{exportLoading ? 'Preparing export...' : 'Export my data'}</Text>
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.signOutButton,
+            loading && styles.compactActionDisabled,
+            pressed && !loading && styles.pressed,
+          ]}
+          onPress={submitSignOut}
+          disabled={loading}
+          accessibilityRole="button"
+          accessibilityLabel="Sign out"
+        >
+          <SignOutIcon />
+          <Text style={styles.signOutButtonText}>{loading ? 'Signing out...' : 'Sign out'}</Text>
+        </Pressable>
+
+        {pendingDataAction ? (
+          <View style={styles.compactConfirmPanel}>
+            <Typography variant="bodySmall" color={colors.textPrimary}>
+              Delete account is permanent and will require secure cloud deletion.
+            </Typography>
+            <Input
+              label={`Type ${DELETE_CONFIRMATION_WORD} to confirm`}
+              value={confirmationText}
+              onChangeText={setConfirmationText}
+              placeholder={DELETE_CONFIRMATION_WORD}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              returnKeyType="done"
+              accessibilityLabel="Delete account confirmation"
+              containerStyle={styles.field}
+            />
+            <View style={styles.dangerButtonRow}>
+              <Button
+                title={dataActionLoading ? 'Working...' : 'Delete account'}
+                variant="danger"
+                onPress={confirmDataAction}
+                disabled={dataActionLoading || loading}
+                style={styles.dangerButton}
+              />
+              <Button
+                title="Cancel"
+                variant="ghost"
+                onPress={cancelDataAction}
+                disabled={dataActionLoading || loading}
+                style={styles.dangerButton}
+              />
+            </View>
+          </View>
+        ) : (
+          <Pressable
+            style={({ pressed }) => [styles.deleteAccountLink, pressed && styles.pressed]}
+            onPress={() => beginDataAction('delete-account')}
+            disabled={loading || dataActionLoading}
+            accessibilityRole="button"
+            accessibilityLabel="Delete account"
+          >
+            <Text style={styles.deleteAccountText}>Delete account</Text>
+          </Pressable>
+        )}
+
+        {notice ? <Typography variant="caption" color={colors.sageDeep} style={styles.message}>{notice}</Typography> : null}
+        {authError ? <Typography variant="caption" color={colors.error} style={styles.message}>{authError}</Typography> : null}
+      </View>
+    );
+  }
 
   return (
     <Card style={context === 'required' ? styles.authCard : undefined}>
@@ -530,11 +628,137 @@ function SocialButton({
   );
 }
 
+function MailIcon() {
+  return (
+    <Svg width={25} height={25} viewBox="0 0 24 24" fill="none">
+      <Rect x={4} y={6.5} width={16} height={11.5} rx={2.2} stroke={colors.accentDeep} strokeWidth={1.7} />
+      <Path d="M5.5 8.5 L12 13 L18.5 8.5" stroke={colors.accentDeep} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+function DownloadIcon({ color }: { color: string }) {
+  return (
+    <Svg width={23} height={23} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 4.5 V14" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
+      <Path d="M8 10.5 L12 14.5 L16 10.5" stroke={color} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M5 18.5 H19" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+function SignOutIcon() {
+  return (
+    <Svg width={23} height={23} viewBox="0 0 24 24" fill="none">
+      <Path d="M10 6 H6.5 C5.7 6, 5 6.7, 5 7.5 V16.5 C5 17.3, 5.7 18, 6.5 18 H10" stroke={colors.accentDeep} strokeWidth={1.8} strokeLinecap="round" />
+      <Path d="M12 12 H19" stroke={colors.accentDeep} strokeWidth={1.8} strokeLinecap="round" />
+      <Path d="M16 8.5 L19.5 12 L16 15.5" stroke={colors.accentDeep} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 function messageFromError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
 const styles = StyleSheet.create({
+  compactAccountStack: {
+    gap: spacing.md,
+  },
+  compactAccountCard: {
+    minHeight: 74,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: 18,
+    backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+    ...shadow.soft,
+  },
+  compactAccountIcon: {
+    width: 39,
+    height: 39,
+    borderRadius: radius.input,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.accentSoft,
+  },
+  compactAccountCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  compactAccountTitle: {
+    ...type.bodySmall,
+    fontFamily: type.button.fontFamily,
+    color: colors.primaryText,
+  },
+  compactAccountEmail: {
+    ...type.caption,
+    marginTop: 2,
+    color: colors.primaryText,
+  },
+  compactChevron: {
+    ...type.h2,
+    color: colors.textSecondary,
+    lineHeight: 26,
+  },
+  exportButton: {
+    minHeight: 54,
+    borderRadius: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.accent,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    ...shadow.soft,
+  },
+  exportButtonText: {
+    ...type.bodySmall,
+    fontFamily: type.button.fontFamily,
+    color: colors.onAccent,
+  },
+  signOutButton: {
+    minHeight: 54,
+    borderRadius: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: colors.accentDeep,
+  },
+  signOutButtonText: {
+    ...type.bodySmall,
+    fontFamily: type.button.fontFamily,
+    color: colors.accentDeep,
+  },
+  deleteAccountLink: {
+    minHeight: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteAccountText: {
+    ...type.caption,
+    fontFamily: type.button.fontFamily,
+    color: colors.error,
+    textAlign: 'center',
+  },
+  compactConfirmPanel: {
+    padding: spacing.lg,
+    borderRadius: 18,
+    backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+  },
+  compactActionDisabled: {
+    opacity: 0.55,
+  },
   authCard: {
     width: '100%',
     backgroundColor: colors.surface,

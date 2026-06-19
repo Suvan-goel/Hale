@@ -56,7 +56,7 @@ export function getPlanFocusCopy(domain: MovementDomain | undefined): PlanFocusC
   if (domain === 'balance') {
     return {
       title: 'Becoming steadier and more confident',
-      body: 'This block adds more balance practice, ankle and hip control, and supported strength so everyday movement feels steadier.',
+      body: 'This block adds balance practice, strength work, and mobility to make everyday movement feel easier.',
     };
   }
   if (domain === 'mobility') {

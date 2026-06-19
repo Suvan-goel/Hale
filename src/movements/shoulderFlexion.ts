@@ -55,7 +55,6 @@ export const DEFAULT_SHOULDER_FLEXION_CONFIG: ShoulderFlexionConfig = {
 class ShoulderFlexionGrader implements MovementGrader<ShoulderFlexionResult> {
   private readonly config: ShoulderFlexionConfig;
   private readonly rom: MaxRomTracker;
-  private readonly fallbackRom: MaxRomTracker;
   private readonly validTime: ValidTimeAccumulator;
   private readonly liveUpdate: GraderUpdate = {
     repCredited: false,
@@ -69,22 +68,19 @@ class ShoulderFlexionGrader implements MovementGrader<ShoulderFlexionResult> {
   private sideLocked = false;
   private interruptions = 0;
   private romOut: MaxRomOutput | null = null;
-  private fallbackRomOut: MaxRomOutput | null = null;
 
   constructor(config: ShoulderFlexionConfig) {
     this.config = config;
     this.rom = new MaxRomTracker({ emaAlpha: config.emaAlpha, direction: 'max' });
-    this.fallbackRom = new MaxRomTracker({ emaAlpha: config.emaAlpha, direction: 'max' });
     this.validTime = createValidTimeAccumulator(validTimeConfigForTarget(config.validCaptureMs));
   }
 
   update(out: PipelineFrameOutput): GraderUpdate {
     const live = this.liveUpdate;
     for (let i = 0; i < out.events.length; i++) {
-      if (out.events[i].type === 'subject-gone') {
+      if (out.events[i].type === 'subject-gone' || out.events[i].type === 'tracking-interrupted') {
         this.interruptions++;
         this.rom.resetState();
-        this.fallbackRom.resetState();
         this.sideLocked = false;
       }
     }
@@ -112,7 +108,6 @@ class ShoulderFlexionGrader implements MovementGrader<ShoulderFlexionResult> {
     const elbow = this.sideIsLeft ? LM.LEFT_ELBOW : LM.RIGHT_ELBOW;
 
     const angle = angleAtDeg(out.frame, hip, shoulder, elbow);
-    this.fallbackRomOut = this.fallbackRom.update(angle, out.frame.timestampMs);
     const torsoUpright = out.frame.ys[shoulder] < out.frame.ys[hip];
     const positionValid = torsoUpright && angle >= 35;
     const snap = this.validTime.update({
@@ -129,29 +124,26 @@ class ShoulderFlexionGrader implements MovementGrader<ShoulderFlexionResult> {
   finish(): ShoulderFlexionResult {
     const flags: string[] = [];
     if (this.interruptions > 0) flags.push('tracking-interrupted');
-    const peak = this.romOut && Number.isFinite(this.romOut.peak)
+    const validTime = getValidTimeResult(this.validTime.snapshot, this.config.validCaptureMs);
+    const peak = validTime.completedByValidTime && this.romOut && Number.isFinite(this.romOut.peak)
       ? this.romOut.peak
-      : this.fallbackRomOut
-        ? this.fallbackRomOut.peak
-        : NaN;
+      : NaN;
     if (Number.isNaN(peak)) flags.push('no-measurement');
     return {
       movementId: SHOULDER_FLEXION_ID,
       peakFlexionDeg: peak,
       flags,
       interruptions: this.interruptions,
-      validTime: getValidTimeResult(this.validTime.snapshot, this.config.validCaptureMs),
+      validTime,
     };
   }
 
   reset(): void {
     this.rom.reset();
-    this.fallbackRom.reset();
     this.validTime.reset();
     this.sideLocked = false;
     this.interruptions = 0;
     this.romOut = null;
-    this.fallbackRomOut = null;
     this.liveUpdate.measuring = false;
   }
 }

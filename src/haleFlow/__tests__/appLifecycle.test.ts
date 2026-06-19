@@ -16,6 +16,7 @@ import {
   getMovementSnapshot,
   getWeekSessionStatuses,
 } from '../appLifecycle';
+import { createMovementAssessment } from '../assessments';
 
 const START = '2026-06-01T08:00:00.000Z';
 
@@ -51,6 +52,21 @@ function baseline(startedAt = START): StoredCheckUp {
   return {
     schemaVersion: HISTORY_SCHEMA_VERSION,
     checkUp: syntheticCheckUp(startedAt),
+  };
+}
+
+function noMeasurementBaseline(startedAt = START): StoredCheckUp {
+  const checkUp = syntheticCheckUp(startedAt);
+  return {
+    schemaVersion: HISTORY_SCHEMA_VERSION,
+    checkUp: {
+      ...checkUp,
+      items: checkUp.items.map((item) => ({
+        movementId: item.movementId,
+        status: 'measured' as const,
+        result: { movementId: item.movementId, flags: ['no-measurement'], interruptions: 0 },
+      })),
+    },
   };
 }
 
@@ -137,6 +153,19 @@ describe('getHaleAppLifecycle', () => {
     expect(result.primaryAction.type).toBe('create_block');
   });
 
+  it('still asks for a Movement Check-Up when stored history has no usable measurements', () => {
+    const result = getHaleAppLifecycle({
+      profile: profile(),
+      history: [noMeasurementBaseline()],
+      training: defaultTrainingState(),
+      adherence: defaultAdherenceStoreState(),
+      today: START,
+    });
+
+    expect(result.state).toBe('needs_baseline_checkup');
+    expect(result.primaryAction.type).toBe('start_checkup');
+  });
+
   it('recognizes the first Hale Session for a new active block', () => {
     const block = activeBlock();
     const result = getHaleAppLifecycle({
@@ -220,6 +249,30 @@ describe('getHaleAppLifecycle', () => {
       today: '2026-06-29T08:00:00.000Z',
     });
 
+    expect(result.state).toBe('monthly_retest_due');
+    expect(result.primaryAction.type).toBe('start_retest');
+  });
+
+  it('keeps the active block recoverable after an invalid official retest attempt', () => {
+    const block = activeBlock();
+    const invalidScore = scoreCheckUp(noMeasurementBaseline('2026-06-29T08:00:00.000Z').checkUp);
+    const invalidRetest = createMovementAssessment({
+      checkUpId: invalidScore.startedAt,
+      type: 'official_retest',
+      score: invalidScore,
+      completedAt: invalidScore.startedAt,
+      sourceBlockId: block.id,
+      isOfficialForProgress: true,
+    });
+    const result = getHaleAppLifecycle({
+      profile: profile(),
+      history: [baseline(), noMeasurementBaseline('2026-06-29T08:00:00.000Z')],
+      training: defaultTrainingState(),
+      adherence: { ...defaultAdherenceStoreState(), blocks: [block], assessments: [invalidRetest] },
+      today: '2026-06-29T09:00:00.000Z',
+    });
+
+    expect(block.status).toBe('active');
     expect(result.state).toBe('monthly_retest_due');
     expect(result.primaryAction.type).toBe('start_retest');
   });
