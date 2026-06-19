@@ -72,7 +72,8 @@ export class MovementCameraReadinessTracker {
   update(out: PipelineFrameOutput, spec: CameraViewSpec): MovementCameraReadinessResult {
     const status = this.status;
     const ts = out.frame.timestampMs;
-    const poseUsable = out.state === 'tracking' && out.frame.hasPose && out.validity.valid && coreViewLandmarksFinite(out.frame);
+    const poseUsable =
+      out.state === 'tracking' && out.frame.hasPose && out.validity.valid && coreViewGeometryUsable(out.frame);
     const detectedView = poseUsable ? detectCameraView(out.frame) : 'ambiguous';
     const viewMatches =
       spec.view === 'not_required' ||
@@ -99,8 +100,8 @@ export class MovementCameraReadinessTracker {
     status.reliableSideChains = out.reliableSideChains;
     status.ready = baseReady && status.stableForMs >= this.config.stableMs;
     status.reason = readinessReason(poseUsable, detectedView, spec, reliableEnough, status.ready);
-    status.promptCue = movementCameraPromptCue(status.reason);
-    status.setupCaption = movementCameraCaption(status.reason);
+    status.promptCue = movementCameraPromptCue(status.reason, spec.view);
+    status.setupCaption = movementCameraCaption(status.reason, spec.view);
     return status;
   }
 
@@ -155,13 +156,19 @@ function readinessReason(
   return 'hold-still';
 }
 
-function movementCameraPromptCue(reason: MovementCameraReadinessReason): VoiceCueKey {
+function movementCameraPromptCue(
+  reason: MovementCameraReadinessReason,
+  requiredView: CameraViewSpec['view']
+): VoiceCueKey {
   switch (reason) {
     case 'turn-side-on':
       return 'turn-side-on';
     case 'face-camera':
       return 'face-forward';
     case 'ambiguous-view':
+      if (requiredView === 'front') return 'face-forward';
+      if (requiredView === 'side' || requiredView === 'side_oblique') return 'turn-side-on';
+      return 'step-into-frame';
     case 'hold-still':
     case 'ready':
       return 'hold-still';
@@ -172,7 +179,10 @@ function movementCameraPromptCue(reason: MovementCameraReadinessReason): VoiceCu
   }
 }
 
-function movementCameraCaption(reason: MovementCameraReadinessReason): string | null {
+function movementCameraCaption(
+  reason: MovementCameraReadinessReason,
+  requiredView: CameraViewSpec['view']
+): string | null {
   switch (reason) {
     case 'ready':
       return null;
@@ -181,6 +191,11 @@ function movementCameraCaption(reason: MovementCameraReadinessReason): string | 
     case 'face-camera':
       return 'Turn to face the camera.';
     case 'ambiguous-view':
+      if (requiredView === 'front') return 'Turn a little more to face the camera.';
+      if (requiredView === 'side' || requiredView === 'side_oblique') {
+        return 'Turn a little more so your side faces the camera.';
+      }
+      return 'Make sure your whole body is visible.';
     case 'hold-still':
       return 'Hold that position for a moment.';
     case 'insufficient-reliable-chains':
@@ -196,4 +211,14 @@ function coreViewLandmarksFinite(frame: PoseFrame): boolean {
     if (!Number.isFinite(frame.xs[lm]) || !Number.isFinite(frame.ys[lm])) return false;
   }
   return true;
+}
+
+function coreViewGeometryUsable(frame: PoseFrame): boolean {
+  if (!coreViewLandmarksFinite(frame)) return false;
+  const shoulderMidX = (frame.xs[LM.LEFT_SHOULDER] + frame.xs[LM.RIGHT_SHOULDER]) * 0.5;
+  const shoulderMidY = (frame.ys[LM.LEFT_SHOULDER] + frame.ys[LM.RIGHT_SHOULDER]) * 0.5;
+  const hipMidX = (frame.xs[LM.LEFT_HIP] + frame.xs[LM.RIGHT_HIP]) * 0.5;
+  const hipMidY = (frame.ys[LM.LEFT_HIP] + frame.ys[LM.RIGHT_HIP]) * 0.5;
+  const torsoLen = Math.hypot(shoulderMidX - hipMidX, shoulderMidY - hipMidY);
+  return Number.isFinite(torsoLen) && torsoLen >= 0.05;
 }

@@ -174,4 +174,44 @@ describe('Check-Up orchestrator — setup issue choices', () => {
       { movementId: 'chair-stand-30s', status: 'skipped', result: null },
     ]);
   });
+
+  it('retry clears a latched setup issue and runs the item after fresh valid framing', () => {
+    const config: CheckUpConfig = {
+      ...DEFAULT_CHECKUP_CONFIG,
+      battery: ['chair-stand-30s'],
+      maxFramingMs: 12000,
+    };
+    const pipeline = new PosePipeline();
+    const preflight = new PreflightCheck();
+    const orchestrator = new CheckUpOrchestrator('2026-06-13T10:00:00.000Z', preflight, config);
+    const validFrames = framedForMovement(18);
+    let retried = false;
+    let setupIssues = 0;
+    let voiceBusyUntil = -1;
+    let reachedItemAfterRetry = false;
+    let currentMovementId: string | null = null;
+
+    for (let frame = 0, ts = 0; frame < 30000 && !reachedItemAfterRetry; frame++, ts += FRAME_MS) {
+      const roundedTs = Math.round(ts);
+      const raw = retried
+        ? validFrames(roundedTs, currentMovementId)
+        : { timestampMs: roundedTs, landmarks: [] };
+      const out = pipeline.process(raw);
+      const u = orchestrator.update(out, ts < voiceBusyUntil);
+      currentMovementId = u.currentMovementId;
+      if (u.voice) voiceBusyUntil = ts + u.voice.cues.length * CUE_PLAY_MS;
+      if (u.setupIssue && !retried) {
+        setupIssues++;
+        retried = true;
+        orchestrator.retrySetup();
+      }
+      if (retried && !u.setupIssue && u.phase === 'item' && u.item && u.item.phase !== 'preflight') {
+        reachedItemAfterRetry = true;
+      }
+    }
+
+    expect(setupIssues).toBe(1);
+    expect(reachedItemAfterRetry).toBe(true);
+    expect(orchestrator.result).toBeNull();
+  });
 });

@@ -127,4 +127,29 @@ describe('domain scoring', () => {
     expect(mobility.measured).toBe(false);
     expect(score.weakestDomain).toBe('balance'); // only measured domain
   });
+
+  it('does not score mobility from hinge reach when shoulder capture produced no official measurement', () => {
+    const items: CheckUp['items'] = [
+      measured(CHAIR_STAND_ID, { reps: 12, repStats: [], sessionMeanVel: 0.22, sessionMeanPeakVel: 0.3, pushOffDetected: false }),
+      measured(BALANCE_LADDER_ID, { stages: [], singleLegEyesOpenSec: 12 }),
+      {
+        movementId: SHOULDER_FLEXION_ID,
+        status: 'measured',
+        result: {
+          movementId: SHOULDER_FLEXION_ID,
+          flags: ['no-measurement'],
+          interruptions: 1,
+          peakFlexionDeg: NaN,
+        } as never,
+      },
+      measured(HINGE_REACH_ID, { reachBu: 0.18 }),
+    ];
+
+    const score = scoreCheckUp(checkUp(items));
+    const mobility = score.domains.find((d) => d.domain === 'mobility')!;
+
+    expect(mobility.measured).toBe(false);
+    expect(mobility.rows.find((row) => row.label === 'Forward reach to floor')?.measured).toBe(true);
+    expect(score.weakestDomain).not.toBe('mobility');
+  });
 });

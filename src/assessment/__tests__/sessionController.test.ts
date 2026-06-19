@@ -6,7 +6,15 @@
  */
 
 import { VoiceCueKey } from '../../audio/cues';
-import { CHAIR_STAND_ID, ChairStandResult, getMovement } from '../../movements';
+import {
+  BALANCE_LADDER_ID,
+  CHAIR_STAND_ID,
+  ChairStandResult,
+  HINGE_REACH_ID,
+  SHOULDER_FLEXION_ID,
+  getMovement,
+} from '../../movements';
+import type { MovementDefinition, MovementResultBase } from '../../movements/types';
 import { PosePipeline } from '../../pose/pipeline';
 import type { PipelineFrameOutput } from '../../pose/pipeline';
 import { chairStandSession } from '../../pose/testing/syntheticChairStand';
@@ -16,7 +24,7 @@ import type { MovementCameraReadinessResult } from '../../preflight/movementCame
 import { MovementCameraReadinessTracker } from '../../preflight/movementCameraReadiness';
 import { PreflightCheck } from '../../preflight/preflight';
 import type { PreflightPrompt, PreflightStatus } from '../../preflight/preflight';
-import { AssessmentPhase, SessionController } from '../sessionController';
+import { AssessmentPhase, DEFAULT_SESSION_CONFIG, SessionController } from '../sessionController';
 
 const CUE_PLAY_MS = 1800; // fake per-line playback duration
 
@@ -66,6 +74,10 @@ function outputAt(timestampMs: number): PipelineFrameOutput {
   } as PipelineFrameOutput;
 }
 
+function trackingOutputAt(timestampMs: number): PipelineFrameOutput {
+  return outputFromRaw(makeFrame(timestampMs, mulberry32(500 + timestampMs), { noiseAmp: 0 }));
+}
+
 function framingStatus(prompt: PreflightPrompt): PreflightStatus {
   return {
     phase: 'framing',
@@ -97,6 +109,14 @@ function cameraReady(overrides: Partial<MovementCameraReadinessResult> = {}): Mo
     setupCaption: null,
     ...overrides,
   };
+}
+
+function cameraBlocked(overrides: Partial<MovementCameraReadinessResult>): MovementCameraReadinessResult {
+  return cameraReady({
+    ready: false,
+    stableForMs: 0,
+    ...overrides,
+  });
 }
 
 function outputFromRaw(raw: RawLandmarkEvent): PipelineFrameOutput {
@@ -196,5 +216,154 @@ describe('SessionController — voice-guided chair stand', () => {
     expect(update.phase).toBe('preflight');
     expect(update.setupCaption).toBe('Turn so your side faces the camera.');
     expect(update.voice?.cues).toEqual(['turn-side-on']);
+  });
+
+  it.each([
+    [
+      'chair stand side-view countdown',
+      CHAIR_STAND_ID,
+      cameraBlocked({
+        requiredView: 'side',
+        detectedView: 'front',
+        reason: 'turn-side-on',
+        promptCue: 'turn-side-on',
+        setupCaption: 'Turn so your side faces the camera.',
+      }),
+    ],
+    [
+      'balance ladder front-view countdown',
+      BALANCE_LADDER_ID,
+      cameraBlocked({
+        requiredView: 'front',
+        detectedView: 'side',
+        requiredReliableSideChains: 2,
+        reason: 'face-camera',
+        promptCue: 'face-forward',
+        setupCaption: 'Turn to face the camera.',
+      }),
+    ],
+    [
+      'shoulder flexion ambiguous side-view countdown',
+      SHOULDER_FLEXION_ID,
+      cameraBlocked({
+        requiredView: 'side',
+        detectedView: 'ambiguous',
+        reason: 'ambiguous-view',
+        promptCue: 'turn-side-on',
+        setupCaption: 'Turn a little more so your side faces the camera.',
+      }),
+    ],
+    [
+      'hinge reach chain-loss countdown',
+      HINGE_REACH_ID,
+      cameraBlocked({
+        requiredView: 'side',
+        detectedView: 'side',
+        reliableSideChains: 0,
+        reason: 'insufficient-reliable-chains',
+        promptCue: 'step-into-frame',
+        setupCaption: 'Make sure your whole body is visible.',
+      }),
+    ],
+  ])('invalidates %s and requires setup again before active measurement', (_name, movementId, invalidCamera) => {
+    const definition = getMovement(movementId);
+    const controller = new SessionController(definition as never, {
+      ...DEFAULT_SESSION_CONFIG,
+      postInstructionsDwellMs: 0,
+    });
+    const readyCamera = cameraReady({
+      requiredView: definition.cameraView.view,
+      requiredReliableSideChains: definition.cameraView.requiredReliableSideChains,
+    });
+
+    expect(controller.update(trackingOutputAt(0), readyStatus(), readyCamera, false).phase).toBe('instructions');
+    expect(controller.update(trackingOutputAt(1000), readyStatus(), readyCamera, false)).toMatchObject({
+      phase: 'countdown',
+      voice: { cues: ['countdown-three'] },
+    });
+
+    const invalidated = controller.update(trackingOutputAt(1500), readyStatus(), invalidCamera, false);
+    expect(invalidated).toMatchObject({
+      phase: 'preflight',
+      setupCaption: invalidCamera.setupCaption,
+      voice: { cues: [invalidCamera.promptCue] },
+      measuring: false,
+    });
+
+    const staleGoTime = controller.update(trackingOutputAt(5000), readyStatus(), invalidCamera, false);
+    expect(staleGoTime.phase).toBe('preflight');
+    expect(staleGoTime.measuring).toBe(false);
+    expect(controller.result).toBeNull();
+  });
+
+  it('passes active camera failures to the grader only as tracking-interrupted frames until reacquired', () => {
+    const seen: Array<{ state: string; eventTypes: string[]; timestampMs: number }> = [];
+    const result: MovementResultBase = { movementId: 'probe', flags: [], interruptions: 0 };
+    const definition: MovementDefinition<MovementResultBase> = {
+      id: 'probe',
+      displayName: 'Probe',
+      cameraView: { view: 'side', requiredReliableSideChains: 1 },
+      equipment: ['none'],
+      durationMs: 2000,
+      voice: { instructions: [] },
+      createGrader: () => ({
+        update: (out) => {
+          seen.push({
+            state: out.state,
+            eventTypes: out.events.map((event) => event.type),
+            timestampMs: out.frame.timestampMs,
+          });
+          return {
+            repCredited: false,
+            repCount: 0,
+            measuring: out.state === 'tracking',
+            complete: false,
+            voice: null,
+          };
+        },
+        finish: () => result,
+        reset: () => {},
+      }),
+      resultCues: () => [],
+    };
+    const controller = new SessionController(definition, {
+      ...DEFAULT_SESSION_CONFIG,
+      postInstructionsDwellMs: 0,
+    });
+    const readyCamera = cameraReady();
+    const blockedCamera = cameraBlocked({
+      requiredView: 'side',
+      detectedView: 'front',
+      reason: 'turn-side-on',
+      promptCue: 'turn-side-on',
+      setupCaption: 'Turn so your side faces the camera.',
+    });
+
+    controller.update(trackingOutputAt(0), readyStatus(), readyCamera, false);
+    controller.update(trackingOutputAt(1000), readyStatus(), readyCamera, false);
+    controller.update(trackingOutputAt(2000), readyStatus(), readyCamera, false);
+    controller.update(trackingOutputAt(3000), readyStatus(), readyCamera, false);
+    expect(controller.update(trackingOutputAt(4000), readyStatus(), readyCamera, false)).toMatchObject({
+      phase: 'active',
+      voice: { cues: ['go'] },
+    });
+
+    expect(controller.update(trackingOutputAt(4100), readyStatus(), readyCamera, false)).toMatchObject({
+      phase: 'active',
+      measuring: true,
+    });
+    const firstBlocked = { ...controller.update(trackingOutputAt(4200), readyStatus(), blockedCamera, false) };
+    const stillBlocked = { ...controller.update(trackingOutputAt(4300), readyStatus(), blockedCamera, false) };
+    const reacquired = { ...controller.update(trackingOutputAt(4400), readyStatus(), readyCamera, false) };
+
+    expect(firstBlocked).toMatchObject({ phase: 'active', measuring: false, setupCaption: blockedCamera.setupCaption });
+    expect(stillBlocked).toMatchObject({ phase: 'active', measuring: false, setupCaption: blockedCamera.setupCaption });
+    expect(reacquired).toMatchObject({ phase: 'active', measuring: true, setupCaption: null });
+    expect(seen).toEqual([
+      { state: 'tracking', eventTypes: [], timestampMs: 4100 },
+      { state: 'interrupted', eventTypes: ['tracking-interrupted'], timestampMs: 4200 },
+      { state: 'interrupted', eventTypes: [], timestampMs: 4300 },
+      { state: 'tracking', eventTypes: [], timestampMs: 4400 },
+    ]);
   });
 });
