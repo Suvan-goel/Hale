@@ -170,6 +170,8 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: radius.pill,
     backgroundColor: colors.accentSoft,
+    borderWidth: 1,
+    borderColor: colors.accentBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },

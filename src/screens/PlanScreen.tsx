@@ -928,7 +928,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgGold,
   },
   sessionMarkNext: { backgroundColor: colors.accent },
-  sessionMarkComplete: { backgroundColor: colors.accentSoft },
+  sessionMarkComplete: {
+    backgroundColor: colors.accentSoft,
+    borderWidth: 1,
+    borderColor: colors.accentBorder,
+  },
   sessionMarkText: {
     color: colors.accentDeep,
     fontFamily: fonts.serifMedium,

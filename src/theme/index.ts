@@ -12,7 +12,7 @@
  * and the skeleton preview script, so keep those values in sync when it changes.
  */
 
-import { Platform, TextStyle, ViewStyle } from 'react-native';
+import { Platform, StyleSheet, TextStyle, ViewStyle } from 'react-native';
 
 /* ----------------------------------------------------------------------------
  * Colour — crisp premium palette
@@ -355,6 +355,8 @@ export const componentStyles = {
       height: 10,
       borderRadius: radius.pill,
       backgroundColor: colors.bgSage,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.borderHairline,
       overflow: 'hidden',
     } satisfies ViewStyle,
     fill: {

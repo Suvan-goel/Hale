@@ -82,6 +82,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.accentSoft,
+    borderWidth: 1,
+    borderColor: colors.accentBorder,
   },
   markText: { ...type.caption, color: colors.accentDeep },
   actions: { gap: spacing.md },

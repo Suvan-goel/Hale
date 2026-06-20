@@ -1072,6 +1072,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     marginTop: 10,
     backgroundColor: todayHomeColors.iconFill,
+    borderWidth: 1,
+    borderColor: todayHomeColors.border,
   },
   guideMetaText: {
     color: todayHomeColors.headingGreen,
@@ -1085,6 +1087,8 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 27,
     backgroundColor: todayHomeColors.iconFill,
+    borderWidth: 1,
+    borderColor: todayHomeColors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1102,6 +1106,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     paddingHorizontal: 12,
     backgroundColor: todayHomeColors.iconFill,
+    borderWidth: 1,
+    borderColor: todayHomeColors.border,
   },
   timePillCompact: {
     minHeight: 32,
@@ -1185,6 +1191,8 @@ const styles = StyleSheet.create({
   },
   setupStatusPillReady: {
     backgroundColor: todayHomeColors.iconFill,
+    borderWidth: 1,
+    borderColor: todayHomeColors.border,
   },
   setupStatusPillNeutral: {
     backgroundColor: colors.bgElevated,

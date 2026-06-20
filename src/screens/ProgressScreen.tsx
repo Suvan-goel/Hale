@@ -892,6 +892,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: radius.input,
     backgroundColor: colors.sageMist,
+    borderWidth: 1,
+    borderColor: colors.borderHairline,
   },
   metricLabel: {
     ...type.caption,
@@ -911,6 +913,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.sageMist,
+    borderWidth: 1,
+    borderColor: colors.borderHairline,
   },
   domainList: { marginTop: spacing.md },
   domainRow: {

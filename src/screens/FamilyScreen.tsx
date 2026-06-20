@@ -85,6 +85,8 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: radius.pill,
     backgroundColor: colors.accentSoft,
+    borderWidth: 1,
+    borderColor: colors.accentBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
