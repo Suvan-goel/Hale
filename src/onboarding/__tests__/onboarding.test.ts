@@ -1,6 +1,7 @@
 import {
   createLifeGoal,
   createMovementBlockFromAssessment,
+  type MovementAssessment,
   type MovementSafetyProfile,
 } from '../../adherence';
 import { DEFAULT_BATTERY } from '../../checkup';
@@ -8,14 +9,14 @@ import { syntheticCheckUp } from '../../checkup/devFixture';
 import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../../history';
 import { TUG_ID } from '../../movements';
 import { defaultPreferences } from '../../profile';
-import { scoreCheckUp } from '../../scoring';
+import { createCurrentVersionedScoreSnapshot, scoreCheckUp } from '../../scoring';
 import {
   DEFAULT_EQUIPMENT,
   buildBlock,
   defaultTrainingState,
   startBlock,
 } from '../../training';
-import { planTodayHaleSession } from '../../haleFlow';
+import { createMovementAssessment, planTodayHaleSession } from '../../haleFlow';
 import { onboardingDomainSummaries, onboardingFocusDomain } from '../results';
 import { V1_BASELINE_MOVEMENT_IDS, deriveOnboardingStep } from '../state';
 
@@ -37,22 +38,48 @@ function safetyProfile(equipment: MovementSafetyProfile['availableEquipment'] = 
 }
 
 function storedCheckUp(): StoredCheckUp {
-  return { schemaVersion: HISTORY_SCHEMA_VERSION, checkUp: syntheticCheckUp(START) };
+  const checkUp = syntheticCheckUp(START);
+  const scored = createCurrentVersionedScoreSnapshot(checkUp);
+  return {
+    schemaVersion: HISTORY_SCHEMA_VERSION,
+    checkupType: 'baseline',
+    checkUp,
+    scoreSnapshot: scored.snapshot ?? undefined,
+    scoreSnapshotCompatibility: scored.snapshot ? 'current' : 'invalid_snapshot',
+  };
 }
 
 function noMeasurementStoredCheckUp(): StoredCheckUp {
+  const checkUp = {
+    startedAt: START,
+    bodyUnit: 1,
+    items: DEFAULT_BATTERY.map((movementId) => ({
+      movementId,
+      status: 'measured' as const,
+      result: { movementId, flags: ['no-measurement'], interruptions: 0 },
+    })),
+  };
+  const scored = createCurrentVersionedScoreSnapshot(checkUp);
   return {
     schemaVersion: HISTORY_SCHEMA_VERSION,
-    checkUp: {
-      startedAt: START,
-      bodyUnit: 1,
-      items: DEFAULT_BATTERY.map((movementId) => ({
-        movementId,
-        status: 'measured' as const,
-        result: { movementId, flags: ['no-measurement'], interruptions: 0 },
-      })),
-    },
+    checkupType: 'baseline',
+    checkUp,
+    scoreSnapshot: scored.snapshot ?? undefined,
+    scoreSnapshotCompatibility: scored.snapshot ? 'current' : 'invalid_snapshot',
   };
+}
+
+function storedAssessment(): MovementAssessment {
+  const checkUp = storedCheckUp().checkUp;
+  const scored = createCurrentVersionedScoreSnapshot(checkUp);
+  return createMovementAssessment({
+    checkUpId: checkUp.startedAt,
+    type: 'baseline',
+    score: scored.score,
+    scoreSnapshot: scored.snapshot,
+    completedAt: checkUp.startedAt,
+    isOfficialForProgress: true,
+  });
 }
 
 function onboardingPrefs() {
@@ -68,8 +95,10 @@ function onboardingPrefs() {
 
 function movementBlock() {
   const checkUp = syntheticCheckUp(START);
+  const assessment = storedAssessment();
+  const scored = createCurrentVersionedScoreSnapshot(checkUp);
   return createMovementBlockFromAssessment({
-    latestAssessment: { id: checkUp.startedAt, score: scoreCheckUp(checkUp) },
+    latestAssessment: { id: checkUp.startedAt, score: scored.score, scoreSnapshot: scored.snapshot, assessment },
     lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
     startDate: START,
   });
@@ -88,7 +117,7 @@ describe('Hale V1 onboarding state', () => {
   it('moves from baseline history to results until a block exists', () => {
     const prefs = onboardingPrefs();
     prefs.onboarding.currentStep = 'results';
-    expect(deriveOnboardingStep({ prefs, history: [storedCheckUp()] })).toBe('results');
+    expect(deriveOnboardingStep({ prefs, history: [storedCheckUp()], assessments: [storedAssessment()] })).toBe('results');
   });
 
   it('does not treat an invalid baseline attempt as onboarding-ready on restart', () => {
@@ -99,7 +128,7 @@ describe('Hale V1 onboarding state', () => {
 
   it('treats an active 4-week block as onboarding complete', () => {
     const prefs = onboardingPrefs();
-    expect(deriveOnboardingStep({ prefs, history: [storedCheckUp()], activeBlock: movementBlock() })).toBe('complete');
+    expect(deriveOnboardingStep({ prefs, history: [storedCheckUp()], assessments: [storedAssessment()], activeBlock: movementBlock() })).toBe('complete');
   });
 
   it('uses the V1 baseline battery without Timed Up and Go', () => {

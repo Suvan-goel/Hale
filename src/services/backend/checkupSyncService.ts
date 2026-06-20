@@ -1,7 +1,14 @@
 import { movementDomainFromScoreDomain, type CheckupType, type CheckupStatus, type MovementAssessment } from '../../adherence';
 import type { CheckUp } from '../../checkup';
 import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../../history';
-import { scoreCheckUp, type CheckUpScore, type Domain } from '../../scoring';
+import {
+  createCurrentVersionedScoreSnapshot,
+  parseStoredScoreSnapshot,
+  scoreSnapshotVersionMetadata,
+  type CheckUpScore,
+  type Domain,
+  type VersionedCheckUpScoreSnapshot,
+} from '../../scoring';
 import { supabase } from '../../lib/supabase';
 import { addBreadcrumb } from '../observability/sentry';
 import { getCurrentSession } from './authService';
@@ -16,6 +23,7 @@ export interface MovementCheckupSyncInput {
   status?: CheckupStatus;
   completedAt?: string;
   score?: CheckUpScore;
+  scoreSnapshot?: VersionedCheckUpScoreSnapshot | null;
   assessment?: MovementAssessment | null;
 }
 
@@ -124,9 +132,10 @@ export async function syncRecentMovementCheckupsToRemote(
       await syncMovementCheckupToRemote({
         checkUp: record.checkUp,
         assessment,
-        checkupType: assessment?.type,
+        checkupType: assessment?.type ?? record.checkupType,
         status: assessment?.status,
         completedAt: assessment?.completedAt,
+        scoreSnapshot: record.scoreSnapshot,
       })
     );
   }
@@ -138,12 +147,31 @@ export function mapLocalCheckupToRemotePayload(
   input: MovementCheckupSyncInput,
   userId: string
 ): MovementCheckupRemotePayload {
-  const score = input.score ?? scoreCheckUp(input.checkUp);
+  const suppliedSnapshot = parseStoredScoreSnapshot(input.scoreSnapshot);
+  const suppliedSnapshotBelongsToCheckUp =
+    suppliedSnapshot.ok && scoreSnapshotBelongsToCheckUp(suppliedSnapshot.snapshot, input.checkUp);
+  const scored =
+    input.scoreSnapshot === undefined
+      ? createCurrentVersionedScoreSnapshot(input.checkUp, { createdAt: input.completedAt ?? input.checkUp.startedAt })
+      : null;
+  const scoreSnapshot = suppliedSnapshotBelongsToCheckUp ? suppliedSnapshot.snapshot : scored?.snapshot ?? null;
+  const score = scoreSnapshot ? (suppliedSnapshotBelongsToCheckUp ? suppliedSnapshot.score : scored?.score ?? null) : null;
   const localCheckupId = localCheckupIdFor(input.checkUp);
   const status = input.status ?? input.assessment?.status ?? 'completed';
   const completedAt = input.completedAt ?? input.assessment?.completedAt ?? input.checkUp.startedAt;
+  const exactCheckupType = exactLocalCheckupType(input.checkupType ?? input.assessment?.type);
   const checkupType = mapCheckupType(input.checkupType ?? input.assessment?.type);
-  const weakestDomain = score.weakestDomain ? movementDomainFromScoreDomain(score.weakestDomain) : undefined;
+  const weakestDomain = score?.weakestDomain ? movementDomainFromScoreDomain(score.weakestDomain) : undefined;
+  const snapshotMetadata = scoreSnapshotVersionMetadata(scoreSnapshot);
+  const snapshotCompatibility = scoreSnapshot
+    ? suppliedSnapshotBelongsToCheckUp
+      ? suppliedSnapshot.compatibility
+      : 'current'
+    : input.scoreSnapshot === undefined
+      ? 'invalid_snapshot'
+      : suppliedSnapshot.ok
+        ? 'invalid_snapshot'
+        : suppliedSnapshot.compatibility;
 
   return omitUndefined({
     user_id: userId,
@@ -151,12 +179,19 @@ export function mapLocalCheckupToRemotePayload(
     checkup_type: checkupType,
     status,
     body_unit: finiteNumber(input.checkUp.bodyUnit),
-    strength_power_score: scoreForDomain(score, 'strength'),
-    balance_score: scoreForDomain(score, 'balance'),
-    mobility_score: scoreForDomain(score, 'mobility'),
+    strength_power_score: score ? scoreForDomain(score, 'strength') : undefined,
+    balance_score: score ? scoreForDomain(score, 'balance') : undefined,
+    mobility_score: score ? scoreForDomain(score, 'mobility') : undefined,
     weakest_domain: weakestDomain,
     derived_scores_json: toBackendJson({
       schemaVersion: 1,
+      checkupType: exactCheckupType,
+      exactCheckupType,
+      scoreSnapshot,
+      scoreSnapshotCompatibility: snapshotCompatibility,
+      scoreSnapshotSchemaVersion: snapshotMetadata.schemaVersion,
+      scoringVersion: snapshotMetadata.scoringVersion,
+      normVersion: snapshotMetadata.normVersion,
       score,
       weakestDomain,
       assessment: input.assessment
@@ -172,6 +207,8 @@ export function mapLocalCheckupToRemotePayload(
     }),
     raw_checkup_json: toBackendJson({
       schemaVersion: HISTORY_SCHEMA_VERSION,
+      checkupType: exactCheckupType,
+      scoreSnapshot,
       checkUp: sanitizeCheckup(input.checkUp),
     }),
     created_locally_at: input.checkUp.startedAt,
@@ -185,6 +222,21 @@ function mapCheckupType(type: CheckupType | RemoteMovementCheckupType | undefine
   return 'unknown';
 }
 
+function exactLocalCheckupType(type: CheckupType | RemoteMovementCheckupType | undefined): CheckupType | undefined {
+  if (
+    type === 'baseline' ||
+    type === 'baseline_retake' ||
+    type === 'manual_extra' ||
+    type === 'official_retest' ||
+    type === 'quick_recheck' ||
+    type === 'micro_check' ||
+    type === 'legacy_unknown'
+  ) {
+    return type;
+  }
+  return undefined;
+}
+
 function assessmentForCheckup(
   checkUp: CheckUp,
   assessments: readonly MovementAssessment[] | undefined
@@ -196,6 +248,10 @@ function assessmentForCheckup(
 function localCheckupIdFor(checkUp: CheckUp): string {
   if (checkUp.startedAt.trim().length > 0) return checkUp.startedAt;
   return `checkup-${stableHash(JSON.stringify(sanitizeCheckup(checkUp)))}`;
+}
+
+function scoreSnapshotBelongsToCheckUp(snapshot: VersionedCheckUpScoreSnapshot, checkUp: CheckUp): boolean {
+  return snapshot.sourceCheckUpId === checkUp.startedAt && snapshot.score.startedAt === checkUp.startedAt;
 }
 
 function scoreForDomain(score: CheckUpScore, domain: Domain): number | undefined {

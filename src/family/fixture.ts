@@ -15,7 +15,7 @@ export interface FamilyMember {
   name: string;
   /** Relationship label, e.g. "Mum", "Brother". */
   relation: string;
-  /** Most recent measured movement-age midpoint, or null if they have not checked up yet. */
+  /** Sample home-estimate midpoint for mock UI only, or null if they have not checked up yet. */
   movementAge: number | null;
   /** Sessions completed in the last 7 days. */
   weeklySessions: number;

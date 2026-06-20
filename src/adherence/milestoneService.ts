@@ -52,8 +52,8 @@ export function generateMilestones({
   if (latest?.measured && previous?.measured) {
     const latestMid = domainMidpoint(latest);
     const previousMid = domainMidpoint(previous);
-    if (latestMid < previousMid) push(out, existing, makeMilestone('domain_improved', block, nowIso, lifeGoal));
-    if (latestMid === previousMid) push(out, existing, makeMilestone('domain_held_steady', block, nowIso, lifeGoal));
+    if (latestMid < previousMid) push(out, existing, makeMilestone('domain_recorded_lower', block, nowIso, lifeGoal));
+    if (latestMid === previousMid) push(out, existing, makeMilestone('domain_similar', block, nowIso, lifeGoal));
   }
   if (user?.age && latest?.measured && latest.ageHigh < user.age) {
     push(out, existing, makeMilestone('younger_than_age_band', block, nowIso, lifeGoal));
@@ -73,7 +73,7 @@ export function getMilestoneCopy(type: IdentityMilestoneType, lifeGoal?: LifeGoa
       };
     case 'first_week_completed':
       return {
-        title: 'You protected your progress this week',
+        title: 'You supported your progress this week',
         body: 'Three sessions in a week is a strong start to a lasting rhythm.',
       };
     case 'first_restart':
@@ -91,20 +91,20 @@ export function getMilestoneCopy(type: IdentityMilestoneType, lifeGoal?: LifeGoa
         title: 'Re-test complete',
         body: 'Your new check-up is ready to guide the next block.',
       };
-    case 'domain_improved':
+    case 'domain_recorded_lower':
       return {
-        title: 'Moving in a stronger range',
-        body: 'Your focus domain moved in the right direction for your age band.',
+        title: 'New focus data point',
+        body: 'Your latest re-test changed the estimate for your focus domain.',
       };
-    case 'domain_held_steady':
+    case 'domain_similar':
       return {
-        title: 'Held steady',
-        body: 'Holding your range steady is useful proof, especially when life is busy.',
+        title: 'Similar focus result',
+        body: 'Your latest re-test added a similar estimate for your focus domain.',
       };
     case 'younger_than_age_band':
       return {
-        title: 'A stronger age range',
-        body: 'This measured range is younger than your age. Hale will keep the language estimated when the norm is estimated.',
+        title: 'Beta estimate noted',
+        body: 'This home estimate is below your age. Hale keeps beta ranges labelled in the app.',
       };
     case 'goal_supported':
       return {

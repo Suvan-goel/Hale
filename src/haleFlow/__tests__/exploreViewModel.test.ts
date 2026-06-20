@@ -1,6 +1,8 @@
 import {
   getEquipmentSetupSummary,
+  getExploreLibrary,
   getExtraSessionCards,
+  getHealthInsightCards,
   getLearnCards,
   getLearnDetail,
   getMovementLadderCards,
@@ -58,7 +60,7 @@ describe('exploreViewModel', () => {
     expect(detail?.levels.every((level) => level.measurementLabel.length > 0)).toBe(true);
   });
 
-  it('provides six bundled learn cards with clean product language', () => {
+  it('provides bundled learn cards with clean product language', () => {
     const cards = getLearnCards();
     const allCopy = cards
       .flatMap((card) => {
@@ -68,10 +70,39 @@ describe('exploreViewModel', () => {
       .join(' ')
       .toLowerCase();
 
-    expect(cards).toHaveLength(6);
+    expect(cards).toHaveLength(8);
     for (const banned of ['fall risk', 'frailty', 'failed', 'skipped workout', 'lost streak', 'medical-grade']) {
       expect(allCopy).not.toContain(banned);
     }
+  });
+
+  it('provides professional insight cards as a separate feed', () => {
+    const cards = getHealthInsightCards();
+
+    expect(cards.map((card) => card.id)).toEqual([
+      'insight-strength-balance-aging',
+      'insight-sleep-recovery-rhythm',
+      'insight-protein-meal-rhythm',
+      'insight-walking-breaks',
+    ]);
+    expect(cards.every((card) => card.categoryLabel && card.authorCredential && card.reviewedLabel)).toBe(true);
+    expect(getLearnDetail(cards[0].id)?.sections.length).toBeGreaterThan(0);
+  });
+
+  it('organizes Explore as a focused reference library', () => {
+    const library = getExploreLibrary();
+
+    expect(library.featured.id).toBe('movement-checkup-guide');
+    expect(library.sections.map((section) => section.id)).toEqual([
+      'movement_checkup',
+      'training_basics',
+      'setup_safety',
+    ]);
+    expect(library.sections.find((section) => section.id === 'training_basics')?.articles.map((card) => card.id)).toEqual([
+      'chair-rise-strength',
+      'balance-practice',
+      'mobility-basics',
+    ]);
   });
 
   it('summarizes equipment setup from training, safety, and settings state', () => {

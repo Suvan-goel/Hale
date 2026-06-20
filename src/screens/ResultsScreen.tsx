@@ -1,6 +1,6 @@
 /**
- * Results screen: domain ages first, then supporting measurements and trends.
- * Wellness-side language only — "typical of age X-Y", never a diagnosis.
+ * Results screen: beta home movement estimates first, then supporting measurements and trends.
+ * Wellness-side language only: home estimates and repeatable patterns, never clinical claims.
  */
 
 import * as React from 'react';
@@ -9,10 +9,18 @@ import Svg, { Circle, Polyline } from 'react-native-svg';
 
 import { CheckUp } from '../checkup/types';
 import { Card, HealthMetricRow, MaterialCard, PrimaryButton, Screen, SecondaryButton, StatusBadge } from '../components/ui';
+import type { MovementAssessment } from '../adherence';
 import { getAssessmentResultState } from '../haleFlow/assessmentResultState';
 import { ExtraTrendPoint, MetricTrend, StoredCheckUp, computeTrends } from '../history';
-import { CheckUpScore, DOMAIN_LABEL, DomainResult, scoreCheckUp } from '../scoring';
-import { colors, fonts, radius, spacing, type } from '../theme';
+import {
+  CheckUpScore,
+  DOMAIN_LABEL,
+  DomainResult,
+  selectFocusFromScore,
+  type ScoreFocusSelection,
+  type VersionedCheckUpScoreSnapshot,
+} from '../scoring';
+import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 
 const DOMAIN_ICON: Record<string, string> = {
   strength: 'S',
@@ -21,15 +29,21 @@ const DOMAIN_ICON: Record<string, string> = {
 };
 
 export function ResultsScreen({
-  checkUp,
+  checkUp: _checkUp,
   history,
   onDone,
   onStartPlan,
   onRetake,
   extraTrendPoints = [],
+  assessment,
+  score,
+  scoreSnapshot,
 }: {
   checkUp: CheckUp;
   history: StoredCheckUp[];
+  assessment?: MovementAssessment | null;
+  score?: CheckUpScore | null;
+  scoreSnapshot?: VersionedCheckUpScoreSnapshot | null;
   onDone: () => void;
   /** Build a training block from this check-up and begin it (present when there's a measured focus). */
   onStartPlan?: () => void;
@@ -37,30 +51,37 @@ export function ResultsScreen({
   /** Weekly micro-check points to merge into the trend line. */
   extraTrendPoints?: ExtraTrendPoint[];
 }) {
-  const score: CheckUpScore = React.useMemo(() => scoreCheckUp(checkUp), [checkUp]);
-  const resultState = React.useMemo(() => getAssessmentResultState({ score }), [score]);
+  const resultState = React.useMemo(() => getAssessmentResultState({ score: score ?? null, scoreSnapshot, assessment }), [assessment, score, scoreSnapshot]);
   const trends = React.useMemo(
     () => computeTrends(history, extraTrendPoints).filter((t) => t.points.length >= 2),
     [history, extraTrendPoints]
   );
-  const measured = score.domains.filter((d) => d.measured);
-  const focusLabel = score.weakestDomain ? DOMAIN_LABEL[score.weakestDomain] : null;
+  const measured = score?.domains.filter((d) => d.measured) ?? [];
+  const focusSelection = React.useMemo(
+    () => scoreSnapshot?.focusSelection ?? selectFocusFromScore(score, { activeFocusDomain: score?.weakestDomain }),
+    [score, scoreSnapshot]
+  );
+  const focusDomain = focusSelection?.focusDomain ?? score?.weakestDomain ?? null;
+  const focusLabel = focusDomain ? DOMAIN_LABEL[focusDomain] : null;
+  const closelyMatched = focusSelection?.kind === 'exact_tie' || focusSelection?.kind === 'near_tie';
 
   return (
     <Screen>
       <View style={styles.header}>
         <Text style={styles.title}>Your Movement Dashboard</Text>
         <Text style={styles.subtitle}>
-          Typical age ranges from today’s guided check-up, with trends as you build history.
+          Home movement estimates from today’s guided check-up. Small changes can reflect setup or day-to-day variation.
         </Text>
       </View>
 
       {resultState.canCreateBlock && focusLabel ? (
         <MaterialCard>
-          <Text style={styles.focusLabel}>Where to focus next</Text>
-          <Text style={styles.focusValue}>{focusLabel}</Text>
+          <Text style={styles.focusLabel}>{closelyMatched ? 'Closely matched domains' : 'Suggested focus'}</Text>
+          <Text style={styles.focusValue}>{closelyMatched ? tiedDomainLabels(focusSelection) : focusLabel}</Text>
           <Text style={styles.focusBody}>
-            This looks like the most useful area for your next four-week training block.
+            {closelyMatched
+              ? `${focusLabel} is the suggested focus for this block because these home estimates were closely matched.`
+              : 'This looks like a useful starting point for your next four-week training block.'}
           </Text>
         </MaterialCard>
       ) : (
@@ -74,13 +95,28 @@ export function ResultsScreen({
       )}
 
       <View style={styles.summaryGrid}>
-        <SummaryTile label="Domains measured" value={`${measured.length}/3`} />
+        <SummaryTile label="Domains estimated" value={`${measured.length}/3`} />
         <SummaryTile label="Check-ups in history" value={`${history.length}`} />
       </View>
 
-      {score.domains.map((d) => (
-        <DomainCard key={d.domain} domain={d} isFocus={d.domain === score.weakestDomain} />
-      ))}
+      {score ? (
+        score.domains.map((d) => (
+          <DomainCard
+            key={d.domain}
+            domain={d}
+            isFocus={d.domain === focusDomain}
+            isTied={closelyMatched && !!focusSelection?.tiedDomains.includes(d.domain)}
+          />
+        ))
+      ) : (
+        <Card>
+          <Text style={styles.sectionTitle}>Stored result</Text>
+          <Text style={styles.sectionSubtle}>
+            This check-up was saved before Hale started storing versioned beta estimate snapshots, so its interpretation
+            is unavailable.
+          </Text>
+        </Card>
+      )}
 
       {trends.length > 0 ? (
         <Card>
@@ -105,7 +141,7 @@ export function ResultsScreen({
             <PrimaryButton title="Create my 4-week block" onPress={onStartPlan} />
             <SecondaryButton title="Done" onPress={onDone} />
           </>
-        ) : onRetake && !resultState.canCreateBlock ? (
+        ) : onRetake && resultState.canRetake ? (
           <>
             <PrimaryButton title="Retake Movement Check-Up" onPress={onRetake} />
             <SecondaryButton title="Done" onPress={onDone} />
@@ -127,7 +163,7 @@ function SummaryTile({ label, value }: { label: string; value: string }) {
   );
 }
 
-function DomainCard({ domain, isFocus }: { domain: DomainResult; isFocus: boolean }) {
+function DomainCard({ domain, isFocus, isTied }: { domain: DomainResult; isFocus: boolean; isTied?: boolean }) {
   return (
     <Card style={isFocus ? styles.focusCard : undefined}>
       <View style={styles.domainHead}>
@@ -137,30 +173,65 @@ function DomainCard({ domain, isFocus }: { domain: DomainResult; isFocus: boolea
           </View>
           <Text style={styles.domainTitle}>{domain.label}</Text>
         </View>
-        {isFocus ? <StatusBadge label="Focus" tone="gold" /> : null}
+        {isFocus ? <StatusBadge label="Suggested focus" tone="gold" /> : isTied ? <StatusBadge label="Closely matched" /> : null}
       </View>
 
       {domain.measured ? (
-        <Text style={styles.age}>
-          Typical of age {domain.ageLow}-{domain.ageHigh}
-          {domain.estimated ? ' (estimate)' : ''}
-        </Text>
+        <>
+          <Text style={styles.age}>Home estimate: {domainBandLabel(domain)}</Text>
+          <Text style={styles.estimateLabel}>{domainEstimateLabel(domain)}</Text>
+        </>
       ) : (
-        <Text style={styles.ageMuted}>Not measured this time</Text>
+        <Text style={styles.ageMuted}>Not estimated this time</Text>
       )}
-      <Text style={styles.interp}>{domain.interpretation}</Text>
+      <Text style={styles.interp}>{domainInterpretation(domain)}</Text>
       <View style={styles.rows}>
         {domain.rows.map((r) => (
           <HealthMetricRow
             key={r.label}
             label={r.label}
             value={r.display}
-            status={r.measured ? 'Measured' : 'Not captured'}
+            status={r.measured ? 'Estimated' : 'Not captured'}
           />
         ))}
       </View>
     </Card>
   );
+}
+
+function tiedDomainLabels(focusSelection: ScoreFocusSelection | null | undefined): string {
+  if (!focusSelection) return '';
+  return focusSelection.tiedDomains.map((domain) => DOMAIN_LABEL[domain]).join(' + ');
+}
+
+function domainBandLabel(domain: DomainResult): string {
+  if (!domain.measured || !Number.isFinite(domain.ageLow) || !Number.isFinite(domain.ageHigh)) return 'Pending';
+  const mid = (domain.ageLow + domain.ageHigh) / 2;
+  if (mid <= 58) return 'Strong';
+  if (mid <= 72) return 'Building';
+  return 'Starting point';
+}
+
+function domainEstimateLabel(domain: DomainResult): string {
+  if (!domain.measured || !Number.isFinite(domain.ageLow) || !Number.isFinite(domain.ageHigh)) return 'Home estimate pending';
+  const low = Math.round(domain.ageLow);
+  const high = Math.round(domain.ageHigh);
+  if (domain.domain === 'strength') {
+    return `Beta home estimate: age ${low}-${high}${domain.estimated ? ' (estimate)' : ''}`;
+  }
+  if (domain.domain === 'balance') return 'One-leg balance hold estimate';
+  return 'Shoulder mobility estimate';
+}
+
+function domainInterpretation(domain: DomainResult): string {
+  if (!domain.measured) return 'Your next Movement Check-Up can add another data point here.';
+  if (domain.domain === 'strength') {
+    return 'This beta estimate is based on chair-stand performance and is most useful when repeated over time.';
+  }
+  if (domain.domain === 'balance') {
+    return 'This estimate is based on the balance hold captured today, not a safety assessment.';
+  }
+  return 'This estimate is based on the mobility movement captured today, not a formal range-of-motion assessment.';
 }
 
 function TrendRow({ trend }: { trend: MetricTrend }) {
@@ -169,9 +240,8 @@ function TrendRow({ trend }: { trend: MetricTrend }) {
   const max = Math.max(...values);
   const span = max - min || 1;
   const delta = trend.delta ?? 0;
-  const improved = trend.betterIsHigher ? delta > 0 : delta < 0;
   const flat = Math.abs(delta) < 1e-9;
-  const color = flat ? colors.textSecondary : improved ? colors.positive : colors.caution;
+  const color = flat ? colors.textSecondary : colors.accentDeep;
   const latest = trend.points[trend.points.length - 1].value;
   const change = `${delta > 0 ? '+' : ''}${formatDelta(delta)} ${trend.unit}`;
   const points = buildPolyline(values, min, span);
@@ -187,7 +257,7 @@ function TrendRow({ trend }: { trend: MetricTrend }) {
         </View>
         <View style={styles.trendDeltaWrap}>
           <Text style={[styles.trendDelta, { color }]}>{change}</Text>
-          <Text style={styles.trendDeltaMeta}>{flat ? 'stable' : improved ? 'improving' : 'watch'}</Text>
+          <Text style={styles.trendDeltaMeta}>{trendDeltaMeta(delta)}</Text>
         </View>
       </View>
       <Svg width={240} height={72} style={styles.chart}>
@@ -202,6 +272,11 @@ function TrendRow({ trend }: { trend: MetricTrend }) {
       </Svg>
     </View>
   );
+}
+
+function trendDeltaMeta(delta: number): string {
+  if (Math.abs(delta) < 1e-9) return 'similar result';
+  return delta > 0 ? 'recorded higher' : 'recorded lower';
 }
 
 function buildPolyline(values: number[], min: number, span: number): string {
@@ -221,12 +296,12 @@ function formatDelta(value: number): string {
 }
 
 const styles = StyleSheet.create({
-  header: { gap: spacing.sm },
-  title: { ...type.display },
-  subtitle: { ...type.body, color: colors.textSecondary },
+  header: { gap: spacing.xs },
+  title: { ...type.pageTitle },
+  subtitle: { ...type.pageSubtitle },
   focusLabel: { ...type.label, color: colors.accentDeep },
-  focusValue: { ...type.h1, marginTop: spacing.sm },
-  focusBody: { ...type.bodySmall, color: colors.textSecondary, marginTop: spacing.sm },
+  focusValue: { ...type.cardTitle, marginTop: spacing.sm },
+  focusBody: { ...type.cardBody, marginTop: spacing.sm },
   summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   summaryTile: {
     flex: 1,
@@ -235,13 +310,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     padding: spacing.lg,
     backgroundColor: colors.bgSurface,
-    borderWidth: 1,
-    borderColor: colors.borderHairline,
     justifyContent: 'center',
+    ...shadow.card,
   },
-  summaryValue: { ...type.h1, fontVariant: ['tabular-nums'] },
-  summaryLabel: { ...type.caption, marginTop: spacing.xs },
-  focusCard: { borderColor: colors.accentGold, backgroundColor: colors.bgElevated },
+  summaryValue: { ...type.cardTitle, fontVariant: ['tabular-nums'] },
+  summaryLabel: { ...type.cardCaption, marginTop: spacing.xs },
+  focusCard: { backgroundColor: colors.bgElevated },
   domainHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md, flexWrap: 'wrap' },
   domainTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, flex: 1 },
   domainIcon: {
@@ -253,13 +327,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   domainIconText: { ...type.label, color: colors.accentDeep },
-  domainTitle: { ...type.h2, flex: 1 },
-  age: { ...type.h3, color: colors.accentDeep, marginTop: spacing.lg },
-  ageMuted: { ...type.bodySmall, color: colors.textTertiary, marginTop: spacing.lg },
-  interp: { ...type.bodySmall, color: colors.textSecondary, marginTop: spacing.sm },
+  domainTitle: { ...type.cardTitle, flex: 1 },
+  age: { ...type.cardRowTitle, color: colors.accentDeep, marginTop: spacing.lg },
+  estimateLabel: { ...type.caption, color: colors.textSecondary, marginTop: spacing.xs },
+  ageMuted: { ...type.cardBody, color: colors.textTertiary, marginTop: spacing.lg },
+  interp: { ...type.cardBody, marginTop: spacing.sm },
   rows: { marginTop: spacing.lg },
-  sectionTitle: { ...type.h2 },
-  sectionSubtle: { ...type.bodySmall, color: colors.textSecondary, marginTop: spacing.sm },
+  sectionTitle: { ...type.cardTitle },
+  sectionSubtle: { ...type.cardBody, marginTop: spacing.sm },
   trendRow: {
     paddingTop: spacing.lg,
     marginTop: spacing.lg,
@@ -267,7 +342,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.divider,
   },
   trendHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.md, flexWrap: 'wrap' },
-  trendLabel: { ...type.h3 },
+  trendLabel: { ...type.cardRowTitle },
   trendMeta: { ...type.caption, color: colors.textTertiary, marginTop: 2 },
   trendDeltaWrap: { alignItems: 'flex-end' },
   trendDelta: { ...type.bodySmall, fontFamily: fonts.sansMedium, fontVariant: ['tabular-nums'] },

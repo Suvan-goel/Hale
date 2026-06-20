@@ -13,8 +13,8 @@ import type {
   NotificationEventType,
 } from './types';
 
-// Copy guardrails: no shame, no "lost streak", no medical diagnosis/treatment
-// claims, no fall-risk language, and no unsupported counterfactual decline math.
+// Copy guardrails: no shame, no streak pressure, no clinical claims, and no
+// unsupported counterfactual decline math.
 
 export { getLifeGoalDisplayText, getLifeGoalTrainingRelevance };
 
@@ -34,7 +34,7 @@ export function getBlockPurposeCopy(block: MovementBlock, lifeGoal?: LifeGoal | 
       return `This 4-week block focuses on ${domain} so you can feel steadier on stairs.`;
     case 'travel':
       return block.focusDomain === 'strength_power'
-        ? 'This block is about protecting the leg power you use for travel, stairs, and longer walks.'
+        ? 'This block supports the leg power you use for travel, stairs, and longer walks.'
         : `This block builds ${domain} for travel days, long walks, and moving with confidence.`;
     case 'grandchildren':
       return 'You said you want to keep up with your children or grandchildren. This block builds the strength and mobility that support that.';
@@ -45,7 +45,7 @@ export function getBlockPurposeCopy(block: MovementBlock, lifeGoal?: LifeGoal | 
     case 'floor_confidence':
       return `This block builds ${domain} for getting down and back up with more confidence.`;
     case 'carrying_loads':
-      return 'This block protects the strength you use for shopping, bags, and everyday loads.';
+      return 'This block supports the strength you use for shopping, bags, and everyday loads.';
     case 'independence':
       return `This block builds ${domain} to support the independence you care about.`;
     case 'noticed_decline':
@@ -65,7 +65,7 @@ export function getDashboardCopy({
   adherenceState: AdherenceState;
 }): string {
   if (adherenceState === 'ready_for_retest') {
-    return 'Your 4-week re-test is close. This is where you see what changed.';
+    return 'Your 4-week re-test is close. It will add another data point.';
   }
   if (adherenceState === 'inactive_14_days' || adherenceState === 'inactive_this_week') {
     return 'Clean slate. Hale will ease you back in with a shorter restart session.';
@@ -75,8 +75,8 @@ export function getDashboardCopy({
   }
   const goal = lifeGoal ? getLifeGoalDisplayText(lifeGoal).toLowerCase() : null;
   return goal
-    ? `You are protecting progress for what matters: ${goal}.`
-    : `You are protecting your ${domainShortLabel(block.focusDomain)} progress this month.`;
+    ? `You are supporting progress for what matters: ${goal}.`
+    : `You are supporting your ${domainShortLabel(block.focusDomain)} progress this month.`;
 }
 
 export function getLapseRecoveryCopy(
@@ -101,7 +101,7 @@ export function getLapseRecoveryCopy(
   if (state === 'missed_one_session' || state === 'slightly_behind') {
     return {
       title: 'No problem - keep the week moving',
-      body: 'One shorter session today is enough to protect your progress.',
+      body: 'One shorter session today is enough to support your progress.',
       cta: 'Start a short session',
     };
   }
@@ -126,11 +126,11 @@ export function getProtectionCopy({
     return 'Clean slate today. A shorter session is enough to restart gently.';
   }
   if (lifeGoal) {
-    return `Today protects the progress that supports ${getLifeGoalDisplayText(lifeGoal).toLowerCase()}.`;
+    return `Today supports progress toward ${getLifeGoalDisplayText(lifeGoal).toLowerCase()}.`;
   }
   if (focusDomain === 'balance') return 'Keep your balance steady.';
-  if (focusDomain === 'mobility') return 'Protect the mobility you use every day.';
-  return 'Protect the strength you use every day.';
+  if (focusDomain === 'mobility') return 'Support the mobility you use every day.';
+  return 'Support the strength you use every day.';
 }
 
 export function getWeeklySummaryCopy({
@@ -150,7 +150,7 @@ export function getWeeklySummaryCopy({
   if (sessionsCompleted >= block.sessionsPerWeekTarget) {
     return {
       title: 'Good week',
-      body: `You completed ${sessionsCompleted} sessions${microCheckCompleted ? ' and your 60-second check-in' : ''}. You protected your ${domainShortLabel(block.focusDomain)} progress for ${goal}.`,
+      body: `You completed ${sessionsCompleted} sessions${microCheckCompleted ? ' and your 60-second check-in' : ''}. You supported your ${domainShortLabel(block.focusDomain)} progress for ${goal}.`,
       nextFocus: `Next week, keep building ${domainShortLabel(block.focusDomain)} with steady practice.`,
     };
   }
@@ -183,11 +183,11 @@ export function getSupportNotificationCopy(userName: string | null | undefined):
 export function getNotificationCopy(type: NotificationEventType): string {
   switch (type) {
     case 'planned_session':
-      return 'Your Hale session is ready. 20 minutes to protect your progress.';
+      return 'Your Hale session is ready. 20 minutes to support your progress.';
     case 'weekly_micro_check':
       return 'Time for a 60-second check-in. Keep your trend line alive.';
     case 'retest_approaching':
-      return 'Your 4-week re-test is coming up. This is where you see what changed.';
+      return 'Your 4-week re-test is coming up. It will add another data point.';
     case 'lapse_recovery':
       return 'Clean slate today. Start with a shorter session.';
     case 'supporter_milestone':
@@ -252,10 +252,10 @@ export function assessmentComparisonCopy({
     return 'Your re-test result will appear here once the Movement Check-Up is connected.';
   }
   if (after < before) {
-    return `Your ${domainLabel(focusDomain)} range moved in a stronger direction.`;
+    return `Your ${domainLabel(focusDomain)} range added a new data point in the latest re-test.`;
   }
   if (after === before) {
-    return `Your ${domainLabel(focusDomain)} range held steady through this block.`;
+    return `Your ${domainLabel(focusDomain)} range was similar in the latest re-test.`;
   }
   return `Your ${domainLabel(focusDomain)} result gives Hale a clear starting point for the next block.`;
 }

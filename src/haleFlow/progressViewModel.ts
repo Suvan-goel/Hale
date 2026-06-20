@@ -5,6 +5,7 @@ import {
   type MovementBlock,
   type MovementBlockReport,
   type MovementDomain,
+  type MovementAssessment,
   type TrainingSessionCompletion,
 } from '../adherence';
 import { CheckUp, findItem } from '../checkup/types';
@@ -20,16 +21,36 @@ import {
   type HingeReachResult,
   type ShoulderFlexionResult,
 } from '../movements';
-import { scoreCheckUp, type CheckUpScore, type Domain } from '../scoring';
+import { selectFocusFromScore, type CheckUpScore, type Domain } from '../scoring';
 import type { LadderProgress } from '../training';
 import type { MovementSnapshotBand } from './appLifecycle';
+import {
+  historicalOfficialCheckUpRecords,
+  latestHistoricalOfficialCheckUpRecord,
+  latestOfficialComparisonPair,
+} from './checkupHistory';
 
-export type ProgressTrend = 'improved' | 'held_steady' | 'lower' | 'unknown';
+export type ProgressTrend = 'higher' | 'similar' | 'lower' | 'unknown';
 
 export interface LatestCheckUpSummary {
   dateLabel: string;
   focusTitle: string;
   bands: Record<Domain, MovementSnapshotBand | 'pending'>;
+}
+
+export interface DomainEvidenceMetric {
+  label: string;
+  display: string;
+  measured: boolean;
+}
+
+export interface DomainEvidenceCard {
+  domain: Domain;
+  title: string;
+  ageLabel: string;
+  band: MovementSnapshotBand | 'pending';
+  interpretation: string;
+  metrics: DomainEvidenceMetric[];
 }
 
 export interface DomainProgressCard {
@@ -74,6 +95,8 @@ const DOMAIN_TITLE: Record<Domain, string> = {
   mobility: 'Mobility',
 };
 
+const DOMAIN_ORDER: readonly Domain[] = ['strength', 'balance', 'mobility'];
+
 const LADDER_ROWS: readonly { id: string; title: string }[] = [
   { id: 'sit-to-stand', title: 'Sit-to-Stand' },
   { id: 'squat', title: 'Squat' },
@@ -83,27 +106,52 @@ const LADDER_ROWS: readonly { id: string; title: string }[] = [
   { id: 'mobility-flexibility', title: 'Mobility' },
 ];
 
-export function getLatestCheckUpSummary(history: readonly StoredCheckUp[] | null | undefined): LatestCheckUpSummary | null {
-  const latest = latestCheckUp(history);
+export function getLatestCheckUpSummary(
+  history: readonly StoredCheckUp[] | null | undefined,
+  assessments?: readonly MovementAssessment[] | null
+): LatestCheckUpSummary | null {
+  const latest = latestHistoricalOfficialCheckUpRecord(history, assessments);
   if (!latest) return null;
-  const score = scoreCheckUp(latest);
   return {
-    dateLabel: formatDate(latest.startedAt),
-    focusTitle: focusTitle(score.weakestDomain),
-    bands: domainBands(score),
+    dateLabel: formatDate(latest.record.checkUp.startedAt),
+    focusTitle: focusTitle(latest.score),
+    bands: domainBands(latest.score),
   };
 }
 
-export function getDomainProgressCards(history: readonly StoredCheckUp[] | null | undefined): DomainProgressCard[] {
-  const checkUps = checkUpsFromHistory(history);
-  if (checkUps.length === 0) return [];
-  const baseline = checkUps[0];
-  const latest = checkUps[checkUps.length - 1];
-  const hasComparison = checkUps.length > 1;
+export function getLatestDomainEvidence(
+  history: readonly StoredCheckUp[] | null | undefined,
+  assessments?: readonly MovementAssessment[] | null
+): DomainEvidenceCard[] {
+  const latest = latestHistoricalOfficialCheckUpRecord(history, assessments);
+  if (!latest) return [];
+  const bands = domainBands(latest.score);
+  return DOMAIN_ORDER.map((domain) => {
+    const result = latest.score.domains.find((item) => item.domain === domain);
+    return {
+      domain,
+      title: DOMAIN_TITLE[domain],
+      ageLabel: ageRangeLabel(result),
+      band: bands[domain],
+      interpretation: result?.interpretation ?? 'Not measured this time. Your next Movement Check-Up can add this.',
+      metrics: evidenceMetrics(result),
+    };
+  });
+}
+
+export function getDomainProgressCards(
+  history: readonly StoredCheckUp[] | null | undefined,
+  assessments?: readonly MovementAssessment[] | null
+): DomainProgressCard[] {
+  const pair = latestOfficialComparisonPair(history, assessments);
+  const records = historicalOfficialCheckUpRecords(history, assessments);
+  const baseline = pair.compatible ? pair.previous.record.checkUp : (pair.latest?.record.checkUp ?? records[records.length - 1]?.record.checkUp);
+  const latest = pair.compatible ? pair.latest.record.checkUp : null;
+  if (!baseline) return [];
   return [
-    strengthCard(metricSnapshot(baseline), hasComparison ? metricSnapshot(latest) : null),
-    balanceCard(metricSnapshot(baseline), hasComparison ? metricSnapshot(latest) : null),
-    mobilityCard(metricSnapshot(baseline), hasComparison ? metricSnapshot(latest) : null),
+    strengthCard(metricSnapshot(baseline), latest ? metricSnapshot(latest) : null),
+    balanceCard(metricSnapshot(baseline), latest ? metricSnapshot(latest) : null),
+    mobilityCard(metricSnapshot(baseline), latest ? metricSnapshot(latest) : null),
   ];
 }
 
@@ -153,14 +201,17 @@ export function getBlockReportSummaries({
     });
 }
 
-export function getRetestHistory(history: readonly StoredCheckUp[] | null | undefined): RetestHistoryEntry[] {
-  return checkUpsFromHistory(history)
+export function getRetestHistory(
+  history: readonly StoredCheckUp[] | null | undefined,
+  assessments?: readonly MovementAssessment[] | null
+): RetestHistoryEntry[] {
+  return historicalOfficialCheckUpRecords(history, assessments)
     .slice()
-    .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
-    .map((checkUp) => ({
-      id: checkUp.startedAt,
-      dateLabel: formatDate(checkUp.startedAt),
-      bands: domainBands(scoreCheckUp(checkUp)),
+    .sort((a, b) => b.record.checkUp.startedAt.localeCompare(a.record.checkUp.startedAt))
+    .map((entry) => ({
+      id: entry.record.checkUp.startedAt,
+      dateLabel: formatDate(entry.record.checkUp.startedAt),
+      bands: domainBands(entry.score),
     }));
 }
 
@@ -176,7 +227,7 @@ export function getRetestDueSummary({
   if (!hasBaseline) {
     return {
       title: 'Start with your baseline',
-      body: 'Complete your first Movement Check-Up to see progress here.',
+      body: 'Complete your first Movement Check-Up to start a home estimate here.',
       ctaLabel: 'Start Movement Check-Up',
       due: false,
     };
@@ -192,7 +243,7 @@ export function getRetestDueSummary({
   if (activeBlock.status === 'completed' || days <= 0) {
     return {
       title: "It's time to re-test",
-      body: 'Repeat your Movement Check-Up to see what changed.',
+      body: 'Repeat your Movement Check-Up to add another data point.',
       ctaLabel: 'Start re-test',
       due: true,
     };
@@ -225,11 +276,11 @@ function strengthCard(baseline: MetricSnapshot, latest: MetricSnapshot | null): 
     metric: `Chair stands: ${start} -> ${current} reps`,
     body:
       delta > 0
-        ? `That's ${delta} more strong ${delta === 1 ? 'rise' : 'rises'} from a chair in 30 seconds.`
+        ? `Recorded ${delta} more chair ${delta === 1 ? 'stand' : 'stands'} than baseline. Hale will look for repeatable changes over time.`
         : delta === 0
-          ? 'You held steady. Your next block will keep building this.'
-          : "Today's result was lower. That can happen - Hale will adjust your next block.",
-    trend: delta > 0 ? 'improved' : delta === 0 ? 'held_steady' : 'lower',
+          ? 'Similar chair-stand result recorded. Hale will look for repeatable changes over time.'
+          : `Recorded ${Math.abs(delta)} fewer chair ${Math.abs(delta) === 1 ? 'stand' : 'stands'} than baseline. Hale will look for repeatable changes over time.`,
+    trend: delta > 0 ? 'higher' : delta === 0 ? 'similar' : 'lower',
   };
 }
 
@@ -255,11 +306,11 @@ function balanceCard(baseline: MetricSnapshot, latest: MetricSnapshot | null): D
     metric: `${label}: ${Math.round(start)}s -> ${Math.round(current)}s`,
     body:
       delta > 0
-        ? `That's ${Math.round(delta)} more steady ${Math.round(delta) === 1 ? 'second' : 'seconds'}.`
+        ? `Recorded ${Math.round(delta)} more ${Math.round(delta) === 1 ? 'second' : 'seconds'} on this hold. Hale will look for repeatable changes over time.`
         : Math.abs(delta) < 0.5
-          ? 'You held steady. The next block will keep building this.'
-          : "Today's hold was shorter. That can happen - Hale will adjust your next block.",
-    trend: delta > 0 ? 'improved' : Math.abs(delta) < 0.5 ? 'held_steady' : 'lower',
+          ? 'Similar balance-hold result recorded. Hale will look for repeatable changes over time.'
+          : `Recorded ${Math.round(Math.abs(delta))} fewer ${Math.round(Math.abs(delta)) === 1 ? 'second' : 'seconds'} on this hold. Hale will look for repeatable changes over time.`,
+    trend: delta > 0 ? 'higher' : Math.abs(delta) < 0.5 ? 'similar' : 'lower',
   };
 }
 
@@ -281,18 +332,18 @@ function mobilityCard(baseline: MetricSnapshot, latest: MetricSnapshot | null): 
   const shoulderDelta = finite(startShoulder) && finite(currentShoulder) ? currentShoulder - startShoulder : null;
   // Hinge reach is wrist-to-floor distance in body units; lower means closer to the floor.
   const reachDelta = finite(startReach) && finite(currentReach) ? startReach - currentReach : null;
-  const improved = (shoulderDelta ?? 0) > 0 || (reachDelta ?? 0) > 0.01;
+  const higher = (shoulderDelta ?? 0) > 0 || (reachDelta ?? 0) > 0.01;
   const lower = (shoulderDelta ?? 0) < 0 || (reachDelta ?? 0) < -0.01;
   return {
     domain: 'mobility',
     title: DOMAIN_TITLE.mobility,
     metric: mobilityMetric(startShoulder, currentShoulder, startReach, currentReach),
-    body: improved
-      ? 'Your mobility check is improving.'
+    body: higher
+      ? 'A higher mobility data point was recorded. Hale will look for repeatable changes over time.'
       : lower
-        ? "Today's mobility result was lower. That can happen - Hale will adjust your next block."
-        : 'You held steady. Your next block will keep building this.',
-    trend: improved ? 'improved' : lower ? 'lower' : 'held_steady',
+        ? 'A lower mobility data point was recorded. Hale will look for repeatable changes over time.'
+        : 'Similar mobility result recorded. Hale will look for repeatable changes over time.',
+    trend: higher ? 'higher' : lower ? 'lower' : 'similar',
   };
 }
 
@@ -348,6 +399,26 @@ function domainBands(score: CheckUpScore): Record<Domain, MovementSnapshotBand |
   return out;
 }
 
+function ageRangeLabel(result?: CheckUpScore['domains'][number]): string {
+  if (!result?.measured || !finite(result.ageLow) || !finite(result.ageHigh)) return 'Home estimate pending';
+  if (result.domain === 'balance') return 'Home estimate: one-leg balance hold';
+  if (result.domain === 'mobility') return 'Home estimate: shoulder mobility';
+  const low = Math.round(result.ageLow);
+  const high = Math.round(result.ageHigh);
+  return `Beta home estimate: age ${low}-${high}`;
+}
+
+function evidenceMetrics(result?: CheckUpScore['domains'][number]): DomainEvidenceMetric[] {
+  if (!result) {
+    return [{ label: 'Latest check-up', display: 'Not captured', measured: false }];
+  }
+  return result.rows.map((row) => ({
+    label: row.label,
+    display: row.measured ? row.display : 'Not captured',
+    measured: row.measured,
+  }));
+}
+
 function bandFromAgeRange(ageLow: number, ageHigh: number): MovementSnapshotBand {
   const mid = (ageLow + ageHigh) / 2;
   if (mid <= 58) return 'strong';
@@ -370,7 +441,7 @@ function missingLatestCard(domain: Domain, metric: string): DomainProgressCard {
     domain,
     title: DOMAIN_TITLE[domain],
     metric,
-    body: 'Your first result is saved. A future re-test will show what changed.',
+    body: 'Your first result is saved. A future re-test will add another data point.',
     trend: 'unknown',
   };
 }
@@ -410,22 +481,40 @@ function levelLabel(ladderId: string, levelId: string): string {
 
 function mainChangeFromReport(report: MovementBlockReport): string {
   const changes = Object.entries(report.domainChanges ?? {});
-  const improved = changes.find(([, change]) => change?.direction === 'improved');
-  const steady = changes.find(([, change]) => change?.direction === 'held_steady');
-  const selected = improved ?? steady ?? changes[0];
+  const changed = changes.find(([, change]) => reportDirectionIsChanged(change?.direction));
+  const similar = changes.find(([, change]) => reportDirectionIsSimilar(change?.direction));
+  const selected = changed ?? similar ?? changes[0];
   if (!selected) return report.summary;
   const [domain, change] = selected as [MovementDomain, NonNullable<MovementBlockReport['domainChanges']>[MovementDomain]];
-  if (change?.direction === 'improved') return `${domainLabel(domain)} improved.`;
-  if (change?.direction === 'held_steady') return `${domainLabel(domain)} held steady.`;
-  if (change?.direction === 'declined') return `${domainLabel(domain)} will be adjusted in the next block.`;
+  if (reportDirectionIsChanged(change?.direction)) return `${domainLabel(domain)} changed in the latest re-test.`;
+  if (reportDirectionIsSimilar(change?.direction)) return `${domainLabel(domain)} was similar in the latest re-test.`;
   return report.summary;
 }
 
-function focusTitle(domain: CheckUpScore['weakestDomain']): string {
-  if (domain === 'strength') return 'Main opportunity: Strength / Power';
-  if (domain === 'balance') return 'Main opportunity: Balance';
-  if (domain === 'mobility') return 'Main opportunity: Mobility';
-  return 'Main opportunity: keep building all three domains';
+function reportDirectionIsChanged(direction: unknown): boolean {
+  return (
+    direction === 'recorded_lower' ||
+    direction === 'recorded_higher' ||
+    direction === 'improved' ||
+    direction === 'declined'
+  );
+}
+
+function reportDirectionIsSimilar(direction: unknown): boolean {
+  return direction === 'similar' || direction === 'held_steady';
+}
+
+function focusTitle(score: CheckUpScore): string {
+  const selection = selectFocusFromScore(score, { activeFocusDomain: score.weakestDomain });
+  const domain = selection?.focusDomain ?? score.weakestDomain;
+  if (selection?.kind === 'exact_tie' || selection?.kind === 'near_tie') {
+    const tied = selection.tiedDomains.map((item) => DOMAIN_TITLE[item]).join(' + ');
+    return `Closely matched: ${tied}`;
+  }
+  if (domain === 'strength') return 'Suggested focus: Strength / Power';
+  if (domain === 'balance') return 'Suggested focus: Balance';
+  if (domain === 'mobility') return 'Suggested focus: Mobility';
+  return 'Suggested focus: keep building all three domains';
 }
 
 function stanceLabel(stance: string): string {
@@ -433,15 +522,6 @@ function stanceLabel(stance: string): string {
   if (stance === 'feet-together') return 'Feet-together';
   if (stance === 'semi-tandem') return 'Semi-tandem';
   return 'Tandem';
-}
-
-function checkUpsFromHistory(history: readonly StoredCheckUp[] | null | undefined): CheckUp[] {
-  return (history ?? []).map((item) => item.checkUp).sort((a, b) => a.startedAt.localeCompare(b.startedAt));
-}
-
-function latestCheckUp(history: readonly StoredCheckUp[] | null | undefined): CheckUp | null {
-  const checkUps = checkUpsFromHistory(history);
-  return checkUps[checkUps.length - 1] ?? null;
 }
 
 function formatDate(iso: string): string {

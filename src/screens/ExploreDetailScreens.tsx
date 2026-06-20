@@ -108,9 +108,21 @@ export function LearnDetailScreen({
         ? { title: 'Open equipment settings', onPress: onEquipment }
         : null;
 
+  const eyebrow = detail.categoryLabel ? `${detail.categoryLabel} · ${detail.readTimeLabel}` : detail.readTimeLabel;
+
   return (
     <Screen>
-      <ScreenHeader eyebrow={detail.readTimeLabel} title={detail.title} subtitle={detail.body} />
+      <ScreenHeader eyebrow={eyebrow} title={detail.title} subtitle={detail.body} />
+      {detail.authorName ? (
+        <Card>
+          <Text style={styles.cardTitle}>Professional perspective</Text>
+          <Text style={styles.body}>
+            {detail.authorName}
+            {detail.authorCredential ? ` · ${detail.authorCredential}` : ''}
+          </Text>
+          {detail.reviewedLabel ? <Text style={styles.caption}>{detail.reviewedLabel}</Text> : null}
+        </Card>
+      ) : null}
       {detail.sections.map((section) => (
         <Card key={section.title}>
           <Text style={styles.cardTitle}>{section.title}</Text>
@@ -154,8 +166,8 @@ function LevelSummary({ title, level }: { title: string; level: LadderLevelView 
 const styles = StyleSheet.create({
   cardHead: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start', flexWrap: 'wrap' },
   copy: { flex: 1 },
-  cardTitle: { ...type.h2 },
-  body: { ...type.bodySmall, color: colors.textSecondary, marginTop: spacing.sm },
+  cardTitle: { ...type.cardTitle },
+  body: { ...type.cardBody, marginTop: spacing.sm },
   levelBlock: { marginTop: spacing.sm },
   levelSummary: {
     minHeight: 66,
@@ -170,6 +182,7 @@ const styles = StyleSheet.create({
   summaryText: { flex: 1 },
   summaryTitle: { ...type.bodySmall },
   summaryBody: { ...type.caption, marginTop: 2 },
+  caption: { ...type.caption, marginTop: spacing.xs },
   actions: { gap: spacing.md },
   action: { shadowOpacity: 0 },
 });

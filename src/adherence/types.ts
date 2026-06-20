@@ -1,4 +1,4 @@
-import type { CheckUpScore } from '../scoring';
+import type { CheckUpScore, FocusSelectionKind, FocusTieBreakReason, VersionedCheckUpScoreSnapshot } from '../scoring';
 
 export const LOCAL_USER_ID = 'local-device-user';
 
@@ -67,6 +67,11 @@ export interface MovementBlock {
   retestDate: string;
   focusDomain: MovementDomain;
   secondaryDomains: MovementDomain[];
+  focusSelectionKind?: FocusSelectionKind;
+  focusTiedDomains?: MovementDomain[];
+  focusTieBreakReason?: FocusTieBreakReason;
+  focusNearTieMarginYears?: number;
+  focusSelectionPolicyVersion?: number;
   sessionsPerWeekTarget: number;
   totalPlannedSessions: number;
   completedSessions: number;
@@ -82,9 +87,10 @@ export type CheckupType =
   | 'manual_extra'
   | 'official_retest'
   | 'quick_recheck'
-  | 'micro_check';
+  | 'micro_check'
+  | 'legacy_unknown';
 
-export type CheckupStatus = 'not_started' | 'in_progress' | 'completed' | 'invalid' | 'cancelled';
+export type CheckupStatus = 'not_started' | 'in_progress' | 'completed' | 'incomplete' | 'invalid' | 'cancelled';
 
 export interface MovementAssessment {
   id: string;
@@ -145,10 +151,31 @@ export interface MovementBlockReport {
       {
         previous?: number;
         current?: number;
-        direction: 'improved' | 'held_steady' | 'declined' | 'unknown';
+        direction: 'recorded_lower' | 'similar' | 'recorded_higher' | 'unknown';
       }
     >
   >;
+  comparison?: {
+    status:
+      | 'compatible'
+      | 'legacy_unversioned'
+      | 'incompatible_version'
+      | 'missing_snapshot'
+      | 'invalid_snapshot'
+      | 'unsupported_schema';
+    startCheckUpId?: string;
+    endCheckUpId?: string;
+    startSnapshot?: {
+      schemaVersion: number | null;
+      scoringVersion: number | null;
+      normVersion: number | null;
+    };
+    endSnapshot?: {
+      schemaVersion: number | null;
+      scoringVersion: number | null;
+      normVersion: number | null;
+    };
+  };
   recommendedNextFocusDomain?: MovementDomain;
 }
 
@@ -168,8 +195,8 @@ export type IdentityMilestoneType =
   | 'first_restart'
   | 'block_completed'
   | 'retest_completed'
-  | 'domain_improved'
-  | 'domain_held_steady'
+  | 'domain_recorded_lower'
+  | 'domain_similar'
   | 'younger_than_age_band'
   | 'goal_supported';
 
@@ -257,6 +284,7 @@ export interface AdherenceStoreState {
 
 export interface AssessmentForBlock {
   score: CheckUpScore;
+  scoreSnapshot?: VersionedCheckUpScoreSnapshot | null;
   id?: string;
   assessment?: MovementAssessment | null;
 }

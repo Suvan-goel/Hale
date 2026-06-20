@@ -8,16 +8,47 @@ import {
   Screen,
   StatusBadge,
 } from '../components/ui';
-import { daysUntil, type MovementBlock, type MovementBlockReport, type TrainingSessionCompletion } from '../adherence';
 import {
+  daysUntil,
+  LOCAL_USER_ID,
+  type MovementAssessment,
+  type MovementBlock,
+  type MovementBlockReport,
+  type MovementDomain,
+  type TrainingSessionCompletion,
+} from '../adherence';
+import { syntheticCheckUp } from '../checkup/devFixture';
+import type { CheckUp } from '../checkup/types';
+import {
+  createMovementAssessment,
+  createMovementBlockReport,
+  getBlockReportSummaries,
   getDomainProgressCards,
+  getLatestDomainEvidence,
   getLatestCheckUpSummary,
   getRetestDueSummary,
+  getRetestHistory,
 } from '../haleFlow';
-import type { StoredCheckUp } from '../history';
-import type { Domain } from '../scoring';
+import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../history';
+import {
+  createCurrentVersionedScoreSnapshot,
+  type CheckUpScore,
+  type Domain,
+  type VersionedCheckUpScoreSnapshot,
+} from '../scoring';
 import type { LadderProgress } from '../training';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { SettingsIcon } from '../navigation/icons';
+import {
+  BALANCE_LADDER_ID,
+  CHAIR_STAND_ID,
+  HINGE_REACH_ID,
+  SHOULDER_FLEXION_ID,
+  type BalanceResult,
+  type ChairStandResult,
+  type HingeReachResult,
+  type ShoulderFlexionResult,
+} from '../movements';
 
 const DOMAIN_LABEL: Record<Domain, string> = {
   strength: 'Strength / Power',
@@ -27,65 +58,84 @@ const DOMAIN_LABEL: Record<Domain, string> = {
 
 export function ProgressScreen({
   history,
+  assessments,
   activeBlock,
+  blocks,
+  reports: blockReports,
+  completions,
   today,
   onBeginCheckUp,
   onStartRetest,
   onViewLatest,
+  onViewReport,
+  onOpenSettings,
 }: ProgressScreenProps) {
-  const latest = getLatestCheckUpSummary(history);
-  const domainCards = getDomainProgressCards(history);
-  const retest = getRetestDueSummary({ activeBlock, today, hasBaseline: history.length > 0 });
+  const devMock = useProgressDevMockData({
+    enabled: __DEV__ && !getLatestCheckUpSummary(history, assessments),
+    today,
+  });
+  const visibleHistory = devMock?.history ?? history;
+  const visibleAssessments = devMock?.assessments ?? assessments;
+  const visibleActiveBlock = devMock?.activeBlock ?? activeBlock;
+  const visibleBlocks = devMock?.blocks ?? blocks;
+  const visibleReports = devMock?.reports ?? blockReports;
+  const visibleCompletions = devMock?.completions ?? completions;
+
+  const latest = getLatestCheckUpSummary(visibleHistory, visibleAssessments);
+  const latestEvidence = getLatestDomainEvidence(visibleHistory, visibleAssessments);
+  const domainCards = getDomainProgressCards(visibleHistory, visibleAssessments);
+  const blockSummaries = getBlockReportSummaries({
+    blocks: visibleBlocks,
+    reports: visibleReports,
+    completions: visibleCompletions,
+  });
+  const retestHistory = getRetestHistory(visibleHistory, visibleAssessments);
+  const hasComparison = retestHistory.length > 1;
+  const retest = getRetestDueSummary({ activeBlock: visibleActiveBlock, today, hasBaseline: !!latest });
+  const handleViewLatest = devMock ? noop : onViewLatest;
+  const handleViewReport = devMock ? noopReport : onViewReport;
 
   return (
     <Screen contentStyle={styles.screenContent}>
-      <Text style={styles.title}>Movement Progress</Text>
+      <View style={styles.header}>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Progress</Text>
+          <Pressable
+            style={({ pressed }) => [styles.headerIconButton, pressed && styles.pressed]}
+            onPress={onOpenSettings}
+            accessibilityRole="button"
+            accessibilityLabel="Open settings"
+          >
+            <SettingsIcon size={25} color={colors.accentDeep} strokeWidth={1.8} />
+          </Pressable>
+        </View>
+        <Text style={styles.subtitle}>Your check-up evidence, training reports, and next re-test.</Text>
+      </View>
 
       {!latest ? (
         <EmptyState
           title="Complete your first Movement Check-Up to see your baseline."
-          body="Hale will use it to build your 4-week block and start tracking progress."
+          body="Hale will use it to build your 4-week block and start a home estimate."
           actionLabel="Start Movement Check-Up"
           onAction={onBeginCheckUp}
         />
       ) : (
         <>
-          <Card style={styles.progressCard}>
-            <Text style={styles.latestTitle}>Latest movement check-up</Text>
-            <Text style={styles.latestDate}>{latest.dateLabel}</Text>
-            <Text style={styles.latestFocus}>{latest.focusTitle}</Text>
+          <LatestCheckUpCard latest={latest} evidence={latestEvidence} onPress={handleViewLatest} />
 
-            <View style={styles.bandGrid}>
-              {(['strength', 'balance', 'mobility'] as Domain[]).map((domain) => (
-                <Pressable
-                  key={domain}
-                  style={({ pressed }) => [styles.bandCard, pressed && styles.pressed]}
-                  onPress={onViewLatest}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${DOMAIN_LABEL[domain]}: ${bandLabel(latest.bands[domain])}`}
-                >
-                  <IconBadge domain={domain} size={58} iconSize={34} />
-                  <Text style={styles.bandLabel}>{DOMAIN_LABEL[domain]}</Text>
-                  <Text style={styles.bandValue}>{bandLabel(latest.bands[domain])}</Text>
-                </Pressable>
-              ))}
-            </View>
-          </Card>
+          {hasComparison && domainCards.length > 0 ? <ChangeSinceBaselineCard cards={domainCards} /> : null}
 
-          <Card style={styles.progressCard}>
-            <Text style={styles.sectionTitle}>Domain progress</Text>
-            <View style={styles.domainList}>
-              {domainCards.map((card, index) => (
-                <DomainProgressRow key={card.domain} card={card} showDivider={index > 0} />
-              ))}
-            </View>
-          </Card>
+          {blockSummaries.length > 0 ? (
+            <BlockReportsCard summaries={blockSummaries} onViewReport={handleViewReport} />
+          ) : null}
 
           <RetestCard
             title={retest.title}
-            body={retestLine({ activeBlock, today, fallback: retest.body, due: retest.due })}
+            body={retestLine({ activeBlock: visibleActiveBlock, today, fallback: retest.body, due: retest.due })}
             onPress={retest.due && retest.ctaLabel ? onStartRetest : undefined}
           />
+
+          {retestHistory.length > 1 ? <CheckUpHistoryCard entries={retestHistory} /> : null}
         </>
       )}
     </Screen>
@@ -94,6 +144,7 @@ export function ProgressScreen({
 
 interface ProgressScreenProps {
   history: readonly StoredCheckUp[];
+  assessments?: readonly MovementAssessment[];
   activeBlock?: MovementBlock | null;
   blocks: readonly MovementBlock[];
   reports: readonly MovementBlockReport[];
@@ -107,6 +158,388 @@ interface ProgressScreenProps {
   onOpenSettings: () => void;
 }
 
+function noop() {}
+
+function noopReport(_blockId: string) {}
+
+interface ProgressDevMockData {
+  history: StoredCheckUp[];
+  assessments: MovementAssessment[];
+  activeBlock: MovementBlock;
+  blocks: MovementBlock[];
+  reports: MovementBlockReport[];
+  completions: TrainingSessionCompletion[];
+}
+
+interface ScoredDevCheckUp {
+  record: StoredCheckUp;
+  assessment: MovementAssessment;
+  score: CheckUpScore;
+  snapshot: VersionedCheckUpScoreSnapshot;
+}
+
+function useProgressDevMockData({
+  enabled,
+  today,
+}: {
+  enabled: boolean;
+  today: string;
+}): ProgressDevMockData | null {
+  // Temporary dev-only layout fixture; it is never persisted and release builds never use it.
+  return React.useMemo(() => (enabled ? buildProgressDevMockData(today) : null), [enabled, today]);
+}
+
+function buildProgressDevMockData(today: string): ProgressDevMockData {
+  const base = devBaseDate(today);
+  const baseline = createScoredDevCheckUp(
+    devCheckUp(devIso(base, -74), {
+      chairStandReps: 10,
+      riseVelocity: 0.18,
+      peakRiseVelocity: 0.25,
+      balanceSec: 6,
+      shoulderDeg: 148,
+      hingeReachBu: 0.32,
+    }),
+    'baseline'
+  );
+
+  const completedBlock = devBlock({
+    id: 'dev-progress-block-1',
+    sourceAssessmentId: baseline.assessment.id,
+    status: 'completed',
+    focusDomain: scoreToMovementDomain(baseline.score.weakestDomain) ?? 'balance',
+    startDate: devIso(base, -73),
+    endDate: devIso(base, -45),
+    retestDate: devIso(base, -45),
+    completedSessions: 11,
+    microChecksCompleted: 2,
+    updatedAt: devIso(base, -38),
+  });
+
+  const latest = createScoredDevCheckUp(
+    devCheckUp(devIso(base, -38), {
+      chairStandReps: 14,
+      riseVelocity: 0.23,
+      peakRiseVelocity: 0.33,
+      balanceSec: 12,
+      shoulderDeg: 164,
+      hingeReachBu: 0.18,
+    }),
+    'official_retest',
+    completedBlock.id
+  );
+
+  const activeBlock = devBlock({
+    id: 'dev-progress-block-2',
+    sourceAssessmentId: latest.assessment.id,
+    status: 'active',
+    focusDomain: scoreToMovementDomain(latest.score.weakestDomain) ?? 'balance',
+    startDate: devIso(base, -21),
+    endDate: devIso(base, 7),
+    retestDate: devIso(base, 7),
+    completedSessions: 5,
+    microChecksCompleted: 1,
+    updatedAt: devIso(base, -1),
+  });
+
+  const completions = [
+    ...devSessionCompletions(completedBlock, base, -70, 11),
+    ...devMicroCheckCompletions(completedBlock, base, [-63, -52]),
+    ...devSessionCompletions(activeBlock, base, -19, 5),
+    ...devMicroCheckCompletions(activeBlock, base, [-8]),
+  ];
+
+  const report = createMovementBlockReport({
+    block: completedBlock,
+    baselineAssessment: baseline.assessment,
+    retestAssessment: latest.assessment,
+    previousScore: baseline.score,
+    latestScore: latest.score,
+    previousScoreSnapshot: baseline.snapshot,
+    latestScoreSnapshot: latest.snapshot,
+    completions,
+    nowIso: devIso(base, -37),
+  });
+
+  return {
+    history: [baseline.record, latest.record],
+    assessments: [baseline.assessment, latest.assessment],
+    activeBlock,
+    blocks: [completedBlock, activeBlock],
+    reports: [report],
+    completions,
+  };
+}
+
+function createScoredDevCheckUp(
+  checkUp: CheckUp,
+  checkupType: StoredCheckUp['checkupType'],
+  sourceBlockId?: string
+): ScoredDevCheckUp {
+  const scored = createCurrentVersionedScoreSnapshot(checkUp, {
+    createdAt: checkUp.startedAt,
+    sourceCheckUpId: checkUp.startedAt,
+  });
+  if (!scored.snapshot) {
+    throw new Error('[ProgressScreen] Unable to build dev mock score snapshot.');
+  }
+  const assessment = createMovementAssessment({
+    checkUpId: checkUp.startedAt,
+    type: checkupType,
+    score: scored.score,
+    scoreSnapshot: scored.snapshot,
+    sourceBlockId,
+    completedAt: checkUp.startedAt,
+  });
+  return {
+    record: {
+      schemaVersion: HISTORY_SCHEMA_VERSION,
+      checkUp,
+      checkupType,
+      sourceAssessmentId: assessment.id,
+      scoreSnapshot: scored.snapshot,
+      scoreSnapshotCompatibility: 'current',
+    },
+    assessment,
+    score: scored.score,
+    snapshot: scored.snapshot,
+  };
+}
+
+function devCheckUp(
+  startedAt: string,
+  values: {
+    chairStandReps: number;
+    riseVelocity: number;
+    peakRiseVelocity: number;
+    balanceSec: number;
+    shoulderDeg: number;
+    hingeReachBu: number;
+  }
+): CheckUp {
+  const checkUp = syntheticCheckUp(startedAt);
+  return {
+    ...checkUp,
+    items: checkUp.items.map((item) => {
+      if (!item.result) return item;
+      if (item.movementId === CHAIR_STAND_ID) {
+        const result = item.result as ChairStandResult;
+        return {
+          ...item,
+          result: {
+            ...result,
+            reps: values.chairStandReps,
+            sessionMeanVel: values.riseVelocity,
+            sessionMeanPeakVel: values.peakRiseVelocity,
+          },
+        };
+      }
+      if (item.movementId === BALANCE_LADDER_ID) {
+        const result = item.result as BalanceResult;
+        return { ...item, result: { ...result, singleLegEyesOpenSec: values.balanceSec } };
+      }
+      if (item.movementId === SHOULDER_FLEXION_ID) {
+        const result = item.result as ShoulderFlexionResult;
+        return { ...item, result: { ...result, peakFlexionDeg: values.shoulderDeg } };
+      }
+      if (item.movementId === HINGE_REACH_ID) {
+        const result = item.result as HingeReachResult;
+        return { ...item, result: { ...result, reachBu: values.hingeReachBu } };
+      }
+      return item;
+    }),
+  };
+}
+
+function devBlock({
+  id,
+  sourceAssessmentId,
+  status,
+  focusDomain,
+  startDate,
+  endDate,
+  retestDate,
+  completedSessions,
+  microChecksCompleted,
+  updatedAt,
+}: {
+  id: string;
+  sourceAssessmentId: string;
+  status: MovementBlock['status'];
+  focusDomain: MovementDomain;
+  startDate: string;
+  endDate: string;
+  retestDate: string;
+  completedSessions: number;
+  microChecksCompleted: number;
+  updatedAt: string;
+}): MovementBlock {
+  return {
+    id,
+    userId: LOCAL_USER_ID,
+    status,
+    startDate,
+    endDate,
+    retestDate,
+    focusDomain,
+    secondaryDomains: secondaryDomainsFor(focusDomain),
+    sessionsPerWeekTarget: 3,
+    totalPlannedSessions: 12,
+    completedSessions,
+    microChecksCompleted,
+    sourceAssessmentId,
+    createdAt: startDate,
+    updatedAt,
+  };
+}
+
+function devSessionCompletions(
+  block: MovementBlock,
+  base: Date,
+  firstOffsetDays: number,
+  count: number
+): TrainingSessionCompletion[] {
+  return Array.from({ length: count }, (_, index) => ({
+    id: `${block.id}-session-${index + 1}`,
+    userId: LOCAL_USER_ID,
+    blockId: block.id,
+    plannedDate: `session-${index + 1}`,
+    completedAt: devIso(base, firstOffsetDays + index * 2),
+    sessionType: index === 0 ? 'starter' : 'standard',
+    focusDomain: block.focusDomain,
+    durationMinutes: index % 3 === 0 ? 16 : 18,
+    perceivedEffort: ((index % 3) + 2) as 2 | 3 | 4,
+    painReported: false,
+  }));
+}
+
+function devMicroCheckCompletions(
+  block: MovementBlock,
+  base: Date,
+  offsets: readonly number[]
+): TrainingSessionCompletion[] {
+  return offsets.map((offset, index) => ({
+    id: `${block.id}-micro-${index + 1}`,
+    userId: LOCAL_USER_ID,
+    blockId: block.id,
+    completedAt: devIso(base, offset),
+    sessionType: 'micro_check',
+    focusDomain: block.focusDomain,
+    durationMinutes: 2,
+    perceivedEffort: 2,
+    painReported: false,
+  }));
+}
+
+function scoreToMovementDomain(domain: Domain | null | undefined): MovementDomain | null {
+  if (domain === 'strength') return 'strength_power';
+  if (domain === 'balance' || domain === 'mobility') return domain;
+  return null;
+}
+
+function secondaryDomainsFor(focusDomain: MovementDomain): MovementDomain[] {
+  return (['strength_power', 'balance', 'mobility'] as MovementDomain[]).filter((domain) => domain !== focusDomain).slice(0, 2);
+}
+
+const DEV_DAY_MS = 24 * 60 * 60 * 1000;
+
+function devBaseDate(today: string): Date {
+  const parsed = new Date(today);
+  const source = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  return new Date(Date.UTC(source.getUTCFullYear(), source.getUTCMonth(), source.getUTCDate(), 9));
+}
+
+function devIso(base: Date, offsetDays: number): string {
+  return new Date(base.getTime() + offsetDays * DEV_DAY_MS).toISOString();
+}
+
+function LatestCheckUpCard({
+  latest,
+  evidence,
+  onPress,
+}: {
+  latest: NonNullable<ReturnType<typeof getLatestCheckUpSummary>>;
+  evidence: ReturnType<typeof getLatestDomainEvidence>;
+  onPress: () => void;
+}) {
+  return (
+    <Card style={styles.progressCard}>
+      <View style={styles.sectionHeader}>
+        <View style={styles.sectionText}>
+          <Text style={styles.sectionTitle}>Latest Movement Check-Up</Text>
+          <Text style={styles.sectionIntro}>{latest.dateLabel}</Text>
+        </View>
+        <StatusBadge label="Camera estimated" tone="gold" />
+      </View>
+      <Text style={styles.latestFocus}>{latest.focusTitle}</Text>
+
+      <View style={styles.evidenceList}>
+        {evidence.map((item, index) => (
+          <DomainEvidenceRow key={item.domain} item={item} showDivider={index > 0} onPress={onPress} />
+        ))}
+      </View>
+    </Card>
+  );
+}
+
+function DomainEvidenceRow({
+  item,
+  showDivider,
+  onPress,
+}: {
+  item: ReturnType<typeof getLatestDomainEvidence>[number];
+  showDivider: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.evidenceRow, showDivider && styles.rowDivider, pressed && styles.pressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.title}. ${item.ageLabel}. ${bandLabel(item.band)}.`}
+    >
+      <IconBadge domain={item.domain} size={46} iconSize={28} />
+      <View style={styles.evidenceText}>
+        <View style={styles.evidenceTitleRow}>
+          <Text style={styles.domainTitle}>{item.title}</Text>
+          <StatusBadge label={bandLabel(item.band)} tone={bandTone(item.band)} />
+        </View>
+        <Text style={styles.ageLabel}>{item.ageLabel}</Text>
+        <Text style={styles.interpretation}>{item.interpretation}</Text>
+        <View style={styles.metricGrid}>
+          {item.metrics.map((metric) => (
+            <View key={metric.label} style={styles.metricCell}>
+              <Text style={styles.metricLabel}>{metric.label}</Text>
+              <Text style={[styles.metricValue, !metric.measured && styles.metricValueMuted]}>{metric.display}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+function ChangeSinceBaselineCard({
+  cards,
+}: {
+  cards: ReturnType<typeof getDomainProgressCards>;
+}) {
+  return (
+    <Card style={styles.progressCard}>
+      <Text style={styles.sectionTitle}>Change since baseline</Text>
+      <Text style={styles.sectionIntro}>
+        Compares official Movement Check-Ups using the same scoring version. Small changes may reflect setup or
+        day-to-day variation.
+      </Text>
+      <View style={styles.domainList}>
+        {cards.map((card, index) => (
+          <DomainProgressRow key={card.domain} card={card} showDivider={index > 0} />
+        ))}
+      </View>
+    </Card>
+  );
+}
+
 function DomainProgressRow({
   card,
   showDivider,
@@ -115,14 +548,76 @@ function DomainProgressRow({
   showDivider: boolean;
 }) {
   return (
-    <View style={[styles.domainRow, showDivider && styles.domainRowDivider]}>
+    <View style={[styles.domainRow, showDivider && styles.rowDivider]}>
       <IconBadge domain={card.domain} size={44} iconSize={27} />
       <View style={styles.domainText}>
         <Text style={styles.domainTitle}>{card.title}</Text>
         <Text style={styles.metricLine}>{displayMetric(card.metric)}</Text>
+        <Text style={styles.domainBody}>{card.body}</Text>
       </View>
-      <StatusBadge label={trendLabel(card.trend)} tone={card.trend === 'improved' ? 'good' : 'neutral'} />
+      <StatusBadge label={trendLabel(card.trend)} tone="neutral" />
     </View>
+  );
+}
+
+function BlockReportsCard({
+  summaries,
+  onViewReport,
+}: {
+  summaries: ReturnType<typeof getBlockReportSummaries>;
+  onViewReport: (blockId: string) => void;
+}) {
+  return (
+    <Card style={styles.progressCard}>
+      <Text style={styles.sectionTitle}>4-week reports</Text>
+      <Text style={styles.sectionIntro}>A report appears after a block has a re-test.</Text>
+      <View style={styles.reportList}>
+        {summaries.map((summary, index) => (
+          <Pressable
+            key={summary.blockId}
+            style={({ pressed }) => [styles.reportRow, index > 0 && styles.rowDivider, pressed && styles.pressed]}
+            onPress={() => onViewReport(summary.blockId)}
+            accessibilityRole="button"
+            accessibilityLabel={`${summary.focus} report. ${summary.sessions}. ${summary.mainChange}`}
+          >
+            <View style={styles.reportText}>
+              <Text style={styles.reportTitle}>{summary.focus} block</Text>
+              <Text style={styles.reportMeta}>{summary.dateRange} · {summary.sessions}</Text>
+              <Text style={styles.reportChange}>{summary.mainChange}</Text>
+            </View>
+            <Text style={styles.chevron}>›</Text>
+          </Pressable>
+        ))}
+      </View>
+    </Card>
+  );
+}
+
+function CheckUpHistoryCard({
+  entries,
+}: {
+  entries: ReturnType<typeof getRetestHistory>;
+}) {
+  const visible = entries.slice(0, 4);
+  return (
+    <Card style={styles.progressCard}>
+      <Text style={styles.sectionTitle}>Check-up history</Text>
+      <Text style={styles.sectionIntro}>A compact record of each official Movement Check-Up.</Text>
+      <View style={styles.historyList}>
+        {visible.map((entry, index) => (
+          <View key={entry.id} style={[styles.historyRow, index > 0 && styles.rowDivider]}>
+            <IconBadge domain="calendar" size={38} iconSize={23} />
+            <View style={styles.historyText}>
+              <Text style={styles.historyDate}>{entry.dateLabel}</Text>
+              <Text style={styles.historyMeta}>{historyBandSummary(entry.bands)}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+      {entries.length > visible.length ? (
+        <Text style={styles.moreHistory}>{entries.length - visible.length} earlier check-ups saved locally.</Text>
+      ) : null}
+    </Card>
   );
 }
 
@@ -142,7 +637,7 @@ function RetestCard({
         <Text style={styles.retestTitle}>{title}</Text>
         <Text style={styles.retestBody}>{body}</Text>
       </View>
-      <Text style={styles.chevron}>›</Text>
+      {onPress ? <Text style={styles.chevron}>›</Text> : null}
     </>
   );
 
@@ -250,7 +745,19 @@ function bandLabel(band: 'starting_point' | 'building' | 'strong' | 'pending'): 
   if (band === 'strong') return 'Strong';
   if (band === 'building') return 'Building';
   if (band === 'starting_point') return 'Starting point';
-  return 'Starting point';
+  return 'Pending';
+}
+
+function bandTone(band: 'starting_point' | 'building' | 'strong' | 'pending'): 'neutral' | 'good' | 'gold' {
+  if (band === 'strong') return 'good';
+  if (band === 'building') return 'gold';
+  return 'neutral';
+}
+
+function historyBandSummary(bands: Record<Domain, 'starting_point' | 'building' | 'strong' | 'pending'>): string {
+  return (['strength', 'balance', 'mobility'] as Domain[])
+    .map((domain) => `${DOMAIN_LABEL[domain]}: ${bandLabel(bands[domain])}`)
+    .join(' · ');
 }
 
 function displayMetric(metric: string): string {
@@ -258,9 +765,9 @@ function displayMetric(metric: string): string {
 }
 
 function trendLabel(trend: string): string {
-  if (trend === 'improved') return 'Building';
-  if (trend === 'held_steady') return 'Held steady';
-  if (trend === 'lower') return 'Adjusted';
+  if (trend === 'higher') return 'Recorded higher';
+  if (trend === 'similar') return 'Similar result';
+  if (trend === 'lower') return 'Recorded lower';
   return 'Starting point';
 }
 
@@ -298,77 +805,196 @@ function formatShortDate(iso: string): string {
 const styles = StyleSheet.create({
   screenContent: {
     gap: spacing.lg,
-    paddingTop: spacing.huge,
+    paddingTop: spacing.pageTop,
   },
-  title: {
-    fontFamily: fonts.serifRegular,
-    fontSize: 38,
-    lineHeight: 46,
-    letterSpacing: 0,
-    color: colors.sageDeep,
+  header: {
+    gap: spacing.xs,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+  },
+  title: { ...type.pageTitle },
+  subtitle: { ...type.pageSubtitle, maxWidth: 360 },
+  headerIconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   progressCard: {
     padding: spacing.lg + spacing.xs,
     backgroundColor: colors.bgSurface,
-    borderColor: colors.borderHairline,
-    ...shadow.soft,
-    shadowOpacity: 0.035,
+    ...shadow.card,
   },
-  latestTitle: { ...type.h3 },
-  latestDate: { ...type.bodySmall, color: colors.sageDeep, marginTop: spacing.sm },
-  latestFocus: { ...type.bodySmall, color: colors.textSecondary, marginTop: spacing.sm },
-  bandGrid: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
-  bandCard: {
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  sectionText: {
     flex: 1,
-    minHeight: 120,
     minWidth: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.sm,
+  },
+  sectionTitle: { ...type.cardTitle },
+  sectionIntro: {
+    ...type.cardBody,
+    marginTop: spacing.xs,
+  },
+  latestFocus: {
+    ...type.bodySmall,
+    color: colors.sageDeep,
+    marginTop: spacing.md,
+  },
+  evidenceList: {
+    marginTop: spacing.md,
+  },
+  evidenceRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
     paddingVertical: spacing.md,
+  },
+  evidenceText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  evidenceTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  ageLabel: {
+    ...type.bodySmall,
+    color: colors.sageDeep,
+    marginTop: spacing.xs,
+  },
+  interpretation: {
+    ...type.caption,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+  },
+  metricGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  metricCell: {
+    flexGrow: 1,
+    minWidth: 124,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     borderRadius: radius.input,
-    backgroundColor: colors.bgSurface,
-    borderWidth: 1,
-    borderColor: colors.borderHairline,
+    backgroundColor: colors.sageMist,
+  },
+  metricLabel: {
+    ...type.caption,
+    color: colors.textSecondary,
+  },
+  metricValue: {
+    ...type.bodySmall,
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
+    marginTop: 2,
+  },
+  metricValueMuted: {
+    color: colors.textSecondary,
+    fontFamily: fonts.sansRegular,
   },
   iconBadge: {
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.sageMist,
   },
-  bandLabel: {
-    ...type.caption,
-    color: colors.textPrimary,
-    textAlign: 'center',
-    marginTop: spacing.md,
-  },
-  bandValue: {
-    ...type.caption,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: spacing.xs,
-  },
-  sectionTitle: { ...type.h3 },
   domainList: { marginTop: spacing.md },
   domainRow: {
-    minHeight: 64,
+    minHeight: 72,
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-    paddingVertical: spacing.sm,
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
   },
-  domainRowDivider: {
+  domainText: { flex: 1, minWidth: 0 },
+  domainTitle: {
+    ...type.bodySmall,
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
+    flexShrink: 1,
+  },
+  metricLine: { ...type.caption, color: colors.textSecondary, marginTop: 2 },
+  domainBody: { ...type.caption, color: colors.textSecondary, marginTop: spacing.xs },
+  rowDivider: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.divider,
   },
-  domainText: { flex: 1, minWidth: 0 },
-  domainTitle: { ...type.bodySmall, fontFamily: fonts.sansMedium },
-  metricLine: { ...type.caption, color: colors.textSecondary, marginTop: 2 },
+  reportList: {
+    marginTop: spacing.md,
+  },
+  reportRow: {
+    minHeight: 82,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  reportText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  reportTitle: {
+    ...type.bodySmall,
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
+  },
+  reportMeta: {
+    ...type.caption,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+  },
+  reportChange: {
+    ...type.bodySmall,
+    color: colors.sageDeep,
+    marginTop: spacing.xs,
+  },
+  historyList: {
+    marginTop: spacing.md,
+  },
+  historyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  historyText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  historyDate: {
+    ...type.bodySmall,
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
+  },
+  historyMeta: {
+    ...type.caption,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+  },
+  moreHistory: {
+    ...type.caption,
+    color: colors.textSecondary,
+    marginTop: spacing.md,
+  },
   retestCard: {
     minHeight: 84,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.lg,
+    gap: spacing.md,
   },
   retestCardInteractive: {
     padding: 0,
@@ -378,12 +1004,12 @@ const styles = StyleSheet.create({
     minHeight: 84,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.lg,
+    gap: spacing.md,
     padding: spacing.lg + spacing.xs,
   },
   retestText: { flex: 1, minWidth: 0 },
-  retestTitle: { ...type.h3 },
-  retestBody: { ...type.bodySmall, color: colors.sageDeep, marginTop: spacing.xs },
+  retestTitle: { ...type.cardTitle },
+  retestBody: { ...type.cardBody, color: colors.sageDeep, marginTop: spacing.xs },
   chevron: { ...type.h2, color: colors.textSecondary },
   pressed: { opacity: 0.86, transform: [{ scale: 0.995 }] },
 });

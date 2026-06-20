@@ -672,11 +672,9 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderRadius: 18,
+    borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    ...shadow.soft,
+    ...shadow.card,
   },
   compactAccountIcon: {
     width: 39,
@@ -751,10 +749,8 @@ const styles = StyleSheet.create({
   },
   compactConfirmPanel: {
     padding: spacing.lg,
-    borderRadius: 18,
+    borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
   },
   compactActionDisabled: {
     opacity: 0.55,
@@ -762,7 +758,6 @@ const styles = StyleSheet.create({
   authCard: {
     width: '100%',
     backgroundColor: colors.surface,
-    borderColor: colors.border,
     borderRadius: radius.panel,
     shadowOpacity: 0,
     elevation: 0,

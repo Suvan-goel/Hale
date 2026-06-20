@@ -1,11 +1,21 @@
 import { LOCAL_USER_ID, type CheckupType, type MovementAssessment } from '../adherence/types';
-import type { CheckUpScore, DomainResult } from '../scoring';
 import {
-  getBlockCreationEligibility,
+  parseStoredScoreSnapshot,
+  type CheckUpScore,
+  type DomainResult,
+  type ScoreFocusSelection,
+  type VersionedCheckUpScoreSnapshot,
+} from '../scoring';
+import {
   isMovementAssessmentUsableForTraining,
-  measuredMovementDomainsFromScore,
-  movementDomainFromScoreDomainStrict,
 } from './assessmentEligibility';
+import {
+  checkupStatusFromHeadlineEvidence,
+  confidenceFromHeadlineEvidence,
+  headlineEvidenceFromScore,
+  isOfficialCheckupType,
+  movementDomainFromScoreDomainStrict,
+} from './assessmentEvidence';
 import type { CreateAssessmentInput } from './types';
 
 export function createMovementAssessment({
@@ -13,13 +23,20 @@ export function createMovementAssessment({
   checkUpId,
   type,
   score,
+  scoreSnapshot,
   sourceBlockId,
   completedAt = new Date().toISOString(),
   status,
   isOfficialForProgress,
 }: CreateAssessmentInput): MovementAssessment {
-  const confidence = score ? confidenceFromScore(score) : 'low';
-  const resolvedStatus = status ?? (confidence === 'low' ? 'invalid' : 'completed');
+  const headlineEvidence = headlineEvidenceFromScore(score);
+  const confidence = confidenceFromHeadlineEvidence(headlineEvidence);
+  const resolvedStatus = resolveAssessmentStatus(status, checkupStatusFromHeadlineEvidence(headlineEvidence));
+  const parsedSnapshot = parseStoredScoreSnapshot(scoreSnapshot);
+  const focusSelection = parsedSnapshot.ok ? parsedSnapshot.snapshot.focusSelection : undefined;
+  const authoritativeFocus = headlineEvidence.complete
+    ? movementDomainFromScoreDomainStrict(focusSelection?.focusDomain ?? score?.weakestDomain)
+    : null;
   return {
     id: `assessment-${type}-${checkUpId.replace(/[:.]/g, '-')}`,
     userId,
@@ -33,22 +50,67 @@ export function createMovementAssessment({
           strengthPowerScore: scoreForDomain(score, 'strength'),
           balanceScore: scoreForDomain(score, 'balance'),
           mobilityScore: scoreForDomain(score, 'mobility'),
-          ...(movementDomainFromScoreDomainStrict(score.weakestDomain)
-            ? { weakestDomain: movementDomainFromScoreDomainStrict(score.weakestDomain) ?? undefined }
-            : {}),
+          ...(authoritativeFocus ? { weakestDomain: authoritativeFocus } : {}),
           confidence,
-          rawMetrics: { checkUpId: score.startedAt, measuredDomains: measuredMovementDomainsFromScore(score).length },
+          rawMetrics: {
+            checkUpId: score.startedAt,
+            measuredDomains: headlineEvidence.measuredDomainCount,
+            headlineDomainsMeasured: headlineEvidence.measuredDomains,
+            missingHeadlineDomains: headlineEvidence.missingDomains,
+            headlineEvidenceComplete: headlineEvidence.complete,
+            ...scoreSnapshotRawMetrics(scoreSnapshot),
+            ...focusSelectionRawMetrics(focusSelection),
+          },
         }
       : {
           confidence: 'low',
-          rawMetrics: { checkUpId },
+          rawMetrics: {
+            checkUpId,
+            measuredDomains: 0,
+            headlineDomainsMeasured: [],
+            missingHeadlineDomains: headlineEvidence.missingDomains,
+            headlineEvidenceComplete: false,
+            ...scoreSnapshotRawMetrics(scoreSnapshot),
+            ...focusSelectionRawMetrics(focusSelection),
+          },
         },
     isOfficialForProgress: isOfficialForProgress ?? isOfficialCheckupType(type),
   };
 }
 
-export function isOfficialCheckupType(type: CheckupType): boolean {
-  return type === 'baseline' || type === 'baseline_retake' || type === 'official_retest';
+function focusSelectionRawMetrics(
+  focusSelection: ScoreFocusSelection | null | undefined
+): Record<string, unknown> {
+  if (!focusSelection) return {};
+  return {
+    focusSelection,
+    focusSelectionKind: focusSelection.kind,
+    effectiveFocusDomain: focusSelection.focusDomain,
+    tiedScoreDomains: focusSelection.tiedDomains,
+    ...(focusSelection.nearTiedDomains ? { nearTiedScoreDomains: focusSelection.nearTiedDomains } : {}),
+    ...(typeof focusSelection.nearTieMarginYears === 'number'
+      ? { nearTieMarginYears: focusSelection.nearTieMarginYears }
+      : {}),
+    ...(typeof focusSelection.policyVersion === 'number'
+      ? { focusSelectionPolicyVersion: focusSelection.policyVersion }
+      : {}),
+    ...(focusSelection.tieBreakReason ? { focusTieBreakReason: focusSelection.tieBreakReason } : {}),
+  };
+}
+
+function scoreSnapshotRawMetrics(
+  snapshot: VersionedCheckUpScoreSnapshot | null | undefined
+): Record<string, unknown> {
+  const parsed = parseStoredScoreSnapshot(snapshot);
+  if (!parsed.ok) return {};
+  return {
+    scoreSnapshotSchemaVersion: parsed.snapshot.schemaVersion,
+    scoringVersion: parsed.snapshot.scoringVersion,
+    normVersion: parsed.snapshot.normVersion,
+    scoreSnapshotCreatedAt: parsed.snapshot.createdAt,
+    scoreSnapshotSourceCheckUpId: parsed.snapshot.sourceCheckUpId,
+    scoreSnapshotScoreStartedAt: parsed.snapshot.score.startedAt,
+  };
 }
 
 export function latestOfficialAssessment(
@@ -60,7 +122,7 @@ export function latestOfficialAssessment(
 export function latestOfficialAssessmentAttempt(
   assessments: readonly MovementAssessment[]
 ): MovementAssessment | null {
-  const official = assessments.filter((a) => a.isOfficialForProgress);
+  const official = assessments.filter((a) => a.isOfficialForProgress && isOfficialCheckupType(a.type));
   if (official.length === 0) return null;
   return official.slice().sort((a, b) => (b.completedAt ?? b.createdAt).localeCompare(a.completedAt ?? a.createdAt))[0];
 }
@@ -69,6 +131,14 @@ export function latestUsableOfficialAssessment(
   assessments: readonly MovementAssessment[]
 ): MovementAssessment | null {
   const official = assessments.filter((a) => a.isOfficialForProgress && isMovementAssessmentUsableForTraining(a));
+  if (official.length === 0) return null;
+  return official.slice().sort((a, b) => (b.completedAt ?? b.createdAt).localeCompare(a.completedAt ?? a.createdAt))[0];
+}
+
+export function latestIncompleteOfficialAssessment(
+  assessments: readonly MovementAssessment[]
+): MovementAssessment | null {
+  const official = assessments.filter((a) => a.isOfficialForProgress && isOfficialCheckupType(a.type) && a.status === 'incomplete');
   if (official.length === 0) return null;
   return official.slice().sort((a, b) => (b.completedAt ?? b.createdAt).localeCompare(a.completedAt ?? a.createdAt))[0];
 }
@@ -84,14 +154,7 @@ export function canReplaceBaselineWithRetake({
 }): boolean {
   if (!confirmed || !original) return false;
   if (original.type !== 'baseline' || retake.type !== 'baseline_retake') return false;
-  return retake.isOfficialForProgress && getBlockCreationEligibility({ assessment: retake }).eligible;
-}
-
-function confidenceFromScore(score: CheckUpScore): 'low' | 'medium' | 'high' {
-  const measured = measuredMovementDomainsFromScore(score).length;
-  if (measured >= 3) return 'high';
-  if (measured >= 1) return 'medium';
-  return 'low';
+  return retake.isOfficialForProgress && isMovementAssessmentUsableForTraining(retake);
 }
 
 function scoreForDomain(score: CheckUpScore, domain: DomainResult['domain']): number | undefined {
@@ -99,3 +162,15 @@ function scoreForDomain(score: CheckUpScore, domain: DomainResult['domain']): nu
   if (!result?.measured || !Number.isFinite(result.ageLow) || !Number.isFinite(result.ageHigh)) return undefined;
   return (result.ageLow + result.ageHigh) / 2;
 }
+
+function resolveAssessmentStatus(
+  requested: MovementAssessment['status'] | undefined,
+  evidenceStatus: MovementAssessment['status']
+): MovementAssessment['status'] {
+  if (requested === 'not_started' || requested === 'in_progress' || requested === 'cancelled') {
+    return requested;
+  }
+  return evidenceStatus;
+}
+
+export { isOfficialCheckupType } from './assessmentEvidence';

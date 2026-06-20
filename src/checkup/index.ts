@@ -12,3 +12,4 @@ export {
 export type { CheckUpConfig, CheckUpFrameUpdate, CheckUpPhase } from './checkup';
 export { findItem } from './types';
 export type { CheckUp, CheckUpItem, CheckUpItemStatus } from './types';
+export { mergeCheckUpRetry, retryBatteryForMissingHeadlineDomains } from './retry';

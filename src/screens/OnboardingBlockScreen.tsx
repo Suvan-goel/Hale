@@ -31,7 +31,7 @@ export function OnboardingBlockScreen({
         <Typography variant="h1">{blockFocusCopy(toTrainingFocus(block.focusDomain))}</Typography>
         <Row label="Plan" value="3 sessions per week" />
         <Row label="Time" value="About 20 minutes each" />
-        <Row label="Re-test" value="In 4 weeks to see what changed" />
+        <Row label="Re-test" value="In 4 weeks to add another data point" />
       </Card>
 
       <View style={styles.actions}>

@@ -3,7 +3,7 @@
  * radii and depth. Screens and shared components reference these tokens rather
  * than hardcoding repeated visual values.
  *
- * The aesthetic: clean premium longevity. Warm stone canvas, crisp white
+ * The aesthetic: clean premium longevity. Warm clay canvas, soft ivory
  * surfaces, inky green action colour, and quiet stone dividers. The
  * product should feel calm, trustworthy, readable, and daily-use friendly for
  * adults 50+, never clinical, toy-like, or fitness-gimmicky.
@@ -19,17 +19,17 @@ import { Platform, TextStyle, ViewStyle } from 'react-native';
  * ------------------------------------------------------------------------- */
 
 export const palette = {
-  appBackground: '#F7F5EF',
-  cardSurface: '#FFFFFF',
-  elevatedSurface: '#FBFAF7',
+  appBackground: '#F4EDE6',
+  cardSurface: '#FBF5EF',
+  elevatedSurface: '#FBF5EF',
   ink: '#111412',
   secondaryText: '#68706A',
   tertiaryText: '#8A908A',
-  brandGreen: '#123C2E',
-  brandGreenPressed: '#0B2B21',
-  emeraldAccent: '#007A5A',
-  softGreenFill: '#EEF4EF',
-  verySoftGreenFill: '#F5F8F5',
+  brandGreen: '#414C34',
+  brandGreenPressed: '#414C34',
+  emeraldAccent: '#414C34',
+  softGreenFill: 'transparent',
+  verySoftGreenFill: 'transparent',
   border: '#E4E0D6',
   strongBorder: '#D8D3C8',
   warmPremiumAccent: '#A98243',
@@ -91,7 +91,7 @@ export const colors = {
   divider: palette.border,
   textTertiary: palette.tertiaryText,
   accentDeep: palette.brandGreenPressed,
-  sage: palette.softGreenFill,
+  sage: palette.strongBorder,
   sageDeep: palette.brandGreen,
   accentGold: palette.warmPremiumAccent,
   goldBorder: palette.strongBorder,
@@ -106,22 +106,22 @@ export const colors = {
 } as const;
 
 export const todayHomeColors = {
-  background: '#F7F2EA',
-  card: '#FFFDF8',
-  cardAlt: '#FFFCF6',
-  iconFill: '#E7ECDF',
+  background: '#F4EDE6',
+  card: '#FBF5EF',
+  cardAlt: '#FBF5EF',
+  iconFill: 'transparent',
   ringTrack: '#ECE7DA',
   border: '#E5DED2',
-  shadow: 'rgba(32,45,36,0.06)',
+  shadow: 'rgba(17,20,18,0.06)',
   primaryText: '#142019',
-  headingGreen: '#2F4A36',
+  headingGreen: '#414C34',
   secondaryText: '#62685F',
   mutedText: '#7B8178',
-  primary: '#2F4A36',
-  hero: '#55644C',
-  heroDeep: '#243B2C',
-  tabActive: '#3E5C3F',
-  warmWhite: '#FFFDF8',
+  primary: '#414C34',
+  hero: '#414C34',
+  heroDeep: '#414C34',
+  tabActive: '#414C34',
+  warmWhite: '#FBF5EF',
 } as const;
 
 /* ----------------------------------------------------------------------------
@@ -144,6 +144,12 @@ export const type = {
   body: { fontFamily: fonts.sansRegular, fontSize: 17, lineHeight: 27, letterSpacing: 0, color: colors.textPrimary },
   bodySmall: { fontFamily: fonts.sansRegular, fontSize: 15, lineHeight: 23, letterSpacing: 0, color: colors.textPrimary },
   caption: { fontFamily: fonts.sansRegular, fontSize: 14, lineHeight: 20, letterSpacing: 0, color: colors.textSecondary },
+  pageTitle: { fontFamily: fonts.serifRegular, fontSize: 28, lineHeight: 34, letterSpacing: 0, color: colors.textPrimary },
+  pageSubtitle: { fontFamily: fonts.sansRegular, fontSize: 14, lineHeight: 20, letterSpacing: 0, color: colors.textSecondary },
+  cardTitle: { fontFamily: fonts.serifMedium, fontSize: 18, lineHeight: 24, letterSpacing: 0, color: colors.textPrimary },
+  cardBody: { fontFamily: fonts.sansRegular, fontSize: 14, lineHeight: 20, letterSpacing: 0, color: colors.textSecondary },
+  cardCaption: { fontFamily: fonts.sansRegular, fontSize: 12, lineHeight: 16, letterSpacing: 0, color: colors.textSecondary },
+  cardRowTitle: { fontFamily: fonts.sansMedium, fontSize: 14, lineHeight: 19, letterSpacing: 0, color: colors.textPrimary },
   label: {
     fontFamily: fonts.sansMedium,
     fontSize: 13,
@@ -172,6 +178,9 @@ export const spacing = {
   xl: 24,
   xxl: 32,
   xxxl: 40,
+  pageTop: 32,
+  pageHorizontal: 18,
+  pageMaxWidth: 430,
   huge: 56,
 } as const;
 
@@ -182,7 +191,7 @@ export const spacing = {
 export const radius = {
   input: 14,
   button: 15,
-  card: 18,
+  card: 16,
   panel: 20,
   xl: 22,
   pill: 999,
@@ -193,6 +202,14 @@ export const radius = {
 export const minTapTarget = 48;
 
 export const shadow = {
+  card: {
+    boxShadow: '0 10px 24px rgba(17,20,18,0.06)',
+    shadowColor: 'rgba(17,20,18,1)',
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
+  } satisfies ViewStyle,
   soft: {
     shadowColor: 'rgba(17,20,18,1)',
     shadowOpacity: 0.035,
@@ -216,34 +233,32 @@ export const shadow = {
 export const componentStyles = {
   card: {
     base: {
-      padding: spacing.xl,
+      paddingHorizontal: 18,
+      paddingVertical: 18,
       borderRadius: radius.card,
       backgroundColor: colors.card,
-      borderWidth: 1,
-      borderColor: colors.borderHairline,
+      ...shadow.card,
     } satisfies ViewStyle,
     elevated: {
-      padding: spacing.xl,
+      paddingHorizontal: 18,
+      paddingVertical: 18,
       borderRadius: radius.card,
       backgroundColor: colors.elevatedCard,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-      ...shadow.soft,
+      ...shadow.card,
     } satisfies ViewStyle,
     flat: {
-      padding: spacing.xl,
+      paddingHorizontal: 18,
+      paddingVertical: 18,
       borderRadius: radius.card,
       backgroundColor: colors.card,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
+      ...shadow.card,
     } satisfies ViewStyle,
     feature: {
-      padding: spacing.xl,
+      paddingHorizontal: 18,
+      paddingVertical: 18,
       borderRadius: radius.panel,
       backgroundColor: colors.accent,
-      borderWidth: 1,
-      borderColor: colors.accent,
-      ...shadow.soft,
+      ...shadow.card,
     } satisfies ViewStyle,
   },
   button: {

@@ -1,7 +1,6 @@
 /**
- * Profile tab: compact local profile hub, plan preferences, safety setup,
- * equipment, account actions, privacy, and help. V1 keeps session data local
- * until the explicit account sync path is used.
+ * Settings tab: compact local profile hub, plan preferences, safety setup,
+ * equipment, account actions, privacy, and help.
  */
 
 import * as React from 'react';
@@ -12,10 +11,9 @@ import type { AvailableEquipment, SupportConnection } from '../adherence';
 import { getLifeGoalDisplayText } from '../adherence';
 import { AccountAuthCard } from '../components/AccountAuthCard';
 import { Screen, SecondaryButton, ToggleRow } from '../components/ui';
-import { BellIcon } from '../navigation/icons';
 import { AppSettings, getVoice, UserProfile, VOICE_OPTIONS } from '../profile';
 import { EquipmentProfile, TrainingIntensityPreference } from '../training';
-import { colors, fonts, minTapTarget, radius, shadow, spacing, todayHomeColors, type } from '../theme';
+import { colors, fonts, minTapTarget, radius, shadow, spacing, type } from '../theme';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
 
@@ -25,7 +23,38 @@ const INTENSITY_OPTIONS: readonly { id: TrainingIntensityPreference; label: stri
   { id: 'more_challenge', label: 'More challenge', body: 'A stronger ask' },
 ];
 
-type ProfileSection = 'details' | 'plan' | 'voice' | 'equipment' | 'privacy' | 'help';
+type ProfileSection = 'details' | 'safety' | 'plan' | 'voice' | 'equipment' | 'privacy' | 'help';
+
+const SECTION_COPY: Record<ProfileSection, { title: string; subtitle: string }> = {
+  details: {
+    title: 'Personal Details',
+    subtitle: 'Update the basics Hale uses to personalize your plan.',
+  },
+  safety: {
+    title: 'Camera & Safety',
+    subtitle: 'Review camera setup and safety details before movement sessions.',
+  },
+  plan: {
+    title: 'Plan Preferences',
+    subtitle: 'Choose the days and session feel that fit your routine.',
+  },
+  voice: {
+    title: 'Trainer Voice',
+    subtitle: 'Pick the bundled guide voice for check-ups and sessions.',
+  },
+  equipment: {
+    title: 'Equipment Setup',
+    subtitle: 'Tell Hale what simple home setup is available.',
+  },
+  privacy: {
+    title: 'Privacy',
+    subtitle: 'See what Hale stores and how camera privacy works.',
+  },
+  help: {
+    title: 'Help',
+    subtitle: 'Jump back to setup guidance when you need it.',
+  },
+};
 
 type SettingsScreenProps = {
   profile: UserProfile;
@@ -71,7 +100,7 @@ function SettingsScreenContent({
   const [goal, setGoal] = React.useState(profile.goal);
   const [ageText, setAgeText] = React.useState(profile.age === null ? '' : String(profile.age));
   const available = profile.safetyProfile?.availableEquipment ?? ['chair', 'wall'];
-  const displayName = profile.name.trim() || 'Your profile';
+  const displayName = profile.name.trim() || 'Your details';
   const goalText =
     profile.goal.trim() || (profile.lifeGoal ? getLifeGoalDisplayText(profile.lifeGoal) : 'Set a movement goal');
   const currentVoice = getVoice(settings.voiceId);
@@ -80,8 +109,7 @@ function SettingsScreenContent({
   React.useEffect(() => setGoal(profile.goal), [profile.goal]);
   React.useEffect(() => setAgeText(profile.age === null ? '' : String(profile.age)), [profile.age]);
 
-  const toggleSection = (section: ProfileSection) =>
-    setOpenSection((current) => (current === section ? null : section));
+  const openProfileSection = (section: ProfileSection) => setOpenSection(section);
 
   const commitName = () => onProfileChange({ ...profile, name: name.trim() });
   const commitGoal = () => onProfileChange({ ...profile, goal: goal.trim() });
@@ -99,45 +127,9 @@ function SettingsScreenContent({
     onPreferredDaysChange(next);
   };
 
-  return (
-    <Screen contentStyle={styles.screenContent}>
-      <View style={styles.headerRow}>
-        <Text style={styles.title}>Profile</Text>
-        <Pressable
-          style={({ pressed }) => [styles.headerIconButton, pressed && styles.pressed]}
-          onPress={() => toggleSection('help')}
-          accessibilityRole="button"
-          accessibilityLabel="Profile notifications and help"
-        >
-          <BellIcon size={27} color={colors.accentDeep} strokeWidth={1.7} />
-        </Pressable>
-      </View>
-
-      <Pressable
-        style={({ pressed }) => [styles.profileCard, pressed && styles.pressed]}
-        onPress={() => toggleSection('details')}
-        accessibilityRole="button"
-        accessibilityLabel="Edit profile details"
-      >
-        <View style={styles.avatar}>
-          <MovementMark />
-        </View>
-        <View style={styles.profileCopy}>
-          <View style={styles.profileNameRow}>
-            <Text style={styles.profileName} numberOfLines={1}>{displayName}</Text>
-            <View style={styles.signedPill}>
-              <Text style={styles.signedPillText}>Signed in</Text>
-            </View>
-          </View>
-          <Text style={styles.profileAge}>{profile.age === null ? 'Age not set' : profile.age}</Text>
-          <View style={styles.goalRow}>
-            <LeafIcon />
-            <Text style={styles.goalText} numberOfLines={1}>{goalText}</Text>
-          </View>
-        </View>
-      </Pressable>
-
-      {openSection === 'details' ? (
+  const renderSectionContent = () => {
+    if (openSection === 'details') {
+      return (
         <DetailPanel>
           <Field label="Name">
             <TextInput
@@ -181,53 +173,32 @@ function SettingsScreenContent({
             <SecondaryButton title="Edit safety profile" onPress={onOpenSafetyProfile} style={styles.rowButton} />
           </View>
         </DetailPanel>
-      ) : null}
+      );
+    }
 
-      <View style={styles.menuCard}>
-        <ProfileMenuRow
-          title="Health & Safety"
-          icon="shield"
-          onPress={onOpenSafetyProfile}
-          showDivider
-        />
-        <ProfileMenuRow
-          title="Plan Preferences"
-          icon="sliders"
-          onPress={() => toggleSection('plan')}
-          active={openSection === 'plan'}
-          showDivider
-        />
-        <ProfileMenuRow
-          title="Trainer Voice"
-          icon="volume"
-          onPress={() => toggleSection('voice')}
-          active={openSection === 'voice'}
-          showDivider
-        />
-        <ProfileMenuRow
-          title="Equipment Setup"
-          icon="dumbbell"
-          onPress={() => toggleSection('equipment')}
-          active={openSection === 'equipment'}
-          showDivider
-        />
-        <ProfileMenuRow
-          title="Privacy"
-          icon="lock"
-          onPress={() => toggleSection('privacy')}
-          active={openSection === 'privacy'}
-          showDivider
-        />
-        <ProfileMenuRow
-          title="Help"
-          icon="help"
-          onPress={() => toggleSection('help')}
-          active={openSection === 'help'}
-        />
-      </View>
-
-      {openSection === 'plan' ? (
+    if (openSection === 'safety') {
+      return (
         <DetailPanel>
+          <InfoRow label="Camera view" value="Skeleton only" />
+          <InfoRow label="Safety profile" value={profile.safetyProfile ? 'Saved' : 'Not set'} />
+          <InfoRow label="Phone stand" value={settings.phoneStandAvailable ? 'Available' : 'Not set'} />
+          <Text style={styles.panelCopy}>
+            Hale checks framing before movement sessions and keeps normal sessions away from self-view video.
+          </Text>
+          <View style={styles.buttonRow}>
+            <SecondaryButton title="Edit safety profile" onPress={onOpenSafetyProfile} style={styles.rowButton} />
+            <SecondaryButton title="Open camera setup" onPress={onOpenCameraSetup} style={styles.rowButton} />
+          </View>
+        </DetailPanel>
+      );
+    }
+
+    if (openSection === 'plan') {
+      return (
+        <DetailPanel>
+          <Text style={styles.panelCopy}>
+            These preferences shape future sessions. Your current 4-week map stays in Plan.
+          </Text>
           <Text style={styles.panelTitle}>Preferred days</Text>
           <View style={styles.dayGrid}>
             {DAYS.map((day) => (
@@ -247,9 +218,11 @@ function SettingsScreenContent({
             ))}
           </View>
         </DetailPanel>
-      ) : null}
+      );
+    }
 
-      {openSection === 'voice' ? (
+    if (openSection === 'voice') {
+      return (
         <DetailPanel>
           <Text style={styles.panelTitle}>Current voice: {currentVoice.label}</Text>
           <View style={styles.segmentStack}>
@@ -264,10 +237,15 @@ function SettingsScreenContent({
             ))}
           </View>
         </DetailPanel>
-      ) : null}
+      );
+    }
 
-      {openSection === 'equipment' ? (
+    if (openSection === 'equipment') {
+      return (
         <DetailPanel>
+          <Text style={styles.panelCopy}>
+            Hale always keeps a zero-equipment path. Optional items simply unlock substitutions.
+          </Text>
           <ToggleRow
             label="Stable chair"
             value={available.includes('chair')}
@@ -292,28 +270,135 @@ function SettingsScreenContent({
             onValueChange={(v) => onSettingsChange({ ...settings, phoneStandAvailable: v })}
           />
         </DetailPanel>
-      ) : null}
+      );
+    }
 
-      {openSection === 'privacy' ? (
+    if (openSection === 'privacy') {
+      return (
         <DetailPanel>
-          <InfoRow label="Account" value="Required" />
-          <InfoRow label="Storage" value="Progress syncs to your account" />
-          <InfoRow label="Camera" value="Skeleton view only" />
+          <InfoRow label="Account" value="Managed below" />
+          <InfoRow label="Movement data" value="Progress syncs to your account" />
+          <InfoRow label="Camera" value="Skeleton view only, never a mirror" />
           <InfoRow
             label="Support circle"
             value={supportConnection ? 'Local contact saved' : 'Private'}
           />
-        </DetailPanel>
-      ) : null}
-
-      {openSection === 'help' ? (
-        <DetailPanel>
-          <Text style={styles.helpCopy}>
-            Revisit camera setup any time, or use Explore Learn for short guides on check-ups, bands, and monthly re-tests.
+          <Text style={styles.panelCopy}>
+            Hale stores movement estimates and preferences. Normal sessions do not show self-view video.
           </Text>
-          <SecondaryButton title="Open camera setup" onPress={onOpenCameraSetup} style={styles.fullButton} />
         </DetailPanel>
-      ) : null}
+      );
+    }
+
+    return (
+      <DetailPanel>
+        <Text style={styles.helpCopy}>
+          Revisit camera setup any time. Explore holds reference guides and optional practice; Today remains the place to start the next step.
+        </Text>
+        <SecondaryButton title="Open camera setup" onPress={onOpenCameraSetup} style={styles.fullButton} />
+      </DetailPanel>
+    );
+  };
+
+  if (openSection) {
+    const copy = SECTION_COPY[openSection];
+
+    return (
+      <Screen contentStyle={styles.screenContent}>
+        <View style={styles.detailHeaderRow}>
+          <Pressable
+            style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
+            onPress={() => setOpenSection(null)}
+            accessibilityRole="button"
+            accessibilityLabel="Back to settings"
+          >
+            <BackChevronIcon />
+          </Pressable>
+          <View style={styles.detailHeaderCopy}>
+            <Text style={styles.title}>{copy.title}</Text>
+            <Text style={styles.detailSubtitle}>{copy.subtitle}</Text>
+          </View>
+        </View>
+        {renderSectionContent()}
+      </Screen>
+    );
+  }
+
+  return (
+    <Screen contentStyle={styles.screenContent}>
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Settings</Text>
+        <Pressable
+          style={({ pressed }) => [styles.headerIconButton, pressed && styles.pressed]}
+          onPress={() => openProfileSection('help')}
+          accessibilityRole="button"
+          accessibilityLabel="Open settings help"
+        >
+          <HeaderHelpIcon />
+        </Pressable>
+      </View>
+
+      <Pressable
+        style={({ pressed }) => [styles.profileCard, pressed && styles.pressed]}
+        onPress={() => openProfileSection('details')}
+        accessibilityRole="button"
+        accessibilityLabel="Edit personal details"
+      >
+        <View style={styles.avatar}>
+          <MovementMark />
+        </View>
+        <View style={styles.profileCopy}>
+          <View style={styles.profileNameRow}>
+            <Text style={styles.profileName} numberOfLines={1}>{displayName}</Text>
+            <View style={styles.signedPill}>
+              <Text style={styles.signedPillText}>Local</Text>
+            </View>
+          </View>
+          <Text style={styles.profileAge}>{profile.age === null ? 'Age not set' : `Age ${profile.age}`}</Text>
+          <View style={styles.goalRow}>
+            <LeafIcon />
+            <Text style={styles.goalText} numberOfLines={1}>{goalText}</Text>
+          </View>
+        </View>
+      </Pressable>
+
+      <View style={styles.menuCard}>
+        <ProfileMenuRow
+          title="Camera & Safety"
+          icon="shield"
+          onPress={() => openProfileSection('safety')}
+          showDivider
+        />
+        <ProfileMenuRow
+          title="Plan Preferences"
+          icon="sliders"
+          onPress={() => openProfileSection('plan')}
+          showDivider
+        />
+        <ProfileMenuRow
+          title="Trainer Voice"
+          icon="volume"
+          onPress={() => openProfileSection('voice')}
+          showDivider
+        />
+        <ProfileMenuRow
+          title="Equipment Setup"
+          icon="dumbbell"
+          onPress={() => openProfileSection('equipment')}
+          showDivider
+        />
+        <ProfileMenuRow
+          title="Privacy"
+          icon="lock"
+          onPress={() => openProfileSection('privacy')}
+          showDivider
+        />
+        <ProfileMenuRow
+          title="Help"
+          icon="help"
+          onPress={() => openProfileSection('help')}
+        />
+      </View>
 
       <AccountAuthCard context="settings" />
     </Screen>
@@ -324,13 +409,11 @@ function ProfileMenuRow({
   title,
   icon,
   onPress,
-  active,
   showDivider,
 }: {
   title: string;
   icon: MenuIconName;
   onPress: () => void;
-  active?: boolean;
   showDivider?: boolean;
 }) {
   return (
@@ -338,7 +421,6 @@ function ProfileMenuRow({
       style={({ pressed }) => [
         styles.menuRow,
         showDivider && styles.menuDivider,
-        active && styles.menuRowActive,
         pressed && styles.pressed,
       ]}
       onPress={onPress}
@@ -446,6 +528,36 @@ function LeafIcon() {
   );
 }
 
+function HeaderHelpIcon() {
+  return (
+    <Svg width={27} height={27} viewBox="0 0 24 24" fill="none">
+      <Circle cx={12} cy={12} r={8.4} stroke={colors.accentDeep} strokeWidth={1.7} />
+      <Path
+        d="M9.8 9.5 C10.1 8.1, 11 7.4, 12.3 7.4 C13.8 7.4, 14.8 8.3, 14.8 9.6 C14.8 11.7, 12 11.8, 12 14"
+        stroke={colors.accentDeep}
+        strokeWidth={1.7}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path d="M12 17 H12.1" stroke={colors.accentDeep} strokeWidth={1.7} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+function BackChevronIcon() {
+  return (
+    <Svg width={26} height={26} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M15 5.5 L8.5 12 L15 18.5"
+        stroke={colors.accentDeep}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 type MenuIconName = 'shield' | 'sliders' | 'volume' | 'dumbbell' | 'lock' | 'help';
 
 function MenuIcon({ name }: { name: MenuIconName }) {
@@ -514,9 +626,9 @@ function MenuIcon({ name }: { name: MenuIconName }) {
 
 const styles = StyleSheet.create({
   screenContent: {
-    maxWidth: 560,
-    paddingHorizontal: spacing.xl,
-    paddingTop: 52,
+    maxWidth: spacing.pageMaxWidth,
+    paddingHorizontal: spacing.pageHorizontal,
+    paddingTop: spacing.pageTop,
     paddingBottom: spacing.xl,
     gap: spacing.lg,
   },
@@ -526,18 +638,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  title: {
-    fontFamily: fonts.serifRegular,
-    fontSize: 36,
-    lineHeight: 43,
-    letterSpacing: 0,
-    color: todayHomeColors.headingGreen,
-  },
+  title: { ...type.pageTitle },
   headerIconButton: {
     width: minTapTarget,
     height: minTapTarget,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  detailHeaderRow: {
+    minHeight: 58,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  backButton: {
+    width: minTapTarget,
+    height: minTapTarget,
+    marginLeft: -spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  detailHeaderCopy: {
+    flex: 1,
+    minWidth: 0,
+    paddingTop: 3,
+  },
+  detailSubtitle: {
+    ...type.pageSubtitle,
+    marginTop: spacing.xs,
   },
   profileCard: {
     minHeight: 132,
@@ -546,11 +674,9 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.lg,
-    borderRadius: 18,
+    borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    ...shadow.soft,
+    ...shadow.card,
   },
   avatar: {
     width: 82,
@@ -570,7 +696,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   profileName: {
-    ...type.h3,
+    ...type.cardRowTitle,
     flex: 1,
     color: colors.primaryText,
   },
@@ -586,7 +712,7 @@ const styles = StyleSheet.create({
     color: colors.accentDeep,
   },
   profileAge: {
-    ...type.bodySmall,
+    ...type.cardBody,
     marginTop: 3,
     color: colors.primaryText,
   },
@@ -603,11 +729,9 @@ const styles = StyleSheet.create({
   },
   menuCard: {
     overflow: 'hidden',
-    borderRadius: 18,
+    borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    ...shadow.soft,
+    ...shadow.card,
   },
   menuRow: {
     minHeight: 58,
@@ -616,9 +740,6 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     paddingHorizontal: spacing.lg,
     backgroundColor: colors.bgSurface,
-  },
-  menuRowActive: {
-    backgroundColor: colors.bgSage,
   },
   menuDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -629,7 +750,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   menuTitle: {
-    ...type.bodySmall,
+    ...type.cardRowTitle,
     flex: 1,
     color: colors.primaryText,
   },
@@ -640,11 +761,9 @@ const styles = StyleSheet.create({
   },
   detailPanel: {
     padding: spacing.xl,
-    borderRadius: 18,
+    borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    ...shadow.soft,
+    ...shadow.card,
   },
   field: { marginTop: spacing.lg },
   fieldLabel: { ...type.caption, color: colors.textSecondary, marginBottom: spacing.xs },
@@ -663,9 +782,13 @@ const styles = StyleSheet.create({
   rowButton: { flexGrow: 1, flexBasis: '45%', shadowOpacity: 0 },
   fullButton: { marginTop: spacing.lg, shadowOpacity: 0 },
   panelTitle: {
-    ...type.bodySmall,
+    ...type.cardRowTitle,
     fontFamily: fonts.sansMedium,
     color: colors.primaryText,
+  },
+  panelCopy: {
+    ...type.cardBody,
+    marginBottom: spacing.md,
   },
   panelGap: {
     marginTop: spacing.lg,

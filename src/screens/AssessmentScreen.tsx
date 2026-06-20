@@ -204,9 +204,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: radius.card,
     backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...shadow.soft,
+    ...shadow.card,
   },
   caption: {
     ...type.body,

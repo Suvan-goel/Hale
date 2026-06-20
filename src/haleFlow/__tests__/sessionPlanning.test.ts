@@ -7,7 +7,7 @@ import {
 } from '../../adherence';
 import { syntheticCheckUp } from '../../checkup/devFixture';
 import { hasExercise, STS_SLOW_ECC_ID, STS_STANDARD_ID } from '../../exercises';
-import { scoreCheckUp } from '../../scoring';
+import { createCurrentVersionedScoreSnapshot, scoreCheckUp } from '../../scoring';
 import {
   DEFAULT_EQUIPMENT,
   buildBlock,
@@ -25,6 +25,7 @@ import {
   planTodayHaleSession,
   updateExerciseProgressionFromSession,
 } from '../sessionPlanning';
+import { createMovementAssessment } from '../assessments';
 
 const START = '2026-06-01T08:00:00.000Z';
 
@@ -49,8 +50,17 @@ function lifeGoal() {
 
 function block(): MovementBlock {
   const checkUp = syntheticCheckUp(START);
+  const scored = createCurrentVersionedScoreSnapshot(checkUp);
+  const assessment = createMovementAssessment({
+    checkUpId: checkUp.startedAt,
+    type: 'baseline',
+    score: scored.score,
+    scoreSnapshot: scored.snapshot,
+    completedAt: checkUp.startedAt,
+    isOfficialForProgress: true,
+  });
   return createMovementBlockFromAssessment({
-    latestAssessment: { id: checkUp.startedAt, score: scoreCheckUp(checkUp) },
+    latestAssessment: { id: checkUp.startedAt, score: scored.score, scoreSnapshot: scored.snapshot, assessment },
     lifeGoal: lifeGoal(),
     startDate: START,
   });

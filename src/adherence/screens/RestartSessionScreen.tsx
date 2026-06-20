@@ -47,8 +47,8 @@ export function RestartSessionScreen({
 
 const styles = StyleSheet.create({
   card: { gap: spacing.md },
-  title: { ...type.h2 },
-  body: { ...type.bodySmall, color: colors.textSecondary },
+  title: { ...type.cardTitle },
+  body: { ...type.cardBody },
   list: { gap: spacing.sm, paddingTop: spacing.sm },
   item: { ...type.bodySmall },
   protection: { ...type.h3, color: colors.accentDeep },

@@ -5,10 +5,7 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 import {
   Card,
   EmptyState,
-  Pill,
   Screen,
-  SecondaryButton,
-  SectionHeader,
 } from '../components/ui';
 import type { ActiveBlockSummary, HaleLifecycleState, WeekSessionStatus } from '../haleFlow';
 import {
@@ -20,16 +17,16 @@ import {
   intensityLabel,
   type PlanSessionId,
 } from '../haleFlow';
-import { BellIcon } from '../navigation/icons';
+import { SettingsIcon } from '../navigation/icons';
 import type { TrainingIntensityPreference } from '../training';
-import { colors, fonts, radius, spacing, type } from '../theme';
+import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 
 const PLAN_HERO_IMAGE = require('../../assets/images/hale-plan-hero-mountain.png');
 
-type Shortcut = 'schedule' | 'intensity' | null;
-
-const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
-const INTENSITY_OPTIONS: readonly TrainingIntensityPreference[] = ['gentle', 'standard', 'more_challenge'];
+type PlanHeroAction =
+  | { kind: 'session'; label: string; accessibilityLabel: string; sessionId: PlanSessionId }
+  | { kind: 'retest'; label: string; accessibilityLabel: string }
+  | { kind: 'complete'; label: string };
 
 export function PlanScreen({
   lifecycleState,
@@ -44,8 +41,6 @@ export function PlanScreen({
   onStartPlanSession,
   onStartRetest,
   onOpenSettings,
-  onPreferredDaysChange,
-  onIntensityChange,
 }: {
   lifecycleState: HaleLifecycleState;
   lifeGoalText?: string;
@@ -62,7 +57,6 @@ export function PlanScreen({
   onPreferredDaysChange: (days: string[]) => void;
   onIntensityChange: (value: TrainingIntensityPreference) => void;
 }) {
-  const [shortcut, setShortcut] = React.useState<Shortcut>(null);
   const goalText = lifeGoalText?.trim();
   const nextSession = weekSessionStatuses.find((session) => session.status === 'next');
   const focusCopy = getPlanFocusCopy(activeBlockSummary?.focusDomain);
@@ -70,6 +64,8 @@ export function PlanScreen({
   const progress = activeBlockSummary
     ? Math.max(0, Math.min(1, activeBlockSummary.sessionsCompleteThisWeek / Math.max(1, activeBlockSummary.sessionsTargetThisWeek)))
     : 0;
+  const showRetestCard = shouldShowRetestCard(activeBlockSummary);
+  const heroAction = getPlanHeroAction(activeBlockSummary, retest, nextSession);
 
   function runEmptyAction(action: ReturnType<typeof getPlanEmptyStateCopy>['action']) {
     if (action === 'onboarding') onStartOnboarding();
@@ -77,25 +73,18 @@ export function PlanScreen({
     else onCreateBlock();
   }
 
-  function togglePreferredDay(day: string) {
-    const selected = new Set(preferredDays);
-    if (selected.has(day)) selected.delete(day);
-    else selected.add(day);
-    onPreferredDaysChange(WEEK_DAYS.filter((item) => selected.has(item)));
-  }
-
   return (
     <Screen contentStyle={styles.screenContent}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <Text style={styles.title}>Your 4-week block</Text>
+          <Text style={styles.title}>Your Plan</Text>
           <Pressable
             style={({ pressed }) => [styles.headerIconButton, pressed && styles.pressed]}
             onPress={onOpenSettings}
             accessibilityRole="button"
-            accessibilityLabel="Open profile and settings"
+            accessibilityLabel="Open settings"
           >
-            <BellIcon size={25} color={colors.accentDeep} strokeWidth={1.8} />
+            <SettingsIcon size={25} color={colors.accentDeep} strokeWidth={1.8} />
           </Pressable>
         </View>
         <Text style={styles.subtitle}>
@@ -110,70 +99,29 @@ export function PlanScreen({
           <PlanHeroCard
             weekNumber={activeBlockSummary.weekNumber}
             focusCopy={focusCopy}
-            nextSession={nextSession}
+            action={heroAction}
+            onStartPlanSession={onStartPlanSession}
+            onStartRetest={onStartRetest}
+          />
+
+          <BlockTimelineCard summary={activeBlockSummary} retest={retest} />
+
+          <WeeklySessionsCard
+            summary={activeBlockSummary}
+            progress={progress}
+            weekSessionStatuses={weekSessionStatuses}
             onStartPlanSession={onStartPlanSession}
           />
 
-          <WeeklyProgressCard summary={activeBlockSummary} progress={progress} />
+          <MovementEmphasisCard focusDomain={activeBlockSummary.focusDomain} />
 
-          <Card style={styles.sessionsCard}>
-            <Text style={styles.sectionTitle}>This week's sessions</Text>
-            <View style={styles.sessionList}>
-              {weekSessionStatuses.map((session, index) => (
-                <SessionCard
-                  key={session.id}
-                  session={session}
-                  index={index}
-                  onStart={() => onStartPlanSession(session.id)}
-                />
-              ))}
-            </View>
-          </Card>
+          {showRetestCard ? <RetestCard retest={retest} onStartRetest={onStartRetest} /> : null}
 
-          <RetestCard retest={retest} onStartRetest={onStartRetest} />
-
-          <Card style={styles.adjustCard}>
-            <SectionHeader title="Adjust this block" />
-            <View style={styles.adjustmentRows}>
-              <AdjustmentRow
-                title="Equipment"
-                body="Update what you have available for future sessions."
-                value="Edit in Profile"
-                onPress={onOpenSettings}
-              />
-              <AdjustmentRow
-                title="Schedule"
-                body="Stored as a local preference only."
-                value={formatPreferredDays(preferredDays)}
-                onPress={() => setShortcut(shortcut === 'schedule' ? null : 'schedule')}
-              />
-              {shortcut === 'schedule' ? (
-                <View style={styles.chipGroup}>
-                  {WEEK_DAYS.map((day) => (
-                    <Pill key={day} label={day} selected={preferredDays.includes(day)} onPress={() => togglePreferredDay(day)} />
-                  ))}
-                </View>
-              ) : null}
-              <AdjustmentRow
-                title="Intensity"
-                body="Used to keep future sessions matched to how today should feel."
-                value={intensityLabel(preferredIntensity)}
-                onPress={() => setShortcut(shortcut === 'intensity' ? null : 'intensity')}
-              />
-              {shortcut === 'intensity' ? (
-                <View style={styles.chipGroup}>
-                  {INTENSITY_OPTIONS.map((value) => (
-                    <Pill
-                      key={value}
-                      label={intensityLabel(value)}
-                      selected={preferredIntensity === value}
-                      onPress={() => onIntensityChange(value)}
-                    />
-                  ))}
-                </View>
-              ) : null}
-            </View>
-          </Card>
+          <ProfilePreferencesCard
+            preferredDays={preferredDays}
+            preferredIntensity={preferredIntensity}
+            onOpenSettings={onOpenSettings}
+          />
         </>
       )}
     </Screen>
@@ -183,14 +131,22 @@ export function PlanScreen({
 function PlanHeroCard({
   weekNumber,
   focusCopy,
-  nextSession,
+  action,
   onStartPlanSession,
+  onStartRetest,
 }: {
   weekNumber: number;
   focusCopy: ReturnType<typeof getPlanFocusCopy>;
-  nextSession: WeekSessionStatus | undefined;
+  action: PlanHeroAction | null;
   onStartPlanSession: (id: PlanSessionId) => void;
+  onStartRetest: () => void;
 }) {
+  function runAction() {
+    if (!action) return;
+    if (action.kind === 'session') onStartPlanSession(action.sessionId);
+    else if (action.kind === 'retest') onStartRetest();
+  }
+
   const content = (
     <>
       <Image source={PLAN_HERO_IMAGE} style={styles.heroImage} resizeMode="cover" accessible={false} />
@@ -201,28 +157,28 @@ function PlanHeroCard({
         </View>
         <Text style={styles.heroTitle}>{focusCopy.title}</Text>
         <Text style={styles.heroBody}>{focusCopy.body}</Text>
-        {nextSession ? (
-          <View style={styles.heroButton}>
-            <Text style={styles.heroButtonText}>Start {nextSession.title}</Text>
-            <Text style={styles.heroButtonArrow}>›</Text>
-          </View>
+        {action ? (
+          action.kind === 'complete' ? (
+            <View style={styles.heroCompletePill}>
+              <Text style={styles.heroCompleteText}>{action.label}</Text>
+            </View>
+          ) : (
+            <Pressable
+              style={({ pressed }) => [styles.heroButton, pressed && styles.pressed]}
+              onPress={runAction}
+              accessibilityRole="button"
+              accessibilityLabel={action.accessibilityLabel}
+            >
+              <Text style={styles.heroButtonText}>{action.label}</Text>
+              <Text style={styles.heroButtonArrow}>›</Text>
+            </Pressable>
+          )
         ) : null}
       </View>
     </>
   );
 
-  if (!nextSession) return <View style={styles.heroCard}>{content}</View>;
-
-  return (
-    <Pressable
-      style={({ pressed }) => [styles.heroCard, pressed && styles.pressed]}
-      onPress={() => onStartPlanSession(nextSession.id)}
-      accessibilityRole="button"
-      accessibilityLabel={`Start ${nextSession.title}`}
-    >
-      {content}
-    </Pressable>
-  );
+  return <View style={styles.heroCard}>{content}</View>;
 }
 
 function HeroScrim() {
@@ -247,52 +203,127 @@ function HeroScrim() {
   );
 }
 
-function WeeklyProgressCard({ summary, progress }: { summary: ActiveBlockSummary; progress: number }) {
+function BlockTimelineCard({
+  summary,
+  retest,
+}: {
+  summary: ActiveBlockSummary;
+  retest: ReturnType<typeof getRetestCopy>;
+}) {
+  const weeks = Array.from({ length: summary.totalWeeks }, (_, index) => index + 1);
   return (
-    <Card style={styles.weekCard}>
-      <View style={styles.weekCardCopy}>
-        <Text style={styles.sectionTitle}>This week</Text>
-        <Text style={styles.weekSummary}>
-          {summary.sessionsCompleteThisWeek} of {summary.sessionsTargetThisWeek} sessions complete
-        </Text>
+    <Card style={styles.timelineCard}>
+      <View style={styles.timelineHeader}>
+        <Text style={styles.sectionTitle}>Block timeline</Text>
+        <View style={styles.timelineWeekBadge}>
+          <Text style={styles.timelineWeekBadgeText}>
+            Week {summary.weekNumber} of {summary.totalWeeks}
+          </Text>
+        </View>
       </View>
-      <MiniProgressRing progress={progress} />
+      <Text style={styles.timelineSummary}>{timelineRetestSentence(summary, retest)}</Text>
+      <View style={styles.timelineSteps}>
+        {weeks.map((week, index) => (
+          <TimelineStep
+            key={week}
+            week={week}
+            current={week === summary.weekNumber}
+            past={week < summary.weekNumber}
+            last={index === weeks.length - 1}
+          />
+        ))}
+      </View>
     </Card>
   );
 }
 
-function MiniProgressRing({ progress, size = 60 }: { progress: number; size?: number }) {
-  const stroke = 5;
-  const center = size / 2;
-  const r = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * r;
-  const clamped = Math.max(0, Math.min(1, progress));
-
+function TimelineStep({
+  week,
+  current,
+  past,
+  last,
+}: {
+  week: number;
+  current: boolean;
+  past: boolean;
+  last: boolean;
+}) {
   return (
-    <View
-      style={[styles.miniRing, { width: size, height: size }]}
-      accessibilityRole="progressbar"
-      accessibilityLabel="Weekly session progress"
-      accessibilityValue={{ min: 0, max: 100, now: Math.round(clamped * 100) }}
-    >
-      <Svg width={size} height={size}>
-        <Circle cx={center} cy={center} r={r} stroke={colors.bgGold} strokeWidth={stroke} fill="none" />
-        {clamped > 0 ? (
-          <Circle
-            cx={center}
-            cy={center}
-            r={r}
-            stroke={colors.accent}
-            strokeWidth={stroke}
-            fill="none"
-            strokeLinecap="round"
-            strokeDasharray={`${circumference} ${circumference}`}
-            strokeDashoffset={circumference * (1 - clamped)}
-            transform={`rotate(-90 ${center} ${center})`}
-          />
-        ) : null}
-      </Svg>
+    <View style={[styles.timelineStep, last && styles.timelineStepLast]}>
+      <View style={styles.timelineDotRow}>
+        <View style={[styles.timelineDot, past && styles.timelineDotPast, current && styles.timelineDotCurrent]}>
+          <Text style={[styles.timelineDotText, past && styles.timelineDotTextPast, current && styles.timelineDotTextCurrent]}>{week}</Text>
+        </View>
+        {!last ? <View style={[styles.timelineLine, past && styles.timelineLineActive]} /> : null}
+      </View>
+      {current ? <Text style={styles.timelineStepCaption}>Now</Text> : <View style={styles.timelineStepCaptionSpacer} />}
     </View>
+  );
+}
+
+function WeeklySessionsCard({
+  summary,
+  progress,
+  weekSessionStatuses,
+  onStartPlanSession,
+}: {
+  summary: ActiveBlockSummary;
+  progress: number;
+  weekSessionStatuses: readonly WeekSessionStatus[];
+  onStartPlanSession: (id: PlanSessionId) => void;
+}) {
+  return (
+    <Card style={styles.sessionsCard}>
+      <View style={styles.sessionsHeader}>
+        <View style={styles.headerCopy}>
+          <Text style={styles.sectionTitle}>This week's sessions</Text>
+          <Text style={styles.weekSummary}>
+            {summary.sessionsCompleteThisWeek} of {summary.sessionsTargetThisWeek} sessions complete
+          </Text>
+        </View>
+        <WeekProgressSegments progress={progress} count={summary.sessionsTargetThisWeek} />
+      </View>
+      <View style={styles.sessionList}>
+        {weekSessionStatuses.map((session, index) => (
+          <SessionCard
+            key={session.id}
+            session={session}
+            index={index}
+            onStart={() => onStartPlanSession(session.id)}
+          />
+        ))}
+      </View>
+    </Card>
+  );
+}
+
+function WeekProgressSegments({ progress, count }: { progress: number; count: number }) {
+  const total = Math.max(1, count);
+  const complete = Math.round(Math.max(0, Math.min(1, progress)) * total);
+  return (
+    <View style={styles.weekSegments} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: total, now: complete }}>
+      {Array.from({ length: total }, (_, index) => (
+        <View key={index} style={[styles.weekSegment, index < complete && styles.weekSegmentComplete]} />
+      ))}
+    </View>
+  );
+}
+
+function MovementEmphasisCard({ focusDomain }: { focusDomain: ActiveBlockSummary['focusDomain'] }) {
+  const items = movementEmphasis(focusDomain);
+  return (
+    <Card style={styles.emphasisCard}>
+      <Text style={styles.sectionTitle}>Why this focus</Text>
+      <Text style={styles.cardBody}>Hale keeps the week simple while giving extra attention to the area your Movement Check-Up suggested first.</Text>
+      <View style={styles.emphasisGrid}>
+        {items.map((item) => (
+          <View key={item.title} style={styles.emphasisItem}>
+            <Text style={styles.emphasisTitle}>{item.title}</Text>
+            <Text style={styles.emphasisBody}>{item.body}</Text>
+          </View>
+        ))}
+      </View>
+    </Card>
   );
 }
 
@@ -309,10 +340,10 @@ function RetestCard({
         <MovementIcon />
       </View>
       <View style={styles.retestCopy}>
-        <Text style={styles.retestTitle}>Movement check-up</Text>
+        <Text style={styles.retestTitle}>Movement Check-Up</Text>
         <Text style={styles.retestValue}>{retest.title}</Text>
       </View>
-      <Text style={styles.chevron}>›</Text>
+      {retest.due ? <Text style={styles.chevron}>›</Text> : null}
     </>
   );
 
@@ -365,7 +396,7 @@ function SessionCard({
   const copy = getPlanSessionCategoryCopy(session.id);
   const complete = session.status === 'complete';
   const next = session.status === 'next';
-  const detail = copy.categories.slice(0, 2).join(' · ');
+  const detail = `${copy.categories.slice(0, 2).join(' · ')} · ${session.focus}`;
   const content = (
     <>
       {next ? <View style={styles.sessionActiveRail} /> : null}
@@ -383,7 +414,7 @@ function SessionCard({
           <Text style={styles.nextPillText}>Next</Text>
         </View>
       ) : null}
-      <Text style={styles.chevron}>›</Text>
+      {next ? <Text style={styles.chevron}>›</Text> : null}
     </>
   );
 
@@ -406,40 +437,141 @@ function SessionCard({
   );
 }
 
-function AdjustmentRow({
-  title,
-  body,
-  value,
-  onPress,
+function ProfilePreferencesCard({
+  preferredDays,
+  preferredIntensity,
+  onOpenSettings,
 }: {
-  title: string;
-  body: string;
-  value: string;
-  onPress: () => void;
+  preferredDays: readonly string[];
+  preferredIntensity: TrainingIntensityPreference;
+  onOpenSettings: () => void;
 }) {
   return (
-    <View style={styles.adjustmentRow}>
-      <View style={styles.headerCopy}>
-        <Text style={styles.adjustmentTitle}>{title}</Text>
-        <Text style={styles.cardBody}>{body}</Text>
-        <Text style={styles.adjustmentValue}>{value}</Text>
+    <Card style={styles.preferencesCard}>
+      <View style={styles.preferencesHeader}>
+        <View style={styles.headerCopy}>
+          <Text style={styles.sectionTitle}>Plan preferences</Text>
+          <Text style={styles.cardBody}>Saved in Settings for future sessions.</Text>
+        </View>
+        <Pressable
+          style={({ pressed }) => [styles.preferencesEditButton, pressed && styles.pressed]}
+          onPress={onOpenSettings}
+          accessibilityRole="button"
+          accessibilityLabel="Edit plan preferences"
+        >
+          <Text style={styles.preferencesEditText}>Edit</Text>
+        </Pressable>
       </View>
-      <SecondaryButton title="Edit" onPress={onPress} style={styles.adjustmentButton} />
+      <View style={styles.preferenceList}>
+        <PreferenceRow label="Training days" value={formatPreferredDays(preferredDays)} />
+        <PreferenceRow label="Intensity" value={intensityLabel(preferredIntensity)} />
+        <PreferenceRow label="Equipment" value="Manage in Settings" last />
+      </View>
+    </Card>
+  );
+}
+
+function PreferenceRow({ label, value, last = false }: { label: string; value: string; last?: boolean }) {
+  return (
+    <View style={[styles.preferenceRow, last && styles.preferenceRowLast]}>
+      <Text style={styles.preferenceLabel}>{label}</Text>
+      <Text style={styles.preferenceValue} numberOfLines={2}>{value}</Text>
     </View>
   );
 }
 
+function shouldShowRetestCard(summary: ActiveBlockSummary | undefined): boolean {
+  if (!summary) return false;
+  if (summary.retestInDays === undefined) return false;
+  return summary.retestInDays <= 7;
+}
+
+function getPlanHeroAction(
+  summary: ActiveBlockSummary | undefined,
+  retest: ReturnType<typeof getRetestCopy>,
+  nextSession: WeekSessionStatus | undefined,
+): PlanHeroAction | null {
+  if (retest.due) {
+    return {
+      kind: 'retest',
+      label: 'Start Movement Check-Up',
+      accessibilityLabel: 'Start Movement Check-Up',
+    };
+  }
+
+  if (nextSession) {
+    return {
+      kind: 'session',
+      label: 'Start next session',
+      accessibilityLabel: `Start ${nextSession.title}`,
+      sessionId: nextSession.id,
+    };
+  }
+
+  if (summary && summary.sessionsCompleteThisWeek >= summary.sessionsTargetThisWeek) {
+    return { kind: 'complete', label: 'Week complete' };
+  }
+
+  return null;
+}
+
+function timelineRetestLabel(summary: ActiveBlockSummary, retest: ReturnType<typeof getRetestCopy>): string {
+  if (retest.due) return 'Due now';
+  if (summary.retestInDays === undefined) return 'After block';
+  if (summary.retestInDays === 1) return 'Tomorrow';
+  if (summary.retestInDays >= 14) {
+    const weeks = Math.ceil(summary.retestInDays / 7);
+    return `${weeks} ${weeks === 1 ? 'week' : 'weeks'}`;
+  }
+  return `${summary.retestInDays} days`;
+}
+
+function timelineRetestSentence(summary: ActiveBlockSummary, retest: ReturnType<typeof getRetestCopy>): string {
+  if (retest.due) return 'Your next Movement Check-Up is ready when you are.';
+  if (summary.retestInDays === undefined) return 'Your next Movement Check-Up comes at the end of this block.';
+  if (summary.retestInDays === 1) return 'Next Movement Check-Up tomorrow.';
+  return `Next Movement Check-Up in ${timelineRetestLabel(summary, retest)}.`;
+}
+
+function movementEmphasis(focusDomain: ActiveBlockSummary['focusDomain']): readonly { title: string; body: string }[] {
+  if (focusDomain === 'strength_power') {
+    return [
+      { title: 'Chair-rise power', body: 'Practice standing with control and confidence.' },
+      { title: 'Lower-body strength', body: 'Build the legs you use for stairs and getting up.' },
+      { title: 'Balance support', body: 'Keep steadiness in the plan without overloading the week.' },
+    ];
+  }
+  if (focusDomain === 'balance') {
+    return [
+      { title: 'Steady holds', body: 'Practice calm balance with support nearby.' },
+      { title: 'Ankle control', body: 'Build the small adjustments that keep you steady.' },
+      { title: 'Strength base', body: 'Keep legs strong enough to support better balance.' },
+    ];
+  }
+  if (focusDomain === 'mobility') {
+    return [
+      { title: 'Hips and hinge', body: 'Keep bending and reaching easier in daily life.' },
+      { title: 'Shoulder reach', body: 'Build comfortable overhead range.' },
+      { title: 'Easy strength', body: 'Support new range with simple controlled work.' },
+    ];
+  }
+  return [
+    { title: 'Strength', body: 'Keep everyday power moving forward.' },
+    { title: 'Balance', body: 'Practice steadiness without pressure.' },
+    { title: 'Mobility', body: 'Support comfortable reach and range.' },
+  ];
+}
+
 const styles = StyleSheet.create({
   screenContent: {
-    maxWidth: 430,
-    paddingHorizontal: 18,
-    paddingTop: 52,
+    maxWidth: spacing.pageMaxWidth,
+    paddingHorizontal: spacing.pageHorizontal,
+    paddingTop: spacing.pageTop,
     paddingBottom: spacing.xxxl,
     gap: 12,
   },
   header: {
-    gap: 4,
-    paddingHorizontal: 10,
+    gap: spacing.xs,
     marginBottom: 8,
   },
   titleRow: {
@@ -449,21 +581,8 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   headerCopy: { flex: 1, minWidth: 0 },
-  title: {
-    color: colors.accent,
-    fontFamily: fonts.serifMedium,
-    fontSize: 34,
-    lineHeight: 40,
-    letterSpacing: 0,
-  },
-  subtitle: {
-    color: colors.textSecondary,
-    fontFamily: fonts.sansRegular,
-    fontSize: 14,
-    lineHeight: 21,
-    letterSpacing: 0,
-    marginTop: 4,
-  },
+  title: { ...type.pageTitle },
+  subtitle: { ...type.pageSubtitle },
   headerIconButton: {
     width: 44,
     height: 44,
@@ -477,9 +596,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: 20,
     backgroundColor: colors.accent,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(11,43,33,0.18)',
-    boxShadow: '0 14px 30px rgba(17,20,18,0.12)',
+    ...shadow.card,
   },
   heroImage: {
     position: 'absolute',
@@ -504,7 +621,7 @@ const styles = StyleSheet.create({
     left: 18,
     right: 18,
     top: 16,
-    bottom: 16,
+    bottom: 18,
     justifyContent: 'flex-start',
     zIndex: 2,
   },
@@ -514,7 +631,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.input,
     justifyContent: 'center',
     paddingHorizontal: 12,
-    backgroundColor: 'rgba(18,60,46,0.82)',
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(251,245,239,0.72)',
   },
   weekPillText: {
     color: colors.onAccent,
@@ -544,12 +663,13 @@ const styles = StyleSheet.create({
   heroButton: {
     marginTop: 'auto',
     alignSelf: 'flex-start',
-    minHeight: 44,
+    minHeight: 46,
+    maxWidth: '100%',
+    borderRadius: 23,
+    paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    borderRadius: 22,
-    paddingHorizontal: 19,
     backgroundColor: colors.bgElevated,
   },
   heroButtonText: {
@@ -566,24 +686,137 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginTop: -1,
   },
-  weekCard: {
-    minHeight: 94,
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-    borderRadius: 16,
-    boxShadow: '0 10px 24px rgba(17,20,18,0.06)',
+  heroCompletePill: {
+    marginTop: 'auto',
+    alignSelf: 'flex-start',
+    minHeight: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    paddingHorizontal: 15,
+    backgroundColor: 'rgba(251,250,247,0.86)',
   },
-  weekCardCopy: { flex: 1, minWidth: 0 },
+  heroCompleteText: {
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0,
+  },
   sectionTitle: {
     color: colors.textPrimary,
     fontFamily: fonts.serifMedium,
     fontSize: 18,
     lineHeight: 24,
     letterSpacing: 0,
+  },
+  timelineCard: {
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 16,
+    borderRadius: 16,
+    ...shadow.card,
+  },
+  timelineHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  timelineWeekBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    backgroundColor: colors.bgMaterial,
+  },
+  timelineWeekBadgeText: {
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0,
+    fontVariant: ['tabular-nums'],
+  },
+  timelineSummary: {
+    color: colors.textSecondary,
+    fontFamily: fonts.sansRegular,
+    fontSize: 14,
+    lineHeight: 20,
+    letterSpacing: 0,
+    marginTop: 8,
+  },
+  timelineSteps: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 18,
+  },
+  timelineStep: {
+    flex: 1,
+    minWidth: 0,
+  },
+  timelineStepLast: {
+    flex: 0,
+    width: 30,
+  },
+  timelineDotRow: {
+    minHeight: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  timelineDot: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bgMaterial,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+  },
+  timelineDotPast: {
+    backgroundColor: colors.accentSoft,
+    borderColor: colors.accentBorder,
+  },
+  timelineDotCurrent: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  timelineDotText: {
+    color: colors.textSecondary,
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0,
+    fontVariant: ['tabular-nums'],
+  },
+  timelineDotTextPast: {
+    color: colors.accentDeep,
+  },
+  timelineDotTextCurrent: {
+    color: colors.onAccent,
+  },
+  timelineLine: {
+    flex: 1,
+    height: 2,
+    marginHorizontal: 5,
+    borderRadius: 1,
+    backgroundColor: colors.borderHairline,
+  },
+  timelineLineActive: {
+    backgroundColor: colors.accentBorder,
+  },
+  timelineStepCaption: {
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    fontSize: 11,
+    lineHeight: 15,
+    letterSpacing: 0,
+    marginTop: 6,
+  },
+  timelineStepCaptionSpacer: {
+    height: 21,
   },
   weekSummary: {
     color: colors.textSecondary,
@@ -593,19 +826,69 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     marginTop: 5,
   },
-  miniRing: {
-    alignItems: 'center',
-    justifyContent: 'center',
+  emphasisCard: {
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    borderRadius: 16,
+    ...shadow.card,
+  },
+  emphasisGrid: {
+    gap: 10,
+    marginTop: 14,
+  },
+  emphasisItem: {
+    minHeight: 66,
+    borderRadius: 14,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    backgroundColor: colors.bgMaterial,
+  },
+  emphasisTitle: {
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
+    fontSize: 14,
+    lineHeight: 19,
+    letterSpacing: 0,
+  },
+  emphasisBody: {
+    color: colors.textSecondary,
+    fontFamily: fonts.sansRegular,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0,
+    marginTop: 4,
   },
   sessionsCard: {
     paddingHorizontal: 18,
     paddingTop: 18,
     paddingBottom: 10,
     borderRadius: 16,
-    boxShadow: '0 10px 24px rgba(17,20,18,0.06)',
+    ...shadow.card,
+  },
+  sessionsHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  weekSegments: {
+    minWidth: 82,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 5,
+    paddingTop: 7,
+  },
+  weekSegment: {
+    width: 22,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.bgGold,
+  },
+  weekSegmentComplete: {
+    backgroundColor: colors.accent,
   },
   sessionList: {
-    marginTop: 10,
+    marginTop: 14,
   },
   sessionRow: {
     position: 'relative',
@@ -703,9 +986,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 16,
     backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderHairline,
-    boxShadow: '0 10px 24px rgba(17,20,18,0.06)',
+    ...shadow.card,
   },
   retestIcon: {
     width: 44,
@@ -731,27 +1012,70 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     marginTop: 1,
   },
-  adjustCard: {
+  preferencesCard: {
     marginTop: 4,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    borderRadius: 16,
+    ...shadow.card,
   },
   cardBody: { ...type.bodySmall, color: colors.textSecondary, marginTop: spacing.xs },
-  adjustmentRows: { marginTop: spacing.md },
-  adjustmentRow: {
-    minHeight: 84,
+  preferencesHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: spacing.md,
-    paddingVertical: spacing.lg,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.divider,
   },
-  adjustmentTitle: { ...type.h3 },
-  adjustmentValue: { ...type.caption, color: colors.accentDeep, marginTop: spacing.sm },
-  adjustmentButton: { minWidth: 92, shadowOpacity: 0 },
-  chipGroup: {
+  preferencesEditButton: {
+    minHeight: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    backgroundColor: colors.bgMaterial,
+  },
+  preferencesEditText: {
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0,
+  },
+  preferenceList: {
+    marginTop: 14,
+    borderRadius: 14,
+    backgroundColor: colors.bgMaterial,
+    paddingHorizontal: 14,
+    paddingVertical: 2,
+  },
+  preferenceRow: {
+    minHeight: 48,
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    paddingBottom: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
+  },
+  preferenceRowLast: {
+    borderBottomWidth: 0,
+  },
+  preferenceLabel: {
+    color: colors.textSecondary,
+    fontFamily: fonts.sansRegular,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0,
+    flex: 1,
+    minWidth: 0,
+  },
+  preferenceValue: {
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0,
+    flex: 1,
+    minWidth: 0,
+    textAlign: 'right',
   },
 });

@@ -10,8 +10,8 @@ import {
   type TrainingSessionCompletion,
 } from '../../adherence';
 import type { CheckUp } from '../../checkup';
-import { createMovementAssessment } from '../../haleFlow';
-import { HISTORY_SCHEMA_VERSION, deserializeCheckUp, type StoredCheckUp } from '../../history';
+import { createMovementAssessment, checkupStatusFromHeadlineEvidence, headlineEvidenceFromScore } from '../../haleFlow';
+import { HISTORY_SCHEMA_VERSION, deserializeCheckUp, type StoredCheckUp, type StoredCheckUpMetadata } from '../../history';
 import {
   TRAINING_SCHEMA_VERSION,
   defaultTrainingState,
@@ -22,7 +22,10 @@ import {
 } from '../../training';
 import { deserializeAdherenceState } from '../../adherence/serialize';
 import { defaultPreferences, type Preferences } from '../../profile';
-import { scoreCheckUp } from '../../scoring';
+import {
+  parseStoredScoreSnapshot,
+  type CheckUpScore,
+} from '../../scoring';
 import { supabase } from '../../lib/supabase';
 import { addBreadcrumb, captureError } from '../observability/sentry';
 
@@ -62,7 +65,7 @@ export interface LocalHaleStateForRestore {
 
 export interface RestoreStores {
   profileStore: { save(prefs: Preferences): void };
-  historyStore: { save(checkUp: CheckUp): void };
+  historyStore: { save(checkUp: CheckUp, metadata?: StoredCheckUpMetadata): void };
   trainingStore: {
     saveState(state: TrainingState): void;
     saveMicroCheck(result: MicroCheckResult): void;
@@ -185,8 +188,9 @@ const CHECKUP_TYPES: CheckupType[] = [
   'official_retest',
   'quick_recheck',
   'micro_check',
+  'legacy_unknown',
 ];
-const CHECKUP_STATUSES: CheckupStatus[] = ['not_started', 'in_progress', 'completed', 'invalid', 'cancelled'];
+const CHECKUP_STATUSES: CheckupStatus[] = ['not_started', 'in_progress', 'completed', 'incomplete', 'invalid', 'cancelled'];
 
 export async function restoreRemoteStateIfLocalEmpty(input: RestoreRemoteStateInput): Promise<RestoreResult> {
   if (!isLocalStateEmptyForRestore(input.local)) {
@@ -457,7 +461,7 @@ export function mapRemoteBlockReportsToLocal(rows: readonly RemoteMovementBlockR
   const seen = new Set<string>();
 
   for (const row of rows) {
-    const report = validMovementBlockReport(asRecord(row.report_json)?.report);
+    const report = validMovementBlockReport(normalizeRestoredBlockReport(asRecord(row.report_json)?.report));
     if (!report || seen.has(report.id)) continue;
     seen.add(report.id);
     reports.push(report);
@@ -466,23 +470,40 @@ export function mapRemoteBlockReportsToLocal(rows: readonly RemoteMovementBlockR
   return reports.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
+function normalizeRestoredBlockReport(value: unknown): unknown {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+  const report = value as Partial<MovementBlockReport>;
+  if (report.comparison) return value;
+  return {
+    ...report,
+    comparison: {
+      status: 'legacy_unversioned',
+    },
+  };
+}
+
 function mapRemoteAssessmentsToLocal(
   rows: readonly RemoteMovementCheckupRow[],
   restoredHistory: readonly StoredCheckUp[]
 ): MovementAssessment[] {
-  const checkupsById = new Map(restoredHistory.map((record) => [record.checkUp.startedAt, record.checkUp]));
+  const checkupsById = new Map(restoredHistory.map((record) => [record.checkUp.startedAt, record]));
   const assessments: MovementAssessment[] = [];
   const seen = new Set<string>();
 
   for (const row of rows) {
     const localCheckupId = normalizedString(row.local_checkup_id) ?? normalizedString(row.created_locally_at);
     if (!localCheckupId) continue;
-    const checkUp = checkupsById.get(localCheckupId);
-    if (!checkUp) continue;
+    const record = checkupsById.get(localCheckupId);
+    if (!record) continue;
+    const checkUp = record.checkUp;
     const derivedAssessment = asRecord(asRecord(row.derived_scores_json).assessment);
-    const type = validCheckupType(derivedAssessment.type) ?? mapRemoteCheckupType(row.checkup_type);
+    const derived = asRecord(row.derived_scores_json);
+    const raw = asRecord(row.raw_checkup_json);
+    const type = validCheckupType(derivedAssessment.type) ?? exactCheckupTypeFromRemote(row, derived, raw);
     const completedAt = normalizedString(derivedAssessment.completedAt) ?? normalizedString(row.completed_at) ?? checkUp.startedAt;
-    const score = scoreCheckUp(checkUp);
+    const parsedSnapshot = parseStoredScoreSnapshot(record.scoreSnapshot);
+    const score = parsedSnapshot.ok ? parsedSnapshot.score : null;
+    const scoreSnapshot = parsedSnapshot.ok ? parsedSnapshot.snapshot : null;
     const restoredStatus = restoredAssessmentStatus(
       validCheckupStatus(derivedAssessment.status) ?? validCheckupStatus(row.status),
       score
@@ -491,6 +512,7 @@ function mapRemoteAssessmentsToLocal(
       checkUpId: checkUp.startedAt,
       type,
       score,
+      scoreSnapshot,
       sourceBlockId: normalizedString(derivedAssessment.sourceBlockId),
       completedAt,
       status: restoredStatus,
@@ -522,13 +544,14 @@ function mapRemoteAssessmentsToLocal(
 
 function restoredAssessmentStatus(
   remoteStatus: CheckupStatus | null,
-  score: ReturnType<typeof scoreCheckUp>
+  score: CheckUpScore | null
 ): CheckupStatus | undefined {
-  if (remoteStatus !== 'completed') return remoteStatus ?? undefined;
-  const hasMeasuredDomain = score.domains.some(
-    (domain) => domain.measured && Number.isFinite(domain.ageLow) && Number.isFinite(domain.ageHigh)
-  );
-  return hasMeasuredDomain ? remoteStatus : undefined;
+  if (remoteStatus === 'not_started' || remoteStatus === 'in_progress' || remoteStatus === 'cancelled') {
+    return remoteStatus;
+  }
+  if (remoteStatus === 'invalid') return 'invalid';
+  if (!score) return 'invalid';
+  return checkupStatusFromHeadlineEvidence(headlineEvidenceFromScore(score));
 }
 
 async function fetchRemoteProfile(
@@ -620,7 +643,14 @@ async function persistRestoredLocalState(
 
   if (restored.history.length > previous.history.length) {
     for (const record of restored.history) {
-      safeWrite(`check-up ${record.checkUp.startedAt}`, () => stores.historyStore.save(record.checkUp));
+      safeWrite(`check-up ${record.checkUp.startedAt}`, () =>
+        stores.historyStore.save(record.checkUp, {
+          checkupType: record.checkupType,
+          sourceAssessmentId: record.sourceAssessmentId,
+          retryOfCheckUpId: record.retryOfCheckUpId,
+          scoreSnapshot: record.scoreSnapshot ?? null,
+        })
+      );
     }
   }
 
@@ -641,15 +671,26 @@ async function persistRestoredLocalState(
 
 function storedCheckUpFromRemoteRow(row: RemoteMovementCheckupRow): StoredCheckUp | null {
   const raw = asRecord(row.raw_checkup_json);
+  const derived = asRecord(row.derived_scores_json);
   const checkUp = raw.checkUp;
   if (!checkUp) return null;
+  const checkupType = exactCheckupTypeFromRemote(row, derived, raw);
+  const scoreSnapshot = scoreSnapshotCandidateFromRemoteRow(row);
 
   return deserializeCheckUp(
     JSON.stringify({
       schemaVersion: raw.schemaVersion ?? HISTORY_SCHEMA_VERSION,
+      checkupType,
+      scoreSnapshot,
       checkUp,
     })
   );
+}
+
+function scoreSnapshotCandidateFromRemoteRow(row: RemoteMovementCheckupRow): unknown {
+  const derived = asRecord(row.derived_scores_json);
+  const raw = asRecord(row.raw_checkup_json);
+  return derived.scoreSnapshot ?? raw.scoreSnapshot ?? null;
 }
 
 function microCheckFromRemoteRow(row: RemoteMicroCheckRow): MicroCheckResult | null {
@@ -765,9 +806,22 @@ function hasMeaningfulAdherenceState(adherence: AdherenceStoreState): boolean {
   );
 }
 
+function exactCheckupTypeFromRemote(
+  row: RemoteMovementCheckupRow,
+  derived: JsonRecord = asRecord(row.derived_scores_json),
+  raw: JsonRecord = asRecord(row.raw_checkup_json)
+): CheckupType {
+  return (
+    validCheckupType(derived.exactCheckupType) ??
+    validCheckupType(derived.checkupType) ??
+    validCheckupType(raw.checkupType) ??
+    mapRemoteCheckupType(row.checkup_type)
+  );
+}
+
 function mapRemoteCheckupType(value: unknown): CheckupType {
   if (value === 'baseline' || value === 'official_retest' || value === 'manual_extra') return value;
-  return 'manual_extra';
+  return 'legacy_unknown';
 }
 
 function validCheckupType(value: unknown): CheckupType | null {

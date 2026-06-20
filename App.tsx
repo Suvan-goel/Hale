@@ -35,21 +35,25 @@ import {
   markMovementBlockComplete,
   mergeMilestones,
   recordTrainingSessionCompletion,
+  scoreDomainFromMovementDomain,
   upsertMovementAssessment,
   upsertMovementBlockReport,
   upsertMovementBlock,
 } from './src/adherence';
 import { configureSessionAudio } from './src/audio/voicePlayer';
-import { CheckUp } from './src/checkup';
+import { CheckUp, mergeCheckUpRetry, retryBatteryForMissingHeadlineDomains } from './src/checkup';
 import { syntheticCheckUp } from './src/checkup/devFixture';
 import {
   createMovementAssessment,
   createMovementBlockReport,
   createGeneratedSessionSummary,
   countsTowardMainPlan,
+  findCheckUpForAssessment,
   getBlockCreationEligibility,
   getHaleAppLifecycle,
   getMicroCheckForBlock,
+  headlineEvidenceFromScore,
+  latestUsableOfficialCheckUpRecord,
   latestUsableOfficialAssessment,
   planLadderPracticeSession,
   planTodayHaleSession,
@@ -70,7 +74,13 @@ import {
   UserProfile,
   defaultPreferences,
 } from './src/profile';
-import { CheckUpScore, ScoringInputIssue, scoreCheckUp, scoreCheckUpWithDiagnostics } from './src/scoring';
+import {
+  CheckUpScore,
+  ScoringInputIssue,
+  VersionedCheckUpScoreSnapshot,
+  createCurrentVersionedScoreSnapshot,
+  parseStoredScoreSnapshot,
+} from './src/scoring';
 import {
   AuthProvider,
   syncMovementBlockReportToRemote,
@@ -337,6 +347,8 @@ function HaleApp() {
   const [adherenceStore] = React.useState(() => new AdherenceStore(expoHistoryFs));
   const [history, setHistory] = React.useState<StoredCheckUp[]>([]);
   const [lastResult, setLastResult] = React.useState<CheckUp | null>(null);
+  const [lastResultScore, setLastResultScore] = React.useState<CheckUpScore | null>(null);
+  const [lastResultScoreSnapshot, setLastResultScoreSnapshot] = React.useState<VersionedCheckUpScoreSnapshot | null>(null);
   const [lastResultCheckupType, setLastResultCheckupType] = React.useState<CheckupType | null>(null);
   const [training, setTraining] = React.useState<TrainingState>(() => defaultTrainingState());
   const [adherence, setAdherence] = React.useState<AdherenceStoreState>(() => defaultAdherenceStoreState());
@@ -355,6 +367,9 @@ function HaleApp() {
     type: CheckupType;
     sourceBlockId?: string;
     isOfficialForProgress?: boolean;
+    battery?: readonly string[];
+    retryOfCheckUpId?: string;
+    retryMovementIds?: readonly string[];
   } | null>(null);
   // The exercise ids of the session about to run (resolved at launch).
   const [sessionIds, setSessionIds] = React.useState<string[]>([]);
@@ -580,7 +595,7 @@ function HaleApp() {
     setSelectedLearnId(null);
   }, []);
 
-  const goProfile = React.useCallback(() => {
+  const goSettings = React.useCallback(() => {
     setFlow(null);
     setTab('profile');
     setSelectedLadderId(null);
@@ -732,7 +747,7 @@ function HaleApp() {
   React.useEffect(() => {
     if (!backendSignedIn || !historyReady || !adherenceReady || !restoreReady) return;
     const fingerprint = JSON.stringify({
-      checkups: history.map((record) => record.checkUp.startedAt),
+      checkups: history.map((record) => [record.checkUp.startedAt, record.checkupType]),
       assessments: adherence.assessments.map((assessment) => [
         assessment.id,
         assessment.type,
@@ -1067,12 +1082,29 @@ function HaleApp() {
     [activeMovementBlock, adherence.blocks]
   );
   const onboardingStep = React.useMemo(
-    () => deriveOnboardingStep({ prefs, history, activeBlock: activeMovementBlock }),
-    [activeMovementBlock, history, prefs]
+    () => deriveOnboardingStep({ prefs, history, assessments: adherence.assessments, activeBlock: activeMovementBlock }),
+    [activeMovementBlock, adherence.assessments, history, prefs]
   );
   const onboardingIncomplete = onboardingStep !== 'complete';
   const latestStoredCheckUp = history.length > 0 ? history[history.length - 1].checkUp : null;
   const visibleResult = lastResult ?? latestStoredCheckUp;
+  const visibleResultRecord = React.useMemo(
+    () => (visibleResult ? history.find((record) => record.checkUp.startedAt === visibleResult.startedAt) ?? null : null),
+    [history, visibleResult]
+  );
+  const visibleResultSnapshot = React.useMemo(() => {
+    if (visibleResult && lastResult?.startedAt === visibleResult.startedAt) return lastResultScoreSnapshot;
+    return visibleResultRecord?.scoreSnapshot ?? null;
+  }, [lastResult, lastResultScoreSnapshot, visibleResult, visibleResultRecord]);
+  const visibleResultScore = React.useMemo(() => {
+    if (visibleResult && lastResult?.startedAt === visibleResult.startedAt) return lastResultScore;
+    const parsed = parseStoredScoreSnapshot(visibleResultRecord?.scoreSnapshot);
+    return parsed.ok ? parsed.score : null;
+  }, [lastResult, lastResultScore, visibleResult, visibleResultRecord]);
+  const visibleResultAssessment = React.useMemo(
+    () => (visibleResult ? assessmentForCheckUp(adherence.assessments, visibleResult.startedAt) : null),
+    [adherence.assessments, visibleResult]
+  );
   const showOnboardingResult =
     onboardingIncomplete && (prefs.onboarding.currentStep === 'results' || prefs.onboarding.currentStep === 'create_block');
 
@@ -1206,32 +1238,12 @@ function HaleApp() {
   const newestMilestone = React.useMemo(() => latestMilestone(adherence), [adherence]);
   // Scored most-recent check-up, for Home's progress snapshot and adherence milestones.
   const lastScore: CheckUpScore | null = React.useMemo(() => {
-    const latest = history[history.length - 1];
-    return latest ? scoreCheckUp(latest.checkUp) : null;
-  }, [history]);
+    return latestUsableOfficialCheckUpRecord(history, adherence.assessments)?.score ?? null;
+  }, [adherence.assessments, history]);
 
   const latestAssessment: MovementAssessment | null = React.useMemo(() => {
-    const official = latestUsableOfficialAssessment(adherence.assessments);
-    if (official) return official;
-    if (adherence.assessments.length > 0) {
-      const usable = adherence.assessments
-        .slice()
-        .sort((a, b) => (b.completedAt ?? b.createdAt).localeCompare(a.completedAt ?? a.createdAt))
-        .find((assessment) => getBlockCreationEligibility({ assessment }).eligible);
-      if (usable) return usable;
-    }
-    const latest = history[history.length - 1];
-    if (!latest) return null;
-    const score = scoreCheckUp(latest.checkUp);
-    const fallbackAssessment = createMovementAssessment({
-      checkUpId: latest.checkUp.startedAt,
-      type: 'baseline',
-      score,
-      completedAt: latest.checkUp.startedAt,
-      isOfficialForProgress: true,
-    });
-    return getBlockCreationEligibility({ score, assessment: fallbackAssessment }).eligible ? fallbackAssessment : null;
-  }, [adherence.assessments, history]);
+    return latestUsableOfficialAssessment(adherence.assessments);
+  }, [adherence.assessments]);
 
   const lifecycle = React.useMemo(
     () =>
@@ -1252,7 +1264,14 @@ function HaleApp() {
   }, []);
 
   const beginCheckUp = React.useCallback(
-    (type?: CheckupType) => {
+    (
+      type?: CheckupType,
+      options: {
+        battery?: readonly string[];
+        retryOfCheckUpId?: string;
+        retryMovementIds?: readonly string[];
+      } = {}
+    ) => {
       const resolvedType = type ?? (latestAssessment ? 'manual_extra' : 'baseline');
       setPendingCheckup({
         type: resolvedType,
@@ -1262,6 +1281,9 @@ function HaleApp() {
             : undefined,
         isOfficialForProgress:
           resolvedType === 'baseline' || resolvedType === 'baseline_retake' || resolvedType === 'official_retest',
+        battery: options.battery,
+        retryOfCheckUpId: options.retryOfCheckUpId,
+        retryMovementIds: options.retryMovementIds,
       });
       setFlow('checkup');
     },
@@ -1279,11 +1301,21 @@ function HaleApp() {
 
   // A finished check-up: persist it, show it, reload history (feeds trends).
   const handleCheckUpComplete = React.useCallback(
-    (checkUp: CheckUp, checkupOverride?: typeof pendingCheckup) => {
+    (completedCheckUp: CheckUp, checkupOverride?: typeof pendingCheckup) => {
       const completedAt = new Date().toISOString();
       const block = activeMovementBlock;
-      const { score, issues: scoringInputIssues } = scoreCheckUpWithDiagnostics(checkUp);
       const resolvedPendingCheckup = checkupOverride ?? pendingCheckup;
+      const baseRetryCheckUp = resolvedPendingCheckup?.retryOfCheckUpId
+        ? (history.find((record) => record.checkUp.startedAt === resolvedPendingCheckup.retryOfCheckUpId)?.checkUp ?? null)
+        : null;
+      const checkUp =
+        baseRetryCheckUp && resolvedPendingCheckup?.retryMovementIds
+          ? mergeCheckUpRetry({
+              baseCheckUp: baseRetryCheckUp,
+              retryCheckUp: completedCheckUp,
+              retriedMovementIds: resolvedPendingCheckup.retryMovementIds,
+            })
+          : completedCheckUp;
       const checkupType =
         resolvedPendingCheckup?.type ??
         (block && (retestDue(training) || getAdherenceState(block, adherence.completions, completedAt) === 'ready_for_retest')
@@ -1291,24 +1323,38 @@ function HaleApp() {
           : history.length === 0
             ? 'baseline'
             : 'manual_extra');
-      recordScoringInputIssues('checkup_completion', scoringInputIssues, checkupType);
       const isRetest =
         !!block &&
         (checkupType === 'official_retest' ||
           retestDue(training) ||
           getAdherenceState(block, adherence.completions, completedAt) === 'ready_for_retest');
+      const {
+        score,
+        snapshot: scoreSnapshot,
+        issues: scoringInputIssues,
+      } = createCurrentVersionedScoreSnapshot(checkUp, {
+        createdAt: completedAt,
+        activeFocusDomain: isRetest && block ? scoreDomainFromMovementDomain(block.focusDomain) : null,
+      });
+      recordScoringInputIssues('checkup_completion', scoringInputIssues, checkupType);
       const assessment = createMovementAssessment({
         checkUpId: checkUp.startedAt,
         type: checkupType,
         score,
+        scoreSnapshot,
         sourceBlockId: resolvedPendingCheckup?.sourceBlockId ?? (isRetest ? block?.id : undefined),
         completedAt,
         isOfficialForProgress: resolvedPendingCheckup?.isOfficialForProgress,
       });
-      const eligibility = getBlockCreationEligibility({ score, assessment });
+      const eligibility = getBlockCreationEligibility({ score, scoreSnapshot, assessment });
       let localHistorySaved = false;
       try {
-        store.save(checkUp);
+        store.save(checkUp, {
+          checkupType,
+          sourceAssessmentId: assessment.id,
+          retryOfCheckUpId: resolvedPendingCheckup?.retryOfCheckUpId,
+          scoreSnapshot,
+        });
         localHistorySaved = true;
       } catch (e) {
         console.warn('[history] save failed', e);
@@ -1320,10 +1366,13 @@ function HaleApp() {
           status: assessment.status,
           completedAt,
           score,
+          scoreSnapshot,
           assessment,
         });
       }
       setLastResult(checkUp);
+      setLastResultScore(score);
+      setLastResultScoreSnapshot(scoreSnapshot);
       setLastResultCheckupType(checkupType);
       store.loadAll().then(setHistory).catch(() => {});
       let nextAdherence = upsertMovementAssessment(adherence, assessment);
@@ -1340,7 +1389,14 @@ function HaleApp() {
         nextAdherence = markMovementBlockComplete(nextAdherence, block.id, completedAt);
         const updatedBlock = nextAdherence.blocks.find((b) => b.id === block.id) ?? block;
         const previous = history.find((h) => h.checkUp.startedAt === block.sourceAssessmentId);
-        const previousScore = previous ? scoreCheckUp(previous.checkUp) : null;
+        const previousParsed = parseStoredScoreSnapshot(previous?.scoreSnapshot);
+        const previousScore = previousParsed.ok ? previousParsed.score : null;
+        const reportComparisonCompatible =
+          previousParsed.ok && scoreSnapshot
+            ? previousParsed.snapshot.schemaVersion === scoreSnapshot.schemaVersion &&
+              previousParsed.snapshot.scoringVersion === scoreSnapshot.scoringVersion &&
+              previousParsed.snapshot.normVersion === scoreSnapshot.normVersion
+            : false;
         nextAdherence = mergeMilestones(
           nextAdherence,
           generateMilestones({
@@ -1348,7 +1404,7 @@ function HaleApp() {
             block: updatedBlock,
             lifeGoal: prefs.profile.lifeGoal,
             latestAssessment: score,
-            previousAssessment: previousScore,
+            previousAssessment: reportComparisonCompatible ? previousScore : null,
             completions: nextAdherence.completions,
             existing: nextAdherence.milestones,
             nowIso: completedAt,
@@ -1360,13 +1416,15 @@ function HaleApp() {
           retestAssessment: assessment,
           previousScore,
           latestScore: score,
+          previousScoreSnapshot: previousParsed.ok ? previousParsed.snapshot : null,
+          latestScoreSnapshot: scoreSnapshot,
           completions: nextAdherence.completions,
           nowIso: completedAt,
         });
         nextAdherence = upsertMovementBlockReport(nextAdherence, blockReport);
         const nextTrainingBlock = buildBlock(score, training.equipment, completedAt);
         const nextMovementBlock = createMovementBlockFromAssessment({
-          latestAssessment: { score, id: checkUp.startedAt, assessment },
+          latestAssessment: { score, scoreSnapshot, id: checkUp.startedAt, assessment },
           lifeGoal: prefs.profile.lifeGoal,
           startDate: completedAt,
         });
@@ -1433,21 +1491,24 @@ function HaleApp() {
   // From Results: build a block biased to the weakest domain and begin it.
   const handleStartPlan = React.useCallback((mode: 'standard' | 'onboarding' = 'standard') => {
     const sourceResult = visibleResult;
-    if (!sourceResult) return;
+    const score = visibleResultScore;
+    const scoreSnapshot = visibleResultSnapshot;
+    if (!sourceResult || !score) return;
     const now = new Date().toISOString();
-    const score = scoreCheckUp(sourceResult);
     const sourceAssessment = assessmentForCheckUp(adherence.assessments, sourceResult.startedAt);
-    const eligibility = getBlockCreationEligibility({ score, assessment: sourceAssessment });
+    const eligibility = getBlockCreationEligibility({ score, scoreSnapshot, assessment: sourceAssessment });
     if (!eligibility.eligible) {
       recordBlockedBlockCreation('start_plan', eligibility, sourceAssessment?.type);
       setLastResult(sourceResult);
+      setLastResultScore(score);
+      setLastResultScoreSnapshot(scoreSnapshot);
       setLastResultCheckupType(sourceAssessment?.type ?? null);
       setFlow('results');
       return;
     }
     const block = buildBlock(score, training.equipment, now);
     const movementBlock = createMovementBlockFromAssessment({
-      latestAssessment: { score, id: sourceResult.startedAt, assessment: sourceAssessment },
+      latestAssessment: { score, scoreSnapshot, id: sourceResult.startedAt, assessment: sourceAssessment },
       lifeGoal: prefs.profile.lifeGoal,
       startDate: now,
     });
@@ -1477,6 +1538,8 @@ function HaleApp() {
       });
     }
     setLastResult(sourceResult);
+    setLastResultScore(score);
+    setLastResultScoreSnapshot(scoreSnapshot);
     if (mode === 'onboarding') {
       persistPrefs({
         ...prefs,
@@ -1491,7 +1554,7 @@ function HaleApp() {
     } else {
       setFlow('block-intro');
     }
-  }, [adherence, backendSignedIn, persistAdherence, persistPrefs, persistTraining, prefs, recordBlockedBlockCreation, training, visibleResult]);
+  }, [adherence, backendSignedIn, persistAdherence, persistPrefs, persistTraining, prefs, recordBlockedBlockCreation, training, visibleResult, visibleResultScore, visibleResultSnapshot]);
 
   const handleStartSession = React.useCallback(
     (
@@ -1928,35 +1991,40 @@ function HaleApp() {
   );
 
   const viewLast = React.useCallback(() => {
-    const latest = history[history.length - 1];
+    const latest = latestUsableOfficialCheckUpRecord(history, adherence.assessments);
     if (latest) {
-      setLastResult(latest.checkUp);
-      setLastResultCheckupType(null);
+      setLastResult(latest.record.checkUp);
+      setLastResultScore(latest.score);
+      setLastResultScoreSnapshot(latest.scoreSnapshot);
+      setLastResultCheckupType(latest.type);
       setFlow('results');
     }
-  }, [history]);
+  }, [adherence.assessments, history]);
 
   const handleStartNextBlock = React.useCallback(() => {
-    const latest = history[history.length - 1];
-    const sourceResult = lastResult ?? latest?.checkUp;
-    if (!sourceResult) {
+    const official = latestUsableOfficialCheckUpRecord(history, adherence.assessments);
+    if (!official) {
       setFlow('checkup');
       return;
     }
     const now = new Date().toISOString();
-    const score = scoreCheckUp(sourceResult);
-    const sourceAssessment = assessmentForCheckUp(adherence.assessments, sourceResult.startedAt);
-    const eligibility = getBlockCreationEligibility({ score, assessment: sourceAssessment });
+    const sourceResult = official.record.checkUp;
+    const score = official.score;
+    const scoreSnapshot = official.scoreSnapshot;
+    const sourceAssessment = official.assessment;
+    const eligibility = getBlockCreationEligibility({ score, scoreSnapshot, assessment: sourceAssessment });
     if (!eligibility.eligible) {
       recordBlockedBlockCreation('start_next_block', eligibility, sourceAssessment?.type);
       setLastResult(sourceResult);
+      setLastResultScore(score);
+      setLastResultScoreSnapshot(scoreSnapshot);
       setLastResultCheckupType(sourceAssessment?.type ?? null);
       setFlow('results');
       return;
     }
     const block = buildBlock(score, training.equipment, now);
     const movementBlock = createMovementBlockFromAssessment({
-      latestAssessment: { score, id: sourceResult.startedAt, assessment: sourceAssessment },
+      latestAssessment: { score, scoreSnapshot, id: sourceResult.startedAt, assessment: sourceAssessment },
       lifeGoal: prefs.profile.lifeGoal,
       startDate: now,
     });
@@ -1974,6 +2042,8 @@ function HaleApp() {
       })
     );
     setLastResult(sourceResult);
+    setLastResultScore(score);
+    setLastResultScoreSnapshot(scoreSnapshot);
     const adherenceSaved = persistAdherence(nextAdherence);
     const nextTraining = startBlock(training, block);
     persistTraining(nextTraining);
@@ -1987,23 +2057,39 @@ function HaleApp() {
       });
     }
     setFlow('block-intro');
-  }, [adherence, backendSignedIn, history, lastResult, persistAdherence, persistTraining, prefs.profile, recordBlockedBlockCreation, training]);
+  }, [adherence, backendSignedIn, history, persistAdherence, persistTraining, prefs.profile, recordBlockedBlockCreation, training]);
 
   const handleRetakeVisibleResult = React.useCallback(() => {
-    if (lastResultCheckupType === 'official_retest') {
-      beginCheckUp('official_retest');
+    const score = visibleResultScore;
+    const evidence = headlineEvidenceFromScore(score);
+    const retryMovementIds = retryBatteryForMissingHeadlineDomains(evidence.missingDomains);
+    const retryOptions =
+      visibleResult && evidence.measuredDomainCount > 0 && !evidence.complete
+        ? {
+            battery: retryMovementIds,
+            retryOfCheckUpId: visibleResult.startedAt,
+            retryMovementIds,
+          }
+        : undefined;
+    const visibleType = lastResultCheckupType ?? visibleResultAssessment?.type ?? null;
+    if (visibleType === 'official_retest') {
+      beginCheckUp('official_retest', retryOptions);
       return;
     }
-    if (lastResultCheckupType === 'manual_extra' || lastResultCheckupType === 'quick_recheck') {
-      beginCheckUp(lastResultCheckupType);
+    if (visibleType === 'manual_extra' || visibleType === 'quick_recheck') {
+      beginCheckUp(visibleType, retryOptions);
       return;
     }
     if (onboardingIncomplete) {
+      if (retryOptions) {
+        beginCheckUp('baseline', retryOptions);
+        return;
+      }
       setFlow('camera-setup');
       return;
     }
-    beginCheckUp('baseline_retake');
-  }, [beginCheckUp, lastResultCheckupType, onboardingIncomplete]);
+    beginCheckUp('baseline_retake', retryOptions);
+  }, [beginCheckUp, lastResultCheckupType, onboardingIncomplete, visibleResult, visibleResultAssessment, visibleResultScore]);
 
   const handleTodayPrimaryAction = React.useCallback((preferences?: TodaySessionPreferences | null) => {
     switch (lifecycle.primaryAction.type) {
@@ -2055,15 +2141,21 @@ function HaleApp() {
   const reportPreviousScore = React.useMemo(() => {
     if (!reportDisplayBlock?.sourceAssessmentId) return null;
     const previous = history.find((h) => h.checkUp.startedAt === reportDisplayBlock.sourceAssessmentId);
-    return previous ? scoreCheckUp(previous.checkUp) : null;
+    const parsed = parseStoredScoreSnapshot(previous?.scoreSnapshot);
+    return parsed.ok ? parsed.score : null;
   }, [history, reportDisplayBlock]);
   const reportLatestScore = React.useMemo(() => {
     const retestAssessment = adherence.assessments.find((assessment) => assessment.id === reportRecord?.retestAssessmentId);
+    const fromHistory = findCheckUpForAssessment(history, retestAssessment);
     const checkUpId = retestAssessment?.results?.rawMetrics?.checkUpId;
-    const fromHistory = checkUpId ? history.find((h) => h.checkUp.startedAt === checkUpId)?.checkUp : null;
-    const checkUp = fromHistory ?? (lastResult?.startedAt === checkUpId ? lastResult : null) ?? lastResult ?? history[history.length - 1]?.checkUp;
-    return checkUp ? scoreCheckUp(checkUp) : null;
-  }, [adherence.assessments, history, lastResult, reportRecord]);
+    const latestOfficial = latestUsableOfficialCheckUpRecord(history, adherence.assessments);
+    if (lastResult?.startedAt === checkUpId && lastResultScore) return lastResultScore;
+    const record = fromHistory
+      ? history.find((item) => item.checkUp.startedAt === fromHistory.startedAt) ?? null
+      : latestOfficial?.record ?? null;
+    const parsed = parseStoredScoreSnapshot(record?.scoreSnapshot);
+    return parsed.ok ? parsed.score : null;
+  }, [adherence.assessments, history, lastResult, lastResultScore, reportRecord]);
 
   const openManualCheckup = React.useCallback(() => setFlow('manual-checkup'), []);
 
@@ -2152,7 +2244,7 @@ function HaleApp() {
           <Text style={styles.text}>
             {permission === 'checking' || !audioReady
               ? 'Getting ready…'
-              : 'Camera access is needed to measure your movement. Video is never shown or stored — you appear only as a skeleton outline.'}
+              : 'Camera access is needed to estimate your movement. Video is never shown or stored — you appear only as a skeleton outline.'}
           </Text>
           {permission === 'denied' ? (
             <Pressable style={styles.back} onPress={goHome} accessibilityRole="button" accessibilityLabel="Back to Today">
@@ -2208,17 +2300,28 @@ function HaleApp() {
             onCancel={goHome}
           />
         ) : flow === 'checkup' ? (
-          <CheckUpScreen onComplete={handleCheckUpComplete} onCancel={goHome} voiceId={prefs.settings.voiceId} />
+          <CheckUpScreen
+            onComplete={handleCheckUpComplete}
+            onCancel={goHome}
+            voiceId={prefs.settings.voiceId}
+            battery={pendingCheckup?.battery}
+          />
         ) : flow === 'results' && visibleResult ? (
           showOnboardingResult ? (
             <OnboardingResultsScreen
               checkUp={visibleResult}
+              assessment={visibleResultAssessment}
+              score={visibleResultScore}
+              scoreSnapshot={visibleResultSnapshot}
               onCreateBlock={() => handleStartPlan('onboarding')}
               onRetake={handleRetakeVisibleResult}
             />
           ) : (
             <ResultsScreen
               checkUp={visibleResult}
+              assessment={visibleResultAssessment}
+              score={visibleResultScore}
+              scoreSnapshot={visibleResultSnapshot}
               history={history}
               extraTrendPoints={extraTrendPoints}
               onDone={goHome}
@@ -2287,6 +2390,7 @@ function HaleApp() {
             completions={adherence.completions}
             previousScore={reportPreviousScore}
             latestScore={reportLatestScore}
+            report={reportRecord ?? null}
             milestone={newestMilestone}
             nextBlockReady={!!activeMovementBlock && activeMovementBlock.id !== reportDisplayBlock.id}
             onStartNextBlock={activeMovementBlock && activeMovementBlock.id !== reportDisplayBlock.id ? goHome : handleStartNextBlock}
@@ -2313,7 +2417,7 @@ function HaleApp() {
           <LearnDetailScreen
             articleId={selectedLearnId}
             onCameraSetup={() => setFlow('camera-setup')}
-            onEquipment={goProfile}
+            onEquipment={goSettings}
             onDone={goExplore}
           />
         ) : flow === 'dev-assessment' ? (
@@ -2343,7 +2447,7 @@ function HaleApp() {
             profile={prefs.profile}
             lifecycle={lifecycle}
             onPrimaryAction={handleTodayPrimaryAction}
-            onOpenSettings={goProfile}
+            onOpenSettings={goSettings}
           />
         ) : tab === 'plan' ? (
           <PlanScreen
@@ -2358,13 +2462,14 @@ function HaleApp() {
             onCreateBlock={handleStartNextBlock}
             onStartPlanSession={handleStartPlanSession}
             onStartRetest={() => beginCheckUp('official_retest')}
-            onOpenSettings={goProfile}
+            onOpenSettings={goSettings}
             onPreferredDaysChange={handlePreferredWorkoutDaysChange}
             onIntensityChange={handleTrainingIntensityChange}
           />
         ) : tab === 'progress' ? (
           <ProgressScreen
             history={history}
+            assessments={adherence.assessments}
             activeBlock={activeMovementBlock}
             blocks={adherence.blocks}
             reports={adherence.reports}
@@ -2375,7 +2480,7 @@ function HaleApp() {
             onStartRetest={() => beginCheckUp('official_retest')}
             onViewLatest={viewLast}
             onViewReport={openBlockReport}
-            onOpenSettings={goProfile}
+            onOpenSettings={goSettings}
           />
         ) : tab === 'explore' ? (
           <ExploreScreen
@@ -2386,7 +2491,7 @@ function HaleApp() {
             onStartExtraSession={handleStartExtraSession}
             onOpenLadder={openLadderDetail}
             onOpenLearn={openLearnDetail}
-            onOpenSettings={goProfile}
+            onOpenSettings={goSettings}
           />
         ) : (
           <SettingsScreen
@@ -2474,7 +2579,7 @@ const styles = StyleSheet.create({
   splash: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: spacing.pageHorizontal,
   },
   splashBrand: {
     width: '100%',

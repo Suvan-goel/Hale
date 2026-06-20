@@ -19,7 +19,7 @@ import type {
   MovementSnapshotBand,
   TodaySessionAdjustment,
 } from '../haleFlow';
-import { BellIcon, CalendarIcon } from '../navigation/icons';
+import { SettingsIcon } from '../navigation/icons';
 import type { UserProfile } from '../profile';
 import type { PainArea } from '../training';
 import { colors, fonts, radius, shadow, spacing, todayHomeColors, type } from '../theme';
@@ -56,17 +56,7 @@ export function TodayScreen({
   const [sessionMenuVisible, setSessionMenuVisible] = React.useState(false);
   const { width } = useWindowDimensions();
   const compact = width < 430;
-  const block = lifecycle.activeBlockSummary;
   const snapshot = lifecycle.movementSnapshot;
-  const measuredCount = SNAPSHOT_ROWS.filter((row) => snapshot?.[row.key]).length;
-  const progress = block
-    ? block.sessionsCompleteThisWeek / Math.max(1, block.sessionsTargetThisWeek)
-    : measuredCount / SNAPSHOT_ROWS.length;
-  const progressValue = block
-    ? `${block.sessionsCompleteThisWeek}/${block.sessionsTargetThisWeek}`
-    : `${measuredCount}/${SNAPSHOT_ROWS.length}`;
-  const progressNoun = block ? 'sessions' : 'domains';
-  const progressVerb = block ? 'completed' : 'measured';
   const canAdjustSession =
     lifecycle.state === 'first_session_ready' ||
     lifecycle.state === 'normal_training_day' ||
@@ -76,12 +66,9 @@ export function TodayScreen({
     lifecycle.primaryAction.type === 'start_first_session' ||
     lifecycle.primaryAction.type === 'start_today_session' ||
     lifecycle.primaryAction.type === 'start_gentle_restart';
-  const sessionTitle = isSessionAction ? 'Move with intention' : actionTitle(lifecycle.primaryAction.title);
-  const sessionSubtitle = isSessionAction
-    ? '10-15 min focused movement to build strength, balance, and mobility.'
-    : actionSubtitle(lifecycle.primaryAction.subtitle);
-  const upcomingTitle = block ? block.focusTitle : actionTitle(lifecycle.primaryAction.title);
-  const upcomingMeta = isSessionAction ? 'Today · 20 min' : 'Today · next step';
+  const sessionTitle = todayActionTitle(lifecycle);
+  const sessionSubtitle = todayActionSubtitle(lifecycle);
+  const sessionDetail = todaySessionDetail(lifecycle);
 
   const startWith = React.useCallback(
     (adjustment?: TodaySessionAdjustment | null, painArea?: PainArea | null) => {
@@ -109,38 +96,36 @@ export function TodayScreen({
       >
         <View style={styles.header}>
           <View style={styles.headerCopy}>
-            <Text style={styles.greeting}>{greeting()},</Text>
-            <Text style={styles.name} numberOfLines={1}>{firstName(profile.name)}</Text>
+            <Text style={styles.greeting}>
+              {timeOfDayGreeting()}
+            </Text>
+            <Text style={styles.headerName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>
+              {headerName(profile.name)}
+            </Text>
           </View>
           <Pressable
             style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
             onPress={onOpenSettings}
             accessibilityRole="button"
-            accessibilityLabel="Open profile and settings"
+            accessibilityLabel="Open settings"
           >
-            <BellIcon size={24} color={todayHomeColors.headingGreen} strokeWidth={1.8} />
+            <SettingsIcon size={24} color={todayHomeColors.headingGreen} strokeWidth={1.8} />
           </Pressable>
         </View>
 
-        <MovementSnapshotCard
-          compact={compact}
-          progress={progress}
-          progressValue={progressValue}
-          progressNoun={progressNoun}
-          progressVerb={progressVerb}
-          snapshot={snapshot}
-        />
+        <MovementSnapshotCard compact={compact} lifecycle={lifecycle} snapshot={snapshot} />
 
         <DailyFocusCard
           compact={compact}
-          label={isSessionAction ? 'Daily focus' : 'Today'}
+          label="Today"
           title={sessionTitle}
           subtitle={sessionSubtitle}
+          detail={sessionDetail}
           ctaLabel={isSessionAction ? 'Start Session' : actionCta(lifecycle.primaryAction.ctaLabel)}
           onPress={handleStartPress}
         />
 
-        <NextUpCard title={upcomingTitle} meta={upcomingMeta} onPress={handleStartPress} />
+        <TodayContextStrip lifecycle={lifecycle} />
       </ScrollView>
 
       <SessionStartMenu
@@ -154,29 +139,28 @@ export function TodayScreen({
 
 function MovementSnapshotCard({
   compact,
-  progress,
-  progressValue,
-  progressNoun,
-  progressVerb,
+  lifecycle,
   snapshot,
 }: {
   compact: boolean;
-  progress: number;
-  progressValue: string;
-  progressNoun: string;
-  progressVerb: string;
+  lifecycle: HaleAppLifecycleResult;
   snapshot: MovementSnapshot | null | undefined;
 }) {
+  const progress = movementProfileProgress(lifecycle, snapshot);
+  const hasMeasuredDomains = SNAPSHOT_ROWS.some((row) => snapshot?.[row.key]);
   return (
     <View style={styles.snapshotCard}>
-      <Text style={styles.snapshotTitle}>Movement snapshot</Text>
+      <Text style={styles.snapshotTitle}>Your movement profile</Text>
+      {!hasMeasuredDomains ? (
+        <Text style={styles.snapshotIntro}>Your Movement Check-Up will fill this in.</Text>
+      ) : null}
       <View style={[styles.snapshotBody, compact && styles.snapshotBodyCompact]}>
-        <ProgressRing
-          progress={progress}
-          value={progressValue}
-          noun={progressNoun}
-          verb={progressVerb}
-          size={compact ? 136 : 148}
+        <SnapshotProgressRing
+          progress={progress.progress}
+          value={progress.value}
+          noun={progress.noun}
+          verb={progress.verb}
+          size={compact ? 148 : 162}
         />
         <View style={styles.metricRows}>
           {SNAPSHOT_ROWS.map((row, index) => {
@@ -191,6 +175,101 @@ function MovementSnapshotCard({
               />
             );
           })}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function SnapshotProgressRing({
+  progress,
+  value,
+  noun,
+  verb,
+  size,
+}: {
+  progress: number;
+  value: string;
+  noun: string;
+  verb: string;
+  size: number;
+}) {
+  const stroke = 6;
+  const center = size / 2;
+  const radiusValue = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radiusValue;
+  const clamped = Math.max(0, Math.min(1, progress));
+  const visualProgress = clamped === 0 ? 0.035 : clamped;
+  const [current = value, total = ''] = value.split('/');
+
+  return (
+    <View style={[styles.snapshotRing, { width: size, height: size }]}>
+      <Svg width={size} height={size}>
+        <Circle cx={center} cy={center} r={radiusValue} stroke={todayHomeColors.ringTrack} strokeWidth={stroke} fill="none" />
+        <Circle
+          cx={center}
+          cy={center}
+          r={radiusValue}
+          stroke={todayHomeColors.headingGreen}
+          strokeWidth={stroke}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDashoffset={circumference * (1 - visualProgress)}
+          transform={`rotate(-90 ${center} ${center})`}
+        />
+      </Svg>
+      <View style={styles.snapshotRingCenter}>
+        <Text style={styles.snapshotRingValue}>
+          {current}
+          {total ? <Text style={styles.snapshotRingJoin}> of </Text> : null}
+          {total ? <Text>{total}</Text> : null}
+        </Text>
+        <Text style={styles.snapshotRingLabel}>{noun}</Text>
+        <Text style={styles.snapshotRingLabel}>{verb}</Text>
+      </View>
+    </View>
+  );
+}
+
+function TodayContextStrip({ lifecycle }: { lifecycle: HaleAppLifecycleResult }) {
+  const block = lifecycle.activeBlockSummary;
+  if (block) {
+    return (
+      <View style={styles.contextStrip}>
+        <Text style={styles.contextTitle}>Plan timeline</Text>
+        <View style={styles.contextBody}>
+          <View style={styles.contextPrimary}>
+            <Text style={styles.contextLabel}>Current block</Text>
+            <Text style={styles.contextValue} numberOfLines={1}>
+              Week <Text style={styles.contextValueNumber}>{block.weekNumber}</Text> of{' '}
+              <Text style={styles.contextValueNumber}>{block.totalWeeks}</Text>
+            </Text>
+          </View>
+          <View style={styles.contextDivider} />
+          <View style={styles.contextSecondary}>
+            <Text style={styles.contextLabel}>Next Check-Up</Text>
+            <Text style={styles.contextValue} numberOfLines={1}>{retestLabel(block.retestInDays)}</Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.contextStrip}>
+      <Text style={styles.contextTitle}>Next step</Text>
+      <View style={styles.contextBody}>
+        <View style={styles.contextPrimary}>
+          <Text style={styles.contextLabel}>Today</Text>
+          <Text style={styles.contextValue} numberOfLines={1}>{contextValue(lifecycle.primaryAction.title)}</Text>
+        </View>
+        <View style={styles.contextDivider} />
+        <View style={styles.contextSecondary}>
+          <Text style={styles.contextLabel}>Movement Check-Up</Text>
+          <Text style={styles.contextValue} numberOfLines={1}>
+            {lifecycle.movementSnapshot ? 'Baseline saved' : 'Baseline pending'}
+          </Text>
         </View>
       </View>
     </View>
@@ -229,6 +308,7 @@ function DailyFocusCard({
   label,
   title,
   subtitle,
+  detail,
   ctaLabel,
   onPress,
 }: {
@@ -236,6 +316,7 @@ function DailyFocusCard({
   label: string;
   title: string;
   subtitle: string;
+  detail?: string;
   ctaLabel: string;
   onPress: () => void;
 }) {
@@ -249,6 +330,7 @@ function DailyFocusCard({
         <Text style={styles.focusLabel}>{label}</Text>
         <Text style={[styles.focusTitle, compact && styles.focusTitleCompact]}>{displayTitle}</Text>
         <Text style={styles.focusSubtitle}>{subtitle}</Text>
+        {detail ? <Text style={styles.focusDetail} numberOfLines={1}>{detail}</Text> : null}
         <Pressable
           style={({ pressed }) => [styles.focusButton, pressed && styles.focusButtonPressed]}
           onPress={onPress}
@@ -258,80 +340,6 @@ function DailyFocusCard({
           <Text style={styles.focusButtonText}>{displayCta}</Text>
           <Text style={styles.focusButtonArrow}>›</Text>
         </Pressable>
-      </View>
-    </View>
-  );
-}
-
-function NextUpCard({ title, meta, onPress }: { title: string; meta: string; onPress: () => void }) {
-  return (
-    <Pressable
-      style={({ pressed }) => [styles.nextCard, pressed && styles.pressed]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`Start ${title}`}
-    >
-      <Text style={styles.nextLabel}>Next up</Text>
-      <View style={styles.nextBody}>
-        <View style={styles.nextIcon}>
-          <CalendarIcon size={22} color={todayHomeColors.headingGreen} strokeWidth={1.8} />
-        </View>
-        <View style={styles.nextCopy}>
-          <Text style={styles.nextTitle}>{title}</Text>
-          <Text style={styles.nextMeta}>{meta}</Text>
-        </View>
-        <Text style={styles.nextChevron}>›</Text>
-      </View>
-    </Pressable>
-  );
-}
-
-function ProgressRing({
-  progress,
-  value,
-  noun,
-  verb,
-  size = 154,
-}: {
-  progress: number;
-  value: string;
-  noun: string;
-  verb: string;
-  size?: number;
-}) {
-  const stroke = 9;
-  const center = size / 2;
-  const r = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * r;
-  const clamped = Math.max(0, Math.min(1, progress));
-  const visualProgress = clamped === 0 ? 0.025 : clamped;
-  const [current = value, total = ''] = value.split('/');
-
-  return (
-    <View style={[styles.ring, { width: size, height: size }]}>
-      <Svg width={size} height={size}>
-        <Circle cx={center} cy={center} r={r} stroke={todayHomeColors.ringTrack} strokeWidth={stroke} fill="none" />
-        <Circle
-          cx={center}
-          cy={center}
-          r={r}
-          stroke={todayHomeColors.headingGreen}
-          strokeWidth={stroke}
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray={`${circumference} ${circumference}`}
-          strokeDashoffset={circumference * (1 - visualProgress)}
-          transform={`rotate(-90 ${center} ${center})`}
-        />
-      </Svg>
-      <View style={styles.ringCenter}>
-        <Text style={styles.ringValue}>
-          {current}
-          {total ? <Text style={styles.ringJoin}> of </Text> : null}
-          {total ? <Text>{total}</Text> : null}
-        </Text>
-        <Text style={styles.ringLabel}>{noun}</Text>
-        <Text style={styles.ringLabel}>{verb}</Text>
       </View>
     </View>
   );
@@ -488,32 +496,61 @@ function MenuOption({ label, selected, onPress }: { label: string; selected: boo
   );
 }
 
-function firstName(name?: string | null): string {
+function actionTitle(title: string): string {
+  if (title === "Today's Hale Session") return "Today's session";
+  return title.replace('Hale Session', 'Hale session');
+}
+
+function firstName(name?: string | null): string | null {
   const trimmed = name?.trim();
-  if (!trimmed) return 'Welcome back';
+  if (!trimmed) return null;
   return trimmed.split(/\s+/)[0] ?? trimmed;
 }
 
-function greeting(): string {
+function headerName(name?: string | null): string {
+  return firstName(name) ?? 'Welcome';
+}
+
+function timeOfDayGreeting(): string {
   const hour = new Date().getHours();
   if (hour < 12) return 'Good morning';
   if (hour < 18) return 'Good afternoon';
   return 'Good evening';
 }
 
-function actionTitle(title: string): string {
-  if (title === "Today's Hale Session") return "Today's session";
-  return title.replace('Hale Session', 'Hale session');
+function todayActionTitle(lifecycle: HaleAppLifecycleResult): string {
+  if (lifecycle.primaryAction.type === 'start_first_session') return 'Your first Hale session is ready';
+  if (lifecycle.primaryAction.type === 'start_today_session') return "Today's session is ready";
+  if (lifecycle.primaryAction.type === 'start_gentle_restart') return 'Start gently today';
+  if (lifecycle.primaryAction.type === 'start_micro_check') return '60-second check-in';
+  if (lifecycle.primaryAction.type === 'start_retest') return "It's time to re-test";
+  if (lifecycle.primaryAction.type === 'explore_extra_sessions') return 'Your week is complete';
+  return actionTitle(lifecycle.primaryAction.title);
 }
 
-function actionSubtitle(subtitle: string): string {
-  if (subtitle === 'Your next session is adjusted from your check-up and recent progress.') {
+function todayActionSubtitle(lifecycle: HaleAppLifecycleResult): string {
+  if (lifecycle.primaryAction.type === 'start_first_session') {
+    return 'A calm first session built from your Movement Check-Up.';
+  }
+  if (lifecycle.primaryAction.type === 'start_today_session') {
     return 'A simple session to help you build strength, balance, and mobility.';
   }
-  if (subtitle === 'Start your first step toward feeling stronger, steadier, and more mobile.') {
-    return 'A simple first session to help you build strength, balance, and mobility.';
+  if (lifecycle.primaryAction.type === 'start_gentle_restart') {
+    return "A shorter session to ease you back into your block.";
   }
-  return subtitle;
+  if (lifecycle.primaryAction.type === 'explore_extra_sessions') {
+    return 'Optional mobility work can support the plan without adding pressure.';
+  }
+  return lifecycle.primaryAction.subtitle;
+}
+
+function todaySessionDetail(lifecycle: HaleAppLifecycleResult): string | undefined {
+  if (lifecycle.primaryAction.type !== 'start_first_session' && lifecycle.primaryAction.type !== 'start_today_session') {
+    return undefined;
+  }
+  const nextSession = lifecycle.weekSessionStatuses?.find((session) => session.status === 'next');
+  if (!nextSession) return undefined;
+  return `${nextSession.title}: ${nextSession.focus}`;
 }
 
 function actionCta(label: string): string {
@@ -529,6 +566,50 @@ function bandValue(band: MovementSnapshotBand): string {
   return 'Starting point';
 }
 
+function movementProfileProgress(
+  lifecycle: HaleAppLifecycleResult,
+  snapshot: MovementSnapshot | null | undefined
+): { progress: number; value: string; noun: string; verb: string } {
+  const block = lifecycle.activeBlockSummary;
+  if (block) {
+    const total = Math.max(1, block.sessionsTargetThisWeek);
+    const current = Math.max(0, Math.min(total, block.sessionsCompleteThisWeek));
+    return {
+      progress: current / total,
+      value: `${current}/${total}`,
+      noun: 'sessions',
+      verb: 'completed',
+    };
+  }
+
+  const total = SNAPSHOT_ROWS.length;
+  const measured = SNAPSHOT_ROWS.filter((row) => snapshot?.[row.key]).length;
+  return {
+    progress: measured / total,
+    value: `${measured}/${total}`,
+    noun: 'domains',
+    verb: 'measured',
+  };
+}
+
+function retestLabel(days: number | undefined): string {
+  if (days === undefined) return 'After block';
+  if (days <= 0) return 'Due now';
+  if (days === 1) return 'Tomorrow';
+  if (days >= 14) {
+    const weeks = Math.ceil(days / 7);
+    return `${weeks} ${weeks === 1 ? 'week' : 'weeks'}`;
+  }
+  return `${days} days`;
+}
+
+function contextValue(title: string): string {
+  if (title.length <= 22) return title;
+  if (title.includes('Movement Check-Up')) return 'Movement Check-Up';
+  if (title.includes('4-week')) return '4-week block';
+  return 'Next action';
+}
+
 const styles = StyleSheet.create({
   background: {
     flex: 1,
@@ -540,33 +621,33 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     width: '100%',
-    maxWidth: 560,
+    maxWidth: spacing.pageMaxWidth,
     alignSelf: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.xl,
-    paddingTop: 42,
-    paddingBottom: spacing.lg,
-    gap: 16,
+    justifyContent: 'flex-start',
+    paddingHorizontal: spacing.pageHorizontal,
+    paddingTop: spacing.pageTop,
+    paddingBottom: spacing.xl,
+    gap: 14,
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: spacing.xl,
+    gap: spacing.md,
   },
-  headerCopy: { flex: 1, minWidth: 0 },
+  headerCopy: { flex: 1, minWidth: 0, gap: 2 },
   greeting: {
-    color: todayHomeColors.headingGreen,
-    fontFamily: fonts.serifRegular,
-    fontSize: 22,
-    lineHeight: 28,
+    color: todayHomeColors.secondaryText,
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    lineHeight: 18,
     letterSpacing: 0,
   },
-  name: {
-    color: todayHomeColors.headingGreen,
-    fontFamily: fonts.serifMedium,
-    fontSize: 36,
-    lineHeight: 41,
+  headerName: {
+    color: colors.primaryText,
+    fontFamily: fonts.serifRegular,
+    fontSize: 28,
+    lineHeight: 34,
     letterSpacing: 0,
   },
   iconButton: {
@@ -577,77 +658,143 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'transparent',
   },
-  snapshotCard: {
-    borderRadius: 22,
+  contextStrip: {
+    minHeight: 102,
+    borderRadius: radius.card,
     paddingHorizontal: 22,
     paddingVertical: 18,
     backgroundColor: todayHomeColors.card,
-    borderWidth: 1,
-    borderColor: todayHomeColors.border,
-    shadowColor: todayHomeColors.shadow,
-    shadowOpacity: 1,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 1,
+    ...shadow.card,
   },
-  snapshotTitle: {
+  contextTitle: {
     color: todayHomeColors.primaryText,
-    fontFamily: fonts.sansMedium,
+    fontFamily: fonts.serifMedium,
     fontSize: 18,
     lineHeight: 24,
     letterSpacing: 0,
   },
+  contextBody: {
+    minHeight: 42,
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 18,
+    marginTop: 13,
+  },
+  contextPrimary: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'center',
+  },
+  contextSecondary: {
+    flex: 0.9,
+    minWidth: 0,
+    justifyContent: 'center',
+  },
+  contextDivider: {
+    width: 1,
+    backgroundColor: todayHomeColors.border,
+  },
+  contextLabel: {
+    color: todayHomeColors.secondaryText,
+    fontFamily: fonts.sansRegular,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0,
+  },
+  contextValue: {
+    color: colors.primaryText,
+    fontFamily: fonts.sansMedium,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: 0,
+    fontVariant: ['tabular-nums'],
+    marginTop: 5,
+  },
+  contextValueNumber: {
+    fontVariant: ['tabular-nums'],
+  },
+  snapshotCard: {
+    borderRadius: radius.card,
+    paddingHorizontal: 22,
+    paddingVertical: 22,
+    backgroundColor: todayHomeColors.card,
+    ...shadow.card,
+  },
+  snapshotTitle: {
+    color: todayHomeColors.primaryText,
+    fontFamily: fonts.sansMedium,
+    fontSize: 16,
+    lineHeight: 22,
+    letterSpacing: 0,
+  },
+  snapshotIntro: {
+    color: todayHomeColors.secondaryText,
+    fontFamily: fonts.sansRegular,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0,
+    marginTop: 6,
+  },
   snapshotBody: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 20,
+    gap: 16,
     marginTop: 20,
   },
   snapshotBodyCompact: {
-    gap: spacing.xl,
+    gap: 12,
   },
-  ring: { alignItems: 'center', justifyContent: 'center' },
-  ringCenter: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
-  ringValue: {
+  snapshotRing: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  snapshotRingCenter: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  snapshotRingValue: {
     color: todayHomeColors.headingGreen,
     fontFamily: fonts.serifMedium,
-    fontSize: 32,
-    lineHeight: 37,
+    fontSize: 31,
+    lineHeight: 35,
     letterSpacing: 0,
     fontVariant: ['tabular-nums'],
   },
-  ringJoin: {
+  snapshotRingJoin: {
     color: todayHomeColors.primaryText,
     fontFamily: fonts.sansRegular,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 18,
   },
-  ringLabel: {
+  snapshotRingLabel: {
     color: todayHomeColors.primaryText,
     fontFamily: fonts.sansRegular,
-    fontSize: 14,
-    lineHeight: 19,
+    fontSize: 13,
+    lineHeight: 18,
     letterSpacing: 0,
   },
   metricRows: {
     flex: 1,
     minWidth: 0,
-    gap: 10,
+    justifyContent: 'center',
+    gap: 8,
   },
   metricRow: {
-    minHeight: 40,
+    minHeight: 58,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingVertical: 4,
+    gap: 12,
+    paddingVertical: 9,
   },
   metricRowDivider: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(229,222,210,0.22)',
+    borderBottomColor: 'rgba(229,222,210,0.55)',
   },
   metricIcon: {
-    width: 30,
-    height: 30,
+    width: 34,
+    height: 34,
     borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
@@ -674,18 +821,12 @@ const styles = StyleSheet.create({
   },
   focusCard: {
     overflow: 'hidden',
-    borderRadius: 28,
+    borderRadius: radius.card,
     backgroundColor: todayHomeColors.hero,
-    borderWidth: 1,
-    borderColor: todayHomeColors.heroDeep,
-    shadowColor: todayHomeColors.shadow,
-    shadowOpacity: 1,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 7 },
-    elevation: 2,
+    ...shadow.card,
   },
   focusCardCompact: {
-    borderRadius: 26,
+    borderRadius: radius.card,
   },
   focusImage: {
     position: 'absolute',
@@ -696,53 +837,62 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   focusContent: {
-    paddingVertical: 20,
-    paddingHorizontal: 20,
+    paddingVertical: 26,
+    paddingHorizontal: 24,
     zIndex: 1,
   },
   focusContentCompact: {
-    paddingVertical: 18,
-    paddingHorizontal: 18,
+    paddingVertical: 24,
+    paddingHorizontal: 22,
   },
   focusLabel: {
-    color: todayHomeColors.warmWhite,
-    fontFamily: fonts.sansRegular,
+    color: colors.onAccent,
+    fontFamily: fonts.sansMedium,
     fontSize: 13,
     lineHeight: 18,
     letterSpacing: 0,
   },
   focusTitle: {
-    color: todayHomeColors.warmWhite,
+    color: colors.onAccent,
     fontFamily: fonts.serifMedium,
-    fontSize: 28,
-    lineHeight: 32,
+    fontSize: 25,
+    lineHeight: 28,
     letterSpacing: 0,
-    marginTop: 10,
-    maxWidth: '64%',
+    marginTop: 16,
+    maxWidth: '86%',
   },
   focusTitleCompact: {
     fontSize: 25,
-    lineHeight: 29,
+    lineHeight: 28,
   },
   focusSubtitle: {
-    color: todayHomeColors.warmWhite,
+    color: colors.onAccent,
     fontFamily: fonts.sansRegular,
-    fontSize: 14,
-    lineHeight: 19,
+    fontSize: 13,
+    lineHeight: 18,
     letterSpacing: 0,
-    marginTop: 9,
-    maxWidth: '58%',
+    marginTop: 10,
+    maxWidth: '72%',
+  },
+  focusDetail: {
+    color: colors.onAccent,
+    fontFamily: fonts.sansRegular,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0,
+    marginTop: 10,
+    maxWidth: '72%',
   },
   focusButton: {
-    marginTop: 18,
+    marginTop: 22,
     alignSelf: 'flex-start',
-    minHeight: 42,
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    borderRadius: 21,
-    paddingHorizontal: 18,
-    paddingVertical: 8,
+    borderRadius: 24,
+    paddingHorizontal: 22,
+    paddingVertical: 10,
     backgroundColor: todayHomeColors.warmWhite,
     borderWidth: 1,
     borderColor: todayHomeColors.warmWhite,
@@ -752,80 +902,18 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.99 }],
   },
   focusButtonText: {
-    color: todayHomeColors.headingGreen,
+    color: colors.accentDeep,
     fontFamily: fonts.sansMedium,
-    fontSize: 15,
+    fontSize: 14,
     lineHeight: 19,
     letterSpacing: 0,
   },
   focusButtonArrow: {
-    color: todayHomeColors.headingGreen,
+    color: colors.accentDeep,
     fontFamily: fonts.sansMedium,
-    fontSize: 22,
+    fontSize: 21,
     lineHeight: 22,
-    marginTop: -2,
-  },
-  nextCard: {
-    minHeight: 80,
-    borderRadius: 22,
-    paddingHorizontal: 18,
-    paddingVertical: 15,
-    backgroundColor: todayHomeColors.card,
-    borderWidth: 1,
-    borderColor: todayHomeColors.border,
-    shadowColor: todayHomeColors.shadow,
-    shadowOpacity: 1,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 1,
-  },
-  nextLabel: {
-    color: todayHomeColors.primaryText,
-    fontFamily: fonts.sansRegular,
-    fontSize: 15,
-    lineHeight: 20,
-    letterSpacing: 0,
-  },
-  nextBody: {
-    minHeight: 42,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginTop: 9,
-  },
-  nextIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: todayHomeColors.iconFill,
-  },
-  nextCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  nextTitle: {
-    color: todayHomeColors.primaryText,
-    fontFamily: fonts.sansMedium,
-    fontSize: 16,
-    lineHeight: 21,
-    letterSpacing: 0,
-  },
-  nextMeta: {
-    color: todayHomeColors.secondaryText,
-    fontFamily: fonts.sansRegular,
-    fontSize: 13,
-    lineHeight: 18,
-    letterSpacing: 0,
-    marginTop: 4,
-  },
-  nextChevron: {
-    color: todayHomeColors.secondaryText,
-    fontFamily: fonts.sansRegular,
-    fontSize: 32,
-    lineHeight: 32,
-    marginLeft: spacing.sm,
+    marginTop: -1,
   },
   modalRoot: {
     flex: 1,
@@ -842,17 +930,14 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xl,
     paddingBottom: spacing.xxxl,
     backgroundColor: colors.bgSurface,
-    borderWidth: 1,
-    borderColor: colors.borderHairline,
-    ...shadow.lifted,
+    ...shadow.card,
   },
   sheetTitle: {
-    ...type.h2,
+    ...type.cardTitle,
     color: colors.textPrimary,
   },
   sheetSubtitle: {
-    ...type.bodySmall,
-    color: colors.textSecondary,
+    ...type.cardBody,
     marginTop: spacing.xs,
   },
   menuOptions: {
@@ -875,7 +960,7 @@ const styles = StyleSheet.create({
     borderColor: colors.accentBorder,
   },
   menuOptionText: {
-    ...type.bodySmall,
+    ...type.cardRowTitle,
     color: colors.textPrimary,
     fontFamily: fonts.sansMedium,
   },

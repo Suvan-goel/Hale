@@ -425,6 +425,7 @@ function sanitizeReport(report: MovementBlockReport): BackendJson {
     totalPlannedSessions: report.totalPlannedSessions,
     microChecksCompleted: report.microChecksCompleted,
     domainChanges: report.domainChanges,
+    comparison: report.comparison,
     recommendedNextFocusDomain: report.recommendedNextFocusDomain,
   });
 }
@@ -442,6 +443,11 @@ function sanitizeMovementBlock(block: MovementBlock | null | undefined): Backend
     totalPlannedSessions: block.totalPlannedSessions,
     completedSessions: block.completedSessions,
     microChecksCompleted: block.microChecksCompleted,
+    focusSelectionKind: block.focusSelectionKind,
+    focusTiedDomains: block.focusTiedDomains,
+    focusTieBreakReason: block.focusTieBreakReason,
+    focusNearTieMarginYears: block.focusNearTieMarginYears,
+    focusSelectionPolicyVersion: block.focusSelectionPolicyVersion,
     sourceAssessmentId: block.sourceAssessmentId,
     createdAt: block.createdAt,
     updatedAt: block.updatedAt,

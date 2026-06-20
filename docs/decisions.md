@@ -912,8 +912,8 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 - **Change:** the central palette moved away from mint-heavy wellness styling toward a warmer,
   more mature longevity identity: `bgBase #F7F5EF`, white cards, elevated `#FBFAF7` surfaces,
   primary ink `#111412`, secondary text `#68706A`, tertiary text `#8A908A`, brand green
-  `#123C2E`, pressed green `#0B2B21`, progress/success emerald `#007A5A`, soft fills
-  `#EEF4EF/#F5F8F5`, stone borders `#E4E0D6/#D8D3C8`, warm accent `#A98243`, and soft gold
+  `#123C2E`, pressed green `#0B2B21`, progress/success emerald `#007A5A`, transparent soft
+  fills, stone borders `#E4E0D6/#D8D3C8`, warm accent `#A98243`, and soft gold
   fill `#F4EFE4`.
 - **Today card:** the Daily Focus card returned to a deep brand-green hero treatment with
   warm-white copy, a warm-white CTA, and only restrained line texture, removing the generic pale
@@ -933,3 +933,88 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 - **Scope boundary:** profile presentation/navigation only. Auth handlers, account deletion/export
   services, local profile persistence, plan generation, reminders, camera setup, pose detection,
   check-up/session state machines, and backend sync contracts are unchanged.
+
+## 2026-06-20 — Warm clay canvas and borderless cards
+
+- **Change:** the app canvas moved to `bgBase #F4EDE6`; base and elevated card surfaces now share
+  `#FBF5EF`. Shared `Card` variants and matching one-off card panels no longer draw outer borders,
+  relying on fill and soft shadow for separation.
+- **Mirrors:** `app.json`, both native `PoseDetectionView` backgrounds, and the skeleton preview
+  script were kept in sync with the new `bgBase`.
+- **Scope boundary:** visual palette/card styling only. Product copy, navigation, pose detection,
+  check-up/session state machines, scoring, persistence, auth/backend sync, and training logic are
+  unchanged.
+
+## 2026-06-20 — Plan-card recipe promoted app-wide
+
+- **Change:** the Plan page cards became the app-wide card reference: `#FBF5EF` fill, 16px radius,
+  `0 10px 24px rgba(17,20,18,0.06)` shadow, compact 18/24 serif card titles, 14/20 card body copy,
+  and 14/19 row titles. Shared `Card`, `MaterialCard`, `MetricCard`, list rows, health rows, and
+  matching one-off panels now use these tokens where they present card content.
+- **Scope boundary:** styling only. Navigation, app state, training/check-up logic, scoring,
+  persistence, auth/backend sync, and copy semantics are unchanged.
+
+## 2026-06-20 — Unified compact page headers
+
+- **Change:** page-level titles now share a compact Programs-style treatment: 28/34 serif regular,
+  primary text colour, 14/20 secondary subtitle, and a consistent `spacing.pageTop` top offset.
+  Shared `ScreenHeader` and custom top headers on Plan, Progress, Explore, Profile, Results,
+  Session Preview, Article, Auth, Home, and Today were aligned to those tokens.
+- **Scope boundary:** header styling only. Card typography, controls, navigation, state, scoring,
+  pose/session logic, persistence, and backend/auth behaviour are unchanged.
+
+## 2026-06-20 — Profile settings rows open detail pages
+
+- **Change:** Profile row taps now swap the tab into a dedicated detail page with a back control
+  instead of expanding content below the menu card. Profile details, Camera & Safety, Plan
+  Preferences, Trainer Voice, Equipment Setup, Privacy, and Help all use the same local detail-page
+  pattern.
+- **Scope boundary:** profile tab interaction only. Existing preference state, account actions,
+  camera setup, safety profile flow, persistence, auth/backend sync, pose detection, and training
+  logic are unchanged.
+
+## 2026-06-20 — Shared page width matches Plan
+
+- **Change:** the Plan page container became the app-wide page-width reference via theme tokens:
+  `spacing.pageMaxWidth` is `430` and `spacing.pageHorizontal` is `18`. Shared `Screen` content
+  plus custom Today, Profile, Explore, Auth, Article, and splash containers now use those values so
+  normal pages share the same horizontal footprint.
+- **Scope boundary:** outer page layout only. Inner card padding, camera/session HUD layouts,
+  navigation, persistence, auth/backend sync, pose detection, scoring, and training logic are
+  unchanged.
+
+## 2026-06-20 — Unified green accent colour
+
+- **Change:** green buttons, primary accent tokens, success/progress green, Today hero greens, and
+  green tab/icon accents now use `#414C34`. Hardcoded green RGBA overlays on the Explore featured
+  post and Plan week pill were updated to the same RGB value.
+- **Scope boundary:** colour styling only. Layout, copy, navigation, state, persistence, auth/backend
+  sync, pose detection, scoring, and training logic are unchanged.
+
+## 2026-06-20 — Settings moved to page headers
+
+- **Change:** Settings was removed from the bottom tab bar, leaving the primary loop as Today,
+  Plan, Progress, and Explore. The Settings screen keeps the internal `profile` route key, but it
+  is opened from a gear icon in the headers of those four primary pages. The screen title,
+  help/back accessibility labels, and cross-links now refer to Settings instead of Profile.
+- **Scope boundary:** navigation chrome and user-facing copy only. Stored profile/preferences data,
+  route keys, account actions, persistence, auth/backend sync, and settings section behaviour are
+  unchanged.
+
+## 2026-06-20 — Floating primary tab bar
+
+- **Change:** the four-item primary tab bar became an inset floating capsule on the warm base
+  canvas, with a soft ivory fill, thin stone border, light lift, and colour-only active state using
+  the shared `#414C34` green.
+- **Scope boundary:** navigation chrome styling only. Tab membership, route keys, screen state,
+  persistence, auth/backend sync, and settings access are unchanged.
+
+## 2026-06-20 — Soft fills moved off green tint
+
+- **Change:** pale selected/button/icon-well backgrounds moved from sage-tinted fills to transparent
+  outline treatments: shared `accentSoft`/`sageMist`/`bgSage` and Today `iconFill` are now
+  transparent, while borders and foreground labels carry the state. Direct translucent green
+  overlays/press states were neutralized. The dark `#414C34` brand accent remains for text, icons,
+  progress, and primary actions.
+- **Scope boundary:** visual styling only. Copy, interaction state, route keys, persistence,
+  auth/backend sync, pose detection, scoring, and training logic are unchanged.

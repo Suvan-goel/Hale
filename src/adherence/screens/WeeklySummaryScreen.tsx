@@ -60,6 +60,6 @@ const styles = StyleSheet.create({
   label: { ...type.label },
   value: { ...type.bodySmall, color: colors.textSecondary },
   supportHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md, flexWrap: 'wrap' },
-  title: { ...type.h2 },
-  body: { ...type.bodySmall, color: colors.textSecondary },
+  title: { ...type.cardTitle },
+  body: { ...type.cardBody },
 });

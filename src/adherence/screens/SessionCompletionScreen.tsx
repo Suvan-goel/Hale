@@ -172,8 +172,8 @@ function Choice({ label, selected, onPress }: { label: string; selected: boolean
 
 const styles = StyleSheet.create({
   card: { gap: spacing.sm },
-  title: { ...type.h2 },
-  body: { ...type.bodySmall, color: colors.textSecondary },
+  title: { ...type.cardTitle },
+  body: { ...type.cardBody },
   summaryBlock: { gap: 2 },
   summaryTitle: { ...type.bodySmall, color: colors.textPrimary, fontWeight: '500' },
   effortRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },

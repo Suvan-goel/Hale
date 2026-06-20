@@ -1,8 +1,7 @@
-import type { MovementBlock } from '../adherence';
-import { getBlockCreationEligibility } from '../haleFlow/assessmentEligibility';
+import type { MovementAssessment, MovementBlock } from '../adherence';
+import { latestUsableOfficialCheckUpRecord } from '../haleFlow/checkupHistory';
 import type { StoredCheckUp } from '../history';
 import type { OnboardingStep, Preferences } from '../profile';
-import { scoreCheckUp } from '../scoring';
 
 export const V1_BASELINE_MOVEMENT_IDS = [
   'chair-stand-30s',
@@ -14,6 +13,7 @@ export const V1_BASELINE_MOVEMENT_IDS = [
 export interface OnboardingProgressInput {
   prefs: Preferences;
   history: readonly StoredCheckUp[];
+  assessments?: readonly MovementAssessment[];
   activeBlock?: MovementBlock | null;
 }
 
@@ -25,7 +25,7 @@ export function deriveOnboardingStep(input: OnboardingProgressInput): Onboarding
   }
   if (!prefs.profile.safetyProfile) return 'safety_profile';
   if (!equipmentStepComplete(prefs)) return 'equipment';
-  const hasUsableBaseline = history.some((item) => getBlockCreationEligibility({ score: scoreCheckUp(item.checkUp) }).eligible);
+  const hasUsableBaseline = !!latestUsableOfficialCheckUpRecord(history, input.assessments ?? []);
   if (!hasUsableBaseline) {
     if (prefs.onboarding.currentStep === 'camera_setup' || prefs.onboarding.currentStep === 'baseline_checkup') {
       return 'camera_setup';

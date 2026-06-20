@@ -47,10 +47,10 @@ const styles = StyleSheet.create({
   },
   container: {
     width: '100%',
-    maxWidth: 640,
+    maxWidth: spacing.pageMaxWidth,
     alignSelf: 'center',
-    paddingHorizontal: spacing.xxl,
-    paddingTop: spacing.huge,
+    paddingHorizontal: spacing.pageHorizontal,
+    paddingTop: spacing.pageTop,
     paddingBottom: spacing.huge,
   },
   back: {
@@ -66,8 +66,8 @@ const styles = StyleSheet.create({
   backPressed: { opacity: 0.85, transform: [{ scale: 0.99 }] },
   backText: { ...type.bodySmall, color: colors.accentDeep },
   eyebrow: { ...type.label, marginTop: spacing.xl, color: colors.sageDeep },
-  title: { ...type.display, marginTop: spacing.sm },
-  excerpt: { ...type.body, color: colors.textSecondary, marginTop: spacing.lg },
+  title: { ...type.pageTitle, marginTop: spacing.sm },
+  excerpt: { ...type.pageSubtitle, marginTop: spacing.lg },
   rule: { height: StyleSheet.hairlineWidth, backgroundColor: colors.divider, marginTop: spacing.xxl },
   para: { ...type.body, marginTop: spacing.xl },
 });

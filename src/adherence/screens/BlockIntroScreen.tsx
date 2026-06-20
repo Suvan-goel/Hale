@@ -63,9 +63,9 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, flexWrap: 'wrap' },
   rowCopy: { flex: 1 },
   label: { ...type.label },
-  value: { ...type.h2, marginTop: spacing.xs },
+  value: { ...type.cardTitle, marginTop: spacing.xs },
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.divider },
   detailRow: { gap: spacing.xs },
-  detailValue: { ...type.bodySmall, color: colors.textSecondary },
+  detailValue: { ...type.cardBody },
   actions: { gap: spacing.md },
 });

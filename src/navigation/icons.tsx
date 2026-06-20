@@ -5,6 +5,7 @@
  */
 
 import * as React from 'react';
+import { Image } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 export interface IconProps {
@@ -28,6 +29,8 @@ const common = (color: string, strokeWidth: number) => ({
   strokeLinejoin: 'round' as const,
   fill: 'none' as const,
 });
+
+const settingsCogIcon = require('../../assets/icons/settings-cog.png');
 
 export function HomeIcon({ size, color, strokeWidth = 1.8 }: IconProps) {
   const s = common(color, strokeWidth);
@@ -142,16 +145,13 @@ export function ProfileIcon({ size, color, strokeWidth = 1.8 }: IconProps) {
   );
 }
 
-export function SettingsIcon({ size, color, strokeWidth = 1.8 }: IconProps) {
-  const s = common(color, strokeWidth);
+export function SettingsIcon({ size = 26, color }: IconProps) {
   return (
-    <Frame size={size}>
-      <Path d="M4 7.5 H20" {...s} />
-      <Path d="M4 12 H20" {...s} />
-      <Path d="M4 16.5 H20" {...s} />
-      <Circle cx={9} cy={7.5} r={2} {...s} fill="none" />
-      <Circle cx={15} cy={12} r={2} {...s} />
-      <Circle cx={8} cy={16.5} r={2} {...s} />
-    </Frame>
+    <Image
+      source={settingsCogIcon}
+      style={{ width: size, height: size, tintColor: color }}
+      resizeMode="contain"
+      accessibilityIgnoresInvertColors
+    />
   );
 }

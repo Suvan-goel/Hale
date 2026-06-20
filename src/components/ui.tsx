@@ -332,7 +332,7 @@ export function ScreenHeader({
 
 export function SettingsIconButton({
   onPress,
-  accessibilityLabel = 'Open profile and settings',
+  accessibilityLabel = 'Open settings',
 }: {
   onPress: () => void;
   accessibilityLabel?: string;
@@ -683,7 +683,7 @@ export function EmptyState({
   onAction?: () => void;
 }) {
   return (
-    <Card>
+    <Card style={styles.emptyCard}>
       <Text style={styles.emptyTitle}>{title}</Text>
       <Text style={styles.emptyBody}>{body}</Text>
       {actionLabel && onAction ? <PrimaryButton title={actionLabel} onPress={onAction} style={styles.emptyButton} /> : null}
@@ -724,16 +724,16 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bgBase },
   screenContent: {
     width: '100%',
-    maxWidth: 560,
+    maxWidth: spacing.pageMaxWidth,
     alignSelf: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.huge,
+    paddingHorizontal: spacing.pageHorizontal,
+    paddingTop: spacing.pageTop,
     paddingBottom: spacing.xxxl,
     gap: spacing.xl,
   },
-  header: { gap: spacing.sm },
-  headerTitle: { ...type.display },
-  headerSubtitle: { ...type.body, color: colors.textSecondary, maxWidth: 460 },
+  header: { gap: spacing.xs },
+  headerTitle: { ...type.pageTitle },
+  headerSubtitle: { ...type.pageSubtitle, maxWidth: 460 },
   iconButton: {
     width: minTapTarget,
     height: minTapTarget,
@@ -751,16 +751,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.lg,
   },
-  sectionTitle: { ...type.h2 },
+  sectionTitle: { ...type.cardTitle },
   sectionAction: { minHeight: 32, justifyContent: 'center' },
   sectionActionText: { ...type.label, color: colors.accentDeep },
   card: {
-    padding: spacing.lg,
-    borderRadius: radius.card,
-    backgroundColor: colors.bgSurface,
-    borderWidth: 1,
-    borderColor: colors.borderHairline,
-    ...shadow.soft,
+    ...componentStyles.card.base,
   },
   materialCard: {
     ...componentStyles.card.elevated,
@@ -852,15 +847,14 @@ const styles = StyleSheet.create({
   metricCard: {
     flex: 1,
     minWidth: 150,
-    padding: spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     borderRadius: radius.input,
-    backgroundColor: colors.elevatedCard,
-    borderWidth: 1,
-    borderColor: colors.borderHairline,
+    backgroundColor: colors.bgMaterial,
     gap: spacing.sm,
   },
-  metricLabel: { ...type.caption },
-  metricValue: { ...type.h1, fontVariant: ['tabular-nums'] },
+  metricLabel: { ...type.cardCaption },
+  metricValue: { ...type.cardTitle, fontVariant: ['tabular-nums'] },
   metricFooter: { minHeight: 26, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   metricDetail: { ...type.caption, color: colors.textTertiary, flex: 1 },
   ring: { alignItems: 'center', justifyContent: 'center' },
@@ -869,8 +863,8 @@ const styles = StyleSheet.create({
   ringLabel: { ...type.caption, color: colors.sageDeep, marginTop: -2 },
   listLeading: { alignItems: 'center', justifyContent: 'center' },
   listCopy: { flex: 1, minWidth: 0 },
-  listTitle: { ...type.bodySmall, fontFamily: fonts.sansMedium },
-  listSubtitle: { ...type.caption, marginTop: 2 },
+  listTitle: { ...type.cardRowTitle },
+  listSubtitle: { ...type.cardCaption, marginTop: 2 },
   listMeta: { alignItems: 'flex-end', maxWidth: 140 },
   listValue: { ...type.bodySmall, fontFamily: fonts.sansMedium, color: colors.accentDeep, textAlign: 'right' },
   listStatus: { ...type.caption, color: colors.textTertiary, marginTop: 2, textAlign: 'right' },
@@ -896,8 +890,8 @@ const styles = StyleSheet.create({
   planIconCream: { backgroundColor: colors.bgElevated },
   planIconText: { fontFamily: fonts.sansMedium, fontSize: 16, color: colors.accentDeep },
   planText: { flex: 1 },
-  planTitle: { ...type.h3 },
-  planSubtitle: { ...type.caption, marginTop: 2 },
+  planTitle: { ...type.cardRowTitle },
+  planSubtitle: { ...type.cardCaption, marginTop: 2 },
   chevron: { ...type.h2, color: colors.textTertiary },
   healthRow: {
     minHeight: 64,
@@ -917,12 +911,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   healthIconText: { fontFamily: fonts.sansMedium, fontSize: 14, color: colors.accentDeep },
-  healthLabel: { ...type.bodySmall, flex: 1 },
+  healthLabel: { ...type.cardRowTitle, flex: 1 },
   healthValueWrap: { alignItems: 'flex-end', maxWidth: 136 },
-  healthValue: { ...type.bodySmall, fontFamily: fonts.sansMedium, fontVariant: ['tabular-nums'] },
-  healthStatus: { ...type.caption, color: colors.sageDeep, marginTop: 2, textAlign: 'right' },
-  emptyTitle: { ...type.h2 },
-  emptyBody: { ...type.bodySmall, color: colors.textSecondary, marginTop: spacing.sm },
+  healthValue: { ...type.cardRowTitle, fontVariant: ['tabular-nums'] },
+  healthStatus: { ...type.cardCaption, color: colors.sageDeep, marginTop: 2, textAlign: 'right' },
+  emptyCard: {
+    gap: spacing.md,
+  },
+  emptyTitle: { ...type.cardTitle },
+  emptyBody: { ...type.cardBody },
   emptyButton: { marginTop: spacing.lg },
   toggleRow: {
     flexDirection: 'row',

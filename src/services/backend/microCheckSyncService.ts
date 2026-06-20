@@ -304,6 +304,11 @@ function sanitizeMovementBlock(block: MovementBlock | null | undefined): Backend
     retestDate: block.retestDate,
     completedSessions: block.completedSessions,
     microChecksCompleted: block.microChecksCompleted,
+    focusSelectionKind: block.focusSelectionKind,
+    focusTiedDomains: block.focusTiedDomains,
+    focusTieBreakReason: block.focusTieBreakReason,
+    focusNearTieMarginYears: block.focusNearTieMarginYears,
+    focusSelectionPolicyVersion: block.focusSelectionPolicyVersion,
   });
 }
 

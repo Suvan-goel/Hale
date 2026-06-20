@@ -56,7 +56,7 @@ function MemberCard({ member }: { member: FamilyMember }) {
       </View>
 
       <View style={styles.statRow}>
-        <Stat label="Movement age" value={member.movementAge === null ? '—' : `${member.movementAge}`} />
+        <Stat label="Sample estimate" value={member.movementAge === null ? '—' : `${member.movementAge}`} />
         <Stat label="Sessions / wk" value={`${member.weeklySessions}`} />
         <Stat label="Active" value={member.lastActive} />
       </View>
@@ -75,8 +75,8 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   overview: { backgroundColor: colors.bgElevated },
-  overviewTitle: { ...type.h2 },
-  overviewBody: { ...type.bodySmall, color: colors.textSecondary, marginTop: spacing.sm },
+  overviewTitle: { ...type.cardTitle },
+  overviewBody: { ...type.cardBody, marginTop: spacing.sm },
   list: { gap: spacing.lg },
   card: { gap: spacing.lg },
   memberHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
   },
   avatarText: { ...type.h2, color: colors.accentDeep },
   identity: { flex: 1 },
-  name: { ...type.h3 },
+  name: { ...type.cardRowTitle },
   relation: { ...type.caption, marginTop: 2 },
   statRow: {
     flexDirection: 'row',
@@ -100,6 +100,6 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   stat: { flex: 1 },
-  statValue: { ...type.h3, fontVariant: ['tabular-nums'] },
-  statLabel: { ...type.caption, marginTop: 2 },
+  statValue: { ...type.cardRowTitle, fontVariant: ['tabular-nums'] },
+  statLabel: { ...type.cardCaption, marginTop: 2 },
 });

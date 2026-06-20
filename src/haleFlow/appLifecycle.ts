@@ -9,14 +9,16 @@ import {
   microCheckCompletedThisWeek,
   sessionsCompletedThisWeek,
   type AdherenceStoreState,
+  type MovementAssessment,
   type MovementBlock,
   type MovementDomain,
 } from '../adherence';
 import type { StoredCheckUp } from '../history';
 import type { UserProfile } from '../profile';
-import { scoreCheckUp, type CheckUpScore } from '../scoring';
+import type { CheckUpScore } from '../scoring';
 import type { TrainingState } from '../training';
-import { getBlockCreationEligibility } from './assessmentEligibility';
+import { latestUsableOfficialAssessment } from './assessments';
+import { latestUsableOfficialCheckUpRecord } from './checkupHistory';
 import { PLAN_SESSION_IDS, planSessionIdForTemplateId, type PlanSessionId } from './sessionIds';
 
 export type HaleLifecycleState =
@@ -98,7 +100,7 @@ export interface WeekSessionStatus {
 export function getHaleAppLifecycle(input: HaleAppLifecycleInput): HaleAppLifecycleResult {
   const today = normalizeToday(input.today);
   const activeBlock = getActiveBlock(input);
-  const latestScore = latestUsableCheckUpScore(input.history);
+  const latestScore = latestUsableCheckUpScore(input.history, input.adherence?.assessments);
   const hasBaseline = !!latestScore || hasOfficialAssessment(input.adherence);
   const activeBlockSummary = getActiveBlockSummary({ ...input, today });
   const movementSnapshot = getMovementSnapshot({ score: latestScore });
@@ -160,7 +162,7 @@ export function getTodayPrimaryAction(state: HaleLifecycleState): TodayPrimaryAc
       return {
         type: 'start_checkup',
         title: 'Ready for your first Movement Check-Up?',
-        subtitle: 'Check strength, balance, and mobility from home.',
+        subtitle: 'Estimate strength, balance, and mobility from home.',
         ctaLabel: 'Start Movement Check-Up',
       };
     case 'needs_block_creation':
@@ -191,7 +193,7 @@ export function getTodayPrimaryAction(state: HaleLifecycleState): TodayPrimaryAc
       return {
         type: 'start_retest',
         title: "It's time to re-test",
-        subtitle: 'Repeat your Movement Check-Up to see what changed.',
+        subtitle: 'Repeat your Movement Check-Up to add another data point.',
         ctaLabel: 'Start re-test',
         tone: 'retest',
       };
@@ -199,8 +201,8 @@ export function getTodayPrimaryAction(state: HaleLifecycleState): TodayPrimaryAc
       return {
         type: 'explore_extra_sessions',
         title: "You've completed your sessions this week",
-        subtitle: 'Protect your progress with an optional mobility reset.',
-        ctaLabel: 'Explore Extra Sessions',
+        subtitle: 'Support your progress with an optional mobility reset.',
+        ctaLabel: 'Start mobility reset',
         tone: 'gentle',
       };
     case 'inactive_restart':
@@ -216,7 +218,7 @@ export function getTodayPrimaryAction(state: HaleLifecycleState): TodayPrimaryAc
       return {
         type: 'start_today_session',
         title: "Today's Hale Session",
-        subtitle: 'Your next session is adjusted from your check-up and recent progress.',
+        subtitle: 'Your next session is shaped by your check-up and recent training.',
         ctaLabel: 'Start',
       };
   }
@@ -349,19 +351,15 @@ function getActiveBlock(input: HaleAppLifecycleInput): MovementBlock | null {
   return getActiveMovementBlock(blocks);
 }
 
-function latestUsableCheckUpScore(history: HaleAppLifecycleInput['history']): CheckUpScore | null {
-  if (!history) return null;
-  for (let i = history.length - 1; i >= 0; i -= 1) {
-    const score = scoreCheckUp(history[i].checkUp);
-    if (getBlockCreationEligibility({ score }).eligible) return score;
-  }
-  return null;
+function latestUsableCheckUpScore(
+  history: HaleAppLifecycleInput['history'],
+  assessments: readonly MovementAssessment[] | null | undefined
+): CheckUpScore | null {
+  return latestUsableOfficialCheckUpRecord(history, assessments)?.score ?? null;
 }
 
 function hasOfficialAssessment(adherence: AdherenceStoreState | null | undefined): boolean {
-  return !!adherence?.assessments.some(
-    (assessment) => assessment.isOfficialForProgress && getBlockCreationEligibility({ assessment }).eligible
-  );
+  return !!latestUsableOfficialAssessment(adherence?.assessments ?? []);
 }
 
 function hasCompletedFirstRunProfile(profile: UserProfile | null | undefined): boolean {
@@ -422,10 +420,9 @@ function isInBlockWeek(block: MovementBlock, today: string): (value: string) => 
   };
 }
 
-// Existing scoring expresses a domain as a movement-age range. Lower movement
-// age is better, so we invert the intuitive "higher score is stronger" mapping:
-// younger-than-late-50s => strong, typical 60s => building, older ranges =>
-// starting point. Missing or non-finite ranges are simply omitted.
+// Existing scoring expresses a domain as an age-range estimate. Lower estimate
+// maps to the stronger display band, so we invert the intuitive "higher score
+// is stronger" mapping. Missing or non-finite ranges are simply omitted.
 function bandFromAgeRange(ageLow: number, ageHigh: number): MovementSnapshotBand | undefined {
   if (!Number.isFinite(ageLow) || !Number.isFinite(ageHigh)) return undefined;
   const mid = (ageLow + ageHigh) / 2;

@@ -1,4 +1,5 @@
-import type { CheckUpScore, Domain, DomainResult } from '../../scoring';
+import type { CheckUpScore, Domain, DomainResult, VersionedCheckUpScoreSnapshot } from '../../scoring';
+import { toStoredScoreSnapshot } from '../../scoring';
 import {
   createLifeGoal,
   createMovementBlockFromAssessment,
@@ -58,20 +59,29 @@ function safety(): MovementSafetyProfile {
 }
 
 function assessment(type: 'baseline' | 'official_retest' | 'manual_extra' = 'baseline') {
+  const inputScore = score('balance');
   return createMovementAssessment({
     checkUpId: START,
     type,
-    score: score('balance'),
+    score: inputScore,
+    scoreSnapshot: scoreSnapshotFor(inputScore),
     completedAt: START,
   });
 }
 
 function block(): MovementBlock {
+  const inputScore = score('balance');
+  const scoreSnapshot = scoreSnapshotFor(inputScore);
+  const sourceAssessment = assessment('baseline');
   return createMovementBlockFromAssessment({
-    latestAssessment: { score: score('balance'), id: 'assessment-1' },
+    latestAssessment: { score: inputScore, scoreSnapshot, id: 'assessment-1', assessment: sourceAssessment },
     lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
     startDate: START,
   });
+}
+
+function scoreSnapshotFor(inputScore: CheckUpScore): VersionedCheckUpScoreSnapshot {
+  return toStoredScoreSnapshot(inputScore)!;
 }
 
 describe('getNextBestAction', () => {
@@ -199,6 +209,7 @@ describe('manual check-up rules', () => {
       checkUpId: '2026-06-02T08:00:00.000Z',
       type: 'baseline_retake',
       score: score('strength'),
+      scoreSnapshot: scoreSnapshotFor(score('strength')),
       completedAt: '2026-06-02T08:00:00.000Z',
     });
     expect(canReplaceBaselineWithRetake({ original, retake, confirmed: false })).toBe(false);
@@ -212,8 +223,18 @@ describe('manual check-up rules', () => {
 
 describe('session planning and reports', () => {
   it('adapts generated sessions to the focus domain', () => {
+    const inputScore = score('mobility');
+    const scoreSnapshot = scoreSnapshotFor(inputScore);
+    const sourceAssessment = createMovementAssessment({
+      checkUpId: START,
+      type: 'baseline',
+      score: inputScore,
+      scoreSnapshot,
+      completedAt: START,
+      isOfficialForProgress: true,
+    });
     const b = createMovementBlockFromAssessment({
-      latestAssessment: { score: score('mobility'), id: 'assessment-1' },
+      latestAssessment: { score: inputScore, scoreSnapshot, id: 'assessment-1', assessment: sourceAssessment },
       lifeGoal: createLifeGoal({ category: 'gardening_hobbies', nowIso: START }),
       startDate: START,
     });
@@ -248,7 +269,8 @@ describe('session planning and reports', () => {
   it('does not fabricate report domain changes when scores are missing', () => {
     const report = createMovementBlockReport({ block: block(), completions: [], previousScore: null, latestScore: null });
     expect(report.domainChanges).toEqual({});
-    expect(report.summary).toContain('will appear here');
+    expect(report.summary).toContain("direct comparison isn't available");
+    expect(report.comparison?.status).toBe('missing_snapshot');
   });
 
   it('keeps core flow copy away from banned phrases', () => {

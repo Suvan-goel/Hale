@@ -3,13 +3,20 @@ import {
   createMovementBlockFromAssessment,
   defaultAdherenceStoreState,
   makeTrainingSessionCompletion,
+  type AdherenceStoreState,
   type MovementBlock,
   type MovementSafetyProfile,
 } from '../../adherence';
 import { syntheticCheckUp } from '../../checkup/devFixture';
 import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../../history';
 import { defaultPreferences, type UserProfile } from '../../profile';
-import { type CheckUpScore, type Domain, type DomainResult, scoreCheckUp } from '../../scoring';
+import {
+  createCurrentVersionedScoreSnapshot,
+  type CheckUpScore,
+  type Domain,
+  type DomainResult,
+  scoreCheckUp,
+} from '../../scoring';
 import { DEFAULT_EQUIPMENT, buildBlock, defaultTrainingState, startBlock } from '../../training';
 import {
   getHaleAppLifecycle,
@@ -49,31 +56,65 @@ function profile(): UserProfile {
 }
 
 function baseline(startedAt = START): StoredCheckUp {
+  const checkUp = syntheticCheckUp(startedAt);
+  const scored = createCurrentVersionedScoreSnapshot(checkUp);
   return {
     schemaVersion: HISTORY_SCHEMA_VERSION,
-    checkUp: syntheticCheckUp(startedAt),
+    checkupType: 'baseline',
+    checkUp,
+    scoreSnapshot: scored.snapshot ?? undefined,
+    scoreSnapshotCompatibility: scored.snapshot ? 'current' : 'invalid_snapshot',
   };
 }
 
 function noMeasurementBaseline(startedAt = START): StoredCheckUp {
   const checkUp = syntheticCheckUp(startedAt);
+  const noMeasurementCheckUp = {
+    ...checkUp,
+    items: checkUp.items.map((item) => ({
+      movementId: item.movementId,
+      status: 'measured' as const,
+      result: { movementId: item.movementId, flags: ['no-measurement'], interruptions: 0 },
+    })),
+  };
+  const scored = createCurrentVersionedScoreSnapshot(noMeasurementCheckUp);
   return {
     schemaVersion: HISTORY_SCHEMA_VERSION,
-    checkUp: {
-      ...checkUp,
-      items: checkUp.items.map((item) => ({
-        movementId: item.movementId,
-        status: 'measured' as const,
-        result: { movementId: item.movementId, flags: ['no-measurement'], interruptions: 0 },
-      })),
-    },
+    checkupType: 'baseline',
+    checkUp: noMeasurementCheckUp,
+    scoreSnapshot: scored.snapshot ?? undefined,
+    scoreSnapshotCompatibility: scored.snapshot ? 'current' : 'invalid_snapshot',
+  };
+}
+
+function baselineAssessment(startedAt = START) {
+  const checkUp = baseline(startedAt).checkUp;
+  const scored = createCurrentVersionedScoreSnapshot(checkUp);
+  return createMovementAssessment({
+    checkUpId: checkUp.startedAt,
+    type: 'baseline',
+    score: scored.score,
+    scoreSnapshot: scored.snapshot,
+    completedAt: checkUp.startedAt,
+    isOfficialForProgress: true,
+  });
+}
+
+function adherenceWithBaseline(overrides: Partial<AdherenceStoreState> = {}): AdherenceStoreState {
+  const base = defaultAdherenceStoreState();
+  return {
+    ...base,
+    ...overrides,
+    assessments: [...(overrides.assessments ?? []), baselineAssessment()],
   };
 }
 
 function activeBlock(startDate = START): MovementBlock {
   const checkUp = baseline(startDate).checkUp;
+  const assessment = baselineAssessment(startDate);
+  const scored = createCurrentVersionedScoreSnapshot(checkUp);
   return createMovementBlockFromAssessment({
-    latestAssessment: { score: scoreCheckUp(checkUp), id: checkUp.startedAt },
+    latestAssessment: { score: scored.score, scoreSnapshot: scored.snapshot, id: checkUp.startedAt, assessment },
     lifeGoal: profile().lifeGoal,
     startDate,
   });
@@ -145,7 +186,7 @@ describe('getHaleAppLifecycle', () => {
       profile: profile(),
       history: [baseline()],
       training: defaultTrainingState(),
-      adherence: defaultAdherenceStoreState(),
+      adherence: adherenceWithBaseline(),
       today: START,
     });
 
@@ -172,7 +213,7 @@ describe('getHaleAppLifecycle', () => {
       profile: profile(),
       history: [baseline()],
       training: defaultTrainingState(),
-      adherence: { ...defaultAdherenceStoreState(), blocks: [block] },
+      adherence: adherenceWithBaseline({ blocks: [block] }),
       today: '2026-06-02T08:00:00.000Z',
     });
 
@@ -191,7 +232,7 @@ describe('getHaleAppLifecycle', () => {
       profile: profile(),
       history: [baseline()],
       training: defaultTrainingState(),
-      adherence: { ...defaultAdherenceStoreState(), blocks: [block], completions },
+      adherence: adherenceWithBaseline({ blocks: [block], completions }),
       today: '2026-06-03T08:00:00.000Z',
     });
 
@@ -206,7 +247,7 @@ describe('getHaleAppLifecycle', () => {
       history: [baseline()],
       training: defaultTrainingState(),
       adherence: {
-        ...defaultAdherenceStoreState(),
+        ...adherenceWithBaseline(),
         blocks: [block],
         completions: [completed(block, '2026-06-02T08:00:00.000Z', 1)],
       },
@@ -224,7 +265,7 @@ describe('getHaleAppLifecycle', () => {
       history: [baseline()],
       training: defaultTrainingState(),
       adherence: {
-        ...defaultAdherenceStoreState(),
+        ...adherenceWithBaseline(),
         blocks: [block],
         completions: [
           completed(block, '2026-06-02T08:00:00.000Z', 1),
@@ -237,6 +278,7 @@ describe('getHaleAppLifecycle', () => {
 
     expect(result.state).toBe('week_complete');
     expect(result.primaryAction.type).toBe('explore_extra_sessions');
+    expect(result.primaryAction.ctaLabel).toBe('Start mobility reset');
   });
 
   it('surfaces the monthly re-test once the block reaches four weeks', () => {
@@ -245,7 +287,7 @@ describe('getHaleAppLifecycle', () => {
       profile: profile(),
       history: [baseline()],
       training: defaultTrainingState(),
-      adherence: { ...defaultAdherenceStoreState(), blocks: [block] },
+      adherence: adherenceWithBaseline({ blocks: [block] }),
       today: '2026-06-29T08:00:00.000Z',
     });
 
@@ -268,7 +310,7 @@ describe('getHaleAppLifecycle', () => {
       profile: profile(),
       history: [baseline(), noMeasurementBaseline('2026-06-29T08:00:00.000Z')],
       training: defaultTrainingState(),
-      adherence: { ...defaultAdherenceStoreState(), blocks: [block], assessments: [invalidRetest] },
+      adherence: adherenceWithBaseline({ blocks: [block], assessments: [invalidRetest] }),
       today: '2026-06-29T09:00:00.000Z',
     });
 
@@ -284,7 +326,7 @@ describe('getHaleAppLifecycle', () => {
       history: [baseline()],
       training: defaultTrainingState(),
       adherence: {
-        ...defaultAdherenceStoreState(),
+        ...adherenceWithBaseline(),
         blocks: [block],
         completions: [completed(block, '2026-06-02T08:00:00.000Z', 1)],
       },
@@ -311,11 +353,11 @@ describe('getHaleAppLifecycle', () => {
       profile: profile(),
       history: [baseline()],
       training: legacyTraining,
-      adherence: defaultAdherenceStoreState(),
+      adherence: adherenceWithBaseline(),
       today: START,
     });
 
-    expect(first.state).toBe('needs_block_creation');
+    expect(first.state).toBe('needs_baseline_checkup');
     expect(second.state).toBe('first_session_ready');
     expect(second.activeBlockSummary?.sessionsTargetThisWeek).toBe(3);
   });

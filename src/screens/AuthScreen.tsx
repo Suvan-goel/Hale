@@ -35,9 +35,12 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
+    width: '100%',
+    maxWidth: spacing.pageMaxWidth,
+    alignSelf: 'center',
     justifyContent: 'flex-start',
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.huge + spacing.xl,
+    paddingHorizontal: spacing.pageHorizontal,
+    paddingTop: spacing.pageTop,
     paddingBottom: spacing.xxxl,
     gap: spacing.xxl,
   },
@@ -48,9 +51,7 @@ const styles = StyleSheet.create({
   wordmark: {
     fontFamily: fonts.sansMedium,
   },
-  title: {
-    ...type.display,
-  },
+  title: { ...type.pageTitle },
   subtitle: {
     maxWidth: 360,
   },

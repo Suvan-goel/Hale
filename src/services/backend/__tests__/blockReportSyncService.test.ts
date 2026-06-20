@@ -71,7 +71,7 @@ function report(overrides: Partial<MovementBlockReport> = {}): MovementBlockRepo
     baselineAssessmentId: '2026-06-17T11:40:00.000Z',
     retestAssessmentId: 'assessment-official_retest-2026-07-15T12-00-00-000Z',
     createdAt,
-    summary: 'Strength / Power improved during this block.',
+    summary: 'Strength / Power changed during this block.',
     sessionsCompleted: 12,
     totalPlannedSessions: 12,
     microChecksCompleted: 4,
@@ -79,7 +79,7 @@ function report(overrides: Partial<MovementBlockReport> = {}): MovementBlockRepo
       strength_power: {
         previous: 64,
         current: 58,
-        direction: 'improved',
+        direction: 'recorded_lower',
       },
     },
     recommendedNextFocusDomain: 'balance',
@@ -155,7 +155,7 @@ describe('movement block report sync mapping', () => {
         strength_power: {
           previous: 64,
           current: 58,
-          direction: 'improved',
+          direction: 'recorded_lower',
           frames: [{ shouldNotUpload: true }],
         } as never,
       },
@@ -204,7 +204,7 @@ describe('movement block report sync mapping', () => {
 
     const reportJson = JSON.stringify(payload.report_json);
     expect(reportJson).toContain('block-report-movement-block-1');
-    expect(reportJson).toContain('Strength / Power improved');
+    expect(reportJson).toContain('Strength / Power changed');
     expect(reportJson).toContain('completion-movement-block-1-standard-session-1');
     expect(reportJson).not.toContain('videoUri');
     expect(reportJson).not.toContain('landmarks');

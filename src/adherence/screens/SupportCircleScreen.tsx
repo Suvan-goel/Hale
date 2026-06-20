@@ -233,8 +233,8 @@ function Choice({ label, selected, onPress }: { label: string; selected: boolean
 
 const styles = StyleSheet.create({
   card: { gap: spacing.lg },
-  title: { ...type.h2 },
-  body: { ...type.bodySmall, color: colors.textSecondary },
+  title: { ...type.cardTitle },
+  body: { ...type.cardBody },
   head: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   flex: { flex: 1 },
   input: {

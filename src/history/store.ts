@@ -10,7 +10,7 @@
  */
 
 import { CheckUp } from '../checkup/types';
-import { deserializeCheckUp, serializeCheckUp, StoredCheckUp } from './serialize';
+import { deserializeCheckUp, serializeCheckUp, StoredCheckUp, StoredCheckUpMetadata } from './serialize';
 
 /**
  * Minimal filesystem surface the store needs. `read` is async because
@@ -48,9 +48,9 @@ export class HistoryStore {
   }
 
   /** Persist one completed check-up. */
-  save(checkUp: CheckUp): void {
+  save(checkUp: CheckUp, metadata: StoredCheckUpMetadata = {}): void {
     const stamp = checkUp.startedAt.replace(/[:.]/g, '-');
-    this.fs.write(`checkup-${stamp}.json`, serializeCheckUp(checkUp));
+    this.fs.write(`checkup-${stamp}.json`, serializeCheckUp(checkUp, metadata));
   }
 
   /** All stored check-ups, oldest first; unreadable/foreign files are skipped. */

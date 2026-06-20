@@ -20,7 +20,7 @@ import {
 } from '../../modules/expo-pose-detection';
 import { SfxChannel, VoiceChannel } from '../audio/voicePlayer';
 import { CheckUp } from '../checkup/types';
-import { CheckUpOrchestrator, CheckUpPhase, DEFAULT_BATTERY } from '../checkup';
+import { CheckUpOrchestrator, CheckUpPhase, DEFAULT_BATTERY, DEFAULT_CHECKUP_CONFIG } from '../checkup';
 import { checkupIntroCaption } from '../checkup/copy';
 import { getMovement } from '../movements';
 import { AssessmentPhase } from '../assessment/sessionController';
@@ -79,15 +79,18 @@ export function CheckUpScreen({
   onComplete,
   onCancel,
   voiceId,
+  battery = DEFAULT_BATTERY,
 }: {
   onComplete: (checkUp: CheckUp) => void;
   onCancel?: () => void;
   voiceId?: string;
+  battery?: readonly string[];
 }) {
+  const totalItems = battery.length;
   const [pipeline] = React.useState(() => new PosePipeline());
   const [preflight] = React.useState(() => new PreflightCheck());
   const [orchestrator] = React.useState(
-    () => new CheckUpOrchestrator(new Date().toISOString(), preflight)
+    () => new CheckUpOrchestrator(new Date().toISOString(), preflight, { ...DEFAULT_CHECKUP_CONFIG, battery })
   );
   const [voice] = React.useState(() => new VoiceChannel(voiceId));
   const [sfx] = React.useState(() => new SfxChannel());
@@ -99,7 +102,7 @@ export function CheckUpScreen({
   const pausedRef = React.useRef(false);
   const resumePendingRef = React.useRef(false);
   const completedRef = React.useRef(false);
-  const [snapshot, setSnapshot] = React.useState<Snapshot>(INITIAL);
+  const [snapshot, setSnapshot] = React.useState<Snapshot>(() => ({ ...INITIAL, totalItems }));
   const [paused, setPaused] = React.useState(false);
   const [showHelp, setShowHelp] = React.useState(false);
   const windowSize = useWindowDimensions();
@@ -403,9 +406,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderRadius: radius.card,
     backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...shadow.soft,
+    ...shadow.card,
   },
   progress: { ...type.label, color: colors.sageDeep },
   movement: { ...type.h1, marginTop: 4, textAlign: 'center' },
@@ -436,8 +437,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: radius.input,
     backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
   controls: {
     flexDirection: 'row',

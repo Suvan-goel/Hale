@@ -5,6 +5,10 @@ import {
   makeTrainingSessionCompletion,
   markMovementBlockComplete,
   recordTrainingSessionCompletion,
+  tryCreateMovementBlockFromAssessment,
+  type CheckupType,
+  type MovementAssessment,
+  type MovementBlock,
   upsertMovementAssessment,
   upsertMovementBlock,
   upsertMovementBlockReport,
@@ -24,13 +28,14 @@ import {
   type MovementResultBase,
   type ShoulderFlexionResult,
 } from '../../movements';
-import { scoreCheckUp } from '../../scoring';
+import { createCurrentVersionedScoreSnapshot, scoreCheckUp } from '../../scoring';
 import { STS_STANDARD_ID } from '../../exercises';
 import { createMovementAssessment, createMovementBlockReport } from '..';
 import {
   getBlockReportSummaries,
   getDomainProgressCards,
   getLadderProgressCards,
+  getLatestDomainEvidence,
   getLatestCheckUpSummary,
   getRetestDueSummary,
   getRetestHistory,
@@ -49,8 +54,9 @@ describe('progressViewModel', () => {
 
   it('shows a one-check-up baseline without fake improvement', () => {
     const history = [stored(checkUpAt(START, { chairReps: 12, tandemSec: 18, shoulderDeg: 150, reachBu: 0.32 }))];
-    const summary = getLatestCheckUpSummary(history);
-    const cards = getDomainProgressCards(history);
+    const assessments = assessmentsForHistory(history);
+    const summary = getLatestCheckUpSummary(history, assessments);
+    const cards = getDomainProgressCards(history, assessments);
 
     expect(summary?.dateLabel).toContain('2026');
     expect(cards.find((card) => card.domain === 'strength')).toMatchObject({
@@ -60,42 +66,83 @@ describe('progressViewModel', () => {
     });
   });
 
-  it('renders strength, balance, and mobility improvements from baseline to latest', () => {
+  it('packages latest check-up evidence with beta-safe home estimates and measured rows', () => {
+    const history = [stored(checkUpAt(START, { chairReps: 12, tandemSec: 18, shoulderDeg: 150, reachBu: 0.32 }))];
+    const evidence = getLatestDomainEvidence(history, assessmentsForHistory(history));
+    const strength = evidence.find((card) => card.domain === 'strength');
+    const balance = evidence.find((card) => card.domain === 'balance');
+    const mobility = evidence.find((card) => card.domain === 'mobility');
+
+    expect(evidence.map((card) => card.domain)).toEqual(['strength', 'balance', 'mobility']);
+    expect(strength?.ageLabel).toMatch(/Beta home estimate: age \d+-\d+/);
+    expect(balance?.ageLabel).toBe('Home estimate: one-leg balance hold');
+    expect(mobility?.ageLabel).toBe('Home estimate: shoulder mobility');
+    expect(strength?.metrics).toContainEqual({ label: 'Chair stands in 30s', display: '12 reps', measured: true });
+    expect(evidence.map((card) => `${card.ageLabel} ${card.interpretation}`).join(' ')).not.toMatch(/diagnosis|fall-risk|frailty|typical ages/i);
+  });
+
+  it('renders strength, balance, and mobility higher readings from baseline to latest', () => {
     const history = [
       stored(checkUpAt(START, { chairReps: 12, tandemSec: 18, shoulderDeg: 150, reachBu: 0.32 })),
-      stored(checkUpAt('2026-06-29T08:00:00.000Z', { chairReps: 15, tandemSec: 26, shoulderDeg: 162, reachBu: 0.2 })),
+      stored(checkUpAt('2026-06-29T08:00:00.000Z', { chairReps: 15, tandemSec: 24, shoulderDeg: 162, reachBu: 0.2 }), 'official_retest'),
     ];
-    const cards = getDomainProgressCards(history);
+    const cards = getDomainProgressCards(history, assessmentsForHistory(history));
 
     expect(cards.find((card) => card.domain === 'strength')).toMatchObject({
       metric: 'Chair stands: 12 -> 15 reps',
-      trend: 'improved',
+      trend: 'higher',
     });
     expect(cards.find((card) => card.domain === 'balance')).toMatchObject({
-      metric: 'Tandem hold: 18s -> 26s',
-      trend: 'improved',
+      metric: 'Tandem hold: 18s -> 24s',
+      trend: 'higher',
     });
-    expect(cards.find((card) => card.domain === 'mobility')?.body).toContain('improving');
+    expect(cards.find((card) => card.domain === 'mobility')?.body).toContain('higher mobility data point');
+  });
+
+  it('does not show progress deltas across incompatible scoring snapshots', () => {
+    const baseline = stored(checkUpAt(START, { chairReps: 12, tandemSec: 18, shoulderDeg: 150, reachBu: 0.32 }));
+    const retest = stored(
+      checkUpAt('2026-06-29T08:00:00.000Z', { chairReps: 15, tandemSec: 24, shoulderDeg: 162, reachBu: 0.2 }),
+      'official_retest'
+    );
+    retest.scoreSnapshot = {
+      ...retest.scoreSnapshot!,
+      normVersion: retest.scoreSnapshot!.normVersion + 1,
+    };
+    retest.scoreSnapshotCompatibility = 'incompatible_version';
+
+    const cards = getDomainProgressCards([baseline, retest], assessmentsForHistory([baseline, retest]));
+
+    expect(cards.find((card) => card.domain === 'strength')).toMatchObject({
+      metric: 'Chair stands: 15 reps',
+      body: 'This is your starting point.',
+      trend: 'unknown',
+    });
   });
 
   it('uses non-shaming copy when results are unchanged or lower', () => {
-    const steady = getDomainProgressCards([
+    const steadyHistory = [
       stored(checkUpAt(START, { chairReps: 12, tandemSec: 18, shoulderDeg: 150, reachBu: 0.32 })),
-      stored(checkUpAt('2026-06-29T08:00:00.000Z', { chairReps: 12, tandemSec: 18, shoulderDeg: 150, reachBu: 0.32 })),
-    ]);
-    const lower = getDomainProgressCards([
+      stored(checkUpAt('2026-06-29T08:00:00.000Z', { chairReps: 12, tandemSec: 18, shoulderDeg: 150, reachBu: 0.32 }), 'official_retest'),
+    ];
+    const lowerHistory = [
       stored(checkUpAt(START, { chairReps: 12, tandemSec: 18, shoulderDeg: 150, reachBu: 0.32 })),
-      stored(checkUpAt('2026-06-29T08:00:00.000Z', { chairReps: 10, tandemSec: 12, shoulderDeg: 145, reachBu: 0.4 })),
-    ]);
+      stored(checkUpAt('2026-06-29T08:00:00.000Z', { chairReps: 10, tandemSec: 12, shoulderDeg: 145, reachBu: 0.4 }), 'official_retest'),
+    ];
+    const steady = getDomainProgressCards(steadyHistory, assessmentsForHistory(steadyHistory));
+    const lower = getDomainProgressCards(lowerHistory, assessmentsForHistory(lowerHistory));
 
-    expect(steady.find((card) => card.domain === 'strength')?.body).toContain('held steady');
-    expect(lower.find((card) => card.domain === 'strength')?.body).toContain('That can happen');
-    expect(lower.map((card) => `${card.metric} ${card.body}`).join(' ')).not.toMatch(/failed|frailty|fall risk/i);
+    expect(steady.find((card) => card.domain === 'strength')?.body).toContain('Similar chair-stand result recorded');
+    expect(lower.find((card) => card.domain === 'strength')?.body).toContain('Recorded 2 fewer chair stands');
+    expect([...steady, ...lower].map((card) => `${card.metric} ${card.body}`).join(' ')).not.toMatch(/failed|frailty|fall risk|held steady|That can happen|improving/i);
   });
 
   it('summarises re-test due state and next re-test timing', () => {
+    const checkUp = checkUpAt(START, { chairReps: 12, tandemSec: 18, shoulderDeg: 150, reachBu: 0.32 });
+    const assessment = assessmentForCheckUp(checkUp);
+    const scored = createCurrentVersionedScoreSnapshot(checkUp);
     const block = createMovementBlockFromAssessment({
-      latestAssessment: { id: START, score: scoreCheckUp(checkUpAt(START, { chairReps: 12, tandemSec: 18, shoulderDeg: 150, reachBu: 0.32 })) },
+      latestAssessment: { id: START, score: scored.score, scoreSnapshot: scored.snapshot, assessment },
       lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
       startDate: START,
     });
@@ -145,18 +192,27 @@ describe('progressViewModel', () => {
 
   it('models the re-test sequence: store result, complete block, create report and next block', () => {
     const baseline = checkUpAt(START, { chairReps: 12, tandemSec: 18, shoulderDeg: 150, reachBu: 0.32 });
-    const retest = checkUpAt('2026-06-29T08:00:00.000Z', { chairReps: 15, tandemSec: 26, shoulderDeg: 162, reachBu: 0.2 });
+    const retest = checkUpAt('2026-06-29T08:00:00.000Z', { chairReps: 15, tandemSec: 24, shoulderDeg: 162, reachBu: 0.2 });
     const lifeGoal = createLifeGoal({ category: 'stairs', nowIso: START });
+    const baselineAssessment = assessmentForCheckUp(baseline);
+    const baselineScored = createCurrentVersionedScoreSnapshot(baseline);
     const block = createMovementBlockFromAssessment({
-      latestAssessment: { id: baseline.startedAt, score: scoreCheckUp(baseline) },
+      latestAssessment: {
+        id: baseline.startedAt,
+        score: baselineScored.score,
+        scoreSnapshot: baselineScored.snapshot,
+        assessment: baselineAssessment,
+      },
       lifeGoal,
       startDate: START,
     });
-    const retestScore = scoreCheckUp(retest);
+    const retestScored = createCurrentVersionedScoreSnapshot(retest);
+    const retestScore = retestScored.score;
     const retestAssessment = createMovementAssessment({
       checkUpId: retest.startedAt,
       type: 'official_retest',
       score: retestScore,
+      scoreSnapshot: retestScored.snapshot,
       sourceBlockId: block.id,
       completedAt: retest.startedAt,
       isOfficialForProgress: true,
@@ -174,9 +230,12 @@ describe('progressViewModel', () => {
       adherence,
       createMovementBlockReport({
         block: completedBlock,
+        baselineAssessment,
         retestAssessment,
-        previousScore: scoreCheckUp(baseline),
+        previousScore: baselineScored.score,
         latestScore: retestScore,
+        previousScoreSnapshot: baselineScored.snapshot,
+        latestScoreSnapshot: retestScored.snapshot,
         completions: adherence.completions,
         nowIso: retest.startedAt,
       })
@@ -184,7 +243,12 @@ describe('progressViewModel', () => {
     adherence = upsertMovementBlock(
       adherence,
       createMovementBlockFromAssessment({
-        latestAssessment: { id: retest.startedAt, score: retestScore },
+        latestAssessment: {
+          id: retest.startedAt,
+          score: retestScore,
+          scoreSnapshot: retestScored.snapshot,
+          assessment: retestAssessment,
+        },
         lifeGoal,
         startDate: retest.startedAt,
       })
@@ -198,10 +262,219 @@ describe('progressViewModel', () => {
     });
     expect(getBlockReportSummaries({ blocks: adherence.blocks, reports: adherence.reports, completions: adherence.completions })).toHaveLength(1);
   });
+
+  it('creates block reports without false deltas when snapshot versions differ', () => {
+    const baseline = checkUpAt(START, { chairReps: 12, tandemSec: 18, shoulderDeg: 150, reachBu: 0.32 });
+    const retest = checkUpAt('2026-06-29T08:00:00.000Z', { chairReps: 15, tandemSec: 24, shoulderDeg: 162, reachBu: 0.2 });
+    const baselineScored = createCurrentVersionedScoreSnapshot(baseline);
+    const retestScored = createCurrentVersionedScoreSnapshot(retest);
+    const incompatibleSnapshot = {
+      ...retestScored.snapshot!,
+      normVersion: retestScored.snapshot!.normVersion + 1,
+    };
+    const baselineAssessment = assessmentForCheckUp(baseline);
+    const retestAssessment = assessmentForCheckUp(retest, 'official_retest');
+    const block = createMovementBlockFromAssessment({
+      latestAssessment: {
+        id: baseline.startedAt,
+        score: baselineScored.score,
+        scoreSnapshot: baselineScored.snapshot,
+        assessment: baselineAssessment,
+      },
+      lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
+      startDate: START,
+    });
+
+    const report = createMovementBlockReport({
+      block,
+      baselineAssessment,
+      retestAssessment,
+      previousScore: baselineScored.score,
+      latestScore: retestScored.score,
+      previousScoreSnapshot: baselineScored.snapshot,
+      latestScoreSnapshot: incompatibleSnapshot,
+      completions: [],
+      nowIso: retest.startedAt,
+    });
+
+    expect(report.domainChanges).toEqual({});
+    expect(report.comparison?.status).toBe('incompatible_version');
+    expect(report.summary).toContain("direct comparison isn't available");
+  });
+
+  it('creates block reports without false deltas when snapshot sources do not match report endpoints', () => {
+    const baseline = checkUpAt(START, { chairReps: 12, tandemSec: 18, shoulderDeg: 150, reachBu: 0.32 });
+    const retest = checkUpAt('2026-06-29T08:00:00.000Z', { chairReps: 15, tandemSec: 24, shoulderDeg: 162, reachBu: 0.2 });
+    const baselineScored = createCurrentVersionedScoreSnapshot(baseline);
+    const retestScored = createCurrentVersionedScoreSnapshot(retest);
+    const mismatchedBaselineSnapshot = {
+      ...baselineScored.snapshot!,
+      sourceCheckUpId: '2026-05-31T08:00:00.000Z',
+    };
+    const baselineAssessment = assessmentForCheckUp(baseline);
+    const retestAssessment = assessmentForCheckUp(retest, 'official_retest');
+    const block = createMovementBlockFromAssessment({
+      latestAssessment: {
+        id: baseline.startedAt,
+        score: baselineScored.score,
+        scoreSnapshot: baselineScored.snapshot,
+        assessment: baselineAssessment,
+      },
+      lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
+      startDate: START,
+    })!;
+
+    const report = createMovementBlockReport({
+      block,
+      baselineAssessment,
+      retestAssessment,
+      previousScore: baselineScored.score,
+      latestScore: retestScored.score,
+      previousScoreSnapshot: mismatchedBaselineSnapshot,
+      latestScoreSnapshot: retestScored.snapshot,
+      completions: [],
+      nowIso: retest.startedAt,
+    });
+
+    expect(report.domainChanges).toEqual({});
+    expect(report.comparison?.status).toBe('invalid_snapshot');
+    expect(report.summary).toContain("direct comparison isn't available");
+  });
+
+  it('lets a legacy-origin active block complete without retro-scoring its baseline, then starts from the current re-test', () => {
+    const legacyBaseline = checkUpAt(START, { chairReps: 12, tandemSec: 18, shoulderDeg: 150, reachBu: 0.32 });
+    const retest = checkUpAt('2026-06-29T08:00:00.000Z', { chairReps: 15, tandemSec: 24, shoulderDeg: 162, reachBu: 0.2 });
+    const lifeGoal = createLifeGoal({ category: 'stairs', nowIso: START });
+    const legacyScore = scoreCheckUp(legacyBaseline);
+    const legacyAssessment = createMovementAssessment({
+      checkUpId: legacyBaseline.startedAt,
+      type: 'baseline',
+      score: legacyScore,
+      completedAt: legacyBaseline.startedAt,
+      isOfficialForProgress: true,
+    });
+    const legacyBlock: MovementBlock = {
+      id: 'legacy-block-1',
+      userId: 'local-device-user',
+      lifeGoalId: lifeGoal.id,
+      status: 'active',
+      startDate: START,
+      endDate: '2026-06-28T08:00:00.000Z',
+      retestDate: '2026-06-29T08:00:00.000Z',
+      focusDomain: 'strength_power',
+      secondaryDomains: ['balance', 'mobility'],
+      sessionsPerWeekTarget: 3,
+      totalPlannedSessions: 12,
+      completedSessions: 0,
+      microChecksCompleted: 0,
+      sourceAssessmentId: legacyBaseline.startedAt,
+      createdAt: START,
+      updatedAt: START,
+    };
+    const retestScored = createCurrentVersionedScoreSnapshot(retest);
+    const retestAssessment = createMovementAssessment({
+      checkUpId: retest.startedAt,
+      type: 'official_retest',
+      score: retestScored.score,
+      scoreSnapshot: retestScored.snapshot,
+      sourceBlockId: legacyBlock.id,
+      completedAt: retest.startedAt,
+      isOfficialForProgress: true,
+    });
+    const legacyRecord: StoredCheckUp = {
+      schemaVersion: HISTORY_SCHEMA_VERSION,
+      checkupType: 'baseline',
+      checkUp: legacyBaseline,
+      scoreSnapshotCompatibility: 'legacy_unversioned',
+    };
+    const currentRecord: StoredCheckUp = {
+      schemaVersion: HISTORY_SCHEMA_VERSION,
+      checkupType: 'official_retest',
+      checkUp: retest,
+      scoreSnapshot: retestScored.snapshot ?? undefined,
+      scoreSnapshotCompatibility: 'current',
+    };
+
+    expect(
+      tryCreateMovementBlockFromAssessment({
+        latestAssessment: { id: legacyBaseline.startedAt, score: legacyScore, scoreSnapshot: null, assessment: legacyAssessment },
+        lifeGoal,
+        startDate: START,
+      })
+    ).toMatchObject({ ok: false, reason: 'missing_score_snapshot' });
+
+    let adherence = upsertMovementBlock(defaultAdherenceStoreState(), legacyBlock);
+    adherence = upsertMovementAssessment(adherence, legacyAssessment);
+    adherence = upsertMovementAssessment(adherence, retestAssessment);
+    adherence = recordTrainingSessionCompletion(
+      adherence,
+      makeTrainingSessionCompletion({ block: legacyBlock, sessionType: 'retest', completedAt: retest.startedAt, plannedDate: 'retest' })
+    );
+    adherence = markMovementBlockComplete(adherence, legacyBlock.id, retest.startedAt);
+    const completedBlock = adherence.blocks.find((item) => item.id === legacyBlock.id)!;
+    const report = createMovementBlockReport({
+      block: completedBlock,
+      baselineAssessment: legacyAssessment,
+      retestAssessment,
+      previousScore: null,
+      latestScore: retestScored.score,
+      previousScoreSnapshot: null,
+      latestScoreSnapshot: retestScored.snapshot,
+      completions: adherence.completions,
+      nowIso: retest.startedAt,
+    });
+    adherence = upsertMovementBlockReport(adherence, report);
+    adherence = upsertMovementBlock(
+      adherence,
+      createMovementBlockFromAssessment({
+        latestAssessment: {
+          id: retest.startedAt,
+          score: retestScored.score,
+          scoreSnapshot: retestScored.snapshot,
+          assessment: retestAssessment,
+        },
+        lifeGoal,
+        startDate: retest.startedAt,
+      })
+    );
+
+    expect(adherence.blocks.find((item) => item.id === legacyBlock.id)?.status).toBe('completed');
+    expect(adherence.blocks.filter((item) => item.status === 'active')).toHaveLength(1);
+    expect(report.domainChanges).toEqual({});
+    expect(report.comparison?.status).toBe('missing_snapshot');
+    expect(getLatestCheckUpSummary([legacyRecord, currentRecord], [legacyAssessment, retestAssessment])?.dateLabel).toContain('2026');
+    expect(getDomainProgressCards([legacyRecord, currentRecord], [legacyAssessment, retestAssessment]).find((card) => card.domain === 'strength')).toMatchObject({
+      metric: 'Chair stands: 15 reps',
+      trend: 'unknown',
+    });
+  });
 });
 
-function stored(checkUp: CheckUp): StoredCheckUp {
-  return { schemaVersion: HISTORY_SCHEMA_VERSION, checkUp };
+function stored(checkUp: CheckUp, checkupType: CheckupType = 'baseline'): StoredCheckUp {
+  const scored = createCurrentVersionedScoreSnapshot(checkUp);
+  return {
+    schemaVersion: HISTORY_SCHEMA_VERSION,
+    checkupType,
+    checkUp,
+    scoreSnapshot: scored.snapshot ?? undefined,
+    scoreSnapshotCompatibility: scored.snapshot ? 'current' : 'invalid_snapshot',
+  };
+}
+
+function assessmentsForHistory(history: readonly StoredCheckUp[]): MovementAssessment[] {
+  return history.map((record) => assessmentForCheckUp(record.checkUp, record.checkupType));
+}
+
+function assessmentForCheckUp(checkUp: CheckUp, type: CheckupType = 'baseline'): MovementAssessment {
+  const scored = createCurrentVersionedScoreSnapshot(checkUp);
+  return createMovementAssessment({
+    checkUpId: checkUp.startedAt,
+    type,
+    score: scored.score,
+    scoreSnapshot: scored.snapshot,
+    completedAt: checkUp.startedAt,
+    isOfficialForProgress: type === 'baseline' || type === 'baseline_retake' || type === 'official_retest',
+  });
 }
 
 function measured(movementId: string, result: MovementResultBase): CheckUpItem {

@@ -65,7 +65,30 @@ export interface LearnCard {
 }
 
 export interface LearnDetail extends LearnCard {
+  categoryLabel?: string;
+  authorName?: string;
+  authorCredential?: string;
+  reviewedLabel?: string;
   sections: readonly { title: string; body: string }[];
+}
+
+export interface HealthInsightCard extends LearnCard {
+  categoryLabel: string;
+  authorName: string;
+  authorCredential: string;
+  reviewedLabel: string;
+}
+
+export interface ExploreLibrarySection {
+  id: 'movement_checkup' | 'training_basics' | 'setup_safety';
+  title: string;
+  body: string;
+  articles: LearnCard[];
+}
+
+export interface ExploreLibrary {
+  featured: LearnCard;
+  sections: ExploreLibrarySection[];
 }
 
 export interface EquipmentSetupSummary {
@@ -75,12 +98,46 @@ export interface EquipmentSetupSummary {
 }
 
 export type LearnArticleId =
+  | 'movement-checkup-guide'
   | 'chair-rise-strength'
   | 'balance-practice'
+  | 'mobility-basics'
   | 'camera-setup'
   | 'resistance-band'
   | 'movement-discomfort'
-  | 'monthly-retest';
+  | 'monthly-retest'
+  | 'insight-strength-balance-aging'
+  | 'insight-sleep-recovery-rhythm'
+  | 'insight-protein-meal-rhythm'
+  | 'insight-walking-breaks';
+
+const FEATURED_LEARN_ARTICLE_ID: LearnArticleId = 'movement-checkup-guide';
+
+const EXPLORE_LIBRARY_SECTIONS: readonly {
+  id: ExploreLibrarySection['id'];
+  title: string;
+  body: string;
+  articleIds: readonly LearnArticleId[];
+}[] = [
+  {
+    id: 'movement_checkup',
+    title: 'Movement Check-Up guide',
+    body: 'What Hale estimates, why setup matters, and how monthly re-tests shape the next block.',
+    articleIds: ['camera-setup', 'monthly-retest'],
+  },
+  {
+    id: 'training_basics',
+    title: 'Training basics',
+    body: 'Short references for the strength, balance, and mobility work in your plan.',
+    articleIds: ['chair-rise-strength', 'balance-practice', 'mobility-basics'],
+  },
+  {
+    id: 'setup_safety',
+    title: 'Safety and setup',
+    body: 'Practical notes for equipment, discomfort, and keeping sessions simple at home.',
+    articleIds: ['movement-discomfort', 'resistance-band'],
+  },
+];
 
 const PRESET_BODY: Record<string, string> = {
   'preset-mobility-reset': 'A short reset for stiffness, travel days, or the day before a re-test.',
@@ -195,7 +252,33 @@ export function getLearnCards(): LearnCard[] {
 }
 
 export function getLearnDetail(id: string): LearnDetail | null {
-  return LEARN_ARTICLES.find((article) => article.id === id) ?? null;
+  return [...LEARN_ARTICLES, ...HEALTH_INSIGHT_ARTICLES].find((article) => article.id === id) ?? null;
+}
+
+export function getHealthInsightCards(): HealthInsightCard[] {
+  return HEALTH_INSIGHT_ARTICLES.map((article) => ({
+    id: article.id,
+    title: article.title,
+    body: article.body,
+    readTimeLabel: article.readTimeLabel,
+    categoryLabel: article.categoryLabel ?? 'Insights',
+    authorName: article.authorName ?? 'Health professional',
+    authorCredential: article.authorCredential ?? 'Clinical review',
+    reviewedLabel: article.reviewedLabel ?? 'Reviewed',
+  }));
+}
+
+export function getExploreLibrary(): ExploreLibrary {
+  const featured = learnCardById(FEATURED_LEARN_ARTICLE_ID) ?? getLearnCards()[0];
+  return {
+    featured,
+    sections: EXPLORE_LIBRARY_SECTIONS.map((section) => ({
+      id: section.id,
+      title: section.title,
+      body: section.body,
+      articles: section.articleIds.map((id) => learnCardById(id)).filter((card): card is LearnCard => !!card),
+    })),
+  };
 }
 
 export function getEquipmentSetupSummary({
@@ -317,7 +400,7 @@ function focusLabel(domain: TrainingDomain): string {
 }
 
 function measurementLabel(tier: MeasurementTier): string {
-  if (tier === 'measured') return 'Camera measured';
+  if (tier === 'measured') return 'Camera estimated';
   if (tier === 'camera_assisted') return 'Camera assisted';
   return 'Voice guided';
 }
@@ -348,7 +431,133 @@ function unique<T>(items: readonly T[]): T[] {
   return out;
 }
 
+function learnCardById(id: LearnArticleId): LearnCard | null {
+  const detail = getLearnDetail(id);
+  if (!detail) return null;
+  const { sections: _sections, ...card } = detail;
+  return card;
+}
+
+const HEALTH_INSIGHT_ARTICLES: readonly LearnDetail[] = [
+  {
+    id: 'insight-strength-balance-aging',
+    title: 'Why strength and balance belong together',
+    body: 'A calm look at how muscle work and steadiness practice support everyday confidence as we age.',
+    readTimeLabel: '4 min',
+    categoryLabel: 'Movement',
+    authorName: 'Physical therapist',
+    authorCredential: 'DPT',
+    reviewedLabel: 'Reviewed Jun 2026',
+    sections: [
+      {
+        title: 'Two systems, one routine',
+        body: 'Strength helps you create force for stairs, chairs, and carrying. Balance helps you control that force when the surface, lighting, or pace changes.',
+      },
+      {
+        title: 'Small doses count',
+        body: 'Public-health guidance for older adults commonly includes aerobic activity, muscle-strengthening work, and balance practice. The useful version is the one you can repeat consistently.',
+      },
+      {
+        title: 'Make it practical',
+        body: 'A good week does not need to be complicated. Sit-to-stand practice, supported balance holds, walks, and comfortable mobility work can all support the same everyday goal.',
+      },
+    ],
+  },
+  {
+    id: 'insight-sleep-recovery-rhythm',
+    title: 'Sleep rhythm matters more than perfection',
+    body: 'Recovery starts with repeatable sleep habits, not a flawless night every night.',
+    readTimeLabel: '3 min',
+    categoryLabel: 'Recovery',
+    authorName: 'Physician',
+    authorCredential: 'MD',
+    reviewedLabel: 'Reviewed Jun 2026',
+    sections: [
+      {
+        title: 'The pattern is the point',
+        body: 'Most adults need a regular sleep window that leaves enough time for rest. A steady bedtime, morning light, and a calmer evening routine can make that window easier to protect.',
+      },
+      {
+        title: 'Movement helps, timing matters',
+        body: 'Regular physical activity can support sleep quality. If evening exercise makes you feel too alert, move harder sessions earlier and keep late movement gentle.',
+      },
+      {
+        title: 'When to get help',
+        body: 'If sleep is persistently difficult, very short, very long, or leaves you exhausted, it is worth discussing with a qualified clinician.',
+      },
+    ],
+  },
+  {
+    id: 'insight-protein-meal-rhythm',
+    title: 'A simple way to think about protein',
+    body: 'Protein is one building block for maintaining muscle, especially when paired with regular strength work.',
+    readTimeLabel: '3 min',
+    categoryLabel: 'Nutrition',
+    authorName: 'Registered dietitian',
+    authorCredential: 'RD',
+    reviewedLabel: 'Reviewed Jun 2026',
+    sections: [
+      {
+        title: 'Spread it through the day',
+        body: 'Many people find it easier to support muscle when protein appears at more than one meal instead of being left for dinner only.',
+      },
+      {
+        title: 'Use familiar foods',
+        body: 'Useful options can include yogurt, eggs, beans, lentils, fish, poultry, tofu, or other foods that fit your preferences and health needs.',
+      },
+      {
+        title: 'Keep it personal',
+        body: 'Nutrition needs change with medical history, appetite, medications, and preferences. Use this as general education, not a personal prescription.',
+      },
+    ],
+  },
+  {
+    id: 'insight-walking-breaks',
+    title: 'Why short walking breaks add up',
+    body: 'Brief movement breaks can support energy and stiffness without turning the day into a workout.',
+    readTimeLabel: '2 min',
+    categoryLabel: 'Daily habits',
+    authorName: 'Exercise physiologist',
+    authorCredential: 'MS, ACSM-EP',
+    reviewedLabel: 'Reviewed Jun 2026',
+    sections: [
+      {
+        title: 'Lower the friction',
+        body: 'A few minutes of walking after sitting can be easier to start than a formal workout. That makes it a useful habit on busy or low-energy days.',
+      },
+      {
+        title: 'Pair it with something real',
+        body: 'Attach a short walk to a natural cue: after lunch, after a phone call, or before the next cup of tea. Cues make the habit easier to remember.',
+      },
+      {
+        title: 'Keep the pace kind',
+        body: 'The goal is to refresh the body, not prove fitness. Choose a pace and route that feel steady and repeatable.',
+      },
+    ],
+  },
+];
+
 const LEARN_ARTICLES: readonly LearnDetail[] = [
+  {
+    id: 'movement-checkup-guide',
+    title: 'How the Movement Check-Up works',
+    body: 'Hale uses the phone camera as a measuring tool, then turns the results into a focused 4-week block.',
+    readTimeLabel: '3 min',
+    sections: [
+      {
+        title: 'What Hale measures',
+        body: 'The check-up looks at practical strength, balance, and mobility tasks. Each domain gets a home estimate so the next block has a clear suggested focus.',
+      },
+      {
+        title: 'Camera as a measuring tool',
+        body: 'Hale renders a clean skeleton outline and never shows self-view video. The camera estimates repeatable movement signals; it is not a form judge.',
+      },
+      {
+        title: 'Why the monthly rhythm helps',
+        body: 'A 4-week block gives training time to take hold. The next check-up adds another data point and helps Hale choose the next useful focus.',
+      },
+    ],
+  },
   {
     id: 'chair-rise-strength',
     title: 'Why chair-rise strength matters',
@@ -378,6 +587,22 @@ const LEARN_ARTICLES: readonly LearnDetail[] = [
       {
         title: 'A safe setup',
         body: 'Hale keeps support close and progresses gradually. The aim is to feel steadier, not to prove anything on a difficult day.',
+      },
+    ],
+  },
+  {
+    id: 'mobility-basics',
+    title: 'How mobility work supports easier movement',
+    body: 'Mobility practice keeps the plan useful on stiff days and supports the ranges Hale estimates.',
+    readTimeLabel: '2 min',
+    sections: [
+      {
+        title: 'Useful range, not contortion',
+        body: 'Hale focuses on everyday ranges like reaching overhead and hinging toward the floor. The aim is comfortable access to movement you use often.',
+      },
+      {
+        title: 'Small doses add up',
+        body: 'Short mobility blocks can make strength and balance work feel smoother. Hale keeps the pace calm so the session remains repeatable.',
       },
     ],
   },
@@ -424,7 +649,7 @@ const LEARN_ARTICLES: readonly LearnDetail[] = [
         body: 'If a movement feels uncomfortable, stop that item and choose a gentler session next time. Hale can reduce sets and avoid areas you flag.',
       },
       {
-        title: 'Protect progress',
+        title: 'Support progress',
         body: 'A lighter day still supports the routine. The goal is to keep showing up in a way your body can trust.',
       },
     ],

@@ -47,7 +47,7 @@ export function getNextBestActionCopy({
     case 'needs_baseline_checkup':
       return {
         title: 'Start with your Movement Check-Up',
-        body: 'In about 10 minutes, Hale will measure your strength, balance, and mobility and build your first plan.',
+        body: 'In about 10 minutes, Hale will estimate your strength, balance, and mobility and build your first plan.',
         primaryCta: 'Start check-up',
         primaryRoute: 'camera-setup',
       };
@@ -61,7 +61,7 @@ export function getNextBestActionCopy({
     case 'baseline_checkup_invalid':
       return {
         title: "Let's repeat that",
-        body: 'The camera could not measure this clearly enough. A quick retake will make your plan more accurate.',
+        body: 'The camera could not estimate this clearly enough. A quick retake will give your plan a clearer starting point.',
         primaryCta: 'Retake check-up',
         primaryRoute: 'checkup-retake',
       };
@@ -102,7 +102,7 @@ export function getNextBestActionCopy({
     case 'active_block_slightly_behind':
       return {
         title: 'Keep the week moving',
-        body: 'Life gets busy. One short session today is enough to protect your progress.',
+        body: 'Life gets busy. One short session today is enough to support your progress.',
         primaryCta: 'Start a short session',
         primaryRoute: 'restart-intro',
         secondaryCta: 'Start Movement Check-Up',
@@ -120,7 +120,7 @@ export function getNextBestActionCopy({
     case 'active_block_retest_due':
       return {
         title: 'Your 4-week re-test is ready',
-        body: 'This is where you see what changed.',
+        body: 'Repeat the check-up to add another data point.',
         primaryCta: 'Start re-test',
         primaryRoute: 'official-retest',
         secondaryCta: 'View block',
@@ -136,7 +136,7 @@ export function getNextBestActionCopy({
     case 'report_ready':
       return {
         title: 'Your 4-week report is ready',
-        body: 'See what changed and choose the next 4-week focus.',
+        body: 'Review the latest re-test and choose the next 4-week focus.',
         primaryCta: 'View report',
         primaryRoute: 'block-report',
         secondaryCta: 'Start next block',
@@ -154,7 +154,7 @@ export function getNextBestActionCopy({
     case 'no_active_block':
       return {
         title: 'Start with a Movement Check-Up',
-        body: 'Hale will measure strength, balance, and mobility before building your plan.',
+        body: 'Hale will estimate strength, balance, and mobility before building your plan.',
         primaryCta: 'Start check-up',
         primaryRoute: 'camera-setup',
       };
@@ -213,15 +213,15 @@ export function getReportCopy({
   hasComparison: boolean;
 }): string {
   if (hasComparison) {
-    return `Your ${domainLabel(focusDomain)} re-test gives Hale the next signal for your plan.`;
+    return `Your ${domainLabel(focusDomain)} re-test adds another data point for your plan.`;
   }
   return 'Your re-test result will appear here once the Movement Check-Up is connected.';
 }
 
 function sessionBody(block?: MovementBlock | null, lifeGoal?: LifeGoal | null): string {
-  if (block && lifeGoal) return `20 minutes to protect progress toward ${getLifeGoalDisplayText(lifeGoal).toLowerCase()}.`;
+  if (block && lifeGoal) return `20 minutes to support progress toward ${getLifeGoalDisplayText(lifeGoal).toLowerCase()}.`;
   if (block) return `20 minutes to keep building ${domainShortLabel(block.focusDomain)}.`;
-  return '20 minutes to protect your progress and keep building toward your goal.';
+  return '20 minutes to support your progress and keep building toward your goal.';
 }
 
 function focusBody(block?: MovementBlock | null, lifeGoal?: LifeGoal | null, fallback?: string): string {

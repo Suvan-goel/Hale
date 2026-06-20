@@ -11,6 +11,7 @@ import {
   CHAIR_STAND_ID,
   TUG_ID,
 } from '../../movements';
+import { CURRENT_SCORING_VERSION, createCurrentVersionedScoreSnapshot } from '../../scoring';
 import { HISTORY_SCHEMA_VERSION, deserializeCheckUp, migrate, serializeCheckUp } from '../serialize';
 import { HistoryStore, createMemoryFs } from '../store';
 import { computeTrends, hasTrend } from '../trends';
@@ -75,10 +76,27 @@ describe('check-up serialization', () => {
     const stored = deserializeCheckUp(serializeCheckUp(makeCheckUp('2026-06-13T10:00:00.000Z', { reps: 14 })));
     expect(stored).not.toBeNull();
     expect(stored!.schemaVersion).toBe(HISTORY_SCHEMA_VERSION);
+    expect(stored!.checkupType).toBe('legacy_unknown');
     expect(stored!.checkUp.items).toHaveLength(3);
     const chair = stored!.checkUp.items[0].result as unknown as { reps: number; sessionMeanVel: number | null };
     expect(chair.reps).toBe(14);
     expect(chair.sessionMeanVel).toBeNull(); // NaN persisted as null
+  });
+
+  it('stores exact check-up type metadata for new records', () => {
+    const stored = deserializeCheckUp(
+      serializeCheckUp(makeCheckUp('2026-06-13T10:00:00.000Z', { reps: 14 }), {
+        checkupType: 'quick_recheck',
+        sourceAssessmentId: 'assessment-1',
+        retryOfCheckUpId: 'baseline-1',
+      })
+    );
+
+    expect(stored).toMatchObject({
+      checkupType: 'quick_recheck',
+      sourceAssessmentId: 'assessment-1',
+      retryOfCheckUpId: 'baseline-1',
+    });
   });
 
   it('migrate rejects garbage, foreign versions, and malformed records', () => {
@@ -86,6 +104,22 @@ describe('check-up serialization', () => {
     expect(migrate({ schemaVersion: 999, checkUp: { startedAt: 'x', items: [] } })).toBeNull();
     expect(migrate({ schemaVersion: HISTORY_SCHEMA_VERSION, checkUp: {} })).toBeNull();
     expect(deserializeCheckUp('not json')).toBeNull();
+  });
+
+  it('fails closed when a stored score snapshot belongs to a different check-up', () => {
+    const checkUp = makeCheckUp('2026-06-13T10:00:00.000Z', { reps: 14, vel: 0.24, singleLeg: 12 });
+    const otherCheckUp = makeCheckUp('2026-06-14T10:00:00.000Z', { reps: 10, vel: 0.18, singleLeg: 6 });
+    const otherSnapshot = createCurrentVersionedScoreSnapshot(otherCheckUp).snapshot!;
+
+    const stored = deserializeCheckUp(
+      serializeCheckUp(checkUp, {
+        checkupType: 'baseline',
+        scoreSnapshot: otherSnapshot,
+      })
+    );
+
+    expect(stored?.scoreSnapshot).toBeUndefined();
+    expect(stored?.scoreSnapshotCompatibility).toBe('invalid_snapshot');
   });
 });
 
@@ -106,6 +140,55 @@ describe('history store', () => {
     ]);
     expect((await store2.latest())!.checkUp.startedAt).toBe('2026-06-13T09:00:00.000Z');
   });
+
+  it('never rewrites versioned, legacy, incompatible, or malformed records while reading history', async () => {
+    const currentCheckUp = makeCheckUp('2026-05-10T09:00:00.000Z', { reps: 12, vel: 0.2, singleLeg: 8 });
+    const incompatibleCheckUp = makeCheckUp('2026-06-10T09:00:00.000Z', { reps: 10, vel: 0.18, singleLeg: 6 });
+    const malformedCheckUp = makeCheckUp('2026-07-10T09:00:00.000Z', { reps: 15, vel: 0.25, singleLeg: 14 });
+    const currentSnapshot = createCurrentVersionedScoreSnapshot(currentCheckUp).snapshot!;
+    const incompatibleSnapshot = {
+      ...createCurrentVersionedScoreSnapshot(incompatibleCheckUp).snapshot!,
+      scoringVersion: CURRENT_SCORING_VERSION + 1,
+    };
+    const malformedSnapshot = {
+      ...createCurrentVersionedScoreSnapshot(malformedCheckUp).snapshot!,
+      score: { domains: 'bad' },
+    };
+    const disk = new Map<string, string>([
+      ['current.json', serializeCheckUp(currentCheckUp, { checkupType: 'baseline', scoreSnapshot: currentSnapshot })],
+      [
+        'incompatible.json',
+        JSON.stringify({
+          schemaVersion: HISTORY_SCHEMA_VERSION,
+          checkupType: 'baseline',
+          checkUp: incompatibleCheckUp,
+          scoreSnapshot: incompatibleSnapshot,
+          scoreSnapshotCompatibility: 'incompatible_version',
+        }),
+      ],
+      ['legacy.json', serializeCheckUp(makeCheckUp('2026-04-10T09:00:00.000Z', { reps: 11 }), { checkupType: 'baseline' })],
+      [
+        'malformed.json',
+        JSON.stringify({
+          schemaVersion: HISTORY_SCHEMA_VERSION,
+          checkupType: 'baseline',
+          checkUp: malformedCheckUp,
+          scoreSnapshot: malformedSnapshot,
+          scoreSnapshotCompatibility: 'invalid_snapshot',
+        }),
+      ],
+    ]);
+    const before = new Map(disk);
+    const memoryFs = createMemoryFs(disk);
+    const write = jest.fn(memoryFs.write);
+    const store = new HistoryStore({ ...memoryFs, write });
+
+    await store.loadAll();
+    await store.latest();
+
+    expect(write).not.toHaveBeenCalled();
+    expect(disk).toEqual(before);
+  });
 });
 
 describe('trends', () => {
@@ -113,7 +196,12 @@ describe('trends', () => {
     makeCheckUp('2026-04-01T10:00:00.000Z', { reps: 11, vel: 0.18, singleLeg: 8, tug: 10.5 }),
     makeCheckUp('2026-05-01T10:00:00.000Z', { reps: 13, vel: 0.21, singleLeg: 10 }), // no TUG this time
     makeCheckUp('2026-06-01T10:00:00.000Z', { reps: 15, vel: 0.24, singleLeg: 12, tug: 9.0 }),
-  ].map((c) => ({ schemaVersion: HISTORY_SCHEMA_VERSION, checkUp: c }));
+  ].map((c) => ({
+    schemaVersion: HISTORY_SCHEMA_VERSION,
+    checkupType: 'baseline' as const,
+    checkUp: c,
+    scoreSnapshotCompatibility: 'legacy_unversioned' as const,
+  }));
 
   it('reports chronological points and first→latest deltas', () => {
     const trends = computeTrends(records);

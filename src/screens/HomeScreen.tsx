@@ -1,7 +1,7 @@
 /**
  * Home tab — a calm daily dashboard. It keeps the core loop intact (check-up →
  * training block → re-test) while presenting it as a premium longevity routine:
- * a clear greeting, a movement-age snapshot, and a small plan for today.
+ * a clear greeting, a beta home movement estimate, and a small plan for today.
  */
 
 import * as React from 'react';
@@ -32,7 +32,7 @@ import {
 } from '../components/ui';
 import { StoredCheckUp } from '../history';
 import { UserProfile } from '../profile';
-import { CheckUpScore, DOMAIN_LABEL, Domain, DomainResult } from '../scoring';
+import { CheckUpScore, DOMAIN_LABEL, Domain, DomainResult, selectFocusFromScore } from '../scoring';
 import { colors, radius, spacing, type } from '../theme';
 
 export interface ActivePlan {
@@ -111,10 +111,15 @@ export function HomeScreen({
 }) {
   const lastDate = lastCheckUp ? formatDate(lastCheckUp.checkUp.startedAt) : null;
   const measured = score ? score.domains.filter((d) => d.measured) : [];
-  const focus = score?.weakestDomain ?? null;
+  const focusSelection = React.useMemo(
+    () => selectFocusFromScore(score, { activeFocusDomain: score?.weakestDomain }),
+    [score]
+  );
+  const focus = focusSelection?.focusDomain ?? score?.weakestDomain ?? null;
   const focusLabel = focus ? DOMAIN_LABEL[focus] : null;
+  const closelyMatched = focusSelection?.kind === 'exact_tie' || focusSelection?.kind === 'near_tie';
   const nextActionDetail = retestDue
-    ? 'Your training block is complete. A new check-up will refresh your movement-age profile.'
+    ? 'Your training block is complete. A new check-up will refresh your home movement estimate.'
     : plan
       ? `Week ${plan.week}, session ${plan.sessionNumber} of ${plan.totalSessions} is ready.`
       : 'Start with a guided Movement Check-Up to build your baseline.';
@@ -158,16 +163,16 @@ export function HomeScreen({
 
       <MaterialCard
         onPress={measured.length > 0 && lastDate ? onViewLast : onBeginCheckUp}
-        accessibilityLabel={measured.length > 0 ? 'View movement check-up results' : 'Begin movement check-up'}
+        accessibilityLabel={measured.length > 0 ? 'View home movement estimate results' : 'Begin movement check-up'}
       >
         <View style={styles.heroTop}>
           <View style={styles.heroCopy}>
-            <Eyebrow>{measured.length > 0 ? 'Movement age profile' : 'Movement Check-Up'}</Eyebrow>
-            <Text style={styles.heroValue}>{measured.length > 0 ? focusLabel ?? 'Baseline ready' : 'Ready when you are'}</Text>
+            <Eyebrow>{measured.length > 0 ? 'Home movement estimate' : 'Movement Check-Up'}</Eyebrow>
+            <Text style={styles.heroValue}>{measured.length > 0 ? (closelyMatched ? 'Closely matched' : focusLabel ?? 'Baseline ready') : 'Ready when you are'}</Text>
             <Text style={styles.heroBody}>
               {measured.length > 0
-                ? `Latest check-up${lastDate ? ` from ${lastDate}` : ''}. ${focusLabel ? `${focusLabel} is the best place to focus next.` : 'Keep building your routine.'}`
-                : 'Voice-guided movements measure how your body is moving. Camera video is never shown.'}
+                ? `Latest check-up${lastDate ? ` from ${lastDate}` : ''}. ${focusLabel ? `${closelyMatched ? 'Your domains were closely matched; ' : ''}${focusLabel} is the suggested focus for the next block.` : 'Keep building your routine.'}`
+                : 'Voice-guided movements estimate how your body is moving. Camera video is never shown.'}
             </Text>
           </View>
           <MetricRing
@@ -186,7 +191,7 @@ export function HomeScreen({
           <SectionHeader title="Your Goal" actionLabel="Choose" onAction={onChooseLifeGoal} />
           <Text style={styles.firstHint}>
             Tell Hale what you want your body to keep letting you do. Your block copy will use that reason
-            without changing the measurement result.
+            without changing the check-up result.
           </Text>
           <View style={styles.inlineAction}>
             <SecondaryButton title="Choose my goal" onPress={onChooseLifeGoal} />
@@ -250,8 +255,8 @@ export function HomeScreen({
         {retestDue ? (
           <DailyPlanItem
             icon="1"
-            title="Measure"
-            subtitle="Refresh your Movement Check-Up"
+            title="Estimate"
+            subtitle="Repeat your Movement Check-Up"
             tone="green"
             onPress={onRetestCheckUp}
           />
@@ -266,8 +271,8 @@ export function HomeScreen({
         ) : (
           <DailyPlanItem
             icon="1"
-            title="Measure"
-            subtitle="Complete your first guided baseline"
+            title="Estimate"
+            subtitle="Complete your first guided home estimate"
             tone="green"
             onPress={onBeginCheckUp}
           />
@@ -294,19 +299,19 @@ export function HomeScreen({
         <Card>
           <View style={styles.cardTitleRow}>
             <SectionHeader title="Key Indicators" />
-            {focusLabel ? <StatusBadge label="Focus" tone="gold" /> : null}
+            {focusLabel ? <StatusBadge label="Suggested focus" tone="gold" /> : null}
           </View>
           {score?.domains.map((domain) => (
             <HealthMetricRow
               key={domain.domain}
               icon={DOMAIN_INITIAL[domain.domain]}
               label={domain.label}
-              value={domain.measured ? `Age ${domain.ageLow}–${domain.ageHigh}` : 'Not measured'}
+              value={domainDisplayValue(domain)}
               status={domainStatus(domain)}
             />
           ))}
           <Text style={styles.cardFootnote}>
-            Typical age ranges are wellness estimates from validated movement tests, not clinical advice.
+            Home estimates come from guided movement checks and are used for coaching context, not a formal assessment.
           </Text>
         </Card>
       ) : (
@@ -314,7 +319,7 @@ export function HomeScreen({
           <Text style={styles.firstTitle}>What to expect</Text>
           <Text style={styles.firstHint}>
             Prop your phone at about hip height, step back, and listen. The app renders only a clean
-            skeleton outline while it measures strength, balance, and mobility.
+            skeleton outline while it estimates strength, balance, and mobility.
           </Text>
         </Card>
       )}
@@ -348,7 +353,15 @@ function shortFocus(label: string): string {
 
 function domainStatus(domain: DomainResult): string {
   if (!domain.measured) return 'Next time';
-  return domain.estimated ? 'Estimate' : 'Measured';
+  return domain.domain === 'strength' ? 'Beta estimate' : 'Home estimate';
+}
+
+function domainDisplayValue(domain: DomainResult): string {
+  if (!domain.measured || !Number.isFinite(domain.ageLow) || !Number.isFinite(domain.ageHigh)) return 'Not estimated';
+  const mid = (domain.ageLow + domain.ageHigh) / 2;
+  if (mid <= 58) return 'Strong';
+  if (mid <= 72) return 'Building';
+  return 'Starting point';
 }
 
 const styles = StyleSheet.create({
@@ -358,8 +371,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.lg,
   },
-  greeting: { ...type.display },
-  tagline: { ...type.body, color: colors.textSecondary, marginTop: spacing.sm, maxWidth: 300 },
+  greeting: { ...type.pageTitle },
+  tagline: { ...type.pageSubtitle, marginTop: spacing.xs, maxWidth: 300 },
   headerMark: {
     width: 44,
     height: 44,
@@ -374,17 +387,17 @@ const styles = StyleSheet.create({
   heroTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
   nextCardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.lg },
   heroCopy: { flex: 1 },
-  nextTitle: { ...type.h1, marginTop: spacing.sm },
-  heroValue: { ...type.h1, marginTop: spacing.sm },
-  heroBody: { ...type.bodySmall, color: colors.textSecondary, marginTop: spacing.sm },
+  nextTitle: { ...type.cardTitle, marginTop: spacing.sm },
+  heroValue: { ...type.cardTitle, marginTop: spacing.sm },
+  heroBody: { ...type.cardBody, marginTop: spacing.sm },
   nextActions: { gap: spacing.md, marginTop: spacing.lg },
-  heroLink: { ...type.bodySmall, color: colors.accentDeep, marginTop: spacing.lg },
+  heroLink: { ...type.cardBody, color: colors.accentDeep, marginTop: spacing.lg },
   metricGrid: { flexDirection: 'row', gap: spacing.md, flexWrap: 'wrap' },
   cardTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
-  cardFootnote: { ...type.caption, color: colors.textTertiary, marginTop: spacing.lg },
-  firstTitle: { ...type.h2 },
-  firstHint: { ...type.bodySmall, color: colors.textSecondary, marginTop: spacing.sm },
-  goalText: { ...type.h3, color: colors.accentDeep, marginTop: spacing.sm },
+  cardFootnote: { ...type.cardCaption, color: colors.textTertiary, marginTop: spacing.lg },
+  firstTitle: { ...type.cardTitle },
+  firstHint: { ...type.cardBody, marginTop: spacing.sm },
+  goalText: { ...type.cardRowTitle, color: colors.accentDeep, marginTop: spacing.sm },
   inlineAction: { marginTop: spacing.lg },
   actions: { gap: spacing.md },
 });

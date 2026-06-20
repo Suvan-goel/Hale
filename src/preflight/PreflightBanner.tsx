@@ -47,11 +47,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderRadius: radius.input,
+    borderRadius: radius.card,
     backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...shadow.soft,
+    ...shadow.card,
   },
   text: {
     ...type.bodySmall,

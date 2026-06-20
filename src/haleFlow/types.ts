@@ -9,7 +9,7 @@ import type {
   TrainingSessionCompletion,
   TrainingSessionCompletionType,
 } from '../adherence';
-import type { CheckUpScore } from '../scoring';
+import type { CheckUpScore, VersionedCheckUpScoreSnapshot } from '../scoring';
 import type { DailyReadiness, PainArea, SessionSlotType, SessionSource } from '../training/workoutGeneration';
 
 export type HaleUserFlowState =
@@ -154,6 +154,7 @@ export interface CreateAssessmentInput {
   checkUpId: string;
   type: CheckupType;
   score?: CheckUpScore | null;
+  scoreSnapshot?: VersionedCheckUpScoreSnapshot | null;
   sourceBlockId?: string;
   completedAt?: string;
   status?: MovementAssessment['status'];

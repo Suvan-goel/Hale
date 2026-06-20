@@ -3,6 +3,7 @@ import { defaultAdherenceStoreState, type MovementBlock, type MovementBlockRepor
 import type { CheckUp } from '../../../checkup';
 import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../../../history';
 import { defaultPreferences } from '../../../profile';
+import { createCurrentVersionedScoreSnapshot, type VersionedCheckUpScoreSnapshot } from '../../../scoring';
 import {
   TRAINING_SCHEMA_VERSION,
   defaultTrainingState,
@@ -76,9 +77,14 @@ function checkUp(): CheckUp {
 }
 
 function storedCheckUp(): StoredCheckUp {
+  const localCheckUp = checkUp();
+  const scored = createCurrentVersionedScoreSnapshot(localCheckUp);
   return {
     schemaVersion: HISTORY_SCHEMA_VERSION,
-    checkUp: checkUp(),
+    checkupType: 'baseline',
+    checkUp: localCheckUp,
+    scoreSnapshot: scored.snapshot ?? undefined,
+    scoreSnapshotCompatibility: scored.snapshot ? 'current' : 'invalid_snapshot',
   };
 }
 
@@ -168,6 +174,8 @@ function backendJson(value: unknown): never {
 
 function remoteSnapshot(): RemoteHaleSnapshot {
   const training = trainingState();
+  const localCheckUp = checkUp();
+  const scored = createCurrentVersionedScoreSnapshot(localCheckUp);
   const completion = {
     id: 'session-1',
     userId: 'local-device-user',
@@ -223,18 +231,20 @@ function remoteSnapshot(): RemoteHaleSnapshot {
         local_checkup_id: startedAt,
         checkup_type: 'baseline',
         status: 'completed',
-        derived_scores_json: {
+        derived_scores_json: backendJson({
           schemaVersion: 1,
+          scoreSnapshot: scored.snapshot,
           assessment: {
             type: 'baseline',
             status: 'completed',
             completedAt: '2026-06-17T12:08:00.000Z',
             isOfficialForProgress: true,
           },
-        },
+        }),
         raw_checkup_json: backendJson({
           schemaVersion: HISTORY_SCHEMA_VERSION,
-          checkUp: checkUp(),
+          scoreSnapshot: scored.snapshot,
+          checkUp: localCheckUp,
         }),
         created_locally_at: startedAt,
         completed_at: '2026-06-17T12:08:00.000Z',
@@ -349,6 +359,7 @@ describe('remote restore service', () => {
     expect(mapped.state.preferences.onboarding.currentStep).toBe('complete');
     expect(mapped.state.history).toHaveLength(1);
     expect(mapped.state.history[0].checkUp.startedAt).toBe(startedAt);
+    expect(mapped.state.history[0].checkupType).toBe('baseline');
     expect(mapped.state.adherence.assessments).toHaveLength(1);
     expect(mapped.state.adherence.blocks[0].id).toBe('movement-block-1');
     expect(mapped.state.training.block?.weakestDomain).toBe('strength');
@@ -361,6 +372,161 @@ describe('remote restore service', () => {
         expect.stringContaining('compact training_state snapshot'),
       ])
     );
+  });
+
+  it('restores exact local check-up type from JSON metadata before the coarse remote enum', () => {
+    const snapshot = remoteSnapshot();
+    const localCheckUp = checkUp();
+    const scored = createCurrentVersionedScoreSnapshot(localCheckUp);
+    snapshot.movementCheckups[0] = {
+      ...snapshot.movementCheckups[0],
+      checkup_type: 'unknown',
+      derived_scores_json: backendJson({
+        schemaVersion: 1,
+        exactCheckupType: 'baseline_retake',
+        scoreSnapshot: scored.snapshot,
+        assessment: {
+          type: 'baseline_retake',
+          status: 'completed',
+          completedAt: '2026-06-17T12:08:00.000Z',
+          isOfficialForProgress: true,
+        },
+      }),
+      raw_checkup_json: backendJson({
+        schemaVersion: HISTORY_SCHEMA_VERSION,
+        checkupType: 'baseline_retake',
+        scoreSnapshot: scored.snapshot,
+        checkUp: localCheckUp,
+      }),
+    };
+
+    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
+
+    expect(mapped.state.history[0].checkupType).toBe('baseline_retake');
+    expect(mapped.state.adherence.assessments[0].type).toBe('baseline_retake');
+  });
+
+  it('restores assessment scores from the frozen snapshot rather than rescoring divergent raw check-up data', () => {
+    const snapshot = remoteSnapshot();
+    const rawCheckUp = checkUp();
+    const frozenCheckUp = checkUp();
+    const chair = frozenCheckUp.items.find((item) => item.movementId === CHAIR_STAND_ID)!;
+    (chair.result as unknown as Record<string, unknown>).reps = 8;
+    const frozenSnapshot = createCurrentVersionedScoreSnapshot(frozenCheckUp).snapshot!;
+    const frozenStrengthMidpoint = domainMidpoint(frozenSnapshot.score, 'strength');
+    const rawStrengthMidpoint = domainMidpoint(createCurrentVersionedScoreSnapshot(rawCheckUp).score, 'strength');
+
+    snapshot.movementCheckups[0] = {
+      ...snapshot.movementCheckups[0],
+      derived_scores_json: backendJson({
+        schemaVersion: 1,
+        scoreSnapshot: frozenSnapshot,
+        assessment: {
+          type: 'baseline',
+          status: 'completed',
+          completedAt: '2026-06-17T12:08:00.000Z',
+          isOfficialForProgress: true,
+        },
+      }),
+      raw_checkup_json: backendJson({
+        schemaVersion: HISTORY_SCHEMA_VERSION,
+        scoreSnapshot: frozenSnapshot,
+        checkUp: rawCheckUp,
+      }),
+    };
+
+    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
+
+    expect(frozenStrengthMidpoint).not.toBe(rawStrengthMidpoint);
+    expect(mapped.state.history[0].scoreSnapshot?.score).toEqual(frozenSnapshot.score);
+    expect(mapped.state.adherence.assessments[0].results?.strengthPowerScore).toBe(frozenStrengthMidpoint);
+  });
+
+  it('restores exact-tie focus metadata from the frozen snapshot onto the local assessment', () => {
+    const snapshot = remoteSnapshot();
+    const localCheckUp = checkUp();
+    const tieSnapshot = exactTieSnapshotFor(localCheckUp);
+    snapshot.movementCheckups[0] = {
+      ...snapshot.movementCheckups[0],
+      checkup_type: 'official_retest',
+      derived_scores_json: backendJson({
+        schemaVersion: 1,
+        scoreSnapshot: tieSnapshot,
+        assessment: {
+          type: 'official_retest',
+          status: 'completed',
+          completedAt: '2026-06-17T12:08:00.000Z',
+          isOfficialForProgress: true,
+        },
+      }),
+      raw_checkup_json: backendJson({
+        schemaVersion: HISTORY_SCHEMA_VERSION,
+        checkupType: 'official_retest',
+        scoreSnapshot: tieSnapshot,
+        checkUp: localCheckUp,
+      }),
+    };
+
+    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
+    const assessment = mapped.state.adherence.assessments[0];
+
+    expect(mapped.state.history[0].scoreSnapshot?.focusSelection).toEqual(tieSnapshot.focusSelection);
+    expect(assessment.type).toBe('official_retest');
+    expect(assessment.results?.weakestDomain).toBe('balance');
+    expect(assessment.results?.rawMetrics?.focusSelection).toEqual(tieSnapshot.focusSelection);
+    expect(assessment.results?.rawMetrics?.focusTieBreakReason).toBe('preserve_current_focus');
+  });
+
+  it('restores source-mismatched remote snapshots as invalid instead of usable assessments', () => {
+    const snapshot = remoteSnapshot();
+    const rawCheckUp = checkUp();
+    const otherCheckUp = { ...checkUp(), startedAt: '2026-06-18T12:00:00.000Z' };
+    const otherSnapshot = createCurrentVersionedScoreSnapshot(otherCheckUp).snapshot!;
+
+    snapshot.movementCheckups[0] = {
+      ...snapshot.movementCheckups[0],
+      derived_scores_json: backendJson({
+        schemaVersion: 1,
+        scoreSnapshot: otherSnapshot,
+        assessment: {
+          type: 'baseline',
+          status: 'completed',
+          completedAt: '2026-06-17T12:08:00.000Z',
+          isOfficialForProgress: true,
+        },
+      }),
+      raw_checkup_json: backendJson({
+        schemaVersion: HISTORY_SCHEMA_VERSION,
+        scoreSnapshot: otherSnapshot,
+        checkUp: rawCheckUp,
+      }),
+    };
+
+    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
+
+    expect(mapped.state.history[0].scoreSnapshot).toBeUndefined();
+    expect(mapped.state.history[0].scoreSnapshotCompatibility).toBe('invalid_snapshot');
+    expect(mapped.state.adherence.assessments[0].status).toBe('invalid');
+    expect(mapped.state.adherence.assessments[0].results?.weakestDomain).toBeUndefined();
+  });
+
+  it('keeps lossy unknown remote check-up types as legacy_unknown', () => {
+    const snapshot = remoteSnapshot();
+    snapshot.movementCheckups[0] = {
+      ...snapshot.movementCheckups[0],
+      checkup_type: 'unknown',
+      derived_scores_json: { schemaVersion: 1 },
+      raw_checkup_json: backendJson({
+        schemaVersion: HISTORY_SCHEMA_VERSION,
+        checkUp: checkUp(),
+      }),
+    };
+
+    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
+
+    expect(mapped.state.history[0].checkupType).toBe('legacy_unknown');
+    expect(mapped.state.adherence.assessments[0].type).toBe('legacy_unknown');
+    expect(mapped.state.adherence.assessments[0].isOfficialForProgress).toBe(false);
   });
 
   it('skips restore and does not write stores when local data already exists', async () => {
@@ -464,3 +630,35 @@ describe('remote restore service', () => {
     expect(mapped.state.adherence.assessments[0].results?.confidence).toBe('low');
   });
 });
+
+function domainMidpoint(
+  score: { domains: readonly { domain: string; ageLow: number | null; ageHigh: number | null }[] },
+  domain: string
+): number {
+  const result = score.domains.find((item) => item.domain === domain)!;
+  if (result.ageLow === null || result.ageHigh === null) throw new Error(`Domain ${domain} was not measured`);
+  return (result.ageLow + result.ageHigh) / 2;
+}
+
+function exactTieSnapshotFor(checkUp: CheckUp): VersionedCheckUpScoreSnapshot {
+  const snapshot = createCurrentVersionedScoreSnapshot(checkUp).snapshot!;
+  return {
+    ...snapshot,
+    score: {
+      ...snapshot.score,
+      weakestDomain: 'balance',
+      domains: snapshot.score.domains.map((domain) => {
+        if (domain.domain === 'strength' || domain.domain === 'balance') {
+          return { ...domain, measured: true, ageLow: 72, ageHigh: 76 };
+        }
+        return { ...domain, measured: true, ageLow: 58, ageHigh: 62 };
+      }),
+    },
+    focusSelection: {
+      kind: 'exact_tie',
+      focusDomain: 'balance',
+      tiedDomains: ['strength', 'balance'],
+      tieBreakReason: 'preserve_current_focus',
+    },
+  };
+}

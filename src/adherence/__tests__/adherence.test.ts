@@ -1,4 +1,5 @@
-import type { CheckUpScore, Domain, DomainResult } from '../../scoring';
+import type { CheckUpScore, Domain, DomainResult, VersionedCheckUpScoreSnapshot } from '../../scoring';
+import { toStoredScoreSnapshot } from '../../scoring';
 import {
   createLifeGoal,
   createMovementBlockFromAssessment,
@@ -22,6 +23,7 @@ import {
   createSupportSummary,
 } from '../index';
 import type { MovementBlock, TrainingSessionCompletion } from '../types';
+import { createMovementAssessment } from '../../haleFlow';
 
 const START = '2026-06-01T08:00:00.000Z';
 
@@ -51,11 +53,25 @@ function score(weakestDomain: Domain = 'balance', focusAge = 70): CheckUpScore {
 }
 
 function block(): MovementBlock {
+  const inputScore = score('balance');
+  const scoreSnapshot = scoreSnapshotFor(inputScore);
+  const assessment = createMovementAssessment({
+    checkUpId: inputScore.startedAt,
+    type: 'baseline',
+    score: inputScore,
+    scoreSnapshot,
+    completedAt: inputScore.startedAt,
+    isOfficialForProgress: true,
+  });
   return createMovementBlockFromAssessment({
-    latestAssessment: { score: score('balance'), id: 'assessment-1' },
+    latestAssessment: { score: inputScore, scoreSnapshot, id: 'assessment-1', assessment },
     lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
     startDate: START,
   });
+}
+
+function scoreSnapshotFor(inputScore: CheckUpScore): VersionedCheckUpScoreSnapshot {
+  return toStoredScoreSnapshot(inputScore)!;
 }
 
 function completion(
@@ -78,8 +94,18 @@ describe('life goal relevance', () => {
 describe('movement block creation', () => {
   it('uses the assessment for focus and the life goal for framing', () => {
     const goal = createLifeGoal({ category: 'travel', nowIso: START });
+    const inputScore = score('mobility');
+    const scoreSnapshot = scoreSnapshotFor(inputScore);
+    const assessment = createMovementAssessment({
+      checkUpId: inputScore.startedAt,
+      type: 'baseline',
+      score: inputScore,
+      scoreSnapshot,
+      completedAt: inputScore.startedAt,
+      isOfficialForProgress: true,
+    });
     const b = createMovementBlockFromAssessment({
-      latestAssessment: { score: score('mobility'), id: 'checkup-a' },
+      latestAssessment: { score: inputScore, scoreSnapshot, id: 'checkup-a', assessment },
       lifeGoal: goal,
       startDate: START,
     });
@@ -132,7 +158,7 @@ describe('weekly summary, privacy, and notifications', () => {
     });
     expect(summary.sessionsCompleted).toBe(3);
     expect(summary.microCheckCompleted).toBe(true);
-    expect(summary.body).toContain('protected');
+    expect(summary.body).toContain('supported');
   });
 
   it('filters support summaries by sharing level', () => {
@@ -213,6 +239,6 @@ describe('milestones and copy safety', () => {
       notificationCopy('planned_session'),
       notificationCopy('retest_approaching'),
     ].join(' ');
-    expect(samples.toLowerCase()).not.toMatch(/failed|lost streak|fall risk|diagnosis|frailty|treatment|preventing disease|you skipped/);
+    expect(samples.toLowerCase()).not.toMatch(/failed|lost streak|fall risk|diagnosis|frailty|treatment|preventing disease|you skipped|protect your progress|protected your progress/);
   });
 });

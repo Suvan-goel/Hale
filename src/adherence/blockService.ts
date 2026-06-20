@@ -1,4 +1,4 @@
-import type { CheckUpScore, Domain } from '../scoring';
+import type { CheckUpScore, Domain, ScoreFocusSelection } from '../scoring';
 import {
   getBlockCreationEligibility,
   movementDomainFromScoreDomainStrict,
@@ -51,7 +51,11 @@ export function tryCreateMovementBlockFromAssessment(args: {
   startDate?: string;
 }): CreateMovementBlockResult {
   const normalized = normalizeAssessmentForBlock(args.latestAssessment);
-  const eligibility = getBlockCreationEligibility({ score: normalized.score, assessment: normalized.assessment });
+  const eligibility = getBlockCreationEligibility({
+    score: normalized.score,
+    scoreSnapshot: normalized.scoreSnapshot,
+    assessment: normalized.assessment,
+  });
   if (!eligibility.eligible) {
     return { ok: false, ...eligibility };
   }
@@ -64,6 +68,7 @@ export function tryCreateMovementBlockFromAssessment(args: {
       lifeGoal: args.lifeGoal,
       startDate: args.startDate ?? new Date().toISOString(),
       focusDomain: eligibility.focusDomain,
+      focusSelection: eligibility.focusSelection,
     }),
   };
 }
@@ -90,12 +95,14 @@ function buildMovementBlock({
   lifeGoal,
   startDate,
   focusDomain,
+  focusSelection,
 }: {
   userId: string;
   sourceAssessmentId?: string;
   lifeGoal?: LifeGoal | null;
   startDate: string;
   focusDomain: MovementDomain;
+  focusSelection?: ScoreFocusSelection;
 }): MovementBlock {
   const relevance = getLifeGoalTrainingRelevance(lifeGoal);
   const goalDomains = relevance.primaryDomains.filter((d) => d !== focusDomain);
@@ -112,6 +119,21 @@ function buildMovementBlock({
     retestDate: endDate,
     focusDomain,
     secondaryDomains,
+    ...(focusSelection
+      ? {
+          focusSelectionKind: focusSelection.kind,
+          focusTiedDomains: focusSelection.tiedDomains
+            .map(movementDomainFromScoreDomainOrNull)
+            .filter((domain): domain is MovementDomain => !!domain),
+          ...(focusSelection.tieBreakReason ? { focusTieBreakReason: focusSelection.tieBreakReason } : {}),
+          ...(typeof focusSelection.nearTieMarginYears === 'number'
+            ? { focusNearTieMarginYears: focusSelection.nearTieMarginYears }
+            : {}),
+          ...(typeof focusSelection.policyVersion === 'number'
+            ? { focusSelectionPolicyVersion: focusSelection.policyVersion }
+            : {}),
+        }
+      : {}),
     sessionsPerWeekTarget: 3,
     totalPlannedSessions: 12,
     completedSessions: 0,
@@ -124,11 +146,17 @@ function buildMovementBlock({
 
 function normalizeAssessmentForBlock(latestAssessment: AssessmentForBlock | CheckUpScore | null | undefined): {
   score: CheckUpScore | null;
+  scoreSnapshot?: AssessmentForBlock['scoreSnapshot'];
   assessment?: AssessmentForBlock['assessment'];
   sourceAssessmentId?: string;
 } {
   if (isAssessmentForBlock(latestAssessment)) {
-    return { score: latestAssessment.score, assessment: latestAssessment.assessment, sourceAssessmentId: latestAssessment.id };
+    return {
+      score: latestAssessment.score,
+      scoreSnapshot: latestAssessment.scoreSnapshot,
+      assessment: latestAssessment.assessment,
+      sourceAssessmentId: latestAssessment.id,
+    };
   }
   return { score: latestAssessment ?? null, sourceAssessmentId: latestAssessment?.startedAt };
 }

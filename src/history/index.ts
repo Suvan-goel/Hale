@@ -5,7 +5,7 @@
  */
 
 export { HISTORY_SCHEMA_VERSION, deserializeCheckUp, migrate, serializeCheckUp } from './serialize';
-export type { StoredCheckUp } from './serialize';
+export type { StoredCheckUp, StoredCheckUpMetadata, StoredCheckUpType } from './serialize';
 export { HistoryStore, createMemoryFs } from './store';
 export type { HistoryFs } from './store';
 export { computeTrends, hasTrend } from './trends';

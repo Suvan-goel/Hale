@@ -25,14 +25,14 @@ export function WelcomeScreen({
         <Typography variant="label" color={colors.accentDeep}>Movement health</Typography>
         <Typography variant="display">Stay strong, steady, and mobile.</Typography>
         <Typography variant="body" color={colors.textSecondary}>
-          Hale gives you a phone-camera Movement Check-Up and a personalised 4-week plan to help you protect your movement over time.
+          Hale gives you a phone-camera Movement Check-Up and a personalised 4-week plan to help you support your movement over time.
         </Typography>
       </View>
 
       <Card style={styles.card}>
-        <ValueRow n="1" title="Measure your movement" body="Check strength, balance, and mobility with a guided camera session." />
+        <ValueRow n="1" title="Estimate your movement" body="Check strength, balance, and mobility with a guided camera session." />
         <ValueRow n="2" title="Train what matters" body="Follow a calm 4-week block built around your priority area." />
-        <ValueRow n="3" title="Re-test monthly" body="Repeat your Movement Check-Up to see what is changing." />
+        <ValueRow n="3" title="Re-test monthly" body="Repeat your Movement Check-Up to add another data point." />
       </Card>
 
       <Card style={styles.card}>
@@ -40,16 +40,16 @@ export function WelcomeScreen({
           <Text style={styles.title}>Private by design</Text>
         </View>
         <Text style={styles.body}>
-          You appear as a clean skeleton outline while Hale measures movement. The camera is a measuring instrument, not a mirror.
+          You appear as a clean skeleton outline while Hale estimates movement. The camera is a measuring instrument, not a mirror.
         </Text>
       </Card>
 
       {showHow ? (
         <Card style={styles.card}>
-          <Step n="1" title="Check up" body="Measure strength, balance, and mobility." />
+          <Step n="1" title="Check up" body="Estimate strength, balance, and mobility." />
           <Step n="2" title="Train" body="Follow a 4-week block built around what will help most." />
           <Step n="3" title="Re-test" body="Repeat the Movement Check-Up at the end of the block." />
-          <Step n="4" title="See progress" body="Use the report to choose the next focus." />
+          <Step n="4" title="Review progress" body="Use the report to choose the next suggested focus." />
         </Card>
       ) : null}
 
@@ -98,8 +98,8 @@ const styles = StyleSheet.create({
   heroCopy: { gap: spacing.md },
   card: { gap: spacing.md },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
-  title: { ...type.h2 },
-  body: { ...type.bodySmall, color: colors.textSecondary },
+  title: { ...type.cardTitle },
+  body: { ...type.cardBody },
   step: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 64 },
   stepMark: {
     width: 40,
@@ -113,8 +113,8 @@ const styles = StyleSheet.create({
   },
   stepMarkText: { ...type.h3, color: colors.accentDeep },
   stepCopy: { flex: 1 },
-  stepTitle: { ...type.h3 },
-  stepBody: { ...type.caption, marginTop: 2 },
+  stepTitle: { ...type.cardRowTitle },
+  stepBody: { ...type.cardCaption, marginTop: 2 },
   valueMark: {
     width: 38,
     height: 38,

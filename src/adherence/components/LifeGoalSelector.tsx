@@ -10,7 +10,7 @@ const LIFE_GOAL_HINTS: Record<LifeGoalCategory, string> = {
   grandchildren: 'Build strength and mobility for getting low, standing up, and keeping pace.',
   stairs: 'Support leg power and steady confidence on steps.',
   travel: 'Prepare for walking, carrying, and moving comfortably away from home.',
-  walking_hiking_sport: 'Protect the strength and balance that keep outings enjoyable.',
+  walking_hiking_sport: 'Support the strength and balance that keep outings enjoyable.',
   gardening_hobbies: 'Keep everyday bending, reaching, and lifting comfortable.',
   floor_confidence: 'Build the strength and mobility used getting down and back up.',
   carrying_loads: 'Support everyday strength for bags, groceries, and home tasks.',

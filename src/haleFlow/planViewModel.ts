@@ -89,7 +89,7 @@ export function getPlanSessionCategoryCopy(id: PlanSessionId): PlanSessionCatego
   return {
     title: 'Session C',
     categories: ['Complete', 'Full body', 'Reset'],
-    body: 'Round out the week with full-body work and mobility to protect progress.',
+    body: 'Round out the week with full-body work and mobility to support progress.',
   };
 }
 
@@ -97,7 +97,7 @@ export function getRetestCopy(summary: ActiveBlockSummary | undefined): { title:
   if (!summary) {
     return {
       title: 'Re-test after your block',
-      body: 'Your next Movement Check-Up refreshes the plan and shows what changed.',
+      body: 'Your next Movement Check-Up refreshes the plan and adds another data point.',
       due: false,
     };
   }
@@ -117,7 +117,7 @@ export function getRetestCopy(summary: ActiveBlockSummary | undefined): { title:
   }
   return {
     title: 'Re-test after this block',
-    body: 'Your next Movement Check-Up refreshes the block and shows what changed.',
+    body: 'Your next Movement Check-Up refreshes the block and adds another data point.',
     due: false,
   };
 }

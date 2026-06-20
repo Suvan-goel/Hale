@@ -20,20 +20,20 @@
       "@sentry/react-native/expo"
     ],
     "userInterfaceStyle": "light",
-    "backgroundColor": "#F7F5EF",
+    "backgroundColor": "#F4EDE6",
     "ios": {
       "supportsTablet": false,
       "icon": "./assets/ios-icon.png",
       "usesAppleSignIn": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "The camera measures your movement as a skeleton outline. Camera video is never shown or stored."
+        "NSCameraUsageDescription": "The camera estimates your movement as a skeleton outline. Camera video is never shown or stored."
       },
       "bundleIdentifier": "com.suvangoel.hale"
     },
     "android": {
       "icon": "./assets/android-icon.png",
       "adaptiveIcon": {
-        "backgroundColor": "#F7F5EF",
+        "backgroundColor": "#F4EDE6",
         "foregroundImage": "./assets/android-icon.png"
       },
       "permissions": [

@@ -2,9 +2,8 @@
  * Bundled "Learn" content — short, plain-language articles about healthy aging.
  * Local-only (no backend in V1), so the library ships with the app.
  *
- * Editorial rules mirror the product laws: wellness-side language only, never
- * medical claims or diagnosis (Law 4). We talk about everyday capability and
- * routine, not disease or risk.
+ * Editorial rules mirror the product laws: wellness-side language only. We
+ * talk about everyday capability and routine, not clinical outcomes.
  */
 
 export type ArticleCategory = 'Strength' | 'Balance' | 'Mobility' | 'Everyday' | 'Mindset';
@@ -27,9 +26,9 @@ export const ARTICLES: Article[] = [
     title: 'Why leg power matters more than you think',
     category: 'Strength',
     readingMinutes: 3,
-    excerpt: 'The speed you stand up from a chair says a lot about how independent you stay.',
+    excerpt: 'The speed you stand up from a chair is one useful signal for everyday movement.',
     body: [
-      'Of all the things we can measure with a camera, how quickly you rise from a chair turns out to be one of the most telling. It reflects leg power — not just how strong your legs are, but how quickly they can produce that strength.',
+      'Of all the things we can estimate with a camera, how quickly you rise from a chair is a useful everyday signal. It reflects leg power — not just how strong your legs are, but how quickly they can produce that strength.',
       'Power tends to fade earlier than raw strength as we age, and it is the quality you lean on for the small, fast moments of daily life: catching yourself on a step, getting out of a low couch, crossing a road before the light changes.',
       'The encouraging part is that power responds well to practice. Standing up from a chair a little more briskly, a few times a day, is itself a form of training. Your Movement Check-Up tracks this as rise velocity, so you can watch it trend over the weeks.',
     ],
@@ -67,7 +66,7 @@ export const ARTICLES: Article[] = [
     body: [
       'Mobility is the range your joints move through comfortably — reaching a high shelf, bending to tie a shoe, hinging at the hips to lift a bag. When that range narrows, daily tasks quietly become harder.',
       'Gentle, regular movement through your full available range helps preserve it. The point is not to force a stretch but to visit the edges of comfortable motion often, so the body keeps them available.',
-      'Your check-up measures a forward hinge and an overhead reach. Watching these hold steady, or improve, is a sign the everyday tasks they stand in for are staying within easy reach.',
+      'Your check-up estimates a forward hinge and an overhead reach. Watching these stay similar or change over time helps Hale keep the plan useful.',
     ],
   },
   {
@@ -78,8 +77,8 @@ export const ARTICLES: Article[] = [
     excerpt: 'Numbers that mean something beat badges that do not.',
     body: [
       'Some apps lean on streaks and badges to keep you coming back. We have deliberately left those out. They can turn a missed day into unnecessary guilt, and that is not the relationship we want you to have with your own movement.',
-      'Instead we show you measurements that mean something — how your movement is trending across weeks and months. Evidence is a steadier motivator than guilt, and it respects that you are an adult making your own choices.',
-      'Come back when it suits you. The measurements will be here, and they will tell you the honest story of how your body is moving.',
+      'Instead we show you records that mean something — how your movement is trending across weeks and months. Evidence is a steadier motivator than guilt, and it respects that you are an adult making your own choices.',
+      'Come back when it suits you. The records will be here, and they will help you understand how your body is moving.',
     ],
   },
 ];
