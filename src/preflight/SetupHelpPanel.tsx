@@ -119,6 +119,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.bgSage,
+    borderWidth: 1,
+    borderColor: colors.borderHairline,
   },
   primaryButton: { backgroundColor: colors.accent },
   buttonText: { ...type.button, color: colors.accentDeep },
