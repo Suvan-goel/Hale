@@ -38,8 +38,6 @@ const EXPLORE_TAB_DESCRIPTIONS: Record<ExploreTab, string> = {
   library: "Browse Hale's movement progressions without changing today's plan.",
 };
 
-const FEATURED_SESSION_IDS = ['preset-mobility-reset', 'preset-gentle-restart'] as const;
-
 const LADDER_ICONS: Record<string, PictogramName> = {
   'sit-to-stand': 'chair',
   squat: 'squat',
@@ -67,16 +65,15 @@ const LEARN_IMAGES: Record<string, ImageSourcePropType> = {
   'resistance-band': require('../../assets/images/explore-learn-resistance-band.png'),
 };
 
-const FEATURED_SESSION_COPY: Record<string, { title?: string; body: string; icon: PictogramName }> = {
-  'preset-mobility-reset': {
-    title: '10-minute Mobility Reset',
-    body: 'Loosen tight areas and keep the day moving.',
-    icon: 'walk',
-  },
-  'preset-gentle-restart': {
-    body: 'A calm way back in when you want an easier session.',
-    icon: 'sprout',
-  },
+const PRACTICE_IMAGES: Record<string, ImageSourcePropType> = {
+  hero: require('../../assets/images/explore-practice-hero.png'),
+  'preset-mobility-reset': require('../../assets/images/explore-practice-mobility-reset.png'),
+  'preset-gentle-restart': require('../../assets/images/explore-practice-gentle-restart.png'),
+  'preset-steady-balance': require('../../assets/images/explore-practice-steady-balance.png'),
+  'preset-no-equipment-strength': require('../../assets/images/explore-practice-no-equipment-strength.png'),
+  'preset-band-upper-back': require('../../assets/images/explore-practice-band-upper-back.png'),
+  'preset-stairs-confidence': require('../../assets/images/explore-practice-stairs-confidence.png'),
+  'preset-quick-full-body': require('../../assets/images/explore-practice-quick-full-body.png'),
 };
 
 export function ExploreScreen({
@@ -113,14 +110,6 @@ export function ExploreScreen({
     () => getEquipmentSetupSummary({ equipment, safetyProfile, settings }),
     [equipment, safetyProfile, settings]
   );
-  const featuredSessions = React.useMemo(
-    () =>
-      FEATURED_SESSION_IDS.map((id) => extraSessions.find((session) => session.id === id)).filter(
-        (session): session is ExtraSessionCard => Boolean(session)
-      ),
-    [extraSessions]
-  );
-
   return (
     <Screen contentStyle={styles.screenContent}>
       <View style={styles.headerRow}>
@@ -150,7 +139,7 @@ export function ExploreScreen({
           onOpenSettings={onOpenSettings}
         />
       ) : activeTab === 'practice' ? (
-        <PracticeTab featuredSessions={featuredSessions} onStartExtraSession={onStartExtraSession} />
+        <PracticeTab sessions={extraSessions} onStartExtraSession={onStartExtraSession} />
       ) : (
         <LibraryTab ladders={ladders} onOpenLadder={onOpenLadder} />
       )}
@@ -246,37 +235,33 @@ function LearnTab({
 }
 
 function PracticeTab({
-  featuredSessions,
+  sessions,
   onStartExtraSession,
 }: {
-  featuredSessions: readonly ExtraSessionCard[];
+  sessions: readonly ExtraSessionCard[];
   onStartExtraSession: (presetId: string) => void;
 }) {
+  const featuredSession = sessions.find((session) => session.id === 'preset-mobility-reset') ?? sessions[0];
+  const sessionRows = featuredSession ? sessions.filter((session) => session.id !== featuredSession.id) : sessions;
+
   return (
     <View style={styles.tabContent}>
-      <View style={styles.practiceIntroCard}>
-        <IconWell name="sprout" />
-        <View style={styles.practiceIntroCopy}>
-          <Text style={styles.practiceIntroTitle}>Extra sessions are optional</Text>
-          <Text style={styles.practiceIntroBody}>Today remains your main plan. Use these when you want a gentle add-on.</Text>
-        </View>
-      </View>
+      {featuredSession ? (
+        <FeaturedPracticeCard
+          session={featuredSession}
+          onStart={() => onStartExtraSession(featuredSession.id)}
+        />
+      ) : null}
 
-      {featuredSessions.length > 0 ? (
+      {sessionRows.length > 0 ? (
         <View style={styles.section}>
-          <SectionCopy
-            title="Recommended extras"
-            body="Short sessions for days when the main plan is done or you want lighter movement."
-          />
-          <View style={styles.listPanel}>
-            {featuredSessions.map((session, index) => (
+          <SectionCopy title="Choose a session" />
+          <View style={[styles.listPanel, styles.practiceListPanel]}>
+            {sessionRows.map((session, index) => (
               <OptionalSessionRow
                 key={session.id}
                 session={session}
-                iconName={FEATURED_SESSION_COPY[session.id]?.icon ?? 'walk'}
-                title={FEATURED_SESSION_COPY[session.id]?.title ?? session.title}
-                body={FEATURED_SESSION_COPY[session.id]?.body ?? session.body}
-                showDivider={index < featuredSessions.length - 1}
+                showDivider={index < sessionRows.length - 1}
                 onStart={() => onStartExtraSession(session.id)}
               />
             ))}
@@ -1057,12 +1042,16 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 13,
     backgroundColor: todayHomeColors.iconFill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: todayHomeColors.border,
   },
   guideThumb: {
     width: 100,
     height: 80,
     borderRadius: 13,
     backgroundColor: todayHomeColors.iconFill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: todayHomeColors.border,
   },
   guideMetaRow: {
     alignSelf: 'flex-start',
