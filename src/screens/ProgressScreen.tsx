@@ -110,7 +110,7 @@ export function ProgressScreen({
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <View style={styles.titleGroup}>
-            <HeaderLogo size={30} />
+            <HeaderLogo />
             <Text style={styles.title}>Progress</Text>
           </View>
           <Pressable
@@ -1160,7 +1160,14 @@ function creditedTemplateCountThisWeek(
   const week = currentWeekNumber(block, today);
   const templates = new Set<string>();
   for (const completion of completions) {
-    if (completion.blockId !== block.id || completion.mainPlanCredit !== true || !completion.templateId) continue;
+    if (
+      completion.blockId !== block.id ||
+      completion.mainPlanCredit !== true ||
+      completion.focusStimulusEvidence?.mainPlanCredit !== true ||
+      !completion.templateId
+    ) {
+      continue;
+    }
     if (currentWeekNumber(block, completion.completedAt) !== week) continue;
     templates.add(completion.templateId);
   }

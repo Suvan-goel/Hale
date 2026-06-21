@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, PrimaryButton, Screen, ScreenHeader, SecondaryButton, StatusBadge } from '../../components/ui';
+import { BackArrowButton } from '../../components/BackArrowButton';
+import { Screen, ScreenHeader } from '../../components/ui';
 import { CheckUpScore, DOMAIN_LABEL, selectFocusFromScore, type Domain, type ScoreFocusSelection } from '../../scoring';
-import { colors, spacing, type } from '../../theme';
+import { colors, fonts, radius, spacing, type } from '../../theme';
 import { blockProgress } from '../adherenceState';
 import { movementDomainFromScoreDomainOrNull } from '../blockService';
 import { domainLabel, getLifeGoalDisplayText } from '../goalDomainMapping';
@@ -18,7 +19,6 @@ export function BlockReportScreen({
   milestone,
   report,
   nextBlockReady,
-  onStartNextBlock,
   onDone,
 }: {
   block: MovementBlock;
@@ -47,61 +47,97 @@ export function BlockReportScreen({
       ? domainLabel(movementDomainFromScoreDomainOrNull(latestScore.weakestDomain) ?? block.focusDomain)
       : domainLabel(block.focusDomain);
   const closelyMatched = latestFocusSelection?.kind === 'exact_tie' || latestFocusSelection?.kind === 'near_tie';
+  const sessionProgressPercent =
+    progress.totalSessions > 0
+      ? Math.min(100, Math.max(0, (progress.completedSessions / progress.totalSessions) * 100))
+      : 0;
 
   return (
     <Screen>
+      <BackArrowButton accessibilityLabel="Back from 4-week report" onPress={onDone} />
       <ScreenHeader
         title="Your 4-week report"
         subtitle={nextBlockReady ? 'Your next 4-week block is ready.' : 'A calm look at your latest re-test and what comes next.'}
       />
 
-      <Card style={styles.card}>
-        <View style={styles.head}>
-          <Text style={styles.title}>Training</Text>
-          <StatusBadge label="4-week block" tone="gold" />
+      <View style={styles.reportSheet}>
+        <View style={styles.sheetHead}>
+          <View style={styles.sheetHeadCopy}>
+            <Text style={styles.sheetEyebrow}>4-week block</Text>
+            <Text style={styles.sheetTitle}>{domainLabel(block.focusDomain)} training</Text>
+          </View>
+          <View style={styles.sheetStamp}>
+            <Text style={styles.sheetStampText}>{nextBlockReady ? 'Ready' : 'Saved'}</Text>
+          </View>
         </View>
-        <Row label="Focus" value={domainLabel(block.focusDomain)} />
-        <Row label="Sessions completed" value={`${progress.completedSessions} of ${progress.totalSessions}`} />
-        <Row label="Micro-checks" value={`${progress.microChecksCompleted}`} />
-      </Card>
 
-      <Card style={styles.card}>
-        <Text style={styles.title}>What changed</Text>
-        {domainChanges.map((change) => (
-          <Row key={change.domain} label={change.label} value={change.value} />
-        ))}
-      </Card>
+        <View style={styles.sheetDivider} />
 
-      <Card style={styles.card}>
-        <Text style={styles.title}>{comparisonUnavailable ? 'Re-test complete' : 'Latest re-test'}</Text>
-        <Text style={styles.body}>{main}</Text>
-      </Card>
+        <View style={styles.trainingSummary}>
+          <View style={styles.sessionSummary}>
+            <Text style={styles.sessionValue}>
+              {progress.completedSessions}
+              <Text style={styles.sessionValueMuted}> of {progress.totalSessions}</Text>
+            </Text>
+            <Text style={styles.sessionLabel}>sessions completed</Text>
+          </View>
 
-      <Card style={styles.card}>
-        <Text style={styles.title}>Suggested next focus</Text>
-        <Text style={styles.body}>
-          {nextFocusCopy({ nextFocus, nextBlockReady, focusSelection: latestFocusSelection, closelyMatched })}
-        </Text>
-      </Card>
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${sessionProgressPercent}%` }]} />
+          </View>
 
-      <Card style={styles.card}>
-        <Text style={styles.title}>Why this matters</Text>
-        <Text style={styles.body}>
-          {milestone
-            ? `${milestone.title}. ${milestone.body}`
-            : lifeGoal
-              ? `This supports progress toward ${getLifeGoalDisplayText(lifeGoal).toLowerCase()}.`
-              : 'This keeps Hale focused on supporting everyday movement.'}
-        </Text>
-      </Card>
+          <View style={styles.trainingStats}>
+            <TrainingStat label="Focus" value={domainLabel(block.focusDomain)} />
+            <View style={styles.statDivider} />
+            <TrainingStat label="Micro-checks" value={`${progress.microChecksCompleted}`} />
+          </View>
+        </View>
 
-      <View style={styles.actions}>
-        <PrimaryButton title={nextBlockReady ? 'Go to Today' : 'Start next 4-week block'} onPress={onStartNextBlock} />
-        <SecondaryButton title="Done" onPress={onDone} />
+        <View style={styles.sheetDivider} />
+
+        <ReportSection
+          eyebrow="Comparison"
+          title="What changed"
+          body={comparisonUnavailable ? 'Your latest re-test is saved for future trend comparisons.' : 'Latest re-test compared with your previous check-up.'}
+        >
+          <View style={styles.changeList}>
+            {domainChanges.map((change, index) => (
+              <ChangeRow key={change.domain} change={change} showDivider={index > 0} />
+            ))}
+          </View>
+        </ReportSection>
+
+        <View style={styles.sheetDivider} />
+
+        <ReportSection eyebrow="Re-test" title={comparisonUnavailable ? 'Re-test complete' : 'Latest re-test'} body={main} />
+
+        <View style={styles.sheetDivider} />
+
+        <ReportSection
+          eyebrow={nextBlockReady ? 'Ready' : 'Next'}
+          title="Suggested next focus"
+          body={nextFocusCopy({ nextFocus, nextBlockReady, focusSelection: latestFocusSelection, closelyMatched })}
+        />
+
+        <View style={styles.sheetDivider} />
+
+        <ReportSection
+          eyebrow="Everyday movement"
+          title="Why this matters"
+          body={
+            milestone
+              ? `${milestone.title}. ${milestone.body}`
+              : lifeGoal
+                ? `This supports progress toward ${getLifeGoalDisplayText(lifeGoal).toLowerCase()}.`
+                : 'This keeps Hale focused on supporting everyday movement.'
+          }
+        />
       </View>
     </Screen>
   );
 }
+
+type DomainChangeSummary = ReturnType<typeof domainChange>;
 
 function unavailableDomainChange(
   domain: Domain
@@ -133,11 +169,45 @@ function nextFocusCopy({
     : `${prefix}Your next 4-week block can use ${nextFocus.toLowerCase()} as the suggested focus.`;
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function TrainingStat({ label, value }: { label: string; value: string }) {
   return (
-    <View style={styles.row}>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.value}>{value}</Text>
+    <View style={styles.trainingStat}>
+      <Text style={styles.statLabel}>{label}</Text>
+      <Text style={styles.statValue}>{value}</Text>
+    </View>
+  );
+}
+
+function ChangeRow({ change, showDivider }: { change: DomainChangeSummary; showDivider: boolean }) {
+  return (
+    <View style={[styles.changeRow, showDivider && styles.rowDivider]}>
+      <Text style={styles.changeTitle}>{changeTitle(change.domain)}</Text>
+      <View style={styles.changeStatus}>
+        <Text style={styles.changeStatusText} numberOfLines={2}>
+          {change.value}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function ReportSection({
+  eyebrow,
+  title,
+  body,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  body: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <View style={styles.reportSection}>
+      <Text style={styles.sectionEyebrow}>{eyebrow}</Text>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={styles.sectionBody}>{body}</Text>
+      {children}
     </View>
   );
 }
@@ -173,17 +243,185 @@ function shortDomain(domain: Domain): string {
   return domainLabel(movementDomainForScoreDomain(domain));
 }
 
+function changeTitle(domain: Domain): string {
+  if (domain === 'strength') return 'Strength / Power';
+  if (domain === 'balance') return 'Balance';
+  return 'Mobility';
+}
+
 function movementDomainForScoreDomain(domain: Domain): MovementDomain {
   return domain === 'strength' ? 'strength_power' : domain;
 }
 
 const styles = StyleSheet.create({
-  card: { gap: spacing.md },
-  head: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md, flexWrap: 'wrap' },
-  title: { ...type.cardTitle },
-  body: { ...type.cardBody },
-  row: { gap: spacing.xs },
-  label: { ...type.label },
-  value: { ...type.bodySmall, color: colors.textSecondary },
-  actions: { gap: spacing.md },
+  reportSheet: {
+    gap: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    borderRadius: radius.panel,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+    boxShadow: '0 16px 40px rgba(17,20,18,0.042)',
+  },
+  sheetHead: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+  },
+  sheetHeadCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing.sm,
+  },
+  sheetEyebrow: {
+    ...type.label,
+    color: colors.accentDeep,
+  },
+  sheetTitle: {
+    fontFamily: fonts.serifMedium,
+    fontSize: 31,
+    lineHeight: 37,
+    letterSpacing: 0,
+    color: colors.textPrimary,
+  },
+  sheetStamp: {
+    minHeight: 32,
+    flexShrink: 0,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+  },
+  sheetStampText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0,
+    color: colors.accentDeep,
+  },
+  sheetDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.divider,
+  },
+  trainingSummary: {
+    gap: spacing.md,
+  },
+  sessionSummary: {
+    gap: 2,
+  },
+  sessionValue: {
+    fontFamily: fonts.serifMedium,
+    fontSize: 48,
+    lineHeight: 55,
+    letterSpacing: 0,
+    color: colors.textPrimary,
+    fontVariant: ['tabular-nums'],
+  },
+  sessionValueMuted: {
+    fontFamily: fonts.serifMedium,
+    fontSize: 29,
+    lineHeight: 36,
+    letterSpacing: 0,
+    color: colors.textTertiary,
+    fontVariant: ['tabular-nums'],
+  },
+  sessionLabel: {
+    ...type.label,
+    color: colors.textSecondary,
+  },
+  progressTrack: {
+    height: 8,
+    overflow: 'hidden',
+    borderRadius: radius.pill,
+    backgroundColor: colors.border,
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: radius.pill,
+    backgroundColor: colors.accentDeep,
+  },
+  trainingStats: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: spacing.md,
+    paddingTop: spacing.xs,
+  },
+  trainingStat: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing.xs,
+  },
+  statDivider: {
+    width: StyleSheet.hairlineWidth,
+    backgroundColor: colors.divider,
+  },
+  statLabel: {
+    ...type.label,
+    color: colors.textTertiary,
+  },
+  statValue: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 18,
+    lineHeight: 24,
+    letterSpacing: 0,
+    color: colors.accentDeep,
+  },
+  reportSection: {
+    gap: spacing.sm,
+  },
+  sectionEyebrow: {
+    ...type.label,
+    color: colors.textTertiary,
+  },
+  sectionTitle: {
+    fontFamily: fonts.serifMedium,
+    fontSize: 25,
+    lineHeight: 31,
+    letterSpacing: 0,
+    color: colors.textPrimary,
+  },
+  sectionBody: {
+    ...type.bodySmall,
+    color: colors.textSecondary,
+  },
+  changeList: {
+    marginTop: spacing.sm,
+  },
+  changeRow: {
+    minHeight: 58,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  changeTitle: {
+    flex: 1,
+    minWidth: 0,
+    fontFamily: fonts.sansMedium,
+    fontSize: 16,
+    lineHeight: 21,
+    letterSpacing: 0,
+    color: colors.textPrimary,
+  },
+  changeStatus: {
+    maxWidth: 142,
+    flexShrink: 0,
+    alignItems: 'flex-end',
+  },
+  changeStatusText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 15,
+    lineHeight: 21,
+    letterSpacing: 0,
+    color: colors.accentDeep,
+    textAlign: 'right',
+  },
+  rowDivider: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
+  },
 });

@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Input, ListRow, PrimaryButton, SecondaryButton } from '../../components/ui';
-import { colors, spacing } from '../../theme';
+import { Input, PrimaryButton, SecondaryButton } from '../../components/ui';
+import { colors, fonts, radius, shadow, spacing, type } from '../../theme';
 import { LIFE_GOAL_PRESETS, createLifeGoal } from '../goalDomainMapping';
 import type { LifeGoal, LifeGoalCategory } from '../types';
 
@@ -35,19 +35,16 @@ export function LifeGoalSelector({
   return (
     <View style={styles.wrap}>
       <View style={styles.options}>
-        {LIFE_GOAL_PRESETS.map((option) => {
+        {LIFE_GOAL_PRESETS.map((option, index) => {
           const active = option.category === selected;
           return (
-            <ListRow
+            <GoalOptionCard
               key={option.category}
+              number={index + 1}
               title={option.label}
-              subtitle={LIFE_GOAL_HINTS[option.category]}
-              variant="inset"
-              style={[styles.option, active && styles.optionActive]}
-              onPress={() => setSelected(option.category)}
-              accessibilityLabel={option.label}
+              detail={LIFE_GOAL_HINTS[option.category]}
               selected={active}
-              leading={<View style={[styles.optionMark, active && styles.optionMarkActive]} />}
+              onPress={() => setSelected(option.category)}
             />
           );
         })}
@@ -66,7 +63,7 @@ export function LifeGoalSelector({
 
       <View style={styles.actions}>
         <PrimaryButton
-          title="Save my goal"
+          title="Continue"
           onPress={() => {
             if (!canSave) return;
             onSave(createLifeGoal({ category: selected, customText }));
@@ -79,21 +76,105 @@ export function LifeGoalSelector({
   );
 }
 
+function GoalOptionCard({
+  number,
+  title,
+  detail,
+  selected,
+  onPress,
+}: {
+  number: number;
+  title: string;
+  detail: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.option, selected && styles.optionSelected, pressed && styles.pressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      accessibilityLabel={`${title}: ${detail}`}
+    >
+      <View style={[styles.optionRail, selected && styles.optionRailSelected]} />
+      <View style={styles.optionCopy}>
+        <Text style={[styles.optionTitle, selected && styles.optionTitleSelected]}>{title}</Text>
+        <Text style={styles.optionDetail}>{detail}</Text>
+      </View>
+      <View style={[styles.optionNumber, selected && styles.optionNumberSelected]}>
+        <Text style={[styles.optionNumberText, selected && styles.optionNumberTextSelected]}>
+          {number}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   wrap: { gap: spacing.lg },
   options: { gap: spacing.md },
   option: {
-    minHeight: 82,
+    minHeight: 96,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    borderRadius: radius.card,
+    backgroundColor: colors.bgSurface,
+    ...shadow.card,
   },
-  optionActive: { backgroundColor: colors.accentSoft, borderColor: colors.accentBorder },
-  optionMark: {
-    width: 14,
-    height: 14,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: colors.accentBorder,
-    backgroundColor: colors.surface,
+  optionSelected: {
+    backgroundColor: colors.bgGold,
   },
-  optionMarkActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  optionRail: {
+    width: 4,
+    alignSelf: 'stretch',
+    borderRadius: radius.pill,
+    backgroundColor: colors.background,
+  },
+  optionRailSelected: {
+    backgroundColor: colors.accentDeep,
+  },
+  optionCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing.xs,
+  },
+  optionTitle: {
+    ...type.bodySmall,
+    fontFamily: fonts.sansMedium,
+    fontSize: 16,
+    lineHeight: 22,
+    color: colors.textPrimary,
+  },
+  optionTitleSelected: {
+    color: colors.accentDeep,
+  },
+  optionDetail: {
+    ...type.cardBody,
+    color: colors.textSecondary,
+  },
+  optionNumber: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background,
+  },
+  optionNumberSelected: {
+    backgroundColor: colors.accentDeep,
+  },
+  optionNumberText: {
+    ...type.cardCaption,
+    fontFamily: fonts.sansMedium,
+    color: colors.textSecondary,
+  },
+  optionNumberTextSelected: {
+    color: colors.onAccent,
+  },
   actions: { gap: spacing.md },
+  pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
 });

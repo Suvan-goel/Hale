@@ -79,7 +79,7 @@ export function PlanScreen({
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <View style={styles.titleGroup}>
-            <HeaderLogo size={30} />
+            <HeaderLogo />
             <Text style={styles.title}>Your Plan</Text>
           </View>
           <Pressable

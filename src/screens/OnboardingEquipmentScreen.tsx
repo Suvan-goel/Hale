@@ -1,11 +1,13 @@
 import * as React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { AvailableEquipment } from '../adherence';
 import { BackArrowButton } from '../components/BackArrowButton';
-import { Card, ListRow, PrimaryButton, Screen, ScreenHeader } from '../components/ui';
+import { PrimaryButton, Screen, ScreenHeader } from '../components/ui';
 import type { EquipmentProfile } from '../training';
-import { colors, spacing } from '../theme';
+import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+
+const HOME_SETUP_HERO_IMAGE = require('../../assets/images/hale-home-setup-hero-v3.png');
 
 export type OnboardingEquipmentId =
   | 'chair'
@@ -18,16 +20,24 @@ export type OnboardingEquipmentId =
   | 'floor_space'
   | 'phone_stand';
 
-const EQUIPMENT_OPTIONS: readonly { id: OnboardingEquipmentId; label: string }[] = [
-  { id: 'chair', label: 'Stable chair' },
-  { id: 'wall', label: 'Wall or counter support' },
-  { id: 'stairs', label: 'Bottom stair' },
-  { id: 'resistance_band', label: 'Resistance band' },
-  { id: 'door_anchor', label: 'Door anchor for band rows' },
-  { id: 'mini_band', label: 'Mini band' },
-  { id: 'load', label: 'Backpack or light weight' },
-  { id: 'floor_space', label: 'Floor space for mat exercises' },
-  { id: 'phone_stand', label: 'Phone stand' },
+const CHECKUP_OPTIONS: readonly { id: OnboardingEquipmentId; label: string; note: string }[] = [
+  { id: 'chair', label: 'Stable chair', note: 'Used for chair stands and seated setup.' },
+  { id: 'wall', label: 'Wall or counter support', note: 'Helpful for balance comfort.' },
+  { id: 'phone_stand', label: 'Phone stand', note: 'A shelf, mug, or stack of books works too.' },
+];
+
+const TRAINING_OPTIONS: readonly { id: OnboardingEquipmentId; label: string; note: string }[] = [
+  { id: 'stairs', label: 'Bottom stair', note: 'Adds simple step options later.' },
+  { id: 'resistance_band', label: 'Resistance band', note: 'Adds pulling and posture options.' },
+  { id: 'door_anchor', label: 'Door anchor for band rows', note: 'Only needed for some band rows.' },
+  { id: 'mini_band', label: 'Mini band', note: 'Adds hip and balance variations.' },
+  { id: 'load', label: 'Backpack or light weight', note: 'Adds everyday carrying practice.' },
+  { id: 'floor_space', label: 'Floor space for mat exercises', note: 'Adds floor-based options when comfortable.' },
+];
+
+const EQUIPMENT_OPTIONS: readonly { id: OnboardingEquipmentId; label: string; note: string }[] = [
+  ...CHECKUP_OPTIONS,
+  ...TRAINING_OPTIONS,
 ];
 
 export function OnboardingEquipmentScreen({
@@ -66,23 +76,60 @@ export function OnboardingEquipmentScreen({
     <Screen>
       <BackArrowButton accessibilityLabel="Back" onPress={onBack} />
       <ScreenHeader
-        eyebrow="Step 4 of 10"
-        title="What do you have at home?"
-        subtitle="No problem if you don't have equipment. Hale will adapt your sessions."
+        eyebrow="Home setup"
+        title="What do you have nearby?"
+        subtitle="Hale starts with a chair and support, then adapts training options to the items you already have."
       />
 
-      <Card style={styles.card}>
-        <View style={styles.grid}>
-          {EQUIPMENT_OPTIONS.map((option) => (
+      <View style={styles.heroImageCard}>
+        <Image
+          source={HOME_SETUP_HERO_IMAGE}
+          style={styles.heroImage}
+          resizeMode="contain"
+          accessible={false}
+          accessibilityIgnoresInvertColors
+        />
+      </View>
+
+      <EquipmentSection title="For the check-up" meta="Start here">
+        <View style={styles.optionList}>
+          {CHECKUP_OPTIONS.map((option) => (
             <Choice
               key={option.id}
               label={option.label}
+              note={option.note}
               selected={selected.includes(option.id)}
               onPress={() => setSelected((prev) => toggle(prev, option.id))}
             />
           ))}
         </View>
-      </Card>
+      </EquipmentSection>
+
+      <EquipmentSection title="Optional training items" meta="Add if available">
+        <View style={styles.optionList}>
+          {TRAINING_OPTIONS.map((option) => (
+            <Choice
+              key={option.id}
+              label={option.label}
+              note={option.note}
+              selected={selected.includes(option.id)}
+              onPress={() => setSelected((prev) => toggle(prev, option.id))}
+            />
+          ))}
+        </View>
+      </EquipmentSection>
+
+      <View style={styles.reassuranceCard}>
+        <View style={styles.reassuranceMark}>
+          <Text style={styles.reassuranceMarkText}>0</Text>
+        </View>
+        <View style={styles.reassuranceCopy}>
+          <Text style={styles.reassuranceTitle}>No equipment is okay</Text>
+          <Text style={styles.reassuranceBody}>
+            Every first block keeps a zero-equipment path. Missing items only change substitutions, so nothing here has to be perfect.
+          </Text>
+        </View>
+      </View>
 
       <View style={styles.actions}>
         <PrimaryButton title="Continue" onPress={save} />
@@ -91,17 +138,46 @@ export function OnboardingEquipmentScreen({
   );
 }
 
-function Choice({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+function EquipmentSection({
+  title,
+  meta,
+  children,
+}: {
+  title: string;
+  meta: string;
+  children: React.ReactNode;
+}) {
   return (
-    <ListRow
-      title={label}
-      variant="inset"
-      style={[styles.choice, selected && styles.choiceSelected]}
+    <View style={styles.sectionCard}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <View style={styles.sectionMetaPill}>
+          <Text style={styles.sectionMetaText}>{meta}</Text>
+        </View>
+      </View>
+      {children}
+    </View>
+  );
+}
+
+function Choice({ label, note, selected, onPress }: { label: string; note: string; selected: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.choice, selected && styles.choiceSelected, pressed && styles.pressed]}
       onPress={onPress}
+      accessibilityRole="button"
       accessibilityLabel={label}
-      selected={selected}
-      trailing={<View style={[styles.choiceMark, selected && styles.choiceMarkSelected]} />}
-    />
+      accessibilityState={{ selected }}
+    >
+      <View style={[styles.choiceRail, selected && styles.choiceRailSelected]} />
+      <View style={styles.choiceCopy}>
+        <Text style={[styles.choiceTitle, selected && styles.choiceTitleSelected]}>{label}</Text>
+        <Text style={styles.choiceNote}>{note}</Text>
+      </View>
+      <View style={[styles.choiceMark, selected && styles.choiceMarkSelected]}>
+        {selected ? <View style={styles.choiceMarkInner} /> : null}
+      </View>
+    </Pressable>
   );
 }
 
@@ -127,23 +203,156 @@ function toAvailableEquipment(selected: readonly OnboardingEquipmentId[]): Avail
 }
 
 const styles = StyleSheet.create({
-  card: { gap: spacing.md },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  heroImageCard: {
+    aspectRatio: 16 / 9,
+    overflow: 'hidden',
+    borderRadius: radius.card,
+    backgroundColor: colors.bgMaterial,
+    ...shadow.card,
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  sectionCard: {
+    gap: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    borderRadius: radius.card,
+    backgroundColor: colors.bgSurface,
+    ...shadow.card,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+  },
+  sectionTitle: {
+    fontFamily: fonts.serifMedium,
+    fontSize: 22,
+    lineHeight: 28,
+    letterSpacing: 0,
+    color: colors.textPrimary,
+    flex: 1,
+    minWidth: 0,
+  },
+  sectionMetaPill: {
+    minHeight: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    backgroundColor: colors.background,
+  },
+  sectionMetaText: {
+    ...type.cardCaption,
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    lineHeight: 16,
+  },
+  optionList: { gap: spacing.sm },
   choice: {
-    flexGrow: 1,
-    flexBasis: '45%',
-    minWidth: 160,
-    minHeight: 58,
+    minHeight: 82,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    borderRadius: radius.input,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.background,
   },
-  choiceSelected: { backgroundColor: colors.accentSoft, borderColor: colors.accentBorder },
+  choiceSelected: {
+    backgroundColor: colors.bgGold,
+  },
+  choiceRail: {
+    width: 4,
+    alignSelf: 'stretch',
+    borderRadius: radius.pill,
+    backgroundColor: colors.bgSurface,
+  },
+  choiceRailSelected: {
+    backgroundColor: colors.accentDeep,
+  },
+  choiceCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  choiceTitle: {
+    ...type.bodySmall,
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
+  },
+  choiceTitleSelected: {
+    color: colors.accentDeep,
+  },
+  choiceNote: {
+    ...type.caption,
+    color: colors.textSecondary,
+  },
   choiceMark: {
-    width: 12,
-    height: 12,
-    borderRadius: 4,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: colors.accentBorder,
-    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    backgroundColor: colors.bgSurface,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  choiceMarkSelected: { backgroundColor: colors.accent, borderColor: colors.accent },
+  choiceMarkSelected: {
+    borderColor: colors.accentDeep,
+    backgroundColor: colors.accentDeep,
+  },
+  choiceMarkInner: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.bgSurface,
+  },
+  reassuranceCard: {
+    minHeight: 128,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    borderRadius: radius.card,
+    backgroundColor: colors.bgSurface,
+    ...shadow.card,
+  },
+  reassuranceMark: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bgGold,
+  },
+  reassuranceMarkText: {
+    fontFamily: fonts.serifMedium,
+    fontSize: 22,
+    lineHeight: 26,
+    color: colors.accentDeep,
+  },
+  reassuranceCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing.sm,
+  },
+  reassuranceTitle: {
+    fontFamily: fonts.serifMedium,
+    fontSize: 22,
+    lineHeight: 28,
+    letterSpacing: 0,
+    color: colors.textPrimary,
+  },
+  reassuranceBody: {
+    ...type.bodySmall,
+    color: colors.textSecondary,
+  },
   actions: { gap: spacing.md },
+  pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
 });

@@ -93,6 +93,7 @@ type SettingsScreenProps = {
   onOpenLifeGoal: () => void;
   onOpenSafetyProfile: () => void;
   onOpenCameraSetup: () => void;
+  onReplayOnboardingForDev?: () => void;
   onBack?: () => void;
 };
 
@@ -116,6 +117,7 @@ function SettingsScreenContent({
   onOpenLifeGoal,
   onOpenSafetyProfile,
   onOpenCameraSetup,
+  onReplayOnboardingForDev,
   onBack,
 }: SettingsScreenProps) {
   const [openSection, setOpenSection] = React.useState<ProfileSection | null>(null);
@@ -419,7 +421,7 @@ function SettingsScreenContent({
         </View>
         <View style={styles.detailHeader}>
           <View style={styles.titleGroup}>
-            <HeaderLogo size={30} />
+            <HeaderLogo />
             <Text style={styles.title}>{copy.title}</Text>
           </View>
           <Text style={styles.detailSubtitle}>{copy.subtitle}</Text>
@@ -434,7 +436,7 @@ function SettingsScreenContent({
       {onBack ? <BackArrowButton accessibilityLabel="Back" onPress={onBack} /> : null}
       <View style={styles.headerRow}>
         <View style={styles.titleGroup}>
-          <HeaderLogo size={30} />
+          <HeaderLogo />
           <Text style={styles.title}>Settings</Text>
         </View>
       </View>
@@ -526,6 +528,24 @@ function SettingsScreenContent({
           onPress={() => openProfileSection('help')}
         />
       </SettingsSection>
+
+      {onReplayOnboardingForDev ? (
+        <Pressable
+          style={({ pressed }) => [styles.devOnboardingButton, pressed && styles.pressed]}
+          onPress={onReplayOnboardingForDev}
+          accessibilityRole="button"
+          accessibilityLabel="Replay onboarding flow for development"
+        >
+          <View style={styles.devOnboardingIcon}>
+            <MenuIcon name="sliders" />
+          </View>
+          <View style={styles.devOnboardingCopy}>
+            <Text style={styles.devOnboardingTitle}>Replay onboarding</Text>
+            <Text style={styles.devOnboardingBody}>Development only. Opens the first-run flow without clearing app data.</Text>
+          </View>
+          <Text style={styles.devOnboardingChevron}>{'>'}</Text>
+        </Pressable>
+      ) : null}
     </Screen>
   );
 }
@@ -1604,6 +1624,47 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   chevron: {
+    ...type.h2,
+    color: colors.textSecondary,
+    lineHeight: 26,
+  },
+  devOnboardingButton: {
+    minHeight: 78,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: radius.card,
+    backgroundColor: colors.bgGold,
+    borderWidth: 1,
+    borderColor: colors.goldBorder,
+  },
+  devOnboardingIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.input,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  devOnboardingCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  devOnboardingTitle: {
+    ...type.bodySmall,
+    color: colors.primaryText,
+    fontFamily: fonts.sansMedium,
+  },
+  devOnboardingBody: {
+    ...type.caption,
+    color: colors.textSecondary,
+  },
+  devOnboardingChevron: {
     ...type.h2,
     color: colors.textSecondary,
     lineHeight: 26,

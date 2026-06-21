@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import type { CheckUp } from '../checkup';
 import type { MovementAssessment } from '../adherence';
-import { Card, HealthMetricRow, MaterialCard, PrimaryButton, Screen, ScreenHeader, StatusBadge, Typography } from '../components/ui';
+import { PrimaryButton, Screen, ScreenHeader } from '../components/ui';
 import { getAssessmentResultState } from '../haleFlow/assessmentResultState';
 import {
   bandLabel,
@@ -12,7 +12,7 @@ import {
   onboardingFocusDomain,
 } from '../onboarding/results';
 import { DOMAIN_LABEL, selectFocusFromScore, type CheckUpScore, type ScoreFocusSelection, type VersionedCheckUpScoreSnapshot } from '../scoring';
-import { colors, spacing } from '../theme';
+import { colors, fonts, radius, spacing, type } from '../theme';
 
 const ICONS = {
   strength_power: 'S',
@@ -47,58 +47,67 @@ export function OnboardingResultsScreen({
     <Screen>
       <View style={styles.header}>
         <ScreenHeader
-          eyebrow="Step 8 of 10"
-          title="Your Movement Check-Up results"
-          subtitle="Here is the simple picture from today’s home estimate."
+          eyebrow="Movement Check-Up"
+          title="Your starting picture"
+          subtitle="Hale uses today’s home estimate, your goal, and your setup to build the first block."
         />
       </View>
 
       {focus ? (
-        <MaterialCard>
-          <Typography variant="label" color={colors.accentDeep}>{closelyMatched ? 'Closely matched starting point' : 'Suggested first focus'}</Typography>
-          <Typography variant="h1" style={styles.focusValue}>
+        <View style={styles.focusCard}>
+          <View style={styles.focusTopRow}>
+            <Text style={styles.eyebrow}>{closelyMatched ? 'Closely matched starting point' : 'Suggested first focus'}</Text>
+            <View style={styles.focusPill}>
+              <Text style={styles.focusPillText}>Home estimate</Text>
+            </View>
+          </View>
+          <Text style={styles.focusTitle}>
             {closelyMatched ? tiedDomainLabels(focusSelection) : onboardingFocusCopy(focus)}
-          </Typography>
-          <Typography variant="bodySmall" color={colors.textSecondary} style={styles.body}>
+          </Text>
+          <View style={styles.focusRule} />
+          <Text style={styles.focusBody}>
             {closelyMatched
               ? `${onboardingFocusCopy(focus)} is the suggested first focus because these home estimates were closely matched.`
-              : 'Hale will use this home estimate as a starting point for your first 4-week block.'}
-          </Typography>
-        </MaterialCard>
+              : 'This gives Hale a starting point for your first 4-week block. You can retake the check-up if anything felt off.'}
+          </Text>
+        </View>
       ) : (
-        <MaterialCard>
-          <Typography variant="label" color={colors.accentDeep}>Retake needed</Typography>
-          <Typography variant="h1" style={styles.focusValue}>{resultState.recoveryTitle}</Typography>
-          <Typography variant="bodySmall" color={colors.textSecondary} style={styles.body}>
-            {resultState.recoveryBody}
-          </Typography>
-        </MaterialCard>
+        <View style={styles.focusCard}>
+          <Text style={styles.eyebrow}>Retake needed</Text>
+          <Text style={styles.focusTitle}>{resultState.recoveryTitle}</Text>
+          <View style={styles.focusRule} />
+          <Text style={styles.focusBody}>{resultState.recoveryBody}</Text>
+        </View>
       )}
 
       {summaries.length > 0 ? (
-        <Card style={styles.card}>
+        <View style={styles.domainStack}>
           {summaries.map((domain) => (
-            <HealthMetricRow
+            <DomainSummaryCard
               key={domain.key}
               icon={ICONS[domain.key]}
-              label={domain.title}
-              value={bandLabel(domain.band)}
+              title={domain.title}
+              band={bandLabel(domain.band)}
               status={focus && domain.key === focus ? 'Suggested focus' : closelyMatched && domainIsTied(domain.key, focusSelection) ? 'Closely matched' : 'Home estimate'}
+              featured={!!focus && domain.key === focus}
             />
           ))}
-        </Card>
+        </View>
       ) : null}
 
       {resultState.canCreateBlock ? (
-        <Card style={styles.card}>
+        <View style={styles.nextCard}>
           <View style={styles.noteHead}>
-            <Typography variant="h2">What happens next</Typography>
-            <StatusBadge label="4-week block" tone="gold" />
+            <Text style={styles.nextTitle}>What happens next</Text>
+            <View style={styles.nextPill}>
+              <Text style={styles.nextPillText}>4-week block</Text>
+            </View>
           </View>
-          <Typography variant="bodySmall" color={colors.textSecondary} style={styles.body}>
-            You will get three calm Hale Sessions each week, then repeat the check-up in 4 weeks to add another data point.
-          </Typography>
-        </Card>
+          <View style={styles.nextRule} />
+          <Text style={styles.nextBody}>
+            You will get three calm Hale Sessions each week. The first block keeps substitutions available, then you repeat the check-up in 4 weeks.
+          </Text>
+        </View>
       ) : null}
 
       {resultState.canCreateBlock ? (
@@ -109,6 +118,35 @@ export function OnboardingResultsScreen({
         <PrimaryButton title="Done" onPress={onRetake} />
       )}
     </Screen>
+  );
+}
+
+function DomainSummaryCard({
+  icon,
+  title,
+  band,
+  status,
+  featured,
+}: {
+  icon: string;
+  title: string;
+  band: string;
+  status: string;
+  featured: boolean;
+}) {
+  return (
+    <View style={[styles.domainCard, featured && styles.domainCardFeatured]}>
+      <View style={[styles.domainMark, featured && styles.domainMarkFeatured]}>
+        <Text style={[styles.domainMarkText, featured && styles.domainMarkTextFeatured]}>{icon}</Text>
+      </View>
+      <View style={styles.domainCopy}>
+        <Text style={styles.domainTitle}>{title}</Text>
+        <Text style={styles.domainStatus}>{status}</Text>
+      </View>
+      <View style={styles.domainBandWrap}>
+        <Text style={styles.domainBand}>{band}</Text>
+      </View>
+    </View>
   );
 }
 
@@ -129,8 +167,171 @@ function domainIsTied(
 
 const styles = StyleSheet.create({
   header: { gap: spacing.xs },
-  focusValue: { marginTop: spacing.sm },
-  body: { marginTop: spacing.sm },
-  card: { gap: spacing.md },
-  noteHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md, flexWrap: 'wrap' },
+  focusCard: {
+    gap: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    borderRadius: radius.panel,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+    boxShadow: '0 12px 30px rgba(17,20,18,0.04)',
+  },
+  focusTopRow: {
+    minHeight: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  eyebrow: {
+    ...type.label,
+    color: colors.textSecondary,
+    flexShrink: 1,
+  },
+  focusPill: {
+    minHeight: 30,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bgBase,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+  },
+  focusPillText: {
+    ...type.caption,
+    fontFamily: fonts.sansMedium,
+    color: colors.accentDeep,
+  },
+  focusTitle: {
+    fontFamily: fonts.serifMedium,
+    fontSize: 34,
+    lineHeight: 40,
+    letterSpacing: 0,
+    color: colors.textPrimary,
+  },
+  focusRule: {
+    width: 48,
+    height: 2,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accentGold,
+  },
+  focusBody: {
+    ...type.bodySmall,
+    color: colors.textSecondary,
+  },
+  domainStack: {
+    gap: spacing.md,
+  },
+  domainCard: {
+    minHeight: 94,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    borderRadius: radius.card,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+    boxShadow: '0 8px 22px rgba(17,20,18,0.026)',
+  },
+  domainCardFeatured: {
+    borderColor: colors.goldBorder,
+    backgroundColor: colors.bgGold,
+  },
+  domainMark: {
+    width: 46,
+    height: 46,
+    borderRadius: radius.input,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bgBase,
+  },
+  domainMarkFeatured: {
+    backgroundColor: colors.surface,
+  },
+  domainMarkText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 16,
+    lineHeight: 20,
+    letterSpacing: 0,
+    color: colors.textSecondary,
+  },
+  domainMarkTextFeatured: {
+    color: colors.accentDeep,
+  },
+  domainCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing.xs,
+  },
+  domainTitle: {
+    ...type.cardRowTitle,
+    fontSize: 16,
+    lineHeight: 21,
+  },
+  domainStatus: {
+    ...type.caption,
+    color: colors.textSecondary,
+  },
+  domainBandWrap: {
+    maxWidth: 132,
+    alignItems: 'flex-end',
+  },
+  domainBand: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 16,
+    lineHeight: 22,
+    letterSpacing: 0,
+    color: colors.accentDeep,
+    textAlign: 'right',
+  },
+  nextCard: {
+    gap: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    borderRadius: radius.panel,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+    boxShadow: '0 10px 26px rgba(17,20,18,0.032)',
+  },
+  noteHead: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    flexWrap: 'wrap',
+  },
+  nextTitle: {
+    fontFamily: fonts.serifMedium,
+    fontSize: 25,
+    lineHeight: 31,
+    letterSpacing: 0,
+    color: colors.textPrimary,
+    flexShrink: 1,
+  },
+  nextPill: {
+    minHeight: 34,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bgBase,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+  },
+  nextPillText: {
+    ...type.bodySmall,
+    fontFamily: fonts.sansMedium,
+    color: colors.accentDeep,
+  },
+  nextRule: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.borderHairline,
+  },
+  nextBody: {
+    ...type.bodySmall,
+    color: colors.textSecondary,
+  },
 });

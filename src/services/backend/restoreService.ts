@@ -401,6 +401,7 @@ export function mapRemoteTrainingStateToLocal(row: RemoteTrainingStateRow | null
     equipment: stateJson.equipment,
     progress: stateJson.progress,
     ladderProgressById: stateJson.ladderProgressById,
+    appliedProgressionEventIds: stateJson.appliedProgressionEventIds,
     generatedSessionSummaries: stateJson.generatedSessionSummaries ?? recentSummaries,
     lastPostSessionFeedback: stateJson.lastPostSessionFeedback ?? null,
     planPreferences: stateJson.planPreferences,
@@ -787,6 +788,7 @@ export function isTrainingStateMeaningfulForRestore(training: TrainingState): bo
     Object.values(training.progression.velHistory).some((values) => values.length > 0) ||
     JSON.stringify(training.equipment) !== JSON.stringify(defaults.equipment) ||
     Object.keys(training.ladderProgressById).length > 0 ||
+    training.appliedProgressionEventIds.length > 0 ||
     training.generatedSessionSummaries.length > 0 ||
     training.lastPostSessionFeedback !== null ||
     JSON.stringify(training.planPreferences) !== JSON.stringify(defaults.planPreferences)

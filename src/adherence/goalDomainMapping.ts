@@ -12,6 +12,8 @@ export const LIFE_GOAL_PRESETS: { category: LifeGoalCategory; label: string }[] 
   { category: 'travel', label: 'Travel comfortably' },
   { category: 'grandchildren', label: 'Play with children/grandchildren' },
   { category: 'gardening_hobbies', label: 'Feel less stiff' },
+  { category: 'floor_confidence', label: 'Get down to and up from the floor' },
+  { category: 'carrying_loads', label: 'Carry groceries or luggage' },
   { category: 'independence', label: 'Stay independent' },
   { category: 'noticed_decline', label: 'Get stronger overall' },
   { category: 'custom', label: 'Something else' },

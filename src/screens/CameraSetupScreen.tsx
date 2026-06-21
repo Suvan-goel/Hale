@@ -1,9 +1,20 @@
 import * as React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { BackArrowButton } from '../components/BackArrowButton';
-import { Card, ListRow, PrimaryButton, Screen, ScreenHeader, SecondaryButton, StatusBadge, Typography } from '../components/ui';
-import { colors, radius, spacing, type } from '../theme';
+import { PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../components/ui';
+import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+
+const SETUP_HERO_IMAGE = require('../../assets/images/hale-camera-setup-hero-v4.png');
+
+const SETUP_STEPS = [
+  'Prop your phone at about hip height.',
+  'Stand 2.5-3 m away with your full body visible.',
+  'Turn your volume up so Hale can guide you.',
+  'Use a stable chair and keep a wall or counter nearby.',
+  'Turn on the main light if the room feels dim.',
+  'Use this same spot for future check-ups when you can.',
+] as const;
 
 export function CameraSetupScreen({
   permissionGranted,
@@ -22,70 +33,213 @@ export function CameraSetupScreen({
     <Screen>
       <BackArrowButton accessibilityLabel="Back" onPress={onCancel} />
       <ScreenHeader
-        eyebrow="Step 6 of 10"
-        title="Set up your space"
-        subtitle="A calm setup makes your Movement Check-Up easier to follow."
+        eyebrow="Camera and audio"
+        title="Place your phone"
+        subtitle="A steady setup helps Hale keep the check-up calm, clear, and repeatable next month."
       />
 
-      <Card style={styles.card}>
-        <View style={styles.head}>
-          <Typography variant="h2">Before you begin</Typography>
-          <StatusBadge label={permissionGranted ? 'Camera ready' : 'Permission needed'} tone={permissionGranted ? 'good' : 'gold'} />
-        </View>
-        <SetupItem n="1" text="Set your phone side-on when asked." />
-        <SetupItem n="2" text="Make sure your full body is visible." />
-        <SetupItem n="3" text="Use a stable chair." />
-        <SetupItem n="4" text="Keep support nearby for balance." />
-        <SetupItem n="5" text="Move slowly and comfortably." />
-        <SetupItem n="6" text="Use good lighting." />
-      </Card>
+      <View style={styles.setupImageCard}>
+        <Image
+          source={SETUP_HERO_IMAGE}
+          style={styles.setupImage}
+          resizeMode="contain"
+          accessible={false}
+          accessibilityIgnoresInvertColors
+        />
+      </View>
 
-      <Card style={styles.card}>
-        <Typography variant="h2">Privacy</Typography>
-        <Typography variant="bodySmall" color={colors.textSecondary}>
-          Video is never shown. Hale renders a clean skeleton and stores only movement results unless developer recording is explicitly enabled.
-        </Typography>
-      </Card>
+      <SetupSection
+        title="Before you begin"
+        meta={permissionGranted ? 'Camera ready' : 'Permission needed'}
+      >
+        <View style={styles.stepList}>
+          {SETUP_STEPS.map((step, index) => (
+            <SetupItem key={step} n={index + 1} text={step} />
+          ))}
+        </View>
+      </SetupSection>
+
+      <View style={styles.expectCard}>
+        <View style={styles.expectMark}>
+          <Text style={styles.expectMarkText}>Go</Text>
+        </View>
+        <View style={styles.expectCopy}>
+          <Text style={styles.expectTitle}>What to expect</Text>
+          <Text style={styles.expectBody}>
+            Hale will auto-start once you are framed, speak short rest cues, and move through the check-up without needing you to hold the phone.
+          </Text>
+        </View>
+      </View>
 
       <View style={styles.actions}>
         {permissionGranted ? (
-          <PrimaryButton title="I'm set up" onPress={onBegin} />
+          <PrimaryButton title="Begin Movement Check-Up" onPress={onBegin} />
         ) : (
           <PrimaryButton title="Allow camera" onPress={onRequestPermission} />
         )}
-        {!permissionGranted ? <SecondaryButton title="Continue with setup anyway" onPress={onBegin} /> : null}
         {onDevSkipCheckUp ? <SecondaryButton title="dev: skip Movement Check-Up" onPress={onDevSkipCheckUp} /> : null}
       </View>
     </Screen>
   );
 }
 
-function SetupItem({ n, text }: { n: string; text: string }) {
+function SetupSection({
+  title,
+  meta,
+  children,
+}: {
+  title: string;
+  meta: string;
+  children: React.ReactNode;
+}) {
   return (
-    <ListRow
-      title={text}
-      leading={
-        <View style={styles.mark}>
-          <Text style={styles.markText}>{n}</Text>
+    <View style={styles.sectionCard}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <View style={styles.sectionMetaPill}>
+          <Text style={styles.sectionMetaText}>{meta}</Text>
         </View>
-      }
-    />
+      </View>
+      {children}
+    </View>
+  );
+}
+
+function SetupItem({ n, text }: { n: number; text: string }) {
+  return (
+    <View style={styles.step}>
+      <View style={styles.stepMark}>
+        <Text style={styles.stepMarkText}>{n}</Text>
+      </View>
+      <Text style={styles.stepText}>{text}</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { gap: spacing.md },
-  head: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md, flexWrap: 'wrap' },
-  mark: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.sm,
+  setupImageCard: {
+    aspectRatio: 16 / 9,
+    overflow: 'hidden',
+    borderRadius: radius.card,
+    backgroundColor: colors.bgMaterial,
+    ...shadow.card,
+  },
+  setupImage: {
+    width: '100%',
+    height: '100%',
+  },
+  sectionCard: {
+    gap: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    borderRadius: radius.card,
+    backgroundColor: colors.bgSurface,
+    ...shadow.card,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+  },
+  sectionTitle: {
+    fontFamily: fonts.serifMedium,
+    fontSize: 22,
+    lineHeight: 28,
+    letterSpacing: 0,
+    color: colors.textPrimary,
+    flex: 1,
+    minWidth: 0,
+  },
+  sectionMetaPill: {
+    minHeight: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.accentSoft,
-    borderWidth: 1,
-    borderColor: colors.accentBorder,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bgGold,
   },
-  markText: { ...type.caption, color: colors.accentDeep },
+  sectionMetaText: {
+    ...type.cardCaption,
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    lineHeight: 16,
+  },
+  stepList: {
+    gap: spacing.sm,
+  },
+  step: {
+    minHeight: 72,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    borderRadius: radius.input,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.background,
+  },
+  stepMark: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bgSurface,
+  },
+  stepMarkText: {
+    ...type.cardCaption,
+    fontFamily: fonts.sansMedium,
+    color: colors.accentDeep,
+    fontVariant: ['tabular-nums'],
+  },
+  stepText: {
+    ...type.bodySmall,
+    flex: 1,
+    minWidth: 0,
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
+  },
+  expectCard: {
+    minHeight: 136,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    borderRadius: radius.card,
+    backgroundColor: colors.bgSurface,
+    ...shadow.card,
+  },
+  expectMark: {
+    minWidth: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+    backgroundColor: colors.bgGold,
+  },
+  expectMarkText: {
+    ...type.cardCaption,
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+  },
+  expectCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing.sm,
+  },
+  expectTitle: {
+    fontFamily: fonts.serifMedium,
+    fontSize: 22,
+    lineHeight: 28,
+    letterSpacing: 0,
+    color: colors.textPrimary,
+  },
+  expectBody: {
+    ...type.bodySmall,
+    color: colors.textSecondary,
+  },
   actions: { gap: spacing.md },
 });

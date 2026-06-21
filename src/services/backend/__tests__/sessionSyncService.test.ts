@@ -276,4 +276,43 @@ describe('training session completion sync mapping', () => {
     expect(result.status).toBe('skipped');
     expect(upsert).not.toHaveBeenCalled();
   });
+
+  it('does not sync credited-looking sessions without positive focus-stimulus evidence', async () => {
+    const upsert = jest.fn().mockResolvedValue({ error: null });
+    (supabase.from as jest.Mock).mockReturnValue({ upsert });
+    (getCurrentSession as jest.Mock).mockResolvedValue({
+      user: { id: 'user-123' },
+    });
+
+    const missingFocus = await syncTrainingSessionCompletionToRemote({
+      completion: completion({ id: 'completion-missing-focus', focusStimulusEvidence: undefined }),
+      sessionPlan: sessionPlan(),
+      sessionResult: sessionResult(),
+      movementBlock: movementBlock(),
+      movementBlockRemoteId: 'remote-block-123',
+    });
+    const supportingOnly = await syncTrainingSessionCompletionToRemote({
+      completion: completion({
+        id: 'completion-supporting-only',
+        focusStimulusEvidence: {
+          ...completion().focusStimulusEvidence!,
+          status: 'primary_focus_not_completed',
+          exclusionReason: 'supporting_only',
+          mainPlanCredit: false,
+          completedPrimaryFocusExerciseCount: 0,
+          completedSupportingExerciseCount: 1,
+          completedPrimaryFocusExerciseIds: [],
+          completedSupportingExerciseIds: ['balance-tandem-hold'],
+        },
+      }),
+      sessionPlan: sessionPlan(),
+      sessionResult: sessionResult(),
+      movementBlock: movementBlock(),
+      movementBlockRemoteId: 'remote-block-123',
+    });
+
+    expect(missingFocus.status).toBe('skipped');
+    expect(supportingOnly.status).toBe('skipped');
+    expect(upsert).not.toHaveBeenCalled();
+  });
 });

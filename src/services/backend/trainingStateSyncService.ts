@@ -112,6 +112,7 @@ export function mapLocalTrainingStateToRemotePayload(
       equipment: input.training.equipment,
       planPreferences: input.training.planPreferences,
       ladderProgressById: input.training.ladderProgressById,
+      appliedProgressionEventIds: input.training.appliedProgressionEventIds,
       generatedSessionContext: {
         totalPersisted: input.training.generatedSessionSummaries.length,
         recentSummaries: input.training.generatedSessionSummaries

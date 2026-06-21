@@ -1,10 +1,12 @@
 import * as React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 import { AccountAuthCard } from '../components/AccountAuthCard';
 import { HeaderLogo } from '../components/HeaderLogo';
-import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { colors, fonts, spacing } from '../theme';
+
+const AUTH_HERO_IMAGE = require('../../assets/images/hale-auth-hero-generated.png');
 
 export function AuthScreen() {
   return (
@@ -15,34 +17,27 @@ export function AuthScreen() {
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.header}>
-          <View style={styles.brandRow}>
-            <HeaderLogo size={34} />
-            <Text style={styles.wordmark}>Hale</Text>
+        <View style={styles.hero}>
+          <Image source={AUTH_HERO_IMAGE} style={styles.heroImage} resizeMode="cover" />
+          <View style={styles.heroContent}>
+            <View style={styles.brandRow}>
+              <HeaderLogo />
+              <Text style={styles.wordmark}>Hale</Text>
+            </View>
+            <View style={styles.heroCopy}>
+              <Text style={styles.title}>Track your movement age over time</Text>
+              <View style={styles.titleRule} />
+              <Text style={styles.subtitle}>
+                Save each check-up, training block, and monthly retest so Hale can show what is improving and what needs attention next.
+              </Text>
+            </View>
           </View>
-          <Text style={styles.title}>Move well today. See what changes over time.</Text>
-          <Text style={styles.subtitle}>
-            Save your Movement Check-Up results, training blocks, and monthly progress history in one calm place.
-          </Text>
         </View>
 
-        <View style={styles.promisePanel}>
-          <PromiseItem label="Skeleton-only" body="Camera sessions never show a mirror." />
-          <View style={styles.promiseDivider} />
-          <PromiseItem label="Monthly clarity" body="Check-ups and training history stay connected." />
+        <View style={styles.authWrap}>
+          <AccountAuthCard context="required" />
         </View>
-
-        <AccountAuthCard context="required" />
       </ScrollView>
-    </View>
-  );
-}
-
-function PromiseItem({ label, body }: { label: string; body: string }) {
-  return (
-    <View style={styles.promiseItem}>
-      <Text style={styles.promiseLabel}>{label}</Text>
-      <Text style={styles.promiseBody}>{body}</Text>
     </View>
   );
 }
@@ -58,67 +53,71 @@ const styles = StyleSheet.create({
     maxWidth: spacing.pageMaxWidth,
     alignSelf: 'center',
     justifyContent: 'flex-start',
-    paddingHorizontal: spacing.pageHorizontal,
-    paddingTop: spacing.xxl,
+    paddingHorizontal: 0,
+    paddingTop: 0,
     paddingBottom: spacing.xxxl,
-    gap: spacing.lg,
   },
-  header: {
-    gap: spacing.md,
-    maxWidth: 380,
+  hero: {
+    minHeight: 474,
+    overflow: 'hidden',
+    backgroundColor: colors.bgBase,
+  },
+  heroImage: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+  },
+  heroContent: {
+    flex: 1,
+    paddingHorizontal: spacing.pageHorizontal,
+    paddingTop: spacing.xxxl + spacing.sm,
+    paddingBottom: spacing.xl,
   },
   brandRow: {
-    minHeight: 38,
+    minHeight: 46,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-start',
     gap: spacing.sm,
   },
   wordmark: {
     color: colors.accentDeep,
-    fontFamily: fonts.sansMedium,
-    fontSize: 24,
-    lineHeight: 30,
+    fontFamily: fonts.serifMedium,
+    fontSize: 36,
+    lineHeight: 42,
     letterSpacing: 0,
+  },
+  heroCopy: {
+    width: '66%',
+    marginTop: spacing.lg,
   },
   title: {
     color: colors.textPrimary,
     fontFamily: fonts.serifMedium,
-    fontSize: 31,
-    lineHeight: 38,
+    fontSize: 34,
+    lineHeight: 40,
     letterSpacing: 0,
   },
+  titleRule: {
+    width: 44,
+    height: 2,
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
+    backgroundColor: colors.accentGold,
+  },
   subtitle: {
-    ...type.body,
-    color: colors.textSecondary,
-    maxWidth: 360,
-  },
-  promisePanel: {
-    minHeight: 86,
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: spacing.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: radius.panel,
-    backgroundColor: colors.bgSurface,
-    ...shadow.soft,
-  },
-  promiseItem: {
-    flex: 1,
-    minWidth: 0,
-    justifyContent: 'center',
-    gap: 3,
-  },
-  promiseLabel: {
-    ...type.cardRowTitle,
-    color: colors.accentDeep,
-  },
-  promiseBody: {
-    ...type.cardCaption,
+    fontFamily: fonts.sansRegular,
+    fontSize: 15,
+    lineHeight: 22,
+    letterSpacing: 0,
     color: colors.textSecondary,
   },
-  promiseDivider: {
-    width: StyleSheet.hairlineWidth,
-    backgroundColor: colors.divider,
+  authWrap: {
+    paddingHorizontal: spacing.pageHorizontal,
+    marginTop: -(spacing.huge + spacing.sm),
   },
 });

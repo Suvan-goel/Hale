@@ -75,6 +75,7 @@ describe('TrainingStore persistence', () => {
     expect(parsed?.generatedSessionSummaries).toEqual([]);
     expect(parsed?.lastPostSessionFeedback).toBeNull();
     expect(parsed?.planPreferences.preferredIntensity).toBe('standard');
+    expect(parsed?.appliedProgressionEventIds).toEqual([]);
   });
 
   it('persists dynamic ladder progress and generated session summaries', async () => {
@@ -100,6 +101,7 @@ describe('TrainingStore persistence', () => {
           updatedAt: '2026-06-16T09:00:00.000Z',
         },
       },
+      appliedProgressionEventIds: ['progression:completion-1:movement-block-1:strength-A:sit-to-stand'],
       generatedSessionSummaries: [
         {
           id: 'generated-session-1',
@@ -136,6 +138,52 @@ describe('TrainingStore persistence', () => {
             focusMismatchExerciseIds: [],
           },
         },
+        {
+          id: 'generated-session-supporting-only',
+          blockId: 'block-1',
+          source: 'block_generated' as const,
+          templateId: 'strength-B',
+          plannedDateKey: 'strength-B:2026-06-18',
+          sessionType: 'standard' as const,
+          status: 'partial' as const,
+          mainPlanCredit: false,
+          title: 'Strength Session B',
+          completedAt: '2026-06-18T09:00:00.000Z',
+          exerciseIds: ['balance-tandem-hold'],
+          workEvidence: {
+            plannedExerciseCount: 2,
+            resultItemCount: 1,
+            completedExerciseCount: 1,
+            skippedExerciseCount: 0,
+            missingResultCount: 1,
+            duplicateResultCount: 0,
+            malformedResultCount: 0,
+            unmatchedResultCount: 0,
+          },
+          focusStimulusEvidence: {
+            planStatus: 'eligible' as const,
+            status: 'primary_focus_not_completed' as const,
+            exclusionReason: 'supporting_only' as const,
+            mainPlanCredit: false,
+            blockFocusDomain: 'strength_power' as const,
+            plannedPrimaryFocusExerciseCount: 1,
+            completedPrimaryFocusExerciseCount: 0,
+            completedSupportingExerciseCount: 1,
+            completedFallbackExerciseCount: 0,
+            completedCrossDomainExerciseCount: 0,
+            plannedPrimaryFocusExerciseIds: [STS_STANDARD_ID],
+            completedPrimaryFocusExerciseIds: [],
+            completedSupportingExerciseIds: ['balance-tandem-hold'],
+            completedFallbackExerciseIds: [],
+            completedCrossDomainExerciseIds: [],
+            fallbackFocusSlotIds: [],
+            skippedFocusSlotIds: [],
+            focusStimulusExclusionReasons: [],
+            missingMetadataExerciseIds: [],
+            malformedMetadataExerciseIds: [],
+            focusMismatchExerciseIds: [],
+          },
+        },
       ],
       lastPostSessionFeedback: {
         sessionId: 'generated-session-1',
@@ -151,8 +199,14 @@ describe('TrainingStore persistence', () => {
     const reloaded = await new TrainingStore(createMemoryFs(files)).loadState();
 
     expect(reloaded.ladderProgressById['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
+    expect(reloaded.appliedProgressionEventIds).toEqual([
+      'progression:completion-1:movement-block-1:strength-A:sit-to-stand',
+    ]);
     expect(reloaded.generatedSessionSummaries[0].templateId).toBe('strength-A');
     expect(reloaded.generatedSessionSummaries[0].focusStimulusEvidence?.status).toBe('credited_focus_work');
+    expect(reloaded.generatedSessionSummaries[1].mainPlanCredit).toBe(false);
+    expect(reloaded.generatedSessionSummaries[1].status).toBe('partial');
+    expect(reloaded.generatedSessionSummaries[1].focusStimulusEvidence?.exclusionReason).toBe('supporting_only');
     expect(reloaded.lastPostSessionFeedback?.rpe).toBe(2);
     expect(reloaded.planPreferences.preferredIntensity).toBe('standard');
   });

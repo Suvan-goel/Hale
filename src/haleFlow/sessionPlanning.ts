@@ -8,6 +8,7 @@ import {
   type MovementBlock,
   type MovementDomain,
   type MovementSafetyProfile,
+  type TrainingFocusStimulusPlanStatus,
   type TrainingSessionCompletion,
   type TrainingSessionCompletionType,
 } from '../adherence';
@@ -22,7 +23,6 @@ import {
 import type { HaleLifecycleState } from './appLifecycle';
 import {
   DEFAULT_EQUIPMENT,
-  nextSessionExercises,
   type PersistedGeneratedSessionSummary,
   type PersistedPostSessionFeedback,
   type EquipmentProfile,
@@ -31,10 +31,8 @@ import {
 } from '../training';
 import { equipmentLabels, equipmentSupportsTags } from '../training/equipmentSafety';
 import {
-  type CompletedExerciseResult,
   createSessionTemplatesForFocus,
   generateTodaySession as generateDynamicTodaySession,
-  updateLadderProgressAfterSession,
   type DailyReadiness,
   type GeneratedExercise,
   type GeneratedSession,
@@ -45,12 +43,13 @@ import {
   type SessionSource,
   type SessionIntensity,
   type SlotStimulus,
+  type SlotStimulusReason,
+  type SlotStimulusRole,
   type SessionTemplate,
   type TrackingQuality,
   type TrainingBlock as DynamicTrainingBlock,
   type TrainingDomain,
 } from '../training/workoutGeneration';
-import { summarizeValidTimeItem } from '../training/validTimeProgression';
 import { getSessionIntroCopy } from './copy';
 import { extraSessionDetailBody } from './extraSessionCopy';
 import {
@@ -62,7 +61,7 @@ import {
   mainPlanRecentSessionsForGeneration,
 } from './mainPlanEvents';
 import { dayLabelForPlanSessionId, type PlanSessionId } from './sessionIds';
-import { completedExerciseIdsFromEvidence, evaluateSessionWorkEvidence } from './sessionWorkEvidence';
+import { applyProgressionEvidenceFromSession } from './progressionEvidence';
 import type { ExerciseFamily, HaleExercise, HaleSessionPlan } from './types';
 
 export type TodaySessionAdjustment = 'shorter' | 'gentler' | 'no_equipment' | 'something_hurts';
@@ -92,6 +91,123 @@ export interface PlanTodayHaleSessionInput extends TodaySessionPreferences {
   generateSession?: (input: GenerateSessionInput) => GeneratedSession;
 }
 
+export type GenerationUnavailableReason =
+  | 'no_active_block'
+  | 'legacy_only_state'
+  | 'invalid_active_block'
+  | 'unsupported_focus_domain'
+  | 'missing_template'
+  | 'invalid_template'
+  | 'generator_exception'
+  | 'missing_generated_session'
+  | 'empty_generated_session'
+  | 'unsupported_exercise_id'
+  | 'duplicate_exercise_id'
+  | 'invalid_generated_exercise'
+  | 'missing_stimulus_metadata'
+  | 'invalid_progression_state'
+  | 'source_identity_mismatch'
+  | 'no_safe_exercises'
+  | 'adaptation_failed';
+
+export type GenerationRecoveryAction =
+  | 'retry'
+  | 'review_setup'
+  | 'complete_baseline'
+  | 'create_block'
+  | 'open_plan'
+  | 'open_progress'
+  | 'contact_support';
+
+export type GeneratedSessionIssueCode =
+  | 'missing_generated_session'
+  | 'invalid_source'
+  | 'block_id_mismatch'
+  | 'template_id_mismatch'
+  | 'template_not_in_block'
+  | 'unsupported_focus_domain'
+  | 'invalid_week_status'
+  | 'empty_session_due'
+  | 'unsupported_exercise_id'
+  | 'duplicate_exercise_id'
+  | 'invalid_exercise_identity'
+  | 'invalid_exercise_dose'
+  | 'invalid_exercise_domain'
+  | 'invalid_stimulus_metadata'
+  | 'unsafe_equipment'
+  | 'missing_slot_stimulus';
+
+export interface GeneratedSessionIssue {
+  code: GeneratedSessionIssueCode;
+  exerciseId?: string;
+  templateId?: string;
+  blockId?: string;
+  slotId?: string;
+}
+
+export type GeneratedSessionValidation =
+  | { valid: true; generated: GeneratedSession }
+  | {
+      valid: false;
+      reason: GenerationUnavailableReason;
+      issues: GeneratedSessionIssue[];
+    };
+
+export interface HaleSessionPlanningDiagnostic {
+  reason: GenerationUnavailableReason;
+  issueCodes: readonly GeneratedSessionIssueCode[];
+  blockId?: string;
+  templateId?: string;
+  planningDateKey?: string;
+  focusDomain?: MovementDomain;
+  exerciseIds?: readonly string[];
+}
+
+export type HaleSessionPlanningResult =
+  | {
+      kind: 'ready';
+      source: 'dynamic_current';
+      plan: HaleSessionPlan;
+    }
+  | {
+      kind: 'supporting_session';
+      source: 'dynamic_current';
+      plan: HaleSessionPlan;
+      mainPlanCreditPotential: false;
+      reasons: readonly TrainingFocusStimulusPlanStatus[];
+    }
+  | {
+      kind: 'week_complete';
+      blockId: string;
+      week: number;
+      templateId?: string;
+    }
+  | {
+      kind: 'block_complete';
+      blockId: string;
+    }
+  | {
+      kind: 'retest_due';
+      blockId: string;
+    }
+  | {
+      kind: 'unavailable';
+      reason: GenerationUnavailableReason;
+      blockId?: string;
+      templateId?: string;
+      planningDateKey?: string;
+      recoveryActions: readonly GenerationRecoveryAction[];
+      diagnostics: HaleSessionPlanningDiagnostic;
+      issues?: readonly GeneratedSessionIssue[];
+    };
+
+export interface SessionPlanningRecoveryCopy {
+  title: string;
+  body: string;
+  primaryActionLabel: string;
+  secondaryActionLabel?: string;
+}
+
 export interface PlanLadderPracticeSessionInput {
   ladderId: string;
   safetyProfile?: MovementSafetyProfile | null;
@@ -102,104 +218,218 @@ export interface PlanLadderPracticeSessionInput {
   today?: string | Date;
 }
 
-export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSessionPlan {
+export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSessionPlanningResult {
   const sessionType = sessionTypeFor(input);
   const readiness = readinessFor(input, sessionType);
   const painAreas = painAreasFor(input);
   const presetId = presetIdFor(input, sessionType);
   const activeBlock = input.activeBlock ?? null;
+  const plannedFor = input.today ?? new Date();
+  const planningDate = dateKey(plannedFor);
 
   if (activeBlock) {
+    if (!isMovementDomain(activeBlock.focusDomain)) {
+      return unavailablePlanningResult({
+        reason: 'invalid_active_block',
+        blockId: activeBlock.id,
+        planningDateKey: `session:${planningDate}`,
+        focusDomain: undefined,
+        issues: [{ code: 'unsupported_focus_domain', blockId: activeBlock.id }],
+      });
+    }
+    if (input.lifecycleState === 'monthly_retest_due') {
+      return { kind: 'retest_due', blockId: activeBlock.id };
+    }
+    let dynamicBlock: DynamicTrainingBlock;
     try {
-      const dynamicBlock = toDynamicTrainingBlock(activeBlock);
-      const targetTemplate = targetTemplateFor(dynamicBlock, input.targetSessionTemplateId, presetId);
-      const generated = (input.generateSession ?? generateDynamicTodaySession)({
+      dynamicBlock = toDynamicTrainingBlock(activeBlock);
+    } catch {
+      return unavailablePlanningResult({
+        reason: 'invalid_active_block',
+        blockId: activeBlock.id,
+        planningDateKey: `session:${planningDate}`,
+        focusDomain: activeBlock.focusDomain,
+        issues: [{ code: 'unsupported_focus_domain', blockId: activeBlock.id }],
+      });
+    }
+    const targetTemplate = targetTemplateFor(dynamicBlock, input.targetSessionTemplateId, presetId);
+    if (input.targetSessionTemplateId && !presetId && !targetTemplate) {
+      return unavailablePlanningResult({
+        reason: 'invalid_template',
+        blockId: activeBlock.id,
+        templateId: String(input.targetSessionTemplateId),
+        planningDateKey: `${String(input.targetSessionTemplateId)}:${planningDate}`,
+        focusDomain: activeBlock.focusDomain,
+        issues: [{ code: 'template_id_mismatch', templateId: String(input.targetSessionTemplateId), blockId: activeBlock.id }],
+      });
+    }
+
+    const availableEquipment = availableEquipmentFor(input);
+    let generated: unknown;
+    try {
+      generated = (input.generateSession ?? generateDynamicTodaySession)({
         block: dynamicBlock,
         template: targetTemplate,
         presetId,
         safetyProfile: input.safetyProfile,
-        availableEquipment: availableEquipmentFor(input),
+        availableEquipment,
         dailyReadiness: readiness,
         painAreas,
         ladderProgress: input.ladderProgress ?? input.training?.ladderProgressById ?? {},
         recentSessions: recentSessionsFor(input),
-        today: input.today,
+        today: plannedFor,
         source: input.source,
         includeOptionalLevels: input.includeOptionalLevels,
         sessionIntensity: input.sessionIntensity,
       });
-      const adapted = adaptGeneratedSessionToHaleSessionPlan(generated, {
+    } catch {
+      return unavailablePlanningResult({
+        reason: 'generator_exception',
+        blockId: activeBlock.id,
+        templateId: targetTemplate?.id,
+        planningDateKey: plannedDateKey(targetTemplate?.id, plannedFor),
+        focusDomain: activeBlock.focusDomain,
+        issues: [{ code: 'missing_generated_session', blockId: activeBlock.id, templateId: targetTemplate?.id }],
+      });
+    }
+
+    const validation = validateGeneratedSessionForPlanning({
+      generated,
+      activeBlock,
+      dynamicBlock,
+      targetTemplate,
+      presetId,
+      availableEquipment,
+    });
+    if (!validation.valid) {
+      return unavailablePlanningResult({
+        reason: validation.reason,
+        blockId: activeBlock.id,
+        templateId: targetTemplate?.id,
+        planningDateKey: plannedDateKey(targetTemplate?.id, plannedFor),
+        focusDomain: activeBlock.focusDomain,
+        issues: validation.issues,
+        exerciseIds: generatedExerciseIds(generated),
+      });
+    }
+    const generatedSession = validation.generated;
+    if (generatedSession.weekStatus === 'week_complete') {
+      return {
+        kind: 'week_complete',
+        blockId: activeBlock.id,
+        week: currentBlockWeek(activeBlock, plannedFor),
+        templateId: generatedSession.templateId,
+      };
+    }
+    if (generatedSession.weekStatus === 'block_complete') {
+      return { kind: 'block_complete', blockId: activeBlock.id };
+    }
+
+    try {
+      const adapted = adaptGeneratedSessionToHaleSessionPlan(generatedSession, {
         activeBlock,
         lifeGoal: input.lifeGoal,
         sessionType,
-        plannedFor: input.today ?? new Date(),
+        plannedFor,
       });
-      const validation = validatePlayableExerciseIds(adapted.exercises);
-      if (adapted.exercises.length > 0 && validation.ok) return adapted;
-      return legacyFallbackPlan({
-        ...input,
-        activeBlock,
-        sessionType,
-        reason:
-          adapted.exercises.length === 0
-            ? 'generated session had no playable exercises'
-            : `generated session included unsupported exercise ids: ${validation.unsupported.join(', ')}`,
-      });
-    } catch (error) {
-      return legacyFallbackPlan({
-        ...input,
-        activeBlock,
-        sessionType,
-        reason: error instanceof Error ? error.message : 'dynamic session generation threw',
+      if (adapted.exercises.length === 0) {
+        return unavailablePlanningResult({
+          reason: emptySessionReason(generatedSession),
+          blockId: activeBlock.id,
+          templateId: generatedSession.templateId,
+          planningDateKey: adapted.metadata?.plannedDateKey,
+          focusDomain: activeBlock.focusDomain,
+          issues: [{ code: 'empty_session_due', templateId: generatedSession.templateId, blockId: activeBlock.id }],
+        });
+      }
+      return readyOrSupportingResult(adapted);
+    } catch {
+      return unavailablePlanningResult({
+        reason: 'adaptation_failed',
+        blockId: activeBlock.id,
+        templateId: validation.generated.templateId,
+        planningDateKey: plannedDateKey(validation.generated.templateId, plannedFor),
+        focusDomain: activeBlock.focusDomain,
+        issues: [{ code: 'invalid_exercise_identity', blockId: activeBlock.id, templateId: validation.generated.templateId }],
       });
     }
   }
 
   if (presetId) {
+    const availableEquipment = availableEquipmentFor(input);
+    let generated: unknown;
     try {
-      const generated = (input.generateSession ?? generateDynamicTodaySession)({
+      generated = (input.generateSession ?? generateDynamicTodaySession)({
         block: null,
         presetId,
         safetyProfile: input.safetyProfile,
-        availableEquipment: availableEquipmentFor(input),
+        availableEquipment,
         dailyReadiness: readiness,
         painAreas,
         ladderProgress: input.ladderProgress ?? input.training?.ladderProgressById ?? {},
         recentSessions: recentSessionsFor(input),
-        today: input.today,
+        today: plannedFor,
         source: input.source,
         includeOptionalLevels: input.includeOptionalLevels,
         sessionIntensity: input.sessionIntensity,
       });
-      const adapted = adaptGeneratedSessionToHaleSessionPlan(generated, {
-        activeBlock: placeholderBlockForGenerated(generated, input.today),
+    } catch {
+      return unavailablePlanningResult({
+        reason: 'generator_exception',
+        templateId: presetId,
+        planningDateKey: plannedDateKey(presetId, plannedFor),
+        issues: [{ code: 'missing_generated_session', templateId: presetId }],
+      });
+    }
+    const validation = validateGeneratedSessionForPlanning({
+      generated,
+      activeBlock: null,
+      dynamicBlock: null,
+      presetId,
+      availableEquipment,
+    });
+    if (!validation.valid) {
+      return unavailablePlanningResult({
+        reason: validation.reason,
+        templateId: presetId,
+        planningDateKey: plannedDateKey(presetId, plannedFor),
+        issues: validation.issues,
+        exerciseIds: generatedExerciseIds(generated),
+      });
+    }
+    try {
+      const adapted = adaptGeneratedSessionToHaleSessionPlan(validation.generated, {
+        activeBlock: placeholderBlockForGenerated(validation.generated, plannedFor),
         lifeGoal: input.lifeGoal,
         sessionType,
-        plannedFor: input.today ?? new Date(),
+        plannedFor,
       });
-      const validation = validatePlayableExerciseIds(adapted.exercises);
-      if (adapted.exercises.length > 0 && validation.ok) return adapted;
-      return legacyFallbackPlan({
-        ...input,
-        sessionType,
-        reason:
-          adapted.exercises.length === 0
-            ? 'generated preset had no playable exercises'
-            : `generated preset included unsupported exercise ids: ${validation.unsupported.join(', ')}`,
-      });
-    } catch (error) {
-      return legacyFallbackPlan({
-        ...input,
-        sessionType,
-        reason: error instanceof Error ? error.message : 'preset session generation threw',
+      if (adapted.exercises.length === 0) {
+        return unavailablePlanningResult({
+          reason: emptySessionReason(validation.generated),
+          templateId: validation.generated.templateId,
+          planningDateKey: adapted.metadata?.plannedDateKey,
+          issues: [{ code: 'empty_session_due', templateId: validation.generated.templateId }],
+        });
+      }
+      return readyOrSupportingResult(adapted);
+    } catch {
+      return unavailablePlanningResult({
+        reason: 'adaptation_failed',
+        templateId: validation.generated.templateId,
+        planningDateKey: plannedDateKey(validation.generated.templateId, plannedFor),
+        issues: [{ code: 'invalid_exercise_identity', templateId: validation.generated.templateId }],
       });
     }
   }
 
-  return legacyFallbackPlan({
-    ...input,
-    sessionType,
-    reason: 'no active movement block available for dynamic planning',
+  return unavailablePlanningResult({
+    reason: input.training?.block ? 'legacy_only_state' : 'no_active_block',
+    planningDateKey: `session:${planningDate}`,
+    recoveryActions: input.training?.block
+      ? ['open_plan', 'create_block', 'contact_support']
+      : ['create_block', 'complete_baseline', 'retry'],
+    issues: [{ code: 'missing_generated_session' }],
   });
 }
 
@@ -309,6 +539,168 @@ export function adaptGeneratedSessionToHaleSessionPlan(
 
 export function countsTowardMainPlan(sessionPlan: HaleSessionPlan | null | undefined): boolean {
   return classifyMainPlanSessionPlan(sessionPlan).credited;
+}
+
+export function sessionPlanFromPlanningResult(result: HaleSessionPlanningResult): HaleSessionPlan | null {
+  return result.kind === 'ready' || result.kind === 'supporting_session' ? result.plan : null;
+}
+
+export function requireHaleSessionPlan(input: PlanTodayHaleSessionInput): HaleSessionPlan {
+  const result = planTodayHaleSession(input);
+  const plan = sessionPlanFromPlanningResult(result);
+  if (!plan) {
+    throw new Error(`Expected a playable Hale session plan, received ${result.kind}`);
+  }
+  return plan;
+}
+
+export function getSessionPlanningRecoveryCopy(result: HaleSessionPlanningResult): SessionPlanningRecoveryCopy | null {
+  if (result.kind !== 'unavailable') return null;
+  if (result.reason === 'no_active_block') {
+    return {
+      title: 'Hale needs an active current plan before it can prepare today\'s session.',
+      body: 'Your plan has not changed. Finish setup or create a current 4-week block to continue.',
+      primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
+      secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
+    };
+  }
+  if (result.reason === 'legacy_only_state') {
+    return {
+      title: 'Your previous plan needs to be refreshed before Hale can safely continue.',
+      body: 'Your history is still saved. Complete the current plan setup to continue.',
+      primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
+      secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
+    };
+  }
+  if (result.reason === 'unsupported_exercise_id' || result.reason === 'invalid_generated_exercise' || result.reason === 'missing_stimulus_metadata') {
+    return {
+      title: 'Today\'s session needs to be refreshed before it can start.',
+      body: 'Your plan is unchanged. Try again, or review your setup before starting.',
+      primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
+      secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
+    };
+  }
+  if (result.reason === 'no_safe_exercises') {
+    return {
+      title: 'Hale couldn\'t find a safe exercise combination for today\'s setup.',
+      body: 'Review your equipment, readiness, or discomfort selections, then try again.',
+      primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
+      secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
+    };
+  }
+  return {
+    title: 'Hale couldn\'t safely prepare today\'s session.',
+    body: 'Your plan has not changed. Try again, or review your setup.',
+    primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
+    secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
+  };
+}
+
+export function validateGeneratedSessionForPlanning({
+  generated,
+  activeBlock,
+  dynamicBlock,
+  targetTemplate,
+  presetId,
+  availableEquipment = ['chair', 'wall'],
+}: {
+  generated: unknown;
+  activeBlock?: MovementBlock | null;
+  dynamicBlock?: DynamicTrainingBlock | null;
+  targetTemplate?: SessionTemplate;
+  presetId?: string;
+  availableEquipment?: readonly AvailableEquipment[];
+}): GeneratedSessionValidation {
+  if (!isRecord(generated)) {
+    return invalidGeneratedSession('missing_generated_session', [{ code: 'missing_generated_session' }]);
+  }
+
+  const session = generated as Partial<GeneratedSession>;
+  const issues: GeneratedSessionIssue[] = [];
+  const source = session.source;
+  const weekStatus = session.weekStatus;
+  const templateId = typeof session.templateId === 'string' ? session.templateId : undefined;
+  const blockId = typeof session.blockId === 'string' ? session.blockId : undefined;
+
+  if (!isSessionSource(source)) issues.push({ code: 'invalid_source', templateId, blockId });
+  if (!isTrainingDomain(session.focusDomain)) issues.push({ code: 'unsupported_focus_domain', templateId, blockId });
+  if (!isGeneratedWeekStatus(weekStatus)) issues.push({ code: 'invalid_week_status', templateId, blockId });
+
+  if (activeBlock && blockId !== activeBlock.id) {
+    issues.push({ code: 'block_id_mismatch', templateId, blockId });
+  }
+  if (presetId) {
+    if (templateId !== presetId) issues.push({ code: 'template_id_mismatch', templateId, blockId });
+  } else if (targetTemplate) {
+    if (templateId !== targetTemplate.id) issues.push({ code: 'template_id_mismatch', templateId, blockId });
+  } else if (dynamicBlock && weekStatus === 'session_due') {
+    const templateBelongsToBlock = dynamicBlock.templates.some((template) => template.id === templateId);
+    if (!templateBelongsToBlock) issues.push({ code: 'template_not_in_block', templateId, blockId });
+  }
+
+  const exercises = Array.isArray(session.exercises) ? session.exercises : null;
+  if (!exercises) {
+    issues.push({ code: 'invalid_exercise_identity', templateId, blockId });
+  } else if ((weekStatus === 'session_due' || weekStatus === 'preset') && exercises.length === 0) {
+    issues.push({ code: 'empty_session_due', templateId, blockId });
+  }
+
+  const seenExerciseIds = new Set<string>();
+  const slotStimulus = Array.isArray(session.slotStimulus) ? session.slotStimulus : [];
+  const stimulusEntries: Array<[string, Partial<SlotStimulus>]> = [];
+  for (const stimulus of slotStimulus) {
+    if (!isRecord(stimulus)) continue;
+    const candidate = stimulus as Partial<SlotStimulus>;
+    if (typeof candidate.exerciseId === 'string' && candidate.exerciseId.length > 0) {
+      stimulusEntries.push([candidate.exerciseId, candidate]);
+    }
+  }
+  const stimulusByExerciseId = new Map<string, Partial<SlotStimulus>>(stimulusEntries);
+
+  for (const item of exercises ?? []) {
+    if (!isRecord(item)) {
+      issues.push({ code: 'invalid_exercise_identity', templateId, blockId });
+      continue;
+    }
+    const exercise = item as Partial<GeneratedExercise>;
+    const exerciseId = typeof exercise.exerciseId === 'string' ? exercise.exerciseId : undefined;
+    if (!exerciseId || typeof exercise.id !== 'string' || typeof exercise.ladderId !== 'string' || typeof exercise.levelId !== 'string') {
+      issues.push({ code: 'invalid_exercise_identity', exerciseId, templateId, blockId });
+      continue;
+    }
+    if (seenExerciseIds.has(exerciseId)) issues.push({ code: 'duplicate_exercise_id', exerciseId, templateId, blockId });
+    seenExerciseIds.add(exerciseId);
+    if (!hasExercise(exerciseId)) issues.push({ code: 'unsupported_exercise_id', exerciseId, templateId, blockId });
+    if (
+      !positiveNumber(exercise.sets) ||
+      (!positiveNumber(exercise.repsPerSet) && !positiveNumber(exercise.secondsPerSet)) ||
+      !nonNegativeNumber(exercise.restSeconds) ||
+      !positiveNumber(exercise.estimatedMinutes)
+    ) {
+      issues.push({ code: 'invalid_exercise_dose', exerciseId, templateId, blockId });
+    }
+    if (!isTrainingDomain(exercise.domain) || !isTrainingDomain(exercise.intendedDomain)) {
+      issues.push({ code: 'invalid_exercise_domain', exerciseId, templateId, blockId });
+    }
+    if (!isStimulusRole(exercise.stimulusRole) || !isStimulusReason(exercise.stimulusReason)) {
+      issues.push({ code: 'invalid_stimulus_metadata', exerciseId, templateId, blockId });
+    }
+    if (!equipmentSupportsTags(exercise.equipment ?? [], availableEquipment)) {
+      issues.push({ code: 'unsafe_equipment', exerciseId, templateId, blockId });
+    }
+    const stimulus = stimulusByExerciseId.get(exerciseId);
+    if (
+      !stimulus ||
+      !isTrainingDomain(stimulus.intendedDomain) ||
+      !isStimulusRole(stimulus.role) ||
+      !isStimulusReason(stimulus.reason)
+    ) {
+      issues.push({ code: 'missing_slot_stimulus', exerciseId, templateId, blockId });
+    }
+  }
+
+  if (issues.length > 0) return invalidGeneratedSession(reasonForGeneratedIssues(issues), uniqueIssues(issues));
+  return { valid: true, generated: session as GeneratedSession };
 }
 
 function placeholderBlockForGenerated(generated: GeneratedSession, today: string | Date | undefined): MovementBlock {
@@ -446,7 +838,7 @@ export function generateTodaySession({
   adherenceState?: AdherenceState | null;
   readiness?: DailyReadiness;
 }): HaleSessionPlan {
-  return planTodayHaleSession({
+  const result = planTodayHaleSession({
     safetyProfile,
     lifeGoal,
     activeBlock,
@@ -454,12 +846,18 @@ export function generateTodaySession({
     adherenceState,
     readiness,
   });
+  const plan = sessionPlanFromPlanningResult(result);
+  if (!plan) {
+    throw new Error(`No Hale session plan available: ${result.kind}`);
+  }
+  return plan;
 }
 
 export function updateExerciseProgressionFromSession(input: {
   sessionPlan: HaleSessionPlan;
   completion: TrainingSessionCompletion;
   previousProgress?: Record<string, LadderProgress>;
+  appliedProgressionEventIds?: readonly string[];
   sessionResult?: TrainingSessionResult | null;
   poseMetrics?: Record<string, unknown>;
   perceivedEffort?: 1 | 2 | 3 | 4 | 5;
@@ -469,27 +867,33 @@ export function updateExerciseProgressionFromSession(input: {
   trackingQuality?: TrackingQuality;
   feedback?: PostSessionFeedback;
 }): Record<string, LadderProgress> {
-  if (!isDynamicPlan(input.sessionPlan)) return input.previousProgress ?? {};
-  const evidence = evaluateSessionWorkEvidence(input.sessionPlan, input.sessionResult);
-  if (!evidence.hasCompletedPlannedExercise || input.completed === false) return input.previousProgress ?? {};
-  const feedback: PostSessionFeedback = {
+  const result = applyProgressionEvidenceFromSession({
+    state: {
+      ladderProgressById: input.previousProgress ?? {},
+      appliedProgressionEventIds: input.appliedProgressionEventIds ?? [],
+    },
+    sessionPlan: input.sessionPlan,
+    completion: input.completion,
+    sessionResult: input.sessionResult,
     perceivedEffort: input.perceivedEffort,
     painReported: input.painReported,
     painAreas: input.painAreas,
-    trackingQuality: input.trackingQuality ?? 'good',
-    completedAt: input.completion.completedAt,
-    ...input.feedback,
-  };
-  return updateLadderProgressAfterSession(
-    input.previousProgress ?? {},
-    {
-      id: input.sessionPlan.metadata?.generatedSessionId,
-      templateId: input.sessionPlan.metadata?.templateId,
-      completedAt: input.completion.completedAt,
-      exercises: completedExerciseResultsForPlan(input.sessionPlan, input.sessionResult, feedback, input.completed),
-    },
-    feedback
-  );
+    completed: input.completed,
+    trackingQuality: input.trackingQuality,
+    feedback: input.feedback
+      ? {
+          completedAt: input.completion.completedAt,
+          ...input.feedback,
+        }
+      : {
+          completedAt: input.completion.completedAt,
+          perceivedEffort: input.perceivedEffort,
+          painReported: input.painReported,
+          painAreas: input.painAreas,
+          trackingQuality: input.trackingQuality ?? 'good',
+        },
+  });
+  return result.nextState.ladderProgressById;
 }
 
 export function createGeneratedSessionSummary({
@@ -551,42 +955,6 @@ export function createGeneratedSessionSummary({
   };
 }
 
-function legacyFallbackPlan(
-  input: PlanTodayHaleSessionInput & {
-    reason: string;
-    sessionType: TrainingSessionCompletionType;
-  }
-): HaleSessionPlan {
-  if (__DEV__) {
-    console.warn(`[sessionPlanning] dynamic session fallback: ${input.reason}`);
-  }
-  const ids = input.training ? nextSessionExercises(input.training) ?? [] : [];
-  const validIds = ids.filter(hasExercise);
-  const focusDomain = input.activeBlock?.focusDomain ?? legacyFocusDomain(input.training);
-  const exercises = validIds.map((id) => toLegacyHaleExercise(getExercise(id)));
-  return {
-    id: `legacy-session-${dateKey(input.today ?? new Date())}`,
-    blockId: input.activeBlock?.id ?? 'legacy-training-block',
-    title: titleForSessionType(input.sessionType, focusDomain),
-    purposeCopy: input.activeBlock
-      ? getSessionIntroCopy({ focusDomain, lifeGoal: input.lifeGoal })
-      : 'A simple Hale session for today, using your current plan.',
-    sessionType: input.sessionType,
-    estimatedMinutes: input.sessionType === 'restart' ? 12 : 20,
-    focusDomain,
-    exercises,
-    metadata: {
-      source: 'legacy_fallback',
-      fallbackReason: input.reason,
-      plannedDateKey: `session-${(input.training?.progress.completedSessions ?? 0) + 1}`,
-      readiness: readinessFor(input, input.sessionType),
-      painAreas: painAreasFor(input),
-      equipmentNeeded: equipmentNeeded(exercises),
-      guidance: ['Hale used the existing session path for today.'],
-    },
-  };
-}
-
 function recentSessionsFor(input: PlanTodayHaleSessionInput): GenerateSessionInput['recentSessions'] {
   return mainPlanRecentSessionsForGeneration({
     activeBlock: input.activeBlock,
@@ -595,52 +963,189 @@ function recentSessionsFor(input: PlanTodayHaleSessionInput): GenerateSessionInp
   });
 }
 
-function isDynamicPlan(plan: HaleSessionPlan): boolean {
-  const source = plan.metadata?.source;
-  return source === 'block_generated' || source === 'preset' || source === 'manual';
+function readyOrSupportingResult(plan: HaleSessionPlan): HaleSessionPlanningResult {
+  const focus = plan.metadata?.focusStimulus;
+  if (plan.metadata?.source === 'block_generated' && focus && !focus.mainPlanCreditPotential) {
+    return {
+      kind: 'supporting_session',
+      source: 'dynamic_current',
+      plan,
+      mainPlanCreditPotential: false,
+      reasons: [focus.status],
+    };
+  }
+  return { kind: 'ready', source: 'dynamic_current', plan };
 }
 
-function completedExerciseResultsForPlan(
-  plan: HaleSessionPlan,
-  sessionResult: TrainingSessionResult | null | undefined,
-  feedback: PostSessionFeedback,
-  completedOverride: boolean | undefined
-): CompletedExerciseResult[] {
-  if (completedOverride === false) return [];
-  const evidence = evaluateSessionWorkEvidence(plan, sessionResult);
-  const completedIds = completedExerciseIdsFromEvidence(evidence);
-  if (completedIds.size === 0) return [];
-  const items = new Map((sessionResult?.items ?? []).map((item) => [item.exerciseId, item]));
-  const metadata = plan.metadata?.generatedExercises;
-  const source =
-    metadata && metadata.length > 0
-      ? metadata
-      : plan.exercises.map((exercise) => ({
-          exerciseId: exercise.id,
-          ladderId: exercise.ladderId,
-          levelId: exercise.id,
-        }));
-  return source
-    .filter((exercise) => !!exercise.ladderId)
-    .filter((exercise) => completedIds.has(exercise.exerciseId))
-    .map((exercise) => {
-      const item = items.get(exercise.exerciseId);
-      const validTime = summarizeValidTimeItem(item);
-      return {
-        ladderId: exercise.ladderId as string,
-        levelId: exercise.levelId ?? exercise.exerciseId,
-        completionRate: 1,
-        perceivedEffort: feedback.perceivedEffort,
-        painReported: feedback.painReported,
-        trackingQuality: feedback.trackingQuality ?? 'good',
-        ...(validTime ? { validTime } : {}),
-      };
-    });
+function unavailablePlanningResult({
+  reason,
+  blockId,
+  templateId,
+  planningDateKey,
+  focusDomain,
+  recoveryActions,
+  issues = [],
+  exerciseIds,
+}: {
+  reason: GenerationUnavailableReason;
+  blockId?: string;
+  templateId?: string;
+  planningDateKey?: string;
+  focusDomain?: MovementDomain;
+  recoveryActions?: readonly GenerationRecoveryAction[];
+  issues?: readonly GeneratedSessionIssue[];
+  exerciseIds?: readonly string[];
+}): Extract<HaleSessionPlanningResult, { kind: 'unavailable' }> {
+  return {
+    kind: 'unavailable',
+    reason,
+    blockId,
+    templateId,
+    planningDateKey,
+    recoveryActions: recoveryActions ?? recoveryActionsFor(reason),
+    diagnostics: {
+      reason,
+      issueCodes: unique(issues.map((issue) => issue.code)),
+      blockId,
+      templateId,
+      planningDateKey,
+      focusDomain,
+      exerciseIds,
+    },
+    issues,
+  };
 }
 
-function validatePlayableExerciseIds(exercises: readonly HaleExercise[]): { ok: boolean; unsupported: string[] } {
-  const unsupported = exercises.map((exercise) => exercise.id).filter((id) => !hasExercise(id));
-  return { ok: unsupported.length === 0, unsupported };
+function recoveryActionsFor(reason: GenerationUnavailableReason): readonly GenerationRecoveryAction[] {
+  if (reason === 'no_active_block') return ['create_block', 'complete_baseline', 'retry'];
+  if (reason === 'legacy_only_state') return ['open_plan', 'create_block', 'contact_support'];
+  if (reason === 'no_safe_exercises') return ['review_setup', 'retry'];
+  if (reason === 'invalid_active_block' || reason === 'unsupported_focus_domain') {
+    return ['open_progress', 'contact_support'];
+  }
+  return ['retry', 'review_setup'];
+}
+
+function primaryRecoveryLabel(action: GenerationRecoveryAction | undefined): string {
+  if (action === 'review_setup') return 'Review setup';
+  if (action === 'complete_baseline') return 'Start Movement Check-Up';
+  if (action === 'create_block') return 'Create current plan';
+  if (action === 'open_plan') return 'Review plan';
+  if (action === 'open_progress') return 'Review progress';
+  if (action === 'contact_support') return 'Get help';
+  return 'Try again';
+}
+
+function secondaryRecoveryLabel(actions: readonly GenerationRecoveryAction[]): string | undefined {
+  const secondary = actions[1];
+  return secondary ? primaryRecoveryLabel(secondary) : undefined;
+}
+
+function invalidGeneratedSession(
+  reason: GenerationUnavailableReason,
+  issues: readonly GeneratedSessionIssue[]
+): GeneratedSessionValidation {
+  return { valid: false, reason, issues: issues.slice() };
+}
+
+function reasonForGeneratedIssues(issues: readonly GeneratedSessionIssue[]): GenerationUnavailableReason {
+  if (issues.some((issue) => issue.code === 'block_id_mismatch' || issue.code === 'invalid_source')) {
+    return 'source_identity_mismatch';
+  }
+  if (issues.some((issue) => issue.code === 'template_id_mismatch' || issue.code === 'template_not_in_block')) {
+    return 'invalid_template';
+  }
+  if (issues.some((issue) => issue.code === 'unsupported_focus_domain')) return 'unsupported_focus_domain';
+  if (issues.some((issue) => issue.code === 'empty_session_due')) {
+    return issues.some((issue) => issue.code === 'unsafe_equipment') ? 'no_safe_exercises' : 'empty_generated_session';
+  }
+  if (issues.some((issue) => issue.code === 'unsupported_exercise_id')) return 'unsupported_exercise_id';
+  if (issues.some((issue) => issue.code === 'duplicate_exercise_id')) return 'duplicate_exercise_id';
+  if (issues.some((issue) => issue.code === 'invalid_stimulus_metadata' || issue.code === 'missing_slot_stimulus')) {
+    return 'missing_stimulus_metadata';
+  }
+  if (issues.some((issue) => issue.code === 'unsafe_equipment')) return 'no_safe_exercises';
+  return 'invalid_generated_exercise';
+}
+
+function emptySessionReason(generated: GeneratedSession): GenerationUnavailableReason {
+  return generated.slotStimulus.some((stimulus) => stimulus.role === 'skipped' || stimulus.reason === 'no_safe_option')
+    ? 'no_safe_exercises'
+    : 'empty_generated_session';
+}
+
+function uniqueIssues(issues: readonly GeneratedSessionIssue[]): GeneratedSessionIssue[] {
+  const seen = new Set<string>();
+  const out: GeneratedSessionIssue[] = [];
+  for (const issue of issues) {
+    const key = `${issue.code}:${issue.exerciseId ?? ''}:${issue.templateId ?? ''}:${issue.blockId ?? ''}:${issue.slotId ?? ''}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(issue);
+  }
+  return out;
+}
+
+function generatedExerciseIds(value: unknown): string[] | undefined {
+  if (!isRecord(value) || !Array.isArray((value as Partial<GeneratedSession>).exercises)) return undefined;
+  const ids = (value as Partial<GeneratedSession>).exercises
+    ?.filter(isRecord)
+    .map((exercise) => (exercise as Partial<GeneratedExercise>).exerciseId)
+    .filter((id): id is string => typeof id === 'string' && id.length > 0);
+  return ids && ids.length > 0 ? unique(ids) : undefined;
+}
+
+function currentBlockWeek(block: MovementBlock, today: string | Date): number {
+  const start = Date.parse(block.startDate);
+  const end = typeof today === 'string' ? Date.parse(today) : today.getTime();
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return 1;
+  return Math.max(1, Math.min(4, Math.floor((end - start) / (7 * 24 * 60 * 60 * 1000)) + 1));
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isMovementDomain(value: unknown): value is MovementDomain {
+  return value === 'strength_power' || value === 'balance' || value === 'mobility';
+}
+
+function isTrainingDomain(value: unknown): value is TrainingDomain {
+  return value === 'strength_power' || value === 'balance_stability' || value === 'mobility_flexibility';
+}
+
+function isSessionSource(value: unknown): value is SessionSource {
+  return value === 'block_generated' || value === 'preset' || value === 'manual';
+}
+
+function isGeneratedWeekStatus(value: unknown): value is GeneratedSession['weekStatus'] {
+  return value === 'session_due' || value === 'week_complete' || value === 'block_complete' || value === 'preset';
+}
+
+function isStimulusRole(value: unknown): value is SlotStimulusRole {
+  return value === 'primary' || value === 'supporting' || value === 'fallback' || value === 'skipped' || value === 'invalid';
+}
+
+function isStimulusReason(value: unknown): value is SlotStimulusReason {
+  return (
+    value === 'direct_match' ||
+    value === 'equipment_limited' ||
+    value === 'safety_limited' ||
+    value === 'supporting_maintenance' ||
+    value === 'no_safe_option' ||
+    value === 'band_required' ||
+    value === 'floor_required' ||
+    value === 'support_required' ||
+    value === 'stair_support_required'
+  );
+}
+
+function positiveNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0;
+}
+
+function nonNegativeNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
 }
 
 function sessionTypeFor(input: PlanTodayHaleSessionInput): TrainingSessionCompletionType {
@@ -804,22 +1309,6 @@ function toSlotStimulusMetadata(stimulus: SlotStimulus) {
   };
 }
 
-function toLegacyHaleExercise(definition: ExerciseDefinition): HaleExercise {
-  return {
-    id: definition.id,
-    family: familyForDefinition(definition),
-    name: definition.displayName,
-    domain: movementDomainForDefinition(definition),
-    level: definition.level,
-    cameraView: definition.cameraView.view,
-    durationSeconds:
-      definition.prescription.holdSec ?? definition.prescription.captureSec ?? definition.prescription.timerSec,
-    targetReps: definition.prescription.repsPerSet,
-    targetSets: definition.prescription.sets,
-    requiresEquipment: definition.equipment.map((e) => String(e)),
-  };
-}
-
 function toTrainingDomain(domain: MovementDomain): TrainingDomain {
   if (domain === 'balance') return 'balance_stability';
   if (domain === 'mobility') return 'mobility_flexibility';
@@ -829,21 +1318,6 @@ function toTrainingDomain(domain: MovementDomain): TrainingDomain {
 function toMovementDomain(domain: TrainingDomain): MovementDomain {
   if (domain === 'balance_stability') return 'balance';
   if (domain === 'mobility_flexibility') return 'mobility';
-  return 'strength_power';
-}
-
-function legacyFocusDomain(training: TrainingState | null | undefined): MovementDomain {
-  const weakest = training?.block?.weakestDomain;
-  if (weakest === 'balance') return 'balance';
-  if (weakest === 'mobility') return 'mobility';
-  return 'strength_power';
-}
-
-function movementDomainForDefinition(definition: ExerciseDefinition): MovementDomain {
-  if (definition.slot === 'balance') return 'balance';
-  if (definition.slot === 'mobility') return 'mobility';
-  if (definition.family.includes('balance') || definition.family.includes('lateral')) return 'balance';
-  if (definition.family.includes('mobility') || definition.family.includes('reach')) return 'mobility';
   return 'strength_power';
 }
 

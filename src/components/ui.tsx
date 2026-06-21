@@ -326,7 +326,7 @@ export function ScreenHeader({
     <View style={styles.header}>
       {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
       <View style={styles.headerTitleRow}>
-        <HeaderLogo size={30} />
+        <HeaderLogo />
         <Text style={styles.headerTitle}>{title}</Text>
       </View>
       {subtitle ? <Text style={styles.headerSubtitle}>{subtitle}</Text> : null}

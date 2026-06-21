@@ -1,5 +1,6 @@
 import * as React from 'react';
 
+import { BackArrowButton } from '../../components/BackArrowButton';
 import { Screen, ScreenHeader } from '../../components/ui';
 import { LifeGoalSelector } from '../components/LifeGoalSelector';
 import type { LifeGoal } from '../types';
@@ -15,12 +16,13 @@ export function LifeGoalOnboardingScreen({
 }) {
   return (
     <Screen>
+      <BackArrowButton accessibilityLabel="Back" onPress={onCancel} />
       <ScreenHeader
-        eyebrow="Step 2 of 10"
-        title="What do you want your body to keep letting you do?"
-        subtitle="Hale will shape your plan around the strength, balance, and mobility that matter most to your life."
+        eyebrow="About you"
+        title="What do you want your body to keep helping you do?"
+        subtitle="Choose the reason that matters most. Hale will still use your Movement Check-Up to decide the first starting point."
       />
-      <LifeGoalSelector initialGoal={initialGoal} onSave={onSave} onCancel={onCancel} />
+      <LifeGoalSelector initialGoal={initialGoal} onSave={onSave} />
     </Screen>
   );
 }

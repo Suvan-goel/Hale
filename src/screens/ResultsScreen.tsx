@@ -7,9 +7,10 @@ import * as React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Polyline } from 'react-native-svg';
 
+import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
 import { CheckUp } from '../checkup/types';
-import { Card, HealthMetricRow, MaterialCard, PrimaryButton, Screen, SecondaryButton, StatusBadge } from '../components/ui';
+import { Card, PrimaryButton, Screen, StatusBadge } from '../components/ui';
 import type { MovementAssessment } from '../adherence';
 import { getAssessmentResultState } from '../haleFlow/assessmentResultState';
 import { ExtraTrendPoint, MetricTrend, StoredCheckUp, computeTrends } from '../history';
@@ -68,9 +69,10 @@ export function ResultsScreen({
 
   return (
     <Screen>
+      <BackArrowButton accessibilityLabel="Back from movement dashboard" onPress={onDone} />
       <View style={styles.header}>
         <View style={styles.titleGroup}>
-          <HeaderLogo size={30} />
+          <HeaderLogo />
           <Text style={styles.title}>Your Movement Dashboard</Text>
         </View>
         <Text style={styles.subtitle}>
@@ -78,30 +80,42 @@ export function ResultsScreen({
         </Text>
       </View>
 
-      {resultState.canCreateBlock && focusLabel ? (
-        <MaterialCard>
-          <Text style={styles.focusLabel}>{closelyMatched ? 'Closely matched domains' : 'Suggested focus'}</Text>
-          <Text style={styles.focusValue}>{closelyMatched ? tiedDomainLabels(focusSelection) : focusLabel}</Text>
-          <Text style={styles.focusBody}>
-            {closelyMatched
+      <Card style={styles.focusOverviewCard}>
+        <View style={styles.focusOverviewHead}>
+          <View style={styles.focusOverviewCopy}>
+            <Text style={styles.cardKicker}>
+              {resultState.canCreateBlock && focusLabel
+                ? closelyMatched
+                  ? 'Closely matched domains'
+                  : 'Suggested focus'
+                : 'Retake needed'}
+            </Text>
+            <Text style={styles.focusValue}>
+              {resultState.canCreateBlock && focusLabel
+                ? closelyMatched
+                  ? tiedDomainLabels(focusSelection)
+                  : focusLabel
+                : resultState.recoveryTitle}
+            </Text>
+          </View>
+          <StatusBadge
+            label={resultState.canCreateBlock && focusLabel ? 'Next block' : 'Review'}
+            tone={resultState.canCreateBlock && focusLabel ? 'gold' : 'attention'}
+          />
+        </View>
+        <Text style={styles.focusBody}>
+          {resultState.canCreateBlock && focusLabel
+            ? closelyMatched
               ? `${focusLabel} is the suggested focus for this block because these home estimates were closely matched.`
-              : 'This looks like a useful starting point for your next four-week training block.'}
-          </Text>
-        </MaterialCard>
-      ) : (
-        <MaterialCard>
-          <Text style={styles.focusLabel}>Retake needed</Text>
-          <Text style={styles.focusValue}>{resultState.recoveryTitle}</Text>
-          <Text style={styles.focusBody}>
-            {resultState.recoveryBody}
-          </Text>
-        </MaterialCard>
-      )}
-
-      <View style={styles.summaryGrid}>
-        <SummaryTile label="Domains estimated" value={`${measured.length}/3`} />
-        <SummaryTile label="Check-ups in history" value={`${history.length}`} />
-      </View>
+              : 'This looks like a useful starting point for your next four-week training block.'
+            : resultState.recoveryBody}
+        </Text>
+        <View style={styles.summaryRail}>
+          <SummaryTile label="Domains estimated" value={`${measured.length}/3`} />
+          <View style={styles.summaryDivider} />
+          <SummaryTile label="Check-ups in history" value={`${history.length}`} />
+        </View>
+      </Card>
 
       {score ? (
         score.domains.map((d) => (
@@ -123,7 +137,8 @@ export function ResultsScreen({
       )}
 
       {trends.length > 0 ? (
-        <Card>
+        <Card style={styles.trendCard}>
+          <Text style={styles.cardKicker}>Trend watch</Text>
           <Text style={styles.sectionTitle}>Trends</Text>
           <Text style={styles.sectionSubtle}>Small changes matter most when they repeat over time.</Text>
           {trends.map((t) => (
@@ -131,7 +146,8 @@ export function ResultsScreen({
           ))}
         </Card>
       ) : (
-        <Card>
+        <Card style={styles.trendCard}>
+          <Text style={styles.cardKicker}>Trend watch</Text>
           <Text style={styles.sectionTitle}>Trends</Text>
           <Text style={styles.sectionSubtle}>
             Come back for another check-up to start seeing your movement trends over time.
@@ -139,21 +155,15 @@ export function ResultsScreen({
         </Card>
       )}
 
-      <View style={styles.actions}>
-        {onStartPlan && resultState.canCreateBlock ? (
-          <>
-            <PrimaryButton title="Create my 4-week block" onPress={onStartPlan} />
-            <SecondaryButton title="Done" onPress={onDone} />
-          </>
-        ) : onRetake && resultState.canRetake ? (
-          <>
-            <PrimaryButton title="Retake Movement Check-Up" onPress={onRetake} />
-            <SecondaryButton title="Done" onPress={onDone} />
-          </>
-        ) : (
-          <PrimaryButton title="Done" onPress={onDone} />
-        )}
-      </View>
+      {onStartPlan && resultState.canCreateBlock ? (
+        <View style={styles.actions}>
+          <PrimaryButton title="Create my 4-week block" onPress={onStartPlan} />
+        </View>
+      ) : onRetake && resultState.canRetake ? (
+        <View style={styles.actions}>
+          <PrimaryButton title="Retake Movement Check-Up" onPress={onRetake} />
+        </View>
+      ) : null}
     </Screen>
   );
 }
@@ -169,37 +179,65 @@ function SummaryTile({ label, value }: { label: string; value: string }) {
 
 function DomainCard({ domain, isFocus, isTied }: { domain: DomainResult; isFocus: boolean; isTied?: boolean }) {
   return (
-    <Card style={isFocus ? styles.focusCard : undefined}>
+    <Card style={[styles.domainCard, isFocus && styles.focusCard]}>
       <View style={styles.domainHead}>
         <View style={styles.domainTitleRow}>
           <View style={styles.domainIcon}>
             <Text style={styles.domainIconText}>{DOMAIN_ICON[domain.domain]}</Text>
           </View>
-          <Text style={styles.domainTitle}>{domain.label}</Text>
+          <View style={styles.domainTitleCopy}>
+            <Text style={styles.cardKicker}>Home estimate</Text>
+            <Text style={styles.domainTitle}>{domain.label}</Text>
+          </View>
         </View>
         {isFocus ? <StatusBadge label="Suggested focus" tone="gold" /> : isTied ? <StatusBadge label="Closely matched" /> : null}
       </View>
 
-      {domain.measured ? (
-        <>
-          <Text style={styles.age}>Home estimate: {domainBandLabel(domain)}</Text>
-          <Text style={styles.estimateLabel}>{domainEstimateLabel(domain)}</Text>
-        </>
-      ) : (
-        <Text style={styles.ageMuted}>Not estimated this time</Text>
-      )}
-      <Text style={styles.interp}>{domainInterpretation(domain)}</Text>
+      <View style={styles.domainEstimateBlock}>
+        <View style={styles.domainBandRow}>
+          <Text style={domain.measured ? styles.age : styles.ageMuted}>
+            {domain.measured ? domainBandLabel(domain) : 'Not estimated'}
+          </Text>
+          {domain.measured ? <Text style={styles.estimateBadge}>Measured today</Text> : null}
+        </View>
+        <Text style={styles.estimateLabel}>{domainEstimateLabel(domain)}</Text>
+        <Text style={styles.interp}>{domainInterpretation(domain)}</Text>
+      </View>
+
       <View style={styles.rows}>
-        {domain.rows.map((r) => (
-          <HealthMetricRow
+        {domain.rows.map((r, index) => (
+          <DomainMetricRow
             key={r.label}
             label={r.label}
             value={r.display}
-            status={r.measured ? 'Estimated' : 'Not captured'}
+            measured={r.measured}
+            isLast={index === domain.rows.length - 1}
           />
         ))}
       </View>
     </Card>
+  );
+}
+
+function DomainMetricRow({
+  label,
+  value,
+  measured,
+  isLast,
+}: {
+  label: string;
+  value: string;
+  measured: boolean;
+  isLast: boolean;
+}) {
+  return (
+    <View style={[styles.metricRow, isLast && styles.metricRowLast]}>
+      <View style={styles.metricCopy}>
+        <Text style={styles.metricLabel}>{label}</Text>
+        <Text style={styles.metricStatus}>{measured ? 'Estimated' : 'Not captured'}</Text>
+      </View>
+      <Text style={styles.metricValue}>{value}</Text>
+    </View>
   );
 }
 
@@ -247,13 +285,13 @@ function TrendRow({ trend }: { trend: MetricTrend }) {
   const flat = Math.abs(delta) < 1e-9;
   const color = flat ? colors.textSecondary : colors.accentDeep;
   const latest = trend.points[trend.points.length - 1].value;
-  const change = `${delta > 0 ? '+' : ''}${formatDelta(delta)} ${trend.unit}`;
+  const change = flat ? 'No change' : `${delta > 0 ? '+' : ''}${formatDelta(delta)} ${trend.unit}`;
   const points = buildPolyline(values, min, span);
 
   return (
     <View style={styles.trendRow}>
       <View style={styles.trendHeader}>
-        <View>
+        <View style={styles.trendCopy}>
           <Text style={styles.trendLabel}>{trend.label}</Text>
           <Text style={styles.trendMeta}>
             Latest {formatDelta(latest)} {trend.unit}
@@ -264,7 +302,7 @@ function TrendRow({ trend }: { trend: MetricTrend }) {
           <Text style={styles.trendDeltaMeta}>{trendDeltaMeta(delta)}</Text>
         </View>
       </View>
-      <Svg width={240} height={72} style={styles.chart}>
+      <Svg width="100%" height={62} viewBox="0 0 240 72" style={styles.chart}>
         <Polyline points="0,58 240,58" stroke={colors.divider} strokeWidth={1} fill="none" />
         <Polyline points="0,36 240,36" stroke={colors.divider} strokeWidth={1} fill="none" />
         <Polyline points={points} fill="none" stroke={color} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
@@ -309,56 +347,267 @@ const styles = StyleSheet.create({
   },
   title: { ...type.pageTitle, flexShrink: 1 },
   subtitle: { ...type.pageSubtitle },
-  focusLabel: { ...type.label, color: colors.accentDeep },
-  focusValue: { ...type.cardTitle, marginTop: spacing.sm },
-  focusBody: { ...type.cardBody, marginTop: spacing.sm },
-  summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  focusOverviewCard: {
+    gap: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    borderRadius: radius.panel,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+    backgroundColor: colors.surface,
+    boxShadow: '0 12px 30px rgba(17,20,18,0.045)',
+  },
+  focusOverviewHead: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  focusOverviewCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing.xs,
+  },
+  cardKicker: {
+    ...type.label,
+    color: colors.accentDeep,
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  focusValue: {
+    fontFamily: fonts.serifMedium,
+    fontSize: 28,
+    lineHeight: 34,
+    letterSpacing: 0,
+    color: colors.textPrimary,
+  },
+  focusBody: {
+    ...type.cardBody,
+    color: colors.textSecondary,
+  },
+  summaryRail: {
+    minHeight: 78,
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.divider,
+  },
+  summaryDivider: {
+    width: StyleSheet.hairlineWidth,
+    backgroundColor: colors.divider,
+  },
   summaryTile: {
     flex: 1,
-    minWidth: 150,
-    minHeight: 96,
-    borderRadius: radius.card,
-    padding: spacing.lg,
-    backgroundColor: colors.bgSurface,
     justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.md,
+  },
+  summaryValue: {
+    fontFamily: fonts.serifMedium,
+    fontSize: 25,
+    lineHeight: 31,
+    letterSpacing: 0,
+    color: colors.textPrimary,
+    fontVariant: ['tabular-nums'],
+  },
+  summaryLabel: {
+    ...type.cardCaption,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+  },
+  domainCard: {
+    gap: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    borderRadius: radius.panel,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+    backgroundColor: colors.surface,
     ...shadow.card,
   },
-  summaryValue: { ...type.cardTitle, fontVariant: ['tabular-nums'] },
-  summaryLabel: { ...type.cardCaption, marginTop: spacing.xs },
-  focusCard: { backgroundColor: colors.bgElevated },
-  domainHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md, flexWrap: 'wrap' },
-  domainTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, flex: 1 },
-  domainIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accentSoft,
-    borderWidth: 1,
+  focusCard: {
     borderColor: colors.accentBorder,
+  },
+  domainHead: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    flexWrap: 'wrap',
+  },
+  domainTitleRow: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  domainIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.input,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     alignItems: 'center',
     justifyContent: 'center',
   },
   domainIconText: { ...type.label, color: colors.accentDeep },
-  domainTitle: { ...type.cardTitle, flex: 1 },
-  age: { ...type.cardRowTitle, color: colors.accentDeep, marginTop: spacing.lg },
-  estimateLabel: { ...type.caption, color: colors.textSecondary, marginTop: spacing.xs },
-  ageMuted: { ...type.cardBody, color: colors.textTertiary, marginTop: spacing.lg },
-  interp: { ...type.cardBody, marginTop: spacing.sm },
-  rows: { marginTop: spacing.lg },
-  sectionTitle: { ...type.cardTitle },
-  sectionSubtle: { ...type.cardBody, marginTop: spacing.sm },
+  domainTitleCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  domainTitle: {
+    ...type.cardTitle,
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  domainEstimateBlock: {
+    gap: spacing.xs,
+    paddingTop: spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
+  },
+  domainBandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  age: {
+    ...type.cardRowTitle,
+    flex: 1,
+    minWidth: 0,
+    color: colors.accentDeep,
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  ageMuted: {
+    ...type.cardBody,
+    color: colors.textTertiary,
+  },
+  estimateBadge: {
+    ...type.cardCaption,
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    textAlign: 'right',
+  },
+  estimateLabel: {
+    ...type.caption,
+    color: colors.textSecondary,
+  },
+  interp: {
+    ...type.cardBody,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+  },
+  rows: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.divider,
+  },
+  metricRow: {
+    minHeight: 76,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
+  },
+  metricRowLast: {
+    borderBottomWidth: 0,
+  },
+  metricCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  metricLabel: {
+    ...type.cardRowTitle,
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  metricStatus: {
+    ...type.cardCaption,
+    color: colors.textSecondary,
+  },
+  metricValue: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 20,
+    lineHeight: 26,
+    letterSpacing: 0,
+    color: colors.textPrimary,
+    fontVariant: ['tabular-nums'],
+    textAlign: 'right',
+  },
+  trendCard: {
+    gap: spacing.xs,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    borderRadius: radius.panel,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+    backgroundColor: colors.surface,
+    ...shadow.card,
+  },
+  sectionTitle: {
+    ...type.cardTitle,
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  sectionSubtle: {
+    ...type.cardBody,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+  },
   trendRow: {
     paddingTop: spacing.lg,
     marginTop: spacing.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.divider,
   },
-  trendHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.md, flexWrap: 'wrap' },
-  trendLabel: { ...type.cardRowTitle },
-  trendMeta: { ...type.caption, color: colors.textTertiary, marginTop: 2 },
-  trendDeltaWrap: { alignItems: 'flex-end' },
-  trendDelta: { ...type.bodySmall, fontFamily: fonts.sansMedium, fontVariant: ['tabular-nums'] },
-  trendDeltaMeta: { ...type.caption, color: colors.textTertiary, marginTop: 2 },
-  chart: { marginTop: spacing.md, alignSelf: 'center' },
+  trendHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  trendCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  trendLabel: {
+    ...type.cardRowTitle,
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  trendMeta: {
+    ...type.cardCaption,
+    color: colors.textSecondary,
+  },
+  trendDeltaWrap: {
+    alignItems: 'flex-end',
+    minWidth: 86,
+  },
+  trendDelta: {
+    ...type.bodySmall,
+    fontFamily: fonts.sansMedium,
+    fontVariant: ['tabular-nums'],
+    textAlign: 'right',
+  },
+  trendDeltaMeta: {
+    ...type.cardCaption,
+    color: colors.textSecondary,
+    textAlign: 'right',
+  },
+  chart: {
+    marginTop: spacing.md,
+    alignSelf: 'stretch',
+  },
   actions: { gap: spacing.md },
 });

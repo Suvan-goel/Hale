@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Path, Rect } from 'react-native-svg';
+import { Platform, Pressable, StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import {
   clearLocalHaleData,
@@ -46,6 +46,7 @@ export function AccountAuthCard({
   const [mode, setMode] = React.useState<AccountMode>(initialMode);
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [passwordVisible, setPasswordVisible] = React.useState(false);
   const [newPassword, setNewPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
   const [fullName, setFullName] = React.useState('');
@@ -349,6 +350,123 @@ export function AccountAuthCard({
     );
   }
 
+  if (isRequiredAuth && !isPasswordRecovery && !isSignedIn && mode !== 'forgot-password') {
+    return (
+      <View style={styles.requiredAuthStack}>
+        <Card style={styles.authCard}>
+          <View style={styles.requiredPrimaryStack}>
+            {mode === 'sign-up' ? (
+              <AuthInputField
+                label="Full name optional"
+                icon="account"
+                value={fullName}
+                onChangeText={setFullName}
+                placeholder="Your name"
+                returnKeyType="next"
+                accessibilityLabel="Full name"
+              />
+            ) : null}
+            <AuthInputField
+              label="Email"
+              icon="mail"
+              value={email}
+              onChangeText={setEmail}
+              placeholder="you@example.com"
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              textContentType="emailAddress"
+              returnKeyType="next"
+              accessibilityLabel="Email"
+            />
+            <AuthInputField
+              label="Password"
+              icon="lock"
+              value={password}
+              onChangeText={setPassword}
+              placeholder={mode === 'sign-up' ? 'Create a password' : 'Enter your password'}
+              autoCapitalize="none"
+              autoCorrect={false}
+              secureTextEntry={!passwordVisible}
+              textContentType={mode === 'sign-up' ? 'newPassword' : 'password'}
+              returnKeyType="done"
+              accessibilityLabel="Password"
+              rightIcon="eye"
+              onRightPress={() => setPasswordVisible((value) => !value)}
+              rightAccessibilityLabel={passwordVisible ? 'Hide password' : 'Show password'}
+            />
+            {mode === 'sign-in' ? (
+              <Pressable
+                style={({ pressed }) => [styles.requiredForgotLink, pressed && styles.pressed]}
+                onPress={() => changeMode('forgot-password')}
+                accessibilityRole="button"
+                accessibilityLabel="Forgot password"
+              >
+                <Text style={styles.forgotLinkText}>Forgot password?</Text>
+              </Pressable>
+            ) : null}
+            <Button
+              title={loading ? 'Working...' : mode === 'sign-up' ? 'Create account' : 'Sign in'}
+              onPress={submit}
+              disabled={loading}
+              accessibilityLabel={mode === 'sign-up' ? 'Create account' : 'Sign in'}
+              style={styles.requiredSubmitButton}
+            />
+            <View style={styles.requiredModeLine}>
+              <View style={styles.requiredModeDivider} />
+              <Pressable
+                style={({ pressed }) => [styles.requiredModePrompt, pressed && styles.pressed]}
+                onPress={() => changeMode(mode === 'sign-in' ? 'sign-up' : 'sign-in')}
+                accessibilityRole="button"
+                accessibilityLabel={mode === 'sign-in' ? 'Create an account' : 'Sign in instead'}
+              >
+                <Text style={styles.requiredModePromptText}>
+                  {mode === 'sign-in' ? "Don't have an account? " : 'Already have an account? '}
+                  <Text style={styles.requiredModePromptAction}>{mode === 'sign-in' ? 'Create account' : 'Sign in'}</Text>
+                </Text>
+              </Pressable>
+              <View style={styles.requiredModeDivider} />
+            </View>
+          </View>
+
+          {notice ? <Typography variant="caption" color={colors.sageDeep} style={styles.message}>{notice}</Typography> : null}
+          {authError ? <Typography variant="caption" color={colors.error} style={styles.message}>{authError}</Typography> : null}
+        </Card>
+
+        {showGoogleButton || showAppleButton ? (
+          <View style={styles.requiredProviderSection}>
+            <View style={styles.requiredOrRow}>
+              <View style={styles.requiredOrLine} />
+              <Text style={styles.requiredOrText}>OR</Text>
+              <View style={styles.requiredOrLine} />
+            </View>
+            {showGoogleButton ? (
+              <SocialButton
+                label={loading ? 'Connecting...' : 'Continue with Google'}
+                disabled={loading}
+                onPress={() => submitProvider('google')}
+                provider="google"
+              />
+            ) : null}
+            {showAppleButton ? (
+              <SocialButton
+                label={loading ? 'Connecting...' : 'Continue with Apple'}
+                disabled={loading}
+                onPress={() => submitProvider('apple')}
+                dark
+              />
+            ) : null}
+          </View>
+        ) : null}
+
+        <View style={styles.requiredPrivacyNote}>
+          <ShieldCheckIcon />
+          <Text style={styles.requiredPrivacyText}>Your account data stays private. Hale never creates public profiles.</Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <Card style={isRequiredAuth ? styles.authCard : undefined}>
       <View style={[styles.sectionHead, isRequiredAuth && styles.requiredSectionHead]}>
@@ -505,6 +623,7 @@ export function AccountAuthCard({
                   label={loading ? 'Connecting...' : 'Continue with Google'}
                   disabled={loading}
                   onPress={() => submitProvider('google')}
+                  provider="google"
                 />
               ) : null}
               {showAppleButton ? (
@@ -611,27 +730,167 @@ export function AccountAuthCard({
   );
 }
 
+function AuthInputField({
+  label,
+  icon,
+  rightIcon,
+  onRightPress,
+  rightAccessibilityLabel,
+  ...inputProps
+}: TextInputProps & {
+  label: string;
+  icon: 'account' | 'mail' | 'lock';
+  rightIcon?: 'eye';
+  onRightPress?: () => void;
+  rightAccessibilityLabel?: string;
+}) {
+  return (
+    <View style={styles.authField}>
+      <Text style={styles.authFieldLabel}>{label}</Text>
+      <View style={styles.authInputShell}>
+        <AuthFieldIcon name={icon} />
+        <TextInput
+          {...inputProps}
+          placeholderTextColor={colors.textTertiary}
+          style={styles.authTextInput}
+        />
+        {rightIcon === 'eye' && onRightPress ? (
+          <Pressable
+            style={({ pressed }) => [styles.authInputIconButton, pressed && styles.pressed]}
+            onPress={onRightPress}
+            accessibilityRole="button"
+            accessibilityLabel={rightAccessibilityLabel ?? 'Toggle password visibility'}
+          >
+            <EyeIcon />
+          </Pressable>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+function AuthFieldIcon({ name }: { name: 'account' | 'mail' | 'lock' }) {
+  const common = {
+    stroke: colors.textTertiary,
+    strokeWidth: 1.8,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    fill: 'none' as const,
+  };
+
+  return (
+    <Svg width={23} height={23} viewBox="0 0 24 24" fill="none">
+      {name === 'account' ? (
+        <>
+          <Circle cx={12} cy={8.4} r={3} {...common} />
+          <Path d="M5.8 19 C6.7 15.8, 8.9 14.2, 12 14.2 C15.1 14.2, 17.3 15.8, 18.2 19" {...common} />
+        </>
+      ) : null}
+      {name === 'mail' ? (
+        <>
+          <Rect x={4.5} y={6.7} width={15} height={11} rx={2.2} {...common} />
+          <Path d="M6 8.9 L12 13.2 L18 8.9" {...common} />
+        </>
+      ) : null}
+      {name === 'lock' ? (
+        <>
+          <Rect x={6.5} y={10.1} width={11} height={8.3} rx={2} {...common} />
+          <Path d="M9 10.1 V7.8 C9 5.8, 10.2 4.7, 12 4.7 C13.8 4.7, 15 5.8, 15 7.8 V10.1" {...common} />
+        </>
+      ) : null}
+    </Svg>
+  );
+}
+
+function EyeIcon() {
+  return (
+    <Svg width={23} height={23} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M3.7 12 C5.5 8.8, 8.4 7.2, 12 7.2 C15.6 7.2, 18.5 8.8, 20.3 12 C18.5 15.2, 15.6 16.8, 12 16.8 C8.4 16.8, 5.5 15.2, 3.7 12 Z"
+        stroke={colors.textTertiary}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Circle cx={12} cy={12} r={2.4} stroke={colors.textTertiary} strokeWidth={1.8} />
+    </Svg>
+  );
+}
+
 function SocialButton({
   label,
   disabled,
   onPress,
   dark = false,
+  provider,
 }: {
   label: string;
   disabled: boolean;
   onPress: () => void;
   dark?: boolean;
+  provider?: 'google';
 }) {
   return (
-    <Button
-      title={label}
+    <Pressable
+      style={({ pressed }) => [
+        styles.socialButton,
+        dark && styles.socialButtonDark,
+        disabled && styles.compactActionDisabled,
+        pressed && !disabled && styles.pressed,
+      ]}
       onPress={onPress}
-      variant="secondary"
       disabled={disabled}
+      accessibilityRole="button"
       accessibilityLabel={label}
-      style={[styles.socialButton, dark && styles.socialButtonDark]}
-      textStyle={[styles.socialButtonText, dark && styles.socialButtonTextDark]}
-    />
+      accessibilityState={disabled ? { disabled } : undefined}
+    >
+      {provider === 'google' ? <GoogleIcon /> : null}
+      <Text style={[styles.socialButtonText, dark && styles.socialButtonTextDark]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M21.6 12.23 C21.6 11.52 21.54 10.84 21.43 10.18 H12 V14.06 H17.39 C17.16 15.31 16.45 16.37 15.38 17.08 V19.6 H18.63 C20.53 17.85 21.6 15.26 21.6 12.23 Z"
+        fill="#4285F4"
+      />
+      <Path
+        d="M12 22 C14.7 22 16.96 21.1 18.63 19.6 L15.38 17.08 C14.48 17.68 13.33 18.04 12 18.04 C9.39 18.04 7.18 16.28 6.39 13.91 H3.03 V16.51 C4.69 19.78 8.08 22 12 22 Z"
+        fill="#34A853"
+      />
+      <Path
+        d="M6.39 13.91 C6.19 13.31 6.08 12.67 6.08 12 C6.08 11.33 6.19 10.69 6.39 10.09 V7.49 H3.03 C2.35 8.85 1.96 10.38 1.96 12 C1.96 13.62 2.35 15.15 3.03 16.51 L6.39 13.91 Z"
+        fill="#FBBC05"
+      />
+      <Path
+        d="M12 5.96 C13.47 5.96 14.79 6.46 15.82 7.46 L18.7 4.58 C16.96 2.96 14.7 2 12 2 C8.08 2 4.69 4.22 3.03 7.49 L6.39 10.09 C7.18 7.72 9.39 5.96 12 5.96 Z"
+        fill="#EA4335"
+      />
+    </Svg>
+  );
+}
+
+function ShieldCheckIcon() {
+  return (
+    <Svg width={38} height={38} viewBox="0 0 40 40" fill="none">
+      <Path
+        d="M20 5.8 L30.8 9.9 V18.3 C30.8 25.5 26.2 30.2 20 33.2 C13.8 30.2 9.2 25.5 9.2 18.3 V9.9 Z"
+        stroke={colors.accentDeep}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M15.5 20.2 L18.5 23.2 L24.9 16.7"
+        stroke={colors.accentDeep}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
   );
 }
 
@@ -764,10 +1023,13 @@ const styles = StyleSheet.create({
   compactActionDisabled: {
     opacity: 0.55,
   },
+  requiredAuthStack: {
+    gap: spacing.xl,
+  },
   authCard: {
     width: '100%',
     paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl,
+    paddingVertical: spacing.xxl,
     backgroundColor: colors.bgSurface,
     borderRadius: radius.xl,
     ...shadow.card,
@@ -778,25 +1040,133 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   requiredCardTitle: {
-    fontFamily: type.h2.fontFamily,
+    fontFamily: type.cardTitle.fontFamily,
+    fontSize: 24,
+    lineHeight: 30,
   },
   requiredSectionHint: {
     maxWidth: 310,
   },
   stack: { gap: spacing.lg, marginTop: spacing.lg },
   requiredStack: {
-    gap: 14,
+    gap: spacing.md,
     marginTop: spacing.xl,
+  },
+  requiredPrimaryStack: {
+    gap: spacing.md,
+  },
+  authField: {
+    gap: spacing.xs,
+  },
+  authFieldLabel: {
+    ...type.bodySmall,
+    color: colors.textPrimary,
+  },
+  authInputShell: {
+    minHeight: 58,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.button,
+    backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderColor: colors.inputBorder,
+  },
+  authTextInput: {
+    ...type.bodySmall,
+    flex: 1,
+    minWidth: 0,
+    minHeight: 54,
+    padding: 0,
+    color: colors.textPrimary,
+  },
+  authInputIconButton: {
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.input,
+  },
+  requiredForgotLink: {
+    minHeight: 30,
+    alignSelf: 'flex-end',
+    justifyContent: 'center',
+  },
+  requiredModeLine: {
+    minHeight: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.sm,
+  },
+  requiredModeDivider: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.divider,
+  },
+  requiredModePrompt: {
+    minHeight: 30,
+    justifyContent: 'center',
+  },
+  requiredModePromptText: {
+    ...type.caption,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  requiredModePromptAction: {
+    color: colors.accentDeep,
+    fontFamily: type.button.fontFamily,
+  },
+  requiredProviderSection: {
+    gap: spacing.md,
+  },
+  requiredOrRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  requiredOrLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.divider,
+  },
+  requiredOrText: {
+    ...type.caption,
+    color: colors.textSecondary,
+    fontFamily: type.button.fontFamily,
+  },
+  requiredPrivacyNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
+  requiredPrivacyText: {
+    ...type.caption,
+    flex: 1,
+    maxWidth: 270,
+    color: colors.textSecondary,
   },
   socialStack: { gap: spacing.sm, marginTop: spacing.xs },
   socialButton: {
     minHeight: 58,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: radius.button,
     backgroundColor: colors.bgSurface,
+    borderWidth: 1,
     borderColor: colors.border,
     shadowOpacity: 0,
     elevation: 0,
   },
   socialButtonText: {
+    ...type.button,
     color: colors.accentDeep,
   },
   socialButtonDark: {

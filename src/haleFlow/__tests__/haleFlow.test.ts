@@ -6,6 +6,7 @@ import {
   makeTrainingSessionCompletion,
   type MovementBlock,
   type MovementSafetyProfile,
+  type TrainingFocusStimulusEvidenceSummary,
 } from '../../adherence';
 import {
   canReplaceBaselineWithRetake,
@@ -93,7 +94,40 @@ function creditedCompletion(b: MovementBlock, templateId: string, completedAt: s
     source: 'block_generated',
     templateId,
     mainPlanCredit: true,
+    focusStimulusEvidence: focusEvidence(b, templateId),
   });
+}
+
+function focusEvidence(
+  block: MovementBlock,
+  templateId: string,
+  overrides: Partial<TrainingFocusStimulusEvidenceSummary> = {}
+): TrainingFocusStimulusEvidenceSummary {
+  const exerciseId = `${templateId}-primary`;
+  return {
+    planStatus: 'eligible',
+    status: 'credited_focus_work',
+    exclusionReason: 'none',
+    mainPlanCredit: true,
+    blockFocusDomain: block.focusDomain,
+    plannedPrimaryFocusExerciseCount: 1,
+    completedPrimaryFocusExerciseCount: 1,
+    completedSupportingExerciseCount: 0,
+    completedFallbackExerciseCount: 0,
+    completedCrossDomainExerciseCount: 0,
+    plannedPrimaryFocusExerciseIds: [exerciseId],
+    completedPrimaryFocusExerciseIds: [exerciseId],
+    completedSupportingExerciseIds: [],
+    completedFallbackExerciseIds: [],
+    completedCrossDomainExerciseIds: [],
+    fallbackFocusSlotIds: [],
+    skippedFocusSlotIds: [],
+    focusStimulusExclusionReasons: [],
+    missingMetadataExerciseIds: [],
+    malformedMetadataExerciseIds: [],
+    focusMismatchExerciseIds: [],
+    ...overrides,
+  };
 }
 
 describe('getNextBestAction', () => {

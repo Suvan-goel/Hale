@@ -3,7 +3,7 @@
  * radii and depth. Screens and shared components reference these tokens rather
  * than hardcoding repeated visual values.
  *
- * The aesthetic: clean premium longevity. Warm clay canvas, soft ivory
+ * The aesthetic: clean premium longevity. Light warm canvas, soft ivory
  * surfaces, inky green action colour, and quiet stone dividers. The
  * product should feel calm, trustworthy, readable, and daily-use friendly for
  * adults 50+, never clinical, toy-like, or fitness-gimmicky.
@@ -18,7 +18,7 @@ import { Platform, StyleSheet, TextStyle, ViewStyle } from 'react-native';
  * Colour — crisp premium palette
  * ------------------------------------------------------------------------- */
 
-export const palette = {
+export const previousWarmStonePalette = {
   appBackground: '#F4EDE6',
   cardSurface: '#FBF5EF',
   elevatedSurface: '#FBF5EF',
@@ -35,6 +35,25 @@ export const palette = {
   warmPremiumAccent: '#A98243',
   softGoldFill: '#F4EFE4',
   softShadow: 'rgba(17,20,18,0.08)',
+} as const;
+
+export const palette = {
+  appBackground: '#F9F5EF',
+  cardSurface: '#FFFDF9',
+  elevatedSurface: '#FFFDF9',
+  ink: '#111412',
+  secondaryText: '#68706A',
+  tertiaryText: '#8A908A',
+  brandGreen: '#414C34',
+  brandGreenPressed: '#414C34',
+  emeraldAccent: '#414C34',
+  softGreenFill: 'transparent',
+  verySoftGreenFill: 'transparent',
+  border: '#E4E0D6',
+  strongBorder: '#D8D3C8',
+  warmPremiumAccent: '#A98243',
+  softGoldFill: '#F4EFE4',
+  softShadow: 'rgba(17,20,18,0.05)',
 } as const;
 
 export const colors = {
@@ -106,19 +125,19 @@ export const colors = {
 } as const;
 
 export const imageOverlayControl = {
-  background: 'rgba(251,245,239,0.25)',
-  border: 'rgba(251,245,239,0.28)',
+  background: 'rgba(255,253,249,0.25)',
+  border: 'rgba(255,253,249,0.28)',
   text: colors.onAccent,
 } as const;
 
 export const todayHomeColors = {
-  background: '#F4EDE6',
-  card: '#FBF5EF',
-  cardAlt: '#FBF5EF',
+  background: '#F9F5EF',
+  card: '#FFFDF9',
+  cardAlt: '#FFFDF9',
   iconFill: 'transparent',
   ringTrack: '#ECE7DA',
   border: '#E5DED2',
-  shadow: 'rgba(17,20,18,0.06)',
+  shadow: 'rgba(17,20,18,0.04)',
   primaryText: '#142019',
   headingGreen: '#414C34',
   secondaryText: '#62685F',
@@ -127,7 +146,7 @@ export const todayHomeColors = {
   hero: '#414C34',
   heroDeep: '#414C34',
   tabActive: '#414C34',
-  warmWhite: '#FBF5EF',
+  warmWhite: '#FFFDF9',
 } as const;
 
 /* ----------------------------------------------------------------------------
@@ -209,26 +228,26 @@ export const minTapTarget = 48;
 
 export const shadow = {
   card: {
-    boxShadow: '0 10px 24px rgba(17,20,18,0.06)',
+    boxShadow: '0 0 16px rgba(17,20,18,0.035)',
     shadowColor: 'rgba(17,20,18,1)',
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 1,
+    shadowOpacity: 0.035,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 0,
   } satisfies ViewStyle,
   soft: {
     shadowColor: 'rgba(17,20,18,1)',
-    shadowOpacity: 0.035,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.025,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 0 },
     elevation: 0,
   } satisfies ViewStyle,
   lifted: {
     shadowColor: 'rgba(17,20,18,1)',
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 1,
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 0,
   } satisfies ViewStyle,
 } as const;
 

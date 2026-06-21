@@ -20,7 +20,7 @@
       "@sentry/react-native/expo"
     ],
     "userInterfaceStyle": "light",
-    "backgroundColor": "#F4EDE6",
+    "backgroundColor": "#F9F5EF",
     "ios": {
       "supportsTablet": false,
       "icon": "./assets/ios-icon.png",
@@ -33,7 +33,7 @@
     "android": {
       "icon": "./assets/android-icon.png",
       "adaptiveIcon": {
-        "backgroundColor": "#F4EDE6",
+        "backgroundColor": "#F9F5EF",
         "foregroundImage": "./assets/android-icon.png"
       },
       "permissions": [

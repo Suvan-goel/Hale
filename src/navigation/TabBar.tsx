@@ -9,45 +9,63 @@
 import * as React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { shadow, spacing, todayHomeColors, type } from '../theme';
+import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { ExploreIcon, IconProps, PlanIcon, ProgressIcon, TodayIcon } from './icons';
 
 export type TabKey = 'today' | 'plan' | 'progress' | 'explore';
+export type TabScreenName = 'TodayScreen' | 'PlanScreen' | 'ProgressScreen' | 'ExploreScreen';
+export type TabIconName = 'TodayIcon' | 'PlanIcon' | 'ProgressIcon' | 'ExploreIcon';
 
 export interface TabDef {
   key: TabKey;
   label: string;
+  screen: TabScreenName;
+  iconName: TabIconName;
   Icon: (p: IconProps) => React.JSX.Element;
 }
 
 export const TAB_DEFS: readonly TabDef[] = [
-  { key: 'today', label: 'Today', Icon: TodayIcon },
-  { key: 'plan', label: 'Plan', Icon: PlanIcon },
-  { key: 'progress', label: 'Progress', Icon: ProgressIcon },
-  { key: 'explore', label: 'Explore', Icon: ExploreIcon },
+  { key: 'today', label: 'Today', screen: 'TodayScreen', iconName: 'TodayIcon', Icon: TodayIcon },
+  { key: 'plan', label: 'Plan', screen: 'PlanScreen', iconName: 'PlanIcon', Icon: PlanIcon },
+  { key: 'progress', label: 'Progress', screen: 'ProgressScreen', iconName: 'ProgressIcon', Icon: ProgressIcon },
+  { key: 'explore', label: 'Explore', screen: 'ExploreScreen', iconName: 'ExploreIcon', Icon: ExploreIcon },
 ];
 
+export const DEFAULT_TAB_KEY: TabKey = 'today';
+
+export function isTabKey(value: unknown): value is TabKey {
+  return typeof value === 'string' && TAB_DEFS.some((tab) => tab.key === value);
+}
+
+export function normalizeTabKey(value: unknown): TabKey {
+  return isTabKey(value) ? value : DEFAULT_TAB_KEY;
+}
+
+export function getTabDef(key: TabKey): TabDef {
+  return TAB_DEFS.find((tab) => tab.key === key) ?? TAB_DEFS[0];
+}
+
 export function TabBar({ active, onChange }: { active: TabKey; onChange: (key: TabKey) => void }) {
+  const activeKey = normalizeTabKey(active);
   return (
     <View style={styles.tray}>
       <View style={styles.bar}>
         {TAB_DEFS.map((tab) => {
-          const selected = tab.key === active;
-          const tint = selected ? todayHomeColors.tabActive : todayHomeColors.mutedText;
-          const labelTint = selected ? todayHomeColors.tabActive : todayHomeColors.mutedText;
+          const selected = tab.key === activeKey;
+          const tint = selected ? colors.accentDeep : colors.textSecondary;
           return (
             <Pressable
               key={tab.key}
-              style={({ pressed }) => [styles.tab, pressed && styles.tabPressed]}
+              style={({ pressed }) => [styles.tab, selected && styles.tabActive, pressed && styles.tabPressed]}
               onPress={() => onChange(tab.key)}
               accessibilityRole="tab"
               accessibilityState={{ selected }}
               accessibilityLabel={tab.label}
             >
-              <View style={styles.iconWrap}>
-                <tab.Icon size={23} color={tint} strokeWidth={selected ? 2.1 : 1.8} />
+              <View style={[styles.iconWrap, selected && styles.iconWrapActive]}>
+                <tab.Icon size={selected ? 23 : 22} color={tint} strokeWidth={selected ? 2.05 : 1.75} />
               </View>
-              <Text style={[styles.label, selected && styles.labelActive, { color: labelTint }]}>{tab.label}</Text>
+              <Text style={[styles.label, selected && styles.labelActive]}>{tab.label}</Text>
             </Pressable>
           );
         })}
@@ -59,49 +77,60 @@ export function TabBar({ active, onChange }: { active: TabKey; onChange: (key: T
 const styles = StyleSheet.create({
   tray: {
     backgroundColor: 'transparent',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: 14,
+    paddingHorizontal: spacing.pageHorizontal,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
   },
   bar: {
     flexDirection: 'row',
-    backgroundColor: todayHomeColors.card,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: todayHomeColors.border,
-    borderRadius: 28,
-    paddingHorizontal: spacing.xs,
-    paddingTop: 6,
-    paddingBottom: 8,
+    alignItems: 'center',
+    gap: spacing.xs,
+    minHeight: 74,
+    backgroundColor: colors.bgSurface,
+    borderRadius: radius.panel,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
     ...shadow.lifted,
-    shadowOpacity: 0.05,
+    boxShadow: '0 0 22px rgba(17,20,18,0.055)',
+    shadowOpacity: 0.055,
     shadowRadius: 14,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 0 },
   },
   tab: {
     flex: 1,
     minHeight: 58,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 22,
+    borderRadius: radius.input,
     gap: spacing.xs,
+    paddingHorizontal: 2,
+    paddingVertical: spacing.xs,
+  },
+  tabActive: {
+    backgroundColor: colors.background,
   },
   tabPressed: {
-    opacity: 0.72,
+    opacity: 0.76,
+    transform: [{ scale: 0.98 }],
   },
   iconWrap: {
-    width: 36,
-    height: 32,
-    borderRadius: 8,
+    width: 32,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  iconWrapActive: {
+    transform: [{ translateY: -1 }],
+  },
   label: {
-    ...type.caption,
-    fontSize: 13,
-    lineHeight: 17,
+    ...type.cardCaption,
+    color: colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 15,
     textTransform: 'none',
   },
   labelActive: {
-    fontFamily: type.button.fontFamily,
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
   },
 });

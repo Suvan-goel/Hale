@@ -50,7 +50,7 @@ export function SessionCompletionScreen({
   onFeedback?: (feedback: SessionFeedbackInput) => void;
   onDone: () => void;
 }) {
-  const credited = completion?.mainPlanCredit === true;
+  const credited = completion?.mainPlanCredit === true && completion.focusStimulusEvidence?.mainPlanCredit === true;
   const restarted = completion?.sessionType === 'restart';
   const completionCopy = sessionCompletionCopy({ block, lifeGoal, completion, credited, restarted });
   const [effort, setEffort] = React.useState<1 | 2 | 3 | 4 | 5 | undefined>(completion?.perceivedEffort);
@@ -140,7 +140,7 @@ export function SessionCompletionScreen({
   );
 }
 
-function sessionCompletionCopy({
+export function sessionCompletionCopy({
   block,
   lifeGoal,
   completion,

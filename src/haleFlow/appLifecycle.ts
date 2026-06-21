@@ -107,7 +107,7 @@ export function getHaleAppLifecycle(input: HaleAppLifecycleInput): HaleAppLifecy
   const movementSnapshot = getMovementSnapshot({ score: latestScore });
   const weekSessionStatuses = getWeekSessionStatuses({ ...input, today });
   const completedMainPlanTemplatesThisWeek = activeBlock ? weeklyTemplateCompletions(input, activeBlock, today).size : 0;
-  const retestDueDate = activeBlock?.retestDate ?? input.training?.progress.retestDueAt ?? undefined;
+  const retestDueDate = activeBlock?.retestDate ?? undefined;
 
   let state: HaleLifecycleState;
   let reason: string;
@@ -117,9 +117,11 @@ export function getHaleAppLifecycle(input: HaleAppLifecycleInput): HaleAppLifecy
   } else if (!hasBaseline) {
     state = 'needs_baseline_checkup';
     reason = 'profile exists but no Movement Check-Up is stored';
-  } else if (!activeBlock && !input.training?.block) {
+  } else if (!activeBlock) {
     state = 'needs_block_creation';
-    reason = 'baseline exists but no active 4-week block is stored';
+    reason = input.training?.block
+      ? 'legacy training block exists but no active current MovementBlock is stored'
+      : 'baseline exists but no active 4-week block is stored';
   } else if (shouldShowRetestPrompt({ ...input, today })) {
     state = 'monthly_retest_due';
     reason = 'active block is complete or due for re-test';
@@ -244,22 +246,7 @@ export function getActiveBlockSummary(input: HaleAppLifecycleInput): ActiveBlock
     };
   }
 
-  // Legacy fallback: older state can have a training block without a persisted
-  // MovementBlock. This keeps existing users out of a broken "create block"
-  // state without writing a migration in this stage.
-  const legacy = input.training?.block;
-  if (!legacy) return undefined;
-  const completed = input.training?.progress.completedSessions ?? 0;
-  const weekNumber = Math.min(4, Math.floor(completed / Math.max(1, legacy.sessionsPerWeek)) + 1);
-  return {
-    focusTitle: legacy.weakestDomain ? focusTitle(scoreDomainToMovementDomain(legacy.weakestDomain)) : 'Your 4-week block',
-    focusDomain: legacy.weakestDomain ? scoreDomainToMovementDomain(legacy.weakestDomain) : undefined,
-    weekNumber,
-    totalWeeks: 4,
-    sessionsCompleteThisWeek: completed % Math.max(1, legacy.sessionsPerWeek),
-    sessionsTargetThisWeek: legacy.sessionsPerWeek,
-    retestInDays: input.training?.progress.retestDueAt ? 0 : undefined,
-  };
+  return undefined;
 }
 
 export function getWeekSessionStatuses(input: HaleAppLifecycleInput): WeekSessionStatus[] {
@@ -269,7 +256,7 @@ export function getWeekSessionStatuses(input: HaleAppLifecycleInput): WeekSessio
   const completedById = activeBlock ? weeklyTemplateCompletions(input, activeBlock, today) : new Map<PlanSessionId, { templateId?: string; completedAt?: string }>();
   const fallbackCompletedThisWeek = activeBlock
     ? sessionsCompletedThisWeek(activeBlock, input.adherence?.completions ?? [], today)
-    : Math.min(3, input.training?.progress.completedSessions ?? 0);
+    : 0;
   const fallbackCount = Math.max(0, Math.min(3, fallbackCompletedThisWeek));
   const usingTemplateStatus = completedById.size > 0;
   let nextAssigned = false;
@@ -314,7 +301,6 @@ export function getMovementSnapshot(input: { score?: CheckUpScore | null }): Mov
 export function shouldShowRetestPrompt(input: HaleAppLifecycleInput): boolean {
   const today = normalizeToday(input.today);
   const activeBlock = getActiveBlock(input);
-  if (input.training?.progress.retestDueAt) return true;
   if (activeBlock) {
     const completions = input.adherence?.completions ?? [];
     if (activeBlock.status === 'completed') return true;
@@ -322,9 +308,7 @@ export function shouldShowRetestPrompt(input: HaleAppLifecycleInput): boolean {
     if (daysBetween(activeBlock.startDate, today) >= 28) return true;
     if (daysUntil(activeBlock.retestDate, today) === 0) return true;
   }
-  const legacy = input.training?.block;
-  if (!legacy) return false;
-  return (input.training?.progress.completedSessions ?? 0) >= legacy.weeks * legacy.sessionsPerWeek;
+  return false;
 }
 
 export function shouldShowCleanSlatePrompt(input: HaleAppLifecycleInput): boolean {
@@ -336,8 +320,7 @@ export function shouldShowCleanSlatePrompt(input: HaleAppLifecycleInput): boolea
     const inactiveDays = lastAt ? daysBetween(lastAt, today) : daysBetween(activeBlock.startDate, today);
     return inactiveDays >= 14;
   }
-  const lastAt = input.training?.progress.lastSessionAt;
-  return !!input.training?.block && !!lastAt && daysBetween(lastAt, today) >= 14;
+  return false;
 }
 
 function shouldShowWeeklyMicroCheck(input: HaleAppLifecycleInput): boolean {
@@ -372,7 +355,7 @@ function hasCompletedFirstRunProfile(profile: UserProfile | null | undefined): b
 function totalCompletedSessions(input: HaleAppLifecycleInput): number {
   const activeBlock = getActiveBlock(input);
   if (activeBlock) return completedTrainingSessions(activeBlock, input.adherence?.completions ?? []).length;
-  return input.training?.progress.completedSessions ?? 0;
+  return 0;
 }
 
 function normalizeToday(today: string): string {

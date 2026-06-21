@@ -69,6 +69,9 @@ function trainingState(overrides: Partial<TrainingState> = {}): TrainingState {
         updatedAt: '2026-06-18T09:30:00.000Z',
       },
     },
+    appliedProgressionEventIds: [
+      'progression:completion-1:movement-block-1:strength-A:sit-to-stand',
+    ],
     generatedSessionSummaries: Array.from({ length: 25 }, (_, index) => ({
       id: `generated-session-${index + 1}`,
       blockId: 'movement-block-1',
@@ -118,7 +121,7 @@ describe('training state snapshot sync mapping', () => {
 
     expect(payload.user_id).toBe('user-123');
     expect(payload.updated_at).toBe(updatedAt);
-    expect(json.trainingSchemaVersion).toBe(3);
+    expect(json.trainingSchemaVersion).toBe(4);
     expect(json.activeLegacyTrainingBlock).toEqual(
       expect.objectContaining({
         weakestDomain: 'strength',
@@ -136,6 +139,9 @@ describe('training state snapshot sync mapping', () => {
       })
     );
     expect(json.planPreferences).toEqual({ preferredIntensity: 'standard' });
+    expect(json.appliedProgressionEventIds).toEqual([
+      'progression:completion-1:movement-block-1:strength-A:sit-to-stand',
+    ]);
     expect(progression.velHistory['sit-to-stand-level-1']).toHaveLength(20);
     expect(progression.velHistory['sit-to-stand-level-1']).not.toContain(NaN);
     expect(generatedSessionContext.totalPersisted).toBe(25);
@@ -172,6 +178,98 @@ describe('training state snapshot sync mapping', () => {
     expect(rawJson).not.toContain('videoBase64');
     expect(rawJson).not.toContain('shouldNotUpload');
     expect(rawJson).not.toContain('file:///private');
+  });
+
+  it('preserves generated non-credit focus evidence and stimulus metadata in recovery snapshots', () => {
+    const payload = mapLocalTrainingStateToRemotePayload(
+      {
+        training: trainingState({
+          generatedSessionSummaries: [
+            {
+              id: 'generated-supporting-only',
+              blockId: 'movement-block-1',
+              source: 'block_generated' as const,
+              templateId: 'strength-B',
+              plannedDateKey: 'strength-B:2026-06-18',
+              sessionType: 'standard' as const,
+              completionSource: 'block_generated' as const,
+              status: 'partial' as const,
+              mainPlanCredit: false,
+              workEvidence: {
+                plannedExerciseCount: 2,
+                resultItemCount: 1,
+                completedExerciseCount: 1,
+                skippedExerciseCount: 0,
+                missingResultCount: 1,
+                duplicateResultCount: 0,
+                malformedResultCount: 0,
+                unmatchedResultCount: 0,
+              },
+              focusStimulusEvidence: {
+                planStatus: 'eligible' as const,
+                status: 'primary_focus_not_completed' as const,
+                exclusionReason: 'fallback_only' as const,
+                mainPlanCredit: false,
+                blockFocusDomain: 'strength_power' as const,
+                plannedPrimaryFocusExerciseCount: 1,
+                completedPrimaryFocusExerciseCount: 0,
+                completedSupportingExerciseCount: 0,
+                completedFallbackExerciseCount: 1,
+                completedCrossDomainExerciseCount: 0,
+                plannedPrimaryFocusExerciseIds: ['sts-standard'],
+                completedPrimaryFocusExerciseIds: [],
+                completedSupportingExerciseIds: [],
+                completedFallbackExerciseIds: ['sts-slow-eccentric'],
+                completedCrossDomainExerciseIds: [],
+                fallbackFocusSlotIds: ['lower-strength-b'],
+                skippedFocusSlotIds: [],
+                focusStimulusExclusionReasons: ['equipment_limited'],
+                missingMetadataExerciseIds: [],
+                malformedMetadataExerciseIds: [],
+                focusMismatchExerciseIds: [],
+              },
+              title: 'Strength Session B',
+              completedAt: '2026-06-18T09:30:00.000Z',
+              exerciseIds: ['sts-slow-eccentric'],
+              exercises: [
+                {
+                  exerciseId: 'sts-slow-eccentric',
+                  ladderId: 'sit-to-stand',
+                  levelId: 'sts-slow-eccentric',
+                  slotType: 'lower_body_strength' as const,
+                  intendedDomain: 'strength_power' as const,
+                  stimulusRole: 'fallback' as const,
+                  stimulusReason: 'equipment_limited' as const,
+                },
+              ],
+            },
+          ] as never,
+        }),
+        updatedAt,
+      },
+      'user-123'
+    );
+    const json = stateJson(payload);
+    const generatedSessionContext = json.generatedSessionContext as {
+      recentSummaries: Array<{
+        mainPlanCredit: boolean;
+        status: string;
+        focusStimulusEvidence: { mainPlanCredit: boolean; exclusionReason: string };
+        exercises: Array<{ stimulusRole: string; intendedDomain: string }>;
+      }>;
+    };
+    const summary = generatedSessionContext.recentSummaries[0];
+
+    expect(summary.mainPlanCredit).toBe(false);
+    expect(summary.status).toBe('partial');
+    expect(summary.focusStimulusEvidence).toMatchObject({
+      mainPlanCredit: false,
+      exclusionReason: 'fallback_only',
+    });
+    expect(summary.exercises[0]).toMatchObject({
+      stimulusRole: 'fallback',
+      intendedDomain: 'strength_power',
+    });
   });
 
   it('upserts one training_state row per user and skips an unchanged duplicate snapshot', async () => {

@@ -1,5 +1,6 @@
 import type { CheckUpScore, DomainResult } from '../scoring';
 import { scoreDomainFromMovementDomain } from './blockService';
+import { isCreditedMainPlanTrainingCompletion } from './dateUtils';
 import { getLifeGoalDisplayText } from './goalDomainMapping';
 import type {
   IdentityMilestone,
@@ -34,10 +35,7 @@ export function generateMilestones({
   push(out, existing, makeMilestone('first_block_started', block, nowIso, lifeGoal));
 
   const trainingCompletions = completions.filter(
-    (c) =>
-      c.blockId === block.id &&
-      c.mainPlanCredit === true &&
-      (c.sessionType === 'standard' || c.sessionType === 'starter' || c.sessionType === 'restart')
+    (c) => c.blockId === block.id && isCreditedMainPlanTrainingCompletion(c)
   );
   const uniqueMainPlanTemplates = new Set(
     trainingCompletions

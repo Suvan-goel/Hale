@@ -13,6 +13,7 @@ export * from './microCheck';
 export * from './nextBestAction';
 export * from './planViewModel';
 export * from './progressViewModel';
+export * from './progressionEvidence';
 export * from './reports';
 export * from './sessionPlanning';
 export * from './sessionWorkEvidence';

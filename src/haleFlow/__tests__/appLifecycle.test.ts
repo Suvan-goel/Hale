@@ -6,6 +6,7 @@ import {
   type AdherenceStoreState,
   type MovementBlock,
   type MovementSafetyProfile,
+  type TrainingFocusStimulusEvidenceSummary,
 } from '../../adherence';
 import { syntheticCheckUp } from '../../checkup/devFixture';
 import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../../history';
@@ -130,7 +131,40 @@ function completed(block: MovementBlock, completedAt: string, sessionNumber = 1)
     source: templateId ? 'block_generated' : undefined,
     templateId,
     mainPlanCredit: templateId ? true : undefined,
+    focusStimulusEvidence: templateId ? focusEvidence(block, templateId) : undefined,
   });
+}
+
+function focusEvidence(
+  block: MovementBlock,
+  templateId: string,
+  overrides: Partial<TrainingFocusStimulusEvidenceSummary> = {}
+): TrainingFocusStimulusEvidenceSummary {
+  const exerciseId = `${templateId}-primary`;
+  return {
+    planStatus: 'eligible',
+    status: 'credited_focus_work',
+    exclusionReason: 'none',
+    mainPlanCredit: true,
+    blockFocusDomain: block.focusDomain,
+    plannedPrimaryFocusExerciseCount: 1,
+    completedPrimaryFocusExerciseCount: 1,
+    completedSupportingExerciseCount: 0,
+    completedFallbackExerciseCount: 0,
+    completedCrossDomainExerciseCount: 0,
+    plannedPrimaryFocusExerciseIds: [exerciseId],
+    completedPrimaryFocusExerciseIds: [exerciseId],
+    completedSupportingExerciseIds: [],
+    completedFallbackExerciseIds: [],
+    completedCrossDomainExerciseIds: [],
+    fallbackFocusSlotIds: [],
+    skippedFocusSlotIds: [],
+    focusStimulusExclusionReasons: [],
+    missingMetadataExerciseIds: [],
+    malformedMetadataExerciseIds: [],
+    focusMismatchExerciseIds: [],
+    ...overrides,
+  };
 }
 
 function templatePrefix(block: MovementBlock): 'strength' | 'balance' | 'mobility' {
@@ -347,7 +381,7 @@ describe('getHaleAppLifecycle', () => {
     expect(result.primaryAction.type).toBe('start_gentle_restart');
   });
 
-  it('handles old minimal state and legacy training blocks without crashing', () => {
+  it('handles old minimal state and legacy training blocks without treating them as current sessions', () => {
     const first = getHaleAppLifecycle({
       profile: profile(),
       history: [baseline()],
@@ -368,8 +402,10 @@ describe('getHaleAppLifecycle', () => {
     });
 
     expect(first.state).toBe('needs_baseline_checkup');
-    expect(second.state).toBe('first_session_ready');
-    expect(second.activeBlockSummary?.sessionsTargetThisWeek).toBe(3);
+    expect(second.state).toBe('needs_block_creation');
+    expect(second.primaryAction.type).toBe('create_block');
+    expect(second.activeBlockSummary).toBeUndefined();
+    expect(second.weekSessionStatuses?.map((session) => session.status)).toEqual(['next', 'later', 'later']);
   });
 });
 
@@ -442,6 +478,7 @@ describe('lifecycle view models', () => {
         source: 'block_generated',
         templateId: 'balance-A',
         mainPlanCredit: true,
+        focusStimulusEvidence: focusEvidence(block, 'balance-A'),
       }),
       makeTrainingSessionCompletion({
         block,
@@ -451,6 +488,7 @@ describe('lifecycle view models', () => {
         source: 'block_generated',
         templateId: 'balance-B',
         mainPlanCredit: true,
+        focusStimulusEvidence: focusEvidence(block, 'balance-B'),
       }),
     ];
 
@@ -480,6 +518,7 @@ describe('lifecycle view models', () => {
               sessionType: 'standard',
               status: 'completed',
               mainPlanCredit: true,
+              focusStimulusEvidence: focusEvidence(block, 'balance-B'),
               title: 'Balance Session B',
               completedAt: '2026-06-04T08:00:00.000Z',
               exerciseIds: [],

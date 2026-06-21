@@ -21,6 +21,7 @@ export type MainPlanCreditRejectionReason =
   | 'unsupported_session_type'
   | 'non_block_source'
   | 'missing_credit_flag'
+  | 'missing_focus_stimulus_credit'
   | 'missing_template'
   | 'missing_planned_date_key'
   | 'invalid_template'
@@ -38,6 +39,8 @@ export interface MainPlanEventCandidate {
   completedAt?: string;
   status?: 'completed' | 'partial' | 'skipped';
   mainPlanCredit?: boolean;
+  focusStimulusCredit?: boolean;
+  requiresFocusStimulusCredit?: boolean;
 }
 
 export interface MainPlanCreditEvent {
@@ -98,6 +101,7 @@ export function classifyMainPlanSessionPlan(
     completedAt: new Date(0).toISOString(),
     status: 'completed',
     mainPlanCredit: true,
+    requiresFocusStimulusCredit: false,
   });
 }
 
@@ -115,6 +119,8 @@ export function classifyMainPlanCompletion(
     completedAt: completion.completedAt,
     status: 'completed',
     mainPlanCredit: completion.mainPlanCredit,
+    focusStimulusCredit: completion.focusStimulusEvidence?.mainPlanCredit,
+    requiresFocusStimulusCredit: true,
   });
 }
 
@@ -132,6 +138,8 @@ export function classifyMainPlanGeneratedSummary(
     completedAt: summary.completedAt,
     status: summary.status,
     mainPlanCredit: summary.mainPlanCredit,
+    focusStimulusCredit: summary.focusStimulusEvidence?.mainPlanCredit,
+    requiresFocusStimulusCredit: true,
   });
 }
 
@@ -146,6 +154,9 @@ export function classifyMainPlanCandidate(
   }
   if (candidate.source !== 'block_generated') return { credited: false, reason: candidate.source ? 'non_block_source' : 'legacy_unknown' };
   if (candidate.mainPlanCredit !== true) return { credited: false, reason: 'missing_credit_flag' };
+  if (candidate.requiresFocusStimulusCredit && candidate.focusStimulusCredit !== true) {
+    return { credited: false, reason: 'missing_focus_stimulus_credit' };
+  }
   if (candidate.status && candidate.status !== 'completed' && candidate.status !== 'partial') {
     return { credited: false, reason: 'skipped_or_incomplete' };
   }

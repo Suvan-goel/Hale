@@ -3,7 +3,7 @@ import { Image, StyleSheet, type ImageStyle, type StyleProp } from 'react-native
 const HALE_LOGO_MARK = require('../../assets/hale-logo-mark.png');
 
 export function HeaderLogo({
-  size = 30,
+  size = 34,
   style,
 }: {
   size?: number;

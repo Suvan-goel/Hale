@@ -86,7 +86,7 @@ export function ExploreScreen({
     <Screen contentStyle={styles.screenContent}>
       <View style={styles.headerRow}>
         <View style={styles.titleGroup}>
-          <HeaderLogo size={30} />
+          <HeaderLogo />
           <Text style={styles.title}>Explore</Text>
         </View>
         <Pressable

@@ -10,6 +10,7 @@ import {
   type MicroCheckResult,
   type TrainingState,
 } from '../../../training';
+import { classifyMainPlanCompletion } from '../../../haleFlow';
 
 import {
   isLocalStateEmptyForRestore,
@@ -278,6 +279,9 @@ function remoteSnapshot(): RemoteHaleSnapshot {
         equipment: training.equipment,
         planPreferences: training.planPreferences,
         ladderProgressById: training.ladderProgressById,
+        appliedProgressionEventIds: [
+          'progression:session-1:movement-block-1:strength-A:sit-to-stand',
+        ],
         generatedSessionContext: {
           totalPersisted: 0,
           recentSummaries: [],
@@ -363,6 +367,9 @@ describe('remote restore service', () => {
     expect(mapped.state.adherence.assessments).toHaveLength(1);
     expect(mapped.state.adherence.blocks[0].id).toBe('movement-block-1');
     expect(mapped.state.training.block?.weakestDomain).toBe('strength');
+    expect(mapped.state.training.appliedProgressionEventIds).toEqual([
+      'progression:session-1:movement-block-1:strength-A:sit-to-stand',
+    ]);
     expect(mapped.state.adherence.completions[0].id).toBe('session-1');
     expect(blockProgress(mapped.state.adherence.blocks[0], mapped.state.adherence.completions).completedSessions).toBe(0);
     expect(mapped.state.microChecks[0]).toEqual(microCheck());
@@ -373,6 +380,105 @@ describe('remote restore service', () => {
         expect.stringContaining('compact training_state snapshot'),
       ])
     );
+  });
+
+  it('restores applied progression event ids without replaying session completion rows', () => {
+    const snapshot = remoteSnapshot();
+    const beforeLevel = snapshot.trainingState?.state_json &&
+      typeof snapshot.trainingState.state_json === 'object' &&
+      'ladderProgressById' in snapshot.trainingState.state_json
+      ? JSON.stringify(snapshot.trainingState.state_json.ladderProgressById)
+      : '';
+
+    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
+
+    expect(mapped.state.training.appliedProgressionEventIds).toEqual([
+      'progression:session-1:movement-block-1:strength-A:sit-to-stand',
+    ]);
+    expect(JSON.stringify(mapped.state.training.ladderProgressById)).toBe(beforeLevel);
+    expect(mapped.state.adherence.completions).toHaveLength(1);
+  });
+
+  it('restores supporting-only and missing-focus attempts without promoting them to main-plan credit', () => {
+    const snapshot = remoteSnapshot();
+    const b = movementBlock();
+    const missingFocusCompletion = {
+      id: 'session-missing-focus',
+      userId: 'local-device-user',
+      blockId: b.id,
+      plannedDate: 'strength-A:2026-06-19',
+      completedAt: '2026-06-19T08:30:00.000Z',
+      sessionType: 'standard' as const,
+      focusDomain: 'strength_power' as const,
+      source: 'block_generated' as const,
+      templateId: 'strength-A',
+      mainPlanCredit: true,
+      durationMinutes: 12,
+    };
+    const supportingOnlyCompletion = {
+      ...missingFocusCompletion,
+      id: 'session-supporting-only',
+      plannedDate: 'strength-B:2026-06-20',
+      completedAt: '2026-06-20T08:30:00.000Z',
+      templateId: 'strength-B',
+      mainPlanCredit: false,
+      focusStimulusEvidence: {
+        planStatus: 'eligible' as const,
+        status: 'primary_focus_not_completed' as const,
+        exclusionReason: 'supporting_only' as const,
+        mainPlanCredit: false,
+        blockFocusDomain: 'strength_power' as const,
+        plannedPrimaryFocusExerciseCount: 1,
+        completedPrimaryFocusExerciseCount: 0,
+        completedSupportingExerciseCount: 1,
+        completedFallbackExerciseCount: 0,
+        completedCrossDomainExerciseCount: 0,
+        plannedPrimaryFocusExerciseIds: ['sts-standard'],
+        completedPrimaryFocusExerciseIds: [],
+        completedSupportingExerciseIds: ['balance-tandem-hold'],
+        completedFallbackExerciseIds: [],
+        completedCrossDomainExerciseIds: [],
+        fallbackFocusSlotIds: [],
+        skippedFocusSlotIds: [],
+        focusStimulusExclusionReasons: [],
+        missingMetadataExerciseIds: [],
+        malformedMetadataExerciseIds: [],
+        focusMismatchExerciseIds: [],
+      },
+    };
+    snapshot.trainingSessionCompletions = [
+      {
+        id: 'remote-session-missing-focus',
+        local_session_id: missingFocusCompletion.id,
+        summary_json: {
+          schemaVersion: 1,
+          completion: missingFocusCompletion,
+        },
+        completed_at: missingFocusCompletion.completedAt,
+        created_at: missingFocusCompletion.completedAt,
+      },
+      {
+        id: 'remote-session-supporting-only',
+        local_session_id: supportingOnlyCompletion.id,
+        summary_json: {
+          schemaVersion: 1,
+          completion: supportingOnlyCompletion,
+        },
+        completed_at: supportingOnlyCompletion.completedAt,
+        created_at: supportingOnlyCompletion.completedAt,
+      },
+    ];
+
+    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
+    const restored = mapped.state.adherence.completions;
+
+    expect(restored).toHaveLength(2);
+    expect(restored[0].mainPlanCredit).toBe(true);
+    expect(restored[0].focusStimulusEvidence).toBeUndefined();
+    expect(restored[1].mainPlanCredit).toBe(false);
+    expect(restored[1].focusStimulusEvidence?.exclusionReason).toBe('supporting_only');
+    expect(blockProgress(b, restored).completedSessions).toBe(0);
+    expect(restored.map((completion) => classifyMainPlanCompletion(b, completion).credited)).toEqual([false, false]);
   });
 
   it('restores exact local check-up type from JSON metadata before the coarse remote enum', () => {

@@ -16,7 +16,7 @@ import {
   defaultTrainingState,
   startBlock,
 } from '../../training';
-import { createMovementAssessment, planTodayHaleSession } from '../../haleFlow';
+import { createMovementAssessment, requireHaleSessionPlan as planTodayHaleSession } from '../../haleFlow';
 import { onboardingDomainSummaries, onboardingFocusDomain } from '../results';
 import { V1_BASELINE_MOVEMENT_IDS, deriveOnboardingStep } from '../state';
 

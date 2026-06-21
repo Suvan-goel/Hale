@@ -1,4 +1,8 @@
-import type { MovementBlock, TrainingSessionCompletion } from '../../adherence';
+import type {
+  MovementBlock,
+  TrainingFocusStimulusEvidenceSummary,
+  TrainingSessionCompletion,
+} from '../../adherence';
 import {
   classifyMainPlanCompletion,
   mainPlanRecentSessionsForGeneration,
@@ -38,6 +42,36 @@ function completion(overrides: Partial<TrainingSessionCompletion> = {}): Trainin
     source: 'block_generated',
     templateId: 'strength-A',
     mainPlanCredit: true,
+    focusStimulusEvidence: focusEvidence(),
+    ...overrides,
+  };
+}
+
+function focusEvidence(
+  overrides: Partial<TrainingFocusStimulusEvidenceSummary> = {}
+): TrainingFocusStimulusEvidenceSummary {
+  return {
+    planStatus: 'eligible',
+    status: 'credited_focus_work',
+    exclusionReason: 'none',
+    mainPlanCredit: true,
+    blockFocusDomain: 'strength_power',
+    plannedPrimaryFocusExerciseCount: 1,
+    completedPrimaryFocusExerciseCount: 1,
+    completedSupportingExerciseCount: 0,
+    completedFallbackExerciseCount: 0,
+    completedCrossDomainExerciseCount: 0,
+    plannedPrimaryFocusExerciseIds: ['sts-standard'],
+    completedPrimaryFocusExerciseIds: ['sts-standard'],
+    completedSupportingExerciseIds: [],
+    completedFallbackExerciseIds: [],
+    completedCrossDomainExerciseIds: [],
+    fallbackFocusSlotIds: [],
+    skippedFocusSlotIds: [],
+    focusStimulusExclusionReasons: [],
+    missingMetadataExerciseIds: [],
+    malformedMetadataExerciseIds: [],
+    focusMismatchExerciseIds: [],
     ...overrides,
   };
 }
@@ -84,5 +118,59 @@ describe('main plan event classifier', () => {
     });
 
     expect(recent.map((session) => session.templateId)).toEqual(['strength-A', 'strength-B']);
+  });
+
+  it('rejects credited-looking completions and summaries without Stage 5B focus credit', () => {
+    const supportingOnlyFocusEvidence = focusEvidence({
+      status: 'primary_focus_not_completed',
+      exclusionReason: 'supporting_only',
+      mainPlanCredit: false,
+      completedPrimaryFocusExerciseCount: 0,
+      completedSupportingExerciseCount: 1,
+      completedPrimaryFocusExerciseIds: [],
+      completedSupportingExerciseIds: ['balance-tandem-hold'],
+    });
+
+    expect(
+      classifyMainPlanCompletion(
+        block(),
+        completion({ id: 'missing-focus-evidence', focusStimulusEvidence: undefined })
+      ).credited
+    ).toBe(false);
+    expect(
+      classifyMainPlanCompletion(
+        block(),
+        completion({ id: 'supporting-only-focus-evidence', focusStimulusEvidence: supportingOnlyFocusEvidence })
+      ).credited
+    ).toBe(false);
+
+    const recent = mainPlanRecentSessionsForGeneration({
+      activeBlock: block(),
+      completions: [
+        completion({
+          id: 'completion-missing-focus-evidence',
+          plannedDate: 'strength-A:2026-06-01',
+          focusStimulusEvidence: undefined,
+        }),
+      ],
+      generatedSessionSummaries: [
+        {
+          id: 'summary-supporting-only',
+          blockId: 'movement-block-main-plan',
+          source: 'block_generated',
+          templateId: 'strength-B',
+          plannedDateKey: 'strength-B:2026-06-03',
+          sessionType: 'standard',
+          status: 'partial',
+          mainPlanCredit: true,
+          focusStimulusEvidence: supportingOnlyFocusEvidence,
+          title: 'Strength Session B',
+          completedAt: '2026-06-03T09:00:00.000Z',
+          exerciseIds: ['balance-tandem-hold'],
+        },
+      ],
+    });
+
+    expect(recent).toEqual([]);
   });
 });

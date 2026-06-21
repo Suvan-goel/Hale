@@ -1130,3 +1130,119 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 - **Scope boundary:** this closes Stage 5B F5-006 only. Generator selection, safety gates,
   stimulus-role definitions, exercise progression policy for non-credit work, and later Stage 5
   timing/profile/equipment safeguards are unchanged.
+
+## 2026-06-21 — Clean Ivory palette trial
+
+- **Change:** the active palette trial moved to the cleaner white/ivory option: canvas
+  `#FAF8F4`, cards `#FFFFFF`, elevated surfaces `#FCFBF8`, primary text `#111412`,
+  secondary/tertiary text `#68706A/#8A908A`, primary green `#3F4A38`, deeper pressed green
+  `#364030`, soft green fill `#EEF3EA`, borders `#E7E4DE/#DAD6CD`, and brass accent
+  `#A98243`.
+- **Revert memory:** the original warm-stone palette is retained in code as
+  `previousWarmStonePalette` and was `bgBase #F4EDE6`, card/elevated surfaces `#FBF5EF`,
+  unified green `#414C34`, transparent soft fills, borders `#E4E0D6/#D8D3C8`, brass
+  `#A98243`, and soft gold `#F4EFE4`.
+- **Mirrors:** `app.json`, both native `PoseDetectionView` backgrounds, and the skeleton preview
+  script were kept in sync with the new trial `bgBase`.
+- **Scope boundary:** colour tokens only. Layout, copy, navigation, state, persistence,
+  auth/backend sync, pose detection, scoring, and training logic are unchanged.
+
+## 2026-06-21 — White Botanical palette trial
+
+- **Change:** the active palette trial moved to the fresher White Botanical option: canvas
+  `#F8FAF7`, cards `#FFFFFF`, elevated surfaces `#FDFEFC`, primary text `#101513`,
+  secondary/tertiary text `#66716A/#8A948D`, primary green `#2F4A3D`, deeper pressed green
+  `#263E33`, soft green fill `#ECF4EF`, borders `#E1E7E0/#D6DED5`, and brass accent
+  `#A77A3B`.
+- **Revert memory:** the original warm-stone palette is still retained in code as
+  `previousWarmStonePalette` and was `bgBase #F4EDE6`, card/elevated surfaces `#FBF5EF`,
+  unified green `#414C34`, transparent soft fills, borders `#E4E0D6/#D8D3C8`, brass
+  `#A98243`, and soft gold `#F4EFE4`.
+- **Mirrors:** `app.json`, both native `PoseDetectionView` backgrounds, and the skeleton preview
+  script were kept in sync with the new trial `bgBase`.
+- **Scope boundary:** colour tokens only. Layout, copy, navigation, state, persistence,
+  auth/backend sync, pose detection, scoring, and training logic are unchanged.
+
+## 2026-06-21 — Porcelain Sage palette trial
+
+- **Change:** the active palette trial moved to the third cleaner option: porcelain canvas
+  `#F7F6F1`, cards `#FFFFFF`, elevated surfaces `#FCFBF7`, primary text `#111412`,
+  secondary/tertiary text `#636C66/#89918A`, sage-green action colour `#385346`, deeper
+  pressed green `#2D4338`, soft green fill `#EEF3EF`, borders `#E4E5DD/#D8DCD3`, and brass
+  accent `#9E7C45`.
+- **Revert memory:** the original warm-stone palette is still retained in code as
+  `previousWarmStonePalette` and was `bgBase #F4EDE6`, card/elevated surfaces `#FBF5EF`,
+  unified green `#414C34`, transparent soft fills, borders `#E4E0D6/#D8D3C8`, brass
+  `#A98243`, and soft gold `#F4EFE4`.
+- **Mirrors:** `app.json`, both native `PoseDetectionView` backgrounds, and the skeleton preview
+  script were kept in sync with the new trial `bgBase`.
+- **Scope boundary:** colour tokens only. Layout, copy, navigation, state, persistence,
+  auth/backend sync, pose detection, scoring, and training logic are unchanged.
+
+## 2026-06-21 — Pearl Eucalyptus palette trial
+
+- **Change:** the active palette trial moved to the fourth, cleanest option: pearl canvas
+  `#FAFAF7`, cards `#FFFFFF`, elevated surfaces `#F7F8F4`, primary text `#0F1412`,
+  secondary/tertiary text `#5F6A64/#848F88`, eucalyptus action colour `#244B3D`, deeper
+  pressed green `#1D3D32`, soft green fill `#F0F5F1`, borders `#E8EAE2/#DCE2D7`, and brass
+  accent `#A67B3F`.
+- **Revert memory:** the original warm-stone palette is still retained in code as
+  `previousWarmStonePalette` and was `bgBase #F4EDE6`, card/elevated surfaces `#FBF5EF`,
+  unified green `#414C34`, transparent soft fills, borders `#E4E0D6/#D8D3C8`, brass
+  `#A98243`, and soft gold `#F4EFE4`.
+- **Mirrors:** `app.json`, both native `PoseDetectionView` backgrounds, and the skeleton preview
+  script were kept in sync with the new trial `bgBase`.
+- **Scope boundary:** colour tokens only. Layout, copy, navigation, state, persistence,
+  auth/backend sync, pose detection, scoring, and training logic are unchanged.
+
+## 2026-06-21 — Original warm-stone palette restored after clean trials
+
+- **Change:** after testing the cleaner Palette 1-4 options, the active palette returned to the
+  original warm-stone + inky-green system: `bgBase #F4EDE6`, card/elevated surfaces
+  `#FBF5EF`, primary text `#111412`, secondary/tertiary text `#68706A/#8A908A`, unified green
+  accent `#414C34`, transparent soft fills, borders `#E4E0D6/#D8D3C8`, brass accent
+  `#A98243`, and Today hero/tab greens `#414C34`.
+- **Mirrors:** `app.json`, both native `PoseDetectionView` backgrounds, and the skeleton preview
+  script were restored to the original `bgBase`.
+- **Scope boundary:** colour tokens only. Layout, copy, navigation, state, persistence,
+  auth/backend sync, pose detection, scoring, and training logic are unchanged.
+
+## 2026-06-21 — Warm-stone surfaces lightened
+
+- **Change:** to make the original palette feel cleaner and more modern without changing the
+  brand system, the active canvas was lifted from `#F4EDE6` to `#F7F1EA`, and card/elevated
+  surfaces were lifted from `#FBF5EF` to `#FFFDF9`. Text, green actions, borders, brass accents,
+  and soft-fill behaviour remain on the restored warm-stone system.
+- **Mirrors:** `app.json`, both native `PoseDetectionView` backgrounds, and the skeleton preview
+  script were kept in sync with the lighter `bgBase`.
+- **Scope boundary:** surface colour tokens only. Layout, copy, navigation, state, persistence,
+  auth/backend sync, pose detection, scoring, and training logic are unchanged.
+
+## 2026-06-21 — Warm-stone canvas lifted again
+
+- **Change:** after reviewing the lighter warm-stone pass, the canvas was nudged slightly closer
+  to white from `#F7F1EA` to `#F9F5EF`. Card/elevated surfaces remain `#FFFDF9`, and the green,
+  text, borders, brass accents, and soft-fill behaviour are unchanged.
+- **Mirrors:** `app.json`, both native `PoseDetectionView` backgrounds, and the skeleton preview
+  script were kept in sync with the lighter `bgBase`.
+- **Scope boundary:** background colour token only. Layout, copy, navigation, state, persistence,
+  auth/backend sync, pose detection, scoring, and training logic are unchanged.
+
+## 2026-06-21 — Card shadows softened
+
+- **Change:** shared depth tokens were reduced so cards feel quieter on the lighter canvas:
+  `shadow.card` moved from a `0 10px 24px rgba(17,20,18,0.06)` lift to
+  `0 6px 16px rgba(17,20,18,0.035)`, native shadow opacity/radius/offset were lowered, and
+  Today's helper shadow colour dropped from `rgba(17,20,18,0.06)` to `rgba(17,20,18,0.04)`.
+- **Scope boundary:** shadow/depth tokens only. Surface colours, layout, copy, navigation, state,
+  persistence, auth/backend sync, pose detection, scoring, and training logic are unchanged.
+
+## 2026-06-21 — Card shadows centered
+
+- **Change:** shared card shadows were changed from bottom-weighted to even halos by setting
+  `boxShadow` vertical offset to `0`, native `shadowOffset` height to `0`, and shared Android
+  `elevation` to `0`. This makes card depth equally noticeable around the card instead of
+  pooling below it.
+- **Scope boundary:** shared shadow/depth tokens only. Surface colours, layout, copy, navigation,
+  state, persistence, auth/backend sync, pose detection, scoring, and training logic are
+  unchanged.

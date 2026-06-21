@@ -52,6 +52,7 @@ export function completedTrainingSessions(
 export function isCreditedMainPlanTrainingCompletion(completion: TrainingSessionCompletion): boolean {
   return (
     completion.mainPlanCredit === true &&
+    completion.focusStimulusEvidence?.mainPlanCredit === true &&
     (completion.sessionType === 'standard' || completion.sessionType === 'starter' || completion.sessionType === 'restart')
   );
 }

@@ -97,7 +97,7 @@ export function TodayScreen({
       >
         <View style={styles.header}>
           <View style={styles.headerIdentity}>
-            <HeaderLogo size={34} />
+            <HeaderLogo />
             <View style={styles.headerCopy}>
               <Text style={styles.greeting}>
                 {timeOfDayGreeting()}

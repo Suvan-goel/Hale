@@ -4,6 +4,7 @@ import {
   createLifeGoal,
   createMovementBlockFromAssessment,
   createSupportInvite,
+  blockProgress,
   filterSupportSummaryForSharing,
   generateMilestones,
   generateWeeklySummary,
@@ -21,8 +22,9 @@ import {
   shouldTriggerMissedWeekSupportNotification,
   defaultAdherenceStoreState,
   createSupportSummary,
+  currentWeekProgress,
 } from '../index';
-import type { MovementBlock, TrainingSessionCompletion } from '../types';
+import type { MovementBlock, TrainingFocusStimulusEvidenceSummary, TrainingSessionCompletion } from '../types';
 import { createMovementAssessment } from '../../haleFlow';
 
 const START = '2026-06-01T08:00:00.000Z';
@@ -78,7 +80,8 @@ function completion(
   b: MovementBlock,
   type: TrainingSessionCompletion['sessionType'],
   at: string,
-  plannedDate?: string
+  plannedDate?: string,
+  overrides: Partial<TrainingSessionCompletion> = {}
 ): TrainingSessionCompletion {
   const mainPlanCredit = type === 'standard' || type === 'starter' || type === 'restart';
   const templateId = plannedDate?.includes(':') ? plannedDate.split(':')[0] : mainPlanCredit ? `test-${type}` : undefined;
@@ -90,7 +93,39 @@ function completion(
     source: mainPlanCredit ? 'block_generated' : undefined,
     templateId,
     mainPlanCredit: mainPlanCredit ? true : undefined,
+    focusStimulusEvidence: mainPlanCredit ? focusEvidence(b.focusDomain) : undefined,
+    ...overrides,
   });
+}
+
+function focusEvidence(
+  domain: MovementBlock['focusDomain'],
+  overrides: Partial<TrainingFocusStimulusEvidenceSummary> = {}
+): TrainingFocusStimulusEvidenceSummary {
+  return {
+    planStatus: 'eligible',
+    status: 'credited_focus_work',
+    exclusionReason: 'none',
+    mainPlanCredit: true,
+    blockFocusDomain: domain,
+    plannedPrimaryFocusExerciseCount: 1,
+    completedPrimaryFocusExerciseCount: 1,
+    completedSupportingExerciseCount: 0,
+    completedFallbackExerciseCount: 0,
+    completedCrossDomainExerciseCount: 0,
+    plannedPrimaryFocusExerciseIds: ['primary-focus-exercise'],
+    completedPrimaryFocusExerciseIds: ['primary-focus-exercise'],
+    completedSupportingExerciseIds: [],
+    completedFallbackExerciseIds: [],
+    completedCrossDomainExerciseIds: [],
+    fallbackFocusSlotIds: [],
+    skippedFocusSlotIds: [],
+    focusStimulusExclusionReasons: [],
+    missingMetadataExerciseIds: [],
+    malformedMetadataExerciseIds: [],
+    focusMismatchExerciseIds: [],
+    ...overrides,
+  };
 }
 
 describe('life goal relevance', () => {
@@ -148,6 +183,41 @@ describe('adherence state and restart completion', () => {
     const withBlock = { ...state, blocks: [b] };
     const updated = recordTrainingSessionCompletion(withBlock, completion(b, 'standard', '2026-06-10T08:00:00.000Z'));
     expect(updated.blocks[0].completedSessions).toBe(2);
+  });
+
+  it('does not let missing or non-credit focus evidence advance block or week completion', () => {
+    const b = block();
+    let state = { ...defaultAdherenceStoreState(), blocks: [b] };
+    state = recordTrainingSessionCompletion(
+      state,
+      completion(b, 'standard', '2026-06-02T08:00:00.000Z', 'balance-A:2026-06-02', {
+        id: 'missing-focus-credit',
+        focusStimulusEvidence: undefined,
+      })
+    );
+    state = recordTrainingSessionCompletion(
+      state,
+      completion(b, 'standard', '2026-06-04T08:00:00.000Z', 'balance-B:2026-06-04', {
+        id: 'supporting-only-credit',
+        mainPlanCredit: false,
+        focusStimulusEvidence: focusEvidence(b.focusDomain, {
+          status: 'primary_focus_not_completed',
+          exclusionReason: 'supporting_only',
+          mainPlanCredit: false,
+          completedPrimaryFocusExerciseCount: 0,
+          completedSupportingExerciseCount: 1,
+          completedPrimaryFocusExerciseIds: [],
+          completedSupportingExerciseIds: ['supporting-balance'],
+        }),
+      })
+    );
+
+    expect(state.completions).toHaveLength(2);
+    expect(state.blocks[0].completedSessions).toBe(0);
+    expect(blockProgress(b, state.completions).completedSessions).toBe(0);
+    expect(currentWeekProgress(b, state.completions, '2026-06-06T08:00:00.000Z').sessionsCompleted).toBe(0);
+    expect(generateMilestones({ block: b, completions: state.completions, nowIso: '2026-06-06T08:00:00.000Z' }).map((m) => m.type))
+      .not.toContain('first_week_completed');
   });
 });
 

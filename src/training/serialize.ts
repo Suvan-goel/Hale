@@ -20,6 +20,7 @@ import {
   PersistedGeneratedSessionSummary,
   PersistedPostSessionFeedback,
   emptyLadderProgress,
+  normalizeAppliedProgressionEventIds,
 } from './dynamicState';
 import { MicroCheckResult, MicroCheckType } from './microCheck';
 import { ProgressionState, initialProgressionState } from './progression';
@@ -34,7 +35,7 @@ import type {
   TrainingDomain,
 } from './workoutGeneration';
 
-export const TRAINING_SCHEMA_VERSION = 3;
+export const TRAINING_SCHEMA_VERSION = 4;
 
 export interface BlockProgress {
   /** Sessions of the active block completed so far. */
@@ -50,6 +51,7 @@ export interface TrainingState {
   equipment: EquipmentProfile;
   progress: BlockProgress;
   ladderProgressById: Record<string, LadderProgress>;
+  appliedProgressionEventIds: string[];
   generatedSessionSummaries: PersistedGeneratedSessionSummary[];
   lastPostSessionFeedback: PersistedPostSessionFeedback | null;
   planPreferences: TrainingPlanPreferences;
@@ -72,6 +74,7 @@ export function defaultTrainingState(): TrainingState {
     equipment: { ...DEFAULT_EQUIPMENT },
     progress: defaultBlockProgress(),
     ladderProgressById: emptyLadderProgress(),
+    appliedProgressionEventIds: [],
     generatedSessionSummaries: [],
     lastPostSessionFeedback: null,
     planPreferences: defaultTrainingPlanPreferences(),
@@ -105,7 +108,14 @@ export function deserializeTrainingState(json: string): TrainingState | null {
   }
   if (!parsed || typeof parsed !== 'object') return null;
   const env = parsed as Partial<Envelope<TrainingState>>;
-  if (env.schemaVersion !== 1 && env.schemaVersion !== 2 && env.schemaVersion !== TRAINING_SCHEMA_VERSION) return null;
+  if (
+    env.schemaVersion !== 1 &&
+    env.schemaVersion !== 2 &&
+    env.schemaVersion !== 3 &&
+    env.schemaVersion !== TRAINING_SCHEMA_VERSION
+  ) {
+    return null;
+  }
   const p = env.payload;
   if (!p || typeof p !== 'object') return null;
   const def = defaultTrainingState();
@@ -116,6 +126,7 @@ export function deserializeTrainingState(json: string): TrainingState | null {
     equipment: validEquipment(p.equipment) ?? def.equipment,
     progress: validProgress(p.progress) ?? def.progress,
     ladderProgressById: validLadderProgressById(p.ladderProgressById),
+    appliedProgressionEventIds: validAppliedProgressionEventIds(p.appliedProgressionEventIds),
     generatedSessionSummaries: validGeneratedSessionSummaries(p.generatedSessionSummaries),
     lastPostSessionFeedback: validPostSessionFeedback(p.lastPostSessionFeedback),
     planPreferences: validTrainingPlanPreferences(p.planPreferences),
@@ -210,6 +221,10 @@ function validLadderProgress(v: unknown): LadderProgress | null {
     readyToProgress: typeof p.readyToProgress === 'boolean' ? p.readyToProgress : undefined,
     updatedAt: typeof p.updatedAt === 'string' ? p.updatedAt : new Date(0).toISOString(),
   };
+}
+
+function validAppliedProgressionEventIds(v: unknown): string[] {
+  return normalizeAppliedProgressionEventIds(Array.isArray(v) ? v : []);
 }
 
 function validGeneratedSessionSummaries(v: unknown): PersistedGeneratedSessionSummary[] {
@@ -475,7 +490,14 @@ export function deserializeMicroCheck(json: string): MicroCheckResult | null {
   }
   if (!parsed || typeof parsed !== 'object') return null;
   const env = parsed as Partial<Envelope<MicroCheckResult>>;
-  if (env.schemaVersion !== 1 && env.schemaVersion !== 2 && env.schemaVersion !== TRAINING_SCHEMA_VERSION) return null;
+  if (
+    env.schemaVersion !== 1 &&
+    env.schemaVersion !== 2 &&
+    env.schemaVersion !== 3 &&
+    env.schemaVersion !== TRAINING_SCHEMA_VERSION
+  ) {
+    return null;
+  }
   const p = env.payload;
   if (!p || typeof p !== 'object') return null;
   const r = p as Partial<MicroCheckResult>;

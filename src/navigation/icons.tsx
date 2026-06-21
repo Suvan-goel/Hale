@@ -1,7 +1,6 @@
 /**
- * Outline tab icons — single-line, rounded, consistent stroke, echoing the
- * elegance of the logo (Step 6 of the design system). Drawn with react-native-svg
- * (already a dependency); stroke takes a theme colour, fill stays none.
+ * Clean navigation icons — compact rounded SVG glyphs kept crisp at bottom-tab
+ * sizes and intentionally closer to professional system icons than illustration.
  */
 
 import * as React from 'react';
@@ -46,15 +45,11 @@ export function TodayIcon({ size, color, strokeWidth = 1.8 }: IconProps) {
   const s = common(color, strokeWidth);
   return (
     <Frame size={size}>
-      <Rect x={5} y={5.5} width={14} height={14} rx={2.4} {...s} />
-      <Path d="M5 9 H19" {...s} />
-      <Path d="M8 4 V7" {...s} />
-      <Path d="M16 4 V7" {...s} />
-      <Path d="M8.4 12.5 H9.8" {...s} />
-      <Path d="M11.3 12.5 H12.7" {...s} />
-      <Path d="M14.2 12.5 H15.6" {...s} />
-      <Path d="M8.4 15.8 H9.8" {...s} />
-      <Path d="M11.3 15.8 H12.7" {...s} />
+      <Rect x={5} y={5.5} width={14} height={13.5} rx={3} {...s} />
+      <Path d="M5.2 9.7 H18.8" {...s} />
+      <Path d="M8.6 4.2 V7" {...s} />
+      <Path d="M15.4 4.2 V7" {...s} />
+      <Circle cx={12} cy={14.2} r={1.45} fill={color} stroke="none" />
     </Frame>
   );
 }
@@ -63,11 +58,12 @@ export function PlanIcon({ size, color, strokeWidth = 1.8 }: IconProps) {
   const s = common(color, strokeWidth);
   return (
     <Frame size={size}>
-      <Rect x={6} y={5.2} width={12} height={15} rx={2.2} {...s} />
-      <Path d="M9.3 5.2 C9.4 3.9, 10.4 3.2, 12 3.2 C13.6 3.2, 14.6 3.9, 14.7 5.2" {...s} />
-      <Path d="M9 9.2 H15" {...s} />
-      <Path d="M9 12.4 H15" {...s} />
-      <Path d="M9 15.6 H13.4" {...s} />
+      <Path d="M7.4 4.8 H14.6 L18 8.2 V19.2 H7.4 Z" {...s} />
+      <Path d="M14.6 4.8 V8.2 H18" {...s} />
+      <Circle cx={10.3} cy={11.3} r={0.75} fill={color} stroke="none" />
+      <Circle cx={10.3} cy={14.7} r={0.75} fill={color} stroke="none" />
+      <Path d="M12.6 11.3 H15.4" {...s} />
+      <Path d="M12.6 14.7 H15.4" {...s} />
     </Frame>
   );
 }
@@ -76,17 +72,17 @@ export function ProgressIcon({ size, color, strokeWidth = 1.8 }: IconProps) {
   const s = common(color, strokeWidth);
   return (
     <Frame size={size}>
-      <Path d="M5 19 V12" {...s} />
-      <Path d="M10 19 V7" {...s} />
-      <Path d="M15 19 V10" {...s} />
-      <Path d="M20 19 V4.5" {...s} />
-      <Path d="M4 19 H21" {...s} />
+      <Path d="M5 18.2 H19.5" {...s} />
+      <Path d="M6 15.9 L10.2 11.7 L13.6 13.7 L18.7 7.4" {...s} />
+      <Path d="M16.2 7.4 H18.7 V9.9" {...s} />
+      <Circle cx={10.2} cy={11.7} r={1.05} fill={color} stroke="none" />
+      <Circle cx={13.6} cy={13.7} r={1.05} fill={color} stroke="none" />
     </Frame>
   );
 }
 
-export function CalendarIcon({ size, color, strokeWidth = 1.8 }: IconProps) {
-  return <TodayIcon size={size} color={color} strokeWidth={strokeWidth} />;
+export function CalendarIcon(props: IconProps) {
+  return <TodayIcon {...props} />;
 }
 
 export function BellIcon({ size, color, strokeWidth = 1.8 }: IconProps) {
@@ -105,7 +101,8 @@ export function ExploreIcon({ size, color, strokeWidth = 1.8 }: IconProps) {
   return (
     <Frame size={size}>
       <Circle cx={12} cy={12} r={7.4} {...s} />
-      <Path d="M9.6 14.4 L11.1 10.8 L14.4 9.6 L12.9 13.2 Z" {...s} />
+      <Path d="M9.2 14.8 L11.1 10.7 L14.8 9.2 L12.9 13.3 Z" {...s} />
+      <Circle cx={12} cy={12} r={0.9} fill={color} stroke="none" />
     </Frame>
   );
 }

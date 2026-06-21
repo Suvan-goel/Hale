@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
-import { colors } from '../theme';
+import { colors, spacing } from '../theme';
 
 export function BackArrowButton({
   accessibilityLabel = 'Back',
@@ -41,6 +41,7 @@ const styles = StyleSheet.create({
   button: {
     width: 9,
     height: 24,
+    marginBottom: -spacing.md,
     alignSelf: 'flex-start',
     alignItems: 'flex-start',
     justifyContent: 'center',

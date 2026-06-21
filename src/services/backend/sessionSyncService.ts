@@ -281,6 +281,7 @@ function isSyncableSessionCompletion(
 ): completion is TrainingSessionCompletion & { sessionType: SyncableTrainingSessionType } {
   return (
     completion.mainPlanCredit === true &&
+    completion.focusStimulusEvidence?.mainPlanCredit === true &&
     SYNCABLE_SESSION_TYPES.includes(completion.sessionType as SyncableTrainingSessionType)
   );
 }

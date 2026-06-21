@@ -68,6 +68,7 @@ export interface PersistedGeneratedSessionSummary {
 }
 
 export const MAX_GENERATED_SESSION_SUMMARIES = 50;
+export const MAX_APPLIED_PROGRESSION_EVENT_IDS = 200;
 
 export function upsertGeneratedSessionSummary(
   summaries: readonly PersistedGeneratedSessionSummary[],
@@ -79,4 +80,19 @@ export function upsertGeneratedSessionSummary(
 
 export function emptyLadderProgress(): Record<string, LadderProgress> {
   return {};
+}
+
+export function normalizeAppliedProgressionEventIds(ids: readonly string[] | null | undefined): string[] {
+  const out: string[] = [];
+  for (const id of ids ?? []) {
+    if (typeof id !== 'string') continue;
+    const trimmed = id.trim();
+    if (!trimmed || out.includes(trimmed)) continue;
+    out.push(trimmed);
+  }
+  return out.slice(-MAX_APPLIED_PROGRESSION_EVENT_IDS);
+}
+
+export function appendAppliedProgressionEventId(ids: readonly string[], id: string): string[] {
+  return normalizeAppliedProgressionEventIds([...ids, id]);
 }
