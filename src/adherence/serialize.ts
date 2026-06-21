@@ -50,7 +50,9 @@ export function deserializeAdherenceState(json: string): AdherenceStoreState | n
   }
   const payload = env.payload as Partial<AdherenceStoreState>;
   return {
-    blocks: Array.isArray(payload.blocks) ? payload.blocks.filter(isMovementBlock) : [],
+    blocks: Array.isArray(payload.blocks)
+      ? payload.blocks.map(normalizeMovementBlock).filter((block): block is MovementBlock => !!block)
+      : [],
     assessments: Array.isArray(payload.assessments) ? payload.assessments.filter(isMovementAssessment) : [],
     reports: Array.isArray(payload.reports) ? payload.reports.filter(isMovementBlockReport) : [],
     completions: Array.isArray(payload.completions) ? payload.completions.filter(isCompletion) : [],
@@ -86,17 +88,26 @@ function isMovementBlockReport(v: unknown): v is MovementBlockReport {
   );
 }
 
-function isMovementBlock(v: unknown): v is MovementBlock {
-  if (!v || typeof v !== 'object') return false;
+function normalizeMovementBlock(v: unknown): MovementBlock | null {
+  if (!v || typeof v !== 'object') return null;
   const b = v as Partial<MovementBlock>;
-  return (
+  const valid =
     typeof b.id === 'string' &&
     typeof b.userId === 'string' &&
     typeof b.startDate === 'string' &&
     typeof b.retestDate === 'string' &&
     typeof b.focusDomain === 'string' &&
-    typeof b.totalPlannedSessions === 'number'
-  );
+    typeof b.totalPlannedSessions === 'number';
+  if (!valid) return null;
+  const { sourceAssessmentId: _legacySourceAssessmentId, ...rest } = b;
+  return {
+    ...(rest as MovementBlock),
+    ...(typeof b.sourceCheckUpId === 'string'
+      ? { sourceCheckUpId: b.sourceCheckUpId }
+      : typeof b.sourceAssessmentId === 'string'
+        ? { sourceCheckUpId: b.sourceAssessmentId }
+        : {}),
+  };
 }
 
 function isCompletion(v: unknown): v is TrainingSessionCompletion {

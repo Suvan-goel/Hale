@@ -1,5 +1,6 @@
 import {
   blockProgress,
+  movementBlockSourceCheckUpId,
   type MovementAssessment,
   type MovementBlock,
   type MovementBlockReport,
@@ -448,7 +449,7 @@ function sanitizeMovementBlock(block: MovementBlock | null | undefined): Backend
     focusTieBreakReason: block.focusTieBreakReason,
     focusNearTieMarginYears: block.focusNearTieMarginYears,
     focusSelectionPolicyVersion: block.focusSelectionPolicyVersion,
-    sourceAssessmentId: block.sourceAssessmentId,
+    sourceCheckUpId: movementBlockSourceCheckUpId(block),
     createdAt: block.createdAt,
     updatedAt: block.updatedAt,
   });

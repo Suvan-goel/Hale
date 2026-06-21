@@ -1,4 +1,4 @@
-import type { MovementBlock, MovementBlockStatus, MovementDomain } from '../../adherence';
+import { movementBlockSourceCheckUpId, type MovementBlock, type MovementBlockStatus, type MovementDomain } from '../../adherence';
 import type { TrainingBlock, TrainingState } from '../../training';
 import { supabase } from '../../lib/supabase';
 import { addBreadcrumb } from '../observability/sentry';
@@ -153,7 +153,7 @@ export async function syncRecentMovementBlocksToRemote(
         training: options.training ?? null,
         trainingBlock: trainingBlockForMovementBlock(block, options.training),
         blockNumber: blockNumberFor(block, ordered),
-        sourceCheckupLocalId: block.sourceAssessmentId,
+        sourceCheckupLocalId: movementBlockSourceCheckUpId(block),
       })
     );
   }
@@ -209,7 +209,7 @@ async function resolveSourceCheckupId(
     return { sourceCheckupId: input.sourceCheckupRemoteId, lookupFailed: false };
   }
 
-  const localCheckupId = normalizedString(input.sourceCheckupLocalId ?? input.block.sourceAssessmentId);
+  const localCheckupId = normalizedString(input.sourceCheckupLocalId ?? movementBlockSourceCheckUpId(input.block));
   if (!localCheckupId) return { sourceCheckupId: null, lookupFailed: false };
 
   const { data, error } = await supabase

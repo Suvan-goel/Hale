@@ -4,7 +4,6 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 
 import {
   Card,
-  EmptyState,
   Screen,
 } from '../components/ui';
 import { HeaderLogo } from '../components/HeaderLogo';
@@ -91,9 +90,7 @@ export function PlanScreen({
             <SettingsIcon size={25} color={colors.accentDeep} strokeWidth={1.8} />
           </Pressable>
         </View>
-        <Text style={styles.subtitle}>
-          {goalText ? `Built around your goal: ${goalText}.` : 'A simple plan for becoming stronger, steadier, and more mobile.'}
-        </Text>
+        <PlanGoalSummary goalText={goalText} />
       </View>
 
       {!activeBlockSummary ? (
@@ -130,6 +127,14 @@ export function PlanScreen({
       )}
     </Screen>
   );
+}
+
+function PlanGoalSummary({ goalText }: { goalText?: string }) {
+  if (goalText) {
+    return <Text style={styles.subtitle}>Built around your goal: {goalText}.</Text>;
+  }
+
+  return <Text style={styles.subtitle}>A simple plan for becoming stronger, steadier, and more mobile.</Text>;
 }
 
 function PlanHeroCard({
@@ -385,7 +390,90 @@ function EmptyPlanState({
   onAction: (action: ReturnType<typeof getPlanEmptyStateCopy>['action']) => void;
 }) {
   const copy = getPlanEmptyStateCopy(lifecycleState);
-  return <EmptyState title={copy.title} body={copy.body} actionLabel={copy.ctaLabel} onAction={() => onAction(copy.action)} />;
+  const setupReady = lifecycleState === 'needs_block_creation';
+
+  return (
+    <View style={styles.emptyPlanWrap}>
+      <View style={styles.emptyPlanCard}>
+        <View style={styles.emptyPlanHeader}>
+          <Text style={styles.emptyPlanKicker}>{setupReady ? 'Plan preparation' : 'Before your plan starts'}</Text>
+          <View style={styles.emptyPlanMetaPill}>
+            <Text style={styles.emptyPlanMetaText}>{setupReady ? 'Ready' : '~10 min'}</Text>
+          </View>
+        </View>
+
+        <Text style={styles.emptyPlanTitle}>{copy.title}</Text>
+
+        <Text style={styles.emptyPlanBody}>{copy.body}</Text>
+
+        <View style={styles.emptyPlanProgress} accessibilityLabel="Plan preparation steps">
+          <EmptyPlanStep
+            index="1"
+            title="Check-up"
+            body="Estimate strength, balance, and mobility from home."
+            state={setupReady ? 'complete' : 'current'}
+          />
+          <EmptyPlanStep
+            index="2"
+            title="Preparation"
+            body="Hale uses the result to shape your first block."
+            state={setupReady ? 'current' : 'upcoming'}
+          />
+          <EmptyPlanStep
+            index="3"
+            title="First week"
+            body="Three calm sessions appear here when your block is ready."
+            state="upcoming"
+            last
+          />
+        </View>
+
+        <Pressable
+          style={({ pressed }) => [styles.emptyPlanButton, pressed && styles.pressed]}
+          onPress={() => onAction(copy.action)}
+          accessibilityRole="button"
+          accessibilityLabel={copy.ctaLabel}
+        >
+          <Text style={styles.emptyPlanButtonText}>{copy.ctaLabel}</Text>
+          <Text style={styles.emptyPlanButtonArrow}>›</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.emptyPlanNote}>
+        <Text style={styles.emptyPlanNoteText}>Your camera view stays private. Hale shows a clean skeleton, not a mirror.</Text>
+      </View>
+    </View>
+  );
+}
+
+function EmptyPlanStep({
+  index,
+  title,
+  body,
+  state,
+  last = false,
+}: {
+  index: string;
+  title: string;
+  body: string;
+  state: 'complete' | 'current' | 'upcoming';
+  last?: boolean;
+}) {
+  const active = state === 'complete' || state === 'current';
+  return (
+    <View style={[styles.emptyPlanStep, last && styles.emptyPlanStepLast]}>
+      <View style={styles.emptyPlanStepMarkerCol}>
+        <View style={[styles.emptyPlanStepMarker, active && styles.emptyPlanStepMarkerActive]}>
+          <Text style={[styles.emptyPlanStepMarkerText, active && styles.emptyPlanStepMarkerTextActive]}>{index}</Text>
+        </View>
+        {!last ? <View style={[styles.emptyPlanStepLine, active && styles.emptyPlanStepLineActive]} /> : null}
+      </View>
+      <View style={styles.emptyPlanStepCopy}>
+        <Text style={styles.emptyPlanStepTitle}>{title}</Text>
+        <Text style={styles.emptyPlanStepBody}>{body}</Text>
+      </View>
+    </View>
+  );
 }
 
 function SessionCard({
@@ -575,7 +663,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   header: {
-    gap: spacing.xs,
+    gap: spacing.md,
     marginBottom: 8,
   },
   titleRow: {
@@ -593,7 +681,14 @@ const styles = StyleSheet.create({
   },
   headerCopy: { flex: 1, minWidth: 0 },
   title: { ...type.pageTitle, flexShrink: 1 },
-  subtitle: { ...type.pageSubtitle },
+  subtitle: {
+    maxWidth: 380,
+    color: colors.textSecondary,
+    fontFamily: fonts.sansRegular,
+    fontSize: 14,
+    lineHeight: 20,
+    letterSpacing: 0,
+  },
   headerIconButton: {
     width: 44,
     height: 44,
@@ -716,6 +811,177 @@ const styles = StyleSheet.create({
     fontFamily: fonts.serifMedium,
     fontSize: 18,
     lineHeight: 24,
+    letterSpacing: 0,
+  },
+  emptyPlanWrap: {
+    gap: spacing.md,
+  },
+  emptyPlanCard: {
+    overflow: 'hidden',
+    borderRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 26,
+    paddingBottom: 22,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+    boxShadow: '0 18px 40px rgba(17,20,18,0.045)',
+  },
+  emptyPlanHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  emptyPlanKicker: {
+    ...type.label,
+    color: colors.accentDeep,
+    flex: 1,
+    minWidth: 0,
+  },
+  emptyPlanTitle: {
+    color: colors.textPrimary,
+    fontFamily: fonts.serifMedium,
+    fontSize: 31,
+    lineHeight: 37,
+    letterSpacing: 0,
+    marginTop: 22,
+  },
+  emptyPlanMetaPill: {
+    minHeight: 32,
+    justifyContent: 'center',
+    borderRadius: radius.pill,
+    paddingHorizontal: 12,
+    backgroundColor: colors.bgBase,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+  },
+  emptyPlanMetaText: {
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0,
+    fontVariant: ['tabular-nums'],
+  },
+  emptyPlanBody: {
+    color: colors.textSecondary,
+    fontFamily: fonts.sansRegular,
+    fontSize: 16,
+    lineHeight: 25,
+    letterSpacing: 0,
+    marginTop: 18,
+  },
+  emptyPlanProgress: {
+    marginTop: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderRadius: 18,
+    backgroundColor: colors.bgBase,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+  },
+  emptyPlanStep: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    minHeight: 72,
+  },
+  emptyPlanStepLast: {
+    minHeight: 44,
+  },
+  emptyPlanStepMarkerCol: {
+    width: 28,
+    alignItems: 'center',
+  },
+  emptyPlanStepMarker: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+  },
+  emptyPlanStepMarkerActive: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  emptyPlanStepMarkerText: {
+    color: colors.textSecondary,
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0,
+    fontVariant: ['tabular-nums'],
+  },
+  emptyPlanStepMarkerTextActive: {
+    color: colors.onAccent,
+  },
+  emptyPlanStepLine: {
+    flex: 1,
+    width: StyleSheet.hairlineWidth,
+    marginVertical: 7,
+    backgroundColor: colors.borderHairline,
+  },
+  emptyPlanStepLineActive: {
+    backgroundColor: colors.accentBorder,
+  },
+  emptyPlanStepCopy: {
+    flex: 1,
+    minWidth: 0,
+    paddingBottom: 18,
+  },
+  emptyPlanStepTitle: {
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: 0,
+  },
+  emptyPlanStepBody: {
+    color: colors.textSecondary,
+    fontFamily: fonts.sansRegular,
+    fontSize: 13,
+    lineHeight: 19,
+    letterSpacing: 0,
+    marginTop: 3,
+  },
+  emptyPlanButton: {
+    minHeight: 58,
+    marginTop: 24,
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.accent,
+  },
+  emptyPlanButtonText: {
+    color: colors.onAccent,
+    fontFamily: fonts.sansMedium,
+    fontSize: 16,
+    lineHeight: 21,
+    letterSpacing: 0,
+    textAlign: 'center',
+  },
+  emptyPlanButtonArrow: {
+    color: colors.onAccent,
+    fontFamily: fonts.sansMedium,
+    fontSize: 22,
+    lineHeight: 23,
+    letterSpacing: 0,
+    marginTop: -1,
+  },
+  emptyPlanNote: {
+    paddingHorizontal: 14,
+  },
+  emptyPlanNoteText: {
+    color: colors.textSecondary,
+    fontFamily: fonts.sansRegular,
+    fontSize: 13,
+    lineHeight: 19,
     letterSpacing: 0,
   },
   timelineCard: {

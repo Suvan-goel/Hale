@@ -32,6 +32,7 @@ yarn-error.*
 
 # local generated preview/scratch output
 tmp/
+.codex_tmp_screenshots/
 
 # local env files
 .env

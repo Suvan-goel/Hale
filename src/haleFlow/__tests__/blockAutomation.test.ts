@@ -42,7 +42,7 @@ describe('createAutomaticMovementBlock', () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.movementBlock.sourceAssessmentId).toBe(checkUp.startedAt);
+    expect(result.movementBlock.sourceCheckUpId).toBe(checkUp.startedAt);
     expect(result.adherence.blocks).toContainEqual(result.movementBlock);
     expect(result.training.block).toEqual(result.trainingBlock);
     expect(result.training.progress.completedSessions).toBe(0);

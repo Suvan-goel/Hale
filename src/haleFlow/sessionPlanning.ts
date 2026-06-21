@@ -1,6 +1,7 @@
 import {
   blockProgress,
   getAdherenceState,
+  movementBlockSourceCheckUpId,
   type AdherenceState,
   type AvailableEquipment,
   type LifeGoal,
@@ -1244,7 +1245,7 @@ function toDynamicTrainingBlock(block: MovementBlock): DynamicTrainingBlock {
   return {
     id: block.id,
     userId: block.userId,
-    sourceAssessmentId: block.sourceAssessmentId,
+    sourceCheckUpId: movementBlockSourceCheckUpId(block),
     startDate: block.startDate,
     endDate: block.endDate,
     retestDate: block.retestDate,

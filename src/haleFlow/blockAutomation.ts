@@ -52,7 +52,7 @@ export function createAutomaticMovementBlock({
 
   const trainingBlock = buildBlock(score, training.equipment, nowIso);
   const movementBlock = createMovementBlockFromAssessment({
-    latestAssessment: { score, scoreSnapshot, id: sourceCheckUpId, assessment },
+    latestAssessment: { score, scoreSnapshot, sourceCheckUpId, assessment },
     lifeGoal,
     startDate: nowIso,
   });

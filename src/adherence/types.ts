@@ -79,6 +79,8 @@ export interface MovementBlock {
   totalPlannedSessions: number;
   completedSessions: number;
   microChecksCompleted: number;
+  sourceCheckUpId?: string;
+  /** @deprecated Legacy persisted name. Use sourceCheckUpId. */
   sourceAssessmentId?: string;
   createdAt: string;
   updatedAt: string;
@@ -364,6 +366,8 @@ export interface AdherenceStoreState {
 export interface AssessmentForBlock {
   score: CheckUpScore;
   scoreSnapshot?: VersionedCheckUpScoreSnapshot | null;
+  sourceCheckUpId?: string;
+  /** @deprecated Legacy alias for sourceCheckUpId. */
   id?: string;
   assessment?: MovementAssessment | null;
 }

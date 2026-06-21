@@ -64,7 +64,7 @@ export function tryCreateMovementBlockFromAssessment(args: {
     ok: true,
     block: buildMovementBlock({
       userId: args.userId ?? LOCAL_USER_ID,
-      sourceAssessmentId: normalized.sourceAssessmentId,
+      sourceCheckUpId: normalized.sourceCheckUpId,
       lifeGoal: args.lifeGoal,
       startDate: args.startDate ?? new Date().toISOString(),
       focusDomain: eligibility.focusDomain,
@@ -91,14 +91,14 @@ export function createMovementBlockFromAssessment({
 
 function buildMovementBlock({
   userId,
-  sourceAssessmentId,
+  sourceCheckUpId,
   lifeGoal,
   startDate,
   focusDomain,
   focusSelection,
 }: {
   userId: string;
-  sourceAssessmentId?: string;
+  sourceCheckUpId?: string;
   lifeGoal?: LifeGoal | null;
   startDate: string;
   focusDomain: MovementDomain;
@@ -138,7 +138,7 @@ function buildMovementBlock({
     totalPlannedSessions: 12,
     completedSessions: 0,
     microChecksCompleted: 0,
-    sourceAssessmentId,
+    sourceCheckUpId,
     createdAt: startDate,
     updatedAt: startDate,
   };
@@ -148,21 +148,36 @@ function normalizeAssessmentForBlock(latestAssessment: AssessmentForBlock | Chec
   score: CheckUpScore | null;
   scoreSnapshot?: AssessmentForBlock['scoreSnapshot'];
   assessment?: AssessmentForBlock['assessment'];
-  sourceAssessmentId?: string;
+  sourceCheckUpId?: string;
 } {
   if (isAssessmentForBlock(latestAssessment)) {
     return {
       score: latestAssessment.score,
       scoreSnapshot: latestAssessment.scoreSnapshot,
       assessment: latestAssessment.assessment,
-      sourceAssessmentId: latestAssessment.id,
+      sourceCheckUpId:
+        latestAssessment.sourceCheckUpId ??
+        latestAssessment.id ??
+        rawCheckUpId(latestAssessment.assessment) ??
+        latestAssessment.score.startedAt,
     };
   }
-  return { score: latestAssessment ?? null, sourceAssessmentId: latestAssessment?.startedAt };
+  return { score: latestAssessment ?? null, sourceCheckUpId: latestAssessment?.startedAt };
 }
 
 function isAssessmentForBlock(v: unknown): v is AssessmentForBlock {
   return !!v && typeof v === 'object' && 'score' in v;
+}
+
+export function movementBlockSourceCheckUpId(
+  block: Pick<MovementBlock, 'sourceCheckUpId' | 'sourceAssessmentId'> | null | undefined
+): string | undefined {
+  return block?.sourceCheckUpId ?? block?.sourceAssessmentId;
+}
+
+function rawCheckUpId(assessment: AssessmentForBlock['assessment']): string | undefined {
+  const value = assessment?.results?.rawMetrics?.checkUpId;
+  return typeof value === 'string' ? value : undefined;
 }
 
 export function getActiveMovementBlock(blocks: readonly MovementBlock[]): MovementBlock | null {

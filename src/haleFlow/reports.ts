@@ -1,6 +1,7 @@
 import {
   LOCAL_USER_ID,
   blockProgress,
+  movementBlockSourceCheckUpId,
   movementDomainFromScoreDomainOrNull,
   scoreDomainFromMovementDomain,
   type MovementAssessment,
@@ -55,7 +56,7 @@ export function createMovementBlockReport({
     id: `block-report-${block.id}`,
     userId,
     blockId: block.id,
-    baselineAssessmentId: baselineAssessment?.id ?? block.sourceAssessmentId,
+    baselineAssessmentId: baselineAssessment?.id ?? movementBlockSourceCheckUpId(block),
     retestAssessmentId: retestAssessment?.id,
     createdAt: nowIso,
     summary: compatible

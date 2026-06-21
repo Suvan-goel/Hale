@@ -176,7 +176,7 @@ describe('Hale V1 copy guardrails', () => {
     expect(text).not.toMatch(/Age \$\{domain\.ageLow\}|Typical age ranges|Movement age profile/);
 
     const appText = productionSourceText('App.tsx');
-    expect(appText).toContain('Camera access is needed to estimate your movement.');
+    expect(appText).toContain('Camera access lets Hale estimate your movement');
     expect(appText).not.toContain('Camera access is needed to measure your movement.');
   });
 });

@@ -35,7 +35,7 @@ function movementBlock(overrides: Partial<MovementBlock> = {}): MovementBlock {
     totalPlannedSessions: 12,
     completedSessions: 12,
     microChecksCompleted: 4,
-    sourceAssessmentId: '2026-06-17T11:40:00.000Z',
+    sourceCheckUpId: '2026-06-17T11:40:00.000Z',
     createdAt: '2026-06-17T12:00:00.000Z',
     updatedAt: createdAt,
     ...overrides,

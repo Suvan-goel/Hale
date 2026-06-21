@@ -102,6 +102,8 @@ export interface SessionTemplate {
 export interface TrainingBlock {
   id: string;
   userId: string;
+  sourceCheckUpId?: string;
+  /** @deprecated Legacy name. Use sourceCheckUpId. */
   sourceAssessmentId?: string;
   startDate: string;
   endDate: string;
@@ -257,6 +259,8 @@ export interface PostSessionFeedback {
 
 export interface CreateTrainingBlockInput {
   userId?: string;
+  sourceCheckUpId?: string;
+  /** @deprecated Legacy alias for sourceCheckUpId. */
   assessmentId?: string;
   score?: CheckUpScore | null;
   domainScores?: Partial<Record<TrainingDomain, number>>;
@@ -376,7 +380,7 @@ export function createTrainingBlockFromAssessment(input: CreateTrainingBlockInpu
   return {
     id: `training-block-${startDate.replace(/[:.]/g, '-')}`,
     userId: input.userId ?? 'local-device-user',
-    sourceAssessmentId: input.assessmentId ?? input.score?.startedAt,
+    sourceCheckUpId: input.sourceCheckUpId ?? input.assessmentId ?? input.score?.startedAt,
     startDate,
     endDate: addDaysIso(startDate, 28),
     retestDate: addDaysIso(startDate, 28),

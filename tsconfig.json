@@ -4,5 +4,16 @@
     "strict": true,
     "types": ["jest", "node"]
   },
+  "include": [
+    "App.tsx",
+    "index.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "modules/**/*.ts",
+    "modules/**/*.tsx",
+    "modules/**/*.js",
+    "scripts/**/*.ts",
+    "metro.config.js"
+  ],
   "exclude": ["website"]
 }

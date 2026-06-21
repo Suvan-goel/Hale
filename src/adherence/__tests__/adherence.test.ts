@@ -23,6 +23,7 @@ import {
   defaultAdherenceStoreState,
   createSupportSummary,
   currentWeekProgress,
+  deserializeAdherenceState,
 } from '../index';
 import type { MovementBlock, TrainingFocusStimulusEvidenceSummary, TrainingSessionCompletion } from '../types';
 import { createMovementAssessment } from '../../haleFlow';
@@ -159,6 +160,27 @@ describe('movement block creation', () => {
     expect(b.totalPlannedSessions).toBe(12);
     expect(b.retestDate).toBe('2026-06-29T08:00:00.000Z');
     expect(getBlockPurposeCopy(b, goal)).toContain('travel');
+  });
+
+  it('migrates legacy block sourceAssessmentId into sourceCheckUpId when loading persistence', () => {
+    const currentBlock = block();
+    const legacyBlock = {
+      ...currentBlock,
+      sourceCheckUpId: undefined,
+      sourceAssessmentId: 'legacy-checkup-local-id',
+    };
+    const restored = deserializeAdherenceState(
+      JSON.stringify({
+        schemaVersion: 1,
+        payload: {
+          ...defaultAdherenceStoreState(),
+          blocks: [legacyBlock],
+        },
+      })
+    );
+
+    expect(restored?.blocks[0].sourceCheckUpId).toBe('legacy-checkup-local-id');
+    expect(restored?.blocks[0].sourceAssessmentId).toBeUndefined();
   });
 });
 

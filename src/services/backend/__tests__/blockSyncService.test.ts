@@ -31,7 +31,7 @@ function movementBlock(overrides: Partial<MovementBlock> = {}): MovementBlock {
     totalPlannedSessions: 12,
     completedSessions: 0,
     microChecksCompleted: 0,
-    sourceAssessmentId: '2026-06-17T11:40:00.000Z',
+    sourceCheckUpId: '2026-06-17T11:40:00.000Z',
     createdAt: baseStartedAt,
     updatedAt: baseStartedAt,
     ...overrides,
@@ -165,7 +165,7 @@ describe('movement block sync mapping', () => {
     });
 
     const input = {
-      block: movementBlock({ id: 'movement-block-no-source', sourceAssessmentId: undefined }),
+      block: movementBlock({ id: 'movement-block-no-source', sourceCheckUpId: undefined }),
       trainingBlock: trainingBlock(),
       training: trainingState() as TrainingState,
       blockNumber: 1,

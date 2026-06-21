@@ -2,11 +2,12 @@ import { Fraunces_400Regular, Fraunces_500Medium } from '@expo-google-fonts/frau
 import { Inter_400Regular, Inter_500Medium, useFonts } from '@expo-google-fonts/inter';
 import { StatusBar } from 'expo-status-bar';
 import * as React from 'react';
-import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { requestCameraPermissionsAsync } from './modules/expo-pose-detection';
+import { BackArrowButton } from './src/components/BackArrowButton';
 import { HeaderLogo } from './src/components/HeaderLogo';
+import { PrimaryButton, Screen, ScreenHeader } from './src/components/ui';
 import {
   AdherenceStore,
   AdherenceStoreState,
@@ -38,6 +39,7 @@ import {
   makeTrainingSessionCompletion,
   markMovementBlockComplete,
   mergeMilestones,
+  movementBlockSourceCheckUpId,
   recordTrainingSessionCompletion,
   scoreDomainFromMovementDomain,
   upsertMovementAssessment,
@@ -54,6 +56,7 @@ import {
   countsTowardMainPlan,
   evaluateCompletedFocusStimulusEvidence,
   evaluateSessionWorkEvidence,
+  findAssessmentForCheckUp,
   findCheckUpForAssessment,
   focusStimulusEvidenceSummary,
   getSessionPlanningRecoveryCopy,
@@ -163,7 +166,7 @@ import {
   validTimeSessionSummaryCards,
   type SessionIntensity,
 } from './src/training';
-import { colors, radius, shadow, spacing, type } from './src/theme';
+import { colors, fonts, radius, shadow, spacing, type } from './src/theme';
 
 type PermissionState = 'checking' | 'granted' | 'denied';
 /** Full-screen flows launched on top of the tab shell (hands-free sessions + dev tools). */
@@ -946,7 +949,7 @@ function HaleApp() {
     const fingerprint = JSON.stringify({
       blocks: adherence.blocks.map((block) => [
         block.id,
-        block.sourceAssessmentId,
+        movementBlockSourceCheckUpId(block),
         block.status,
         block.completedSessions,
         block.microChecksCompleted,
@@ -1719,7 +1722,8 @@ function HaleApp() {
         nextAdherence = recordTrainingSessionCompletion(nextAdherence, completion);
         nextAdherence = markMovementBlockComplete(nextAdherence, block.id, completedAt);
         const updatedBlock = nextAdherence.blocks.find((b) => b.id === block.id) ?? block;
-        const previous = history.find((h) => h.checkUp.startedAt === block.sourceAssessmentId);
+        const sourceCheckUpId = movementBlockSourceCheckUpId(block);
+        const previous = sourceCheckUpId ? history.find((h) => h.checkUp.startedAt === sourceCheckUpId) : undefined;
         const previousParsed = parseStoredScoreSnapshot(previous?.scoreSnapshot);
         const previousScore = previousParsed.ok ? previousParsed.score : null;
         const reportComparisonCompatible =
@@ -1743,7 +1747,7 @@ function HaleApp() {
         );
         const blockReport = createMovementBlockReport({
           block: updatedBlock,
-          baselineAssessment: nextAdherence.assessments.find((a) => a.id === block.sourceAssessmentId) ?? null,
+          baselineAssessment: sourceCheckUpId ? findAssessmentForCheckUp(nextAdherence.assessments, sourceCheckUpId) : null,
           retestAssessment: assessment,
           previousScore,
           latestScore: score,
@@ -1755,7 +1759,7 @@ function HaleApp() {
         nextAdherence = upsertMovementBlockReport(nextAdherence, blockReport);
         const nextTrainingBlock = buildBlock(score, training.equipment, completedAt);
         const nextMovementBlock = createMovementBlockFromAssessment({
-          latestAssessment: { score, scoreSnapshot, id: checkUp.startedAt, assessment },
+          latestAssessment: { score, scoreSnapshot, sourceCheckUpId: checkUp.startedAt, assessment },
           lifeGoal: prefs.profile.lifeGoal,
           startDate: completedAt,
         });
@@ -1769,7 +1773,7 @@ function HaleApp() {
             trainingBlock: training.block,
             training,
             blockNumber: blockNumberForBlocks(nextAdherence.blocks, updatedBlock.id),
-            sourceCheckupLocalId: updatedBlock.sourceAssessmentId,
+            sourceCheckupLocalId: movementBlockSourceCheckUpId(updatedBlock),
           });
           void syncMovementBlockToRemote({
             block: nextMovementBlock,
@@ -2095,7 +2099,7 @@ function HaleApp() {
               trainingBlock: nextTraining.block,
               training: nextTraining,
               blockNumber: blockNumberForBlocks(nextAdherence.blocks, updatedBlock.id),
-              sourceCheckupLocalId: updatedBlock.sourceAssessmentId,
+              sourceCheckupLocalId: movementBlockSourceCheckUpId(updatedBlock),
             });
             void syncTrainingSessionCompletionToRemote({
               completion,
@@ -2172,7 +2176,7 @@ function HaleApp() {
             trainingBlock: training.block,
             training,
             blockNumber: blockNumberForBlocks(nextAdherence.blocks, updatedBlock.id),
-            sourceCheckupLocalId: updatedBlock.sourceAssessmentId,
+            sourceCheckupLocalId: movementBlockSourceCheckUpId(updatedBlock),
           });
           if (localMicroCheckSaved) {
             void syncMicroCheckToRemote({
@@ -2586,8 +2590,9 @@ function HaleApp() {
     [adherence.reports, reportDisplayBlock]
   );
   const reportPreviousScore = React.useMemo(() => {
-    if (!reportDisplayBlock?.sourceAssessmentId) return null;
-    const previous = history.find((h) => h.checkUp.startedAt === reportDisplayBlock.sourceAssessmentId);
+    const sourceCheckUpId = movementBlockSourceCheckUpId(reportDisplayBlock);
+    if (!sourceCheckUpId) return null;
+    const previous = history.find((h) => h.checkUp.startedAt === sourceCheckUpId);
     const parsed = parseStoredScoreSnapshot(previous?.scoreSnapshot);
     return parsed.ok ? parsed.score : null;
   }, [history, reportDisplayBlock]);
@@ -3048,111 +3053,122 @@ function CameraReadinessGate({
   onBack: () => void;
 }) {
   const waiting = permission === 'checking' || !audioReady;
-  const title = waiting ? 'Preparing camera' : 'Camera access is off';
-  const body = waiting
-    ? 'Hale is getting the camera and voice guidance ready. You will appear only as a clean skeleton outline.'
-    : 'Camera access is needed to estimate your movement. Video is never shown or stored.';
+  const title = waiting ? 'Getting camera ready' : 'Allow camera access';
+  const subtitle = waiting
+    ? 'Hale is preparing the camera and voice guidance before the movement session begins.'
+    : 'Camera access lets Hale estimate your movement while keeping the experience private and mirror-free.';
 
   const openSettings = React.useCallback(() => {
     void Linking.openSettings().catch(() => undefined);
   }, []);
 
   return (
-    <View style={[styles.container, styles.cameraGate]}>
+    <View style={styles.container}>
       <StatusBar style="dark" />
-      {permission === 'denied' ? (
-        <Pressable
-          style={({ pressed }) => [styles.cameraGateBackButton, pressed && styles.cameraGatePressed]}
-          onPress={onBack}
-          accessibilityRole="button"
-          accessibilityLabel="Back"
+      <Screen contentStyle={styles.cameraGateScreen}>
+        {permission === 'denied' ? <BackArrowButton accessibilityLabel="Back" onPress={onBack} /> : null}
+        <ScreenHeader eyebrow="Camera access" title={title} subtitle={subtitle} />
+
+        <CameraGateSection
+          title={waiting ? 'Session readiness' : 'Camera permission'}
+          meta={waiting ? 'Preparing' : 'Required'}
+          tone={waiting ? 'neutral' : 'attention'}
         >
-          <CameraGateBackIcon />
-        </Pressable>
-      ) : null}
-
-      <View style={styles.cameraGateContent}>
-        <View style={styles.cameraGateBrandRow}>
-          <HeaderLogo size={34} />
-          <View>
-            <Text style={styles.cameraGateEyebrow}>Private movement check-up</Text>
-            <Text style={styles.cameraGateBrand}>Hale</Text>
+          <View style={styles.cameraGatePointList}>
+            <CameraGatePoint
+              index={1}
+              title={waiting ? 'Camera and audio' : 'Measure movement'}
+              body={
+                waiting
+                  ? 'Hale is checking that camera access and voice guidance are ready before the session opens.'
+                  : 'Camera access lets Hale estimate your movement during guided check-ups and sessions.'
+              }
+            />
+            <CameraGatePoint
+              index={2}
+              title="Skeleton view only"
+              body="You see a clean outline, never a self-view camera feed."
+            />
+            <CameraGatePoint
+              index={3}
+              title="Video is never stored"
+              body="The camera is used as a measuring instrument for the session."
+            />
           </View>
-        </View>
-
-        <View style={styles.cameraGateCard}>
-          <View style={styles.cameraGateIconFrame}>
-            {waiting ? <ActivityIndicator color={colors.accentDeep} /> : <CameraGateCameraIcon />}
-          </View>
-          <Text style={styles.cameraGateTitle}>{title}</Text>
-          <Text style={styles.cameraGateBody}>{body}</Text>
-
-          <View style={styles.cameraGateFacts}>
-            <CameraGateFact label="View" value="Skeleton only" />
-            <CameraGateFact label="Video" value="Never stored" />
-          </View>
-        </View>
+        </CameraGateSection>
 
         {permission === 'denied' ? (
-          <Pressable
-            style={({ pressed }) => [styles.cameraGatePrimaryButton, pressed && styles.cameraGatePrimaryPressed]}
-            onPress={openSettings}
-            accessibilityRole="button"
-            accessibilityLabel="Open Settings"
-          >
-            <Text style={styles.cameraGatePrimaryText}>Open Settings</Text>
-          </Pressable>
+          <CameraGateSection title="Turn it on" meta="Settings">
+            <View style={styles.cameraGatePointList}>
+              <CameraGatePoint
+                index={1}
+                title="Open Settings"
+                body="Use the button below to open this app’s settings."
+              />
+              <CameraGatePoint
+                index={2}
+                title="Allow Camera"
+                body="Switch Camera on, then return to Hale to begin once you are framed."
+              />
+            </View>
+          </CameraGateSection>
         ) : (
-          <Text style={styles.cameraGateFootnote}>This should only take a moment.</Text>
+          <CameraGateSection title="Almost ready" meta="One moment">
+            <View style={styles.cameraGatePointList}>
+              <CameraGatePoint
+                index={1}
+                title="Hold nearby"
+                body="This should only take a moment. Hale will continue automatically when everything is ready."
+              />
+            </View>
+          </CameraGateSection>
         )}
+
+        {permission === 'denied' ? (
+          <View style={styles.cameraGateActions}>
+            <PrimaryButton title="Open Settings" onPress={openSettings} />
+          </View>
+        ) : null}
+      </Screen>
+    </View>
+  );
+}
+
+function CameraGateSection({
+  title,
+  meta,
+  tone = 'neutral',
+  children,
+}: {
+  title: string;
+  meta: string;
+  tone?: 'neutral' | 'attention';
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.cameraGateSectionCard}>
+      <View style={styles.cameraGateSectionHeader}>
+        <Text style={styles.cameraGateSectionTitle}>{title}</Text>
+        <View style={[styles.cameraGateSectionMetaPill, tone === 'attention' && styles.cameraGateSectionMetaPillAttention]}>
+          <Text style={styles.cameraGateSectionMetaText}>{meta}</Text>
+        </View>
+      </View>
+      {children}
+    </View>
+  );
+}
+
+function CameraGatePoint({ index, title, body }: { index: number; title: string; body: string }) {
+  return (
+    <View style={styles.cameraGatePoint}>
+      <View style={styles.cameraGatePointMark}>
+        <Text style={styles.cameraGatePointMarkText}>{index}</Text>
+      </View>
+      <View style={styles.cameraGatePointCopy}>
+        <Text style={styles.cameraGatePointTitle}>{title}</Text>
+        <Text style={styles.cameraGatePointBody}>{body}</Text>
       </View>
     </View>
-  );
-}
-
-function CameraGateFact({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.cameraGateFact}>
-      <Text style={styles.cameraGateFactLabel}>{label}</Text>
-      <Text style={styles.cameraGateFactValue}>{value}</Text>
-    </View>
-  );
-}
-
-function CameraGateBackIcon() {
-  return (
-    <Svg width={10} height={18} viewBox="0 0 10 18" accessibilityElementsHidden>
-      <Path
-        d="M8 2L2 9L8 16"
-        fill="none"
-        stroke={colors.accentDeep}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-function CameraGateCameraIcon() {
-  return (
-    <Svg width={34} height={34} viewBox="0 0 34 34" fill="none" accessibilityElementsHidden>
-      <Rect x={6.2} y={10.5} width={21.6} height={15.3} rx={4.2} stroke={colors.accentDeep} strokeWidth={1.8} />
-      <Path
-        d="M12.1 10.5L14.1 7.9H19.9L21.9 10.5"
-        stroke={colors.accentDeep}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Circle cx={17} cy={18.3} r={4.1} stroke={colors.accentDeep} strokeWidth={1.8} />
-      <Path
-        d="M8.3 27.3L25.7 6.7"
-        stroke={colors.accentGold}
-        strokeWidth={2}
-        strokeLinecap="round"
-      />
-    </Svg>
   );
 }
 
@@ -3223,140 +3239,94 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     includeFontPadding: false,
   },
-  cameraGate: {
-    paddingHorizontal: spacing.pageHorizontal,
-    paddingTop: spacing.xxxl,
-    paddingBottom: spacing.xxxl,
+  cameraGateScreen: {
+    gap: spacing.xl,
+    paddingBottom: spacing.huge,
   },
-  cameraGateBackButton: {
-    position: 'absolute',
-    top: 58,
-    left: spacing.pageHorizontal,
-    zIndex: 2,
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.input,
+  cameraGateSectionCard: {
+    gap: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
     ...shadow.card,
   },
-  cameraGateContent: {
-    flex: 1,
-    width: '100%',
-    maxWidth: spacing.pageMaxWidth,
-    alignSelf: 'center',
-    justifyContent: 'center',
+  cameraGateSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
     gap: spacing.lg,
   },
-  cameraGateBrandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-  },
-  cameraGateEyebrow: {
-    ...type.label,
-    color: colors.textSecondary,
-    fontSize: 11,
-    lineHeight: 15,
-  },
-  cameraGateBrand: {
-    color: colors.accentDeep,
-    fontSize: 25,
-    fontWeight: '600',
-    lineHeight: 30,
-    letterSpacing: 0,
-    includeFontPadding: false,
-  },
-  cameraGateCard: {
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xxl,
-    borderRadius: radius.xl,
-    backgroundColor: colors.bgSurface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    ...shadow.card,
-  },
-  cameraGateIconFrame: {
-    width: 68,
-    height: 68,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.panel,
-    backgroundColor: colors.bgGold,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.goldBorder,
-  },
-  cameraGateTitle: {
-    ...type.h2,
-    textAlign: 'center',
-  },
-  cameraGateBody: {
-    ...type.bodySmall,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  cameraGateFacts: {
-    width: '100%',
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingTop: spacing.lg,
-    marginTop: spacing.xs,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.divider,
-  },
-  cameraGateFact: {
+  cameraGateSectionTitle: {
     flex: 1,
-    minHeight: 70,
-    justifyContent: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.card,
-    backgroundColor: colors.bgBase,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
+    minWidth: 0,
+    fontFamily: fonts.serifMedium,
+    fontSize: 22,
+    lineHeight: 28,
+    letterSpacing: 0,
+    color: colors.textPrimary,
   },
-  cameraGateFactLabel: {
-    ...type.cardCaption,
-    color: colors.textTertiary,
-    textTransform: 'uppercase',
-  },
-  cameraGateFactValue: {
-    ...type.cardRowTitle,
-    color: colors.accentDeep,
-  },
-  cameraGatePrimaryButton: {
-    minHeight: 58,
+  cameraGateSectionMetaPill: {
+    minHeight: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radius.button,
-    backgroundColor: colors.accentDeep,
-    borderWidth: 1,
-    borderColor: colors.accentDeep,
-    ...shadow.soft,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    backgroundColor: colors.background,
   },
-  cameraGatePrimaryText: {
-    ...type.button,
-    color: colors.onAccent,
+  cameraGateSectionMetaPillAttention: {
+    backgroundColor: colors.bgGold,
   },
-  cameraGateFootnote: {
+  cameraGateSectionMetaText: {
+    ...type.cardCaption,
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    lineHeight: 16,
+  },
+  cameraGatePointList: {
+    gap: spacing.sm,
+  },
+  cameraGatePoint: {
+    minHeight: 86,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    borderRadius: radius.input,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    backgroundColor: colors.background,
+  },
+  cameraGatePointMark: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bgSurface,
+  },
+  cameraGatePointMarkText: {
+    ...type.cardCaption,
+    fontFamily: fonts.sansMedium,
+    color: colors.accentDeep,
+    fontVariant: ['tabular-nums'],
+  },
+  cameraGatePointCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  cameraGatePointTitle: {
+    ...type.bodySmall,
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
+  },
+  cameraGatePointBody: {
     ...type.caption,
     color: colors.textSecondary,
-    textAlign: 'center',
   },
-  cameraGatePressed: {
-    opacity: 0.78,
-    transform: [{ scale: 0.98 }],
-  },
-  cameraGatePrimaryPressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.99 }],
+  cameraGateActions: {
+    gap: spacing.md,
   },
   tabContent: {
     flex: 1,

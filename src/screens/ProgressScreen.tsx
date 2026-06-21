@@ -4,7 +4,6 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import {
   Card,
-  EmptyState,
   Screen,
 } from '../components/ui';
 import { HeaderLogo } from '../components/HeaderLogo';
@@ -121,12 +120,7 @@ export function ProgressScreen({
       </View>
 
       {!latest ? (
-        <EmptyState
-          title="Complete your first Movement Check-Up to see your baseline."
-          body="Hale will use it to build your 4-week block and start a home estimate."
-          actionLabel="Start Movement Check-Up"
-          onAction={onBeginCheckUp}
-        />
+        <ProgressEmptyState onBeginCheckUp={onBeginCheckUp} />
       ) : (
         <>
           <ProgressHeroSection
@@ -167,6 +161,94 @@ export function ProgressScreen({
         </>
       )}
     </Screen>
+  );
+}
+
+function ProgressEmptyState({ onBeginCheckUp }: { onBeginCheckUp: () => void }) {
+  return (
+    <View style={styles.emptyProgressWrap}>
+      <View style={styles.emptyProgressCard}>
+        <View style={styles.emptyProgressHeader}>
+          <Text style={styles.emptyProgressKicker}>Before progress appears</Text>
+          <View style={styles.emptyProgressMetaPill}>
+            <Text style={styles.emptyProgressMetaText}>~10 min</Text>
+          </View>
+        </View>
+
+        <Text style={styles.emptyProgressTitle}>Complete your first Movement Check-Up</Text>
+        <Text style={styles.emptyProgressBody}>
+          Hale uses your first home estimate to start a baseline for strength, balance, and mobility.
+        </Text>
+
+        <View style={styles.emptyProgressSteps} accessibilityLabel="Progress preparation steps">
+          <ProgressEmptyStep
+            index="1"
+            title="Baseline"
+            body="Capture your first strength, balance, and mobility estimate."
+            state="current"
+          />
+          <ProgressEmptyStep
+            index="2"
+            title="Training block"
+            body="Hale builds the first four-week block from that result."
+            state="upcoming"
+          />
+          <ProgressEmptyStep
+            index="3"
+            title="Re-test"
+            body="Your next check-up starts the first clear progress comparison."
+            state="upcoming"
+            last
+          />
+        </View>
+
+        <Pressable
+          style={({ pressed }) => [styles.emptyProgressButton, pressed && styles.pressed]}
+          onPress={onBeginCheckUp}
+          accessibilityRole="button"
+          accessibilityLabel="Start Movement Check-Up"
+        >
+          <Text style={styles.emptyProgressButtonText}>Start Movement Check-Up</Text>
+          <Text style={styles.emptyProgressButtonArrow}>›</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.emptyProgressNote}>
+        <Text style={styles.emptyProgressNoteText}>
+          Progress appears after repeat check-ups, so small day-to-day variation does not become the story.
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function ProgressEmptyStep({
+  index,
+  title,
+  body,
+  state,
+  last = false,
+}: {
+  index: string;
+  title: string;
+  body: string;
+  state: 'current' | 'upcoming';
+  last?: boolean;
+}) {
+  const active = state === 'current';
+  return (
+    <View style={[styles.emptyProgressStep, last && styles.emptyProgressStepLast]}>
+      <View style={styles.emptyProgressStepMarkerCol}>
+        <View style={[styles.emptyProgressStepMarker, active && styles.emptyProgressStepMarkerActive]}>
+          <Text style={[styles.emptyProgressStepMarkerText, active && styles.emptyProgressStepMarkerTextActive]}>{index}</Text>
+        </View>
+        {!last ? <View style={[styles.emptyProgressStepLine, active && styles.emptyProgressStepLineActive]} /> : null}
+      </View>
+      <View style={styles.emptyProgressStepCopy}>
+        <Text style={styles.emptyProgressStepTitle}>{title}</Text>
+        <Text style={styles.emptyProgressStepBody}>{body}</Text>
+      </View>
+    </View>
   );
 }
 
@@ -220,7 +302,7 @@ export function buildProgressDevMockData(today: string): ProgressDevMockData {
 
   const completedBlock = devBlock({
     id: 'dev-progress-block-1',
-    sourceAssessmentId: baseline.assessment.id,
+    sourceCheckUpId: baseline.record.checkUp.startedAt,
     status: 'completed',
     focusDomain: scoreToMovementDomain(baseline.score.weakestDomain) ?? 'balance',
     startDate: devIso(base, -73),
@@ -246,7 +328,7 @@ export function buildProgressDevMockData(today: string): ProgressDevMockData {
 
   const activeBlock = devBlock({
     id: 'dev-progress-block-2',
-    sourceAssessmentId: latest.assessment.id,
+    sourceCheckUpId: latest.record.checkUp.startedAt,
     status: 'active',
     focusDomain: scoreToMovementDomain(latest.score.weakestDomain) ?? 'balance',
     startDate: devIso(base, -21),
@@ -406,7 +488,7 @@ function devCheckUp(
 
 function devBlock({
   id,
-  sourceAssessmentId,
+  sourceCheckUpId,
   status,
   focusDomain,
   startDate,
@@ -417,7 +499,7 @@ function devBlock({
   updatedAt,
 }: {
   id: string;
-  sourceAssessmentId: string;
+  sourceCheckUpId: string;
   status: MovementBlock['status'];
   focusDomain: MovementDomain;
   startDate: string;
@@ -440,7 +522,7 @@ function devBlock({
     totalPlannedSessions: 12,
     completedSessions,
     microChecksCompleted,
-    sourceAssessmentId,
+    sourceCheckUpId,
     createdAt: startDate,
     updatedAt,
   };
@@ -1271,6 +1353,177 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
     ...shadow.card,
+  },
+  emptyProgressWrap: {
+    gap: spacing.md,
+  },
+  emptyProgressCard: {
+    overflow: 'hidden',
+    borderRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 26,
+    paddingBottom: 22,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+    boxShadow: '0 18px 40px rgba(17,20,18,0.045)',
+  },
+  emptyProgressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  emptyProgressKicker: {
+    ...type.label,
+    color: colors.accentDeep,
+    flex: 1,
+    minWidth: 0,
+  },
+  emptyProgressMetaPill: {
+    minHeight: 32,
+    justifyContent: 'center',
+    borderRadius: radius.pill,
+    paddingHorizontal: 12,
+    backgroundColor: colors.bgBase,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+  },
+  emptyProgressMetaText: {
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0,
+    fontVariant: ['tabular-nums'],
+  },
+  emptyProgressTitle: {
+    color: colors.textPrimary,
+    fontFamily: fonts.serifMedium,
+    fontSize: 31,
+    lineHeight: 37,
+    letterSpacing: 0,
+    marginTop: 22,
+  },
+  emptyProgressBody: {
+    color: colors.textSecondary,
+    fontFamily: fonts.sansRegular,
+    fontSize: 16,
+    lineHeight: 25,
+    letterSpacing: 0,
+    marginTop: 18,
+  },
+  emptyProgressSteps: {
+    marginTop: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderRadius: 18,
+    backgroundColor: colors.bgBase,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+  },
+  emptyProgressStep: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    minHeight: 72,
+  },
+  emptyProgressStepLast: {
+    minHeight: 44,
+  },
+  emptyProgressStepMarkerCol: {
+    width: 28,
+    alignItems: 'center',
+  },
+  emptyProgressStepMarker: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+  },
+  emptyProgressStepMarkerActive: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  emptyProgressStepMarkerText: {
+    color: colors.textSecondary,
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0,
+    fontVariant: ['tabular-nums'],
+  },
+  emptyProgressStepMarkerTextActive: {
+    color: colors.onAccent,
+  },
+  emptyProgressStepLine: {
+    flex: 1,
+    width: StyleSheet.hairlineWidth,
+    marginVertical: 7,
+    backgroundColor: colors.borderHairline,
+  },
+  emptyProgressStepLineActive: {
+    backgroundColor: colors.accentBorder,
+  },
+  emptyProgressStepCopy: {
+    flex: 1,
+    minWidth: 0,
+    paddingBottom: 18,
+  },
+  emptyProgressStepTitle: {
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: 0,
+  },
+  emptyProgressStepBody: {
+    color: colors.textSecondary,
+    fontFamily: fonts.sansRegular,
+    fontSize: 13,
+    lineHeight: 19,
+    letterSpacing: 0,
+    marginTop: 3,
+  },
+  emptyProgressButton: {
+    minHeight: 58,
+    marginTop: 24,
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.accent,
+  },
+  emptyProgressButtonText: {
+    color: colors.onAccent,
+    fontFamily: fonts.sansMedium,
+    fontSize: 16,
+    lineHeight: 21,
+    letterSpacing: 0,
+    textAlign: 'center',
+  },
+  emptyProgressButtonArrow: {
+    color: colors.onAccent,
+    fontFamily: fonts.sansMedium,
+    fontSize: 22,
+    lineHeight: 23,
+    letterSpacing: 0,
+    marginTop: -1,
+  },
+  emptyProgressNote: {
+    paddingHorizontal: 14,
+  },
+  emptyProgressNoteText: {
+    color: colors.textSecondary,
+    fontFamily: fonts.sansRegular,
+    fontSize: 13,
+    lineHeight: 19,
+    letterSpacing: 0,
   },
   heroSection: {
     gap: 0,

@@ -1307,3 +1307,15 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 - **Recovery:** if local state has an eligible official check-up but no active block, Hale
   prepares the missing block quietly from the same eligibility rules instead of surfacing a
   manual creation step.
+
+## 2026-06-21 — Movement block source ID clarified
+
+- **Change:** `MovementBlock` now stores its originating check-up local ID as
+  `sourceCheckUpId`. The previous `sourceAssessmentId` name is retained only as a deprecated
+  legacy persistence alias and is migrated on load.
+- **Why:** block creation, report generation, and backend sync resolve reports from the check-up
+  record, not always from a `MovementAssessment.id`; the old name obscured that contract and
+  invited future detail/report bugs.
+- **Compatibility:** backend sync and report sync resolve either field while old local data is
+  still present. `StoredCheckUp.sourceAssessmentId` remains unchanged because that field really
+  does point to the movement assessment attached to the stored check-up.

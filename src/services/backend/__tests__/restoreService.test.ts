@@ -103,7 +103,7 @@ function movementBlock(): MovementBlock {
     totalPlannedSessions: 12,
     completedSessions: 1,
     microChecksCompleted: 0,
-    sourceAssessmentId: startedAt,
+    sourceCheckUpId: startedAt,
     createdAt: '2026-06-18T08:00:00.000Z',
     updatedAt: '2026-06-18T08:00:00.000Z',
   };

@@ -116,7 +116,7 @@ describe('movement block service eligibility', () => {
       latestAssessment: {
         score: inputScore,
         scoreSnapshot: scoreSnapshotFor(inputScore),
-        id: 'assessment-valid',
+        sourceCheckUpId: 'checkup-valid',
         assessment: assessmentFor(inputScore),
       },
       lifeGoal: createLifeGoal({ category: 'gardening_hobbies', nowIso: START }),
@@ -124,7 +124,7 @@ describe('movement block service eligibility', () => {
     });
 
     expect(block.focusDomain).toBe('mobility');
-    expect(block.sourceAssessmentId).toBe('assessment-valid');
+    expect(block.sourceCheckUpId).toBe('checkup-valid');
     expect(block.totalPlannedSessions).toBe(12);
   });
 
