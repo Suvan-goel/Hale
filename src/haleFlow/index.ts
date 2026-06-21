@@ -3,6 +3,7 @@ export * from './assessmentEligibility';
 export * from './assessmentEvidence';
 export * from './assessmentResultState';
 export * from './appLifecycle';
+export * from './blockAutomation';
 export * from './checkupHistory';
 export * from './copy';
 export * from './exploreViewModel';

@@ -20,6 +20,7 @@ describe('preferences serialize', () => {
       remindersEnabled: true,
       phoneStandAvailable: true,
       supportSharingLevel: 'private',
+      devMockDataEnabled: true,
     },
     onboarding: {
       currentStep: 'complete',
@@ -63,6 +64,7 @@ describe('preferences serialize', () => {
       remindersEnabled: true,
       phoneStandAvailable: false,
       supportSharingLevel: 'private',
+      devMockDataEnabled: false,
     });
   });
 });
@@ -82,6 +84,7 @@ describe('ProfileStore', () => {
         remindersEnabled: true,
         phoneStandAvailable: false,
         supportSharingLevel: 'private',
+        devMockDataEnabled: false,
       },
       onboarding: {
         currentStep: 'welcome',

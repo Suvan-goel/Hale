@@ -59,6 +59,7 @@ export function makeTrainingSessionCompletion({
   mainPlanCredit,
   workEvidence,
   focusStimulusEvidence,
+  progressionEvidencePolicy,
   userId = LOCAL_USER_ID,
 }: {
   block: MovementBlock;
@@ -74,6 +75,7 @@ export function makeTrainingSessionCompletion({
   mainPlanCredit?: boolean;
   workEvidence?: TrainingSessionCompletion['workEvidence'];
   focusStimulusEvidence?: TrainingSessionCompletion['focusStimulusEvidence'];
+  progressionEvidencePolicy?: TrainingSessionCompletion['progressionEvidencePolicy'];
   userId?: string;
 }): TrainingSessionCompletion {
   const keyDate = plannedDate ?? calendarKey(completedAt);
@@ -90,6 +92,7 @@ export function makeTrainingSessionCompletion({
     mainPlanCredit,
     workEvidence,
     focusStimulusEvidence,
+    progressionEvidencePolicy,
     durationMinutes,
     perceivedEffort,
     painReported,

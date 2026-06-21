@@ -15,11 +15,15 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import {
   LandmarksEventPayload,
-  PoseDetectionView,
   PoseErrorEventPayload,
 } from '../../modules/expo-pose-detection';
 import { SfxChannel, VoiceChannel } from '../audio/voicePlayer';
 import { AssessmentPhase, SessionController } from '../assessment/sessionController';
+import {
+  CameraUnavailableNotice,
+  SafePoseDetectionView,
+} from '../components/SafePoseDetectionView';
+import type { CameraAvailability } from '../components/SafePoseDetectionView';
 import { CHAIR_STAND_ID, ChairStandResult, getMovement } from '../movements';
 import { PosePipeline } from '../pose/pipeline';
 import { MovementCameraReadinessTracker } from '../preflight/movementCameraReadiness';
@@ -72,6 +76,7 @@ export function AssessmentScreen() {
   const skeletonRef = React.useRef<SkeletonViewHandle>(null);
   const lastUiUpdateRef = React.useRef(0);
   const [snapshot, setSnapshot] = React.useState<ScreenSnapshot>(INITIAL_SNAPSHOT);
+  const [cameraAvailability, setCameraAvailability] = React.useState<CameraAvailability>('checking');
 
   React.useEffect(() => {
     if (__DEV__) recorder.start();
@@ -127,30 +132,35 @@ export function AssessmentScreen() {
 
   return (
     <View style={styles.container}>
-      <PoseDetectionView
+      <SafePoseDetectionView
         active
         modelVariant="lite"
         style={StyleSheet.absoluteFill}
         onLandmarks={onLandmarks}
         onPoseError={onPoseError}
+        onAvailabilityChange={setCameraAvailability}
       />
-      <SkeletonView
-        ref={skeletonRef}
-        mirrored
-        frameSource="raw"
-        smoothingEnabled={false}
-        pointCloudBodyDensity="high"
-        pointCloudBodyMaxDots={900}
-        pointCloudBodyDotScale={1.72}
-        confidenceFadingEnabled={false}
-        confidenceIntensityEnabled={false}
-        reacquisitionFadeEnabled={false}
-        recognitionPulseEnabled={false}
-        measurementState={avatarMeasurementState}
-        activeDomain="strength_power"
-        setupGuidesEnabled={false}
-        stateTransitionsEnabled={false}
-      />
+      {cameraAvailability === 'unavailable' ? (
+        <CameraUnavailableNotice />
+      ) : (
+        <SkeletonView
+          ref={skeletonRef}
+          mirrored
+          frameSource="raw"
+          smoothingEnabled={false}
+          pointCloudBodyDensity="high"
+          pointCloudBodyMaxDots={900}
+          pointCloudBodyDotScale={1.72}
+          confidenceFadingEnabled={false}
+          confidenceIntensityEnabled={false}
+          reacquisitionFadeEnabled={false}
+          recognitionPulseEnabled={false}
+          measurementState={avatarMeasurementState}
+          activeDomain="strength_power"
+          setupGuidesEnabled={false}
+          stateTransitionsEnabled={false}
+        />
+      )}
       {snapshot.phase === 'active' ? (
         <View pointerEvents="none" style={styles.hud}>
           <Text style={styles.repCount}>{snapshot.repCount}</Text>

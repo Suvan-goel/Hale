@@ -72,6 +72,11 @@ describe('session completion and preview credit copy', () => {
       mainPlanCredit: true,
       focusStimulusEvidence: focusEvidence(),
     });
+    const adjustedCredited = completion(b, {
+      mainPlanCredit: true,
+      focusStimulusEvidence: focusEvidence(),
+      progressionEvidencePolicy: 'hold_only',
+    });
 
     expect(copyFor(b, zero).title).toBe('No training credit added.');
     expect(copyFor(b, supporting).eyebrow).toBe('Supporting work saved');
@@ -80,13 +85,16 @@ describe('session completion and preview credit copy', () => {
     expect(copyFor(b, fallback).subtitle).toContain('planned primary strength exercise');
     expect(copyFor(b, credited).eyebrow).toBe('Session complete');
     expect(copyFor(b, credited).cardTitle).toContain('adjust your next session');
+    expect(copyFor(b, adjustedCredited).cardTitle).toBe('Plan credit added, level held today');
+    expect(copyFor(b, adjustedCredited).body).toContain('plan moved forward');
   });
 
   it('explains non-credit preview states before a block-generated session starts', () => {
-    expect(focusStimulusPreviewCopy(plan('no_primary_focus_planned'))).toContain('supporting maintenance');
+    expect(focusStimulusPreviewCopy(plan('no_primary_focus_planned'))).toContain('could not include a safe primary');
     expect(focusStimulusPreviewCopy(plan('focus_mismatch'))).toContain('does not match');
     expect(focusStimulusPreviewCopy(plan('missing_stimulus_metadata'))).toContain('cannot verify');
     expect(focusStimulusPreviewCopy(plan('eligible', true))).toBeNull();
+    expect(focusStimulusPreviewCopy(plan('eligible', true, 'hold_only'))).toContain('adjusted today');
   });
 });
 
@@ -174,10 +182,15 @@ function copyFor(block: MovementBlock, completion: TrainingSessionCompletion) {
     completion,
     credited: completion.mainPlanCredit === true && completion.focusStimulusEvidence?.mainPlanCredit === true,
     restarted: completion.sessionType === 'restart',
+    progressionEvidencePolicy: completion.progressionEvidencePolicy,
   });
 }
 
-function plan(status: TrainingFocusStimulusPlanStatus, mainPlanCreditPotential = false): HaleSessionPlan {
+function plan(
+  status: TrainingFocusStimulusPlanStatus,
+  mainPlanCreditPotential = false,
+  progressionEvidencePolicy: NonNullable<HaleSessionPlan['metadata']>['progressionEvidencePolicy'] = 'normal'
+): HaleSessionPlan {
   return {
     id: 'generated-strength-A',
     blockId: 'movement-block-main-plan',
@@ -191,6 +204,7 @@ function plan(status: TrainingFocusStimulusPlanStatus, mainPlanCreditPotential =
       source: 'block_generated',
       templateId: 'strength-A',
       plannedDateKey: 'strength-A:2026-06-01',
+      progressionEvidencePolicy,
       focusStimulus: {
         status,
         mainPlanCreditPotential,

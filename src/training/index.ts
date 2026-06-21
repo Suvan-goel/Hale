@@ -56,6 +56,7 @@ export type {
   CompletedExerciseResult,
   CompletedGeneratedSession,
   DailyReadiness,
+  GeneratedExerciseDose,
   GeneratedExercise,
   GeneratedSession,
   GenerateSessionInput,
@@ -76,6 +77,23 @@ export type {
   TrainingBlock as DynamicTrainingBlock,
   TrainingDomain,
 } from './workoutGeneration';
+export {
+  discomfortConstraintForAreas,
+  discomfortConstraintForContext,
+  isExerciseExcludedByDiscomfort,
+  normalizeDailyTrainingContext,
+  progressionEvidencePolicyFor,
+} from './dailyTrainingContext';
+export type {
+  DailyTrainingContextSource,
+  DailyTrainingInputStatus,
+  DailyTrainingReasonCode,
+  DiscomfortConstraint,
+  DiscomfortConstraintReason,
+  NormalizedDailyTrainingContext,
+  NormalizedReadiness,
+  ProgressionEvidencePolicy,
+} from './dailyTrainingContext';
 export {
   formatDebugWorkoutScenario,
   formatDebugWorkoutScenarios,

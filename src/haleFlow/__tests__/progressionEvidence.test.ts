@@ -120,6 +120,110 @@ describe('authoritative progression evidence', () => {
     expect(second.decisions[0].decisionKind).toBe('progressed');
   });
 
+  it('records hold-only adjusted evidence without advancing after easy completions', () => {
+    const b = block();
+    const plan = {
+      ...sessionPlan(b, singleExerciseSession()),
+      metadata: {
+        ...sessionPlan(b, singleExerciseSession()).metadata!,
+        progressionEvidencePolicy: 'hold_only' as const,
+      },
+    };
+    const result = completedResult([STS_STANDARD_ID]);
+    const firstCompletion = creditedCompletion(b, plan, result);
+    const secondCompletion = {
+      ...firstCompletion,
+      id: 'completion-hold-only-2',
+      completedAt: '2026-06-03T09:00:00.000Z',
+    };
+
+    const first = applyProgressionEvidenceFromSession({
+      state: defaultTrainingState(),
+      sessionPlan: plan,
+      completion: firstCompletion,
+      activeBlock: b,
+      sessionResult: result,
+      perceivedEffort: 2,
+      painReported: false,
+      trackingQuality: 'good',
+    });
+    const second = applyProgressionEvidenceFromSession({
+      state: first.nextState,
+      sessionPlan: plan,
+      completion: secondCompletion,
+      activeBlock: b,
+      sessionResult: result,
+      perceivedEffort: 2,
+      painReported: false,
+      trackingQuality: 'good',
+    });
+
+    expect(first.eligibility).toMatchObject({ eligible: true, progressionEvidencePolicy: 'hold_only' });
+    expect(first.appliedEvents).toHaveLength(1);
+    expect(first.nextState.appliedProgressionEventIds).toHaveLength(1);
+    expect(first.nextState.ladderProgressById['sit-to-stand']).toBeUndefined();
+    expect(second.nextState.appliedProgressionEventIds).toHaveLength(2);
+    expect(second.nextState.ladderProgressById['sit-to-stand']).toBeUndefined();
+    expect(second.diagnostics).toEqual(expect.arrayContaining([expect.objectContaining({ reason: 'progression_held_by_policy' })]));
+  });
+
+  it('allows hold-only evidence to apply conservative pain regression once', () => {
+    const b = block();
+    const plan = {
+      ...sessionPlan(b, singleExerciseSession()),
+      metadata: {
+        ...sessionPlan(b, singleExerciseSession()).metadata!,
+        progressionEvidencePolicy: 'hold_only' as const,
+      },
+    };
+    const result = completedResult([STS_STANDARD_ID]);
+    const completion = creditedCompletion(b, plan, result);
+    const initial = {
+      ...defaultTrainingState(),
+      ladderProgressById: {
+        'sit-to-stand': {
+          ladderId: 'sit-to-stand',
+          currentLevelId: STS_SLOW_ECC_ID,
+          completedSessionsAtLevel: 0,
+          failedSessionsAtLevel: 1,
+          recentCompletionRates: [0.5],
+          recentRpe: [5],
+          recentPain: [false],
+          updatedAt: START,
+        },
+      },
+    };
+
+    const applied = applyProgressionEvidenceFromSession({
+      state: initial,
+      sessionPlan: plan,
+      completion,
+      activeBlock: b,
+      sessionResult: result,
+      perceivedEffort: 5,
+      painReported: true,
+      painAreas: ['knee'],
+      trackingQuality: 'good',
+    });
+    const duplicate = applyProgressionEvidenceFromSession({
+      state: applied.nextState,
+      sessionPlan: plan,
+      completion,
+      activeBlock: b,
+      sessionResult: result,
+      perceivedEffort: 5,
+      painReported: true,
+      painAreas: ['knee'],
+      trackingQuality: 'good',
+    });
+
+    expect(applied.nextState.ladderProgressById['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
+    expect(applied.nextState.appliedProgressionEventIds).toHaveLength(1);
+    expect(duplicate.appliedEvents).toHaveLength(0);
+    expect(duplicate.skippedDuplicateEvents).toHaveLength(1);
+    expect(duplicate.nextState).toEqual(applied.nextState);
+  });
+
   it('requires feedback before progression evidence can improve a ladder', () => {
     const b = block();
     const plan = sessionPlan(b, singleExerciseSession());

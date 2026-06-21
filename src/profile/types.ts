@@ -37,6 +37,12 @@ export interface AppSettings {
    * account, backend, invite, or data sharing is created from this setting.
    */
   supportSharingLevel: 'private' | 'completion_only' | 'progress_summary' | 'detailed';
+  /**
+   * Development-only preview switch. When enabled in __DEV__, screens can render
+   * deterministic local fixture data that represents a user with check-up and
+   * workout history. Release builds ignore this setting.
+   */
+  devMockDataEnabled: boolean;
 }
 
 export type OnboardingStep =

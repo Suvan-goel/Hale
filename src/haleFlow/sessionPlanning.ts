@@ -30,6 +30,7 @@ import {
   type TrainingSessionResult,
 } from '../training';
 import { equipmentLabels, equipmentSupportsTags } from '../training/equipmentSafety';
+import type { ProgressionEvidencePolicy } from '../training/dailyTrainingContext';
 import {
   createSessionTemplatesForFocus,
   generateTodaySession as generateDynamicTodaySession,
@@ -521,6 +522,9 @@ export function adaptGeneratedSessionToHaleSessionPlan(
       plannedDateKey: plannedDateKey(generated.templateId, plannedFor ?? new Date()),
       readiness: generated.readiness,
       painAreas: generated.painAreas,
+      dailyContext: generated.dailyContext,
+      progressionEvidencePolicy: generated.progressionEvidencePolicy ?? progressionPolicyFromGeneratedSession(generated),
+      adjustmentReasons: generated.adjustmentReasons,
       guidance: generated.guidance,
       equipmentNeeded: equipmentNeeded(exercises),
       generatedExercises: generated.exercises.map(toGeneratedExerciseMetadata),
@@ -539,6 +543,17 @@ export function adaptGeneratedSessionToHaleSessionPlan(
 
 export function countsTowardMainPlan(sessionPlan: HaleSessionPlan | null | undefined): boolean {
   return classifyMainPlanSessionPlan(sessionPlan).credited;
+}
+
+function progressionPolicyFromGeneratedSession(generated: GeneratedSession): ProgressionEvidencePolicy {
+  if (generated.source !== 'block_generated') return 'ineligible';
+  if (
+    generated.readiness === 'ready' &&
+    (!Array.isArray(generated.painAreas) || generated.painAreas.length === 0)
+  ) {
+    return 'normal';
+  }
+  return 'hold_only';
 }
 
 export function sessionPlanFromPlanningResult(result: HaleSessionPlanningResult): HaleSessionPlan | null {
@@ -929,6 +944,10 @@ export function createGeneratedSessionSummary({
       intendedDomain: exercise.intendedDomain,
       stimulusRole: exercise.stimulusRole,
       stimulusReason: exercise.stimulusReason,
+      requestedLevelId: exercise.requestedLevelId,
+      selectedDailyLevelId: exercise.selectedDailyLevelId,
+      doseBeforeAdjustment: exercise.doseBeforeAdjustment,
+      adjustmentReasons: exercise.adjustmentReasons,
     })) ?? [];
   return {
     id: metadata?.generatedSessionId ?? sessionPlan.id,
@@ -949,6 +968,9 @@ export function createGeneratedSessionSummary({
     ladderIds: unique(sessionPlan.exercises.map((exercise) => exercise.ladderId).filter((id): id is string => !!id)),
     readiness: metadata?.readiness,
     painArea,
+    dailyContext: metadata?.dailyContext,
+    progressionEvidencePolicy: metadata?.progressionEvidencePolicy ?? 'ineligible',
+    adjustmentReasons: metadata?.adjustmentReasons,
     durationMinutes,
     exercises: generatedExercises.length > 0 ? generatedExercises : undefined,
     feedback,
@@ -1029,7 +1051,7 @@ function recoveryActionsFor(reason: GenerationUnavailableReason): readonly Gener
 function primaryRecoveryLabel(action: GenerationRecoveryAction | undefined): string {
   if (action === 'review_setup') return 'Review setup';
   if (action === 'complete_baseline') return 'Start Movement Check-Up';
-  if (action === 'create_block') return 'Create current plan';
+  if (action === 'create_block') return 'Prepare current plan';
   if (action === 'open_plan') return 'Review plan';
   if (action === 'open_progress') return 'Review progress';
   if (action === 'contact_support') return 'Get help';
@@ -1290,6 +1312,10 @@ function toGeneratedExerciseMetadata(exercise: GeneratedExercise) {
     intendedDomain: exercise.intendedDomain,
     stimulusRole: exercise.stimulusRole,
     stimulusReason: exercise.stimulusReason,
+    requestedLevelId: exercise.requestedLevelId,
+    selectedDailyLevelId: exercise.selectedDailyLevelId,
+    doseBeforeAdjustment: exercise.doseBeforeAdjustment,
+    adjustmentReasons: exercise.adjustmentReasons,
   };
 }
 

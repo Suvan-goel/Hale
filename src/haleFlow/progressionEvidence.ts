@@ -13,6 +13,7 @@ import {
   appendAppliedProgressionEventId,
   normalizeAppliedProgressionEventIds,
 } from '../training/dynamicState';
+import type { ProgressionEvidencePolicy } from '../training/dailyTrainingContext';
 import type { TrainingSessionResult, TrainingItemResult } from '../training/sessionPlayer';
 import {
   updateLadderProgressAfterSession,
@@ -64,7 +65,8 @@ export type ProgressionExclusionReason =
   | 'malformed_completion'
   | 'source_mismatch'
   | 'unknown_source'
-  | 'missing_feedback';
+  | 'missing_feedback'
+  | 'progression_policy_ineligible';
 
 export type ExerciseProgressionExclusionReason =
   | 'missing_result'
@@ -89,6 +91,7 @@ export type ProgressionDiagnosticReason =
   | ExerciseProgressionExclusionReason
   | 'conflicting_ladder_levels'
   | 'duplicate_progression_event'
+  | 'progression_held_by_policy'
   | 'progression_applied'
   | 'progression_application_failed';
 
@@ -102,6 +105,7 @@ export type ProgressionEvidenceEligibility =
       templateId: string;
       plannedDateKey?: string;
       sessionType: SupportedMainPlanProgressionSessionType;
+      progressionEvidencePolicy: Exclude<ProgressionEvidencePolicy, 'ineligible'>;
     }
   | {
       eligible: false;
@@ -160,6 +164,7 @@ export interface ProgressionEvidenceDiagnostic {
   source?: string;
   stimulusRole?: SlotStimulusRole;
   decisionKind?: ProgressionDecisionKind;
+  progressionEvidencePolicy?: ProgressionEvidencePolicy;
   beforeLevelId?: string;
   afterLevelId?: string;
 }
@@ -237,6 +242,11 @@ export function classifyProgressionEvidenceEligibility(input: {
     return { eligible: false, reason: 'source_mismatch' };
   }
 
+  const progressionEvidencePolicy = sessionPlan.metadata?.progressionEvidencePolicy ?? 'ineligible';
+  if (progressionEvidencePolicy === 'ineligible') {
+    return { eligible: false, reason: 'progression_policy_ineligible' };
+  }
+
   const workEvidence = input.workEvidence;
   if (workEvidence && !workEvidence.hasCompletedPlannedExercise) {
     return { eligible: false, reason: 'zero_work' };
@@ -249,6 +259,7 @@ export function classifyProgressionEvidenceEligibility(input: {
     templateId: completionClassification.event.templateId,
     plannedDateKey: completionClassification.event.plannedDateKey,
     sessionType: completion.sessionType as SupportedMainPlanProgressionSessionType,
+    progressionEvidencePolicy,
   };
 }
 
@@ -434,7 +445,8 @@ export function aggregateProgressionEvidenceByLadder(input: {
 
 export function applyProgressionEvidence(
   state: AuthoritativeLadderProgressState,
-  evidenceEvents: readonly LadderProgressionEvidenceEvent[]
+  evidenceEvents: readonly LadderProgressionEvidenceEvent[],
+  policy: Exclude<ProgressionEvidencePolicy, 'ineligible'> = 'normal'
 ): ProgressionEvidenceApplicationResult {
   let ladderProgressById: Record<string, LadderProgress> = { ...(state.ladderProgressById ?? {}) };
   let appliedProgressionEventIds = normalizeAppliedProgressionEventIds(state.appliedProgressionEventIds);
@@ -447,6 +459,29 @@ export function applyProgressionEvidence(
     if (appliedProgressionEventIds.includes(event.progressionEventId)) {
       skippedDuplicateEvents.push(event);
       diagnostics.push(diagnosticForEvent(event, 'duplicate_progression_event'));
+      continue;
+    }
+
+    if (policy === 'hold_only' && !requiresConservativeProgressionApplication(event)) {
+      appliedProgressionEventIds = appendAppliedProgressionEventId(
+        appliedProgressionEventIds,
+        event.progressionEventId
+      );
+      appliedEvents.push(event);
+      decisions.push({
+        progressionEventId: event.progressionEventId,
+        ladderId: event.ladderId,
+        decisionKind: 'held',
+        beforeLevelId: ladderProgressById[event.ladderId]?.currentLevelId,
+        afterLevelId: ladderProgressById[event.ladderId]?.currentLevelId,
+      });
+      diagnostics.push({
+        ...diagnosticForEvent(event, 'progression_held_by_policy'),
+        decisionKind: 'held',
+        progressionEvidencePolicy: policy,
+        beforeLevelId: ladderProgressById[event.ladderId]?.currentLevelId,
+        afterLevelId: ladderProgressById[event.ladderId]?.currentLevelId,
+      });
       continue;
     }
 
@@ -484,6 +519,7 @@ export function applyProgressionEvidence(
     diagnostics.push({
       ...diagnosticForEvent(event, 'progression_applied'),
       decisionKind,
+      progressionEvidencePolicy: policy,
       beforeLevelId: before?.currentLevelId,
       afterLevelId: after?.currentLevelId,
     });
@@ -600,7 +636,11 @@ export function applyProgressionEvidenceFromSession(input: {
     exerciseEvidence,
     completedAt: input.completion.completedAt,
   });
-  const application = applyProgressionEvidence(previousState, aggregated.events);
+  const application = applyProgressionEvidence(
+    previousState,
+    aggregated.events,
+    eligibility.progressionEvidencePolicy
+  );
 
   return {
     ...application,
@@ -816,6 +856,18 @@ function progressionDecisionKind(
   if (afterIndex > beforeIndex) return 'progressed';
   if (afterIndex < beforeIndex) return 'regressed';
   return 'held';
+}
+
+function requiresConservativeProgressionApplication(event: LadderProgressionEvidenceEvent): boolean {
+  const result = event.result;
+  return (
+    result.painReported === true ||
+    result.trackingQuality === 'poor' ||
+    (typeof result.completionRate === 'number' && result.completionRate < 0.6) ||
+    result.perceivedEffort === 5 ||
+    result.validTime?.signal === 'incomplete' ||
+    result.validTime?.signal === 'tracking_uncertain'
+  );
 }
 
 function levelIndexForProgress(progress: LadderProgress): number {

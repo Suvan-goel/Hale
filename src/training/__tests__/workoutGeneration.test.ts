@@ -1,13 +1,16 @@
 import {
   BALANCE_FEET_TOGETHER_ID,
+  BALANCE_SINGLE_LEG_ID,
   BALANCE_TANDEM_ID,
   BRIDGE_HOLD_ID,
   HINGE_FREE_ID,
+  LOADED_MARCH_ID,
   SEATED_BAND_ROW_ID,
   STANDING_BAND_ROW_ID,
   STEP_UP_ID,
   PUSHUP_INCLINE_ID,
   PUSHUP_STANDARD_ID,
+  STS_POWER_ID,
   STS_SLOW_ECC_ID,
   STS_STANDARD_ID,
 } from '../../exercises';
@@ -344,6 +347,95 @@ describe('dynamic workout generation', () => {
     expect(session.exercises.map((exercise) => exercise.ladderId)).not.toContain('step-up');
     expect(session.exercises.map((exercise) => exercise.exerciseId).join(' ')).not.toMatch(/split_squat|loaded_sit_to_stand/);
     expect(session.guidance.join(' ')).not.toMatch(/diagnosis|treatment|fall risk|frailty|medical-grade/i);
+  });
+
+  it('blocks shoulder rows and overhead work through the centralized discomfort policy', () => {
+    const template = createSessionTemplatesForFocus('strength_power')[0];
+    const session = generateTodaySession({
+      template,
+      dailyReadiness: 'something_hurts',
+      painAreas: ['shoulder'],
+      today: START,
+      availableEquipment: ['chair', 'wall', 'resistance_band', 'door_anchor'],
+    });
+
+    expect(session.progressionEvidencePolicy).toBe('hold_only');
+    expect(session.exercises.map((exercise) => exercise.exerciseId)).not.toEqual(
+      expect.arrayContaining([SEATED_BAND_ROW_ID, STANDING_BAND_ROW_ID, 'band-pull-apart', 'overhead-reach', 'overhead-press-band'])
+    );
+    expect(session.slotStimulus.find((stimulus) => stimulus.slotType === 'upper_body_pull')).toMatchObject({
+      role: 'skipped',
+      reason: 'safety_limited',
+    });
+  });
+
+  it('blocks ankle/foot-sensitive balance, marching, lateral, step, and calf work', () => {
+    const template = createSessionTemplatesForFocus('balance_stability')[2];
+    const session = generateTodaySession({
+      template,
+      dailyReadiness: 'something_hurts',
+      painAreas: ['ankle'],
+      today: START,
+      availableEquipment: ['chair', 'wall', 'stairs'],
+      ladderProgress: {
+        balance: progress('balance', BALANCE_SINGLE_LEG_ID),
+      },
+    });
+
+    const ids = session.exercises.map((exercise) => exercise.exerciseId);
+    expect(ids).not.toContain(BALANCE_SINGLE_LEG_ID);
+    expect(ids).not.toContain(LOADED_MARCH_ID);
+    expect(session.exercises.map((exercise) => exercise.ladderId)).not.toEqual(
+      expect.arrayContaining(['heel-toe-raise', 'lateral-stability', 'step-up'])
+    );
+  });
+
+  it('fails closed for malformed daily inputs by producing a non-credit supporting session', () => {
+    const template = createSessionTemplatesForFocus('strength_power')[0];
+    const session = generateTodaySession({
+      template,
+      dailyReadiness: 'unknown' as never,
+      painAreas: ['elbow'] as never,
+      today: START,
+      availableEquipment: ['chair', 'wall', 'resistance_band', 'door_anchor'],
+    });
+
+    expect(session.dailyContext?.inputStatus).toBe('malformed_fail_closed');
+    expect(session.progressionEvidencePolicy).toBe('ineligible');
+    expect(session.slotStimulus.every((stimulus) => stimulus.role !== 'primary')).toBe(true);
+    expect(session.guidance.join(' ')).toMatch(/cautious supporting plan/);
+  });
+
+  it('temporarily lowers daily level for low readiness without mutating stored ladder progress', () => {
+    const template = createSessionTemplatesForFocus('strength_power')[0];
+    const ladderProgress = {
+      'sit-to-stand': progress('sit-to-stand', STS_POWER_ID),
+    };
+    const session = generateTodaySession({
+      template,
+      dailyReadiness: 'low_energy',
+      today: START,
+      availableEquipment: ['chair', 'wall'],
+      ladderProgress,
+    });
+    const strength = session.exercises.find((exercise) => exercise.ladderId === 'sit-to-stand');
+
+    expect(session.progressionEvidencePolicy).toBe('hold_only');
+    expect(strength?.requestedLevelId).toBe(STS_POWER_ID);
+    expect(strength?.selectedDailyLevelId).toBe(STS_SLOW_ECC_ID);
+    expect(strength?.sets).toBeLessThanOrEqual(strength?.doseBeforeAdjustment?.sets ?? Infinity);
+    expect(ladderProgress['sit-to-stand'].currentLevelId).toBe(STS_POWER_ID);
+  });
+
+  it('keeps fully ready sessions normal for progression policy', () => {
+    const session = generateTodaySession({
+      block: createTrainingBlockFromAssessment({ focusDomain: 'strength_power', startDate: START }),
+      today: START,
+      availableEquipment: ['chair', 'wall'],
+    });
+
+    expect(session.dailyContext).toMatchObject({ readiness: 'ready', inputStatus: 'valid' });
+    expect(session.progressionEvidencePolicy).toBe('normal');
   });
 
   it('progresses after two easy complete sessions at the same level', () => {

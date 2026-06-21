@@ -354,6 +354,7 @@ function sanitizeCompletion(completion: TrainingSessionCompletion): BackendJson 
     mainPlanCredit: completion.mainPlanCredit,
     workEvidence: completion.workEvidence,
     focusStimulusEvidence: completion.focusStimulusEvidence,
+    progressionEvidencePolicy: completion.progressionEvidencePolicy,
     durationMinutes: completion.durationMinutes,
     perceivedEffort: completion.perceivedEffort,
     painReported: completion.painReported,

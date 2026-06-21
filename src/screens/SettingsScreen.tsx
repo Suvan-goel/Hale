@@ -4,7 +4,7 @@
  */
 
 import * as React from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import type { AvailableEquipment, SupportConnection } from '../adherence';
@@ -136,6 +136,7 @@ function SettingsScreenContent({
     ? sharingLevelLabel(supportConnection.sharingLevel)
     : sharingLevelLabel(settings.supportSharingLevel);
   const sharingSummary = `Support circle: ${supportSharingLabel}`;
+  const showDeveloperSettings = __DEV__;
 
   React.useEffect(() => setName(profile.name), [profile.name]);
   React.useEffect(() => setGoal(profile.goal), [profile.goal]);
@@ -448,14 +449,11 @@ function SettingsScreenContent({
         accessibilityLabel="Edit personal details"
       >
         <View style={styles.avatar}>
-          <MovementMark />
+          <ProfilePicturePlaceholder />
         </View>
         <View style={styles.profileCopy}>
           <View style={styles.profileNameRow}>
             <Text style={styles.profileName} numberOfLines={1}>{displayName}</Text>
-            <View style={styles.signedPill}>
-              <Text style={styles.signedPillText}>Local</Text>
-            </View>
           </View>
           <Text style={styles.profileAge}>{profile.age === null ? 'Age not set' : `Age ${profile.age}`}</Text>
           <View style={styles.goalRow}>
@@ -529,22 +527,32 @@ function SettingsScreenContent({
         />
       </SettingsSection>
 
-      {onReplayOnboardingForDev ? (
-        <Pressable
-          style={({ pressed }) => [styles.devOnboardingButton, pressed && styles.pressed]}
-          onPress={onReplayOnboardingForDev}
-          accessibilityRole="button"
-          accessibilityLabel="Replay onboarding flow for development"
-        >
-          <View style={styles.devOnboardingIcon}>
+      {showDeveloperSettings ? (
+        <SettingsSection title="Developer">
+          <View style={[styles.menuRow, styles.menuDivider]}>
             <MenuIcon name="sliders" />
+            <View style={styles.menuCopy}>
+              <Text style={styles.menuTitle}>Use mock app data</Text>
+              <Text style={styles.menuSubtitle}>Preview Hale after a check-up and a few completed sessions.</Text>
+            </View>
+            <Switch
+              value={settings.devMockDataEnabled}
+              onValueChange={(enabled) => onSettingsChange({ ...settings, devMockDataEnabled: enabled })}
+              trackColor={{ false: colors.borderHairline, true: colors.sage }}
+              thumbColor={settings.devMockDataEnabled ? colors.accent : colors.bgSurface}
+              ios_backgroundColor={colors.borderHairline}
+              accessibilityLabel="Use mock app data"
+            />
           </View>
-          <View style={styles.devOnboardingCopy}>
-            <Text style={styles.devOnboardingTitle}>Replay onboarding</Text>
-            <Text style={styles.devOnboardingBody}>Development only. Opens the first-run flow without clearing app data.</Text>
-          </View>
-          <Text style={styles.devOnboardingChevron}>{'>'}</Text>
-        </Pressable>
+          {onReplayOnboardingForDev ? (
+            <ProfileMenuRow
+              title="Replay onboarding"
+              subtitle="Open the first-run flow without clearing app data."
+              icon="sliders"
+              onPress={onReplayOnboardingForDev}
+            />
+          ) : null}
+        </SettingsSection>
       ) : null}
     </Screen>
   );
@@ -1356,28 +1364,30 @@ function equipmentSummary({
   return `${base} + ${optionalCount} optional`;
 }
 
-function MovementMark() {
+function ProfilePicturePlaceholder() {
   return (
-    <Svg width={58} height={58} viewBox="0 0 64 64" fill="none">
+    <Svg width={38} height={38} viewBox="0 0 64 64" fill="none">
       <Path
-        d="M34 9 C32 18, 23 20, 23 29 C23 34, 28 37, 33 39"
+        d="M17 24 H23.5 L27.5 18.8 H36.5 L40.5 24 H47 C50 24 52 26 52 29 V44.5 C52 47.5 50 49.5 47 49.5 H17 C14 49.5 12 47.5 12 44.5 V29 C12 26 14 24 17 24 Z"
         stroke={colors.accentDeep}
-        strokeWidth={2.4}
+        strokeWidth={3.2}
         strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Circle
+        cx={32}
+        cy={37}
+        r={8}
+        stroke={colors.accentDeep}
+        strokeWidth={3.2}
+        fill="none"
       />
       <Path
-        d="M38 16 C35 23, 32 27, 25 31 C18 35, 17 43, 12 49"
+        d="M43.5 29.5 H44"
         stroke={colors.accentDeep}
-        strokeWidth={2.4}
+        strokeWidth={3.2}
         strokeLinecap="round"
       />
-      <Path
-        d="M29 28 C37 32, 41 38, 42 48"
-        stroke={colors.accentDeep}
-        strokeWidth={2.4}
-        strokeLinecap="round"
-      />
-      <Circle cx={30} cy={18} r={3.1} fill={colors.accentDeep} />
     </Svg>
   );
 }
@@ -1533,7 +1543,7 @@ const styles = StyleSheet.create({
     borderRadius: 41,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EEEDE2',
+    backgroundColor: colors.bgBase,
   },
   profileCopy: {
     flex: 1,
@@ -1548,19 +1558,6 @@ const styles = StyleSheet.create({
     ...type.cardRowTitle,
     flex: 1,
     color: colors.primaryText,
-  },
-  signedPill: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 7,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accentSoft,
-    borderWidth: 1,
-    borderColor: colors.accentBorder,
-  },
-  signedPillText: {
-    ...type.caption,
-    lineHeight: 16,
-    color: colors.accentDeep,
   },
   profileAge: {
     ...type.cardBody,

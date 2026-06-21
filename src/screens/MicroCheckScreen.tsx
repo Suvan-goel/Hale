@@ -9,10 +9,15 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import {
   LandmarksEventPayload,
-  PoseDetectionView,
   PoseErrorEventPayload,
 } from '../../modules/expo-pose-detection';
 import { SfxChannel, VoiceChannel } from '../audio/voicePlayer';
+import {
+  CameraUnavailableNotice,
+  SafePoseDetectionView,
+} from '../components/SafePoseDetectionView';
+import type { CameraAvailability } from '../components/SafePoseDetectionView';
+import { PrimaryButton } from '../components/ui';
 import { PosePipeline } from '../pose/pipeline';
 import { PreflightCheck } from '../preflight/preflight';
 import { LandmarkRecorder } from '../recording/recorder';
@@ -47,10 +52,12 @@ interface Snapshot {
 export function MicroCheckScreen({
   type,
   onComplete,
+  onCancel,
   voiceId,
 }: {
   type: MicroCheckType;
   onComplete: (result: MicroCheckResult) => void;
+  onCancel?: () => void;
   voiceId?: string;
 }) {
   const [pipeline] = React.useState(() => new PosePipeline());
@@ -63,6 +70,7 @@ export function MicroCheckScreen({
   const lastUiUpdateRef = React.useRef(0);
   const completedRef = React.useRef(false);
   const [snapshot, setSnapshot] = React.useState<Snapshot>({ phase: 'preflight', repCount: 0, holdSec: NaN });
+  const [cameraAvailability, setCameraAvailability] = React.useState<CameraAvailability>('checking');
 
   React.useEffect(() => {
     if (__DEV__) recorder.start();
@@ -112,30 +120,35 @@ export function MicroCheckScreen({
 
   return (
     <View style={styles.container}>
-      <PoseDetectionView
+      <SafePoseDetectionView
         active
         modelVariant="lite"
         style={StyleSheet.absoluteFill}
         onLandmarks={onLandmarks}
         onPoseError={onPoseError}
+        onAvailabilityChange={setCameraAvailability}
       />
-      <SkeletonView
-        ref={skeletonRef}
-        mirrored
-        frameSource="raw"
-        smoothingEnabled={false}
-        pointCloudBodyDensity="high"
-        pointCloudBodyMaxDots={900}
-        pointCloudBodyDotScale={1.72}
-        confidenceFadingEnabled={false}
-        confidenceIntensityEnabled={false}
-        reacquisitionFadeEnabled={false}
-        recognitionPulseEnabled={false}
-        measurementState={avatarMeasurementState}
-        activeDomain={avatarDomain}
-        setupGuidesEnabled={false}
-        stateTransitionsEnabled={false}
-      />
+      {cameraAvailability === 'unavailable' ? (
+        <CameraUnavailableNotice />
+      ) : (
+        <SkeletonView
+          ref={skeletonRef}
+          mirrored
+          frameSource="raw"
+          smoothingEnabled={false}
+          pointCloudBodyDensity="high"
+          pointCloudBodyMaxDots={900}
+          pointCloudBodyDotScale={1.72}
+          confidenceFadingEnabled={false}
+          confidenceIntensityEnabled={false}
+          reacquisitionFadeEnabled={false}
+          recognitionPulseEnabled={false}
+          measurementState={avatarMeasurementState}
+          activeDomain={avatarDomain}
+          setupGuidesEnabled={false}
+          stateTransitionsEnabled={false}
+        />
+      )}
       <View pointerEvents="none" style={styles.hud}>
         {snapshot.phase === 'done' ? (
           <Text style={styles.caption}>Nice — that's logged.</Text>
@@ -154,6 +167,11 @@ export function MicroCheckScreen({
           </>
         )}
       </View>
+      {cameraAvailability === 'unavailable' && onCancel ? (
+        <View style={styles.unavailableAction}>
+          <PrimaryButton title="Back to Today" onPress={onCancel} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -194,4 +212,10 @@ const styles = StyleSheet.create({
   title: { ...type.h1, textAlign: 'center' },
   caption: { ...type.body, color: colors.textSecondary, marginTop: 10 },
   big: { ...type.metric, marginTop: 8 },
+  unavailableAction: {
+    position: 'absolute',
+    left: spacing.xl,
+    right: spacing.xl,
+    bottom: spacing.xl,
+  },
 });

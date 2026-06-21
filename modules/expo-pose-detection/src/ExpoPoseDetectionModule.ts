@@ -1,10 +1,11 @@
 import { NativeModule, requireNativeModule } from 'expo';
 
-import type { PermissionResponse } from './ExpoPoseDetection.types';
+import type { CameraFacing, PermissionResponse } from './ExpoPoseDetection.types';
 
 declare class ExpoPoseDetectionNativeModule extends NativeModule {
   requestCameraPermissionsAsync(): Promise<PermissionResponse>;
   getCameraPermissionsAsync(): Promise<PermissionResponse>;
+  isCameraAvailableAsync?(cameraFacing: CameraFacing): Promise<boolean>;
 }
 
 const ExpoPoseDetectionModule = requireNativeModule<ExpoPoseDetectionNativeModule>(
@@ -19,4 +20,11 @@ export function requestCameraPermissionsAsync(): Promise<PermissionResponse> {
 
 export function getCameraPermissionsAsync(): Promise<PermissionResponse> {
   return ExpoPoseDetectionModule.getCameraPermissionsAsync();
+}
+
+export function isCameraAvailableAsync(cameraFacing: CameraFacing = 'front'): Promise<boolean> {
+  if (typeof ExpoPoseDetectionModule.isCameraAvailableAsync !== 'function') {
+    return Promise.resolve(true);
+  }
+  return ExpoPoseDetectionModule.isCameraAvailableAsync(cameraFacing);
 }

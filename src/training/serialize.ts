@@ -26,6 +26,7 @@ import { MicroCheckResult, MicroCheckType } from './microCheck';
 import { ProgressionState, initialProgressionState } from './progression';
 import type {
   DailyReadiness,
+  GeneratedExerciseDose,
   LadderProgress,
   PainArea,
   SessionSlotType,
@@ -34,6 +35,12 @@ import type {
   TrackingQuality,
   TrainingDomain,
 } from './workoutGeneration';
+import type {
+  DailyTrainingInputStatus,
+  DailyTrainingReasonCode,
+  NormalizedDailyTrainingContext,
+  ProgressionEvidencePolicy,
+} from './dailyTrainingContext';
 
 export const TRAINING_SCHEMA_VERSION = 4;
 
@@ -172,6 +179,21 @@ function validTrainingPlanPreferences(v: unknown): TrainingPlanPreferences {
 const TRACKING_QUALITIES: TrackingQuality[] = ['good', 'usable', 'poor'];
 const PAIN_AREAS: PainArea[] = ['knee', 'hip', 'back', 'shoulder', 'ankle', 'neck', 'other'];
 const READINESS: DailyReadiness[] = ['ready', 'a_bit_stiff', 'low_energy', 'something_hurts', 'short_on_time'];
+const DAILY_INPUT_STATUSES: DailyTrainingInputStatus[] = ['valid', 'defaulted_cautious', 'malformed_fail_closed'];
+const PROGRESSION_EVIDENCE_POLICIES: ProgressionEvidencePolicy[] = ['normal', 'hold_only', 'ineligible'];
+const DAILY_REASON_CODES: DailyTrainingReasonCode[] = [
+  'readiness_valid',
+  'readiness_missing_default_ready',
+  'readiness_missing_default_cautious',
+  'readiness_malformed_cautious',
+  'discomfort_explicit_none',
+  'discomfort_reported',
+  'discomfort_deduped',
+  'discomfort_malformed_fail_closed',
+  'legacy_context_cautious',
+  'short_on_time',
+  'reduced_readiness',
+];
 const SLOT_TYPES: SessionSlotType[] = [
   'lower_body_strength',
   'upper_body_push',
@@ -260,6 +282,11 @@ function validGeneratedSessionSummary(v: unknown): PersistedGeneratedSessionSumm
     ladderIds: Array.isArray(s.ladderIds) ? s.ladderIds.filter((id): id is string => typeof id === 'string') : undefined,
     readiness: isReadiness(s.readiness) ? s.readiness : undefined,
     painArea: isPainArea(s.painArea) ? s.painArea : undefined,
+    dailyContext: validDailyContext(s.dailyContext),
+    progressionEvidencePolicy: isProgressionEvidencePolicy(s.progressionEvidencePolicy)
+      ? s.progressionEvidencePolicy
+      : 'ineligible',
+    adjustmentReasons: validReasonCodes(s.adjustmentReasons),
     durationMinutes: finiteNumber(s.durationMinutes),
     exercises: validGeneratedExerciseSummaries(s.exercises),
     feedback: validPostSessionFeedback(s.feedback) ?? undefined,
@@ -288,6 +315,10 @@ function validGeneratedExerciseSummaries(v: unknown): PersistedGeneratedExercise
         intendedDomain: isTrainingDomain(e.intendedDomain) ? e.intendedDomain : undefined,
         stimulusRole: isStimulusRole(e.stimulusRole) ? e.stimulusRole : undefined,
         stimulusReason: isStimulusReason(e.stimulusReason) ? e.stimulusReason : undefined,
+        requestedLevelId: typeof e.requestedLevelId === 'string' ? e.requestedLevelId : undefined,
+        selectedDailyLevelId: typeof e.selectedDailyLevelId === 'string' ? e.selectedDailyLevelId : undefined,
+        doseBeforeAdjustment: validGeneratedExerciseDose(e.doseBeforeAdjustment),
+        adjustmentReasons: validReasonCodes(e.adjustmentReasons),
       };
     })
     .filter((item): item is PersistedGeneratedExerciseSummary => !!item);
@@ -423,6 +454,64 @@ function isPainArea(v: unknown): v is PainArea {
 
 function isReadiness(v: unknown): v is DailyReadiness {
   return typeof v === 'string' && READINESS.includes(v as DailyReadiness);
+}
+
+function isProgressionEvidencePolicy(v: unknown): v is ProgressionEvidencePolicy {
+  return typeof v === 'string' && PROGRESSION_EVIDENCE_POLICIES.includes(v as ProgressionEvidencePolicy);
+}
+
+function validDailyContext(v: unknown): NormalizedDailyTrainingContext | undefined {
+  if (!v || typeof v !== 'object') return undefined;
+  const c = v as Partial<NormalizedDailyTrainingContext>;
+  if (
+    !isReadiness(c.readiness) ||
+    typeof c.shortOnTime !== 'boolean' ||
+    !Array.isArray(c.discomfortAreas) ||
+    typeof c.discomfortReported !== 'boolean' ||
+    !isDailyInputStatus(c.inputStatus) ||
+    !isDailyContextSource(c.source)
+  ) {
+    return undefined;
+  }
+  return {
+    readiness: c.readiness,
+    shortOnTime: c.shortOnTime,
+    discomfortAreas: c.discomfortAreas.filter(isPainArea),
+    discomfortReported: c.discomfortReported,
+    inputStatus: c.inputStatus,
+    source: c.source,
+    reasonCodes: validReasonCodes(c.reasonCodes) ?? [],
+  };
+}
+
+function validGeneratedExerciseDose(v: unknown): GeneratedExerciseDose | undefined {
+  if (!v || typeof v !== 'object') return undefined;
+  const d = v as Partial<GeneratedExerciseDose>;
+  const sets = finiteNumber(d.sets);
+  if (typeof sets !== 'number') return undefined;
+  return {
+    sets,
+    repsPerSet: finiteNumber(d.repsPerSet),
+    secondsPerSet: finiteNumber(d.secondsPerSet),
+  };
+}
+
+function validReasonCodes(v: unknown): DailyTrainingReasonCode[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  const out = v.filter(isDailyReasonCode);
+  return out.length > 0 ? Array.from(new Set(out)) : undefined;
+}
+
+function isDailyReasonCode(v: unknown): v is DailyTrainingReasonCode {
+  return typeof v === 'string' && DAILY_REASON_CODES.includes(v as DailyTrainingReasonCode);
+}
+
+function isDailyInputStatus(v: unknown): v is DailyTrainingInputStatus {
+  return typeof v === 'string' && DAILY_INPUT_STATUSES.includes(v as DailyTrainingInputStatus);
+}
+
+function isDailyContextSource(v: unknown): v is NormalizedDailyTrainingContext['source'] {
+  return v === 'user_daily_check' || v === 'restored' || v === 'legacy_unknown';
 }
 
 function isSlotType(v: unknown): v is SessionSlotType {

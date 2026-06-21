@@ -6,6 +6,7 @@ import type {
 } from '../adherence';
 import type {
   DailyReadiness,
+  GeneratedExerciseDose,
   LadderProgress,
   PainArea,
   SessionSlotType,
@@ -15,6 +16,11 @@ import type {
   SlotStimulusReason,
   SlotStimulusRole,
 } from './workoutGeneration';
+import type {
+  DailyTrainingReasonCode,
+  NormalizedDailyTrainingContext,
+  ProgressionEvidencePolicy,
+} from './dailyTrainingContext';
 
 export type PersistedSessionSource = SessionSource | 'legacy';
 
@@ -30,6 +36,10 @@ export interface PersistedGeneratedExerciseSummary {
   intendedDomain?: TrainingDomain;
   stimulusRole?: SlotStimulusRole;
   stimulusReason?: SlotStimulusReason;
+  requestedLevelId?: string;
+  selectedDailyLevelId?: string;
+  doseBeforeAdjustment?: GeneratedExerciseDose;
+  adjustmentReasons?: readonly DailyTrainingReasonCode[];
 }
 
 export interface PersistedPostSessionFeedback {
@@ -62,6 +72,9 @@ export interface PersistedGeneratedSessionSummary {
   ladderIds?: string[];
   readiness?: DailyReadiness;
   painArea?: PainArea;
+  dailyContext?: NormalizedDailyTrainingContext;
+  progressionEvidencePolicy?: ProgressionEvidencePolicy;
+  adjustmentReasons?: readonly DailyTrainingReasonCode[];
   durationMinutes?: number;
   exercises?: PersistedGeneratedExerciseSummary[];
   feedback?: PersistedPostSessionFeedback;

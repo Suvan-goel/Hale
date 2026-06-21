@@ -52,7 +52,14 @@ export function SessionCompletionScreen({
 }) {
   const credited = completion?.mainPlanCredit === true && completion.focusStimulusEvidence?.mainPlanCredit === true;
   const restarted = completion?.sessionType === 'restart';
-  const completionCopy = sessionCompletionCopy({ block, lifeGoal, completion, credited, restarted });
+  const completionCopy = sessionCompletionCopy({
+    block,
+    lifeGoal,
+    completion,
+    credited,
+    restarted,
+    progressionEvidencePolicy: completion?.progressionEvidencePolicy,
+  });
   const [effort, setEffort] = React.useState<1 | 2 | 3 | 4 | 5 | undefined>(completion?.perceivedEffort);
   const [painReported, setPainReported] = React.useState<boolean | undefined>(completion?.painReported);
   const [painArea, setPainArea] = React.useState<PainArea | undefined>();
@@ -146,20 +153,29 @@ export function sessionCompletionCopy({
   completion,
   credited,
   restarted,
+  progressionEvidencePolicy,
 }: {
   block: MovementBlock;
   lifeGoal?: LifeGoal | null;
   completion?: TrainingSessionCompletion | null;
   credited: boolean;
   restarted: boolean;
+  progressionEvidencePolicy?: TrainingSessionCompletion['progressionEvidencePolicy'];
 }) {
   if (credited) {
+    const adjusted = progressionEvidencePolicy === 'hold_only';
     return {
       eyebrow: restarted ? 'Restart complete' : 'Session complete',
       title: restarted ? "You're back" : 'Nice work.',
       subtitle: restarted ? "That's the important part." : getProtectionCopy({ lifeGoal, focusDomain: block.focusDomain }),
-      cardTitle: restarted ? 'Clean slate, moving again' : 'This helps Hale adjust your next session.',
-      body: 'Move only in a comfortable range.',
+      cardTitle: restarted
+        ? 'Clean slate, moving again'
+        : adjusted
+          ? 'Plan credit added, level held today'
+          : 'This helps Hale adjust your next session.',
+      body: adjusted
+        ? 'The plan moved forward because safe primary work was completed. Hale will keep the exercise level steady today.'
+        : 'Move only in a comfortable range.',
     };
   }
 

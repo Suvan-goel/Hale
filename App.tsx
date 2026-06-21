@@ -2,9 +2,11 @@ import { Fraunces_400Regular, Fraunces_500Medium } from '@expo-google-fonts/frau
 import { Inter_400Regular, Inter_500Medium, useFonts } from '@expo-google-fonts/inter';
 import { StatusBar } from 'expo-status-bar';
 import * as React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { requestCameraPermissionsAsync } from './modules/expo-pose-detection';
+import { HeaderLogo } from './src/components/HeaderLogo';
 import {
   AdherenceStore,
   AdherenceStoreState,
@@ -14,6 +16,7 @@ import {
   CheckupType,
   LifeGoal,
   LifeGoalOnboardingScreen,
+  LOCAL_USER_ID,
   MovementAssessment,
   MovementBlock,
   MovementSafetyProfile,
@@ -24,6 +27,7 @@ import {
   TrainingSessionCompletionType,
   WeeklySummaryScreen,
   createMovementBlockFromAssessment,
+  createLifeGoal,
   defaultAdherenceStoreState,
   generateMilestones,
   getActiveMovementBlock,
@@ -42,9 +46,9 @@ import {
 } from './src/adherence';
 import { configureSessionAudio } from './src/audio/voicePlayer';
 import { CheckUp, mergeCheckUpRetry, retryBatteryForMissingHeadlineDomains } from './src/checkup';
-import { syntheticCheckUp } from './src/checkup/devFixture';
 import {
   createMovementAssessment,
+  createAutomaticMovementBlock,
   createMovementBlockReport,
   createGeneratedSessionSummary,
   countsTowardMainPlan,
@@ -131,7 +135,7 @@ import { OnboardingBlockScreen } from './src/screens/OnboardingBlockScreen';
 import { OnboardingEquipmentScreen } from './src/screens/OnboardingEquipmentScreen';
 import { OnboardingResultsScreen } from './src/screens/OnboardingResultsScreen';
 import { PlanScreen } from './src/screens/PlanScreen';
-import { ProgressScreen } from './src/screens/ProgressScreen';
+import { ProgressScreen, buildProgressDevMockData } from './src/screens/ProgressScreen';
 import { ResultsScreen } from './src/screens/ResultsScreen';
 import { SafetyProfileScreen } from './src/screens/SafetyProfileScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
@@ -159,7 +163,7 @@ import {
   validTimeSessionSummaryCards,
   type SessionIntensity,
 } from './src/training';
-import { colors, radius, spacing, type } from './src/theme';
+import { colors, radius, shadow, spacing, type } from './src/theme';
 
 type PermissionState = 'checking' | 'granted' | 'denied';
 /** Full-screen flows launched on top of the tab shell (hands-free sessions + dev tools). */
@@ -189,8 +193,14 @@ type Flow =
   | 'dev-assessment'
   | 'dev-live';
 
+type NavigationLocation = {
+  tab: TabKey;
+  flow: Flow | null;
+};
+
 /** Flows that mount the camera; gated on permission + audio configuration. */
 const CAMERA_FLOWS = new Set<Flow>(['checkup', 'training', 'microcheck', 'dev-assessment', 'dev-live']);
+const MAX_NAVIGATION_HISTORY_ENTRIES = 40;
 const LAUNCH_SYNC_RETRY_DELAY_MS = 5000;
 const EXPECTED_SCORING_INPUT_ISSUES = new Set<ScoringInputIssue['code']>(['no_measurement']);
 
@@ -242,6 +252,14 @@ function recordScoringInputIssues(
 
 function uniqueStrings(values: readonly string[]): string[] {
   return [...new Set(values)].sort();
+}
+
+function navigationLocation(tab: TabKey, flow: Flow | null): NavigationLocation {
+  return { tab: normalizeTabKey(tab), flow };
+}
+
+function sameNavigationLocation(a: NavigationLocation | undefined, b: NavigationLocation | undefined): boolean {
+  return !!a && !!b && a.tab === b.tab && a.flow === b.flow;
 }
 
 function blockNumberForBlocks(blocks: readonly MovementBlock[], blockId: string): number | undefined {
@@ -422,9 +440,61 @@ function HaleApp() {
   const lastSessionSyncFingerprintRef = React.useRef<string | null>(null);
   const lastMicroCheckSyncFingerprintRef = React.useRef<string | null>(null);
   const lastBlockReportSyncFingerprintRef = React.useRef<string | null>(null);
+  const autoPreparedBlockSourceRef = React.useRef<string | null>(null);
   const remoteProfileHydrationAttemptedRef = React.useRef(false);
   const remoteRestoreAttemptedRef = React.useRef(false);
   const launchSyncRetryTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const navigationHistoryRef = React.useRef<NavigationLocation[]>([]);
+  const currentLocationRef = React.useRef<NavigationLocation>(navigationLocation(DEFAULT_TAB_KEY, null));
+  const navigationInitializedRef = React.useRef(false);
+  const suppressNextHistoryPushRef = React.useRef(false);
+
+  React.useEffect(() => {
+    const next = navigationLocation(tab, flow);
+    if (!navigationInitializedRef.current) {
+      currentLocationRef.current = next;
+      navigationInitializedRef.current = true;
+      suppressNextHistoryPushRef.current = false;
+      return;
+    }
+
+    const previous = currentLocationRef.current;
+    if (sameNavigationLocation(previous, next)) {
+      suppressNextHistoryPushRef.current = false;
+      return;
+    }
+
+    if (suppressNextHistoryPushRef.current) {
+      suppressNextHistoryPushRef.current = false;
+    } else {
+      const historyStack = navigationHistoryRef.current;
+      if (!sameNavigationLocation(historyStack[historyStack.length - 1], previous)) {
+        navigationHistoryRef.current = [...historyStack, previous].slice(-MAX_NAVIGATION_HISTORY_ENTRIES);
+      }
+    }
+
+    currentLocationRef.current = next;
+  }, [flow, tab]);
+
+  const replaceNextNavigationLocation = React.useCallback(
+    (target: NavigationLocation, options: { clearHistory?: boolean } = {}) => {
+      if (options.clearHistory) {
+        navigationHistoryRef.current = [];
+      }
+      suppressNextHistoryPushRef.current = !sameNavigationLocation(currentLocationRef.current, target);
+    },
+    []
+  );
+
+  const replaceFlow = React.useCallback(
+    (nextFlow: Flow | null, nextTab: TabKey = currentLocationRef.current.tab) => {
+      const target = navigationLocation(nextTab, nextFlow);
+      replaceNextNavigationLocation(target);
+      setTab(target.tab);
+      setFlow(target.flow);
+    },
+    [replaceNextNavigationLocation]
+  );
 
   React.useEffect(() => {
     addBreadcrumb('app startup hydration started', { area: 'startup' });
@@ -611,6 +681,7 @@ function HaleApp() {
   ]);
 
   const goHome = React.useCallback(() => {
+    replaceNextNavigationLocation(navigationLocation(DEFAULT_TAB_KEY, null), { clearHistory: true });
     setDevOnboardingReplay(false);
     setFlow(null);
     setTab(DEFAULT_TAB_KEY);
@@ -621,16 +692,46 @@ function HaleApp() {
     setReportBlock(null);
     setSelectedLadderId(null);
     setSelectedLearnId(null);
-  }, []);
+  }, [replaceNextNavigationLocation]);
+
+  const goBack = React.useCallback(
+    (fallback?: () => void) => {
+      const current = currentLocationRef.current;
+      const historyStack = navigationHistoryRef.current.slice();
+      let previous = historyStack.pop();
+
+      while (previous && sameNavigationLocation(previous, current)) {
+        previous = historyStack.pop();
+      }
+
+      navigationHistoryRef.current = historyStack;
+
+      if (previous) {
+        replaceNextNavigationLocation(previous);
+        setTab(previous.tab);
+        setFlow(previous.flow);
+        return;
+      }
+
+      if (fallback) {
+        fallback();
+        return;
+      }
+
+      goHome();
+    },
+    [goHome, replaceNextNavigationLocation]
+  );
 
   const goExplore = React.useCallback(() => {
+    replaceNextNavigationLocation(navigationLocation('explore', null));
     setDevOnboardingReplay(false);
     setFlow(null);
     setTab('explore');
     setPlanningRecoveryResult(null);
     setSelectedLadderId(null);
     setSelectedLearnId(null);
-  }, []);
+  }, [replaceNextNavigationLocation]);
 
   const goSettings = React.useCallback(() => {
     setSettingsReturnTab(tab);
@@ -641,9 +742,11 @@ function HaleApp() {
   }, [tab]);
 
   const closeSettings = React.useCallback(() => {
+    const returnTab = normalizeTabKey(settingsReturnTab);
+    replaceNextNavigationLocation(navigationLocation(returnTab, null));
     setFlow(null);
-    setTab(normalizeTabKey(settingsReturnTab));
-  }, [settingsReturnTab]);
+    setTab(returnTab);
+  }, [replaceNextNavigationLocation, settingsReturnTab]);
 
   const persistTraining = React.useCallback(
     (next: TrainingState) => {
@@ -1119,14 +1222,136 @@ function HaleApp() {
     []
   );
 
+  const prepareBlockFromOfficialCheckUp = React.useCallback(
+    ({
+      baseAdherence,
+      baseTraining,
+      sourceCheckUpId,
+      score,
+      scoreSnapshot,
+      assessment,
+      nowIso,
+      source,
+    }: {
+      baseAdherence: AdherenceStoreState;
+      baseTraining: TrainingState;
+      sourceCheckUpId: string;
+      score: CheckUpScore;
+      scoreSnapshot?: VersionedCheckUpScoreSnapshot | null;
+      assessment: MovementAssessment | null | undefined;
+      nowIso: string;
+      source: string;
+    }) => {
+      const result = createAutomaticMovementBlock({
+        adherence: baseAdherence,
+        training: baseTraining,
+        sourceCheckUpId,
+        assessment,
+        score,
+        scoreSnapshot,
+        lifeGoal: prefs.profile.lifeGoal,
+        user: prefs.profile,
+        nowIso,
+      });
+      if (!result.ok) {
+        recordBlockedBlockCreation(source, result.eligibility, assessment?.type);
+        return null;
+      }
+
+      const adherenceSaved = persistAdherence(result.adherence);
+      persistTraining(result.training);
+      if (adherenceSaved && backendSignedIn) {
+        void syncMovementBlockToRemote({
+          block: result.movementBlock,
+          trainingBlock: result.trainingBlock,
+          training: result.training,
+          blockNumber: blockNumberForBlocks(result.adherence.blocks, result.movementBlock.id),
+          sourceCheckupLocalId: sourceCheckUpId,
+        });
+      }
+      return result;
+    },
+    [backendSignedIn, persistAdherence, persistTraining, prefs.profile, recordBlockedBlockCreation]
+  );
+
   const activeMovementBlock = React.useMemo(() => getActiveMovementBlock(adherence.blocks), [adherence.blocks]);
+  const devMockDataEnabled = __DEV__ && prefs.settings.devMockDataEnabled;
+  const devPreviewNowIso = React.useMemo(() => new Date().toISOString(), [devMockDataEnabled]);
+  const devMockData = React.useMemo(
+    () => (devMockDataEnabled ? buildProgressDevMockData(devPreviewNowIso) : null),
+    [devMockDataEnabled, devPreviewNowIso]
+  );
+  const displayProfile = React.useMemo(
+    () => (__DEV__ ? buildDevCompletedOnboardingProfile(prefs.profile, devPreviewNowIso) : prefs.profile),
+    [devPreviewNowIso, prefs.profile]
+  );
+  const displayPrefs = React.useMemo(
+    () =>
+      __DEV__
+        ? {
+            ...prefs,
+            profile: displayProfile,
+            onboarding: {
+              ...prefs.onboarding,
+              currentStep: 'complete' as const,
+              completedAt: prefs.onboarding.completedAt ?? devPreviewNowIso,
+              updatedAt: prefs.onboarding.updatedAt ?? devPreviewNowIso,
+            },
+          }
+        : prefs,
+    [devPreviewNowIso, displayProfile, prefs]
+  );
+  const displayHistory = __DEV__ ? devMockData?.history ?? [] : history;
+  const displayAdherence = React.useMemo(() => {
+    if (!__DEV__) return adherence;
+    if (devMockData) {
+      return {
+        ...adherence,
+        assessments: devMockData.assessments,
+        blocks: devMockData.blocks,
+        reports: devMockData.reports,
+        completions: devMockData.completions,
+      };
+    }
+    return {
+      ...adherence,
+      assessments: [],
+      blocks: [],
+      reports: [],
+      completions: [],
+    };
+  }, [adherence, devMockData]);
+  const displayTraining = React.useMemo(() => {
+    if (!__DEV__) return training;
+    if (devMockData) {
+      return {
+        ...training,
+        ladderProgressById: devMockData.ladderProgressById,
+      };
+    }
+    return {
+      ...defaultTrainingState(),
+      equipment: training.equipment,
+      planPreferences: training.planPreferences,
+    };
+  }, [devMockData, training]);
+  const displayActiveMovementBlock = React.useMemo(
+    () => getActiveMovementBlock(displayAdherence.blocks),
+    [displayAdherence.blocks]
+  );
   const displayMovementBlock = React.useMemo(
     () => activeMovementBlock ?? getLatestMovementBlock(adherence.blocks),
     [activeMovementBlock, adherence.blocks]
   );
   const onboardingStep = React.useMemo(
-    () => deriveOnboardingStep({ prefs, history, assessments: adherence.assessments, activeBlock: activeMovementBlock }),
-    [activeMovementBlock, adherence.assessments, history, prefs]
+    () =>
+      deriveOnboardingStep({
+        prefs: displayPrefs,
+        history: displayHistory,
+        assessments: displayAdherence.assessments,
+        activeBlock: displayActiveMovementBlock,
+      }),
+    [displayActiveMovementBlock, displayAdherence.assessments, displayHistory, displayPrefs]
   );
   const onboardingIncomplete = onboardingStep !== 'complete';
   const onboardingFlowActive = onboardingIncomplete || devOnboardingReplay;
@@ -1149,14 +1374,51 @@ function HaleApp() {
     () => (visibleResult ? assessmentForCheckUp(adherence.assessments, visibleResult.startedAt) : null),
     [adherence.assessments, visibleResult]
   );
+  const showingPendingOnboardingResult =
+    !prefs.onboarding.completedAt && (prefs.onboarding.currentStep === 'results' || prefs.onboarding.currentStep === 'create_block');
   const showOnboardingResult =
-    onboardingFlowActive && (prefs.onboarding.currentStep === 'results' || prefs.onboarding.currentStep === 'create_block');
+    (onboardingFlowActive || showingPendingOnboardingResult) &&
+    (prefs.onboarding.currentStep === 'results' || prefs.onboarding.currentStep === 'create_block');
 
   React.useEffect(() => {
     if (!historyReady || !profileReady || !adherenceReady || !restoreReady || flow !== null) return;
     const nextFlow = flowForOnboardingStep(onboardingStep);
-    if (nextFlow) setFlow(nextFlow);
-  }, [adherenceReady, flow, historyReady, onboardingStep, profileReady, restoreReady]);
+    if (nextFlow) {
+      replaceNextNavigationLocation(navigationLocation(currentLocationRef.current.tab, nextFlow));
+      setFlow(nextFlow);
+    }
+  }, [adherenceReady, flow, historyReady, onboardingStep, profileReady, replaceNextNavigationLocation, restoreReady]);
+
+  React.useEffect(() => {
+    if (!historyReady || !adherenceReady || !trainingReady || !restoreReady || activeMovementBlock) return;
+    const official = latestUsableOfficialCheckUpRecord(history, adherence.assessments);
+    if (!official) return;
+
+    const sourceKey = `${official.record.checkUp.startedAt}:${official.assessment.id}`;
+    if (autoPreparedBlockSourceRef.current === sourceKey) return;
+    autoPreparedBlockSourceRef.current = sourceKey;
+
+    prepareBlockFromOfficialCheckUp({
+      baseAdherence: adherence,
+      baseTraining: training,
+      sourceCheckUpId: official.record.checkUp.startedAt,
+      score: official.score,
+      scoreSnapshot: official.scoreSnapshot,
+      assessment: official.assessment,
+      nowIso: new Date().toISOString(),
+      source: 'automatic_missing_block_repair',
+    });
+  }, [
+    activeMovementBlock,
+    adherence,
+    adherenceReady,
+    history,
+    historyReady,
+    prepareBlockFromOfficialCheckUp,
+    restoreReady,
+    training,
+    trainingReady,
+  ]);
 
   const onProfileChange = React.useCallback(
     (profile: UserProfile) => persistPrefs({ ...prefs, profile }),
@@ -1307,8 +1569,8 @@ function HaleApp() {
   const newestMilestone = React.useMemo(() => latestMilestone(adherence), [adherence]);
   // Scored most-recent check-up, for Home's progress snapshot and adherence milestones.
   const lastScore: CheckUpScore | null = React.useMemo(() => {
-    return latestUsableOfficialCheckUpRecord(history, adherence.assessments)?.score ?? null;
-  }, [adherence.assessments, history]);
+    return latestUsableOfficialCheckUpRecord(displayHistory, displayAdherence.assessments)?.score ?? null;
+  }, [displayAdherence.assessments, displayHistory]);
 
   const latestAssessment: MovementAssessment | null = React.useMemo(() => {
     return latestUsableOfficialAssessment(adherence.assessments);
@@ -1317,13 +1579,13 @@ function HaleApp() {
   const lifecycle = React.useMemo(
     () =>
       getHaleAppLifecycle({
-        profile: prefs.profile,
-        history,
-        training,
-        adherence,
+        profile: displayPrefs.profile,
+        history: displayHistory,
+        training: displayTraining,
+        adherence: displayAdherence,
         today: new Date().toISOString(),
       }),
-    [adherence, history, prefs.profile, training]
+    [displayAdherence, displayHistory, displayPrefs.profile, displayTraining]
   );
 
   const requestCameraPermission = React.useCallback(() => {
@@ -1450,7 +1712,7 @@ function HaleApp() {
           recordBlockedBlockCreation('official_retest_completion', eligibility, checkupType);
           persistAdherence(nextAdherence);
           setPendingCheckup(null);
-          setFlow('results');
+          replaceFlow('results');
           return;
         }
         const completion = makeTrainingSessionCompletion({ block, sessionType: 'retest', completedAt, plannedDate: 'retest' });
@@ -1528,9 +1790,26 @@ function HaleApp() {
         setLastCompletion(completion);
         setReportBlock(updatedBlock);
         setPendingCheckup(null);
-        setFlow('block-report');
+        replaceFlow('block-report');
       } else {
-        persistAdherence(nextAdherence);
+        const preparedBlock = eligibility.eligible
+          ? prepareBlockFromOfficialCheckUp({
+              baseAdherence: nextAdherence,
+              baseTraining: training,
+              sourceCheckUpId: checkUp.startedAt,
+              score,
+              scoreSnapshot,
+              assessment,
+              nowIso: completedAt,
+              source: 'official_checkup_completion',
+            })
+          : null;
+        if (!preparedBlock) {
+          if (!eligibility.eligible && assessment.isOfficialForProgress) {
+            recordBlockedBlockCreation('official_checkup_completion', eligibility, checkupType);
+          }
+          persistAdherence(nextAdherence);
+        }
         if (onboardingFlowActive) {
           persistPrefs({
             ...prefs,
@@ -1543,88 +1822,62 @@ function HaleApp() {
           });
         }
         setPendingCheckup(null);
-        setFlow('results');
+        replaceFlow('results');
       }
     },
-    [activeMovementBlock, adherence, backendSignedIn, history, onboardingFlowActive, pendingCheckup, persistAdherence, persistPrefs, persistTraining, prefs, recordBlockedBlockCreation, store, training]
+    [
+      activeMovementBlock,
+      adherence,
+      backendSignedIn,
+      history,
+      onboardingFlowActive,
+      pendingCheckup,
+      persistAdherence,
+      persistPrefs,
+      persistTraining,
+      prepareBlockFromOfficialCheckUp,
+      prefs,
+      recordBlockedBlockCreation,
+      replaceFlow,
+      store,
+      training,
+    ]
   );
 
-  const skipOnboardingCheckUpForDev = React.useCallback(() => {
-    if (!__DEV__) return;
-    handleCheckUpComplete(syntheticCheckUp(), {
-      type: 'baseline',
-      isOfficialForProgress: true,
-    });
-  }, [handleCheckUpComplete]);
-
-  // From Results: build a block biased to the weakest domain and begin it.
-  const handleStartPlan = React.useCallback((mode: 'standard' | 'onboarding' = 'standard') => {
-    const sourceResult = visibleResult;
-    const score = visibleResultScore;
-    const scoreSnapshot = visibleResultSnapshot;
-    if (!sourceResult || !score) return;
+  const deferOnboardingCheckUp = React.useCallback(() => {
     const now = new Date().toISOString();
-    const sourceAssessment = assessmentForCheckUp(adherence.assessments, sourceResult.startedAt);
-    const eligibility = getBlockCreationEligibility({ score, scoreSnapshot, assessment: sourceAssessment });
-    if (!eligibility.eligible) {
-      recordBlockedBlockCreation('start_plan', eligibility, sourceAssessment?.type);
-      setLastResult(sourceResult);
-      setLastResultScore(score);
-      setLastResultScoreSnapshot(scoreSnapshot);
-      setLastResultCheckupType(sourceAssessment?.type ?? null);
-      setFlow('results');
-      return;
-    }
-    const block = buildBlock(score, training.equipment, now);
-    const movementBlock = createMovementBlockFromAssessment({
-      latestAssessment: { score, scoreSnapshot, id: sourceResult.startedAt, assessment: sourceAssessment },
-      lifeGoal: prefs.profile.lifeGoal,
-      startDate: now,
+    persistPrefs({
+      ...prefs,
+      onboarding: {
+        ...prefs.onboarding,
+        currentStep: 'complete',
+        completedAt: now,
+        updatedAt: now,
+      },
     });
-    let nextAdherence = upsertMovementBlock(adherence, movementBlock);
-    nextAdherence = mergeMilestones(
-      nextAdherence,
-      generateMilestones({
-        user: prefs.profile,
-        block: movementBlock,
-        lifeGoal: prefs.profile.lifeGoal,
-        latestAssessment: score,
-        completions: nextAdherence.completions,
-        existing: nextAdherence.milestones,
-        nowIso: now,
-      })
-    );
-    const adherenceSaved = persistAdherence(nextAdherence);
-    const nextTraining = startBlock(training, block);
-    persistTraining(nextTraining);
-    if (adherenceSaved && backendSignedIn) {
-      void syncMovementBlockToRemote({
-        block: movementBlock,
-        trainingBlock: block,
-        training: nextTraining,
-        blockNumber: blockNumberForBlocks(nextAdherence.blocks, movementBlock.id),
-        sourceCheckupLocalId: sourceResult.startedAt,
-      });
-    }
-    setLastResult(sourceResult);
-    setLastResultScore(score);
-    setLastResultScoreSnapshot(scoreSnapshot);
-    if (mode === 'onboarding') {
-      setDevOnboardingReplay(false);
-      persistPrefs({
-        ...prefs,
-        onboarding: {
-          ...prefs.onboarding,
-          currentStep: 'complete',
-          completedAt: now,
-          updatedAt: now,
-        },
-      });
+    setPendingCheckup(null);
+    goHome();
+  }, [goHome, persistPrefs, prefs]);
+
+  const handleOnboardingResultsContinue = React.useCallback(() => {
+    const now = new Date().toISOString();
+    setDevOnboardingReplay(false);
+    persistPrefs({
+      ...prefs,
+      onboarding: {
+        ...prefs.onboarding,
+        currentStep: 'complete',
+        completedAt: prefs.onboarding.completedAt ?? now,
+        updatedAt: now,
+      },
+    });
+    if (displayMovementBlock) {
       setFlow('onboarding-block');
     } else {
-      setFlow('block-intro');
+      setFlow(null);
+      setTab('plan');
     }
-  }, [adherence, backendSignedIn, persistAdherence, persistPrefs, persistTraining, prefs, recordBlockedBlockCreation, training, visibleResult, visibleResultScore, visibleResultSnapshot]);
+  }, [displayMovementBlock, persistPrefs, prefs]);
 
   const handleStartSession = React.useCallback(
     (
@@ -1770,6 +2023,7 @@ function HaleApp() {
         focusPlanStatus: focusEvidence.planStatus,
         focusCompletionStatus: focusEvidence.status,
         focusExclusionReason: focusEvidence.exclusionReason,
+        progressionEvidencePolicy: sessionPlan?.metadata?.progressionEvidencePolicy,
         plannedPrimaryFocusExerciseCount: focusEvidence.plannedPrimaryFocusExerciseCount,
         completedPrimaryFocusExerciseCount: focusEvidence.completedPrimaryFocusExerciseCount,
         completedExerciseCount: evidence.completedExerciseCount,
@@ -1818,6 +2072,7 @@ function HaleApp() {
             mainPlanCredit: true,
             workEvidence: summarizedEvidence,
             focusStimulusEvidence: summarizedFocusEvidence,
+            progressionEvidencePolicy: sessionPlan?.metadata?.progressionEvidencePolicy,
           });
           let nextAdherence = recordTrainingSessionCompletion(adherence, completion);
           const updatedBlock = nextAdherence.blocks.find((b) => b.id === block.id) ?? block;
@@ -1865,10 +2120,11 @@ function HaleApp() {
               mainPlanCredit: false,
               workEvidence: summarizedEvidence,
               focusStimulusEvidence: summarizedFocusEvidence,
+              progressionEvidencePolicy: sessionPlan?.metadata?.progressionEvidencePolicy,
             })
           );
         }
-        setFlow('session-complete');
+        replaceFlow('session-complete');
       } else {
         goHome();
       }
@@ -1883,6 +2139,7 @@ function HaleApp() {
       persistAdherence,
       persistTraining,
       prefs.profile,
+      replaceFlow,
       sessionType,
       training,
     ]
@@ -2024,6 +2281,7 @@ function HaleApp() {
               sessionType: diagnostic.sessionType,
               source: diagnostic.source,
               stimulusRole: diagnostic.stimulusRole,
+              progressionEvidencePolicy: diagnostic.progressionEvidencePolicy,
               decisionKind: diagnostic.decisionKind,
               beforeLevelId: diagnostic.beforeLevelId,
               afterLevelId: diagnostic.afterLevelId,
@@ -2189,9 +2447,17 @@ function HaleApp() {
     const score = official.score;
     const scoreSnapshot = official.scoreSnapshot;
     const sourceAssessment = official.assessment;
-    const eligibility = getBlockCreationEligibility({ score, scoreSnapshot, assessment: sourceAssessment });
-    if (!eligibility.eligible) {
-      recordBlockedBlockCreation('start_next_block', eligibility, sourceAssessment?.type);
+    const preparedBlock = prepareBlockFromOfficialCheckUp({
+      baseAdherence: adherence,
+      baseTraining: training,
+      sourceCheckUpId: sourceResult.startedAt,
+      score,
+      scoreSnapshot,
+      assessment: sourceAssessment,
+      nowIso: now,
+      source: 'start_next_block',
+    });
+    if (!preparedBlock) {
       setLastResult(sourceResult);
       setLastResultScore(score);
       setLastResultScoreSnapshot(scoreSnapshot);
@@ -2199,42 +2465,11 @@ function HaleApp() {
       setFlow('results');
       return;
     }
-    const block = buildBlock(score, training.equipment, now);
-    const movementBlock = createMovementBlockFromAssessment({
-      latestAssessment: { score, scoreSnapshot, id: sourceResult.startedAt, assessment: sourceAssessment },
-      lifeGoal: prefs.profile.lifeGoal,
-      startDate: now,
-    });
-    let nextAdherence = upsertMovementBlock(adherence, movementBlock);
-    nextAdherence = mergeMilestones(
-      nextAdherence,
-      generateMilestones({
-        user: prefs.profile,
-        block: movementBlock,
-        lifeGoal: prefs.profile.lifeGoal,
-        latestAssessment: score,
-        completions: nextAdherence.completions,
-        existing: nextAdherence.milestones,
-        nowIso: now,
-      })
-    );
     setLastResult(sourceResult);
     setLastResultScore(score);
     setLastResultScoreSnapshot(scoreSnapshot);
-    const adherenceSaved = persistAdherence(nextAdherence);
-    const nextTraining = startBlock(training, block);
-    persistTraining(nextTraining);
-    if (adherenceSaved && backendSignedIn) {
-      void syncMovementBlockToRemote({
-        block: movementBlock,
-        trainingBlock: block,
-        training: nextTraining,
-        blockNumber: blockNumberForBlocks(nextAdherence.blocks, movementBlock.id),
-        sourceCheckupLocalId: sourceResult.startedAt,
-      });
-    }
     setFlow('block-intro');
-  }, [adherence, backendSignedIn, history, persistAdherence, persistTraining, prefs.profile, recordBlockedBlockCreation, training]);
+  }, [adherence, history, prepareBlockFromOfficialCheckUp, training]);
 
   const handlePlanningRecoveryAction = React.useCallback(
     (action: GenerationRecoveryAction | undefined) => {
@@ -2450,21 +2685,11 @@ function HaleApp() {
   // Camera flows need permission + audio first; everything else renders freely.
   if (flow !== null && CAMERA_FLOWS.has(flow) && !cameraReady) {
     return (
-      <View style={styles.container}>
-        <StatusBar style="dark" />
-        <View style={styles.message}>
-          <Text style={styles.text}>
-            {permission === 'checking' || !audioReady
-              ? 'Getting ready…'
-              : 'Camera access is needed to estimate your movement. Video is never shown or stored — you appear only as a skeleton outline.'}
-          </Text>
-          {permission === 'denied' ? (
-            <Pressable style={styles.back} onPress={goHome} accessibilityRole="button" accessibilityLabel="Back to Today">
-              <Text style={styles.backText}>Back</Text>
-            </Pressable>
-          ) : null}
-        </View>
-      </View>
+      <CameraReadinessGate
+        permission={permission}
+        audioReady={audioReady}
+        onBack={() => goBack(goHome)}
+      />
     );
   }
 
@@ -2484,28 +2709,28 @@ function HaleApp() {
           <SafetyProfileScreen
             profile={prefs.profile}
             onSave={onSafetyProfileSave}
-            onCancel={() => (onboardingFlowActive ? setFlow('life-goal') : goHome())}
+            onCancel={() => goBack(() => (onboardingFlowActive ? replaceFlow('life-goal') : goHome()))}
           />
         ) : flow === 'equipment' ? (
           <OnboardingEquipmentScreen
             selectedEquipment={prefs.onboarding.selectedEquipment}
             onSave={handleEquipmentSave}
-            onBack={() => setFlow('safety-profile')}
+            onBack={() => goBack(() => replaceFlow('safety-profile'))}
           />
         ) : flow === 'camera-explanation' ? (
           <CameraExplanationScreen
             permissionGranted={permission === 'granted'}
             onRequestPermission={requestCameraPermission}
             onContinue={handleCameraExplanationContinue}
-            onBack={() => setFlow('equipment')}
+            onBack={() => goBack(() => replaceFlow('equipment'))}
           />
         ) : flow === 'camera-setup' ? (
           <CameraSetupScreen
             permissionGranted={permission === 'granted'}
             onRequestPermission={requestCameraPermission}
             onBegin={() => (onboardingFlowActive ? beginOnboardingCheckUp() : beginCheckUp(latestAssessment ? 'manual_extra' : 'baseline'))}
-            onDevSkipCheckUp={__DEV__ && onboardingFlowActive ? skipOnboardingCheckUpForDev : undefined}
-            onCancel={() => (onboardingFlowActive ? setFlow('camera-explanation') : goHome())}
+            onDoLater={onboardingFlowActive ? deferOnboardingCheckUp : undefined}
+            onCancel={() => goBack(() => (onboardingFlowActive ? replaceFlow('camera-explanation') : goHome()))}
           />
         ) : flow === 'manual-checkup' ? (
           <ManualCheckupStartScreen
@@ -2514,12 +2739,12 @@ function HaleApp() {
             completions={adherence.completions}
             onSelectCheckup={beginCheckUp}
             onMicroCheck={() => setFlow('microcheck')}
-            onCancel={goHome}
+            onCancel={() => goBack(goHome)}
           />
         ) : flow === 'checkup' ? (
           <CheckUpScreen
             onComplete={handleCheckUpComplete}
-            onCancel={goHome}
+            onCancel={() => goBack(goHome)}
             voiceId={prefs.settings.voiceId}
             battery={pendingCheckup?.battery}
           />
@@ -2530,7 +2755,7 @@ function HaleApp() {
               assessment={visibleResultAssessment}
               score={visibleResultScore}
               scoreSnapshot={visibleResultSnapshot}
-              onCreateBlock={() => handleStartPlan('onboarding')}
+              onContinue={handleOnboardingResultsContinue}
               onRetake={handleRetakeVisibleResult}
             />
           ) : (
@@ -2541,8 +2766,7 @@ function HaleApp() {
               scoreSnapshot={visibleResultSnapshot}
               history={history}
               extraTrendPoints={extraTrendPoints}
-              onDone={goHome}
-              onStartPlan={handleStartPlan}
+              onDone={() => goBack(goHome)}
               onRetake={handleRetakeVisibleResult}
             />
           )
@@ -2552,32 +2776,33 @@ function HaleApp() {
             copy={getSessionPlanningRecoveryCopy(planningRecoveryResult)}
             onPrimaryAction={() => handlePlanningRecoveryAction(planningRecoveryResult.recoveryActions[0])}
             onSecondaryAction={() => handlePlanningRecoveryAction(planningRecoveryResult.recoveryActions[1])}
-            onCancel={goHome}
+            onCancel={() => goBack(goHome)}
           />
         ) : flow === 'session-preview' && activeSessionPlan ? (
           <SessionPreviewScreen
             plan={activeSessionPlan}
             onStart={beginPlannedSession}
-            onCancel={goHome}
+            onCancel={() => goBack(goHome)}
           />
         ) : flow === 'training' && sessionIds.length > 0 ? (
           <TrainingSessionScreen
             exerciseIds={sessionIds}
             onComplete={handleSessionComplete}
-            onCancel={goHome}
+            onCancel={() => goBack(goHome)}
             voiceId={prefs.settings.voiceId}
           />
         ) : flow === 'microcheck' ? (
           <MicroCheckScreen
             type={activeMovementBlock ? getMicroCheckForBlock(activeMovementBlock).type : 'chair-power'}
             onComplete={handleMicroCheckComplete}
+            onCancel={() => goBack(goHome)}
             voiceId={prefs.settings.voiceId}
           />
         ) : flow === 'life-goal' ? (
           <LifeGoalOnboardingScreen
             initialGoal={prefs.profile.lifeGoal}
             onSave={onLifeGoalSave}
-            onCancel={() => (onboardingFlowActive ? setFlow('welcome') : goHome())}
+            onCancel={() => goBack(() => (onboardingFlowActive ? replaceFlow('welcome') : goHome()))}
           />
         ) : flow === 'onboarding-block' && displayMovementBlock ? (
           <OnboardingBlockScreen
@@ -2598,7 +2823,7 @@ function HaleApp() {
             lifeGoal={prefs.profile.lifeGoal}
             completions={adherence.completions}
             onStart={handleStartRestartSession}
-            onCancel={goHome}
+            onCancel={() => goBack(goHome)}
           />
         ) : flow === 'weekly-summary' && displayMovementBlock ? (
           <WeeklySummaryScreen
@@ -2619,7 +2844,7 @@ function HaleApp() {
             milestone={newestMilestone}
             nextBlockReady={!!activeMovementBlock && activeMovementBlock.id !== reportDisplayBlock.id}
             onStartNextBlock={activeMovementBlock && activeMovementBlock.id !== reportDisplayBlock.id ? goHome : handleStartNextBlock}
-            onDone={goHome}
+            onDone={() => goBack(goHome)}
           />
         ) : flow === 'session-complete' && displayMovementBlock ? (
           <SessionCompletionScreen
@@ -2638,14 +2863,14 @@ function HaleApp() {
             equipment={training.equipment}
             safetyProfile={prefs.profile.safetyProfile}
             onPractice={() => handleStartLadderPractice(selectedLadderId)}
-            onDone={goExplore}
+            onDone={() => goBack(goExplore)}
           />
         ) : flow === 'learn-detail' && selectedLearnId ? (
           <LearnDetailScreen
             articleId={selectedLearnId}
             onCameraSetup={() => setFlow('camera-setup')}
             onEquipment={goSettings}
-            onDone={goExplore}
+            onDone={() => goBack(goExplore)}
           />
         ) : flow === 'settings' ? (
           <SettingsScreen
@@ -2665,7 +2890,7 @@ function HaleApp() {
             onOpenSafetyProfile={() => setFlow('safety-profile')}
             onOpenCameraSetup={() => setFlow('camera-setup')}
             onReplayOnboardingForDev={__DEV__ ? replayOnboardingForDev : undefined}
-            onBack={closeSettings}
+            onBack={() => goBack(closeSettings)}
           />
         ) : flow === 'dev-assessment' ? (
           <AssessmentScreen />
@@ -2676,7 +2901,7 @@ function HaleApp() {
           <View />
         )}
         {__DEV__ && (flow === 'dev-assessment' || flow === 'dev-live') ? (
-          <Pressable style={styles.back} onPress={goHome} accessibilityRole="button" accessibilityLabel="Back to Today">
+          <Pressable style={styles.back} onPress={() => goBack(goHome)} accessibilityRole="button" accessibilityLabel="Back">
             <Text style={styles.backText}>Back</Text>
           </Pressable>
         ) : null}
@@ -2694,7 +2919,7 @@ function HaleApp() {
       <View style={styles.tabContent}>
         {activeTabScreen === 'TodayScreen' ? (
           <TodayScreen
-            profile={prefs.profile}
+            profile={displayPrefs.profile}
             lifecycle={lifecycle}
             onPrimaryAction={handleTodayPrimaryAction}
             onOpenSettings={goSettings}
@@ -2702,11 +2927,11 @@ function HaleApp() {
         ) : activeTabScreen === 'PlanScreen' ? (
           <PlanScreen
             lifecycleState={lifecycle.state}
-            lifeGoalText={prefs.profile.lifeGoal ? getLifeGoalDisplayText(prefs.profile.lifeGoal) : prefs.profile.goal}
+            lifeGoalText={displayPrefs.profile.lifeGoal ? getLifeGoalDisplayText(displayPrefs.profile.lifeGoal) : displayPrefs.profile.goal}
             activeBlockSummary={lifecycle.activeBlockSummary}
             weekSessionStatuses={lifecycle.weekSessionStatuses ?? []}
-            preferredDays={prefs.profile.safetyProfile?.preferredWorkoutDays ?? []}
-            preferredIntensity={training.planPreferences.preferredIntensity}
+            preferredDays={displayPrefs.profile.safetyProfile?.preferredWorkoutDays ?? []}
+            preferredIntensity={displayTraining.planPreferences.preferredIntensity}
             onStartOnboarding={() => setFlow(flowForOnboardingStep(onboardingStep) ?? 'welcome')}
             onStartCheckUp={() => setFlow('camera-setup')}
             onCreateBlock={handleStartNextBlock}
@@ -2718,27 +2943,27 @@ function HaleApp() {
           />
         ) : activeTabScreen === 'ProgressScreen' ? (
           <ProgressScreen
-            history={history}
-            assessments={adherence.assessments}
-            activeBlock={activeMovementBlock}
-            blocks={adherence.blocks}
-            reports={adherence.reports}
-            completions={adherence.completions}
-            ladderProgressById={training.ladderProgressById}
-            lifeGoal={prefs.profile.lifeGoal}
+            history={displayHistory}
+            assessments={displayAdherence.assessments}
+            activeBlock={displayActiveMovementBlock}
+            blocks={displayAdherence.blocks}
+            reports={displayAdherence.reports}
+            completions={displayAdherence.completions}
+            ladderProgressById={displayTraining.ladderProgressById}
+            lifeGoal={displayPrefs.profile.lifeGoal}
             today={new Date().toISOString()}
             onBeginCheckUp={() => (latestAssessment ? openManualCheckup() : setFlow('camera-setup'))}
             onStartRetest={() => beginCheckUp('official_retest')}
-            onViewLatest={viewLast}
-            onViewReport={openBlockReport}
+            onViewLatest={devMockData ? () => undefined : viewLast}
+            onViewReport={devMockData ? () => undefined : openBlockReport}
             onOpenSettings={goSettings}
           />
         ) : activeTabScreen === 'ExploreScreen' ? (
           <ExploreScreen
-            equipment={training.equipment}
-            safetyProfile={prefs.profile.safetyProfile}
+            equipment={displayTraining.equipment}
+            safetyProfile={displayPrefs.profile.safetyProfile}
             settings={prefs.settings}
-            ladderProgressById={training.ladderProgressById}
+            ladderProgressById={displayTraining.ladderProgressById}
             onStartExtraSession={handleStartExtraSession}
             onOpenLadder={openLadderDetail}
             onOpenLearn={openLearnDetail}
@@ -2746,7 +2971,7 @@ function HaleApp() {
           />
         ) : (
           <TodayScreen
-            profile={prefs.profile}
+            profile={displayPrefs.profile}
             lifecycle={lifecycle}
             onPrimaryAction={handleTodayPrimaryAction}
             onOpenSettings={goSettings}
@@ -2764,6 +2989,36 @@ function readinessForTrainingPreference(preference: TrainingIntensityPreference)
   return undefined;
 }
 
+function buildDevCompletedOnboardingProfile(profile: UserProfile, nowIso: string): UserProfile {
+  const lifeGoal = profile.lifeGoal ?? createLifeGoal({ category: 'stairs', nowIso });
+  const safetyProfile = profile.safetyProfile ?? buildDevSafetyProfile(profile.age, nowIso);
+  return {
+    ...profile,
+    name: profile.name.trim() || 'Suvan',
+    age: profile.age ?? 60,
+    goal: profile.goal.trim() || getLifeGoalDisplayText(lifeGoal),
+    lifeGoal,
+    safetyProfile,
+  };
+}
+
+function buildDevSafetyProfile(age: number | null, nowIso: string): MovementSafetyProfile {
+  return {
+    id: 'dev-preview-safety-profile',
+    userId: LOCAL_USER_ID,
+    age: age ?? 60,
+    activityLevel: 'lightly_active',
+    hasCurrentPain: false,
+    hasRecentInjury: false,
+    feelsSafeStandingFromChair: true,
+    feelsSafeBalancing: true,
+    availableEquipment: ['chair', 'wall', 'stairs', 'resistance_band', 'floor_space'],
+    preferredWorkoutDays: ['Mon', 'Wed', 'Fri'],
+    createdAt: nowIso,
+    updatedAt: nowIso,
+  };
+}
+
 function sessionIntensityForTrainingPreference(preference: TrainingIntensityPreference): SessionIntensity {
   if (preference === 'gentle') return 'beginner';
   if (preference === 'more_challenge') return 'advanced';
@@ -2774,9 +3029,130 @@ function AuthLoadingScreen() {
   return (
     <View style={[styles.container, styles.splash]}>
       <StatusBar style="dark" />
-      <Text style={styles.splashBrand}>Hale</Text>
+      <View style={styles.splashBrandRow}>
+        <HeaderLogo size={28} />
+        <Text style={styles.splashBrand}>Hale</Text>
+      </View>
       <Text style={styles.splashText}>Preparing your account...</Text>
     </View>
+  );
+}
+
+function CameraReadinessGate({
+  permission,
+  audioReady,
+  onBack,
+}: {
+  permission: PermissionState;
+  audioReady: boolean;
+  onBack: () => void;
+}) {
+  const waiting = permission === 'checking' || !audioReady;
+  const title = waiting ? 'Preparing camera' : 'Camera access is off';
+  const body = waiting
+    ? 'Hale is getting the camera and voice guidance ready. You will appear only as a clean skeleton outline.'
+    : 'Camera access is needed to estimate your movement. Video is never shown or stored.';
+
+  const openSettings = React.useCallback(() => {
+    void Linking.openSettings().catch(() => undefined);
+  }, []);
+
+  return (
+    <View style={[styles.container, styles.cameraGate]}>
+      <StatusBar style="dark" />
+      {permission === 'denied' ? (
+        <Pressable
+          style={({ pressed }) => [styles.cameraGateBackButton, pressed && styles.cameraGatePressed]}
+          onPress={onBack}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+        >
+          <CameraGateBackIcon />
+        </Pressable>
+      ) : null}
+
+      <View style={styles.cameraGateContent}>
+        <View style={styles.cameraGateBrandRow}>
+          <HeaderLogo size={34} />
+          <View>
+            <Text style={styles.cameraGateEyebrow}>Private movement check-up</Text>
+            <Text style={styles.cameraGateBrand}>Hale</Text>
+          </View>
+        </View>
+
+        <View style={styles.cameraGateCard}>
+          <View style={styles.cameraGateIconFrame}>
+            {waiting ? <ActivityIndicator color={colors.accentDeep} /> : <CameraGateCameraIcon />}
+          </View>
+          <Text style={styles.cameraGateTitle}>{title}</Text>
+          <Text style={styles.cameraGateBody}>{body}</Text>
+
+          <View style={styles.cameraGateFacts}>
+            <CameraGateFact label="View" value="Skeleton only" />
+            <CameraGateFact label="Video" value="Never stored" />
+          </View>
+        </View>
+
+        {permission === 'denied' ? (
+          <Pressable
+            style={({ pressed }) => [styles.cameraGatePrimaryButton, pressed && styles.cameraGatePrimaryPressed]}
+            onPress={openSettings}
+            accessibilityRole="button"
+            accessibilityLabel="Open Settings"
+          >
+            <Text style={styles.cameraGatePrimaryText}>Open Settings</Text>
+          </Pressable>
+        ) : (
+          <Text style={styles.cameraGateFootnote}>This should only take a moment.</Text>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function CameraGateFact({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.cameraGateFact}>
+      <Text style={styles.cameraGateFactLabel}>{label}</Text>
+      <Text style={styles.cameraGateFactValue}>{value}</Text>
+    </View>
+  );
+}
+
+function CameraGateBackIcon() {
+  return (
+    <Svg width={10} height={18} viewBox="0 0 10 18" accessibilityElementsHidden>
+      <Path
+        d="M8 2L2 9L8 16"
+        fill="none"
+        stroke={colors.accentDeep}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function CameraGateCameraIcon() {
+  return (
+    <Svg width={34} height={34} viewBox="0 0 34 34" fill="none" accessibilityElementsHidden>
+      <Rect x={6.2} y={10.5} width={21.6} height={15.3} rx={4.2} stroke={colors.accentDeep} strokeWidth={1.8} />
+      <Path
+        d="M12.1 10.5L14.1 7.9H19.9L21.9 10.5"
+        stroke={colors.accentDeep}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Circle cx={17} cy={18.3} r={4.1} stroke={colors.accentDeep} strokeWidth={1.8} />
+      <Path
+        d="M8.3 27.3L25.7 6.7"
+        stroke={colors.accentGold}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+    </Svg>
   );
 }
 
@@ -2821,8 +3197,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.pageHorizontal,
   },
+  splashBrandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
   splashBrand: {
-    width: '100%',
     color: colors.accentDeep,
     fontSize: 28,
     fontWeight: '600',
@@ -2841,6 +3222,141 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     textAlign: 'center',
     includeFontPadding: false,
+  },
+  cameraGate: {
+    paddingHorizontal: spacing.pageHorizontal,
+    paddingTop: spacing.xxxl,
+    paddingBottom: spacing.xxxl,
+  },
+  cameraGateBackButton: {
+    position: 'absolute',
+    top: 58,
+    left: spacing.pageHorizontal,
+    zIndex: 2,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.input,
+    backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+    ...shadow.card,
+  },
+  cameraGateContent: {
+    flex: 1,
+    width: '100%',
+    maxWidth: spacing.pageMaxWidth,
+    alignSelf: 'center',
+    justifyContent: 'center',
+    gap: spacing.lg,
+  },
+  cameraGateBrandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
+  cameraGateEyebrow: {
+    ...type.label,
+    color: colors.textSecondary,
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  cameraGateBrand: {
+    color: colors.accentDeep,
+    fontSize: 25,
+    fontWeight: '600',
+    lineHeight: 30,
+    letterSpacing: 0,
+    includeFontPadding: false,
+  },
+  cameraGateCard: {
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xxl,
+    borderRadius: radius.xl,
+    backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+    ...shadow.card,
+  },
+  cameraGateIconFrame: {
+    width: 68,
+    height: 68,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.panel,
+    backgroundColor: colors.bgGold,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.goldBorder,
+  },
+  cameraGateTitle: {
+    ...type.h2,
+    textAlign: 'center',
+  },
+  cameraGateBody: {
+    ...type.bodySmall,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  cameraGateFacts: {
+    width: '100%',
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingTop: spacing.lg,
+    marginTop: spacing.xs,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
+  },
+  cameraGateFact: {
+    flex: 1,
+    minHeight: 70,
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.card,
+    backgroundColor: colors.bgBase,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+  },
+  cameraGateFactLabel: {
+    ...type.cardCaption,
+    color: colors.textTertiary,
+    textTransform: 'uppercase',
+  },
+  cameraGateFactValue: {
+    ...type.cardRowTitle,
+    color: colors.accentDeep,
+  },
+  cameraGatePrimaryButton: {
+    minHeight: 58,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.button,
+    backgroundColor: colors.accentDeep,
+    borderWidth: 1,
+    borderColor: colors.accentDeep,
+    ...shadow.soft,
+  },
+  cameraGatePrimaryText: {
+    ...type.button,
+    color: colors.onAccent,
+  },
+  cameraGateFootnote: {
+    ...type.caption,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  cameraGatePressed: {
+    opacity: 0.78,
+    transform: [{ scale: 0.98 }],
+  },
+  cameraGatePrimaryPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.99 }],
   },
   tabContent: {
     flex: 1,

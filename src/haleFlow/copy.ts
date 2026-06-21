@@ -67,9 +67,9 @@ export function getNextBestActionCopy({
       };
     case 'baseline_complete_needs_block':
       return {
-        title: 'Create your first 4-week block',
-        body: focusBody(block, lifeGoal, 'Hale has enough information to turn your check-up into a plan.'),
-        primaryCta: 'Create my block',
+        title: 'Your first 4-week block is ready',
+        body: focusBody(block, lifeGoal, 'Hale has used your check-up to prepare your starting plan.'),
+        primaryCta: 'View my plan',
         primaryRoute: 'create-block',
       };
     case 'active_block_session_due':

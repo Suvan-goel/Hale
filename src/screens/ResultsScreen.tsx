@@ -34,7 +34,6 @@ export function ResultsScreen({
   checkUp: _checkUp,
   history,
   onDone,
-  onStartPlan,
   onRetake,
   extraTrendPoints = [],
   assessment,
@@ -47,8 +46,6 @@ export function ResultsScreen({
   score?: CheckUpScore | null;
   scoreSnapshot?: VersionedCheckUpScoreSnapshot | null;
   onDone: () => void;
-  /** Build a training block from this check-up and begin it (present when there's a measured focus). */
-  onStartPlan?: () => void;
   onRetake?: () => void;
   /** Weekly micro-check points to merge into the trend line. */
   extraTrendPoints?: ExtraTrendPoint[];
@@ -107,7 +104,7 @@ export function ResultsScreen({
           {resultState.canCreateBlock && focusLabel
             ? closelyMatched
               ? `${focusLabel} is the suggested focus for this block because these home estimates were closely matched.`
-              : 'This looks like a useful starting point for your next four-week training block.'
+              : 'Hale uses this as the starting point for the current four-week training block.'
             : resultState.recoveryBody}
         </Text>
         <View style={styles.summaryRail}>
@@ -155,11 +152,7 @@ export function ResultsScreen({
         </Card>
       )}
 
-      {onStartPlan && resultState.canCreateBlock ? (
-        <View style={styles.actions}>
-          <PrimaryButton title="Create my 4-week block" onPress={onStartPlan} />
-        </View>
-      ) : onRetake && resultState.canRetake ? (
+      {onRetake && resultState.canRetake ? (
         <View style={styles.actions}>
           <PrimaryButton title="Retake Movement Check-Up" onPress={onRetake} />
         </View>

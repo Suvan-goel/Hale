@@ -1246,3 +1246,64 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 - **Scope boundary:** shared shadow/depth tokens only. Surface colours, layout, copy, navigation,
   state, persistence, auth/backend sync, pose detection, scoring, and training logic are
   unchanged.
+
+## 2026-06-21 — Developer mock app data toggle
+
+- **Change:** Settings now exposes a development-only `Use mock app data` toggle. It stores
+  `settings.devMockDataEnabled` locally, defaults to off, and is ignored by release builds. In
+  development, enabled mode feeds deterministic fixture history, assessments, movement blocks,
+  completions, reports, and ladder progress into the main tabs so the app can be reviewed as if a
+  user has completed a Movement Check-Up and several sessions.
+- **New-user preview:** in development with the toggle disabled, the main tabs receive a
+  display-only completed-onboarding profile plus empty check-up/block/session state. This previews
+  the first-use dashboard after onboarding but before the first Movement Check-Up without deleting
+  real local data.
+- **Scope boundary:** display state and local settings only. Persisted history, adherence,
+  training, auth/backend sync, scoring, pose detection, and real session logic are unchanged.
+
+## 2026-06-21 — First Movement Check-Up can be deferred
+
+- **Change:** onboarding now offers a user-facing "Do this later" action on camera setup. It
+  completes the first-run setup and returns the user to Today without creating a synthetic
+  check-up, assessment, movement-age estimate, or training block.
+- **Product boundary:** the Movement Check-Up remains the gateway to personalization. If the
+  user defers it, Today stays in the "Start Movement Check-Up" state until a usable official
+  baseline is completed.
+- **Replaced:** the dev-only "skip Movement Check-Up" shortcut was removed from the onboarding
+  camera setup screen.
+
+## 2026-06-21 — Camera-unavailable fallback for recording screens
+
+- **Change:** camera-backed recording screens now check whether the requested camera is
+  available before mounting the native pose view. If the camera or MediaPipe startup path is
+  unavailable, the recording viewport shows a centered "Camera not available" notice instead
+  of crashing or replacing the whole app screen.
+- **Emulator guard:** development Android emulators are treated as camera-unavailable in the
+  JS safe wrapper before native mount. Their virtual camera can be advertised by Android while
+  still being unusable for the native pose pipeline, especially when the dev client has not
+  been rebuilt with the latest native availability probe.
+- **Scope boundary:** this is a resilience and emulator-design fallback only. It does not
+  synthesize landmark frames, complete measurements, or change scoring/training behavior.
+
+## 2026-06-21 — Isolated beta landing website
+
+- **Change:** a separate `website/` Next.js application was added for the Hale beta landing
+  page. It reuses the current app logo, approved image assets, Inter/Fraunces font files, and
+  active warm-stone + inky-green tokens without importing React Native code.
+- **Signup:** beta interest is handled by a server-side route with a Supabase-first persistence
+  path and a local development/test fallback. Service-role credentials stay server-only.
+- **Scope boundary:** the mobile app runtime, navigation, training logic, pose pipeline,
+  Supabase mobile auth/sync services, and existing app package remain unchanged.
+
+## 2026-06-21 — Movement Dashboard made read-only
+
+- **Change:** eligible official Movement Check-Ups now prepare the current 4-week block
+  automatically. The Movement Dashboard is a read-only results snapshot; it no longer asks the
+  user to create a block manually.
+- **Flow:** baseline completion saves the result, creates the first block, and shows the
+  starting picture. Official re-tests continue to complete the old block, create a report, and
+  prepare the next block. Extra/manual check-ups remain display-only and never overwrite the
+  active plan.
+- **Recovery:** if local state has an eligible official check-up but no active block, Hale
+  prepares the missing block quietly from the same eligibility rules instead of surfacing a
+  manual creation step.

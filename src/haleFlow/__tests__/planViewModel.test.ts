@@ -18,7 +18,7 @@ describe('planViewModel', () => {
       action: 'checkup',
     });
     expect(getPlanEmptyStateCopy('needs_block_creation')).toMatchObject({
-      ctaLabel: 'Create 4-week block',
+      ctaLabel: 'Prepare plan',
       action: 'create_block',
     });
   });

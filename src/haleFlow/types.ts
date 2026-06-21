@@ -14,12 +14,18 @@ import type { CheckUpScore, VersionedCheckUpScoreSnapshot } from '../scoring';
 import type {
   DailyReadiness,
   PainArea,
+  GeneratedExerciseDose,
   SessionSlotType,
   SessionSource,
   SlotStimulusReason,
   SlotStimulusRole,
   TrainingDomain,
 } from '../training/workoutGeneration';
+import type {
+  DailyTrainingReasonCode,
+  NormalizedDailyTrainingContext,
+  ProgressionEvidencePolicy,
+} from '../training/dailyTrainingContext';
 
 export type HaleUserFlowState =
   | 'needs_life_goal'
@@ -121,6 +127,9 @@ export interface HaleSessionPlanMetadata {
   plannedDateKey?: string;
   readiness?: DailyReadiness;
   painAreas?: readonly PainArea[];
+  dailyContext?: NormalizedDailyTrainingContext;
+  progressionEvidencePolicy?: ProgressionEvidencePolicy;
+  adjustmentReasons?: readonly DailyTrainingReasonCode[];
   guidance?: readonly string[];
   equipmentNeeded?: readonly string[];
   fallbackReason?: string;
@@ -141,6 +150,10 @@ export interface HaleGeneratedExerciseMetadata {
   intendedDomain?: TrainingDomain;
   stimulusRole?: SlotStimulusRole;
   stimulusReason?: SlotStimulusReason;
+  requestedLevelId?: string;
+  selectedDailyLevelId?: string;
+  doseBeforeAdjustment?: GeneratedExerciseDose;
+  adjustmentReasons?: readonly DailyTrainingReasonCode[];
 }
 
 export interface HaleSlotStimulusMetadata {

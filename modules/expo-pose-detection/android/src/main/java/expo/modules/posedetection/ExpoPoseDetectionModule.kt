@@ -1,6 +1,9 @@
 package expo.modules.posedetection
 
 import android.Manifest
+import android.content.Context
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraManager
 import expo.modules.interfaces.permissions.Permissions
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.modules.Module
@@ -26,6 +29,10 @@ class ExpoPoseDetectionModule : Module() {
       )
     }
 
+    AsyncFunction("isCameraAvailableAsync") { cameraFacing: String ->
+      hasCamera(cameraFacing)
+    }
+
     View(PoseDetectionView::class) {
       Events("onLandmarks", "onCameraReady", "onPoseError")
 
@@ -47,6 +54,24 @@ class ExpoPoseDetectionModule : Module() {
       Prop("minPresenceConfidence") { view: PoseDetectionView, value: Double ->
         view.setMinPresenceConfidenceProp(value.toFloat())
       }
+    }
+  }
+
+  private fun hasCamera(cameraFacing: String): Boolean {
+    val context = appContext.reactContext ?: return false
+    val manager = context.getSystemService(Context.CAMERA_SERVICE) as? CameraManager ?: return false
+    val targetLensFacing = if (cameraFacing == "back") {
+      CameraCharacteristics.LENS_FACING_BACK
+    } else {
+      CameraCharacteristics.LENS_FACING_FRONT
+    }
+    return try {
+      manager.cameraIdList.any { cameraId ->
+        manager.getCameraCharacteristics(cameraId)
+          .get(CameraCharacteristics.LENS_FACING) == targetLensFacing
+      }
+    } catch (_: Throwable) {
+      false
     }
   }
 }

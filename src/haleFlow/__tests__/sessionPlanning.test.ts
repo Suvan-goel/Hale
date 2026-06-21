@@ -520,6 +520,7 @@ describe('planTodayHaleSession', () => {
     });
 
     expect(plan.metadata?.readiness).toBe('short_on_time');
+    expect(plan.metadata?.progressionEvidencePolicy).toBe('hold_only');
     expect(plan.estimatedMinutes).toBe(10);
     expect(plan.exercises.length).toBeLessThanOrEqual(3);
   });
@@ -824,6 +825,7 @@ describe('planTodayHaleSession', () => {
     expect(summary.templateId).toBe('strength-A');
     expect(summary.plannedDateKey).toBe('strength-A:2026-06-01');
     expect(summary.mainPlanCredit).toBe(true);
+    expect(summary.progressionEvidencePolicy).toBe('normal');
     expect(summary.status).toBe('completed');
     expect(summary.exerciseIds).toEqual([STS_STANDARD_ID]);
     expect(summary.exercises?.[0]).toMatchObject({
@@ -846,6 +848,7 @@ describe('planTodayHaleSession', () => {
       blockFocusDomain: 'strength_power',
       plannedPrimaryFocusExerciseIds: [STS_STANDARD_ID],
     });
+    expect(plan.metadata?.progressionEvidencePolicy).toBe('normal');
   });
 
   it('updates ladder progress after two easy generated completions', () => {

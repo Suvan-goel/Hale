@@ -1,0 +1,82 @@
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+
+import { BetaSignupForm } from '@/components/BetaSignupForm';
+import { FAQ } from '@/components/FAQ';
+import { StoreButtons } from '@/components/StoreButtons';
+import { faqs } from '@/content/landing';
+
+describe('conversion components', () => {
+  it('falls back to beta signup CTA when store links are missing', () => {
+    render(<StoreButtons links={[]} ctaLocation="test" />);
+    const link = screen.getByRole('link', { name: /join the hale beta/i });
+    expect(link).toHaveAttribute('href', '#beta-access');
+  });
+
+  it('does not render dead store links', () => {
+    render(
+      <StoreButtons
+        ctaLocation="test"
+        links={[
+          {
+            platform: 'ios',
+            href: 'https://testflight.apple.com/join/example',
+            label: 'Apple beta access',
+            shortLabel: 'iPhone beta',
+            ariaLabel: 'Open Hale beta access for iPhone',
+          },
+        ]}
+      />
+    );
+    expect(screen.getByRole('link', { name: /iphone/i })).toHaveAttribute('href', 'https://testflight.apple.com/join/example');
+    expect(screen.queryByRole('link', { name: /android/i })).not.toBeInTheDocument();
+  });
+
+  it('submits the signup form and shows a real success state', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ ok: true, message: 'Saved.' }),
+      })
+    );
+    window.history.pushState({}, '', '/?utm_source=google');
+
+    render(<BetaSignupForm />);
+    fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'person@example.com' } });
+    fireEvent.change(screen.getByLabelText(/platform/i), { target: { value: 'android' } });
+    fireEvent.click(screen.getByRole('button', { name: /get beta access/i }));
+
+    await waitFor(() => expect(screen.getByText(/you are on the hale beta list/i)).toBeInTheDocument());
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/beta-signup',
+      expect.objectContaining({
+        method: 'POST',
+      })
+    );
+  });
+
+  it('shows an error when persistence fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({ ok: false, message: 'Persistence failed.' }),
+      })
+    );
+
+    render(<BetaSignupForm />);
+    fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'person@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: /get beta access/i }));
+
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Persistence failed.'));
+  });
+
+  it('renders accessible FAQ buttons', () => {
+    render(<FAQ items={faqs.slice(0, 2)} />);
+    const button = screen.getByRole('button', { name: /what is hale/i });
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(screen.getByRole('button', { name: /who is hale designed for/i }));
+    expect(screen.getByRole('button', { name: /who is hale designed for/i })).toHaveAttribute('aria-expanded', 'true');
+  });
+});

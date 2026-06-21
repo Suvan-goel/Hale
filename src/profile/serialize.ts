@@ -33,6 +33,7 @@ export function defaultPreferences(): Preferences {
       remindersEnabled: false,
       phoneStandAvailable: false,
       supportSharingLevel: 'private',
+      devMockDataEnabled: false,
     },
     onboarding: defaultOnboardingState(),
   };
@@ -172,6 +173,8 @@ function validSettings(v: unknown): AppSettings {
     phoneStandAvailable:
       typeof s.phoneStandAvailable === 'boolean' ? s.phoneStandAvailable : def.phoneStandAvailable,
     supportSharingLevel,
+    devMockDataEnabled:
+      typeof s.devMockDataEnabled === 'boolean' ? s.devMockDataEnabled : def.devMockDataEnabled,
   };
 }
 

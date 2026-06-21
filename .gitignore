@@ -30,6 +30,9 @@ yarn-error.*
 .DS_Store
 *.pem
 
+# local generated preview/scratch output
+tmp/
+
 # local env files
 .env
 .env.local

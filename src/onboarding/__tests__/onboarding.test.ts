@@ -114,6 +114,14 @@ describe('Hale V1 onboarding state', () => {
     expect(deriveOnboardingStep({ prefs, history: [] })).toBe('camera_setup');
   });
 
+  it('allows onboarding to finish when the first check-up is deferred', () => {
+    const prefs = onboardingPrefs();
+    prefs.onboarding.currentStep = 'complete';
+    prefs.onboarding.completedAt = START;
+
+    expect(deriveOnboardingStep({ prefs, history: [] })).toBe('complete');
+  });
+
   it('moves from baseline history to results until a block exists', () => {
     const prefs = onboardingPrefs();
     prefs.onboarding.currentStep = 'results';

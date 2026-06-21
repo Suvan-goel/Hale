@@ -33,6 +33,16 @@ public class ExpoPoseDetectionModule: Module {
       }
     }
 
+    AsyncFunction("isCameraAvailableAsync") { (cameraFacing: String) -> Bool in
+      let position: AVCaptureDevice.Position = cameraFacing == "back" ? .back : .front
+      let discovery = AVCaptureDevice.DiscoverySession(
+        deviceTypes: [.builtInWideAngleCamera],
+        mediaType: .video,
+        position: position
+      )
+      return !discovery.devices.isEmpty
+    }
+
     View(PoseDetectionView.self) {
       Events("onLandmarks", "onCameraReady", "onPoseError")
 

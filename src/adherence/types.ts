@@ -1,4 +1,5 @@
 import type { CheckUpScore, FocusSelectionKind, FocusTieBreakReason, VersionedCheckUpScoreSnapshot } from '../scoring';
+import type { ProgressionEvidencePolicy } from '../training/dailyTrainingContext';
 
 export const LOCAL_USER_ID = 'local-device-user';
 
@@ -205,6 +206,7 @@ export interface TrainingSessionCompletion {
   mainPlanCredit?: boolean;
   workEvidence?: TrainingSessionWorkEvidenceSummary;
   focusStimulusEvidence?: TrainingFocusStimulusEvidenceSummary;
+  progressionEvidencePolicy?: ProgressionEvidencePolicy;
   durationMinutes?: number;
   perceivedEffort?: 1 | 2 | 3 | 4 | 5;
   painReported?: boolean;

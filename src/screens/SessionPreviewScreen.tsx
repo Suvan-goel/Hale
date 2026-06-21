@@ -28,7 +28,7 @@ export function SessionPreviewScreen({
   const focusStimulusCopy = focusStimulusPreviewCopy(plan);
   return (
     <Screen>
-      <BackArrowButton accessibilityLabel="Back to Today" onPress={onCancel} />
+      <BackArrowButton accessibilityLabel="Back" onPress={onCancel} />
       <View style={styles.header}>
         <Eyebrow>{"Today's Hale Session"}</Eyebrow>
         <View style={styles.titleGroup}>
@@ -196,10 +196,19 @@ function formatEquipment(value: string): string {
 
 export function focusStimulusPreviewCopy(plan: HaleSessionPlan): string | null {
   const focusStimulus = plan.metadata?.focusStimulus;
-  if (!focusStimulus || plan.metadata?.source !== 'block_generated' || focusStimulus.mainPlanCreditPotential) return null;
+  if (!focusStimulus || plan.metadata?.source !== 'block_generated') return null;
+  if (focusStimulus.mainPlanCreditPotential) {
+    if (plan.metadata.progressionEvidencePolicy === 'hold_only') {
+      return 'Hale adjusted today\'s session based on how you are feeling. Complete the primary focus exercise for this session to move your plan forward.';
+    }
+    if (plan.metadata.progressionEvidencePolicy === 'ineligible') {
+      return 'Hale prepared a cautious supporting plan today. It can still be useful, but it will not move your plan forward.';
+    }
+    return null;
+  }
   const focus = focusLabel(plan.focusDomain).toLowerCase();
   if (focusStimulus.status === 'no_primary_focus_planned') {
-    return `Today is supporting maintenance for ${focus}. It can be useful, but it will not move the main plan forward.`;
+    return `Hale could not include a safe primary ${focus} exercise with today\'s selections. This supporting session can still be useful, but it will not move your plan forward.`;
   }
   if (focusStimulus.status === 'focus_mismatch') {
     return `Today's available work does not match the block's primary ${focus} focus, so it will not move the main plan forward.`;

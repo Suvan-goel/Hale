@@ -15,7 +15,6 @@ import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } fr
 
 import {
   LandmarksEventPayload,
-  PoseDetectionView,
   PoseErrorEventPayload,
 } from '../../modules/expo-pose-detection';
 import { SfxChannel, VoiceChannel } from '../audio/voicePlayer';
@@ -34,6 +33,11 @@ import type {
   PoseAvatarActiveDomain,
   PoseAvatarMeasurementState,
 } from '../render/poseAvatarTypes';
+import {
+  CameraUnavailableNotice,
+  SafePoseDetectionView,
+} from '../components/SafePoseDetectionView';
+import type { CameraAvailability } from '../components/SafePoseDetectionView';
 import { colors, radius, shadow, spacing, type } from '../theme';
 import { recordingCameraViewportSize } from './recordingViewport';
 
@@ -105,6 +109,7 @@ export function CheckUpScreen({
   const [snapshot, setSnapshot] = React.useState<Snapshot>(() => ({ ...INITIAL, totalItems }));
   const [paused, setPaused] = React.useState(false);
   const [showHelp, setShowHelp] = React.useState(false);
+  const [cameraAvailability, setCameraAvailability] = React.useState<CameraAvailability>('checking');
   const windowSize = useWindowDimensions();
 
   React.useEffect(() => {
@@ -232,12 +237,13 @@ export function CheckUpScreen({
 
   return (
     <View style={styles.container}>
-      <PoseDetectionView
+      <SafePoseDetectionView
         active
         modelVariant="lite"
         style={StyleSheet.absoluteFill}
         onLandmarks={onLandmarks}
         onPoseError={onPoseError}
+        onAvailabilityChange={setCameraAvailability}
       />
       <ScrollView
         style={styles.layout}
@@ -280,24 +286,28 @@ export function CheckUpScreen({
 
         <View style={styles.avatarSlot}>
           <View style={[styles.avatarViewport, cameraViewport]}>
-            <SkeletonView
-              ref={skeletonRef}
-              mirrored
-              fit="contain"
-              frameSource="raw"
-              smoothingEnabled={false}
-              pointCloudBodyDensity="high"
-              pointCloudBodyMaxDots={900}
-              pointCloudBodyDotScale={1.72}
-              confidenceFadingEnabled={false}
-              confidenceIntensityEnabled={false}
-              reacquisitionFadeEnabled={false}
-              recognitionPulseEnabled={false}
-              measurementState={avatarMeasurementState}
-              activeDomain={avatarDomain}
-              setupGuidesEnabled={false}
-              stateTransitionsEnabled={false}
-            />
+            {cameraAvailability === 'unavailable' ? (
+              <CameraUnavailableNotice compact />
+            ) : (
+              <SkeletonView
+                ref={skeletonRef}
+                mirrored
+                fit="contain"
+                frameSource="raw"
+                smoothingEnabled={false}
+                pointCloudBodyDensity="high"
+                pointCloudBodyMaxDots={900}
+                pointCloudBodyDotScale={1.72}
+                confidenceFadingEnabled={false}
+                confidenceIntensityEnabled={false}
+                reacquisitionFadeEnabled={false}
+                recognitionPulseEnabled={false}
+                measurementState={avatarMeasurementState}
+                activeDomain={avatarDomain}
+                setupGuidesEnabled={false}
+                stateTransitionsEnabled={false}
+              />
+            )}
           </View>
         </View>
 

@@ -13,9 +13,13 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import {
   LandmarksEventPayload,
-  PoseDetectionView,
   PoseErrorEventPayload,
 } from '../../modules/expo-pose-detection';
+import {
+  CameraUnavailableNotice,
+  SafePoseDetectionView,
+} from '../components/SafePoseDetectionView';
+import type { CameraAvailability } from '../components/SafePoseDetectionView';
 import { CHAIN_COUNT } from '../pose/chains';
 import { PosePipeline } from '../pose/pipeline';
 import { PreflightCheck, PreflightPrompt } from '../preflight/preflight';
@@ -51,6 +55,7 @@ export function LiveSessionScreen() {
     progress: 0,
   });
   const [lastError, setLastError] = React.useState<string | null>(null);
+  const [cameraAvailability, setCameraAvailability] = React.useState<CameraAvailability>('checking');
 
   const onLandmarks = React.useCallback(
     (e: { nativeEvent: LandmarksEventPayload }) => {
@@ -101,29 +106,34 @@ export function LiveSessionScreen() {
 
   return (
     <View style={styles.container}>
-      <PoseDetectionView
+      <SafePoseDetectionView
         active
         modelVariant="lite"
         style={StyleSheet.absoluteFill}
         onLandmarks={onLandmarks}
         onPoseError={onPoseError}
+        onAvailabilityChange={setCameraAvailability}
       />
-      <SkeletonView
-        ref={skeletonRef}
-        mirrored
-        frameSource="raw"
-        smoothingEnabled={false}
-        pointCloudBodyDensity="high"
-        pointCloudBodyMaxDots={900}
-        pointCloudBodyDotScale={1.72}
-        confidenceFadingEnabled={false}
-        confidenceIntensityEnabled={false}
-        reacquisitionFadeEnabled={false}
-        recognitionPulseEnabled={false}
-        measurementState={avatarMeasurementState}
-        setupGuidesEnabled={false}
-        stateTransitionsEnabled={false}
-      />
+      {cameraAvailability === 'unavailable' ? (
+        <CameraUnavailableNotice />
+      ) : (
+        <SkeletonView
+          ref={skeletonRef}
+          mirrored
+          frameSource="raw"
+          smoothingEnabled={false}
+          pointCloudBodyDensity="high"
+          pointCloudBodyMaxDots={900}
+          pointCloudBodyDotScale={1.72}
+          confidenceFadingEnabled={false}
+          confidenceIntensityEnabled={false}
+          reacquisitionFadeEnabled={false}
+          recognitionPulseEnabled={false}
+          measurementState={avatarMeasurementState}
+          setupGuidesEnabled={false}
+          stateTransitionsEnabled={false}
+        />
+      )}
       <PreflightBanner prompt={prompt.key} sampleProgress={prompt.progress} />
       <DevOverlay snapshot={snapshot} onToggleRecording={onToggleRecording} />
       {lastError !== null && __DEV__ && (

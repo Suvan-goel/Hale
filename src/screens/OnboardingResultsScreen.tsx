@@ -25,14 +25,14 @@ export function OnboardingResultsScreen({
   assessment,
   score,
   scoreSnapshot,
-  onCreateBlock,
+  onContinue,
   onRetake,
 }: {
   checkUp: CheckUp;
   assessment?: MovementAssessment | null;
   score?: CheckUpScore | null;
   scoreSnapshot?: VersionedCheckUpScoreSnapshot | null;
-  onCreateBlock: () => void;
+  onContinue: () => void;
   onRetake: () => void;
 }) {
   const resultState = React.useMemo(() => getAssessmentResultState({ score: score ?? null, scoreSnapshot, assessment }), [assessment, score, scoreSnapshot]);
@@ -49,7 +49,7 @@ export function OnboardingResultsScreen({
         <ScreenHeader
           eyebrow="Movement Check-Up"
           title="Your starting picture"
-          subtitle="Hale uses today’s home estimate, your goal, and your setup to build the first block."
+          subtitle="Hale uses today’s home estimate, your goal, and your setup to prepare the first block."
         />
       </View>
 
@@ -105,13 +105,13 @@ export function OnboardingResultsScreen({
           </View>
           <View style={styles.nextRule} />
           <Text style={styles.nextBody}>
-            You will get three calm Hale Sessions each week. The first block keeps substitutions available, then you repeat the check-up in 4 weeks.
+            Your first block is ready in the Plan tab. You will get three calm Hale Sessions each week, then repeat the check-up in 4 weeks.
           </Text>
         </View>
       ) : null}
 
       {resultState.canCreateBlock ? (
-        <PrimaryButton title="Create my 4-week block" onPress={onCreateBlock} />
+        <PrimaryButton title="View my first block" onPress={onContinue} />
       ) : resultState.canRetake ? (
         <PrimaryButton title="Retake Movement Check-Up" onPress={onRetake} />
       ) : (

@@ -173,8 +173,8 @@ export function getTodayPrimaryAction(state: HaleLifecycleState): TodayPrimaryAc
       return {
         type: 'create_block',
         title: 'Your results are ready',
-        subtitle: 'Create your first 4-week block from your Movement Check-Up.',
-        ctaLabel: 'Create 4-week block',
+        subtitle: 'Hale is preparing your 4-week block from your Movement Check-Up.',
+        ctaLabel: 'Prepare plan',
         tone: 'progress',
       };
     case 'first_session_ready':

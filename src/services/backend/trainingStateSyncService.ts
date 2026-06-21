@@ -160,6 +160,9 @@ function sanitizeGeneratedSessionSummary(summary: PersistedGeneratedSessionSumma
     ladderIds: summary.ladderIds,
     readiness: summary.readiness,
     painArea: summary.painArea,
+    dailyContext: summary.dailyContext,
+    progressionEvidencePolicy: summary.progressionEvidencePolicy,
+    adjustmentReasons: summary.adjustmentReasons,
     durationMinutes: summary.durationMinutes,
     exercises: summary.exercises?.map(sanitizeGeneratedExerciseSummary),
     feedback: sanitizePostSessionFeedback(summary.feedback),
@@ -179,6 +182,10 @@ function sanitizeGeneratedExerciseSummary(summary: PersistedGeneratedExerciseSum
     intendedDomain: summary.intendedDomain,
     stimulusRole: summary.stimulusRole,
     stimulusReason: summary.stimulusReason,
+    requestedLevelId: summary.requestedLevelId,
+    selectedDailyLevelId: summary.selectedDailyLevelId,
+    doseBeforeAdjustment: summary.doseBeforeAdjustment,
+    adjustmentReasons: summary.adjustmentReasons,
   });
 }
 

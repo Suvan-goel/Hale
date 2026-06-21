@@ -22,6 +22,17 @@ import {
   hasSupportEquipment,
   humanList,
 } from './equipmentSafety';
+import {
+  discomfortConstraintForContext,
+  isExerciseExcludedByDiscomfort,
+  normalizeDailyTrainingContext,
+  progressionEvidencePolicyFor,
+  type DailyTrainingContextSource,
+  type DailyTrainingReasonCode,
+  type DiscomfortConstraint,
+  type NormalizedDailyTrainingContext,
+  type ProgressionEvidencePolicy,
+} from './dailyTrainingContext';
 
 export type TrainingDomain = 'strength_power' | 'balance_stability' | 'mobility_flexibility';
 export type SessionSource = 'block_generated' | 'preset' | 'manual';
@@ -145,8 +156,9 @@ export interface GenerateSessionInput {
   today?: string | Date;
   safetyProfile?: MovementSafetyProfile | null;
   availableEquipment?: readonly AvailableEquipment[];
-  dailyReadiness?: DailyReadiness;
-  painAreas?: readonly PainArea[];
+  dailyReadiness?: DailyReadiness | unknown;
+  painAreas?: readonly PainArea[] | unknown;
+  dailyContextSource?: DailyTrainingContextSource;
   ladderProgress?: Record<string, LadderProgress>;
   recentSessions?: readonly RecentSessionSummary[];
   source?: SessionSource;
@@ -182,6 +194,16 @@ export interface GeneratedExercise {
   stimulusReason: SlotStimulusReason;
   substitutions?: readonly string[];
   safetyNotes?: readonly string[];
+  requestedLevelId?: string;
+  selectedDailyLevelId?: string;
+  doseBeforeAdjustment?: GeneratedExerciseDose;
+  adjustmentReasons?: readonly DailyTrainingReasonCode[];
+}
+
+export interface GeneratedExerciseDose {
+  sets: number;
+  repsPerSet?: number;
+  secondsPerSet?: number;
 }
 
 export interface GeneratedSession {
@@ -202,6 +224,9 @@ export interface GeneratedSession {
   skippedSlotReasons: readonly string[];
   slotStimulus: readonly SlotStimulus[];
   guidance: readonly string[];
+  dailyContext?: NormalizedDailyTrainingContext;
+  progressionEvidencePolicy?: ProgressionEvidencePolicy;
+  adjustmentReasons?: readonly DailyTrainingReasonCode[];
 }
 
 export interface CompletedExerciseResult {
@@ -430,10 +455,19 @@ export function selectNextSessionTemplate(
 }
 
 export function generateTodaySession(input: GenerateSessionInput): GeneratedSession {
-  const readiness = input.dailyReadiness ?? 'ready';
-  const painAreas = input.painAreas ?? [];
+  const dailyContext = normalizeDailyTrainingContext({
+    readiness: input.dailyReadiness,
+    painAreas: input.painAreas,
+    source: input.dailyContextSource ?? 'user_daily_check',
+    readinessOptional: true,
+  });
+  const readiness = dailyContext.readiness;
+  const painAreas = dailyContext.discomfortAreas;
+  const discomfortConstraint = discomfortConstraintForContext(dailyContext);
   const equipment = equipmentFromInput(input);
   const source: SessionSource = input.presetId ? 'preset' : input.source ?? 'block_generated';
+  const progressionEvidencePolicy = progressionEvidencePolicyFor({ context: dailyContext, source });
+  const forceSupportingStimulus = source === 'block_generated' && progressionEvidencePolicy === 'ineligible';
   const template =
     input.template ??
     (input.presetId ? getExtraSessionPreset(input.presetId) : null) ??
@@ -461,6 +495,9 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
       skippedSlotReasons: [],
       slotStimulus: [],
       guidance: ['You have finished the planned sessions for this week. An optional extra session can still be generated from presets.'],
+      dailyContext,
+      progressionEvidencePolicy,
+      adjustmentReasons: dailyContext.reasonCodes,
     };
   }
 
@@ -478,6 +515,8 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
       slot,
       equipment,
       painAreas,
+      discomfortConstraint,
+      dailyContext,
       readiness,
       sessionIntensity,
       ladderProgress: input.ladderProgress ?? {},
@@ -491,7 +530,7 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
       slotStimulus.push(stimulus);
       continue;
     }
-    const stimulus = selectedSlotStimulus(slot, selected, equipment);
+    const stimulus = selectedSlotStimulus(slot, selected, equipment, forceSupportingStimulus);
     slotStimulus.push(stimulus);
     usedExerciseIds.add(selected.level.id);
     exercises.push(
@@ -500,6 +539,7 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
         selected,
         stimulus,
         readiness,
+        dailyContext,
         sessionIntensity,
         painAreas,
         isFirstStrength: exercises.every((e) => e.domain !== 'strength_power'),
@@ -526,7 +566,10 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
     skippedSlots,
     skippedSlotReasons,
     slotStimulus,
-    guidance: guidanceForSession(readiness, painAreas, slotStimulus),
+    guidance: guidanceForSession(dailyContext, slotStimulus),
+    dailyContext,
+    progressionEvidencePolicy,
+    adjustmentReasons: dailyContext.reasonCodes,
   };
 }
 
@@ -798,6 +841,8 @@ interface SelectionInput {
   slot: SessionSlot;
   equipment: readonly AvailableEquipment[];
   painAreas: readonly PainArea[];
+  discomfortConstraint: DiscomfortConstraint;
+  dailyContext: NormalizedDailyTrainingContext;
   readiness: DailyReadiness;
   sessionIntensity: SessionIntensity;
   ladderProgress: Record<string, LadderProgress>;
@@ -810,6 +855,8 @@ interface SelectedExercise {
   level: ExerciseLevel;
   def: ExerciseDefinition;
   substitutions: readonly string[];
+  requestedLevelId?: string;
+  adjustmentReasons: readonly DailyTrainingReasonCode[];
 }
 
 function selectExerciseForSlot(input: SelectionInput): SelectedExercise | null {
@@ -842,43 +889,76 @@ function selectLevelFromLadder(
   input: SelectionInput
 ): SelectedExercise | null {
   const progress = input.ladderProgress[ladder.id];
-  const desiredIndex = desiredLevelIndex(ladder, progress, input.readiness, input.sessionIntensity);
-  const order = levelSearchOrder(ladder.levels.length, desiredIndex);
+  const target = desiredLevelTarget(ladder, progress, input.readiness, input.sessionIntensity, input.dailyContext);
+  const order = levelSearchOrder(
+    ladder.levels.length,
+    target.selectedIndex,
+    canSearchHarderLevels(ladder, input.dailyContext, input.sessionIntensity)
+  );
   for (const idx of order) {
     const level = ladder.levels[idx];
     if (!level) continue;
     if (!releaseVisible(level.releaseStatus, input.includeOptionalLevels)) continue;
     if (input.usedExerciseIds.has(level.id) && ladder.levels.length > 1) continue;
     if (!equipmentSupportsTags(level.equipment, input.equipment)) continue;
-    if (isPainContraindicated(ladder, level, input.painAreas)) continue;
+    if (isExerciseExcludedByDiscomfort(ladder, level, input.discomfortConstraint)) continue;
     const def = safeExercise(level.id);
     if (!def) continue;
     const substitutions =
-      progress && progress.currentLevelId !== level.id
-        ? [`Adjusted from ${levelName(ladder, progress.currentLevelId)} to ${level.name} for today's setup.`]
+      target.requestedLevelId && target.requestedLevelId !== level.id
+        ? [`Adjusted from ${levelName(ladder, target.requestedLevelId)} to ${level.name} for today's setup.`]
         : [];
-    return { ladder, level, def, substitutions };
+    return {
+      ladder,
+      level,
+      def,
+      substitutions,
+      requestedLevelId: target.requestedLevelId,
+      adjustmentReasons: target.reasons,
+    };
   }
   return null;
 }
 
-function desiredLevelIndex(
+function desiredLevelTarget(
   ladder: ExerciseLadder,
   progress: LadderProgress | undefined,
   readiness: DailyReadiness,
-  sessionIntensity: SessionIntensity
-): number {
+  sessionIntensity: SessionIntensity,
+  dailyContext: NormalizedDailyTrainingContext
+): { requestedLevelId: string; selectedIndex: number; reasons: DailyTrainingReasonCode[] } {
   const desiredId = progress?.currentLevelId ?? ladder.defaultLevelId;
   let idx = Math.max(0, ladder.levels.findIndex((level) => level.id === desiredId));
+  const requestedLevelId = ladder.levels[idx]?.id ?? ladder.defaultLevelId;
+  const reasons: DailyTrainingReasonCode[] = [];
   if (sessionIntensity === 'beginner' && !progress && idx > 0) idx -= 1;
-  if ((readiness === 'low_energy' || readiness === 'something_hurts') && idx > 0) idx -= 1;
-  return idx;
+  if ((readiness === 'low_energy' || readiness === 'something_hurts' || dailyContext.discomfortReported) && idx > 0) {
+    idx -= 1;
+    reasons.push(readiness === 'something_hurts' || dailyContext.discomfortReported ? 'discomfort_reported' : 'reduced_readiness');
+  }
+  return { requestedLevelId, selectedIndex: idx, reasons };
 }
 
-function levelSearchOrder(length: number, desiredIndex: number): number[] {
+function canSearchHarderLevels(
+  ladder: ExerciseLadder,
+  dailyContext: NormalizedDailyTrainingContext,
+  sessionIntensity: SessionIntensity
+): boolean {
+  if (ladder.progressionModel !== 'linear_progression') return true;
+  return (
+    dailyContext.inputStatus === 'valid' &&
+    dailyContext.readiness === 'ready' &&
+    !dailyContext.discomfortReported &&
+    sessionIntensity !== 'beginner'
+  );
+}
+
+function levelSearchOrder(length: number, desiredIndex: number, allowHarder: boolean): number[] {
   const out: number[] = [];
   for (let i = desiredIndex; i >= 0; i--) out.push(i);
-  for (let i = desiredIndex + 1; i < length; i++) out.push(i);
+  if (allowHarder) {
+    for (let i = desiredIndex + 1; i < length; i++) out.push(i);
+  }
   return out;
 }
 
@@ -939,6 +1019,7 @@ function toGeneratedExercise({
   selected,
   stimulus,
   readiness,
+  dailyContext,
   sessionIntensity,
   painAreas,
   isFirstStrength,
@@ -948,6 +1029,7 @@ function toGeneratedExercise({
   selected: SelectedExercise;
   stimulus: SlotStimulus;
   readiness: DailyReadiness;
+  dailyContext: NormalizedDailyTrainingContext;
   sessionIntensity: SessionIntensity;
   painAreas: readonly PainArea[];
   isFirstStrength: boolean;
@@ -957,6 +1039,8 @@ function toGeneratedExercise({
   let sets = base.sets;
   let repsPerSet = base.repsPerSet;
   let secondsPerSet = base.holdSec ?? base.captureSec ?? base.timerSec;
+  const doseBeforeAdjustment: GeneratedExerciseDose = { sets, repsPerSet, secondsPerSet };
+  const adjustmentReasons: DailyTrainingReasonCode[] = [...dailyContext.reasonCodes, ...selected.adjustmentReasons];
 
   if (sessionIntensity === 'beginner') {
     const beginner = beginnerPrescription({
@@ -1013,6 +1097,10 @@ function toGeneratedExercise({
     stimulusReason: stimulus.reason,
     substitutions: selected.substitutions,
     safetyNotes: safetyNotesFor(selected.level),
+    requestedLevelId: selected.requestedLevelId,
+    selectedDailyLevelId: selected.level.id,
+    doseBeforeAdjustment,
+    adjustmentReasons: unique(adjustmentReasons),
   };
 }
 
@@ -1053,43 +1141,6 @@ function releaseVisible(status: ReleaseStatus, includeOptional: boolean): boolea
   return false;
 }
 
-function isPainContraindicated(
-  ladder: ExerciseLadder,
-  level: ExerciseLevel,
-  painAreas: readonly PainArea[]
-): boolean {
-  if (painAreas.length === 0) return false;
-  const id = level.id;
-  const key = id.replace(/-/g, '_');
-  for (const area of painAreas) {
-    if (area === 'knee') {
-      if (ladder.id === 'step-up') return true;
-      if (ladder.id === 'lateral-stability') return true;
-      if (key.includes('split_squat')) return true;
-      if (ladder.id === 'squat') return true;
-      if (key.includes('sts_power') || key.includes('loaded_sit_to_stand')) return true;
-    }
-    if (area === 'hip') {
-      if (key.includes('split_squat') || key.includes('lateral_walk')) return true;
-    }
-    if (area === 'back') {
-      if (ladder.id === 'hinge-glutes') return true;
-      if (key.includes('loaded_') || key.includes('bridge')) return true;
-    }
-    if (area === 'shoulder') {
-      if (ladder.id === 'push') return true;
-      if (ladder.id === 'shoulder-reach-press') return true;
-      if (key.includes('overhead_press') || key.includes('overhead_reach') || key.includes('pull_apart')) return true;
-    }
-    if (area === 'ankle') {
-      if (ladder.id === 'step-up' || ladder.id === 'heel-toe-raise') return true;
-      if (key.includes('single_leg')) return true;
-    }
-    if (area === 'neck' && id.includes('neck')) return true;
-  }
-  return false;
-}
-
 function safetyNotesFor(level: ExerciseLevel): string[] | undefined {
   if (level.equipment.includes('floor')) {
     return ['Use floor exercises only when getting down and back up from the floor feels comfortable today.'];
@@ -1107,9 +1158,11 @@ function safetyNotesFor(level: ExerciseLevel): string[] | undefined {
 function selectedSlotStimulus(
   slot: SessionSlot,
   selected: SelectedExercise,
-  equipment: readonly AvailableEquipment[]
+  equipment: readonly AvailableEquipment[],
+  forceSupportingStimulus = false
 ): SlotStimulus {
-  const role = selectedStimulusRole(slot, selected);
+  const naturalRole = selectedStimulusRole(slot, selected);
+  const role = forceSupportingStimulus && naturalRole === 'primary' ? 'supporting' : naturalRole;
   const reason = selectedStimulusReason(slot, selected, equipment, role);
   return {
     slotId: slot.id,
@@ -1207,15 +1260,18 @@ function skippedSlotStimulus(
 }
 
 function guidanceForSession(
-  readiness: DailyReadiness,
-  painAreas: readonly PainArea[],
+  dailyContext: NormalizedDailyTrainingContext,
   slotStimulus: readonly SlotStimulus[]
 ): string[] {
+  const { readiness, discomfortAreas } = dailyContext;
   const guidance: string[] = [];
+  if (dailyContext.inputStatus === 'malformed_fail_closed') {
+    guidance.push('Hale used a cautious supporting plan because today\'s readiness choices could not be read clearly.');
+  }
   if (readiness === 'a_bit_stiff') guidance.push('Mobility comes first today, with the first strength item eased back.');
   if (readiness === 'low_energy') guidance.push('Sets are reduced today. Keep the effort comfortable.');
   if (readiness === 'short_on_time') guidance.push('This is about 10 minutes, with one strength, one balance, and one mobility item.');
-  if (readiness === 'something_hurts' || painAreas.length > 0) {
+  if (readiness === 'something_hurts' || discomfortAreas.length > 0) {
     guidance.push('Today avoids the area you flagged and keeps the session gentle. Move only in a comfortable range. You can stop at any time.');
   }
   for (const stimulus of slotStimulus) {

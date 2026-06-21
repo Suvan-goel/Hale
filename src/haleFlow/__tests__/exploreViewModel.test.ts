@@ -243,6 +243,7 @@ describe('exploreViewModel', () => {
         remindersEnabled: false,
         phoneStandAvailable: true,
         supportSharingLevel: 'private',
+        devMockDataEnabled: false,
       },
     });
 

@@ -29,7 +29,7 @@ export function SessionPlanningRecoveryScreen({
   };
   return (
     <Screen>
-      <BackArrowButton accessibilityLabel="Back to Today" onPress={onCancel} />
+      <BackArrowButton accessibilityLabel="Back" onPress={onCancel} />
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Session setup</Text>
         <Text style={styles.title}>{content.title}</Text>

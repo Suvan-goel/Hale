@@ -78,17 +78,13 @@ export function ProgressScreen({
   onViewReport,
   onOpenSettings,
 }: ProgressScreenProps) {
-  const devMock = useProgressDevMockData({
-    enabled: __DEV__ && !getLatestCheckUpSummary(history, assessments),
-    today,
-  });
-  const visibleHistory = devMock?.history ?? history;
-  const visibleAssessments = devMock?.assessments ?? assessments;
-  const visibleActiveBlock = devMock?.activeBlock ?? activeBlock;
-  const visibleBlocks = devMock?.blocks ?? blocks;
-  const visibleReports = devMock?.reports ?? blockReports;
-  const visibleCompletions = devMock?.completions ?? completions;
-  const visibleLadderProgressById = devMock?.ladderProgressById ?? ladderProgressById;
+  const visibleHistory = history;
+  const visibleAssessments = assessments;
+  const visibleActiveBlock = activeBlock;
+  const visibleBlocks = blocks;
+  const visibleReports = blockReports;
+  const visibleCompletions = completions;
+  const visibleLadderProgressById = ladderProgressById;
 
   const latest = getLatestCheckUpSummary(visibleHistory, visibleAssessments);
   const domainCards = getDomainProgressCards(visibleHistory, visibleAssessments);
@@ -102,8 +98,8 @@ export function ProgressScreen({
   const hasComparison = retestHistory.length > 1;
   const retest = getRetestDueSummary({ activeBlock: visibleActiveBlock, today, hasBaseline: !!latest });
   const retestBody = retestLine({ activeBlock: visibleActiveBlock, today, fallback: retest.body, due: retest.due });
-  const handleViewLatest = devMock ? noop : onViewLatest;
-  const handleViewReport = devMock ? noopReport : onViewReport;
+  const handleViewLatest = onViewLatest;
+  const handleViewReport = onViewReport;
 
   return (
     <Screen contentStyle={styles.screenContent}>
@@ -191,11 +187,7 @@ interface ProgressScreenProps {
   onOpenSettings: () => void;
 }
 
-function noop() {}
-
-function noopReport(_blockId: string) {}
-
-interface ProgressDevMockData {
+export interface ProgressDevMockData {
   history: StoredCheckUp[];
   assessments: MovementAssessment[];
   activeBlock: MovementBlock;
@@ -212,18 +204,7 @@ interface ScoredDevCheckUp {
   snapshot: VersionedCheckUpScoreSnapshot;
 }
 
-function useProgressDevMockData({
-  enabled,
-  today,
-}: {
-  enabled: boolean;
-  today: string;
-}): ProgressDevMockData | null {
-  // Temporary dev-only layout fixture; it is never persisted and release builds never use it.
-  return React.useMemo(() => (enabled ? buildProgressDevMockData(today) : null), [enabled, today]);
-}
-
-function buildProgressDevMockData(today: string): ProgressDevMockData {
+export function buildProgressDevMockData(today: string): ProgressDevMockData {
   const base = devBaseDate(today);
   const baseline = createScoredDevCheckUp(
     devCheckUp(devIso(base, -74), {
