@@ -1,10 +1,14 @@
 import { LOCAL_USER_ID } from '../../adherence/types';
 import {
   PREFERENCES_SCHEMA_VERSION,
+  canonicalEquipmentFromSafetyProfile,
+  canonicalEquipmentToAvailableEquipment,
   defaultPreferences,
   deserializePreferences,
+  resolveCanonicalEquipmentRecords,
   type Preferences,
 } from '../../profile';
+import type { MovementSafetyProfile } from '../../adherence';
 import { addBreadcrumb } from '../observability/sentry';
 import { getCurrentSession } from './authService';
 import { getCurrentProfile, upsertCurrentProfile } from './profileService';
@@ -51,7 +55,7 @@ export function preferencesToBackendProfileUpdate(prefs: Preferences): BackendPr
     }),
     safety_json: toBackendJson({
       schemaVersion: PREFERENCES_SCHEMA_VERSION,
-      safetyProfile: prefs.profile.safetyProfile,
+      safetyProfile: normalizedSafetyProfile(prefs.profile.safetyProfile, 'local_user'),
     }),
     preferences_json: toBackendJson({
       schemaVersion: PREFERENCES_SCHEMA_VERSION,
@@ -81,15 +85,76 @@ export function mergeRemoteProfileIntoLocal(
       lifeGoal:
         localPrefs.profile.lifeGoal ??
         (hydrateRoutingFields ? remotePrefs.profile.lifeGoal : localPrefs.profile.lifeGoal),
-      safetyProfile:
-        localPrefs.profile.safetyProfile ??
-        (hydrateRoutingFields ? remotePrefs.profile.safetyProfile : localPrefs.profile.safetyProfile),
+      safetyProfile: resolveSafetyProfileForMerge({
+        local: localPrefs.profile.safetyProfile,
+        remote: remotePrefs.profile.safetyProfile,
+        hydrateRoutingFields,
+      }),
     },
     settings: sameJson(localPrefs.settings, defaults.settings) ? remotePrefs.settings : localPrefs.settings,
     onboarding:
       hydrateRoutingFields && sameJson(localPrefs.onboarding, defaults.onboarding)
         ? remotePrefs.onboarding
         : localPrefs.onboarding,
+  };
+}
+
+function resolveSafetyProfileForMerge({
+  local,
+  remote,
+  hydrateRoutingFields,
+}: {
+  local: MovementSafetyProfile | null;
+  remote: MovementSafetyProfile | null;
+  hydrateRoutingFields: boolean;
+}): MovementSafetyProfile | null {
+  if (!hydrateRoutingFields) return local;
+  if (!local && !remote) return null;
+  if (!local) return normalizedSafetyProfile(remote, 'remote_profile');
+  if (!remote) return normalizedSafetyProfile(local, 'local_user');
+
+  const resolved = resolveCanonicalEquipmentRecords({
+    local: canonicalEquipmentFromSafetyProfile(local, 'local_user'),
+    remote: canonicalEquipmentFromSafetyProfile(remote, 'remote_profile'),
+  });
+  const selectedBase = resolved.profile.source === 'remote_profile' ? remote : local;
+  const normalized = {
+    ...selectedBase,
+    availableEquipment: canonicalEquipmentToAvailableEquipment(resolved.profile),
+    equipmentStatus: resolved.profile.status,
+    equipmentRevision: resolved.profile.revision,
+    equipmentUpdatedAt: resolved.profile.updatedAt ?? selectedBase.equipmentUpdatedAt ?? selectedBase.updatedAt,
+    updatedAt: resolved.profile.updatedAt ?? selectedBase.updatedAt,
+  };
+
+  for (const diagnostic of resolved.diagnostics) {
+    if (diagnostic.reason.startsWith('equipment_conflict')) {
+      addBreadcrumb('profile equipment conflict resolved', {
+        category: 'profile_preferences',
+        reason: diagnostic.reason,
+        localUpdatedAt: diagnostic.localUpdatedAt,
+        remoteUpdatedAt: diagnostic.remoteUpdatedAt,
+        localRevision: diagnostic.localRevision,
+        remoteRevision: diagnostic.remoteRevision,
+      });
+    }
+  }
+
+  return normalized;
+}
+
+function normalizedSafetyProfile(
+  safetyProfile: MovementSafetyProfile | null,
+  source: 'local_user' | 'remote_profile'
+): MovementSafetyProfile | null {
+  if (!safetyProfile) return null;
+  const canonical = canonicalEquipmentFromSafetyProfile(safetyProfile, source);
+  return {
+    ...safetyProfile,
+    availableEquipment: canonicalEquipmentToAvailableEquipment(canonical),
+    equipmentStatus: canonical.status,
+    equipmentRevision: canonical.revision,
+    equipmentUpdatedAt: canonical.updatedAt ?? safetyProfile.equipmentUpdatedAt ?? safetyProfile.updatedAt,
   };
 }
 

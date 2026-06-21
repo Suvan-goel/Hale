@@ -9,6 +9,7 @@ import {
   type CheckupType,
   type MovementAssessment,
   type MovementBlock,
+  type TrainingFocusStimulusEvidenceSummary,
   upsertMovementAssessment,
   upsertMovementBlock,
   upsertMovementBlockReport,
@@ -152,6 +153,16 @@ describe('progressViewModel', () => {
       title: 'Next re-test',
     });
     expect(getRetestDueSummary({ activeBlock: block, today: '2026-06-29T08:00:00.000Z', hasBaseline: true })).toMatchObject({
+      due: false,
+    });
+    expect(
+      getRetestDueSummary({
+        activeBlock: block,
+        today: '2026-06-29T08:00:00.000Z',
+        hasBaseline: true,
+        completions: scheduledBlockCompletions(block),
+      })
+    ).toMatchObject({
       due: true,
       ctaLabel: 'Start re-test',
     });
@@ -475,6 +486,67 @@ function assessmentForCheckUp(checkUp: CheckUp, type: CheckupType = 'baseline'):
     completedAt: checkUp.startedAt,
     isOfficialForProgress: type === 'baseline' || type === 'baseline_retake' || type === 'official_retest',
   });
+}
+
+function scheduledBlockCompletions(block: MovementBlock): ReturnType<typeof makeTrainingSessionCompletion>[] {
+  return [
+    ...scheduledWeekCompletions(block, '2026-06-01'),
+    ...scheduledWeekCompletions(block, '2026-06-08'),
+    ...scheduledWeekCompletions(block, '2026-06-15'),
+    ...scheduledWeekCompletions(block, '2026-06-22'),
+  ];
+}
+
+function scheduledWeekCompletions(block: MovementBlock, startDateKey: string): ReturnType<typeof makeTrainingSessionCompletion>[] {
+  const [year, month, day] = startDateKey.split('-').map(Number);
+  const base = Date.UTC(year, month - 1, day, 9);
+  return ['A', 'B', 'C'].map((label, index) => {
+    const completedAt = new Date(base + index * 86400000).toISOString();
+    const templateId = `${templatePrefix(block)}-${label}`;
+    return makeTrainingSessionCompletion({
+      block,
+      sessionType: 'standard',
+      completedAt,
+      plannedDate: `${templateId}:${completedAt.slice(0, 10)}`,
+      source: 'block_generated',
+      templateId,
+      mainPlanCredit: true,
+      focusStimulusEvidence: scheduledFocusEvidence(block, templateId),
+    });
+  });
+}
+
+function scheduledFocusEvidence(block: MovementBlock, templateId: string): TrainingFocusStimulusEvidenceSummary {
+  const exerciseId = `${templateId}-primary`;
+  return {
+    planStatus: 'eligible',
+    status: 'credited_focus_work',
+    exclusionReason: 'none',
+    mainPlanCredit: true,
+    blockFocusDomain: block.focusDomain,
+    plannedPrimaryFocusExerciseCount: 1,
+    completedPrimaryFocusExerciseCount: 1,
+    completedSupportingExerciseCount: 0,
+    completedFallbackExerciseCount: 0,
+    completedCrossDomainExerciseCount: 0,
+    plannedPrimaryFocusExerciseIds: [exerciseId],
+    completedPrimaryFocusExerciseIds: [exerciseId],
+    completedSupportingExerciseIds: [],
+    completedFallbackExerciseIds: [],
+    completedCrossDomainExerciseIds: [],
+    fallbackFocusSlotIds: [],
+    skippedFocusSlotIds: [],
+    focusStimulusExclusionReasons: [],
+    missingMetadataExerciseIds: [],
+    malformedMetadataExerciseIds: [],
+    focusMismatchExerciseIds: [],
+  };
+}
+
+function templatePrefix(block: MovementBlock): 'strength' | 'balance' | 'mobility' {
+  if (block.focusDomain === 'balance') return 'balance';
+  if (block.focusDomain === 'mobility') return 'mobility';
+  return 'strength';
 }
 
 function measured(movementId: string, result: MovementResultBase): CheckUpItem {

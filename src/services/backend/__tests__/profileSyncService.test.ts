@@ -1,0 +1,129 @@
+import { defaultPreferences, type Preferences } from '../../../profile';
+import type { MovementSafetyProfile } from '../../../adherence';
+import type { BackendJson, BackendProfile } from '../types';
+import {
+  mergeRemoteProfileIntoLocal,
+  preferencesToBackendProfileUpdate,
+} from '../profileSyncService';
+
+jest.mock('../../../lib/supabase', () => ({
+  supabase: {
+    auth: {
+      getSession: jest.fn(),
+    },
+    from: jest.fn(),
+  },
+}));
+
+jest.mock('../authService', () => ({
+  getCurrentSession: jest.fn(),
+}));
+
+const START = '2026-06-21T08:00:00.000Z';
+
+function safety(
+  availableEquipment: MovementSafetyProfile['availableEquipment'],
+  overrides: Partial<MovementSafetyProfile> = {}
+): MovementSafetyProfile {
+  return {
+    id: 'safety',
+    userId: 'local-device-user',
+    availableEquipment,
+    equipmentStatus: 'confirmed',
+    equipmentRevision: 1,
+    equipmentUpdatedAt: START,
+    createdAt: START,
+    updatedAt: START,
+    ...overrides,
+  };
+}
+
+function prefs(safetyProfile: MovementSafetyProfile | null): Preferences {
+  return {
+    ...defaultPreferences(),
+    profile: {
+      ...defaultPreferences().profile,
+      safetyProfile,
+    },
+  };
+}
+
+function remoteProfile(safetyProfile: MovementSafetyProfile | null): BackendProfile {
+  return {
+    id: 'user-123',
+    local_user_id: 'local-device-user',
+    full_name: null,
+    birth_year: null,
+    sex: null,
+    profile_json: backendJson({
+      schemaVersion: 4,
+      name: '',
+      age: null,
+      goal: '',
+    }),
+    onboarding_json: backendJson({
+      schemaVersion: 4,
+      onboarding: defaultPreferences().onboarding,
+      lifeGoal: null,
+    }),
+    safety_json: backendJson({
+      schemaVersion: 4,
+      safetyProfile,
+    }),
+    preferences_json: backendJson({
+      schemaVersion: 4,
+      settings: defaultPreferences().settings,
+    }),
+    onboarding_completed_at: null,
+    created_at: START,
+    updated_at: START,
+  };
+}
+
+function backendJson(value: unknown): BackendJson {
+  return JSON.parse(JSON.stringify(value)) as BackendJson;
+}
+
+describe('profile equipment sync merge', () => {
+  it('uses newer valid remote canonical equipment during restore hydration', () => {
+    const merged = mergeRemoteProfileIntoLocal(
+      remoteProfile(safety(['wall'], { equipmentRevision: 3, equipmentUpdatedAt: '2026-06-21T09:00:00.000Z' })),
+      prefs(safety(['chair'], { equipmentRevision: 2, equipmentUpdatedAt: '2026-06-21T08:00:00.000Z' })),
+      { hydrateRoutingFields: true }
+    );
+
+    expect(merged.profile.safetyProfile?.availableEquipment).toEqual(['wall']);
+    expect(merged.profile.safetyProfile?.equipmentRevision).toBe(3);
+  });
+
+  it('preserves local explicit equipment on equal markers or marker-less conflicts', () => {
+    const merged = mergeRemoteProfileIntoLocal(
+      remoteProfile(safety(['stairs'], { equipmentRevision: 2 })),
+      prefs(safety(['none'], { equipmentRevision: 2 })),
+      { hydrateRoutingFields: true }
+    );
+
+    expect(merged.profile.safetyProfile?.availableEquipment).toEqual(['none']);
+  });
+
+  it('does not hydrate current equipment when routing-field hydration is disabled', () => {
+    const merged = mergeRemoteProfileIntoLocal(
+      remoteProfile(safety(['wall'], { equipmentRevision: 3 })),
+      prefs(safety(['chair'], { equipmentRevision: 2 })),
+      { hydrateRoutingFields: false }
+    );
+
+    expect(merged.profile.safetyProfile?.availableEquipment).toEqual(['chair']);
+  });
+
+  it('syncs canonical equipment metadata through the profile payload', () => {
+    const update = preferencesToBackendProfileUpdate(
+      prefs(safety(['chair', 'resistance_band'], { equipmentRevision: 5 }))
+    );
+    const safetyJson = update.safety_json as unknown as { safetyProfile: MovementSafetyProfile };
+
+    expect(safetyJson.safetyProfile.availableEquipment).toEqual(['chair', 'resistance_band']);
+    expect(safetyJson.safetyProfile.equipmentStatus).toBe('confirmed');
+    expect(safetyJson.safetyProfile.equipmentRevision).toBe(5);
+  });
+});

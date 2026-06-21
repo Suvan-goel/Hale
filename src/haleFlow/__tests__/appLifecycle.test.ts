@@ -325,7 +325,7 @@ describe('getHaleAppLifecycle', () => {
     expect(result.primaryAction.ctaLabel).toBe('Start mobility reset');
   });
 
-  it('surfaces the monthly re-test once the block reaches four weeks', () => {
+  it('does not surface the monthly re-test from calendar age alone', () => {
     const block = activeBlock();
     const result = getHaleAppLifecycle({
       profile: profile(),
@@ -335,12 +335,26 @@ describe('getHaleAppLifecycle', () => {
       today: '2026-06-29T08:00:00.000Z',
     });
 
-    expect(result.state).toBe('monthly_retest_due');
-    expect(result.primaryAction.type).toBe('start_retest');
+    expect(result.state).toBe('inactive_restart');
+    expect(result.primaryAction.type).toBe('start_gentle_restart');
   });
 
   it('keeps the active block recoverable after an invalid official retest attempt', () => {
     const block = activeBlock();
+    const completions = [
+      completed(block, '2026-06-02T08:00:00.000Z', 1),
+      completed(block, '2026-06-04T08:00:00.000Z', 2),
+      completed(block, '2026-06-06T08:00:00.000Z', 3),
+      completed(block, '2026-06-09T08:00:00.000Z', 1),
+      completed(block, '2026-06-11T08:00:00.000Z', 2),
+      completed(block, '2026-06-13T08:00:00.000Z', 3),
+      completed(block, '2026-06-16T08:00:00.000Z', 1),
+      completed(block, '2026-06-18T08:00:00.000Z', 2),
+      completed(block, '2026-06-20T08:00:00.000Z', 3),
+      completed(block, '2026-06-23T08:00:00.000Z', 1),
+      completed(block, '2026-06-25T08:00:00.000Z', 2),
+      completed(block, '2026-06-27T08:00:00.000Z', 3),
+    ];
     const invalidScore = scoreCheckUp(noMeasurementBaseline('2026-06-29T08:00:00.000Z').checkUp);
     const invalidRetest = createMovementAssessment({
       checkUpId: invalidScore.startedAt,
@@ -354,7 +368,7 @@ describe('getHaleAppLifecycle', () => {
       profile: profile(),
       history: [baseline(), noMeasurementBaseline('2026-06-29T08:00:00.000Z')],
       training: defaultTrainingState(),
-      adherence: adherenceWithBaseline({ blocks: [block], assessments: [invalidRetest] }),
+      adherence: adherenceWithBaseline({ blocks: [block], completions, assessments: [invalidRetest] }),
       today: '2026-06-29T09:00:00.000Z',
     });
 
@@ -379,6 +393,8 @@ describe('getHaleAppLifecycle', () => {
 
     expect(result.state).toBe('inactive_restart');
     expect(result.primaryAction.type).toBe('start_gentle_restart');
+    expect(result.primaryAction.title).toBe('Clean slate');
+    expect(result.primaryAction.ctaLabel).toBe('Restart gently');
   });
 
   it('handles old minimal state and legacy training blocks without treating them as current sessions', () => {

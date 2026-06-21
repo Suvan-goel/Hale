@@ -1,5 +1,4 @@
 import {
-  blockProgress,
   daysUntil,
   domainLabel,
   type MovementBlock,
@@ -29,6 +28,10 @@ import {
   latestHistoricalOfficialCheckUpRecord,
   latestOfficialComparisonPair,
 } from './checkupHistory';
+import {
+  blockScheduleDateKey,
+  getBlockScheduleState,
+} from './blockSchedule';
 
 export type ProgressTrend = 'higher' | 'similar' | 'lower' | 'unknown';
 
@@ -190,12 +193,16 @@ export function getBlockReportSummaries({
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
     .map((block) => {
       const report = allReports.find((item) => item.blockId === block.id);
-      const progress = blockProgress(block, allCompletions);
+      const schedule = getBlockScheduleState({
+        block,
+        completions: allCompletions,
+        today: latestScheduleDate(block, allCompletions),
+      });
       return {
         blockId: block.id,
         dateRange: `${formatDate(block.startDate)} - ${formatDate(block.endDate)}`,
         focus: domainLabel(block.focusDomain),
-        sessions: `${report?.sessionsCompleted ?? progress.completedSessions} of ${block.totalPlannedSessions} sessions`,
+        sessions: `${schedule.totalCredits} of ${block.totalPlannedSessions} sessions`,
         mainChange: report ? mainChangeFromReport(report) : 'Re-test history will add the main change for this block.',
       };
     });
@@ -219,10 +226,12 @@ export function getRetestDueSummary({
   activeBlock,
   today,
   hasBaseline,
+  completions,
 }: {
   activeBlock?: MovementBlock | null;
   today: string;
   hasBaseline: boolean;
+  completions?: readonly TrainingSessionCompletion[] | null;
 }): RetestDueSummary {
   if (!hasBaseline) {
     return {
@@ -239,8 +248,15 @@ export function getRetestDueSummary({
       due: false,
     };
   }
-  const days = daysUntil(activeBlock.retestDate, today);
-  if (activeBlock.status === 'completed' || days <= 0) {
+  const schedule = getBlockScheduleState({
+    block: activeBlock,
+    completions: completions ?? [],
+    today,
+  });
+  const targetDateKey = schedule.retestNotBeforeDateKey ?? blockScheduleDateKey(activeBlock.retestDate);
+  const todayKey = blockScheduleDateKey(today);
+  const days = targetDateKey && todayKey ? Math.max(0, daysBetweenDateKeys(todayKey, targetDateKey)) : daysUntil(activeBlock.retestDate, today);
+  if (activeBlock.status === 'completed' || schedule.status === 'retest_due') {
     return {
       title: "It's time to re-test",
       body: 'Repeat your Movement Check-Up to add another data point.',
@@ -253,6 +269,23 @@ export function getRetestDueSummary({
     body: `Your next Movement Check-Up is in ${days} ${days === 1 ? 'day' : 'days'}.`,
     due: false,
   };
+}
+
+function latestScheduleDate(block: MovementBlock, completions: readonly TrainingSessionCompletion[]): string {
+  const candidates = completions
+    .filter((completion) => completion.blockId === block.id)
+    .map((completion) => completion.completedAt)
+    .concat(block.updatedAt, block.startDate)
+    .sort();
+  return candidates[candidates.length - 1] ?? block.updatedAt;
+}
+
+function daysBetweenDateKeys(startDateKey: string, endDateKey: string): number {
+  const [startYear, startMonth, startDay] = startDateKey.split('-').map(Number);
+  const [endYear, endMonth, endDay] = endDateKey.split('-').map(Number);
+  const start = Date.UTC(startYear, startMonth - 1, startDay);
+  const end = Date.UTC(endYear, endMonth - 1, endDay);
+  return Math.floor((end - start) / 86400000);
 }
 
 function strengthCard(baseline: MetricSnapshot, latest: MetricSnapshot | null): DomainProgressCard {

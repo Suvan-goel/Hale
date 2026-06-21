@@ -8,6 +8,36 @@
 export type { AppSettings, OnboardingState, OnboardingStep, Preferences, UserProfile } from './types';
 export { EMPTY_PROFILE } from './types';
 export {
+  CANONICAL_EQUIPMENT_SCHEMA_VERSION,
+  CANONICAL_EQUIPMENT_ORDER,
+  canonicalEquipmentFromSafetyProfile,
+  canonicalEquipmentToAvailableEquipment,
+  equipmentFingerprint,
+  equipmentSnapshotFingerprint,
+  isCanonicalEquipmentCapability,
+  isCanonicalEquipmentStatus,
+  legacyEquipmentFromCanonical,
+  migrateLegacyEquipmentProfile,
+  normalizeAvailableEquipmentForPersistence,
+  normalizeCanonicalEquipment,
+  plannedEquipmentSnapshotFromCanonical,
+  resolveCanonicalEquipmentRecords,
+  safetyProfileWithCanonicalEquipment,
+  sortCapabilities,
+  validatePlanEquipmentSnapshot,
+} from './equipment';
+export type {
+  CanonicalEquipmentCapability,
+  CanonicalEquipmentProfile,
+  CanonicalEquipmentSource,
+  CanonicalEquipmentStatus,
+  EquipmentDiagnostic,
+  EquipmentDiagnosticReason,
+  PlannedEquipmentSnapshot,
+  PlanEquipmentValidation,
+  PlanEquipmentValidationStatus,
+} from './equipment';
+export {
   PREFERENCES_SCHEMA_VERSION,
   defaultPreferences,
   deserializePreferences,

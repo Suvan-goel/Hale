@@ -8,6 +8,7 @@ import {
 import {
   makeTrainingSessionCompletion,
   type MovementBlock,
+  type MovementSafetyProfile,
   type TrainingSessionCompletion,
 } from '../../adherence';
 import {
@@ -26,6 +27,7 @@ import {
   planLadderPracticeSession,
   requireHaleSessionPlan,
 } from '../sessionPlanning';
+import { BLOCK_SCHEDULE_POLICY_VERSION } from '../blockSchedule';
 import type { HaleSessionPlan } from '../types';
 
 const START = '2026-06-01T08:00:00.000Z';
@@ -330,6 +332,7 @@ describe('authoritative progression evidence', () => {
       ladderId: 'sit-to-stand',
       activeBlock: b,
       training: defaultTrainingState(),
+      safetyProfile: safety(),
       today: START,
     });
     if (!practice) throw new Error('expected practice plan');
@@ -401,9 +404,26 @@ function sessionPlan(b: MovementBlock, generated: GeneratedSession): HaleSession
   return requireHaleSessionPlan({
     activeBlock: b,
     training: defaultTrainingState(),
+    safetyProfile: safety(),
     today: START,
     generateSession: () => generated,
   });
+}
+
+function safety(): MovementSafetyProfile {
+  return {
+    id: 'safety-1',
+    userId: 'local-device-user',
+    age: 61,
+    activityLevel: 'lightly_active',
+    feelsSafeStandingFromChair: true,
+    feelsSafeBalancing: true,
+    availableEquipment: ['chair', 'wall', 'resistance_band'],
+    equipmentStatus: 'confirmed',
+    preferredWorkoutDays: ['Mon', 'Wed', 'Fri'],
+    createdAt: START,
+    updatedAt: START,
+  };
 }
 
 function creditedCompletion(
@@ -426,9 +446,21 @@ function creditedCompletion(
       completedAt: overrides.completedAt ?? COMPLETED_AT,
       plannedDate: plan.metadata?.plannedDateKey,
       source: plan.metadata?.source,
-      templateId: plan.metadata?.templateId,
-      mainPlanCredit: focus.mainPlanCredit,
-      workEvidence: {
+	      templateId: plan.metadata?.templateId,
+	      mainPlanCredit: focus.mainPlanCredit,
+	      scheduleCredit: focus.mainPlanCredit
+	        ? {
+	            policyVersion: BLOCK_SCHEDULE_POLICY_VERSION,
+	            credited: true,
+	            status: 'credited',
+	            weekIndex: 0,
+	            weekNumber: 1,
+	            dateKey: (overrides.completedAt ?? COMPLETED_AT).slice(0, 10),
+	            templateId: plan.metadata?.templateId,
+	            creditId: plan.metadata?.plannedDateKey,
+	          }
+	        : undefined,
+	      workEvidence: {
         plannedExerciseCount: workEvidence.plannedExerciseCount,
         resultItemCount: workEvidence.resultItemCount,
         completedExerciseCount: workEvidence.completedExerciseCount,

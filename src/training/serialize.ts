@@ -41,6 +41,14 @@ import type {
   NormalizedDailyTrainingContext,
   ProgressionEvidencePolicy,
 } from './dailyTrainingContext';
+import {
+  CANONICAL_EQUIPMENT_SCHEMA_VERSION,
+  equipmentSnapshotFingerprint,
+  isCanonicalEquipmentCapability,
+  isCanonicalEquipmentStatus,
+  sortCapabilities,
+  type PlannedEquipmentSnapshot,
+} from '../profile/equipment';
 
 export const TRAINING_SCHEMA_VERSION = 4;
 
@@ -272,6 +280,7 @@ function validGeneratedSessionSummary(v: unknown): PersistedGeneratedSessionSumm
     completionSource: isTrainingSessionCompletionSource(s.completionSource) ? s.completionSource : undefined,
     status: isGeneratedSessionStatus(s.status) ? s.status : undefined,
     mainPlanCredit: typeof s.mainPlanCredit === 'boolean' ? s.mainPlanCredit : undefined,
+    scheduleCredit: validScheduleCredit(s.scheduleCredit),
     workEvidence: validWorkEvidence(s.workEvidence),
     focusStimulusEvidence: validFocusStimulusEvidence(s.focusStimulusEvidence),
     title: s.title,
@@ -288,8 +297,66 @@ function validGeneratedSessionSummary(v: unknown): PersistedGeneratedSessionSumm
       : 'ineligible',
     adjustmentReasons: validReasonCodes(s.adjustmentReasons),
     durationMinutes: finiteNumber(s.durationMinutes),
+    equipmentSnapshot: validPlannedEquipmentSnapshot(s.equipmentSnapshot),
     exercises: validGeneratedExerciseSummaries(s.exercises),
     feedback: validPostSessionFeedback(s.feedback) ?? undefined,
+  };
+}
+
+function validScheduleCredit(v: unknown): PersistedGeneratedSessionSummary['scheduleCredit'] {
+  if (!v || typeof v !== 'object') return undefined;
+  const s = v as NonNullable<PersistedGeneratedSessionSummary['scheduleCredit']>;
+  if (typeof s.credited !== 'boolean') return undefined;
+  if (s.status !== 'credited' && s.status !== 'denied' && s.status !== 'not_applicable') return undefined;
+  return {
+    policyVersion:
+      typeof s.policyVersion === 'number' && Number.isFinite(s.policyVersion)
+        ? s.policyVersion
+        : 0,
+    credited: s.credited,
+    status: s.status,
+    reason: typeof s.reason === 'string' ? s.reason : undefined,
+    weekIndex:
+      typeof s.weekIndex === 'number' && Number.isFinite(s.weekIndex)
+        ? s.weekIndex
+        : undefined,
+    weekNumber:
+      typeof s.weekNumber === 'number' && Number.isFinite(s.weekNumber)
+        ? s.weekNumber
+        : undefined,
+    dateKey: typeof s.dateKey === 'string' ? s.dateKey : undefined,
+    templateId: typeof s.templateId === 'string' ? s.templateId : undefined,
+    creditId: typeof s.creditId === 'string' ? s.creditId : undefined,
+  };
+}
+
+function validPlannedEquipmentSnapshot(v: unknown): PlannedEquipmentSnapshot | undefined {
+  if (!v || typeof v !== 'object') return undefined;
+  const s = v as Partial<PlannedEquipmentSnapshot>;
+  if (s.schemaVersion !== CANONICAL_EQUIPMENT_SCHEMA_VERSION || !Array.isArray(s.capabilities) || !isCanonicalEquipmentStatus(s.status)) {
+    return undefined;
+  }
+  const capabilities = sortCapabilities(
+    s.capabilities.filter((capability): capability is PlannedEquipmentSnapshot['capabilities'][number] =>
+      isCanonicalEquipmentCapability(capability)
+    )
+  );
+  const expected = equipmentSnapshotFingerprint({
+    schemaVersion: CANONICAL_EQUIPMENT_SCHEMA_VERSION,
+    capabilities,
+    status: s.status,
+  });
+  if (typeof s.fingerprint !== 'string' || s.fingerprint !== expected) return undefined;
+  return {
+    schemaVersion: CANONICAL_EQUIPMENT_SCHEMA_VERSION,
+    capabilities,
+    status: s.status,
+    fingerprint: s.fingerprint,
+    sourceRevision:
+      typeof s.sourceRevision === 'number' && Number.isFinite(s.sourceRevision)
+        ? s.sourceRevision
+        : undefined,
+    sourceUpdatedAt: typeof s.sourceUpdatedAt === 'string' ? s.sourceUpdatedAt : undefined,
   };
 }
 
@@ -511,7 +578,13 @@ function isDailyInputStatus(v: unknown): v is DailyTrainingInputStatus {
 }
 
 function isDailyContextSource(v: unknown): v is NormalizedDailyTrainingContext['source'] {
-  return v === 'user_daily_check' || v === 'restored' || v === 'legacy_unknown';
+  return (
+    v === 'user_daily_check' ||
+    v === 'plan_preference' ||
+    v === 'planned_restart' ||
+    v === 'restored' ||
+    v === 'legacy_unknown'
+  );
 }
 
 function isSlotType(v: unknown): v is SessionSlotType {

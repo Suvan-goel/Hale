@@ -46,7 +46,11 @@ export function completedTrainingSessions(
   block: MovementBlock,
   completions: readonly TrainingSessionCompletion[]
 ): TrainingSessionCompletion[] {
-  return completions.filter((c) => c.blockId === block.id && isCreditedMainPlanTrainingCompletion(c));
+  return completions.filter((c) => c.blockId === block.id && isScheduleCreditedMainPlanTrainingCompletion(c));
+}
+
+export function isScheduleCreditedMainPlanTrainingCompletion(completion: TrainingSessionCompletion): boolean {
+  return isCreditedMainPlanTrainingCompletion(completion) && completion.scheduleCredit?.credited === true;
 }
 
 export function isCreditedMainPlanTrainingCompletion(completion: TrainingSessionCompletion): boolean {

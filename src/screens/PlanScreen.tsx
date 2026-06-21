@@ -7,7 +7,7 @@ import {
   Screen,
 } from '../components/ui';
 import { HeaderLogo } from '../components/HeaderLogo';
-import type { ActiveBlockSummary, HaleLifecycleState, WeekSessionStatus } from '../haleFlow';
+import type { ActiveBlockSummary, HaleLifecycleState, TodaySessionAdjustment, TodaySessionPreferences, WeekSessionStatus } from '../haleFlow';
 import {
   formatPreferredDays,
   getPlanEmptyStateCopy,
@@ -18,7 +18,8 @@ import {
   type PlanSessionId,
 } from '../haleFlow';
 import { SettingsIcon } from '../navigation/icons';
-import type { TrainingIntensityPreference } from '../training';
+import type { PainArea, TrainingIntensityPreference } from '../training';
+import { SessionStartMenu } from './TodayScreen';
 import { colors, fonts, imageOverlayControl, radius, shadow, spacing, type } from '../theme';
 
 const PLAN_HERO_IMAGE = require('../../assets/images/hale-plan-hero-mountain.png');
@@ -51,12 +52,13 @@ export function PlanScreen({
   onStartOnboarding: () => void;
   onStartCheckUp: () => void;
   onCreateBlock: () => void;
-  onStartPlanSession: (id: PlanSessionId) => void;
+  onStartPlanSession: (id: PlanSessionId, preferences?: TodaySessionPreferences | null) => void;
   onStartRetest: () => void;
   onOpenSettings: () => void;
   onPreferredDaysChange: (days: string[]) => void;
   onIntensityChange: (value: TrainingIntensityPreference) => void;
 }) {
+  const [pendingSessionId, setPendingSessionId] = React.useState<PlanSessionId | null>(null);
   const goalText = lifeGoalText?.trim();
   const nextSession = weekSessionStatuses.find((session) => session.status === 'next');
   const focusCopy = getPlanFocusCopy(activeBlockSummary?.focusDomain);
@@ -65,7 +67,7 @@ export function PlanScreen({
     ? Math.max(0, Math.min(1, activeBlockSummary.sessionsCompleteThisWeek / Math.max(1, activeBlockSummary.sessionsTargetThisWeek)))
     : 0;
   const showRetestCard = shouldShowRetestCard(activeBlockSummary);
-  const heroAction = getPlanHeroAction(activeBlockSummary, retest, nextSession);
+  const heroAction = getPlanHeroAction(activeBlockSummary, retest, nextSession, lifecycleState);
 
   function runEmptyAction(action: ReturnType<typeof getPlanEmptyStateCopy>['action']) {
     if (action === 'onboarding') onStartOnboarding();
@@ -73,59 +75,96 @@ export function PlanScreen({
     else onCreateBlock();
   }
 
+  const openSessionMenu = React.useCallback(
+    (id: PlanSessionId) => {
+      if (lifecycleState === 'inactive_restart') {
+        setPendingSessionId(null);
+        onStartPlanSession(id);
+        return;
+      }
+      setPendingSessionId(id);
+    },
+    [lifecycleState, onStartPlanSession]
+  );
+
+  const closeSessionMenu = React.useCallback(() => {
+    setPendingSessionId(null);
+  }, []);
+
+  const startPendingSession = React.useCallback(
+    (adjustment?: TodaySessionAdjustment | null, painArea?: PainArea | null) => {
+      const targetId = pendingSessionId;
+      setPendingSessionId(null);
+      if (!targetId) return;
+      onStartPlanSession(targetId, {
+        adjustment: adjustment ?? null,
+        painArea: adjustment === 'something_hurts' ? painArea ?? null : null,
+      });
+    },
+    [onStartPlanSession, pendingSessionId]
+  );
+
   return (
-    <Screen contentStyle={styles.screenContent}>
-      <View style={styles.header}>
-        <View style={styles.titleRow}>
-          <View style={styles.titleGroup}>
-            <HeaderLogo />
-            <Text style={styles.title}>Your Plan</Text>
+    <>
+      <Screen contentStyle={styles.screenContent}>
+        <View style={styles.header}>
+          <View style={styles.titleRow}>
+            <View style={styles.titleGroup}>
+              <HeaderLogo />
+              <Text style={styles.title}>Your Plan</Text>
+            </View>
+            <Pressable
+              style={({ pressed }) => [styles.headerIconButton, pressed && styles.pressed]}
+              onPress={onOpenSettings}
+              accessibilityRole="button"
+              accessibilityLabel="Open settings"
+            >
+              <SettingsIcon size={25} color={colors.accentDeep} strokeWidth={1.8} />
+            </Pressable>
           </View>
-          <Pressable
-            style={({ pressed }) => [styles.headerIconButton, pressed && styles.pressed]}
-            onPress={onOpenSettings}
-            accessibilityRole="button"
-            accessibilityLabel="Open settings"
-          >
-            <SettingsIcon size={25} color={colors.accentDeep} strokeWidth={1.8} />
-          </Pressable>
+          <PlanGoalSummary goalText={goalText} />
         </View>
-        <PlanGoalSummary goalText={goalText} />
-      </View>
 
-      {!activeBlockSummary ? (
-        <EmptyPlanState lifecycleState={lifecycleState} onAction={runEmptyAction} />
-      ) : (
-        <>
-          <PlanHeroCard
-            weekNumber={activeBlockSummary.weekNumber}
-            focusCopy={focusCopy}
-            action={heroAction}
-            onStartPlanSession={onStartPlanSession}
-            onStartRetest={onStartRetest}
-          />
+        {!activeBlockSummary ? (
+          <EmptyPlanState lifecycleState={lifecycleState} onAction={runEmptyAction} />
+        ) : (
+          <>
+            <PlanHeroCard
+              weekNumber={activeBlockSummary.weekNumber}
+              focusCopy={focusCopy}
+              action={heroAction}
+              onStartPlanSession={openSessionMenu}
+              onStartRetest={onStartRetest}
+            />
 
-          <BlockTimelineCard summary={activeBlockSummary} retest={retest} />
+            <BlockTimelineCard summary={activeBlockSummary} retest={retest} />
 
-          <WeeklySessionsCard
-            summary={activeBlockSummary}
-            progress={progress}
-            weekSessionStatuses={weekSessionStatuses}
-            onStartPlanSession={onStartPlanSession}
-          />
+            <WeeklySessionsCard
+              summary={activeBlockSummary}
+              progress={progress}
+              weekSessionStatuses={weekSessionStatuses}
+              onStartPlanSession={openSessionMenu}
+            />
 
-          <MovementEmphasisCard focusDomain={activeBlockSummary.focusDomain} />
+            <MovementEmphasisCard focusDomain={activeBlockSummary.focusDomain} />
 
-          {showRetestCard ? <RetestCard retest={retest} onStartRetest={onStartRetest} /> : null}
+            {showRetestCard ? <RetestCard retest={retest} onStartRetest={onStartRetest} /> : null}
 
-          <ProfilePreferencesCard
-            preferredDays={preferredDays}
-            preferredIntensity={preferredIntensity}
-            onOpenSettings={onOpenSettings}
-          />
-        </>
-      )}
-    </Screen>
+            <ProfilePreferencesCard
+              preferredDays={preferredDays}
+              preferredIntensity={preferredIntensity}
+              onOpenSettings={onOpenSettings}
+            />
+          </>
+        )}
+      </Screen>
+
+      <SessionStartMenu
+        visible={pendingSessionId !== null}
+        onClose={closeSessionMenu}
+        onStart={startPendingSession}
+      />
+    </>
   );
 }
 
@@ -582,6 +621,7 @@ function getPlanHeroAction(
   summary: ActiveBlockSummary | undefined,
   retest: ReturnType<typeof getRetestCopy>,
   nextSession: WeekSessionStatus | undefined,
+  lifecycleState: HaleLifecycleState,
 ): PlanHeroAction | null {
   if (retest.due) {
     return {
@@ -592,6 +632,14 @@ function getPlanHeroAction(
   }
 
   if (nextSession) {
+    if (lifecycleState === 'inactive_restart') {
+      return {
+        kind: 'session',
+        label: 'Restart gently',
+        accessibilityLabel: 'Restart gently with a shorter session',
+        sessionId: nextSession.id,
+      };
+    }
     return {
       kind: 'session',
       label: 'Start next session',

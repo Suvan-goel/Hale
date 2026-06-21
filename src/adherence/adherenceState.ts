@@ -17,7 +17,7 @@ export function getAdherenceState(
   if (!block) return 'no_block';
   if (block.status === 'completed' || hasRetestCompletion(block, completions)) return 'block_complete';
   const completedSessions = completedTrainingSessions(block, completions).length;
-  if (completedSessions >= block.totalPlannedSessions || daysBetween(nowIso, block.retestDate) <= 3) {
+  if (completedSessions >= block.totalPlannedSessions) {
     return 'ready_for_retest';
   }
 

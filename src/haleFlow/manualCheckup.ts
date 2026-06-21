@@ -1,11 +1,11 @@
 import {
   daysBetween,
-  getAdherenceState,
   type CheckupType,
   type MovementAssessment,
   type MovementBlock,
   type TrainingSessionCompletion,
 } from '../adherence';
+import { getBlockScheduleState } from './blockSchedule';
 import { getManualCheckupCopy } from './copy';
 
 export interface ManualCheckupOption {
@@ -42,8 +42,8 @@ export function getManualCheckupOptions({
   }
 
   if (activeBlock) {
-    const adherence = getAdherenceState(activeBlock, completions ?? [], now);
-    if (adherence === 'ready_for_retest') {
+    const schedule = getBlockScheduleState({ block: activeBlock, completions: completions ?? [], today: now });
+    if (schedule.status === 'retest_due') {
       return [
         {
           type: 'official_retest',
@@ -55,7 +55,7 @@ export function getManualCheckupOptions({
         },
       ];
     }
-    if (adherence === 'inactive_14_days') {
+    if (schedule.status === 'session_due' && schedule.lapseState === 'restart_recommended') {
       return [
         {
           type: 'quick_recheck',

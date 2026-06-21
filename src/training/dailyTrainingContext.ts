@@ -34,6 +34,8 @@ export type DailyTrainingInputStatus =
 
 export type DailyTrainingContextSource =
   | 'user_daily_check'
+  | 'plan_preference'
+  | 'planned_restart'
   | 'restored'
   | 'legacy_unknown';
 
@@ -277,7 +279,15 @@ export function progressionEvidencePolicyFor(input: {
 }
 
 function normalizeContextSource(value: unknown): DailyTrainingContextSource {
-  if (value === 'restored' || value === 'legacy_unknown' || value === 'user_daily_check') return value;
+  if (
+    value === 'restored' ||
+    value === 'legacy_unknown' ||
+    value === 'user_daily_check' ||
+    value === 'plan_preference' ||
+    value === 'planned_restart'
+  ) {
+    return value;
+  }
   return 'user_daily_check';
 }
 

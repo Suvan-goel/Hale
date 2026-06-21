@@ -163,6 +163,7 @@ export interface GenerateSessionInput {
   dailyContextSource?: DailyTrainingContextSource;
   ladderProgress?: Record<string, LadderProgress>;
   recentSessions?: readonly RecentSessionSummary[];
+  scheduleSelection?: TemplateSelectionSchedule;
   source?: SessionSource;
   includeOptionalLevels?: boolean;
   sessionIntensity?: SessionIntensity;
@@ -273,6 +274,14 @@ export interface TemplateSelection {
   weekNumber: number;
   completedThisWeek: number;
   status: 'session_due' | 'week_complete' | 'block_complete';
+}
+
+export interface TemplateSelectionSchedule {
+  status: 'session_due' | 'week_complete_waiting' | 'training_complete_waiting_retest' | 'retest_due' | 'block_completed' | 'schedule_unavailable';
+  currentWeekNumber: number;
+  creditedTemplateIds: readonly string[];
+  nextTemplateId?: string;
+  totalCredits: number;
 }
 
 const WEEKS = 4;
@@ -404,11 +413,39 @@ export function createSessionTemplatesForFocus(focusDomain: TrainingDomain): Ses
 export function getTemplateSelection(
   block: TrainingBlock,
   recentSessions: readonly RecentSessionSummary[] = [],
-  today: string | Date = new Date()
+  today: string | Date = new Date(),
+  scheduleSelection?: TemplateSelectionSchedule
 ): TemplateSelection {
   const requiredTemplates = block.templates.filter(
     (template) => template.dayLabel === 'A' || template.dayLabel === 'B' || template.dayLabel === 'C'
   );
+  if (scheduleSelection) {
+    const template = scheduleSelection.nextTemplateId
+      ? requiredTemplates.find((item) => item.id === scheduleSelection.nextTemplateId) ?? null
+      : null;
+    const completedThisWeek = requiredTemplates.filter((item) =>
+      scheduleSelection.creditedTemplateIds.includes(item.id)
+    ).length;
+    if (scheduleSelection.status === 'session_due') {
+      return {
+        template,
+        weekNumber: scheduleSelection.currentWeekNumber,
+        completedThisWeek,
+        status: template ? 'session_due' : 'week_complete',
+      };
+    }
+    return {
+      template: null,
+      weekNumber: scheduleSelection.currentWeekNumber,
+      completedThisWeek,
+      status:
+        scheduleSelection.status === 'training_complete_waiting_retest' ||
+        scheduleSelection.status === 'retest_due' ||
+        scheduleSelection.status === 'block_completed'
+          ? 'block_complete'
+          : 'week_complete',
+    };
+  }
   const requiredTemplateIds = new Set(requiredTemplates.map((template) => template.id));
   const blockSessions = recentSessions
     .filter((session) => !session.blockId || session.blockId === block.id)
@@ -453,9 +490,10 @@ export function getTemplateSelection(
 export function selectNextSessionTemplate(
   block: TrainingBlock,
   recentSessions: readonly RecentSessionSummary[] = [],
-  today: string | Date = new Date()
+  today: string | Date = new Date(),
+  scheduleSelection?: TemplateSelectionSchedule
 ): SessionTemplate | null {
-  return getTemplateSelection(block, recentSessions, today).template;
+  return getTemplateSelection(block, recentSessions, today, scheduleSelection).template;
 }
 
 export function generateTodaySession(input: GenerateSessionInput): GeneratedSession {
@@ -474,10 +512,10 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
   const forceSupportingStimulus = source === 'block_generated' && progressionEvidencePolicy === 'ineligible';
   const template =
     input.template ??
-    (input.presetId ? getExtraSessionPreset(input.presetId) : null) ??
-    (input.block ? selectNextSessionTemplate(input.block, input.recentSessions, input.today) : null);
-  const selection = input.block
-    ? getTemplateSelection(input.block, input.recentSessions, input.today)
+	    (input.presetId ? getExtraSessionPreset(input.presetId) : null) ??
+	    (input.block ? selectNextSessionTemplate(input.block, input.recentSessions, input.today, input.scheduleSelection) : null);
+	  const selection = input.block
+	    ? getTemplateSelection(input.block, input.recentSessions, input.today, input.scheduleSelection)
     : { status: input.presetId ? 'preset' : 'session_due' };
 
   if (!template) {
@@ -1273,7 +1311,15 @@ function guidanceForSession(
     guidance.push('Hale used a cautious supporting plan because today\'s readiness choices could not be read clearly.');
   }
   if (readiness === 'a_bit_stiff') guidance.push('Mobility comes first today, with the first strength item eased back.');
-  if (readiness === 'low_energy') guidance.push('Sets are reduced today. Keep the effort comfortable.');
+  if (readiness === 'low_energy') {
+    if (dailyContext.source === 'planned_restart') {
+      guidance.push('Today is planned as a gentle restart.');
+    } else if (dailyContext.source === 'plan_preference') {
+      guidance.push('Your plan is set to a gentler pace today.');
+    } else {
+      guidance.push('Sets are reduced today. Keep the effort comfortable.');
+    }
+  }
   if (readiness === 'short_on_time') guidance.push('This is about 10 minutes, with one strength, one balance, and one mobility item.');
   if (readiness === 'something_hurts' || discomfortAreas.length > 0) {
     guidance.push('Today avoids the area you flagged and keeps the session gentle. Move only in a comfortable range. You can stop at any time.');
@@ -1428,7 +1474,7 @@ function levelName(ladder: ExerciseLadder, levelId: string): string {
 function equipmentFromInput(input: GenerateSessionInput): readonly AvailableEquipment[] {
   const equipment = input.availableEquipment ?? input.safetyProfile?.availableEquipment;
   if (equipment && equipment.length > 0) return equipment;
-  return ['chair', 'wall'];
+  return [];
 }
 
 function resolveLadderId(id: string): string {

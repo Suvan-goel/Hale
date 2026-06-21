@@ -8,7 +8,6 @@ import {
 } from '../components/ui';
 import { HeaderLogo } from '../components/HeaderLogo';
 import {
-  daysUntil,
   getLifeGoalDisplayText,
   getLifeGoalTrainingRelevance,
   LOCAL_USER_ID,
@@ -71,7 +70,8 @@ export function ProgressScreen({
   ladderProgressById,
   lifeGoal,
   today,
-  onBeginCheckUp,
+  onBeginFirstCheckUp,
+  onBeginAdditionalCheckUp,
   onStartRetest,
   onViewLatest,
   onViewReport,
@@ -95,7 +95,7 @@ export function ProgressScreen({
   });
   const retestHistory = getRetestHistory(visibleHistory, visibleAssessments);
   const hasComparison = retestHistory.length > 1;
-  const retest = getRetestDueSummary({ activeBlock: visibleActiveBlock, today, hasBaseline: !!latest });
+  const retest = getRetestDueSummary({ activeBlock: visibleActiveBlock, today, hasBaseline: !!latest, completions: visibleCompletions });
   const retestBody = retestLine({ activeBlock: visibleActiveBlock, today, fallback: retest.body, due: retest.due });
   const handleViewLatest = onViewLatest;
   const handleViewReport = onViewReport;
@@ -120,7 +120,7 @@ export function ProgressScreen({
       </View>
 
       {!latest ? (
-        <ProgressEmptyState onBeginCheckUp={onBeginCheckUp} />
+        <ProgressEmptyState onBeginCheckUp={onBeginFirstCheckUp} />
       ) : (
         <>
           <ProgressHeroSection
@@ -148,16 +148,15 @@ export function ProgressScreen({
 
           {ladderCards.length > 0 ? <TrainingProgressCard cards={ladderCards} /> : null}
 
-          {blockSummaries.length > 0 || !retest.due || retestHistory.length > 1 ? (
-            <ProgressRecordsCard
-              summaries={blockSummaries}
-              retestTitle={retest.title}
-              retestBody={retestBody}
-              showRetest={!retest.due}
-              history={retestHistory}
-              onViewReport={handleViewReport}
-            />
-          ) : null}
+          <ProgressRecordsCard
+            summaries={blockSummaries}
+            retestTitle={retest.title}
+            retestBody={retestBody}
+            showRetest={!retest.due}
+            history={retestHistory}
+            onBeginCheckUp={onBeginAdditionalCheckUp}
+            onViewReport={handleViewReport}
+          />
         </>
       )}
     </Screen>
@@ -262,7 +261,8 @@ interface ProgressScreenProps {
   ladderProgressById?: Record<string, LadderProgress>;
   lifeGoal?: LifeGoal | null;
   today: string;
-  onBeginCheckUp: () => void;
+  onBeginFirstCheckUp: () => void;
+  onBeginAdditionalCheckUp: () => void;
   onStartRetest: () => void;
   onViewLatest: () => void;
   onViewReport: (blockId: string) => void;
@@ -893,6 +893,7 @@ function ProgressRecordsCard({
   retestBody,
   showRetest,
   history,
+  onBeginCheckUp,
   onViewReport,
 }: {
   summaries: ReturnType<typeof getBlockReportSummaries>;
@@ -900,6 +901,7 @@ function ProgressRecordsCard({
   retestBody: string;
   showRetest: boolean;
   history: ReturnType<typeof getRetestHistory>;
+  onBeginCheckUp: () => void;
   onViewReport: (blockId: string) => void;
 }) {
   const latestReport = summaries[0];
@@ -914,6 +916,14 @@ function ProgressRecordsCard({
       accessibilityLabel: `${latestReport.focus} block report. ${latestReport.sessions}.`,
     });
   }
+
+  tiles.push({
+    key: 'extra-checkup',
+    title: 'Start another check-up',
+    meta: 'Choose a quick re-check or a full extra check-up saved separately.',
+    onPress: onBeginCheckUp,
+    accessibilityLabel: 'Start another Movement Check-Up. Choose a quick re-check or a full extra check-up.',
+  });
 
   if (showRetest) {
     tiles.push({
@@ -1247,7 +1257,21 @@ function currentWeekNumber(block: MovementBlock, value: string): number {
 function compactRetestValue(title: string, body: string): string {
   if (title === "It's time to re-test") return 'Due now';
   const [, relative] = body.split(' · ');
-  return relative ?? body;
+  if (relative) return relative;
+
+  const dayMatch = body.match(/\bin (\d+) (day|days)\b/i);
+  if (dayMatch) {
+    const days = Number(dayMatch[1]);
+    if (days === 1) return 'Tomorrow';
+    if (days >= 14) {
+      const weeks = Math.ceil(days / 7);
+      return `In ${weeks} ${weeks === 1 ? 'week' : 'weeks'}`;
+    }
+    return `In ${days} days`;
+  }
+
+  if (body.includes('Create a 4-week block')) return 'Not scheduled';
+  return body;
 }
 
 function ladderDomain(ladderId: string): Domain {
@@ -1287,34 +1311,14 @@ function profileBandDescription(band: MovementProfileBand): string {
 }
 
 function retestLine({
-  activeBlock,
-  today,
   fallback,
-  due,
 }: {
   activeBlock?: MovementBlock | null;
   today: string;
   fallback: string;
   due: boolean;
 }): string {
-  if (!activeBlock || due) return fallback;
-  return `${formatShortDate(activeBlock.retestDate)} · ${relativeRetestLabel(daysUntil(activeBlock.retestDate, today))}`;
-}
-
-function relativeRetestLabel(days: number): string {
-  if (days <= 0) return 'Due now';
-  if (days === 1) return 'Tomorrow';
-  if (days >= 14) {
-    const weeks = Math.ceil(days / 7);
-    return `In ${weeks} ${weeks === 1 ? 'week' : 'weeks'}`;
-  }
-  return `In ${days} days`;
-}
-
-function formatShortDate(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return 'Next check-up';
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  return fallback;
 }
 
 const styles = StyleSheet.create({

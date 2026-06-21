@@ -26,7 +26,7 @@ import {
   deserializeAdherenceState,
 } from '../index';
 import type { MovementBlock, TrainingFocusStimulusEvidenceSummary, TrainingSessionCompletion } from '../types';
-import { createMovementAssessment } from '../../haleFlow';
+import { BLOCK_SCHEDULE_POLICY_VERSION, createMovementAssessment } from '../../haleFlow';
 
 const START = '2026-06-01T08:00:00.000Z';
 
@@ -86,6 +86,29 @@ function completion(
 ): TrainingSessionCompletion {
   const mainPlanCredit = type === 'standard' || type === 'starter' || type === 'restart';
   const templateId = plannedDate?.includes(':') ? plannedDate.split(':')[0] : mainPlanCredit ? `test-${type}` : undefined;
+  const effectiveMainPlanCredit = 'mainPlanCredit' in overrides
+    ? overrides.mainPlanCredit
+    : mainPlanCredit
+      ? true
+      : undefined;
+  const effectiveFocusEvidence = 'focusStimulusEvidence' in overrides
+    ? overrides.focusStimulusEvidence
+    : mainPlanCredit
+      ? focusEvidence(b.focusDomain)
+      : undefined;
+  const scheduleCredit =
+    effectiveMainPlanCredit === true && effectiveFocusEvidence?.mainPlanCredit === true && templateId && plannedDate?.includes(':')
+      ? {
+          policyVersion: BLOCK_SCHEDULE_POLICY_VERSION,
+          credited: true as const,
+          status: 'credited' as const,
+          weekIndex: 0,
+          weekNumber: 1,
+          dateKey: at.slice(0, 10),
+          templateId,
+          creditId: plannedDate,
+        }
+      : undefined;
   return makeTrainingSessionCompletion({
     block: b,
     sessionType: type,
@@ -93,8 +116,9 @@ function completion(
     plannedDate,
     source: mainPlanCredit ? 'block_generated' : undefined,
     templateId,
-    mainPlanCredit: mainPlanCredit ? true : undefined,
-    focusStimulusEvidence: mainPlanCredit ? focusEvidence(b.focusDomain) : undefined,
+    mainPlanCredit: effectiveMainPlanCredit,
+    focusStimulusEvidence: effectiveFocusEvidence,
+    scheduleCredit,
     ...overrides,
   });
 }
@@ -191,19 +215,19 @@ describe('adherence state and restart completion', () => {
     expect(getAdherenceState(b, [], '2026-06-05T08:00:00.000Z')).toBe('missed_one_session');
     expect(getAdherenceState(b, [], '2026-06-08T08:00:00.000Z')).toBe('inactive_this_week');
     expect(getAdherenceState(b, [], '2026-06-15T08:00:00.000Z')).toBe('inactive_14_days');
-    expect(getAdherenceState(b, [], '2026-06-27T08:00:00.000Z')).toBe('ready_for_retest');
+    expect(getAdherenceState(b, [], '2026-06-27T08:00:00.000Z')).toBe('inactive_14_days');
   });
 
   it('counts a restart session once and returns the block to normal progress', () => {
     const b = block();
     let state = defaultAdherenceStoreState();
-    const restart = completion(b, 'restart', '2026-06-08T08:00:00.000Z');
+    const restart = completion(b, 'restart', '2026-06-08T08:00:00.000Z', 'balance-A:2026-06-08');
     state = recordTrainingSessionCompletion(state, restart);
     state = recordTrainingSessionCompletion(state, restart);
     expect(state.completions).toHaveLength(1);
     expect(state.blocks).toHaveLength(0);
     const withBlock = { ...state, blocks: [b] };
-    const updated = recordTrainingSessionCompletion(withBlock, completion(b, 'standard', '2026-06-10T08:00:00.000Z'));
+    const updated = recordTrainingSessionCompletion(withBlock, completion(b, 'standard', '2026-06-10T08:00:00.000Z', 'balance-B:2026-06-10'));
     expect(updated.blocks[0].completedSessions).toBe(2);
   });
 
@@ -337,10 +361,29 @@ describe('milestones and copy safety', () => {
       getBlockPurposeCopy(b, goal),
       getDashboardCopy({ block: b, lifeGoal: goal, adherenceState: 'missed_one_session' }),
       getLapseRecoveryCopy('inactive_this_week', goal).body,
+      getLapseRecoveryCopy('inactive_14_days', goal).body,
       getProtectionCopy({ lifeGoal: goal, focusDomain: b.focusDomain, adherenceState: 'on_track' }),
       notificationCopy('planned_session'),
       notificationCopy('retest_approaching'),
     ].join(' ');
     expect(samples.toLowerCase()).not.toMatch(/failed|lost streak|fall risk|diagnosis|frailty|treatment|preventing disease|you skipped|protect your progress|protected your progress/);
+  });
+
+  it('uses clean-slate restart copy after a two-week lapse', () => {
+    const goal = createLifeGoal({ category: 'stairs', nowIso: START });
+
+    expect(getLapseRecoveryCopy('inactive_14_days', goal)).toEqual({
+      title: 'Start from where your body is today',
+      body: "Let's restart gently and keep the plan moving from here.",
+      cta: 'Restart my block',
+    });
+  });
+
+  it('keeps goal protection copy grammatically safe', () => {
+    const goal = createLifeGoal({ category: 'noticed_decline', nowIso: START });
+
+    expect(getProtectionCopy({ lifeGoal: goal, focusDomain: 'strength_power', adherenceState: 'on_track' })).toBe(
+      'Today supports the goal you chose: Get stronger overall.'
+    );
   });
 });

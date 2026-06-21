@@ -4,6 +4,7 @@ import {
   makeTrainingSessionCompletion,
   type MovementBlock,
   type MovementSafetyProfile,
+  type TrainingFocusStimulusEvidenceSummary,
 } from '../../adherence';
 import { syntheticCheckUp } from '../../checkup/devFixture';
 import {
@@ -11,6 +12,7 @@ import {
   HINGE_FREE_ID,
   SEATED_BAND_ROW_ID,
   STANDING_BAND_ROW_ID,
+  STS_POWER_ID,
   STEP_UP_ID,
   hasExercise,
   STS_SLOW_ECC_ID,
@@ -34,9 +36,12 @@ import {
   planTodayHaleSession as planTodayHaleSessionResult,
   requireHaleSessionPlan as planTodayHaleSession,
   sessionPlanFromPlanningResult,
+  staleEquipmentPlanningResult,
   updateExerciseProgressionFromSession,
+  validateHaleSessionPlanEquipment,
   validateGeneratedSessionForPlanning,
 } from '../sessionPlanning';
+import { BLOCK_SCHEDULE_POLICY_VERSION } from '../blockSchedule';
 import { createMovementAssessment } from '../assessments';
 import { evaluateCompletedFocusStimulusEvidence, focusStimulusEvidenceSummary } from '../focusStimulusEvidence';
 import { evaluateSessionWorkEvidence } from '../sessionWorkEvidence';
@@ -147,24 +152,43 @@ describe('planTodayHaleSession', () => {
     expect((captured as Record<string, LadderProgress>)['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
   });
 
-  it('can target a requested Plan session template while staying on the dynamic path', () => {
-    let capturedTemplateId: string | undefined;
-    const plan = planTodayHaleSession({
+  it('rejects a requested Plan session that is ahead of the schedule due template', () => {
+    const result = planTodayHaleSessionResult({
       activeBlock: block(),
       training: legacyTraining(),
       safetyProfile: safety(),
       lifeGoal: lifeGoal(),
       today: START,
       targetSessionTemplateId: 'session_b',
+    });
+
+    expect(result.kind).toBe('unavailable');
+    expect(result.kind === 'unavailable' ? result.reason : null).toBe('invalid_template');
+  });
+
+  it('applies start-menu adjustments to the requested due Plan session template', () => {
+    let capturedTemplateId: string | undefined;
+    let capturedReadiness: unknown;
+    const plan = planTodayHaleSession({
+      activeBlock: block(),
+      training: legacyTraining(),
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      today: START,
+      targetSessionTemplateId: 'session_a',
+      adjustment: 'shorter',
       generateSession: (input) => {
         capturedTemplateId = input.template?.id;
+        capturedReadiness = input.dailyReadiness;
         return generateRawTodaySession(input);
       },
     });
 
-    expect(capturedTemplateId).toMatch(/-B$/);
-    expect(plan.metadata?.source).toBe('block_generated');
-    expect(plan.metadata?.templateId).toMatch(/-B$/);
+    expect(capturedTemplateId).toMatch(/-A$/);
+    expect(capturedReadiness).toBe('short_on_time');
+    expect(plan.metadata?.readiness).toBe('short_on_time');
+    expect(plan.estimatedMinutes).toBe(10);
+    expect(plan.exercises.length).toBeLessThanOrEqual(3);
   });
 
   it('uses defaults when ladder progress is missing and tolerates unknown stored levels', () => {
@@ -343,6 +367,10 @@ describe('planTodayHaleSession', () => {
       training: legacyTraining(),
       safetyProfile: { ...safety(), availableEquipment: ['chair', 'wall', 'floor_space'] },
       lifeGoal: lifeGoal(),
+      recentCompletions: [
+        scheduledCompletion(b, 'strength-A', '2026-06-01T09:00:00.000Z'),
+        scheduledCompletion(b, 'strength-B', '2026-06-02T09:00:00.000Z'),
+      ],
       targetSessionTemplateId: 'session_c',
       ladderProgress: {
         'hinge-glutes': {
@@ -356,11 +384,81 @@ describe('planTodayHaleSession', () => {
           updatedAt: START,
         },
       },
-      today: START,
+      today: '2026-06-03T08:00:00.000Z',
     });
 
     expect(plan.exercises.map((exercise) => exercise.id)).toContain(BRIDGE_HOLD_ID);
     expect(plan.metadata?.equipmentNeeded).toContain('floor space');
+  });
+
+  it('uses canonical profile equipment instead of legacy training booleans for current planning', () => {
+    const b = strengthBlock();
+    const plan = planTodayHaleSession({
+      activeBlock: b,
+      training: {
+        ...legacyTraining(),
+        equipment: { stair: false, band: false, miniBand: false, load: false },
+      },
+      safetyProfile: {
+        ...safety(),
+        availableEquipment: ['chair', 'wall', 'resistance_band', 'door_anchor'],
+        equipmentStatus: 'confirmed',
+        equipmentRevision: 7,
+      },
+      lifeGoal: lifeGoal(),
+      targetSessionTemplateId: 'session_a',
+      today: START,
+    });
+
+    expect(plan.metadata?.equipmentSnapshot).toMatchObject({
+      status: 'confirmed',
+      capabilities: ['chair', 'wall', 'resistance_band', 'door_anchor'],
+      sourceRevision: 7,
+    });
+    expect(plan.exercises.map((exercise) => exercise.id)).toContain(SEATED_BAND_ROW_ID);
+  });
+
+  it('requires equipment confirmation instead of planning from unknown profile equipment', () => {
+    const result = planTodayHaleSessionResult({
+      activeBlock: strengthBlock(),
+      training: { ...legacyTraining(), equipment: { stair: true, band: true, miniBand: true, load: true } },
+      safetyProfile: { ...safety(), availableEquipment: [], equipmentStatus: 'needs_confirmation' },
+      lifeGoal: lifeGoal(),
+      today: START,
+    });
+
+    expect(result.kind).toBe('unavailable');
+    if (result.kind !== 'unavailable') throw new Error('expected unavailable result');
+    expect(result.reason).toBe('equipment_confirmation_required');
+    expect(sessionPlanFromPlanningResult(result)).toBeNull();
+  });
+
+  it('invalidates unstarted plans when the canonical equipment fingerprint changes', () => {
+    const b = strengthBlock();
+    const plan = planTodayHaleSession({
+      activeBlock: b,
+      training: legacyTraining(),
+      safetyProfile: { ...safety(), availableEquipment: ['chair', 'wall', 'resistance_band'] },
+      lifeGoal: lifeGoal(),
+      targetSessionTemplateId: 'session_a',
+      today: START,
+    });
+
+    expect(
+      validateHaleSessionPlanEquipment({
+        plan,
+        safetyProfile: { ...safety(), availableEquipment: ['wall', 'chair', 'resistance_band'] },
+      }).status
+    ).toBe('current');
+
+    const validation = validateHaleSessionPlanEquipment({
+      plan,
+      safetyProfile: { ...safety(), availableEquipment: ['chair', 'wall'] },
+    });
+    expect(validation.status).toBe('equipment_changed');
+    const recovery = staleEquipmentPlanningResult({ plan, validation });
+    expect(recovery.reason).toBe('equipment_changed_after_planning');
+    expect(getSessionPlanningRecoveryCopy(recovery)?.body).toContain('equipment setup changed');
   });
 
   it('fails closed when generated exercise IDs are unsupported', () => {
@@ -470,16 +568,25 @@ describe('planTodayHaleSession', () => {
       training: legacyTraining(),
       safetyProfile: safety(),
       lifeGoal: lifeGoal(),
-      today: START,
-      generateSession: () => lifecycleGeneratedSession('week_complete'),
+      recentCompletions: [
+        scheduledCompletion(b, 'strength-A', '2026-06-01T09:00:00.000Z'),
+        scheduledCompletion(b, 'strength-B', '2026-06-02T09:00:00.000Z'),
+        scheduledCompletion(b, 'strength-C', '2026-06-03T09:00:00.000Z'),
+      ],
+      today: '2026-06-07T08:00:00.000Z',
     });
     const blockComplete = planTodayHaleSessionResult({
       activeBlock: b,
       training: legacyTraining(),
       safetyProfile: safety(),
       lifeGoal: lifeGoal(),
-      today: START,
-      generateSession: () => lifecycleGeneratedSession('block_complete'),
+      recentCompletions: [
+        ...scheduledWeekCompletions(b, 1, '2026-06-01'),
+        ...scheduledWeekCompletions(b, 2, '2026-06-08'),
+        ...scheduledWeekCompletions(b, 3, '2026-06-15'),
+        ...scheduledWeekCompletions(b, 4, '2026-06-22'),
+      ],
+      today: '2026-06-24T12:00:00.000Z',
     });
     const retestDue = planTodayHaleSessionResult({
       activeBlock: b,
@@ -523,6 +630,57 @@ describe('planTodayHaleSession', () => {
     expect(plan.metadata?.progressionEvidencePolicy).toBe('hold_only');
     expect(plan.estimatedMinutes).toBe(10);
     expect(plan.exercises.length).toBeLessThanOrEqual(3);
+  });
+
+  it('turns make-it-gentler into a low-energy plan with lower daily dose and level', () => {
+    const progress: Record<string, LadderProgress> = {
+      'sit-to-stand': {
+        ladderId: 'sit-to-stand',
+        currentLevelId: STS_POWER_ID,
+        completedSessionsAtLevel: 1,
+        failedSessionsAtLevel: 0,
+        recentCompletionRates: [0.95],
+        recentRpe: [2],
+        recentPain: [false],
+        updatedAt: START,
+      },
+    };
+    const plan = planTodayHaleSession({
+      activeBlock: strengthBlock(),
+      training: legacyTraining(),
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      ladderProgress: progress,
+      adjustment: 'gentler',
+      today: START,
+    });
+    const sitToStand = plan.metadata?.generatedExercises?.find((exercise) => exercise.ladderId === 'sit-to-stand');
+
+    expect(plan.metadata?.readiness).toBe('low_energy');
+    expect(plan.metadata?.dailyContext?.readiness).toBe('low_energy');
+    expect(plan.metadata?.progressionEvidencePolicy).toBe('hold_only');
+    expect(plan.metadata?.guidance?.join(' ')).toMatch(/sets are reduced/i);
+    expect(sitToStand?.requestedLevelId).toBe(STS_POWER_ID);
+    expect(sitToStand?.selectedDailyLevelId).toBe(STS_SLOW_ECC_ID);
+    expect(sitToStand?.sets).toBeLessThanOrEqual(sitToStand?.doseBeforeAdjustment?.sets ?? Infinity);
+    expect(progress['sit-to-stand'].currentLevelId).toBe(STS_POWER_ID);
+  });
+
+  it('explains a gentler plan preference differently from a user gentler adjustment', () => {
+    const plan = planTodayHaleSession({
+      activeBlock: strengthBlock(),
+      training: legacyTraining(),
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      readiness: 'low_energy',
+      dailyContextSource: 'plan_preference',
+      today: START,
+    });
+
+    expect(plan.metadata?.readiness).toBe('low_energy');
+    expect(plan.metadata?.dailyContext?.source).toBe('plan_preference');
+    expect(plan.metadata?.guidance?.join(' ')).toContain('Your plan is set to a gentler pace today.');
+    expect(plan.metadata?.guidance?.join(' ')).not.toMatch(/sets are reduced today/i);
   });
 
   it('credits a short main-plan session only when the planned primary focus exercise is completed', () => {
@@ -699,13 +857,14 @@ describe('planTodayHaleSession', () => {
     });
     const equipment = plan.exercises.flatMap((exercise) => exercise.requiresEquipment ?? []);
 
+    expect(plan.metadata?.equipmentSnapshot?.capabilities).toEqual(['chair', 'wall']);
     expect(equipment).not.toContain('long_band');
     expect(equipment).not.toContain('stair');
     expect(equipment).not.toContain('mini_band');
     expect(equipment).not.toContain('backpack_or_weight');
   });
 
-  it('creates a gentle shorter restart plan for inactive restarts', () => {
+  it('creates a gentle shorter block restart plan for inactive restarts', () => {
     const plan = planTodayHaleSession({
       activeBlock: block(),
       training: legacyTraining(),
@@ -716,7 +875,9 @@ describe('planTodayHaleSession', () => {
     });
 
     expect(plan.sessionType).toBe('restart');
-    expect(plan.metadata?.source).toBe('preset');
+    expect(plan.metadata?.source).toBe('block_generated');
+    expect(plan.metadata?.dailyContext?.source).toBe('planned_restart');
+    expect(plan.metadata?.guidance?.join(' ')).toContain('Today is planned as a gentle restart.');
     expect(plan.estimatedMinutes).toBeLessThan(20);
   });
 
@@ -1301,10 +1462,82 @@ function creditedCompletionForPlan(
       source: plan.metadata?.source,
       templateId: plan.metadata?.templateId,
       mainPlanCredit: focusEvidence.mainPlanCredit,
+      scheduleCredit: focusEvidence.mainPlanCredit
+        ? {
+            policyVersion: BLOCK_SCHEDULE_POLICY_VERSION,
+            credited: true,
+            status: 'credited',
+            weekIndex: 0,
+            weekNumber: 1,
+            dateKey: (overrides.completedAt ?? '2026-06-01T09:00:00.000Z').slice(0, 10),
+            templateId: plan.metadata?.templateId,
+            creditId: plan.metadata?.plannedDateKey,
+          }
+        : undefined,
       workEvidence: summarizeWorkEvidence(workEvidence),
       focusStimulusEvidence: focusStimulusEvidenceSummary(focusEvidence),
     }),
     ...overrides,
+  };
+}
+
+function scheduledWeekCompletions(
+  block: MovementBlock,
+  weekNumber: number,
+  startDateKey: string
+): ReturnType<typeof makeTrainingSessionCompletion>[] {
+  const [year, month, day] = startDateKey.split('-').map(Number);
+  const base = Date.UTC(year, month - 1, day, 9);
+  return ['A', 'B', 'C'].map((label, index) => {
+    const completedAt = new Date(base + index * 86400000).toISOString();
+    return scheduledCompletion(block, `strength-${label}`, completedAt, `week-${weekNumber}-${label}`);
+  });
+}
+
+function scheduledCompletion(
+  block: MovementBlock,
+  templateId: string,
+  completedAt: string,
+  idSuffix = templateId
+): ReturnType<typeof makeTrainingSessionCompletion> {
+  return {
+    ...makeTrainingSessionCompletion({
+      block,
+      sessionType: 'standard',
+      completedAt,
+      plannedDate: `${templateId}:${completedAt.slice(0, 10)}`,
+      source: 'block_generated',
+      templateId,
+      mainPlanCredit: true,
+      focusStimulusEvidence: scheduledFocusEvidence(block),
+    }),
+    id: `completion-${idSuffix}`,
+  };
+}
+
+function scheduledFocusEvidence(block: MovementBlock): TrainingFocusStimulusEvidenceSummary {
+  return {
+    planStatus: 'eligible',
+    status: 'credited_focus_work',
+    exclusionReason: 'none',
+    mainPlanCredit: true,
+    blockFocusDomain: block.focusDomain,
+    plannedPrimaryFocusExerciseCount: 1,
+    completedPrimaryFocusExerciseCount: 1,
+    completedSupportingExerciseCount: 0,
+    completedFallbackExerciseCount: 0,
+    completedCrossDomainExerciseCount: 0,
+    plannedPrimaryFocusExerciseIds: ['test-primary'],
+    completedPrimaryFocusExerciseIds: ['test-primary'],
+    completedSupportingExerciseIds: [],
+    completedFallbackExerciseIds: [],
+    completedCrossDomainExerciseIds: [],
+    fallbackFocusSlotIds: [],
+    skippedFocusSlotIds: [],
+    focusStimulusExclusionReasons: [],
+    missingMetadataExerciseIds: [],
+    malformedMetadataExerciseIds: [],
+    focusMismatchExerciseIds: [],
   };
 }
 

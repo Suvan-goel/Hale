@@ -66,7 +66,8 @@ export type ProgressionExclusionReason =
   | 'source_mismatch'
   | 'unknown_source'
   | 'missing_feedback'
-  | 'progression_policy_ineligible';
+  | 'progression_policy_ineligible'
+  | 'schedule_denied';
 
 export type ExerciseProgressionExclusionReason =
   | 'missing_result'
@@ -240,6 +241,9 @@ export function classifyProgressionEvidenceEligibility(input: {
   const planDateKey = sessionPlan.metadata?.plannedDateKey;
   if (planDateKey && completion.plannedDate && planDateKey !== completion.plannedDate) {
     return { eligible: false, reason: 'source_mismatch' };
+  }
+  if (completion.scheduleCredit?.credited !== true) {
+    return { eligible: false, reason: 'schedule_denied' };
   }
 
   const progressionEvidencePolicy = sessionPlan.metadata?.progressionEvidencePolicy ?? 'ineligible';

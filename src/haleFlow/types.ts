@@ -26,6 +26,7 @@ import type {
   NormalizedDailyTrainingContext,
   ProgressionEvidencePolicy,
 } from '../training/dailyTrainingContext';
+import type { PlannedEquipmentSnapshot } from '../profile';
 
 export type HaleUserFlowState =
   | 'needs_life_goal'
@@ -130,12 +131,23 @@ export interface HaleSessionPlanMetadata {
   dailyContext?: NormalizedDailyTrainingContext;
   progressionEvidencePolicy?: ProgressionEvidencePolicy;
   adjustmentReasons?: readonly DailyTrainingReasonCode[];
+  schedule?: HaleSessionScheduleMetadata;
+  equipmentSnapshot?: PlannedEquipmentSnapshot;
   guidance?: readonly string[];
   equipmentNeeded?: readonly string[];
   fallbackReason?: string;
   generatedExercises?: readonly HaleGeneratedExerciseMetadata[];
   slotStimulus?: readonly HaleSlotStimulusMetadata[];
   focusStimulus?: HaleFocusStimulusPlanMetadata;
+}
+
+export interface HaleSessionScheduleMetadata {
+  policyVersion: number;
+  weekIndex: number;
+  weekNumber: number;
+  weekStartDateKey?: string;
+  lapseState?: 'active' | 'resume_gently' | 'restart_recommended';
+  nextTemplateId?: string;
 }
 
 export interface HaleGeneratedExerciseMetadata {

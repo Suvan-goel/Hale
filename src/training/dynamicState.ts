@@ -1,5 +1,6 @@
 import type {
   TrainingFocusStimulusEvidenceSummary,
+  TrainingSessionScheduleCreditSummary,
   TrainingSessionCompletionSource,
   TrainingSessionCompletionType,
   TrainingSessionWorkEvidenceSummary,
@@ -21,6 +22,7 @@ import type {
   NormalizedDailyTrainingContext,
   ProgressionEvidencePolicy,
 } from './dailyTrainingContext';
+import type { PlannedEquipmentSnapshot } from '../profile/equipment';
 
 export type PersistedSessionSource = SessionSource | 'legacy';
 
@@ -62,6 +64,7 @@ export interface PersistedGeneratedSessionSummary {
   completionSource?: TrainingSessionCompletionSource;
   status?: 'completed' | 'partial' | 'skipped';
   mainPlanCredit?: boolean;
+  scheduleCredit?: TrainingSessionScheduleCreditSummary;
   workEvidence?: TrainingSessionWorkEvidenceSummary;
   focusStimulusEvidence?: TrainingFocusStimulusEvidenceSummary;
   title: string;
@@ -76,6 +79,7 @@ export interface PersistedGeneratedSessionSummary {
   progressionEvidencePolicy?: ProgressionEvidencePolicy;
   adjustmentReasons?: readonly DailyTrainingReasonCode[];
   durationMinutes?: number;
+  equipmentSnapshot?: PlannedEquipmentSnapshot;
   exercises?: PersistedGeneratedExerciseSummary[];
   feedback?: PersistedPostSessionFeedback;
 }

@@ -8,11 +8,11 @@ import {
 } from '../exercises';
 import type { EquipmentTag } from '../movements';
 import {
-  DEFAULT_EQUIPMENT,
   generatePresetSession,
   listExtraSessionPresets,
   type EquipmentProfile,
 } from '../training';
+import { canonicalEquipmentFromSafetyProfile } from '../profile/equipment';
 import {
   equipmentLabel as equipmentLabelForTags,
   equipmentMissingLabels,
@@ -189,8 +189,7 @@ export function getExtraSessionCards(input: {
   ladderProgressById?: Record<string, LadderProgress>;
   today?: string | Date;
 } = {}): ExtraSessionCard[] {
-  const equipment = input.equipment ?? DEFAULT_EQUIPMENT;
-  const availableEquipment = availableEquipmentFor({ equipment, safetyProfile: input.safetyProfile });
+  const availableEquipment = availableEquipmentFor({ safetyProfile: input.safetyProfile });
   return listExtraSessionPresets().map((preset) => {
     const required = PRESET_REQUIRED_EQUIPMENT[preset.id];
     const missing = required ? equipmentMissingLabels(required.tags, availableEquipment) : [];
@@ -224,7 +223,7 @@ export function getMovementLadderCards(input: {
   equipment?: EquipmentProfile | null;
   safetyProfile?: MovementSafetyProfile | null;
 } = {}): MovementLadderCard[] {
-  const available = availableEquipmentFor({ equipment: input.equipment, safetyProfile: input.safetyProfile });
+  const available = availableEquipmentFor({ safetyProfile: input.safetyProfile });
   return listVisibleExerciseLadders(false).map((ladder) => {
     const current = currentLevelFor(ladder, input.ladderProgressById?.[ladder.id], available);
     return {
@@ -260,11 +259,11 @@ export function getMovementLadderDetail(
     levels: source.levels.filter((level) => level.releaseStatus === 'v1_core'),
   };
   if (ladder.levels.length === 0) return null;
-  const available = availableEquipmentFor({ equipment: input.equipment, safetyProfile: input.safetyProfile });
+  const available = availableEquipmentFor({ safetyProfile: input.safetyProfile });
   const current = currentLevelFor(ladder, ladderProgressById[ladder.id], available);
   const currentIndex = Math.max(0, ladder.levels.findIndex((level) => level.id === current.id));
   const levels = ladder.levels.map((level) => levelView(level, level.id === current.id, available));
-  const card = getMovementLadderCards({ ladderProgressById, equipment: input.equipment, safetyProfile: input.safetyProfile }).find((item) => item.id === ladder.id);
+  const card = getMovementLadderCards({ ladderProgressById, safetyProfile: input.safetyProfile }).find((item) => item.id === ladder.id);
   return {
     ...(card ?? {}),
     id: ladder.id,
@@ -318,7 +317,6 @@ export function getExploreLibrary(): ExploreLibrary {
 }
 
 export function getEquipmentSetupSummary({
-  equipment = DEFAULT_EQUIPMENT,
   safetyProfile,
   settings,
 }: {
@@ -326,19 +324,18 @@ export function getEquipmentSetupSummary({
   safetyProfile?: MovementSafetyProfile | null;
   settings?: AppSettings | null;
 } = {}): EquipmentSetupSummary {
-  const resolvedEquipment = equipment ?? DEFAULT_EQUIPMENT;
-  const available = availableEquipmentFor({ equipment: resolvedEquipment, safetyProfile });
+  const available = availableEquipmentFor({ safetyProfile });
   const optional = [
-    resolvedEquipment.stair ? 'bottom stair' : null,
-    resolvedEquipment.band ? 'resistance band' : null,
-    resolvedEquipment.miniBand ? 'mini band' : null,
-    resolvedEquipment.load ? 'backpack or light weight' : null,
+    available.includes('stairs') ? 'bottom stair' : null,
+    available.includes('resistance_band') ? 'resistance band' : null,
+    available.includes('mini_band') ? 'mini band' : null,
+    available.includes('backpack') || available.includes('dumbbells') ? 'backpack or light weight' : null,
   ].filter((item): item is string => !!item);
   const missing = [
-    resolvedEquipment.stair ? null : 'bottom stair',
-    resolvedEquipment.band ? null : 'resistance band',
-    resolvedEquipment.miniBand ? null : 'mini band',
-    resolvedEquipment.load ? null : 'backpack or light weight',
+    available.includes('stairs') ? null : 'bottom stair',
+    available.includes('resistance_band') ? null : 'resistance band',
+    available.includes('mini_band') ? null : 'mini band',
+    available.includes('backpack') || available.includes('dumbbells') ? null : 'backpack or light weight',
   ].filter((item): item is string => !!item);
   const core = [
     available.includes('chair') ? 'stable chair' : null,
@@ -353,33 +350,13 @@ export function getEquipmentSetupSummary({
 }
 
 export function availableEquipmentFor({
-  equipment = DEFAULT_EQUIPMENT,
   safetyProfile,
 }: {
   equipment?: EquipmentProfile | null;
   safetyProfile?: MovementSafetyProfile | null;
 }): AvailableEquipment[] {
-  const resolvedEquipment = equipment ?? DEFAULT_EQUIPMENT;
-  const baseEquipment = safetyProfile?.availableEquipment;
-  const set = new Set<AvailableEquipment>(
-    baseEquipment && baseEquipment.length > 0 ? baseEquipment : ['chair', 'wall']
-  );
-  if (set.size > 1) set.delete('none');
-  if (resolvedEquipment.stair) set.add('stairs');
-  else set.delete('stairs');
-  if (resolvedEquipment.band) set.add('resistance_band');
-  else {
-    set.delete('resistance_band');
-    set.delete('door_anchor');
-  }
-  if (resolvedEquipment.miniBand) set.add('mini_band');
-  else set.delete('mini_band');
-  if (resolvedEquipment.load) set.add('backpack');
-  else {
-    set.delete('backpack');
-    set.delete('dumbbells');
-  }
-  return Array.from(set);
+  const canonical = canonicalEquipmentFromSafetyProfile(safetyProfile);
+  return canonical.status === 'confirmed' ? canonical.capabilities.slice() : [];
 }
 
 function currentLevelFor(

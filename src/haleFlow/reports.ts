@@ -18,6 +18,7 @@ import {
   type VersionedCheckUpScoreSnapshot,
 } from '../scoring';
 import { getReportCopy } from './copy';
+import { getBlockScheduleState } from './blockSchedule';
 
 export function createMovementBlockReport({
   userId = LOCAL_USER_ID,
@@ -43,6 +44,7 @@ export function createMovementBlockReport({
   nowIso?: string;
 }): MovementBlockReport {
   const progress = blockProgress(block, completions);
+  const schedule = getBlockScheduleState({ block, completions, today: nowIso });
   const snapshotEndpointMismatch =
     !scoreSnapshotMatchesAssessment(previousScoreSnapshot, baselineAssessment) ||
     !scoreSnapshotMatchesAssessment(latestScoreSnapshot, retestAssessment);
@@ -62,7 +64,7 @@ export function createMovementBlockReport({
     summary: compatible
       ? getReportCopy({ focusDomain: block.focusDomain, hasComparison: !!focusChange?.current })
       : "Your latest result has been saved. Hale's scoring method has changed since your earlier Check-Up, so a direct comparison isn't available.",
-    sessionsCompleted: progress.completedSessions,
+    sessionsCompleted: schedule.totalCredits,
     totalPlannedSessions: progress.totalSessions,
     microChecksCompleted: progress.microChecksCompleted,
     domainChanges,

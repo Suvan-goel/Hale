@@ -53,6 +53,9 @@ export interface MovementSafetyProfile {
   feelsSafeStandingFromChair?: boolean;
   feelsSafeBalancing?: boolean;
   availableEquipment: AvailableEquipment[];
+  equipmentStatus?: 'confirmed' | 'needs_confirmation' | 'legacy_migrated' | 'malformed_fail_closed';
+  equipmentRevision?: number;
+  equipmentUpdatedAt?: string;
   preferredWorkoutDays?: string[];
   createdAt: string;
   updatedAt: string;
@@ -126,6 +129,33 @@ export type TrainingSessionCompletionType =
   | 'retest';
 
 export type TrainingSessionCompletionSource = 'block_generated' | 'preset' | 'manual' | 'legacy_fallback';
+
+export type TrainingSessionScheduleCreditDenialReason =
+  | 'missing_block'
+  | 'invalid_current_date'
+  | 'invalid_block_start_date'
+  | 'missing_required_templates'
+  | 'main_plan_rejected'
+  | 'malformed_completion_date'
+  | 'future_completion'
+  | 'pre_block_completion'
+  | 'daily_credit_already_used'
+  | 'template_already_credited_for_week'
+  | 'week_locked_until_next_start'
+  | 'block_training_already_complete'
+  | 'duplicate_event';
+
+export interface TrainingSessionScheduleCreditSummary {
+  policyVersion: number;
+  credited: boolean;
+  status: 'credited' | 'denied' | 'not_applicable';
+  reason?: TrainingSessionScheduleCreditDenialReason;
+  weekIndex?: number;
+  weekNumber?: number;
+  dateKey?: string;
+  templateId?: string;
+  creditId?: string;
+}
 
 export interface TrainingSessionWorkEvidenceSummary {
   plannedExerciseCount: number;
@@ -206,6 +236,7 @@ export interface TrainingSessionCompletion {
   source?: TrainingSessionCompletionSource;
   templateId?: string;
   mainPlanCredit?: boolean;
+  scheduleCredit?: TrainingSessionScheduleCreditSummary;
   workEvidence?: TrainingSessionWorkEvidenceSummary;
   focusStimulusEvidence?: TrainingFocusStimulusEvidenceSummary;
   progressionEvidencePolicy?: ProgressionEvidencePolicy;

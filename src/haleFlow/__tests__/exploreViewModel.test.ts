@@ -12,7 +12,13 @@ import {
 describe('exploreViewModel', () => {
   it('lists the V1 extra session presets and gates required equipment clearly', () => {
     const cards = getExtraSessionCards({
-      equipment: { stair: false, band: false, miniBand: false, load: false },
+      safetyProfile: {
+        id: 'safety',
+        userId: 'local-device-user',
+        availableEquipment: ['chair', 'wall'],
+        createdAt: '2026-06-17T08:00:00.000Z',
+        updatedAt: '2026-06-17T08:00:00.000Z',
+      },
     });
 
     expect(cards.map((card) => card.title)).toEqual([
@@ -42,7 +48,14 @@ describe('exploreViewModel', () => {
 
   it('enables band and stair extras when the matching equipment is available', () => {
     const cards = getExtraSessionCards({
-      equipment: { stair: true, band: true, miniBand: false, load: false },
+      equipment: { stair: false, band: false, miniBand: false, load: false },
+      safetyProfile: {
+        id: 'safety',
+        userId: 'local-device-user',
+        availableEquipment: ['chair', 'wall', 'stairs', 'resistance_band'],
+        createdAt: '2026-06-17T08:00:00.000Z',
+        updatedAt: '2026-06-17T08:00:00.000Z',
+      },
     });
 
     expect(cards.find((card) => card.id === 'preset-band-upper-back')?.disabled).toBe(false);
@@ -68,7 +81,15 @@ describe('exploreViewModel', () => {
   });
 
   it('builds movement ladder cards from V1 core ladder data', () => {
-    const cards = getMovementLadderCards();
+    const cards = getMovementLadderCards({
+      safetyProfile: {
+        id: 'safety',
+        userId: 'local-device-user',
+        availableEquipment: ['chair', 'wall'],
+        createdAt: '2026-06-17T08:00:00.000Z',
+        updatedAt: '2026-06-17T08:00:00.000Z',
+      },
+    });
 
     expect(cards.map((card) => card.title)).toContain('Sit-to-Stand');
     expect(cards.map((card) => card.title)).toContain('Mobility / Flexibility');
@@ -91,7 +112,16 @@ describe('exploreViewModel', () => {
     expect(detail?.levels.map((level) => level.name)).not.toContain('Neck Rotations');
     expect(detail?.levels.every((level) => level.measurementLabel.length > 0)).toBe(true);
     expect(detail?.levels.every((level) => level.instructions.length > 0)).toBe(true);
-    expect(detail?.currentLevel.measurementNote).toContain('broad reach');
+    expect(detail?.currentLevel.measurementNote).toContain('Broad rotation');
+  });
+
+  it('ignores legacy equipment booleans when canonical safety equipment is absent', () => {
+    const cards = getExtraSessionCards({
+      equipment: { stair: true, band: true, miniBand: true, load: true },
+    });
+
+    expect(cards.find((card) => card.id === 'preset-band-upper-back')?.disabled).toBe(true);
+    expect(cards.find((card) => card.id === 'preset-stairs-confidence')?.disabled).toBe(true);
   });
 
   it('surfaces setup, safety, and tracking notes on movement details', () => {

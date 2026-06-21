@@ -1,6 +1,7 @@
 import type { TrainingState } from '../../../training';
 import { defaultTrainingState } from '../../../training';
 import { supabase } from '../../../lib/supabase';
+import { normalizeCanonicalEquipment, plannedEquipmentSnapshotFromCanonical } from '../../../profile';
 
 import { getCurrentSession } from '../authService';
 import { mapLocalTrainingStateToRemotePayload, syncTrainingStateToRemote } from '../trainingStateSyncService';
@@ -80,9 +81,12 @@ function trainingState(overrides: Partial<TrainingState> = {}): TrainingState {
       title: `Session ${index + 1}`,
       completedAt: `2026-06-${String(index + 1).padStart(2, '0')}T09:30:00.000Z`,
       exerciseIds: ['sit-to-stand-level-2'],
-      durationMinutes: 20,
-      imageUri: 'file:///private/should-not-upload.png',
-    })) as never,
+              durationMinutes: 20,
+              equipmentSnapshot: plannedEquipmentSnapshotFromCanonical(
+                normalizeCanonicalEquipment(['chair', 'wall'])
+              ),
+              imageUri: 'file:///private/should-not-upload.png',
+            })) as never,
     lastPostSessionFeedback: {
       sessionId: 'generated-session-25',
       rpe: 2,
@@ -242,6 +246,9 @@ describe('training state snapshot sync mapping', () => {
                   stimulusReason: 'equipment_limited' as const,
                 },
               ],
+              equipmentSnapshot: plannedEquipmentSnapshotFromCanonical(
+                normalizeCanonicalEquipment(['chair', 'resistance_band'])
+              ),
             },
           ] as never,
         }),
@@ -256,6 +263,7 @@ describe('training state snapshot sync mapping', () => {
         status: string;
         focusStimulusEvidence: { mainPlanCredit: boolean; exclusionReason: string };
         exercises: Array<{ stimulusRole: string; intendedDomain: string }>;
+        equipmentSnapshot: { fingerprint: string; capabilities: string[] };
       }>;
     };
     const summary = generatedSessionContext.recentSummaries[0];
@@ -269,6 +277,10 @@ describe('training state snapshot sync mapping', () => {
     expect(summary.exercises[0]).toMatchObject({
       stimulusRole: 'fallback',
       intendedDomain: 'strength_power',
+    });
+    expect(summary.equipmentSnapshot).toMatchObject({
+      capabilities: ['chair', 'resistance_band'],
+      fingerprint: 'equipment:v1;status=confirmed;capabilities=chair|resistance_band',
     });
   });
 

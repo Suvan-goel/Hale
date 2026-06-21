@@ -1,11 +1,11 @@
 import {
-  blockProgress,
   movementBlockSourceCheckUpId,
   type MovementAssessment,
   type MovementBlock,
   type MovementBlockReport,
   type TrainingSessionCompletion,
 } from '../../adherence';
+import { getBlockScheduleState } from '../../haleFlow/blockSchedule';
 import { supabase } from '../../lib/supabase';
 import { addBreadcrumb } from '../observability/sentry';
 
@@ -400,11 +400,14 @@ function progressForReport(
   movementBlock: MovementBlock | null | undefined,
   completions: readonly TrainingSessionCompletion[]
 ): BackendJson {
-  const computed = movementBlock ? blockProgress(movementBlock, completions) : null;
+  const computed = movementBlock
+    ? getBlockScheduleState({ block: movementBlock, completions, today: report.createdAt })
+    : null;
+  const microChecksCompleted = completions.filter((completion) => completion.sessionType === 'micro_check').length;
   return sanitizeForBackendJson({
-    sessionsCompleted: computed?.completedSessions ?? report.sessionsCompleted,
-    totalPlannedSessions: computed?.totalSessions ?? report.totalPlannedSessions,
-    microChecksCompleted: computed?.microChecksCompleted ?? report.microChecksCompleted,
+    sessionsCompleted: computed?.totalCredits ?? report.sessionsCompleted,
+    totalPlannedSessions: movementBlock?.totalPlannedSessions ?? report.totalPlannedSessions,
+    microChecksCompleted: movementBlock ? microChecksCompleted : report.microChecksCompleted,
   });
 }
 

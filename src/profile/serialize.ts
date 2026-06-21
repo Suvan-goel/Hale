@@ -6,8 +6,9 @@
  */
 
 import { LIFE_GOAL_CATEGORIES } from '../adherence';
-import type { ActivityLevel, AvailableEquipment, LifeGoal, MovementSafetyProfile } from '../adherence';
+import type { ActivityLevel, LifeGoal, MovementSafetyProfile } from '../adherence';
 import { AppSettings, EMPTY_PROFILE, OnboardingState, OnboardingStep, Preferences, UserProfile } from './types';
+import { isCanonicalEquipmentStatus, normalizeAvailableEquipmentForPersistence } from './equipment';
 import { DEFAULT_VOICE_ID, VOICE_OPTIONS } from './voices';
 
 export const PREFERENCES_SCHEMA_VERSION = 4;
@@ -107,19 +108,6 @@ function validLifeGoal(v: unknown): LifeGoal | null {
 }
 
 const ACTIVITY_LEVELS: ActivityLevel[] = ['very_inactive', 'lightly_active', 'moderately_active', 'very_active'];
-const EQUIPMENT: AvailableEquipment[] = [
-  'chair',
-  'wall',
-  'stairs',
-  'resistance_band',
-  'door_anchor',
-  'mini_band',
-  'dumbbells',
-  'backpack',
-  'floor_space',
-  'none',
-];
-
 function validSafetyProfile(v: unknown): MovementSafetyProfile | null {
   if (typeof v !== 'object' || v === null) return null;
   const p = v as Partial<MovementSafetyProfile>;
@@ -130,9 +118,14 @@ function validSafetyProfile(v: unknown): MovementSafetyProfile | null {
     typeof p.activityLevel === 'string' && ACTIVITY_LEVELS.includes(p.activityLevel as ActivityLevel)
       ? (p.activityLevel as ActivityLevel)
       : undefined;
-  const availableEquipment = Array.isArray(p.availableEquipment)
-    ? p.availableEquipment.filter((e): e is AvailableEquipment => typeof e === 'string' && EQUIPMENT.includes(e as AvailableEquipment))
-    : [];
+  const normalizedEquipment = normalizeAvailableEquipmentForPersistence(p.availableEquipment, {
+    status: isCanonicalEquipmentStatus(p.equipmentStatus) ? p.equipmentStatus : undefined,
+    updatedAt: typeof p.equipmentUpdatedAt === 'string' ? p.equipmentUpdatedAt : p.updatedAt,
+    revision:
+      typeof p.equipmentRevision === 'number' && Number.isFinite(p.equipmentRevision)
+        ? p.equipmentRevision
+        : undefined,
+  });
   const preferredWorkoutDays = Array.isArray(p.preferredWorkoutDays)
     ? p.preferredWorkoutDays.filter((d): d is string => typeof d === 'string')
     : undefined;
@@ -148,7 +141,10 @@ function validSafetyProfile(v: unknown): MovementSafetyProfile | null {
     feelsSafeStandingFromChair:
       typeof p.feelsSafeStandingFromChair === 'boolean' ? p.feelsSafeStandingFromChair : undefined,
     feelsSafeBalancing: typeof p.feelsSafeBalancing === 'boolean' ? p.feelsSafeBalancing : undefined,
-    availableEquipment,
+    availableEquipment: normalizedEquipment.availableEquipment,
+    equipmentStatus: normalizedEquipment.equipmentStatus,
+    equipmentRevision: normalizedEquipment.equipmentRevision,
+    equipmentUpdatedAt: normalizedEquipment.equipmentUpdatedAt,
     preferredWorkoutDays,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,

@@ -319,7 +319,7 @@ function sessionIndexForCompletion(
   const explicit = sessionIndexFromPlannedDate(completion.plannedDate);
   if (explicit) return explicit;
 
-  const blockCompletions = orderedCompletions.filter((item) => item.blockId === completion.blockId);
+  const blockCompletions = orderedCompletions.filter((item) => item.blockId === completion.blockId && item.scheduleCredit?.credited === true);
   const index = blockCompletions.findIndex((item) => localSessionIdFor(item) === localSessionIdFor(completion));
   return index >= 0 ? index + 1 : undefined;
 }
@@ -352,6 +352,7 @@ function sanitizeCompletion(completion: TrainingSessionCompletion): BackendJson 
     source: completion.source,
     templateId: completion.templateId,
     mainPlanCredit: completion.mainPlanCredit,
+    scheduleCredit: completion.scheduleCredit,
     workEvidence: completion.workEvidence,
     focusStimulusEvidence: completion.focusStimulusEvidence,
     progressionEvidencePolicy: completion.progressionEvidencePolicy,

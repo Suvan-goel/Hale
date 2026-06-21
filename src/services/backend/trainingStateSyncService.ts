@@ -150,6 +150,7 @@ function sanitizeGeneratedSessionSummary(summary: PersistedGeneratedSessionSumma
     completionSource: summary.completionSource,
     status: summary.status,
     mainPlanCredit: summary.mainPlanCredit,
+    scheduleCredit: summary.scheduleCredit,
     workEvidence: summary.workEvidence,
     focusStimulusEvidence: summary.focusStimulusEvidence,
     title: summary.title,
@@ -164,6 +165,7 @@ function sanitizeGeneratedSessionSummary(summary: PersistedGeneratedSessionSumma
     progressionEvidencePolicy: summary.progressionEvidencePolicy,
     adjustmentReasons: summary.adjustmentReasons,
     durationMinutes: summary.durationMinutes,
+    equipmentSnapshot: summary.equipmentSnapshot,
     exercises: summary.exercises?.map(sanitizeGeneratedExerciseSummary),
     feedback: sanitizePostSessionFeedback(summary.feedback),
   });

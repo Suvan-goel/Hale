@@ -81,13 +81,12 @@ export function getDashboardCopy({
 
 export function getLapseRecoveryCopy(
   state: AdherenceState,
-  lifeGoal?: LifeGoal | null
+  _lifeGoal?: LifeGoal | null
 ): { title: string; body: string; cta: string } {
-  const goalTail = lifeGoal ? ` for ${getLifeGoalDisplayText(lifeGoal).toLowerCase()}` : '';
   if (state === 'inactive_14_days') {
     return {
       title: 'Start from where your body is today',
-      body: `Let's do a quick check-in and rebuild the plan from here${goalTail}.`,
+      body: "Let's restart gently and keep the plan moving from here.",
       cta: 'Restart my block',
     };
   }
@@ -107,7 +106,7 @@ export function getLapseRecoveryCopy(
   }
   return {
     title: 'Keep your progress moving',
-    body: 'A short session today supports the capability you care about.',
+    body: 'One shorter session today is enough to keep your plan moving.',
     cta: 'Start today',
   };
 }
@@ -126,7 +125,7 @@ export function getProtectionCopy({
     return 'Clean slate today. A shorter session is enough to restart gently.';
   }
   if (lifeGoal) {
-    return `Today supports progress toward ${getLifeGoalDisplayText(lifeGoal).toLowerCase()}.`;
+    return `Today supports the goal you chose: ${getLifeGoalDisplayText(lifeGoal)}.`;
   }
   if (focusDomain === 'balance') return 'Keep your balance steady.';
   if (focusDomain === 'mobility') return 'Support the mobility you use every day.';

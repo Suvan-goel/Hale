@@ -5,7 +5,7 @@
 
 import * as React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Polyline } from 'react-native-svg';
+import Svg, { Circle, Path, Polyline } from 'react-native-svg';
 
 import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
@@ -23,12 +23,6 @@ import {
   type VersionedCheckUpScoreSnapshot,
 } from '../scoring';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
-
-const DOMAIN_ICON: Record<string, string> = {
-  strength: 'S',
-  balance: 'B',
-  mobility: 'M',
-};
 
 export function ResultsScreen({
   checkUp: _checkUp,
@@ -65,22 +59,23 @@ export function ResultsScreen({
   const closelyMatched = focusSelection?.kind === 'exact_tie' || focusSelection?.kind === 'near_tie';
 
   return (
-    <Screen>
-      <BackArrowButton accessibilityLabel="Back from movement dashboard" onPress={onDone} />
+    <Screen contentStyle={styles.screenContent}>
+      <BackArrowButton accessibilityLabel="Back from movement dashboard" onPress={onDone} style={styles.backButton} />
       <View style={styles.header}>
+        <Text style={styles.eyebrow}>Movement Check-Up</Text>
         <View style={styles.titleGroup}>
-          <HeaderLogo />
-          <Text style={styles.title}>Your Movement Dashboard</Text>
+          <HeaderLogo size={30} />
+          <Text style={styles.title}>Movement Dashboard</Text>
         </View>
         <Text style={styles.subtitle}>
           Home movement estimates from today’s guided check-up. Small changes can reflect setup or day-to-day variation.
         </Text>
       </View>
 
-      <Card style={styles.focusOverviewCard}>
+      <View style={styles.focusOverviewCard}>
         <View style={styles.focusOverviewHead}>
           <View style={styles.focusOverviewCopy}>
-            <Text style={styles.cardKicker}>
+            <Text style={styles.focusKicker}>
               {resultState.canCreateBlock && focusLabel
                 ? closelyMatched
                   ? 'Closely matched domains'
@@ -95,9 +90,9 @@ export function ResultsScreen({
                 : resultState.recoveryTitle}
             </Text>
           </View>
-          <StatusBadge
+          <DashboardPill
             label={resultState.canCreateBlock && focusLabel ? 'Next block' : 'Review'}
-            tone={resultState.canCreateBlock && focusLabel ? 'gold' : 'attention'}
+            variant="light"
           />
         </View>
         <Text style={styles.focusBody}>
@@ -109,10 +104,17 @@ export function ResultsScreen({
         </Text>
         <View style={styles.summaryRail}>
           <SummaryTile label="Domains estimated" value={`${measured.length}/3`} />
-          <View style={styles.summaryDivider} />
           <SummaryTile label="Check-ups in history" value={`${history.length}`} />
         </View>
-      </Card>
+      </View>
+
+      <View style={styles.sectionHeader}>
+        <View style={styles.sectionHeaderCopy}>
+          <Text style={styles.sectionEyebrow}>Home estimates</Text>
+          <Text style={styles.sectionSubtle}>Strength, balance, and mobility from this snapshot.</Text>
+        </View>
+        <DashboardPill label="Beta" />
+      </View>
 
       {score ? (
         score.domains.map((d) => (
@@ -124,7 +126,7 @@ export function ResultsScreen({
           />
         ))
       ) : (
-        <Card>
+        <Card style={styles.emptyResultCard}>
           <Text style={styles.sectionTitle}>Stored result</Text>
           <Text style={styles.sectionSubtle}>
             This check-up was saved before Hale started storing versioned beta estimate snapshots, so its interpretation
@@ -173,11 +175,10 @@ function SummaryTile({ label, value }: { label: string; value: string }) {
 function DomainCard({ domain, isFocus, isTied }: { domain: DomainResult; isFocus: boolean; isTied?: boolean }) {
   return (
     <Card style={[styles.domainCard, isFocus && styles.focusCard]}>
+      {isFocus ? <View style={styles.domainAccentBar} /> : null}
       <View style={styles.domainHead}>
         <View style={styles.domainTitleRow}>
-          <View style={styles.domainIcon}>
-            <Text style={styles.domainIconText}>{DOMAIN_ICON[domain.domain]}</Text>
-          </View>
+          <DomainGlyph domain={domain.domain} emphasized={isFocus || isTied} />
           <View style={styles.domainTitleCopy}>
             <Text style={styles.cardKicker}>Home estimate</Text>
             <Text style={styles.domainTitle}>{domain.label}</Text>
@@ -188,12 +189,14 @@ function DomainCard({ domain, isFocus, isTied }: { domain: DomainResult; isFocus
 
       <View style={styles.domainEstimateBlock}>
         <View style={styles.domainBandRow}>
-          <Text style={domain.measured ? styles.age : styles.ageMuted}>
-            {domain.measured ? domainBandLabel(domain) : 'Not estimated'}
-          </Text>
-          {domain.measured ? <Text style={styles.estimateBadge}>Measured today</Text> : null}
+          <View style={styles.domainBandCopy}>
+            <Text style={domain.measured ? styles.age : styles.ageMuted}>
+              {domain.measured ? domainBandLabel(domain) : 'Not estimated'}
+            </Text>
+            <Text style={styles.estimateLabel}>{domainEstimateLabel(domain)}</Text>
+          </View>
+          {domain.measured ? <DashboardPill label="Measured today" /> : null}
         </View>
-        <Text style={styles.estimateLabel}>{domainEstimateLabel(domain)}</Text>
         <Text style={styles.interp}>{domainInterpretation(domain)}</Text>
       </View>
 
@@ -209,6 +212,45 @@ function DomainCard({ domain, isFocus, isTied }: { domain: DomainResult; isFocus
         ))}
       </View>
     </Card>
+  );
+}
+
+function DashboardPill({ label, variant = 'neutral' }: { label: string; variant?: 'neutral' | 'light' }) {
+  return (
+    <View style={[styles.dashboardPill, variant === 'light' && styles.dashboardPillLight]}>
+      <Text style={[styles.dashboardPillText, variant === 'light' && styles.dashboardPillTextLight]} numberOfLines={1}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function DomainGlyph({ domain, emphasized }: { domain: DomainResult['domain']; emphasized?: boolean }) {
+  const stroke = emphasized ? colors.onAccent : colors.accentDeep;
+  return (
+    <View style={[styles.domainIcon, emphasized && styles.domainIconEmphasized]}>
+      <Svg width={25} height={25} viewBox="0 0 24 24" accessibilityElementsHidden>
+        {domain === 'strength' ? (
+          <>
+            <Path d="M5 14h14" stroke={stroke} strokeWidth={1.9} strokeLinecap="round" />
+            <Path d="M7 10v8M17 10v8M10 12h4" stroke={stroke} strokeWidth={1.7} strokeLinecap="round" />
+          </>
+        ) : domain === 'balance' ? (
+          <>
+            <Path d="M12 5v12" stroke={stroke} strokeWidth={1.8} strokeLinecap="round" />
+            <Path d="M7 18h10" stroke={stroke} strokeWidth={1.8} strokeLinecap="round" />
+            <Circle cx={12} cy={5} r={2.2} stroke={stroke} strokeWidth={1.5} fill="none" />
+            <Path d="M8 10c2.2 1.3 5.8 1.3 8 0" stroke={stroke} strokeWidth={1.5} strokeLinecap="round" fill="none" />
+          </>
+        ) : (
+          <>
+            <Path d="M6 16c3.7-7.7 8.6-7.7 12 0" stroke={stroke} strokeWidth={1.8} strokeLinecap="round" fill="none" />
+            <Path d="M7 17h10" stroke={stroke} strokeWidth={1.8} strokeLinecap="round" />
+            <Circle cx={12} cy={10} r={2.1} stroke={stroke} strokeWidth={1.5} fill="none" />
+          </>
+        )}
+      </Svg>
+    </View>
   );
 }
 
@@ -331,24 +373,45 @@ function formatDelta(value: number): string {
 }
 
 const styles = StyleSheet.create({
-  header: { gap: spacing.xs },
+  screenContent: {
+    gap: 20,
+  },
+  backButton: {
+    marginBottom: -spacing.lg,
+  },
+  header: { gap: spacing.sm },
+  eyebrow: {
+    ...type.label,
+    color: colors.accentDeep,
+    fontSize: 11,
+    lineHeight: 16,
+  },
   titleGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     minWidth: 0,
   },
-  title: { ...type.pageTitle, flexShrink: 1 },
-  subtitle: { ...type.pageSubtitle },
+  title: {
+    ...type.pageTitle,
+    flexShrink: 1,
+    fontSize: 30,
+    lineHeight: 36,
+  },
+  subtitle: {
+    ...type.pageSubtitle,
+    maxWidth: 340,
+  },
   focusOverviewCard: {
     gap: spacing.lg,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl,
+    paddingHorizontal: 22,
+    paddingVertical: 24,
     borderRadius: radius.panel,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
     backgroundColor: colors.surface,
-    boxShadow: '0 12px 30px rgba(17,20,18,0.045)',
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    overflow: 'hidden',
+    boxShadow: `0 16px 34px ${colors.shadowSoft}`,
   },
   focusOverviewHead: {
     flexDirection: 'row',
@@ -361,6 +424,12 @@ const styles = StyleSheet.create({
     minWidth: 0,
     gap: spacing.xs,
   },
+  focusKicker: {
+    ...type.label,
+    color: colors.accentDeep,
+    fontSize: 11,
+    lineHeight: 16,
+  },
   cardKicker: {
     ...type.label,
     color: colors.accentDeep,
@@ -369,39 +438,39 @@ const styles = StyleSheet.create({
   },
   focusValue: {
     fontFamily: fonts.serifMedium,
-    fontSize: 28,
-    lineHeight: 34,
+    fontSize: 34,
+    lineHeight: 39,
     letterSpacing: 0,
-    color: colors.textPrimary,
+    color: colors.accentDeep,
   },
   focusBody: {
     ...type.cardBody,
     color: colors.textSecondary,
   },
   summaryRail: {
-    minHeight: 78,
     flexDirection: 'row',
-    alignItems: 'stretch',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.divider,
-  },
-  summaryDivider: {
-    width: StyleSheet.hairlineWidth,
-    backgroundColor: colors.divider,
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
   },
   summaryTile: {
     flex: 1,
+    minWidth: 136,
     justifyContent: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.md,
+    minHeight: 74,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.input,
+    backgroundColor: colors.bgGold,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.goldBorder,
   },
   summaryValue: {
-    fontFamily: fonts.serifMedium,
-    fontSize: 25,
+    fontFamily: fonts.sansMedium,
+    fontSize: 26,
     lineHeight: 31,
     letterSpacing: 0,
-    color: colors.textPrimary,
+    color: colors.accentDeep,
     fontVariant: ['tabular-nums'],
   },
   summaryLabel: {
@@ -409,18 +478,72 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: spacing.xs,
   },
-  domainCard: {
-    gap: spacing.lg,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl,
-    borderRadius: radius.panel,
+  dashboardPill: {
+    alignSelf: 'flex-start',
+    maxWidth: 132,
+    minHeight: 30,
+    justifyContent: 'center',
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 5,
+    backgroundColor: colors.bgGold,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
+    borderColor: colors.goldBorder,
+  },
+  dashboardPillLight: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  dashboardPillText: {
+    ...type.cardCaption,
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    textAlign: 'center',
+  },
+  dashboardPillTextLight: {
+    color: colors.onAccent,
+  },
+  sectionHeader: {
+    minHeight: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+    paddingTop: spacing.xs,
+  },
+  sectionHeaderCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  sectionEyebrow: {
+    ...type.cardRowTitle,
+    color: colors.textPrimary,
+    fontSize: 17,
+    lineHeight: 22,
+  },
+  domainCard: {
+    position: 'relative',
+    gap: spacing.lg,
+    paddingHorizontal: 22,
+    paddingVertical: 22,
+    borderRadius: radius.panel,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
     backgroundColor: colors.surface,
-    ...shadow.card,
+    boxShadow: `0 10px 26px ${colors.shadowSoft}`,
   },
   focusCard: {
     borderColor: colors.accentBorder,
+  },
+  domainAccentBar: {
+    position: 'absolute',
+    top: 18,
+    bottom: 18,
+    left: 0,
+    width: 3,
+    borderTopRightRadius: radius.pill,
+    borderBottomRightRadius: radius.pill,
+    backgroundColor: colors.accent,
   },
   domainHead: {
     flexDirection: 'row',
@@ -437,16 +560,19 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   domainIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.input,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
+    width: 50,
+    height: 50,
+    borderRadius: 17,
+    backgroundColor: colors.bgGold,
+    borderWidth: 1,
+    borderColor: colors.goldBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  domainIconText: { ...type.label, color: colors.accentDeep },
+  domainIconEmphasized: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
   domainTitleCopy: {
     flex: 1,
     minWidth: 0,
@@ -454,11 +580,11 @@ const styles = StyleSheet.create({
   },
   domainTitle: {
     ...type.cardTitle,
-    fontSize: 22,
-    lineHeight: 28,
+    fontSize: 21,
+    lineHeight: 27,
   },
   domainEstimateBlock: {
-    gap: spacing.xs,
+    gap: spacing.sm,
     paddingTop: spacing.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.divider,
@@ -469,23 +595,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.md,
   },
-  age: {
-    ...type.cardRowTitle,
+  domainBandCopy: {
     flex: 1,
     minWidth: 0,
+    gap: 3,
+  },
+  age: {
+    ...type.cardRowTitle,
     color: colors.accentDeep,
-    fontSize: 16,
+    fontSize: 17,
     lineHeight: 22,
   },
   ageMuted: {
     ...type.cardBody,
     color: colors.textTertiary,
-  },
-  estimateBadge: {
-    ...type.cardCaption,
-    color: colors.accentDeep,
-    fontFamily: fonts.sansMedium,
-    textAlign: 'right',
   },
   estimateLabel: {
     ...type.caption,
@@ -498,11 +621,10 @@ const styles = StyleSheet.create({
   },
   rows: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.divider,
+    borderTopColor: colors.divider,
   },
   metricRow: {
-    minHeight: 76,
+    minHeight: 70,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -530,22 +652,29 @@ const styles = StyleSheet.create({
   },
   metricValue: {
     fontFamily: fonts.sansMedium,
-    fontSize: 20,
-    lineHeight: 26,
+    fontSize: 19,
+    lineHeight: 25,
     letterSpacing: 0,
     color: colors.textPrimary,
     fontVariant: ['tabular-nums'],
     textAlign: 'right',
+    maxWidth: 138,
   },
   trendCard: {
     gap: spacing.xs,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl,
+    paddingHorizontal: 22,
+    paddingVertical: 22,
     borderRadius: radius.panel,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
     backgroundColor: colors.surface,
     ...shadow.card,
+  },
+  emptyResultCard: {
+    gap: spacing.sm,
+    paddingHorizontal: 22,
+    paddingVertical: 22,
+    borderRadius: radius.panel,
   },
   sectionTitle: {
     ...type.cardTitle,

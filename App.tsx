@@ -32,7 +32,6 @@ import {
   defaultAdherenceStoreState,
   generateMilestones,
   getActiveMovementBlock,
-  getAdherenceState,
   getLatestMovementBlock,
   getLifeGoalDisplayText,
   latestMilestone,
@@ -59,6 +58,8 @@ import {
   findAssessmentForCheckUp,
   findCheckUpForAssessment,
   focusStimulusEvidenceSummary,
+  annotateCompletionWithScheduleCredit,
+  getBlockScheduleState,
   getSessionPlanningRecoveryCopy,
   getBlockCreationEligibility,
   getHaleAppLifecycle,
@@ -69,7 +70,9 @@ import {
   applyProgressionEvidenceFromSession,
   planLadderPracticeSession,
   planTodayHaleSession,
+  staleEquipmentPlanningResult,
   sessionPlanFromPlanningResult,
+  validateHaleSessionPlanEquipment,
   type GenerationRecoveryAction,
   type HaleSessionPlanningResult,
   type HaleSessionPlan,
@@ -86,7 +89,10 @@ import {
   Preferences,
   ProfileStore,
   UserProfile,
+  canonicalEquipmentFromSafetyProfile,
   defaultPreferences,
+  legacyEquipmentFromCanonical,
+  safetyProfileWithCanonicalEquipment,
 } from './src/profile';
 import {
   CheckUpScore,
@@ -160,10 +166,10 @@ import {
   buildBlock,
   defaultTrainingState,
   microCheckTrendPoints,
-  retestDue,
   startBlock,
   upsertGeneratedSessionSummary,
   validTimeSessionSummaryCards,
+  type DailyTrainingContextSource,
   type SessionIntensity,
 } from './src/training';
 import { colors, fonts, radius, shadow, spacing, type } from './src/theme';
@@ -206,8 +212,46 @@ const CAMERA_FLOWS = new Set<Flow>(['checkup', 'training', 'microcheck', 'dev-as
 const MAX_NAVIGATION_HISTORY_ENTRIES = 40;
 const LAUNCH_SYNC_RETRY_DELAY_MS = 5000;
 const EXPECTED_SCORING_INPUT_ISSUES = new Set<ScoringInputIssue['code']>(['no_measurement']);
+const TEMP_PREVIEW_BLOCK_INTRO_SCREEN = __DEV__ && false;
 
 initObservability();
+
+function buildBlockIntroPreview(nowIso: string): { block: MovementBlock; lifeGoal: LifeGoal } {
+  const start = new Date(nowIso);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 28);
+  const retest = new Date(start);
+  retest.setDate(start.getDate() + 7);
+
+  return {
+    lifeGoal: {
+      id: 'dev-preview-life-goal-stairs',
+      userId: LOCAL_USER_ID,
+      category: 'stairs',
+      createdAt: nowIso,
+      updatedAt: nowIso,
+      isPrimary: true,
+    },
+    block: {
+      id: 'dev-preview-movement-block',
+      userId: LOCAL_USER_ID,
+      lifeGoalId: 'dev-preview-life-goal-stairs',
+      status: 'active',
+      startDate: start.toISOString(),
+      endDate: end.toISOString(),
+      retestDate: retest.toISOString(),
+      focusDomain: 'balance',
+      secondaryDomains: ['strength_power', 'mobility'],
+      sessionsPerWeekTarget: 3,
+      totalPlannedSessions: 12,
+      completedSessions: 0,
+      microChecksCompleted: 0,
+      sourceCheckUpId: 'dev-preview-checkup',
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    },
+  };
+}
 
 function flowForOnboardingStep(step: OnboardingStep): Flow | null {
   switch (step) {
@@ -281,8 +325,7 @@ function sessionIndexForCompletions(
     .filter(
       (item) =>
         item.blockId === completion.blockId &&
-        item.mainPlanCredit === true &&
-        item.focusStimulusEvidence?.mainPlanCredit === true &&
+        item.scheduleCredit?.credited === true &&
         isSyncableWorkoutCompletionType(item.sessionType)
     )
     .slice()
@@ -389,7 +432,7 @@ function HaleApp() {
   // Navigation: which bottom tab is showing, and whether a full-screen flow is
   // on top of it (a flow hides the tab bar; null means "show the tabs").
   const [tab, setTab] = React.useState<TabKey>(DEFAULT_TAB_KEY);
-  const [flow, setFlow] = React.useState<Flow | null>(null);
+  const [flow, setFlow] = React.useState<Flow | null>(() => (TEMP_PREVIEW_BLOCK_INTRO_SCREEN ? 'block-intro' : null));
   const [settingsReturnTab, setSettingsReturnTab] = React.useState<TabKey>(DEFAULT_TAB_KEY);
   const [devOnboardingReplay, setDevOnboardingReplay] = React.useState(false);
 
@@ -1284,6 +1327,10 @@ function HaleApp() {
     () => (devMockDataEnabled ? buildProgressDevMockData(devPreviewNowIso) : null),
     [devMockDataEnabled, devPreviewNowIso]
   );
+  const blockIntroPreview = React.useMemo(
+    () => (TEMP_PREVIEW_BLOCK_INTRO_SCREEN ? buildBlockIntroPreview(devPreviewNowIso) : null),
+    [devPreviewNowIso]
+  );
   const displayProfile = React.useMemo(
     () => (__DEV__ ? buildDevCompletedOnboardingProfile(prefs.profile, devPreviewNowIso) : prefs.profile),
     [devPreviewNowIso, prefs.profile]
@@ -1343,8 +1390,8 @@ function HaleApp() {
     [displayAdherence.blocks]
   );
   const displayMovementBlock = React.useMemo(
-    () => activeMovementBlock ?? getLatestMovementBlock(adherence.blocks),
-    [activeMovementBlock, adherence.blocks]
+    () => blockIntroPreview?.block ?? activeMovementBlock ?? getLatestMovementBlock(adherence.blocks),
+    [activeMovementBlock, adherence.blocks, blockIntroPreview]
   );
   const onboardingStep = React.useMemo(
     () =>
@@ -1458,12 +1505,17 @@ function HaleApp() {
   const onSafetyProfileSave = React.useCallback(
     (safetyProfile: MovementSafetyProfile, age: number | null) => {
       const now = new Date().toISOString();
+      const nextSafetyProfile = safetyProfileWithCanonicalEquipment(safetyProfile, safetyProfile.availableEquipment, {
+        status: safetyProfile.equipmentStatus ?? (onboardingFlowActive ? 'needs_confirmation' : 'confirmed'),
+        updatedAt: now,
+        revision: safetyProfile.equipmentRevision,
+      });
       persistPrefs({
         ...prefs,
         profile: {
           ...prefs.profile,
           age,
-          safetyProfile,
+          safetyProfile: nextSafetyProfile,
         },
         onboarding: onboardingFlowActive
           ? { ...prefs.onboarding, currentStep: 'equipment', updatedAt: now }
@@ -1471,12 +1523,7 @@ function HaleApp() {
       });
       persistTraining({
         ...training,
-        equipment: {
-          stair: safetyProfile.availableEquipment.includes('stairs'),
-          band: safetyProfile.availableEquipment.includes('resistance_band'),
-          miniBand: training.equipment.miniBand,
-          load: training.equipment.load,
-        },
+        equipment: legacyEquipmentFromCanonical(canonicalEquipmentFromSafetyProfile(nextSafetyProfile)),
       });
       if (onboardingFlowActive) {
         setFlow('equipment');
@@ -1491,16 +1538,18 @@ function HaleApp() {
     (input: { selectedEquipment: string[]; availableEquipment: AvailableEquipment[]; equipment: EquipmentProfile }) => {
       const now = new Date().toISOString();
       const existingSafetyProfile = prefs.profile.safetyProfile;
+      const nextSafetyProfile = existingSafetyProfile
+        ? safetyProfileWithCanonicalEquipment(existingSafetyProfile, input.availableEquipment, {
+            status: 'confirmed',
+            updatedAt: now,
+          })
+        : null;
       persistPrefs({
         ...prefs,
-        profile: existingSafetyProfile
+        profile: nextSafetyProfile
           ? {
               ...prefs.profile,
-              safetyProfile: {
-                ...existingSafetyProfile,
-                availableEquipment: input.availableEquipment,
-                updatedAt: now,
-              },
+              safetyProfile: nextSafetyProfile,
             }
           : prefs.profile,
         settings: {
@@ -1514,7 +1563,12 @@ function HaleApp() {
           updatedAt: now,
         },
       });
-      persistTraining({ ...training, equipment: input.equipment });
+      if (nextSafetyProfile) {
+        persistTraining({
+          ...training,
+          equipment: legacyEquipmentFromCanonical(canonicalEquipmentFromSafetyProfile(nextSafetyProfile)),
+        });
+      }
       setFlow('camera-explanation');
     },
     [persistPrefs, persistTraining, prefs, training]
@@ -1638,6 +1692,15 @@ function HaleApp() {
     (completedCheckUp: CheckUp, checkupOverride?: typeof pendingCheckup) => {
       const completedAt = new Date().toISOString();
       const block = activeMovementBlock;
+      const scheduleAtCheckup = block
+        ? getBlockScheduleState({
+            block,
+            completions: adherence.completions,
+            generatedSessionSummaries: training.generatedSessionSummaries,
+            today: completedAt,
+          })
+        : null;
+      const scheduleRetestDue = scheduleAtCheckup?.status === 'retest_due';
       const resolvedPendingCheckup = checkupOverride ?? pendingCheckup;
       const baseRetryCheckUp = resolvedPendingCheckup?.retryOfCheckUpId
         ? (history.find((record) => record.checkUp.startedAt === resolvedPendingCheckup.retryOfCheckUpId)?.checkUp ?? null)
@@ -1650,18 +1713,15 @@ function HaleApp() {
               retriedMovementIds: resolvedPendingCheckup.retryMovementIds,
             })
           : completedCheckUp;
-      const checkupType =
+      const requestedCheckupType =
         resolvedPendingCheckup?.type ??
-        (block && (retestDue(training) || getAdherenceState(block, adherence.completions, completedAt) === 'ready_for_retest')
+        (block && scheduleRetestDue
           ? 'official_retest'
           : history.length === 0
             ? 'baseline'
             : 'manual_extra');
-      const isRetest =
-        !!block &&
-        (checkupType === 'official_retest' ||
-          retestDue(training) ||
-          getAdherenceState(block, adherence.completions, completedAt) === 'ready_for_retest');
+      const checkupType = requestedCheckupType === 'official_retest' && !scheduleRetestDue ? 'manual_extra' : requestedCheckupType;
+      const isRetest = !!block && checkupType === 'official_retest' && scheduleRetestDue;
       const {
         score,
         snapshot: scoreSnapshot,
@@ -1678,7 +1738,7 @@ function HaleApp() {
         scoreSnapshot,
         sourceBlockId: resolvedPendingCheckup?.sourceBlockId ?? (isRetest ? block?.id : undefined),
         completedAt,
-        isOfficialForProgress: resolvedPendingCheckup?.isOfficialForProgress,
+        isOfficialForProgress: isRetest ? true : checkupType === requestedCheckupType ? resolvedPendingCheckup?.isOfficialForProgress : false,
       });
       const eligibility = getBlockCreationEligibility({ score, scoreSnapshot, assessment });
       let localHistorySaved = false;
@@ -1893,18 +1953,24 @@ function HaleApp() {
         sessionIntensity?: SessionIntensity;
       }
     ) => {
+      const planningLifecycleState = preferences?.lifecycleState ?? lifecycle.state;
+      const hasUserAdjustment = !!preferences?.adjustment;
+      const applyPlanPreferenceReadiness = !hasUserAdjustment && planningLifecycleState !== 'inactive_restart';
       const result = planTodayHaleSession({
         safetyProfile: prefs.profile.safetyProfile,
         lifeGoal: prefs.profile.lifeGoal,
         activeBlock: activeMovementBlock,
         training,
-        lifecycleState: preferences?.lifecycleState ?? lifecycle.state,
+        lifecycleState: planningLifecycleState,
         recentCompletions: adherence.completions,
         adjustment: preferences?.adjustment,
         painArea: preferences?.painArea,
-        readiness: preferences?.adjustment
-          ? undefined
-          : readinessForTrainingPreference(training.planPreferences.preferredIntensity),
+        readiness: applyPlanPreferenceReadiness
+          ? readinessForTrainingPreference(training.planPreferences.preferredIntensity)
+          : undefined,
+        dailyContextSource: applyPlanPreferenceReadiness
+          ? dailyContextSourceForTrainingPreference(training.planPreferences.preferredIntensity)
+          : undefined,
         sessionIntensity: preferences?.sessionIntensity ?? sessionIntensityForTrainingPreference(training.planPreferences.preferredIntensity),
         today: new Date(),
         presetId: preferences?.presetId,
@@ -1947,14 +2013,18 @@ function HaleApp() {
   );
 
   const handleStartRestartSession = React.useCallback(() => {
-    handleStartSession({ adjustment: 'gentler', lifecycleState: 'inactive_restart' });
+    handleStartSession({ lifecycleState: 'inactive_restart' });
   }, [handleStartSession]);
 
   const handleStartPlanSession = React.useCallback(
-    (targetSessionTemplateId: PlanSessionId) => {
-      handleStartSession({ targetSessionTemplateId });
+    (targetSessionTemplateId: PlanSessionId, preferences?: TodaySessionPreferences | null) => {
+      if (lifecycle.state === 'inactive_restart') {
+        setFlow('restart-intro');
+        return;
+      }
+      handleStartSession({ ...(preferences ?? {}), targetSessionTemplateId });
     },
-    [handleStartSession]
+    [handleStartSession, lifecycle.state]
   );
 
   const handleStartExtraSession = React.useCallback(
@@ -1997,11 +2067,29 @@ function HaleApp() {
 
   const beginPlannedSession = React.useCallback(() => {
     if (!activeSessionPlan || activeSessionPlan.exercises.length === 0) return;
+    const validation = validateHaleSessionPlanEquipment({
+      plan: activeSessionPlan,
+      safetyProfile: prefs.profile.safetyProfile,
+    });
+    if (validation.status !== 'current') {
+      addBreadcrumb('stale plan invalidated', {
+        area: 'session_planning',
+        status: validation.status,
+        blockId: activeSessionPlan.blockId,
+        templateId: activeSessionPlan.metadata?.templateId,
+        plannedDateKey: activeSessionPlan.metadata?.plannedDateKey,
+        plannedFingerprint: activeSessionPlan.metadata?.equipmentSnapshot?.fingerprint,
+        currentFingerprint: validation.diagnostics[0]?.currentFingerprint,
+      });
+      setPlanningRecoveryResult(staleEquipmentPlanningResult({ plan: activeSessionPlan, validation }));
+      setFlow('session-unavailable');
+      return;
+    }
     setSessionType(activeSessionPlan.sessionType);
     setSessionIds(activeSessionPlan.exercises.map((exercise) => exercise.id));
     setLastSessionResult(null);
     setFlow('training');
-  }, [activeSessionPlan]);
+  }, [activeSessionPlan, prefs.profile.safetyProfile]);
 
   const handleSessionComplete = React.useCallback(
     (result: TrainingSessionResult) => {
@@ -2057,29 +2145,51 @@ function HaleApp() {
         };
         trainingChanged = true;
       }
-      if (trainingChanged) persistTraining(nextTraining);
-      const block = activeMovementBlock;
-      if (block) {
-        const started = Date.parse(result.startedAt);
-        const ended = Date.parse(completedAt);
-        const durationMinutes = sessionPlan?.estimatedMinutes ??
-          (Number.isFinite(started) && Number.isFinite(ended) ? Math.max(1, Math.round((ended - started) / 60000)) : undefined);
-        if (countsTowardPlan) {
-          const completion = makeTrainingSessionCompletion({
-            block,
-            sessionType: sessionPlan?.sessionType ?? sessionType,
-            completedAt,
+	      const block = activeMovementBlock;
+	      if (block) {
+	        const started = Date.parse(result.startedAt);
+	        const ended = Date.parse(completedAt);
+	        const durationMinutes = sessionPlan?.estimatedMinutes ??
+	          (Number.isFinite(started) && Number.isFinite(ended) ? Math.max(1, Math.round((ended - started) / 60000)) : undefined);
+	        if (countsTowardPlan) {
+	          const baseCompletion = makeTrainingSessionCompletion({
+	            block,
+	            sessionType: sessionPlan?.sessionType ?? sessionType,
+	            completedAt,
             plannedDate: sessionPlan?.metadata?.plannedDateKey,
             durationMinutes,
             source: sessionPlan?.metadata?.source,
             templateId: sessionPlan?.metadata?.templateId,
             mainPlanCredit: true,
             workEvidence: summarizedEvidence,
-            focusStimulusEvidence: summarizedFocusEvidence,
-            progressionEvidencePolicy: sessionPlan?.metadata?.progressionEvidencePolicy,
-          });
-          let nextAdherence = recordTrainingSessionCompletion(adherence, completion);
-          const updatedBlock = nextAdherence.blocks.find((b) => b.id === block.id) ?? block;
+	            focusStimulusEvidence: summarizedFocusEvidence,
+	            progressionEvidencePolicy: sessionPlan?.metadata?.progressionEvidencePolicy,
+	          });
+	          const schedule = getBlockScheduleState({
+	            block,
+	            completions: [...adherence.completions, baseCompletion],
+	            generatedSessionSummaries: nextTraining.generatedSessionSummaries,
+	            today: completedAt,
+	          });
+	          const completion = annotateCompletionWithScheduleCredit(baseCompletion, schedule);
+		          if (generatedSessionSummary && sessionPlan) {
+	            generatedSessionSummary = createGeneratedSessionSummary({
+	              sessionPlan,
+	              completedAt,
+	              durationMinutes,
+	              mainPlanCredit: countsTowardPlan,
+	              scheduleCredit: completion.scheduleCredit,
+	              workEvidence: summarizedEvidence,
+	              focusStimulusEvidence: summarizedFocusEvidence,
+	            });
+	            nextTraining = {
+	              ...nextTraining,
+	              generatedSessionSummaries: upsertGeneratedSessionSummary(nextTraining.generatedSessionSummaries, generatedSessionSummary),
+	            };
+	            trainingChanged = true;
+	          }
+	          let nextAdherence = recordTrainingSessionCompletion(adherence, completion);
+	          const updatedBlock = nextAdherence.blocks.find((b) => b.id === block.id) ?? block;
           nextAdherence = mergeMilestones(
             nextAdherence,
             generateMilestones({
@@ -2108,10 +2218,10 @@ function HaleApp() {
               generatedSummary: generatedSessionSummary,
               movementBlock: updatedBlock,
               sessionIndex: sessionIndexForCompletions(nextAdherence.completions, completion),
-            });
-          }
-          setLastCompletion(completion);
-        } else {
+	            });
+	          }
+	          setLastCompletion(completion);
+	        } else {
           setLastCompletion(
             makeTrainingSessionCompletion({
               block,
@@ -2126,12 +2236,14 @@ function HaleApp() {
               focusStimulusEvidence: summarizedFocusEvidence,
               progressionEvidencePolicy: sessionPlan?.metadata?.progressionEvidencePolicy,
             })
-          );
-        }
-        replaceFlow('session-complete');
-      } else {
-        goHome();
-      }
+	          );
+	        }
+	        if (trainingChanged) persistTraining(nextTraining);
+	        replaceFlow('session-complete');
+	      } else {
+	        if (trainingChanged) persistTraining(nextTraining);
+	        goHome();
+	      }
     },
     [
       activeMovementBlock,
@@ -2236,11 +2348,12 @@ function HaleApp() {
           sessionPlan: activeSessionPlan,
           completedAt: nextCompletion.completedAt,
           durationMinutes: nextCompletion.durationMinutes,
-          feedback: persistedFeedback,
-          mainPlanCredit: nextCompletion.mainPlanCredit,
-          workEvidence: nextCompletion.workEvidence,
-          focusStimulusEvidence: nextCompletion.focusStimulusEvidence,
-        });
+	          feedback: persistedFeedback,
+	          mainPlanCredit: nextCompletion.mainPlanCredit,
+	          scheduleCredit: nextCompletion.scheduleCredit,
+	          workEvidence: nextCompletion.workEvidence,
+	          focusStimulusEvidence: nextCompletion.focusStimulusEvidence,
+	        });
         generatedSessionSummary = summary;
         if (activeSessionPlan.metadata?.source !== 'legacy_fallback') {
           nextTraining = {
@@ -2252,10 +2365,11 @@ function HaleApp() {
       if (
         activeSessionPlan &&
         activeSessionPlan.metadata?.source !== 'legacy_fallback' &&
-        countsTowardMainPlan(activeSessionPlan) &&
-        nextCompletion.mainPlanCredit === true &&
-        nextCompletion.focusStimulusEvidence?.mainPlanCredit === true
-      ) {
+	        countsTowardMainPlan(activeSessionPlan) &&
+	        nextCompletion.mainPlanCredit === true &&
+	        nextCompletion.focusStimulusEvidence?.mainPlanCredit === true &&
+	        nextCompletion.scheduleCredit?.credited === true
+	      ) {
         try {
           const progression = applyProgressionEvidenceFromSession({
             state: {
@@ -2332,22 +2446,29 @@ function HaleApp() {
 
   const toggleEquipment = React.useCallback(
     (key: keyof EquipmentProfile) => {
-      const nextEquipment = { ...training.equipment, [key]: !training.equipment[key] };
-      persistTraining({ ...training, equipment: nextEquipment });
       const safetyProfile = prefs.profile.safetyProfile;
-      if (safetyProfile) {
-        persistPrefs({
-          ...prefs,
-          profile: {
-            ...prefs.profile,
-            safetyProfile: {
-              ...safetyProfile,
-              availableEquipment: syncAvailableEquipment(safetyProfile.availableEquipment, nextEquipment),
-              updatedAt: new Date().toISOString(),
-            },
-          },
-        });
-      }
+      if (!safetyProfile) return;
+      const now = new Date().toISOString();
+      const canonical = canonicalEquipmentFromSafetyProfile(safetyProfile);
+      const set = new Set(canonical.status === 'confirmed' ? canonical.capabilities : []);
+      const capability = legacyEquipmentKeyToCapability(key);
+      if (set.has(capability)) set.delete(capability);
+      else set.add(capability);
+      const nextSafetyProfile = safetyProfileWithCanonicalEquipment(safetyProfile, Array.from(set), {
+        status: 'confirmed',
+        updatedAt: now,
+      });
+      persistPrefs({
+        ...prefs,
+        profile: {
+          ...prefs.profile,
+          safetyProfile: nextSafetyProfile,
+        },
+      });
+      persistTraining({
+        ...training,
+        equipment: legacyEquipmentFromCanonical(canonicalEquipmentFromSafetyProfile(nextSafetyProfile)),
+      });
     },
     [persistPrefs, persistTraining, prefs, training]
   );
@@ -2356,20 +2477,33 @@ function HaleApp() {
     (item: AvailableEquipment) => {
       const safetyProfile = prefs.profile.safetyProfile;
       if (!safetyProfile) return;
-      const availableEquipment = toggleAvailableEquipmentItem(safetyProfile.availableEquipment, item);
+      const now = new Date().toISOString();
+      const canonical = canonicalEquipmentFromSafetyProfile(safetyProfile);
+      const set = new Set(canonical.status === 'confirmed' ? canonical.capabilities : []);
+      if (item === 'none') {
+        set.clear();
+      } else if (set.has(item)) {
+        set.delete(item);
+      } else {
+        set.add(item);
+      }
+      const nextSafetyProfile = safetyProfileWithCanonicalEquipment(safetyProfile, Array.from(set), {
+        status: 'confirmed',
+        updatedAt: now,
+      });
       persistPrefs({
         ...prefs,
         profile: {
           ...prefs.profile,
-          safetyProfile: {
-            ...safetyProfile,
-            availableEquipment,
-            updatedAt: new Date().toISOString(),
-          },
+          safetyProfile: nextSafetyProfile,
         },
       });
+      persistTraining({
+        ...training,
+        equipment: legacyEquipmentFromCanonical(canonicalEquipmentFromSafetyProfile(nextSafetyProfile)),
+      });
     },
-    [persistPrefs, prefs]
+    [persistPrefs, persistTraining, prefs, training]
   );
 
   const handlePreferredWorkoutDaysChange = React.useCallback(
@@ -2564,7 +2698,7 @@ function HaleApp() {
         beginCheckUp('official_retest');
         return;
       case 'start_gentle_restart':
-        handleStartSession({ ...(preferences ?? {}), adjustment: preferences?.adjustment ?? 'gentler', lifecycleState: 'inactive_restart' });
+        setFlow('restart-intro');
         return;
       case 'explore_extra_sessions':
         handleStartSession({ ...(preferences ?? {}), lifecycleState: 'week_complete', presetId: 'preset-mobility-reset' });
@@ -2610,6 +2744,18 @@ function HaleApp() {
   }, [adherence.assessments, history, lastResult, lastResultScore, reportRecord]);
 
   const openManualCheckup = React.useCallback(() => setFlow('manual-checkup'), []);
+
+  const beginProgressFirstCheckUp = React.useCallback(() => {
+    if (lifecycle.state === 'needs_onboarding') {
+      setFlow(flowForOnboardingStep(onboardingStep) ?? 'welcome');
+      return;
+    }
+    setFlow('camera-setup');
+  }, [lifecycle.state, onboardingStep]);
+
+  const beginProgressAdditionalCheckUp = React.useCallback(() => {
+    openManualCheckup();
+  }, [openManualCheckup]);
 
   const openBlockReport = React.useCallback(
     (blockId: string) => {
@@ -2818,8 +2964,8 @@ function HaleApp() {
         ) : flow === 'block-intro' && displayMovementBlock ? (
           <BlockIntroScreen
             block={displayMovementBlock}
-            lifeGoal={prefs.profile.lifeGoal}
-            onStartSession={handleStartSession}
+            lifeGoal={blockIntroPreview?.lifeGoal ?? prefs.profile.lifeGoal}
+            onStartSession={blockIntroPreview ? () => undefined : handleStartSession}
             onDone={goHome}
           />
         ) : flow === 'restart-intro' && activeMovementBlock ? (
@@ -2881,7 +3027,7 @@ function HaleApp() {
           <SettingsScreen
             profile={prefs.profile}
             settings={prefs.settings}
-            equipment={training.equipment}
+            equipment={legacyEquipmentFromCanonical(canonicalEquipmentFromSafetyProfile(prefs.profile.safetyProfile))}
             supportConnection={supportConnection}
             preferredDays={prefs.profile.safetyProfile?.preferredWorkoutDays ?? []}
             preferredIntensity={training.planPreferences.preferredIntensity}
@@ -2957,7 +3103,8 @@ function HaleApp() {
             ladderProgressById={displayTraining.ladderProgressById}
             lifeGoal={displayPrefs.profile.lifeGoal}
             today={new Date().toISOString()}
-            onBeginCheckUp={() => (latestAssessment ? openManualCheckup() : setFlow('camera-setup'))}
+            onBeginFirstCheckUp={beginProgressFirstCheckUp}
+            onBeginAdditionalCheckUp={beginProgressAdditionalCheckUp}
             onStartRetest={() => beginCheckUp('official_retest')}
             onViewLatest={devMockData ? () => undefined : viewLast}
             onViewReport={devMockData ? () => undefined : openBlockReport}
@@ -2991,6 +3138,13 @@ function HaleApp() {
 
 function readinessForTrainingPreference(preference: TrainingIntensityPreference) {
   if (preference === 'gentle') return 'low_energy' as const;
+  return undefined;
+}
+
+function dailyContextSourceForTrainingPreference(
+  preference: TrainingIntensityPreference
+): DailyTrainingContextSource | undefined {
+  if (preference === 'gentle') return 'plan_preference';
   return undefined;
 }
 
@@ -3172,35 +3326,11 @@ function CameraGatePoint({ index, title, body }: { index: number; title: string;
   );
 }
 
-function syncAvailableEquipment(
-  current: readonly AvailableEquipment[],
-  equipment: EquipmentProfile
-): AvailableEquipment[] {
-  const set = new Set<AvailableEquipment>(current.length > 0 ? current : ['chair', 'wall']);
-  set.delete('none');
-  if (equipment.stair) set.add('stairs');
-  else set.delete('stairs');
-  if (equipment.band) set.add('resistance_band');
-  else set.delete('resistance_band');
-  if (equipment.miniBand) set.add('mini_band');
-  else set.delete('mini_band');
-  if (equipment.load) set.add('backpack');
-  else {
-    set.delete('backpack');
-    set.delete('dumbbells');
-  }
-  return set.size > 0 ? Array.from(set) : ['none'];
-}
-
-function toggleAvailableEquipmentItem(
-  current: readonly AvailableEquipment[],
-  item: AvailableEquipment
-): AvailableEquipment[] {
-  const set = new Set<AvailableEquipment>(current.length > 0 ? current : ['chair', 'wall']);
-  set.delete('none');
-  if (set.has(item)) set.delete(item);
-  else set.add(item);
-  return set.size > 0 ? Array.from(set) : ['none'];
+function legacyEquipmentKeyToCapability(key: keyof EquipmentProfile): Exclude<AvailableEquipment, 'none'> {
+  if (key === 'stair') return 'stairs';
+  if (key === 'band') return 'resistance_band';
+  if (key === 'miniBand') return 'mini_band';
+  return 'backpack';
 }
 
 const styles = StyleSheet.create({

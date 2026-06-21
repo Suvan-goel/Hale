@@ -43,6 +43,52 @@ const PAIN_AREAS: readonly { label: string; value: PainArea }[] = [
   { label: 'Other', value: 'other' },
 ];
 
+type SessionMenuIconKind = 'planned' | 'shorter' | 'gentler' | 'equipment' | 'pain';
+
+const SESSION_MENU_OPTIONS: readonly {
+  value: TodaySessionAdjustment | null;
+  label: string;
+  description: string;
+  primaryLabel: string;
+  icon: SessionMenuIconKind;
+}[] = [
+  {
+    value: null,
+    label: 'Start as planned',
+    description: "Keep today's full session and usual pacing.",
+    primaryLabel: 'Start as planned',
+    icon: 'planned',
+  },
+  {
+    value: 'shorter',
+    label: 'Make it shorter',
+    description: 'Keep the focus, reduce the session length.',
+    primaryLabel: 'Start shorter session',
+    icon: 'shorter',
+  },
+  {
+    value: 'gentler',
+    label: 'Make it gentler',
+    description: 'Use easier levels, slower pacing, and more rest.',
+    primaryLabel: 'Start gentler session',
+    icon: 'gentler',
+  },
+  {
+    value: 'no_equipment',
+    label: 'No equipment',
+    description: 'Swap optional equipment for bodyweight options.',
+    primaryLabel: 'Start without equipment',
+    icon: 'equipment',
+  },
+  {
+    value: 'something_hurts',
+    label: 'Something hurts',
+    description: 'Tell Hale where to be careful today.',
+    primaryLabel: 'Start with care',
+    icon: 'pain',
+  },
+];
+
 export function TodayScreen({
   profile,
   lifecycle,
@@ -61,12 +107,10 @@ export function TodayScreen({
   const canAdjustSession =
     lifecycle.state === 'first_session_ready' ||
     lifecycle.state === 'normal_training_day' ||
-    lifecycle.state === 'inactive_restart' ||
     lifecycle.state === 'week_complete';
   const isSessionAction =
     lifecycle.primaryAction.type === 'start_first_session' ||
-    lifecycle.primaryAction.type === 'start_today_session' ||
-    lifecycle.primaryAction.type === 'start_gentle_restart';
+    lifecycle.primaryAction.type === 'start_today_session';
   const sessionTitle = todayActionTitle(lifecycle);
   const sessionSubtitle = todayActionSubtitle(lifecycle);
   const sessionDetail = todaySessionDetail(lifecycle);
@@ -389,7 +433,7 @@ function DomainGlyph({ domain }: { domain: SnapshotKey }) {
   );
 }
 
-function SessionStartMenu({
+export function SessionStartMenu({
   visible,
   onClose,
   onStart,
@@ -400,6 +444,9 @@ function SessionStartMenu({
 }) {
   const [selected, setSelected] = React.useState<TodaySessionAdjustment | null>(null);
   const [painArea, setPainArea] = React.useState<PainArea | null>(null);
+  const needsPainArea = selected === 'something_hurts' && !painArea;
+  const selectedOption = SESSION_MENU_OPTIONS.find((option) => option.value === selected) ?? SESSION_MENU_OPTIONS[0];
+  const primaryLabel = needsPainArea ? 'Choose an area first' : selectedOption.primaryLabel;
 
   React.useEffect(() => {
     if (!visible) return;
@@ -412,63 +459,165 @@ function SessionStartMenu({
       <View style={styles.modalRoot}>
         <Pressable style={styles.modalScrim} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close session options" />
         <View style={styles.sheet}>
-          <Text style={styles.sheetTitle}>Adjust today's session?</Text>
-          <Text style={styles.sheetSubtitle}>Choose how you'd like to start.</Text>
-          <View style={styles.menuOptions}>
-            <MenuOption label="Start as planned" selected={selected === null} onPress={() => setSelected(null)} />
-            <MenuOption label="Make it shorter" selected={selected === 'shorter'} onPress={() => setSelected('shorter')} />
-            <MenuOption label="Make it gentler" selected={selected === 'gentler'} onPress={() => setSelected('gentler')} />
-            <MenuOption label="No equipment" selected={selected === 'no_equipment'} onPress={() => setSelected('no_equipment')} />
-            <MenuOption label="Something hurts" selected={selected === 'something_hurts'} onPress={() => setSelected('something_hurts')} />
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetEyebrow}>Today's session</Text>
+            <Text style={styles.sheetTitle}>How would you like to start?</Text>
+            <Text style={styles.sheetSubtitle}>Hale can adjust the session before it opens.</Text>
           </View>
-          {selected === 'something_hurts' ? (
-            <View style={styles.painMenu}>
-              <Text style={styles.painTitle}>Where should Hale be careful?</Text>
-              <View style={styles.painOptions}>
-                {PAIN_AREAS.map((area) => (
-                  <Pressable
-                    key={area.value}
-                    style={({ pressed }) => [styles.painChip, painArea === area.value && styles.painChipSelected, pressed && styles.pressed]}
-                    onPress={() => setPainArea((value) => (value === area.value ? null : area.value))}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: painArea === area.value }}
-                    accessibilityLabel={area.label}
-                  >
-                    <Text style={[styles.painChipText, painArea === area.value && styles.painChipTextSelected]}>{area.label}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          ) : null}
-          <Pressable
-            style={({ pressed }) => [styles.sheetPrimary, pressed && styles.sheetPrimaryPressed]}
-            onPress={() => onStart(selected, selected === 'something_hurts' ? painArea : null)}
-            accessibilityRole="button"
-            accessibilityLabel={selected ? 'Start session' : 'Start as planned'}
+
+          <ScrollView
+            style={styles.sheetScroll}
+            contentContainerStyle={styles.sheetScrollContent}
+            showsVerticalScrollIndicator={false}
+            bounces={false}
           >
-            <Text style={styles.sheetPrimaryText}>{selected ? 'Start session' : 'Start as planned'}</Text>
-          </Pressable>
-          <Pressable style={({ pressed }) => [styles.sheetCancel, pressed && styles.pressed]} onPress={onClose} accessibilityRole="button">
-            <Text style={styles.sheetCancelText}>Cancel</Text>
-          </Pressable>
+            <View style={styles.menuOptions}>
+              {SESSION_MENU_OPTIONS.map((option) => (
+                <MenuOption
+                  key={option.label}
+                  option={option}
+                  selected={selected === option.value}
+                  onPress={() => setSelected(option.value)}
+                />
+              ))}
+            </View>
+
+            {selected === 'something_hurts' ? (
+              <View style={styles.painMenu}>
+                <View style={styles.painHeader}>
+                  <Text style={styles.painTitle}>Where should Hale be careful?</Text>
+                  <Text style={styles.painBody}>Choose one area so the session can stay comfortable.</Text>
+                </View>
+                <View style={styles.painOptions}>
+                  {PAIN_AREAS.map((area) => (
+                    <Pressable
+                      key={area.value}
+                      style={({ pressed }) => [styles.painChip, painArea === area.value && styles.painChipSelected, pressed && styles.pressed]}
+                      onPress={() => setPainArea((value) => (value === area.value ? null : area.value))}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: painArea === area.value }}
+                      accessibilityLabel={area.label}
+                    >
+                      <Text style={[styles.painChipText, painArea === area.value && styles.painChipTextSelected]}>{area.label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            ) : null}
+          </ScrollView>
+
+          <View style={styles.sheetActions}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.sheetPrimary,
+                needsPainArea && styles.sheetPrimaryDisabled,
+                pressed && !needsPainArea && styles.sheetPrimaryPressed,
+              ]}
+              onPress={() => onStart(selected, selected === 'something_hurts' ? painArea : null)}
+              disabled={needsPainArea}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: needsPainArea }}
+              accessibilityLabel={needsPainArea ? 'Choose where Hale should be careful' : primaryLabel}
+            >
+              <Text style={styles.sheetPrimaryText}>{primaryLabel}</Text>
+            </Pressable>
+            <Pressable style={({ pressed }) => [styles.sheetCancel, pressed && styles.pressed]} onPress={onClose} accessibilityRole="button">
+              <Text style={styles.sheetCancelText}>Cancel</Text>
+            </Pressable>
+          </View>
         </View>
       </View>
     </Modal>
   );
 }
 
-function MenuOption({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+function MenuOption({
+  option,
+  selected,
+  onPress,
+}: {
+  option: (typeof SESSION_MENU_OPTIONS)[number];
+  selected: boolean;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       style={({ pressed }) => [styles.menuOption, selected && styles.menuOptionSelected, pressed && styles.pressed]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected }}
-      accessibilityLabel={label}
+      accessibilityLabel={option.label}
     >
-      <Text style={[styles.menuOptionText, selected && styles.menuOptionTextSelected]}>{label}</Text>
-      <View style={[styles.menuRadio, selected && styles.menuRadioSelected]} />
+      <View style={[styles.menuIconFrame, selected && styles.menuIconFrameSelected]}>
+        <SessionMenuIcon kind={option.icon} selected={selected} />
+      </View>
+      <View style={styles.menuOptionCopy}>
+        <Text style={[styles.menuOptionText, selected && styles.menuOptionTextSelected]}>{option.label}</Text>
+        <Text style={[styles.menuOptionDescription, selected && styles.menuOptionDescriptionSelected]}>{option.description}</Text>
+      </View>
+      <View style={[styles.menuRadio, selected && styles.menuRadioSelected]}>
+        {selected ? <View style={styles.menuRadioDot} /> : null}
+      </View>
     </Pressable>
+  );
+}
+
+function SessionMenuIcon({ kind, selected }: { kind: SessionMenuIconKind; selected: boolean }) {
+  const stroke = selected ? colors.onAccent : colors.accentDeep;
+  const s = {
+    stroke,
+    strokeWidth: 1.8,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    fill: 'none',
+  };
+
+  if (kind === 'shorter') {
+    return (
+      <Svg width={21} height={21} viewBox="0 0 24 24" accessibilityElementsHidden>
+        <Circle cx={12} cy={12} r={7.2} {...s} />
+        <Path d="M12 7.8 V12 L15.2 14" {...s} />
+      </Svg>
+    );
+  }
+
+  if (kind === 'gentler') {
+    return (
+      <Svg width={22} height={22} viewBox="0 0 24 24" accessibilityElementsHidden>
+        <Path d="M6.2 14.8 C6.2 9.3 10.3 6.4 17.8 5.8 C17.1 13.2 13.8 17 8.6 17" {...s} />
+        <Path d="M6.8 17.2 C9.3 14.5 12.2 12.2 15.6 10.4" {...s} />
+      </Svg>
+    );
+  }
+
+  if (kind === 'equipment') {
+    return (
+      <Svg width={22} height={22} viewBox="0 0 24 24" accessibilityElementsHidden>
+        <Path d="M6.2 9.2 H17.8" {...s} />
+        <Path d="M8 7.2 V16.8" {...s} />
+        <Path d="M16 7.2 V16.8" {...s} />
+        <Path d="M5 16.8 H19" {...s} />
+        <Path d="M19 5 L5 19" {...s} />
+      </Svg>
+    );
+  }
+
+  if (kind === 'pain') {
+    return (
+      <Svg width={22} height={22} viewBox="0 0 24 24" accessibilityElementsHidden>
+        <Path d="M12 4.8 L18.2 7 V11.4 C18.2 15.2 15.8 17.9 12 19.4 C8.2 17.9 5.8 15.2 5.8 11.4 V7 Z" {...s} />
+        <Path d="M12 8.8 V15.2" {...s} />
+        <Path d="M8.8 12 H15.2" {...s} />
+      </Svg>
+    );
+  }
+
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24" accessibilityElementsHidden>
+      <Circle cx={12} cy={12} r={7.2} {...s} />
+      <Path d="M8.8 12.2 L11 14.4 L15.8 9.6" {...s} />
+    </Svg>
   );
 }
 
@@ -497,7 +646,7 @@ function timeOfDayGreeting(): string {
 function todayActionTitle(lifecycle: HaleAppLifecycleResult): string {
   if (lifecycle.primaryAction.type === 'start_first_session') return 'Your first Hale session is ready';
   if (lifecycle.primaryAction.type === 'start_today_session') return "Today's session is ready";
-  if (lifecycle.primaryAction.type === 'start_gentle_restart') return 'Start gently today';
+  if (lifecycle.primaryAction.type === 'start_gentle_restart') return 'Clean slate';
   if (lifecycle.primaryAction.type === 'start_micro_check') return '60-second check-in';
   if (lifecycle.primaryAction.type === 'start_retest') return "It's time to re-test";
   if (lifecycle.primaryAction.type === 'explore_extra_sessions') return 'Your week is complete';
@@ -512,7 +661,7 @@ function todayActionSubtitle(lifecycle: HaleAppLifecycleResult): string {
     return 'A simple session to help you build strength, balance, and mobility.';
   }
   if (lifecycle.primaryAction.type === 'start_gentle_restart') {
-    return "A shorter session to ease you back into your block.";
+    return "Let's restart gently and keep the plan moving from here.";
   }
   if (lifecycle.primaryAction.type === 'explore_extra_sessions') {
     return 'Optional mobility work can support the plan without adding pressure.';
@@ -901,85 +1050,163 @@ const styles = StyleSheet.create({
   modalRoot: {
     flex: 1,
     justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   modalScrim: {
     ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(17,20,18,0.32)',
   },
   sheet: {
-    borderTopLeftRadius: radius.panel,
-    borderTopRightRadius: radius.panel,
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.xxxl,
+    width: '100%',
+    maxWidth: spacing.pageMaxWidth,
+    maxHeight: '92%',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
     backgroundColor: colors.bgSurface,
     ...shadow.card,
   },
+  sheetHandle: {
+    width: 42,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
+    backgroundColor: colors.border,
+    marginBottom: spacing.lg,
+  },
+  sheetHeader: {
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingBottom: spacing.md,
+  },
+  sheetEyebrow: {
+    ...type.label,
+    color: colors.accentDeep,
+  },
   sheetTitle: {
-    ...type.cardTitle,
+    fontFamily: fonts.serifMedium,
+    fontSize: 25,
+    lineHeight: 31,
+    letterSpacing: 0,
     color: colors.textPrimary,
   },
   sheetSubtitle: {
-    ...type.cardBody,
-    marginTop: spacing.xs,
+    ...type.bodySmall,
+    color: colors.textSecondary,
+  },
+  sheetScroll: {
+    flexShrink: 1,
+  },
+  sheetScrollContent: {
+    paddingHorizontal: spacing.sm,
+    paddingBottom: spacing.lg,
   },
   menuOptions: {
     gap: spacing.sm,
-    marginTop: spacing.lg,
   },
   menuOption: {
-    minHeight: 52,
+    minHeight: 78,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    borderRadius: 16,
-    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
+    borderRadius: 18,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
     backgroundColor: colors.bgSurface,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
   },
   menuOptionSelected: {
-    backgroundColor: colors.accentSoft,
-    borderColor: colors.accentBorder,
+    backgroundColor: colors.bgGold,
+    borderColor: colors.accentDeep,
+  },
+  menuIconFrame: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+  },
+  menuIconFrameSelected: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  menuOptionCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
   },
   menuOptionText: {
-    ...type.cardRowTitle,
-    color: colors.textPrimary,
     fontFamily: fonts.sansMedium,
+    fontSize: 16,
+    lineHeight: 22,
+    letterSpacing: 0,
+    color: colors.textPrimary,
   },
   menuOptionTextSelected: {
     color: colors.accentDeep,
   },
+  menuOptionDescription: {
+    ...type.caption,
+    color: colors.textSecondary,
+  },
+  menuOptionDescriptionSelected: {
+    color: colors.textSecondary,
+  },
   menuRadio: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: colors.accentBorder,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.border,
     backgroundColor: colors.bgSurface,
   },
   menuRadioSelected: {
-    backgroundColor: colors.positive,
-    borderColor: colors.positive,
+    borderColor: colors.accentDeep,
+  },
+  menuRadioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.accentDeep,
   },
   painMenu: {
-    marginTop: spacing.lg,
+    gap: spacing.md,
+    marginTop: spacing.md,
+    borderRadius: 18,
+    padding: spacing.lg,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+  },
+  painHeader: {
+    gap: 2,
   },
   painTitle: {
+    ...type.cardRowTitle,
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
+  },
+  painBody: {
     ...type.caption,
     color: colors.textSecondary,
-    fontFamily: fonts.sansMedium,
   },
   painOptions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
-    marginTop: spacing.sm,
   },
   painChip: {
     minHeight: 38,
     justifyContent: 'center',
-    borderRadius: 13,
+    borderRadius: radius.pill,
     paddingHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: colors.borderHairline,
@@ -997,17 +1224,27 @@ const styles = StyleSheet.create({
   painChipTextSelected: {
     color: colors.accentDeep,
   },
+  sheetActions: {
+    gap: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingTop: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
+  },
   sheetPrimary: {
-    minHeight: 54,
+    minHeight: 58,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 16,
+    borderRadius: 19,
     backgroundColor: colors.accent,
-    marginTop: spacing.lg,
   },
   sheetPrimaryPressed: {
     backgroundColor: colors.accentHover,
     transform: [{ scale: 0.99 }],
+  },
+  sheetPrimaryDisabled: {
+    backgroundColor: colors.border,
+    opacity: 0.72,
   },
   sheetPrimaryText: {
     ...type.button,

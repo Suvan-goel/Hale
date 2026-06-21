@@ -189,13 +189,14 @@ describe('getNextBestAction', () => {
   });
 
   it('shows re-test due near the end of the block', () => {
+    const b = block();
     const action = getNextBestAction({
       profile: { safetyProfile: safety() },
       lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
       latestAssessment: assessment(),
-      activeBlock: block(),
-      sessionCompletions: [],
-      now: '2026-06-28T08:00:00.000Z',
+      activeBlock: b,
+      sessionCompletions: scheduledBlockCompletions(b),
+      now: '2026-06-29T08:00:00.000Z',
     });
     expect(action.state).toBe('active_block_retest_due');
   });
@@ -274,6 +275,7 @@ describe('session planning and reports', () => {
       safetyProfile: safety(),
       recentCompletions: [],
       adherenceState: 'on_track',
+      today: START,
     });
     expect(session.focusDomain).toBe('mobility');
     expect(session.sessionType).toBe('starter');
@@ -323,3 +325,28 @@ describe('session planning and reports', () => {
     );
   });
 });
+
+function scheduledBlockCompletions(block: MovementBlock): ReturnType<typeof makeTrainingSessionCompletion>[] {
+  return [
+    ...scheduledWeekCompletions(block, '2026-06-01'),
+    ...scheduledWeekCompletions(block, '2026-06-08'),
+    ...scheduledWeekCompletions(block, '2026-06-15'),
+    ...scheduledWeekCompletions(block, '2026-06-22'),
+  ];
+}
+
+function scheduledWeekCompletions(block: MovementBlock, startDateKey: string): ReturnType<typeof makeTrainingSessionCompletion>[] {
+  const [year, month, day] = startDateKey.split('-').map(Number);
+  const base = Date.UTC(year, month - 1, day, 9);
+  return ['A', 'B', 'C'].map((label, index) => {
+    const completedAt = new Date(base + index * 86400000).toISOString();
+    const templateId = `${templatePrefix(block)}-${label}`;
+    return creditedCompletion(block, templateId, completedAt);
+  });
+}
+
+function templatePrefix(block: MovementBlock): 'strength' | 'balance' | 'mobility' {
+  if (block.focusDomain === 'balance') return 'balance';
+  if (block.focusDomain === 'mobility') return 'mobility';
+  return 'strength';
+}

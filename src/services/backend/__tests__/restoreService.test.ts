@@ -10,7 +10,11 @@ import {
   type MicroCheckResult,
   type TrainingState,
 } from '../../../training';
-import { classifyMainPlanCompletion } from '../../../haleFlow';
+import {
+  classifyMainPlanCompletion,
+  planTodayHaleSession,
+  requireHaleSessionPlan,
+} from '../../../haleFlow';
 
 import {
   isLocalStateEmptyForRestore,
@@ -397,6 +401,65 @@ describe('remote restore service', () => {
     ]);
     expect(JSON.stringify(mapped.state.training.ladderProgressById)).toBe(beforeLevel);
     expect(mapped.state.adherence.completions).toHaveLength(1);
+  });
+
+  it('does not let restored training-state equipment override a canonical profile', () => {
+    const snapshot = remoteSnapshot();
+    snapshot.profile!.safety_json = backendJson({
+      schemaVersion: 4,
+      safetyProfile: {
+        id: 'safety-remote',
+        userId: 'local-device-user',
+        availableEquipment: ['none'],
+        equipmentStatus: 'confirmed',
+        equipmentRevision: 4,
+        equipmentUpdatedAt: '2026-06-19T08:00:00.000Z',
+        createdAt: '2026-06-18T08:00:00.000Z',
+        updatedAt: '2026-06-19T08:00:00.000Z',
+      },
+    });
+    snapshot.trainingState!.state_json = backendJson({
+      ...(snapshot.trainingState!.state_json as Record<string, unknown>),
+      equipment: { stair: true, band: true, miniBand: true, load: true },
+    });
+
+    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
+    const activeBlock = mapped.state.adherence.blocks[0];
+    const plan = requireHaleSessionPlan({
+      activeBlock,
+      training: mapped.state.training,
+      safetyProfile: mapped.state.preferences.profile.safetyProfile,
+      today: '2026-06-21T08:00:00.000Z',
+    });
+
+    expect(mapped.state.training.equipment).toMatchObject({ stair: true, band: true, miniBand: true, load: true });
+    expect(mapped.state.preferences.profile.safetyProfile?.availableEquipment).toEqual(['none']);
+    expect(plan.metadata?.equipmentSnapshot?.capabilities).toEqual([]);
+    expect(plan.exercises.flatMap((exercise) => exercise.requiresEquipment ?? [])).not.toEqual(
+      expect.arrayContaining(['stair', 'long_band', 'mini_band', 'backpack_or_weight'])
+    );
+  });
+
+  it('blocks current planning when restore has only legacy training equipment and no canonical profile', () => {
+    const snapshot = remoteSnapshot();
+    snapshot.profile = null;
+    snapshot.trainingState!.state_json = backendJson({
+      ...(snapshot.trainingState!.state_json as Record<string, unknown>),
+      equipment: { stair: true, band: true, miniBand: true, load: true },
+    });
+
+    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
+    const result = planTodayHaleSession({
+      activeBlock: mapped.state.adherence.blocks[0],
+      training: mapped.state.training,
+      safetyProfile: mapped.state.preferences.profile.safetyProfile,
+      today: '2026-06-21T08:00:00.000Z',
+    });
+
+    expect(mapped.state.preferences.profile.safetyProfile).toBeNull();
+    expect(result.kind).toBe('unavailable');
+    if (result.kind !== 'unavailable') throw new Error('expected unavailable result');
+    expect(result.reason).toBe('equipment_confirmation_required');
   });
 
   it('restores supporting-only and missing-focus attempts without promoting them to main-plan credit', () => {

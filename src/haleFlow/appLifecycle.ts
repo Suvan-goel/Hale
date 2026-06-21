@@ -1,17 +1,10 @@
 import {
-  blockProgress,
-  completedTrainingSessions,
-  currentWeekProgress,
-  daysBetween,
-  daysUntil,
   getActiveMovementBlock,
-  lastTrainingCompletionAt,
-  microCheckCompletedThisWeek,
-  sessionsCompletedThisWeek,
   type AdherenceStoreState,
   type MovementAssessment,
   type MovementBlock,
   type MovementDomain,
+  type TrainingSessionCompletion,
 } from '../adherence';
 import type { StoredCheckUp } from '../history';
 import type { UserProfile } from '../profile';
@@ -19,8 +12,14 @@ import type { CheckUpScore } from '../scoring';
 import type { TrainingState } from '../training';
 import { latestUsableOfficialAssessment } from './assessments';
 import { latestUsableOfficialCheckUpRecord } from './checkupHistory';
-import { mainPlanRecentSessionsForGeneration } from './mainPlanEvents';
-import { PLAN_SESSION_IDS, planSessionIdForTemplateId, type PlanSessionId } from './sessionIds';
+import {
+  addBlockScheduleDays,
+  blockScheduleDateKey,
+  daysBetweenBlockScheduleDates,
+  getBlockScheduleState,
+  type BlockScheduleState,
+} from './blockSchedule';
+import { PLAN_SESSION_IDS, type PlanSessionId } from './sessionIds';
 
 export type HaleLifecycleState =
   | 'needs_onboarding'
@@ -101,13 +100,14 @@ export interface WeekSessionStatus {
 export function getHaleAppLifecycle(input: HaleAppLifecycleInput): HaleAppLifecycleResult {
   const today = normalizeToday(input.today);
   const activeBlock = getActiveBlock(input);
+  const schedule = activeBlock ? activeBlockSchedule({ ...input, today }, activeBlock) : null;
   const latestScore = latestUsableCheckUpScore(input.history, input.adherence?.assessments);
   const hasBaseline = !!latestScore || hasOfficialAssessment(input.adherence);
   const activeBlockSummary = getActiveBlockSummary({ ...input, today });
   const movementSnapshot = getMovementSnapshot({ score: latestScore });
   const weekSessionStatuses = getWeekSessionStatuses({ ...input, today });
-  const completedMainPlanTemplatesThisWeek = activeBlock ? weeklyTemplateCompletions(input, activeBlock, today).size : 0;
-  const retestDueDate = activeBlock?.retestDate ?? undefined;
+  const completedMainPlanTemplatesThisWeek = schedule?.creditedTemplateIds.length ?? 0;
+  const retestDueDate = schedule?.retestNotBeforeDateKey ?? activeBlock?.retestDate ?? undefined;
 
   let state: HaleLifecycleState;
   let reason: string;
@@ -122,16 +122,16 @@ export function getHaleAppLifecycle(input: HaleAppLifecycleInput): HaleAppLifecy
     reason = input.training?.block
       ? 'legacy training block exists but no active current MovementBlock is stored'
       : 'baseline exists but no active 4-week block is stored';
-  } else if (shouldShowRetestPrompt({ ...input, today })) {
+  } else if (schedule?.status === 'retest_due' || shouldShowRetestPrompt({ ...input, today })) {
     state = 'monthly_retest_due';
     reason = 'active block is complete or due for re-test';
-  } else if (shouldShowCleanSlatePrompt({ ...input, today })) {
+  } else if (schedule?.status === 'session_due' && schedule.lapseState === 'restart_recommended') {
     state = 'inactive_restart';
     reason = 'active block exists and no training session is recorded in 14+ days';
-  } else if (totalCompletedSessions(input) === 0) {
+  } else if (schedule?.status === 'session_due' && schedule.totalCredits === 0) {
     state = 'first_session_ready';
     reason = 'active block exists and no session has been completed yet';
-  } else if (activeBlock && completedMainPlanTemplatesThisWeek >= activeBlock.sessionsPerWeekTarget) {
+  } else if (schedule?.status === 'week_complete_waiting' || schedule?.status === 'training_complete_waiting_retest') {
     state = 'week_complete';
     reason = 'weekly session target is complete';
   } else if (shouldShowWeeklyMicroCheck({ ...input, today })) {
@@ -214,7 +214,7 @@ export function getTodayPrimaryAction(state: HaleLifecycleState): TodayPrimaryAc
         type: 'start_gentle_restart',
         title: 'Clean slate',
         subtitle: "Let's restart gently with a shorter session.",
-        ctaLabel: 'Start Gentle Session',
+        ctaLabel: 'Restart gently',
         tone: 'gentle',
       };
     case 'normal_training_day':
@@ -232,17 +232,19 @@ export function getActiveBlockSummary(input: HaleAppLifecycleInput): ActiveBlock
   const today = normalizeToday(input.today);
   const activeBlock = getActiveBlock(input);
   if (activeBlock) {
-    const week = currentWeekProgress(activeBlock, input.adherence?.completions ?? [], today);
-    const sessionsCompleteThisWeek = weeklyTemplateCompletions(input, activeBlock, today).size;
+    const schedule = activeBlockSchedule({ ...input, today }, activeBlock);
+    const retestInDays = schedule.retestNotBeforeDateKey
+      ? daysUntilDateKey(schedule.retestNotBeforeDateKey, today)
+      : undefined;
     return {
       blockId: activeBlock.id,
       focusTitle: focusTitle(activeBlock.focusDomain),
       focusDomain: activeBlock.focusDomain,
-      weekNumber: week.weekNumber,
+      weekNumber: schedule.currentWeekNumber,
       totalWeeks: 4,
-      sessionsCompleteThisWeek,
-      sessionsTargetThisWeek: week.sessionsTarget,
-      retestInDays: daysUntil(activeBlock.retestDate, today),
+      sessionsCompleteThisWeek: schedule.creditedTemplateIds.length,
+      sessionsTargetThisWeek: activeBlock.sessionsPerWeekTarget,
+      retestInDays,
     };
   }
 
@@ -253,31 +255,27 @@ export function getWeekSessionStatuses(input: HaleAppLifecycleInput): WeekSessio
   const today = normalizeToday(input.today);
   const activeBlock = getActiveBlock(input);
   const focus = activeBlock ? shortFocus(activeBlock.focusDomain) : 'capability';
-  const completedById = activeBlock ? weeklyTemplateCompletions(input, activeBlock, today) : new Map<PlanSessionId, { templateId?: string; completedAt?: string }>();
-  const fallbackCompletedThisWeek = activeBlock
-    ? sessionsCompletedThisWeek(activeBlock, input.adherence?.completions ?? [], today)
-    : 0;
-  const fallbackCount = Math.max(0, Math.min(3, fallbackCompletedThisWeek));
-  const usingTemplateStatus = completedById.size > 0;
-  let nextAssigned = false;
+  const schedule = activeBlock ? activeBlockSchedule({ ...input, today }, activeBlock) : null;
 
   return PLAN_SESSION_IDS.map((id, index) => {
-    const completion = completedById.get(id);
+    const templateId = schedule?.requiredTemplateIds[index];
+    const completion = templateId ? scheduledCompletionForTemplate(schedule, templateId) : undefined;
     let status: WeekSessionStatus['status'];
     if (completion) {
       status = 'complete';
-    } else if (usingTemplateStatus) {
-      status = nextAssigned ? 'later' : 'next';
-      nextAssigned = true;
+    } else if (templateId && schedule?.status === 'session_due' && schedule.nextTemplateId === templateId) {
+      status = 'next';
+    } else if (!activeBlock && index === 0) {
+      status = 'next';
     } else {
-      status = statusForIndex(index, fallbackCount);
+      status = 'later';
     }
     return {
       id,
       title: `Session ${String.fromCharCode(65 + index)}`,
       status,
       focus: index === 0 ? 'Strength foundation' : index === 1 ? 'Movement control' : `Full-body ${focus}`,
-      templateId: completion?.templateId,
+      templateId: completion?.templateId ?? templateId,
       completedAt: completion?.completedAt,
     };
   });
@@ -302,11 +300,9 @@ export function shouldShowRetestPrompt(input: HaleAppLifecycleInput): boolean {
   const today = normalizeToday(input.today);
   const activeBlock = getActiveBlock(input);
   if (activeBlock) {
-    const completions = input.adherence?.completions ?? [];
     if (activeBlock.status === 'completed') return true;
-    if (blockProgress(activeBlock, completions).completedSessions >= activeBlock.totalPlannedSessions) return true;
-    if (daysBetween(activeBlock.startDate, today) >= 28) return true;
-    if (daysUntil(activeBlock.retestDate, today) === 0) return true;
+    const schedule = activeBlockSchedule({ ...input, today }, activeBlock);
+    return schedule.status === 'retest_due';
   }
   return false;
 }
@@ -316,9 +312,8 @@ export function shouldShowCleanSlatePrompt(input: HaleAppLifecycleInput): boolea
   const today = normalizeToday(input.today);
   const activeBlock = getActiveBlock(input);
   if (activeBlock) {
-    const lastAt = lastTrainingCompletionAt(activeBlock, input.adherence?.completions ?? []);
-    const inactiveDays = lastAt ? daysBetween(lastAt, today) : daysBetween(activeBlock.startDate, today);
-    return inactiveDays >= 14;
+    const schedule = activeBlockSchedule({ ...input, today }, activeBlock);
+    return schedule.status === 'session_due' && schedule.lapseState === 'restart_recommended';
   }
   return false;
 }
@@ -328,8 +323,9 @@ function shouldShowWeeklyMicroCheck(input: HaleAppLifecycleInput): boolean {
   const activeBlock = getActiveBlock(input);
   if (!activeBlock) return false;
   const completions = input.adherence?.completions ?? [];
-  const sessions = weeklyTemplateCompletions(input, activeBlock, today).size;
-  return sessions > 0 && sessions < activeBlock.sessionsPerWeekTarget && !microCheckCompletedThisWeek(activeBlock, completions, today);
+  const schedule = activeBlockSchedule({ ...input, today }, activeBlock);
+  const sessions = schedule.status === 'session_due' ? schedule.creditedTemplateIds.length : 0;
+  return sessions > 0 && sessions < activeBlock.sessionsPerWeekTarget && !microCheckCompletedInScheduleWeek(completions, schedule);
 }
 
 function getActiveBlock(input: HaleAppLifecycleInput): MovementBlock | null {
@@ -352,53 +348,51 @@ function hasCompletedFirstRunProfile(profile: UserProfile | null | undefined): b
   return !!profile?.lifeGoal && !!profile.safetyProfile;
 }
 
-function totalCompletedSessions(input: HaleAppLifecycleInput): number {
-  const activeBlock = getActiveBlock(input);
-  if (activeBlock) return completedTrainingSessions(activeBlock, input.adherence?.completions ?? []).length;
-  return 0;
-}
-
 function normalizeToday(today: string): string {
   const parsed = Date.parse(today);
   return Number.isFinite(parsed) ? new Date(parsed).toISOString() : new Date().toISOString();
 }
 
-function statusForIndex(index: number, completedCount: number): WeekSessionStatus['status'] {
-  if (index < completedCount) return 'complete';
-  if (index === completedCount) return 'next';
-  return 'later';
-}
-
-function weeklyTemplateCompletions(
+function activeBlockSchedule(
   input: HaleAppLifecycleInput,
-  block: MovementBlock,
-  today: string
-): Map<PlanSessionId, { templateId?: string; completedAt?: string }> {
-  const out = new Map<PlanSessionId, { templateId?: string; completedAt?: string }>();
-  const inWeek = isInBlockWeek(block, today);
-  const sessions = mainPlanRecentSessionsForGeneration({
-    activeBlock: block,
-    completions: input.adherence?.completions,
-    generatedSessionSummaries: input.training?.generatedSessionSummaries,
+  block: MovementBlock
+): BlockScheduleState {
+  return getBlockScheduleState({
+    block,
+    completions: input.adherence?.completions ?? [],
+    generatedSessionSummaries: input.training?.generatedSessionSummaries ?? [],
+    today: input.today,
   });
-  for (const summary of sessions) {
-    if (!inWeek(summary.completedAt)) continue;
-    const id = planSessionIdForTemplateId(summary.templateId);
-    if (id && !out.has(id)) out.set(id, { templateId: summary.templateId, completedAt: summary.completedAt });
-  }
-  return out;
 }
 
-function isInBlockWeek(block: MovementBlock, today: string): (value: string) => boolean {
-  const week = currentWeekProgress(block, [], today).weekNumber;
-  const start = new Date(block.startDate);
-  start.setUTCDate(start.getUTCDate() + (week - 1) * 7);
-  const end = new Date(start);
-  end.setUTCDate(end.getUTCDate() + 7);
-  return (value: string) => {
-    const date = new Date(value);
-    return Number.isFinite(date.getTime()) && date >= start && date < end;
-  };
+function scheduledCompletionForTemplate(
+  schedule: BlockScheduleState | null,
+  templateId: string
+): { templateId?: string; completedAt?: string } | undefined {
+  const currentWeek = schedule?.weeks.find((week) => week.weekIndex === schedule.currentWeekIndex);
+  const credit = currentWeek?.credits.find((item) => item.templateId === templateId);
+  return credit ? { templateId: credit.templateId, completedAt: credit.completedAt } : undefined;
+}
+
+function daysUntilDateKey(targetDateKey: string, today: string): number {
+  const todayKey = blockScheduleDateKey(today);
+  if (!todayKey) return 0;
+  const days = daysBetweenBlockScheduleDates(todayKey, targetDateKey);
+  return days === null ? 0 : Math.max(0, days);
+}
+
+function microCheckCompletedInScheduleWeek(
+  completions: readonly TrainingSessionCompletion[],
+  schedule: BlockScheduleState
+): boolean {
+  const start = schedule.currentWeekStartDateKey;
+  const end = start ? addBlockScheduleDays(start, 7) : null;
+  if (!start || !end || schedule.status !== 'session_due') return false;
+  return completions.some((completion) => {
+    if (completion.sessionType !== 'micro_check') return false;
+    const completedDateKey = blockScheduleDateKey(completion.completedAt);
+    return !!completedDateKey && completedDateKey >= start && completedDateKey < end;
+  });
 }
 
 // Existing scoring expresses a domain as an age-range estimate. Lower estimate

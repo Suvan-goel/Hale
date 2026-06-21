@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Card, PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../../components/ui';
-import { colors, spacing, type } from '../../theme';
+import { PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../../components/ui';
+import { colors, fonts, radius, shadow, spacing, type } from '../../theme';
 import type { PainArea, TrackingQuality, ValidTimeSessionSummaryCard } from '../../training';
 import { getProtectionCopy } from '../adherenceCopy';
 import type { LifeGoal, MovementBlock, TrainingSessionCompletion } from '../types';
@@ -75,74 +75,101 @@ export function SessionCompletionScreen({
     onMicroCheck();
   };
   return (
-    <Screen>
+    <Screen contentStyle={styles.screenContent}>
       <ScreenHeader
         eyebrow={completionCopy.eyebrow}
         title={completionCopy.title}
         subtitle={completionCopy.subtitle}
       />
-      <Card style={styles.card}>
-        <Text style={styles.title}>
-          {completionCopy.cardTitle}
-        </Text>
-        <Text style={styles.body}>{completionCopy.body}</Text>
-      </Card>
-      {validTimeSummaries.length > 0 ? (
-        <Card style={styles.card}>
-          <Text style={styles.title}>Steady time</Text>
-          {validTimeSummaries.map((summary) => (
-            <View key={summary.exerciseId} style={styles.summaryBlock}>
-              <Text style={styles.summaryTitle}>{summary.title}</Text>
-              {summary.lines.map((line) => (
-                <Text key={line} style={styles.body}>{line}</Text>
+
+      <View style={styles.completionSheet}>
+        <View style={styles.sheetHead}>
+          <View style={styles.sheetMetaRow}>
+            <Text style={styles.sheetEyebrow}>Plan status</Text>
+            <View style={styles.statusPill}>
+              <Text style={styles.statusPillText}>Saved</Text>
+            </View>
+          </View>
+          <Text style={styles.sheetTitle}>{completionCopy.cardTitle}</Text>
+          <Text style={styles.sheetBody}>{completionCopy.body}</Text>
+        </View>
+
+        {validTimeSummaries.length > 0 ? (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.section}>
+              <SectionHeading eyebrow="Session signal" title="Steady time" />
+              <View style={styles.summaryList}>
+                {validTimeSummaries.map((summary, index) => (
+                  <View
+                    key={summary.exerciseId}
+                    style={[styles.summaryBlock, index > 0 && styles.summaryDivider]}
+                  >
+                    <Text style={styles.summaryTitle}>{summary.title}</Text>
+                    {summary.lines.map((line) => (
+                      <Text key={line} style={styles.summaryLine}>{line}</Text>
+                    ))}
+                  </View>
+                ))}
+              </View>
+            </View>
+          </>
+        ) : null}
+
+        <View style={styles.divider} />
+        <View style={styles.section}>
+          <SectionHeading eyebrow="Feedback" title="How did it feel?" />
+          <View style={styles.effortGrid}>
+            <View style={styles.effortRow}>
+              {EFFORT_OPTIONS.slice(0, 3).map((option) => (
+                <EffortChoice
+                  key={option.value}
+                  option={option}
+                  selected={effort === option.value}
+                  onPress={() => setEffort(option.value)}
+                />
               ))}
             </View>
-          ))}
-        </Card>
-      ) : null}
-      <Card style={styles.card}>
-        <Text style={styles.title}>How did it feel?</Text>
-        <View style={styles.effortRow}>
-          {EFFORT_OPTIONS.map((option) => (
-            <Pressable
-              key={option.value}
-              style={({ pressed }) => [
-                styles.effort,
-                effort === option.value && styles.effortSelected,
-                pressed && styles.pressed,
-              ]}
-              onPress={() => setEffort(option.value)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: effort === option.value }}
-              accessibilityLabel={`${option.value} ${option.label}`}
-            >
-              <Text style={[styles.effortText, effort === option.value && styles.effortTextSelected]}>{option.value}</Text>
-              <Text style={[styles.effortLabel, effort === option.value && styles.effortTextSelected]}>{option.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </Card>
-      <Card style={styles.card}>
-        <Text style={styles.title}>Any discomfort?</Text>
-        <View style={styles.choiceRow}>
-          <Choice label="No" selected={painReported === false} onPress={() => { setPainReported(false); setPainArea(undefined); }} />
-          <Choice label="Yes" selected={painReported === true} onPress={() => setPainReported(true)} />
-        </View>
-        {painReported ? (
-          <View style={styles.painAreas}>
-            {PAIN_AREAS.map((area) => (
-              <Choice
-                key={area.value}
-                label={area.label}
-                selected={painArea === area.value}
-                onPress={() => setPainArea((value) => (value === area.value ? undefined : area.value))}
-              />
-            ))}
+            <View style={styles.effortRow}>
+              {EFFORT_OPTIONS.slice(3).map((option) => (
+                <EffortChoice
+                  key={option.value}
+                  option={option}
+                  selected={effort === option.value}
+                  onPress={() => setEffort(option.value)}
+                />
+              ))}
+            </View>
           </View>
-        ) : null}
-      </Card>
-      <PrimaryButton title="Back to Today" onPress={finish} />
-      <SecondaryButton title="Do 60-second micro-check" onPress={microCheck} />
+        </View>
+
+        <View style={styles.divider} />
+        <View style={styles.section}>
+          <SectionHeading eyebrow="Comfort" title="Any discomfort?" />
+          <View style={styles.choiceSegment}>
+            <Choice label="No" selected={painReported === false} onPress={() => { setPainReported(false); setPainArea(undefined); }} />
+            <Choice label="Yes" selected={painReported === true} onPress={() => setPainReported(true)} />
+          </View>
+          {painReported ? (
+            <View style={styles.painAreas}>
+              {PAIN_AREAS.map((area) => (
+                <Choice
+                  key={area.value}
+                  label={area.label}
+                  selected={painArea === area.value}
+                  onPress={() => setPainArea((value) => (value === area.value ? undefined : area.value))}
+                  compact
+                />
+              ))}
+            </View>
+          ) : null}
+        </View>
+      </View>
+
+      <View style={styles.actions}>
+        <PrimaryButton title="Back to Today" onPress={finish} />
+        <SecondaryButton title="Do 60-second micro-check" onPress={microCheck} />
+      </View>
     </Screen>
   );
 }
@@ -239,10 +266,68 @@ export function buildSessionFeedback({
   };
 }
 
-function Choice({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) {
+  return (
+    <View style={styles.sectionHeading}>
+      <Text style={styles.sectionEyebrow}>{eyebrow}</Text>
+      <Text style={styles.sectionTitle}>{title}</Text>
+    </View>
+  );
+}
+
+function EffortChoice({
+  option,
+  selected,
+  onPress,
+}: {
+  option: { value: 1 | 2 | 3 | 4 | 5; label: string };
+  selected: boolean;
+  onPress: () => void;
+}) {
   return (
     <Pressable
-      style={({ pressed }) => [styles.choice, selected && styles.choiceSelected, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.effort,
+        selected && styles.effortSelected,
+        pressed && styles.pressed,
+      ]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      accessibilityLabel={`${option.value} ${option.label}`}
+    >
+      <Text style={[styles.effortText, selected && styles.effortTextSelected]}>{option.value}</Text>
+      <Text
+        style={[styles.effortLabel, selected && styles.effortTextSelected]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.82}
+      >
+        {option.label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function Choice({
+  label,
+  selected,
+  onPress,
+  compact = false,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+  compact?: boolean;
+}) {
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.choice,
+        compact && styles.choiceCompact,
+        selected && styles.choiceSelected,
+        pressed && styles.pressed,
+      ]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected }}
@@ -254,42 +339,170 @@ function Choice({ label, selected, onPress }: { label: string; selected: boolean
 }
 
 const styles = StyleSheet.create({
-  card: { gap: spacing.sm },
-  title: { ...type.cardTitle },
-  body: { ...type.cardBody },
-  summaryBlock: { gap: 2 },
-  summaryTitle: { ...type.bodySmall, color: colors.textPrimary, fontWeight: '500' },
-  effortRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  effort: {
-    flex: 1,
-    minWidth: 92,
-    minHeight: 48,
+  screenContent: {
+    gap: spacing.lg,
+  },
+  completionSheet: {
+    gap: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    borderRadius: radius.panel,
+    backgroundColor: colors.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+    ...shadow.card,
+  },
+  sheetHead: {
+    gap: spacing.xs,
+  },
+  sheetMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  sheetEyebrow: {
+    ...type.label,
+    color: colors.accentDeep,
+  },
+  statusPill: {
+    minHeight: 28,
+    paddingHorizontal: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 12,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bgGold,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.goldBorder,
+  },
+  statusPillText: {
+    ...type.cardCaption,
+    fontFamily: fonts.sansMedium,
+    color: colors.accentDeep,
+  },
+  sheetTitle: {
+    fontFamily: fonts.serifMedium,
+    fontSize: 22,
+    lineHeight: 28,
+    letterSpacing: 0,
+    color: colors.textPrimary,
+  },
+  sheetBody: {
+    ...type.bodySmall,
+    color: colors.textSecondary,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.divider,
+  },
+  section: {
+    gap: spacing.md,
+  },
+  sectionHeading: {
+    gap: 2,
+  },
+  sectionEyebrow: {
+    ...type.label,
+    color: colors.textTertiary,
+  },
+  sectionTitle: {
+    ...type.cardTitle,
+  },
+  summaryList: {
+    gap: spacing.md,
+  },
+  summaryBlock: {
+    gap: spacing.xs,
+    paddingTop: spacing.md,
+  },
+  summaryDivider: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
+  },
+  summaryTitle: {
+    ...type.bodySmall,
+    fontFamily: fonts.sansMedium,
+    color: colors.textPrimary,
+  },
+  summaryLine: {
+    ...type.cardBody,
+  },
+  effortGrid: {
+    gap: spacing.sm,
+  },
+  effortRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  effort: {
+    flex: 1,
+    minHeight: 62,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.input,
     borderWidth: 1,
     borderColor: colors.borderHairline,
-    backgroundColor: colors.bgSurface,
+    backgroundColor: colors.bgBase,
   },
   effortSelected: { backgroundColor: colors.accent, borderColor: colors.accent },
-  effortText: { ...type.h3, color: colors.textSecondary },
-  effortLabel: { ...type.caption, color: colors.textSecondary, textAlign: 'center', marginTop: 2 },
+  effortText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 20,
+    lineHeight: 25,
+    letterSpacing: 0,
+    fontVariant: ['tabular-nums'],
+    color: colors.textSecondary,
+  },
+  effortLabel: {
+    ...type.cardCaption,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 1,
+  },
   effortTextSelected: { color: colors.onAccent },
-  choiceRow: { flexDirection: 'row', gap: spacing.sm },
-  painAreas: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  choiceSegment: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    padding: spacing.xs,
+    borderRadius: radius.button,
+    backgroundColor: colors.bgBase,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+  },
+  painAreas: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    paddingTop: spacing.xs,
+  },
   choice: {
-    flexGrow: 1,
-    minWidth: 92,
+    flex: 1,
     minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.md,
-    borderRadius: 12,
+    borderRadius: radius.input,
     borderWidth: 1,
     borderColor: colors.borderHairline,
+    backgroundColor: colors.bgSurface,
   },
-  choiceSelected: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
-  choiceText: { ...type.bodySmall, color: colors.textSecondary },
-  choiceTextSelected: { color: colors.accentDeep },
+  choiceCompact: {
+    flexGrow: 1,
+    flexBasis: 92,
+    minHeight: 42,
+  },
+  choiceSelected: { backgroundColor: colors.accent, borderColor: colors.accent },
+  choiceText: {
+    ...type.bodySmall,
+    fontFamily: fonts.sansMedium,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  choiceTextSelected: { color: colors.onAccent },
+  actions: {
+    gap: spacing.md,
+  },
   pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
 });
