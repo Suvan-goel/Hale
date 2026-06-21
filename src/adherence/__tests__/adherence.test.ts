@@ -80,7 +80,17 @@ function completion(
   at: string,
   plannedDate?: string
 ): TrainingSessionCompletion {
-  return makeTrainingSessionCompletion({ block: b, sessionType: type, completedAt: at, plannedDate });
+  const mainPlanCredit = type === 'standard' || type === 'starter' || type === 'restart';
+  const templateId = plannedDate?.includes(':') ? plannedDate.split(':')[0] : mainPlanCredit ? `test-${type}` : undefined;
+  return makeTrainingSessionCompletion({
+    block: b,
+    sessionType: type,
+    completedAt: at,
+    plannedDate,
+    source: mainPlanCredit ? 'block_generated' : undefined,
+    templateId,
+    mainPlanCredit: mainPlanCredit ? true : undefined,
+  });
 }
 
 describe('life goal relevance', () => {
@@ -145,9 +155,9 @@ describe('weekly summary, privacy, and notifications', () => {
   it('generates non-shaming weekly copy from completions', () => {
     const b = block();
     const completions = [
-      completion(b, 'standard', '2026-06-02T08:00:00.000Z', '2026-06-02'),
-      completion(b, 'standard', '2026-06-04T08:00:00.000Z', '2026-06-04'),
-      completion(b, 'standard', '2026-06-06T08:00:00.000Z', '2026-06-06'),
+      completion(b, 'standard', '2026-06-02T08:00:00.000Z', 'balance-A:2026-06-02'),
+      completion(b, 'standard', '2026-06-04T08:00:00.000Z', 'balance-B:2026-06-04'),
+      completion(b, 'standard', '2026-06-06T08:00:00.000Z', 'balance-C:2026-06-06'),
       completion(b, 'micro_check', '2026-06-06T08:05:00.000Z', '2026-06-06-micro'),
     ];
     const summary = generateWeeklySummary({

@@ -106,6 +106,92 @@ describe('V1 ladder catalogue', () => {
     }
   });
 
+  it('marks every ladder with explicit progression and stimulus semantics', () => {
+    for (const ladder of ladders) {
+      expect(ladder.progressionModel).toMatch(/linear_progression|collection|supporting_set/);
+      expect(ladder.stimulusKind).toBeTruthy();
+      for (const level of ladder.levels) {
+        expect(level.domainRole).toMatch(/primary|cross_domain_supporting/);
+      }
+    }
+
+    expect(ladders.find((ladder) => ladder.id === 'balance')).toMatchObject({
+      progressionModel: 'linear_progression',
+      stimulusKind: 'static_balance',
+    });
+    expect(ladders.find((ladder) => ladder.id === 'lateral-stability')).toMatchObject({
+      progressionModel: 'supporting_set',
+      stimulusKind: 'dynamic_balance',
+    });
+    expect(ladders.find((ladder) => ladder.id === 'mobility-flexibility')).toMatchObject({
+      progressionModel: 'collection',
+      stimulusKind: 'mobility_collection',
+    });
+    expect(ladders.find((ladder) => ladder.id === 'pull-upper-back')?.stimulusKind).toBe('upper_pull');
+  });
+
+  it('keeps safety-critical ladder equipment aligned with registered definitions', () => {
+    for (const ladder of ladders) {
+      for (const level of ladder.levels) {
+        expect(getExercise(level.id).equipment.slice().sort()).toEqual(level.equipment.slice().sort());
+      }
+    }
+  });
+
+  it('requires explicit safety metadata for floor, stair, and supported balance levels', () => {
+    const levels = ladders.flatMap((ladder) => ladder.levels.map((level) => ({ ladder, level })));
+    const stepUp = levels.find(({ level }) => level.id === 'step-up')?.level;
+    expect(stepUp?.equipment).toEqual(expect.arrayContaining(['stair', 'counter']));
+    expect(`${stepUp?.setupNotes ?? ''} ${stepUp?.safetyNotes ?? ''}`.toLowerCase()).toMatch(/support|lowest stable step/);
+
+    for (const { level } of levels.filter(({ level }) => level.equipment.includes('floor'))) {
+      expect(`${level.setupNotes ?? ''} ${level.safetyNotes ?? ''}`.toLowerCase()).toMatch(/floor/);
+    }
+
+    expect(getExercise('balance-feet-together-hold').equipment).toEqual(['counter']);
+    expect(getExercise('balance-tandem-hold').equipment).toEqual(['counter']);
+    expect(getExercise('balance-single-leg-hold').equipment).toEqual(['counter']);
+    expect(getExercise('loaded-march')).toMatchObject({
+      displayName: 'March in Place',
+      equipment: ['counter'],
+    });
+  });
+
+  it('guards the only cross-domain ladder level explicitly', () => {
+    const mismatches = ladders.flatMap((ladder) =>
+      ladder.levels
+        .filter((level) => level.domain !== ladder.domain)
+        .map((level) => ({ ladderId: ladder.id, levelId: level.id, domainRole: level.domainRole }))
+    );
+
+    expect(mismatches).toEqual([
+      {
+        ladderId: 'shoulder-reach-press',
+        levelId: 'overhead-press-band',
+        domainRole: 'cross_domain_supporting',
+      },
+    ]);
+  });
+
+  it('keeps mobility collection and cross-domain shoulder strength out of linear mobility endpoints', () => {
+    const mobility = ladders.find((ladder) => ladder.id === 'mobility-flexibility');
+    const shoulder = ladders.find((ladder) => ladder.id === 'shoulder-reach-press');
+
+    expect(mobility?.progressionModel).toBe('collection');
+    expect(mobility?.levels.map((level) => level.name)).toEqual([
+      'Seated Hamstring Reach',
+      'Thoracic Rotation',
+      'Supported Hip Flexor Stretch',
+      'Wall Calf Stretch',
+      'Neck Rotations',
+    ]);
+    expect(shoulder?.progressionModel).toBe('supporting_set');
+    expect(shoulder?.levels.find((level) => level.id === 'overhead-press-band')).toMatchObject({
+      domain: 'strength_power',
+      domainRole: 'cross_domain_supporting',
+    });
+  });
+
   it('hides post-V1 and hidden legacy levels from the visible catalogue', () => {
     const visible = listVisibleExerciseLadders().flatMap((l) => l.levels);
     expect(visible.some((l) => l.releaseStatus === 'post_v1_beta' || l.releaseStatus === 'hidden_legacy')).toBe(false);

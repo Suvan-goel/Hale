@@ -39,7 +39,7 @@ export const pushUpLevels: ExerciseDefinition[] = [
     level: 2,
     slot: 'upper-push',
     cameraView: SIDE,
-    equipment: ['chair'],
+    equipment: ['chair', 'counter'],
     kind: 'reps',
     prescription: { sets: 3, repsPerSet: 10, restSec: 50, autoregulate: true },
     voice: { instructions: ['ex-push-up'] },

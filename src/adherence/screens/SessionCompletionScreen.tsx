@@ -50,7 +50,9 @@ export function SessionCompletionScreen({
   onFeedback?: (feedback: SessionFeedbackInput) => void;
   onDone: () => void;
 }) {
+  const credited = completion?.mainPlanCredit === true;
   const restarted = completion?.sessionType === 'restart';
+  const completionCopy = sessionCompletionCopy({ block, lifeGoal, completion, credited, restarted });
   const [effort, setEffort] = React.useState<1 | 2 | 3 | 4 | 5 | undefined>(completion?.perceivedEffort);
   const [painReported, setPainReported] = React.useState<boolean | undefined>(completion?.painReported);
   const [painArea, setPainArea] = React.useState<PainArea | undefined>();
@@ -68,13 +70,15 @@ export function SessionCompletionScreen({
   return (
     <Screen>
       <ScreenHeader
-        eyebrow={restarted ? 'Restart complete' : 'Session complete'}
-        title={restarted ? "You're back" : 'Nice work.'}
-        subtitle={restarted ? "That's the important part." : getProtectionCopy({ lifeGoal, focusDomain: block.focusDomain })}
+        eyebrow={completionCopy.eyebrow}
+        title={completionCopy.title}
+        subtitle={completionCopy.subtitle}
       />
       <Card style={styles.card}>
-        <Text style={styles.title}>{restarted ? 'Clean slate, moving again' : 'This helps Hale adjust your next session.'}</Text>
-        <Text style={styles.body}>Move only in a comfortable range.</Text>
+        <Text style={styles.title}>
+          {completionCopy.cardTitle}
+        </Text>
+        <Text style={styles.body}>{completionCopy.body}</Text>
       </Card>
       {validTimeSummaries.length > 0 ? (
         <Card style={styles.card}>
@@ -134,6 +138,69 @@ export function SessionCompletionScreen({
       <SecondaryButton title="Do 60-second micro-check" onPress={microCheck} />
     </Screen>
   );
+}
+
+function sessionCompletionCopy({
+  block,
+  lifeGoal,
+  completion,
+  credited,
+  restarted,
+}: {
+  block: MovementBlock;
+  lifeGoal?: LifeGoal | null;
+  completion?: TrainingSessionCompletion | null;
+  credited: boolean;
+  restarted: boolean;
+}) {
+  if (credited) {
+    return {
+      eyebrow: restarted ? 'Restart complete' : 'Session complete',
+      title: restarted ? "You're back" : 'Nice work.',
+      subtitle: restarted ? "That's the important part." : getProtectionCopy({ lifeGoal, focusDomain: block.focusDomain }),
+      cardTitle: restarted ? 'Clean slate, moving again' : 'This helps Hale adjust your next session.',
+      body: 'Move only in a comfortable range.',
+    };
+  }
+
+  const focusEvidence = completion?.focusStimulusEvidence;
+  const completedCount = completion?.workEvidence?.completedExerciseCount ?? 0;
+  if (focusEvidence && completedCount > 0) {
+    const kind = nonCreditWorkKind(focusEvidence.exclusionReason);
+    const focus = focusLabel(block.focusDomain).toLowerCase();
+    const body =
+      focusEvidence.exclusionReason === 'missing_stimulus_metadata'
+        ? 'Hale saved the session summary, but it could not verify current primary-focus metadata for credit.'
+        : `Your A/B/C rotation, week completion, milestones, and retest timing did not move.`;
+    return {
+      eyebrow: `${kind} saved`,
+      title: `${kind} saved.`,
+      subtitle: `Good work. Hale advances this block only after a planned primary ${focus} exercise is completed.`,
+      cardTitle: 'Main plan unchanged',
+      body,
+    };
+  }
+
+  return {
+    eyebrow: 'Session ended',
+    title: 'No training credit added.',
+    subtitle: 'Hale only counts a session when at least one planned primary-focus exercise is completed.',
+    cardTitle: 'Nothing to fix',
+    body: 'You can try again whenever you are ready. Keep support nearby and move comfortably.',
+  };
+}
+
+function nonCreditWorkKind(reason: string): string {
+  if (reason === 'fallback_only') return 'Fallback work';
+  if (reason === 'supporting_and_fallback_only') return 'Supporting work';
+  if (reason === 'cross_domain_only') return 'Cross-domain work';
+  return 'Supporting work';
+}
+
+function focusLabel(domain: MovementBlock['focusDomain']): string {
+  if (domain === 'strength_power') return 'Strength';
+  if (domain === 'balance') return 'Balance';
+  return 'Mobility';
 }
 
 export function buildSessionFeedback({

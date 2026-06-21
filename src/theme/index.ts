@@ -105,6 +105,12 @@ export const colors = {
   onAccent: palette.cardSurface,
 } as const;
 
+export const imageOverlayControl = {
+  background: 'rgba(251,245,239,0.25)',
+  border: 'rgba(251,245,239,0.28)',
+  text: colors.onAccent,
+} as const;
+
 export const todayHomeColors = {
   background: '#F4EDE6',
   card: '#FBF5EF',

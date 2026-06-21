@@ -17,8 +17,8 @@ import { buildSkeletonPaths, emptySkeletonPaths } from '../src/render/skeletonGe
 // the tsx/esbuild runner can't transform). Keep in sync with src/theme tokens.
 const skeleton = {
   background: '#F4EDE6',
-  figureTop: '#123C2E', // inky brand green at the top
-  figureBottom: '#0B2B21', // settling to green-black at the base
+  figureTop: '#414C34', // inky brand green at the top
+  figureBottom: '#414C34', // unified green base
   dim: '#8B938D', // muted stone grey for occluded parts
 };
 const colors = { bgBase: '#F4EDE6' };

@@ -84,6 +84,18 @@ function scoreSnapshotFor(inputScore: CheckUpScore): VersionedCheckUpScoreSnapsh
   return toStoredScoreSnapshot(inputScore)!;
 }
 
+function creditedCompletion(b: MovementBlock, templateId: string, completedAt: string) {
+  return makeTrainingSessionCompletion({
+    block: b,
+    sessionType: 'standard',
+    completedAt,
+    plannedDate: `${templateId}:${completedAt.slice(0, 10)}`,
+    source: 'block_generated',
+    templateId,
+    mainPlanCredit: true,
+  });
+}
+
 describe('getNextBestAction', () => {
   it('routes a new user to life goal first', () => {
     expect(getNextBestAction({ now: START }).state).toBe('needs_life_goal');
@@ -133,24 +145,9 @@ describe('getNextBestAction', () => {
       latestAssessment: assessment(),
       activeBlock: b,
       sessionCompletions: [
-        makeTrainingSessionCompletion({
-          block: b,
-          sessionType: 'standard',
-          completedAt: '2026-06-02T08:00:00.000Z',
-          plannedDate: 'session-1',
-        }),
-        makeTrainingSessionCompletion({
-          block: b,
-          sessionType: 'standard',
-          completedAt: '2026-06-04T08:00:00.000Z',
-          plannedDate: 'session-2',
-        }),
-        makeTrainingSessionCompletion({
-          block: b,
-          sessionType: 'standard',
-          completedAt: '2026-06-06T08:00:00.000Z',
-          plannedDate: 'session-3',
-        }),
+        creditedCompletion(b, 'balance-A', '2026-06-02T08:00:00.000Z'),
+        creditedCompletion(b, 'balance-B', '2026-06-04T08:00:00.000Z'),
+        creditedCompletion(b, 'balance-C', '2026-06-06T08:00:00.000Z'),
       ],
       now: '2026-06-06T12:00:00.000Z',
     });

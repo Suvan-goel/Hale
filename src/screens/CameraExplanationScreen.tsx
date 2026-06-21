@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { BackArrowButton } from '../components/BackArrowButton';
 import { Card, ListRow, PrimaryButton, Screen, ScreenHeader, SecondaryButton, StatusBadge, Typography } from '../components/ui';
 import { spacing } from '../theme';
 
@@ -17,6 +18,7 @@ export function CameraExplanationScreen({
 }) {
   return (
     <Screen>
+      <BackArrowButton accessibilityLabel="Back" onPress={onBack} />
       <ScreenHeader
         eyebrow="Step 5 of 10"
         title="How Hale uses your camera"
@@ -40,7 +42,6 @@ export function CameraExplanationScreen({
           <PrimaryButton title="Allow camera" onPress={onRequestPermission} />
         )}
         {!permissionGranted ? <SecondaryButton title="Continue after setup" onPress={onContinue} /> : null}
-        <SecondaryButton title="Back" onPress={onBack} />
       </View>
     </Screen>
   );

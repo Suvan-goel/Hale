@@ -34,9 +34,17 @@ export function generateMilestones({
   push(out, existing, makeMilestone('first_block_started', block, nowIso, lifeGoal));
 
   const trainingCompletions = completions.filter(
-    (c) => c.blockId === block.id && (c.sessionType === 'standard' || c.sessionType === 'restart')
+    (c) =>
+      c.blockId === block.id &&
+      c.mainPlanCredit === true &&
+      (c.sessionType === 'standard' || c.sessionType === 'starter' || c.sessionType === 'restart')
   );
-  if (trainingCompletions.length >= block.sessionsPerWeekTarget) {
+  const uniqueMainPlanTemplates = new Set(
+    trainingCompletions
+      .map((completion) => completion.templateId ?? completion.plannedDate?.split(':')[0])
+      .filter((templateId): templateId is string => !!templateId)
+  );
+  if (uniqueMainPlanTemplates.size >= block.sessionsPerWeekTarget) {
     push(out, existing, makeMilestone('first_week_completed', block, nowIso, lifeGoal));
   }
   if (trainingCompletions.some((c) => c.sessionType === 'restart')) {

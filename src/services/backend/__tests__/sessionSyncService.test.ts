@@ -26,10 +26,36 @@ function completion(overrides: Partial<TrainingSessionCompletion> = {}): Trainin
     id: 'completion-block-1-standard-session-1',
     userId: 'local-device-user',
     blockId: 'movement-block-1',
-    plannedDate: 'session-1',
+    plannedDate: 'strength-A:2026-06-17',
     completedAt,
     sessionType: 'standard',
     focusDomain: 'strength_power',
+    source: 'block_generated',
+    templateId: 'strength-A',
+    mainPlanCredit: true,
+    focusStimulusEvidence: {
+      planStatus: 'eligible',
+      status: 'credited_focus_work',
+      exclusionReason: 'none',
+      mainPlanCredit: true,
+      blockFocusDomain: 'strength_power',
+      plannedPrimaryFocusExerciseCount: 1,
+      completedPrimaryFocusExerciseCount: 1,
+      completedSupportingExerciseCount: 0,
+      completedFallbackExerciseCount: 0,
+      completedCrossDomainExerciseCount: 0,
+      plannedPrimaryFocusExerciseIds: ['sit-to-stand-level-1'],
+      completedPrimaryFocusExerciseIds: ['sit-to-stand-level-1'],
+      completedSupportingExerciseIds: [],
+      completedFallbackExerciseIds: [],
+      completedCrossDomainExerciseIds: [],
+      fallbackFocusSlotIds: [],
+      skippedFocusSlotIds: [],
+      focusStimulusExclusionReasons: [],
+      missingMetadataExerciseIds: [],
+      malformedMetadataExerciseIds: [],
+      focusMismatchExerciseIds: [],
+    },
     durationMinutes: 18,
     ...overrides,
   };
@@ -170,6 +196,7 @@ describe('training session completion sync mapping', () => {
     const summaryJson = JSON.stringify(payload.summary_json);
     expect(summaryJson).toContain('generated-session-1');
     expect(summaryJson).toContain('sit-to-stand-level-1');
+    expect(summaryJson).toContain('credited_focus_work');
 
     const rawJson = JSON.stringify(payload.raw_result_json);
     expect(rawJson).toContain('meanVel');
@@ -229,5 +256,24 @@ describe('training session completion sync mapping', () => {
       }),
       { onConflict: 'user_id,local_session_id' }
     );
+  });
+
+  it('does not sync sessions without explicit main-plan credit', async () => {
+    const upsert = jest.fn().mockResolvedValue({ error: null });
+    (supabase.from as jest.Mock).mockReturnValue({ upsert });
+    (getCurrentSession as jest.Mock).mockResolvedValue({
+      user: { id: 'user-123' },
+    });
+
+    const result = await syncTrainingSessionCompletionToRemote({
+      completion: completion({ id: 'completion-no-credit', mainPlanCredit: false }),
+      sessionPlan: sessionPlan(),
+      sessionResult: sessionResult(),
+      movementBlock: movementBlock(),
+      movementBlockRemoteId: 'remote-block-123',
+    });
+
+    expect(result.status).toBe('skipped');
+    expect(upsert).not.toHaveBeenCalled();
   });
 });

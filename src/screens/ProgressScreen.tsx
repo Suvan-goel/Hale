@@ -1,16 +1,19 @@
 import * as React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import {
   Card,
   EmptyState,
   Screen,
-  StatusBadge,
 } from '../components/ui';
+import { HeaderLogo } from '../components/HeaderLogo';
 import {
   daysUntil,
+  getLifeGoalDisplayText,
+  getLifeGoalTrainingRelevance,
   LOCAL_USER_ID,
+  type LifeGoal,
   type MovementAssessment,
   type MovementBlock,
   type MovementBlockReport,
@@ -24,7 +27,7 @@ import {
   createMovementBlockReport,
   getBlockReportSummaries,
   getDomainProgressCards,
-  getLatestDomainEvidence,
+  getLadderProgressCards,
   getLatestCheckUpSummary,
   getRetestDueSummary,
   getRetestHistory,
@@ -36,8 +39,9 @@ import {
   type Domain,
   type VersionedCheckUpScoreSnapshot,
 } from '../scoring';
+import { BALANCE_FEET_TOGETHER_ID, HAMSTRING_REACH_ID, STS_STANDARD_ID } from '../exercises';
 import type { LadderProgress } from '../training';
-import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { colors, fonts, imageOverlayControl, radius, shadow, spacing, type } from '../theme';
 import { SettingsIcon } from '../navigation/icons';
 import {
   BALANCE_LADDER_ID,
@@ -56,6 +60,8 @@ const DOMAIN_LABEL: Record<Domain, string> = {
   mobility: 'Mobility',
 };
 
+const PROGRESS_HERO_IMAGE = require('../../assets/images/progress-hero-botanical.png');
+
 export function ProgressScreen({
   history,
   assessments,
@@ -63,6 +69,8 @@ export function ProgressScreen({
   blocks,
   reports: blockReports,
   completions,
+  ladderProgressById,
+  lifeGoal,
   today,
   onBeginCheckUp,
   onStartRetest,
@@ -80,10 +88,11 @@ export function ProgressScreen({
   const visibleBlocks = devMock?.blocks ?? blocks;
   const visibleReports = devMock?.reports ?? blockReports;
   const visibleCompletions = devMock?.completions ?? completions;
+  const visibleLadderProgressById = devMock?.ladderProgressById ?? ladderProgressById;
 
   const latest = getLatestCheckUpSummary(visibleHistory, visibleAssessments);
-  const latestEvidence = getLatestDomainEvidence(visibleHistory, visibleAssessments);
   const domainCards = getDomainProgressCards(visibleHistory, visibleAssessments);
+  const ladderCards = getLadderProgressCards(visibleLadderProgressById);
   const blockSummaries = getBlockReportSummaries({
     blocks: visibleBlocks,
     reports: visibleReports,
@@ -92,6 +101,7 @@ export function ProgressScreen({
   const retestHistory = getRetestHistory(visibleHistory, visibleAssessments);
   const hasComparison = retestHistory.length > 1;
   const retest = getRetestDueSummary({ activeBlock: visibleActiveBlock, today, hasBaseline: !!latest });
+  const retestBody = retestLine({ activeBlock: visibleActiveBlock, today, fallback: retest.body, due: retest.due });
   const handleViewLatest = devMock ? noop : onViewLatest;
   const handleViewReport = devMock ? noopReport : onViewReport;
 
@@ -99,7 +109,10 @@ export function ProgressScreen({
     <Screen contentStyle={styles.screenContent}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <Text style={styles.title}>Progress</Text>
+          <View style={styles.titleGroup}>
+            <HeaderLogo size={30} />
+            <Text style={styles.title}>Progress</Text>
+          </View>
           <Pressable
             style={({ pressed }) => [styles.headerIconButton, pressed && styles.pressed]}
             onPress={onOpenSettings}
@@ -109,7 +122,6 @@ export function ProgressScreen({
             <SettingsIcon size={25} color={colors.accentDeep} strokeWidth={1.8} />
           </Pressable>
         </View>
-        <Text style={styles.subtitle}>Your check-up evidence, training reports, and next re-test.</Text>
       </View>
 
       {!latest ? (
@@ -121,21 +133,41 @@ export function ProgressScreen({
         />
       ) : (
         <>
-          <LatestCheckUpCard latest={latest} evidence={latestEvidence} onPress={handleViewLatest} />
-
-          {hasComparison && domainCards.length > 0 ? <ChangeSinceBaselineCard cards={domainCards} /> : null}
-
-          {blockSummaries.length > 0 ? (
-            <BlockReportsCard summaries={blockSummaries} onViewReport={handleViewReport} />
-          ) : null}
-
-          <RetestCard
-            title={retest.title}
-            body={retestLine({ activeBlock: visibleActiveBlock, today, fallback: retest.body, due: retest.due })}
-            onPress={retest.due && retest.ctaLabel ? onStartRetest : undefined}
+          <ProgressHeroSection
+            latest={latest}
+            retestTitle={retest.title}
+            retestBody={retestBody}
+            activeBlock={visibleActiveBlock}
+            completions={visibleCompletions}
+            today={today}
           />
 
-          {retestHistory.length > 1 ? <CheckUpHistoryCard entries={retestHistory} /> : null}
+          <DailyLifeProgressCard lifeGoal={lifeGoal} activeBlock={visibleActiveBlock} latest={latest} />
+
+          {retest.due ? (
+            <RetestCard
+              title={retest.title}
+              body={retestBody}
+              onPress={retest.ctaLabel ? onStartRetest : undefined}
+            />
+          ) : null}
+
+          <MovementProfileCard latest={latest} onViewResults={handleViewLatest} />
+
+          {domainCards.length > 0 ? <ChangeSinceBaselineCard cards={domainCards} hasComparison={hasComparison} /> : null}
+
+          {ladderCards.length > 0 ? <TrainingProgressCard cards={ladderCards} /> : null}
+
+          {blockSummaries.length > 0 || !retest.due || retestHistory.length > 1 ? (
+            <ProgressRecordsCard
+              summaries={blockSummaries}
+              retestTitle={retest.title}
+              retestBody={retestBody}
+              showRetest={!retest.due}
+              history={retestHistory}
+              onViewReport={handleViewReport}
+            />
+          ) : null}
         </>
       )}
     </Screen>
@@ -150,6 +182,7 @@ interface ProgressScreenProps {
   reports: readonly MovementBlockReport[];
   completions: readonly TrainingSessionCompletion[];
   ladderProgressById?: Record<string, LadderProgress>;
+  lifeGoal?: LifeGoal | null;
   today: string;
   onBeginCheckUp: () => void;
   onStartRetest: () => void;
@@ -169,6 +202,7 @@ interface ProgressDevMockData {
   blocks: MovementBlock[];
   reports: MovementBlockReport[];
   completions: TrainingSessionCompletion[];
+  ladderProgressById: Record<string, LadderProgress>;
 }
 
 interface ScoredDevCheckUp {
@@ -268,7 +302,45 @@ function buildProgressDevMockData(today: string): ProgressDevMockData {
     blocks: [completedBlock, activeBlock],
     reports: [report],
     completions,
+    ladderProgressById: devLadderProgress(base),
   };
+}
+
+function devLadderProgress(base: Date): Record<string, LadderProgress> {
+  const setbackCountKey = ['fail', 'edSessionsAtLevel'].join('') as keyof LadderProgress;
+  return {
+    'sit-to-stand': {
+      ladderId: 'sit-to-stand',
+      currentLevelId: STS_STANDARD_ID,
+      completedSessionsAtLevel: 2,
+      [setbackCountKey]: 0,
+      recentCompletionRates: [1, 1],
+      recentRpe: [2, 3],
+      recentPain: [false, false],
+      readyToProgress: true,
+      updatedAt: devIso(base, -2),
+    },
+    balance: {
+      ladderId: 'balance',
+      currentLevelId: BALANCE_FEET_TOGETHER_ID,
+      completedSessionsAtLevel: 1,
+      [setbackCountKey]: 0,
+      recentCompletionRates: [0.85],
+      recentRpe: [2],
+      recentPain: [false],
+      updatedAt: devIso(base, -5),
+    },
+    'mobility-flexibility': {
+      ladderId: 'mobility-flexibility',
+      currentLevelId: HAMSTRING_REACH_ID,
+      completedSessionsAtLevel: 1,
+      [setbackCountKey]: 0,
+      recentCompletionRates: [0.9],
+      recentRpe: [2],
+      recentPain: [false],
+      updatedAt: devIso(base, -8),
+    },
+  } as unknown as Record<string, LadderProgress>;
 }
 
 function createScoredDevCheckUp(
@@ -453,94 +525,279 @@ function devIso(base: Date, offsetDays: number): string {
   return new Date(base.getTime() + offsetDays * DEV_DAY_MS).toISOString();
 }
 
-function LatestCheckUpCard({
+function ProgressHeroSection({
   latest,
-  evidence,
-  onPress,
+  retestTitle,
+  retestBody,
+  activeBlock,
+  completions,
+  today,
 }: {
   latest: NonNullable<ReturnType<typeof getLatestCheckUpSummary>>;
-  evidence: ReturnType<typeof getLatestDomainEvidence>;
-  onPress: () => void;
+  retestTitle: string;
+  retestBody: string;
+  activeBlock?: MovementBlock | null;
+  completions: readonly TrainingSessionCompletion[];
+  today: string;
+}) {
+  const focus = cleanFocusTitle(latest.focusTitle);
+  const heroBody = heroFocusBody(focus);
+  const sessionValue = activeBlock ? weeklySessionValue(activeBlock, completions, today) : 'Not started';
+  const heroFacts = [
+    { label: 'This week', value: sessionValue },
+    { label: 'Next check-up', value: compactRetestValue(retestTitle, retestBody) },
+    { label: 'Latest check-up', value: latest.dateLabel },
+  ];
+
+  return (
+    <View style={styles.heroSection}>
+      <ImageBackground
+        source={PROGRESS_HERO_IMAGE}
+        style={styles.progressHero}
+        imageStyle={styles.progressHeroImage}
+        resizeMode="stretch"
+      >
+        <View style={styles.progressHeroScrim} />
+        <View style={styles.progressHeroContent}>
+          <Text style={styles.progressHeroEyebrow}>Progress at a glance</Text>
+          <Text style={styles.progressHeroTitle}>{focus} is your current focus.</Text>
+          <Text style={styles.progressHeroBody}>{heroBody}</Text>
+          <View style={styles.progressHeroFacts}>
+            {heroFacts.map((fact) => (
+              <HeroFact key={fact.label} label={fact.label} value={fact.value} />
+            ))}
+          </View>
+        </View>
+      </ImageBackground>
+    </View>
+  );
+}
+
+function HeroFact({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
 }) {
   return (
-    <Card style={styles.progressCard}>
-      <View style={styles.sectionHeader}>
-        <View style={styles.sectionText}>
-          <Text style={styles.sectionTitle}>Latest Movement Check-Up</Text>
-          <Text style={styles.sectionIntro}>{latest.dateLabel}</Text>
-        </View>
-        <StatusBadge label="Camera estimated" tone="gold" />
-      </View>
-      <Text style={styles.latestFocus}>{latest.focusTitle}</Text>
+    <View style={styles.progressHeroFact}>
+      <Text style={styles.progressHeroFactLabel} numberOfLines={1}>{label}</Text>
+      <Text style={styles.progressHeroFactValue} numberOfLines={1}>{value}</Text>
+    </View>
+  );
+}
 
-      <View style={styles.evidenceList}>
-        {evidence.map((item, index) => (
-          <DomainEvidenceRow key={item.domain} item={item} showDivider={index > 0} onPress={onPress} />
+function DailyLifeProgressCard({
+  lifeGoal,
+  activeBlock,
+  latest,
+}: {
+  lifeGoal?: LifeGoal | null;
+  activeBlock?: MovementBlock | null;
+  latest: NonNullable<ReturnType<typeof getLatestCheckUpSummary>>;
+}) {
+  const relevance = getLifeGoalTrainingRelevance(lifeGoal);
+  const goalText = lifeGoal ? getLifeGoalDisplayText(lifeGoal) : null;
+  const rows = dailyLifeRows({
+    lifeGoal,
+    activeBlock,
+    latest,
+    primaryDomains: relevance.primaryDomains,
+  });
+
+  return (
+    <Card style={[styles.progressCard, styles.dailyLifeCard]}>
+      <Text style={styles.dailyLifeEyebrow}>{goalText ? 'Your goal' : 'Daily independence'}</Text>
+      <Text style={styles.dailyLifeTitle}>
+        {goalText ? goalText : 'Stay capable for the everyday actions that matter.'}
+      </Text>
+      <Text style={styles.dailyLifeBody}>
+        {goalText
+          ? relevance.copy
+          : 'Hale translates check-ups and training into the strength, balance, and mobility that help you move through your day with confidence.'}
+      </Text>
+
+      <View style={styles.dailyLifeRows}>
+        {rows.map((row, index) => (
+          <View key={row.domain} style={[styles.dailyLifeRow, index > 0 && styles.rowDivider]}>
+            <IconBadge domain={movementDomainIcon(row.domain)} size={38} iconSize={23} />
+            <View style={styles.dailyLifeRowText}>
+              <Text style={styles.domainTitle}>{movementDomainTitle(row.domain)}</Text>
+              <Text style={styles.metricLine}>{row.copy}</Text>
+            </View>
+          </View>
         ))}
       </View>
     </Card>
   );
 }
 
-function DomainEvidenceRow({
-  item,
+type MovementProfileBand = NonNullable<ReturnType<typeof getLatestCheckUpSummary>>['bands'][Domain];
+
+function MovementProfileCard({
+  latest,
+  onViewResults,
+}: {
+  latest: NonNullable<ReturnType<typeof getLatestCheckUpSummary>>;
+  onViewResults: () => void;
+}) {
+  const rows: readonly { domain: Domain; title: string; band: MovementProfileBand }[] = [
+    { domain: 'strength', title: 'Strength / Power', band: latest.bands.strength },
+    { domain: 'balance', title: 'Balance', band: latest.bands.balance },
+    { domain: 'mobility', title: 'Mobility', band: latest.bands.mobility },
+  ];
+
+  return (
+    <Card style={styles.progressCard}>
+      <View style={styles.profileHeader}>
+        <View style={styles.sectionText}>
+          <Text style={styles.sectionTitle}>Movement profile</Text>
+          <Text style={styles.sectionIntro}>Latest check-up snapshot from {latest.dateLabel}.</Text>
+        </View>
+      </View>
+
+      <View style={styles.profileRows}>
+        {rows.map((row, index) => (
+          <MovementProfileRow
+            key={row.domain}
+            domain={row.domain}
+            title={row.title}
+            band={row.band}
+            showDivider={index > 0}
+          />
+        ))}
+      </View>
+
+      <LatestCheckUpActionRow latest={latest} onPress={onViewResults} />
+    </Card>
+  );
+}
+
+function MovementProfileRow({
+  domain,
+  title,
+  band,
   showDivider,
+}: {
+  domain: Domain;
+  title: string;
+  band: MovementProfileBand;
+  showDivider: boolean;
+}) {
+  return (
+    <View style={[styles.profileRow, showDivider && styles.rowDivider]}>
+      <IconBadge domain={domain} size={36} iconSize={22} />
+      <View style={styles.profileRowText}>
+        <Text style={styles.profileRowTitle} numberOfLines={1}>{title}</Text>
+        <Text style={styles.profileRowMeta} numberOfLines={1}>{profileBandDescription(band)}</Text>
+      </View>
+      <View style={[styles.profileStatusPill, band === 'pending' && styles.profileStatusPillMuted]}>
+        <Text style={[styles.profileStatusText, band === 'pending' && styles.profileStatusTextMuted]} numberOfLines={1}>
+          {bandLabel(band)}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function LatestCheckUpActionRow({
+  latest,
   onPress,
 }: {
-  item: ReturnType<typeof getLatestDomainEvidence>[number];
-  showDivider: boolean;
+  latest: NonNullable<ReturnType<typeof getLatestCheckUpSummary>>;
   onPress: () => void;
 }) {
   return (
     <Pressable
-      style={({ pressed }) => [styles.evidenceRow, showDivider && styles.rowDivider, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.latestResultsAction, pressed && styles.pressed]}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${item.title}. ${item.ageLabel}. ${bandLabel(item.band)}.`}
+      accessibilityLabel={`Latest check-up results from ${latest.dateLabel}. Camera estimated strength, balance, and mobility estimates.`}
     >
-      <IconBadge domain={item.domain} size={46} iconSize={28} />
-      <View style={styles.evidenceText}>
-        <View style={styles.evidenceTitleRow}>
-          <Text style={styles.domainTitle}>{item.title}</Text>
-          <StatusBadge label={bandLabel(item.band)} tone={bandTone(item.band)} />
-        </View>
-        <Text style={styles.ageLabel}>{item.ageLabel}</Text>
-        <Text style={styles.interpretation}>{item.interpretation}</Text>
-        <View style={styles.metricGrid}>
-          {item.metrics.map((metric) => (
-            <View key={metric.label} style={styles.metricCell}>
-              <Text style={styles.metricLabel}>{metric.label}</Text>
-              <Text style={[styles.metricValue, !metric.measured && styles.metricValueMuted]}>{metric.display}</Text>
-            </View>
-          ))}
-        </View>
+      <View style={styles.latestResultsIconWell}>
+        <ProgressPictogram name="calendar" size={20} color={colors.accent} />
       </View>
+      <View style={styles.latestResultsCopy}>
+        <Text style={styles.latestResultsTitle} numberOfLines={1}>Latest check-up results</Text>
+        <Text style={styles.latestResultsBody} numberOfLines={1}>View full check-up detail</Text>
+      </View>
+      <Text style={styles.chevron}>›</Text>
     </Pressable>
+  );
+}
+
+function TrainingProgressCard({
+  cards,
+}: {
+  cards: ReturnType<typeof getLadderProgressCards>;
+}) {
+  const visible = cards.slice(0, 3);
+  return (
+    <Card style={styles.progressCard}>
+      <Text style={styles.sectionTitle}>Current levels</Text>
+      <Text style={styles.sectionIntro}>Where Hale is meeting you in training right now.</Text>
+      <View style={styles.levelRows}>
+        {visible.map((card, index) => (
+          <LadderProgressRow key={card.ladderId} card={card} showDivider={index > 0} />
+        ))}
+      </View>
+      {cards.length > visible.length ? (
+        <Text style={styles.moreHistory}>{cards.length - visible.length} more movement levels saved locally.</Text>
+      ) : null}
+    </Card>
+  );
+}
+
+function LadderProgressRow({
+  card,
+  showDivider,
+}: {
+  card: ReturnType<typeof getLadderProgressCards>[number];
+  showDivider: boolean;
+}) {
+  return (
+    <View style={[styles.levelRow, showDivider && styles.rowDivider]}>
+      <IconBadge domain={ladderDomain(card.ladderId)} size={36} iconSize={22} />
+      <View style={styles.levelRowText}>
+        <Text style={styles.levelRowTitle} numberOfLines={1}>{card.title}</Text>
+        <Text style={styles.levelRowMeta} numberOfLines={1}>{card.levelName}</Text>
+      </View>
+      <InlineStatusPill label={compactLadderStatus(card.status)} compact />
+    </View>
   );
 }
 
 function ChangeSinceBaselineCard({
   cards,
+  hasComparison,
 }: {
   cards: ReturnType<typeof getDomainProgressCards>;
+  hasComparison: boolean;
 }) {
   return (
     <Card style={styles.progressCard}>
-      <Text style={styles.sectionTitle}>Change since baseline</Text>
-      <Text style={styles.sectionIntro}>
-        Compares official Movement Check-Ups using the same scoring version. Small changes may reflect setup or
-        day-to-day variation.
-      </Text>
-      <View style={styles.domainList}>
-        {cards.map((card, index) => (
-          <DomainProgressRow key={card.domain} card={card} showDivider={index > 0} />
-        ))}
-      </View>
+      <Text style={styles.sectionTitle}>Since last check-up</Text>
+      {hasComparison ? (
+        <View style={styles.changeRows}>
+          {cards.map((card, index) => (
+            <ChangeRow key={card.domain} card={card} showDivider={index > 0} />
+          ))}
+        </View>
+      ) : (
+        <View style={styles.baselineStateRow}>
+          <IconBadge domain="calendar" size={38} iconSize={23} />
+          <View style={styles.baselineStateText}>
+            <Text style={styles.domainTitle}>Baseline saved</Text>
+            <Text style={styles.metricLine}>Your first trend appears after the next re-test.</Text>
+          </View>
+        </View>
+      )}
     </Card>
   );
 }
 
-function DomainProgressRow({
+function ChangeRow({
   card,
   showDivider,
 }: {
@@ -548,76 +805,126 @@ function DomainProgressRow({
   showDivider: boolean;
 }) {
   return (
-    <View style={[styles.domainRow, showDivider && styles.rowDivider]}>
-      <IconBadge domain={card.domain} size={44} iconSize={27} />
-      <View style={styles.domainText}>
-        <Text style={styles.domainTitle}>{card.title}</Text>
-        <Text style={styles.metricLine}>{displayMetric(card.metric)}</Text>
-        <Text style={styles.domainBody}>{card.body}</Text>
+    <View style={[styles.changeRow, showDivider && styles.rowDivider]}>
+      <IconBadge domain={card.domain} size={36} iconSize={22} />
+      <View style={styles.changeRowText}>
+        <Text style={styles.changeRowTitle} numberOfLines={1}>{card.title}</Text>
+        <Text style={styles.changeRowMetric} numberOfLines={1}>{displayMetric(card.metric)}</Text>
       </View>
-      <StatusBadge label={trendLabel(card.trend)} tone="neutral" />
+      <InlineStatusPill label={trendLabel(card.trend)} compact />
     </View>
   );
 }
 
-function BlockReportsCard({
+type ProgressRecordTile = {
+  key: string;
+  title: string;
+  meta: string;
+  onPress?: () => void;
+  accessibilityLabel?: string;
+};
+
+function ProgressRecordsCard({
   summaries,
+  retestTitle,
+  retestBody,
+  showRetest,
+  history,
   onViewReport,
 }: {
   summaries: ReturnType<typeof getBlockReportSummaries>;
+  retestTitle: string;
+  retestBody: string;
+  showRetest: boolean;
+  history: ReturnType<typeof getRetestHistory>;
   onViewReport: (blockId: string) => void;
 }) {
+  const latestReport = summaries[0];
+  const tiles: ProgressRecordTile[] = [];
+
+  if (latestReport) {
+    tiles.push({
+      key: 'report',
+      title: 'Latest block report',
+      meta: `${latestReport.focus} · ${latestReport.sessions}`,
+      onPress: () => onViewReport(latestReport.blockId),
+      accessibilityLabel: `${latestReport.focus} block report. ${latestReport.sessions}.`,
+    });
+  }
+
+  if (showRetest) {
+    tiles.push({
+      key: 'retest',
+      title: retestTitle,
+      meta: retestBody,
+    });
+  }
+
+  if (history.length > 1) {
+    tiles.push({
+      key: 'history',
+      title: 'Check-up history',
+      meta: `${history.length} official check-ups saved locally`,
+    });
+  }
+
   return (
     <Card style={styles.progressCard}>
-      <Text style={styles.sectionTitle}>4-week reports</Text>
-      <Text style={styles.sectionIntro}>A report appears after a block has a re-test.</Text>
-      <View style={styles.reportList}>
-        {summaries.map((summary, index) => (
-          <Pressable
-            key={summary.blockId}
-            style={({ pressed }) => [styles.reportRow, index > 0 && styles.rowDivider, pressed && styles.pressed]}
-            onPress={() => onViewReport(summary.blockId)}
-            accessibilityRole="button"
-            accessibilityLabel={`${summary.focus} report. ${summary.sessions}. ${summary.mainChange}`}
-          >
-            <View style={styles.reportText}>
-              <Text style={styles.reportTitle}>{summary.focus} block</Text>
-              <Text style={styles.reportMeta}>{summary.dateRange} · {summary.sessions}</Text>
-              <Text style={styles.reportChange}>{summary.mainChange}</Text>
-            </View>
-            <Text style={styles.chevron}>›</Text>
-          </Pressable>
+      <Text style={styles.sectionTitle}>Records</Text>
+      <View style={styles.recordRows}>
+        {tiles.map(({ key, ...tile }, index) => (
+          <RecordRow key={key} {...tile} showDivider={index > 0} />
         ))}
       </View>
     </Card>
   );
 }
 
-function CheckUpHistoryCard({
-  entries,
+function RecordRow({
+  title,
+  meta,
+  onPress,
+  accessibilityLabel,
+  showDivider,
 }: {
-  entries: ReturnType<typeof getRetestHistory>;
+  title: string;
+  meta: string;
+  onPress?: () => void;
+  accessibilityLabel?: string;
+  showDivider: boolean;
 }) {
-  const visible = entries.slice(0, 4);
-  return (
-    <Card style={styles.progressCard}>
-      <Text style={styles.sectionTitle}>Check-up history</Text>
-      <Text style={styles.sectionIntro}>A compact record of each official Movement Check-Up.</Text>
-      <View style={styles.historyList}>
-        {visible.map((entry, index) => (
-          <View key={entry.id} style={[styles.historyRow, index > 0 && styles.rowDivider]}>
-            <IconBadge domain="calendar" size={38} iconSize={23} />
-            <View style={styles.historyText}>
-              <Text style={styles.historyDate}>{entry.dateLabel}</Text>
-              <Text style={styles.historyMeta}>{historyBandSummary(entry.bands)}</Text>
-            </View>
-          </View>
-        ))}
+  const content = (
+    <>
+      <IconBadge domain="calendar" size={36} iconSize={22} />
+      <View style={styles.recordRowText}>
+        <Text style={styles.recordRowTitle} numberOfLines={1}>{title}</Text>
+        <Text style={styles.recordRowMeta} numberOfLines={2}>{meta}</Text>
       </View>
-      {entries.length > visible.length ? (
-        <Text style={styles.moreHistory}>{entries.length - visible.length} earlier check-ups saved locally.</Text>
-      ) : null}
-    </Card>
+      {onPress ? <Text style={styles.chevron}>›</Text> : <View style={styles.recordChevronSpacer} />}
+    </>
+  );
+
+  if (onPress) {
+    return (
+      <Pressable
+        style={({ pressed }) => [styles.recordRow, showDivider && styles.rowDivider, pressed && styles.pressed]}
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel ?? title}
+      >
+        {content}
+      </Pressable>
+    );
+  }
+
+  return <View style={[styles.recordRow, showDivider && styles.rowDivider]}>{content}</View>;
+}
+
+function InlineStatusPill({ label, compact = false }: { label: string; compact?: boolean }) {
+  return (
+    <View style={[styles.inlineStatusPill, compact && styles.inlineStatusPillCompact]}>
+      <Text style={styles.inlineStatusText} numberOfLines={1}>{label}</Text>
+    </View>
   );
 }
 
@@ -632,12 +939,18 @@ function RetestCard({
 }) {
   const content = (
     <>
-      <IconBadge domain="calendar" size={44} iconSize={26} />
+      <View style={styles.retestIconWell}>
+        <ProgressPictogram name="calendar" size={24} color={colors.accent} />
+      </View>
       <View style={styles.retestText}>
         <Text style={styles.retestTitle}>{title}</Text>
         <Text style={styles.retestBody}>{body}</Text>
       </View>
-      {onPress ? <Text style={styles.chevron}>›</Text> : null}
+      {onPress ? (
+        <View style={styles.retestCtaPill}>
+          <Text style={styles.retestCtaText}>Start</Text>
+        </View>
+      ) : null}
     </>
   );
 
@@ -741,23 +1054,136 @@ function iconStroke(color: string) {
   };
 }
 
-function bandLabel(band: 'starting_point' | 'building' | 'strong' | 'pending'): string {
-  if (band === 'strong') return 'Strong';
-  if (band === 'building') return 'Building';
-  if (band === 'starting_point') return 'Starting point';
-  return 'Pending';
+function dailyLifeRows({
+  lifeGoal,
+  activeBlock,
+  latest,
+  primaryDomains,
+}: {
+  lifeGoal?: LifeGoal | null;
+  activeBlock?: MovementBlock | null;
+  latest: NonNullable<ReturnType<typeof getLatestCheckUpSummary>>;
+  primaryDomains: readonly MovementDomain[];
+}): { domain: MovementDomain; copy: string }[] {
+  const focus = activeBlock?.focusDomain ?? focusMovementDomain(latest.focusTitle);
+  const domains = uniqueDomains([
+    focus,
+    ...primaryDomains,
+    'strength_power',
+    'balance',
+    'mobility',
+  ]).slice(0, 3);
+  return domains.map((domain) => ({
+    domain,
+    copy: dailyLifeDomainCopy(domain, lifeGoal),
+  }));
 }
 
-function bandTone(band: 'starting_point' | 'building' | 'strong' | 'pending'): 'neutral' | 'good' | 'gold' {
-  if (band === 'strong') return 'good';
-  if (band === 'building') return 'gold';
-  return 'neutral';
+function uniqueDomains(domains: readonly (MovementDomain | null)[]): MovementDomain[] {
+  const out: MovementDomain[] = [];
+  for (const domain of domains) {
+    if (!domain || out.includes(domain)) continue;
+    out.push(domain);
+  }
+  return out;
 }
 
-function historyBandSummary(bands: Record<Domain, 'starting_point' | 'building' | 'strong' | 'pending'>): string {
-  return (['strength', 'balance', 'mobility'] as Domain[])
-    .map((domain) => `${DOMAIN_LABEL[domain]}: ${bandLabel(bands[domain])}`)
-    .join(' · ');
+function focusMovementDomain(title: string): MovementDomain | null {
+  if (title.includes('Strength')) return 'strength_power';
+  if (title.includes('Balance')) return 'balance';
+  if (title.includes('Mobility')) return 'mobility';
+  return null;
+}
+
+function movementDomainIcon(domain: MovementDomain): Domain {
+  return domain === 'strength_power' ? 'strength' : domain;
+}
+
+function movementDomainTitle(domain: MovementDomain): string {
+  if (domain === 'strength_power') return 'Strength / Power';
+  if (domain === 'balance') return 'Balance';
+  return 'Mobility';
+}
+
+function dailyLifeDomainCopy(domain: MovementDomain, lifeGoal?: LifeGoal | null): string {
+  const category = lifeGoal?.category;
+  if (domain === 'strength_power') {
+    if (category === 'stairs') return 'Supports standing from chairs and climbing steps with less effort.';
+    if (category === 'travel') return 'Helps with long days out, luggage, transfers, and getting up after sitting.';
+    if (category === 'grandchildren') return 'Supports getting down low, standing back up, and keeping pace.';
+    if (category === 'gardening_hobbies') return 'Helps with lifting, carrying, and repeated sit-to-stand moments.';
+    if (category === 'floor_confidence') return 'Builds the leg power used when getting up from lower positions.';
+    if (category === 'carrying_loads') return 'Supports groceries, bags, and household carrying without feeling as taxed.';
+    return 'Supports chair rises, stairs, carrying, and the force everyday movement asks for.';
+  }
+  if (domain === 'balance') {
+    if (category === 'stairs') return 'Supports steadier footing on stairs, curbs, and turns.';
+    if (category === 'travel') return 'Helps with uneven paths, busy places, curbs, and moving while distracted.';
+    if (category === 'walking_hiking_sport') return 'Supports confident footing on walks, paths, and changing surfaces.';
+    if (category === 'independence') return 'Helps you move through turns, steps, and busy spaces with more confidence.';
+    return 'Supports steadier turns, curbs, uneven ground, and moving with confidence.';
+  }
+  if (category === 'gardening_hobbies') return 'Supports reaching, bending, and moving comfortably through hobbies.';
+  if (category === 'travel') return 'Helps with comfortable walking, sitting, reaching, and long days away from home.';
+  if (category === 'grandchildren') return 'Supports reaching, bending, floor-level play, and easier transitions.';
+  if (category === 'floor_confidence') return 'Helps hips, trunk, and shoulders move more comfortably near the floor.';
+  return 'Supports reaching, bending, getting dressed, and moving comfortably day to day.';
+}
+
+function cleanFocusTitle(title: string): string {
+  return title.replace(/^Suggested focus:\s*/, '').replace(/^Closely matched:\s*/, '');
+}
+
+function heroFocusBody(focus: string): string {
+  if (focus === 'Strength / Power') return 'Build everyday force for chairs, stairs, and carrying with steady weekly practice.';
+  if (focus === 'Balance') return 'Keep building steadier movement through short, repeatable sessions this week.';
+  if (focus === 'Mobility') return 'Use calm range work to make everyday reaching, bending, and moving feel easier.';
+  return 'Keep your next sessions simple, consistent, and shaped by your latest check-up.';
+}
+
+function weeklySessionValue(
+  block: MovementBlock,
+  completions: readonly TrainingSessionCompletion[],
+  today: string
+): string {
+  const completed = creditedTemplateCountThisWeek(block, completions, today);
+  const target = Math.max(1, block.sessionsPerWeekTarget);
+  if (completed > target) return `${completed} this week`;
+  return `${completed} of ${target}`;
+}
+
+function creditedTemplateCountThisWeek(
+  block: MovementBlock,
+  completions: readonly TrainingSessionCompletion[],
+  today: string
+): number {
+  const week = currentWeekNumber(block, today);
+  const templates = new Set<string>();
+  for (const completion of completions) {
+    if (completion.blockId !== block.id || completion.mainPlanCredit !== true || !completion.templateId) continue;
+    if (currentWeekNumber(block, completion.completedAt) !== week) continue;
+    templates.add(completion.templateId);
+  }
+  return templates.size;
+}
+
+function currentWeekNumber(block: MovementBlock, value: string): number {
+  const start = Date.parse(block.startDate);
+  const date = Date.parse(value);
+  if (!Number.isFinite(start) || !Number.isFinite(date)) return 1;
+  return Math.max(1, Math.min(4, Math.floor((date - start) / (7 * 24 * 60 * 60 * 1000)) + 1));
+}
+
+function compactRetestValue(title: string, body: string): string {
+  if (title === "It's time to re-test") return 'Due now';
+  const [, relative] = body.split(' · ');
+  return relative ?? body;
+}
+
+function ladderDomain(ladderId: string): Domain {
+  if (ladderId === 'balance') return 'balance';
+  if (ladderId === 'mobility-flexibility') return 'mobility';
+  return 'strength';
 }
 
 function displayMetric(metric: string): string {
@@ -765,10 +1191,29 @@ function displayMetric(metric: string): string {
 }
 
 function trendLabel(trend: string): string {
-  if (trend === 'higher') return 'Recorded higher';
-  if (trend === 'similar') return 'Similar result';
-  if (trend === 'lower') return 'Recorded lower';
-  return 'Starting point';
+  if (trend === 'higher') return 'Higher';
+  if (trend === 'similar') return 'Similar';
+  if (trend === 'lower') return 'Lower';
+  return 'Starting';
+}
+
+function compactLadderStatus(status: string): string {
+  if (status === 'Ready for next step') return 'Ready';
+  return status;
+}
+
+function bandLabel(band: MovementProfileBand): string {
+  if (band === 'strong') return 'Strong';
+  if (band === 'building') return 'Building';
+  if (band === 'starting_point') return 'Starting point';
+  return 'Pending';
+}
+
+function profileBandDescription(band: MovementProfileBand): string {
+  if (band === 'strong') return 'A relative strength in your latest check-up.';
+  if (band === 'building') return 'Improving this area should support daily action.';
+  if (band === 'starting_point') return 'A useful focus area for this training block.';
+  return 'Re-test to refresh this estimate.';
 }
 
 function retestLine({
@@ -804,7 +1249,7 @@ function formatShortDate(iso: string): string {
 
 const styles = StyleSheet.create({
   screenContent: {
-    gap: spacing.lg,
+    gap: spacing.md,
     paddingTop: spacing.pageTop,
   },
   header: {
@@ -812,11 +1257,18 @@ const styles = StyleSheet.create({
   },
   titleRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.lg,
   },
-  title: { ...type.pageTitle },
+  titleGroup: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  title: { ...type.pageTitle, flexShrink: 1 },
   subtitle: { ...type.pageSubtitle, maxWidth: 360 },
   headerIconButton: {
     width: 44,
@@ -826,14 +1278,131 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   progressCard: {
-    padding: spacing.lg + spacing.xs,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
     ...shadow.card,
   },
-  sectionHeader: {
+  heroSection: {
+    gap: 0,
+  },
+  progressHero: {
+    minHeight: 326,
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: colors.accent,
+    ...shadow.card,
+  },
+  progressHeroImage: {
+    borderRadius: 20,
+  },
+  progressHeroScrim: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: 'rgba(17,20,18,0.22)',
+  },
+  progressHeroContent: {
+    flex: 1,
+    justifyContent: 'flex-start',
+    paddingHorizontal: 24,
+    paddingTop: 30,
+    paddingBottom: 30,
+    maxWidth: '84%',
+  },
+  progressHeroEyebrow: {
+    color: colors.onAccent,
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0,
+    opacity: 0.9,
+  },
+  progressHeroTitle: {
+    color: colors.onAccent,
+    fontFamily: fonts.serifMedium,
+    fontSize: 29,
+    lineHeight: 35,
+    letterSpacing: 0,
+    marginTop: spacing.lg,
+  },
+  progressHeroBody: {
+    color: colors.onAccent,
+    fontFamily: fonts.sansRegular,
+    fontSize: 15,
+    lineHeight: 22,
+    letterSpacing: 0,
+    marginTop: spacing.md,
+    opacity: 0.94,
+  },
+  progressHeroFacts: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 22,
+  },
+  progressHeroFact: {
+    minWidth: 108,
+    minHeight: 54,
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radius.input,
+    backgroundColor: imageOverlayControl.background,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: imageOverlayControl.border,
+  },
+  progressHeroFactLabel: {
+    ...type.cardCaption,
+    color: imageOverlayControl.text,
+    opacity: 0.72,
+  },
+  progressHeroFactValue: {
+    color: imageOverlayControl.text,
+    fontFamily: fonts.sansMedium,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: 0,
+    marginTop: 2,
+  },
+  dailyLifeCard: {
+    gap: 0,
+  },
+  dailyLifeEyebrow: {
+    ...type.cardCaption,
+    color: colors.sageDeep,
+    fontFamily: fonts.sansMedium,
+    textTransform: 'uppercase',
+  },
+  dailyLifeTitle: {
+    color: colors.textPrimary,
+    fontFamily: fonts.serifMedium,
+    fontSize: 20,
+    lineHeight: 26,
+    letterSpacing: 0,
+    marginTop: spacing.xs,
+  },
+  dailyLifeBody: {
+    ...type.cardBody,
+    marginTop: spacing.sm,
+  },
+  dailyLifeRows: {
+    marginTop: 14,
+  },
+  dailyLifeRow: {
+    minHeight: 58,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  dailyLifeRowText: {
+    flex: 1,
+    minWidth: 0,
   },
   sectionText: {
     flex: 1,
@@ -844,87 +1413,126 @@ const styles = StyleSheet.create({
     ...type.cardBody,
     marginTop: spacing.xs,
   },
-  latestFocus: {
-    ...type.bodySmall,
-    color: colors.sageDeep,
-    marginTop: spacing.md,
-  },
-  evidenceList: {
-    marginTop: spacing.md,
-  },
-  evidenceRow: {
+  profileHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.md,
+  },
+  profileRows: {
+    marginTop: 14,
+  },
+  profileRow: {
+    minHeight: 72,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
     paddingVertical: spacing.md,
   },
-  evidenceText: {
+  profileRowText: {
     flex: 1,
     minWidth: 0,
   },
-  evidenceTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
+  profileStatusPill: {
+    minWidth: 86,
+    maxWidth: 116,
+    minHeight: 28,
+    flexShrink: 0,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+    borderRadius: 14,
+    backgroundColor: colors.bgSurface,
   },
-  ageLabel: {
-    ...type.bodySmall,
+  profileStatusPillMuted: {
+    backgroundColor: colors.bgElevated,
+  },
+  profileStatusText: {
     color: colors.sageDeep,
-    marginTop: spacing.xs,
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0,
+    textAlign: 'center',
   },
-  interpretation: {
-    ...type.caption,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
+  profileStatusTextMuted: {
+    color: colors.textTertiary,
   },
-  metricGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginTop: spacing.md,
-  },
-  metricCell: {
-    flexGrow: 1,
-    minWidth: 124,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.input,
-    backgroundColor: colors.sageMist,
-    borderWidth: 1,
-    borderColor: colors.borderHairline,
-  },
-  metricLabel: {
-    ...type.caption,
-    color: colors.textSecondary,
-  },
-  metricValue: {
-    ...type.bodySmall,
+  profileRowTitle: {
     color: colors.textPrimary,
     fontFamily: fonts.sansMedium,
-    marginTop: 2,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: 0,
   },
-  metricValueMuted: {
+  profileRowMeta: {
+    ...type.cardCaption,
+    marginTop: 3,
+  },
+  latestResultsAction: {
+    minHeight: 66,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: 12,
+    paddingTop: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
+  },
+  latestResultsIconWell: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bgElevated,
+  },
+  latestResultsCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  latestResultsTitle: {
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: 0,
+  },
+  latestResultsBody: {
     color: colors.textSecondary,
     fontFamily: fonts.sansRegular,
+    fontSize: 14,
+    lineHeight: 20,
+    letterSpacing: 0,
   },
   iconBadge: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.sageMist,
-    borderWidth: 1,
-    borderColor: colors.borderHairline,
   },
-  domainList: { marginTop: spacing.md },
-  domainRow: {
-    minHeight: 72,
+  changeRows: {
+    marginTop: 14,
+  },
+  changeRow: {
+    minHeight: 68,
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: spacing.md,
     paddingVertical: spacing.md,
   },
-  domainText: { flex: 1, minWidth: 0 },
+  changeRowText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  changeRowTitle: {
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: 0,
+  },
+  changeRowMetric: {
+    ...type.cardCaption,
+    marginTop: 3,
+  },
   domainTitle: {
     ...type.bodySmall,
     color: colors.textPrimary,
@@ -932,62 +1540,96 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   metricLine: { ...type.caption, color: colors.textSecondary, marginTop: 2 },
-  domainBody: { ...type.caption, color: colors.textSecondary, marginTop: spacing.xs },
+  baselineStateRow: {
+    minHeight: 64,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: 14,
+  },
+  baselineStateText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  inlineStatusPill: {
+    maxWidth: 118,
+    minHeight: 34,
+    flexShrink: 0,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    borderRadius: 17,
+    backgroundColor: colors.bgElevated,
+  },
+  inlineStatusText: {
+    color: colors.sageDeep,
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0,
+    textAlign: 'center',
+  },
+  inlineStatusPillCompact: {
+    maxWidth: 88,
+    minHeight: 28,
+    paddingHorizontal: spacing.sm,
+    borderRadius: 14,
+  },
   rowDivider: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.divider,
   },
-  reportList: {
-    marginTop: spacing.md,
+  levelRows: {
+    marginTop: 14,
   },
-  reportRow: {
-    minHeight: 82,
+  levelRow: {
+    minHeight: 70,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     paddingVertical: spacing.md,
   },
-  reportText: {
+  levelRowText: {
     flex: 1,
     minWidth: 0,
   },
-  reportTitle: {
-    ...type.bodySmall,
+  levelRowTitle: {
     color: colors.textPrimary,
     fontFamily: fonts.sansMedium,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: 0,
   },
-  reportMeta: {
-    ...type.caption,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
+  levelRowMeta: {
+    ...type.cardCaption,
+    marginTop: 3,
   },
-  reportChange: {
-    ...type.bodySmall,
-    color: colors.sageDeep,
-    marginTop: spacing.xs,
+  recordRows: {
+    marginTop: 14,
   },
-  historyList: {
-    marginTop: spacing.md,
-  },
-  historyRow: {
+  recordRow: {
+    minHeight: 70,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     paddingVertical: spacing.md,
   },
-  historyText: {
+  recordRowText: {
     flex: 1,
     minWidth: 0,
   },
-  historyDate: {
-    ...type.bodySmall,
+  recordRowTitle: {
     color: colors.textPrimary,
     fontFamily: fonts.sansMedium,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: 0,
   },
-  historyMeta: {
-    ...type.caption,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
+  recordRowMeta: {
+    ...type.cardCaption,
+    marginTop: 3,
+  },
+  recordChevronSpacer: {
+    width: 18,
   },
   moreHistory: {
     ...type.caption,
@@ -995,7 +1637,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   retestCard: {
-    minHeight: 84,
+    minHeight: 92,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
@@ -1005,15 +1647,38 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   retestPressable: {
-    minHeight: 84,
+    minHeight: 92,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    padding: spacing.lg + spacing.xs,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+  },
+  retestIconWell: {
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bgElevated,
   },
   retestText: { flex: 1, minWidth: 0 },
   retestTitle: { ...type.cardTitle },
   retestBody: { ...type.cardBody, color: colors.sageDeep, marginTop: spacing.xs },
+  retestCtaPill: {
+    minHeight: 34,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    borderRadius: 17,
+    backgroundColor: colors.accent,
+  },
+  retestCtaText: {
+    color: colors.onAccent,
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0,
+  },
   chevron: { ...type.h2, color: colors.textSecondary },
   pressed: { opacity: 0.86, transform: [{ scale: 0.995 }] },
 });

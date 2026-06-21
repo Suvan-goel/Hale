@@ -1,5 +1,5 @@
 import { BALANCE_LADDER_ID, CHAIR_STAND_ID, SHOULDER_FLEXION_ID } from '../../../movements';
-import { defaultAdherenceStoreState, type MovementBlock, type MovementBlockReport } from '../../../adherence';
+import { blockProgress, defaultAdherenceStoreState, type MovementBlock, type MovementBlockReport } from '../../../adherence';
 import type { CheckUp } from '../../../checkup';
 import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../../../history';
 import { defaultPreferences } from '../../../profile';
@@ -364,6 +364,7 @@ describe('remote restore service', () => {
     expect(mapped.state.adherence.blocks[0].id).toBe('movement-block-1');
     expect(mapped.state.training.block?.weakestDomain).toBe('strength');
     expect(mapped.state.adherence.completions[0].id).toBe('session-1');
+    expect(blockProgress(mapped.state.adherence.blocks[0], mapped.state.adherence.completions).completedSessions).toBe(0);
     expect(mapped.state.microChecks[0]).toEqual(microCheck());
     expect(mapped.state.adherence.reports[0].id).toBe('report-movement-block-1');
     expect(mapped.gaps).toEqual(

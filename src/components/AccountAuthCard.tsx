@@ -57,6 +57,7 @@ export function AccountAuthCard({
   const [localError, setLocalError] = React.useState<string | null>(null);
   const [notice, setNotice] = React.useState<string | null>(null);
   const authError = localError ?? error;
+  const isRequiredAuth = context === 'required';
   const title = isPasswordRecovery ? 'Set a new password' : context === 'required' ? 'Account access' : 'Account';
   const showGoogleButton = Platform.OS === 'ios' || Platform.OS === 'android';
   const appleSignInEnabled = isAppleSignInEnabled();
@@ -349,12 +350,18 @@ export function AccountAuthCard({
   }
 
   return (
-    <Card style={context === 'required' ? styles.authCard : undefined}>
-      <View style={styles.sectionHead}>
-        <Typography variant="h3" color={colors.textPrimary}>{title}</Typography>
+    <Card style={isRequiredAuth ? styles.authCard : undefined}>
+      <View style={[styles.sectionHead, isRequiredAuth && styles.requiredSectionHead]}>
+        <Typography variant={isRequiredAuth ? 'h2' : 'h3'} color={colors.textPrimary} style={isRequiredAuth && styles.requiredCardTitle}>
+          {title}
+        </Typography>
         {isSignedIn ? <StatusBadge label="Signed in" tone="good" /> : null}
       </View>
-      <Typography variant="caption" color={colors.textSecondary} style={styles.sectionHint}>
+      <Typography
+        variant={isRequiredAuth ? 'bodySmall' : 'caption'}
+        color={colors.textSecondary}
+        style={[styles.sectionHint, isRequiredAuth && styles.requiredSectionHint]}
+      >
         {isPasswordRecovery
           ? 'Choose a new password to finish restoring access to your Hale account.'
           : isSignedIn
@@ -363,7 +370,7 @@ export function AccountAuthCard({
       </Typography>
 
       {isPasswordRecovery ? (
-        <View style={styles.stack}>
+        <View style={[styles.stack, isRequiredAuth && styles.requiredStack]}>
           <Input
             label="New password"
             value={newPassword}
@@ -395,7 +402,7 @@ export function AccountAuthCard({
             onPress={submitNewPassword}
             disabled={loading}
             accessibilityLabel="Update password"
-            style={styles.submitButton}
+            style={[styles.submitButton, isRequiredAuth && styles.requiredSubmitButton]}
           />
         </View>
       ) : isSignedIn ? (
@@ -476,7 +483,7 @@ export function AccountAuthCard({
           ) : null}
         </View>
       ) : (
-        <View style={styles.stack}>
+        <View style={[styles.stack, isRequiredAuth && styles.requiredStack]}>
           {mode === 'forgot-password' ? (
             <Typography variant="bodySmall" color={colors.textSecondary}>
               Enter your email and Hale will send a secure password reset link.
@@ -560,7 +567,7 @@ export function AccountAuthCard({
               onPress={submitPasswordReset}
               disabled={loading}
               accessibilityLabel="Send reset email"
-              style={styles.submitButton}
+              style={[styles.submitButton, isRequiredAuth && styles.requiredSubmitButton]}
             />
           ) : (
             <Button
@@ -568,7 +575,7 @@ export function AccountAuthCard({
               onPress={submit}
               disabled={loading}
               accessibilityLabel={mode === 'sign-up' ? 'Create account' : 'Sign in'}
-              style={styles.submitButton}
+              style={[styles.submitButton, isRequiredAuth && styles.requiredSubmitButton]}
             />
           )}
           {mode === 'sign-in' ? (
@@ -622,8 +629,8 @@ function SocialButton({
       variant="secondary"
       disabled={disabled}
       accessibilityLabel={label}
-      style={dark ? styles.socialButtonDark : undefined}
-      textStyle={dark ? styles.socialButtonTextDark : undefined}
+      style={[styles.socialButton, dark && styles.socialButtonDark]}
+      textStyle={[styles.socialButtonText, dark && styles.socialButtonTextDark]}
     />
   );
 }
@@ -759,15 +766,39 @@ const styles = StyleSheet.create({
   },
   authCard: {
     width: '100%',
-    backgroundColor: colors.surface,
-    borderRadius: radius.panel,
-    shadowOpacity: 0,
-    elevation: 0,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    backgroundColor: colors.bgSurface,
+    borderRadius: radius.xl,
+    ...shadow.card,
   },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   sectionHint: { marginTop: spacing.xs },
+  requiredSectionHead: {
+    alignItems: 'flex-start',
+  },
+  requiredCardTitle: {
+    fontFamily: type.h2.fontFamily,
+  },
+  requiredSectionHint: {
+    maxWidth: 310,
+  },
   stack: { gap: spacing.lg, marginTop: spacing.lg },
+  requiredStack: {
+    gap: 14,
+    marginTop: spacing.xl,
+  },
   socialStack: { gap: spacing.sm, marginTop: spacing.xs },
+  socialButton: {
+    minHeight: 58,
+    backgroundColor: colors.bgSurface,
+    borderColor: colors.border,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  socialButtonText: {
+    color: colors.accentDeep,
+  },
   socialButtonDark: {
     backgroundColor: colors.textPrimary,
     borderColor: colors.textPrimary,
@@ -801,6 +832,11 @@ const styles = StyleSheet.create({
   field: {},
   submitButton: {
     marginTop: spacing.xs,
+  },
+  requiredSubmitButton: {
+    minHeight: 60,
+    borderRadius: radius.button,
+    ...shadow.soft,
   },
   modeLink: {
     minHeight: 44,

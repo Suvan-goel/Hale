@@ -112,6 +112,29 @@ describe('TrainingStore persistence', () => {
           ladderIds: ['sit-to-stand'],
           readiness: 'ready' as const,
           durationMinutes: 20,
+          focusStimulusEvidence: {
+            planStatus: 'eligible' as const,
+            status: 'credited_focus_work' as const,
+            exclusionReason: 'none' as const,
+            mainPlanCredit: true,
+            blockFocusDomain: 'strength_power' as const,
+            plannedPrimaryFocusExerciseCount: 1,
+            completedPrimaryFocusExerciseCount: 1,
+            completedSupportingExerciseCount: 0,
+            completedFallbackExerciseCount: 0,
+            completedCrossDomainExerciseCount: 0,
+            plannedPrimaryFocusExerciseIds: [STS_STANDARD_ID],
+            completedPrimaryFocusExerciseIds: [STS_STANDARD_ID],
+            completedSupportingExerciseIds: [],
+            completedFallbackExerciseIds: [],
+            completedCrossDomainExerciseIds: [],
+            fallbackFocusSlotIds: [],
+            skippedFocusSlotIds: [],
+            focusStimulusExclusionReasons: [],
+            missingMetadataExerciseIds: [],
+            malformedMetadataExerciseIds: [],
+            focusMismatchExerciseIds: [],
+          },
         },
       ],
       lastPostSessionFeedback: {
@@ -129,6 +152,7 @@ describe('TrainingStore persistence', () => {
 
     expect(reloaded.ladderProgressById['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
     expect(reloaded.generatedSessionSummaries[0].templateId).toBe('strength-A');
+    expect(reloaded.generatedSessionSummaries[0].focusStimulusEvidence?.status).toBe('credited_focus_work');
     expect(reloaded.lastPostSessionFeedback?.rpe).toBe(2);
     expect(reloaded.planPreferences.preferredIntensity).toBe('standard');
   });

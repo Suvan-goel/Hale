@@ -111,9 +111,11 @@ const EQUIPMENT: AvailableEquipment[] = [
   'wall',
   'stairs',
   'resistance_band',
+  'door_anchor',
   'mini_band',
   'dumbbells',
   'backpack',
+  'floor_space',
   'none',
 ];
 

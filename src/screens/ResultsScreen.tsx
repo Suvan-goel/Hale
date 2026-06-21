@@ -7,6 +7,7 @@ import * as React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Polyline } from 'react-native-svg';
 
+import { HeaderLogo } from '../components/HeaderLogo';
 import { CheckUp } from '../checkup/types';
 import { Card, HealthMetricRow, MaterialCard, PrimaryButton, Screen, SecondaryButton, StatusBadge } from '../components/ui';
 import type { MovementAssessment } from '../adherence';
@@ -68,7 +69,10 @@ export function ResultsScreen({
   return (
     <Screen>
       <View style={styles.header}>
-        <Text style={styles.title}>Your Movement Dashboard</Text>
+        <View style={styles.titleGroup}>
+          <HeaderLogo size={30} />
+          <Text style={styles.title}>Your Movement Dashboard</Text>
+        </View>
         <Text style={styles.subtitle}>
           Home movement estimates from today’s guided check-up. Small changes can reflect setup or day-to-day variation.
         </Text>
@@ -297,7 +301,13 @@ function formatDelta(value: number): string {
 
 const styles = StyleSheet.create({
   header: { gap: spacing.xs },
-  title: { ...type.pageTitle },
+  titleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    minWidth: 0,
+  },
+  title: { ...type.pageTitle, flexShrink: 1 },
   subtitle: { ...type.pageSubtitle },
   focusLabel: { ...type.label, color: colors.accentDeep },
   focusValue: { ...type.cardTitle, marginTop: spacing.sm },

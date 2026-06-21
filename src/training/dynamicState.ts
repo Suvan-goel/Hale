@@ -1,4 +1,10 @@
 import type {
+  TrainingFocusStimulusEvidenceSummary,
+  TrainingSessionCompletionSource,
+  TrainingSessionCompletionType,
+  TrainingSessionWorkEvidenceSummary,
+} from '../adherence';
+import type {
   DailyReadiness,
   LadderProgress,
   PainArea,
@@ -6,6 +12,8 @@ import type {
   SessionSource,
   TrackingQuality,
   TrainingDomain,
+  SlotStimulusReason,
+  SlotStimulusRole,
 } from './workoutGeneration';
 
 export type PersistedSessionSource = SessionSource | 'legacy';
@@ -19,6 +27,9 @@ export interface PersistedGeneratedExerciseSummary {
   repsPerSet?: number;
   secondsPerSet?: number;
   measurementTier?: 'measured' | 'camera_assisted' | 'voice_guided';
+  intendedDomain?: TrainingDomain;
+  stimulusRole?: SlotStimulusRole;
+  stimulusReason?: SlotStimulusReason;
 }
 
 export interface PersistedPostSessionFeedback {
@@ -36,6 +47,13 @@ export interface PersistedGeneratedSessionSummary {
   blockId?: string;
   source: PersistedSessionSource;
   templateId?: string;
+  plannedDateKey?: string;
+  sessionType?: TrainingSessionCompletionType;
+  completionSource?: TrainingSessionCompletionSource;
+  status?: 'completed' | 'partial' | 'skipped';
+  mainPlanCredit?: boolean;
+  workEvidence?: TrainingSessionWorkEvidenceSummary;
+  focusStimulusEvidence?: TrainingFocusStimulusEvidenceSummary;
   title: string;
   focus?: TrainingDomain | string;
   generatedAt?: string;

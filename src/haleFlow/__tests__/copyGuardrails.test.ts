@@ -17,6 +17,7 @@ import {
   getLearnCards,
   getLearnDetail,
   getMovementLadderCards,
+  getMovementLadderDetail,
 } from '../exploreViewModel';
 import {
   getPlanEmptyStateCopy,
@@ -117,6 +118,32 @@ describe('Hale V1 copy guardrails', () => {
     assertCleanCopy(getExploreLibrary().sections.flatMap((section) => [section.title, section.body]));
     assertCleanCopy(getExtraSessionCards().flatMap((card) => Object.values(card)));
     assertCleanCopy(getMovementLadderCards().flatMap((card) => Object.values(card)));
+    assertCleanCopy(
+      getMovementLadderCards().flatMap((card) => {
+        const detail = getMovementLadderDetail(card.id);
+        return detail
+          ? [
+              detail.title,
+              detail.body,
+              detail.whyItMatters,
+              detail.currentLevel.instructions,
+              detail.currentLevel.setupNote,
+              detail.currentLevel.safetyNote,
+              detail.currentLevel.measurementNote,
+              ...detail.levels.flatMap((level) => [
+                level.name,
+                level.equipmentLabel,
+                level.measurementLabel,
+                level.cameraLabel,
+                level.instructions,
+                level.setupNote,
+                level.safetyNote,
+                level.measurementNote,
+              ]),
+            ]
+          : [];
+      })
+    );
     assertCleanCopy(
       getLearnCards().flatMap((card) => {
         const detail = getLearnDetail(card.id);

@@ -1,6 +1,11 @@
 import {
   BALANCE_FEET_TOGETHER_ID,
   BALANCE_TANDEM_ID,
+  BRIDGE_HOLD_ID,
+  HINGE_FREE_ID,
+  SEATED_BAND_ROW_ID,
+  STANDING_BAND_ROW_ID,
+  STEP_UP_ID,
   PUSHUP_INCLINE_ID,
   PUSHUP_STANDARD_ID,
   STS_SLOW_ECC_ID,
@@ -64,6 +69,21 @@ describe('dynamic workout generation', () => {
     expect(selection.template).toBeNull();
   });
 
+  it('does not let duplicate template completions substitute for missing A/B/C sessions', () => {
+    const block = createTrainingBlockFromAssessment({ focusDomain: 'strength_power', startDate: START });
+    expect(
+      getTemplateSelection(
+        block,
+        [
+          { templateId: 'strength-A', completedAt: '2026-06-01T10:00:00.000Z' },
+          { templateId: 'strength-A', completedAt: '2026-06-02T10:00:00.000Z' },
+          { templateId: 'strength-C', completedAt: '2026-06-05T10:00:00.000Z' },
+        ],
+        '2026-06-05T12:00:00.000Z'
+      ).template?.id
+    ).toBe('strength-B');
+  });
+
   it('avoids missing bands, stairs, loads, and support equipment', () => {
     const block = createTrainingBlockFromAssessment({ focusDomain: 'strength_power', startDate: START });
     const session = generateTodaySession({
@@ -77,6 +97,163 @@ describe('dynamic workout generation', () => {
     expect(equipment).not.toContain('mini_band');
     expect(equipment).not.toContain('stair');
     expect(equipment).not.toContain('backpack_or_weight');
+  });
+
+  it('requires explicit floor-space availability before selecting floor exercises', () => {
+    const template = createSessionTemplatesForFocus('strength_power')[2];
+    const ladderProgress = {
+      'hinge-glutes': progress('hinge-glutes', BRIDGE_HOLD_ID),
+    };
+    const withoutFloor = generateTodaySession({
+      template,
+      today: START,
+      availableEquipment: ['chair', 'wall'],
+      ladderProgress,
+    });
+    const withFloor = generateTodaySession({
+      template,
+      today: START,
+      availableEquipment: ['chair', 'wall', 'floor_space'],
+      ladderProgress,
+    });
+
+    expect(withoutFloor.exercises.map((exercise) => exercise.exerciseId)).not.toContain(BRIDGE_HOLD_ID);
+    expect(withoutFloor.exercises.map((exercise) => exercise.exerciseId)).toContain(HINGE_FREE_ID);
+    expect(withoutFloor.exercises.flatMap((exercise) => exercise.equipment)).not.toContain('floor');
+    expect(withFloor.exercises.map((exercise) => exercise.exerciseId)).toContain(BRIDGE_HOLD_ID);
+    expect(withFloor.exercises.flatMap((exercise) => exercise.equipment)).toContain('floor');
+  });
+
+  it('requires stair plus nearby support before selecting step-up', () => {
+    const template = createSessionTemplatesForFocus('strength_power')[1];
+    const stairsOnly = generateTodaySession({
+      template,
+      today: START,
+      availableEquipment: ['stairs'],
+    });
+    const stairsWithSupport = generateTodaySession({
+      template,
+      today: START,
+      availableEquipment: ['stairs', 'wall'],
+    });
+
+    expect(stairsOnly.exercises.map((exercise) => exercise.exerciseId)).not.toContain(STEP_UP_ID);
+    expect(stairsOnly.exercises.flatMap((exercise) => exercise.equipment)).not.toContain('stair');
+    expect(stairsWithSupport.exercises.map((exercise) => exercise.exerciseId)).toContain(STEP_UP_ID);
+  });
+
+  it('does not give support-dependent balance drills to true no-equipment profiles', () => {
+    const block = createTrainingBlockFromAssessment({ focusDomain: 'balance_stability', startDate: START });
+    const session = generateTodaySession({
+      block,
+      today: START,
+      availableEquipment: ['none'],
+    });
+
+    expect(session.exercises.map((exercise) => exercise.exerciseId)).not.toEqual(
+      expect.arrayContaining(['balance-feet-together-hold', 'balance-tandem-hold', 'balance-single-leg-hold', 'supported-side-step', 'loaded-march'])
+    );
+    expect(session.exercises.some((exercise) => exercise.domain === 'balance_stability')).toBe(false);
+    expect(session.skippedSlotReasons.join(' ')).toMatch(/support/);
+    expect(session.slotStimulus.filter((stimulus) => stimulus.intendedDomain === 'balance_stability')).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ role: 'skipped', reason: 'support_required' }),
+      ])
+    );
+  });
+
+  it('skips upper-back pulling honestly when no resistance band is available', () => {
+    const template = createSessionTemplatesForFocus('strength_power')[0];
+    const session = generateTodaySession({
+      template,
+      today: START,
+      availableEquipment: ['chair', 'wall'],
+    });
+
+    expect(session.exercises.map((exercise) => exercise.ladderId)).not.toContain('pull-upper-back');
+    expect(session.exercises.map((exercise) => exercise.exerciseId)).not.toContain('overhead-reach');
+    expect(session.skippedSlots).toContain('upper-pull-a');
+    expect(session.skippedSlotReasons.join(' ')).toMatch(/Upper-back pulling was skipped/);
+    expect(session.skippedSlotReasons.join(' ')).toMatch(/did not replace it with shoulder mobility/);
+    expect(session.slotStimulus.find((stimulus) => stimulus.slotId === 'upper-pull-a')).toMatchObject({
+      role: 'skipped',
+      reason: 'band_required',
+    });
+  });
+
+  it('records stimulus roles for true no-equipment sessions instead of hiding dilution', () => {
+    const strength = generateTodaySession({
+      block: createTrainingBlockFromAssessment({ focusDomain: 'strength_power', startDate: START }),
+      today: START,
+      availableEquipment: ['none'],
+    });
+    const balance = generateTodaySession({
+      block: createTrainingBlockFromAssessment({ focusDomain: 'balance_stability', startDate: START }),
+      today: START,
+      availableEquipment: ['none'],
+    });
+    const mobility = generateTodaySession({
+      block: createTrainingBlockFromAssessment({ focusDomain: 'mobility_flexibility', startDate: START }),
+      today: START,
+      availableEquipment: ['none'],
+    });
+
+    for (const session of [strength, balance, mobility]) {
+      expect(session.slotStimulus.length).toBeGreaterThan(0);
+      expectNoUnsafeTrueNoEquipment(session);
+      expect(session.slotStimulus.some((stimulus) => stimulus.role === 'primary')).toBe(true);
+      expect(session.slotStimulus.every((stimulus) => stimulus.role !== 'invalid')).toBe(true);
+    }
+
+    expect(strength.slotStimulus.find((stimulus) => stimulus.slotType === 'upper_body_pull')).toMatchObject({
+      role: 'skipped',
+      reason: 'band_required',
+    });
+    expect(strength.guidance.join(' ')).toMatch(/resistance band/);
+    expect(balance.exercises.some((exercise) => exercise.domain === 'balance_stability')).toBe(false);
+    expect(balance.slotStimulus.filter((stimulus) => stimulus.intendedDomain === 'balance_stability')).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ role: 'skipped', reason: 'support_required' }),
+      ])
+    );
+    expect(mobility.slotStimulus.find((stimulus) => stimulus.intendedDomain === 'mobility_flexibility')).toMatchObject({
+      role: 'primary',
+    });
+  });
+
+  it('keeps supported focus-domain sessions primary when equipment makes them feasible', () => {
+    const strength = generateTodaySession({
+      block: createTrainingBlockFromAssessment({ focusDomain: 'strength_power', startDate: START }),
+      today: START,
+      availableEquipment: ['chair', 'wall'],
+    });
+    const balance = generateTodaySession({
+      block: createTrainingBlockFromAssessment({ focusDomain: 'balance_stability', startDate: START }),
+      today: START,
+      availableEquipment: ['chair', 'wall'],
+    });
+    const mobility = generateTodaySession({
+      block: createTrainingBlockFromAssessment({ focusDomain: 'mobility_flexibility', startDate: START }),
+      today: START,
+      availableEquipment: ['chair', 'wall'],
+    });
+
+    expect(strength.slotStimulus.find((stimulus) => stimulus.slotId === 'lower-strength-a')).toMatchObject({
+      role: 'primary',
+      reason: 'direct_match',
+    });
+    expect(balance.slotStimulus.find((stimulus) => stimulus.slotId === 'balance-a')).toMatchObject({
+      role: 'primary',
+      reason: 'direct_match',
+      ladderId: 'balance',
+    });
+    expect(balance.slotStimulus.find((stimulus) => stimulus.slotId === 'lateral-a')).toMatchObject({
+      role: 'primary',
+      ladderId: 'lateral-stability',
+    });
+    expect(mobility.slotStimulus.find((stimulus) => stimulus.intendedDomain === 'mobility_flexibility')).toMatchObject({
+      role: 'primary',
+    });
   });
 
   it('treats the no-equipment quick preset as no optional equipment at home', () => {
@@ -110,6 +287,25 @@ describe('dynamic workout generation', () => {
     expect(new Set(session.exercises.map((exercise) => exercise.domain))).toEqual(
       new Set(['strength_power', 'balance_stability', 'mobility_flexibility'])
     );
+  });
+
+  it('keeps short true-no-equipment sessions transparent when a domain cannot be safely trained', () => {
+    const block = createTrainingBlockFromAssessment({ focusDomain: 'mobility_flexibility', startDate: START });
+    const session = generateTodaySession({
+      block,
+      dailyReadiness: 'short_on_time',
+      today: START,
+      availableEquipment: ['none'],
+    });
+
+    expect(session.estimatedMinutes).toBe(10);
+    expect(session.slotStimulus).toHaveLength(3);
+    expectNoUnsafeTrueNoEquipment(session);
+    expect(session.slotStimulus.find((stimulus) => stimulus.slotType === 'balance')).toMatchObject({
+      role: 'skipped',
+      reason: 'support_required',
+    });
+    expect(session.guidance.join(' ')).toMatch(/support/);
   });
 
   it('moves mobility first and eases the first strength prescription when a bit stiff', () => {
@@ -427,7 +623,7 @@ describe('dynamic workout generation', () => {
       '10-Minute Mobility Reset',
       'Gentle Restart Session',
       'Steady Balance Practice',
-      'No Optional Equipment Strength',
+      'Chair + Wall Strength',
       'Band Upper-Back',
       'Stairs Confidence',
       'Quick Full-Body Hale Session',
@@ -445,6 +641,42 @@ describe('dynamic workout generation', () => {
     });
     expect(withBand.exercises.some((exercise) => exercise.ladderId === 'pull-upper-back')).toBe(true);
     expect(withoutBand.exercises.flatMap((exercise) => exercise.equipment)).not.toContain('long_band');
+    expect(withoutBand.slotStimulus.find((stimulus) => stimulus.slotId === 'band-row')).toMatchObject({
+      role: 'skipped',
+      reason: 'band_required',
+    });
+  });
+
+  it('distinguishes a band from a door anchor for upper-back row progressions', () => {
+    const ladderProgress = {
+      'pull-upper-back': progress('pull-upper-back', STANDING_BAND_ROW_ID),
+    };
+    const withoutAnchor = generatePresetSession({
+      presetId: 'preset-band-upper-back',
+      today: START,
+      availableEquipment: ['chair', 'wall', 'resistance_band'],
+      ladderProgress,
+    });
+    const withAnchor = generatePresetSession({
+      presetId: 'preset-band-upper-back',
+      today: START,
+      availableEquipment: ['chair', 'wall', 'resistance_band', 'door_anchor'],
+      ladderProgress,
+    });
+
+    expect(withoutAnchor.exercises.map((exercise) => exercise.exerciseId)).toContain(SEATED_BAND_ROW_ID);
+    expect(withoutAnchor.exercises.map((exercise) => exercise.exerciseId)).not.toContain(STANDING_BAND_ROW_ID);
+    expect(withoutAnchor.slotStimulus.find((stimulus) => stimulus.slotId === 'band-row')).toMatchObject({
+      role: 'primary',
+      reason: 'equipment_limited',
+      exerciseId: SEATED_BAND_ROW_ID,
+    });
+    expect(withAnchor.exercises.map((exercise) => exercise.exerciseId)).toContain(STANDING_BAND_ROW_ID);
+    expect(withAnchor.slotStimulus.find((stimulus) => stimulus.slotId === 'band-row')).toMatchObject({
+      role: 'primary',
+      reason: 'direct_match',
+      exerciseId: STANDING_BAND_ROW_ID,
+    });
   });
 
   it('filters out optional levels when V1 core-only mode is requested', () => {
@@ -527,8 +759,9 @@ describe('dynamic workout generation', () => {
     expect(byId.beginner_long_band.exercises.every((exercise) => !exercise.prescription.startsWith('3 x'))).toBe(true);
     expect(byId.beginner_long_band.exercises.some((exercise) => exercise.ladderId === 'pull-upper-back')).toBe(true);
     expect(byId.no_band_upper_pull.exercises.flatMap((exercise) => exercise.equipmentRequired)).not.toContain('long_band');
-    expect(byId.no_band_upper_pull.exercises.some((exercise) => exercise.fallbackReason)).toBe(true);
-    expect(JSON.stringify(byId.no_band_upper_pull.exercises).toLowerCase()).toMatch(/resistance band|no band|shoulder mobility/);
+    expect(byId.no_band_upper_pull.skippedSlots).toContain('upper-pull-a');
+    expect(byId.no_band_upper_pull.guidance.join(' ')).toMatch(/Upper-back pulling was skipped/);
+    expect(byId.no_band_upper_pull.guidance.join(' ')).toMatch(/did not replace it with shoulder mobility/);
     expect(exerciseText('knee_pain')).not.toMatch(/step-up|split-squat|squat-free|squat-slow|squat-loaded/);
     expect(exerciseText('knee_pain')).not.toMatch(/mini-band-lateral-walk/);
     const kneeSideStep = byId.knee_pain.exercises.find((exercise) => exercise.exerciseId === 'supported-side-step');
@@ -574,6 +807,36 @@ describe('dynamic workout generation', () => {
     expect(sessions.flatMap((session) => session.exercises).some((exercise) => exercise.ladderId === 'pull-upper-back')).toBe(true);
   });
 });
+
+function progress(ladderId: string, currentLevelId: string): LadderProgress {
+  return {
+    ladderId,
+    currentLevelId,
+    completedSessionsAtLevel: 0,
+    failedSessionsAtLevel: 0,
+    recentCompletionRates: [],
+    recentRpe: [],
+    recentPain: [],
+    updatedAt: START,
+  };
+}
+
+function expectNoUnsafeTrueNoEquipment(session: ReturnType<typeof generateTodaySession>): void {
+  const equipment = session.exercises.flatMap((exercise) => exercise.equipment);
+  for (const forbidden of [
+    'chair',
+    'wall',
+    'counter',
+    'floor',
+    'stair',
+    'long_band',
+    'door_anchor',
+    'mini_band',
+    'backpack_or_weight',
+  ]) {
+    expect(equipment).not.toContain(forbidden);
+  }
+}
 
 function validTimeSummary(signal: ValidTimeProgressionSignal): ValidTimeProgressionSummary {
   return {

@@ -6,7 +6,8 @@ import {
   LOCAL_USER_ID,
   MovementSafetyProfile,
 } from '../adherence';
-import { Card, ListRow, PrimaryButton, Screen, ScreenHeader, SecondaryButton, ToggleRow, Typography } from '../components/ui';
+import { BackArrowButton } from '../components/BackArrowButton';
+import { Card, ListRow, PrimaryButton, Screen, ScreenHeader, ToggleRow, Typography } from '../components/ui';
 import { UserProfile } from '../profile';
 import { colors, spacing, type } from '../theme';
 
@@ -68,6 +69,7 @@ export function SafetyProfileScreen({
 
   return (
     <Screen>
+      <BackArrowButton accessibilityLabel="Back" onPress={onCancel} />
       <ScreenHeader
         eyebrow="Step 3 of 10"
         title="A few safety details"
@@ -124,7 +126,6 @@ export function SafetyProfileScreen({
 
       <View style={styles.actions}>
         <PrimaryButton title="Continue" onPress={save} />
-        <SecondaryButton title="Back" onPress={onCancel} />
       </View>
     </Screen>
   );

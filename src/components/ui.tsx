@@ -21,6 +21,7 @@ import {
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
+import { HeaderLogo } from './HeaderLogo';
 import { SettingsIcon } from '../navigation/icons';
 import { colors, componentStyles, fonts, minTapTarget, radius, shadow, spacing, type } from '../theme';
 
@@ -324,7 +325,10 @@ export function ScreenHeader({
   return (
     <View style={styles.header}>
       {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-      <Text style={styles.headerTitle}>{title}</Text>
+      <View style={styles.headerTitleRow}>
+        <HeaderLogo size={30} />
+        <Text style={styles.headerTitle}>{title}</Text>
+      </View>
       {subtitle ? <Text style={styles.headerSubtitle}>{subtitle}</Text> : null}
     </View>
   );
@@ -732,7 +736,13 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
   },
   header: { gap: spacing.xs },
-  headerTitle: { ...type.pageTitle },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    minWidth: 0,
+  },
+  headerTitle: { ...type.pageTitle, flexShrink: 1 },
   headerSubtitle: { ...type.pageSubtitle, maxWidth: 460 },
   iconButton: {
     width: minTapTarget,

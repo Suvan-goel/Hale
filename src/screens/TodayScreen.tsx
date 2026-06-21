@@ -9,10 +9,11 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 
-const HERO_IMAGE = require('../../assets/images/hale-home-hero-premium.png');
+const HERO_IMAGE = require('../../assets/images/hale-home-hero-botanical.png');
 
+import { HeaderLogo } from '../components/HeaderLogo';
 import type {
   HaleAppLifecycleResult,
   MovementSnapshot,
@@ -22,7 +23,7 @@ import type {
 import { SettingsIcon } from '../navigation/icons';
 import type { UserProfile } from '../profile';
 import type { PainArea } from '../training';
-import { colors, fonts, radius, shadow, spacing, todayHomeColors, type } from '../theme';
+import { colors, fonts, imageOverlayControl, radius, shadow, spacing, todayHomeColors, type } from '../theme';
 
 type SnapshotKey = keyof MovementSnapshot;
 
@@ -95,13 +96,16 @@ export function TodayScreen({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <View style={styles.headerCopy}>
-            <Text style={styles.greeting}>
-              {timeOfDayGreeting()}
-            </Text>
-            <Text style={styles.headerName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>
-              {headerName(profile.name)}
-            </Text>
+          <View style={styles.headerIdentity}>
+            <HeaderLogo size={34} />
+            <View style={styles.headerCopy}>
+              <Text style={styles.greeting}>
+                {timeOfDayGreeting()}
+              </Text>
+              <Text style={styles.headerName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>
+                {headerName(profile.name)}
+              </Text>
+            </View>
           </View>
           <Pressable
             style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
@@ -276,33 +280,6 @@ function TodayContextStrip({ lifecycle }: { lifecycle: HaleAppLifecycleResult })
   );
 }
 
-/**
- * Green wash over the hero photo so the headline/body stay legible on the left
- * while the figure on the right reads through. Horizontal pass keeps the text
- * column on solid green; vertical pass darkens the base behind the CTA pill.
- */
-function FocusScrim() {
-  return (
-    <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Defs>
-        <LinearGradient id="focusScrimH" x1="0" y1="0" x2="1" y2="0">
-          <Stop offset="0" stopColor={todayHomeColors.heroDeep} stopOpacity={0.72} />
-          <Stop offset="0.42" stopColor={todayHomeColors.hero} stopOpacity={0.5} />
-          <Stop offset="0.68" stopColor={todayHomeColors.hero} stopOpacity={0.08} />
-          <Stop offset="1" stopColor={todayHomeColors.hero} stopOpacity={0} />
-        </LinearGradient>
-        <LinearGradient id="focusScrimV" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0.5" stopColor={todayHomeColors.heroDeep} stopOpacity={0} />
-          <Stop offset="1" stopColor={todayHomeColors.heroDeep} stopOpacity={0.2} />
-        </LinearGradient>
-      </Defs>
-      <Rect x="0" y="0" width="100%" height="100%" fill={todayHomeColors.hero} opacity={0.18} />
-      <Rect x="0" y="0" width="100%" height="100%" fill="url(#focusScrimH)" />
-      <Rect x="0" y="0" width="100%" height="100%" fill="url(#focusScrimV)" />
-    </Svg>
-  );
-}
-
 function DailyFocusCard({
   compact,
   label,
@@ -325,7 +302,6 @@ function DailyFocusCard({
   return (
     <View style={[styles.focusCard, compact && styles.focusCardCompact]}>
       <Image source={HERO_IMAGE} style={styles.focusImage} resizeMode="cover" accessible={false} />
-      <FocusScrim />
       <View style={[styles.focusContent, compact && styles.focusContentCompact]}>
         <Text style={styles.focusLabel}>{label}</Text>
         <Text style={[styles.focusTitle, compact && styles.focusTitleCompact]}>{displayTitle}</Text>
@@ -635,19 +611,26 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.md,
   },
-  headerCopy: { flex: 1, minWidth: 0, gap: 2 },
+  headerIdentity: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  headerCopy: { flex: 1, minWidth: 0, gap: 0, justifyContent: 'center' },
   greeting: {
     color: todayHomeColors.secondaryText,
     fontFamily: fonts.sansMedium,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 15,
     letterSpacing: 0,
   },
   headerName: {
     color: colors.primaryText,
     fontFamily: fonts.serifRegular,
-    fontSize: 28,
-    lineHeight: 34,
+    fontSize: 23,
+    lineHeight: 26,
     letterSpacing: 0,
   },
   iconButton: {
@@ -893,23 +876,23 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     paddingHorizontal: 22,
     paddingVertical: 10,
-    backgroundColor: todayHomeColors.warmWhite,
-    borderWidth: 1,
-    borderColor: todayHomeColors.warmWhite,
+    backgroundColor: imageOverlayControl.background,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: imageOverlayControl.border,
   },
   focusButtonPressed: {
     opacity: 0.9,
     transform: [{ scale: 0.99 }],
   },
   focusButtonText: {
-    color: colors.accentDeep,
+    color: imageOverlayControl.text,
     fontFamily: fonts.sansMedium,
     fontSize: 14,
     lineHeight: 19,
     letterSpacing: 0,
   },
   focusButtonArrow: {
-    color: colors.accentDeep,
+    color: imageOverlayControl.text,
     fontFamily: fonts.sansMedium,
     fontSize: 21,
     lineHeight: 22,

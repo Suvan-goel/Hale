@@ -33,9 +33,11 @@ export type AvailableEquipment =
   | 'wall'
   | 'stairs'
   | 'resistance_band'
+  | 'door_anchor'
   | 'mini_band'
   | 'dumbbells'
   | 'backpack'
+  | 'floor_space'
   | 'none';
 
 export interface MovementSafetyProfile {
@@ -120,6 +122,76 @@ export type TrainingSessionCompletionType =
   | 'retest_prep'
   | 'retest';
 
+export type TrainingSessionCompletionSource = 'block_generated' | 'preset' | 'manual' | 'legacy_fallback';
+
+export interface TrainingSessionWorkEvidenceSummary {
+  plannedExerciseCount: number;
+  resultItemCount: number;
+  completedExerciseCount: number;
+  skippedExerciseCount: number;
+  missingResultCount: number;
+  duplicateResultCount: number;
+  malformedResultCount: number;
+  unmatchedResultCount: number;
+}
+
+export type TrainingFocusStimulusPlanStatus =
+  | 'eligible'
+  | 'not_main_plan'
+  | 'missing_block_focus'
+  | 'missing_stimulus_metadata'
+  | 'focus_mismatch'
+  | 'no_primary_focus_planned';
+
+export type TrainingFocusStimulusCompletionStatus =
+  | 'credited_focus_work'
+  | 'not_main_plan'
+  | 'missing_block_focus'
+  | 'missing_stimulus_metadata'
+  | 'focus_mismatch'
+  | 'no_primary_focus_planned'
+  | 'no_completed_work'
+  | 'primary_focus_not_completed';
+
+export type TrainingFocusStimulusCreditExclusionReason =
+  | 'none'
+  | 'not_main_plan'
+  | 'missing_block_focus'
+  | 'missing_stimulus_metadata'
+  | 'focus_mismatch'
+  | 'no_primary_focus_planned'
+  | 'no_completed_work'
+  | 'supporting_only'
+  | 'fallback_only'
+  | 'supporting_and_fallback_only'
+  | 'cross_domain_only'
+  | 'primary_focus_not_completed';
+
+export interface TrainingFocusStimulusEvidenceSummary {
+  planStatus: TrainingFocusStimulusPlanStatus;
+  status: TrainingFocusStimulusCompletionStatus;
+  exclusionReason: TrainingFocusStimulusCreditExclusionReason;
+  mainPlanCredit: boolean;
+  blockFocusDomain?: MovementDomain;
+  plannedPrimaryFocusExerciseCount: number;
+  completedPrimaryFocusExerciseCount: number;
+  completedSupportingExerciseCount: number;
+  completedFallbackExerciseCount: number;
+  completedCrossDomainExerciseCount: number;
+  plannedPrimaryFocusExerciseIds: string[];
+  completedPrimaryFocusExerciseIds: string[];
+  completedSupportingExerciseIds: string[];
+  completedFallbackExerciseIds: string[];
+  completedCrossDomainExerciseIds: string[];
+  fallbackFocusSlotIds: string[];
+  skippedFocusSlotIds: string[];
+  focusStimulusExclusionReasons: string[];
+  missingMetadataExerciseIds: string[];
+  malformedMetadataExerciseIds: string[];
+  focusMismatchExerciseIds: string[];
+  mainPlanClassifierReason?: string;
+}
+
 export interface TrainingSessionCompletion {
   id: string;
   userId: string;
@@ -128,6 +200,11 @@ export interface TrainingSessionCompletion {
   completedAt: string;
   sessionType: TrainingSessionCompletionType;
   focusDomain?: MovementDomain;
+  source?: TrainingSessionCompletionSource;
+  templateId?: string;
+  mainPlanCredit?: boolean;
+  workEvidence?: TrainingSessionWorkEvidenceSummary;
+  focusStimulusEvidence?: TrainingFocusStimulusEvidenceSummary;
   durationMinutes?: number;
   perceivedEffort?: 1 | 2 | 3 | 4 | 5;
   painReported?: boolean;

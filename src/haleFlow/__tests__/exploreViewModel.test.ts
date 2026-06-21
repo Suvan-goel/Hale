@@ -19,7 +19,7 @@ describe('exploreViewModel', () => {
       '10-Minute Mobility Reset',
       'Gentle Restart Session',
       'Steady Balance Practice',
-      'No-Optional-Equipment Strength',
+      'Chair + Wall Strength',
       'Band Upper-Back',
       'Stairs Confidence',
       'Quick Full-Body Hale Session',
@@ -33,6 +33,11 @@ describe('exploreViewModel', () => {
       disabledReason: 'Needs a bottom stair',
     });
     expect(cards.find((card) => card.id === 'preset-no-equipment-strength')?.disabled).toBe(false);
+    expect(cards.find((card) => card.id === 'preset-no-equipment-strength')).toMatchObject({
+      cardTitle: 'Chair + Wall Strength',
+      body: 'Strength with a chair and wall.',
+      detailBody: expect.stringContaining('chair, wall, and clear space'),
+    });
   });
 
   it('enables band and stair extras when the matching equipment is available', () => {
@@ -44,12 +49,39 @@ describe('exploreViewModel', () => {
     expect(cards.find((card) => card.id === 'preset-stairs-confidence')?.disabled).toBe(false);
   });
 
+  it('keeps stair extras disabled when a bottom stair has no nearby support', () => {
+    const cards = getExtraSessionCards({
+      equipment: { stair: true, band: false, miniBand: false, load: false },
+      safetyProfile: {
+        id: 'safety',
+        userId: 'local-device-user',
+        availableEquipment: ['stairs'],
+        createdAt: '2026-06-17T08:00:00.000Z',
+        updatedAt: '2026-06-17T08:00:00.000Z',
+      },
+    });
+
+    expect(cards.find((card) => card.id === 'preset-stairs-confidence')).toMatchObject({
+      disabled: true,
+      disabledReason: 'Needs wall or counter support',
+    });
+  });
+
   it('builds movement ladder cards from V1 core ladder data', () => {
     const cards = getMovementLadderCards();
 
     expect(cards.map((card) => card.title)).toContain('Sit-to-Stand');
     expect(cards.map((card) => card.title)).toContain('Mobility / Flexibility');
     expect(cards.every((card) => card.currentLevelName.length > 0)).toBe(true);
+    expect(cards.find((card) => card.id === 'sit-to-stand')?.body).toBe(
+      'Build chair-rise strength for standing from everyday seats.'
+    );
+    expect(cards.find((card) => card.id === 'shoulder-reach-press')?.equipmentLabel).toBe('No optional equipment');
+    expect(cards.find((card) => card.id === 'step-up')?.equipmentLabel).toBe('Needs a bottom stair');
+    expect(cards.find((card) => card.id === 'pull-upper-back')?.equipmentLabel).toBe('Needs a resistance band');
+    expect(getMovementLadderDetail('sit-to-stand')?.body).toBe(
+      'Chair-rise strength and power, with cushion, tempo, and power options.'
+    );
   });
 
   it('shows only V1 core levels in ladder detail by default', () => {
@@ -58,6 +90,97 @@ describe('exploreViewModel', () => {
     expect(detail).not.toBeNull();
     expect(detail?.levels.map((level) => level.name)).not.toContain('Neck Rotations');
     expect(detail?.levels.every((level) => level.measurementLabel.length > 0)).toBe(true);
+    expect(detail?.levels.every((level) => level.instructions.length > 0)).toBe(true);
+    expect(detail?.currentLevel.measurementNote).toContain('broad reach');
+  });
+
+  it('surfaces setup, safety, and tracking notes on movement details', () => {
+    const stepUp = getMovementLadderDetail('step-up');
+    const push = getMovementLadderDetail('push');
+
+    expect(stepUp?.currentLevel.setupNote).toContain('bottom stair');
+    expect(stepUp?.currentLevel.safetyNote).toContain('lowest stable step');
+    expect(stepUp?.currentLevel.measurementNote).toContain('does not score foot placement');
+    expect(push?.currentLevel.measurementNote).toContain('does not score shoulder or elbow position');
+  });
+
+  it('reflects floor-space gating in ladder detail current levels', () => {
+    const ladderProgressById = {
+      'hinge-glutes': {
+        ladderId: 'hinge-glutes',
+        currentLevelId: 'glute-bridge-hold',
+        completedSessionsAtLevel: 0,
+        failedSessionsAtLevel: 0,
+        recentCompletionRates: [],
+        recentRpe: [],
+        recentPain: [],
+        updatedAt: '2026-06-17T08:00:00.000Z',
+      },
+    };
+    const withoutFloor = getMovementLadderDetail('hinge-glutes', ladderProgressById, {
+      safetyProfile: {
+        id: 'safety',
+        userId: 'local-device-user',
+        availableEquipment: ['chair', 'wall'],
+        createdAt: '2026-06-17T08:00:00.000Z',
+        updatedAt: '2026-06-17T08:00:00.000Z',
+      },
+    });
+    const withFloor = getMovementLadderDetail('hinge-glutes', ladderProgressById, {
+      safetyProfile: {
+        id: 'safety',
+        userId: 'local-device-user',
+        availableEquipment: ['chair', 'wall', 'floor_space'],
+        createdAt: '2026-06-17T08:00:00.000Z',
+        updatedAt: '2026-06-17T08:00:00.000Z',
+      },
+    });
+
+    expect(withoutFloor?.currentLevel.id).toBe('hip-hinge-free');
+    expect(withoutFloor?.currentLevel.equipmentLabel).not.toContain('floor');
+    expect(withFloor?.currentLevel.id).toBe('glute-bridge-hold');
+    expect(withFloor?.currentLevel.equipmentLabel).toBe('floor space');
+  });
+
+  it('keeps standing band rows behind explicit door-anchor availability', () => {
+    const ladderProgressById = {
+      'pull-upper-back': {
+        ladderId: 'pull-upper-back',
+        currentLevelId: 'standing-band-row',
+        completedSessionsAtLevel: 0,
+        failedSessionsAtLevel: 0,
+        recentCompletionRates: [],
+        recentRpe: [],
+        recentPain: [],
+        updatedAt: '2026-06-17T08:00:00.000Z',
+      },
+    };
+    const equipment = { stair: false, band: true, miniBand: false, load: false };
+    const withoutAnchor = getMovementLadderDetail('pull-upper-back', ladderProgressById, {
+      equipment,
+      safetyProfile: {
+        id: 'safety',
+        userId: 'local-device-user',
+        availableEquipment: ['chair', 'wall', 'resistance_band'],
+        createdAt: '2026-06-17T08:00:00.000Z',
+        updatedAt: '2026-06-17T08:00:00.000Z',
+      },
+    });
+    const withAnchor = getMovementLadderDetail('pull-upper-back', ladderProgressById, {
+      equipment,
+      safetyProfile: {
+        id: 'safety',
+        userId: 'local-device-user',
+        availableEquipment: ['chair', 'wall', 'resistance_band', 'door_anchor'],
+        createdAt: '2026-06-17T08:00:00.000Z',
+        updatedAt: '2026-06-17T08:00:00.000Z',
+      },
+    });
+
+    expect(withoutAnchor?.currentLevel.id).toBe('seated-band-row');
+    expect(withoutAnchor?.currentLevel.equipmentLabel).not.toContain('door anchor');
+    expect(withAnchor?.currentLevel.id).toBe('standing-band-row');
+    expect(withAnchor?.currentLevel.equipmentLabel).toContain('door anchor');
   });
 
   it('provides bundled learn cards with clean product language', () => {

@@ -41,7 +41,7 @@ export const pullUpperBackLevels: ExerciseDefinition[] = [
     level: 2,
     slot: 'pull-reach',
     cameraView: OBLIQUE,
-    equipment: ['long_band'],
+    equipment: ['long_band', 'door_anchor'],
     kind: 'reps',
     prescription: { sets: 3, repsPerSet: 10, restSec: 50, autoregulate: false },
     voice: { instructions: [] },

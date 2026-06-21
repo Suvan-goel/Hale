@@ -21,12 +21,24 @@ import { EquipmentTag } from '../movements';
 import { ExerciseDomain, MeasurementTier, ReleaseStatus } from './types';
 
 export type ExerciseCameraView = 'side' | 'front' | 'side_oblique' | 'not_required';
+export type ExerciseLadderProgressionModel = 'linear_progression' | 'collection' | 'supporting_set';
+export type ExerciseLadderStimulusKind =
+  | 'lower_body_strength'
+  | 'ankle_strength'
+  | 'upper_push'
+  | 'upper_pull'
+  | 'posterior_chain_strength'
+  | 'shoulder_mobility'
+  | 'static_balance'
+  | 'dynamic_balance'
+  | 'mobility_collection';
 
 export interface ExerciseLevel {
   id: string;
   name: string;
   level: number;
   domain: ExerciseDomain;
+  domainRole?: 'primary' | 'cross_domain_supporting';
   releaseStatus: ReleaseStatus;
   measurementTier: MeasurementTier;
   equipment: EquipmentTag[];
@@ -49,6 +61,8 @@ export interface ExerciseLadder {
   levels: ExerciseLevel[];
   defaultLevelId: string;
   releaseStatus: ReleaseStatus;
+  progressionModel: ExerciseLadderProgressionModel;
+  stimulusKind: ExerciseLadderStimulusKind;
   sortOrder: number;
 }
 
@@ -71,6 +85,7 @@ const STANDARD_REGRESS = [
 
 function level(input: ExerciseLevel): ExerciseLevel {
   return {
+    domainRole: input.domainRole ?? 'primary',
     progressionCriteria: STANDARD_PROGRESS,
     regressionCriteria: STANDARD_REGRESS,
     ...input,
@@ -83,10 +98,12 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
     id: 'sit-to-stand',
     title: 'Sit-to-Stand',
     domain: 'strength_power',
-    description: 'Chair-rise strength and power, built from the safest useful version upward.',
-    whyItMatters: 'Standing from a chair is one of the clearest everyday signals of lower-body capability.',
+    description: 'Chair-rise strength and power, with cushion, tempo, and power options.',
+    whyItMatters: 'Standing from a chair draws on the same lower-body reserve used for seats, stairs, and daily transitions.',
     defaultLevelId: STS_STANDARD_ID,
     releaseStatus: 'v1_core',
+    progressionModel: 'linear_progression',
+    stimulusKind: 'lower_body_strength',
     sortOrder: 10,
     levels: [
       level({
@@ -162,10 +179,12 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
     id: 'squat',
     title: 'Squat',
     domain: 'strength_power',
-    description: 'Lower-body strength and functional hip/knee control.',
-    whyItMatters: 'A calm squat progression supports getting down, lifting, gardening, and everyday confidence.',
+    description: 'Controlled lower-body strength for lowering, reaching down, and lifting.',
+    whyItMatters: 'A calm squat progression supports getting down to everyday heights and standing back up with control.',
     defaultLevelId: SQUAT_SUPPORTED_ID,
     releaseStatus: 'v1_core',
+    progressionModel: 'linear_progression',
+    stimulusKind: 'lower_body_strength',
     sortOrder: 20,
     levels: [
       level({
@@ -241,10 +260,12 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
     id: 'step-up',
     title: 'Step-Up',
     domain: 'strength_power',
-    description: 'Stair strength and single-leg confidence.',
-    whyItMatters: 'Step-ups practise the same leg power and control used on stairs and kerbs.',
+    description: 'Stair strength on the lowest stable step, always with support nearby.',
+    whyItMatters: 'Step-ups practise the leg power and control used on stairs, kerbs, and raised thresholds.',
     defaultLevelId: STEP_UP_ID,
     releaseStatus: 'v1_core',
+    progressionModel: 'linear_progression',
+    stimulusKind: 'lower_body_strength',
     sortOrder: 30,
     levels: [
       level({
@@ -254,9 +275,11 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         domain: 'strength_power',
         releaseStatus: 'v1_core',
         measurementTier: 'camera_assisted',
-        equipment: ['stair'],
+        equipment: ['stair', 'counter'],
         cameraView: 'side',
-        instructions: 'Stand facing your step. Step up with one foot, bring the other to meet it, then step back down leading with the same foot.',
+        instructions: 'Stand facing the lowest stable step with fingertips near support. Step up with one foot, bring the other to meet it, then step back down leading with the same foot.',
+        setupNotes: 'Requires a bottom stair plus nearby wall, rail, chair, or counter support. Do not use a high or unstable step.',
+        safetyNotes: 'Use the lowest stable step with support nearby. Stop if the step, surface, or balance feels unsafe.',
         measurementNotes: 'Counts reps and broad tempo. Hale does not score foot placement or stair height.',
         legacyExerciseIds: ['step_up'],
       }),
@@ -266,10 +289,12 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
     id: 'heel-toe-raise',
     title: 'Heel & Toe Raises',
     domain: 'strength_power',
-    description: 'Calf and ankle work for walking and stair support.',
+    description: 'Calf and shin work for ankle control, walking rhythm, and steps.',
     whyItMatters: 'Ankles and calves quietly support walking rhythm, balance reactions, and stair confidence.',
     defaultLevelId: HEEL_RAISE_SUPPORTED_ID,
     releaseStatus: 'v1_core',
+    progressionModel: 'linear_progression',
+    stimulusKind: 'ankle_strength',
     sortOrder: 40,
     levels: [
       level({
@@ -317,10 +342,12 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
     id: 'push',
     title: 'Push',
     domain: 'strength_power',
-    description: 'Upper-body pushing strength with sensible progressions.',
+    description: 'Wall and incline pushing strength before any floor option.',
     whyItMatters: 'Pushing strength supports getting up from surfaces and everyday upper-body tasks.',
     defaultLevelId: PUSHUP_WALL_ID,
     releaseStatus: 'v1_core',
+    progressionModel: 'linear_progression',
+    stimulusKind: 'upper_push',
     sortOrder: 50,
     levels: [
       level({
@@ -333,6 +360,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         equipment: ['wall'],
         cameraView: 'side',
         instructions: 'Place your hands shoulder width apart on a wall. Lower in with control, then press back out.',
+        measurementNotes: 'Counts broad press cycles and tempo. Hale does not score shoulder or elbow position.',
         legacyExerciseIds: ['wall_push_up'],
       }),
       level({
@@ -345,6 +373,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         equipment: ['chair', 'counter'],
         cameraView: 'side',
         instructions: 'Place your hands shoulder width apart on a chair or counter. Lower in with control, then press back out.',
+        measurementNotes: 'Counts broad press cycles and tempo. Hale does not score shoulder or elbow position.',
         legacyExerciseIds: ['incline_push_up'],
       }),
       level({
@@ -357,7 +386,8 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         equipment: ['floor'],
         cameraView: 'side',
         instructions: 'Place your hands shoulder width apart on the floor. Lower in with control, then press back up.',
-        setupNotes: 'Advanced progression only; not shown as a default beginner exercise.',
+        setupNotes: 'Advanced progression only; requires explicit floor-space opt-in and comfort getting down and back up from the floor.',
+        safetyNotes: 'Use only when getting down and back up from the floor feels comfortable today.',
         legacyExerciseIds: ['push_up'],
       }),
     ],
@@ -366,10 +396,12 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
     id: 'pull-upper-back',
     title: 'Pull / Upper Back',
     domain: 'strength_power',
-    description: 'Band pulling strength for upper-back and shoulder balance.',
+    description: 'Band rows and pull-aparts for upper-back strength and shoulder balance.',
     whyItMatters: 'Pulling work balances pushing, supports posture, and helps shoulders stay capable.',
     defaultLevelId: SEATED_BAND_ROW_ID,
     releaseStatus: 'v1_core',
+    progressionModel: 'linear_progression',
+    stimulusKind: 'upper_pull',
     sortOrder: 60,
     levels: [
       level({
@@ -417,10 +449,12 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
     id: 'hinge-glutes',
     title: 'Hinge & Glutes',
     domain: 'strength_power',
-    description: 'Hip hinge control, posterior-chain strength, and back-of-body mobility.',
-    whyItMatters: 'A strong hinge supports lifting, reaching down, and getting up with confidence.',
+    description: 'Hip-hinge control plus floor bridge options when floor space is marked safe.',
+    whyItMatters: 'A strong hinge supports reaching down, lifting from everyday heights, and getting up with confidence.',
     defaultLevelId: HINGE_WALL_ID,
     releaseStatus: 'v1_core',
+    progressionModel: 'linear_progression',
+    stimulusKind: 'posterior_chain_strength',
     sortOrder: 70,
     levels: [
       level({
@@ -433,6 +467,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         equipment: ['wall'],
         cameraView: 'side',
         instructions: 'Stand a step in front of a wall, feet under your hips. Push your hips back to tap the wall, keeping your back long, then stand tall.',
+        measurementNotes: 'Counts hinge cycles and broad hip/trunk range. Hale does not score back shape.',
         legacyExerciseIds: ['wall_tap_hinge'],
       }),
       level({
@@ -445,6 +480,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         equipment: ['none'],
         cameraView: 'side',
         instructions: 'Stand tall with feet under your hips. Push your hips back, then stand tall again with control.',
+        measurementNotes: 'Counts hinge cycles and broad hip/trunk range. Hale does not score back shape.',
         legacyExerciseIds: ['hip_hinge'],
       }),
       level({
@@ -457,6 +493,8 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         equipment: ['floor'],
         cameraView: 'side_oblique',
         instructions: 'Lie on your back, knees bent and feet flat. Lift your hips toward the ceiling and hold.',
+        setupNotes: 'Requires explicit floor-space opt-in and comfort getting down and back up from the floor.',
+        safetyNotes: 'Use only when getting down and back up from the floor feels comfortable today.',
         measurementNotes: 'Hold duration and rough hip-lift detection only.',
         legacyExerciseIds: ['bridge_hold'],
       }),
@@ -470,6 +508,8 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         equipment: ['floor'],
         cameraView: 'side_oblique',
         instructions: 'Lie on your back, knees bent and feet flat. Lift your hips, pause briefly, then lower.',
+        setupNotes: 'Requires explicit floor-space opt-in and comfort getting down and back up from the floor.',
+        safetyNotes: 'Use only when getting down and back up from the floor feels comfortable today.',
         measurementNotes: 'Rep count and rough hip-lift detection only.',
         legacyExerciseIds: ['glute_bridge'],
       }),
@@ -479,10 +519,12 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
     id: 'shoulder-reach-press',
     title: 'Shoulder Reach & Press',
     domain: 'mobility_flexibility',
-    description: 'Shoulder mobility and beginner overhead strength.',
+    description: 'Overhead reach first, with band pressing as optional strength support.',
     whyItMatters: 'Comfortable overhead reach keeps shelves, cupboards, and daily tasks within reach.',
     defaultLevelId: OVERHEAD_REACH_ID,
     releaseStatus: 'v1_core',
+    progressionModel: 'supporting_set',
+    stimulusKind: 'shoulder_mobility',
     sortOrder: 80,
     levels: [
       level({
@@ -495,6 +537,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         equipment: ['none'],
         cameraView: 'side',
         instructions: 'Stand tall. Reach both arms up overhead as far as comfortable, then lower.',
+        measurementNotes: 'Tracks broad overhead reach range only.',
         legacyExerciseIds: ['overhead_reach'],
       }),
       level({
@@ -502,11 +545,13 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         name: 'Band Overhead Press',
         level: 1,
         domain: 'strength_power',
+        domainRole: 'cross_domain_supporting',
         releaseStatus: 'v1_core',
         measurementTier: 'camera_assisted',
         equipment: ['long_band'],
         cameraView: 'side',
         instructions: 'Stand tall on a long band or hold it safely. Press both hands overhead, then return with control.',
+        setupNotes: 'Cross-domain supporting strength level inside a shoulder ladder; do not treat it as a mobility progression endpoint for planning.',
         measurementNotes: 'Counts reps and broad range. Hale does not infer band tension.',
         legacyExerciseIds: ['band_overhead_press'],
       }),
@@ -516,10 +561,12 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
     id: 'balance',
     title: 'Balance',
     domain: 'balance_stability',
-    description: 'Steady holds with support nearby.',
+    description: 'Steady holds near support, from feet-together to single-leg options.',
     whyItMatters: 'Small, regular balance challenges help steadiness feel familiar and calm.',
     defaultLevelId: BALANCE_FEET_TOGETHER_ID,
     releaseStatus: 'v1_core',
+    progressionModel: 'linear_progression',
+    stimulusKind: 'static_balance',
     sortOrder: 90,
     levels: [
       level({
@@ -567,10 +614,12 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
     id: 'lateral-stability',
     title: 'Lateral Stability',
     domain: 'balance_stability',
-    description: 'Side-to-side control and dynamic balance.',
-    whyItMatters: 'Lateral control supports confident walking, turning, and stepping around obstacles.',
+    description: 'Supported side steps and marching for side-to-side control.',
+    whyItMatters: 'Lateral control supports walking, turning, and stepping around obstacles.',
     defaultLevelId: SIDE_STEP_SUPPORTED_ID,
     releaseStatus: 'v1_core',
+    progressionModel: 'supporting_set',
+    stimulusKind: 'dynamic_balance',
     sortOrder: 100,
     levels: [
       level({
@@ -606,9 +655,10 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         domain: 'balance_stability',
         releaseStatus: 'v1_core',
         measurementTier: 'camera_assisted',
-        equipment: ['none'],
+        equipment: ['counter'],
         cameraView: 'side',
-        instructions: 'Stand tall and march on the spot, lifting each knee with a steady rhythm.',
+        instructions: 'Stand tall with fingertips near support and march on the spot, lifting each knee with a steady rhythm.',
+        setupNotes: 'The id is legacy; this is an unloaded march-in-place balance drill with support nearby.',
         measurementNotes: 'Tracks rhythm and rough knee-height trend only.',
         legacyExerciseIds: ['loaded_march'],
       }),
@@ -618,10 +668,12 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
     id: 'mobility-flexibility',
     title: 'Mobility / Flexibility',
     domain: 'mobility_flexibility',
-    description: 'Simple mobility drills and stretches for daily range.',
+    description: 'Chair, wall, and no-equipment drills for daily range.',
     whyItMatters: 'Mobility work keeps reaching, bending, rotating, and walking feeling accessible.',
     defaultLevelId: HAMSTRING_REACH_ID,
     releaseStatus: 'v1_core',
+    progressionModel: 'collection',
+    stimulusKind: 'mobility_collection',
     sortOrder: 110,
     levels: [
       level({
@@ -644,7 +696,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         domain: 'mobility_flexibility',
         releaseStatus: 'v1_core',
         measurementTier: 'camera_assisted',
-        equipment: ['chair'],
+        equipment: ['none'],
         cameraView: 'front',
         instructions: 'Sit or stand tall with your arms crossed over your chest. Slowly rotate your upper body to one side, return to centre, then rotate the other way.',
         measurementNotes: 'Broad rotation trend only; not clinical scoring.',

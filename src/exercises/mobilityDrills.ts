@@ -39,7 +39,7 @@ export const mobilityDrillDefinitions: ExerciseDefinition[] = [
     level: 2,
     slot: 'mobility',
     cameraView: { view: 'side', requiredReliableSideChains: 1 },
-    equipment: ['chair'],
+    equipment: ['chair', 'counter'],
     kind: 'timer',
     timing: { mode: 'valid_time' },
     prescription: { sets: 2, timerSec: 30, restSec: 15, autoregulate: false },

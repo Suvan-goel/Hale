@@ -7,10 +7,11 @@ import {
   HealthMetricRow,
   PrimaryButton,
   Screen,
-  SecondaryButton,
   SectionHeader,
   StatusBadge,
 } from '../components/ui';
+import { BackArrowButton } from '../components/BackArrowButton';
+import { HeaderLogo } from '../components/HeaderLogo';
 import type { HaleSessionPlan } from '../haleFlow';
 import { colors, spacing, type } from '../theme';
 
@@ -25,11 +26,16 @@ export function SessionPreviewScreen({
 }) {
   const equipment = plan.metadata?.equipmentNeeded ?? [];
   const source = plan.metadata?.source;
+  const focusStimulusCopy = focusStimulusPreviewCopy(plan);
   return (
     <Screen>
+      <BackArrowButton accessibilityLabel="Back to Today" onPress={onCancel} />
       <View style={styles.header}>
         <Eyebrow>{"Today's Hale Session"}</Eyebrow>
-        <Text style={styles.title}>{plan.title}</Text>
+        <View style={styles.titleGroup}>
+          <HeaderLogo size={30} />
+          <Text style={styles.title}>{plan.title}</Text>
+        </View>
         <Text style={styles.subtitle}>{plan.purposeCopy}</Text>
       </View>
 
@@ -41,6 +47,7 @@ export function SessionPreviewScreen({
         {source === 'legacy_fallback' && plan.metadata?.fallbackReason ? (
           <Text style={styles.devNote}>Planner note: {plan.metadata.fallbackReason}</Text>
         ) : null}
+        {focusStimulusCopy ? <Text style={styles.devNote}>{focusStimulusCopy}</Text> : null}
       </Card>
 
       <Card>
@@ -85,7 +92,6 @@ export function SessionPreviewScreen({
 
       <View style={styles.actions}>
         <PrimaryButton title="Start Session" accessibilityLabel={`Start ${plan.title}`} onPress={onStart} style={styles.action} />
-        <SecondaryButton title="Back" accessibilityLabel="Back to Today" onPress={onCancel} style={styles.action} />
       </View>
     </Screen>
   );
@@ -120,9 +126,31 @@ function formatEquipment(value: string): string {
   return value.replace(/_/g, ' ');
 }
 
+function focusStimulusPreviewCopy(plan: HaleSessionPlan): string | null {
+  const focusStimulus = plan.metadata?.focusStimulus;
+  if (!focusStimulus || plan.metadata?.source !== 'block_generated' || focusStimulus.mainPlanCreditPotential) return null;
+  const focus = focusLabel(plan.focusDomain).toLowerCase();
+  if (focusStimulus.status === 'no_primary_focus_planned') {
+    return `Today is supporting maintenance for ${focus}. It can be useful, but it will not move the main plan forward.`;
+  }
+  if (focusStimulus.status === 'focus_mismatch') {
+    return `Today's available work does not match the block's primary ${focus} focus, so it will not move the main plan forward.`;
+  }
+  if (focusStimulus.status === 'missing_stimulus_metadata') {
+    return 'Hale cannot verify a primary focus exercise in this plan, so it will not move the main plan forward.';
+  }
+  return null;
+}
+
 const styles = StyleSheet.create({
   header: { gap: spacing.xs },
-  title: { ...type.pageTitle },
+  titleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    minWidth: 0,
+  },
+  title: { ...type.pageTitle, flexShrink: 1 },
   subtitle: { ...type.pageSubtitle },
   summaryRow: { flexDirection: 'row', gap: spacing.md },
   tile: {

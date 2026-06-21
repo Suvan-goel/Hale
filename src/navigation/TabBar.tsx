@@ -12,7 +12,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { shadow, spacing, todayHomeColors, type } from '../theme';
 import { ExploreIcon, IconProps, PlanIcon, ProgressIcon, TodayIcon } from './icons';
 
-export type TabKey = 'today' | 'plan' | 'progress' | 'explore' | 'profile';
+export type TabKey = 'today' | 'plan' | 'progress' | 'explore';
 
 export interface TabDef {
   key: TabKey;

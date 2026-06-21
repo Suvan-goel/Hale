@@ -22,10 +22,9 @@ export interface CameraViewSpec {
 }
 
 /**
- * Zero-equipment start: anything beyond 'none' must have a regression/
- * substitute. 'band' (a resistance band) and 'stair' are the only training-
- * only tags a user might lack — block assignment + the session player consult
- * the equipment profile and substitute when one is missing.
+ * Zero-equipment start: anything beyond 'none' must have a regression,
+ * substitute, or explicit skip path. Safety-sensitive tags such as floor,
+ * stair, and counter/support are gated by the user's local equipment profile.
  */
 export type EquipmentTag =
   | 'none'

@@ -15,7 +15,7 @@ import type { BackendJson } from './types';
 type RemoteTrainingSessionStatus = 'completed' | 'started' | 'abandoned' | 'skipped';
 type SessionSyncStatus = 'signed_out' | 'synced' | 'failed' | 'skipped';
 
-type SyncableTrainingSessionType = Exclude<TrainingSessionCompletionType, 'micro_check' | 'retest'>;
+type SyncableTrainingSessionType = Extract<TrainingSessionCompletionType, 'starter' | 'standard' | 'restart'>;
 
 type CompletionWithFeedback = TrainingSessionCompletion & {
   completed?: boolean;
@@ -71,7 +71,6 @@ const SYNCABLE_SESSION_TYPES: readonly SyncableTrainingSessionType[] = [
   'standard',
   'starter',
   'restart',
-  'retest_prep',
 ];
 
 export async function syncTrainingSessionCompletionToRemote(
@@ -280,7 +279,10 @@ async function loadExistingSessionJson(
 function isSyncableSessionCompletion(
   completion: TrainingSessionCompletion
 ): completion is TrainingSessionCompletion & { sessionType: SyncableTrainingSessionType } {
-  return SYNCABLE_SESSION_TYPES.includes(completion.sessionType as SyncableTrainingSessionType);
+  return (
+    completion.mainPlanCredit === true &&
+    SYNCABLE_SESSION_TYPES.includes(completion.sessionType as SyncableTrainingSessionType)
+  );
 }
 
 function localSessionIdFor(completion: TrainingSessionCompletion): string {
@@ -346,6 +348,11 @@ function sanitizeCompletion(completion: TrainingSessionCompletion): BackendJson 
     completedAt: completion.completedAt,
     sessionType: completion.sessionType,
     focusDomain: completion.focusDomain,
+    source: completion.source,
+    templateId: completion.templateId,
+    mainPlanCredit: completion.mainPlanCredit,
+    workEvidence: completion.workEvidence,
+    focusStimulusEvidence: completion.focusStimulusEvidence,
     durationMinutes: completion.durationMinutes,
     perceivedEffort: completion.perceivedEffort,
     painReported: completion.painReported,

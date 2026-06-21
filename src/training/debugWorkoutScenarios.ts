@@ -130,7 +130,7 @@ export function generateDebugWorkoutScenarios(): DebugWorkoutScenarioPreview[] {
       title: 'Stronger user ready to progress',
       focusDomain: 'strength_power',
       templateIndex: 0,
-      equipment: ['chair', 'wall', 'resistance_band', 'backpack'],
+      equipment: ['chair', 'wall', 'resistance_band', 'door_anchor', 'backpack'],
       includeOptionalLevels: true,
       ladderProgress: {
         'sit-to-stand': progress('sit-to-stand', LOADED_STS_ID),

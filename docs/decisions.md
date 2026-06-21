@@ -1018,3 +1018,115 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
   progress, and primary actions.
 - **Scope boundary:** visual styling only. Copy, interaction state, route keys, persistence,
   auth/backend sync, pose detection, scoring, and training logic are unchanged.
+
+## 2026-06-20 — Trial palette snapshot before evergreen test
+
+- **Preserved previous palette:** before testing the evergreen palette, the active colours were
+  `bgBase #F4EDE6`, card/elevated surfaces `#FBF5EF`, primary text `#111412`, secondary text
+  `#68706A`, tertiary text `#8A908A`, unified green accent `#414C34`, transparent soft fills,
+  borders `#E4E0D6/#D8D3C8`, brass accent `#A98243`, and Today hero/tab greens `#414C34`.
+- **Why:** this snapshot is the rollback reference if the palette trial does not feel right.
+
+## 2026-06-20 — Evergreen palette trial
+
+- **Change:** the app is temporarily testing the first premium palette option: warm-stone canvas
+  `#F3ECE4`, ivory cards `#FCF6EF`, elevated surfaces `#FFF9F2`, evergreen accent `#123A2D`,
+  deep evergreen `#08251D`, soft accent fill `#E9F0E8`, stone border `#DDD5C8`, and brass
+  `#9E7A3D`.
+- **Mirrors:** `app.json`, both native `PoseDetectionView` backgrounds, and the skeleton preview
+  script were kept in sync with the trial `bgBase`.
+- **Scope boundary:** colour tokens only. Layout, copy, navigation, state, persistence,
+  auth/backend sync, pose detection, scoring, and training logic are unchanged.
+
+## 2026-06-20 — Cleaner warm-stone palette trial
+
+- **Change:** the active palette trial moved from the first evergreen option to the second,
+  slightly cleaner warm-stone option: canvas `#F6F0E8`, cards `#FFFAF4`, elevated surfaces
+  `#FBF5EF`, primary text `#101310`, evergreen accent `#0F3B2E`, deep evergreen `#08261D`,
+  soft accent fill `#EAF1EA`, borders `#E2DACF/#D8D0C2`, and gold `#A98243`.
+- **Mirrors:** `app.json`, both native `PoseDetectionView` backgrounds, and the skeleton preview
+  script were kept in sync with the new trial `bgBase`.
+- **Scope boundary:** colour tokens only. Layout, copy, navigation, state, persistence,
+  auth/backend sync, pose detection, scoring, and training logic are unchanged.
+
+## 2026-06-20 — Editorial warm-stone palette trial
+
+- **Change:** the active palette trial moved to the richer editorial/luxury option: canvas
+  `#F1E9DF`, cards `#FCF5ED`, elevated surfaces `#FFF8EF`, primary text `#11110F`,
+  secondary/tertiary text `#625F58/#827B72`, evergreen accent `#17382F`, deep evergreen
+  `#071F19`, soft accent fill `#E8EFE8`, borders `#D8CEC0/#CEC2B2`, and brass `#98713A`.
+- **Mirrors:** `app.json`, both native `PoseDetectionView` backgrounds, and the skeleton preview
+  script were kept in sync with the new trial `bgBase`.
+- **Scope boundary:** colour tokens only. Layout, copy, navigation, state, persistence,
+  auth/backend sync, pose detection, scoring, and training logic are unchanged.
+
+## 2026-06-20 — Soft evergreen palette trial
+
+- **Change:** the active palette trial moved to the fourth softer-wellness option: canvas
+  `#F5EFE7`, cards `#FCF8F1`, elevated surfaces `#FFFDF7`, primary text `#121512`,
+  secondary/tertiary text `#6B716A/#858A80`, evergreen accent `#1A4336`, deep evergreen
+  `#0B2A22`, soft accent fill `#EDF3EC`, borders `#E1DBD0/#D7CFC4`, and warm accent
+  `#A88A58`.
+- **Mirrors:** `app.json`, both native `PoseDetectionView` backgrounds, and the skeleton preview
+  script were kept in sync with the new trial `bgBase`.
+- **Scope boundary:** colour tokens only. Layout, copy, navigation, state, persistence,
+  auth/backend sync, pose detection, scoring, and training logic are unchanged.
+
+## 2026-06-20 — Hale logo applied to app chrome
+
+- **Change:** the selected flat green movement-mark icon is now the source for the iOS, Android,
+  and generic Expo launcher icons. A transparent mark-only asset is used beside page/header titles
+  so in-app chrome carries the same brand signal without repeating the full rounded icon tile.
+- **Scope boundary:** branding assets and header presentation only. Navigation, route keys,
+  persistence, auth/backend sync, pose detection, scoring, and training logic are unchanged.
+
+## 2026-06-20 — Progress framed around independence
+
+- **Change:** the Progress page now translates check-up/training signals into daily-life meaning.
+  When a local life goal is available, the page shows goal-specific copy and domain rows explaining
+  how strength, balance, and mobility support that goal. Without a goal, it falls back to broad
+  independence framing.
+- **Scope boundary:** Progress-page presentation and copy only. Measurement scoring, training
+  progression, persistence, auth/backend sync, pose detection, and navigation behaviour are
+  unchanged.
+
+## 2026-06-20 — Original warm-stone palette restored
+
+- **Change:** after testing the four premium palette options, the active palette was restored to
+  the prior warm-stone + inky-green system: `bgBase #F4EDE6`, card/elevated surfaces
+  `#FBF5EF`, primary text `#111412`, secondary/tertiary text `#68706A/#8A908A`, unified green
+  accent `#414C34`, transparent soft fills, borders `#E4E0D6/#D8D3C8`, brass accent `#A98243`,
+  and Today hero/tab greens `#414C34`.
+- **Mirrors:** `app.json`, both native `PoseDetectionView` backgrounds, and the skeleton preview
+  script were returned to the restored `bgBase`.
+- **Scope boundary:** colour tokens only. Layout, copy, navigation, state, persistence,
+  auth/backend sync, pose detection, scoring, and training logic are unchanged.
+
+## 2026-06-20 — Main-plan credit is explicit evidence, not inferred history
+
+- **Change:** Stage 5A remediation introduced a shared main-plan event classifier and session
+  work-evidence summary. A session now earns main-plan/adherence/rotation/progression/sync credit
+  only when it is an active-block generated A/B/C template and at least one planned exercise is
+  explicitly completed.
+- **Fail-closed rule:** preset/manual/retest-prep/legacy-fallback sessions, missing template/date
+  metadata, missing `mainPlanCredit`, all-skipped results, duplicate/malformed result items, and
+  restored legacy rows no longer advance A/B/C rotation or block progress.
+- **Scope boundary:** this closes Stage 5A F5-001 through F5-004 only. Stage 5B primary-focus
+  minimum stimulus checks and later timing/profile/selection safeguards remain separate follow-up
+  work.
+
+## 2026-06-20 — Main-plan credit requires completed primary focus stimulus
+
+- **Change:** Stage 5B remediation added a focus-stimulus evidence gate. A block-generated A/B/C
+  session advances the main plan only when the user completes at least one planned exercise whose
+  structured metadata has `stimulusRole === 'primary'` and whose `intendedDomain` matches the
+  active `MovementBlock.focusDomain`.
+- **Honesty rule:** supporting-, fallback-, maintenance-, malformed-metadata-, missing-metadata-,
+  legacy-fallback-, and cross-domain-only attempts can be saved as non-credit generated session
+  summaries, but they do not advance rotation, adherence, week completion, milestones, block
+  completion, or retest due state.
+- **Metadata:** generated plans now expose `metadata.focusStimulus`, and generated session
+  summaries/completion JSON can carry `focusStimulusEvidence` alongside Stage 5A work evidence.
+- **Scope boundary:** this closes Stage 5B F5-006 only. Generator selection, safety gates,
+  stimulus-role definitions, exercise progression policy for non-credit work, and later Stage 5
+  timing/profile/equipment safeguards are unchanged.

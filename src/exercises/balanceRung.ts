@@ -3,7 +3,7 @@
  * into individually TRAINABLE holds: feet-together → tandem → single-leg, each
  * a timed hold graded by HoldTracker (narrow-base step-out / single-leg
  * touchdown termination, same conditions as the assessment). Safety: fingertips
- * near a counter. Zero equipment.
+ * near a counter or stable support.
  */
 
 import { holdGrader } from './common';
@@ -25,7 +25,7 @@ export const balanceRungLevels: ExerciseDefinition[] = [
     level: 1,
     slot: 'balance',
     cameraView: FRONT,
-    equipment: ['none'],
+    equipment: ['counter'],
     kind: 'hold',
     timing: { mode: 'valid_time' },
     prescription: { sets: 3, holdSec: 20, restSec: 30, autoregulate: false },
@@ -40,7 +40,7 @@ export const balanceRungLevels: ExerciseDefinition[] = [
     level: 2,
     slot: 'balance',
     cameraView: FRONT,
-    equipment: ['none'],
+    equipment: ['counter'],
     kind: 'hold',
     timing: { mode: 'valid_time' },
     prescription: { sets: 3, holdSec: 20, restSec: 30, autoregulate: false },
@@ -56,7 +56,7 @@ export const balanceRungLevels: ExerciseDefinition[] = [
     level: 3,
     slot: 'balance',
     cameraView: FRONT,
-    equipment: ['none'],
+    equipment: ['counter'],
     kind: 'hold',
     timing: { mode: 'valid_time' },
     prescription: { sets: 3, holdSec: 15, restSec: 30, autoregulate: false },

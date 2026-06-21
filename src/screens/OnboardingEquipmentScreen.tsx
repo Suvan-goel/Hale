@@ -2,7 +2,8 @@ import * as React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import type { AvailableEquipment } from '../adherence';
-import { Card, ListRow, PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../components/ui';
+import { BackArrowButton } from '../components/BackArrowButton';
+import { Card, ListRow, PrimaryButton, Screen, ScreenHeader } from '../components/ui';
 import type { EquipmentProfile } from '../training';
 import { colors, spacing } from '../theme';
 
@@ -11,8 +12,10 @@ export type OnboardingEquipmentId =
   | 'wall'
   | 'stairs'
   | 'resistance_band'
+  | 'door_anchor'
   | 'mini_band'
   | 'load'
+  | 'floor_space'
   | 'phone_stand';
 
 const EQUIPMENT_OPTIONS: readonly { id: OnboardingEquipmentId; label: string }[] = [
@@ -20,8 +23,10 @@ const EQUIPMENT_OPTIONS: readonly { id: OnboardingEquipmentId; label: string }[]
   { id: 'wall', label: 'Wall or counter support' },
   { id: 'stairs', label: 'Bottom stair' },
   { id: 'resistance_band', label: 'Resistance band' },
+  { id: 'door_anchor', label: 'Door anchor for band rows' },
   { id: 'mini_band', label: 'Mini band' },
   { id: 'load', label: 'Backpack or light weight' },
+  { id: 'floor_space', label: 'Floor space for mat exercises' },
   { id: 'phone_stand', label: 'Phone stand' },
 ];
 
@@ -59,6 +64,7 @@ export function OnboardingEquipmentScreen({
 
   return (
     <Screen>
+      <BackArrowButton accessibilityLabel="Back" onPress={onBack} />
       <ScreenHeader
         eyebrow="Step 4 of 10"
         title="What do you have at home?"
@@ -80,7 +86,6 @@ export function OnboardingEquipmentScreen({
 
       <View style={styles.actions}>
         <PrimaryButton title="Continue" onPress={save} />
-        <SecondaryButton title="Back" onPress={onBack} />
       </View>
     </Screen>
   );
@@ -114,8 +119,10 @@ function toAvailableEquipment(selected: readonly OnboardingEquipmentId[]): Avail
   if (selected.includes('wall')) out.push('wall');
   if (selected.includes('stairs')) out.push('stairs');
   if (selected.includes('resistance_band')) out.push('resistance_band');
+  if (selected.includes('door_anchor')) out.push('door_anchor');
   if (selected.includes('mini_band')) out.push('mini_band');
   if (selected.includes('load')) out.push('backpack');
+  if (selected.includes('floor_space')) out.push('floor_space');
   return out.length > 0 ? out : ['none'];
 }
 

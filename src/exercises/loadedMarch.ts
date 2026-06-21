@@ -1,8 +1,8 @@
 /**
- * March in place (side view) — power/functional finisher. March driving the
- * knees up. Graded on the near-side knee cycle: the knee flexes as it lifts
- * (angle drops) and extends as the foot returns (angle rises), so each down→up
- * commit credits one near-side march
+ * March in place (side view) — dynamic-balance practice with support nearby.
+ * The id is a legacy name; this V1 item is not loaded. Graded on the near-side
+ * knee cycle: the knee flexes as it lifts (angle drops) and extends as the foot
+ * returns (angle rises), so each down→up commit credits one near-side march
  * step. Endurance/coordination item — velocity autoregulation off.
  */
 
@@ -19,7 +19,7 @@ export const loadedMarchDefinition: ExerciseDefinition = {
   level: 1,
   slot: 'power',
   cameraView: { view: 'side', requiredReliableSideChains: 1 },
-  equipment: ['none'],
+  equipment: ['counter'],
   kind: 'reps',
   prescription: { sets: 3, repsPerSet: 16, restSec: 45, autoregulate: false },
   voice: { instructions: ['ex-march'] },

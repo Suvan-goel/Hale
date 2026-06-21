@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../../components/ui';
+import { BackArrowButton } from '../../components/BackArrowButton';
+import { Card, PrimaryButton, Screen, ScreenHeader } from '../../components/ui';
 import { colors, spacing, type } from '../../theme';
 import { getAdherenceState } from '../adherenceState';
 import { getLapseRecoveryCopy, getProtectionCopy } from '../adherenceCopy';
@@ -24,6 +25,7 @@ export function RestartSessionScreen({
   const copy = getLapseRecoveryCopy(state, lifeGoal);
   return (
     <Screen>
+      <BackArrowButton accessibilityLabel="Back" onPress={onCancel} />
       <ScreenHeader eyebrow="Clean slate" title={copy.title} subtitle={copy.body} />
       <Card style={styles.card}>
         <Text style={styles.title}>Today's restart session</Text>
@@ -39,7 +41,6 @@ export function RestartSessionScreen({
       </Card>
       <View style={styles.actions}>
         <PrimaryButton title={copy.cta} onPress={onStart} />
-        <SecondaryButton title="Back" onPress={onCancel} />
       </View>
     </Screen>
   );

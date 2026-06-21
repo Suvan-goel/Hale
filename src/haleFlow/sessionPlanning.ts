@@ -19,7 +19,6 @@ import {
   type ExerciseDefinition,
   type ExerciseLevel,
 } from '../exercises';
-import type { EquipmentTag } from '../movements';
 import type { HaleLifecycleState } from './appLifecycle';
 import {
   DEFAULT_EQUIPMENT,
@@ -30,6 +29,7 @@ import {
   type TrainingState,
   type TrainingSessionResult,
 } from '../training';
+import { equipmentLabels, equipmentSupportsTags } from '../training/equipmentSafety';
 import {
   type CompletedExerciseResult,
   createSessionTemplatesForFocus,
@@ -44,6 +44,7 @@ import {
   type PostSessionFeedback,
   type SessionSource,
   type SessionIntensity,
+  type SlotStimulus,
   type SessionTemplate,
   type TrackingQuality,
   type TrainingBlock as DynamicTrainingBlock,
@@ -51,7 +52,17 @@ import {
 } from '../training/workoutGeneration';
 import { summarizeValidTimeItem } from '../training/validTimeProgression';
 import { getSessionIntroCopy } from './copy';
+import { extraSessionDetailBody } from './extraSessionCopy';
+import {
+  evaluatePlannedFocusStimulus,
+  focusStimulusPlanMetadata,
+} from './focusStimulusEvidence';
+import {
+  classifyMainPlanSessionPlan,
+  mainPlanRecentSessionsForGeneration,
+} from './mainPlanEvents';
 import { dayLabelForPlanSessionId, type PlanSessionId } from './sessionIds';
+import { completedExerciseIdsFromEvidence, evaluateSessionWorkEvidence } from './sessionWorkEvidence';
 import type { ExerciseFamily, HaleExercise, HaleSessionPlan } from './types';
 
 export type TodaySessionAdjustment = 'shorter' | 'gentler' | 'no_equipment' | 'something_hurts';
@@ -121,6 +132,7 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         activeBlock,
         lifeGoal: input.lifeGoal,
         sessionType,
+        plannedFor: input.today ?? new Date(),
       });
       const validation = validatePlayableExerciseIds(adapted.exercises);
       if (adapted.exercises.length > 0 && validation.ok) return adapted;
@@ -163,6 +175,7 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         activeBlock: placeholderBlockForGenerated(generated, input.today),
         lifeGoal: input.lifeGoal,
         sessionType,
+        plannedFor: input.today ?? new Date(),
       });
       const validation = validatePlayableExerciseIds(adapted.exercises);
       if (adapted.exercises.length > 0 && validation.ok) return adapted;
@@ -249,18 +262,24 @@ export function adaptGeneratedSessionToHaleSessionPlan(
     activeBlock,
     lifeGoal,
     sessionType,
+    plannedFor,
   }: {
     activeBlock: MovementBlock;
     lifeGoal?: LifeGoal | null;
     sessionType: TrainingSessionCompletionType;
+    plannedFor?: string | Date;
   }
 ): HaleSessionPlan {
   const exercises = generated.exercises.map((exercise) => toHaleExercise(exercise));
-  return {
+  const introCopy = getSessionIntroCopy({ focusDomain: activeBlock.focusDomain, lifeGoal });
+  const plan: HaleSessionPlan = {
     id: generated.id,
     blockId: activeBlock.id,
     title: generated.title || titleForSessionType(sessionType, activeBlock.focusDomain),
-    purposeCopy: getSessionIntroCopy({ focusDomain: activeBlock.focusDomain, lifeGoal }),
+    purposeCopy:
+      generated.source === 'preset'
+        ? extraSessionDetailBody(generated.templateId, introCopy)
+        : introCopy,
     sessionType,
     estimatedMinutes: generated.estimatedMinutes || (sessionType === 'standard' ? 20 : 12),
     focusDomain: activeBlock.focusDomain,
@@ -269,21 +288,27 @@ export function adaptGeneratedSessionToHaleSessionPlan(
       source: generated.source,
       generatedSessionId: generated.id,
       templateId: generated.templateId,
-      plannedDateKey: plannedDateKey(generated.templateId),
+      plannedDateKey: plannedDateKey(generated.templateId, plannedFor ?? new Date()),
       readiness: generated.readiness,
       painAreas: generated.painAreas,
       guidance: generated.guidance,
       equipmentNeeded: equipmentNeeded(exercises),
       generatedExercises: generated.exercises.map(toGeneratedExerciseMetadata),
+      slotStimulus: generated.slotStimulus.map(toSlotStimulusMetadata),
+    },
+  };
+  const metadata = plan.metadata!;
+  return {
+    ...plan,
+    metadata: {
+      ...metadata,
+      focusStimulus: focusStimulusPlanMetadata(evaluatePlannedFocusStimulus(plan, activeBlock)),
     },
   };
 }
 
 export function countsTowardMainPlan(sessionPlan: HaleSessionPlan | null | undefined): boolean {
-  if (!sessionPlan) return true;
-  if (sessionPlan.sessionType === 'retest_prep') return false;
-  const source = sessionPlan.metadata?.source;
-  return source !== 'preset' && source !== 'manual';
+  return classifyMainPlanSessionPlan(sessionPlan).credited;
 }
 
 function placeholderBlockForGenerated(generated: GeneratedSession, today: string | Date | undefined): MovementBlock {
@@ -376,11 +401,21 @@ function toPracticeHaleExercise(
     estimatedMinutes: estimatePracticeMinutes(definition),
     requiresEquipment: level.equipment.map((e) => String(e)),
     rationale: `${level.name} from the ${ladderTitle} ladder.`,
-    safetyNotes:
-      level.equipment.includes('counter') || level.equipment.includes('wall') || level.equipment.includes('chair')
-        ? ['Keep support nearby and stop if anything feels unsafe.']
-        : undefined,
+    safetyNotes: safetyNotesForLevel(level),
   };
+}
+
+function safetyNotesForLevel(level: ExerciseLevel): string[] | undefined {
+  if (level.equipment.includes('floor')) {
+    return ['Use floor exercises only when getting down and back up from the floor feels comfortable today.'];
+  }
+  if (level.equipment.includes('stair')) {
+    return ['Use the lowest stable step with support nearby. Stop if the step, surface, or balance feels unsafe.'];
+  }
+  if (level.equipment.includes('counter') || level.equipment.includes('wall') || level.equipment.includes('chair')) {
+    return ['Keep support nearby and stop if anything feels unsafe.'];
+  }
+  return undefined;
 }
 
 function estimatePracticeMinutes(definition: ExerciseDefinition): number {
@@ -435,6 +470,8 @@ export function updateExerciseProgressionFromSession(input: {
   feedback?: PostSessionFeedback;
 }): Record<string, LadderProgress> {
   if (!isDynamicPlan(input.sessionPlan)) return input.previousProgress ?? {};
+  const evidence = evaluateSessionWorkEvidence(input.sessionPlan, input.sessionResult);
+  if (!evidence.hasCompletedPlannedExercise || input.completed === false) return input.previousProgress ?? {};
   const feedback: PostSessionFeedback = {
     perceivedEffort: input.perceivedEffort,
     painReported: input.painReported,
@@ -460,11 +497,17 @@ export function createGeneratedSessionSummary({
   completedAt,
   durationMinutes,
   feedback,
+  mainPlanCredit,
+  workEvidence,
+  focusStimulusEvidence,
 }: {
   sessionPlan: HaleSessionPlan;
   completedAt?: string;
   durationMinutes?: number;
   feedback?: PersistedPostSessionFeedback;
+  mainPlanCredit?: boolean;
+  workEvidence?: PersistedGeneratedSessionSummary['workEvidence'];
+  focusStimulusEvidence?: PersistedGeneratedSessionSummary['focusStimulusEvidence'];
 }): PersistedGeneratedSessionSummary {
   const metadata = sessionPlan.metadata;
   const source = metadata?.source === 'legacy_fallback' ? 'legacy' : metadata?.source ?? 'manual';
@@ -479,12 +522,22 @@ export function createGeneratedSessionSummary({
       repsPerSet: exercise.repsPerSet,
       secondsPerSet: exercise.secondsPerSet,
       measurementTier: exercise.measurementTier,
+      intendedDomain: exercise.intendedDomain,
+      stimulusRole: exercise.stimulusRole,
+      stimulusReason: exercise.stimulusReason,
     })) ?? [];
   return {
     id: metadata?.generatedSessionId ?? sessionPlan.id,
     blockId: sessionPlan.blockId,
     source,
     templateId: metadata?.templateId,
+    plannedDateKey: metadata?.plannedDateKey,
+    sessionType: sessionPlan.sessionType,
+    completionSource: metadata?.source,
+    status: mainPlanCredit ? 'completed' : workEvidence && workEvidence.completedExerciseCount > 0 ? 'partial' : 'skipped',
+    mainPlanCredit,
+    workEvidence,
+    focusStimulusEvidence,
     title: sessionPlan.title,
     focus: sessionPlan.focusDomain,
     completedAt,
@@ -535,29 +588,11 @@ function legacyFallbackPlan(
 }
 
 function recentSessionsFor(input: PlanTodayHaleSessionInput): GenerateSessionInput['recentSessions'] {
-  const fromCompletions = (input.recentCompletions ?? []).map((completion) => ({
-    id: completion.id,
-    blockId: completion.blockId,
-    templateId: templateIdFromPlannedDate(completion.plannedDate),
-    plannedDate: completion.plannedDate,
-    completedAt: completion.completedAt,
-    status: 'completed' as const,
-    durationMinutes: completion.durationMinutes,
-  }));
-  const seenTemplates = new Set(fromCompletions.map((session) => session.templateId).filter(Boolean));
-  const fromSummaries = (input.training?.generatedSessionSummaries ?? [])
-    .filter((summary) => !!summary.completedAt)
-    .filter((summary) => !summary.templateId || !seenTemplates.has(summary.templateId))
-    .map((summary) => ({
-      id: summary.id,
-      blockId: summary.blockId,
-      templateId: summary.templateId,
-      completedAt: summary.completedAt as string,
-      source: summary.source === 'legacy' ? undefined : summary.source,
-      status: 'completed' as const,
-      durationMinutes: summary.durationMinutes,
-    }));
-  return [...fromCompletions, ...fromSummaries];
+  return mainPlanRecentSessionsForGeneration({
+    activeBlock: input.activeBlock,
+    completions: input.recentCompletions,
+    generatedSessionSummaries: input.training?.generatedSessionSummaries,
+  });
 }
 
 function isDynamicPlan(plan: HaleSessionPlan): boolean {
@@ -571,6 +606,10 @@ function completedExerciseResultsForPlan(
   feedback: PostSessionFeedback,
   completedOverride: boolean | undefined
 ): CompletedExerciseResult[] {
+  if (completedOverride === false) return [];
+  const evidence = evaluateSessionWorkEvidence(plan, sessionResult);
+  const completedIds = completedExerciseIdsFromEvidence(evidence);
+  if (completedIds.size === 0) return [];
   const items = new Map((sessionResult?.items ?? []).map((item) => [item.exerciseId, item]));
   const metadata = plan.metadata?.generatedExercises;
   const source =
@@ -583,14 +622,14 @@ function completedExerciseResultsForPlan(
         }));
   return source
     .filter((exercise) => !!exercise.ladderId)
+    .filter((exercise) => completedIds.has(exercise.exerciseId))
     .map((exercise) => {
       const item = items.get(exercise.exerciseId);
-      const completed = completedOverride ?? (item ? item.status !== 'skipped' : true);
       const validTime = summarizeValidTimeItem(item);
       return {
         ladderId: exercise.ladderId as string,
         levelId: exercise.levelId ?? exercise.exerciseId,
-        completionRate: completed ? 1 : 0,
+        completionRate: 1,
         perceivedEffort: feedback.perceivedEffort,
         painReported: feedback.painReported,
         trackingQuality: feedback.trackingQuality ?? 'good',
@@ -659,7 +698,10 @@ function applyEquipmentProfile(set: Set<AvailableEquipment>, equipment: Equipmen
   if (equipment.stair) set.add('stairs');
   else set.delete('stairs');
   if (equipment.band) set.add('resistance_band');
-  else set.delete('resistance_band');
+  else {
+    set.delete('resistance_band');
+    set.delete('door_anchor');
+  }
   if (equipment.miniBand) set.add('mini_band');
   else set.delete('mini_band');
   if (equipment.load) {
@@ -668,22 +710,6 @@ function applyEquipmentProfile(set: Set<AvailableEquipment>, equipment: Equipmen
     set.delete('backpack');
     set.delete('dumbbells');
   }
-}
-
-function equipmentSupportsTags(required: readonly EquipmentTag[], available: readonly AvailableEquipment[]): boolean {
-  if (required.length === 0) return true;
-  for (const tag of required) {
-    if (tag === 'none' || tag === 'floor') continue;
-    if (tag === 'cushion' && !available.includes('chair')) return false;
-    if (tag === 'chair' && !available.includes('chair')) return false;
-    if (tag === 'wall' && !available.includes('wall')) return false;
-    if (tag === 'counter' && !available.includes('wall') && !available.includes('chair')) return false;
-    if (tag === 'stair' && !available.includes('stairs')) return false;
-    if ((tag === 'long_band' || tag === 'door_anchor') && !available.includes('resistance_band')) return false;
-    if (tag === 'mini_band' && !available.includes('mini_band')) return false;
-    if (tag === 'backpack_or_weight' && !available.includes('backpack') && !available.includes('dumbbells')) return false;
-  }
-  return true;
 }
 
 function toDynamicTrainingBlock(block: MovementBlock): DynamicTrainingBlock {
@@ -756,6 +782,25 @@ function toGeneratedExerciseMetadata(exercise: GeneratedExercise) {
     repsPerSet: exercise.repsPerSet,
     secondsPerSet: exercise.secondsPerSet,
     measurementTier: exercise.measurementTier,
+    intendedDomain: exercise.intendedDomain,
+    stimulusRole: exercise.stimulusRole,
+    stimulusReason: exercise.stimulusReason,
+  };
+}
+
+function toSlotStimulusMetadata(stimulus: SlotStimulus) {
+  return {
+    slotId: stimulus.slotId,
+    slotType: stimulus.slotType,
+    slotTitle: stimulus.slotTitle,
+    intendedDomain: stimulus.intendedDomain,
+    role: stimulus.role,
+    reason: stimulus.reason,
+    message: stimulus.message,
+    exerciseId: stimulus.exerciseId,
+    ladderId: stimulus.ladderId,
+    levelId: stimulus.levelId,
+    selectedDomain: stimulus.selectedDomain,
   };
 }
 
@@ -843,18 +888,13 @@ function familyForDefinition(definition: ExerciseDefinition): ExerciseFamily {
 function equipmentNeeded(exercises: readonly HaleExercise[]): string[] {
   return unique(
     exercises
-      .flatMap((exercise) => exercise.requiresEquipment ?? [])
-      .filter((item) => !['none', 'floor'].includes(item))
+      .flatMap((exercise) => equipmentLabels(exercise.requiresEquipment ?? []))
+      .filter((item) => item && item !== 'No optional equipment')
   );
 }
 
-function templateIdFromPlannedDate(plannedDate: string | undefined): string | undefined {
-  if (!plannedDate) return undefined;
-  return plannedDate.split(':')[0];
-}
-
-function plannedDateKey(templateId: string | undefined): string {
-  return `${templateId ?? 'session'}:${dateKey(new Date())}`;
+function plannedDateKey(templateId: string | undefined, plannedFor: string | Date): string {
+  return `${templateId ?? 'session'}:${dateKey(plannedFor)}`;
 }
 
 function dateKey(value: string | Date): string {

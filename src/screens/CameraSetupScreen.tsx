@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { BackArrowButton } from '../components/BackArrowButton';
 import { Card, ListRow, PrimaryButton, Screen, ScreenHeader, SecondaryButton, StatusBadge, Typography } from '../components/ui';
 import { colors, radius, spacing, type } from '../theme';
 
@@ -19,6 +20,7 @@ export function CameraSetupScreen({
 }) {
   return (
     <Screen>
+      <BackArrowButton accessibilityLabel="Back" onPress={onCancel} />
       <ScreenHeader
         eyebrow="Step 6 of 10"
         title="Set up your space"
@@ -53,7 +55,6 @@ export function CameraSetupScreen({
         )}
         {!permissionGranted ? <SecondaryButton title="Continue with setup anyway" onPress={onBegin} /> : null}
         {onDevSkipCheckUp ? <SecondaryButton title="dev: skip Movement Check-Up" onPress={onDevSkipCheckUp} /> : null}
-        <SecondaryButton title="Back" onPress={onCancel} />
       </View>
     </Screen>
   );

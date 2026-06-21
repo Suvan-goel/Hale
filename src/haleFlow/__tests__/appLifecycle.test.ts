@@ -121,12 +121,22 @@ function activeBlock(startDate = START): MovementBlock {
 }
 
 function completed(block: MovementBlock, completedAt: string, sessionNumber = 1) {
+  const templateId = sessionNumber === 0 ? undefined : `${templatePrefix(block)}-${String.fromCharCode(64 + sessionNumber)}`;
   return makeTrainingSessionCompletion({
     block,
     sessionType: sessionNumber === 0 ? 'micro_check' : sessionNumber === 1 ? 'starter' : 'standard',
     completedAt,
-    plannedDate: sessionNumber === 0 ? 'micro-check' : `session-${sessionNumber}`,
+    plannedDate: templateId ? `${templateId}:${completedAt.slice(0, 10)}` : 'micro-check',
+    source: templateId ? 'block_generated' : undefined,
+    templateId,
+    mainPlanCredit: templateId ? true : undefined,
   });
+}
+
+function templatePrefix(block: MovementBlock): 'strength' | 'balance' | 'mobility' {
+  if (block.focusDomain === 'balance') return 'balance';
+  if (block.focusDomain === 'mobility') return 'mobility';
+  return 'strength';
 }
 
 function domainResult(domain: Domain, age: number, measured = true): DomainResult {
@@ -429,12 +439,18 @@ describe('lifecycle view models', () => {
         sessionType: 'starter',
         completedAt: '2026-06-02T08:00:00.000Z',
         plannedDate: 'balance-A:2026-06-02',
+        source: 'block_generated',
+        templateId: 'balance-A',
+        mainPlanCredit: true,
       }),
       makeTrainingSessionCompletion({
         block,
         sessionType: 'standard',
         completedAt: '2026-06-04T08:00:00.000Z',
         plannedDate: 'balance-B:2026-06-04',
+        source: 'block_generated',
+        templateId: 'balance-B',
+        mainPlanCredit: true,
       }),
     ];
 
@@ -460,6 +476,10 @@ describe('lifecycle view models', () => {
               blockId: block.id,
               source: 'block_generated',
               templateId: 'balance-B',
+              plannedDateKey: 'balance-B:2026-06-04',
+              sessionType: 'standard',
+              status: 'completed',
+              mainPlanCredit: true,
               title: 'Balance Session B',
               completedAt: '2026-06-04T08:00:00.000Z',
               exerciseIds: [],

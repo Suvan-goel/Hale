@@ -1,4 +1,4 @@
-import { calendarKey } from './dateUtils';
+import { calendarKey, isCreditedMainPlanTrainingCompletion } from './dateUtils';
 import type {
   AdherenceStoreState,
   IdentityMilestone,
@@ -54,6 +54,11 @@ export function makeTrainingSessionCompletion({
   perceivedEffort,
   painReported,
   notes,
+  source,
+  templateId,
+  mainPlanCredit,
+  workEvidence,
+  focusStimulusEvidence,
   userId = LOCAL_USER_ID,
 }: {
   block: MovementBlock;
@@ -64,6 +69,11 @@ export function makeTrainingSessionCompletion({
   perceivedEffort?: 1 | 2 | 3 | 4 | 5;
   painReported?: boolean;
   notes?: string;
+  source?: TrainingSessionCompletion['source'];
+  templateId?: string;
+  mainPlanCredit?: boolean;
+  workEvidence?: TrainingSessionCompletion['workEvidence'];
+  focusStimulusEvidence?: TrainingSessionCompletion['focusStimulusEvidence'];
   userId?: string;
 }): TrainingSessionCompletion {
   const keyDate = plannedDate ?? calendarKey(completedAt);
@@ -75,6 +85,11 @@ export function makeTrainingSessionCompletion({
     completedAt,
     sessionType,
     focusDomain: block.focusDomain,
+    source,
+    templateId,
+    mainPlanCredit,
+    workEvidence,
+    focusStimulusEvidence,
     durationMinutes,
     perceivedEffort,
     painReported,
@@ -126,9 +141,7 @@ function recomputeBlockProgress(
   nowIso: string
 ): MovementBlock {
   const mine = completions.filter((c) => c.blockId === block.id);
-  const completedSessions = mine.filter(
-    (c) => c.sessionType === 'standard' || c.sessionType === 'starter' || c.sessionType === 'restart'
-  ).length;
+  const completedSessions = mine.filter(isCreditedMainPlanTrainingCompletion).length;
   const microChecksCompleted = mine.filter((c) => c.sessionType === 'micro_check').length;
   const hasRetest = mine.some((c) => c.sessionType === 'retest');
   return {

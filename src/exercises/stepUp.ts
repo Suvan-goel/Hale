@@ -1,9 +1,9 @@
 /**
  * Step-up (side view) — power/functional finisher. Needs a bottom stair; when
- * the user's equipment profile has no stair the block substitutes power
- * sit-to-stand tempo work (`substituteId`), so a missing step never blocks the
- * session (product law 6). Knee-angle cycle + near-hip rise velocity on the
- * stepping leg; velocity-autoregulated like the power STS.
+ * the user's equipment profile has no stair or nearby support, the dynamic
+ * session generator falls back to lower-body alternatives. Knee-angle cycle +
+ * near-hip rise velocity on the stepping leg; velocity-autoregulated like the
+ * power STS.
  */
 
 import { repsGrader } from './common';
@@ -22,7 +22,7 @@ export const stepUpDefinition: ExerciseDefinition = {
   level: 1,
   slot: 'power',
   cameraView: { view: 'side', requiredReliableSideChains: 1 },
-  equipment: ['stair'],
+  equipment: ['stair', 'counter'],
   kind: 'reps',
   prescription: { sets: 3, repsPerSet: 12, restSec: 60, autoregulate: true },
   voice: { instructions: ['ex-step-up'] },

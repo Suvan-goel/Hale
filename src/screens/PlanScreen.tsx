@@ -7,6 +7,7 @@ import {
   EmptyState,
   Screen,
 } from '../components/ui';
+import { HeaderLogo } from '../components/HeaderLogo';
 import type { ActiveBlockSummary, HaleLifecycleState, WeekSessionStatus } from '../haleFlow';
 import {
   formatPreferredDays,
@@ -19,7 +20,7 @@ import {
 } from '../haleFlow';
 import { SettingsIcon } from '../navigation/icons';
 import type { TrainingIntensityPreference } from '../training';
-import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { colors, fonts, imageOverlayControl, radius, shadow, spacing, type } from '../theme';
 
 const PLAN_HERO_IMAGE = require('../../assets/images/hale-plan-hero-mountain.png');
 
@@ -77,7 +78,10 @@ export function PlanScreen({
     <Screen contentStyle={styles.screenContent}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <Text style={styles.title}>Your Plan</Text>
+          <View style={styles.titleGroup}>
+            <HeaderLogo size={30} />
+            <Text style={styles.title}>Your Plan</Text>
+          </View>
           <Pressable
             style={({ pressed }) => [styles.headerIconButton, pressed && styles.pressed]}
             onPress={onOpenSettings}
@@ -576,12 +580,19 @@ const styles = StyleSheet.create({
   },
   titleRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.lg,
   },
+  titleGroup: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   headerCopy: { flex: 1, minWidth: 0 },
-  title: { ...type.pageTitle },
+  title: { ...type.pageTitle, flexShrink: 1 },
   subtitle: { ...type.pageSubtitle },
   headerIconButton: {
     width: 44,
@@ -620,20 +631,15 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 18,
     right: 18,
-    top: 16,
+    top: 24,
     bottom: 18,
     justifyContent: 'flex-start',
     zIndex: 2,
   },
   weekPill: {
-    alignSelf: 'flex-start',
-    minHeight: 31,
-    borderRadius: radius.input,
-    justifyContent: 'center',
-    paddingHorizontal: 12,
+    alignSelf: 'stretch',
+    alignItems: 'flex-start',
     backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: 'rgba(251,245,239,0.72)',
   },
   weekPillText: {
     color: colors.onAccent,
@@ -641,6 +647,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     letterSpacing: 0,
+    textAlign: 'left',
   },
   heroTitle: {
     color: colors.onAccent,
@@ -670,17 +677,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.bgElevated,
+    backgroundColor: imageOverlayControl.background,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: imageOverlayControl.border,
   },
   heroButtonText: {
-    color: colors.accentDeep,
+    color: imageOverlayControl.text,
     fontFamily: fonts.sansMedium,
     fontSize: 14,
     lineHeight: 19,
     letterSpacing: 0,
   },
   heroButtonArrow: {
-    color: colors.accentDeep,
+    color: imageOverlayControl.text,
     fontFamily: fonts.sansMedium,
     fontSize: 21,
     lineHeight: 22,

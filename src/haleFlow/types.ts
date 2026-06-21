@@ -6,11 +6,20 @@ import type {
   MovementBlockReport,
   MovementDomain,
   MovementSafetyProfile,
+  TrainingFocusStimulusPlanStatus,
   TrainingSessionCompletion,
   TrainingSessionCompletionType,
 } from '../adherence';
 import type { CheckUpScore, VersionedCheckUpScoreSnapshot } from '../scoring';
-import type { DailyReadiness, PainArea, SessionSlotType, SessionSource } from '../training/workoutGeneration';
+import type {
+  DailyReadiness,
+  PainArea,
+  SessionSlotType,
+  SessionSource,
+  SlotStimulusReason,
+  SlotStimulusRole,
+  TrainingDomain,
+} from '../training/workoutGeneration';
 
 export type HaleUserFlowState =
   | 'needs_life_goal'
@@ -116,6 +125,8 @@ export interface HaleSessionPlanMetadata {
   equipmentNeeded?: readonly string[];
   fallbackReason?: string;
   generatedExercises?: readonly HaleGeneratedExerciseMetadata[];
+  slotStimulus?: readonly HaleSlotStimulusMetadata[];
+  focusStimulus?: HaleFocusStimulusPlanMetadata;
 }
 
 export interface HaleGeneratedExerciseMetadata {
@@ -127,6 +138,41 @@ export interface HaleGeneratedExerciseMetadata {
   repsPerSet?: number;
   secondsPerSet?: number;
   measurementTier?: 'measured' | 'camera_assisted' | 'voice_guided';
+  intendedDomain?: TrainingDomain;
+  stimulusRole?: SlotStimulusRole;
+  stimulusReason?: SlotStimulusReason;
+}
+
+export interface HaleSlotStimulusMetadata {
+  slotId: string;
+  slotType: SessionSlotType;
+  slotTitle: string;
+  intendedDomain: TrainingDomain;
+  role: SlotStimulusRole;
+  reason: SlotStimulusReason;
+  message: string;
+  exerciseId?: string;
+  ladderId?: string;
+  levelId?: string;
+  selectedDomain?: TrainingDomain;
+}
+
+export interface HaleFocusStimulusPlanMetadata {
+  status: TrainingFocusStimulusPlanStatus;
+  mainPlanCreditPotential: boolean;
+  blockFocusDomain?: MovementDomain;
+  blockFocusTrainingDomain?: TrainingDomain;
+  plannedPrimaryFocusExerciseIds: readonly string[];
+  plannedSupportingExerciseIds: readonly string[];
+  plannedFallbackExerciseIds: readonly string[];
+  plannedCrossDomainExerciseIds: readonly string[];
+  fallbackFocusSlotIds: readonly string[];
+  skippedFocusSlotIds: readonly string[];
+  focusStimulusExclusionReasons: readonly SlotStimulusReason[];
+  missingMetadataExerciseIds: readonly string[];
+  malformedMetadataExerciseIds: readonly string[];
+  focusMismatchExerciseIds: readonly string[];
+  mainPlanClassifierReason?: string;
 }
 
 export interface HaleSessionPlan {

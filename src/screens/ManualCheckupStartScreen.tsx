@@ -7,7 +7,8 @@ import {
   MovementBlock,
   TrainingSessionCompletion,
 } from '../adherence';
-import { Card, PrimaryButton, Screen, ScreenHeader, SecondaryButton, StatusBadge } from '../components/ui';
+import { BackArrowButton } from '../components/BackArrowButton';
+import { Card, PrimaryButton, Screen, ScreenHeader, StatusBadge } from '../components/ui';
 import { getManualCheckupCopy, getManualCheckupOptions } from '../haleFlow';
 import { colors, spacing, type } from '../theme';
 
@@ -30,6 +31,7 @@ export function ManualCheckupStartScreen({
   const options = getManualCheckupOptions({ latestAssessment, activeBlock, completions });
   return (
     <Screen>
+      <BackArrowButton accessibilityLabel="Back" onPress={onCancel} />
       <ScreenHeader title={copy.title} subtitle={copy.body} />
       {options.map((option) => (
         <Card key={`${option.type}-${option.route}`} style={styles.card}>
@@ -53,7 +55,6 @@ export function ManualCheckupStartScreen({
           ) : null}
         </Card>
       ))}
-      <SecondaryButton title="Back" onPress={onCancel} />
     </Screen>
   );
 }

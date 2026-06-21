@@ -46,8 +46,13 @@ export function completedTrainingSessions(
   block: MovementBlock,
   completions: readonly TrainingSessionCompletion[]
 ): TrainingSessionCompletion[] {
-  return completions.filter(
-    (c) => c.blockId === block.id && (c.sessionType === 'standard' || c.sessionType === 'starter' || c.sessionType === 'restart')
+  return completions.filter((c) => c.blockId === block.id && isCreditedMainPlanTrainingCompletion(c));
+}
+
+export function isCreditedMainPlanTrainingCompletion(completion: TrainingSessionCompletion): boolean {
+  return (
+    completion.mainPlanCredit === true &&
+    (completion.sessionType === 'standard' || completion.sessionType === 'starter' || completion.sessionType === 'restart')
   );
 }
 

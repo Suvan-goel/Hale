@@ -48,7 +48,10 @@ import {
   createMovementBlockReport,
   createGeneratedSessionSummary,
   countsTowardMainPlan,
+  evaluateCompletedFocusStimulusEvidence,
+  evaluateSessionWorkEvidence,
   findCheckUpForAssessment,
+  focusStimulusEvidenceSummary,
   getBlockCreationEligibility,
   getHaleAppLifecycle,
   getMicroCheckForBlock,
@@ -177,6 +180,7 @@ type Flow =
   | 'session-complete'
   | 'ladder-detail'
   | 'learn-detail'
+  | 'settings'
   | 'dev-assessment'
   | 'dev-live';
 
@@ -248,7 +252,12 @@ function sessionIndexForCompletions(
   completion: TrainingSessionCompletion
 ): number | undefined {
   const ordered = completions
-    .filter((item) => item.blockId === completion.blockId && isSyncableWorkoutCompletionType(item.sessionType))
+    .filter(
+      (item) =>
+        item.blockId === completion.blockId &&
+        item.mainPlanCredit === true &&
+        isSyncableWorkoutCompletionType(item.sessionType)
+    )
     .slice()
     .sort((a, b) => a.completedAt.localeCompare(b.completedAt));
   const index = ordered.findIndex((item) => item.id === completion.id);
@@ -256,7 +265,22 @@ function sessionIndexForCompletions(
 }
 
 function isSyncableWorkoutCompletionType(type: TrainingSessionCompletionType): boolean {
-  return type === 'standard' || type === 'starter' || type === 'restart' || type === 'retest_prep';
+  return type === 'standard' || type === 'starter' || type === 'restart';
+}
+
+function workEvidenceSummary(
+  evidence: ReturnType<typeof evaluateSessionWorkEvidence>
+): NonNullable<TrainingSessionCompletion['workEvidence']> {
+  return {
+    plannedExerciseCount: evidence.plannedExerciseCount,
+    resultItemCount: evidence.resultItemCount,
+    completedExerciseCount: evidence.completedExerciseCount,
+    skippedExerciseCount: evidence.skippedExerciseCount,
+    missingResultCount: evidence.missingResultCount,
+    duplicateResultCount: evidence.duplicateResultCount,
+    malformedResultCount: evidence.malformedResultCount,
+    unmatchedResultCount: evidence.unmatchedResultCount,
+  };
 }
 
 function launchRestoreOutcomeFromStatus(status: RestoreStatus): LaunchRestoreOutcome {
@@ -339,6 +363,7 @@ function HaleApp() {
   // on top of it (a flow hides the tab bar; null means "show the tabs").
   const [tab, setTab] = React.useState<TabKey>('today');
   const [flow, setFlow] = React.useState<Flow | null>(null);
+  const [settingsReturnTab, setSettingsReturnTab] = React.useState<TabKey>('today');
 
   // Local-only stores (no accounts/backend in V1), loaded once on launch.
   const [store] = React.useState(() => new HistoryStore(expoHistoryFs));
@@ -596,11 +621,16 @@ function HaleApp() {
   }, []);
 
   const goSettings = React.useCallback(() => {
-    setFlow(null);
-    setTab('profile');
+    setSettingsReturnTab(tab);
+    setFlow('settings');
     setSelectedLadderId(null);
     setSelectedLearnId(null);
-  }, []);
+  }, [tab]);
+
+  const closeSettings = React.useCallback(() => {
+    setFlow(null);
+    setTab(settingsReturnTab);
+  }, [settingsReturnTab]);
 
   const persistTraining = React.useCallback(
     (next: TrainingState) => {
@@ -1651,7 +1681,35 @@ function HaleApp() {
     (result: TrainingSessionResult) => {
       const completedAt = new Date().toISOString();
       const sessionPlan = activeSessionPlan;
-      const countsTowardPlan = countsTowardMainPlan(sessionPlan);
+      const evidence = evaluateSessionWorkEvidence(sessionPlan, result);
+      const summarizedEvidence = workEvidenceSummary(evidence);
+      const focusEvidence = evaluateCompletedFocusStimulusEvidence({
+        sessionPlan,
+        result,
+        activeBlock: activeMovementBlock,
+        workEvidence: evidence,
+      });
+      const summarizedFocusEvidence = focusStimulusEvidenceSummary(focusEvidence);
+      const countsTowardPlan = focusEvidence.mainPlanCredit;
+      addBreadcrumb('training session credit classified', {
+        area: 'main_plan_credit',
+        blockId: sessionPlan?.blockId,
+        sessionId: sessionPlan?.id,
+        templateId: sessionPlan?.metadata?.templateId,
+        source: sessionPlan?.metadata?.source,
+        mainPlanCredit: countsTowardPlan,
+        focusPlanStatus: focusEvidence.planStatus,
+        focusCompletionStatus: focusEvidence.status,
+        focusExclusionReason: focusEvidence.exclusionReason,
+        plannedPrimaryFocusExerciseCount: focusEvidence.plannedPrimaryFocusExerciseCount,
+        completedPrimaryFocusExerciseCount: focusEvidence.completedPrimaryFocusExerciseCount,
+        completedExerciseCount: evidence.completedExerciseCount,
+        skippedExerciseCount: evidence.skippedExerciseCount,
+        missingResultCount: evidence.missingResultCount,
+        duplicateResultCount: evidence.duplicateResultCount,
+        malformedResultCount: evidence.malformedResultCount,
+        unmatchedResultCount: evidence.unmatchedResultCount,
+      });
       setLastSessionResult(result);
       let nextTraining = training;
       let trainingChanged = false;
@@ -1665,6 +1723,9 @@ function HaleApp() {
           sessionPlan,
           completedAt,
           durationMinutes: sessionPlan.estimatedMinutes,
+          mainPlanCredit: countsTowardPlan,
+          workEvidence: summarizedEvidence,
+          focusStimulusEvidence: summarizedFocusEvidence,
         });
         generatedSessionSummary = summary;
         nextTraining = {
@@ -1680,14 +1741,19 @@ function HaleApp() {
         const ended = Date.parse(completedAt);
         const durationMinutes = sessionPlan?.estimatedMinutes ??
           (Number.isFinite(started) && Number.isFinite(ended) ? Math.max(1, Math.round((ended - started) / 60000)) : undefined);
-        const completion = makeTrainingSessionCompletion({
-          block,
-          sessionType: sessionPlan?.sessionType ?? sessionType,
-          completedAt,
-          plannedDate: sessionPlan?.metadata?.plannedDateKey ?? `session-${training.progress.completedSessions + 1}`,
-          durationMinutes,
-        });
         if (countsTowardPlan) {
+          const completion = makeTrainingSessionCompletion({
+            block,
+            sessionType: sessionPlan?.sessionType ?? sessionType,
+            completedAt,
+            plannedDate: sessionPlan?.metadata?.plannedDateKey,
+            durationMinutes,
+            source: sessionPlan?.metadata?.source,
+            templateId: sessionPlan?.metadata?.templateId,
+            mainPlanCredit: true,
+            workEvidence: summarizedEvidence,
+            focusStimulusEvidence: summarizedFocusEvidence,
+          });
           let nextAdherence = recordTrainingSessionCompletion(adherence, completion);
           const updatedBlock = nextAdherence.blocks.find((b) => b.id === block.id) ?? block;
           nextAdherence = mergeMilestones(
@@ -1720,8 +1786,23 @@ function HaleApp() {
               sessionIndex: sessionIndexForCompletions(nextAdherence.completions, completion),
             });
           }
+          setLastCompletion(completion);
+        } else {
+          setLastCompletion(
+            makeTrainingSessionCompletion({
+              block,
+              sessionType: sessionPlan?.sessionType ?? sessionType,
+              completedAt,
+              plannedDate: sessionPlan?.metadata?.plannedDateKey,
+              durationMinutes,
+              source: sessionPlan?.metadata?.source,
+              templateId: sessionPlan?.metadata?.templateId,
+              mainPlanCredit: false,
+              workEvidence: summarizedEvidence,
+              focusStimulusEvidence: summarizedFocusEvidence,
+            })
+          );
         }
-        setLastCompletion(completion);
         setFlow('session-complete');
       } else {
         goHome();
@@ -1830,6 +1911,9 @@ function HaleApp() {
           completedAt: nextCompletion.completedAt,
           durationMinutes: nextCompletion.durationMinutes,
           feedback: persistedFeedback,
+          mainPlanCredit: nextCompletion.mainPlanCredit,
+          workEvidence: nextCompletion.workEvidence,
+          focusStimulusEvidence: nextCompletion.focusStimulusEvidence,
         });
         generatedSessionSummary = summary;
         if (activeSessionPlan.metadata?.source !== 'legacy_fallback') {
@@ -1842,7 +1926,8 @@ function HaleApp() {
       if (
         activeSessionPlan &&
         activeSessionPlan.metadata?.source !== 'legacy_fallback' &&
-        countsTowardMainPlan(activeSessionPlan)
+        countsTowardMainPlan(activeSessionPlan) &&
+        nextCompletion.mainPlanCredit === true
       ) {
         try {
           const ladderProgressById = updateExerciseProgressionFromSession({
@@ -2410,6 +2495,8 @@ function HaleApp() {
           <LadderDetailScreen
             ladderId={selectedLadderId}
             ladderProgressById={training.ladderProgressById}
+            equipment={training.equipment}
+            safetyProfile={prefs.profile.safetyProfile}
             onPractice={() => handleStartLadderPractice(selectedLadderId)}
             onDone={goExplore}
           />
@@ -2419,6 +2506,25 @@ function HaleApp() {
             onCameraSetup={() => setFlow('camera-setup')}
             onEquipment={goSettings}
             onDone={goExplore}
+          />
+        ) : flow === 'settings' ? (
+          <SettingsScreen
+            profile={prefs.profile}
+            settings={prefs.settings}
+            equipment={training.equipment}
+            supportConnection={supportConnection}
+            preferredDays={prefs.profile.safetyProfile?.preferredWorkoutDays ?? []}
+            preferredIntensity={training.planPreferences.preferredIntensity}
+            onProfileChange={onProfileChange}
+            onSettingsChange={onSettingsChange}
+            onToggleEquipment={toggleEquipment}
+            onToggleAvailableEquipment={toggleAvailableEquipment}
+            onPreferredDaysChange={handlePreferredWorkoutDaysChange}
+            onIntensityChange={handleTrainingIntensityChange}
+            onOpenLifeGoal={() => setFlow('life-goal')}
+            onOpenSafetyProfile={() => setFlow('safety-profile')}
+            onOpenCameraSetup={() => setFlow('camera-setup')}
+            onBack={closeSettings}
           />
         ) : flow === 'dev-assessment' ? (
           <AssessmentScreen />
@@ -2475,6 +2581,7 @@ function HaleApp() {
             reports={adherence.reports}
             completions={adherence.completions}
             ladderProgressById={training.ladderProgressById}
+            lifeGoal={prefs.profile.lifeGoal}
             today={new Date().toISOString()}
             onBeginCheckUp={() => (latestAssessment ? openManualCheckup() : setFlow('camera-setup'))}
             onStartRetest={() => beginCheckUp('official_retest')}
@@ -2494,22 +2601,11 @@ function HaleApp() {
             onOpenSettings={goSettings}
           />
         ) : (
-          <SettingsScreen
+          <TodayScreen
             profile={prefs.profile}
-            settings={prefs.settings}
-            equipment={training.equipment}
-            supportConnection={supportConnection}
-            preferredDays={prefs.profile.safetyProfile?.preferredWorkoutDays ?? []}
-            preferredIntensity={training.planPreferences.preferredIntensity}
-            onProfileChange={onProfileChange}
-            onSettingsChange={onSettingsChange}
-            onToggleEquipment={toggleEquipment}
-            onToggleAvailableEquipment={toggleAvailableEquipment}
-            onPreferredDaysChange={handlePreferredWorkoutDaysChange}
-            onIntensityChange={handleTrainingIntensityChange}
-            onOpenLifeGoal={() => setFlow('life-goal')}
-            onOpenSafetyProfile={() => setFlow('safety-profile')}
-            onOpenCameraSetup={() => setFlow('camera-setup')}
+            lifecycle={lifecycle}
+            onPrimaryAction={handleTodayPrimaryAction}
+            onOpenSettings={goSettings}
           />
         )}
       </View>

@@ -144,6 +144,13 @@ function sanitizeGeneratedSessionSummary(summary: PersistedGeneratedSessionSumma
     blockId: summary.blockId,
     source: summary.source,
     templateId: summary.templateId,
+    plannedDateKey: summary.plannedDateKey,
+    sessionType: summary.sessionType,
+    completionSource: summary.completionSource,
+    status: summary.status,
+    mainPlanCredit: summary.mainPlanCredit,
+    workEvidence: summary.workEvidence,
+    focusStimulusEvidence: summary.focusStimulusEvidence,
     title: summary.title,
     focus: summary.focus,
     generatedAt: summary.generatedAt,
@@ -168,6 +175,9 @@ function sanitizeGeneratedExerciseSummary(summary: PersistedGeneratedExerciseSum
     repsPerSet: summary.repsPerSet,
     secondsPerSet: summary.secondsPerSet,
     measurementTier: summary.measurementTier,
+    intendedDomain: summary.intendedDomain,
+    stimulusRole: summary.stimulusRole,
+    stimulusReason: summary.stimulusReason,
   });
 }
 

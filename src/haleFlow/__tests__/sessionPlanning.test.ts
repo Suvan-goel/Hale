@@ -6,7 +6,16 @@ import {
   type MovementSafetyProfile,
 } from '../../adherence';
 import { syntheticCheckUp } from '../../checkup/devFixture';
-import { hasExercise, STS_SLOW_ECC_ID, STS_STANDARD_ID } from '../../exercises';
+import {
+  BRIDGE_HOLD_ID,
+  HINGE_FREE_ID,
+  SEATED_BAND_ROW_ID,
+  STANDING_BAND_ROW_ID,
+  STEP_UP_ID,
+  hasExercise,
+  STS_SLOW_ECC_ID,
+  STS_STANDARD_ID,
+} from '../../exercises';
 import { createCurrentVersionedScoreSnapshot, scoreCheckUp } from '../../scoring';
 import {
   DEFAULT_EQUIPMENT,
@@ -99,6 +108,7 @@ describe('planTodayHaleSession', () => {
 
     expect(plan.metadata?.source).toBe('block_generated');
     expect(countsTowardMainPlan(plan)).toBe(true);
+    expect(plan.metadata?.plannedDateKey).toBe(`${plan.metadata?.templateId}:2026-06-01`);
     expect(plan.title).toBeTruthy();
     expect(plan.estimatedMinutes).toBeGreaterThan(0);
     expect(plan.exercises.length).toBeGreaterThan(0);
@@ -197,6 +207,7 @@ describe('planTodayHaleSession', () => {
     expect(plan.metadata?.source).toBe('preset');
     expect(countsTowardMainPlan(plan)).toBe(false);
     expect(plan.blockId).toBe('explore-extra-session');
+    expect(plan.purposeCopy).toContain('shorter option outside the main plan');
     expect(plan.exercises.length).toBeGreaterThan(0);
     expect(plan.exercises.every((exercise) => hasExercise(exercise.id))).toBe(true);
   });
@@ -220,6 +231,124 @@ describe('planTodayHaleSession', () => {
       ladderId: 'sit-to-stand',
       levelId: STS_STANDARD_ID,
     });
+  });
+
+  it('respects floor, stair, and support constraints for ladder practice', () => {
+    const baseTraining = legacyTraining();
+    const floorProgress = {
+      'hinge-glutes': {
+        ladderId: 'hinge-glutes',
+        currentLevelId: BRIDGE_HOLD_ID,
+        completedSessionsAtLevel: 0,
+        failedSessionsAtLevel: 0,
+        recentCompletionRates: [],
+        recentRpe: [],
+        recentPain: [],
+        updatedAt: START,
+      },
+    };
+    const noFloor = planLadderPracticeSession({
+      ladderId: 'hinge-glutes',
+      activeBlock: block(),
+      training: { ...baseTraining, ladderProgressById: floorProgress },
+      safetyProfile: { ...safety(), availableEquipment: ['chair', 'wall'] },
+      today: START,
+    });
+    const withFloor = planLadderPracticeSession({
+      ladderId: 'hinge-glutes',
+      activeBlock: block(),
+      training: { ...baseTraining, ladderProgressById: floorProgress },
+      safetyProfile: { ...safety(), availableEquipment: ['chair', 'wall', 'floor_space'] },
+      today: START,
+    });
+    const stairsOnly = planLadderPracticeSession({
+      ladderId: 'step-up',
+      activeBlock: block(),
+      training: { ...baseTraining, equipment: { ...baseTraining.equipment, stair: true } },
+      safetyProfile: { ...safety(), availableEquipment: ['stairs'] },
+      today: START,
+    });
+    const stairsWithSupport = planLadderPracticeSession({
+      ladderId: 'step-up',
+      activeBlock: block(),
+      training: { ...baseTraining, equipment: { ...baseTraining.equipment, stair: true } },
+      safetyProfile: { ...safety(), availableEquipment: ['stairs', 'wall'] },
+      today: START,
+    });
+    const balanceNoSupport = planLadderPracticeSession({
+      ladderId: 'balance',
+      activeBlock: block(),
+      training: baseTraining,
+      safetyProfile: { ...safety(), availableEquipment: ['none'] },
+      today: START,
+    });
+    const bandProgress = {
+      'pull-upper-back': {
+        ladderId: 'pull-upper-back',
+        currentLevelId: STANDING_BAND_ROW_ID,
+        completedSessionsAtLevel: 0,
+        failedSessionsAtLevel: 0,
+        recentCompletionRates: [],
+        recentRpe: [],
+        recentPain: [],
+        updatedAt: START,
+      },
+    };
+    const bandNoAnchor = planLadderPracticeSession({
+      ladderId: 'pull-upper-back',
+      activeBlock: block(),
+      training: { ...baseTraining, equipment: { ...baseTraining.equipment, band: true }, ladderProgressById: bandProgress },
+      safetyProfile: { ...safety(), availableEquipment: ['chair', 'wall', 'resistance_band'] },
+      today: START,
+    });
+    const bandWithAnchor = planLadderPracticeSession({
+      ladderId: 'pull-upper-back',
+      activeBlock: block(),
+      training: { ...baseTraining, equipment: { ...baseTraining.equipment, band: true }, ladderProgressById: bandProgress },
+      safetyProfile: { ...safety(), availableEquipment: ['chair', 'wall', 'resistance_band', 'door_anchor'] },
+      today: START,
+    });
+
+    expect(noFloor?.exercises[0].id).toBe(HINGE_FREE_ID);
+    expect(noFloor?.metadata?.equipmentNeeded).not.toContain('floor space');
+    expect(withFloor?.exercises[0].id).toBe(BRIDGE_HOLD_ID);
+    expect(withFloor?.metadata?.equipmentNeeded).toContain('floor space');
+    expect(stairsOnly).toBeNull();
+    expect(stairsWithSupport?.exercises[0].id).toBe(STEP_UP_ID);
+    expect(balanceNoSupport).toBeNull();
+    expect(bandNoAnchor?.exercises[0].id).toBe(SEATED_BAND_ROW_ID);
+    expect(bandWithAnchor?.exercises[0].id).toBe(STANDING_BAND_ROW_ID);
+  });
+
+  it('shows floor space in session equipment labels when floor work is selected', () => {
+    const strengthBlock: MovementBlock = {
+      ...block(),
+      focusDomain: 'strength_power',
+      secondaryDomains: ['balance', 'mobility'],
+    };
+    const plan = planTodayHaleSession({
+      activeBlock: strengthBlock,
+      training: legacyTraining(),
+      safetyProfile: { ...safety(), availableEquipment: ['chair', 'wall', 'floor_space'] },
+      lifeGoal: lifeGoal(),
+      targetSessionTemplateId: 'session_c',
+      ladderProgress: {
+        'hinge-glutes': {
+          ladderId: 'hinge-glutes',
+          currentLevelId: BRIDGE_HOLD_ID,
+          completedSessionsAtLevel: 0,
+          failedSessionsAtLevel: 0,
+          recentCompletionRates: [],
+          recentRpe: [],
+          recentPain: [],
+          updatedAt: START,
+        },
+      },
+      today: START,
+    });
+
+    expect(plan.exercises.map((exercise) => exercise.id)).toContain(BRIDGE_HOLD_ID);
+    expect(plan.metadata?.equipmentNeeded).toContain('floor space');
   });
 
   it('falls back to legacy planning when generated exercise IDs are unsupported', () => {
@@ -351,8 +480,13 @@ describe('planTodayHaleSession', () => {
   });
 
   it('stores enough generated session metadata for completion updates', () => {
+    const strengthBlock: MovementBlock = {
+      ...block(),
+      focusDomain: 'strength_power',
+      secondaryDomains: ['balance', 'mobility'],
+    };
     const plan = planTodayHaleSession({
-      activeBlock: block(),
+      activeBlock: strengthBlock,
       training: legacyTraining(),
       safetyProfile: safety(),
       lifeGoal: lifeGoal(),
@@ -363,16 +497,44 @@ describe('planTodayHaleSession', () => {
       sessionPlan: plan,
       completedAt: '2026-06-01T09:00:00.000Z',
       durationMinutes: 20,
+      mainPlanCredit: true,
+      workEvidence: {
+        plannedExerciseCount: 1,
+        resultItemCount: 1,
+        completedExerciseCount: 1,
+        skippedExerciseCount: 0,
+        missingResultCount: 0,
+        duplicateResultCount: 0,
+        malformedResultCount: 0,
+        unmatchedResultCount: 0,
+      },
     });
 
     expect(summary.source).toBe('block_generated');
     expect(summary.templateId).toBe('strength-A');
+    expect(summary.plannedDateKey).toBe('strength-A:2026-06-01');
+    expect(summary.mainPlanCredit).toBe(true);
+    expect(summary.status).toBe('completed');
     expect(summary.exerciseIds).toEqual([STS_STANDARD_ID]);
     expect(summary.exercises?.[0]).toMatchObject({
       exerciseId: STS_STANDARD_ID,
       ladderId: 'sit-to-stand',
       levelId: STS_STANDARD_ID,
       slotType: 'lower_body_strength',
+      intendedDomain: 'strength_power',
+      stimulusRole: 'primary',
+      stimulusReason: 'direct_match',
+    });
+    expect(plan.metadata?.slotStimulus?.[0]).toMatchObject({
+      slotId: 'lower-strength-a',
+      role: 'primary',
+      reason: 'direct_match',
+    });
+    expect(plan.metadata?.focusStimulus).toMatchObject({
+      status: 'eligible',
+      mainPlanCreditPotential: true,
+      blockFocusDomain: 'strength_power',
+      plannedPrimaryFocusExerciseIds: [STS_STANDARD_ID],
     });
   });
 
@@ -411,6 +573,38 @@ describe('planTodayHaleSession', () => {
 
     expect(first['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
     expect(second['sit-to-stand'].currentLevelId).toBe(STS_SLOW_ECC_ID);
+  });
+
+  it('does not update ladder progress when result evidence is missing or skipped', () => {
+    const plan = planTodayHaleSession({
+      activeBlock: block(),
+      training: legacyTraining(),
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      today: START,
+      generateSession: () => singleSitToStandGeneratedSession(),
+    });
+    const completion = makeTrainingSessionCompletion({
+      block: block(),
+      sessionType: plan.sessionType,
+      completedAt: '2026-06-01T09:00:00.000Z',
+      plannedDate: plan.metadata?.plannedDateKey,
+    });
+
+    expect(
+      updateExerciseProgressionFromSession({
+        sessionPlan: plan,
+        completion,
+        sessionResult: null,
+      })
+    ).toEqual({});
+    expect(
+      updateExerciseProgressionFromSession({
+        sessionPlan: plan,
+        completion,
+        sessionResult: { startedAt: START, items: [{ exerciseId: STS_STANDARD_ID, status: 'skipped', sets: [] }] },
+      })
+    ).toEqual({});
   });
 
   it('does not progress after high effort, pain, or poor tracking', () => {
@@ -478,6 +672,22 @@ function singleSitToStandGeneratedSession(): GeneratedSession {
     painAreas: [],
     weekStatus: 'session_due',
     skippedSlots: [],
+    skippedSlotReasons: [],
+    slotStimulus: [
+      {
+        slotId: 'lower-strength-a',
+        slotType: 'lower_body_strength',
+        slotTitle: 'Chair-rise strength',
+        intendedDomain: 'strength_power',
+        role: 'primary',
+        reason: 'direct_match',
+        message: 'Chair-rise strength matched the intended training stimulus.',
+        exerciseId: STS_STANDARD_ID,
+        ladderId: 'sit-to-stand',
+        levelId: STS_STANDARD_ID,
+        selectedDomain: 'strength_power',
+      },
+    ],
     guidance: [],
     exercises: [
       {
@@ -502,6 +712,9 @@ function singleSitToStandGeneratedSession(): GeneratedSession {
         restSeconds: 30,
         estimatedMinutes: 4,
         rationale: 'Test generated metadata.',
+        intendedDomain: 'strength_power',
+        stimulusRole: 'primary',
+        stimulusReason: 'direct_match',
       },
     ],
   };
@@ -522,6 +735,22 @@ function unsupportedGeneratedSession(): GeneratedSession {
     painAreas: [],
     weekStatus: 'session_due',
     skippedSlots: [],
+    skippedSlotReasons: [],
+    slotStimulus: [
+      {
+        slotId: 'slot-unknown',
+        slotType: 'lower_body_strength',
+        slotTitle: 'Unknown strength',
+        intendedDomain: 'strength_power',
+        role: 'primary',
+        reason: 'direct_match',
+        message: 'Unknown strength matched the intended training stimulus.',
+        exerciseId: 'unknown-exercise-id',
+        ladderId: 'sit-to-stand',
+        levelId: 'unknown-exercise-id',
+        selectedDomain: 'strength_power',
+      },
+    ],
     guidance: [],
     exercises: [
       {
@@ -546,6 +775,9 @@ function unsupportedGeneratedSession(): GeneratedSession {
         restSeconds: 20,
         estimatedMinutes: 2,
         rationale: 'Test unsupported id.',
+        intendedDomain: 'strength_power',
+        stimulusRole: 'primary',
+        stimulusReason: 'direct_match',
       },
     ],
   };

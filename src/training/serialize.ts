@@ -28,7 +28,10 @@ import type {
   LadderProgress,
   PainArea,
   SessionSlotType,
+  SlotStimulusReason,
+  SlotStimulusRole,
   TrackingQuality,
+  TrainingDomain,
 } from './workoutGeneration';
 
 export const TRAINING_SCHEMA_VERSION = 3;
@@ -227,6 +230,13 @@ function validGeneratedSessionSummary(v: unknown): PersistedGeneratedSessionSumm
     blockId: typeof s.blockId === 'string' ? s.blockId : undefined,
     source,
     templateId: typeof s.templateId === 'string' ? s.templateId : undefined,
+    plannedDateKey: typeof s.plannedDateKey === 'string' ? s.plannedDateKey : undefined,
+    sessionType: isTrainingSessionCompletionType(s.sessionType) ? s.sessionType : undefined,
+    completionSource: isTrainingSessionCompletionSource(s.completionSource) ? s.completionSource : undefined,
+    status: isGeneratedSessionStatus(s.status) ? s.status : undefined,
+    mainPlanCredit: typeof s.mainPlanCredit === 'boolean' ? s.mainPlanCredit : undefined,
+    workEvidence: validWorkEvidence(s.workEvidence),
+    focusStimulusEvidence: validFocusStimulusEvidence(s.focusStimulusEvidence),
     title: s.title,
     focus: typeof s.focus === 'string' ? s.focus : undefined,
     generatedAt: typeof s.generatedAt === 'string' ? s.generatedAt : undefined,
@@ -260,9 +270,101 @@ function validGeneratedExerciseSummaries(v: unknown): PersistedGeneratedExercise
           e.measurementTier === 'measured' || e.measurementTier === 'camera_assisted' || e.measurementTier === 'voice_guided'
             ? e.measurementTier
             : undefined,
+        intendedDomain: isTrainingDomain(e.intendedDomain) ? e.intendedDomain : undefined,
+        stimulusRole: isStimulusRole(e.stimulusRole) ? e.stimulusRole : undefined,
+        stimulusReason: isStimulusReason(e.stimulusReason) ? e.stimulusReason : undefined,
       };
     })
     .filter((item): item is PersistedGeneratedExerciseSummary => !!item);
+}
+
+function isTrainingDomain(v: unknown): v is TrainingDomain {
+  return v === 'strength_power' || v === 'balance_stability' || v === 'mobility_flexibility';
+}
+
+function isTrainingSessionCompletionType(v: unknown): v is PersistedGeneratedSessionSummary['sessionType'] {
+  return v === 'standard' || v === 'starter' || v === 'restart' || v === 'micro_check' || v === 'retest_prep' || v === 'retest';
+}
+
+function isTrainingSessionCompletionSource(v: unknown): v is PersistedGeneratedSessionSummary['completionSource'] {
+  return v === 'block_generated' || v === 'preset' || v === 'manual' || v === 'legacy_fallback';
+}
+
+function isGeneratedSessionStatus(v: unknown): v is NonNullable<PersistedGeneratedSessionSummary['status']> {
+  return v === 'completed' || v === 'partial' || v === 'skipped';
+}
+
+function validWorkEvidence(v: unknown): PersistedGeneratedSessionSummary['workEvidence'] {
+  if (!v || typeof v !== 'object') return undefined;
+  const e = v as Partial<NonNullable<PersistedGeneratedSessionSummary['workEvidence']>>;
+  const summary = {
+    plannedExerciseCount: finiteNumber(e.plannedExerciseCount),
+    resultItemCount: finiteNumber(e.resultItemCount),
+    completedExerciseCount: finiteNumber(e.completedExerciseCount),
+    skippedExerciseCount: finiteNumber(e.skippedExerciseCount),
+    missingResultCount: finiteNumber(e.missingResultCount),
+    duplicateResultCount: finiteNumber(e.duplicateResultCount),
+    malformedResultCount: finiteNumber(e.malformedResultCount),
+    unmatchedResultCount: finiteNumber(e.unmatchedResultCount),
+  };
+  return Object.values(summary).every((value) => typeof value === 'number') ? summary as NonNullable<PersistedGeneratedSessionSummary['workEvidence']> : undefined;
+}
+
+function validFocusStimulusEvidence(v: unknown): PersistedGeneratedSessionSummary['focusStimulusEvidence'] {
+  if (!v || typeof v !== 'object') return undefined;
+  const e = v as Partial<NonNullable<PersistedGeneratedSessionSummary['focusStimulusEvidence']>>;
+  if (!isFocusPlanStatus(e.planStatus) || !isFocusCompletionStatus(e.status) || !isFocusExclusionReason(e.exclusionReason)) {
+    return undefined;
+  }
+  const summary = {
+    planStatus: e.planStatus,
+    status: e.status,
+    exclusionReason: e.exclusionReason,
+    mainPlanCredit: e.mainPlanCredit === true,
+    blockFocusDomain: isMovementDomain(e.blockFocusDomain) ? e.blockFocusDomain : undefined,
+    plannedPrimaryFocusExerciseCount: finiteNumber(e.plannedPrimaryFocusExerciseCount),
+    completedPrimaryFocusExerciseCount: finiteNumber(e.completedPrimaryFocusExerciseCount),
+    completedSupportingExerciseCount: finiteNumber(e.completedSupportingExerciseCount),
+    completedFallbackExerciseCount: finiteNumber(e.completedFallbackExerciseCount),
+    completedCrossDomainExerciseCount: finiteNumber(e.completedCrossDomainExerciseCount),
+    plannedPrimaryFocusExerciseIds: stringArray(e.plannedPrimaryFocusExerciseIds),
+    completedPrimaryFocusExerciseIds: stringArray(e.completedPrimaryFocusExerciseIds),
+    completedSupportingExerciseIds: stringArray(e.completedSupportingExerciseIds),
+    completedFallbackExerciseIds: stringArray(e.completedFallbackExerciseIds),
+    completedCrossDomainExerciseIds: stringArray(e.completedCrossDomainExerciseIds),
+    fallbackFocusSlotIds: stringArray(e.fallbackFocusSlotIds),
+    skippedFocusSlotIds: stringArray(e.skippedFocusSlotIds),
+    focusStimulusExclusionReasons: stringArray(e.focusStimulusExclusionReasons),
+    missingMetadataExerciseIds: stringArray(e.missingMetadataExerciseIds),
+    malformedMetadataExerciseIds: stringArray(e.malformedMetadataExerciseIds),
+    focusMismatchExerciseIds: stringArray(e.focusMismatchExerciseIds),
+    mainPlanClassifierReason: typeof e.mainPlanClassifierReason === 'string' ? e.mainPlanClassifierReason : undefined,
+  };
+  return typeof summary.plannedPrimaryFocusExerciseCount === 'number' &&
+    typeof summary.completedPrimaryFocusExerciseCount === 'number' &&
+    typeof summary.completedSupportingExerciseCount === 'number' &&
+    typeof summary.completedFallbackExerciseCount === 'number' &&
+    typeof summary.completedCrossDomainExerciseCount === 'number'
+    ? summary as NonNullable<PersistedGeneratedSessionSummary['focusStimulusEvidence']>
+    : undefined;
+}
+
+function isStimulusRole(v: unknown): v is SlotStimulusRole {
+  return v === 'primary' || v === 'supporting' || v === 'fallback' || v === 'skipped' || v === 'invalid';
+}
+
+function isStimulusReason(v: unknown): v is SlotStimulusReason {
+  return (
+    v === 'direct_match' ||
+    v === 'equipment_limited' ||
+    v === 'safety_limited' ||
+    v === 'supporting_maintenance' ||
+    v === 'no_safe_option' ||
+    v === 'band_required' ||
+    v === 'floor_required' ||
+    v === 'support_required' ||
+    v === 'stair_support_required'
+  );
 }
 
 function validPostSessionFeedback(v: unknown): PersistedPostSessionFeedback | null {
@@ -288,6 +390,10 @@ function numberArray(v: unknown): number[] {
   return Array.isArray(v) ? v.filter((item): item is number => typeof item === 'number' && Number.isFinite(item)) : [];
 }
 
+function stringArray(v: unknown): string[] {
+  return Array.isArray(v) ? v.filter((item): item is string => typeof item === 'string') : [];
+}
+
 function booleanArray(v: unknown): boolean[] {
   return Array.isArray(v) ? v.filter((item): item is boolean => typeof item === 'boolean') : [];
 }
@@ -306,6 +412,51 @@ function isReadiness(v: unknown): v is DailyReadiness {
 
 function isSlotType(v: unknown): v is SessionSlotType {
   return typeof v === 'string' && SLOT_TYPES.includes(v as SessionSlotType);
+}
+
+function isMovementDomain(v: unknown): v is NonNullable<PersistedGeneratedSessionSummary['focusStimulusEvidence']>['blockFocusDomain'] {
+  return v === 'strength_power' || v === 'balance' || v === 'mobility';
+}
+
+function isFocusPlanStatus(v: unknown): boolean {
+  return (
+    v === 'eligible' ||
+    v === 'not_main_plan' ||
+    v === 'missing_block_focus' ||
+    v === 'missing_stimulus_metadata' ||
+    v === 'focus_mismatch' ||
+    v === 'no_primary_focus_planned'
+  );
+}
+
+function isFocusCompletionStatus(v: unknown): boolean {
+  return (
+    v === 'credited_focus_work' ||
+    v === 'not_main_plan' ||
+    v === 'missing_block_focus' ||
+    v === 'missing_stimulus_metadata' ||
+    v === 'focus_mismatch' ||
+    v === 'no_primary_focus_planned' ||
+    v === 'no_completed_work' ||
+    v === 'primary_focus_not_completed'
+  );
+}
+
+function isFocusExclusionReason(v: unknown): boolean {
+  return (
+    v === 'none' ||
+    v === 'not_main_plan' ||
+    v === 'missing_block_focus' ||
+    v === 'missing_stimulus_metadata' ||
+    v === 'focus_mismatch' ||
+    v === 'no_primary_focus_planned' ||
+    v === 'no_completed_work' ||
+    v === 'supporting_only' ||
+    v === 'fallback_only' ||
+    v === 'supporting_and_fallback_only' ||
+    v === 'cross_domain_only' ||
+    v === 'primary_focus_not_completed'
+  );
 }
 
 const MICRO_TYPES: MicroCheckType[] = ['chair-power', 'single-leg-balance', 'mobility-reach'];

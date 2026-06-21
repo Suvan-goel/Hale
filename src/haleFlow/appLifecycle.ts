@@ -19,6 +19,7 @@ import type { CheckUpScore } from '../scoring';
 import type { TrainingState } from '../training';
 import { latestUsableOfficialAssessment } from './assessments';
 import { latestUsableOfficialCheckUpRecord } from './checkupHistory';
+import { mainPlanRecentSessionsForGeneration } from './mainPlanEvents';
 import { PLAN_SESSION_IDS, planSessionIdForTemplateId, type PlanSessionId } from './sessionIds';
 
 export type HaleLifecycleState =
@@ -105,6 +106,7 @@ export function getHaleAppLifecycle(input: HaleAppLifecycleInput): HaleAppLifecy
   const activeBlockSummary = getActiveBlockSummary({ ...input, today });
   const movementSnapshot = getMovementSnapshot({ score: latestScore });
   const weekSessionStatuses = getWeekSessionStatuses({ ...input, today });
+  const completedMainPlanTemplatesThisWeek = activeBlock ? weeklyTemplateCompletions(input, activeBlock, today).size : 0;
   const retestDueDate = activeBlock?.retestDate ?? input.training?.progress.retestDueAt ?? undefined;
 
   let state: HaleLifecycleState;
@@ -127,7 +129,7 @@ export function getHaleAppLifecycle(input: HaleAppLifecycleInput): HaleAppLifecy
   } else if (totalCompletedSessions(input) === 0) {
     state = 'first_session_ready';
     reason = 'active block exists and no session has been completed yet';
-  } else if (activeBlock && sessionsCompletedThisWeek(activeBlock, input.adherence?.completions ?? [], today) >= activeBlock.sessionsPerWeekTarget) {
+  } else if (activeBlock && completedMainPlanTemplatesThisWeek >= activeBlock.sessionsPerWeekTarget) {
     state = 'week_complete';
     reason = 'weekly session target is complete';
   } else if (shouldShowWeeklyMicroCheck({ ...input, today })) {
@@ -229,13 +231,14 @@ export function getActiveBlockSummary(input: HaleAppLifecycleInput): ActiveBlock
   const activeBlock = getActiveBlock(input);
   if (activeBlock) {
     const week = currentWeekProgress(activeBlock, input.adherence?.completions ?? [], today);
+    const sessionsCompleteThisWeek = weeklyTemplateCompletions(input, activeBlock, today).size;
     return {
       blockId: activeBlock.id,
       focusTitle: focusTitle(activeBlock.focusDomain),
       focusDomain: activeBlock.focusDomain,
       weekNumber: week.weekNumber,
       totalWeeks: 4,
-      sessionsCompleteThisWeek: week.sessionsCompleted,
+      sessionsCompleteThisWeek,
       sessionsTargetThisWeek: week.sessionsTarget,
       retestInDays: daysUntil(activeBlock.retestDate, today),
     };
@@ -342,7 +345,7 @@ function shouldShowWeeklyMicroCheck(input: HaleAppLifecycleInput): boolean {
   const activeBlock = getActiveBlock(input);
   if (!activeBlock) return false;
   const completions = input.adherence?.completions ?? [];
-  const sessions = sessionsCompletedThisWeek(activeBlock, completions, today);
+  const sessions = weeklyTemplateCompletions(input, activeBlock, today).size;
   return sessions > 0 && sessions < activeBlock.sessionsPerWeekTarget && !microCheckCompletedThisWeek(activeBlock, completions, today);
 }
 
@@ -390,22 +393,17 @@ function weeklyTemplateCompletions(
 ): Map<PlanSessionId, { templateId?: string; completedAt?: string }> {
   const out = new Map<PlanSessionId, { templateId?: string; completedAt?: string }>();
   const inWeek = isInBlockWeek(block, today);
-  for (const completion of completedTrainingSessions(block, input.adherence?.completions ?? [])) {
-    if (!inWeek(completion.completedAt)) continue;
-    const id = planSessionIdForTemplateId(completion.plannedDate);
-    if (id) out.set(id, { templateId: templateIdFromPlannedDate(completion.plannedDate), completedAt: completion.completedAt });
-  }
-  for (const summary of input.training?.generatedSessionSummaries ?? []) {
-    if (!summary.completedAt || (summary.blockId && summary.blockId !== block.id)) continue;
+  const sessions = mainPlanRecentSessionsForGeneration({
+    activeBlock: block,
+    completions: input.adherence?.completions,
+    generatedSessionSummaries: input.training?.generatedSessionSummaries,
+  });
+  for (const summary of sessions) {
     if (!inWeek(summary.completedAt)) continue;
     const id = planSessionIdForTemplateId(summary.templateId);
     if (id && !out.has(id)) out.set(id, { templateId: summary.templateId, completedAt: summary.completedAt });
   }
   return out;
-}
-
-function templateIdFromPlannedDate(plannedDate: string | undefined): string | undefined {
-  return plannedDate?.split(':')[0];
 }
 
 function isInBlockWeek(block: MovementBlock, today: string): (value: string) => boolean {

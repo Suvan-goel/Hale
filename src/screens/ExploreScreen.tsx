@@ -1,9 +1,10 @@
 import * as React from 'react';
-import { Image, ImageBackground, Pressable, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
+import { Image, ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import type { MovementSafetyProfile } from '../adherence';
 import { Screen } from '../components/ui';
+import { HeaderLogo } from '../components/HeaderLogo';
 import {
   getEquipmentSetupSummary,
   getExploreLibrary,
@@ -18,63 +19,34 @@ import {
 } from '../haleFlow';
 import type { AppSettings } from '../profile';
 import type { EquipmentProfile, LadderProgress } from '../training';
-import { colors, fonts, radius, shadow, spacing, todayHomeColors, type } from '../theme';
+import { colors, fonts, imageOverlayControl, radius, shadow, spacing, todayHomeColors, type } from '../theme';
 import { SettingsIcon } from '../navigation/icons';
+import { INSIGHT_IMAGES, LEARN_IMAGES, LIBRARY_IMAGES, PRACTICE_IMAGES } from './exploreImages';
 
 type PictogramName = 'walk' | 'sprout' | 'chair' | 'squat' | 'book' | 'scale' | 'camera' | 'clock';
 type ExploreTab = 'insights' | 'learn' | 'practice' | 'library';
+type LibraryDomainFilter = 'all' | 'Strength' | 'Balance' | 'Mobility';
 
 const EXPLORE_TABS: readonly { key: ExploreTab; label: string }[] = [
-  { key: 'insights', label: 'Insights' },
-  { key: 'learn', label: 'Learn' },
-  { key: 'practice', label: 'Practice' },
-  { key: 'library', label: 'Library' },
+  { key: 'insights', label: 'Learn' },
+  { key: 'learn', label: 'Guides' },
+  { key: 'practice', label: 'Sessions' },
+  { key: 'library', label: 'Movements' },
 ];
 
 const EXPLORE_TAB_DESCRIPTIONS: Record<ExploreTab, string> = {
   insights: 'General health and longevity reading from qualified professional perspectives.',
   learn: 'Hale guides for check-ups, camera setup, and using your plan with confidence.',
   practice: 'Optional short sessions for days when the main plan is done or you want lighter movement.',
-  library: "Browse Hale's movement progressions without changing today's plan.",
+  library: 'Browse the movement progressions Hale uses to adapt your plan.',
 };
 
-const LADDER_ICONS: Record<string, PictogramName> = {
-  'sit-to-stand': 'chair',
-  squat: 'squat',
-  balance: 'scale',
-  push: 'sprout',
-  'pull-upper-back': 'book',
-  'mobility-flexibility': 'walk',
-};
-
-const INSIGHT_IMAGES: Record<string, ImageSourcePropType> = {
-  'insight-strength-balance-aging': require('../../assets/images/explore-insight-strength-balance.png'),
-  'insight-sleep-recovery-rhythm': require('../../assets/images/explore-insight-sleep.png'),
-  'insight-protein-meal-rhythm': require('../../assets/images/explore-insight-protein.png'),
-  'insight-walking-breaks': require('../../assets/images/explore-insight-walking.png'),
-};
-
-const LEARN_IMAGES: Record<string, ImageSourcePropType> = {
-  'movement-checkup-guide': require('../../assets/images/explore-learn-checkup-guide.png'),
-  'camera-setup': require('../../assets/images/explore-learn-camera-setup.png'),
-  'monthly-retest': require('../../assets/images/explore-learn-monthly-retest.png'),
-  'chair-rise-strength': require('../../assets/images/explore-learn-chair-rise.png'),
-  'balance-practice': require('../../assets/images/explore-learn-balance-practice.png'),
-  'mobility-basics': require('../../assets/images/explore-learn-mobility-basics.png'),
-  'movement-discomfort': require('../../assets/images/explore-learn-movement-discomfort.png'),
-  'resistance-band': require('../../assets/images/explore-learn-resistance-band.png'),
-};
-
-const PRACTICE_IMAGES: Record<string, ImageSourcePropType> = {
-  hero: require('../../assets/images/explore-practice-hero.png'),
-  'preset-mobility-reset': require('../../assets/images/explore-practice-mobility-reset.png'),
-  'preset-gentle-restart': require('../../assets/images/explore-practice-gentle-restart.png'),
-  'preset-steady-balance': require('../../assets/images/explore-practice-steady-balance.png'),
-  'preset-no-equipment-strength': require('../../assets/images/explore-practice-no-equipment-strength.png'),
-  'preset-band-upper-back': require('../../assets/images/explore-practice-band-upper-back.png'),
-  'preset-stairs-confidence': require('../../assets/images/explore-practice-stairs-confidence.png'),
-  'preset-quick-full-body': require('../../assets/images/explore-practice-quick-full-body.png'),
-};
+const LIBRARY_FILTERS: readonly { key: LibraryDomainFilter; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'Strength', label: 'Strength' },
+  { key: 'Balance', label: 'Balance' },
+  { key: 'Mobility', label: 'Mobility' },
+];
 
 export function ExploreScreen({
   equipment,
@@ -103,8 +75,8 @@ export function ExploreScreen({
     [equipment, ladderProgressById, safetyProfile]
   );
   const ladders = React.useMemo(
-    () => getMovementLadderCards({ ladderProgressById }),
-    [ladderProgressById]
+    () => getMovementLadderCards({ ladderProgressById, equipment, safetyProfile }),
+    [equipment, ladderProgressById, safetyProfile]
   );
   const setupSummary = React.useMemo(
     () => getEquipmentSetupSummary({ equipment, safetyProfile, settings }),
@@ -113,7 +85,10 @@ export function ExploreScreen({
   return (
     <Screen contentStyle={styles.screenContent}>
       <View style={styles.headerRow}>
-        <Text style={styles.title}>Explore</Text>
+        <View style={styles.titleGroup}>
+          <HeaderLogo size={30} />
+          <Text style={styles.title}>Explore</Text>
+        </View>
         <Pressable
           style={({ pressed }) => [styles.headerIconButton, pressed && styles.pressed]}
           onPress={onOpenSettings}
@@ -167,7 +142,14 @@ function ExploreTabBar({
             accessibilityState={{ selected }}
             accessibilityLabel={`${tab.label} tab`}
           >
-            <Text style={[styles.tabButtonText, selected && styles.tabButtonTextSelected]}>{tab.label}</Text>
+            <Text
+              style={[styles.tabButtonText, selected && styles.tabButtonTextSelected]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.9}
+            >
+              {tab.label}
+            </Text>
           </Pressable>
         );
       })}
@@ -255,7 +237,7 @@ function PracticeTab({
 
       {sessionRows.length > 0 ? (
         <View style={styles.section}>
-          <SectionCopy title="Choose a session" />
+          <SectionCopy title="More short sessions" />
           <View style={[styles.listPanel, styles.practiceListPanel]}>
             {sessionRows.map((session, index) => (
               <OptionalSessionRow
@@ -279,25 +261,95 @@ function LibraryTab({
   ladders: readonly MovementLadderCard[];
   onOpenLadder: (ladderId: string) => void;
 }) {
+  const [activeFilter, setActiveFilter] = React.useState<LibraryDomainFilter>('all');
+  const filteredLadders = React.useMemo(
+    () => ladders.filter((ladder) => activeFilter === 'all' || ladder.domainLabel === activeFilter),
+    [activeFilter, ladders]
+  );
+  const domainCount = new Set(ladders.map((ladder) => ladder.domainLabel)).size;
+
   return (
     <View style={styles.tabContent}>
+      <FeaturedLibraryCard ladderCount={ladders.length} domainCount={domainCount} />
+      <LibraryFilterBar activeFilter={activeFilter} onChange={setActiveFilter} />
       <View style={styles.section}>
-        <SectionCopy
-          title="Exercise ladders"
-          body="Browse the V1 movement progressions without changing today's plan."
-        />
-        <View style={styles.listPanel}>
-          {ladders.map((ladder, index) => (
+        <SectionCopy title={activeFilter === 'all' ? 'Movement ladders' : `${activeFilter} ladders`} />
+        <View style={[styles.listPanel, styles.libraryListPanel]}>
+          {filteredLadders.map((ladder, index) => (
             <LadderRow
               key={ladder.id}
               ladder={ladder}
-              iconName={LADDER_ICONS[ladder.id] ?? 'walk'}
-              showDivider={index < ladders.length - 1}
+              showDivider={index < filteredLadders.length - 1}
               onOpen={() => onOpenLadder(ladder.id)}
             />
           ))}
         </View>
       </View>
+    </View>
+  );
+}
+
+function FeaturedLibraryCard({ ladderCount, domainCount }: { ladderCount: number; domainCount: number }) {
+  return (
+    <View style={styles.featuredLibrarySection}>
+      <Text style={styles.featuredPostLabel}>Movement library</Text>
+      <View style={styles.featuredLibraryCard}>
+        <ImageBackground
+          source={LIBRARY_IMAGES.hero}
+          style={styles.featuredLibraryImage}
+          imageStyle={styles.featuredLibraryImageRadius}
+          resizeMode="cover"
+        >
+          <View style={styles.featuredLibraryScrim} />
+          <View style={styles.featuredLibraryContent}>
+            <Text style={styles.featuredPostMeta}>Progressions Hale uses in your plan</Text>
+            <Text style={styles.featuredPostTitle}>See how each movement can adapt</Text>
+            <Text style={styles.featuredPostBody}>
+              Browse easier and harder options without changing today's session.
+            </Text>
+            <View style={styles.libraryStatsRow}>
+              <LibraryStatPill label={`${ladderCount} ladders`} />
+              <LibraryStatPill label={`${domainCount} domains`} />
+            </View>
+          </View>
+        </ImageBackground>
+      </View>
+    </View>
+  );
+}
+
+function LibraryStatPill({ label }: { label: string }) {
+  return (
+    <View style={styles.libraryStatPill}>
+      <Text style={styles.libraryStatText}>{label}</Text>
+    </View>
+  );
+}
+
+function LibraryFilterBar({
+  activeFilter,
+  onChange,
+}: {
+  activeFilter: LibraryDomainFilter;
+  onChange: (filter: LibraryDomainFilter) => void;
+}) {
+  return (
+    <View style={styles.libraryFilterBar}>
+      {LIBRARY_FILTERS.map((filter) => {
+        const selected = activeFilter === filter.key;
+        return (
+          <Pressable
+            key={filter.key}
+            style={({ pressed }) => [styles.libraryFilterButton, selected && styles.libraryFilterButtonSelected, pressed && styles.pressed]}
+            onPress={() => onChange(filter.key)}
+            accessibilityRole="button"
+            accessibilityState={{ selected }}
+            accessibilityLabel={`${filter.label} movement ladders`}
+          >
+            <Text style={[styles.libraryFilterText, selected && styles.libraryFilterTextSelected]}>{filter.label}</Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -382,6 +434,43 @@ function FeaturedGuideCard({ article, onOpen }: { article: LearnCard; onOpen: ()
             <Text style={styles.featuredPostBody}>{article.body}</Text>
             <View style={styles.featuredPostButton}>
               <Text style={styles.featuredPostButtonText}>Read guide</Text>
+            </View>
+          </View>
+        </ImageBackground>
+      </Pressable>
+    </View>
+  );
+}
+
+function FeaturedPracticeCard({ session, onStart }: { session: ExtraSessionCard; onStart: () => void }) {
+  return (
+    <View style={styles.featuredPracticeSection}>
+      <Text style={styles.featuredPostLabel}>Optional practice</Text>
+      <Pressable
+        style={({ pressed }) => [styles.featuredPracticeCard, session.disabled && styles.disabledRow, pressed && styles.pressed]}
+        onPress={onStart}
+        disabled={session.disabled}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: session.disabled }}
+        accessibilityLabel={`Start ${session.title}`}
+      >
+        <ImageBackground
+          source={PRACTICE_IMAGES.hero}
+          style={styles.featuredPracticeImage}
+          imageStyle={styles.featuredPracticeImageRadius}
+          resizeMode="cover"
+        >
+          <View style={styles.featuredPracticeScrim} />
+          <View style={styles.featuredPracticeContent}>
+            <Text style={styles.featuredPostMeta}>
+              Extra session · {durationLabel(session.durationLabel)}
+            </Text>
+            <Text style={styles.featuredPostTitle}>A gentle reset for lighter days</Text>
+            <Text style={styles.featuredPostBody}>
+              Use this short mobility session when Today is already done, or when you want something calmer.
+            </Text>
+            <View style={styles.featuredPostButton}>
+              <Text style={styles.featuredPostButtonText}>{session.disabled ? 'Setup needed' : 'Start reset'}</Text>
             </View>
           </View>
         </ImageBackground>
@@ -558,28 +647,30 @@ function setupPhoneStandSummary(phoneStandLabel: string): { value: string; statu
 
 function LadderRow({
   ladder,
-  iconName,
   showDivider,
   onOpen,
 }: {
   ladder: MovementLadderCard;
-  iconName: PictogramName;
   showDivider: boolean;
   onOpen: () => void;
 }) {
   return (
     <Pressable
-      style={({ pressed }) => [styles.listRow, showDivider && styles.listRowDivider, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.listRow, styles.libraryRow, showDivider && styles.listRowDivider, pressed && styles.pressed]}
       onPress={onOpen}
       accessibilityRole="button"
       accessibilityLabel={`${ladder.title} ladder`}
     >
-      <IconWell name={iconName} compact />
+      <Image source={LIBRARY_IMAGES[ladder.id] ?? LIBRARY_IMAGES.hero} style={styles.libraryThumb} resizeMode="cover" />
       <View style={styles.listCopy}>
-        <Text style={styles.rowTitle}>{ladder.title}</Text>
-        <Text style={styles.rowSubtitle}>Current: {ladder.currentLevelName}</Text>
-        <Text style={styles.rowMeta}>
-          {ladder.domainLabel} - {ladder.measurementLabel}
+        <Text style={styles.rowTitle} numberOfLines={1}>
+          {ladder.title}
+        </Text>
+        <Text style={styles.rowSubtitle} numberOfLines={2}>
+          {ladder.body}
+        </Text>
+        <Text style={styles.rowMeta} numberOfLines={1}>
+          Current: {ladder.currentLevelName} · {ladder.equipmentLabel}
         </Text>
       </View>
       <ChevronIcon />
@@ -589,36 +680,41 @@ function LadderRow({
 
 function OptionalSessionRow({
   session,
-  iconName,
-  title,
-  body,
   showDivider,
   onStart,
 }: {
   session: ExtraSessionCard;
-  iconName: PictogramName;
-  title: string;
-  body: string;
   showDivider: boolean;
   onStart: () => void;
 }) {
   return (
-    <View style={[styles.sessionRow, showDivider && styles.listRowDivider, session.disabled && styles.disabledRow]}>
-      <IconWell name={iconName} compact />
+    <View style={[styles.practiceSessionRow, showDivider && styles.listRowDivider, session.disabled && styles.disabledRow]}>
+      <Image source={PRACTICE_IMAGES[session.id] ?? PRACTICE_IMAGES.hero} style={styles.practiceThumb} resizeMode="cover" />
       <View style={styles.listCopy}>
-        <Text style={styles.rowTitle}>{title}</Text>
-        <Text style={styles.rowSubtitle}>{body}</Text>
-        <Text style={styles.rowMeta}>
-          {durationLabel(session.durationLabel)} - {session.focusLabel} - {session.equipmentLabel}
+        <Text style={styles.rowTitle} numberOfLines={1}>
+          {session.cardTitle}
+        </Text>
+        <Text style={styles.rowSubtitle} numberOfLines={1}>
+          {session.body}
+        </Text>
+        <Text style={styles.rowMeta} numberOfLines={1}>
+          {practiceRowMeta(session)}
         </Text>
       </View>
       {session.disabled ? (
-        <Text style={styles.disabledText}>{session.disabledReason}</Text>
+        <View style={styles.disabledPill}>
+          <Text style={styles.disabledText}>Setup</Text>
+        </View>
       ) : (
-        <SmallStartButton onPress={onStart} accessibilityLabel={`Start ${title}`} />
+        <SmallStartButton onPress={onStart} accessibilityLabel={`Start ${session.title}`} />
       )}
     </View>
   );
+}
+
+function practiceRowMeta(session: ExtraSessionCard): string {
+  if (session.disabled && session.disabledReason) return session.disabledReason;
+  return `${durationLabel(session.durationLabel)} · ${session.focusLabel}`;
 }
 
 function SmallStartButton({
@@ -785,11 +881,18 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.lg,
   },
-  title: { ...type.pageTitle },
+  titleGroup: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  title: { ...type.pageTitle, flexShrink: 1 },
   headerIconButton: {
     width: 44,
     height: 44,
@@ -798,17 +901,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tabBar: {
+    width: '100%',
+    alignSelf: 'stretch',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
   },
   tabButton: {
     flex: 1,
+    minWidth: 0,
     minHeight: 42,
     borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: 6,
   },
   tabButtonSelected: {
     backgroundColor: colors.accent,
@@ -819,6 +924,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     letterSpacing: 0,
+    textAlign: 'center',
+    maxWidth: '100%',
   },
   tabButtonTextSelected: {
     color: colors.onAccent,
@@ -908,10 +1015,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 20,
     marginTop: 18,
-    backgroundColor: colors.bgElevated,
+    backgroundColor: imageOverlayControl.background,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: imageOverlayControl.border,
   },
   featuredPostButtonText: {
-    color: colors.accentDeep,
+    color: imageOverlayControl.text,
     fontFamily: fonts.sansMedium,
     fontSize: 14,
     lineHeight: 19,
@@ -949,6 +1058,122 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     maxWidth: '84%',
   },
+  featuredPracticeSection: {
+    gap: 12,
+  },
+  featuredPracticeCard: {
+    minHeight: 292,
+    borderRadius: radius.card,
+    overflow: 'hidden',
+    backgroundColor: colors.accent,
+    ...shadow.card,
+  },
+  featuredPracticeImage: {
+    flex: 1,
+    minHeight: 292,
+    justifyContent: 'flex-end',
+  },
+  featuredPracticeImageRadius: {
+    borderRadius: radius.card,
+  },
+  featuredPracticeScrim: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: 'rgba(17, 20, 18, 0.34)',
+  },
+  featuredPracticeContent: {
+    paddingHorizontal: 22,
+    paddingTop: 22,
+    paddingBottom: 20,
+    maxWidth: '84%',
+  },
+  featuredLibrarySection: {
+    gap: 12,
+  },
+  featuredLibraryCard: {
+    minHeight: 292,
+    borderRadius: radius.card,
+    overflow: 'hidden',
+    backgroundColor: colors.accent,
+    ...shadow.card,
+  },
+  featuredLibraryImage: {
+    flex: 1,
+    minHeight: 292,
+    justifyContent: 'flex-end',
+  },
+  featuredLibraryImageRadius: {
+    borderRadius: radius.card,
+  },
+  featuredLibraryScrim: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: 'rgba(17, 20, 18, 0.32)',
+  },
+  featuredLibraryContent: {
+    paddingHorizontal: 22,
+    paddingTop: 22,
+    paddingBottom: 20,
+    maxWidth: '84%',
+  },
+  libraryStatsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 17,
+  },
+  libraryStatPill: {
+    minHeight: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    paddingHorizontal: 11,
+    backgroundColor: imageOverlayControl.background,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: imageOverlayControl.border,
+  },
+  libraryStatText: {
+    color: imageOverlayControl.text,
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0,
+  },
+  libraryFilterBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  libraryFilterButton: {
+    flex: 1,
+    minHeight: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    backgroundColor: colors.bgElevated,
+    borderWidth: 1,
+    borderColor: todayHomeColors.border,
+  },
+  libraryFilterButtonSelected: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  libraryFilterText: {
+    color: todayHomeColors.secondaryText,
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0,
+  },
+  libraryFilterTextSelected: {
+    color: colors.onAccent,
+  },
   section: {
     gap: 13,
   },
@@ -981,6 +1206,12 @@ const styles = StyleSheet.create({
   guideListPanel: {
     paddingLeft: 10,
   },
+  practiceListPanel: {
+    paddingLeft: 10,
+  },
+  libraryListPanel: {
+    paddingLeft: 10,
+  },
   listRow: {
     minHeight: 86,
     flexDirection: 'row',
@@ -1005,6 +1236,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
     paddingVertical: 14,
+  },
+  practiceSessionRow: {
+    minHeight: 100,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 10,
+  },
+  libraryRow: {
+    minHeight: 118,
+    paddingTop: 12,
+    paddingBottom: 12,
   },
   listRowDivider: {
     borderBottomWidth: 1,
@@ -1048,6 +1291,22 @@ const styles = StyleSheet.create({
   guideThumb: {
     width: 100,
     height: 80,
+    borderRadius: 13,
+    backgroundColor: todayHomeColors.iconFill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: todayHomeColors.border,
+  },
+  practiceThumb: {
+    width: 100,
+    height: 80,
+    borderRadius: 13,
+    backgroundColor: todayHomeColors.iconFill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: todayHomeColors.border,
+  },
+  libraryThumb: {
+    width: 100,
+    height: 82,
     borderRadius: 13,
     backgroundColor: todayHomeColors.iconFill,
     borderWidth: StyleSheet.hairlineWidth,
@@ -1180,13 +1439,9 @@ const styles = StyleSheet.create({
   },
   setupStatusPillReady: {
     backgroundColor: todayHomeColors.iconFill,
-    borderWidth: 1,
-    borderColor: todayHomeColors.border,
   },
   setupStatusPillNeutral: {
     backgroundColor: colors.bgElevated,
-    borderWidth: 1,
-    borderColor: todayHomeColors.border,
   },
   setupStatusText: {
     color: todayHomeColors.headingGreen,
@@ -1201,8 +1456,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 18,
-    borderWidth: 1,
-    borderColor: todayHomeColors.border,
     backgroundColor: todayHomeColors.iconFill,
   },
   settingsButtonText: {
@@ -1212,41 +1465,12 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     letterSpacing: 0,
   },
-  practiceIntroCard: {
-    minHeight: 116,
-    borderRadius: radius.card,
-    backgroundColor: todayHomeColors.card,
-    padding: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 15,
-    ...shadow.card,
-  },
-  practiceIntroCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  practiceIntroTitle: {
-    color: todayHomeColors.primaryText,
-    fontFamily: fonts.serifMedium,
-    fontSize: 18,
-    lineHeight: 24,
-    letterSpacing: 0,
-  },
-  practiceIntroBody: {
-    color: todayHomeColors.secondaryText,
-    fontFamily: fonts.sansRegular,
-    fontSize: 14,
-    lineHeight: 20,
-    letterSpacing: 0,
-    marginTop: 5,
-  },
   startButton: {
-    minHeight: 42,
-    borderRadius: radius.button,
+    minHeight: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: 14,
     backgroundColor: todayHomeColors.primary,
   },
   startButtonText: {
@@ -1259,11 +1483,22 @@ const styles = StyleSheet.create({
   disabledRow: {
     opacity: 0.7,
   },
+  disabledPill: {
+    minHeight: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    backgroundColor: colors.bgElevated,
+    borderWidth: 1,
+    borderColor: todayHomeColors.border,
+  },
   disabledText: {
-    ...type.caption,
-    color: colors.textSecondary,
-    maxWidth: 82,
-    textAlign: 'right',
+    color: todayHomeColors.secondaryText,
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0,
   },
   pressed: {
     opacity: 0.86,
