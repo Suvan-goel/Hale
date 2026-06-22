@@ -1355,3 +1355,16 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
   bundled ElevenLabs assets were generated in this pass. Until those files are produced and
   committed, safety cue text is present and the player skips unavailable bundled cue assets rather
   than crashing; full text/voice parity remains blocked on audio generation.
+
+## 2026-06-22 — Micro-check becomes prominent after weekly training target
+
+- **Change:** the weekly micro-check is now a post-target check-in. Today keeps training as the
+  primary action while the current week's main-plan session target is still incomplete. Once the
+  target is complete, Hale promotes the 60-second micro-check if it has not already been completed
+  in that schedule window.
+- **Why:** the micro-check is progress evidence, not the core habit. Surfacing it only after the
+  weekly target is complete avoids competing with the main training flow while still keeping the
+  trend line alive between full Movement Check-Ups.
+- **Consistency:** the rule lives in `isMicroCheckDueForSchedule` and is shared by Today lifecycle
+  and the older next-best-action helper. End-of-block waiting before re-test uses the same
+  due/uncompleted check.

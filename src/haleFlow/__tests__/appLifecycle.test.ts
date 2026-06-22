@@ -266,7 +266,7 @@ describe('getHaleAppLifecycle', () => {
     expect(result.activeBlockSummary?.weekNumber).toBe(1);
   });
 
-  it('routes to the normal training day after the weekly micro-check is done', () => {
+  it('keeps training primary after one weekly session even if the micro-check is done', () => {
     const block = activeBlock();
     const completions = [
       completed(block, '2026-06-02T08:00:00.000Z', 1),
@@ -284,7 +284,7 @@ describe('getHaleAppLifecycle', () => {
     expect(result.primaryAction.type).toBe('start_today_session');
   });
 
-  it('surfaces the weekly micro-check after a weekly session is recorded', () => {
+  it('keeps training primary until the weekly session target is met', () => {
     const block = activeBlock();
     const result = getHaleAppLifecycle({
       profile: profile(),
@@ -298,11 +298,11 @@ describe('getHaleAppLifecycle', () => {
       today: '2026-06-03T08:00:00.000Z',
     });
 
-    expect(result.state).toBe('weekly_micro_check_due');
-    expect(result.primaryAction.type).toBe('start_micro_check');
+    expect(result.state).toBe('normal_training_day');
+    expect(result.primaryAction.type).toBe('start_today_session');
   });
 
-  it('marks the week complete once the weekly session target is met', () => {
+  it('surfaces the weekly micro-check once the weekly session target is met', () => {
     const block = activeBlock();
     const result = getHaleAppLifecycle({
       profile: profile(),
@@ -315,6 +315,29 @@ describe('getHaleAppLifecycle', () => {
           completed(block, '2026-06-02T08:00:00.000Z', 1),
           completed(block, '2026-06-04T08:00:00.000Z', 2),
           completed(block, '2026-06-06T08:00:00.000Z', 3),
+        ],
+      },
+      today: '2026-06-06T12:00:00.000Z',
+    });
+
+    expect(result.state).toBe('weekly_micro_check_due');
+    expect(result.primaryAction.type).toBe('start_micro_check');
+  });
+
+  it('marks the week complete once the weekly session target and micro-check are done', () => {
+    const block = activeBlock();
+    const result = getHaleAppLifecycle({
+      profile: profile(),
+      history: [baseline()],
+      training: defaultTrainingState(),
+      adherence: {
+        ...adherenceWithBaseline(),
+        blocks: [block],
+        completions: [
+          completed(block, '2026-06-02T08:00:00.000Z', 1),
+          completed(block, '2026-06-04T08:00:00.000Z', 2),
+          completed(block, '2026-06-06T08:00:00.000Z', 3),
+          completed(block, '2026-06-06T09:00:00.000Z', 0),
         ],
       },
       today: '2026-06-06T12:00:00.000Z',

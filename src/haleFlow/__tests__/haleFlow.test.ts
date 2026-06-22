@@ -98,6 +98,15 @@ function creditedCompletion(b: MovementBlock, templateId: string, completedAt: s
   });
 }
 
+function microCheckCompletion(b: MovementBlock, completedAt: string) {
+  return makeTrainingSessionCompletion({
+    block: b,
+    sessionType: 'micro_check',
+    completedAt,
+    durationMinutes: 1,
+  });
+}
+
 function focusEvidence(
   block: MovementBlock,
   templateId: string,
@@ -171,7 +180,22 @@ describe('getNextBestAction', () => {
     expect(action.state).toBe('active_block_session_due');
   });
 
-  it('shows micro-check due once a weekly session has been completed', () => {
+  it('keeps session due when the weekly target is not complete yet', () => {
+    const b = block();
+    const action = getNextBestAction({
+      profile: { safetyProfile: safety() },
+      lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
+      latestAssessment: assessment(),
+      activeBlock: b,
+      sessionCompletions: [
+        creditedCompletion(b, 'balance-A', '2026-06-02T08:00:00.000Z'),
+      ],
+      now: '2026-06-03T12:00:00.000Z',
+    });
+    expect(action.state).toBe('active_block_session_due');
+  });
+
+  it('shows micro-check due once the weekly target is complete', () => {
     const b = block();
     const action = getNextBestAction({
       profile: { safetyProfile: safety() },
@@ -186,6 +210,24 @@ describe('getNextBestAction', () => {
       now: '2026-06-06T12:00:00.000Z',
     });
     expect(action.state).toBe('active_block_micro_check_due');
+  });
+
+  it('does not keep showing the micro-check after it is completed for the week', () => {
+    const b = block();
+    const action = getNextBestAction({
+      profile: { safetyProfile: safety() },
+      lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
+      latestAssessment: assessment(),
+      activeBlock: b,
+      sessionCompletions: [
+        creditedCompletion(b, 'balance-A', '2026-06-02T08:00:00.000Z'),
+        creditedCompletion(b, 'balance-B', '2026-06-04T08:00:00.000Z'),
+        creditedCompletion(b, 'balance-C', '2026-06-06T08:00:00.000Z'),
+        microCheckCompletion(b, '2026-06-06T09:00:00.000Z'),
+      ],
+      now: '2026-06-06T12:00:00.000Z',
+    });
+    expect(action.state).not.toBe('active_block_micro_check_due');
   });
 
   it('shows re-test due near the end of the block', () => {

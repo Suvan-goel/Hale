@@ -13,12 +13,12 @@ import type { TrainingState } from '../training';
 import { latestUsableOfficialAssessment } from './assessments';
 import { latestUsableOfficialCheckUpRecord } from './checkupHistory';
 import {
-  addBlockScheduleDays,
   blockScheduleDateKey,
   daysBetweenBlockScheduleDates,
   getBlockScheduleState,
   type BlockScheduleState,
 } from './blockSchedule';
+import { isMicroCheckDueForSchedule } from './microCheck';
 import { PLAN_SESSION_IDS, type PlanSessionId } from './sessionIds';
 
 export type HaleLifecycleState =
@@ -131,12 +131,12 @@ export function getHaleAppLifecycle(input: HaleAppLifecycleInput): HaleAppLifecy
   } else if (schedule?.status === 'session_due' && schedule.totalCredits === 0) {
     state = 'first_session_ready';
     reason = 'active block exists and no session has been completed yet';
+  } else if (shouldShowWeeklyMicroCheck({ ...input, today })) {
+    state = 'weekly_micro_check_due';
+    reason = 'weekly session target is complete and the weekly micro-check is still open';
   } else if (schedule?.status === 'week_complete_waiting' || schedule?.status === 'training_complete_waiting_retest') {
     state = 'week_complete';
     reason = 'weekly session target is complete';
-  } else if (shouldShowWeeklyMicroCheck({ ...input, today })) {
-    state = 'weekly_micro_check_due';
-    reason = 'at least one session is complete this week and the weekly micro-check is still open';
   } else {
     state = 'normal_training_day';
     reason = 'active block exists and Today can start the next planned session';
@@ -327,8 +327,7 @@ function shouldShowWeeklyMicroCheck(input: HaleAppLifecycleInput): boolean {
   if (!activeBlock) return false;
   const completions = input.adherence?.completions ?? [];
   const schedule = activeBlockSchedule({ ...input, today }, activeBlock);
-  const sessions = schedule.status === 'session_due' ? schedule.creditedTemplateIds.length : 0;
-  return sessions > 0 && sessions < activeBlock.sessionsPerWeekTarget && !microCheckCompletedInScheduleWeek(completions, schedule);
+  return isMicroCheckDueForSchedule(schedule, completions);
 }
 
 function getActiveBlock(input: HaleAppLifecycleInput): MovementBlock | null {
@@ -382,20 +381,6 @@ function daysUntilDateKey(targetDateKey: string, today: string): number {
   if (!todayKey) return 0;
   const days = daysBetweenBlockScheduleDates(todayKey, targetDateKey);
   return days === null ? 0 : Math.max(0, days);
-}
-
-function microCheckCompletedInScheduleWeek(
-  completions: readonly TrainingSessionCompletion[],
-  schedule: BlockScheduleState
-): boolean {
-  const start = schedule.currentWeekStartDateKey;
-  const end = start ? addBlockScheduleDays(start, 7) : null;
-  if (!start || !end || schedule.status !== 'session_due') return false;
-  return completions.some((completion) => {
-    if (completion.sessionType !== 'micro_check') return false;
-    const completedDateKey = blockScheduleDateKey(completion.completedAt);
-    return !!completedDateKey && completedDateKey >= start && completedDateKey < end;
-  });
 }
 
 // Existing scoring expresses a domain as an age-range estimate. Lower estimate

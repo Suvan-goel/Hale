@@ -4,6 +4,7 @@ import type {
 } from '../adherence';
 import { getNextBestActionCopy } from './copy';
 import { getBlockScheduleState } from './blockSchedule';
+import { isMicroCheckDueForSchedule } from './microCheck';
 import type { HaleUserFlowState, NextBestAction, NextBestActionInput } from './types';
 
 export function getNextBestAction(input: NextBestActionInput): NextBestAction {
@@ -73,7 +74,7 @@ function activeBlockState(
     return latestReportPresent ? 'report_ready' : 'block_complete_needs_report';
   }
   if (schedule.status === 'retest_due') return 'active_block_retest_due';
-  if (schedule.status === 'week_complete_waiting') return 'active_block_micro_check_due';
+  if (isMicroCheckDueForSchedule(schedule, completions)) return 'active_block_micro_check_due';
   if (schedule.status === 'session_due' && schedule.lapseState === 'restart_recommended') {
     return 'active_block_restart_needed';
   }
