@@ -276,6 +276,12 @@ export function CheckUpScreen({
 
   const requestDiscardCheckup = React.useCallback(() => {
     if (!onCancel) return;
+    if (!shouldConfirmDiscardCheckup(snapshot, cameraAvailability)) {
+      voice.stop();
+      setModalMode(null);
+      onCancel();
+      return;
+    }
     discardWasPausedRef.current = pausedRef.current;
     if (!pausedRef.current) {
       pause();
@@ -283,7 +289,7 @@ export function CheckUpScreen({
       voice.stop();
     }
     setDiscardModalVisible(true);
-  }, [onCancel, pause, voice]);
+  }, [cameraAvailability, onCancel, pause, snapshot, voice]);
 
   const keepCheckup = React.useCallback(() => {
     setDiscardModalVisible(false);
@@ -429,7 +435,7 @@ export function CheckUpScreen({
         <View style={styles.bottomPanel}>
           {showUnavailableAction ? (
             <View style={styles.controls}>
-              <ControlButton title="Back to Today" onPress={() => onCancel?.()} primary />
+              <ControlButton title="Close check-up" onPress={() => onCancel?.()} primary />
             </View>
           ) : canControl ? (
             <View style={styles.controls}>
@@ -784,6 +790,14 @@ function sameSnapshot(a: Snapshot, b: Snapshot): boolean {
     a.setupCaption === b.setupCaption &&
     a.totalItems === b.totalItems
   );
+}
+
+function shouldConfirmDiscardCheckup(snapshot: Snapshot, cameraAvailability: CameraAvailability): boolean {
+  if (cameraAvailability === 'unavailable') return false;
+  if (snapshot.phase === 'complete' || snapshot.phase === 'done') return true;
+  if (snapshot.phase === 'transition') return snapshot.itemIndex > 0;
+  if (snapshot.phase !== 'item') return false;
+  return snapshot.itemPhase === 'active' || snapshot.itemPhase === 'result' || snapshot.itemPhase === 'done';
 }
 
 function checkupAvatarState(snapshot: Snapshot): PoseAvatarMeasurementState {

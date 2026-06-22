@@ -31,6 +31,7 @@ export function LandingPage({ focus, pricing, storeLinks, betaSignupEnabled }: L
     <main id="top">
       <HeroSection focus={focus} pricing={pricing} storeLinks={storeLinks} />
       <MethodSection />
+      <AppScreensSection />
       <MeasurementSection />
       <TrainingSection />
       <TrustSection />
@@ -81,30 +82,15 @@ function HeroSection({
             </a>
           </div>
         </div>
-        <HeroPanel />
+        <AppScreenshotPhone
+          src={brandAssets.screenshots.plan}
+          alt="Hale Plan screen showing a four-week training block and weekly sessions."
+          label="Plan"
+          className="hero-screenshot"
+          priority
+        />
       </div>
     </section>
-  );
-}
-
-function HeroPanel() {
-  return (
-    <aside className="hero-panel" aria-label="Hale assessment summary example">
-      <div className="hero-panel__header">
-        <span>Movement profile</span>
-        <strong>Private beta</strong>
-      </div>
-      <div className="hero-panel__metric">
-        <span>Monthly baseline</span>
-        <strong>10 min</strong>
-      </div>
-      <div className="hero-panel__domains" aria-label="Measured domains">
-        <span>Strength</span>
-        <span>Balance</span>
-        <span>Mobility</span>
-      </div>
-      <p>Camera-guided measurement with a clean skeleton view, never a mirror.</p>
-    </aside>
   );
 }
 
@@ -128,6 +114,61 @@ function MethodSection() {
         ))}
       </div>
     </section>
+  );
+}
+
+function AppScreensSection() {
+  return (
+    <section className="section app-screens-section" aria-labelledby="screens-title">
+      <div className="section-heading section-heading--center">
+        <p className="eyebrow">Inside the app</p>
+        <h2 id="screens-title">Actual Hale screens, built around a monthly rhythm.</h2>
+        <p>The experience stays simple: know what today asks of you, follow the current block, then re-test.</p>
+      </div>
+      <div className="app-screenshot-grid">
+        <AppScreenshotPhone
+          src={brandAssets.screenshots.progress}
+          alt="Hale Progress screen showing the current movement focus and next check-up timing."
+          label="Progress"
+        />
+        <AppScreenshotPhone
+          src={brandAssets.screenshots.explore}
+          alt="Hale Explore screen showing evidence-led articles and movement guides."
+          label="Explore"
+        />
+      </div>
+    </section>
+  );
+}
+
+function AppScreenshotPhone({
+  src,
+  alt,
+  label,
+  className,
+  priority = false,
+}: {
+  src: string;
+  alt: string;
+  label: string;
+  className?: string;
+  priority?: boolean;
+}) {
+  return (
+    <figure className={`app-screenshot-phone ${className ?? ''}`}>
+      <div className="app-screenshot-phone__frame">
+        <Image
+          src={src}
+          alt={alt}
+          width={720}
+          height={1600}
+          sizes="(max-width: 780px) 74vw, 330px"
+          priority={priority}
+          unoptimized
+        />
+      </div>
+      <figcaption>{label}</figcaption>
+    </figure>
   );
 }
 

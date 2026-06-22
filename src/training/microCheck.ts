@@ -45,6 +45,7 @@ export interface MicroCheckFrameUpdate {
   holdSec: number;
   remainingMs: number;
   measuring: boolean;
+  setupPrompt: PreflightPrompt | null;
 }
 
 export interface MicroCheckConfig {
@@ -87,6 +88,7 @@ export class MicroCheckRunner {
     holdSec: NaN,
     remainingMs: NaN,
     measuring: false,
+    setupPrompt: null,
   };
 
   private phase: MicroCheckPhase = 'preflight';
@@ -116,6 +118,16 @@ export class MicroCheckRunner {
     return this.finished;
   }
 
+  shiftTiming(deltaMs: number): void {
+    if (deltaMs <= 0) return;
+    if (Number.isFinite(this.lastPromptAtMs)) this.lastPromptAtMs += deltaMs;
+    this.instructionsEnteredMs += deltaMs;
+    if (this.instructionsIdleAtMs >= 0) this.instructionsIdleAtMs += deltaMs;
+    this.countdownStartMs += deltaMs;
+    this.activeStartMs += deltaMs;
+    this.preflight.shiftTiming(deltaMs);
+  }
+
   update(out: PipelineFrameOutput, voiceBusy: boolean): MicroCheckFrameUpdate {
     const u = this.update_;
     u.voice = null;
@@ -124,6 +136,7 @@ export class MicroCheckRunner {
     u.measuring = false;
     const ts = out.frame.timestampMs;
     const status = this.preflight.update(out);
+    u.setupPrompt = status.prompt;
 
     switch (this.phase) {
       case 'preflight': {

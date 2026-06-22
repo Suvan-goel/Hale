@@ -297,10 +297,12 @@ export function TrainingSessionScreen({
         : undefined,
     [visibleSnapshot.exerciseId]
   );
-  const canControl = visibleSnapshot.phase !== 'complete' && visibleSnapshot.phase !== 'done';
+  const canControl =
+    visibleCameraAvailability !== 'unavailable' && visibleSnapshot.phase !== 'complete' && visibleSnapshot.phase !== 'done';
   const canRepeat = visibleSnapshot.exerciseId !== null;
   const showRepeatControl = visiblePaused && canRepeat;
   const showSkipControl = canRepeat && (visiblePaused || visibleSnapshot.setupIssue || busyDebug);
+  const showUnavailableAction = visibleCameraAvailability === 'unavailable' && !!onCancel;
   const viewportWidth = Math.max(1, Math.min(windowSize.width - spacing.md * 2, spacing.pageMaxWidth));
   const cameraViewport = React.useMemo(
     () => recordingCameraViewportSize(viewportWidth, windowSize.height, snapshot.setupIssue || showHelp),
@@ -333,6 +335,12 @@ export function TrainingSessionScreen({
 
   const requestDiscardSession = React.useCallback(() => {
     if (!onCancel) return;
+    if (!shouldConfirmDiscardTrainingSession(snapshot, cameraAvailability)) {
+      voice.stop();
+      setShowHelp(false);
+      onCancel();
+      return;
+    }
     discardWasPausedRef.current = pausedRef.current;
     if (!pausedRef.current) {
       pause();
@@ -340,7 +348,7 @@ export function TrainingSessionScreen({
       voice.stop();
     }
     setDiscardModalVisible(true);
-  }, [onCancel, pause, voice]);
+  }, [cameraAvailability, onCancel, pause, snapshot, voice]);
 
   const keepSession = React.useCallback(() => {
     setDiscardModalVisible(false);
@@ -449,7 +457,11 @@ export function TrainingSessionScreen({
         </View>
 
         <View style={styles.bottomPanel}>
-          {canControl ? (
+          {showUnavailableAction ? (
+            <View style={styles.controls}>
+              <ControlButton title="Close session" onPress={() => onCancel?.()} primary />
+            </View>
+          ) : canControl ? (
             <View style={styles.controls}>
               <ControlButton title={visiblePaused ? 'Resume' : 'Pause'} onPress={visiblePaused ? resume : pause} />
               {showRepeatControl ? (
@@ -682,14 +694,16 @@ function ControlButton({
   disabled,
   tone = 'normal',
   selected,
+  primary,
 }: {
   title: string;
   onPress: () => void;
   disabled?: boolean;
   tone?: 'normal' | 'danger';
   selected?: boolean;
+  primary?: boolean;
 }) {
-  const isPrimary = title === 'Pause' || title === 'Resume';
+  const isPrimary = primary || title === 'Pause' || title === 'Resume';
   return (
     <Pressable
       style={({ pressed }) => [
@@ -747,6 +761,14 @@ function sameList<T>(a: readonly T[], b: readonly T[]): boolean {
     if (a[idx] !== b[idx]) return false;
   }
   return true;
+}
+
+function shouldConfirmDiscardTrainingSession(snapshot: Snapshot, cameraAvailability: CameraAvailability): boolean {
+  if (cameraAvailability === 'unavailable') return false;
+  if (snapshot.phase === 'set' || snapshot.phase === 'rest' || snapshot.phase === 'complete' || snapshot.phase === 'done') {
+    return true;
+  }
+  return snapshot.itemIndex > 0 && snapshot.phase !== 'intro';
 }
 
 function trainingAvatarState(phase: TrainingPhase): PoseAvatarMeasurementState {

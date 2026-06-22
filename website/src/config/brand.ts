@@ -38,5 +38,10 @@ export const brandAssets = {
   firstBlock: '/brand/hale-first-block-hero.png',
   progressHero: '/brand/hale-progress-hero.png',
   todaySession: '/brand/hale-todays-session-card.png',
+  screenshots: {
+    plan: '/app-screens/hale-plan.png',
+    progress: '/app-screens/hale-progress.png',
+    explore: '/app-screens/hale-explore.png',
+  },
   ogImage: '/og/hale-og.png',
 } as const;
