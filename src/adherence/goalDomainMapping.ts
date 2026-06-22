@@ -2,11 +2,14 @@ import type {
   LifeGoal,
   LifeGoalCategory,
   LifeGoalTrainingRelevance,
+  LifeGoalWorkoutBias,
   MovementDomain,
 } from './types';
 import { LOCAL_USER_ID } from './types';
 
-export const LIFE_GOAL_PRESETS: { category: LifeGoalCategory; label: string }[] = [
+export type SelectableLifeGoalCategory = Exclude<LifeGoalCategory, 'custom'>;
+
+export const LIFE_GOAL_PRESETS: { category: SelectableLifeGoalCategory; label: string }[] = [
   { category: 'stairs', label: 'Climb stairs more easily' },
   { category: 'walking_hiking_sport', label: 'Keep up on walks' },
   { category: 'travel', label: 'Travel comfortably' },
@@ -16,7 +19,6 @@ export const LIFE_GOAL_PRESETS: { category: LifeGoalCategory; label: string }[] 
   { category: 'carrying_loads', label: 'Carry groceries or luggage' },
   { category: 'independence', label: 'Stay independent' },
   { category: 'noticed_decline', label: 'Get stronger overall' },
-  { category: 'custom', label: 'Something else' },
 ];
 
 export const LIFE_GOAL_CATEGORIES: LifeGoalCategory[] = [
@@ -110,6 +112,81 @@ export function getLifeGoalTrainingRelevance(goal: LifeGoal | null | undefined):
     custom: {
       primaryDomains: ['strength_power', 'balance', 'mobility'],
       copy: 'Hale will shape the block around your own reason for staying capable.',
+    },
+  };
+  return map[goal.category];
+}
+
+export function getLifeGoalWorkoutBias(goal: LifeGoal | null | undefined): LifeGoalWorkoutBias {
+  if (!goal) {
+    return {
+      preferredDomains: ['strength_power', 'balance', 'mobility'],
+      preferredLadderIds: [],
+      preferredSlotTypes: [],
+      copy: 'Use the check-up focus first, then keep supporting work balanced.',
+    };
+  }
+
+  const map: Record<LifeGoalCategory, LifeGoalWorkoutBias> = {
+    grandchildren: {
+      preferredDomains: ['strength_power', 'mobility', 'balance'],
+      preferredLadderIds: ['sit-to-stand', 'squat', 'hinge-glutes', 'mobility-flexibility', 'balance'],
+      preferredSlotTypes: ['lower_body_strength', 'posterior_chain', 'hip_mobility', 'trunk_mobility', 'mobility', 'balance'],
+      copy: 'Prefer chair-rise, squat, hip, and mobility support when the check-up focus leaves room.',
+    },
+    stairs: {
+      preferredDomains: ['strength_power', 'balance', 'mobility'],
+      preferredLadderIds: ['step-up', 'sit-to-stand', 'heel-toe-raise', 'lateral-stability', 'balance', 'mobility-flexibility'],
+      preferredSlotTypes: ['lower_body_strength', 'ankle', 'balance', 'lateral_stability', 'dynamic_balance', 'hip_mobility'],
+      copy: 'Prefer stair-relevant leg power, ankle strength, and steadiness when setup is confirmed.',
+    },
+    travel: {
+      preferredDomains: ['strength_power', 'balance', 'mobility'],
+      preferredLadderIds: ['sit-to-stand', 'heel-toe-raise', 'lateral-stability', 'balance', 'pull-upper-back', 'hinge-glutes', 'mobility-flexibility'],
+      preferredSlotTypes: ['lower_body_strength', 'ankle', 'dynamic_balance', 'balance', 'upper_body_pull', 'posterior_chain', 'hip_mobility'],
+      copy: 'Prefer walking capacity, carrying support, steadiness, and easy-moving joints.',
+    },
+    walking_hiking_sport: {
+      preferredDomains: ['strength_power', 'balance', 'mobility'],
+      preferredLadderIds: ['sit-to-stand', 'heel-toe-raise', 'lateral-stability', 'balance', 'step-up', 'hinge-glutes', 'mobility-flexibility'],
+      preferredSlotTypes: ['lower_body_strength', 'ankle', 'lateral_stability', 'dynamic_balance', 'balance', 'posterior_chain'],
+      copy: 'Prefer repeatable leg strength, ankle/calf work, and lateral balance support.',
+    },
+    gardening_hobbies: {
+      preferredDomains: ['mobility', 'strength_power', 'balance'],
+      preferredLadderIds: ['hinge-glutes', 'mobility-flexibility', 'sit-to-stand', 'pull-upper-back', 'shoulder-reach-press', 'balance'],
+      preferredSlotTypes: ['posterior_chain', 'posterior_chain_mobility', 'hip_mobility', 'trunk_mobility', 'mobility', 'shoulder_mobility', 'upper_body_pull'],
+      copy: 'Prefer hinge, hip, trunk, reaching, and posterior-chain support for bending and hobbies.',
+    },
+    floor_confidence: {
+      preferredDomains: ['strength_power', 'mobility', 'balance'],
+      preferredLadderIds: ['sit-to-stand', 'squat', 'hinge-glutes', 'mobility-flexibility', 'balance'],
+      preferredSlotTypes: ['lower_body_strength', 'posterior_chain', 'hip_mobility', 'trunk_mobility', 'mobility', 'balance'],
+      copy: 'Prefer chair-rise, hip, trunk, and floor-transfer preparation when safe.',
+    },
+    carrying_loads: {
+      preferredDomains: ['strength_power', 'mobility', 'balance'],
+      preferredLadderIds: ['hinge-glutes', 'pull-upper-back', 'sit-to-stand', 'squat', 'shoulder-reach-press', 'balance'],
+      preferredSlotTypes: ['posterior_chain', 'upper_body_pull', 'lower_body_strength', 'shoulder_mobility', 'trunk_mobility', 'balance'],
+      copy: 'Prefer hinge, glute, upper-back, and everyday strength support when safe.',
+    },
+    independence: {
+      preferredDomains: ['strength_power', 'balance', 'mobility'],
+      preferredLadderIds: ['sit-to-stand', 'balance', 'mobility-flexibility', 'heel-toe-raise', 'hinge-glutes', 'lateral-stability'],
+      preferredSlotTypes: ['lower_body_strength', 'balance', 'mobility', 'ankle', 'hip_mobility', 'lateral_stability'],
+      copy: 'Keep support balanced across strength, balance, and mobility.',
+    },
+    noticed_decline: {
+      preferredDomains: ['strength_power', 'balance', 'mobility'],
+      preferredLadderIds: [],
+      preferredSlotTypes: [],
+      copy: 'Defer to the check-up focus and keep support balanced.',
+    },
+    custom: {
+      preferredDomains: ['strength_power', 'balance', 'mobility'],
+      preferredLadderIds: [],
+      preferredSlotTypes: [],
+      copy: 'Use the check-up focus first, then keep supporting work balanced.',
     },
   };
   return map[goal.category];

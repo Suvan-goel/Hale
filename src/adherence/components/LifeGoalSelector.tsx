@@ -1,22 +1,21 @@
 import * as React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Input, PrimaryButton, SecondaryButton } from '../../components/ui';
+import { PrimaryButton, SecondaryButton } from '../../components/ui';
 import { colors, fonts, radius, shadow, spacing, type } from '../../theme';
-import { LIFE_GOAL_PRESETS, createLifeGoal } from '../goalDomainMapping';
-import type { LifeGoal, LifeGoalCategory } from '../types';
+import { LIFE_GOAL_PRESETS, createLifeGoal, type SelectableLifeGoalCategory } from '../goalDomainMapping';
+import type { LifeGoal } from '../types';
 
-const LIFE_GOAL_HINTS: Record<LifeGoalCategory, string> = {
-  grandchildren: 'Build strength and mobility for getting low, standing up, and keeping pace.',
-  stairs: 'Support leg power and steady confidence on steps.',
-  travel: 'Prepare for walking, carrying, and moving comfortably away from home.',
-  walking_hiking_sport: 'Support the strength and balance that keep outings enjoyable.',
-  gardening_hobbies: 'Keep everyday bending, reaching, and lifting comfortable.',
-  floor_confidence: 'Build the strength and mobility used getting down and back up.',
+const LIFE_GOAL_HINTS: Record<SelectableLifeGoalCategory, string> = {
+  grandchildren: 'Practice getting low, standing back up, and keeping pace.',
+  stairs: 'Build leg strength and steadiness for steps.',
+  travel: 'Feel more ready for walking, carrying bags, and moving through new places.',
+  walking_hiking_sport: 'Support the strength and balance that make walks feel easier.',
+  gardening_hobbies: 'Support easier bending, reaching, and everyday movement.',
+  floor_confidence: 'Build strength and mobility for getting down and standing back up.',
   carrying_loads: 'Support everyday strength for bags, groceries, and home tasks.',
   independence: 'Keep strength, balance, and mobility working together.',
-  noticed_decline: 'Start where your Movement Check-Up says support matters most.',
-  custom: 'Tell Hale what staying capable means to you.',
+  noticed_decline: 'Let your check-up show where support matters most.',
 };
 
 export function LifeGoalSelector({
@@ -28,9 +27,8 @@ export function LifeGoalSelector({
   onSave: (goal: LifeGoal) => void;
   onCancel?: () => void;
 }) {
-  const [selected, setSelected] = React.useState<LifeGoalCategory>(initialGoal?.category ?? 'stairs');
-  const [customText, setCustomText] = React.useState(initialGoal?.customText ?? '');
-  const canSave = selected !== 'custom' || customText.trim().length > 2;
+  const initialCategory = initialGoal?.category === 'custom' ? 'stairs' : initialGoal?.category ?? 'stairs';
+  const [selected, setSelected] = React.useState<SelectableLifeGoalCategory>(initialCategory);
 
   return (
     <View style={styles.wrap}>
@@ -50,25 +48,12 @@ export function LifeGoalSelector({
         })}
       </View>
 
-      {selected === 'custom' ? (
-        <Input
-          label="Your reason"
-          value={customText}
-          onChangeText={setCustomText}
-          placeholder="Write your own reason"
-          multiline
-          accessibilityLabel="Custom life goal"
-        />
-      ) : null}
-
       <View style={styles.actions}>
         <PrimaryButton
           title="Continue"
           onPress={() => {
-            if (!canSave) return;
-            onSave(createLifeGoal({ category: selected, customText }));
+            onSave(createLifeGoal({ category: selected }));
           }}
-          disabled={!canSave}
         />
         {onCancel ? <SecondaryButton title="Not now" onPress={onCancel} /> : null}
       </View>

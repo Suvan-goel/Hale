@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
   ActivityLevel,
@@ -26,7 +26,7 @@ const AGE_OPTIONS: readonly { label: string; value: number | null }[] = [
 
 const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string }[] = [
   { value: 'very_inactive', label: 'Mostly inactive' },
-  { value: 'lightly_active', label: 'Lightly active' },
+  { value: 'lightly_active', label: 'Lightly\nactive' },
   { value: 'moderately_active', label: 'Active most weeks' },
   { value: 'very_active', label: 'Very active' },
 ];
@@ -48,14 +48,10 @@ export function SafetyProfileScreen({
   const [age, setAge] = React.useState<number | null>(initialAge ?? null);
   const [activityLevel, setActivityLevel] = React.useState<ActivityLevel>(initial?.activityLevel ?? 'lightly_active');
   const [painArea, setPainArea] = React.useState<string>(normalizePainArea(initial?.painNotes));
-  const [supportNearby, setSupportNearby] = React.useState(initial?.feelsSafeBalancing !== false);
   const [floorTransferStatus, setFloorTransferStatus] = React.useState(initialCapabilities.floorTransfer.status);
   const [stepUpStatus, setStepUpStatus] = React.useState(initialCapabilities.stepUpEnvironment.status);
-  const [lowStableStep, setLowStableStep] = React.useState(initialCapabilities.stepUpEnvironment.lowStableStep);
-  const [fixedSupport, setFixedSupport] = React.useState(initialCapabilities.stepUpEnvironment.fixedSupport);
-  const [clearDryArea, setClearDryArea] = React.useState(initialCapabilities.stepUpEnvironment.clearDryArea);
-  const [phoneOutOfPath, setPhoneOutOfPath] = React.useState(initialCapabilities.stepUpEnvironment.phoneOutOfPath);
   const [singleLegStatus, setSingleLegStatus] = React.useState(initialCapabilities.singleLegBalance.status);
+  const hasSafeStep = stepUpStatus === 'confirmed';
 
   const save = () => {
     const nowIso = new Date().toISOString();
@@ -69,7 +65,7 @@ export function SafetyProfileScreen({
       hasRecentInjury: initial?.hasRecentInjury,
       injuryNotes: initial?.injuryNotes,
       feelsSafeStandingFromChair: true,
-      feelsSafeBalancing: supportNearby,
+      feelsSafeBalancing: singleLegStatus === 'confirmed_with_support',
       availableEquipment: initial?.availableEquipment.length ? initial.availableEquipment : ['chair', 'wall'],
       movementCapabilities: initial?.movementCapabilities,
       preferredWorkoutDays: initial?.preferredWorkoutDays ?? ['Mon', 'Wed', 'Fri'],
@@ -83,10 +79,10 @@ export function SafetyProfileScreen({
         floorTransfer: { status: floorTransferStatus },
         stepUpEnvironment: {
           status: stepUpStatus,
-          lowStableStep,
-          fixedSupport,
-          clearDryArea,
-          phoneOutOfPath,
+          lowStableStep: hasSafeStep,
+          fixedSupport: hasSafeStep,
+          clearDryArea: hasSafeStep,
+          phoneOutOfPath: hasSafeStep,
         },
         singleLegBalance: { status: singleLegStatus },
       },
@@ -101,9 +97,9 @@ export function SafetyProfileScreen({
     <Screen>
       <BackArrowButton accessibilityLabel="Back" onPress={onCancel} />
       <ScreenHeader
-        eyebrow="About you"
-        title="Comfort and safety"
-        subtitle="These details help Hale choose gentler starts and keep support close when it matters."
+        eyebrow="Safety setup"
+        title="Help Hale choose a safe start"
+        subtitle="A few quick answers help Hale avoid movements that do not feel right for you today."
       />
 
       <ChoiceSection title="Age range" meta="Optional">
@@ -119,7 +115,7 @@ export function SafetyProfileScreen({
         </View>
       </ChoiceSection>
 
-      <ChoiceSection title="Current activity level" meta="Current">
+      <ChoiceSection title="How active are you now?" meta="Today">
         <View style={styles.grid}>
           {ACTIVITY_OPTIONS.map((option) => (
             <Choice
@@ -132,7 +128,7 @@ export function SafetyProfileScreen({
         </View>
       </ChoiceSection>
 
-      <ChoiceSection title="Any area that often bothers you?" meta="Optional">
+      <ChoiceSection title="Any area that often feels uncomfortable?" meta="Optional">
         <View style={styles.grid}>
           {PAIN_OPTIONS.map((option) => (
             <Choice
@@ -143,69 +139,34 @@ export function SafetyProfileScreen({
             />
           ))}
         </View>
-        <SupportPreference
-          value={supportNearby}
-          onValueChange={setSupportNearby}
-        />
         <Text style={styles.gentle}>
-          These choices do not block you. Move only in a comfortable range and use support whenever you want it.
+          Hale may choose easier options around this area. You can still stop or use support at any time.
         </Text>
       </ChoiceSection>
 
-      <ChoiceSection title="Movement setup" meta="Saved">
-        <View style={styles.subsection}>
-          <Text style={styles.subsectionTitle}>Floor exercises</Text>
-          <View style={styles.grid}>
-            <Choice
-              label="Getting down and up feels OK"
-              selected={floorTransferStatus === 'confirmed'}
-              onPress={() => setFloorTransferStatus('confirmed')}
-            />
-            <Choice
-              label="Not right now"
-              selected={floorTransferStatus !== 'confirmed'}
-              onPress={() => setFloorTransferStatus('avoid_for_now')}
-            />
-          </View>
-        </View>
-
-        <View style={styles.subsection}>
-          <Text style={styles.subsectionTitle}>Step-up environment</Text>
-          <View style={styles.grid}>
-            <Choice
-              label="Use step-ups"
-              selected={stepUpStatus === 'confirmed'}
-              onPress={() => setStepUpStatus('confirmed')}
-            />
-            <Choice
-              label="Avoid step-ups for now"
-              selected={stepUpStatus !== 'confirmed'}
-              onPress={() => setStepUpStatus('avoid_for_now')}
-            />
-          </View>
-          <View style={styles.checklist}>
-            <ChecklistSwitch label="Lowest step is stable" value={lowStableStep} onValueChange={setLowStableStep} />
-            <ChecklistSwitch label="Wall, rail, or counter support is fixed" value={fixedSupport} onValueChange={setFixedSupport} />
-            <ChecklistSwitch label="Area is clear and dry" value={clearDryArea} onValueChange={setClearDryArea} />
-            <ChecklistSwitch label="Phone is out of the stepping path" value={phoneOutOfPath} onValueChange={setPhoneOutOfPath} />
-          </View>
-        </View>
-
-        <View style={styles.subsection}>
-          <Text style={styles.subsectionTitle}>Single-leg balance</Text>
-          <View style={styles.grid}>
-            <Choice
-              label="OK with support nearby"
-              selected={singleLegStatus === 'confirmed_with_support'}
-              onPress={() => setSingleLegStatus('confirmed_with_support')}
-            />
-            <Choice
-              label="Supported balance only"
-              selected={singleLegStatus !== 'confirmed_with_support'}
-              onPress={() => setSingleLegStatus('supported_balance_only')}
-            />
-          </View>
-        </View>
+      <ChoiceSection title="Movements to include" meta="Safety">
+        <Text style={styles.gentle}>Choose No if you are unsure. Hale will use another safe option.</Text>
+        <YesNoQuestion
+          title="Floor exercises"
+          description="Can Hale include movements where you get down to the floor and stand back up?"
+          yesSelected={floorTransferStatus === 'confirmed'}
+          onYes={() => setFloorTransferStatus('confirmed')}
+          onNo={() => setFloorTransferStatus('avoid_for_now')}
+        />
+        <YesNoQuestion
+          title="Step exercises"
+          description="Can Hale include exercises using a low step or bottom stair? Choose Yes only if it is steady and you have something fixed nearby to hold."
+          yesSelected={hasSafeStep}
+          onYes={() => setStepUpStatus('confirmed')}
+          onNo={() => setStepUpStatus('avoid_for_now')}
+        />
+        <YesNoQuestion
+          title="Single-leg balance"
+          description="Can Hale include balance exercises where one foot lifts off the floor? Choose Yes only if you can keep a hand near a counter, wall, or sturdy chair."
+          yesSelected={singleLegStatus === 'confirmed_with_support'}
+          onYes={() => setSingleLegStatus('confirmed_with_support')}
+          onNo={() => setSingleLegStatus('supported_balance_only')}
+        />
       </ChoiceSection>
 
       <View style={styles.actions}>
@@ -237,69 +198,67 @@ function ChoiceSection({
   );
 }
 
-function Choice({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+function YesNoQuestion({
+  title,
+  description,
+  yesSelected,
+  onYes,
+  onNo,
+}: {
+  title: string;
+  description: string;
+  yesSelected: boolean;
+  onYes: () => void;
+  onNo: () => void;
+}) {
+  return (
+    <View style={styles.subsection}>
+      <View style={styles.questionCopy}>
+        <Text style={styles.subsectionTitle}>{title}</Text>
+        <Text style={styles.questionDescription}>{description}</Text>
+      </View>
+      <View style={styles.grid}>
+        <Choice
+          label="Yes"
+          selected={yesSelected}
+          onPress={onYes}
+          accessibilityLabel={`Yes, include ${title.toLowerCase()}`}
+        />
+        <Choice
+          label="No"
+          selected={!yesSelected}
+          onPress={onNo}
+          accessibilityLabel={`No, skip ${title.toLowerCase()}`}
+        />
+      </View>
+    </View>
+  );
+}
+
+function Choice({
+  label,
+  selected,
+  onPress,
+  accessibilityLabel,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+  accessibilityLabel?: string;
+}) {
   return (
     <Pressable
       style={({ pressed }) => [styles.choice, selected && styles.choiceSelected, pressed && styles.pressed]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected }}
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label.replace(/\s+/g, ' ')}
     >
       <Text style={[styles.choiceLabel, selected && styles.choiceLabelSelected]}>{label}</Text>
       <View style={[styles.choiceMark, selected && styles.choiceMarkSelected]}>
         {selected ? <View style={styles.choiceMarkInner} /> : null}
       </View>
     </Pressable>
-  );
-}
-
-function SupportPreference({
-  value,
-  onValueChange,
-}: {
-  value: boolean;
-  onValueChange: (value: boolean) => void;
-}) {
-  return (
-    <View style={styles.supportPanel}>
-      <View style={styles.supportCopy}>
-        <Text style={styles.supportTitle}>Support nearby for balance</Text>
-        <Text style={styles.supportBody}>Keep a counter, wall, or chair close for balance work.</Text>
-      </View>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        trackColor={{ false: colors.borderHairline, true: colors.sage }}
-        thumbColor={value ? colors.accent : colors.bgSurface}
-        ios_backgroundColor={colors.borderHairline}
-        accessibilityLabel="I prefer support nearby when balancing"
-      />
-    </View>
-  );
-}
-
-function ChecklistSwitch({
-  label,
-  value,
-  onValueChange,
-}: {
-  label: string;
-  value: boolean;
-  onValueChange: (value: boolean) => void;
-}) {
-  return (
-    <View style={styles.checklistRow}>
-      <Text style={styles.checklistLabel}>{label}</Text>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        trackColor={{ false: colors.borderHairline, true: colors.sage }}
-        thumbColor={value ? colors.accent : colors.bgSurface}
-        ios_backgroundColor={colors.borderHairline}
-        accessibilityLabel={label}
-      />
-    </View>
   );
 }
 
@@ -351,30 +310,18 @@ const styles = StyleSheet.create({
   subsection: {
     gap: spacing.md,
   },
+  questionCopy: {
+    gap: spacing.xs,
+  },
   subsectionTitle: {
     ...type.bodySmall,
     color: colors.textPrimary,
     fontFamily: fonts.sansMedium,
   },
-  checklist: {
-    gap: spacing.sm,
-  },
-  checklistRow: {
-    minHeight: 54,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-    borderRadius: radius.input,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.background,
-  },
-  checklistLabel: {
-    ...type.bodySmall,
-    flex: 1,
-    minWidth: 0,
-    color: colors.textPrimary,
+  questionDescription: {
+    ...type.caption,
+    color: colors.textSecondary,
+    lineHeight: 21,
   },
   choice: {
     flexGrow: 1,
@@ -422,30 +369,6 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: colors.bgSurface,
-  },
-  supportPanel: {
-    minHeight: 78,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-    borderRadius: radius.input,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.background,
-  },
-  supportCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  supportTitle: {
-    ...type.bodySmall,
-    color: colors.textPrimary,
-    fontFamily: fonts.sansMedium,
-  },
-  supportBody: {
-    ...type.caption,
-    color: colors.textSecondary,
   },
   gentle: { ...type.bodySmall, color: colors.textSecondary },
   actions: { gap: spacing.md },

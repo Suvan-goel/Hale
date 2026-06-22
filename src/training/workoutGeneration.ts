@@ -17,7 +17,7 @@ import {
   type ProgressionPolicySelectionReason,
   type ReleaseStatus,
 } from '../exercises';
-import type { AvailableEquipment, MovementSafetyProfile } from '../adherence';
+import type { AvailableEquipment, LifeGoalWorkoutBias, MovementDomain, MovementSafetyProfile } from '../adherence';
 import {
   movementCapabilitiesFromSafetyProfile,
   normalizeMovementCapabilityProfile,
@@ -208,6 +208,7 @@ export interface GenerateSessionInput {
   /** @deprecated Controlled beta ignores caller attempts to enable optional levels. */
   includeOptionalLevels?: boolean;
   sessionIntensity?: SessionIntensity;
+  lifeGoalBias?: LifeGoalWorkoutBias | null;
 }
 
 export interface GeneratedExercise {
@@ -414,6 +415,12 @@ const DOMAIN_LABEL: Record<TrainingDomain, string> = {
   mobility_flexibility: 'Mobility & Flexibility',
 };
 
+const TRAINING_DOMAIN_BY_MOVEMENT_DOMAIN: Record<MovementDomain, TrainingDomain> = {
+  strength_power: 'strength_power',
+  balance: 'balance_stability',
+  mobility: 'mobility_flexibility',
+};
+
 export function trainingDomainFromScoreDomain(domain: Domain | null | undefined): TrainingDomain {
   if (domain === 'balance') return 'balance_stability';
   if (domain === 'mobility') return 'mobility_flexibility';
@@ -589,7 +596,8 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
     };
   }
 
-  const workingTemplate = applyReadinessToTemplate(template, readiness, painAreas);
+  const goalBiasedTemplate = applyLifeGoalBiasToTemplate(template, input.lifeGoalBias);
+  const workingTemplate = applyReadinessToTemplate(goalBiasedTemplate, readiness, painAreas);
   const sessionIntensity = input.sessionIntensity ?? 'standard';
   const usedExerciseIds = new Set<string>();
   const skippedSlots: string[] = [];
@@ -1345,6 +1353,92 @@ function applyReadinessToTemplate(
     slots.sort((a, b) => readinessOrder(a, readiness) - readinessOrder(b, readiness));
   }
   return { ...template, slots, estimatedMinutes: readiness === 'short_on_time' ? 10 : template.estimatedMinutes };
+}
+
+function applyLifeGoalBiasToTemplate(
+  template: SessionTemplate,
+  bias: LifeGoalWorkoutBias | null | undefined
+): SessionTemplate {
+  if (!bias || (bias.preferredLadderIds.length === 0 && bias.preferredSlotTypes.length === 0)) {
+    return template;
+  }
+
+  const slots = template.slots.map((item) =>
+    applyLifeGoalBiasToSlot(item, bias, item.domain === template.focusDomain)
+  );
+  const anchoredIndex = Math.max(0, slots.findIndex((item) => item.domain === template.focusDomain));
+  const anchored = slots[anchoredIndex];
+  if (!anchored) return { ...template, slots };
+
+  const rest = slots
+    .map((item, index) => ({ item, index }))
+    .filter(({ index }) => index !== anchoredIndex)
+    .sort((a, b) => lifeGoalSlotRank(a.item, bias) - lifeGoalSlotRank(b.item, bias) || a.index - b.index)
+    .map(({ item }) => item);
+
+  return { ...template, slots: [anchored, ...rest] };
+}
+
+function applyLifeGoalBiasToSlot(
+  slot: SessionSlot,
+  bias: LifeGoalWorkoutBias,
+  focusDomainSlot: boolean
+): SessionSlot {
+  const compatible = compatibleLadderIdsForSlot(slot, focusDomainSlot);
+  const biased = bias.preferredLadderIds
+    .map(resolveLadderId)
+    .filter((ladderId) => compatible.includes(ladderId));
+  if (biased.length === 0) return slot;
+
+  const preferredLadderIds = unique([
+    ...biased,
+    ...slot.preferredLadderIds.map(resolveLadderId),
+  ]);
+  if (sameStrings(preferredLadderIds, slot.preferredLadderIds.map(resolveLadderId))) return slot;
+  return { ...slot, preferredLadderIds };
+}
+
+function compatibleLadderIdsForSlot(slot: SessionSlot, primaryOnly = false): string[] {
+  if (primaryOnly) {
+    return unique([
+      ...PRIMARY_SLOT_LADDERS[slot.type],
+      ...slot.preferredLadderIds.map(resolveLadderId),
+    ]);
+  }
+  return unique([
+    ...PRIMARY_SLOT_LADDERS[slot.type],
+    ...SUPPORTING_SLOT_LADDERS[slot.type],
+    ...SLOT_FALLBACK_LADDERS[slot.type],
+    ...slot.preferredLadderIds.map(resolveLadderId),
+  ]);
+}
+
+function lifeGoalSlotRank(slot: SessionSlot, bias: LifeGoalWorkoutBias): number {
+  const slotTypeRank = rankOf(bias.preferredSlotTypes, slot.type);
+  const ladderRank = minRank(
+    slot.preferredLadderIds.map(resolveLadderId),
+    bias.preferredLadderIds.map(resolveLadderId)
+  );
+  const domainRank = rankOf(
+    bias.preferredDomains.map((domain) => TRAINING_DOMAIN_BY_MOVEMENT_DOMAIN[domain]),
+    slot.domain
+  );
+  return Math.min(slotTypeRank, ladderRank, domainRank + 8);
+}
+
+function rankOf<T>(items: readonly T[], item: T): number {
+  const index = items.indexOf(item);
+  return index >= 0 ? index : 1000;
+}
+
+function minRank(items: readonly string[], preferred: readonly string[]): number {
+  let rank = 1000;
+  for (const item of items) rank = Math.min(rank, rankOf(preferred, item));
+  return rank;
+}
+
+function sameStrings(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((item, index) => item === b[index]);
 }
 
 function compactShortSession(slots: readonly SessionSlot[]): SessionSlot[] {

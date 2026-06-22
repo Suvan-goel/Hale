@@ -1368,3 +1368,16 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 - **Consistency:** the rule lives in `isMicroCheckDueForSchedule` and is shared by Today lifecycle
   and the older next-best-action helper. End-of-block waiting before re-test uses the same
   due/uncompleted check.
+
+## 2026-06-22 — Life goals bias workout choices without overriding check-up focus
+
+- **Change:** structured life goals now produce a workout-bias profile: preferred support
+  domains, slot types, and ladder IDs. Session generation applies that bias by reordering
+  compatible slot ladder preferences and non-primary support slots before the existing safety,
+  equipment, release, discomfort, and movement-capability filters run.
+- **Boundary:** a clear Movement Check-Up focus remains authoritative. Life goals can only affect
+  focus selection when the scoring policy already marked an exact or near tie and no active
+  focus is being preserved.
+- **Compatibility:** `custom` remains readable for legacy local data but is not exposed as an
+  onboarding preset. Goals such as `noticed_decline` intentionally stay close to the check-up
+  result with no ladder-level bias.

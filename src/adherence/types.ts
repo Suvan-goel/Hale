@@ -434,3 +434,10 @@ export interface LifeGoalTrainingRelevance {
   primaryDomains: MovementDomain[];
   copy: string;
 }
+
+export interface LifeGoalWorkoutBias {
+  preferredDomains: MovementDomain[];
+  preferredLadderIds: string[];
+  preferredSlotTypes: string[];
+  copy: string;
+}

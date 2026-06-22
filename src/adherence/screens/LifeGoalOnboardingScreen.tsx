@@ -18,9 +18,9 @@ export function LifeGoalOnboardingScreen({
     <Screen>
       <BackArrowButton accessibilityLabel="Back" onPress={onCancel} />
       <ScreenHeader
-        eyebrow="About you"
-        title="What do you want your body to keep helping you do?"
-        subtitle="Choose the reason that matters most. Hale will still use your Movement Check-Up to decide the first starting point."
+        eyebrow="Your goal"
+        title="What matters most for your future?"
+        subtitle="Choose the everyday activity that matters most. Hale will use this with your check-up to shape your first plan."
       />
       <LifeGoalSelector initialGoal={initialGoal} onSave={onSave} />
     </Screen>

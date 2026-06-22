@@ -98,6 +98,10 @@ function lifeGoal() {
   return createLifeGoal({ category: 'stairs', nowIso: START });
 }
 
+function neutralLifeGoal() {
+  return createLifeGoal({ category: 'noticed_decline', nowIso: START });
+}
+
 function block(): MovementBlock {
   const checkUp = syntheticCheckUp(START);
   const scored = createCurrentVersionedScoreSnapshot(checkUp);
@@ -180,6 +184,28 @@ describe('planTodayHaleSession', () => {
 
     expect(plan.metadata?.source).toBe('block_generated');
     expect((captured as Record<string, LadderProgress>)['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
+  });
+
+  it('passes the selected life goal bias into dynamic session generation', () => {
+    let captured: GeneratedSession['exercises'] | undefined;
+    let capturedBias: unknown;
+    const plan = planTodayHaleSession({
+      activeBlock: strengthBlock(),
+      training: legacyTraining(),
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      today: START,
+      generateSession: (input) => {
+        capturedBias = input.lifeGoalBias;
+        const generated = generateRawTodaySession(input);
+        captured = generated.exercises;
+        return generated;
+      },
+    });
+
+    expect(plan.metadata?.source).toBe('block_generated');
+    expect((capturedBias as { preferredLadderIds?: string[] }).preferredLadderIds?.[0]).toBe('step-up');
+    expect(captured?.[0]?.ladderId).toBe('step-up');
   });
 
   it('rejects a requested Plan session that is ahead of the schedule due template', () => {
@@ -403,7 +429,7 @@ describe('planTodayHaleSession', () => {
       activeBlock: strengthBlock(),
       training: { ...legacyTraining(), ladderProgressById: restoredProgress },
       safetyProfile: safety(),
-      lifeGoal: lifeGoal(),
+      lifeGoal: neutralLifeGoal(),
       targetSessionTemplateId: 'session_a',
       includeOptionalLevels: true,
       today: START,
@@ -743,7 +769,7 @@ describe('planTodayHaleSession', () => {
       activeBlock: strengthBlock(),
       training: legacyTraining(),
       safetyProfile: safety(),
-      lifeGoal: lifeGoal(),
+      lifeGoal: neutralLifeGoal(),
       targetSessionTemplateId: 'session_a',
       today: START,
     });
@@ -994,7 +1020,7 @@ describe('planTodayHaleSession', () => {
       activeBlock: strengthBlock(),
       training: legacyTraining(),
       safetyProfile: safety(),
-      lifeGoal: lifeGoal(),
+      lifeGoal: neutralLifeGoal(),
       ladderProgress: progress,
       adjustment: 'gentler',
       today: START,

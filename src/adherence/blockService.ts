@@ -6,7 +6,7 @@ import {
   type BlockCreationIneligibilityReason,
 } from '../haleFlow/assessmentEligibility';
 import { addDaysIso } from './dateUtils';
-import { getLifeGoalTrainingRelevance } from './goalDomainMapping';
+import { getLifeGoalTrainingRelevance, getLifeGoalWorkoutBias } from './goalDomainMapping';
 import type { AssessmentForBlock, LifeGoal, MovementBlock, MovementDomain } from './types';
 import { LOCAL_USER_ID } from './types';
 
@@ -67,7 +67,11 @@ export function tryCreateMovementBlockFromAssessment(args: {
       sourceCheckUpId: normalized.sourceCheckUpId,
       lifeGoal: args.lifeGoal,
       startDate: args.startDate ?? new Date().toISOString(),
-      focusDomain: eligibility.focusDomain,
+      focusDomain: lifeGoalBiasedTiedFocusDomain({
+        fallbackFocusDomain: eligibility.focusDomain,
+        focusSelection: eligibility.focusSelection,
+        lifeGoal: args.lifeGoal,
+      }),
       focusSelection: eligibility.focusSelection,
     }),
   };
@@ -197,4 +201,27 @@ function uniqueDomains(domains: MovementDomain[]): MovementDomain[] {
     if (!out.includes(d)) out.push(d);
   }
   return out;
+}
+
+function lifeGoalBiasedTiedFocusDomain({
+  fallbackFocusDomain,
+  focusSelection,
+  lifeGoal,
+}: {
+  fallbackFocusDomain: MovementDomain;
+  focusSelection?: ScoreFocusSelection;
+  lifeGoal?: LifeGoal | null;
+}): MovementDomain {
+  if (!focusSelection || focusSelection.kind === 'clear') return fallbackFocusDomain;
+  if (focusSelection.tieBreakReason === 'preserve_current_focus' || focusSelection.tieBreakReason === 'near_tie_preserve_current_focus') {
+    return fallbackFocusDomain;
+  }
+
+  const tiedDomains = focusSelection.tiedDomains
+    .map(movementDomainFromScoreDomainOrNull)
+    .filter((domain): domain is MovementDomain => !!domain);
+  if (tiedDomains.length < 2) return fallbackFocusDomain;
+
+  const preferred = getLifeGoalWorkoutBias(lifeGoal).preferredDomains.find((domain) => tiedDomains.includes(domain));
+  return preferred ?? fallbackFocusDomain;
 }

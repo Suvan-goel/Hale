@@ -34,6 +34,7 @@ import {
   updateLadderProgressAfterSession,
   type LadderProgress,
 } from '../workoutGeneration';
+import { createLifeGoal, getLifeGoalWorkoutBias } from '../../adherence';
 import type { CollectionExposure } from '../collectionSelection';
 import { formatDebugWorkoutScenarios, generateDebugWorkoutScenarios } from '../debugWorkoutScenarios';
 import type { ValidTimeProgressionSignal, ValidTimeProgressionSummary } from '../validTimeProgression';
@@ -184,6 +185,56 @@ describe('dynamic workout generation', () => {
     expect(stairsWithSupportNoChecklist.exercises.map((exercise) => exercise.exerciseId)).not.toContain(STEP_UP_ID);
     expect(stairsWithSupportNoChecklist.slotStimulus.map((stimulus) => stimulus.reason)).toContain('movement_setup_required');
     expect(stairsWithSupport.exercises.map((exercise) => exercise.exerciseId)).toContain(STEP_UP_ID);
+  });
+
+  it('lets a stairs goal prefer step-up work inside a strength-focused session when setup is confirmed', () => {
+    const block = createTrainingBlockFromAssessment({ focusDomain: 'strength_power', startDate: START });
+    const session = generateTodaySession({
+      block,
+      today: START,
+      availableEquipment: ['chair', 'wall', 'stairs'],
+      movementCapabilities: CONFIRMED_MOVEMENT_CAPABILITIES,
+      lifeGoalBias: getLifeGoalWorkoutBias(createLifeGoal({ category: 'stairs', nowIso: START })),
+    });
+
+    expect(session.focusDomain).toBe('strength_power');
+    expect(session.exercises[0]).toMatchObject({
+      exerciseId: STEP_UP_ID,
+      ladderId: 'step-up',
+      stimulusRole: 'primary',
+    });
+  });
+
+  it('falls back safely from stairs-goal step-up preference when stair setup is not confirmed', () => {
+    const block = createTrainingBlockFromAssessment({ focusDomain: 'strength_power', startDate: START });
+    const session = generateTodaySession({
+      block,
+      today: START,
+      availableEquipment: ['chair', 'wall', 'stairs'],
+      lifeGoalBias: getLifeGoalWorkoutBias(createLifeGoal({ category: 'stairs', nowIso: START })),
+    });
+
+    expect(session.exercises.map((exercise) => exercise.exerciseId)).not.toContain(STEP_UP_ID);
+    expect(session.exercises[0]?.ladderId).toBe('sit-to-stand');
+    expect(session.slotStimulus.find((stimulus) => stimulus.slotId === 'lower-strength-a')).toMatchObject({
+      role: 'fallback',
+      reason: 'movement_setup_required',
+    });
+  });
+
+  it('uses carrying-loads bias to bring upper-back and hinge support forward when safe', () => {
+    const template = createSessionTemplatesForFocus('mobility_flexibility')[1];
+    const session = generateTodaySession({
+      template,
+      today: START,
+      availableEquipment: ['chair', 'wall', 'resistance_band', 'door_anchor'],
+      lifeGoalBias: getLifeGoalWorkoutBias(createLifeGoal({ category: 'carrying_loads', nowIso: START })),
+    });
+
+    const ladderIds = session.exercises.map((exercise) => exercise.ladderId);
+    expect(ladderIds[0]).toBe('mobility-flexibility');
+    expect(ladderIds.indexOf('pull-upper-back')).toBeGreaterThan(0);
+    expect(ladderIds.indexOf('pull-upper-back')).toBeLessThan(ladderIds.indexOf('shoulder-reach-press'));
   });
 
   it('does not give support-dependent balance drills to true no-equipment profiles', () => {

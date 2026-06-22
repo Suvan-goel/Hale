@@ -14,7 +14,9 @@ import {
   getLapseRecoveryCopy,
   getLifeGoalDisplayText,
   getLifeGoalTrainingRelevance,
+  getLifeGoalWorkoutBias,
   getProtectionCopy,
+  LIFE_GOAL_PRESETS,
   makeNotificationEvent,
   makeTrainingSessionCompletion,
   notificationCopy,
@@ -154,10 +156,28 @@ function focusEvidence(
 }
 
 describe('life goal relevance', () => {
+  it('only exposes structured life goals in the selector presets', () => {
+    expect(LIFE_GOAL_PRESETS.map((preset) => preset.category)).not.toContain('custom');
+    expect(LIFE_GOAL_PRESETS.map((preset) => preset.label)).not.toContain('Something else');
+  });
+
   it('maps life goals to training domains and display copy', () => {
     const goal = createLifeGoal({ category: 'stairs', nowIso: START });
     expect(getLifeGoalDisplayText(goal)).toBe('Climb stairs more easily');
     expect(getLifeGoalTrainingRelevance(goal).primaryDomains).toEqual(['strength_power', 'balance']);
+    expect(getLifeGoalWorkoutBias(goal).preferredLadderIds.slice(0, 3)).toEqual([
+      'step-up',
+      'sit-to-stand',
+      'heel-toe-raise',
+    ]);
+  });
+
+  it('keeps legacy custom goals readable without exposing them as selector presets', () => {
+    const goal = createLifeGoal({ category: 'custom', customText: 'Return to doubles tennis', nowIso: START });
+
+    expect(getLifeGoalDisplayText(goal)).toBe('Return to doubles tennis');
+    expect(getLifeGoalTrainingRelevance(goal).primaryDomains).toEqual(['strength_power', 'balance', 'mobility']);
+    expect(getLifeGoalWorkoutBias(goal).preferredLadderIds).toEqual([]);
   });
 });
 
@@ -184,6 +204,60 @@ describe('movement block creation', () => {
     expect(b.totalPlannedSessions).toBe(12);
     expect(b.retestDate).toBe('2026-06-29T08:00:00.000Z');
     expect(getBlockPurposeCopy(b, goal)).toContain('travel');
+  });
+
+  it('uses the life goal to order secondary domains after the check-up focus is chosen', () => {
+    const goal = createLifeGoal({ category: 'stairs', nowIso: START });
+    const inputScore = score('mobility');
+    const scoreSnapshot = scoreSnapshotFor(inputScore);
+    const assessment = createMovementAssessment({
+      checkUpId: inputScore.startedAt,
+      type: 'baseline',
+      score: inputScore,
+      scoreSnapshot,
+      completedAt: inputScore.startedAt,
+      isOfficialForProgress: true,
+    });
+    const b = createMovementBlockFromAssessment({
+      latestAssessment: { score: inputScore, scoreSnapshot, id: 'checkup-stairs', assessment },
+      lifeGoal: goal,
+      startDate: START,
+    });
+
+    expect(b.focusDomain).toBe('mobility');
+    expect(b.secondaryDomains).toEqual(['strength_power', 'balance']);
+  });
+
+  it('uses the life goal only as a tie-break when the check-up focus is already tied', () => {
+    const goal = createLifeGoal({ category: 'gardening_hobbies', nowIso: START });
+    const inputScore: CheckUpScore = {
+      startedAt: '2026-06-01T07:00:00.000Z',
+      weakestDomain: 'strength',
+      domains: [
+        domainResult('strength', 70),
+        domainResult('balance', 58),
+        domainResult('mobility', 70),
+      ],
+    };
+    const scoreSnapshot = scoreSnapshotFor(inputScore);
+    const assessment = createMovementAssessment({
+      checkUpId: inputScore.startedAt,
+      type: 'baseline',
+      score: inputScore,
+      scoreSnapshot,
+      completedAt: inputScore.startedAt,
+      isOfficialForProgress: true,
+    });
+    const b = createMovementBlockFromAssessment({
+      latestAssessment: { score: inputScore, scoreSnapshot, id: 'checkup-tied-gardening', assessment },
+      lifeGoal: goal,
+      startDate: START,
+    });
+
+    expect(b.focusSelectionKind).toBe('exact_tie');
+    expect(b.focusTiedDomains).toEqual(['strength_power', 'mobility']);
+    expect(b.focusDomain).toBe('mobility');
+    expect(b.secondaryDomains).toEqual(['strength_power', 'balance']);
   });
 
   it('migrates legacy block sourceAssessmentId into sourceCheckUpId when loading persistence', () => {

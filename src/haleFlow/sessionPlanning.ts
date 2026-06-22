@@ -11,7 +11,7 @@ import {
   type TrainingSessionCompletion,
   type TrainingSessionCompletionType,
 } from '../adherence';
-import { domainLabel } from '../adherence/goalDomainMapping';
+import { domainLabel, getLifeGoalWorkoutBias } from '../adherence/goalDomainMapping';
 import {
   getExercise,
   getExerciseLadder,
@@ -445,6 +445,7 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         today: plannedFor,
         source: input.source,
         sessionIntensity: input.sessionIntensity,
+        lifeGoalBias: getLifeGoalWorkoutBias(input.lifeGoal),
       });
     } catch {
       return unavailablePlanningResult({
@@ -559,6 +560,7 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         today: plannedFor,
         source: input.source,
         sessionIntensity: input.sessionIntensity,
+        lifeGoalBias: getLifeGoalWorkoutBias(input.lifeGoal),
       });
     } catch {
       return unavailablePlanningResult({
