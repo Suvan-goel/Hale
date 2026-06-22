@@ -62,6 +62,7 @@ import {
   discomfortConstraintForContext,
   isExerciseExcludedByDiscomfort,
   normalizeDailyTrainingContext,
+  painAreasFromSafetyProfile,
   type DailyTrainingReasonCode,
   type DailyTrainingContextSource,
   type ProgressionEvidencePolicy,
@@ -339,7 +340,8 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
   const sessionType = sessionTypeFor(input, schedule);
   const readiness = readinessFor(input, sessionType);
   const dailyContextSource = dailyContextSourceFor(input, sessionType);
-  const painAreas = painAreasFor(input);
+  const painContext = painContextForPlanning(input);
+  const painAreas = painContext.areas;
   const presetId = presetIdFor(input, sessionType, activeBlock);
   const equipmentContext = canonicalEquipmentForPlanning(input);
   const movementCapabilityContext = movementCapabilityForPlanning(input);
@@ -437,7 +439,7 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         movementCapabilities: movementCapabilityContext.profile,
         dailyReadiness: readiness,
         dailyContextSource,
-        painAreas,
+        painAreas: painContext.explicitDailyInput ? painAreas : undefined,
         ladderProgress: input.ladderProgress ?? input.training?.ladderProgressById ?? {},
         recentSessions: recentSessionsFor(input, schedule),
         collectionExposures: collectionExposuresForPlanning(input, activeBlock.id),
@@ -554,7 +556,7 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         movementCapabilities: movementCapabilityContext.profile,
         dailyReadiness: readiness,
         dailyContextSource,
-        painAreas,
+        painAreas: painContext.explicitDailyInput ? painAreas : undefined,
         ladderProgress: input.ladderProgress ?? input.training?.ladderProgressById ?? {},
         recentSessions: recentSessionsFor(input, null),
         today: plannedFor,
@@ -709,9 +711,11 @@ export function planLadderPracticeSessionResult(input: PlanLadderPracticeSession
   }
   const available = canonical.availableEquipment;
   const movementCapabilityContext = movementCapabilityForPlanning(input);
+  const painContext = painContextForPlanning(input);
   const dailyContext = normalizeDailyTrainingContext({
     readiness: readinessFor(input, 'standard'),
-    painAreas: painAreasFor(input),
+    painAreas: painContext.explicitDailyInput ? painContext.areas : painAreasFromSafetyProfile(input.safetyProfile),
+    discomfortSource: painContext.explicitDailyInput ? 'daily_check' : 'safety_profile',
     source: dailyContextSourceFor(input, 'standard'),
     readinessOptional: false,
   });
@@ -1781,14 +1785,18 @@ function dailyContextSourceFor(
   return 'user_daily_check';
 }
 
-function painAreasFor(input: {
+function painContextForPlanning(input: {
   painAreas?: readonly PainArea[];
   adjustment?: TodaySessionAdjustment | null;
   painArea?: PainArea | null;
-}): readonly PainArea[] {
-  if (input.painAreas && input.painAreas.length > 0) return input.painAreas;
-  if (input.adjustment === 'something_hurts' && input.painArea) return [input.painArea];
-  return [];
+}): { areas: readonly PainArea[]; explicitDailyInput: boolean } {
+  if (input.painAreas && input.painAreas.length > 0) {
+    return { areas: input.painAreas, explicitDailyInput: true };
+  }
+  if (input.adjustment === 'something_hurts' && input.painArea) {
+    return { areas: [input.painArea], explicitDailyInput: true };
+  }
+  return { areas: [], explicitDailyInput: false };
 }
 
 function presetIdFor(

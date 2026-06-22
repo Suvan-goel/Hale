@@ -1381,3 +1381,14 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 - **Compatibility:** `custom` remains readable for legacy local data but is not exposed as an
   onboarding preset. Goals such as `noticed_decline` intentionally stay close to the check-up
   result with no ladder-level bias.
+
+## 2026-06-22 — Safety Profile answers influence generated sessions
+
+- **Change:** saved setup discomfort now maps known notes such as knee, hip, back, shoulder,
+  ankle/foot, and neck into the existing discomfort policy when no daily pain input is supplied.
+  Daily pain still wins for that session.
+- **Activity and age:** `very_inactive` applies a gentler starting session intensity so first
+  sessions choose lower volume/easier levels where available. Age does not select movements or
+  levels; the oldest onboarding band only adds a small rest buffer.
+- **Boundary:** check-up focus, movement capability gates, equipment, release policy, daily
+  readiness, and daily pain remain stronger than saved profile preferences.

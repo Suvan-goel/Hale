@@ -39,6 +39,7 @@ import {
   discomfortConstraintForContext,
   isExerciseExcludedByDiscomfort,
   normalizeDailyTrainingContext,
+  painAreasFromSafetyProfile,
   progressionEvidencePolicyFor,
   type DailyTrainingContextSource,
   type DailyTrainingReasonCode,
@@ -549,9 +550,12 @@ export function selectNextSessionTemplate(
 }
 
 export function generateTodaySession(input: GenerateSessionInput): GeneratedSession {
+  const setupDiscomfortAreas = painAreasFromSafetyProfile(input.safetyProfile);
+  const setupDiscomfortApplied = (input.painAreas === undefined || input.painAreas === null) && setupDiscomfortAreas.length > 0;
   const dailyContext = normalizeDailyTrainingContext({
     readiness: input.dailyReadiness,
-    painAreas: input.painAreas,
+    painAreas: input.painAreas ?? setupDiscomfortAreas,
+    discomfortSource: setupDiscomfortApplied ? 'safety_profile' : 'daily_check',
     source: input.dailyContextSource ?? 'user_daily_check',
     readinessOptional: true,
   });
@@ -561,7 +565,15 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
   const equipment = equipmentFromInput(input);
   const movementCapabilities = movementCapabilitiesFromInput(input);
   const source: SessionSource = input.presetId ? 'preset' : input.source ?? 'block_generated';
-  const progressionEvidencePolicy = progressionEvidencePolicyFor({ context: dailyContext, source });
+  const profileModifiers = trainingProfileModifiers({
+    baseSessionIntensity: input.sessionIntensity ?? 'standard',
+    safetyProfile: input.safetyProfile,
+    dailyContext,
+  });
+  const progressionEvidencePolicy = profileAdjustedProgressionEvidencePolicy(
+    progressionEvidencePolicyFor({ context: dailyContext, source }),
+    profileModifiers
+  );
   const forceSupportingStimulus = source === 'block_generated' && progressionEvidencePolicy === 'ineligible';
   const template =
     input.template ??
@@ -598,7 +610,7 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
 
   const goalBiasedTemplate = applyLifeGoalBiasToTemplate(template, input.lifeGoalBias);
   const workingTemplate = applyReadinessToTemplate(goalBiasedTemplate, readiness, painAreas);
-  const sessionIntensity = input.sessionIntensity ?? 'standard';
+  const sessionIntensity = profileModifiers.sessionIntensity;
   const usedExerciseIds = new Set<string>();
   const skippedSlots: string[] = [];
   const skippedSlotReasons: string[] = [];
@@ -640,6 +652,8 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
         dailyContext,
         sessionIntensity,
         painAreas,
+        restSecondsExtra: profileModifiers.restSecondsExtra,
+        profileAdjustmentReasons: profileModifiers.reasonCodes,
         isFirstStrength: exercises.every((e) => e.domain !== 'strength_power'),
         index,
       })
@@ -664,10 +678,10 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
     skippedSlots,
     skippedSlotReasons,
     slotStimulus,
-    guidance: guidanceForSession(dailyContext, slotStimulus),
+    guidance: guidanceForSession(dailyContext, slotStimulus, { setupDiscomfortApplied }),
     dailyContext,
     progressionEvidencePolicy,
-    adjustmentReasons: dailyContext.reasonCodes,
+    adjustmentReasons: unique([...dailyContext.reasonCodes, ...profileModifiers.reasonCodes]),
   };
 }
 
@@ -996,6 +1010,12 @@ interface SelectionInput {
   blockId?: string;
 }
 
+interface TrainingProfileModifiers {
+  sessionIntensity: SessionIntensity;
+  restSecondsExtra: number;
+  reasonCodes: readonly DailyTrainingReasonCode[];
+}
+
 interface SelectedExercise {
   ladder: ExerciseLadder;
   level: ExerciseLevel;
@@ -1007,6 +1027,44 @@ interface SelectedExercise {
   progressionPolicyDiagnostics?: readonly ProgressionPolicyDiagnosticCode[];
   adjustmentReasons: readonly DailyTrainingReasonCode[];
   collectionSelection?: PlannedCollectionSelection;
+}
+
+function trainingProfileModifiers(input: {
+  baseSessionIntensity: SessionIntensity;
+  safetyProfile?: MovementSafetyProfile | null;
+  dailyContext: NormalizedDailyTrainingContext;
+}): TrainingProfileModifiers {
+  const reasonCodes: DailyTrainingReasonCode[] = [];
+  let sessionIntensity = input.baseSessionIntensity;
+
+  if (input.safetyProfile?.activityLevel === 'very_inactive') {
+    sessionIntensity = sessionIntensity === 'advanced' ? 'standard' : 'beginner';
+    reasonCodes.push('activity_level_gentle_start');
+  }
+
+  // Age never chooses exercises or levels. The oldest onboarding band only adds
+  // a small recovery buffer so a safe, capable plan stays intact.
+  const restSecondsExtra =
+    typeof input.safetyProfile?.age === 'number' &&
+    input.safetyProfile.age >= 75 &&
+    input.dailyContext.readiness !== 'short_on_time'
+      ? 5
+      : 0;
+  if (restSecondsExtra > 0) reasonCodes.push('age_recovery_buffer');
+
+  return {
+    sessionIntensity,
+    restSecondsExtra,
+    reasonCodes,
+  };
+}
+
+function profileAdjustedProgressionEvidencePolicy(
+  basePolicy: ProgressionEvidencePolicy,
+  modifiers: TrainingProfileModifiers
+): ProgressionEvidencePolicy {
+  if (basePolicy !== 'normal') return basePolicy;
+  return modifiers.reasonCodes.includes('activity_level_gentle_start') ? 'hold_only' : basePolicy;
 }
 
 function selectExerciseForSlot(input: SelectionInput): SelectedExercise | null {
@@ -1253,6 +1311,8 @@ function toGeneratedExercise({
   dailyContext,
   sessionIntensity,
   painAreas,
+  restSecondsExtra,
+  profileAdjustmentReasons,
   isFirstStrength,
   index,
 }: {
@@ -1263,6 +1323,8 @@ function toGeneratedExercise({
   dailyContext: NormalizedDailyTrainingContext;
   sessionIntensity: SessionIntensity;
   painAreas: readonly PainArea[];
+  restSecondsExtra: number;
+  profileAdjustmentReasons: readonly DailyTrainingReasonCode[];
   isFirstStrength: boolean;
   index: number;
 }): GeneratedExercise {
@@ -1271,7 +1333,12 @@ function toGeneratedExercise({
   let repsPerSet = base.repsPerSet;
   let secondsPerSet = base.holdSec ?? base.captureSec ?? base.timerSec;
   const doseBeforeAdjustment: GeneratedExerciseDose = { sets, repsPerSet, secondsPerSet };
-  const adjustmentReasons: DailyTrainingReasonCode[] = [...dailyContext.reasonCodes, ...selected.adjustmentReasons];
+  const adjustmentReasons: DailyTrainingReasonCode[] = [
+    ...dailyContext.reasonCodes,
+    ...profileAdjustmentReasons,
+    ...selected.adjustmentReasons,
+  ];
+  const restSeconds = base.restSec + restSecondsExtra;
 
   if (sessionIntensity === 'beginner') {
     const beginner = beginnerPrescription({
@@ -1320,8 +1387,8 @@ function toGeneratedExercise({
     sets,
     repsPerSet,
     secondsPerSet,
-    restSeconds: base.restSec,
-    estimatedMinutes: estimateExerciseMinutes(sets, repsPerSet, secondsPerSet, base.restSec),
+    restSeconds,
+    estimatedMinutes: estimateExerciseMinutes(sets, repsPerSet, secondsPerSet, restSeconds),
     rationale: rationaleFor(slot, selected.ladder, selected.level),
     intendedDomain: slot.domain,
     stimulusRole: stimulus.role,
@@ -1588,7 +1655,8 @@ function skippedSlotStimulus(
 
 function guidanceForSession(
   dailyContext: NormalizedDailyTrainingContext,
-  slotStimulus: readonly SlotStimulus[]
+  slotStimulus: readonly SlotStimulus[],
+  options: { setupDiscomfortApplied?: boolean } = {}
 ): string[] {
   const { readiness, discomfortAreas } = dailyContext;
   const guidance: string[] = [];
@@ -1606,7 +1674,9 @@ function guidanceForSession(
     }
   }
   if (readiness === 'short_on_time') guidance.push('This is about 10 minutes, with one strength, one balance, and one mobility item.');
-  if (readiness === 'something_hurts' || discomfortAreas.length > 0) {
+  if (options.setupDiscomfortApplied) {
+    guidance.push('Hale used gentler options around the area you marked in setup.');
+  } else if (readiness === 'something_hurts' || discomfortAreas.length > 0) {
     guidance.push('Today avoids the area you flagged and keeps the session gentle. Move only in a comfortable range. You can stop at any time.');
   }
   for (const stimulus of slotStimulus) {

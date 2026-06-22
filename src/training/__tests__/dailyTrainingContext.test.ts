@@ -10,6 +10,7 @@ import {
   discomfortConstraintForContext,
   isExerciseExcludedByDiscomfort,
   normalizeDailyTrainingContext,
+  painAreasFromSafetyProfile,
   progressionEvidencePolicyFor,
 } from '../dailyTrainingContext';
 
@@ -54,6 +55,14 @@ describe('daily training context normalization', () => {
     expect(context.readiness).toBe('low_energy');
     expect(context.inputStatus).toBe('defaulted_cautious');
     expect(progressionEvidencePolicyFor({ context, source: 'block_generated' })).toBe('ineligible');
+  });
+
+  it('maps saved safety-profile discomfort notes into known pain areas when possible', () => {
+    expect(painAreasFromSafetyProfile({ hasCurrentPain: true, painNotes: 'Left knee and lower back' })).toEqual(['knee', 'back']);
+    expect(painAreasFromSafetyProfile({ hasCurrentPain: true, painNotes: 'foot feels stiff' })).toEqual(['ankle']);
+    expect(painAreasFromSafetyProfile({ hasCurrentPain: false, painNotes: 'knee' })).toEqual([]);
+    expect(painAreasFromSafetyProfile({ hasCurrentPain: true, painNotes: undefined })).toEqual(['other']);
+    expect(painAreasFromSafetyProfile({ hasCurrentPain: true, painNotes: 'general soreness' })).toEqual(['other']);
   });
 });
 

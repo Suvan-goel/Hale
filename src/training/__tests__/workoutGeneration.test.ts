@@ -34,7 +34,7 @@ import {
   updateLadderProgressAfterSession,
   type LadderProgress,
 } from '../workoutGeneration';
-import { createLifeGoal, getLifeGoalWorkoutBias } from '../../adherence';
+import { createLifeGoal, getLifeGoalWorkoutBias, type MovementSafetyProfile } from '../../adherence';
 import type { CollectionExposure } from '../collectionSelection';
 import { formatDebugWorkoutScenarios, generateDebugWorkoutScenarios } from '../debugWorkoutScenarios';
 import type { ValidTimeProgressionSignal, ValidTimeProgressionSummary } from '../validTimeProgression';
@@ -54,6 +54,23 @@ const CONFIRMED_MOVEMENT_CAPABILITIES = {
   revision: 1,
   updatedAt: START,
 };
+
+function safetyProfile(overrides: Partial<MovementSafetyProfile> = {}): MovementSafetyProfile {
+  return {
+    id: 'safety-1',
+    userId: 'local-device-user',
+    age: 60,
+    activityLevel: 'lightly_active',
+    feelsSafeStandingFromChair: true,
+    feelsSafeBalancing: true,
+    availableEquipment: ['chair', 'wall', 'stairs', 'resistance_band', 'door_anchor'],
+    movementCapabilities: CONFIRMED_MOVEMENT_CAPABILITIES,
+    preferredWorkoutDays: ['Mon', 'Wed', 'Fri'],
+    createdAt: START,
+    updatedAt: START,
+    ...overrides,
+  };
+}
 
 describe('dynamic workout generation', () => {
   it('creates a 4-week block biased to the weakest assessment domain', () => {
@@ -235,6 +252,77 @@ describe('dynamic workout generation', () => {
     expect(ladderIds[0]).toBe('mobility-flexibility');
     expect(ladderIds.indexOf('pull-upper-back')).toBeGreaterThan(0);
     expect(ladderIds.indexOf('pull-upper-back')).toBeLessThan(ladderIds.indexOf('shoulder-reach-press'));
+  });
+
+  it('uses saved setup discomfort as a baseline caution when no daily pain is provided', () => {
+    const template = createSessionTemplatesForFocus('strength_power')[1];
+    const session = generateTodaySession({
+      template,
+      today: START,
+      safetyProfile: safetyProfile({ hasCurrentPain: true, painNotes: 'knee' }),
+    });
+
+    expect(session.painAreas).toEqual(['knee']);
+    expect(session.exercises.map((exercise) => exercise.ladderId)).not.toContain('step-up');
+    expect(session.guidance.join(' ')).toContain('Hale used gentler options around the area you marked in setup.');
+    expect(session.adjustmentReasons).toContain('setup_discomfort_reported');
+  });
+
+  it('lets daily discomfort override saved setup discomfort for today', () => {
+    const template = createSessionTemplatesForFocus('strength_power')[1];
+    const session = generateTodaySession({
+      template,
+      today: START,
+      safetyProfile: safetyProfile({ hasCurrentPain: true, painNotes: 'knee' }),
+      painAreas: ['shoulder'],
+    });
+
+    expect(session.painAreas).toEqual(['shoulder']);
+    expect(session.exercises.map((exercise) => exercise.ladderId)).toContain('step-up');
+    expect(session.guidance.join(' ')).not.toContain('area you marked in setup');
+    expect(session.adjustmentReasons).not.toContain('setup_discomfort_reported');
+  });
+
+  it('uses very inactive activity level for a gentler starting dose without changing the check-up focus', () => {
+    const block = createTrainingBlockFromAssessment({ focusDomain: 'strength_power', startDate: START });
+    const lightlyActive = generateTodaySession({
+      block,
+      today: START,
+      safetyProfile: safetyProfile({ activityLevel: 'lightly_active' }),
+    });
+    const veryInactive = generateTodaySession({
+      block,
+      today: START,
+      safetyProfile: safetyProfile({ activityLevel: 'very_inactive' }),
+    });
+    const defaultStrength = lightlyActive.exercises.find((exercise) => exercise.ladderId === 'sit-to-stand');
+    const gentleStrength = veryInactive.exercises.find((exercise) => exercise.ladderId === 'sit-to-stand');
+
+    expect(veryInactive.focusDomain).toBe('strength_power');
+    expect(veryInactive.progressionEvidencePolicy).toBe('hold_only');
+    expect(gentleStrength?.sets).toBeLessThanOrEqual(defaultStrength?.sets ?? 0);
+    expect(gentleStrength?.levelId).toBe(STS_CUSHION_ID);
+    expect(veryInactive.adjustmentReasons).toContain('activity_level_gentle_start');
+  });
+
+  it('uses age only as a small recovery buffer and does not change capable exercise selection', () => {
+    const template = createSessionTemplatesForFocus('strength_power')[1];
+    const age60 = generateTodaySession({
+      template,
+      today: START,
+      safetyProfile: safetyProfile({ age: 60 }),
+    });
+    const age76 = generateTodaySession({
+      template,
+      today: START,
+      safetyProfile: safetyProfile({ age: 76 }),
+    });
+
+    expect(age76.exercises.map((exercise) => exercise.exerciseId)).toEqual(
+      age60.exercises.map((exercise) => exercise.exerciseId)
+    );
+    expect(age76.exercises[0]?.restSeconds).toBe((age60.exercises[0]?.restSeconds ?? 0) + 5);
+    expect(age76.adjustmentReasons).toContain('age_recovery_buffer');
   });
 
   it('does not give support-dependent balance drills to true no-equipment profiles', () => {

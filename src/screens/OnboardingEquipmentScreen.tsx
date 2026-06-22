@@ -4,11 +4,13 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { AvailableEquipment } from '../adherence';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { PrimaryButton, Screen, ScreenHeader } from '../components/ui';
-import { controlledBetaEquipmentPositioning } from '../haleFlow';
 import type { EquipmentProfile } from '../training';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 
 const HOME_SETUP_HERO_IMAGE = require('../../assets/images/hale-home-setup-hero-v3.png');
+const REQUIRED_SETUP_TITLE = 'Required setup';
+const REQUIRED_SETUP_MESSAGE =
+  'Choose a sturdy chair and a wall or counter before you continue. Hale needs both for the first check-up.';
 
 export type OnboardingEquipmentId =
   | 'chair'
@@ -22,18 +24,18 @@ export type OnboardingEquipmentId =
   | 'phone_stand';
 
 const CHECKUP_OPTIONS: readonly { id: OnboardingEquipmentId; label: string; note: string }[] = [
-  { id: 'chair', label: 'Stable chair', note: 'Used for chair stands and seated setup.' },
-  { id: 'wall', label: 'Wall or counter support', note: 'Helpful for balance comfort.' },
-  { id: 'phone_stand', label: 'Phone stand', note: 'A shelf, mug, or stack of books works too.' },
+  { id: 'chair', label: 'Sturdy chair', note: 'Choose this if you have a firm chair that will not slide.' },
+  { id: 'wall', label: 'Wall or counter', note: 'Choose this if you can stand near something solid for support.' },
+  { id: 'phone_stand', label: 'Phone stand', note: 'Helpful if you have one. A shelf or stack of books is fine too.' },
 ];
 
 const TRAINING_OPTIONS: readonly { id: OnboardingEquipmentId; label: string; note: string }[] = [
-  { id: 'stairs', label: 'Bottom stair', note: 'Adds simple step options later.' },
-  { id: 'resistance_band', label: 'Resistance band', note: 'Recommended for fuller upper-body training.' },
-  { id: 'door_anchor', label: 'Door anchor for band rows', note: 'Only needed for some band rows.' },
-  { id: 'mini_band', label: 'Mini band', note: 'Adds hip and balance variations.' },
+  { id: 'stairs', label: 'Bottom stair', note: 'Adds step exercises if your stair feels steady.' },
+  { id: 'resistance_band', label: 'Resistance band', note: 'Adds more upper-body exercises.' },
+  { id: 'door_anchor', label: 'Door anchor', note: 'Only choose this if you use one to hold a band in a door.' },
+  { id: 'mini_band', label: 'Mini band', note: 'Adds some hip and balance exercises.' },
   { id: 'load', label: 'Backpack or light weight', note: 'Adds everyday carrying practice.' },
-  { id: 'floor_space', label: 'Floor space for mat exercises', note: 'Adds floor-based options when comfortable.' },
+  { id: 'floor_space', label: 'Clear floor space', note: 'Adds floor exercises if getting down and up feels OK.' },
 ];
 
 const EQUIPMENT_OPTIONS: readonly { id: OnboardingEquipmentId; label: string; note: string }[] = [
@@ -59,8 +61,14 @@ export function OnboardingEquipmentScreen({
       ? selectedEquipment.filter((item): item is OnboardingEquipmentId => isEquipmentId(item))
       : ['chair', 'wall']
   );
+  const [showRequiredSetupMessage, setShowRequiredSetupMessage] = React.useState(false);
+  const hasRequiredSetup = selected.includes('chair') && selected.includes('wall');
 
   const save = () => {
+    if (!hasRequiredSetup) {
+      setShowRequiredSetupMessage(true);
+      return;
+    }
     onSave({
       selectedEquipment: selected,
       availableEquipment: toAvailableEquipment(selected),
@@ -78,8 +86,8 @@ export function OnboardingEquipmentScreen({
       <BackArrowButton accessibilityLabel="Back" onPress={onBack} />
       <ScreenHeader
         eyebrow="Home setup"
-        title="What do you have nearby?"
-        subtitle={controlledBetaEquipmentPositioning.startingSetup}
+        title="What can you use at home?"
+        subtitle="Choose the items you have now. Hale will only include exercises that fit your setup."
       />
 
       <View style={styles.heroImageCard}>
@@ -92,7 +100,11 @@ export function OnboardingEquipmentScreen({
         />
       </View>
 
-      <EquipmentSection title="For the check-up" meta="Start here">
+      <EquipmentSection
+        title="Needed to start"
+        meta="Check-up"
+        description="These help Hale guide your first movement check-up safely."
+      >
         <View style={styles.optionList}>
           {CHECKUP_OPTIONS.map((option) => (
             <Choice
@@ -104,9 +116,21 @@ export function OnboardingEquipmentScreen({
             />
           ))}
         </View>
+        {showRequiredSetupMessage && !hasRequiredSetup ? (
+          <View style={styles.requiredNotice}>
+            <View style={styles.requiredNoticeCopy}>
+              <Text style={styles.requiredNoticeTitle}>{REQUIRED_SETUP_TITLE}</Text>
+              <Text style={styles.requiredNoticeText}>{REQUIRED_SETUP_MESSAGE}</Text>
+            </View>
+          </View>
+        ) : null}
       </EquipmentSection>
 
-      <EquipmentSection title="Optional training items" meta="Add if available">
+      <EquipmentSection
+        title="Adds more exercise options"
+        meta="Optional"
+        description="Skip anything you do not have. Hale can still build a plan."
+      >
         <View style={styles.optionList}>
           {TRAINING_OPTIONS.map((option) => (
             <Choice
@@ -125,9 +149,9 @@ export function OnboardingEquipmentScreen({
           <Text style={styles.reassuranceMarkText}>H</Text>
         </View>
         <View style={styles.reassuranceCopy}>
-          <Text style={styles.reassuranceTitle}>{controlledBetaEquipmentPositioning.shortLabel}</Text>
+          <Text style={styles.reassuranceTitle}>You can start simply</Text>
           <Text style={styles.reassuranceBody}>
-            {controlledBetaEquipmentPositioning.noEquipmentClarification}
+            A chair and wall or counter are enough to begin. If you skip an optional item, Hale will choose another option.
           </Text>
         </View>
       </View>
@@ -142,10 +166,12 @@ export function OnboardingEquipmentScreen({
 function EquipmentSection({
   title,
   meta,
+  description,
   children,
 }: {
   title: string;
   meta: string;
+  description: string;
   children: React.ReactNode;
 }) {
   return (
@@ -156,6 +182,7 @@ function EquipmentSection({
           <Text style={styles.sectionMetaText}>{meta}</Text>
         </View>
       </View>
+      <Text style={styles.sectionDescription}>{description}</Text>
       {children}
     </View>
   );
@@ -167,7 +194,7 @@ function Choice({ label, note, selected, onPress }: { label: string; note: strin
       style={({ pressed }) => [styles.choice, selected && styles.choiceSelected, pressed && styles.pressed]}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={`${label}. ${note}`}
       accessibilityState={{ selected }}
     >
       <View style={[styles.choiceRail, selected && styles.choiceRailSelected]} />
@@ -253,7 +280,38 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansMedium,
     lineHeight: 16,
   },
+  sectionDescription: {
+    ...type.bodySmall,
+    color: colors.textSecondary,
+  },
   optionList: { gap: spacing.sm },
+  requiredNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    borderRadius: radius.input,
+    borderWidth: 1,
+    borderColor: colors.error,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.background,
+  },
+  requiredNoticeCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  requiredNoticeTitle: {
+    ...type.cardCaption,
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    lineHeight: 16,
+  },
+  requiredNoticeText: {
+    ...type.caption,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
   choice: {
     minHeight: 82,
     flexDirection: 'row',

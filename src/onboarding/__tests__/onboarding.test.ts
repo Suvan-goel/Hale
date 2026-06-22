@@ -22,7 +22,10 @@ import { V1_BASELINE_MOVEMENT_IDS, deriveOnboardingStep } from '../state';
 
 const START = '2026-06-16T08:00:00.000Z';
 
-function safetyProfile(equipment: MovementSafetyProfile['availableEquipment'] = ['chair', 'wall']): MovementSafetyProfile {
+function safetyProfile(
+  equipment: MovementSafetyProfile['availableEquipment'] = ['chair', 'wall'],
+  overrides: Partial<MovementSafetyProfile> = {}
+): MovementSafetyProfile {
   return {
     id: 'safety-1',
     userId: 'local-device-user',
@@ -34,6 +37,7 @@ function safetyProfile(equipment: MovementSafetyProfile['availableEquipment'] = 
     preferredWorkoutDays: ['Mon', 'Wed', 'Fri'],
     createdAt: START,
     updatedAt: START,
+    ...overrides,
   };
 }
 
@@ -181,5 +185,24 @@ describe('Hale V1 onboarding results and equipment', () => {
     expect(required).not.toContain('long_band');
     expect(required).not.toContain('mini_band');
     expect(required).not.toContain('backpack_or_weight');
+  });
+
+  it('feeds onboarding discomfort into dynamic session generation', () => {
+    const checkUp = syntheticCheckUp(START);
+    const score = scoreCheckUp(checkUp);
+    const training = startBlock(defaultTrainingState(), buildBlock(score, DEFAULT_EQUIPMENT, START));
+    const plan = planTodayHaleSession({
+      activeBlock: movementBlock(),
+      training,
+      safetyProfile: safetyProfile(['chair', 'wall', 'resistance_band'], {
+        hasCurrentPain: true,
+        painNotes: 'shoulder',
+      }),
+      lifeGoal: createLifeGoal({ category: 'noticed_decline', nowIso: START }),
+      today: START,
+    });
+
+    expect(plan.metadata?.dailyContext?.discomfortAreas).toEqual(['shoulder']);
+    expect(plan.metadata?.guidance?.join(' ')).toContain('area you marked in setup');
   });
 });

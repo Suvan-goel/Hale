@@ -23,6 +23,7 @@ import {
   type ExerciseLevel,
 } from '../exercises';
 import type { ExerciseLadderStimulusKind } from '../exercises/ladders';
+import type { MovementSafetyProfile } from '../adherence';
 import type { DailyReadiness, PainArea, SessionSource } from './workoutGeneration';
 
 export type NormalizedReadiness = DailyReadiness;
@@ -46,11 +47,14 @@ export type DailyTrainingReasonCode =
   | 'readiness_malformed_cautious'
   | 'discomfort_explicit_none'
   | 'discomfort_reported'
+  | 'setup_discomfort_reported'
   | 'discomfort_deduped'
   | 'discomfort_malformed_fail_closed'
   | 'legacy_context_cautious'
   | 'short_on_time'
   | 'reduced_readiness'
+  | 'activity_level_gentle_start'
+  | 'age_recovery_buffer'
   | 'controlled_beta_release_cap'
   | 'auto_progression_cap'
   | 'non_linear_default'
@@ -117,6 +121,7 @@ export function normalizeDailyTrainingContext(input: {
   readiness?: unknown;
   discomfortAreas?: unknown;
   painAreas?: unknown;
+  discomfortSource?: unknown;
   source?: unknown;
   readinessOptional?: boolean;
 } = {}): NormalizedDailyTrainingContext {
@@ -156,6 +161,7 @@ export function normalizeDailyTrainingContext(input: {
     reasonCodes.push('discomfort_explicit_none');
   } else {
     reasonCodes.push('discomfort_reported');
+    if (input.discomfortSource === 'safety_profile') reasonCodes.push('setup_discomfort_reported');
     if (discomfort.deduped) reasonCodes.push('discomfort_deduped');
   }
 
@@ -174,6 +180,25 @@ export function normalizeDailyTrainingContext(input: {
     source,
     reasonCodes: unique(reasonCodes),
   };
+}
+
+export function painAreasFromSafetyProfile(
+  safetyProfile: Pick<MovementSafetyProfile, 'hasCurrentPain' | 'painNotes'> | null | undefined
+): PainArea[] {
+  if (!safetyProfile || safetyProfile.hasCurrentPain === false) return [];
+  const notes = safetyProfile.painNotes?.trim().toLowerCase();
+  if (!notes) return safetyProfile.hasCurrentPain === true ? ['other'] : [];
+  if (notes === 'none') return [];
+
+  const areas: PainArea[] = [];
+  if (/\bknees?\b/.test(notes)) areas.push('knee');
+  if (/\bhips?\b/.test(notes)) areas.push('hip');
+  if (/\bbacks?\b|\blow back\b|\blower back\b/.test(notes)) areas.push('back');
+  if (/\bshoulders?\b/.test(notes)) areas.push('shoulder');
+  if (/\bankles?\b|\bfeet\b|\bfoot\b/.test(notes)) areas.push('ankle');
+  if (/\bnecks?\b/.test(notes)) areas.push('neck');
+
+  return areas.length > 0 ? uniquePainAreas(areas) : safetyProfile.hasCurrentPain === true ? ['other'] : [];
 }
 
 export function discomfortConstraintForContext(

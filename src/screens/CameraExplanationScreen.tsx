@@ -8,30 +8,30 @@ import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 const CHECKUP_POINTS = [
   {
     title: 'Four short movements',
-    body: 'Chair stands, balance, shoulder reach, and hinge reach give Hale a starting picture.',
+    body: 'You will do chair stands, balance, shoulder reach, and a bend-and-reach movement.',
   },
   {
-    title: 'Voice first',
-    body: 'Turn your volume on. Hale tells you when to stand, hold, rest, and move on.',
+    title: "Listen for Hale's voice",
+    body: 'Hale tells you when to start, rest, and move on.',
   },
   {
     title: 'No mirror',
-    body: 'You see a clean outline, never a self-view camera feed.',
+    body: 'You will see a simple outline, not a live camera view.',
   },
   {
-    title: 'You can pause or retry',
-    body: 'If framing, lighting, or a movement feels off, you can stop and repeat it.',
+    title: 'You stay in control',
+    body: 'You can pause, stop, or retry if something does not feel right.',
   },
 ] as const;
 
 const PRIVACY_POINTS = [
   {
-    title: 'Results stay local',
-    body: 'Normal sessions store movement results and preferences on this device.',
+    title: 'Saved on this phone',
+    body: 'Hale saves your movement results and settings on this device.',
   },
   {
     title: 'No public profile',
-    body: 'Hale does not create social feeds, public profiles, or clinical labels.',
+    body: 'Hale does not create social feeds, public profiles, or medical labels.',
   },
 ] as const;
 
@@ -51,8 +51,8 @@ export function CameraExplanationScreen({
       <BackArrowButton accessibilityLabel="Back" onPress={onBack} />
       <ScreenHeader
         eyebrow="Camera and audio"
-        title="How Hale guides the check-up"
-        subtitle="You will hear each step, see only a skeleton, and stay in control the whole time."
+        title="How the check-up works"
+        subtitle="Hale talks you through each step. You will not see a live video of yourself."
       />
 
       <InfoSection
@@ -72,7 +72,7 @@ export function CameraExplanationScreen({
         </View>
       </InfoSection>
 
-      <InfoSection title="Private by design" meta="Local only">
+      <InfoSection title="Private by design" meta="On this phone">
         <View style={styles.pointList}>
           {PRIVACY_POINTS.map((point, index) => (
             <InfoPoint
@@ -91,7 +91,7 @@ export function CameraExplanationScreen({
         ) : (
           <PrimaryButton title="Allow camera" onPress={onRequestPermission} />
         )}
-        {!permissionGranted ? <SecondaryButton title="Review setup first" onPress={onContinue} /> : null}
+        {!permissionGranted ? <SecondaryButton title="Set up phone first" onPress={onContinue} /> : null}
       </View>
     </Screen>
   );

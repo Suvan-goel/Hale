@@ -208,6 +208,21 @@ describe('planTodayHaleSession', () => {
     expect(captured?.[0]?.ladderId).toBe('step-up');
   });
 
+  it('applies saved setup discomfort when no daily discomfort is supplied', () => {
+    const plan = planTodayHaleSession({
+      activeBlock: strengthBlock(),
+      training: legacyTraining(),
+      safetyProfile: { ...safety(), hasCurrentPain: true, painNotes: 'shoulder' },
+      lifeGoal: neutralLifeGoal(),
+      today: START,
+    });
+
+    expect(plan.metadata?.dailyContext?.discomfortAreas).toEqual(['shoulder']);
+    expect(plan.metadata?.dailyContext?.reasonCodes).toContain('setup_discomfort_reported');
+    expect(plan.metadata?.guidance?.join(' ')).toContain('Hale used gentler options around the area you marked in setup.');
+    expect(plan.metadata?.generatedExercises?.map((exercise) => exercise.ladderId)).not.toContain('pull-upper-back');
+  });
+
   it('rejects a requested Plan session that is ahead of the schedule due template', () => {
     const result = planTodayHaleSessionResult({
       activeBlock: block(),
