@@ -2,13 +2,13 @@ import type { PlatformPreference } from '@/config/site';
 
 export const heroFocusCopy = {
   general:
-    'Hale uses your phone camera to assess your strength, balance and mobility, then creates a personalised four-week home plan focused on the area that matters most.',
+    'Hale uses your phone camera for a private Movement Check-Up, then creates a four-week home plan focused on the strength, balance or mobility work that matters most.',
   strength:
-    'Hale starts with a Movement Check-Up, then builds a four-week home plan that helps you work on strength and power for everyday movement.',
+    'Hale starts with a private Movement Check-Up, then builds a four-week home plan focused on strength and power for everyday movement.',
   balance:
-    'Hale starts with a Movement Check-Up, then builds a four-week home plan that helps you practise steadiness and control from home.',
+    'Hale starts with a private Movement Check-Up, then builds a four-week home plan for steadiness and control from home.',
   mobility:
-    'Hale starts with a Movement Check-Up, then builds a four-week home plan that helps you work toward more comfortable everyday movement.',
+    'Hale starts with a private Movement Check-Up, then builds a four-week home plan for more comfortable everyday movement.',
 } as const;
 
 export type HeroFocus = keyof typeof heroFocusCopy;
@@ -19,11 +19,9 @@ export function normalizeHeroFocus(value: string | string[] | undefined): HeroFo
 }
 
 export const heroProofPoints = [
-  'A short Movement Check-Up from home',
-  'Guided sessions around 20 minutes',
-  'Three sessions per week',
-  'Minimal equipment',
-  'Monthly re-tests to see progress',
+  'Phone-camera check-up',
+  'Voice-guided home sessions',
+  'Monthly re-tests',
 ] as const;
 
 export const trustStrip = [
@@ -44,20 +42,16 @@ export const problemPoints = [
 
 export const howItWorks = [
   {
-    title: 'Complete your Movement Check-Up',
-    body: 'Use the phone camera for simple, controlled strength, balance and mobility tests from home.',
+    title: 'Measure',
+    body: 'Prop up your phone and complete simple strength, balance and mobility tests with voice guidance.',
   },
   {
-    title: 'Understand what to work on',
-    body: 'Hale turns the assessment into clear domain-level results and identifies the most appropriate starting focus.',
+    title: 'Train',
+    body: 'Follow a four-week block built around your current focus, available space and home-friendly substitutions.',
   },
   {
-    title: 'Follow your personalised block',
-    body: 'Complete guided 20-minute sessions three times per week, with exercises adapted to your ability and available equipment.',
-  },
-  {
-    title: 'Re-test and see your progress',
-    body: 'Complete another Movement Check-Up at the end of the block and use the result to guide what comes next.',
+    title: 'Re-test',
+    body: 'Repeat the check-up monthly so the next block is guided by evidence, not guesswork.',
   },
 ] as const;
 
@@ -77,11 +71,9 @@ export const measurementDomains = [
 ] as const;
 
 export const trainingMessages = [
-  'Hale starts with measurement rather than guessing.',
-  'Training focuses on the area that is most relevant right now.',
-  'Plans are organised into manageable four-week blocks.',
-  'Sessions are voice-guided so the phone can stay propped up.',
-  'Exercises can progress over time, with home-friendly substitutions.',
+  'Three guided sessions per week, around 20 minutes each.',
+  'Zero-equipment options keep a missing item from blocking the session.',
+  'Progressions stay practical, quiet and focused on everyday capability.',
 ] as const;
 
 export const progressLoop = [
@@ -131,26 +123,20 @@ export const betaValueList = [
   'Initial Movement Check-Up',
   'Personalised four-week training blocks',
   'Guided home sessions',
-  'Weekly micro-checks',
   'Monthly re-tests',
-  'Progress history',
   'Beta-member pricing',
-  'Opportunity to shape the product',
 ] as const;
 
 export const betaTransparency = [
-  'The core experience is available for testing.',
-  'Some details and features may change.',
-  'You may occasionally encounter bugs.',
-  'Your feedback helps improve Hale.',
-  'Beta members receive preferential pricing.',
+  'Early access while the product is still improving.',
+  'Preferential pricing for beta members.',
+  'A direct way to help shape Hale before launch.',
 ] as const;
 
 export const trustDetails = [
-  'Built for home use with minimal equipment.',
-  'No public leaderboards or streak-shaming.',
   'Camera sessions show a clean skeleton, never a mirror.',
   'Camera movement analysis runs in the app on your device during sessions.',
+  'No public leaderboards, streak-shaming or medical diagnosis language.',
 ] as const;
 
 export const faqs = [

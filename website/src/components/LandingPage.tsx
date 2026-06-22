@@ -1,9 +1,8 @@
 import Image from 'next/image';
-import { ArrowDown, Check, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowDown, Check, ShieldCheck } from 'lucide-react';
 
 import { BetaSignupForm } from './BetaSignupForm';
 import { FAQ } from './FAQ';
-import { HeroPhoneMockup, ProductTour } from './ProductMockups';
 import { StoreButtons } from './StoreButtons';
 import { brandAssets } from '@/config/brand';
 import type { HeroFocus } from '@/content/landing';
@@ -12,15 +11,10 @@ import {
   betaValueList,
   faqs,
   heroFocusCopy,
-  heroProofPoints,
   howItWorks,
   measurementDomains,
-  outcomeExamples,
-  problemPoints,
-  progressLoop,
   trainingMessages,
   trustDetails,
-  trustStrip,
 } from '@/content/landing';
 import type { PricingPresentation } from '@/lib/pricing';
 import type { StoreLink } from '@/lib/store-links';
@@ -35,30 +29,14 @@ interface LandingPageProps {
 export function LandingPage({ focus, pricing, storeLinks, betaSignupEnabled }: LandingPageProps) {
   return (
     <main id="top">
-      <BetaAnnouncement />
       <HeroSection focus={focus} pricing={pricing} storeLinks={storeLinks} />
-      <TrustStrip />
-      <ProblemSection />
-      <HowItWorksSection />
+      <MethodSection />
       <MeasurementSection />
       <TrainingSection />
-      <ProgressSection />
-      <OutcomesSection />
-      <ProductScreenshotsSection />
-      <BetaAccessSection pricing={pricing} storeLinks={storeLinks} betaSignupEnabled={betaSignupEnabled} />
       <TrustSection />
+      <BetaAccessSection pricing={pricing} storeLinks={storeLinks} betaSignupEnabled={betaSignupEnabled} />
       <FAQSection />
-      <FinalCTA storeLinks={storeLinks} />
     </main>
-  );
-}
-
-function BetaAnnouncement() {
-  return (
-    <a className="announcement" href="#beta-access">
-      <strong>Beta testing now open.</strong>
-      <span>Join now for early access and a substantial discount from the regular launch price.</span>
-    </a>
   );
 }
 
@@ -72,7 +50,7 @@ function HeroSection({
   storeLinks: readonly StoreLink[];
 }) {
   return (
-    <section className="hero section" aria-labelledby="hero-title">
+    <section className="hero" aria-labelledby="hero-title">
       <Image
         src={brandAssets.hero}
         alt="A person standing in a bright home doorway during a calm movement routine."
@@ -84,11 +62,11 @@ function HeroSection({
       <div className="hero__overlay" />
       <div className="hero__inner">
         <div className="hero__copy">
-          <p className="eyebrow">The Movement Check-Up for staying capable</p>
+          <p className="eyebrow">Hale Movement Check-Up</p>
           <h1 id="hero-title">Stay stronger, steadier and more mobile as you age.</h1>
           <p className="hero__body">{heroFocusCopy[focus]}</p>
           <p className="hero__beta">
-            Hale is currently in beta testing. Beta members receive a substantial discount compared with the regular launch price.
+            Hale is currently in beta testing. Beta members receive a substantial discount compared with regular launch pricing.
           </p>
           {pricing.kind === 'configured' ? (
             <p className="hero__price">
@@ -98,65 +76,47 @@ function HeroSection({
           <div className="hero__actions">
             <StoreButtons links={storeLinks} ctaLocation="hero" fallbackLabel="Get beta access" />
             <a className="button button--secondary" href="#how-it-works">
-              See how Hale works
+              See how it works
               <ArrowDown aria-hidden="true" size={18} />
             </a>
           </div>
-          <ul className="hero__proof" aria-label="Hale quick details">
-            {heroProofPoints.map((point) => (
-              <li key={point}>
-                <Check aria-hidden="true" size={17} />
-                {point}
-              </li>
-            ))}
-          </ul>
         </div>
-        <HeroPhoneMockup />
+        <HeroPanel />
       </div>
     </section>
   );
 }
 
-function TrustStrip() {
+function HeroPanel() {
   return (
-    <section className="quick-strip" aria-label="Hale quick value">
-      {trustStrip.map((item) => (
-        <article key={item.title}>
-          <strong>{item.title}</strong>
-          <span>{item.body}</span>
-        </article>
-      ))}
-    </section>
+    <aside className="hero-panel" aria-label="Hale assessment summary example">
+      <div className="hero-panel__header">
+        <span>Movement profile</span>
+        <strong>Private beta</strong>
+      </div>
+      <div className="hero-panel__metric">
+        <span>Monthly baseline</span>
+        <strong>10 min</strong>
+      </div>
+      <div className="hero-panel__domains" aria-label="Measured domains">
+        <span>Strength</span>
+        <span>Balance</span>
+        <span>Mobility</span>
+      </div>
+      <p>Camera-guided measurement with a clean skeleton view, never a mirror.</p>
+    </aside>
   );
 }
 
-function ProblemSection() {
+function MethodSection() {
   return (
-    <section className="section section--two-col">
-      <div>
-        <p className="eyebrow">Designed for real life</p>
-        <h2>You may still feel healthy, but everyday movement can gradually start to feel different.</h2>
-      </div>
-      <div>
-        <ul className="check-list check-list--cards">
-          {problemPoints.map((point) => (
-            <li key={point}>{point}</li>
-          ))}
-        </ul>
-        <p className="section-lead">
-          Hale gives you a simple way to understand what to work on and a realistic plan for improving it.
-        </p>
-      </div>
-    </section>
-  );
-}
-
-function HowItWorksSection() {
-  return (
-    <section id="how-it-works" className="section" aria-labelledby="how-title">
-      <div className="section-heading">
+    <section id="how-it-works" className="section method-section" aria-labelledby="how-title">
+      <div className="section-heading section-heading--center">
         <p className="eyebrow">How Hale works</p>
-        <h2 id="how-title">A monthly measurement ritual, then a plan you can actually follow.</h2>
+        <h2 id="how-title">A calmer way to keep your body capable.</h2>
+        <p>
+          Hale turns a short camera check-up into a focused four-week training block, then uses the next check-up to guide what comes next.
+        </p>
       </div>
       <div className="steps">
         {howItWorks.map((step, index) => (
@@ -176,7 +136,8 @@ function MeasurementSection() {
     <section id="measures" className="section section--soft" aria-labelledby="measures-title">
       <div className="section-heading">
         <p className="eyebrow">What Hale measures</p>
-        <h2 id="measures-title">Strength, balance and mobility, translated into practical next steps.</h2>
+        <h2 id="measures-title">The domains that shape everyday confidence.</h2>
+        <p>Each check-up is designed around practical movement, not gym performance or medical diagnosis.</p>
       </div>
       <div className="domain-grid">
         {measurementDomains.map((domain) => (
@@ -205,9 +166,9 @@ function TrainingSection() {
       </div>
       <div>
         <p className="eyebrow">Personalised home training</p>
-        <h2>Not another generic workout app.</h2>
+        <h2>One focused block at a time.</h2>
         <p className="section-lead">
-          Hale starts with measurement, then organises your training into manageable four-week blocks focused on practical capability.
+          Hale starts with measurement, then keeps training precise: simple sessions, voice guidance and home-friendly progressions.
         </p>
         <ul className="check-list">
           {trainingMessages.map((message) => (
@@ -218,59 +179,6 @@ function TrainingSection() {
           ))}
         </ul>
       </div>
-    </section>
-  );
-}
-
-function ProgressSection() {
-  return (
-    <section className="section section--two-col">
-      <div>
-        <p className="eyebrow">Progress and re-testing</p>
-        <h2>Progress you can actually see.</h2>
-        <p className="section-lead">
-          Hale is built around repeatable check-ups, not one-off motivation. You establish a starting point, train, then re-test to guide the next block.
-        </p>
-      </div>
-      <ol className="timeline-list">
-        {progressLoop.map((item) => (
-          <li key={item}>{item}</li>
-        ))}
-      </ol>
-    </section>
-  );
-}
-
-function OutcomesSection() {
-  return (
-    <section className="section section--soft section--two-col">
-      <div>
-        <p className="eyebrow">Real-life outcomes</p>
-        <h2>Hale is designed to help you keep doing the things that make life yours.</h2>
-      </div>
-      <div className="outcome-grid">
-        {outcomeExamples.map((item) => (
-          <article key={item}>
-            <Sparkles aria-hidden="true" size={18} />
-            <span>{item}</span>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function ProductScreenshotsSection() {
-  return (
-    <section className="section" aria-labelledby="tour-title">
-      <div className="section-heading">
-        <p className="eyebrow">Product tour</p>
-        <h2 id="tour-title">The Hale flow follows the app rhythm: Today, Plan, Progress, Explore.</h2>
-        <p>
-          These product UI examples use Hale&apos;s current app structure and copy. They are not ratings, testimonials or fabricated outcomes.
-        </p>
-      </div>
-      <ProductTour />
     </section>
   );
 }
@@ -288,9 +196,9 @@ function BetaAccessSection({
     <section id="beta-access" className="section beta-section" aria-labelledby="beta-title">
       <div className="beta-section__copy">
         <p className="eyebrow">Beta access and pricing</p>
-        <h2 id="beta-title">Join Hale during beta and pay less than the regular launch price.</h2>
+        <h2 id="beta-title">Early access for people who want to stay ahead of ageing.</h2>
         <p className="section-lead">
-          Hale is currently in active beta testing. Beta members receive early access, help shape the product, and get a substantial discount compared with the regular price.
+          Join during beta to receive early access, shape the product and keep preferential pricing compared with the regular launch price.
         </p>
         <ul className="check-list">
           {betaTransparency.map((item) => (
@@ -340,22 +248,34 @@ function BetaAccessSection({
 
 function TrustSection() {
   return (
-    <section className="section trust-section" aria-labelledby="trust-title">
-      <div className="section-heading">
-        <p className="eyebrow">Trust and transparency</p>
-        <h2 id="trust-title">Measurement-led, safety-conscious and honest about beta.</h2>
+    <section id="privacy" className="section section--feature trust-section" aria-labelledby="trust-title">
+      <div>
+        <p className="eyebrow">Privacy and trust</p>
+        <h2 id="trust-title">Built around measurement, not surveillance.</h2>
+        <p className="section-lead">
+          The camera is used as a measuring instrument during guided sessions. The experience stays calm, private and wellness-focused.
+        </p>
+        <div className="trust-grid">
+          {trustDetails.map((detail) => (
+            <article key={detail}>
+              <ShieldCheck aria-hidden="true" size={20} />
+              <p>{detail}</p>
+            </article>
+          ))}
+        </div>
+        <p className="disclaimer">
+          Hale is a general fitness and wellbeing product, not medical advice, a diagnosis, a treatment, or a medical device.
+        </p>
       </div>
-      <div className="trust-grid">
-        {trustDetails.map((detail) => (
-          <article key={detail}>
-            <ShieldCheck aria-hidden="true" size={22} />
-            <p>{detail}</p>
-          </article>
-        ))}
+      <div className="feature-image trust-section__image">
+        <Image
+          src={brandAssets.cameraSetup}
+          alt="A phone set up in a calm home space for a movement check-up."
+          width={1672}
+          height={941}
+          sizes="(max-width: 900px) 100vw, 45vw"
+        />
       </div>
-      <p className="disclaimer">
-        Hale is a general fitness and wellbeing product, not medical advice, a diagnosis, a treatment, or a medical device. Stop if you feel pain, dizziness or unsafe, and follow appropriate professional guidance.
-      </p>
     </section>
   );
 }
@@ -363,25 +283,11 @@ function TrustSection() {
 function FAQSection() {
   return (
     <section id="faq" className="section" aria-labelledby="faq-title">
-      <div className="section-heading">
+      <div className="section-heading section-heading--center">
         <p className="eyebrow">FAQ</p>
-        <h2 id="faq-title">Questions people ask before joining the beta.</h2>
+        <h2 id="faq-title">A few practical questions.</h2>
       </div>
-      <FAQ items={faqs} />
-    </section>
-  );
-}
-
-function FinalCTA({ storeLinks }: { storeLinks: readonly StoreLink[] }) {
-  return (
-    <section className="section final-cta" aria-labelledby="final-title">
-      <p className="eyebrow">Start with a baseline</p>
-      <h2 id="final-title">Start building a body that keeps up with your life.</h2>
-      <p>
-        Join the Hale beta, complete your first Movement Check-Up, and receive a plan built around your strength, balance and mobility.
-      </p>
-      <p className="final-cta__beta">Beta members receive a substantial discount compared with the regular launch price.</p>
-      <StoreButtons links={storeLinks} ctaLocation="final" fallbackLabel="Get beta access" />
+      <FAQ items={faqs.slice(0, 4)} />
     </section>
   );
 }

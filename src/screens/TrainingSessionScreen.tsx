@@ -106,10 +106,9 @@ const PHASE_CAPTION: Partial<Record<TrainingPhase, string>> = {
 };
 
 type StageDisplay = {
-  mode: 'caption' | 'metric';
+  mode: 'metric';
   value: string;
   label: string;
-  tone?: 'default' | 'warning';
 };
 
 type FooterMeta = {
@@ -118,6 +117,13 @@ type FooterMeta = {
 };
 
 type TrainingSessionDebugScenario = 'busy';
+
+type TrainingSessionNoticeAction = 'help';
+
+type TrainingSessionNotice = {
+  text: string;
+  action: TrainingSessionNoticeAction | null;
+};
 
 const BUSY_DEBUG_SNAPSHOT: Snapshot = {
   phase: 'set',
@@ -270,16 +276,19 @@ export function TrainingSessionScreen({
   const visiblePaused = busyDebug ? false : paused;
   const visibleShowHelp = busyDebug ? false : showHelp;
   const visibleCameraAvailability: CameraAvailability = busyDebug ? 'available' : cameraAvailability;
-  const setupNoticeText = trainingSetupNoticeText(visibleSnapshot);
-  const showSetupNotice =
-    visibleCameraAvailability !== 'unavailable' &&
-    setupNoticeText !== null &&
-    (busyDebug || visibleSnapshot.setupIssue || visibleSnapshot.phase === 'preflight');
+  const sessionNotice = trainingSessionNotice(
+    visibleSnapshot,
+    visiblePaused,
+    visibleShowHelp,
+    visibleCameraAvailability,
+    busyDebug
+  );
+  const sessionNoticeAction = sessionNotice?.action ?? null;
   const currentExerciseName = visibleSnapshot.exerciseName ?? exerciseDefinitions[0]?.displayName ?? 'Today\'s Hale session';
   const totalItems = visibleSnapshot.totalItems || exerciseDefinitions.length || exerciseIds.length;
   const visibleItemNumber = totalItems > 0 ? Math.min(visibleSnapshot.itemIndex + 1, totalItems) : 0;
   const footerMeta = trainingFooterMeta(visibleSnapshot, visibleItemNumber, totalItems);
-  const stageDisplay = trainingStageDisplay(visibleSnapshot, visiblePaused, visibleShowHelp, visibleCameraAvailability);
+  const stageDisplay = trainingStageDisplay(visibleSnapshot, visibleCameraAvailability);
   const avatarMeasurementState = trainingAvatarState(visibleSnapshot.phase);
   const avatarActiveBodyParts = React.useMemo(
     () =>
@@ -388,7 +397,11 @@ export function TrainingSessionScreen({
           <View style={[styles.avatarViewport, cameraViewport]}>
             <View pointerEvents="box-none" style={styles.recordingChrome}>
               <HeaderLogo size={34} style={styles.recordingLogo} />
-              <RecordingSetupNotice visible={showSetupNotice} text={setupNoticeText ?? ''} onPress={() => setShowHelp(true)} />
+              <RecordingSetupNotice
+                visible={sessionNotice !== null}
+                text={sessionNotice?.text ?? ''}
+                onPress={sessionNoticeAction ? () => setShowHelp(true) : undefined}
+              />
               <Pressable
                 style={({ pressed }) => [
                   styles.helpIconButton,
@@ -421,7 +434,7 @@ export function TrainingSessionScreen({
                 recognitionPulseEnabled={false}
                 pointCloudBodyActiveParts={avatarActiveBodyParts}
                 measurementState={avatarMeasurementState}
-                activeDomain={snapshot.activeDomain}
+                activeDomain={visibleSnapshot.activeDomain}
                 setupGuidesEnabled={false}
                 stateTransitionsEnabled={false}
               />
@@ -464,7 +477,7 @@ function RecordingSetupNotice({
 }: {
   visible: boolean;
   text: string;
-  onPress: () => void;
+  onPress?: () => void;
 }) {
   if (!visible) {
     return <View pointerEvents="none" style={styles.recordingSetupNoticeSlot} />;
@@ -473,10 +486,11 @@ function RecordingSetupNotice({
   return (
     <View style={styles.recordingSetupNoticeSlot}>
       <Pressable
-        style={({ pressed }) => [styles.recordingSetupNotice, pressed && styles.controlPressed]}
+        style={({ pressed }) => [styles.recordingSetupNotice, pressed && onPress && styles.controlPressed]}
         onPress={onPress}
-        accessibilityRole="button"
-        accessibilityLabel="Open setup help"
+        disabled={!onPress}
+        accessibilityRole={onPress ? 'button' : 'text'}
+        accessibilityLabel={onPress ? 'Open setup help' : text}
       >
         <View style={styles.recordingSetupNoticeSignal}>
           <View style={styles.recordingSetupNoticeDot} />
@@ -610,14 +624,10 @@ function RecordingCardFooter({
   display: StageDisplay | null;
   style: StyleProp<ViewStyle>;
 }) {
-  const isWarning = display?.tone === 'warning';
   const displayValue = display ? (
     <Text
-      style={[
-        display.mode === 'metric' ? styles.recordingFooterMetricValue : styles.recordingFooterStatusValue,
-        isWarning && styles.recordingFooterMetricWarning,
-      ]}
-      numberOfLines={display.mode === 'metric' ? 1 : 2}
+      style={styles.recordingFooterMetricValue}
+      numberOfLines={1}
       adjustsFontSizeToFit
       minimumFontScale={0.76}
     >
@@ -625,7 +635,7 @@ function RecordingCardFooter({
     </Text>
   ) : null;
   const displayLabel = display ? (
-    <Text style={[styles.recordingFooterMetricLabel, isWarning && styles.recordingFooterMetricWarning]}>
+    <Text style={styles.recordingFooterMetricLabel}>
       {display.label}
     </Text>
   ) : null;
@@ -657,8 +667,8 @@ function RecordingCardFooter({
         <View style={styles.recordingFooterMetric}>
           <View style={styles.recordingFooterMetricDivider} />
           <View style={styles.recordingFooterMetricContent}>
-            {display.mode === 'metric' ? displayValue : displayLabel}
-            {display.mode === 'metric' ? displayLabel : displayValue}
+            {displayValue}
+            {displayLabel}
           </View>
         </View>
       ) : null}
@@ -789,18 +799,10 @@ function trainingFooterMeta(snapshot: Snapshot, visibleItemNumber: number, total
 
 function trainingStageDisplay(
   snapshot: Snapshot,
-  paused: boolean,
-  showHelp: boolean,
   cameraAvailability: CameraAvailability
 ): StageDisplay | null {
   if (cameraAvailability === 'unavailable') {
     return null;
-  }
-  if (paused) {
-    return { mode: 'caption', label: 'Paused', value: 'Resume when you are ready.' };
-  }
-  if (showHelp) {
-    return { mode: 'caption', label: 'Setup', value: 'Check setup, then return to your spot.' };
   }
   if (snapshot.phase === 'rest') {
     return {
@@ -819,21 +821,51 @@ function trainingStageDisplay(
       value: Number.isFinite(snapshot.holdSec) ? `${Math.floor(snapshot.holdSec)}s` : '-',
     };
   }
-  if (snapshot.phase === 'complete' || snapshot.phase === 'done') {
-    return { mode: 'caption', label: 'Complete', value: 'Saving your session.' };
-  }
-  if (snapshot.validTimeCaption) {
-    return { mode: 'caption', label: 'Status', value: snapshot.validTimeCaption };
-  }
-  if (snapshot.phase === 'intro') {
+  return null;
+}
+
+function trainingSessionNotice(
+  snapshot: Snapshot,
+  paused: boolean,
+  showHelp: boolean,
+  cameraAvailability: CameraAvailability,
+  forceSetupNotice: boolean
+): TrainingSessionNotice | null {
+  if (cameraAvailability === 'unavailable') {
     return null;
   }
-  if (snapshot.phase === 'transition') {
-    return { mode: 'caption', label: 'Next', value: 'Movement starts automatically.' };
+  if (paused) {
+    return { text: 'Paused', action: null };
   }
-  const value = PHASE_CAPTION[snapshot.phase] ?? 'Measuring…';
-  if (value === 'Rest') return null;
-  return { mode: 'caption', label: 'Status', value };
+  if (showHelp) {
+    return { text: 'Setup help', action: null };
+  }
+  if (snapshot.validTimeCaption) {
+    return { text: snapshot.validTimeCaption, action: null };
+  }
+  if (snapshot.phase === 'complete' || snapshot.phase === 'done') {
+    return { text: 'Saving session', action: null };
+  }
+  if (snapshot.phase === 'transition') {
+    return { text: 'Next movement starting', action: null };
+  }
+  const setupText = trainingSetupNoticeText(snapshot);
+  if (
+    setupText &&
+    (forceSetupNotice || snapshot.setupIssue || snapshot.phase === 'preflight' || snapshot.phase === 'instructions' || snapshot.phase === 'countdown')
+  ) {
+    return { text: setupText, action: 'help' };
+  }
+  if (snapshot.phase === 'preflight') {
+    return { text: PHASE_CAPTION.preflight ?? 'Getting you framed', action: null };
+  }
+  if (snapshot.phase === 'instructions' || snapshot.phase === 'countdown') {
+    return { text: PHASE_CAPTION[snapshot.phase] ?? 'Get ready', action: null };
+  }
+  if (snapshot.phase === 'set' && snapshot.kind === 'rom') {
+    return { text: 'Measuring', action: null };
+  }
+  return null;
 }
 
 function trainingSetupNoticeText(snapshot: Snapshot): string | null {
@@ -854,7 +886,7 @@ function trainingSetupNoticeText(snapshot: Snapshot): string | null {
       return null;
     case null:
     default:
-      return snapshot.setupIssue ? 'Step back into frame' : null;
+      return snapshot.setupIssue ? 'Setup needs attention' : null;
   }
 }
 
@@ -1059,12 +1091,6 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     textAlign: 'right',
   },
-  recordingFooterStatusValue: {
-    ...type.cardRowTitle,
-    color: colors.textPrimary,
-    textAlign: 'right',
-  },
-  recordingFooterMetricWarning: { color: colors.accentDeep },
   bottomPanel: {
     width: '100%',
     maxWidth: spacing.pageMaxWidth,

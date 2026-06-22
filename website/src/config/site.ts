@@ -51,7 +51,7 @@ export function getPublicSiteConfig(env: NodeJS.ProcessEnv = process.env): Publi
 
 export const navigationLinks = [
   { href: '#how-it-works', label: 'How it works' },
-  { href: '#measures', label: 'What Hale measures' },
+  { href: '#measures', label: 'Measures' },
+  { href: '#privacy', label: 'Privacy' },
   { href: '#beta-access', label: 'Beta access' },
-  { href: '#faq', label: 'FAQ' },
 ] as const;

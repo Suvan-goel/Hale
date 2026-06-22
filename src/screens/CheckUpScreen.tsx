@@ -27,7 +27,6 @@ import {
 } from '../../modules/expo-pose-detection';
 import { SfxChannel, VoiceChannel } from '../audio/voicePlayer';
 import { CheckUpOrchestrator, CheckUpPhase, DEFAULT_BATTERY, DEFAULT_CHECKUP_CONFIG } from '../checkup';
-import { checkupIntroCaption } from '../checkup/copy';
 import { CheckUp } from '../checkup/types';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
@@ -43,7 +42,6 @@ import { PreflightCheck, PreflightPrompt } from '../preflight/preflight';
 import {
   CHECKUP_SETUP_ISSUE_BODY,
   CHECKUP_SETUP_ISSUE_TITLE,
-  FRAMING_READY_COPY,
   SETUP_HELP_TIPS,
 } from '../preflight/setupCopy';
 import { LandmarkRecorder } from '../recording/recorder';
@@ -60,7 +58,6 @@ const TOTAL_ITEMS = DEFAULT_BATTERY.length;
 const IOS_RECORDING_TOP_CLEARANCE = 44;
 
 type ModalMode = 'help' | 'setupIssue' | null;
-type MetricTone = 'normal' | 'warning';
 
 interface Snapshot {
   phase: CheckUpPhase;
@@ -77,15 +74,23 @@ interface Snapshot {
 }
 
 interface FooterMeta {
-  progress: string;
+  progress: string | null;
   context: string | null;
 }
 
 interface StageDisplay {
-  mode: 'metric' | 'caption';
+  mode: 'metric';
   label: string;
   value: string;
-  tone?: MetricTone;
+}
+
+type CheckUpDebugScenario = 'metric';
+
+type SessionNoticeAction = 'help' | 'setupIssue';
+
+interface SessionNotice {
+  text: string;
+  action: SessionNoticeAction | null;
 }
 
 const INITIAL: Snapshot = {
@@ -102,13 +107,18 @@ const INITIAL: Snapshot = {
   totalItems: TOTAL_ITEMS,
 };
 
-const ITEM_CAPTION: Record<AssessmentPhase, string> = {
-  preflight: 'Getting framed',
-  instructions: FRAMING_READY_COPY,
-  countdown: 'Get ready',
-  active: 'Measuring',
-  result: 'Saving',
-  done: 'Saved',
+const METRIC_DEBUG_SNAPSHOT: Snapshot = {
+  phase: 'item',
+  itemIndex: 1,
+  movementId: 'balance-ladder',
+  movementName: 'Feet-Together Hold',
+  itemPhase: 'active',
+  repCount: 0,
+  remainingSec: 18,
+  setupIssue: false,
+  setupPrompt: null,
+  setupCaption: null,
+  totalItems: TOTAL_ITEMS,
 };
 
 const CHECKUP_HELP_SAFETY_TIPS: readonly string[] = [
@@ -122,11 +132,13 @@ export function CheckUpScreen({
   onCancel,
   voiceId,
   battery = DEFAULT_BATTERY,
+  debugScenario,
 }: {
   onComplete: (checkUp: CheckUp) => void;
   onCancel?: () => void;
   voiceId?: string;
   battery?: readonly string[];
+  debugScenario?: CheckUpDebugScenario;
 }) {
   const totalItems = battery.length;
   const [pipeline] = React.useState(() => new PosePipeline());
@@ -286,29 +298,34 @@ export function CheckUpScreen({
     onCancel?.();
   }, [onCancel, voice]);
 
+  const metricDebug = debugScenario === 'metric';
+  const visibleSnapshot = metricDebug ? { ...METRIC_DEBUG_SNAPSHOT, totalItems } : snapshot;
+  const visiblePaused = paused;
+  const visibleModalMode = modalMode;
+  const visibleCameraAvailability: CameraAvailability = metricDebug ? 'available' : cameraAvailability;
   const recordingTopPadding = recordingScreenTopPadding();
-  const setupNoticeText = checkupSetupNoticeText(snapshot);
-  const showSetupNotice =
-    cameraAvailability !== 'unavailable' &&
-    setupNoticeText !== null &&
-    (snapshot.setupIssue || snapshot.itemPhase === 'preflight' || snapshot.setupCaption !== null);
-  const currentMovementName = snapshot.movementName ?? 'Movement Check-Up';
-  const visibleItemNumber = totalItems > 0 ? Math.min(snapshot.itemIndex + 1, totalItems) : 0;
-  const footerMeta = checkupFooterMeta(snapshot, visibleItemNumber, totalItems);
-  const stageDisplay = checkupStageDisplay(snapshot, paused, modalMode, cameraAvailability);
-  const avatarMeasurementState = checkupAvatarState(snapshot);
-  const avatarDomain = domainForCheckupMovement(snapshot.movementId);
+  const sessionNotice = checkupSessionNotice(visibleSnapshot, visiblePaused, visibleCameraAvailability);
+  const sessionNoticeAction = sessionNotice?.action ?? null;
+  const currentMovementName =
+    visibleSnapshot.phase === 'complete' || visibleSnapshot.phase === 'done'
+      ? 'Movement Check-Up'
+      : visibleSnapshot.movementName ?? 'Movement Check-Up';
+  const visibleItemNumber = totalItems > 0 ? Math.min(visibleSnapshot.itemIndex + 1, totalItems) : 0;
+  const footerMeta = checkupFooterMeta(visibleSnapshot, visibleItemNumber, totalItems);
+  const stageDisplay = checkupStageDisplay(visibleSnapshot, visiblePaused, visibleModalMode, visibleCameraAvailability);
+  const avatarMeasurementState = checkupAvatarState(visibleSnapshot);
+  const avatarDomain = domainForCheckupMovement(visibleSnapshot.movementId);
   const canControl =
-    cameraAvailability !== 'unavailable' && snapshot.phase !== 'complete' && snapshot.phase !== 'done';
-  const canRepeat = snapshot.movementId !== null;
-  const canSkip = snapshot.phase === 'item' && snapshot.movementId !== null;
-  const showRepeatControl = paused && canRepeat;
-  const showSkipControl = canSkip && (paused || snapshot.setupIssue);
-  const showUnavailableAction = cameraAvailability === 'unavailable' && !!onCancel;
+    visibleCameraAvailability !== 'unavailable' && visibleSnapshot.phase !== 'complete' && visibleSnapshot.phase !== 'done';
+  const canRepeat = visibleSnapshot.movementId !== null;
+  const canSkip = visibleSnapshot.phase === 'item' && visibleSnapshot.movementId !== null;
+  const showRepeatControl = visiblePaused && canRepeat;
+  const showSkipControl = canSkip && (visiblePaused || visibleSnapshot.setupIssue);
+  const showUnavailableAction = visibleCameraAvailability === 'unavailable' && !!onCancel;
   const viewportWidth = Math.max(1, Math.min(windowSize.width - spacing.md * 2, spacing.pageMaxWidth));
   const cameraViewport = React.useMemo(
-    () => recordingCameraViewportSize(viewportWidth, windowSize.height, snapshot.setupIssue || modalMode !== null),
-    [modalMode, snapshot.setupIssue, viewportWidth, windowSize.height]
+    () => recordingCameraViewportSize(viewportWidth, windowSize.height, visibleSnapshot.setupIssue || visibleModalMode !== null),
+    [visibleModalMode, visibleSnapshot.setupIssue, viewportWidth, windowSize.height]
   );
   const poseWindow = React.useMemo(
     () => poseEstimationWindowSize(cameraViewport.width, cameraViewport.height),
@@ -325,12 +342,12 @@ export function CheckUpScreen({
   return (
     <View style={styles.container}>
       <SafePoseDetectionView
-        active
+        active={!metricDebug}
         modelVariant="lite"
         style={StyleSheet.absoluteFill}
         onLandmarks={onLandmarks}
         onPoseError={onPoseError}
-        onAvailabilityChange={setCameraAvailability}
+        onAvailabilityChange={metricDebug ? undefined : setCameraAvailability}
       />
       <ScrollView
         style={styles.layout}
@@ -356,9 +373,13 @@ export function CheckUpScreen({
             <View pointerEvents="box-none" style={styles.recordingChrome}>
               <HeaderLogo size={34} style={styles.recordingLogo} />
               <RecordingSetupNotice
-                visible={showSetupNotice}
-                text={setupNoticeText ?? ''}
-                onPress={() => openSupportModal(snapshot.setupIssue ? 'setupIssue' : 'help')}
+                visible={sessionNotice !== null}
+                text={sessionNotice?.text ?? ''}
+                onPress={
+                  sessionNoticeAction
+                    ? () => openSupportModal(sessionNoticeAction)
+                    : undefined
+                }
               />
               <Pressable
                 style={({ pressed }) => [
@@ -374,7 +395,7 @@ export function CheckUpScreen({
                 <Text style={[styles.helpIconText, modalMode !== null && styles.helpIconTextSelected]}>?</Text>
               </Pressable>
             </View>
-            {cameraAvailability === 'unavailable' ? (
+            {visibleCameraAvailability === 'unavailable' ? (
               <CameraUnavailableNotice compact style={styles.recordingCameraUnavailableNotice} />
             ) : (
               <SkeletonView
@@ -445,7 +466,7 @@ function RecordingSetupNotice({
 }: {
   visible: boolean;
   text: string;
-  onPress: () => void;
+  onPress?: () => void;
 }) {
   if (!visible) {
     return <View pointerEvents="none" style={styles.recordingSetupNoticeSlot} />;
@@ -454,10 +475,11 @@ function RecordingSetupNotice({
   return (
     <View style={styles.recordingSetupNoticeSlot}>
       <Pressable
-        style={({ pressed }) => [styles.recordingSetupNotice, pressed && styles.controlPressed]}
+        style={({ pressed }) => [styles.recordingSetupNotice, pressed && onPress && styles.controlPressed]}
         onPress={onPress}
-        accessibilityRole="button"
-        accessibilityLabel="Open setup help"
+        disabled={!onPress}
+        accessibilityRole={onPress ? 'button' : 'text'}
+        accessibilityLabel={onPress ? 'Open setup help' : text}
       >
         <View style={styles.recordingSetupNoticeSignal}>
           <View style={styles.recordingSetupNoticeDot} />
@@ -651,14 +673,12 @@ function CheckupCardFooter({
   display: StageDisplay | null;
   style: StyleProp<ViewStyle>;
 }) {
-  const isWarning = display?.tone === 'warning';
+  const compactMeta = meta.progress !== null && meta.context !== null;
+  const metaLine = compactMeta ? `${meta.progress} · ${meta.context}` : meta.progress;
   const displayValue = display ? (
     <Text
-      style={[
-        display.mode === 'metric' ? styles.recordingFooterMetricValue : styles.recordingFooterStatusValue,
-        isWarning && styles.recordingFooterMetricWarning,
-      ]}
-      numberOfLines={display.mode === 'metric' ? 1 : 2}
+      style={styles.recordingFooterMetricValue}
+      numberOfLines={1}
       adjustsFontSizeToFit
       minimumFontScale={0.76}
     >
@@ -666,7 +686,7 @@ function CheckupCardFooter({
     </Text>
   ) : null;
   const displayLabel = display ? (
-    <Text style={[styles.recordingFooterMetricLabel, isWarning && styles.recordingFooterMetricWarning]}>
+    <Text style={styles.recordingFooterMetricLabel}>
       {display.label}
     </Text>
   ) : null;
@@ -674,18 +694,20 @@ function CheckupCardFooter({
   return (
     <View pointerEvents="none" style={[styles.recordingFooter, style]}>
       <View style={styles.recordingFooterMovement}>
-        <Text style={styles.recordingFooterMovementMeta} numberOfLines={1}>
-          {meta.progress}
-        </Text>
         <Text
           style={styles.recordingFooterMovementName}
-          numberOfLines={1}
+          numberOfLines={meta.progress ? 2 : 1}
           adjustsFontSizeToFit
           minimumFontScale={0.78}
         >
           {title}
         </Text>
-        {meta.context ? (
+        {metaLine ? (
+          <Text style={styles.recordingFooterMovementMeta} numberOfLines={1}>
+            {metaLine}
+          </Text>
+        ) : null}
+        {meta.context && !compactMeta ? (
           <Text style={styles.recordingFooterMovementSet} numberOfLines={1}>
             {meta.context}
           </Text>
@@ -695,8 +717,8 @@ function CheckupCardFooter({
         <View style={styles.recordingFooterMetric}>
           <View style={styles.recordingFooterMetricDivider} />
           <View style={styles.recordingFooterMetricContent}>
-            {display.mode === 'metric' ? displayValue : displayLabel}
-            {display.mode === 'metric' ? displayLabel : displayValue}
+            {displayValue}
+            {displayLabel}
           </View>
         </View>
       ) : null}
@@ -802,14 +824,14 @@ function recordingScreenTopPadding(): number {
 function checkupFooterMeta(snapshot: Snapshot, visibleItemNumber: number, totalItems: number): FooterMeta {
   if (snapshot.phase === 'intro') {
     return {
-      progress: 'Private camera-guided check-up',
-      context: checkupIntroCaption(totalItems),
+      progress: null,
+      context: `${totalItems} guided ${totalItems === 1 ? 'test' : 'tests'}`,
     };
   }
   if (snapshot.phase === 'complete' || snapshot.phase === 'done') {
     return {
-      progress: `${totalItems} tests complete`,
-      context: 'Preparing your results',
+      progress: null,
+      context: `${totalItems} tests complete`,
     };
   }
   return {
@@ -833,30 +855,12 @@ function checkupDomainLabel(movementId: string | null): string | null {
 
 function checkupStageDisplay(
   snapshot: Snapshot,
-  paused: boolean,
-  modalMode: ModalMode,
+  _paused: boolean,
+  _modalMode: ModalMode,
   cameraAvailability: CameraAvailability
 ): StageDisplay | null {
   if (cameraAvailability === 'unavailable') {
     return null;
-  }
-  if (paused) {
-    return { mode: 'caption', label: 'Paused', value: 'Resume when you are ready.' };
-  }
-  if (modalMode !== null) {
-    return { mode: 'caption', label: 'Setup', value: 'Follow the prompt, then return to your spot.' };
-  }
-  if (snapshot.setupIssue) {
-    return { mode: 'caption', label: 'Setup', value: 'Try again or skip this test for now.', tone: 'warning' };
-  }
-  if (snapshot.phase === 'intro') {
-    return { mode: 'caption', label: 'Starting', value: 'Voice will guide each test.' };
-  }
-  if (snapshot.phase === 'transition') {
-    return { mode: 'caption', label: 'Next', value: 'The next test starts automatically.' };
-  }
-  if (snapshot.phase === 'complete' || snapshot.phase === 'done') {
-    return { mode: 'caption', label: 'Complete', value: 'Preparing your results.' };
   }
   if (snapshot.itemPhase === 'active' && snapshot.movementId === 'chair-stand-30s') {
     return { mode: 'metric', label: 'Reps', value: `${snapshot.repCount}` };
@@ -864,39 +868,45 @@ function checkupStageDisplay(
   if (snapshot.itemPhase === 'active' && Number.isFinite(snapshot.remainingSec)) {
     return { mode: 'metric', label: 'Time', value: `${snapshot.remainingSec}s` };
   }
-  if (snapshot.itemPhase === 'result' || snapshot.itemPhase === 'done') {
-    return { mode: 'caption', label: 'Saved', value: 'Moving to the next test.' };
-  }
-  if (snapshot.itemPhase) {
-    return {
-      mode: 'caption',
-      label: 'Status',
-      value: snapshot.setupCaption ?? ITEM_CAPTION[snapshot.itemPhase],
-    };
-  }
   return null;
 }
 
-function checkupSetupNoticeText(snapshot: Snapshot): string | null {
+function checkupSessionNotice(
+  snapshot: Snapshot,
+  paused: boolean,
+  cameraAvailability: CameraAvailability
+): SessionNotice | null {
+  if (cameraAvailability === 'unavailable') {
+    return null;
+  }
+  if (paused) {
+    return { text: 'Paused', action: null };
+  }
   if (snapshot.setupIssue) {
-    return 'Setup needs attention';
+    return { text: 'Setup needs attention', action: 'setupIssue' };
   }
   if (snapshot.setupCaption) {
-    return compactSetupCaption(snapshot.setupCaption);
+    return { text: compactSetupCaption(snapshot.setupCaption), action: 'help' };
+  }
+  if (snapshot.itemPhase === 'result' || snapshot.itemPhase === 'done') {
+    return { text: 'Saved', action: null };
+  }
+  if (snapshot.phase === 'transition') {
+    return { text: 'Next test starting', action: null };
   }
   switch (snapshot.setupPrompt) {
     case 'step-into-frame':
-      return 'Step into frame';
+      return { text: 'Step into frame', action: 'help' };
     case 'center-yourself':
-      return 'Move to the center';
+      return { text: 'Move to the center', action: 'help' };
     case 'step-back':
-      return 'Step back into frame';
+      return { text: 'Step back into frame', action: 'help' };
     case 'step-closer':
-      return 'Move a little closer';
+      return { text: 'Move a little closer', action: 'help' };
     case 'hold-still':
-      return 'Hold still for a moment';
+      return { text: 'Hold still for a moment', action: 'help' };
     case 'turn-on-light':
-      return 'More light needed';
+      return { text: 'More light needed', action: 'help' };
     case 'ready':
     case null:
     default:
@@ -1125,12 +1135,6 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     textAlign: 'right',
   },
-  recordingFooterStatusValue: {
-    ...type.cardRowTitle,
-    color: colors.textPrimary,
-    textAlign: 'right',
-  },
-  recordingFooterMetricWarning: { color: colors.accentDeep },
   bottomPanel: {
     width: '100%',
     maxWidth: spacing.pageMaxWidth,
