@@ -46,7 +46,7 @@ import type {
   PoseAvatarActiveDomain,
   PoseAvatarMeasurementState,
 } from '../render/poseAvatarTypes';
-import { colors, radius, spacing, type } from '../theme';
+import { colors, radius, shadow, spacing, type } from '../theme';
 import {
   TrainingPhase,
   TrainingSessionPlayer,
@@ -110,6 +110,11 @@ type StageDisplay = {
   value: string;
   label: string;
   tone?: 'default' | 'warning';
+};
+
+type FooterMeta = {
+  exercise: string;
+  set: string | null;
 };
 
 type TrainingSessionDebugScenario = 'busy';
@@ -273,7 +278,7 @@ export function TrainingSessionScreen({
   const currentExerciseName = visibleSnapshot.exerciseName ?? exerciseDefinitions[0]?.displayName ?? 'Today\'s Hale session';
   const totalItems = visibleSnapshot.totalItems || exerciseDefinitions.length || exerciseIds.length;
   const visibleItemNumber = totalItems > 0 ? Math.min(visibleSnapshot.itemIndex + 1, totalItems) : 0;
-  const sessionMeta = trainingMetaLine(visibleSnapshot, visibleItemNumber, totalItems);
+  const footerMeta = trainingFooterMeta(visibleSnapshot, visibleItemNumber, totalItems);
   const stageDisplay = trainingStageDisplay(visibleSnapshot, visiblePaused, visibleShowHelp, visibleCameraAvailability);
   const avatarMeasurementState = trainingAvatarState(visibleSnapshot.phase);
   const avatarActiveBodyParts = React.useMemo(
@@ -285,6 +290,8 @@ export function TrainingSessionScreen({
   );
   const canControl = visibleSnapshot.phase !== 'complete' && visibleSnapshot.phase !== 'done';
   const canRepeat = visibleSnapshot.exerciseId !== null;
+  const showRepeatControl = visiblePaused && canRepeat;
+  const showSkipControl = canRepeat && (visiblePaused || visibleSnapshot.setupIssue || busyDebug);
   const viewportWidth = Math.max(1, Math.min(windowSize.width - spacing.md * 2, spacing.pageMaxWidth));
   const cameraViewport = React.useMemo(
     () => recordingCameraViewportSize(viewportWidth, windowSize.height, snapshot.setupIssue || showHelp),
@@ -379,7 +386,6 @@ export function TrainingSessionScreen({
 
         <View style={styles.avatarSlot}>
           <View style={[styles.avatarViewport, cameraViewport]}>
-            <View pointerEvents="none" style={[styles.poseEstimationWindow, poseWindow]} />
             <View pointerEvents="box-none" style={styles.recordingChrome}>
               <HeaderLogo size={34} style={styles.recordingLogo} />
               <RecordingSetupNotice visible={showSetupNotice} text={setupNoticeText ?? ''} onPress={() => setShowHelp(true)} />
@@ -398,7 +404,7 @@ export function TrainingSessionScreen({
               </Pressable>
             </View>
             {visibleCameraAvailability === 'unavailable' ? (
-              <CameraUnavailableNotice compact />
+              <CameraUnavailableNotice compact style={styles.recordingCameraUnavailableNotice} />
             ) : (
               <SkeletonView
                 ref={skeletonRef}
@@ -422,7 +428,7 @@ export function TrainingSessionScreen({
             )}
             <RecordingCardFooter
               exerciseName={currentExerciseName}
-              meta={sessionMeta}
+              meta={footerMeta}
               display={stageDisplay}
               style={recordingFooterFrame}
             />
@@ -433,11 +439,10 @@ export function TrainingSessionScreen({
           {canControl ? (
             <View style={styles.controls}>
               <ControlButton title={visiblePaused ? 'Resume' : 'Pause'} onPress={visiblePaused ? resume : pause} />
-              {visiblePaused && canRepeat ? (
+              {showRepeatControl ? (
                 <ControlButton title="Repeat" onPress={repeatInstructions} />
-              ) : (
-                <ControlButton title="Skip exercise" onPress={skipCurrent} disabled={!canRepeat} />
-              )}
+              ) : null}
+              {showSkipControl ? <ControlButton title="Skip exercise" onPress={skipCurrent} /> : null}
             </View>
           ) : null}
         </View>
@@ -601,11 +606,30 @@ function RecordingCardFooter({
   style,
 }: {
   exerciseName: string;
-  meta: string;
+  meta: FooterMeta;
   display: StageDisplay | null;
   style: StyleProp<ViewStyle>;
 }) {
   const isWarning = display?.tone === 'warning';
+  const displayValue = display ? (
+    <Text
+      style={[
+        display.mode === 'metric' ? styles.recordingFooterMetricValue : styles.recordingFooterStatusValue,
+        isWarning && styles.recordingFooterMetricWarning,
+      ]}
+      numberOfLines={display.mode === 'metric' ? 1 : 2}
+      adjustsFontSizeToFit
+      minimumFontScale={0.76}
+    >
+      {display.value}
+    </Text>
+  ) : null;
+  const displayLabel = display ? (
+    <Text style={[styles.recordingFooterMetricLabel, isWarning && styles.recordingFooterMetricWarning]}>
+      {display.label}
+    </Text>
+  ) : null;
+
   return (
     <View
       pointerEvents="none"
@@ -613,6 +637,9 @@ function RecordingCardFooter({
     >
       <View style={styles.recordingFooterRule} />
       <View style={styles.recordingFooterMovement}>
+        <Text style={styles.recordingFooterMovementMeta} numberOfLines={1}>
+          {meta.exercise}
+        </Text>
         <Text
           style={styles.recordingFooterMovementName}
           numberOfLines={1}
@@ -621,29 +648,19 @@ function RecordingCardFooter({
         >
           {exerciseName}
         </Text>
-        <Text style={styles.recordingFooterMovementMeta} numberOfLines={1}>
-          {meta}
-        </Text>
+        {meta.set ? (
+          <Text style={styles.recordingFooterMovementSet} numberOfLines={1}>
+            {meta.set}
+          </Text>
+        ) : null}
       </View>
       {display ? (
         <View style={styles.recordingFooterMetric}>
-          <View style={styles.recordingFooterMetricHeader}>
-            <View style={[styles.recordingFooterMetricDot, isWarning && styles.recordingFooterMetricDotWarning]} />
-            <Text style={[styles.recordingFooterMetricLabel, isWarning && styles.recordingFooterMetricWarning]}>
-              {display.label}
-            </Text>
+          <View style={styles.recordingFooterMetricDivider} />
+          <View style={styles.recordingFooterMetricContent}>
+            {display.mode === 'metric' ? displayValue : displayLabel}
+            {display.mode === 'metric' ? displayLabel : displayValue}
           </View>
-          <Text
-            style={[
-              display.mode === 'metric' ? styles.recordingFooterMetricValue : styles.recordingFooterStatusValue,
-              isWarning && styles.recordingFooterMetricWarning,
-            ]}
-            numberOfLines={display.mode === 'metric' ? 1 : 2}
-            adjustsFontSizeToFit
-            minimumFontScale={0.76}
-          >
-            {display.value}
-          </Text>
         </View>
       ) : null}
     </View>
@@ -761,12 +778,14 @@ function recordingScreenTopPadding(): number {
   return Math.max(spacing.lg, statusBarHeight + spacing.lg);
 }
 
-function trainingMetaLine(snapshot: Snapshot, visibleItemNumber: number, totalItems: number): string {
-  const parts = [`Exercise ${visibleItemNumber} of ${totalItems}`];
-  if (snapshot.totalSets > 0) {
-    parts.push(`Set ${Math.min(snapshot.setIndex + 1, snapshot.totalSets)} of ${snapshot.totalSets}`);
-  }
-  return parts.join(' · ');
+function trainingFooterMeta(snapshot: Snapshot, visibleItemNumber: number, totalItems: number): FooterMeta {
+  return {
+    exercise: `Exercise ${visibleItemNumber} of ${totalItems}`,
+    set:
+      snapshot.totalSets > 0
+        ? `Set ${Math.min(snapshot.setIndex + 1, snapshot.totalSets)} of ${snapshot.totalSets}`
+        : null,
+  };
 }
 
 function trainingStageDisplay(
@@ -883,17 +902,13 @@ const styles = StyleSheet.create({
   avatarViewport: {
     position: 'relative',
     overflow: 'hidden',
-    borderRadius: radius.panel,
-    backgroundColor: colors.surface,
-    boxShadow: '0 0 24px rgba(17,20,18,0.06)',
-  },
-  poseEstimationWindow: {
-    position: 'absolute',
-    zIndex: 2,
-    borderWidth: 1,
-    borderColor: colors.textPrimary,
     borderRadius: radius.card,
+    backgroundColor: colors.card,
+    ...shadow.card,
+  },
+  recordingCameraUnavailableNotice: {
     backgroundColor: 'transparent',
+    borderRadius: 0,
   },
   recordingChrome: {
     position: 'absolute',
@@ -982,11 +997,11 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 3,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: spacing.lg,
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.lg,
+    paddingTop: spacing.sm,
     paddingBottom: spacing.lg,
   },
   recordingFooterRule: {
@@ -996,48 +1011,49 @@ const styles = StyleSheet.create({
     right: spacing.xl,
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.borderHairline,
-    opacity: 0.72,
+    opacity: 0.58,
   },
   recordingFooterMovement: {
     flex: 1,
     minWidth: 0,
-    gap: 3,
+    gap: 2,
   },
   recordingFooterMovementName: {
     ...type.cardTitle,
-    fontSize: 21,
-    lineHeight: 27,
+    fontSize: 22,
+    lineHeight: 28,
     color: colors.textPrimary,
   },
   recordingFooterMovementMeta: {
     ...type.bodySmall,
-    fontSize: 15,
-    lineHeight: 21,
+    fontSize: 14,
+    lineHeight: 18,
+    color: colors.textSecondary,
+  },
+  recordingFooterMovementSet: {
+    ...type.bodySmall,
+    fontSize: 14,
+    lineHeight: 18,
     color: colors.textSecondary,
   },
   recordingFooterMetric: {
-    width: 122,
+    width: 142,
     flexShrink: 0,
-    alignItems: 'flex-end',
-    gap: 2,
-    paddingLeft: spacing.lg,
-    borderLeftWidth: StyleSheet.hairlineWidth,
-    borderLeftColor: colors.borderHairline,
-  },
-  recordingFooterMetricHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'flex-end',
-    gap: spacing.xs,
+    gap: spacing.lg,
   },
-  recordingFooterMetricDot: {
-    width: 6,
-    height: 6,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accentGold,
+  recordingFooterMetricDivider: {
+    width: StyleSheet.hairlineWidth,
+    height: 66,
+    backgroundColor: colors.borderHairline,
   },
-  recordingFooterMetricDotWarning: {
-    backgroundColor: colors.accentDeep,
+  recordingFooterMetricContent: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'flex-end',
+    gap: 0,
   },
   recordingFooterMetricLabel: {
     ...type.label,
@@ -1049,7 +1065,7 @@ const styles = StyleSheet.create({
   recordingFooterMetricValue: {
     ...type.metricSmall,
     fontSize: 42,
-    lineHeight: 46,
+    lineHeight: 44,
     color: colors.textPrimary,
     textAlign: 'right',
   },
