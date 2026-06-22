@@ -125,9 +125,9 @@ export function getHaleAppLifecycle(input: HaleAppLifecycleInput): HaleAppLifecy
   } else if (schedule?.status === 'retest_due' || shouldShowRetestPrompt({ ...input, today })) {
     state = 'monthly_retest_due';
     reason = 'active block is complete or due for re-test';
-  } else if (schedule?.status === 'session_due' && schedule.lapseState === 'restart_recommended') {
+  } else if (schedule?.status === 'session_due' && shouldRouteToRestart(schedule)) {
     state = 'inactive_restart';
-    reason = 'active block exists and no training session is recorded in 14+ days';
+    reason = 'active block exists and the plan should restart gently after an inactive week';
   } else if (schedule?.status === 'session_due' && schedule.totalCredits === 0) {
     state = 'first_session_ready';
     reason = 'active block exists and no session has been completed yet';
@@ -300,7 +300,6 @@ export function shouldShowRetestPrompt(input: HaleAppLifecycleInput): boolean {
   const today = normalizeToday(input.today);
   const activeBlock = getActiveBlock(input);
   if (activeBlock) {
-    if (activeBlock.status === 'completed') return true;
     const schedule = activeBlockSchedule({ ...input, today }, activeBlock);
     return schedule.status === 'retest_due';
   }
@@ -313,9 +312,13 @@ export function shouldShowCleanSlatePrompt(input: HaleAppLifecycleInput): boolea
   const activeBlock = getActiveBlock(input);
   if (activeBlock) {
     const schedule = activeBlockSchedule({ ...input, today }, activeBlock);
-    return schedule.status === 'session_due' && schedule.lapseState === 'restart_recommended';
+    return schedule.status === 'session_due' && shouldRouteToRestart(schedule);
   }
   return false;
+}
+
+function shouldRouteToRestart(schedule: BlockScheduleState): boolean {
+  return schedule.lapseState === 'resume_gently' || schedule.lapseState === 'restart_recommended';
 }
 
 function shouldShowWeeklyMicroCheck(input: HaleAppLifecycleInput): boolean {

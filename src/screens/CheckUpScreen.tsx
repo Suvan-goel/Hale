@@ -5,7 +5,7 @@
  * first (once propped, the orchestrator runs by voice, while visible controls
  * keep pause/help/skip/stop available); the HUD mirrors state for glanceability.
  *
- * Hot-path discipline matches AssessmentScreen: pipeline + skeleton +
+ * Hot-path discipline matches the camera screens: pipeline + skeleton +
  * orchestrator per frame; React state throttled to ~10fps; audio triggered
  * imperatively. The orchestrator owns the pre-flight check internally.
  */

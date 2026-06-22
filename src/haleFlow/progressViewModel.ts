@@ -256,7 +256,7 @@ export function getRetestDueSummary({
   const targetDateKey = schedule.retestNotBeforeDateKey ?? blockScheduleDateKey(activeBlock.retestDate);
   const todayKey = blockScheduleDateKey(today);
   const days = targetDateKey && todayKey ? Math.max(0, daysBetweenDateKeys(todayKey, targetDateKey)) : daysUntil(activeBlock.retestDate, today);
-  if (activeBlock.status === 'completed' || schedule.status === 'retest_due') {
+  if (schedule.status === 'retest_due') {
     return {
       title: "It's time to re-test",
       body: 'Repeat your Movement Check-Up to add another data point.',

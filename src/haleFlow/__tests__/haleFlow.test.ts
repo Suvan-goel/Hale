@@ -207,7 +207,7 @@ describe('getNextBestAction', () => {
       block: b,
       previousScore: score('balance'),
       latestScore: score('mobility'),
-      completions: [],
+      completions: [...scheduledBlockCompletions(b), retestCompletion(b)],
       nowIso: '2026-06-30T08:00:00.000Z',
     });
     expect(
@@ -217,9 +217,32 @@ describe('getNextBestAction', () => {
         latestAssessment: assessment('official_retest'),
         activeBlock: b,
         latestReport: report,
+        sessionCompletions: [...scheduledBlockCompletions(b), retestCompletion(b)],
         now: '2026-06-30T08:00:00.000Z',
       }).state
     ).toBe('report_ready');
+  });
+
+  it('does not treat a stale completed block flag as report-ready without retest evidence', () => {
+    const b = { ...block(), status: 'completed' as const };
+    const report = createMovementBlockReport({
+      block: b,
+      previousScore: score('balance'),
+      latestScore: score('mobility'),
+      completions: scheduledBlockCompletions(b),
+      nowIso: '2026-06-30T08:00:00.000Z',
+    });
+    expect(
+      getNextBestAction({
+        profile: { safetyProfile: safety() },
+        lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
+        latestAssessment: assessment('official_retest'),
+        activeBlock: b,
+        latestReport: report,
+        sessionCompletions: scheduledBlockCompletions(b),
+        now: '2026-06-30T08:00:00.000Z',
+      }).state
+    ).toBe('active_block_retest_due');
   });
 });
 
@@ -333,6 +356,15 @@ function scheduledBlockCompletions(block: MovementBlock): ReturnType<typeof make
     ...scheduledWeekCompletions(block, '2026-06-15'),
     ...scheduledWeekCompletions(block, '2026-06-22'),
   ];
+}
+
+function retestCompletion(block: MovementBlock): ReturnType<typeof makeTrainingSessionCompletion> {
+  return makeTrainingSessionCompletion({
+    block,
+    sessionType: 'retest',
+    completedAt: '2026-06-29T08:00:00.000Z',
+    plannedDate: 'retest',
+  });
 }
 
 function scheduledWeekCompletions(block: MovementBlock, startDateKey: string): ReturnType<typeof makeTrainingSessionCompletion>[] {

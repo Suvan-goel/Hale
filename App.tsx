@@ -26,7 +26,6 @@ import {
   SessionCompletionScreen,
   TrainingSessionCompletion,
   TrainingSessionCompletionType,
-  WeeklySummaryScreen,
   createMovementBlockFromAssessment,
   createLifeGoal,
   defaultAdherenceStoreState,
@@ -52,6 +51,7 @@ import {
   createAutomaticMovementBlock,
   createMovementBlockReport,
   createGeneratedSessionSummary,
+  checkUpCompletionTimestamp,
   countsTowardMainPlan,
   evaluateCompletedFocusStimulusEvidence,
   evaluateSessionWorkEvidence,
@@ -130,7 +130,6 @@ import {
   initObservability,
   wrapWithObservability,
 } from './src/services/observability/sentry';
-import { AssessmentScreen } from './src/screens/AssessmentScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { CameraExplanationScreen } from './src/screens/CameraExplanationScreen';
 import { CameraSetupScreen } from './src/screens/CameraSetupScreen';
@@ -193,13 +192,11 @@ type Flow =
   | 'onboarding-block'
   | 'block-intro'
   | 'restart-intro'
-  | 'weekly-summary'
   | 'block-report'
   | 'session-complete'
   | 'ladder-detail'
   | 'learn-detail'
   | 'settings'
-  | 'dev-assessment'
   | 'dev-live';
 
 type NavigationLocation = {
@@ -208,7 +205,7 @@ type NavigationLocation = {
 };
 
 /** Flows that mount the camera; gated on permission + audio configuration. */
-const CAMERA_FLOWS = new Set<Flow>(['checkup', 'training', 'microcheck', 'dev-assessment', 'dev-live']);
+const CAMERA_FLOWS = new Set<Flow>(['checkup', 'training', 'microcheck', 'dev-live']);
 const MAX_NAVIGATION_HISTORY_ENTRIES = 40;
 const LAUNCH_SYNC_RETRY_DELAY_MS = 5000;
 const EXPECTED_SCORING_INPUT_ISSUES = new Set<ScoringInputIssue['code']>(['no_measurement']);
@@ -1690,17 +1687,7 @@ function HaleApp() {
   // A finished check-up: persist it, show it, reload history (feeds trends).
   const handleCheckUpComplete = React.useCallback(
     (completedCheckUp: CheckUp, checkupOverride?: typeof pendingCheckup) => {
-      const completedAt = new Date().toISOString();
       const block = activeMovementBlock;
-      const scheduleAtCheckup = block
-        ? getBlockScheduleState({
-            block,
-            completions: adherence.completions,
-            generatedSessionSummaries: training.generatedSessionSummaries,
-            today: completedAt,
-          })
-        : null;
-      const scheduleRetestDue = scheduleAtCheckup?.status === 'retest_due';
       const resolvedPendingCheckup = checkupOverride ?? pendingCheckup;
       const baseRetryCheckUp = resolvedPendingCheckup?.retryOfCheckUpId
         ? (history.find((record) => record.checkUp.startedAt === resolvedPendingCheckup.retryOfCheckUpId)?.checkUp ?? null)
@@ -1713,6 +1700,16 @@ function HaleApp() {
               retriedMovementIds: resolvedPendingCheckup.retryMovementIds,
             })
           : completedCheckUp;
+      const completedAt = checkUpCompletionTimestamp(checkUp, new Date().toISOString());
+      const scheduleAtCheckup = block
+        ? getBlockScheduleState({
+            block,
+            completions: adherence.completions,
+            generatedSessionSummaries: training.generatedSessionSummaries,
+            today: completedAt,
+          })
+        : null;
+      const scheduleRetestDue = scheduleAtCheckup?.status === 'retest_due';
       const requestedCheckupType =
         resolvedPendingCheckup?.type ??
         (block && scheduleRetestDue
@@ -2976,14 +2973,6 @@ function HaleApp() {
             onStart={handleStartRestartSession}
             onCancel={() => goBack(goHome)}
           />
-        ) : flow === 'weekly-summary' && displayMovementBlock ? (
-          <WeeklySummaryScreen
-            block={displayMovementBlock}
-            lifeGoal={prefs.profile.lifeGoal}
-            completions={adherence.completions}
-            supportConnection={supportConnection}
-            onDone={goHome}
-          />
         ) : flow === 'block-report' && reportDisplayBlock ? (
           <BlockReportScreen
             block={reportDisplayBlock}
@@ -3043,15 +3032,13 @@ function HaleApp() {
             onReplayOnboardingForDev={__DEV__ ? replayOnboardingForDev : undefined}
             onBack={() => goBack(closeSettings)}
           />
-        ) : flow === 'dev-assessment' ? (
-          <AssessmentScreen />
         ) : flow === 'dev-live' ? (
           <LiveSessionScreen />
         ) : (
           // Defensive: an unsatisfiable flow (e.g. results with no result) falls back home.
           <View />
         )}
-        {__DEV__ && (flow === 'dev-assessment' || flow === 'dev-live') ? (
+        {__DEV__ && flow === 'dev-live' ? (
           <Pressable style={styles.back} onPress={() => goBack(goHome)} accessibilityRole="button" accessibilityLabel="Back">
             <Text style={styles.backText}>Back</Text>
           </Pressable>

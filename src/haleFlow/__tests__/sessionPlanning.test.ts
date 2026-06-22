@@ -45,6 +45,7 @@ import { BLOCK_SCHEDULE_POLICY_VERSION } from '../blockSchedule';
 import { createMovementAssessment } from '../assessments';
 import { evaluateCompletedFocusStimulusEvidence, focusStimulusEvidenceSummary } from '../focusStimulusEvidence';
 import { evaluateSessionWorkEvidence } from '../sessionWorkEvidence';
+import { requiredMainPlanTemplatesForBlock } from '../mainPlanEvents';
 import type { HaleSessionPlan } from '../types';
 
 const START = '2026-06-01T08:00:00.000Z';
@@ -878,6 +879,26 @@ describe('planTodayHaleSession', () => {
     expect(plan.metadata?.source).toBe('block_generated');
     expect(plan.metadata?.dailyContext?.source).toBe('planned_restart');
     expect(plan.metadata?.guidance?.join(' ')).toContain('Today is planned as a gentle restart.');
+    expect(plan.estimatedMinutes).toBeLessThan(20);
+  });
+
+  it('creates a restart plan when the current week needs a clean slate', () => {
+    const b = block();
+    const firstTemplateId = requiredMainPlanTemplatesForBlock(b).templateIds[0];
+    if (!firstTemplateId) throw new Error('expected a main-plan template for the block');
+    const plan = planTodayHaleSession({
+      activeBlock: b,
+      training: legacyTraining(),
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      recentCompletions: [
+        scheduledCompletion(b, firstTemplateId, '2026-06-02T08:00:00.000Z'),
+      ],
+      today: '2026-06-09T08:00:00.000Z',
+    });
+
+    expect(plan.sessionType).toBe('restart');
+    expect(plan.metadata?.dailyContext?.source).toBe('planned_restart');
     expect(plan.estimatedMinutes).toBeLessThan(20);
   });
 

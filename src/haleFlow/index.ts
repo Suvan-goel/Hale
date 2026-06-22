@@ -6,6 +6,7 @@ export * from './appLifecycle';
 export * from './blockAutomation';
 export * from './blockSchedule';
 export * from './checkupHistory';
+export * from './checkupTransition';
 export * from './copy';
 export * from './exploreViewModel';
 export * from './focusStimulusEvidence';

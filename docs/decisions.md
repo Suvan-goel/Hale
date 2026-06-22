@@ -1319,3 +1319,15 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 - **Compatibility:** backend sync and report sync resolve either field while old local data is
   still present. `StoredCheckUp.sourceAssessmentId` remains unchanged because that field really
   does point to the movement assessment attached to the stored check-up.
+
+## 2026-06-22 — Clean-slate lapses route to restart session
+
+- **Change:** active blocks that reach the 7-day `resume_gently` lapse state now route Today
+  to the clean-slate restart intro and generate a shorter `restart` session. The 14-day
+  `restart_recommended` state keeps the same route.
+- **Why:** the restart intro is the useful recovery doorway. A weekly summary for an inactive
+  week duplicated the same message but only offered `Done`, so missed-week recovery now sends
+  users directly to action.
+- **Scope boundary:** the weekly summary data model remains available for future completed or
+  partially completed week reflection, but the inactive weekly-summary screen is not mounted
+  in the active app flow and the unused screen component was removed.

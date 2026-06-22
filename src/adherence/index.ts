@@ -20,5 +20,3 @@ export { BlockReportScreen } from './screens/BlockReportScreen';
 export { LifeGoalOnboardingScreen } from './screens/LifeGoalOnboardingScreen';
 export { RestartSessionScreen } from './screens/RestartSessionScreen';
 export { SessionCompletionScreen } from './screens/SessionCompletionScreen';
-export { SupportCircleScreen } from './screens/SupportCircleScreen';
-export { WeeklySummaryScreen } from './screens/WeeklySummaryScreen';

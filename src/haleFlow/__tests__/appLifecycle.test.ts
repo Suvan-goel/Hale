@@ -377,7 +377,27 @@ describe('getHaleAppLifecycle', () => {
     expect(result.primaryAction.type).toBe('start_retest');
   });
 
-  it('offers a clean slate after 14 inactive days inside an active block', () => {
+  it('offers a clean slate after 7 inactive days inside an active block', () => {
+    const block = activeBlock();
+    const result = getHaleAppLifecycle({
+      profile: profile(),
+      history: [baseline()],
+      training: defaultTrainingState(),
+      adherence: {
+        ...adherenceWithBaseline(),
+        blocks: [block],
+        completions: [completed(block, '2026-06-02T08:00:00.000Z', 1)],
+      },
+      today: '2026-06-09T08:00:00.000Z',
+    });
+
+    expect(result.state).toBe('inactive_restart');
+    expect(result.primaryAction.type).toBe('start_gentle_restart');
+    expect(result.primaryAction.title).toBe('Clean slate');
+    expect(result.primaryAction.ctaLabel).toBe('Restart gently');
+  });
+
+  it('keeps the clean slate route after 14 inactive days inside an active block', () => {
     const block = activeBlock();
     const result = getHaleAppLifecycle({
       profile: profile(),
@@ -393,8 +413,6 @@ describe('getHaleAppLifecycle', () => {
 
     expect(result.state).toBe('inactive_restart');
     expect(result.primaryAction.type).toBe('start_gentle_restart');
-    expect(result.primaryAction.title).toBe('Clean slate');
-    expect(result.primaryAction.ctaLabel).toBe('Restart gently');
   });
 
   it('handles old minimal state and legacy training blocks without treating them as current sessions', () => {

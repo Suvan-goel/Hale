@@ -22,7 +22,6 @@ export function CurrentBlockCard({
   onStartRestart,
   onMicroCheck,
   onRetest,
-  onWeeklySummary,
   onReport,
 }: {
   block: MovementBlock;
@@ -32,7 +31,6 @@ export function CurrentBlockCard({
   onStartRestart: () => void;
   onMicroCheck: () => void;
   onRetest: () => void;
-  onWeeklySummary: () => void;
   onReport: () => void;
 }) {
   const now = new Date().toISOString();
@@ -86,7 +84,6 @@ export function CurrentBlockCard({
           <PrimaryButton title="Start today's session" onPress={onStartSession} />
         )}
         {!complete ? <SecondaryButton title="Do 60-second micro-check" onPress={onMicroCheck} /> : null}
-        <SecondaryButton title="Weekly summary" onPress={onWeeklySummary} />
       </View>
     </Card>
   );

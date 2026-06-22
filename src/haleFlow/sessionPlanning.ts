@@ -1331,8 +1331,8 @@ function sessionTypeFor(
 ): TrainingSessionCompletionType {
   if (input.lifecycleState === 'week_complete' || input.presetId === 'preset-mobility-reset') return 'retest_prep';
   if (input.lifecycleState === 'inactive_restart') return 'restart';
-  if (schedule?.status === 'session_due' && schedule.lapseState === 'restart_recommended') return 'restart';
-  if (input.adherenceState === 'inactive_14_days') return 'restart';
+  if (schedule?.status === 'session_due' && schedule.lapseState !== 'active') return 'restart';
+  if (input.adherenceState === 'inactive_this_week' || input.adherenceState === 'inactive_14_days') return 'restart';
   const activeBlock = input.activeBlock ?? null;
   if (activeBlock) {
     return (schedule?.totalCredits ?? 0) === 0 ? 'starter' : 'standard';

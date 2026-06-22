@@ -250,15 +250,16 @@ export function getBlockScheduleState({
     lastCreditDateKey: lastCredit?.dateKey,
     todayDateKey: todayKey.dateKey,
   });
+  const incompleteIndex = firstIncompleteWeekIndex(immutableWeeks);
 
-  if (block.status === 'completed') {
+  if (hasRetestCompletion(block, completions) && incompleteIndex >= BLOCK_TRAINING_WEEK_COUNT) {
     return {
       status: 'block_completed',
       policyVersion: BLOCK_SCHEDULE_POLICY_VERSION,
       blockId: block.id,
-      currentWeekIndex: Math.min(BLOCK_TRAINING_WEEK_COUNT - 1, firstIncompleteWeekIndex(immutableWeeks)),
-      currentWeekNumber: Math.min(BLOCK_TRAINING_WEEK_COUNT, firstIncompleteWeekIndex(immutableWeeks) + 1),
-      currentWeekStartDateKey: immutableWeeks[Math.min(BLOCK_TRAINING_WEEK_COUNT - 1, firstIncompleteWeekIndex(immutableWeeks))]?.startDateKey,
+      currentWeekIndex: Math.min(BLOCK_TRAINING_WEEK_COUNT - 1, incompleteIndex),
+      currentWeekNumber: Math.min(BLOCK_TRAINING_WEEK_COUNT, incompleteIndex + 1),
+      currentWeekStartDateKey: immutableWeeks[Math.min(BLOCK_TRAINING_WEEK_COUNT - 1, incompleteIndex)]?.startDateKey,
       requiredTemplateIds,
       creditedTemplateIds: [],
       totalCredits,
@@ -271,7 +272,6 @@ export function getBlockScheduleState({
     };
   }
 
-  const incompleteIndex = firstIncompleteWeekIndex(immutableWeeks);
   if (incompleteIndex >= BLOCK_TRAINING_WEEK_COUNT) {
     const retestNotBefore = retestNotBeforeDateKey(blockStart.dateKey, lastCredit?.dateKey);
     return {
@@ -588,6 +588,13 @@ function retestNotBeforeDateKey(blockStartDateKey: string, finalCreditDateKey: s
   const calendarMinimum = addDateKeyDays(blockStartDateKey, BLOCK_MIN_CALENDAR_DAYS);
   const afterFinalCredit = finalCreditDateKey ? addDateKeyDays(finalCreditDateKey, 1) : calendarMinimum;
   return maxDateKey(calendarMinimum, afterFinalCredit);
+}
+
+function hasRetestCompletion(
+  block: MovementBlock,
+  completions: readonly TrainingSessionCompletion[]
+): boolean {
+  return completions.some((completion) => completion.blockId === block.id && completion.sessionType === 'retest');
 }
 
 function unavailableSchedule(

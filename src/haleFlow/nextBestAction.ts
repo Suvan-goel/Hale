@@ -69,7 +69,7 @@ function activeBlockState(
   nowIso: string
 ): HaleUserFlowState {
   const schedule = getBlockScheduleState({ block, completions, today: nowIso });
-  if (block.status === 'completed') {
+  if (schedule.status === 'block_completed') {
     return latestReportPresent ? 'report_ready' : 'block_complete_needs_report';
   }
   if (schedule.status === 'retest_due') return 'active_block_retest_due';
