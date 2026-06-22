@@ -113,7 +113,18 @@ describe('TrainingStore persistence', () => {
           exerciseIds: [STS_STANDARD_ID],
           ladderIds: ['sit-to-stand'],
           readiness: 'ready' as const,
+          adjustmentReasons: ['controlled_beta_release_cap' as const],
           durationMinutes: 20,
+          exercises: [
+            {
+              exerciseId: STS_STANDARD_ID,
+              ladderId: 'sit-to-stand',
+              levelId: STS_STANDARD_ID,
+              requestedLevelId: 'loaded-sit-to-stand',
+              selectedDailyLevelId: STS_STANDARD_ID,
+              adjustmentReasons: ['controlled_beta_release_cap' as const],
+            },
+          ],
           focusStimulusEvidence: {
             planStatus: 'eligible' as const,
             status: 'credited_focus_work' as const,
@@ -204,6 +215,8 @@ describe('TrainingStore persistence', () => {
     ]);
     expect(reloaded.generatedSessionSummaries[0].templateId).toBe('strength-A');
     expect(reloaded.generatedSessionSummaries[0].focusStimulusEvidence?.status).toBe('credited_focus_work');
+    expect(reloaded.generatedSessionSummaries[0].adjustmentReasons).toEqual(['controlled_beta_release_cap']);
+    expect(reloaded.generatedSessionSummaries[0].exercises?.[0].adjustmentReasons).toEqual(['controlled_beta_release_cap']);
     expect(reloaded.generatedSessionSummaries[1].mainPlanCredit).toBe(false);
     expect(reloaded.generatedSessionSummaries[1].status).toBe('partial');
     expect(reloaded.generatedSessionSummaries[1].focusStimulusEvidence?.exclusionReason).toBe('supporting_only');

@@ -205,6 +205,7 @@ const DAILY_REASON_CODES: DailyTrainingReasonCode[] = [
   'legacy_context_cautious',
   'short_on_time',
   'reduced_readiness',
+  'controlled_beta_release_cap',
 ];
 const SLOT_TYPES: SessionSlotType[] = [
   'lower_body_strength',

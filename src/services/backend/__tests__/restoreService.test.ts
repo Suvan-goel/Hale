@@ -4,6 +4,7 @@ import type { CheckUp } from '../../../checkup';
 import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../../../history';
 import { defaultPreferences } from '../../../profile';
 import { createCurrentVersionedScoreSnapshot, type VersionedCheckUpScoreSnapshot } from '../../../scoring';
+import { LOADED_STS_ID, STS_POWER_ID } from '../../../exercises';
 import {
   TRAINING_SCHEMA_VERSION,
   defaultTrainingState,
@@ -401,6 +402,55 @@ describe('remote restore service', () => {
     ]);
     expect(JSON.stringify(mapped.state.training.ladderProgressById)).toBe(beforeLevel);
     expect(mapped.state.adherence.completions).toHaveLength(1);
+  });
+
+  it('preserves restored optional ladder progress while current planning uses the beta cap', () => {
+    const snapshot = remoteSnapshot();
+    snapshot.profile!.safety_json = backendJson({
+      schemaVersion: 4,
+      safetyProfile: {
+        id: 'safety-remote',
+        userId: 'local-device-user',
+        availableEquipment: ['chair', 'wall'],
+        equipmentStatus: 'confirmed',
+        equipmentRevision: 4,
+        equipmentUpdatedAt: '2026-06-20T08:00:00.000Z',
+        createdAt: '2026-06-18T08:00:00.000Z',
+        updatedAt: '2026-06-20T08:00:00.000Z',
+      },
+    });
+    snapshot.trainingState!.state_json = backendJson({
+      ...(snapshot.trainingState!.state_json as Record<string, unknown>),
+      ladderProgressById: {
+        'sit-to-stand': {
+          ladderId: 'sit-to-stand',
+          currentLevelId: LOADED_STS_ID,
+          completedSessionsAtLevel: 1,
+          failedSessionsAtLevel: 0,
+          recentCompletionRates: [0.95],
+          recentRpe: [2],
+          recentPain: [false],
+          updatedAt: '2026-06-18T08:00:00.000Z',
+        },
+      },
+    });
+
+    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
+    const plan = requireHaleSessionPlan({
+      activeBlock: mapped.state.adherence.blocks[0],
+      training: mapped.state.training,
+      safetyProfile: mapped.state.preferences.profile.safetyProfile,
+      targetSessionTemplateId: 'session_a',
+      today: '2026-06-21T08:00:00.000Z',
+    });
+    const sitToStand = plan.metadata?.generatedExercises?.find((exercise) => exercise.ladderId === 'sit-to-stand');
+
+    expect(mapped.state.training.ladderProgressById['sit-to-stand'].currentLevelId).toBe(LOADED_STS_ID);
+    expect(sitToStand).toMatchObject({
+      requestedLevelId: LOADED_STS_ID,
+      selectedDailyLevelId: STS_POWER_ID,
+      adjustmentReasons: expect.arrayContaining(['controlled_beta_release_cap']),
+    });
   });
 
   it('does not let restored training-state equipment override a canonical profile', () => {

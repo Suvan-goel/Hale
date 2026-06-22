@@ -23,7 +23,7 @@ import { VoiceCueKey, voicePriority } from '../audio/cues';
 import { getMovement, MovementDefinition, MovementResultBase } from '../movements';
 import { PipelineFrameOutput } from '../pose/pipeline';
 import { MovementCameraReadinessTracker } from '../preflight/movementCameraReadiness';
-import { PreflightCheck, PreflightStatus } from '../preflight/preflight';
+import { PreflightCheck, PreflightPrompt, PreflightStatus } from '../preflight/preflight';
 import {
   DEFAULT_SESSION_CONFIG,
   SessionController,
@@ -62,6 +62,8 @@ export interface CheckUpFrameUpdate {
   item: SessionFrameUpdate | null;
   /** True after setup has timed out and the UI must ask the user what to do. */
   setupIssue: boolean;
+  /** Current preflight framing prompt for setup/framing UI. */
+  setupPrompt: PreflightPrompt | null;
   totalItems: number;
 }
 
@@ -96,6 +98,7 @@ export class CheckUpOrchestrator {
     playRepSound: false,
     item: null,
     setupIssue: false,
+    setupPrompt: null,
     totalItems: 0,
   };
 
@@ -175,6 +178,7 @@ export class CheckUpOrchestrator {
     const ts = out.frame.timestampMs;
     this.lastTimestampMs = ts;
     const status = this.preflight.update(out);
+    u.setupPrompt = status.prompt;
 
     switch (this.phase) {
       case 'intro':

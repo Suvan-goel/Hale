@@ -3,9 +3,13 @@ import {
   BALANCE_SINGLE_LEG_ID,
   BALANCE_TANDEM_ID,
   BRIDGE_HOLD_ID,
+  CONTROLLED_BETA_HIDDEN_OPTIONAL_LEVEL_IDS,
   HINGE_FREE_ID,
+  LOADED_STS_ID,
   LOADED_MARCH_ID,
   SEATED_BAND_ROW_ID,
+  SQUAT_FREE_ID,
+  SQUAT_LOADED_ID,
   STANDING_BAND_ROW_ID,
   STEP_UP_ID,
   PUSHUP_INCLINE_ID,
@@ -13,6 +17,7 @@ import {
   STS_POWER_ID,
   STS_SLOW_ECC_ID,
   STS_STANDARD_ID,
+  listExerciseLadders,
 } from '../../exercises';
 import {
   createSessionTemplatesForFocus,
@@ -802,13 +807,14 @@ describe('dynamic workout generation', () => {
     });
   });
 
-  it('filters out optional levels when V1 core-only mode is requested', () => {
+  it('ignores legacy optional-level requests in controlled beta generation', () => {
     const template = createSessionTemplatesForFocus('strength_power')[1];
     const session = generateTodaySession({
       template,
       today: START,
-      availableEquipment: ['chair', 'wall'],
-      includeOptionalLevels: false,
+      availableEquipment: ['chair', 'wall', 'floor_space'],
+      movementCapabilities: CONFIRMED_MOVEMENT_CAPABILITIES,
+      includeOptionalLevels: true,
       ladderProgress: {
         push: {
           ladderId: 'push',
@@ -825,6 +831,111 @@ describe('dynamic workout generation', () => {
 
     expect(session.exercises.map((exercise) => exercise.releaseStatus)).not.toContain('v1_optional');
     expect(session.exercises.map((exercise) => exercise.exerciseId)).toContain(PUSHUP_INCLINE_ID);
+    expect(session.exercises.find((exercise) => exercise.ladderId === 'push')).toMatchObject({
+      requestedLevelId: PUSHUP_STANDARD_ID,
+      selectedDailyLevelId: PUSHUP_INCLINE_ID,
+      adjustmentReasons: expect.arrayContaining(['controlled_beta_release_cap']),
+    });
+  });
+
+  it('caps restored optional progress at the nearest supported lower beta level without mutating input progress', () => {
+    const template = createSessionTemplatesForFocus('strength_power')[0];
+    const ladderProgress: Record<string, LadderProgress> = {
+      'sit-to-stand': {
+        ladderId: 'sit-to-stand',
+        currentLevelId: LOADED_STS_ID,
+        completedSessionsAtLevel: 1,
+        failedSessionsAtLevel: 0,
+        recentCompletionRates: [0.95],
+        recentRpe: [2],
+        recentPain: [false],
+        updatedAt: START,
+      },
+    };
+
+    const session = generateTodaySession({
+      template,
+      today: START,
+      availableEquipment: ['chair', 'wall', 'backpack'],
+      ladderProgress,
+    });
+    const selected = session.exercises.find((exercise) => exercise.ladderId === 'sit-to-stand');
+
+    expect(selected).toMatchObject({
+      exerciseId: STS_POWER_ID,
+      requestedLevelId: LOADED_STS_ID,
+      selectedDailyLevelId: STS_POWER_ID,
+      adjustmentReasons: expect.arrayContaining(['controlled_beta_release_cap']),
+    });
+    expect(ladderProgress['sit-to-stand'].currentLevelId).toBe(LOADED_STS_ID);
+  });
+
+  it('never selects any current optional level across controlled beta generation helpers', () => {
+    const optionalIds = new Set<string>(CONTROLLED_BETA_HIDDEN_OPTIONAL_LEVEL_IDS);
+    const session = generateTodaySession({
+      template: createSessionTemplatesForFocus('strength_power')[1],
+      today: START,
+      availableEquipment: ['chair', 'wall', 'floor_space', 'backpack', 'mini_band'],
+      movementCapabilities: CONFIRMED_MOVEMENT_CAPABILITIES,
+      includeOptionalLevels: true,
+      ladderProgress: Object.fromEntries(
+        listExerciseLadders().flatMap((ladder) =>
+          ladder.levels
+            .filter((level) => optionalIds.has(level.id))
+            .map((level) => [
+              ladder.id,
+              {
+                ladderId: ladder.id,
+                currentLevelId: level.id,
+                completedSessionsAtLevel: 1,
+                failedSessionsAtLevel: 0,
+                recentCompletionRates: [0.95],
+                recentRpe: [2],
+                recentPain: [false],
+                updatedAt: START,
+              },
+            ])
+        )
+      ) as Record<string, LadderProgress>,
+    });
+    const preset = generatePresetSession({
+      presetId: 'preset-no-equipment-strength',
+      today: START,
+      availableEquipment: ['chair', 'wall', 'floor_space', 'backpack', 'mini_band'],
+      movementCapabilities: CONFIRMED_MOVEMENT_CAPABILITIES,
+      includeOptionalLevels: true,
+    });
+
+    expect(session.exercises.some((exercise) => optionalIds.has(exercise.exerciseId))).toBe(false);
+    expect(preset.exercises.some((exercise) => optionalIds.has(exercise.exerciseId))).toBe(false);
+  });
+
+  it('caps automatic progression before hidden optional levels', () => {
+    const progress: Record<string, LadderProgress> = {
+      squat: {
+        ladderId: 'squat',
+        currentLevelId: SQUAT_FREE_ID,
+        completedSessionsAtLevel: 1,
+        failedSessionsAtLevel: 0,
+        recentCompletionRates: [0.95],
+        recentRpe: [2],
+        recentPain: [false],
+        updatedAt: START,
+      },
+    };
+
+    const next = updateLadderProgressAfterSession(
+      progress,
+      {
+        completedAt: '2026-06-03T08:00:00.000Z',
+        exercises: [{ ladderId: 'squat', levelId: SQUAT_FREE_ID, completionRate: 1, perceivedEffort: 2, painReported: false }],
+      },
+      { completedAt: '2026-06-03T08:00:00.000Z', perceivedEffort: 2, painReported: false, trackingQuality: 'good' }
+    );
+
+    expect(next.squat.currentLevelId).toBe(SQUAT_FREE_ID);
+    expect(next.squat.currentLevelId).not.toBe(SQUAT_LOADED_ID);
+    expect(next.squat.readyToProgress).toBe(false);
   });
 
   it('previews realistic debug scenarios without brittle copy snapshots', () => {
@@ -895,8 +1006,12 @@ describe('dynamic workout generation', () => {
     expect(exerciseText('shoulder_pain')).not.toMatch(/push-up|overhead|press|pull-apart/);
     expect(byId.stronger_ready_to_progress.title).toBe('Stronger user ready to progress');
     expect(byId.stronger_ready_to_progress.exercises.map((exercise) => exercise.exerciseId)).toEqual(
-      expect.arrayContaining(['loaded-sit-to-stand', 'standing-band-row', 'balance-tandem-hold', 'thoracic-rotation'])
+      expect.arrayContaining(['sts-power', 'standing-band-row', 'balance-tandem-hold', 'thoracic-rotation'])
     );
+    const optionalIds = new Set<string>(CONTROLLED_BETA_HIDDEN_OPTIONAL_LEVEL_IDS);
+    for (const preview of previews) {
+      expect(preview.exercises.some((exercise) => optionalIds.has(exercise.exerciseId))).toBe(false);
+    }
 
     for (const preview of previews) {
       const equipment = preview.exercises.flatMap((exercise) => exercise.equipmentRequired);

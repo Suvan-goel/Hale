@@ -1,5 +1,6 @@
 import {
   BALANCE_FEET_TOGETHER_ID,
+  STS_POWER_ID,
   STS_SLOW_ECC_ID,
   STS_STANDARD_ID,
   getExercise,
@@ -295,6 +296,44 @@ describe('authoritative progression evidence', () => {
     expect(applied.appliedEvents.map((event) => event.ladderId).sort()).toEqual(['balance', 'sit-to-stand']);
     expect(applied.nextState.ladderProgressById.balance.currentLevelId).toBe(BALANCE_FEET_TOGETHER_ID);
     expect(applied.nextState.ladderProgressById['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
+  });
+
+  it('records release cap reached instead of progressing into a hidden optional level', () => {
+    const b = block();
+    const plan = sessionPlan(b, generatedSession([generatedExercise({ exerciseId: STS_POWER_ID, role: 'primary' })]));
+    const result = completedResult([STS_POWER_ID]);
+    const completion = creditedCompletion(b, plan, result);
+    const initial = {
+      ...defaultTrainingState(),
+      ladderProgressById: {
+        'sit-to-stand': {
+          ladderId: 'sit-to-stand',
+          currentLevelId: STS_POWER_ID,
+          completedSessionsAtLevel: 1,
+          failedSessionsAtLevel: 0,
+          recentCompletionRates: [0.95],
+          recentRpe: [2],
+          recentPain: [false],
+          updatedAt: START,
+        },
+      },
+    };
+
+    const applied = applyProgressionEvidenceFromSession({
+      state: initial,
+      sessionPlan: plan,
+      completion,
+      activeBlock: b,
+      sessionResult: result,
+      perceivedEffort: 2,
+      painReported: false,
+      trackingQuality: 'good',
+    });
+
+    expect(applied.appliedEvents).toHaveLength(1);
+    expect(applied.nextState.ladderProgressById['sit-to-stand'].currentLevelId).toBe(STS_POWER_ID);
+    expect(applied.decisions[0]).toMatchObject({ decisionKind: 'held', afterLevelId: STS_POWER_ID });
+    expect(applied.diagnostics).toEqual(expect.arrayContaining([expect.objectContaining({ reason: 'release_cap_reached' })]));
   });
 
   it('fails closed for wrong-ladder metadata without blocking unrelated valid primary evidence', () => {

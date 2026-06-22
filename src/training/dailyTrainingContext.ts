@@ -50,7 +50,8 @@ export type DailyTrainingReasonCode =
   | 'discomfort_malformed_fail_closed'
   | 'legacy_context_cautious'
   | 'short_on_time'
-  | 'reduced_readiness';
+  | 'reduced_readiness'
+  | 'controlled_beta_release_cap';
 
 export type DiscomfortConstraintReason =
   | 'knee_conservative_beta'

@@ -152,6 +152,50 @@ describe('exploreViewModel', () => {
     expect(detail?.currentLevel.measurementNote).toContain('Broad rotation');
   });
 
+  it('caps restored optional progress in Explore cards and ladder detail', () => {
+    const ladderProgressById = {
+      'sit-to-stand': {
+        ladderId: 'sit-to-stand',
+        currentLevelId: 'loaded-sit-to-stand',
+        completedSessionsAtLevel: 0,
+        failedSessionsAtLevel: 0,
+        recentCompletionRates: [],
+        recentRpe: [],
+        recentPain: [],
+        updatedAt: START,
+      },
+      push: {
+        ladderId: 'push',
+        currentLevelId: 'push-up-standard',
+        completedSessionsAtLevel: 0,
+        failedSessionsAtLevel: 0,
+        recentCompletionRates: [],
+        recentRpe: [],
+        recentPain: [],
+        updatedAt: START,
+      },
+    };
+    const cards = getMovementLadderCards({ ladderProgressById });
+    const sitToStand = getMovementLadderDetail('sit-to-stand', ladderProgressById);
+    const push = getMovementLadderDetail('push', ladderProgressById, {
+      safetyProfile: {
+        id: 'safety',
+        userId: 'local-device-user',
+        availableEquipment: ['chair', 'wall', 'floor_space'],
+        movementCapabilities: confirmedMovementCapabilities(),
+        createdAt: START,
+        updatedAt: START,
+      },
+    });
+
+    expect(cards.find((card) => card.id === 'sit-to-stand')?.currentLevelName).toBe('Power Sit-to-Stand');
+    expect(sitToStand?.currentLevel.id).toBe('sts-power');
+    expect(sitToStand?.harderLevel).toBeUndefined();
+    expect(sitToStand?.levels.map((level) => level.id)).not.toContain('loaded-sit-to-stand');
+    expect(push?.currentLevel.id).toBe('push-up-incline');
+    expect(push?.levels.map((level) => level.id)).not.toContain('push-up-standard');
+  });
+
   it('ignores legacy equipment booleans when canonical safety equipment is absent', () => {
     const cards = getExtraSessionCards({
       equipment: { stair: true, band: true, miniBand: true, load: true },

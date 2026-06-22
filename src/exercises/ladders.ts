@@ -19,6 +19,7 @@ import { STEP_UP_ID } from './stepUp';
 import { LOADED_STS_ID, STS_CUSHION_ID, STS_POWER_ID, STS_SLOW_ECC_ID, STS_STANDARD_ID } from './sitToStand';
 import { EquipmentTag } from '../movements';
 import { ExerciseDomain, MeasurementTier, ReleaseStatus } from './types';
+import { isExerciseLevelAvailableForRelease } from './releasePolicy';
 
 export type ExerciseCameraView = 'side' | 'front' | 'side_oblique' | 'not_required';
 export type ExerciseLadderProgressionModel = 'linear_progression' | 'collection' | 'supporting_set';
@@ -764,13 +765,12 @@ export function listExerciseLadders(): ExerciseLadder[] {
   return EXERCISE_LADDERS.slice().sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
-export function listVisibleExerciseLadders(includeOptional = true): ExerciseLadder[] {
-  const statuses: ReleaseStatus[] = includeOptional ? ['v1_core', 'v1_optional'] : ['v1_core'];
+export function listVisibleExerciseLadders(_includeOptional = false): ExerciseLadder[] {
   return listExerciseLadders()
-    .filter((ladder) => statuses.includes(ladder.releaseStatus))
+    .filter((ladder) => ladder.releaseStatus === 'v1_core')
     .map((ladder) => ({
       ...ladder,
-      levels: ladder.levels.filter((exerciseLevel) => statuses.includes(exerciseLevel.releaseStatus)),
+      levels: ladder.levels.filter((exerciseLevel) => isExerciseLevelAvailableForRelease(exerciseLevel)),
     }))
     .filter((ladder) => ladder.levels.length > 0);
 }

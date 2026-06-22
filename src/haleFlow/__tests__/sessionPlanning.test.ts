@@ -9,6 +9,8 @@ import {
 import { syntheticCheckUp } from '../../checkup/devFixture';
 import {
   BRIDGE_HOLD_ID,
+  LOADED_STS_ID,
+  PUSHUP_STANDARD_ID,
   SEATED_BAND_ROW_ID,
   STANDING_BAND_ROW_ID,
   STS_POWER_ID,
@@ -38,10 +40,12 @@ import {
   sessionPlanFromPlanningResult,
   staleEquipmentPlanningResult,
   staleMovementCapabilityPlanningResult,
+  staleReleasePolicyPlanningResult,
   staleSafetyCuePlanningResult,
   updateExerciseProgressionFromSession,
   validateHaleSessionPlanEquipment,
   validateHaleSessionPlanMovementCapabilities,
+  validateHaleSessionPlanReleasePolicy,
   validateHaleSessionPlanSafetyCues,
   validateGeneratedSessionForPlanning,
 } from '../sessionPlanning';
@@ -328,6 +332,89 @@ describe('planTodayHaleSession', () => {
     if (result.kind !== 'unavailable') throw new Error('expected unavailable result');
     expect(result.reason).toBe('daily_context_required');
     expect(sessionPlanFromPlanningResult(result)).toBeNull();
+  });
+
+  it('rejects direct optional-level manual practice requests in controlled beta', () => {
+    const result = planLadderPracticeSessionResult({
+      ladderId: 'push',
+      requestedLevelId: PUSHUP_STANDARD_ID,
+      activeBlock: block(),
+      training: legacyTraining(),
+      safetyProfile: { ...safety(), availableEquipment: ['chair', 'wall', 'floor_space'] },
+      lifeGoal: lifeGoal(),
+      adjustment: null,
+      today: START,
+    });
+
+    expect(result.kind).toBe('unavailable');
+    if (result.kind !== 'unavailable') throw new Error('expected unavailable result');
+    expect(result.reason).toBe('exercise_level_not_available_in_controlled_beta');
+    expect(result.issues?.map((issue) => issue.code)).toContain('exercise_level_not_available_in_controlled_beta');
+    expect(sessionPlanFromPlanningResult(result)).toBeNull();
+  });
+
+  it.each([
+    ['sit-to-stand', LOADED_STS_ID],
+    ['squat', 'squat-slow-eccentric'],
+    ['squat', 'squat-loaded'],
+    ['squat', 'chair-supported-split-squat'],
+    ['push', PUSHUP_STANDARD_ID],
+    ['lateral-stability', 'mini-band-lateral-walk'],
+    ['mobility-flexibility', 'neck-rotation'],
+  ])('rejects optional manual practice request %s / %s', (ladderId, requestedLevelId) => {
+    const result = planLadderPracticeSessionResult({
+      ladderId,
+      requestedLevelId,
+      activeBlock: block(),
+      training: legacyTraining(),
+      safetyProfile: {
+        ...safety(),
+        availableEquipment: ['chair', 'wall', 'floor_space', 'backpack', 'mini_band'],
+        movementCapabilities: confirmedMovementCapabilities(),
+      },
+      lifeGoal: lifeGoal(),
+      adjustment: null,
+      today: START,
+    });
+
+    expect(result.kind).toBe('unavailable');
+    if (result.kind !== 'unavailable') throw new Error('expected unavailable result');
+    expect(result.reason).toBe('exercise_level_not_available_in_controlled_beta');
+    expect(result.diagnostics.exerciseIds).toContain(requestedLevelId);
+  });
+
+  it('caps restored optional progress for current planning without rewriting stored progress', () => {
+    const restoredProgress: Record<string, LadderProgress> = {
+      'sit-to-stand': {
+        ladderId: 'sit-to-stand',
+        currentLevelId: LOADED_STS_ID,
+        completedSessionsAtLevel: 1,
+        failedSessionsAtLevel: 0,
+        recentCompletionRates: [0.95],
+        recentRpe: [2],
+        recentPain: [false],
+        updatedAt: START,
+      },
+    };
+    const plan = planTodayHaleSession({
+      activeBlock: strengthBlock(),
+      training: { ...legacyTraining(), ladderProgressById: restoredProgress },
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      targetSessionTemplateId: 'session_a',
+      includeOptionalLevels: true,
+      today: START,
+    });
+    const sitToStand = plan.metadata?.generatedExercises?.find((exercise) => exercise.ladderId === 'sit-to-stand');
+
+    expect(sitToStand).toMatchObject({
+      requestedLevelId: LOADED_STS_ID,
+      selectedDailyLevelId: STS_POWER_ID,
+      adjustmentReasons: expect.arrayContaining(['controlled_beta_release_cap']),
+    });
+    expect(plan.exercises.map((exercise) => exercise.releaseStatus)).not.toContain('v1_optional');
+    expect(validateHaleSessionPlanReleasePolicy({ plan }).status).toBe('current');
+    expect(restoredProgress['sit-to-stand'].currentLevelId).toBe(LOADED_STS_ID);
   });
 
   it('respects floor, stair, and support constraints for ladder practice', () => {
@@ -622,6 +709,63 @@ describe('planTodayHaleSession', () => {
     const recovery = staleSafetyCuePlanningResult({ plan: stalePlan, validation });
     expect(recovery.reason).toBe('missing_required_stop_rules');
     expect(getSessionPlanningRecoveryCopy(recovery)?.body).toContain('current setup and stop rules');
+  });
+
+  it('stamps and validates release policy snapshots before an unstarted plan can begin', () => {
+    const b = strengthBlock();
+    const plan = planTodayHaleSession({
+      activeBlock: b,
+      training: legacyTraining(),
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      targetSessionTemplateId: 'session_a',
+      today: START,
+    });
+
+    expect(plan.metadata?.releasePolicySnapshot?.schemaVersion).toBe(1);
+    expect(validateHaleSessionPlanReleasePolicy({ plan }).status).toBe('current');
+
+    const stalePlan: HaleSessionPlan = {
+      ...plan,
+      exercises: [
+        {
+          ...plan.exercises[0],
+          id: PUSHUP_STANDARD_ID,
+          ladderId: 'push',
+          releaseStatus: 'v1_optional',
+        },
+        ...plan.exercises.slice(1),
+      ],
+    };
+    const validation = validateHaleSessionPlanReleasePolicy({ plan: stalePlan });
+    expect(validation.status).toBe('exercise_level_not_available_in_controlled_beta');
+    const recovery = staleReleasePolicyPlanningResult({ plan: stalePlan, validation });
+    expect(recovery.reason).toBe('exercise_level_not_available_in_controlled_beta');
+    expect(getSessionPlanningRecoveryCopy(recovery)?.body).toContain('not available in the beta yet');
+  });
+
+  it('requires a release policy snapshot on current plans', () => {
+    const plan = planTodayHaleSession({
+      activeBlock: strengthBlock(),
+      training: legacyTraining(),
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      targetSessionTemplateId: 'session_a',
+      today: START,
+    });
+    const restoredWithoutReleaseSnapshot: HaleSessionPlan = {
+      ...plan,
+      metadata: {
+        ...plan.metadata!,
+        releasePolicySnapshot: undefined,
+      },
+    };
+    const validation = validateHaleSessionPlanReleasePolicy({ plan: restoredWithoutReleaseSnapshot });
+
+    expect(validation.status).toBe('missing_release_policy_snapshot');
+    expect(staleReleasePolicyPlanningResult({ plan: restoredWithoutReleaseSnapshot, validation }).reason).toBe(
+      'missing_release_policy_snapshot'
+    );
   });
 
   it('fails closed when generated exercise IDs are unsupported', () => {

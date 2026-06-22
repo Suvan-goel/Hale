@@ -7,6 +7,7 @@ import {
   getExercise,
   getExerciseLadder,
   hasExercise,
+  highestAvailableLevelForRelease,
   type ExerciseLevel,
 } from '../exercises';
 import {
@@ -93,6 +94,7 @@ export type ProgressionDiagnosticReason =
   | 'conflicting_ladder_levels'
   | 'duplicate_progression_event'
   | 'progression_held_by_policy'
+  | 'release_cap_reached'
   | 'progression_applied'
   | 'progression_application_failed';
 
@@ -527,6 +529,15 @@ export function applyProgressionEvidence(
       beforeLevelId: before?.currentLevelId,
       afterLevelId: after?.currentLevelId,
     });
+    if (releaseCapReached(event, before, after)) {
+      diagnostics.push({
+        ...diagnosticForEvent(event, 'release_cap_reached'),
+        decisionKind: 'held',
+        progressionEvidencePolicy: policy,
+        beforeLevelId: before?.currentLevelId,
+        afterLevelId: after?.currentLevelId,
+      });
+    }
   }
 
   return {
@@ -539,6 +550,28 @@ export function applyProgressionEvidence(
     decisions,
     diagnostics,
   };
+}
+
+function releaseCapReached(
+  event: LadderProgressionEvidenceEvent,
+  before: LadderProgress | undefined,
+  after: LadderProgress | undefined
+): boolean {
+  if (!before || !after) return false;
+  let cap: ExerciseLevel | null = null;
+  try {
+    cap = highestAvailableLevelForRelease(getExerciseLadder(event.ladderId));
+  } catch {
+    return false;
+  }
+  if (!cap || before.currentLevelId !== cap.id || after.currentLevelId !== cap.id) return false;
+  if (before.completedSessionsAtLevel < 1) return false;
+  if ((event.result.completionRate ?? 0) < 0.85) return false;
+  if (event.result.painReported) return false;
+  if (event.result.trackingQuality === 'poor') return false;
+  if (event.result.validTime?.signal === 'incomplete' || event.result.validTime?.signal === 'tracking_uncertain') return false;
+  const rpe = event.result.perceivedEffort;
+  return rpe === undefined || rpe <= 3;
 }
 
 export function applyProgressionEvidenceFromSession(input: {

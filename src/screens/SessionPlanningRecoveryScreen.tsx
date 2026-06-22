@@ -87,6 +87,10 @@ function planningPauseExplanation(result: Extract<HaleSessionPlanningResult, { k
     case 'missing_equipment_snapshot':
     case 'legacy_plan_requires_refresh':
       return 'This saved workout was prepared before Hale tracked equipment setup, so it needs a quick refresh.';
+    case 'exercise_level_not_available_in_controlled_beta':
+    case 'missing_release_policy_snapshot':
+    case 'unsupported_release_channel':
+      return 'This saved workout needs to be refreshed with a level that is available in the beta.';
     case 'no_active_block':
       return 'Hale needs an active 4-week plan before it can prepare today\'s workout.';
     case 'legacy_only_state':

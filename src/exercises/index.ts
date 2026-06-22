@@ -46,6 +46,32 @@ export {
   resolveExerciseLevel,
 } from './ladders';
 export type { ExerciseCameraView, ExerciseLadder, ExerciseLevel, ResolvedExerciseLevel } from './ladders';
+export {
+  CONTROLLED_BETA_HIDDEN_OPTIONAL_LEVEL_IDS,
+  CONTROLLED_BETA_RELEASE_CHANNEL,
+  INTERNAL_DEVELOPMENT_RELEASE_CHANNEL,
+  TRAINING_RELEASE_POLICY_SCHEMA_VERSION,
+  adjacentAvailableLevelId,
+  availableLevelsForRelease,
+  effectiveLevelForRelease,
+  exerciseLevelAvailability,
+  highestAvailableLevelForRelease,
+  isControlledBetaHiddenOptionalLevelId,
+  isExerciseLevelAvailableForRelease,
+  isPlannedTrainingReleasePolicySnapshot,
+  isTrainingReleaseChannel,
+  plannedTrainingReleasePolicySnapshotForExercises,
+  releasePolicyFingerprint,
+} from './releasePolicy';
+export type {
+  ExerciseLevelAvailability,
+  ExerciseLevelAvailabilityReason,
+  PlannedTrainingReleasePolicyExerciseSnapshot,
+  PlannedTrainingReleasePolicySnapshot,
+  ReleaseEffectiveLevelSelection,
+  ReleasePolicyExerciseSnapshotInput,
+  TrainingReleaseChannel,
+} from './releasePolicy';
 
 export { getExercise, hasExercise, listExercises, familyLevels, registerExercise } from './registry';
 export type {

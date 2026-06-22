@@ -81,10 +81,12 @@ import {
   planTodayHaleSession,
   staleEquipmentPlanningResult,
   staleMovementCapabilityPlanningResult,
+  staleReleasePolicyPlanningResult,
   staleSafetyCuePlanningResult,
   sessionPlanFromPlanningResult,
   validateHaleSessionPlanEquipment,
   validateHaleSessionPlanMovementCapabilities,
+  validateHaleSessionPlanReleasePolicy,
   validateHaleSessionPlanSafetyCues,
   type GenerationRecoveryAction,
   type HaleSessionPlanningResult,
@@ -2048,7 +2050,6 @@ function HaleApp() {
         lifecycleState?: typeof lifecycle.state;
         presetId?: string;
         targetSessionTemplateId?: PlanSessionId | string;
-        includeOptionalLevels?: boolean;
         sessionIntensity?: SessionIntensity;
       }
     ) => {
@@ -2074,7 +2075,6 @@ function HaleApp() {
         today: new Date(),
         presetId: preferences?.presetId,
         targetSessionTemplateId: preferences?.targetSessionTemplateId,
-        includeOptionalLevels: preferences?.includeOptionalLevels,
       });
       const plan = sessionPlanFromPlanningResult(result);
       if (plan) {
@@ -2131,7 +2131,6 @@ function HaleApp() {
       handleStartSession({
         ...(preferences ?? {}),
         presetId,
-        includeOptionalLevels: false,
         sessionIntensity: sessionIntensityForTrainingPreference(training.planPreferences.preferredIntensity),
       });
     },
@@ -2209,6 +2208,24 @@ function HaleApp() {
         currentFingerprint: movementCapabilityValidation.diagnostics[0]?.currentFingerprint,
       });
       setPlanningRecoveryResult(staleMovementCapabilityPlanningResult({ plan: activeSessionPlan, validation: movementCapabilityValidation }));
+      setFlow('session-unavailable');
+      return;
+    }
+    const releasePolicyValidation = validateHaleSessionPlanReleasePolicy({
+      plan: activeSessionPlan,
+    });
+    if (releasePolicyValidation.status !== 'current') {
+      addBreadcrumb('release policy plan invalidated', {
+        area: 'session_planning',
+        status: releasePolicyValidation.status,
+        blockId: activeSessionPlan.blockId,
+        templateId: activeSessionPlan.metadata?.templateId,
+        plannedDateKey: activeSessionPlan.metadata?.plannedDateKey,
+        plannedFingerprint: activeSessionPlan.metadata?.releasePolicySnapshot?.fingerprint,
+        currentFingerprint: releasePolicyValidation.diagnostics[0]?.currentFingerprint,
+        issueCount: releasePolicyValidation.diagnostics.length,
+      });
+      setPlanningRecoveryResult(staleReleasePolicyPlanningResult({ plan: activeSessionPlan, validation: releasePolicyValidation }));
       setFlow('session-unavailable');
       return;
     }

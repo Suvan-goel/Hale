@@ -32,6 +32,7 @@ import type {
   PlannedExerciseSafetyCueProfile,
   PlannedSafetyCueSnapshot,
 } from '../training/safetyCues';
+import type { PlannedTrainingReleasePolicySnapshot } from '../exercises';
 
 export type HaleUserFlowState =
   | 'needs_life_goal'
@@ -141,6 +142,7 @@ export interface HaleSessionPlanMetadata {
   equipmentSnapshot?: PlannedEquipmentSnapshot;
   movementCapabilitySnapshot?: PlannedMovementCapabilitySnapshot;
   safetyCueSnapshot?: PlannedSafetyCueSnapshot;
+  releasePolicySnapshot?: PlannedTrainingReleasePolicySnapshot;
   guidance?: readonly string[];
   equipmentNeeded?: readonly string[];
   fallbackReason?: string;

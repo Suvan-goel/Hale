@@ -1,7 +1,9 @@
 import type { AvailableEquipment, MovementSafetyProfile } from '../adherence';
 import {
+  availableLevelsForRelease,
+  effectiveLevelForRelease,
   getExerciseLadder,
-  listVisibleExerciseLadders,
+  listExerciseLadders,
   type ExerciseLadder,
   type ExerciseLevel,
   type MeasurementTier,
@@ -218,7 +220,6 @@ export function getExtraSessionCards(input: {
           painAreas: [],
           dailyContextSource: 'user_daily_check',
           ladderProgress: input.ladderProgressById ?? {},
-          includeOptionalLevels: false,
           today: input.today,
         });
     return {
@@ -243,7 +244,7 @@ export function getMovementLadderCards(input: {
 } = {}): MovementLadderCard[] {
   const available = availableEquipmentFor({ safetyProfile: input.safetyProfile });
   const movementCapabilities = movementCapabilitiesFromSafetyProfile(input.safetyProfile);
-  return listVisibleExerciseLadders(false).map((ladder) => {
+  return listExerciseLadders().filter((ladder) => ladder.releaseStatus === 'v1_core').map((ladder) => {
     const current = currentLevelFor(ladder, input.ladderProgressById?.[ladder.id], available, movementCapabilities);
     return {
       id: ladder.id,
@@ -273,14 +274,15 @@ export function getMovementLadderDetail(
     return null;
   }
   if (source.releaseStatus !== 'v1_core') return null;
+  const betaLevels = availableLevelsForRelease(source);
   const ladder: ExerciseLadder = {
     ...source,
-    levels: source.levels.filter((level) => level.releaseStatus === 'v1_core'),
+    levels: betaLevels,
   };
   if (ladder.levels.length === 0) return null;
   const available = availableEquipmentFor({ safetyProfile: input.safetyProfile });
   const movementCapabilities = movementCapabilitiesFromSafetyProfile(input.safetyProfile);
-  const current = currentLevelFor(ladder, ladderProgressById[ladder.id], available, movementCapabilities);
+  const current = currentLevelFor(source, ladderProgressById[ladder.id], available, movementCapabilities);
   const currentIndex = Math.max(0, ladder.levels.findIndex((level) => level.id === current.id));
   const levels = ladder.levels.map((level) => levelView(level, level.id === current.id, available, movementCapabilities));
   const card = getMovementLadderCards({ ladderProgressById, safetyProfile: input.safetyProfile }).find((item) => item.id === ladder.id);
@@ -386,9 +388,10 @@ function currentLevelFor(
   movementCapabilities?: NormalizedMovementCapabilityProfile
 ): ExerciseLevel {
   const preferredId = progress?.currentLevelId ?? ladder.defaultLevelId;
-  const preferred = ladder.levels.find((level) => level.id === preferredId) ?? ladder.levels[0];
+  const releaseSelection = effectiveLevelForRelease(ladder, preferredId);
+  const preferred = releaseSelection?.selectedLevel ?? ladder.levels.find((level) => level.id === preferredId) ?? ladder.levels[0];
   if (!available) return preferred;
-  return practiceLevelFor(ladder.levels, preferred, available, movementCapabilities) ?? preferred;
+  return practiceLevelFor(availableLevelsForRelease(ladder), preferred, available, movementCapabilities) ?? preferred;
 }
 
 function practiceLevelFor(

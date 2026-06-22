@@ -2,6 +2,9 @@ import {
   getExercise,
   getExerciseLadder,
   listExerciseLadders,
+  adjacentAvailableLevelId,
+  effectiveLevelForRelease,
+  isExerciseLevelAvailableForRelease,
   type ExerciseDefinition,
   type ExerciseKind,
   type ExerciseLadder,
@@ -176,6 +179,7 @@ export interface GenerateSessionInput {
   recentSessions?: readonly RecentSessionSummary[];
   scheduleSelection?: TemplateSelectionSchedule;
   source?: SessionSource;
+  /** @deprecated Controlled beta ignores caller attempts to enable optional levels. */
   includeOptionalLevels?: boolean;
   sessionIntensity?: SessionIntensity;
 }
@@ -575,7 +579,6 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
       readiness,
       sessionIntensity,
       ladderProgress: input.ladderProgress ?? {},
-      includeOptionalLevels: input.includeOptionalLevels ?? false,
       usedExerciseIds,
     });
     if (!selected) {
@@ -673,7 +676,9 @@ export function updateLadderProgressAfterSession(
     const averageRpe = recentRpe.length > 0 ? mean(recentRpe) : NaN;
     const averageCompletion = mean(recentCompletionRates);
 
-    let currentLevelId = progress.currentLevelId;
+    let currentLevelId =
+      effectiveLevelForRelease(getExerciseLadder(ladderId), progress.currentLevelId)?.selectedLevel.id ??
+      progress.currentLevelId;
     let completedSessionsAtLevel = progress.completedSessionsAtLevel;
     let failedSessionsAtLevel = progress.failedSessionsAtLevel;
     let readyToProgress = progress.readyToProgress;
@@ -902,7 +907,6 @@ interface SelectionInput {
   readiness: DailyReadiness;
   sessionIntensity: SessionIntensity;
   ladderProgress: Record<string, LadderProgress>;
-  includeOptionalLevels: boolean;
   usedExerciseIds: Set<string>;
 }
 
@@ -949,22 +953,19 @@ function selectLevelFromLadder(
   const order = levelSearchOrder(
     ladder.levels.length,
     target.selectedIndex,
-    canSearchHarderLevels(ladder, input.dailyContext, input.sessionIntensity)
+    !target.releaseCapped && canSearchHarderLevels(ladder, input.dailyContext, input.sessionIntensity)
   );
   for (const idx of order) {
     const level = ladder.levels[idx];
     if (!level) continue;
-    if (!releaseVisible(level.releaseStatus, input.includeOptionalLevels)) continue;
+    if (!isExerciseLevelAvailableForRelease(level)) continue;
     if (input.usedExerciseIds.has(level.id) && ladder.levels.length > 1) continue;
     if (!equipmentSupportsTags(level.equipment, input.equipment)) continue;
     if (isExerciseExcludedByDiscomfort(ladder, level, input.discomfortConstraint)) continue;
     if (!movementCapabilitySupportsLevel(level, input.movementCapabilities)) continue;
     const def = safeExercise(level.id);
     if (!def) continue;
-    const substitutions =
-      target.requestedLevelId && target.requestedLevelId !== level.id
-        ? [`Adjusted from ${levelName(ladder, target.requestedLevelId)} to ${level.name} for today's setup.`]
-        : [];
+    const substitutions = substitutionsForDailySelection(ladder, target, level);
     return {
       ladder,
       level,
@@ -983,17 +984,19 @@ function desiredLevelTarget(
   readiness: DailyReadiness,
   sessionIntensity: SessionIntensity,
   dailyContext: NormalizedDailyTrainingContext
-): { requestedLevelId: string; selectedIndex: number; reasons: DailyTrainingReasonCode[] } {
+): { requestedLevelId: string; selectedIndex: number; reasons: DailyTrainingReasonCode[]; releaseCapped: boolean } {
   const desiredId = progress?.currentLevelId ?? ladder.defaultLevelId;
-  let idx = Math.max(0, ladder.levels.findIndex((level) => level.id === desiredId));
-  const requestedLevelId = ladder.levels[idx]?.id ?? ladder.defaultLevelId;
+  const releaseSelection = effectiveLevelForRelease(ladder, desiredId);
+  let idx = releaseSelection?.selectedIndex ?? Math.max(0, ladder.levels.findIndex((level) => level.id === ladder.defaultLevelId));
+  const requestedLevelId = releaseSelection?.requestedLevelId ?? ladder.levels[idx]?.id ?? ladder.defaultLevelId;
   const reasons: DailyTrainingReasonCode[] = [];
+  if (releaseSelection?.releaseCapped) reasons.push('controlled_beta_release_cap');
   if (sessionIntensity === 'beginner' && !progress && idx > 0) idx -= 1;
   if ((readiness === 'low_energy' || readiness === 'something_hurts' || dailyContext.discomfortReported) && idx > 0) {
     idx -= 1;
     reasons.push(readiness === 'something_hurts' || dailyContext.discomfortReported ? 'discomfort_reported' : 'reduced_readiness');
   }
-  return { requestedLevelId, selectedIndex: idx, reasons };
+  return { requestedLevelId, selectedIndex: idx, reasons, releaseCapped: releaseSelection?.releaseCapped ?? false };
 }
 
 function canSearchHarderLevels(
@@ -1033,6 +1036,18 @@ function fallbackReasons(
     return ['A resistance band is needed for upper-back pulling work. This is supporting shoulder work, not an upper-back pull substitute.'];
   }
   return [`Used ${ladder.title} because ${slot.title.toLowerCase()} needed a safer fit today.`];
+}
+
+function substitutionsForDailySelection(
+  ladder: ExerciseLadder,
+  target: { requestedLevelId?: string; releaseCapped?: boolean },
+  level: ExerciseLevel
+): string[] {
+  if (!target.requestedLevelId || target.requestedLevelId === level.id) return [];
+  if (target.releaseCapped) {
+    return [`Hale used the closest supported level instead of ${levelName(ladder, target.requestedLevelId)}. Your plan and progress are unchanged.`];
+  }
+  return [`Adjusted from ${levelName(ladder, target.requestedLevelId)} to ${level.name} for today's setup.`];
 }
 
 function beginnerPrescription(input: {
@@ -1190,12 +1205,6 @@ function readinessOrder(slot: SessionSlot, readiness: DailyReadiness): number {
   if (readiness === 'something_hurts' && slot.domain === 'balance_stability') return 1;
   if (slot.domain === 'balance_stability') return 2;
   return 3;
-}
-
-function releaseVisible(status: ReleaseStatus, includeOptional: boolean): boolean {
-  if (status === 'v1_core') return true;
-  if (status === 'v1_optional') return includeOptional;
-  return false;
 }
 
 function safetyNotesFor(level: ExerciseLevel): string[] | undefined {
@@ -1424,7 +1433,7 @@ function missingLabelsForSlot(slot: SessionSlot, equipment: readonly AvailableEq
   for (const ladderId of ladderIds) {
     const ladder = safeLadder(ladderId);
     if (!ladder) continue;
-    for (const level of ladder.levels.filter((item) => releaseVisible(item.releaseStatus, false))) {
+    for (const level of ladder.levels.filter((item) => isExerciseLevelAvailableForRelease(item))) {
       for (const label of equipmentMissingLabels(level.equipment, equipment)) {
         if (!labels.includes(label)) labels.push(label);
       }
@@ -1445,7 +1454,7 @@ function slotHasUnsupportedCapability(
   for (const ladderId of ladderIds) {
     const ladder = safeLadder(ladderId);
     if (!ladder) continue;
-    for (const level of ladder.levels.filter((item) => releaseVisible(item.releaseStatus, false))) {
+    for (const level of ladder.levels.filter((item) => isExerciseLevelAvailableForRelease(item))) {
       if (!equipmentSupportsTags(level.equipment, equipment)) continue;
       if (movementCapabilityBlockReasonsForLevel(level, movementCapabilities).length > 0) return true;
     }
@@ -1507,9 +1516,7 @@ function existingOrInitialProgress(
 
 function adjacentLevelId(ladderId: string, currentLevelId: string, direction: -1 | 1): string {
   const ladder = getExerciseLadder(ladderId);
-  const idx = Math.max(0, ladder.levels.findIndex((level) => level.id === currentLevelId));
-  const nextIdx = Math.min(Math.max(0, idx + direction), ladder.levels.length - 1);
-  return ladder.levels[nextIdx].id;
+  return adjacentAvailableLevelId(ladder, currentLevelId, direction);
 }
 
 function levelIndex(ladderId: string, currentLevelId: string): number {

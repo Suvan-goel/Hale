@@ -192,9 +192,9 @@ describe('V1 ladder catalogue', () => {
     });
   });
 
-  it('hides post-V1 and hidden legacy levels from the visible catalogue', () => {
+  it('hides optional, post-V1, and hidden legacy levels from the visible catalogue', () => {
     const visible = listVisibleExerciseLadders().flatMap((l) => l.levels);
-    expect(visible.some((l) => l.releaseStatus === 'post_v1_beta' || l.releaseStatus === 'hidden_legacy')).toBe(false);
+    expect(visible.some((l) => l.releaseStatus !== 'v1_core')).toBe(false);
   });
 
   it('resolves legacy ids to canonical ladder levels', () => {

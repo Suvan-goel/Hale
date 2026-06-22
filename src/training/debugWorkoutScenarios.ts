@@ -1,5 +1,5 @@
 import type { AvailableEquipment } from '../adherence';
-import { BALANCE_TANDEM_ID, LOADED_STS_ID, STANDING_BAND_ROW_ID, THORACIC_ROTATION_ID } from '../exercises';
+import { BALANCE_TANDEM_ID, STANDING_BAND_ROW_ID, STS_POWER_ID, THORACIC_ROTATION_ID } from '../exercises';
 import {
   createSessionTemplatesForFocus,
   createTrainingBlockFromAssessment,
@@ -131,9 +131,8 @@ export function generateDebugWorkoutScenarios(): DebugWorkoutScenarioPreview[] {
       focusDomain: 'strength_power',
       templateIndex: 0,
       equipment: ['chair', 'wall', 'resistance_band', 'door_anchor', 'backpack'],
-      includeOptionalLevels: true,
       ladderProgress: {
-        'sit-to-stand': progress('sit-to-stand', LOADED_STS_ID),
+        'sit-to-stand': progress('sit-to-stand', STS_POWER_ID),
         'pull-upper-back': progress('pull-upper-back', STANDING_BAND_ROW_ID),
         balance: progress('balance', BALANCE_TANDEM_ID),
         'mobility-flexibility': progress('mobility-flexibility', THORACIC_ROTATION_ID),
@@ -181,7 +180,6 @@ function previewFromBlock(input: {
   readiness?: DailyReadiness;
   painAreas?: readonly PainArea[];
   ladderProgress?: Record<string, LadderProgress>;
-  includeOptionalLevels?: boolean;
   sessionIntensity?: GeneratedSessionInputIntensity;
 }): DebugWorkoutScenarioPreview {
   const block = blockFor(input.focusDomain);
@@ -194,7 +192,6 @@ function previewFromBlock(input: {
     dailyReadiness: input.readiness ?? 'ready',
     painAreas: input.painAreas,
     ladderProgress: input.ladderProgress,
-    includeOptionalLevels: input.includeOptionalLevels,
     sessionIntensity: input.sessionIntensity,
   });
   return toPreview(input.id, input.title, block, session);

@@ -635,7 +635,6 @@ function RecordingCardFooter({
       pointerEvents="none"
       style={[styles.recordingFooter, style]}
     >
-      <View style={styles.recordingFooterRule} />
       <View style={styles.recordingFooterMovement}>
         <Text style={styles.recordingFooterMovementMeta} numberOfLines={1}>
           {meta.exercise}
@@ -997,21 +996,12 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 3,
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.lg,
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
-  },
-  recordingFooterRule: {
-    position: 'absolute',
-    top: 0,
-    left: spacing.xl,
-    right: spacing.xl,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.borderHairline,
-    opacity: 0.58,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.md,
   },
   recordingFooterMovement: {
     flex: 1,
@@ -1040,7 +1030,7 @@ const styles = StyleSheet.create({
     width: 142,
     flexShrink: 0,
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'flex-end',
     gap: spacing.lg,
   },
@@ -1063,9 +1053,9 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   recordingFooterMetricValue: {
-    ...type.metricSmall,
+    ...type.cardTitle,
     fontSize: 42,
-    lineHeight: 44,
+    lineHeight: 46,
     color: colors.textPrimary,
     textAlign: 'right',
   },

@@ -16,9 +16,17 @@ import {
   getExercise,
   getExerciseLadder,
   hasExercise,
+  effectiveLevelForRelease,
+  exerciseLevelAvailability,
+  isPlannedTrainingReleasePolicySnapshot,
+  plannedTrainingReleasePolicySnapshotForExercises,
+  releasePolicyFingerprint,
+  resolveExerciseLevel,
   type ExerciseDefinition,
   type ExerciseLadder,
   type ExerciseLevel,
+  type PlannedTrainingReleasePolicySnapshot,
+  type ReleasePolicyExerciseSnapshotInput,
 } from '../exercises';
 import type { HaleLifecycleState } from './appLifecycle';
 import {
@@ -124,6 +132,7 @@ export interface PlanTodayHaleSessionInput extends TodaySessionPreferences {
   presetId?: string;
   targetSessionTemplateId?: PlanSessionId | string;
   source?: SessionSource;
+  /** @deprecated Controlled beta does not expose optional levels. */
   includeOptionalLevels?: boolean;
   sessionIntensity?: SessionIntensity;
   generateSession?: (input: GenerateSessionInput) => GeneratedSession;
@@ -159,6 +168,9 @@ export type GenerationUnavailableReason =
   | 'missing_required_band_cues'
   | 'missing_required_stop_rules'
   | 'unresolved_safety_cue_id'
+  | 'exercise_level_not_available_in_controlled_beta'
+  | 'missing_release_policy_snapshot'
+  | 'unsupported_release_channel'
   | 'legacy_plan_requires_refresh';
 
 export type GenerationRecoveryAction =
@@ -194,6 +206,9 @@ export type GeneratedSessionIssueCode =
   | 'missing_required_band_cues'
   | 'missing_required_stop_rules'
   | 'unresolved_safety_cue_id'
+  | 'exercise_level_not_available_in_controlled_beta'
+  | 'missing_release_policy_snapshot'
+  | 'unsupported_release_channel'
   | 'missing_slot_stimulus'
   | 'equipment_profile_unknown';
 
@@ -270,6 +285,7 @@ export interface SessionPlanningRecoveryCopy {
 
 export interface PlanLadderPracticeSessionInput {
   ladderId: string;
+  requestedLevelId?: string;
   safetyProfile?: MovementSafetyProfile | null;
   lifeGoal?: LifeGoal | null;
   activeBlock?: MovementBlock | null;
@@ -402,7 +418,6 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         scheduleSelection: schedule ? templateSelectionSchedule(schedule) : undefined,
         today: plannedFor,
         source: input.source,
-        includeOptionalLevels: input.includeOptionalLevels,
         sessionIntensity: input.sessionIntensity,
       });
     } catch {
@@ -517,7 +532,6 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         recentSessions: recentSessionsFor(input, null),
         today: plannedFor,
         source: input.source,
-        includeOptionalLevels: input.includeOptionalLevels,
         sessionIntensity: input.sessionIntensity,
       });
     } catch {
@@ -614,8 +628,30 @@ export function planLadderPracticeSessionResult(input: PlanLadderPracticeSession
       issues: [{ code: 'template_id_mismatch', templateId: `practice-${ladder.id}` }],
     });
   }
-  const coreLevels = ladder.levels.filter((level) => level.releaseStatus === 'v1_core');
-  if (coreLevels.length === 0) {
+  if (input.requestedLevelId) {
+    const requested = ladder.levels.find((level) => level.id === input.requestedLevelId);
+    if (!requested) {
+      return unavailablePlanningResult({
+        reason: 'invalid_template',
+        templateId: `practice-${ladder.id}`,
+        planningDateKey: `practice-${ladder.id}:${planningDate}`,
+        issues: [{ code: 'template_id_mismatch', templateId: `practice-${ladder.id}` }],
+      });
+    }
+    const availability = exerciseLevelAvailability(requested);
+    if (!availability.available) {
+      return unavailablePlanningResult({
+        reason: 'exercise_level_not_available_in_controlled_beta',
+        templateId: `practice-${ladder.id}`,
+        planningDateKey: `practice-${ladder.id}:${planningDate}`,
+        recoveryActions: ['review_setup', 'retry'],
+        issues: [{ code: 'exercise_level_not_available_in_controlled_beta', exerciseId: requested.id, templateId: `practice-${ladder.id}` }],
+        exerciseIds: [requested.id],
+      });
+    }
+  }
+  const betaLevels = ladder.levels.filter((level) => exerciseLevelAvailability(level).available);
+  if (betaLevels.length === 0) {
     return unavailablePlanningResult({
       reason: 'missing_template',
       templateId: `practice-${ladder.id}`,
@@ -624,9 +660,14 @@ export function planLadderPracticeSessionResult(input: PlanLadderPracticeSession
     });
   }
   const progress = (input.ladderProgress ?? input.training?.ladderProgressById ?? {})[ladder.id];
-  const preferred = coreLevels.find((level) => level.id === progress?.currentLevelId) ??
-    coreLevels.find((level) => level.id === ladder.defaultLevelId) ??
-    coreLevels[0];
+  const releaseSelection = effectiveLevelForRelease(
+    ladder,
+    input.requestedLevelId ?? progress?.currentLevelId ?? ladder.defaultLevelId
+  );
+  const preferred = releaseSelection?.selectedLevel ??
+    betaLevels.find((level) => level.id === ladder.defaultLevelId) ??
+    betaLevels[0];
+  const adjustmentReasons = releaseSelection?.releaseCapped ? ['controlled_beta_release_cap' as const] : undefined;
   const canonical = canonicalEquipmentForPlanning(input);
   if (canonical.canonical.status !== 'confirmed') {
     return unavailablePlanningResult({
@@ -700,6 +741,15 @@ export function planLadderPracticeSessionResult(input: PlanLadderPracticeSession
       equipmentSnapshot: canonical.snapshot,
       movementCapabilitySnapshot: movementCapabilityContext.snapshot,
       safetyCueSnapshot: plannedSafetyCueSnapshotForExercises([exercise.id]),
+      releasePolicySnapshot: plannedTrainingReleasePolicySnapshotForExercises([
+        releasePolicyExerciseInputForManual({
+          exercise,
+          ladderId: ladder.id,
+          level,
+          requestedLevelId: releaseSelection?.requestedLevelId,
+          adjustmentReasons,
+        }),
+      ]),
       generatedExercises: [
         {
           exerciseId: exercise.id,
@@ -709,6 +759,9 @@ export function planLadderPracticeSessionResult(input: PlanLadderPracticeSession
           repsPerSet: exercise.targetReps,
           secondsPerSet: exercise.durationSeconds,
           measurementTier: exercise.measurementTier,
+          requestedLevelId: releaseSelection?.requestedLevelId,
+          selectedDailyLevelId: level.id,
+          adjustmentReasons,
         },
       ],
     },
@@ -777,6 +830,9 @@ export function adaptGeneratedSessionToHaleSessionPlan(
       equipmentSnapshot,
       movementCapabilitySnapshot,
       safetyCueSnapshot: plannedSafetyCueSnapshotForExercises(exercises.map((exercise) => exercise.id)),
+      releasePolicySnapshot: plannedTrainingReleasePolicySnapshotForExercises(
+        generated.exercises.map(releasePolicyExerciseInputForGenerated)
+      ),
       guidance: generated.guidance,
       equipmentNeeded: equipmentNeeded(exercises),
       generatedExercises: generated.exercises.map(toGeneratedExerciseMetadata),
@@ -875,6 +931,18 @@ export function getSessionPlanningRecoveryCopy(result: HaleSessionPlanningResult
     return {
       title: 'Review movement setup before starting.',
       body: 'This movement needs a saved setup confirmation before Hale can include it.',
+      primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
+      secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
+    };
+  }
+  if (
+    result.reason === 'exercise_level_not_available_in_controlled_beta' ||
+    result.reason === 'missing_release_policy_snapshot' ||
+    result.reason === 'unsupported_release_channel'
+  ) {
+    return {
+      title: 'This session needs to be refreshed before it can start.',
+      body: 'This level is not available in the beta yet. Hale can use the closest supported level. Your plan and progress are unchanged.',
       primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
       secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
     };
@@ -1001,7 +1069,14 @@ export function validateGeneratedSessionForPlanning({
     }
     if (seenExerciseIds.has(exerciseId)) issues.push({ code: 'duplicate_exercise_id', exerciseId, templateId, blockId });
     seenExerciseIds.add(exerciseId);
+    const catalogLevel = resolveCatalogLevel(exerciseId);
     if (!hasExercise(exerciseId)) issues.push({ code: 'unsupported_exercise_id', exerciseId, templateId, blockId });
+    if (exercise.levelId !== exerciseId) issues.push({ code: 'invalid_exercise_identity', exerciseId, templateId, blockId });
+    const releaseStatus = exercise.releaseStatus ?? catalogLevel?.releaseStatus;
+    const releaseAvailability = exerciseLevelAvailability({ levelId: exercise.levelId, releaseStatus });
+    if (!releaseAvailability.available) {
+      issues.push({ code: 'exercise_level_not_available_in_controlled_beta', exerciseId, templateId, blockId });
+    }
     if (hasExercise(exerciseId)) {
       const safetyValidation = validateExerciseSafetyCueProfile({ exerciseId });
       if (!safetyValidation.valid) {
@@ -1403,6 +1478,9 @@ function recoveryActionsFor(reason: GenerationUnavailableReason): readonly Gener
   if (reason === 'legacy_only_state') return ['open_plan', 'create_block', 'contact_support'];
   if (
     reason === 'no_safe_exercises' ||
+    reason === 'exercise_level_not_available_in_controlled_beta' ||
+    reason === 'missing_release_policy_snapshot' ||
+    reason === 'unsupported_release_channel' ||
     reason === 'equipment_confirmation_required' ||
     reason === 'equipment_changed_after_planning' ||
     reason === 'missing_equipment_snapshot' ||
@@ -1456,6 +1534,9 @@ function reasonForGeneratedIssues(issues: readonly GeneratedSessionIssue[]): Gen
     return issues.some((issue) => issue.code === 'unsafe_equipment') ? 'no_safe_exercises' : 'empty_generated_session';
   }
   if (issues.some((issue) => issue.code === 'unsupported_exercise_id')) return 'unsupported_exercise_id';
+  if (issues.some((issue) => issue.code === 'exercise_level_not_available_in_controlled_beta')) {
+    return 'exercise_level_not_available_in_controlled_beta';
+  }
   if (issues.some((issue) => issue.code === 'duplicate_exercise_id')) return 'duplicate_exercise_id';
   if (issues.some((issue) => issue.code === 'invalid_stimulus_metadata' || issue.code === 'missing_slot_stimulus')) {
     return 'missing_stimulus_metadata';
@@ -1495,6 +1576,15 @@ function generatedExerciseIds(value: unknown): string[] | undefined {
     .map((exercise) => (exercise as Partial<GeneratedExercise>).exerciseId)
     .filter((id): id is string => typeof id === 'string' && id.length > 0);
   return ids && ids.length > 0 ? unique(ids) : undefined;
+}
+
+function resolveCatalogLevel(exerciseId: string | undefined): ExerciseLevel | null {
+  if (!exerciseId) return null;
+  try {
+    return resolveExerciseLevel(exerciseId).level;
+  } catch {
+    return null;
+  }
 }
 
 function currentBlockWeek(block: MovementBlock, today: string | Date): number {
@@ -1666,6 +1756,69 @@ export function validateHaleSessionPlanSafetyCues(input: {
   };
 }
 
+export type PlanReleasePolicyValidationStatus =
+  | 'missing_release_policy_snapshot'
+  | 'unsupported_release_channel'
+  | 'release_policy_changed'
+  | 'exercise_level_not_available_in_controlled_beta';
+
+export type PlanReleasePolicyValidation =
+  | { status: 'current'; snapshot: PlannedTrainingReleasePolicySnapshot }
+  | {
+      status: PlanReleasePolicyValidationStatus;
+      diagnostics: readonly {
+        reason: PlanReleasePolicyValidationStatus;
+        exerciseId?: string;
+        levelId?: string;
+        plannedFingerprint?: string;
+        currentFingerprint?: string;
+      }[];
+    };
+
+export function validateHaleSessionPlanReleasePolicy(input: {
+  plan: HaleSessionPlan;
+}): PlanReleasePolicyValidation {
+  const planned = input.plan.metadata?.releasePolicySnapshot;
+  if (!isPlannedTrainingReleasePolicySnapshot(planned)) {
+    return {
+      status: 'missing_release_policy_snapshot',
+      diagnostics: [{ reason: 'missing_release_policy_snapshot' }],
+    };
+  }
+  if (planned.channel !== 'controlled_beta') {
+    return {
+      status: 'unsupported_release_channel',
+      diagnostics: [{ reason: 'unsupported_release_channel', plannedFingerprint: planned.fingerprint }],
+    };
+  }
+
+  const current = releasePolicySnapshotForPlan(input.plan);
+  const unavailable = current.exercises.filter((exercise) => !exercise.availability.available);
+  if (unavailable.length > 0) {
+    return {
+      status: 'exercise_level_not_available_in_controlled_beta',
+      diagnostics: unavailable.map((exercise) => ({
+        reason: 'exercise_level_not_available_in_controlled_beta',
+        exerciseId: exercise.exerciseId,
+        levelId: exercise.levelId,
+        plannedFingerprint: planned.fingerprint,
+        currentFingerprint: current.fingerprint,
+      })),
+    };
+  }
+  if (planned.policyFingerprint !== releasePolicyFingerprint() || planned.fingerprint !== current.fingerprint) {
+    return {
+      status: 'release_policy_changed',
+      diagnostics: [{
+        reason: 'release_policy_changed',
+        plannedFingerprint: planned.fingerprint,
+        currentFingerprint: current.fingerprint,
+      }],
+    };
+  }
+  return { status: 'current', snapshot: current };
+}
+
 export function staleEquipmentPlanningResult(input: {
   plan: HaleSessionPlan;
   validation: PlanEquipmentValidation;
@@ -1690,6 +1843,28 @@ export function staleEquipmentPlanningResult(input: {
   });
 }
 
+export function staleReleasePolicyPlanningResult(input: {
+  plan: HaleSessionPlan;
+  validation: PlanReleasePolicyValidation;
+}): Extract<HaleSessionPlanningResult, { kind: 'unavailable' }> {
+  const reason =
+    input.validation.status === 'current'
+      ? 'missing_release_policy_snapshot'
+      : input.validation.status === 'release_policy_changed'
+        ? 'legacy_plan_requires_refresh'
+        : input.validation.status;
+  return unavailablePlanningResult({
+    reason,
+    blockId: input.plan.blockId,
+    templateId: input.plan.metadata?.templateId,
+    planningDateKey: input.plan.metadata?.plannedDateKey,
+    focusDomain: input.plan.focusDomain,
+    recoveryActions: ['retry', 'review_setup'],
+    issues: releasePolicyDiagnosticsToIssues(input.validation, input.plan),
+    exerciseIds: input.plan.exercises.map((exercise) => exercise.id),
+  });
+}
+
 export function staleMovementCapabilityPlanningResult(input: {
   plan: HaleSessionPlan;
   validation: PlanMovementCapabilityValidation;
@@ -1710,6 +1885,25 @@ export function staleMovementCapabilityPlanningResult(input: {
     issues: [{ code: 'movement_capability_profile_unknown', blockId: input.plan.blockId, templateId: input.plan.metadata?.templateId }],
     exerciseIds: input.plan.exercises.map((exercise) => exercise.id),
   });
+}
+
+function releasePolicyDiagnosticsToIssues(
+  validation: PlanReleasePolicyValidation,
+  plan: HaleSessionPlan
+): GeneratedSessionIssue[] {
+  if (validation.status === 'current') {
+    return [{ code: 'missing_release_policy_snapshot', blockId: plan.blockId, templateId: plan.metadata?.templateId }];
+  }
+  if (validation.status === 'release_policy_changed') {
+    return [{ code: 'missing_release_policy_snapshot', blockId: plan.blockId, templateId: plan.metadata?.templateId }];
+  }
+  const code: GeneratedSessionIssueCode = validation.status;
+  return validation.diagnostics.map((diagnostic) => ({
+    code,
+    exerciseId: diagnostic.exerciseId,
+    blockId: plan.blockId,
+    templateId: plan.metadata?.templateId,
+  }));
 }
 
 export function staleSafetyCuePlanningResult(input: {
@@ -1876,6 +2070,42 @@ function toGeneratedExerciseMetadata(exercise: GeneratedExercise) {
   };
 }
 
+function releasePolicyExerciseInputForGenerated(exercise: GeneratedExercise): ReleasePolicyExerciseSnapshotInput {
+  return {
+    exerciseId: exercise.exerciseId,
+    ladderId: exercise.ladderId,
+    levelId: exercise.levelId,
+    requestedLevelId: exercise.requestedLevelId,
+    selectedDailyLevelId: exercise.selectedDailyLevelId,
+    releaseStatus: exercise.releaseStatus,
+    adjustmentReasons: exercise.adjustmentReasons,
+  };
+}
+
+function releasePolicyExerciseInputForManual({
+  exercise,
+  ladderId,
+  level,
+  requestedLevelId,
+  adjustmentReasons,
+}: {
+  exercise: HaleExercise;
+  ladderId: string;
+  level: ExerciseLevel;
+  requestedLevelId?: string;
+  adjustmentReasons?: readonly string[];
+}): ReleasePolicyExerciseSnapshotInput {
+  return {
+    exerciseId: exercise.id,
+    ladderId,
+    levelId: level.id,
+    requestedLevelId,
+    selectedDailyLevelId: level.id,
+    releaseStatus: level.releaseStatus,
+    adjustmentReasons,
+  };
+}
+
 function toSlotStimulusMetadata(stimulus: SlotStimulus) {
   return {
     slotId: stimulus.slotId,
@@ -1948,6 +2178,30 @@ function equipmentNeeded(exercises: readonly HaleExercise[]): string[] {
       .flatMap((exercise) => equipmentLabels(exercise.requiresEquipment ?? []))
       .filter((item) => item && item !== 'No optional equipment')
   );
+}
+
+function releasePolicySnapshotForPlan(plan: HaleSessionPlan): PlannedTrainingReleasePolicySnapshot {
+  return plannedTrainingReleasePolicySnapshotForExercises(releasePolicyExerciseInputsForPlan(plan));
+}
+
+function releasePolicyExerciseInputsForPlan(plan: HaleSessionPlan): ReleasePolicyExerciseSnapshotInput[] {
+  const metadataByExerciseId = new Map(
+    (plan.metadata?.generatedExercises ?? []).map((exercise) => [exercise.exerciseId, exercise])
+  );
+  return plan.exercises.map((exercise) => {
+    const metadata = metadataByExerciseId.get(exercise.id);
+    const catalogLevel = resolveCatalogLevel(exercise.id);
+    const levelId = metadata?.selectedDailyLevelId ?? metadata?.levelId ?? exercise.id;
+    return {
+      exerciseId: exercise.id,
+      ladderId: metadata?.ladderId ?? exercise.ladderId,
+      levelId,
+      requestedLevelId: metadata?.requestedLevelId,
+      selectedDailyLevelId: metadata?.selectedDailyLevelId ?? levelId,
+      releaseStatus: exercise.releaseStatus ?? catalogLevel?.releaseStatus,
+      adjustmentReasons: metadata?.adjustmentReasons,
+    };
+  });
 }
 
 function plannedDateKey(templateId: string | undefined, plannedFor: string | Date): string {
