@@ -12,6 +12,7 @@ import {
 import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
 import type { HaleSessionPlan } from '../haleFlow';
+import { safetyCueTexts } from '../training/safetyCues';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 
 export function SessionPreviewScreen({
@@ -26,6 +27,7 @@ export function SessionPreviewScreen({
   const equipment = plan.metadata?.equipmentNeeded ?? [];
   const source = plan.metadata?.source;
   const focusStimulusCopy = focusStimulusPreviewCopy(plan);
+  const globalSafety = safetyCueTexts(plan.metadata?.safetyCueSnapshot?.globalCueIds ?? []);
   return (
     <Screen>
       <BackArrowButton accessibilityLabel="Back" onPress={onCancel} />
@@ -111,6 +113,15 @@ export function SessionPreviewScreen({
         </Card>
       ) : null}
 
+      {globalSafety.length > 0 ? (
+        <Card>
+          <SectionHeader title="Safety" />
+          {globalSafety.map((line) => (
+            <Text key={line} style={styles.body}>{line}</Text>
+          ))}
+        </Card>
+      ) : null}
+
       <View style={styles.actions}>
         <PrimaryButton title="Start Session" accessibilityLabel={`Start ${plan.title}`} onPress={onStart} style={styles.action} />
       </View>
@@ -150,6 +161,9 @@ function ExercisePreviewRow({
         </View>
         <Text style={styles.exerciseDescriptor}>{exerciseDescriptor(exercise)}</Text>
         {exercise.ladderTitle ? <Text style={styles.exerciseSource}>{exercise.ladderTitle}</Text> : null}
+        {exercise.safetyNotes && exercise.safetyNotes.length > 0 ? (
+          <Text style={styles.exerciseSafety} numberOfLines={3}>{exercise.safetyNotes.slice(0, 3).join(' ')}</Text>
+        ) : null}
       </View>
     </View>
   );
@@ -392,6 +406,11 @@ const styles = StyleSheet.create({
   exerciseSource: {
     ...type.cardCaption,
     color: colors.textTertiary,
+  },
+  exerciseSafety: {
+    ...type.caption,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
   },
   equipmentCard: {
     gap: spacing.md,

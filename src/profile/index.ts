@@ -38,6 +38,32 @@ export type {
   PlanEquipmentValidationStatus,
 } from './equipment';
 export {
+  MOVEMENT_CAPABILITY_SCHEMA_VERSION,
+  defaultMovementCapabilityProfile,
+  isFloorTransferConfirmed,
+  isPlannedMovementCapabilitySnapshot,
+  isSingleLegBalanceConfirmed,
+  isStepUpEnvironmentConfirmed,
+  movementCapabilitiesFromSafetyProfile,
+  movementCapabilityFingerprint,
+  movementCapabilityProfileForPersistence,
+  movementCapabilitySnapshotFingerprint,
+  normalizeMovementCapabilityProfile,
+  plannedMovementCapabilitySnapshotFromProfile,
+  resolveMovementCapabilityRecords,
+  safetyProfileWithMovementCapabilities,
+  validatePlanMovementCapabilitySnapshot,
+} from './movementCapabilities';
+export type {
+  MovementCapabilityDiagnostic,
+  MovementCapabilityDiagnosticReason,
+  MovementCapabilitySource,
+  NormalizedMovementCapabilityProfile,
+  PlannedMovementCapabilitySnapshot,
+  PlanMovementCapabilityValidation,
+  PlanMovementCapabilityValidationStatus,
+} from './movementCapabilities';
+export {
   PREFERENCES_SCHEMA_VERSION,
   defaultPreferences,
   deserializePreferences,

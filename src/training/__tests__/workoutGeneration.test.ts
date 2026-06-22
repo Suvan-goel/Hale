@@ -29,6 +29,20 @@ import { formatDebugWorkoutScenarios, generateDebugWorkoutScenarios } from '../d
 import type { ValidTimeProgressionSignal, ValidTimeProgressionSummary } from '../validTimeProgression';
 
 const START = '2026-06-01T08:00:00.000Z';
+const CONFIRMED_MOVEMENT_CAPABILITIES = {
+  schemaVersion: 1,
+  floorTransfer: { status: 'confirmed' as const },
+  stepUpEnvironment: {
+    status: 'confirmed' as const,
+    lowStableStep: true,
+    fixedSupport: true,
+    clearDryArea: true,
+    phoneOutOfPath: true,
+  },
+  singleLegBalance: { status: 'confirmed_with_support' as const },
+  revision: 1,
+  updatedAt: START,
+};
 
 describe('dynamic workout generation', () => {
   it('creates a 4-week block biased to the weakest assessment domain', () => {
@@ -113,16 +127,25 @@ describe('dynamic workout generation', () => {
       availableEquipment: ['chair', 'wall'],
       ladderProgress,
     });
+    const floorSpaceOnly = generateTodaySession({
+      template,
+      today: START,
+      availableEquipment: ['chair', 'wall', 'floor_space'],
+      ladderProgress,
+    });
     const withFloor = generateTodaySession({
       template,
       today: START,
       availableEquipment: ['chair', 'wall', 'floor_space'],
+      movementCapabilities: CONFIRMED_MOVEMENT_CAPABILITIES,
       ladderProgress,
     });
 
     expect(withoutFloor.exercises.map((exercise) => exercise.exerciseId)).not.toContain(BRIDGE_HOLD_ID);
     expect(withoutFloor.exercises.map((exercise) => exercise.exerciseId)).toContain(HINGE_FREE_ID);
     expect(withoutFloor.exercises.flatMap((exercise) => exercise.equipment)).not.toContain('floor');
+    expect(floorSpaceOnly.exercises.map((exercise) => exercise.exerciseId)).not.toContain(BRIDGE_HOLD_ID);
+    expect(floorSpaceOnly.slotStimulus.map((stimulus) => stimulus.reason)).toContain('movement_setup_required');
     expect(withFloor.exercises.map((exercise) => exercise.exerciseId)).toContain(BRIDGE_HOLD_ID);
     expect(withFloor.exercises.flatMap((exercise) => exercise.equipment)).toContain('floor');
   });
@@ -138,10 +161,18 @@ describe('dynamic workout generation', () => {
       template,
       today: START,
       availableEquipment: ['stairs', 'wall'],
+      movementCapabilities: CONFIRMED_MOVEMENT_CAPABILITIES,
+    });
+    const stairsWithSupportNoChecklist = generateTodaySession({
+      template,
+      today: START,
+      availableEquipment: ['stairs', 'wall'],
     });
 
     expect(stairsOnly.exercises.map((exercise) => exercise.exerciseId)).not.toContain(STEP_UP_ID);
     expect(stairsOnly.exercises.flatMap((exercise) => exercise.equipment)).not.toContain('stair');
+    expect(stairsWithSupportNoChecklist.exercises.map((exercise) => exercise.exerciseId)).not.toContain(STEP_UP_ID);
+    expect(stairsWithSupportNoChecklist.slotStimulus.map((stimulus) => stimulus.reason)).toContain('movement_setup_required');
     expect(stairsWithSupport.exercises.map((exercise) => exercise.exerciseId)).toContain(STEP_UP_ID);
   });
 

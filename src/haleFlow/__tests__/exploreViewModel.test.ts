@@ -9,6 +9,25 @@ import {
   getMovementLadderDetail,
 } from '../exploreViewModel';
 
+const START = '2026-06-17T08:00:00.000Z';
+
+function confirmedMovementCapabilities() {
+  return {
+    schemaVersion: 1,
+    floorTransfer: { status: 'confirmed' as const },
+    stepUpEnvironment: {
+      status: 'confirmed' as const,
+      lowStableStep: true,
+      fixedSupport: true,
+      clearDryArea: true,
+      phoneOutOfPath: true,
+    },
+    singleLegBalance: { status: 'confirmed_with_support' as const },
+    revision: 1,
+    updatedAt: START,
+  };
+}
+
 describe('exploreViewModel', () => {
   it('lists the V1 extra session presets and gates required equipment clearly', () => {
     const cards = getExtraSessionCards({
@@ -53,8 +72,9 @@ describe('exploreViewModel', () => {
         id: 'safety',
         userId: 'local-device-user',
         availableEquipment: ['chair', 'wall', 'stairs', 'resistance_band'],
-        createdAt: '2026-06-17T08:00:00.000Z',
-        updatedAt: '2026-06-17T08:00:00.000Z',
+        movementCapabilities: confirmedMovementCapabilities(),
+        createdAt: START,
+        updatedAt: START,
       },
     });
 
@@ -77,6 +97,23 @@ describe('exploreViewModel', () => {
     expect(cards.find((card) => card.id === 'preset-stairs-confidence')).toMatchObject({
       disabled: true,
       disabledReason: 'Needs wall or counter support',
+    });
+  });
+
+  it('keeps stair extras disabled when step-up setup is not confirmed', () => {
+    const cards = getExtraSessionCards({
+      safetyProfile: {
+        id: 'safety',
+        userId: 'local-device-user',
+        availableEquipment: ['chair', 'wall', 'stairs'],
+        createdAt: '2026-06-17T08:00:00.000Z',
+        updatedAt: '2026-06-17T08:00:00.000Z',
+      },
+    });
+
+    expect(cards.find((card) => card.id === 'preset-stairs-confidence')).toMatchObject({
+      disabled: true,
+      disabledReason: 'Needs step-up setup',
     });
   });
 
@@ -129,7 +166,7 @@ describe('exploreViewModel', () => {
     const push = getMovementLadderDetail('push');
 
     expect(stepUp?.currentLevel.setupNote).toContain('bottom stair');
-    expect(stepUp?.currentLevel.safetyNote).toContain('lowest stable step');
+    expect(stepUp?.currentLevel.safetyNote).toContain('Stop if the step');
     expect(stepUp?.currentLevel.measurementNote).toContain('does not score foot placement');
     expect(push?.currentLevel.measurementNote).toContain('does not score shoulder or elbow position');
   });
@@ -161,8 +198,9 @@ describe('exploreViewModel', () => {
         id: 'safety',
         userId: 'local-device-user',
         availableEquipment: ['chair', 'wall', 'floor_space'],
-        createdAt: '2026-06-17T08:00:00.000Z',
-        updatedAt: '2026-06-17T08:00:00.000Z',
+        movementCapabilities: confirmedMovementCapabilities(),
+        createdAt: START,
+        updatedAt: START,
       },
     });
 

@@ -40,6 +40,7 @@ import {
 import { BALANCE_FEET_TOGETHER_ID, HAMSTRING_REACH_ID, STS_STANDARD_ID } from '../exercises';
 import type { LadderProgress } from '../training';
 import { colors, fonts, imageOverlayControl, radius, shadow, spacing, type } from '../theme';
+import { useResponsiveLayout } from '../theme/responsive';
 import { SettingsIcon } from '../navigation/icons';
 import {
   BALANCE_LADDER_ID,
@@ -603,31 +604,35 @@ function ProgressHeroSection({
   completions: readonly TrainingSessionCompletion[];
   today: string;
 }) {
+  const responsive = useResponsiveLayout();
+  const compactHero = responsive.isCompactPhone;
   const focus = cleanFocusTitle(latest.focusTitle);
   const heroBody = heroFocusBody(focus);
   const sessionValue = activeBlock ? weeklySessionValue(activeBlock, completions, today) : 'Not started';
   const heroFacts = [
     { label: 'This week', value: sessionValue },
     { label: 'Next check-up', value: compactRetestValue(retestTitle, retestBody) },
-    { label: 'Latest check-up', value: latest.dateLabel },
+    { label: 'Latest check-up', value: compactHero ? compactHeroDate(latest.dateLabel) : latest.dateLabel },
   ];
 
   return (
     <View style={styles.heroSection}>
       <ImageBackground
         source={PROGRESS_HERO_IMAGE}
-        style={styles.progressHero}
-        imageStyle={styles.progressHeroImage}
-        resizeMode="stretch"
+        style={[styles.progressHero, { height: responsive.progressHeroHeight }]}
+        imageStyle={[styles.progressHeroImage, compactHero && styles.progressHeroImageCompact]}
+        resizeMode="cover"
       >
         <View style={styles.progressHeroScrim} />
-        <View style={styles.progressHeroContent}>
-          <Text style={styles.progressHeroEyebrow}>Progress at a glance</Text>
-          <Text style={styles.progressHeroTitle}>{focus} is your current focus.</Text>
-          <Text style={styles.progressHeroBody}>{heroBody}</Text>
-          <View style={styles.progressHeroFacts}>
-            {heroFacts.map((fact) => (
-              <HeroFact key={fact.label} label={fact.label} value={fact.value} />
+        <View style={[styles.progressHeroContent, compactHero && styles.progressHeroContentCompact]}>
+          <View style={[styles.progressHeroCopy, compactHero && styles.progressHeroCopyCompact]}>
+            <Text style={styles.progressHeroEyebrow}>Progress at a glance</Text>
+            <Text style={[styles.progressHeroTitle, compactHero && styles.progressHeroTitleCompact]}>{focus} is your current focus.</Text>
+            <Text style={[styles.progressHeroBody, compactHero && styles.progressHeroBodyCompact]}>{heroBody}</Text>
+          </View>
+          <View style={[styles.progressHeroFacts, compactHero && styles.progressHeroFactsCompact]}>
+            {heroFacts.map((fact, index) => (
+              <HeroFact key={fact.label} label={fact.label} value={fact.value} compact={compactHero} wide={compactHero && index === 2} />
             ))}
           </View>
         </View>
@@ -639,16 +644,25 @@ function ProgressHeroSection({
 function HeroFact({
   label,
   value,
+  compact,
+  wide,
 }: {
   label: string;
   value: string;
+  compact?: boolean;
+  wide?: boolean;
 }) {
   return (
-    <View style={styles.progressHeroFact}>
+    <View style={[styles.progressHeroFact, compact && styles.progressHeroFactCompact, wide && styles.progressHeroFactWide]}>
       <Text style={styles.progressHeroFactLabel} numberOfLines={1}>{label}</Text>
       <Text style={styles.progressHeroFactValue} numberOfLines={1}>{value}</Text>
     </View>
   );
+}
+
+function compactHeroDate(label: string): string {
+  const compact = label.replace(/\s*,?\s*\d{4}$/, '').trim();
+  return compact.length > 0 ? compact : label;
 }
 
 function DailyLifeProgressCard({
@@ -1324,7 +1338,6 @@ function retestLine({
 const styles = StyleSheet.create({
   screenContent: {
     gap: spacing.md,
-    paddingTop: spacing.pageTop,
   },
   header: {
     gap: spacing.xs,
@@ -1495,7 +1508,7 @@ const styles = StyleSheet.create({
   emptyProgressButton: {
     minHeight: 58,
     marginTop: 24,
-    borderRadius: 20,
+    borderRadius: radius.pill,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1533,7 +1546,6 @@ const styles = StyleSheet.create({
     gap: 0,
   },
   progressHero: {
-    minHeight: 326,
     borderRadius: 20,
     overflow: 'hidden',
     backgroundColor: colors.accent,
@@ -1541,6 +1553,10 @@ const styles = StyleSheet.create({
   },
   progressHeroImage: {
     borderRadius: 20,
+  },
+  progressHeroImageCompact: {
+    width: '108%',
+    left: '-8%',
   },
   progressHeroScrim: {
     position: 'absolute',
@@ -1558,6 +1574,18 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
     maxWidth: '84%',
   },
+  progressHeroContentCompact: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 24,
+    maxWidth: '88%',
+  },
+  progressHeroCopy: {
+    gap: 14,
+  },
+  progressHeroCopyCompact: {
+    gap: 12,
+  },
   progressHeroEyebrow: {
     color: colors.onAccent,
     fontFamily: fonts.sansMedium,
@@ -1572,7 +1600,10 @@ const styles = StyleSheet.create({
     fontSize: 29,
     lineHeight: 35,
     letterSpacing: 0,
-    marginTop: spacing.lg,
+  },
+  progressHeroTitleCompact: {
+    fontSize: 27,
+    lineHeight: 32,
   },
   progressHeroBody: {
     color: colors.onAccent,
@@ -1580,14 +1611,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     letterSpacing: 0,
-    marginTop: spacing.md,
     opacity: 0.94,
+  },
+  progressHeroBodyCompact: {
+    fontSize: 14,
+    lineHeight: 20,
   },
   progressHeroFacts: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginTop: 22,
+    marginTop: 'auto',
+  },
+  progressHeroFactsCompact: {
+    gap: 6,
   },
   progressHeroFact: {
     minWidth: 108,
@@ -1600,6 +1637,17 @@ const styles = StyleSheet.create({
     backgroundColor: imageOverlayControl.background,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: imageOverlayControl.border,
+  },
+  progressHeroFactCompact: {
+    minWidth: 98,
+    minHeight: 50,
+    flexBasis: '47%',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  progressHeroFactWide: {
+    flexBasis: '100%',
+    flexGrow: 0,
   },
   progressHeroFactLabel: {
     ...type.cardCaption,

@@ -1495,9 +1495,6 @@ function MenuIcon({ name }: { name: MenuIconName }) {
 
 const styles = StyleSheet.create({
   screenContent: {
-    maxWidth: spacing.pageMaxWidth,
-    paddingHorizontal: spacing.pageHorizontal,
-    paddingTop: spacing.pageTop,
     paddingBottom: spacing.xl,
     gap: spacing.lg,
   },

@@ -27,6 +27,11 @@ import type {
   ProgressionEvidencePolicy,
 } from '../training/dailyTrainingContext';
 import type { PlannedEquipmentSnapshot } from '../profile';
+import type { PlannedMovementCapabilitySnapshot } from '../profile';
+import type {
+  PlannedExerciseSafetyCueProfile,
+  PlannedSafetyCueSnapshot,
+} from '../training/safetyCues';
 
 export type HaleUserFlowState =
   | 'needs_life_goal'
@@ -117,6 +122,7 @@ export interface HaleExercise {
   requiresEquipment?: string[];
   rationale?: string;
   safetyNotes?: string[];
+  safetyCueProfile?: PlannedExerciseSafetyCueProfile;
 }
 
 export type HaleSessionPlanSource = SessionSource | 'legacy_fallback';
@@ -133,6 +139,8 @@ export interface HaleSessionPlanMetadata {
   adjustmentReasons?: readonly DailyTrainingReasonCode[];
   schedule?: HaleSessionScheduleMetadata;
   equipmentSnapshot?: PlannedEquipmentSnapshot;
+  movementCapabilitySnapshot?: PlannedMovementCapabilitySnapshot;
+  safetyCueSnapshot?: PlannedSafetyCueSnapshot;
   guidance?: readonly string[];
   equipmentNeeded?: readonly string[];
   fallbackReason?: string;

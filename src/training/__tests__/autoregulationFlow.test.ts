@@ -34,12 +34,12 @@ function paddedFrames(rec: RawLandmarkEvent[], totalFrames: number): RawLandmark
 
 describe('velocity autoregulation through the session player', () => {
   it('ends the strength set early, speaks the line, and logs a normal completion', () => {
-    // Long standing lead-in (the player needs to frame + instruct + count down
-    // before the first rise), then four fast rises set the best and two slow
-    // rises trip autoregulation well before the rep target of 10.
+    // Long standing lead-in (the player needs to frame + instruct + safety cues
+    // + count down before the first rise), then four fast rises set the best and
+    // two slow rises trip autoregulation well before the rep target of 10.
     const session = chairStandSession({
       seed: 51,
-      calibrationMs: 18000,
+      calibrationMs: 32000,
       riseMsPerRep: [900, 900, 900, 900, 2200, 2200, 900, 900],
     });
     const frames = paddedFrames(session.frames, 13000);

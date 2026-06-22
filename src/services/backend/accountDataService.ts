@@ -23,6 +23,7 @@ export interface LocalFileArea {
 export interface ClearLocalHaleDataOptions {
   fs?: HistoryFs;
   recordings?: LocalFileArea;
+  userId?: string | null;
 }
 
 const PREFERENCES_FILE = 'preferences.json';
@@ -35,7 +36,7 @@ export const CLOUD_ACCOUNT_DELETION_DEFERRED_MESSAGE =
   'Cloud account deletion needs a secure Hale server function before it can run from the app. No local data was cleared.';
 
 export async function getLocalDataSummary(options: ClearLocalHaleDataOptions = {}): Promise<LocalDataSummary> {
-  const fs = options.fs ?? await defaultHistoryFs();
+  const fs = options.fs ?? await defaultHistoryFs(options.userId);
   const recordings = options.recordings ?? await defaultRecordingArea();
   const names = safeList('local Hale files', fs);
   const recordingNames = safeList('recordings', recordings);
@@ -51,7 +52,7 @@ export async function getLocalDataSummary(options: ClearLocalHaleDataOptions = {
 }
 
 export async function clearLocalHaleData(options: ClearLocalHaleDataOptions = {}): Promise<ClearLocalHaleDataResult> {
-  const fs = options.fs ?? await defaultHistoryFs();
+  const fs = options.fs ?? await defaultHistoryFs(options.userId);
   const recordings = options.recordings ?? await defaultRecordingArea();
   const failures: ClearLocalHaleDataResult['failures'] = [];
   const deletedFiles: string[] = [];
@@ -159,9 +160,21 @@ function tryDelete(
   }
 }
 
-async function defaultHistoryFs(): Promise<HistoryFs> {
-  const { expoHistoryFs } = await import('../../history/fsAdapter');
-  return expoHistoryFs;
+async function defaultHistoryFs(userId?: string | null): Promise<HistoryFs> {
+  const [{ createExpoHistoryFs }, scopedUserId] = await Promise.all([
+    import('../../history/fsAdapter'),
+    userId === undefined ? currentAuthUserId() : Promise.resolve(userId),
+  ]);
+  return createExpoHistoryFs({ userId: scopedUserId });
+}
+
+async function currentAuthUserId(): Promise<string | null> {
+  try {
+    const { getCurrentSession } = await import('./authService');
+    return (await getCurrentSession())?.user.id ?? null;
+  } catch {
+    return null;
+  }
 }
 
 async function defaultRecordingArea(): Promise<LocalFileArea> {

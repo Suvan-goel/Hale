@@ -14,10 +14,20 @@ import {
 } from '../training';
 import { canonicalEquipmentFromSafetyProfile } from '../profile/equipment';
 import {
+  isStepUpEnvironmentConfirmed,
+  movementCapabilitiesFromSafetyProfile,
+  type NormalizedMovementCapabilityProfile,
+} from '../profile/movementCapabilities';
+import {
   equipmentLabel as equipmentLabelForTags,
   equipmentMissingLabels,
   equipmentSupportsTags,
 } from '../training/equipmentSafety';
+import { movementCapabilitySupportsLevel } from '../training/movementCapabilitySafety';
+import {
+  exerciseSafetySetupText,
+  exerciseSafetySummaryText,
+} from '../training/safetyCues';
 import type { LadderProgress, SessionTemplate, TrainingDomain } from '../training/workoutGeneration';
 import type { AppSettings } from '../profile';
 import { extraSessionCardBody, extraSessionCardTitle, extraSessionDetailBody } from './extraSessionCopy';
@@ -190,15 +200,23 @@ export function getExtraSessionCards(input: {
   today?: string | Date;
 } = {}): ExtraSessionCard[] {
   const availableEquipment = availableEquipmentFor({ safetyProfile: input.safetyProfile });
+  const movementCapabilities = movementCapabilitiesFromSafetyProfile(input.safetyProfile);
   return listExtraSessionPresets().map((preset) => {
     const required = PRESET_REQUIRED_EQUIPMENT[preset.id];
     const missing = required ? equipmentMissingLabels(required.tags, availableEquipment) : [];
-    const disabled = missing.length > 0;
+    const capabilityMissing = missing.length === 0 && preset.id === 'preset-stairs-confidence' && !isStepUpEnvironmentConfirmed(movementCapabilities)
+      ? ['step-up setup']
+      : [];
+    const disabled = missing.length > 0 || capabilityMissing.length > 0;
     const generated = disabled
       ? null
       : generatePresetSession({
           presetId: preset.id,
           availableEquipment,
+          movementCapabilities,
+          dailyReadiness: 'ready',
+          painAreas: [],
+          dailyContextSource: 'user_daily_check',
           ladderProgress: input.ladderProgressById ?? {},
           includeOptionalLevels: false,
           today: input.today,
@@ -211,9 +229,9 @@ export function getExtraSessionCards(input: {
       detailBody: extraSessionDetailBody(preset.id, PRESET_BODY[preset.id] ?? 'Optional support outside the main 4-week block.'),
       durationLabel: generated?.durationLabel ?? `About ${preset.estimatedMinutes} min`,
       focusLabel: focusLabel(preset.focusDomain),
-      equipmentLabel: disabled ? `Needs ${humanList(missing)}` : equipmentLabelForSession(generated?.exercises ?? [], preset),
+      equipmentLabel: disabled ? `Needs ${humanList([...missing, ...capabilityMissing])}` : equipmentLabelForSession(generated?.exercises ?? [], preset),
       disabled,
-      disabledReason: disabled ? `Needs ${humanList(missing)}` : undefined,
+      disabledReason: disabled ? `Needs ${humanList([...missing, ...capabilityMissing])}` : undefined,
     };
   });
 }
@@ -224,8 +242,9 @@ export function getMovementLadderCards(input: {
   safetyProfile?: MovementSafetyProfile | null;
 } = {}): MovementLadderCard[] {
   const available = availableEquipmentFor({ safetyProfile: input.safetyProfile });
+  const movementCapabilities = movementCapabilitiesFromSafetyProfile(input.safetyProfile);
   return listVisibleExerciseLadders(false).map((ladder) => {
-    const current = currentLevelFor(ladder, input.ladderProgressById?.[ladder.id], available);
+    const current = currentLevelFor(ladder, input.ladderProgressById?.[ladder.id], available, movementCapabilities);
     return {
       id: ladder.id,
       title: ladder.title,
@@ -233,7 +252,7 @@ export function getMovementLadderCards(input: {
       currentLevelName: current.name,
       currentLevelLabel: levelLabel(current),
       domainLabel: focusLabel(ladder.domain),
-      equipmentLabel: equipmentLabelForLevel(current, available),
+      equipmentLabel: equipmentLabelForLevel(current, available, movementCapabilities),
       measurementLabel: measurementLabel(current.measurementTier),
     };
   });
@@ -260,9 +279,10 @@ export function getMovementLadderDetail(
   };
   if (ladder.levels.length === 0) return null;
   const available = availableEquipmentFor({ safetyProfile: input.safetyProfile });
-  const current = currentLevelFor(ladder, ladderProgressById[ladder.id], available);
+  const movementCapabilities = movementCapabilitiesFromSafetyProfile(input.safetyProfile);
+  const current = currentLevelFor(ladder, ladderProgressById[ladder.id], available, movementCapabilities);
   const currentIndex = Math.max(0, ladder.levels.findIndex((level) => level.id === current.id));
-  const levels = ladder.levels.map((level) => levelView(level, level.id === current.id, available));
+  const levels = ladder.levels.map((level) => levelView(level, level.id === current.id, available, movementCapabilities));
   const card = getMovementLadderCards({ ladderProgressById, safetyProfile: input.safetyProfile }).find((item) => item.id === ladder.id);
   return {
     ...(card ?? {}),
@@ -273,11 +293,11 @@ export function getMovementLadderDetail(
     currentLevelName: current.name,
     currentLevelLabel: levelLabel(current),
     domainLabel: focusLabel(ladder.domain),
-    equipmentLabel: equipmentLabelForLevel(current, available),
+    equipmentLabel: equipmentLabelForLevel(current, available, movementCapabilities),
     measurementLabel: measurementLabel(current.measurementTier),
-    currentLevel: levelView(current, true, available),
-    easierLevel: currentIndex > 0 ? levelView(ladder.levels[currentIndex - 1], false, available) : undefined,
-    harderLevel: currentIndex < ladder.levels.length - 1 ? levelView(ladder.levels[currentIndex + 1], false, available) : undefined,
+    currentLevel: levelView(current, true, available, movementCapabilities),
+    easierLevel: currentIndex > 0 ? levelView(ladder.levels[currentIndex - 1], false, available, movementCapabilities) : undefined,
+    harderLevel: currentIndex < ladder.levels.length - 1 ? levelView(ladder.levels[currentIndex + 1], false, available, movementCapabilities) : undefined,
     levels,
   };
 }
@@ -362,45 +382,62 @@ export function availableEquipmentFor({
 function currentLevelFor(
   ladder: ExerciseLadder,
   progress?: LadderProgress,
-  available?: readonly AvailableEquipment[]
+  available?: readonly AvailableEquipment[],
+  movementCapabilities?: NormalizedMovementCapabilityProfile
 ): ExerciseLevel {
   const preferredId = progress?.currentLevelId ?? ladder.defaultLevelId;
   const preferred = ladder.levels.find((level) => level.id === preferredId) ?? ladder.levels[0];
   if (!available) return preferred;
-  return practiceLevelFor(ladder.levels, preferred, available) ?? preferred;
+  return practiceLevelFor(ladder.levels, preferred, available, movementCapabilities) ?? preferred;
 }
 
 function practiceLevelFor(
   levels: readonly ExerciseLevel[],
   preferred: ExerciseLevel,
-  available: readonly AvailableEquipment[]
+  available: readonly AvailableEquipment[],
+  movementCapabilities?: NormalizedMovementCapabilityProfile
 ): ExerciseLevel | null {
   const preferredIndex = Math.max(0, levels.findIndex((level) => level.id === preferred.id));
   for (let idx = preferredIndex; idx >= 0; idx--) {
     const level = levels[idx];
-    if (equipmentSupportsTags(level.equipment, available)) return level;
+    if (
+      equipmentSupportsTags(level.equipment, available) &&
+      (!movementCapabilities || movementCapabilitySupportsLevel(level, movementCapabilities))
+    ) return level;
   }
   for (let idx = preferredIndex + 1; idx < levels.length; idx++) {
     const level = levels[idx];
-    if (equipmentSupportsTags(level.equipment, available)) return level;
+    if (
+      equipmentSupportsTags(level.equipment, available) &&
+      (!movementCapabilities || movementCapabilitySupportsLevel(level, movementCapabilities))
+    ) return level;
   }
   return null;
 }
 
-function levelView(level: ExerciseLevel, isCurrent: boolean, available?: readonly AvailableEquipment[]): LadderLevelView {
+function levelView(
+  level: ExerciseLevel,
+  isCurrent: boolean,
+  available?: readonly AvailableEquipment[],
+  movementCapabilities?: NormalizedMovementCapabilityProfile
+): LadderLevelView {
   return {
     id: level.id,
     name: level.name,
     levelLabel: levelLabel(level),
-    equipmentLabel: equipmentLabelForLevel(level, available),
+    equipmentLabel: equipmentLabelForLevel(level, available, movementCapabilities),
     measurementLabel: measurementLabel(level.measurementTier),
     cameraLabel: cameraLabel(level.cameraView),
     instructions: level.instructions,
-    setupNote: level.setupNotes,
-    safetyNote: level.safetyNotes,
+    setupNote: safetyNoteText(exerciseSafetySetupText(level.id)) ?? level.setupNotes,
+    safetyNote: safetyNoteText(exerciseSafetySummaryText(level.id)) ?? level.safetyNotes,
     measurementNote: level.measurementNotes,
     isCurrent,
   };
+}
+
+function safetyNoteText(lines: readonly string[]): string | undefined {
+  return lines.length > 0 ? lines.join(' ') : undefined;
 }
 
 function equipmentLabelForSession(exercises: readonly { equipment: readonly string[] }[], preset: SessionTemplate): string {
@@ -414,10 +451,20 @@ function equipmentLabelForSession(exercises: readonly { equipment: readonly stri
   return equipmentLabelForTags(templateTags as EquipmentTag[]);
 }
 
-function equipmentLabelForLevel(level: ExerciseLevel, available?: readonly AvailableEquipment[]): string {
+function equipmentLabelForLevel(
+  level: ExerciseLevel,
+  available?: readonly AvailableEquipment[],
+  movementCapabilities?: NormalizedMovementCapabilityProfile
+): string {
   if (available) {
     const missing = equipmentMissingLabels(level.equipment, available);
     if (missing.length > 0) return `Needs ${humanList(missing)}`;
+  }
+  if (movementCapabilities && !movementCapabilitySupportsLevel(level, movementCapabilities)) {
+    if (level.equipment.includes('floor')) return 'Needs floor-transfer setup';
+    if (level.equipment.includes('stair')) return 'Needs step-up setup';
+    if (level.id.includes('single-leg')) return 'Needs supported balance setup';
+    return 'Needs movement setup';
   }
   return equipmentLabelForTags(level.equipment);
 }

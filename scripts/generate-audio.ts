@@ -19,18 +19,17 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
+import {
+  AUDIO_OUTPUT_FORMAT,
+  AUDIO_VOICE_SETTINGS,
+  ELEVENLABS_MODEL,
+  safetyAudioCueIds,
+  safetyAudioExpectedPath,
+  safetyAudioMetadataFor,
+} from '../src/audio/safetyAudio';
+import { SAFETY_AUDIO_ASSET_METADATA } from '../src/audio/safetyAudioManifest';
 import { VOICE_OPTIONS } from '../src/profile/voices';
-
-const ELEVENLABS_MODEL = 'eleven_flash_v2_5';
-/** mp3 @ 44.1kHz / 128kbps — small, and expo-audio plays it on both platforms. */
-const OUTPUT_FORMAT = 'mp3_44100_128';
-/** Slightly slower than default for clarity with the 45–65 audience. */
-const VOICE_SETTINGS = {
-  stability: 0.5,
-  similarity_boost: 0.75,
-  use_speaker_boost: true,
-  speed: 0.95,
-};
+import { safetyCueText, SAFETY_VOICE_LINES, type SafetyCueId } from '../src/training/safetyCueDefinitions';
 
 const ROOT = path.resolve(__dirname, '..');
 const VOICE_DIR = path.join(ROOT, 'assets/audio/voice');
@@ -190,13 +189,183 @@ const NUMBER_WORDS = [
 for (let n = 0; n < NUMBER_WORDS.length; n++) {
   LINES[`num-${n}`] = `${NUMBER_WORDS[n]}.`;
 }
+Object.assign(LINES, SAFETY_VOICE_LINES);
 
+loadRootDotEnv();
 const API_KEY = process.env.ELEVENLABS_API_KEY;
+
+type AudioGroup = 'all' | 'safety';
+type VoiceSelector = 'all' | string;
+type SafetyAssetStatus = 'valid' | 'missing' | 'stale' | 'zero-byte' | 'forced';
+
+interface CliOptions {
+  group: AudioGroup;
+  voice: VoiceSelector;
+  dryRun: boolean;
+  force: boolean;
+}
+
+interface SelectedVoice {
+  id: string;
+  elevenLabsVoiceId: string;
+}
+
+interface SafetyAssetPlanRow {
+  cueId: SafetyCueId;
+  voice: SelectedVoice;
+  path: string;
+  fingerprint: string;
+  status: SafetyAssetStatus;
+}
+
+function loadRootDotEnv(): void {
+  const envPath = path.join(ROOT, '.env');
+  if (!fs.existsSync(envPath)) return;
+  const lines = fs.readFileSync(envPath, 'utf8').split(/\r?\n/);
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) continue;
+    const withoutExport = line.startsWith('export ') ? line.slice('export '.length).trim() : line;
+    const separator = withoutExport.indexOf('=');
+    if (separator <= 0) continue;
+    const key = withoutExport.slice(0, separator).trim();
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key) || process.env[key] !== undefined) continue;
+    process.env[key] = parseDotEnvValue(withoutExport.slice(separator + 1).trim());
+  }
+}
+
+function parseDotEnvValue(rawValue: string): string {
+  const value = rawValue.replace(/\s+#.*$/, '');
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    return value.slice(1, -1);
+  }
+  return value;
+}
+
+function parseArgs(argv: readonly string[]): CliOptions {
+  const options: CliOptions = {
+    group: 'all',
+    voice: 'all',
+    dryRun: false,
+    force: false,
+  };
+  for (let index = 0; index < argv.length; index++) {
+    const arg = argv[index];
+    if (arg === '--dry-run') {
+      options.dryRun = true;
+    } else if (arg === '--force') {
+      options.force = true;
+    } else if (arg === '--group') {
+      const value = argv[++index];
+      if (value !== 'all' && value !== 'safety') throw new Error(`unsupported --group ${value}`);
+      options.group = value;
+    } else if (arg.startsWith('--group=')) {
+      const value = arg.slice('--group='.length);
+      if (value !== 'all' && value !== 'safety') throw new Error(`unsupported --group ${value}`);
+      options.group = value;
+    } else if (arg === '--voice') {
+      options.voice = argv[++index] ?? 'all';
+    } else if (arg.startsWith('--voice=')) {
+      options.voice = arg.slice('--voice='.length);
+    } else {
+      throw new Error(`unknown audio generation option: ${arg}`);
+    }
+  }
+  return options;
+}
+
+function selectVoices(selector: VoiceSelector): SelectedVoice[] {
+  const voices = selector === 'all' ? VOICE_OPTIONS : VOICE_OPTIONS.filter((voice) => voice.id === selector);
+  if (voices.length === 0) {
+    throw new Error(`unknown voice '${selector}'. Expected one of: ${VOICE_OPTIONS.map((voice) => voice.id).join(', ')}, all`);
+  }
+  return voices.map((voice) => {
+    if (!voice.elevenLabsVoiceId) {
+      throw new Error(`voice '${voice.id}' has no ElevenLabs voice id in src/profile/voices.ts`);
+    }
+    return { id: voice.id, elevenLabsVoiceId: voice.elevenLabsVoiceId };
+  });
+}
+
+function lineKeysForGroup(group: AudioGroup): string[] {
+  return group === 'safety' ? safetyAudioCueIds() : Object.keys(LINES).sort();
+}
+
+function buildSafetyPlan(voices: readonly SelectedVoice[], force: boolean): SafetyAssetPlanRow[] {
+  const rows: SafetyAssetPlanRow[] = [];
+  for (const voice of voices) {
+    for (const cueId of safetyAudioCueIds()) {
+      const expected = safetyAudioMetadataFor({
+        cueId,
+        voiceId: voice.id,
+        providerVoiceId: voice.elevenLabsVoiceId,
+      });
+      const absPath = path.join(ROOT, expected.path);
+      const existing = SAFETY_AUDIO_ASSET_METADATA[voice.id]?.[cueId];
+      const exists = fs.existsSync(absPath);
+      const bytes = exists ? fs.statSync(absPath).size : 0;
+      const fingerprintMatches =
+        existing?.fingerprint === expected.fingerprint &&
+        existing.path === expected.path &&
+        existing.voiceId === voice.id &&
+        existing.cueId === cueId;
+      const status: SafetyAssetStatus = !exists
+        ? 'missing'
+        : bytes <= 0
+          ? 'zero-byte'
+          : force
+            ? 'forced'
+            : fingerprintMatches
+              ? 'valid'
+              : 'stale';
+      rows.push({
+        cueId,
+        voice,
+        path: expected.path,
+        fingerprint: expected.fingerprint,
+        status,
+      });
+    }
+  }
+  return rows;
+}
+
+function needsGeneration(row: SafetyAssetPlanRow): boolean {
+  return row.status !== 'valid';
+}
+
+function printSafetyPlan(rows: readonly SafetyAssetPlanRow[], dryRun: boolean): void {
+  const missing = rows.filter((row) => row.status === 'missing').length;
+  const stale = rows.filter((row) => row.status === 'stale').length;
+  const zeroByte = rows.filter((row) => row.status === 'zero-byte').length;
+  const forced = rows.filter((row) => row.status === 'forced').length;
+  const valid = rows.filter((row) => row.status === 'valid').length;
+  const providerCalls = rows.filter(needsGeneration).length;
+  console.log(
+    [
+      dryRun ? 'Safety audio dry run' : 'Safety audio generation plan',
+      `requiredAssets=${rows.length}`,
+      `valid=${valid}`,
+      `missing=${missing}`,
+      `stale=${stale}`,
+      `zeroByte=${zeroByte}`,
+      `forced=${forced}`,
+      `providerCalls=${providerCalls}`,
+      `providerCredentials=${API_KEY ? 'present' : 'missing'}`,
+    ].join(' ')
+  );
+  for (const row of rows.filter(needsGeneration)) {
+    console.log(`${row.status}\t${row.voice.id}\t${row.cueId}\t${row.path}`);
+  }
+}
 
 /** One ElevenLabs TTS request → mp3 bytes for a single line. */
 async function synthesizeLine(voiceId: string, text: string): Promise<Buffer> {
   const url =
-    `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=${OUTPUT_FORMAT}`;
+    `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=${AUDIO_OUTPUT_FORMAT}`;
   const res = await fetch(url, {
     method: 'POST',
     headers: {
@@ -207,22 +376,21 @@ async function synthesizeLine(voiceId: string, text: string): Promise<Buffer> {
     body: JSON.stringify({
       text,
       model_id: ELEVENLABS_MODEL,
-      voice_settings: VOICE_SETTINGS,
+      voice_settings: AUDIO_VOICE_SETTINGS,
     }),
   });
   if (!res.ok) {
     const detail = await res.text().catch(() => '');
-    throw new Error(`ElevenLabs ${res.status} for voice ${voiceId}: ${detail}`);
+    throw new Error(`ElevenLabs ${res.status} for configured voice ${voiceId}: ${sanitizeProviderDetail(detail)}`);
   }
   return Buffer.from(await res.arrayBuffer());
 }
 
 /** Generate every line for one trainer voice into assets/audio/voice/<id>/. */
-async function generateVoice(voiceId: string, elevenLabsVoiceId: string): Promise<string[]> {
+async function generateVoice(voiceId: string, elevenLabsVoiceId: string, keys: readonly string[]): Promise<string[]> {
   const outDir = path.join(VOICE_DIR, voiceId);
   fs.rmSync(outDir, { recursive: true, force: true });
   fs.mkdirSync(outDir, { recursive: true });
-  const keys = Object.keys(LINES).sort();
   process.stdout.write(`${voiceId}: `);
   for (const key of keys) {
     const mp3 = await synthesizeLine(elevenLabsVoiceId, LINES[key]);
@@ -230,7 +398,30 @@ async function generateVoice(voiceId: string, elevenLabsVoiceId: string): Promis
     process.stdout.write('.');
   }
   process.stdout.write('\n');
-  return keys;
+  return keys.slice();
+}
+
+async function generateSafetyAssets(rows: readonly SafetyAssetPlanRow[]): Promise<Set<string>> {
+  const generated = new Set<string>();
+  for (const row of rows.filter(needsGeneration)) {
+    const outPath = path.join(ROOT, row.path);
+    fs.mkdirSync(path.dirname(outPath), { recursive: true });
+    const tempPath = `${outPath}.tmp-${process.pid}`;
+    try {
+      const mp3 = await synthesizeLine(row.voice.elevenLabsVoiceId, safetyCueText(row.cueId));
+      if (!looksLikeMp3(mp3)) {
+        throw new Error(`provider response for ${row.voice.id}/${row.cueId} was not recognized as mp3`);
+      }
+      fs.writeFileSync(tempPath, mp3);
+      fs.renameSync(tempPath, outPath);
+      generated.add(`${row.voice.id}:${row.cueId}`);
+      console.log(`generated\t${row.voice.id}\t${row.cueId}\t${mp3.length} bytes\t${row.path}`);
+    } catch (error) {
+      fs.rmSync(tempPath, { force: true });
+      throw error;
+    }
+  }
+  return generated;
 }
 
 /** Rep-credit chime: 880 Hz sine, fast attack, exponential decay, 160 ms. */
@@ -266,9 +457,10 @@ function writeRepCreditWav(): void {
 }
 
 /** Write the typed manifest: per-voice voice lines + voice-independent sfx. */
-function writeManifest(generated: { voiceId: string; keys: string[] }[]): void {
-  const voiceBlocks = generated
-    .map(({ voiceId, keys }) => {
+function writeManifestFromDisk(): void {
+  const voiceBlocks = VOICE_OPTIONS
+    .map(({ id: voiceId }) => {
+      const keys = existingVoiceKeys(voiceId);
       const entries = keys
         .map((key) => `    '${key}': require('../../assets/audio/voice/${voiceId}/${key}.mp3'),`)
         .join('\n');
@@ -282,9 +474,9 @@ function writeManifest(generated: { voiceId: string; keys: string[] }[]): void {
     ' * calls so Metro packages them). Voice lines are synthesized once via the',
     ' * ElevenLabs API at build time; the session path never calls a runtime TTS API.',
     ' *',
-    ' * Shape: VOICE_MANIFEST[voiceId][cue]. A cue missing for a given voice falls',
-    ' * back to the default voice (see src/audio/voicePlayer.ts). SFX are voice-',
-    ' * independent.',
+    ' * Shape: VOICE_MANIFEST[voiceId][cue]. Missing safety cues fail closed;',
+    ' * non-safety cues may fall back to the default voice (see src/audio/voicePlayer.ts).',
+    ' * SFX are voice-independent.',
     ' */',
     '',
     "import { SfxCueKey, VoiceCueKey } from './cues';",
@@ -301,33 +493,115 @@ function writeManifest(generated: { voiceId: string; keys: string[] }[]): void {
   fs.writeFileSync(MANIFEST_PATH, lines.join('\n'));
 }
 
-async function main(): Promise<void> {
-  if (!API_KEY) {
-    throw new Error(
-      'ELEVENLABS_API_KEY is not set. Run: ELEVENLABS_API_KEY=sk_... npm run audio'
-    );
+function writeSafetyMetadata(generatedSafetyKeys: ReadonlySet<string>, forceAllExistingSafety = false): void {
+  const out: Record<string, Partial<Record<SafetyCueId, ReturnType<typeof safetyAudioMetadataFor>>>> = {};
+  for (const voice of VOICE_OPTIONS) {
+    out[voice.id] = {};
+    for (const cueId of safetyAudioCueIds()) {
+      const key = `${voice.id}:${cueId}`;
+      const expected = safetyAudioMetadataFor({
+        cueId,
+        voiceId: voice.id,
+        providerVoiceId: voice.elevenLabsVoiceId,
+      });
+      const exists = fs.existsSync(path.join(ROOT, expected.path));
+      const current = SAFETY_AUDIO_ASSET_METADATA[voice.id]?.[cueId];
+      if ((generatedSafetyKeys.has(key) || forceAllExistingSafety) && exists) {
+        out[voice.id][cueId] = expected;
+      } else if (current) {
+        out[voice.id][cueId] = current;
+      }
+    }
   }
+  const content = [
+    '/**',
+    ' * AUTO-GENERATED by scripts/generate-audio.ts — do not edit by hand.',
+    ' * Pure metadata for bundled safety cue audio. Static require() asset mapping',
+    ' * lives in src/audio/manifest.ts.',
+    ' */',
+    '',
+    "import type { SafetyAudioMetadataByVoice } from './safetyAudio';",
+    '',
+    `export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = ${JSON.stringify(out, null, 2)};`,
+    '',
+  ].join('\n');
+  fs.writeFileSync(path.join(ROOT, 'src/audio/safetyAudioManifest.ts'), content);
+}
+
+function existingVoiceKeys(voiceId: string): string[] {
+  const dir = path.join(VOICE_DIR, voiceId);
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((file) => file.endsWith('.mp3'))
+    .map((file) => file.slice(0, -'.mp3'.length))
+    .filter((key) => key in LINES)
+    .sort();
+}
+
+function looksLikeMp3(buffer: Buffer): boolean {
+  if (buffer.length < 4) return false;
+  if (buffer.subarray(0, 3).toString('ascii') === 'ID3') return true;
+  return buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0;
+}
+
+function sanitizeProviderDetail(detail: string): string {
+  const cleaned = detail
+    .replace(/sk_[A-Za-z0-9_-]+/g, '[redacted-api-key]')
+    .replace(/xi-api-key["': ]+[^"',}\s]+/gi, 'xi-api-key [redacted]');
+  return cleaned.length > 360 ? `${cleaned.slice(0, 360)}…` : cleaned;
+}
+
+async function main(): Promise<void> {
+  const options = parseArgs(process.argv.slice(2));
+  const voices = selectVoices(options.voice);
   fs.mkdirSync(VOICE_DIR, { recursive: true });
   fs.mkdirSync(SFX_DIR, { recursive: true });
 
-  const generated: { voiceId: string; keys: string[] }[] = [];
-  for (const voice of VOICE_OPTIONS) {
-    if (!voice.elevenLabsVoiceId) {
-      console.warn(`skipping ${voice.id}: no elevenLabsVoiceId set in src/profile/voices.ts`);
-      continue;
+  if (options.group === 'safety') {
+    const plan = buildSafetyPlan(voices, options.force);
+    printSafetyPlan(plan, options.dryRun);
+    if (options.dryRun) return;
+    if (!API_KEY) {
+      throw new Error('ELEVENLABS_API_KEY is not set; safety audio assets were not generated');
     }
-    const keys = await generateVoice(voice.id, voice.elevenLabsVoiceId);
-    generated.push({ voiceId: voice.id, keys });
-  }
-  if (generated.length === 0) {
-    throw new Error('no voices generated — set elevenLabsVoiceId in src/profile/voices.ts');
+    const generatedSafetyKeys = await generateSafetyAssets(plan);
+    writeManifestFromDisk();
+    writeSafetyMetadata(generatedSafetyKeys);
+    console.log(`\n${generatedSafetyKeys.size} safety line(s) generated, manifest updated`);
+    return;
   }
 
+  const keys = lineKeysForGroup('all');
+  if (options.dryRun) {
+    console.log(
+      [
+        'Full audio dry run',
+        `voices=${voices.map((voice) => voice.id).join(',')}`,
+        `linesPerVoice=${keys.length}`,
+        `providerCalls=${voices.length * keys.length}`,
+        `providerCredentials=${API_KEY ? 'present' : 'missing'}`,
+      ].join(' ')
+    );
+    return;
+  }
+  if (!API_KEY) {
+    throw new Error('ELEVENLABS_API_KEY is not set. Run with a configured environment to generate audio.');
+  }
+
+  const generatedSafetyKeys = new Set<string>();
+  for (const voice of voices) {
+    await generateVoice(voice.id, voice.elevenLabsVoiceId, keys);
+    for (const cueId of safetyAudioCueIds()) {
+      generatedSafetyKeys.add(`${voice.id}:${cueId}`);
+    }
+  }
   writeRepCreditWav();
-  writeManifest(generated);
-  const total = generated.reduce((n, g) => n + g.keys.length, 0);
+  writeManifestFromDisk();
+  writeSafetyMetadata(generatedSafetyKeys, true);
+  const total = voices.length * keys.length;
   console.log(
-    `\n${generated.length} voice(s), ${total} lines + rep-credit chime → assets/audio/, manifest updated`
+    `\n${voices.length} voice(s), ${total} lines + rep-credit chime → assets/audio/, manifest updated`
   );
 }
 

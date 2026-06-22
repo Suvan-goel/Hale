@@ -1,13 +1,23 @@
 import * as React from 'react';
-import { Image, StyleSheet, Text, View, useWindowDimensions, type ImageSourcePropType } from 'react-native';
+import { Image, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
 
 import { BackArrowButton } from '../components/BackArrowButton';
 import { PrimaryButton, Screen, StatusBadge } from '../components/ui';
-import { getLearnDetail, getMovementLadderDetail, type LadderLevelView, type MovementLadderDetail } from '../haleFlow';
+import {
+  getLearnDetail,
+  getMovementLadderDetail,
+  type LadderLevelView,
+  type MovementLadderDetail,
+  type TodaySessionAdjustment,
+  type TodaySessionPreferences,
+} from '../haleFlow';
 import type { MovementSafetyProfile } from '../adherence';
 import type { EquipmentProfile, LadderProgress } from '../training';
+import type { PainArea } from '../training';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { useResponsiveLayout } from '../theme/responsive';
 import { articleImageFor, ladderImageFor } from './exploreImages';
+import { SessionStartMenu } from './TodayScreen';
 
 export function LadderDetailScreen({
   ladderId,
@@ -21,12 +31,23 @@ export function LadderDetailScreen({
   ladderProgressById: Record<string, LadderProgress>;
   equipment?: EquipmentProfile | null;
   safetyProfile?: MovementSafetyProfile | null;
-  onPractice: () => void;
+  onPractice: (preferences?: TodaySessionPreferences | null) => void;
   onDone: () => void;
 }) {
+  const [menuVisible, setMenuVisible] = React.useState(false);
   const detail = React.useMemo(
     () => getMovementLadderDetail(ladderId, ladderProgressById, { equipment, safetyProfile }),
     [equipment, ladderId, ladderProgressById, safetyProfile]
+  );
+  const startPractice = React.useCallback(
+    (adjustment?: TodaySessionAdjustment | null, painArea?: PainArea | null) => {
+      setMenuVisible(false);
+      onPractice({
+        adjustment: adjustment ?? null,
+        painArea: adjustment === 'something_hurts' ? painArea ?? null : null,
+      });
+    },
+    [onPractice]
   );
 
   if (!detail) {
@@ -40,28 +61,31 @@ export function LadderDetailScreen({
   }
 
   return (
-    <Screen contentStyle={styles.articleScreen}>
-      <DetailBackButton onPress={onDone} />
-      <ArticleHero
-        eyebrow={`${detail.domainLabel} · Movement ladder`}
-        title={detail.title}
-        subtitle={detail.body}
-        imageSource={ladderImageFor(detail.id)}
-      />
-
-      <View style={styles.ladderBody}>
-        <CurrentLevelPanel detail={detail} />
-        <LadderInfoSection title="Why it matters" body={detail.whyItMatters} />
-        <AdaptationSection
-          easierLevel={detail.easierLevel}
-          harderLevel={detail.harderLevel}
-          hasMultipleLevels={detail.levels.length > 1}
+    <>
+      <Screen contentStyle={styles.articleScreen}>
+        <DetailBackButton onPress={onDone} />
+        <ArticleHero
+          eyebrow={`${detail.domainLabel} · Movement ladder`}
+          title={detail.title}
+          subtitle={detail.body}
+          imageSource={ladderImageFor(detail.id)}
         />
-        <LadderLevelsSection levels={detail.levels} />
-      </View>
 
-      <PrimaryButton title="Practice This Ladder" onPress={onPractice} style={styles.primaryAction} />
-    </Screen>
+        <View style={styles.ladderBody}>
+          <CurrentLevelPanel detail={detail} />
+          <LadderInfoSection title="Why it matters" body={detail.whyItMatters} />
+          <AdaptationSection
+            easierLevel={detail.easierLevel}
+            harderLevel={detail.harderLevel}
+            hasMultipleLevels={detail.levels.length > 1}
+          />
+          <LadderLevelsSection levels={detail.levels} />
+        </View>
+
+        <PrimaryButton title="Practice This Ladder" onPress={() => setMenuVisible(true)} style={styles.primaryAction} />
+      </Screen>
+      <SessionStartMenu visible={menuVisible} onClose={() => setMenuVisible(false)} onStart={startPractice} />
+    </>
   );
 }
 
@@ -149,7 +173,7 @@ function MissingDetailScreen({
 }
 
 function DetailBackButton({ onPress }: { onPress: () => void }) {
-  return <BackArrowButton accessibilityLabel="Back to Explore" onPress={onPress} />;
+  return <BackArrowButton accessibilityLabel="Back to Explore" onPress={onPress} style={styles.detailBackButton} />;
 }
 
 function ArticleHero({
@@ -163,9 +187,8 @@ function ArticleHero({
   subtitle: string;
   imageSource?: ImageSourcePropType;
 }) {
-  const { width } = useWindowDimensions();
-  const contentWidth = Math.min(width, spacing.pageMaxWidth) - spacing.pageHorizontal * 2;
-  const heroHeight = Math.round(Math.max(190, Math.min(260, contentWidth / 1.45)));
+  const responsive = useResponsiveLayout();
+  const heroHeight = Math.round(Math.max(190, Math.min(260, responsive.contentWidth / 1.45)));
 
   return (
     <View style={styles.articleHeader}>
@@ -386,8 +409,10 @@ function LevelArticleRow({
 const styles = StyleSheet.create({
   articleScreen: {
     gap: spacing.lg,
-    paddingTop: spacing.xl,
     paddingBottom: spacing.huge,
+  },
+  detailBackButton: {
+    marginBottom: spacing.xs,
   },
   articleHeader: {
     gap: spacing.md,

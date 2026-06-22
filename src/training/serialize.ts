@@ -49,6 +49,10 @@ import {
   sortCapabilities,
   type PlannedEquipmentSnapshot,
 } from '../profile/equipment';
+import {
+  isPlannedMovementCapabilitySnapshot,
+  type PlannedMovementCapabilitySnapshot,
+} from '../profile/movementCapabilities';
 
 export const TRAINING_SCHEMA_VERSION = 4;
 
@@ -298,6 +302,7 @@ function validGeneratedSessionSummary(v: unknown): PersistedGeneratedSessionSumm
     adjustmentReasons: validReasonCodes(s.adjustmentReasons),
     durationMinutes: finiteNumber(s.durationMinutes),
     equipmentSnapshot: validPlannedEquipmentSnapshot(s.equipmentSnapshot),
+    movementCapabilitySnapshot: validPlannedMovementCapabilitySnapshot(s.movementCapabilitySnapshot),
     exercises: validGeneratedExerciseSummaries(s.exercises),
     feedback: validPostSessionFeedback(s.feedback) ?? undefined,
   };
@@ -358,6 +363,10 @@ function validPlannedEquipmentSnapshot(v: unknown): PlannedEquipmentSnapshot | u
         : undefined,
     sourceUpdatedAt: typeof s.sourceUpdatedAt === 'string' ? s.sourceUpdatedAt : undefined,
   };
+}
+
+function validPlannedMovementCapabilitySnapshot(v: unknown): PlannedMovementCapabilitySnapshot | undefined {
+  return isPlannedMovementCapabilitySnapshot(v) ? v : undefined;
 }
 
 function validGeneratedExerciseSummaries(v: unknown): PersistedGeneratedExerciseSummary[] | undefined {
@@ -476,7 +485,8 @@ function isStimulusReason(v: unknown): v is SlotStimulusReason {
     v === 'band_required' ||
     v === 'floor_required' ||
     v === 'support_required' ||
-    v === 'stair_support_required'
+    v === 'stair_support_required' ||
+    v === 'movement_setup_required'
   );
 }
 

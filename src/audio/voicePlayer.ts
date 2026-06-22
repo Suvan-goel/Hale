@@ -18,7 +18,10 @@ import { AudioPlayer, createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 
 import { SfxCueKey, VoiceCueKey } from './cues';
 import { SFX_MANIFEST, VOICE_MANIFEST } from './manifest';
-import { DEFAULT_VOICE_ID } from '../profile/voices';
+import { DEFAULT_VOICE_ID, getVoice } from '../profile/voices';
+import { isSafetyCueId } from '../training/safetyCueDefinitions';
+
+type VoiceManifestShape = Record<string, Partial<Record<VoiceCueKey, number>>>;
 
 /** Call once at app start, BEFORE the pose camera mounts. */
 export async function configureSessionAudio(): Promise<void> {
@@ -32,16 +35,43 @@ export async function configureSessionAudio(): Promise<void> {
 }
 
 /**
- * Resolve a voice cue to a bundled asset for the chosen trainer voice, falling
- * back to the default voice for any cue that voice hasn't been generated yet
- * (so a partially-bundled voice still speaks, in its own voice where it can).
+ * Resolve a voice cue to a bundled asset. Safety cues must exist for the
+ * selected voice; non-safety cues may use the historical default-voice fallback.
  */
-function voiceAssetFor(voiceId: string, cue: VoiceCueKey): number {
-  const asset = VOICE_MANIFEST[voiceId]?.[cue] ?? VOICE_MANIFEST[DEFAULT_VOICE_ID]?.[cue];
-  if (asset === undefined) {
+export function resolveVoiceCueAsset(voiceId: string, cue: VoiceCueKey): {
+  asset: number;
+  resolvedVoiceId: string;
+  usedFallback: boolean;
+} {
+  return resolveVoiceCueAssetFromManifest(VOICE_MANIFEST, voiceId, cue);
+}
+
+export function resolveVoiceCueAssetFromManifest(
+  manifest: VoiceManifestShape,
+  voiceId: string,
+  cue: VoiceCueKey
+): {
+  asset: number;
+  resolvedVoiceId: string;
+  usedFallback: boolean;
+} {
+  const normalizedVoiceId = getVoice(voiceId).id;
+  const direct = manifest[normalizedVoiceId]?.[cue];
+  if (direct !== undefined) {
+    return { asset: direct, resolvedVoiceId: normalizedVoiceId, usedFallback: false };
+  }
+  if (isSafetyCueId(cue)) {
+    throw new Error(`no bundled safety audio for ${normalizedVoiceId}/${cue}`);
+  }
+  const fallback = manifest[DEFAULT_VOICE_ID]?.[cue];
+  if (fallback === undefined) {
     throw new Error(`no bundled audio for cue '${cue}' — run npm run audio`);
   }
-  return asset;
+  return { asset: fallback, resolvedVoiceId: DEFAULT_VOICE_ID, usedFallback: true };
+}
+
+function voiceAssetFor(voiceId: string, cue: VoiceCueKey): number {
+  return resolveVoiceCueAsset(voiceId, cue).asset;
 }
 
 function sfxAssetFor(cue: SfxCueKey): number {
@@ -59,7 +89,11 @@ export class VoiceChannel {
   private playing = false;
 
   /** @param voiceId selected trainer voice (see src/profile/voices.ts). */
-  constructor(private readonly voiceId: string = DEFAULT_VOICE_ID) {}
+  private readonly voiceId: string;
+
+  constructor(voiceId: string = DEFAULT_VOICE_ID) {
+    this.voiceId = getVoice(voiceId).id;
+  }
 
   get busy(): boolean {
     return this.playing;
@@ -79,8 +113,7 @@ export class VoiceChannel {
     this.currentPriority = priority;
     this.pendingCues = cues.slice(1);
     this.playing = true;
-    this.playCue(cues[0]);
-    return true;
+    return this.playCue(cues[0]);
   }
 
   stop(): void {
@@ -90,9 +123,26 @@ export class VoiceChannel {
     this.currentPriority = -1;
   }
 
-  private playCue(cue: VoiceCueKey): void {
+  private playCue(cue: VoiceCueKey): boolean {
     this.releasePlayer();
-    const player = createAudioPlayer(voiceAssetFor(this.voiceId, cue));
+    let player: AudioPlayer;
+    try {
+      const createdPlayer = createAudioPlayer(voiceAssetFor(this.voiceId, cue));
+      if (!createdPlayer || typeof createdPlayer.addListener !== 'function') {
+        throw new Error('audio player unavailable');
+      }
+      player = createdPlayer;
+    } catch (error) {
+      console.warn('[audio] skipped voice cue', { cue, reason: 'missing_bundled_asset' });
+      const next = this.pendingCues.shift();
+      if (next !== undefined) {
+        return this.playCue(next);
+      } else {
+        this.playing = false;
+        this.currentPriority = -1;
+        return false;
+      }
+    }
     this.player = player;
     player.addListener('playbackStatusUpdate', (status) => {
       if (!status.didJustFinish || this.player !== player) return;
@@ -105,7 +155,20 @@ export class VoiceChannel {
         this.currentPriority = -1;
       }
     });
-    player.play();
+    try {
+      player.play();
+    } catch {
+      console.warn('[audio] skipped voice cue', { cue, reason: 'playback_start_failed' });
+      const next = this.pendingCues.shift();
+      if (next !== undefined) {
+        return this.playCue(next);
+      }
+      this.releasePlayer();
+      this.playing = false;
+      this.currentPriority = -1;
+      return false;
+    }
+    return true;
   }
 
   private releasePlayer(): void {

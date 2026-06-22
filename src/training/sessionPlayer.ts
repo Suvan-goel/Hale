@@ -23,6 +23,14 @@ import type { ValidTimeState } from '../exercises/validTime';
 import { PipelineFrameOutput } from '../pose/pipeline';
 import { PreflightCheck, PreflightPrompt, PreflightStatus } from '../preflight/preflight';
 import { shouldSpeakFramingPrompt } from '../preflight/promptTiming';
+import {
+  SESSION_GLOBAL_SAFETY_CUE_IDS,
+  plannedSafetyCueSnapshotForExercises,
+  safetyCueTexts,
+  type PlannedExerciseSafetyCueProfile,
+  type PlannedSafetyCueSnapshot,
+  type SafetyCueId,
+} from './safetyCues';
 
 export type TrainingPhase =
   | 'intro'
@@ -66,6 +74,11 @@ export interface TrainingFrameUpdate {
   validTimeCaption: string | null;
   /** True after setup has timed out and the UI must ask the user what to do. */
   setupIssue: boolean;
+  /** Current preflight framing prompt for setup/framing UI. */
+  setupPrompt: PreflightPrompt | null;
+  /** Canonical safety cue ids surfaced with this update. Text resolves from the same ids. */
+  safetyCueIds: readonly SafetyCueId[];
+  safetyText: readonly string[];
 }
 
 export interface TrainingPlayerConfig {
@@ -111,18 +124,23 @@ export class TrainingSessionPlayer {
     validTimeState: null,
     validTimeCaption: null,
     setupIssue: false,
+    setupPrompt: null,
+    safetyCueIds: [],
+    safetyText: [],
   };
 
   private phase: TrainingPhase = 'intro';
   private itemIndex = -1;
   private setIndex = 0;
   private introSpoken = false;
+  private globalSafetySpoken = false;
 
   private transitionEnteredMs = 0;
   private transitionCuePending: VoiceCueKey | null = null;
   private itemEnteredMs = 0;
   private lastTimestampMs = 0;
   private setupIssue = false;
+  private setupIssueRecoverySpoken = false;
 
   private instructionsEnteredMs = 0;
   private instructionsIdleAtMs = -1;
@@ -137,6 +155,7 @@ export class TrainingSessionPlayer {
   /** Fixed set duration (rom/timer capture window); null = grader-terminated. */
   private setDurationMs: number | null = null;
   private currentSets: SetResult[] = [];
+  private lastValidTimeState: ValidTimeState | null = null;
 
   private restEnteredMs = 0;
   private restSpoken = false;
@@ -144,6 +163,8 @@ export class TrainingSessionPlayer {
 
   private completeSpoken = false;
   private finished: TrainingSessionResult | null = null;
+  private readonly safetySnapshot: PlannedSafetyCueSnapshot;
+  private readonly safetyByExerciseId: Map<string, PlannedExerciseSafetyCueProfile>;
 
   constructor(
     startedAtIso: string,
@@ -155,6 +176,10 @@ export class TrainingSessionPlayer {
     this.preflight = preflight;
     this.config = config;
     this.definitions = exerciseIds.map((id) => getExercise(id));
+    this.safetySnapshot = plannedSafetyCueSnapshotForExercises(exerciseIds);
+    this.safetyByExerciseId = new Map(
+      this.safetySnapshot.exerciseProfiles.map((profile) => [profile.exerciseId, profile])
+    );
   }
 
   get result(): TrainingSessionResult | null {
@@ -164,6 +189,7 @@ export class TrainingSessionPlayer {
   retrySetup(): void {
     if (this.phase !== 'preflight') return;
     this.setupIssue = false;
+    this.setupIssueRecoverySpoken = false;
     this.preflight.reset();
     this.itemEnteredMs = this.lastTimestampMs;
     this.lastPromptCue = null;
@@ -209,6 +235,9 @@ export class TrainingSessionPlayer {
     u.validTimeState = null;
     u.validTimeCaption = null;
     u.setupIssue = this.setupIssue;
+    u.setupPrompt = null;
+    u.safetyCueIds = [];
+    u.safetyText = [];
     const ts = out.frame.timestampMs;
     this.lastTimestampMs = ts;
     const status = this.preflight.update(out);
@@ -217,7 +246,10 @@ export class TrainingSessionPlayer {
       case 'intro':
         if (!this.introSpoken) {
           this.introSpoken = true;
-          u.voice = cue('training-intro');
+          u.voice = cueSequence(['training-intro', 'support_keep_support_within_reach']);
+        } else if (!this.globalSafetySpoken && !voiceBusy) {
+          this.globalSafetySpoken = true;
+          this.emitSafety(u, SESSION_GLOBAL_SAFETY_CUE_IDS, true);
         } else if (!voiceBusy) {
           this.enterTransition(0, ts);
         }
@@ -226,7 +258,7 @@ export class TrainingSessionPlayer {
         this.runTransition(ts, voiceBusy, u);
         break;
       case 'preflight':
-        this.runPreflight(out, status, ts, u);
+        this.runPreflight(out, status, ts, voiceBusy, u);
         break;
       case 'instructions':
         this.runInstructions(out, voiceBusy, ts, u);
@@ -277,6 +309,7 @@ export class TrainingSessionPlayer {
     this.phase = 'transition';
     this.transitionEnteredMs = ts;
     this.transitionCuePending = this.transitionCue(index);
+    this.setupIssueRecoverySpoken = false;
     this.preflight.reset();
   }
 
@@ -304,26 +337,43 @@ export class TrainingSessionPlayer {
     }
   }
 
-  private runPreflight(out: PipelineFrameOutput, status: PreflightStatus, ts: number, u: TrainingFrameUpdate): void {
+  private runPreflight(
+    out: PipelineFrameOutput,
+    status: PreflightStatus,
+    ts: number,
+    voiceBusy: boolean,
+    u: TrainingFrameUpdate
+  ): void {
+    u.setupPrompt = status.prompt;
     if (this.setupIssue) {
       u.setupIssue = true;
+      this.emitSafety(u, ['tracking_pause_and_reset'], !this.setupIssueRecoverySpoken && !voiceBusy);
+      if (!voiceBusy) this.setupIssueRecoverySpoken = true;
       return;
     }
     if (status.phase === 'ready' && out.bodyUnit !== null) {
       const def = this.definitions[this.itemIndex];
+      const safety = this.currentSafetyProfile();
+      const safetyCueIds = uniqueSafety([
+        ...(safety?.setupCueIds ?? []),
+        ...(safety?.activeCueIds ?? []),
+      ]);
       this.phase = 'instructions';
       this.instructionsEnteredMs = ts;
       this.instructionsIdleAtMs = -1;
       u.voice = {
-        cues: ['framing-ready', ...def.voice.instructions],
-        priority: voicePriority(def.voice.instructions[0] ?? 'framing-ready'),
+        cues: ['framing-ready', ...def.voice.instructions, ...safetyCueIds],
+        priority: maxPriority(['framing-ready', ...def.voice.instructions, ...safetyCueIds]),
       };
+      this.emitSafety(u, safetyCueIds, false);
       return;
     }
     // Ask the user what to do instead of silently skipping.
     if (ts - this.itemEnteredMs >= this.config.maxFramingMs) {
       this.setupIssue = true;
       u.setupIssue = true;
+      this.emitSafety(u, ['tracking_pause_and_reset'], !voiceBusy);
+      this.setupIssueRecoverySpoken = !voiceBusy;
       return;
     }
     const c = promptCue(status.prompt);
@@ -359,6 +409,7 @@ export class TrainingSessionPlayer {
     this.phase = 'countdown';
     this.countdownStartMs = ts;
     this.countdownStep = 1;
+    this.lastValidTimeState = null;
     u.voice = cue(COUNTDOWN[0]);
   }
 
@@ -397,6 +448,14 @@ export class TrainingSessionPlayer {
     u.validTimeState = g.validTimeState ?? null;
     u.validTimeCaption = g.validTimeCaption ?? null;
     if (g.voice) u.voice = { cues: g.voice.cues, priority: g.voice.priority };
+    if (g.validTimeState === 'paused' && this.lastValidTimeState !== 'paused') {
+      const safety = this.currentSafetyProfile();
+      const recoveryCueIds: readonly SafetyCueId[] = safety?.recoveryCueIds.length
+        ? safety.recoveryCueIds
+        : ['tracking_pause_and_reset'];
+      this.emitSafety(u, recoveryCueIds, !g.voice);
+    }
+    this.lastValidTimeState = g.validTimeState ?? null;
 
     const elapsed = ts - this.setStartMs;
     const clockEnded = this.setDurationMs !== null && elapsed >= this.setDurationMs;
@@ -434,7 +493,10 @@ export class TrainingSessionPlayer {
       this.restSpoken = true;
       // Announce the final set so the user can pace the effort.
       const isLastUpcoming = this.setIndex + 2 === def.prescription.sets;
-      u.voice = cue(isLastUpcoming ? 'last-set' : 'rest-now');
+      const safety = this.currentSafetyProfile();
+      const safetyCueIds = safety?.repeatedSetCueIds ?? [];
+      u.voice = cueSequence([isLastUpcoming ? 'last-set' : 'rest-now', ...safetyCueIds]);
+      this.emitSafety(u, safetyCueIds, false);
     }
     u.remainingMs = Math.max(0, this.restDurationMs - (ts - this.restEnteredMs));
     if (this.restSpoken && !voiceBusy && ts - this.restEnteredMs >= this.restDurationMs) {
@@ -460,12 +522,41 @@ export class TrainingSessionPlayer {
     }
     this.finished = { startedAt: this.startedAtIso, items: this.results.slice() };
   }
+
+  private currentSafetyProfile(): PlannedExerciseSafetyCueProfile | null {
+    const def = this.currentDefinition();
+    return def ? this.safetyByExerciseId.get(def.id) ?? null : null;
+  }
+
+  private emitSafety(u: TrainingFrameUpdate, cueIds: readonly SafetyCueId[], speak: boolean): void {
+    const ids = uniqueSafety(cueIds);
+    if (ids.length === 0) return;
+    u.safetyCueIds = ids;
+    u.safetyText = safetyCueTexts(ids);
+    if (speak) u.voice = cueSequence(ids);
+  }
 }
 
 function cue(c: VoiceCueKey): VoiceRequest {
   return { cues: [c], priority: voicePriority(c) };
 }
 
+function cueSequence(cues: readonly VoiceCueKey[]): VoiceRequest {
+  return { cues: cues.slice(), priority: maxPriority(cues) };
+}
+
+function maxPriority(cues: readonly VoiceCueKey[]): number {
+  return cues.reduce((priority, c) => Math.max(priority, voicePriority(c)), 0);
+}
+
 function promptCue(prompt: PreflightPrompt): VoiceCueKey {
   return prompt === 'ready' ? 'framing-ready' : prompt;
+}
+
+function uniqueSafety(items: readonly SafetyCueId[]): SafetyCueId[] {
+  const out: SafetyCueId[] = [];
+  for (const item of items) {
+    if (!out.includes(item)) out.push(item);
+  }
+  return out;
 }

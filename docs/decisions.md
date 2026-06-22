@@ -1331,3 +1331,27 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 - **Scope boundary:** the weekly summary data model remains available for future completed or
   partially completed week reflection, but the inactive weekly-summary screen is not mounted
   in the active app flow and the unused screen component was removed.
+
+## 2026-06-22 — Local Hale data is scoped to the signed-in user
+
+- **Change:** the app's local profile, check-up history, training, micro-check, and adherence
+  stores now use a per-auth-user filesystem scope under the existing local store root.
+- **Why:** signing in with a different Google/Apple/email account on the same device must never
+  inherit another user's onboarding state, results, training plan, or progress. A new account
+  should see clean local state and either run onboarding or restore only its own remote data.
+- **Sign-out behavior:** signing out no longer needs to delete the returning user's local cache.
+  The signed-in app shell remounts by authenticated user id, and local sync/restore work waits
+  for a concrete user id before reading or writing account-bound data.
+
+## 2026-06-22 — Canonical training safety cues
+
+- **Change:** V1 training now resolves setup, active, repeated-set, recovery, and session-global
+  safety guidance from canonical cue IDs. Generated and manual session plans persist cue IDs and a
+  fingerprint, while visible text is resolved from the current cue vocabulary.
+- **Player path:** the training player surfaces global stop rules once, exercise setup cues before
+  countdown, short between-set reminders, and tracking/setup recovery guidance. Pause, repeat,
+  skip, and stop controls remain available in the live session screen.
+- **Audio boundary:** safety cue wording is wired into the build-time audio generator, but no new
+  bundled ElevenLabs assets were generated in this pass. Until those files are produced and
+  committed, safety cue text is present and the player skips unavailable bundled cue assets rather
+  than crashing; full text/voice parity remains blocked on audio generation.

@@ -23,6 +23,7 @@ import type {
   ProgressionEvidencePolicy,
 } from './dailyTrainingContext';
 import type { PlannedEquipmentSnapshot } from '../profile/equipment';
+import type { PlannedMovementCapabilitySnapshot } from '../profile/movementCapabilities';
 
 export type PersistedSessionSource = SessionSource | 'legacy';
 
@@ -80,6 +81,7 @@ export interface PersistedGeneratedSessionSummary {
   adjustmentReasons?: readonly DailyTrainingReasonCode[];
   durationMinutes?: number;
   equipmentSnapshot?: PlannedEquipmentSnapshot;
+  movementCapabilitySnapshot?: PlannedMovementCapabilitySnapshot;
   exercises?: PersistedGeneratedExerciseSummary[];
   feedback?: PersistedPostSessionFeedback;
 }

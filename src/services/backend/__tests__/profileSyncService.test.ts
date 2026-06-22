@@ -84,6 +84,23 @@ function backendJson(value: unknown): BackendJson {
   return JSON.parse(JSON.stringify(value)) as BackendJson;
 }
 
+function confirmedMovementCapabilities(revision = 1, updatedAt = START): MovementSafetyProfile['movementCapabilities'] {
+  return {
+    schemaVersion: 1,
+    floorTransfer: { status: 'confirmed' },
+    stepUpEnvironment: {
+      status: 'confirmed',
+      lowStableStep: true,
+      fixedSupport: true,
+      clearDryArea: true,
+      phoneOutOfPath: true,
+    },
+    singleLegBalance: { status: 'confirmed_with_support' },
+    revision,
+    updatedAt,
+  };
+}
+
 describe('profile equipment sync merge', () => {
   it('uses newer valid remote canonical equipment during restore hydration', () => {
     const merged = mergeRemoteProfileIntoLocal(
@@ -125,5 +142,17 @@ describe('profile equipment sync merge', () => {
     expect(safetyJson.safetyProfile.availableEquipment).toEqual(['chair', 'resistance_band']);
     expect(safetyJson.safetyProfile.equipmentStatus).toBe('confirmed');
     expect(safetyJson.safetyProfile.equipmentRevision).toBe(5);
+  });
+
+  it('hydrates explicit remote movement capability confirmations over legacy-missing local data', () => {
+    const merged = mergeRemoteProfileIntoLocal(
+      remoteProfile(safety(['chair'], { movementCapabilities: confirmedMovementCapabilities(3, '2026-06-21T09:00:00.000Z') })),
+      prefs(safety(['chair'], { movementCapabilities: undefined, updatedAt: '2026-06-21T10:00:00.000Z' })),
+      { hydrateRoutingFields: true }
+    );
+
+    expect(merged.profile.safetyProfile?.movementCapabilities?.floorTransfer.status).toBe('confirmed');
+    expect(merged.profile.safetyProfile?.movementCapabilities?.stepUpEnvironment.lowStableStep).toBe(true);
+    expect(merged.profile.safetyProfile?.movementCapabilities?.revision).toBe(3);
   });
 });

@@ -19,11 +19,12 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 import { HeaderLogo } from './HeaderLogo';
 import { SettingsIcon } from '../navigation/icons';
 import { colors, componentStyles, fonts, minTapTarget, radius, shadow, spacing, type } from '../theme';
+import { useResponsiveLayout } from '../theme/responsive';
 
 export function Screen({
   children,
@@ -32,10 +33,22 @@ export function Screen({
   children: React.ReactNode;
   contentStyle?: StyleProp<ViewStyle>;
 }) {
+  const responsive = useResponsiveLayout();
+
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={[styles.screenContent, contentStyle]}
+      contentContainerStyle={[
+        styles.screenContent,
+        {
+          maxWidth: responsive.maxContentWidth,
+          paddingHorizontal: responsive.horizontalPadding,
+          paddingTop: responsive.pageTop,
+          paddingBottom: responsive.pageBottom,
+          gap: responsive.screenGap,
+        },
+        contentStyle,
+      ]}
       contentInsetAdjustmentBehavior="automatic"
       showsVerticalScrollIndicator={false}
     >
@@ -140,13 +153,17 @@ export function Button({
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
 }) {
+  const isPrimary = variant === 'primary';
+  const showChevron = isPrimary && primaryButtonShowsChevron(title);
+
   return (
     <Pressable
       style={({ pressed }) => [
         componentStyles.button.base,
         componentStyles.button[variant],
+        isPrimary && styles.primaryPillButton,
         disabled && styles.disabled,
-        pressed && !disabled && (variant === 'primary' ? styles.primaryPressed : styles.pressed),
+        pressed && !disabled && (isPrimary ? styles.primaryPressed : styles.pressed),
         style,
       ]}
       onPress={onPress}
@@ -155,19 +172,48 @@ export function Button({
       accessibilityLabel={accessibilityLabel ?? title}
       accessibilityState={disabled ? { disabled } : undefined}
     >
-      <Text
-        style={[
-          styles.buttonText,
-          variant === 'primary' && styles.primaryButtonText,
-          variant === 'secondary' && styles.secondaryButtonText,
-          variant === 'ghost' && styles.ghostButtonText,
-          variant === 'danger' && styles.dangerButtonText,
-          textStyle,
-        ]}
-      >
-        {title}
-      </Text>
+      {isPrimary ? (
+        <View style={styles.primaryButtonContent}>
+          <Text style={[styles.buttonText, styles.primaryButtonText, textStyle]} numberOfLines={2}>
+            {title}
+          </Text>
+          {showChevron ? <PrimaryButtonChevron /> : null}
+        </View>
+      ) : (
+        <Text
+          style={[
+            styles.buttonText,
+            variant === 'secondary' && styles.secondaryButtonText,
+            variant === 'ghost' && styles.ghostButtonText,
+            variant === 'danger' && styles.dangerButtonText,
+            textStyle,
+          ]}
+        >
+          {title}
+        </Text>
+      )}
     </Pressable>
+  );
+}
+
+function primaryButtonShowsChevron(title: string): boolean {
+  const normalized = title.trim().toLowerCase();
+  if (!normalized || normalized.endsWith('...')) return false;
+  return !/^(back|done|try again|retake|cancel|sign out)/.test(normalized);
+}
+
+function PrimaryButtonChevron() {
+  return (
+    <Svg width={8} height={14} viewBox="0 0 8 14" accessibilityElementsHidden>
+      <Path
+        d="M1.25 1.5L6 7L1.25 12.5"
+        fill="none"
+        stroke={colors.onAccent}
+        strokeWidth={1.7}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
   );
 }
 
@@ -771,7 +817,7 @@ const styles = StyleSheet.create({
     ...componentStyles.card.elevated,
   },
   buttonText: { ...type.button },
-  primaryButtonText: { color: colors.buttonText },
+  primaryButtonText: { color: colors.buttonText, flexShrink: 1, minWidth: 0 },
   secondaryButtonText: { ...type.button, color: colors.accentDeep },
   ghostButtonText: { ...type.bodySmall, fontFamily: fonts.sansMedium, color: colors.accentDeep },
   dangerButtonText: { ...type.button, color: colors.error },
@@ -795,6 +841,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.accent,
   },
+  primaryPillButton: {
+    borderRadius: radius.pill,
+  },
+  primaryButtonContent: {
+    maxWidth: '100%',
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
   primaryPressed: { backgroundColor: colors.accentHover, transform: [{ scale: 0.99 }] },
   primaryText: { ...type.button },
   secondary: {
@@ -802,11 +859,11 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.xl,
     minHeight: minTapTarget,
-    borderRadius: radius.button,
+    borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colors.borderHairline,
+    borderColor: colors.accentDeep,
   },
   secondaryText: { ...type.button, color: colors.accentDeep },
   ghost: {

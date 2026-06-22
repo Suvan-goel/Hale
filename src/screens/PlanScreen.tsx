@@ -21,6 +21,7 @@ import { SettingsIcon } from '../navigation/icons';
 import type { PainArea, TrainingIntensityPreference } from '../training';
 import { SessionStartMenu } from './TodayScreen';
 import { colors, fonts, imageOverlayControl, radius, shadow, spacing, type } from '../theme';
+import { useResponsiveLayout } from '../theme/responsive';
 
 const PLAN_HERO_IMAGE = require('../../assets/images/hale-plan-hero-mountain.png');
 
@@ -189,6 +190,9 @@ function PlanHeroCard({
   onStartPlanSession: (id: PlanSessionId) => void;
   onStartRetest: () => void;
 }) {
+  const responsive = useResponsiveLayout();
+  const compactHero = responsive.isCompactPhone;
+
   function runAction() {
     if (!action) return;
     if (action.kind === 'session') onStartPlanSession(action.sessionId);
@@ -199,12 +203,12 @@ function PlanHeroCard({
     <>
       <Image source={PLAN_HERO_IMAGE} style={styles.heroImage} resizeMode="cover" accessible={false} />
       <HeroScrim />
-      <View style={styles.heroContent}>
+      <View style={[styles.heroContent, compactHero && styles.heroContentCompact]}>
         <View style={styles.weekPill}>
           <Text style={styles.weekPillText}>Week {weekNumber}</Text>
         </View>
-        <Text style={styles.heroTitle}>{focusCopy.title}</Text>
-        <Text style={styles.heroBody}>{focusCopy.body}</Text>
+        <Text style={[styles.heroTitle, compactHero && styles.heroTitleCompact]}>{focusCopy.title}</Text>
+        <Text style={[styles.heroBody, compactHero && styles.heroBodyCompact]}>{focusCopy.body}</Text>
         {action ? (
           action.kind === 'complete' ? (
             <View style={styles.heroCompletePill}>
@@ -226,7 +230,7 @@ function PlanHeroCard({
     </>
   );
 
-  return <View style={styles.heroCard}>{content}</View>;
+  return <View style={[styles.heroCard, { height: responsive.planHeroHeight }]}>{content}</View>;
 }
 
 function HeroScrim() {
@@ -704,10 +708,6 @@ function movementEmphasis(focusDomain: ActiveBlockSummary['focusDomain']): reado
 
 const styles = StyleSheet.create({
   screenContent: {
-    maxWidth: spacing.pageMaxWidth,
-    paddingHorizontal: spacing.pageHorizontal,
-    paddingTop: spacing.pageTop,
-    paddingBottom: spacing.xxxl,
     gap: 12,
   },
   header: {
@@ -746,7 +746,6 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
   heroCard: {
-    aspectRatio: 1.31,
     overflow: 'hidden',
     borderRadius: 20,
     backgroundColor: colors.accent,
@@ -779,6 +778,12 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     zIndex: 2,
   },
+  heroContentCompact: {
+    left: 16,
+    right: 16,
+    top: 20,
+    bottom: 16,
+  },
   weekPill: {
     alignSelf: 'stretch',
     alignItems: 'flex-start',
@@ -801,6 +806,12 @@ const styles = StyleSheet.create({
     marginTop: 16,
     maxWidth: '86%',
   },
+  heroTitleCompact: {
+    fontSize: 23,
+    lineHeight: 26,
+    marginTop: 14,
+    maxWidth: '82%',
+  },
   heroBody: {
     color: colors.onAccent,
     fontFamily: fonts.sansRegular,
@@ -810,10 +821,13 @@ const styles = StyleSheet.create({
     marginTop: 10,
     maxWidth: '72%',
   },
+  heroBodyCompact: {
+    maxWidth: '66%',
+  },
   heroButton: {
     marginTop: 'auto',
     alignSelf: 'flex-start',
-    minHeight: 46,
+    minHeight: 48,
     maxWidth: '100%',
     borderRadius: 23,
     paddingHorizontal: 18,

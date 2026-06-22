@@ -41,6 +41,32 @@ export type AvailableEquipment =
   | 'floor_space'
   | 'none';
 
+export type CapabilityConfirmationStatus = 'confirmed' | 'avoid_for_now' | 'not_confirmed';
+
+export type SingleLegBalanceCapabilityStatus =
+  | 'confirmed_with_support'
+  | 'supported_balance_only'
+  | 'not_confirmed';
+
+export interface MovementCapabilityProfile {
+  schemaVersion: number;
+  floorTransfer: {
+    status: CapabilityConfirmationStatus;
+  };
+  stepUpEnvironment: {
+    status: CapabilityConfirmationStatus;
+    lowStableStep: boolean;
+    fixedSupport: boolean;
+    clearDryArea: boolean;
+    phoneOutOfPath: boolean;
+  };
+  singleLegBalance: {
+    status: SingleLegBalanceCapabilityStatus;
+  };
+  revision?: number;
+  updatedAt?: string;
+}
+
 export interface MovementSafetyProfile {
   id: string;
   userId: string;
@@ -56,6 +82,7 @@ export interface MovementSafetyProfile {
   equipmentStatus?: 'confirmed' | 'needs_confirmation' | 'legacy_migrated' | 'malformed_fail_closed';
   equipmentRevision?: number;
   equipmentUpdatedAt?: string;
+  movementCapabilities?: MovementCapabilityProfile;
   preferredWorkoutDays?: string[];
   createdAt: string;
   updatedAt: string;

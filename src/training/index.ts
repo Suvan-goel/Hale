@@ -153,3 +153,24 @@ export {
   retestDue,
   startBlock,
 } from './state';
+export {
+  SESSION_GLOBAL_SAFETY_CUE_IDS,
+  coreExerciseIdsMissingSafetyProfiles,
+  exerciseSafetySetupText,
+  exerciseSafetySummaryText,
+  plannedSafetyCueSnapshotForExercises,
+  registeredExerciseIdsMissingSafetyProfiles,
+  requireExerciseSafetyCueProfile,
+  resolveExerciseSafetyCueProfile,
+  safetyCueProfileText,
+  validateExerciseSafetyCueProfile,
+  validateSafetyCueSnapshot,
+} from './safetyCues';
+export type {
+  PlannedExerciseSafetyCueProfile,
+  PlannedSafetyCueSnapshot,
+  SafetyCueId,
+  SafetyCueValidation,
+  SafetyCueValidationIssue,
+  SafetyCueValidationReason,
+} from './safetyCues';

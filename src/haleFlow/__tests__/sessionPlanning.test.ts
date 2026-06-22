@@ -9,7 +9,6 @@ import {
 import { syntheticCheckUp } from '../../checkup/devFixture';
 import {
   BRIDGE_HOLD_ID,
-  HINGE_FREE_ID,
   SEATED_BAND_ROW_ID,
   STANDING_BAND_ROW_ID,
   STS_POWER_ID,
@@ -33,12 +32,17 @@ import {
   createGeneratedSessionSummary,
   getSessionPlanningRecoveryCopy,
   planLadderPracticeSession,
+  planLadderPracticeSessionResult,
   planTodayHaleSession as planTodayHaleSessionResult,
   requireHaleSessionPlan as planTodayHaleSession,
   sessionPlanFromPlanningResult,
   staleEquipmentPlanningResult,
+  staleMovementCapabilityPlanningResult,
+  staleSafetyCuePlanningResult,
   updateExerciseProgressionFromSession,
   validateHaleSessionPlanEquipment,
+  validateHaleSessionPlanMovementCapabilities,
+  validateHaleSessionPlanSafetyCues,
   validateGeneratedSessionForPlanning,
 } from '../sessionPlanning';
 import { BLOCK_SCHEDULE_POLICY_VERSION } from '../blockSchedule';
@@ -59,8 +63,26 @@ function safety(): MovementSafetyProfile {
     feelsSafeStandingFromChair: true,
     feelsSafeBalancing: true,
     availableEquipment: ['chair', 'wall', 'stairs', 'resistance_band'],
+    movementCapabilities: confirmedMovementCapabilities(),
     preferredWorkoutDays: ['Mon', 'Wed', 'Fri'],
     createdAt: START,
+    updatedAt: START,
+  };
+}
+
+function confirmedMovementCapabilities() {
+  return {
+    schemaVersion: 1,
+    floorTransfer: { status: 'confirmed' as const },
+    stepUpEnvironment: {
+      status: 'confirmed' as const,
+      lowStableStep: true,
+      fixedSupport: true,
+      clearDryArea: true,
+      phoneOutOfPath: true,
+    },
+    singleLegBalance: { status: 'confirmed_with_support' as const },
+    revision: 1,
     updatedAt: START,
   };
 }
@@ -242,6 +264,7 @@ describe('planTodayHaleSession', () => {
       safetyProfile: safety(),
       lifeGoal: lifeGoal(),
       presetId: 'preset-quick-full-body',
+      adjustment: null,
       today: START,
     });
 
@@ -253,6 +276,22 @@ describe('planTodayHaleSession', () => {
     expect(plan.exercises.every((exercise) => hasExercise(exercise.id))).toBe(true);
   });
 
+  it('requires explicit daily context before preset sessions start', () => {
+    const result = planTodayHaleSessionResult({
+      activeBlock: null,
+      training: legacyTraining(),
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      presetId: 'preset-quick-full-body',
+      today: START,
+    });
+
+    expect(result.kind).toBe('unavailable');
+    if (result.kind !== 'unavailable') throw new Error('expected unavailable result');
+    expect(result.reason).toBe('daily_context_required');
+    expect(sessionPlanFromPlanningResult(result)).toBeNull();
+  });
+
   it('creates a player-compatible ladder practice session', () => {
     const plan = planLadderPracticeSession({
       ladderId: 'sit-to-stand',
@@ -260,6 +299,7 @@ describe('planTodayHaleSession', () => {
       training: { ...legacyTraining(), ladderProgressById: ladderProgress() },
       safetyProfile: safety(),
       lifeGoal: lifeGoal(),
+      adjustment: null,
       today: START,
     });
 
@@ -272,6 +312,22 @@ describe('planTodayHaleSession', () => {
       ladderId: 'sit-to-stand',
       levelId: STS_STANDARD_ID,
     });
+  });
+
+  it('requires explicit daily context before manual ladder practice starts', () => {
+    const result = planLadderPracticeSessionResult({
+      ladderId: 'sit-to-stand',
+      activeBlock: block(),
+      training: { ...legacyTraining(), ladderProgressById: ladderProgress() },
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      today: START,
+    });
+
+    expect(result.kind).toBe('unavailable');
+    if (result.kind !== 'unavailable') throw new Error('expected unavailable result');
+    expect(result.reason).toBe('daily_context_required');
+    expect(sessionPlanFromPlanningResult(result)).toBeNull();
   });
 
   it('respects floor, stair, and support constraints for ladder practice', () => {
@@ -293,6 +349,7 @@ describe('planTodayHaleSession', () => {
       activeBlock: block(),
       training: { ...baseTraining, ladderProgressById: floorProgress },
       safetyProfile: { ...safety(), availableEquipment: ['chair', 'wall'] },
+      adjustment: null,
       today: START,
     });
     const withFloor = planLadderPracticeSession({
@@ -300,6 +357,7 @@ describe('planTodayHaleSession', () => {
       activeBlock: block(),
       training: { ...baseTraining, ladderProgressById: floorProgress },
       safetyProfile: { ...safety(), availableEquipment: ['chair', 'wall', 'floor_space'] },
+      adjustment: null,
       today: START,
     });
     const stairsOnly = planLadderPracticeSession({
@@ -307,6 +365,7 @@ describe('planTodayHaleSession', () => {
       activeBlock: block(),
       training: { ...baseTraining, equipment: { ...baseTraining.equipment, stair: true } },
       safetyProfile: { ...safety(), availableEquipment: ['stairs'] },
+      adjustment: null,
       today: START,
     });
     const stairsWithSupport = planLadderPracticeSession({
@@ -314,6 +373,7 @@ describe('planTodayHaleSession', () => {
       activeBlock: block(),
       training: { ...baseTraining, equipment: { ...baseTraining.equipment, stair: true } },
       safetyProfile: { ...safety(), availableEquipment: ['stairs', 'wall'] },
+      adjustment: null,
       today: START,
     });
     const balanceNoSupport = planLadderPracticeSession({
@@ -321,6 +381,7 @@ describe('planTodayHaleSession', () => {
       activeBlock: block(),
       training: baseTraining,
       safetyProfile: { ...safety(), availableEquipment: ['none'] },
+      adjustment: null,
       today: START,
     });
     const bandProgress = {
@@ -340,6 +401,7 @@ describe('planTodayHaleSession', () => {
       activeBlock: block(),
       training: { ...baseTraining, equipment: { ...baseTraining.equipment, band: true }, ladderProgressById: bandProgress },
       safetyProfile: { ...safety(), availableEquipment: ['chair', 'wall', 'resistance_band'] },
+      adjustment: null,
       today: START,
     });
     const bandWithAnchor = planLadderPracticeSession({
@@ -347,18 +409,49 @@ describe('planTodayHaleSession', () => {
       activeBlock: block(),
       training: { ...baseTraining, equipment: { ...baseTraining.equipment, band: true }, ladderProgressById: bandProgress },
       safetyProfile: { ...safety(), availableEquipment: ['chair', 'wall', 'resistance_band', 'door_anchor'] },
+      adjustment: null,
       today: START,
     });
 
-    expect(noFloor?.exercises[0].id).toBe(HINGE_FREE_ID);
-    expect(noFloor?.metadata?.equipmentNeeded).not.toContain('floor space');
+    expect(noFloor).toBeNull();
     expect(withFloor?.exercises[0].id).toBe(BRIDGE_HOLD_ID);
     expect(withFloor?.metadata?.equipmentNeeded).toContain('floor space');
     expect(stairsOnly).toBeNull();
     expect(stairsWithSupport?.exercises[0].id).toBe(STEP_UP_ID);
     expect(balanceNoSupport).toBeNull();
-    expect(bandNoAnchor?.exercises[0].id).toBe(SEATED_BAND_ROW_ID);
+    expect(bandNoAnchor).toBeNull();
     expect(bandWithAnchor?.exercises[0].id).toBe(STANDING_BAND_ROW_ID);
+  });
+
+  it('requires floor-transfer confirmation before floor ladder practice starts', () => {
+    const result = planLadderPracticeSessionResult({
+      ladderId: 'hinge-glutes',
+      activeBlock: block(),
+      training: {
+        ...legacyTraining(),
+        ladderProgressById: {
+          'hinge-glutes': {
+            ladderId: 'hinge-glutes',
+            currentLevelId: BRIDGE_HOLD_ID,
+            completedSessionsAtLevel: 0,
+            failedSessionsAtLevel: 0,
+            recentCompletionRates: [],
+            recentRpe: [],
+            recentPain: [],
+            updatedAt: START,
+          },
+        },
+      },
+      safetyProfile: { ...safety(), availableEquipment: ['chair', 'wall', 'floor_space'], movementCapabilities: undefined },
+      lifeGoal: lifeGoal(),
+      adjustment: null,
+      today: START,
+    });
+
+    expect(result.kind).toBe('unavailable');
+    if (result.kind !== 'unavailable') throw new Error('expected unavailable result');
+    expect(result.reason).toBe('movement_capability_not_confirmed');
+    expect(sessionPlanFromPlanningResult(result)).toBeNull();
   });
 
   it('shows floor space in session equipment labels when floor work is selected', () => {
@@ -460,6 +553,75 @@ describe('planTodayHaleSession', () => {
     const recovery = staleEquipmentPlanningResult({ plan, validation });
     expect(recovery.reason).toBe('equipment_changed_after_planning');
     expect(getSessionPlanningRecoveryCopy(recovery)?.body).toContain('equipment setup changed');
+  });
+
+  it('invalidates unstarted plans when movement capability confirmations change', () => {
+    const b = strengthBlock();
+    const plan = planTodayHaleSession({
+      activeBlock: b,
+      training: legacyTraining(),
+      safetyProfile: { ...safety(), availableEquipment: ['chair', 'wall', 'resistance_band'] },
+      lifeGoal: lifeGoal(),
+      targetSessionTemplateId: 'session_a',
+      today: START,
+    });
+
+    expect(
+      validateHaleSessionPlanMovementCapabilities({
+        plan,
+        safetyProfile: safety(),
+      }).status
+    ).toBe('current');
+
+    const changedCapabilities = {
+      ...confirmedMovementCapabilities(),
+      floorTransfer: { status: 'avoid_for_now' as const },
+      revision: 2,
+      updatedAt: '2026-06-02T08:00:00.000Z',
+    };
+    const validation = validateHaleSessionPlanMovementCapabilities({
+      plan,
+      safetyProfile: { ...safety(), movementCapabilities: changedCapabilities },
+    });
+    expect(validation.status).toBe('capability_changed');
+    const recovery = staleMovementCapabilityPlanningResult({ plan, validation });
+    expect(recovery.reason).toBe('movement_capability_changed');
+    expect(getSessionPlanningRecoveryCopy(recovery)?.body).toContain('movement setup changed');
+  });
+
+  it('stamps and validates safety cue snapshots before an unstarted plan can begin', () => {
+    const b = strengthBlock();
+    const plan = planTodayHaleSession({
+      activeBlock: b,
+      training: legacyTraining(),
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      targetSessionTemplateId: 'session_a',
+      today: START,
+    });
+
+    expect(plan.metadata?.safetyCueSnapshot?.schemaVersion).toBe(1);
+    expect(plan.exercises.every((exercise) => exercise.safetyCueProfile?.schemaVersion === 1)).toBe(true);
+    expect(validateHaleSessionPlanSafetyCues({ plan }).status).toBe('current');
+
+    const stalePlan: HaleSessionPlan = {
+      ...plan,
+      metadata: {
+        ...plan.metadata!,
+        safetyCueSnapshot: {
+          ...plan.metadata!.safetyCueSnapshot!,
+          globalCueIds: plan.metadata!.safetyCueSnapshot!.globalCueIds.filter(
+            (cueId) => cueId !== 'global_stop_dizzy_or_lightheaded'
+          ),
+          fingerprint: 'stale',
+        },
+      },
+    };
+    const validation = validateHaleSessionPlanSafetyCues({ plan: stalePlan });
+    expect(validation.status).toBe('missing_required_stop_rules');
+    const recovery = staleSafetyCuePlanningResult({ plan: stalePlan, validation });
+    expect(recovery.reason).toBe('missing_required_stop_rules');
+    expect(getSessionPlanningRecoveryCopy(recovery)?.body).toContain('current setup and stop rules');
   });
 
   it('fails closed when generated exercise IDs are unsupported', () => {
@@ -951,6 +1113,7 @@ describe('planTodayHaleSession', () => {
       safetyProfile: safety(),
       lifeGoal: lifeGoal(),
       presetId: 'preset-quick-full-body',
+      adjustment: null,
       today: START,
     });
     const practicePlan = planLadderPracticeSession({
@@ -959,6 +1122,7 @@ describe('planTodayHaleSession', () => {
       training: { ...legacyTraining(), ladderProgressById: ladderProgress() },
       safetyProfile: safety(),
       lifeGoal: lifeGoal(),
+      adjustment: null,
       today: START,
     });
     const retestPrep: typeof extraPlan = {

@@ -10,6 +10,11 @@ import {
   type ReleaseStatus,
 } from '../exercises';
 import type { AvailableEquipment, MovementSafetyProfile } from '../adherence';
+import {
+  movementCapabilitiesFromSafetyProfile,
+  normalizeMovementCapabilityProfile,
+  type NormalizedMovementCapabilityProfile,
+} from '../profile';
 import type { CheckUpScore, Domain } from '../scoring';
 import {
   DEFAULT_VALID_TIME_PROGRESSION_CONFIG,
@@ -33,6 +38,10 @@ import {
   type NormalizedDailyTrainingContext,
   type ProgressionEvidencePolicy,
 } from './dailyTrainingContext';
+import {
+  movementCapabilityBlockReasonsForLevel,
+  movementCapabilitySupportsLevel,
+} from './movementCapabilitySafety';
 
 export type TrainingDomain = 'strength_power' | 'balance_stability' | 'mobility_flexibility';
 export type SessionSource = 'block_generated' | 'preset' | 'manual';
@@ -49,7 +58,8 @@ export type SlotStimulusReason =
   | 'band_required'
   | 'floor_required'
   | 'support_required'
-  | 'stair_support_required';
+  | 'stair_support_required'
+  | 'movement_setup_required';
 
 export type SessionSlotType =
   | 'lower_body_strength'
@@ -161,6 +171,7 @@ export interface GenerateSessionInput {
   dailyReadiness?: DailyReadiness | unknown;
   painAreas?: readonly PainArea[] | unknown;
   dailyContextSource?: DailyTrainingContextSource;
+  movementCapabilities?: MovementSafetyProfile['movementCapabilities'] | NormalizedMovementCapabilityProfile | null;
   ladderProgress?: Record<string, LadderProgress>;
   recentSessions?: readonly RecentSessionSummary[];
   scheduleSelection?: TemplateSelectionSchedule;
@@ -507,6 +518,7 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
   const painAreas = dailyContext.discomfortAreas;
   const discomfortConstraint = discomfortConstraintForContext(dailyContext);
   const equipment = equipmentFromInput(input);
+  const movementCapabilities = movementCapabilitiesFromInput(input);
   const source: SessionSource = input.presetId ? 'preset' : input.source ?? 'block_generated';
   const progressionEvidencePolicy = progressionEvidencePolicyFor({ context: dailyContext, source });
   const forceSupportingStimulus = source === 'block_generated' && progressionEvidencePolicy === 'ineligible';
@@ -556,6 +568,7 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
     const selected = selectExerciseForSlot({
       slot,
       equipment,
+      movementCapabilities,
       painAreas,
       discomfortConstraint,
       dailyContext,
@@ -566,13 +579,13 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
       usedExerciseIds,
     });
     if (!selected) {
-      const stimulus = skippedSlotStimulus(slot, equipment, painAreas);
+      const stimulus = skippedSlotStimulus(slot, equipment, movementCapabilities, painAreas);
       skippedSlots.push(slot.id);
       skippedSlotReasons.push(stimulus.message);
       slotStimulus.push(stimulus);
       continue;
     }
-    const stimulus = selectedSlotStimulus(slot, selected, equipment, forceSupportingStimulus);
+    const stimulus = selectedSlotStimulus(slot, selected, equipment, movementCapabilities, forceSupportingStimulus);
     slotStimulus.push(stimulus);
     usedExerciseIds.add(selected.level.id);
     exercises.push(
@@ -882,6 +895,7 @@ const EXTRA_SESSION_PRESETS: readonly SessionTemplate[] = [
 interface SelectionInput {
   slot: SessionSlot;
   equipment: readonly AvailableEquipment[];
+  movementCapabilities: NormalizedMovementCapabilityProfile;
   painAreas: readonly PainArea[];
   discomfortConstraint: DiscomfortConstraint;
   dailyContext: NormalizedDailyTrainingContext;
@@ -944,6 +958,7 @@ function selectLevelFromLadder(
     if (input.usedExerciseIds.has(level.id) && ladder.levels.length > 1) continue;
     if (!equipmentSupportsTags(level.equipment, input.equipment)) continue;
     if (isExerciseExcludedByDiscomfort(ladder, level, input.discomfortConstraint)) continue;
+    if (!movementCapabilitySupportsLevel(level, input.movementCapabilities)) continue;
     const def = safeExercise(level.id);
     if (!def) continue;
     const substitutions =
@@ -1201,11 +1216,12 @@ function selectedSlotStimulus(
   slot: SessionSlot,
   selected: SelectedExercise,
   equipment: readonly AvailableEquipment[],
+  movementCapabilities: NormalizedMovementCapabilityProfile,
   forceSupportingStimulus = false
 ): SlotStimulus {
   const naturalRole = selectedStimulusRole(slot, selected);
   const role = forceSupportingStimulus && naturalRole === 'primary' ? 'supporting' : naturalRole;
-  const reason = selectedStimulusReason(slot, selected, equipment, role);
+  const reason = selectedStimulusReason(slot, selected, equipment, movementCapabilities, role);
   return {
     slotId: slot.id,
     slotType: slot.type,
@@ -1241,13 +1257,18 @@ function selectedStimulusReason(
   slot: SessionSlot,
   selected: SelectedExercise,
   equipment: readonly AvailableEquipment[],
+  movementCapabilities: NormalizedMovementCapabilityProfile,
   role: SlotStimulusRole
 ): SlotStimulusReason {
   if (role === 'invalid') return 'no_safe_option';
   if (role === 'supporting') return 'supporting_maintenance';
   if (role === 'primary') {
+    if (selected.substitutions.length > 0 && slotHasUnsupportedCapability(slot, equipment, movementCapabilities)) {
+      return 'movement_setup_required';
+    }
     return selected.substitutions.length > 0 ? 'equipment_limited' : 'direct_match';
   }
+  if (slotHasUnsupportedCapability(slot, equipment, movementCapabilities)) return 'movement_setup_required';
   if (slot.type === 'upper_body_pull' && !equipment.includes('resistance_band')) return 'band_required';
   if (resolveLadderId(slot.preferredLadderIds[0]) === 'step-up') return 'stair_support_required';
   if (missingLabelsForSlot(slot, equipment).some((label) => label.includes('floor'))) return 'floor_required';
@@ -1269,6 +1290,9 @@ function selectedStimulusMessage(
     if (reason === 'floor_required') {
       return `${slot.title} used ${selected.level.name} because floor space is not marked available.`;
     }
+    if (reason === 'movement_setup_required') {
+      return `${slot.title} used ${selected.level.name} because a movement setup confirmation is needed first.`;
+    }
     return `${slot.title} used ${selected.level.name} as a lower-equipment option today.`;
   }
   if (role === 'supporting') {
@@ -1287,9 +1311,10 @@ function selectedStimulusMessage(
 function skippedSlotStimulus(
   slot: SessionSlot,
   equipment: readonly AvailableEquipment[],
+  movementCapabilities: NormalizedMovementCapabilityProfile,
   painAreas: readonly PainArea[]
 ): SlotStimulus {
-  const reason = skippedSlotReasonCode(slot, equipment, painAreas);
+  const reason = skippedSlotReasonCode(slot, equipment, movementCapabilities, painAreas);
   return {
     slotId: slot.id,
     slotType: slot.type,
@@ -1334,6 +1359,7 @@ function guidanceForSession(
 function skippedSlotReasonCode(
   slot: SessionSlot,
   equipment: readonly AvailableEquipment[],
+  movementCapabilities: NormalizedMovementCapabilityProfile,
   painAreas: readonly PainArea[]
 ): SlotStimulusReason {
   if (
@@ -1359,6 +1385,7 @@ function skippedSlotReasonCode(
   }
   if (missing.some((label) => label.includes('support'))) return 'support_required';
   if (missing.some((label) => label.includes('resistance band'))) return 'band_required';
+  if (slotHasUnsupportedCapability(slot, equipment, movementCapabilities)) return 'movement_setup_required';
   if (painAreas.length > 0) return 'safety_limited';
   return missing.length > 0 ? 'equipment_limited' : 'no_safe_option';
 }
@@ -1375,6 +1402,9 @@ function skippedSlotMessage(slot: SessionSlot, reason: SlotStimulusReason): stri
   }
   if (reason === 'stair_support_required') {
     return `${slot.title} was skipped because it needs both a stable bottom stair and support nearby.`;
+  }
+  if (reason === 'movement_setup_required') {
+    return `${slot.title} was skipped because movement setup confirmation is needed first.`;
   }
   if (reason === 'safety_limited') {
     return `${slot.title} was skipped because it did not fit today's discomfort settings.`;
@@ -1401,6 +1431,26 @@ function missingLabelsForSlot(slot: SessionSlot, equipment: readonly AvailableEq
     }
   }
   return labels;
+}
+
+function slotHasUnsupportedCapability(
+  slot: SessionSlot,
+  equipment: readonly AvailableEquipment[],
+  movementCapabilities: NormalizedMovementCapabilityProfile
+): boolean {
+  const ladderIds = unique([
+    ...slot.preferredLadderIds.map(resolveLadderId),
+    ...SLOT_FALLBACK_LADDERS[slot.type].map(resolveLadderId),
+  ]);
+  for (const ladderId of ladderIds) {
+    const ladder = safeLadder(ladderId);
+    if (!ladder) continue;
+    for (const level of ladder.levels.filter((item) => releaseVisible(item.releaseStatus, false))) {
+      if (!equipmentSupportsTags(level.equipment, equipment)) continue;
+      if (movementCapabilityBlockReasonsForLevel(level, movementCapabilities).length > 0) return true;
+    }
+  }
+  return false;
 }
 
 function titleForReadiness(title: string, readiness: DailyReadiness): string {
@@ -1475,6 +1525,12 @@ function equipmentFromInput(input: GenerateSessionInput): readonly AvailableEqui
   const equipment = input.availableEquipment ?? input.safetyProfile?.availableEquipment;
   if (equipment && equipment.length > 0) return equipment;
   return [];
+}
+
+function movementCapabilitiesFromInput(input: GenerateSessionInput): NormalizedMovementCapabilityProfile {
+  return input.movementCapabilities
+    ? normalizeMovementCapabilityProfile(input.movementCapabilities, { source: 'local_user' })
+    : movementCapabilitiesFromSafetyProfile(input.safetyProfile);
 }
 
 function resolveLadderId(id: string): string {

@@ -11,6 +11,7 @@ import {
   getExtraSessionCards,
   getHealthInsightCards,
   getMovementLadderCards,
+  type TodaySessionPreferences,
   type ExploreLibrarySection,
   type ExtraSessionCard,
   type HealthInsightCard,
@@ -62,7 +63,7 @@ export function ExploreScreen({
   safetyProfile?: MovementSafetyProfile | null;
   settings: AppSettings;
   ladderProgressById: Record<string, LadderProgress>;
-  onStartExtraSession: (presetId: string) => void;
+  onStartExtraSession: (presetId: string, preferences?: TodaySessionPreferences | null) => void;
   onOpenLadder: (ladderId: string) => void;
   onOpenLearn: (articleId: string) => void;
   onOpenSettings: () => void;
@@ -82,6 +83,13 @@ export function ExploreScreen({
     () => getEquipmentSetupSummary({ equipment, safetyProfile, settings }),
     [equipment, safetyProfile, settings]
   );
+  const startExtraSession = React.useCallback(
+    (presetId: string) => {
+      onStartExtraSession(presetId, { adjustment: null, painArea: null });
+    },
+    [onStartExtraSession]
+  );
+
   return (
     <Screen contentStyle={styles.screenContent}>
       <View style={styles.headerRow}>
@@ -114,7 +122,7 @@ export function ExploreScreen({
           onOpenSettings={onOpenSettings}
         />
       ) : activeTab === 'practice' ? (
-        <PracticeTab sessions={extraSessions} onStartExtraSession={onStartExtraSession} />
+        <PracticeTab sessions={extraSessions} onStartExtraSession={startExtraSession} />
       ) : (
         <LibraryTab ladders={ladders} onOpenLadder={onOpenLadder} />
       )}
@@ -873,8 +881,6 @@ function durationLabel(label: string): string {
 
 const styles = StyleSheet.create({
   screenContent: {
-    paddingTop: spacing.pageTop,
-    paddingHorizontal: spacing.pageHorizontal,
     paddingBottom: 30,
     gap: 22,
     backgroundColor: todayHomeColors.background,

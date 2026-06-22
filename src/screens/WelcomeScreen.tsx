@@ -242,7 +242,7 @@ function PrivacyPoint({ index, title, body }: { index: string; title: string; bo
 
 const styles = StyleSheet.create({
   screen: {
-    paddingTop: spacing.xl,
+    paddingTop: spacing.pageTop,
     paddingBottom: spacing.xxxl,
     gap: spacing.xl,
   },

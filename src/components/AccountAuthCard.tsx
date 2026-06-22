@@ -973,7 +973,7 @@ const styles = StyleSheet.create({
   },
   exportButton: {
     minHeight: 54,
-    borderRadius: 15,
+    borderRadius: radius.pill,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -990,7 +990,7 @@ const styles = StyleSheet.create({
   },
   signOutButton: {
     minHeight: 54,
-    borderRadius: 15,
+    borderRadius: radius.pill,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1158,7 +1158,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderRadius: radius.button,
+    borderRadius: radius.pill,
     backgroundColor: colors.bgSurface,
     borderWidth: 1,
     borderColor: colors.border,
@@ -1205,7 +1205,6 @@ const styles = StyleSheet.create({
   },
   requiredSubmitButton: {
     minHeight: 60,
-    borderRadius: radius.button,
     ...shadow.soft,
   },
   modeLink: {

@@ -333,6 +333,7 @@ describe('authoritative progression evidence', () => {
       activeBlock: b,
       training: defaultTrainingState(),
       safetyProfile: safety(),
+      adjustment: null,
       today: START,
     });
     if (!practice) throw new Error('expected practice plan');
@@ -420,6 +421,20 @@ function safety(): MovementSafetyProfile {
     feelsSafeBalancing: true,
     availableEquipment: ['chair', 'wall', 'resistance_band'],
     equipmentStatus: 'confirmed',
+    movementCapabilities: {
+      schemaVersion: 1,
+      floorTransfer: { status: 'confirmed' },
+      stepUpEnvironment: {
+        status: 'confirmed',
+        lowStableStep: true,
+        fixedSupport: true,
+        clearDryArea: true,
+        phoneOutOfPath: true,
+      },
+      singleLegBalance: { status: 'confirmed_with_support' },
+      revision: 1,
+      updatedAt: START,
+    },
     preferredWorkoutDays: ['Mon', 'Wed', 'Fri'],
     createdAt: START,
     updatedAt: START,

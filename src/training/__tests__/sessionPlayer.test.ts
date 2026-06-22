@@ -24,6 +24,7 @@ import {
   TrainingSessionPlayer,
   TrainingSessionResult,
 } from '../sessionPlayer';
+import { SESSION_GLOBAL_SAFETY_CUE_IDS, type SafetyCueId } from '../safetyCues';
 
 const CUE_PLAY_MS = 1200;
 const FRAME_MS = 1000 / 30;
@@ -31,6 +32,8 @@ const FRAME_MS = 1000 / 30;
 interface RunResult {
   result: TrainingSessionResult;
   spoken: VoiceCueKey[];
+  safetyCueIds: SafetyCueId[];
+  safetyText: string[];
   phasesSeen: Set<string>;
 }
 
@@ -45,6 +48,8 @@ function runSession(
   const preflight = new PreflightCheck();
   const player = new TrainingSessionPlayer('2026-06-14T09:00:00.000Z', exerciseIds, preflight, config);
   const spoken: VoiceCueKey[] = [];
+  const safetyCueIds: SafetyCueId[] = [];
+  const safetyText: string[] = [];
   const phasesSeen = new Set<string>();
   let voiceBusyUntil = -1;
   let ts = 0;
@@ -58,11 +63,13 @@ function runSession(
       spoken.push(...(u.voice.cues as VoiceCueKey[]));
       voiceBusyUntil = ts + u.voice.cues.length * CUE_PLAY_MS;
     }
+    safetyCueIds.push(...u.safetyCueIds);
+    safetyText.push(...u.safetyText);
     if (u.phase === 'done') break;
   }
   const result = player.result;
   if (!result) throw new Error('session did not finish within frame cap');
-  return { result, spoken, phasesSeen };
+  return { result, spoken, safetyCueIds, safetyText, phasesSeen };
 }
 
 function framedStanding(seed = 7): (ts: number) => RawLandmarkEvent {
@@ -100,6 +107,21 @@ describe('TrainingSessionPlayer — full session', () => {
     // Bridge (side) → neck rotations (front) crosses the camera view.
     expect(run.spoken).toContain('face-forward');
   });
+
+  it('speaks canonical global safety once and setup cues before the first countdown', () => {
+    const run = runSession([STS_STANDARD_ID], framedStanding(), config);
+    const firstCountdown = run.spoken.indexOf('countdown-three');
+    expect(firstCountdown).toBeGreaterThan(0);
+    for (const cueId of SESSION_GLOBAL_SAFETY_CUE_IDS) {
+      expect(run.spoken.filter((cue) => cue === cueId).length).toBe(1);
+      expect(run.spoken.indexOf(cueId)).toBeLessThan(firstCountdown);
+    }
+    expect(run.spoken.filter((cue) => cue === 'support_keep_support_within_reach').length).toBe(1);
+    expect(run.spoken.indexOf('support_keep_support_within_reach')).toBeLessThan(firstCountdown);
+    expect(run.spoken.indexOf('chair_use_sturdy_chair')).toBeGreaterThan(-1);
+    expect(run.spoken.indexOf('chair_use_sturdy_chair')).toBeLessThan(firstCountdown);
+    expect(run.safetyText.join(' ')).toMatch(/sturdy chair/);
+  });
 });
 
 describe('TrainingSessionPlayer — setup issue choices', () => {
@@ -125,5 +147,44 @@ describe('TrainingSessionPlayer — setup issue choices', () => {
     expect(setupIssues).toBe(2);
     expect(run.spoken.filter((c) => c === 'exercise-skipped').length).toBe(0);
     expect(run.spoken[run.spoken.length - 1]).toBe('session-complete');
+  });
+
+  it('surfaces tracking recovery safety text while waiting after setup trouble', () => {
+    const config: TrainingPlayerConfig = { ...DEFAULT_TRAINING_CONFIG, maxFramingMs: 3000 };
+    let recoveryText = '';
+    runSession(
+      [STS_STANDARD_ID],
+      (ts) => ({ timestampMs: ts, landmarks: [] }),
+      config,
+      8000,
+      (u, player) => {
+        if (u.safetyCueIds.includes('tracking_pause_and_reset')) {
+          recoveryText = u.safetyText.join(' ');
+        }
+        if (u.setupIssue) player.skipCurrentItem();
+      }
+    );
+    expect(recoveryText).toMatch(/Tracking paused/);
+  });
+
+  it('surfaces the current setup prompt for dynamic setup UI', () => {
+    const config: TrainingPlayerConfig = { ...DEFAULT_TRAINING_CONFIG, maxFramingMs: 3000 };
+    const prompts: string[] = [];
+    const setupIssuePrompts: string[] = [];
+    runSession(
+      [STS_STANDARD_ID],
+      (ts) => ({ timestampMs: ts, landmarks: [] }),
+      config,
+      8000,
+      (u, player) => {
+        if (u.setupPrompt) prompts.push(u.setupPrompt);
+        if (u.setupIssue) {
+          if (u.setupPrompt) setupIssuePrompts.push(u.setupPrompt);
+          player.skipCurrentItem();
+        }
+      }
+    );
+    expect(prompts).toContain('step-into-frame');
+    expect(setupIssuePrompts).toEqual(['step-into-frame']);
   });
 });

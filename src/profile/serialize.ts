@@ -9,6 +9,7 @@ import { LIFE_GOAL_CATEGORIES } from '../adherence';
 import type { ActivityLevel, LifeGoal, MovementSafetyProfile } from '../adherence';
 import { AppSettings, EMPTY_PROFILE, OnboardingState, OnboardingStep, Preferences, UserProfile } from './types';
 import { isCanonicalEquipmentStatus, normalizeAvailableEquipmentForPersistence } from './equipment';
+import { movementCapabilityProfileForPersistence } from './movementCapabilities';
 import { DEFAULT_VOICE_ID, VOICE_OPTIONS } from './voices';
 
 export const PREFERENCES_SCHEMA_VERSION = 4;
@@ -129,6 +130,16 @@ function validSafetyProfile(v: unknown): MovementSafetyProfile | null {
   const preferredWorkoutDays = Array.isArray(p.preferredWorkoutDays)
     ? p.preferredWorkoutDays.filter((d): d is string => typeof d === 'string')
     : undefined;
+  const movementCapabilities = movementCapabilityProfileForPersistence(p.movementCapabilities, {
+    updatedAt:
+      typeof p.movementCapabilities?.updatedAt === 'string'
+        ? p.movementCapabilities.updatedAt
+        : p.updatedAt,
+    revision:
+      typeof p.movementCapabilities?.revision === 'number' && Number.isFinite(p.movementCapabilities.revision)
+        ? p.movementCapabilities.revision
+        : undefined,
+  });
   return {
     id: p.id,
     userId: p.userId,
@@ -145,6 +156,7 @@ function validSafetyProfile(v: unknown): MovementSafetyProfile | null {
     equipmentStatus: normalizedEquipment.equipmentStatus,
     equipmentRevision: normalizedEquipment.equipmentRevision,
     equipmentUpdatedAt: normalizedEquipment.equipmentUpdatedAt,
+    movementCapabilities,
     preferredWorkoutDays,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,

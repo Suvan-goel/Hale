@@ -8,7 +8,19 @@
  */
 
 import * as React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import {
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  type StyleProp,
+  Text,
+  useWindowDimensions,
+  View,
+  type ViewStyle,
+} from 'react-native';
 
 import {
   LandmarksEventPayload,
@@ -20,11 +32,13 @@ import {
   SafePoseDetectionView,
 } from '../components/SafePoseDetectionView';
 import type { CameraAvailability } from '../components/SafePoseDetectionView';
+import { BackArrowButton } from '../components/BackArrowButton';
+import { HeaderLogo } from '../components/HeaderLogo';
 import { getExercise, type ExerciseDefinition } from '../exercises';
 import { PosePipeline } from '../pose/pipeline';
 import { PreflightCheck } from '../preflight/preflight';
-import { SetupHelpPanel } from '../preflight/SetupHelpPanel';
-import { FRAMING_READY_COPY } from '../preflight/setupCopy';
+import type { PreflightPrompt } from '../preflight/preflight';
+import { FRAMING_READY_COPY, SETUP_HELP_TIPS } from '../preflight/setupCopy';
 import { LandmarkRecorder } from '../recording/recorder';
 import { SkeletonView, SkeletonViewHandle } from '../render/SkeletonView';
 import { pointCloudBodyPartsForTrainingExercise } from '../render/poseAvatarMuscleFocus';
@@ -32,15 +46,17 @@ import type {
   PoseAvatarActiveDomain,
   PoseAvatarMeasurementState,
 } from '../render/poseAvatarTypes';
-import { colors, radius, shadow, spacing, type } from '../theme';
+import { colors, radius, spacing, type } from '../theme';
 import {
   TrainingPhase,
   TrainingSessionPlayer,
   TrainingSessionResult,
 } from '../training/sessionPlayer';
-import { recordingCameraViewportSize } from './recordingViewport';
+import type { SafetyCueId } from '../training/safetyCues';
+import { poseEstimationWindowSize, recordingCameraViewportSize } from './recordingViewport';
 
 const UI_UPDATE_INTERVAL_MS = 100;
+const IOS_RECORDING_TOP_CLEARANCE = 44;
 
 interface Snapshot {
   phase: TrainingPhase;
@@ -57,6 +73,9 @@ interface Snapshot {
   restSec: number;
   validTimeCaption: string | null;
   setupIssue: boolean;
+  setupPrompt: PreflightPrompt | null;
+  safetyCueIds: readonly SafetyCueId[];
+  safetyText: readonly string[];
 }
 
 const INITIAL: Snapshot = {
@@ -74,6 +93,9 @@ const INITIAL: Snapshot = {
   restSec: NaN,
   validTimeCaption: null,
   setupIssue: false,
+  setupPrompt: null,
+  safetyCueIds: [],
+  safetyText: [],
 };
 
 const PHASE_CAPTION: Partial<Record<TrainingPhase, string>> = {
@@ -83,16 +105,57 @@ const PHASE_CAPTION: Partial<Record<TrainingPhase, string>> = {
   rest: 'Rest',
 };
 
+type StageDisplay = {
+  mode: 'caption' | 'metric';
+  value: string;
+  label: string;
+  tone?: 'default' | 'warning';
+};
+
+type TrainingSessionDebugScenario = 'busy';
+
+const BUSY_DEBUG_SNAPSHOT: Snapshot = {
+  phase: 'set',
+  itemIndex: 1,
+  totalItems: 4,
+  exerciseId: 'balance-feet-together-hold',
+  exerciseName: 'Feet-Together Hold',
+  activeDomain: 'balance',
+  setIndex: 1,
+  totalSets: 3,
+  kind: 'hold',
+  repCount: 0,
+  holdSec: 18,
+  restSec: NaN,
+  validTimeCaption: null,
+  setupIssue: false,
+  setupPrompt: 'step-back',
+  safetyCueIds: [],
+  safetyText: [
+    'Keep fingertips near a chair or counter.',
+    'Stop if you feel dizzy, sharp pain, or unsteady.',
+  ],
+};
+
+const TRAINING_HELP_SAFETY_TIPS: readonly string[] = [
+  'Keep fingertips near a chair or counter.',
+  'Stop if you feel dizzy, sharp pain, or unsteady.',
+];
+
 export function TrainingSessionScreen({
   exerciseIds,
+  sessionTitle,
   onComplete,
   onCancel,
   voiceId,
+  debugScenario,
 }: {
   exerciseIds: string[];
+  sessionTitle?: string;
   onComplete: (result: TrainingSessionResult) => void;
   onCancel?: () => void;
   voiceId?: string;
+  debugScenario?: TrainingSessionDebugScenario;
 }) {
   const [pipeline] = React.useState(() => new PosePipeline());
   const [preflight] = React.useState(() => new PreflightCheck());
@@ -109,11 +172,15 @@ export function TrainingSessionScreen({
   const pausedRef = React.useRef(false);
   const resumePendingRef = React.useRef(false);
   const completedRef = React.useRef(false);
+  const discardWasPausedRef = React.useRef(false);
   const [snapshot, setSnapshot] = React.useState<Snapshot>({ ...INITIAL, totalItems: exerciseIds.length });
   const [paused, setPaused] = React.useState(false);
   const [showHelp, setShowHelp] = React.useState(false);
+  const [discardModalVisible, setDiscardModalVisible] = React.useState(false);
   const [cameraAvailability, setCameraAvailability] = React.useState<CameraAvailability>('checking');
   const windowSize = useWindowDimensions();
+  const recordingTopPadding = recordingScreenTopPadding();
+  const exerciseDefinitions = React.useMemo(() => exerciseIds.map((id) => getExercise(id)), [exerciseIds]);
 
   React.useEffect(() => {
     if (__DEV__) recorder.start();
@@ -169,8 +236,20 @@ export function TrainingSessionScreen({
           restSec: u.phase === 'rest' ? Math.ceil(u.remainingMs / 1000) : NaN,
           validTimeCaption: u.validTimeCaption,
           setupIssue: u.setupIssue,
+          setupPrompt: u.setupPrompt,
+          safetyCueIds: u.safetyCueIds.slice(),
+          safetyText: u.safetyText.slice(),
         };
-        setSnapshot((prev) => (sameSnapshot(prev, next) ? prev : next));
+        setSnapshot((prev) => {
+          const hydratedNext =
+            next.safetyText.length > 0 ||
+            next.exerciseId !== prev.exerciseId ||
+            next.phase === 'complete' ||
+            next.phase === 'done'
+              ? next
+              : { ...next, safetyCueIds: prev.safetyCueIds, safetyText: prev.safetyText };
+          return sameSnapshot(prev, hydratedNext) ? prev : hydratedNext;
+        });
       }
       skeletonRef.current?.update(out, sourceAspect);
     },
@@ -181,28 +260,46 @@ export function TrainingSessionScreen({
     console.warn('[pose]', e.nativeEvent.message);
   }, []);
 
-  const inSet = snapshot.phase === 'set';
-  const showReps = inSet && snapshot.kind === 'reps';
-  const showHold = inSet && (snapshot.kind === 'hold' || snapshot.kind === 'timer' || !!snapshot.validTimeCaption);
-  const avatarMeasurementState = trainingAvatarState(snapshot.phase);
+  const busyDebug = debugScenario === 'busy';
+  const visibleSnapshot = busyDebug ? BUSY_DEBUG_SNAPSHOT : snapshot;
+  const visiblePaused = busyDebug ? false : paused;
+  const visibleShowHelp = busyDebug ? false : showHelp;
+  const visibleCameraAvailability: CameraAvailability = busyDebug ? 'available' : cameraAvailability;
+  const setupNoticeText = trainingSetupNoticeText(visibleSnapshot);
+  const showSetupNotice =
+    visibleCameraAvailability !== 'unavailable' &&
+    setupNoticeText !== null &&
+    (busyDebug || visibleSnapshot.setupIssue || visibleSnapshot.phase === 'preflight');
+  const currentExerciseName = visibleSnapshot.exerciseName ?? exerciseDefinitions[0]?.displayName ?? 'Today\'s Hale session';
+  const totalItems = visibleSnapshot.totalItems || exerciseDefinitions.length || exerciseIds.length;
+  const visibleItemNumber = totalItems > 0 ? Math.min(visibleSnapshot.itemIndex + 1, totalItems) : 0;
+  const sessionMeta = trainingMetaLine(visibleSnapshot, visibleItemNumber, totalItems);
+  const stageDisplay = trainingStageDisplay(visibleSnapshot, visiblePaused, visibleShowHelp, visibleCameraAvailability);
+  const avatarMeasurementState = trainingAvatarState(visibleSnapshot.phase);
   const avatarActiveBodyParts = React.useMemo(
     () =>
-      snapshot.exerciseId
-        ? pointCloudBodyPartsForTrainingExercise(getExercise(snapshot.exerciseId))
+      visibleSnapshot.exerciseId
+        ? pointCloudBodyPartsForTrainingExercise(getExercise(visibleSnapshot.exerciseId))
         : undefined,
-    [snapshot.exerciseId]
+    [visibleSnapshot.exerciseId]
   );
-  const canControl = snapshot.phase !== 'complete' && snapshot.phase !== 'done';
-  const canRepeat = snapshot.exerciseId !== null;
-  const canSkip =
-    snapshot.exerciseId !== null &&
-    snapshot.phase !== 'intro' &&
-    snapshot.phase !== 'transition' &&
-    snapshot.phase !== 'complete' &&
-    snapshot.phase !== 'done';
+  const canControl = visibleSnapshot.phase !== 'complete' && visibleSnapshot.phase !== 'done';
+  const canRepeat = visibleSnapshot.exerciseId !== null;
+  const viewportWidth = Math.max(1, Math.min(windowSize.width - spacing.md * 2, spacing.pageMaxWidth));
   const cameraViewport = React.useMemo(
-    () => recordingCameraViewportSize(windowSize.width, windowSize.height, snapshot.setupIssue || showHelp),
-    [showHelp, snapshot.setupIssue, windowSize.height, windowSize.width]
+    () => recordingCameraViewportSize(viewportWidth, windowSize.height, snapshot.setupIssue || showHelp),
+    [showHelp, snapshot.setupIssue, viewportWidth, windowSize.height]
+  );
+  const poseWindow = React.useMemo(
+    () => poseEstimationWindowSize(cameraViewport.width, cameraViewport.height),
+    [cameraViewport.height, cameraViewport.width]
+  );
+  const recordingFooterFrame = React.useMemo(
+    () => ({
+      top: poseWindow.top + poseWindow.height,
+      height: Math.max(1, cameraViewport.height - (poseWindow.top + poseWindow.height)),
+    }),
+    [cameraViewport.height, poseWindow.height, poseWindow.top]
   );
 
   const pause = React.useCallback(() => {
@@ -218,11 +315,30 @@ export function TrainingSessionScreen({
     setPaused(false);
   }, []);
 
+  const requestDiscardSession = React.useCallback(() => {
+    if (!onCancel) return;
+    discardWasPausedRef.current = pausedRef.current;
+    if (!pausedRef.current) {
+      pause();
+    } else {
+      voice.stop();
+    }
+    setDiscardModalVisible(true);
+  }, [onCancel, pause, voice]);
+
+  const keepSession = React.useCallback(() => {
+    setDiscardModalVisible(false);
+    if (!discardWasPausedRef.current) {
+      resume();
+    }
+  }, [resume]);
+
   const repeatInstructions = React.useCallback(() => {
     if (!snapshot.exerciseId) return;
     const cues = getExercise(snapshot.exerciseId).voice.instructions;
-    if (cues.length > 0) voice.speak(cues, 8);
-  }, [snapshot.exerciseId, voice]);
+    const safetyCues = snapshot.safetyCueIds;
+    if (cues.length > 0 || safetyCues.length > 0) voice.speak([...cues, ...safetyCues], 8);
+  }, [snapshot.exerciseId, snapshot.safetyCueIds, voice]);
 
   const skipCurrent = React.useCallback(() => {
     voice.stop();
@@ -230,13 +346,8 @@ export function TrainingSessionScreen({
     player.skipCurrentItem();
   }, [player, voice]);
 
-  const tryAgain = React.useCallback(() => {
-    voice.stop();
-    setShowHelp(false);
-    player.retrySetup();
-  }, [player, voice]);
-
-  const stop = React.useCallback(() => {
+  const discardSession = React.useCallback(() => {
+    setDiscardModalVisible(false);
     voice.stop();
     onCancel?.();
   }, [onCancel, voice]);
@@ -244,7 +355,7 @@ export function TrainingSessionScreen({
   return (
     <View style={styles.container}>
       <SafePoseDetectionView
-        active
+        active={!busyDebug}
         modelVariant="lite"
         style={StyleSheet.absoluteFill}
         onLandmarks={onLandmarks}
@@ -253,45 +364,40 @@ export function TrainingSessionScreen({
       />
       <ScrollView
         style={styles.layout}
-        contentContainerStyle={styles.layoutContent}
+        contentContainerStyle={[styles.layoutContent, { paddingTop: recordingTopPadding }]}
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-        <View pointerEvents="none" style={styles.hud}>
-          {snapshot.phase === 'intro' ? (
-            <Text style={styles.caption}>Starting your session…</Text>
-          ) : snapshot.phase === 'complete' || snapshot.phase === 'done' ? (
-            <Text style={styles.caption}>Great work — that's your session.</Text>
-          ) : (
-            <>
-              <Text style={styles.progress}>
-                Exercise {Math.min(snapshot.itemIndex + 1, snapshot.totalItems)} of {snapshot.totalItems}
-              </Text>
-              {snapshot.exerciseName ? <Text style={styles.movement}>{snapshot.exerciseName}</Text> : null}
-              {snapshot.totalSets > 0 ? (
-                <Text style={styles.progress}>
-                  Set {Math.min(snapshot.setIndex + 1, snapshot.totalSets)} of {snapshot.totalSets}
-                </Text>
-              ) : null}
-              {showReps ? (
-                <Text style={styles.big}>{snapshot.repCount}</Text>
-              ) : showHold ? (
-                <>
-                  <Text style={styles.big}>{Number.isFinite(snapshot.holdSec) ? `${Math.floor(snapshot.holdSec)}s` : '-'}</Text>
-                  {snapshot.validTimeCaption ? <Text style={styles.caption}>{snapshot.validTimeCaption}</Text> : null}
-                </>
-              ) : snapshot.phase === 'rest' ? (
-                <Text style={styles.big}>{Number.isFinite(snapshot.restSec) ? `${snapshot.restSec}s` : ''}</Text>
-              ) : (
-                <Text style={styles.caption}>{PHASE_CAPTION[snapshot.phase] ?? 'Measuring…'}</Text>
-              )}
-            </>
-          )}
+        <View style={styles.topBar}>
+          {onCancel ? (
+            <BackArrowButton accessibilityLabel="Discard session" onPress={requestDiscardSession} style={styles.topBarBackButton} />
+          ) : null}
+          <Text style={styles.topBarTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>
+            {sessionTitle?.trim() || 'Today\'s Hale session'}
+          </Text>
         </View>
 
         <View style={styles.avatarSlot}>
           <View style={[styles.avatarViewport, cameraViewport]}>
-            {cameraAvailability === 'unavailable' ? (
+            <View pointerEvents="none" style={[styles.poseEstimationWindow, poseWindow]} />
+            <View pointerEvents="box-none" style={styles.recordingChrome}>
+              <HeaderLogo size={34} style={styles.recordingLogo} />
+              <RecordingSetupNotice visible={showSetupNotice} text={setupNoticeText ?? ''} onPress={() => setShowHelp(true)} />
+              <Pressable
+                style={({ pressed }) => [
+                  styles.helpIconButton,
+                  showHelp && styles.helpIconButtonSelected,
+                  pressed && styles.controlPressed,
+                ]}
+                onPress={() => setShowHelp(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Open help"
+                accessibilityState={{ selected: showHelp }}
+              >
+                <Text style={[styles.helpIconText, showHelp && styles.helpIconTextSelected]}>?</Text>
+              </Pressable>
+            </View>
+            {visibleCameraAvailability === 'unavailable' ? (
               <CameraUnavailableNotice compact />
             ) : (
               <SkeletonView
@@ -314,37 +420,232 @@ export function TrainingSessionScreen({
                 stateTransitionsEnabled={false}
               />
             )}
+            <RecordingCardFooter
+              exerciseName={currentExerciseName}
+              meta={sessionMeta}
+              display={stageDisplay}
+              style={recordingFooterFrame}
+            />
           </View>
         </View>
 
         <View style={styles.bottomPanel}>
-          {paused ? (
-            <View style={styles.pausedBanner}>
-              <Text style={styles.caption}>Paused</Text>
-            </View>
-          ) : null}
-          {snapshot.setupIssue ? (
-            <SetupHelpPanel
-              mode="workout"
-              onTryAgain={tryAgain}
-              onClose={() => setShowHelp(false)}
-              onSkip={skipCurrent}
-              skipLabel="Skip exercise"
-            />
-          ) : showHelp ? (
-            <SetupHelpPanel mode="help" onClose={() => setShowHelp(false)} />
-          ) : null}
           {canControl ? (
             <View style={styles.controls}>
-              <ControlButton title={paused ? 'Resume' : 'Pause'} onPress={paused ? resume : pause} />
-              <ControlButton title="Repeat" onPress={repeatInstructions} disabled={!canRepeat} />
-              <ControlButton title="Help" onPress={() => setShowHelp((value) => !value)} />
-              <ControlButton title="Skip exercise" onPress={skipCurrent} disabled={!canSkip} />
-              {onCancel ? <ControlButton title="Stop" onPress={stop} tone="danger" /> : null}
+              <ControlButton title={visiblePaused ? 'Resume' : 'Pause'} onPress={visiblePaused ? resume : pause} />
+              {visiblePaused && canRepeat ? (
+                <ControlButton title="Repeat" onPress={repeatInstructions} />
+              ) : (
+                <ControlButton title="Skip exercise" onPress={skipCurrent} disabled={!canRepeat} />
+              )}
             </View>
           ) : null}
         </View>
       </ScrollView>
+      <DiscardSessionModal
+        visible={discardModalVisible}
+        onKeep={keepSession}
+        onDiscard={discardSession}
+      />
+      <SessionHelpModal visible={showHelp} onClose={() => setShowHelp(false)} />
+    </View>
+  );
+}
+
+function RecordingSetupNotice({
+  visible,
+  text,
+  onPress,
+}: {
+  visible: boolean;
+  text: string;
+  onPress: () => void;
+}) {
+  if (!visible) {
+    return <View pointerEvents="none" style={styles.recordingSetupNoticeSlot} />;
+  }
+
+  return (
+    <View style={styles.recordingSetupNoticeSlot}>
+      <Pressable
+        style={({ pressed }) => [styles.recordingSetupNotice, pressed && styles.controlPressed]}
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel="Open setup help"
+      >
+        <View style={styles.recordingSetupNoticeSignal}>
+          <View style={styles.recordingSetupNoticeDot} />
+        </View>
+        <View style={styles.recordingSetupNoticeCopy}>
+          <Text style={styles.recordingSetupNoticeTitle} numberOfLines={1}>
+            {text}
+          </Text>
+        </View>
+      </Pressable>
+    </View>
+  );
+}
+
+function SessionHelpModal({
+  visible,
+  onClose,
+}: {
+  visible: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalBackdrop}>
+        <View style={styles.helpModal}>
+          <View style={styles.helpModalHeader}>
+            <HeaderLogo size={26} />
+            <Text style={styles.modalEyebrow}>Setup help</Text>
+          </View>
+          <View style={styles.helpIntro}>
+            <Text style={styles.modalTitle}>Get the cleanest reading</Text>
+            <Text style={styles.modalBody}>A few quick setup checks help Hale keep the skeleton steady.</Text>
+          </View>
+          <View style={styles.helpTipList}>
+            {SETUP_HELP_TIPS.map((tip) => (
+              <View key={tip} style={styles.helpTipRow}>
+                <View style={styles.helpTipDot} />
+                <Text style={styles.helpTip}>{tip}</Text>
+              </View>
+            ))}
+          </View>
+          <View style={styles.helpSafetyBlock}>
+            <View style={styles.helpSafetyHeader}>
+              <View style={styles.helpSafetyMark}>
+                <View style={styles.helpSafetyMarkInner} />
+              </View>
+              <Text style={styles.helpSafetyLabel}>Safety</Text>
+            </View>
+            <Text style={styles.helpSafetyTitle}>Move with support nearby.</Text>
+            {TRAINING_HELP_SAFETY_TIPS.map((tip) => (
+              <View key={tip} style={styles.helpSafetyRow}>
+                <View style={styles.helpSafetyRule} />
+                <Text style={styles.helpSafetyText}>{tip}</Text>
+              </View>
+            ))}
+          </View>
+          <Pressable
+            style={({ pressed }) => [styles.modalButton, styles.modalKeepButton, pressed && styles.controlPressed]}
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel="Close help"
+          >
+            <Text style={styles.modalKeepText}>Close</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function DiscardSessionModal({
+  visible,
+  onKeep,
+  onDiscard,
+}: {
+  visible: boolean;
+  onKeep: () => void;
+  onDiscard: () => void;
+}) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onKeep}
+    >
+      <View style={styles.modalBackdrop}>
+        <View style={styles.discardModal}>
+          <Text style={styles.modalEyebrow}>Discard session?</Text>
+          <Text style={styles.modalTitle}>Leave without saving?</Text>
+          <Text style={styles.modalBody}>
+            This workout will stop and today's progress from this session will not be saved.
+          </Text>
+          <View style={styles.modalActions}>
+            <Pressable
+              style={({ pressed }) => [styles.modalButton, styles.modalKeepButton, pressed && styles.controlPressed]}
+              onPress={onKeep}
+              accessibilityRole="button"
+              accessibilityLabel="Keep session"
+            >
+              <Text style={styles.modalKeepText}>Keep session</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.modalButton, styles.modalDiscardButton, pressed && styles.controlPressed]}
+              onPress={onDiscard}
+              accessibilityRole="button"
+              accessibilityLabel="Discard session"
+            >
+              <Text style={styles.modalDiscardText}>Discard</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function RecordingCardFooter({
+  exerciseName,
+  meta,
+  display,
+  style,
+}: {
+  exerciseName: string;
+  meta: string;
+  display: StageDisplay | null;
+  style: StyleProp<ViewStyle>;
+}) {
+  const isWarning = display?.tone === 'warning';
+  return (
+    <View
+      pointerEvents="none"
+      style={[styles.recordingFooter, style]}
+    >
+      <View style={styles.recordingFooterRule} />
+      <View style={styles.recordingFooterMovement}>
+        <Text
+          style={styles.recordingFooterMovementName}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.78}
+        >
+          {exerciseName}
+        </Text>
+        <Text style={styles.recordingFooterMovementMeta} numberOfLines={1}>
+          {meta}
+        </Text>
+      </View>
+      {display ? (
+        <View style={styles.recordingFooterMetric}>
+          <View style={styles.recordingFooterMetricHeader}>
+            <View style={[styles.recordingFooterMetricDot, isWarning && styles.recordingFooterMetricDotWarning]} />
+            <Text style={[styles.recordingFooterMetricLabel, isWarning && styles.recordingFooterMetricWarning]}>
+              {display.label}
+            </Text>
+          </View>
+          <Text
+            style={[
+              display.mode === 'metric' ? styles.recordingFooterMetricValue : styles.recordingFooterStatusValue,
+              isWarning && styles.recordingFooterMetricWarning,
+            ]}
+            numberOfLines={display.mode === 'metric' ? 1 : 2}
+            adjustsFontSizeToFit
+            minimumFontScale={0.76}
+          >
+            {display.value}
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -354,16 +655,21 @@ function ControlButton({
   onPress,
   disabled,
   tone = 'normal',
+  selected,
 }: {
   title: string;
   onPress: () => void;
   disabled?: boolean;
   tone?: 'normal' | 'danger';
+  selected?: boolean;
 }) {
+  const isPrimary = title === 'Pause' || title === 'Resume';
   return (
     <Pressable
       style={({ pressed }) => [
         styles.controlButton,
+        isPrimary && styles.controlPrimary,
+        selected && styles.controlSelected,
         tone === 'danger' && styles.controlDanger,
         disabled && styles.controlDisabled,
         pressed && !disabled && styles.controlPressed,
@@ -374,7 +680,17 @@ function ControlButton({
       accessibilityLabel={title}
       accessibilityState={{ disabled: !!disabled }}
     >
-      <Text style={[styles.controlText, tone === 'danger' && styles.controlDangerText]}>{title}</Text>
+      <Text
+        style={[
+          styles.controlText,
+          isPrimary && styles.controlPrimaryText,
+          disabled && styles.controlTextDisabled,
+          tone === 'danger' && styles.controlDangerText,
+        ]}
+        numberOfLines={1}
+      >
+        {title}
+      </Text>
     </Pressable>
   );
 }
@@ -392,8 +708,19 @@ function sameSnapshot(a: Snapshot, b: Snapshot): boolean {
     a.holdSec === b.holdSec &&
     a.restSec === b.restSec &&
     a.validTimeCaption === b.validTimeCaption &&
-    a.setupIssue === b.setupIssue
+    a.setupIssue === b.setupIssue &&
+    a.setupPrompt === b.setupPrompt &&
+    sameList(a.safetyCueIds, b.safetyCueIds) &&
+    sameList(a.safetyText, b.safetyText)
   );
+}
+
+function sameList<T>(a: readonly T[], b: readonly T[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let idx = 0; idx < a.length; idx++) {
+    if (a[idx] !== b[idx]) return false;
+  }
+  return true;
 }
 
 function trainingAvatarState(phase: TrainingPhase): PoseAvatarMeasurementState {
@@ -424,6 +751,95 @@ function domainForTrainingExercise(definition: ExerciseDefinition): PoseAvatarAc
   return 'strength_power';
 }
 
+function recordingScreenTopPadding(): number {
+  const statusBarHeight =
+    Platform.OS === 'android'
+      ? StatusBar.currentHeight ?? 0
+      : Platform.OS === 'ios'
+        ? IOS_RECORDING_TOP_CLEARANCE
+        : 0;
+  return Math.max(spacing.lg, statusBarHeight + spacing.lg);
+}
+
+function trainingMetaLine(snapshot: Snapshot, visibleItemNumber: number, totalItems: number): string {
+  const parts = [`Exercise ${visibleItemNumber} of ${totalItems}`];
+  if (snapshot.totalSets > 0) {
+    parts.push(`Set ${Math.min(snapshot.setIndex + 1, snapshot.totalSets)} of ${snapshot.totalSets}`);
+  }
+  return parts.join(' · ');
+}
+
+function trainingStageDisplay(
+  snapshot: Snapshot,
+  paused: boolean,
+  showHelp: boolean,
+  cameraAvailability: CameraAvailability
+): StageDisplay | null {
+  if (cameraAvailability === 'unavailable') {
+    return null;
+  }
+  if (paused) {
+    return { mode: 'caption', label: 'Paused', value: 'Resume when you are ready.' };
+  }
+  if (showHelp) {
+    return { mode: 'caption', label: 'Setup', value: 'Check setup, then return to your spot.' };
+  }
+  if (snapshot.phase === 'rest') {
+    return {
+      mode: 'metric',
+      label: 'Rest',
+      value: Number.isFinite(snapshot.restSec) ? `${snapshot.restSec}s` : '',
+    };
+  }
+  if (snapshot.phase === 'set' && snapshot.kind === 'reps') {
+    return { mode: 'metric', label: 'Reps', value: `${snapshot.repCount}` };
+  }
+  if (snapshot.phase === 'set' && (snapshot.kind === 'hold' || snapshot.kind === 'timer')) {
+    return {
+      mode: 'metric',
+      label: snapshot.kind === 'timer' ? 'Time' : 'Hold',
+      value: Number.isFinite(snapshot.holdSec) ? `${Math.floor(snapshot.holdSec)}s` : '-',
+    };
+  }
+  if (snapshot.phase === 'complete' || snapshot.phase === 'done') {
+    return { mode: 'caption', label: 'Complete', value: 'Saving your session.' };
+  }
+  if (snapshot.validTimeCaption) {
+    return { mode: 'caption', label: 'Status', value: snapshot.validTimeCaption };
+  }
+  if (snapshot.phase === 'intro') {
+    return null;
+  }
+  if (snapshot.phase === 'transition') {
+    return { mode: 'caption', label: 'Next', value: 'Movement starts automatically.' };
+  }
+  const value = PHASE_CAPTION[snapshot.phase] ?? 'Measuring…';
+  if (value === 'Rest') return null;
+  return { mode: 'caption', label: 'Status', value };
+}
+
+function trainingSetupNoticeText(snapshot: Snapshot): string | null {
+  switch (snapshot.setupPrompt) {
+    case 'step-into-frame':
+      return 'Step into frame';
+    case 'center-yourself':
+      return 'Move to the center';
+    case 'step-back':
+      return 'Step back into frame';
+    case 'step-closer':
+      return 'Move a little closer';
+    case 'hold-still':
+      return 'Hold still for a moment';
+    case 'turn-on-light':
+      return 'More light needed';
+    case 'ready':
+      return null;
+    case null:
+    default:
+      return snapshot.setupIssue ? 'Step back into frame' : null;
+  }
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bgBase },
   layout: {
@@ -431,57 +847,237 @@ const styles = StyleSheet.create({
   },
   layoutContent: {
     minHeight: '100%',
-    paddingTop: spacing.md,
-    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
     gap: spacing.md,
-  },
-  hud: {
-    marginHorizontal: spacing.lg,
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderRadius: radius.card,
-    backgroundColor: colors.surface,
-    ...shadow.card,
   },
-  progress: { ...type.label, color: colors.sageDeep, marginTop: 4 },
-  movement: { ...type.h1, marginTop: 4, textAlign: 'center' },
-  caption: { ...type.body, color: colors.textSecondary, marginTop: 6, textAlign: 'center' },
-  big: { ...type.metric },
+  topBar: {
+    width: '100%',
+    maxWidth: spacing.pageMaxWidth,
+    minHeight: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.xs,
+  },
+  topBarBackButton: {
+    width: 18,
+    height: 36,
+    marginBottom: 0,
+    alignSelf: 'center',
+  },
+  topBarTitle: {
+    ...type.pageTitle,
+    fontSize: 22,
+    lineHeight: 28,
+    flex: 1,
+    color: colors.textPrimary,
+  },
   avatarSlot: {
+    width: '100%',
+    maxWidth: spacing.pageMaxWidth,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarViewport: {
     position: 'relative',
     overflow: 'hidden',
-    borderRadius: radius.card,
-    backgroundColor: colors.bgBase,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: radius.panel,
+    backgroundColor: colors.surface,
+    boxShadow: '0 0 24px rgba(17,20,18,0.06)',
   },
+  poseEstimationWindow: {
+    position: 'absolute',
+    zIndex: 2,
+    borderWidth: 1,
+    borderColor: colors.textPrimary,
+    borderRadius: radius.card,
+    backgroundColor: 'transparent',
+  },
+  recordingChrome: {
+    position: 'absolute',
+    top: spacing.md,
+    left: spacing.md,
+    right: spacing.md,
+    zIndex: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  recordingLogo: {
+    opacity: 0.92,
+  },
+  recordingSetupNoticeSlot: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+  },
+  recordingSetupNotice: {
+    width: '100%',
+    maxWidth: 228,
+    minHeight: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.button,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+    boxShadow: '0 0 18px rgba(17,20,18,0.055)',
+  },
+  recordingSetupNoticeSignal: {
+    width: 18,
+    height: 18,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.goldBorder,
+    backgroundColor: colors.bgGold,
+  },
+  recordingSetupNoticeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accentGold,
+  },
+  recordingSetupNoticeCopy: {
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  recordingSetupNoticeTitle: {
+    ...type.cardRowTitle,
+    color: colors.textPrimary,
+    fontSize: 13,
+    lineHeight: 17,
+    textAlign: 'center',
+  },
+  helpIconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  helpIconButtonSelected: {
+    backgroundColor: 'transparent',
+  },
+  helpIconText: {
+    ...type.cardRowTitle,
+    color: colors.accentDeep,
+    fontSize: 24,
+    lineHeight: 28,
+  },
+  helpIconTextSelected: {
+    color: colors.accentDeep,
+  },
+  recordingFooter: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.lg,
+  },
+  recordingFooterRule: {
+    position: 'absolute',
+    top: 0,
+    left: spacing.xl,
+    right: spacing.xl,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.borderHairline,
+    opacity: 0.72,
+  },
+  recordingFooterMovement: {
+    flex: 1,
+    minWidth: 0,
+    gap: 3,
+  },
+  recordingFooterMovementName: {
+    ...type.cardTitle,
+    fontSize: 21,
+    lineHeight: 27,
+    color: colors.textPrimary,
+  },
+  recordingFooterMovementMeta: {
+    ...type.bodySmall,
+    fontSize: 15,
+    lineHeight: 21,
+    color: colors.textSecondary,
+  },
+  recordingFooterMetric: {
+    width: 122,
+    flexShrink: 0,
+    alignItems: 'flex-end',
+    gap: 2,
+    paddingLeft: spacing.lg,
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderLeftColor: colors.borderHairline,
+  },
+  recordingFooterMetricHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: spacing.xs,
+  },
+  recordingFooterMetricDot: {
+    width: 6,
+    height: 6,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accentGold,
+  },
+  recordingFooterMetricDotWarning: {
+    backgroundColor: colors.accentDeep,
+  },
+  recordingFooterMetricLabel: {
+    ...type.label,
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.textSecondary,
+    textAlign: 'right',
+  },
+  recordingFooterMetricValue: {
+    ...type.metricSmall,
+    fontSize: 42,
+    lineHeight: 46,
+    color: colors.textPrimary,
+    textAlign: 'right',
+  },
+  recordingFooterStatusValue: {
+    ...type.cardRowTitle,
+    color: colors.textPrimary,
+    textAlign: 'right',
+  },
+  recordingFooterMetricWarning: { color: colors.accentDeep },
   bottomPanel: {
-    paddingHorizontal: spacing.lg,
+    width: '100%',
+    maxWidth: spacing.pageMaxWidth,
     gap: spacing.md,
     alignItems: 'stretch',
   },
-  pausedBanner: {
-    alignSelf: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.input,
-    backgroundColor: colors.surface,
+  controlStack: {
+    gap: spacing.sm,
   },
   controls: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
     gap: spacing.sm,
   },
   controlButton: {
-    minHeight: 48,
-    minWidth: 76,
-    paddingHorizontal: spacing.md,
+    flex: 1,
+    minWidth: 0,
+    minHeight: 54,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
     borderRadius: radius.button,
     alignItems: 'center',
     justifyContent: 'center',
@@ -489,9 +1085,177 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  controlPrimary: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  controlSelected: {
+    backgroundColor: colors.bgGold,
+    borderColor: colors.goldBorder,
+  },
   controlDanger: { borderColor: colors.cautionBorder, backgroundColor: colors.cautionSoft },
   controlDisabled: { opacity: 0.45 },
   controlPressed: { opacity: 0.76 },
-  controlText: { ...type.button, color: colors.accentDeep },
+  controlText: { ...type.cardRowTitle, color: colors.accentDeep, textAlign: 'center' },
+  controlPrimaryText: { color: colors.onAccent },
+  controlTextDisabled: { color: colors.textTertiary },
   controlDangerText: { color: colors.error },
+  modalBackdrop: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.xl,
+    backgroundColor: 'rgba(17,20,18,0.24)',
+  },
+  discardModal: {
+    width: '100%',
+    maxWidth: 360,
+    gap: spacing.md,
+    padding: spacing.xl,
+    borderRadius: radius.panel,
+    backgroundColor: colors.surface,
+    boxShadow: '0 0 28px rgba(17,20,18,0.12)',
+  },
+  helpModal: {
+    width: '100%',
+    maxWidth: 380,
+    gap: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    borderRadius: radius.modal,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+    boxShadow: '0 0 34px rgba(17,20,18,0.13)',
+  },
+  helpModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  helpIntro: {
+    gap: spacing.sm,
+  },
+  modalEyebrow: {
+    ...type.label,
+    color: colors.accentDeep,
+  },
+  modalTitle: {
+    ...type.cardTitle,
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  modalBody: {
+    ...type.bodySmall,
+    color: colors.textSecondary,
+  },
+  modalActions: {
+    gap: spacing.sm,
+    paddingTop: spacing.xs,
+  },
+  helpTipList: {
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.card,
+    backgroundColor: colors.bgGold,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+  },
+  helpTipRow: {
+    minHeight: 34,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  helpTipDot: {
+    width: 6,
+    height: 6,
+    marginTop: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accentDeep,
+  },
+  helpTip: {
+    ...type.bodySmall,
+    flex: 1,
+    color: colors.textPrimary,
+  },
+  helpSafetyBlock: {
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderRadius: radius.card,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.goldBorder,
+    boxShadow: '0 1px 10px rgba(17,20,18,0.035)',
+  },
+  helpSafetyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  helpSafetyMark: {
+    width: 22,
+    height: 22,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bgGold,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.goldBorder,
+  },
+  helpSafetyMarkInner: {
+    width: 7,
+    height: 7,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accentGold,
+  },
+  helpSafetyLabel: {
+    ...type.label,
+    color: colors.accentDeep,
+  },
+  helpSafetyTitle: {
+    ...type.cardRowTitle,
+    color: colors.textPrimary,
+  },
+  helpSafetyRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  helpSafetyRule: {
+    width: 2,
+    alignSelf: 'stretch',
+    minHeight: 22,
+    borderRadius: radius.pill,
+    backgroundColor: colors.goldBorder,
+  },
+  helpSafetyText: {
+    ...type.bodySmall,
+    flex: 1,
+    color: colors.textSecondary,
+  },
+  modalButton: {
+    minHeight: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.button,
+  },
+  modalKeepButton: {
+    backgroundColor: colors.accent,
+  },
+  modalDiscardButton: {
+    backgroundColor: colors.cautionSoft,
+  },
+  modalKeepText: {
+    ...type.button,
+    color: colors.onAccent,
+  },
+  modalDiscardText: {
+    ...type.cardRowTitle,
+    color: colors.error,
+  },
 });

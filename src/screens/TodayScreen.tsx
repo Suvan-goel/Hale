@@ -6,7 +6,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -24,6 +23,7 @@ import { SettingsIcon } from '../navigation/icons';
 import type { UserProfile } from '../profile';
 import type { PainArea } from '../training';
 import { colors, fonts, imageOverlayControl, radius, shadow, spacing, todayHomeColors, type } from '../theme';
+import { useResponsiveLayout } from '../theme/responsive';
 
 type SnapshotKey = keyof MovementSnapshot;
 
@@ -101,8 +101,8 @@ export function TodayScreen({
   onOpenSettings: () => void;
 }) {
   const [sessionMenuVisible, setSessionMenuVisible] = React.useState(false);
-  const { width } = useWindowDimensions();
-  const compact = width < 430;
+  const responsive = useResponsiveLayout();
+  const compact = responsive.isCompactPhone;
   const snapshot = lifecycle.movementSnapshot;
   const canAdjustSession =
     lifecycle.state === 'first_session_ready' ||
@@ -135,7 +135,14 @@ export function TodayScreen({
     <View style={styles.background}>
       <ScrollView
         style={styles.scroller}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          {
+            maxWidth: responsive.maxContentWidth,
+            paddingHorizontal: responsive.horizontalPadding,
+            paddingTop: responsive.pageTop,
+          },
+        ]}
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
       >
@@ -345,12 +352,14 @@ function DailyFocusCard({
   const displayTitle = title === 'Move with intention' ? 'Move with\nintention' : title;
   return (
     <View style={[styles.focusCard, compact && styles.focusCardCompact]}>
-      <Image source={HERO_IMAGE} style={styles.focusImage} resizeMode="cover" accessible={false} />
+      <Image source={HERO_IMAGE} style={[styles.focusImage, compact && styles.focusImageCompact]} resizeMode="cover" accessible={false} />
       <View style={[styles.focusContent, compact && styles.focusContentCompact]}>
-        <Text style={styles.focusLabel}>{label}</Text>
-        <Text style={[styles.focusTitle, compact && styles.focusTitleCompact]}>{displayTitle}</Text>
-        <Text style={styles.focusSubtitle}>{subtitle}</Text>
-        {detail ? <Text style={styles.focusDetail} numberOfLines={1}>{detail}</Text> : null}
+        <View style={[styles.focusCopy, compact && styles.focusCopyCompact]}>
+          <Text style={styles.focusLabel}>{label}</Text>
+          <Text style={[styles.focusTitle, compact && styles.focusTitleCompact]} numberOfLines={2}>{displayTitle}</Text>
+          <Text style={styles.focusSubtitle} numberOfLines={2}>{subtitle}</Text>
+          {detail ? <Text style={styles.focusDetail} numberOfLines={1}>{detail}</Text> : null}
+        </View>
         <Pressable
           style={({ pressed }) => [styles.focusButton, pressed && styles.focusButtonPressed]}
           onPress={onPress}
@@ -521,6 +530,7 @@ export function SessionStartMenu({
               accessibilityLabel={needsPainArea ? 'Choose where Hale should be careful' : primaryLabel}
             >
               <Text style={styles.sheetPrimaryText}>{primaryLabel}</Text>
+              <Text style={styles.sheetPrimaryArrow}>›</Text>
             </Pressable>
             <Pressable style={({ pressed }) => [styles.sheetCancel, pressed && styles.pressed]} onPress={onClose} accessibilityRole="button">
               <Text style={styles.sheetCancelText}>Cancel</Text>
@@ -746,11 +756,8 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     width: '100%',
-    maxWidth: spacing.pageMaxWidth,
     alignSelf: 'center',
     justifyContent: 'flex-start',
-    paddingHorizontal: spacing.pageHorizontal,
-    paddingTop: spacing.pageTop,
     paddingBottom: spacing.xl,
     gap: 14,
   },
@@ -952,30 +959,46 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   focusCard: {
+    minHeight: 274,
     overflow: 'hidden',
     borderRadius: radius.card,
     backgroundColor: todayHomeColors.hero,
     ...shadow.card,
   },
   focusCardCompact: {
+    minHeight: 286,
     borderRadius: radius.card,
   },
   focusImage: {
     position: 'absolute',
     top: 0,
-    right: -34,
+    right: 0,
     bottom: 0,
-    width: '112%',
+    width: '118%',
     height: '100%',
   },
+  focusImageCompact: {
+    width: '124%',
+  },
   focusContent: {
+    minHeight: 274,
     paddingVertical: 26,
     paddingHorizontal: 24,
+    justifyContent: 'flex-start',
     zIndex: 1,
   },
   focusContentCompact: {
+    minHeight: 286,
     paddingVertical: 24,
     paddingHorizontal: 22,
+  },
+  focusCopy: {
+    width: '72%',
+    gap: 12,
+  },
+  focusCopyCompact: {
+    width: '70%',
+    gap: 11,
   },
   focusLabel: {
     color: colors.onAccent,
@@ -990,8 +1013,7 @@ const styles = StyleSheet.create({
     fontSize: 25,
     lineHeight: 28,
     letterSpacing: 0,
-    marginTop: 16,
-    maxWidth: '86%',
+    maxWidth: '100%',
   },
   focusTitleCompact: {
     fontSize: 25,
@@ -1003,8 +1025,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     letterSpacing: 0,
-    marginTop: 10,
-    maxWidth: '72%',
+    maxWidth: '100%',
   },
   focusDetail: {
     color: colors.onAccent,
@@ -1012,11 +1033,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     letterSpacing: 0,
-    marginTop: 10,
-    maxWidth: '72%',
+    maxWidth: '100%',
   },
   focusButton: {
-    marginTop: 22,
+    marginTop: 'auto',
     alignSelf: 'flex-start',
     minHeight: 48,
     flexDirection: 'row',
@@ -1233,9 +1253,11 @@ const styles = StyleSheet.create({
   },
   sheetPrimary: {
     minHeight: 58,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 19,
+    gap: spacing.sm,
+    borderRadius: radius.pill,
     backgroundColor: colors.accent,
   },
   sheetPrimaryPressed: {
@@ -1249,6 +1271,14 @@ const styles = StyleSheet.create({
   sheetPrimaryText: {
     ...type.button,
     color: colors.onAccent,
+  },
+  sheetPrimaryArrow: {
+    color: colors.onAccent,
+    fontFamily: fonts.sansMedium,
+    fontSize: 22,
+    lineHeight: 23,
+    letterSpacing: 0,
+    marginTop: -1,
   },
   sheetCancel: {
     minHeight: 44,

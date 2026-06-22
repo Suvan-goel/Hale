@@ -8,6 +8,8 @@
  * lower-priority line is DROPPED, never queued stale.
  */
 
+import type { SafetyCueId } from '../training/safetyCueDefinitions';
+
 /** Spoken number words for stitched results ("You completed" + "twelve" + …). */
 export type NumberCueKey = `num-${number}`;
 
@@ -89,7 +91,8 @@ export type VoiceCueKey =
   | 'stands-suffix'
   | 'no-reps'
   | 'item-complete'
-  | NumberCueKey;
+  | NumberCueKey
+  | SafetyCueId;
 
 /** Non-voice session sounds; play on their own channel, may overlap voice. */
 export type SfxCueKey = 'rep-credit';
@@ -99,6 +102,21 @@ export type AudioCueKey = VoiceCueKey | SfxCueKey;
 /** Highest wins the channel; a busy channel drops lower-or-equal priority. */
 export function voicePriority(cue: VoiceCueKey): number {
   if (cue.startsWith('num-')) return 9;
+  if (
+    cue.startsWith('global_') ||
+    cue.startsWith('support_') ||
+    cue.startsWith('chair_') ||
+    cue.startsWith('floor_') ||
+    cue.startsWith('step_') ||
+    cue.startsWith('band_') ||
+    cue.startsWith('door_anchor_') ||
+    cue.startsWith('comfortable_') ||
+    cue.startsWith('mobility_') ||
+    cue.startsWith('balance_') ||
+    cue.startsWith('tracking_')
+  ) {
+    return cue === 'tracking_pause_and_reset' ? 10 : 8;
+  }
   switch (cue) {
     case 'countdown-three':
     case 'countdown-two':

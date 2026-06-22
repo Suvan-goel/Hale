@@ -215,10 +215,11 @@ export const spacing = {
 
 export const radius = {
   input: 14,
-  button: 15,
+  button: 999,
   card: 16,
   panel: 20,
   xl: 22,
+  modal: 28,
   pill: 999,
   sm: 8,
 } as const;

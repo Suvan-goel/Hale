@@ -166,6 +166,7 @@ function sanitizeGeneratedSessionSummary(summary: PersistedGeneratedSessionSumma
     adjustmentReasons: summary.adjustmentReasons,
     durationMinutes: summary.durationMinutes,
     equipmentSnapshot: summary.equipmentSnapshot,
+    movementCapabilitySnapshot: summary.movementCapabilitySnapshot,
     exercises: summary.exercises?.map(sanitizeGeneratedExerciseSummary),
     feedback: sanitizePostSessionFeedback(summary.feedback),
   });

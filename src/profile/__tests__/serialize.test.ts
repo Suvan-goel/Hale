@@ -67,6 +67,79 @@ describe('preferences serialize', () => {
       devMockDataEnabled: false,
     });
   });
+
+  it('round-trips movement capability setup in the safety profile', () => {
+    const parsed = deserializePreferences(serializePreferences({
+      ...sample,
+      profile: {
+        ...sample.profile,
+        safetyProfile: {
+          id: 'safety-1',
+          userId: 'local-device-user',
+          availableEquipment: ['chair', 'wall', 'stairs', 'floor_space'],
+          movementCapabilities: {
+            schemaVersion: 1,
+            floorTransfer: { status: 'confirmed' },
+            stepUpEnvironment: {
+              status: 'confirmed',
+              lowStableStep: true,
+              fixedSupport: true,
+              clearDryArea: true,
+              phoneOutOfPath: true,
+            },
+            singleLegBalance: { status: 'confirmed_with_support' },
+            revision: 3,
+            updatedAt: '2026-06-21T08:00:00.000Z',
+          },
+          createdAt: '2026-06-21T08:00:00.000Z',
+          updatedAt: '2026-06-21T08:00:00.000Z',
+        },
+      },
+    }));
+
+    expect(parsed?.profile.safetyProfile?.movementCapabilities).toMatchObject({
+      floorTransfer: { status: 'confirmed' },
+      stepUpEnvironment: {
+        status: 'confirmed',
+        lowStableStep: true,
+        fixedSupport: true,
+        clearDryArea: true,
+        phoneOutOfPath: true,
+      },
+      singleLegBalance: { status: 'confirmed_with_support' },
+      revision: 3,
+    });
+  });
+
+  it('backfills missing legacy movement capability fields as unconfirmed', () => {
+    const parsed = deserializePreferences(JSON.stringify({
+      profile: {
+        name: 'Margaret',
+        age: 58,
+        goal: '',
+        lifeGoal,
+        safetyProfile: {
+          id: 'safety-1',
+          userId: 'local-device-user',
+          availableEquipment: ['floor_space', 'stairs', 'wall'],
+          createdAt: '2026-06-21T08:00:00.000Z',
+          updatedAt: '2026-06-21T08:00:00.000Z',
+        },
+      },
+    }));
+
+    expect(parsed?.profile.safetyProfile?.movementCapabilities).toMatchObject({
+      floorTransfer: { status: 'not_confirmed' },
+      stepUpEnvironment: {
+        status: 'not_confirmed',
+        lowStableStep: false,
+        fixedSupport: false,
+        clearDryArea: false,
+        phoneOutOfPath: false,
+      },
+      singleLegBalance: { status: 'not_confirmed' },
+    });
+  });
 });
 
 describe('ProfileStore', () => {

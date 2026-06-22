@@ -5,7 +5,10 @@ import {
   canonicalEquipmentToAvailableEquipment,
   defaultPreferences,
   deserializePreferences,
+  movementCapabilitiesFromSafetyProfile,
+  movementCapabilityProfileForPersistence,
   resolveCanonicalEquipmentRecords,
+  resolveMovementCapabilityRecords,
   type Preferences,
 } from '../../profile';
 import type { MovementSafetyProfile } from '../../adherence';
@@ -117,19 +120,44 @@ function resolveSafetyProfileForMerge({
     local: canonicalEquipmentFromSafetyProfile(local, 'local_user'),
     remote: canonicalEquipmentFromSafetyProfile(remote, 'remote_profile'),
   });
+  const resolvedCapabilities = resolveMovementCapabilityRecords({
+    local: movementCapabilitiesFromSafetyProfile(local, 'local_user'),
+    remote: movementCapabilitiesFromSafetyProfile(remote, 'remote_profile'),
+  });
   const selectedBase = resolved.profile.source === 'remote_profile' ? remote : local;
+  const selectedCapabilityBase = resolvedCapabilities.profile.source === 'remote_profile' ? remote : local;
   const normalized = {
     ...selectedBase,
     availableEquipment: canonicalEquipmentToAvailableEquipment(resolved.profile),
     equipmentStatus: resolved.profile.status,
     equipmentRevision: resolved.profile.revision,
     equipmentUpdatedAt: resolved.profile.updatedAt ?? selectedBase.equipmentUpdatedAt ?? selectedBase.updatedAt,
+    movementCapabilities: movementCapabilityProfileForPersistence(resolvedCapabilities.profile, {
+      source: resolvedCapabilities.profile.source,
+      revision: resolvedCapabilities.profile.revision,
+      updatedAt:
+        resolvedCapabilities.profile.updatedAt ??
+        selectedCapabilityBase.movementCapabilities?.updatedAt ??
+        selectedCapabilityBase.updatedAt,
+    }),
     updatedAt: resolved.profile.updatedAt ?? selectedBase.updatedAt,
   };
 
   for (const diagnostic of resolved.diagnostics) {
     if (diagnostic.reason.startsWith('equipment_conflict')) {
       addBreadcrumb('profile equipment conflict resolved', {
+        category: 'profile_preferences',
+        reason: diagnostic.reason,
+        localUpdatedAt: diagnostic.localUpdatedAt,
+        remoteUpdatedAt: diagnostic.remoteUpdatedAt,
+        localRevision: diagnostic.localRevision,
+        remoteRevision: diagnostic.remoteRevision,
+      });
+    }
+  }
+  for (const diagnostic of resolvedCapabilities.diagnostics) {
+    if (diagnostic.reason.startsWith('movement_capability_conflict')) {
+      addBreadcrumb('profile movement capability conflict resolved', {
         category: 'profile_preferences',
         reason: diagnostic.reason,
         localUpdatedAt: diagnostic.localUpdatedAt,
@@ -149,12 +177,21 @@ function normalizedSafetyProfile(
 ): MovementSafetyProfile | null {
   if (!safetyProfile) return null;
   const canonical = canonicalEquipmentFromSafetyProfile(safetyProfile, source);
+  const movementCapabilities = movementCapabilitiesFromSafetyProfile(safetyProfile, source);
   return {
     ...safetyProfile,
     availableEquipment: canonicalEquipmentToAvailableEquipment(canonical),
     equipmentStatus: canonical.status,
     equipmentRevision: canonical.revision,
     equipmentUpdatedAt: canonical.updatedAt ?? safetyProfile.equipmentUpdatedAt ?? safetyProfile.updatedAt,
+    movementCapabilities: movementCapabilityProfileForPersistence(movementCapabilities, {
+      source: movementCapabilities.source,
+      revision: movementCapabilities.revision,
+      updatedAt:
+        movementCapabilities.updatedAt ??
+        safetyProfile.movementCapabilities?.updatedAt ??
+        safetyProfile.updatedAt,
+    }),
   };
 }
 
