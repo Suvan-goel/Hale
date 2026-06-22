@@ -48,7 +48,7 @@ export function generateDebugWorkoutScenarios(): DebugWorkoutScenarioPreview[] {
   return [
     previewFromPreset({
       id: 'beginner_no_optional_equipment',
-      title: 'Beginner, no optional equipment',
+      title: 'Beginner, household support only',
       focusDomain: 'strength_power',
       presetId: 'preset-no-equipment-strength',
       equipment: ['chair', 'wall'],
@@ -56,7 +56,7 @@ export function generateDebugWorkoutScenarios(): DebugWorkoutScenarioPreview[] {
     }),
     previewFromTemplate({
       id: 'travel_true_no_equipment',
-      title: 'Travel / true no equipment',
+      title: 'Travel / limited setup',
       focusDomain: 'strength_power',
       template: TRAVEL_TRUE_NO_EQUIPMENT_TEMPLATE,
       equipment: ['none'],

@@ -11,7 +11,7 @@ import {
 } from '../components/ui';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
-import type { HaleSessionPlan } from '../haleFlow';
+import { controlledBetaEquipmentPositioning, type HaleSessionPlan } from '../haleFlow';
 import { safetyCueTexts } from '../training/safetyCues';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 
@@ -99,7 +99,7 @@ export function SessionPreviewScreen({
             ))}
           </View>
         ) : (
-          <Text style={styles.body}>Chair, wall, floor, and clear space are enough for today.</Text>
+          <Text style={styles.body}>{controlledBetaEquipmentPositioning.noEquipmentClarification}</Text>
         )}
         <Text style={styles.equipmentNote}>Keep these close so the session can stay voice-guided and hands-free.</Text>
       </Card>

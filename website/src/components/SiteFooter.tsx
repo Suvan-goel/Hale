@@ -17,9 +17,9 @@ export function SiteFooter() {
         <div className="site-footer__brand">
           <BrandLogo />
           <p>
-            Hale is a beta mobile app for strength, balance and mobility training built around a home Movement Check-Up.
+            Hale checks strength, balance and mobility with your phone camera, then guides home training.
           </p>
-          <p className="site-footer__beta">Currently in beta testing.</p>
+          <p className="site-footer__beta">Currently in beta.</p>
         </div>
 
         <div className="site-footer__actions">

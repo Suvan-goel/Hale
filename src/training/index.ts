@@ -95,6 +95,26 @@ export type {
   ProgressionEvidencePolicy,
 } from './dailyTrainingContext';
 export {
+  MOBILITY_COLLECTION_CORE_MEMBER_IDS,
+  MOBILITY_COLLECTION_ID,
+  collectionCoverageSummary,
+  collectionExposuresFromGeneratedSessionSummaries,
+  collectionSelectionPolicyFingerprint,
+  eligibleCollectionMemberIds,
+  isPlannedCollectionSelection,
+  mobilityCollectionMemberIds,
+  plannedCollectionSelectionFromResult,
+  selectCollectionMember,
+} from './collectionSelection';
+export type {
+  CollectionCoverageSummary,
+  CollectionExposure,
+  CollectionSelectionReason,
+  CollectionSelectionResult,
+  MobilityCollectionCoreMemberId,
+  PlannedCollectionSelection,
+} from './collectionSelection';
+export {
   formatDebugWorkoutScenario,
   formatDebugWorkoutScenarios,
   generateDebugWorkoutScenarios,

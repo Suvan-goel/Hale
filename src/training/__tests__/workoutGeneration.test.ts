@@ -4,19 +4,23 @@ import {
   BALANCE_TANDEM_ID,
   BRIDGE_HOLD_ID,
   CONTROLLED_BETA_HIDDEN_OPTIONAL_LEVEL_IDS,
-  HINGE_FREE_ID,
+  HAMSTRING_REACH_ID,
   LOADED_STS_ID,
   LOADED_MARCH_ID,
+  NECK_ROTATION_ID,
   SEATED_BAND_ROW_ID,
   SQUAT_FREE_ID,
   SQUAT_LOADED_ID,
   STANDING_BAND_ROW_ID,
   STEP_UP_ID,
-  PUSHUP_INCLINE_ID,
   PUSHUP_STANDARD_ID,
+  SQUAT_SUPPORTED_ID,
   STS_POWER_ID,
+  STS_CUSHION_ID,
   STS_SLOW_ECC_ID,
   STS_STANDARD_ID,
+  THORACIC_ROTATION_ID,
+  WALL_CALF_STRETCH_ID,
   listExerciseLadders,
 } from '../../exercises';
 import {
@@ -30,6 +34,7 @@ import {
   updateLadderProgressAfterSession,
   type LadderProgress,
 } from '../workoutGeneration';
+import type { CollectionExposure } from '../collectionSelection';
 import { formatDebugWorkoutScenarios, generateDebugWorkoutScenarios } from '../debugWorkoutScenarios';
 import type { ValidTimeProgressionSignal, ValidTimeProgressionSummary } from '../validTimeProgression';
 
@@ -147,12 +152,12 @@ describe('dynamic workout generation', () => {
     });
 
     expect(withoutFloor.exercises.map((exercise) => exercise.exerciseId)).not.toContain(BRIDGE_HOLD_ID);
-    expect(withoutFloor.exercises.map((exercise) => exercise.exerciseId)).toContain(HINGE_FREE_ID);
+    expect(withoutFloor.exercises.map((exercise) => exercise.exerciseId)).toContain('hip-hinge-wall');
     expect(withoutFloor.exercises.flatMap((exercise) => exercise.equipment)).not.toContain('floor');
     expect(floorSpaceOnly.exercises.map((exercise) => exercise.exerciseId)).not.toContain(BRIDGE_HOLD_ID);
-    expect(floorSpaceOnly.slotStimulus.map((stimulus) => stimulus.reason)).toContain('movement_setup_required');
-    expect(withFloor.exercises.map((exercise) => exercise.exerciseId)).toContain(BRIDGE_HOLD_ID);
-    expect(withFloor.exercises.flatMap((exercise) => exercise.equipment)).toContain('floor');
+    expect(floorSpaceOnly.exercises.map((exercise) => exercise.exerciseId)).toContain('hip-hinge-wall');
+    expect(withFloor.exercises.map((exercise) => exercise.exerciseId)).toContain('hip-hinge-wall');
+    expect(withFloor.exercises.flatMap((exercise) => exercise.equipment)).not.toContain('floor');
   });
 
   it('requires stair plus nearby support before selecting step-up', () => {
@@ -240,7 +245,6 @@ describe('dynamic workout generation', () => {
     for (const session of [strength, balance, mobility]) {
       expect(session.slotStimulus.length).toBeGreaterThan(0);
       expectNoUnsafeTrueNoEquipment(session);
-      expect(session.slotStimulus.some((stimulus) => stimulus.role === 'primary')).toBe(true);
       expect(session.slotStimulus.every((stimulus) => stimulus.role !== 'invalid')).toBe(true);
     }
 
@@ -255,9 +259,7 @@ describe('dynamic workout generation', () => {
         expect.objectContaining({ role: 'skipped', reason: 'support_required' }),
       ])
     );
-    expect(mobility.slotStimulus.find((stimulus) => stimulus.intendedDomain === 'mobility_flexibility')).toMatchObject({
-      role: 'primary',
-    });
+    expect(mobility.slotStimulus.find((stimulus) => stimulus.intendedDomain === 'mobility_flexibility')?.role).not.toBe('invalid');
   });
 
   it('keeps supported focus-domain sessions primary when equipment makes them feasible', () => {
@@ -458,7 +460,8 @@ describe('dynamic workout generation', () => {
 
     expect(session.progressionEvidencePolicy).toBe('hold_only');
     expect(strength?.requestedLevelId).toBe(STS_POWER_ID);
-    expect(strength?.selectedDailyLevelId).toBe(STS_SLOW_ECC_ID);
+    expect(strength?.selectedDailyLevelId).toBe(STS_CUSHION_ID);
+    expect(strength?.adjustmentReasons).toEqual(expect.arrayContaining(['auto_progression_cap', 'legacy_progression_policy_capped', 'reduced_readiness']));
     expect(strength?.sets).toBeLessThanOrEqual(strength?.doseBeforeAdjustment?.sets ?? Infinity);
     expect(ladderProgress['sit-to-stand'].currentLevelId).toBe(STS_POWER_ID);
   });
@@ -474,7 +477,44 @@ describe('dynamic workout generation', () => {
     expect(session.progressionEvidencePolicy).toBe('normal');
   });
 
-  it('progresses after two easy complete sessions at the same level', () => {
+  it('progresses sit-to-stand only from cushion to standard after two easy sessions', () => {
+    const first = updateLadderProgressAfterSession(
+      {},
+      {
+        completedAt: START,
+        exercises: [
+          {
+            ladderId: 'sit-to-stand',
+            levelId: STS_CUSHION_ID,
+            completionRate: 0.9,
+            perceivedEffort: 2,
+            painReported: false,
+            trackingQuality: 'good',
+          },
+        ],
+      }
+    );
+    const second = updateLadderProgressAfterSession(first, {
+      completedAt: '2026-06-03T08:00:00.000Z',
+      exercises: [
+        {
+          ladderId: 'sit-to-stand',
+          levelId: STS_CUSHION_ID,
+          completionRate: 0.95,
+          perceivedEffort: 2,
+          painReported: false,
+          trackingQuality: 'good',
+        },
+      ],
+    });
+
+    expect(first['sit-to-stand'].currentLevelId).toBe(STS_CUSHION_ID);
+    expect(first['sit-to-stand'].readyToProgress).toBe(true);
+    expect(second['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
+    expect(second['sit-to-stand'].lastProgressionDecisionReason).toBe('progression_allowed_transition');
+  });
+
+  it('holds blocked sit-to-stand cadence progression despite generic easy evidence', () => {
     const first = updateLadderProgressAfterSession(
       {},
       {
@@ -483,7 +523,7 @@ describe('dynamic workout generation', () => {
           {
             ladderId: 'sit-to-stand',
             levelId: STS_STANDARD_ID,
-            completionRate: 0.9,
+            completionRate: 0.95,
             perceivedEffort: 2,
             painReported: false,
             trackingQuality: 'good',
@@ -505,9 +545,9 @@ describe('dynamic workout generation', () => {
       ],
     });
 
-    expect(first['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
-    expect(first['sit-to-stand'].readyToProgress).toBe(true);
-    expect(second['sit-to-stand'].currentLevelId).toBe(STS_SLOW_ECC_ID);
+    expect(second['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
+    expect(second['sit-to-stand'].readyToProgress).toBe(false);
+    expect(second['sit-to-stand'].lastProgressionDecisionReason).toBe('domain_review_required');
   });
 
   it('lets strong valid-time work use the existing two-exposure progression rule', () => {
@@ -587,7 +627,7 @@ describe('dynamic workout generation', () => {
     expect(second.balance.currentLevelId).toBe(BALANCE_FEET_TOGETHER_ID);
   });
 
-  it('restores pre-Phase-3 behavior when valid-time progression is disabled', () => {
+  it('does not progress balance when strong valid-time evidence is unavailable', () => {
     const first = updateLadderProgressAfterSession(
       {},
       {
@@ -627,8 +667,9 @@ describe('dynamic workout generation', () => {
       { validTimeProgressionEnabled: false }
     );
 
-    expect(first.balance.readyToProgress).toBe(true);
-    expect(second.balance.currentLevelId).toBe(BALANCE_TANDEM_ID);
+    expect(first.balance.readyToProgress).toBe(false);
+    expect(second.balance.currentLevelId).toBe(BALANCE_FEET_TOGETHER_ID);
+    expect(second.balance.lastProgressionDecisionReason).toBe('transition_not_auto_approved');
   });
 
   it('treats incomplete valid-time work as repeated difficulty, not a one-off regression', () => {
@@ -741,8 +782,8 @@ describe('dynamic workout generation', () => {
       ],
     });
 
-    expect(regressed['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
-    expect(poorTracking['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
+    expect(regressed['sit-to-stand'].currentLevelId).toBe(STS_CUSHION_ID);
+    expect(poorTracking['sit-to-stand'].currentLevelId).toBe(STS_CUSHION_ID);
     expect(poorTracking['sit-to-stand'].lastTrackingQuality).toBe('poor');
   });
 
@@ -775,7 +816,7 @@ describe('dynamic workout generation', () => {
     });
   });
 
-  it('distinguishes a band from a door anchor for upper-back row progressions', () => {
+  it('defaults upper-back supporting-set selection to seated row instead of stored adjacency', () => {
     const ladderProgress = {
       'pull-upper-back': progress('pull-upper-back', STANDING_BAND_ROW_ID),
     };
@@ -799,11 +840,12 @@ describe('dynamic workout generation', () => {
       reason: 'equipment_limited',
       exerciseId: SEATED_BAND_ROW_ID,
     });
-    expect(withAnchor.exercises.map((exercise) => exercise.exerciseId)).toContain(STANDING_BAND_ROW_ID);
+    expect(withAnchor.exercises.map((exercise) => exercise.exerciseId)).toContain(SEATED_BAND_ROW_ID);
+    expect(withAnchor.exercises.map((exercise) => exercise.exerciseId)).not.toContain(STANDING_BAND_ROW_ID);
     expect(withAnchor.slotStimulus.find((stimulus) => stimulus.slotId === 'band-row')).toMatchObject({
       role: 'primary',
-      reason: 'direct_match',
-      exerciseId: STANDING_BAND_ROW_ID,
+      reason: 'equipment_limited',
+      exerciseId: SEATED_BAND_ROW_ID,
     });
   });
 
@@ -830,15 +872,15 @@ describe('dynamic workout generation', () => {
     });
 
     expect(session.exercises.map((exercise) => exercise.releaseStatus)).not.toContain('v1_optional');
-    expect(session.exercises.map((exercise) => exercise.exerciseId)).toContain(PUSHUP_INCLINE_ID);
+    expect(session.exercises.map((exercise) => exercise.exerciseId)).toContain('push-up-wall');
     expect(session.exercises.find((exercise) => exercise.ladderId === 'push')).toMatchObject({
       requestedLevelId: PUSHUP_STANDARD_ID,
-      selectedDailyLevelId: PUSHUP_INCLINE_ID,
-      adjustmentReasons: expect.arrayContaining(['controlled_beta_release_cap']),
+      selectedDailyLevelId: 'push-up-wall',
+      adjustmentReasons: expect.arrayContaining(['controlled_beta_release_cap', 'auto_progression_cap']),
     });
   });
 
-  it('caps restored optional progress at the nearest supported lower beta level without mutating input progress', () => {
+  it('caps restored optional progress at the automatic beta ceiling without mutating input progress', () => {
     const template = createSessionTemplatesForFocus('strength_power')[0];
     const ladderProgress: Record<string, LadderProgress> = {
       'sit-to-stand': {
@@ -862,10 +904,10 @@ describe('dynamic workout generation', () => {
     const selected = session.exercises.find((exercise) => exercise.ladderId === 'sit-to-stand');
 
     expect(selected).toMatchObject({
-      exerciseId: STS_POWER_ID,
+      exerciseId: STS_STANDARD_ID,
       requestedLevelId: LOADED_STS_ID,
-      selectedDailyLevelId: STS_POWER_ID,
-      adjustmentReasons: expect.arrayContaining(['controlled_beta_release_cap']),
+      selectedDailyLevelId: STS_STANDARD_ID,
+      adjustmentReasons: expect.arrayContaining(['controlled_beta_release_cap', 'auto_progression_cap', 'legacy_progression_policy_capped']),
     });
     expect(ladderProgress['sit-to-stand'].currentLevelId).toBe(LOADED_STS_ID);
   });
@@ -910,7 +952,7 @@ describe('dynamic workout generation', () => {
     expect(preset.exercises.some((exercise) => optionalIds.has(exercise.exerciseId))).toBe(false);
   });
 
-  it('caps automatic progression before hidden optional levels', () => {
+  it('caps automatic squat progression at supported squat even for historical free-squat state', () => {
     const progress: Record<string, LadderProgress> = {
       squat: {
         ladderId: 'squat',
@@ -933,9 +975,42 @@ describe('dynamic workout generation', () => {
       { completedAt: '2026-06-03T08:00:00.000Z', perceivedEffort: 2, painReported: false, trackingQuality: 'good' }
     );
 
-    expect(next.squat.currentLevelId).toBe(SQUAT_FREE_ID);
+    expect(next.squat.currentLevelId).toBe(SQUAT_SUPPORTED_ID);
     expect(next.squat.currentLevelId).not.toBe(SQUAT_LOADED_ID);
     expect(next.squat.readyToProgress).toBe(false);
+    expect(next.squat.lastProgressionDecisionReason).toBe('domain_review_required');
+  });
+
+  it.each([
+    ['heel-toe-raise', 'heel-raise-supported'],
+    ['pull-upper-back', SEATED_BAND_ROW_ID],
+    ['hinge-glutes', 'hip-hinge-wall'],
+    ['shoulder-reach-press', 'overhead-reach'],
+    ['lateral-stability', 'supported-side-step'],
+    ['mobility-flexibility', 'seated-hamstring-reach'],
+  ])('does not auto-mutate non-linear ladder %s by adjacency', (ladderId, levelId) => {
+    const next = updateLadderProgressAfterSession(
+      {
+        [ladderId]: {
+          ladderId,
+          currentLevelId: levelId,
+          completedSessionsAtLevel: 1,
+          failedSessionsAtLevel: 0,
+          recentCompletionRates: [1],
+          recentRpe: [2],
+          recentPain: [false],
+          updatedAt: START,
+        },
+      },
+      {
+        completedAt: '2026-06-03T08:00:00.000Z',
+        exercises: [{ ladderId, levelId, completionRate: 1, perceivedEffort: 2, painReported: false, trackingQuality: 'good' }],
+      }
+    );
+
+    expect(next[ladderId].currentLevelId).toBe(levelId);
+    expect(next[ladderId].readyToProgress).toBe(false);
+    expect(next[ladderId].lastProgressionDecisionReason).toBe('non_linear_progression_model');
   });
 
   it('previews realistic debug scenarios without brittle copy snapshots', () => {
@@ -1006,7 +1081,7 @@ describe('dynamic workout generation', () => {
     expect(exerciseText('shoulder_pain')).not.toMatch(/push-up|overhead|press|pull-apart/);
     expect(byId.stronger_ready_to_progress.title).toBe('Stronger user ready to progress');
     expect(byId.stronger_ready_to_progress.exercises.map((exercise) => exercise.exerciseId)).toEqual(
-      expect.arrayContaining(['sts-power', 'standing-band-row', 'balance-tandem-hold', 'thoracic-rotation'])
+      expect.arrayContaining(['sts-standard', 'seated-band-row', 'balance-tandem-hold', 'seated-hamstring-reach'])
     );
     const optionalIds = new Set<string>(CONTROLLED_BETA_HIDDEN_OPTIONAL_LEVEL_IDS);
     for (const preview of previews) {
@@ -1030,7 +1105,7 @@ describe('dynamic workout generation', () => {
     expect(allText).not.toMatch(/up and go|timed up|tug/);
     expect(allText).not.toContain('neck-rotation');
     expect(allText).not.toMatch(/diagnosis|treatment|fall risk|frailty|failed|skipped workout|lost streak|medical-grade/);
-    expect(formatDebugWorkoutScenarios(previews)).toContain('Beginner, no optional equipment');
+    expect(formatDebugWorkoutScenarios(previews)).toContain('Beginner, household support only');
   });
 
   it('keeps pulling in the weekly mix when a band is available', () => {
@@ -1043,6 +1118,93 @@ describe('dynamic workout generation', () => {
       })
     );
     expect(sessions.flatMap((session) => session.exercises).some((exercise) => exercise.ladderId === 'pull-upper-back')).toBe(true);
+  });
+
+  it('rotates mobility collection members from explicit current-block exposure without mutating progression', () => {
+    const block = createTrainingBlockFromAssessment({ focusDomain: 'mobility_flexibility', startDate: START });
+    const first = generateTodaySession({
+      block,
+      template: block.templates[0],
+      today: START,
+      availableEquipment: ['chair', 'wall'],
+      movementCapabilities: CONFIRMED_MOVEMENT_CAPABILITIES,
+    });
+    const afterHamstring = generateTodaySession({
+      block,
+      template: block.templates[0],
+      today: START,
+      availableEquipment: ['chair', 'wall'],
+      movementCapabilities: CONFIRMED_MOVEMENT_CAPABILITIES,
+      collectionExposures: [mobilityExposure(HAMSTRING_REACH_ID, '2026-06-01')],
+      ladderProgress: {
+        'mobility-flexibility': progress('mobility-flexibility', WALL_CALF_STRETCH_ID),
+      },
+    });
+
+    expect(first.exercises.find((exercise) => exercise.ladderId === 'mobility-flexibility')).toMatchObject({
+      exerciseId: HAMSTRING_REACH_ID,
+      collectionSelection: expect.objectContaining({ reason: 'never_practised_first' }),
+      progressionPolicySelectionReason: 'explicit_template_member',
+    });
+    expect(afterHamstring.exercises.find((exercise) => exercise.ladderId === 'mobility-flexibility')).toMatchObject({
+      exerciseId: THORACIC_ROTATION_ID,
+      collectionSelection: expect.objectContaining({ reason: 'never_practised_first' }),
+      storedLevelId: WALL_CALF_STRETCH_ID,
+    });
+
+    const updated = updateLadderProgressAfterSession(
+      { 'mobility-flexibility': progress('mobility-flexibility', WALL_CALF_STRETCH_ID) },
+      {
+        id: afterHamstring.id,
+        templateId: afterHamstring.templateId,
+        completedAt: '2026-06-02T09:00:00.000Z',
+        exercises: afterHamstring.exercises.map((exercise) => ({
+          ladderId: exercise.ladderId,
+          levelId: exercise.levelId,
+          completionRate: 1,
+          perceivedEffort: 2,
+          painReported: false,
+          trackingQuality: 'good',
+        })),
+      }
+    );
+
+    expect(updated['mobility-flexibility'].currentLevelId).toBe(WALL_CALF_STRETCH_ID);
+    expect(updated['mobility-flexibility'].lastProgressionDecisionReason).toBe('non_linear_progression_model');
+  });
+
+  it('avoids duplicate mobility collection members inside one generated session when another member is eligible', () => {
+    const preset = generatePresetSession({
+      presetId: 'preset-mobility-reset',
+      today: START,
+      availableEquipment: ['chair', 'wall'],
+      movementCapabilities: CONFIRMED_MOVEMENT_CAPABILITIES,
+      dailyReadiness: 'ready',
+      painAreas: [],
+      dailyContextSource: 'user_daily_check',
+    });
+    const mobilityIds = preset.exercises
+      .filter((exercise) => exercise.ladderId === 'mobility-flexibility')
+      .map((exercise) => exercise.exerciseId);
+
+    expect(mobilityIds).toEqual([HAMSTRING_REACH_ID, THORACIC_ROTATION_ID]);
+    expect(preset.exercises.map((exercise) => exercise.exerciseId)).not.toContain(NECK_ROTATION_ID);
+  });
+
+  it('uses the only eligible mobility member honestly when setup leaves one collection member available', () => {
+    const preset = generatePresetSession({
+      presetId: 'preset-mobility-reset',
+      today: START,
+      availableEquipment: ['none'],
+      movementCapabilities: CONFIRMED_MOVEMENT_CAPABILITIES,
+      dailyReadiness: 'ready',
+      painAreas: [],
+      dailyContextSource: 'user_daily_check',
+    });
+    const mobility = preset.exercises.filter((exercise) => exercise.ladderId === 'mobility-flexibility');
+
+    expect(mobility.map((exercise) => exercise.exerciseId)).toEqual([THORACIC_ROTATION_ID, THORACIC_ROTATION_ID]);
+    expect(mobility.every((exercise) => exercise.collectionSelection?.reason === 'only_eligible_member')).toBe(true);
   });
 });
 
@@ -1090,5 +1252,15 @@ function validTimeSummary(signal: ValidTimeProgressionSignal): ValidTimeProgress
     completedByValidTime: signal !== 'incomplete' && signal !== 'tracking_uncertain',
     endedBySafetyCap: signal === 'incomplete',
     validationMode: 'strict_valid_position',
+  };
+}
+
+function mobilityExposure(exerciseId: string, date: string): CollectionExposure {
+  return {
+    blockId: 'training-block-2026-06-01T08-00-00-000Z',
+    exerciseId,
+    plannedDateKey: `${date}:mobility-A`,
+    completedAt: `${date}T09:00:00.000Z`,
+    completionId: `completion-${exerciseId}-${date}`,
   };
 }

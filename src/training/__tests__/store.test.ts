@@ -9,7 +9,7 @@
 import { createMemoryFs } from '../../history';
 import { buildBlock } from '../block';
 import { TrainingItemResult, TrainingSessionResult } from '../sessionPlayer';
-import { STS_STANDARD_ID, getExercise } from '../../exercises';
+import { STS_STANDARD_ID, THORACIC_ROTATION_ID, getExercise } from '../../exercises';
 import { CheckUpScore } from '../../scoring';
 import { TrainingStore } from '../store';
 import { defaultTrainingState, deserializeTrainingState } from '../serialize';
@@ -195,6 +195,69 @@ describe('TrainingStore persistence', () => {
             focusMismatchExerciseIds: [],
           },
         },
+        {
+          id: 'generated-session-mobility-collection',
+          blockId: 'block-1',
+          source: 'block_generated' as const,
+          templateId: 'strength-C',
+          plannedDateKey: 'strength-C:2026-06-20',
+          sessionType: 'standard' as const,
+          status: 'completed' as const,
+          mainPlanCredit: false,
+          title: 'Mobility Support',
+          completedAt: '2026-06-20T09:00:00.000Z',
+          exerciseIds: [THORACIC_ROTATION_ID],
+          ladderIds: ['mobility-flexibility'],
+          workEvidence: {
+            plannedExerciseCount: 1,
+            resultItemCount: 1,
+            completedExerciseCount: 1,
+            skippedExerciseCount: 0,
+            missingResultCount: 0,
+            duplicateResultCount: 0,
+            malformedResultCount: 0,
+            unmatchedResultCount: 0,
+          },
+          exercises: [
+            {
+              exerciseId: THORACIC_ROTATION_ID,
+              ladderId: 'mobility-flexibility',
+              levelId: THORACIC_ROTATION_ID,
+              stimulusRole: 'supporting' as const,
+              collectionSelection: {
+                schemaVersion: 1 as const,
+                policyFingerprint:
+                  'collection-selection:1:mobility-flexibility:seated-hamstring-reach,thoracic-rotation,supported-hip-flexor-stretch,wall-calf-stretch',
+                collectionId: 'mobility-flexibility',
+                selectedExerciseId: THORACIC_ROTATION_ID,
+                reason: 'never_practised_first' as const,
+              },
+            },
+          ],
+          focusStimulusEvidence: {
+            planStatus: 'eligible' as const,
+            status: 'primary_focus_not_completed' as const,
+            exclusionReason: 'supporting_only' as const,
+            mainPlanCredit: false,
+            blockFocusDomain: 'strength_power' as const,
+            plannedPrimaryFocusExerciseCount: 1,
+            completedPrimaryFocusExerciseCount: 0,
+            completedSupportingExerciseCount: 1,
+            completedFallbackExerciseCount: 0,
+            completedCrossDomainExerciseCount: 0,
+            plannedPrimaryFocusExerciseIds: [STS_STANDARD_ID],
+            completedPrimaryFocusExerciseIds: [],
+            completedSupportingExerciseIds: [THORACIC_ROTATION_ID],
+            completedFallbackExerciseIds: [],
+            completedCrossDomainExerciseIds: [],
+            fallbackFocusSlotIds: [],
+            skippedFocusSlotIds: [],
+            focusStimulusExclusionReasons: [],
+            missingMetadataExerciseIds: [],
+            malformedMetadataExerciseIds: [],
+            focusMismatchExerciseIds: [],
+          },
+        },
       ],
       lastPostSessionFeedback: {
         sessionId: 'generated-session-1',
@@ -220,6 +283,11 @@ describe('TrainingStore persistence', () => {
     expect(reloaded.generatedSessionSummaries[1].mainPlanCredit).toBe(false);
     expect(reloaded.generatedSessionSummaries[1].status).toBe('partial');
     expect(reloaded.generatedSessionSummaries[1].focusStimulusEvidence?.exclusionReason).toBe('supporting_only');
+    expect(reloaded.generatedSessionSummaries[2].exercises?.[0].collectionSelection).toMatchObject({
+      collectionId: 'mobility-flexibility',
+      selectedExerciseId: THORACIC_ROTATION_ID,
+      reason: 'never_practised_first',
+    });
     expect(reloaded.lastPostSessionFeedback?.rpe).toBe(2);
     expect(reloaded.planPreferences.preferredIntensity).toBe('standard');
   });

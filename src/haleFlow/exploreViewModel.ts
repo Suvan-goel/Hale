@@ -1,8 +1,10 @@
 import type { AvailableEquipment, MovementSafetyProfile } from '../adherence';
 import {
   availableLevelsForRelease,
-  effectiveLevelForRelease,
+  effectiveLevelIdForControlledBetaProgression,
+  getControlledBetaProgressionPolicy,
   getExerciseLadder,
+  ladderPresentationForLadder,
   listExerciseLadders,
   type ExerciseLadder,
   type ExerciseLevel,
@@ -13,7 +15,14 @@ import {
   generatePresetSession,
   listExtraSessionPresets,
   type EquipmentProfile,
+  type PersistedGeneratedSessionSummary,
 } from '../training';
+import {
+  collectionCoverageSummary,
+  collectionExposuresFromGeneratedSessionSummaries,
+  type CollectionCoverageSummary,
+} from '../training/collectionSelection';
+import { discomfortConstraintForAreas } from '../training/dailyTrainingContext';
 import { canonicalEquipmentFromSafetyProfile } from '../profile/equipment';
 import {
   isStepUpEnvironmentConfirmed,
@@ -53,6 +62,11 @@ export interface MovementLadderCard {
   body: string;
   currentLevelName: string;
   currentLevelLabel: string;
+  showCurrentLevel: boolean;
+  presentationMode: 'levels' | 'movement_set' | 'collection';
+  listTitle: string;
+  coverageLabel?: string;
+  varietyLabel?: string;
   domainLabel: string;
   equipmentLabel: string;
   measurementLabel: string;
@@ -192,7 +206,7 @@ const LADDER_CARD_BODY: Record<string, string> = {
   'shoulder-reach-press': 'Build comfortable overhead reach, with band pressing only when available.',
   balance: 'Practise steady holds near support before harder stance options.',
   'lateral-stability': 'Train side steps and marching so turns and obstacles feel more familiar.',
-  'mobility-flexibility': 'Use chair, wall, and no-equipment drills for hips, calves, hamstrings, and rotation.',
+  'mobility-flexibility': 'Use chair, wall, and unsupported drills for hips, calves, hamstrings, and rotation.',
 };
 
 export function getExtraSessionCards(input: {
@@ -241,17 +255,26 @@ export function getMovementLadderCards(input: {
   ladderProgressById?: Record<string, LadderProgress>;
   equipment?: EquipmentProfile | null;
   safetyProfile?: MovementSafetyProfile | null;
+  activeBlockId?: string | null;
+  generatedSessionSummaries?: readonly PersistedGeneratedSessionSummary[] | null;
 } = {}): MovementLadderCard[] {
   const available = availableEquipmentFor({ safetyProfile: input.safetyProfile });
   const movementCapabilities = movementCapabilitiesFromSafetyProfile(input.safetyProfile);
   return listExerciseLadders().filter((ladder) => ladder.releaseStatus === 'v1_core').map((ladder) => {
     const current = currentLevelFor(ladder, input.ladderProgressById?.[ladder.id], available, movementCapabilities);
+    const presentation = ladderPresentationForLadder(ladder);
+    const coverage = coverageForLadder(ladder, input, available, movementCapabilities);
     return {
       id: ladder.id,
       title: ladder.title,
       body: LADDER_CARD_BODY[ladder.id] ?? ladder.description,
-      currentLevelName: current.name,
-      currentLevelLabel: levelLabel(current),
+      currentLevelName: presentation.showCurrentLevel ? current.name : presentation.listTitle,
+      currentLevelLabel: coverage?.coverageLabel ?? nonLinearCardLabel(presentation.mode, current, ladder),
+      showCurrentLevel: presentation.showCurrentLevel,
+      presentationMode: presentation.mode,
+      listTitle: presentation.listTitle,
+      coverageLabel: coverage?.coverageLabel,
+      varietyLabel: coverage?.varietyLabel,
       domainLabel: focusLabel(ladder.domain),
       equipmentLabel: equipmentLabelForLevel(current, available, movementCapabilities),
       measurementLabel: measurementLabel(current.measurementTier),
@@ -265,6 +288,8 @@ export function getMovementLadderDetail(
   input: {
     equipment?: EquipmentProfile | null;
     safetyProfile?: MovementSafetyProfile | null;
+    activeBlockId?: string | null;
+    generatedSessionSummaries?: readonly PersistedGeneratedSessionSummary[] | null;
   } = {}
 ): MovementLadderDetail | null {
   let source: ExerciseLadder;
@@ -283,23 +308,49 @@ export function getMovementLadderDetail(
   const available = availableEquipmentFor({ safetyProfile: input.safetyProfile });
   const movementCapabilities = movementCapabilitiesFromSafetyProfile(input.safetyProfile);
   const current = currentLevelFor(source, ladderProgressById[ladder.id], available, movementCapabilities);
+  const presentation = ladderPresentationForLadder(ladder);
+  const coverage = coverageForLadder(ladder, input, available, movementCapabilities);
   const currentIndex = Math.max(0, ladder.levels.findIndex((level) => level.id === current.id));
-  const levels = ladder.levels.map((level) => levelView(level, level.id === current.id, available, movementCapabilities));
-  const card = getMovementLadderCards({ ladderProgressById, safetyProfile: input.safetyProfile }).find((item) => item.id === ladder.id);
+  const levels = ladder.levels.map((level) => levelView(
+    level,
+    ladder,
+    presentation.showCurrentLevel && level.id === current.id,
+    available,
+    movementCapabilities
+  ));
+  const card = getMovementLadderCards({
+    ladderProgressById,
+    safetyProfile: input.safetyProfile,
+    activeBlockId: input.activeBlockId,
+    generatedSessionSummaries: input.generatedSessionSummaries,
+  }).find((item) => item.id === ladder.id);
+  const showAdjacentLevels = presentation.showEasierHarder;
+  const autoCeilingIndex = showAdjacentLevels
+    ? Math.max(0, ladder.levels.findIndex((level) => level.id === getControlledBetaProgressionPolicy(ladder.id).autoProgressionCeilingLevelId))
+    : -1;
   return {
     ...(card ?? {}),
     id: ladder.id,
     title: ladder.title,
     body: ladder.description,
     whyItMatters: ladder.whyItMatters,
-    currentLevelName: current.name,
-    currentLevelLabel: levelLabel(current),
+    currentLevelName: presentation.showCurrentLevel ? current.name : presentation.listTitle,
+    currentLevelLabel: coverage?.coverageLabel ?? nonLinearCardLabel(presentation.mode, current, ladder),
+    showCurrentLevel: presentation.showCurrentLevel,
+    presentationMode: presentation.mode,
+    listTitle: presentation.listTitle,
+    coverageLabel: coverage?.coverageLabel,
+    varietyLabel: coverage?.varietyLabel,
     domainLabel: focusLabel(ladder.domain),
     equipmentLabel: equipmentLabelForLevel(current, available, movementCapabilities),
     measurementLabel: measurementLabel(current.measurementTier),
-    currentLevel: levelView(current, true, available, movementCapabilities),
-    easierLevel: currentIndex > 0 ? levelView(ladder.levels[currentIndex - 1], false, available, movementCapabilities) : undefined,
-    harderLevel: currentIndex < ladder.levels.length - 1 ? levelView(ladder.levels[currentIndex + 1], false, available, movementCapabilities) : undefined,
+    currentLevel: levelView(current, ladder, presentation.showCurrentLevel, available, movementCapabilities),
+    easierLevel: showAdjacentLevels && currentIndex > 0
+      ? levelView(ladder.levels[currentIndex - 1], ladder, false, available, movementCapabilities)
+      : undefined,
+    harderLevel: showAdjacentLevels && currentIndex < autoCeilingIndex
+      ? levelView(ladder.levels[currentIndex + 1], ladder, false, available, movementCapabilities)
+      : undefined,
     levels,
   };
 }
@@ -388,8 +439,11 @@ function currentLevelFor(
   movementCapabilities?: NormalizedMovementCapabilityProfile
 ): ExerciseLevel {
   const preferredId = progress?.currentLevelId ?? ladder.defaultLevelId;
-  const releaseSelection = effectiveLevelForRelease(ladder, preferredId);
-  const preferred = releaseSelection?.selectedLevel ?? ladder.levels.find((level) => level.id === preferredId) ?? ladder.levels[0];
+  const progressionSelection = effectiveLevelIdForControlledBetaProgression({
+    ladder,
+    storedLevelId: preferredId,
+  });
+  const preferred = progressionSelection.selectedLevel ?? ladder.levels.find((level) => level.id === preferredId) ?? ladder.levels[0];
   if (!available) return preferred;
   return practiceLevelFor(availableLevelsForRelease(ladder), preferred, available, movementCapabilities) ?? preferred;
 }
@@ -420,6 +474,7 @@ function practiceLevelFor(
 
 function levelView(
   level: ExerciseLevel,
+  ladder: ExerciseLadder,
   isCurrent: boolean,
   available?: readonly AvailableEquipment[],
   movementCapabilities?: NormalizedMovementCapabilityProfile
@@ -427,7 +482,7 @@ function levelView(
   return {
     id: level.id,
     name: level.name,
-    levelLabel: levelLabel(level),
+    levelLabel: levelLabel(level, ladder),
     equipmentLabel: equipmentLabelForLevel(level, available, movementCapabilities),
     measurementLabel: measurementLabel(level.measurementTier),
     cameraLabel: cameraLabel(level.cameraView),
@@ -491,8 +546,45 @@ function cameraLabel(cameraView: ExerciseLevel['cameraView']): string {
   return 'No camera view needed';
 }
 
-function levelLabel(level: ExerciseLevel): string {
+function levelLabel(level: ExerciseLevel, ladder: ExerciseLadder): string {
+  const presentation = ladderPresentationForLadder(ladder);
+  if (presentation.mode === 'collection') return 'Mobility movement';
+  if (presentation.mode === 'movement_set') return 'Movement';
   return `Level ${level.level + 1}`;
+}
+
+function nonLinearCardLabel(
+  mode: 'levels' | 'movement_set' | 'collection',
+  level: ExerciseLevel,
+  ladder: ExerciseLadder
+): string {
+  if (mode === 'collection') return 'Varied across your block';
+  if (mode === 'movement_set') return 'Movements in this set';
+  return levelLabel(level, ladder);
+}
+
+function coverageForLadder(
+  ladder: ExerciseLadder,
+  input: {
+    activeBlockId?: string | null;
+    generatedSessionSummaries?: readonly PersistedGeneratedSessionSummary[] | null;
+  },
+  available: readonly AvailableEquipment[],
+  movementCapabilities: NormalizedMovementCapabilityProfile
+): CollectionCoverageSummary | undefined {
+  if (ladder.progressionModel !== 'collection' || !input.activeBlockId) return undefined;
+  const exposures = collectionExposuresFromGeneratedSessionSummaries({
+    blockId: input.activeBlockId,
+    summaries: input.generatedSessionSummaries,
+  });
+  return collectionCoverageSummary({
+    collectionId: ladder.id,
+    blockId: input.activeBlockId,
+    exposures,
+    availableEquipment: available,
+    movementCapabilities,
+    discomfortConstraint: discomfortConstraintForAreas([]),
+  });
 }
 
 function humanList(items: readonly string[]): string {

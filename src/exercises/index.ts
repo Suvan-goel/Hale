@@ -45,7 +45,13 @@ export {
   resolveExerciseId,
   resolveExerciseLevel,
 } from './ladders';
-export type { ExerciseCameraView, ExerciseLadder, ExerciseLevel, ResolvedExerciseLevel } from './ladders';
+export type {
+  ExerciseCameraView,
+  ExerciseLadder,
+  ExerciseLadderProgressionModel,
+  ExerciseLevel,
+  ResolvedExerciseLevel,
+} from './ladders';
 export {
   CONTROLLED_BETA_HIDDEN_OPTIONAL_LEVEL_IDS,
   CONTROLLED_BETA_RELEASE_CHANNEL,
@@ -72,6 +78,41 @@ export type {
   ReleasePolicyExerciseSnapshotInput,
   TrainingReleaseChannel,
 } from './releasePolicy';
+export {
+  CONTROLLED_BETA_PROGRESSION_POLICY_SCHEMA_VERSION,
+  controlledBetaProgressionPolicyFingerprint,
+  effectiveLevelIdForControlledBetaProgression,
+  getControlledBetaProgressionPolicy,
+  isPlannedProgressionPolicySnapshot,
+  listControlledBetaProgressionPolicies,
+  plannedProgressionPolicySnapshotForExercises,
+  transitionEvidenceKeyFor,
+  transitionPolicyFor,
+  validateProgressionPolicySnapshotForExercises,
+} from './progressionPolicy';
+export type {
+  AutomaticProgressionStatus,
+  ControlledBetaProgressionEffectiveLevel,
+  LadderControlledBetaProgressionPolicy,
+  LadderTransitionDirection,
+  LadderTransitionPolicy,
+  PlannedProgressionPolicyExerciseSnapshot,
+  PlannedProgressionPolicySnapshot,
+  ProgressionEvidenceRequirement,
+  ProgressionPolicyDiagnosticCode,
+  ProgressionPolicyExerciseSnapshotInput,
+  ProgressionPolicySelectionReason,
+  ProgressionPolicySnapshotValidation,
+  ProgressionPolicyValidationStatus,
+} from './progressionPolicy';
+export {
+  ladderPresentationForLadder,
+  ladderPresentationForModel,
+} from './ladderPresentation';
+export type {
+  LadderPresentation,
+  LadderPresentationMode,
+} from './ladderPresentation';
 
 export { getExercise, hasExercise, listExercises, familyLevels, registerExercise } from './registry';
 export type {

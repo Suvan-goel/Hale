@@ -4,7 +4,7 @@ import type { CheckUp } from '../../../checkup';
 import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../../../history';
 import { defaultPreferences } from '../../../profile';
 import { createCurrentVersionedScoreSnapshot, type VersionedCheckUpScoreSnapshot } from '../../../scoring';
-import { LOADED_STS_ID, STS_POWER_ID } from '../../../exercises';
+import { LOADED_STS_ID, STS_STANDARD_ID } from '../../../exercises';
 import {
   TRAINING_SCHEMA_VERSION,
   defaultTrainingState,
@@ -448,8 +448,8 @@ describe('remote restore service', () => {
     expect(mapped.state.training.ladderProgressById['sit-to-stand'].currentLevelId).toBe(LOADED_STS_ID);
     expect(sitToStand).toMatchObject({
       requestedLevelId: LOADED_STS_ID,
-      selectedDailyLevelId: STS_POWER_ID,
-      adjustmentReasons: expect.arrayContaining(['controlled_beta_release_cap']),
+      selectedDailyLevelId: STS_STANDARD_ID,
+      adjustmentReasons: expect.arrayContaining(['controlled_beta_release_cap', 'auto_progression_cap', 'legacy_progression_policy_capped']),
     });
   });
 

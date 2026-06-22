@@ -294,7 +294,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
     whyItMatters: 'Ankles and calves quietly support walking rhythm, balance reactions, and stair confidence.',
     defaultLevelId: HEEL_RAISE_SUPPORTED_ID,
     releaseStatus: 'v1_core',
-    progressionModel: 'linear_progression',
+    progressionModel: 'supporting_set',
     stimulusKind: 'ankle_strength',
     sortOrder: 40,
     levels: [
@@ -401,7 +401,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
     whyItMatters: 'Pulling work balances pushing, supports posture, and helps shoulders stay capable.',
     defaultLevelId: SEATED_BAND_ROW_ID,
     releaseStatus: 'v1_core',
-    progressionModel: 'linear_progression',
+    progressionModel: 'supporting_set',
     stimulusKind: 'upper_pull',
     sortOrder: 60,
     levels: [
@@ -454,7 +454,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
     whyItMatters: 'A strong hinge supports reaching down, lifting from everyday heights, and getting up with confidence.',
     defaultLevelId: HINGE_WALL_ID,
     releaseStatus: 'v1_core',
-    progressionModel: 'linear_progression',
+    progressionModel: 'supporting_set',
     stimulusKind: 'posterior_chain_strength',
     sortOrder: 70,
     levels: [
@@ -669,7 +669,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
     id: 'mobility-flexibility',
     title: 'Mobility / Flexibility',
     domain: 'mobility_flexibility',
-    description: 'Chair, wall, and no-equipment drills for daily range.',
+    description: 'Chair, wall, and unsupported drills for daily range.',
     whyItMatters: 'Mobility work keeps reaching, bending, rotating, and walking feeling accessible.',
     defaultLevelId: HAMSTRING_REACH_ID,
     releaseStatus: 'v1_core',

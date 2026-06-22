@@ -41,7 +41,8 @@
     "audio": "tsx scripts/generate-audio.ts",
     "verify:audio": "tsx scripts/verify-audio.ts",
     "noise-floor": "tsx scripts/noise-floor.ts",
-    "skeleton-preview": "tsx scripts/skeleton-preview.ts"
+    "skeleton-preview": "tsx scripts/skeleton-preview.ts",
+    "pose-renderer-replay": "tsx scripts/pose-renderer-replay.ts"
   },
   "jest": {
     "preset": "jest-expo",

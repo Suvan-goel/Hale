@@ -19,7 +19,7 @@ import {
   type MovementLadderCard,
 } from '../haleFlow';
 import type { AppSettings } from '../profile';
-import type { EquipmentProfile, LadderProgress } from '../training';
+import type { EquipmentProfile, LadderProgress, PersistedGeneratedSessionSummary } from '../training';
 import { colors, fonts, imageOverlayControl, radius, shadow, spacing, todayHomeColors, type } from '../theme';
 import { SettingsIcon } from '../navigation/icons';
 import { INSIGHT_IMAGES, LEARN_IMAGES, LIBRARY_IMAGES, PRACTICE_IMAGES } from './exploreImages';
@@ -39,7 +39,7 @@ const EXPLORE_TAB_DESCRIPTIONS: Record<ExploreTab, string> = {
   insights: 'General health and longevity reading from qualified professional perspectives.',
   learn: 'Hale guides for check-ups, camera setup, and using your plan with confidence.',
   practice: 'Optional short sessions for days when the main plan is done or you want lighter movement.',
-  library: 'Browse the movement progressions Hale uses to adapt your plan.',
+  library: 'Browse the movement groups Hale uses to adapt your plan.',
 };
 
 const LIBRARY_FILTERS: readonly { key: LibraryDomainFilter; label: string }[] = [
@@ -54,6 +54,8 @@ export function ExploreScreen({
   safetyProfile,
   settings,
   ladderProgressById,
+  activeBlockId,
+  generatedSessionSummaries,
   onStartExtraSession,
   onOpenLadder,
   onOpenLearn,
@@ -63,6 +65,8 @@ export function ExploreScreen({
   safetyProfile?: MovementSafetyProfile | null;
   settings: AppSettings;
   ladderProgressById: Record<string, LadderProgress>;
+  activeBlockId?: string | null;
+  generatedSessionSummaries?: readonly PersistedGeneratedSessionSummary[] | null;
   onStartExtraSession: (presetId: string, preferences?: TodaySessionPreferences | null) => void;
   onOpenLadder: (ladderId: string) => void;
   onOpenLearn: (articleId: string) => void;
@@ -76,8 +80,8 @@ export function ExploreScreen({
     [equipment, ladderProgressById, safetyProfile]
   );
   const ladders = React.useMemo(
-    () => getMovementLadderCards({ ladderProgressById, equipment, safetyProfile }),
-    [equipment, ladderProgressById, safetyProfile]
+    () => getMovementLadderCards({ ladderProgressById, equipment, safetyProfile, activeBlockId, generatedSessionSummaries }),
+    [activeBlockId, equipment, generatedSessionSummaries, ladderProgressById, safetyProfile]
   );
   const setupSummary = React.useMemo(
     () => getEquipmentSetupSummary({ equipment, safetyProfile, settings }),
@@ -310,10 +314,10 @@ function FeaturedLibraryCard({ ladderCount, domainCount }: { ladderCount: number
         >
           <View style={styles.featuredLibraryScrim} />
           <View style={styles.featuredLibraryContent}>
-            <Text style={styles.featuredPostMeta}>Progressions Hale uses in your plan</Text>
+            <Text style={styles.featuredPostMeta}>Movement groups Hale uses in your plan</Text>
             <Text style={styles.featuredPostTitle}>See how each movement can adapt</Text>
             <Text style={styles.featuredPostBody}>
-              Browse easier and harder options without changing today's session.
+              Browse levels, practice options, and mobility movements without changing today's session.
             </Text>
             <View style={styles.libraryStatsRow}>
               <LibraryStatPill label={`${ladderCount} ladders`} />
@@ -667,7 +671,7 @@ function LadderRow({
       style={({ pressed }) => [styles.listRow, styles.libraryRow, showDivider && styles.listRowDivider, pressed && styles.pressed]}
       onPress={onOpen}
       accessibilityRole="button"
-      accessibilityLabel={`${ladder.title} ladder`}
+      accessibilityLabel={`${ladder.title} ${ladder.showCurrentLevel ? 'ladder' : 'movement group'}`}
     >
       <Image source={LIBRARY_IMAGES[ladder.id] ?? LIBRARY_IMAGES.hero} style={styles.libraryThumb} resizeMode="cover" />
       <View style={styles.listCopy}>
@@ -678,7 +682,9 @@ function LadderRow({
           {ladder.body}
         </Text>
         <Text style={styles.rowMeta} numberOfLines={1}>
-          Current: {ladder.currentLevelName} · {ladder.equipmentLabel}
+          {ladder.showCurrentLevel
+            ? `Current: ${ladder.currentLevelName} · ${ladder.equipmentLabel}`
+            : `${ladder.currentLevelLabel} · ${ladder.equipmentLabel}`}
         </Text>
       </View>
       <ChevronIcon />

@@ -33,7 +33,7 @@ function StructuredData() {
     applicationCategory: 'HealthApplication',
     operatingSystem: 'iOS, Android',
     description:
-      'Hale uses a phone-camera Movement Check-Up to guide strength, balance and mobility training from home.',
+      'Hale checks strength, balance and mobility with a phone camera, then gives a simple home training plan.',
   };
 
   if (pricing.kind === 'configured') {

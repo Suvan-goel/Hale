@@ -5,6 +5,15 @@ import MediaPipeTasksVision
 private let landmarkCount = 33
 private let landmarkStride = 5
 
+private struct PoseLatencyDiagnostics {
+  let frameId: Int
+  let sourceTimestampMs: Double
+  let preprocessingStartMs: Double
+  let preprocessingEndMs: Double
+  let mediapipeSubmitMs: Double
+  let mediapipeCallbackMs: Double
+}
+
 /**
  * Owns AVCaptureSession + MediaPipe PoseLandmarker. No preview layer is ever
  * attached — the view renders a solid warm-stone canvas (the app's bg-base) and
@@ -23,6 +32,7 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
   private var sessionConfigured = false
   private var running = false
   private var lastTimestampMs = -1
+  private var frameId = 0
 
   // Props (defaults mirror the JS-side defaults).
   private var active = false
@@ -31,6 +41,7 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
   private var minDetectionConfidence: Float = 0.35
   private var minTrackingConfidence: Float = 0.35
   private var minPresenceConfidence: Float = 0.35
+  private var latencyDiagnosticsEnabled = false
 
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
@@ -74,6 +85,10 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
     restartIfRunning()
   }
 
+  func setLatencyDiagnosticsEnabledProp(_ value: Bool) {
+    latencyDiagnosticsEnabled = value
+  }
+
   override func willMove(toWindow newWindow: UIWindow?) {
     super.willMove(toWindow: newWindow)
     if newWindow == nil {
@@ -105,6 +120,7 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
     }
     running = true
     lastTimestampMs = -1
+    frameId = 0
     sessionQueue.async { [weak self] in
       guard let self, self.running else { return }
       do {
@@ -259,6 +275,10 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
     from connection: AVCaptureConnection
   ) {
     guard running, let landmarker else { return }
+    let diagnosticsEnabled = latencyDiagnosticsEnabled
+    if diagnosticsEnabled { frameId += 1 }
+    let diagnosticFrameId = frameId
+    let preprocessingStartMs = diagnosticsEnabled ? PoseDetectionView.nativeNowMs() : 0
 
     // Presentation timestamps are monotonic within a capture session; VIDEO
     // mode requires strictly increasing values.
@@ -268,14 +288,26 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
     lastTimestampMs = timestampMs
 
     guard let image = try? MPImage(sampleBuffer: sampleBuffer) else { return }
+    let preprocessingEndMs = diagnosticsEnabled ? PoseDetectionView.nativeNowMs() : 0
 
     do {
+      let mediapipeSubmitMs = diagnosticsEnabled ? PoseDetectionView.nativeNowMs() : 0
       let start = CACurrentMediaTime()
       let result = try landmarker.detect(videoFrame: image, timestampInMilliseconds: timestampMs)
       let inferenceMs = (CACurrentMediaTime() - start) * 1000.0
+      let mediapipeCallbackMs = diagnosticsEnabled ? PoseDetectionView.nativeNowMs() : 0
+      let diagnostics = diagnosticsEnabled
+        ? PoseLatencyDiagnostics(
+          frameId: diagnosticFrameId,
+          sourceTimestampMs: Double(timestampMs),
+          preprocessingStartMs: preprocessingStartMs,
+          preprocessingEndMs: preprocessingEndMs,
+          mediapipeSubmitMs: mediapipeSubmitMs,
+          mediapipeCallbackMs: mediapipeCallbackMs)
+        : nil
       dispatch(
         result: result, timestampMs: timestampMs, inferenceMs: inferenceMs,
-        width: image.width, height: image.height)
+        width: image.width, height: image.height, diagnostics: diagnostics)
     } catch {
       DispatchQueue.main.async {
         self.onPoseError(["message": "inference-failed: \(error.localizedDescription)"])
@@ -285,7 +317,7 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
 
   private func dispatch(
     result: PoseLandmarkerResult, timestampMs: Int, inferenceMs: Double,
-    width: Int, height: Int
+    width: Int, height: Int, diagnostics: PoseLatencyDiagnostics?
   ) {
     var flat: [Double]
     if let pose = result.landmarks.first {
@@ -305,13 +337,32 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
       // continuity to drive subject-gone detection.
       flat = []
     }
-    let payload: [String: Any] = [
+    let nativePostprocessEndMs = diagnostics != nil ? PoseDetectionView.nativeNowMs() : 0
+    let nativeEventEmitMs = diagnostics != nil ? PoseDetectionView.nativeNowMs() : 0
+    var payload: [String: Any] = [
       "timestampMs": Double(timestampMs),
       "landmarks": flat,
       "inferenceMs": inferenceMs,
       "sourceWidth": width,
       "sourceHeight": height,
     ]
+    if let diagnostics {
+      payload["latency"] = [
+        "frameId": Double(diagnostics.frameId),
+        "nativeClock": "ios.CACurrentMediaTime",
+        "sourceTimestampMs": diagnostics.sourceTimestampMs,
+        "preprocessingStartMs": diagnostics.preprocessingStartMs,
+        "preprocessingEndMs": diagnostics.preprocessingEndMs,
+        "mediapipeSubmitMs": diagnostics.mediapipeSubmitMs,
+        "mediapipeCallbackMs": diagnostics.mediapipeCallbackMs,
+        "nativePostprocessEndMs": nativePostprocessEndMs,
+        "nativeEventEmitMs": nativeEventEmitMs,
+      ]
+    }
     DispatchQueue.main.async { self.onLandmarks(payload) }
+  }
+
+  private static func nativeNowMs() -> Double {
+    CACurrentMediaTime() * 1000.0
   }
 }

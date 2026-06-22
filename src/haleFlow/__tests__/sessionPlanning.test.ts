@@ -14,6 +14,7 @@ import {
   SEATED_BAND_ROW_ID,
   STANDING_BAND_ROW_ID,
   STS_POWER_ID,
+  STS_CUSHION_ID,
   STEP_UP_ID,
   hasExercise,
   STS_SLOW_ECC_ID,
@@ -45,9 +46,11 @@ import {
   updateExerciseProgressionFromSession,
   validateHaleSessionPlanEquipment,
   validateHaleSessionPlanMovementCapabilities,
+  validateHaleSessionPlanProgressionPolicy,
   validateHaleSessionPlanReleasePolicy,
   validateHaleSessionPlanSafetyCues,
   validateGeneratedSessionForPlanning,
+  staleProgressionPolicyPlanningResult,
 } from '../sessionPlanning';
 import { BLOCK_SCHEDULE_POLICY_VERSION } from '../blockSchedule';
 import { createMovementAssessment } from '../assessments';
@@ -409,11 +412,12 @@ describe('planTodayHaleSession', () => {
 
     expect(sitToStand).toMatchObject({
       requestedLevelId: LOADED_STS_ID,
-      selectedDailyLevelId: STS_POWER_ID,
-      adjustmentReasons: expect.arrayContaining(['controlled_beta_release_cap']),
+      selectedDailyLevelId: STS_STANDARD_ID,
+      adjustmentReasons: expect.arrayContaining(['controlled_beta_release_cap', 'auto_progression_cap', 'legacy_progression_policy_capped']),
     });
     expect(plan.exercises.map((exercise) => exercise.releaseStatus)).not.toContain('v1_optional');
     expect(validateHaleSessionPlanReleasePolicy({ plan }).status).toBe('current');
+    expect(validateHaleSessionPlanProgressionPolicy({ plan }).status).toBe('current');
     expect(restoredProgress['sit-to-stand'].currentLevelId).toBe(LOADED_STS_ID);
   });
 
@@ -433,6 +437,7 @@ describe('planTodayHaleSession', () => {
     };
     const noFloor = planLadderPracticeSession({
       ladderId: 'hinge-glutes',
+      requestedLevelId: BRIDGE_HOLD_ID,
       activeBlock: block(),
       training: { ...baseTraining, ladderProgressById: floorProgress },
       safetyProfile: { ...safety(), availableEquipment: ['chair', 'wall'] },
@@ -441,6 +446,7 @@ describe('planTodayHaleSession', () => {
     });
     const withFloor = planLadderPracticeSession({
       ladderId: 'hinge-glutes',
+      requestedLevelId: BRIDGE_HOLD_ID,
       activeBlock: block(),
       training: { ...baseTraining, ladderProgressById: floorProgress },
       safetyProfile: { ...safety(), availableEquipment: ['chair', 'wall', 'floor_space'] },
@@ -485,6 +491,7 @@ describe('planTodayHaleSession', () => {
     };
     const bandNoAnchor = planLadderPracticeSession({
       ladderId: 'pull-upper-back',
+      requestedLevelId: STANDING_BAND_ROW_ID,
       activeBlock: block(),
       training: { ...baseTraining, equipment: { ...baseTraining.equipment, band: true }, ladderProgressById: bandProgress },
       safetyProfile: { ...safety(), availableEquipment: ['chair', 'wall', 'resistance_band'] },
@@ -493,6 +500,7 @@ describe('planTodayHaleSession', () => {
     });
     const bandWithAnchor = planLadderPracticeSession({
       ladderId: 'pull-upper-back',
+      requestedLevelId: STANDING_BAND_ROW_ID,
       activeBlock: block(),
       training: { ...baseTraining, equipment: { ...baseTraining.equipment, band: true }, ladderProgressById: bandProgress },
       safetyProfile: { ...safety(), availableEquipment: ['chair', 'wall', 'resistance_band', 'door_anchor'] },
@@ -513,6 +521,7 @@ describe('planTodayHaleSession', () => {
   it('requires floor-transfer confirmation before floor ladder practice starts', () => {
     const result = planLadderPracticeSessionResult({
       ladderId: 'hinge-glutes',
+      requestedLevelId: BRIDGE_HOLD_ID,
       activeBlock: block(),
       training: {
         ...legacyTraining(),
@@ -541,35 +550,20 @@ describe('planTodayHaleSession', () => {
     expect(sessionPlanFromPlanningResult(result)).toBeNull();
   });
 
-  it('shows floor space in session equipment labels when floor work is selected', () => {
-    const b = strengthBlock();
-    const plan = planTodayHaleSession({
-      activeBlock: b,
+  it('shows floor space in session equipment labels when explicit manual floor work is selected', () => {
+    const plan = planLadderPracticeSession({
+      ladderId: 'hinge-glutes',
+      requestedLevelId: BRIDGE_HOLD_ID,
+      activeBlock: strengthBlock(),
       training: legacyTraining(),
       safetyProfile: { ...safety(), availableEquipment: ['chair', 'wall', 'floor_space'] },
       lifeGoal: lifeGoal(),
-      recentCompletions: [
-        scheduledCompletion(b, 'strength-A', '2026-06-01T09:00:00.000Z'),
-        scheduledCompletion(b, 'strength-B', '2026-06-02T09:00:00.000Z'),
-      ],
-      targetSessionTemplateId: 'session_c',
-      ladderProgress: {
-        'hinge-glutes': {
-          ladderId: 'hinge-glutes',
-          currentLevelId: BRIDGE_HOLD_ID,
-          completedSessionsAtLevel: 0,
-          failedSessionsAtLevel: 0,
-          recentCompletionRates: [],
-          recentRpe: [],
-          recentPain: [],
-          updatedAt: START,
-        },
-      },
+      adjustment: null,
       today: '2026-06-03T08:00:00.000Z',
     });
 
-    expect(plan.exercises.map((exercise) => exercise.id)).toContain(BRIDGE_HOLD_ID);
-    expect(plan.metadata?.equipmentNeeded).toContain('floor space');
+    expect(plan?.exercises.map((exercise) => exercise.id)).toContain(BRIDGE_HOLD_ID);
+    expect(plan?.metadata?.equipmentNeeded).toContain('floor space');
   });
 
   it('uses canonical profile equipment instead of legacy training booleans for current planning', () => {
@@ -741,7 +735,7 @@ describe('planTodayHaleSession', () => {
     expect(validation.status).toBe('exercise_level_not_available_in_controlled_beta');
     const recovery = staleReleasePolicyPlanningResult({ plan: stalePlan, validation });
     expect(recovery.reason).toBe('exercise_level_not_available_in_controlled_beta');
-    expect(getSessionPlanningRecoveryCopy(recovery)?.body).toContain('not available in the beta yet');
+    expect(getSessionPlanningRecoveryCopy(recovery)?.body).toContain('supported level');
   });
 
   it('requires a release policy snapshot on current plans', () => {
@@ -766,6 +760,50 @@ describe('planTodayHaleSession', () => {
     expect(staleReleasePolicyPlanningResult({ plan: restoredWithoutReleaseSnapshot, validation }).reason).toBe(
       'missing_release_policy_snapshot'
     );
+  });
+
+  it('stamps and validates progression policy snapshots before an unstarted plan can begin', () => {
+    const plan = planTodayHaleSession({
+      activeBlock: strengthBlock(),
+      training: legacyTraining(),
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      targetSessionTemplateId: 'session_a',
+      today: START,
+    });
+
+    expect(plan.metadata?.progressionPolicySnapshot?.schemaVersion).toBe(1);
+    expect(validateHaleSessionPlanProgressionPolicy({ plan }).status).toBe('current');
+
+    const restoredWithoutProgressionSnapshot: HaleSessionPlan = {
+      ...plan,
+      metadata: {
+        ...plan.metadata!,
+        progressionPolicySnapshot: undefined,
+      },
+    };
+    const missingValidation = validateHaleSessionPlanProgressionPolicy({ plan: restoredWithoutProgressionSnapshot });
+    expect(missingValidation.status).toBe('missing_progression_policy_snapshot');
+    expect(staleProgressionPolicyPlanningResult({ plan: restoredWithoutProgressionSnapshot, validation: missingValidation }).reason).toBe(
+      'missing_progression_policy_snapshot'
+    );
+
+    const stalePlan: HaleSessionPlan = {
+      ...plan,
+      metadata: {
+        ...plan.metadata!,
+        progressionPolicySnapshot: {
+          ...plan.metadata!.progressionPolicySnapshot!,
+          policyFingerprint: 'stale-policy',
+          fingerprint: 'stale-plan',
+        },
+      },
+    };
+    const staleValidation = validateHaleSessionPlanProgressionPolicy({ plan: stalePlan });
+    expect(staleValidation.status).toBe('stale_progression_policy');
+    const recovery = staleProgressionPolicyPlanningResult({ plan: stalePlan, validation: staleValidation });
+    expect(recovery.reason).toBe('stale_progression_policy');
+    expect(getSessionPlanningRecoveryCopy(recovery)?.body).toContain('supported level');
   });
 
   it('fails closed when generated exercise IDs are unsupported', () => {
@@ -968,7 +1006,8 @@ describe('planTodayHaleSession', () => {
     expect(plan.metadata?.progressionEvidencePolicy).toBe('hold_only');
     expect(plan.metadata?.guidance?.join(' ')).toMatch(/sets are reduced/i);
     expect(sitToStand?.requestedLevelId).toBe(STS_POWER_ID);
-    expect(sitToStand?.selectedDailyLevelId).toBe(STS_SLOW_ECC_ID);
+    expect(sitToStand?.selectedDailyLevelId).toBe(STS_CUSHION_ID);
+    expect(sitToStand?.adjustmentReasons).toEqual(expect.arrayContaining(['auto_progression_cap', 'legacy_progression_policy_capped']));
     expect(sitToStand?.sets).toBeLessThanOrEqual(sitToStand?.doseBeforeAdjustment?.sets ?? Infinity);
     expect(progress['sit-to-stand'].currentLevelId).toBe(STS_POWER_ID);
   });
@@ -1349,9 +1388,9 @@ describe('planTodayHaleSession', () => {
       safetyProfile: safety(),
       lifeGoal: lifeGoal(),
       today: START,
-      generateSession: () => singleSitToStandGeneratedSession(),
+      generateSession: () => singleSitToStandGeneratedSession(strengthBlock().id, STS_CUSHION_ID),
     });
-    const firstResult = { startedAt: START, items: [{ exerciseId: STS_STANDARD_ID, status: 'completed' as const, sets: [] }] };
+    const firstResult = { startedAt: START, items: [{ exerciseId: STS_CUSHION_ID, status: 'completed' as const, sets: [] }] };
     const firstCompletion = creditedCompletionForPlan(b, plan, firstResult, {
       completedAt: '2026-06-01T09:00:00.000Z',
     });
@@ -1363,7 +1402,7 @@ describe('planTodayHaleSession', () => {
       painReported: false,
       trackingQuality: 'good',
     });
-    const secondResult = { startedAt: START, items: [{ exerciseId: STS_STANDARD_ID, status: 'completed' as const, sets: [] }] };
+    const secondResult = { startedAt: START, items: [{ exerciseId: STS_CUSHION_ID, status: 'completed' as const, sets: [] }] };
     const second = updateExerciseProgressionFromSession({
       previousProgress: first,
       sessionPlan: plan,
@@ -1379,8 +1418,8 @@ describe('planTodayHaleSession', () => {
       trackingQuality: 'good',
     });
 
-    expect(first['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
-    expect(second['sit-to-stand'].currentLevelId).toBe(STS_SLOW_ECC_ID);
+    expect(first['sit-to-stand'].currentLevelId).toBe(STS_CUSHION_ID);
+    expect(second['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
   });
 
   it('does not update ladder progress when result evidence is missing or skipped', () => {
@@ -1465,7 +1504,11 @@ describe('planTodayHaleSession', () => {
   });
 });
 
-function singleSitToStandGeneratedSession(blockId = strengthBlock().id): GeneratedSession {
+function singleSitToStandGeneratedSession(
+  blockId = strengthBlock().id,
+  exerciseId: typeof STS_STANDARD_ID | typeof STS_CUSHION_ID = STS_STANDARD_ID
+): GeneratedSession {
+  const isCushion = exerciseId === STS_CUSHION_ID;
   return {
     id: 'generated-sit-to-stand',
     blockId,
@@ -1490,22 +1533,22 @@ function singleSitToStandGeneratedSession(blockId = strengthBlock().id): Generat
         role: 'primary',
         reason: 'direct_match',
         message: 'Chair-rise strength matched the intended training stimulus.',
-        exerciseId: STS_STANDARD_ID,
+        exerciseId,
         ladderId: 'sit-to-stand',
-        levelId: STS_STANDARD_ID,
+        levelId: exerciseId,
         selectedDomain: 'strength_power',
       },
     ],
     guidance: [],
     exercises: [
       {
-        id: 'lower-strength-a-sit-to-stand-standard-1',
-        exerciseId: STS_STANDARD_ID,
+        id: `lower-strength-a-${exerciseId}-1`,
+        exerciseId,
         ladderId: 'sit-to-stand',
         ladderTitle: 'Sit-to-Stand',
-        levelId: STS_STANDARD_ID,
-        level: 1,
-        name: 'Standard Sit-to-Stand',
+        levelId: exerciseId,
+        level: isCushion ? 0 : 1,
+        name: isCushion ? 'Cushion Sit-to-Stand' : 'Standard Sit-to-Stand',
         slotType: 'lower_body_strength',
         domain: 'strength_power',
         kind: 'reps',

@@ -34,6 +34,11 @@ import {
 import type { CameraAvailability } from '../components/SafePoseDetectionView';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
+import { PoseLatencyDiagnosticsOverlay } from '../diagnostics/PoseLatencyDiagnosticsOverlay';
+import {
+  createPoseLatencyDiagnostics,
+  isPoseLatencyDiagnosticsEnabled,
+} from '../diagnostics/poseLatencyDiagnostics';
 import { getExercise, type ExerciseDefinition } from '../exercises';
 import { PosePipeline } from '../pose/pipeline';
 import { PreflightCheck } from '../preflight/preflight';
@@ -192,6 +197,13 @@ export function TrainingSessionScreen({
   const windowSize = useWindowDimensions();
   const recordingTopPadding = recordingScreenTopPadding();
   const exerciseDefinitions = React.useMemo(() => exerciseIds.map((id) => getExercise(id)), [exerciseIds]);
+  const poseLatencyDiagnostics = React.useMemo(
+    () =>
+      isPoseLatencyDiagnosticsEnabled()
+        ? createPoseLatencyDiagnostics({ mode: 'training' })
+        : null,
+    []
+  );
 
   React.useEffect(() => {
     if (__DEV__) recorder.start();
@@ -205,9 +217,11 @@ export function TrainingSessionScreen({
   const onLandmarks = React.useCallback(
     (e: { nativeEvent: LandmarksEventPayload }) => {
       const event = e.nativeEvent;
+      const latencyFrame = poseLatencyDiagnostics?.beginFrame(event) ?? null;
       lastFrameTimestampRef.current = event.timestampMs;
       if (__DEV__) recorder.record(event);
       const out = pipeline.process(event);
+      poseLatencyDiagnostics?.markJsTransformEnd(latencyFrame);
       const sourceAspect = event.sourceWidth / event.sourceHeight;
       if (resumePendingRef.current) {
         player.shiftTiming(Math.max(0, event.timestampMs - pauseStartedAtRef.current));
@@ -215,6 +229,7 @@ export function TrainingSessionScreen({
       }
       if (pausedRef.current) {
         skeletonRef.current?.update(out, sourceAspect);
+        poseLatencyDiagnostics?.markRendererUpdateSubmitted(latencyFrame);
         return;
       }
       const u = player.update(out, voice.busy);
@@ -263,8 +278,9 @@ export function TrainingSessionScreen({
         });
       }
       skeletonRef.current?.update(out, sourceAspect);
+      poseLatencyDiagnostics?.markRendererUpdateSubmitted(latencyFrame);
     },
-    [pipeline, player, voice, sfx, recorder, onComplete, exerciseIds.length]
+    [pipeline, poseLatencyDiagnostics, player, voice, sfx, recorder, onComplete, exerciseIds.length]
   );
 
   const onPoseError = React.useCallback((e: { nativeEvent: PoseErrorEventPayload }) => {
@@ -381,6 +397,7 @@ export function TrainingSessionScreen({
       <SafePoseDetectionView
         active={!busyDebug}
         modelVariant="lite"
+        latencyDiagnosticsEnabled={poseLatencyDiagnostics !== null}
         style={StyleSheet.absoluteFill}
         onLandmarks={onLandmarks}
         onPoseError={onPoseError}
@@ -478,6 +495,7 @@ export function TrainingSessionScreen({
         onDiscard={discardSession}
       />
       <SessionHelpModal visible={showHelp} onClose={() => setShowHelp(false)} />
+      <PoseLatencyDiagnosticsOverlay diagnostics={poseLatencyDiagnostics} />
     </View>
   );
 }

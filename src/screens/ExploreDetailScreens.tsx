@@ -12,7 +12,7 @@ import {
   type TodaySessionPreferences,
 } from '../haleFlow';
 import type { MovementSafetyProfile } from '../adherence';
-import type { EquipmentProfile, LadderProgress } from '../training';
+import type { EquipmentProfile, LadderProgress, PersistedGeneratedSessionSummary } from '../training';
 import type { PainArea } from '../training';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
@@ -24,6 +24,8 @@ export function LadderDetailScreen({
   ladderProgressById,
   equipment,
   safetyProfile,
+  activeBlockId,
+  generatedSessionSummaries,
   onPractice,
   onDone,
 }: {
@@ -31,13 +33,20 @@ export function LadderDetailScreen({
   ladderProgressById: Record<string, LadderProgress>;
   equipment?: EquipmentProfile | null;
   safetyProfile?: MovementSafetyProfile | null;
+  activeBlockId?: string | null;
+  generatedSessionSummaries?: readonly PersistedGeneratedSessionSummary[] | null;
   onPractice: (preferences?: TodaySessionPreferences | null) => void;
   onDone: () => void;
 }) {
   const [menuVisible, setMenuVisible] = React.useState(false);
   const detail = React.useMemo(
-    () => getMovementLadderDetail(ladderId, ladderProgressById, { equipment, safetyProfile }),
-    [equipment, ladderId, ladderProgressById, safetyProfile]
+    () => getMovementLadderDetail(ladderId, ladderProgressById, {
+      equipment,
+      safetyProfile,
+      activeBlockId,
+      generatedSessionSummaries,
+    }),
+    [activeBlockId, equipment, generatedSessionSummaries, ladderId, ladderProgressById, safetyProfile]
   );
   const startPractice = React.useCallback(
     (adjustment?: TodaySessionAdjustment | null, painArea?: PainArea | null) => {
@@ -65,7 +74,7 @@ export function LadderDetailScreen({
       <Screen contentStyle={styles.articleScreen}>
         <DetailBackButton onPress={onDone} />
         <ArticleHero
-          eyebrow={`${detail.domainLabel} · Movement ladder`}
+          eyebrow={`${detail.domainLabel} · ${detail.showCurrentLevel ? 'Movement ladder' : 'Movement group'}`}
           title={detail.title}
           subtitle={detail.body}
           imageSource={ladderImageFor(detail.id)}
@@ -78,11 +87,18 @@ export function LadderDetailScreen({
             easierLevel={detail.easierLevel}
             harderLevel={detail.harderLevel}
             hasMultipleLevels={detail.levels.length > 1}
+            showEasierHarder={detail.showCurrentLevel}
+            presentationMode={detail.presentationMode}
+            varietyLabel={detail.varietyLabel}
           />
-          <LadderLevelsSection levels={detail.levels} />
+          <LadderLevelsSection detail={detail} />
         </View>
 
-        <PrimaryButton title="Practice This Ladder" onPress={() => setMenuVisible(true)} style={styles.primaryAction} />
+        <PrimaryButton
+          title={detail.showCurrentLevel ? 'Practice This Ladder' : 'Practice These Movements'}
+          onPress={() => setMenuVisible(true)}
+          style={styles.primaryAction}
+        />
       </Screen>
       <SessionStartMenu visible={menuVisible} onClose={() => setMenuVisible(false)} onStart={startPractice} />
     </>
@@ -224,6 +240,22 @@ function ArticleSection({
 
 function CurrentLevelPanel({ detail }: { detail: MovementLadderDetail }) {
   const level = detail.currentLevel;
+  if (!detail.showCurrentLevel) {
+    return (
+      <View style={styles.currentPanel}>
+        <View style={styles.currentPanelHeader}>
+          <View style={styles.currentPanelTitleGroup}>
+            <Text style={styles.ladderEyebrow}>{detail.currentLevelLabel}</Text>
+            <Text style={styles.currentLevelName}>{detail.currentLevelName}</Text>
+            <Text style={styles.currentLevelMeta}>
+              {detail.varietyLabel ?? 'These movements remain available for practice.'}
+            </Text>
+          </View>
+          <StatusBadge label={detail.domainLabel} tone="gold" />
+        </View>
+      </View>
+    );
+  }
   return (
     <View style={styles.currentPanel}>
       <View style={styles.currentPanelHeader}>
@@ -273,11 +305,31 @@ function AdaptationSection({
   easierLevel,
   harderLevel,
   hasMultipleLevels,
+  showEasierHarder,
+  presentationMode,
+  varietyLabel,
 }: {
   easierLevel?: LadderLevelView;
   harderLevel?: LadderLevelView;
   hasMultipleLevels: boolean;
+  showEasierHarder: boolean;
+  presentationMode: MovementLadderDetail['presentationMode'];
+  varietyLabel?: string;
 }) {
+  if (!showEasierHarder) {
+    return (
+      <View style={styles.ladderSection}>
+        <View style={styles.ladderSectionHeader}>
+          <Text style={styles.ladderSectionTitle}>How Hale uses it</Text>
+          <Text style={styles.ladderSectionCaption}>
+            {presentationMode === 'collection'
+              ? varietyLabel ?? 'Hale varies these mobility movements across your block.'
+              : 'Hale chooses available practice options without treating them as harder or easier ranks.'}
+          </Text>
+        </View>
+      </View>
+    );
+  }
   return (
     <View style={styles.ladderSection}>
       <View style={styles.ladderSectionHeader}>
@@ -347,12 +399,17 @@ function AdaptationItem({
   );
 }
 
-function LadderLevelsSection({ levels }: { levels: LadderLevelView[] }) {
+function LadderLevelsSection({ detail }: { detail: MovementLadderDetail }) {
+  const levels = detail.levels;
   return (
     <View style={styles.ladderSection}>
       <View style={styles.ladderSectionHeader}>
-        <Text style={styles.ladderSectionTitle}>Ladder levels</Text>
-        <Text style={styles.ladderSectionCaption}>{levels.length} options Hale can choose from</Text>
+        <Text style={styles.ladderSectionTitle}>{detail.listTitle}</Text>
+        <Text style={styles.ladderSectionCaption}>
+          {detail.showCurrentLevel
+            ? `${levels.length} options Hale can choose from`
+            : `${levels.length} movements available for practice`}
+        </Text>
       </View>
       <View style={styles.levelList}>
         {levels.map((level, index) => (

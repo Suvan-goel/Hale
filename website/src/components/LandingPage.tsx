@@ -63,11 +63,11 @@ function HeroSection({
       <div className="hero__overlay" />
       <div className="hero__inner">
         <div className="hero__copy">
-          <p className="eyebrow">Hale Movement Check-Up</p>
-          <h1 id="hero-title">Stay stronger, steadier and more mobile as you age.</h1>
+          <p className="eyebrow">A movement check-up at home</p>
+          <h1 id="hero-title">See how your body is doing, then train what needs attention.</h1>
           <p className="hero__body">{heroFocusCopy[focus]}</p>
           <p className="hero__beta">
-            Hale is currently in beta testing. Beta members receive a substantial discount compared with regular launch pricing.
+            Hale is in beta. Join now to try the check-up and home plan early.
           </p>
           {pricing.kind === 'configured' ? (
             <p className="hero__price">
@@ -77,7 +77,7 @@ function HeroSection({
           <div className="hero__actions">
             <StoreButtons links={storeLinks} ctaLocation="hero" fallbackLabel="Get beta access" />
             <a className="button button--secondary" href="#how-it-works">
-              See how it works
+              How it works
               <ArrowDown aria-hidden="true" size={18} />
             </a>
           </div>
@@ -99,9 +99,9 @@ function MethodSection() {
     <section id="how-it-works" className="section method-section" aria-labelledby="how-title">
       <div className="section-heading section-heading--center">
         <p className="eyebrow">How Hale works</p>
-        <h2 id="how-title">A calmer way to keep your body capable.</h2>
+        <h2 id="how-title">Check. Train. Re-check.</h2>
         <p>
-          Hale turns a short camera check-up into a focused four-week training block, then uses the next check-up to guide what comes next.
+          Start with a short Movement Check-Up. Hale turns the results into a home plan, then updates your plan after the next check-up.
         </p>
       </div>
       <div className="steps">
@@ -122,13 +122,13 @@ function AppScreensSection() {
     <section className="section app-screens-section" aria-labelledby="screens-title">
       <div className="section-heading section-heading--center">
         <p className="eyebrow">Inside the app</p>
-        <h2 id="screens-title">Actual Hale screens, built around a monthly rhythm.</h2>
-        <p>The experience stays simple: know what today asks of you, follow the current block, then re-test.</p>
+        <h2 id="screens-title">Know what to do today.</h2>
+        <p>Your plan, next session and progress stay in one place, without a complicated dashboard.</p>
       </div>
       <div className="app-screenshot-grid">
         <AppScreenshotPhone
           src={brandAssets.screenshots.progress}
-          alt="Hale Progress screen showing the current movement focus and next check-up timing."
+          alt="Hale Progress screen showing the current training area and next check-up timing."
           label="Progress"
         />
         <AppScreenshotPhone
@@ -176,9 +176,9 @@ function MeasurementSection() {
   return (
     <section id="measures" className="section section--soft" aria-labelledby="measures-title">
       <div className="section-heading">
-        <p className="eyebrow">What Hale measures</p>
-        <h2 id="measures-title">The domains that shape everyday confidence.</h2>
-        <p>Each check-up is designed around practical movement, not gym performance or medical diagnosis.</p>
+        <p className="eyebrow">What Hale checks</p>
+        <h2 id="measures-title">The abilities that make everyday movement easier.</h2>
+        <p>Hale looks at strength, balance and mobility because they affect stairs, walks, chairs, reaching and feeling steady.</p>
       </div>
       <div className="domain-grid">
         {measurementDomains.map((domain) => (
@@ -206,10 +206,10 @@ function TrainingSection() {
         />
       </div>
       <div>
-        <p className="eyebrow">Personalised home training</p>
-        <h2>One focused block at a time.</h2>
+        <p className="eyebrow">Home training</p>
+        <h2>Short sessions, chosen for you.</h2>
         <p className="section-lead">
-          Hale starts with measurement, then keeps training precise: simple sessions, voice guidance and home-friendly progressions.
+          Hale uses your check-up to choose where to start. Sessions are voice-guided, so you can prop up the phone and move without touching the screen.
         </p>
         <ul className="check-list">
           {trainingMessages.map((message) => (
@@ -236,10 +236,10 @@ function BetaAccessSection({
   return (
     <section id="beta-access" className="section beta-section" aria-labelledby="beta-title">
       <div className="beta-section__copy">
-        <p className="eyebrow">Beta access and pricing</p>
-        <h2 id="beta-title">Early access for people who want to stay ahead of ageing.</h2>
+        <p className="eyebrow">Try Hale in beta</p>
+        <h2 id="beta-title">Help shape a product built for real homes.</h2>
         <p className="section-lead">
-          Join during beta to receive early access, shape the product and keep preferential pricing compared with the regular launch price.
+          Beta members get early access, can share feedback and receive a substantial discount compared with the regular launch price.
         </p>
         <ul className="check-list">
           {betaTransparency.map((item) => (
@@ -272,7 +272,7 @@ function BetaAccessSection({
           </div>
         ) : (
           <p className="price-stack__unconfigured">
-            Beta members receive a substantial discount from the regular launch price. Final prices can be displayed here once configured.
+            Beta pricing is not shown yet. Members will see the beta offer before payment is collected.
           </p>
         )}
         <ul className="value-list">
@@ -291,10 +291,10 @@ function TrustSection() {
   return (
     <section id="privacy" className="section section--feature trust-section" aria-labelledby="trust-title">
       <div>
-        <p className="eyebrow">Privacy and trust</p>
-        <h2 id="trust-title">Built around measurement, not surveillance.</h2>
+        <p className="eyebrow">Privacy and safety</p>
+        <h2 id="trust-title">Camera guidance without a mirror.</h2>
         <p className="section-lead">
-          The camera is used as a measuring instrument during guided sessions. The experience stays calm, private and wellness-focused.
+          The camera is used only during guided sessions to measure movement. Hale keeps the experience calm, private and wellness-focused.
         </p>
         <div className="trust-grid">
           {trustDetails.map((detail) => (
@@ -305,7 +305,7 @@ function TrustSection() {
           ))}
         </div>
         <p className="disclaimer">
-          Hale is a general fitness and wellbeing product, not medical advice, a diagnosis, a treatment, or a medical device.
+          Hale is for general fitness and wellbeing. It is not medical advice, a diagnosis, a treatment or a medical device.
         </p>
       </div>
       <div className="feature-image trust-section__image">
@@ -326,7 +326,7 @@ function FAQSection() {
     <section id="faq" className="section" aria-labelledby="faq-title">
       <div className="section-heading section-heading--center">
         <p className="eyebrow">FAQ</p>
-        <h2 id="faq-title">A few practical questions.</h2>
+        <h2 id="faq-title">Common questions.</h2>
       </div>
       <FAQ items={faqs.slice(0, 4)} />
     </section>

@@ -30,7 +30,7 @@ export function ConsentBanner() {
       <div>
         <p className="consent__title">Privacy preferences</p>
         <p className="consent__body">
-          Hale can use privacy-friendly analytics to improve this beta page. Necessary beta signup functionality works either way.
+          Hale can use privacy-friendly analytics to improve this page. The beta signup form works either way.
         </p>
       </div>
       <div className="consent__actions">

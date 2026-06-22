@@ -9,6 +9,7 @@ import android.graphics.Matrix
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.os.Trace
 import android.util.Size
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
@@ -34,6 +35,17 @@ import java.util.concurrent.Executors
 
 private const val LANDMARK_COUNT = 33
 private const val LANDMARK_STRIDE = 5
+
+private data class PoseLatencyDiagnostics(
+  val frameId: Long,
+  val sourceTimestampMs: Double,
+  val preprocessingStartMs: Double,
+  val preprocessingEndMs: Double,
+  val mediapipeSubmitMs: Double,
+  val mediapipeCallbackMs: Double,
+  val nativePostprocessEndMs: Double = 0.0,
+  val nativeEventEmitMs: Double = 0.0,
+)
 
 /**
  * Owns CameraX + MediaPipe PoseLandmarker. No preview surface is ever
@@ -62,6 +74,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
   private var running = false
   private var attached = false
   private var lastTimestampMs = -1L
+  private var frameId = 0L
 
   // Props (defaults mirror the JS-side defaults).
   private var active = false
@@ -70,6 +83,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
   private var minDetectionConfidence = 0.35f
   private var minTrackingConfidence = 0.35f
   private var minPresenceConfidence = 0.35f
+  private var latencyDiagnosticsEnabled = false
 
   init {
     // bg-base (#F9F5EF) - keep in sync with the JS theme token (src/theme).
@@ -113,6 +127,10 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
     restartIfRunning()
   }
 
+  fun setLatencyDiagnosticsEnabledProp(value: Boolean) {
+    latencyDiagnosticsEnabled = value
+  }
+
   override fun onAttachedToWindow() {
     super.onAttachedToWindow()
     attached = true
@@ -147,6 +165,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
     }
     running = true
     lastTimestampMs = -1L
+    frameId = 0L
     val executor = Executors.newSingleThreadExecutor()
     analysisExecutor = executor
 
@@ -212,6 +231,10 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
       return
     }
     try {
+      val diagnosticsEnabled = latencyDiagnosticsEnabled
+      val diagnosticFrameId = if (diagnosticsEnabled) ++frameId else 0L
+      val preprocessingStartMs = if (diagnosticsEnabled) nativeNowMs() else 0.0
+      if (diagnosticsEnabled) Trace.beginSection("HalePose.preprocess")
       // Camera timestamps are boottime-monotonic; VIDEO mode requires
       // strictly increasing values.
       var timestampMs = imageProxy.imageInfo.timestamp / 1_000_000L
@@ -233,14 +256,32 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
       } else {
         raw
       }
+      val preprocessingEndMs = if (diagnosticsEnabled) nativeNowMs() else 0.0
+      if (diagnosticsEnabled) Trace.endSection()
 
       val mpImage = BitmapImageBuilder(bitmap).build()
+      val mediapipeSubmitMs = if (diagnosticsEnabled) nativeNowMs() else 0.0
+      if (diagnosticsEnabled) Trace.beginSection("HalePose.mediapipe")
       val start = SystemClock.elapsedRealtime()
       val result = landmarker.detectForVideo(mpImage, timestampMs)
       val inferenceMs = SystemClock.elapsedRealtime() - start
+      val mediapipeCallbackMs = if (diagnosticsEnabled) nativeNowMs() else 0.0
+      if (diagnosticsEnabled) Trace.endSection()
+      val diagnostics = if (diagnosticsEnabled) {
+        PoseLatencyDiagnostics(
+          frameId = diagnosticFrameId,
+          sourceTimestampMs = timestampMs.toDouble(),
+          preprocessingStartMs = preprocessingStartMs,
+          preprocessingEndMs = preprocessingEndMs,
+          mediapipeSubmitMs = mediapipeSubmitMs,
+          mediapipeCallbackMs = mediapipeCallbackMs,
+        )
+      } else {
+        null
+      }
 
       // Bitmap is now upright, so its dimensions are the upright source size.
-      dispatchResult(result, timestampMs, inferenceMs, bitmap.width, bitmap.height)
+      dispatchResult(result, timestampMs, inferenceMs, bitmap.width, bitmap.height, diagnostics)
     } catch (e: Exception) {
       imageProxy.close()
       mainHandler.post {
@@ -255,7 +296,9 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
     inferenceMs: Long,
     width: Int,
     height: Int,
+    diagnostics: PoseLatencyDiagnostics?,
   ) {
+    if (diagnostics != null) Trace.beginSection("HalePose.nativeResultConversion")
     val poses = result.landmarks()
     val flat: DoubleArray
     if (poses.isEmpty()) {
@@ -276,14 +319,41 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
         flat[base + 4] = (lm.presence().orElse(0f)).toDouble()
       }
     }
-    val payload = mapOf(
+    val nativePostprocessEndMs = if (diagnostics != null) nativeNowMs() else 0.0
+    if (diagnostics != null) Trace.endSection()
+    val latency = diagnostics?.copy(
+      nativePostprocessEndMs = nativePostprocessEndMs,
+      nativeEventEmitMs = nativeNowMs()
+    )
+    val payload = mutableMapOf<String, Any>(
       "timestampMs" to timestampMs.toDouble(),
       "landmarks" to flat,
       "inferenceMs" to inferenceMs.toDouble(),
       "sourceWidth" to width,
       "sourceHeight" to height,
     )
+    if (latency != null) {
+      val sourceAgeAtMediapipeSubmitMs = latency.mediapipeSubmitMs - latency.sourceTimestampMs
+      val sourceAgeAtMediapipeCallbackMs = latency.mediapipeCallbackMs - latency.sourceTimestampMs
+      val sourceAgeAtNativeEventEmitMs = latency.nativeEventEmitMs - latency.sourceTimestampMs
+      payload["latency"] = mapOf(
+        "frameId" to latency.frameId.toDouble(),
+        "nativeClock" to "android.elapsedRealtimeNanos",
+        "sourceTimestampMs" to latency.sourceTimestampMs,
+        "preprocessingStartMs" to latency.preprocessingStartMs,
+        "preprocessingEndMs" to latency.preprocessingEndMs,
+        "mediapipeSubmitMs" to latency.mediapipeSubmitMs,
+        "mediapipeCallbackMs" to latency.mediapipeCallbackMs,
+        "nativePostprocessEndMs" to latency.nativePostprocessEndMs,
+        "nativeEventEmitMs" to latency.nativeEventEmitMs,
+        "sourceAgeAtMediapipeSubmitMs" to sourceAgeAtMediapipeSubmitMs,
+        "sourceAgeAtMediapipeCallbackMs" to sourceAgeAtMediapipeCallbackMs,
+        "sourceAgeAtNativeEventEmitMs" to sourceAgeAtNativeEventEmitMs,
+      )
+    }
+    if (diagnostics != null) Trace.beginSection("HalePose.eventEmit")
     mainHandler.post { onLandmarks(payload) }
+    if (diagnostics != null) Trace.endSection()
   }
 
   private fun createLandmarker(): PoseLandmarker {
@@ -333,5 +403,9 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
       poseLandmarker = null
     }
     executor?.shutdown()
+  }
+
+  private fun nativeNowMs(): Double {
+    return SystemClock.elapsedRealtimeNanos() / 1_000_000.0
   }
 }

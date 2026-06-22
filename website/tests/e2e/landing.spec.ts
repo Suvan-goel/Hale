@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test';
 
 test('mobile visitor can understand beta and submit signup', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: /stay stronger, steadier and more mobile/i })).toBeVisible();
-  await expect(page.getByText(/currently in beta/i).first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: /see how your body is doing/i })).toBeVisible();
+  await expect(page.getByText(/hale is in beta/i).first()).toBeVisible();
   await expect(page.getByText(/substantial discount/i).first()).toBeVisible();
 
   await page.getByRole('link', { name: /get beta access/i }).first().click();

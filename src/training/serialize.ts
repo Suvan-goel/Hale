@@ -53,6 +53,12 @@ import {
   isPlannedMovementCapabilitySnapshot,
   type PlannedMovementCapabilitySnapshot,
 } from '../profile/movementCapabilities';
+import {
+  isPlannedProgressionPolicySnapshot,
+  type ProgressionPolicyDiagnosticCode,
+  type ProgressionPolicySelectionReason,
+} from '../exercises';
+import { isPlannedCollectionSelection } from './collectionSelection';
 
 export const TRAINING_SCHEMA_VERSION = 4;
 
@@ -206,6 +212,9 @@ const DAILY_REASON_CODES: DailyTrainingReasonCode[] = [
   'short_on_time',
   'reduced_readiness',
   'controlled_beta_release_cap',
+  'auto_progression_cap',
+  'non_linear_default',
+  'legacy_progression_policy_capped',
 ];
 const SLOT_TYPES: SessionSlotType[] = [
   'lower_body_strength',
@@ -254,6 +263,11 @@ function validLadderProgress(v: unknown): LadderProgress | null {
     lastTrackingQuality: isTrackingQuality(p.lastTrackingQuality) ? p.lastTrackingQuality : undefined,
     lastCompletedAt: typeof p.lastCompletedAt === 'string' ? p.lastCompletedAt : undefined,
     readyToProgress: typeof p.readyToProgress === 'boolean' ? p.readyToProgress : undefined,
+    transitionEvidenceKey: typeof p.transitionEvidenceKey === 'string' ? p.transitionEvidenceKey : undefined,
+    progressionPolicyFingerprint:
+      typeof p.progressionPolicyFingerprint === 'string' ? p.progressionPolicyFingerprint : undefined,
+    lastProgressionDecisionReason:
+      isProgressionDecisionReason(p.lastProgressionDecisionReason) ? p.lastProgressionDecisionReason : undefined,
     updatedAt: typeof p.updatedAt === 'string' ? p.updatedAt : new Date(0).toISOString(),
   };
 }
@@ -304,6 +318,7 @@ function validGeneratedSessionSummary(v: unknown): PersistedGeneratedSessionSumm
     durationMinutes: finiteNumber(s.durationMinutes),
     equipmentSnapshot: validPlannedEquipmentSnapshot(s.equipmentSnapshot),
     movementCapabilitySnapshot: validPlannedMovementCapabilitySnapshot(s.movementCapabilitySnapshot),
+    progressionPolicySnapshot: validPlannedProgressionPolicySnapshot(s.progressionPolicySnapshot),
     exercises: validGeneratedExerciseSummaries(s.exercises),
     feedback: validPostSessionFeedback(s.feedback) ?? undefined,
   };
@@ -370,6 +385,10 @@ function validPlannedMovementCapabilitySnapshot(v: unknown): PlannedMovementCapa
   return isPlannedMovementCapabilitySnapshot(v) ? v : undefined;
 }
 
+function validPlannedProgressionPolicySnapshot(v: unknown) {
+  return isPlannedProgressionPolicySnapshot(v) ? v : undefined;
+}
+
 function validGeneratedExerciseSummaries(v: unknown): PersistedGeneratedExerciseSummary[] | undefined {
   if (!Array.isArray(v)) return undefined;
   return v
@@ -377,6 +396,7 @@ function validGeneratedExerciseSummaries(v: unknown): PersistedGeneratedExercise
       if (!item || typeof item !== 'object') return null;
       const e = item as Partial<PersistedGeneratedExerciseSummary>;
       if (typeof e.exerciseId !== 'string') return null;
+      const progressionPolicyDiagnostics = validProgressionPolicyDiagnostics(e.progressionPolicyDiagnostics);
       return {
         exerciseId: e.exerciseId,
         ladderId: typeof e.ladderId === 'string' ? e.ladderId : undefined,
@@ -393,9 +413,15 @@ function validGeneratedExerciseSummaries(v: unknown): PersistedGeneratedExercise
         stimulusRole: isStimulusRole(e.stimulusRole) ? e.stimulusRole : undefined,
         stimulusReason: isStimulusReason(e.stimulusReason) ? e.stimulusReason : undefined,
         requestedLevelId: typeof e.requestedLevelId === 'string' ? e.requestedLevelId : undefined,
+        storedLevelId: typeof e.storedLevelId === 'string' ? e.storedLevelId : undefined,
         selectedDailyLevelId: typeof e.selectedDailyLevelId === 'string' ? e.selectedDailyLevelId : undefined,
+        progressionPolicySelectionReason: isProgressionPolicySelectionReason(e.progressionPolicySelectionReason)
+          ? e.progressionPolicySelectionReason
+          : undefined,
+        ...(progressionPolicyDiagnostics ? { progressionPolicyDiagnostics } : {}),
         doseBeforeAdjustment: validGeneratedExerciseDose(e.doseBeforeAdjustment),
         adjustmentReasons: validReasonCodes(e.adjustmentReasons),
+        collectionSelection: isPlannedCollectionSelection(e.collectionSelection) ? e.collectionSelection : undefined,
       };
     })
     .filter((item): item is PersistedGeneratedExerciseSummary => !!item);
@@ -488,6 +514,48 @@ function isStimulusReason(v: unknown): v is SlotStimulusReason {
     v === 'support_required' ||
     v === 'stair_support_required' ||
     v === 'movement_setup_required'
+  );
+}
+
+function isProgressionPolicySelectionReason(v: unknown): v is ProgressionPolicySelectionReason {
+  return (
+    v === 'stored_level' ||
+    v === 'release_cap' ||
+    v === 'auto_progression_cap' ||
+    v === 'non_linear_default' ||
+    v === 'explicit_template_member' ||
+    v === 'daily_regression'
+  );
+}
+
+function validProgressionPolicyDiagnostics(v: unknown): ProgressionPolicyDiagnosticCode[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  const out = v.filter(isProgressionPolicyDiagnosticCode);
+  return out.length > 0 ? Array.from(new Set(out)) : undefined;
+}
+
+function isProgressionPolicyDiagnosticCode(v: unknown): v is ProgressionPolicyDiagnosticCode {
+  return (
+    v === 'stored_level_invalid' ||
+    v === 'release_cap_applied' ||
+    v === 'auto_progression_cap_applied' ||
+    v === 'non_linear_default_selected' ||
+    v === 'legacy_progression_policy_capped' ||
+    v === 'daily_regression_applied'
+  );
+}
+
+function isProgressionDecisionReason(v: unknown): v is LadderProgress['lastProgressionDecisionReason'] {
+  return (
+    v === 'progression_allowed_transition' ||
+    v === 'transition_not_auto_approved' ||
+    v === 'non_linear_progression_model' ||
+    v === 'device_validation_required' ||
+    v === 'domain_review_required' ||
+    v === 'manual_only_transition' ||
+    v === 'auto_progression_cap_reached' ||
+    v === 'progression_maintained' ||
+    v === 'conservative_regression'
   );
 }
 

@@ -35,6 +35,8 @@ export const ClassicPoseRenderer = React.forwardRef<
     domainEmphasisEnabled = false,
     scanLineEnabled = false,
     measurementStateIntensity = 'off',
+    frameSource = 'display',
+    onRendererScheduleEvent,
   },
   ref
 ) {
@@ -47,12 +49,11 @@ export const ClassicPoseRenderer = React.forwardRef<
   React.useImperativeHandle(ref, () => ({
     update(output: PipelineFrameOutput, sourceAspect: number) {
       const { width, height } = sizeRef.current;
-      // Render the lighter-smoothed display frame for responsiveness.
-      const frame = output.displayFrame;
+      // Default to the lighter-smoothed display frame for production
+      // responsiveness, but allow raw landmarks for latency diagnostics.
+      const frame = frameSource === 'raw' ? output.rawFrame : output.displayFrame;
       const show =
-        frame.hasPose &&
-        width > 0 &&
-        (output.state === 'tracking' || output.state === 'warmup');
+        frame.hasPose && width > 0 && (output.state === 'tracking' || output.state === 'warmup');
 
       if (show) {
         const timing = markPoseAvatarUpdate(perf.current, frame.timestampMs, Date.now());
@@ -68,12 +69,20 @@ export const ClassicPoseRenderer = React.forwardRef<
           dim: scratch.current.dim,
           head: scratch.current.head,
         });
+        onRendererScheduleEvent?.({
+          type: 'published',
+          mode: 'classic',
+          frameTimestampMs: frame.timestampMs,
+          geometryMs: 0,
+          dotCount: 0,
+          lineCount: 0,
+        });
         maybeLogPoseAvatarPerformance(
           perf.current,
           {
             timestampMs: frame.timestampMs,
             mode: 'classic',
-            frameSource: 'display',
+            frameSource,
             dotCount: 0,
             lineCount: 0,
             geometryMs: 0,
@@ -132,7 +141,7 @@ export const ClassicPoseRenderer = React.forwardRef<
         };
       }}
     >
-      <Svg style={StyleSheet.absoluteFill}>
+      <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
         <Defs>
           <LinearGradient id="haleFigure" x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor={skeleton.figureTop} />

@@ -28,9 +28,9 @@ export function WelcomeScreen({
       ) : null}
 
       <ScreenHeader
-        eyebrow="First visit"
+        eyebrow="Welcome"
         title="Welcome to Hale"
-        subtitle="Start with a private Movement Check-Up, then get a 4-week plan shaped around your goal, comfort, and home setup."
+        subtitle="Hale starts by checking how you move today, then builds a simple 4-week plan you can do at home."
       />
 
       <View style={styles.heroImageCard}>
@@ -46,42 +46,39 @@ export function WelcomeScreen({
       <View style={styles.summaryPanel}>
         <View style={styles.summaryTopRow}>
           <Text style={styles.summaryKicker}>Movement Check-Up</Text>
-          <View style={styles.summaryBadge}>
-            <Text style={styles.summaryBadgeText}>Private</Text>
-          </View>
         </View>
-        <Text style={styles.summaryTitle}>A 10-minute baseline before your first plan.</Text>
+        <Text style={styles.summaryTitle}>Start with a 10-minute check-up.</Text>
         <Text style={styles.summaryBody}>
-          Hale uses a clean skeleton view to shape a 4-week starting block.
+          Hale checks a few everyday movements to understand your strength, balance, and mobility.
         </Text>
         <View style={styles.summaryFacts}>
-          <SummaryMetric value="10 min" detail="Time" />
-          <SummaryMetric value="Skeleton" detail="View" />
+          <SummaryMetric value="10 min" detail="Check-up" />
+          <SummaryMetric value="3 areas" detail="Measured" />
           <SummaryMetric value="4 weeks" detail="Plan" />
         </View>
       </View>
 
       <View style={styles.timelineCard}>
-        <SectionHeader title="Today’s protocol" note="Voice guided" />
+        <SectionHeader title="What happens today" note="Voice guided" />
         <TimelineStep
           index="01"
-          title="Goal and comfort"
-          body="Choose the everyday ability you care about and note anything that needs a gentler start."
+          title="Choose your goal"
+          body="Tell Hale what you want your body to keep helping you do."
         />
         <TimelineStep
           index="02"
-          title="Home setup"
-          body="Confirm your chair, support, lighting, and phone position before the camera opens."
+          title="Set up your space"
+          body="Check your chair, lighting, support, and phone position."
         />
         <TimelineStep
           index="03"
-          title="Movement Check-Up"
-          body="Complete chair stands, balance, shoulder reach, and hinge reach with audio cues."
+          title="Do the check-up"
+          body="Follow voice prompts for a few simple movements."
         />
         <TimelineStep
           index="04"
-          title="First training block"
-          body="Begin three calm sessions each week, with substitutions kept available."
+          title="Get your plan"
+          body="Hale uses your results to choose your first home sessions."
           isLast
         />
       </View>
@@ -89,34 +86,24 @@ export function WelcomeScreen({
       <View style={styles.prepPanel}>
         <SectionHeader title="Before you begin" note="Simple setup" />
         <View style={styles.prepList}>
-          <PrepItem icon="chair" label="Stable chair" body="Place a sturdy seat nearby for the check-up." />
+          <PrepItem icon="chair" label="Stable chair" body="Use a sturdy chair that will not slide." />
           <View style={styles.prepRule} />
-          <PrepItem icon="audio" label="Audio on" body="Hale will guide each step with calm voice cues." />
+          <PrepItem icon="audio" label="Audio on" body="Hale will talk you through each step." />
           <View style={styles.prepRule} />
-          <PrepItem icon="light" label="Clear light" body="Use a bright open spot where your full body is visible." />
+          <PrepItem icon="light" label="Clear light" body="Choose a bright spot where your whole body fits on screen." />
         </View>
       </View>
 
       <View style={styles.privacyPanel}>
         <View style={styles.privacyHeader}>
           <View style={styles.privacyHeaderCopy}>
-            <Text style={styles.privacyKicker}>Privacy standard</Text>
-            <Text style={styles.privacyTitle}>No mirror. No form judging.</Text>
+            <Text style={styles.privacyKicker}>Privacy</Text>
+            <Text style={styles.privacyTitle}>No mirror. No judging.</Text>
           </View>
         </View>
-        <Text style={styles.privacyIntro}>Hale keeps camera sessions calm, private, and measurement-led from the first check-up.</Text>
-        <View style={styles.privacyPoints}>
-          <PrivacyPoint
-            index="01"
-            title="Skeleton-only view"
-            body="You appear as a clean outline, never a self-view video feed."
-          />
-          <PrivacyPoint
-            index="02"
-            title="Results, not critique"
-            body="Feedback stays focused on measurements, progress, and next steps."
-          />
-        </View>
+        <Text style={styles.privacyIntro}>
+          Hale uses the camera only to measure your movement. You will not see a live video of yourself, and Hale will not criticize how you move.
+        </Text>
       </View>
 
       <View style={styles.actions}>
@@ -228,18 +215,6 @@ function PrepIcon({ name }: { name: 'chair' | 'audio' | 'light' }) {
   );
 }
 
-function PrivacyPoint({ index, title, body }: { index: string; title: string; body: string }) {
-  return (
-    <View style={styles.privacyPoint}>
-      <Text style={styles.privacyPointIndex}>{index}</Text>
-      <View style={styles.privacyPointCopy}>
-        <Text style={styles.privacyPointTitle}>{title}</Text>
-        <Text style={styles.privacyPointBody}>{body}</Text>
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   screen: {
     paddingTop: spacing.pageTop,
@@ -280,22 +255,6 @@ const styles = StyleSheet.create({
   summaryKicker: {
     ...type.label,
     color: colors.textSecondary,
-  },
-  summaryBadge: {
-    minHeight: 28,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.pill,
-    backgroundColor: colors.bgBase,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-  },
-  summaryBadgeText: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 13,
-    lineHeight: 16,
-    letterSpacing: 0,
-    color: colors.accentDeep,
   },
   summaryTitle: {
     fontFamily: fonts.serifMedium,
@@ -482,37 +441,6 @@ const styles = StyleSheet.create({
   },
   privacyIntro: {
     ...type.bodySmall,
-    color: colors.textSecondary,
-  },
-  privacyPoints: {
-    gap: spacing.md,
-  },
-  privacyPoint: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    paddingTop: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.divider,
-  },
-  privacyPointIndex: {
-    width: 34,
-    fontFamily: fonts.sansMedium,
-    fontSize: 12,
-    lineHeight: 18,
-    letterSpacing: 0,
-    color: colors.accentDeep,
-  },
-  privacyPointCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  privacyPointTitle: {
-    ...type.cardRowTitle,
-    color: colors.accentDeep,
-  },
-  privacyPointBody: {
-    ...type.caption,
     color: colors.textSecondary,
   },
   actions: {

@@ -9,7 +9,7 @@ import {
 } from '../adherence';
 import { CheckUp, findItem } from '../checkup/types';
 import type { StoredCheckUp } from '../history';
-import { getExerciseLadder } from '../exercises';
+import { getExerciseLadder, ladderPresentationForLadder } from '../exercises';
 import {
   BALANCE_LADDER_ID,
   CHAIR_STAND_ID,
@@ -68,7 +68,7 @@ export interface LadderProgressCard {
   ladderId: string;
   title: string;
   levelName: string;
-  status: 'Building' | 'Ready for next step' | 'Holding steady';
+  status: 'Building' | 'Ready for next step' | 'Holding steady' | 'Recently included' | 'Available in plan';
 }
 
 export interface BlockReportSummary {
@@ -165,11 +165,17 @@ export function getLadderProgressCards(
   return LADDER_ROWS.map((row) => {
     const item = progress[row.id];
     if (!item) return null;
+    const ladder = safeLadder(row.id);
+    const presentation = ladder ? ladderPresentationForLadder(ladder) : null;
     return {
       ladderId: row.id,
       title: row.title,
-      levelName: levelLabel(row.id, item.currentLevelId),
-      status: ladderStatus(item),
+      levelName: presentation?.showCurrentLevel === false
+        ? presentation.listTitle
+        : levelLabel(row.id, item.currentLevelId),
+      status: presentation?.showCurrentLevel === false
+        ? nonLinearStatus(item)
+        : ladderStatus(item),
     };
   }).filter((item): item is LadderProgressCard => !!item);
 }
@@ -504,11 +510,23 @@ function ladderStatus(progress: LadderProgress): LadderProgressCard['status'] {
   return 'Building';
 }
 
+function nonLinearStatus(progress: LadderProgress): LadderProgressCard['status'] {
+  return progress.lastCompletedAt ? 'Recently included' : 'Available in plan';
+}
+
 function levelLabel(ladderId: string, levelId: string): string {
   try {
     return getExerciseLadder(ladderId).levels.find((level) => level.id === levelId)?.name ?? 'Current level';
   } catch {
     return 'Current level';
+  }
+}
+
+function safeLadder(ladderId: string) {
+  try {
+    return getExerciseLadder(ladderId);
+  } catch {
+    return null;
   }
 }
 

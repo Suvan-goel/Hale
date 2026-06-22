@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { BetaSignupForm } from '@/components/BetaSignupForm';
 import { FAQ } from '@/components/FAQ';
 import { StoreButtons } from '@/components/StoreButtons';
-import { faqs } from '@/content/landing';
+import { faqs, trainingMessages, trustStrip } from '@/content/landing';
 
 describe('conversion components', () => {
   it('falls back to beta signup CTA when store links are missing', () => {
@@ -78,5 +78,19 @@ describe('conversion components', () => {
     expect(button).toHaveAttribute('aria-expanded', 'true');
     fireEvent.click(screen.getByRole('button', { name: /who is hale designed for/i }));
     expect(screen.getByRole('button', { name: /who is hale designed for/i })).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('keeps landing equipment positioning truthful for beta', () => {
+    const text = [
+      ...trainingMessages,
+      ...trustStrip.flatMap((item) => [item.title, item.body]),
+      ...faqs.flatMap((item) => [item.question, item.answer]),
+    ].join(' ');
+
+    expect(text).toMatch(/sturdy chair and a wall or counter/i);
+    expect(text).toMatch(/No specialist gym equipment is needed to begin/i);
+    expect(text).toMatch(/resistance band is recommended/i);
+    expect(text).toMatch(/required for pulling exercises/i);
+    expect(text).not.toMatch(/zero equipment|nothing but your phone|just your phone|only your phone|every workout needs no equipment/i);
   });
 });

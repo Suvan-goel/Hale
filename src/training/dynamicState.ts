@@ -24,6 +24,12 @@ import type {
 } from './dailyTrainingContext';
 import type { PlannedEquipmentSnapshot } from '../profile/equipment';
 import type { PlannedMovementCapabilitySnapshot } from '../profile/movementCapabilities';
+import type {
+  PlannedProgressionPolicySnapshot,
+  ProgressionPolicyDiagnosticCode,
+  ProgressionPolicySelectionReason,
+} from '../exercises';
+import type { PlannedCollectionSelection } from './collectionSelection';
 
 export type PersistedSessionSource = SessionSource | 'legacy';
 
@@ -40,9 +46,13 @@ export interface PersistedGeneratedExerciseSummary {
   stimulusRole?: SlotStimulusRole;
   stimulusReason?: SlotStimulusReason;
   requestedLevelId?: string;
+  storedLevelId?: string;
   selectedDailyLevelId?: string;
+  progressionPolicySelectionReason?: ProgressionPolicySelectionReason;
+  progressionPolicyDiagnostics?: readonly ProgressionPolicyDiagnosticCode[];
   doseBeforeAdjustment?: GeneratedExerciseDose;
   adjustmentReasons?: readonly DailyTrainingReasonCode[];
+  collectionSelection?: PlannedCollectionSelection;
 }
 
 export interface PersistedPostSessionFeedback {
@@ -82,6 +92,7 @@ export interface PersistedGeneratedSessionSummary {
   durationMinutes?: number;
   equipmentSnapshot?: PlannedEquipmentSnapshot;
   movementCapabilitySnapshot?: PlannedMovementCapabilitySnapshot;
+  progressionPolicySnapshot?: PlannedProgressionPolicySnapshot;
   exercises?: PersistedGeneratedExerciseSummary[];
   feedback?: PersistedPostSessionFeedback;
 }

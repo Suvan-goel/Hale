@@ -2,14 +2,19 @@ import {
   getExercise,
   getExerciseLadder,
   listExerciseLadders,
-  adjacentAvailableLevelId,
-  effectiveLevelForRelease,
+  controlledBetaProgressionPolicyFingerprint,
+  effectiveLevelIdForControlledBetaProgression,
   isExerciseLevelAvailableForRelease,
+  transitionEvidenceKeyFor,
+  transitionPolicyFor,
   type ExerciseDefinition,
   type ExerciseKind,
   type ExerciseLadder,
   type ExerciseLevel,
   type MeasurementTier,
+  type LadderTransitionPolicy,
+  type ProgressionPolicyDiagnosticCode,
+  type ProgressionPolicySelectionReason,
   type ReleaseStatus,
 } from '../exercises';
 import type { AvailableEquipment, MovementSafetyProfile } from '../adherence';
@@ -45,6 +50,12 @@ import {
   movementCapabilityBlockReasonsForLevel,
   movementCapabilitySupportsLevel,
 } from './movementCapabilitySafety';
+import {
+  plannedCollectionSelectionFromResult,
+  selectCollectionMember,
+  type CollectionExposure,
+  type PlannedCollectionSelection,
+} from './collectionSelection';
 
 export type TrainingDomain = 'strength_power' | 'balance_stability' | 'mobility_flexibility';
 export type SessionSource = 'block_generated' | 'preset' | 'manual';
@@ -148,8 +159,22 @@ export interface LadderProgress {
   lastTrackingQuality?: TrackingQuality;
   lastCompletedAt?: string;
   readyToProgress?: boolean;
+  transitionEvidenceKey?: string;
+  progressionPolicyFingerprint?: string;
+  lastProgressionDecisionReason?: ProgressionDecisionReason;
   updatedAt: string;
 }
+
+export type ProgressionDecisionReason =
+  | 'progression_allowed_transition'
+  | 'transition_not_auto_approved'
+  | 'non_linear_progression_model'
+  | 'device_validation_required'
+  | 'domain_review_required'
+  | 'manual_only_transition'
+  | 'auto_progression_cap_reached'
+  | 'progression_maintained'
+  | 'conservative_regression';
 
 export type TrackingQuality = 'good' | 'usable' | 'poor';
 
@@ -177,6 +202,7 @@ export interface GenerateSessionInput {
   movementCapabilities?: MovementSafetyProfile['movementCapabilities'] | NormalizedMovementCapabilityProfile | null;
   ladderProgress?: Record<string, LadderProgress>;
   recentSessions?: readonly RecentSessionSummary[];
+  collectionExposures?: readonly CollectionExposure[];
   scheduleSelection?: TemplateSelectionSchedule;
   source?: SessionSource;
   /** @deprecated Controlled beta ignores caller attempts to enable optional levels. */
@@ -213,9 +239,13 @@ export interface GeneratedExercise {
   substitutions?: readonly string[];
   safetyNotes?: readonly string[];
   requestedLevelId?: string;
+  storedLevelId?: string;
   selectedDailyLevelId?: string;
+  progressionPolicySelectionReason?: ProgressionPolicySelectionReason;
+  progressionPolicyDiagnostics?: readonly ProgressionPolicyDiagnosticCode[];
   doseBeforeAdjustment?: GeneratedExerciseDose;
   adjustmentReasons?: readonly DailyTrainingReasonCode[];
+  collectionSelection?: PlannedCollectionSelection;
 }
 
 export interface GeneratedExerciseDose {
@@ -580,6 +610,8 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
       sessionIntensity,
       ladderProgress: input.ladderProgress ?? {},
       usedExerciseIds,
+      collectionExposures: source === 'block_generated' ? input.collectionExposures ?? [] : [],
+      blockId: input.block?.id,
     });
     if (!selected) {
       const stimulus = skippedSlotStimulus(slot, equipment, movementCapabilities, painAreas);
@@ -676,16 +708,23 @@ export function updateLadderProgressAfterSession(
     const averageRpe = recentRpe.length > 0 ? mean(recentRpe) : NaN;
     const averageCompletion = mean(recentCompletionRates);
 
-    let currentLevelId =
-      effectiveLevelForRelease(getExerciseLadder(ladderId), progress.currentLevelId)?.selectedLevel.id ??
-      progress.currentLevelId;
-    let completedSessionsAtLevel = progress.completedSessionsAtLevel;
+    const ladder = getExerciseLadder(ladderId);
+    const linearModel = ladder.progressionModel === 'linear_progression';
+    const effective = linearModel
+      ? effectiveLevelIdForControlledBetaProgression({ ladder, storedLevelId: progress.currentLevelId })
+      : null;
+    let currentLevelId = effective?.effectiveLevelId ?? progress.currentLevelId;
+    let completedSessionsAtLevel = scopedCompletedSessions(progress);
     let failedSessionsAtLevel = progress.failedSessionsAtLevel;
     let readyToProgress = progress.readyToProgress;
+    let transitionEvidenceKey = progress.transitionEvidenceKey;
+    const progressionPolicyFingerprint = controlledBetaProgressionPolicyFingerprint();
+    let lastProgressionDecisionReason: ProgressionDecisionReason = 'progression_maintained';
 
     if (tracking === 'poor' || validTimeSignal === 'tracking_uncertain') {
       completedSessionsAtLevel = 0;
       readyToProgress = false;
+      transitionEvidenceKey = undefined;
     } else if (
       pain ||
       (Number.isFinite(averageRpe) && averageRpe >= 5) ||
@@ -696,26 +735,60 @@ export function updateLadderProgressAfterSession(
       completedSessionsAtLevel = 0;
       readyToProgress = false;
       if (pain || failedSessionsAtLevel >= 2 || averageCompletion < 0.6) {
-        currentLevelId = adjacentLevelId(ladderId, currentLevelId, -1);
+        const candidate = adjacentLevelId(ladder, currentLevelId, -1);
+        const transition = candidate !== currentLevelId
+          ? transitionPolicyFor(ladderId, currentLevelId, candidate, 'regression')
+          : null;
+        if (canApplyTransition(transition, 'regression')) {
+          currentLevelId = candidate;
+          lastProgressionDecisionReason = 'conservative_regression';
+        } else {
+          lastProgressionDecisionReason = transitionDecisionReason(ladder, transition, currentLevelId, candidate);
+        }
         failedSessionsAtLevel = 0;
       }
+      transitionEvidenceKey = undefined;
     } else if (validTimeSignal === 'completed_with_resets') {
       completedSessionsAtLevel = 0;
       failedSessionsAtLevel = 0;
       readyToProgress = false;
+      transitionEvidenceKey = undefined;
     } else if (completionRate >= 0.85 && (!Number.isFinite(averageRpe) || averageRpe <= 3)) {
-      completedSessionsAtLevel += 1;
-      failedSessionsAtLevel = 0;
-      if (completedSessionsAtLevel >= 2 && !recentPain.includes(true)) {
-        currentLevelId = adjacentLevelId(ladderId, currentLevelId, 1);
-        completedSessionsAtLevel = 0;
-        readyToProgress = false;
+      const candidate = adjacentLevelId(ladder, currentLevelId, 1);
+      const transition = candidate !== currentLevelId
+        ? transitionPolicyFor(ladderId, currentLevelId, candidate, 'forward')
+        : null;
+      const evidenceKey = transitionEvidenceKeyFor(transition);
+      const scopedCount =
+        evidenceKey &&
+        progress.transitionEvidenceKey === evidenceKey &&
+        progress.progressionPolicyFingerprint === progressionPolicyFingerprint
+          ? completedSessionsAtLevel
+          : 0;
+      if (canCountPositiveEvidence(transition, validTimeSignal)) {
+        completedSessionsAtLevel = scopedCount + 1;
+        failedSessionsAtLevel = 0;
+        transitionEvidenceKey = evidenceKey;
+        if (completedSessionsAtLevel >= transition.minimumCreditedExposures && !recentPain.includes(true)) {
+          currentLevelId = candidate;
+          completedSessionsAtLevel = 0;
+          readyToProgress = false;
+          transitionEvidenceKey = undefined;
+          lastProgressionDecisionReason = 'progression_allowed_transition';
+        } else {
+          readyToProgress = true;
+        }
       } else {
-        readyToProgress = true;
+        completedSessionsAtLevel = 0;
+        failedSessionsAtLevel = 0;
+        readyToProgress = false;
+        transitionEvidenceKey = undefined;
+        lastProgressionDecisionReason = transitionDecisionReason(ladder, transition, currentLevelId, candidate);
       }
     } else {
       readyToProgress = false;
       failedSessionsAtLevel = 0;
+      transitionEvidenceKey = undefined;
     }
 
     next[ladderId] = {
@@ -735,6 +808,9 @@ export function updateLadderProgressAfterSession(
       lastTrackingQuality: tracking,
       lastCompletedAt: completedAt,
       readyToProgress,
+      transitionEvidenceKey,
+      progressionPolicyFingerprint,
+      lastProgressionDecisionReason,
       updatedAt: completedAt,
     };
   }
@@ -908,6 +984,8 @@ interface SelectionInput {
   sessionIntensity: SessionIntensity;
   ladderProgress: Record<string, LadderProgress>;
   usedExerciseIds: Set<string>;
+  collectionExposures: readonly CollectionExposure[];
+  blockId?: string;
 }
 
 interface SelectedExercise {
@@ -916,7 +994,11 @@ interface SelectedExercise {
   def: ExerciseDefinition;
   substitutions: readonly string[];
   requestedLevelId?: string;
+  storedLevelId?: string;
+  progressionPolicySelectionReason?: ProgressionPolicySelectionReason;
+  progressionPolicyDiagnostics?: readonly ProgressionPolicyDiagnosticCode[];
   adjustmentReasons: readonly DailyTrainingReasonCode[];
+  collectionSelection?: PlannedCollectionSelection;
 }
 
 function selectExerciseForSlot(input: SelectionInput): SelectedExercise | null {
@@ -948,6 +1030,9 @@ function selectLevelFromLadder(
   ladder: ExerciseLadder,
   input: SelectionInput
 ): SelectedExercise | null {
+  if (ladder.progressionModel === 'collection') {
+    return selectCollectionLevelFromLadder(ladder, input);
+  }
   const progress = input.ladderProgress[ladder.id];
   const target = desiredLevelTarget(ladder, progress, input.readiness, input.sessionIntensity, input.dailyContext);
   const order = levelSearchOrder(
@@ -972,10 +1057,44 @@ function selectLevelFromLadder(
       def,
       substitutions,
       requestedLevelId: target.requestedLevelId,
+      storedLevelId: target.storedLevelId,
+      progressionPolicySelectionReason: target.selectionReason,
+      progressionPolicyDiagnostics: target.diagnostics,
       adjustmentReasons: target.reasons,
     };
   }
   return null;
+}
+
+function selectCollectionLevelFromLadder(
+  ladder: ExerciseLadder,
+  input: SelectionInput
+): SelectedExercise | null {
+  const result = selectCollectionMember({
+    collectionId: ladder.id,
+    blockId: input.blockId ?? input.collectionExposures[0]?.blockId ?? '',
+    exposures: input.collectionExposures,
+    availableEquipment: input.equipment,
+    movementCapabilities: input.movementCapabilities,
+    discomfortConstraint: input.discomfortConstraint,
+    alreadySelectedExerciseIds: input.usedExerciseIds,
+  });
+  if (!result.available) return null;
+  const level = ladder.levels.find((candidate) => candidate.id === result.selectedExerciseId);
+  if (!level) return null;
+  const def = safeExercise(level.id);
+  if (!def) return null;
+  return {
+    ladder,
+    level,
+    def,
+    substitutions: [],
+    requestedLevelId: result.selectedExerciseId,
+    storedLevelId: input.ladderProgress[ladder.id]?.currentLevelId,
+    progressionPolicySelectionReason: 'explicit_template_member',
+    adjustmentReasons: [],
+    collectionSelection: plannedCollectionSelectionFromResult(result),
+  };
 }
 
 function desiredLevelTarget(
@@ -984,19 +1103,35 @@ function desiredLevelTarget(
   readiness: DailyReadiness,
   sessionIntensity: SessionIntensity,
   dailyContext: NormalizedDailyTrainingContext
-): { requestedLevelId: string; selectedIndex: number; reasons: DailyTrainingReasonCode[]; releaseCapped: boolean } {
-  const desiredId = progress?.currentLevelId ?? ladder.defaultLevelId;
-  const releaseSelection = effectiveLevelForRelease(ladder, desiredId);
-  let idx = releaseSelection?.selectedIndex ?? Math.max(0, ladder.levels.findIndex((level) => level.id === ladder.defaultLevelId));
-  const requestedLevelId = releaseSelection?.requestedLevelId ?? ladder.levels[idx]?.id ?? ladder.defaultLevelId;
-  const reasons: DailyTrainingReasonCode[] = [];
-  if (releaseSelection?.releaseCapped) reasons.push('controlled_beta_release_cap');
-  if (sessionIntensity === 'beginner' && !progress && idx > 0) idx -= 1;
-  if ((readiness === 'low_energy' || readiness === 'something_hurts' || dailyContext.discomfortReported) && idx > 0) {
-    idx -= 1;
-    reasons.push(readiness === 'something_hurts' || dailyContext.discomfortReported ? 'discomfort_reported' : 'reduced_readiness');
-  }
-  return { requestedLevelId, selectedIndex: idx, reasons, releaseCapped: releaseSelection?.releaseCapped ?? false };
+): {
+  requestedLevelId: string;
+  selectedIndex: number;
+  reasons: DailyTrainingReasonCode[];
+  releaseCapped: boolean;
+  storedLevelId?: string;
+  selectionReason: ProgressionPolicySelectionReason;
+  diagnostics: readonly ProgressionPolicyDiagnosticCode[];
+} {
+  const dailyRegression =
+    (sessionIntensity === 'beginner' && !progress) ||
+    readiness === 'low_energy' ||
+    readiness === 'something_hurts' ||
+    dailyContext.discomfortReported;
+  const effective = effectiveLevelIdForControlledBetaProgression({
+    ladder,
+    storedLevelId: progress?.currentLevelId ?? ladder.defaultLevelId,
+    dailyRegression,
+  });
+  const reasons = reasonsForProgressionPolicyDiagnostics(effective.diagnostics, readiness, dailyContext);
+  return {
+    requestedLevelId: effective.requestedLevelId,
+    selectedIndex: effective.selectedIndex,
+    reasons,
+    releaseCapped: effective.diagnostics.includes('release_cap_applied'),
+    storedLevelId: effective.storedLevelId,
+    selectionReason: effective.selectionReason,
+    diagnostics: effective.diagnostics,
+  };
 }
 
 function canSearchHarderLevels(
@@ -1004,13 +1139,29 @@ function canSearchHarderLevels(
   dailyContext: NormalizedDailyTrainingContext,
   sessionIntensity: SessionIntensity
 ): boolean {
-  if (ladder.progressionModel !== 'linear_progression') return true;
+  if (ladder.progressionModel !== 'linear_progression') return false;
   return (
     dailyContext.inputStatus === 'valid' &&
     dailyContext.readiness === 'ready' &&
     !dailyContext.discomfortReported &&
     sessionIntensity !== 'beginner'
   );
+}
+
+function reasonsForProgressionPolicyDiagnostics(
+  diagnostics: readonly ProgressionPolicyDiagnosticCode[],
+  readiness: DailyReadiness,
+  dailyContext: NormalizedDailyTrainingContext
+): DailyTrainingReasonCode[] {
+  const reasons: DailyTrainingReasonCode[] = [];
+  if (diagnostics.includes('release_cap_applied')) reasons.push('controlled_beta_release_cap');
+  if (diagnostics.includes('auto_progression_cap_applied')) reasons.push('auto_progression_cap');
+  if (diagnostics.includes('non_linear_default_selected')) reasons.push('non_linear_default');
+  if (diagnostics.includes('legacy_progression_policy_capped')) reasons.push('legacy_progression_policy_capped');
+  if (diagnostics.includes('daily_regression_applied')) {
+    reasons.push(readiness === 'something_hurts' || dailyContext.discomfortReported ? 'discomfort_reported' : 'reduced_readiness');
+  }
+  return unique(reasons);
 }
 
 function levelSearchOrder(length: number, desiredIndex: number, allowHarder: boolean): number[] {
@@ -1170,9 +1321,15 @@ function toGeneratedExercise({
     substitutions: selected.substitutions,
     safetyNotes: safetyNotesFor(selected.level),
     requestedLevelId: selected.requestedLevelId,
+    storedLevelId: selected.storedLevelId,
     selectedDailyLevelId: selected.level.id,
+    progressionPolicySelectionReason: selected.progressionPolicySelectionReason,
+    ...(selected.progressionPolicyDiagnostics && selected.progressionPolicyDiagnostics.length > 0
+      ? { progressionPolicyDiagnostics: selected.progressionPolicyDiagnostics }
+      : {}),
     doseBeforeAdjustment,
     adjustmentReasons: unique(adjustmentReasons),
+    collectionSelection: selected.collectionSelection,
   };
 }
 
@@ -1504,7 +1661,7 @@ function existingOrInitialProgress(
   const ladder = getExerciseLadder(ladderId);
   return {
     ladderId,
-    currentLevelId: levelId ?? ladder.defaultLevelId,
+    currentLevelId: ladder.progressionModel === 'linear_progression' ? levelId ?? ladder.defaultLevelId : ladder.defaultLevelId,
     completedSessionsAtLevel: 0,
     failedSessionsAtLevel: 0,
     recentCompletionRates: [],
@@ -1514,9 +1671,64 @@ function existingOrInitialProgress(
   };
 }
 
-function adjacentLevelId(ladderId: string, currentLevelId: string, direction: -1 | 1): string {
-  const ladder = getExerciseLadder(ladderId);
-  return adjacentAvailableLevelId(ladder, currentLevelId, direction);
+function adjacentLevelId(ladder: ExerciseLadder, currentLevelId: string, direction: -1 | 1): string {
+  const start = Math.max(0, ladder.levels.findIndex((level) => level.id === currentLevelId));
+  if (direction > 0) {
+    for (let idx = start + 1; idx < ladder.levels.length; idx++) {
+      const candidate = ladder.levels[idx];
+      if (candidate && isExerciseLevelAvailableForRelease(candidate)) return candidate.id;
+    }
+  } else {
+    for (let idx = start - 1; idx >= 0; idx--) {
+      const candidate = ladder.levels[idx];
+      if (candidate && isExerciseLevelAvailableForRelease(candidate)) return candidate.id;
+    }
+  }
+  return currentLevelId;
+}
+
+function scopedCompletedSessions(progress: LadderProgress): number {
+  return progress.progressionPolicyFingerprint === controlledBetaProgressionPolicyFingerprint()
+    ? progress.completedSessionsAtLevel
+    : 0;
+}
+
+function canApplyTransition(
+  transition: LadderTransitionPolicy | null,
+  direction: 'forward' | 'regression'
+): transition is LadderTransitionPolicy {
+  if (!transition || transition.direction !== direction || !transition.controlledBetaAllowed) return false;
+  return transition.status === 'allowed_generic' || transition.status === 'allowed_strong_valid_time';
+}
+
+function canCountPositiveEvidence(
+  transition: LadderTransitionPolicy | null,
+  validTimeSignal: ValidTimeProgressionSummary['signal'] | 'not_applicable'
+): transition is LadderTransitionPolicy {
+  if (!canApplyTransition(transition, 'forward')) return false;
+  if (transition.requiredEvidence.includes('strong_valid_time')) return validTimeSignal === 'strong';
+  if (transition.requiredEvidence.includes('generic_easy_exposure')) {
+    return validTimeSignal !== 'completed_with_resets' &&
+      validTimeSignal !== 'incomplete' &&
+      validTimeSignal !== 'tracking_uncertain';
+  }
+  return true;
+}
+
+function transitionDecisionReason(
+  ladder: ExerciseLadder,
+  transition: LadderTransitionPolicy | null,
+  fromLevelId: string,
+  toLevelId: string
+): ProgressionDecisionReason {
+  if (ladder.progressionModel !== 'linear_progression') return 'non_linear_progression_model';
+  if (fromLevelId === toLevelId) return 'auto_progression_cap_reached';
+  if (!transition) return 'transition_not_auto_approved';
+  if (transition.status === 'blocked_non_linear_model') return 'non_linear_progression_model';
+  if (transition.status === 'blocked_pending_device_validation') return 'device_validation_required';
+  if (transition.status === 'blocked_pending_domain_review') return 'domain_review_required';
+  if (transition.status === 'blocked_manual_only') return 'manual_only_transition';
+  return 'transition_not_auto_approved';
 }
 
 function levelIndex(ladderId: string, currentLevelId: string): number {

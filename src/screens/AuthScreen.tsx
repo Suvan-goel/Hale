@@ -8,6 +8,7 @@ import { colors, fonts, spacing } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 
 const AUTH_HERO_IMAGE = require('../../assets/images/hale-auth-hero-generated.png');
+const AUTH_CARD_OVERLAP = spacing.huge + spacing.xxxl + spacing.sm;
 
 export function AuthScreen() {
   const responsive = useResponsiveLayout();
@@ -39,10 +40,10 @@ export function AuthScreen() {
               <Text style={[styles.wordmark, isCompactPhone && styles.wordmarkCompact]}>Hale</Text>
             </View>
             <View style={[styles.heroCopy, isCompactPhone && styles.heroCopyCompact]}>
-              <Text style={[styles.title, isCompactPhone && styles.titleCompact]}>Track your movement age over time</Text>
+              <Text style={[styles.title, isCompactPhone && styles.titleCompact]}>Age better, at home</Text>
               <View style={[styles.titleRule, isCompactPhone && styles.titleRuleCompact]} />
               <Text style={[styles.subtitle, isCompactPhone && styles.subtitleCompact]}>
-                Save each check-up, training block, and monthly retest so Hale can show what is improving and what needs attention next.
+                Hale helps you understand your strength, balance, and mobility, and then guides you through a simple plan to address your weakest areas.
               </Text>
             </View>
           </View>
@@ -100,11 +101,11 @@ const styles = StyleSheet.create({
   heroContent: {
     flex: 1,
     paddingTop: spacing.xxxl + spacing.sm,
-    paddingBottom: spacing.xl,
+    paddingBottom: AUTH_CARD_OVERLAP + spacing.xxl,
   },
   heroContentCompact: {
     paddingTop: spacing.xxxl + spacing.xs,
-    paddingBottom: spacing.lg,
+    paddingBottom: AUTH_CARD_OVERLAP + spacing.xl,
   },
   brandRow: {
     minHeight: 46,
@@ -167,9 +168,9 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   authWrap: {
-    marginTop: -(spacing.huge + spacing.xxxl + spacing.sm),
+    marginTop: -AUTH_CARD_OVERLAP,
   },
   authWrapCompact: {
-    marginTop: -(spacing.huge + spacing.xxxl + spacing.sm),
+    marginTop: -AUTH_CARD_OVERLAP,
   },
 });

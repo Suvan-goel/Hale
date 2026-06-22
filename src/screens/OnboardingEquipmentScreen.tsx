@@ -4,6 +4,7 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { AvailableEquipment } from '../adherence';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { PrimaryButton, Screen, ScreenHeader } from '../components/ui';
+import { controlledBetaEquipmentPositioning } from '../haleFlow';
 import type { EquipmentProfile } from '../training';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 
@@ -28,7 +29,7 @@ const CHECKUP_OPTIONS: readonly { id: OnboardingEquipmentId; label: string; note
 
 const TRAINING_OPTIONS: readonly { id: OnboardingEquipmentId; label: string; note: string }[] = [
   { id: 'stairs', label: 'Bottom stair', note: 'Adds simple step options later.' },
-  { id: 'resistance_band', label: 'Resistance band', note: 'Adds pulling and posture options.' },
+  { id: 'resistance_band', label: 'Resistance band', note: 'Recommended for fuller upper-body training.' },
   { id: 'door_anchor', label: 'Door anchor for band rows', note: 'Only needed for some band rows.' },
   { id: 'mini_band', label: 'Mini band', note: 'Adds hip and balance variations.' },
   { id: 'load', label: 'Backpack or light weight', note: 'Adds everyday carrying practice.' },
@@ -78,7 +79,7 @@ export function OnboardingEquipmentScreen({
       <ScreenHeader
         eyebrow="Home setup"
         title="What do you have nearby?"
-        subtitle="Hale starts with a chair and support, then adapts training options to the items you already have."
+        subtitle={controlledBetaEquipmentPositioning.startingSetup}
       />
 
       <View style={styles.heroImageCard}>
@@ -121,12 +122,12 @@ export function OnboardingEquipmentScreen({
 
       <View style={styles.reassuranceCard}>
         <View style={styles.reassuranceMark}>
-          <Text style={styles.reassuranceMarkText}>0</Text>
+          <Text style={styles.reassuranceMarkText}>H</Text>
         </View>
         <View style={styles.reassuranceCopy}>
-          <Text style={styles.reassuranceTitle}>No equipment is okay</Text>
+          <Text style={styles.reassuranceTitle}>{controlledBetaEquipmentPositioning.shortLabel}</Text>
           <Text style={styles.reassuranceBody}>
-            Every first block keeps a zero-equipment path. Missing items only change substitutions, so nothing here has to be perfect.
+            {controlledBetaEquipmentPositioning.noEquipmentClarification}
           </Text>
         </View>
       </View>

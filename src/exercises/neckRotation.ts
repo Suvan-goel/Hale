@@ -3,7 +3,7 @@
  * movement 2D pose can honestly grade: head yaw, estimated from nose/ear
  * geometry (CLAUDE.md). We capture the peak yaw MAGNITUDE (left/right turn)
  * over a fixed window via MaxRomTracker. Both ears must be visible, so this is
- * a front-view item. Zero equipment.
+ * a front-view item. No support item is required.
  */
 
 import { romGrader } from './common';

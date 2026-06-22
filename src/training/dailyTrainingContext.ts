@@ -51,7 +51,10 @@ export type DailyTrainingReasonCode =
   | 'legacy_context_cautious'
   | 'short_on_time'
   | 'reduced_readiness'
-  | 'controlled_beta_release_cap';
+  | 'controlled_beta_release_cap'
+  | 'auto_progression_cap'
+  | 'non_linear_default'
+  | 'legacy_progression_policy_capped';
 
 export type DiscomfortConstraintReason =
   | 'knee_conservative_beta'

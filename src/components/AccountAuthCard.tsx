@@ -59,10 +59,23 @@ export function AccountAuthCard({
   const [notice, setNotice] = React.useState<string | null>(null);
   const authError = localError ?? error;
   const isRequiredAuth = context === 'required';
-  const title = isPasswordRecovery ? 'Set a new password' : context === 'required' ? 'Account access' : 'Account';
+  const title = isPasswordRecovery
+    ? 'Set a new password'
+    : mode === 'forgot-password'
+      ? 'Reset your password'
+      : context === 'required'
+        ? 'Account access'
+        : 'Account';
   const showGoogleButton = Platform.OS === 'ios' || Platform.OS === 'android';
   const appleSignInEnabled = isAppleSignInEnabled();
   const showAppleButton = appleSignInEnabled && Platform.OS === 'ios' && appleAvailable;
+  const submitTitle = loading
+    ? mode === 'sign-up'
+      ? 'Creating account...'
+      : 'Signing in...'
+    : mode === 'sign-up'
+      ? 'Create account'
+      : 'Sign in';
 
   React.useEffect(() => {
     if (!appleSignInEnabled) return undefined;
@@ -90,6 +103,11 @@ export function AccountAuthCard({
 
   const submit = async () => {
     const trimmedEmail = email.trim();
+    const trimmedName = fullName.trim();
+    if (mode === 'sign-up' && !trimmedName) {
+      setLocalError('Enter the name you want Hale to use.');
+      return;
+    }
     if (!trimmedEmail || !password) {
       setLocalError('Enter an email and password.');
       return;
@@ -100,7 +118,7 @@ export function AccountAuthCard({
 
     try {
       const next = mode === 'sign-up'
-        ? await signUp(trimmedEmail, password, fullName)
+        ? await signUp(trimmedEmail, password, trimmedName)
         : await signIn(trimmedEmail, password);
 
       if (next.isSignedIn) {
@@ -357,13 +375,13 @@ export function AccountAuthCard({
           <View style={styles.requiredPrimaryStack}>
             {mode === 'sign-up' ? (
               <AuthInputField
-                label="Full name optional"
+                label="Name"
                 icon="account"
                 value={fullName}
                 onChangeText={setFullName}
-                placeholder="Your name"
+                placeholder="What should Hale call you?"
                 returnKeyType="next"
-                accessibilityLabel="Full name"
+                accessibilityLabel="Name"
               />
             ) : null}
             <AuthInputField
@@ -406,7 +424,7 @@ export function AccountAuthCard({
               </Pressable>
             ) : null}
             <Button
-              title={loading ? 'Working...' : mode === 'sign-up' ? 'Create account' : 'Sign in'}
+              title={submitTitle}
               onPress={submit}
               disabled={loading}
               accessibilityLabel={mode === 'sign-up' ? 'Create account' : 'Sign in'}
@@ -482,9 +500,11 @@ export function AccountAuthCard({
       >
         {isPasswordRecovery
           ? 'Choose a new password to finish restoring access to your Hale account.'
+          : mode === 'forgot-password'
+          ? 'Enter the email you use for Hale. We will send a link to choose a new password.'
           : isSignedIn
           ? ACCOUNT_SIGNED_IN_COPY
-          : 'Sign in or create an account to keep your progress saved.'}
+          : 'Sign in or create an account so Hale can save your check-ups, sessions, and progress.'}
       </Typography>
 
       {isPasswordRecovery ? (
@@ -604,7 +624,7 @@ export function AccountAuthCard({
         <View style={[styles.stack, isRequiredAuth && styles.requiredStack]}>
           {mode === 'forgot-password' ? (
             <Typography variant="bodySmall" color={colors.textSecondary}>
-              Enter your email and Hale will send a secure password reset link.
+              After you open the link, return to Hale and sign in with your new password.
             </Typography>
           ) : (
             <SegmentedTabs
@@ -643,12 +663,12 @@ export function AccountAuthCard({
           ) : null}
           {mode === 'sign-up' ? (
             <Input
-              label="Full name optional"
+              label="Name"
               value={fullName}
               onChangeText={setFullName}
-              placeholder="Your name"
+              placeholder="What should Hale call you?"
               returnKeyType="next"
-              accessibilityLabel="Full name"
+              accessibilityLabel="Name"
               containerStyle={styles.field}
             />
           ) : null}
@@ -682,15 +702,15 @@ export function AccountAuthCard({
           ) : null}
           {mode === 'forgot-password' ? (
             <Button
-              title={loading ? 'Sending...' : 'Send reset email'}
+              title={loading ? 'Sending reset link...' : 'Send reset link'}
               onPress={submitPasswordReset}
               disabled={loading}
-              accessibilityLabel="Send reset email"
+              accessibilityLabel="Send reset link"
               style={[styles.submitButton, isRequiredAuth && styles.requiredSubmitButton]}
             />
           ) : (
             <Button
-              title={loading ? 'Working...' : mode === 'sign-up' ? 'Create account' : 'Sign in'}
+              title={submitTitle}
               onPress={submit}
               disabled={loading}
               accessibilityLabel={mode === 'sign-up' ? 'Create account' : 'Sign in'}

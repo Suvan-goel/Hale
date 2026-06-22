@@ -1,5 +1,6 @@
 import {
   BALANCE_FEET_TOGETHER_ID,
+  STS_CUSHION_ID,
   STS_POWER_ID,
   STS_SLOW_ECC_ID,
   STS_STANDARD_ID,
@@ -85,10 +86,10 @@ describe('authoritative progression evidence', () => {
     expect(duplicate.nextState).toEqual(first.nextState);
   });
 
-  it('preserves the current easy-session decision behavior across distinct completions', () => {
+  it('progresses allowed cushion sit-to-stand evidence across distinct completions', () => {
     const b = block();
-    const plan = sessionPlan(b, singleExerciseSession());
-    const result = completedResult([STS_STANDARD_ID]);
+    const plan = sessionPlan(b, singleExerciseSession(STS_CUSHION_ID));
+    const result = completedResult([STS_CUSHION_ID]);
     const firstCompletion = creditedCompletion(b, plan, result);
     const secondCompletion = {
       ...firstCompletion,
@@ -119,7 +120,7 @@ describe('authoritative progression evidence', () => {
 
     expect(second.appliedEvents).toHaveLength(1);
     expect(second.nextState.appliedProgressionEventIds).toHaveLength(2);
-    expect(second.nextState.ladderProgressById['sit-to-stand'].currentLevelId).toBe(STS_SLOW_ECC_ID);
+    expect(second.nextState.ladderProgressById['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
     expect(second.decisions[0].decisionKind).toBe('progressed');
   });
 
@@ -168,6 +169,54 @@ describe('authoritative progression evidence', () => {
     expect(second.nextState.appliedProgressionEventIds).toHaveLength(2);
     expect(second.nextState.ladderProgressById['sit-to-stand']).toBeUndefined();
     expect(second.diagnostics).toEqual(expect.arrayContaining([expect.objectContaining({ reason: 'progression_held_by_policy' })]));
+  });
+
+  it('fails closed and preserves idempotency for stale progression policy evidence', () => {
+    const b = block();
+    const plan = sessionPlan(b, singleExerciseSession(STS_CUSHION_ID));
+    const snapshot = plan.metadata?.progressionPolicySnapshot;
+    if (!snapshot) throw new Error('expected progression policy snapshot');
+    const stalePlan: HaleSessionPlan = {
+      ...plan,
+      metadata: {
+        ...plan.metadata!,
+        progressionPolicySnapshot: {
+          ...snapshot,
+          policyFingerprint: 'stale-policy',
+          fingerprint: 'stale-plan',
+        },
+      },
+    };
+    const result = completedResult([STS_CUSHION_ID]);
+    const completion = creditedCompletion(b, stalePlan, result);
+
+    const applied = applyProgressionEvidenceFromSession({
+      state: defaultTrainingState(),
+      sessionPlan: stalePlan,
+      completion,
+      activeBlock: b,
+      sessionResult: result,
+      perceivedEffort: 2,
+      painReported: false,
+      trackingQuality: 'good',
+    });
+    const duplicate = applyProgressionEvidenceFromSession({
+      state: applied.nextState,
+      sessionPlan: stalePlan,
+      completion,
+      activeBlock: b,
+      sessionResult: result,
+      perceivedEffort: 2,
+      painReported: false,
+      trackingQuality: 'good',
+    });
+
+    expect(applied.appliedEvents).toHaveLength(1);
+    expect(applied.decisions[0]).toMatchObject({ decisionKind: 'held', afterLevelId: undefined });
+    expect(applied.nextState.ladderProgressById['sit-to-stand']).toBeUndefined();
+    expect(applied.diagnostics).toEqual(expect.arrayContaining([expect.objectContaining({ reason: 'stale_progression_policy' })]));
+    expect(duplicate.appliedEvents).toHaveLength(0);
+    expect(duplicate.skippedDuplicateEvents).toHaveLength(1);
   });
 
   it('allows hold-only evidence to apply conservative pain regression once', () => {
@@ -220,7 +269,7 @@ describe('authoritative progression evidence', () => {
       trackingQuality: 'good',
     });
 
-    expect(applied.nextState.ladderProgressById['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
+    expect(applied.nextState.ladderProgressById['sit-to-stand'].currentLevelId).toBe(STS_CUSHION_ID);
     expect(applied.nextState.appliedProgressionEventIds).toHaveLength(1);
     expect(duplicate.appliedEvents).toHaveLength(0);
     expect(duplicate.skippedDuplicateEvents).toHaveLength(1);
@@ -298,7 +347,7 @@ describe('authoritative progression evidence', () => {
     expect(applied.nextState.ladderProgressById['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
   });
 
-  it('records release cap reached instead of progressing into a hidden optional level', () => {
+  it('records automatic cap diagnostics instead of applying historical high-state adjacency', () => {
     const b = block();
     const plan = sessionPlan(b, generatedSession([generatedExercise({ exerciseId: STS_POWER_ID, role: 'primary' })]));
     const result = completedResult([STS_POWER_ID]);
@@ -331,9 +380,9 @@ describe('authoritative progression evidence', () => {
     });
 
     expect(applied.appliedEvents).toHaveLength(1);
-    expect(applied.nextState.ladderProgressById['sit-to-stand'].currentLevelId).toBe(STS_POWER_ID);
-    expect(applied.decisions[0]).toMatchObject({ decisionKind: 'held', afterLevelId: STS_POWER_ID });
-    expect(applied.diagnostics).toEqual(expect.arrayContaining([expect.objectContaining({ reason: 'release_cap_reached' })]));
+    expect(applied.nextState.ladderProgressById['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
+    expect(applied.decisions[0]).toMatchObject({ decisionKind: 'regressed', afterLevelId: STS_STANDARD_ID });
+    expect(applied.diagnostics).toEqual(expect.arrayContaining([expect.objectContaining({ reason: 'domain_review_required' })]));
   });
 
   it('fails closed for wrong-ladder metadata without blocking unrelated valid primary evidence', () => {
@@ -540,8 +589,8 @@ function completedResult(completedExerciseIds: readonly string[], skippedExercis
   };
 }
 
-function singleExerciseSession(): GeneratedSession {
-  return generatedSession([generatedExercise({ exerciseId: STS_STANDARD_ID, role: 'primary' })]);
+function singleExerciseSession(exerciseId = STS_STANDARD_ID): GeneratedSession {
+  return generatedSession([generatedExercise({ exerciseId, role: 'primary' })]);
 }
 
 function primaryPlusFallbackSameLadderSession(): GeneratedSession {

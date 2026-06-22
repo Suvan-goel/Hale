@@ -812,7 +812,7 @@ function TrainingProgressCard({
   const visible = cards.slice(0, 3);
   return (
     <Card style={styles.progressCard}>
-      <Text style={styles.sectionTitle}>Current levels</Text>
+      <Text style={styles.sectionTitle}>Current training movements</Text>
       <Text style={styles.sectionIntro}>Where Hale is meeting you in training right now.</Text>
       <View style={styles.levelRows}>
         {visible.map((card, index) => (
@@ -820,7 +820,7 @@ function TrainingProgressCard({
         ))}
       </View>
       {cards.length > visible.length ? (
-        <Text style={styles.moreHistory}>{cards.length - visible.length} more movement levels saved locally.</Text>
+        <Text style={styles.moreHistory}>{cards.length - visible.length} more movement groups saved locally.</Text>
       ) : null}
     </Card>
   );

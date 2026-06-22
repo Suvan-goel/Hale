@@ -20,6 +20,11 @@ import {
   SafePoseDetectionView,
 } from '../components/SafePoseDetectionView';
 import type { CameraAvailability } from '../components/SafePoseDetectionView';
+import { PoseLatencyDiagnosticsOverlay } from '../diagnostics/PoseLatencyDiagnosticsOverlay';
+import {
+  createPoseLatencyDiagnostics,
+  isPoseLatencyDiagnosticsEnabled,
+} from '../diagnostics/poseLatencyDiagnostics';
 import { CHAIN_COUNT } from '../pose/chains';
 import { PosePipeline } from '../pose/pipeline';
 import { PreflightCheck, PreflightPrompt } from '../preflight/preflight';
@@ -56,12 +61,21 @@ export function LiveSessionScreen() {
   });
   const [lastError, setLastError] = React.useState<string | null>(null);
   const [cameraAvailability, setCameraAvailability] = React.useState<CameraAvailability>('checking');
+  const poseLatencyDiagnostics = React.useMemo(
+    () =>
+      isPoseLatencyDiagnosticsEnabled()
+        ? createPoseLatencyDiagnostics({ mode: 'live' })
+        : null,
+    []
+  );
 
   const onLandmarks = React.useCallback(
     (e: { nativeEvent: LandmarksEventPayload }) => {
       const event = e.nativeEvent;
+      const latencyFrame = poseLatencyDiagnostics?.beginFrame(event) ?? null;
       recorder.record(event);
       const out = pipeline.process(event);
+      poseLatencyDiagnostics?.markJsTransformEnd(latencyFrame);
       const status = preflight.update(out);
       inferenceMsRef.current = event.inferenceMs;
 
@@ -86,8 +100,9 @@ export function LiveSessionScreen() {
         }
       }
       skeletonRef.current?.update(out, event.sourceWidth / event.sourceHeight);
+      poseLatencyDiagnostics?.markRendererUpdateSubmitted(latencyFrame);
     },
-    [pipeline, recorder, preflight]
+    [pipeline, poseLatencyDiagnostics, recorder, preflight]
   );
 
   const onPoseError = React.useCallback((e: { nativeEvent: PoseErrorEventPayload }) => {
@@ -109,6 +124,7 @@ export function LiveSessionScreen() {
       <SafePoseDetectionView
         active
         modelVariant="lite"
+        latencyDiagnosticsEnabled={poseLatencyDiagnostics !== null}
         style={StyleSheet.absoluteFill}
         onLandmarks={onLandmarks}
         onPoseError={onPoseError}
@@ -136,6 +152,7 @@ export function LiveSessionScreen() {
       )}
       <PreflightBanner prompt={prompt.key} sampleProgress={prompt.progress} />
       <DevOverlay snapshot={snapshot} onToggleRecording={onToggleRecording} />
+      <PoseLatencyDiagnosticsOverlay diagnostics={poseLatencyDiagnostics} />
       {lastError !== null && __DEV__ && (
         <Text style={styles.error} numberOfLines={2}>
           {lastError}

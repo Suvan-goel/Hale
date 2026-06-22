@@ -119,6 +119,18 @@ describe('V1 ladder catalogue', () => {
       progressionModel: 'linear_progression',
       stimulusKind: 'static_balance',
     });
+    expect(ladders.find((ladder) => ladder.id === 'heel-toe-raise')).toMatchObject({
+      progressionModel: 'supporting_set',
+      stimulusKind: 'ankle_strength',
+    });
+    expect(ladders.find((ladder) => ladder.id === 'pull-upper-back')).toMatchObject({
+      progressionModel: 'supporting_set',
+      stimulusKind: 'upper_pull',
+    });
+    expect(ladders.find((ladder) => ladder.id === 'hinge-glutes')).toMatchObject({
+      progressionModel: 'supporting_set',
+      stimulusKind: 'posterior_chain_strength',
+    });
     expect(ladders.find((ladder) => ladder.id === 'lateral-stability')).toMatchObject({
       progressionModel: 'supporting_set',
       stimulusKind: 'dynamic_balance',
@@ -127,7 +139,6 @@ describe('V1 ladder catalogue', () => {
       progressionModel: 'collection',
       stimulusKind: 'mobility_collection',
     });
-    expect(ladders.find((ladder) => ladder.id === 'pull-upper-back')?.stimulusKind).toBe('upper_pull');
   });
 
   it('keeps safety-critical ladder equipment aligned with registered definitions', () => {

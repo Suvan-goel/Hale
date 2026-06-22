@@ -152,6 +152,38 @@ describe('exploreViewModel', () => {
     expect(detail?.currentLevel.measurementNote).toContain('Broad rotation');
   });
 
+  it('does not present supporting sets or collections as ranked next levels', () => {
+    const shoulder = getMovementLadderDetail('shoulder-reach-press', {
+      'shoulder-reach-press': {
+        ladderId: 'shoulder-reach-press',
+        currentLevelId: 'overhead-press-band',
+        completedSessionsAtLevel: 0,
+        failedSessionsAtLevel: 0,
+        recentCompletionRates: [],
+        recentRpe: [],
+        recentPain: [],
+        updatedAt: START,
+      },
+    });
+    const mobility = getMovementLadderDetail('mobility-flexibility', {
+      'mobility-flexibility': {
+        ladderId: 'mobility-flexibility',
+        currentLevelId: 'thoracic-rotation',
+        completedSessionsAtLevel: 0,
+        failedSessionsAtLevel: 0,
+        recentCompletionRates: [],
+        recentRpe: [],
+        recentPain: [],
+        updatedAt: START,
+      },
+    });
+
+    expect(shoulder?.currentLevelLabel).toBe('Movements in this set');
+    expect(shoulder?.harderLevel).toBeUndefined();
+    expect(mobility?.currentLevelLabel).toBe('Varied across your block');
+    expect(mobility?.harderLevel).toBeUndefined();
+  });
+
   it('caps restored optional progress in Explore cards and ladder detail', () => {
     const ladderProgressById = {
       'sit-to-stand': {
@@ -188,11 +220,12 @@ describe('exploreViewModel', () => {
       },
     });
 
-    expect(cards.find((card) => card.id === 'sit-to-stand')?.currentLevelName).toBe('Power Sit-to-Stand');
-    expect(sitToStand?.currentLevel.id).toBe('sts-power');
+    expect(cards.find((card) => card.id === 'sit-to-stand')?.currentLevelName).toBe('Sit-to-Stand');
+    expect(sitToStand?.currentLevel.id).toBe('sts-standard');
     expect(sitToStand?.harderLevel).toBeUndefined();
     expect(sitToStand?.levels.map((level) => level.id)).not.toContain('loaded-sit-to-stand');
-    expect(push?.currentLevel.id).toBe('push-up-incline');
+    expect(push?.currentLevel.id).toBe('push-up-wall');
+    expect(push?.harderLevel).toBeUndefined();
     expect(push?.levels.map((level) => level.id)).not.toContain('push-up-standard');
   });
 
@@ -248,10 +281,12 @@ describe('exploreViewModel', () => {
       },
     });
 
-    expect(withoutFloor?.currentLevel.id).toBe('hip-hinge-free');
+    expect(withoutFloor?.currentLevel.id).toBe('hip-hinge-wall');
     expect(withoutFloor?.currentLevel.equipmentLabel).not.toContain('floor');
-    expect(withFloor?.currentLevel.id).toBe('glute-bridge-hold');
-    expect(withFloor?.currentLevel.equipmentLabel).toBe('floor space');
+    expect(withoutFloor?.harderLevel).toBeUndefined();
+    expect(withFloor?.currentLevel.id).toBe('hip-hinge-wall');
+    expect(withFloor?.currentLevel.equipmentLabel).toBe('wall or counter support');
+    expect(withFloor?.harderLevel).toBeUndefined();
   });
 
   it('keeps standing band rows behind explicit door-anchor availability', () => {
@@ -291,8 +326,9 @@ describe('exploreViewModel', () => {
 
     expect(withoutAnchor?.currentLevel.id).toBe('seated-band-row');
     expect(withoutAnchor?.currentLevel.equipmentLabel).not.toContain('door anchor');
-    expect(withAnchor?.currentLevel.id).toBe('standing-band-row');
-    expect(withAnchor?.currentLevel.equipmentLabel).toContain('door anchor');
+    expect(withAnchor?.currentLevel.id).toBe('seated-band-row');
+    expect(withAnchor?.currentLevel.equipmentLabel).toContain('resistance band');
+    expect(withAnchor?.harderLevel).toBeUndefined();
   });
 
   it('provides bundled learn cards with clean product language', () => {

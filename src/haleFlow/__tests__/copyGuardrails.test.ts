@@ -5,6 +5,7 @@ import {
   getMicroCheckCopy,
   getNextBestActionCopy,
 } from '../copy';
+import { controlledBetaEquipmentPositioning } from '../equipmentPositioning';
 import {
   getTodayPrimaryAction,
   type HaleLifecycleState,
@@ -29,6 +30,9 @@ import type { HaleUserFlowState } from '../types';
 
 const BANNED_USER_COPY =
   /diagnosis|treatment|fall risk|frailty|failed|skipped workout|lost streak|medical-grade|poor score|medical diagnosis|camera measured|typical of age|typical ages|movement age|main opportunity|best place to focus|protects progress|protect your progress|protected your progress|progress protected|improved|held steady|declined/i;
+
+const MISLEADING_EQUIPMENT_COPY =
+  /no equipment needed|zero equipment|nothing but your phone|just your phone|only your phone|complete programme with only your phone|every workout needs no equipment|full-body strength without equipment|resistance band is never needed/i;
 
 const RESULT_COPY_FILES = [
   'src/screens/ResultsScreen.tsx',
@@ -175,5 +179,51 @@ describe('Hale V1 copy guardrails', () => {
     const appText = productionSourceText('App.tsx');
     expect(appText).toContain('Camera access lets Hale estimate your movement');
     expect(appText).not.toContain('Camera access is needed to measure your movement.');
+  });
+
+  it('keeps app equipment positioning centralized and truthful', () => {
+    expect(controlledBetaEquipmentPositioning).toMatchObject({
+      shortLabel: 'Minimal household setup',
+      startingSetup: 'Start with a sturdy chair and a wall or counter for support.',
+      specialistEquipment: 'No specialist gym equipment is needed to begin.',
+    });
+    expect(controlledBetaEquipmentPositioning.bandRecommendation).toMatch(/required for pulling exercises/i);
+    expect(controlledBetaEquipmentPositioning.optionalSetup).toMatch(/only when you confirm/i);
+
+    const source = [
+      productionSourceText('src/screens/OnboardingEquipmentScreen.tsx'),
+      productionSourceText('src/screens/SettingsScreen.tsx'),
+      productionSourceText('src/screens/SessionPreviewScreen.tsx'),
+      productionSourceText('src/screens/TodayScreen.tsx'),
+      ...Object.values(controlledBetaEquipmentPositioning),
+    ].join(' ');
+    expect(source).toMatch(/sturdy chair and a wall or counter/i);
+    expect(source).toMatch(/resistance band is recommended/i);
+    expect(source).not.toMatch(MISLEADING_EQUIPMENT_COPY);
+  });
+
+  it('keeps supporting sets and the mobility collection out of ranked level copy', () => {
+    const mobility = getMovementLadderDetail('mobility-flexibility');
+    const shoulder = getMovementLadderDetail('shoulder-reach-press');
+    const linear = getMovementLadderDetail('sit-to-stand');
+
+    expect(mobility).toMatchObject({
+      showCurrentLevel: false,
+      presentationMode: 'collection',
+      currentLevelName: 'Mobility movements',
+    });
+    expect(mobility?.currentLevelLabel).not.toMatch(/Level|current level|harder|easier/i);
+    expect(mobility?.levels.map((level) => level.levelLabel)).toEqual(['Mobility movement', 'Mobility movement', 'Mobility movement', 'Mobility movement']);
+    expect(mobility?.levels.map((level) => level.name)).not.toContain('Neck Rotations');
+
+    expect(shoulder).toMatchObject({
+      showCurrentLevel: false,
+      presentationMode: 'movement_set',
+      harderLevel: undefined,
+      easierLevel: undefined,
+    });
+    expect(shoulder?.levels.map((level) => level.levelLabel)).toEqual(['Movement', 'Movement']);
+    expect(linear).toMatchObject({ showCurrentLevel: true, presentationMode: 'levels' });
+    expect(linear?.currentLevelLabel).toMatch(/Level/i);
   });
 });

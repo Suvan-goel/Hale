@@ -31,6 +31,11 @@ import {
   SafePoseDetectionView,
 } from '../components/SafePoseDetectionView';
 import type { CameraAvailability } from '../components/SafePoseDetectionView';
+import { PoseLatencyDiagnosticsOverlay } from '../diagnostics/PoseLatencyDiagnosticsOverlay';
+import {
+  createPoseLatencyDiagnostics,
+  isPoseLatencyDiagnosticsEnabled,
+} from '../diagnostics/poseLatencyDiagnostics';
 import { PosePipeline } from '../pose/pipeline';
 import { PreflightCheck, PreflightPrompt } from '../preflight/preflight';
 import { SETUP_HELP_TIPS } from '../preflight/setupCopy';
@@ -142,6 +147,13 @@ export function MicroCheckScreen({
   const [discardModalVisible, setDiscardModalVisible] = React.useState(false);
   const [cameraAvailability, setCameraAvailability] = React.useState<CameraAvailability>('checking');
   const windowSize = useWindowDimensions();
+  const poseLatencyDiagnostics = React.useMemo(
+    () =>
+      isPoseLatencyDiagnosticsEnabled()
+        ? createPoseLatencyDiagnostics({ mode: 'micro-check' })
+        : null,
+    []
+  );
 
   React.useEffect(() => {
     if (__DEV__) recorder.start();
@@ -155,9 +167,11 @@ export function MicroCheckScreen({
   const onLandmarks = React.useCallback(
     (e: { nativeEvent: LandmarksEventPayload }) => {
       const event = e.nativeEvent;
+      const latencyFrame = poseLatencyDiagnostics?.beginFrame(event) ?? null;
       lastFrameTimestampRef.current = event.timestampMs;
       if (__DEV__) recorder.record(event);
       const out = pipeline.process(event);
+      poseLatencyDiagnostics?.markJsTransformEnd(latencyFrame);
       const sourceAspect = event.sourceWidth / event.sourceHeight;
 
       if (resumePendingRef.current) {
@@ -166,6 +180,7 @@ export function MicroCheckScreen({
       }
       if (pausedRef.current) {
         skeletonRef.current?.update(out, sourceAspect);
+        poseLatencyDiagnostics?.markRendererUpdateSubmitted(latencyFrame);
         return;
       }
 
@@ -194,8 +209,9 @@ export function MicroCheckScreen({
         setSnapshot((prev) => (sameSnapshot(prev, next) ? prev : next));
       }
       skeletonRef.current?.update(out, sourceAspect);
+      poseLatencyDiagnostics?.markRendererUpdateSubmitted(latencyFrame);
     },
-    [pipeline, runner, voice, sfx, recorder, onComplete]
+    [pipeline, poseLatencyDiagnostics, runner, voice, sfx, recorder, onComplete]
   );
 
   const onPoseError = React.useCallback((e: { nativeEvent: PoseErrorEventPayload }) => {
@@ -288,6 +304,7 @@ export function MicroCheckScreen({
       <SafePoseDetectionView
         active={!metricDebug}
         modelVariant="lite"
+        latencyDiagnosticsEnabled={poseLatencyDiagnostics !== null}
         style={StyleSheet.absoluteFill}
         onLandmarks={onLandmarks}
         onPoseError={onPoseError}
@@ -385,6 +402,7 @@ export function MicroCheckScreen({
         onKeep={keepMicroCheck}
         onDiscard={discardMicroCheck}
       />
+      <PoseLatencyDiagnosticsOverlay diagnostics={poseLatencyDiagnostics} />
     </View>
   );
 }

@@ -20,6 +20,7 @@ export default function PoseDetectionView(props: PoseDetectionViewProps) {
       minDetectionConfidence={props.minDetectionConfidence ?? 0.35}
       minTrackingConfidence={props.minTrackingConfidence ?? 0.35}
       minPresenceConfidence={props.minPresenceConfidence ?? 0.35}
+      latencyDiagnosticsEnabled={props.latencyDiagnosticsEnabled ?? false}
       onLandmarks={props.onLandmarks}
       onCameraReady={props.onCameraReady}
       onPoseError={props.onPoseError}

@@ -1,8 +1,5 @@
 import type { PipelineFrameOutput } from '../pose/pipeline';
-import type {
-  ConfidenceAnimationStrength,
-  PoseAvatarRecognitionEvent,
-} from './confidenceVisuals';
+import type { ConfidenceAnimationStrength, PoseAvatarRecognitionEvent } from './confidenceVisuals';
 import type { PointCloudBodyDensity, PointCloudBodyPart } from './pointCloudBodyGeometry';
 
 export type PoseAvatarRendererMode = 'classic' | 'constellation' | 'point_cloud_body';
@@ -35,6 +32,22 @@ export type PoseAvatarMeasurementStateIntensity = 'off' | 'subtle' | 'medium';
 export interface PoseAvatarRendererHandle {
   /** Feed one pipeline output frame. Safe to call at full frame rate. */
   update(output: PipelineFrameOutput, sourceAspect: number): void;
+}
+
+export type PoseAvatarRendererScheduleEventType =
+  | 'scheduled'
+  | 'coalesced'
+  | 'rejected'
+  | 'published'
+  | 'cancelled';
+
+export interface PoseAvatarRendererScheduleEvent {
+  type: PoseAvatarRendererScheduleEventType;
+  mode: PoseAvatarRendererMode;
+  frameTimestampMs: number | null;
+  geometryMs?: number;
+  dotCount?: number;
+  lineCount?: number;
 }
 
 export interface PoseAvatarRendererProps {
@@ -90,4 +103,5 @@ export interface PoseAvatarRendererProps {
   frameSource?: PoseAvatarFrameSource;
   lowLatencyMode?: boolean;
   debug?: boolean;
+  onRendererScheduleEvent?: (event: PoseAvatarRendererScheduleEvent) => void;
 }

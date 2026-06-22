@@ -16,16 +16,23 @@ import {
   getExercise,
   getExerciseLadder,
   hasExercise,
-  effectiveLevelForRelease,
   exerciseLevelAvailability,
+  effectiveLevelIdForControlledBetaProgression,
   isPlannedTrainingReleasePolicySnapshot,
   plannedTrainingReleasePolicySnapshotForExercises,
+  plannedProgressionPolicySnapshotForExercises,
   releasePolicyFingerprint,
   resolveExerciseLevel,
+  validateProgressionPolicySnapshotForExercises,
   type ExerciseDefinition,
   type ExerciseLadder,
   type ExerciseLevel,
+  type PlannedProgressionPolicySnapshot,
   type PlannedTrainingReleasePolicySnapshot,
+  type ProgressionPolicyDiagnosticCode,
+  type ProgressionPolicyExerciseSnapshotInput,
+  type ProgressionPolicySelectionReason,
+  type ProgressionPolicySnapshotValidation,
   type ReleasePolicyExerciseSnapshotInput,
 } from '../exercises';
 import type { HaleLifecycleState } from './appLifecycle';
@@ -55,6 +62,7 @@ import {
   discomfortConstraintForContext,
   isExerciseExcludedByDiscomfort,
   normalizeDailyTrainingContext,
+  type DailyTrainingReasonCode,
   type DailyTrainingContextSource,
   type ProgressionEvidencePolicy,
 } from '../training/dailyTrainingContext';
@@ -81,6 +89,11 @@ import {
   type TrainingBlock as DynamicTrainingBlock,
   type TrainingDomain,
 } from '../training/workoutGeneration';
+import {
+  MOBILITY_COLLECTION_ID,
+  collectionExposuresFromGeneratedSessionSummaries,
+  isPlannedCollectionSelection,
+} from '../training/collectionSelection';
 import {
   getBlockScheduleState,
   scheduleRecentSessionsForGeneration,
@@ -171,6 +184,12 @@ export type GenerationUnavailableReason =
   | 'exercise_level_not_available_in_controlled_beta'
   | 'missing_release_policy_snapshot'
   | 'unsupported_release_channel'
+  | 'missing_progression_policy_snapshot'
+  | 'unsupported_progression_policy_schema'
+  | 'stale_progression_policy'
+  | 'effective_progression_level_mismatch'
+  | 'auto_progression_ceiling_exceeded'
+  | 'non_linear_progression_selection_invalid'
   | 'legacy_plan_requires_refresh';
 
 export type GenerationRecoveryAction =
@@ -209,6 +228,12 @@ export type GeneratedSessionIssueCode =
   | 'exercise_level_not_available_in_controlled_beta'
   | 'missing_release_policy_snapshot'
   | 'unsupported_release_channel'
+  | 'missing_progression_policy_snapshot'
+  | 'unsupported_progression_policy_schema'
+  | 'stale_progression_policy'
+  | 'effective_progression_level_mismatch'
+  | 'auto_progression_ceiling_exceeded'
+  | 'non_linear_progression_selection_invalid'
   | 'missing_slot_stimulus'
   | 'equipment_profile_unknown';
 
@@ -415,6 +440,7 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         painAreas,
         ladderProgress: input.ladderProgress ?? input.training?.ladderProgressById ?? {},
         recentSessions: recentSessionsFor(input, schedule),
+        collectionExposures: collectionExposuresForPlanning(input, activeBlock.id),
         scheduleSelection: schedule ? templateSelectionSchedule(schedule) : undefined,
         today: plannedFor,
         source: input.source,
@@ -660,14 +686,15 @@ export function planLadderPracticeSessionResult(input: PlanLadderPracticeSession
     });
   }
   const progress = (input.ladderProgress ?? input.training?.ladderProgressById ?? {})[ladder.id];
-  const releaseSelection = effectiveLevelForRelease(
+  const progressionSelection = effectiveLevelIdForControlledBetaProgression({
     ladder,
-    input.requestedLevelId ?? progress?.currentLevelId ?? ladder.defaultLevelId
-  );
-  const preferred = releaseSelection?.selectedLevel ??
+    storedLevelId: progress?.currentLevelId ?? ladder.defaultLevelId,
+    explicitLevelId: input.requestedLevelId,
+  });
+  const preferred = progressionSelection.selectedLevel ??
     betaLevels.find((level) => level.id === ladder.defaultLevelId) ??
     betaLevels[0];
-  const adjustmentReasons = releaseSelection?.releaseCapped ? ['controlled_beta_release_cap' as const] : undefined;
+  const adjustmentReasons = progressionPolicyAdjustmentReasons(progressionSelection.diagnostics);
   const canonical = canonicalEquipmentForPlanning(input);
   if (canonical.canonical.status !== 'confirmed') {
     return unavailablePlanningResult({
@@ -746,8 +773,19 @@ export function planLadderPracticeSessionResult(input: PlanLadderPracticeSession
           exercise,
           ladderId: ladder.id,
           level,
-          requestedLevelId: releaseSelection?.requestedLevelId,
+          requestedLevelId: progressionSelection.requestedLevelId,
           adjustmentReasons,
+        }),
+      ]),
+      progressionPolicySnapshot: plannedProgressionPolicySnapshotForExercises([
+        progressionPolicyExerciseInputForManual({
+          exercise,
+          ladderId: ladder.id,
+          level,
+          requestedLevelId: progressionSelection.requestedLevelId,
+          storedLevelId: progress?.currentLevelId,
+          selectionReason: progressionSelection.selectionReason,
+          diagnostics: progressionSelection.diagnostics,
         }),
       ]),
       generatedExercises: [
@@ -759,8 +797,13 @@ export function planLadderPracticeSessionResult(input: PlanLadderPracticeSession
           repsPerSet: exercise.targetReps,
           secondsPerSet: exercise.durationSeconds,
           measurementTier: exercise.measurementTier,
-          requestedLevelId: releaseSelection?.requestedLevelId,
+          requestedLevelId: progressionSelection.requestedLevelId,
+          storedLevelId: progress?.currentLevelId,
           selectedDailyLevelId: level.id,
+          progressionPolicySelectionReason: progressionSelection.selectionReason,
+          ...(progressionSelection.diagnostics.length > 0
+            ? { progressionPolicyDiagnostics: progressionSelection.diagnostics }
+            : {}),
           adjustmentReasons,
         },
       ],
@@ -832,6 +875,9 @@ export function adaptGeneratedSessionToHaleSessionPlan(
       safetyCueSnapshot: plannedSafetyCueSnapshotForExercises(exercises.map((exercise) => exercise.id)),
       releasePolicySnapshot: plannedTrainingReleasePolicySnapshotForExercises(
         generated.exercises.map(releasePolicyExerciseInputForGenerated)
+      ),
+      progressionPolicySnapshot: plannedProgressionPolicySnapshotForExercises(
+        generated.exercises.map(progressionPolicyExerciseInputForGenerated)
       ),
       guidance: generated.guidance,
       equipmentNeeded: equipmentNeeded(exercises),
@@ -938,11 +984,17 @@ export function getSessionPlanningRecoveryCopy(result: HaleSessionPlanningResult
   if (
     result.reason === 'exercise_level_not_available_in_controlled_beta' ||
     result.reason === 'missing_release_policy_snapshot' ||
-    result.reason === 'unsupported_release_channel'
+    result.reason === 'unsupported_release_channel' ||
+    result.reason === 'missing_progression_policy_snapshot' ||
+    result.reason === 'unsupported_progression_policy_schema' ||
+    result.reason === 'stale_progression_policy' ||
+    result.reason === 'effective_progression_level_mismatch' ||
+    result.reason === 'auto_progression_ceiling_exceeded' ||
+    result.reason === 'non_linear_progression_selection_invalid'
   ) {
     return {
       title: 'This session needs to be refreshed before it can start.',
-      body: 'This level is not available in the beta yet. Hale can use the closest supported level. Your plan and progress are unchanged.',
+      body: 'Hale is keeping this movement at a supported level for now. Your plan and progress are unchanged.',
       primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
       secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
     };
@@ -1067,7 +1119,9 @@ export function validateGeneratedSessionForPlanning({
       issues.push({ code: 'invalid_exercise_identity', exerciseId, templateId, blockId });
       continue;
     }
-    if (seenExerciseIds.has(exerciseId)) issues.push({ code: 'duplicate_exercise_id', exerciseId, templateId, blockId });
+    if (seenExerciseIds.has(exerciseId) && !isAllowedDuplicateCollectionExercise(exercises ?? [], exerciseId)) {
+      issues.push({ code: 'duplicate_exercise_id', exerciseId, templateId, blockId });
+    }
     seenExerciseIds.add(exerciseId);
     const catalogLevel = resolveCatalogLevel(exerciseId);
     if (!hasExercise(exerciseId)) issues.push({ code: 'unsupported_exercise_id', exerciseId, templateId, blockId });
@@ -1363,9 +1417,15 @@ export function createGeneratedSessionSummary({
       stimulusRole: exercise.stimulusRole,
       stimulusReason: exercise.stimulusReason,
       requestedLevelId: exercise.requestedLevelId,
+      storedLevelId: exercise.storedLevelId,
       selectedDailyLevelId: exercise.selectedDailyLevelId,
+      progressionPolicySelectionReason: exercise.progressionPolicySelectionReason,
+      ...(exercise.progressionPolicyDiagnostics && exercise.progressionPolicyDiagnostics.length > 0
+        ? { progressionPolicyDiagnostics: exercise.progressionPolicyDiagnostics }
+        : {}),
       doseBeforeAdjustment: exercise.doseBeforeAdjustment,
       adjustmentReasons: exercise.adjustmentReasons,
+      collectionSelection: exercise.collectionSelection,
     })) ?? [];
   return {
     id: metadata?.generatedSessionId ?? sessionPlan.id,
@@ -1393,6 +1453,7 @@ export function createGeneratedSessionSummary({
     durationMinutes,
     equipmentSnapshot: metadata?.equipmentSnapshot,
     movementCapabilitySnapshot: metadata?.movementCapabilitySnapshot,
+    progressionPolicySnapshot: compactProgressionPolicySnapshotForSummary(metadata?.progressionPolicySnapshot),
     exercises: generatedExercises.length > 0 ? generatedExercises : undefined,
     feedback,
   };
@@ -1407,6 +1468,16 @@ function recentSessionsFor(
     activeBlock: input.activeBlock,
     completions: input.recentCompletions,
     generatedSessionSummaries: input.training?.generatedSessionSummaries,
+  });
+}
+
+function collectionExposuresForPlanning(
+  input: PlanTodayHaleSessionInput,
+  blockId: string
+): GenerateSessionInput['collectionExposures'] {
+  return collectionExposuresFromGeneratedSessionSummaries({
+    blockId,
+    summaries: input.training?.generatedSessionSummaries,
   });
 }
 
@@ -1481,6 +1552,12 @@ function recoveryActionsFor(reason: GenerationUnavailableReason): readonly Gener
     reason === 'exercise_level_not_available_in_controlled_beta' ||
     reason === 'missing_release_policy_snapshot' ||
     reason === 'unsupported_release_channel' ||
+    reason === 'missing_progression_policy_snapshot' ||
+    reason === 'unsupported_progression_policy_schema' ||
+    reason === 'stale_progression_policy' ||
+    reason === 'effective_progression_level_mismatch' ||
+    reason === 'auto_progression_ceiling_exceeded' ||
+    reason === 'non_linear_progression_selection_invalid' ||
     reason === 'equipment_confirmation_required' ||
     reason === 'equipment_changed_after_planning' ||
     reason === 'missing_equipment_snapshot' ||
@@ -1576,6 +1653,23 @@ function generatedExerciseIds(value: unknown): string[] | undefined {
     .map((exercise) => (exercise as Partial<GeneratedExercise>).exerciseId)
     .filter((id): id is string => typeof id === 'string' && id.length > 0);
   return ids && ids.length > 0 ? unique(ids) : undefined;
+}
+
+function isAllowedDuplicateCollectionExercise(exercises: readonly unknown[], exerciseId: string): boolean {
+  const duplicates = exercises
+    .filter(isRecord)
+    .map((exercise) => exercise as Partial<GeneratedExercise>)
+    .filter((exercise) => exercise.exerciseId === exerciseId);
+  if (duplicates.length < 2) return false;
+  return duplicates.every((exercise) => {
+    const selection = exercise.collectionSelection;
+    return (
+      isPlannedCollectionSelection(selection) &&
+      selection.collectionId === MOBILITY_COLLECTION_ID &&
+      selection.selectedExerciseId === exerciseId &&
+      selection.reason === 'only_eligible_member'
+    );
+  });
 }
 
 function resolveCatalogLevel(exerciseId: string | undefined): ExerciseLevel | null {
@@ -1819,6 +1913,17 @@ export function validateHaleSessionPlanReleasePolicy(input: {
   return { status: 'current', snapshot: current };
 }
 
+export type PlanProgressionPolicyValidation = ProgressionPolicySnapshotValidation;
+
+export function validateHaleSessionPlanProgressionPolicy(input: {
+  plan: HaleSessionPlan;
+}): PlanProgressionPolicyValidation {
+  return validateProgressionPolicySnapshotForExercises({
+    snapshot: input.plan.metadata?.progressionPolicySnapshot,
+    exercises: progressionPolicyExerciseInputsForPlan(input.plan),
+  });
+}
+
 export function staleEquipmentPlanningResult(input: {
   plan: HaleSessionPlan;
   validation: PlanEquipmentValidation;
@@ -1865,6 +1970,26 @@ export function staleReleasePolicyPlanningResult(input: {
   });
 }
 
+export function staleProgressionPolicyPlanningResult(input: {
+  plan: HaleSessionPlan;
+  validation: PlanProgressionPolicyValidation;
+}): Extract<HaleSessionPlanningResult, { kind: 'unavailable' }> {
+  const reason =
+    input.validation.status === 'current'
+      ? 'missing_progression_policy_snapshot'
+      : input.validation.status;
+  return unavailablePlanningResult({
+    reason,
+    blockId: input.plan.blockId,
+    templateId: input.plan.metadata?.templateId,
+    planningDateKey: input.plan.metadata?.plannedDateKey,
+    focusDomain: input.plan.focusDomain,
+    recoveryActions: ['retry', 'review_setup'],
+    issues: progressionPolicyDiagnosticsToIssues(input.validation, input.plan),
+    exerciseIds: input.plan.exercises.map((exercise) => exercise.id),
+  });
+}
+
 export function staleMovementCapabilityPlanningResult(input: {
   plan: HaleSessionPlan;
   validation: PlanMovementCapabilityValidation;
@@ -1903,6 +2028,68 @@ function releasePolicyDiagnosticsToIssues(
     exerciseId: diagnostic.exerciseId,
     blockId: plan.blockId,
     templateId: plan.metadata?.templateId,
+  }));
+}
+
+function compactProgressionPolicySnapshotForSummary(
+  snapshot: PlannedProgressionPolicySnapshot | undefined
+): PlannedProgressionPolicySnapshot | undefined {
+  if (!snapshot) return undefined;
+  return {
+    schemaVersion: snapshot.schemaVersion,
+    policyFingerprint: snapshot.policyFingerprint,
+    fingerprint: snapshot.fingerprint,
+    exercises: [],
+  };
+}
+
+function progressionPolicyDiagnosticsToIssues(
+  validation: PlanProgressionPolicyValidation,
+  plan: HaleSessionPlan
+): GeneratedSessionIssue[] {
+  if (validation.status === 'current') {
+    return [{ code: 'missing_progression_policy_snapshot', blockId: plan.blockId, templateId: plan.metadata?.templateId }];
+  }
+  const code = validation.status as GeneratedSessionIssueCode;
+  return validation.diagnostics.map((diagnostic) => ({
+    code,
+    exerciseId: diagnostic.exerciseId,
+    blockId: plan.blockId,
+    templateId: plan.metadata?.templateId,
+  }));
+}
+
+function progressionPolicyAdjustmentReasons(
+  diagnostics: readonly ProgressionPolicyDiagnosticCode[]
+): DailyTrainingReasonCode[] {
+  const reasons: DailyTrainingReasonCode[] = [];
+  if (diagnostics.includes('release_cap_applied')) reasons.push('controlled_beta_release_cap');
+  if (diagnostics.includes('auto_progression_cap_applied')) reasons.push('auto_progression_cap');
+  if (diagnostics.includes('non_linear_default_selected')) reasons.push('non_linear_default');
+  if (diagnostics.includes('legacy_progression_policy_capped')) reasons.push('legacy_progression_policy_capped');
+  if (diagnostics.includes('daily_regression_applied')) reasons.push('reduced_readiness');
+  return unique(reasons);
+}
+
+function progressionPolicyExerciseInputsForPlan(plan: HaleSessionPlan): ProgressionPolicyExerciseSnapshotInput[] {
+  const metadata = plan.metadata?.generatedExercises ?? [];
+  if (metadata.length > 0) {
+    return metadata.map((exercise) => ({
+      exerciseId: exercise.exerciseId,
+      ladderId: exercise.ladderId,
+      levelId: exercise.levelId,
+      storedLevelId: exercise.storedLevelId,
+      requestedLevelId: exercise.requestedLevelId,
+      selectedDailyLevelId: exercise.selectedDailyLevelId,
+      selectionReason: exercise.progressionPolicySelectionReason,
+      diagnostics: exercise.progressionPolicyDiagnostics,
+    }));
+  }
+  return plan.exercises.map((exercise) => ({
+    exerciseId: exercise.id,
+    ladderId: exercise.ladderId,
+    levelId: exercise.id,
+    selectedDailyLevelId: exercise.id,
   }));
 }
 
@@ -2064,9 +2251,15 @@ function toGeneratedExerciseMetadata(exercise: GeneratedExercise) {
     stimulusRole: exercise.stimulusRole,
     stimulusReason: exercise.stimulusReason,
     requestedLevelId: exercise.requestedLevelId,
+    storedLevelId: exercise.storedLevelId,
     selectedDailyLevelId: exercise.selectedDailyLevelId,
+    progressionPolicySelectionReason: exercise.progressionPolicySelectionReason,
+    ...(exercise.progressionPolicyDiagnostics && exercise.progressionPolicyDiagnostics.length > 0
+      ? { progressionPolicyDiagnostics: exercise.progressionPolicyDiagnostics }
+      : {}),
     doseBeforeAdjustment: exercise.doseBeforeAdjustment,
     adjustmentReasons: exercise.adjustmentReasons,
+    collectionSelection: exercise.collectionSelection,
   };
 }
 
@@ -2082,6 +2275,19 @@ function releasePolicyExerciseInputForGenerated(exercise: GeneratedExercise): Re
   };
 }
 
+function progressionPolicyExerciseInputForGenerated(exercise: GeneratedExercise): ProgressionPolicyExerciseSnapshotInput {
+  return {
+    exerciseId: exercise.exerciseId,
+    ladderId: exercise.ladderId,
+    levelId: exercise.levelId,
+    storedLevelId: exercise.storedLevelId,
+    requestedLevelId: exercise.requestedLevelId,
+    selectedDailyLevelId: exercise.selectedDailyLevelId,
+    selectionReason: exercise.progressionPolicySelectionReason,
+    diagnostics: exercise.progressionPolicyDiagnostics,
+  };
+}
+
 function releasePolicyExerciseInputForManual({
   exercise,
   ladderId,
@@ -2093,7 +2299,7 @@ function releasePolicyExerciseInputForManual({
   ladderId: string;
   level: ExerciseLevel;
   requestedLevelId?: string;
-  adjustmentReasons?: readonly string[];
+  adjustmentReasons?: readonly DailyTrainingReasonCode[];
 }): ReleasePolicyExerciseSnapshotInput {
   return {
     exerciseId: exercise.id,
@@ -2103,6 +2309,35 @@ function releasePolicyExerciseInputForManual({
     selectedDailyLevelId: level.id,
     releaseStatus: level.releaseStatus,
     adjustmentReasons,
+  };
+}
+
+function progressionPolicyExerciseInputForManual({
+  exercise,
+  ladderId,
+  level,
+  requestedLevelId,
+  storedLevelId,
+  selectionReason,
+  diagnostics,
+}: {
+  exercise: HaleExercise;
+  ladderId: string;
+  level: ExerciseLevel;
+  requestedLevelId?: string;
+  storedLevelId?: string;
+  selectionReason: ProgressionPolicySelectionReason;
+  diagnostics?: readonly ProgressionPolicyDiagnosticCode[];
+}): ProgressionPolicyExerciseSnapshotInput {
+  return {
+    exerciseId: exercise.id,
+    ladderId,
+    levelId: level.id,
+    storedLevelId,
+    requestedLevelId,
+    selectedDailyLevelId: level.id,
+    selectionReason,
+    diagnostics,
   };
 }
 

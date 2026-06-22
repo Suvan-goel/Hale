@@ -35,6 +35,11 @@ import {
   SafePoseDetectionView,
 } from '../components/SafePoseDetectionView';
 import type { CameraAvailability } from '../components/SafePoseDetectionView';
+import { PoseLatencyDiagnosticsOverlay } from '../diagnostics/PoseLatencyDiagnosticsOverlay';
+import {
+  createPoseLatencyDiagnostics,
+  isPoseLatencyDiagnosticsEnabled,
+} from '../diagnostics/poseLatencyDiagnostics';
 import { AssessmentPhase } from '../assessment/sessionController';
 import { getMovement } from '../movements';
 import { PosePipeline } from '../pose/pipeline';
@@ -163,6 +168,13 @@ export function CheckUpScreen({
   const [discardModalVisible, setDiscardModalVisible] = React.useState(false);
   const [cameraAvailability, setCameraAvailability] = React.useState<CameraAvailability>('checking');
   const windowSize = useWindowDimensions();
+  const poseLatencyDiagnostics = React.useMemo(
+    () =>
+      isPoseLatencyDiagnosticsEnabled()
+        ? createPoseLatencyDiagnostics({ mode: 'checkup' })
+        : null,
+    []
+  );
 
   React.useEffect(() => {
     if (__DEV__) recorder.start();
@@ -176,9 +188,11 @@ export function CheckUpScreen({
   const onLandmarks = React.useCallback(
     (e: { nativeEvent: LandmarksEventPayload }) => {
       const event = e.nativeEvent;
+      const latencyFrame = poseLatencyDiagnostics?.beginFrame(event) ?? null;
       lastFrameTimestampRef.current = event.timestampMs;
       if (__DEV__) recorder.record(event);
       const out = pipeline.process(event);
+      poseLatencyDiagnostics?.markJsTransformEnd(latencyFrame);
       const sourceAspect = event.sourceWidth / event.sourceHeight;
 
       if (resumePendingRef.current) {
@@ -187,6 +201,7 @@ export function CheckUpScreen({
       }
       if (pausedRef.current) {
         skeletonRef.current?.update(out, sourceAspect);
+        poseLatencyDiagnostics?.markRendererUpdateSubmitted(latencyFrame);
         return;
       }
 
@@ -221,8 +236,9 @@ export function CheckUpScreen({
         setSnapshot((prev) => (sameSnapshot(prev, next) ? prev : next));
       }
       skeletonRef.current?.update(out, sourceAspect);
+      poseLatencyDiagnostics?.markRendererUpdateSubmitted(latencyFrame);
     },
-    [pipeline, orchestrator, voice, sfx, recorder, onComplete]
+    [pipeline, poseLatencyDiagnostics, orchestrator, voice, sfx, recorder, onComplete]
   );
 
   const onPoseError = React.useCallback((e: { nativeEvent: PoseErrorEventPayload }) => {
@@ -350,6 +366,7 @@ export function CheckUpScreen({
       <SafePoseDetectionView
         active={!metricDebug}
         modelVariant="lite"
+        latencyDiagnosticsEnabled={poseLatencyDiagnostics !== null}
         style={StyleSheet.absoluteFill}
         onLandmarks={onLandmarks}
         onPoseError={onPoseError}
@@ -461,6 +478,7 @@ export function CheckUpScreen({
         onKeep={keepCheckup}
         onDiscard={discardCheckup}
       />
+      <PoseLatencyDiagnosticsOverlay diagnostics={poseLatencyDiagnostics} />
     </View>
   );
 }

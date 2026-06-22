@@ -167,6 +167,7 @@ function sanitizeGeneratedSessionSummary(summary: PersistedGeneratedSessionSumma
     durationMinutes: summary.durationMinutes,
     equipmentSnapshot: summary.equipmentSnapshot,
     movementCapabilitySnapshot: summary.movementCapabilitySnapshot,
+    progressionPolicySnapshot: summary.progressionPolicySnapshot,
     exercises: summary.exercises?.map(sanitizeGeneratedExerciseSummary),
     feedback: sanitizePostSessionFeedback(summary.feedback),
   });
@@ -186,7 +187,10 @@ function sanitizeGeneratedExerciseSummary(summary: PersistedGeneratedExerciseSum
     stimulusRole: summary.stimulusRole,
     stimulusReason: summary.stimulusReason,
     requestedLevelId: summary.requestedLevelId,
+    storedLevelId: summary.storedLevelId,
     selectedDailyLevelId: summary.selectedDailyLevelId,
+    progressionPolicySelectionReason: summary.progressionPolicySelectionReason,
+    progressionPolicyDiagnostics: summary.progressionPolicyDiagnostics,
     doseBeforeAdjustment: summary.doseBeforeAdjustment,
     adjustmentReasons: summary.adjustmentReasons,
   });

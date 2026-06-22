@@ -1,7 +1,7 @@
 /**
- * Overhead reach / press (side view) — pull-or-reach (shoulder). Bodyweight
- * overhead reach (no equipment) progresses to a banded overhead press; with no
- * band in the equipment profile the press substitutes the zero-equipment reach
+ * Overhead reach / press (side view) — pull-or-reach (shoulder). Unsupported
+ * overhead reach and banded overhead press are distinct practice options; with
+ * no band in the equipment profile the press substitutes the reach
  * (`substituteId`). Shoulder-flexion cycle (hip→shoulder→elbow) with the wrist
  * as the rise landmark. Reach ROM is the point, so autoregulation is off.
  */

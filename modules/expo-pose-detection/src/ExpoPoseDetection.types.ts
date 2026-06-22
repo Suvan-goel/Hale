@@ -10,6 +10,23 @@ export type CameraFacing = 'front' | 'back';
 
 export type ModelVariant = 'lite' | 'full';
 
+export type PoseLatencyNativeClock = 'android.elapsedRealtimeNanos' | 'ios.CACurrentMediaTime';
+
+export type PoseLatencyNativeDiagnostics = {
+  frameId: number;
+  nativeClock: PoseLatencyNativeClock;
+  sourceTimestampMs: number;
+  preprocessingStartMs: number;
+  preprocessingEndMs: number;
+  mediapipeSubmitMs: number;
+  mediapipeCallbackMs: number;
+  nativePostprocessEndMs: number;
+  nativeEventEmitMs: number;
+  sourceAgeAtMediapipeSubmitMs?: number;
+  sourceAgeAtMediapipeCallbackMs?: number;
+  sourceAgeAtNativeEventEmitMs?: number;
+};
+
 /**
  * One event per camera frame, ~30fps.
  *
@@ -26,6 +43,7 @@ export type LandmarksEventPayload = {
   inferenceMs: number;
   sourceWidth: number;
   sourceHeight: number;
+  latency?: PoseLatencyNativeDiagnostics;
 };
 
 export type PoseErrorEventPayload = {
@@ -49,6 +67,7 @@ export type PoseDetectionViewProps = {
   minDetectionConfidence?: number;
   minTrackingConfidence?: number;
   minPresenceConfidence?: number;
+  latencyDiagnosticsEnabled?: boolean;
   onLandmarks?: (event: { nativeEvent: LandmarksEventPayload }) => void;
   onCameraReady?: (event: { nativeEvent: object }) => void;
   onPoseError?: (event: { nativeEvent: PoseErrorEventPayload }) => void;

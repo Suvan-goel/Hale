@@ -75,9 +75,9 @@ const SESSION_MENU_OPTIONS: readonly {
   },
   {
     value: 'no_equipment',
-    label: 'No equipment',
-    description: 'Swap optional equipment for bodyweight options.',
-    primaryLabel: 'Start without equipment',
+    label: 'Limited setup',
+    description: 'Plan around the support and items you have today.',
+    primaryLabel: 'Start limited-setup session',
     icon: 'equipment',
   },
   {

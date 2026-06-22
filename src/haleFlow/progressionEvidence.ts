@@ -4,10 +4,13 @@ import type {
   TrainingSessionCompletionType,
 } from '../adherence';
 import {
+  CONTROLLED_BETA_PROGRESSION_POLICY_SCHEMA_VERSION,
+  controlledBetaProgressionPolicyFingerprint,
   getExercise,
   getExerciseLadder,
   hasExercise,
   highestAvailableLevelForRelease,
+  isPlannedProgressionPolicySnapshot,
   type ExerciseLevel,
 } from '../exercises';
 import {
@@ -96,7 +99,15 @@ export type ProgressionDiagnosticReason =
   | 'progression_held_by_policy'
   | 'release_cap_reached'
   | 'progression_applied'
-  | 'progression_application_failed';
+  | 'progression_application_failed'
+  | 'transition_not_auto_approved'
+  | 'non_linear_progression_model'
+  | 'device_validation_required'
+  | 'domain_review_required'
+  | 'manual_only_transition'
+  | 'auto_progression_cap_reached'
+  | 'stale_progression_policy'
+  | 'unsupported_progression_policy_schema';
 
 export type ProgressionDecisionKind = 'progressed' | 'regressed' | 'held' | 'initialized';
 
@@ -137,6 +148,8 @@ export interface ExerciseProgressionEvidence {
   painAreas: readonly PainArea[];
   trackingQuality: TrackingQuality;
   validTime?: ValidTimeProgressionSummary;
+  progressionPolicySchemaVersion?: number;
+  progressionPolicyFingerprint?: string;
   eligible: boolean;
   exclusionReason?: ExerciseProgressionExclusionReason;
 }
@@ -149,6 +162,9 @@ export interface LadderProgressionEvidenceEvent {
   plannedDateKey?: string;
   ladderId: string;
   levelId: string;
+  fromLevelId?: string;
+  progressionPolicySchemaVersion?: number;
+  progressionPolicyFingerprint?: string;
   completedAt: string;
   sourceExerciseIds: readonly string[];
   result: CompletedExerciseResult;
@@ -283,6 +299,9 @@ export function buildExerciseProgressionEvidence(input: {
   const metadata = input.sessionPlan.metadata?.generatedExercises ?? [];
   const metadataByExerciseId = generatedExerciseMetadataById(metadata);
   const duplicateMetadata = duplicateGeneratedExerciseIds(metadata);
+  const progressionPolicyByExerciseId = progressionPolicySnapshotByExerciseId(
+    input.sessionPlan.metadata?.progressionPolicySnapshot
+  );
   const planExercises = input.sessionPlan.exercises;
   const feedbackAvailable = hasRequiredProgressionFeedback(input.feedback);
   const out: ExerciseProgressionEvidence[] = [];
@@ -340,6 +359,7 @@ export function buildExerciseProgressionEvidence(input: {
     }
 
     const validTime = summarizeValidTimeItem(singleItem);
+    const progressionPolicy = progressionPolicyByExerciseId.get(exerciseId);
     out.push({
       ...base,
       progressionEventId: progressionEventIdFor({
@@ -353,6 +373,8 @@ export function buildExerciseProgressionEvidence(input: {
       levelIndex: classified.levelIndex,
       stimulusRole: classified.role,
       validTime: validTime ?? undefined,
+      progressionPolicySchemaVersion: progressionPolicy?.schemaVersion,
+      progressionPolicyFingerprint: progressionPolicy?.policyFingerprint,
       eligible: true,
     });
   }
@@ -431,6 +453,9 @@ export function aggregateProgressionEvidenceByLadder(input: {
       plannedDateKey: input.eligibility.plannedDateKey,
       ladderId,
       levelId: levelIds[0],
+      fromLevelId: levelIds[0],
+      progressionPolicySchemaVersion: group[0]?.progressionPolicySchemaVersion,
+      progressionPolicyFingerprint: group[0]?.progressionPolicyFingerprint,
       completedAt: input.completedAt,
       sourceExerciseIds: group.map((evidence) => evidence.exerciseId),
       result,
@@ -465,6 +490,31 @@ export function applyProgressionEvidence(
     if (appliedProgressionEventIds.includes(event.progressionEventId)) {
       skippedDuplicateEvents.push(event);
       diagnostics.push(diagnosticForEvent(event, 'duplicate_progression_event'));
+      continue;
+    }
+
+    const policyFailure = progressionPolicyIdentityFailure(event);
+    if (policyFailure) {
+      appliedProgressionEventIds = appendAppliedProgressionEventId(
+        appliedProgressionEventIds,
+        event.progressionEventId
+      );
+      appliedEvents.push(event);
+      const currentLevelId = ladderProgressById[event.ladderId]?.currentLevelId;
+      decisions.push({
+        progressionEventId: event.progressionEventId,
+        ladderId: event.ladderId,
+        decisionKind: 'held',
+        beforeLevelId: currentLevelId,
+        afterLevelId: currentLevelId,
+      });
+      diagnostics.push({
+        ...diagnosticForEvent(event, policyFailure),
+        decisionKind: 'held',
+        progressionEvidencePolicy: policy,
+        beforeLevelId: currentLevelId,
+        afterLevelId: currentLevelId,
+      });
       continue;
     }
 
@@ -538,6 +588,16 @@ export function applyProgressionEvidence(
         afterLevelId: after?.currentLevelId,
       });
     }
+    const policyReason = diagnosticReasonForProgressionDecision(after?.lastProgressionDecisionReason);
+    if (policyReason) {
+      diagnostics.push({
+        ...diagnosticForEvent(event, policyReason),
+        decisionKind,
+        progressionEvidencePolicy: policy,
+        beforeLevelId: before?.currentLevelId,
+        afterLevelId: after?.currentLevelId,
+      });
+    }
   }
 
   return {
@@ -550,6 +610,36 @@ export function applyProgressionEvidence(
     decisions,
     diagnostics,
   };
+}
+
+function progressionPolicyIdentityFailure(
+  event: LadderProgressionEvidenceEvent
+): ProgressionDiagnosticReason | null {
+  if (
+    event.progressionPolicySchemaVersion !== undefined &&
+    event.progressionPolicySchemaVersion !== CONTROLLED_BETA_PROGRESSION_POLICY_SCHEMA_VERSION
+  ) {
+    return 'unsupported_progression_policy_schema';
+  }
+  if (
+    event.progressionPolicyFingerprint &&
+    event.progressionPolicyFingerprint !== controlledBetaProgressionPolicyFingerprint()
+  ) {
+    return 'stale_progression_policy';
+  }
+  return null;
+}
+
+function diagnosticReasonForProgressionDecision(
+  reason: LadderProgress['lastProgressionDecisionReason']
+): ProgressionDiagnosticReason | null {
+  if (reason === 'transition_not_auto_approved') return 'transition_not_auto_approved';
+  if (reason === 'non_linear_progression_model') return 'non_linear_progression_model';
+  if (reason === 'device_validation_required') return 'device_validation_required';
+  if (reason === 'domain_review_required') return 'domain_review_required';
+  if (reason === 'manual_only_transition') return 'manual_only_transition';
+  if (reason === 'auto_progression_cap_reached') return 'auto_progression_cap_reached';
+  return null;
 }
 
 function releaseCapReached(
@@ -867,6 +957,20 @@ function generatedExerciseMetadataById(
   const out = new Map<string, HaleGeneratedExerciseMetadata>();
   for (const item of metadata) {
     if (nonEmptyString(item.exerciseId) && !out.has(item.exerciseId)) out.set(item.exerciseId, item);
+  }
+  return out;
+}
+
+function progressionPolicySnapshotByExerciseId(
+  snapshot: unknown
+): Map<string, { schemaVersion: number; policyFingerprint: string }> {
+  const out = new Map<string, { schemaVersion: number; policyFingerprint: string }>();
+  if (!isPlannedProgressionPolicySnapshot(snapshot)) return out;
+  for (const exercise of snapshot.exercises) {
+    out.set(exercise.exerciseId, {
+      schemaVersion: snapshot.schemaVersion,
+      policyFingerprint: snapshot.policyFingerprint,
+    });
   }
   return out;
 }

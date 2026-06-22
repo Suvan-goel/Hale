@@ -54,6 +54,9 @@ class ExpoPoseDetectionModule : Module() {
       Prop("minPresenceConfidence") { view: PoseDetectionView, value: Double ->
         view.setMinPresenceConfidenceProp(value.toFloat())
       }
+      Prop("latencyDiagnosticsEnabled") { view: PoseDetectionView, value: Boolean ->
+        view.setLatencyDiagnosticsEnabledProp(value)
+      }
     }
   }
 

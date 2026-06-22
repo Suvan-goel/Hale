@@ -33,6 +33,12 @@ import type {
   PlannedSafetyCueSnapshot,
 } from '../training/safetyCues';
 import type { PlannedTrainingReleasePolicySnapshot } from '../exercises';
+import type {
+  PlannedProgressionPolicySnapshot,
+  ProgressionPolicyDiagnosticCode,
+  ProgressionPolicySelectionReason,
+} from '../exercises';
+import type { PlannedCollectionSelection } from '../training/collectionSelection';
 
 export type HaleUserFlowState =
   | 'needs_life_goal'
@@ -143,6 +149,7 @@ export interface HaleSessionPlanMetadata {
   movementCapabilitySnapshot?: PlannedMovementCapabilitySnapshot;
   safetyCueSnapshot?: PlannedSafetyCueSnapshot;
   releasePolicySnapshot?: PlannedTrainingReleasePolicySnapshot;
+  progressionPolicySnapshot?: PlannedProgressionPolicySnapshot;
   guidance?: readonly string[];
   equipmentNeeded?: readonly string[];
   fallbackReason?: string;
@@ -173,9 +180,13 @@ export interface HaleGeneratedExerciseMetadata {
   stimulusRole?: SlotStimulusRole;
   stimulusReason?: SlotStimulusReason;
   requestedLevelId?: string;
+  storedLevelId?: string;
   selectedDailyLevelId?: string;
+  progressionPolicySelectionReason?: ProgressionPolicySelectionReason;
+  progressionPolicyDiagnostics?: readonly ProgressionPolicyDiagnosticCode[];
   doseBeforeAdjustment?: GeneratedExerciseDose;
   adjustmentReasons?: readonly DailyTrainingReasonCode[];
+  collectionSelection?: PlannedCollectionSelection;
 }
 
 export interface HaleSlotStimulusMetadata {
