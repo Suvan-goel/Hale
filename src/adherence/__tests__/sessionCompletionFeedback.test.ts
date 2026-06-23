@@ -78,15 +78,15 @@ describe('session completion and preview credit copy', () => {
       progressionEvidencePolicy: 'hold_only',
     });
 
-    expect(copyFor(b, zero).title).toBe('No training credit added.');
-    expect(copyFor(b, supporting).eyebrow).toBe('Supporting work saved');
-    expect(copyFor(b, supporting).cardTitle).toBe('Main plan unchanged');
-    expect(copyFor(b, fallback).eyebrow).toBe('Fallback work saved');
-    expect(copyFor(b, fallback).subtitle).toContain('planned primary strength exercise');
-    expect(copyFor(b, credited).eyebrow).toBe('Session complete');
-    expect(copyFor(b, credited).cardTitle).toContain('adjust your next session');
-    expect(copyFor(b, adjustedCredited).cardTitle).toBe('Plan credit added, level held today');
-    expect(copyFor(b, adjustedCredited).body).toContain('plan moved forward');
+    expect(copyFor(b, zero).title).toBe('No plan credit added.');
+    expect(copyFor(b, supporting).eyebrow).toBe('Session saved');
+    expect(copyFor(b, supporting).cardTitle).toBe('Your main plan is unchanged.');
+    expect(copyFor(b, fallback).eyebrow).toBe('Session saved');
+    expect(copyFor(b, fallback).subtitle).toContain('did not move your main plan forward');
+    expect(copyFor(b, credited).eyebrow).toBe('Session saved');
+    expect(copyFor(b, credited).cardTitle).toBe('Your plan moved forward.');
+    expect(copyFor(b, adjustedCredited).cardTitle).toBe('Your plan moved forward.');
+    expect(copyFor(b, adjustedCredited).body).toContain('keep the next session at this level');
   });
 
   it('explains non-credit preview states before a block-generated session starts', () => {

@@ -1089,12 +1089,8 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   helpSafetyLine: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: radius.card,
-    backgroundColor: colors.bgGold,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs,
   },
   helpSafetyLineText: {
     ...type.bodySmall,

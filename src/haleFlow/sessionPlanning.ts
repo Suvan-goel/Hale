@@ -938,32 +938,32 @@ export function getSessionPlanningRecoveryCopy(result: HaleSessionPlanningResult
   if (result.kind !== 'unavailable') return null;
   if (result.reason === 'no_active_block') {
     return {
-      title: 'Hale needs an active current plan before it can prepare today\'s session.',
-      body: 'Your plan has not changed. Finish setup or create a current 4-week block to continue.',
+      title: 'Hale needs your current plan.',
+      body: 'No workout started. This will not affect your progress.',
       primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
       secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
     };
   }
   if (result.reason === 'legacy_only_state') {
     return {
-      title: 'Your previous plan needs to be refreshed before Hale can safely continue.',
-      body: 'Your history is still saved. Complete the current plan setup to continue.',
+      title: 'Hale needs to refresh your plan.',
+      body: 'No workout started. This will not affect your progress.',
       primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
       secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
     };
   }
   if (result.reason === 'unsupported_exercise_id' || result.reason === 'invalid_generated_exercise' || result.reason === 'missing_stimulus_metadata') {
     return {
-      title: 'Today\'s session needs to be refreshed before it can start.',
-      body: 'Your plan is unchanged. Try again, or review your setup before starting.',
+      title: 'This workout needs a quick refresh.',
+      body: 'No workout started. This will not affect your progress.',
       primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
       secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
     };
   }
   if (result.reason === 'no_safe_exercises') {
     return {
-      title: 'Today\'s workout needs a setup check.',
-      body: 'Hale paused before starting because your equipment, readiness, or discomfort choices do not leave a suitable exercise mix.',
+      title: 'Hale needs to check your setup.',
+      body: 'No workout started. This will not affect your progress.',
       primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
       secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
     };
@@ -971,15 +971,15 @@ export function getSessionPlanningRecoveryCopy(result: HaleSessionPlanningResult
   if (result.reason === 'equipment_confirmation_required') {
     return {
       title: 'Confirm your equipment setup before continuing.',
-      body: 'Review your available equipment before Hale prepares today\'s session.',
+      body: 'No workout started. This will not affect your progress.',
       primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
       secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
     };
   }
   if (result.reason === 'daily_context_required') {
     return {
-      title: 'Check how today feels before starting.',
-      body: 'Choose today\'s readiness and whether anything feels uncomfortable so Hale can prepare the session safely.',
+      title: 'Tell Hale how you feel today.',
+      body: 'No workout started. This will not affect your progress.',
       primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
       secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
     };
@@ -987,7 +987,7 @@ export function getSessionPlanningRecoveryCopy(result: HaleSessionPlanningResult
   if (result.reason === 'movement_capability_not_confirmed') {
     return {
       title: 'Review movement setup before starting.',
-      body: 'This movement needs a saved setup confirmation before Hale can include it.',
+      body: 'No workout started. This will not affect your progress.',
       primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
       secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
     };
@@ -1004,32 +1004,32 @@ export function getSessionPlanningRecoveryCopy(result: HaleSessionPlanningResult
     result.reason === 'non_linear_progression_selection_invalid'
   ) {
     return {
-      title: 'This session needs to be refreshed before it can start.',
-      body: 'Hale is keeping this movement at a supported level for now. Your plan and progress are unchanged.',
+      title: 'This workout needs a quick refresh.',
+      body: 'No workout started. This will not affect your progress.',
       primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
       secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
     };
   }
   if (result.reason === 'equipment_changed_after_planning') {
     return {
-      title: 'Today\'s session needs to be refreshed.',
-      body: 'Your equipment setup changed, so Hale needs to refresh today\'s session. Your plan and progress are unchanged.',
+      title: 'This workout needs a quick refresh.',
+      body: 'No workout started. This will not affect your progress.',
       primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
       secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
     };
   }
   if (result.reason === 'missing_equipment_snapshot' || result.reason === 'legacy_plan_requires_refresh') {
     return {
-      title: 'Today\'s session needs to be refreshed before it can start.',
-      body: 'Your plan and progress are unchanged.',
+      title: 'This workout needs a quick refresh.',
+      body: 'No workout started. This will not affect your progress.',
       primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
       secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
     };
   }
   if (result.reason === 'movement_capability_changed' || result.reason === 'missing_movement_capability_snapshot') {
     return {
-      title: 'Today\'s session needs to be refreshed.',
-      body: 'Your movement setup changed, so Hale needs to refresh today\'s session. Your plan and progress are unchanged.',
+      title: 'Review movement setup before starting.',
+      body: 'No workout started. This will not affect your progress.',
       primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
       secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
     };
@@ -1042,15 +1042,15 @@ export function getSessionPlanningRecoveryCopy(result: HaleSessionPlanningResult
     result.reason === 'unresolved_safety_cue_id'
   ) {
     return {
-      title: 'Today\'s session needs updated safety guidance.',
-      body: 'Hale paused before starting so the session can be refreshed with the current setup and stop rules.',
+      title: 'Review safety setup before starting.',
+      body: 'No workout started. This will not affect your progress.',
       primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
       secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
     };
   }
   return {
-    title: 'Hale couldn\'t safely prepare today\'s session.',
-    body: 'Your plan has not changed. Try again, or review your setup.',
+    title: 'Hale needs to check your setup.',
+    body: 'No workout started. This will not affect your progress.',
     primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
     secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
   };
@@ -1590,8 +1590,8 @@ function recoveryActionsFor(reason: GenerationUnavailableReason): readonly Gener
 
 function primaryRecoveryLabel(action: GenerationRecoveryAction | undefined): string {
   if (action === 'review_setup') return 'Review setup';
-  if (action === 'complete_baseline') return 'Start Movement Check-Up';
-  if (action === 'create_block') return 'Prepare current plan';
+  if (action === 'complete_baseline') return 'Start check-up';
+  if (action === 'create_block') return 'Prepare plan';
   if (action === 'open_plan') return 'Review plan';
   if (action === 'open_progress') return 'Review progress';
   if (action === 'contact_support') return 'Get help';

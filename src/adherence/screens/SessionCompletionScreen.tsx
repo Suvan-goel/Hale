@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../../components/ui';
+import { PrimaryButton, Screen, ScreenHeader } from '../../components/ui';
 import { colors, fonts, radius, shadow, spacing, type } from '../../theme';
 import type { PainArea, TrackingQuality, ValidTimeSessionSummaryCard } from '../../training';
-import { getProtectionCopy } from '../adherenceCopy';
+import { getLifeGoalDisplayText } from '../adherenceCopy';
 import type { LifeGoal, MovementBlock, TrainingSessionCompletion } from '../types';
 
 export interface SessionFeedbackInput {
@@ -38,7 +38,6 @@ export function SessionCompletionScreen({
   lifeGoal,
   completion,
   validTimeSummaries = [],
-  onMicroCheck,
   onFeedback,
   onDone,
 }: {
@@ -46,7 +45,6 @@ export function SessionCompletionScreen({
   lifeGoal?: LifeGoal | null;
   completion?: TrainingSessionCompletion | null;
   validTimeSummaries?: readonly ValidTimeSessionSummaryCard[];
-  onMicroCheck: () => void;
   onFeedback?: (feedback: SessionFeedbackInput) => void;
   onDone: () => void;
 }) {
@@ -70,10 +68,6 @@ export function SessionCompletionScreen({
     submitFeedback();
     onDone();
   };
-  const microCheck = () => {
-    submitFeedback();
-    onMicroCheck();
-  };
   return (
     <Screen contentStyle={styles.screenContent}>
       <ScreenHeader
@@ -84,12 +78,7 @@ export function SessionCompletionScreen({
 
       <View style={styles.completionSheet}>
         <View style={styles.sheetHead}>
-          <View style={styles.sheetMetaRow}>
-            <Text style={styles.sheetEyebrow}>Plan status</Text>
-            <View style={styles.statusPill}>
-              <Text style={styles.statusPillText}>Saved</Text>
-            </View>
-          </View>
+          <Text style={styles.sheetEyebrow}>{completionCopy.cardEyebrow}</Text>
           <Text style={styles.sheetTitle}>{completionCopy.cardTitle}</Text>
           <Text style={styles.sheetBody}>{completionCopy.body}</Text>
         </View>
@@ -98,7 +87,7 @@ export function SessionCompletionScreen({
           <>
             <View style={styles.divider} />
             <View style={styles.section}>
-              <SectionHeading eyebrow="Session signal" title="Steady time" />
+              <SectionHeading eyebrow="Recorded" title="What Hale recorded" />
               <View style={styles.summaryList}>
                 {validTimeSummaries.map((summary, index) => (
                   <View
@@ -118,7 +107,7 @@ export function SessionCompletionScreen({
 
         <View style={styles.divider} />
         <View style={styles.section}>
-          <SectionHeading eyebrow="Feedback" title="How did it feel?" />
+          <SectionHeading eyebrow="Feedback" title="How hard did it feel?" />
           <View style={styles.effortGrid}>
             <View style={styles.effortRow}>
               {EFFORT_OPTIONS.slice(0, 3).map((option) => (
@@ -145,7 +134,7 @@ export function SessionCompletionScreen({
 
         <View style={styles.divider} />
         <View style={styles.section}>
-          <SectionHeading eyebrow="Comfort" title="Any discomfort?" />
+          <SectionHeading eyebrow="Comfort" title="Any pain or discomfort?" />
           <View style={styles.choiceSegment}>
             <Choice label="No" selected={painReported === false} onPress={() => { setPainReported(false); setPainArea(undefined); }} />
             <Choice label="Yes" selected={painReported === true} onPress={() => setPainReported(true)} />
@@ -168,7 +157,6 @@ export function SessionCompletionScreen({
 
       <View style={styles.actions}>
         <PrimaryButton title="Back to Home" onPress={finish} />
-        <SecondaryButton title="Do 60-second micro-check" onPress={microCheck} />
       </View>
     </Screen>
   );
@@ -192,17 +180,14 @@ export function sessionCompletionCopy({
   if (credited) {
     const adjusted = progressionEvidencePolicy === 'hold_only';
     return {
-      eyebrow: restarted ? 'Restart complete' : 'Session complete',
-      title: restarted ? "You're back" : 'Nice work.',
-      subtitle: restarted ? "That's the important part." : getProtectionCopy({ lifeGoal, focusDomain: block.focusDomain }),
-      cardTitle: restarted
-        ? 'Clean slate, moving again'
-        : adjusted
-          ? 'Plan credit added, level held today'
-          : 'This helps Hale adjust your next session.',
+      eyebrow: restarted ? 'Restart saved' : 'Session saved',
+      title: restarted ? "You're back." : 'Nice work.',
+      subtitle: restarted ? "Today's shorter session was saved to your plan." : savedToPlanSubtitle(lifeGoal),
+      cardEyebrow: 'Saved',
+      cardTitle: restarted ? 'Your plan is moving again.' : 'Your plan moved forward.',
       body: adjusted
-        ? 'The plan moved forward because safe primary work was completed. Hale will keep the exercise level steady today.'
-        : 'Move only in a comfortable range.',
+        ? 'Hale will keep the next session at this level so it stays comfortable.'
+        : "Hale will use today's effort and comfort feedback to choose your next session.",
     };
   }
 
@@ -213,24 +198,37 @@ export function sessionCompletionCopy({
     const focus = focusLabel(block.focusDomain).toLowerCase();
     const body =
       focusEvidence.exclusionReason === 'missing_stimulus_metadata'
-        ? 'Hale saved the session summary, but it could not verify current primary-focus metadata for credit.'
-        : `Your A/B/C rotation, week completion, milestones, and retest timing did not move.`;
+        ? 'Hale saved the session, but could not confirm it was part of your current plan.'
+        : `Hale moves the ${focus} plan forward after a planned main exercise is completed.`;
     return {
-      eyebrow: `${kind} saved`,
+      eyebrow: 'Session saved',
       title: `${kind} saved.`,
-      subtitle: `Good work. Hale advances this block only after a planned primary ${focus} exercise is completed.`,
-      cardTitle: 'Main plan unchanged',
+      subtitle: 'This session was saved, but it did not move your main plan forward.',
+      cardEyebrow: 'Plan unchanged',
+      cardTitle: 'Your main plan is unchanged.',
       body,
     };
   }
 
   return {
     eyebrow: 'Session ended',
-    title: 'No training credit added.',
-    subtitle: 'Hale only counts a session when at least one planned primary-focus exercise is completed.',
-    cardTitle: 'Nothing to fix',
-    body: 'You can try again whenever you are ready. Keep support nearby and move comfortably.',
+    title: 'No plan credit added.',
+    subtitle: 'Nothing was saved to your main plan today.',
+    cardEyebrow: 'Try again when ready',
+    cardTitle: 'Nothing to fix.',
+    body: 'You can start another session when you are ready. Keep support nearby and move comfortably.',
   };
+}
+
+function savedToPlanSubtitle(lifeGoal?: LifeGoal | null): string {
+  if (!lifeGoal) return 'Today counted toward your 4-week plan.';
+  const goal = getLifeGoalDisplayText(lifeGoal);
+  if (lifeGoal.category === 'custom') return `Today counted toward your goal: ${goal}.`;
+  return `Today counted toward your goal to ${lowercaseFirst(goal)}.`;
+}
+
+function lowercaseFirst(value: string): string {
+  return value.length > 0 ? `${value[0].toLowerCase()}${value.slice(1)}` : value;
 }
 
 function nonCreditWorkKind(reason: string): string {
@@ -355,29 +353,8 @@ const styles = StyleSheet.create({
   sheetHead: {
     gap: spacing.xs,
   },
-  sheetMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
   sheetEyebrow: {
     ...type.label,
-    color: colors.accentDeep,
-  },
-  statusPill: {
-    minHeight: 28,
-    paddingHorizontal: spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.pill,
-    backgroundColor: colors.bgGold,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.goldBorder,
-  },
-  statusPillText: {
-    ...type.cardCaption,
-    fontFamily: fonts.sansMedium,
     color: colors.accentDeep,
   },
   sheetTitle: {
@@ -413,7 +390,6 @@ const styles = StyleSheet.create({
   },
   summaryBlock: {
     gap: spacing.xs,
-    paddingTop: spacing.md,
   },
   summaryDivider: {
     borderTopWidth: StyleSheet.hairlineWidth,

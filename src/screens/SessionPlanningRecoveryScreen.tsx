@@ -23,8 +23,8 @@ export function SessionPlanningRecoveryScreen({
   onCancel: () => void;
 }) {
   const content = copy ?? {
-    title: 'Hale could not safely prepare today\'s session.',
-    body: 'Your plan has not changed. Try again, or review your setup.',
+    title: 'Hale needs to check your setup.',
+    body: 'No workout started. This will not affect your progress.',
     primaryActionLabel: 'Try again',
   };
   return (
@@ -33,27 +33,17 @@ export function SessionPlanningRecoveryScreen({
       <ScreenHeader eyebrow="Session setup" title={content.title} subtitle={content.body} />
 
       <View style={styles.recoverySheet}>
-        <View style={styles.sheetHead}>
-          <View style={styles.sheetHeadCopy}>
-            <Text style={styles.sheetEyebrow}>Why this appeared</Text>
-            <Text style={styles.sheetTitle}>No workout was started</Text>
-          </View>
-          <View style={styles.statusPill}>
-            <Text style={styles.statusPillText}>Paused</Text>
-          </View>
+        <View style={styles.sheetHeadCopy}>
+          <Text style={styles.sheetTitle}>What to do next</Text>
         </View>
 
-        <View style={styles.copyStack}>
-          <Text style={styles.sheetBody}>{planningPauseExplanation(result)}</Text>
-          <Text style={styles.sheetBody}>
-            Your current block, history, and progress were kept unchanged.
-          </Text>
-        </View>
+        <View style={styles.sheetRule} />
 
-        <View style={styles.statusList}>
-          <StatusRow label="Workout" value="Not started" />
-          <View style={styles.divider} />
-          <StatusRow label="Plan and progress" value="Unchanged" />
+        <Text style={styles.sheetBody}>{nextStepExplanation(result)}</Text>
+
+        <View style={styles.reassurancePanel}>
+          <Text style={styles.reassuranceLabel}>Still saved</Text>
+          <Text style={styles.reassuranceText}>Your plan, progress, and history are unchanged.</Text>
         </View>
 
         <View style={styles.actions}>
@@ -67,36 +57,43 @@ export function SessionPlanningRecoveryScreen({
   );
 }
 
-function StatusRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.statusRow}>
-      <Text style={styles.statusLabel}>{label}</Text>
-      <Text style={styles.statusValue}>{value}</Text>
-    </View>
-  );
-}
-
-function planningPauseExplanation(result: Extract<HaleSessionPlanningResult, { kind: 'unavailable' }>): string {
+function nextStepExplanation(result: Extract<HaleSessionPlanningResult, { kind: 'unavailable' }>): string {
   switch (result.reason) {
     case 'no_safe_exercises':
-      return 'The current setup does not leave Hale with an exercise combination that fits today\'s constraints.';
+      return 'Today\'s choices leave too few suitable movements. Review your setup and try again.';
     case 'equipment_confirmation_required':
-      return 'Hale needs to confirm what equipment is available before preparing today\'s workout.';
     case 'equipment_changed_after_planning':
-      return 'Your equipment setup changed after this workout was prepared, so Hale needs to refresh it first.';
     case 'missing_equipment_snapshot':
     case 'legacy_plan_requires_refresh':
-      return 'This saved workout was prepared before Hale tracked equipment setup, so it needs a quick refresh.';
+      return 'Review your equipment so Hale knows what you have available.';
+    case 'daily_context_required':
+      return 'Tell Hale how you feel today before starting.';
+    case 'movement_capability_not_confirmed':
+    case 'movement_capability_changed':
+    case 'missing_movement_capability_snapshot':
+      return 'Review which movements feel safe, then Hale can choose the right option.';
     case 'exercise_level_not_available_in_controlled_beta':
     case 'missing_release_policy_snapshot':
     case 'unsupported_release_channel':
-      return 'This saved workout needs to be refreshed with a level that is available in the beta.';
+    case 'missing_progression_policy_snapshot':
+    case 'unsupported_progression_policy_schema':
+    case 'stale_progression_policy':
+    case 'effective_progression_level_mismatch':
+    case 'auto_progression_ceiling_exceeded':
+    case 'non_linear_progression_selection_invalid':
+      return 'Refresh the workout so Hale can choose a supported movement level.';
+    case 'missing_safety_cue_profile':
+    case 'unsupported_safety_cue_schema':
+    case 'missing_required_band_cues':
+    case 'missing_required_stop_rules':
+    case 'unresolved_safety_cue_id':
+      return 'Review your safety setup so Hale can use the current guidance.';
     case 'no_active_block':
-      return 'Hale needs an active 4-week plan before it can prepare today\'s workout.';
+      return 'Open your plan or start a check-up so Hale can prepare today\'s workout.';
     case 'legacy_only_state':
-      return 'Your previous plan needs to be refreshed before Hale can safely prepare today\'s workout.';
+      return 'Open your plan setup so Hale can prepare a current workout.';
     default:
-      return 'Hale could not prepare today\'s workout with enough confidence to start training.';
+      return 'Try again. If this keeps happening, review your setup.';
   }
 }
 
@@ -113,77 +110,41 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
     ...shadow.card,
-    boxShadow: '0 14px 34px rgba(17,20,18,0.045)',
-  },
-  sheetHead: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
+    boxShadow: '0 12px 30px rgba(17,20,18,0.04)',
   },
   sheetHeadCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: spacing.xs,
-  },
-  sheetEyebrow: {
-    ...type.label,
-    color: colors.accentDeep,
+    gap: spacing.sm,
   },
   sheetTitle: {
     fontFamily: fonts.serifMedium,
-    fontSize: 29,
-    lineHeight: 35,
+    fontSize: 25,
+    lineHeight: 31,
     letterSpacing: 0,
     color: colors.textPrimary,
   },
-  statusPill: {
-    minHeight: 32,
-    flexShrink: 0,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.pill,
-    backgroundColor: colors.bgGold,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.goldBorder,
-  },
-  statusPillText: {
-    ...type.cardCaption,
-    color: colors.accentDeep,
-    fontFamily: fonts.sansMedium,
+  sheetRule: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.borderHairline,
   },
   sheetBody: {
+    ...type.body,
+    color: colors.textSecondary,
+  },
+  reassurancePanel: {
+    gap: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    borderRadius: radius.input,
+    backgroundColor: colors.bgBase,
+  },
+  reassuranceLabel: {
+    ...type.label,
+    color: colors.textSecondary,
+  },
+  reassuranceText: {
     ...type.bodySmall,
-    color: colors.textSecondary,
-  },
-  copyStack: {
-    gap: spacing.sm,
-  },
-  statusList: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.divider,
-  },
-  statusRow: {
-    minHeight: 58,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  statusLabel: {
-    ...type.cardBody,
-    color: colors.textSecondary,
-  },
-  statusValue: {
-    ...type.cardRowTitle,
-    color: colors.accentDeep,
-    textAlign: 'right',
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.divider,
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
   },
   actions: {
     gap: spacing.md,

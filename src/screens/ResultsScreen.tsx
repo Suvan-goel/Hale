@@ -7,7 +7,6 @@ import * as React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
-import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
 import { CheckUp } from '../checkup/types';
 import { Card, PrimaryButton, Screen, SecondaryButton } from '../components/ui';
@@ -71,17 +70,18 @@ export function ResultsScreen({
 
   return (
     <Screen contentStyle={styles.screenContent}>
-      <BackArrowButton accessibilityLabel="Back from check-up results" onPress={onDone} style={styles.backButton} />
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Movement Check-Up</Text>
         <View style={styles.titleGroup}>
           <HeaderLogo size={30} />
-          <Text style={styles.title}>Your check-up results</Text>
+          <Text style={styles.title}>Your results</Text>
         </View>
         <Text style={styles.subtitle}>
           {planIsReady
-            ? 'Your latest check-up is saved. Your next plan is ready.'
-            : 'Hale measured your strength, balance, and mobility today. Here’s what to focus on next.'}
+            ? 'Your next plan is ready.'
+            : resultState.canCreateBlock && focusLabel
+            ? 'Hale found one clear place to focus next.'
+            : 'Hale needs a clearer result before building your plan.'}
         </Text>
       </View>
 
@@ -89,16 +89,11 @@ export function ResultsScreen({
         <View style={styles.focusTopRow}>
           <Text style={styles.focusKicker}>
             {planIsReady
-              ? 'Next plan ready'
+              ? 'Next plan'
               : resultState.canCreateBlock && focusLabel
-                ? 'Your main focus'
+                ? 'Suggested focus'
                 : 'Retake needed'}
           </Text>
-          <View style={styles.focusPill}>
-            <Text style={styles.focusPillText}>
-              {planIsReady ? 'Ready' : resultState.canCreateBlock && focusLabel ? 'Next plan' : 'Review'}
-            </Text>
-          </View>
         </View>
         <Text style={styles.focusValue}>
           {resultState.canCreateBlock && focusLabel
@@ -109,21 +104,21 @@ export function ResultsScreen({
         </Text>
         <Text style={styles.focusBody}>
           {planIsReady && focusLabel
-            ? readyPlanFocusBody(focusLabel, closelyMatched)
+            ? readyPlanFocusBody(focusLabel)
             : resultState.canCreateBlock && focusLabel
             ? closelyMatched
-              ? `${focusLabel} is where Hale will start, while still keeping the other areas in view.`
-              : 'Hale will use this to build your next 4-week plan.'
+              ? `${focusLabel} is where your next plan will start. The other areas stay included.`
+              : 'Your next plan will start here and still include the other areas.'
             : resultState.recoveryBody}
         </Text>
       </View>
 
       <View style={styles.resultsIntro}>
-        <Text style={styles.sectionTitle}>Your three areas</Text>
+        <Text style={styles.sectionTitle}>The three areas</Text>
         <Text style={styles.sectionSubtle}>
           {comparisonRange
-            ? 'Each area compares your latest check-up result with your age group.'
-            : 'Each area shows your latest check-up result. Add your age range to compare by age group.'}
+            ? 'Beta estimates compared with your age group.'
+            : 'Add your age range to compare with your age group.'}
         </Text>
       </View>
 
@@ -148,10 +143,12 @@ export function ResultsScreen({
         </Card>
       )}
 
-      <Card style={styles.trendCard}>
-        <Text style={styles.sectionTitle}>Changes over time</Text>
-        <Text style={styles.sectionSubtle}>{trendSummaryCopy(trends)}</Text>
-      </Card>
+      {trends.length > 0 ? (
+        <Card style={styles.trendCard}>
+          <Text style={styles.sectionTitle}>Changes over time</Text>
+          <Text style={styles.sectionSubtle}>{trendSummaryCopy(trends)}</Text>
+        </Card>
+      ) : null}
 
       {showViewPlanAction || showRetakeAction ? (
         <View style={styles.actions}>
@@ -264,18 +261,15 @@ function tiedDomainLabels(focusSelection: ScoreFocusSelection | null | undefined
   return focusSelection.tiedDomains.map((domain) => DOMAIN_LABEL[domain]).join(' + ');
 }
 
-function readyPlanFocusBody(focusLabel: string, closelyMatched: boolean): string {
-  if (closelyMatched) {
-    return `Your next plan is ready. Hale will start with ${focusLabel.toLowerCase()} and still include the other areas.`;
-  }
-  return `Your next plan is ready with ${focusLabel.toLowerCase()} as the main focus.`;
+function readyPlanFocusBody(focusLabel: string): string {
+  return `Your plan starts with ${focusLabel.toLowerCase()} and still includes the other areas.`;
 }
 
 function domainSimpleBody(domain: DomainResult): string {
-  if (!domain.measured) return 'Hale needs another check-up to estimate this area.';
-  if (domain.domain === 'strength') return 'Based on your chair stands.';
-  if (domain.domain === 'balance') return 'Based on your balance hold.';
-  return 'Based on your reach movement.';
+  if (!domain.measured) return 'Retake this section to estimate it.';
+  if (domain.domain === 'strength') return 'Measured from your chair stands.';
+  if (domain.domain === 'balance') return 'Measured from your balance hold.';
+  return 'Measured from your shoulder reach.';
 }
 
 function primaryMetricForDomain(domain: DomainResult): DomainResult['rows'][number] | null {
@@ -313,12 +307,12 @@ function ageComparisonRange(age: number | null, ageBand: AgeBand | null): AgeCom
 
 function domainAgeComparisonLabel(domain: DomainResult, ageRange: AgeComparisonRange | null): string {
   if (!domain.measured || !Number.isFinite(domain.ageLow) || !Number.isFinite(domain.ageHigh)) {
-    return 'Not enough data yet';
+    return 'Needs a retake';
   }
   if (!ageRange) return 'Add age range to compare';
-  if (domain.ageHigh < ageRange.low) return 'Above usual range for your age';
-  if (domain.ageLow > ageRange.high) return 'Below usual range for your age';
-  return 'Within usual range for your age';
+  if (domain.ageHigh < ageRange.low) return 'Ahead of your age group';
+  if (domain.ageLow > ageRange.high) return 'Could use support for your age group';
+  return 'In range for your age group';
 }
 
 function trendSummaryCopy(trends: MetricTrend[]): string {
@@ -327,20 +321,17 @@ function trendSummaryCopy(trends: MetricTrend[]): string {
   }
   const changed = trends.filter((trend) => Math.abs(trend.delta ?? 0) > 1e-9);
   if (changed.length === 0) {
-    return 'No clear change yet. Hale will compare your results after future check-ups.';
+    return 'No clear change yet.';
   }
   if (changed.length === 1) {
-    return `${changed[0].label} has changed since your last check-up. Hale will keep watching the pattern.`;
+    return `${changed[0].label} changed since your last check-up.`;
   }
-  return `${changed.length} measurements have changed since your last check-up. Hale will keep watching the pattern.`;
+  return `${changed.length} measurements changed since your last check-up.`;
 }
 
 const styles = StyleSheet.create({
   screenContent: {
     gap: 20,
-  },
-  backButton: {
-    marginBottom: -spacing.md,
   },
   header: { gap: spacing.sm, paddingTop: spacing.xs },
   eyebrow: {
@@ -377,10 +368,9 @@ const styles = StyleSheet.create({
     boxShadow: `0 18px 38px ${colors.shadowSoft}`,
   },
   focusTopRow: {
-    minHeight: 32,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     gap: spacing.md,
   },
   focusKicker: {
@@ -388,22 +378,6 @@ const styles = StyleSheet.create({
     color: colors.accentDeep,
     fontSize: 11,
     lineHeight: 16,
-  },
-  focusPill: {
-    minHeight: 30,
-    justifyContent: 'center',
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 5,
-    backgroundColor: colors.bgGold,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.goldBorder,
-  },
-  focusPillText: {
-    ...type.cardCaption,
-    color: colors.accentDeep,
-    fontFamily: fonts.sansMedium,
-    textAlign: 'center',
   },
   focusValue: {
     fontFamily: fonts.serifMedium,

@@ -166,7 +166,7 @@ describe('Hale V1 onboarding results and equipment', () => {
 
     expect(onboardingFocusDomain(score)).toBe('balance_stability');
     expect(onboardingDomainSummaries(score).map((summary) => summary.title)).toEqual([
-      'Strength / Power',
+      'Strength & Power',
       'Balance',
       'Mobility',
     ]);

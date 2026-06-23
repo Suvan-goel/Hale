@@ -511,6 +511,7 @@ function HaleApp() {
   const [flow, setFlow] = React.useState<Flow | null>(() =>
     TEMP_PREVIEW_BLOCK_INTRO_SCREEN ? 'block-intro' : null
   );
+  const [progressHistoryOpen, setProgressHistoryOpen] = React.useState(false);
   const [cameraSetupEntry, setCameraSetupEntry] =
     React.useState<CameraSetupEntry>('checkup');
   const [lifeGoalEntry, setLifeGoalEntry] =
@@ -3527,7 +3528,6 @@ function HaleApp() {
             lifeGoal={prefs.profile.lifeGoal}
             completion={lastCompletion}
             validTimeSummaries={validTimeSessionSummaryCards(lastSessionResult)}
-            onMicroCheck={() => setFlow('microcheck')}
             onFeedback={handleSessionFeedback}
             onDone={goHome}
           />
@@ -3598,6 +3598,7 @@ function HaleApp() {
   // Tab shell.
   const activeTab = normalizeTabKey(tab);
   const activeTabScreen = getTabDef(activeTab).screen;
+  const showTabBar = !(activeTabScreen === 'ProgressScreen' && progressHistoryOpen);
 
   return (
     <View style={styles.container}>
@@ -3645,6 +3646,8 @@ function HaleApp() {
             onStartRetest={() => beginCheckUp('official_retest')}
             onViewLatest={devMockData ? () => undefined : viewLast}
             onViewCheckUp={devMockData ? () => undefined : viewHistoricalCheckUp}
+            historyOpen={progressHistoryOpen}
+            onHistoryOpenChange={setProgressHistoryOpen}
             onOpenSettings={goSettings}
           />
         ) : activeTabScreen === 'ExploreScreen' ? (
@@ -3669,7 +3672,7 @@ function HaleApp() {
         )}
       </View>
 
-      <TabBar active={activeTab} onChange={setTab} />
+      {showTabBar ? <TabBar active={activeTab} onChange={setTab} /> : null}
     </View>
   );
 }

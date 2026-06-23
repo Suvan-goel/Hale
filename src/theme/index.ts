@@ -203,7 +203,7 @@ export const spacing = {
   xl: 24,
   xxl: 32,
   xxxl: 40,
-  pageTop: 32,
+  pageTop: 40,
   pageHorizontal: 18,
   pageMaxWidth: 430,
   huge: 56,

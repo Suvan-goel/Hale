@@ -77,9 +77,27 @@ export function ProgressScreen({
   onStartRetest,
   onViewLatest,
   onViewCheckUp,
+  historyOpen: controlledHistoryOpen,
+  onHistoryOpenChange,
   onOpenSettings,
 }: ProgressScreenProps) {
-  const [historyOpen, setHistoryOpen] = React.useState(false);
+  const [uncontrolledHistoryOpen, setUncontrolledHistoryOpen] = React.useState(false);
+  const historyOpen = controlledHistoryOpen ?? uncontrolledHistoryOpen;
+
+  React.useEffect(() => {
+    return () => onHistoryOpenChange?.(false);
+  }, [onHistoryOpenChange]);
+
+  const setHistoryOpen = React.useCallback(
+    (open: boolean) => {
+      if (controlledHistoryOpen === undefined) {
+        setUncontrolledHistoryOpen(open);
+      }
+      onHistoryOpenChange?.(open);
+    },
+    [controlledHistoryOpen, onHistoryOpenChange]
+  );
+
   const visibleHistory = history;
   const visibleAssessments = assessments;
   const visibleActiveBlock = activeBlock;
@@ -277,6 +295,8 @@ interface ProgressScreenProps {
   onStartRetest: () => void;
   onViewLatest: () => void;
   onViewCheckUp: (checkUpId: string) => void;
+  historyOpen?: boolean;
+  onHistoryOpenChange?: (open: boolean) => void;
   onOpenSettings: () => void;
 }
 

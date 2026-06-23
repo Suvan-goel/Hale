@@ -15,7 +15,7 @@ export function onboardingDomainSummaries(score: CheckUpScore | null): Onboardin
   return [
     {
       key: 'strength_power',
-      title: 'Strength / Power',
+      title: 'Strength & Power',
       band: bandForDomain(domain('strength')),
     },
     {

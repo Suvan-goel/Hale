@@ -47,7 +47,7 @@ type VoiceCatalogOption = (typeof VOICE_OPTIONS)[number];
 
 const SECTION_COPY: Record<ProfileSection, { title: string; subtitle: string }> = {
   details: {
-    title: 'Your Details',
+    title: 'Your Profile',
     subtitle: 'Update your name, age range, and movement goal.',
   },
   safety: {
@@ -130,10 +130,10 @@ function SettingsScreenContent({
   const voicePreviewRef = React.useRef<VoiceChannel | null>(null);
   const available = profile.safetyProfile?.availableEquipment ?? ['chair', 'wall'];
   const displayName = profile.name.trim() || 'Your details';
-  const profileAgeLabel = ageDisplayLabel(null, selectedAgeBand);
   const goalText =
     profile.goal.trim() ||
     (profile.lifeGoal ? getLifeGoalDisplayText(profile.lifeGoal) : 'Set a movement goal');
+  const profileGoalText = goalContinuationText(goalText);
   const currentVoice = getVoice(settings.voiceId);
   const effortLabel = startingEffortLabel(startingEffort);
   const planSummary = `${preferredDaysSummary(preferredDays)} · ${effortLabel}`;
@@ -188,13 +188,6 @@ function SettingsScreenContent({
     if (openSection === 'details') {
       return (
         <>
-          <DetailOverview
-            icon="account"
-            title={displayName}
-            body="Name is used for greetings. Age range and goal help Hale use plain, personal wording."
-            meta={profileAgeLabel}
-          />
-
           <PersonalDetailsCard
             name={name}
             onNameChange={setName}
@@ -459,18 +452,13 @@ function SettingsScreenContent({
           <ProfileDetailsGlyph />
         </View>
         <View style={styles.profileCopy}>
-          <View style={styles.profileNameRow}>
-            <Text style={styles.profileName} numberOfLines={1}>
-              {displayName}
-            </Text>
-          </View>
-          <Text style={styles.profileAge}>
-            {profileAgeLabel}
+          <Text style={styles.profileName} numberOfLines={1}>
+            {displayName}
           </Text>
-          <View style={styles.goalBlock}>
-            <Text style={styles.goalLabel}>Movement goal</Text>
-            <Text style={styles.goalText} numberOfLines={2}>
-              {goalText}
+          <View style={styles.profileGoalBlock}>
+            <Text style={styles.profileGoalPrompt}>I want to</Text>
+            <Text style={styles.profileGoalText} numberOfLines={2}>
+              {profileGoalText}
             </Text>
           </View>
         </View>
@@ -916,24 +904,16 @@ function PersonalDetailsCard({
 }) {
   return (
     <View style={styles.personalCard}>
-      <View style={styles.personalCardHeader}>
-        <View style={styles.personalCardHeaderCopy}>
-          <Text style={styles.personalCardTitle}>Your details</Text>
-          <Text style={styles.personalCardBody}>
-            Hale uses these details to personalize your plan and explain your results. You only need to choose an age range.
-          </Text>
-        </View>
-        <View style={styles.personalCardIcon}>
-          <MenuIcon name="account" />
-        </View>
+      <View style={styles.personalCardIntro}>
+        <Text style={styles.personalCardTitle}>Details</Text>
+        <Text style={styles.personalCardDescription}>
+          Hale uses these details to personalize your plan and explain your results. You only need to choose an age range.
+        </Text>
       </View>
 
       <View style={styles.personalFieldGroup}>
         <View style={styles.personalIdentityPanel}>
           <View style={styles.personalIdentityRow}>
-            <View style={styles.personalIdentityMark}>
-              <NameFieldGlyph />
-            </View>
             <View style={styles.personalNameField}>
               <Text style={styles.personalFieldLabel}>Name</Text>
               <TextInput
@@ -950,7 +930,6 @@ function PersonalDetailsCard({
               />
             </View>
           </View>
-          <Text style={styles.personalIdentityHint}>Hale uses this for greetings.</Text>
         </View>
 
         <View style={styles.personalAgeRangePanel}>
@@ -1018,21 +997,6 @@ function personalAgeRangeSummary(ageBand: AgeBand | null): string {
   if (label === 'Age not set') return 'Not set';
   if (label === 'Age under 45') return 'Under 45';
   return label.replace(/^Age\s/, '');
-}
-
-function NameFieldGlyph() {
-  return (
-    <Svg width={27} height={27} viewBox="0 0 32 32" fill="none" accessibilityElementsHidden>
-      <Circle cx={16} cy={11.2} r={5.2} stroke={colors.accentDeep} strokeWidth={2.2} />
-      <Path
-        d="M7.4 25.4 C9.3 19.7, 12.5 17.2, 16 17.2 C19.5 17.2, 22.7 19.7, 24.6 25.4"
-        stroke={colors.accentDeep}
-        strokeWidth={2.2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
 }
 
 function SetupActionTile({
@@ -1328,6 +1292,13 @@ function equipmentSummary({
   return `${base} + ${optionalCount} optional`;
 }
 
+function goalContinuationText(goal: string): string {
+  const trimmed = goal.trim();
+  const withoutPrompt = trimmed.replace(/^i\s+want\s+to\s+/i, '').replace(/^to\s+/i, '');
+  if (!withoutPrompt) return trimmed;
+  return withoutPrompt.charAt(0).toLocaleLowerCase() + withoutPrompt.slice(1);
+}
+
 function ProfileDetailsGlyph() {
   return (
     <Svg width={38} height={38} viewBox="0 0 64 64" fill="none">
@@ -1507,39 +1478,31 @@ const styles = StyleSheet.create({
   profileCopy: {
     flex: 1,
     minWidth: 0,
-  },
-  profileNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+    gap: 7,
   },
   profileName: {
-    ...type.cardRowTitle,
-    flex: 1,
-    color: colors.primaryText,
-  },
-  profileAge: {
-    ...type.cardBody,
-    marginTop: 3,
-    color: colors.primaryText,
-  },
-  goalBlock: {
-    gap: 1,
-    marginTop: spacing.sm,
-  },
-  goalLabel: {
-    fontSize: 11,
-    lineHeight: 15,
+    fontFamily: fonts.serifMedium,
+    fontSize: 25,
+    lineHeight: 31,
     letterSpacing: 0,
+    color: colors.primaryText,
+  },
+  profileGoalBlock: {
+    gap: 2,
+  },
+  profileGoalPrompt: {
     fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0,
     color: colors.accentDeep,
   },
-  goalText: {
+  profileGoalText: {
     fontFamily: fonts.sansRegular,
     fontSize: 15,
-    lineHeight: 20,
+    lineHeight: 21,
     letterSpacing: 0,
-    color: colors.primaryText,
+    color: colors.textSecondary,
   },
   menuCard: {
     overflow: 'hidden',
@@ -1925,44 +1888,28 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgSurface,
     ...shadow.card,
   },
-  personalCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-  },
-  personalCardHeaderCopy: {
-    flex: 1,
-    minWidth: 0,
+  personalCardIntro: {
     gap: spacing.xs,
   },
   personalCardTitle: {
     ...type.cardTitle,
     color: colors.primaryText,
   },
-  personalCardBody: {
+  personalCardDescription: {
     ...type.cardBody,
     color: colors.textSecondary,
-  },
-  personalCardIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.input,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.background,
   },
   personalFieldGroup: {
     gap: spacing.md,
   },
   personalIdentityPanel: {
-    minHeight: 116,
     borderRadius: radius.panel,
     borderWidth: 1,
-    borderColor: colors.goldBorder,
+    borderColor: colors.borderHairline,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    backgroundColor: colors.bgGold,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+    backgroundColor: 'transparent',
     overflow: 'hidden',
   },
   personalIdentityRow: {
@@ -1970,31 +1917,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
-  personalIdentityMark: {
-    width: 52,
-    height: 52,
-    borderRadius: radius.input,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.goldBorder,
-    backgroundColor: colors.bgSurface,
-  },
   personalNameField: {
     flex: 1,
     minWidth: 0,
     justifyContent: 'center',
-  },
-  personalIdentityHint: {
-    marginTop: spacing.md,
-    paddingTop: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.goldBorder,
-    fontFamily: fonts.sansRegular,
-    fontSize: 14,
-    lineHeight: 20,
-    letterSpacing: 0,
-    color: colors.textSecondary,
   },
   personalAgeRangePanel: {
     borderRadius: radius.card,
@@ -2029,13 +1955,15 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   personalFieldInput: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 22,
-    lineHeight: 28,
+    fontFamily: fonts.serifRegular,
+    fontSize: 20,
+    lineHeight: 25,
     letterSpacing: 0,
-    minHeight: 38,
+    minHeight: 26,
     padding: 0,
-    marginTop: 3,
+    paddingVertical: 0,
+    includeFontPadding: false,
+    marginTop: 1,
     color: colors.primaryText,
     backgroundColor: 'transparent',
   },

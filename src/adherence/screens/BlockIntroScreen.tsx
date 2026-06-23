@@ -1,16 +1,13 @@
 import * as React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Button, Card, PrimaryButton, Screen, ScreenHeader, StatusBadge } from '../../components/ui';
+import { Button, Card, PrimaryButton, Screen, ScreenHeader } from '../../components/ui';
 import { colors, fonts, radius, spacing, type } from '../../theme';
-import { getBlockPurposeCopy, retestCountdownCopy } from '../adherenceCopy';
-import { daysUntil } from '../dateUtils';
-import { domainLabel, getLifeGoalDisplayText } from '../goalDomainMapping';
+import { domainLabel } from '../goalDomainMapping';
 import type { LifeGoal, MovementBlock } from '../types';
 
 export function BlockIntroScreen({
   block,
-  lifeGoal,
   onStartSession,
   onDone,
 }: {
@@ -19,34 +16,21 @@ export function BlockIntroScreen({
   onStartSession: () => void;
   onDone: () => void;
 }) {
-  const nowIso = new Date().toISOString();
   const focus = domainLabel(block.focusDomain);
-  const goal = getLifeGoalDisplayText(lifeGoal);
-  const retestMetric = getRetestMetric(Math.max(0, daysUntil(block.retestDate, nowIso)));
 
   return (
     <Screen contentStyle={styles.screenContent}>
       <ScreenHeader
-        eyebrow="4-week block"
-        title="Your block is ready"
-        subtitle={getBlockPurposeCopy(block, lifeGoal)}
+        eyebrow="4-week plan"
+        title="Your 4-week plan is ready"
+        subtitle="Hale built this from your latest check-up, your goal, and your home setup."
       />
 
       <Card style={styles.planCard}>
-        <View style={styles.cardHeader}>
-          <View style={styles.cardHeaderCopy}>
-            <Text style={styles.label}>Built around your goal</Text>
-            <Text style={styles.planLabel}>{focus} focus</Text>
-            <Text style={styles.goal}>{goal}</Text>
-          </View>
-          <StatusBadge label="Ready" tone="good" />
-        </View>
-
         <View style={styles.focusPanel}>
-          <Text style={styles.focusTitle}>A steady starter rhythm</Text>
-          <Text style={styles.focusBody}>
-            Starts with your highlighted area, then keeps each week simple to repeat.
-          </Text>
+          <Text style={styles.sectionLabel}>Main focus</Text>
+          <Text style={styles.focusTitle}>{focus}</Text>
+          <Text style={styles.focusBody}>{focusBenefitCopy(block.focusDomain)}</Text>
         </View>
 
         <View style={styles.rhythmSection}>
@@ -55,21 +39,28 @@ export function BlockIntroScreen({
             <PlanMetric
               value={String(block.sessionsPerWeekTarget)}
               label="Sessions each week"
-              detail="A steady weekly pace."
+              detail="Hale will talk you through each one."
             />
             <View style={styles.metricRule} />
             <PlanMetric
-              value={String(block.totalPlannedSessions)}
-              label="Sessions total"
-              detail="Over 4 weeks."
+              value="20"
+              label="Minutes each session"
+              detail="About 20 minutes. Short enough to repeat."
             />
             <View style={styles.metricRule} />
             <PlanMetric
-              value={retestMetric.value}
-              label={retestMetric.label}
-              detail={retestCountdownCopy(block, nowIso)}
+              value="4"
+              label="Weeks before next check-up"
+              detail="Repeat the same check-up to see what changed."
             />
           </View>
+        </View>
+
+        <View style={styles.helpPanel}>
+          <Text style={styles.helpTitle}>If something does not feel right</Text>
+          <Text style={styles.helpBody}>
+            Before a session starts, you can make it shorter, gentler, or use less equipment.
+          </Text>
         </View>
       </Card>
 
@@ -81,10 +72,14 @@ export function BlockIntroScreen({
   );
 }
 
-function getRetestMetric(days: number): { value: string; label: string } {
-  if (days === 0) return { value: 'Now', label: 'Re-test ready' };
-  if (days === 1) return { value: '1', label: 'Day to re-test' };
-  return { value: String(days), label: 'Days to re-test' };
+function focusBenefitCopy(domain: MovementBlock['focusDomain']): string {
+  if (domain === 'balance') {
+    return 'Your sessions will practice steadier movement for stairs, turns, curbs, and uneven ground.';
+  }
+  if (domain === 'mobility') {
+    return 'Your sessions will practice reaching, bending, dressing, and moving comfortably.';
+  }
+  return 'Your sessions will practice standing from a chair, stairs, carrying, and everyday strength.';
 }
 
 function PlanMetric({ value, label, detail }: { value: string; label: string; detail: string }) {
@@ -115,39 +110,8 @@ const styles = StyleSheet.create({
     borderColor: colors.borderHairline,
     boxShadow: '0 12px 30px rgba(17,20,18,0.045)',
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  cardHeaderCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: spacing.xs,
-  },
-  label: {
-    ...type.label,
-    color: colors.accentDeep,
-  },
-  planLabel: {
-    ...type.caption,
-    color: colors.textSecondary,
-    fontFamily: fonts.sansMedium,
-  },
-  goal: {
-    fontFamily: fonts.serifMedium,
-    fontSize: 29,
-    lineHeight: 35,
-    letterSpacing: 0,
-    color: colors.textPrimary,
-    marginTop: spacing.sm,
-  },
   focusPanel: {
     gap: spacing.sm,
-    paddingTop: spacing.lg,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.divider,
   },
   focusTitle: {
     fontFamily: fonts.serifMedium,
@@ -212,6 +176,21 @@ const styles = StyleSheet.create({
   },
   metricDetail: {
     ...type.cardCaption,
+    color: colors.textSecondary,
+  },
+  helpPanel: {
+    gap: spacing.xs,
+    paddingTop: spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
+  },
+  helpTitle: {
+    ...type.bodySmall,
+    color: colors.primaryText,
+    fontFamily: fonts.sansMedium,
+  },
+  helpBody: {
+    ...type.caption,
     color: colors.textSecondary,
   },
   actions: {

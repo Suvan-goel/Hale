@@ -674,7 +674,7 @@ describe('planTodayHaleSession', () => {
     expect(validation.status).toBe('equipment_changed');
     const recovery = staleEquipmentPlanningResult({ plan, validation });
     expect(recovery.reason).toBe('equipment_changed_after_planning');
-    expect(getSessionPlanningRecoveryCopy(recovery)?.body).toContain('equipment setup changed');
+    expect(getSessionPlanningRecoveryCopy(recovery)?.title).toContain('quick refresh');
   });
 
   it('invalidates unstarted plans when movement capability confirmations change', () => {
@@ -708,7 +708,7 @@ describe('planTodayHaleSession', () => {
     expect(validation.status).toBe('capability_changed');
     const recovery = staleMovementCapabilityPlanningResult({ plan, validation });
     expect(recovery.reason).toBe('movement_capability_changed');
-    expect(getSessionPlanningRecoveryCopy(recovery)?.body).toContain('movement setup changed');
+    expect(getSessionPlanningRecoveryCopy(recovery)?.title).toContain('movement setup');
   });
 
   it('stamps and validates safety cue snapshots before an unstarted plan can begin', () => {
@@ -743,7 +743,7 @@ describe('planTodayHaleSession', () => {
     expect(validation.status).toBe('missing_required_stop_rules');
     const recovery = staleSafetyCuePlanningResult({ plan: stalePlan, validation });
     expect(recovery.reason).toBe('missing_required_stop_rules');
-    expect(getSessionPlanningRecoveryCopy(recovery)?.body).toContain('current setup and stop rules');
+    expect(getSessionPlanningRecoveryCopy(recovery)?.title).toContain('safety setup');
   });
 
   it('stamps and validates release policy snapshots before an unstarted plan can begin', () => {
@@ -776,7 +776,7 @@ describe('planTodayHaleSession', () => {
     expect(validation.status).toBe('exercise_level_not_available_in_controlled_beta');
     const recovery = staleReleasePolicyPlanningResult({ plan: stalePlan, validation });
     expect(recovery.reason).toBe('exercise_level_not_available_in_controlled_beta');
-    expect(getSessionPlanningRecoveryCopy(recovery)?.body).toContain('supported level');
+    expect(getSessionPlanningRecoveryCopy(recovery)?.title).toContain('quick refresh');
   });
 
   it('requires a release policy snapshot on current plans', () => {
@@ -844,7 +844,7 @@ describe('planTodayHaleSession', () => {
     expect(staleValidation.status).toBe('stale_progression_policy');
     const recovery = staleProgressionPolicyPlanningResult({ plan: stalePlan, validation: staleValidation });
     expect(recovery.reason).toBe('stale_progression_policy');
-    expect(getSessionPlanningRecoveryCopy(recovery)?.body).toContain('supported level');
+    expect(getSessionPlanningRecoveryCopy(recovery)?.title).toContain('quick refresh');
   });
 
   it('fails closed when generated exercise IDs are unsupported', () => {
@@ -880,7 +880,7 @@ describe('planTodayHaleSession', () => {
     expect(result.recoveryActions).toContain('create_block');
     expect(sessionPlanFromPlanningResult(result)).toBeNull();
     const copy = getSessionPlanningRecoveryCopy(result);
-    expect(copy?.title).toContain('active current plan');
+    expect(copy?.title).toContain('current plan');
     expect(`${copy?.title} ${copy?.body}`.toLowerCase()).not.toMatch(/corrupt|lost|failure|streak/);
   });
 

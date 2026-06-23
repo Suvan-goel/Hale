@@ -58,17 +58,18 @@ export function OnboardingResultsScreen({
         <ScreenHeader
           eyebrow="Check-up complete"
           title="Your starting point"
-          subtitle="Hale used today's check-up to choose the first area to work on."
+          subtitle={
+            resultState.canCreateBlock
+              ? 'Hale found one clear place to begin your first plan.'
+              : 'Hale needs a clearer result before building your plan.'
+          }
         />
       </View>
 
       {focus ? (
         <View style={styles.focusCard}>
           <View style={styles.focusTopRow}>
-            <Text style={styles.eyebrow}>First area to work on</Text>
-            <View style={styles.focusPill}>
-              <Text style={styles.focusPillText}>From today's check-up</Text>
-            </View>
+            <Text style={styles.eyebrow}>First focus</Text>
           </View>
           <Text style={styles.focusTitle}>
             {onboardingFocusCopy(focus)}
@@ -76,10 +77,10 @@ export function OnboardingResultsScreen({
           <View style={styles.focusRule} />
           <Text style={styles.focusBody}>
             {closelyMatched && focusDiffersFromScore
-              ? 'These areas were close together, so Hale chose the one that best supports your goal.'
+              ? 'A few areas were close, so Hale chose the focus that best supports your goal.'
               : closelyMatched
-              ? 'These areas were close together, so Hale chose one clear place to start.'
-              : 'This is where Hale will start. Your first 4-week plan will focus on this area while still supporting your whole body.'}
+              ? 'A few areas were close, so Hale chose one place to start.'
+              : 'Your first plan will start here and still include the other areas.'}
           </Text>
         </View>
       ) : (
@@ -99,7 +100,7 @@ export function OnboardingResultsScreen({
               icon={ICONS[domain.key]}
               title={domain.title}
               band={bandLabel(domain.band)}
-              status={focus && domain.key === focus ? 'First focus' : closelyMatched && domainIsTied(domain.key, focusSelection) ? 'Close result' : 'Checked today'}
+              status={focus && domain.key === focus ? 'First focus' : closelyMatched && domainIsTied(domain.key, focusSelection) ? 'Close result' : 'Checked'}
               featured={!!focus && domain.key === focus}
             />
           ))}
@@ -110,13 +111,10 @@ export function OnboardingResultsScreen({
         <View style={styles.nextCard}>
           <View style={styles.noteHead}>
             <Text style={styles.nextTitle}>What happens next</Text>
-            <View style={styles.nextPill}>
-              <Text style={styles.nextPillText}>4-week plan</Text>
-            </View>
           </View>
           <View style={styles.nextRule} />
           <Text style={styles.nextBody}>
-            Hale will give you three guided sessions each week. After 4 weeks, you will repeat the check-up to see what has changed.
+            Three guided sessions each week. In 4 weeks, you'll repeat the check-up and compare what changed.
           </Text>
         </View>
       ) : null}
@@ -192,30 +190,15 @@ const styles = StyleSheet.create({
     boxShadow: '0 12px 30px rgba(17,20,18,0.04)',
   },
   focusTopRow: {
-    minHeight: 30,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     gap: spacing.md,
   },
   eyebrow: {
     ...type.label,
     color: colors.textSecondary,
     flexShrink: 1,
-  },
-  focusPill: {
-    minHeight: 30,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.pill,
-    backgroundColor: colors.bgBase,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-  },
-  focusPillText: {
-    ...type.caption,
-    fontFamily: fonts.sansMedium,
-    color: colors.accentDeep,
   },
   focusTitle: {
     fontFamily: fonts.serifMedium,
@@ -325,20 +308,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     color: colors.textPrimary,
     flexShrink: 1,
-  },
-  nextPill: {
-    minHeight: 34,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.pill,
-    backgroundColor: colors.bgBase,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-  },
-  nextPillText: {
-    ...type.bodySmall,
-    fontFamily: fonts.sansMedium,
-    color: colors.accentDeep,
   },
   nextRule: {
     height: StyleSheet.hairlineWidth,
