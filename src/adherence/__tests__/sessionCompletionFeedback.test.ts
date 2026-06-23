@@ -4,7 +4,7 @@ import type {
   TrainingFocusStimulusPlanStatus,
   TrainingSessionCompletion,
 } from '../types';
-import { focusStimulusPreviewCopy } from '../../screens/SessionPreviewScreen';
+import { focusStimulusPreviewCopy, sessionPreviewTitle } from '../../screens/SessionPreviewScreen';
 import { buildSessionFeedback, sessionCompletionCopy } from '../screens/SessionCompletionScreen';
 import type { HaleSessionPlan } from '../../haleFlow';
 
@@ -90,11 +90,38 @@ describe('session completion and preview credit copy', () => {
   });
 
   it('explains non-credit preview states before a block-generated session starts', () => {
-    expect(focusStimulusPreviewCopy(plan('no_primary_focus_planned'))).toContain('could not include a safe primary');
-    expect(focusStimulusPreviewCopy(plan('focus_mismatch'))).toContain('does not match');
-    expect(focusStimulusPreviewCopy(plan('missing_stimulus_metadata'))).toContain('cannot verify');
+    expect(focusStimulusPreviewCopy(plan('no_primary_focus_planned'))).toContain('could not safely include');
+    expect(focusStimulusPreviewCopy(plan('focus_mismatch'))).toContain('different from your main');
+    expect(focusStimulusPreviewCopy(plan('missing_stimulus_metadata'))).toContain('cannot confirm');
     expect(focusStimulusPreviewCopy(plan('eligible', true))).toBeNull();
-    expect(focusStimulusPreviewCopy(plan('eligible', true, 'hold_only'))).toContain('adjusted today');
+    expect(focusStimulusPreviewCopy(plan('eligible', true, 'hold_only'))).toBeNull();
+    expect(focusStimulusPreviewCopy(plan('eligible', true, 'hold_only', 'shorter'))).toBe(
+      'Hale has shortened today\'s session.'
+    );
+    expect(focusStimulusPreviewCopy(plan('eligible', true, 'hold_only', 'gentler'))).toBe(
+      'Hale has made today\'s session gentler.'
+    );
+    expect(focusStimulusPreviewCopy(plan('eligible', true, 'hold_only', 'something_hurts'))).toBe(
+      'Hale has adjusted today\'s session to be more careful.'
+    );
+    expect(focusStimulusPreviewCopy(plan('eligible', true, 'normal', 'no_equipment'))).toBe(
+      'Hale has adjusted today\'s session for the setup you have today.'
+    );
+  });
+
+  it('uses the selected workout name for session preview titles', () => {
+    const standardPlan = plan('eligible', true);
+    expect(sessionPreviewTitle(standardPlan)).toBe('Strength Session A');
+
+    const presetPlan = plan('eligible', true);
+    presetPlan.title = 'Quick Full-Body Hale Session';
+    presetPlan.metadata = {
+      ...presetPlan.metadata!,
+      source: 'preset',
+      templateId: 'preset-quick-full-body',
+    };
+
+    expect(sessionPreviewTitle(presetPlan)).toBe('Quick Full Body');
   });
 });
 
@@ -189,7 +216,8 @@ function copyFor(block: MovementBlock, completion: TrainingSessionCompletion) {
 function plan(
   status: TrainingFocusStimulusPlanStatus,
   mainPlanCreditPotential = false,
-  progressionEvidencePolicy: NonNullable<HaleSessionPlan['metadata']>['progressionEvidencePolicy'] = 'normal'
+  progressionEvidencePolicy: NonNullable<HaleSessionPlan['metadata']>['progressionEvidencePolicy'] = 'normal',
+  userAdjustment: NonNullable<HaleSessionPlan['metadata']>['userAdjustment'] = null
 ): HaleSessionPlan {
   return {
     id: 'generated-strength-A',
@@ -205,6 +233,7 @@ function plan(
       templateId: 'strength-A',
       plannedDateKey: 'strength-A:2026-06-01',
       progressionEvidencePolicy,
+      userAdjustment,
       focusStimulus: {
         status,
         mainPlanCreditPotential,

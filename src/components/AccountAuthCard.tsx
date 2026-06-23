@@ -279,12 +279,11 @@ export function AccountAuthCard({
             <MailIcon />
           </View>
           <View style={styles.compactAccountCopy}>
-            <Text style={styles.compactAccountTitle}>Account</Text>
+            <Text style={styles.compactAccountTitle}>Signed in</Text>
             <Text style={styles.compactAccountEmail} numberOfLines={2} selectable>
               {user?.email ?? 'Signed in'}
             </Text>
           </View>
-          <Text style={styles.compactChevron}>{'>'}</Text>
         </View>
 
         <Pressable
@@ -320,7 +319,7 @@ export function AccountAuthCard({
         {pendingDataAction ? (
           <View style={styles.compactConfirmPanel}>
             <Typography variant="bodySmall" color={colors.textPrimary}>
-              Delete account is permanent and will require secure cloud deletion.
+              Deleting your account is permanent. Hale will request account deletion, then remove Hale data from this phone.
             </Typography>
             <Input
               label={`Type ${DELETE_CONFIRMATION_WORD} to confirm`}
@@ -504,6 +503,8 @@ export function AccountAuthCard({
           ? 'Enter the email you use for Hale. We will send a link to choose a new password.'
           : isSignedIn
           ? ACCOUNT_SIGNED_IN_COPY
+          : context === 'settings'
+          ? 'Sign in if you want Hale to keep your check-up history and account setup available when you return.'
           : 'Sign in or create an account so Hale can save your check-ups, sessions, and progress.'}
       </Typography>
 
@@ -560,14 +561,14 @@ export function AccountAuthCard({
             <View style={styles.dangerZone}>
               <Typography variant="label" color={colors.error}>Account data</Typography>
               <Typography variant="caption" color={colors.textSecondary} style={styles.dangerCopy}>
-                Delete local data from this device, or request full account deletion when Hale’s secure server function is available.
+                Delete Hale data from this phone, or delete your account and synced Hale data.
               </Typography>
               {pendingDataAction ? (
                 <View style={styles.confirmPanel}>
                   <Typography variant="bodySmall" color={colors.textPrimary}>
                     {pendingDataAction === 'delete-account'
-                      ? 'Delete account is permanent and will require a secure cloud deletion function. Local data will not be cleared unless cloud deletion succeeds.'
-                      : 'This deletes Hale data stored on this device and signs you out. Synced account data is not deleted.'}
+                      ? 'This asks Hale to delete synced account data, then removes Hale data from this phone and signs you out.'
+                      : 'This removes Hale data stored on this phone and signs you out. Synced account data is not deleted.'}
                   </Typography>
                   {pendingDataAction === 'delete-account' ? (
                     <Input
@@ -985,11 +986,6 @@ const styles = StyleSheet.create({
     ...type.caption,
     marginTop: 2,
     color: colors.primaryText,
-  },
-  compactChevron: {
-    ...type.h2,
-    color: colors.textSecondary,
-    lineHeight: 26,
   },
   exportButton: {
     minHeight: 54,

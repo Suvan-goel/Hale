@@ -62,9 +62,28 @@ describe('progressViewModel', () => {
     expect(summary?.dateLabel).toContain('2026');
     expect(cards.find((card) => card.domain === 'strength')).toMatchObject({
       metric: 'Chair stands: 12 reps',
-      body: 'This is your starting point.',
+      body: 'This is your first check-up result. Repeat the check-up later to see what changes.',
       trend: 'unknown',
     });
+  });
+
+  it('summarizes check-up history rows in plain language', () => {
+    const history = [
+      stored(checkUpAt('2026-06-22T08:00:00.000Z', { chairReps: 12, tandemSec: 18, shoulderDeg: 150, reachBu: 0.32 })),
+      stored(
+        checkUpAt('2026-06-22T12:30:00.000Z', { chairReps: 15, tandemSec: 24, shoulderDeg: 162, reachBu: 0.2 }),
+        'official_retest'
+      ),
+    ];
+    const rows = getRetestHistory(history, assessmentsForHistory(history));
+
+    expect(rows[0]).toMatchObject({
+      kindLabel: '4-week check-up',
+    });
+    expect(rows[0].dateLabel).toContain(':');
+    expect(rows[0].summaryLine).toMatch(/^4-week check-up · Plan focus: /);
+    expect(rows[0].summaryLine).not.toMatch(/Strength:|Balance:|Mobility:|Focus area|In progress/);
+    expect(rows[1].summaryLine).toMatch(/^First check-up · Plan focus: /);
   });
 
   it('packages latest check-up evidence with beta-safe home estimates and measured rows', () => {
@@ -97,7 +116,7 @@ describe('progressViewModel', () => {
       metric: 'Tandem hold: 18s -> 24s',
       trend: 'higher',
     });
-    expect(cards.find((card) => card.domain === 'mobility')?.body).toContain('higher mobility data point');
+    expect(cards.find((card) => card.domain === 'mobility')?.body).toContain('mobility number was higher');
   });
 
   it('does not show progress deltas across incompatible scoring snapshots', () => {
@@ -116,7 +135,7 @@ describe('progressViewModel', () => {
 
     expect(cards.find((card) => card.domain === 'strength')).toMatchObject({
       metric: 'Chair stands: 15 reps',
-      body: 'This is your starting point.',
+      body: 'This is your first check-up result. Repeat the check-up later to see what changes.',
       trend: 'unknown',
     });
   });
@@ -133,8 +152,8 @@ describe('progressViewModel', () => {
     const steady = getDomainProgressCards(steadyHistory, assessmentsForHistory(steadyHistory));
     const lower = getDomainProgressCards(lowerHistory, assessmentsForHistory(lowerHistory));
 
-    expect(steady.find((card) => card.domain === 'strength')?.body).toContain('Similar chair-stand result recorded');
-    expect(lower.find((card) => card.domain === 'strength')?.body).toContain('Recorded 2 fewer chair stands');
+    expect(steady.find((card) => card.domain === 'strength')?.body).toContain('very close to your first check-up');
+    expect(lower.find((card) => card.domain === 'strength')?.body).toContain('You completed 2 fewer chair stands');
     expect([...steady, ...lower].map((card) => `${card.metric} ${card.body}`).join(' ')).not.toMatch(/failed|frailty|fall risk|held steady|That can happen|improving/i);
   });
 
@@ -150,7 +169,7 @@ describe('progressViewModel', () => {
 
     expect(getRetestDueSummary({ activeBlock: block, today: '2026-06-10T08:00:00.000Z', hasBaseline: true })).toMatchObject({
       due: false,
-      title: 'Next re-test',
+      title: 'Next check-up',
     });
     expect(getRetestDueSummary({ activeBlock: block, today: '2026-06-29T08:00:00.000Z', hasBaseline: true })).toMatchObject({
       due: false,
@@ -164,7 +183,7 @@ describe('progressViewModel', () => {
       })
     ).toMatchObject({
       due: true,
-      ctaLabel: 'Start re-test',
+      ctaLabel: 'Start check-up',
     });
   });
 

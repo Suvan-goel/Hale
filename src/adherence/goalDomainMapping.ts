@@ -18,7 +18,7 @@ export const LIFE_GOAL_PRESETS: { category: SelectableLifeGoalCategory; label: s
   { category: 'floor_confidence', label: 'Get down to and up from the floor' },
   { category: 'carrying_loads', label: 'Carry groceries or luggage' },
   { category: 'independence', label: 'Stay independent' },
-  { category: 'noticed_decline', label: 'Get stronger overall' },
+  { category: 'noticed_decline', label: 'Feel stronger overall' },
 ];
 
 export const LIFE_GOAL_CATEGORIES: LifeGoalCategory[] = [

@@ -8,11 +8,11 @@ import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 const SETUP_HERO_IMAGE = require('../../assets/images/hale-camera-setup-hero-v4.png');
 
 const SETUP_STEPS = [
-  'Prop your phone at about hip height.',
-  'Stand 2.5-3 m away with your full body visible.',
-  'Turn your volume up so Hale can guide you.',
-  'Use a stable chair and keep a wall or counter nearby.',
-  'Turn on the main light if the room feels dim.',
+  'Prop your phone at about waist height.',
+  'Stand about 8 to 10 feet away, with your whole body in view.',
+  'Turn your volume up so you can hear Hale.',
+  'Keep your chair and a wall or counter nearby.',
+  'Turn on the main light if the room is dim.',
   'Use this same spot for future check-ups when you can.',
 ] as const;
 
@@ -20,22 +20,29 @@ export function CameraSetupScreen({
   permissionGranted,
   onRequestPermission,
   onBegin,
+  showBeginAction = true,
   onDoLater,
+  onDevCompleteCheckup,
   onCancel,
 }: {
   permissionGranted: boolean;
   onRequestPermission: () => void;
   onBegin: () => void;
+  showBeginAction?: boolean;
   onDoLater?: () => void;
+  onDevCompleteCheckup?: () => void;
   onCancel: () => void;
 }) {
+  const showPrimaryAction = !permissionGranted || showBeginAction;
+  const showActions = showPrimaryAction || !!onDevCompleteCheckup || !!onDoLater;
+
   return (
     <Screen>
       <BackArrowButton accessibilityLabel="Back" onPress={onCancel} />
       <ScreenHeader
         eyebrow="Camera and audio"
-        title="Place your phone"
-        subtitle="A steady setup helps Hale keep the check-up calm, clear, and repeatable next month."
+        title="Set up your phone"
+        subtitle="Place your phone so Hale can see your full body and guide you clearly."
       />
 
       <View style={styles.setupImageCard}>
@@ -66,19 +73,26 @@ export function CameraSetupScreen({
         <View style={styles.expectCopy}>
           <Text style={styles.expectTitle}>What to expect</Text>
           <Text style={styles.expectBody}>
-            Hale will auto-start once you are framed, speak short rest cues, and move through the check-up without needing you to hold the phone.
+            When Hale can see you clearly, the check-up will start. You will hear when to move, rest, and continue.
           </Text>
         </View>
       </View>
 
-      <View style={styles.actions}>
-        {permissionGranted ? (
-          <PrimaryButton title="Begin Movement Check-Up" onPress={onBegin} />
-        ) : (
-          <PrimaryButton title="Allow camera" onPress={onRequestPermission} />
-        )}
-        {onDoLater ? <SecondaryButton title="Do this later" onPress={onDoLater} /> : null}
-      </View>
+      {showActions ? (
+        <View style={styles.actions}>
+          {showPrimaryAction ? (
+            permissionGranted ? (
+              <PrimaryButton title="Start check-up" onPress={onBegin} />
+            ) : (
+              <PrimaryButton title="Allow camera" onPress={onRequestPermission} />
+            )
+          ) : null}
+          {onDevCompleteCheckup ? (
+            <SecondaryButton title="Dev: use sample check-up" onPress={onDevCompleteCheckup} />
+          ) : null}
+          {onDoLater ? <SecondaryButton title="Do this later" onPress={onDoLater} /> : null}
+        </View>
+      ) : null}
     </Screen>
   );
 }

@@ -305,6 +305,50 @@ describe('dynamic workout generation', () => {
     expect(veryInactive.adjustmentReasons).toContain('activity_level_gentle_start');
   });
 
+  it('uses regular exercise activity level for a bounded dose bump without changing exercises', () => {
+    const template = createSessionTemplatesForFocus('strength_power')[0];
+    const standard = generateTodaySession({
+      template,
+      today: START,
+      safetyProfile: safetyProfile({ activityLevel: 'lightly_active' }),
+      dailyReadiness: 'ready',
+      painAreas: [],
+    });
+    const regular = generateTodaySession({
+      template,
+      today: START,
+      safetyProfile: safetyProfile({ activityLevel: 'very_active' }),
+      dailyReadiness: 'ready',
+      painAreas: [],
+    });
+    const standardPull = standard.exercises.find((exercise) => exercise.ladderId === 'pull-upper-back');
+    const regularPull = regular.exercises.find((exercise) => exercise.ladderId === 'pull-upper-back');
+
+    expect(regular.exercises.map((exercise) => exercise.exerciseId)).toEqual(
+      standard.exercises.map((exercise) => exercise.exerciseId)
+    );
+    expect(regular.adjustmentReasons).toContain('activity_level_regular_start');
+    expect(regularPull?.sets).toBe(Math.min(3, (standardPull?.sets ?? 0) + 1));
+  });
+
+  it('does not let regular exercise activity level override discomfort safety gates', () => {
+    const template = createSessionTemplatesForFocus('strength_power')[1];
+    const session = generateTodaySession({
+      template,
+      today: START,
+      safetyProfile: safetyProfile({
+        activityLevel: 'very_active',
+        hasCurrentPain: true,
+        painNotes: 'knee',
+      }),
+      dailyReadiness: 'ready',
+    });
+
+    expect(session.adjustmentReasons).not.toContain('activity_level_regular_start');
+    expect(session.exercises.map((exercise) => exercise.ladderId)).not.toContain('step-up');
+    expect(session.painAreas).toEqual(['knee']);
+  });
+
   it('uses age only as a small recovery buffer and does not change capable exercise selection', () => {
     const template = createSessionTemplatesForFocus('strength_power')[1];
     const age60 = generateTodaySession({

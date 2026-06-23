@@ -29,6 +29,8 @@ export interface LifeGoal {
 
 export type ActivityLevel = 'very_inactive' | 'lightly_active' | 'moderately_active' | 'very_active';
 
+export type AgeBand = 'under_45' | '45_54' | '55_64' | '65_74' | '75_plus';
+
 export type AvailableEquipment =
   | 'chair'
   | 'wall'
@@ -70,7 +72,10 @@ export interface MovementCapabilityProfile {
 export interface MovementSafetyProfile {
   id: string;
   userId: string;
+  /** Exact age when known, or an age-band representative used only for broad recovery tuning. */
   age?: number;
+  /** Age range selected during onboarding, stored separately from exact profile age. */
+  ageBand?: AgeBand;
   activityLevel?: ActivityLevel;
   hasCurrentPain?: boolean;
   painNotes?: string;

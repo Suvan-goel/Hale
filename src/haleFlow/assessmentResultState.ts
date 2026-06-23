@@ -54,12 +54,12 @@ export function getAssessmentResultState({
     primaryAction: 'retake_checkup',
     recoveryTitle:
       evidence.measuredDomainCount > 0
-        ? "A few measurements need a retry."
-        : "We couldn't get enough reliable measurements to build your plan.",
+        ? 'A few movements need a retry.'
+        : 'Hale needs a clearer check-up to build your plan.',
     recoveryBody:
       evidence.measuredDomainCount > 0
-        ? `Your saved results are incomplete. Retry ${missing} when you are ready.`
-        : 'Adjust the phone setup, make sure the room is well lit, and repeat the Movement Check-Up when you are ready.',
+        ? `Your saved results are incomplete. Retake ${missing} when you are ready.`
+        : 'Adjust the phone setup, turn on the main light if the room is dim, and retake the check-up when you are ready.',
   };
 }
 

@@ -1,4 +1,4 @@
-import type { MovementDomain } from '../adherence';
+import type { MovementBlock, MovementDomain } from '../adherence';
 import type { CheckUpScore, Domain } from '../scoring';
 import type { TrainingDomain } from '../training';
 
@@ -36,6 +36,18 @@ export function onboardingFocusDomain(score: CheckUpScore | null): TrainingDomai
   return trainingDomainFromScoreDomain(score.weakestDomain);
 }
 
+export function plannedOnboardingFocusDomain({
+  score,
+  plannedBlock,
+}: {
+  score: CheckUpScore | null;
+  plannedBlock?: Pick<MovementBlock, 'focusDomain'> | null;
+}): TrainingDomain | null {
+  if (plannedBlock) return trainingDomainFromMovementDomain(plannedBlock.focusDomain);
+  if (!score) return null;
+  return onboardingFocusDomain(score);
+}
+
 export function movementFocusDomain(score: CheckUpScore | null): MovementDomain {
   const focus = onboardingFocusDomain(score);
   if (focus === 'balance_stability') return 'balance';
@@ -44,15 +56,15 @@ export function movementFocusDomain(score: CheckUpScore | null): MovementDomain 
 }
 
 export function onboardingFocusCopy(focus: TrainingDomain): string {
-  if (focus === 'balance_stability') return 'Becoming steadier on your feet';
-  if (focus === 'mobility_flexibility') return 'Improving shoulder and hip mobility';
-  return 'Building stronger chair-rise power';
+  if (focus === 'balance_stability') return 'Steadier on your feet';
+  if (focus === 'mobility_flexibility') return 'Easier shoulder and hip movement';
+  return 'Stronger legs for standing up';
 }
 
 export function blockFocusCopy(focus: TrainingDomain): string {
-  if (focus === 'balance_stability') return 'Becoming steadier and more confident';
-  if (focus === 'mobility_flexibility') return 'Improving mobility and control';
-  return 'Building stronger legs and steadier movement';
+  if (focus === 'balance_stability') return 'Steadier on your feet';
+  if (focus === 'mobility_flexibility') return 'Easier shoulder and hip movement';
+  return 'Stronger legs for standing up';
 }
 
 export function bandLabel(band: OnboardingBand | 'baseline_pending'): string {
@@ -73,6 +85,12 @@ function bandForDomain(domain: CheckUpScore['domains'][number] | undefined): Onb
 }
 
 function trainingDomainFromScoreDomain(domain: Domain): TrainingDomain {
+  if (domain === 'balance') return 'balance_stability';
+  if (domain === 'mobility') return 'mobility_flexibility';
+  return 'strength_power';
+}
+
+function trainingDomainFromMovementDomain(domain: MovementDomain): TrainingDomain {
   if (domain === 'balance') return 'balance_stability';
   if (domain === 'mobility') return 'mobility_flexibility';
   return 'strength_power';

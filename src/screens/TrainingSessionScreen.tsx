@@ -43,7 +43,7 @@ import { getExercise, type ExerciseDefinition } from '../exercises';
 import { PosePipeline } from '../pose/pipeline';
 import { PreflightCheck } from '../preflight/preflight';
 import type { PreflightPrompt } from '../preflight/preflight';
-import { FRAMING_READY_COPY, SETUP_HELP_TIPS } from '../preflight/setupCopy';
+import { FRAMING_READY_COPY } from '../preflight/setupCopy';
 import { LandmarkRecorder } from '../recording/recorder';
 import { SkeletonView, SkeletonViewHandle } from '../render/SkeletonView';
 import { pointCloudBodyPartsForTrainingExercise } from '../render/poseAvatarMuscleFocus';
@@ -153,9 +153,19 @@ const BUSY_DEBUG_SNAPSHOT: Snapshot = {
   ],
 };
 
-const TRAINING_HELP_SAFETY_TIPS: readonly string[] = [
-  'Keep fingertips near a chair or counter.',
-  'Stop if you feel dizzy, sharp pain, or unsteady.',
+const TRAINING_SETUP_HELP_STEPS: readonly { title: string; body: string }[] = [
+  {
+    title: 'Step back',
+    body: 'Make sure your whole body is in view.',
+  },
+  {
+    title: 'Keep the phone still',
+    body: 'Place it on a steady stand or shelf.',
+  },
+  {
+    title: 'Use good light',
+    body: 'Turn on the main light if the room is dim.',
+  },
 ];
 
 export function TrainingSessionScreen({
@@ -411,7 +421,7 @@ export function TrainingSessionScreen({
       >
         <View style={styles.topBar}>
           {onCancel ? (
-            <BackArrowButton accessibilityLabel="Discard session" onPress={requestDiscardSession} style={styles.topBarBackButton} />
+            <BackArrowButton accessibilityLabel="Leave session" onPress={requestDiscardSession} style={styles.topBarBackButton} />
           ) : null}
           <Text style={styles.topBarTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>
             {sessionTitle?.trim() || 'Today\'s Hale session'}
@@ -556,31 +566,25 @@ function SessionHelpModal({
             <Text style={styles.modalEyebrow}>Setup help</Text>
           </View>
           <View style={styles.helpIntro}>
-            <Text style={styles.modalTitle}>Get the cleanest reading</Text>
-            <Text style={styles.modalBody}>A few quick setup checks help Hale keep the skeleton steady.</Text>
+            <Text style={styles.modalTitle}>Help Hale see you clearly</Text>
+            <Text style={styles.modalBody}>Use these quick checks before you start.</Text>
           </View>
-          <View style={styles.helpTipList}>
-            {SETUP_HELP_TIPS.map((tip) => (
-              <View key={tip} style={styles.helpTipRow}>
-                <View style={styles.helpTipDot} />
-                <Text style={styles.helpTip}>{tip}</Text>
+          <View style={styles.helpStepList}>
+            {TRAINING_SETUP_HELP_STEPS.map((step, index) => (
+              <View key={step.title} style={styles.helpStepRow}>
+                <Text style={styles.helpStepNumber}>{index + 1}</Text>
+                <View style={styles.helpStepCopy}>
+                  <Text style={styles.helpStepTitle}>{step.title}</Text>
+                  <Text style={styles.helpStepBody}>{step.body}</Text>
+                </View>
               </View>
             ))}
           </View>
-          <View style={styles.helpSafetyBlock}>
-            <View style={styles.helpSafetyHeader}>
-              <View style={styles.helpSafetyMark}>
-                <View style={styles.helpSafetyMarkInner} />
-              </View>
-              <Text style={styles.helpSafetyLabel}>Safety</Text>
-            </View>
-            <Text style={styles.helpSafetyTitle}>Move with support nearby.</Text>
-            {TRAINING_HELP_SAFETY_TIPS.map((tip) => (
-              <View key={tip} style={styles.helpSafetyRow}>
-                <View style={styles.helpSafetyRule} />
-                <Text style={styles.helpSafetyText}>{tip}</Text>
-              </View>
-            ))}
+          <View style={styles.helpSafetyLine}>
+            <Text style={styles.helpSafetyLineText}>
+              <Text style={styles.helpSafetyLineStrong}>Keep support nearby. </Text>
+              Stop if you feel dizzy, sharp pain, or unsteady.
+            </Text>
           </View>
           <Pressable
             style={({ pressed }) => [styles.modalButton, styles.modalKeepButton, pressed && styles.controlPressed]}
@@ -614,7 +618,7 @@ function DiscardSessionModal({
     >
       <View style={styles.modalBackdrop}>
         <View style={styles.discardModal}>
-          <Text style={styles.modalEyebrow}>Discard session?</Text>
+          <Text style={styles.modalEyebrow}>Leave session?</Text>
           <Text style={styles.modalTitle}>Leave without saving?</Text>
           <Text style={styles.modalBody}>
             This workout will stop and today's progress from this session will not be saved.
@@ -632,9 +636,9 @@ function DiscardSessionModal({
               style={({ pressed }) => [styles.modalButton, styles.modalDiscardButton, pressed && styles.controlPressed]}
               onPress={onDiscard}
               accessibilityRole="button"
-              accessibilityLabel="Discard session"
+              accessibilityLabel="Leave session without saving"
             >
-              <Text style={styles.modalDiscardText}>Discard</Text>
+              <Text style={styles.modalDiscardText}>Leave without saving</Text>
             </Pressable>
           </View>
         </View>
@@ -926,7 +930,7 @@ function trainingSetupNoticeText(snapshot: Snapshot): string | null {
       return null;
     case null:
     default:
-      return snapshot.setupIssue ? 'Setup needs attention' : null;
+      return snapshot.setupIssue ? 'Adjust your setup' : null;
   }
 }
 
@@ -1225,89 +1229,55 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingTop: spacing.xs,
   },
-  helpTipList: {
-    gap: spacing.xs,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.card,
-    backgroundColor: colors.bgGold,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
+  helpStepList: {
+    gap: spacing.md,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.xs,
   },
-  helpTipRow: {
-    minHeight: 34,
+  helpStepRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: spacing.sm,
-    paddingVertical: spacing.xs,
+    gap: spacing.md,
   },
-  helpTipDot: {
-    width: 6,
-    height: 6,
-    marginTop: 8,
+  helpStepNumber: {
+    ...type.cardCaption,
+    width: 26,
+    height: 26,
+    overflow: 'hidden',
+    textAlign: 'center',
+    lineHeight: 26,
     borderRadius: radius.pill,
-    backgroundColor: colors.accentDeep,
-  },
-  helpTip: {
-    ...type.bodySmall,
-    flex: 1,
-    color: colors.textPrimary,
-  },
-  helpSafetyBlock: {
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderRadius: radius.card,
     backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.goldBorder,
-    boxShadow: '0 1px 10px rgba(17,20,18,0.035)',
-  },
-  helpSafetyHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  helpSafetyMark: {
-    width: 22,
-    height: 22,
-    borderRadius: radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.bgGold,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.goldBorder,
-  },
-  helpSafetyMarkInner: {
-    width: 7,
-    height: 7,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accentGold,
-  },
-  helpSafetyLabel: {
-    ...type.label,
     color: colors.accentDeep,
+    fontVariant: ['tabular-nums'],
   },
-  helpSafetyTitle: {
+  helpStepCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  helpStepTitle: {
     ...type.cardRowTitle,
     color: colors.textPrimary,
   },
-  helpSafetyRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
-  helpSafetyRule: {
-    width: 2,
-    alignSelf: 'stretch',
-    minHeight: 22,
-    borderRadius: radius.pill,
-    backgroundColor: colors.goldBorder,
-  },
-  helpSafetyText: {
+  helpStepBody: {
     ...type.bodySmall,
-    flex: 1,
     color: colors.textSecondary,
+  },
+  helpSafetyLine: {
+    paddingHorizontal: 0,
+    paddingVertical: spacing.xs,
+    backgroundColor: 'transparent',
+  },
+  helpSafetyLineText: {
+    ...type.bodySmall,
+    color: colors.textSecondary,
+  },
+  helpSafetyLineStrong: {
+    fontFamily: type.cardRowTitle.fontFamily,
+    color: colors.textPrimary,
   },
   modalButton: {
     minHeight: 56,

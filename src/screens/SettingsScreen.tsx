@@ -7,28 +7,31 @@ import * as React from 'react';
 import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-import type { AvailableEquipment, SupportConnection } from '../adherence';
-import { getLifeGoalDisplayText, sharingLevelLabel } from '../adherence';
+import type { ActivityLevel, AgeBand, AvailableEquipment } from '../adherence';
+import { getLifeGoalDisplayText } from '../adherence';
+import { VoiceChannel } from '../audio/voicePlayer';
 import { AccountAuthCard } from '../components/AccountAuthCard';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
 import { Screen, ToggleRow } from '../components/ui';
 import { controlledBetaEquipmentPositioning } from '../haleFlow';
-import { AppSettings, getVoice, UserProfile, VOICE_OPTIONS } from '../profile';
-import { EquipmentProfile, TrainingIntensityPreference } from '../training';
+import {
+  AGE_RANGE_OPTIONS,
+  AppSettings,
+  STARTING_PACE_OPTIONS,
+  ageBandForAge,
+  ageDisplayLabel,
+  getVoice,
+  representativeAgeForAgeBand,
+  startingEffortLabel,
+  UserProfile,
+  VOICE_OPTIONS,
+} from '../profile';
+import { EquipmentProfile } from '../training';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
-
-const INTENSITY_OPTIONS: readonly {
-  id: TrainingIntensityPreference;
-  label: string;
-  body: string;
-}[] = [
-  { id: 'gentle', label: 'Gentle', body: 'A calmer start' },
-  { id: 'standard', label: 'Standard', body: 'Balanced work' },
-  { id: 'more_challenge', label: 'More challenge', body: 'A stronger ask' },
-];
+const VOICE_PREVIEW_CUE = 'framing-ready' as const;
 
 type ProfileSection =
   | 'details'
@@ -38,47 +41,42 @@ type ProfileSection =
   | 'equipment'
   | 'reminders'
   | 'account'
-  | 'privacy'
-  | 'help';
+  | 'privacy';
 
 type VoiceCatalogOption = (typeof VOICE_OPTIONS)[number];
 
 const SECTION_COPY: Record<ProfileSection, { title: string; subtitle: string }> = {
   details: {
-    title: 'Personal Details',
-    subtitle: 'Update the basics Hale uses to personalize your plan.',
+    title: 'Your Details',
+    subtitle: 'Update your name, age range, and movement goal.',
   },
   safety: {
-    title: 'Camera & Safety',
-    subtitle: 'Review camera setup and safety details before movement sessions.',
+    title: 'Camera setup',
+    subtitle: 'Review camera privacy and where to place your phone.',
   },
   plan: {
-    title: 'Plan Preferences',
-    subtitle: 'Choose the days and session feel that fit your routine.',
+    title: 'Workout Days & Effort',
+    subtitle: 'Choose which days work best and how hard workouts should feel.',
   },
   voice: {
     title: 'Trainer Voice',
-    subtitle: 'Pick the bundled guide voice for check-ups and sessions.',
+    subtitle: 'Choose the voice for check-ups and workouts.',
   },
   equipment: {
-    title: 'Equipment Setup',
-    subtitle: 'Tell Hale what simple home setup is available.',
+    title: 'Equipment',
+    subtitle: 'Choose what Hale can use safely at home.',
   },
   reminders: {
     title: 'Workout Reminders',
-    subtitle: 'Store a gentle reminder preference for future sessions.',
+    subtitle: 'Choose whether Hale should remind you about workouts when reminders are ready.',
   },
   account: {
     title: 'Account & Data',
-    subtitle: 'Manage sign-in, export, sign-out, and account deletion.',
+    subtitle: 'Manage sign-in and your Hale data.',
   },
   privacy: {
-    title: 'Privacy & Sharing',
-    subtitle: 'See what Hale stores and how sharing works in this version.',
-  },
-  help: {
-    title: 'Help',
-    subtitle: 'Jump back to setup guidance when you need it.',
+    title: 'Privacy & Data',
+    subtitle: 'See what Hale shows, saves, and does not save.',
   },
 };
 
@@ -86,15 +84,14 @@ type SettingsScreenProps = {
   profile: UserProfile;
   settings: AppSettings;
   equipment: EquipmentProfile;
-  supportConnection: SupportConnection | null;
   preferredDays: readonly string[];
-  preferredIntensity: TrainingIntensityPreference;
+  startingEffort: ActivityLevel;
   onProfileChange: (next: UserProfile) => void;
   onSettingsChange: (next: AppSettings) => void;
   onToggleEquipment: (key: keyof EquipmentProfile) => void;
   onToggleAvailableEquipment: (item: AvailableEquipment) => void;
   onPreferredDaysChange: (days: string[]) => void;
-  onIntensityChange: (preferredIntensity: TrainingIntensityPreference) => void;
+  onStartingEffortChange: (startingEffort: ActivityLevel) => void;
   onOpenLifeGoal: () => void;
   onOpenSafetyProfile: () => void;
   onOpenCameraSetup: () => void;
@@ -111,15 +108,14 @@ function SettingsScreenContent({
   profile,
   settings,
   equipment,
-  supportConnection,
   preferredDays,
-  preferredIntensity,
+  startingEffort,
   onProfileChange,
   onSettingsChange,
   onToggleEquipment,
   onToggleAvailableEquipment,
   onPreferredDaysChange,
-  onIntensityChange,
+  onStartingEffortChange,
   onOpenLifeGoal,
   onOpenSafetyProfile,
   onOpenCameraSetup,
@@ -129,40 +125,56 @@ function SettingsScreenContent({
 }: SettingsScreenProps) {
   const [openSection, setOpenSection] = React.useState<ProfileSection | null>(null);
   const [name, setName] = React.useState(profile.name);
-  const [goal, setGoal] = React.useState(profile.goal);
-  const [ageText, setAgeText] = React.useState(profile.age === null ? '' : String(profile.age));
+  const profileAgeBand = profile.ageBand ?? ageBandForAge(profile.age);
+  const [selectedAgeBand, setSelectedAgeBand] = React.useState<AgeBand | null>(profileAgeBand);
+  const voicePreviewRef = React.useRef<VoiceChannel | null>(null);
   const available = profile.safetyProfile?.availableEquipment ?? ['chair', 'wall'];
   const displayName = profile.name.trim() || 'Your details';
+  const profileAgeLabel = ageDisplayLabel(null, selectedAgeBand);
   const goalText =
     profile.goal.trim() ||
     (profile.lifeGoal ? getLifeGoalDisplayText(profile.lifeGoal) : 'Set a movement goal');
   const currentVoice = getVoice(settings.voiceId);
-  const planSummary = `${preferredDaysSummary(preferredDays)} · ${intensityLabel(preferredIntensity)}`;
+  const effortLabel = startingEffortLabel(startingEffort);
+  const planSummary = `${preferredDaysSummary(preferredDays)} · ${effortLabel}`;
   const setupSummary = equipmentSummary({
     available,
     equipment,
     phoneStandAvailable: settings.phoneStandAvailable,
   });
-  const safetySummary = `${profile.safetyProfile ? 'Safety profile saved' : 'Safety profile not set'} · Skeleton only`;
-  const supportSharingLabel = supportConnection
-    ? sharingLevelLabel(supportConnection.sharingLevel)
-    : sharingLevelLabel(settings.supportSharingLevel);
-  const sharingSummary = `Support circle: ${supportSharingLabel}`;
+  const cameraSummary = `${settings.phoneStandAvailable ? 'Phone stand available' : 'Phone stand not set'} · Camera privacy`;
   const showDeveloperSettings = __DEV__ || !!onOpenPoseBenchmarkForDiagnostics;
 
   React.useEffect(() => setName(profile.name), [profile.name]);
-  React.useEffect(() => setGoal(profile.goal), [profile.goal]);
-  React.useEffect(() => setAgeText(profile.age === null ? '' : String(profile.age)), [profile.age]);
+  React.useEffect(() => setSelectedAgeBand(profileAgeBand), [profileAgeBand]);
+  React.useEffect(() => () => voicePreviewRef.current?.stop(), []);
 
   const openProfileSection = (section: ProfileSection) => setOpenSection(section);
+  const previewVoice = React.useCallback((voiceId: string) => {
+    voicePreviewRef.current?.stop();
+    const channel = new VoiceChannel(voiceId);
+    voicePreviewRef.current = channel;
+    channel.speak([VOICE_PREVIEW_CUE], 100);
+  }, []);
 
   const commitName = () => onProfileChange({ ...profile, name: name.trim() });
-  const commitGoal = () => onProfileChange({ ...profile, goal: goal.trim() });
-  const commitAge = () => {
-    const parsed = parseInt(ageText, 10);
-    const age = Number.isFinite(parsed) && parsed > 0 && parsed < 120 ? parsed : null;
-    onProfileChange({ ...profile, age });
-    setAgeText(age === null ? '' : String(age));
+  const commitAgeBand = (ageBand: AgeBand | null) => {
+    const representativeAge = representativeAgeForAgeBand(ageBand);
+    const now = new Date().toISOString();
+    setSelectedAgeBand(ageBand);
+    onProfileChange({
+      ...profile,
+      age: null,
+      ageBand,
+      safetyProfile: profile.safetyProfile
+        ? {
+            ...profile.safetyProfile,
+            age: representativeAge ?? undefined,
+            ageBand: ageBand ?? undefined,
+            updatedAt: now,
+          }
+        : profile.safetyProfile,
+    });
   };
 
   const toggleDay = (day: string) => {
@@ -179,37 +191,29 @@ function SettingsScreenContent({
           <DetailOverview
             icon="account"
             title={displayName}
-            body="These basics keep greetings, goals, and plan language personal."
-            meta={profile.age === null ? 'Age not set' : `Age ${profile.age}`}
+            body="Name is used for greetings. Age range and goal help Hale use plain, personal wording."
+            meta={profileAgeLabel}
           />
 
           <PersonalDetailsCard
             name={name}
             onNameChange={setName}
             onNameBlur={commitName}
-            ageText={ageText}
-            onAgeChange={setAgeText}
-            onAgeBlur={commitAge}
-            goal={goal}
-            onGoalChange={setGoal}
-            onGoalBlur={commitGoal}
+            ageBand={selectedAgeBand}
+            onAgeBandChange={commitAgeBand}
+            movementGoal={goalText}
+            onOpenLifeGoal={onOpenLifeGoal}
           />
 
           <DetailCard
-            title="Connected setup"
-            body="These setup areas shape how Hale prepares future sessions."
+            title="Safety setup"
+            body="Update this if your pain, balance confidence, equipment, or home setup has changed."
           >
             <View style={styles.setupActionStack}>
               <SetupActionTile
-                icon="sliders"
-                title="Life goal"
-                body="Tune the outcome Hale builds your plan around."
-                onPress={onOpenLifeGoal}
-              />
-              <SetupActionTile
                 icon="shield"
                 title="Safety profile"
-                body="Review comfort, room setup, and support needs."
+                body="Change the support and comfort details Hale uses before sessions."
                 onPress={onOpenSafetyProfile}
               />
             </View>
@@ -222,19 +226,17 @@ function SettingsScreenContent({
       return (
         <>
           <DetailOverview
-            icon="shield"
-            title={profile.safetyProfile ? 'Ready for guided movement' : 'Finish safety setup'}
-            body="Hale checks framing before movement sessions and keeps camera sessions skeleton-only."
-            meta={profile.safetyProfile ? 'Safety profile saved' : 'Safety profile needed'}
+            icon="camera"
+            title="Camera ready"
+            body="Hale checks that your whole body is in view before a check-up or guided session starts."
+            meta="Private camera use"
           />
 
           <SafetyReadinessCard
-            safetyProfileSaved={!!profile.safetyProfile}
             phoneStandAvailable={settings.phoneStandAvailable}
           />
 
           <SafetyActionsCard
-            onOpenSafetyProfile={onOpenSafetyProfile}
             onOpenCameraSetup={onOpenCameraSetup}
           />
         </>
@@ -247,24 +249,24 @@ function SettingsScreenContent({
           <DetailOverview
             icon="sliders"
             title={planSummary}
-            body="These preferences guide future sessions without changing your current 4-week map."
-            meta="Current block stays in Plan"
+            body="These choices guide future workouts. Hale still uses your safety setup and pain notes before choosing movements."
+            meta="Used for future workouts"
           />
 
           <PreferenceCard
             title="Training days"
-            subtitle="The days that usually fit best."
+            subtitle="Choose the days that usually work best for you."
             meta={trainingDayMeta(preferredDays)}
           >
             <DayPreferencePicker selectedDays={preferredDays} onToggleDay={toggleDay} />
           </PreferenceCard>
 
           <PreferenceCard
-            title="Session feel"
-            subtitle="The default pace for future sessions."
-            meta={intensityLabel(preferredIntensity)}
+            title="Workout effort"
+            subtitle="Choose how hard future workouts should feel at the start. Hale may still make a session easier if your safety setup or pain notes call for it."
+            meta={effortLabel}
           >
-            <SessionFeelPicker selected={preferredIntensity} onSelect={onIntensityChange} />
+            <SessionFeelPicker selected={startingEffort} onSelect={onStartingEffortChange} />
           </PreferenceCard>
         </>
       );
@@ -272,13 +274,11 @@ function SettingsScreenContent({
 
     if (openSection === 'voice') {
       return (
-        <>
-          <VoiceCurrentCard voice={currentVoice} />
-          <VoiceSelectorCard
-            selectedVoiceId={settings.voiceId}
-            onSelectVoice={(voiceId) => onSettingsChange({ ...settings, voiceId })}
-          />
-        </>
+        <VoiceSelectorCard
+          selectedVoiceId={settings.voiceId}
+          onSelectVoice={(voiceId) => onSettingsChange({ ...settings, voiceId })}
+          onPreviewVoice={previewVoice}
+        />
       );
     }
 
@@ -288,13 +288,13 @@ function SettingsScreenContent({
           <DetailOverview
             icon="dumbbell"
             title={setupSummary}
-            body={`${controlledBetaEquipmentPositioning.startingSetup} ${controlledBetaEquipmentPositioning.specialistEquipment} ${controlledBetaEquipmentPositioning.bandRecommendation}`}
+            body="Hale uses this list to choose exercises that fit your home. Start with a sturdy chair and a wall or counter. Optional items are only used when you turn them on."
             meta={controlledBetaEquipmentPositioning.shortLabel}
           />
 
           <DetailCard
-            title="Essentials"
-            body="Useful for the first check-up and most beginner sessions."
+            title="Basic setup"
+            body="Keep these on if you have them. Hale uses a chair and nearby support for many check-ups and beginner workouts."
           >
             <View style={styles.toggleStack}>
               <ToggleRow
@@ -311,37 +311,43 @@ function SettingsScreenContent({
           </DetailCard>
 
           <DetailCard
-            title="Optional substitutions"
-            body={controlledBetaEquipmentPositioning.optionalSetup}
+            title="Optional items"
+            body="Turn on only the items you have and feel safe using. Hale will choose other movements when something is off."
           >
             <View style={styles.toggleStack}>
               <ToggleRow
                 label="Bottom stair"
+                description="Use only if it is low, stable, and near support."
                 value={equipment.stair}
                 onValueChange={() => onToggleEquipment('stair')}
               />
               <ToggleRow
                 label="Resistance band"
+                description="Used for some upper-body pulling exercises."
                 value={equipment.band}
                 onValueChange={() => onToggleEquipment('band')}
               />
               <ToggleRow
                 label="Door anchor for band rows"
+                description="Only turn this on if you have a proper band door anchor."
                 value={available.includes('door_anchor')}
                 onValueChange={() => onToggleAvailableEquipment('door_anchor')}
               />
               <ToggleRow
                 label="Mini band"
+                description="Used for some hip and side-step exercises."
                 value={!!equipment.miniBand}
                 onValueChange={() => onToggleEquipment('miniBand')}
               />
               <ToggleRow
                 label="Backpack or light weight"
+                description="Used only for gentle added load."
                 value={!!equipment.load}
                 onValueChange={() => onToggleEquipment('load')}
               />
               <ToggleRow
                 label="Floor space for mat exercises"
+                description="Enough clear space to lie down safely."
                 value={available.includes('floor_space')}
                 onValueChange={() => onToggleAvailableEquipment('floor_space')}
               />
@@ -350,10 +356,10 @@ function SettingsScreenContent({
 
           <DetailCard
             title="Camera setup"
-            body="A phone stand helps keep monthly check-ups consistent."
+            body="A steady phone position makes check-ups easier to repeat. A shelf or stack of books is fine if the phone will not slide."
           >
             <ToggleRow
-              label="Phone stand"
+              label="Stable phone stand or shelf"
               value={settings.phoneStandAvailable}
               onValueChange={(v) => onSettingsChange({ ...settings, phoneStandAvailable: v })}
             />
@@ -367,39 +373,29 @@ function SettingsScreenContent({
         <>
           <DetailOverview
             icon="bell"
-            title={settings.remindersEnabled ? 'Reminder preference on' : 'Reminders off'}
-            body="Hale can store whether you want gentle workout prompts, but phone notifications are not scheduled yet."
-            meta="Preference only"
+            title="Phone reminders are not available yet"
+            body="You can still save your choice for later. Hale will not send workout notifications right now."
+            meta="No notifications today"
           />
 
           <DetailCard
-            title="Workout reminders"
-            body="Keep this preference ready for future reminder scheduling."
+            title="Your reminder choice"
+            body="Turn this on if you would like Hale to use workout reminders when they are added."
           >
             <ToggleRow
-              label="Workout reminders"
-              description="No phone notification is scheduled yet."
+              label="Use workout reminders when available"
+              description="This only saves your choice. It will not send a notification today."
               value={settings.remindersEnabled}
               onValueChange={(v) => onSettingsChange({ ...settings, remindersEnabled: v })}
             />
-            <InfoRow label="Notification status" value="Not scheduled" />
+            <InfoRow label="Today" value="No notifications will be sent" />
           </DetailCard>
         </>
       );
     }
 
     if (openSection === 'account') {
-      return (
-        <>
-          <DetailOverview
-            icon="account"
-            title="Account and data"
-            body="Manage sign-in, data export, sign-out, and deletion from one place."
-            meta="Local data first"
-          />
-          <AccountAuthCard context="settings" />
-        </>
-      );
+      return <AccountAuthCard context="settings" />;
     }
 
     if (openSection === 'privacy') {
@@ -408,47 +404,16 @@ function SettingsScreenContent({
           <DetailOverview
             icon="lock"
             title="Private by default"
-            body="Normal sessions render a skeleton view only, never a self-view camera mirror."
-            meta={sharingSummary}
+            body="During check-ups and workouts, Hale uses the camera to measure movement. You do not see a video of yourself, and Hale does not save your video."
+            meta="Video not saved"
           />
 
-          <PrivacyStorageCard supportSharingLabel={supportSharingLabel} />
-          <PrivacySharingCard supportSharingLabel={supportSharingLabel} />
+          <PrivacyStorageCard />
         </>
       );
     }
 
-    return (
-      <>
-        <DetailOverview
-          icon="help"
-          title="Setup help"
-          body="Revisit camera setup any time, then return to Today when you are ready for the next step."
-          meta="Quick support"
-        />
-
-        <DetailCard
-          title="Setup shortcuts"
-          body="Two fast ways to clear setup blockers before your next guided session."
-        >
-          <View style={styles.helpShortcutList}>
-            <HelpShortcutRow
-              icon="camera"
-              title="Camera setup"
-              body="Recheck framing, distance, and phone placement."
-              onPress={onOpenCameraSetup}
-              first
-            />
-            <HelpShortcutRow
-              icon="shield"
-              title="Safety profile"
-              body="Review comfort notes, supports, and home setup."
-              onPress={onOpenSafetyProfile}
-            />
-          </View>
-        </DetailCard>
-      </>
-    );
+    return null;
   };
 
   if (openSection) {
@@ -491,7 +456,7 @@ function SettingsScreenContent({
         accessibilityLabel="Edit personal details"
       >
         <View style={styles.avatar}>
-          <ProfilePicturePlaceholder />
+          <ProfileDetailsGlyph />
         </View>
         <View style={styles.profileCopy}>
           <View style={styles.profileNameRow}>
@@ -500,27 +465,27 @@ function SettingsScreenContent({
             </Text>
           </View>
           <Text style={styles.profileAge}>
-            {profile.age === null ? 'Age not set' : `Age ${profile.age}`}
+            {profileAgeLabel}
           </Text>
-          <View style={styles.goalRow}>
-            <LeafIcon />
-            <Text style={styles.goalText} numberOfLines={1}>
+          <View style={styles.goalBlock}>
+            <Text style={styles.goalLabel}>Movement goal</Text>
+            <Text style={styles.goalText} numberOfLines={2}>
               {goalText}
             </Text>
           </View>
         </View>
       </Pressable>
 
-      <SettingsSection title="Session setup">
+      <SettingsSection title="Workouts">
         <ProfileMenuRow
-          title="Plan Preferences"
-          subtitle={planSummary}
+          title="Schedule & Effort"
+          subtitle={`${preferredDaysSummary(preferredDays)} · ${effortLabel} effort`}
           icon="sliders"
           onPress={() => openProfileSection('plan')}
           showDivider
         />
         <ProfileMenuRow
-          title="Equipment Setup"
+          title="Equipment"
           subtitle={setupSummary}
           icon="dumbbell"
           onPress={() => openProfileSection('equipment')}
@@ -528,7 +493,7 @@ function SettingsScreenContent({
         />
         <ProfileMenuRow
           title="Trainer Voice"
-          subtitle={currentVoice.label}
+          subtitle={`${currentVoice.label} guides check-ups and workouts`}
           icon="volume"
           onPress={() => openProfileSection('voice')}
           showDivider
@@ -537,45 +502,36 @@ function SettingsScreenContent({
           title="Workout Reminders"
           subtitle={
             settings.remindersEnabled
-              ? 'Preference on · no phone notification scheduled'
-              : 'Off for now'
+              ? 'On for later · no notifications today'
+              : 'Off · no notifications today'
           }
           icon="bell"
           onPress={() => openProfileSection('reminders')}
         />
       </SettingsSection>
 
-      <SettingsSection title="Camera & safety">
+      <SettingsSection title="Camera & privacy">
         <ProfileMenuRow
-          title="Camera & Safety"
-          subtitle={safetySummary}
-          icon="shield"
+          title="Camera setup"
+          subtitle={cameraSummary}
+          icon="camera"
           onPress={() => openProfileSection('safety')}
+          showDivider
+        />
+        <ProfileMenuRow
+          title="Privacy & Data"
+          subtitle="Video not saved · results saved"
+          icon="lock"
+          onPress={() => openProfileSection('privacy')}
         />
       </SettingsSection>
 
       <SettingsSection title="Account & data">
         <ProfileMenuRow
           title="Account & Data"
-          subtitle="Sign in, export, sign out, or delete data"
+          subtitle="Sign in, export, or manage your data"
           icon="account"
           onPress={() => openProfileSection('account')}
-          showDivider
-        />
-        <ProfileMenuRow
-          title="Privacy & Sharing"
-          subtitle={sharingSummary}
-          icon="lock"
-          onPress={() => openProfileSection('privacy')}
-        />
-      </SettingsSection>
-
-      <SettingsSection title="Support">
-        <ProfileMenuRow
-          title="Help"
-          subtitle="Camera setup and getting unstuck"
-          icon="help"
-          onPress={() => openProfileSection('help')}
         />
       </SettingsSection>
 
@@ -708,48 +664,21 @@ function DetailCard({
   );
 }
 
-function VoiceCurrentCard({ voice }: { voice: VoiceCatalogOption }) {
-  return (
-    <View style={styles.voiceCurrentCard}>
-      <View style={styles.voiceCurrentTop}>
-        <View style={styles.voiceCurrentIcon}>
-          <MenuIcon name="volume" />
-        </View>
-        <View style={styles.voiceCurrentCopy}>
-          <Text style={styles.voiceEyebrow}>Current guide voice</Text>
-          <Text style={styles.voiceCurrentTitle}>{voice.label}</Text>
-          <Text style={styles.voiceCurrentBody}>
-            Check-ups, rests, and session cues use this bundled voice.
-          </Text>
-        </View>
-      </View>
-      <View style={styles.voiceSummaryGrid}>
-        <View style={styles.voiceSummaryTile}>
-          <Text style={styles.voiceSummaryLabel}>Tone</Text>
-          <Text style={styles.voiceSummaryValue}>{voice.description}</Text>
-        </View>
-        <View style={styles.voiceSummaryTile}>
-          <Text style={styles.voiceSummaryLabel}>Session audio</Text>
-          <Text style={styles.voiceSummaryValue}>Bundled</Text>
-        </View>
-      </View>
-    </View>
-  );
-}
-
 function VoiceSelectorCard({
   selectedVoiceId,
   onSelectVoice,
+  onPreviewVoice,
 }: {
   selectedVoiceId: string;
   onSelectVoice: (voiceId: string) => void;
+  onPreviewVoice: (voiceId: string) => void;
 }) {
   return (
     <View style={styles.voiceSelectorCard}>
       <View style={styles.voiceSelectorHeader}>
-        <Text style={styles.voiceSelectorTitle}>Choose your guide</Text>
+        <Text style={styles.voiceSelectorTitle}>Voice</Text>
         <Text style={styles.voiceSelectorBody}>
-          Switching updates future check-ups and sessions.
+          Tap a voice to use it next time.
         </Text>
       </View>
       <View style={styles.voiceOptionList}>
@@ -760,6 +689,7 @@ function VoiceSelectorCard({
             selected={voice.id === selectedVoiceId}
             showDivider={index > 0}
             onSelect={() => voice.available && onSelectVoice(voice.id)}
+            onPreview={() => voice.available && onPreviewVoice(voice.id)}
           />
         ))}
       </View>
@@ -772,91 +702,87 @@ function VoiceOptionRow({
   selected,
   showDivider,
   onSelect,
+  onPreview,
 }: {
   voice: VoiceCatalogOption;
   selected: boolean;
   showDivider: boolean;
   onSelect: () => void;
+  onPreview: () => void;
 }) {
   const disabled = !voice.available;
+  const rowLabel = `${voice.label}${selected ? ', selected' : ''}`;
 
   return (
-    <Pressable
-      style={({ pressed }) => [
+    <View
+      style={[
         styles.voiceOptionRow,
         showDivider && styles.voiceOptionDivider,
         selected && styles.voiceOptionRowSelected,
         disabled && styles.voiceOptionRowDisabled,
-        pressed && !disabled && styles.pressed,
       ]}
-      onPress={onSelect}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityState={{ selected, disabled }}
-      accessibilityLabel={`${voice.label}${selected ? ', selected' : ''}`}
     >
-      <View style={styles.voiceOptionIcon}>
+      <Pressable
+        style={({ pressed }) => [styles.voicePreviewButton, pressed && !disabled && styles.pressed]}
+        onPress={onPreview}
+        disabled={disabled}
+        accessibilityRole="button"
+        accessibilityLabel={`Preview ${voice.label}`}
+      >
         <MenuIcon name="volume" />
-      </View>
-      <View style={styles.voiceOptionCopy}>
-        <Text style={[styles.voiceOptionTitle, selected && styles.voiceOptionTitleSelected]}>
-          {voice.label}
-        </Text>
-        <Text style={styles.voiceOptionBody}>
-          {voice.available ? voice.description : `${voice.description} - coming soon`}
-        </Text>
-      </View>
-      <SelectionIndicator selected={selected} />
-    </Pressable>
+      </Pressable>
+      <Pressable
+        style={({ pressed }) => [styles.voiceOptionSelectArea, pressed && !disabled && styles.pressed]}
+        onPress={onSelect}
+        disabled={disabled}
+        accessibilityRole="button"
+        accessibilityState={{ selected, disabled }}
+        accessibilityLabel={rowLabel}
+      >
+        <View style={styles.voiceOptionCopy}>
+          <Text style={[styles.voiceOptionTitle, selected && styles.voiceOptionTitleSelected]}>
+            {voice.label}
+          </Text>
+          <Text style={styles.voiceOptionBody}>
+            {voice.available ? voice.description : `${voice.description} - coming soon`}
+          </Text>
+        </View>
+        <SelectionIndicator selected={selected} />
+      </Pressable>
+    </View>
   );
 }
 
-function SafetyReadinessCard({
-  safetyProfileSaved,
-  phoneStandAvailable,
-}: {
-  safetyProfileSaved: boolean;
-  phoneStandAvailable: boolean;
-}) {
-  const readyCount = 1 + (safetyProfileSaved ? 1 : 0) + (phoneStandAvailable ? 1 : 0);
+function SafetyReadinessCard({ phoneStandAvailable }: { phoneStandAvailable: boolean }) {
+  const readyCount = 1 + (phoneStandAvailable ? 1 : 0);
   return (
     <View style={styles.safetyCard}>
       <View style={styles.safetyCardHeader}>
         <View style={styles.safetyCardTitleGroup}>
-          <Text style={styles.safetyCardTitle}>Readiness</Text>
+          <Text style={styles.safetyCardTitle}>What Hale uses for camera setup</Text>
           <Text style={styles.safetyCardBody}>
-            The setup Hale checks before a check-up or guided session.
+            These help Hale see your movement clearly and keep each setup repeatable.
           </Text>
         </View>
         <View style={styles.safetyScorePill}>
-          <Text style={styles.safetyScoreText}>{readyCount}/3 ready</Text>
+          <Text style={styles.safetyScoreText}>{readyCount}/2 ready</Text>
         </View>
       </View>
 
       <View style={styles.safetyStatusList}>
         <SafetyStatusRow
-          label="Camera view"
-          body="Movement sessions show a clean skeleton, never self-view video."
-          value="Skeleton only"
+          label="Camera privacy"
+          body="Hale measures movement without showing your video."
+          value="Private"
           tone="ready"
           first
-        />
-        <SafetyStatusRow
-          label="Safety profile"
-          body={
-            safetyProfileSaved
-              ? 'Comfort and support details are saved.'
-              : 'Add comfort and support details before sessions.'
-          }
-          value={safetyProfileSaved ? 'Saved' : 'Review'}
-          tone={safetyProfileSaved ? 'ready' : 'attention'}
         />
         <SafetyStatusRow
           label="Phone stand"
           body={
             phoneStandAvailable
-              ? 'Marked available for repeatable framing.'
-              : 'Mark this when you have a stable phone setup.'
+              ? 'Your phone stand helps keep placement steady.'
+              : 'Use a stand, shelf, or stack of books if the phone will not slide.'
           }
           value={phoneStandAvailable ? 'Available' : 'Not set'}
           tone={phoneStandAvailable ? 'ready' : 'neutral'}
@@ -907,36 +833,28 @@ function SafetyStatusRow({
 }
 
 function SafetyActionsCard({
-  onOpenSafetyProfile,
   onOpenCameraSetup,
 }: {
-  onOpenSafetyProfile: () => void;
   onOpenCameraSetup: () => void;
 }) {
   return (
     <View style={styles.safetyCard}>
       <View style={styles.safetyCardHeader}>
         <View style={styles.safetyCardTitleGroup}>
-          <Text style={styles.safetyCardTitle}>Setup actions</Text>
+          <Text style={styles.safetyCardTitle}>Make changes</Text>
           <Text style={styles.safetyCardBody}>
-            Use these when your room, camera angle, or support setup changes.
+            Use this if you want to review where to place your phone.
           </Text>
         </View>
       </View>
 
       <View style={styles.safetyActionList}>
         <SafetyActionRow
-          icon="shield"
-          title="Edit safety profile"
-          body="Update support needs, comfort notes, and movement setup."
-          onPress={onOpenSafetyProfile}
-          first
-        />
-        <SafetyActionRow
-          icon="sliders"
+          icon="camera"
           title="Open camera setup"
-          body="Recheck framing, distance, and phone placement."
+          body="Practice where to place the phone and where to stand."
           onPress={onOpenCameraSetup}
+          first
         />
       </View>
     </View>
@@ -983,22 +901,18 @@ function PersonalDetailsCard({
   name,
   onNameChange,
   onNameBlur,
-  ageText,
-  onAgeChange,
-  onAgeBlur,
-  goal,
-  onGoalChange,
-  onGoalBlur,
+  ageBand,
+  onAgeBandChange,
+  movementGoal,
+  onOpenLifeGoal,
 }: {
   name: string;
   onNameChange: (value: string) => void;
   onNameBlur: () => void;
-  ageText: string;
-  onAgeChange: (value: string) => void;
-  onAgeBlur: () => void;
-  goal: string;
-  onGoalChange: (value: string) => void;
-  onGoalBlur: () => void;
+  ageBand: AgeBand | null;
+  onAgeBandChange: (value: AgeBand | null) => void;
+  movementGoal: string;
+  onOpenLifeGoal: () => void;
 }) {
   return (
     <View style={styles.personalCard}>
@@ -1006,7 +920,7 @@ function PersonalDetailsCard({
         <View style={styles.personalCardHeaderCopy}>
           <Text style={styles.personalCardTitle}>Your details</Text>
           <Text style={styles.personalCardBody}>
-            Edit the personal information Hale uses in greetings and plan copy.
+            Hale uses these details to personalize your plan and explain your results. You only need to choose an age range.
           </Text>
         </View>
         <View style={styles.personalCardIcon}>
@@ -1029,42 +943,73 @@ function PersonalDetailsCard({
               accessibilityLabel="Name"
             />
           </View>
-          <View style={styles.personalFieldDivider} />
-          <View style={styles.personalAgeField}>
-            <Text style={styles.personalFieldLabel}>Age</Text>
-            <TextInput
-              style={styles.personalFieldInput}
-              value={ageText}
-              onChangeText={onAgeChange}
-              onBlur={onAgeBlur}
-              placeholder="Age"
-              placeholderTextColor={colors.textTertiary}
-              keyboardType="number-pad"
-              returnKeyType="done"
-              accessibilityLabel="Age"
-            />
+        </View>
+
+        <View style={styles.personalAgeRangePanel}>
+          <View style={styles.personalAgeRangeHeader}>
+            <Text style={styles.personalFieldLabel}>Age range</Text>
+            <Text style={styles.personalAgeRangeValue}>{personalAgeRangeSummary(ageBand)}</Text>
+          </View>
+          <View style={styles.personalAgeOptionGrid}>
+            {AGE_RANGE_OPTIONS.map((option) => {
+              const selected = ageBand === option.value;
+              const wideOption = option.label === 'Prefer not to say' || option.label === 'Under 45';
+              return (
+                <Pressable
+                  key={option.label}
+                  style={({ pressed }) => [
+                    styles.personalAgeOption,
+                    wideOption ? styles.personalAgeOptionWide : styles.personalAgeOptionCompact,
+                    selected && styles.personalAgeOptionSelected,
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={() => onAgeBandChange(option.value)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Age range ${option.label}`}
+                  accessibilityState={{ selected }}
+                >
+                  <Text
+                    style={[styles.personalAgeOptionText, selected && styles.personalAgeOptionTextSelected]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.88}
+                  >
+                    {option.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
 
-        <View style={styles.personalGoalPanel}>
-          <View style={styles.personalGoalLabelRow}>
-            <LeafIcon />
-            <Text style={styles.personalFieldLabel}>Movement goal</Text>
+        <Pressable
+          style={({ pressed }) => [styles.personalGoalPanel, pressed && styles.pressed]}
+          onPress={onOpenLifeGoal}
+          accessibilityRole="button"
+          accessibilityLabel={`Change movement goal. Current goal: ${movementGoal}`}
+        >
+          <View style={styles.personalGoalRow}>
+            <View style={styles.personalGoalCopy}>
+              <Text style={styles.personalFieldLabel}>Movement goal</Text>
+              <View style={styles.personalGoalValueRow}>
+                <Text style={styles.personalGoalValue} numberOfLines={2}>
+                  {movementGoal}
+                </Text>
+                <Text style={styles.personalGoalChevron}>{'>'}</Text>
+              </View>
+            </View>
           </View>
-          <TextInput
-            style={[styles.personalFieldInput, styles.personalGoalInput]}
-            value={goal}
-            onChangeText={onGoalChange}
-            onBlur={onGoalBlur}
-            placeholder="e.g. Stay steady on stairs"
-            placeholderTextColor={colors.textTertiary}
-            multiline
-            accessibilityLabel="Your goal"
-          />
-        </View>
+        </Pressable>
       </View>
     </View>
   );
+}
+
+function personalAgeRangeSummary(ageBand: AgeBand | null): string {
+  const label = ageDisplayLabel(null, ageBand);
+  if (label === 'Age not set') return 'Not set';
+  if (label === 'Age under 45') return 'Under 45';
+  return label.replace(/^Age\s/, '');
 }
 
 function SetupActionTile({
@@ -1097,42 +1042,6 @@ function SetupActionTile({
   );
 }
 
-function HelpShortcutRow({
-  icon,
-  title,
-  body,
-  onPress,
-  first,
-}: {
-  icon: MenuIconName;
-  title: string;
-  body: string;
-  onPress: () => void;
-  first?: boolean;
-}) {
-  return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.helpShortcutRow,
-        !first && styles.helpShortcutDivider,
-        pressed && styles.pressed,
-      ]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={title}
-    >
-      <View style={styles.helpShortcutIcon}>
-        <MenuIcon name={icon} />
-      </View>
-      <View style={styles.helpShortcutCopy}>
-        <Text style={styles.helpShortcutTitle}>{title}</Text>
-        <Text style={styles.helpShortcutBody}>{body}</Text>
-      </View>
-      <Text style={styles.helpShortcutChevron}>{'>'}</Text>
-    </Pressable>
-  );
-}
-
 function InfoRow({ label, value, first }: { label: string; value: string; first?: boolean }) {
   return (
     <View style={[styles.infoRow, first && styles.infoRowFirst]}>
@@ -1142,37 +1051,31 @@ function InfoRow({ label, value, first }: { label: string; value: string; first?
   );
 }
 
-function PrivacyStorageCard({ supportSharingLabel }: { supportSharingLabel: string }) {
+function PrivacyStorageCard() {
   return (
     <DetailCard
-      title="What Hale stores"
-      body="A compact view of the privacy-sensitive pieces in this version."
+      title="What Hale saves"
+      body="Hale saves the information it needs to keep your plan and results up to date."
     >
       <View style={styles.privacyLedger}>
         <PrivacyLedgerRow
           icon="camera"
-          label="Camera"
-          body="Normal sessions render a clean skeleton, never a self-view mirror."
-          value="Skeleton only"
+          label="Camera video"
+          body="Not shown and not saved."
+          value="Not saved"
           first
         />
         <PrivacyLedgerRow
           icon="sliders"
-          label="Movement data"
-          body="Estimates and preferences stay local first; signed-in sync keeps history available."
-          value="Local first"
-        />
-        <PrivacyLedgerRow
-          icon="shield"
-          label="Support circle"
-          body="Family-style sharing follows the level you choose."
-          value={supportSharingLabel}
+          label="Check-up and workout results"
+          body="Saved so you can compare your progress over time."
+          value="Saved"
         />
         <PrivacyLedgerRow
           icon="account"
-          label="Account actions"
-          body="Export, sign-out, and deletion live in Account & Data."
-          value="Managed"
+          label="Settings"
+          body="Saved so Hale remembers your workout days, effort, equipment, and voice."
+          value="Saved"
         />
       </View>
     </DetailCard>
@@ -1205,70 +1108,6 @@ function PrivacyLedgerRow({
         <Text style={styles.privacyLedgerPillText} numberOfLines={2}>
           {value}
         </Text>
-      </View>
-    </View>
-  );
-}
-
-function PrivacySharingCard({ supportSharingLabel }: { supportSharingLabel: string }) {
-  return (
-    <DetailCard
-      title="Sharing"
-      body="Support sharing is opt-in. Hale stores movement estimates and preferences so your plan can adapt over time."
-    >
-      <View style={styles.privacySharingHeader}>
-        <View style={styles.privacySharingMark}>
-          <LeafIcon />
-        </View>
-        <View style={styles.privacySharingCopy}>
-          <Text style={styles.privacySharingLabel}>Current support visibility</Text>
-          <Text style={styles.privacySharingBody}>
-            Nothing becomes visible to a support circle unless this setting allows it.
-          </Text>
-        </View>
-        <View style={styles.privacySharingPill}>
-          <Text style={styles.privacySharingPillText} numberOfLines={2}>
-            {supportSharingLabel}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.privacyPromiseList}>
-        <PrivacyPromiseRow
-          icon="lock"
-          title="Opt-in only"
-          body="Support updates stay off until you choose a sharing level."
-          first
-        />
-        <PrivacyPromiseRow
-          icon="shield"
-          title="No public profile"
-          body="Hale does not create clinical labels, social feeds, or public profiles."
-        />
-      </View>
-    </DetailCard>
-  );
-}
-
-function PrivacyPromiseRow({
-  icon,
-  title,
-  body,
-  first,
-}: {
-  icon: MenuIconName;
-  title: string;
-  body: string;
-  first?: boolean;
-}) {
-  return (
-    <View style={[styles.privacyPromiseRow, !first && styles.privacyPromiseDivider]}>
-      <View style={styles.privacyPromiseIcon}>
-        <MenuIcon name={icon} />
-      </View>
-      <View style={styles.privacyPromiseCopy}>
-        <Text style={styles.privacyPromiseTitle}>{title}</Text>
-        <Text style={styles.privacyPromiseBody}>{body}</Text>
       </View>
     </View>
   );
@@ -1355,18 +1194,18 @@ function SessionFeelPicker({
   selected,
   onSelect,
 }: {
-  selected: TrainingIntensityPreference;
-  onSelect: (preference: TrainingIntensityPreference) => void;
+  selected: ActivityLevel;
+  onSelect: (preference: ActivityLevel) => void;
 }) {
   return (
     <View style={styles.sessionFeelList}>
-      {INTENSITY_OPTIONS.map((option, index) => (
+      {STARTING_PACE_OPTIONS.map((option, index) => (
         <SessionFeelOption
-          key={option.id}
+          key={option.value}
           option={option}
-          selected={selected === option.id}
+          selected={selected === option.value}
           showDivider={index > 0}
-          onPress={() => onSelect(option.id)}
+          onPress={() => onSelect(option.value)}
         />
       ))}
     </View>
@@ -1379,7 +1218,7 @@ function SessionFeelOption({
   showDivider,
   onPress,
 }: {
-  option: (typeof INTENSITY_OPTIONS)[number];
+  option: (typeof STARTING_PACE_OPTIONS)[number];
   selected: boolean;
   showDivider: boolean;
   onPress: () => void;
@@ -1438,10 +1277,6 @@ function trainingDayMeta(days: readonly string[]): string {
   return `${days.length} days`;
 }
 
-function intensityLabel(preference: TrainingIntensityPreference): string {
-  return INTENSITY_OPTIONS.find((option) => option.id === preference)?.label ?? 'Standard';
-}
-
 function equipmentSummary({
   available,
   equipment,
@@ -1470,37 +1305,23 @@ function equipmentSummary({
   return `${base} + ${optionalCount} optional`;
 }
 
-function ProfilePicturePlaceholder() {
+function ProfileDetailsGlyph() {
   return (
     <Svg width={38} height={38} viewBox="0 0 64 64" fill="none">
       <Path
-        d="M17 24 H23.5 L27.5 18.8 H36.5 L40.5 24 H47 C50 24 52 26 52 29 V44.5 C52 47.5 50 49.5 47 49.5 H17 C14 49.5 12 47.5 12 44.5 V29 C12 26 14 24 17 24 Z"
+        d="M20 48 C22.4 39.6, 27.2 35.5, 32 35.5 C36.8 35.5, 41.6 39.6, 44 48"
         stroke={colors.accentDeep}
         strokeWidth={3.2}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <Circle cx={32} cy={37} r={8} stroke={colors.accentDeep} strokeWidth={3.2} fill="none" />
-      <Path d="M43.5 29.5 H44" stroke={colors.accentDeep} strokeWidth={3.2} strokeLinecap="round" />
-    </Svg>
-  );
-}
-
-function LeafIcon() {
-  return (
-    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+      <Circle cx={32} cy={23} r={8} stroke={colors.accentDeep} strokeWidth={3.2} fill="none" />
       <Path
-        d="M19 4 C10 5, 5.5 10, 6.5 17 C12 17, 17 12, 19 4 Z"
+        d="M41 19.5 L47.5 13 C49.2 11.3, 52 14.1, 50.3 15.8 L43.8 22.3 L39.8 23.5 Z"
         stroke={colors.accentDeep}
-        strokeWidth={1.8}
+        strokeWidth={2.8}
         strokeLinecap="round"
         strokeLinejoin="round"
-      />
-      <Path
-        d="M7 18 C9.5 14, 12.5 11.5, 16 9.5"
-        stroke={colors.accentDeep}
-        strokeWidth={1.8}
-        strokeLinecap="round"
       />
     </Svg>
   );
@@ -1514,8 +1335,7 @@ type MenuIconName =
   | 'dumbbell'
   | 'bell'
   | 'account'
-  | 'lock'
-  | 'help';
+  | 'lock';
 
 function MenuIcon({ name }: { name: MenuIconName }) {
   const stroke = colors.accentDeep;
@@ -1607,16 +1427,6 @@ function MenuIcon({ name }: { name: MenuIconName }) {
             />
           </>
         ) : null}
-        {name === 'help' ? (
-          <>
-            <Circle cx={12} cy={12} r={8.4} {...common} />
-            <Path
-              d="M9.8 9.5 C10.1 8.1, 11 7.4, 12.3 7.4 C13.8 7.4, 14.8 8.3, 14.8 9.6 C14.8 11.7, 12 11.8, 12 14"
-              {...common}
-            />
-            <Path d="M12 17 H12.1" {...common} />
-          </>
-        ) : null}
       </Svg>
     </View>
   );
@@ -1690,15 +1500,22 @@ const styles = StyleSheet.create({
     marginTop: 3,
     color: colors.primaryText,
   },
-  goalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginTop: 6,
+  goalBlock: {
+    gap: 1,
+    marginTop: spacing.sm,
+  },
+  goalLabel: {
+    fontSize: 11,
+    lineHeight: 15,
+    letterSpacing: 0,
+    fontFamily: fonts.sansMedium,
+    color: colors.accentDeep,
   },
   goalText: {
-    ...type.caption,
-    flex: 1,
+    fontFamily: fonts.sansRegular,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: 0,
     color: colors.primaryText,
   },
   menuCard: {
@@ -1849,73 +1666,6 @@ const styles = StyleSheet.create({
   detailCardContent: {
     marginTop: spacing.lg,
   },
-  voiceCurrentCard: {
-    gap: spacing.lg,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl,
-    borderRadius: radius.card,
-    backgroundColor: colors.bgSurface,
-    ...shadow.card,
-  },
-  voiceCurrentTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-  },
-  voiceCurrentIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: radius.panel,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.goldBorder,
-    backgroundColor: colors.bgGold,
-  },
-  voiceCurrentCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  voiceEyebrow: {
-    ...type.caption,
-    color: colors.accentDeep,
-    fontFamily: fonts.sansMedium,
-  },
-  voiceCurrentTitle: {
-    ...type.cardTitle,
-    marginTop: spacing.xs,
-    color: colors.primaryText,
-  },
-  voiceCurrentBody: {
-    ...type.cardBody,
-    marginTop: 2,
-    color: colors.textSecondary,
-  },
-  voiceSummaryGrid: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  voiceSummaryTile: {
-    flex: 1,
-    minHeight: 72,
-    justifyContent: 'center',
-    borderRadius: radius.input,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
-  },
-  voiceSummaryLabel: {
-    ...type.caption,
-    color: colors.textSecondary,
-    fontFamily: fonts.sansMedium,
-  },
-  voiceSummaryValue: {
-    ...type.bodySmall,
-    marginTop: 2,
-    color: colors.primaryText,
-  },
   voiceSelectorCard: {
     gap: spacing.lg,
     paddingHorizontal: spacing.xl,
@@ -1961,7 +1711,7 @@ const styles = StyleSheet.create({
   voiceOptionRowDisabled: {
     opacity: 0.52,
   },
-  voiceOptionIcon: {
+  voicePreviewButton: {
     width: 44,
     height: 44,
     borderRadius: radius.input,
@@ -1970,6 +1720,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.bgSurface,
+  },
+  voiceOptionSelectArea: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
   },
   voiceOptionCopy: {
     flex: 1,
@@ -2172,62 +1930,145 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   personalFieldGroup: {
-    gap: spacing.sm,
+    gap: spacing.md,
   },
   personalIdentityPanel: {
-    minHeight: 90,
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    borderRadius: radius.input,
-    backgroundColor: colors.background,
+    minHeight: 88,
+    borderRadius: radius.panel,
+    borderWidth: 1,
+    borderColor: colors.borderHairline,
+    backgroundColor: 'transparent',
     overflow: 'hidden',
   },
   personalNameField: {
     flex: 1,
     minWidth: 0,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     justifyContent: 'center',
   },
-  personalAgeField: {
-    width: 104,
+  personalAgeRangePanel: {
+    borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: colors.borderHairline,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    justifyContent: 'center',
+    paddingVertical: spacing.lg,
+    backgroundColor: 'transparent',
   },
-  personalFieldDivider: {
-    width: StyleSheet.hairlineWidth,
-    marginVertical: spacing.md,
-    backgroundColor: colors.divider,
+  personalAgeRangeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  personalAgeRangeValue: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: 0,
+    color: colors.accentDeep,
+    textAlign: 'right',
+    flexShrink: 0,
+    fontVariant: ['tabular-nums'],
   },
   personalFieldLabel: {
-    ...type.caption,
-    color: colors.textSecondary,
     fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0,
+    color: colors.sageDeep,
+    textTransform: 'uppercase',
   },
   personalFieldInput: {
-    ...type.body,
+    fontFamily: fonts.sansMedium,
+    fontSize: 18,
+    lineHeight: 24,
+    letterSpacing: 0,
     minHeight: 36,
     padding: 0,
-    marginTop: spacing.xs,
+    marginTop: spacing.sm,
     color: colors.primaryText,
     backgroundColor: 'transparent',
   },
-  personalGoalPanel: {
-    minHeight: 116,
-    borderRadius: radius.input,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.background,
+  personalAgeOptionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: spacing.sm,
+    marginTop: spacing.md,
   },
-  personalGoalLabelRow: {
+  personalAgeOption: {
+    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  personalAgeOptionWide: {
+    flexBasis: '48.5%',
+  },
+  personalAgeOptionCompact: {
+    flexBasis: '23.5%',
+    paddingHorizontal: spacing.xs,
+  },
+  personalAgeOptionSelected: {
+    borderColor: colors.accentDeep,
+    backgroundColor: colors.accentDeep,
+  },
+  personalAgeOptionText: {
+    fontFamily: fonts.sansRegular,
+    fontSize: 14,
+    lineHeight: 20,
+    letterSpacing: 0,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    fontVariant: ['tabular-nums'],
+  },
+  personalAgeOptionTextSelected: {
+    color: colors.onAccent,
+    fontFamily: fonts.sansMedium,
+  },
+  personalGoalPanel: {
+    minHeight: 104,
+    borderRadius: radius.panel,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.goldBorder,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+  },
+  personalGoalRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
   },
-  personalGoalInput: {
-    minHeight: 62,
-    textAlignVertical: 'top',
+  personalGoalCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 6,
+  },
+  personalGoalValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  personalGoalValue: {
+    flex: 1,
+    minWidth: 0,
+    fontFamily: fonts.serifMedium,
+    fontSize: 21,
+    lineHeight: 27,
+    letterSpacing: 0,
+    color: colors.primaryText,
+  },
+  personalGoalChevron: {
+    ...type.h2,
+    color: colors.textSecondary,
+    lineHeight: 27,
+    flexShrink: 0,
   },
   setupActionStack: {
     gap: spacing.sm,
@@ -2269,49 +2110,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   setupActionChevron: {
-    ...type.h2,
-    color: colors.textSecondary,
-    lineHeight: 26,
-  },
-  helpShortcutList: {
-    marginTop: -spacing.xs,
-  },
-  helpShortcutRow: {
-    minHeight: 82,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.md,
-  },
-  helpShortcutDivider: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.divider,
-  },
-  helpShortcutIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.input,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.bgSurface,
-  },
-  helpShortcutCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  helpShortcutTitle: {
-    ...type.bodySmall,
-    fontFamily: fonts.sansMedium,
-    color: colors.primaryText,
-  },
-  helpShortcutBody: {
-    ...type.caption,
-    marginTop: 2,
-    color: colors.textSecondary,
-  },
-  helpShortcutChevron: {
     ...type.h2,
     color: colors.textSecondary,
     lineHeight: 26,
@@ -2511,93 +2309,6 @@ const styles = StyleSheet.create({
     color: colors.accentDeep,
     fontFamily: fonts.sansMedium,
     textAlign: 'center',
-  },
-  privacySharingHeader: {
-    minHeight: 82,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingBottom: spacing.lg,
-  },
-  privacySharingMark: {
-    width: 46,
-    height: 46,
-    borderRadius: radius.input,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.goldBorder,
-    backgroundColor: colors.bgGold,
-  },
-  privacySharingCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  privacySharingLabel: {
-    ...type.bodySmall,
-    color: colors.primaryText,
-    fontFamily: fonts.sansMedium,
-  },
-  privacySharingBody: {
-    ...type.caption,
-    color: colors.textSecondary,
-  },
-  privacySharingPill: {
-    width: 112,
-    minHeight: 38,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 7,
-    borderWidth: 1,
-    borderColor: colors.accentBorder,
-    backgroundColor: colors.bgSurface,
-  },
-  privacySharingPillText: {
-    ...type.caption,
-    lineHeight: 17,
-    color: colors.accentDeep,
-    fontFamily: fonts.sansMedium,
-    textAlign: 'center',
-  },
-  privacyPromiseList: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.divider,
-  },
-  privacyPromiseRow: {
-    minHeight: 68,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.md,
-  },
-  privacyPromiseDivider: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.divider,
-  },
-  privacyPromiseIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.input,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.background,
-  },
-  privacyPromiseCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  privacyPromiseTitle: {
-    ...type.bodySmall,
-    color: colors.primaryText,
-    fontFamily: fonts.sansMedium,
-  },
-  privacyPromiseBody: {
-    ...type.caption,
-    color: colors.textSecondary,
   },
   pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
 });

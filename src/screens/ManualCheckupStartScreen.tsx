@@ -29,7 +29,7 @@ export function ManualCheckupStartScreen({
   onMicroCheck: () => void;
   onCancel: () => void;
 }) {
-  const copy = getManualCheckupCopy();
+  const copy = getManualCheckupCopy({ activeBlock: !!activeBlock });
   const options = getManualCheckupOptions({ latestAssessment, activeBlock, completions });
   const recommendedOption = options.find((option) => option.recommended) ?? options[0];
   const secondaryOptions = options.filter((option) => option !== recommendedOption);
@@ -59,14 +59,41 @@ export function ManualCheckupStartScreen({
 
       {recommendedOption ? (
         <View style={styles.recommendedCard}>
-          <Text style={styles.cardKicker}>Recommended today</Text>
-          <Text style={styles.recommendedTitle}>{recommendedOption.title}</Text>
-          <Text style={styles.recommendedBody}>{recommendedOption.body}</Text>
+          <View style={styles.recommendedHeaderRow}>
+            <View style={styles.recommendedBadge}>
+              <View style={styles.recommendedBadgeDot} />
+              <Text style={styles.cardKicker}>Recommended today</Text>
+            </View>
+            <Text style={styles.recommendedMeta}>{recommendationMeta(recommendedOption)}</Text>
+          </View>
 
-          <PrimaryButton title={primaryActionLabel(recommendedOption.title)} onPress={() => selectOption(recommendedOption.type)} />
+          <View style={styles.recommendedCopy}>
+            <Text style={styles.recommendedTitle}>{recommendedOption.title}</Text>
+            <Text style={styles.recommendedBody}>{recommendedOption.body}</Text>
+          </View>
+
+          <PrimaryButton
+            title={primaryActionLabel(recommendedOption)}
+            onPress={() => selectOption(recommendedOption.type)}
+            style={styles.recommendedButton}
+          />
 
           {!recommendedOption.isOfficialForProgress ? (
-            <Text style={styles.recommendedNote}>Saved separately, so your official 4-week comparison stays unchanged.</Text>
+            <View style={styles.recommendedNoteRow}>
+              <View style={styles.noteMark}>
+                <Svg width={12} height={12} viewBox="0 0 12 12" accessibilityElementsHidden>
+                  <Path
+                    d="M3 6.15L5.1 8.2L9 3.9"
+                    fill="none"
+                    stroke={colors.accentDeep}
+                    strokeWidth={1.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </Svg>
+              </View>
+              <Text style={styles.recommendedNote}>{nonOfficialNote(recommendedOption, !!activeBlock)}</Text>
+            </View>
           ) : null}
         </View>
       ) : null}
@@ -79,11 +106,10 @@ export function ManualCheckupStartScreen({
               style={({ pressed }) => [styles.optionRow, pressed && styles.optionPressed]}
               onPress={() => selectOption(option.type)}
               accessibilityRole="button"
-              accessibilityLabel={option.title}
+              accessibilityLabel="Want the full checkup instead?"
             >
               <View style={styles.optionText}>
-                <Text style={styles.optionKicker}>Prefer the full check-up?</Text>
-                <Text style={styles.optionTitle}>{shortenSecondaryTitle(option.title)}</Text>
+                <Text style={styles.optionTitle}>Want the full checkup instead?</Text>
                 <Text style={styles.optionBody}>{option.body}</Text>
               </View>
               <View style={styles.optionAction}>
@@ -108,7 +134,9 @@ export function ManualCheckupStartScreen({
   );
 }
 
-function primaryActionLabel(title: string): string {
+function primaryActionLabel(option: (ReturnType<typeof getManualCheckupOptions>)[number]): string {
+  if (option.type === 'micro_check') return 'Start micro-check';
+  const title = option.title;
   const trimmed = title.trim();
   const lower = trimmed.toLowerCase();
   if (lower.startsWith('start') || lower.startsWith('retake')) return trimmed;
@@ -116,8 +144,22 @@ function primaryActionLabel(title: string): string {
   return `Start ${lower}`;
 }
 
-function shortenSecondaryTitle(title: string): string {
-  return title.replace(/\s+anyway$/i, '');
+function nonOfficialNote(
+  option: (ReturnType<typeof getManualCheckupOptions>)[number],
+  hasActiveBlock: boolean
+): string {
+  if (option.type === 'micro_check' || hasActiveBlock) {
+    return 'Your 4-week check-up schedule stays the same.';
+  }
+  return 'Saved separately from your official check-up trend.';
+}
+
+function recommendationMeta(option: (ReturnType<typeof getManualCheckupOptions>)[number]): string {
+  if (option.type === 'micro_check') return '60 sec';
+  if (option.type === 'quick_recheck') return 'Short check';
+  if (option.type === 'official_retest') return 'Full check-up';
+  if (option.type === 'baseline_retake') return 'Retake';
+  return 'Full check-up';
 }
 
 const styles = StyleSheet.create({
@@ -141,7 +183,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fonts.serifMedium,
     fontSize: 34,
-    lineHeight: 39,
+    lineHeight: 44,
     letterSpacing: 0,
     color: colors.textPrimary,
     flexShrink: 1,
@@ -151,7 +193,104 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   recommendedCard: {
-    gap: spacing.lg,
+    gap: spacing.xl,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xxl,
+    borderRadius: radius.panel,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+    ...shadow.card,
+    boxShadow: '0 18px 44px rgba(17,20,18,0.055)',
+  },
+  recommendedHeaderRow: {
+    minHeight: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  recommendedBadge: {
+    minHeight: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bgGold,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.goldBorder,
+  },
+  recommendedBadgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.accentGold,
+  },
+  cardKicker: {
+    ...type.cardCaption,
+    fontFamily: fonts.sansMedium,
+    color: colors.accentDeep,
+  },
+  recommendedMeta: {
+    ...type.cardCaption,
+    fontFamily: fonts.sansMedium,
+    color: colors.textTertiary,
+    flexShrink: 1,
+    textAlign: 'right',
+  },
+  recommendedCopy: {
+    gap: spacing.md,
+  },
+  recommendedTitle: {
+    fontFamily: fonts.serifMedium,
+    fontSize: 33,
+    lineHeight: 40,
+    letterSpacing: 0,
+    color: colors.textPrimary,
+  },
+  recommendedBody: {
+    ...type.bodySmall,
+    fontSize: 16,
+    lineHeight: 25,
+    color: colors.textSecondary,
+  },
+  recommendedButton: {
+    boxShadow: '0 12px 24px rgba(65,76,52,0.16)',
+  },
+  recommendedNoteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingTop: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.borderHairline,
+  },
+  noteMark: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.pill,
+    backgroundColor: colors.bgGold,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.goldBorder,
+  },
+  recommendedNote: {
+    ...type.caption,
+    color: colors.textSecondary,
+    flex: 1,
+    minWidth: 0,
+  },
+  secondaryStack: {
+    gap: spacing.md,
+  },
+  optionRow: {
+    minHeight: 128,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.xl,
     borderRadius: radius.panel,
@@ -159,66 +298,28 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
     ...shadow.card,
-    boxShadow: '0 14px 34px rgba(17,20,18,0.045)',
-  },
-  cardKicker: {
-    ...type.label,
-    color: colors.accentDeep,
-  },
-  recommendedTitle: {
-    fontFamily: fonts.serifMedium,
-    fontSize: 31,
-    lineHeight: 37,
-    letterSpacing: 0,
-    color: colors.textPrimary,
-  },
-  recommendedBody: {
-    ...type.bodySmall,
-    color: colors.textSecondary,
-  },
-  recommendedNote: {
-    ...type.caption,
-    color: colors.textSecondary,
-    paddingTop: spacing.xs,
-  },
-  secondaryStack: {
-    gap: spacing.md,
-  },
-  optionRow: {
-    minHeight: 112,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.lg,
-    borderRadius: radius.panel,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    ...shadow.card,
-    boxShadow: '0 10px 26px rgba(17,20,18,0.032)',
+    boxShadow: '0 12px 30px rgba(17,20,18,0.038)',
   },
   optionPressed: {
-    opacity: 0.76,
+    opacity: 0.84,
+    transform: [{ scale: 0.992 }],
   },
   optionText: {
     flex: 1,
     minWidth: 0,
-    gap: spacing.xs,
-  },
-  optionKicker: {
-    ...type.cardCaption,
-    color: colors.textTertiary,
-    fontFamily: fonts.sansMedium,
+    gap: spacing.sm,
   },
   optionTitle: {
-    ...type.cardRowTitle,
-    fontSize: 16,
-    lineHeight: 22,
+    fontFamily: fonts.serifMedium,
+    fontSize: 25,
+    lineHeight: 31,
+    letterSpacing: 0,
+    color: colors.textPrimary,
   },
   optionBody: {
     ...type.cardBody,
+    fontSize: 15,
+    lineHeight: 22,
   },
   optionAction: {
     flexShrink: 0,
@@ -227,14 +328,15 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   optionArrow: {
-    width: 30,
-    height: 30,
+    width: 40,
+    height: 40,
     flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.pill,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    backgroundColor: colors.bgBase,
+    borderColor: colors.goldBorder,
+    backgroundColor: colors.surface,
+    boxShadow: '0 6px 16px rgba(17,20,18,0.045)',
   },
 });

@@ -1285,6 +1285,18 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
 - **Scope boundary:** this is a resilience and emulator-design fallback only. It does not
   synthesize landmark frames, complete measurements, or change scoring/training behavior.
 
+## 2026-06-22 — Dev-only onboarding synthetic check-up shortcut
+
+- **Change:** the onboarding camera setup screen now shows a `__DEV__`-only "Dev: use sample
+  check-up" action. It feeds `syntheticCheckUp()` through the normal baseline completion path,
+  so history, scoring, movement assessment, first-block preparation, and the onboarding results
+  pages behave as if a real baseline Movement Check-Up completed.
+- **Product boundary:** production users still cannot skip into personalized results. The
+  user-facing "Do this later" path remains non-synthetic and still creates no check-up,
+  movement-age estimate, assessment, or block.
+- **Implementation boundary:** the synthetic fixture is required only inside the guarded dev
+  callback, not imported into the production execution path.
+
 ## 2026-06-21 — Isolated beta landing website
 
 - **Change:** a separate `website/` Next.js application was added for the Hale beta landing
@@ -1392,3 +1404,14 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
   levels; the oldest onboarding band only adds a small rest buffer.
 - **Boundary:** check-up focus, movement capability gates, equipment, release policy, daily
   readiness, and daily pain remain stronger than saved profile preferences.
+
+## 2026-06-23 — Onboarding age bands are separate from exact age
+
+- **Change:** onboarding age selection now stores `profile.ageBand` separately from exact
+  `profile.age`. The safety profile may still carry a representative age for broad recovery
+  tuning, but display and profile sync preserve the selected band instead of pretending it is an
+  exact age.
+- **Compatibility:** legacy saved profiles that only contain representative ages such as `60`
+  migrate to the matching `ageBand`; exact ages entered after this change keep `ageBand: null`.
+- **Life goal copy:** the neutral `noticed_decline` option is labeled "Feel stronger overall" to
+  keep the original broad-goal tone while preserving its no-bias workout behavior.

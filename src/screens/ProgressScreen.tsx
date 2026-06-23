@@ -6,10 +6,10 @@ import {
   Card,
   Screen,
 } from '../components/ui';
+import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
 import {
   getLifeGoalDisplayText,
-  getLifeGoalTrainingRelevance,
   LOCAL_USER_ID,
   type LifeGoal,
   type MovementAssessment,
@@ -27,6 +27,7 @@ import {
   getDomainProgressCards,
   getLadderProgressCards,
   getLatestCheckUpSummary,
+  getLatestDomainEvidence,
   getRetestDueSummary,
   getRetestHistory,
 } from '../haleFlow';
@@ -66,7 +67,7 @@ export function ProgressScreen({
   assessments,
   activeBlock,
   blocks,
-  reports: blockReports,
+  reports,
   completions,
   ladderProgressById,
   lifeGoal,
@@ -75,31 +76,43 @@ export function ProgressScreen({
   onBeginAdditionalCheckUp,
   onStartRetest,
   onViewLatest,
-  onViewReport,
+  onViewCheckUp,
   onOpenSettings,
 }: ProgressScreenProps) {
+  const [historyOpen, setHistoryOpen] = React.useState(false);
   const visibleHistory = history;
   const visibleAssessments = assessments;
   const visibleActiveBlock = activeBlock;
   const visibleBlocks = blocks;
-  const visibleReports = blockReports;
+  const visibleReports = reports;
   const visibleCompletions = completions;
   const visibleLadderProgressById = ladderProgressById;
 
   const latest = getLatestCheckUpSummary(visibleHistory, visibleAssessments);
+  const latestEvidence = getLatestDomainEvidence(visibleHistory, visibleAssessments);
   const domainCards = getDomainProgressCards(visibleHistory, visibleAssessments);
   const ladderCards = getLadderProgressCards(visibleLadderProgressById);
-  const blockSummaries = getBlockReportSummaries({
+  const retestHistory = getRetestHistory(visibleHistory, visibleAssessments);
+  const reportedBlockIds = new Set(visibleReports.map((report) => report.blockId));
+  const completedPlanSummary = getBlockReportSummaries({
     blocks: visibleBlocks,
     reports: visibleReports,
     completions: visibleCompletions,
-  });
-  const retestHistory = getRetestHistory(visibleHistory, visibleAssessments);
+  }).find((summary) => reportedBlockIds.has(summary.blockId)) ?? null;
   const hasComparison = retestHistory.length > 1;
   const retest = getRetestDueSummary({ activeBlock: visibleActiveBlock, today, hasBaseline: !!latest, completions: visibleCompletions });
   const retestBody = retestLine({ activeBlock: visibleActiveBlock, today, fallback: retest.body, due: retest.due });
   const handleViewLatest = onViewLatest;
-  const handleViewReport = onViewReport;
+
+  if (historyOpen) {
+    return (
+      <ProgressHistoryView
+        history={retestHistory}
+        onBack={() => setHistoryOpen(false)}
+        onViewCheckUp={onViewCheckUp}
+      />
+    );
+  }
 
   return (
     <Screen contentStyle={styles.screenContent}>
@@ -128,12 +141,8 @@ export function ProgressScreen({
             latest={latest}
             retestTitle={retest.title}
             retestBody={retestBody}
-            activeBlock={visibleActiveBlock}
-            completions={visibleCompletions}
-            today={today}
+            lifeGoal={lifeGoal}
           />
-
-          <DailyLifeProgressCard lifeGoal={lifeGoal} activeBlock={visibleActiveBlock} latest={latest} />
 
           {retest.due ? (
             <RetestCard
@@ -143,20 +152,21 @@ export function ProgressScreen({
             />
           ) : null}
 
-          <MovementProfileCard latest={latest} onViewResults={handleViewLatest} />
-
-          {domainCards.length > 0 ? <ChangeSinceBaselineCard cards={domainCards} hasComparison={hasComparison} /> : null}
+          {hasComparison && domainCards.length > 0 ? (
+            <ChangeSinceBaselineCard cards={domainCards} latest={latest} onViewResults={handleViewLatest} />
+          ) : (
+            <MovementProfileCard latest={latest} evidence={latestEvidence} onViewResults={handleViewLatest} />
+          )}
 
           {ladderCards.length > 0 ? <TrainingProgressCard cards={ladderCards} /> : null}
 
           <ProgressRecordsCard
-            summaries={blockSummaries}
-            retestTitle={retest.title}
             retestBody={retestBody}
             showRetest={!retest.due}
             history={retestHistory}
+            completedPlan={completedPlanSummary}
             onBeginCheckUp={onBeginAdditionalCheckUp}
-            onViewReport={handleViewReport}
+            onOpenHistory={() => setHistoryOpen(true)}
           />
         </>
       )}
@@ -169,34 +179,34 @@ function ProgressEmptyState({ onBeginCheckUp }: { onBeginCheckUp: () => void }) 
     <View style={styles.emptyProgressWrap}>
       <View style={styles.emptyProgressCard}>
         <View style={styles.emptyProgressHeader}>
-          <Text style={styles.emptyProgressKicker}>Before progress appears</Text>
+          <Text style={styles.emptyProgressKicker}>Set your starting point</Text>
           <View style={styles.emptyProgressMetaPill}>
             <Text style={styles.emptyProgressMetaText}>~10 min</Text>
           </View>
         </View>
 
-        <Text style={styles.emptyProgressTitle}>Complete your first Movement Check-Up</Text>
+        <Text style={styles.emptyProgressTitle}>Start with your first Movement Check-Up</Text>
         <Text style={styles.emptyProgressBody}>
-          Hale uses your first home estimate to start a baseline for strength, balance, and mobility.
+          Hale guides you through simple movements and saves your first strength, balance, and mobility numbers. Future check-ups use the same movements so you can see what changed.
         </Text>
 
         <View style={styles.emptyProgressSteps} accessibilityLabel="Progress preparation steps">
           <ProgressEmptyStep
             index="1"
-            title="Baseline"
-            body="Capture your first strength, balance, and mobility estimate."
+            title="Do the first check-up"
+            body="Hale talks you through each movement while the camera estimates your results."
             state="current"
           />
           <ProgressEmptyStep
             index="2"
-            title="Training block"
-            body="Hale builds the first four-week block from that result."
+            title="Get a 4-week plan"
+            body="Your plan starts with the area that needs the most practice."
             state="upcoming"
           />
           <ProgressEmptyStep
             index="3"
-            title="Re-test"
-            body="Your next check-up starts the first clear progress comparison."
+            title="Repeat the check-up"
+            body="After a few weeks, repeat it so Hale can compare the same movements."
             state="upcoming"
             last
           />
@@ -215,7 +225,7 @@ function ProgressEmptyState({ onBeginCheckUp }: { onBeginCheckUp: () => void }) 
 
       <View style={styles.emptyProgressNote}>
         <Text style={styles.emptyProgressNoteText}>
-          Progress appears after repeat check-ups, so small day-to-day variation does not become the story.
+          Progress is based on repeat check-ups, not one-day changes. That keeps this page focused on meaningful patterns.
         </Text>
       </View>
     </View>
@@ -266,7 +276,7 @@ interface ProgressScreenProps {
   onBeginAdditionalCheckUp: () => void;
   onStartRetest: () => void;
   onViewLatest: () => void;
-  onViewReport: (blockId: string) => void;
+  onViewCheckUp: (checkUpId: string) => void;
   onOpenSettings: () => void;
 }
 
@@ -593,26 +603,22 @@ function ProgressHeroSection({
   latest,
   retestTitle,
   retestBody,
-  activeBlock,
-  completions,
-  today,
+  lifeGoal,
 }: {
   latest: NonNullable<ReturnType<typeof getLatestCheckUpSummary>>;
   retestTitle: string;
   retestBody: string;
-  activeBlock?: MovementBlock | null;
-  completions: readonly TrainingSessionCompletion[];
-  today: string;
+  lifeGoal?: LifeGoal | null;
 }) {
   const responsive = useResponsiveLayout();
   const compactHero = responsive.isCompactPhone;
   const focus = cleanFocusTitle(latest.focusTitle);
   const heroBody = heroFocusBody(focus);
-  const sessionValue = activeBlock ? weeklySessionValue(activeBlock, completions, today) : 'Not started';
+  const goalText = lifeGoal ? getLifeGoalDisplayText(lifeGoal) : 'Not set yet';
   const heroFacts = [
-    { label: 'This week', value: sessionValue },
+    { label: 'Last check-up', value: compactHero ? compactHeroDate(latest.dateLabel) : latest.dateLabel },
     { label: 'Next check-up', value: compactRetestValue(retestTitle, retestBody) },
-    { label: 'Latest check-up', value: compactHero ? compactHeroDate(latest.dateLabel) : latest.dateLabel },
+    { label: 'Everyday goal', value: goalText, wide: true, valueLines: 2 },
   ];
 
   return (
@@ -626,13 +632,20 @@ function ProgressHeroSection({
         <View style={styles.progressHeroScrim} />
         <View style={[styles.progressHeroContent, compactHero && styles.progressHeroContentCompact]}>
           <View style={[styles.progressHeroCopy, compactHero && styles.progressHeroCopyCompact]}>
-            <Text style={styles.progressHeroEyebrow}>Progress at a glance</Text>
-            <Text style={[styles.progressHeroTitle, compactHero && styles.progressHeroTitleCompact]}>{focus} is your current focus.</Text>
+            <Text style={styles.progressHeroEyebrow}>Main focus right now</Text>
+            <Text style={[styles.progressHeroTitle, compactHero && styles.progressHeroTitleCompact]}>{focus}</Text>
             <Text style={[styles.progressHeroBody, compactHero && styles.progressHeroBodyCompact]}>{heroBody}</Text>
           </View>
           <View style={[styles.progressHeroFacts, compactHero && styles.progressHeroFactsCompact]}>
-            {heroFacts.map((fact, index) => (
-              <HeroFact key={fact.label} label={fact.label} value={fact.value} compact={compactHero} wide={compactHero && index === 2} />
+            {heroFacts.map((fact) => (
+              <HeroFact
+                key={fact.label}
+                label={fact.label}
+                value={fact.value}
+                compact={compactHero}
+                wide={fact.wide}
+                valueLines={fact.valueLines}
+              />
             ))}
           </View>
         </View>
@@ -646,16 +659,18 @@ function HeroFact({
   value,
   compact,
   wide,
+  valueLines = 1,
 }: {
   label: string;
   value: string;
   compact?: boolean;
   wide?: boolean;
+  valueLines?: number;
 }) {
   return (
     <View style={[styles.progressHeroFact, compact && styles.progressHeroFactCompact, wide && styles.progressHeroFactWide]}>
       <Text style={styles.progressHeroFactLabel} numberOfLines={1}>{label}</Text>
-      <Text style={styles.progressHeroFactValue} numberOfLines={1}>{value}</Text>
+      <Text style={styles.progressHeroFactValue} numberOfLines={valueLines}>{value}</Text>
     </View>
   );
 }
@@ -665,72 +680,46 @@ function compactHeroDate(label: string): string {
   return compact.length > 0 ? compact : label;
 }
 
-function DailyLifeProgressCard({
-  lifeGoal,
-  activeBlock,
-  latest,
-}: {
-  lifeGoal?: LifeGoal | null;
-  activeBlock?: MovementBlock | null;
-  latest: NonNullable<ReturnType<typeof getLatestCheckUpSummary>>;
-}) {
-  const relevance = getLifeGoalTrainingRelevance(lifeGoal);
-  const goalText = lifeGoal ? getLifeGoalDisplayText(lifeGoal) : null;
-  const rows = dailyLifeRows({
-    lifeGoal,
-    activeBlock,
-    latest,
-    primaryDomains: relevance.primaryDomains,
-  });
-
-  return (
-    <Card style={[styles.progressCard, styles.dailyLifeCard]}>
-      <Text style={styles.dailyLifeEyebrow}>{goalText ? 'Your goal' : 'Daily independence'}</Text>
-      <Text style={styles.dailyLifeTitle}>
-        {goalText ? goalText : 'Stay capable for the everyday actions that matter.'}
-      </Text>
-      <Text style={styles.dailyLifeBody}>
-        {goalText
-          ? relevance.copy
-          : 'Hale translates check-ups and training into the strength, balance, and mobility that help you move through your day with confidence.'}
-      </Text>
-
-      <View style={styles.dailyLifeRows}>
-        {rows.map((row, index) => (
-          <View key={row.domain} style={[styles.dailyLifeRow, index > 0 && styles.rowDivider]}>
-            <IconBadge domain={movementDomainIcon(row.domain)} size={38} iconSize={23} />
-            <View style={styles.dailyLifeRowText}>
-              <Text style={styles.domainTitle}>{movementDomainTitle(row.domain)}</Text>
-              <Text style={styles.metricLine}>{row.copy}</Text>
-            </View>
-          </View>
-        ))}
-      </View>
-    </Card>
-  );
-}
-
 type MovementProfileBand = NonNullable<ReturnType<typeof getLatestCheckUpSummary>>['bands'][Domain];
+type LatestDomainEvidence = ReturnType<typeof getLatestDomainEvidence>[number];
 
 function MovementProfileCard({
   latest,
+  evidence,
   onViewResults,
 }: {
   latest: NonNullable<ReturnType<typeof getLatestCheckUpSummary>>;
+  evidence: ReturnType<typeof getLatestDomainEvidence>;
   onViewResults: () => void;
 }) {
-  const rows: readonly { domain: Domain; title: string; band: MovementProfileBand }[] = [
-    { domain: 'strength', title: 'Strength / Power', band: latest.bands.strength },
-    { domain: 'balance', title: 'Balance', band: latest.bands.balance },
-    { domain: 'mobility', title: 'Mobility', band: latest.bands.mobility },
+  const evidenceByDomain = new Map(evidence.map((card) => [card.domain, card]));
+  const rows: readonly { domain: Domain; title: string; band: MovementProfileBand; metric: string }[] = [
+    {
+      domain: 'strength',
+      title: 'Strength / Power',
+      band: latest.bands.strength,
+      metric: latestResultLine(evidenceByDomain.get('strength')),
+    },
+    {
+      domain: 'balance',
+      title: 'Balance',
+      band: latest.bands.balance,
+      metric: latestResultLine(evidenceByDomain.get('balance')),
+    },
+    {
+      domain: 'mobility',
+      title: 'Mobility',
+      band: latest.bands.mobility,
+      metric: latestResultLine(evidenceByDomain.get('mobility')),
+    },
   ];
 
   return (
     <Card style={styles.progressCard}>
       <View style={styles.profileHeader}>
         <View style={styles.sectionText}>
-          <Text style={styles.sectionTitle}>Movement profile</Text>
-          <Text style={styles.sectionIntro}>Latest check-up snapshot from {latest.dateLabel}.</Text>
+          <Text style={styles.sectionTitle}>Latest check-up</Text>
+          <Text style={styles.sectionIntro}>Here is what Hale measured most recently.</Text>
         </View>
       </View>
 
@@ -740,13 +729,19 @@ function MovementProfileCard({
             key={row.domain}
             domain={row.domain}
             title={row.title}
+            metric={row.metric}
             band={row.band}
             showDivider={index > 0}
           />
         ))}
       </View>
 
-      <LatestCheckUpActionRow latest={latest} onPress={onViewResults} />
+      <LatestCheckUpActionRow
+        latest={latest}
+        title="See full results"
+        body="Tap here to see every movement from this check-up."
+        onPress={onViewResults}
+      />
     </Card>
   );
 }
@@ -754,11 +749,13 @@ function MovementProfileCard({
 function MovementProfileRow({
   domain,
   title,
+  metric,
   band,
   showDivider,
 }: {
   domain: Domain;
   title: string;
+  metric: string;
   band: MovementProfileBand;
   showDivider: boolean;
 }) {
@@ -767,7 +764,7 @@ function MovementProfileRow({
       <IconBadge domain={domain} size={36} iconSize={22} />
       <View style={styles.profileRowText}>
         <Text style={styles.profileRowTitle} numberOfLines={1}>{title}</Text>
-        <Text style={styles.profileRowMeta} numberOfLines={1}>{profileBandDescription(band)}</Text>
+        <Text style={styles.profileRowMetric} numberOfLines={1}>{metric}</Text>
       </View>
       <View style={[styles.profileStatusPill, band === 'pending' && styles.profileStatusPillMuted]}>
         <Text style={[styles.profileStatusText, band === 'pending' && styles.profileStatusTextMuted]} numberOfLines={1}>
@@ -778,11 +775,31 @@ function MovementProfileRow({
   );
 }
 
+function latestResultLine(card?: LatestDomainEvidence): string {
+  const metric = card?.metrics.find((item) => item.measured);
+  if (!metric) return 'Not checked this time';
+  return `${friendlyMetricLabel(metric.label)}: ${metric.display}`;
+}
+
+function friendlyMetricLabel(label: string): string {
+  if (label === 'Chair stands in 30s') return 'Chair stands';
+  if (label === 'Rise velocity') return 'Standing speed';
+  if (label === 'Up-and-go time') return 'Up-and-go time';
+  if (label === 'One-leg balance') return 'One-leg balance';
+  if (label === 'Shoulder reach') return 'Shoulder reach';
+  if (label === 'Forward reach to floor') return 'Forward reach';
+  return label;
+}
+
 function LatestCheckUpActionRow({
   latest,
+  title,
+  body,
   onPress,
 }: {
   latest: NonNullable<ReturnType<typeof getLatestCheckUpSummary>>;
+  title: string;
+  body: string;
   onPress: () => void;
 }) {
   return (
@@ -790,14 +807,14 @@ function LatestCheckUpActionRow({
       style={({ pressed }) => [styles.latestResultsAction, pressed && styles.pressed]}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`Latest check-up results from ${latest.dateLabel}. Camera estimated strength, balance, and mobility estimates.`}
+      accessibilityLabel={`${title}. ${body} Latest check-up was ${latest.dateLabel}. Camera estimated strength, balance, and mobility.`}
     >
       <View style={styles.latestResultsIconWell}>
         <ProgressPictogram name="calendar" size={20} color={colors.accent} />
       </View>
       <View style={styles.latestResultsCopy}>
-        <Text style={styles.latestResultsTitle} numberOfLines={1}>Latest check-up results</Text>
-        <Text style={styles.latestResultsBody} numberOfLines={1}>View full check-up detail</Text>
+        <Text style={styles.latestResultsTitle} numberOfLines={1}>{title}</Text>
+        <Text style={styles.latestResultsBody} numberOfLines={2}>{body}</Text>
       </View>
       <Text style={styles.chevron}>›</Text>
     </Pressable>
@@ -812,15 +829,15 @@ function TrainingProgressCard({
   const visible = cards.slice(0, 3);
   return (
     <Card style={styles.progressCard}>
-      <Text style={styles.sectionTitle}>Current training movements</Text>
-      <Text style={styles.sectionIntro}>Where Hale is meeting you in training right now.</Text>
+      <Text style={styles.sectionTitle}>What you are practicing now</Text>
+      <Text style={styles.sectionIntro}>Hale can make these movements easier or harder based on how your sessions go.</Text>
       <View style={styles.levelRows}>
         {visible.map((card, index) => (
           <LadderProgressRow key={card.ladderId} card={card} showDivider={index > 0} />
         ))}
       </View>
       {cards.length > visible.length ? (
-        <Text style={styles.moreHistory}>{cards.length - visible.length} more movement groups saved locally.</Text>
+        <Text style={styles.moreHistory}>{cards.length - visible.length} more movement groups may appear in future sessions.</Text>
       ) : null}
     </Card>
   );
@@ -847,29 +864,33 @@ function LadderProgressRow({
 
 function ChangeSinceBaselineCard({
   cards,
-  hasComparison,
+  latest,
+  onViewResults,
 }: {
   cards: ReturnType<typeof getDomainProgressCards>;
-  hasComparison: boolean;
+  latest: NonNullable<ReturnType<typeof getLatestCheckUpSummary>>;
+  onViewResults: () => void;
 }) {
+  const allRowsSimilar = cards.length > 0 && cards.every((card) => card.trend === 'similar');
   return (
     <Card style={styles.progressCard}>
-      <Text style={styles.sectionTitle}>Since last check-up</Text>
-      {hasComparison ? (
-        <View style={styles.changeRows}>
-          {cards.map((card, index) => (
-            <ChangeRow key={card.domain} card={card} showDivider={index > 0} />
-          ))}
-        </View>
-      ) : (
-        <View style={styles.baselineStateRow}>
-          <IconBadge domain="calendar" size={38} iconSize={23} />
-          <View style={styles.baselineStateText}>
-            <Text style={styles.domainTitle}>Baseline saved</Text>
-            <Text style={styles.metricLine}>Your first trend appears after the next re-test.</Text>
-          </View>
-        </View>
-      )}
+      <Text style={styles.sectionTitle}>Since your first check-up</Text>
+      <Text style={styles.sectionIntro}>
+        {allRowsSimilar
+          ? 'Your latest results are very close to your first check-up. That is normal. Hale looks for patterns over repeat check-ups.'
+          : 'Hale compares these numbers with your first check-up and looks for patterns over repeat check-ups.'}
+      </Text>
+      <View style={styles.changeRows}>
+        {cards.map((card, index) => (
+          <ChangeRow key={card.domain} card={card} showDivider={index > 0} />
+        ))}
+      </View>
+      <LatestCheckUpActionRow
+        latest={latest}
+        title="See latest check-up results"
+        body="Tap here to see the full results from your latest check-up."
+        onPress={onViewResults}
+      />
     </Card>
   );
 }
@@ -881,6 +902,7 @@ function ChangeRow({
   card: ReturnType<typeof getDomainProgressCards>[number];
   showDivider: boolean;
 }) {
+  const trend = visibleTrendLabel(card.trend);
   return (
     <View style={[styles.changeRow, showDivider && styles.rowDivider]}>
       <IconBadge domain={card.domain} size={36} iconSize={22} />
@@ -888,7 +910,7 @@ function ChangeRow({
         <Text style={styles.changeRowTitle} numberOfLines={1}>{card.title}</Text>
         <Text style={styles.changeRowMetric} numberOfLines={1}>{displayMetric(card.metric)}</Text>
       </View>
-      <InlineStatusPill label={trendLabel(card.trend)} compact />
+      {trend ? <InlineStatusPill label={trend} compact /> : null}
     </View>
   );
 }
@@ -899,71 +921,169 @@ type ProgressRecordTile = {
   meta: string;
   onPress?: () => void;
   accessibilityLabel?: string;
+  separated?: boolean;
 };
 
 function ProgressRecordsCard({
-  summaries,
-  retestTitle,
   retestBody,
   showRetest,
   history,
+  completedPlan,
   onBeginCheckUp,
-  onViewReport,
+  onOpenHistory,
 }: {
-  summaries: ReturnType<typeof getBlockReportSummaries>;
-  retestTitle: string;
   retestBody: string;
   showRetest: boolean;
   history: ReturnType<typeof getRetestHistory>;
+  completedPlan: ReturnType<typeof getBlockReportSummaries>[number] | null;
   onBeginCheckUp: () => void;
-  onViewReport: (blockId: string) => void;
+  onOpenHistory: () => void;
 }) {
-  const latestReport = summaries[0];
+  const nextCheckUp = showRetest ? recordNextCheckUp(retestBody) : null;
   const tiles: ProgressRecordTile[] = [];
-
-  if (latestReport) {
-    tiles.push({
-      key: 'report',
-      title: 'Latest block report',
-      meta: `${latestReport.focus} · ${latestReport.sessions}`,
-      onPress: () => onViewReport(latestReport.blockId),
-      accessibilityLabel: `${latestReport.focus} block report. ${latestReport.sessions}.`,
-    });
-  }
-
-  tiles.push({
-    key: 'extra-checkup',
-    title: 'Start another check-up',
-    meta: 'Choose a quick re-check or a full extra check-up saved separately.',
-    onPress: onBeginCheckUp,
-    accessibilityLabel: 'Start another Movement Check-Up. Choose a quick re-check or a full extra check-up.',
-  });
-
-  if (showRetest) {
-    tiles.push({
-      key: 'retest',
-      title: retestTitle,
-      meta: retestBody,
-    });
-  }
 
   if (history.length > 1) {
     tiles.push({
       key: 'history',
       title: 'Check-up history',
-      meta: `${history.length} official check-ups saved locally`,
+      meta: `${history.length} check-ups saved.`,
+      onPress: onOpenHistory,
+      accessibilityLabel: `Check-up history. ${history.length} check-ups saved.`,
     });
   }
 
+  if (completedPlan) {
+    tiles.push({
+      key: 'completed-plan',
+      title: 'Last 4-week plan',
+      meta: `${completedPlan.focus} · ${completedPlan.sessions}. ${completedPlan.mainChange}`,
+      separated: tiles.length > 0,
+    });
+  }
+
+  tiles.push({
+    key: 'extra-checkup',
+    title: 'Extra check-up',
+    meta: 'Start this if you want to check one area before your next scheduled check-up.',
+    onPress: onBeginCheckUp,
+    accessibilityLabel: 'Extra check-up. Start this if you want to check one area before your next scheduled check-up.',
+    separated: tiles.length > 0,
+  });
+
   return (
     <Card style={styles.progressCard}>
-      <Text style={styles.sectionTitle}>Records</Text>
-      <View style={styles.recordRows}>
+      <Text style={styles.sectionTitle}>{nextCheckUp ? 'Your next check-up' : 'Your check-up records'}</Text>
+      {nextCheckUp ? (
+        <View style={styles.nextCheckUpPanel}>
+          <IconBadge domain="calendar" size={38} iconSize={23} />
+          <View style={styles.nextCheckUpCopy}>
+            <Text style={styles.nextCheckUpTitle}>{nextCheckUp.title}</Text>
+            <Text style={styles.nextCheckUpBody}>{nextCheckUp.body}</Text>
+          </View>
+        </View>
+      ) : null}
+      <View style={[styles.recordRows, nextCheckUp && styles.recordRowsAfterLead]}>
         {tiles.map(({ key, ...tile }, index) => (
           <RecordRow key={key} {...tile} showDivider={index > 0} />
         ))}
       </View>
     </Card>
+  );
+}
+
+function recordNextCheckUp(body: string): { title: string; body: string } {
+  const dayMatch = body.match(/\bopens in (\d+) (day|days)\b/i);
+  if (dayMatch) {
+    return {
+      title: `Opens in ${dayMatch[1]} ${dayMatch[2]}.`,
+      body: 'Hale will let you repeat the same check-up then, so you can compare results.',
+    };
+  }
+  if (body.includes('Finish the planned sessions')) {
+    return {
+      title: 'Opens after this 4-week plan.',
+      body: 'Finish the planned sessions, then Hale will open your next check-up.',
+    };
+  }
+  if (body.includes('Start a 4-week plan')) {
+    return {
+      title: 'Not scheduled yet.',
+      body: 'Start a 4-week plan to set the date for your next check-up.',
+    };
+  }
+  return { title: 'Next check-up', body };
+}
+
+function ProgressHistoryView({
+  history,
+  onBack,
+  onViewCheckUp,
+}: {
+  history: ReturnType<typeof getRetestHistory>;
+  onBack: () => void;
+  onViewCheckUp: (checkUpId: string) => void;
+}) {
+  return (
+    <Screen contentStyle={styles.screenContent}>
+      <BackArrowButton accessibilityLabel="Back to Progress" onPress={onBack} style={styles.historyBackButton} />
+      <View style={styles.header}>
+        <View style={styles.titleGroup}>
+          <HeaderLogo />
+          <Text style={styles.title}>Check-up history</Text>
+        </View>
+        <Text style={styles.subtitle}>
+          These are your saved check-ups. Tap one to see the full results.
+        </Text>
+      </View>
+
+      <Card style={styles.progressCard}>
+        <View style={styles.historyList}>
+          {history.map((entry, index) => (
+            <HistoryRecordRow
+              key={entry.id}
+              entry={entry}
+              latest={index === 0}
+              showDivider={index > 0}
+              onPress={() => onViewCheckUp(entry.id)}
+            />
+          ))}
+        </View>
+      </Card>
+    </Screen>
+  );
+}
+
+function HistoryRecordRow({
+  entry,
+  latest,
+  showDivider,
+  onPress,
+}: {
+  entry: ReturnType<typeof getRetestHistory>[number];
+  latest: boolean;
+  showDivider: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.historyRow, showDivider && styles.rowDivider, pressed && styles.pressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${entry.dateLabel}. ${entry.summaryLine}.`}
+    >
+      <View style={styles.historyRowText}>
+        <View style={styles.historyTitleRow}>
+          <Text style={styles.historyRowTitle} numberOfLines={1}>{entry.dateLabel}</Text>
+          {latest ? (
+            <View style={styles.historyLatestPill}>
+              <Text style={styles.historyLatestText}>Latest</Text>
+            </View>
+          ) : null}
+        </View>
+        <Text style={styles.historyRowMeta} numberOfLines={2}>{entry.summaryLine}</Text>
+      </View>
+      <Text style={styles.chevron}>›</Text>
+    </Pressable>
   );
 }
 
@@ -973,16 +1093,17 @@ function RecordRow({
   onPress,
   accessibilityLabel,
   showDivider,
+  separated,
 }: {
   title: string;
   meta: string;
   onPress?: () => void;
   accessibilityLabel?: string;
   showDivider: boolean;
+  separated?: boolean;
 }) {
   const content = (
     <>
-      <IconBadge domain="calendar" size={36} iconSize={22} />
       <View style={styles.recordRowText}>
         <Text style={styles.recordRowTitle} numberOfLines={1}>{title}</Text>
         <Text style={styles.recordRowMeta} numberOfLines={2}>{meta}</Text>
@@ -994,7 +1115,12 @@ function RecordRow({
   if (onPress) {
     return (
       <Pressable
-        style={({ pressed }) => [styles.recordRow, showDivider && styles.rowDivider, pressed && styles.pressed]}
+        style={({ pressed }) => [
+          styles.recordRow,
+          showDivider && styles.rowDivider,
+          separated && styles.recordRowSeparated,
+          pressed && styles.pressed,
+        ]}
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel ?? title}
@@ -1004,7 +1130,7 @@ function RecordRow({
     );
   }
 
-  return <View style={[styles.recordRow, showDivider && styles.rowDivider]}>{content}</View>;
+  return <View style={[styles.recordRow, showDivider && styles.rowDivider, separated && styles.recordRowSeparated]}>{content}</View>;
 }
 
 function InlineStatusPill({ label, compact = false }: { label: string; compact?: boolean }) {
@@ -1141,135 +1267,19 @@ function iconStroke(color: string) {
   };
 }
 
-function dailyLifeRows({
-  lifeGoal,
-  activeBlock,
-  latest,
-  primaryDomains,
-}: {
-  lifeGoal?: LifeGoal | null;
-  activeBlock?: MovementBlock | null;
-  latest: NonNullable<ReturnType<typeof getLatestCheckUpSummary>>;
-  primaryDomains: readonly MovementDomain[];
-}): { domain: MovementDomain; copy: string }[] {
-  const focus = activeBlock?.focusDomain ?? focusMovementDomain(latest.focusTitle);
-  const domains = uniqueDomains([
-    focus,
-    ...primaryDomains,
-    'strength_power',
-    'balance',
-    'mobility',
-  ]).slice(0, 3);
-  return domains.map((domain) => ({
-    domain,
-    copy: dailyLifeDomainCopy(domain, lifeGoal),
-  }));
-}
-
-function uniqueDomains(domains: readonly (MovementDomain | null)[]): MovementDomain[] {
-  const out: MovementDomain[] = [];
-  for (const domain of domains) {
-    if (!domain || out.includes(domain)) continue;
-    out.push(domain);
-  }
-  return out;
-}
-
-function focusMovementDomain(title: string): MovementDomain | null {
-  if (title.includes('Strength')) return 'strength_power';
-  if (title.includes('Balance')) return 'balance';
-  if (title.includes('Mobility')) return 'mobility';
-  return null;
-}
-
-function movementDomainIcon(domain: MovementDomain): Domain {
-  return domain === 'strength_power' ? 'strength' : domain;
-}
-
-function movementDomainTitle(domain: MovementDomain): string {
-  if (domain === 'strength_power') return 'Strength / Power';
-  if (domain === 'balance') return 'Balance';
-  return 'Mobility';
-}
-
-function dailyLifeDomainCopy(domain: MovementDomain, lifeGoal?: LifeGoal | null): string {
-  const category = lifeGoal?.category;
-  if (domain === 'strength_power') {
-    if (category === 'stairs') return 'Supports standing from chairs and climbing steps with less effort.';
-    if (category === 'travel') return 'Helps with long days out, luggage, transfers, and getting up after sitting.';
-    if (category === 'grandchildren') return 'Supports getting down low, standing back up, and keeping pace.';
-    if (category === 'gardening_hobbies') return 'Helps with lifting, carrying, and repeated sit-to-stand moments.';
-    if (category === 'floor_confidence') return 'Builds the leg power used when getting up from lower positions.';
-    if (category === 'carrying_loads') return 'Supports groceries, bags, and household carrying without feeling as taxed.';
-    return 'Supports chair rises, stairs, carrying, and the force everyday movement asks for.';
-  }
-  if (domain === 'balance') {
-    if (category === 'stairs') return 'Supports steadier footing on stairs, curbs, and turns.';
-    if (category === 'travel') return 'Helps with uneven paths, busy places, curbs, and moving while distracted.';
-    if (category === 'walking_hiking_sport') return 'Supports confident footing on walks, paths, and changing surfaces.';
-    if (category === 'independence') return 'Helps you move through turns, steps, and busy spaces with more confidence.';
-    return 'Supports steadier turns, curbs, uneven ground, and moving with confidence.';
-  }
-  if (category === 'gardening_hobbies') return 'Supports reaching, bending, and moving comfortably through hobbies.';
-  if (category === 'travel') return 'Helps with comfortable walking, sitting, reaching, and long days away from home.';
-  if (category === 'grandchildren') return 'Supports reaching, bending, floor-level play, and easier transitions.';
-  if (category === 'floor_confidence') return 'Helps hips, trunk, and shoulders move more comfortably near the floor.';
-  return 'Supports reaching, bending, getting dressed, and moving comfortably day to day.';
-}
-
 function cleanFocusTitle(title: string): string {
   return title.replace(/^Suggested focus:\s*/, '').replace(/^Closely matched:\s*/, '');
 }
 
 function heroFocusBody(focus: string): string {
-  if (focus === 'Strength / Power') return 'Build everyday force for chairs, stairs, and carrying with steady weekly practice.';
-  if (focus === 'Balance') return 'Keep building steadier movement through short, repeatable sessions this week.';
-  if (focus === 'Mobility') return 'Use calm range work to make everyday reaching, bending, and moving feel easier.';
-  return 'Keep your next sessions simple, consistent, and shaped by your latest check-up.';
-}
-
-function weeklySessionValue(
-  block: MovementBlock,
-  completions: readonly TrainingSessionCompletion[],
-  today: string
-): string {
-  const completed = creditedTemplateCountThisWeek(block, completions, today);
-  const target = Math.max(1, block.sessionsPerWeekTarget);
-  if (completed > target) return `${completed} this week`;
-  return `${completed} of ${target}`;
-}
-
-function creditedTemplateCountThisWeek(
-  block: MovementBlock,
-  completions: readonly TrainingSessionCompletion[],
-  today: string
-): number {
-  const week = currentWeekNumber(block, today);
-  const templates = new Set<string>();
-  for (const completion of completions) {
-    if (
-      completion.blockId !== block.id ||
-      completion.mainPlanCredit !== true ||
-      completion.focusStimulusEvidence?.mainPlanCredit !== true ||
-      !completion.templateId
-    ) {
-      continue;
-    }
-    if (currentWeekNumber(block, completion.completedAt) !== week) continue;
-    templates.add(completion.templateId);
-  }
-  return templates.size;
-}
-
-function currentWeekNumber(block: MovementBlock, value: string): number {
-  const start = Date.parse(block.startDate);
-  const date = Date.parse(value);
-  if (!Number.isFinite(start) || !Number.isFinite(date)) return 1;
-  return Math.max(1, Math.min(4, Math.floor((date - start) / (7 * 24 * 60 * 60 * 1000)) + 1));
+  if (focus === 'Strength / Power') return 'Your current sessions are helping you build leg power for chairs, stairs, and carrying.';
+  if (focus === 'Balance') return 'Your current sessions are helping you feel steadier on stairs, curbs, turns, and uneven ground.';
+  if (focus === 'Mobility') return 'Your current sessions are helping reaching, bending, and daily movement feel easier.';
+  return 'Your current sessions are shaped by your latest check-up and kept simple.';
 }
 
 function compactRetestValue(title: string, body: string): string {
-  if (title === "It's time to re-test") return 'Due now';
+  if (title === 'Time for your next check-up') return 'Due now';
   const [, relative] = body.split(' · ');
   if (relative) return relative;
 
@@ -1284,7 +1294,7 @@ function compactRetestValue(title: string, body: string): string {
     return `In ${days} days`;
   }
 
-  if (body.includes('Create a 4-week block')) return 'Not scheduled';
+  if (body.includes('Start a 4-week plan')) return 'Not scheduled';
   return body;
 }
 
@@ -1305,23 +1315,22 @@ function trendLabel(trend: string): string {
   return 'Starting';
 }
 
+function visibleTrendLabel(trend: string): string | null {
+  if (trend === 'higher' || trend === 'lower') return trendLabel(trend);
+  return null;
+}
+
 function compactLadderStatus(status: string): string {
   if (status === 'Ready for next step') return 'Ready';
+  if (status === 'Same level for now') return 'Same level';
   return status;
 }
 
 function bandLabel(band: MovementProfileBand): string {
-  if (band === 'strong') return 'Strong';
-  if (band === 'building') return 'Building';
-  if (band === 'starting_point') return 'Starting point';
-  return 'Pending';
-}
-
-function profileBandDescription(band: MovementProfileBand): string {
-  if (band === 'strong') return 'A relative strength in your latest check-up.';
-  if (band === 'building') return 'Improving this area should support daily action.';
-  if (band === 'starting_point') return 'A useful focus area for this training block.';
-  return 'Re-test to refresh this estimate.';
+  if (band === 'strong') return 'Strong area';
+  if (band === 'building') return 'In progress';
+  if (band === 'starting_point') return 'Focus area';
+  return 'Not checked';
 }
 
 function retestLine({
@@ -1357,6 +1366,9 @@ const styles = StyleSheet.create({
   },
   title: { ...type.pageTitle, flexShrink: 1 },
   subtitle: { ...type.pageSubtitle, maxWidth: 360 },
+  historyBackButton: {
+    marginBottom: 0,
+  },
   headerIconButton: {
     width: 44,
     height: 44,
@@ -1581,10 +1593,10 @@ const styles = StyleSheet.create({
     maxWidth: '88%',
   },
   progressHeroCopy: {
-    gap: 14,
+    gap: 12,
   },
   progressHeroCopyCompact: {
-    gap: 12,
+    gap: 10,
   },
   progressHeroEyebrow: {
     color: colors.onAccent,
@@ -1597,13 +1609,13 @@ const styles = StyleSheet.create({
   progressHeroTitle: {
     color: colors.onAccent,
     fontFamily: fonts.serifMedium,
-    fontSize: 29,
-    lineHeight: 35,
+    fontSize: 46,
+    lineHeight: 52,
     letterSpacing: 0,
   },
   progressHeroTitleCompact: {
-    fontSize: 27,
-    lineHeight: 32,
+    fontSize: 43,
+    lineHeight: 48,
   },
   progressHeroBody: {
     color: colors.onAccent,
@@ -1662,41 +1674,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     marginTop: 2,
   },
-  dailyLifeCard: {
-    gap: 0,
-  },
-  dailyLifeEyebrow: {
-    ...type.cardCaption,
-    color: colors.sageDeep,
-    fontFamily: fonts.sansMedium,
-    textTransform: 'uppercase',
-  },
-  dailyLifeTitle: {
-    color: colors.textPrimary,
-    fontFamily: fonts.serifMedium,
-    fontSize: 20,
-    lineHeight: 26,
-    letterSpacing: 0,
-    marginTop: spacing.xs,
-  },
-  dailyLifeBody: {
-    ...type.cardBody,
-    marginTop: spacing.sm,
-  },
-  dailyLifeRows: {
-    marginTop: 14,
-  },
-  dailyLifeRow: {
-    minHeight: 58,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  dailyLifeRowText: {
-    flex: 1,
-    minWidth: 0,
-  },
   sectionText: {
     flex: 1,
     minWidth: 0,
@@ -1715,11 +1692,11 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   profileRow: {
-    minHeight: 72,
+    minHeight: 76,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
   },
   profileRowText: {
     flex: 1,
@@ -1756,16 +1733,19 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     letterSpacing: 0,
   },
-  profileRowMeta: {
-    ...type.cardCaption,
+  profileRowMetric: {
     marginTop: 3,
+    color: colors.textSecondary,
+    fontFamily: fonts.sansRegular,
+    fontSize: 14,
+    lineHeight: 20,
+    letterSpacing: 0,
   },
   latestResultsAction: {
     minHeight: 66,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    marginTop: 12,
     paddingTop: 14,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.divider,
@@ -1805,7 +1785,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   changeRow: {
-    minHeight: 68,
+    minHeight: 72,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
@@ -1825,24 +1805,6 @@ const styles = StyleSheet.create({
   changeRowMetric: {
     ...type.cardCaption,
     marginTop: 3,
-  },
-  domainTitle: {
-    ...type.bodySmall,
-    color: colors.textPrimary,
-    fontFamily: fonts.sansMedium,
-    flexShrink: 1,
-  },
-  metricLine: { ...type.caption, color: colors.textSecondary, marginTop: 2 },
-  baselineStateRow: {
-    minHeight: 64,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginTop: 14,
-  },
-  baselineStateText: {
-    flex: 1,
-    minWidth: 0,
   },
   inlineStatusPill: {
     maxWidth: 118,
@@ -1899,12 +1861,51 @@ const styles = StyleSheet.create({
   recordRows: {
     marginTop: 14,
   },
+  recordRowsAfterLead: {
+    marginTop: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
+  },
+  nextCheckUpPanel: {
+    minHeight: 96,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderRadius: radius.input,
+    backgroundColor: colors.bgElevated,
+  },
+  nextCheckUpCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  nextCheckUpTitle: {
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
+    fontSize: 18,
+    lineHeight: 24,
+    letterSpacing: 0,
+  },
+  nextCheckUpBody: {
+    marginTop: 4,
+    color: colors.textSecondary,
+    fontFamily: fonts.sansRegular,
+    fontSize: 14,
+    lineHeight: 20,
+    letterSpacing: 0,
+  },
   recordRow: {
     minHeight: 70,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     paddingVertical: spacing.md,
+  },
+  recordRowSeparated: {
+    marginTop: spacing.xs,
+    paddingTop: spacing.lg,
   },
   recordRowText: {
     flex: 1,
@@ -1923,6 +1924,52 @@ const styles = StyleSheet.create({
   },
   recordChevronSpacer: {
     width: 18,
+  },
+  historyList: {
+    marginTop: -spacing.sm,
+  },
+  historyRow: {
+    minHeight: 76,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  historyRowText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  historyTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  historyRowTitle: {
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: 0,
+    flexShrink: 1,
+  },
+  historyRowMeta: {
+    ...type.cardCaption,
+    marginTop: 3,
+  },
+  historyLatestPill: {
+    minHeight: 24,
+    flexShrink: 0,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+    borderRadius: 12,
+    backgroundColor: colors.bgElevated,
+  },
+  historyLatestText: {
+    color: colors.sageDeep,
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0,
   },
   moreHistory: {
     ...type.caption,

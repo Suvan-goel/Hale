@@ -74,6 +74,9 @@ export interface MovementLadderCard {
 
 export interface MovementLadderDetail extends MovementLadderCard {
   whyItMatters: string;
+  whyItHelps: string;
+  beforeStartItems: string[];
+  watchText: string;
   currentLevel: LadderLevelView;
   easierLevel?: LadderLevelView;
   harderLevel?: LadderLevelView;
@@ -158,20 +161,20 @@ const EXPLORE_LIBRARY_SECTIONS: readonly {
 }[] = [
   {
     id: 'movement_checkup',
-    title: 'Movement Check-Up guide',
-    body: 'What Hale estimates, why setup matters, and how monthly re-tests shape the next block.',
+    title: 'Your check-up guide',
+    body: 'Learn what Hale checks, how to set up your camera, and why you repeat the check-up each month.',
     articleIds: ['camera-setup', 'monthly-retest'],
   },
   {
     id: 'training_basics',
     title: 'Training basics',
-    body: 'Short references for the strength, balance, and mobility work in your plan.',
+    body: 'Simple guides for the strength, balance, and mobility work in your plan.',
     articleIds: ['chair-rise-strength', 'balance-practice', 'mobility-basics'],
   },
   {
     id: 'setup_safety',
     title: 'Safety and setup',
-    body: 'Practical notes for equipment, discomfort, and keeping sessions simple at home.',
+    body: 'Simple tips for equipment, discomfort, and safe setup at home.',
     articleIds: ['movement-discomfort', 'resistance-band'],
   },
 ];
@@ -187,7 +190,8 @@ const PRESET_BODY: Record<string, string> = {
 };
 
 const PRESET_DISPLAY_TITLES: Record<string, string> = {
-  'preset-no-equipment-strength': 'Chair + Wall Strength',
+  'preset-no-equipment-strength': 'Chair and wall strength',
+  'preset-band-upper-back': 'Upper-back band work',
 };
 
 const PRESET_REQUIRED_EQUIPMENT: Record<string, { tags: EquipmentTag[] }> = {
@@ -209,6 +213,43 @@ const LADDER_CARD_BODY: Record<string, string> = {
   'mobility-flexibility': 'Use chair, wall, and unsupported drills for hips, calves, hamstrings, and rotation.',
 };
 
+const LADDER_DISPLAY_TITLES: Record<string, string> = {
+  'sit-to-stand': 'Sit to stand',
+  'heel-toe-raise': 'Heel and toe raises',
+  'pull-upper-back': 'Upper back pulling',
+  'hinge-glutes': 'Hinge and glutes',
+  'shoulder-reach-press': 'Shoulder reach and press',
+  'mobility-flexibility': 'Mobility and flexibility',
+};
+
+const LADDER_WHY_IT_HELPS: Record<string, string> = {
+  'sit-to-stand': 'This helps with standing from chairs, using stairs, and moving through daily tasks with more confidence.',
+  squat: 'This helps you lower, lift, and reach down with better control.',
+  'step-up': 'This helps with stairs, curbs, and stepping up with support nearby.',
+  'heel-toe-raise': 'This helps your ankles and calves support walking, steps, and balance reactions.',
+  push: 'This helps with pushing up from walls, counters, chairs, and other everyday surfaces.',
+  'pull-upper-back': 'This helps support posture, shoulder comfort, and pulling movements in daily life.',
+  'hinge-glutes': 'This helps with reaching down, lifting light items, and using your hips with control.',
+  'shoulder-reach-press': 'This helps with reaching overhead and keeping shoulder movement available for daily tasks.',
+  balance: 'This helps you practise steadiness near support before trying harder balance positions.',
+  'lateral-stability': 'This helps with side steps, turns, and moving around obstacles.',
+  'mobility-flexibility': 'This helps keep useful movement available for reaching, bending, and turning.',
+};
+
+const LADDER_WATCH_TEXT: Record<string, string> = {
+  'sit-to-stand': 'Hale counts your stands and watches how your standing speed changes over time.',
+  squat: 'Hale counts clear squats and watches whether the movement stays steady.',
+  'step-up': 'Hale counts your step-ups and watches the upward part of each step.',
+  'heel-toe-raise': 'Hale counts clear heel or toe raises.',
+  push: 'Hale counts clear push-ups from your wall, chair, or floor setup.',
+  'pull-upper-back': 'Hale counts or times the band movement when your setup is clear.',
+  'hinge-glutes': 'Hale counts clear hinges and watches your general movement range.',
+  'shoulder-reach-press': 'Hale counts or times overhead reaching and pressing work.',
+  balance: 'Hale times steady holds and notices when the hold ends.',
+  'lateral-stability': 'Hale counts or times side-step practice when your setup is clear.',
+  'mobility-flexibility': 'Hale times each mobility movement and checks that your setup is clear.',
+};
+
 export function getExtraSessionCards(input: {
   equipment?: EquipmentProfile | null;
   safetyProfile?: MovementSafetyProfile | null;
@@ -221,7 +262,7 @@ export function getExtraSessionCards(input: {
     const required = PRESET_REQUIRED_EQUIPMENT[preset.id];
     const missing = required ? equipmentMissingLabels(required.tags, availableEquipment) : [];
     const capabilityMissing = missing.length === 0 && preset.id === 'preset-stairs-confidence' && !isStepUpEnvironmentConfirmed(movementCapabilities)
-      ? ['step-up setup']
+      ? ['a step or stair']
       : [];
     const disabled = missing.length > 0 || capabilityMissing.length > 0;
     const generated = disabled
@@ -266,9 +307,9 @@ export function getMovementLadderCards(input: {
     const coverage = coverageForLadder(ladder, input, available, movementCapabilities);
     return {
       id: ladder.id,
-      title: ladder.title,
+      title: movementDisplayTitle(ladder),
       body: LADDER_CARD_BODY[ladder.id] ?? ladder.description,
-      currentLevelName: presentation.showCurrentLevel ? current.name : presentation.listTitle,
+      currentLevelName: presentation.showCurrentLevel ? displayMovementName(current.name) : presentation.listTitle,
       currentLevelLabel: coverage?.coverageLabel ?? nonLinearCardLabel(presentation.mode, current, ladder),
       showCurrentLevel: presentation.showCurrentLevel,
       presentationMode: presentation.mode,
@@ -331,10 +372,13 @@ export function getMovementLadderDetail(
   return {
     ...(card ?? {}),
     id: ladder.id,
-    title: ladder.title,
-    body: ladder.description,
+    title: movementDisplayTitle(ladder),
+    body: card?.body ?? LADDER_CARD_BODY[ladder.id] ?? ladder.description,
     whyItMatters: ladder.whyItMatters,
-    currentLevelName: presentation.showCurrentLevel ? current.name : presentation.listTitle,
+    whyItHelps: LADDER_WHY_IT_HELPS[ladder.id] ?? ladder.whyItMatters,
+    beforeStartItems: beforeStartItemsForLevel(current, available, movementCapabilities),
+    watchText: LADDER_WATCH_TEXT[ladder.id] ?? watchTextForLevel(current),
+    currentLevelName: presentation.showCurrentLevel ? displayMovementName(current.name) : presentation.listTitle,
     currentLevelLabel: coverage?.coverageLabel ?? nonLinearCardLabel(presentation.mode, current, ladder),
     showCurrentLevel: presentation.showCurrentLevel,
     presentationMode: presentation.mode,
@@ -481,7 +525,7 @@ function levelView(
 ): LadderLevelView {
   return {
     id: level.id,
-    name: level.name,
+    name: displayMovementName(level.name),
     levelLabel: levelLabel(level, ladder),
     equipmentLabel: equipmentLabelForLevel(level, available, movementCapabilities),
     measurementLabel: measurementLabel(level.measurementTier),
@@ -492,6 +536,56 @@ function levelView(
     measurementNote: level.measurementNotes,
     isCurrent,
   };
+}
+
+function beforeStartItemsForLevel(
+  level: ExerciseLevel,
+  available: readonly AvailableEquipment[],
+  movementCapabilities: NormalizedMovementCapabilityProfile
+): string[] {
+  return unique([
+    equipmentChecklistItem(level, available, movementCapabilities),
+    cameraChecklistItem(level.cameraView),
+    'Keep your full body in view.',
+    safetyChecklistItem(level),
+  ]).filter((item): item is string => !!item);
+}
+
+function equipmentChecklistItem(
+  level: ExerciseLevel,
+  available: readonly AvailableEquipment[],
+  movementCapabilities: NormalizedMovementCapabilityProfile
+): string {
+  const label = equipmentLabelForLevel(level, available, movementCapabilities);
+  if (label.startsWith('Needs ')) {
+    const need = label.replace(/^Needs /, '');
+    if (need === 'floor-transfer setup') return 'Use floor movements only if getting down and up feels safe.';
+    if (need === 'supported balance setup') return 'Keep a wall, counter, or sturdy chair within reach.';
+    if (need === 'movement setup') return 'Choose a version that feels safe to set up.';
+    return `Set up ${need}.`;
+  }
+  if (label === 'No optional equipment') return 'Clear enough space to move comfortably.';
+  return `Use ${label}.`;
+}
+
+function cameraChecklistItem(cameraView: ExerciseLevel['cameraView']): string {
+  if (cameraView === 'front') return 'Place your phone in front of you.';
+  if (cameraView === 'side') return 'Place your phone to the side.';
+  if (cameraView === 'side_oblique') return 'Place your phone at a slight side angle.';
+  return 'Keep your phone where you can hear the guidance.';
+}
+
+function safetyChecklistItem(level: ExerciseLevel): string {
+  if (level.equipment.includes('stair')) return 'Use the lowest step and keep support nearby.';
+  if (level.id.includes('balance')) return 'Keep support close enough to touch.';
+  if (level.equipment.includes('floor')) return 'Use floor space only if getting down and up feels safe today.';
+  return 'Move only in a comfortable range.';
+}
+
+function watchTextForLevel(level: ExerciseLevel): string {
+  if (level.measurementTier === 'measured') return 'Hale follows the movement when your setup is clear.';
+  if (level.measurementTier === 'camera_assisted') return 'Hale uses the camera to help guide the movement.';
+  return 'Hale guides the timing while you move at a comfortable pace.';
 }
 
 function safetyNoteText(lines: readonly string[]): string | undefined {
@@ -520,7 +614,7 @@ function equipmentLabelForLevel(
   }
   if (movementCapabilities && !movementCapabilitySupportsLevel(level, movementCapabilities)) {
     if (level.equipment.includes('floor')) return 'Needs floor-transfer setup';
-    if (level.equipment.includes('stair')) return 'Needs step-up setup';
+    if (level.equipment.includes('stair')) return 'Needs a step or stair';
     if (level.id.includes('single-leg')) return 'Needs supported balance setup';
     return 'Needs movement setup';
   }
@@ -558,9 +652,21 @@ function nonLinearCardLabel(
   level: ExerciseLevel,
   ladder: ExerciseLadder
 ): string {
-  if (mode === 'collection') return 'Varied across your block';
-  if (mode === 'movement_set') return 'Movements in this set';
+  if (mode === 'collection') return 'Used across your plan';
+  if (mode === 'movement_set') return 'Included movements';
   return levelLabel(level, ladder);
+}
+
+function movementDisplayTitle(ladder: ExerciseLadder): string {
+  return LADDER_DISPLAY_TITLES[ladder.id] ?? ladder.title;
+}
+
+function displayMovementName(name: string): string {
+  return name
+    .replace(/Sit-to-Stand/g, 'sit to stand')
+    .replace(/Slow-Lower/g, 'Slow lower')
+    .replace(/^sit to stand$/, 'Sit to stand')
+    .replace(/\bPush-Up\b/g, 'push-up');
 }
 
 function coverageForLadder(
@@ -744,7 +850,7 @@ const LEARN_ARTICLES: readonly LearnDetail[] = [
   {
     id: 'movement-checkup-guide',
     title: 'How the Movement Check-Up works',
-    body: 'A practical guide to what Hale estimates, why setup matters, and how your results shape the next 4-week block.',
+    body: 'Learn what Hale checks, why camera setup matters, and how your results shape your 4-week plan.',
     readTimeLabel: '6 min',
     sections: [
       {
@@ -753,7 +859,7 @@ const LEARN_ARTICLES: readonly LearnDetail[] = [
       },
       {
         title: 'What the camera is doing',
-        body: 'The camera estimates a skeleton outline from your body position. Hale uses that outline to count clear reps, time holds, and follow broad movement signals such as chair-rise speed or reach range. It never shows self-view video, and it is not judging whether you look right. The camera is a measuring instrument, not a coach calling out form.',
+        body: 'The camera follows your body position while you move. Hale uses that movement information to count clear reps, time holds, and follow broad signals such as chair-rise speed or reach range. It never shows self-view video, and it is not judging whether you look right. The camera is a measuring instrument, not a coach calling out form.',
       },
       {
         title: 'Why the same setup matters',
@@ -771,7 +877,7 @@ const LEARN_ARTICLES: readonly LearnDetail[] = [
   },
   {
     id: 'chair-rise-strength',
-    title: 'Why chair-rise strength matters',
+    title: 'Why standing from a chair matters',
     body: 'Standing from a chair is one of the clearest everyday signals of lower-body strength, power, and confidence.',
     readTimeLabel: '5 min',
     sections: [
@@ -785,7 +891,7 @@ const LEARN_ARTICLES: readonly LearnDetail[] = [
       },
       {
         title: 'What Hale watches',
-        body: 'During a check-up, Hale follows your skeleton outline, counts clear chair rises, and estimates relative rise speed over the session. The number is not a personal judgement. It is a trend line you can compare with future check-ups when the setup is similar.',
+        body: 'During a check-up, Hale follows your movement, counts clear chair rises, and estimates relative rise speed over the session. The number is not a personal judgement. It is a trend line you can compare with future check-ups when the setup is similar.',
       },
       {
         title: 'How to train it at home',
@@ -827,7 +933,7 @@ const LEARN_ARTICLES: readonly LearnDetail[] = [
   },
   {
     id: 'mobility-basics',
-    title: 'How mobility work supports easier movement',
+    title: 'How mobility helps everyday movement',
     body: 'Mobility work is not about extreme stretching. It is about keeping useful ranges available for real life.',
     readTimeLabel: '5 min',
     sections: [
@@ -861,7 +967,7 @@ const LEARN_ARTICLES: readonly LearnDetail[] = [
     sections: [
       {
         title: 'Start with a stable phone',
-        body: 'Use a phone stand, shelf, or stable surface that will not wobble. Aim for roughly hip height when possible. A steady phone gives Hale a cleaner skeleton outline and makes the session feel less fiddly.',
+        body: 'Use a phone stand, shelf, or stable surface that will not wobble. Aim for roughly hip height when possible. A steady phone gives Hale a clearer view of your movement and makes the session feel less fiddly.',
       },
       {
         title: 'Give the camera your full body',
@@ -877,7 +983,7 @@ const LEARN_ARTICLES: readonly LearnDetail[] = [
       },
       {
         title: 'Privacy stays central',
-        body: 'Hale does not show you a mirror view. During camera work, the app renders a clean skeleton outline so you can confirm that you are framed without watching yourself on video.',
+        body: 'Hale does not show you a mirror view. During camera work, the app shows a simple outline so you can confirm that you are framed without watching yourself on video.',
       },
     ],
   },
@@ -939,7 +1045,7 @@ const LEARN_ARTICLES: readonly LearnDetail[] = [
   },
   {
     id: 'monthly-retest',
-    title: 'Why re-testing monthly matters',
+    title: 'Why a monthly check-up helps',
     body: 'A monthly check-up gives Hale enough time to see a useful trend without making the process feel constant.',
     readTimeLabel: '5 min',
     sections: [

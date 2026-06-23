@@ -39,22 +39,22 @@ export function getNextBestActionCopy({
       };
     case 'needs_camera_setup':
       return {
-        title: 'Set up your Movement Check-Up',
+        title: 'Set up your check-up',
         body: 'Prop your phone at hip height, step back, and Hale will guide the camera setup.',
         primaryCta: 'Set up camera',
         primaryRoute: 'camera-setup',
       };
     case 'needs_baseline_checkup':
       return {
-        title: 'Start with your Movement Check-Up',
+        title: 'Start with your check-up',
         body: 'In about 10 minutes, Hale will estimate your strength, balance, and mobility and build your first plan.',
         primaryCta: 'Start check-up',
         primaryRoute: 'camera-setup',
       };
     case 'baseline_checkup_incomplete':
       return {
-        title: 'Finish your Movement Check-Up',
-        body: 'Complete the baseline so Hale can build your first 4-week block.',
+        title: 'Finish your check-up',
+        body: 'Complete your check-up so Hale can build your first plan.',
         primaryCta: 'Continue check-up',
         primaryRoute: 'checkup',
       };
@@ -67,7 +67,7 @@ export function getNextBestActionCopy({
       };
     case 'baseline_complete_needs_block':
       return {
-        title: 'Your first 4-week block is ready',
+        title: 'Your first plan is ready',
         body: focusBody(block, lifeGoal, 'Hale has used your check-up to prepare your starting plan.'),
         primaryCta: 'View my plan',
         primaryRoute: 'create-block',
@@ -78,14 +78,14 @@ export function getNextBestActionCopy({
         body: sessionBody(block, lifeGoal),
         primaryCta: "Start today's session",
         primaryRoute: 'training',
-        secondaryCta: 'Do 60-second micro-check',
+        secondaryCta: 'Do 60-second check-in',
         secondaryRoute: 'microcheck',
       };
     case 'active_block_micro_check_due':
       return {
         title: 'Do your 60-second check-in',
-        body: 'Micro-checks keep your trend line alive between full check-ups.',
-        primaryCta: 'Start micro-check',
+        body: 'Quick check-ins help Hale adjust between full check-ups.',
+        primaryCta: 'Start check-in',
         primaryRoute: 'microcheck',
         secondaryCta: "Start today's session",
         secondaryRoute: 'training',
@@ -96,7 +96,7 @@ export function getNextBestActionCopy({
         body: block ? getBlockPurposeCopy(block, lifeGoal) : 'Keep building strength, balance, and mobility.',
         primaryCta: "Start today's session",
         primaryRoute: 'training',
-        secondaryCta: 'Do 60-second micro-check',
+        secondaryCta: 'Do 60-second check-in',
         secondaryRoute: 'microcheck',
       };
     case 'active_block_slightly_behind':
@@ -105,7 +105,7 @@ export function getNextBestActionCopy({
         body: 'Life gets busy. One short session today is enough to support your progress.',
         primaryCta: 'Start a short session',
         primaryRoute: 'restart-intro',
-        secondaryCta: 'Start Movement Check-Up',
+        secondaryCta: 'Start check-up',
         secondaryRoute: 'manual-checkup',
       };
     case 'active_block_restart_needed':
@@ -114,46 +114,48 @@ export function getNextBestActionCopy({
         body: 'Life gets busy. Hale will ease you back in with a shorter restart session.',
         primaryCta: 'Restart gently',
         primaryRoute: 'restart-intro',
-        secondaryCta: 'Start Movement Check-Up',
+        secondaryCta: 'Start check-up',
         secondaryRoute: 'manual-checkup',
       };
     case 'active_block_retest_due':
       return {
-        title: 'Your 4-week re-test is ready',
-        body: 'Repeat the check-up to add another data point.',
-        primaryCta: 'Start re-test',
+        title: 'Your next check-up is ready',
+        body: 'Repeat the check-up to see what has changed.',
+        primaryCta: 'Start check-up',
         primaryRoute: 'official-retest',
-        secondaryCta: 'View block',
+        secondaryCta: 'View plan',
         secondaryRoute: 'home-block',
       };
     case 'block_complete_needs_report':
       return {
-        title: 'Your 4-week report is ready',
-        body: 'Review your sessions, check-ins, and re-test before Hale builds the next block.',
-        primaryCta: 'View report',
-        primaryRoute: 'block-report',
+        title: 'Your next plan is ready',
+        body: 'Your latest check-up is saved. Open your next plan when you are ready.',
+        primaryCta: 'View plan',
+        primaryRoute: 'next-block',
+        secondaryCta: 'See progress',
+        secondaryRoute: 'progress',
       };
     case 'report_ready':
       return {
-        title: 'Your 4-week report is ready',
-        body: 'Review the latest re-test and choose the next 4-week focus.',
-        primaryCta: 'View report',
-        primaryRoute: 'block-report',
-        secondaryCta: 'Start next block',
-        secondaryRoute: 'next-block',
+        title: 'Your next plan is ready',
+        body: 'Your latest check-up is saved. Open your next plan when you are ready.',
+        primaryCta: 'View plan',
+        primaryRoute: 'next-block',
+        secondaryCta: 'See progress',
+        secondaryRoute: 'progress',
       };
     case 'needs_next_block':
       return {
-        title: 'Start your next 4-week block',
+        title: 'View your next 4-week plan',
         body: 'Use your latest check-up to keep building from where you are now.',
-        primaryCta: 'Start next block',
+        primaryCta: 'View plan',
         primaryRoute: 'next-block',
-        secondaryCta: 'Start Movement Check-Up',
+        secondaryCta: 'Start check-up',
         secondaryRoute: 'manual-checkup',
       };
     case 'no_active_block':
       return {
-        title: 'Start with a Movement Check-Up',
+        title: 'Start with a check-up',
         body: 'Hale will estimate strength, balance, and mobility before building your plan.',
         primaryCta: 'Start check-up',
         primaryRoute: 'camera-setup',
@@ -161,10 +163,16 @@ export function getNextBestActionCopy({
   }
 }
 
-export function getManualCheckupCopy(): { title: string; body: string } {
+export function getManualCheckupCopy(input: { activeBlock?: boolean } = {}): { title: string; body: string } {
+  if (input.activeBlock) {
+    return {
+      title: 'Check in on your progress',
+      body: "You're in the middle of a plan. A quick check-in is usually the best way to see how things are going today.",
+    };
+  }
   return {
-    title: 'Start a Movement Check-Up',
-    body: 'Full check-ups are most useful every 4 weeks. Mid-block, a 60-second check-in may be the better next step.',
+    title: 'Start a check-up',
+    body: 'Use a full check-up when you want a fresh strength, balance, and mobility measurement.',
   };
 }
 
@@ -172,7 +180,7 @@ export function getMicroCheckCopy(domain: MovementDomain): { title: string; body
   if (domain === 'balance') {
     return {
       title: 'One timed balance hold',
-      body: 'A quick check-in for the steadiness you are building this block.',
+      body: 'A quick check-in for the steadiness you are building in this plan.',
     };
   }
   if (domain === 'mobility') {
@@ -194,11 +202,27 @@ export function getSessionIntroCopy({
   focusDomain: MovementDomain;
   lifeGoal?: LifeGoal | null;
 }): string {
-  const domain = domainShortLabel(focusDomain);
+  const benefit = sessionBenefitCopy(focusDomain);
   if (lifeGoal) {
-    return `Today we are training ${domain} to support ${getLifeGoalDisplayText(lifeGoal).toLowerCase()}.`;
+    return `${benefit} It also supports your goal to ${lowercaseFirst(getLifeGoalDisplayText(lifeGoal))}.`;
   }
-  return `Today we are training ${domain} so your block keeps a clear focus.`;
+  return benefit;
+}
+
+function sessionBenefitCopy(focusDomain: MovementDomain): string {
+  if (focusDomain === 'balance') {
+    return "Today's balance work helps you practice steadier standing, walking, and turning.";
+  }
+  if (focusDomain === 'mobility') {
+    return "Today's mobility work helps reaching, bending, and everyday movement feel more comfortable.";
+  }
+  return "Today's strength work helps with standing up, stairs, and carrying everyday things.";
+}
+
+function lowercaseFirst(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return 'stay capable';
+  return trimmed.charAt(0).toLowerCase() + trimmed.slice(1);
 }
 
 export function getLapseRecoveryCopy(state: Parameters<typeof getAdherenceLapseRecoveryCopy>[0], lifeGoal?: LifeGoal | null) {
@@ -213,9 +237,9 @@ export function getReportCopy({
   hasComparison: boolean;
 }): string {
   if (hasComparison) {
-    return `Your ${domainLabel(focusDomain)} re-test adds another data point for your plan.`;
+    return `Your latest ${domainLabel(focusDomain)} check-up helps Hale update your plan.`;
   }
-  return 'Your re-test result will appear here once the Movement Check-Up is connected.';
+  return 'Your latest check-up result will appear here once it is connected.';
 }
 
 function sessionBody(block?: MovementBlock | null, lifeGoal?: LifeGoal | null): string {

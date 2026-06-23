@@ -6,7 +6,6 @@ import type { MovementSafetyProfile } from '../adherence';
 import { Screen } from '../components/ui';
 import { HeaderLogo } from '../components/HeaderLogo';
 import {
-  getEquipmentSetupSummary,
   getExploreLibrary,
   getExtraSessionCards,
   getHealthInsightCards,
@@ -18,7 +17,6 @@ import {
   type LearnCard,
   type MovementLadderCard,
 } from '../haleFlow';
-import type { AppSettings } from '../profile';
 import type { EquipmentProfile, LadderProgress, PersistedGeneratedSessionSummary } from '../training';
 import { colors, fonts, imageOverlayControl, radius, shadow, spacing, todayHomeColors, type } from '../theme';
 import { SettingsIcon } from '../navigation/icons';
@@ -36,10 +34,10 @@ const EXPLORE_TABS: readonly { key: ExploreTab; label: string }[] = [
 ];
 
 const EXPLORE_TAB_DESCRIPTIONS: Record<ExploreTab, string> = {
-  insights: 'General health and longevity reading from qualified professional perspectives.',
-  learn: 'Hale guides for check-ups, camera setup, and using your plan with confidence.',
-  practice: 'Optional short sessions for days when the main plan is done or you want lighter movement.',
-  library: 'Browse the movement groups Hale uses to adapt your plan.',
+  insights: 'Simple articles about movement, recovery, and healthy aging.',
+  learn: 'Step-by-step help for check-ups, camera setup, and your plan.',
+  practice: 'Short sessions for lighter days or after your plan is done.',
+  library: 'Browse the exercises Hale can use in your plan.',
 };
 
 const LIBRARY_FILTERS: readonly { key: LibraryDomainFilter; label: string }[] = [
@@ -52,7 +50,6 @@ const LIBRARY_FILTERS: readonly { key: LibraryDomainFilter; label: string }[] = 
 export function ExploreScreen({
   equipment,
   safetyProfile,
-  settings,
   ladderProgressById,
   activeBlockId,
   generatedSessionSummaries,
@@ -63,7 +60,6 @@ export function ExploreScreen({
 }: {
   equipment: EquipmentProfile;
   safetyProfile?: MovementSafetyProfile | null;
-  settings: AppSettings;
   ladderProgressById: Record<string, LadderProgress>;
   activeBlockId?: string | null;
   generatedSessionSummaries?: readonly PersistedGeneratedSessionSummary[] | null;
@@ -82,10 +78,6 @@ export function ExploreScreen({
   const ladders = React.useMemo(
     () => getMovementLadderCards({ ladderProgressById, equipment, safetyProfile, activeBlockId, generatedSessionSummaries }),
     [activeBlockId, equipment, generatedSessionSummaries, ladderProgressById, safetyProfile]
-  );
-  const setupSummary = React.useMemo(
-    () => getEquipmentSetupSummary({ equipment, safetyProfile, settings }),
-    [equipment, safetyProfile, settings]
   );
   const startExtraSession = React.useCallback(
     (presetId: string) => {
@@ -121,9 +113,7 @@ export function ExploreScreen({
       ) : activeTab === 'learn' ? (
         <LearnTab
           library={library}
-          setupSummary={setupSummary}
           onOpenLearn={onOpenLearn}
-          onOpenSettings={onOpenSettings}
         />
       ) : activeTab === 'practice' ? (
         <PracticeTab sessions={extraSessions} onStartExtraSession={startExtraSession} />
@@ -181,7 +171,7 @@ function InsightsTab({
     <View style={styles.tabContent}>
       {featured ? <FeaturedInsightCard article={featured} onOpen={() => onOpen(featured.id)} /> : null}
       <View style={styles.section}>
-        <SectionCopy title="Articles for you" />
+        <SectionCopy title="Helpful reads" />
         <View style={[styles.listPanel, styles.articleListPanel]}>
           {feed.map((article, index) => (
             <InsightRow
@@ -199,24 +189,14 @@ function InsightsTab({
 
 function LearnTab({
   library,
-  setupSummary,
   onOpenLearn,
-  onOpenSettings,
 }: {
   library: ReturnType<typeof getExploreLibrary>;
-  setupSummary: ReturnType<typeof getEquipmentSetupSummary>;
   onOpenLearn: (articleId: string) => void;
-  onOpenSettings: () => void;
 }) {
   return (
     <View style={styles.tabContent}>
       <FeaturedGuideCard article={library.featured} onOpen={() => onOpenLearn(library.featured.id)} />
-      <SetupSummaryCard
-        availableLabel={setupSummary.availableLabel}
-        missingOptionalLabel={setupSummary.missingOptionalLabel}
-        phoneStandLabel={setupSummary.phoneStandLabel}
-        onOpenSettings={onOpenSettings}
-      />
       {library.sections.map((section) => (
         <GuideSection
           key={section.id}
@@ -249,7 +229,7 @@ function PracticeTab({
 
       {sessionRows.length > 0 ? (
         <View style={styles.section}>
-          <SectionCopy title="More short sessions" />
+          <SectionCopy title="More options" />
           <View style={[styles.listPanel, styles.practiceListPanel]}>
             {sessionRows.map((session, index) => (
               <OptionalSessionRow
@@ -285,7 +265,7 @@ function LibraryTab({
       <FeaturedLibraryCard ladderCount={ladders.length} domainCount={domainCount} />
       <LibraryFilterBar activeFilter={activeFilter} onChange={setActiveFilter} />
       <View style={styles.section}>
-        <SectionCopy title={activeFilter === 'all' ? 'Movement ladders' : `${activeFilter} ladders`} />
+        <SectionCopy title={activeFilter === 'all' ? 'Movement groups' : `${activeFilter} groups`} />
         <View style={[styles.listPanel, styles.libraryListPanel]}>
           {filteredLadders.map((ladder, index) => (
             <LadderRow
@@ -304,7 +284,7 @@ function LibraryTab({
 function FeaturedLibraryCard({ ladderCount, domainCount }: { ladderCount: number; domainCount: number }) {
   return (
     <View style={styles.featuredLibrarySection}>
-      <Text style={styles.featuredPostLabel}>Movement library</Text>
+      <Text style={styles.featuredPostLabel}>Movement options</Text>
       <View style={styles.featuredLibraryCard}>
         <ImageBackground
           source={LIBRARY_IMAGES.hero}
@@ -314,14 +294,14 @@ function FeaturedLibraryCard({ ladderCount, domainCount }: { ladderCount: number
         >
           <View style={styles.featuredLibraryScrim} />
           <View style={styles.featuredLibraryContent}>
-            <Text style={styles.featuredPostMeta}>Movement groups Hale uses in your plan</Text>
-            <Text style={styles.featuredPostTitle}>See how each movement can adapt</Text>
+            <Text style={styles.featuredPostMeta}>Exercises Hale can use in your plan</Text>
+            <Text style={styles.featuredPostTitle}>See easier and harder options</Text>
             <Text style={styles.featuredPostBody}>
-              Browse levels, practice options, and mobility movements without changing today's session.
+              Look through the versions Hale may choose. This will not change today's session.
             </Text>
             <View style={styles.libraryStatsRow}>
-              <LibraryStatPill label={`${ladderCount} ladders`} />
-              <LibraryStatPill label={`${domainCount} domains`} />
+              <LibraryStatPill label={`${ladderCount} groups`} />
+              <LibraryStatPill label={`${domainCount} areas`} />
             </View>
           </View>
         </ImageBackground>
@@ -356,7 +336,7 @@ function LibraryFilterBar({
             onPress={() => onChange(filter.key)}
             accessibilityRole="button"
             accessibilityState={{ selected }}
-            accessibilityLabel={`${filter.label} movement ladders`}
+            accessibilityLabel={`${filter.label} movement groups`}
           >
             <Text style={[styles.libraryFilterText, selected && styles.libraryFilterTextSelected]}>{filter.label}</Text>
           </Pressable>
@@ -369,7 +349,7 @@ function LibraryFilterBar({
 function FeaturedInsightCard({ article, onOpen }: { article: HealthInsightCard; onOpen: () => void }) {
   return (
     <View style={styles.featuredPostSection}>
-      <Text style={styles.featuredPostLabel}>Featured Post</Text>
+      <Text style={styles.featuredPostLabel}>Featured article</Text>
       <Pressable
         style={({ pressed }) => [styles.featuredPostCard, pressed && styles.pressed]}
         onPress={onOpen}
@@ -388,7 +368,7 @@ function FeaturedInsightCard({ article, onOpen }: { article: HealthInsightCard; 
             <Text style={styles.featuredPostTitle}>{article.title}</Text>
             <Text style={styles.featuredPostBody}>{article.body}</Text>
             <View style={styles.featuredPostButton}>
-              <Text style={styles.featuredPostButtonText}>Read Post</Text>
+              <Text style={styles.featuredPostButtonText}>Read article</Text>
             </View>
           </View>
         </ImageBackground>
@@ -457,7 +437,7 @@ function FeaturedGuideCard({ article, onOpen }: { article: LearnCard; onOpen: ()
 function FeaturedPracticeCard({ session, onStart }: { session: ExtraSessionCard; onStart: () => void }) {
   return (
     <View style={styles.featuredPracticeSection}>
-      <Text style={styles.featuredPostLabel}>Optional practice</Text>
+      <Text style={styles.featuredPostLabel}>For lighter days</Text>
       <Pressable
         style={({ pressed }) => [styles.featuredPracticeCard, session.disabled && styles.disabledRow, pressed && styles.pressed]}
         onPress={onStart}
@@ -479,7 +459,7 @@ function FeaturedPracticeCard({ session, onStart }: { session: ExtraSessionCard;
             </Text>
             <Text style={styles.featuredPostTitle}>A gentle reset for lighter days</Text>
             <Text style={styles.featuredPostBody}>
-              Use this short mobility session when Today is already done, or when you want something calmer.
+              Use this when today's session is done, or when you want something calmer.
             </Text>
             <View style={styles.featuredPostButton}>
               <Text style={styles.featuredPostButtonText}>{session.disabled ? 'Setup needed' : 'Start reset'}</Text>
@@ -555,108 +535,6 @@ function GuideRow({
   );
 }
 
-function SetupSummaryCard({
-  availableLabel,
-  missingOptionalLabel,
-  phoneStandLabel,
-  onOpenSettings,
-}: {
-  availableLabel: string;
-  missingOptionalLabel: string;
-  phoneStandLabel: string;
-  onOpenSettings: () => void;
-}) {
-  const essentialsSetup = setupEssentialsSummary(availableLabel);
-  const optionalSetup = setupOptionalSummary(missingOptionalLabel);
-  const phoneStandSetup = setupPhoneStandSummary(phoneStandLabel);
-
-  return (
-    <View style={styles.setupCard}>
-      <View style={styles.setupTopRow}>
-        <View style={styles.setupCopy}>
-          <Text style={styles.setupTitle}>Ready at home</Text>
-          <Text style={styles.setupBody}>Your home setup helps Hale keep sessions simple and adaptable.</Text>
-        </View>
-        <Pressable
-          style={({ pressed }) => [styles.settingsButton, pressed && styles.pressed]}
-          onPress={onOpenSettings}
-          accessibilityRole="button"
-          accessibilityLabel="Edit setup in Settings"
-        >
-          <Text style={styles.settingsButtonText}>Edit</Text>
-        </Pressable>
-      </View>
-      <View style={styles.setupList}>
-        <SetupFact
-          label="Essentials"
-          value={essentialsSetup.value}
-          status={essentialsSetup.status}
-          tone={essentialsSetup.tone}
-          showDivider
-        />
-        <SetupFact
-          label="Optional gear"
-          value={optionalSetup.value}
-          status={optionalSetup.status}
-          tone={optionalSetup.tone}
-          showDivider
-        />
-        <SetupFact label="Phone stand" value={phoneStandSetup.value} status={phoneStandSetup.status} tone={phoneStandSetup.tone} />
-      </View>
-    </View>
-  );
-}
-
-function SetupFact({
-  label,
-  value,
-  status,
-  tone,
-  showDivider,
-}: {
-  label: string;
-  value: string;
-  status: string;
-  tone: 'ready' | 'neutral';
-  showDivider?: boolean;
-}) {
-  return (
-    <View style={[styles.setupFact, showDivider && styles.setupFactDivider]}>
-      <View style={styles.setupFactCopy}>
-        <Text style={styles.setupFactLabel}>{label}</Text>
-        <Text style={styles.setupFactValue}>{value}</Text>
-      </View>
-      <View style={[styles.setupStatusPill, tone === 'ready' ? styles.setupStatusPillReady : styles.setupStatusPillNeutral]}>
-        <Text style={styles.setupStatusText}>{status}</Text>
-      </View>
-    </View>
-  );
-}
-
-function setupEssentialsSummary(availableLabel: string): { value: string; status: string; tone: 'ready' | 'neutral' } {
-  const lower = availableLabel.toLowerCase();
-  const hasChair = lower.includes('chair');
-  const hasSupport = lower.includes('wall') || lower.includes('counter');
-  if (hasChair && hasSupport) return { value: 'Chair + support marked', status: 'Ready', tone: 'ready' };
-  if (hasChair) return { value: 'Chair marked', status: 'Partial', tone: 'neutral' };
-  if (hasSupport) return { value: 'Support marked', status: 'Partial', tone: 'neutral' };
-  return { value: 'No essentials marked', status: 'Review', tone: 'neutral' };
-}
-
-function setupOptionalSummary(missingOptionalLabel: string): { value: string; status: string; tone: 'ready' | 'neutral' } {
-  if (missingOptionalLabel.toLowerCase().includes('all optional items')) {
-    return { value: 'Extra items are marked available', status: 'Ready', tone: 'ready' };
-  }
-  return { value: 'Extra items can be added later', status: 'Optional', tone: 'neutral' };
-}
-
-function setupPhoneStandSummary(phoneStandLabel: string): { value: string; status: string; tone: 'ready' | 'neutral' } {
-  if (phoneStandLabel.toLowerCase().includes('not marked')) {
-    return { value: 'Not marked in Profile', status: 'Not set', tone: 'neutral' };
-  }
-  return { value: 'Marked available', status: 'Ready', tone: 'ready' };
-}
-
 function LadderRow({
   ladder,
   showDivider,
@@ -671,7 +549,7 @@ function LadderRow({
       style={({ pressed }) => [styles.listRow, styles.libraryRow, showDivider && styles.listRowDivider, pressed && styles.pressed]}
       onPress={onOpen}
       accessibilityRole="button"
-      accessibilityLabel={`${ladder.title} ${ladder.showCurrentLevel ? 'ladder' : 'movement group'}`}
+      accessibilityLabel={`${ladder.title} movement group`}
     >
       <Image source={LIBRARY_IMAGES[ladder.id] ?? LIBRARY_IMAGES.hero} style={styles.libraryThumb} resizeMode="cover" />
       <View style={styles.listCopy}>
@@ -683,7 +561,7 @@ function LadderRow({
         </Text>
         <Text style={styles.rowMeta} numberOfLines={1}>
           {ladder.showCurrentLevel
-            ? `Current: ${ladder.currentLevelName} · ${ladder.equipmentLabel}`
+            ? `Your version: ${ladder.currentLevelName} · ${ladder.equipmentLabel}`
             : `${ladder.currentLevelLabel} · ${ladder.equipmentLabel}`}
         </Text>
       </View>
@@ -1006,9 +884,10 @@ const styles = StyleSheet.create({
     color: colors.onAccent,
     fontFamily: fonts.serifMedium,
     fontSize: 28,
-    lineHeight: 32,
+    lineHeight: 36,
     letterSpacing: 0,
     marginTop: 9,
+    paddingBottom: 2,
   },
   featuredPostBody: {
     color: colors.onAccent,
@@ -1378,103 +1257,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansRegular,
     fontSize: 13,
     lineHeight: 17,
-    letterSpacing: 0,
-  },
-  setupCard: {
-    borderRadius: radius.card,
-    backgroundColor: todayHomeColors.card,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-    gap: 15,
-    ...shadow.card,
-  },
-  setupTopRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 14,
-  },
-  setupCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  setupTitle: {
-    color: todayHomeColors.primaryText,
-    fontFamily: fonts.sansMedium,
-    fontSize: 16,
-    lineHeight: 21,
-    letterSpacing: 0,
-  },
-  setupBody: {
-    color: todayHomeColors.secondaryText,
-    fontFamily: fonts.sansRegular,
-    fontSize: 14,
-    lineHeight: 19,
-    letterSpacing: 0,
-    marginTop: 3,
-  },
-  setupList: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: todayHomeColors.border,
-  },
-  setupFact: {
-    minHeight: 58,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-  },
-  setupFactDivider: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: todayHomeColors.border,
-  },
-  setupFactCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  setupFactLabel: {
-    ...type.caption,
-    color: colors.textSecondary,
-  },
-  setupFactValue: {
-    color: todayHomeColors.primaryText,
-    fontFamily: fonts.sansRegular,
-    fontSize: 14,
-    lineHeight: 20,
-    letterSpacing: 0,
-  },
-  setupStatusPill: {
-    minHeight: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-  },
-  setupStatusPillReady: {
-    backgroundColor: todayHomeColors.iconFill,
-  },
-  setupStatusPillNeutral: {
-    backgroundColor: colors.bgElevated,
-  },
-  setupStatusText: {
-    color: todayHomeColors.headingGreen,
-    fontFamily: fonts.sansMedium,
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 0,
-  },
-  settingsButton: {
-    minHeight: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 18,
-    backgroundColor: todayHomeColors.iconFill,
-  },
-  settingsButtonText: {
-    color: todayHomeColors.headingGreen,
-    fontFamily: fonts.sansMedium,
-    fontSize: 15,
-    lineHeight: 20,
     letterSpacing: 0,
   },
   startButton: {

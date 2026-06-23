@@ -8,6 +8,23 @@
 export type { AppSettings, OnboardingState, OnboardingStep, Preferences, UserProfile } from './types';
 export { EMPTY_PROFILE } from './types';
 export {
+  AGE_RANGE_OPTIONS,
+  ageBandForAge,
+  ageBandForRepresentativeAge,
+  ageBandLabel,
+  ageDisplayLabel,
+  ageRangeLabelForAge,
+  isAgeBand,
+  representativeAgeForAgeBand,
+} from './age';
+export type { AgeRangeOption } from './age';
+export {
+  STARTING_PACE_OPTIONS,
+  onboardingActivityLevel,
+  startingEffortLabel,
+} from './activity';
+export type { StartingPaceOption } from './activity';
+export {
   CANONICAL_EQUIPMENT_SCHEMA_VERSION,
   CANONICAL_EQUIPMENT_ORDER,
   canonicalEquipmentFromSafetyProfile,

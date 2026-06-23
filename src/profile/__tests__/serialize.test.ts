@@ -14,7 +14,7 @@ describe('preferences serialize', () => {
     nowIso: '2026-06-16T08:00:00.000Z',
   });
   const sample: Preferences = {
-    profile: { name: 'Margaret', age: 58, goal: 'Stay steady on the stairs', lifeGoal, safetyProfile: null },
+    profile: { name: 'Margaret', age: null, ageBand: '55_64', goal: 'Stay steady on the stairs', lifeGoal, safetyProfile: null },
     settings: {
       voiceId: 'clara',
       remindersEnabled: true,
@@ -37,6 +37,32 @@ describe('preferences serialize', () => {
 
   it('writes a schema version', () => {
     expect(JSON.parse(serializePreferences(sample)).schemaVersion).toBe(4);
+  });
+
+  it('migrates legacy exact ages into age bands', () => {
+    const parsed = deserializePreferences(JSON.stringify({
+      profile: {
+        name: 'Margaret',
+        age: 58,
+        goal: '',
+        lifeGoal,
+        safetyProfile: {
+          id: 'safety-1',
+          userId: 'local-device-user',
+          age: 58,
+          availableEquipment: ['chair', 'wall'],
+          createdAt: '2026-06-21T08:00:00.000Z',
+          updatedAt: '2026-06-21T08:00:00.000Z',
+        },
+      },
+    }));
+
+    expect(parsed?.profile.age).toBeNull();
+    expect(parsed?.profile.ageBand).toBe('55_64');
+    expect(parsed?.profile.safetyProfile).toMatchObject({
+      age: 60,
+      ageBand: '55_64',
+    });
   });
 
   it('returns null on malformed JSON', () => {
@@ -151,7 +177,7 @@ describe('ProfileStore', () => {
   it('persists and reloads (survives restart)', async () => {
     const fs = createMemoryFs();
     const prefs: Preferences = {
-      profile: { name: 'David', age: 66, goal: '', lifeGoal: null, safetyProfile: null },
+      profile: { name: 'David', age: null, ageBand: '65_74', goal: '', lifeGoal: null, safetyProfile: null },
       settings: {
         voiceId: 'clara',
         remindersEnabled: true,

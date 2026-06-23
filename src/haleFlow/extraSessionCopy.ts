@@ -2,8 +2,8 @@ export const EXTRA_SESSION_CARD_TITLES: Record<string, string> = {
   'preset-mobility-reset': 'Mobility Reset',
   'preset-gentle-restart': 'Gentle Restart',
   'preset-steady-balance': 'Steady Balance',
-  'preset-no-equipment-strength': 'Chair + Wall Strength',
-  'preset-band-upper-back': 'Band Upper-Back',
+  'preset-no-equipment-strength': 'Chair and wall strength',
+  'preset-band-upper-back': 'Upper-back band work',
   'preset-stairs-confidence': 'Stairs Confidence',
   'preset-quick-full-body': 'Quick Full Body',
 };
@@ -20,7 +20,7 @@ export const EXTRA_SESSION_CARD_BODY: Record<string, string> = {
 
 export const EXTRA_SESSION_DETAIL_BODY: Record<string, string> = {
   'preset-mobility-reset':
-    'Use this short mobility session when Today is already done, before a re-test, after travel, or when you want something calmer.',
+    'Use this short mobility session when today\'s session is already done, before a re-test, after travel, or when you want something calmer.',
   'preset-gentle-restart':
     'A calm way back in when you want a clean slate. This session keeps the work light, familiar, and easy to complete.',
   'preset-steady-balance':

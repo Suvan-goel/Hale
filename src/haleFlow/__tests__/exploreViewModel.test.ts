@@ -44,8 +44,8 @@ describe('exploreViewModel', () => {
       '10-Minute Mobility Reset',
       'Gentle Restart Session',
       'Steady Balance Practice',
-      'Chair + Wall Strength',
-      'Band Upper-Back',
+      'Chair and wall strength',
+      'Upper-back band work',
       'Stairs Confidence',
       'Quick Full-Body Hale Session',
     ]);
@@ -59,7 +59,7 @@ describe('exploreViewModel', () => {
     });
     expect(cards.find((card) => card.id === 'preset-no-equipment-strength')?.disabled).toBe(false);
     expect(cards.find((card) => card.id === 'preset-no-equipment-strength')).toMatchObject({
-      cardTitle: 'Chair + Wall Strength',
+      cardTitle: 'Chair and wall strength',
       body: 'Strength with a chair and wall.',
       detailBody: expect.stringContaining('chair, wall, and clear space'),
     });
@@ -113,7 +113,7 @@ describe('exploreViewModel', () => {
 
     expect(cards.find((card) => card.id === 'preset-stairs-confidence')).toMatchObject({
       disabled: true,
-      disabledReason: 'Needs step-up setup',
+      disabledReason: 'Needs a step or stair',
     });
   });
 
@@ -128,8 +128,8 @@ describe('exploreViewModel', () => {
       },
     });
 
-    expect(cards.map((card) => card.title)).toContain('Sit-to-Stand');
-    expect(cards.map((card) => card.title)).toContain('Mobility / Flexibility');
+    expect(cards.map((card) => card.title)).toContain('Sit to stand');
+    expect(cards.map((card) => card.title)).toContain('Mobility and flexibility');
     expect(cards.every((card) => card.currentLevelName.length > 0)).toBe(true);
     expect(cards.find((card) => card.id === 'sit-to-stand')?.body).toBe(
       'Build chair-rise strength for standing from everyday seats.'
@@ -137,9 +137,12 @@ describe('exploreViewModel', () => {
     expect(cards.find((card) => card.id === 'shoulder-reach-press')?.equipmentLabel).toBe('No optional equipment');
     expect(cards.find((card) => card.id === 'step-up')?.equipmentLabel).toBe('Needs a bottom stair');
     expect(cards.find((card) => card.id === 'pull-upper-back')?.equipmentLabel).toBe('Needs a resistance band');
-    expect(getMovementLadderDetail('sit-to-stand')?.body).toBe(
-      'Chair-rise strength and power, with cushion, tempo, and power options.'
+    const sitToStandDetail = getMovementLadderDetail('sit-to-stand');
+    expect(sitToStandDetail?.body).toBe('Build chair-rise strength for standing from everyday seats.');
+    expect(sitToStandDetail?.watchText).toBe(
+      'Hale counts your stands and watches how your standing speed changes over time.'
     );
+    expect(sitToStandDetail?.beforeStartItems).toContain('Place your phone to the side.');
   });
 
   it('shows only V1 core levels in ladder detail by default', () => {
@@ -178,9 +181,9 @@ describe('exploreViewModel', () => {
       },
     });
 
-    expect(shoulder?.currentLevelLabel).toBe('Movements in this set');
+    expect(shoulder?.currentLevelLabel).toBe('Included movements');
     expect(shoulder?.harderLevel).toBeUndefined();
-    expect(mobility?.currentLevelLabel).toBe('Varied across your block');
+    expect(mobility?.currentLevelLabel).toBe('Used across your plan');
     expect(mobility?.harderLevel).toBeUndefined();
   });
 
@@ -220,7 +223,7 @@ describe('exploreViewModel', () => {
       },
     });
 
-    expect(cards.find((card) => card.id === 'sit-to-stand')?.currentLevelName).toBe('Sit-to-Stand');
+    expect(cards.find((card) => card.id === 'sit-to-stand')?.currentLevelName).toBe('Sit to stand');
     expect(sitToStand?.currentLevel.id).toBe('sts-standard');
     expect(sitToStand?.harderLevel).toBeUndefined();
     expect(sitToStand?.levels.map((level) => level.id)).not.toContain('loaded-sit-to-stand');

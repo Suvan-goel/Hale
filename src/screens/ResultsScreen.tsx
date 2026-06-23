@@ -5,13 +5,13 @@
 
 import * as React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Path, Polyline } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
 import { CheckUp } from '../checkup/types';
-import { Card, PrimaryButton, Screen, StatusBadge } from '../components/ui';
-import type { MovementAssessment } from '../adherence';
+import { Card, PrimaryButton, Screen, SecondaryButton } from '../components/ui';
+import type { AgeBand, MovementAssessment } from '../adherence';
 import { getAssessmentResultState } from '../haleFlow/assessmentResultState';
 import { ExtraTrendPoint, MetricTrend, StoredCheckUp, computeTrends } from '../history';
 import {
@@ -29,18 +29,26 @@ export function ResultsScreen({
   history,
   onDone,
   onRetake,
+  onViewPlan,
+  nextPlanReady = false,
   extraTrendPoints = [],
   assessment,
   score,
   scoreSnapshot,
+  age,
+  ageBand,
 }: {
   checkUp: CheckUp;
   history: StoredCheckUp[];
   assessment?: MovementAssessment | null;
   score?: CheckUpScore | null;
   scoreSnapshot?: VersionedCheckUpScoreSnapshot | null;
+  age?: number | null;
+  ageBand?: AgeBand | null;
   onDone: () => void;
   onRetake?: () => void;
+  onViewPlan?: () => void;
+  nextPlanReady?: boolean;
   /** Weekly micro-check points to merge into the trend line. */
   extraTrendPoints?: ExtraTrendPoint[];
 }) {
@@ -49,7 +57,6 @@ export function ResultsScreen({
     () => computeTrends(history, extraTrendPoints).filter((t) => t.points.length >= 2),
     [history, extraTrendPoints]
   );
-  const measured = score?.domains.filter((d) => d.measured) ?? [];
   const focusSelection = React.useMemo(
     () => scoreSnapshot?.focusSelection ?? selectFocusFromScore(score, { activeFocusDomain: score?.weakestDomain }),
     [score, scoreSnapshot]
@@ -57,74 +64,80 @@ export function ResultsScreen({
   const focusDomain = focusSelection?.focusDomain ?? score?.weakestDomain ?? null;
   const focusLabel = focusDomain ? DOMAIN_LABEL[focusDomain] : null;
   const closelyMatched = focusSelection?.kind === 'exact_tie' || focusSelection?.kind === 'near_tie';
+  const comparisonRange = React.useMemo(() => ageComparisonRange(age ?? null, ageBand ?? null), [age, ageBand]);
+  const planIsReady = nextPlanReady && resultState.canCreateBlock && !!focusLabel;
+  const showViewPlanAction = planIsReady && !!onViewPlan;
+  const showRetakeAction = !!onRetake && resultState.canRetake;
 
   return (
     <Screen contentStyle={styles.screenContent}>
-      <BackArrowButton accessibilityLabel="Back from movement dashboard" onPress={onDone} style={styles.backButton} />
+      <BackArrowButton accessibilityLabel="Back from check-up results" onPress={onDone} style={styles.backButton} />
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Movement Check-Up</Text>
         <View style={styles.titleGroup}>
           <HeaderLogo size={30} />
-          <Text style={styles.title}>Movement Dashboard</Text>
+          <Text style={styles.title}>Your check-up results</Text>
         </View>
         <Text style={styles.subtitle}>
-          Home movement estimates from today’s guided check-up. Small changes can reflect setup or day-to-day variation.
+          {planIsReady
+            ? 'Your latest check-up is saved. Your next plan is ready.'
+            : 'Hale measured your strength, balance, and mobility today. Here’s what to focus on next.'}
         </Text>
       </View>
 
       <View style={styles.focusOverviewCard}>
-        <View style={styles.focusOverviewHead}>
-          <View style={styles.focusOverviewCopy}>
-            <Text style={styles.focusKicker}>
-              {resultState.canCreateBlock && focusLabel
-                ? closelyMatched
-                  ? 'Closely matched domains'
-                  : 'Suggested focus'
+        <View style={styles.focusTopRow}>
+          <Text style={styles.focusKicker}>
+            {planIsReady
+              ? 'Next plan ready'
+              : resultState.canCreateBlock && focusLabel
+                ? 'Your main focus'
                 : 'Retake needed'}
-            </Text>
-            <Text style={styles.focusValue}>
-              {resultState.canCreateBlock && focusLabel
-                ? closelyMatched
-                  ? tiedDomainLabels(focusSelection)
-                  : focusLabel
-                : resultState.recoveryTitle}
+          </Text>
+          <View style={styles.focusPill}>
+            <Text style={styles.focusPillText}>
+              {planIsReady ? 'Ready' : resultState.canCreateBlock && focusLabel ? 'Next plan' : 'Review'}
             </Text>
           </View>
-          <DashboardPill
-            label={resultState.canCreateBlock && focusLabel ? 'Next block' : 'Review'}
-            variant="light"
-          />
         </View>
-        <Text style={styles.focusBody}>
+        <Text style={styles.focusValue}>
           {resultState.canCreateBlock && focusLabel
             ? closelyMatched
-              ? `${focusLabel} is the suggested focus for this block because these home estimates were closely matched.`
-              : 'Hale uses this as the starting point for the current four-week training block.'
+              ? tiedDomainLabels(focusSelection)
+              : focusLabel
+            : resultState.recoveryTitle}
+        </Text>
+        <Text style={styles.focusBody}>
+          {planIsReady && focusLabel
+            ? readyPlanFocusBody(focusLabel, closelyMatched)
+            : resultState.canCreateBlock && focusLabel
+            ? closelyMatched
+              ? `${focusLabel} is where Hale will start, while still keeping the other areas in view.`
+              : 'Hale will use this to build your next 4-week plan.'
             : resultState.recoveryBody}
         </Text>
-        <View style={styles.summaryRail}>
-          <SummaryTile label="Domains estimated" value={`${measured.length}/3`} />
-          <SummaryTile label="Check-ups in history" value={`${history.length}`} />
-        </View>
       </View>
 
-      <View style={styles.sectionHeader}>
-        <View style={styles.sectionHeaderCopy}>
-          <Text style={styles.sectionEyebrow}>Home estimates</Text>
-          <Text style={styles.sectionSubtle}>Strength, balance, and mobility from this snapshot.</Text>
-        </View>
-        <DashboardPill label="Beta" />
+      <View style={styles.resultsIntro}>
+        <Text style={styles.sectionTitle}>Your three areas</Text>
+        <Text style={styles.sectionSubtle}>
+          {comparisonRange
+            ? 'Each area compares your latest check-up result with your age group.'
+            : 'Each area shows your latest check-up result. Add your age range to compare by age group.'}
+        </Text>
       </View>
 
       {score ? (
-        score.domains.map((d) => (
-          <DomainCard
-            key={d.domain}
-            domain={d}
-            isFocus={d.domain === focusDomain}
-            isTied={closelyMatched && !!focusSelection?.tiedDomains.includes(d.domain)}
-          />
-        ))
+        <Card style={styles.areasPanel}>
+          {score.domains.map((d, index) => (
+            <DomainAreaRow
+              key={d.domain}
+              domain={d}
+              comparisonRange={comparisonRange}
+              isLast={index === score.domains.length - 1}
+            />
+          ))}
+        </Card>
       ) : (
         <Card style={styles.emptyResultCard}>
           <Text style={styles.sectionTitle}>Stored result</Text>
@@ -135,94 +148,86 @@ export function ResultsScreen({
         </Card>
       )}
 
-      {trends.length > 0 ? (
-        <Card style={styles.trendCard}>
-          <Text style={styles.cardKicker}>Trend watch</Text>
-          <Text style={styles.sectionTitle}>Trends</Text>
-          <Text style={styles.sectionSubtle}>Small changes matter most when they repeat over time.</Text>
-          {trends.map((t) => (
-            <TrendRow key={t.key} trend={t} />
-          ))}
-        </Card>
-      ) : (
-        <Card style={styles.trendCard}>
-          <Text style={styles.cardKicker}>Trend watch</Text>
-          <Text style={styles.sectionTitle}>Trends</Text>
-          <Text style={styles.sectionSubtle}>
-            Come back for another check-up to start seeing your movement trends over time.
-          </Text>
-        </Card>
-      )}
+      <Card style={styles.trendCard}>
+        <Text style={styles.sectionTitle}>Changes over time</Text>
+        <Text style={styles.sectionSubtle}>{trendSummaryCopy(trends)}</Text>
+      </Card>
 
-      {onRetake && resultState.canRetake ? (
+      {showViewPlanAction || showRetakeAction ? (
         <View style={styles.actions}>
-          <PrimaryButton title="Retake Movement Check-Up" onPress={onRetake} />
+          {showViewPlanAction && onViewPlan ? (
+            <PrimaryButton title="View plan" onPress={onViewPlan} />
+          ) : null}
+          {showRetakeAction && onRetake ? (
+            showViewPlanAction ? (
+              <SecondaryButton title="Retake check-up" onPress={onRetake} />
+            ) : (
+              <PrimaryButton title="Retake check-up" onPress={onRetake} />
+            )
+          ) : null}
         </View>
       ) : null}
     </Screen>
   );
 }
 
-function SummaryTile({ label, value }: { label: string; value: string }) {
+function DomainAreaRow({
+  domain,
+  comparisonRange,
+  isLast,
+}: {
+  domain: DomainResult;
+  comparisonRange: AgeComparisonRange | null;
+  isLast: boolean;
+}) {
+  const primaryMetric = primaryMetricForDomain(domain);
+  const metricDisplay = primaryMetric ? splitMetricDisplay(primaryMetric.display) : null;
   return (
-    <View style={styles.summaryTile}>
-      <Text style={styles.summaryValue}>{value}</Text>
-      <Text style={styles.summaryLabel}>{label}</Text>
+    <View style={[styles.domainAreaRow, isLast && styles.domainAreaRowLast]}>
+      <View style={styles.domainAreaHeader}>
+        <DomainGlyph domain={domain.domain} />
+        <View style={styles.domainTitleCopy}>
+          <Text style={styles.domainTitle}>{domain.label}</Text>
+          <Text style={domain.measured ? styles.domainTakeaway : styles.domainTakeawayMuted}>
+            {domainAgeComparisonLabel(domain, comparisonRange)}
+          </Text>
+        </View>
+      </View>
+
+      <Text style={styles.domainBody}>{domainSimpleBody(domain)}</Text>
+
+      {primaryMetric ? (
+        <View style={styles.domainMetricStrip}>
+          <Text style={styles.domainMetricLabel}>{primaryMetric.label}</Text>
+          <Text style={styles.domainMetricValue} accessibilityLabel={primaryMetric.display}>
+            {metricDisplay ? (
+              <>
+                <Text style={styles.domainMetricNumber}>{metricDisplay.value}</Text>
+                {metricDisplay.unit ? (
+                  <Text style={styles.domainMetricUnit}>
+                    {metricDisplay.separator}
+                    {metricDisplay.unit}
+                  </Text>
+                ) : null}
+              </>
+            ) : (
+              primaryMetric.display
+            )}
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
 }
 
-function DomainCard({ domain, isFocus, isTied }: { domain: DomainResult; isFocus: boolean; isTied?: boolean }) {
-  return (
-    <Card style={[styles.domainCard, isFocus && styles.focusCard]}>
-      {isFocus ? <View style={styles.domainAccentBar} /> : null}
-      <View style={styles.domainHead}>
-        <View style={styles.domainTitleRow}>
-          <DomainGlyph domain={domain.domain} emphasized={isFocus || isTied} />
-          <View style={styles.domainTitleCopy}>
-            <Text style={styles.cardKicker}>Home estimate</Text>
-            <Text style={styles.domainTitle}>{domain.label}</Text>
-          </View>
-        </View>
-        {isFocus ? <StatusBadge label="Suggested focus" tone="gold" /> : isTied ? <StatusBadge label="Closely matched" /> : null}
-      </View>
-
-      <View style={styles.domainEstimateBlock}>
-        <View style={styles.domainBandRow}>
-          <View style={styles.domainBandCopy}>
-            <Text style={domain.measured ? styles.age : styles.ageMuted}>
-              {domain.measured ? domainBandLabel(domain) : 'Not estimated'}
-            </Text>
-            <Text style={styles.estimateLabel}>{domainEstimateLabel(domain)}</Text>
-          </View>
-          {domain.measured ? <DashboardPill label="Measured today" /> : null}
-        </View>
-        <Text style={styles.interp}>{domainInterpretation(domain)}</Text>
-      </View>
-
-      <View style={styles.rows}>
-        {domain.rows.map((r, index) => (
-          <DomainMetricRow
-            key={r.label}
-            label={r.label}
-            value={r.display}
-            measured={r.measured}
-            isLast={index === domain.rows.length - 1}
-          />
-        ))}
-      </View>
-    </Card>
-  );
-}
-
-function DashboardPill({ label, variant = 'neutral' }: { label: string; variant?: 'neutral' | 'light' }) {
-  return (
-    <View style={[styles.dashboardPill, variant === 'light' && styles.dashboardPillLight]}>
-      <Text style={[styles.dashboardPillText, variant === 'light' && styles.dashboardPillTextLight]} numberOfLines={1}>
-        {label}
-      </Text>
-    </View>
-  );
+function splitMetricDisplay(display: string): { value: string; separator: string; unit: string } | null {
+  const match = display.trim().match(/^(-?\d+(?:\.\d+)?)(\s*)(.*)$/);
+  if (!match) return null;
+  return {
+    value: match[1],
+    separator: match[2],
+    unit: match[3],
+  };
 }
 
 function DomainGlyph({ domain, emphasized }: { domain: DomainResult['domain']; emphasized?: boolean }) {
@@ -254,122 +259,80 @@ function DomainGlyph({ domain, emphasized }: { domain: DomainResult['domain']; e
   );
 }
 
-function DomainMetricRow({
-  label,
-  value,
-  measured,
-  isLast,
-}: {
-  label: string;
-  value: string;
-  measured: boolean;
-  isLast: boolean;
-}) {
-  return (
-    <View style={[styles.metricRow, isLast && styles.metricRowLast]}>
-      <View style={styles.metricCopy}>
-        <Text style={styles.metricLabel}>{label}</Text>
-        <Text style={styles.metricStatus}>{measured ? 'Estimated' : 'Not captured'}</Text>
-      </View>
-      <Text style={styles.metricValue}>{value}</Text>
-    </View>
-  );
-}
-
 function tiedDomainLabels(focusSelection: ScoreFocusSelection | null | undefined): string {
   if (!focusSelection) return '';
   return focusSelection.tiedDomains.map((domain) => DOMAIN_LABEL[domain]).join(' + ');
 }
 
-function domainBandLabel(domain: DomainResult): string {
-  if (!domain.measured || !Number.isFinite(domain.ageLow) || !Number.isFinite(domain.ageHigh)) return 'Pending';
-  const mid = (domain.ageLow + domain.ageHigh) / 2;
-  if (mid <= 58) return 'Strong';
-  if (mid <= 72) return 'Building';
-  return 'Starting point';
-}
-
-function domainEstimateLabel(domain: DomainResult): string {
-  if (!domain.measured || !Number.isFinite(domain.ageLow) || !Number.isFinite(domain.ageHigh)) return 'Home estimate pending';
-  const low = Math.round(domain.ageLow);
-  const high = Math.round(domain.ageHigh);
-  if (domain.domain === 'strength') {
-    return `Beta home estimate: age ${low}-${high}${domain.estimated ? ' (estimate)' : ''}`;
+function readyPlanFocusBody(focusLabel: string, closelyMatched: boolean): string {
+  if (closelyMatched) {
+    return `Your next plan is ready. Hale will start with ${focusLabel.toLowerCase()} and still include the other areas.`;
   }
-  if (domain.domain === 'balance') return 'One-leg balance hold estimate';
-  return 'Shoulder mobility estimate';
+  return `Your next plan is ready with ${focusLabel.toLowerCase()} as the main focus.`;
 }
 
-function domainInterpretation(domain: DomainResult): string {
-  if (!domain.measured) return 'Your next Movement Check-Up can add another data point here.';
+function domainSimpleBody(domain: DomainResult): string {
+  if (!domain.measured) return 'Hale needs another check-up to estimate this area.';
+  if (domain.domain === 'strength') return 'Based on your chair stands.';
+  if (domain.domain === 'balance') return 'Based on your balance hold.';
+  return 'Based on your reach movement.';
+}
+
+function primaryMetricForDomain(domain: DomainResult): DomainResult['rows'][number] | null {
+  const measuredRows = domain.rows.filter((row) => row.measured);
   if (domain.domain === 'strength') {
-    return 'This beta estimate is based on chair-stand performance and is most useful when repeated over time.';
+    return measuredRows.find((row) => /chair stands/i.test(row.label)) ?? measuredRows[0] ?? null;
   }
   if (domain.domain === 'balance') {
-    return 'This estimate is based on the balance hold captured today, not a safety assessment.';
+    return measuredRows.find((row) => /one-leg balance/i.test(row.label)) ?? measuredRows[0] ?? null;
   }
-  return 'This estimate is based on the mobility movement captured today, not a formal range-of-motion assessment.';
+  return measuredRows.find((row) => /shoulder reach/i.test(row.label)) ?? measuredRows[0] ?? null;
 }
 
-function TrendRow({ trend }: { trend: MetricTrend }) {
-  const values = trend.points.map((p) => p.value);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const span = max - min || 1;
-  const delta = trend.delta ?? 0;
-  const flat = Math.abs(delta) < 1e-9;
-  const color = flat ? colors.textSecondary : colors.accentDeep;
-  const latest = trend.points[trend.points.length - 1].value;
-  const change = flat ? 'No change' : `${delta > 0 ? '+' : ''}${formatDelta(delta)} ${trend.unit}`;
-  const points = buildPolyline(values, min, span);
+type AgeComparisonRange = {
+  low: number;
+  high: number;
+};
 
-  return (
-    <View style={styles.trendRow}>
-      <View style={styles.trendHeader}>
-        <View style={styles.trendCopy}>
-          <Text style={styles.trendLabel}>{trend.label}</Text>
-          <Text style={styles.trendMeta}>
-            Latest {formatDelta(latest)} {trend.unit}
-          </Text>
-        </View>
-        <View style={styles.trendDeltaWrap}>
-          <Text style={[styles.trendDelta, { color }]}>{change}</Text>
-          <Text style={styles.trendDeltaMeta}>{trendDeltaMeta(delta)}</Text>
-        </View>
-      </View>
-      <Svg width="100%" height={62} viewBox="0 0 240 72" style={styles.chart}>
-        <Polyline points="0,58 240,58" stroke={colors.divider} strokeWidth={1} fill="none" />
-        <Polyline points="0,36 240,36" stroke={colors.divider} strokeWidth={1} fill="none" />
-        <Polyline points={points} fill="none" stroke={color} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
-        {trend.points.map((p, i) => {
-          const x = trend.points.length === 1 ? 120 : (i / (trend.points.length - 1)) * 224 + 8;
-          const y = 58 - ((p.value - min) / span) * 44;
-          return <Circle key={`${p.at}-${i}`} cx={x} cy={y} r={3.5} fill={i === trend.points.length - 1 ? color : colors.sage} />;
-        })}
-      </Svg>
-    </View>
-  );
+const AGE_BAND_COMPARISON_RANGES: Record<AgeBand, AgeComparisonRange> = {
+  under_45: { low: 18, high: 44 },
+  '45_54': { low: 45, high: 54 },
+  '55_64': { low: 55, high: 64 },
+  '65_74': { low: 65, high: 74 },
+  '75_plus': { low: 75, high: 90 },
+};
+
+function ageComparisonRange(age: number | null, ageBand: AgeBand | null): AgeComparisonRange | null {
+  if (ageBand) return AGE_BAND_COMPARISON_RANGES[ageBand];
+  if (typeof age === 'number' && Number.isFinite(age)) {
+    const rounded = Math.round(age);
+    return { low: rounded, high: rounded };
+  }
+  return null;
 }
 
-function trendDeltaMeta(delta: number): string {
-  if (Math.abs(delta) < 1e-9) return 'similar result';
-  return delta > 0 ? 'recorded higher' : 'recorded lower';
+function domainAgeComparisonLabel(domain: DomainResult, ageRange: AgeComparisonRange | null): string {
+  if (!domain.measured || !Number.isFinite(domain.ageLow) || !Number.isFinite(domain.ageHigh)) {
+    return 'Not enough data yet';
+  }
+  if (!ageRange) return 'Add age range to compare';
+  if (domain.ageHigh < ageRange.low) return 'Above usual range for your age';
+  if (domain.ageLow > ageRange.high) return 'Below usual range for your age';
+  return 'Within usual range for your age';
 }
 
-function buildPolyline(values: number[], min: number, span: number): string {
-  if (values.length === 1) return '8,58 232,58';
-  return values
-    .map((value, i) => {
-      const x = (i / (values.length - 1)) * 224 + 8;
-      const y = 58 - ((value - min) / span) * 44;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(' ');
-}
-
-function formatDelta(value: number): string {
-  const abs = Math.abs(value);
-  return abs >= 10 ? value.toFixed(0) : value.toFixed(2);
+function trendSummaryCopy(trends: MetricTrend[]): string {
+  if (trends.length === 0) {
+    return 'Do another check-up later to see what is changing.';
+  }
+  const changed = trends.filter((trend) => Math.abs(trend.delta ?? 0) > 1e-9);
+  if (changed.length === 0) {
+    return 'No clear change yet. Hale will compare your results after future check-ups.';
+  }
+  if (changed.length === 1) {
+    return `${changed[0].label} has changed since your last check-up. Hale will keep watching the pattern.`;
+  }
+  return `${changed.length} measurements have changed since your last check-up. Hale will keep watching the pattern.`;
 }
 
 const styles = StyleSheet.create({
@@ -377,9 +340,9 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   backButton: {
-    marginBottom: -spacing.lg,
+    marginBottom: -spacing.md,
   },
-  header: { gap: spacing.sm },
+  header: { gap: spacing.sm, paddingTop: spacing.xs },
   eyebrow: {
     ...type.label,
     color: colors.accentDeep,
@@ -403,26 +366,22 @@ const styles = StyleSheet.create({
     maxWidth: 340,
   },
   focusOverviewCard: {
-    gap: spacing.lg,
-    paddingHorizontal: 22,
-    paddingVertical: 24,
+    gap: spacing.md,
+    paddingHorizontal: 24,
+    paddingVertical: 26,
     borderRadius: radius.panel,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     overflow: 'hidden',
-    boxShadow: `0 16px 34px ${colors.shadowSoft}`,
+    boxShadow: `0 18px 38px ${colors.shadowSoft}`,
   },
-  focusOverviewHead: {
+  focusTopRow: {
+    minHeight: 32,
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.md,
-  },
-  focusOverviewCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: spacing.xs,
   },
   focusKicker: {
     ...type.label,
@@ -430,57 +389,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 16,
   },
-  cardKicker: {
-    ...type.label,
-    color: colors.accentDeep,
-    fontSize: 11,
-    lineHeight: 16,
-  },
-  focusValue: {
-    fontFamily: fonts.serifMedium,
-    fontSize: 34,
-    lineHeight: 39,
-    letterSpacing: 0,
-    color: colors.accentDeep,
-  },
-  focusBody: {
-    ...type.cardBody,
-    color: colors.textSecondary,
-  },
-  summaryRail: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginTop: spacing.xs,
-  },
-  summaryTile: {
-    flex: 1,
-    minWidth: 136,
-    justifyContent: 'center',
-    minHeight: 74,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.input,
-    backgroundColor: colors.bgGold,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.goldBorder,
-  },
-  summaryValue: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 26,
-    lineHeight: 31,
-    letterSpacing: 0,
-    color: colors.accentDeep,
-    fontVariant: ['tabular-nums'],
-  },
-  summaryLabel: {
-    ...type.cardCaption,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
-  },
-  dashboardPill: {
-    alignSelf: 'flex-start',
-    maxWidth: 132,
+  focusPill: {
     minHeight: 30,
     justifyContent: 'center',
     borderRadius: radius.pill,
@@ -490,180 +399,140 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.goldBorder,
   },
-  dashboardPillLight: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-  },
-  dashboardPillText: {
+  focusPillText: {
     ...type.cardCaption,
     color: colors.accentDeep,
     fontFamily: fonts.sansMedium,
     textAlign: 'center',
   },
-  dashboardPillTextLight: {
-    color: colors.onAccent,
+  focusValue: {
+    fontFamily: fonts.serifMedium,
+    fontSize: 38,
+    lineHeight: 43,
+    letterSpacing: 0,
+    color: colors.accentDeep,
   },
-  sectionHeader: {
-    minHeight: 42,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-    paddingTop: spacing.xs,
+  focusBody: {
+    ...type.cardBody,
+    color: colors.textSecondary,
+    maxWidth: 340,
   },
-  sectionHeaderCopy: {
-    flex: 1,
-    minWidth: 0,
+  resultsIntro: {
+    gap: spacing.xs,
+    paddingTop: spacing.sm,
+    paddingHorizontal: 2,
   },
-  sectionEyebrow: {
-    ...type.cardRowTitle,
-    color: colors.textPrimary,
-    fontSize: 17,
-    lineHeight: 22,
-  },
-  domainCard: {
-    position: 'relative',
-    gap: spacing.lg,
-    paddingHorizontal: 22,
-    paddingVertical: 22,
+  areasPanel: {
+    paddingHorizontal: 24,
+    paddingVertical: 2,
     borderRadius: radius.panel,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     backgroundColor: colors.surface,
-    boxShadow: `0 10px 26px ${colors.shadowSoft}`,
-  },
-  focusCard: {
-    borderColor: colors.accentBorder,
-  },
-  domainAccentBar: {
-    position: 'absolute',
-    top: 18,
-    bottom: 18,
-    left: 0,
-    width: 3,
-    borderTopRightRadius: radius.pill,
-    borderBottomRightRadius: radius.pill,
-    backgroundColor: colors.accent,
-  },
-  domainHead: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-    flexWrap: 'wrap',
-  },
-  domainTitleRow: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
+    boxShadow: `0 14px 32px ${colors.shadowSoft}`,
   },
   domainIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 17,
-    backgroundColor: colors.bgGold,
-    borderWidth: 1,
-    borderColor: colors.goldBorder,
+    width: 30,
+    height: 30,
+    marginTop: 4,
     alignItems: 'center',
     justifyContent: 'center',
   },
   domainIconEmphasized: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
+    backgroundColor: 'transparent',
+  },
+  domainAreaRow: {
+    gap: 10,
+    paddingVertical: 24,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
+  },
+  domainAreaRowLast: {
+    borderBottomWidth: 0,
+  },
+  domainAreaHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 14,
   },
   domainTitleCopy: {
     flex: 1,
     minWidth: 0,
-    gap: 2,
+    gap: 3,
   },
   domainTitle: {
     ...type.cardTitle,
-    fontSize: 21,
-    lineHeight: 27,
+    fontSize: 24,
+    lineHeight: 31,
   },
-  domainEstimateBlock: {
-    gap: spacing.sm,
-    paddingTop: spacing.lg,
+  domainTakeaway: {
+    fontFamily: fonts.sansMedium,
+    color: colors.accentDeep,
+    fontSize: 15,
+    lineHeight: 21,
+    letterSpacing: 0,
+  },
+  domainTakeawayMuted: {
+    fontFamily: fonts.sansRegular,
+    fontSize: 14,
+    lineHeight: 20,
+    letterSpacing: 0,
+    color: colors.textTertiary,
+  },
+  domainBody: {
+    fontFamily: fonts.sansRegular,
+    fontSize: 14,
+    lineHeight: 21,
+    letterSpacing: 0,
+    color: colors.textSecondary,
+    paddingLeft: 44,
+    paddingRight: 4,
+  },
+  domainMetricStrip: {
+    minHeight: 44,
+    marginLeft: 44,
+    marginTop: 2,
+    paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.divider,
-  },
-  domainBandRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.md,
   },
-  domainBandCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 3,
-  },
-  age: {
-    ...type.cardRowTitle,
-    color: colors.accentDeep,
-    fontSize: 17,
-    lineHeight: 22,
-  },
-  ageMuted: {
-    ...type.cardBody,
-    color: colors.textTertiary,
-  },
-  estimateLabel: {
-    ...type.caption,
-    color: colors.textSecondary,
-  },
-  interp: {
-    ...type.cardBody,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
-  },
-  rows: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.divider,
-  },
-  metricRow: {
-    minHeight: 70,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.divider,
-  },
-  metricRowLast: {
-    borderBottomWidth: 0,
-  },
-  metricCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  metricLabel: {
-    ...type.cardRowTitle,
-    fontSize: 15,
-    lineHeight: 21,
-  },
-  metricStatus: {
-    ...type.cardCaption,
-    color: colors.textSecondary,
-  },
-  metricValue: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 19,
-    lineHeight: 25,
-    letterSpacing: 0,
+  domainMetricValue: {
     color: colors.textPrimary,
     fontVariant: ['tabular-nums'],
     textAlign: 'right',
-    maxWidth: 138,
+    flexShrink: 0,
+  },
+  domainMetricNumber: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 24,
+    lineHeight: 29,
+    letterSpacing: 0,
+    color: colors.textPrimary,
+    fontVariant: ['tabular-nums'],
+  },
+  domainMetricUnit: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 15,
+    lineHeight: 21,
+    letterSpacing: 0,
+    color: colors.textSecondary,
+  },
+  domainMetricLabel: {
+    fontFamily: fonts.sansRegular,
+    fontSize: 14,
+    lineHeight: 21,
+    letterSpacing: 0,
+    color: colors.textSecondary,
+    flex: 1,
   },
   trendCard: {
-    gap: spacing.xs,
-    paddingHorizontal: 22,
-    paddingVertical: 22,
+    gap: spacing.sm,
+    paddingHorizontal: 24,
+    paddingVertical: 24,
     borderRadius: radius.panel,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
@@ -685,51 +554,6 @@ const styles = StyleSheet.create({
     ...type.cardBody,
     color: colors.textSecondary,
     marginTop: spacing.xs,
-  },
-  trendRow: {
-    paddingTop: spacing.lg,
-    marginTop: spacing.lg,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.divider,
-  },
-  trendHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-  },
-  trendCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  trendLabel: {
-    ...type.cardRowTitle,
-    fontSize: 15,
-    lineHeight: 21,
-  },
-  trendMeta: {
-    ...type.cardCaption,
-    color: colors.textSecondary,
-  },
-  trendDeltaWrap: {
-    alignItems: 'flex-end',
-    minWidth: 86,
-  },
-  trendDelta: {
-    ...type.bodySmall,
-    fontFamily: fonts.sansMedium,
-    fontVariant: ['tabular-nums'],
-    textAlign: 'right',
-  },
-  trendDeltaMeta: {
-    ...type.cardCaption,
-    color: colors.textSecondary,
-    textAlign: 'right',
-  },
-  chart: {
-    marginTop: spacing.md,
-    alignSelf: 'stretch',
   },
   actions: { gap: spacing.md },
 });

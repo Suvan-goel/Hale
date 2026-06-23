@@ -14,7 +14,7 @@ describe('planViewModel', () => {
       action: 'onboarding',
     });
     expect(getPlanEmptyStateCopy('needs_baseline_checkup')).toMatchObject({
-      ctaLabel: 'Start Movement Check-Up',
+      ctaLabel: 'Start check-up',
       action: 'checkup',
     });
     expect(getPlanEmptyStateCopy('needs_block_creation')).toMatchObject({
@@ -23,13 +23,16 @@ describe('planViewModel', () => {
     });
   });
 
-  it('returns warm focus copy for each movement domain', () => {
-    expect(getPlanFocusCopy('strength_power').title).toContain('stronger');
-    expect(getPlanFocusCopy('balance').title).toContain('steadier');
-    expect(getPlanFocusCopy('mobility').title).toContain('mobility');
+  it('returns clear focus copy for each movement domain', () => {
+    expect(getPlanFocusCopy('strength_power').title).toBe('This plan focuses on strength');
+    expect(getPlanFocusCopy('balance').title).toBe('This plan focuses on balance');
+    expect(getPlanFocusCopy('mobility').title).toBe('This plan focuses on mobility');
   });
 
-  it('labels A/B/C sessions with expected categories', () => {
+  it('labels weekly sessions with expected categories', () => {
+    expect(getPlanSessionCategoryCopy('session_a').title).toBe('Session 1');
+    expect(getPlanSessionCategoryCopy('session_b').title).toBe('Session 2');
+    expect(getPlanSessionCategoryCopy('session_c').title).toBe('Session 3');
     expect(getPlanSessionCategoryCopy('session_a').categories).toContain('Foundation');
     expect(getPlanSessionCategoryCopy('session_b').categories).toContain('Stability');
     expect(getPlanSessionCategoryCopy('session_c').categories).toContain('Full body');
@@ -47,7 +50,7 @@ describe('planViewModel', () => {
         sessionsTargetThisWeek: 3,
         retestInDays: 0,
       })
-    ).toMatchObject({ due: true, title: 'Re-test is ready' });
+    ).toMatchObject({ due: true, title: 'Check-up is ready' });
   });
 
   it('formats local schedule and intensity preferences', () => {

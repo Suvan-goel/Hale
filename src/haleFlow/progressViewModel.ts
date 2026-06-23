@@ -8,7 +8,7 @@ import {
   type TrainingSessionCompletion,
 } from '../adherence';
 import { CheckUp, findItem } from '../checkup/types';
-import type { StoredCheckUp } from '../history';
+import type { StoredCheckUp, StoredCheckUpType } from '../history';
 import { getExerciseLadder, ladderPresentationForLadder } from '../exercises';
 import {
   BALANCE_LADDER_ID,
@@ -68,7 +68,7 @@ export interface LadderProgressCard {
   ladderId: string;
   title: string;
   levelName: string;
-  status: 'Building' | 'Ready for next step' | 'Holding steady' | 'Recently included' | 'Available in plan';
+  status: 'Building' | 'Ready for next step' | 'Same level for now' | 'Recently included' | 'Available in plan';
 }
 
 export interface BlockReportSummary {
@@ -82,6 +82,8 @@ export interface BlockReportSummary {
 export interface RetestHistoryEntry {
   id: string;
   dateLabel: string;
+  kindLabel: string;
+  summaryLine: string;
   bands: Record<Domain, MovementSnapshotBand | 'pending'>;
 }
 
@@ -209,7 +211,7 @@ export function getBlockReportSummaries({
         dateRange: `${formatDate(block.startDate)} - ${formatDate(block.endDate)}`,
         focus: domainLabel(block.focusDomain),
         sessions: `${schedule.totalCredits} of ${block.totalPlannedSessions} sessions`,
-        mainChange: report ? mainChangeFromReport(report) : 'Re-test history will add the main change for this block.',
+        mainChange: report ? mainChangeFromReport(report) : 'Check-up history will add the main change for this plan.',
       };
     });
 }
@@ -218,14 +220,28 @@ export function getRetestHistory(
   history: readonly StoredCheckUp[] | null | undefined,
   assessments?: readonly MovementAssessment[] | null
 ): RetestHistoryEntry[] {
-  return historicalOfficialCheckUpRecords(history, assessments)
+  const records = historicalOfficialCheckUpRecords(history, assessments)
     .slice()
-    .sort((a, b) => b.record.checkUp.startedAt.localeCompare(a.record.checkUp.startedAt))
-    .map((entry) => ({
+    .sort((a, b) => b.record.checkUp.startedAt.localeCompare(a.record.checkUp.startedAt));
+  const dateCounts = records.reduce((counts, entry) => {
+    const key = dateKey(entry.record.checkUp.startedAt);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+    return counts;
+  }, new Map<string, number>());
+
+  return records.map((entry) => {
+    const kindLabel = historyKindLabel(entry.type);
+    return {
       id: entry.record.checkUp.startedAt,
-      dateLabel: formatDate(entry.record.checkUp.startedAt),
+      dateLabel: formatHistoryDate(
+        entry.record.checkUp.startedAt,
+        (dateCounts.get(dateKey(entry.record.checkUp.startedAt)) ?? 0) > 1
+      ),
+      kindLabel,
+      summaryLine: `${kindLabel} · ${historyFocusLine(entry.score)}`,
       bands: domainBands(entry.score),
-    }));
+    };
+  });
 }
 
 export function getRetestDueSummary({
@@ -241,16 +257,16 @@ export function getRetestDueSummary({
 }): RetestDueSummary {
   if (!hasBaseline) {
     return {
-      title: 'Start with your baseline',
-      body: 'Complete your first Movement Check-Up to start a home estimate here.',
+      title: 'Start with your first check-up',
+      body: 'Do one Movement Check-Up so Hale can save your starting numbers.',
       ctaLabel: 'Start Movement Check-Up',
       due: false,
     };
   }
   if (!activeBlock) {
     return {
-      title: 'Next re-test',
-      body: 'Create a 4-week block to set your next Movement Check-Up.',
+      title: 'Next check-up',
+      body: 'Start a 4-week plan to set the date for your next Movement Check-Up.',
       due: false,
     };
   }
@@ -264,15 +280,22 @@ export function getRetestDueSummary({
   const days = targetDateKey && todayKey ? Math.max(0, daysBetweenDateKeys(todayKey, targetDateKey)) : daysUntil(activeBlock.retestDate, today);
   if (schedule.status === 'retest_due') {
     return {
-      title: "It's time to re-test",
-      body: 'Repeat your Movement Check-Up to add another data point.',
-      ctaLabel: 'Start re-test',
+      title: 'Time for your next check-up',
+      body: 'Repeat the same Movement Check-Up now so Hale can compare it with your last one.',
+      ctaLabel: 'Start check-up',
       due: true,
     };
   }
+  if (days === 0) {
+    return {
+      title: 'Next check-up',
+      body: 'Finish the planned sessions in this 4-week plan, then Hale will open your next check-up.',
+      due: false,
+    };
+  }
   return {
-    title: 'Next re-test',
-    body: `Your next Movement Check-Up is in ${days} ${days === 1 ? 'day' : 'days'}.`,
+    title: 'Next check-up',
+    body: `Your next Movement Check-Up opens in ${days} ${days === 1 ? 'day' : 'days'}.`,
     due: false,
   };
 }
@@ -303,7 +326,7 @@ function strengthCard(baseline: MetricSnapshot, latest: MetricSnapshot | null): 
       domain: 'strength',
       title: DOMAIN_TITLE.strength,
       metric: `Chair stands: ${start} reps`,
-      body: 'This is your starting point.',
+      body: 'This is your first check-up result. Repeat the check-up later to see what changes.',
       trend: 'unknown',
     };
   }
@@ -315,10 +338,10 @@ function strengthCard(baseline: MetricSnapshot, latest: MetricSnapshot | null): 
     metric: `Chair stands: ${start} -> ${current} reps`,
     body:
       delta > 0
-        ? `Recorded ${delta} more chair ${delta === 1 ? 'stand' : 'stands'} than baseline. Hale will look for repeatable changes over time.`
+        ? `You completed ${delta} more chair ${delta === 1 ? 'stand' : 'stands'} than your first check-up. Hale will look for the same pattern over future check-ups.`
         : delta === 0
-          ? 'Similar chair-stand result recorded. Hale will look for repeatable changes over time.'
-          : `Recorded ${Math.abs(delta)} fewer chair ${Math.abs(delta) === 1 ? 'stand' : 'stands'} than baseline. Hale will look for repeatable changes over time.`,
+          ? 'This was very close to your first check-up. Hale will keep watching for a clear pattern.'
+          : `You completed ${Math.abs(delta)} fewer chair ${Math.abs(delta) === 1 ? 'stand' : 'stands'} than your first check-up. Hale will use future check-ups to see whether this is a pattern.`,
     trend: delta > 0 ? 'higher' : delta === 0 ? 'similar' : 'lower',
   };
 }
@@ -333,7 +356,7 @@ function balanceCard(baseline: MetricSnapshot, latest: MetricSnapshot | null): D
       domain: 'balance',
       title: DOMAIN_TITLE.balance,
       metric: `${label}: ${Math.round(start)}s`,
-      body: 'This is your starting point.',
+      body: 'This is your first check-up result. Repeat the check-up later to see what changes.',
       trend: 'unknown',
     };
   }
@@ -345,10 +368,10 @@ function balanceCard(baseline: MetricSnapshot, latest: MetricSnapshot | null): D
     metric: `${label}: ${Math.round(start)}s -> ${Math.round(current)}s`,
     body:
       delta > 0
-        ? `Recorded ${Math.round(delta)} more ${Math.round(delta) === 1 ? 'second' : 'seconds'} on this hold. Hale will look for repeatable changes over time.`
+        ? `You held this position for ${Math.round(delta)} more ${Math.round(delta) === 1 ? 'second' : 'seconds'} than your first check-up. Hale will look for the same pattern over future check-ups.`
         : Math.abs(delta) < 0.5
-          ? 'Similar balance-hold result recorded. Hale will look for repeatable changes over time.'
-          : `Recorded ${Math.round(Math.abs(delta))} fewer ${Math.round(Math.abs(delta)) === 1 ? 'second' : 'seconds'} on this hold. Hale will look for repeatable changes over time.`,
+          ? 'This balance hold was very close to your first check-up. Hale will keep watching for a clear pattern.'
+          : `You held this position for ${Math.round(Math.abs(delta))} fewer ${Math.round(Math.abs(delta)) === 1 ? 'second' : 'seconds'} than your first check-up. Hale will use future check-ups to see whether this is a pattern.`,
     trend: delta > 0 ? 'higher' : Math.abs(delta) < 0.5 ? 'similar' : 'lower',
   };
 }
@@ -364,7 +387,7 @@ function mobilityCard(baseline: MetricSnapshot, latest: MetricSnapshot | null): 
       domain: 'mobility',
       title: DOMAIN_TITLE.mobility,
       metric: mobilityMetric(startShoulder, null, startReach, null),
-      body: 'This is your starting point.',
+      body: 'This is your first check-up result. Repeat the check-up later to see what changes.',
       trend: 'unknown',
     };
   }
@@ -378,10 +401,10 @@ function mobilityCard(baseline: MetricSnapshot, latest: MetricSnapshot | null): 
     title: DOMAIN_TITLE.mobility,
     metric: mobilityMetric(startShoulder, currentShoulder, startReach, currentReach),
     body: higher
-      ? 'A higher mobility data point was recorded. Hale will look for repeatable changes over time.'
+      ? 'Your mobility number was higher than your first check-up. Hale will look for the same pattern over future check-ups.'
       : lower
-        ? 'A lower mobility data point was recorded. Hale will look for repeatable changes over time.'
-        : 'Similar mobility result recorded. Hale will look for repeatable changes over time.',
+        ? 'Your mobility number was lower than your first check-up. Hale will use future check-ups to see whether this is a pattern.'
+        : 'This mobility result was very close to your first check-up. Hale will keep watching for a clear pattern.',
     trend: higher ? 'higher' : lower ? 'lower' : 'similar',
   };
 }
@@ -470,7 +493,7 @@ function missingCard(domain: Domain): DomainProgressCard {
     domain,
     title: DOMAIN_TITLE[domain],
     metric: 'Not measured yet',
-    body: 'Your next Movement Check-Up can add this.',
+    body: 'This was not captured in your last check-up. The next Movement Check-Up can add it.',
     trend: 'unknown',
   };
 }
@@ -480,7 +503,7 @@ function missingLatestCard(domain: Domain, metric: string): DomainProgressCard {
     domain,
     title: DOMAIN_TITLE[domain],
     metric,
-    body: 'Your first result is saved. A future re-test will add another data point.',
+    body: 'Your first result is saved. Repeat the check-up to compare it.',
     trend: 'unknown',
   };
 }
@@ -506,7 +529,7 @@ function mobilityMetric(
 
 function ladderStatus(progress: LadderProgress): LadderProgressCard['status'] {
   if (progress.readyToProgress) return 'Ready for next step';
-  if (progress.lastPain || progress.lastTrackingQuality === 'poor') return 'Holding steady';
+  if (progress.lastPain || progress.lastTrackingQuality === 'poor') return 'Same level for now';
   return 'Building';
 }
 
@@ -537,8 +560,8 @@ function mainChangeFromReport(report: MovementBlockReport): string {
   const selected = changed ?? similar ?? changes[0];
   if (!selected) return report.summary;
   const [domain, change] = selected as [MovementDomain, NonNullable<MovementBlockReport['domainChanges']>[MovementDomain]];
-  if (reportDirectionIsChanged(change?.direction)) return `${domainLabel(domain)} changed in the latest re-test.`;
-  if (reportDirectionIsSimilar(change?.direction)) return `${domainLabel(domain)} was similar in the latest re-test.`;
+  if (reportDirectionIsChanged(change?.direction)) return `${domainLabel(domain)} changed in the latest check-up.`;
+  if (reportDirectionIsSimilar(change?.direction)) return `${domainLabel(domain)} was similar in the latest check-up.`;
   return report.summary;
 }
 
@@ -568,6 +591,29 @@ function focusTitle(score: CheckUpScore): string {
   return 'Suggested focus: keep building all three domains';
 }
 
+function historyKindLabel(type: StoredCheckUpType): string {
+  if (type === 'official_retest') return '4-week check-up';
+  if (type === 'baseline_retake') return 'First check-up retake';
+  return 'First check-up';
+}
+
+function historyFocusLine(score: CheckUpScore): string {
+  const selection = selectFocusFromScore(score, { activeFocusDomain: score.weakestDomain });
+  const domains =
+    selection?.kind === 'exact_tie' || selection?.kind === 'near_tie'
+      ? selection.tiedDomains
+      : [selection?.focusDomain ?? score.weakestDomain].filter((domain): domain is Domain => !!domain);
+  if (domains.length === 0) return 'Full results saved';
+  return `Plan focus: ${humanJoin(domains.map((domain) => DOMAIN_TITLE[domain]))}`;
+}
+
+function humanJoin(items: readonly string[]): string {
+  if (items.length === 0) return '';
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]}`;
+}
+
 function stanceLabel(stance: string): string {
   if (stance === 'single-leg') return 'One-leg';
   if (stance === 'feet-together') return 'Feet-together';
@@ -579,6 +625,20 @@ function formatDate(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return 'recently';
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatHistoryDate(iso: string, includeTime: boolean): string {
+  if (!includeTime) return formatDate(iso);
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return 'recently';
+  const time = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return `${formatDate(iso)} · ${time}`;
+}
+
+function dateKey(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
 }
 
 function finite(value: unknown): value is number {

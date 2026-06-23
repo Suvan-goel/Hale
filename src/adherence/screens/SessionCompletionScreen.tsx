@@ -167,7 +167,7 @@ export function SessionCompletionScreen({
       </View>
 
       <View style={styles.actions}>
-        <PrimaryButton title="Back to Today" onPress={finish} />
+        <PrimaryButton title="Back to Home" onPress={finish} />
         <SecondaryButton title="Do 60-second micro-check" onPress={microCheck} />
       </View>
     </Screen>

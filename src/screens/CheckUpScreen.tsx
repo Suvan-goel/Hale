@@ -44,11 +44,6 @@ import { AssessmentPhase } from '../assessment/sessionController';
 import { getMovement } from '../movements';
 import { PosePipeline } from '../pose/pipeline';
 import { PreflightCheck, PreflightPrompt } from '../preflight/preflight';
-import {
-  CHECKUP_SETUP_ISSUE_BODY,
-  CHECKUP_SETUP_ISSUE_TITLE,
-  SETUP_HELP_TIPS,
-} from '../preflight/setupCopy';
 import { LandmarkRecorder } from '../recording/recorder';
 import { SkeletonView, SkeletonViewHandle } from '../render/SkeletonView';
 import type {
@@ -126,10 +121,23 @@ const METRIC_DEBUG_SNAPSHOT: Snapshot = {
   totalItems: TOTAL_ITEMS,
 };
 
-const CHECKUP_HELP_SAFETY_TIPS: readonly string[] = [
-  'Keep a counter, wall, or sturdy chair within reach.',
-  'Stop if a movement feels unsafe or uncomfortable.',
-  'Move at a calm pace and listen for the voice cues.',
+const CHECKUP_SETUP_ISSUE_TITLE = 'Hale cannot see this movement clearly';
+const CHECKUP_SETUP_ISSUE_BODY =
+  'Step back or adjust the phone, then try again. You can also skip this movement.';
+
+const CHECKUP_SETUP_HELP_STEPS: readonly { title: string; body: string }[] = [
+  {
+    title: 'Step back',
+    body: 'Make sure your whole body is in view.',
+  },
+  {
+    title: 'Keep the phone still',
+    body: 'Place it on a steady stand or shelf.',
+  },
+  {
+    title: "Follow Hale's direction",
+    body: 'Turn your body only when Hale asks.',
+  },
 ];
 
 export function CheckUpScreen({
@@ -381,7 +389,7 @@ export function CheckUpScreen({
         <View style={styles.topBar}>
           {onCancel ? (
             <BackArrowButton
-              accessibilityLabel="Discard Movement Check-Up"
+              accessibilityLabel="Leave Movement Check-Up"
               onPress={requestDiscardCheckup}
               style={styles.topBarBackButton}
             />
@@ -459,7 +467,7 @@ export function CheckUpScreen({
               <ControlButton title={paused ? 'Resume' : 'Pause'} onPress={paused ? resume : pause} />
               {showRepeatControl ? <ControlButton title="Repeat" onPress={repeatInstructions} /> : null}
               {showSkipControl ? (
-                <ControlButton title="Skip for now" onPress={skipCurrent} />
+                <ControlButton title="Skip this movement" onPress={skipCurrent} />
               ) : null}
             </View>
           ) : null}
@@ -555,39 +563,33 @@ function CheckupSupportModal({
           </View>
           <View style={styles.helpIntro}>
             <Text style={styles.modalTitle}>
-              {isSetupIssue ? CHECKUP_SETUP_ISSUE_TITLE : 'Get the cleanest reading'}
+              {isSetupIssue ? CHECKUP_SETUP_ISSUE_TITLE : 'Help Hale see you clearly'}
             </Text>
             <Text style={styles.modalBody}>
               {isSetupIssue
                 ? CHECKUP_SETUP_ISSUE_BODY
-                : 'A few quick setup checks help Hale keep the skeleton steady during your check-up.'}
+                : 'Use these quick checks before each movement.'}
             </Text>
           </View>
 
           {expanded ? (
             <>
-              <View style={styles.helpTipList}>
-                {SETUP_HELP_TIPS.map((tip) => (
-                  <View key={tip} style={styles.helpTipRow}>
-                    <View style={styles.helpTipDot} />
-                    <Text style={styles.helpTip}>{tip}</Text>
+              <View style={styles.helpStepList}>
+                {CHECKUP_SETUP_HELP_STEPS.map((step, index) => (
+                  <View key={step.title} style={styles.helpStepRow}>
+                    <Text style={styles.helpStepNumber}>{index + 1}</Text>
+                    <View style={styles.helpStepCopy}>
+                      <Text style={styles.helpStepTitle}>{step.title}</Text>
+                      <Text style={styles.helpStepBody}>{step.body}</Text>
+                    </View>
                   </View>
                 ))}
               </View>
-              <View style={styles.helpSafetyBlock}>
-                <View style={styles.helpSafetyHeader}>
-                  <View style={styles.helpSafetyMark}>
-                    <View style={styles.helpSafetyMarkInner} />
-                  </View>
-                  <Text style={styles.helpSafetyLabel}>Safety</Text>
-                </View>
-                <Text style={styles.helpSafetyTitle}>Move with support nearby.</Text>
-                {CHECKUP_HELP_SAFETY_TIPS.map((tip) => (
-                  <View key={tip} style={styles.helpSafetyRow}>
-                    <View style={styles.helpSafetyRule} />
-                    <Text style={styles.helpSafetyText}>{tip}</Text>
-                  </View>
-                ))}
+              <View style={styles.helpSafetyLine}>
+                <Text style={styles.helpSafetyLineText}>
+                  <Text style={styles.helpSafetyLineStrong}>Keep support nearby. </Text>
+                  Stop if you feel dizzy, sharp pain, or unsteady.
+                </Text>
               </View>
             </>
           ) : null}
@@ -617,9 +619,9 @@ function CheckupSupportModal({
                   style={({ pressed }) => [styles.modalButton, styles.modalSecondaryButton, pressed && styles.controlPressed]}
                   onPress={onSkip}
                   accessibilityRole="button"
-                  accessibilityLabel="Skip this check-up test for now"
+                  accessibilityLabel="Skip this movement"
                 >
-                  <Text style={styles.modalSecondaryText}>Skip for now</Text>
+                  <Text style={styles.modalSecondaryText}>Skip this movement</Text>
                 </Pressable>
               </>
             ) : (
@@ -657,7 +659,7 @@ function DiscardCheckupModal({
     >
       <View style={styles.modalBackdrop}>
         <View style={styles.discardModal}>
-          <Text style={styles.modalEyebrow}>Discard check-up?</Text>
+          <Text style={styles.modalEyebrow}>Leave check-up?</Text>
           <Text style={styles.modalTitle}>Leave without saving?</Text>
           <Text style={styles.modalBody}>
             This Movement Check-Up will stop and any unfinished results from this check-up will not be saved.
@@ -675,9 +677,9 @@ function DiscardCheckupModal({
               style={({ pressed }) => [styles.modalButton, styles.modalDiscardButton, pressed && styles.controlPressed]}
               onPress={onDiscard}
               accessibilityRole="button"
-              accessibilityLabel="Discard Movement Check-Up"
+              accessibilityLabel="Leave Movement Check-Up without saving"
             >
-              <Text style={styles.modalDiscardText}>Discard</Text>
+              <Text style={styles.modalDiscardText}>Leave without saving</Text>
             </Pressable>
           </View>
         </View>
@@ -786,7 +788,9 @@ function ControlButton({
           disabled && styles.controlTextDisabled,
           tone === 'danger' && styles.controlDangerText,
         ]}
-        numberOfLines={1}
+        numberOfLines={2}
+        adjustsFontSizeToFit
+        minimumFontScale={0.82}
       >
         {title}
       </Text>
@@ -915,7 +919,7 @@ function checkupSessionNotice(
     return { text: 'Paused', action: null };
   }
   if (snapshot.setupIssue) {
-    return { text: 'Setup needs attention', action: 'setupIssue' };
+    return { text: 'Adjust your setup', action: 'setupIssue' };
   }
   if (snapshot.setupCaption) {
     return { text: compactSetupCaption(snapshot.setupCaption), action: 'help' };
@@ -1286,88 +1290,57 @@ const styles = StyleSheet.create({
     ...type.button,
     color: colors.error,
   },
-  helpTipList: {
-    gap: spacing.xs,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+  helpStepList: {
+    gap: spacing.md,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.xs,
+  },
+  helpStepRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  helpStepNumber: {
+    ...type.cardCaption,
+    width: 26,
+    height: 26,
+    overflow: 'hidden',
+    textAlign: 'center',
+    lineHeight: 26,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.goldBorder,
+    color: colors.accentDeep,
+    fontVariant: ['tabular-nums'],
+  },
+  helpStepCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  helpStepTitle: {
+    ...type.cardRowTitle,
+    color: colors.textPrimary,
+  },
+  helpStepBody: {
+    ...type.bodySmall,
+    color: colors.textSecondary,
+  },
+  helpSafetyLine: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     borderRadius: radius.card,
     backgroundColor: colors.bgGold,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
   },
-  helpTipRow: {
-    minHeight: 34,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  helpTipDot: {
-    width: 6,
-    height: 6,
-    marginTop: 8,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accentDeep,
-  },
-  helpTip: {
+  helpSafetyLineText: {
     ...type.bodySmall,
-    flex: 1,
-    color: colors.textPrimary,
+    color: colors.textSecondary,
   },
-  helpSafetyBlock: {
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderRadius: radius.card,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.goldBorder,
-    boxShadow: '0 1px 10px rgba(17,20,18,0.035)',
-  },
-  helpSafetyHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  helpSafetyMark: {
-    width: 22,
-    height: 22,
-    borderRadius: radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.bgGold,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.goldBorder,
-  },
-  helpSafetyMarkInner: {
-    width: 7,
-    height: 7,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accentGold,
-  },
-  helpSafetyLabel: {
-    ...type.label,
-    color: colors.accentDeep,
-  },
-  helpSafetyTitle: {
-    ...type.cardRowTitle,
-    color: colors.textPrimary,
-  },
-  helpSafetyRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
-  helpSafetyRule: {
-    width: 2,
-    alignSelf: 'stretch',
-    minHeight: 22,
-    borderRadius: radius.pill,
-    backgroundColor: colors.goldBorder,
-  },
-  helpSafetyText: {
-    ...type.caption,
-    flex: 1,
+  helpSafetyLineStrong: {
+    fontFamily: type.cardRowTitle.fontFamily,
     color: colors.textPrimary,
   },
 });

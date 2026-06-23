@@ -10,11 +10,11 @@ import * as React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
-import { ExploreIcon, IconProps, PlanIcon, ProgressIcon, TodayIcon } from './icons';
+import { ExploreIcon, HomeIcon, IconProps, PlanIcon, ProgressIcon } from './icons';
 
 export type TabKey = 'today' | 'plan' | 'progress' | 'explore';
 export type TabScreenName = 'TodayScreen' | 'PlanScreen' | 'ProgressScreen' | 'ExploreScreen';
-export type TabIconName = 'TodayIcon' | 'PlanIcon' | 'ProgressIcon' | 'ExploreIcon';
+export type TabIconName = 'HomeIcon' | 'PlanIcon' | 'ProgressIcon' | 'ExploreIcon';
 
 export interface TabDef {
   key: TabKey;
@@ -25,7 +25,7 @@ export interface TabDef {
 }
 
 export const TAB_DEFS: readonly TabDef[] = [
-  { key: 'today', label: 'Today', screen: 'TodayScreen', iconName: 'TodayIcon', Icon: TodayIcon },
+  { key: 'today', label: 'Home', screen: 'TodayScreen', iconName: 'HomeIcon', Icon: HomeIcon },
   { key: 'plan', label: 'Plan', screen: 'PlanScreen', iconName: 'PlanIcon', Icon: PlanIcon },
   { key: 'progress', label: 'Progress', screen: 'ProgressScreen', iconName: 'ProgressIcon', Icon: ProgressIcon },
   { key: 'explore', label: 'Explore', screen: 'ExploreScreen', iconName: 'ExploreIcon', Icon: ExploreIcon },

@@ -24,23 +24,23 @@ export interface PlanSessionCategoryCopy {
 export function getPlanEmptyStateCopy(state: HaleLifecycleState): PlanEmptyStateCopy {
   if (state === 'needs_onboarding') {
     return {
-      title: 'Start with your Movement Check-Up',
-      body: 'Hale builds your 4-week block after learning what you want to stay capable of doing.',
+      title: 'Start with your check-up',
+      body: 'Hale uses your goal and check-up to build your first plan.',
       ctaLabel: 'Start',
       action: 'onboarding',
     };
   }
   if (state === 'needs_baseline_checkup') {
     return {
-      title: 'Start with your Movement Check-Up',
-      body: 'A short camera-guided check-up gives Hale what it needs to build your first block.',
-      ctaLabel: 'Start Movement Check-Up',
+      title: 'Start with your check-up',
+      body: 'A short guided check-up gives Hale what it needs to build your first plan.',
+      ctaLabel: 'Start check-up',
       action: 'checkup',
     };
   }
   return {
-    title: 'Your 4-week block is being prepared',
-    body: 'Hale uses your Movement Check-Up to prepare a simple plan for strength, steadiness, and mobility.',
+    title: 'Your plan is being prepared',
+    body: 'Hale is using your check-up to prepare a simple plan for strength, steadiness, and mobility.',
     ctaLabel: 'Prepare plan',
     action: 'create_block',
   };
@@ -49,75 +49,75 @@ export function getPlanEmptyStateCopy(state: HaleLifecycleState): PlanEmptyState
 export function getPlanFocusCopy(domain: MovementDomain | undefined): PlanFocusCopy {
   if (domain === 'strength_power') {
     return {
-      title: 'Building stronger legs and everyday power',
-      body: 'This block gives extra attention to chair-rise strength, controlled lower-body work, and the power you use for stairs, carrying, and getting up with confidence.',
+      title: 'This plan focuses on strength',
+      body: 'Your check-up suggested leg strength is the best place to start. Your sessions still include balance and mobility.',
     };
   }
   if (domain === 'balance') {
     return {
-      title: 'Becoming steadier and more confident',
-      body: 'This block adds balance practice, strength work, and mobility to make everyday movement feel easier.',
+      title: 'This plan focuses on balance',
+      body: 'Your check-up suggested balance is the best place to start. Your sessions still include strength and mobility.',
     };
   }
   if (domain === 'mobility') {
     return {
-      title: 'Improving mobility and control',
-      body: 'This block gives extra time to hips, shoulders, trunk, and easy strength work so you can move with more comfort and range.',
+      title: 'This plan focuses on mobility',
+      body: 'Your check-up suggested mobility is the best place to start. Your sessions still include strength and balance.',
     };
   }
   return {
-    title: 'Staying stronger, steadier, and more mobile',
-    body: 'This block keeps your weekly sessions simple and balanced, with Hale choosing what matters most today.',
+    title: 'This plan works on all three areas',
+    body: 'Your sessions include strength, balance, and mobility so the week stays simple and balanced.',
   };
 }
 
 export function getPlanSessionCategoryCopy(id: PlanSessionId): PlanSessionCategoryCopy {
   if (id === 'session_a') {
     return {
-      title: 'Session A',
+      title: 'Session 1',
       categories: ['Foundation', 'Strength', 'Control'],
-      body: 'Start the week with the core strength and balance work your block is built around.',
+      body: 'Start with steady strength and balance practice.',
     };
   }
   if (id === 'session_b') {
     return {
-      title: 'Session B',
+      title: 'Session 2',
       categories: ['Build', 'Stability', 'Mobility'],
-      body: 'Add a second angle on the same goal, with different movements and steady practice.',
+      body: 'Practice the same goal with a few different movements.',
     };
   }
   return {
-    title: 'Session C',
+    title: 'Session 3',
     categories: ['Complete', 'Full body', 'Reset'],
-    body: 'Round out the week with full-body work and mobility to support progress.',
+    body: 'Finish the week with full-body movement and easy mobility.',
   };
 }
 
 export function getRetestCopy(summary: ActiveBlockSummary | undefined): { title: string; body: string; due: boolean } {
   if (!summary) {
     return {
-      title: 'Re-test after your block',
-      body: 'Your next Movement Check-Up refreshes the plan and adds another data point.',
+      title: 'Check-up after your plan',
+      body: 'Your next check-up helps Hale update your plan.',
       due: false,
     };
   }
   if (summary.retestInDays !== undefined && summary.retestInDays <= 0) {
     return {
-      title: 'Re-test is ready',
-      body: 'Repeat your Movement Check-Up when you are ready, then Hale will build the next block.',
+      title: 'Check-up is ready',
+      body: 'Repeat your check-up when you are ready. Hale will use it to build your next plan.',
       due: true,
     };
   }
   if (summary.retestInDays !== undefined) {
     return {
-      title: `Re-test in ${summary.retestInDays} ${summary.retestInDays === 1 ? 'day' : 'days'}`,
-      body: 'Keep following this block. Your next Movement Check-Up will refresh the plan.',
+      title: `Check-up in ${summary.retestInDays} ${summary.retestInDays === 1 ? 'day' : 'days'}`,
+      body: 'Keep following this plan. Your next check-up will help Hale update it.',
       due: false,
     };
   }
   return {
-    title: 'Re-test after this block',
-    body: 'Your next Movement Check-Up refreshes the block and adds another data point.',
+    title: 'Check-up after this plan',
+    body: 'Your next check-up helps Hale update your plan.',
     due: false,
   };
 }

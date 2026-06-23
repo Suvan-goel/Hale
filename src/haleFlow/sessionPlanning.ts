@@ -499,6 +499,7 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         lifeGoal: input.lifeGoal,
         sessionType,
         plannedFor,
+        userAdjustment: input.adjustment,
         equipmentSnapshot: equipmentContext.snapshot,
         movementCapabilitySnapshot: movementCapabilityContext.snapshot,
         schedule,
@@ -595,6 +596,7 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         lifeGoal: input.lifeGoal,
         sessionType,
         plannedFor,
+        userAdjustment: input.adjustment,
         equipmentSnapshot: equipmentContext.snapshot,
         movementCapabilitySnapshot: movementCapabilityContext.snapshot,
       });
@@ -759,7 +761,7 @@ export function planLadderPracticeSessionResult(input: PlanLadderPracticeSession
     id: `manual-practice-${ladder.id}-${dateKey(today)}`,
     blockId: activeBlock.id,
     title: `${ladder.title} Practice`,
-    purposeCopy: `${ladder.whyItMatters} This focused practice sits outside your main Today session.`,
+    purposeCopy: `${ladder.whyItMatters} This focused practice sits outside your main daily session.`,
     sessionType: 'standard',
     estimatedMinutes: Math.max(6, exercise.estimatedMinutes ?? 8),
     focusDomain,
@@ -829,6 +831,7 @@ export function adaptGeneratedSessionToHaleSessionPlan(
     lifeGoal,
     sessionType,
     plannedFor,
+    userAdjustment,
     equipmentSnapshot,
     movementCapabilitySnapshot,
     schedule,
@@ -837,6 +840,7 @@ export function adaptGeneratedSessionToHaleSessionPlan(
     lifeGoal?: LifeGoal | null;
     sessionType: TrainingSessionCompletionType;
     plannedFor?: string | Date;
+    userAdjustment?: TodaySessionAdjustment | null;
     equipmentSnapshot?: PlannedEquipmentSnapshot;
     movementCapabilitySnapshot?: PlannedMovementCapabilitySnapshot;
     schedule?: BlockScheduleState | null;
@@ -862,6 +866,7 @@ export function adaptGeneratedSessionToHaleSessionPlan(
       templateId: generated.templateId,
       plannedDateKey: plannedDateKey(generated.templateId, plannedFor ?? new Date()),
       readiness: generated.readiness,
+      userAdjustment,
       painAreas: generated.painAreas,
       dailyContext: generated.dailyContext,
       progressionEvidencePolicy: generated.progressionEvidencePolicy ?? progressionPolicyFromGeneratedSession(generated),

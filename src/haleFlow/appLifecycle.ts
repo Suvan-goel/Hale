@@ -159,46 +159,46 @@ export function getTodayPrimaryAction(state: HaleLifecycleState): TodayPrimaryAc
       return {
         type: 'start_onboarding',
         title: 'Welcome to Hale',
-        subtitle: 'Start with a simple Movement Check-Up to build your first 4-week block.',
+        subtitle: 'Start with a short check-up so Hale can build your first plan.',
         ctaLabel: 'Start',
       };
     case 'needs_baseline_checkup':
       return {
         type: 'start_checkup',
-        title: 'Ready for your first Movement Check-Up?',
-        subtitle: 'Estimate strength, balance, and mobility from home.',
-        ctaLabel: 'Start Movement Check-Up',
+        title: 'Ready for your first check-up?',
+        subtitle: 'Hale will check strength, balance, and mobility at home.',
+        ctaLabel: 'Start check-up',
       };
     case 'needs_block_creation':
       return {
         type: 'create_block',
         title: 'Your results are ready',
-        subtitle: 'Hale is preparing your 4-week block from your Movement Check-Up.',
+        subtitle: 'Hale is preparing your plan from your check-up.',
         ctaLabel: 'Prepare plan',
         tone: 'progress',
       };
     case 'first_session_ready':
       return {
         type: 'start_first_session',
-        title: 'Your first Hale Session is ready',
-        subtitle: 'Start your first step toward feeling stronger, steadier, and more mobile.',
-        ctaLabel: 'Start First Session',
+        title: 'Your first session is ready',
+        subtitle: 'Built from your check-up.',
+        ctaLabel: 'Start session',
         tone: 'progress',
       };
     case 'weekly_micro_check_due':
       return {
         type: 'start_micro_check',
         title: '60-second check-in',
-        subtitle: 'A quick check to keep your block on track.',
+        subtitle: 'A quick check-in to keep your plan on track.',
         ctaLabel: 'Start micro-check',
         tone: 'progress',
       };
     case 'monthly_retest_due':
       return {
         type: 'start_retest',
-        title: "It's time to re-test",
-        subtitle: 'Repeat your Movement Check-Up to add another data point.',
-        ctaLabel: 'Start re-test',
+        title: 'Time for your next check-up',
+        subtitle: 'Repeat your check-up to see what has changed.',
+        ctaLabel: 'Start check-up',
         tone: 'retest',
       };
     case 'week_complete':
@@ -221,9 +221,9 @@ export function getTodayPrimaryAction(state: HaleLifecycleState): TodayPrimaryAc
     default:
       return {
         type: 'start_today_session',
-        title: "Today's Hale Session",
-        subtitle: 'Your next session is shaped by your check-up and recent training.',
-        ctaLabel: 'Start',
+        title: "Today's session",
+        subtitle: 'Your next session uses your check-up and recent sessions.',
+        ctaLabel: 'Start session',
       };
   }
 }

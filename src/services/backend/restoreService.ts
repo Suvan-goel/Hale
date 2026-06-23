@@ -765,6 +765,7 @@ function hasMeaningfulPreferences(prefs: Preferences): boolean {
   return (
     hasText(prefs.profile.name) ||
     prefs.profile.age !== null ||
+    prefs.profile.ageBand !== null ||
     hasText(prefs.profile.goal) ||
     prefs.profile.lifeGoal !== null ||
     prefs.profile.safetyProfile !== null ||

@@ -43,49 +43,41 @@ const PAIN_AREAS: readonly { label: string; value: PainArea }[] = [
   { label: 'Other', value: 'other' },
 ];
 
-type SessionMenuIconKind = 'planned' | 'shorter' | 'gentler' | 'equipment' | 'pain';
-
 const SESSION_MENU_OPTIONS: readonly {
   value: TodaySessionAdjustment | null;
   label: string;
   description: string;
   primaryLabel: string;
-  icon: SessionMenuIconKind;
 }[] = [
   {
     value: null,
     label: 'Start as planned',
-    description: "Keep today's full session and usual pacing.",
+    description: "Keep today's full session and usual pace.",
     primaryLabel: 'Start as planned',
-    icon: 'planned',
   },
   {
     value: 'shorter',
     label: 'Make it shorter',
-    description: 'Keep the focus, reduce the session length.',
+    description: 'Keep the main goal, but spend less time today.',
     primaryLabel: 'Start shorter session',
-    icon: 'shorter',
   },
   {
     value: 'gentler',
     label: 'Make it gentler',
-    description: 'Use easier levels, slower pacing, and more rest.',
+    description: 'Use easier movements, a slower pace, and more rest.',
     primaryLabel: 'Start gentler session',
-    icon: 'gentler',
   },
   {
     value: 'no_equipment',
-    label: 'Limited setup',
-    description: 'Plan around the support and items you have today.',
-    primaryLabel: 'Start limited-setup session',
-    icon: 'equipment',
+    label: 'Less equipment today',
+    description: 'Hale will use movements that fit what you have available now.',
+    primaryLabel: 'Start with less equipment',
   },
   {
     value: 'something_hurts',
     label: 'Something hurts',
-    description: 'Tell Hale where to be careful today.',
-    primaryLabel: 'Start with care',
-    icon: 'pain',
+    description: 'Tell Hale where you need extra care today.',
+    primaryLabel: 'Start carefully',
   },
 ];
 
@@ -176,7 +168,7 @@ export function TodayScreen({
           title={sessionTitle}
           subtitle={sessionSubtitle}
           detail={sessionDetail}
-          ctaLabel={isSessionAction ? 'Start Session' : actionCta(lifecycle.primaryAction.ctaLabel)}
+          ctaLabel={isSessionAction ? 'Start session' : actionCta(lifecycle.primaryAction.ctaLabel)}
           onPress={handleStartPress}
         />
 
@@ -205,9 +197,9 @@ function MovementSnapshotCard({
   const hasMeasuredDomains = SNAPSHOT_ROWS.some((row) => snapshot?.[row.key]);
   return (
     <View style={styles.snapshotCard}>
-      <Text style={styles.snapshotTitle}>Your movement profile</Text>
+      <Text style={styles.snapshotTitle}>Your movement snapshot</Text>
       {!hasMeasuredDomains ? (
-        <Text style={styles.snapshotIntro}>Your Movement Check-Up will fill this in.</Text>
+        <Text style={styles.snapshotIntro}>Complete your check-up to see strength, balance, and mobility here.</Text>
       ) : null}
       <View style={[styles.snapshotBody, compact && styles.snapshotBodyCompact]}>
         <SnapshotProgressRing
@@ -225,7 +217,7 @@ function MovementSnapshotCard({
                 key={row.key}
                 domain={row.key}
                 label={row.title}
-                value={band ? bandValue(band) : 'Pending'}
+                value={snapshotRowValue(row.key, band, lifecycle.activeBlockSummary?.focusDomain)}
                 last={index === SNAPSHOT_ROWS.length - 1}
               />
             );
@@ -292,10 +284,10 @@ function TodayContextStrip({ lifecycle }: { lifecycle: HaleAppLifecycleResult })
   if (block) {
     return (
       <View style={styles.contextStrip}>
-        <Text style={styles.contextTitle}>Plan timeline</Text>
+        <Text style={styles.contextTitle}>Your 4-week plan</Text>
         <View style={styles.contextBody}>
           <View style={styles.contextPrimary}>
-            <Text style={styles.contextLabel}>Current block</Text>
+            <Text style={styles.contextLabel}>Current week</Text>
             <Text style={styles.contextValue} numberOfLines={1}>
               Week <Text style={styles.contextValueNumber}>{block.weekNumber}</Text> of{' '}
               <Text style={styles.contextValueNumber}>{block.totalWeeks}</Text>
@@ -304,7 +296,7 @@ function TodayContextStrip({ lifecycle }: { lifecycle: HaleAppLifecycleResult })
           <View style={styles.contextDivider} />
           <View style={styles.contextSecondary}>
             <Text style={styles.contextLabel}>Next Check-Up</Text>
-            <Text style={styles.contextValue} numberOfLines={1}>{retestLabel(block.retestInDays)}</Text>
+            <Text style={styles.contextValue} numberOfLines={1}>{retestLabel(block.retestInDays, block.totalWeeks)}</Text>
           </View>
         </View>
       </View>
@@ -321,9 +313,9 @@ function TodayContextStrip({ lifecycle }: { lifecycle: HaleAppLifecycleResult })
         </View>
         <View style={styles.contextDivider} />
         <View style={styles.contextSecondary}>
-          <Text style={styles.contextLabel}>Movement Check-Up</Text>
+          <Text style={styles.contextLabel}>Check-up</Text>
           <Text style={styles.contextValue} numberOfLines={1}>
-            {lifecycle.movementSnapshot ? 'Baseline saved' : 'Baseline pending'}
+            {lifecycle.movementSnapshot ? 'Check-up saved' : 'Check-up not started'}
           </Text>
         </View>
       </View>
@@ -357,8 +349,10 @@ function DailyFocusCard({
         <View style={[styles.focusCopy, compact && styles.focusCopyCompact]}>
           <Text style={styles.focusLabel}>{label}</Text>
           <Text style={[styles.focusTitle, compact && styles.focusTitleCompact]} numberOfLines={2}>{displayTitle}</Text>
-          <Text style={styles.focusSubtitle} numberOfLines={2}>{subtitle}</Text>
-          {detail ? <Text style={styles.focusDetail} numberOfLines={1}>{detail}</Text> : null}
+          <View style={styles.focusMeta}>
+            <Text style={styles.focusSubtitle} numberOfLines={2}>{subtitle}</Text>
+            {detail ? <Text style={styles.focusDetail} numberOfLines={1}>{detail}</Text> : null}
+          </View>
         </View>
         <Pressable
           style={({ pressed }) => [styles.focusButton, pressed && styles.focusButtonPressed]}
@@ -472,7 +466,7 @@ export function SessionStartMenu({
           <View style={styles.sheetHeader}>
             <Text style={styles.sheetEyebrow}>Today's session</Text>
             <Text style={styles.sheetTitle}>How would you like to start?</Text>
-            <Text style={styles.sheetSubtitle}>Hale can adjust the session before it opens.</Text>
+            <Text style={styles.sheetSubtitle}>Choose how Hale should adjust today's session.</Text>
           </View>
 
           <ScrollView
@@ -494,6 +488,7 @@ export function SessionStartMenu({
 
             {selected === 'something_hurts' ? (
               <View style={styles.painMenu}>
+                <View style={styles.painAccentRail} />
                 <View style={styles.painHeader}>
                   <Text style={styles.painTitle}>Where should Hale be careful?</Text>
                   <Text style={styles.painBody}>Choose one area so the session can stay comfortable.</Text>
@@ -559,9 +554,7 @@ function MenuOption({
       accessibilityState={{ selected }}
       accessibilityLabel={option.label}
     >
-      <View style={[styles.menuIconFrame, selected && styles.menuIconFrameSelected]}>
-        <SessionMenuIcon kind={option.icon} selected={selected} />
-      </View>
+      <View style={[styles.menuRail, selected && styles.menuRailSelected]} />
       <View style={styles.menuOptionCopy}>
         <Text style={[styles.menuOptionText, selected && styles.menuOptionTextSelected]}>{option.label}</Text>
         <Text style={[styles.menuOptionDescription, selected && styles.menuOptionDescriptionSelected]}>{option.description}</Text>
@@ -570,64 +563,6 @@ function MenuOption({
         {selected ? <View style={styles.menuRadioDot} /> : null}
       </View>
     </Pressable>
-  );
-}
-
-function SessionMenuIcon({ kind, selected }: { kind: SessionMenuIconKind; selected: boolean }) {
-  const stroke = selected ? colors.onAccent : colors.accentDeep;
-  const s = {
-    stroke,
-    strokeWidth: 1.8,
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
-    fill: 'none',
-  };
-
-  if (kind === 'shorter') {
-    return (
-      <Svg width={21} height={21} viewBox="0 0 24 24" accessibilityElementsHidden>
-        <Circle cx={12} cy={12} r={7.2} {...s} />
-        <Path d="M12 7.8 V12 L15.2 14" {...s} />
-      </Svg>
-    );
-  }
-
-  if (kind === 'gentler') {
-    return (
-      <Svg width={22} height={22} viewBox="0 0 24 24" accessibilityElementsHidden>
-        <Path d="M6.2 14.8 C6.2 9.3 10.3 6.4 17.8 5.8 C17.1 13.2 13.8 17 8.6 17" {...s} />
-        <Path d="M6.8 17.2 C9.3 14.5 12.2 12.2 15.6 10.4" {...s} />
-      </Svg>
-    );
-  }
-
-  if (kind === 'equipment') {
-    return (
-      <Svg width={22} height={22} viewBox="0 0 24 24" accessibilityElementsHidden>
-        <Path d="M6.2 9.2 H17.8" {...s} />
-        <Path d="M8 7.2 V16.8" {...s} />
-        <Path d="M16 7.2 V16.8" {...s} />
-        <Path d="M5 16.8 H19" {...s} />
-        <Path d="M19 5 L5 19" {...s} />
-      </Svg>
-    );
-  }
-
-  if (kind === 'pain') {
-    return (
-      <Svg width={22} height={22} viewBox="0 0 24 24" accessibilityElementsHidden>
-        <Path d="M12 4.8 L18.2 7 V11.4 C18.2 15.2 15.8 17.9 12 19.4 C8.2 17.9 5.8 15.2 5.8 11.4 V7 Z" {...s} />
-        <Path d="M12 8.8 V15.2" {...s} />
-        <Path d="M8.8 12 H15.2" {...s} />
-      </Svg>
-    );
-  }
-
-  return (
-    <Svg width={22} height={22} viewBox="0 0 24 24" accessibilityElementsHidden>
-      <Circle cx={12} cy={12} r={7.2} {...s} />
-      <Path d="M8.8 12.2 L11 14.4 L15.8 9.6" {...s} />
-    </Svg>
   );
 }
 
@@ -654,27 +589,27 @@ function timeOfDayGreeting(): string {
 }
 
 function todayActionTitle(lifecycle: HaleAppLifecycleResult): string {
-  if (lifecycle.primaryAction.type === 'start_first_session') return 'Your first Hale session is ready';
+  if (lifecycle.primaryAction.type === 'start_first_session') return 'Your first session is ready';
   if (lifecycle.primaryAction.type === 'start_today_session') return "Today's session is ready";
   if (lifecycle.primaryAction.type === 'start_gentle_restart') return 'Clean slate';
   if (lifecycle.primaryAction.type === 'start_micro_check') return '60-second check-in';
-  if (lifecycle.primaryAction.type === 'start_retest') return "It's time to re-test";
+  if (lifecycle.primaryAction.type === 'start_retest') return 'Time for your next check-up';
   if (lifecycle.primaryAction.type === 'explore_extra_sessions') return 'Your week is complete';
   return actionTitle(lifecycle.primaryAction.title);
 }
 
 function todayActionSubtitle(lifecycle: HaleAppLifecycleResult): string {
   if (lifecycle.primaryAction.type === 'start_first_session') {
-    return 'A calm first session built from your Movement Check-Up.';
+    return 'Built from your check-up.';
   }
   if (lifecycle.primaryAction.type === 'start_today_session') {
-    return 'A simple session to help you build strength, balance, and mobility.';
+    return 'A simple session to build strength, balance, and mobility.';
   }
   if (lifecycle.primaryAction.type === 'start_gentle_restart') {
-    return "Let's restart gently and keep the plan moving from here.";
+    return "Let's restart gently and keep your plan moving.";
   }
   if (lifecycle.primaryAction.type === 'explore_extra_sessions') {
-    return 'Optional mobility work can support the plan without adding pressure.';
+    return 'Optional mobility work can support your plan without pressure.';
   }
   return lifecycle.primaryAction.subtitle;
 }
@@ -685,20 +620,34 @@ function todaySessionDetail(lifecycle: HaleAppLifecycleResult): string | undefin
   }
   const nextSession = lifecycle.weekSessionStatuses?.find((session) => session.status === 'next');
   if (!nextSession) return undefined;
-  return `${nextSession.title}: ${nextSession.focus}`;
+  return `Today's focus: ${nextSession.focus}`;
 }
 
 function actionCta(label: string): string {
-  if (label === 'Start First Session') return 'Start Session';
-  if (label === 'Start Gentle Session') return 'Start Session';
-  if (label === 'Start') return 'Start Session';
+  if (label === 'Start First Session') return 'Start session';
+  if (label === 'Start Gentle Session') return 'Start session';
+  if (label === 'Start') return 'Start session';
   return label;
 }
 
-function bandValue(band: MovementSnapshotBand): string {
-  if (band === 'strong') return 'Strong';
-  if (band === 'building') return 'Building';
-  return 'Starting point';
+function snapshotRowValue(
+  row: SnapshotKey,
+  band: MovementSnapshotBand | undefined,
+  focusDomain: NonNullable<HaleAppLifecycleResult['activeBlockSummary']>['focusDomain'] | undefined
+): string {
+  if (!band) return 'Not checked yet';
+  if (snapshotRowMatchesFocus(row, focusDomain)) return 'Your main focus';
+  if (row === 'mobility') return 'Doing well for now';
+  return 'Needs steady practice';
+}
+
+function snapshotRowMatchesFocus(
+  row: SnapshotKey,
+  focusDomain: NonNullable<HaleAppLifecycleResult['activeBlockSummary']>['focusDomain'] | undefined
+): boolean {
+  if (!focusDomain) return false;
+  if (row === 'strengthPower') return focusDomain === 'strength_power';
+  return row === focusDomain;
 }
 
 function movementProfileProgress(
@@ -722,26 +671,26 @@ function movementProfileProgress(
   return {
     progress: measured / total,
     value: `${measured}/${total}`,
-    noun: 'domains',
-    verb: 'measured',
+    noun: 'areas',
+    verb: 'checked',
   };
 }
 
-function retestLabel(days: number | undefined): string {
-  if (days === undefined) return 'After block';
-  if (days <= 0) return 'Due now';
+function retestLabel(days: number | undefined, totalWeeks = 4): string {
+  if (days === undefined) return `End of week ${totalWeeks}`;
+  if (days <= 0) return 'Ready now';
   if (days === 1) return 'Tomorrow';
   if (days >= 14) {
     const weeks = Math.ceil(days / 7);
-    return `${weeks} ${weeks === 1 ? 'week' : 'weeks'}`;
+    return `In about ${weeks} ${weeks === 1 ? 'week' : 'weeks'}`;
   }
-  return `${days} days`;
+  return `In ${days} days`;
 }
 
 function contextValue(title: string): string {
   if (title.length <= 22) return title;
-  if (title.includes('Movement Check-Up')) return 'Movement Check-Up';
-  if (title.includes('4-week')) return '4-week block';
+  if (title.includes('Movement Check-Up')) return 'Check-up';
+  if (title.includes('4-week')) return 'Plan';
   return 'Next action';
 }
 
@@ -1000,6 +949,9 @@ const styles = StyleSheet.create({
     width: '70%',
     gap: 11,
   },
+  focusMeta: {
+    gap: 3,
+  },
   focusLabel: {
     color: colors.onAccent,
     fontFamily: fonts.sansMedium,
@@ -1127,12 +1079,12 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   menuOption: {
-    minHeight: 78,
+    minHeight: 86,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: spacing.lg,
     borderRadius: 18,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     backgroundColor: colors.bgSurface,
     borderWidth: 1,
@@ -1142,19 +1094,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgGold,
     borderColor: colors.accentDeep,
   },
-  menuIconFrame: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
+  menuRail: {
+    width: 4,
+    alignSelf: 'stretch',
+    borderRadius: radius.pill,
     backgroundColor: colors.background,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
   },
-  menuIconFrameSelected: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
+  menuRailSelected: {
+    backgroundColor: colors.accentDeep,
   },
   menuOptionCopy: {
     flex: 1,
@@ -1198,51 +1145,74 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accentDeep,
   },
   painMenu: {
-    gap: spacing.md,
+    position: 'relative',
+    gap: spacing.lg,
     marginTop: spacing.md,
-    borderRadius: 18,
-    padding: spacing.lg,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
+    borderRadius: 24,
+    paddingHorizontal: 22,
+    paddingVertical: 20,
+    backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+    boxShadow: '0 14px 30px rgba(17,20,18,0.055)',
+  },
+  painAccentRail: {
+    position: 'absolute',
+    top: 22,
+    left: 22,
+    width: 4,
+    height: 56,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accentDeep,
+    opacity: 0.92,
   },
   painHeader: {
-    gap: 2,
+    gap: 5,
+    paddingLeft: 18,
+    paddingRight: spacing.sm,
   },
   painTitle: {
-    ...type.cardRowTitle,
     color: colors.textPrimary,
     fontFamily: fonts.sansMedium,
+    fontSize: 17,
+    lineHeight: 23,
+    letterSpacing: 0,
   },
   painBody: {
-    ...type.caption,
     color: colors.textSecondary,
+    fontFamily: fonts.sansRegular,
+    fontSize: 15,
+    lineHeight: 22,
+    letterSpacing: 0,
   },
   painOptions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.sm,
+    gap: 10,
   },
   painChip: {
-    minHeight: 38,
+    minHeight: 42,
     justifyContent: 'center',
     borderRadius: radius.pill,
-    paddingHorizontal: spacing.md,
-    borderWidth: 1,
+    paddingHorizontal: 18,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
-    backgroundColor: colors.bgSurface,
+    backgroundColor: colors.bgBase,
+    boxShadow: '0 4px 12px rgba(17,20,18,0.035)',
   },
   painChipSelected: {
-    backgroundColor: colors.accentSoft,
-    borderColor: colors.accentBorder,
+    backgroundColor: colors.accentDeep,
+    borderColor: colors.accentDeep,
   },
   painChipText: {
-    ...type.caption,
     color: colors.textSecondary,
     fontFamily: fonts.sansMedium,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: 0,
   },
   painChipTextSelected: {
-    color: colors.accentDeep,
+    color: colors.onAccent,
   },
   sheetActions: {
     gap: spacing.sm,

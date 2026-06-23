@@ -1,10 +1,10 @@
 import * as React from 'react';
 
-import { ExploreIcon, PlanIcon, ProgressIcon, TodayIcon } from '../icons';
+import { ExploreIcon, HomeIcon, PlanIcon, ProgressIcon } from '../icons';
 import { DEFAULT_TAB_KEY, TAB_DEFS, TabBar, getTabDef, normalizeTabKey, type TabKey } from '../TabBar';
 
 const CANONICAL_KEYS: readonly TabKey[] = ['today', 'plan', 'progress', 'explore'];
-const CANONICAL_LABELS = ['Today', 'Plan', 'Progress', 'Explore'];
+const CANONICAL_LABELS = ['Home', 'Plan', 'Progress', 'Explore'];
 
 function collectElements(
   node: React.ReactNode,
@@ -59,12 +59,12 @@ describe('TabBar V1 navigation', () => {
 
   it('maps each route to its intended icon identity', () => {
     expect(TAB_DEFS.map((tab) => [tab.key, tab.iconName])).toEqual([
-      ['today', 'TodayIcon'],
+      ['today', 'HomeIcon'],
       ['plan', 'PlanIcon'],
       ['progress', 'ProgressIcon'],
       ['explore', 'ExploreIcon'],
     ]);
-    expect(getTabDef('today').Icon).toBe(TodayIcon);
+    expect(getTabDef('today').Icon).toBe(HomeIcon);
     expect(getTabDef('plan').Icon).toBe(PlanIcon);
     expect(getTabDef('progress').Icon).toBe(ProgressIcon);
     expect(getTabDef('explore').Icon).toBe(ExploreIcon);
@@ -77,7 +77,7 @@ describe('TabBar V1 navigation', () => {
     expect(keys).toEqual(CANONICAL_KEYS);
   });
 
-  it('uses Today as the default and fails unknown tab identity safely to Today', () => {
+  it('uses Home as the default while preserving the stable today route key', () => {
     expect(DEFAULT_TAB_KEY).toBe('today');
     expect(normalizeTabKey('today')).toBe('today');
     expect(normalizeTabKey('progress')).toBe('progress');

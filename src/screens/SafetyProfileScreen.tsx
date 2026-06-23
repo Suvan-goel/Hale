@@ -2,95 +2,161 @@ import * as React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
+  AgeBand,
   ActivityLevel,
+  CapabilityConfirmationStatus,
   LOCAL_USER_ID,
   MovementSafetyProfile,
+  SingleLegBalanceCapabilityStatus,
 } from '../adherence';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { PrimaryButton, Screen, ScreenHeader } from '../components/ui';
 import {
+  AGE_RANGE_OPTIONS,
+  STARTING_PACE_OPTIONS,
+  ageBandForAge,
   movementCapabilitiesFromSafetyProfile,
+  onboardingActivityLevel,
+  representativeAgeForAgeBand,
   safetyProfileWithMovementCapabilities,
   type UserProfile,
 } from '../profile';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 
-const AGE_OPTIONS: readonly { label: string; value: number | null }[] = [
-  { label: 'Prefer not to say', value: null },
-  { label: 'Under 45', value: 44 },
-  { label: '45-54', value: 50 },
-  { label: '55-64', value: 60 },
-  { label: '65-74', value: 70 },
-  { label: '75+', value: 76 },
-];
-
-const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string }[] = [
-  { value: 'very_inactive', label: 'Mostly inactive' },
-  { value: 'lightly_active', label: 'Lightly\nactive' },
-  { value: 'moderately_active', label: 'Active most weeks' },
-  { value: 'very_active', label: 'Very active' },
-];
-
 const PAIN_OPTIONS = ['Knee', 'Hip', 'Back', 'Shoulder', 'Ankle', 'Neck', 'None'] as const;
+
+type SafetyProfileSaveOptions = { stayOnScreen?: boolean };
+
+type SafetyProfileDraft = {
+  ageBand: AgeBand | null;
+  activityLevel: ActivityLevel;
+  painArea: string;
+  floorTransferStatus: CapabilityConfirmationStatus;
+  stepUpStatus: CapabilityConfirmationStatus;
+  singleLegStatus: SingleLegBalanceCapabilityStatus;
+};
 
 export function SafetyProfileScreen({
   profile,
   onSave,
+  showContinueAction = true,
   onCancel,
 }: {
   profile: UserProfile;
-  onSave: (safetyProfile: MovementSafetyProfile, age: number | null) => void;
+  onSave: (
+    safetyProfile: MovementSafetyProfile,
+    ageBand: AgeBand | null,
+    options?: SafetyProfileSaveOptions
+  ) => void;
+  showContinueAction?: boolean;
   onCancel: () => void;
 }) {
   const initial = profile.safetyProfile;
   const initialCapabilities = React.useMemo(() => movementCapabilitiesFromSafetyProfile(initial), [initial]);
-  const initialAge = initial?.age ?? profile.age;
-  const [age, setAge] = React.useState<number | null>(initialAge ?? null);
-  const [activityLevel, setActivityLevel] = React.useState<ActivityLevel>(initial?.activityLevel ?? 'lightly_active');
+  const initialAgeBand =
+    initial?.ageBand ??
+    profile.ageBand ??
+    ageBandForAge(initial?.age ?? profile.age);
+  const [ageBand, setAgeBand] = React.useState<AgeBand | null>(initialAgeBand);
+  const [activityLevel, setActivityLevel] = React.useState<ActivityLevel>(
+    onboardingActivityLevel(initial?.activityLevel)
+  );
   const [painArea, setPainArea] = React.useState<string>(normalizePainArea(initial?.painNotes));
   const [floorTransferStatus, setFloorTransferStatus] = React.useState(initialCapabilities.floorTransfer.status);
   const [stepUpStatus, setStepUpStatus] = React.useState(initialCapabilities.stepUpEnvironment.status);
   const [singleLegStatus, setSingleLegStatus] = React.useState(initialCapabilities.singleLegBalance.status);
   const hasSafeStep = stepUpStatus === 'confirmed';
 
-  const save = () => {
+  const currentDraft = (): SafetyProfileDraft => ({
+    ageBand,
+    activityLevel,
+    painArea,
+    floorTransferStatus,
+    stepUpStatus,
+    singleLegStatus,
+  });
+
+  const buildSafetyProfile = (draft: SafetyProfileDraft): MovementSafetyProfile => {
     const nowIso = new Date().toISOString();
+    const representativeAge = representativeAgeForAgeBand(draft.ageBand);
+    const draftHasSafeStep = draft.stepUpStatus === 'confirmed';
     const baseProfile: MovementSafetyProfile = {
       id: initial?.id ?? `safety-profile-${nowIso.replace(/[:.]/g, '-')}`,
       userId: initial?.userId ?? LOCAL_USER_ID,
-      age: age ?? undefined,
-      activityLevel,
-      hasCurrentPain: painArea !== 'None',
-      painNotes: painArea !== 'None' ? painArea.toLowerCase() : undefined,
+      age: representativeAge ?? undefined,
+      ageBand: draft.ageBand ?? undefined,
+      activityLevel: draft.activityLevel,
+      hasCurrentPain: draft.painArea !== 'None',
+      painNotes: draft.painArea !== 'None' ? draft.painArea.toLowerCase() : undefined,
       hasRecentInjury: initial?.hasRecentInjury,
       injuryNotes: initial?.injuryNotes,
       feelsSafeStandingFromChair: true,
-      feelsSafeBalancing: singleLegStatus === 'confirmed_with_support',
+      feelsSafeBalancing: draft.singleLegStatus === 'confirmed_with_support',
       availableEquipment: initial?.availableEquipment.length ? initial.availableEquipment : ['chair', 'wall'],
       movementCapabilities: initial?.movementCapabilities,
       preferredWorkoutDays: initial?.preferredWorkoutDays ?? ['Mon', 'Wed', 'Fri'],
       createdAt: initial?.createdAt ?? nowIso,
       updatedAt: nowIso,
     };
-    const nextProfile = safetyProfileWithMovementCapabilities(
+    return safetyProfileWithMovementCapabilities(
       baseProfile,
       {
         schemaVersion: 1,
-        floorTransfer: { status: floorTransferStatus },
+        floorTransfer: { status: draft.floorTransferStatus },
         stepUpEnvironment: {
-          status: stepUpStatus,
-          lowStableStep: hasSafeStep,
-          fixedSupport: hasSafeStep,
-          clearDryArea: hasSafeStep,
-          phoneOutOfPath: hasSafeStep,
+          status: draft.stepUpStatus,
+          lowStableStep: draftHasSafeStep,
+          fixedSupport: draftHasSafeStep,
+          clearDryArea: draftHasSafeStep,
+          phoneOutOfPath: draftHasSafeStep,
         },
-        singleLegBalance: { status: singleLegStatus },
+        singleLegBalance: { status: draft.singleLegStatus },
       },
       {
         updatedAt: nowIso,
       }
     );
-    onSave(nextProfile, age);
+  };
+
+  const saveDraft = (draft: SafetyProfileDraft, options?: SafetyProfileSaveOptions) => {
+    onSave(buildSafetyProfile(draft), draft.ageBand, options);
+  };
+
+  const save = () => saveDraft(currentDraft());
+
+  const saveIfReviewing = (overrides: Partial<SafetyProfileDraft>) => {
+    if (showContinueAction) return;
+    saveDraft({ ...currentDraft(), ...overrides }, { stayOnScreen: true });
+  };
+
+  const selectAgeBand = (next: AgeBand | null) => {
+    setAgeBand(next);
+    saveIfReviewing({ ageBand: next });
+  };
+
+  const selectActivityLevel = (next: ActivityLevel) => {
+    setActivityLevel(next);
+    saveIfReviewing({ activityLevel: next });
+  };
+
+  const selectPainArea = (next: string) => {
+    setPainArea(next);
+    saveIfReviewing({ painArea: next });
+  };
+
+  const selectFloorTransferStatus = (next: CapabilityConfirmationStatus) => {
+    setFloorTransferStatus(next);
+    saveIfReviewing({ floorTransferStatus: next });
+  };
+
+  const selectStepUpStatus = (next: CapabilityConfirmationStatus) => {
+    setStepUpStatus(next);
+    saveIfReviewing({ stepUpStatus: next });
+  };
+
+  const selectSingleLegStatus = (next: SingleLegBalanceCapabilityStatus) => {
+    setSingleLegStatus(next);
+    saveIfReviewing({ singleLegStatus: next });
   };
 
   return (
@@ -104,28 +170,31 @@ export function SafetyProfileScreen({
 
       <ChoiceSection title="Age range" meta="Optional">
         <View style={styles.grid}>
-          {AGE_OPTIONS.map((option) => (
+          {AGE_RANGE_OPTIONS.map((option) => (
             <Choice
               key={option.label}
               label={option.label}
-              selected={age === option.value}
-              onPress={() => setAge(option.value)}
+              selected={ageBand === option.value}
+              onPress={() => selectAgeBand(option.value)}
             />
           ))}
         </View>
       </ChoiceSection>
 
-      <ChoiceSection title="How active are you now?" meta="Today">
+      <ChoiceSection title="How should Hale start your workouts?" meta="Workout effort">
         <View style={styles.grid}>
-          {ACTIVITY_OPTIONS.map((option) => (
+          {STARTING_PACE_OPTIONS.map((option) => (
             <Choice
               key={option.value}
               label={option.label}
               selected={activityLevel === option.value}
-              onPress={() => setActivityLevel(option.value)}
+              onPress={() => selectActivityLevel(option.value)}
             />
           ))}
         </View>
+        <Text style={styles.gentle}>
+          You can change this later in Settings. Your check-up, pain notes, and safety setup still decide which movements Hale uses.
+        </Text>
       </ChoiceSection>
 
       <ChoiceSection title="Any area that often feels uncomfortable?" meta="Optional">
@@ -135,7 +204,7 @@ export function SafetyProfileScreen({
               key={option}
               label={option}
               selected={painArea === option}
-              onPress={() => setPainArea(option)}
+              onPress={() => selectPainArea(option)}
             />
           ))}
         </View>
@@ -150,28 +219,30 @@ export function SafetyProfileScreen({
           title="Floor exercises"
           description="Can Hale include movements where you get down to the floor and stand back up?"
           yesSelected={floorTransferStatus === 'confirmed'}
-          onYes={() => setFloorTransferStatus('confirmed')}
-          onNo={() => setFloorTransferStatus('avoid_for_now')}
+          onYes={() => selectFloorTransferStatus('confirmed')}
+          onNo={() => selectFloorTransferStatus('avoid_for_now')}
         />
         <YesNoQuestion
           title="Step exercises"
           description="Can Hale include exercises using a low step or bottom stair? Choose Yes only if it is steady and you have something fixed nearby to hold."
           yesSelected={hasSafeStep}
-          onYes={() => setStepUpStatus('confirmed')}
-          onNo={() => setStepUpStatus('avoid_for_now')}
+          onYes={() => selectStepUpStatus('confirmed')}
+          onNo={() => selectStepUpStatus('avoid_for_now')}
         />
         <YesNoQuestion
           title="Single-leg balance"
           description="Can Hale include balance exercises where one foot lifts off the floor? Choose Yes only if you can keep a hand near a counter, wall, or sturdy chair."
           yesSelected={singleLegStatus === 'confirmed_with_support'}
-          onYes={() => setSingleLegStatus('confirmed_with_support')}
-          onNo={() => setSingleLegStatus('supported_balance_only')}
+          onYes={() => selectSingleLegStatus('confirmed_with_support')}
+          onNo={() => selectSingleLegStatus('supported_balance_only')}
         />
       </ChoiceSection>
 
-      <View style={styles.actions}>
-        <PrimaryButton title="Continue" onPress={save} />
-      </View>
+      {showContinueAction ? (
+        <View style={styles.actions}>
+          <PrimaryButton title="Continue" onPress={save} />
+        </View>
+      ) : null}
     </Screen>
   );
 }

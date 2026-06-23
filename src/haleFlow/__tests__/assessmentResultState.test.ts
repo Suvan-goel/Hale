@@ -23,6 +23,6 @@ describe('assessment result state', () => {
 
     expect(state.canCreateBlock).toBe(false);
     expect(state.primaryAction).toBe('retake_checkup');
-    expect(state.recoveryTitle).toBe("We couldn't get enough reliable measurements to build your plan.");
+    expect(state.recoveryTitle).toBe('Hale needs a clearer check-up to build your plan.');
   });
 });

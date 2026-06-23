@@ -17,7 +17,11 @@ import {
   startBlock,
 } from '../../training';
 import { createMovementAssessment, requireHaleSessionPlan as planTodayHaleSession } from '../../haleFlow';
-import { onboardingDomainSummaries, onboardingFocusDomain } from '../results';
+import {
+  onboardingDomainSummaries,
+  onboardingFocusDomain,
+  plannedOnboardingFocusDomain,
+} from '../results';
 import { V1_BASELINE_MOVEMENT_IDS, deriveOnboardingStep } from '../state';
 
 const START = '2026-06-16T08:00:00.000Z';
@@ -90,7 +94,8 @@ function onboardingPrefs() {
   const prefs = defaultPreferences();
   prefs.profile.lifeGoal = createLifeGoal({ category: 'stairs', nowIso: START });
   prefs.profile.goal = 'Climb stairs more easily';
-  prefs.profile.age = 60;
+  prefs.profile.age = null;
+  prefs.profile.ageBand = '55_64';
   prefs.profile.safetyProfile = safetyProfile();
   prefs.onboarding.currentStep = 'camera_setup';
   prefs.onboarding.selectedEquipment = ['chair', 'wall'];
@@ -165,6 +170,18 @@ describe('Hale V1 onboarding results and equipment', () => {
       'Balance',
       'Mobility',
     ]);
+  });
+
+  it('uses the planned block focus when onboarding display focus differs from the raw score', () => {
+    const score = scoreCheckUp(syntheticCheckUp(START));
+
+    expect(onboardingFocusDomain(score)).toBe('balance_stability');
+    expect(
+      plannedOnboardingFocusDomain({
+        score,
+        plannedBlock: { focusDomain: 'mobility' },
+      })
+    ).toBe('mobility_flexibility');
   });
 
   it('feeds onboarding equipment into dynamic session generation', () => {

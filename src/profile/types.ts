@@ -5,14 +5,16 @@
  * workout-reminder preference.
  */
 
-import type { LifeGoal, MovementSafetyProfile } from '../adherence';
+import type { AgeBand, LifeGoal, MovementSafetyProfile } from '../adherence';
 
 /** A single person on this device. All fields optional until the user fills them in. */
 export interface UserProfile {
   /** Display name shown on Home; '' when unset. */
   name: string;
-  /** Age in years, or null when unset. Used for greetings; norms still come from measured tests. */
+  /** Deprecated legacy exact age. New profile saves keep this null and use ageBand. */
   age: number | null;
+  /** Age range selected during onboarding or Settings. */
+  ageBand: AgeBand | null;
   /** One-line personal goal in the user's own words; '' when unset. */
   goal: string;
   /** Primary retention anchor: what the user wants their body to keep letting them do. */
@@ -75,6 +77,7 @@ export interface Preferences {
 export const EMPTY_PROFILE: UserProfile = {
   name: '',
   age: null,
+  ageBand: null,
   goal: '',
   lifeGoal: null,
   safetyProfile: null,

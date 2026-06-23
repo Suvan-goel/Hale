@@ -49,6 +49,7 @@ export function preferencesToBackendProfileUpdate(prefs: Preferences): BackendPr
       schemaVersion: PREFERENCES_SCHEMA_VERSION,
       name: prefs.profile.name,
       age: prefs.profile.age,
+      ageBand: prefs.profile.ageBand,
       goal: prefs.profile.goal,
     }),
     onboarding_json: toBackendJson({
@@ -84,6 +85,7 @@ export function mergeRemoteProfileIntoLocal(
     profile: {
       name: hasText(localPrefs.profile.name) ? localPrefs.profile.name : remotePrefs.profile.name,
       age: localPrefs.profile.age ?? remotePrefs.profile.age,
+      ageBand: localPrefs.profile.ageBand ?? remotePrefs.profile.ageBand,
       goal: hasText(localPrefs.profile.goal) ? localPrefs.profile.goal : remotePrefs.profile.goal,
       lifeGoal:
         localPrefs.profile.lifeGoal ??
@@ -243,6 +245,7 @@ function preferencesFromBackendProfile(remoteProfile: BackendProfile): Preferenc
   const profile = {
     name: stringValue(profileJson.name) ?? remoteProfile.full_name ?? '',
     age: numberValue(profileJson.age) ?? ageFromBirthYear(remoteProfile.birth_year),
+    ageBand: profileJson.ageBand ?? null,
     goal: stringValue(profileJson.goal) ?? '',
     lifeGoal: onboardingJson.lifeGoal ?? null,
     safetyProfile: safetyJson.safetyProfile ?? null,

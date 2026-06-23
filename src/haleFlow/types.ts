@@ -140,6 +140,7 @@ export interface HaleSessionPlanMetadata {
   templateId?: string;
   plannedDateKey?: string;
   readiness?: DailyReadiness;
+  userAdjustment?: 'shorter' | 'gentler' | 'no_equipment' | 'something_hurts' | null;
   painAreas?: readonly PainArea[];
   dailyContext?: NormalizedDailyTrainingContext;
   progressionEvidencePolicy?: ProgressionEvidencePolicy;

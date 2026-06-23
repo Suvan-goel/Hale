@@ -21,8 +21,8 @@ export function OnboardingBlockScreen({
     <Screen>
       <ScreenHeader
         eyebrow="Plan ready"
-        title="Your first block is ready"
-        subtitle="Hale has turned your check-up, goal, comfort details, and home setup into a simple starting plan."
+        title="Your first plan is ready"
+        subtitle="Hale has built a simple starting plan from your check-up, goal, comfort details, and home setup."
       />
 
       <View style={styles.heroImageCard}>
@@ -39,7 +39,7 @@ export function OnboardingBlockScreen({
         <View style={styles.planTopRow}>
           <View style={styles.planIdentity}>
             <View style={styles.planIdentityCopy}>
-              <Text style={styles.planKicker}>First block</Text>
+              <Text style={styles.planKicker}>First plan</Text>
               <Text style={styles.planLabel}>{focusLabel(block.focusDomain)} focus</Text>
             </View>
           </View>
@@ -48,38 +48,38 @@ export function OnboardingBlockScreen({
 
         <Text style={styles.focusTitle}>{blockFocusCopy(toTrainingFocus(block.focusDomain))}</Text>
         <Text style={styles.focusBody}>
-          Your first block starts with a measured routine built around this focus, your setup, and what felt manageable today.
+          Your plan starts with movements chosen for your focus, your setup, and what felt manageable today.
         </Text>
 
         <View style={styles.rhythmSection}>
-          <Text style={styles.sectionLabel}>Plan rhythm</Text>
+          <Text style={styles.sectionLabel}>Your weekly rhythm</Text>
           <View style={styles.metricList}>
-            <PlanMetric value="3" label="Sessions each week" detail="A steady weekly rhythm without crowding your calendar." />
+            <PlanMetric value="3" label="Sessions each week" detail="A steady routine without crowding your week." />
             <View style={styles.metricRule} />
-            <PlanMetric value="20" label="Minutes per session" detail="Short enough to repeat, long enough to build momentum." />
+            <PlanMetric value="20" label="Minutes per session" detail="Short enough to repeat, long enough to make progress." />
             <View style={styles.metricRule} />
-            <PlanMetric value="4" label="Weeks, then re-test" detail="Repeat the check-up after the block to compare progress." />
+            <PlanMetric value="4" label="Weeks before your next check-up" detail="Repeat the check-up after 4 weeks to see what has changed." />
           </View>
         </View>
 
         <View style={styles.detailList}>
           <PlanDetail
-            eyebrow="Built-in flexibility"
-            title="Substitutions stay available"
-            body="If equipment or space is limited, Hale keeps a simpler option ready."
+            eyebrow="If something does not work"
+            title="Hale can choose another option"
+            body="If an exercise does not fit your space or equipment, Hale can use a simpler option."
           />
           <View style={styles.detailRule} />
           <PlanDetail
             eyebrow="Next checkpoint"
             title="Repeat the check-up in 4 weeks"
-            body="Use the same movement baseline to see what changed after the block."
+            body="Use the same check-up to see what changed after your plan."
           />
         </View>
       </Card>
 
       <View style={styles.actions}>
         <PrimaryButton title="Start first session" onPress={onStartSession} />
-        <SecondaryButton title="Go to Today" onPress={onGoToday} />
+        <SecondaryButton title="Go to home" onPress={onGoToday} />
       </View>
     </Screen>
   );

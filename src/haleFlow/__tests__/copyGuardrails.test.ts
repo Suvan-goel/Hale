@@ -38,7 +38,6 @@ const RESULT_COPY_FILES = [
   'src/screens/ResultsScreen.tsx',
   'src/screens/OnboardingResultsScreen.tsx',
   'src/screens/ProgressScreen.tsx',
-  'src/adherence/screens/BlockReportScreen.tsx',
   'src/screens/WelcomeScreen.tsx',
   'src/screens/PlanScreen.tsx',
   'src/screens/OnboardingBlockScreen.tsx',
@@ -171,8 +170,8 @@ describe('Hale V1 copy guardrails', () => {
   it('keeps result, progress, report, onboarding, plan, and settings screen copy beta-safe', () => {
     const text = RESULT_COPY_FILES.map(productionSourceText).join(' ');
     expect(text).not.toMatch(BANNED_USER_COPY);
-    expect(text).toMatch(/Home estimate|Beta home estimate/);
-    expect(text).toMatch(/Suggested focus/);
+    expect(text).toMatch(/compares your latest check-up result with your age group|Beta estimate/);
+    expect(text).toMatch(/Your main focus|Suggested focus/);
     expect(text).toMatch(/Camera estimated/);
     expect(text).not.toMatch(/Age \$\{domain\.ageLow\}|Typical age ranges|Movement age profile/);
 

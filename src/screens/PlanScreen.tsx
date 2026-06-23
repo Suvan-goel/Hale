@@ -9,21 +9,30 @@ import {
 import { HeaderLogo } from '../components/HeaderLogo';
 import type { ActiveBlockSummary, HaleLifecycleState, TodaySessionAdjustment, TodaySessionPreferences, WeekSessionStatus } from '../haleFlow';
 import {
-  formatPreferredDays,
   getPlanEmptyStateCopy,
   getPlanFocusCopy,
   getPlanSessionCategoryCopy,
   getRetestCopy,
-  intensityLabel,
   type PlanSessionId,
 } from '../haleFlow';
 import { SettingsIcon } from '../navigation/icons';
-import type { PainArea, TrainingIntensityPreference } from '../training';
+import type { ActivityLevel } from '../adherence';
+import { startingEffortLabel } from '../profile';
+import type { PainArea } from '../training';
 import { SessionStartMenu } from './TodayScreen';
 import { colors, fonts, imageOverlayControl, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 
 const PLAN_HERO_IMAGE = require('../../assets/images/hale-plan-hero-mountain.png');
+const PLAN_WEEK_DAYS: readonly { value: string; label: string }[] = [
+  { value: 'Mon', label: 'Mo' },
+  { value: 'Tue', label: 'Tu' },
+  { value: 'Wed', label: 'We' },
+  { value: 'Thu', label: 'Th' },
+  { value: 'Fri', label: 'Fr' },
+  { value: 'Sat', label: 'Sa' },
+  { value: 'Sun', label: 'Su' },
+];
 
 type PlanHeroAction =
   | { kind: 'session'; label: string; accessibilityLabel: string; sessionId: PlanSessionId }
@@ -36,7 +45,7 @@ export function PlanScreen({
   activeBlockSummary,
   weekSessionStatuses,
   preferredDays,
-  preferredIntensity,
+  startingEffort,
   onStartOnboarding,
   onStartCheckUp,
   onCreateBlock,
@@ -49,15 +58,13 @@ export function PlanScreen({
   activeBlockSummary?: ActiveBlockSummary;
   weekSessionStatuses: readonly WeekSessionStatus[];
   preferredDays: readonly string[];
-  preferredIntensity: TrainingIntensityPreference;
+  startingEffort: ActivityLevel;
   onStartOnboarding: () => void;
   onStartCheckUp: () => void;
   onCreateBlock: () => void;
   onStartPlanSession: (id: PlanSessionId, preferences?: TodaySessionPreferences | null) => void;
   onStartRetest: () => void;
   onOpenSettings: () => void;
-  onPreferredDaysChange: (days: string[]) => void;
-  onIntensityChange: (value: TrainingIntensityPreference) => void;
 }) {
   const [pendingSessionId, setPendingSessionId] = React.useState<PlanSessionId | null>(null);
   const goalText = lifeGoalText?.trim();
@@ -112,7 +119,7 @@ export function PlanScreen({
           <View style={styles.titleRow}>
             <View style={styles.titleGroup}>
               <HeaderLogo />
-              <Text style={styles.title}>Your Plan</Text>
+              <Text style={styles.title}>Your plan</Text>
             </View>
             <Pressable
               style={({ pressed }) => [styles.headerIconButton, pressed && styles.pressed]}
@@ -138,8 +145,6 @@ export function PlanScreen({
               onStartRetest={onStartRetest}
             />
 
-            <BlockTimelineCard summary={activeBlockSummary} retest={retest} />
-
             <WeeklySessionsCard
               summary={activeBlockSummary}
               progress={progress}
@@ -147,13 +152,13 @@ export function PlanScreen({
               onStartPlanSession={openSessionMenu}
             />
 
-            <MovementEmphasisCard focusDomain={activeBlockSummary.focusDomain} />
+            <BlockTimelineCard summary={activeBlockSummary} retest={retest} />
 
             {showRetestCard ? <RetestCard retest={retest} onStartRetest={onStartRetest} /> : null}
 
             <ProfilePreferencesCard
               preferredDays={preferredDays}
-              preferredIntensity={preferredIntensity}
+              startingEffort={startingEffort}
               onOpenSettings={onOpenSettings}
             />
           </>
@@ -171,10 +176,10 @@ export function PlanScreen({
 
 function PlanGoalSummary({ goalText }: { goalText?: string }) {
   if (goalText) {
-    return <Text style={styles.subtitle}>Built around your goal: {goalText}.</Text>;
+    return <Text style={styles.subtitle}>Built around what matters to you: {goalText}.</Text>;
   }
 
-  return <Text style={styles.subtitle}>A simple plan for becoming stronger, steadier, and more mobile.</Text>;
+  return <Text style={styles.subtitle}>A simple plan to build strength, steadiness, and mobility.</Text>;
 }
 
 function PlanHeroCard({
@@ -266,7 +271,7 @@ function BlockTimelineCard({
   return (
     <Card style={styles.timelineCard}>
       <View style={styles.timelineHeader}>
-        <Text style={styles.sectionTitle}>Block timeline</Text>
+        <Text style={styles.sectionTitle}>4-week plan</Text>
         <View style={styles.timelineWeekBadge}>
           <Text style={styles.timelineWeekBadgeText}>
             Week {summary.weekNumber} of {summary.totalWeeks}
@@ -328,10 +333,8 @@ function WeeklySessionsCard({
     <Card style={styles.sessionsCard}>
       <View style={styles.sessionsHeader}>
         <View style={styles.headerCopy}>
-          <Text style={styles.sectionTitle}>This week's sessions</Text>
-          <Text style={styles.weekSummary}>
-            {summary.sessionsCompleteThisWeek} of {summary.sessionsTargetThisWeek} sessions complete
-          </Text>
+          <Text style={styles.sectionTitle}>This week</Text>
+          <Text style={styles.weekSummary}>{weeklySessionSummary(summary)}</Text>
         </View>
         <WeekProgressSegments progress={progress} count={summary.sessionsTargetThisWeek} />
       </View>
@@ -361,24 +364,6 @@ function WeekProgressSegments({ progress, count }: { progress: number; count: nu
   );
 }
 
-function MovementEmphasisCard({ focusDomain }: { focusDomain: ActiveBlockSummary['focusDomain'] }) {
-  const items = movementEmphasis(focusDomain);
-  return (
-    <Card style={styles.emphasisCard}>
-      <Text style={styles.sectionTitle}>Why this focus</Text>
-      <Text style={styles.cardBody}>Hale keeps the week simple while giving extra attention to the area your Movement Check-Up suggested first.</Text>
-      <View style={styles.emphasisGrid}>
-        {items.map((item) => (
-          <View key={item.title} style={styles.emphasisItem}>
-            <Text style={styles.emphasisTitle}>{item.title}</Text>
-            <Text style={styles.emphasisBody}>{item.body}</Text>
-          </View>
-        ))}
-      </View>
-    </Card>
-  );
-}
-
 function RetestCard({
   retest,
   onStartRetest,
@@ -392,7 +377,7 @@ function RetestCard({
         <MovementIcon />
       </View>
       <View style={styles.retestCopy}>
-        <Text style={styles.retestTitle}>Movement Check-Up</Text>
+        <Text style={styles.retestTitle}>Next check-up</Text>
         <Text style={styles.retestValue}>{retest.title}</Text>
       </View>
       {retest.due ? <Text style={styles.chevron}>›</Text> : null}
@@ -406,7 +391,7 @@ function RetestCard({
       style={({ pressed }) => [styles.retestCard, pressed && styles.pressed]}
       onPress={onStartRetest}
       accessibilityRole="button"
-      accessibilityLabel="Start movement check-up re-test"
+      accessibilityLabel="Start check-up"
     >
       {content}
     </Pressable>
@@ -453,19 +438,19 @@ function EmptyPlanState({
           <EmptyPlanStep
             index="1"
             title="Check-up"
-            body="Estimate strength, balance, and mobility from home."
+            body="Hale checks strength, balance, and mobility at home."
             state={setupReady ? 'complete' : 'current'}
           />
           <EmptyPlanStep
             index="2"
             title="Preparation"
-            body="Hale uses the result to shape your first block."
+            body="Hale uses the result to shape your first plan."
             state={setupReady ? 'current' : 'upcoming'}
           />
           <EmptyPlanStep
             index="3"
             title="First week"
-            body="Three calm sessions appear here when your block is ready."
+            body="Three calm sessions appear here when your plan is ready."
             state="upcoming"
             last
           />
@@ -483,7 +468,7 @@ function EmptyPlanState({
       </View>
 
       <View style={styles.emptyPlanNote}>
-        <Text style={styles.emptyPlanNoteText}>Your camera view stays private. Hale shows a clean skeleton, not a mirror.</Text>
+        <Text style={styles.emptyPlanNoteText}>Your camera view stays private. Hale never shows a live camera view.</Text>
       </View>
     </View>
   );
@@ -531,7 +516,7 @@ function SessionCard({
   const copy = getPlanSessionCategoryCopy(session.id);
   const complete = session.status === 'complete';
   const next = session.status === 'next';
-  const detail = `${copy.categories.slice(0, 2).join(' · ')} · ${session.focus}`;
+  const detail = copy.body;
   const content = (
     <>
       {next ? <View style={styles.sessionActiveRail} /> : null}
@@ -574,44 +559,72 @@ function SessionCard({
 
 function ProfilePreferencesCard({
   preferredDays,
-  preferredIntensity,
+  startingEffort,
   onOpenSettings,
 }: {
   preferredDays: readonly string[];
-  preferredIntensity: TrainingIntensityPreference;
+  startingEffort: ActivityLevel;
   onOpenSettings: () => void;
 }) {
   return (
     <Card style={styles.preferencesCard}>
       <View style={styles.preferencesHeader}>
-        <View style={styles.headerCopy}>
-          <Text style={styles.sectionTitle}>Plan preferences</Text>
-          <Text style={styles.cardBody}>Saved in Settings for future sessions.</Text>
+        <View style={styles.preferencesTitleBlock}>
+          <Text style={styles.sectionTitle}>Plan settings</Text>
+          <Text style={styles.cardBody}>Change your days, pace, or equipment.</Text>
         </View>
         <Pressable
           style={({ pressed }) => [styles.preferencesEditButton, pressed && styles.pressed]}
           onPress={onOpenSettings}
           accessibilityRole="button"
-          accessibilityLabel="Edit plan preferences"
+          accessibilityLabel="Edit plan settings"
         >
+          <EditGlyph />
           <Text style={styles.preferencesEditText}>Edit</Text>
         </Pressable>
       </View>
-      <View style={styles.preferenceList}>
-        <PreferenceRow label="Training days" value={formatPreferredDays(preferredDays)} />
-        <PreferenceRow label="Intensity" value={intensityLabel(preferredIntensity)} />
-        <PreferenceRow label="Equipment" value="Manage in Settings" last />
+      <View style={styles.settingsPreview}>
+        <View style={styles.trainingDaysHeader}>
+          <Text style={styles.settingsPreviewLabel}>Training days</Text>
+          {preferredDays.length === 0 ? <Text style={styles.settingsUnset}>Choose in Settings</Text> : null}
+        </View>
+        <View style={styles.dayChipRow}>
+          {PLAN_WEEK_DAYS.map((day) => (
+            <View key={day.value} style={[styles.dayChip, preferredDays.includes(day.value) && styles.dayChipSelected]}>
+              <Text style={[styles.dayChipText, preferredDays.includes(day.value) && styles.dayChipTextSelected]}>{day.label}</Text>
+            </View>
+          ))}
+        </View>
+        <View style={styles.settingsPreviewRows}>
+          <SettingPreviewRow label="Effort" value={startingEffortLabel(startingEffort)} />
+          <SettingPreviewRow label="Equipment" value="Change in Settings" last />
+        </View>
       </View>
     </Card>
   );
 }
 
-function PreferenceRow({ label, value, last = false }: { label: string; value: string; last?: boolean }) {
+function SettingPreviewRow({ label, value, last = false }: { label: string; value: string; last?: boolean }) {
   return (
-    <View style={[styles.preferenceRow, last && styles.preferenceRowLast]}>
-      <Text style={styles.preferenceLabel}>{label}</Text>
-      <Text style={styles.preferenceValue} numberOfLines={2}>{value}</Text>
+    <View style={[styles.settingPreviewRow, last && styles.settingPreviewRowLast]}>
+      <Text style={styles.settingPreviewLabel}>{label}</Text>
+      <Text style={styles.settingPreviewValue} numberOfLines={2}>{value}</Text>
     </View>
+  );
+}
+
+function EditGlyph() {
+  return (
+    <Svg width={15} height={15} viewBox="0 0 24 24" fill="none" accessibilityElementsHidden>
+      <Path
+        d="M5 18.8 L8.8 18 L18.1 8.7 C18.8 8 18.8 6.9 18.1 6.2 L17.8 5.9 C17.1 5.2 16 5.2 15.3 5.9 L6 15.2 Z"
+        stroke={colors.accentDeep}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path d="M14.6 6.7 L17.3 9.4" stroke={colors.accentDeep} strokeWidth={1.8} strokeLinecap="round" />
+    </Svg>
   );
 }
 
@@ -630,8 +643,8 @@ function getPlanHeroAction(
   if (retest.due) {
     return {
       kind: 'retest',
-      label: 'Start Movement Check-Up',
-      accessibilityLabel: 'Start Movement Check-Up',
+      label: 'Start check-up',
+      accessibilityLabel: 'Start check-up',
     };
   }
 
@@ -660,50 +673,28 @@ function getPlanHeroAction(
 }
 
 function timelineRetestLabel(summary: ActiveBlockSummary, retest: ReturnType<typeof getRetestCopy>): string {
-  if (retest.due) return 'Due now';
-  if (summary.retestInDays === undefined) return 'After block';
+  if (retest.due) return 'Ready now';
+  if (summary.retestInDays === undefined) return `End of week ${summary.totalWeeks}`;
   if (summary.retestInDays === 1) return 'Tomorrow';
   if (summary.retestInDays >= 14) {
     const weeks = Math.ceil(summary.retestInDays / 7);
-    return `${weeks} ${weeks === 1 ? 'week' : 'weeks'}`;
+    return `about ${weeks} ${weeks === 1 ? 'week' : 'weeks'}`;
   }
   return `${summary.retestInDays} days`;
 }
 
 function timelineRetestSentence(summary: ActiveBlockSummary, retest: ReturnType<typeof getRetestCopy>): string {
-  if (retest.due) return 'Your next Movement Check-Up is ready when you are.';
-  if (summary.retestInDays === undefined) return 'Your next Movement Check-Up comes at the end of this block.';
-  if (summary.retestInDays === 1) return 'Next Movement Check-Up tomorrow.';
-  return `Next Movement Check-Up in ${timelineRetestLabel(summary, retest)}.`;
+  if (retest.due) return 'Your next check-up is ready when you are.';
+  if (summary.retestInDays === undefined) return `Next check-up: end of week ${summary.totalWeeks}.`;
+  if (summary.retestInDays === 1) return 'Next check-up tomorrow.';
+  return `Next check-up in ${timelineRetestLabel(summary, retest)}.`;
 }
 
-function movementEmphasis(focusDomain: ActiveBlockSummary['focusDomain']): readonly { title: string; body: string }[] {
-  if (focusDomain === 'strength_power') {
-    return [
-      { title: 'Chair-rise power', body: 'Practice standing with control and confidence.' },
-      { title: 'Lower-body strength', body: 'Build the legs you use for stairs and getting up.' },
-      { title: 'Balance support', body: 'Keep steadiness in the plan without overloading the week.' },
-    ];
-  }
-  if (focusDomain === 'balance') {
-    return [
-      { title: 'Steady holds', body: 'Practice calm balance with support nearby.' },
-      { title: 'Ankle control', body: 'Build the small adjustments that keep you steady.' },
-      { title: 'Strength base', body: 'Keep legs strong enough to support better balance.' },
-    ];
-  }
-  if (focusDomain === 'mobility') {
-    return [
-      { title: 'Hips and hinge', body: 'Keep bending and reaching easier in daily life.' },
-      { title: 'Shoulder reach', body: 'Build comfortable overhead range.' },
-      { title: 'Easy strength', body: 'Support new range with simple controlled work.' },
-    ];
-  }
-  return [
-    { title: 'Strength', body: 'Keep everyday power moving forward.' },
-    { title: 'Balance', body: 'Practice steadiness without pressure.' },
-    { title: 'Mobility', body: 'Support comfortable reach and range.' },
-  ];
+function weeklySessionSummary(summary: ActiveBlockSummary): string {
+  const complete = summary.sessionsCompleteThisWeek;
+  const target = summary.sessionsTargetThisWeek;
+  if (complete === target) return `${complete} of ${target} sessions done`;
+  return `${complete} of ${target} sessions done this week`;
 }
 
 const styles = StyleSheet.create({
@@ -1163,38 +1154,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     marginTop: 5,
   },
-  emphasisCard: {
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-    borderRadius: 16,
-    ...shadow.card,
-  },
-  emphasisGrid: {
-    gap: 10,
-    marginTop: 14,
-  },
-  emphasisItem: {
-    minHeight: 66,
-    borderRadius: 14,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    backgroundColor: colors.bgMaterial,
-  },
-  emphasisTitle: {
-    color: colors.textPrimary,
-    fontFamily: fonts.sansMedium,
-    fontSize: 14,
-    lineHeight: 19,
-    letterSpacing: 0,
-  },
-  emphasisBody: {
-    color: colors.textSecondary,
-    fontFamily: fonts.sansRegular,
-    fontSize: 13,
-    lineHeight: 18,
-    letterSpacing: 0,
-    marginTop: 4,
-  },
   sessionsCard: {
     paddingHorizontal: 18,
     paddingTop: 18,
@@ -1355,24 +1314,32 @@ const styles = StyleSheet.create({
   },
   preferencesCard: {
     marginTop: 4,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    borderRadius: 18,
     ...shadow.card,
   },
   cardBody: { ...type.bodySmall, color: colors.textSecondary, marginTop: spacing.xs },
   preferencesHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: spacing.md,
   },
+  preferencesTitleBlock: {
+    flex: 1,
+    minWidth: 0,
+    maxWidth: 360,
+  },
   preferencesEditButton: {
     minHeight: 36,
-    borderRadius: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 14,
-    backgroundColor: colors.bgMaterial,
+    gap: 6,
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    backgroundColor: 'transparent',
   },
   preferencesEditText: {
     color: colors.accentDeep,
@@ -1381,15 +1348,67 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     letterSpacing: 0,
   },
-  preferenceList: {
-    marginTop: 14,
-    borderRadius: 14,
-    backgroundColor: colors.bgMaterial,
-    paddingHorizontal: 14,
-    paddingVertical: 2,
+  settingsPreview: {
+    marginTop: 20,
+    gap: 13,
   },
-  preferenceRow: {
-    minHeight: 48,
+  trainingDaysHeader: {
+    minHeight: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  settingsPreviewLabel: {
+    color: colors.textSecondary,
+    fontFamily: fonts.sansRegular,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0,
+  },
+  settingsUnset: {
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0,
+  },
+  dayChipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 5,
+  },
+  dayChip: {
+    width: 36,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bgMaterial,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+  },
+  dayChipSelected: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  dayChipText: {
+    color: colors.textSecondary,
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0,
+  },
+  dayChipTextSelected: {
+    color: colors.onAccent,
+  },
+  settingsPreviewRows: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
+  },
+  settingPreviewRow: {
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -1397,19 +1416,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.divider,
   },
-  preferenceRowLast: {
+  settingPreviewRowLast: {
     borderBottomWidth: 0,
   },
-  preferenceLabel: {
+  settingPreviewLabel: {
     color: colors.textSecondary,
     fontFamily: fonts.sansRegular,
     fontSize: 13,
     lineHeight: 18,
     letterSpacing: 0,
-    flex: 1,
-    minWidth: 0,
   },
-  preferenceValue: {
+  settingPreviewValue: {
     color: colors.accentDeep,
     fontFamily: fonts.sansMedium,
     fontSize: 13,

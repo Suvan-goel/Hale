@@ -54,6 +54,7 @@ export type DailyTrainingReasonCode =
   | 'short_on_time'
   | 'reduced_readiness'
   | 'activity_level_gentle_start'
+  | 'activity_level_regular_start'
   | 'age_recovery_buffer'
   | 'controlled_beta_release_cap'
   | 'auto_progression_cap'

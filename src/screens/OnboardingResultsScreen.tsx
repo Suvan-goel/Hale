@@ -2,16 +2,17 @@ import * as React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { CheckUp } from '../checkup';
-import type { MovementAssessment } from '../adherence';
-import { PrimaryButton, Screen, ScreenHeader } from '../components/ui';
+import type { MovementAssessment, MovementBlock } from '../adherence';
+import { PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../components/ui';
 import { getAssessmentResultState } from '../haleFlow/assessmentResultState';
 import {
   bandLabel,
   onboardingDomainSummaries,
   onboardingFocusCopy,
   onboardingFocusDomain,
+  plannedOnboardingFocusDomain,
 } from '../onboarding/results';
-import { DOMAIN_LABEL, selectFocusFromScore, type CheckUpScore, type ScoreFocusSelection, type VersionedCheckUpScoreSnapshot } from '../scoring';
+import { selectFocusFromScore, type CheckUpScore, type ScoreFocusSelection, type VersionedCheckUpScoreSnapshot } from '../scoring';
 import { colors, fonts, radius, spacing, type } from '../theme';
 
 const ICONS = {
@@ -25,15 +26,19 @@ export function OnboardingResultsScreen({
   assessment,
   score,
   scoreSnapshot,
+  plannedBlock,
   onContinue,
   onRetake,
+  onDone,
 }: {
   checkUp: CheckUp;
   assessment?: MovementAssessment | null;
   score?: CheckUpScore | null;
   scoreSnapshot?: VersionedCheckUpScoreSnapshot | null;
+  plannedBlock?: MovementBlock | null;
   onContinue: () => void;
   onRetake: () => void;
+  onDone: () => void;
 }) {
   const resultState = React.useMemo(() => getAssessmentResultState({ score: score ?? null, scoreSnapshot, assessment }), [assessment, score, scoreSnapshot]);
   const focusSelection = React.useMemo(
@@ -41,34 +46,40 @@ export function OnboardingResultsScreen({
     [score, scoreSnapshot]
   );
   const closelyMatched = focusSelection?.kind === 'exact_tie' || focusSelection?.kind === 'near_tie';
-  const focus = resultState.canCreateBlock && score ? onboardingFocusDomain(score) : null;
+  const focus = resultState.canCreateBlock
+    ? plannedOnboardingFocusDomain({ score: score ?? null, plannedBlock })
+    : null;
+  const focusDiffersFromScore =
+    !!focus && !!score && !!plannedBlock && focus !== onboardingFocusDomain(score);
   const summaries = score ? onboardingDomainSummaries(score) : [];
   return (
     <Screen>
       <View style={styles.header}>
         <ScreenHeader
-          eyebrow="Movement Check-Up"
-          title="Your starting picture"
-          subtitle="Hale uses today’s home estimate, your goal, and your setup to prepare the first block."
+          eyebrow="Check-up complete"
+          title="Your starting point"
+          subtitle="Hale used today's check-up to choose the first area to work on."
         />
       </View>
 
       {focus ? (
         <View style={styles.focusCard}>
           <View style={styles.focusTopRow}>
-            <Text style={styles.eyebrow}>{closelyMatched ? 'Closely matched starting point' : 'Suggested first focus'}</Text>
+            <Text style={styles.eyebrow}>First area to work on</Text>
             <View style={styles.focusPill}>
-              <Text style={styles.focusPillText}>Home estimate</Text>
+              <Text style={styles.focusPillText}>From today's check-up</Text>
             </View>
           </View>
           <Text style={styles.focusTitle}>
-            {closelyMatched ? tiedDomainLabels(focusSelection) : onboardingFocusCopy(focus)}
+            {onboardingFocusCopy(focus)}
           </Text>
           <View style={styles.focusRule} />
           <Text style={styles.focusBody}>
-            {closelyMatched
-              ? `${onboardingFocusCopy(focus)} is the suggested first focus because these home estimates were closely matched.`
-              : 'This gives Hale a starting point for your first 4-week block. You can retake the check-up if anything felt off.'}
+            {closelyMatched && focusDiffersFromScore
+              ? 'These areas were close together, so Hale chose the one that best supports your goal.'
+              : closelyMatched
+              ? 'These areas were close together, so Hale chose one clear place to start.'
+              : 'This is where Hale will start. Your first 4-week plan will focus on this area while still supporting your whole body.'}
           </Text>
         </View>
       ) : (
@@ -88,7 +99,7 @@ export function OnboardingResultsScreen({
               icon={ICONS[domain.key]}
               title={domain.title}
               band={bandLabel(domain.band)}
-              status={focus && domain.key === focus ? 'Suggested focus' : closelyMatched && domainIsTied(domain.key, focusSelection) ? 'Closely matched' : 'Home estimate'}
+              status={focus && domain.key === focus ? 'First focus' : closelyMatched && domainIsTied(domain.key, focusSelection) ? 'Close result' : 'Checked today'}
               featured={!!focus && domain.key === focus}
             />
           ))}
@@ -100,23 +111,28 @@ export function OnboardingResultsScreen({
           <View style={styles.noteHead}>
             <Text style={styles.nextTitle}>What happens next</Text>
             <View style={styles.nextPill}>
-              <Text style={styles.nextPillText}>4-week block</Text>
+              <Text style={styles.nextPillText}>4-week plan</Text>
             </View>
           </View>
           <View style={styles.nextRule} />
           <Text style={styles.nextBody}>
-            Your first block is ready in the Plan tab. You will get three calm Hale Sessions each week, then repeat the check-up in 4 weeks.
+            Hale will give you three guided sessions each week. After 4 weeks, you will repeat the check-up to see what has changed.
           </Text>
         </View>
       ) : null}
 
-      {resultState.canCreateBlock ? (
-        <PrimaryButton title="View my first block" onPress={onContinue} />
-      ) : resultState.canRetake ? (
-        <PrimaryButton title="Retake Movement Check-Up" onPress={onRetake} />
-      ) : (
-        <PrimaryButton title="Done" onPress={onRetake} />
-      )}
+      <View style={styles.actions}>
+        {resultState.canCreateBlock ? (
+          <>
+            <PrimaryButton title="See my plan" onPress={onContinue} />
+            <SecondaryButton title="Retake check-up" onPress={onRetake} />
+          </>
+        ) : resultState.canRetake ? (
+          <PrimaryButton title="Retake check-up" onPress={onRetake} />
+        ) : (
+          <PrimaryButton title="Done" onPress={onDone} />
+        )}
+      </View>
     </Screen>
   );
 }
@@ -150,11 +166,6 @@ function DomainSummaryCard({
   );
 }
 
-function tiedDomainLabels(focusSelection: ScoreFocusSelection | null | undefined): string {
-  if (!focusSelection) return '';
-  return focusSelection.tiedDomains.map((domain) => DOMAIN_LABEL[domain]).join(' + ');
-}
-
 function domainIsTied(
   domain: 'strength_power' | 'balance_stability' | 'mobility_flexibility',
   focusSelection: ScoreFocusSelection | null | undefined
@@ -167,6 +178,9 @@ function domainIsTied(
 
 const styles = StyleSheet.create({
   header: { gap: spacing.xs },
+  actions: {
+    gap: spacing.md,
+  },
   focusCard: {
     gap: spacing.md,
     paddingHorizontal: spacing.xl,

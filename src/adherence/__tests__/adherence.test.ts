@@ -172,6 +172,14 @@ describe('life goal relevance', () => {
     ]);
   });
 
+  it('labels the neutral check-up-guided goal without implying a strength bias', () => {
+    const goal = createLifeGoal({ category: 'noticed_decline', nowIso: START });
+
+    expect(getLifeGoalDisplayText(goal)).toBe('Feel stronger overall');
+    expect(getLifeGoalWorkoutBias(goal).preferredLadderIds).toEqual([]);
+    expect(getLifeGoalWorkoutBias(goal).preferredSlotTypes).toEqual([]);
+  });
+
   it('keeps legacy custom goals readable without exposing them as selector presets', () => {
     const goal = createLifeGoal({ category: 'custom', customText: 'Return to doubles tennis', nowIso: START });
 
@@ -457,7 +465,7 @@ describe('milestones and copy safety', () => {
     const goal = createLifeGoal({ category: 'noticed_decline', nowIso: START });
 
     expect(getProtectionCopy({ lifeGoal: goal, focusDomain: 'strength_power', adherenceState: 'on_track' })).toBe(
-      'Today supports the goal you chose: Get stronger overall.'
+      'Today supports the goal you chose: Feel stronger overall.'
     );
   });
 });

@@ -9,6 +9,7 @@ export * from './checkupHistory';
 export * from './checkupTransition';
 export * from './copy';
 export * from './equipmentPositioning';
+export * from './extraSessionCopy';
 export * from './exploreViewModel';
 export * from './focusStimulusEvidence';
 export * from './manualCheckup';

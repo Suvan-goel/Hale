@@ -67,8 +67,8 @@ export function getManualCheckupOptions({
         },
         {
           type: 'manual_extra',
-          title: 'Start full check-up anyway',
-          body: 'This will be saved separately and will not replace your official trend.',
+          title: 'Start full check-up',
+          body: 'Use this if you want the complete strength, balance, and mobility check today.',
           route: 'manual-extra-checkup',
           recommended: false,
           isOfficialForProgress: false,
@@ -78,16 +78,16 @@ export function getManualCheckupOptions({
     return [
       {
         type: 'micro_check',
-        title: 'Do 60-second micro-check',
-        body: 'A quick check-in is usually better during an active block.',
+        title: 'Do a 60-second micro-check',
+        body: 'A short check-in keeps your progress up to date without replacing your next full check-up.',
         route: 'microcheck',
         recommended: true,
         isOfficialForProgress: false,
       },
       {
         type: 'manual_extra',
-        title: 'Start full check-up anyway',
-        body: 'This will be saved separately and will not reset your block.',
+        title: 'Start full check-up',
+        body: 'Use this if you want the complete strength, balance, and mobility check today.',
         route: 'manual-extra-checkup',
         recommended: false,
         isOfficialForProgress: false,

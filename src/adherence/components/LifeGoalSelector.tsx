@@ -22,10 +22,12 @@ export function LifeGoalSelector({
   initialGoal,
   onSave,
   onCancel,
+  primaryLabel = 'Continue',
 }: {
   initialGoal?: LifeGoal | null;
   onSave: (goal: LifeGoal) => void;
   onCancel?: () => void;
+  primaryLabel?: string;
 }) {
   const initialCategory = initialGoal?.category === 'custom' ? 'stairs' : initialGoal?.category ?? 'stairs';
   const [selected, setSelected] = React.useState<SelectableLifeGoalCategory>(initialCategory);
@@ -50,7 +52,7 @@ export function LifeGoalSelector({
 
       <View style={styles.actions}>
         <PrimaryButton
-          title="Continue"
+          title={primaryLabel}
           onPress={() => {
             onSave(createLifeGoal({ category: selected }));
           }}

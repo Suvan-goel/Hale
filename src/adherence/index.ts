@@ -16,7 +16,6 @@ export * from './weeklySummary';
 export { CurrentBlockCard } from './components/CurrentBlockCard';
 export { LifeGoalSelector } from './components/LifeGoalSelector';
 export { BlockIntroScreen } from './screens/BlockIntroScreen';
-export { BlockReportScreen } from './screens/BlockReportScreen';
 export { LifeGoalOnboardingScreen } from './screens/LifeGoalOnboardingScreen';
 export { RestartSessionScreen } from './screens/RestartSessionScreen';
 export { SessionCompletionScreen } from './screens/SessionCompletionScreen';

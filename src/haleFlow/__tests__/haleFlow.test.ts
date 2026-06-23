@@ -13,6 +13,7 @@ import {
   createMovementAssessment,
   createMovementBlockReport,
   generateTodaySession,
+  getManualCheckupCopy,
   getManualCheckupOptions,
   getNextBestAction,
 } from '../index';
@@ -298,6 +299,30 @@ describe('manual check-up rules', () => {
     });
     const manual = options.find((o) => o.type === 'manual_extra');
     expect(manual?.isOfficialForProgress).toBe(false);
+  });
+
+  it('uses simple mid-plan copy for the extra check-up choice', () => {
+    const header = getManualCheckupCopy({ activeBlock: true });
+    const options = getManualCheckupOptions({
+      latestAssessment: assessment(),
+      activeBlock: block(),
+      completions: [],
+      now: '2026-06-03T08:00:00.000Z',
+    });
+
+    expect(header).toEqual({
+      title: 'Check in on your progress',
+      body: "You're in the middle of a plan. A quick check-in is usually the best way to see how things are going today.",
+    });
+    expect(options.find((option) => option.type === 'micro_check')).toMatchObject({
+      title: 'Do a 60-second micro-check',
+      body: 'A short check-in keeps your progress up to date without replacing your next full check-up.',
+      recommended: true,
+    });
+    expect(options.find((option) => option.type === 'manual_extra')).toMatchObject({
+      title: 'Start full check-up',
+      body: 'Use this if you want the complete strength, balance, and mobility check today.',
+    });
   });
 
   it('allows baseline retake replacement only with confirmation', () => {

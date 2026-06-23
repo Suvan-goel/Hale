@@ -8,16 +8,12 @@ import {
   getMovementLadderDetail,
   type LadderLevelView,
   type MovementLadderDetail,
-  type TodaySessionAdjustment,
-  type TodaySessionPreferences,
 } from '../haleFlow';
 import type { MovementSafetyProfile } from '../adherence';
 import type { EquipmentProfile, LadderProgress, PersistedGeneratedSessionSummary } from '../training';
-import type { PainArea } from '../training';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 import { articleImageFor, ladderImageFor } from './exploreImages';
-import { SessionStartMenu } from './TodayScreen';
 
 export function LadderDetailScreen({
   ladderId,
@@ -35,10 +31,9 @@ export function LadderDetailScreen({
   safetyProfile?: MovementSafetyProfile | null;
   activeBlockId?: string | null;
   generatedSessionSummaries?: readonly PersistedGeneratedSessionSummary[] | null;
-  onPractice: (preferences?: TodaySessionPreferences | null) => void;
+  onPractice: () => void;
   onDone: () => void;
 }) {
-  const [menuVisible, setMenuVisible] = React.useState(false);
   const detail = React.useMemo(
     () => getMovementLadderDetail(ladderId, ladderProgressById, {
       equipment,
@@ -48,21 +43,11 @@ export function LadderDetailScreen({
     }),
     [activeBlockId, equipment, generatedSessionSummaries, ladderId, ladderProgressById, safetyProfile]
   );
-  const startPractice = React.useCallback(
-    (adjustment?: TodaySessionAdjustment | null, painArea?: PainArea | null) => {
-      setMenuVisible(false);
-      onPractice({
-        adjustment: adjustment ?? null,
-        painArea: adjustment === 'something_hurts' ? painArea ?? null : null,
-      });
-    },
-    [onPractice]
-  );
 
   if (!detail) {
     return (
       <MissingDetailScreen
-        title="Movement ladder"
+        title="Movement group"
         subtitle="This ladder is not available in V1."
         onBack={onDone}
       />
@@ -70,38 +55,29 @@ export function LadderDetailScreen({
   }
 
   return (
-    <>
-      <Screen contentStyle={styles.articleScreen}>
-        <DetailBackButton onPress={onDone} />
-        <ArticleHero
-          eyebrow={`${detail.domainLabel} · ${detail.showCurrentLevel ? 'Movement ladder' : 'Movement group'}`}
-          title={detail.title}
-          subtitle={detail.body}
-          imageSource={ladderImageFor(detail.id)}
-        />
+    <Screen contentStyle={styles.articleScreen}>
+      <DetailBackButton onPress={onDone} />
+      <ArticleHero
+        eyebrow={`${detail.domainLabel} · Movement group`}
+        title={detail.title}
+        subtitle={detail.body}
+        imageSource={ladderImageFor(detail.id)}
+      />
 
-        <View style={styles.ladderBody}>
-          <CurrentLevelPanel detail={detail} />
-          <LadderInfoSection title="Why it matters" body={detail.whyItMatters} />
-          <AdaptationSection
-            easierLevel={detail.easierLevel}
-            harderLevel={detail.harderLevel}
-            hasMultipleLevels={detail.levels.length > 1}
-            showEasierHarder={detail.showCurrentLevel}
-            presentationMode={detail.presentationMode}
-            varietyLabel={detail.varietyLabel}
-          />
-          <LadderLevelsSection detail={detail} />
-        </View>
+      <View style={styles.ladderBody}>
+        <CurrentLevelPanel detail={detail} />
+        <ChecklistSection title="Before you start" items={detail.beforeStartItems} />
+        <LadderInfoSection title="What Hale watches" body={detail.watchText} />
+        <OtherVersionsSection detail={detail} />
+        <LadderInfoSection title="Why it helps" body={detail.whyItHelps} />
+      </View>
 
-        <PrimaryButton
-          title={detail.showCurrentLevel ? 'Practice This Ladder' : 'Practice These Movements'}
-          onPress={() => setMenuVisible(true)}
-          style={styles.primaryAction}
-        />
-      </Screen>
-      <SessionStartMenu visible={menuVisible} onClose={() => setMenuVisible(false)} onStart={startPractice} />
-    </>
+      <PrimaryButton
+        title={detail.showCurrentLevel ? 'Practice this movement' : 'Practice these movements'}
+        onPress={onPractice}
+        style={styles.primaryAction}
+      />
+    </Screen>
   );
 }
 
@@ -245,13 +221,17 @@ function CurrentLevelPanel({ detail }: { detail: MovementLadderDetail }) {
       <View style={styles.currentPanel}>
         <View style={styles.currentPanelHeader}>
           <View style={styles.currentPanelTitleGroup}>
-            <Text style={styles.ladderEyebrow}>{detail.currentLevelLabel}</Text>
+            <Text style={styles.ladderEyebrow}>Movement group</Text>
             <Text style={styles.currentLevelName}>{detail.currentLevelName}</Text>
             <Text style={styles.currentLevelMeta}>
               {detail.varietyLabel ?? 'These movements remain available for practice.'}
             </Text>
           </View>
           <StatusBadge label={detail.domainLabel} tone="gold" />
+        </View>
+        <View style={styles.currentTagRow}>
+          <InfoPill label={detail.currentLevelLabel} />
+          <InfoPill label={`${detail.levels.length} movements`} />
         </View>
       </View>
     );
@@ -260,34 +240,31 @@ function CurrentLevelPanel({ detail }: { detail: MovementLadderDetail }) {
     <View style={styles.currentPanel}>
       <View style={styles.currentPanelHeader}>
         <View style={styles.currentPanelTitleGroup}>
-          <Text style={styles.ladderEyebrow}>Current level</Text>
+          <Text style={styles.ladderEyebrow}>Your version</Text>
           <Text style={styles.currentLevelName}>{level.name}</Text>
           <Text style={styles.currentLevelMeta}>{level.levelLabel}</Text>
         </View>
         <StatusBadge label={detail.domainLabel} tone="gold" />
       </View>
 
-      <View style={styles.currentFactGrid}>
-        <CurrentFact label="Equipment" value={level.equipmentLabel} wide />
-        <CurrentFact label="Camera" value={level.cameraLabel} />
-        <CurrentFact label="Tracking" value={level.measurementLabel} />
+      <View style={styles.currentTagRow}>
+        <InfoPill label={level.equipmentLabel} />
+        <InfoPill label={level.cameraLabel} />
+        <InfoPill label={level.measurementLabel} />
       </View>
 
       <View style={styles.currentInstructionBlock}>
         <Text style={styles.blockLabel}>How to do it</Text>
         <Text style={styles.currentInstruction}>{level.instructions}</Text>
       </View>
-
-      <LevelNotes level={level} />
     </View>
   );
 }
 
-function CurrentFact({ label, value, wide = false }: { label: string; value: string; wide?: boolean }) {
+function InfoPill({ label }: { label: string }) {
   return (
-    <View style={[styles.currentFact, wide && styles.currentFactWide]}>
-      <Text style={styles.currentFactLabel}>{label}</Text>
-      <Text style={styles.currentFactValue}>{value}</Text>
+    <View style={styles.infoPill}>
+      <Text style={styles.infoPillText}>{label}</Text>
     </View>
   );
 }
@@ -301,162 +278,78 @@ function LadderInfoSection({ title, body }: { title: string; body: string }) {
   );
 }
 
-function AdaptationSection({
-  easierLevel,
-  harderLevel,
-  hasMultipleLevels,
-  showEasierHarder,
-  presentationMode,
-  varietyLabel,
-}: {
-  easierLevel?: LadderLevelView;
-  harderLevel?: LadderLevelView;
-  hasMultipleLevels: boolean;
-  showEasierHarder: boolean;
-  presentationMode: MovementLadderDetail['presentationMode'];
-  varietyLabel?: string;
-}) {
-  if (!showEasierHarder) {
-    return (
-      <View style={styles.ladderSection}>
-        <View style={styles.ladderSectionHeader}>
-          <Text style={styles.ladderSectionTitle}>How Hale uses it</Text>
-          <Text style={styles.ladderSectionCaption}>
-            {presentationMode === 'collection'
-              ? varietyLabel ?? 'Hale varies these mobility movements across your block.'
-              : 'Hale chooses available practice options without treating them as harder or easier ranks.'}
-          </Text>
-        </View>
-      </View>
-    );
-  }
+function ChecklistSection({ title, items }: { title: string; items: readonly string[] }) {
+  if (items.length === 0) return null;
   return (
     <View style={styles.ladderSection}>
       <View style={styles.ladderSectionHeader}>
-        <Text style={styles.ladderSectionTitle}>How Hale adapts it</Text>
-        <Text style={styles.ladderSectionCaption}>
-          Hale chooses from the ladder based on your setup and recent sessions.
-        </Text>
+        <Text style={styles.ladderSectionTitle}>{title}</Text>
       </View>
-      <View style={styles.adaptationPanel}>
-        {hasMultipleLevels ? (
-          <>
-            <AdaptationItem
-              label="Easier"
-              level={easierLevel}
-              fallbackTitle="At the easiest option"
-              fallbackBody="There is no gentler core level below this one."
-            />
-            <View style={styles.adaptationDivider} />
-            <AdaptationItem
-              label="Next"
-              level={harderLevel}
-              fallbackTitle="Top option for now"
-              fallbackBody="There is no harder core level above this one."
-            />
-          </>
-        ) : (
-          <View style={styles.singleAdaptation}>
-            <Text style={styles.adaptationFallbackTitle}>Single-level ladder</Text>
-            <Text style={styles.adaptationFallbackBody}>
-              Hale uses this movement when the required setup is available, or chooses another ladder when it is not.
-            </Text>
+      <View style={styles.checklistCard}>
+        {items.map((item) => (
+          <View key={item} style={styles.checklistItem}>
+            <View style={styles.checklistBullet} />
+            <Text style={styles.checklistText}>{item}</Text>
           </View>
-        )}
-      </View>
-    </View>
-  );
-}
-
-function AdaptationItem({
-  label,
-  level,
-  fallbackTitle,
-  fallbackBody,
-}: {
-  label: string;
-  level?: LadderLevelView;
-  fallbackTitle: string;
-  fallbackBody: string;
-}) {
-  return (
-    <View style={styles.adaptationItem}>
-      <Text style={styles.adaptationLabel}>{label}</Text>
-      {level ? (
-        <>
-          <Text style={styles.adaptationName}>{level.name}</Text>
-          <Text style={styles.adaptationMeta}>
-            {level.levelLabel} · {level.equipmentLabel}
-          </Text>
-        </>
-      ) : (
-        <>
-          <Text style={styles.adaptationFallbackTitle}>{fallbackTitle}</Text>
-          <Text style={styles.adaptationFallbackBody}>{fallbackBody}</Text>
-        </>
-      )}
-    </View>
-  );
-}
-
-function LadderLevelsSection({ detail }: { detail: MovementLadderDetail }) {
-  const levels = detail.levels;
-  return (
-    <View style={styles.ladderSection}>
-      <View style={styles.ladderSectionHeader}>
-        <Text style={styles.ladderSectionTitle}>{detail.listTitle}</Text>
-        <Text style={styles.ladderSectionCaption}>
-          {detail.showCurrentLevel
-            ? `${levels.length} options Hale can choose from`
-            : `${levels.length} movements available for practice`}
-        </Text>
-      </View>
-      <View style={styles.levelList}>
-        {levels.map((level, index) => (
-          <LevelArticleRow key={level.id} level={level} showDivider={index > 0} />
         ))}
       </View>
     </View>
   );
 }
 
-function LevelNotes({ level, compact = false }: { level: LadderLevelView; compact?: boolean }) {
-  const notes = [
-    level.setupNote ? { label: 'Set-up', body: level.setupNote } : null,
-    level.safetyNote ? { label: 'Safety', body: level.safetyNote } : null,
-    level.measurementNote ? { label: 'What Hale tracks', body: level.measurementNote } : null,
-  ].filter((note): note is { label: string; body: string } => !!note);
+function OtherVersionsSection({ detail }: { detail: MovementLadderDetail }) {
+  const rows = detail.showCurrentLevel
+    ? detail.levels.map((level) => ({
+        label: level.isCurrent ? 'Your version' : level.levelLabel,
+        level,
+      }))
+    : detail.levels.map((level) => ({ label: level.levelLabel, level }));
 
-  if (notes.length === 0) return null;
+  if (rows.length <= 1) return null;
+
   return (
-    <View style={[styles.levelNotes, compact && styles.levelNotesCompact]}>
-      {notes.map((note) => (
-        <View key={note.label} style={styles.levelNote}>
-          <Text style={styles.levelNoteLabel}>{note.label}</Text>
-          <Text style={styles.levelNoteBody}>{note.body}</Text>
-        </View>
-      ))}
+    <View style={styles.ladderSection}>
+      <View style={styles.ladderSectionHeader}>
+        <Text style={styles.ladderSectionTitle}>
+          {detail.showCurrentLevel ? 'All versions' : detail.listTitle}
+        </Text>
+        <Text style={styles.ladderSectionCaption}>
+          {detail.showCurrentLevel
+            ? 'Hale can choose from these versions when your plan changes.'
+            : 'Hale can use these when they fit your setup.'}
+        </Text>
+      </View>
+      <View style={styles.versionList}>
+        {rows.map((row, index) => (
+          <VersionRow
+            key={`${row.label}-${row.level.id}`}
+            label={row.label}
+            level={row.level}
+            showDivider={index > 0}
+          />
+        ))}
+      </View>
     </View>
   );
 }
 
-function LevelArticleRow({
+function VersionRow({
+  label,
   level,
   showDivider,
 }: {
+  label: string;
   level: LadderLevelView;
   showDivider: boolean;
 }) {
   return (
-    <View style={[styles.levelRow, showDivider && styles.levelRowDivider]}>
-      <View style={styles.levelRowCopy}>
-        <Text style={styles.levelRowLabel}>{level.levelLabel}</Text>
-        <Text style={styles.levelRowTitle}>{level.name}</Text>
-        <Text style={styles.levelRowMeta}>
-          {level.equipmentLabel} · {level.measurementLabel}
+    <View style={[styles.versionRow, showDivider && styles.versionRowDivider]}>
+      <View style={styles.versionRowCopy}>
+        <Text style={styles.versionLabel}>{label}</Text>
+        <Text style={styles.versionTitle}>{level.name}</Text>
+        <Text style={styles.versionMeta}>
+          {level.levelLabel} · {level.equipmentLabel}
         </Text>
-        <Text style={styles.levelRowCamera}>{level.cameraLabel}</Text>
-        <Text style={styles.levelRowInstructions} numberOfLines={3}>{level.instructions}</Text>
       </View>
       {level.isCurrent ? <StatusBadge label="Current" tone="good" /> : null}
     </View>
@@ -588,36 +481,23 @@ const styles = StyleSheet.create({
     ...type.caption,
     color: colors.textSecondary,
   },
-  currentFactGrid: {
+  currentTagRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
-  currentFact: {
-    flexGrow: 1,
-    flexBasis: '47%',
-    minHeight: 62,
-    justifyContent: 'center',
-    gap: 3,
-    borderRadius: 12,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+  infoPill: {
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 7,
     backgroundColor: colors.background,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
   },
-  currentFactWide: {
-    flexBasis: '100%',
-  },
-  currentFactLabel: {
+  infoPillText: {
     fontFamily: fonts.sansMedium,
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 0,
-    color: colors.textSecondary,
-  },
-  currentFactValue: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 15,
-    lineHeight: 21,
+    fontSize: 13,
+    lineHeight: 17,
     letterSpacing: 0,
     color: colors.textPrimary,
   },
@@ -666,125 +546,70 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     color: colors.textSecondary,
   },
-  adaptationPanel: {
-    gap: spacing.md,
+  checklistCard: {
+    gap: spacing.sm,
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderRadius: radius.card,
     backgroundColor: colors.card,
     ...shadow.soft,
   },
-  adaptationItem: {
-    gap: 3,
+  checklistItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
   },
-  adaptationLabel: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 12,
-    lineHeight: 16,
+  checklistBullet: {
+    width: 7,
+    height: 7,
+    borderRadius: 999,
+    backgroundColor: colors.accent,
+    marginTop: 8,
+  },
+  checklistText: {
+    flex: 1,
+    fontFamily: fonts.sansRegular,
+    fontSize: 15,
+    lineHeight: 22,
     letterSpacing: 0,
-    textTransform: 'uppercase',
     color: colors.textSecondary,
   },
-  adaptationName: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 17,
-    lineHeight: 24,
-    letterSpacing: 0,
-    color: colors.textPrimary,
+  versionList: {
+    borderRadius: radius.card,
+    paddingHorizontal: 16,
+    backgroundColor: colors.card,
+    ...shadow.soft,
   },
-  adaptationMeta: {
+  versionRow: {
+    minHeight: 74,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: 13,
+  },
+  versionRowDivider: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.borderHairline,
+  },
+  versionRowCopy: {
+    flex: 1,
+    gap: 3,
+    minWidth: 0,
+  },
+  versionLabel: {
     ...type.caption,
     color: colors.textSecondary,
   },
-  adaptationFallbackTitle: {
+  versionTitle: {
     fontFamily: fonts.sansMedium,
     fontSize: 16,
     lineHeight: 22,
     letterSpacing: 0,
     color: colors.textPrimary,
   },
-  adaptationFallbackBody: {
-    fontFamily: fonts.sansRegular,
-    fontSize: 14,
-    lineHeight: 20,
-    letterSpacing: 0,
-    color: colors.textSecondary,
-  },
-  adaptationDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.borderHairline,
-  },
-  singleAdaptation: {
-    gap: spacing.xs,
-  },
-  levelNotes: {
-    gap: spacing.sm,
-  },
-  levelNotesCompact: {
-    marginTop: spacing.xs,
-    gap: spacing.xs,
-  },
-  levelNote: {
-    gap: 2,
-    borderRadius: 12,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.background,
-  },
-  levelNoteLabel: {
-    ...type.caption,
-    fontFamily: fonts.sansMedium,
-    color: colors.textPrimary,
-  },
-  levelNoteBody: {
+  versionMeta: {
     ...type.caption,
     color: colors.textSecondary,
-  },
-  levelList: {
-    borderRadius: radius.card,
-    paddingHorizontal: 16,
-    backgroundColor: colors.card,
-    ...shadow.card,
-  },
-  levelRow: {
-    minHeight: 104,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-    paddingVertical: 14,
-  },
-  levelRowDivider: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.borderHairline,
-  },
-  levelRowCopy: {
-    flex: 1,
-    gap: 3,
-    minWidth: 0,
-  },
-  levelRowLabel: {
-    ...type.caption,
-    color: colors.textSecondary,
-  },
-  levelRowTitle: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 17,
-    lineHeight: 24,
-    letterSpacing: 0,
-    color: colors.textPrimary,
-  },
-  levelRowMeta: {
-    ...type.caption,
-    color: colors.textSecondary,
-  },
-  levelRowCamera: {
-    ...type.caption,
-    color: colors.textSecondary,
-  },
-  levelRowInstructions: {
-    ...type.bodySmall,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
   },
   primaryAction: {
     marginTop: spacing.sm,

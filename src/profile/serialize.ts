@@ -8,6 +8,7 @@
 import { LIFE_GOAL_CATEGORIES } from '../adherence';
 import type { ActivityLevel, LifeGoal, MovementSafetyProfile } from '../adherence';
 import { AppSettings, EMPTY_PROFILE, OnboardingState, OnboardingStep, Preferences, UserProfile } from './types';
+import { ageBandForAge, isAgeBand, representativeAgeForAgeBand } from './age';
 import { isCanonicalEquipmentStatus, normalizeAvailableEquipmentForPersistence } from './equipment';
 import { movementCapabilityProfileForPersistence } from './movementCapabilities';
 import { DEFAULT_VOICE_ID, VOICE_OPTIONS } from './voices';
@@ -75,9 +76,14 @@ function validProfile(v: unknown): UserProfile {
   const def = defaultPreferences().profile;
   if (typeof v !== 'object' || v === null) return def;
   const p = v as Partial<UserProfile>;
+  const age = typeof p.age === 'number' && Number.isFinite(p.age) ? p.age : null;
+  const ageBand = isAgeBand(p.ageBand)
+    ? p.ageBand
+    : ageBandForAge(age);
   return {
     name: typeof p.name === 'string' ? p.name : def.name,
-    age: typeof p.age === 'number' && Number.isFinite(p.age) ? p.age : null,
+    age: null,
+    ageBand,
     goal: typeof p.goal === 'string' ? p.goal : def.goal,
     lifeGoal: validLifeGoal(p.lifeGoal),
     safetyProfile: validSafetyProfile(p.safetyProfile),
@@ -115,6 +121,11 @@ function validSafetyProfile(v: unknown): MovementSafetyProfile | null {
   if (typeof p.id !== 'string' || typeof p.userId !== 'string' || typeof p.createdAt !== 'string' || typeof p.updatedAt !== 'string') {
     return null;
   }
+  const rawAge = typeof p.age === 'number' && Number.isFinite(p.age) ? p.age : undefined;
+  const ageBand = isAgeBand(p.ageBand)
+    ? p.ageBand
+    : ageBandForAge(rawAge);
+  const age = representativeAgeForAgeBand(ageBand) ?? undefined;
   const activityLevel =
     typeof p.activityLevel === 'string' && ACTIVITY_LEVELS.includes(p.activityLevel as ActivityLevel)
       ? (p.activityLevel as ActivityLevel)
@@ -143,7 +154,8 @@ function validSafetyProfile(v: unknown): MovementSafetyProfile | null {
   return {
     id: p.id,
     userId: p.userId,
-    age: typeof p.age === 'number' && Number.isFinite(p.age) ? p.age : undefined,
+    age,
+    ageBand: ageBand ?? undefined,
     activityLevel,
     hasCurrentPain: typeof p.hasCurrentPain === 'boolean' ? p.hasCurrentPain : undefined,
     painNotes: typeof p.painNotes === 'string' ? p.painNotes : undefined,

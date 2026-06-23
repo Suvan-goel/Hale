@@ -1040,6 +1040,11 @@ function trainingProfileModifiers(input: {
   if (input.safetyProfile?.activityLevel === 'very_inactive') {
     sessionIntensity = sessionIntensity === 'advanced' ? 'standard' : 'beginner';
     reasonCodes.push('activity_level_gentle_start');
+  } else if (
+    input.safetyProfile?.activityLevel === 'very_active' &&
+    canUseRegularActivityStart(input.dailyContext)
+  ) {
+    reasonCodes.push('activity_level_regular_start');
   }
 
   // Age never chooses exercises or levels. The oldest onboarding band only adds
@@ -1057,6 +1062,15 @@ function trainingProfileModifiers(input: {
     restSecondsExtra,
     reasonCodes,
   };
+}
+
+function canUseRegularActivityStart(dailyContext: NormalizedDailyTrainingContext): boolean {
+  return (
+    dailyContext.inputStatus === 'valid' &&
+    dailyContext.readiness === 'ready' &&
+    !dailyContext.discomfortReported &&
+    dailyContext.reasonCodes.includes('readiness_valid')
+  );
 }
 
 function profileAdjustedProgressionEvidencePolicy(
@@ -1353,6 +1367,17 @@ function toGeneratedExercise({
     repsPerSet = beginner.repsPerSet;
     secondsPerSet = beginner.secondsPerSet;
   }
+  if (profileAdjustmentReasons.includes('activity_level_regular_start')) {
+    const regular = regularStartPrescription({
+      level: selected.level,
+      sets,
+      repsPerSet,
+      secondsPerSet,
+    });
+    sets = regular.sets;
+    repsPerSet = regular.repsPerSet;
+    secondsPerSet = regular.secondsPerSet;
+  }
   if (readiness === 'short_on_time') {
     sets = Math.min(sets, slot.domain === 'strength_power' ? 2 : 1);
   } else if (readiness === 'low_energy' || readiness === 'something_hurts') {
@@ -1406,6 +1431,21 @@ function toGeneratedExercise({
     adjustmentReasons: unique(adjustmentReasons),
     collectionSelection: selected.collectionSelection,
   };
+}
+
+function regularStartPrescription(input: {
+  level: ExerciseLevel;
+  sets: number;
+  repsPerSet?: number;
+  secondsPerSet?: number;
+}): { sets: number; repsPerSet?: number; secondsPerSet?: number } {
+  let { sets, repsPerSet, secondsPerSet } = input;
+  if (input.level.domain === 'strength_power') {
+    sets = Math.min(3, sets + 1);
+  } else if (input.level.domain === 'balance_stability') {
+    if (secondsPerSet) secondsPerSet = Math.min(30, secondsPerSet + 5);
+  }
+  return { sets, repsPerSet, secondsPerSet };
 }
 
 function applyReadinessToTemplate(
