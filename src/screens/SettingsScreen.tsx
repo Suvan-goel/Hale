@@ -930,19 +930,27 @@ function PersonalDetailsCard({
 
       <View style={styles.personalFieldGroup}>
         <View style={styles.personalIdentityPanel}>
-          <View style={styles.personalNameField}>
-            <Text style={styles.personalFieldLabel}>Name</Text>
-            <TextInput
-              style={styles.personalFieldInput}
-              value={name}
-              onChangeText={onNameChange}
-              onBlur={onNameBlur}
-              placeholder="Your name"
-              placeholderTextColor={colors.textTertiary}
-              returnKeyType="done"
-              accessibilityLabel="Name"
-            />
+          <View style={styles.personalIdentityRow}>
+            <View style={styles.personalIdentityMark}>
+              <NameFieldGlyph />
+            </View>
+            <View style={styles.personalNameField}>
+              <Text style={styles.personalFieldLabel}>Name</Text>
+              <TextInput
+                style={styles.personalFieldInput}
+                value={name}
+                onChangeText={onNameChange}
+                onBlur={onNameBlur}
+                placeholder="Enter your name"
+                placeholderTextColor={colors.textTertiary}
+                returnKeyType="done"
+                autoCapitalize="words"
+                autoCorrect={false}
+                accessibilityLabel="Name"
+              />
+            </View>
           </View>
+          <Text style={styles.personalIdentityHint}>Hale uses this for greetings.</Text>
         </View>
 
         <View style={styles.personalAgeRangePanel}>
@@ -1010,6 +1018,21 @@ function personalAgeRangeSummary(ageBand: AgeBand | null): string {
   if (label === 'Age not set') return 'Not set';
   if (label === 'Age under 45') return 'Under 45';
   return label.replace(/^Age\s/, '');
+}
+
+function NameFieldGlyph() {
+  return (
+    <Svg width={27} height={27} viewBox="0 0 32 32" fill="none" accessibilityElementsHidden>
+      <Circle cx={16} cy={11.2} r={5.2} stroke={colors.accentDeep} strokeWidth={2.2} />
+      <Path
+        d="M7.4 25.4 C9.3 19.7, 12.5 17.2, 16 17.2 C19.5 17.2, 22.7 19.7, 24.6 25.4"
+        stroke={colors.accentDeep}
+        strokeWidth={2.2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
 }
 
 function SetupActionTile({
@@ -1933,19 +1956,45 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   personalIdentityPanel: {
-    minHeight: 88,
+    minHeight: 116,
     borderRadius: radius.panel,
     borderWidth: 1,
-    borderColor: colors.borderHairline,
-    backgroundColor: 'transparent',
+    borderColor: colors.goldBorder,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    backgroundColor: colors.bgGold,
     overflow: 'hidden',
+  },
+  personalIdentityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  personalIdentityMark: {
+    width: 52,
+    height: 52,
+    borderRadius: radius.input,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.goldBorder,
+    backgroundColor: colors.bgSurface,
   },
   personalNameField: {
     flex: 1,
     minWidth: 0,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
     justifyContent: 'center',
+  },
+  personalIdentityHint: {
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.goldBorder,
+    fontFamily: fonts.sansRegular,
+    fontSize: 14,
+    lineHeight: 20,
+    letterSpacing: 0,
+    color: colors.textSecondary,
   },
   personalAgeRangePanel: {
     borderRadius: radius.card,
@@ -1981,12 +2030,12 @@ const styles = StyleSheet.create({
   },
   personalFieldInput: {
     fontFamily: fonts.sansMedium,
-    fontSize: 18,
-    lineHeight: 24,
+    fontSize: 22,
+    lineHeight: 28,
     letterSpacing: 0,
-    minHeight: 36,
+    minHeight: 38,
     padding: 0,
-    marginTop: spacing.sm,
+    marginTop: 3,
     color: colors.primaryText,
     backgroundColor: 'transparent',
   },
@@ -2059,8 +2108,8 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     fontFamily: fonts.serifMedium,
-    fontSize: 21,
-    lineHeight: 27,
+    fontSize: 18,
+    lineHeight: 24,
     letterSpacing: 0,
     color: colors.primaryText,
   },

@@ -1108,12 +1108,11 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   modalButton: {
-    minHeight: 54,
+    minHeight: 56,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radius.button,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    borderRadius: radius.button,
   },
   modalKeepButton: { backgroundColor: colors.accent },
   modalDiscardButton: {
@@ -1121,6 +1120,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.cautionBorder,
   },
-  modalKeepText: { ...type.cardRowTitle, color: colors.onAccent },
+  modalKeepText: { ...type.button, color: colors.onAccent },
   modalDiscardText: { ...type.cardRowTitle, color: colors.error },
 });
