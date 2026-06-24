@@ -16,12 +16,14 @@ export function MovementProfileV2ResultsScreen({
   detailDomain,
   onOpenDomain,
   onBackToResults,
+  onViewPlan,
   onDone,
 }: {
   viewModel: MovementProfileV2ResultsViewModel;
   detailDomain?: MovementProfileV2Domain | null;
   onOpenDomain: (domain: MovementProfileV2Domain) => void;
   onBackToResults: () => void;
+  onViewPlan?: () => void;
   onDone: () => void;
 }) {
   const detail = detailDomain ? movementProfileV2DomainDetail(viewModel, detailDomain) : null;
@@ -83,10 +85,11 @@ export function MovementProfileV2ResultsScreen({
       </View>
 
       <Text style={styles.note}>
-        Internal V2 output is saved for review only. The public Movement Check-Up and training
-        plan still use the V1 profile.
+        {onViewPlan
+          ? 'Your local 4-week plan is already prepared from this frozen profile. V2 remains closed beta while device behaviour is not yet verified.'
+          : 'Internal V2 output is saved for review. V2 remains closed beta while device behaviour is not yet verified.'}
       </Text>
-      <PrimaryButton title="Done" onPress={onDone} />
+      <PrimaryButton title={onViewPlan ? 'View my 4-week plan' : 'Done'} onPress={onViewPlan ?? onDone} />
     </View>
   );
 }

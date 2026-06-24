@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Card, MetricRing, PrimaryButton, SecondaryButton, StatusBadge } from '../../components/ui';
 import { colors, spacing, type } from '../../theme';
 import { getAdherenceState, currentWeekProgress, blockProgress } from '../adherenceState';
+import { movementBlockDomainFocus } from '../blockFocus';
 import {
   getBlockPurposeCopy,
   getBlockTitle,
@@ -42,6 +43,8 @@ export function CurrentBlockCard({
   const readyForRetest = state === 'ready_for_retest';
   const complete = state === 'block_complete';
   const ringProgress = progress.totalSessions > 0 ? progress.completedSessions / progress.totalSessions : 0;
+  const focusDomain = movementBlockDomainFocus(block);
+  const focusLabel = focusDomain === 'strength_power' ? 'Strength' : focusDomain ?? 'Balanced';
 
   return (
     <Card style={styles.card}>
@@ -67,10 +70,10 @@ export function CurrentBlockCard({
       <View style={styles.statGrid}>
         <Stat label="This week" value={`${week.sessionsCompleted} of ${week.sessionsTarget}`} />
         <Stat label="Micro-check" value={week.microCheckCompleted ? 'Done' : 'Ready'} />
-        <Stat label="Focus" value={block.focusDomain === 'strength_power' ? 'Strength' : block.focusDomain} />
+        <Stat label="Focus" value={focusLabel} />
       </View>
 
-      <Text style={styles.protection}>{getProtectionCopy({ lifeGoal, focusDomain: block.focusDomain, adherenceState: state })}</Text>
+      <Text style={styles.protection}>{getProtectionCopy({ lifeGoal, focusDomain, adherenceState: state })}</Text>
       <Text style={styles.body}>{recoveryMode ? recovery.body : getDashboardCopy({ block, lifeGoal, adherenceState: state })}</Text>
 
       <View style={styles.actions}>
@@ -83,7 +86,7 @@ export function CurrentBlockCard({
         ) : (
           <PrimaryButton title="Start today's session" onPress={onStartSession} />
         )}
-        {!complete ? <SecondaryButton title="Do 60-second micro-check" onPress={onMicroCheck} /> : null}
+        {!complete && focusDomain ? <SecondaryButton title="Do 60-second micro-check" onPress={onMicroCheck} /> : null}
       </View>
     </Card>
   );

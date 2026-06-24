@@ -275,7 +275,7 @@ function localBlockIdFor(block: MovementBlock): string {
   return `movement-block-${stableHash(JSON.stringify(sanitizeForBackendJson(block)))}`;
 }
 
-function mapFocusDomain(domain: MovementDomain | undefined): RemoteMovementBlockFocusDomain {
+function mapFocusDomain(domain: MovementDomain | null | undefined): RemoteMovementBlockFocusDomain {
   if (domain === 'strength_power' || domain === 'balance' || domain === 'mobility') return domain;
   return 'general';
 }

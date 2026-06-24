@@ -195,8 +195,10 @@ function mobilityDomain(inputs: ValidatedScoringInputs): DomainResult {
     },
     {
       label: 'Forward reach to floor',
-      display: hinge && Number.isFinite(hinge.reachBu) ? `${hinge.reachBu.toFixed(2)} bu` : NO_VALUE,
-      measured: !!hinge && Number.isFinite(hinge.reachBu),
+      display: hinge && typeof hinge.reachBu === 'number' && Number.isFinite(hinge.reachBu)
+        ? `${hinge.reachBu.toFixed(2)} bu`
+        : NO_VALUE,
+      measured: !!hinge && typeof hinge.reachBu === 'number' && Number.isFinite(hinge.reachBu),
     },
   ];
   if (!sh) return unmeasured('mobility', rows);

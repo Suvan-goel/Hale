@@ -1,4 +1,11 @@
-import { resolvePoseAvatarConfig, resolvePoseAvatarRendererMode } from '../poseAvatarConfig';
+import fs from 'fs';
+import path from 'path';
+
+import {
+  DEFAULT_POSE_AVATAR_RENDERER_MODE,
+  resolvePoseAvatarConfig,
+  resolvePoseAvatarRendererMode,
+} from '../poseAvatarConfig';
 
 describe('resolvePoseAvatarRendererMode', () => {
   it('accepts classic, constellation, point-cloud body, and MediaPipe skeleton', () => {
@@ -6,6 +13,14 @@ describe('resolvePoseAvatarRendererMode', () => {
     expect(resolvePoseAvatarRendererMode('constellation')).toBe('constellation');
     expect(resolvePoseAvatarRendererMode('point_cloud_body')).toBe('point_cloud_body');
     expect(resolvePoseAvatarRendererMode('mediapipe_skeleton')).toBe('mediapipe_skeleton');
+  });
+
+  it('keeps matte graphite digital twin out of env/default renderer selection', () => {
+    expect(DEFAULT_POSE_AVATAR_RENDERER_MODE).toBe('point_cloud_body');
+    expect(resolvePoseAvatarRendererMode('matte_graphite_digital_twin')).toBe('classic');
+    expect(resolvePoseAvatarConfig({ mode: 'matte_graphite_digital_twin' }, {}).mode).toBe(
+      'matte_graphite_digital_twin'
+    );
   });
 
   it('defaults to point-cloud body when no explicit value is set', () => {
@@ -27,6 +42,37 @@ describe('resolvePoseAvatarRendererMode', () => {
 
   it('falls back to classic for invalid explicit values', () => {
     expect(resolvePoseAvatarRendererMode('mesh')).toBe('classic');
+  });
+});
+
+describe('matte graphite digital twin production isolation', () => {
+  it('does not select matte_graphite_digital_twin from production camera screens', () => {
+    const root = path.resolve(__dirname, '../../..');
+    const productionScreens = [
+      'src/screens/LiveSessionScreen.tsx',
+      'src/screens/CheckUpScreen.tsx',
+      'src/screens/MicroCheckScreen.tsx',
+      'src/screens/MovementProfileV2CheckUpScreen.tsx',
+      'src/screens/TrainingSessionScreen.tsx',
+    ];
+
+    for (const file of productionScreens) {
+      const source = fs.readFileSync(path.join(root, file), 'utf8');
+      expect(source).not.toContain('matte_graphite_digital_twin');
+      expect(source).not.toContain('sculpted_body');
+    }
+  });
+
+  it('replaces the old sculpted benchmark option with the benchmark-only digital twin', () => {
+    const root = path.resolve(__dirname, '../../..');
+    const benchmarkSource = fs.readFileSync(
+      path.join(root, 'src/screens/PoseOverlayBenchmarkScreen.tsx'),
+      'utf8'
+    );
+    expect(benchmarkSource).toContain('matte-graphite-digital-twin');
+    expect(benchmarkSource).toContain('matte_graphite_digital_twin');
+    expect(benchmarkSource).not.toContain('sculpted-figure');
+    expect(benchmarkSource).not.toContain('sculpted_body');
   });
 });
 

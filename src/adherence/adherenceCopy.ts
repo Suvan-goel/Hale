@@ -1,4 +1,5 @@
 import { daysUntil } from './dateUtils';
+import { movementBlockDomainFocus } from './blockFocus';
 import {
   domainLabel,
   domainShortLabel,
@@ -21,19 +22,23 @@ export { getLifeGoalDisplayText, getLifeGoalTrainingRelevance };
 export function getBlockTitle(block: MovementBlock, lifeGoal?: LifeGoal | null): string {
   const goal = lifeGoal ? goalTitleFragment(lifeGoal) : null;
   if (goal) return `Your ${goal} block`;
-  return `Your ${domainShortLabel(block.focusDomain)} block`;
+  const focusDomain = movementBlockDomainFocus(block);
+  return focusDomain ? `Your ${domainShortLabel(focusDomain)} block` : 'Your balanced block';
 }
 
 export function getBlockPurposeCopy(block: MovementBlock, lifeGoal?: LifeGoal | null): string {
-  const domain = domainShortLabel(block.focusDomain);
+  const focusDomain = movementBlockDomainFocus(block);
+  const domain = focusDomain ? domainShortLabel(focusDomain) : 'strength, balance, and mobility';
   if (!lifeGoal) {
-    return `This 4-week block focuses on ${domain} so your training has a clear place to start.`;
+    return focusDomain
+      ? `This 4-week block focuses on ${domain} so your training has a clear place to start.`
+      : 'This 4-week block balances strength, steadiness, and mobility so your training has a clear place to start.';
   }
   switch (lifeGoal.category) {
     case 'stairs':
       return `This 4-week block focuses on ${domain} so you can feel steadier on stairs.`;
     case 'travel':
-      return block.focusDomain === 'strength_power'
+      return focusDomain === 'strength_power'
         ? 'This block supports the leg power you use for travel, stairs, and longer walks.'
         : `This block builds ${domain} for travel days, long walks, and moving with confidence.`;
     case 'grandchildren':
@@ -74,9 +79,12 @@ export function getDashboardCopy({
     return 'Life gets busy. One short session today keeps the block alive.';
   }
   const goal = lifeGoal ? getLifeGoalDisplayText(lifeGoal).toLowerCase() : null;
+  const focusDomain = movementBlockDomainFocus(block);
   return goal
     ? `You are supporting progress for what matters: ${goal}.`
-    : `You are supporting your ${domainShortLabel(block.focusDomain)} progress this month.`;
+    : focusDomain
+      ? `You are supporting your ${domainShortLabel(focusDomain)} progress this month.`
+      : 'You are supporting strength, balance, and mobility this month.';
 }
 
 export function getLapseRecoveryCopy(
@@ -145,12 +153,14 @@ export function getWeeklySummaryCopy({
   microCheckCompleted: boolean;
   adherenceState: AdherenceState;
 }): { title: string; body: string; nextFocus: string } {
-  const goal = lifeGoal ? goalSummaryFragment(lifeGoal) : domainShortLabel(block.focusDomain);
+  const focusDomain = movementBlockDomainFocus(block);
+  const focusShort = focusDomain ? domainShortLabel(focusDomain) : 'movement';
+  const goal = lifeGoal ? goalSummaryFragment(lifeGoal) : focusShort;
   if (sessionsCompleted >= block.sessionsPerWeekTarget) {
     return {
       title: 'Good week',
-      body: `You completed ${sessionsCompleted} sessions${microCheckCompleted ? ' and your 60-second check-in' : ''}. You supported your ${domainShortLabel(block.focusDomain)} progress for ${goal}.`,
-      nextFocus: `Next week, keep building ${domainShortLabel(block.focusDomain)} with steady practice.`,
+      body: `You completed ${sessionsCompleted} sessions${microCheckCompleted ? ' and your 60-second check-in' : ''}. You supported your ${focusShort} progress for ${goal}.`,
+      nextFocus: `Next week, keep building ${focusShort} with steady practice.`,
     };
   }
   if (adherenceState === 'inactive_this_week' || adherenceState === 'inactive_14_days') {
@@ -164,13 +174,13 @@ export function getWeeklySummaryCopy({
     return {
       title: 'You restarted this week',
       body: 'That matters. Next week is a clean slate, with shorter sessions available if you need them.',
-      nextFocus: `Next week, rebuild rhythm around ${domainShortLabel(block.focusDomain)}.`,
+      nextFocus: `Next week, rebuild rhythm around ${focusShort}.`,
     };
   }
   return {
     title: 'A quiet week',
     body: 'The plan is ready when life has room again. One short session is enough to restart.',
-    nextFocus: `Next week, start with ${domainShortLabel(block.focusDomain)}.`,
+    nextFocus: `Next week, start with ${focusShort}.`,
   };
 }
 

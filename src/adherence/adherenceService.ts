@@ -1,4 +1,5 @@
 import { calendarKey } from './dateUtils';
+import { movementBlockDomainFocus, movementDomainToTrainingPrimaryDomain } from './blockFocus';
 import type {
   AdherenceStoreState,
   IdentityMilestone,
@@ -57,6 +58,7 @@ export function makeTrainingSessionCompletion({
   source,
   templateId,
   mainPlanCredit,
+  plannedPrimaryDomain,
   scheduleCredit,
   workEvidence,
   focusStimulusEvidence,
@@ -74,6 +76,7 @@ export function makeTrainingSessionCompletion({
   source?: TrainingSessionCompletion['source'];
   templateId?: string;
   mainPlanCredit?: boolean;
+  plannedPrimaryDomain?: TrainingSessionCompletion['plannedPrimaryDomain'];
   scheduleCredit?: TrainingSessionCompletion['scheduleCredit'];
   workEvidence?: TrainingSessionCompletion['workEvidence'];
   focusStimulusEvidence?: TrainingSessionCompletion['focusStimulusEvidence'];
@@ -88,7 +91,12 @@ export function makeTrainingSessionCompletion({
     plannedDate,
     completedAt,
     sessionType,
-    focusDomain: block.focusDomain,
+    focusDomain: block.focusDomain ?? undefined,
+    plannedPrimaryDomain:
+      plannedPrimaryDomain ??
+      (movementBlockDomainFocus(block)
+        ? movementDomainToTrainingPrimaryDomain(movementBlockDomainFocus(block)!)
+        : undefined),
     source,
     templateId,
     mainPlanCredit,

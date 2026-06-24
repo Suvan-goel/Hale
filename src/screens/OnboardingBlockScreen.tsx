@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
-import type { MovementBlock } from '../adherence';
+import { movementBlockDomainFocus, type MovementBlock } from '../adherence';
 import { Card, PrimaryButton, Screen, ScreenHeader, SecondaryButton, StatusBadge } from '../components/ui';
 import { blockFocusCopy } from '../onboarding/results';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
@@ -17,6 +17,7 @@ export function OnboardingBlockScreen({
   onStartSession: () => void;
   onGoToday: () => void;
 }) {
+  const focusDomain = movementBlockDomainFocus(block) ?? 'strength_power';
   return (
     <Screen>
       <ScreenHeader
@@ -40,13 +41,13 @@ export function OnboardingBlockScreen({
           <View style={styles.planIdentity}>
             <View style={styles.planIdentityCopy}>
               <Text style={styles.planKicker}>First plan</Text>
-              <Text style={styles.planLabel}>{focusLabel(block.focusDomain)} focus</Text>
+              <Text style={styles.planLabel}>{focusLabel(focusDomain)} focus</Text>
             </View>
           </View>
           <StatusBadge label="Ready" tone="good" />
         </View>
 
-        <Text style={styles.focusTitle}>{blockFocusCopy(toTrainingFocus(block.focusDomain))}</Text>
+        <Text style={styles.focusTitle}>{blockFocusCopy(toTrainingFocus(focusDomain))}</Text>
         <Text style={styles.focusBody}>
           Your plan starts with movements chosen for your focus, your setup, and what felt manageable today.
         </Text>

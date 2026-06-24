@@ -41,6 +41,7 @@ export {
 export type { EquipmentProfile, SessionPlan, SlotAssignment, TrainingBlock } from './block';
 export {
   createSessionTemplatesForFocus,
+  createBalancedSessionTemplates,
   createTrainingBlockFromAssessment,
   generatePresetSession,
   generateTodaySession as generateDynamicTodaySession,
@@ -51,6 +52,9 @@ export {
   selectNextSessionTemplate,
   trainingDomainFromScoreDomain,
   updateLadderProgressAfterSession,
+  MOVEMENT_PROFILE_V2_BALANCED_TEMPLATE_POLICY_FINGERPRINT,
+  MOVEMENT_PROFILE_V2_BALANCED_TEMPLATE_POLICY_VERSION,
+  MOVEMENT_PROFILE_V2_BALANCED_TEMPLATE_SOURCES,
 } from './workoutGeneration';
 export type {
   CompletedExerciseResult,

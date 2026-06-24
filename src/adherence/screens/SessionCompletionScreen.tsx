@@ -5,6 +5,7 @@ import { PrimaryButton, Screen, ScreenHeader } from '../../components/ui';
 import { colors, fonts, radius, shadow, spacing, type } from '../../theme';
 import type { PainArea, TrackingQuality, ValidTimeSessionSummaryCard } from '../../training';
 import { getLifeGoalDisplayText } from '../adherenceCopy';
+import { movementBlockDomainFocus } from '../blockFocus';
 import type { LifeGoal, MovementBlock, TrainingSessionCompletion } from '../types';
 
 export interface SessionFeedbackInput {
@@ -195,7 +196,8 @@ export function sessionCompletionCopy({
   const completedCount = completion?.workEvidence?.completedExerciseCount ?? 0;
   if (focusEvidence && completedCount > 0) {
     const kind = nonCreditWorkKind(focusEvidence.exclusionReason);
-    const focus = focusLabel(block.focusDomain).toLowerCase();
+    const blockFocusDomain = movementBlockDomainFocus(block);
+    const focus = blockFocusDomain ? focusLabel(blockFocusDomain).toLowerCase() : 'balanced';
     const body =
       focusEvidence.exclusionReason === 'missing_stimulus_metadata'
         ? 'Hale saved the session, but could not confirm it was part of your current plan.'

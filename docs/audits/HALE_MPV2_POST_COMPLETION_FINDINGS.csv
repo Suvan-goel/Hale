@@ -1,0 +1,2 @@
+findingId,severity,type,title,affectedScenarioIds,recommendedNextAction,blocksPreview,notes
+MPV2-POST-DEVICE,P3,device_qa,Physical audible onset still requires final device QA,voice_switch_clara_marcus_state_parity,Defer to final whole-project Android/iOS QA pass,false,No device QA was performed in this task.

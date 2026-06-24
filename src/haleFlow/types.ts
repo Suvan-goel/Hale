@@ -6,6 +6,7 @@ import type {
   MovementBlockReport,
   MovementDomain,
   MovementSafetyProfile,
+  TrainingPrimaryDomain,
   TrainingFocusStimulusPlanStatus,
   TrainingSessionCompletion,
   TrainingSessionCompletionType,
@@ -139,6 +140,7 @@ export interface HaleSessionPlanMetadata {
   generatedSessionId?: string;
   templateId?: string;
   plannedDateKey?: string;
+  plannedPrimaryDomain?: TrainingPrimaryDomain;
   readiness?: DailyReadiness;
   userAdjustment?: 'shorter' | 'gentler' | 'no_equipment' | 'something_hurts' | null;
   painAreas?: readonly PainArea[];
@@ -209,6 +211,7 @@ export interface HaleFocusStimulusPlanMetadata {
   mainPlanCreditPotential: boolean;
   blockFocusDomain?: MovementDomain;
   blockFocusTrainingDomain?: TrainingDomain;
+  plannedPrimaryDomain?: TrainingPrimaryDomain;
   plannedPrimaryFocusExerciseIds: readonly string[];
   plannedSupportingExerciseIds: readonly string[];
   plannedFallbackExerciseIds: readonly string[];

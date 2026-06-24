@@ -19,6 +19,12 @@ export type AndroidPoseAnalysisResolution = '640x480' | '512x384' | '480x360';
 
 export type PoseLatencyNativeClock = 'android.elapsedRealtimeNanos' | 'ios.CACurrentMediaTime';
 
+export type AndroidSensorTimestampSourceName =
+  | 'REALTIME'
+  | 'UNKNOWN'
+  | 'UNAVAILABLE'
+  | 'UNRECOGNISED';
+
 export type PoseLatencyNativeDiagnostics = {
   frameId: number;
   nativeClock: PoseLatencyNativeClock;
@@ -52,7 +58,17 @@ export type PoseLatencyNativeDiagnostics = {
   imageProxyFormat?: number;
   imageProxyFormatName?: string;
   imageProxyRotationDegrees?: number;
+  imageProcessingRotationDegrees?: number;
+  emittedSourceWidth?: number;
+  emittedSourceHeight?: number;
+  landmarkRotationDegrees?: number;
   cameraTargetRotation?: number;
+  cameraFacing?: CameraFacing | string;
+  mirrorState?: boolean;
+  cameraId?: string | null;
+  sensorTimestampSourceRaw?: number | null;
+  sensorTimestampSourceName?: AndroidSensorTimestampSourceName;
+  sensorTimestampComparableToElapsedRealtime?: boolean;
   mpImageWidth?: number;
   mpImageHeight?: number;
   numPoses?: number;

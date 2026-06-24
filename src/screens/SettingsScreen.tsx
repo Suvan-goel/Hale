@@ -31,7 +31,7 @@ import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
-const VOICE_PREVIEW_CUE = 'framing-ready' as const;
+const VOICE_PREVIEW_CUE = 'voice-preview' as const;
 
 type ProfileSection =
   | 'details'
@@ -96,6 +96,7 @@ type SettingsScreenProps = {
   onOpenSafetyProfile: () => void;
   onOpenCameraSetup: () => void;
   onStartMovementProfileV2Internal?: () => void;
+  onOpenPoseBenchmarkForDiagnostics?: () => void;
   onReplayOnboardingForDev?: () => void;
   onBack?: () => void;
 };
@@ -120,6 +121,7 @@ function SettingsScreenContent({
   onOpenSafetyProfile,
   onOpenCameraSetup,
   onStartMovementProfileV2Internal,
+  onOpenPoseBenchmarkForDiagnostics,
   onReplayOnboardingForDev,
   onBack,
 }: SettingsScreenProps) {
@@ -142,7 +144,7 @@ function SettingsScreenContent({
     equipment,
     phoneStandAvailable: settings.phoneStandAvailable,
   });
-  const showDeveloperSettings = __DEV__;
+  const showDeveloperSettings = __DEV__ || !!onOpenPoseBenchmarkForDiagnostics;
 
   React.useEffect(() => setName(profile.name), [profile.name]);
   React.useEffect(() => setSelectedAgeBand(profileAgeBand), [profileAgeBand]);
@@ -560,6 +562,14 @@ function SettingsScreenContent({
               subtitle="Open the first-run flow without clearing app data."
               icon="sliders"
               onPress={onReplayOnboardingForDev}
+            />
+          ) : null}
+          {onOpenPoseBenchmarkForDiagnostics ? (
+            <ProfileMenuRow
+              title="Pose overlay benchmark"
+              subtitle="Run renderer latency modes on this device."
+              icon="sliders"
+              onPress={onOpenPoseBenchmarkForDiagnostics}
             />
           ) : null}
         </SettingsSection>

@@ -9,11 +9,14 @@
  */
 
 import type { SafetyCueId } from '../training/safetyCueDefinitions';
+import type { MovementProfileV2CueId } from '../movementProfileV2/voiceCues';
 
 /** Spoken number words for stitched results ("You completed" + "twelve" + …). */
 export type NumberCueKey = `num-${number}`;
 
 export type VoiceCueKey =
+  // Settings voice picker.
+  | 'voice-preview'
   // Pre-flight framing prompts (mirror PreflightPrompt keys).
   | 'step-into-frame'
   | 'center-yourself'
@@ -92,7 +95,8 @@ export type VoiceCueKey =
   | 'no-reps'
   | 'item-complete'
   | NumberCueKey
-  | SafetyCueId;
+  | SafetyCueId
+  | MovementProfileV2CueId;
 
 /** Non-voice session sounds; play on their own channel, may overlap voice. */
 export type SfxCueKey = 'rep-credit';
@@ -102,6 +106,24 @@ export type AudioCueKey = VoiceCueKey | SfxCueKey;
 /** Highest wins the channel; a busy channel drops lower-or-equal priority. */
 export function voicePriority(cue: VoiceCueKey): number {
   if (cue.startsWith('num-')) return 9;
+  if (cue.startsWith('mpv2_') || cue.endsWith('-v21')) {
+    if (
+      cue.includes('tracking') ||
+      cue === 'times-up-v21' ||
+      cue === 'mpv2_chair_official_ready'
+    ) {
+      return 10;
+    }
+    if (
+      cue.includes('complete') ||
+      cue.includes('saved') ||
+      cue === 'item-complete-v21' ||
+      cue === 'checkup-complete-v21'
+    ) {
+      return 9;
+    }
+    return 8;
+  }
   if (
     cue.startsWith('global_') ||
     cue.startsWith('support_') ||

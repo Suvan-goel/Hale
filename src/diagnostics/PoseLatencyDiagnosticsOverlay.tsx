@@ -46,14 +46,30 @@ export function PoseLatencyDiagnosticsOverlay({
         {metric(snapshot.nativeInferenceWallMs)} · js {metric(snapshot.jsTransformMs)}
       </Text>
       {snapshot.nativeRuntime ? (
-        <Text style={styles.line}>
-          {snapshot.nativeRuntime.modelAsset ?? 'model?'} ·{' '}
-          {snapshot.nativeRuntime.selectedDelegate ?? 'delegate?'} ·{' '}
-          {snapshot.nativeRuntime.pipelineMode ?? 'mode?'} ·{' '}
-          {snapshot.nativeRuntime.rotationMode ?? 'rotation?'} ·{' '}
-          {snapshot.nativeRuntime.analysisTargetWidth ?? '?'}x
-          {snapshot.nativeRuntime.analysisTargetHeight ?? '?'}
-        </Text>
+        <>
+          <Text style={styles.line}>
+            {snapshot.nativeRuntime.modelAsset ?? 'model?'} ·{' '}
+            {snapshot.nativeRuntime.selectedDelegate ?? 'delegate?'} ·{' '}
+            {snapshot.nativeRuntime.pipelineMode ?? 'mode?'} ·{' '}
+            {snapshot.nativeRuntime.rotationMode ?? 'rotation?'} ·{' '}
+            {dims(snapshot.nativeRuntime.analysisTargetWidth, snapshot.nativeRuntime.analysisTargetHeight)}
+          </Text>
+          <Text style={styles.line}>
+            proxy {dims(snapshot.nativeRuntime.imageProxyWidth, snapshot.nativeRuntime.imageProxyHeight)} ·{' '}
+            proxy rot {num(snapshot.nativeRuntime.imageProxyRotationDegrees)} · opt rot{' '}
+            {num(snapshot.nativeRuntime.imageProcessingRotationDegrees)} · lm rot{' '}
+            {num(snapshot.nativeRuntime.landmarkRotationDegrees)}
+          </Text>
+          <Text style={styles.line}>
+            mpimg {dims(snapshot.nativeRuntime.mpImageWidth, snapshot.nativeRuntime.mpImageHeight)} · emit{' '}
+            {dims(snapshot.nativeRuntime.emittedSourceWidth, snapshot.nativeRuntime.emittedSourceHeight)} · renderer{' '}
+            {dims(snapshot.rendererInputWidth, snapshot.rendererInputHeight)}
+          </Text>
+          <Text style={styles.line}>
+            facing {snapshot.nativeRuntime.cameraFacing ?? '?'} · mirror{' '}
+            {bool(snapshot.nativeRuntime.mirrorState)}
+          </Text>
+        </>
       ) : null}
       <Text style={styles.line}>
         bitmap {metric(snapshot.nativeBitmapConversionMs)} · rot{' '}
@@ -78,6 +94,19 @@ function metric(snapshot: MetricSnapshot): string {
     return 'n/a';
   }
   return `${snapshot.p50.toFixed(0)}/${snapshot.p95.toFixed(0)}ms`;
+}
+
+function dims(width: number | null, height: number | null): string {
+  if (width === null || height === null) return '?x?';
+  return `${width}x${height}`;
+}
+
+function num(value: number | null): string {
+  return value === null ? '?' : value.toFixed(0);
+}
+
+function bool(value: boolean | null): string {
+  return value === null ? '?' : value ? 'on' : 'off';
 }
 
 const styles = StyleSheet.create({

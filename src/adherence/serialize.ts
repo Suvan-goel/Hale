@@ -6,8 +6,9 @@ import type {
   SupportConnection,
   TrainingSessionCompletion,
 } from './types';
+import { isMovementDomain } from './blockFocus';
 
-export const ADHERENCE_SCHEMA_VERSION = 2;
+export const ADHERENCE_SCHEMA_VERSION = 3;
 
 interface Envelope {
   schemaVersion: number;
@@ -42,7 +43,7 @@ export function deserializeAdherenceState(json: string): AdherenceStoreState | n
   if (!parsed || typeof parsed !== 'object') return null;
   const env = parsed as Partial<Envelope>;
   if (
-    (env.schemaVersion !== 1 && env.schemaVersion !== ADHERENCE_SCHEMA_VERSION) ||
+    (env.schemaVersion !== 1 && env.schemaVersion !== 2 && env.schemaVersion !== ADHERENCE_SCHEMA_VERSION) ||
     !env.payload ||
     typeof env.payload !== 'object'
   ) {
@@ -91,23 +92,47 @@ function isMovementBlockReport(v: unknown): v is MovementBlockReport {
 function normalizeMovementBlock(v: unknown): MovementBlock | null {
   if (!v || typeof v !== 'object') return null;
   const b = v as Partial<MovementBlock>;
+  const focus = normalizeMovementBlockFocusCandidate(b);
   const valid =
     typeof b.id === 'string' &&
     typeof b.userId === 'string' &&
     typeof b.startDate === 'string' &&
     typeof b.retestDate === 'string' &&
-    typeof b.focusDomain === 'string' &&
+    !!focus &&
     typeof b.totalPlannedSessions === 'number';
   if (!valid) return null;
   const { sourceAssessmentId: _legacySourceAssessmentId, ...rest } = b;
+  const focusDomain = focus.kind === 'domain' ? focus.domain : undefined;
   return {
     ...(rest as MovementBlock),
+    focus,
+    focusDomain,
     ...(typeof b.sourceCheckUpId === 'string'
       ? { sourceCheckUpId: b.sourceCheckUpId }
       : typeof b.sourceAssessmentId === 'string'
         ? { sourceCheckUpId: b.sourceAssessmentId }
         : {}),
   };
+}
+
+function normalizeMovementBlockFocusCandidate(block: Partial<MovementBlock>): MovementBlock['focus'] | null {
+  if (isMovementDomain(block.focusDomain)) return { kind: 'domain', domain: block.focusDomain };
+  if (block.focus?.kind === 'domain' && isMovementDomain(block.focus.domain)) {
+    return { kind: 'domain', domain: block.focus.domain };
+  }
+  if (
+    block.focus?.kind === 'balanced' &&
+    typeof block.focus.balancedPolicyVersion === 'number' &&
+    typeof block.focus.balancedPolicyFingerprint === 'string' &&
+    block.focus.balancedPolicyFingerprint.length > 0
+  ) {
+    return {
+      kind: 'balanced',
+      balancedPolicyVersion: block.focus.balancedPolicyVersion,
+      balancedPolicyFingerprint: block.focus.balancedPolicyFingerprint,
+    };
+  }
+  return null;
 }
 
 function isCompletion(v: unknown): v is TrainingSessionCompletion {

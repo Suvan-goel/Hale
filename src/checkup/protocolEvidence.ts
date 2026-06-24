@@ -35,6 +35,10 @@ export function isReferenceProtocolComplete(status: MovementProfileV2EvidenceSta
   return status === 'reference_protocol_complete';
 }
 
+export function isValidMovementProfileV2RawEvidence(status: MovementProfileV2EvidenceStatus): boolean {
+  return status !== 'invalid_measurement';
+}
+
 export function isJsonSafeProtocolPayload(value: unknown): boolean {
   if (value === null) return true;
   if (typeof value === 'string' || typeof value === 'boolean') return true;

@@ -627,11 +627,12 @@ describe('Stage 5H invalid-state, crash/retry, restore, schema, and UI truthfuln
         training = step.training;
       }
       const retestDate = addDaysIso(block.startDate, 28);
-      const retest = assessmentForScore(scoreForFocus(block.focusDomain, retestDate), {
+      const retestFocusDomain = requireFocusedBlockDomain(block);
+      const retest = assessmentForScore(scoreForFocus(retestFocusDomain, retestDate), {
         type: 'official_retest',
         sourceBlockId: block.id,
         checkUpId: retestDate,
-        activeFocusDomain: scoreDomainForMovement(block.focusDomain),
+        activeFocusDomain: scoreDomainForMovement(retestFocusDomain),
       });
       adherence = applyRetestTransition(
         adherence,
@@ -1326,7 +1327,7 @@ interface ReferenceModel {
 }
 
 function createReferenceModel(block: MovementBlock): ReferenceModel {
-  const required = ['A', 'B', 'C'].map((label) => `${templatePrefix(block.focusDomain)}-${label}`);
+  const required = ['A', 'B', 'C'].map((label) => `${templatePrefix(requireFocusedBlockDomain(block))}-${label}`);
   const credits: TrainingSessionCompletion[] = [];
   return {
     applyCredit(completion) {
@@ -1544,7 +1545,7 @@ function seedPriorCredits(
             : 11;
   let next = state;
   for (let index = 0; index < count; index += 1) {
-    const template = `${templatePrefix(block.focusDomain)}-${(['A', 'B', 'C'] as const)[index % 3]}`;
+    const template = `${templatePrefix(requireFocusedBlockDomain(block))}-${(['A', 'B', 'C'] as const)[index % 3]}`;
     const completedAt = SESSION_DATES[index];
     const completion = syntheticCreditedCompletion(block, template, completedAt);
     next = recordTrainingSessionCompletion(next, completion);
@@ -1599,7 +1600,7 @@ function syntheticCreditedCompletion(block: MovementBlock, templateId: string, c
 
 function scheduledCompletions(block: MovementBlock): TrainingSessionCompletion[] {
   return SESSION_DATES.map((date, index) =>
-    syntheticCreditedCompletion(block, `${templatePrefix(block.focusDomain)}-${(['A', 'B', 'C'] as const)[index % 3]}`, date)
+    syntheticCreditedCompletion(block, `${templatePrefix(requireFocusedBlockDomain(block))}-${(['A', 'B', 'C'] as const)[index % 3]}`, date)
   );
 }
 
@@ -1758,6 +1759,11 @@ function templatePrefix(domain: MovementDomain): 'strength' | 'balance' | 'mobil
   if (domain === 'balance') return 'balance';
   if (domain === 'mobility') return 'mobility';
   return 'strength';
+}
+
+function requireFocusedBlockDomain(block: MovementBlock): MovementDomain {
+  if (!block.focusDomain) throw new Error(`Expected focused block fixture: ${block.id}`);
+  return block.focusDomain;
 }
 
 function workSummary(work: ReturnType<typeof evaluateSessionWorkEvidence>): TrainingSessionWorkEvidenceSummary {

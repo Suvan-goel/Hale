@@ -5,16 +5,62 @@ internal data class AndroidPoseFrameDimensions(
   val height: Int,
 )
 
+internal data class AndroidNormalizedPoint(
+  val x: Double,
+  val y: Double,
+)
+
+internal fun normalizeRotationDegrees(rotationDegrees: Int): Int {
+  return ((rotationDegrees % 360) + 360) % 360
+}
+
 internal fun uprightSourceDimensions(
   rawWidth: Int,
   rawHeight: Int,
   rotationDegrees: Int,
 ): AndroidPoseFrameDimensions {
-  val normalizedRotation = ((rotationDegrees % 360) + 360) % 360
+  val normalizedRotation = normalizeRotationDegrees(rotationDegrees)
   return if (normalizedRotation == 90 || normalizedRotation == 270) {
     AndroidPoseFrameDimensions(width = rawHeight, height = rawWidth)
   } else {
     AndroidPoseFrameDimensions(width = rawWidth, height = rawHeight)
+  }
+}
+
+internal fun rotateNormalizedPointToUpright(
+  x: Double,
+  y: Double,
+  rotationDegrees: Int,
+): AndroidNormalizedPoint {
+  return AndroidNormalizedPoint(
+    x = uprightNormalizedX(x, y, rotationDegrees),
+    y = uprightNormalizedY(x, y, rotationDegrees),
+  )
+}
+
+internal fun uprightNormalizedX(
+  x: Double,
+  y: Double,
+  rotationDegrees: Int,
+): Double {
+  return when (normalizeRotationDegrees(rotationDegrees)) {
+    90 -> 1.0 - y
+    180 -> 1.0 - x
+    270 -> y
+    else -> x
+  }
+}
+
+internal fun uprightNormalizedY(
+  x: Double,
+  y: Double,
+  rotationDegrees: Int,
+): Double {
+  return when (normalizeRotationDegrees(rotationDegrees)) {
+    90 -> x
+    180 -> 1.0 - y
+    270 -> 1.0 - x
+    else -> y
   }
 }
 

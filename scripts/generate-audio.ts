@@ -8,6 +8,7 @@
  * adding/replacing a voice in src/profile/voices.ts:
  *
  *   ELEVENLABS_API_KEY=sk_... npm run audio
+ *   ELEVENLABS_API_KEY=sk_... npm run audio -- --cue voice-preview
  *
  * One ElevenLabs voice id per trainer voice is declared in src/profile/voices.ts
  * (the id is used here only; nothing in the app calls ElevenLabs at runtime).
@@ -27,7 +28,18 @@ import {
   safetyAudioExpectedPath,
   safetyAudioMetadataFor,
 } from '../src/audio/safetyAudio';
+import {
+  movementProfileV2AudioCueIds,
+  movementProfileV2AudioExpectedPath,
+  movementProfileV2AudioMetadataFor,
+} from '../src/audio/movementProfileV2Audio';
+import { MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA } from '../src/audio/movementProfileV2AudioManifest';
 import { SAFETY_AUDIO_ASSET_METADATA } from '../src/audio/safetyAudioManifest';
+import {
+  MOVEMENT_PROFILE_V2_CUE_DEFINITIONS,
+  movementProfileV2CueText,
+  type MovementProfileV2CueId,
+} from '../src/movementProfileV2/voiceCues';
 import { VOICE_OPTIONS } from '../src/profile/voices';
 import { safetyCueText, SAFETY_VOICE_LINES, type SafetyCueId } from '../src/training/safetyCueDefinitions';
 
@@ -38,6 +50,9 @@ const MANIFEST_PATH = path.join(ROOT, 'src/audio/manifest.ts');
 
 /** Every VoiceCueKey from src/audio/cues.ts must have a line here. */
 const LINES: Record<string, string> = {
+  // Settings voice picker.
+  'voice-preview':
+    "Hi, I'm {voiceName}. I'll guide you one step at a time.",
   // Pre-flight framing prompts.
   'step-into-frame': 'Step into view, about three big steps back from the phone.',
   'center-yourself': 'Move toward the middle of the picture.',
@@ -190,19 +205,24 @@ for (let n = 0; n < NUMBER_WORDS.length; n++) {
   LINES[`num-${n}`] = `${NUMBER_WORDS[n]}.`;
 }
 Object.assign(LINES, SAFETY_VOICE_LINES);
+Object.assign(
+  LINES,
+  Object.fromEntries(MOVEMENT_PROFILE_V2_CUE_DEFINITIONS.map((cue) => [cue.id, cue.text]))
+);
 
 loadRootDotEnv();
 const API_KEY = process.env.ELEVENLABS_API_KEY;
 
-type AudioGroup = 'all' | 'safety';
+type AudioGroup = 'all' | 'safety' | 'movement_profile_v2';
 type VoiceSelector = 'all' | string;
-type SafetyAssetStatus = 'valid' | 'missing' | 'stale' | 'zero-byte' | 'forced';
+type AudioAssetStatus = 'valid' | 'missing' | 'stale' | 'zero-byte' | 'forced';
 
 interface CliOptions {
   group: AudioGroup;
   voice: VoiceSelector;
   dryRun: boolean;
   force: boolean;
+  cue: string | null;
 }
 
 interface SelectedVoice {
@@ -215,7 +235,15 @@ interface SafetyAssetPlanRow {
   voice: SelectedVoice;
   path: string;
   fingerprint: string;
-  status: SafetyAssetStatus;
+  status: AudioAssetStatus;
+}
+
+interface MovementProfileV2AssetPlanRow {
+  cueId: MovementProfileV2CueId;
+  voice: SelectedVoice;
+  path: string;
+  fingerprint: string;
+  status: AudioAssetStatus;
 }
 
 function loadRootDotEnv(): void {
@@ -251,6 +279,7 @@ function parseArgs(argv: readonly string[]): CliOptions {
     voice: 'all',
     dryRun: false,
     force: false,
+    cue: null,
   };
   for (let index = 0; index < argv.length; index++) {
     const arg = argv[index];
@@ -260,21 +289,42 @@ function parseArgs(argv: readonly string[]): CliOptions {
       options.force = true;
     } else if (arg === '--group') {
       const value = argv[++index];
-      if (value !== 'all' && value !== 'safety') throw new Error(`unsupported --group ${value}`);
+      if (!isAudioGroup(value)) throw new Error(`unsupported --group ${value}`);
       options.group = value;
     } else if (arg.startsWith('--group=')) {
       const value = arg.slice('--group='.length);
-      if (value !== 'all' && value !== 'safety') throw new Error(`unsupported --group ${value}`);
+      if (!isAudioGroup(value)) throw new Error(`unsupported --group ${value}`);
       options.group = value;
     } else if (arg === '--voice') {
       options.voice = argv[++index] ?? 'all';
     } else if (arg.startsWith('--voice=')) {
       options.voice = arg.slice('--voice='.length);
+    } else if (arg === '--cue') {
+      options.cue = argv[++index] ?? null;
+    } else if (arg.startsWith('--cue=')) {
+      options.cue = arg.slice('--cue='.length);
     } else {
       throw new Error(`unknown audio generation option: ${arg}`);
     }
   }
+  if (options.cue !== null && options.group !== 'all') {
+    throw new Error('--cue is only supported with the default full voice-line group');
+  }
+  if (options.cue !== null && !LINES[options.cue]) {
+    throw new Error(`unknown cue '${options.cue}'`);
+  }
+  if (
+    options.cue !== null &&
+    (safetyAudioCueIds().includes(options.cue as SafetyCueId) ||
+      movementProfileV2AudioCueIds().includes(options.cue as MovementProfileV2CueId))
+  ) {
+    throw new Error('--cue is for regular voice lines; use the dedicated safety or Movement Profile V2 group');
+  }
   return options;
+}
+
+function isAudioGroup(value: string | undefined): value is AudioGroup {
+  return value === 'all' || value === 'safety' || value === 'movement_profile_v2';
 }
 
 function selectVoices(selector: VoiceSelector): SelectedVoice[] {
@@ -291,7 +341,9 @@ function selectVoices(selector: VoiceSelector): SelectedVoice[] {
 }
 
 function lineKeysForGroup(group: AudioGroup): string[] {
-  return group === 'safety' ? safetyAudioCueIds() : Object.keys(LINES).sort();
+  if (group === 'safety') return safetyAudioCueIds();
+  if (group === 'movement_profile_v2') return movementProfileV2AudioCueIds();
+  return Object.keys(LINES).sort();
 }
 
 function buildSafetyPlan(voices: readonly SelectedVoice[], force: boolean): SafetyAssetPlanRow[] {
@@ -312,7 +364,7 @@ function buildSafetyPlan(voices: readonly SelectedVoice[], force: boolean): Safe
         existing.path === expected.path &&
         existing.voiceId === voice.id &&
         existing.cueId === cueId;
-      const status: SafetyAssetStatus = !exists
+      const status: AudioAssetStatus = !exists
         ? 'missing'
         : bytes <= 0
           ? 'zero-byte'
@@ -333,8 +385,15 @@ function buildSafetyPlan(voices: readonly SelectedVoice[], force: boolean): Safe
   return rows;
 }
 
-function needsGeneration(row: SafetyAssetPlanRow): boolean {
+function needsGeneration(row: { status: AudioAssetStatus }): boolean {
   return row.status !== 'valid';
+}
+
+function lineTextForVoice(key: string, voiceId: string): string {
+  const line = LINES[key];
+  if (!line) throw new Error(`missing line for cue '${key}'`);
+  const voiceName = VOICE_OPTIONS.find((voice) => voice.id === voiceId)?.label ?? 'Hale';
+  return line.replaceAll('{voiceName}', voiceName);
 }
 
 function printSafetyPlan(rows: readonly SafetyAssetPlanRow[], dryRun: boolean): void {
@@ -347,6 +406,73 @@ function printSafetyPlan(rows: readonly SafetyAssetPlanRow[], dryRun: boolean): 
   console.log(
     [
       dryRun ? 'Safety audio dry run' : 'Safety audio generation plan',
+      `requiredAssets=${rows.length}`,
+      `valid=${valid}`,
+      `missing=${missing}`,
+      `stale=${stale}`,
+      `zeroByte=${zeroByte}`,
+      `forced=${forced}`,
+      `providerCalls=${providerCalls}`,
+      `providerCredentials=${API_KEY ? 'present' : 'missing'}`,
+    ].join(' ')
+  );
+  for (const row of rows.filter(needsGeneration)) {
+    console.log(`${row.status}\t${row.voice.id}\t${row.cueId}\t${row.path}`);
+  }
+}
+
+function buildMovementProfileV2Plan(
+  voices: readonly SelectedVoice[],
+  force: boolean
+): MovementProfileV2AssetPlanRow[] {
+  const rows: MovementProfileV2AssetPlanRow[] = [];
+  for (const voice of voices) {
+    for (const cueId of movementProfileV2AudioCueIds()) {
+      const expected = movementProfileV2AudioMetadataFor({
+        cueId,
+        voiceId: voice.id,
+        providerVoiceId: voice.elevenLabsVoiceId,
+      });
+      const absPath = path.join(ROOT, expected.path);
+      const existing = MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA[voice.id]?.[cueId];
+      const exists = fs.existsSync(absPath);
+      const bytes = exists ? fs.statSync(absPath).size : 0;
+      const fingerprintMatches =
+        existing?.fingerprint === expected.fingerprint &&
+        existing.path === expected.path &&
+        existing.voiceId === voice.id &&
+        existing.cueId === cueId;
+      const status: AudioAssetStatus = !exists
+        ? 'missing'
+        : bytes <= 0
+          ? 'zero-byte'
+          : force
+            ? 'forced'
+            : fingerprintMatches
+              ? 'valid'
+              : 'stale';
+      rows.push({
+        cueId,
+        voice,
+        path: expected.path,
+        fingerprint: expected.fingerprint,
+        status,
+      });
+    }
+  }
+  return rows;
+}
+
+function printMovementProfileV2Plan(rows: readonly MovementProfileV2AssetPlanRow[], dryRun: boolean): void {
+  const missing = rows.filter((row) => row.status === 'missing').length;
+  const stale = rows.filter((row) => row.status === 'stale').length;
+  const zeroByte = rows.filter((row) => row.status === 'zero-byte').length;
+  const forced = rows.filter((row) => row.status === 'forced').length;
+  const valid = rows.filter((row) => row.status === 'valid').length;
+  const providerCalls = rows.filter(needsGeneration).length;
+  console.log(
+    [
+      dryRun ? 'Movement Profile V2 audio dry run' : 'Movement Profile V2 audio generation plan',
       `requiredAssets=${rows.length}`,
       `valid=${valid}`,
       `missing=${missing}`,
@@ -387,13 +513,20 @@ async function synthesizeLine(voiceId: string, text: string): Promise<Buffer> {
 }
 
 /** Generate every line for one trainer voice into assets/audio/voice/<id>/. */
-async function generateVoice(voiceId: string, elevenLabsVoiceId: string, keys: readonly string[]): Promise<string[]> {
+async function generateVoice(
+  voiceId: string,
+  elevenLabsVoiceId: string,
+  keys: readonly string[],
+  options: { resetDirectory: boolean } = { resetDirectory: true }
+): Promise<string[]> {
   const outDir = path.join(VOICE_DIR, voiceId);
-  fs.rmSync(outDir, { recursive: true, force: true });
+  if (options.resetDirectory) {
+    fs.rmSync(outDir, { recursive: true, force: true });
+  }
   fs.mkdirSync(outDir, { recursive: true });
   process.stdout.write(`${voiceId}: `);
   for (const key of keys) {
-    const mp3 = await synthesizeLine(elevenLabsVoiceId, LINES[key]);
+    const mp3 = await synthesizeLine(elevenLabsVoiceId, lineTextForVoice(key, voiceId));
     fs.writeFileSync(path.join(outDir, `${key}.mp3`), mp3);
     process.stdout.write('.');
   }
@@ -409,6 +542,31 @@ async function generateSafetyAssets(rows: readonly SafetyAssetPlanRow[]): Promis
     const tempPath = `${outPath}.tmp-${process.pid}`;
     try {
       const mp3 = await synthesizeLine(row.voice.elevenLabsVoiceId, safetyCueText(row.cueId));
+      if (!looksLikeMp3(mp3)) {
+        throw new Error(`provider response for ${row.voice.id}/${row.cueId} was not recognized as mp3`);
+      }
+      fs.writeFileSync(tempPath, mp3);
+      fs.renameSync(tempPath, outPath);
+      generated.add(`${row.voice.id}:${row.cueId}`);
+      console.log(`generated\t${row.voice.id}\t${row.cueId}\t${mp3.length} bytes\t${row.path}`);
+    } catch (error) {
+      fs.rmSync(tempPath, { force: true });
+      throw error;
+    }
+  }
+  return generated;
+}
+
+async function generateMovementProfileV2Assets(
+  rows: readonly MovementProfileV2AssetPlanRow[]
+): Promise<Set<string>> {
+  const generated = new Set<string>();
+  for (const row of rows.filter(needsGeneration)) {
+    const outPath = path.join(ROOT, row.path);
+    fs.mkdirSync(path.dirname(outPath), { recursive: true });
+    const tempPath = `${outPath}.tmp-${process.pid}`;
+    try {
+      const mp3 = await synthesizeLine(row.voice.elevenLabsVoiceId, movementProfileV2CueText(row.cueId));
       if (!looksLikeMp3(mp3)) {
         throw new Error(`provider response for ${row.voice.id}/${row.cueId} was not recognized as mp3`);
       }
@@ -528,6 +686,47 @@ function writeSafetyMetadata(generatedSafetyKeys: ReadonlySet<string>, forceAllE
   fs.writeFileSync(path.join(ROOT, 'src/audio/safetyAudioManifest.ts'), content);
 }
 
+function writeMovementProfileV2Metadata(
+  generatedCueKeys: ReadonlySet<string>,
+  forceAllExistingMovementProfileV2 = false
+): void {
+  const out: Record<
+    string,
+    Partial<Record<MovementProfileV2CueId, ReturnType<typeof movementProfileV2AudioMetadataFor>>>
+  > = {};
+  for (const voice of VOICE_OPTIONS) {
+    out[voice.id] = {};
+    for (const cueId of movementProfileV2AudioCueIds()) {
+      const key = `${voice.id}:${cueId}`;
+      const expected = movementProfileV2AudioMetadataFor({
+        cueId,
+        voiceId: voice.id,
+        providerVoiceId: voice.elevenLabsVoiceId,
+      });
+      const exists = fs.existsSync(path.join(ROOT, expected.path));
+      const current = MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA[voice.id]?.[cueId];
+      if ((generatedCueKeys.has(key) || forceAllExistingMovementProfileV2) && exists) {
+        out[voice.id][cueId] = expected;
+      } else if (current) {
+        out[voice.id][cueId] = current;
+      }
+    }
+  }
+  const content = [
+    '/**',
+    ' * AUTO-GENERATED by scripts/generate-audio.ts — do not edit by hand.',
+    ' * Pure metadata for bundled Movement Profile V2 voice cue audio. Static',
+    ' * require() asset mapping lives in src/audio/manifest.ts.',
+    ' */',
+    '',
+    "import type { MovementProfileV2AudioMetadataByVoice } from './movementProfileV2Audio';",
+    '',
+    `export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMetadataByVoice = ${JSON.stringify(out, null, 2)};`,
+    '',
+  ].join('\n');
+  fs.writeFileSync(path.join(ROOT, 'src/audio/movementProfileV2AudioManifest.ts'), content);
+}
+
 function existingVoiceKeys(voiceId: string): string[] {
   const dir = path.join(VOICE_DIR, voiceId);
   if (!fs.existsSync(dir)) return [];
@@ -572,11 +771,25 @@ async function main(): Promise<void> {
     return;
   }
 
-  const keys = lineKeysForGroup('all');
+  if (options.group === 'movement_profile_v2') {
+    const plan = buildMovementProfileV2Plan(voices, options.force);
+    printMovementProfileV2Plan(plan, options.dryRun);
+    if (options.dryRun) return;
+    if (!API_KEY) {
+      throw new Error('ELEVENLABS_API_KEY is not set; Movement Profile V2 audio assets were not generated');
+    }
+    const generatedCueKeys = await generateMovementProfileV2Assets(plan);
+    writeManifestFromDisk();
+    writeMovementProfileV2Metadata(generatedCueKeys);
+    console.log(`\n${generatedCueKeys.size} Movement Profile V2 line(s) generated, manifest updated`);
+    return;
+  }
+
+  const keys = options.cue === null ? lineKeysForGroup('all') : [options.cue];
   if (options.dryRun) {
     console.log(
       [
-        'Full audio dry run',
+        options.cue === null ? 'Full audio dry run' : 'Single-cue audio dry run',
         `voices=${voices.map((voice) => voice.id).join(',')}`,
         `linesPerVoice=${keys.length}`,
         `providerCalls=${voices.length * keys.length}`,
@@ -590,18 +803,33 @@ async function main(): Promise<void> {
   }
 
   const generatedSafetyKeys = new Set<string>();
+  const generatedMovementProfileV2Keys = new Set<string>();
   for (const voice of voices) {
-    await generateVoice(voice.id, voice.elevenLabsVoiceId, keys);
-    for (const cueId of safetyAudioCueIds()) {
-      generatedSafetyKeys.add(`${voice.id}:${cueId}`);
+    await generateVoice(voice.id, voice.elevenLabsVoiceId, keys, {
+      resetDirectory: options.cue === null,
+    });
+    if (options.cue === null) {
+      for (const cueId of safetyAudioCueIds()) {
+        generatedSafetyKeys.add(`${voice.id}:${cueId}`);
+      }
+      for (const cueId of movementProfileV2AudioCueIds()) {
+        generatedMovementProfileV2Keys.add(`${voice.id}:${cueId}`);
+      }
     }
   }
-  writeRepCreditWav();
+  if (options.cue === null) {
+    writeRepCreditWav();
+  }
   writeManifestFromDisk();
-  writeSafetyMetadata(generatedSafetyKeys, true);
+  if (options.cue === null) {
+    writeSafetyMetadata(generatedSafetyKeys, true);
+    writeMovementProfileV2Metadata(generatedMovementProfileV2Keys, true);
+  }
   const total = voices.length * keys.length;
   console.log(
-    `\n${voices.length} voice(s), ${total} lines + rep-credit chime → assets/audio/, manifest updated`
+    options.cue === null
+      ? `\n${voices.length} voice(s), ${total} lines + rep-credit chime → assets/audio/, manifest updated`
+      : `\n${voices.length} voice(s), ${total} line(s) → assets/audio/, manifest updated`
   );
 }
 

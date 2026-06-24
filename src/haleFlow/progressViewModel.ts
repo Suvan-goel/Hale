@@ -1,6 +1,7 @@
 import {
   daysUntil,
   domainLabel,
+  movementBlockDomainFocus,
   type MovementBlock,
   type MovementBlockReport,
   type MovementDomain,
@@ -209,7 +210,7 @@ export function getBlockReportSummaries({
       return {
         blockId: block.id,
         dateRange: `${formatDate(block.startDate)} - ${formatDate(block.endDate)}`,
-        focus: domainLabel(block.focusDomain),
+        focus: movementBlockDomainFocus(block) ? domainLabel(movementBlockDomainFocus(block)!) : 'Balanced',
         sessions: `${schedule.totalCredits} of ${block.totalPlannedSessions} sessions`,
         mainChange: report ? mainChangeFromReport(report) : 'Check-up history will add the main change for this plan.',
       };

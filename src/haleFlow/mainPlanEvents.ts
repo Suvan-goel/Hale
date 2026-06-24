@@ -1,16 +1,11 @@
 import type {
   MovementBlock,
-  MovementDomain,
   TrainingSessionCompletion,
   TrainingSessionCompletionType,
 } from '../adherence';
 import type { PersistedGeneratedSessionSummary } from '../training';
-import {
-  createSessionTemplatesForFocus,
-  type RecentSessionSummary,
-  type SessionSource,
-  type TrainingDomain,
-} from '../training/workoutGeneration';
+import type { RecentSessionSummary, SessionSource, SessionTemplate } from '../training/workoutGeneration';
+import { sessionTemplatesForMovementBlock } from './blockTrainingPlan';
 import type { HaleSessionPlan } from './types';
 
 export type MainPlanEventSource = SessionSource | 'legacy_fallback' | 'legacy';
@@ -65,9 +60,14 @@ export interface MainPlanTemplateSet {
 
 export function requiredMainPlanTemplatesForBlock(block: MovementBlock | null | undefined): MainPlanTemplateSet {
   if (!block) return { templateIds: [], templateIdsByDayLabel: new Map() };
-  const templates = createSessionTemplatesForFocus(toTrainingDomain(block.focusDomain)).filter(
-    (template) => template.dayLabel === 'A' || template.dayLabel === 'B' || template.dayLabel === 'C'
-  );
+  let templates: SessionTemplate[] = [];
+  try {
+    templates = sessionTemplatesForMovementBlock(block).filter(
+      (template) => template.dayLabel === 'A' || template.dayLabel === 'B' || template.dayLabel === 'C'
+    );
+  } catch {
+    templates = [];
+  }
   const templateIdsByDayLabel = new Map<'A' | 'B' | 'C', string>();
   for (const template of templates) {
     if (template.dayLabel === 'A' || template.dayLabel === 'B' || template.dayLabel === 'C') {
@@ -90,6 +90,7 @@ export function classifyMainPlanSessionPlan(
     ({
       id: sessionPlan.blockId,
       focusDomain: sessionPlan.focusDomain,
+      focus: { kind: 'domain', domain: sessionPlan.focusDomain },
     } as MovementBlock);
   return classifyMainPlanCandidate(block, {
     id: sessionPlan.id,
@@ -267,12 +268,6 @@ function weekIndexForDate(block: MovementBlock, value: string): number {
   const completed = Date.parse(value);
   if (!Number.isFinite(start) || !Number.isFinite(completed)) return 1;
   return Math.max(1, Math.min(4, Math.floor((completed - start) / (7 * 24 * 60 * 60 * 1000)) + 1));
-}
-
-function toTrainingDomain(domain: MovementDomain): TrainingDomain {
-  if (domain === 'balance') return 'balance_stability';
-  if (domain === 'mobility') return 'mobility_flexibility';
-  return 'strength_power';
 }
 
 function dateKey(value: string): string {

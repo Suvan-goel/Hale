@@ -447,6 +447,75 @@ describe('Movement Profile V2 assessment contract', () => {
     });
   });
 
+  it('creates assessments from usable raw-only evidence while keeping reference claims separate', () => {
+    const lowBalanceCheckUp = v2CheckUp({
+      balance: balanceResult({
+        evidenceStatus: 'raw_only_protocol_incomplete',
+        bestHoldSec: 2,
+        validTrialCount: 1,
+        attemptedTrialCount: 1,
+      }),
+    });
+    const lowBalanceSnapshot = mustCreateSnapshot(lowBalanceCheckUp);
+
+    expect(lowBalanceSnapshot.interpretation.rawCompleteness).toMatchObject({
+      referenceComplete: true,
+      missingHeadlineMovementIds: [],
+      evidenceStatusByMovementId: {
+        [ONE_LEG_BALANCE_V2_ID]: 'raw_only_protocol_incomplete',
+      },
+    });
+    expect(lowBalanceSnapshot.interpretation.balance).toMatchObject({
+      claimEligibility: 'raw_only_protocol_incomplete',
+      taskBand: 'starting_point_low',
+    });
+
+    const lowBalanceAssessment = createMovementProfileV2Assessment({
+      checkUp: lowBalanceCheckUp,
+      snapshot: lowBalanceSnapshot,
+      createdAt: CREATED_AT,
+    });
+    expect(lowBalanceAssessment).toMatchObject({
+      ok: true,
+      assessment: {
+        focus: {
+          kind: 'domain',
+          focusDomain: 'balance',
+          reason: 'v2_focus_single_hale_starting_point',
+        },
+      },
+    });
+
+    const rawOnlyBalancedCheckUp = v2CheckUp({
+      chair: chairResult({ evidenceStatus: 'raw_only_setup_uncertain' }),
+      balance: balanceResult({
+        evidenceStatus: 'raw_only_protocol_incomplete',
+        bestHoldSec: 30,
+      }),
+      shoulder: shoulderResult({
+        evidenceStatus: 'raw_only_tracking_uncertain',
+        peakFlexionDeg: 151,
+      }),
+    });
+    const rawOnlyBalancedSnapshot = mustCreateSnapshot(rawOnlyBalancedCheckUp);
+    const rawOnlyBalancedAssessment = createMovementProfileV2Assessment({
+      checkUp: rawOnlyBalancedCheckUp,
+      snapshot: rawOnlyBalancedSnapshot,
+      createdAt: CREATED_AT,
+    });
+
+    expect(rawOnlyBalancedSnapshot.interpretation.rawCompleteness.referenceComplete).toBe(true);
+    expect(rawOnlyBalancedAssessment).toMatchObject({
+      ok: true,
+      assessment: {
+        focus: {
+          kind: 'balanced',
+          reason: 'v2_focus_balanced_no_unique_signal',
+        },
+      },
+    });
+  });
+
   it('strictly parses focus/provenance cross-field compatibility', () => {
     const valid = mustAssess({ lifeGoal: goal('carrying_loads') });
     expect(parseMovementProfileV2Assessment(valid)).toMatchObject({ ok: true });

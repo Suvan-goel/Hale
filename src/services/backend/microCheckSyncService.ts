@@ -299,6 +299,9 @@ function sanitizeMovementBlock(block: MovementBlock | null | undefined): Backend
     id: block.id,
     status: block.status,
     focusDomain: block.focusDomain,
+    focus: block.focus,
+    origin: block.origin,
+    blockFingerprint: block.blockFingerprint,
     startDate: block.startDate,
     endDate: block.endDate,
     retestDate: block.retestDate,
@@ -321,6 +324,7 @@ function sanitizeCompletion(completion: TrainingSessionCompletion | null | undef
     sessionType: completion.sessionType,
     durationMinutes: completion.durationMinutes,
     focusDomain: completion.focusDomain,
+    plannedPrimaryDomain: completion.plannedPrimaryDomain,
   });
 }
 

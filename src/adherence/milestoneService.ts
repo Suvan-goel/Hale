@@ -1,5 +1,6 @@
 import type { CheckUpScore, DomainResult } from '../scoring';
 import { scoreDomainFromMovementDomain } from './blockService';
+import { movementBlockDomainFocus } from './blockFocus';
 import { getLifeGoalDisplayText } from './goalDomainMapping';
 import type {
   IdentityMilestone,
@@ -152,7 +153,9 @@ function push(
 
 function domainResult(score: CheckUpScore | null | undefined, block: MovementBlock): DomainResult | null {
   if (!score) return null;
-  const domain = scoreDomainFromMovementDomain(block.focusDomain);
+  const focusDomain = movementBlockDomainFocus(block);
+  if (!focusDomain) return null;
+  const domain = scoreDomainFromMovementDomain(focusDomain);
   return score.domains.find((d) => d.domain === domain) ?? null;
 }
 

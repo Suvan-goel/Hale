@@ -1,4 +1,4 @@
-import type { MovementBlock, TrainingSessionCompletion } from '../adherence';
+import { movementBlockDomainFocus, type MovementBlock, type TrainingSessionCompletion } from '../adherence';
 import {
   addBlockScheduleDays,
   blockScheduleDateKey,
@@ -7,17 +7,19 @@ import {
 import { getMicroCheckCopy } from './copy';
 import type { MicroCheckDefinition } from './types';
 
-export function getMicroCheckForBlock(block: MovementBlock): MicroCheckDefinition {
+export function getMicroCheckForBlock(block: MovementBlock): MicroCheckDefinition | null {
+  const focusDomain = movementBlockDomainFocus(block);
+  if (!focusDomain) return null;
   const type =
-    block.focusDomain === 'balance'
+    focusDomain === 'balance'
       ? 'single-leg-balance'
-      : block.focusDomain === 'mobility'
+      : focusDomain === 'mobility'
         ? 'mobility-reach'
         : 'chair-power';
-  const copy = getMicroCheckCopy(block.focusDomain);
+  const copy = getMicroCheckCopy(focusDomain);
   return {
     type,
-    domain: block.focusDomain,
+    domain: focusDomain,
     title: copy.title,
     body: copy.body,
     estimatedSeconds: 60,

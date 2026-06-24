@@ -291,13 +291,24 @@ export function SecondaryButton({
   onPress,
   accessibilityLabel,
   style,
+  disabled,
 }: {
   title: string;
   onPress: () => void;
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
+  disabled?: boolean;
 }) {
-  return <Button title={title} onPress={onPress} variant="secondary" accessibilityLabel={accessibilityLabel} style={style} />;
+  return (
+    <Button
+      title={title}
+      onPress={onPress}
+      variant="secondary"
+      accessibilityLabel={accessibilityLabel}
+      style={style}
+      disabled={disabled}
+    />
+  );
 }
 
 export function GhostButton({ title, onPress }: { title: string; onPress: () => void }) {

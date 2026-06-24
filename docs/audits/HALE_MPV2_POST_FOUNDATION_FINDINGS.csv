@@ -1,0 +1,4 @@
+findingId,severity,type,title,affectedScenarioIds,recommendedNextAction,blocksPreview,notes
+MPV2-RT-006,P2,retry_recovery,Full tracking-loss/recovery narration remains follow-up,repeated_tracking_loss_event,Wire tracking-loss/recovered/retry cues in a later scoped task,false,Out of scope for the P1 foundation.
+MPV2-RT-009,P2,voice_parity,Mounted voice switching remains follow-up,voice_change_while_screen_mounted_channel_exists,Rebuild channel on voice change in a later scoped task,false,Explicitly out of scope for this patch.
+MPV2-POST-DEVICE,P3,device_qa,Physical audible onset still requires device QA,go_audible_onset_timing,Run Android/iOS playback-start versus speaker-onset QA,false,

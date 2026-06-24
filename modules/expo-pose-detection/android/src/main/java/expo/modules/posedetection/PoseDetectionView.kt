@@ -8,12 +8,15 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
+import android.hardware.camera2.CameraCharacteristics
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.os.Trace
 import android.util.Size
 import android.view.Surface
+import androidx.camera.camera2.interop.Camera2CameraInfo
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
@@ -119,7 +122,17 @@ private data class PoseLatencyDiagnostics(
   val imageProxyFormat: Int,
   val imageProxyFormatName: String,
   val imageProxyRotationDegrees: Int,
+  val imageProcessingRotationDegrees: Int,
+  val emittedSourceWidth: Int,
+  val emittedSourceHeight: Int,
+  val landmarkRotationDegrees: Int,
   val cameraTargetRotation: Int,
+  val cameraFacing: String,
+  val mirrorState: Boolean,
+  val cameraId: String?,
+  val sensorTimestampSourceRaw: Int?,
+  val sensorTimestampSourceName: String,
+  val sensorTimestampComparableToElapsedRealtime: Boolean,
   val mpImageWidth: Int,
   val mpImageHeight: Int,
   val numPoses: Int,
@@ -142,6 +155,8 @@ private data class PreparedFrame(
   val sourceHeight: Int,
   val mpImageWidth: Int,
   val mpImageHeight: Int,
+  val imageProcessingRotationDegrees: Int,
+  val landmarkRotationDegrees: Int,
   val preprocessingEndMs: Double,
   val imageProxyToBitmapMs: Double,
   val explicitRotationMs: Double,
@@ -157,6 +172,7 @@ private data class PendingInference(
   val sourceHeight: Int,
   val mpImage: MPImage,
   val imageProcessingOptions: ImageProcessingOptions?,
+  val landmarkRotationDegrees: Int,
   val diagnostics: PoseLatencyDiagnostics?,
 )
 
@@ -230,6 +246,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
   private var nativeEventEmittedCount = 0L
   private var cameraTargetRotation = Surface.ROTATION_0
   private var analysisTargetSize = Size(640, 480)
+  private var cameraTimestampDiagnostics = androidCameraTimestampDiagnostics(null, null)
   private val rotationMatrix = Matrix()
   private val nativeEventScheduler = LatestNativeEventScheduler<NativePoseEvent>(
     getOrder = { it.frameId },
@@ -405,6 +422,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
       pendingInference = null
     }
     resetDiagnosticsCounters()
+    cameraTimestampDiagnostics = androidCameraTimestampDiagnostics(null, null)
     val executor = Executors.newSingleThreadExecutor()
     analysisExecutor = executor
 
@@ -465,7 +483,8 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
         provider.unbindAll()
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
-        provider.bindToLifecycle(this, selector, analysis)
+        val camera = provider.bindToLifecycle(this, selector, analysis)
+        updateCameraTimestampDiagnostics(camera)
         onCameraReady(emptyMap())
       } catch (e: Exception) {
         onPoseError(mapOf("message" to "camera-bind-failed: ${e.message}"))
@@ -520,6 +539,10 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
           imageProxyHeight = imageProxyHeight,
           imageProxyFormat = imageProxyFormat,
           imageProxyRotationDegrees = imageProxyRotationDegrees,
+          imageProcessingRotationDegrees = prepared.imageProcessingRotationDegrees,
+          emittedSourceWidth = prepared.sourceWidth,
+          emittedSourceHeight = prepared.sourceHeight,
+          landmarkRotationDegrees = prepared.landmarkRotationDegrees,
           mpImageWidth = prepared.mpImageWidth,
           mpImageHeight = prepared.mpImageHeight,
           imageProxyToBitmapMs = prepared.imageProxyToBitmapMs,
@@ -541,6 +564,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
             sourceHeight = prepared.sourceHeight,
             mpImage = prepared.mpImage,
             imageProcessingOptions = prepared.imageProcessingOptions,
+            landmarkRotationDegrees = prepared.landmarkRotationDegrees,
             diagnostics = diagnostics,
           )
         }
@@ -581,6 +605,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
         inferenceMs = inferenceMs.toDouble(),
         width = prepared.sourceWidth,
         height = prepared.sourceHeight,
+        landmarkRotationDegrees = prepared.landmarkRotationDegrees,
         diagnostics = completedDiagnostics,
       )
     } catch (e: Exception) {
@@ -597,17 +622,18 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
 
   private fun prepareFrame(imageProxy: ImageProxy, diagnosticsEnabled: Boolean): PreparedFrame {
     val rotation = imageProxy.imageInfo.rotationDegrees
+    val normalizedRotation = normalizeRotationDegrees(rotation)
     val toBitmapStartMs = if (diagnosticsEnabled) nativeNowMs() else 0.0
     val raw = imageProxy.toBitmap()
     val toBitmapEndMs = if (diagnosticsEnabled) nativeNowMs() else 0.0
     imageProxy.close()
 
     val rotationStartMs = if (diagnosticsEnabled) nativeNowMs() else 0.0
-    val bitmap = if (androidRotationMode == ROTATION_METADATA_MODE || rotation == 0) {
+    val bitmap = if (androidRotationMode == ROTATION_METADATA_MODE || normalizedRotation == 0) {
       raw
     } else {
       rotationMatrix.reset()
-      rotationMatrix.postRotate(rotation.toFloat())
+      rotationMatrix.postRotate(normalizedRotation.toFloat())
       val rotated = Bitmap.createBitmap(raw, 0, 0, raw.width, raw.height, rotationMatrix, true)
       raw.recycle()
       rotated
@@ -618,13 +644,26 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
     val mpImage = BitmapImageBuilder(bitmap).build()
     val mpImageBuildEndMs = if (diagnosticsEnabled) nativeNowMs() else 0.0
     val sourceDimensions = if (androidRotationMode == ROTATION_METADATA_MODE) {
-      uprightSourceDimensions(raw.width, raw.height, rotation)
+      uprightSourceDimensions(raw.width, raw.height, normalizedRotation)
     } else {
       AndroidPoseFrameDimensions(width = bitmap.width, height = bitmap.height)
     }
-    val imageProcessingOptions = if (androidRotationMode == ROTATION_METADATA_MODE && rotation != 0) {
+    val imageProcessingRotationDegrees = if (androidRotationMode == ROTATION_METADATA_MODE) {
+      normalizedRotation
+    } else {
+      0
+    }
+    val landmarkRotationDegrees = if (androidRotationMode == ROTATION_METADATA_MODE) {
+      normalizedRotation
+    } else {
+      0
+    }
+    val imageProcessingOptions = if (
+      androidRotationMode == ROTATION_METADATA_MODE &&
+      imageProcessingRotationDegrees != 0
+    ) {
       ImageProcessingOptions.builder()
-        .setRotationDegrees(rotation)
+        .setRotationDegrees(imageProcessingRotationDegrees)
         .build()
     } else {
       null
@@ -637,12 +676,14 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
       sourceHeight = sourceDimensions.height,
       mpImageWidth = mpImage.getWidth(),
       mpImageHeight = mpImage.getHeight(),
+      imageProcessingRotationDegrees = imageProcessingRotationDegrees,
+      landmarkRotationDegrees = landmarkRotationDegrees,
       preprocessingEndMs = if (diagnosticsEnabled) mpImageBuildEndMs else 0.0,
       imageProxyToBitmapMs = if (diagnosticsEnabled) toBitmapEndMs - toBitmapStartMs else 0.0,
       explicitRotationMs = if (
         diagnosticsEnabled &&
         androidRotationMode != ROTATION_METADATA_MODE &&
-        rotation != 0
+        normalizedRotation != 0
       ) {
         rotationEndMs - rotationStartMs
       } else {
@@ -678,6 +719,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
       },
       width = pending.sourceWidth,
       height = pending.sourceHeight,
+      landmarkRotationDegrees = pending.landmarkRotationDegrees,
       diagnostics = completedDiagnostics,
     )
   }
@@ -697,6 +739,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
     inferenceMs: Double,
     width: Int,
     height: Int,
+    landmarkRotationDegrees: Int,
     diagnostics: PoseLatencyDiagnostics?,
   ) {
     if (diagnostics != null) Trace.beginSection("HalePose.nativeResultConversion")
@@ -714,8 +757,12 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
       for (i in 0 until count) {
         val lm = pose[i]
         val base = i * LANDMARK_STRIDE
-        flat[base] = lm.x().toDouble()
-        flat[base + 1] = lm.y().toDouble()
+        val x = lm.x().toDouble()
+        val y = lm.y().toDouble()
+        // Metadata rotation orients MediaPipe inference, but landmarks are still
+        // normalized in MPImage space. Hale emits upright, unmirrored x/y.
+        flat[base] = uprightNormalizedX(x, y, landmarkRotationDegrees)
+        flat[base + 1] = uprightNormalizedY(x, y, landmarkRotationDegrees)
         flat[base + 2] = lm.z().toDouble()
         flat[base + 3] = (lm.visibility().orElse(0f)).toDouble()
         flat[base + 4] = (lm.presence().orElse(0f)).toDouble()
@@ -776,6 +823,10 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
     imageProxyHeight: Int,
     imageProxyFormat: Int,
     imageProxyRotationDegrees: Int,
+    imageProcessingRotationDegrees: Int,
+    emittedSourceWidth: Int,
+    emittedSourceHeight: Int,
+    landmarkRotationDegrees: Int,
     mpImageWidth: Int,
     mpImageHeight: Int,
     imageProxyToBitmapMs: Double,
@@ -807,7 +858,18 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
       imageProxyFormat = imageProxyFormat,
       imageProxyFormatName = imageFormatName(imageProxyFormat),
       imageProxyRotationDegrees = imageProxyRotationDegrees,
+      imageProcessingRotationDegrees = imageProcessingRotationDegrees,
+      emittedSourceWidth = emittedSourceWidth,
+      emittedSourceHeight = emittedSourceHeight,
+      landmarkRotationDegrees = landmarkRotationDegrees,
       cameraTargetRotation = cameraTargetRotation,
+      cameraFacing = cameraFacing,
+      mirrorState = cameraFacing != "back",
+      cameraId = cameraTimestampDiagnostics.cameraId,
+      sensorTimestampSourceRaw = cameraTimestampDiagnostics.sensorTimestampSourceRaw,
+      sensorTimestampSourceName = cameraTimestampDiagnostics.sensorTimestampSourceName,
+      sensorTimestampComparableToElapsedRealtime =
+        cameraTimestampDiagnostics.sensorTimestampComparableToElapsedRealtime,
       mpImageWidth = mpImageWidth,
       mpImageHeight = mpImageHeight,
       numPoses = NUM_POSES,
@@ -824,7 +886,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
     )
   }
 
-  private fun latencyPayload(latency: PoseLatencyDiagnostics): Map<String, Any> {
+  private fun latencyPayload(latency: PoseLatencyDiagnostics): Map<String, Any?> {
     val sourceAgeAtMediapipeSubmitMs = latency.mediapipeSubmitMs - latency.sourceTimestampMs
     val sourceAgeAtMediapipeCallbackMs = latency.mediapipeCallbackMs - latency.sourceTimestampMs
     val sourceAgeAtNativeEventEmitMs = latency.nativeEventEmitMs - latency.sourceTimestampMs
@@ -861,7 +923,18 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
       "imageProxyFormat" to latency.imageProxyFormat,
       "imageProxyFormatName" to latency.imageProxyFormatName,
       "imageProxyRotationDegrees" to latency.imageProxyRotationDegrees,
+      "imageProcessingRotationDegrees" to latency.imageProcessingRotationDegrees,
+      "emittedSourceWidth" to latency.emittedSourceWidth,
+      "emittedSourceHeight" to latency.emittedSourceHeight,
+      "landmarkRotationDegrees" to latency.landmarkRotationDegrees,
       "cameraTargetRotation" to latency.cameraTargetRotation,
+      "cameraFacing" to latency.cameraFacing,
+      "mirrorState" to latency.mirrorState,
+      "cameraId" to latency.cameraId,
+      "sensorTimestampSourceRaw" to latency.sensorTimestampSourceRaw,
+      "sensorTimestampSourceName" to latency.sensorTimestampSourceName,
+      "sensorTimestampComparableToElapsedRealtime" to
+        latency.sensorTimestampComparableToElapsedRealtime,
       "mpImageWidth" to latency.mpImageWidth,
       "mpImageHeight" to latency.mpImageHeight,
       "numPoses" to latency.numPoses,
@@ -1059,6 +1132,20 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
     nativeEventCoalescedCount = 0L
     nativeEventRejectedCount = 0L
     nativeEventEmittedCount = 0L
+  }
+
+  private fun updateCameraTimestampDiagnostics(camera: Camera) {
+    cameraTimestampDiagnostics = try {
+      val camera2Info = Camera2CameraInfo.from(camera.cameraInfo)
+      androidCameraTimestampDiagnostics(
+        cameraId = camera2Info.cameraId,
+        sensorTimestampSource = camera2Info.getCameraCharacteristic(
+          CameraCharacteristics.SENSOR_INFO_TIMESTAMP_SOURCE
+        ),
+      )
+    } catch (_: Exception) {
+      androidCameraTimestampDiagnostics(null, null)
+    }
   }
 
   private fun stop() {

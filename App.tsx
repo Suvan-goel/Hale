@@ -88,6 +88,7 @@ import {
   historicalOfficialCheckUpRecords,
   latestUsableOfficialCheckUpRecord,
   latestUsableOfficialAssessment,
+  materializeMovementProfileV2Block,
   applyProgressionEvidenceFromSession,
   planLadderPracticeSessionResult,
   planTodayHaleSession,
@@ -201,6 +202,7 @@ import { OnboardingBlockScreen } from './src/screens/OnboardingBlockScreen';
 import { OnboardingEquipmentScreen } from './src/screens/OnboardingEquipmentScreen';
 import { OnboardingResultsScreen } from './src/screens/OnboardingResultsScreen';
 import { PlanScreen } from './src/screens/PlanScreen';
+import { PoseOverlayBenchmarkScreen } from './src/screens/PoseOverlayBenchmarkScreen';
 import { ProgressScreen, buildProgressDevMockData } from './src/screens/ProgressScreen';
 import { ResultsScreen } from './src/screens/ResultsScreen';
 import { SafetyProfileScreen } from './src/screens/SafetyProfileScreen';
@@ -210,6 +212,7 @@ import { SessionPreviewScreen } from './src/screens/SessionPreviewScreen';
 import { TodayScreen } from './src/screens/TodayScreen';
 import { TrainingSessionScreen } from './src/screens/TrainingSessionScreen';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
+import { isPoseLatencyDiagnosticsEnabled } from './src/diagnostics/poseLatencyDiagnostics';
 import {
   EquipmentProfile,
   MicroCheckResult,
@@ -256,6 +259,7 @@ type Flow =
   | 'movement-profile-v2-reference-details'
   | 'movement-profile-v2-results'
   | 'movement-profile-v2-domain-detail'
+  | 'pose-benchmark'
   | 'dev-live';
 
 type CameraSetupEntry = 'checkup' | 'review';
@@ -273,6 +277,7 @@ const CAMERA_FLOWS = new Set<Flow>([
   'training',
   'microcheck',
   'movement-profile-v2-checkup',
+  'pose-benchmark',
   'dev-live',
 ]);
 const MAX_NAVIGATION_HISTORY_ENTRIES = 40;
@@ -551,6 +556,7 @@ function HaleApp() {
   // Audio mode must be configured BEFORE the camera mounts — audio session
   // changes must never interrupt a running camera session.
   const [audioReady, setAudioReady] = React.useState(false);
+  const poseLatencyDiagnosticsEnabled = isPoseLatencyDiagnosticsEnabled();
 
   // Navigation: which bottom tab is showing, and whether a full-screen flow is
   // on top of it (a flow hides the tab bar; null means "show the tabs").
@@ -575,6 +581,8 @@ function HaleApp() {
   } | null>(null);
   const [movementProfileV2Result, setMovementProfileV2Result] =
     React.useState<MovementProfileV2ResultsViewModel | null>(null);
+  const [movementProfileV2PlanBlockId, setMovementProfileV2PlanBlockId] =
+    React.useState<string | null>(null);
   const [movementProfileV2DetailDomain, setMovementProfileV2DetailDomain] =
     React.useState<MovementProfileV2Domain | null>(null);
 
@@ -742,6 +750,7 @@ function HaleApp() {
     setMovementProfileV2InitialFlow(null);
     setMovementProfileV2Raw(null);
     setMovementProfileV2Result(null);
+    setMovementProfileV2PlanBlockId(null);
     setMovementProfileV2DetailDomain(null);
     setTraining(defaultTrainingState());
     setMicroChecks([]);
@@ -986,6 +995,7 @@ function HaleApp() {
     setMovementProfileV2InitialFlow(null);
     setMovementProfileV2Raw(null);
     setMovementProfileV2Result(null);
+    setMovementProfileV2PlanBlockId(null);
     setMovementProfileV2DetailDomain(null);
   }, [replaceNextNavigationLocation]);
 
@@ -2162,7 +2172,7 @@ function HaleApp() {
       } = createCurrentVersionedScoreSnapshot(checkUp, {
         createdAt: completedAt,
         activeFocusDomain:
-          isRetest && block ? scoreDomainFromMovementDomain(block.focusDomain) : null,
+          isRetest && block?.focusDomain ? scoreDomainFromMovementDomain(block.focusDomain) : null,
       });
       recordScoringInputIssues('checkup_completion', scoringInputIssues, checkupType);
       const assessment = createMovementAssessment({
@@ -2741,6 +2751,7 @@ function HaleApp() {
             source: sessionPlan?.metadata?.source,
             templateId: sessionPlan?.metadata?.templateId,
             mainPlanCredit: true,
+            plannedPrimaryDomain: sessionPlan?.metadata?.plannedPrimaryDomain,
             workEvidence: summarizedEvidence,
             focusStimulusEvidence: summarizedFocusEvidence,
             progressionEvidencePolicy: sessionPlan?.metadata?.progressionEvidencePolicy,
@@ -2815,6 +2826,7 @@ function HaleApp() {
               source: sessionPlan?.metadata?.source,
               templateId: sessionPlan?.metadata?.templateId,
               mainPlanCredit: false,
+              plannedPrimaryDomain: sessionPlan?.metadata?.plannedPrimaryDomain,
               workEvidence: summarizedEvidence,
               focusStimulusEvidence: summarizedFocusEvidence,
               progressionEvidencePolicy: sessionPlan?.metadata?.progressionEvidencePolicy,
@@ -2967,7 +2979,7 @@ function HaleApp() {
       if (
         activeSessionPlan &&
         activeSessionPlan.metadata?.source !== 'legacy_fallback' &&
-        countsTowardMainPlan(activeSessionPlan) &&
+        countsTowardMainPlan(activeSessionPlan, activeMovementBlock) &&
         nextCompletion.mainPlanCredit === true &&
         nextCompletion.focusStimulusEvidence?.mainPlanCredit === true &&
         nextCompletion.scheduleCredit?.credited === true
@@ -3393,6 +3405,7 @@ function HaleApp() {
     if (!MOVEMENT_PROFILE_V2_INTERNAL_ENABLED) return;
     const pendingRaw = latestPendingMovementProfileV2RawCheckUp(history);
     setMovementProfileV2Result(null);
+    setMovementProfileV2PlanBlockId(null);
     setMovementProfileV2DetailDomain(null);
 
     if (pendingRaw) {
@@ -3426,6 +3439,7 @@ function HaleApp() {
       setMovementProfileV2Raw(input);
       setMovementProfileV2InitialFlow(null);
       setMovementProfileV2Result(null);
+      setMovementProfileV2PlanBlockId(null);
       setMovementProfileV2DetailDomain(null);
       store
         .loadAll()
@@ -3483,9 +3497,45 @@ function HaleApp() {
         });
       }
 
+      const planBlock = materializeMovementProfileV2Block({
+        adherence,
+        checkUp: materialized.checkUp,
+        checkupType: movementProfileV2Raw.sourceType,
+        snapshot: materialized.snapshot,
+        assessment: materialized.assessment,
+        userId: LOCAL_USER_ID,
+        startDate: now,
+      });
+      let preparedPlanBlockId: string | null = null;
+      if (planBlock.ok) {
+        const adherenceSaved = persistAdherence(planBlock.adherence);
+        if (adherenceSaved) {
+          preparedPlanBlockId = planBlock.block.id;
+          if (backendSignedIn && backendUserId) {
+            void syncMovementBlockToRemote({
+              block: planBlock.block,
+              training,
+              blockNumber: blockNumberForBlocks(planBlock.adherence.blocks, planBlock.block.id),
+              sourceCheckupLocalId: materialized.assessment.sourceCheckUpId,
+            });
+          }
+        }
+      } else {
+        addBreadcrumb('movement profile v2 block materialization blocked', {
+          area: 'movement_profile_v2',
+          reason: planBlock.reason,
+          existingBlockId: planBlock.existingBlockId,
+          expectedBlockId: planBlock.expectedBlockId,
+        });
+        if (__DEV__) {
+          console.warn('[movement-profile-v2] block materialization blocked', planBlock.reason);
+        }
+      }
+
       setMovementProfileV2Raw(null);
       setMovementProfileV2InitialFlow(null);
       setMovementProfileV2DetailDomain(null);
+      setMovementProfileV2PlanBlockId(preparedPlanBlockId);
       setMovementProfileV2Result(
         buildMovementProfileV2ResultsViewModel({
           snapshot: materialized.snapshot,
@@ -3498,19 +3548,37 @@ function HaleApp() {
         .catch(() => {});
       replaceFlow('movement-profile-v2-results');
     },
-    [backendSignedIn, backendUserId, history, movementProfileV2Raw, prefs.profile.lifeGoal, replaceFlow, store]
+    [
+      adherence,
+      backendSignedIn,
+      backendUserId,
+      history,
+      movementProfileV2Raw,
+      persistAdherence,
+      prefs.profile.lifeGoal,
+      replaceFlow,
+      store,
+      training,
+    ]
   );
 
   const viewLatestMovementProfileV2 = React.useCallback(() => {
     if (!MOVEMENT_PROFILE_V2_INTERNAL_ENABLED) return;
     const latest = latestMaterializedMovementProfileV2Result(history);
     if (!latest) return;
+    const planBlock =
+      adherence.blocks.find(
+        (block) =>
+          block.origin?.kind === 'movement_profile_v2_assessment' &&
+          block.origin.assessmentId === latest.assessment.assessmentId
+      ) ?? null;
     setMovementProfileV2Raw(null);
     setMovementProfileV2InitialFlow(null);
     setMovementProfileV2DetailDomain(null);
+    setMovementProfileV2PlanBlockId(planBlock?.id ?? null);
     setMovementProfileV2Result(movementProfileV2ResultsViewModelForRecord(latest));
     setFlow('movement-profile-v2-results');
-  }, [history]);
+  }, [adherence.blocks, history]);
 
   const handleRoute = React.useCallback(
     (route: string | undefined) => {
@@ -3741,7 +3809,7 @@ function HaleApp() {
         ) : flow === 'microcheck' ? (
           <MicroCheckScreen
             type={
-              activeMovementBlock ? getMicroCheckForBlock(activeMovementBlock).type : 'chair-power'
+              activeMovementBlock ? getMicroCheckForBlock(activeMovementBlock)?.type ?? 'chair-power' : 'chair-power'
             }
             onComplete={handleMicroCheckComplete}
             onCancel={() => goBack(goHome)}
@@ -3841,6 +3909,9 @@ function HaleApp() {
               setMovementProfileV2DetailDomain(null);
               replaceFlow('movement-profile-v2-results');
             }}
+            onViewPlan={
+              movementProfileV2PlanBlockId ? handleViewPlanFromResults : undefined
+            }
             onDone={() => {
               setMovementProfileV2DetailDomain(null);
               goBack(goHome);
@@ -3867,9 +3938,14 @@ function HaleApp() {
             onStartMovementProfileV2Internal={
               MOVEMENT_PROFILE_V2_INTERNAL_ENABLED ? beginMovementProfileV2Internal : undefined
             }
+            onOpenPoseBenchmarkForDiagnostics={
+              poseLatencyDiagnosticsEnabled ? () => setFlow('pose-benchmark') : undefined
+            }
             onReplayOnboardingForDev={__DEV__ ? replayOnboardingForDev : undefined}
             onBack={goHome}
           />
+        ) : flow === 'pose-benchmark' && poseLatencyDiagnosticsEnabled ? (
+          <PoseOverlayBenchmarkScreen onBack={() => goBack(goHome)} />
         ) : flow === 'dev-live' ? (
           <LiveSessionScreen />
         ) : (

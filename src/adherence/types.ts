@@ -4,6 +4,7 @@ import type { ProgressionEvidencePolicy } from '../training/dailyTrainingContext
 export const LOCAL_USER_ID = 'local-device-user';
 
 export type MovementDomain = 'strength_power' | 'balance' | 'mobility';
+export type TrainingPrimaryDomain = 'strength_power' | 'balance_stability' | 'mobility_flexibility';
 
 export type LifeGoalCategory =
   | 'grandchildren'
@@ -95,6 +96,37 @@ export interface MovementSafetyProfile {
 
 export type MovementBlockStatus = 'active' | 'completed' | 'paused' | 'abandoned';
 
+export type MovementBlockSourceCheckUpType = 'baseline' | 'baseline_retake' | 'official_retest';
+
+export type MovementBlockOrigin =
+  | {
+      kind: 'legacy_v1_assessment';
+      assessmentId?: string;
+      sourceCheckUpId?: string;
+    }
+  | {
+      kind: 'movement_profile_v2_assessment';
+      assessmentId: string;
+      assessmentFingerprint: string;
+      snapshotId: string;
+      snapshotFingerprint: string;
+      sourceCheckUpId: string;
+      sourceCheckUpType: MovementBlockSourceCheckUpType;
+      focusPolicyVersion: number;
+      focusPolicyFingerprint: string;
+    };
+
+export type MovementBlockFocus =
+  | {
+      kind: 'domain';
+      domain: MovementDomain;
+    }
+  | {
+      kind: 'balanced';
+      balancedPolicyVersion: number;
+      balancedPolicyFingerprint: string;
+    };
+
 export interface MovementBlock {
   id: string;
   userId: string;
@@ -103,7 +135,15 @@ export interface MovementBlock {
   startDate: string;
   endDate: string;
   retestDate: string;
-  focusDomain: MovementDomain;
+  focusDomain?: MovementDomain;
+  focus?: MovementBlockFocus;
+  origin?: MovementBlockOrigin;
+  blockFingerprint?: string;
+  blockCreationPolicyVersion?: number;
+  blockCreationPolicyFingerprint?: string;
+  templatePolicyVersion?: number;
+  templatePolicyFingerprint?: string;
+  templateIds?: string[];
   secondaryDomains: MovementDomain[];
   focusSelectionKind?: FocusSelectionKind;
   focusTiedDomains?: MovementDomain[];
@@ -238,6 +278,7 @@ export interface TrainingFocusStimulusEvidenceSummary {
   exclusionReason: TrainingFocusStimulusCreditExclusionReason;
   mainPlanCredit: boolean;
   blockFocusDomain?: MovementDomain;
+  plannedPrimaryDomain?: TrainingPrimaryDomain;
   plannedPrimaryFocusExerciseCount: number;
   completedPrimaryFocusExerciseCount: number;
   completedSupportingExerciseCount: number;
@@ -265,6 +306,7 @@ export interface TrainingSessionCompletion {
   completedAt: string;
   sessionType: TrainingSessionCompletionType;
   focusDomain?: MovementDomain;
+  plannedPrimaryDomain?: TrainingPrimaryDomain;
   source?: TrainingSessionCompletionSource;
   templateId?: string;
   mainPlanCredit?: boolean;

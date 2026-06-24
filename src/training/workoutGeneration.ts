@@ -122,6 +122,7 @@ export interface SessionTemplate {
   estimatedMinutes: number;
   slots: readonly SessionSlot[];
   source?: SessionSource;
+  sourceTemplateId?: string;
 }
 
 export interface TrainingBlock {
@@ -416,6 +417,15 @@ const DOMAIN_LABEL: Record<TrainingDomain, string> = {
   mobility_flexibility: 'Mobility & Flexibility',
 };
 
+export const MOVEMENT_PROFILE_V2_BALANCED_TEMPLATE_POLICY_VERSION = 1 as const;
+export const MOVEMENT_PROFILE_V2_BALANCED_TEMPLATE_POLICY_FINGERPRINT =
+  'mpv2-balanced-template-policy-v1:balanced-A=strength-A;balanced-B=balance-B;balanced-C=mobility-C' as const;
+export const MOVEMENT_PROFILE_V2_BALANCED_TEMPLATE_SOURCES = {
+  'balanced-A': 'strength-A',
+  'balanced-B': 'balance-B',
+  'balanced-C': 'mobility-C',
+} as const;
+
 const TRAINING_DOMAIN_BY_MOVEMENT_DOMAIN: Record<MovementDomain, TrainingDomain> = {
   strength_power: 'strength_power',
   balance: 'balance_stability',
@@ -461,6 +471,28 @@ export function createSessionTemplatesForFocus(focusDomain: TrainingDomain): Ses
   if (focusDomain === 'balance_stability') return balanceTemplates();
   if (focusDomain === 'mobility_flexibility') return mobilityTemplates();
   return strengthTemplates();
+}
+
+export function createBalancedSessionTemplates(): SessionTemplate[] {
+  const sourceTemplates = [
+    { id: 'balanced-A' as const, source: strengthTemplates().find((item) => item.id === 'strength-A') },
+    { id: 'balanced-B' as const, source: balanceTemplates().find((item) => item.id === 'balance-B') },
+    { id: 'balanced-C' as const, source: mobilityTemplates().find((item) => item.id === 'mobility-C') },
+  ];
+
+  return sourceTemplates.map(({ id, source }) => {
+    if (!source) throw new Error(`Missing balanced source template for ${id}`);
+    return template(
+      id,
+      `Balanced Session ${source.dayLabel}`,
+      source.dayLabel,
+      source.focusDomain,
+      source.estimatedMinutes,
+      source.slots.map((slot) => ({ ...slot })),
+      'block_generated',
+      source.id
+    );
+  });
 }
 
 export function getTemplateSelection(
@@ -941,9 +973,10 @@ function template(
   focusDomain: TrainingDomain,
   estimatedMinutes: number,
   slots: readonly SessionSlot[],
-  source: SessionSource = 'block_generated'
+  source: SessionSource = 'block_generated',
+  sourceTemplateId?: string
 ): SessionTemplate {
-  return { id, title, dayLabel, focusDomain, estimatedMinutes, slots, source };
+  return { id, title, dayLabel, focusDomain, estimatedMinutes, slots, source, sourceTemplateId };
 }
 
 function slot(

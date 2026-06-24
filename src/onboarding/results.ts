@@ -43,7 +43,7 @@ export function plannedOnboardingFocusDomain({
   score: CheckUpScore | null;
   plannedBlock?: Pick<MovementBlock, 'focusDomain'> | null;
 }): TrainingDomain | null {
-  if (plannedBlock) return trainingDomainFromMovementDomain(plannedBlock.focusDomain);
+  if (plannedBlock?.focusDomain) return trainingDomainFromMovementDomain(plannedBlock.focusDomain);
   if (!score) return null;
   return onboardingFocusDomain(score);
 }

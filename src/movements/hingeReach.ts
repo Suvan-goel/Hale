@@ -32,8 +32,8 @@ const LEFT_SIDE_CHAIN = CHAIN_IDS.indexOf('leftSide');
 const RIGHT_SIDE_CHAIN = CHAIN_IDS.indexOf('rightSide');
 
 export interface HingeReachResult extends MovementResultBase {
-  /** Minimum wrist-to-floor distance reached, in body units; NaN if unmeasured. */
-  reachBu: number;
+  /** Minimum wrist-to-floor distance reached, in body units; NaN/null if unmeasured. */
+  reachBu: number | null;
 }
 
 export interface HingeReachConfig {

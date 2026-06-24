@@ -1,5 +1,6 @@
 import type {
   TrainingFocusStimulusEvidenceSummary,
+  TrainingPrimaryDomain,
   TrainingSessionScheduleCreditSummary,
   TrainingSessionCompletionSource,
   TrainingSessionCompletionType,
@@ -71,6 +72,7 @@ export interface PersistedGeneratedSessionSummary {
   source: PersistedSessionSource;
   templateId?: string;
   plannedDateKey?: string;
+  plannedPrimaryDomain?: TrainingPrimaryDomain;
   sessionType?: TrainingSessionCompletionType;
   completionSource?: TrainingSessionCompletionSource;
   status?: 'completed' | 'partial' | 'skipped';

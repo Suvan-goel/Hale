@@ -36,7 +36,7 @@ interface MetricSpec {
   extract: Extractor;
 }
 
-function finiteOrNull(v: number | undefined): number | null {
+function finiteOrNull(v: number | null | undefined): number | null {
   return typeof v === 'number' && Number.isFinite(v) ? v : null;
 }
 

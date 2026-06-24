@@ -1,4 +1,5 @@
 import { currentWeekProgress } from './adherenceState';
+import { movementBlockDomainFocus } from './blockFocus';
 import { daysUntil } from './dateUtils';
 import { domainLabel } from './goalDomainMapping';
 import type {
@@ -123,13 +124,15 @@ export function createSupportSummary({
       sessionsTarget: week.sessionsTarget,
     };
   }
+  const focusDomain = movementBlockDomainFocus(block);
+  const focusLabel = focusDomain ? domainLabel(focusDomain) : 'Balanced';
   const base = {
     visible: true,
-    headline: `${domainLabel(block.focusDomain)} block in progress.`,
+    headline: `${focusLabel} block in progress.`,
     detail: `Re-test in ${daysUntil(block.retestDate, nowIso)} days. ${week.sessionsCompleted} of ${week.sessionsTarget} sessions completed this week.`,
     sessionsThisWeek: week.sessionsCompleted,
     sessionsTarget: week.sessionsTarget,
-    focusDomain: domainLabel(block.focusDomain),
+    focusDomain: focusLabel,
     retestDays: daysUntil(block.retestDate, nowIso),
   };
   if (connection.sharingLevel === 'detailed') {

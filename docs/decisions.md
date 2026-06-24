@@ -1432,3 +1432,71 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
   replace a pending main-thread emission, older/equal frame ids are rejected, and live-stream
   mode closes busy frames before bitmap conversion instead of queueing or converting frames that
   cannot be submitted.
+
+## 2026-06-24 — Android LIVE metadata rotation emits upright landmarks
+
+- **Root cause:** the Android metadata rotation profile passed `ImageProcessingOptions` to
+  MediaPipe but forwarded returned landmarks as if MediaPipe had changed the landmark coordinate
+  space. MediaPipe uses the rotation option for the graph input/normalized rect; returned x/y
+  landmarks still need to be normalized into Hale's upright, unmirrored output contract.
+- **Fix:** metadata mode now keeps passing CameraX's normalized rotation degrees to MediaPipe and
+  rotates emitted landmark x/y once in native code before JavaScript sees them. Width/height are
+  swapped only in the emitted upright source dimensions for 90/270 degrees. Front-camera mirroring
+  remains display-only in the renderer.
+- **Boundary:** the existing rotated-bitmap path remains unchanged as the known-correct fallback.
+  Diagnostics now show proxy size/rotation, ImageProcessingOptions rotation, MPImage size,
+  emitted upright size, camera facing, mirror state, and renderer input dimensions.
+
+## 2026-06-24 — Movement Profile V2 auto-prepares local closed-beta plans
+
+- **Change:** when a valid internal Movement Profile V2 Check-Up freezes its snapshot and
+  assessment, Hale now automatically creates or reuses a local 4-week `MovementBlock` before
+  showing the Movement Profile. The results CTA is "View my 4-week plan" and only navigates to
+  the already-prepared plan; it does not build, create, generate, or personalise a plan.
+- **Contract:** V2 blocks carry `origin.kind = movement_profile_v2_assessment`, the frozen
+  assessment/snapshot fingerprints, the source check-up type, a deterministic block
+  fingerprint, and a stable id of `movement-block-v2:<encoded-assessment-id>`. Same-id/same-
+  fingerprint material is reused. Same-id/different-fingerprint, source mismatch, malformed or
+  future artifacts, needs-retake outcomes, and active-block conflicts fail closed.
+- **Balanced blocks:** `balanced` remains a block focus kind, not a `MovementDomain`. Balanced
+  V2 blocks have no fake `focusDomain`; their A/B/C sessions use explicit source templates:
+  `balanced-A -> strength-A`, `balanced-B -> balance-B`, and `balanced-C -> mobility-C`.
+- **Waiver truth:** this is software implementation for invite-only closed beta only.
+
+```text
+PHYSICAL DEVICE VALIDATION NOT PERFORMED
+PHYSICAL DEVICE VALIDATION WAIVED BY PRODUCT OWNER FOR INVITE-ONLY CLOSED BETA
+DEVICE BEHAVIOUR NOT YET VERIFIED
+BETA TESTERS WILL BE THE INITIAL DEVICE-VALIDATION COHORT
+PUBLIC RELEASE REMAINS BLOCKED
+```
+
+## 2026-06-24 — Sculpted figure stays diagnostics-only for visual benchmarking
+
+- **Change:** added a benchmark-only `sculpted-figure` mode backed by explicit renderer mode
+  `sculpted_body`. It uses the existing SVG stack, raw pose landmarks, the latest-frame RAF
+  scheduler, and a fixed low-complexity graphite figure: 14 static transformed shapes plus 2
+  dynamic paths.
+- **Boundary:** production defaults remain `point_cloud_body`; `sculpted_body` is not accepted
+  through the env/default renderer resolver and is not selected by live session, check-up,
+  micro-check, or training screens.
+- **Evidence:** synthetic replay over 180 frames measured sculpted geometry at p50 0.015 ms,
+  p95 0.059 ms, p99 0.379 ms, max 0.705 ms with exactly 16 primitives. No physical benchmark was
+  collected in this pass.
+
+## 2026-06-24 — Matte graphite digital twin replaces sculpted benchmark prototype
+
+- **Change:** the rejected `sculpted-figure`/`sculpted_body` benchmark prototype was removed and
+  replaced with `matte-graphite-digital-twin` backed by explicit renderer mode
+  `matte_graphite_digital_twin`. The new renderer uses one SVG root, static matte graphite
+  gradients, and 8 dynamic filled surface paths: a continuous head-neck-torso-pelvis shell, four
+  continuous limb surfaces, two tonal overlays, and one tiny Hale sternum accent.
+- **Calibration:** raw landmark positions remain unsmoothed. Only slow-changing body proportions
+  are calibrated from a short benchmark-run sample window and then locked; renderer remount/reset
+  clears both metrics and calibration.
+- **Boundary:** production defaults remain `point_cloud_body`; the digital twin is still
+  benchmark-only, not accepted through env/default renderer selection, and not selected by
+  check-up, training, micro-check, recording, or production session screens.
+- **Evidence:** synthetic replay over 180 frames measured matte-graphite geometry at p50
+  0.044 ms, p95 0.187 ms, p99 0.675 ms, max 1.338 ms with 8 surface paths and 92 internal
+  control vertices. No physical benchmark was collected in this pass.

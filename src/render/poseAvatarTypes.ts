@@ -6,6 +6,7 @@ export type PoseAvatarRendererMode =
   | 'classic'
   | 'constellation'
   | 'point_cloud_body'
+  | 'matte_graphite_digital_twin'
   | 'mediapipe_skeleton';
 
 export type PoseAvatarFrameSource = 'raw' | 'display';
@@ -52,6 +53,13 @@ export interface PoseAvatarRendererScheduleEvent {
   geometryMs?: number;
   dotCount?: number;
   lineCount?: number;
+  shapeCount?: number;
+  dynamicPathCount?: number;
+  staticTransformedShapeCount?: number;
+  surfacePathCount?: number;
+  internalControlVertexCount?: number;
+  proportionCalibrationComplete?: boolean;
+  proportionCalibrationState?: string;
 }
 
 export interface PoseAvatarRendererProps {

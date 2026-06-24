@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Button, Card, PrimaryButton, Screen, ScreenHeader } from '../../components/ui';
 import { colors, fonts, radius, spacing, type } from '../../theme';
 import { domainLabel } from '../goalDomainMapping';
+import { movementBlockDomainFocus } from '../blockFocus';
 import type { LifeGoal, MovementBlock } from '../types';
 
 export function BlockIntroScreen({
@@ -16,7 +17,8 @@ export function BlockIntroScreen({
   onStartSession: () => void;
   onDone: () => void;
 }) {
-  const focus = domainLabel(block.focusDomain);
+  const focusDomain = movementBlockDomainFocus(block);
+  const focus = focusDomain ? domainLabel(focusDomain) : 'Balanced';
 
   return (
     <Screen contentStyle={styles.screenContent}>
@@ -30,7 +32,7 @@ export function BlockIntroScreen({
         <View style={styles.focusPanel}>
           <Text style={styles.sectionLabel}>Main focus</Text>
           <Text style={styles.focusTitle}>{focus}</Text>
-          <Text style={styles.focusBody}>{focusBenefitCopy(block.focusDomain)}</Text>
+          <Text style={styles.focusBody}>{focusDomain ? focusBenefitCopy(focusDomain) : 'This plan balances strength, steadiness, and mobility across the week.'}</Text>
         </View>
 
         <View style={styles.rhythmSection}>

@@ -1,6 +1,7 @@
 export * from './adherenceCopy';
 export * from './adherenceService';
 export * from './adherenceState';
+export * from './blockFocus';
 export * from './blockService';
 export * from './dateUtils';
 export * from './goalDomainMapping';

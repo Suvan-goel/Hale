@@ -29,6 +29,9 @@ describe('hinge reach — acceptance', () => {
   it('a deeper fold reaches lower than a shallow one', () => {
     const deep = grade({ seed: 22, peakFoldDeg: 88 });
     const shallow = grade({ seed: 22, peakFoldDeg: 45 });
+    if (deep.result.reachBu === null || shallow.result.reachBu === null) {
+      throw new Error('expected measured hinge reach');
+    }
     expect(deep.result.reachBu).toBeLessThan(shallow.result.reachBu);
   });
 
@@ -36,19 +39,24 @@ describe('hinge reach — acceptance', () => {
     const { result } = grade({ seed: 33, peakFoldDeg: 0, foldMs: 100, holdMs: 100 });
     expect(result.flags).toContain('no-measurement');
     expect(result.validTime?.completedByValidTime).toBe(false);
-    expect(Number.isNaN(result.reachBu)).toBe(true);
+    expect(typeof result.reachBu).toBe('number');
+    expect(Number.isNaN(result.reachBu as number)).toBe(true);
   });
 
   it('does not publish a fallback reach when the valid capture window is too short', () => {
     const { result } = grade({ seed: 34, peakFoldDeg: 85, foldMs: 100, holdMs: 100 });
     expect(result.flags).toContain('no-measurement');
     expect(result.validTime?.completedByValidTime).toBe(false);
-    expect(Number.isNaN(result.reachBu)).toBe(true);
+    expect(typeof result.reachBu).toBe('number');
+    expect(Number.isNaN(result.reachBu as number)).toBe(true);
   });
 
   it('is camera-distance invariant (body-unit normalized)', () => {
     const near = grade({ seed: 44, peakFoldDeg: 80, scale: 1.1 });
     const far = grade({ seed: 44, peakFoldDeg: 80, scale: 0.85 });
+    if (near.result.reachBu === null || far.result.reachBu === null) {
+      throw new Error('expected measured hinge reach');
+    }
     expect(Math.abs(near.result.reachBu - far.result.reachBu)).toBeLessThan(0.06);
   });
 
@@ -60,6 +68,7 @@ describe('hinge reach — acceptance', () => {
     });
     expect(result.interruptions).toBeGreaterThanOrEqual(1);
     expect(result.flags).toContain('tracking-interrupted');
+    if (result.reachBu === null) throw new Error('expected measured hinge reach');
     expect(result.reachBu).toBeLessThan(0.45);
   });
 });

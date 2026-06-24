@@ -1,5 +1,6 @@
 import {
   movementBlockSourceCheckUpId,
+  movementBlockDomainFocus,
   type AdherenceState,
   type AvailableEquipment,
   type LifeGoal,
@@ -71,7 +72,6 @@ import {
   movementCapabilityBlockReasonsForLevel,
 } from '../training/movementCapabilitySafety';
 import {
-  createSessionTemplatesForFocus,
   generateTodaySession as generateDynamicTodaySession,
   type DailyReadiness,
   type GeneratedExercise,
@@ -119,6 +119,11 @@ import {
   classifyMainPlanSessionPlan,
   mainPlanRecentSessionsForGeneration,
 } from './mainPlanEvents';
+import {
+  plannedPrimaryDomainForBlockSession,
+  plannedPrimaryDomainForMovementBlock,
+  sessionTemplatesForMovementBlock,
+} from './blockTrainingPlan';
 import { dayLabelForPlanSessionId, type PlanSessionId } from './sessionIds';
 import { applyProgressionEvidenceFromSession } from './progressionEvidence';
 import type { ExerciseFamily, HaleExercise, HaleSessionPlan } from './types';
@@ -347,12 +352,16 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
   const movementCapabilityContext = movementCapabilityForPlanning(input);
 
   if (activeBlock) {
-    if (!isMovementDomain(activeBlock.focusDomain)) {
+    const blockFocusDomain = movementBlockDomainFocus(activeBlock) ?? undefined;
+    let dynamicBlock: DynamicTrainingBlock;
+    try {
+      dynamicBlock = toDynamicTrainingBlock(activeBlock);
+    } catch {
       return unavailablePlanningResult({
         reason: 'invalid_active_block',
         blockId: activeBlock.id,
         planningDateKey: `session:${planningDate}`,
-        focusDomain: undefined,
+        focusDomain: blockFocusDomain,
         issues: [{ code: 'unsupported_focus_domain', blockId: activeBlock.id }],
       });
     }
@@ -374,20 +383,8 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         reason: 'invalid_active_block',
         blockId: activeBlock.id,
         planningDateKey: `session:${planningDate}`,
-        focusDomain: activeBlock.focusDomain,
+        focusDomain: blockFocusDomain,
         issues: [{ code: 'invalid_week_status', blockId: activeBlock.id }],
-      });
-    }
-    let dynamicBlock: DynamicTrainingBlock;
-    try {
-      dynamicBlock = toDynamicTrainingBlock(activeBlock);
-    } catch {
-      return unavailablePlanningResult({
-        reason: 'invalid_active_block',
-        blockId: activeBlock.id,
-        planningDateKey: `session:${planningDate}`,
-        focusDomain: activeBlock.focusDomain,
-        issues: [{ code: 'unsupported_focus_domain', blockId: activeBlock.id }],
       });
     }
     const scheduledTemplateId = !presetId ? schedule?.nextTemplateId : undefined;
@@ -398,7 +395,7 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         blockId: activeBlock.id,
         templateId: String(input.targetSessionTemplateId),
         planningDateKey: `${String(input.targetSessionTemplateId)}:${planningDate}`,
-        focusDomain: activeBlock.focusDomain,
+        focusDomain: blockFocusDomain,
         issues: [{ code: 'template_id_mismatch', templateId: String(input.targetSessionTemplateId), blockId: activeBlock.id }],
       });
     }
@@ -408,7 +405,7 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         blockId: activeBlock.id,
         templateId: String(input.targetSessionTemplateId),
         planningDateKey: `${String(input.targetSessionTemplateId)}:${planningDate}`,
-        focusDomain: activeBlock.focusDomain,
+        focusDomain: blockFocusDomain,
         issues: [{ code: 'template_id_mismatch', templateId: String(input.targetSessionTemplateId), blockId: activeBlock.id }],
       });
     }
@@ -422,7 +419,7 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         blockId: activeBlock.id,
         templateId: targetTemplate?.id,
         planningDateKey: plannedDateKey(targetTemplate?.id, plannedFor),
-        focusDomain: activeBlock.focusDomain,
+        focusDomain: blockFocusDomain,
         recoveryActions: ['review_setup', 'retry'],
         issues: [{ code: 'equipment_profile_unknown', blockId: activeBlock.id, templateId: targetTemplate?.id }],
       });
@@ -455,7 +452,7 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         blockId: activeBlock.id,
         templateId: targetTemplate?.id,
         planningDateKey: plannedDateKey(targetTemplate?.id, plannedFor),
-        focusDomain: activeBlock.focusDomain,
+        focusDomain: blockFocusDomain,
         issues: [{ code: 'missing_generated_session', blockId: activeBlock.id, templateId: targetTemplate?.id }],
       });
     }
@@ -475,7 +472,7 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         blockId: activeBlock.id,
         templateId: targetTemplate?.id,
         planningDateKey: plannedDateKey(targetTemplate?.id, plannedFor),
-        focusDomain: activeBlock.focusDomain,
+        focusDomain: blockFocusDomain,
         issues: validation.issues,
         exerciseIds: generatedExerciseIds(generated),
       });
@@ -510,7 +507,7 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
           blockId: activeBlock.id,
           templateId: generatedSession.templateId,
           planningDateKey: adapted.metadata?.plannedDateKey,
-          focusDomain: activeBlock.focusDomain,
+          focusDomain: blockFocusDomain,
           issues: [{ code: 'empty_session_due', templateId: generatedSession.templateId, blockId: activeBlock.id }],
         });
       }
@@ -521,7 +518,7 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         blockId: activeBlock.id,
         templateId: validation.generated.templateId,
         planningDateKey: plannedDateKey(validation.generated.templateId, plannedFor),
-        focusDomain: activeBlock.focusDomain,
+        focusDomain: blockFocusDomain,
         issues: [{ code: 'invalid_exercise_identity', blockId: activeBlock.id, templateId: validation.generated.templateId }],
       });
     }
@@ -771,6 +768,7 @@ export function planLadderPracticeSessionResult(input: PlanLadderPracticeSession
       generatedSessionId: `manual-practice-${ladder.id}-${dateKey(today)}`,
       templateId: `practice-${ladder.id}`,
       plannedDateKey: `practice-${ladder.id}:${dateKey(today)}`,
+      plannedPrimaryDomain: level.domain,
       guidance: ['Focused practice from your movement ladder. Keep support nearby and move comfortably.'],
       equipmentNeeded: equipmentNeeded([exercise]),
       equipmentSnapshot: canonical.snapshot,
@@ -847,24 +845,27 @@ export function adaptGeneratedSessionToHaleSessionPlan(
   }
 ): HaleSessionPlan {
   const exercises = generated.exercises.map((exercise) => toHaleExercise(exercise));
-  const introCopy = getSessionIntroCopy({ focusDomain: activeBlock.focusDomain, lifeGoal });
+  const plannedPrimaryDomain = generated.focusDomain;
+  const sessionFocusDomain = toMovementDomain(plannedPrimaryDomain);
+  const introCopy = getSessionIntroCopy({ focusDomain: sessionFocusDomain, lifeGoal });
   const plan: HaleSessionPlan = {
     id: generated.id,
     blockId: activeBlock.id,
-    title: generated.title || titleForSessionType(sessionType, activeBlock.focusDomain),
+    title: generated.title || titleForSessionType(sessionType, sessionFocusDomain),
     purposeCopy:
       generated.source === 'preset'
         ? extraSessionDetailBody(generated.templateId, introCopy)
         : introCopy,
     sessionType,
     estimatedMinutes: generated.estimatedMinutes || (sessionType === 'standard' ? 20 : 12),
-    focusDomain: activeBlock.focusDomain,
+    focusDomain: sessionFocusDomain,
     exercises,
     metadata: {
       source: generated.source,
       generatedSessionId: generated.id,
       templateId: generated.templateId,
       plannedDateKey: plannedDateKey(generated.templateId, plannedFor ?? new Date()),
+      plannedPrimaryDomain,
       readiness: generated.readiness,
       userAdjustment,
       painAreas: generated.painAreas,
@@ -906,8 +907,11 @@ export function adaptGeneratedSessionToHaleSessionPlan(
   };
 }
 
-export function countsTowardMainPlan(sessionPlan: HaleSessionPlan | null | undefined): boolean {
-  return classifyMainPlanSessionPlan(sessionPlan).credited;
+export function countsTowardMainPlan(
+  sessionPlan: HaleSessionPlan | null | undefined,
+  activeBlock?: MovementBlock | null
+): boolean {
+  return classifyMainPlanSessionPlan(sessionPlan, activeBlock).credited;
 }
 
 function progressionPolicyFromGeneratedSession(generated: GeneratedSession): ProgressionEvidencePolicy {
@@ -1444,6 +1448,7 @@ export function createGeneratedSessionSummary({
     source,
     templateId: metadata?.templateId,
     plannedDateKey: metadata?.plannedDateKey,
+    plannedPrimaryDomain: metadata?.plannedPrimaryDomain,
     sessionType: sessionPlan.sessionType,
     completionSource: metadata?.source,
     status: mainPlanCredit ? 'completed' : workEvidence && workEvidence.completedExerciseCount > 0 ? 'partial' : 'skipped',
@@ -1701,10 +1706,6 @@ function currentBlockWeek(block: MovementBlock, today: string | Date): number {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
-}
-
-function isMovementDomain(value: unknown): value is MovementDomain {
-  return value === 'strength_power' || value === 'balance' || value === 'mobility';
 }
 
 function isTrainingDomain(value: unknown): value is TrainingDomain {
@@ -2191,7 +2192,9 @@ function hasExplicitDailyContext(input: {
 }
 
 function toDynamicTrainingBlock(block: MovementBlock): DynamicTrainingBlock {
-  const focusDomain = toTrainingDomain(block.focusDomain);
+  const templates = sessionTemplatesForMovementBlock(block);
+  if (templates.length === 0) throw new Error('Movement block has no session templates');
+  const focusDomain = templates[0]?.focusDomain ?? plannedPrimaryDomainForMovementBlock(block);
   return {
     id: block.id,
     userId: block.userId,
@@ -2204,7 +2207,7 @@ function toDynamicTrainingBlock(block: MovementBlock): DynamicTrainingBlock {
     totalPlannedSessions: block.totalPlannedSessions,
     focusDomain,
     secondaryDomains: block.secondaryDomains.map(toTrainingDomain),
-    templates: createSessionTemplatesForFocus(focusDomain),
+    templates,
     createdAt: block.createdAt,
     updatedAt: block.updatedAt,
   };

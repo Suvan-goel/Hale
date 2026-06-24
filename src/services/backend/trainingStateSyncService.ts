@@ -146,6 +146,7 @@ function sanitizeGeneratedSessionSummary(summary: PersistedGeneratedSessionSumma
     source: summary.source,
     templateId: summary.templateId,
     plannedDateKey: summary.plannedDateKey,
+    plannedPrimaryDomain: summary.plannedPrimaryDomain,
     sessionType: summary.sessionType,
     completionSource: summary.completionSource,
     status: summary.status,

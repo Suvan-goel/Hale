@@ -1,16 +1,23 @@
 import type {
   MovementBlock,
   MovementDomain,
+  TrainingPrimaryDomain,
   TrainingFocusStimulusCompletionStatus,
   TrainingFocusStimulusCreditExclusionReason,
   TrainingFocusStimulusEvidenceSummary,
   TrainingFocusStimulusPlanStatus,
+} from '../adherence';
+import {
+  isTrainingPrimaryDomain,
+  movementBlockDomainFocus,
+  movementDomainToTrainingPrimaryDomain,
 } from '../adherence';
 import { hasExercise } from '../exercises';
 import type { TrainingSessionResult } from '../training';
 import type { SlotStimulusReason, SlotStimulusRole, TrainingDomain } from '../training/workoutGeneration';
 
 import { classifyMainPlanSessionPlan } from './mainPlanEvents';
+import { plannedPrimaryDomainForBlockSession } from './blockTrainingPlan';
 import {
   completedExerciseIdsFromEvidence,
   evaluateSessionWorkEvidence,
@@ -28,6 +35,7 @@ export interface PlannedFocusStimulusEvidence {
   mainPlanCreditPotential: boolean;
   blockFocusDomain?: MovementDomain;
   blockFocusTrainingDomain?: TrainingDomain;
+  plannedPrimaryDomain?: TrainingPrimaryDomain;
   plannedExerciseCount: number;
   plannedPrimaryFocusExerciseIds: string[];
   plannedSupportingExerciseIds: string[];
@@ -55,7 +63,13 @@ type ValidGeneratedExerciseMetadata = HaleGeneratedExerciseMetadata & {
 
 const EMPTY_PLANNED: Omit<
   PlannedFocusStimulusEvidence,
-  'status' | 'mainPlanCreditPotential' | 'blockFocusDomain' | 'blockFocusTrainingDomain' | 'plannedExerciseCount' | 'mainPlanClassifierReason'
+  | 'status'
+  | 'mainPlanCreditPotential'
+  | 'blockFocusDomain'
+  | 'blockFocusTrainingDomain'
+  | 'plannedPrimaryDomain'
+  | 'plannedExerciseCount'
+  | 'mainPlanClassifierReason'
 > = {
   plannedPrimaryFocusExerciseIds: [],
   plannedSupportingExerciseIds: [],
@@ -84,18 +98,26 @@ export function evaluatePlannedFocusStimulus(
     });
   }
 
-  const blockFocusDomain = activeBlock?.focusDomain ?? sessionPlan.focusDomain;
-  if (!isMovementDomain(blockFocusDomain)) {
+  const blockFocusDomain = activeBlock
+    ? movementBlockDomainFocus(activeBlock) ?? undefined
+    : sessionPlan.focusDomain;
+  const plannedPrimaryDomain =
+    sessionPlan.metadata?.plannedPrimaryDomain ??
+    (activeBlock
+      ? plannedPrimaryDomainForBlockSession(activeBlock, sessionPlan.metadata?.templateId)
+      : movementDomainToTrainingPrimaryDomain(sessionPlan.focusDomain));
+  if (!isTrainingPrimaryDomain(plannedPrimaryDomain)) {
     return plannedEvidence({ status: 'missing_block_focus', plannedExerciseCount });
   }
 
-  const blockFocusTrainingDomain = toTrainingDomain(blockFocusDomain);
+  const blockFocusTrainingDomain = plannedPrimaryDomain;
   const generatedExercises = sessionPlan.metadata?.generatedExercises;
   if (!generatedExercises || generatedExercises.length === 0) {
     return plannedEvidence({
       status: 'missing_stimulus_metadata',
       blockFocusDomain,
       blockFocusTrainingDomain,
+      plannedPrimaryDomain,
       plannedExerciseCount,
     });
   }
@@ -126,12 +148,12 @@ export function evaluatePlannedFocusStimulus(
       continue;
     }
 
-    if (metadata.intendedDomain !== blockFocusTrainingDomain) {
+    if (metadata.intendedDomain !== plannedPrimaryDomain) {
       plannedCrossDomainExerciseIds.push(exerciseId);
     }
 
     if (metadata.stimulusRole === 'primary') {
-      if (metadata.intendedDomain === blockFocusTrainingDomain) {
+      if (metadata.intendedDomain === plannedPrimaryDomain) {
         plannedPrimaryFocusExerciseIds.push(exerciseId);
       } else {
         focusMismatchExerciseIds.push(exerciseId);
@@ -145,7 +167,7 @@ export function evaluatePlannedFocusStimulus(
     }
   }
 
-  const focusSlotExclusions = focusSlotExclusionMetadata(sessionPlan.metadata?.slotStimulus, blockFocusTrainingDomain);
+  const focusSlotExclusions = focusSlotExclusionMetadata(sessionPlan.metadata?.slotStimulus, plannedPrimaryDomain);
   const fallbackFocusSlotIds = focusSlotExclusions
     .filter((slot) => slot.role === 'fallback')
     .map((slot) => slot.slotId);
@@ -173,6 +195,7 @@ export function evaluatePlannedFocusStimulus(
     mainPlanCreditPotential: status === 'eligible',
     blockFocusDomain,
     blockFocusTrainingDomain,
+    plannedPrimaryDomain,
     plannedExerciseCount,
     plannedPrimaryFocusExerciseIds: uniqueSorted(plannedPrimaryFocusExerciseIds),
     plannedSupportingExerciseIds: uniqueSorted(plannedSupportingExerciseIds),
@@ -274,6 +297,7 @@ export function focusStimulusPlanMetadata(
     mainPlanCreditPotential: evidence.mainPlanCreditPotential,
     blockFocusDomain: evidence.blockFocusDomain,
     blockFocusTrainingDomain: evidence.blockFocusTrainingDomain,
+    plannedPrimaryDomain: evidence.plannedPrimaryDomain,
     plannedPrimaryFocusExerciseIds: evidence.plannedPrimaryFocusExerciseIds,
     plannedSupportingExerciseIds: evidence.plannedSupportingExerciseIds,
     plannedFallbackExerciseIds: evidence.plannedFallbackExerciseIds,
@@ -297,6 +321,7 @@ export function focusStimulusEvidenceSummary(
     exclusionReason: evidence.exclusionReason,
     mainPlanCredit: evidence.mainPlanCredit,
     blockFocusDomain: evidence.blockFocusDomain,
+    plannedPrimaryDomain: evidence.plannedPrimaryDomain,
     plannedPrimaryFocusExerciseCount: evidence.plannedPrimaryFocusExerciseCount,
     completedPrimaryFocusExerciseCount: evidence.completedPrimaryFocusExerciseCount,
     completedSupportingExerciseCount: evidence.completedSupportingExerciseCount,
@@ -321,12 +346,14 @@ function plannedEvidence({
   status,
   blockFocusDomain,
   blockFocusTrainingDomain,
+  plannedPrimaryDomain,
   plannedExerciseCount,
   mainPlanClassifierReason,
 }: {
   status: TrainingFocusStimulusPlanStatus;
   blockFocusDomain?: MovementDomain;
   blockFocusTrainingDomain?: TrainingDomain;
+  plannedPrimaryDomain?: TrainingPrimaryDomain;
   plannedExerciseCount: number;
   mainPlanClassifierReason?: string;
 }): PlannedFocusStimulusEvidence {
@@ -335,6 +362,7 @@ function plannedEvidence({
     mainPlanCreditPotential: false,
     blockFocusDomain,
     blockFocusTrainingDomain,
+    plannedPrimaryDomain,
     plannedExerciseCount,
     ...EMPTY_PLANNED,
     mainPlanClassifierReason,
@@ -368,6 +396,7 @@ function completedEvidence({
     exclusionReason,
     mainPlanCredit: status === 'credited_focus_work',
     blockFocusDomain: planned.blockFocusDomain,
+    plannedPrimaryDomain: planned.plannedPrimaryDomain,
     plannedPrimaryFocusExerciseCount: planned.plannedPrimaryFocusExerciseIds.length,
     completedPrimaryFocusExerciseCount: completedPrimaryFocusExerciseIds.length,
     completedSupportingExerciseCount: completedSupportingExerciseIds.length,
@@ -469,16 +498,6 @@ function isTrainingDomain(value: unknown): value is TrainingDomain {
 
 function isStimulusRole(value: unknown): value is SlotStimulusRole {
   return value === 'primary' || value === 'supporting' || value === 'fallback' || value === 'skipped' || value === 'invalid';
-}
-
-function isMovementDomain(value: unknown): value is MovementDomain {
-  return value === 'strength_power' || value === 'balance' || value === 'mobility';
-}
-
-function toTrainingDomain(domain: MovementDomain): TrainingDomain {
-  if (domain === 'balance') return 'balance_stability';
-  if (domain === 'mobility') return 'mobility_flexibility';
-  return 'strength_power';
 }
 
 function nonEmptyString(value: unknown): value is string {

@@ -140,7 +140,17 @@ describe('pose latency diagnostics', () => {
         imageProxyFormat: 1,
         imageProxyFormatName: 'RGBA_8888',
         imageProxyRotationDegrees: 90,
+        imageProcessingRotationDegrees: 90,
+        emittedSourceWidth: 480,
+        emittedSourceHeight: 640,
+        landmarkRotationDegrees: 90,
         cameraTargetRotation: 0,
+        cameraFacing: 'front',
+        mirrorState: true,
+        cameraId: '0',
+        sensorTimestampSourceRaw: 1,
+        sensorTimestampSourceName: 'REALTIME',
+        sensorTimestampComparableToElapsedRealtime: true,
         mpImageWidth: 512,
         mpImageHeight: 384,
         numPoses: 1,
@@ -207,9 +217,20 @@ describe('pose latency diagnostics', () => {
       pipelineMode: 'full-live-stream',
       rotationMode: 'metadata',
       analysisTargetWidth: 512,
+      imageProcessingRotationDegrees: 90,
+      emittedSourceWidth: 480,
+      emittedSourceHeight: 640,
+      cameraFacing: 'front',
+      mirrorState: true,
+      cameraId: '0',
+      sensorTimestampSourceRaw: 1,
+      sensorTimestampSourceName: 'REALTIME',
+      sensorTimestampComparableToElapsedRealtime: true,
       nativeEventCoalescedCount: 1,
       resultFps: 23,
     });
+    expect(snapshot.rendererInputWidth).toBe(480);
+    expect(snapshot.rendererInputHeight).toBe(640);
     expect(snapshot.jsTransformMs.count).toBe(2);
     expect(snapshot.geometryMs.p50).toBe(2);
     expect(snapshot.approxPoseAgeAtReceiptMs.max).toBe(40);
@@ -224,6 +245,7 @@ describe('pose renderer replay diagnostics', () => {
     });
     expect(summaries.map((summary) => summary.mode)).toEqual([
       'raw-skeleton',
+      'matte-graphite-digital-twin',
       'minimal-constellation',
       'full-constellation',
       'full-point-cloud-body',
@@ -232,7 +254,11 @@ describe('pose renderer replay diagnostics', () => {
       expect(summary.frames).toBe(8);
       expect(summary.geometryMs.count).toBe(8);
     }
-    expect(summaries[3].maxDots).toBeGreaterThan(summaries[1].maxDots);
+    expect(summaries[1].maxSurfacePathCount).toBeLessThanOrEqual(8);
+    expect(summaries[1].maxDynamicPathCount).toBeLessThanOrEqual(8);
+    expect(summaries[1].maxInternalVertexCount).toBe(92);
+    expect(summaries[1].proportionCalibrationComplete).toBe(false);
+    expect(summaries[4].maxDots).toBeGreaterThan(summaries[2].maxDots);
   });
 });
 

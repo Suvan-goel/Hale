@@ -122,6 +122,7 @@ function buildMovementBlock({
     endDate,
     retestDate: endDate,
     focusDomain,
+    focus: { kind: 'domain', domain: focusDomain },
     secondaryDomains,
     ...(focusSelection
       ? {
@@ -143,6 +144,7 @@ function buildMovementBlock({
     completedSessions: 0,
     microChecksCompleted: 0,
     sourceCheckUpId,
+    origin: { kind: 'legacy_v1_assessment', sourceCheckUpId },
     createdAt: startDate,
     updatedAt: startDate,
   };

@@ -2,6 +2,7 @@ import {
   getBlockPurposeCopy as getAdherenceBlockPurposeCopy,
   getLapseRecoveryCopy as getAdherenceLapseRecoveryCopy,
   getLifeGoalDisplayText,
+  movementBlockDomainFocus,
   type LifeGoal,
   type MovementBlock,
   type MovementDomain,
@@ -244,7 +245,9 @@ export function getReportCopy({
 
 function sessionBody(block?: MovementBlock | null, lifeGoal?: LifeGoal | null): string {
   if (block && lifeGoal) return `20 minutes to support progress toward ${getLifeGoalDisplayText(lifeGoal).toLowerCase()}.`;
-  if (block) return `20 minutes to keep building ${domainShortLabel(block.focusDomain)}.`;
+  const focusDomain = movementBlockDomainFocus(block);
+  if (focusDomain) return `20 minutes to keep building ${domainShortLabel(focusDomain)}.`;
+  if (block) return '20 minutes to build strength, balance, and mobility.';
   return '20 minutes to support your progress and keep building toward your goal.';
 }
 

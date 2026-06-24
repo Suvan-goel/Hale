@@ -27,6 +27,7 @@ import {
   isPoseLatencyDiagnosticsEnabled,
   type PoseLatencyDiagnostics,
   type PoseLatencyDiagnosticsSnapshot,
+  type PoseNativeRuntimeSnapshot,
 } from '../diagnostics/poseLatencyDiagnostics';
 import { PosePipeline } from '../pose/pipeline';
 import { SkeletonView, type SkeletonViewHandle } from '../render/SkeletonView';
@@ -39,6 +40,7 @@ import { colors, monoFamily, radius, spacing, type } from '../theme';
 type BenchmarkModeId =
   | 'no-overlay'
   | 'raw-skeleton'
+  | 'matte-graphite-digital-twin'
   | 'minimal-constellation'
   | 'full-constellation'
   | 'point-cloud-225'
@@ -52,17 +54,36 @@ interface BenchmarkMode {
   title: string;
   subtitle: string;
   configuredDotCount: number | null;
+  configuredShapeCount?: number | null;
   rendererProps: PoseAvatarRendererProps | null;
 }
 
 interface RendererStats {
+  scheduledFrames: number;
   publishedFrames: number;
   coalescedFrames: number;
   rejectedFrames: number;
+  cancelledFrames: number;
   totalDots: number;
   maxDots: number;
   totalLines: number;
   maxLines: number;
+  shapeMetricFrames: number;
+  totalShapes: number;
+  maxShapes: number;
+  totalDynamicPaths: number;
+  maxDynamicPaths: number;
+  totalStaticTransformedShapes: number;
+  maxStaticTransformedShapes: number;
+  surfaceMetricFrames: number;
+  totalSurfacePathCount: number;
+  maxSurfacePathCount: number;
+  totalInternalControlVertexCount: number;
+  maxInternalControlVertexCount: number;
+  lastSurfacePathCount: number;
+  lastInternalControlVertexCount: number;
+  lastProportionCalibrationComplete: boolean;
+  lastProportionCalibrationState: string | null;
 }
 
 type NativeProfileId =
@@ -95,6 +116,22 @@ interface BenchmarkResult {
     maxDotCount: number;
     averageLineCount: number | null;
     maxLineCount: number;
+    scheduledFrameCount: number;
+    publishedFrameCount: number;
+    coalescedFrameCount: number;
+    rejectedFrameCount: number;
+    cancelledFrameCount: number;
+    averageShapeCount: number | null;
+    maxShapeCount: number;
+    averageDynamicPathCount: number | null;
+    maxDynamicPathCount: number;
+    averageStaticTransformedShapeCount: number | null;
+    maxStaticTransformedShapeCount: number;
+    averageSurfacePathCount: number | null;
+    maxSurfacePathCount: number;
+    averageInternalVertexCount: number | null;
+    maxInternalVertexCount: number;
+    proportionCalibrationComplete: boolean;
     latestDisplayedFrameId: null;
   };
   unavailableMetrics: string[];
@@ -117,6 +154,28 @@ const BENCHMARK_MODES: readonly BenchmarkMode[] = [
       mode: 'classic',
       frameSource: 'raw',
       fit: 'contain',
+    },
+  },
+  {
+    id: 'matte-graphite-digital-twin',
+    title: 'Matte graphite digital twin',
+    subtitle: 'Continuous low-complexity body surface',
+    configuredDotCount: 0,
+    configuredShapeCount: 8,
+    rendererProps: {
+      mode: 'matte_graphite_digital_twin',
+      frameSource: 'raw',
+      fit: 'contain',
+      smoothingEnabled: false,
+      confidenceFadingEnabled: false,
+      confidenceIntensityEnabled: false,
+      reacquisitionFadeEnabled: false,
+      recognitionPulseEnabled: false,
+      measurementStatesEnabled: false,
+      setupGuidesEnabled: false,
+      stateTransitionsEnabled: false,
+      domainEmphasisEnabled: false,
+      scanLineEnabled: false,
     },
   },
   {
@@ -247,6 +306,7 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
   const [snapshot, setSnapshot] = React.useState<PoseLatencyDiagnosticsSnapshot | null>(null);
   const [resultJson, setResultJson] = React.useState<string>('');
   const [running, setRunning] = React.useState(false);
+  const [rendererEpoch, setRendererEpoch] = React.useState(0);
   const stopTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const runStartedAtRef = React.useRef<number | null>(null);
   const runDurationRef = React.useRef(0);
@@ -259,6 +319,7 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
     setDiagnostics(nextDiagnostics);
     setSnapshot(nextDiagnostics.snapshot());
     setResultJson('');
+    setRendererEpoch((value) => value + 1);
   }, [diagnosticsAllowed]);
 
   React.useEffect(() => {
@@ -335,7 +396,9 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
 
   const onRendererScheduleEvent = React.useCallback((event: PoseAvatarRendererScheduleEvent) => {
     const currentDiagnostics = diagnosticsRef.current;
-    if (event.type === 'published') {
+    if (event.type === 'scheduled') {
+      rendererStatsRef.current.scheduledFrames++;
+    } else if (event.type === 'published') {
       const stats = rendererStatsRef.current;
       stats.publishedFrames++;
       const dotCount = event.dotCount ?? 0;
@@ -344,6 +407,42 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
       stats.totalLines += lineCount;
       stats.maxDots = Math.max(stats.maxDots, dotCount);
       stats.maxLines = Math.max(stats.maxLines, lineCount);
+      if (typeof event.shapeCount === 'number') {
+        stats.shapeMetricFrames++;
+        stats.totalShapes += event.shapeCount;
+        stats.maxShapes = Math.max(stats.maxShapes, event.shapeCount);
+      }
+      if (typeof event.dynamicPathCount === 'number') {
+        stats.totalDynamicPaths += event.dynamicPathCount;
+        stats.maxDynamicPaths = Math.max(stats.maxDynamicPaths, event.dynamicPathCount);
+      }
+      if (typeof event.staticTransformedShapeCount === 'number') {
+        stats.totalStaticTransformedShapes += event.staticTransformedShapeCount;
+        stats.maxStaticTransformedShapes = Math.max(
+          stats.maxStaticTransformedShapes,
+          event.staticTransformedShapeCount
+        );
+      }
+      if (typeof event.surfacePathCount === 'number') {
+        stats.surfaceMetricFrames++;
+        stats.totalSurfacePathCount += event.surfacePathCount;
+        stats.maxSurfacePathCount = Math.max(stats.maxSurfacePathCount, event.surfacePathCount);
+        stats.lastSurfacePathCount = event.surfacePathCount;
+      }
+      if (typeof event.internalControlVertexCount === 'number') {
+        stats.totalInternalControlVertexCount += event.internalControlVertexCount;
+        stats.maxInternalControlVertexCount = Math.max(
+          stats.maxInternalControlVertexCount,
+          event.internalControlVertexCount
+        );
+        stats.lastInternalControlVertexCount = event.internalControlVertexCount;
+      }
+      if (typeof event.proportionCalibrationComplete === 'boolean') {
+        stats.lastProportionCalibrationComplete = event.proportionCalibrationComplete;
+      }
+      if (typeof event.proportionCalibrationState === 'string') {
+        stats.lastProportionCalibrationState = event.proportionCalibrationState;
+      }
       currentDiagnostics?.markRendererPublished(event.geometryMs);
     } else if (event.type === 'coalesced') {
       rendererStatsRef.current.coalescedFrames++;
@@ -351,6 +450,8 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
     } else if (event.type === 'rejected') {
       rendererStatsRef.current.rejectedFrames++;
       currentDiagnostics?.markRendererRejected();
+    } else if (event.type === 'cancelled') {
+      rendererStatsRef.current.cancelledFrames++;
     }
   }, []);
 
@@ -391,7 +492,7 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
         <CameraUnavailableNotice />
       ) : mode.rendererProps ? (
         <SkeletonView
-          key={mode.id}
+          key={`${mode.id}-${rendererEpoch}`}
           ref={skeletonRef}
           mirrored
           {...mode.rendererProps}
@@ -459,7 +560,13 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
           <BenchmarkButton label="Stop" onPress={stopMeasurement} disabled={!running} />
           <BenchmarkButton label="Export JSON" onPress={exportJson} disabled={!resultJson} />
         </View>
-        {snapshot ? <MetricsStrip snapshot={snapshot} /> : null}
+        {snapshot ? (
+          <>
+            <MetricsStrip snapshot={snapshot} />
+            <RendererMetricsStrip mode={mode} stats={rendererStatsRef.current} />
+            <NativeRuntimeStrip runtime={snapshot.nativeRuntime} />
+          </>
+        ) : null}
         {resultJson ? (
           <TextInput
             value={resultJson}
@@ -571,8 +678,79 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
+function NativeRuntimeStrip({ runtime }: { runtime: PoseNativeRuntimeSnapshot | null }) {
+  if (!runtime) return null;
+  return (
+    <View style={styles.metricsStrip}>
+      <RuntimeMetric label="Model" value={runtimeValue(runtime.modelAsset)} wide />
+      <RuntimeMetric label="Requested" value={runtimeValue(runtime.requestedDelegate)} />
+      <RuntimeMetric label="Selected" value={runtimeValue(runtime.selectedDelegate)} />
+      <RuntimeMetric label="GPU fallback" value={yesNo(runtime.gpuDelegateFallback)} />
+      <RuntimeMetric label="Facing" value={runtimeValue(runtime.cameraFacing)} />
+      <RuntimeMetric
+        label="Analysis"
+        value={dims(runtime.analysisTargetWidth, runtime.analysisTargetHeight)}
+      />
+      <RuntimeMetric label="TS source" value={runtimeValue(runtime.sensorTimestampSourceName)} />
+    </View>
+  );
+}
+
+function RendererMetricsStrip({
+  mode,
+  stats,
+}: {
+  mode: BenchmarkMode;
+  stats: RendererStats;
+}) {
+  if (mode.id !== 'matte-graphite-digital-twin') return null;
+  return (
+    <View style={styles.metricsStrip}>
+      <Metric label="Paths" value={String(stats.lastSurfacePathCount)} />
+      <Metric label="Ctrl verts" value={String(stats.lastInternalControlVertexCount)} />
+      <Metric
+        label="Cal"
+        value={
+          stats.lastProportionCalibrationState ??
+          (stats.lastProportionCalibrationComplete ? 'locked' : 'fallback')
+        }
+      />
+    </View>
+  );
+}
+
+function RuntimeMetric({
+  label,
+  value,
+  wide = false,
+}: {
+  label: string;
+  value: string;
+  wide?: boolean;
+}) {
+  return (
+    <View style={[styles.metric, styles.runtimeMetric, wide && styles.runtimeMetricWide]}>
+      <Text style={styles.metricLabel}>{label}</Text>
+      <Text style={styles.runtimeMetricValue}>{value}</Text>
+    </View>
+  );
+}
+
 function metricValue(value: number | null): string {
   return value === null ? 'n/a' : `${value.toFixed(0)}ms`;
+}
+
+function runtimeValue(value: string | null): string {
+  return value && value.length > 0 ? value : '?';
+}
+
+function yesNo(value: boolean | null): string {
+  return value === null ? '?' : value ? 'yes' : 'no';
+}
+
+function dims(width: number | null, height: number | null): string {
+  if (width === null || height === null) return '?x?';
+  return `${width}x${height}`;
 }
 
 function ModeButton({
@@ -672,13 +850,31 @@ function BenchmarkButton({
 
 function emptyRendererStats(): RendererStats {
   return {
+    scheduledFrames: 0,
     publishedFrames: 0,
     coalescedFrames: 0,
     rejectedFrames: 0,
+    cancelledFrames: 0,
     totalDots: 0,
     maxDots: 0,
     totalLines: 0,
     maxLines: 0,
+    shapeMetricFrames: 0,
+    totalShapes: 0,
+    maxShapes: 0,
+    totalDynamicPaths: 0,
+    maxDynamicPaths: 0,
+    totalStaticTransformedShapes: 0,
+    maxStaticTransformedShapes: 0,
+    surfaceMetricFrames: 0,
+    totalSurfacePathCount: 0,
+    maxSurfacePathCount: 0,
+    totalInternalControlVertexCount: 0,
+    maxInternalControlVertexCount: 0,
+    lastSurfacePathCount: 0,
+    lastInternalControlVertexCount: 0,
+    lastProportionCalibrationComplete: false,
+    lastProportionCalibrationState: null,
   };
 }
 
@@ -696,6 +892,8 @@ function buildBenchmarkResult({
   rendererStats: RendererStats;
 }): BenchmarkResult {
   const published = rendererStats.publishedFrames;
+  const shapeFrames = rendererStats.shapeMetricFrames;
+  const surfaceFrames = rendererStats.surfaceMetricFrames;
   return {
     schemaVersion: 1,
     capturedAt: new Date().toISOString(),
@@ -721,6 +919,26 @@ function buildBenchmarkResult({
       maxDotCount: rendererStats.maxDots,
       averageLineCount: published > 0 ? rendererStats.totalLines / published : null,
       maxLineCount: rendererStats.maxLines,
+      scheduledFrameCount: rendererStats.scheduledFrames,
+      publishedFrameCount: rendererStats.publishedFrames,
+      coalescedFrameCount: rendererStats.coalescedFrames,
+      rejectedFrameCount: rendererStats.rejectedFrames,
+      cancelledFrameCount: rendererStats.cancelledFrames,
+      averageShapeCount: shapeFrames > 0 ? rendererStats.totalShapes / shapeFrames : null,
+      maxShapeCount: rendererStats.maxShapes,
+      averageDynamicPathCount:
+        shapeFrames > 0 ? rendererStats.totalDynamicPaths / shapeFrames : null,
+      maxDynamicPathCount: rendererStats.maxDynamicPaths,
+      averageStaticTransformedShapeCount:
+        shapeFrames > 0 ? rendererStats.totalStaticTransformedShapes / shapeFrames : null,
+      maxStaticTransformedShapeCount: rendererStats.maxStaticTransformedShapes,
+      averageSurfacePathCount:
+        surfaceFrames > 0 ? rendererStats.totalSurfacePathCount / surfaceFrames : null,
+      maxSurfacePathCount: rendererStats.maxSurfacePathCount,
+      averageInternalVertexCount:
+        surfaceFrames > 0 ? rendererStats.totalInternalControlVertexCount / surfaceFrames : null,
+      maxInternalVertexCount: rendererStats.maxInternalControlVertexCount,
+      proportionCalibrationComplete: rendererStats.lastProportionCalibrationComplete,
       latestDisplayedFrameId: null,
     },
     unavailableMetrics: [
@@ -848,6 +1066,12 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     backgroundColor: colors.bgBase,
   },
+  runtimeMetric: {
+    minWidth: 92,
+  },
+  runtimeMetricWide: {
+    minWidth: 168,
+  },
   metricLabel: {
     color: colors.textSecondary,
     fontFamily: monoFamily,
@@ -859,6 +1083,12 @@ const styles = StyleSheet.create({
     fontFamily: monoFamily,
     fontSize: 12,
     lineHeight: 15,
+  },
+  runtimeMetricValue: {
+    color: colors.textPrimary,
+    fontFamily: monoFamily,
+    fontSize: 10,
+    lineHeight: 13,
   },
   resultBox: {
     maxHeight: 160,

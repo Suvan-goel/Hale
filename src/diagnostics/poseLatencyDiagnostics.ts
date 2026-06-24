@@ -1,6 +1,9 @@
 import Constants from 'expo-constants';
 
-import type { LandmarksEventPayload } from '../../modules/expo-pose-detection';
+import type {
+  AndroidSensorTimestampSourceName,
+  LandmarksEventPayload,
+} from '../../modules/expo-pose-detection';
 
 export const POSE_LATENCY_DIAGNOSTICS_ENV = 'EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS';
 export const POSE_LATENCY_DIAGNOSTICS_RELEASE_ENV =
@@ -71,7 +74,17 @@ export interface PoseNativeRuntimeSnapshot {
   imageProxyFormat: number | null;
   imageProxyFormatName: string | null;
   imageProxyRotationDegrees: number | null;
+  imageProcessingRotationDegrees: number | null;
+  emittedSourceWidth: number | null;
+  emittedSourceHeight: number | null;
+  landmarkRotationDegrees: number | null;
   cameraTargetRotation: number | null;
+  cameraFacing: string | null;
+  mirrorState: boolean | null;
+  cameraId: string | null;
+  sensorTimestampSourceRaw: number | null;
+  sensorTimestampSourceName: AndroidSensorTimestampSourceName | null;
+  sensorTimestampComparableToElapsedRealtime: boolean | null;
   mpImageWidth: number | null;
   mpImageHeight: number | null;
   numPoses: number | null;
@@ -116,6 +129,8 @@ export interface PoseLatencyDiagnosticsSnapshot {
   nativeSourceAgeAtMediapipeCallbackMs: MetricSnapshot;
   nativeSourceAgeAtEmitMs: MetricSnapshot;
   nativeRuntime: PoseNativeRuntimeSnapshot | null;
+  rendererInputWidth: number | null;
+  rendererInputHeight: number | null;
   jsTransformMs: MetricSnapshot;
   geometryMs: MetricSnapshot;
   approxPoseAgeAtReceiptMs: MetricSnapshot;
@@ -171,6 +186,8 @@ export class PoseLatencyDiagnostics {
   private nativeClock: string | null = null;
   private maxApproxPoseAgeMs: number | null = null;
   private nativeRuntime: PoseNativeRuntimeSnapshot | null = null;
+  private rendererInputWidth: number | null = null;
+  private rendererInputHeight: number | null = null;
 
   constructor(options: PoseLatencyDiagnosticsOptions) {
     const windowSize = Math.max(16, Math.round(options.windowSize ?? 240));
@@ -204,6 +221,8 @@ export class PoseLatencyDiagnostics {
     const frameId = native ? Math.round(native.frameId) : null;
     const sourceTimestampMs = native?.sourceTimestampMs ?? event.timestampMs;
     if (native?.nativeClock) this.nativeClock = native.nativeClock;
+    this.rendererInputWidth = finiteOrNull(event.sourceWidth);
+    this.rendererInputHeight = finiteOrNull(event.sourceHeight);
 
     this.framesReceived++;
     this.eventTimes.push(receiptNowMs);
@@ -334,6 +353,8 @@ export class PoseLatencyDiagnostics {
       nativeSourceAgeAtMediapipeCallbackMs: this.nativeSourceAgeAtMediapipeCallbackMs.snapshot(),
       nativeSourceAgeAtEmitMs: this.nativeSourceAgeAtEmitMs.snapshot(),
       nativeRuntime: this.nativeRuntime,
+      rendererInputWidth: this.rendererInputWidth,
+      rendererInputHeight: this.rendererInputHeight,
       jsTransformMs: this.jsTransformMs.snapshot(),
       geometryMs: this.geometryMs.snapshot(),
       approxPoseAgeAtReceiptMs: this.poseAgeAtReceiptMs.snapshot(),
@@ -404,6 +425,13 @@ function nativeRuntimeSnapshot(
     native.rotationMode !== undefined ||
     native.analysisTargetWidth !== undefined ||
     native.imageProxyWidth !== undefined ||
+    native.imageProcessingRotationDegrees !== undefined ||
+    native.emittedSourceWidth !== undefined ||
+    native.cameraFacing !== undefined ||
+    native.cameraId !== undefined ||
+    native.sensorTimestampSourceRaw !== undefined ||
+    native.sensorTimestampSourceName !== undefined ||
+    native.sensorTimestampComparableToElapsedRealtime !== undefined ||
     native.cameraInputFps !== undefined ||
     native.nativeEventScheduledCount !== undefined;
   if (!hasRuntimeFields) return null;
@@ -424,7 +452,22 @@ function nativeRuntimeSnapshot(
     imageProxyFormat: finiteOrNull(native?.imageProxyFormat),
     imageProxyFormatName: native?.imageProxyFormatName ?? null,
     imageProxyRotationDegrees: finiteOrNull(native?.imageProxyRotationDegrees),
+    imageProcessingRotationDegrees: finiteOrNull(native?.imageProcessingRotationDegrees),
+    emittedSourceWidth: finiteOrNull(native?.emittedSourceWidth),
+    emittedSourceHeight: finiteOrNull(native?.emittedSourceHeight),
+    landmarkRotationDegrees: finiteOrNull(native?.landmarkRotationDegrees),
     cameraTargetRotation: finiteOrNull(native?.cameraTargetRotation),
+    cameraFacing: typeof native?.cameraFacing === 'string' ? native.cameraFacing : null,
+    mirrorState: typeof native?.mirrorState === 'boolean' ? native.mirrorState : null,
+    cameraId: typeof native?.cameraId === 'string' ? native.cameraId : null,
+    sensorTimestampSourceRaw: finiteOrNull(native?.sensorTimestampSourceRaw),
+    sensorTimestampSourceName: isAndroidSensorTimestampSourceName(native?.sensorTimestampSourceName)
+      ? native.sensorTimestampSourceName
+      : null,
+    sensorTimestampComparableToElapsedRealtime:
+      typeof native?.sensorTimestampComparableToElapsedRealtime === 'boolean'
+        ? native.sensorTimestampComparableToElapsedRealtime
+        : null,
     mpImageWidth: finiteOrNull(native?.mpImageWidth),
     mpImageHeight: finiteOrNull(native?.mpImageHeight),
     numPoses: finiteOrNull(native?.numPoses),
@@ -442,8 +485,19 @@ function nativeRuntimeSnapshot(
   };
 }
 
-function finiteOrNull(value: number | undefined): number | null {
+function finiteOrNull(value: number | null | undefined): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function isAndroidSensorTimestampSourceName(
+  value: unknown
+): value is AndroidSensorTimestampSourceName {
+  return (
+    value === 'REALTIME' ||
+    value === 'UNKNOWN' ||
+    value === 'UNAVAILABLE' ||
+    value === 'UNRECOGNISED'
+  );
 }
 
 function getInlinePoseLatencyDiagnosticsEnv(): PoseLatencyDiagnosticsEnv {

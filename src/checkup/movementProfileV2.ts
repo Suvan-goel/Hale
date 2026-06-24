@@ -12,7 +12,7 @@ import {
 } from './protocolPolicy';
 import {
   MovementProfileV2EvidenceStatus,
-  isReferenceProtocolComplete,
+  isValidMovementProfileV2RawEvidence,
 } from './protocolEvidence';
 import type { BodySide } from './protocolSetup';
 
@@ -30,6 +30,7 @@ export type MovementProfileV2HeadlineMovementId =
 export interface MovementProfileV2Completeness {
   protocolPolicyId: typeof MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID | null;
   isMovementProfileV2: boolean;
+  /** True when every headline item has usable raw V2 evidence; reference eligibility is tracked separately. */
   referenceComplete: boolean;
   missingHeadlineMovementIds: MovementProfileV2HeadlineMovementId[];
   evidenceStatusByMovementId: Partial<Record<MovementProfileV2HeadlineMovementId, MovementProfileV2EvidenceStatus>>;
@@ -48,7 +49,7 @@ export function evaluateMovementProfileV2Completeness(checkUp: CheckUp): Movemen
       continue;
     }
     evidenceStatusByMovementId[movementId] = status;
-    if (!isReferenceProtocolComplete(status)) missingHeadlineMovementIds.push(movementId);
+    if (!isValidMovementProfileV2RawEvidence(status)) missingHeadlineMovementIds.push(movementId);
   }
 
   return {

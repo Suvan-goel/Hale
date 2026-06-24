@@ -1,6 +1,7 @@
 import {
   LOCAL_USER_ID,
   blockProgress,
+  movementBlockDomainFocus,
   movementBlockSourceCheckUpId,
   movementDomainFromScoreDomainOrNull,
   scoreDomainFromMovementDomain,
@@ -53,7 +54,8 @@ export function createMovementBlockReport({
     : compareScoreSnapshots(previousScoreSnapshot, latestScoreSnapshot);
   const compatible = compatibility === 'compatible';
   const domainChanges = compatible ? (compareDomains(previousScore, latestScore) ?? {}) : {};
-  const focusChange = domainChanges[block.focusDomain];
+  const focusDomain = movementBlockDomainFocus(block);
+  const focusChange = focusDomain ? domainChanges[focusDomain] : undefined;
   return {
     id: `block-report-${block.id}`,
     userId,
@@ -62,7 +64,9 @@ export function createMovementBlockReport({
     retestAssessmentId: retestAssessment?.id,
     createdAt: nowIso,
     summary: compatible
-      ? getReportCopy({ focusDomain: block.focusDomain, hasComparison: !!focusChange?.current })
+      ? focusDomain
+        ? getReportCopy({ focusDomain, hasComparison: !!focusChange?.current })
+        : 'Your latest check-up has been saved. Hale will use it to keep the next plan balanced across strength, balance, and mobility.'
       : "Your latest result has been saved. Hale's scoring method has changed since your earlier Check-Up, so a direct comparison isn't available.",
     sessionsCompleted: schedule.totalCredits,
     totalPlannedSessions: progress.totalSessions,
@@ -76,8 +80,8 @@ export function createMovementBlockReport({
       endSnapshot: versionMetadataForReport(latestScoreSnapshot),
     },
     recommendedNextFocusDomain: latestScore
-      ? movementDomainFromScoreDomainOrNull(latestScore.weakestDomain) ?? block.focusDomain
-      : block.focusDomain,
+      ? movementDomainFromScoreDomainOrNull(latestScore.weakestDomain) ?? focusDomain ?? undefined
+      : focusDomain ?? undefined,
   };
 }
 

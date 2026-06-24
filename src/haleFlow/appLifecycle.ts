@@ -1,5 +1,7 @@
 import {
   getActiveMovementBlock,
+  movementBlockDomainFocus,
+  movementBlockIsBalanced,
   type AdherenceStoreState,
   type MovementAssessment,
   type MovementBlock,
@@ -9,9 +11,10 @@ import {
 import type { StoredCheckUp } from '../history';
 import type { UserProfile } from '../profile';
 import type { CheckUpScore } from '../scoring';
-import type { TrainingState } from '../training';
+import type { TrainingDomain, TrainingState } from '../training';
 import { latestUsableOfficialAssessment } from './assessments';
-import { latestUsableOfficialCheckUpRecord } from './checkupHistory';
+import { sessionTemplatesForMovementBlock } from './blockTrainingPlan';
+import { latestOfficialMovementProfileV2Assessment, latestUsableOfficialCheckUpRecord } from './checkupHistory';
 import {
   blockScheduleDateKey,
   daysBetweenBlockScheduleDates,
@@ -102,7 +105,7 @@ export function getHaleAppLifecycle(input: HaleAppLifecycleInput): HaleAppLifecy
   const activeBlock = getActiveBlock(input);
   const schedule = activeBlock ? activeBlockSchedule({ ...input, today }, activeBlock) : null;
   const latestScore = latestUsableCheckUpScore(input.history, input.adherence?.assessments);
-  const hasBaseline = !!latestScore || hasOfficialAssessment(input.adherence);
+  const hasBaseline = !!latestScore || hasOfficialAssessment(input.adherence) || hasOfficialMovementProfileV2Assessment(input.history);
   const activeBlockSummary = getActiveBlockSummary({ ...input, today });
   const movementSnapshot = getMovementSnapshot({ score: latestScore });
   const weekSessionStatuses = getWeekSessionStatuses({ ...input, today });
@@ -238,8 +241,8 @@ export function getActiveBlockSummary(input: HaleAppLifecycleInput): ActiveBlock
       : undefined;
     return {
       blockId: activeBlock.id,
-      focusTitle: focusTitle(activeBlock.focusDomain),
-      focusDomain: activeBlock.focusDomain,
+      focusTitle: blockFocusTitle(activeBlock),
+      focusDomain: movementBlockDomainFocus(activeBlock) ?? undefined,
       weekNumber: schedule.currentWeekNumber,
       totalWeeks: 4,
       sessionsCompleteThisWeek: schedule.creditedTemplateIds.length,
@@ -254,12 +257,14 @@ export function getActiveBlockSummary(input: HaleAppLifecycleInput): ActiveBlock
 export function getWeekSessionStatuses(input: HaleAppLifecycleInput): WeekSessionStatus[] {
   const today = normalizeToday(input.today);
   const activeBlock = getActiveBlock(input);
-  const focus = activeBlock ? shortFocus(activeBlock.focusDomain) : 'capability';
+  const focus = activeBlock ? shortFocus(movementBlockDomainFocus(activeBlock)) : 'capability';
   const schedule = activeBlock ? activeBlockSchedule({ ...input, today }, activeBlock) : null;
+  const templateFocusById = activeBlock ? mainPlanTemplateFocusById(activeBlock) : new Map<string, TrainingDomain>();
 
   return PLAN_SESSION_IDS.map((id, index) => {
     const templateId = schedule?.requiredTemplateIds[index];
     const completion = templateId ? scheduledCompletionForTemplate(schedule, templateId) : undefined;
+    const templateFocus = templateId ? templateFocusById.get(templateId) : undefined;
     let status: WeekSessionStatus['status'];
     if (completion) {
       status = 'complete';
@@ -274,7 +279,7 @@ export function getWeekSessionStatuses(input: HaleAppLifecycleInput): WeekSessio
       id,
       title: `Session ${String.fromCharCode(65 + index)}`,
       status,
-      focus: index === 0 ? 'Strength foundation' : index === 1 ? 'Movement control' : `Full-body ${focus}`,
+      focus: templateFocus ? trainingFocusLabel(templateFocus) : fallbackSessionFocusLabel(index, focus),
       templateId: completion?.templateId ?? templateId,
       completedAt: completion?.completedAt,
     };
@@ -325,6 +330,7 @@ function shouldShowWeeklyMicroCheck(input: HaleAppLifecycleInput): boolean {
   const today = normalizeToday(input.today);
   const activeBlock = getActiveBlock(input);
   if (!activeBlock) return false;
+  if (!movementBlockDomainFocus(activeBlock)) return false;
   const completions = input.adherence?.completions ?? [];
   const schedule = activeBlockSchedule({ ...input, today }, activeBlock);
   return isMicroCheckDueForSchedule(schedule, completions);
@@ -344,6 +350,10 @@ function latestUsableCheckUpScore(
 
 function hasOfficialAssessment(adherence: AdherenceStoreState | null | undefined): boolean {
   return !!latestUsableOfficialAssessment(adherence?.assessments ?? []);
+}
+
+function hasOfficialMovementProfileV2Assessment(history: HaleAppLifecycleInput['history']): boolean {
+  return !!latestOfficialMovementProfileV2Assessment(history);
 }
 
 function hasCompletedFirstRunProfile(profile: UserProfile | null | undefined): boolean {
@@ -376,6 +386,30 @@ function scheduledCompletionForTemplate(
   return credit ? { templateId: credit.templateId, completedAt: credit.completedAt } : undefined;
 }
 
+function mainPlanTemplateFocusById(block: MovementBlock): Map<string, TrainingDomain> {
+  try {
+    return new Map(
+      sessionTemplatesForMovementBlock(block)
+        .filter((template) => template.dayLabel === 'A' || template.dayLabel === 'B' || template.dayLabel === 'C')
+        .map((template) => [template.id, template.focusDomain])
+    );
+  } catch {
+    return new Map();
+  }
+}
+
+function trainingFocusLabel(domain: TrainingDomain): string {
+  if (domain === 'strength_power') return 'Strength focus';
+  if (domain === 'balance_stability') return 'Balance focus';
+  return 'Mobility focus';
+}
+
+function fallbackSessionFocusLabel(index: number, focus: string): string {
+  if (index === 0) return 'Strength foundation';
+  if (index === 1) return 'Movement control';
+  return `Full-body ${focus}`;
+}
+
 function daysUntilDateKey(targetDateKey: string, today: string): number {
   const todayKey = blockScheduleDateKey(today);
   if (!todayKey) return 0;
@@ -394,13 +428,21 @@ function bandFromAgeRange(ageLow: number, ageHigh: number): MovementSnapshotBand
   return 'starting_point';
 }
 
+function blockFocusTitle(block: MovementBlock): string {
+  const domain = movementBlockDomainFocus(block);
+  if (domain) return focusTitle(domain);
+  if (movementBlockIsBalanced(block)) return 'Building strength, balance, and mobility';
+  return 'Building a steady movement routine';
+}
+
 function focusTitle(domain: MovementDomain): string {
   if (domain === 'strength_power') return 'Building stronger legs and everyday power';
   if (domain === 'balance') return 'Building steadier movement';
   return 'Building more mobile joints';
 }
 
-function shortFocus(domain: MovementDomain): string {
+function shortFocus(domain: MovementDomain | null): string {
+  if (!domain) return 'capability';
   if (domain === 'strength_power') return 'strength';
   return domain;
 }
