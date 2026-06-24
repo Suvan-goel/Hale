@@ -1,4 +1,24 @@
 export {
+  MOVEMENT_PROFILE_V2_ASSESSMENT_KIND,
+  MOVEMENT_PROFILE_V2_ASSESSMENT_SCHEMA_VERSION,
+  MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_FINGERPRINT,
+  MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_VERSION,
+  MOVEMENT_PROFILE_V2_DOMAIN_ORDER,
+  MOVEMENT_PROFILE_V2_FOCUS_POLICY_FINGERPRINT,
+  MOVEMENT_PROFILE_V2_FOCUS_POLICY_VERSION,
+  MOVEMENT_PROFILE_V2_LIFE_GOAL_ADAPTER_VERSION,
+  MOVEMENT_PROFILE_V2_LIFE_GOAL_MAPPING_FINGERPRINT,
+  createMovementProfileV2Assessment,
+  deriveMovementProfileV2DomainEvidence,
+  movementProfileV2AssessmentFingerprint,
+  movementProfileV2AssessmentIdForSnapshot,
+  movementProfileV2LifeGoalMappingFingerprint,
+  normalizeMovementProfileV2LifeGoalContext,
+  normalizeMovementProfileV2PriorFocusContext,
+  parseMovementProfileV2Assessment,
+  selectMovementProfileV2SuggestedFocus,
+} from './assessment';
+export {
   interpretMovementProfileV2,
   movementProfileV2SourceSetFingerprint,
 } from './engine';
@@ -49,6 +69,22 @@ export {
   validMovementProfileV2SnapshotForCheckUp,
   validateMovementProfileV2SnapshotSource,
 } from './snapshot';
+export type {
+  CreateMovementProfileV2AssessmentInput,
+  MovementProfileV2Assessment,
+  MovementProfileV2AssessmentCreationResult,
+  MovementProfileV2AssessmentDiagnostic,
+  MovementProfileV2AssessmentDiagnosticCode,
+  MovementProfileV2DomainEvidence,
+  MovementProfileV2DomainEvidenceCategory,
+  MovementProfileV2DomainEvidenceSource,
+  MovementProfileV2FocusDecisionReason,
+  MovementProfileV2FocusProvenance,
+  MovementProfileV2LifeGoalContext,
+  MovementProfileV2PriorFocusContext,
+  MovementProfileV2SuggestedFocus,
+  ParsedMovementProfileV2Assessment,
+} from './assessment';
 export type {
   ApprovedChairPercentileTransform,
   BalanceInterpretation,
