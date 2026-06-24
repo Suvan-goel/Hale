@@ -1,4 +1,14 @@
-import { CHAIR_STAND_ID, TUG_ID, getMovement, listMovements, registerMovement } from '../index';
+import {
+  ACTIVE_SHOULDER_REACH_V2_ID,
+  CHAIR_RISE_V2_ID,
+  CHAIR_STAND_ID,
+  ONE_LEG_BALANCE_V2_ID,
+  TUG_ID,
+  getMovement,
+  listMovements,
+  registerMovement,
+} from '../index';
+import { DEFAULT_BATTERY, MOVEMENT_PROFILE_V2_BATTERY } from '../../checkup';
 
 describe('movement registry', () => {
   it('serves the chair-stand definition by id', () => {
@@ -20,6 +30,19 @@ describe('movement registry', () => {
 
   it('lists registered movements', () => {
     expect(listMovements().map((d) => d.id)).toContain(CHAIR_STAND_ID);
+  });
+
+  it('registers the internal Movement Profile V2 battery without changing the default V1 battery', () => {
+    expect(DEFAULT_BATTERY).not.toContain(CHAIR_RISE_V2_ID);
+    expect(MOVEMENT_PROFILE_V2_BATTERY).toEqual([
+      CHAIR_RISE_V2_ID,
+      ONE_LEG_BALANCE_V2_ID,
+      ACTIVE_SHOULDER_REACH_V2_ID,
+      'hinge-reach',
+    ]);
+    for (const movementId of MOVEMENT_PROFILE_V2_BATTERY) {
+      expect(getMovement(movementId).id).toBe(movementId);
+    }
   });
 
   it('keeps fixed/beta assessment timing unchanged', () => {

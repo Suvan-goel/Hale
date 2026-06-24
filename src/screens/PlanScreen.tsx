@@ -21,7 +21,7 @@ import { startingEffortLabel } from '../profile';
 import type { PainArea } from '../training';
 import { SessionStartMenu } from './TodayScreen';
 import { colors, fonts, imageOverlayControl, radius, shadow, spacing, type } from '../theme';
-import { useResponsiveLayout } from '../theme/responsive';
+import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 
 const PLAN_HERO_IMAGE = require('../../assets/images/hale-plan-hero-mountain.png');
 const PLAN_WEEK_DAYS: readonly { value: string; label: string }[] = [
@@ -66,6 +66,7 @@ export function PlanScreen({
   onStartRetest: () => void;
   onOpenSettings: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   const [pendingSessionId, setPendingSessionId] = React.useState<PlanSessionId | null>(null);
   const goalText = lifeGoalText?.trim();
   const nextSession = weekSessionStatuses.find((session) => session.status === 'next');
@@ -119,7 +120,7 @@ export function PlanScreen({
           <View style={styles.titleRow}>
             <View style={styles.titleGroup}>
               <HeaderLogo />
-              <Text style={styles.title}>Your plan</Text>
+              <Text style={[styles.title, responsive.isCompactPhone && compactTypography.pageTitle]}>Your plan</Text>
             </View>
             <Pressable
               style={({ pressed }) => [styles.headerIconButton, pressed && styles.pressed]}
@@ -221,7 +222,7 @@ function PlanHeroCard({
             </View>
           ) : (
             <Pressable
-              style={({ pressed }) => [styles.heroButton, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.heroButton, compactHero && styles.compactCardPadding, pressed && styles.pressed]}
               onPress={runAction}
               accessibilityRole="button"
               accessibilityLabel={action.accessibilityLabel}
@@ -371,6 +372,7 @@ function RetestCard({
   retest: ReturnType<typeof getRetestCopy>;
   onStartRetest: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   const content = (
     <>
       <View style={styles.retestIcon}>
@@ -384,11 +386,17 @@ function RetestCard({
     </>
   );
 
-  if (!retest.due) return <View style={styles.retestCard}>{content}</View>;
+  if (!retest.due) {
+    return <View style={[styles.retestCard, responsive.isCompactPhone && styles.compactCardPadding]}>{content}</View>;
+  }
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.retestCard, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.retestCard,
+        responsive.isCompactPhone && styles.compactCardPadding,
+        pressed && styles.pressed,
+      ]}
       onPress={onStartRetest}
       accessibilityRole="button"
       accessibilityLabel="Start check-up"
@@ -417,12 +425,13 @@ function EmptyPlanState({
   lifecycleState: HaleLifecycleState;
   onAction: (action: ReturnType<typeof getPlanEmptyStateCopy>['action']) => void;
 }) {
+  const responsive = useResponsiveLayout();
   const copy = getPlanEmptyStateCopy(lifecycleState);
   const setupReady = lifecycleState === 'needs_block_creation';
 
   return (
     <View style={styles.emptyPlanWrap}>
-      <View style={styles.emptyPlanCard}>
+      <View style={[styles.emptyPlanCard, responsive.isCompactPhone && styles.compactCardPadding]}>
         <View style={styles.emptyPlanHeader}>
           <Text style={styles.emptyPlanKicker}>{setupReady ? 'Plan preparation' : 'Before your plan starts'}</Text>
           <View style={styles.emptyPlanMetaPill}>
@@ -434,7 +443,7 @@ function EmptyPlanState({
 
         <Text style={styles.emptyPlanBody}>{copy.body}</Text>
 
-        <View style={styles.emptyPlanProgress} accessibilityLabel="Plan preparation steps">
+        <View style={[styles.emptyPlanProgress, responsive.isCompactPhone && styles.compactCardPadding]} accessibilityLabel="Plan preparation steps">
           <EmptyPlanStep
             index="1"
             title="Check-up"
@@ -457,7 +466,7 @@ function EmptyPlanState({
         </View>
 
         <Pressable
-          style={({ pressed }) => [styles.emptyPlanButton, pressed && styles.pressed]}
+          style={({ pressed }) => [styles.emptyPlanButton, responsive.isCompactPhone && styles.compactCardPadding, pressed && styles.pressed]}
           onPress={() => onAction(copy.action)}
           accessibilityRole="button"
           accessibilityLabel={copy.ctaLabel}
@@ -513,6 +522,7 @@ function SessionCard({
   index: number;
   onStart: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   const copy = getPlanSessionCategoryCopy(session.id);
   const complete = session.status === 'complete';
   const next = session.status === 'next';
@@ -545,6 +555,7 @@ function SessionCard({
       style={({ pressed }) => [
         styles.sessionRow,
         styles.sessionRowNext,
+        responsive.isCompactPhone && styles.compactCardPadding,
         index > 0 && styles.sessionRowDivider,
         pressed && styles.pressed,
       ]}
@@ -700,6 +711,9 @@ function weeklySessionSummary(summary: ActiveBlockSummary): string {
 const styles = StyleSheet.create({
   screenContent: {
     gap: 12,
+  },
+  compactCardPadding: {
+    paddingHorizontal: 16,
   },
   header: {
     gap: spacing.md,
@@ -1028,7 +1042,7 @@ const styles = StyleSheet.create({
     marginTop: -1,
   },
   emptyPlanNote: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
   },
   emptyPlanNoteText: {
     color: colors.textSecondary,
@@ -1198,7 +1212,7 @@ const styles = StyleSheet.create({
   },
   sessionRowNext: {
     backgroundColor: colors.bgMaterial,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     overflow: 'hidden',
   },
   sessionRowDivider: {

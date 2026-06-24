@@ -45,13 +45,29 @@ export function PoseLatencyDiagnosticsOverlay({
         native pre {metric(snapshot.nativePreprocessMs)} · mp{' '}
         {metric(snapshot.nativeInferenceWallMs)} · js {metric(snapshot.jsTransformMs)}
       </Text>
+      {snapshot.nativeRuntime ? (
+        <Text style={styles.line}>
+          {snapshot.nativeRuntime.modelAsset ?? 'model?'} ·{' '}
+          {snapshot.nativeRuntime.selectedDelegate ?? 'delegate?'} ·{' '}
+          {snapshot.nativeRuntime.pipelineMode ?? 'mode?'} ·{' '}
+          {snapshot.nativeRuntime.rotationMode ?? 'rotation?'} ·{' '}
+          {snapshot.nativeRuntime.analysisTargetWidth ?? '?'}x
+          {snapshot.nativeRuntime.analysisTargetHeight ?? '?'}
+        </Text>
+      ) : null}
+      <Text style={styles.line}>
+        bitmap {metric(snapshot.nativeBitmapConversionMs)} · rot{' '}
+        {metric(snapshot.nativeExplicitRotationMs)} · mpimg{' '}
+        {metric(snapshot.nativeMpImageBuildMs)}
+      </Text>
       <Text style={styles.line}>
         out-of-order id {snapshot.frameIdOutOfOrder} ts {snapshot.timestampOutOfOrder} · stale{' '}
         {snapshot.staleAtReceipt}/{snapshot.staleAtRenderSubmit}
       </Text>
       <Text style={styles.line}>
         visual coalesced {snapshot.rendererCoalescedFrames} · rejected{' '}
-        {snapshot.rendererRejectedFrames}
+        {snapshot.rendererRejectedFrames} · native coalesced{' '}
+        {snapshot.nativeRuntime?.nativeEventCoalescedCount ?? 0}
       </Text>
     </View>
   );

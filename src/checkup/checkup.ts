@@ -32,6 +32,12 @@ import {
   VoiceRequest,
 } from '../assessment/sessionController';
 import { CheckUp, CheckUpItem } from './types';
+import {
+  CheckUpProtocolPolicy,
+  CheckUpProtocolPolicyId,
+  LEGACY_MOVEMENT_AGE_PROTOCOL_POLICY_ID,
+  createCheckUpProtocolPolicy,
+} from './protocolPolicy';
 
 /** Official V1 battery: TUG is kept implemented, but hidden from normal flow. */
 export const DEFAULT_BATTERY: readonly string[] = [
@@ -47,6 +53,14 @@ export const BETA_BATTERY_WITH_TUG: readonly string[] = [
   'timed-up-and-go',
   'balance-ladder',
   'shoulder-flexion-peak',
+  'hinge-reach',
+];
+
+/** Internal raw-first V2 battery. Hinge remains a supporting mobility metric. */
+export const MOVEMENT_PROFILE_V2_BATTERY: readonly string[] = [
+  'chair-rise-30s-v2',
+  'one-leg-balance-45s-v2',
+  'active-shoulder-reach-v2',
   'hinge-reach',
 ];
 
@@ -70,6 +84,7 @@ export interface CheckUpFrameUpdate {
 export interface CheckUpConfig {
   battery: readonly string[];
   session: SessionControllerConfig;
+  protocolPolicyId?: CheckUpProtocolPolicyId;
   /** Settle time after a transition cue before the item begins. */
   transitionDwellMs: number;
   /** An item stuck in pre-flight longer than this is skipped. */
@@ -79,6 +94,7 @@ export interface CheckUpConfig {
 export const DEFAULT_CHECKUP_CONFIG: CheckUpConfig = {
   battery: DEFAULT_BATTERY,
   session: DEFAULT_SESSION_CONFIG,
+  protocolPolicyId: LEGACY_MOVEMENT_AGE_PROTOCOL_POLICY_ID,
   transitionDwellMs: 1500,
   maxFramingMs: 60000,
 };
@@ -86,6 +102,7 @@ export const DEFAULT_CHECKUP_CONFIG: CheckUpConfig = {
 export class CheckUpOrchestrator {
   private readonly config: CheckUpConfig;
   private readonly startedAtIso: string;
+  private readonly protocolPolicy: CheckUpProtocolPolicy;
   private readonly definitions: MovementDefinition[];
   private readonly preflight: PreflightCheck;
   private readonly movementCameraReadiness = new MovementCameraReadinessTracker();
@@ -126,6 +143,10 @@ export class CheckUpOrchestrator {
   ) {
     this.config = config;
     this.startedAtIso = startedAtIso;
+    this.protocolPolicy = createCheckUpProtocolPolicy(
+      config.protocolPolicyId ?? LEGACY_MOVEMENT_AGE_PROTOCOL_POLICY_ID,
+      startedAtIso
+    );
     this.preflight = preflight;
     this.definitions = config.battery.map((id) => getMovement(id));
   }
@@ -324,6 +345,7 @@ export class CheckUpOrchestrator {
     }
     this.finished = {
       startedAt: this.startedAtIso,
+      protocolPolicy: this.protocolPolicy,
       bodyUnit: this.bodyUnit,
       items: this.items.slice(),
     };

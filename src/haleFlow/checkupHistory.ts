@@ -2,6 +2,10 @@ import type { MovementAssessment } from '../adherence/types';
 import type { CheckUp } from '../checkup';
 import type { StoredCheckUp, StoredCheckUpType } from '../history';
 import {
+  validMovementProfileV2SnapshotForCheckUp,
+  type StoredMovementProfileV2Snapshot,
+} from '../reference/movementProfileV2';
+import {
   compareScoreSnapshots,
   parseStoredScoreSnapshot,
   type CheckUpScore,
@@ -26,6 +30,12 @@ export interface HistoricalOfficialCheckUpRecord {
   scoreSnapshot: VersionedCheckUpScoreSnapshot;
   type: StoredCheckUpType;
   currentVersionUsable: boolean;
+}
+
+export interface OfficialMovementProfileV2SnapshotRecord {
+  record: StoredCheckUp;
+  snapshot: StoredMovementProfileV2Snapshot;
+  type: Extract<StoredCheckUpType, 'baseline' | 'baseline_retake' | 'official_retest'>;
 }
 
 export type OfficialCheckUpComparisonPair =
@@ -90,6 +100,34 @@ export function historicalOfficialCheckUpRecords(
     .sort((a, b) => a.checkUp.startedAt.localeCompare(b.checkUp.startedAt))
     .map((record) => historicalOfficialCheckUpRecord(record, assessments))
     .filter((item): item is HistoricalOfficialCheckUpRecord => !!item);
+}
+
+export function validOfficialMovementProfileV2Snapshots(
+  history: readonly StoredCheckUp[] | null | undefined
+): OfficialMovementProfileV2SnapshotRecord[] {
+  return (history ?? [])
+    .slice()
+    .sort((a, b) => a.checkUp.startedAt.localeCompare(b.checkUp.startedAt))
+    .map(validOfficialMovementProfileV2SnapshotRecord)
+    .filter((item): item is OfficialMovementProfileV2SnapshotRecord => !!item);
+}
+
+export function latestOfficialMovementProfileV2Snapshot(
+  history: readonly StoredCheckUp[] | null | undefined
+): OfficialMovementProfileV2SnapshotRecord | null {
+  const records = validOfficialMovementProfileV2Snapshots(history);
+  return records[records.length - 1] ?? null;
+}
+
+export function movementProfileV2SnapshotForSourceCheckUpId(
+  history: readonly StoredCheckUp[] | null | undefined,
+  sourceCheckUpId: string
+): OfficialMovementProfileV2SnapshotRecord | null {
+  return (
+    validOfficialMovementProfileV2Snapshots(history).find(
+      (item) => item.snapshot.sourceCheckUpId === sourceCheckUpId
+    ) ?? null
+  );
 }
 
 export function latestUsableOfficialCheckUpRecord(
@@ -178,6 +216,20 @@ function historicalOfficialCheckUpRecord(
     type,
     currentVersionUsable: currentEligibility.eligible,
   };
+}
+
+function validOfficialMovementProfileV2SnapshotRecord(
+  record: StoredCheckUp
+): OfficialMovementProfileV2SnapshotRecord | null {
+  const type = record.checkupType;
+  if (!isOfficialCheckupType(type)) return null;
+  if (type !== 'baseline' && type !== 'baseline_retake' && type !== 'official_retest') return null;
+  const snapshot = validMovementProfileV2SnapshotForCheckUp({
+    snapshot: record.movementProfileV2Snapshot,
+    checkUp: record.checkUp,
+    checkupType: type,
+  });
+  return snapshot ? { record, snapshot, type } : null;
 }
 
 function matchingAssessmentsForCheckUp(

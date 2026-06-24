@@ -215,10 +215,11 @@ function ArticleSection({
 }
 
 function CurrentLevelPanel({ detail }: { detail: MovementLadderDetail }) {
+  const responsive = useResponsiveLayout();
   const level = detail.currentLevel;
   if (!detail.showCurrentLevel) {
     return (
-      <View style={styles.currentPanel}>
+      <View style={[styles.currentPanel, responsive.isCompactPhone && styles.compactCardPadding]}>
         <View style={styles.currentPanelHeader}>
           <View style={styles.currentPanelTitleGroup}>
             <Text style={styles.ladderEyebrow}>Movement group</Text>
@@ -237,7 +238,7 @@ function CurrentLevelPanel({ detail }: { detail: MovementLadderDetail }) {
     );
   }
   return (
-    <View style={styles.currentPanel}>
+    <View style={[styles.currentPanel, responsive.isCompactPhone && styles.compactCardPadding]}>
       <View style={styles.currentPanelHeader}>
         <View style={styles.currentPanelTitleGroup}>
           <Text style={styles.ladderEyebrow}>Your version</Text>
@@ -279,13 +280,14 @@ function LadderInfoSection({ title, body }: { title: string; body: string }) {
 }
 
 function ChecklistSection({ title, items }: { title: string; items: readonly string[] }) {
+  const responsive = useResponsiveLayout();
   if (items.length === 0) return null;
   return (
     <View style={styles.ladderSection}>
       <View style={styles.ladderSectionHeader}>
         <Text style={styles.ladderSectionTitle}>{title}</Text>
       </View>
-      <View style={styles.checklistCard}>
+      <View style={[styles.checklistCard, responsive.isCompactPhone && styles.compactCardPadding]}>
         {items.map((item) => (
           <View key={item} style={styles.checklistItem}>
             <View style={styles.checklistBullet} />
@@ -298,6 +300,7 @@ function ChecklistSection({ title, items }: { title: string; items: readonly str
 }
 
 function OtherVersionsSection({ detail }: { detail: MovementLadderDetail }) {
+  const responsive = useResponsiveLayout();
   const rows = detail.showCurrentLevel
     ? detail.levels.map((level) => ({
         label: level.isCurrent ? 'Your version' : level.levelLabel,
@@ -319,7 +322,7 @@ function OtherVersionsSection({ detail }: { detail: MovementLadderDetail }) {
             : 'Hale can use these when they fit your setup.'}
         </Text>
       </View>
-      <View style={styles.versionList}>
+      <View style={[styles.versionList, responsive.isCompactPhone && styles.compactCardPadding]}>
         {rows.map((row, index) => (
           <VersionRow
             key={`${row.label}-${row.level.id}`}
@@ -454,6 +457,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     backgroundColor: colors.card,
     ...shadow.card,
+  },
+  compactCardPadding: {
+    paddingHorizontal: 16,
   },
   currentPanelHeader: {
     flexDirection: 'row',

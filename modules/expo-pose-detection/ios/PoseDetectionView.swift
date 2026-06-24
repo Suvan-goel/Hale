@@ -4,6 +4,45 @@ import MediaPipeTasksVision
 
 private let landmarkCount = 33
 private let landmarkStride = 5
+private let defaultSkeletonConfidence = 0.35
+
+private let mediaPipePoseConnections: [(Int, Int)] = [
+  (0, 1),
+  (1, 2),
+  (2, 3),
+  (3, 7),
+  (0, 4),
+  (4, 5),
+  (5, 6),
+  (6, 8),
+  (9, 10),
+  (11, 12),
+  (11, 13),
+  (13, 15),
+  (15, 17),
+  (15, 19),
+  (15, 21),
+  (17, 19),
+  (12, 14),
+  (14, 16),
+  (16, 18),
+  (16, 20),
+  (16, 22),
+  (18, 20),
+  (11, 23),
+  (12, 24),
+  (23, 24),
+  (23, 25),
+  (25, 27),
+  (27, 29),
+  (29, 31),
+  (27, 31),
+  (24, 26),
+  (26, 28),
+  (28, 30),
+  (30, 32),
+  (28, 32),
+]
 
 private struct PoseLatencyDiagnostics {
   let frameId: Int
@@ -33,20 +72,28 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
   private var running = false
   private var lastTimestampMs = -1
   private var frameId = 0
+  private let skeletonLayer = CAShapeLayer()
 
   // Props (defaults mirror the JS-side defaults).
   private var active = false
   private var cameraFacing = "front"
-  private var modelVariant = "lite"
+  private var modelVariant = "full"
   private var minDetectionConfidence: Float = 0.35
   private var minTrackingConfidence: Float = 0.35
   private var minPresenceConfidence: Float = 0.35
   private var latencyDiagnosticsEnabled = false
+  private var nativeSkeletonOverlayEnabled = false
 
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
     // bg-base (#F9F5EF) - keep in sync with the JS theme token (src/theme).
     backgroundColor = UIColor(red: 0xF9 / 255.0, green: 0xF5 / 255.0, blue: 0xEF / 255.0, alpha: 1.0)
+    skeletonLayer.fillColor = nil
+    skeletonLayer.strokeColor = UIColor.black.cgColor
+    skeletonLayer.lineCap = .round
+    skeletonLayer.lineJoin = .round
+    skeletonLayer.contentsScale = UIScreen.main.scale
+    layer.addSublayer(skeletonLayer)
   }
 
   func setActiveProp(_ value: Bool) {
@@ -87,6 +134,32 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
 
   func setLatencyDiagnosticsEnabledProp(_ value: Bool) {
     latencyDiagnosticsEnabled = value
+  }
+
+  func setAndroidPipelineModeProp(_ value: String) {}
+
+  func setAndroidRotationModeProp(_ value: String) {}
+
+  func setAndroidAnalysisResolutionProp(_ value: String) {}
+
+  func setNativeSkeletonOverlayEnabledProp(_ value: Bool) {
+    guard nativeSkeletonOverlayEnabled != value else { return }
+    nativeSkeletonOverlayEnabled = value
+    if !value { skeletonLayer.path = nil }
+  }
+
+  func setNativeSkeletonColorProp(_ value: String) {
+    skeletonLayer.strokeColor = UIColor(hexString: value)?.cgColor ?? UIColor.black.cgColor
+  }
+
+  func setCanvasColorProp(_ value: String) {
+    backgroundColor = UIColor(hexString: value)
+      ?? UIColor(red: 0xF9 / 255.0, green: 0xF5 / 255.0, blue: 0xEF / 255.0, alpha: 1.0)
+  }
+
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    skeletonLayer.frame = bounds
   }
 
   override func willMove(toWindow newWindow: UIWindow?) {
@@ -359,10 +432,93 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
         "nativeEventEmitMs": nativeEventEmitMs,
       ]
     }
-    DispatchQueue.main.async { self.onLandmarks(payload) }
+    DispatchQueue.main.async {
+      self.updateNativeSkeleton(flat: flat, sourceWidth: width, sourceHeight: height)
+      self.onLandmarks(payload)
+    }
+  }
+
+  private func updateNativeSkeleton(flat: [Double], sourceWidth: Int, sourceHeight: Int) {
+    guard nativeSkeletonOverlayEnabled else { return }
+    skeletonLayer.frame = bounds
+    guard flat.count >= landmarkCount * landmarkStride, bounds.width > 0, bounds.height > 0 else {
+      skeletonLayer.path = nil
+      return
+    }
+
+    let viewWidth = bounds.width
+    let viewHeight = bounds.height
+    let sourceAspect = CGFloat(max(sourceWidth, 1)) / CGFloat(max(sourceHeight, 1))
+    let viewAspect = viewWidth / viewHeight
+    let useWidth = viewAspect < sourceAspect
+    let sx: CGFloat
+    let sy: CGFloat
+    let ox: CGFloat
+    let oy: CGFloat
+    if useWidth {
+      sx = viewWidth
+      sy = viewWidth / sourceAspect
+      ox = 0
+      oy = (viewHeight - sy) / 2
+    } else {
+      sy = viewHeight
+      sx = viewHeight * sourceAspect
+      ox = (viewWidth - sx) / 2
+      oy = 0
+    }
+
+    let mirrored = cameraFacing != "back"
+    let path = CGMutablePath()
+    for (a, b) in mediaPipePoseConnections {
+      guard landmarkRenderable(flat, a), landmarkRenderable(flat, b) else { continue }
+      path.move(to: CGPoint(x: mapLandmarkX(flat, a, mirrored, sx, ox), y: mapLandmarkY(flat, a, sy, oy)))
+      path.addLine(to: CGPoint(x: mapLandmarkX(flat, b, mirrored, sx, ox), y: mapLandmarkY(flat, b, sy, oy)))
+    }
+    skeletonLayer.lineWidth = max(2.4, min(5.2, min(viewWidth, viewHeight) * 0.008))
+    skeletonLayer.path = path
+  }
+
+  private func landmarkRenderable(_ landmarks: [Double], _ landmark: Int) -> Bool {
+    let base = landmark * landmarkStride
+    let x = landmarks[base]
+    let y = landmarks[base + 1]
+    guard x.isFinite, y.isFinite else { return false }
+    let visibility = min(max(landmarks[base + 3], 0), 1)
+    let presence = min(max(landmarks[base + 4], 0), 1)
+    return min(visibility, presence) >= defaultSkeletonConfidence
+  }
+
+  private func mapLandmarkX(
+    _ landmarks: [Double],
+    _ landmark: Int,
+    _ mirrored: Bool,
+    _ sx: CGFloat,
+    _ ox: CGFloat
+  ) -> CGFloat {
+    let normalized = landmarks[landmark * landmarkStride]
+    let x = mirrored ? 1 - normalized : normalized
+    return CGFloat(x) * sx + ox
+  }
+
+  private func mapLandmarkY(_ landmarks: [Double], _ landmark: Int, _ sy: CGFloat, _ oy: CGFloat) -> CGFloat {
+    CGFloat(landmarks[landmark * landmarkStride + 1]) * sy + oy
   }
 
   private static func nativeNowMs() -> Double {
     CACurrentMediaTime() * 1000.0
+  }
+}
+
+private extension UIColor {
+  convenience init?(hexString: String) {
+    let trimmed = hexString.trimmingCharacters(in: .whitespacesAndNewlines)
+    let raw = trimmed.hasPrefix("#") ? String(trimmed.dropFirst()) : trimmed
+    guard raw.count == 6, let value = Int(raw, radix: 16) else { return nil }
+    self.init(
+      red: CGFloat((value >> 16) & 0xFF) / 255.0,
+      green: CGFloat((value >> 8) & 0xFF) / 255.0,
+      blue: CGFloat(value & 0xFF) / 255.0,
+      alpha: 1.0
+    )
   }
 }

@@ -19,6 +19,7 @@ import {
 } from '../haleFlow';
 import type { EquipmentProfile, LadderProgress, PersistedGeneratedSessionSummary } from '../training';
 import { colors, fonts, imageOverlayControl, radius, shadow, spacing, todayHomeColors, type } from '../theme';
+import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 import { SettingsIcon } from '../navigation/icons';
 import { INSIGHT_IMAGES, LEARN_IMAGES, LIBRARY_IMAGES, PRACTICE_IMAGES } from './exploreImages';
 
@@ -68,6 +69,7 @@ export function ExploreScreen({
   onOpenLearn: (articleId: string) => void;
   onOpenSettings: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   const [activeTab, setActiveTab] = React.useState<ExploreTab>('insights');
   const library = React.useMemo(() => getExploreLibrary(), []);
   const insights = React.useMemo(() => getHealthInsightCards(), []);
@@ -91,7 +93,7 @@ export function ExploreScreen({
       <View style={styles.headerRow}>
         <View style={styles.titleGroup}>
           <HeaderLogo />
-          <Text style={styles.title}>Explore</Text>
+          <Text style={[styles.title, responsive.isCompactPhone && compactTypography.pageTitle]}>Explore</Text>
         </View>
         <Pressable
           style={({ pressed }) => [styles.headerIconButton, pressed && styles.pressed]}
@@ -131,6 +133,7 @@ function ExploreTabBar({
   activeTab: ExploreTab;
   onChange: (tab: ExploreTab) => void;
 }) {
+  const responsive = useResponsiveLayout();
   return (
     <View style={styles.tabBar} accessibilityRole="tablist">
       {EXPLORE_TABS.map((tab) => {
@@ -166,13 +169,14 @@ function InsightsTab({
   articles: readonly HealthInsightCard[];
   onOpen: (articleId: string) => void;
 }) {
+  const responsive = useResponsiveLayout();
   const [featured, ...feed] = articles;
   return (
     <View style={styles.tabContent}>
       {featured ? <FeaturedInsightCard article={featured} onOpen={() => onOpen(featured.id)} /> : null}
       <View style={styles.section}>
         <SectionCopy title="Helpful reads" />
-        <View style={[styles.listPanel, styles.articleListPanel]}>
+        <View style={[styles.listPanel, styles.articleListPanel, responsive.isCompactPhone && styles.compactListPanel]}>
           {feed.map((article, index) => (
             <InsightRow
               key={article.id}
@@ -215,6 +219,7 @@ function PracticeTab({
   sessions: readonly ExtraSessionCard[];
   onStartExtraSession: (presetId: string) => void;
 }) {
+  const responsive = useResponsiveLayout();
   const featuredSession = sessions.find((session) => session.id === 'preset-mobility-reset') ?? sessions[0];
   const sessionRows = featuredSession ? sessions.filter((session) => session.id !== featuredSession.id) : sessions;
 
@@ -230,7 +235,7 @@ function PracticeTab({
       {sessionRows.length > 0 ? (
         <View style={styles.section}>
           <SectionCopy title="More options" />
-          <View style={[styles.listPanel, styles.practiceListPanel]}>
+          <View style={[styles.listPanel, styles.practiceListPanel, responsive.isCompactPhone && styles.compactListPanel]}>
             {sessionRows.map((session, index) => (
               <OptionalSessionRow
                 key={session.id}
@@ -253,6 +258,7 @@ function LibraryTab({
   ladders: readonly MovementLadderCard[];
   onOpenLadder: (ladderId: string) => void;
 }) {
+  const responsive = useResponsiveLayout();
   const [activeFilter, setActiveFilter] = React.useState<LibraryDomainFilter>('all');
   const filteredLadders = React.useMemo(
     () => ladders.filter((ladder) => activeFilter === 'all' || ladder.domainLabel === activeFilter),
@@ -266,7 +272,7 @@ function LibraryTab({
       <LibraryFilterBar activeFilter={activeFilter} onChange={setActiveFilter} />
       <View style={styles.section}>
         <SectionCopy title={activeFilter === 'all' ? 'Movement groups' : `${activeFilter} groups`} />
-        <View style={[styles.listPanel, styles.libraryListPanel]}>
+        <View style={[styles.listPanel, styles.libraryListPanel, responsive.isCompactPhone && styles.compactListPanel]}>
           {filteredLadders.map((ladder, index) => (
             <LadderRow
               key={ladder.id}
@@ -282,6 +288,7 @@ function LibraryTab({
 }
 
 function FeaturedLibraryCard({ ladderCount, domainCount }: { ladderCount: number; domainCount: number }) {
+  const responsive = useResponsiveLayout();
   return (
     <View style={styles.featuredLibrarySection}>
       <Text style={styles.featuredPostLabel}>Movement options</Text>
@@ -293,7 +300,7 @@ function FeaturedLibraryCard({ ladderCount, domainCount }: { ladderCount: number
           resizeMode="cover"
         >
           <View style={styles.featuredLibraryScrim} />
-          <View style={styles.featuredLibraryContent}>
+          <View style={[styles.featuredLibraryContent, responsive.isCompactPhone && styles.compactCardPadding]}>
             <Text style={styles.featuredPostMeta}>Exercises Hale can use in your plan</Text>
             <Text style={styles.featuredPostTitle}>See easier and harder options</Text>
             <Text style={styles.featuredPostBody}>
@@ -325,6 +332,7 @@ function LibraryFilterBar({
   activeFilter: LibraryDomainFilter;
   onChange: (filter: LibraryDomainFilter) => void;
 }) {
+  const responsive = useResponsiveLayout();
   return (
     <View style={styles.libraryFilterBar}>
       {LIBRARY_FILTERS.map((filter) => {
@@ -347,6 +355,7 @@ function LibraryFilterBar({
 }
 
 function FeaturedInsightCard({ article, onOpen }: { article: HealthInsightCard; onOpen: () => void }) {
+  const responsive = useResponsiveLayout();
   return (
     <View style={styles.featuredPostSection}>
       <Text style={styles.featuredPostLabel}>Featured article</Text>
@@ -363,11 +372,11 @@ function FeaturedInsightCard({ article, onOpen }: { article: HealthInsightCard; 
           resizeMode="cover"
         >
           <View style={styles.featuredPostScrim} />
-          <View style={styles.featuredPostContent}>
+          <View style={[styles.featuredPostContent, responsive.isCompactPhone && styles.compactCardPadding]}>
             <Text style={styles.featuredPostMeta}>{article.categoryLabel} · {article.readTimeLabel}</Text>
             <Text style={styles.featuredPostTitle}>{article.title}</Text>
             <Text style={styles.featuredPostBody}>{article.body}</Text>
-            <View style={styles.featuredPostButton}>
+            <View style={[styles.featuredPostButton, responsive.isCompactPhone && styles.compactCardPadding]}>
               <Text style={styles.featuredPostButtonText}>Read article</Text>
             </View>
           </View>
@@ -404,6 +413,7 @@ function InsightRow({
 }
 
 function FeaturedGuideCard({ article, onOpen }: { article: LearnCard; onOpen: () => void }) {
+  const responsive = useResponsiveLayout();
   return (
     <View style={styles.featuredGuideSection}>
       <Text style={styles.featuredPostLabel}>Start here</Text>
@@ -420,11 +430,11 @@ function FeaturedGuideCard({ article, onOpen }: { article: LearnCard; onOpen: ()
           resizeMode="cover"
         >
           <View style={styles.featuredGuideScrim} />
-          <View style={styles.featuredGuideContent}>
+          <View style={[styles.featuredGuideContent, responsive.isCompactPhone && styles.compactCardPadding]}>
             <Text style={styles.featuredPostMeta}>Hale guide · {article.readTimeLabel}</Text>
             <Text style={styles.featuredPostTitle}>{article.title}</Text>
             <Text style={styles.featuredPostBody}>{article.body}</Text>
-            <View style={styles.featuredPostButton}>
+            <View style={[styles.featuredPostButton, responsive.isCompactPhone && styles.compactCardPadding]}>
               <Text style={styles.featuredPostButtonText}>Read guide</Text>
             </View>
           </View>
@@ -435,6 +445,7 @@ function FeaturedGuideCard({ article, onOpen }: { article: LearnCard; onOpen: ()
 }
 
 function FeaturedPracticeCard({ session, onStart }: { session: ExtraSessionCard; onStart: () => void }) {
+  const responsive = useResponsiveLayout();
   return (
     <View style={styles.featuredPracticeSection}>
       <Text style={styles.featuredPostLabel}>For lighter days</Text>
@@ -453,7 +464,7 @@ function FeaturedPracticeCard({ session, onStart }: { session: ExtraSessionCard;
           resizeMode="cover"
         >
           <View style={styles.featuredPracticeScrim} />
-          <View style={styles.featuredPracticeContent}>
+          <View style={[styles.featuredPracticeContent, responsive.isCompactPhone && styles.compactCardPadding]}>
             <Text style={styles.featuredPostMeta}>
               Extra session · {durationLabel(session.durationLabel)}
             </Text>
@@ -461,7 +472,7 @@ function FeaturedPracticeCard({ session, onStart }: { session: ExtraSessionCard;
             <Text style={styles.featuredPostBody}>
               Use this when today's session is done, or when you want something calmer.
             </Text>
-            <View style={styles.featuredPostButton}>
+            <View style={[styles.featuredPostButton, responsive.isCompactPhone && styles.compactCardPadding]}>
               <Text style={styles.featuredPostButtonText}>{session.disabled ? 'Setup needed' : 'Start reset'}</Text>
             </View>
           </View>
@@ -480,10 +491,11 @@ function GuideSection({
   onOpen: (articleId: string) => void;
   footer?: React.ReactNode;
 }) {
+  const responsive = useResponsiveLayout();
   return (
     <View style={styles.section}>
       <SectionCopy title={section.title} body={section.body} />
-      <View style={[styles.listPanel, styles.guideListPanel]}>
+      <View style={[styles.listPanel, styles.guideListPanel, responsive.isCompactPhone && styles.compactListPanel]}>
         {section.articles.map((article, index) => (
           <GuideRow
             key={article.id}
@@ -765,7 +777,6 @@ function durationLabel(label: string): string {
 
 const styles = StyleSheet.create({
   screenContent: {
-    paddingBottom: 30,
     gap: 22,
     backgroundColor: todayHomeColors.background,
   },
@@ -1013,6 +1024,9 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     maxWidth: '84%',
   },
+  compactCardPadding: {
+    paddingHorizontal: 16,
+  },
   libraryStatsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1090,6 +1104,9 @@ const styles = StyleSheet.create({
     backgroundColor: todayHomeColors.card,
     paddingHorizontal: 16,
     ...shadow.card,
+  },
+  compactListPanel: {
+    paddingHorizontal: spacing.md,
   },
   articleListPanel: {
     paddingLeft: 10,
@@ -1264,7 +1281,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     backgroundColor: todayHomeColors.primary,
   },
   startButtonText: {

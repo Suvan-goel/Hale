@@ -10,6 +10,7 @@ import {
   useAuth,
 } from '../services/backend';
 import { colors, radius, shadow, spacing, type } from '../theme';
+import { useResponsiveLayout } from '../theme/responsive';
 import {
   DELETE_CONFIRMATION_WORD,
   canConfirmAccountDataAction,
@@ -43,6 +44,7 @@ export function AccountAuthCard({
     updatePassword,
     user,
   } = useAuth();
+  const responsive = useResponsiveLayout();
   const [mode, setMode] = React.useState<AccountMode>(initialMode);
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
@@ -274,7 +276,7 @@ export function AccountAuthCard({
   if (context === 'settings' && isSignedIn) {
     return (
       <View style={styles.compactAccountStack}>
-        <View style={styles.compactAccountCard}>
+        <View style={[styles.compactAccountCard, responsive.isCompactPhone && styles.compactCardPadding]}>
           <View style={styles.compactAccountIcon}>
             <MailIcon />
           </View>
@@ -317,7 +319,7 @@ export function AccountAuthCard({
         </Pressable>
 
         {pendingDataAction ? (
-          <View style={styles.compactConfirmPanel}>
+          <View style={[styles.compactConfirmPanel, responsive.isCompactPhone && styles.compactCardPadding]}>
             <Typography variant="bodySmall" color={colors.textPrimary}>
               Deleting your account is permanent. Hale will request account deletion, then remove Hale data from this phone.
             </Typography>
@@ -476,7 +478,7 @@ export function AccountAuthCard({
           </View>
         ) : null}
 
-        <View style={styles.requiredPrivacyNote}>
+        <View style={[styles.requiredPrivacyNote, responsive.isCompactPhone && styles.compactCardPadding]}>
           <ShieldCheckIcon />
           <Text style={styles.requiredPrivacyText}>Your account data stays private. Hale never creates public profiles.</Text>
         </View>
@@ -851,10 +853,12 @@ function SocialButton({
   dark?: boolean;
   provider?: 'google';
 }) {
+  const responsive = useResponsiveLayout();
   return (
     <Pressable
       style={({ pressed }) => [
         styles.socialButton,
+        responsive.isCompactPhone && styles.compactCardPadding,
         dark && styles.socialButtonDark,
         disabled && styles.compactActionDisabled,
         pressed && !disabled && styles.pressed,
@@ -951,6 +955,9 @@ function messageFromError(error: unknown): string {
 const styles = StyleSheet.create({
   compactAccountStack: {
     gap: spacing.md,
+  },
+  compactCardPadding: {
+    paddingHorizontal: 16,
   },
   compactAccountCard: {
     minHeight: 74,

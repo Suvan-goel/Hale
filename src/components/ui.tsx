@@ -24,7 +24,27 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { HeaderLogo } from './HeaderLogo';
 import { SettingsIcon } from '../navigation/icons';
 import { colors, componentStyles, fonts, minTapTarget, radius, shadow, spacing, type } from '../theme';
-import { useResponsiveLayout } from '../theme/responsive';
+import { compactTypography, useResponsiveLayout } from '../theme/responsive';
+
+const ScreenScrollClearanceContext = React.createContext(0);
+
+export function ScreenScrollClearanceProvider({
+  bottom = 0,
+  children,
+}: {
+  bottom?: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <ScreenScrollClearanceContext.Provider value={bottom}>
+      {children}
+    </ScreenScrollClearanceContext.Provider>
+  );
+}
+
+export function useScreenScrollClearance(): number {
+  return React.useContext(ScreenScrollClearanceContext);
+}
 
 export function Screen({
   children,
@@ -34,6 +54,11 @@ export function Screen({
   contentStyle?: StyleProp<ViewStyle>;
 }) {
   const responsive = useResponsiveLayout();
+  const bottomScrollClearance = React.useContext(ScreenScrollClearanceContext);
+  const paddingBottom =
+    bottomScrollClearance > 0
+      ? bottomScrollClearance
+      : responsive.pageBottom;
 
   return (
     <ScrollView
@@ -44,7 +69,7 @@ export function Screen({
           maxWidth: responsive.maxContentWidth,
           paddingHorizontal: responsive.horizontalPadding,
           paddingTop: responsive.pageTop,
-          paddingBottom: responsive.pageBottom,
+          paddingBottom,
           gap: responsive.screenGap,
         },
         contentStyle,
@@ -74,11 +99,14 @@ export function Typography({
   color?: string;
   align?: TextStyle['textAlign'];
 }) {
+  const responsive = useResponsiveLayout();
+  const compactStyle = responsive.isCompactPhone ? compactTypographyForVariant(variant) : null;
   return (
     <Text
       {...textProps}
       style={[
         type[variant],
+        compactStyle,
         color ? { color } : null,
         align ? { textAlign: align } : null,
         style,
@@ -87,6 +115,18 @@ export function Typography({
       {children}
     </Text>
   );
+}
+
+function compactTypographyForVariant(variant: TypographyVariant): TextStyle | null {
+  if (variant === 'display') return compactTypography.display;
+  if (variant === 'h1') return compactTypography.h1;
+  if (variant === 'h2') return compactTypography.h2;
+  if (variant === 'pageTitle') return compactTypography.pageTitle;
+  if (variant === 'cardTitle') return compactTypography.cardTitle;
+  if (variant === 'metric') return compactTypography.metric;
+  if (variant === 'metricMedium') return compactTypography.metricMedium;
+  if (variant === 'metricSmall') return compactTypography.metricSmall;
+  return null;
 }
 
 export const HaleText = Typography;
@@ -102,7 +142,9 @@ export function Card({
   style?: StyleProp<ViewStyle>;
   variant?: CardVariant;
 }) {
-  return <View style={[componentStyles.card[variant], style]}>{children}</View>;
+  const responsive = useResponsiveLayout();
+  const compactCardPadding = responsive.isCompactPhone ? { paddingHorizontal: responsive.cardPadding } : null;
+  return <View style={[componentStyles.card[variant], style, compactCardPadding]}>{children}</View>;
 }
 
 export const PremiumCard = Card;
@@ -119,10 +161,12 @@ export function MaterialCard({
   style?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
 }) {
+  const responsive = useResponsiveLayout();
+  const compactCardPadding = responsive.isCompactPhone ? { paddingHorizontal: responsive.cardPadding } : null;
   if (onPress) {
     return (
       <Pressable
-        style={({ pressed }) => [styles.materialCard, pressed && styles.pressed, style]}
+        style={({ pressed }) => [styles.materialCard, pressed && styles.pressed, style, compactCardPadding]}
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
@@ -131,7 +175,7 @@ export function MaterialCard({
       </Pressable>
     );
   }
-  return <View style={[styles.materialCard, style]}>{children}</View>;
+  return <View style={[styles.materialCard, style, compactCardPadding]}>{children}</View>;
 }
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -153,8 +197,10 @@ export function Button({
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
 }) {
+  const responsive = useResponsiveLayout();
   const isPrimary = variant === 'primary';
   const showChevron = isPrimary && primaryButtonShowsChevron(title);
+  const compactPadding = responsive.isCompactPhone ? styles.compactHorizontalPadding : null;
 
   return (
     <Pressable
@@ -165,6 +211,7 @@ export function Button({
         disabled && styles.disabled,
         pressed && !disabled && (isPrimary ? styles.primaryPressed : styles.pressed),
         style,
+        compactPadding,
       ]}
       onPress={onPress}
       disabled={disabled}
@@ -293,6 +340,7 @@ export function Input({
   inputStyle?: StyleProp<TextStyle>;
 }) {
   const [focused, setFocused] = React.useState(false);
+  const responsive = useResponsiveLayout();
   const describedBy = errorText ?? helperText;
   return (
     <View style={[componentStyles.input.field, containerStyle]}>
@@ -315,6 +363,7 @@ export function Input({
           multiline && componentStyles.input.multiline,
           focused && styles.inputFocused,
           errorText && componentStyles.input.error,
+          responsive.isCompactPhone && styles.compactHorizontalPadding,
           inputStyle,
         ]}
       />
@@ -330,7 +379,8 @@ export function Eyebrow({ children }: { children: React.ReactNode }) {
 }
 
 export function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <Text style={styles.sectionTitle}>{children}</Text>;
+  const responsive = useResponsiveLayout();
+  return <Text style={[styles.sectionTitle, responsive.isCompactPhone && compactTypography.cardTitle]}>{children}</Text>;
 }
 
 export function SectionHeader({
@@ -342,9 +392,10 @@ export function SectionHeader({
   actionLabel?: string;
   onAction?: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   return (
     <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={[styles.sectionTitle, responsive.isCompactPhone && compactTypography.cardTitle]}>{title}</Text>
       {actionLabel && onAction ? (
         <Pressable
           style={({ pressed }) => [styles.sectionAction, pressed && styles.pressed]}
@@ -368,12 +419,13 @@ export function ScreenHeader({
   title: string;
   subtitle?: string;
 }) {
+  const responsive = useResponsiveLayout();
   return (
     <View style={styles.header}>
       {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
       <View style={styles.headerTitleRow}>
         <HeaderLogo />
-        <Text style={styles.headerTitle}>{title}</Text>
+        <Text style={[styles.headerTitle, responsive.isCompactPhone && compactTypography.pageTitle]}>{title}</Text>
       </View>
       {subtitle ? <Text style={styles.headerSubtitle}>{subtitle}</Text> : null}
     </View>
@@ -422,12 +474,14 @@ export function Chip({
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
 }) {
+  const responsive = useResponsiveLayout();
   const content = (
     <Text style={[styles.chipText, selected && styles.chipTextSelected]} numberOfLines={1}>
       {label}
     </Text>
   );
-  if (!onPress) return <View style={[componentStyles.chip.base, selected && componentStyles.chip.selected, style]}>{content}</View>;
+  const compactPadding = responsive.isCompactPhone ? styles.compactHorizontalPadding : null;
+  if (!onPress) return <View style={[componentStyles.chip.base, selected && componentStyles.chip.selected, style, compactPadding]}>{content}</View>;
   return (
     <Pressable
       style={({ pressed }) => [
@@ -435,6 +489,7 @@ export function Chip({
         selected && componentStyles.chip.selected,
         pressed && styles.pressed,
         style,
+        compactPadding,
       ]}
       onPress={onPress}
       accessibilityRole="button"
@@ -529,6 +584,8 @@ export function ListRow({
   style?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
 }) {
+  const responsive = useResponsiveLayout();
+  const compactPadding = responsive.isCompactPhone ? styles.compactHorizontalPadding : null;
   const content = (
     <>
       {leading ? <View style={styles.listLeading}>{leading}</View> : null}
@@ -545,10 +602,10 @@ export function ListRow({
       {trailing}
     </>
   );
-  if (!onPress) return <View style={[componentStyles.listRow[variant], style]}>{content}</View>;
+  if (!onPress) return <View style={[componentStyles.listRow[variant], style, compactPadding]}>{content}</View>;
   return (
     <Pressable
-      style={({ pressed }) => [componentStyles.listRow[variant], pressed && styles.pressed, style]}
+      style={({ pressed }) => [componentStyles.listRow[variant], pressed && styles.pressed, style, compactPadding]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? `${title}${subtitle ? `: ${subtitle}` : ''}`}
@@ -780,6 +837,9 @@ const styles = StyleSheet.create({
     paddingTop: spacing.pageTop,
     paddingBottom: spacing.xxxl,
     gap: spacing.xl,
+  },
+  compactHorizontalPadding: {
+    paddingHorizontal: 16,
   },
   header: { gap: spacing.xs },
   headerTitleRow: {

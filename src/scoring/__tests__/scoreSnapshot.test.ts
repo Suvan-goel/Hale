@@ -1,5 +1,9 @@
 import { syntheticCheckUp } from '../../checkup/devFixture';
 import {
+  MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
+  createCheckUpProtocolPolicy,
+} from '../../checkup/protocolPolicy';
+import {
   CURRENT_NORM_VERSION,
   CURRENT_SCORING_VERSION,
   FOCUS_SELECTION_POLICY_VERSION,
@@ -58,6 +62,16 @@ describe('versioned score snapshots', () => {
     expect(scored.snapshot?.score.domains).toHaveLength(3);
     expect(parseStoredScoreSnapshot(scored.snapshot).ok).toBe(true);
     expect(scoreSnapshotMatchesScore(scored.snapshot!, scored.score)).toBe(true);
+  });
+
+  it('does not create a current V1 score snapshot for Movement Profile V2 raw Check-Ups', () => {
+    const checkUp = syntheticCheckUp('2026-06-20T08:00:00.000Z');
+    checkUp.protocolPolicy = createCheckUpProtocolPolicy(MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID, checkUp.startedAt);
+    const scored = createCurrentVersionedScoreSnapshot(checkUp, { createdAt: '2026-06-20T08:05:00.000Z' });
+
+    expect(scored.snapshot).toBeNull();
+    expect(scored.issues).toContainEqual({ code: 'unsupported_checkup_protocol', field: 'protocolPolicy' });
+    expect(scored.score.weakestDomain).toBeNull();
   });
 
   it('uses only the current version constants when creating snapshots', () => {

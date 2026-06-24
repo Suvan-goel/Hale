@@ -49,7 +49,18 @@ describe('Hale data export service', () => {
           profile_json: { name: 'Asha' },
           access_token: 'do-not-export',
         },
-        movementCheckups: [{ id: 'checkup-1' }],
+        movementCheckups: [
+          {
+            id: 'checkup-1',
+            derived_scores_json: {
+              movementProfileV2Snapshot: {
+                kind: 'movement_profile_v2_snapshot',
+                snapshotFingerprint: 'mpv2-snapshot-fp',
+                sourceSetFingerprint: 'mpv2-source-fp',
+              },
+            },
+          },
+        ],
         movementBlocks: [{ id: 'block-1' }],
         trainingState: { state_json: { progress: { completedSessions: 2 } } },
         trainingSessionCompletions: [{ id: 'session-1' }],
@@ -69,7 +80,18 @@ describe('Hale data export service', () => {
           id: 'user-123',
           profile_json: { name: 'Asha' },
         },
-        movementCheckups: [{ id: 'checkup-1' }],
+        movementCheckups: [
+          {
+            id: 'checkup-1',
+            derived_scores_json: {
+              movementProfileV2Snapshot: {
+                kind: 'movement_profile_v2_snapshot',
+                snapshotFingerprint: 'mpv2-snapshot-fp',
+                sourceSetFingerprint: 'mpv2-source-fp',
+              },
+            },
+          },
+        ],
         movementBlocks: [{ id: 'block-1' }],
         trainingState: { state_json: { progress: { completedSessions: 2 } } },
         trainingSessionCompletions: [{ id: 'session-1' }],

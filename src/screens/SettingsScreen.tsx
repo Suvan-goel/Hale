@@ -29,6 +29,7 @@ import {
 } from '../profile';
 import { EquipmentProfile } from '../training';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
 const VOICE_PREVIEW_CUE = 'framing-ready' as const;
@@ -96,7 +97,6 @@ type SettingsScreenProps = {
   onOpenSafetyProfile: () => void;
   onOpenCameraSetup: () => void;
   onReplayOnboardingForDev?: () => void;
-  onOpenPoseBenchmarkForDiagnostics?: () => void;
   onBack?: () => void;
 };
 
@@ -120,9 +120,9 @@ function SettingsScreenContent({
   onOpenSafetyProfile,
   onOpenCameraSetup,
   onReplayOnboardingForDev,
-  onOpenPoseBenchmarkForDiagnostics,
   onBack,
 }: SettingsScreenProps) {
+  const responsive = useResponsiveLayout();
   const [openSection, setOpenSection] = React.useState<ProfileSection | null>(null);
   const [name, setName] = React.useState(profile.name);
   const profileAgeBand = profile.ageBand ?? ageBandForAge(profile.age);
@@ -143,7 +143,7 @@ function SettingsScreenContent({
     phoneStandAvailable: settings.phoneStandAvailable,
   });
   const cameraSummary = `${settings.phoneStandAvailable ? 'Phone stand available' : 'Phone stand not set'} · Camera privacy`;
-  const showDeveloperSettings = __DEV__ || !!onOpenPoseBenchmarkForDiagnostics;
+  const showDeveloperSettings = __DEV__;
 
   React.useEffect(() => setName(profile.name), [profile.name]);
   React.useEffect(() => setSelectedAgeBand(profileAgeBand), [profileAgeBand]);
@@ -423,7 +423,7 @@ function SettingsScreenContent({
         <View style={styles.detailHeader}>
           <View style={styles.titleGroup}>
             <HeaderLogo />
-            <Text style={styles.title}>{copy.title}</Text>
+            <Text style={[styles.title, responsive.isCompactPhone && compactTypography.pageTitle]}>{copy.title}</Text>
           </View>
           <Text style={styles.detailSubtitle}>{copy.subtitle}</Text>
         </View>
@@ -438,12 +438,16 @@ function SettingsScreenContent({
       <View style={styles.headerRow}>
         <View style={styles.titleGroup}>
           <HeaderLogo />
-          <Text style={styles.title}>Settings</Text>
+          <Text style={[styles.title, responsive.isCompactPhone && compactTypography.pageTitle]}>Settings</Text>
         </View>
       </View>
 
       <Pressable
-        style={({ pressed }) => [styles.profileCard, pressed && styles.pressed]}
+        style={({ pressed }) => [
+          styles.profileCard,
+          responsive.isCompactPhone && styles.compactCardPadding,
+          pressed && styles.pressed,
+        ]}
         onPress={() => openProfileSection('details')}
         accessibilityRole="button"
         accessibilityLabel="Edit personal details"
@@ -525,7 +529,7 @@ function SettingsScreenContent({
 
       {showDeveloperSettings ? (
         <SettingsSection title="Developer">
-          <View style={[styles.menuRow, styles.menuDivider]}>
+          <View style={[styles.menuRow, responsive.isCompactPhone && styles.compactCardPadding, styles.menuDivider]}>
             <MenuIcon name="sliders" />
             <View style={styles.menuCopy}>
               <Text style={styles.menuTitle}>Use mock app data</Text>
@@ -550,14 +554,6 @@ function SettingsScreenContent({
               subtitle="Open the first-run flow without clearing app data."
               icon="sliders"
               onPress={onReplayOnboardingForDev}
-            />
-          ) : null}
-          {onOpenPoseBenchmarkForDiagnostics ? (
-            <ProfileMenuRow
-              title="Pose overlay benchmark"
-              subtitle="Run renderer latency modes on this device."
-              icon="sliders"
-              onPress={onOpenPoseBenchmarkForDiagnostics}
             />
           ) : null}
         </SettingsSection>
@@ -588,10 +584,12 @@ function ProfileMenuRow({
   onPress: () => void;
   showDivider?: boolean;
 }) {
+  const responsive = useResponsiveLayout();
   return (
     <Pressable
       style={({ pressed }) => [
         styles.menuRow,
+        responsive.isCompactPhone && styles.compactCardPadding,
         showDivider && styles.menuDivider,
         pressed && styles.pressed,
       ]}
@@ -620,8 +618,9 @@ function DetailOverview({
   body?: string;
   meta?: string;
 }) {
+  const responsive = useResponsiveLayout();
   return (
-    <View style={styles.detailOverview}>
+    <View style={[styles.detailOverview, responsive.isCompactPhone && styles.compactCardPadding]}>
       <View style={styles.detailOverviewIcon}>
         <MenuIcon name={icon} />
       </View>
@@ -643,8 +642,9 @@ function DetailCard({
   body?: string;
   children: React.ReactNode;
 }) {
+  const responsive = useResponsiveLayout();
   return (
-    <View style={styles.detailCard}>
+    <View style={[styles.detailCard, responsive.isCompactPhone && styles.compactCardPadding]}>
       <Text style={styles.detailCardTitle}>{title}</Text>
       {body ? <Text style={styles.detailCardBody}>{body}</Text> : null}
       <View style={styles.detailCardContent}>{children}</View>
@@ -661,8 +661,9 @@ function VoiceSelectorCard({
   onSelectVoice: (voiceId: string) => void;
   onPreviewVoice: (voiceId: string) => void;
 }) {
+  const responsive = useResponsiveLayout();
   return (
-    <View style={styles.voiceSelectorCard}>
+    <View style={[styles.voiceSelectorCard, responsive.isCompactPhone && styles.compactCardPadding]}>
       <View style={styles.voiceSelectorHeader}>
         <Text style={styles.voiceSelectorTitle}>Voice</Text>
         <Text style={styles.voiceSelectorBody}>
@@ -698,6 +699,7 @@ function VoiceOptionRow({
   onSelect: () => void;
   onPreview: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   const disabled = !voice.available;
   const rowLabel = `${voice.label}${selected ? ', selected' : ''}`;
 
@@ -705,6 +707,7 @@ function VoiceOptionRow({
     <View
       style={[
         styles.voiceOptionRow,
+        responsive.isCompactPhone && styles.compactCardPadding,
         showDivider && styles.voiceOptionDivider,
         selected && styles.voiceOptionRowSelected,
         disabled && styles.voiceOptionRowDisabled,
@@ -742,9 +745,10 @@ function VoiceOptionRow({
 }
 
 function SafetyReadinessCard({ phoneStandAvailable }: { phoneStandAvailable: boolean }) {
+  const responsive = useResponsiveLayout();
   const readyCount = 1 + (phoneStandAvailable ? 1 : 0);
   return (
-    <View style={styles.safetyCard}>
+    <View style={[styles.safetyCard, responsive.isCompactPhone && styles.compactCardPadding]}>
       <View style={styles.safetyCardHeader}>
         <View style={styles.safetyCardTitleGroup}>
           <Text style={styles.safetyCardTitle}>What Hale uses for camera setup</Text>
@@ -825,8 +829,9 @@ function SafetyActionsCard({
 }: {
   onOpenCameraSetup: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   return (
-    <View style={styles.safetyCard}>
+    <View style={[styles.safetyCard, responsive.isCompactPhone && styles.compactCardPadding]}>
       <View style={styles.safetyCardHeader}>
         <View style={styles.safetyCardTitleGroup}>
           <Text style={styles.safetyCardTitle}>Make changes</Text>
@@ -902,8 +907,9 @@ function PersonalDetailsCard({
   movementGoal: string;
   onOpenLifeGoal: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   return (
-    <View style={styles.personalCard}>
+    <View style={[styles.personalCard, responsive.isCompactPhone && styles.compactCardPadding]}>
       <View style={styles.personalCardIntro}>
         <Text style={styles.personalCardTitle}>Details</Text>
         <Text style={styles.personalCardDescription}>
@@ -912,7 +918,7 @@ function PersonalDetailsCard({
       </View>
 
       <View style={styles.personalFieldGroup}>
-        <View style={styles.personalIdentityPanel}>
+        <View style={[styles.personalIdentityPanel, responsive.isCompactPhone && styles.compactCardPadding]}>
           <View style={styles.personalIdentityRow}>
             <View style={styles.personalNameField}>
               <Text style={styles.personalFieldLabel}>Name</Text>
@@ -932,7 +938,7 @@ function PersonalDetailsCard({
           </View>
         </View>
 
-        <View style={styles.personalAgeRangePanel}>
+        <View style={[styles.personalAgeRangePanel, responsive.isCompactPhone && styles.compactCardPadding]}>
           <View style={styles.personalAgeRangeHeader}>
             <Text style={styles.personalFieldLabel}>Age range</Text>
             <Text style={styles.personalAgeRangeValue}>{personalAgeRangeSummary(ageBand)}</Text>
@@ -970,7 +976,11 @@ function PersonalDetailsCard({
         </View>
 
         <Pressable
-          style={({ pressed }) => [styles.personalGoalPanel, pressed && styles.pressed]}
+          style={({ pressed }) => [
+            styles.personalGoalPanel,
+            responsive.isCompactPhone && styles.compactCardPadding,
+            pressed && styles.pressed,
+          ]}
           onPress={onOpenLifeGoal}
           accessibilityRole="button"
           accessibilityLabel={`Change movement goal. Current goal: ${movementGoal}`}
@@ -1010,9 +1020,14 @@ function SetupActionTile({
   body: string;
   onPress: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   return (
     <Pressable
-      style={({ pressed }) => [styles.setupActionTile, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.setupActionTile,
+        responsive.isCompactPhone && styles.compactCardPadding,
+        pressed && styles.pressed,
+      ]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={title}
@@ -1111,8 +1126,9 @@ function PreferenceCard({
   meta: string;
   children: React.ReactNode;
 }) {
+  const responsive = useResponsiveLayout();
   return (
-    <View style={styles.preferenceCard}>
+    <View style={[styles.preferenceCard, responsive.isCompactPhone && styles.compactCardPadding]}>
       <View style={styles.preferenceHeader}>
         <View style={styles.preferenceHeaderCopy}>
           <Text style={styles.preferenceTitle}>{title}</Text>
@@ -1210,10 +1226,12 @@ function SessionFeelOption({
   showDivider: boolean;
   onPress: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   return (
     <Pressable
       style={({ pressed }) => [
         styles.sessionFeelOption,
+        responsive.isCompactPhone && styles.compactCardPadding,
         showDivider && styles.sessionFeelDivider,
         selected && styles.sessionFeelOptionSelected,
         pressed && styles.pressed,
@@ -1605,6 +1623,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
     ...shadow.card,
+  },
+  compactCardPadding: {
+    paddingHorizontal: 16,
   },
   detailOverviewIcon: {
     width: 58,

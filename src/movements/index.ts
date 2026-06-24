@@ -10,6 +10,9 @@ import './balanceLadder';
 import './tug';
 import './shoulderFlexion';
 import './hingeReach';
+import './chairRiseV2';
+import './oneLegBalanceV2';
+import './activeShoulderReachV2';
 
 export { CHAIR_STAND_ID } from './chairStand';
 export type { ChairStandRepStat, ChairStandResult } from './chairStand';
@@ -30,6 +33,35 @@ export { SHOULDER_FLEXION_ID } from './shoulderFlexion';
 export type { ShoulderFlexionResult } from './shoulderFlexion';
 export { HINGE_REACH_ID } from './hingeReach';
 export type { HingeReachResult } from './hingeReach';
+export { CHAIR_RISE_V2_ID, ChairRiseV2ProtocolController } from './chairRiseV2';
+export type {
+  ChairRiseV2Config,
+  ChairRiseV2Phase,
+  ChairRiseV2RepStat,
+  ChairRiseV2Result,
+  ChairRiseV2StandInput,
+} from './chairRiseV2';
+export { ONE_LEG_BALANCE_V2_ID, OneLegBalanceV2ProtocolController } from './oneLegBalanceV2';
+export type {
+  OneLegBalanceV2Config,
+  OneLegBalanceV2Phase,
+  OneLegBalanceV2RestEvent,
+  OneLegBalanceV2Result,
+  OneLegBalanceV2TrialResult,
+  OneLegBalanceV2TrialTermination,
+} from './oneLegBalanceV2';
+export {
+  ACTIVE_SHOULDER_REACH_V2_ID,
+  ActiveShoulderReachV2ProtocolController,
+  shoulderReachAngleDegForSide,
+  shoulderReachLandmarksForSide,
+} from './activeShoulderReachV2';
+export type {
+  ActiveShoulderReachV2Config,
+  ActiveShoulderReachV2Phase,
+  ActiveShoulderReachV2Result,
+  ShoulderReachLandmarks,
+} from './activeShoulderReachV2';
 export { getMovement, listMovements, registerMovement } from './registry';
 export type {
   CameraViewSpec,

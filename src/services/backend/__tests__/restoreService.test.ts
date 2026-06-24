@@ -1,8 +1,22 @@
 import { BALANCE_LADDER_ID, CHAIR_STAND_ID, SHOULDER_FLEXION_ID } from '../../../movements';
 import { blockProgress, defaultAdherenceStoreState, type MovementBlock, type MovementBlockReport } from '../../../adherence';
-import type { CheckUp } from '../../../checkup';
+import {
+  MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
+  createActiveShoulderReachV2Setup,
+  createChairRiseV2Setup,
+  createCheckUpProtocolPolicy,
+  createOneLegBalanceV2Setup,
+  type CheckUp,
+} from '../../../checkup';
+import {
+  ACTIVE_SHOULDER_REACH_V2_ID,
+  type ActiveShoulderReachV2Result,
+} from '../../../movements/activeShoulderReachV2';
+import { CHAIR_RISE_V2_ID, type ChairRiseV2Result } from '../../../movements/chairRiseV2';
+import { ONE_LEG_BALANCE_V2_ID, type OneLegBalanceV2Result } from '../../../movements/oneLegBalanceV2';
 import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../../../history';
 import { defaultPreferences } from '../../../profile';
+import { createMovementProfileV2Snapshot } from '../../../reference/movementProfileV2';
 import { createCurrentVersionedScoreSnapshot, type VersionedCheckUpScoreSnapshot } from '../../../scoring';
 import { LOADED_STS_ID, STS_STANDARD_ID } from '../../../exercises';
 import {
@@ -335,6 +349,21 @@ function remoteSnapshot(): RemoteHaleSnapshot {
         created_at: blockReport().createdAt,
       },
     ],
+    fetchErrors: {},
+  };
+}
+
+function remoteSnapshotWithCheckups(
+  movementCheckups: RemoteHaleSnapshot['movementCheckups']
+): RemoteHaleSnapshot {
+  return {
+    profile: null,
+    movementCheckups,
+    movementBlocks: [],
+    trainingState: null,
+    trainingSessionCompletions: [],
+    microChecks: [],
+    movementBlockReports: [],
     fetchErrors: {},
   };
 }
@@ -730,6 +759,129 @@ describe('remote restore service', () => {
     expect(mapped.state.adherence.assessments[0].results?.weakestDomain).toBeUndefined();
   });
 
+  it('restores Movement Profile V2 snapshots as history evidence without creating legacy assessments', () => {
+    const rawCheckUp = v2CheckUp(startedAt);
+    const movementProfileV2Snapshot = movementProfileV2SnapshotFor(rawCheckUp);
+    const mapped = mapRemoteHaleSnapshotToLocal(
+      remoteSnapshotWithCheckups([
+        {
+          id: 'remote-v2-checkup',
+          local_checkup_id: startedAt,
+          checkup_type: 'baseline',
+          status: 'completed',
+          derived_scores_json: backendJson({
+            schemaVersion: 1,
+            exactCheckupType: 'baseline',
+            movementProfileV2Snapshot,
+            movementProfileV2SnapshotCompatibility: 'current',
+          }),
+          raw_checkup_json: backendJson({
+            schemaVersion: HISTORY_SCHEMA_VERSION,
+            checkupType: 'baseline',
+            movementProfileV2Snapshot,
+            checkUp: rawCheckUp,
+          }),
+          created_locally_at: startedAt,
+          completed_at: '2026-06-17T12:08:00.000Z',
+          created_at: '2026-06-17T12:08:30.000Z',
+        },
+      ]),
+      emptyLocal()
+    );
+
+    expect(mapped.state.history).toHaveLength(1);
+    expect(mapped.state.history[0].scoreSnapshot).toBeUndefined();
+    expect(mapped.state.history[0].scoreSnapshotCompatibility).toBe('unsupported_checkup_protocol');
+    expect(mapped.state.history[0].movementProfileV2Snapshot?.snapshotFingerprint).toBe(
+      movementProfileV2Snapshot.snapshotFingerprint
+    );
+    expect(mapped.state.history[0].movementProfileV2SnapshotCompatibility).toBe('current');
+    expect(mapped.state.adherence.assessments).toEqual([]);
+  });
+
+  it('keeps raw V2 check-ups when restored V2 snapshots are malformed or missing', () => {
+    const rawCheckUp = v2CheckUp(startedAt);
+    const malformedSnapshot = {
+      ...movementProfileV2SnapshotFor(rawCheckUp),
+      snapshotFingerprint: 'tampered',
+    };
+    const mapped = mapRemoteHaleSnapshotToLocal(
+      remoteSnapshotWithCheckups([
+        {
+          id: 'remote-v2-checkup',
+          local_checkup_id: startedAt,
+          checkup_type: 'baseline',
+          status: 'completed',
+          derived_scores_json: backendJson({
+            schemaVersion: 1,
+            exactCheckupType: 'baseline',
+            movementProfileV2Snapshot: malformedSnapshot,
+          }),
+          raw_checkup_json: backendJson({
+            schemaVersion: HISTORY_SCHEMA_VERSION,
+            checkupType: 'baseline',
+            movementProfileV2Snapshot: malformedSnapshot,
+            checkUp: rawCheckUp,
+          }),
+          created_locally_at: startedAt,
+          completed_at: '2026-06-17T12:08:00.000Z',
+        },
+      ]),
+      emptyLocal()
+    );
+
+    expect(mapped.state.history).toHaveLength(1);
+    expect(mapped.state.history[0].checkUp.items).toHaveLength(3);
+    expect(mapped.state.history[0].movementProfileV2Snapshot).toBeUndefined();
+    expect(mapped.state.history[0].movementProfileV2SnapshotCompatibility).toBe('fingerprint_invalid');
+    expect(mapped.state.adherence.assessments).toEqual([]);
+  });
+
+  it('prefers a valid restored V2 snapshot over a duplicate raw-only remote row', () => {
+    const rawCheckUp = v2CheckUp(startedAt);
+    const movementProfileV2Snapshot = movementProfileV2SnapshotFor(rawCheckUp);
+    const mapped = mapRemoteHaleSnapshotToLocal(
+      remoteSnapshotWithCheckups([
+        {
+          id: 'remote-v2-missing',
+          local_checkup_id: startedAt,
+          checkup_type: 'baseline',
+          status: 'completed',
+          derived_scores_json: backendJson({ schemaVersion: 1, exactCheckupType: 'baseline' }),
+          raw_checkup_json: backendJson({
+            schemaVersion: HISTORY_SCHEMA_VERSION,
+            checkupType: 'baseline',
+            checkUp: rawCheckUp,
+          }),
+        },
+        {
+          id: 'remote-v2-valid',
+          local_checkup_id: startedAt,
+          checkup_type: 'baseline',
+          status: 'completed',
+          derived_scores_json: backendJson({
+            schemaVersion: 1,
+            exactCheckupType: 'baseline',
+            movementProfileV2Snapshot,
+          }),
+          raw_checkup_json: backendJson({
+            schemaVersion: HISTORY_SCHEMA_VERSION,
+            checkupType: 'baseline',
+            movementProfileV2Snapshot,
+            checkUp: rawCheckUp,
+          }),
+        },
+      ]),
+      emptyLocal()
+    );
+
+    expect(mapped.state.history).toHaveLength(1);
+    expect(mapped.state.history[0].movementProfileV2Snapshot?.snapshotFingerprint).toBe(
+      movementProfileV2Snapshot.snapshotFingerprint
+    );
+    expect(mapped.state.adherence.assessments).toEqual([]);
+  });
+
   it('keeps lossy unknown remote check-up types as legacy_unknown', () => {
     const snapshot = remoteSnapshot();
     snapshot.movementCheckups[0] = {
@@ -880,5 +1032,102 @@ function exactTieSnapshotFor(checkUp: CheckUp): VersionedCheckUpScoreSnapshot {
       tiedDomains: ['strength', 'balance'],
       tieBreakReason: 'preserve_current_focus',
     },
+  };
+}
+
+function v2CheckUp(startedAt: string, overrides: {
+  chair?: ChairRiseV2Result;
+  balance?: OneLegBalanceV2Result;
+  shoulder?: ActiveShoulderReachV2Result;
+} = {}): CheckUp {
+  return {
+    startedAt,
+    protocolPolicy: createCheckUpProtocolPolicy(MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID, startedAt),
+    bodyUnit: 1,
+    items: [
+      { movementId: CHAIR_RISE_V2_ID, status: 'measured', result: overrides.chair ?? chairV2Result() },
+      { movementId: ONE_LEG_BALANCE_V2_ID, status: 'measured', result: overrides.balance ?? balanceV2Result() },
+      { movementId: ACTIVE_SHOULDER_REACH_V2_ID, status: 'measured', result: overrides.shoulder ?? shoulderV2Result() },
+    ],
+  };
+}
+
+function movementProfileV2SnapshotFor(checkUp: CheckUp) {
+  const created = createMovementProfileV2Snapshot({
+    checkUp,
+    checkupType: 'baseline',
+    referenceProfile: { ageAtTest: 62, ageBasis: 'exact_age_at_test', referenceSex: 'female' },
+    createdAt: checkUp.startedAt,
+  });
+  if (!created.ok) throw new Error(`expected V2 snapshot: ${created.reason}`);
+  return created.snapshot;
+}
+
+function chairV2Result(overrides: Partial<ChairRiseV2Result> = {}): ChairRiseV2Result {
+  return {
+    movementId: CHAIR_RISE_V2_ID,
+    protocolPolicyId: MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
+    evidenceStatus: 'reference_protocol_complete',
+    setup: createChairRiseV2Setup({ confirmed: true }),
+    setupConfidence: 'confirmed',
+    practiceRepCompleted: true,
+    activeWindowMs: 30000,
+    activeMeasurementWindows: [{ startedAtMs: 0, endedAtMs: 30000, valid: true, reason: 'scheduled_active_window' }],
+    fullStandRule: 'stand_completed_at_or_before_window_end',
+    reps: 12,
+    repStats: [],
+    sessionMeanVel: 1.1,
+    sessionMeanPeakVel: 1.4,
+    pushOffDetected: false,
+    fullStandAtExpiryCounted: false,
+    invalidReasons: [],
+    flags: [],
+    interruptions: 0,
+    ...overrides,
+  };
+}
+
+function balanceV2Result(overrides: Partial<OneLegBalanceV2Result> = {}): OneLegBalanceV2Result {
+  return {
+    movementId: ONE_LEG_BALANCE_V2_ID,
+    protocolPolicyId: MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
+    evidenceStatus: 'reference_protocol_complete',
+    setup: createOneLegBalanceV2Setup({ standingLeg: 'left', confirmed: true }),
+    standingLeg: 'left',
+    setupConfidence: 'confirmed',
+    bestHoldSec: 32,
+    bestTrialNumber: 1,
+    validTrialCount: 3,
+    attemptedTrialCount: 3,
+    trials: [],
+    rests: [],
+    retryCount: 0,
+    declinedRemainingTrials: false,
+    hardCapReached: false,
+    activeMeasurementWindows: [{ startedAtMs: 0, endedAtMs: 45000, valid: true, reason: 'trial_window' }],
+    invalidReasons: [],
+    flags: [],
+    interruptions: 0,
+    ...overrides,
+  };
+}
+
+function shoulderV2Result(overrides: Partial<ActiveShoulderReachV2Result> = {}): ActiveShoulderReachV2Result {
+  return {
+    movementId: ACTIVE_SHOULDER_REACH_V2_ID,
+    protocolPolicyId: MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
+    evidenceStatus: 'reference_protocol_complete',
+    setup: createActiveShoulderReachV2Setup({ selectedSide: 'right', confirmed: true }),
+    selectedSide: 'right',
+    setupConfidence: 'confirmed',
+    peakFlexionDeg: 151,
+    retryCount: 0,
+    painLimited: false,
+    validTrackingMs: 5000,
+    activeMeasurementWindows: [{ startedAtMs: 0, endedAtMs: 9000, valid: true, reason: 'valid_capture' }],
+    invalidReasons: [],
+    flags: [],
+    interruptions: 0,
+    ...overrides,
   };
 }

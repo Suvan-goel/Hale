@@ -1,22 +1,96 @@
 import {
   createPoseLatencyDiagnostics,
+  getPoseLatencyDiagnosticsGateDetails,
   isPoseLatencyDiagnosticsEnabled,
 } from '../poseLatencyDiagnostics';
 import { runPoseRendererReplaySuite } from '../poseRendererReplay';
 
 describe('pose latency diagnostics', () => {
   it('is disabled unless explicitly enabled', () => {
-    expect(isPoseLatencyDiagnosticsEnabled({})).toBe(false);
+    expect(isPoseLatencyDiagnosticsEnabled({}, null, true)).toBe(false);
     expect(
-      isPoseLatencyDiagnosticsEnabled({
-        EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS: '0',
-      })
+      isPoseLatencyDiagnosticsEnabled(
+        {
+          EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS: '0',
+        },
+        null,
+        true
+      )
     ).toBe(false);
     expect(
-      isPoseLatencyDiagnosticsEnabled({
-        EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS: '1',
-      })
+      isPoseLatencyDiagnosticsEnabled(
+        {
+          EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS: '1',
+        },
+        null,
+        true
+      )
     ).toBe(true);
+  });
+
+  it('can be enabled from app config extra', () => {
+    expect(
+      isPoseLatencyDiagnosticsEnabled(
+        {},
+        { extra: { enablePoseLatencyDiagnostics: true } },
+        true
+      )
+    ).toBe(true);
+  });
+
+  it('requires explicit release allowance outside dev builds', () => {
+    expect(
+      isPoseLatencyDiagnosticsEnabled(
+        {
+          EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS: '1',
+        },
+        null,
+        false
+      )
+    ).toBe(false);
+    expect(
+      isPoseLatencyDiagnosticsEnabled(
+        {
+          EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS: '1',
+          EXPO_PUBLIC_ALLOW_DIAGNOSTICS_IN_RELEASE: '1',
+        },
+        null,
+        false
+      )
+    ).toBe(true);
+    expect(
+      isPoseLatencyDiagnosticsEnabled(
+        {},
+        {
+          extra: {
+            enablePoseLatencyDiagnostics: true,
+            allowDiagnosticsInRelease: true,
+          },
+        },
+        false
+      )
+    ).toBe(true);
+  });
+
+  it('reports gate details for the settings diagnostics line', () => {
+    expect(
+      getPoseLatencyDiagnosticsGateDetails(
+        {
+          EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS: '1',
+          EXPO_PUBLIC_ALLOW_DIAGNOSTICS_IN_RELEASE: '1',
+        },
+        { extra: { enablePoseLatencyDiagnostics: true } },
+        false
+      )
+    ).toEqual({
+      dev: false,
+      envFlag: '1',
+      configFlag: true,
+      allowReleaseEnvFlag: '1',
+      allowReleaseConfigFlag: false,
+      releaseAllowed: true,
+      enabled: true,
+    });
   });
 
   it('tracks native timings, JS transform cost, rates, stale frames, and ordering', () => {
@@ -46,6 +120,40 @@ describe('pose latency diagnostics', () => {
         sourceAgeAtMediapipeSubmitMs: 404,
         sourceAgeAtMediapipeCallbackMs: 414,
         sourceAgeAtNativeEventEmitMs: 417,
+        imageProxyToBitmapMs: 3,
+        explicitRotationMs: 2,
+        mpImageBuildMs: 1,
+        resultFlattenMs: 0.5,
+        eventPayloadBuildMs: 0.25,
+        modelAsset: 'pose_landmarker_full.task',
+        requestedDelegate: 'GPU',
+        selectedDelegate: 'CPU',
+        gpuDelegateFallback: true,
+        gpuDelegateFailureMessage: 'delegate unavailable',
+        runningMode: 'LIVE_STREAM',
+        pipelineMode: 'full-live-stream',
+        rotationMode: 'metadata',
+        analysisTargetWidth: 512,
+        analysisTargetHeight: 384,
+        imageProxyWidth: 512,
+        imageProxyHeight: 384,
+        imageProxyFormat: 1,
+        imageProxyFormatName: 'RGBA_8888',
+        imageProxyRotationDegrees: 90,
+        cameraTargetRotation: 0,
+        mpImageWidth: 512,
+        mpImageHeight: 384,
+        numPoses: 1,
+        outputSegmentationMasks: false,
+        cameraInputFps: 30,
+        acceptedFrameFps: 28,
+        submittedInferenceFps: 24,
+        resultFps: 23,
+        busyFrameDropCount: 2,
+        nativeEventScheduledCount: 3,
+        nativeEventCoalescedCount: 1,
+        nativeEventRejectedCount: 0,
+        nativeEventEmittedCount: 2,
       },
     });
     now += 3;
@@ -88,6 +196,20 @@ describe('pose latency diagnostics', () => {
     expect(snapshot.nativePreprocessMs.p50).toBe(3);
     expect(snapshot.nativeInferenceWallMs.p95).toBe(11);
     expect(snapshot.nativeSourceAgeAtEmitMs.p50).toBe(417);
+    expect(snapshot.nativeBitmapConversionMs.p50).toBe(3);
+    expect(snapshot.nativeExplicitRotationMs.p50).toBe(2);
+    expect(snapshot.nativeMpImageBuildMs.p50).toBe(1);
+    expect(snapshot.nativeRuntime).toMatchObject({
+      modelAsset: 'pose_landmarker_full.task',
+      selectedDelegate: 'CPU',
+      gpuDelegateFallback: true,
+      gpuDelegateFailureMessage: 'delegate unavailable',
+      pipelineMode: 'full-live-stream',
+      rotationMode: 'metadata',
+      analysisTargetWidth: 512,
+      nativeEventCoalescedCount: 1,
+      resultFps: 23,
+    });
     expect(snapshot.jsTransformMs.count).toBe(2);
     expect(snapshot.geometryMs.p50).toBe(2);
     expect(snapshot.approxPoseAgeAtReceiptMs.max).toBe(40);

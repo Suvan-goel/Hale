@@ -13,6 +13,7 @@ import { HeaderLogo } from '../components/HeaderLogo';
 import { PrimaryButton, Screen } from '../components/ui';
 import { getManualCheckupCopy, getManualCheckupOptions } from '../haleFlow';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 
 export function ManualCheckupStartScreen({
   latestAssessment,
@@ -29,6 +30,7 @@ export function ManualCheckupStartScreen({
   onMicroCheck: () => void;
   onCancel: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   const copy = getManualCheckupCopy({ activeBlock: !!activeBlock });
   const options = getManualCheckupOptions({ latestAssessment, activeBlock, completions });
   const recommendedOption = options.find((option) => option.recommended) ?? options[0];
@@ -52,13 +54,13 @@ export function ManualCheckupStartScreen({
         <Text style={styles.eyebrow}>Movement Check-Up</Text>
         <View style={styles.headerTitleRow}>
           <HeaderLogo />
-          <Text style={styles.title}>{copy.title}</Text>
+          <Text style={[styles.title, responsive.isCompactPhone && compactTypography.pageTitle]}>{copy.title}</Text>
         </View>
         <Text style={styles.subtitle}>{copy.body}</Text>
       </View>
 
       {recommendedOption ? (
-        <View style={styles.recommendedCard}>
+        <View style={[styles.recommendedCard, responsive.isCompactPhone && styles.compactCardPadding]}>
           <View style={styles.recommendedHeaderRow}>
             <View style={styles.recommendedBadge}>
               <View style={styles.recommendedBadgeDot} />
@@ -103,7 +105,11 @@ export function ManualCheckupStartScreen({
           {secondaryOptions.map((option) => (
             <Pressable
               key={`${option.type}-${option.route}`}
-              style={({ pressed }) => [styles.optionRow, pressed && styles.optionPressed]}
+              style={({ pressed }) => [
+                styles.optionRow,
+                responsive.isCompactPhone && styles.compactCardPadding,
+                pressed && styles.optionPressed,
+              ]}
               onPress={() => selectOption(option.type)}
               accessibilityRole="button"
               accessibilityLabel="Want the full checkup instead?"
@@ -202,6 +208,9 @@ const styles = StyleSheet.create({
     borderColor: colors.borderHairline,
     ...shadow.card,
     boxShadow: '0 18px 44px rgba(17,20,18,0.055)',
+  },
+  compactCardPadding: {
+    paddingHorizontal: 16,
   },
   recommendedHeaderRow: {
     minHeight: 30,

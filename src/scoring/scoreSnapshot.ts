@@ -20,6 +20,7 @@ export type ScoreSnapshotCompatibility =
   | 'legacy_unversioned'
   | 'incompatible_version'
   | 'unsupported_schema'
+  | 'unsupported_checkup_protocol'
   | 'invalid_snapshot';
 
 export type ScoreSnapshotPairCompatibility =
@@ -100,6 +101,7 @@ export function createCurrentVersionedScoreSnapshot(
   options: SnapshotOptions = {}
 ): CurrentVersionedScoreResult {
   const { score, issues } = scoreCheckUpWithDiagnostics(checkUp);
+  const unsupportedProtocol = issues.some((issue) => issue.code === 'unsupported_checkup_protocol');
   const focusSelection = selectFocusFromScore(score, {
     activeFocusDomain: options.activeFocusDomain,
   });
@@ -107,12 +109,14 @@ export function createCurrentVersionedScoreSnapshot(
   return {
     score: effectiveScore,
     issues,
-    snapshot: toStoredScoreSnapshot(effectiveScore, {
-      createdAt: options.createdAt ?? score.startedAt,
-      sourceCheckUpId: options.sourceCheckUpId ?? checkUp.startedAt,
-      activeFocusDomain: options.activeFocusDomain,
-      focusSelection,
-    }),
+    snapshot: unsupportedProtocol
+      ? null
+      : toStoredScoreSnapshot(effectiveScore, {
+          createdAt: options.createdAt ?? score.startedAt,
+          sourceCheckUpId: options.sourceCheckUpId ?? checkUp.startedAt,
+          activeFocusDomain: options.activeFocusDomain,
+          focusSelection,
+        }),
   };
 }
 

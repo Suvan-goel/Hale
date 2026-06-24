@@ -1,5 +1,9 @@
 import type { CheckUpItem } from '../checkup/types';
 import {
+  LEGACY_MOVEMENT_AGE_PROTOCOL_POLICY_ID,
+  normalizeCheckUpRecordProtocolPolicy,
+} from '../checkup/protocolPolicy';
+import {
   BALANCE_LADDER_ID,
   type BalanceResult,
   DEFAULT_BALANCE_STAGES,
@@ -44,6 +48,7 @@ const STATUS_UNMEASURED = 'unmeasured';
 const NO_MEASUREMENT_FLAG = 'no-measurement';
 
 export type ScoringInputIssueCode =
+  | 'unsupported_checkup_protocol'
   | 'invalid_checkup_shape'
   | 'invalid_checkup_items'
   | 'invalid_item_shape'
@@ -111,6 +116,11 @@ export function validateCheckUpForScoring(checkUp: unknown): ValidatedScoringInp
 
   if (!isRecord(checkUp)) {
     issues.push({ code: 'invalid_checkup_shape' });
+    return validated;
+  }
+  const protocol = normalizeCheckUpRecordProtocolPolicy(checkUp);
+  if (!protocol.supported || protocol.policy.id !== LEGACY_MOVEMENT_AGE_PROTOCOL_POLICY_ID) {
+    issues.push({ code: 'unsupported_checkup_protocol', field: 'protocolPolicy' });
     return validated;
   }
   if (!Array.isArray(checkUp.items)) {

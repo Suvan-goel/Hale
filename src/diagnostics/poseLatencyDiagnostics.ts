@@ -1,6 +1,34 @@
+import Constants from 'expo-constants';
+
 import type { LandmarksEventPayload } from '../../modules/expo-pose-detection';
 
 export const POSE_LATENCY_DIAGNOSTICS_ENV = 'EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS';
+export const POSE_LATENCY_DIAGNOSTICS_RELEASE_ENV =
+  'EXPO_PUBLIC_ALLOW_DIAGNOSTICS_IN_RELEASE';
+
+type PoseLatencyDiagnosticsEnv = Partial<
+  Record<
+    typeof POSE_LATENCY_DIAGNOSTICS_ENV | typeof POSE_LATENCY_DIAGNOSTICS_RELEASE_ENV,
+    string
+  >
+>;
+
+type PoseLatencyDiagnosticsExpoConfig = {
+  extra?: {
+    enablePoseLatencyDiagnostics?: unknown;
+    allowDiagnosticsInRelease?: unknown;
+  };
+};
+
+export interface PoseLatencyDiagnosticsGateDetails {
+  dev: boolean;
+  envFlag: string | undefined;
+  configFlag: boolean;
+  allowReleaseEnvFlag: string | undefined;
+  allowReleaseConfigFlag: boolean;
+  releaseAllowed: boolean;
+  enabled: boolean;
+}
 
 export type PoseLatencyDiagnosticsMode =
   | 'live'
@@ -27,6 +55,38 @@ export interface MetricSnapshot {
   max: number | null;
 }
 
+export interface PoseNativeRuntimeSnapshot {
+  modelAsset: string | null;
+  requestedDelegate: string | null;
+  selectedDelegate: string | null;
+  gpuDelegateFallback: boolean | null;
+  gpuDelegateFailureMessage: string | null;
+  runningMode: string | null;
+  pipelineMode: string | null;
+  rotationMode: string | null;
+  analysisTargetWidth: number | null;
+  analysisTargetHeight: number | null;
+  imageProxyWidth: number | null;
+  imageProxyHeight: number | null;
+  imageProxyFormat: number | null;
+  imageProxyFormatName: string | null;
+  imageProxyRotationDegrees: number | null;
+  cameraTargetRotation: number | null;
+  mpImageWidth: number | null;
+  mpImageHeight: number | null;
+  numPoses: number | null;
+  outputSegmentationMasks: boolean | null;
+  cameraInputFps: number | null;
+  acceptedFrameFps: number | null;
+  submittedInferenceFps: number | null;
+  resultFps: number | null;
+  busyFrameDropCount: number | null;
+  nativeEventScheduledCount: number | null;
+  nativeEventCoalescedCount: number | null;
+  nativeEventRejectedCount: number | null;
+  nativeEventEmittedCount: number | null;
+}
+
 export interface PoseLatencyDiagnosticsSnapshot {
   mode: PoseLatencyDiagnosticsMode;
   framesReceived: number;
@@ -47,9 +107,15 @@ export interface PoseLatencyDiagnosticsSnapshot {
   nativeInferenceWallMs: MetricSnapshot;
   nativePostprocessMs: MetricSnapshot;
   nativeEmitEnqueueMs: MetricSnapshot;
+  nativeBitmapConversionMs: MetricSnapshot;
+  nativeExplicitRotationMs: MetricSnapshot;
+  nativeMpImageBuildMs: MetricSnapshot;
+  nativeResultFlattenMs: MetricSnapshot;
+  nativeEventPayloadBuildMs: MetricSnapshot;
   nativeSourceAgeAtMediapipeSubmitMs: MetricSnapshot;
   nativeSourceAgeAtMediapipeCallbackMs: MetricSnapshot;
   nativeSourceAgeAtEmitMs: MetricSnapshot;
+  nativeRuntime: PoseNativeRuntimeSnapshot | null;
   jsTransformMs: MetricSnapshot;
   geometryMs: MetricSnapshot;
   approxPoseAgeAtReceiptMs: MetricSnapshot;
@@ -74,6 +140,11 @@ export class PoseLatencyDiagnostics {
   private readonly nativeInferenceWallMs: RollingMetric;
   private readonly nativePostprocessMs: RollingMetric;
   private readonly nativeEmitEnqueueMs: RollingMetric;
+  private readonly nativeBitmapConversionMs: RollingMetric;
+  private readonly nativeExplicitRotationMs: RollingMetric;
+  private readonly nativeMpImageBuildMs: RollingMetric;
+  private readonly nativeResultFlattenMs: RollingMetric;
+  private readonly nativeEventPayloadBuildMs: RollingMetric;
   private readonly nativeSourceAgeAtMediapipeSubmitMs: RollingMetric;
   private readonly nativeSourceAgeAtMediapipeCallbackMs: RollingMetric;
   private readonly nativeSourceAgeAtEmitMs: RollingMetric;
@@ -99,6 +170,7 @@ export class PoseLatencyDiagnostics {
   private sourceClockOffsetMs: number | null = null;
   private nativeClock: string | null = null;
   private maxApproxPoseAgeMs: number | null = null;
+  private nativeRuntime: PoseNativeRuntimeSnapshot | null = null;
 
   constructor(options: PoseLatencyDiagnosticsOptions) {
     const windowSize = Math.max(16, Math.round(options.windowSize ?? 240));
@@ -110,6 +182,11 @@ export class PoseLatencyDiagnostics {
     this.nativeInferenceWallMs = new RollingMetric(windowSize);
     this.nativePostprocessMs = new RollingMetric(windowSize);
     this.nativeEmitEnqueueMs = new RollingMetric(windowSize);
+    this.nativeBitmapConversionMs = new RollingMetric(windowSize);
+    this.nativeExplicitRotationMs = new RollingMetric(windowSize);
+    this.nativeMpImageBuildMs = new RollingMetric(windowSize);
+    this.nativeResultFlattenMs = new RollingMetric(windowSize);
+    this.nativeEventPayloadBuildMs = new RollingMetric(windowSize);
     this.nativeSourceAgeAtMediapipeSubmitMs = new RollingMetric(windowSize);
     this.nativeSourceAgeAtMediapipeCallbackMs = new RollingMetric(windowSize);
     this.nativeSourceAgeAtEmitMs = new RollingMetric(windowSize);
@@ -160,6 +237,13 @@ export class PoseLatencyDiagnostics {
       this.nativeInferenceWallMs.push(native.mediapipeCallbackMs - native.mediapipeSubmitMs);
       this.nativePostprocessMs.push(native.nativePostprocessEndMs - native.mediapipeCallbackMs);
       this.nativeEmitEnqueueMs.push(native.nativeEventEmitMs - native.nativePostprocessEndMs);
+      pushOptionalMetric(this.nativeBitmapConversionMs, native.imageProxyToBitmapMs);
+      pushOptionalMetric(this.nativeExplicitRotationMs, native.explicitRotationMs);
+      pushOptionalMetric(this.nativeMpImageBuildMs, native.mpImageBuildMs);
+      pushOptionalMetric(this.nativeResultFlattenMs, native.resultFlattenMs);
+      pushOptionalMetric(this.nativeEventPayloadBuildMs, native.eventPayloadBuildMs);
+      const runtime = nativeRuntimeSnapshot(native);
+      if (runtime) this.nativeRuntime = runtime;
       if (typeof native.sourceAgeAtMediapipeSubmitMs === 'number') {
         this.nativeSourceAgeAtMediapipeSubmitMs.push(native.sourceAgeAtMediapipeSubmitMs);
       }
@@ -241,9 +325,15 @@ export class PoseLatencyDiagnostics {
       nativeInferenceWallMs: this.nativeInferenceWallMs.snapshot(),
       nativePostprocessMs: this.nativePostprocessMs.snapshot(),
       nativeEmitEnqueueMs: this.nativeEmitEnqueueMs.snapshot(),
+      nativeBitmapConversionMs: this.nativeBitmapConversionMs.snapshot(),
+      nativeExplicitRotationMs: this.nativeExplicitRotationMs.snapshot(),
+      nativeMpImageBuildMs: this.nativeMpImageBuildMs.snapshot(),
+      nativeResultFlattenMs: this.nativeResultFlattenMs.snapshot(),
+      nativeEventPayloadBuildMs: this.nativeEventPayloadBuildMs.snapshot(),
       nativeSourceAgeAtMediapipeSubmitMs: this.nativeSourceAgeAtMediapipeSubmitMs.snapshot(),
       nativeSourceAgeAtMediapipeCallbackMs: this.nativeSourceAgeAtMediapipeCallbackMs.snapshot(),
       nativeSourceAgeAtEmitMs: this.nativeSourceAgeAtEmitMs.snapshot(),
+      nativeRuntime: this.nativeRuntime,
       jsTransformMs: this.jsTransformMs.snapshot(),
       geometryMs: this.geometryMs.snapshot(),
       approxPoseAgeAtReceiptMs: this.poseAgeAtReceiptMs.snapshot(),
@@ -260,15 +350,113 @@ export function createPoseLatencyDiagnostics(
   return new PoseLatencyDiagnostics(options);
 }
 
+export function getPoseLatencyDiagnosticsGateDetails(
+  env: PoseLatencyDiagnosticsEnv = getInlinePoseLatencyDiagnosticsEnv(),
+  expoConfig: PoseLatencyDiagnosticsExpoConfig | null | undefined = Constants.expoConfig,
+  dev = defaultDevMode()
+): PoseLatencyDiagnosticsGateDetails {
+  const envFlag = env[POSE_LATENCY_DIAGNOSTICS_ENV];
+  const allowReleaseEnvFlag = env[POSE_LATENCY_DIAGNOSTICS_RELEASE_ENV];
+  const configFlag = expoConfig?.extra?.enablePoseLatencyDiagnostics === true;
+  const allowReleaseConfigFlag = expoConfig?.extra?.allowDiagnosticsInRelease === true;
+  const releaseAllowed = dev || allowReleaseEnvFlag === '1' || allowReleaseConfigFlag;
+  const enabled = (envFlag === '1' || configFlag) && releaseAllowed;
+
+  return {
+    dev,
+    envFlag,
+    configFlag,
+    allowReleaseEnvFlag,
+    allowReleaseConfigFlag,
+    releaseAllowed,
+    enabled,
+  };
+}
+
 export function isPoseLatencyDiagnosticsEnabled(
-  env: Record<string, string | undefined> = process.env
+  env: PoseLatencyDiagnosticsEnv = getInlinePoseLatencyDiagnosticsEnv(),
+  expoConfig: PoseLatencyDiagnosticsExpoConfig | null | undefined = Constants.expoConfig,
+  dev = defaultDevMode()
 ): boolean {
-  return env[POSE_LATENCY_DIAGNOSTICS_ENV] === '1';
+  return getPoseLatencyDiagnosticsGateDetails(env, expoConfig, dev).enabled;
 }
 
 export function defaultNowMs(): number {
   const perf = globalThis.performance;
   return perf && typeof perf.now === 'function' ? perf.now() : Date.now();
+}
+
+function pushOptionalMetric(metric: RollingMetric, value: number | undefined): void {
+  if (typeof value === 'number') metric.push(value);
+}
+
+function nativeRuntimeSnapshot(
+  native: LandmarksEventPayload['latency']
+): PoseNativeRuntimeSnapshot | null {
+  if (!native) return null;
+  const hasRuntimeFields =
+    native.modelAsset !== undefined ||
+    native.requestedDelegate !== undefined ||
+    native.selectedDelegate !== undefined ||
+    native.gpuDelegateFallback !== undefined ||
+    native.runningMode !== undefined ||
+    native.pipelineMode !== undefined ||
+    native.rotationMode !== undefined ||
+    native.analysisTargetWidth !== undefined ||
+    native.imageProxyWidth !== undefined ||
+    native.cameraInputFps !== undefined ||
+    native.nativeEventScheduledCount !== undefined;
+  if (!hasRuntimeFields) return null;
+  return {
+    modelAsset: native?.modelAsset ?? null,
+    requestedDelegate: native?.requestedDelegate ?? null,
+    selectedDelegate: native?.selectedDelegate ?? null,
+    gpuDelegateFallback:
+      typeof native?.gpuDelegateFallback === 'boolean' ? native.gpuDelegateFallback : null,
+    gpuDelegateFailureMessage: native?.gpuDelegateFailureMessage ?? null,
+    runningMode: native?.runningMode ?? null,
+    pipelineMode: native?.pipelineMode ?? null,
+    rotationMode: native?.rotationMode ?? null,
+    analysisTargetWidth: finiteOrNull(native?.analysisTargetWidth),
+    analysisTargetHeight: finiteOrNull(native?.analysisTargetHeight),
+    imageProxyWidth: finiteOrNull(native?.imageProxyWidth),
+    imageProxyHeight: finiteOrNull(native?.imageProxyHeight),
+    imageProxyFormat: finiteOrNull(native?.imageProxyFormat),
+    imageProxyFormatName: native?.imageProxyFormatName ?? null,
+    imageProxyRotationDegrees: finiteOrNull(native?.imageProxyRotationDegrees),
+    cameraTargetRotation: finiteOrNull(native?.cameraTargetRotation),
+    mpImageWidth: finiteOrNull(native?.mpImageWidth),
+    mpImageHeight: finiteOrNull(native?.mpImageHeight),
+    numPoses: finiteOrNull(native?.numPoses),
+    outputSegmentationMasks:
+      typeof native?.outputSegmentationMasks === 'boolean' ? native.outputSegmentationMasks : null,
+    cameraInputFps: finiteOrNull(native?.cameraInputFps),
+    acceptedFrameFps: finiteOrNull(native?.acceptedFrameFps),
+    submittedInferenceFps: finiteOrNull(native?.submittedInferenceFps),
+    resultFps: finiteOrNull(native?.resultFps),
+    busyFrameDropCount: finiteOrNull(native?.busyFrameDropCount),
+    nativeEventScheduledCount: finiteOrNull(native?.nativeEventScheduledCount),
+    nativeEventCoalescedCount: finiteOrNull(native?.nativeEventCoalescedCount),
+    nativeEventRejectedCount: finiteOrNull(native?.nativeEventRejectedCount),
+    nativeEventEmittedCount: finiteOrNull(native?.nativeEventEmittedCount),
+  };
+}
+
+function finiteOrNull(value: number | undefined): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function getInlinePoseLatencyDiagnosticsEnv(): PoseLatencyDiagnosticsEnv {
+  return {
+    [POSE_LATENCY_DIAGNOSTICS_ENV]:
+      process.env.EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS,
+    [POSE_LATENCY_DIAGNOSTICS_RELEASE_ENV]:
+      process.env.EXPO_PUBLIC_ALLOW_DIAGNOSTICS_IN_RELEASE,
+  };
+}
+
+function defaultDevMode(): boolean {
+  return typeof __DEV__ === 'boolean' && __DEV__;
 }
 
 class RollingMetric {

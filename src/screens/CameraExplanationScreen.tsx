@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../components/ui';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { useResponsiveLayout } from '../theme/responsive';
 
 const CHECKUP_POINTS = [
   {
@@ -108,8 +109,9 @@ function InfoSection({
   tone?: 'neutral' | 'ready' | 'attention';
   children: React.ReactNode;
 }) {
+  const responsive = useResponsiveLayout();
   return (
-    <View style={styles.sectionCard}>
+    <View style={[styles.sectionCard, responsive.isCompactPhone && styles.compactCardPadding]}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>{title}</Text>
         <View
@@ -144,8 +146,9 @@ function InfoPoint({
   title: string;
   body: string;
 }) {
+  const responsive = useResponsiveLayout();
   return (
-    <View style={styles.point}>
+    <View style={[styles.point, responsive.isCompactPhone && styles.compactCardPadding]}>
       <View style={styles.pointMark}>
         <Text style={styles.pointMarkText}>{index}</Text>
       </View>
@@ -165,6 +168,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
     ...shadow.card,
+  },
+  compactCardPadding: {
+    paddingHorizontal: 16,
   },
   sectionHeader: {
     flexDirection: 'row',

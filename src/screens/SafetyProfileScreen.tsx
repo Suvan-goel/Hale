@@ -22,6 +22,7 @@ import {
   type UserProfile,
 } from '../profile';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { useResponsiveLayout } from '../theme/responsive';
 
 const PAIN_OPTIONS = ['Knee', 'Hip', 'Back', 'Shoulder', 'Ankle', 'Neck', 'None'] as const;
 
@@ -256,8 +257,9 @@ function ChoiceSection({
   meta: string;
   children: React.ReactNode;
 }) {
+  const responsive = useResponsiveLayout();
   return (
-    <View style={styles.sectionCard}>
+    <View style={[styles.sectionCard, responsive.isCompactPhone && styles.compactCardPadding]}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>{title}</Text>
         <View style={styles.sectionMetaPill}>
@@ -317,9 +319,15 @@ function Choice({
   onPress: () => void;
   accessibilityLabel?: string;
 }) {
+  const responsive = useResponsiveLayout();
   return (
     <Pressable
-      style={({ pressed }) => [styles.choice, selected && styles.choiceSelected, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.choice,
+        responsive.isCompactPhone && styles.compactCardPadding,
+        selected && styles.choiceSelected,
+        pressed && styles.pressed,
+      ]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected }}
@@ -346,6 +354,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
     ...shadow.card,
+  },
+  compactCardPadding: {
+    paddingHorizontal: 16,
   },
   sectionHeader: {
     flexDirection: 'row',

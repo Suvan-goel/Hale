@@ -14,6 +14,7 @@ import {
 } from '../onboarding/results';
 import { selectFocusFromScore, type CheckUpScore, type ScoreFocusSelection, type VersionedCheckUpScoreSnapshot } from '../scoring';
 import { colors, fonts, radius, spacing, type } from '../theme';
+import { useResponsiveLayout } from '../theme/responsive';
 
 const ICONS = {
   strength_power: 'S',
@@ -40,6 +41,7 @@ export function OnboardingResultsScreen({
   onRetake: () => void;
   onDone: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   const resultState = React.useMemo(() => getAssessmentResultState({ score: score ?? null, scoreSnapshot, assessment }), [assessment, score, scoreSnapshot]);
   const focusSelection = React.useMemo(
     () => scoreSnapshot?.focusSelection ?? selectFocusFromScore(score, { activeFocusDomain: score?.weakestDomain }),
@@ -67,7 +69,7 @@ export function OnboardingResultsScreen({
       </View>
 
       {focus ? (
-        <View style={styles.focusCard}>
+        <View style={[styles.focusCard, responsive.isCompactPhone && styles.compactCardPadding]}>
           <View style={styles.focusTopRow}>
             <Text style={styles.eyebrow}>First focus</Text>
           </View>
@@ -84,7 +86,7 @@ export function OnboardingResultsScreen({
           </Text>
         </View>
       ) : (
-        <View style={styles.focusCard}>
+        <View style={[styles.focusCard, responsive.isCompactPhone && styles.compactCardPadding]}>
           <Text style={styles.eyebrow}>Retake needed</Text>
           <Text style={styles.focusTitle}>{resultState.recoveryTitle}</Text>
           <View style={styles.focusRule} />
@@ -108,7 +110,7 @@ export function OnboardingResultsScreen({
       ) : null}
 
       {resultState.canCreateBlock ? (
-        <View style={styles.nextCard}>
+        <View style={[styles.nextCard, responsive.isCompactPhone && styles.compactCardPadding]}>
           <View style={styles.noteHead}>
             <Text style={styles.nextTitle}>What happens next</Text>
           </View>
@@ -148,8 +150,9 @@ function DomainSummaryCard({
   status: string;
   featured: boolean;
 }) {
+  const responsive = useResponsiveLayout();
   return (
-    <View style={[styles.domainCard, featured && styles.domainCardFeatured]}>
+    <View style={[styles.domainCard, responsive.isCompactPhone && styles.compactCardPadding, featured && styles.domainCardFeatured]}>
       <View style={[styles.domainMark, featured && styles.domainMarkFeatured]}>
         <Text style={[styles.domainMarkText, featured && styles.domainMarkTextFeatured]}>{icon}</Text>
       </View>
@@ -188,6 +191,9 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
     boxShadow: '0 12px 30px rgba(17,20,18,0.04)',
+  },
+  compactCardPadding: {
+    paddingHorizontal: 16,
   },
   focusTopRow: {
     flexDirection: 'row',

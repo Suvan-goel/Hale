@@ -8,19 +8,25 @@ const NativeView: React.ComponentType<PoseDetectionViewProps> =
 
 /**
  * Owns the camera and MediaPipe inference natively; emits one landmark-array
- * event per frame via `onLandmarks`. Renders nothing but black — camera video
- * is never shown (product law #1).
+ * event per frame via `onLandmarks`. Renders only the configured canvas —
+ * camera video is never shown (product law #1).
  */
 export default function PoseDetectionView(props: PoseDetectionViewProps) {
   return (
     <NativeView
       active={props.active ?? false}
       cameraFacing={props.cameraFacing ?? 'front'}
-      modelVariant={props.modelVariant ?? 'lite'}
+      modelVariant={props.modelVariant ?? 'full'}
       minDetectionConfidence={props.minDetectionConfidence ?? 0.35}
       minTrackingConfidence={props.minTrackingConfidence ?? 0.35}
       minPresenceConfidence={props.minPresenceConfidence ?? 0.35}
       latencyDiagnosticsEnabled={props.latencyDiagnosticsEnabled ?? false}
+      androidPipelineMode={props.androidPipelineMode ?? 'full-video-sync'}
+      androidRotationMode={props.androidRotationMode ?? 'rotated-bitmap'}
+      androidAnalysisResolution={props.androidAnalysisResolution ?? '640x480'}
+      nativeSkeletonOverlayEnabled={props.nativeSkeletonOverlayEnabled ?? false}
+      nativeSkeletonColor={props.nativeSkeletonColor ?? '#000000'}
+      canvasColor={props.canvasColor ?? '#F9F5EF'}
       onLandmarks={props.onLandmarks}
       onCameraReady={props.onCameraReady}
       onPoseError={props.onPoseError}

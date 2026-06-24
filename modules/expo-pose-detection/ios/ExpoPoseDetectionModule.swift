@@ -67,6 +67,24 @@ public class ExpoPoseDetectionModule: Module {
       Prop("latencyDiagnosticsEnabled") { (view: PoseDetectionView, value: Bool) in
         view.setLatencyDiagnosticsEnabledProp(value)
       }
+      Prop("androidPipelineMode") { (view: PoseDetectionView, value: String) in
+        view.setAndroidPipelineModeProp(value)
+      }
+      Prop("androidRotationMode") { (view: PoseDetectionView, value: String) in
+        view.setAndroidRotationModeProp(value)
+      }
+      Prop("androidAnalysisResolution") { (view: PoseDetectionView, value: String) in
+        view.setAndroidAnalysisResolutionProp(value)
+      }
+      Prop("nativeSkeletonOverlayEnabled") { (view: PoseDetectionView, value: Bool) in
+        view.setNativeSkeletonOverlayEnabledProp(value)
+      }
+      Prop("nativeSkeletonColor") { (view: PoseDetectionView, value: String) in
+        view.setNativeSkeletonColorProp(value)
+      }
+      Prop("canvasColor") { (view: PoseDetectionView, value: String) in
+        view.setCanvasColorProp(value)
+      }
     }
   }
 }

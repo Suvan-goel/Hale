@@ -120,7 +120,10 @@ export function resolvePoseAvatarRendererMode(
     const styleMode = parseBodyStyleMode(bodyStyle);
     return styleMode ?? DEFAULT_POSE_AVATAR_RENDERER_MODE;
   }
-  return value === 'constellation' || value === 'classic' || value === 'point_cloud_body'
+  return value === 'constellation' ||
+    value === 'classic' ||
+    value === 'point_cloud_body' ||
+    value === 'mediapipe_skeleton'
     ? value
     : INVALID_POSE_AVATAR_RENDERER_MODE_FALLBACK;
 }
@@ -484,6 +487,7 @@ function parsePointCloudBodyDensity(value: string | undefined): PointCloudBodyDe
 
 function parseBodyStyleMode(value: string | undefined): PoseAvatarRendererMode | null {
   if (value === 'point_cloud_body') return 'point_cloud_body';
+  if (value === 'mediapipe_skeleton') return 'mediapipe_skeleton';
   if (value === 'constellation' || value === 'skeleton_constellation') return 'constellation';
   if (value === 'classic') return 'classic';
   return null;

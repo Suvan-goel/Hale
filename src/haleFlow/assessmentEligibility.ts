@@ -1,4 +1,5 @@
 import type { MovementAssessment, MovementDomain } from '../adherence/types';
+import { MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID } from '../checkup/protocolPolicy';
 import {
   CURRENT_NORM_VERSION,
   CURRENT_SCORING_VERSION,
@@ -22,6 +23,7 @@ import {
 
 export type BlockCreationIneligibilityReason =
   | 'no_measured_domains'
+  | 'unsupported_checkup_protocol'
   | 'missing_headline_domains'
   | 'assessment_invalid'
   | 'assessment_incomplete'
@@ -78,6 +80,9 @@ export function getBlockCreationEligibility({
     complete: false,
   };
 
+  if (assessmentHasUnsupportedProtocol(assessment)) {
+    return ineligible('unsupported_checkup_protocol', evidence.measuredDomains);
+  }
   if (!assessment) {
     return ineligible('non_official_assessment', evidence.measuredDomains);
   }
@@ -140,6 +145,7 @@ export function getBlockCreationEligibility({
 }
 
 export function isMovementAssessmentUsableForTraining(assessment: MovementAssessment): boolean {
+  if (assessmentHasUnsupportedProtocol(assessment)) return false;
   if (!assessment.isOfficialForProgress || !isOfficialCheckupType(assessment.type)) return false;
   if (assessment.status !== 'completed') return false;
   const evidence = evidenceFromAssessment(assessment);
@@ -305,6 +311,11 @@ function scoreForAssessmentDomain(
 function assessmentCheckUpId(assessment: MovementAssessment): string | null {
   const checkUpId = assessment.results?.rawMetrics?.checkUpId;
   return typeof checkUpId === 'string' ? checkUpId : null;
+}
+
+function assessmentHasUnsupportedProtocol(assessment: MovementAssessment | null | undefined): boolean {
+  const value = assessment?.results?.rawMetrics?.checkUpProtocolPolicyId;
+  return value === MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID || (typeof value === 'string' && value !== 'legacy_movement_age_v1');
 }
 
 function focusSelectionFromAssessment(assessment: MovementAssessment): ScoreFocusSelection | undefined {

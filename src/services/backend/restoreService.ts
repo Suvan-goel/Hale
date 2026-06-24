@@ -9,7 +9,11 @@ import {
   type MovementBlockReport,
   type TrainingSessionCompletion,
 } from '../../adherence';
-import type { CheckUp } from '../../checkup';
+import {
+  MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
+  normalizeCheckUpRecordProtocolPolicy,
+  type CheckUp,
+} from '../../checkup';
 import { createMovementAssessment, checkupStatusFromHeadlineEvidence, headlineEvidenceFromScore } from '../../haleFlow';
 import { HISTORY_SCHEMA_VERSION, deserializeCheckUp, type StoredCheckUp, type StoredCheckUpMetadata } from '../../history';
 import {
@@ -357,18 +361,17 @@ export function mapRemoteProfileToLocal(profile: BackendProfile | null): Prefere
 }
 
 export function mapRemoteCheckupsToLocal(rows: readonly RemoteMovementCheckupRow[]): StoredCheckUp[] {
-  const records: StoredCheckUp[] = [];
-  const seen = new Set<string>();
+  const recordsByCheckUpId = new Map<string, StoredCheckUp>();
 
   for (const row of rows) {
     const record = storedCheckUpFromRemoteRow(row);
     if (!record) continue;
     const key = record.checkUp.startedAt;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    records.push(record);
+    const existing = recordsByCheckUpId.get(key);
+    recordsByCheckUpId.set(key, existing ? chooseRestoredCheckUp(existing, record) : record);
   }
 
+  const records = Array.from(recordsByCheckUpId.values());
   return records.sort((a, b) => a.checkUp.startedAt.localeCompare(b.checkUp.startedAt));
 }
 
@@ -384,6 +387,16 @@ export function mapRemoteMovementBlocksToLocal(rows: readonly RemoteMovementBloc
   }
 
   return blocks.sort((a, b) => (a.startDate || a.createdAt).localeCompare(b.startDate || b.createdAt));
+}
+
+function chooseRestoredCheckUp(existing: StoredCheckUp, next: StoredCheckUp): StoredCheckUp {
+  const existingV2 = existing.movementProfileV2Snapshot;
+  const nextV2 = next.movementProfileV2Snapshot;
+  if (!existingV2 && nextV2) return next;
+  if (existingV2 && nextV2 && existingV2.snapshotFingerprint === nextV2.snapshotFingerprint) {
+    return existing;
+  }
+  return existing;
 }
 
 export function mapRemoteTrainingStateToLocal(row: RemoteTrainingStateRow | null): TrainingState | null {
@@ -497,6 +510,10 @@ function mapRemoteAssessmentsToLocal(
     const record = checkupsById.get(localCheckupId);
     if (!record) continue;
     const checkUp = record.checkUp;
+    const protocolPolicy = normalizeCheckUpRecordProtocolPolicy(checkUp);
+    if (protocolPolicy.supported && protocolPolicy.policy.id === MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID) {
+      continue;
+    }
     const derivedAssessment = asRecord(asRecord(row.derived_scores_json).assessment);
     const derived = asRecord(row.derived_scores_json);
     const raw = asRecord(row.raw_checkup_json);
@@ -650,6 +667,7 @@ async function persistRestoredLocalState(
           sourceAssessmentId: record.sourceAssessmentId,
           retryOfCheckUpId: record.retryOfCheckUpId,
           scoreSnapshot: record.scoreSnapshot ?? null,
+          movementProfileV2Snapshot: record.movementProfileV2Snapshot ?? null,
         })
       );
     }
@@ -677,12 +695,14 @@ function storedCheckUpFromRemoteRow(row: RemoteMovementCheckupRow): StoredCheckU
   if (!checkUp) return null;
   const checkupType = exactCheckupTypeFromRemote(row, derived, raw);
   const scoreSnapshot = scoreSnapshotCandidateFromRemoteRow(row);
+  const movementProfileV2Snapshot = movementProfileV2SnapshotCandidateFromRemoteRow(row);
 
   return deserializeCheckUp(
     JSON.stringify({
       schemaVersion: raw.schemaVersion ?? HISTORY_SCHEMA_VERSION,
       checkupType,
       scoreSnapshot,
+      movementProfileV2Snapshot,
       checkUp,
     })
   );
@@ -692,6 +712,12 @@ function scoreSnapshotCandidateFromRemoteRow(row: RemoteMovementCheckupRow): unk
   const derived = asRecord(row.derived_scores_json);
   const raw = asRecord(row.raw_checkup_json);
   return derived.scoreSnapshot ?? raw.scoreSnapshot ?? null;
+}
+
+function movementProfileV2SnapshotCandidateFromRemoteRow(row: RemoteMovementCheckupRow): unknown {
+  const derived = asRecord(row.derived_scores_json);
+  const raw = asRecord(row.raw_checkup_json);
+  return derived.movementProfileV2Snapshot ?? raw.movementProfileV2Snapshot ?? null;
 }
 
 function microCheckFromRemoteRow(row: RemoteMicroCheckRow): MicroCheckResult | null {

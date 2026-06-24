@@ -8,6 +8,7 @@ import type {
   SessionPlanningRecoveryCopy,
 } from '../haleFlow';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { useResponsiveLayout } from '../theme/responsive';
 
 export function SessionPlanningRecoveryScreen({
   result,
@@ -22,6 +23,7 @@ export function SessionPlanningRecoveryScreen({
   onSecondaryAction: () => void;
   onCancel: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   const content = copy ?? {
     title: 'Hale needs to check your setup.',
     body: 'No workout started. This will not affect your progress.',
@@ -32,7 +34,7 @@ export function SessionPlanningRecoveryScreen({
       <BackArrowButton accessibilityLabel="Back" onPress={onCancel} />
       <ScreenHeader eyebrow="Session setup" title={content.title} subtitle={content.body} />
 
-      <View style={styles.recoverySheet}>
+      <View style={[styles.recoverySheet, responsive.isCompactPhone && styles.compactCardPadding]}>
         <View style={styles.sheetHeadCopy}>
           <Text style={styles.sheetTitle}>What to do next</Text>
         </View>
@@ -41,7 +43,7 @@ export function SessionPlanningRecoveryScreen({
 
         <Text style={styles.sheetBody}>{nextStepExplanation(result)}</Text>
 
-        <View style={styles.reassurancePanel}>
+        <View style={[styles.reassurancePanel, responsive.isCompactPhone && styles.compactCardPadding]}>
           <Text style={styles.reassuranceLabel}>Still saved</Text>
           <Text style={styles.reassuranceText}>Your plan, progress, and history are unchanged.</Text>
         </View>
@@ -111,6 +113,9 @@ const styles = StyleSheet.create({
     borderColor: colors.borderHairline,
     ...shadow.card,
     boxShadow: '0 12px 30px rgba(17,20,18,0.04)',
+  },
+  compactCardPadding: {
+    paddingHorizontal: 16,
   },
   sheetHeadCopy: {
     gap: spacing.sm,

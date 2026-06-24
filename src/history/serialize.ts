@@ -9,8 +9,19 @@
  * null; every consumer already guards with Number.isFinite.
  */
 
-import { CheckUp } from '../checkup/types';
+import type { CheckUp } from '../checkup/types';
+import {
+  LEGACY_MOVEMENT_AGE_PROTOCOL_POLICY_ID,
+  MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
+  normalizeCheckUpRecordProtocolPolicy,
+} from '../checkup/protocolPolicy';
 import type { CheckupType } from '../adherence/types';
+import {
+  parseStoredMovementProfileV2Snapshot,
+  validMovementProfileV2SnapshotForCheckUp,
+  type MovementProfileV2SnapshotCompatibility,
+  type StoredMovementProfileV2Snapshot,
+} from '../reference/movementProfileV2';
 import {
   classifyStoredScoreSnapshot,
   parseStoredScoreSnapshot,
@@ -27,6 +38,7 @@ export interface StoredCheckUpMetadata {
   sourceAssessmentId?: string;
   retryOfCheckUpId?: string;
   scoreSnapshot?: VersionedCheckUpScoreSnapshot | null;
+  movementProfileV2Snapshot?: StoredMovementProfileV2Snapshot | null;
 }
 
 export interface StoredCheckUp {
@@ -37,6 +49,8 @@ export interface StoredCheckUp {
   retryOfCheckUpId?: string;
   scoreSnapshot?: VersionedCheckUpScoreSnapshot;
   scoreSnapshotCompatibility: ScoreSnapshotCompatibility;
+  movementProfileV2Snapshot?: StoredMovementProfileV2Snapshot;
+  movementProfileV2SnapshotCompatibility?: MovementProfileV2SnapshotCompatibility;
 }
 
 function nanReplacer(_key: string, value: unknown): unknown {
@@ -44,15 +58,32 @@ function nanReplacer(_key: string, value: unknown): unknown {
 }
 
 export function serializeCheckUp(checkUp: CheckUp, metadata: StoredCheckUpMetadata = {}): string {
-  const parsedSnapshot = parseScoreSnapshotForCheckUp(metadata.scoreSnapshot, checkUp);
+  const checkupType = validStoredCheckUpType(metadata.checkupType) ?? 'legacy_unknown';
+  const rawCheckUp = checkUpWithoutEmbeddedSnapshots(checkUp);
+  const parsedSnapshot = parseScoreSnapshotForCheckUp(metadata.scoreSnapshot, rawCheckUp);
+  const movementProfileV2SnapshotCandidate =
+    metadata.movementProfileV2Snapshot !== undefined
+      ? metadata.movementProfileV2Snapshot
+      : (checkUp as { movementProfileV2Snapshot?: unknown }).movementProfileV2Snapshot;
+  const parsedMovementProfileV2Snapshot = parseMovementProfileV2SnapshotForCheckUp(
+    movementProfileV2SnapshotCandidate,
+    rawCheckUp,
+    checkupType
+  );
   const record: StoredCheckUp = {
     schemaVersion: HISTORY_SCHEMA_VERSION,
-    checkUp,
-    checkupType: validStoredCheckUpType(metadata.checkupType) ?? 'legacy_unknown',
+    checkUp: rawCheckUp,
+    checkupType,
     sourceAssessmentId: metadata.sourceAssessmentId,
     retryOfCheckUpId: metadata.retryOfCheckUpId,
     ...(parsedSnapshot.snapshot ? { scoreSnapshot: parsedSnapshot.snapshot } : {}),
     scoreSnapshotCompatibility: parsedSnapshot.compatibility,
+    ...(parsedMovementProfileV2Snapshot.snapshot
+      ? { movementProfileV2Snapshot: parsedMovementProfileV2Snapshot.snapshot }
+      : {}),
+    ...(parsedMovementProfileV2Snapshot.shouldStoreCompatibility
+      ? { movementProfileV2SnapshotCompatibility: parsedMovementProfileV2Snapshot.compatibility }
+      : {}),
   };
   return JSON.stringify(record, nanReplacer);
 }
@@ -66,21 +97,44 @@ export function migrate(parsed: unknown): StoredCheckUp | null {
   if (!parsed || typeof parsed !== 'object') return null;
   const rec = parsed as Partial<StoredCheckUp>;
   if (rec.schemaVersion !== HISTORY_SCHEMA_VERSION) return null; // no older versions exist yet
-  const checkUp = rec.checkUp;
+  const checkUp = checkUpWithoutEmbeddedSnapshots(rec.checkUp as CheckUp);
   if (!checkUp || typeof checkUp !== 'object' || !Array.isArray(checkUp.items)) return null;
   if (typeof checkUp.startedAt !== 'string') return null;
   const parsedSnapshot = parseScoreSnapshotForCheckUp(rec.scoreSnapshot, checkUp);
   const explicitCompatibility = validScoreSnapshotCompatibility(rec.scoreSnapshotCompatibility);
+  const checkupType = validStoredCheckUpType(rec.checkupType) ?? 'legacy_unknown';
+  const nestedMovementProfileV2Snapshot = (rec.checkUp as { movementProfileV2Snapshot?: unknown } | undefined)
+    ?.movementProfileV2Snapshot;
+  const movementProfileV2SnapshotCandidate =
+    rec.movementProfileV2Snapshot !== undefined ? rec.movementProfileV2Snapshot : nestedMovementProfileV2Snapshot;
+  const parsedMovementProfileV2Snapshot = parseMovementProfileV2SnapshotForCheckUp(
+    movementProfileV2SnapshotCandidate,
+    checkUp,
+    checkupType
+  );
+  const explicitMovementProfileV2Compatibility = validMovementProfileV2SnapshotCompatibility(
+    rec.movementProfileV2SnapshotCompatibility
+  );
   return {
     schemaVersion: HISTORY_SCHEMA_VERSION,
     checkUp,
-    checkupType: validStoredCheckUpType(rec.checkupType) ?? 'legacy_unknown',
+    checkupType,
     sourceAssessmentId: typeof rec.sourceAssessmentId === 'string' ? rec.sourceAssessmentId : undefined,
     retryOfCheckUpId: typeof rec.retryOfCheckUpId === 'string' ? rec.retryOfCheckUpId : undefined,
     ...(parsedSnapshot.snapshot ? { scoreSnapshot: parsedSnapshot.snapshot } : {}),
     scoreSnapshotCompatibility: parsedSnapshot.snapshot
       ? parsedSnapshot.compatibility
       : explicitCompatibility ?? parsedSnapshot.compatibility,
+    ...(parsedMovementProfileV2Snapshot.snapshot
+      ? { movementProfileV2Snapshot: parsedMovementProfileV2Snapshot.snapshot }
+      : {}),
+    ...(parsedMovementProfileV2Snapshot.shouldStoreCompatibility || explicitMovementProfileV2Compatibility
+      ? {
+          movementProfileV2SnapshotCompatibility: parsedMovementProfileV2Snapshot.snapshot
+            ? parsedMovementProfileV2Snapshot.compatibility
+            : explicitMovementProfileV2Compatibility ?? parsedMovementProfileV2Snapshot.compatibility,
+        }
+      : {}),
   };
 }
 
@@ -113,7 +167,8 @@ function validScoreSnapshotCompatibility(value: unknown): ScoreSnapshotCompatibi
     value === 'legacy_unversioned' ||
     value === 'incompatible_version' ||
     value === 'invalid_snapshot' ||
-    value === 'unsupported_schema'
+    value === 'unsupported_schema' ||
+    value === 'unsupported_checkup_protocol'
   ) {
     return value;
   }
@@ -124,6 +179,13 @@ function parseScoreSnapshotForCheckUp(
   value: VersionedCheckUpScoreSnapshot | null | undefined,
   checkUp: CheckUp
 ): { snapshot?: VersionedCheckUpScoreSnapshot; compatibility: ScoreSnapshotCompatibility } {
+  const protocolPolicy = normalizeCheckUpRecordProtocolPolicy(checkUp);
+  if (
+    !protocolPolicy.supported ||
+    protocolPolicy.policy.id !== LEGACY_MOVEMENT_AGE_PROTOCOL_POLICY_ID
+  ) {
+    return { compatibility: 'unsupported_checkup_protocol' };
+  }
   const parsedSnapshot = parseStoredScoreSnapshot(value);
   if (!parsedSnapshot.ok) {
     return { compatibility: classifyStoredScoreSnapshot(value) };
@@ -136,4 +198,74 @@ function parseScoreSnapshotForCheckUp(
 
 function scoreSnapshotBelongsToCheckUp(snapshot: VersionedCheckUpScoreSnapshot, checkUp: CheckUp): boolean {
   return snapshot.sourceCheckUpId === checkUp.startedAt && snapshot.score.startedAt === checkUp.startedAt;
+}
+
+function parseMovementProfileV2SnapshotForCheckUp(
+  value: unknown,
+  checkUp: CheckUp,
+  checkupType: StoredCheckUpType
+): {
+  snapshot?: StoredMovementProfileV2Snapshot;
+  compatibility: MovementProfileV2SnapshotCompatibility;
+  shouldStoreCompatibility: boolean;
+} {
+  if (value === undefined || value === null) {
+    return {
+      compatibility: 'missing',
+      shouldStoreCompatibility: isMovementProfileV2CheckUp(checkUp),
+    };
+  }
+  const parsed = parseStoredMovementProfileV2Snapshot(value);
+  if (!parsed.ok) {
+    return { compatibility: parsed.compatibility, shouldStoreCompatibility: true };
+  }
+  if (!isOfficialMovementProfileV2SnapshotSourceType(checkupType)) {
+    return { compatibility: 'unsupported_source_type', shouldStoreCompatibility: true };
+  }
+  if (!isMovementProfileV2CheckUp(checkUp)) {
+    return { compatibility: 'unsupported_checkup_protocol', shouldStoreCompatibility: true };
+  }
+  const valid = validMovementProfileV2SnapshotForCheckUp({
+    snapshot: parsed.snapshot,
+    checkUp,
+    checkupType,
+  });
+  if (!valid) {
+    return { compatibility: 'source_mismatch', shouldStoreCompatibility: true };
+  }
+  return { snapshot: valid, compatibility: parsed.compatibility, shouldStoreCompatibility: true };
+}
+
+function validMovementProfileV2SnapshotCompatibility(value: unknown): MovementProfileV2SnapshotCompatibility | null {
+  if (
+    value === 'current' ||
+    value === 'missing' ||
+    value === 'malformed' ||
+    value === 'future_schema' ||
+    value === 'fingerprint_invalid' ||
+    value === 'source_mismatch' ||
+    value === 'unsupported_checkup_protocol' ||
+    value === 'unsupported_source_type'
+  ) {
+    return value;
+  }
+  return null;
+}
+
+function isMovementProfileV2CheckUp(checkUp: CheckUp): boolean {
+  const protocolPolicy = normalizeCheckUpRecordProtocolPolicy(checkUp);
+  return protocolPolicy.supported && protocolPolicy.policy.id === MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID;
+}
+
+function isOfficialMovementProfileV2SnapshotSourceType(
+  checkupType: StoredCheckUpType
+): checkupType is 'baseline' | 'baseline_retake' | 'official_retest' {
+  return checkupType === 'baseline' || checkupType === 'baseline_retake' || checkupType === 'official_retest';
+}
+
+function checkUpWithoutEmbeddedSnapshots(value: CheckUp): CheckUp {
+  if (!value || typeof value !== 'object') return value;
+  const { movementProfileV2Snapshot: _movementProfileV2Snapshot, ...checkUp } =
+    value as CheckUp & { movementProfileV2Snapshot?: unknown };
+  return checkUp;
 }

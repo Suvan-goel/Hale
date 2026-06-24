@@ -1,6 +1,17 @@
 import { movementDomainFromScoreDomain, type CheckupType, type CheckupStatus, type MovementAssessment } from '../../adherence';
-import type { CheckUp } from '../../checkup';
+import {
+  LEGACY_MOVEMENT_AGE_PROTOCOL_POLICY_ID,
+  MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
+  normalizeCheckUpRecordProtocolPolicy,
+  type CheckUp,
+} from '../../checkup';
 import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../../history';
+import {
+  parseStoredMovementProfileV2Snapshot,
+  validMovementProfileV2SnapshotForCheckUp,
+  type MovementProfileV2SnapshotCompatibility,
+  type StoredMovementProfileV2Snapshot,
+} from '../../reference/movementProfileV2';
 import {
   createCurrentVersionedScoreSnapshot,
   parseStoredScoreSnapshot,
@@ -24,6 +35,7 @@ export interface MovementCheckupSyncInput {
   completedAt?: string;
   score?: CheckUpScore;
   scoreSnapshot?: VersionedCheckUpScoreSnapshot | null;
+  movementProfileV2Snapshot?: StoredMovementProfileV2Snapshot | null;
   assessment?: MovementAssessment | null;
 }
 
@@ -136,6 +148,7 @@ export async function syncRecentMovementCheckupsToRemote(
         status: assessment?.status,
         completedAt: assessment?.completedAt,
         scoreSnapshot: record.scoreSnapshot,
+        movementProfileV2Snapshot: record.movementProfileV2Snapshot,
       })
     );
   }
@@ -150,8 +163,12 @@ export function mapLocalCheckupToRemotePayload(
   const suppliedSnapshot = parseStoredScoreSnapshot(input.scoreSnapshot);
   const suppliedSnapshotBelongsToCheckUp =
     suppliedSnapshot.ok && scoreSnapshotBelongsToCheckUp(suppliedSnapshot.snapshot, input.checkUp);
+  const protocolPolicy = normalizeCheckUpRecordProtocolPolicy(input.checkUp);
+  const unsupportedProtocol =
+    !protocolPolicy.supported ||
+    protocolPolicy.policy.id !== LEGACY_MOVEMENT_AGE_PROTOCOL_POLICY_ID;
   const scored =
-    input.scoreSnapshot === undefined
+    input.scoreSnapshot === undefined && !unsupportedProtocol
       ? createCurrentVersionedScoreSnapshot(input.checkUp, { createdAt: input.completedAt ?? input.checkUp.startedAt })
       : null;
   const scoreSnapshot = suppliedSnapshotBelongsToCheckUp ? suppliedSnapshot.snapshot : scored?.snapshot ?? null;
@@ -163,10 +180,30 @@ export function mapLocalCheckupToRemotePayload(
   const checkupType = mapCheckupType(input.checkupType ?? input.assessment?.type);
   const weakestDomain = score?.weakestDomain ? movementDomainFromScoreDomain(score.weakestDomain) : undefined;
   const snapshotMetadata = scoreSnapshotVersionMetadata(scoreSnapshot);
+  const movementProfileV2SnapshotCandidate =
+    input.movementProfileV2Snapshot !== undefined
+      ? input.movementProfileV2Snapshot
+      : input.checkUp.movementProfileV2Snapshot;
+  const parsedMovementProfileV2Snapshot = parseMovementProfileV2SnapshotForSync(
+    movementProfileV2SnapshotCandidate,
+    input.checkUp,
+    exactCheckupType
+  );
+  const movementProfileV2SnapshotFields = parsedMovementProfileV2Snapshot.shouldStore
+    ? {
+        movementProfileV2Snapshot: parsedMovementProfileV2Snapshot.snapshot ?? null,
+        movementProfileV2SnapshotCompatibility: parsedMovementProfileV2Snapshot.compatibility,
+        movementProfileV2SnapshotSchemaVersion: parsedMovementProfileV2Snapshot.snapshot?.schemaVersion ?? null,
+        movementProfileV2SnapshotSourceCheckUpId: parsedMovementProfileV2Snapshot.snapshot?.sourceCheckUpId ?? null,
+        movementProfileV2SnapshotFingerprint: parsedMovementProfileV2Snapshot.snapshot?.snapshotFingerprint ?? null,
+      }
+    : {};
   const snapshotCompatibility = scoreSnapshot
     ? suppliedSnapshotBelongsToCheckUp
       ? suppliedSnapshot.compatibility
       : 'current'
+    : unsupportedProtocol
+      ? 'unsupported_checkup_protocol'
     : input.scoreSnapshot === undefined
       ? 'invalid_snapshot'
       : suppliedSnapshot.ok
@@ -192,6 +229,7 @@ export function mapLocalCheckupToRemotePayload(
       scoreSnapshotSchemaVersion: snapshotMetadata.schemaVersion,
       scoringVersion: snapshotMetadata.scoringVersion,
       normVersion: snapshotMetadata.normVersion,
+      ...movementProfileV2SnapshotFields,
       score,
       weakestDomain,
       assessment: input.assessment
@@ -209,6 +247,7 @@ export function mapLocalCheckupToRemotePayload(
       schemaVersion: HISTORY_SCHEMA_VERSION,
       checkupType: exactCheckupType,
       scoreSnapshot,
+      ...movementProfileV2SnapshotFields,
       checkUp: sanitizeCheckup(input.checkUp),
     }),
     created_locally_at: input.checkUp.startedAt,
@@ -254,6 +293,50 @@ function scoreSnapshotBelongsToCheckUp(snapshot: VersionedCheckUpScoreSnapshot, 
   return snapshot.sourceCheckUpId === checkUp.startedAt && snapshot.score.startedAt === checkUp.startedAt;
 }
 
+function parseMovementProfileV2SnapshotForSync(
+  value: unknown,
+  checkUp: CheckUp,
+  checkupType: CheckupType | undefined
+): {
+  snapshot?: StoredMovementProfileV2Snapshot;
+  compatibility: MovementProfileV2SnapshotCompatibility;
+  shouldStore: boolean;
+} {
+  const protocolPolicy = normalizeCheckUpRecordProtocolPolicy(checkUp);
+  const isV2Protocol = protocolPolicy.supported && protocolPolicy.policy.id === MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID;
+  if (value === undefined || value === null) {
+    return {
+      compatibility: 'missing',
+      shouldStore: isV2Protocol,
+    };
+  }
+  const parsed = parseStoredMovementProfileV2Snapshot(value);
+  if (!parsed.ok) {
+    return { compatibility: parsed.compatibility, shouldStore: true };
+  }
+  if (!isOfficialMovementProfileV2SnapshotSourceType(checkupType)) {
+    return { compatibility: 'unsupported_source_type', shouldStore: true };
+  }
+  if (!isV2Protocol) {
+    return { compatibility: 'unsupported_checkup_protocol', shouldStore: true };
+  }
+  const valid = validMovementProfileV2SnapshotForCheckUp({
+    snapshot: parsed.snapshot,
+    checkUp,
+    checkupType,
+  });
+  if (!valid) {
+    return { compatibility: 'source_mismatch', shouldStore: true };
+  }
+  return { snapshot: valid, compatibility: parsed.compatibility, shouldStore: true };
+}
+
+function isOfficialMovementProfileV2SnapshotSourceType(
+  checkupType: CheckupType | undefined
+): checkupType is 'baseline' | 'baseline_retake' | 'official_retest' {
+  return checkupType === 'baseline' || checkupType === 'baseline_retake' || checkupType === 'official_retest';
+}
+
 function scoreForDomain(score: CheckUpScore, domain: Domain): number | undefined {
   const result = score.domains.find((item) => item.domain === domain);
   if (!result?.measured) return undefined;
@@ -268,6 +351,7 @@ function finiteNumber(value: unknown): number | undefined {
 function sanitizeCheckup(checkUp: CheckUp): BackendJson {
   return sanitizeForBackendJson({
     startedAt: checkUp.startedAt,
+    protocolPolicy: checkUp.protocolPolicy ?? null,
     bodyUnit: checkUp.bodyUnit,
     items: checkUp.items.map((item) => ({
       movementId: item.movementId,

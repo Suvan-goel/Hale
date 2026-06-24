@@ -22,6 +22,7 @@ import {
   type VersionedCheckUpScoreSnapshot,
 } from '../scoring';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 
 export function ResultsScreen({
   checkUp: _checkUp,
@@ -51,6 +52,7 @@ export function ResultsScreen({
   /** Weekly micro-check points to merge into the trend line. */
   extraTrendPoints?: ExtraTrendPoint[];
 }) {
+  const responsive = useResponsiveLayout();
   const resultState = React.useMemo(() => getAssessmentResultState({ score: score ?? null, scoreSnapshot, assessment }), [assessment, score, scoreSnapshot]);
   const trends = React.useMemo(
     () => computeTrends(history, extraTrendPoints).filter((t) => t.points.length >= 2),
@@ -74,7 +76,7 @@ export function ResultsScreen({
         <Text style={styles.eyebrow}>Movement Check-Up</Text>
         <View style={styles.titleGroup}>
           <HeaderLogo size={30} />
-          <Text style={styles.title}>Your results</Text>
+          <Text style={[styles.title, responsive.isCompactPhone && compactTypography.pageTitle]}>Your results</Text>
         </View>
         <Text style={styles.subtitle}>
           {planIsReady
@@ -85,7 +87,7 @@ export function ResultsScreen({
         </Text>
       </View>
 
-      <View style={styles.focusOverviewCard}>
+      <View style={[styles.focusOverviewCard, responsive.isCompactPhone && styles.compactCardPadding]}>
         <View style={styles.focusTopRow}>
           <Text style={styles.focusKicker}>
             {planIsReady
@@ -366,6 +368,9 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSubtle,
     overflow: 'hidden',
     boxShadow: `0 18px 38px ${colors.shadowSoft}`,
+  },
+  compactCardPadding: {
+    paddingHorizontal: 16,
   },
   focusTopRow: {
     flexDirection: 'row',

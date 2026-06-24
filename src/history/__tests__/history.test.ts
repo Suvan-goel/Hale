@@ -6,11 +6,24 @@
  */
 
 import { CheckUp } from '../../checkup/types';
+import { createCheckUpProtocolPolicy, MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID } from '../../checkup/protocolPolicy';
+import {
+  createActiveShoulderReachV2Setup,
+  createChairRiseV2Setup,
+  createOneLegBalanceV2Setup,
+} from '../../checkup/protocolSetup';
 import {
   BALANCE_LADDER_ID,
   CHAIR_STAND_ID,
   TUG_ID,
 } from '../../movements';
+import {
+  ACTIVE_SHOULDER_REACH_V2_ID,
+  type ActiveShoulderReachV2Result,
+} from '../../movements/activeShoulderReachV2';
+import { CHAIR_RISE_V2_ID, type ChairRiseV2Result } from '../../movements/chairRiseV2';
+import { ONE_LEG_BALANCE_V2_ID, type OneLegBalanceV2Result } from '../../movements/oneLegBalanceV2';
+import { createMovementProfileV2Snapshot } from '../../reference/movementProfileV2';
 import { CURRENT_SCORING_VERSION, createCurrentVersionedScoreSnapshot } from '../../scoring';
 import { HISTORY_SCHEMA_VERSION, deserializeCheckUp, migrate, serializeCheckUp } from '../serialize';
 import { HistoryStore, createMemoryFs } from '../store';
@@ -120,6 +133,60 @@ describe('check-up serialization', () => {
 
     expect(stored?.scoreSnapshot).toBeUndefined();
     expect(stored?.scoreSnapshotCompatibility).toBe('invalid_snapshot');
+  });
+
+  it('round-trips a valid Movement Profile V2 snapshot without embedding it in raw check-up JSON', () => {
+    const checkUp = makeV2CheckUp('2026-06-23T10:00:00.000Z');
+    const snapshot = movementProfileV2SnapshotFor(checkUp);
+
+    const stored = deserializeCheckUp(
+      serializeCheckUp({ ...checkUp, movementProfileV2Snapshot: snapshot }, { checkupType: 'baseline' })
+    );
+
+    expect(stored?.checkUp.startedAt).toBe(checkUp.startedAt);
+    expect(stored?.scoreSnapshot).toBeUndefined();
+    expect(stored?.scoreSnapshotCompatibility).toBe('unsupported_checkup_protocol');
+    expect(stored?.movementProfileV2Snapshot?.snapshotFingerprint).toBe(snapshot.snapshotFingerprint);
+    expect(stored?.movementProfileV2SnapshotCompatibility).toBe('current');
+    expect(stored?.checkUp.movementProfileV2Snapshot).toBeUndefined();
+  });
+
+  it('preserves raw V2 check-ups while dropping malformed V2 snapshots', () => {
+    const checkUp = makeV2CheckUp('2026-06-23T10:00:00.000Z');
+    const malformedSnapshot = {
+      ...movementProfileV2SnapshotFor(checkUp),
+      snapshotFingerprint: 'tampered',
+    };
+
+    const stored = deserializeCheckUp(
+      serializeCheckUp(checkUp, {
+        checkupType: 'baseline',
+        movementProfileV2Snapshot: malformedSnapshot as never,
+      })
+    );
+
+    expect(stored?.checkUp.items).toHaveLength(3);
+    expect(stored?.movementProfileV2Snapshot).toBeUndefined();
+    expect(stored?.movementProfileV2SnapshotCompatibility).toBe('fingerprint_invalid');
+  });
+
+  it('does not store a legacy score snapshot on Movement Profile V2 check-ups', () => {
+    const checkUp = makeV2CheckUp('2026-06-23T10:00:00.000Z');
+    const legacySnapshot = createCurrentVersionedScoreSnapshot(
+      makeCheckUp(checkUp.startedAt, { reps: 14, vel: 0.2, singleLeg: 10 })
+    ).snapshot!;
+
+    const stored = deserializeCheckUp(
+      serializeCheckUp(checkUp, {
+        checkupType: 'baseline',
+        scoreSnapshot: legacySnapshot,
+      })
+    );
+
+    expect(stored?.scoreSnapshot).toBeUndefined();
+    expect(stored?.scoreSnapshotCompatibility).toBe('unsupported_checkup_protocol');
+    expect(stored?.movementProfileV2Snapshot).toBeUndefined();
+    expect(stored?.movementProfileV2SnapshotCompatibility).toBe('missing');
   });
 });
 
@@ -257,3 +324,100 @@ describe('trends', () => {
     expect(trends.find((t) => t.key === 'single-leg-balance')!.points.map((p) => p.value)).toEqual([8, 10]);
   });
 });
+
+function makeV2CheckUp(startedAt: string, overrides: {
+  chair?: ChairRiseV2Result;
+  balance?: OneLegBalanceV2Result;
+  shoulder?: ActiveShoulderReachV2Result;
+} = {}): CheckUp {
+  return {
+    startedAt,
+    protocolPolicy: createCheckUpProtocolPolicy(MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID, startedAt),
+    bodyUnit: 1,
+    items: [
+      { movementId: CHAIR_RISE_V2_ID, status: 'measured', result: overrides.chair ?? chairV2Result() },
+      { movementId: ONE_LEG_BALANCE_V2_ID, status: 'measured', result: overrides.balance ?? balanceV2Result() },
+      { movementId: ACTIVE_SHOULDER_REACH_V2_ID, status: 'measured', result: overrides.shoulder ?? shoulderV2Result() },
+    ],
+  };
+}
+
+function movementProfileV2SnapshotFor(checkUp: CheckUp) {
+  const created = createMovementProfileV2Snapshot({
+    checkUp,
+    checkupType: 'baseline',
+    referenceProfile: { ageAtTest: 62, ageBasis: 'exact_age_at_test', referenceSex: 'female' },
+    createdAt: checkUp.startedAt,
+  });
+  if (!created.ok) throw new Error(`expected V2 snapshot: ${created.reason}`);
+  return created.snapshot;
+}
+
+function chairV2Result(overrides: Partial<ChairRiseV2Result> = {}): ChairRiseV2Result {
+  return {
+    movementId: CHAIR_RISE_V2_ID,
+    protocolPolicyId: MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
+    evidenceStatus: 'reference_protocol_complete',
+    setup: createChairRiseV2Setup({ confirmed: true }),
+    setupConfidence: 'confirmed',
+    practiceRepCompleted: true,
+    activeWindowMs: 30000,
+    activeMeasurementWindows: [{ startedAtMs: 0, endedAtMs: 30000, valid: true, reason: 'scheduled_active_window' }],
+    fullStandRule: 'stand_completed_at_or_before_window_end',
+    reps: 12,
+    repStats: [],
+    sessionMeanVel: 1.1,
+    sessionMeanPeakVel: 1.4,
+    pushOffDetected: false,
+    fullStandAtExpiryCounted: false,
+    invalidReasons: [],
+    flags: [],
+    interruptions: 0,
+    ...overrides,
+  };
+}
+
+function balanceV2Result(overrides: Partial<OneLegBalanceV2Result> = {}): OneLegBalanceV2Result {
+  return {
+    movementId: ONE_LEG_BALANCE_V2_ID,
+    protocolPolicyId: MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
+    evidenceStatus: 'reference_protocol_complete',
+    setup: createOneLegBalanceV2Setup({ standingLeg: 'left', confirmed: true }),
+    standingLeg: 'left',
+    setupConfidence: 'confirmed',
+    bestHoldSec: 32,
+    bestTrialNumber: 1,
+    validTrialCount: 3,
+    attemptedTrialCount: 3,
+    trials: [],
+    rests: [],
+    retryCount: 0,
+    declinedRemainingTrials: false,
+    hardCapReached: false,
+    activeMeasurementWindows: [{ startedAtMs: 0, endedAtMs: 45000, valid: true, reason: 'trial_window' }],
+    invalidReasons: [],
+    flags: [],
+    interruptions: 0,
+    ...overrides,
+  };
+}
+
+function shoulderV2Result(overrides: Partial<ActiveShoulderReachV2Result> = {}): ActiveShoulderReachV2Result {
+  return {
+    movementId: ACTIVE_SHOULDER_REACH_V2_ID,
+    protocolPolicyId: MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
+    evidenceStatus: 'reference_protocol_complete',
+    setup: createActiveShoulderReachV2Setup({ selectedSide: 'right', confirmed: true }),
+    selectedSide: 'right',
+    setupConfidence: 'confirmed',
+    peakFlexionDeg: 151,
+    retryCount: 0,
+    painLimited: false,
+    validTrackingMs: 5000,
+    activeMeasurementWindows: [{ startedAtMs: 0, endedAtMs: 9000, valid: true, reason: 'valid_capture' }],
+    invalidReasons: [],
+    flags: [],
+    interruptions: 0,
+    ...overrides,
+  };
+}

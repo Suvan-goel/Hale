@@ -10,6 +10,8 @@
  */
 
 import { MovementResultBase } from '../movements';
+import type { StoredMovementProfileV2Snapshot } from '../reference/movementProfileV2/snapshot';
+import type { CheckUpProtocolPolicy } from './protocolPolicy';
 
 export type CheckUpItemStatus = 'measured' | 'skipped' | 'unmeasured';
 
@@ -24,9 +26,21 @@ export interface CheckUpItem {
 export interface CheckUp {
   /** ISO-8601 timestamp the check-up started. */
   startedAt: string;
+  /**
+   * Frozen assessment protocol. Missing legacy records are interpreted as
+   * `legacy_movement_age_v1` at validation boundaries.
+   */
+  protocolPolicy?: CheckUpProtocolPolicy;
   /** Body-unit scale captured for the session (diagnostic / drift check). */
   bodyUnit: number | null;
   items: CheckUpItem[];
+  /**
+   * Optional immutable Movement Profile V2 interpretation artifact.
+   *
+   * This is not a legacy score snapshot and must not be used to create V1
+   * MovementAssessment, MovementBlock, focus, or report records.
+   */
+  movementProfileV2Snapshot?: StoredMovementProfileV2Snapshot;
 }
 
 export function findItem(checkUp: CheckUp, movementId: string): CheckUpItem | undefined {

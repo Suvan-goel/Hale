@@ -1415,3 +1415,20 @@ Significant choices, newest last. Each entry: date, decision, why, alternatives 
   migrate to the matching `ageBand`; exact ages entered after this change keep `ageBand: null`.
 - **Life goal copy:** the neutral `noticed_decline` option is labeled "Feel stronger overall" to
   keep the original broad-goal tone while preserving its no-bias workout behavior.
+
+## 2026-06-24 — Android pose latency remediation keeps Full as production model
+
+- **Change:** the native pose module and live camera screens now default/pass
+  `modelVariant="full"`, making `pose_landmarker_full.task` the production path again. The
+  Android diagnostics path records the exact loaded asset, requested/selected delegate, GPU
+  fallback status, running mode, analysis resolution, image dimensions/format/rotation, rates,
+  and native event coalescing counters.
+- **Latency controls:** Android diagnostics can A/B `full-video-sync` (`RunningMode.VIDEO` +
+  `detectForVideo`) against `full-live-stream` (`RunningMode.LIVE_STREAM` + `detectAsync`), and
+  can compare explicit rotated bitmaps with unrotated bitmap input plus
+  `ImageProcessingOptions.rotationDegrees`. Analysis-resolution profiles are available for
+  640x480, 512x384, and 480x360 without changing preview/video product rules.
+- **Freshness boundary:** native landmark event delivery is latest-only: newer accepted results
+  replace a pending main-thread emission, older/equal frame ids are rejected, and live-stream
+  mode closes busy frames before bitmap conversion instead of queueing or converting frames that
+  cannot be submitted.

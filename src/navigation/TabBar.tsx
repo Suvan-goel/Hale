@@ -9,7 +9,7 @@
 import * as React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { colors, fonts, radius, spacing, type } from '../theme';
 import { ExploreIcon, HomeIcon, IconProps, PlanIcon, ProgressIcon } from './icons';
 
 export type TabKey = 'today' | 'plan' | 'progress' | 'explore';
@@ -32,6 +32,10 @@ export const TAB_DEFS: readonly TabDef[] = [
 ];
 
 export const DEFAULT_TAB_KEY: TabKey = 'today';
+export const TAB_BAR_MIN_HEIGHT = 74;
+export const TAB_BAR_CONTENT_GAP = 6;
+export const TAB_BAR_SCROLL_CLEARANCE =
+  spacing.md + TAB_BAR_MIN_HEIGHT + spacing.lg + TAB_BAR_CONTENT_GAP;
 
 export function isTabKey(value: unknown): value is TabKey {
   return typeof value === 'string' && TAB_DEFS.some((tab) => tab.key === value);
@@ -76,6 +80,11 @@ export function TabBar({ active, onChange }: { active: TabKey; onChange: (key: T
 
 const styles = StyleSheet.create({
   tray: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 20,
     backgroundColor: 'transparent',
     paddingHorizontal: spacing.pageHorizontal,
     paddingTop: spacing.md,
@@ -85,16 +94,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    minHeight: 74,
+    minHeight: TAB_BAR_MIN_HEIGHT,
     backgroundColor: colors.bgSurface,
     borderRadius: radius.panel,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.accentDeep,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
-    ...shadow.lifted,
-    boxShadow: '0 0 22px rgba(17,20,18,0.055)',
-    shadowOpacity: 0.055,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 0 },
+    boxShadow: '0 0 42px rgba(17,20,18,0.22)',
   },
   tab: {
     flex: 1,

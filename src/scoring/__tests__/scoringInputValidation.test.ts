@@ -1,5 +1,10 @@
 import type { CheckUp } from '../../checkup/types';
 import {
+  MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
+  createCheckUpProtocolPolicy,
+} from '../../checkup/protocolPolicy';
+import {
+  CHAIR_RISE_V2_ID,
   BALANCE_LADDER_ID,
   CHAIR_STAND_ID,
   HINGE_REACH_ID,
@@ -240,6 +245,23 @@ describe('scoring input validation', () => {
     expect(issues).toEqual([]);
   });
 
+  it('blocks Movement Profile V2 raw records from legacy Movement Age scoring', () => {
+    const v2CheckUp = checkUp([
+      measured(CHAIR_RISE_V2_ID, {
+        protocolPolicyId: MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
+        evidenceStatus: 'reference_protocol_complete',
+        reps: 12,
+      }),
+    ]);
+    v2CheckUp.protocolPolicy = createCheckUpProtocolPolicy(MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID, v2CheckUp.startedAt);
+
+    const { score, issues } = scoreCheckUpWithDiagnostics(v2CheckUp);
+
+    expect(codes(issues)).toEqual(['unsupported_checkup_protocol']);
+    expect(score.domains.every((item) => item.measured === false)).toBe(true);
+    expect(score.weakestDomain).toBeNull();
+  });
+
   it('rejects impossible balance headline values before norm lookup', () => {
     for (const singleLegEyesOpenSec of [-1, 0, BALANCE_SINGLE_LEG_EYES_OPEN_MAX_SEC_FOR_SCORING + 0.1, 999]) {
       const { score, issues } = scoreCheckUpWithDiagnostics(checkUp([balance({ singleLegEyesOpenSec }), chair(), shoulder()]));
@@ -304,5 +326,15 @@ describe('scoring input validation', () => {
       expect(validated.issues.length).toBeGreaterThan(0);
       expect(issueFieldsAreSafe(validated.issues)).toBe(true);
     }
+  });
+
+  it('fails closed for unknown future check-up protocol policies', () => {
+    const future = checkUp([chair(), balance(), shoulder()]);
+    future.protocolPolicy = { id: 'movement_profile_v9', version: 1, frozenAt: future.startedAt } as never;
+
+    const { score, issues } = scoreCheckUpWithDiagnostics(future);
+
+    expect(codes(issues)).toEqual(['unsupported_checkup_protocol']);
+    expect(score.domains.every((item) => item.measured === false)).toBe(true);
   });
 });

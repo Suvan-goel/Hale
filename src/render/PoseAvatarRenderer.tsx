@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ClassicPoseRenderer } from './ClassicPoseRenderer';
 import { ConstellationPoseRenderer } from './ConstellationPoseRenderer';
+import { MediaPipeSkeletonRenderer } from './MediaPipeSkeletonRenderer';
 import { PointCloudBodyPoseRenderer } from './PointCloudBodyPoseRenderer';
 import {
   POSE_AVATAR_DEBUG_VARIANTS,
@@ -82,7 +83,9 @@ export const PoseAvatarRenderer = React.forwardRef<
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      {config.mode === 'point_cloud_body' ? (
+      {config.mode === 'mediapipe_skeleton' ? (
+        <MediaPipeSkeletonRenderer ref={innerRef} {...rendererProps} />
+      ) : config.mode === 'point_cloud_body' ? (
         <PointCloudBodyPoseRenderer ref={innerRef} {...rendererProps} />
       ) : config.mode === 'constellation' ? (
         <ConstellationPoseRenderer ref={innerRef} {...rendererProps} />

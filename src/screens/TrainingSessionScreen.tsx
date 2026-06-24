@@ -45,13 +45,9 @@ import { PreflightCheck } from '../preflight/preflight';
 import type { PreflightPrompt } from '../preflight/preflight';
 import { FRAMING_READY_COPY } from '../preflight/setupCopy';
 import { LandmarkRecorder } from '../recording/recorder';
-import { SkeletonView, SkeletonViewHandle } from '../render/SkeletonView';
-import { pointCloudBodyPartsForTrainingExercise } from '../render/poseAvatarMuscleFocus';
-import type {
-  PoseAvatarActiveDomain,
-  PoseAvatarMeasurementState,
-} from '../render/poseAvatarTypes';
+import type { PoseAvatarActiveDomain } from '../render/poseAvatarTypes';
 import { colors, radius, shadow, spacing, type } from '../theme';
+import { useResponsiveLayout } from '../theme/responsive';
 import {
   TrainingPhase,
   TrainingSessionPlayer,
@@ -62,6 +58,8 @@ import { poseEstimationWindowSize, recordingCameraViewportSize } from './recordi
 
 const UI_UPDATE_INTERVAL_MS = 100;
 const IOS_RECORDING_TOP_CLEARANCE = 44;
+const TEMP_TRAINING_NATIVE_SKELETON_CANVAS = colors.card;
+const TEMP_TRAINING_NATIVE_SKELETON_COLOR = colors.accent;
 
 interface Snapshot {
   phase: TrainingPhase;
@@ -191,7 +189,6 @@ export function TrainingSessionScreen({
   const [voice] = React.useState(() => new VoiceChannel(voiceId));
   const [sfx] = React.useState(() => new SfxChannel());
   const [recorder] = React.useState(() => new LandmarkRecorder());
-  const skeletonRef = React.useRef<SkeletonViewHandle>(null);
   const lastUiUpdateRef = React.useRef(0);
   const lastFrameTimestampRef = React.useRef(0);
   const pauseStartedAtRef = React.useRef(0);
@@ -205,6 +202,7 @@ export function TrainingSessionScreen({
   const [discardModalVisible, setDiscardModalVisible] = React.useState(false);
   const [cameraAvailability, setCameraAvailability] = React.useState<CameraAvailability>('checking');
   const windowSize = useWindowDimensions();
+  const responsive = useResponsiveLayout();
   const recordingTopPadding = recordingScreenTopPadding();
   const exerciseDefinitions = React.useMemo(() => exerciseIds.map((id) => getExercise(id)), [exerciseIds]);
   const poseLatencyDiagnostics = React.useMemo(
@@ -232,14 +230,11 @@ export function TrainingSessionScreen({
       if (__DEV__) recorder.record(event);
       const out = pipeline.process(event);
       poseLatencyDiagnostics?.markJsTransformEnd(latencyFrame);
-      const sourceAspect = event.sourceWidth / event.sourceHeight;
       if (resumePendingRef.current) {
         player.shiftTiming(Math.max(0, event.timestampMs - pauseStartedAtRef.current));
         resumePendingRef.current = false;
       }
       if (pausedRef.current) {
-        skeletonRef.current?.update(out, sourceAspect);
-        poseLatencyDiagnostics?.markRendererUpdateSubmitted(latencyFrame);
         return;
       }
       const u = player.update(out, voice.busy);
@@ -287,8 +282,6 @@ export function TrainingSessionScreen({
           return sameSnapshot(prev, hydratedNext) ? prev : hydratedNext;
         });
       }
-      skeletonRef.current?.update(out, sourceAspect);
-      poseLatencyDiagnostics?.markRendererUpdateSubmitted(latencyFrame);
     },
     [pipeline, poseLatencyDiagnostics, player, voice, sfx, recorder, onComplete, exerciseIds.length]
   );
@@ -315,14 +308,6 @@ export function TrainingSessionScreen({
   const visibleItemNumber = totalItems > 0 ? Math.min(visibleSnapshot.itemIndex + 1, totalItems) : 0;
   const footerMeta = trainingFooterMeta(visibleSnapshot, visibleItemNumber, totalItems);
   const stageDisplay = trainingStageDisplay(visibleSnapshot, visibleCameraAvailability);
-  const avatarMeasurementState = trainingAvatarState(visibleSnapshot.phase);
-  const avatarActiveBodyParts = React.useMemo(
-    () =>
-      visibleSnapshot.exerciseId
-        ? pointCloudBodyPartsForTrainingExercise(getExercise(visibleSnapshot.exerciseId))
-        : undefined,
-    [visibleSnapshot.exerciseId]
-  );
   const canControl =
     visibleCameraAvailability !== 'unavailable' && visibleSnapshot.phase !== 'complete' && visibleSnapshot.phase !== 'done';
   const canRepeat = visibleSnapshot.exerciseId !== null;
@@ -404,18 +389,13 @@ export function TrainingSessionScreen({
 
   return (
     <View style={styles.container}>
-      <SafePoseDetectionView
-        active={!busyDebug}
-        modelVariant="lite"
-        latencyDiagnosticsEnabled={poseLatencyDiagnostics !== null}
-        style={StyleSheet.absoluteFill}
-        onLandmarks={onLandmarks}
-        onPoseError={onPoseError}
-        onAvailabilityChange={setCameraAvailability}
-      />
       <ScrollView
         style={styles.layout}
-        contentContainerStyle={[styles.layoutContent, { paddingTop: recordingTopPadding }]}
+        contentContainerStyle={[
+          styles.layoutContent,
+          responsive.isCompactPhone && styles.compactScreenPadding,
+          { paddingTop: recordingTopPadding },
+        ]}
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
@@ -430,6 +410,20 @@ export function TrainingSessionScreen({
 
         <View style={styles.avatarSlot}>
           <View style={[styles.avatarViewport, cameraViewport]}>
+            {!busyDebug ? (
+              <SafePoseDetectionView
+                active
+                modelVariant="full"
+                latencyDiagnosticsEnabled={poseLatencyDiagnostics !== null}
+                nativeSkeletonOverlayEnabled
+                nativeSkeletonColor={TEMP_TRAINING_NATIVE_SKELETON_COLOR}
+                canvasColor={TEMP_TRAINING_NATIVE_SKELETON_CANVAS}
+                style={StyleSheet.absoluteFill}
+                onLandmarks={onLandmarks}
+                onPoseError={onPoseError}
+                onAvailabilityChange={setCameraAvailability}
+              />
+            ) : null}
             <View pointerEvents="box-none" style={styles.recordingChrome}>
               <HeaderLogo size={34} style={styles.recordingLogo} />
               <RecordingSetupNotice
@@ -453,27 +447,7 @@ export function TrainingSessionScreen({
             </View>
             {visibleCameraAvailability === 'unavailable' ? (
               <CameraUnavailableNotice compact style={styles.recordingCameraUnavailableNotice} />
-            ) : (
-              <SkeletonView
-                ref={skeletonRef}
-                mirrored
-                fit="contain"
-                frameSource="raw"
-                smoothingEnabled={false}
-                pointCloudBodyDensity="high"
-                pointCloudBodyMaxDots={900}
-                pointCloudBodyDotScale={1.72}
-                confidenceFadingEnabled={false}
-                confidenceIntensityEnabled={false}
-                reacquisitionFadeEnabled={false}
-                recognitionPulseEnabled={false}
-                pointCloudBodyActiveParts={avatarActiveBodyParts}
-                measurementState={avatarMeasurementState}
-                activeDomain={visibleSnapshot.activeDomain}
-                setupGuidesEnabled={false}
-                stateTransitionsEnabled={false}
-              />
-            )}
+            ) : null}
             <RecordingCardFooter
               exerciseName={currentExerciseName}
               meta={footerMeta}
@@ -552,6 +526,7 @@ function SessionHelpModal({
   visible: boolean;
   onClose: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   return (
     <Modal
       visible={visible}
@@ -559,8 +534,8 @@ function SessionHelpModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.modalBackdrop}>
-        <View style={styles.helpModal}>
+      <View style={[styles.modalBackdrop, responsive.isCompactPhone && styles.compactModalBackdrop]}>
+        <View style={[styles.helpModal, responsive.isCompactPhone && styles.compactCardPadding]}>
           <View style={styles.helpModalHeader}>
             <HeaderLogo size={26} />
             <Text style={styles.modalEyebrow}>Setup help</Text>
@@ -609,6 +584,7 @@ function DiscardSessionModal({
   onKeep: () => void;
   onDiscard: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   return (
     <Modal
       visible={visible}
@@ -616,8 +592,8 @@ function DiscardSessionModal({
       animationType="fade"
       onRequestClose={onKeep}
     >
-      <View style={styles.modalBackdrop}>
-        <View style={styles.discardModal}>
+      <View style={[styles.modalBackdrop, responsive.isCompactPhone && styles.compactModalBackdrop]}>
+        <View style={[styles.discardModal, responsive.isCompactPhone && styles.compactCardPadding]}>
           <Text style={styles.modalEyebrow}>Leave session?</Text>
           <Text style={styles.modalTitle}>Leave without saving?</Text>
           <Text style={styles.modalBody}>
@@ -658,6 +634,7 @@ function RecordingCardFooter({
   display: StageDisplay | null;
   style: StyleProp<ViewStyle>;
 }) {
+  const responsive = useResponsiveLayout();
   const displayValue = display ? (
     <Text
       style={styles.recordingFooterMetricValue}
@@ -677,7 +654,7 @@ function RecordingCardFooter({
   return (
     <View
       pointerEvents="none"
-      style={[styles.recordingFooter, style]}
+      style={[styles.recordingFooter, responsive.isCompactPhone && styles.compactCardPadding, style]}
     >
       <View style={styles.recordingFooterMovement}>
         <Text style={styles.recordingFooterMovementMeta} numberOfLines={1}>
@@ -791,27 +768,6 @@ function shouldConfirmDiscardTrainingSession(snapshot: Snapshot, cameraAvailabil
     return true;
   }
   return snapshot.itemIndex > 0 && snapshot.phase !== 'intro';
-}
-
-function trainingAvatarState(phase: TrainingPhase): PoseAvatarMeasurementState {
-  switch (phase) {
-    case 'preflight':
-      return 'framing';
-    case 'instructions':
-    case 'countdown':
-      return 'ready';
-    case 'set':
-      return 'training';
-    case 'rest':
-      return 'rest';
-    case 'complete':
-    case 'done':
-      return 'success';
-    case 'intro':
-    case 'transition':
-    default:
-      return 'setup';
-  }
 }
 
 function domainForTrainingExercise(definition: ExerciseDefinition): PoseAvatarActiveDomain {
@@ -946,6 +902,15 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     alignItems: 'center',
   },
+  compactScreenPadding: {
+    paddingHorizontal: 16,
+  },
+  compactCardPadding: {
+    paddingHorizontal: 16,
+  },
+  compactModalBackdrop: {
+    paddingHorizontal: 16,
+  },
   topBar: {
     width: '100%',
     maxWidth: spacing.pageMaxWidth,
@@ -978,7 +943,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
     borderRadius: radius.card,
-    backgroundColor: colors.card,
+    backgroundColor: TEMP_TRAINING_NATIVE_SKELETON_CANVAS,
     ...shadow.card,
   },
   recordingCameraUnavailableNotice: {
@@ -1283,7 +1248,7 @@ const styles = StyleSheet.create({
     minHeight: 56,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     borderRadius: radius.button,
   },
   modalKeepButton: {

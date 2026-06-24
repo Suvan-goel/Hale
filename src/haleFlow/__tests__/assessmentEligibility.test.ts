@@ -1,4 +1,5 @@
 import { DEFAULT_BATTERY } from '../../checkup';
+import { MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID } from '../../checkup/protocolPolicy';
 import type { CheckUp } from '../../checkup/types';
 import { BALANCE_LADDER_ID, CHAIR_STAND_ID } from '../../movements';
 import { createMovementBlockFromAssessment, tryCreateMovementBlockFromAssessment } from '../../adherence';
@@ -428,6 +429,33 @@ describe('assessment block-creation eligibility', () => {
       ok: false,
       reason: 'assessment_invalid',
       measuredDomains: [],
+    });
+  });
+
+  it('rejects Movement Profile V2 raw assessments with a stable unsupported protocol reason', () => {
+    const inputScore = score('balance');
+    const resultAssessment = assessment(inputScore);
+    const v2Assessment: MovementAssessment = {
+      ...resultAssessment,
+      results: {
+        ...resultAssessment.results,
+        rawMetrics: {
+          ...resultAssessment.results?.rawMetrics,
+          checkUpProtocolPolicyId: MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
+        },
+      },
+    };
+
+    expect(
+      getBlockCreationEligibility({
+        score: inputScore,
+        scoreSnapshot: scoreSnapshotFor(inputScore),
+        assessment: v2Assessment,
+      })
+    ).toEqual({
+      eligible: false,
+      reason: 'unsupported_checkup_protocol',
+      measuredDomains: ['strength_power', 'balance', 'mobility'],
     });
   });
 

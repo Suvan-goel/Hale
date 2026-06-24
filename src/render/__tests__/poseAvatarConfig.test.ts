@@ -1,10 +1,11 @@
 import { resolvePoseAvatarConfig, resolvePoseAvatarRendererMode } from '../poseAvatarConfig';
 
 describe('resolvePoseAvatarRendererMode', () => {
-  it('accepts classic, constellation, and point-cloud body', () => {
+  it('accepts classic, constellation, point-cloud body, and MediaPipe skeleton', () => {
     expect(resolvePoseAvatarRendererMode('classic')).toBe('classic');
     expect(resolvePoseAvatarRendererMode('constellation')).toBe('constellation');
     expect(resolvePoseAvatarRendererMode('point_cloud_body')).toBe('point_cloud_body');
+    expect(resolvePoseAvatarRendererMode('mediapipe_skeleton')).toBe('mediapipe_skeleton');
   });
 
   it('defaults to point-cloud body when no explicit value is set', () => {
@@ -15,6 +16,9 @@ describe('resolvePoseAvatarRendererMode', () => {
   it('can resolve the body style env to the point-cloud body renderer', () => {
     expect(resolvePoseAvatarRendererMode(undefined, 'point_cloud_body')).toBe(
       'point_cloud_body'
+    );
+    expect(resolvePoseAvatarRendererMode(undefined, 'mediapipe_skeleton')).toBe(
+      'mediapipe_skeleton'
     );
     expect(resolvePoseAvatarRendererMode(undefined, 'skeleton_constellation')).toBe(
       'constellation'

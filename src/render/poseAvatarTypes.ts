@@ -2,7 +2,11 @@ import type { PipelineFrameOutput } from '../pose/pipeline';
 import type { ConfidenceAnimationStrength, PoseAvatarRecognitionEvent } from './confidenceVisuals';
 import type { PointCloudBodyDensity, PointCloudBodyPart } from './pointCloudBodyGeometry';
 
-export type PoseAvatarRendererMode = 'classic' | 'constellation' | 'point_cloud_body';
+export type PoseAvatarRendererMode =
+  | 'classic'
+  | 'constellation'
+  | 'point_cloud_body'
+  | 'mediapipe_skeleton';
 
 export type PoseAvatarFrameSource = 'raw' | 'display';
 

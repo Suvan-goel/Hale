@@ -123,7 +123,7 @@ export function LiveSessionScreen() {
     <View style={styles.container}>
       <SafePoseDetectionView
         active
-        modelVariant="lite"
+        modelVariant="full"
         latencyDiagnosticsEnabled={poseLatencyDiagnostics !== null}
         style={StyleSheet.absoluteFill}
         onLandmarks={onLandmarks}

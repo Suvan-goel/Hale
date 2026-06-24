@@ -5,6 +5,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../components/ui';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { useResponsiveLayout } from '../theme/responsive';
 
 const WELCOME_HERO_IMAGE = require('../../assets/images/hale-welcome-hero-v3.png');
 
@@ -19,6 +20,7 @@ export function WelcomeScreen({
   onBack?: () => void;
   showDashboardLink?: boolean;
 }) {
+  const responsive = useResponsiveLayout();
   return (
     <Screen contentStyle={styles.screen}>
       {onBack ? (
@@ -43,7 +45,7 @@ export function WelcomeScreen({
         />
       </View>
 
-      <View style={styles.summaryPanel}>
+      <View style={[styles.summaryPanel, responsive.isCompactPhone && styles.compactCardPadding]}>
         <View style={styles.summaryTopRow}>
           <Text style={styles.summaryKicker}>Movement Check-Up</Text>
         </View>
@@ -58,7 +60,7 @@ export function WelcomeScreen({
         </View>
       </View>
 
-      <View style={styles.timelineCard}>
+      <View style={[styles.timelineCard, responsive.isCompactPhone && styles.compactCardPadding]}>
         <SectionHeader title="What happens today" note="Voice guided" />
         <TimelineStep
           index="01"
@@ -83,7 +85,7 @@ export function WelcomeScreen({
         />
       </View>
 
-      <View style={styles.prepPanel}>
+      <View style={[styles.prepPanel, responsive.isCompactPhone && styles.compactCardPadding]}>
         <SectionHeader title="Before you begin" note="Simple setup" />
         <View style={styles.prepList}>
           <PrepItem icon="chair" label="Stable chair" body="Use a sturdy chair that will not slide." />
@@ -94,7 +96,7 @@ export function WelcomeScreen({
         </View>
       </View>
 
-      <View style={styles.privacyPanel}>
+      <View style={[styles.privacyPanel, responsive.isCompactPhone && styles.compactCardPadding]}>
         <View style={styles.privacyHeader}>
           <View style={styles.privacyHeaderCopy}>
             <Text style={styles.privacyKicker}>Privacy</Text>
@@ -244,6 +246,9 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
     boxShadow: '0 10px 26px rgba(17,20,18,0.032)',
+  },
+  compactCardPadding: {
+    paddingHorizontal: 16,
   },
   summaryTopRow: {
     minHeight: 28,

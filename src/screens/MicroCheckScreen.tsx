@@ -45,6 +45,7 @@ import type {
   PoseAvatarMeasurementState,
 } from '../render/poseAvatarTypes';
 import { colors, radius, shadow, spacing, type } from '../theme';
+import { useResponsiveLayout } from '../theme/responsive';
 import { MicroCheckPhase, MicroCheckResult, MicroCheckRunner, MicroCheckType } from '../training/microCheck';
 import { poseEstimationWindowSize, recordingCameraViewportSize } from './recordingViewport';
 
@@ -161,6 +162,7 @@ export function MicroCheckScreen({
   const [discardModalVisible, setDiscardModalVisible] = React.useState(false);
   const [cameraAvailability, setCameraAvailability] = React.useState<CameraAvailability>('checking');
   const windowSize = useWindowDimensions();
+  const responsive = useResponsiveLayout();
   const poseLatencyDiagnostics = React.useMemo(
     () =>
       isPoseLatencyDiagnosticsEnabled()
@@ -317,7 +319,7 @@ export function MicroCheckScreen({
     <View style={styles.container}>
       <SafePoseDetectionView
         active={!metricDebug}
-        modelVariant="lite"
+        modelVariant="full"
         latencyDiagnosticsEnabled={poseLatencyDiagnostics !== null}
         style={StyleSheet.absoluteFill}
         onLandmarks={onLandmarks}
@@ -326,7 +328,11 @@ export function MicroCheckScreen({
       />
       <ScrollView
         style={styles.layout}
-        contentContainerStyle={[styles.layoutContent, { paddingTop: recordingTopPadding }]}
+        contentContainerStyle={[
+          styles.layoutContent,
+          responsive.isCompactPhone && styles.compactScreenPadding,
+          { paddingTop: recordingTopPadding },
+        ]}
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
@@ -467,6 +473,7 @@ function MicroCheckCardFooter({
   display: StageDisplay | null;
   style: StyleProp<ViewStyle>;
 }) {
+  const responsive = useResponsiveLayout();
   const metaLine = `${meta.progress} · ${meta.context}`;
   const displayValue = display ? (
     <Text
@@ -483,7 +490,7 @@ function MicroCheckCardFooter({
   ) : null;
 
   return (
-    <View pointerEvents="none" style={[styles.recordingFooter, style]}>
+    <View pointerEvents="none" style={[styles.recordingFooter, responsive.isCompactPhone && styles.compactCardPadding, style]}>
       <View style={styles.recordingFooterMovement}>
         <Text
           style={styles.recordingFooterMovementName}
@@ -557,6 +564,7 @@ function MicroCheckHelpModal({
   visible: boolean;
   onClose: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   return (
     <Modal
       visible={visible}
@@ -564,8 +572,8 @@ function MicroCheckHelpModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.modalBackdrop}>
-        <View style={styles.helpModal}>
+      <View style={[styles.modalBackdrop, responsive.isCompactPhone && styles.compactModalBackdrop]}>
+        <View style={[styles.helpModal, responsive.isCompactPhone && styles.compactCardPadding]}>
           <View style={styles.helpModalHeader}>
             <HeaderLogo size={26} />
             <Text style={styles.modalEyebrow}>Setup help</Text>
@@ -614,6 +622,7 @@ function DiscardMicroCheckModal({
   onKeep: () => void;
   onDiscard: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   return (
     <Modal
       visible={visible}
@@ -621,8 +630,8 @@ function DiscardMicroCheckModal({
       animationType="fade"
       onRequestClose={onKeep}
     >
-      <View style={styles.modalBackdrop}>
-        <View style={styles.discardModal}>
+      <View style={[styles.modalBackdrop, responsive.isCompactPhone && styles.compactModalBackdrop]}>
+        <View style={[styles.discardModal, responsive.isCompactPhone && styles.compactCardPadding]}>
           <Text style={styles.modalEyebrow}>Leave micro-check?</Text>
           <Text style={styles.modalTitle}>Leave without saving?</Text>
           <Text style={styles.modalBody}>
@@ -793,6 +802,15 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
     gap: spacing.md,
     alignItems: 'center',
+  },
+  compactScreenPadding: {
+    paddingHorizontal: 16,
+  },
+  compactCardPadding: {
+    paddingHorizontal: 16,
+  },
+  compactModalBackdrop: {
+    paddingHorizontal: 16,
   },
   topBar: {
     width: '100%',
@@ -1107,7 +1125,7 @@ const styles = StyleSheet.create({
     minHeight: 56,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     borderRadius: radius.button,
   },
   modalKeepButton: { backgroundColor: colors.accent },

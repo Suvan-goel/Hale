@@ -16,7 +16,12 @@ import {
 import { requestCameraPermissionsAsync } from './modules/expo-pose-detection';
 import { BackArrowButton } from './src/components/BackArrowButton';
 import { HeaderLogo } from './src/components/HeaderLogo';
-import { PrimaryButton, Screen, ScreenHeader } from './src/components/ui';
+import {
+  PrimaryButton,
+  Screen,
+  ScreenHeader,
+  ScreenScrollClearanceProvider,
+} from './src/components/ui';
 import {
   AdherenceStore,
   AdherenceStoreState,
@@ -102,6 +107,7 @@ import { createExpoHistoryFs } from './src/history/fsAdapter';
 import {
   DEFAULT_TAB_KEY,
   TabBar,
+  TAB_BAR_SCROLL_CLEARANCE,
   TabKey,
   getTabDef,
   normalizeTabKey,
@@ -175,11 +181,9 @@ import { SafetyProfileScreen } from './src/screens/SafetyProfileScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { SessionPlanningRecoveryScreen } from './src/screens/SessionPlanningRecoveryScreen';
 import { SessionPreviewScreen } from './src/screens/SessionPreviewScreen';
-import { PoseOverlayBenchmarkScreen } from './src/screens/PoseOverlayBenchmarkScreen';
 import { TodayScreen } from './src/screens/TodayScreen';
 import { TrainingSessionScreen } from './src/screens/TrainingSessionScreen';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
-import { isPoseLatencyDiagnosticsEnabled } from './src/diagnostics/poseLatencyDiagnostics';
 import {
   EquipmentProfile,
   MicroCheckResult,
@@ -222,8 +226,7 @@ type Flow =
   | 'ladder-detail'
   | 'learn-detail'
   | 'settings'
-  | 'dev-live'
-  | 'pose-benchmark';
+  | 'dev-live';
 
 type CameraSetupEntry = 'checkup' | 'review';
 type LifeGoalEntry = 'onboarding' | 'review';
@@ -240,7 +243,6 @@ const CAMERA_FLOWS = new Set<Flow>([
   'training',
   'microcheck',
   'dev-live',
-  'pose-benchmark',
 ]);
 const MAX_NAVIGATION_HISTORY_ENTRIES = 40;
 const LAUNCH_SYNC_RETRY_DELAY_MS = 5000;
@@ -503,7 +505,6 @@ function HaleApp() {
   // Audio mode must be configured BEFORE the camera mounts — audio session
   // changes must never interrupt a running camera session.
   const [audioReady, setAudioReady] = React.useState(false);
-  const poseLatencyDiagnosticsEnabled = isPoseLatencyDiagnosticsEnabled();
 
   // Navigation: which bottom tab is showing, and whether a full-screen flow is
   // on top of it (a flow hides the tab bar; null means "show the tabs").
@@ -3568,15 +3569,10 @@ function HaleApp() {
             onOpenSafetyProfile={() => openSafetyProfile('review')}
             onOpenCameraSetup={() => openCameraSetup('review')}
             onReplayOnboardingForDev={__DEV__ ? replayOnboardingForDev : undefined}
-            onOpenPoseBenchmarkForDiagnostics={
-              poseLatencyDiagnosticsEnabled ? () => setFlow('pose-benchmark') : undefined
-            }
             onBack={goHome}
           />
         ) : flow === 'dev-live' ? (
           <LiveSessionScreen />
-        ) : flow === 'pose-benchmark' && poseLatencyDiagnosticsEnabled ? (
-          <PoseOverlayBenchmarkScreen onBack={() => goBack(goHome)} />
         ) : (
           // Defensive: an unsatisfiable flow (e.g. results with no result) falls back home.
           <View />
@@ -3603,74 +3599,76 @@ function HaleApp() {
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
-      <View style={styles.tabContent}>
-        {activeTabScreen === 'TodayScreen' ? (
-          <TodayScreen
-            profile={displayPrefs.profile}
-            lifecycle={lifecycle}
-            onPrimaryAction={handleTodayPrimaryAction}
-            onOpenSettings={goSettings}
-          />
-        ) : activeTabScreen === 'PlanScreen' ? (
-          <PlanScreen
-            lifecycleState={lifecycle.state}
-            lifeGoalText={
-              displayPrefs.profile.lifeGoal
-                ? getLifeGoalDisplayText(displayPrefs.profile.lifeGoal)
-                : displayPrefs.profile.goal
-            }
-            activeBlockSummary={lifecycle.activeBlockSummary}
-            weekSessionStatuses={lifecycle.weekSessionStatuses ?? []}
-            preferredDays={displayPrefs.profile.safetyProfile?.preferredWorkoutDays ?? []}
-            startingEffort={onboardingActivityLevel(displayPrefs.profile.safetyProfile?.activityLevel)}
-            onStartOnboarding={() => setFlow(flowForOnboardingStep(onboardingStep) ?? 'welcome')}
-            onStartCheckUp={() => openCameraSetup()}
-            onCreateBlock={handleStartNextBlock}
-            onStartPlanSession={handleStartPlanSession}
-            onStartRetest={() => beginCheckUp('official_retest')}
-            onOpenSettings={goSettings}
-          />
-        ) : activeTabScreen === 'ProgressScreen' ? (
-          <ProgressScreen
-            history={displayHistory}
-            assessments={displayAdherence.assessments}
-            activeBlock={displayActiveMovementBlock}
-            blocks={displayAdherence.blocks}
-            reports={displayAdherence.reports}
-            completions={displayAdherence.completions}
-            ladderProgressById={displayTraining.ladderProgressById}
-            lifeGoal={displayPrefs.profile.lifeGoal}
-            today={new Date().toISOString()}
-            onBeginFirstCheckUp={beginProgressFirstCheckUp}
-            onBeginAdditionalCheckUp={beginProgressAdditionalCheckUp}
-            onStartRetest={() => beginCheckUp('official_retest')}
-            onViewLatest={devMockData ? () => undefined : viewLast}
-            onViewCheckUp={devMockData ? () => undefined : viewHistoricalCheckUp}
-            historyOpen={progressHistoryOpen}
-            onHistoryOpenChange={setProgressHistoryOpen}
-            onOpenSettings={goSettings}
-          />
-        ) : activeTabScreen === 'ExploreScreen' ? (
-          <ExploreScreen
-            equipment={displayTraining.equipment}
-            safetyProfile={displayPrefs.profile.safetyProfile}
-            ladderProgressById={displayTraining.ladderProgressById}
-            activeBlockId={displayActiveMovementBlock?.id}
-            generatedSessionSummaries={displayTraining.generatedSessionSummaries}
-            onStartExtraSession={handleStartExtraSession}
-            onOpenLadder={openLadderDetail}
-            onOpenLearn={openLearnDetail}
-            onOpenSettings={goSettings}
-          />
-        ) : (
-          <TodayScreen
-            profile={displayPrefs.profile}
-            lifecycle={lifecycle}
-            onPrimaryAction={handleTodayPrimaryAction}
-            onOpenSettings={goSettings}
-          />
-        )}
-      </View>
+      <ScreenScrollClearanceProvider bottom={showTabBar ? TAB_BAR_SCROLL_CLEARANCE : 0}>
+        <View style={styles.tabContent}>
+          {activeTabScreen === 'TodayScreen' ? (
+            <TodayScreen
+              profile={displayPrefs.profile}
+              lifecycle={lifecycle}
+              onPrimaryAction={handleTodayPrimaryAction}
+              onOpenSettings={goSettings}
+            />
+          ) : activeTabScreen === 'PlanScreen' ? (
+            <PlanScreen
+              lifecycleState={lifecycle.state}
+              lifeGoalText={
+                displayPrefs.profile.lifeGoal
+                  ? getLifeGoalDisplayText(displayPrefs.profile.lifeGoal)
+                  : displayPrefs.profile.goal
+              }
+              activeBlockSummary={lifecycle.activeBlockSummary}
+              weekSessionStatuses={lifecycle.weekSessionStatuses ?? []}
+              preferredDays={displayPrefs.profile.safetyProfile?.preferredWorkoutDays ?? []}
+              startingEffort={onboardingActivityLevel(displayPrefs.profile.safetyProfile?.activityLevel)}
+              onStartOnboarding={() => setFlow(flowForOnboardingStep(onboardingStep) ?? 'welcome')}
+              onStartCheckUp={() => openCameraSetup()}
+              onCreateBlock={handleStartNextBlock}
+              onStartPlanSession={handleStartPlanSession}
+              onStartRetest={() => beginCheckUp('official_retest')}
+              onOpenSettings={goSettings}
+            />
+          ) : activeTabScreen === 'ProgressScreen' ? (
+            <ProgressScreen
+              history={displayHistory}
+              assessments={displayAdherence.assessments}
+              activeBlock={displayActiveMovementBlock}
+              blocks={displayAdherence.blocks}
+              reports={displayAdherence.reports}
+              completions={displayAdherence.completions}
+              ladderProgressById={displayTraining.ladderProgressById}
+              lifeGoal={displayPrefs.profile.lifeGoal}
+              today={new Date().toISOString()}
+              onBeginFirstCheckUp={beginProgressFirstCheckUp}
+              onBeginAdditionalCheckUp={beginProgressAdditionalCheckUp}
+              onStartRetest={() => beginCheckUp('official_retest')}
+              onViewLatest={devMockData ? () => undefined : viewLast}
+              onViewCheckUp={devMockData ? () => undefined : viewHistoricalCheckUp}
+              historyOpen={progressHistoryOpen}
+              onHistoryOpenChange={setProgressHistoryOpen}
+              onOpenSettings={goSettings}
+            />
+          ) : activeTabScreen === 'ExploreScreen' ? (
+            <ExploreScreen
+              equipment={displayTraining.equipment}
+              safetyProfile={displayPrefs.profile.safetyProfile}
+              ladderProgressById={displayTraining.ladderProgressById}
+              activeBlockId={displayActiveMovementBlock?.id}
+              generatedSessionSummaries={displayTraining.generatedSessionSummaries}
+              onStartExtraSession={handleStartExtraSession}
+              onOpenLadder={openLadderDetail}
+              onOpenLearn={openLearnDetail}
+              onOpenSettings={goSettings}
+            />
+          ) : (
+            <TodayScreen
+              profile={displayPrefs.profile}
+              lifecycle={lifecycle}
+              onPrimaryAction={handleTodayPrimaryAction}
+              onOpenSettings={goSettings}
+            />
+          )}
+        </View>
+      </ScreenScrollClearanceProvider>
 
       {showTabBar ? <TabBar active={activeTab} onChange={setTab} /> : null}
     </View>

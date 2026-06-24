@@ -41,7 +41,7 @@ import {
 import { BALANCE_FEET_TOGETHER_ID, HAMSTRING_REACH_ID, STS_STANDARD_ID } from '../exercises';
 import type { LadderProgress } from '../training';
 import { colors, fonts, imageOverlayControl, radius, shadow, spacing, type } from '../theme';
-import { useResponsiveLayout } from '../theme/responsive';
+import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 import { SettingsIcon } from '../navigation/icons';
 import {
   BALANCE_LADDER_ID,
@@ -81,6 +81,7 @@ export function ProgressScreen({
   onHistoryOpenChange,
   onOpenSettings,
 }: ProgressScreenProps) {
+  const responsive = useResponsiveLayout();
   const [uncontrolledHistoryOpen, setUncontrolledHistoryOpen] = React.useState(false);
   const historyOpen = controlledHistoryOpen ?? uncontrolledHistoryOpen;
 
@@ -138,7 +139,7 @@ export function ProgressScreen({
         <View style={styles.titleRow}>
           <View style={styles.titleGroup}>
             <HeaderLogo />
-            <Text style={styles.title}>Progress</Text>
+            <Text style={[styles.title, responsive.isCompactPhone && compactTypography.pageTitle]}>Progress</Text>
           </View>
           <Pressable
             style={({ pressed }) => [styles.headerIconButton, pressed && styles.pressed]}
@@ -193,9 +194,10 @@ export function ProgressScreen({
 }
 
 function ProgressEmptyState({ onBeginCheckUp }: { onBeginCheckUp: () => void }) {
+  const responsive = useResponsiveLayout();
   return (
     <View style={styles.emptyProgressWrap}>
-      <View style={styles.emptyProgressCard}>
+      <View style={[styles.emptyProgressCard, responsive.isCompactPhone && styles.compactCardPadding]}>
         <View style={styles.emptyProgressHeader}>
           <Text style={styles.emptyProgressKicker}>Set your starting point</Text>
           <View style={styles.emptyProgressMetaPill}>
@@ -208,7 +210,7 @@ function ProgressEmptyState({ onBeginCheckUp }: { onBeginCheckUp: () => void }) 
           Hale guides you through simple movements and saves your first strength, balance, and mobility numbers. Future check-ups use the same movements so you can see what changed.
         </Text>
 
-        <View style={styles.emptyProgressSteps} accessibilityLabel="Progress preparation steps">
+        <View style={[styles.emptyProgressSteps, responsive.isCompactPhone && styles.compactCardPadding]} accessibilityLabel="Progress preparation steps">
           <ProgressEmptyStep
             index="1"
             title="Do the first check-up"
@@ -231,7 +233,11 @@ function ProgressEmptyState({ onBeginCheckUp }: { onBeginCheckUp: () => void }) 
         </View>
 
         <Pressable
-          style={({ pressed }) => [styles.emptyProgressButton, pressed && styles.pressed]}
+          style={({ pressed }) => [
+            styles.emptyProgressButton,
+            responsive.isCompactPhone && styles.compactCardPadding,
+            pressed && styles.pressed,
+          ]}
           onPress={onBeginCheckUp}
           accessibilityRole="button"
           accessibilityLabel="Start Movement Check-Up"
@@ -1170,6 +1176,7 @@ function RetestCard({
   body: string;
   onPress?: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   const content = (
     <>
       <View style={styles.retestIconWell}>
@@ -1194,7 +1201,11 @@ function RetestCard({
   return (
     <Card style={[styles.progressCard, styles.retestCardInteractive]}>
       <Pressable
-        style={({ pressed }) => [styles.retestPressable, pressed && styles.pressed]}
+        style={({ pressed }) => [
+          styles.retestPressable,
+          responsive.isCompactPhone && styles.compactCardPadding,
+          pressed && styles.pressed,
+        ]}
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={`${title}. ${body}`}
@@ -1403,6 +1414,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgSurface,
     ...shadow.card,
   },
+  compactCardPadding: {
+    paddingHorizontal: 16,
+  },
   emptyProgressWrap: {
     gap: spacing.md,
   },
@@ -1565,7 +1579,7 @@ const styles = StyleSheet.create({
     marginTop: -1,
   },
   emptyProgressNote: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
   },
   emptyProgressNoteText: {
     color: colors.textSecondary,
@@ -1607,7 +1621,7 @@ const styles = StyleSheet.create({
     maxWidth: '84%',
   },
   progressHeroContentCompact: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 24,
     paddingBottom: 24,
     maxWidth: '88%',

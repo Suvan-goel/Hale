@@ -11,6 +11,7 @@ import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
 import { controlledBetaEquipmentPositioning, extraSessionCardTitle, type HaleSessionPlan } from '../haleFlow';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 
 export function SessionPreviewScreen({
   plan,
@@ -21,6 +22,7 @@ export function SessionPreviewScreen({
   onStart: () => void;
   onCancel: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   const equipment = plan.metadata?.equipmentNeeded ?? [];
   const focusStimulusCopy = focusStimulusPreviewCopy(plan);
   return (
@@ -30,7 +32,7 @@ export function SessionPreviewScreen({
         <Eyebrow>{"Today's session"}</Eyebrow>
         <View style={styles.titleGroup}>
           <HeaderLogo />
-          <Text style={styles.title}>{sessionPreviewTitle(plan)}</Text>
+          <Text style={[styles.title, responsive.isCompactPhone && compactTypography.pageTitle]}>{sessionPreviewTitle(plan)}</Text>
         </View>
         <Text style={styles.subtitle}>{sessionBenefitCopy(plan)}</Text>
       </View>

@@ -4,6 +4,7 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../components/ui';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { useResponsiveLayout } from '../theme/responsive';
 
 const SETUP_HERO_IMAGE = require('../../assets/images/hale-camera-setup-hero-v4.png');
 
@@ -33,6 +34,7 @@ export function CameraSetupScreen({
   onDevCompleteCheckup?: () => void;
   onCancel: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   const showPrimaryAction = !permissionGranted || showBeginAction;
   const showActions = showPrimaryAction || !!onDevCompleteCheckup || !!onDoLater;
 
@@ -66,7 +68,7 @@ export function CameraSetupScreen({
         </View>
       </SetupSection>
 
-      <View style={styles.expectCard}>
+      <View style={[styles.expectCard, responsive.isCompactPhone && styles.compactCardPadding]}>
         <View style={styles.expectMark}>
           <Text style={styles.expectMarkText}>Go</Text>
         </View>
@@ -106,8 +108,9 @@ function SetupSection({
   meta: string;
   children: React.ReactNode;
 }) {
+  const responsive = useResponsiveLayout();
   return (
-    <View style={styles.sectionCard}>
+    <View style={[styles.sectionCard, responsive.isCompactPhone && styles.compactCardPadding]}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>{title}</Text>
         <View style={styles.sectionMetaPill}>
@@ -120,8 +123,9 @@ function SetupSection({
 }
 
 function SetupItem({ n, text }: { n: number; text: string }) {
+  const responsive = useResponsiveLayout();
   return (
-    <View style={styles.step}>
+    <View style={[styles.step, responsive.isCompactPhone && styles.compactCardPadding]}>
       <View style={styles.stepMark}>
         <Text style={styles.stepMarkText}>{n}</Text>
       </View>
@@ -149,6 +153,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
     ...shadow.card,
+  },
+  compactCardPadding: {
+    paddingHorizontal: 16,
   },
   sectionHeader: {
     flexDirection: 'row',

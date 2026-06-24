@@ -4,6 +4,7 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 import { BackArrowButton } from '../../components/BackArrowButton';
 import { PrimaryButton, Screen, ScreenHeader } from '../../components/ui';
 import { colors, fonts, radius, shadow, spacing, type } from '../../theme';
+import { useResponsiveLayout } from '../../theme/responsive';
 import type { LifeGoal, MovementBlock, TrainingSessionCompletion } from '../types';
 
 const RESTART_HERO_IMAGE = require('../../../assets/images/hale-clean-slate-restart-hero-v1.png');
@@ -23,6 +24,7 @@ export function RestartSessionScreen({
   onStart: () => void;
   onCancel: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   return (
     <Screen contentStyle={styles.screen}>
       <View style={styles.backRow}>
@@ -41,7 +43,7 @@ export function RestartSessionScreen({
         />
       </View>
 
-      <View style={styles.summaryPanel}>
+      <View style={[styles.summaryPanel, responsive.isCompactPhone && styles.compactCardPadding]}>
         <Text style={styles.summaryTitle}>A lighter session today</Text>
         <Text style={styles.summaryBody}>
           You'll do a few gentle movements from your current plan. This counts for the week and keeps your block moving.
@@ -101,6 +103,9 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
     boxShadow: '0 10px 26px rgba(17,20,18,0.032)',
+  },
+  compactCardPadding: {
+    paddingHorizontal: 16,
   },
   summaryTitle: {
     fontFamily: fonts.serifMedium,

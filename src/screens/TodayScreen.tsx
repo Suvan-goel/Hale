@@ -13,6 +13,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 const HERO_IMAGE = require('../../assets/images/hale-home-hero-botanical.png');
 
 import { HeaderLogo } from '../components/HeaderLogo';
+import { useScreenScrollClearance } from '../components/ui';
 import type {
   HaleAppLifecycleResult,
   MovementSnapshot,
@@ -94,6 +95,7 @@ export function TodayScreen({
 }) {
   const [sessionMenuVisible, setSessionMenuVisible] = React.useState(false);
   const responsive = useResponsiveLayout();
+  const bottomScrollClearance = useScreenScrollClearance();
   const compact = responsive.isCompactPhone;
   const snapshot = lifecycle.movementSnapshot;
   const canAdjustSession =
@@ -133,6 +135,7 @@ export function TodayScreen({
             maxWidth: responsive.maxContentWidth,
             paddingHorizontal: responsive.horizontalPadding,
             paddingTop: responsive.pageTop,
+            paddingBottom: bottomScrollClearance || spacing.xl,
           },
         ]}
         contentInsetAdjustmentBehavior="automatic"
@@ -172,7 +175,7 @@ export function TodayScreen({
           onPress={handleStartPress}
         />
 
-        <TodayContextStrip lifecycle={lifecycle} />
+        <TodayContextStrip compact={compact} lifecycle={lifecycle} />
       </ScrollView>
 
       <SessionStartMenu
@@ -196,7 +199,7 @@ function MovementSnapshotCard({
   const progress = movementProfileProgress(lifecycle, snapshot);
   const hasMeasuredDomains = SNAPSHOT_ROWS.some((row) => snapshot?.[row.key]);
   return (
-    <View style={styles.snapshotCard}>
+    <View style={[styles.snapshotCard, compact && styles.compactCardPadding]}>
       <Text style={styles.snapshotTitle}>Your movement snapshot</Text>
       {!hasMeasuredDomains ? (
         <Text style={styles.snapshotIntro}>Complete your check-up to see strength, balance, and mobility here.</Text>
@@ -279,11 +282,11 @@ function SnapshotProgressRing({
   );
 }
 
-function TodayContextStrip({ lifecycle }: { lifecycle: HaleAppLifecycleResult }) {
+function TodayContextStrip({ compact, lifecycle }: { compact: boolean; lifecycle: HaleAppLifecycleResult }) {
   const block = lifecycle.activeBlockSummary;
   if (block) {
     return (
-      <View style={styles.contextStrip}>
+      <View style={[styles.contextStrip, compact && styles.compactCardPadding]}>
         <Text style={styles.contextTitle}>Your 4-week plan</Text>
         <View style={styles.contextBody}>
           <View style={styles.contextPrimary}>
@@ -304,7 +307,7 @@ function TodayContextStrip({ lifecycle }: { lifecycle: HaleAppLifecycleResult })
   }
 
   return (
-    <View style={styles.contextStrip}>
+    <View style={[styles.contextStrip, compact && styles.compactCardPadding]}>
       <Text style={styles.contextTitle}>Next step</Text>
       <View style={styles.contextBody}>
         <View style={styles.contextPrimary}>
@@ -355,7 +358,7 @@ function DailyFocusCard({
           </View>
         </View>
         <Pressable
-          style={({ pressed }) => [styles.focusButton, pressed && styles.focusButtonPressed]}
+          style={({ pressed }) => [styles.focusButton, compact && styles.compactControlPadding, pressed && styles.focusButtonPressed]}
           onPress={onPress}
           accessibilityRole="button"
           accessibilityLabel={ctaLabel}
@@ -445,8 +448,10 @@ export function SessionStartMenu({
   onClose: () => void;
   onStart: (adjustment?: TodaySessionAdjustment | null, painArea?: PainArea | null) => void;
 }) {
+  const responsive = useResponsiveLayout();
   const [selected, setSelected] = React.useState<TodaySessionAdjustment | null>(null);
   const [painArea, setPainArea] = React.useState<PainArea | null>(null);
+  const compact = responsive.isCompactPhone;
   const needsPainArea = selected === 'something_hurts' && !painArea;
   const selectedOption = SESSION_MENU_OPTIONS.find((option) => option.value === selected) ?? SESSION_MENU_OPTIONS[0];
   const primaryLabel = needsPainArea ? 'Choose an area first' : selectedOption.primaryLabel;
@@ -461,7 +466,7 @@ export function SessionStartMenu({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalRoot}>
         <Pressable style={styles.modalScrim} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close session options" />
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, compact && styles.compactCardPadding]}>
           <View style={styles.sheetHandle} />
           <View style={styles.sheetHeader}>
             <Text style={styles.sheetEyebrow}>Today's session</Text>
@@ -487,9 +492,9 @@ export function SessionStartMenu({
             </View>
 
             {selected === 'something_hurts' ? (
-              <View style={styles.painMenu}>
-                <View style={styles.painAccentRail} />
-                <View style={styles.painHeader}>
+              <View style={[styles.painMenu, compact && styles.compactCardPadding]}>
+                <View style={[styles.painAccentRail, compact && styles.painAccentRailCompact]} />
+                <View style={[styles.painHeader, compact && styles.painHeaderCompact]}>
                   <Text style={styles.painTitle}>Where should Hale be careful?</Text>
                   <Text style={styles.painBody}>Choose one area so the session can stay comfortable.</Text>
                 </View>
@@ -497,7 +502,12 @@ export function SessionStartMenu({
                   {PAIN_AREAS.map((area) => (
                     <Pressable
                       key={area.value}
-                      style={({ pressed }) => [styles.painChip, painArea === area.value && styles.painChipSelected, pressed && styles.pressed]}
+                      style={({ pressed }) => [
+                        styles.painChip,
+                        compact && styles.compactControlPadding,
+                        painArea === area.value && styles.painChipSelected,
+                        pressed && styles.pressed,
+                      ]}
                       onPress={() => setPainArea((value) => (value === area.value ? null : area.value))}
                       accessibilityRole="button"
                       accessibilityState={{ selected: painArea === area.value }}
@@ -546,9 +556,15 @@ function MenuOption({
   selected: boolean;
   onPress: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   return (
     <Pressable
-      style={({ pressed }) => [styles.menuOption, selected && styles.menuOptionSelected, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.menuOption,
+        responsive.isCompactPhone && styles.compactCardPadding,
+        selected && styles.menuOptionSelected,
+        pressed && styles.pressed,
+      ]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected }}
@@ -707,7 +723,6 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
     justifyContent: 'flex-start',
-    paddingBottom: spacing.xl,
     gap: 14,
   },
   header: {
@@ -753,6 +768,12 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     backgroundColor: todayHomeColors.card,
     ...shadow.card,
+  },
+  compactCardPadding: {
+    paddingHorizontal: 16,
+  },
+  compactControlPadding: {
+    paddingHorizontal: 16,
   },
   contextTitle: {
     color: todayHomeColors.primaryText,
@@ -939,7 +960,7 @@ const styles = StyleSheet.create({
   focusContentCompact: {
     minHeight: 286,
     paddingVertical: 24,
-    paddingHorizontal: 22,
+    paddingHorizontal: 16,
   },
   focusCopy: {
     width: '72%',
@@ -1166,10 +1187,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accentDeep,
     opacity: 0.92,
   },
+  painAccentRailCompact: {
+    left: spacing.md,
+  },
   painHeader: {
     gap: 5,
     paddingLeft: 18,
     paddingRight: spacing.sm,
+  },
+  painHeaderCompact: {
+    paddingLeft: 14,
   },
   painTitle: {
     color: colors.textPrimary,

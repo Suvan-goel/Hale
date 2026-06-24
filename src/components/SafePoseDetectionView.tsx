@@ -11,6 +11,7 @@ import type {
   PoseErrorEventPayload,
 } from '../../modules/expo-pose-detection';
 import { colors, radius, spacing, type } from '../theme';
+import { useResponsiveLayout } from '../theme/responsive';
 
 export type CameraAvailability = 'checking' | 'available' | 'unavailable';
 
@@ -72,8 +73,17 @@ export function CameraUnavailableNotice({
   style?: StyleProp<ViewStyle>;
   compact?: boolean;
 }) {
+  const responsive = useResponsiveLayout();
   return (
-    <View style={[styles.notice, compact && styles.noticeCompact, style]} pointerEvents="none">
+    <View
+      style={[
+        styles.notice,
+        (compact || responsive.isCompactPhone) && styles.noticeCompact,
+        responsive.isCompactPhone && styles.compactCardPadding,
+        style,
+      ]}
+      pointerEvents="none"
+    >
       <Text style={styles.noticeTitle}>Camera not available</Text>
       <Text style={styles.noticeBody}>
         Hale could not find a usable camera on this device. You can still review this screen, but measurement needs a device camera.
@@ -163,6 +173,9 @@ const styles = StyleSheet.create({
   },
   noticeCompact: {
     minHeight: 0,
+  },
+  compactCardPadding: {
+    paddingHorizontal: 16,
   },
   noticeTitle: {
     ...type.cardRowTitle,

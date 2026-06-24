@@ -10,6 +10,12 @@ export type CameraFacing = 'front' | 'back';
 
 export type ModelVariant = 'lite' | 'full';
 
+export type AndroidPosePipelineMode = 'full-video-sync' | 'full-live-stream';
+
+export type AndroidPoseRotationMode = 'rotated-bitmap' | 'metadata';
+
+export type AndroidPoseAnalysisResolution = '640x480' | '512x384' | '480x360';
+
 export type PoseLatencyNativeClock = 'android.elapsedRealtimeNanos' | 'ios.CACurrentMediaTime';
 
 export type PoseLatencyNativeDiagnostics = {
@@ -25,6 +31,40 @@ export type PoseLatencyNativeDiagnostics = {
   sourceAgeAtMediapipeSubmitMs?: number;
   sourceAgeAtMediapipeCallbackMs?: number;
   sourceAgeAtNativeEventEmitMs?: number;
+  imageProxyToBitmapMs?: number;
+  explicitRotationMs?: number;
+  mpImageBuildMs?: number;
+  resultFlattenMs?: number;
+  eventPayloadBuildMs?: number;
+  modelAsset?: string;
+  requestedDelegate?: string;
+  selectedDelegate?: string;
+  gpuDelegateFallback?: boolean;
+  gpuDelegateFailureMessage?: string | null;
+  runningMode?: string;
+  pipelineMode?: AndroidPosePipelineMode | string;
+  rotationMode?: AndroidPoseRotationMode | string;
+  analysisTargetWidth?: number;
+  analysisTargetHeight?: number;
+  imageProxyWidth?: number;
+  imageProxyHeight?: number;
+  imageProxyFormat?: number;
+  imageProxyFormatName?: string;
+  imageProxyRotationDegrees?: number;
+  cameraTargetRotation?: number;
+  mpImageWidth?: number;
+  mpImageHeight?: number;
+  numPoses?: number;
+  outputSegmentationMasks?: boolean;
+  cameraInputFps?: number;
+  acceptedFrameFps?: number;
+  submittedInferenceFps?: number;
+  resultFps?: number;
+  busyFrameDropCount?: number;
+  nativeEventScheduledCount?: number;
+  nativeEventCoalescedCount?: number;
+  nativeEventRejectedCount?: number;
+  nativeEventEmittedCount?: number;
 };
 
 /**
@@ -61,13 +101,19 @@ export type PoseDetectionViewProps = {
   active?: boolean;
   /** Default 'front' — the user props the phone facing themselves. */
   cameraFacing?: CameraFacing;
-  /** Default 'lite' — 30fps on mid-range devices. 'full' only if profiling allows. */
+  /** Default 'full' — Hale's production assessment model. */
   modelVariant?: ModelVariant;
   /** Default 0.35 — the 0.5 MediaPipe default misses side-on poses. */
   minDetectionConfidence?: number;
   minTrackingConfidence?: number;
   minPresenceConfidence?: number;
   latencyDiagnosticsEnabled?: boolean;
+  androidPipelineMode?: AndroidPosePipelineMode;
+  androidRotationMode?: AndroidPoseRotationMode;
+  androidAnalysisResolution?: AndroidPoseAnalysisResolution;
+  nativeSkeletonOverlayEnabled?: boolean;
+  nativeSkeletonColor?: string;
+  canvasColor?: string;
   onLandmarks?: (event: { nativeEvent: LandmarksEventPayload }) => void;
   onCameraReady?: (event: { nativeEvent: object }) => void;
   onPoseError?: (event: { nativeEvent: PoseErrorEventPayload }) => void;

@@ -10,7 +10,12 @@ import {
   View,
 } from 'react-native';
 
-import type { LandmarksEventPayload } from '../../modules/expo-pose-detection';
+import type {
+  AndroidPoseAnalysisResolution,
+  AndroidPosePipelineMode,
+  AndroidPoseRotationMode,
+  LandmarksEventPayload,
+} from '../../modules/expo-pose-detection';
 import {
   CameraUnavailableNotice,
   SafePoseDetectionView,
@@ -60,12 +65,29 @@ interface RendererStats {
   maxLines: number;
 }
 
+type NativeProfileId =
+  | 'video-rotated-640'
+  | 'live-rotated-640'
+  | 'live-metadata-640'
+  | 'live-metadata-512'
+  | 'live-metadata-480';
+
+interface NativeProfile {
+  id: NativeProfileId;
+  title: string;
+  subtitle: string;
+  pipelineMode: AndroidPosePipelineMode;
+  rotationMode: AndroidPoseRotationMode;
+  analysisResolution: AndroidPoseAnalysisResolution;
+}
+
 interface BenchmarkResult {
   schemaVersion: 1;
   capturedAt: string;
   device: Record<string, unknown>;
   build: Record<string, unknown>;
   mode: BenchmarkMode;
+  nativeProfile: NativeProfile;
   durationMs: number;
   diagnostics: PoseLatencyDiagnosticsSnapshot;
   renderer: {
@@ -162,10 +184,57 @@ const BENCHMARK_MODES: readonly BenchmarkMode[] = [
   ),
 ];
 
+const NATIVE_PROFILES: readonly NativeProfile[] = [
+  {
+    id: 'video-rotated-640',
+    title: 'VIDEO rot 640',
+    subtitle: 'detectForVideo, bitmap rotation',
+    pipelineMode: 'full-video-sync',
+    rotationMode: 'rotated-bitmap',
+    analysisResolution: '640x480',
+  },
+  {
+    id: 'live-rotated-640',
+    title: 'LIVE rot 640',
+    subtitle: 'detectAsync, bitmap rotation',
+    pipelineMode: 'full-live-stream',
+    rotationMode: 'rotated-bitmap',
+    analysisResolution: '640x480',
+  },
+  {
+    id: 'live-metadata-640',
+    title: 'LIVE meta 640',
+    subtitle: 'detectAsync, rotation metadata',
+    pipelineMode: 'full-live-stream',
+    rotationMode: 'metadata',
+    analysisResolution: '640x480',
+  },
+  {
+    id: 'live-metadata-512',
+    title: 'LIVE meta 512',
+    subtitle: '512x384 analysis',
+    pipelineMode: 'full-live-stream',
+    rotationMode: 'metadata',
+    analysisResolution: '512x384',
+  },
+  {
+    id: 'live-metadata-480',
+    title: 'LIVE meta 480',
+    subtitle: '480x360 analysis',
+    pipelineMode: 'full-live-stream',
+    rotationMode: 'metadata',
+    analysisResolution: '480x360',
+  },
+];
+
 export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) {
   const diagnosticsAllowed = isPoseLatencyDiagnosticsEnabled();
   const [modeId, setModeId] = React.useState<BenchmarkModeId>('raw-skeleton');
   const mode = BENCHMARK_MODES.find((candidate) => candidate.id === modeId) ?? BENCHMARK_MODES[1];
+  const [nativeProfileId, setNativeProfileId] =
+    React.useState<NativeProfileId>('video-rotated-640');
+  const nativeProfile =
+    NATIVE_PROFILES.find((candidate) => candidate.id === nativeProfileId) ?? NATIVE_PROFILES[0];
   const [pipeline] = React.useState(() => new PosePipeline());
   const skeletonRef = React.useRef<SkeletonViewHandle>(null);
   const [cameraAvailability, setCameraAvailability] =
@@ -207,7 +276,7 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
   React.useEffect(() => {
     resetBenchmarkWindow();
     pipeline.reset();
-  }, [modeId, pipeline]);
+  }, [modeId, nativeProfileId, pipeline, resetBenchmarkWindow]);
 
   React.useEffect(
     () => () => {
@@ -229,12 +298,13 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
       (runStartedAtRef.current === null ? 0 : Date.now() - runStartedAtRef.current);
     const result = buildBenchmarkResult({
       mode,
+      nativeProfile,
       durationMs,
       snapshot: currentDiagnostics.snapshot(),
       rendererStats: rendererStatsRef.current,
     });
     setResultJson(JSON.stringify(result, null, 2));
-  }, [mode]);
+  }, [mode, nativeProfile]);
 
   const startMeasurement = React.useCallback(
     (durationMs: number) => {
@@ -308,8 +378,11 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
     <View style={styles.container}>
       <SafePoseDetectionView
         active
-        modelVariant="lite"
+        modelVariant="full"
         latencyDiagnosticsEnabled
+        androidPipelineMode={nativeProfile.pipelineMode}
+        androidRotationMode={nativeProfile.rotationMode}
+        androidAnalysisResolution={nativeProfile.analysisResolution}
         style={StyleSheet.absoluteFill}
         onLandmarks={onLandmarks}
         onAvailabilityChange={setCameraAvailability}
@@ -349,6 +422,21 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
             />
           ))}
         </ScrollView>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.modeRow}
+        >
+          {NATIVE_PROFILES.map((candidate) => (
+            <NativeProfileButton
+              key={candidate.id}
+              profile={candidate}
+              selected={candidate.id === nativeProfile.id}
+              disabled={running}
+              onPress={() => setNativeProfileId(candidate.id)}
+            />
+          ))}
+        </ScrollView>
       </View>
 
       <View style={styles.bottomPanel}>
@@ -361,6 +449,11 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
           <BenchmarkButton
             label={running ? 'Running 60s' : 'Run 60s'}
             onPress={() => startMeasurement(60_000)}
+            disabled={running}
+          />
+          <BenchmarkButton
+            label={running ? 'Running 10m' : 'Run 10m'}
+            onPress={() => startMeasurement(600_000)}
             disabled={running}
           />
           <BenchmarkButton label="Stop" onPress={stopMeasurement} disabled={!running} />
@@ -462,6 +555,8 @@ function MetricsStrip({ snapshot }: { snapshot: PoseLatencyDiagnosticsSnapshot }
       <Metric label="Pub Hz" value={snapshot.rendererPublishedHz.toFixed(0)} />
       <Metric label="Age p95" value={metricValue(snapshot.approxPoseAgeAtRenderSubmitMs.p95)} />
       <Metric label="MP p95" value={metricValue(snapshot.nativeInferenceWallMs.p95)} />
+      <Metric label="Bmp p95" value={metricValue(snapshot.nativeBitmapConversionMs.p95)} />
+      <Metric label="Rot p95" value={metricValue(snapshot.nativeExplicitRotationMs.p95)} />
       <Metric label="Geo p95" value={metricValue(snapshot.geometryMs.p95)} />
     </View>
   );
@@ -512,6 +607,40 @@ function ModeButton({
   );
 }
 
+function NativeProfileButton({
+  profile,
+  selected,
+  disabled,
+  onPress,
+}: {
+  profile: NativeProfile;
+  selected: boolean;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.modeButton,
+        selected && styles.modeButtonSelected,
+        pressed && !disabled && styles.pressed,
+        disabled && !selected && styles.disabled,
+      ]}
+      accessibilityRole="button"
+      accessibilityState={{ selected, disabled }}
+    >
+      <Text style={[styles.modeTitle, selected && styles.modeTitleSelected]}>
+        {profile.title}
+      </Text>
+      <Text style={[styles.modeSubtitle, selected && styles.modeSubtitleSelected]}>
+        {profile.subtitle}
+      </Text>
+    </Pressable>
+  );
+}
+
 function BenchmarkButton({
   label,
   onPress,
@@ -555,11 +684,13 @@ function emptyRendererStats(): RendererStats {
 
 function buildBenchmarkResult({
   mode,
+  nativeProfile,
   durationMs,
   snapshot,
   rendererStats,
 }: {
   mode: BenchmarkMode;
+  nativeProfile: NativeProfile;
   durationMs: number;
   snapshot: PoseLatencyDiagnosticsSnapshot;
   rendererStats: RendererStats;
@@ -582,6 +713,7 @@ function buildBenchmarkResult({
       remoteDebugging: 'not detected by benchmark screen',
     },
     mode,
+    nativeProfile,
     durationMs,
     diagnostics: snapshot,
     renderer: {

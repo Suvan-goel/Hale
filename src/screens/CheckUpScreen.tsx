@@ -51,6 +51,7 @@ import type {
   PoseAvatarMeasurementState,
 } from '../render/poseAvatarTypes';
 import { colors, radius, shadow, spacing, type } from '../theme';
+import { useResponsiveLayout } from '../theme/responsive';
 import { poseEstimationWindowSize, recordingCameraViewportSize } from './recordingViewport';
 
 const UI_UPDATE_INTERVAL_MS = 100;
@@ -176,6 +177,7 @@ export function CheckUpScreen({
   const [discardModalVisible, setDiscardModalVisible] = React.useState(false);
   const [cameraAvailability, setCameraAvailability] = React.useState<CameraAvailability>('checking');
   const windowSize = useWindowDimensions();
+  const responsive = useResponsiveLayout();
   const poseLatencyDiagnostics = React.useMemo(
     () =>
       isPoseLatencyDiagnosticsEnabled()
@@ -373,7 +375,7 @@ export function CheckUpScreen({
     <View style={styles.container}>
       <SafePoseDetectionView
         active={!metricDebug}
-        modelVariant="lite"
+        modelVariant="full"
         latencyDiagnosticsEnabled={poseLatencyDiagnostics !== null}
         style={StyleSheet.absoluteFill}
         onLandmarks={onLandmarks}
@@ -382,7 +384,11 @@ export function CheckUpScreen({
       />
       <ScrollView
         style={styles.layout}
-        contentContainerStyle={[styles.layoutContent, { paddingTop: recordingTopPadding }]}
+        contentContainerStyle={[
+          styles.layoutContent,
+          responsive.isCompactPhone && styles.compactScreenPadding,
+          { paddingTop: recordingTopPadding },
+        ]}
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
@@ -539,6 +545,7 @@ function CheckupSupportModal({
   onTryAgain: () => void;
   onSkip: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   const [expanded, setExpanded] = React.useState(mode === 'help');
   const isSetupIssue = mode === 'setupIssue';
 
@@ -555,8 +562,8 @@ function CheckupSupportModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.modalBackdrop}>
-        <View style={styles.helpModal}>
+      <View style={[styles.modalBackdrop, responsive.isCompactPhone && styles.compactModalBackdrop]}>
+        <View style={[styles.helpModal, responsive.isCompactPhone && styles.compactCardPadding]}>
           <View style={styles.helpModalHeader}>
             <HeaderLogo size={26} />
             <Text style={styles.modalEyebrow}>{isSetupIssue ? 'Setup issue' : 'Setup help'}</Text>
@@ -650,6 +657,7 @@ function DiscardCheckupModal({
   onKeep: () => void;
   onDiscard: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   return (
     <Modal
       visible={visible}
@@ -657,8 +665,8 @@ function DiscardCheckupModal({
       animationType="fade"
       onRequestClose={onKeep}
     >
-      <View style={styles.modalBackdrop}>
-        <View style={styles.discardModal}>
+      <View style={[styles.modalBackdrop, responsive.isCompactPhone && styles.compactModalBackdrop]}>
+        <View style={[styles.discardModal, responsive.isCompactPhone && styles.compactCardPadding]}>
           <Text style={styles.modalEyebrow}>Leave check-up?</Text>
           <Text style={styles.modalTitle}>Leave without saving?</Text>
           <Text style={styles.modalBody}>
@@ -699,6 +707,7 @@ function CheckupCardFooter({
   display: StageDisplay | null;
   style: StyleProp<ViewStyle>;
 }) {
+  const responsive = useResponsiveLayout();
   const compactMeta = meta.progress !== null && meta.context !== null;
   const metaLine = compactMeta ? `${meta.progress} · ${meta.context}` : meta.progress;
   const displayValue = display ? (
@@ -718,7 +727,7 @@ function CheckupCardFooter({
   ) : null;
 
   return (
-    <View pointerEvents="none" style={[styles.recordingFooter, style]}>
+    <View pointerEvents="none" style={[styles.recordingFooter, responsive.isCompactPhone && styles.compactCardPadding, style]}>
       <View style={styles.recordingFooterMovement}>
         <Text
           style={styles.recordingFooterMovementName}
@@ -981,6 +990,15 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
     gap: spacing.md,
     alignItems: 'center',
+  },
+  compactScreenPadding: {
+    paddingHorizontal: 16,
+  },
+  compactCardPadding: {
+    paddingHorizontal: 16,
+  },
+  compactModalBackdrop: {
+    paddingHorizontal: 16,
   },
   topBar: {
     width: '100%',
@@ -1263,7 +1281,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.button,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
   },
   modalKeepButton: {
     backgroundColor: colors.accent,

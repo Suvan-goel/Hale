@@ -6,6 +6,7 @@ import { BackArrowButton } from '../components/BackArrowButton';
 import { PrimaryButton, Screen, ScreenHeader } from '../components/ui';
 import type { EquipmentProfile } from '../training';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { useResponsiveLayout } from '../theme/responsive';
 
 const HOME_SETUP_HERO_IMAGE = require('../../assets/images/hale-home-setup-hero-v3.png');
 const REQUIRED_SETUP_TITLE = 'Required setup';
@@ -56,6 +57,7 @@ export function OnboardingEquipmentScreen({
   }) => void;
   onBack: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   const [selected, setSelected] = React.useState<OnboardingEquipmentId[]>(
     selectedEquipment.length > 0
       ? selectedEquipment.filter((item): item is OnboardingEquipmentId => isEquipmentId(item))
@@ -117,7 +119,7 @@ export function OnboardingEquipmentScreen({
           ))}
         </View>
         {showRequiredSetupMessage && !hasRequiredSetup ? (
-          <View style={styles.requiredNotice}>
+          <View style={[styles.requiredNotice, responsive.isCompactPhone && styles.compactCardPadding]}>
             <View style={styles.requiredNoticeCopy}>
               <Text style={styles.requiredNoticeTitle}>{REQUIRED_SETUP_TITLE}</Text>
               <Text style={styles.requiredNoticeText}>{REQUIRED_SETUP_MESSAGE}</Text>
@@ -144,7 +146,7 @@ export function OnboardingEquipmentScreen({
         </View>
       </EquipmentSection>
 
-      <View style={styles.reassuranceCard}>
+      <View style={[styles.reassuranceCard, responsive.isCompactPhone && styles.compactCardPadding]}>
         <View style={styles.reassuranceMark}>
           <Text style={styles.reassuranceMarkText}>H</Text>
         </View>
@@ -174,8 +176,9 @@ function EquipmentSection({
   description: string;
   children: React.ReactNode;
 }) {
+  const responsive = useResponsiveLayout();
   return (
-    <View style={styles.sectionCard}>
+    <View style={[styles.sectionCard, responsive.isCompactPhone && styles.compactCardPadding]}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>{title}</Text>
         <View style={styles.sectionMetaPill}>
@@ -189,9 +192,15 @@ function EquipmentSection({
 }
 
 function Choice({ label, note, selected, onPress }: { label: string; note: string; selected: boolean; onPress: () => void }) {
+  const responsive = useResponsiveLayout();
   return (
     <Pressable
-      style={({ pressed }) => [styles.choice, selected && styles.choiceSelected, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.choice,
+        responsive.isCompactPhone && styles.compactCardPadding,
+        selected && styles.choiceSelected,
+        pressed && styles.pressed,
+      ]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${label}. ${note}`}
@@ -249,6 +258,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
     ...shadow.card,
+  },
+  compactCardPadding: {
+    paddingHorizontal: 16,
   },
   sectionHeader: {
     flexDirection: 'row',
