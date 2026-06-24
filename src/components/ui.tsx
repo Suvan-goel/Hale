@@ -22,6 +22,7 @@ import {
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { HeaderLogo } from './HeaderLogo';
+import { useSystemInsets } from './SystemInsetsProvider';
 import { SettingsIcon } from '../navigation/icons';
 import { colors, componentStyles, fonts, minTapTarget, radius, shadow, spacing, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
@@ -54,11 +55,12 @@ export function Screen({
   contentStyle?: StyleProp<ViewStyle>;
 }) {
   const responsive = useResponsiveLayout();
+  const systemInsets = useSystemInsets();
   const bottomScrollClearance = React.useContext(ScreenScrollClearanceContext);
   const paddingBottom =
     bottomScrollClearance > 0
       ? bottomScrollClearance
-      : responsive.pageBottom;
+      : responsive.pageBottom + systemInsets.bottom;
 
   return (
     <ScrollView
@@ -143,7 +145,9 @@ export function Card({
   variant?: CardVariant;
 }) {
   const responsive = useResponsiveLayout();
-  const compactCardPadding = responsive.isCompactPhone ? { paddingHorizontal: responsive.cardPadding } : null;
+  const compactCardPadding = responsive.isCompactPhone
+    ? { paddingHorizontal: responsive.cardPadding, paddingVertical: responsive.cardPaddingVertical }
+    : null;
   return <View style={[componentStyles.card[variant], style, compactCardPadding]}>{children}</View>;
 }
 
@@ -162,7 +166,9 @@ export function MaterialCard({
   accessibilityLabel?: string;
 }) {
   const responsive = useResponsiveLayout();
-  const compactCardPadding = responsive.isCompactPhone ? { paddingHorizontal: responsive.cardPadding } : null;
+  const compactCardPadding = responsive.isCompactPhone
+    ? { paddingHorizontal: responsive.cardPadding, paddingVertical: responsive.cardPaddingVertical }
+    : null;
   if (onPress) {
     return (
       <Pressable

@@ -4,5 +4,7 @@ export {
   requestCameraPermissionsAsync,
   getCameraPermissionsAsync,
   isCameraAvailableAsync,
+  getAndroidNavigationModeAsync,
+  setAndroidNavigationBarVisibleAsync,
 } from './src/ExpoPoseDetectionModule';
 export * from './src/ExpoPoseDetection.types';

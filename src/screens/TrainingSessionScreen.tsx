@@ -34,6 +34,7 @@ import {
 import type { CameraAvailability } from '../components/SafePoseDetectionView';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
+import { useSystemInsets } from '../components/SystemInsetsProvider';
 import { PoseLatencyDiagnosticsOverlay } from '../diagnostics/PoseLatencyDiagnosticsOverlay';
 import {
   createPoseLatencyDiagnostics,
@@ -203,6 +204,7 @@ export function TrainingSessionScreen({
   const [cameraAvailability, setCameraAvailability] = React.useState<CameraAvailability>('checking');
   const windowSize = useWindowDimensions();
   const responsive = useResponsiveLayout();
+  const systemInsets = useSystemInsets();
   const recordingTopPadding = recordingScreenTopPadding();
   const exerciseDefinitions = React.useMemo(() => exerciseIds.map((id) => getExercise(id)), [exerciseIds]);
   const poseLatencyDiagnostics = React.useMemo(
@@ -394,7 +396,7 @@ export function TrainingSessionScreen({
         contentContainerStyle={[
           styles.layoutContent,
           responsive.isCompactPhone && styles.compactScreenPadding,
-          { paddingTop: recordingTopPadding },
+          { paddingTop: recordingTopPadding, paddingBottom: spacing.xl + systemInsets.bottom },
         ]}
         showsVerticalScrollIndicator={false}
         bounces={false}
@@ -906,7 +908,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   compactCardPadding: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
   },
   compactModalBackdrop: {
     paddingHorizontal: 16,

@@ -442,8 +442,8 @@ export function normalizeMovementProfileV2PriorFocusContext(
   if (value.kind === 'domain') {
     if (
       isMovementDomain(value.focusDomain) &&
-      typeof value.sourceAssessmentId === 'string' &&
-      typeof value.sourceAssessmentFingerprint === 'string'
+      isMovementProfileV2AssessmentId(value.sourceAssessmentId) &&
+      isMovementProfileV2AssessmentFingerprint(value.sourceAssessmentFingerprint)
     ) {
       return {
         kind: 'domain',
@@ -456,7 +456,10 @@ export function normalizeMovementProfileV2PriorFocusContext(
   }
 
   if (value.kind === 'balanced') {
-    if (typeof value.sourceAssessmentId === 'string' && typeof value.sourceAssessmentFingerprint === 'string') {
+    if (
+      isMovementProfileV2AssessmentId(value.sourceAssessmentId) &&
+      isMovementProfileV2AssessmentFingerprint(value.sourceAssessmentFingerprint)
+    ) {
       return {
         kind: 'balanced',
         sourceAssessmentId: value.sourceAssessmentId,
@@ -1359,8 +1362,8 @@ function parsePriorFocusContext(value: unknown): MovementProfileV2PriorFocusCont
   if (value.kind === 'domain') {
     if (
       !isMovementDomain(value.focusDomain) ||
-      typeof value.sourceAssessmentId !== 'string' ||
-      typeof value.sourceAssessmentFingerprint !== 'string'
+      !isMovementProfileV2AssessmentId(value.sourceAssessmentId) ||
+      !isMovementProfileV2AssessmentFingerprint(value.sourceAssessmentFingerprint)
     ) {
       return null;
     }
@@ -1372,7 +1375,12 @@ function parsePriorFocusContext(value: unknown): MovementProfileV2PriorFocusCont
     };
   }
   if (value.kind === 'balanced') {
-    if (typeof value.sourceAssessmentId !== 'string' || typeof value.sourceAssessmentFingerprint !== 'string') return null;
+    if (
+      !isMovementProfileV2AssessmentId(value.sourceAssessmentId) ||
+      !isMovementProfileV2AssessmentFingerprint(value.sourceAssessmentFingerprint)
+    ) {
+      return null;
+    }
     return {
       kind: 'balanced',
       sourceAssessmentId: value.sourceAssessmentId,
@@ -1506,6 +1514,14 @@ function isFocusDecisionReason(value: unknown): value is MovementProfileV2FocusD
     value === 'v2_focus_needs_retake' ||
     value === 'v2_focus_clear_signal_overrides_goal'
   );
+}
+
+function isMovementProfileV2AssessmentId(value: unknown): value is string {
+  return typeof value === 'string' && value.startsWith('movement-profile-v2-assessment:');
+}
+
+function isMovementProfileV2AssessmentFingerprint(value: unknown): value is string {
+  return typeof value === 'string' && value.startsWith('mpv2-assessment-v1-');
 }
 
 function isPreserveReason(value: MovementProfileV2FocusDecisionReason): boolean {

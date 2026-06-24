@@ -210,7 +210,8 @@ const styles = StyleSheet.create({
     boxShadow: '0 18px 44px rgba(17,20,18,0.055)',
   },
   compactCardPadding: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
   },
   recommendedHeaderRow: {
     minHeight: 30,

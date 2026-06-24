@@ -957,7 +957,8 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   compactCardPadding: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
   },
   compactAccountCard: {
     minHeight: 74,

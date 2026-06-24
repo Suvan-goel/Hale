@@ -10,6 +10,7 @@
  */
 
 import { MovementResultBase } from '../movements';
+import type { MovementProfileV2Assessment } from '../reference/movementProfileV2/assessment';
 import type { StoredMovementProfileV2Snapshot } from '../reference/movementProfileV2/snapshot';
 import type { CheckUpProtocolPolicy } from './protocolPolicy';
 
@@ -41,6 +42,13 @@ export interface CheckUp {
    * MovementAssessment, MovementBlock, focus, or report records.
    */
   movementProfileV2Snapshot?: StoredMovementProfileV2Snapshot;
+  /**
+   * Optional immutable Movement Profile V2 focus/orchestration artifact.
+   *
+   * Like the V2 snapshot, this is a frozen V2-only interpretation artifact and
+   * must not be converted into V1 assessment, block, focus, or report records.
+   */
+  movementProfileV2Assessment?: MovementProfileV2Assessment;
 }
 
 export function findItem(checkUp: CheckUp, movementId: string): CheckUpItem | undefined {

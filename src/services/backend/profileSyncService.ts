@@ -1,4 +1,5 @@
 import { LOCAL_USER_ID } from '../../adherence/types';
+import { normalizeLifeGoalDisplayText } from '../../adherence/goalDomainMapping';
 import {
   PREFERENCES_SCHEMA_VERSION,
   canonicalEquipmentFromSafetyProfile,
@@ -50,7 +51,7 @@ export function preferencesToBackendProfileUpdate(prefs: Preferences): BackendPr
       name: prefs.profile.name,
       age: prefs.profile.age,
       ageBand: prefs.profile.ageBand,
-      goal: prefs.profile.goal,
+      goal: normalizeLifeGoalDisplayText(prefs.profile.goal),
     }),
     onboarding_json: toBackendJson({
       schemaVersion: PREFERENCES_SCHEMA_VERSION,
@@ -86,7 +87,9 @@ export function mergeRemoteProfileIntoLocal(
       name: hasText(localPrefs.profile.name) ? localPrefs.profile.name : remotePrefs.profile.name,
       age: localPrefs.profile.age ?? remotePrefs.profile.age,
       ageBand: localPrefs.profile.ageBand ?? remotePrefs.profile.ageBand,
-      goal: hasText(localPrefs.profile.goal) ? localPrefs.profile.goal : remotePrefs.profile.goal,
+      goal: normalizeLifeGoalDisplayText(
+        hasText(localPrefs.profile.goal) ? localPrefs.profile.goal : remotePrefs.profile.goal
+      ),
       lifeGoal:
         localPrefs.profile.lifeGoal ??
         (hydrateRoutingFields ? remotePrefs.profile.lifeGoal : localPrefs.profile.lifeGoal),
@@ -246,7 +249,7 @@ function preferencesFromBackendProfile(remoteProfile: BackendProfile): Preferenc
     name: stringValue(profileJson.name) ?? remoteProfile.full_name ?? '',
     age: numberValue(profileJson.age) ?? ageFromBirthYear(remoteProfile.birth_year),
     ageBand: profileJson.ageBand ?? null,
-    goal: stringValue(profileJson.goal) ?? '',
+    goal: normalizeLifeGoalDisplayText(stringValue(profileJson.goal) ?? ''),
     lifeGoal: onboardingJson.lifeGoal ?? null,
     safetyProfile: safetyJson.safetyProfile ?? null,
   };

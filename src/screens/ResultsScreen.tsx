@@ -7,6 +7,7 @@ import * as React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
+import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
 import { CheckUp } from '../checkup/types';
 import { Card, PrimaryButton, Screen, SecondaryButton } from '../components/ui';
@@ -31,6 +32,7 @@ export function ResultsScreen({
   onRetake,
   onViewPlan,
   nextPlanReady = false,
+  showBackButton = false,
   extraTrendPoints = [],
   assessment,
   score,
@@ -49,6 +51,7 @@ export function ResultsScreen({
   onRetake?: () => void;
   onViewPlan?: () => void;
   nextPlanReady?: boolean;
+  showBackButton?: boolean;
   /** Weekly micro-check points to merge into the trend line. */
   extraTrendPoints?: ExtraTrendPoint[];
 }) {
@@ -72,6 +75,9 @@ export function ResultsScreen({
 
   return (
     <Screen contentStyle={styles.screenContent}>
+      {showBackButton ? (
+        <BackArrowButton accessibilityLabel="Back to Progress" onPress={onDone} />
+      ) : null}
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Movement Check-Up</Text>
         <View style={styles.titleGroup}>
@@ -370,7 +376,8 @@ const styles = StyleSheet.create({
     boxShadow: `0 18px 38px ${colors.shadowSoft}`,
   },
   compactCardPadding: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
   },
   focusTopRow: {
     flexDirection: 'row',

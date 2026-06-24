@@ -5,7 +5,7 @@
  * than crashing the app. Pure — no native imports, fully unit-testable.
  */
 
-import { LIFE_GOAL_CATEGORIES } from '../adherence';
+import { LIFE_GOAL_CATEGORIES, normalizeLifeGoalDisplayText } from '../adherence';
 import type { ActivityLevel, LifeGoal, MovementSafetyProfile } from '../adherence';
 import { AppSettings, EMPTY_PROFILE, OnboardingState, OnboardingStep, Preferences, UserProfile } from './types';
 import { ageBandForAge, isAgeBand, representativeAgeForAgeBand } from './age';
@@ -84,7 +84,7 @@ function validProfile(v: unknown): UserProfile {
     name: typeof p.name === 'string' ? p.name : def.name,
     age: null,
     ageBand,
-    goal: typeof p.goal === 'string' ? p.goal : def.goal,
+    goal: normalizeLifeGoalDisplayText(typeof p.goal === 'string' ? p.goal : def.goal),
     lifeGoal: validLifeGoal(p.lifeGoal),
     safetyProfile: validSafetyProfile(p.safetyProfile),
   };
@@ -107,7 +107,7 @@ function validLifeGoal(v: unknown): LifeGoal | null {
     id: g.id,
     userId: g.userId,
     category: g.category as LifeGoal['category'],
-    customText: typeof g.customText === 'string' ? g.customText : undefined,
+    customText: typeof g.customText === 'string' ? normalizeLifeGoalDisplayText(g.customText) : undefined,
     createdAt: g.createdAt,
     updatedAt: g.updatedAt,
     isPrimary: g.isPrimary !== false,

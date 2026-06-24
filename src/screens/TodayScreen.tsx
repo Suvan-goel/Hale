@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 const HERO_IMAGE = require('../../assets/images/hale-home-hero-botanical.png');
 
@@ -221,7 +221,6 @@ function MovementSnapshotCard({
                 domain={row.key}
                 label={row.title}
                 value={snapshotRowValue(row.key, band, lifecycle.activeBlockSummary?.focusDomain)}
-                last={index === SNAPSHOT_ROWS.length - 1}
               />
             );
           })}
@@ -343,31 +342,59 @@ function DailyFocusCard({
   ctaLabel: string;
   onPress: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   const displayCta = ctaLabel === 'Start Session' ? 'Start session' : ctaLabel;
   const displayTitle = title === 'Move with intention' ? 'Move with\nintention' : title;
+  const heroMinHeightStyle = { minHeight: responsive.todayHeroHeight };
+
   return (
-    <View style={[styles.focusCard, compact && styles.focusCardCompact]}>
+    <View style={[styles.focusCard, compact && styles.focusCardCompact, heroMinHeightStyle]}>
       <Image source={HERO_IMAGE} style={[styles.focusImage, compact && styles.focusImageCompact]} resizeMode="cover" accessible={false} />
-      <View style={[styles.focusContent, compact && styles.focusContentCompact]}>
+      <HomeHeroScrim />
+      <View style={[styles.focusContent, compact && styles.focusContentCompact, heroMinHeightStyle]}>
         <View style={[styles.focusCopy, compact && styles.focusCopyCompact]}>
           <Text style={styles.focusLabel}>{label}</Text>
-          <Text style={[styles.focusTitle, compact && styles.focusTitleCompact]} numberOfLines={2}>{displayTitle}</Text>
+          <Text style={[styles.focusTitle, compact && styles.focusTitleCompact]}>{displayTitle}</Text>
           <View style={styles.focusMeta}>
-            <Text style={styles.focusSubtitle} numberOfLines={2}>{subtitle}</Text>
-            {detail ? <Text style={styles.focusDetail} numberOfLines={1}>{detail}</Text> : null}
+            <Text style={styles.focusSubtitle}>{subtitle}</Text>
+            {detail ? <Text style={styles.focusDetail}>{detail}</Text> : null}
           </View>
         </View>
-        <Pressable
-          style={({ pressed }) => [styles.focusButton, compact && styles.compactControlPadding, pressed && styles.focusButtonPressed]}
-          onPress={onPress}
-          accessibilityRole="button"
-          accessibilityLabel={ctaLabel}
-        >
-          <Text style={styles.focusButtonText}>{displayCta}</Text>
-          <Text style={styles.focusButtonArrow}>›</Text>
-        </Pressable>
+        <View style={[styles.focusAction, compact && styles.focusActionCompact]}>
+          <Pressable
+            style={({ pressed }) => [styles.focusButton, compact && styles.compactControlPadding, pressed && styles.focusButtonPressed]}
+            onPress={onPress}
+            accessibilityRole="button"
+            accessibilityLabel={ctaLabel}
+          >
+            <Text style={styles.focusButtonText}>{displayCta}</Text>
+            <Text style={styles.focusButtonArrow}>›</Text>
+          </Pressable>
+        </View>
       </View>
     </View>
+  );
+}
+
+function HomeHeroScrim() {
+  return (
+    <Svg pointerEvents="none" style={styles.focusScrim}>
+      <Defs>
+        <LinearGradient id="homeHeroScrimH" x1="0" y1="0" x2="1" y2="0">
+          <Stop offset="0" stopColor={colors.accentDeep} stopOpacity={0.52} />
+          <Stop offset="0.58" stopColor={colors.accentDeep} stopOpacity={0.16} />
+          <Stop offset="1" stopColor={colors.accentDeep} stopOpacity={0} />
+        </LinearGradient>
+        <LinearGradient id="homeHeroScrimV" x1="0" y1="1" x2="0" y2="0">
+          <Stop offset="0" stopColor={colors.accentDeep} stopOpacity={0.32} />
+          <Stop offset="0.5" stopColor={colors.accentDeep} stopOpacity={0.08} />
+          <Stop offset="1" stopColor={colors.accentDeep} stopOpacity={0} />
+        </LinearGradient>
+      </Defs>
+      <Rect x="0" y="0" width="100%" height="100%" fill={colors.accentDeep} opacity={0.04} />
+      <Rect x="0" y="0" width="100%" height="100%" fill="url(#homeHeroScrimH)" />
+      <Rect x="0" y="0" width="100%" height="100%" fill="url(#homeHeroScrimV)" />
+    </Svg>
   );
 }
 
@@ -375,15 +402,13 @@ function MetricRow({
   domain,
   label,
   value,
-  last,
 }: {
   domain: SnapshotKey;
   label: string;
   value: string;
-  last: boolean;
 }) {
   return (
-    <View style={[styles.metricRow, !last && styles.metricRowDivider]}>
+    <View style={styles.metricRow}>
       <View style={styles.metricIcon}>
         <DomainGlyph domain={domain} />
       </View>
@@ -770,7 +795,8 @@ const styles = StyleSheet.create({
     ...shadow.card,
   },
   compactCardPadding: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
   },
   compactControlPadding: {
     paddingHorizontal: 16,
@@ -897,10 +923,6 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 9,
   },
-  metricRowDivider: {
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(229,222,210,0.55)',
-  },
   metricIcon: {
     width: 34,
     height: 34,
@@ -950,16 +972,24 @@ const styles = StyleSheet.create({
   focusImageCompact: {
     width: '124%',
   },
+  focusScrim: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 1,
+  },
   focusContent: {
     minHeight: 274,
     paddingVertical: 26,
     paddingHorizontal: 24,
     justifyContent: 'flex-start',
-    zIndex: 1,
+    zIndex: 2,
   },
   focusContentCompact: {
     minHeight: 286,
-    paddingVertical: 24,
+    paddingVertical: 18,
     paddingHorizontal: 16,
   },
   focusCopy: {
@@ -984,13 +1014,13 @@ const styles = StyleSheet.create({
     color: colors.onAccent,
     fontFamily: fonts.serifMedium,
     fontSize: 25,
-    lineHeight: 28,
+    lineHeight: 31,
     letterSpacing: 0,
     maxWidth: '100%',
   },
   focusTitleCompact: {
     fontSize: 25,
-    lineHeight: 28,
+    lineHeight: 31,
   },
   focusSubtitle: {
     color: colors.onAccent,
@@ -1008,8 +1038,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     maxWidth: '100%',
   },
-  focusButton: {
+  focusAction: {
     marginTop: 'auto',
+    alignSelf: 'flex-start',
+    paddingTop: 16,
+  },
+  focusActionCompact: {
+    paddingTop: 16,
+  },
+  focusButton: {
     alignSelf: 'flex-start',
     minHeight: 48,
     flexDirection: 'row',

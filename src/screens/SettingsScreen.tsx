@@ -4,11 +4,11 @@
  */
 
 import * as React from 'react';
-import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { BackHandler, Platform, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import type { ActivityLevel, AgeBand, AvailableEquipment } from '../adherence';
-import { getLifeGoalDisplayText } from '../adherence';
+import { getLifeGoalDisplayText, normalizeLifeGoalDisplayText } from '../adherence';
 import { VoiceChannel } from '../audio/voicePlayer';
 import { AccountAuthCard } from '../components/AccountAuthCard';
 import { BackArrowButton } from '../components/BackArrowButton';
@@ -21,7 +21,6 @@ import {
   STARTING_PACE_OPTIONS,
   ageBandForAge,
   ageDisplayLabel,
-  getVoice,
   representativeAgeForAgeBand,
   startingEffortLabel,
   UserProfile,
@@ -96,6 +95,7 @@ type SettingsScreenProps = {
   onOpenLifeGoal: () => void;
   onOpenSafetyProfile: () => void;
   onOpenCameraSetup: () => void;
+  onStartMovementProfileV2Internal?: () => void;
   onReplayOnboardingForDev?: () => void;
   onBack?: () => void;
 };
@@ -119,6 +119,7 @@ function SettingsScreenContent({
   onOpenLifeGoal,
   onOpenSafetyProfile,
   onOpenCameraSetup,
+  onStartMovementProfileV2Internal,
   onReplayOnboardingForDev,
   onBack,
 }: SettingsScreenProps) {
@@ -130,11 +131,10 @@ function SettingsScreenContent({
   const voicePreviewRef = React.useRef<VoiceChannel | null>(null);
   const available = profile.safetyProfile?.availableEquipment ?? ['chair', 'wall'];
   const displayName = profile.name.trim() || 'Your details';
-  const goalText =
-    profile.goal.trim() ||
-    (profile.lifeGoal ? getLifeGoalDisplayText(profile.lifeGoal) : 'Set a movement goal');
+  const goalText = profile.lifeGoal
+    ? getLifeGoalDisplayText(profile.lifeGoal)
+    : normalizeLifeGoalDisplayText(profile.goal) || 'Set a movement goal';
   const profileGoalText = goalContinuationText(goalText);
-  const currentVoice = getVoice(settings.voiceId);
   const effortLabel = startingEffortLabel(startingEffort);
   const planSummary = `${preferredDaysSummary(preferredDays)} · ${effortLabel}`;
   const setupSummary = equipmentSummary({
@@ -142,12 +142,20 @@ function SettingsScreenContent({
     equipment,
     phoneStandAvailable: settings.phoneStandAvailable,
   });
-  const cameraSummary = `${settings.phoneStandAvailable ? 'Phone stand available' : 'Phone stand not set'} · Camera privacy`;
   const showDeveloperSettings = __DEV__;
 
   React.useEffect(() => setName(profile.name), [profile.name]);
   React.useEffect(() => setSelectedAgeBand(profileAgeBand), [profileAgeBand]);
   React.useEffect(() => () => voicePreviewRef.current?.stop(), []);
+  React.useEffect(() => {
+    if (Platform.OS !== 'android' || openSection === null) return;
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      setOpenSection(null);
+      return true;
+    });
+    return () => subscription.remove();
+  }, [openSection]);
 
   const openProfileSection = (section: ProfileSection) => setOpenSection(section);
   const previewVoice = React.useCallback((voiceId: string) => {
@@ -460,7 +468,7 @@ function SettingsScreenContent({
             {displayName}
           </Text>
           <View style={styles.profileGoalBlock}>
-            <Text style={styles.profileGoalPrompt}>I want to</Text>
+            <Text style={styles.profileGoalPrompt}>In the future, I want to be able to</Text>
             <Text style={styles.profileGoalText} numberOfLines={2}>
               {profileGoalText}
             </Text>
@@ -470,33 +478,25 @@ function SettingsScreenContent({
 
       <SettingsSection title="Workouts">
         <ProfileMenuRow
-          title="Schedule & Effort"
-          subtitle={`${preferredDaysSummary(preferredDays)} · ${effortLabel} effort`}
+          title={SECTION_COPY.plan.title}
           icon="sliders"
           onPress={() => openProfileSection('plan')}
           showDivider
         />
         <ProfileMenuRow
-          title="Equipment"
-          subtitle={setupSummary}
+          title={SECTION_COPY.equipment.title}
           icon="dumbbell"
           onPress={() => openProfileSection('equipment')}
           showDivider
         />
         <ProfileMenuRow
-          title="Trainer Voice"
-          subtitle={`${currentVoice.label} guides check-ups and workouts`}
+          title={SECTION_COPY.voice.title}
           icon="volume"
           onPress={() => openProfileSection('voice')}
           showDivider
         />
         <ProfileMenuRow
-          title="Workout Reminders"
-          subtitle={
-            settings.remindersEnabled
-              ? 'On for later · no notifications today'
-              : 'Off · no notifications today'
-          }
+          title={SECTION_COPY.reminders.title}
           icon="bell"
           onPress={() => openProfileSection('reminders')}
         />
@@ -504,15 +504,13 @@ function SettingsScreenContent({
 
       <SettingsSection title="Camera & privacy">
         <ProfileMenuRow
-          title="Camera setup"
-          subtitle={cameraSummary}
+          title={SECTION_COPY.safety.title}
           icon="camera"
           onPress={() => openProfileSection('safety')}
           showDivider
         />
         <ProfileMenuRow
-          title="Privacy & Data"
-          subtitle="Video not saved · results saved"
+          title={SECTION_COPY.privacy.title}
           icon="lock"
           onPress={() => openProfileSection('privacy')}
         />
@@ -520,8 +518,7 @@ function SettingsScreenContent({
 
       <SettingsSection title="Account & data">
         <ProfileMenuRow
-          title="Account & Data"
-          subtitle="Sign in, export, or manage your data"
+          title={SECTION_COPY.account.title}
           icon="account"
           onPress={() => openProfileSection('account')}
         />
@@ -548,6 +545,15 @@ function SettingsScreenContent({
               accessibilityLabel="Use mock app data"
             />
           </View>
+          {onStartMovementProfileV2Internal ? (
+            <ProfileMenuRow
+              title="Movement Profile V2"
+              subtitle="Open the internal check-up and frozen result review."
+              icon="sliders"
+              onPress={onStartMovementProfileV2Internal}
+              showDivider
+            />
+          ) : null}
           {onReplayOnboardingForDev ? (
             <ProfileMenuRow
               title="Replay onboarding"
@@ -1312,7 +1318,12 @@ function equipmentSummary({
 
 function goalContinuationText(goal: string): string {
   const trimmed = goal.trim();
-  const withoutPrompt = trimmed.replace(/^i\s+want\s+to\s+/i, '').replace(/^to\s+/i, '');
+  const withoutPrompt = trimmed
+    .replace(/^in\s+the\s+future,\s+i\s+want\s+to\s+be\s+able\s+to\s+/i, '')
+    .replace(/^i\s+want\s+to\s+be\s+able\s+to\s+/i, '')
+    .replace(/^my\s+goal\s+is\s+to\s+/i, '')
+    .replace(/^i\s+want\s+to\s+/i, '')
+    .replace(/^to\s+/i, '');
   if (!withoutPrompt) return trimmed;
   return withoutPrompt.charAt(0).toLocaleLowerCase() + withoutPrompt.slice(1);
 }
@@ -1450,7 +1461,6 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   headerRow: {
-    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -1517,8 +1527,8 @@ const styles = StyleSheet.create({
   },
   profileGoalText: {
     fontFamily: fonts.sansRegular,
-    fontSize: 15,
-    lineHeight: 21,
+    fontSize: 14,
+    lineHeight: 20,
     letterSpacing: 0,
     color: colors.textSecondary,
   },
@@ -1625,7 +1635,8 @@ const styles = StyleSheet.create({
     ...shadow.card,
   },
   compactCardPadding: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
   },
   detailOverviewIcon: {
     width: 58,

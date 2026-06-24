@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { PrimaryButton, SecondaryButton } from '../../components/ui';
 import { colors, fonts, radius, shadow, spacing, type } from '../../theme';
+import { useResponsiveLayout } from '../../theme/responsive';
 import { LIFE_GOAL_PRESETS, createLifeGoal, type SelectableLifeGoalCategory } from '../goalDomainMapping';
 import type { LifeGoal } from '../types';
 
@@ -76,9 +77,16 @@ function GoalOptionCard({
   selected: boolean;
   onPress: () => void;
 }) {
+  const responsive = useResponsiveLayout();
+
   return (
     <Pressable
-      style={({ pressed }) => [styles.option, selected && styles.optionSelected, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.option,
+        responsive.isCompactPhone && styles.compactCardPadding,
+        selected && styles.optionSelected,
+        pressed && styles.pressed,
+      ]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected }}
@@ -111,6 +119,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
     ...shadow.card,
+  },
+  compactCardPadding: {
+    paddingHorizontal: 14,
+    paddingVertical: 16,
   },
   optionSelected: {
     backgroundColor: colors.bgGold,

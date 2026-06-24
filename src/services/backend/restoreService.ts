@@ -393,7 +393,18 @@ function chooseRestoredCheckUp(existing: StoredCheckUp, next: StoredCheckUp): St
   const existingV2 = existing.movementProfileV2Snapshot;
   const nextV2 = next.movementProfileV2Snapshot;
   if (!existingV2 && nextV2) return next;
-  if (existingV2 && nextV2 && existingV2.snapshotFingerprint === nextV2.snapshotFingerprint) {
+  if (existingV2 && nextV2 && existingV2.snapshotFingerprint !== nextV2.snapshotFingerprint) {
+    return existing;
+  }
+  const existingAssessment = existing.movementProfileV2Assessment;
+  const nextAssessment = next.movementProfileV2Assessment;
+  if (!existingAssessment && nextAssessment) return next;
+  if (
+    existingAssessment &&
+    nextAssessment &&
+    existingAssessment.assessmentId === nextAssessment.assessmentId &&
+    existingAssessment.assessmentFingerprint !== nextAssessment.assessmentFingerprint
+  ) {
     return existing;
   }
   return existing;
@@ -668,6 +679,7 @@ async function persistRestoredLocalState(
           retryOfCheckUpId: record.retryOfCheckUpId,
           scoreSnapshot: record.scoreSnapshot ?? null,
           movementProfileV2Snapshot: record.movementProfileV2Snapshot ?? null,
+          movementProfileV2Assessment: record.movementProfileV2Assessment ?? null,
         })
       );
     }
@@ -696,6 +708,7 @@ function storedCheckUpFromRemoteRow(row: RemoteMovementCheckupRow): StoredCheckU
   const checkupType = exactCheckupTypeFromRemote(row, derived, raw);
   const scoreSnapshot = scoreSnapshotCandidateFromRemoteRow(row);
   const movementProfileV2Snapshot = movementProfileV2SnapshotCandidateFromRemoteRow(row);
+  const movementProfileV2Assessment = movementProfileV2AssessmentCandidateFromRemoteRow(row);
 
   return deserializeCheckUp(
     JSON.stringify({
@@ -703,6 +716,7 @@ function storedCheckUpFromRemoteRow(row: RemoteMovementCheckupRow): StoredCheckU
       checkupType,
       scoreSnapshot,
       movementProfileV2Snapshot,
+      movementProfileV2Assessment,
       checkUp,
     })
   );
@@ -718,6 +732,12 @@ function movementProfileV2SnapshotCandidateFromRemoteRow(row: RemoteMovementChec
   const derived = asRecord(row.derived_scores_json);
   const raw = asRecord(row.raw_checkup_json);
   return derived.movementProfileV2Snapshot ?? raw.movementProfileV2Snapshot ?? null;
+}
+
+function movementProfileV2AssessmentCandidateFromRemoteRow(row: RemoteMovementCheckupRow): unknown {
+  const derived = asRecord(row.derived_scores_json);
+  const raw = asRecord(row.raw_checkup_json);
+  return derived.movementProfileV2Assessment ?? raw.movementProfileV2Assessment ?? null;
 }
 
 function microCheckFromRemoteRow(row: RemoteMicroCheckRow): MicroCheckResult | null {

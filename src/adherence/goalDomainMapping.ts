@@ -10,16 +10,34 @@ import { LOCAL_USER_ID } from './types';
 export type SelectableLifeGoalCategory = Exclude<LifeGoalCategory, 'custom'>;
 
 export const LIFE_GOAL_PRESETS: { category: SelectableLifeGoalCategory; label: string }[] = [
-  { category: 'stairs', label: 'Climb stairs more easily' },
+  { category: 'stairs', label: 'Climb stairs easily' },
   { category: 'walking_hiking_sport', label: 'Keep up on walks' },
   { category: 'travel', label: 'Travel comfortably' },
-  { category: 'grandchildren', label: 'Play with children/grandchildren' },
-  { category: 'gardening_hobbies', label: 'Feel less stiff' },
-  { category: 'floor_confidence', label: 'Get down to and up from the floor' },
-  { category: 'carrying_loads', label: 'Carry groceries or luggage' },
-  { category: 'independence', label: 'Stay independent' },
+  { category: 'grandchildren', label: 'Play with children or grandchildren' },
+  { category: 'gardening_hobbies', label: 'Move without stiffness' },
+  { category: 'floor_confidence', label: 'Get down to the floor and stand back up' },
+  { category: 'carrying_loads', label: 'Carry bags and groceries' },
+  { category: 'independence', label: 'Stay independent day to day' },
   { category: 'noticed_decline', label: 'Feel stronger overall' },
 ];
+
+const LIFE_GOAL_LABEL_ALIASES: Record<string, string> = {
+  'climb stairs more easily': 'Climb stairs easily',
+  'climb stairs easily': 'Climb stairs easily',
+  'keep up on walks': 'Keep up on walks',
+  'travel comfortably': 'Travel comfortably',
+  'play with children/grandchildren': 'Play with children or grandchildren',
+  'play with children or grandchildren': 'Play with children or grandchildren',
+  'feel less stiff': 'Move without stiffness',
+  'move without stiffness': 'Move without stiffness',
+  'get down to and up from the floor': 'Get down to the floor and stand back up',
+  'get down to the floor and stand back up': 'Get down to the floor and stand back up',
+  'carry groceries or luggage': 'Carry bags and groceries',
+  'carry bags and groceries': 'Carry bags and groceries',
+  'stay independent': 'Stay independent day to day',
+  'stay independent day to day': 'Stay independent day to day',
+  'feel stronger overall': 'Feel stronger overall',
+};
 
 export const LIFE_GOAL_CATEGORIES: LifeGoalCategory[] = [
   'grandchildren',
@@ -59,9 +77,35 @@ export function createLifeGoal({
 export function getLifeGoalDisplayText(goal: LifeGoal | null | undefined): string {
   if (!goal) return 'Stay capable for the life you want to keep living';
   if (goal.category === 'custom') {
-    return goal.customText?.trim() || 'Something personal that matters to you';
+    return normalizeLifeGoalDisplayText(goal.customText) || 'Something personal that matters to you';
   }
-  return LIFE_GOAL_PRESETS.find((p) => p.category === goal.category)?.label ?? 'Stay capable';
+  return normalizeLifeGoalDisplayText(LIFE_GOAL_PRESETS.find((p) => p.category === goal.category)?.label) || 'Stay capable';
+}
+
+export function normalizeLifeGoalDisplayText(value: string | null | undefined): string {
+  const stripped = stripLifeGoalPrompt(value);
+  if (!stripped) return '';
+  return LIFE_GOAL_LABEL_ALIASES[lifeGoalLabelKey(stripped)] ?? stripped;
+}
+
+function stripLifeGoalPrompt(value: string | null | undefined): string {
+  return (value ?? '')
+    .trim()
+    .replace(/^in\s+the\s+future,\s+i\s+want\s+to\s+be\s+able\s+to\s+/i, '')
+    .replace(/^i\s+want\s+to\s+be\s+able\s+to\s+/i, '')
+    .replace(/^my\s+goal\s+is\s+to\s+/i, '')
+    .replace(/^i\s+want\s+to\s+/i, '')
+    .replace(/^to\s+/i, '')
+    .trim();
+}
+
+function lifeGoalLabelKey(value: string): string {
+  return value
+    .trim()
+    .replace(/\s*\/\s*/g, '/')
+    .replace(/[.]+$/g, '')
+    .replace(/\s+/g, ' ')
+    .toLocaleLowerCase();
 }
 
 export function getLifeGoalTrainingRelevance(goal: LifeGoal | null | undefined): LifeGoalTrainingRelevance {

@@ -175,7 +175,8 @@ const styles = StyleSheet.create({
     minHeight: 0,
   },
   compactCardPadding: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
   },
   noticeTitle: {
     ...type.cardRowTitle,

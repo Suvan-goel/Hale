@@ -3,25 +3,30 @@ import { Inter_400Regular, Inter_500Medium, useFonts } from '@expo-google-fonts/
 import { StatusBar } from 'expo-status-bar';
 import * as React from 'react';
 import {
+  BackHandler,
   Linking,
   Platform,
   Pressable,
-  SafeAreaView,
   StatusBar as NativeStatusBar,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
-import { requestCameraPermissionsAsync } from './modules/expo-pose-detection';
+import {
+  requestCameraPermissionsAsync,
+  setAndroidNavigationBarVisibleAsync,
+} from './modules/expo-pose-detection';
 import { BackArrowButton } from './src/components/BackArrowButton';
 import { HeaderLogo } from './src/components/HeaderLogo';
+import { SystemInsetsProvider, useSystemInsets } from './src/components/SystemInsetsProvider';
 import {
   PrimaryButton,
   Screen,
   ScreenHeader,
   ScreenScrollClearanceProvider,
 } from './src/components/ui';
+import { MOVEMENT_PROFILE_V2_INTERNAL_ENABLED } from './src/config/movementProfileV2Internal';
 import {
   AdherenceStore,
   AdherenceStoreState,
@@ -53,6 +58,7 @@ import {
   markMovementBlockComplete,
   mergeMilestones,
   movementBlockSourceCheckUpId,
+  normalizeLifeGoalDisplayText,
   recordTrainingSessionCompletion,
   scoreDomainFromMovementDomain,
   upsertMovementAssessment,
@@ -105,6 +111,19 @@ import {
 import { HistoryStore, StoredCheckUp } from './src/history';
 import { createExpoHistoryFs } from './src/history/fsAdapter';
 import {
+  createMovementProfileV2InternalFlow,
+  latestMaterializedMovementProfileV2Result,
+  latestPendingMovementProfileV2RawCheckUp,
+  type MovementProfileV2InternalFlowState,
+} from './src/movementProfileV2/internalCheckupFlow';
+import { latestMovementProfileV2ReferenceDetailsDraft } from './src/movementProfileV2/referenceDetailsDraft';
+import {
+  buildMovementProfileV2ResultsViewModel,
+  movementProfileV2ResultsViewModelForRecord,
+  type MovementProfileV2Domain,
+  type MovementProfileV2ResultsViewModel,
+} from './src/movementProfileV2/viewModel';
+import {
   DEFAULT_TAB_KEY,
   TabBar,
   TAB_BAR_SCROLL_CLEARANCE,
@@ -126,6 +145,10 @@ import {
   representativeAgeForAgeBand,
   safetyProfileWithCanonicalEquipment,
 } from './src/profile';
+import {
+  materializeOfficialMovementProfileV2Artifacts,
+  type MovementProfileV2ReferenceProfile,
+} from './src/reference/movementProfileV2';
 import {
   CheckUpScore,
   ScoringInputIssue,
@@ -171,6 +194,9 @@ import { LadderDetailScreen, LearnDetailScreen } from './src/screens/ExploreDeta
 import { LiveSessionScreen } from './src/screens/LiveSessionScreen';
 import { ManualCheckupStartScreen } from './src/screens/ManualCheckupStartScreen';
 import { MicroCheckScreen } from './src/screens/MicroCheckScreen';
+import { MovementProfileV2CheckUpScreen } from './src/screens/MovementProfileV2CheckUpScreen';
+import { MovementProfileV2ReferenceDetailsScreen } from './src/screens/MovementProfileV2ReferenceDetailsScreen';
+import { MovementProfileV2ResultsScreen } from './src/screens/MovementProfileV2ResultsScreen';
 import { OnboardingBlockScreen } from './src/screens/OnboardingBlockScreen';
 import { OnboardingEquipmentScreen } from './src/screens/OnboardingEquipmentScreen';
 import { OnboardingResultsScreen } from './src/screens/OnboardingResultsScreen';
@@ -226,6 +252,10 @@ type Flow =
   | 'ladder-detail'
   | 'learn-detail'
   | 'settings'
+  | 'movement-profile-v2-checkup'
+  | 'movement-profile-v2-reference-details'
+  | 'movement-profile-v2-results'
+  | 'movement-profile-v2-domain-detail'
   | 'dev-live';
 
 type CameraSetupEntry = 'checkup' | 'review';
@@ -242,6 +272,7 @@ const CAMERA_FLOWS = new Set<Flow>([
   'checkup',
   'training',
   'microcheck',
+  'movement-profile-v2-checkup',
   'dev-live',
 ]);
 const MAX_NAVIGATION_HISTORY_ENTRIES = 40;
@@ -437,17 +468,20 @@ function assessmentForCheckUp(
 
 function App() {
   return (
-    <StatusBarBackdrop>
-      <AuthProvider>
-        <AppGate />
-      </AuthProvider>
-    </StatusBarBackdrop>
+    <SystemInsetsProvider>
+      <StatusBarBackdrop>
+        <AuthProvider>
+          <AppGate />
+        </AuthProvider>
+      </StatusBarBackdrop>
+    </SystemInsetsProvider>
   );
 }
 
 export default wrapWithObservability(App);
 
 function StatusBarBackdrop({ children }: { children: React.ReactNode }) {
+  const systemInsets = useSystemInsets();
   return (
     <View style={styles.appChrome}>
       <NativeStatusBar
@@ -458,9 +492,13 @@ function StatusBarBackdrop({ children }: { children: React.ReactNode }) {
       <StatusBar style="dark" />
       <View style={styles.appChromeContent}>{children}</View>
       {Platform.OS === 'ios' ? (
-        <SafeAreaView pointerEvents="none" style={styles.statusBarSafeAreaStrip}>
-          <View style={styles.statusBarSafeAreaContent} />
-        </SafeAreaView>
+        <View
+          pointerEvents="none"
+          style={[
+            styles.statusBarSafeAreaStrip,
+            { height: systemInsets.top + STATUS_BAR_BACKDROP_EXTRA_HEIGHT },
+          ]}
+        />
       ) : (
         <View
           pointerEvents="none"
@@ -486,6 +524,13 @@ function AppGate() {
     Inter_500Medium,
   });
   const auth = useAuth();
+  const shouldRenderHaleApp =
+    fontsLoaded && !auth.loading && auth.isSignedIn && !auth.isPasswordRecovery;
+
+  React.useEffect(() => {
+    if (shouldRenderHaleApp) return;
+    void setAndroidNavigationBarVisibleAsync(false);
+  }, [shouldRenderHaleApp]);
 
   if (!fontsLoaded || auth.loading) {
     return <AuthLoadingScreen />;
@@ -500,6 +545,7 @@ function AppGate() {
 
 function HaleApp() {
   const { isSignedIn: backendSignedIn, signOut, user } = useAuth();
+  const systemInsets = useSystemInsets();
   const backendUserId = user?.id ?? null;
   const [permission, setPermission] = React.useState<PermissionState>('checking');
   // Audio mode must be configured BEFORE the camera mounts — audio session
@@ -513,6 +559,7 @@ function HaleApp() {
     TEMP_PREVIEW_BLOCK_INTRO_SCREEN ? 'block-intro' : null
   );
   const [progressHistoryOpen, setProgressHistoryOpen] = React.useState(false);
+  const [progressResultCheckUpId, setProgressResultCheckUpId] = React.useState<string | null>(null);
   const [cameraSetupEntry, setCameraSetupEntry] =
     React.useState<CameraSetupEntry>('checkup');
   const [lifeGoalEntry, setLifeGoalEntry] =
@@ -520,6 +567,16 @@ function HaleApp() {
   const [safetyProfileEntry, setSafetyProfileEntry] =
     React.useState<SafetyProfileEntry>('onboarding');
   const [devOnboardingReplay, setDevOnboardingReplay] = React.useState(false);
+  const [movementProfileV2InitialFlow, setMovementProfileV2InitialFlow] =
+    React.useState<MovementProfileV2InternalFlowState | null>(null);
+  const [movementProfileV2Raw, setMovementProfileV2Raw] = React.useState<{
+    checkUp: CheckUp;
+    sourceType: Extract<CheckupType, 'baseline' | 'baseline_retake'>;
+  } | null>(null);
+  const [movementProfileV2Result, setMovementProfileV2Result] =
+    React.useState<MovementProfileV2ResultsViewModel | null>(null);
+  const [movementProfileV2DetailDomain, setMovementProfileV2DetailDomain] =
+    React.useState<MovementProfileV2Domain | null>(null);
 
   // Auth-scoped local stores. Each backend user gets a separate on-device cache
   // so sign-out/sign-in never lets another account inherit local Hale state.
@@ -649,6 +706,12 @@ function HaleApp() {
   );
 
   React.useEffect(() => {
+    if (flow !== 'results') {
+      setProgressResultCheckUpId(null);
+    }
+  }, [flow]);
+
+  React.useEffect(() => {
     addBreadcrumb('app startup hydration started', { area: 'startup' });
     requestCameraPermissionsAsync()
       .then((response) => setPermission(response.granted ? 'granted' : 'denied'))
@@ -676,6 +739,10 @@ function HaleApp() {
     setLastResultScore(null);
     setLastResultScoreSnapshot(null);
     setLastResultCheckupType(null);
+    setMovementProfileV2InitialFlow(null);
+    setMovementProfileV2Raw(null);
+    setMovementProfileV2Result(null);
+    setMovementProfileV2DetailDomain(null);
     setTraining(defaultTrainingState());
     setMicroChecks([]);
     setPrefs(defaultPreferences());
@@ -916,7 +983,22 @@ function HaleApp() {
     setLastSessionResult(null);
     setSelectedLadderId(null);
     setSelectedLearnId(null);
+    setMovementProfileV2InitialFlow(null);
+    setMovementProfileV2Raw(null);
+    setMovementProfileV2Result(null);
+    setMovementProfileV2DetailDomain(null);
   }, [replaceNextNavigationLocation]);
+
+  React.useEffect(() => {
+    if (
+      MOVEMENT_PROFILE_V2_INTERNAL_ENABLED ||
+      flow === null ||
+      !flow.startsWith('movement-profile-v2')
+    ) {
+      return;
+    }
+    goHome();
+  }, [flow, goHome]);
 
   const goBack = React.useCallback(
     (fallback?: () => void) => {
@@ -946,6 +1028,40 @@ function HaleApp() {
     },
     [goHome, replaceNextNavigationLocation]
   );
+
+  const handleAndroidHardwareBack = React.useCallback(() => {
+    if (progressHistoryOpen) {
+      setProgressHistoryOpen(false);
+      return true;
+    }
+
+    const current = currentLocationRef.current;
+    const hasPreviousLocation = navigationHistoryRef.current.some(
+      (location) => !sameNavigationLocation(location, current)
+    );
+
+    if (hasPreviousLocation) {
+      goBack(() => undefined);
+      return true;
+    }
+
+    if (current.flow !== null) {
+      goHome();
+      return true;
+    }
+
+    return true;
+  }, [goBack, goHome, progressHistoryOpen]);
+
+  React.useEffect(() => {
+    if (Platform.OS !== 'android') return;
+
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      handleAndroidHardwareBack
+    );
+    return () => subscription.remove();
+  }, [handleAndroidHardwareBack]);
 
   const goExplore = React.useCallback(() => {
     replaceNextNavigationLocation(navigationLocation('explore', null));
@@ -1688,6 +1804,8 @@ function HaleApp() {
     if (visibleType !== 'official_retest' || !visibleResult || !activeMovementBlock) return false;
     return movementBlockSourceCheckUpId(activeMovementBlock) === visibleResult.startedAt;
   }, [activeMovementBlock, lastResultCheckupType, visibleResult, visibleResultAssessment]);
+  const visibleResultOpenedFromProgress =
+    !!visibleResult && progressResultCheckUpId === visibleResult.startedAt;
   const showingPendingOnboardingResult =
     !prefs.onboarding.completedAt &&
     (prefs.onboarding.currentStep === 'results' || prefs.onboarding.currentStep === 'create_block');
@@ -3073,6 +3191,7 @@ function HaleApp() {
       setLastResultScore(latest.score);
       setLastResultScoreSnapshot(latest.scoreSnapshot);
       setLastResultCheckupType(latest.type);
+      setProgressResultCheckUpId(latest.record.checkUp.startedAt);
       setFlow('results');
     }
   }, [adherence.assessments, history]);
@@ -3087,6 +3206,7 @@ function HaleApp() {
       setLastResultScore(selected.score);
       setLastResultScoreSnapshot(selected.scoreSnapshot);
       setLastResultCheckupType(selected.type);
+      setProgressResultCheckUpId(selected.record.checkUp.startedAt);
       setFlow('results');
     },
     [adherence.assessments, history]
@@ -3269,6 +3389,129 @@ function HaleApp() {
     openManualCheckup();
   }, [openManualCheckup]);
 
+  const beginMovementProfileV2Internal = React.useCallback(() => {
+    if (!MOVEMENT_PROFILE_V2_INTERNAL_ENABLED) return;
+    const pendingRaw = latestPendingMovementProfileV2RawCheckUp(history);
+    setMovementProfileV2Result(null);
+    setMovementProfileV2DetailDomain(null);
+
+    if (pendingRaw) {
+      setMovementProfileV2InitialFlow(null);
+      setMovementProfileV2Raw({
+        checkUp: pendingRaw.record.checkUp,
+        sourceType: pendingRaw.sourceType,
+      });
+      setFlow('movement-profile-v2-reference-details');
+      return;
+    }
+
+    const startedAt = new Date().toISOString();
+    const initialFlow = createMovementProfileV2InternalFlow({ startedAt, history });
+    setMovementProfileV2InitialFlow(initialFlow);
+    setMovementProfileV2Raw(null);
+    setFlow('movement-profile-v2-checkup');
+  }, [history]);
+
+  const handleMovementProfileV2RawComplete = React.useCallback(
+    (input: {
+      checkUp: CheckUp;
+      sourceType: Extract<CheckupType, 'baseline' | 'baseline_retake'>;
+    }) => {
+      try {
+        store.save(input.checkUp, { checkupType: input.sourceType });
+      } catch (error) {
+        console.warn('[movement-profile-v2] raw save failed', error);
+        captureError(error, { area: 'movement_profile_v2', action: 'save_raw_checkup' });
+      }
+      setMovementProfileV2Raw(input);
+      setMovementProfileV2InitialFlow(null);
+      setMovementProfileV2Result(null);
+      setMovementProfileV2DetailDomain(null);
+      store
+        .loadAll()
+        .then(setHistory)
+        .catch(() => {});
+      replaceFlow('movement-profile-v2-reference-details');
+    },
+    [replaceFlow, store]
+  );
+
+  const handleMovementProfileV2ReferenceSubmit = React.useCallback(
+    (referenceProfile: MovementProfileV2ReferenceProfile) => {
+      if (!movementProfileV2Raw) return;
+      const now = new Date().toISOString();
+      const materialized = materializeOfficialMovementProfileV2Artifacts({
+        checkUp: movementProfileV2Raw.checkUp,
+        checkupType: movementProfileV2Raw.sourceType,
+        referenceProfile,
+        lifeGoal: prefs.profile.lifeGoal,
+        acceptedHistory: history,
+        snapshotCreatedAt: now,
+        assessmentCreatedAt: now,
+      });
+
+      if (!materialized.ok) {
+        console.warn('[movement-profile-v2] materialization failed', materialized.reason);
+        captureError(new Error(`[movement-profile-v2] ${materialized.reason}`), {
+          area: 'movement_profile_v2',
+          action: 'materialize_artifacts',
+          reason: materialized.reason,
+        });
+        return;
+      }
+
+      try {
+        store.save(materialized.checkUp, {
+          checkupType: movementProfileV2Raw.sourceType,
+          movementProfileV2Snapshot: materialized.snapshot,
+          movementProfileV2Assessment: materialized.assessment,
+        });
+      } catch (error) {
+        console.warn('[movement-profile-v2] artifact save failed', error);
+        captureError(error, { area: 'movement_profile_v2', action: 'save_artifacts' });
+      }
+
+      const completedAt = checkUpCompletionTimestamp(materialized.checkUp, now);
+      if (backendSignedIn && backendUserId) {
+        void syncMovementCheckupToRemote({
+          checkUp: materialized.checkUp,
+          checkupType: movementProfileV2Raw.sourceType,
+          status: 'completed',
+          completedAt,
+          movementProfileV2Snapshot: materialized.snapshot,
+          movementProfileV2Assessment: materialized.assessment,
+        });
+      }
+
+      setMovementProfileV2Raw(null);
+      setMovementProfileV2InitialFlow(null);
+      setMovementProfileV2DetailDomain(null);
+      setMovementProfileV2Result(
+        buildMovementProfileV2ResultsViewModel({
+          snapshot: materialized.snapshot,
+          assessment: materialized.assessment,
+        })
+      );
+      store
+        .loadAll()
+        .then(setHistory)
+        .catch(() => {});
+      replaceFlow('movement-profile-v2-results');
+    },
+    [backendSignedIn, backendUserId, history, movementProfileV2Raw, prefs.profile.lifeGoal, replaceFlow, store]
+  );
+
+  const viewLatestMovementProfileV2 = React.useCallback(() => {
+    if (!MOVEMENT_PROFILE_V2_INTERNAL_ENABLED) return;
+    const latest = latestMaterializedMovementProfileV2Result(history);
+    if (!latest) return;
+    setMovementProfileV2Raw(null);
+    setMovementProfileV2InitialFlow(null);
+    setMovementProfileV2DetailDomain(null);
+    setMovementProfileV2Result(movementProfileV2ResultsViewModelForRecord(latest));
+    setFlow('movement-profile-v2-results');
+  }, [history]);
+
   const handleRoute = React.useCallback(
     (route: string | undefined) => {
       switch (route) {
@@ -3341,6 +3584,18 @@ function HaleApp() {
   );
 
   const cameraReady = permission === 'granted' && audioReady;
+  const activeTab = normalizeTabKey(tab);
+  const activeTabScreen = getTabDef(activeTab).screen;
+  const showTabBar =
+    flow === null &&
+    restoreReady &&
+    onboardingDecisionReady &&
+    !pendingInitialOnboardingFlow &&
+    !(activeTabScreen === 'ProgressScreen' && progressHistoryOpen);
+
+  React.useEffect(() => {
+    void setAndroidNavigationBarVisibleAsync(showTabBar);
+  }, [showTabBar]);
 
   if (
     !restoreReady ||
@@ -3453,6 +3708,7 @@ function HaleApp() {
               onDone={() => goBack(goHome)}
               onRetake={handleRetakeVisibleResult}
               nextPlanReady={visibleResultNextPlanReady}
+              showBackButton={visibleResultOpenedFromProgress}
               onViewPlan={visibleResultNextPlanReady ? handleViewPlanFromResults : undefined}
             />
           )
@@ -3550,6 +3806,46 @@ function HaleApp() {
             onEquipment={goSettings}
             onDone={() => goBack(goExplore)}
           />
+        ) : flow === 'movement-profile-v2-checkup' && movementProfileV2InitialFlow ? (
+          <MovementProfileV2CheckUpScreen
+            startedAt={movementProfileV2InitialFlow.startedAt}
+            sourceType={movementProfileV2InitialFlow.sourceType}
+            initialFlow={movementProfileV2InitialFlow}
+            voiceId={prefs.settings.voiceId}
+            onComplete={handleMovementProfileV2RawComplete}
+            onCancel={() => goBack(goHome)}
+          />
+        ) : flow === 'movement-profile-v2-reference-details' && movementProfileV2Raw ? (
+          <MovementProfileV2ReferenceDetailsScreen
+            initialDraft={
+              movementProfileV2Raw.sourceType === 'baseline_retake'
+                ? latestMovementProfileV2ReferenceDetailsDraft(history)
+                : null
+            }
+            onSubmit={handleMovementProfileV2ReferenceSubmit}
+            onBack={() => goBack(goHome)}
+          />
+        ) : (flow === 'movement-profile-v2-results' ||
+            flow === 'movement-profile-v2-domain-detail') &&
+          movementProfileV2Result ? (
+          <MovementProfileV2ResultsScreen
+            viewModel={movementProfileV2Result}
+            detailDomain={
+              flow === 'movement-profile-v2-domain-detail' ? movementProfileV2DetailDomain : null
+            }
+            onOpenDomain={(domain) => {
+              setMovementProfileV2DetailDomain(domain);
+              setFlow('movement-profile-v2-domain-detail');
+            }}
+            onBackToResults={() => {
+              setMovementProfileV2DetailDomain(null);
+              replaceFlow('movement-profile-v2-results');
+            }}
+            onDone={() => {
+              setMovementProfileV2DetailDomain(null);
+              goBack(goHome);
+            }}
+          />
         ) : flow === 'settings' ? (
           <SettingsScreen
             profile={prefs.profile}
@@ -3568,6 +3864,9 @@ function HaleApp() {
             onOpenLifeGoal={() => openLifeGoal('review')}
             onOpenSafetyProfile={() => openSafetyProfile('review')}
             onOpenCameraSetup={() => openCameraSetup('review')}
+            onStartMovementProfileV2Internal={
+              MOVEMENT_PROFILE_V2_INTERNAL_ENABLED ? beginMovementProfileV2Internal : undefined
+            }
             onReplayOnboardingForDev={__DEV__ ? replayOnboardingForDev : undefined}
             onBack={goHome}
           />
@@ -3592,14 +3891,14 @@ function HaleApp() {
   }
 
   // Tab shell.
-  const activeTab = normalizeTabKey(tab);
-  const activeTabScreen = getTabDef(activeTab).screen;
-  const showTabBar = !(activeTabScreen === 'ProgressScreen' && progressHistoryOpen);
+  const tabBarScrollClearance = showTabBar
+    ? TAB_BAR_SCROLL_CLEARANCE + systemInsets.bottom
+    : 0;
 
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
-      <ScreenScrollClearanceProvider bottom={showTabBar ? TAB_BAR_SCROLL_CLEARANCE : 0}>
+      <ScreenScrollClearanceProvider bottom={tabBarScrollClearance}>
         <View style={styles.tabContent}>
           {activeTabScreen === 'TodayScreen' ? (
             <TodayScreen
@@ -3614,7 +3913,7 @@ function HaleApp() {
               lifeGoalText={
                 displayPrefs.profile.lifeGoal
                   ? getLifeGoalDisplayText(displayPrefs.profile.lifeGoal)
-                  : displayPrefs.profile.goal
+                  : normalizeLifeGoalDisplayText(displayPrefs.profile.goal)
               }
               activeBlockSummary={lifecycle.activeBlockSummary}
               weekSessionStatuses={lifecycle.weekSessionStatuses ?? []}
@@ -3643,6 +3942,8 @@ function HaleApp() {
               onStartRetest={() => beginCheckUp('official_retest')}
               onViewLatest={devMockData ? () => undefined : viewLast}
               onViewCheckUp={devMockData ? () => undefined : viewHistoricalCheckUp}
+              showMovementProfileV2Internal={MOVEMENT_PROFILE_V2_INTERNAL_ENABLED && !devMockData}
+              onViewMovementProfileV2={devMockData ? undefined : viewLatestMovementProfileV2}
               historyOpen={progressHistoryOpen}
               onHistoryOpenChange={setProgressHistoryOpen}
               onOpenSettings={goSettings}
@@ -3670,7 +3971,9 @@ function HaleApp() {
         </View>
       </ScreenScrollClearanceProvider>
 
-      {showTabBar ? <TabBar active={activeTab} onChange={setTab} /> : null}
+      {showTabBar ? (
+        <TabBar active={activeTab} onChange={setTab} bottomInset={systemInsets.bottom} />
+      ) : null}
     </View>
   );
 }
@@ -3684,7 +3987,7 @@ function buildDevCompletedOnboardingProfile(profile: UserProfile, nowIso: string
     name: profile.name.trim() || 'Suvan',
     age: profile.age,
     ageBand,
-    goal: profile.goal.trim() || getLifeGoalDisplayText(lifeGoal),
+    goal: getLifeGoalDisplayText(lifeGoal) || normalizeLifeGoalDisplayText(profile.goal),
     lifeGoal,
     safetyProfile,
   };
@@ -3895,10 +4198,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 1000,
-    backgroundColor: colors.bgBase,
-  },
-  statusBarSafeAreaContent: {
-    height: STATUS_BAR_BACKDROP_EXTRA_HEIGHT,
     backgroundColor: colors.bgBase,
   },
   statusBarAndroidStrip: {

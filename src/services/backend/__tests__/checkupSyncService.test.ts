@@ -13,7 +13,7 @@ import {
 } from '../../../movements/activeShoulderReachV2';
 import { CHAIR_RISE_V2_ID, type ChairRiseV2Result } from '../../../movements/chairRiseV2';
 import { ONE_LEG_BALANCE_V2_ID, type OneLegBalanceV2Result } from '../../../movements/oneLegBalanceV2';
-import { createMovementProfileV2Snapshot } from '../../../reference/movementProfileV2';
+import { createMovementProfileV2Assessment, createMovementProfileV2Snapshot } from '../../../reference/movementProfileV2';
 import { CURRENT_NORM_VERSION, CURRENT_SCORING_VERSION, createCurrentVersionedScoreSnapshot, type VersionedCheckUpScoreSnapshot } from '../../../scoring';
 import { mapLocalCheckupToRemotePayload } from '../checkupSyncService';
 
@@ -237,6 +237,41 @@ describe('movement check-up sync mapping', () => {
       .not.toHaveProperty('movementProfileV2Snapshot');
   });
 
+  it('syncs valid Movement Profile V2 assessments only when they match the selected snapshot', () => {
+    const rawCheckUp = v2CheckUp();
+    const snapshot = movementProfileV2SnapshotFor(rawCheckUp);
+    const assessment = movementProfileV2AssessmentFor(rawCheckUp, snapshot);
+
+    const payload = mapLocalCheckupToRemotePayload(
+      {
+        checkUp: rawCheckUp,
+        checkupType: 'baseline',
+        movementProfileV2Snapshot: snapshot,
+        movementProfileV2Assessment: assessment,
+      },
+      'user-123'
+    );
+
+    expect(payload.derived_scores_json).toMatchObject({
+      movementProfileV2Snapshot: {
+        snapshotFingerprint: snapshot.snapshotFingerprint,
+      },
+      movementProfileV2Assessment: {
+        assessmentFingerprint: assessment.assessmentFingerprint,
+        sourceSnapshotFingerprint: snapshot.snapshotFingerprint,
+      },
+      movementProfileV2AssessmentCompatibility: 'current',
+      movementProfileV2AssessmentSchemaVersion: 1,
+    });
+    expect(payload.raw_checkup_json).toMatchObject({
+      movementProfileV2Assessment: {
+        assessmentFingerprint: assessment.assessmentFingerprint,
+      },
+    });
+    expect((payload.raw_checkup_json as Record<string, { movementProfileV2Assessment?: unknown }>).checkUp)
+      .not.toHaveProperty('movementProfileV2Assessment');
+  });
+
   it('omits Movement Profile V2 snapshots whose source check-up no longer matches', () => {
     const snapshotSource = v2CheckUp();
     const rawCheckUp = v2CheckUp({ chair: chairV2Result({ reps: 13 }) });
@@ -261,6 +296,36 @@ describe('movement check-up sync mapping', () => {
     expect(payload.raw_checkup_json).toMatchObject({
       movementProfileV2Snapshot: null,
       movementProfileV2SnapshotCompatibility: 'source_mismatch',
+    });
+  });
+
+  it('omits Movement Profile V2 assessments whose source snapshot no longer matches', () => {
+    const rawCheckUp = v2CheckUp();
+    const snapshot = movementProfileV2SnapshotFor(rawCheckUp);
+    const otherCheckUp = v2CheckUp({ chair: chairV2Result({ reps: 13 }) });
+    const otherSnapshot = movementProfileV2SnapshotFor(otherCheckUp);
+    const otherAssessment = movementProfileV2AssessmentFor(otherCheckUp, otherSnapshot);
+
+    const payload = mapLocalCheckupToRemotePayload(
+      {
+        checkUp: rawCheckUp,
+        checkupType: 'baseline',
+        movementProfileV2Snapshot: snapshot,
+        movementProfileV2Assessment: otherAssessment,
+      },
+      'user-123'
+    );
+
+    expect(payload.derived_scores_json).toMatchObject({
+      movementProfileV2Snapshot: {
+        snapshotFingerprint: snapshot.snapshotFingerprint,
+      },
+      movementProfileV2Assessment: null,
+      movementProfileV2AssessmentCompatibility: 'source_mismatch',
+    });
+    expect(payload.raw_checkup_json).toMatchObject({
+      movementProfileV2Assessment: null,
+      movementProfileV2AssessmentCompatibility: 'source_mismatch',
     });
   });
 
@@ -414,6 +479,16 @@ function movementProfileV2SnapshotFor(checkUp: CheckUp) {
   });
   if (!created.ok) throw new Error(`expected V2 snapshot: ${created.reason}`);
   return created.snapshot;
+}
+
+function movementProfileV2AssessmentFor(checkUp: CheckUp, snapshot: ReturnType<typeof movementProfileV2SnapshotFor>) {
+  const created = createMovementProfileV2Assessment({
+    checkUp,
+    snapshot,
+    createdAt: checkUp.startedAt,
+  });
+  if (!created.ok) throw new Error(`expected V2 assessment: ${created.reason}`);
+  return created.assessment;
 }
 
 function chairV2Result(overrides: Partial<ChairRiseV2Result> = {}): ChairRiseV2Result {

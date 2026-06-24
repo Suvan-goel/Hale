@@ -7,6 +7,9 @@ import {
 } from '../../checkup';
 import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../../history';
 import {
+  getMovementProfileV2AssessmentPersistenceEligibility,
+  type MovementProfileV2Assessment,
+  type MovementProfileV2AssessmentCompatibility,
   parseStoredMovementProfileV2Snapshot,
   validMovementProfileV2SnapshotForCheckUp,
   type MovementProfileV2SnapshotCompatibility,
@@ -36,6 +39,7 @@ export interface MovementCheckupSyncInput {
   score?: CheckUpScore;
   scoreSnapshot?: VersionedCheckUpScoreSnapshot | null;
   movementProfileV2Snapshot?: StoredMovementProfileV2Snapshot | null;
+  movementProfileV2Assessment?: MovementProfileV2Assessment | null;
   assessment?: MovementAssessment | null;
 }
 
@@ -149,6 +153,7 @@ export async function syncRecentMovementCheckupsToRemote(
         completedAt: assessment?.completedAt,
         scoreSnapshot: record.scoreSnapshot,
         movementProfileV2Snapshot: record.movementProfileV2Snapshot,
+        movementProfileV2Assessment: record.movementProfileV2Assessment,
       })
     );
   }
@@ -198,6 +203,29 @@ export function mapLocalCheckupToRemotePayload(
         movementProfileV2SnapshotFingerprint: parsedMovementProfileV2Snapshot.snapshot?.snapshotFingerprint ?? null,
       }
     : {};
+  const movementProfileV2AssessmentCandidate =
+    input.movementProfileV2Assessment !== undefined
+      ? input.movementProfileV2Assessment
+      : input.checkUp.movementProfileV2Assessment;
+  const parsedMovementProfileV2Assessment = parseMovementProfileV2AssessmentForSync(
+    movementProfileV2AssessmentCandidate,
+    parsedMovementProfileV2Snapshot.snapshot,
+    input.checkUp,
+    exactCheckupType
+  );
+  const movementProfileV2AssessmentFields = parsedMovementProfileV2Assessment.shouldStore
+    ? {
+        movementProfileV2Assessment: parsedMovementProfileV2Assessment.assessment ?? null,
+        movementProfileV2AssessmentCompatibility: parsedMovementProfileV2Assessment.compatibility,
+        movementProfileV2AssessmentSchemaVersion: parsedMovementProfileV2Assessment.assessment?.schemaVersion ?? null,
+        movementProfileV2AssessmentSourceCheckUpId:
+          parsedMovementProfileV2Assessment.assessment?.sourceCheckUpId ?? null,
+        movementProfileV2AssessmentSourceSnapshotId:
+          parsedMovementProfileV2Assessment.assessment?.sourceSnapshotId ?? null,
+        movementProfileV2AssessmentFingerprint:
+          parsedMovementProfileV2Assessment.assessment?.assessmentFingerprint ?? null,
+      }
+    : {};
   const snapshotCompatibility = scoreSnapshot
     ? suppliedSnapshotBelongsToCheckUp
       ? suppliedSnapshot.compatibility
@@ -230,6 +258,7 @@ export function mapLocalCheckupToRemotePayload(
       scoringVersion: snapshotMetadata.scoringVersion,
       normVersion: snapshotMetadata.normVersion,
       ...movementProfileV2SnapshotFields,
+      ...movementProfileV2AssessmentFields,
       score,
       weakestDomain,
       assessment: input.assessment
@@ -248,6 +277,7 @@ export function mapLocalCheckupToRemotePayload(
       checkupType: exactCheckupType,
       scoreSnapshot,
       ...movementProfileV2SnapshotFields,
+      ...movementProfileV2AssessmentFields,
       checkUp: sanitizeCheckup(input.checkUp),
     }),
     created_locally_at: input.checkUp.startedAt,
@@ -329,6 +359,39 @@ function parseMovementProfileV2SnapshotForSync(
     return { compatibility: 'source_mismatch', shouldStore: true };
   }
   return { snapshot: valid, compatibility: parsed.compatibility, shouldStore: true };
+}
+
+function parseMovementProfileV2AssessmentForSync(
+  value: unknown,
+  snapshot: StoredMovementProfileV2Snapshot | undefined,
+  checkUp: CheckUp,
+  checkupType: CheckupType | undefined
+): {
+  assessment?: MovementProfileV2Assessment;
+  compatibility: MovementProfileV2AssessmentCompatibility;
+  shouldStore: boolean;
+} {
+  const protocolPolicy = normalizeCheckUpRecordProtocolPolicy(checkUp);
+  const isV2Protocol = protocolPolicy.supported && protocolPolicy.policy.id === MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID;
+  if (value === undefined || value === null) {
+    return {
+      compatibility: 'missing',
+      shouldStore: isV2Protocol,
+    };
+  }
+  if (!snapshot) {
+    return { compatibility: 'snapshot_missing', shouldStore: true };
+  }
+  const eligibility = getMovementProfileV2AssessmentPersistenceEligibility({
+    checkUp,
+    checkupType,
+    snapshot,
+    assessment: value,
+  });
+  if (!eligibility.eligible) {
+    return { compatibility: eligibility.compatibility, shouldStore: true };
+  }
+  return { assessment: eligibility.assessment, compatibility: 'current', shouldStore: true };
 }
 
 function isOfficialMovementProfileV2SnapshotSourceType(

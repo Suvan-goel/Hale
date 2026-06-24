@@ -7,6 +7,7 @@ export const LANDMARK_COUNT = 33;
 export const LANDMARK_STRIDE = 5;
 
 export type CameraFacing = 'front' | 'back';
+export type AndroidNavigationMode = 'button' | 'gesture' | 'unknown';
 
 export type ModelVariant = 'lite' | 'full';
 

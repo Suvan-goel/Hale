@@ -16,7 +16,7 @@ import { CHAIR_RISE_V2_ID, type ChairRiseV2Result } from '../../../movements/cha
 import { ONE_LEG_BALANCE_V2_ID, type OneLegBalanceV2Result } from '../../../movements/oneLegBalanceV2';
 import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../../../history';
 import { defaultPreferences } from '../../../profile';
-import { createMovementProfileV2Snapshot } from '../../../reference/movementProfileV2';
+import { createMovementProfileV2Assessment, createMovementProfileV2Snapshot } from '../../../reference/movementProfileV2';
 import { createCurrentVersionedScoreSnapshot, type VersionedCheckUpScoreSnapshot } from '../../../scoring';
 import { LOADED_STS_ID, STS_STANDARD_ID } from '../../../exercises';
 import {
@@ -799,6 +799,50 @@ describe('remote restore service', () => {
     expect(mapped.state.adherence.assessments).toEqual([]);
   });
 
+  it('restores source-bound Movement Profile V2 assessments without creating legacy assessments', () => {
+    const rawCheckUp = v2CheckUp(startedAt);
+    const movementProfileV2Snapshot = movementProfileV2SnapshotFor(rawCheckUp);
+    const movementProfileV2Assessment = movementProfileV2AssessmentFor(rawCheckUp, movementProfileV2Snapshot);
+    const mapped = mapRemoteHaleSnapshotToLocal(
+      remoteSnapshotWithCheckups([
+        {
+          id: 'remote-v2-checkup',
+          local_checkup_id: startedAt,
+          checkup_type: 'baseline',
+          status: 'completed',
+          derived_scores_json: backendJson({
+            schemaVersion: 1,
+            exactCheckupType: 'baseline',
+            movementProfileV2Snapshot,
+            movementProfileV2SnapshotCompatibility: 'current',
+            movementProfileV2Assessment,
+            movementProfileV2AssessmentCompatibility: 'current',
+          }),
+          raw_checkup_json: backendJson({
+            schemaVersion: HISTORY_SCHEMA_VERSION,
+            checkupType: 'baseline',
+            movementProfileV2Snapshot,
+            movementProfileV2Assessment,
+            checkUp: rawCheckUp,
+          }),
+          created_locally_at: startedAt,
+          completed_at: '2026-06-17T12:08:00.000Z',
+        },
+      ]),
+      emptyLocal()
+    );
+
+    expect(mapped.state.history).toHaveLength(1);
+    expect(mapped.state.history[0].movementProfileV2Snapshot?.snapshotFingerprint).toBe(
+      movementProfileV2Snapshot.snapshotFingerprint
+    );
+    expect(mapped.state.history[0].movementProfileV2Assessment?.assessmentFingerprint).toBe(
+      movementProfileV2Assessment.assessmentFingerprint
+    );
+    expect(mapped.state.history[0].movementProfileV2AssessmentCompatibility).toBe('current');
+    expect(mapped.state.adherence.assessments).toEqual([]);
+  });
+
   it('keeps raw V2 check-ups when restored V2 snapshots are malformed or missing', () => {
     const rawCheckUp = v2CheckUp(startedAt);
     const malformedSnapshot = {
@@ -834,6 +878,48 @@ describe('remote restore service', () => {
     expect(mapped.state.history[0].checkUp.items).toHaveLength(3);
     expect(mapped.state.history[0].movementProfileV2Snapshot).toBeUndefined();
     expect(mapped.state.history[0].movementProfileV2SnapshotCompatibility).toBe('fingerprint_invalid');
+    expect(mapped.state.adherence.assessments).toEqual([]);
+  });
+
+  it('keeps raw V2 check-ups and valid snapshots when restored V2 assessments are mismatched', () => {
+    const rawCheckUp = v2CheckUp(startedAt);
+    const movementProfileV2Snapshot = movementProfileV2SnapshotFor(rawCheckUp);
+    const otherCheckUp = v2CheckUp(startedAt, { chair: chairV2Result({ reps: 13 }) });
+    const otherSnapshot = movementProfileV2SnapshotFor(otherCheckUp);
+    const otherAssessment = movementProfileV2AssessmentFor(otherCheckUp, otherSnapshot);
+    const mapped = mapRemoteHaleSnapshotToLocal(
+      remoteSnapshotWithCheckups([
+        {
+          id: 'remote-v2-checkup',
+          local_checkup_id: startedAt,
+          checkup_type: 'baseline',
+          status: 'completed',
+          derived_scores_json: backendJson({
+            schemaVersion: 1,
+            exactCheckupType: 'baseline',
+            movementProfileV2Snapshot,
+            movementProfileV2Assessment: otherAssessment,
+          }),
+          raw_checkup_json: backendJson({
+            schemaVersion: HISTORY_SCHEMA_VERSION,
+            checkupType: 'baseline',
+            movementProfileV2Snapshot,
+            movementProfileV2Assessment: otherAssessment,
+            checkUp: rawCheckUp,
+          }),
+          created_locally_at: startedAt,
+          completed_at: '2026-06-17T12:08:00.000Z',
+        },
+      ]),
+      emptyLocal()
+    );
+
+    expect(mapped.state.history).toHaveLength(1);
+    expect(mapped.state.history[0].movementProfileV2Snapshot?.snapshotFingerprint).toBe(
+      movementProfileV2Snapshot.snapshotFingerprint
+    );
+    expect(mapped.state.history[0].movementProfileV2Assessment).toBeUndefined();
+    expect(mapped.state.history[0].movementProfileV2AssessmentCompatibility).toBe('source_mismatch');
     expect(mapped.state.adherence.assessments).toEqual([]);
   });
 
@@ -878,6 +964,59 @@ describe('remote restore service', () => {
     expect(mapped.state.history).toHaveLength(1);
     expect(mapped.state.history[0].movementProfileV2Snapshot?.snapshotFingerprint).toBe(
       movementProfileV2Snapshot.snapshotFingerprint
+    );
+    expect(mapped.state.adherence.assessments).toEqual([]);
+  });
+
+  it('prefers a valid restored V2 assessment over a duplicate snapshot-only remote row', () => {
+    const rawCheckUp = v2CheckUp(startedAt);
+    const movementProfileV2Snapshot = movementProfileV2SnapshotFor(rawCheckUp);
+    const movementProfileV2Assessment = movementProfileV2AssessmentFor(rawCheckUp, movementProfileV2Snapshot);
+    const mapped = mapRemoteHaleSnapshotToLocal(
+      remoteSnapshotWithCheckups([
+        {
+          id: 'remote-v2-snapshot-only',
+          local_checkup_id: startedAt,
+          checkup_type: 'baseline',
+          status: 'completed',
+          derived_scores_json: backendJson({
+            schemaVersion: 1,
+            exactCheckupType: 'baseline',
+            movementProfileV2Snapshot,
+          }),
+          raw_checkup_json: backendJson({
+            schemaVersion: HISTORY_SCHEMA_VERSION,
+            checkupType: 'baseline',
+            movementProfileV2Snapshot,
+            checkUp: rawCheckUp,
+          }),
+        },
+        {
+          id: 'remote-v2-assessment',
+          local_checkup_id: startedAt,
+          checkup_type: 'baseline',
+          status: 'completed',
+          derived_scores_json: backendJson({
+            schemaVersion: 1,
+            exactCheckupType: 'baseline',
+            movementProfileV2Snapshot,
+            movementProfileV2Assessment,
+          }),
+          raw_checkup_json: backendJson({
+            schemaVersion: HISTORY_SCHEMA_VERSION,
+            checkupType: 'baseline',
+            movementProfileV2Snapshot,
+            movementProfileV2Assessment,
+            checkUp: rawCheckUp,
+          }),
+        },
+      ]),
+      emptyLocal()
+    );
+
+    expect(mapped.state.history).toHaveLength(1);
+    expect(mapped.state.history[0].movementProfileV2Assessment?.assessmentFingerprint).toBe(
+      movementProfileV2Assessment.assessmentFingerprint
     );
     expect(mapped.state.adherence.assessments).toEqual([]);
   });
@@ -1061,6 +1200,16 @@ function movementProfileV2SnapshotFor(checkUp: CheckUp) {
   });
   if (!created.ok) throw new Error(`expected V2 snapshot: ${created.reason}`);
   return created.snapshot;
+}
+
+function movementProfileV2AssessmentFor(checkUp: CheckUp, snapshot: ReturnType<typeof movementProfileV2SnapshotFor>) {
+  const created = createMovementProfileV2Assessment({
+    checkUp,
+    snapshot,
+    createdAt: checkUp.startedAt,
+  });
+  if (!created.ok) throw new Error(`expected V2 assessment: ${created.reason}`);
+  return created.assessment;
 }
 
 function chairV2Result(overrides: Partial<ChairRiseV2Result> = {}): ChairRiseV2Result {

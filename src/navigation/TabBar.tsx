@@ -49,30 +49,40 @@ export function getTabDef(key: TabKey): TabDef {
   return TAB_DEFS.find((tab) => tab.key === key) ?? TAB_DEFS[0];
 }
 
-export function TabBar({ active, onChange }: { active: TabKey; onChange: (key: TabKey) => void }) {
+export function TabBar({
+  active,
+  onChange,
+  bottomInset = 0,
+}: {
+  active: TabKey;
+  onChange: (key: TabKey) => void;
+  bottomInset?: number;
+}) {
   const activeKey = normalizeTabKey(active);
   return (
-    <View style={styles.tray}>
-      <View style={styles.bar}>
-        {TAB_DEFS.map((tab) => {
-          const selected = tab.key === activeKey;
-          const tint = selected ? colors.accentDeep : colors.textSecondary;
-          return (
-            <Pressable
-              key={tab.key}
-              style={({ pressed }) => [styles.tab, selected && styles.tabActive, pressed && styles.tabPressed]}
-              onPress={() => onChange(tab.key)}
-              accessibilityRole="tab"
-              accessibilityState={{ selected }}
-              accessibilityLabel={tab.label}
-            >
-              <View style={[styles.iconWrap, selected && styles.iconWrapActive]}>
-                <tab.Icon size={selected ? 23 : 22} color={tint} strokeWidth={selected ? 2.05 : 1.75} />
-              </View>
-              <Text style={[styles.label, selected && styles.labelActive]}>{tab.label}</Text>
-            </Pressable>
-          );
-        })}
+    <View style={[styles.tray, bottomInset > 0 && { paddingBottom: spacing.lg + bottomInset }]}>
+      <View style={styles.contentRail}>
+        <View style={styles.bar}>
+          {TAB_DEFS.map((tab) => {
+            const selected = tab.key === activeKey;
+            const tint = selected ? colors.accentDeep : colors.textSecondary;
+            return (
+              <Pressable
+                key={tab.key}
+                style={({ pressed }) => [styles.tab, selected && styles.tabActive, pressed && styles.tabPressed]}
+                onPress={() => onChange(tab.key)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected }}
+                accessibilityLabel={tab.label}
+              >
+                <View style={[styles.iconWrap, selected && styles.iconWrapActive]}>
+                  <tab.Icon size={selected ? 23 : 22} color={tint} strokeWidth={selected ? 2.05 : 1.75} />
+                </View>
+                <Text style={[styles.label, selected && styles.labelActive]}>{tab.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
     </View>
   );
@@ -86,11 +96,17 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 20,
     backgroundColor: 'transparent',
-    paddingHorizontal: spacing.pageHorizontal,
+    alignItems: 'center',
     paddingTop: spacing.md,
     paddingBottom: spacing.lg,
   },
+  contentRail: {
+    width: '100%',
+    maxWidth: spacing.pageMaxWidth,
+    paddingHorizontal: spacing.pageHorizontal,
+  },
   bar: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,

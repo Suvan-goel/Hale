@@ -26,6 +26,7 @@ import {
 import { SfxChannel, VoiceChannel } from '../audio/voicePlayer';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
+import { useSystemInsets } from '../components/SystemInsetsProvider';
 import {
   CameraUnavailableNotice,
   SafePoseDetectionView,
@@ -163,6 +164,7 @@ export function MicroCheckScreen({
   const [cameraAvailability, setCameraAvailability] = React.useState<CameraAvailability>('checking');
   const windowSize = useWindowDimensions();
   const responsive = useResponsiveLayout();
+  const systemInsets = useSystemInsets();
   const poseLatencyDiagnostics = React.useMemo(
     () =>
       isPoseLatencyDiagnosticsEnabled()
@@ -331,7 +333,7 @@ export function MicroCheckScreen({
         contentContainerStyle={[
           styles.layoutContent,
           responsive.isCompactPhone && styles.compactScreenPadding,
-          { paddingTop: recordingTopPadding },
+          { paddingTop: recordingTopPadding, paddingBottom: spacing.xl + systemInsets.bottom },
         ]}
         showsVerticalScrollIndicator={false}
         bounces={false}
@@ -807,7 +809,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   compactCardPadding: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
   },
   compactModalBackdrop: {
     paddingHorizontal: 16,

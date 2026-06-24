@@ -289,26 +289,33 @@ function LibraryTab({
 
 function FeaturedLibraryCard({ ladderCount, domainCount }: { ladderCount: number; domainCount: number }) {
   const responsive = useResponsiveLayout();
+  const compactHero = responsive.isCompactPhone;
+  const heroMinHeightStyle = { minHeight: responsive.exploreHeroHeight };
+
   return (
     <View style={styles.featuredLibrarySection}>
       <Text style={styles.featuredPostLabel}>Movement options</Text>
-      <View style={styles.featuredLibraryCard}>
+      <View style={[styles.featuredLibraryCard, heroMinHeightStyle]}>
         <ImageBackground
           source={LIBRARY_IMAGES.hero}
-          style={styles.featuredLibraryImage}
+          style={[styles.featuredLibraryImage, heroMinHeightStyle]}
           imageStyle={styles.featuredLibraryImageRadius}
           resizeMode="cover"
         >
           <View style={styles.featuredLibraryScrim} />
-          <View style={[styles.featuredLibraryContent, responsive.isCompactPhone && styles.compactCardPadding]}>
-            <Text style={styles.featuredPostMeta}>Exercises Hale can use in your plan</Text>
-            <Text style={styles.featuredPostTitle}>See easier and harder options</Text>
-            <Text style={styles.featuredPostBody}>
-              Look through the versions Hale may choose. This will not change today's session.
-            </Text>
-            <View style={styles.libraryStatsRow}>
-              <LibraryStatPill label={`${ladderCount} groups`} />
-              <LibraryStatPill label={`${domainCount} areas`} />
+          <View style={[styles.featuredLibraryContent, compactHero && styles.featuredHeroContentCompact, heroMinHeightStyle]}>
+            <View style={[styles.featuredHeroCopy, compactHero && styles.featuredHeroCopyCompact]}>
+              <Text style={styles.featuredPostMeta}>Exercises Hale can use in your plan</Text>
+              <Text style={styles.featuredPostTitle}>See easier and harder options</Text>
+              <Text style={styles.featuredPostBody}>
+                Look through the versions Hale may choose. This will not change today's session.
+              </Text>
+            </View>
+            <View style={styles.featuredHeroAction}>
+              <View style={styles.libraryStatsRow}>
+                <LibraryStatPill label={`${ladderCount} groups`} />
+                <LibraryStatPill label={`${domainCount} areas`} />
+              </View>
             </View>
           </View>
         </ImageBackground>
@@ -356,28 +363,35 @@ function LibraryFilterBar({
 
 function FeaturedInsightCard({ article, onOpen }: { article: HealthInsightCard; onOpen: () => void }) {
   const responsive = useResponsiveLayout();
+  const compactHero = responsive.isCompactPhone;
+  const heroMinHeightStyle = { minHeight: responsive.exploreHeroHeight };
+
   return (
     <View style={styles.featuredPostSection}>
       <Text style={styles.featuredPostLabel}>Featured article</Text>
       <Pressable
-        style={({ pressed }) => [styles.featuredPostCard, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.featuredPostCard, heroMinHeightStyle, pressed && styles.pressed]}
         onPress={onOpen}
         accessibilityRole="button"
         accessibilityLabel={`Read ${article.title}`}
       >
         <ImageBackground
           source={INSIGHT_IMAGES[article.id]}
-          style={styles.featuredPostImage}
+          style={[styles.featuredPostImage, heroMinHeightStyle]}
           imageStyle={styles.featuredPostImageRadius}
           resizeMode="cover"
         >
           <View style={styles.featuredPostScrim} />
-          <View style={[styles.featuredPostContent, responsive.isCompactPhone && styles.compactCardPadding]}>
-            <Text style={styles.featuredPostMeta}>{article.categoryLabel} · {article.readTimeLabel}</Text>
-            <Text style={styles.featuredPostTitle}>{article.title}</Text>
-            <Text style={styles.featuredPostBody}>{article.body}</Text>
-            <View style={[styles.featuredPostButton, responsive.isCompactPhone && styles.compactCardPadding]}>
-              <Text style={styles.featuredPostButtonText}>Read article</Text>
+          <View style={[styles.featuredPostContent, compactHero && styles.featuredHeroContentCompact, heroMinHeightStyle]}>
+            <View style={[styles.featuredHeroCopy, compactHero && styles.featuredHeroCopyCompact]}>
+              <Text style={styles.featuredPostMeta}>{article.categoryLabel} · {article.readTimeLabel}</Text>
+              <Text style={styles.featuredPostTitle}>{article.title}</Text>
+              <Text style={styles.featuredPostBody}>{article.body}</Text>
+            </View>
+            <View style={styles.featuredHeroAction}>
+              <View style={[styles.featuredPostButton, compactHero && styles.featuredHeroButtonCompact]}>
+                <Text style={styles.featuredPostButtonText}>Read article</Text>
+              </View>
             </View>
           </View>
         </ImageBackground>
@@ -414,28 +428,35 @@ function InsightRow({
 
 function FeaturedGuideCard({ article, onOpen }: { article: LearnCard; onOpen: () => void }) {
   const responsive = useResponsiveLayout();
+  const compactHero = responsive.isCompactPhone;
+  const heroMinHeightStyle = { minHeight: responsive.exploreHeroHeight };
+
   return (
     <View style={styles.featuredGuideSection}>
       <Text style={styles.featuredPostLabel}>Start here</Text>
       <Pressable
-        style={({ pressed }) => [styles.featuredGuideCard, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.featuredGuideCard, heroMinHeightStyle, pressed && styles.pressed]}
         onPress={onOpen}
         accessibilityRole="button"
         accessibilityLabel={`Read ${article.title}`}
       >
         <ImageBackground
           source={LEARN_IMAGES[article.id]}
-          style={styles.featuredGuideImage}
+          style={[styles.featuredGuideImage, heroMinHeightStyle]}
           imageStyle={styles.featuredGuideImageRadius}
           resizeMode="cover"
         >
           <View style={styles.featuredGuideScrim} />
-          <View style={[styles.featuredGuideContent, responsive.isCompactPhone && styles.compactCardPadding]}>
-            <Text style={styles.featuredPostMeta}>Hale guide · {article.readTimeLabel}</Text>
-            <Text style={styles.featuredPostTitle}>{article.title}</Text>
-            <Text style={styles.featuredPostBody}>{article.body}</Text>
-            <View style={[styles.featuredPostButton, responsive.isCompactPhone && styles.compactCardPadding]}>
-              <Text style={styles.featuredPostButtonText}>Read guide</Text>
+          <View style={[styles.featuredGuideContent, compactHero && styles.featuredHeroContentCompact, heroMinHeightStyle]}>
+            <View style={[styles.featuredHeroCopy, compactHero && styles.featuredHeroCopyCompact]}>
+              <Text style={styles.featuredPostMeta}>Hale guide · {article.readTimeLabel}</Text>
+              <Text style={styles.featuredPostTitle}>{article.title}</Text>
+              <Text style={styles.featuredPostBody}>{article.body}</Text>
+            </View>
+            <View style={styles.featuredHeroAction}>
+              <View style={[styles.featuredPostButton, compactHero && styles.featuredHeroButtonCompact]}>
+                <Text style={styles.featuredPostButtonText}>Read guide</Text>
+              </View>
             </View>
           </View>
         </ImageBackground>
@@ -446,11 +467,14 @@ function FeaturedGuideCard({ article, onOpen }: { article: LearnCard; onOpen: ()
 
 function FeaturedPracticeCard({ session, onStart }: { session: ExtraSessionCard; onStart: () => void }) {
   const responsive = useResponsiveLayout();
+  const compactHero = responsive.isCompactPhone;
+  const heroMinHeightStyle = { minHeight: responsive.exploreHeroHeight };
+
   return (
     <View style={styles.featuredPracticeSection}>
       <Text style={styles.featuredPostLabel}>For lighter days</Text>
       <Pressable
-        style={({ pressed }) => [styles.featuredPracticeCard, session.disabled && styles.disabledRow, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.featuredPracticeCard, heroMinHeightStyle, session.disabled && styles.disabledRow, pressed && styles.pressed]}
         onPress={onStart}
         disabled={session.disabled}
         accessibilityRole="button"
@@ -459,21 +483,25 @@ function FeaturedPracticeCard({ session, onStart }: { session: ExtraSessionCard;
       >
         <ImageBackground
           source={PRACTICE_IMAGES.hero}
-          style={styles.featuredPracticeImage}
+          style={[styles.featuredPracticeImage, heroMinHeightStyle]}
           imageStyle={styles.featuredPracticeImageRadius}
           resizeMode="cover"
         >
           <View style={styles.featuredPracticeScrim} />
-          <View style={[styles.featuredPracticeContent, responsive.isCompactPhone && styles.compactCardPadding]}>
-            <Text style={styles.featuredPostMeta}>
-              Extra session · {durationLabel(session.durationLabel)}
-            </Text>
-            <Text style={styles.featuredPostTitle}>A gentle reset for lighter days</Text>
-            <Text style={styles.featuredPostBody}>
-              Use this when today's session is done, or when you want something calmer.
-            </Text>
-            <View style={[styles.featuredPostButton, responsive.isCompactPhone && styles.compactCardPadding]}>
-              <Text style={styles.featuredPostButtonText}>{session.disabled ? 'Setup needed' : 'Start reset'}</Text>
+          <View style={[styles.featuredPracticeContent, compactHero && styles.featuredHeroContentCompact, heroMinHeightStyle]}>
+            <View style={[styles.featuredHeroCopy, compactHero && styles.featuredHeroCopyCompact]}>
+              <Text style={styles.featuredPostMeta}>
+                Extra session · {durationLabel(session.durationLabel)}
+              </Text>
+              <Text style={styles.featuredPostTitle}>A gentle reset for lighter days</Text>
+              <Text style={styles.featuredPostBody}>
+                Use this when today's session is done, or when you want something calmer.
+              </Text>
+            </View>
+            <View style={styles.featuredHeroAction}>
+              <View style={[styles.featuredPostButton, compactHero && styles.featuredHeroButtonCompact]}>
+                <Text style={styles.featuredPostButtonText}>{session.disabled ? 'Setup needed' : 'Start reset'}</Text>
+              </View>
             </View>
           </View>
         </ImageBackground>
@@ -855,7 +883,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
   },
   featuredPostCard: {
-    minHeight: 292,
+    minHeight: 274,
     borderRadius: radius.card,
     overflow: 'hidden',
     backgroundColor: colors.accent,
@@ -863,8 +891,8 @@ const styles = StyleSheet.create({
   },
   featuredPostImage: {
     flex: 1,
-    minHeight: 292,
-    justifyContent: 'flex-end',
+    minHeight: 274,
+    justifyContent: 'flex-start',
   },
   featuredPostImageRadius: {
     borderRadius: radius.card,
@@ -878,48 +906,65 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(17, 20, 18, 0.34)',
   },
   featuredPostContent: {
-    paddingHorizontal: 22,
-    paddingTop: 22,
-    paddingBottom: 20,
-    maxWidth: '82%',
+    paddingVertical: 26,
+    paddingHorizontal: 24,
+    justifyContent: 'flex-start',
+    zIndex: 1,
+  },
+  featuredHeroContentCompact: {
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+  },
+  featuredHeroCopy: {
+    width: '72%',
+    gap: 12,
+  },
+  featuredHeroCopyCompact: {
+    width: '70%',
+    gap: 11,
   },
   featuredPostMeta: {
     color: colors.onAccent,
     fontFamily: fonts.sansMedium,
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 13,
+    lineHeight: 18,
     letterSpacing: 0,
-    opacity: 0.92,
   },
   featuredPostTitle: {
     color: colors.onAccent,
     fontFamily: fonts.serifMedium,
-    fontSize: 28,
-    lineHeight: 36,
+    fontSize: 25,
+    lineHeight: 31,
     letterSpacing: 0,
-    marginTop: 9,
-    paddingBottom: 2,
+    maxWidth: '100%',
   },
   featuredPostBody: {
     color: colors.onAccent,
     fontFamily: fonts.sansRegular,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 18,
     letterSpacing: 0,
-    marginTop: 9,
-    opacity: 0.95,
+    maxWidth: '100%',
+  },
+  featuredHeroAction: {
+    marginTop: 'auto',
+    alignSelf: 'flex-start',
+    paddingTop: 16,
   },
   featuredPostButton: {
     alignSelf: 'flex-start',
-    minHeight: 42,
-    borderRadius: 21,
+    minHeight: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
-    marginTop: 18,
+    paddingHorizontal: 22,
+    paddingVertical: 10,
     backgroundColor: imageOverlayControl.background,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: imageOverlayControl.border,
+  },
+  featuredHeroButtonCompact: {
+    paddingHorizontal: 16,
   },
   featuredPostButtonText: {
     color: imageOverlayControl.text,
@@ -932,7 +977,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   featuredGuideCard: {
-    minHeight: 276,
+    minHeight: 274,
     borderRadius: radius.card,
     overflow: 'hidden',
     backgroundColor: colors.accent,
@@ -940,8 +985,8 @@ const styles = StyleSheet.create({
   },
   featuredGuideImage: {
     flex: 1,
-    minHeight: 276,
-    justifyContent: 'flex-end',
+    minHeight: 274,
+    justifyContent: 'flex-start',
   },
   featuredGuideImageRadius: {
     borderRadius: radius.card,
@@ -955,16 +1000,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(11, 43, 33, 0.32)',
   },
   featuredGuideContent: {
-    paddingHorizontal: 22,
-    paddingTop: 22,
-    paddingBottom: 20,
-    maxWidth: '84%',
+    paddingVertical: 26,
+    paddingHorizontal: 24,
+    justifyContent: 'flex-start',
+    zIndex: 1,
   },
   featuredPracticeSection: {
     gap: 12,
   },
   featuredPracticeCard: {
-    minHeight: 292,
+    minHeight: 274,
     borderRadius: radius.card,
     overflow: 'hidden',
     backgroundColor: colors.accent,
@@ -972,8 +1017,8 @@ const styles = StyleSheet.create({
   },
   featuredPracticeImage: {
     flex: 1,
-    minHeight: 292,
-    justifyContent: 'flex-end',
+    minHeight: 274,
+    justifyContent: 'flex-start',
   },
   featuredPracticeImageRadius: {
     borderRadius: radius.card,
@@ -987,16 +1032,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(17, 20, 18, 0.34)',
   },
   featuredPracticeContent: {
-    paddingHorizontal: 22,
-    paddingTop: 22,
-    paddingBottom: 20,
-    maxWidth: '84%',
+    paddingVertical: 26,
+    paddingHorizontal: 24,
+    justifyContent: 'flex-start',
+    zIndex: 1,
   },
   featuredLibrarySection: {
     gap: 12,
   },
   featuredLibraryCard: {
-    minHeight: 292,
+    minHeight: 274,
     borderRadius: radius.card,
     overflow: 'hidden',
     backgroundColor: colors.accent,
@@ -1004,8 +1049,8 @@ const styles = StyleSheet.create({
   },
   featuredLibraryImage: {
     flex: 1,
-    minHeight: 292,
-    justifyContent: 'flex-end',
+    minHeight: 274,
+    justifyContent: 'flex-start',
   },
   featuredLibraryImageRadius: {
     borderRadius: radius.card,
@@ -1019,19 +1064,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(17, 20, 18, 0.32)',
   },
   featuredLibraryContent: {
-    paddingHorizontal: 22,
-    paddingTop: 22,
-    paddingBottom: 20,
-    maxWidth: '84%',
+    paddingVertical: 26,
+    paddingHorizontal: 24,
+    justifyContent: 'flex-start',
+    zIndex: 1,
   },
   compactCardPadding: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
   },
   libraryStatsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginTop: 17,
   },
   libraryStatPill: {
     minHeight: 30,

@@ -33,6 +33,11 @@ import {
 } from '../haleFlow';
 import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../history';
 import {
+  latestMovementProfileV2ResultsViewModel,
+  type MovementProfileV2Domain,
+  type MovementProfileV2ResultsViewModel,
+} from '../movementProfileV2/viewModel';
+import {
   createCurrentVersionedScoreSnapshot,
   type CheckUpScore,
   type Domain,
@@ -77,6 +82,8 @@ export function ProgressScreen({
   onStartRetest,
   onViewLatest,
   onViewCheckUp,
+  showMovementProfileV2Internal,
+  onViewMovementProfileV2,
   historyOpen: controlledHistoryOpen,
   onHistoryOpenChange,
   onOpenSettings,
@@ -108,6 +115,9 @@ export function ProgressScreen({
   const visibleLadderProgressById = ladderProgressById;
 
   const latest = getLatestCheckUpSummary(visibleHistory, visibleAssessments);
+  const latestMovementProfileV2 = showMovementProfileV2Internal
+    ? latestMovementProfileV2ResultsViewModel(visibleHistory)
+    : null;
   const latestEvidence = getLatestDomainEvidence(visibleHistory, visibleAssessments);
   const domainCards = getDomainProgressCards(visibleHistory, visibleAssessments);
   const ladderCards = getLadderProgressCards(visibleLadderProgressById);
@@ -152,18 +162,20 @@ export function ProgressScreen({
         </View>
       </View>
 
-      {!latest ? (
+      {!latest && !latestMovementProfileV2 ? (
         <ProgressEmptyState onBeginCheckUp={onBeginFirstCheckUp} />
       ) : (
         <>
-          <ProgressHeroSection
-            latest={latest}
-            retestTitle={retest.title}
-            retestBody={retestBody}
-            lifeGoal={lifeGoal}
-          />
+          {latest ? (
+            <ProgressHeroSection
+              latest={latest}
+              retestTitle={retest.title}
+              retestBody={retestBody}
+              lifeGoal={lifeGoal}
+            />
+          ) : null}
 
-          {retest.due ? (
+          {latest && retest.due ? (
             <RetestCard
               title={retest.title}
               body={retestBody}
@@ -171,22 +183,33 @@ export function ProgressScreen({
             />
           ) : null}
 
-          {hasComparison && domainCards.length > 0 ? (
-            <ChangeSinceBaselineCard cards={domainCards} latest={latest} onViewResults={handleViewLatest} />
-          ) : (
-            <MovementProfileCard latest={latest} evidence={latestEvidence} onViewResults={handleViewLatest} />
-          )}
+          {latestMovementProfileV2 ? (
+            <MovementProfileV2InternalCard
+              viewModel={latestMovementProfileV2}
+              onPress={onViewMovementProfileV2}
+            />
+          ) : null}
+
+          {latest ? (
+            hasComparison && domainCards.length > 0 ? (
+              <ChangeSinceBaselineCard cards={domainCards} latest={latest} onViewResults={handleViewLatest} />
+            ) : (
+              <MovementProfileCard latest={latest} evidence={latestEvidence} onViewResults={handleViewLatest} />
+            )
+          ) : null}
 
           {ladderCards.length > 0 ? <TrainingProgressCard cards={ladderCards} /> : null}
 
-          <ProgressRecordsCard
-            retestBody={retestBody}
-            showRetest={!retest.due}
-            history={retestHistory}
-            completedPlan={completedPlanSummary}
-            onBeginCheckUp={onBeginAdditionalCheckUp}
-            onOpenHistory={() => setHistoryOpen(true)}
-          />
+          {latest ? (
+            <ProgressRecordsCard
+              retestBody={retestBody}
+              showRetest={!retest.due}
+              history={retestHistory}
+              completedPlan={completedPlanSummary}
+              onBeginCheckUp={onBeginAdditionalCheckUp}
+              onOpenHistory={() => setHistoryOpen(true)}
+            />
+          ) : null}
         </>
       )}
     </Screen>
@@ -301,6 +324,8 @@ interface ProgressScreenProps {
   onStartRetest: () => void;
   onViewLatest: () => void;
   onViewCheckUp: (checkUpId: string) => void;
+  showMovementProfileV2Internal?: boolean;
+  onViewMovementProfileV2?: () => void;
   historyOpen?: boolean;
   onHistoryOpenChange?: (open: boolean) => void;
   onOpenSettings: () => void;
@@ -641,6 +666,7 @@ function ProgressHeroSection({
   const focus = cleanFocusTitle(latest.focusTitle);
   const heroBody = heroFocusBody(focus);
   const goalText = lifeGoal ? getLifeGoalDisplayText(lifeGoal) : 'Not set yet';
+  const heroMinHeightStyle = { minHeight: responsive.progressHeroHeight };
   const heroFacts = [
     { label: 'Last check-up', value: compactHero ? compactHeroDate(latest.dateLabel) : latest.dateLabel },
     { label: 'Next check-up', value: compactRetestValue(retestTitle, retestBody) },
@@ -651,12 +677,12 @@ function ProgressHeroSection({
     <View style={styles.heroSection}>
       <ImageBackground
         source={PROGRESS_HERO_IMAGE}
-        style={[styles.progressHero, { height: responsive.progressHeroHeight }]}
+        style={[styles.progressHero, heroMinHeightStyle]}
         imageStyle={[styles.progressHeroImage, compactHero && styles.progressHeroImageCompact]}
         resizeMode="cover"
       >
         <View style={styles.progressHeroScrim} />
-        <View style={[styles.progressHeroContent, compactHero && styles.progressHeroContentCompact]}>
+        <View style={[styles.progressHeroContent, compactHero && styles.progressHeroContentCompact, heroMinHeightStyle]}>
           <View style={[styles.progressHeroCopy, compactHero && styles.progressHeroCopyCompact]}>
             <Text style={styles.progressHeroEyebrow}>Main focus right now</Text>
             <Text style={[styles.progressHeroTitle, compactHero && styles.progressHeroTitleCompact]}>{focus}</Text>
@@ -770,6 +796,77 @@ function MovementProfileCard({
       />
     </Card>
   );
+}
+
+function MovementProfileV2InternalCard({
+  viewModel,
+  onPress,
+}: {
+  viewModel: MovementProfileV2ResultsViewModel;
+  onPress?: () => void;
+}) {
+  return (
+    <Card style={styles.progressCard}>
+      <View style={styles.profileHeader}>
+        <View style={styles.sectionText}>
+          <Text style={styles.sectionTitle}>Latest Movement Profile</Text>
+          <Text style={styles.sectionIntro}>
+            Frozen from {viewModel.dateLabel}. This internal V2 card does not compare against other check-ups.
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.profileRows}>
+        {viewModel.domainCards.map((card, index) => (
+          <MovementProfileV2InternalRow key={card.domain} card={card} showDivider={index > 0} />
+        ))}
+      </View>
+
+      {onPress ? (
+        <Pressable
+          style={({ pressed }) => [styles.latestResultsAction, pressed && styles.pressed]}
+          onPress={onPress}
+          accessibilityRole="button"
+          accessibilityLabel={`Open internal Movement Profile V2 results from ${viewModel.dateLabel}.`}
+        >
+          <View style={styles.latestResultsIconWell}>
+            <ProgressPictogram name="calendar" size={20} color={colors.accent} />
+          </View>
+          <View style={styles.latestResultsCopy}>
+            <Text style={styles.latestResultsTitle} numberOfLines={1}>Review internal V2 profile</Text>
+            <Text style={styles.latestResultsBody} numberOfLines={2}>{viewModel.focusTitle}</Text>
+          </View>
+          <Text style={styles.chevron}>›</Text>
+        </Pressable>
+      ) : null}
+    </Card>
+  );
+}
+
+function MovementProfileV2InternalRow({
+  card,
+  showDivider,
+}: {
+  card: MovementProfileV2ResultsViewModel['domainCards'][number];
+  showDivider: boolean;
+}) {
+  return (
+    <View style={[styles.profileRow, showDivider && styles.rowDivider]}>
+      <IconBadge domain={domainIconForMovementProfileV2(card.domain)} size={36} iconSize={22} />
+      <View style={styles.profileRowText}>
+        <Text style={styles.profileRowTitle} numberOfLines={1}>{card.title}</Text>
+        <Text style={styles.profileRowMetric} numberOfLines={1}>{card.metric}</Text>
+      </View>
+      <View style={styles.profileStatusPill}>
+        <Text style={styles.profileStatusText} numberOfLines={1}>{card.status}</Text>
+      </View>
+    </View>
+  );
+}
+
+function domainIconForMovementProfileV2(domain: MovementProfileV2Domain): Domain {
+  if (domain === 'strength_power') return 'strength';
+  return domain;
 }
 
 function MovementProfileRow({
@@ -1415,7 +1512,8 @@ const styles = StyleSheet.create({
     ...shadow.card,
   },
   compactCardPadding: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
   },
   emptyProgressWrap: {
     gap: spacing.md,
@@ -1668,9 +1766,11 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
     marginTop: 'auto',
+    paddingTop: 18,
   },
   progressHeroFactsCompact: {
     gap: 6,
+    paddingTop: 18,
   },
   progressHeroFact: {
     minWidth: 108,
@@ -1698,13 +1798,15 @@ const styles = StyleSheet.create({
   progressHeroFactLabel: {
     ...type.cardCaption,
     color: imageOverlayControl.text,
+    fontSize: 11,
+    lineHeight: 15,
     opacity: 0.72,
   },
   progressHeroFactValue: {
     color: imageOverlayControl.text,
     fontFamily: fonts.sansMedium,
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 14,
+    lineHeight: 19,
     letterSpacing: 0,
     marginTop: 2,
   },

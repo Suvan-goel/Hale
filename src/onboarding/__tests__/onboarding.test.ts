@@ -93,7 +93,7 @@ function storedAssessment(): MovementAssessment {
 function onboardingPrefs() {
   const prefs = defaultPreferences();
   prefs.profile.lifeGoal = createLifeGoal({ category: 'stairs', nowIso: START });
-  prefs.profile.goal = 'Climb stairs more easily';
+  prefs.profile.goal = 'Climb stairs easily';
   prefs.profile.age = null;
   prefs.profile.ageBand = '55_64';
   prefs.profile.safetyProfile = safetyProfile();

@@ -23,7 +23,7 @@ import {
 } from '../../movements/activeShoulderReachV2';
 import { CHAIR_RISE_V2_ID, type ChairRiseV2Result } from '../../movements/chairRiseV2';
 import { ONE_LEG_BALANCE_V2_ID, type OneLegBalanceV2Result } from '../../movements/oneLegBalanceV2';
-import { createMovementProfileV2Snapshot } from '../../reference/movementProfileV2';
+import { createMovementProfileV2Assessment, createMovementProfileV2Snapshot } from '../../reference/movementProfileV2';
 import { CURRENT_SCORING_VERSION, createCurrentVersionedScoreSnapshot } from '../../scoring';
 import { HISTORY_SCHEMA_VERSION, deserializeCheckUp, migrate, serializeCheckUp } from '../serialize';
 import { HistoryStore, createMemoryFs } from '../store';
@@ -149,6 +149,46 @@ describe('check-up serialization', () => {
     expect(stored?.movementProfileV2Snapshot?.snapshotFingerprint).toBe(snapshot.snapshotFingerprint);
     expect(stored?.movementProfileV2SnapshotCompatibility).toBe('current');
     expect(stored?.checkUp.movementProfileV2Snapshot).toBeUndefined();
+  });
+
+  it('round-trips a valid Movement Profile V2 assessment with its matching snapshot', () => {
+    const checkUp = makeV2CheckUp('2026-06-23T10:00:00.000Z');
+    const snapshot = movementProfileV2SnapshotFor(checkUp);
+    const assessment = movementProfileV2AssessmentFor(checkUp, snapshot);
+
+    const stored = deserializeCheckUp(
+      serializeCheckUp(
+        { ...checkUp, movementProfileV2Snapshot: snapshot, movementProfileV2Assessment: assessment },
+        { checkupType: 'baseline' }
+      )
+    );
+
+    expect(stored?.movementProfileV2Snapshot?.snapshotFingerprint).toBe(snapshot.snapshotFingerprint);
+    expect(stored?.movementProfileV2Assessment?.assessmentFingerprint).toBe(assessment.assessmentFingerprint);
+    expect(stored?.movementProfileV2AssessmentCompatibility).toBe('current');
+    expect(stored?.checkUp.movementProfileV2Snapshot).toBeUndefined();
+    expect(stored?.checkUp.movementProfileV2Assessment).toBeUndefined();
+  });
+
+  it('preserves raw V2 check-ups and snapshots while dropping mismatched V2 assessments', () => {
+    const checkUp = makeV2CheckUp('2026-06-23T10:00:00.000Z');
+    const snapshot = movementProfileV2SnapshotFor(checkUp);
+    const otherCheckUp = makeV2CheckUp('2026-06-24T10:00:00.000Z');
+    const otherSnapshot = movementProfileV2SnapshotFor(otherCheckUp);
+    const otherAssessment = movementProfileV2AssessmentFor(otherCheckUp, otherSnapshot);
+
+    const stored = deserializeCheckUp(
+      serializeCheckUp(checkUp, {
+        checkupType: 'baseline',
+        movementProfileV2Snapshot: snapshot,
+        movementProfileV2Assessment: otherAssessment,
+      })
+    );
+
+    expect(stored?.checkUp.items).toHaveLength(3);
+    expect(stored?.movementProfileV2Snapshot?.snapshotFingerprint).toBe(snapshot.snapshotFingerprint);
+    expect(stored?.movementProfileV2Assessment).toBeUndefined();
+    expect(stored?.movementProfileV2AssessmentCompatibility).toBe('source_mismatch');
   });
 
   it('preserves raw V2 check-ups while dropping malformed V2 snapshots', () => {
@@ -351,6 +391,16 @@ function movementProfileV2SnapshotFor(checkUp: CheckUp) {
   });
   if (!created.ok) throw new Error(`expected V2 snapshot: ${created.reason}`);
   return created.snapshot;
+}
+
+function movementProfileV2AssessmentFor(checkUp: CheckUp, snapshot: ReturnType<typeof movementProfileV2SnapshotFor>) {
+  const created = createMovementProfileV2Assessment({
+    checkUp,
+    snapshot,
+    createdAt: checkUp.startedAt,
+  });
+  if (!created.ok) throw new Error(`expected V2 assessment: ${created.reason}`);
+  return created.assessment;
 }
 
 function chairV2Result(overrides: Partial<ChairRiseV2Result> = {}): ChairRiseV2Result {

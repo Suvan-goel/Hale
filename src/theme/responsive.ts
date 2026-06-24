@@ -17,6 +17,7 @@ export type ResponsiveLayout = {
   contentWidth: number;
   horizontalPadding: number;
   cardPadding: number;
+  cardPaddingVertical: number;
   pageTop: number;
   pageBottom: number;
   screenGap: number;
@@ -55,17 +56,18 @@ export function getResponsiveLayout(windowWidth: number, windowHeight: number): 
     maxContentWidth,
     contentWidth,
     horizontalPadding,
-    cardPadding: isCompactPhone ? 16 : 18,
+    cardPadding: isCompactPhone ? 14 : 18,
+    cardPaddingVertical: isCompactPhone ? 16 : 18,
     pageTop: spacing.pageTop,
     pageBottom: spacing.xxxl,
     screenGap: isCompactPhone ? spacing.lg : spacing.xl,
     isCompactWidth,
     isShortHeight,
     isCompactPhone,
-    todayHeroHeight: clamp(Math.round(contentWidth / 1.18), isCompactPhone ? 258 : 274, isCompactPhone ? 286 : 302),
-    progressHeroHeight: clamp(Math.round(contentWidth * (isCompactPhone ? 1.08 : 0.98)), 372, isCompactPhone ? 390 : 396),
-    planHeroHeight: clamp(Math.round(contentWidth / 1.32), 258, isCompactPhone ? 292 : 322),
-    exploreHeroHeight: clamp(Math.round(contentWidth / 1.22), isCompactPhone ? 260 : 276, isCompactPhone ? 292 : 316),
+    todayHeroHeight: clamp(Math.round(contentWidth / 1.3), isCompactPhone ? 236 : 252, isCompactPhone ? 266 : 286),
+    progressHeroHeight: clamp(Math.round(contentWidth * (isCompactPhone ? 0.92 : 0.9)), isCompactPhone ? 312 : 330, isCompactPhone ? 348 : 364),
+    planHeroHeight: clamp(Math.round(contentWidth / 1.3), isCompactPhone ? 236 : 252, isCompactPhone ? 266 : 286),
+    exploreHeroHeight: clamp(Math.round(contentWidth / 1.3), isCompactPhone ? 236 : 252, isCompactPhone ? 266 : 286),
   };
 }
 

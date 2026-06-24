@@ -2,7 +2,17 @@ import type { MovementAssessment } from '../adherence/types';
 import type { CheckUp } from '../checkup';
 import type { StoredCheckUp, StoredCheckUpType } from '../history';
 import {
+  latestOfficialMovementProfileV2AssessmentBeforeCheckUp as latestOfficialMovementProfileV2AssessmentBeforeCheckUpRecord,
+  latestOfficialMovementProfileV2AssessmentRecord,
+  movementProfileV2AssessmentRecordForSourceCheckUpId,
+  movementProfileV2AssessmentRecordForSourceSnapshotId,
+  priorMovementProfileV2FocusContextForCheckUp as selectPriorMovementProfileV2FocusContextForCheckUp,
+  selectOfficialMovementProfileV2AssessmentRecords,
   validMovementProfileV2SnapshotForCheckUp,
+  type MovementProfileV2AssessmentConflict,
+  type MovementProfileV2AssessmentPersistenceDiagnostic,
+  type MovementProfileV2PriorFocusSelection,
+  type OfficialMovementProfileV2AssessmentRecord as GenericOfficialMovementProfileV2AssessmentRecord,
   type StoredMovementProfileV2Snapshot,
 } from '../reference/movementProfileV2';
 import {
@@ -36,6 +46,15 @@ export interface OfficialMovementProfileV2SnapshotRecord {
   record: StoredCheckUp;
   snapshot: StoredMovementProfileV2Snapshot;
   type: Extract<StoredCheckUpType, 'baseline' | 'baseline_retake' | 'official_retest'>;
+}
+
+export type OfficialMovementProfileV2AssessmentRecord =
+  GenericOfficialMovementProfileV2AssessmentRecord<StoredCheckUp>;
+
+export interface OfficialMovementProfileV2AssessmentSelection {
+  records: OfficialMovementProfileV2AssessmentRecord[];
+  conflicts: MovementProfileV2AssessmentConflict<StoredCheckUp>[];
+  diagnostics: MovementProfileV2AssessmentPersistenceDiagnostic[];
 }
 
 export type OfficialCheckUpComparisonPair =
@@ -128,6 +147,61 @@ export function movementProfileV2SnapshotForSourceCheckUpId(
       (item) => item.snapshot.sourceCheckUpId === sourceCheckUpId
     ) ?? null
   );
+}
+
+export function validOfficialMovementProfileV2Assessments(
+  history: readonly StoredCheckUp[] | null | undefined
+): OfficialMovementProfileV2AssessmentRecord[] {
+  return selectOfficialMovementProfileV2AssessmentRecords(history).records;
+}
+
+export function officialMovementProfileV2AssessmentSelection(
+  history: readonly StoredCheckUp[] | null | undefined
+): OfficialMovementProfileV2AssessmentSelection {
+  return selectOfficialMovementProfileV2AssessmentRecords(history);
+}
+
+export function latestOfficialMovementProfileV2Assessment(
+  history: readonly StoredCheckUp[] | null | undefined
+): OfficialMovementProfileV2AssessmentRecord | null {
+  return latestOfficialMovementProfileV2AssessmentRecord(history);
+}
+
+export function movementProfileV2AssessmentForSourceCheckUpId(
+  history: readonly StoredCheckUp[] | null | undefined,
+  sourceCheckUpId: string
+): OfficialMovementProfileV2AssessmentRecord | null {
+  return movementProfileV2AssessmentRecordForSourceCheckUpId(history, sourceCheckUpId);
+}
+
+export function movementProfileV2AssessmentForSourceSnapshotId(
+  history: readonly StoredCheckUp[] | null | undefined,
+  sourceSnapshotId: string
+): OfficialMovementProfileV2AssessmentRecord | null {
+  return movementProfileV2AssessmentRecordForSourceSnapshotId(history, sourceSnapshotId);
+}
+
+export function latestOfficialMovementProfileV2AssessmentBeforeCheckUp(
+  history: readonly StoredCheckUp[] | null | undefined,
+  currentCheckUp: CheckUp
+): OfficialMovementProfileV2AssessmentRecord | null {
+  return latestOfficialMovementProfileV2AssessmentBeforeCheckUpRecord(history, currentCheckUp);
+}
+
+export function priorMovementProfileV2FocusContextForCheckUp({
+  currentCheckUp,
+  currentCheckupType,
+  acceptedHistory,
+}: {
+  currentCheckUp: CheckUp;
+  currentCheckupType?: StoredCheckUpType | null;
+  acceptedHistory: readonly StoredCheckUp[] | null | undefined;
+}): MovementProfileV2PriorFocusSelection<StoredCheckUp> {
+  return selectPriorMovementProfileV2FocusContextForCheckUp({
+    currentCheckUp,
+    currentCheckupType,
+    acceptedHistory,
+  });
 }
 
 export function latestUsableOfficialCheckUpRecord(

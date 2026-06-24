@@ -115,7 +115,8 @@ const styles = StyleSheet.create({
     boxShadow: '0 12px 30px rgba(17,20,18,0.04)',
   },
   compactCardPadding: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
   },
   sheetHeadCopy: {
     gap: spacing.sm,

@@ -20,6 +20,7 @@ import {
   makeNotificationEvent,
   makeTrainingSessionCompletion,
   notificationCopy,
+  normalizeLifeGoalDisplayText,
   recordTrainingSessionCompletion,
   shouldTriggerMissedWeekSupportNotification,
   defaultAdherenceStoreState,
@@ -163,7 +164,7 @@ describe('life goal relevance', () => {
 
   it('maps life goals to training domains and display copy', () => {
     const goal = createLifeGoal({ category: 'stairs', nowIso: START });
-    expect(getLifeGoalDisplayText(goal)).toBe('Climb stairs more easily');
+    expect(getLifeGoalDisplayText(goal)).toBe('Climb stairs easily');
     expect(getLifeGoalTrainingRelevance(goal).primaryDomains).toEqual(['strength_power', 'balance']);
     expect(getLifeGoalWorkoutBias(goal).preferredLadderIds.slice(0, 3)).toEqual([
       'step-up',
@@ -178,6 +179,12 @@ describe('life goal relevance', () => {
     expect(getLifeGoalDisplayText(goal)).toBe('Feel stronger overall');
     expect(getLifeGoalWorkoutBias(goal).preferredLadderIds).toEqual([]);
     expect(getLifeGoalWorkoutBias(goal).preferredSlotTypes).toEqual([]);
+  });
+
+  it('normalizes legacy saved life goal labels to the current copy', () => {
+    expect(normalizeLifeGoalDisplayText('Play with children/grandchildren')).toBe('Play with children or grandchildren');
+    expect(normalizeLifeGoalDisplayText('I want to carry groceries or luggage')).toBe('Carry bags and groceries');
+    expect(normalizeLifeGoalDisplayText('In the future, I want to be able to feel less stiff')).toBe('Move without stiffness');
   });
 
   it('keeps legacy custom goals readable without exposing them as selector presets', () => {

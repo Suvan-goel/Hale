@@ -58,6 +58,11 @@ describe('Hale data export service', () => {
                 snapshotFingerprint: 'mpv2-snapshot-fp',
                 sourceSetFingerprint: 'mpv2-source-fp',
               },
+              movementProfileV2Assessment: {
+                kind: 'movement_profile_v2_assessment',
+                assessmentFingerprint: 'mpv2-assessment-fp',
+                sourceSnapshotFingerprint: 'mpv2-snapshot-fp',
+              },
             },
           },
         ],
@@ -88,6 +93,11 @@ describe('Hale data export service', () => {
                 kind: 'movement_profile_v2_snapshot',
                 snapshotFingerprint: 'mpv2-snapshot-fp',
                 sourceSetFingerprint: 'mpv2-source-fp',
+              },
+              movementProfileV2Assessment: {
+                kind: 'movement_profile_v2_assessment',
+                assessmentFingerprint: 'mpv2-assessment-fp',
+                sourceSnapshotFingerprint: 'mpv2-snapshot-fp',
               },
             },
           },

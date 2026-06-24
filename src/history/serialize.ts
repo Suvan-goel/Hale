@@ -17,6 +17,9 @@ import {
 } from '../checkup/protocolPolicy';
 import type { CheckupType } from '../adherence/types';
 import {
+  getMovementProfileV2AssessmentPersistenceEligibility,
+  type MovementProfileV2Assessment,
+  type MovementProfileV2AssessmentCompatibility,
   parseStoredMovementProfileV2Snapshot,
   validMovementProfileV2SnapshotForCheckUp,
   type MovementProfileV2SnapshotCompatibility,
@@ -39,6 +42,7 @@ export interface StoredCheckUpMetadata {
   retryOfCheckUpId?: string;
   scoreSnapshot?: VersionedCheckUpScoreSnapshot | null;
   movementProfileV2Snapshot?: StoredMovementProfileV2Snapshot | null;
+  movementProfileV2Assessment?: MovementProfileV2Assessment | null;
 }
 
 export interface StoredCheckUp {
@@ -51,6 +55,8 @@ export interface StoredCheckUp {
   scoreSnapshotCompatibility: ScoreSnapshotCompatibility;
   movementProfileV2Snapshot?: StoredMovementProfileV2Snapshot;
   movementProfileV2SnapshotCompatibility?: MovementProfileV2SnapshotCompatibility;
+  movementProfileV2Assessment?: MovementProfileV2Assessment;
+  movementProfileV2AssessmentCompatibility?: MovementProfileV2AssessmentCompatibility;
 }
 
 function nanReplacer(_key: string, value: unknown): unknown {
@@ -70,6 +76,16 @@ export function serializeCheckUp(checkUp: CheckUp, metadata: StoredCheckUpMetada
     rawCheckUp,
     checkupType
   );
+  const movementProfileV2AssessmentCandidate =
+    metadata.movementProfileV2Assessment !== undefined
+      ? metadata.movementProfileV2Assessment
+      : (checkUp as { movementProfileV2Assessment?: unknown }).movementProfileV2Assessment;
+  const parsedMovementProfileV2Assessment = parseMovementProfileV2AssessmentForCheckUp(
+    movementProfileV2AssessmentCandidate,
+    parsedMovementProfileV2Snapshot.snapshot,
+    rawCheckUp,
+    checkupType
+  );
   const record: StoredCheckUp = {
     schemaVersion: HISTORY_SCHEMA_VERSION,
     checkUp: rawCheckUp,
@@ -83,6 +99,12 @@ export function serializeCheckUp(checkUp: CheckUp, metadata: StoredCheckUpMetada
       : {}),
     ...(parsedMovementProfileV2Snapshot.shouldStoreCompatibility
       ? { movementProfileV2SnapshotCompatibility: parsedMovementProfileV2Snapshot.compatibility }
+      : {}),
+    ...(parsedMovementProfileV2Assessment.assessment
+      ? { movementProfileV2Assessment: parsedMovementProfileV2Assessment.assessment }
+      : {}),
+    ...(parsedMovementProfileV2Assessment.shouldStoreCompatibility
+      ? { movementProfileV2AssessmentCompatibility: parsedMovementProfileV2Assessment.compatibility }
       : {}),
   };
   return JSON.stringify(record, nanReplacer);
@@ -105,6 +127,8 @@ export function migrate(parsed: unknown): StoredCheckUp | null {
   const checkupType = validStoredCheckUpType(rec.checkupType) ?? 'legacy_unknown';
   const nestedMovementProfileV2Snapshot = (rec.checkUp as { movementProfileV2Snapshot?: unknown } | undefined)
     ?.movementProfileV2Snapshot;
+  const nestedMovementProfileV2Assessment = (rec.checkUp as { movementProfileV2Assessment?: unknown } | undefined)
+    ?.movementProfileV2Assessment;
   const movementProfileV2SnapshotCandidate =
     rec.movementProfileV2Snapshot !== undefined ? rec.movementProfileV2Snapshot : nestedMovementProfileV2Snapshot;
   const parsedMovementProfileV2Snapshot = parseMovementProfileV2SnapshotForCheckUp(
@@ -114,6 +138,19 @@ export function migrate(parsed: unknown): StoredCheckUp | null {
   );
   const explicitMovementProfileV2Compatibility = validMovementProfileV2SnapshotCompatibility(
     rec.movementProfileV2SnapshotCompatibility
+  );
+  const movementProfileV2AssessmentCandidate =
+    rec.movementProfileV2Assessment !== undefined
+      ? rec.movementProfileV2Assessment
+      : nestedMovementProfileV2Assessment;
+  const parsedMovementProfileV2Assessment = parseMovementProfileV2AssessmentForCheckUp(
+    movementProfileV2AssessmentCandidate,
+    parsedMovementProfileV2Snapshot.snapshot,
+    checkUp,
+    checkupType
+  );
+  const explicitMovementProfileV2AssessmentCompatibility = validMovementProfileV2AssessmentCompatibility(
+    rec.movementProfileV2AssessmentCompatibility
   );
   return {
     schemaVersion: HISTORY_SCHEMA_VERSION,
@@ -133,6 +170,16 @@ export function migrate(parsed: unknown): StoredCheckUp | null {
           movementProfileV2SnapshotCompatibility: parsedMovementProfileV2Snapshot.snapshot
             ? parsedMovementProfileV2Snapshot.compatibility
             : explicitMovementProfileV2Compatibility ?? parsedMovementProfileV2Snapshot.compatibility,
+        }
+      : {}),
+    ...(parsedMovementProfileV2Assessment.assessment
+      ? { movementProfileV2Assessment: parsedMovementProfileV2Assessment.assessment }
+      : {}),
+    ...(parsedMovementProfileV2Assessment.shouldStoreCompatibility || explicitMovementProfileV2AssessmentCompatibility
+      ? {
+          movementProfileV2AssessmentCompatibility: parsedMovementProfileV2Assessment.assessment
+            ? parsedMovementProfileV2Assessment.compatibility
+            : explicitMovementProfileV2AssessmentCompatibility ?? parsedMovementProfileV2Assessment.compatibility,
         }
       : {}),
   };
@@ -236,6 +283,37 @@ function parseMovementProfileV2SnapshotForCheckUp(
   return { snapshot: valid, compatibility: parsed.compatibility, shouldStoreCompatibility: true };
 }
 
+function parseMovementProfileV2AssessmentForCheckUp(
+  value: unknown,
+  snapshot: StoredMovementProfileV2Snapshot | undefined,
+  checkUp: CheckUp,
+  checkupType: StoredCheckUpType
+): {
+  assessment?: MovementProfileV2Assessment;
+  compatibility: MovementProfileV2AssessmentCompatibility;
+  shouldStoreCompatibility: boolean;
+} {
+  if (value === undefined || value === null) {
+    return {
+      compatibility: 'missing',
+      shouldStoreCompatibility: isMovementProfileV2CheckUp(checkUp),
+    };
+  }
+  if (!snapshot) {
+    return { compatibility: 'snapshot_missing', shouldStoreCompatibility: true };
+  }
+  const eligibility = getMovementProfileV2AssessmentPersistenceEligibility({
+    checkUp,
+    checkupType,
+    snapshot,
+    assessment: value,
+  });
+  if (!eligibility.eligible) {
+    return { compatibility: eligibility.compatibility, shouldStoreCompatibility: true };
+  }
+  return { assessment: eligibility.assessment, compatibility: 'current', shouldStoreCompatibility: true };
+}
+
 function validMovementProfileV2SnapshotCompatibility(value: unknown): MovementProfileV2SnapshotCompatibility | null {
   if (
     value === 'current' ||
@@ -246,6 +324,25 @@ function validMovementProfileV2SnapshotCompatibility(value: unknown): MovementPr
     value === 'source_mismatch' ||
     value === 'unsupported_checkup_protocol' ||
     value === 'unsupported_source_type'
+  ) {
+    return value;
+  }
+  return null;
+}
+
+function validMovementProfileV2AssessmentCompatibility(value: unknown): MovementProfileV2AssessmentCompatibility | null {
+  if (
+    value === 'current' ||
+    value === 'missing' ||
+    value === 'malformed' ||
+    value === 'future_schema' ||
+    value === 'fingerprint_invalid' ||
+    value === 'source_mismatch' ||
+    value === 'snapshot_missing' ||
+    value === 'unsupported_checkup_protocol' ||
+    value === 'unsupported_source_type' ||
+    value === 'focus_not_persistable' ||
+    value === 'conflict'
   ) {
     return value;
   }
@@ -265,7 +362,13 @@ function isOfficialMovementProfileV2SnapshotSourceType(
 
 function checkUpWithoutEmbeddedSnapshots(value: CheckUp): CheckUp {
   if (!value || typeof value !== 'object') return value;
-  const { movementProfileV2Snapshot: _movementProfileV2Snapshot, ...checkUp } =
-    value as CheckUp & { movementProfileV2Snapshot?: unknown };
+  const {
+    movementProfileV2Snapshot: _movementProfileV2Snapshot,
+    movementProfileV2Assessment: _movementProfileV2Assessment,
+    ...checkUp
+  } = value as CheckUp & {
+    movementProfileV2Snapshot?: unknown;
+    movementProfileV2Assessment?: unknown;
+  };
   return checkUp;
 }

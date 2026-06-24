@@ -19,6 +19,25 @@ export {
   selectMovementProfileV2SuggestedFocus,
 } from './assessment';
 export {
+  MOVEMENT_PROFILE_V2_ARTIFACT_ORCHESTRATION_POLICY_FINGERPRINT,
+  MOVEMENT_PROFILE_V2_ARTIFACT_ORCHESTRATION_POLICY_VERSION,
+  MOVEMENT_PROFILE_V2_ASSESSMENT_PERSISTENCE_POLICY_FINGERPRINT,
+  MOVEMENT_PROFILE_V2_ASSESSMENT_PERSISTENCE_POLICY_VERSION,
+  attachMovementProfileV2Assessment,
+  getMovementProfileV2AssessmentPersistenceEligibility,
+  latestOfficialMovementProfileV2AssessmentBeforeCheckUp,
+  latestOfficialMovementProfileV2AssessmentRecord,
+  materializeOfficialMovementProfileV2Artifacts,
+  movementProfileV2AssessmentRecordForSourceCheckUpId,
+  movementProfileV2AssessmentRecordForSourceSnapshotId,
+  movementProfileV2AssessmentSchemaVersion,
+  movementProfileV2AssessmentStorageSummary,
+  priorMovementProfileV2FocusContextForCheckUp,
+  selectOfficialMovementProfileV2AssessmentRecords,
+  validMovementProfileV2AssessmentForCheckUp,
+  validateMovementProfileV2AssessmentSource,
+} from './persistence';
+export {
   interpretMovementProfileV2,
   movementProfileV2SourceSetFingerprint,
 } from './engine';
@@ -85,6 +104,21 @@ export type {
   MovementProfileV2SuggestedFocus,
   ParsedMovementProfileV2Assessment,
 } from './assessment';
+export type {
+  MaterializeOfficialMovementProfileV2ArtifactsInput,
+  MovementProfileV2ArtifactMaterializationResult,
+  MovementProfileV2AssessmentAttachmentResult,
+  MovementProfileV2AssessmentCompatibility,
+  MovementProfileV2AssessmentConflict,
+  MovementProfileV2AssessmentHistoryRecord,
+  MovementProfileV2AssessmentPersistenceDiagnostic,
+  MovementProfileV2AssessmentPersistenceDiagnosticCode,
+  MovementProfileV2AssessmentPersistenceEligibility,
+  MovementProfileV2AssessmentRecordSelection,
+  MovementProfileV2AssessmentSourceValidation,
+  MovementProfileV2PriorFocusSelection,
+  OfficialMovementProfileV2AssessmentRecord,
+} from './persistence';
 export type {
   ApprovedChairPercentileTransform,
   BalanceInterpretation,

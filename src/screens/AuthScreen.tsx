@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 
 import { AccountAuthCard } from '../components/AccountAuthCard';
 import { HeaderLogo } from '../components/HeaderLogo';
+import { useSystemInsets } from '../components/SystemInsetsProvider';
 import { colors, fonts, spacing } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 
@@ -12,13 +13,20 @@ const AUTH_CARD_OVERLAP = spacing.huge + spacing.xxxl + spacing.sm;
 
 export function AuthScreen() {
   const responsive = useResponsiveLayout();
+  const systemInsets = useSystemInsets();
   const isCompactPhone = responsive.isCompactPhone;
 
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
       <ScrollView
-        contentContainerStyle={[styles.content, { maxWidth: responsive.maxContentWidth }]}
+        contentContainerStyle={[
+          styles.content,
+          {
+            maxWidth: responsive.maxContentWidth,
+            paddingBottom: spacing.xxxl + systemInsets.bottom,
+          },
+        ]}
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
       >

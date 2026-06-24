@@ -2,6 +2,10 @@ import { createMovementAssessment } from '../assessments';
 import {
   historicalOfficialCheckUpRecords,
   latestIncompleteOfficialCheckUpRecord,
+  latestOfficialMovementProfileV2Assessment,
+  movementProfileV2AssessmentForSourceCheckUpId,
+  officialMovementProfileV2AssessmentSelection,
+  priorMovementProfileV2FocusContextForCheckUp,
   latestOfficialMovementProfileV2Snapshot,
   latestOfficialComparisonPair,
   latestUsableOfficialCheckUpRecord,
@@ -32,7 +36,7 @@ import {
 } from '../../movements/activeShoulderReachV2';
 import { CHAIR_RISE_V2_ID, type ChairRiseV2Result } from '../../movements/chairRiseV2';
 import { ONE_LEG_BALANCE_V2_ID, type OneLegBalanceV2Result } from '../../movements/oneLegBalanceV2';
-import { createMovementProfileV2Snapshot } from '../../reference/movementProfileV2';
+import { createMovementProfileV2Assessment, createMovementProfileV2Snapshot } from '../../reference/movementProfileV2';
 import { CURRENT_SCORING_VERSION, createCurrentVersionedScoreSnapshot, scoreCheckUp } from '../../scoring';
 import type { CheckupType } from '../../adherence';
 
@@ -137,6 +141,34 @@ describe('typed official check-up history selectors', () => {
       movementProfileV2SnapshotForSourceCheckUpId([latest, valid], '2026-06-23T08:00:00.000Z')?.type
     ).toBe('baseline');
   });
+
+  it('selects only valid official Movement Profile V2 assessments and reports duplicate conflicts', () => {
+    const valid = storedV2Assessment(makeV2CheckUp('2026-06-23T08:00:00.000Z'), 'baseline');
+    const latest = storedV2Assessment(makeV2CheckUp('2026-07-23T08:00:00.000Z'), 'official_retest');
+    const manual = storedV2Assessment(makeV2CheckUp('2026-08-23T08:00:00.000Z'), 'manual_extra');
+    const conflict = storedV2Assessment(makeV2CheckUp('2026-06-23T08:00:00.000Z'), 'baseline', true);
+
+    const selection = officialMovementProfileV2AssessmentSelection([latest, manual, conflict, valid]);
+
+    expect(selection.records.map((item) => item.record.checkUp.startedAt)).toEqual([
+      '2026-06-23T08:00:00.000Z',
+      '2026-07-23T08:00:00.000Z',
+    ]);
+    expect(selection.conflicts).toHaveLength(1);
+    expect(latestOfficialMovementProfileV2Assessment([valid, latest])?.assessment.assessmentFingerprint).toBe(
+      latest.movementProfileV2Assessment?.assessmentFingerprint
+    );
+    expect(movementProfileV2AssessmentForSourceCheckUpId([latest, valid], valid.checkUp.startedAt)?.type).toBe(
+      'baseline'
+    );
+    expect(
+      priorMovementProfileV2FocusContextForCheckUp({
+        currentCheckUp: latest.checkUp,
+        currentCheckupType: 'official_retest',
+        acceptedHistory: [valid],
+      }).priorFocusContext.kind
+    ).not.toBe('none');
+  });
 });
 
 describe('targeted check-up retry helpers', () => {
@@ -217,6 +249,42 @@ function storedV2Snapshot(checkUp: CheckUp, checkupType: CheckupType): StoredChe
     movementProfileV2Snapshot: created.ok ? created.snapshot : undefined,
     scoreSnapshotCompatibility: 'unsupported_checkup_protocol',
     movementProfileV2SnapshotCompatibility: created.ok ? 'current' : 'unsupported_source_type',
+  };
+}
+
+function storedV2Assessment(checkUp: CheckUp, checkupType: CheckupType, alternateGoal = false): StoredCheckUp {
+  const created = createMovementProfileV2Snapshot({
+    checkUp,
+    checkupType: checkupType === 'manual_extra' ? 'baseline' : checkupType,
+    referenceProfile: { ageAtTest: 62, ageBasis: 'exact_age_at_test', referenceSex: 'female' },
+    createdAt: checkUp.startedAt,
+  });
+  if (!created.ok) throw new Error(`expected V2 snapshot: ${created.reason}`);
+  const assessment = createMovementProfileV2Assessment({
+    checkUp,
+    snapshot: created.snapshot,
+    lifeGoal: alternateGoal
+      ? {
+          id: 'goal-stairs',
+          userId: 'local-device-user',
+          category: 'stairs',
+          createdAt: checkUp.startedAt,
+          updatedAt: checkUp.startedAt,
+          isPrimary: true,
+        }
+      : null,
+    createdAt: checkUp.startedAt,
+  });
+  if (!assessment.ok) throw new Error(`expected V2 assessment: ${assessment.reason}`);
+  return {
+    schemaVersion: HISTORY_SCHEMA_VERSION,
+    checkupType,
+    checkUp,
+    movementProfileV2Snapshot: created.snapshot,
+    scoreSnapshotCompatibility: 'unsupported_checkup_protocol',
+    movementProfileV2SnapshotCompatibility: 'current',
+    movementProfileV2Assessment: assessment.assessment,
+    movementProfileV2AssessmentCompatibility: 'current',
   };
 }
 

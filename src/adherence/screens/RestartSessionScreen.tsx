@@ -105,7 +105,8 @@ const styles = StyleSheet.create({
     boxShadow: '0 10px 26px rgba(17,20,18,0.032)',
   },
   compactCardPadding: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
   },
   summaryTitle: {
     fontFamily: fonts.serifMedium,

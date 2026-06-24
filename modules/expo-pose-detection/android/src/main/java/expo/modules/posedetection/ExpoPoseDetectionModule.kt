@@ -4,6 +4,11 @@ import android.Manifest
 import android.content.Context
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
+import android.os.Build
+import android.provider.Settings
+import android.view.View
+import android.view.WindowInsets
+import android.view.WindowInsetsController
 import expo.modules.interfaces.permissions.Permissions
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.modules.Module
@@ -31,6 +36,14 @@ class ExpoPoseDetectionModule : Module() {
 
     AsyncFunction("isCameraAvailableAsync") { cameraFacing: String ->
       hasCamera(cameraFacing)
+    }
+
+    AsyncFunction("getAndroidNavigationModeAsync") {
+      getAndroidNavigationMode()
+    }
+
+    AsyncFunction("setAndroidNavigationBarVisibleAsync") { visible: Boolean ->
+      setAndroidNavigationBarVisible(visible)
     }
 
     View(PoseDetectionView::class) {
@@ -93,6 +106,54 @@ class ExpoPoseDetectionModule : Module() {
       }
     } catch (_: Throwable) {
       false
+    }
+  }
+
+  private fun getAndroidNavigationMode(): String {
+    val context = appContext.reactContext ?: return "unknown"
+    val mode = try {
+      Settings.Secure.getInt(context.contentResolver, "navigation_mode", -1)
+    } catch (_: Throwable) {
+      -1
+    }
+    return when (mode) {
+      0, 1 -> "button"
+      2 -> "gesture"
+      else -> "unknown"
+    }
+  }
+
+  private fun setAndroidNavigationBarVisible(visible: Boolean) {
+    val activity = appContext.currentActivity ?: return
+    activity.runOnUiThread {
+      val window = activity.window ?: return@runOnUiThread
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        window.insetsController?.let { controller ->
+          controller.systemBarsBehavior =
+            WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+          if (visible) {
+            controller.show(WindowInsets.Type.navigationBars())
+          } else {
+            controller.hide(WindowInsets.Type.navigationBars())
+          }
+        }
+        return@runOnUiThread
+      }
+
+      @Suppress("DEPRECATION")
+      val currentFlags = window.decorView.systemUiVisibility
+      window.decorView.systemUiVisibility = if (visible) {
+        currentFlags
+          .and(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION.inv())
+          .and(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY.inv())
+          .and(View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION.inv())
+      } else {
+        currentFlags
+          .or(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION)
+          .or(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
+          .or(View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION)
+          .or(View.SYSTEM_UI_FLAG_LAYOUT_STABLE)
+      }
     }
   }
 }

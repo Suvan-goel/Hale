@@ -170,7 +170,8 @@ const styles = StyleSheet.create({
     ...shadow.card,
   },
   compactCardPadding: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
   },
   sectionHeader: {
     flexDirection: 'row',

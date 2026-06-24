@@ -23,11 +23,7 @@ export function LifeGoalOnboardingScreen({
       <ScreenHeader
         eyebrow={review ? 'Review your goal' : 'Your goal'}
         title={review ? 'Change your movement goal' : 'What matters most for your future?'}
-        subtitle={
-          review
-            ? 'Choose the everyday activity that matters most now. Hale will use this when it explains your plan.'
-            : 'Choose the everyday activity that matters most. Hale will use this with your check-up to shape your first plan.'
-        }
+        subtitle="Choose the everyday activity that matters most for your future. Hale will use this when it builds your plan."
       />
       <LifeGoalSelector
         initialGoal={initialGoal}

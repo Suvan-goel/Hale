@@ -198,6 +198,7 @@ function PlanHeroCard({
 }) {
   const responsive = useResponsiveLayout();
   const compactHero = responsive.isCompactPhone;
+  const heroMinHeightStyle = { minHeight: responsive.planHeroHeight };
 
   function runAction() {
     if (!action) return;
@@ -209,34 +210,38 @@ function PlanHeroCard({
     <>
       <Image source={PLAN_HERO_IMAGE} style={styles.heroImage} resizeMode="cover" accessible={false} />
       <HeroScrim />
-      <View style={[styles.heroContent, compactHero && styles.heroContentCompact]}>
-        <View style={styles.weekPill}>
-          <Text style={styles.weekPillText}>Week {weekNumber}</Text>
+      <View style={[styles.heroContent, compactHero && styles.heroContentCompact, heroMinHeightStyle]}>
+        <View style={[styles.heroCopy, compactHero && styles.heroCopyCompact]}>
+          <View style={styles.weekPill}>
+            <Text style={styles.weekPillText}>Week {weekNumber}</Text>
+          </View>
+          <Text style={[styles.heroTitle, compactHero && styles.heroTitleCompact]}>{focusCopy.title}</Text>
+          <Text style={styles.heroBody}>{focusCopy.body}</Text>
         </View>
-        <Text style={[styles.heroTitle, compactHero && styles.heroTitleCompact]}>{focusCopy.title}</Text>
-        <Text style={[styles.heroBody, compactHero && styles.heroBodyCompact]}>{focusCopy.body}</Text>
         {action ? (
-          action.kind === 'complete' ? (
-            <View style={styles.heroCompletePill}>
-              <Text style={styles.heroCompleteText}>{action.label}</Text>
-            </View>
-          ) : (
-            <Pressable
-              style={({ pressed }) => [styles.heroButton, compactHero && styles.compactCardPadding, pressed && styles.pressed]}
-              onPress={runAction}
-              accessibilityRole="button"
-              accessibilityLabel={action.accessibilityLabel}
-            >
-              <Text style={styles.heroButtonText}>{action.label}</Text>
-              <Text style={styles.heroButtonArrow}>›</Text>
-            </Pressable>
-          )
+          <View style={styles.heroAction}>
+            {action.kind === 'complete' ? (
+              <View style={styles.heroCompletePill}>
+                <Text style={styles.heroCompleteText}>{action.label}</Text>
+              </View>
+            ) : (
+              <Pressable
+                style={({ pressed }) => [styles.heroButton, compactHero && styles.compactCardPadding, pressed && styles.pressed]}
+                onPress={runAction}
+                accessibilityRole="button"
+                accessibilityLabel={action.accessibilityLabel}
+              >
+                <Text style={styles.heroButtonText}>{action.label}</Text>
+                <Text style={styles.heroButtonArrow}>›</Text>
+              </Pressable>
+            )}
+          </View>
         ) : null}
       </View>
     </>
   );
 
-  return <View style={[styles.heroCard, { height: responsive.planHeroHeight }]}>{content}</View>;
+  return <View style={[styles.heroCard, heroMinHeightStyle]}>{content}</View>;
 }
 
 function HeroScrim() {
@@ -713,7 +718,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   compactCardPadding: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
   },
   header: {
     gap: spacing.md,
@@ -775,19 +781,22 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   heroContent: {
-    position: 'absolute',
-    left: 18,
-    right: 18,
-    top: 24,
-    bottom: 18,
+    paddingVertical: 26,
+    paddingHorizontal: 24,
     justifyContent: 'flex-start',
     zIndex: 2,
   },
   heroContentCompact: {
-    left: 16,
-    right: 16,
-    top: 20,
-    bottom: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+  },
+  heroCopy: {
+    width: '72%',
+    gap: 12,
+  },
+  heroCopyCompact: {
+    width: '70%',
+    gap: 11,
   },
   weekPill: {
     alignSelf: 'stretch',
@@ -806,16 +815,13 @@ const styles = StyleSheet.create({
     color: colors.onAccent,
     fontFamily: fonts.serifMedium,
     fontSize: 25,
-    lineHeight: 28,
+    lineHeight: 31,
     letterSpacing: 0,
-    marginTop: 16,
-    maxWidth: '86%',
+    maxWidth: '100%',
   },
   heroTitleCompact: {
-    fontSize: 23,
-    lineHeight: 26,
-    marginTop: 14,
-    maxWidth: '82%',
+    fontSize: 25,
+    lineHeight: 31,
   },
   heroBody: {
     color: colors.onAccent,
@@ -823,19 +829,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     letterSpacing: 0,
-    marginTop: 10,
-    maxWidth: '72%',
+    maxWidth: '100%',
   },
-  heroBodyCompact: {
-    maxWidth: '66%',
+  heroAction: {
+    marginTop: 'auto',
+    alignSelf: 'flex-start',
+    paddingTop: 16,
   },
   heroButton: {
-    marginTop: 'auto',
     alignSelf: 'flex-start',
     minHeight: 48,
     maxWidth: '100%',
-    borderRadius: 23,
-    paddingHorizontal: 18,
+    borderRadius: 24,
+    paddingHorizontal: 22,
+    paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
@@ -858,19 +865,22 @@ const styles = StyleSheet.create({
     marginTop: -1,
   },
   heroCompletePill: {
-    marginTop: 'auto',
     alignSelf: 'flex-start',
-    minHeight: 38,
-    borderRadius: 19,
+    minHeight: 48,
+    borderRadius: 24,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 15,
-    backgroundColor: 'rgba(251,250,247,0.86)',
+    paddingHorizontal: 22,
+    paddingVertical: 10,
+    backgroundColor: imageOverlayControl.background,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: imageOverlayControl.border,
   },
   heroCompleteText: {
-    color: colors.accentDeep,
+    color: imageOverlayControl.text,
     fontFamily: fonts.sansMedium,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 19,
     letterSpacing: 0,
   },
   sectionTitle: {
