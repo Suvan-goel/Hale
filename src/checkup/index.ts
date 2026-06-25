@@ -29,6 +29,70 @@ export type {
   NormalizedCheckUpProtocolPolicy,
 } from './protocolPolicy';
 export {
+  createNotApplicableSideContext,
+  createUnknownMeasurementContext,
+  isBodySide,
+  measurementContextMetadataRichness,
+  measurementResultId,
+  parseMeasurementContext,
+} from './measurementContext';
+export type {
+  BodySide,
+  MeasurementComparability,
+  MeasurementContext,
+  MeasurementProtocolRef,
+  MeasurementReasonCode,
+  MeasurementSideContext,
+  MeasurementSideRole,
+  MeasurementSideSource,
+  OverallComparabilityStatus,
+  ProtocolComparabilityStatus,
+  SideComparabilityStatus,
+} from './measurementContext';
+export {
+  comparableMeasurementSeriesKey,
+  deriveMeasurementComparability,
+  measurementContextsAllowChangeClaim,
+  measurementSeriesKey,
+  sameProtocol,
+} from './measurementComparability';
+export {
+  LEGACY_MOVEMENT_AGE_BATTERY_PROTOCOL_ID,
+  MEASUREMENT_PROTOCOLS,
+  MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID,
+  MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1,
+  MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V2,
+  batteryProtocolRefForPolicy,
+  descriptorForMicroCheck,
+  descriptorForMovementMeasurement,
+  getMeasurementProtocolDescriptor,
+  listMeasurementProtocols,
+  protocolRefForDescriptor,
+  protocolVariantForMovementResult,
+} from './measurementProtocolRegistry';
+export type {
+  CurrentMicroCheckType,
+  MeasurementProtocolDescriptor,
+  MeasurementProtocolKind,
+} from './measurementProtocolRegistry';
+export {
+  checkUpItemsAllowChangeClaim,
+  checkUpMeasurementMetadataRichness,
+  deriveOfficialMeasurementSide,
+  findOfficialMeasurementAnchor,
+  measurementContextForCheckUpItem,
+  microCheckMeasurementMetadataRichness,
+  normalizeCheckUpItemMeasurementMetadata,
+  normalizeCheckUpMeasurementMetadata,
+  normalizeMicroCheckMeasurementMetadata,
+} from './measurementMetadata';
+export type {
+  NormalizeCheckUpMeasurementMetadataOptions,
+  NormalizeMicroCheckMeasurementMetadataOptions,
+  OfficialMeasurementAnchor,
+  OfficialMeasurementAnchorInput,
+} from './measurementMetadata';
+export {
   MOVEMENT_PROFILE_V2_HEADLINE_MOVEMENT_IDS,
   MOVEMENT_PROFILE_V2_SUPPORTING_MOVEMENT_IDS,
   evaluateMovementProfileV2Completeness,
@@ -40,6 +104,7 @@ export type {
   MovementProfileV2HeadlineMovementId,
 } from './movementProfileV2';
 export {
+  createBalanceEyesOpenV2Setup,
   createActiveShoulderReachV2Setup,
   createChairRiseV2Setup,
   createOneLegBalanceV2Setup,
@@ -47,7 +112,7 @@ export {
 } from './protocolSetup';
 export type {
   ActiveShoulderReachV2Setup,
-  BodySide,
+  BalanceEyesOpenV2Setup,
   ChairRiseV2Setup,
   MovementProfileV2Setup,
   OneLegBalanceV2Setup,

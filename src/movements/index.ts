@@ -12,6 +12,7 @@ import './shoulderFlexion';
 import './hingeReach';
 import './chairRiseV2';
 import './oneLegBalanceV2';
+import './balanceEyesOpenV2';
 import './activeShoulderReachV2';
 
 export { CHAIR_STAND_ID } from './chairStand';
@@ -50,6 +51,26 @@ export type {
   OneLegBalanceV2TrialResult,
   OneLegBalanceV2TrialTermination,
 } from './oneLegBalanceV2';
+export {
+  BALANCE_EYES_OPEN_V2_ID,
+  BALANCE_EYES_OPEN_V2_PROTOCOL_ID,
+  BALANCE_EYES_OPEN_V2_PROTOCOL_VERSION,
+  BALANCE_EYES_OPEN_V2_STAGE_DESCRIPTORS,
+  BalanceEyesOpenV2ProtocolController,
+  balanceEyesOpenStageSide,
+} from './balanceEyesOpenV2';
+export type {
+  BalanceEyesOpenCompletionReason,
+  BalanceEyesOpenPhase,
+  BalanceEyesOpenStageDescriptor,
+  BalanceEyesOpenStageId,
+  BalanceEyesOpenStageKind,
+  BalanceEyesOpenStageResult,
+  BalanceEyesOpenTrackingRetry,
+  BalanceEyesOpenV2Config,
+  BalanceEyesOpenV2Result,
+  BalanceStageEndReason,
+} from './balanceEyesOpenV2';
 export {
   ACTIVE_SHOULDER_REACH_V2_ID,
   ActiveShoulderReachV2ProtocolController,

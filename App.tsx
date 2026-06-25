@@ -27,6 +27,7 @@ import {
   ScreenScrollClearanceProvider,
 } from './src/components/ui';
 import { MOVEMENT_PROFILE_V2_INTERNAL_ENABLED } from './src/config/movementProfileV2Internal';
+import { UNIFIED_MOVEMENT_CHECKUP_RELEASE_ENABLED } from './src/config/unifiedMovementCheckUpRelease';
 import {
   AdherenceStore,
   AdherenceStoreState,
@@ -40,6 +41,8 @@ import {
   LOCAL_USER_ID,
   MovementAssessment,
   MovementBlock,
+  MovementProfileV2BlockReport,
+  MovementProfileV2RetestComparison,
   MovementSafetyProfile,
   RestartSessionScreen,
   SupportConnection,
@@ -66,7 +69,19 @@ import {
   upsertMovementBlock,
 } from './src/adherence';
 import { configureSessionAudio } from './src/audio/voicePlayer';
-import { CheckUp, mergeCheckUpRetry, retryBatteryForMissingHeadlineDomains } from './src/checkup';
+import {
+  CheckUp,
+  latestV2ShoulderSide,
+  latestV2StandingLeg,
+  mergeCheckUpRetry,
+  retryBatteryForMissingHeadlineDomains,
+} from './src/checkup';
+import type { BodySide } from './src/checkup/protocolSetup';
+import {
+  selectPublicMovementCheckUpLaunch,
+  type PublicMovementCheckUpEntryContext,
+  type PublicMovementProfileV2SourceType,
+} from './src/checkup/publicCheckUpEngine';
 import {
   createMovementAssessment,
   createAutomaticMovementBlock,
@@ -89,6 +104,8 @@ import {
   latestUsableOfficialCheckUpRecord,
   latestUsableOfficialAssessment,
   materializeMovementProfileV2Block,
+  movementProfileV2AssessmentForSourceCheckUpId,
+  transitionMovementProfileV2OfficialRetest,
   applyProgressionEvidenceFromSession,
   planLadderPracticeSessionResult,
   planTodayHaleSession,
@@ -106,6 +123,7 @@ import {
   type GenerationRecoveryAction,
   type HaleSessionPlanningResult,
   type HaleSessionPlan,
+  type OfficialMovementProfileV2AssessmentRecord,
   type PlanSessionId,
   type TodaySessionPreferences,
 } from './src/haleFlow';
@@ -117,13 +135,17 @@ import {
   latestPendingMovementProfileV2RawCheckUp,
   type MovementProfileV2InternalFlowState,
 } from './src/movementProfileV2/internalCheckupFlow';
-import { latestMovementProfileV2ReferenceDetailsDraft } from './src/movementProfileV2/referenceDetailsDraft';
+import {
+  latestMovementProfileV2ReferenceDetailsDraft,
+  movementProfileV2ReferenceDetailsDraftFromSnapshot,
+} from './src/movementProfileV2/referenceDetailsDraft';
 import {
   buildMovementProfileV2ResultsViewModel,
   movementProfileV2ResultsViewModelForRecord,
   type MovementProfileV2Domain,
   type MovementProfileV2ResultsViewModel,
 } from './src/movementProfileV2/viewModel';
+import type { MovementProfileV2UnifiedPlanState } from './src/results/movementProfileV2ResultsAdapter';
 import {
   DEFAULT_TAB_KEY,
   TabBar,
@@ -148,7 +170,9 @@ import {
 } from './src/profile';
 import {
   materializeOfficialMovementProfileV2Artifacts,
+  type MovementProfileV2Assessment,
   type MovementProfileV2ReferenceProfile,
+  type StoredMovementProfileV2Snapshot,
 } from './src/reference/movementProfileV2';
 import {
   CheckUpScore,
@@ -196,8 +220,11 @@ import { LiveSessionScreen } from './src/screens/LiveSessionScreen';
 import { ManualCheckupStartScreen } from './src/screens/ManualCheckupStartScreen';
 import { MicroCheckScreen } from './src/screens/MicroCheckScreen';
 import { MovementProfileV2CheckUpScreen } from './src/screens/MovementProfileV2CheckUpScreen';
+import { MovementProfileV2BlockReportScreen } from './src/screens/MovementProfileV2BlockReportScreen';
 import { MovementProfileV2ReferenceDetailsScreen } from './src/screens/MovementProfileV2ReferenceDetailsScreen';
 import { MovementProfileV2ResultsScreen } from './src/screens/MovementProfileV2ResultsScreen';
+import { MovementProfileV2UnifiedCheckUpScreen } from './src/screens/MovementProfileV2UnifiedCheckUpScreen';
+import { MovementProfileV2UnifiedResultsScreen } from './src/screens/MovementProfileV2UnifiedResultsScreen';
 import { OnboardingBlockScreen } from './src/screens/OnboardingBlockScreen';
 import { OnboardingEquipmentScreen } from './src/screens/OnboardingEquipmentScreen';
 import { OnboardingResultsScreen } from './src/screens/OnboardingResultsScreen';
@@ -216,6 +243,7 @@ import { isPoseLatencyDiagnosticsEnabled } from './src/diagnostics/poseLatencyDi
 import {
   EquipmentProfile,
   MicroCheckResult,
+  type MicroCheckType,
   PainArea,
   PersistedPostSessionFeedback,
   TrainingState,
@@ -224,6 +252,7 @@ import {
   TrackingQuality,
   buildBlock,
   defaultTrainingState,
+  deriveMicroCheckSideSetup,
   microCheckTrendPoints,
   startBlock,
   upsertGeneratedSessionSummary,
@@ -256,15 +285,33 @@ type Flow =
   | 'learn-detail'
   | 'settings'
   | 'movement-profile-v2-checkup'
+  | 'movement-profile-v2-unified-checkup'
   | 'movement-profile-v2-reference-details'
   | 'movement-profile-v2-results'
+  | 'movement-profile-v2-unified-results'
   | 'movement-profile-v2-domain-detail'
+  | 'movement-profile-v2-unified-domain-detail'
+  | 'movement-profile-v2-block-report'
+  | 'movement-profile-v2-retest-unavailable'
   | 'pose-benchmark'
   | 'dev-live';
 
 type CameraSetupEntry = 'checkup' | 'review';
 type LifeGoalEntry = 'onboarding' | 'review';
 type SafetyProfileEntry = 'onboarding' | 'review';
+type MovementProfileV2ResultSurface = 'standalone' | 'unified';
+type MovementProfileV2EntryContext = 'internal' | 'public_standard' | 'public_onboarding' | 'public_official_retest';
+type MovementProfileV2CheckUpSourceType = Extract<CheckupType, 'baseline' | 'baseline_retake' | 'official_retest'>;
+type MovementProfileV2OfficialRetestContext = {
+  priorBlockId: string;
+  priorArtifacts: OfficialMovementProfileV2AssessmentRecord;
+  priorStandingLeg: BodySide | null;
+  priorShoulderSide: BodySide | null;
+};
+
+const DEFAULT_MOVEMENT_PROFILE_V2_PLAN_STATE: MovementProfileV2UnifiedPlanState = {
+  status: 'unavailable',
+};
 
 type NavigationLocation = {
   tab: TabKey;
@@ -277,8 +324,17 @@ const CAMERA_FLOWS = new Set<Flow>([
   'training',
   'microcheck',
   'movement-profile-v2-checkup',
+  'movement-profile-v2-unified-checkup',
   'pose-benchmark',
   'dev-live',
+]);
+const PUBLIC_MOVEMENT_PROFILE_V2_FLOWS = new Set<Flow>([
+  'movement-profile-v2-unified-checkup',
+  'movement-profile-v2-reference-details',
+  'movement-profile-v2-unified-results',
+  'movement-profile-v2-unified-domain-detail',
+  'movement-profile-v2-block-report',
+  'movement-profile-v2-retest-unavailable',
 ]);
 const MAX_NAVIGATION_HISTORY_ENTRIES = 40;
 const LAUNCH_SYNC_RETRY_DELAY_MS = 5000;
@@ -326,6 +382,25 @@ function buildBlockIntroPreview(nowIso: string): {
       updatedAt: nowIso,
     },
   };
+}
+
+function movementProfileV2BlockMatchesResult(
+  block: MovementBlock,
+  snapshot: StoredMovementProfileV2Snapshot,
+  assessment: MovementProfileV2Assessment
+): boolean {
+  const origin = block.origin;
+  return (
+    origin?.kind === 'movement_profile_v2_assessment' &&
+    origin.assessmentId === assessment.assessmentId &&
+    origin.assessmentFingerprint === assessment.assessmentFingerprint &&
+    origin.snapshotId === snapshot.snapshotId &&
+    origin.snapshotFingerprint === snapshot.snapshotFingerprint &&
+    origin.sourceCheckUpId === assessment.sourceCheckUpId &&
+    origin.sourceCheckUpType === assessment.sourceCheckUpType &&
+    origin.focusPolicyVersion === assessment.focusProvenance.focusPolicyVersion &&
+    origin.focusPolicyFingerprint === assessment.focusProvenance.focusPolicyFingerprint
+  );
 }
 
 function flowForOnboardingStep(step: OnboardingStep): Flow | null {
@@ -577,12 +652,24 @@ function HaleApp() {
     React.useState<MovementProfileV2InternalFlowState | null>(null);
   const [movementProfileV2Raw, setMovementProfileV2Raw] = React.useState<{
     checkUp: CheckUp;
-    sourceType: Extract<CheckupType, 'baseline' | 'baseline_retake'>;
+    sourceType: MovementProfileV2CheckUpSourceType;
   } | null>(null);
   const [movementProfileV2Result, setMovementProfileV2Result] =
     React.useState<MovementProfileV2ResultsViewModel | null>(null);
+  const [movementProfileV2OfficialRetestContext, setMovementProfileV2OfficialRetestContext] =
+    React.useState<MovementProfileV2OfficialRetestContext | null>(null);
+  const [movementProfileV2RetestComparison, setMovementProfileV2RetestComparison] =
+    React.useState<MovementProfileV2RetestComparison | null>(null);
+  const [movementProfileV2BlockReport, setMovementProfileV2BlockReport] =
+    React.useState<MovementProfileV2BlockReport | null>(null);
   const [movementProfileV2PlanBlockId, setMovementProfileV2PlanBlockId] =
     React.useState<string | null>(null);
+  const [movementProfileV2PlanState, setMovementProfileV2PlanState] =
+    React.useState<MovementProfileV2UnifiedPlanState>(DEFAULT_MOVEMENT_PROFILE_V2_PLAN_STATE);
+  const [movementProfileV2ResultSurface, setMovementProfileV2ResultSurface] =
+    React.useState<MovementProfileV2ResultSurface>('standalone');
+  const [movementProfileV2EntryContext, setMovementProfileV2EntryContext] =
+    React.useState<MovementProfileV2EntryContext>('internal');
   const [movementProfileV2DetailDomain, setMovementProfileV2DetailDomain] =
     React.useState<MovementProfileV2Domain | null>(null);
 
@@ -750,7 +837,13 @@ function HaleApp() {
     setMovementProfileV2InitialFlow(null);
     setMovementProfileV2Raw(null);
     setMovementProfileV2Result(null);
+    setMovementProfileV2OfficialRetestContext(null);
+    setMovementProfileV2RetestComparison(null);
+    setMovementProfileV2BlockReport(null);
     setMovementProfileV2PlanBlockId(null);
+    setMovementProfileV2PlanState(DEFAULT_MOVEMENT_PROFILE_V2_PLAN_STATE);
+    setMovementProfileV2ResultSurface('standalone');
+    setMovementProfileV2EntryContext('internal');
     setMovementProfileV2DetailDomain(null);
     setTraining(defaultTrainingState());
     setMicroChecks([]);
@@ -995,7 +1088,13 @@ function HaleApp() {
     setMovementProfileV2InitialFlow(null);
     setMovementProfileV2Raw(null);
     setMovementProfileV2Result(null);
+    setMovementProfileV2OfficialRetestContext(null);
+    setMovementProfileV2RetestComparison(null);
+    setMovementProfileV2BlockReport(null);
     setMovementProfileV2PlanBlockId(null);
+    setMovementProfileV2PlanState(DEFAULT_MOVEMENT_PROFILE_V2_PLAN_STATE);
+    setMovementProfileV2ResultSurface('standalone');
+    setMovementProfileV2EntryContext('internal');
     setMovementProfileV2DetailDomain(null);
   }, [replaceNextNavigationLocation]);
 
@@ -1003,12 +1102,16 @@ function HaleApp() {
     if (
       MOVEMENT_PROFILE_V2_INTERNAL_ENABLED ||
       flow === null ||
-      !flow.startsWith('movement-profile-v2')
+      !flow.startsWith('movement-profile-v2') ||
+      flow === 'movement-profile-v2-retest-unavailable' ||
+      (UNIFIED_MOVEMENT_CHECKUP_RELEASE_ENABLED &&
+        movementProfileV2EntryContext !== 'internal' &&
+        PUBLIC_MOVEMENT_PROFILE_V2_FLOWS.has(flow))
     ) {
       return;
     }
     goHome();
-  }, [flow, goHome]);
+  }, [flow, goHome, movementProfileV2EntryContext]);
 
   const goBack = React.useCallback(
     (fallback?: () => void) => {
@@ -2083,6 +2186,65 @@ function HaleApp() {
       .catch(() => setPermission('denied'));
   }, []);
 
+  const beginUnifiedMovementProfileV2Public = React.useCallback(
+    (
+      sourceType: PublicMovementProfileV2SourceType,
+      entryContext: PublicMovementCheckUpEntryContext,
+      officialRetestContext: MovementProfileV2OfficialRetestContext | null = null
+    ) => {
+      const pendingRaw = sourceType === 'official_retest'
+        ? null
+        : latestPendingMovementProfileV2RawCheckUp(history);
+      setMovementProfileV2Result(null);
+      setMovementProfileV2RetestComparison(null);
+      setMovementProfileV2BlockReport(null);
+      setMovementProfileV2PlanBlockId(null);
+      setMovementProfileV2PlanState(DEFAULT_MOVEMENT_PROFILE_V2_PLAN_STATE);
+      setMovementProfileV2ResultSurface('unified');
+      setMovementProfileV2EntryContext(
+        entryContext === 'onboarding'
+          ? 'public_onboarding'
+          : entryContext === 'public_official_retest'
+            ? 'public_official_retest'
+            : 'public_standard'
+      );
+      setMovementProfileV2OfficialRetestContext(officialRetestContext);
+      setMovementProfileV2DetailDomain(null);
+
+      if (pendingRaw) {
+        setMovementProfileV2InitialFlow(null);
+        setMovementProfileV2Raw({
+          checkUp: pendingRaw.record.checkUp,
+          sourceType: pendingRaw.sourceType,
+        });
+        setFlow('movement-profile-v2-reference-details');
+        return;
+      }
+
+      const startedAt = new Date().toISOString();
+      const initialFlow = createMovementProfileV2InternalFlow({ startedAt, history });
+      setMovementProfileV2InitialFlow({
+        ...initialFlow,
+        sourceType,
+        ...(sourceType === 'official_retest' && officialRetestContext?.priorStandingLeg
+          ? {
+              priorStandingLeg: officialRetestContext.priorStandingLeg,
+              standingLeg: officialRetestContext.priorStandingLeg,
+            }
+          : {}),
+        ...(sourceType === 'official_retest' && officialRetestContext?.priorShoulderSide
+          ? {
+              priorShoulderSide: officialRetestContext.priorShoulderSide,
+              shoulderSide: officialRetestContext.priorShoulderSide,
+            }
+          : {}),
+      });
+      setMovementProfileV2Raw(null);
+      setFlow('movement-profile-v2-unified-checkup');
+    },
+    [history]
+  );
+
   const beginCheckUp = React.useCallback(
     (
       type?: CheckupType,
@@ -2093,23 +2255,96 @@ function HaleApp() {
       } = {}
     ) => {
       const resolvedType = type ?? (latestAssessment ? 'manual_extra' : 'baseline');
+      const activeBlockV2Record =
+        activeMovementBlock?.origin?.kind === 'movement_profile_v2_assessment'
+          ? movementProfileV2AssessmentForSourceCheckUpId(
+              history,
+              activeMovementBlock.origin.sourceCheckUpId
+            )
+          : null;
+      const activeBlockSchedule = activeMovementBlock
+        ? getBlockScheduleState({
+            block: activeMovementBlock,
+            completions: adherence.completions,
+            generatedSessionSummaries: training.generatedSessionSummaries,
+            today: new Date().toISOString(),
+          })
+        : null;
+      const officialRetestContext =
+        resolvedType === 'official_retest' &&
+        activeMovementBlock?.origin?.kind === 'movement_profile_v2_assessment' &&
+        activeBlockV2Record
+          ? {
+              priorBlockId: activeMovementBlock.id,
+              priorArtifacts: activeBlockV2Record,
+              priorStandingLeg: latestV2StandingLeg([activeBlockV2Record.record.checkUp]),
+              priorShoulderSide: latestV2ShoulderSide([activeBlockV2Record.record.checkUp]),
+            }
+          : null;
+      const launchDecision = selectPublicMovementCheckUpLaunch({
+        sourceType: resolvedType,
+        entryContext: onboardingFlowActive ? 'onboarding' : 'standard',
+        releaseEnabled: UNIFIED_MOVEMENT_CHECKUP_RELEASE_ENABLED,
+        hasAcceptedMovementProfileV2Baseline: !!latestMaterializedMovementProfileV2Result(history),
+        hasAcceptedMovementProfileV2OfficialRetestSourceArtifacts: !!officialRetestContext,
+        movementProfileV2OfficialRetestScheduleStatus: activeBlockSchedule?.status ?? null,
+        activeBlockOriginKind: activeMovementBlock?.origin?.kind ?? null,
+      });
+      if (launchDecision.status === 'unavailable') {
+        addBreadcrumb('movement check-up unavailable', {
+          area: 'checkup_launch',
+          reason: launchDecision.reason,
+          sourceType: launchDecision.sourceType,
+        });
+        setPendingCheckup(null);
+        setMovementProfileV2EntryContext('public_standard');
+        setMovementProfileV2OfficialRetestContext(null);
+        setMovementProfileV2RetestComparison(null);
+        setMovementProfileV2BlockReport(null);
+        setFlow('movement-profile-v2-retest-unavailable');
+        return;
+      }
+      if (launchDecision.engine === 'unified_movement_profile') {
+        addBreadcrumb('public movement check-up launch', {
+          area: 'checkup_launch',
+          engine: launchDecision.engine,
+          sourceType: launchDecision.sourceType,
+          entryContext: launchDecision.entryContext,
+        });
+        setPendingCheckup(null);
+        beginUnifiedMovementProfileV2Public(
+          launchDecision.sourceType,
+          launchDecision.entryContext,
+          launchDecision.sourceType === 'official_retest' ? officialRetestContext : null
+        );
+        return;
+      }
+      const legacyType = launchDecision.sourceType;
       setPendingCheckup({
-        type: resolvedType,
+        type: legacyType,
         sourceBlockId:
-          resolvedType === 'official_retest' || resolvedType === 'quick_recheck'
+          legacyType === 'official_retest' || legacyType === 'quick_recheck'
             ? activeMovementBlock?.id
             : undefined,
         isOfficialForProgress:
-          resolvedType === 'baseline' ||
-          resolvedType === 'baseline_retake' ||
-          resolvedType === 'official_retest',
+          legacyType === 'baseline' ||
+          legacyType === 'baseline_retake' ||
+          legacyType === 'official_retest',
         battery: options.battery,
         retryOfCheckUpId: options.retryOfCheckUpId,
         retryMovementIds: options.retryMovementIds,
       });
       setFlow('checkup');
     },
-    [activeMovementBlock, latestAssessment]
+    [
+      activeMovementBlock,
+      adherence.completions,
+      beginUnifiedMovementProfileV2Public,
+      history,
+      latestAssessment,
+      onboardingFlowActive,
+      training.generatedSessionSummaries,
+    ]
   );
 
   const beginOnboardingCheckUp = React.useCallback(() => {
@@ -3340,6 +3575,33 @@ function HaleApp() {
     setTab('plan');
   }, [replaceNextNavigationLocation]);
 
+  const handleMovementProfileV2ViewPlan = React.useCallback(() => {
+    if (movementProfileV2EntryContext !== 'public_onboarding') {
+      handleViewPlanFromResults();
+      return;
+    }
+
+    const now = new Date().toISOString();
+    setDevOnboardingReplay(false);
+    persistPrefs({
+      ...prefs,
+      onboarding: {
+        ...prefs.onboarding,
+        currentStep: 'complete',
+        completedAt: prefs.onboarding.completedAt ?? now,
+        updatedAt: now,
+      },
+    });
+    setMovementProfileV2DetailDomain(null);
+    replaceFlow('block-intro');
+  }, [
+    handleViewPlanFromResults,
+    movementProfileV2EntryContext,
+    persistPrefs,
+    prefs,
+    replaceFlow,
+  ]);
+
   const handleTodayPrimaryAction = React.useCallback(
     (preferences?: TodaySessionPreferences | null) => {
       switch (lifecycle.primaryAction.type) {
@@ -3387,6 +3649,19 @@ function HaleApp() {
   );
 
   const extraTrendPoints = React.useMemo(() => microCheckTrendPoints(microChecks), [microChecks]);
+  const activeMicroCheckType = React.useMemo<MicroCheckType>(
+    () => (activeMovementBlock ? getMicroCheckForBlock(activeMovementBlock)?.type ?? 'chair-power' : 'chair-power'),
+    [activeMovementBlock]
+  );
+  const activeMicroCheckSideSetup = React.useMemo(
+    () =>
+      deriveMicroCheckSideSetup({
+        microCheckType: activeMicroCheckType,
+        history: microChecks,
+        officialCheckUps: history,
+      }),
+    [activeMicroCheckType, history, microChecks]
+  );
   const openManualCheckup = React.useCallback(() => setFlow('manual-checkup'), []);
 
   const beginProgressFirstCheckUp = React.useCallback(() => {
@@ -3405,7 +3680,13 @@ function HaleApp() {
     if (!MOVEMENT_PROFILE_V2_INTERNAL_ENABLED) return;
     const pendingRaw = latestPendingMovementProfileV2RawCheckUp(history);
     setMovementProfileV2Result(null);
+    setMovementProfileV2OfficialRetestContext(null);
+    setMovementProfileV2RetestComparison(null);
+    setMovementProfileV2BlockReport(null);
     setMovementProfileV2PlanBlockId(null);
+    setMovementProfileV2PlanState(DEFAULT_MOVEMENT_PROFILE_V2_PLAN_STATE);
+    setMovementProfileV2ResultSurface('standalone');
+    setMovementProfileV2EntryContext('internal');
     setMovementProfileV2DetailDomain(null);
 
     if (pendingRaw) {
@@ -3425,11 +3706,41 @@ function HaleApp() {
     setFlow('movement-profile-v2-checkup');
   }, [history]);
 
+  const beginMovementProfileV2UnifiedInternal = React.useCallback(() => {
+    if (!MOVEMENT_PROFILE_V2_INTERNAL_ENABLED) return;
+    const pendingRaw = latestPendingMovementProfileV2RawCheckUp(history);
+    setMovementProfileV2Result(null);
+    setMovementProfileV2OfficialRetestContext(null);
+    setMovementProfileV2RetestComparison(null);
+    setMovementProfileV2BlockReport(null);
+    setMovementProfileV2PlanBlockId(null);
+    setMovementProfileV2PlanState(DEFAULT_MOVEMENT_PROFILE_V2_PLAN_STATE);
+    setMovementProfileV2ResultSurface('unified');
+    setMovementProfileV2EntryContext('internal');
+    setMovementProfileV2DetailDomain(null);
+
+    if (pendingRaw) {
+      setMovementProfileV2InitialFlow(null);
+      setMovementProfileV2Raw({
+        checkUp: pendingRaw.record.checkUp,
+        sourceType: pendingRaw.sourceType,
+      });
+      setFlow('movement-profile-v2-reference-details');
+      return;
+    }
+
+    const startedAt = new Date().toISOString();
+    const initialFlow = createMovementProfileV2InternalFlow({ startedAt, history });
+    setMovementProfileV2InitialFlow(initialFlow);
+    setMovementProfileV2Raw(null);
+    setFlow('movement-profile-v2-unified-checkup');
+  }, [history]);
+
   const handleMovementProfileV2RawComplete = React.useCallback(
     (input: {
       checkUp: CheckUp;
-      sourceType: Extract<CheckupType, 'baseline' | 'baseline_retake'>;
-    }) => {
+      sourceType: MovementProfileV2CheckUpSourceType;
+    }, surface: MovementProfileV2ResultSurface = 'standalone') => {
       try {
         store.save(input.checkUp, { checkupType: input.sourceType });
       } catch (error) {
@@ -3439,7 +3750,11 @@ function HaleApp() {
       setMovementProfileV2Raw(input);
       setMovementProfileV2InitialFlow(null);
       setMovementProfileV2Result(null);
+      setMovementProfileV2RetestComparison(null);
+      setMovementProfileV2BlockReport(null);
       setMovementProfileV2PlanBlockId(null);
+      setMovementProfileV2PlanState(DEFAULT_MOVEMENT_PROFILE_V2_PLAN_STATE);
+      setMovementProfileV2ResultSurface(surface);
       setMovementProfileV2DetailDomain(null);
       store
         .loadAll()
@@ -3454,14 +3769,18 @@ function HaleApp() {
     (referenceProfile: MovementProfileV2ReferenceProfile) => {
       if (!movementProfileV2Raw) return;
       const now = new Date().toISOString();
+      const artifactCreatedAt =
+        movementProfileV2Raw.sourceType === 'official_retest'
+          ? checkUpCompletionTimestamp(movementProfileV2Raw.checkUp, now)
+          : now;
       const materialized = materializeOfficialMovementProfileV2Artifacts({
         checkUp: movementProfileV2Raw.checkUp,
         checkupType: movementProfileV2Raw.sourceType,
         referenceProfile,
         lifeGoal: prefs.profile.lifeGoal,
         acceptedHistory: history,
-        snapshotCreatedAt: now,
-        assessmentCreatedAt: now,
+        snapshotCreatedAt: artifactCreatedAt,
+        assessmentCreatedAt: artifactCreatedAt,
       });
 
       if (!materialized.ok) {
@@ -3485,7 +3804,7 @@ function HaleApp() {
         captureError(error, { area: 'movement_profile_v2', action: 'save_artifacts' });
       }
 
-      const completedAt = checkUpCompletionTimestamp(materialized.checkUp, now);
+      const completedAt = checkUpCompletionTimestamp(materialized.checkUp, artifactCreatedAt);
       if (backendSignedIn && backendUserId) {
         void syncMovementCheckupToRemote({
           checkUp: materialized.checkUp,
@@ -3495,6 +3814,112 @@ function HaleApp() {
           movementProfileV2Snapshot: materialized.snapshot,
           movementProfileV2Assessment: materialized.assessment,
         });
+      }
+
+      if (movementProfileV2Raw.sourceType === 'official_retest') {
+        const priorBlock = movementProfileV2OfficialRetestContext
+          ? adherence.blocks.find((block) => block.id === movementProfileV2OfficialRetestContext.priorBlockId)
+          : null;
+        const priorArtifacts = movementProfileV2OfficialRetestContext?.priorArtifacts ?? null;
+        const transition = priorBlock && priorArtifacts
+          ? transitionMovementProfileV2OfficialRetest({
+              priorState: adherence,
+              priorBlock,
+              schedule: getBlockScheduleState({
+                block: priorBlock,
+                completions: adherence.completions,
+                generatedSessionSummaries: training.generatedSessionSummaries,
+                today: completedAt,
+              }),
+              priorArtifacts,
+              currentCheckUp: materialized.checkUp,
+              currentSnapshot: materialized.snapshot,
+              currentAssessment: materialized.assessment,
+              explicitTransitionTimestamp: completedAt,
+              userId: LOCAL_USER_ID,
+            })
+          : null;
+
+        let preparedPlanBlockId: string | null = null;
+        let preparedPlanState: MovementProfileV2UnifiedPlanState = {
+          status: 'unavailable',
+          title: 'Plan unavailable right now',
+          body: 'Your latest Movement Profile is saved, but Hale could not prepare the next 4-week plan on this phone.',
+        };
+        let retestComparison: MovementProfileV2RetestComparison | null = null;
+        let blockReport: MovementProfileV2BlockReport | null = null;
+
+        if (transition?.status === 'ready') {
+          const adherenceSaved = persistAdherence(transition.nextState);
+          if (adherenceSaved) {
+            preparedPlanBlockId = transition.nextBlock.id;
+            preparedPlanState = {
+              status: backendSignedIn && backendUserId ? 'sync_pending_local_ready' : 'ready',
+              blockId: transition.nextBlock.id,
+            };
+            retestComparison = transition.comparison;
+            blockReport = transition.report;
+            if (backendSignedIn && backendUserId && priorArtifacts) {
+              void syncMovementBlockToRemote({
+                block: transition.completedPriorBlock,
+                training,
+                blockNumber: blockNumberForBlocks(transition.nextState.blocks, transition.completedPriorBlock.id),
+                sourceCheckupLocalId: priorArtifacts.assessment.sourceCheckUpId,
+              });
+              void syncMovementBlockToRemote({
+                block: transition.nextBlock,
+                training,
+                blockNumber: blockNumberForBlocks(transition.nextState.blocks, transition.nextBlock.id),
+                sourceCheckupLocalId: materialized.assessment.sourceCheckUpId,
+              });
+              void syncMovementBlockReportToRemote({
+                report: transition.report,
+                movementBlock: transition.completedPriorBlock,
+                completions: transition.nextState.completions,
+              });
+            }
+          } else {
+            preparedPlanState = {
+              status: 'unavailable',
+              title: 'Plan unavailable right now',
+              body: 'Your latest Movement Profile is saved, but Hale could not save the completed block or next plan on this phone.',
+            };
+          }
+        } else {
+          addBreadcrumb('movement profile v2 official retest transition blocked', {
+            area: 'movement_profile_v2',
+            status: transition?.status ?? 'missing_prior_context',
+            blockId: priorBlock?.id,
+            checkUpId: materialized.checkUp.startedAt,
+          });
+          if (__DEV__) {
+            console.warn(
+              '[movement-profile-v2] official retest transition blocked',
+              transition?.status ?? 'missing_prior_context'
+            );
+          }
+        }
+
+        setMovementProfileV2Raw(null);
+        setMovementProfileV2InitialFlow(null);
+        setMovementProfileV2OfficialRetestContext(null);
+        setMovementProfileV2DetailDomain(null);
+        setMovementProfileV2PlanBlockId(preparedPlanBlockId);
+        setMovementProfileV2PlanState(preparedPlanState);
+        setMovementProfileV2RetestComparison(retestComparison);
+        setMovementProfileV2BlockReport(blockReport);
+        setMovementProfileV2Result(
+          buildMovementProfileV2ResultsViewModel({
+            snapshot: materialized.snapshot,
+            assessment: materialized.assessment,
+          })
+        );
+        store
+          .loadAll()
+          .then(setHistory)
+          .catch(() => {});
+        replaceFlow('movement-profile-v2-unified-results');
+        return;
       }
 
       const planBlock = materializeMovementProfileV2Block({
@@ -3507,10 +3932,19 @@ function HaleApp() {
         startDate: now,
       });
       let preparedPlanBlockId: string | null = null;
+      let preparedPlanState: MovementProfileV2UnifiedPlanState = {
+        status: 'unavailable',
+        title: 'Plan unavailable right now',
+        body: 'Your Movement Profile is saved. Hale could not prepare the matching 4-week plan on this phone.',
+      };
       if (planBlock.ok) {
         const adherenceSaved = persistAdherence(planBlock.adherence);
         if (adherenceSaved) {
           preparedPlanBlockId = planBlock.block.id;
+          preparedPlanState = {
+            status: backendSignedIn && backendUserId ? 'sync_pending_local_ready' : 'ready',
+            blockId: planBlock.block.id,
+          };
           if (backendSignedIn && backendUserId) {
             void syncMovementBlockToRemote({
               block: planBlock.block,
@@ -3519,6 +3953,12 @@ function HaleApp() {
               sourceCheckupLocalId: materialized.assessment.sourceCheckUpId,
             });
           }
+        } else {
+          preparedPlanState = {
+            status: 'unavailable',
+            title: 'Plan unavailable right now',
+            body: 'Your Movement Profile is saved, but Hale could not save the prepared plan on this phone.',
+          };
         }
       } else {
         addBreadcrumb('movement profile v2 block materialization blocked', {
@@ -3530,32 +3970,65 @@ function HaleApp() {
         if (__DEV__) {
           console.warn('[movement-profile-v2] block materialization blocked', planBlock.reason);
         }
+        preparedPlanState =
+          planBlock.reason === 'v2_block_active_block_conflict'
+            ? {
+                status: 'active_block_conflict',
+                existingBlockId: planBlock.existingBlockId,
+              }
+            : {
+                status: 'unavailable',
+                title: 'Plan unavailable right now',
+                body: 'Your Movement Profile is saved, but Hale could not find a matching prepared plan.',
+              };
       }
 
       setMovementProfileV2Raw(null);
       setMovementProfileV2InitialFlow(null);
       setMovementProfileV2DetailDomain(null);
+      setMovementProfileV2RetestComparison(null);
+      setMovementProfileV2BlockReport(null);
       setMovementProfileV2PlanBlockId(preparedPlanBlockId);
+      setMovementProfileV2PlanState(preparedPlanState);
       setMovementProfileV2Result(
         buildMovementProfileV2ResultsViewModel({
           snapshot: materialized.snapshot,
           assessment: materialized.assessment,
         })
       );
+      if (movementProfileV2EntryContext === 'public_onboarding') {
+        persistPrefs({
+          ...prefs,
+          onboarding: {
+            ...prefs.onboarding,
+            currentStep: 'results',
+            baselineResultId: materialized.checkUp.startedAt,
+            updatedAt: completedAt,
+          },
+        });
+      }
       store
         .loadAll()
         .then(setHistory)
         .catch(() => {});
-      replaceFlow('movement-profile-v2-results');
+      replaceFlow(
+        movementProfileV2ResultSurface === 'unified'
+          ? 'movement-profile-v2-unified-results'
+          : 'movement-profile-v2-results'
+      );
     },
     [
       adherence,
       backendSignedIn,
       backendUserId,
       history,
+      movementProfileV2EntryContext,
+      movementProfileV2OfficialRetestContext,
       movementProfileV2Raw,
+      movementProfileV2ResultSurface,
       persistAdherence,
-      prefs.profile.lifeGoal,
+      persistPrefs,
+      prefs,
       replaceFlow,
       store,
       training,
@@ -3568,16 +4041,25 @@ function HaleApp() {
     if (!latest) return;
     const planBlock =
       adherence.blocks.find(
-        (block) =>
-          block.origin?.kind === 'movement_profile_v2_assessment' &&
-          block.origin.assessmentId === latest.assessment.assessmentId
+        (block) => movementProfileV2BlockMatchesResult(block, latest.snapshot, latest.assessment)
       ) ?? null;
     setMovementProfileV2Raw(null);
     setMovementProfileV2InitialFlow(null);
     setMovementProfileV2DetailDomain(null);
     setMovementProfileV2PlanBlockId(planBlock?.id ?? null);
+    setMovementProfileV2PlanState(
+      planBlock
+        ? { status: 'ready', blockId: planBlock.id }
+        : {
+            status: 'unavailable',
+            title: 'Plan unavailable right now',
+            body: 'This saved Movement Profile does not have a matching prepared 4-week plan on this phone.',
+          }
+    );
+    setMovementProfileV2ResultSurface('unified');
+    setMovementProfileV2EntryContext('internal');
     setMovementProfileV2Result(movementProfileV2ResultsViewModelForRecord(latest));
-    setFlow('movement-profile-v2-results');
+    setFlow('movement-profile-v2-unified-results');
   }, [adherence.blocks, history]);
 
   const handleRoute = React.useCallback(
@@ -3808,9 +4290,8 @@ function HaleApp() {
           />
         ) : flow === 'microcheck' ? (
           <MicroCheckScreen
-            type={
-              activeMovementBlock ? getMicroCheckForBlock(activeMovementBlock)?.type ?? 'chair-power' : 'chair-power'
-            }
+            type={activeMicroCheckType}
+            sideSetup={activeMicroCheckSideSetup}
             onComplete={handleMicroCheckComplete}
             onCancel={() => goBack(goHome)}
             voiceId={prefs.settings.voiceId}
@@ -3880,43 +4361,109 @@ function HaleApp() {
             sourceType={movementProfileV2InitialFlow.sourceType}
             initialFlow={movementProfileV2InitialFlow}
             voiceId={prefs.settings.voiceId}
-            onComplete={handleMovementProfileV2RawComplete}
+            onComplete={(input) => handleMovementProfileV2RawComplete(input, 'standalone')}
+            onCancel={() => goBack(goHome)}
+          />
+        ) : flow === 'movement-profile-v2-unified-checkup' && movementProfileV2InitialFlow ? (
+          <MovementProfileV2UnifiedCheckUpScreen
+            startedAt={movementProfileV2InitialFlow.startedAt}
+            sourceType={movementProfileV2InitialFlow.sourceType}
+            initialFlow={movementProfileV2InitialFlow}
+            voiceId={prefs.settings.voiceId}
+            entryMode={
+              movementProfileV2EntryContext === 'internal'
+                ? 'internal_comparison'
+                : 'public_checkup'
+            }
+            onComplete={(input) => handleMovementProfileV2RawComplete(input, 'unified')}
             onCancel={() => goBack(goHome)}
           />
         ) : flow === 'movement-profile-v2-reference-details' && movementProfileV2Raw ? (
           <MovementProfileV2ReferenceDetailsScreen
             initialDraft={
-              movementProfileV2Raw.sourceType === 'baseline_retake'
+              movementProfileV2Raw.sourceType === 'official_retest' && movementProfileV2OfficialRetestContext
+                ? movementProfileV2ReferenceDetailsDraftFromSnapshot(
+                    movementProfileV2OfficialRetestContext.priorArtifacts.snapshot
+                  )
+                : movementProfileV2Raw.sourceType === 'baseline_retake'
                 ? latestMovementProfileV2ReferenceDetailsDraft(history)
                 : null
             }
+            entryMode={movementProfileV2EntryContext === 'internal' ? 'internal' : 'public'}
             onSubmit={handleMovementProfileV2ReferenceSubmit}
             onBack={() => goBack(goHome)}
           />
-        ) : (flow === 'movement-profile-v2-results' ||
-            flow === 'movement-profile-v2-domain-detail') &&
-          movementProfileV2Result ? (
-          <MovementProfileV2ResultsScreen
+        ) : flow === 'movement-profile-v2-unified-results' && movementProfileV2Result ? (
+          <MovementProfileV2UnifiedResultsScreen
             viewModel={movementProfileV2Result}
-            detailDomain={
-              flow === 'movement-profile-v2-domain-detail' ? movementProfileV2DetailDomain : null
+            planState={movementProfileV2PlanState}
+            retestComparison={movementProfileV2RetestComparison}
+            variant={
+              movementProfileV2EntryContext === 'public_onboarding'
+                ? 'onboarding'
+                : 'standard'
             }
             onOpenDomain={(domain) => {
               setMovementProfileV2DetailDomain(domain);
-              setFlow('movement-profile-v2-domain-detail');
-            }}
-            onBackToResults={() => {
-              setMovementProfileV2DetailDomain(null);
-              replaceFlow('movement-profile-v2-results');
+              setFlow('movement-profile-v2-unified-domain-detail');
             }}
             onViewPlan={
-              movementProfileV2PlanBlockId ? handleViewPlanFromResults : undefined
+              movementProfileV2PlanBlockId ? handleMovementProfileV2ViewPlan : undefined
+            }
+            onViewBlockReport={
+              movementProfileV2BlockReport
+                ? () => setFlow('movement-profile-v2-block-report')
+                : undefined
             }
             onDone={() => {
               setMovementProfileV2DetailDomain(null);
               goBack(goHome);
             }}
           />
+        ) : flow === 'movement-profile-v2-block-report' && movementProfileV2BlockReport ? (
+          <MovementProfileV2BlockReportScreen
+            report={movementProfileV2BlockReport}
+            onViewNextPlan={handleMovementProfileV2ViewPlan}
+            onDone={() => goBack(() => setFlow('movement-profile-v2-unified-results'))}
+          />
+        ) : (flow === 'movement-profile-v2-results' ||
+            flow === 'movement-profile-v2-domain-detail' ||
+            flow === 'movement-profile-v2-unified-domain-detail') &&
+          movementProfileV2Result ? (
+          <MovementProfileV2ResultsScreen
+            viewModel={movementProfileV2Result}
+            detailDomain={
+              flow === 'movement-profile-v2-domain-detail' ||
+              flow === 'movement-profile-v2-unified-domain-detail'
+                ? movementProfileV2DetailDomain
+                : null
+            }
+            onOpenDomain={(domain) => {
+              setMovementProfileV2DetailDomain(domain);
+              setFlow(
+                flow === 'movement-profile-v2-unified-domain-detail'
+                  ? 'movement-profile-v2-unified-domain-detail'
+                  : 'movement-profile-v2-domain-detail'
+              );
+            }}
+            onBackToResults={() => {
+              setMovementProfileV2DetailDomain(null);
+              replaceFlow(
+                flow === 'movement-profile-v2-unified-domain-detail'
+                  ? 'movement-profile-v2-unified-results'
+                  : 'movement-profile-v2-results'
+              );
+            }}
+            onViewPlan={
+              movementProfileV2PlanBlockId ? handleMovementProfileV2ViewPlan : undefined
+            }
+            onDone={() => {
+              setMovementProfileV2DetailDomain(null);
+              goBack(goHome);
+            }}
+          />
+        ) : flow === 'movement-profile-v2-retest-unavailable' ? (
+          <MovementProfileRetestUnavailableScreen onDone={goHome} />
         ) : flow === 'settings' ? (
           <SettingsScreen
             profile={prefs.profile}
@@ -3937,6 +4484,9 @@ function HaleApp() {
             onOpenCameraSetup={() => openCameraSetup('review')}
             onStartMovementProfileV2Internal={
               MOVEMENT_PROFILE_V2_INTERNAL_ENABLED ? beginMovementProfileV2Internal : undefined
+            }
+            onStartMovementProfileV2UnifiedInternal={
+              MOVEMENT_PROFILE_V2_INTERNAL_ENABLED ? beginMovementProfileV2UnifiedInternal : undefined
             }
             onOpenPoseBenchmarkForDiagnostics={
               poseLatencyDiagnosticsEnabled ? () => setFlow('pose-benchmark') : undefined
@@ -4110,6 +4660,38 @@ function AuthLoadingScreen() {
         <Text style={styles.splashBrand}>Hale</Text>
       </View>
       <Text style={styles.splashText}>Preparing your account...</Text>
+    </View>
+  );
+}
+
+function MovementProfileRetestUnavailableScreen({ onDone }: { onDone: () => void }) {
+  return (
+    <View style={styles.container}>
+      <StatusBar style="dark" />
+      <Screen contentStyle={styles.cameraGateScreen}>
+        <ScreenHeader
+          eyebrow="Movement Check-Up"
+          title="Your next Check-Up is coming soon"
+          subtitle="Your current plan and progress are saved. The next guided Check-Up for this plan will be available in a later beta update."
+        />
+        <CameraGateSection title="For now" meta="Saved">
+          <View style={styles.cameraGatePointList}>
+            <CameraGatePoint
+              index={1}
+              title="Keep training"
+              body="You can continue the 4-week plan that was prepared from your last Check-Up."
+            />
+            <CameraGatePoint
+              index={2}
+              title="No reset needed"
+              body="Hale will keep your plan history intact until the next guided Check-Up is available."
+            />
+          </View>
+        </CameraGateSection>
+        <View style={styles.cameraGateActions}>
+          <PrimaryButton title="Back to home" onPress={onDone} />
+        </View>
+      </Screen>
     </View>
   );
 }

@@ -30,7 +30,7 @@ export function SiteHeader() {
         href="#beta-access"
         onClick={() => trackEvent(analyticsEvents.heroPrimaryCtaClick, { cta_location: 'header' })}
       >
-        Get beta access
+        Join beta
       </a>
 
       <button
@@ -58,7 +58,7 @@ export function SiteHeader() {
             trackEvent(analyticsEvents.heroPrimaryCtaClick, { cta_location: 'mobile-menu' });
           }}
         >
-          Get beta access
+          Join beta
         </a>
       </div>
     </header>

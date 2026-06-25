@@ -2,6 +2,7 @@ import { movementDomainFromScoreDomain, type CheckupType, type CheckupStatus, ty
 import {
   LEGACY_MOVEMENT_AGE_PROTOCOL_POLICY_ID,
   MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
+  normalizeCheckUpMeasurementMetadata,
   normalizeCheckUpRecordProtocolPolicy,
   type CheckUp,
 } from '../../checkup';
@@ -278,7 +279,7 @@ export function mapLocalCheckupToRemotePayload(
       scoreSnapshot,
       ...movementProfileV2SnapshotFields,
       ...movementProfileV2AssessmentFields,
-      checkUp: sanitizeCheckup(input.checkUp),
+      checkUp: sanitizeCheckup(input.checkUp, exactCheckupType),
     }),
     created_locally_at: input.checkUp.startedAt,
     completed_at: completedAt,
@@ -411,14 +412,17 @@ function finiteNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
-function sanitizeCheckup(checkUp: CheckUp): BackendJson {
+function sanitizeCheckup(checkUp: CheckUp, checkupType?: CheckupType): BackendJson {
+  const normalized = normalizeCheckUpMeasurementMetadata(checkUp, { checkupType });
   return sanitizeForBackendJson({
-    startedAt: checkUp.startedAt,
-    protocolPolicy: checkUp.protocolPolicy ?? null,
-    bodyUnit: checkUp.bodyUnit,
-    items: checkUp.items.map((item) => ({
+    startedAt: normalized.startedAt,
+    protocolPolicy: normalized.protocolPolicy ?? null,
+    measurementProtocol: normalized.measurementProtocol ?? null,
+    bodyUnit: normalized.bodyUnit,
+    items: normalized.items.map((item) => ({
       movementId: item.movementId,
       status: item.status,
+      measurementContext: item.measurementContext ?? null,
       result: item.result,
     })),
   });

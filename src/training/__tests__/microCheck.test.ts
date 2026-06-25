@@ -6,6 +6,7 @@
  */
 
 import { computeTrends } from '../../history';
+import { normalizeMicroCheckMeasurementMetadata } from '../../checkup';
 import { PosePipeline } from '../../pose/pipeline';
 import { balanceSession } from '../../pose/testing/syntheticBalance';
 import { chairStandSession } from '../../pose/testing/syntheticChairStand';
@@ -56,6 +57,11 @@ describe('MicroCheckRunner', () => {
     expect(result!.reps).toBeGreaterThanOrEqual(DEFAULT_MICROCHECK_CONFIG.chairTargetReps);
     expect(Number.isFinite(result!.value)).toBe(true);
     expect(result!.value).toBeGreaterThan(0);
+    expect(result!.measurementContext).toMatchObject({
+      protocol: { protocolId: 'micro_chair_power_5_reps_v1', protocolVersion: 1 },
+      side: { role: 'not_applicable' },
+      comparability: { sideStatus: 'not_side_dependent' },
+    });
   });
 
   it('single-leg-balance: measures a hold in seconds', () => {
@@ -91,7 +97,9 @@ describe('micro-checks feed the trend line', () => {
     const points = microCheckTrendPoints(results);
     expect(points).toHaveLength(3);
     expect(points.find((p) => p.key === 'rise-velocity')!.value).toBeCloseTo(0.42, 5);
+    expect(points.find((p) => p.key === 'rise-velocity')!.measurementContext?.protocol.protocolId).toBe('micro_chair_power_5_reps_v1');
     expect(points.find((p) => p.key === 'single-leg-balance')!.value).toBe(18);
+    expect(points.find((p) => p.key === 'single-leg-balance')!.measurementContext?.comparability.overallStatus).toBe('raw_only');
     expect(points.find((p) => p.key === 'seated-reach-angle')!.value).toBe(126);
   });
 
@@ -115,6 +123,20 @@ describe('micro-checks feed the trend line', () => {
     const reach = trends.find((t) => t.key === 'seated-reach-angle')!;
     expect(reach.label).toBe('Seated reach');
     expect(reach.betterIsHigher).toBe(false);
-    expect(reach.delta).toBe(-8);
+    expect(reach.delta).toBeNull();
+    expect(reach.deltaSuppressedReason).toBe('insufficient_comparability');
+  });
+
+  it('allows same-side micro-check deltas when side metadata is explicit', () => {
+    const context = normalizeMicroCheckMeasurementMetadata(
+      { type: 'single-leg-balance', startedAt: '2026-06-10T08:00:00.000Z' },
+      { selectedSide: 'left', source: 'microcheck_official_anchor' }
+    );
+    const extra = microCheckTrendPoints([
+      { type: 'single-leg-balance', startedAt: '2026-06-10T08:00:00.000Z', value: 16, reps: 0, measured: true, measurementContext: context },
+      { type: 'single-leg-balance', startedAt: '2026-06-21T08:00:00.000Z', value: 20, reps: 0, measured: true, measurementContext: context },
+    ]);
+    const trends = computeTrends([], extra);
+    expect(trends.find((t) => t.key === 'single-leg-balance')!.delta).toBe(4);
   });
 });

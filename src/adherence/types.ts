@@ -320,17 +320,106 @@ export interface TrainingSessionCompletion {
   notes?: string;
 }
 
-export interface MovementBlockReport {
+export type MovementProfileV2ComparisonUnit = 'reps' | 'seconds' | 'degrees';
+
+export type MovementProfileV2RetestComparisonDomain =
+  | {
+      status: 'raw_comparable';
+      previousValue: number;
+      currentValue: number;
+      unit: MovementProfileV2ComparisonUnit;
+      metricLabel: string;
+      referenceComparable: boolean;
+      previousInterpretation?: string;
+      currentInterpretation?: string;
+      reasonCodes: readonly string[];
+    }
+  | {
+      status: 'shown_separately';
+      previousValue?: number;
+      currentValue?: number;
+      unit: MovementProfileV2ComparisonUnit;
+      metricLabel: string;
+      reasonCodes: readonly string[];
+      note: string;
+    }
+  | {
+      status: 'unavailable';
+      metricLabel: string;
+      reasonCodes: readonly string[];
+      note: string;
+    };
+
+export interface MovementProfileV2RetestComparison {
+  kind: 'movement_profile_v2_retest_comparison';
+  schemaVersion: 1;
+  status?: never;
+  startCheckUpId?: never;
+  endCheckUpId?: never;
+  startSnapshot?: never;
+  endSnapshot?: never;
+  comparisonPolicyVersion: number;
+  comparisonPolicyFingerprint: string;
+  comparisonId: string;
+  comparisonFingerprint: string;
+  prior: {
+    checkUpId: string;
+    snapshotId: string;
+    snapshotFingerprint: string;
+    assessmentId: string;
+    assessmentFingerprint: string;
+    completedAt: string;
+  };
+  current: {
+    checkUpId: string;
+    snapshotId: string;
+    snapshotFingerprint: string;
+    assessmentId: string;
+    assessmentFingerprint: string;
+    completedAt: string;
+  };
+  domains: {
+    strength_power: MovementProfileV2RetestComparisonDomain;
+    balance: MovementProfileV2RetestComparisonDomain;
+    mobility: MovementProfileV2RetestComparisonDomain;
+  };
+  overallStatus: 'comparable' | 'partially_comparable' | 'not_comparable';
+}
+
+export interface MovementProfileV2BlockReportScheduleSummary {
+  trainingWeeks: 4;
+  scheduleCredits: number;
+  firstCreditedDateKey?: string;
+  finalCreditedDateKey?: string;
+  blockStartDate: string;
+  retestEligibilityDateKey?: string;
+}
+
+interface MovementBlockReportBase {
   id: string;
   userId: string;
   blockId: string;
-  baselineAssessmentId?: string;
-  retestAssessmentId?: string;
   createdAt: string;
   summary: string;
   sessionsCompleted: number;
   totalPlannedSessions: number;
   microChecksCompleted: number;
+  domainChanges?: Partial<
+    Record<
+      MovementDomain,
+      {
+        previous?: number;
+        current?: number;
+        direction: 'recorded_lower' | 'similar' | 'recorded_higher' | 'unknown';
+      }
+    >
+  >;
+}
+
+export interface LegacyV1MovementBlockReport extends MovementBlockReportBase {
+  kind?: 'legacy_v1_block_report';
+  baselineAssessmentId?: string;
+  retestAssessmentId?: string;
   domainChanges?: Partial<
     Record<
       MovementDomain,
@@ -362,8 +451,49 @@ export interface MovementBlockReport {
       normVersion: number | null;
     };
   };
+  measurementComparability?: {
+    status: 'not_evaluated' | 'compatible' | 'suppressed';
+    suppressedDomains?: MovementDomain[];
+    reason?: 'side_or_protocol_metadata_insufficient';
+  };
   recommendedNextFocusDomain?: MovementDomain;
 }
+
+export interface MovementProfileV2BlockReport extends MovementBlockReportBase {
+  kind: 'movement_profile_v2_block_report';
+  schemaVersion: 1;
+  reportPolicyVersion: number;
+  reportPolicyFingerprint: string;
+  reportFingerprint: string;
+  priorBlock: {
+    blockId: string;
+    blockFingerprint?: string;
+    focus: MovementBlockFocus;
+  };
+  prior: MovementProfileV2RetestComparison['prior'];
+  current: MovementProfileV2RetestComparison['current'];
+  comparison: MovementProfileV2RetestComparison;
+  scheduleSummary: MovementProfileV2BlockReportScheduleSummary;
+  priorSuggestedFocus: MovementBlockFocus;
+  currentSuggestedFocus: MovementBlockFocus;
+  nextBlock: {
+    blockId: string;
+    blockFingerprint?: string;
+    focus: MovementBlockFocus;
+  };
+  displayCopy: {
+    headline: 'Your 4-week block is complete';
+    body: string;
+    nextPlanTitle: 'Your next 4-week plan is ready';
+    nextPlanBody: string;
+    nextPlanCta: 'View my next 4-week plan';
+  };
+  baselineAssessmentId?: string;
+  retestAssessmentId?: string;
+  recommendedNextFocusDomain?: MovementDomain;
+}
+
+export type MovementBlockReport = LegacyV1MovementBlockReport | MovementProfileV2BlockReport;
 
 export type AdherenceState =
   | 'no_block'

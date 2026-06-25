@@ -96,6 +96,7 @@ type SettingsScreenProps = {
   onOpenSafetyProfile: () => void;
   onOpenCameraSetup: () => void;
   onStartMovementProfileV2Internal?: () => void;
+  onStartMovementProfileV2UnifiedInternal?: () => void;
   onOpenPoseBenchmarkForDiagnostics?: () => void;
   onReplayOnboardingForDev?: () => void;
   onBack?: () => void;
@@ -121,6 +122,7 @@ function SettingsScreenContent({
   onOpenSafetyProfile,
   onOpenCameraSetup,
   onStartMovementProfileV2Internal,
+  onStartMovementProfileV2UnifiedInternal,
   onOpenPoseBenchmarkForDiagnostics,
   onReplayOnboardingForDev,
   onBack,
@@ -553,6 +555,15 @@ function SettingsScreenContent({
               subtitle="Open the internal check-up and frozen result review."
               icon="sliders"
               onPress={onStartMovementProfileV2Internal}
+              showDivider
+            />
+          ) : null}
+          {onStartMovementProfileV2UnifiedInternal ? (
+            <ProfileMenuRow
+              title="Movement Profile V2 unified shell"
+              subtitle="Run the V2 live coordinator inside the polished check-up shell."
+              icon="sliders"
+              onPress={onStartMovementProfileV2UnifiedInternal}
               showDivider
             />
           ) : null}

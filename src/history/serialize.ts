@@ -10,6 +10,7 @@
  */
 
 import type { CheckUp } from '../checkup/types';
+import { normalizeCheckUpMeasurementMetadata } from '../checkup/measurementMetadata';
 import {
   LEGACY_MOVEMENT_AGE_PROTOCOL_POLICY_ID,
   MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
@@ -65,7 +66,7 @@ function nanReplacer(_key: string, value: unknown): unknown {
 
 export function serializeCheckUp(checkUp: CheckUp, metadata: StoredCheckUpMetadata = {}): string {
   const checkupType = validStoredCheckUpType(metadata.checkupType) ?? 'legacy_unknown';
-  const rawCheckUp = checkUpWithoutEmbeddedSnapshots(checkUp);
+  const rawCheckUp = normalizeCheckUpMeasurementMetadata(checkUpWithoutEmbeddedSnapshots(checkUp), { checkupType });
   const parsedSnapshot = parseScoreSnapshotForCheckUp(metadata.scoreSnapshot, rawCheckUp);
   const movementProfileV2SnapshotCandidate =
     metadata.movementProfileV2Snapshot !== undefined
@@ -119,15 +120,17 @@ export function migrate(parsed: unknown): StoredCheckUp | null {
   if (!parsed || typeof parsed !== 'object') return null;
   const rec = parsed as Partial<StoredCheckUp>;
   if (rec.schemaVersion !== HISTORY_SCHEMA_VERSION) return null; // no older versions exist yet
-  const checkUp = checkUpWithoutEmbeddedSnapshots(rec.checkUp as CheckUp);
-  if (!checkUp || typeof checkUp !== 'object' || !Array.isArray(checkUp.items)) return null;
-  if (typeof checkUp.startedAt !== 'string') return null;
+  const checkupType = validStoredCheckUpType(rec.checkupType) ?? 'legacy_unknown';
+  const rawCheckUp = rec.checkUp as CheckUp;
+  const strippedCheckUp = checkUpWithoutEmbeddedSnapshots(rawCheckUp);
+  if (!strippedCheckUp || typeof strippedCheckUp !== 'object' || !Array.isArray(strippedCheckUp.items)) return null;
+  if (typeof strippedCheckUp.startedAt !== 'string') return null;
+  const checkUp = normalizeCheckUpMeasurementMetadata(strippedCheckUp, { checkupType });
   const parsedSnapshot = parseScoreSnapshotForCheckUp(rec.scoreSnapshot, checkUp);
   const explicitCompatibility = validScoreSnapshotCompatibility(rec.scoreSnapshotCompatibility);
-  const checkupType = validStoredCheckUpType(rec.checkupType) ?? 'legacy_unknown';
-  const nestedMovementProfileV2Snapshot = (rec.checkUp as { movementProfileV2Snapshot?: unknown } | undefined)
+  const nestedMovementProfileV2Snapshot = (rawCheckUp as { movementProfileV2Snapshot?: unknown } | undefined)
     ?.movementProfileV2Snapshot;
-  const nestedMovementProfileV2Assessment = (rec.checkUp as { movementProfileV2Assessment?: unknown } | undefined)
+  const nestedMovementProfileV2Assessment = (rawCheckUp as { movementProfileV2Assessment?: unknown } | undefined)
     ?.movementProfileV2Assessment;
   const movementProfileV2SnapshotCandidate =
     rec.movementProfileV2Snapshot !== undefined ? rec.movementProfileV2Snapshot : nestedMovementProfileV2Snapshot;

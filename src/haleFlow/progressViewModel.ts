@@ -8,7 +8,15 @@ import {
   type MovementAssessment,
   type TrainingSessionCompletion,
 } from '../adherence';
-import { CheckUp, findItem } from '../checkup/types';
+import {
+  checkUpItemsAllowChangeClaim,
+  descriptorForMovementMeasurement,
+  normalizeCheckUpMeasurementMetadata,
+  protocolPolicyIdForCheckUp,
+  type MeasurementContext,
+} from '../checkup';
+import { findItem } from '../checkup/types';
+import type { CheckUp } from '../checkup/types';
 import type { StoredCheckUp, StoredCheckUpType } from '../history';
 import { getExerciseLadder, ladderPresentationForLadder } from '../exercises';
 import {
@@ -154,10 +162,21 @@ export function getDomainProgressCards(
   const baseline = pair.compatible ? pair.previous.record.checkUp : (pair.latest?.record.checkUp ?? records[records.length - 1]?.record.checkUp);
   const latest = pair.compatible ? pair.latest.record.checkUp : null;
   if (!baseline) return [];
+  const baselineSnapshot = metricSnapshot(baseline);
+  const latestSnapshot = latest ? metricSnapshot(latest) : null;
+  const strengthNote = domainComparabilityNote('strength', baseline, latest, baselineSnapshot, latestSnapshot);
+  const balanceNote = domainComparabilityNote('balance', baseline, latest, baselineSnapshot, latestSnapshot);
+  const mobilityNote = domainComparabilityNote('mobility', baseline, latest, baselineSnapshot, latestSnapshot);
   return [
-    strengthCard(metricSnapshot(baseline), latest ? metricSnapshot(latest) : null),
-    balanceCard(metricSnapshot(baseline), latest ? metricSnapshot(latest) : null),
-    mobilityCard(metricSnapshot(baseline), latest ? metricSnapshot(latest) : null),
+    strengthNote
+      ? suppressedProgressCard('strength', baselineSnapshot, latestSnapshot, strengthNote)
+      : strengthCard(baselineSnapshot, latestSnapshot),
+    balanceNote
+      ? suppressedProgressCard('balance', baselineSnapshot, latestSnapshot, balanceNote)
+      : balanceCard(baselineSnapshot, latestSnapshot),
+    mobilityNote
+      ? suppressedProgressCard('mobility', baselineSnapshot, latestSnapshot, mobilityNote)
+      : mobilityCard(baselineSnapshot, latestSnapshot),
   ];
 }
 
@@ -408,6 +427,97 @@ function mobilityCard(baseline: MetricSnapshot, latest: MetricSnapshot | null): 
         : 'This mobility result was very close to your first check-up. Hale will keep watching for a clear pattern.',
     trend: higher ? 'higher' : lower ? 'lower' : 'similar',
   };
+}
+
+function domainComparabilityNote(
+  domain: Domain,
+  baseline: CheckUp,
+  latest: CheckUp | null,
+  baselineSnapshot: MetricSnapshot,
+  latestSnapshot: MetricSnapshot | null
+): string | null {
+  if (!latest || !latestSnapshot) return null;
+  const movementId = movementIdForDomainMetric(domain, baselineSnapshot, latestSnapshot);
+  if (!movementId) return null;
+  const previous = normalizeCheckUpMeasurementMetadata(baseline);
+  const current = normalizeCheckUpMeasurementMetadata(latest);
+  const previousItem = findItem(previous, movementId);
+  const latestItem = findItem(current, movementId);
+  const descriptor = descriptorForMovementMeasurement({
+    movementId,
+    policyId: protocolPolicyIdForCheckUp(current),
+    protocolVariant: latestItem?.measurementContext?.protocol.protocolVariant ?? null,
+  });
+  if (!descriptor) return 'This result is saved, but its protocol is not available for a direct change claim.';
+  if (checkUpItemsAllowChangeClaim(previousItem, latestItem, descriptor.comparisonGroup)) return null;
+  return comparabilityCopy(latestItem?.measurementContext ?? previousItem?.measurementContext);
+}
+
+function movementIdForDomainMetric(
+  domain: Domain,
+  baseline: MetricSnapshot,
+  latest: MetricSnapshot
+): string | null {
+  if (domain === 'strength' && finite(baseline.chairStandReps) && finite(latest.chairStandReps)) return CHAIR_STAND_ID;
+  if (domain === 'balance' && finite(baseline.balanceHoldSec) && finite(latest.balanceHoldSec)) return BALANCE_LADDER_ID;
+  if (domain === 'mobility') {
+    if (finite(baseline.shoulderFlexionDeg) && finite(latest.shoulderFlexionDeg)) return SHOULDER_FLEXION_ID;
+    if (finite(baseline.hingeReachBu) && finite(latest.hingeReachBu)) return HINGE_REACH_ID;
+  }
+  return null;
+}
+
+function comparabilityCopy(context: MeasurementContext | null | undefined): string {
+  if (context?.comparability.protocolStatus === 'different_protocol_raw_only') {
+    return 'This check used a different protocol, so Hale is starting a new comparison series.';
+  }
+  if (context?.comparability.sideStatus === 'opposite_side_reduced_comparability') {
+    return 'A different side was used this time, so compare these results with caution.';
+  }
+  if (context?.comparability.sideStatus === 'side_unknown_raw_only') {
+    return 'Side was not recorded for one of these checks, so Hale will not claim a direct change.';
+  }
+  return 'This result is saved, but its side or protocol metadata is not comparable enough for a direct change claim.';
+}
+
+function suppressedProgressCard(
+  domain: Domain,
+  baseline: MetricSnapshot,
+  latest: MetricSnapshot | null,
+  note: string
+): DomainProgressCard {
+  return {
+    domain,
+    title: DOMAIN_TITLE[domain],
+    metric:
+      domain === 'strength'
+        ? strengthMetric(baseline, latest)
+        : domain === 'balance'
+          ? balanceMetric(baseline, latest)
+          : mobilityMetric(
+              baseline.shoulderFlexionDeg,
+              latest?.shoulderFlexionDeg,
+              baseline.hingeReachBu,
+              latest?.hingeReachBu
+            ),
+    body: note,
+    trend: 'unknown',
+  };
+}
+
+function strengthMetric(baseline: MetricSnapshot, latest: MetricSnapshot | null): string {
+  const start = baseline.chairStandReps;
+  const current = latest?.chairStandReps;
+  if (!finite(start)) return 'Chair stands not measured';
+  return finite(current) ? `Chair stands: ${start} -> ${current} reps` : `Chair stands: ${start} reps`;
+}
+
+function balanceMetric(baseline: MetricSnapshot, latest: MetricSnapshot | null): string {
+  const start = baseline.balanceHoldSec;
+  const current = latest?.balanceHoldSec;
+  const label = baseline.balanceLabel ?? latest?.balanceLabel ?? 'Balance hold';
+  if (!finite(start)) return `${label} not measured`;
+  return finite(current) ? `${label}: ${Math.round(start)}s -> ${Math.round(current)}s` : `${label}: ${Math.round(start)}s`;
 }
 
 interface MetricSnapshot {

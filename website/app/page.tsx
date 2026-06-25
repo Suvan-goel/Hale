@@ -33,7 +33,7 @@ function StructuredData() {
     applicationCategory: 'HealthApplication',
     operatingSystem: 'iOS, Android',
     description:
-      'Hale checks strength, balance and mobility with a phone camera, then gives a simple home training plan.',
+      'Hale checks strength, balance and mobility with a phone camera, then gives a simple home plan.',
   };
 
   if (pricing.kind === 'configured') {

@@ -261,6 +261,11 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
     strokeJoin = Paint.Join.ROUND
     color = Color.BLACK
   }
+  private val constellationV2OverlayRenderer = ConstellationV2OverlayRenderer(
+    context = context,
+    nowMs = { nativeNowMs() },
+    requestDraw = { postInvalidateOnAnimation() },
+  )
   private var latestSkeletonLandmarks = DoubleArray(0)
   private var latestSkeletonSourceWidth = 1
   private var latestSkeletonSourceHeight = 1
@@ -274,6 +279,8 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
   private var minPresenceConfidence = 0.35f
   private var latencyDiagnosticsEnabled = false
   private var nativeSkeletonOverlayEnabled = false
+  private var nativeBenchmarkOverlayMode = "off"
+  private var nativeBenchmarkOverlayResetKey = 0
   private var androidPipelineMode = DEFAULT_PIPELINE_MODE
   private var androidRotationMode = DEFAULT_ROTATION_MODE
   private var androidAnalysisResolution = DEFAULT_ANALYSIS_RESOLUTION
@@ -368,12 +375,30 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
     invalidate()
   }
 
+  fun setNativeBenchmarkOverlayModeProp(value: String) {
+    val normalized = when (value) {
+      ConstellationV2Mode.V2_900.id -> ConstellationV2Mode.V2_900.id
+      ConstellationV2Mode.V2_600.id -> ConstellationV2Mode.V2_600.id
+      else -> "off"
+    }
+    if (nativeBenchmarkOverlayMode == normalized) return
+    nativeBenchmarkOverlayMode = normalized
+    constellationV2OverlayRenderer.setMode(constellationV2ModeFromProp(normalized))
+  }
+
+  fun setNativeBenchmarkOverlayResetKeyProp(value: Int) {
+    if (nativeBenchmarkOverlayResetKey == value) return
+    nativeBenchmarkOverlayResetKey = value
+    constellationV2OverlayRenderer.reset()
+  }
+
   fun setCanvasColorProp(value: String) {
     setBackgroundColor(parseColorOr(value, Color.parseColor("#F9F5EF")))
   }
 
   override fun onDraw(canvas: Canvas) {
     super.onDraw(canvas)
+    constellationV2OverlayRenderer.draw(canvas, width, height, cameraFacing != "back")
     if (!nativeSkeletonOverlayEnabled) return
     drawNativeSkeleton(canvas)
   }
@@ -775,6 +800,13 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
       nativePostprocessEndMs = nativePostprocessEndMs,
       resultFlattenMs = flattenEndMs - flattenStartMs,
     )
+    constellationV2OverlayRenderer.submitPose(
+      frameId = frameId,
+      sourceTimestampMs = timestampMs.toDouble(),
+      sourceWidth = width,
+      sourceHeight = height,
+      landmarks = flat,
+    )
     nativeEventScheduler.submit(
       NativePoseEvent(
         frameId = frameId,
@@ -890,7 +922,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
     val sourceAgeAtMediapipeSubmitMs = latency.mediapipeSubmitMs - latency.sourceTimestampMs
     val sourceAgeAtMediapipeCallbackMs = latency.mediapipeCallbackMs - latency.sourceTimestampMs
     val sourceAgeAtNativeEventEmitMs = latency.nativeEventEmitMs - latency.sourceTimestampMs
-    return mapOf(
+    val payload = mutableMapOf<String, Any?>(
       "frameId" to latency.frameId.toDouble(),
       "nativeClock" to "android.elapsedRealtimeNanos",
       "sourceTimestampMs" to latency.sourceTimestampMs,
@@ -949,6 +981,9 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
       "nativeEventRejectedCount" to latency.nativeEventRejectedCount.toDouble(),
       "nativeEventEmittedCount" to latency.nativeEventEmittedCount.toDouble(),
     )
+    val nativeRenderer = constellationV2OverlayRenderer.diagnosticsPayload()
+    if (nativeRenderer != null) payload["nativeRenderer"] = nativeRenderer
+    return payload
   }
 
   private fun clearPendingInference(closeImage: Boolean): PendingInference? {
@@ -1152,6 +1187,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
     running = false
     sessionGeneration += 1L
     nativeEventScheduler.cancel()
+    constellationV2OverlayRenderer.reset()
     inferenceInFlight.set(false)
     clearPendingInference(closeImage = true)
     cameraProvider?.unbindAll()

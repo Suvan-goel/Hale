@@ -24,6 +24,7 @@ import {
 } from './dynamicState';
 import { MicroCheckResult, MicroCheckType } from './microCheck';
 import { ProgressionState, initialProgressionState } from './progression';
+import { normalizeMicroCheckMeasurementMetadata } from '../checkup';
 import type {
   DailyReadiness,
   GeneratedExerciseDose,
@@ -59,6 +60,13 @@ import {
   type ProgressionPolicySelectionReason,
 } from '../exercises';
 import { isPlannedCollectionSelection } from './collectionSelection';
+import {
+  EMPTY_BOTH_SIDES_START_SIDE_SEED_STATE,
+  isBothSidesDosePlan,
+  normalizeBothSidesStartSideSeedState,
+  type BothSidesStartSideSeedState,
+} from './bothSidesRounds';
+import { isStepUpAlternationPlan } from './stepUpAlternation';
 
 export const TRAINING_SCHEMA_VERSION = 4;
 
@@ -80,6 +88,7 @@ export interface TrainingState {
   generatedSessionSummaries: PersistedGeneratedSessionSummary[];
   lastPostSessionFeedback: PersistedPostSessionFeedback | null;
   planPreferences: TrainingPlanPreferences;
+  bothSidesStartSideSeed: BothSidesStartSideSeedState;
 }
 
 export type TrainingIntensityPreference = 'gentle' | 'standard' | 'more_challenge';
@@ -103,6 +112,7 @@ export function defaultTrainingState(): TrainingState {
     generatedSessionSummaries: [],
     lastPostSessionFeedback: null,
     planPreferences: defaultTrainingPlanPreferences(),
+    bothSidesStartSideSeed: EMPTY_BOTH_SIDES_START_SIDE_SEED_STATE,
   };
 }
 
@@ -155,6 +165,7 @@ export function deserializeTrainingState(json: string): TrainingState | null {
     generatedSessionSummaries: validGeneratedSessionSummaries(p.generatedSessionSummaries),
     lastPostSessionFeedback: validPostSessionFeedback(p.lastPostSessionFeedback),
     planPreferences: validTrainingPlanPreferences(p.planPreferences),
+    bothSidesStartSideSeed: normalizeBothSidesStartSideSeedState(p.bothSidesStartSideSeed),
   };
 }
 
@@ -427,6 +438,18 @@ function validGeneratedExerciseSummaries(v: unknown): PersistedGeneratedExercise
         doseBeforeAdjustment: validGeneratedExerciseDose(e.doseBeforeAdjustment),
         adjustmentReasons: validReasonCodes(e.adjustmentReasons),
         collectionSelection: isPlannedCollectionSelection(e.collectionSelection) ? e.collectionSelection : undefined,
+        bothSidesDosePlan: isBothSidesDosePlan(e.bothSidesDosePlan) ? e.bothSidesDosePlan : undefined,
+        bothSidesInitialStartSide:
+          e.bothSidesInitialStartSide === 'left' || e.bothSidesInitialStartSide === 'right'
+            ? e.bothSidesInitialStartSide
+            : undefined,
+        stepUpAlternationPlan: isStepUpAlternationPlan(e.stepUpAlternationPlan)
+          ? e.stepUpAlternationPlan
+          : undefined,
+        stepUpInitialLeadSide:
+          e.stepUpInitialLeadSide === 'left' || e.stepUpInitialLeadSide === 'right'
+            ? e.stepUpInitialLeadSide
+            : undefined,
       };
     })
     .filter((item): item is PersistedGeneratedExerciseSummary => !!item);
@@ -724,7 +747,13 @@ function isFocusExclusionReason(v: unknown): boolean {
 const MICRO_TYPES: MicroCheckType[] = ['chair-power', 'single-leg-balance', 'mobility-reach'];
 
 export function serializeMicroCheck(result: MicroCheckResult): string {
-  const env: Envelope<MicroCheckResult> = { schemaVersion: TRAINING_SCHEMA_VERSION, payload: result };
+  const normalized = {
+    ...result,
+    measurementContext: normalizeMicroCheckMeasurementMetadata(result, {
+      measurementContext: result.measurementContext,
+    }),
+  };
+  const env: Envelope<MicroCheckResult> = { schemaVersion: TRAINING_SCHEMA_VERSION, payload: normalized };
   return JSON.stringify(env, nanReplacer);
 }
 
@@ -749,11 +778,17 @@ export function deserializeMicroCheck(json: string): MicroCheckResult | null {
   if (!p || typeof p !== 'object') return null;
   const r = p as Partial<MicroCheckResult>;
   if (!r.type || !MICRO_TYPES.includes(r.type) || typeof r.startedAt !== 'string') return null;
-  return {
+  const base = {
     type: r.type,
     startedAt: r.startedAt,
-    value: typeof r.value === 'number' ? r.value : NaN, // null → NaN
+    value: typeof r.value === 'number' ? r.value : NaN, // null -> NaN
     reps: typeof r.reps === 'number' ? r.reps : 0,
     measured: !!r.measured,
+  };
+  return {
+    ...base,
+    measurementContext: normalizeMicroCheckMeasurementMetadata(base, {
+      measurementContext: r.measurementContext,
+    }),
   };
 }

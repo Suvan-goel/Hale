@@ -114,9 +114,10 @@ describe('progressViewModel', () => {
     });
     expect(cards.find((card) => card.domain === 'balance')).toMatchObject({
       metric: 'Tandem hold: 18s -> 24s',
-      trend: 'higher',
+      trend: 'unknown',
     });
-    expect(cards.find((card) => card.domain === 'mobility')?.body).toContain('mobility number was higher');
+    expect(cards.find((card) => card.domain === 'balance')?.body).toContain('Side was not recorded');
+    expect(cards.find((card) => card.domain === 'mobility')?.body).toContain('Side was not recorded');
   });
 
   it('does not show progress deltas across incompatible scoring snapshots', () => {

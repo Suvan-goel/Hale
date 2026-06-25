@@ -94,6 +94,22 @@ describe('check-up serialization', () => {
     const chair = stored!.checkUp.items[0].result as unknown as { reps: number; sessionMeanVel: number | null };
     expect(chair.reps).toBe(14);
     expect(chair.sessionMeanVel).toBeNull(); // NaN persisted as null
+    expect(stored!.checkUp.measurementProtocol).toMatchObject({
+      protocolId: 'legacy_movement_age_battery_v1',
+      protocolVersion: 1,
+    });
+    expect(stored!.checkUp.items.find((item) => item.movementId === CHAIR_STAND_ID)?.measurementContext)
+      .toMatchObject({
+        protocol: { protocolId: 'legacy_chair_stand_30s', protocolVersion: 1 },
+        side: { role: 'not_applicable', selectedSide: null },
+        comparability: { sideStatus: 'not_side_dependent' },
+      });
+    expect(stored!.checkUp.items.find((item) => item.movementId === BALANCE_LADDER_ID)?.measurementContext)
+      .toMatchObject({
+        protocol: { protocolId: 'legacy_balance_ladder_v1', protocolVersion: 1 },
+        side: { role: 'standing_leg', selectedSide: null, source: 'legacy_unknown' },
+        comparability: { sideStatus: 'side_unknown_raw_only', overallStatus: 'raw_only' },
+      });
   });
 
   it('stores exact check-up type metadata for new records', () => {
@@ -149,6 +165,16 @@ describe('check-up serialization', () => {
     expect(stored?.movementProfileV2Snapshot?.snapshotFingerprint).toBe(snapshot.snapshotFingerprint);
     expect(stored?.movementProfileV2SnapshotCompatibility).toBe('current');
     expect(stored?.checkUp.movementProfileV2Snapshot).toBeUndefined();
+    expect(stored?.checkUp.measurementProtocol).toMatchObject({
+      protocolId: 'movement_profile_v2_battery',
+      protocolVersion: 1,
+    });
+    expect(stored?.checkUp.items.find((item) => item.movementId === ONE_LEG_BALANCE_V2_ID)?.measurementContext)
+      .toMatchObject({
+        protocol: { protocolId: 'mpv2_single_leg_balance_45s_v1', protocolVersion: 1 },
+        side: { role: 'standing_leg', selectedSide: 'left', observedSide: 'left' },
+        comparability: { overallStatus: 'establishes_new_baseline' },
+      });
   });
 
   it('round-trips a valid Movement Profile V2 assessment with its matching snapshot', () => {
@@ -333,6 +359,8 @@ describe('trends', () => {
     const trends = computeTrends(round);
     // singleLeg present in all three; shoulder/hinge never measured → absent.
     expect(trends.find((t) => t.key === 'single-leg-balance')!.points).toHaveLength(3);
+    expect(trends.find((t) => t.key === 'single-leg-balance')!.delta).toBeNull();
+    expect(trends.find((t) => t.key === 'single-leg-balance')!.deltaSuppressedReason).toBe('insufficient_comparability');
     expect(trends.find((t) => t.key === 'shoulder-flexion')).toBeUndefined();
   });
 

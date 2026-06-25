@@ -6,12 +6,14 @@ import {
   normalizeCheckUpRecordProtocolPolicy,
 } from '../../checkup/protocolPolicy';
 import type { MovementProfileV2EvidenceStatus } from '../../checkup/protocolEvidence';
+import type { BodySide } from '../../checkup/protocolSetup';
 import type { CheckUp, CheckUpItem } from '../../checkup/types';
 import {
   ACTIVE_SHOULDER_REACH_V2_ID,
   type ActiveShoulderReachV2Result,
 } from '../../movements/activeShoulderReachV2';
 import { CHAIR_RISE_V2_ID, type ChairRiseV2Result } from '../../movements/chairRiseV2';
+import { BALANCE_EYES_OPEN_V2_ID, type BalanceEyesOpenV2Result } from '../../movements/balanceEyesOpenV2';
 import { ONE_LEG_BALANCE_V2_ID, type OneLegBalanceV2Result } from '../../movements/oneLegBalanceV2';
 import { balanceTaskBand, interpretBalanceBenchmark } from './balance';
 import { interpretChairPercentile } from './chair';
@@ -217,16 +219,16 @@ function interpretBalance({
   profile,
   integrityOk,
 }: {
-  result: OneLegBalanceV2Result | null;
+  result: OneLegBalanceV2Result | BalanceEyesOpenV2Result | null;
   source: ReferenceSourceDefinition | null;
   profile: ReturnType<typeof normalizeMovementProfileV2ReferenceProfile>;
   integrityOk: boolean;
 }): BalanceInterpretation & { diagnostics: ReferenceEngineDiagnostic[] } {
   const raw = balanceRawMetric(result);
-  const taskBand = raw.metric ? balanceTaskBand(raw.metric.value) : null;
+  const taskBand = raw.metric?.metricId === 'one_leg_balance_best' ? balanceTaskBand(raw.metric.value) : null;
   const sourceMeta = source ? sourceMetadata(source) : { ...MISSING_SOURCE, sourceId: 'springer_2007_unipedal_eyes_open' as const };
   const interpreted =
-    integrityOk && source
+    integrityOk && source && isOneLegBalanceV2Result(result)
       ? interpretBalanceBenchmark({
           result,
           rawSeconds: raw.metric?.value ?? null,
@@ -238,12 +240,18 @@ function interpretBalance({
           claimEligibility: 'raw_only_reference_unavailable' as const,
           eligibilityReasons: ['raw_only_reference_unavailable'] as const,
           sourceBenchmark: null,
-          diagnostics: [{ code: 'balance_reference_integrity_invalid', severity: 'error' as const, domain: 'balance' as const }],
+          diagnostics: [{
+            code: result?.movementId === BALANCE_EYES_OPEN_V2_ID
+              ? 'balance_eyes_open_v2_reference_mapping_pending'
+              : 'balance_reference_integrity_invalid',
+            severity: result?.movementId === BALANCE_EYES_OPEN_V2_ID ? 'info' as const : 'error' as const,
+            domain: 'balance' as const,
+          }],
           longitudinalComparableToPrior: result?.setup?.changedFromPrior === true ? false : true,
-          selectedStandingLeg: result?.standingLeg ?? null,
+          selectedStandingLeg: selectedStandingLegForBalanceResult(result),
         };
   return {
-    movementId: ONE_LEG_BALANCE_V2_ID,
+    movementId: result?.movementId === BALANCE_EYES_OPEN_V2_ID ? BALANCE_EYES_OPEN_V2_ID : ONE_LEG_BALANCE_V2_ID,
     resultKind: interpreted.sourceBenchmark ? 'published_age_group_benchmark' : taskBand ? 'hale_task_band' : 'raw_only',
     rawMetric: raw.metric,
     taskBand,
@@ -252,7 +260,7 @@ function interpretBalance({
     eligibilityReasons: interpreted.eligibilityReasons,
     source: sourceMeta,
     sourceBenchmark: interpreted.sourceBenchmark,
-    reachedCeiling: raw.metric?.value === 45,
+    reachedCeiling: raw.metric?.metricId === 'one_leg_balance_best' ? raw.metric.value === 45 : false,
     selectedStandingLeg: interpreted.selectedStandingLeg,
     longitudinalComparableToPrior: interpreted.longitudinalComparableToPrior,
     rawInvalidReasons: raw.invalidReasons,
@@ -318,11 +326,32 @@ function chairRawMetric(result: ChairRiseV2Result | null): {
   return { metric: { metricId: 'chair_rises_30s', value: result.reps, unit: 'repetitions' }, invalidReasons };
 }
 
-function balanceRawMetric(result: OneLegBalanceV2Result | null): {
-  metric: Extract<RawMetric, { metricId: 'one_leg_balance_best' }> | null;
+function balanceRawMetric(result: OneLegBalanceV2Result | BalanceEyesOpenV2Result | null): {
+  metric: Extract<RawMetric, { metricId: 'one_leg_balance_best' | 'balance_eyes_open_total' }> | null;
   invalidReasons: string[];
 } {
   if (!result) return { metric: null, invalidReasons: ['missing_result'] };
+  if (isBalanceEyesOpenV2Result(result)) {
+    const invalidReasons: string[] = [];
+    if (!Number.isFinite(result.totalMaintainedMs) || result.totalMaintainedMs < 0) {
+      invalidReasons.push('balance_eyes_open_total_invalid');
+    }
+    if (!Number.isFinite(result.totalCapMs) || result.totalCapMs <= 0) {
+      invalidReasons.push('balance_eyes_open_cap_invalid');
+    }
+    if (result.evidenceStatus === 'invalid_measurement') invalidReasons.push('invalid_measurement');
+    if (invalidReasons.length > 0) return { metric: null, invalidReasons };
+    return {
+      metric: {
+        metricId: 'balance_eyes_open_total',
+        value: result.totalMaintainedMs / 1000,
+        unit: 'seconds',
+        completedStageCount: result.completedStageCount,
+        totalCapSeconds: result.totalCapMs / 1000,
+      },
+      invalidReasons,
+    };
+  }
   const invalidReasons: string[] = [];
   if (!Number.isFinite(result.bestHoldSec) || result.bestHoldSec < 0 || result.bestHoldSec > 45) {
     invalidReasons.push('balance_best_hold_invalid');
@@ -366,7 +395,9 @@ function shoulderRawMetric(result: ActiveShoulderReachV2Result | null): {
 function extractV2Results(checkUp: CheckUp): ExtractedV2Results {
   return {
     chair: extractMeasuredResult<ChairRiseV2Result>(checkUp, CHAIR_RISE_V2_ID),
-    balance: extractMeasuredResult<OneLegBalanceV2Result>(checkUp, ONE_LEG_BALANCE_V2_ID),
+    balance:
+      extractMeasuredResult<BalanceEyesOpenV2Result>(checkUp, BALANCE_EYES_OPEN_V2_ID) ??
+      extractMeasuredResult<OneLegBalanceV2Result>(checkUp, ONE_LEG_BALANCE_V2_ID),
     shoulder: extractMeasuredResult<ActiveShoulderReachV2Result>(checkUp, ACTIVE_SHOULDER_REACH_V2_ID),
   };
 }
@@ -413,6 +444,26 @@ function unsupportedBalance(source: ReferenceMetadata): BalanceInterpretation {
     longitudinalComparableToPrior: true,
     rawInvalidReasons: ['unsupported_checkup_protocol'],
   };
+}
+
+function isOneLegBalanceV2Result(
+  result: OneLegBalanceV2Result | BalanceEyesOpenV2Result | null
+): result is OneLegBalanceV2Result {
+  return result?.movementId === ONE_LEG_BALANCE_V2_ID;
+}
+
+function isBalanceEyesOpenV2Result(
+  result: OneLegBalanceV2Result | BalanceEyesOpenV2Result | null
+): result is BalanceEyesOpenV2Result {
+  return result?.movementId === BALANCE_EYES_OPEN_V2_ID;
+}
+
+function selectedStandingLegForBalanceResult(
+  result: OneLegBalanceV2Result | BalanceEyesOpenV2Result | null
+): BodySide | null {
+  if (isBalanceEyesOpenV2Result(result)) return result.selectedStandingLeg;
+  if (isOneLegBalanceV2Result(result)) return result.standingLeg;
+  return null;
 }
 
 function unsupportedShoulder(source: ReferenceMetadata): ShoulderInterpretation {

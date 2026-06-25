@@ -19,6 +19,11 @@ export type AndroidPoseAnalysisResolution = '640x480' | '512x384' | '480x360';
 
 export type PoseLatencyNativeClock = 'android.elapsedRealtimeNanos' | 'ios.CACurrentMediaTime';
 
+export type NativeBenchmarkOverlayMode =
+  | 'off'
+  | 'constellation-v2-900'
+  | 'constellation-v2-600';
+
 export type AndroidSensorTimestampSourceName =
   | 'REALTIME'
   | 'UNKNOWN'
@@ -82,6 +87,43 @@ export type PoseLatencyNativeDiagnostics = {
   nativeEventCoalescedCount?: number;
   nativeEventRejectedCount?: number;
   nativeEventEmittedCount?: number;
+  nativeRenderer?: PoseLatencyNativeRendererDiagnostics;
+};
+
+export type PoseLatencyMetricSnapshot = {
+  count: number;
+  p50: number | null;
+  p90: number | null;
+  p95: number | null;
+  p99: number | null;
+  max: number | null;
+};
+
+export type PoseLatencyNativeRendererDiagnostics = {
+  backend: string;
+  mode: NativeBenchmarkOverlayMode | string;
+  requestedPointCount: number;
+  actualPointCount: number;
+  topologyBuildCount: number;
+  topologyBuildMs: number;
+  calibrationState: 'neutral' | 'collecting' | 'locked' | string;
+  virtualRegionCount: number;
+  drawBatchCount: number;
+  pointBufferBytes: number;
+  transformMs: PoseLatencyMetricSnapshot;
+  drawMs: PoseLatencyMetricSnapshot;
+  sourceAgeAtDrawStartMs: PoseLatencyMetricSnapshot;
+  sourceAgeAtDrawEndMs: PoseLatencyMetricSnapshot;
+  framesRequested: number;
+  framesDrawn: number;
+  framesCoalesced: number;
+  framesRejected: number;
+  latestFrameIdDrawn: number | null;
+  publishedHz: number;
+  droppedInvalidPointCount: number;
+  nonFiniteGeometryCount: number;
+  lastVisiblePointCount: number;
+  emeraldPointCount: number;
 };
 
 /**
@@ -130,6 +172,8 @@ export type PoseDetectionViewProps = {
   androidAnalysisResolution?: AndroidPoseAnalysisResolution;
   nativeSkeletonOverlayEnabled?: boolean;
   nativeSkeletonColor?: string;
+  nativeBenchmarkOverlayMode?: NativeBenchmarkOverlayMode;
+  nativeBenchmarkOverlayResetKey?: number;
   canvasColor?: string;
   onLandmarks?: (event: { nativeEvent: LandmarksEventPayload }) => void;
   onCameraReady?: (event: { nativeEvent: object }) => void;

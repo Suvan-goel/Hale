@@ -31,10 +31,12 @@ const SEX_OPTIONS: readonly { label: string; value: ReferenceSex }[] = [
 
 export function MovementProfileV2ReferenceDetailsScreen({
   initialDraft,
+  entryMode = 'public',
   onSubmit,
   onBack,
 }: {
   initialDraft?: MovementProfileV2ReferenceDetailsDraft | null;
+  entryMode?: 'internal' | 'public';
   onSubmit: (profile: MovementProfileV2ReferenceProfile) => void;
   onBack: () => void;
 }) {
@@ -83,7 +85,12 @@ export function MovementProfileV2ReferenceDetailsScreen({
 
   return (
     <View style={styles.root}>
-      <BackArrowButton accessibilityLabel="Back to internal Movement Profile" onPress={onBack} />
+      <BackArrowButton
+        accessibilityLabel={
+          entryMode === 'internal' ? 'Back to Movement Profile' : 'Back to Movement Check-Up'
+        }
+        onPress={onBack}
+      />
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <HeaderLogo />

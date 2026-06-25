@@ -1,0 +1,376 @@
+import { listExercises, resolveExerciseLevel } from '../../../exercises';
+import {
+  EMPTY_TRAINING_VOICE_SESSION_MEMORY_V21,
+  TRAINING_VOICE_V2_1_AUDIO_READY,
+  TRAINING_VOICE_V2_1_BEHAVIOR_READY,
+  TRAINING_VOICE_V2_1_FEATURE_FLAG,
+  TrainingVoiceRuntimeV21,
+  allTrainingVoiceLogicalCuesV21,
+  getTrainingVoiceContractV21,
+  listTrainingVoiceAssetRequirementsV21,
+  listTrainingVoiceContractsV21,
+  planTrainingVoiceSequenceV21,
+  rememberTrainingVoiceSafetyFamilyV21,
+  resolveTrainingVoiceRuntimeReadinessV21,
+  resolveTrainingVoiceSafetyV21,
+  resolveTrainingVoiceTargetV21,
+  selectTrainingVoiceRuntimeModeV21,
+  validateTrainingVoiceContractRegistryV21,
+  type TrainingVoiceLateralityV21,
+} from '..';
+import { deriveStepUpAlternationPlanForExerciseId } from '../../stepUpAlternation';
+import type { VoiceCancelReason, VoicePlaybackResult, TrackedVoiceRequest } from '../../../audio/voicePlayer';
+import type { VoiceCueKey } from '../../../audio/cues';
+
+const BOTH_SIDES_IDS = [
+  'balance-single-leg-hold',
+  'balance-tandem-hold',
+  'chair-supported-split-squat',
+  'seated-hamstring-reach',
+  'supported-hip-flexor-stretch',
+  'wall-calf-stretch',
+] as const;
+
+describe('Training Voice V2.1 contract registry', () => {
+  it('maps every live exact exercise once and only once', () => {
+    const validation = validateTrainingVoiceContractRegistryV21();
+    expect(validation).toMatchObject({
+      liveExerciseCount: 37,
+      contractCount: 37,
+      expectedCount: 37,
+      missingContractIds: [],
+      staleExtraContractIds: [],
+      duplicateContractIds: [],
+      duplicateLogicalCueKeys: [],
+      bilateralSidePolicyErrorIds: [],
+      activeSetCountCueCount: 0,
+      semanticMismatchCount: 0,
+      valid: true,
+    });
+    expect(listTrainingVoiceContractsV21().map((contract) => contract.exerciseId).sort()).toEqual(
+      listExercises().map((exercise) => exercise.id).sort()
+    );
+  });
+
+  it('reconciles release status, set kind, equipment, and source evidence to live source', () => {
+    for (const exercise of listExercises()) {
+      const contract = getTrainingVoiceContractV21(exercise.id);
+      const level = resolveExerciseLevel(exercise.id).level;
+      expect(contract.releaseStatus).toBe(level.releaseStatus);
+      expect(contract.liveKind).toBe(exercise.kind);
+      expect(contract.setType).toBe(exercise.kind);
+      expect(contract.currentSetCount).toBe(exercise.prescription.sets);
+      expect(contract.equipment.slice().sort()).toEqual(exercise.equipment.slice().sort());
+      expect(contract.sourceFiles).toEqual(expect.arrayContaining(['src/exercises/ladders.ts']));
+      expect(contract.firstUseCue.exactScript).toBeTruthy();
+      expect(contract.laterSetCue.exactScript).toBeTruthy();
+      expect(contract.targetCue.exactScript).toBeTruthy();
+    }
+  });
+
+  it('keeps historically broad legacy family cues out of exact first-use mappings', () => {
+    expect(getTrainingVoiceContractV21('chair-supported-split-squat').firstUseCue.exactScript).toMatch(/split squat/i);
+    expect(getTrainingVoiceContractV21('toe-raise-supported').firstUseCue.exactScript).toMatch(/toe raise/i);
+    expect(getTrainingVoiceContractV21('glute-bridge-hold').firstUseCue.exactScript).toMatch(/hold/i);
+    expect(getTrainingVoiceContractV21('glute-bridge-reps').firstUseCue.exactScript).toMatch(/lower with control/i);
+    expect(getTrainingVoiceContractV21('hip-hinge-wall').firstUseCue.exactScript).toMatch(/Wall-tap/i);
+    expect(getTrainingVoiceContractV21('hip-hinge-free').firstUseCue.exactScript).toMatch(/^Hip hinge/i);
+    expect(getTrainingVoiceContractV21('push-up-incline').firstUseCue.exactScript).toMatch(/counter or sturdy chair/i);
+    expect(getTrainingVoiceContractV21('overhead-press-band').firstUseCue.exactScript).toMatch(/Band overhead press/i);
+    expect(getTrainingVoiceContractV21('loaded-march').firstUseCue.exactScript).toMatch(/^March in place/i);
+    expect(getTrainingVoiceContractV21('loaded-march').notes).toMatch(/unloaded supported march/i);
+  });
+
+  it('does not use prohibited active script language', () => {
+    const prohibited = /\b(V1|logged|framed|reset|tracking pipeline|official side schedule|approved side|approved leg|just for the camera|workout|failed|frail|fall risk|medical-grade)\b/i;
+    for (const cue of allTrainingVoiceLogicalCuesV21()) {
+      expect(cue.exactScript).not.toMatch(prohibited);
+    }
+  });
+});
+
+describe('Training Voice V2.1 laterality', () => {
+  it('blocks both-sides round items and carries explicit variants', () => {
+    for (const exerciseId of BOTH_SIDES_IDS) {
+      const contract = getTrainingVoiceContractV21(exerciseId);
+      expect(contract.laterality).toBe('both_sides_round_required');
+      expect(contract.sidePlan.required).toBe(true);
+      expect(contract.sidePlan.variants).toHaveLength(2);
+      expect(contract.sidePlan.switchCue?.key).toMatch(/^switch-/);
+      expect(contract.implementationRequirements).not.toContain('IR-VOICE-ROUND-STATE');
+      expect(contract.implementationRequirements).not.toContain('IR-VOICE-DOSE-CONVERSION');
+      expect(resolveTrainingVoiceRuntimeReadinessV21({ exerciseId }).selectable).toBe(false);
+    }
+  });
+
+  it('guards bilateral categories from side scheduling', () => {
+    const noSideLaterality: TrainingVoiceLateralityV21[] = [
+      'bilateral_simultaneous',
+      'alternating_within_set',
+      'bilateral_sequential_within_set',
+      'both_sides_not_scored_separately',
+    ];
+    for (const contract of listTrainingVoiceContractsV21()) {
+      if (!noSideLaterality.includes(contract.laterality)) continue;
+      expect(contract.sidePlan.required).toBe(false);
+      expect(contract.sidePlan.switchCue).toBeNull();
+      expect(contract.implementationRequirements).not.toContain('IR-VOICE-ROUND-STATE');
+    }
+  });
+
+  it('represents mini-band and step-up founder decisions without changing live dose', () => {
+    const miniBand = getTrainingVoiceContractV21('mini-band-lateral-walk');
+    expect(miniBand.firstUseCue.exactScript).toMatch(/Band above your knees/);
+    expect(miniBand.sidePlan.schedule).toBe('both_directions_within_timed_set');
+    expect(miniBand.implementationRequirements).not.toContain('IR-VOICE-ROUND-STATE');
+
+    const stepUp = getTrainingVoiceContractV21('step-up');
+    expect(stepUp.targetPlan.spokenText).toBe('Do twelve total reps.');
+    expect(stepUp.laterality).toBe('alternating_lead_leg_each_rep');
+    expect(stepUp.sidePlan.required).toBe(true);
+    expect(stepUp.sidePlan.variants.map((variant) => variant.variantId)).toEqual(['left', 'right']);
+    expect(stepUp.sidePlan.switchCue).toBeNull();
+    expect(stepUp.livePrescription.repsPerSet).toBe(12);
+    expect(stepUp.implementationRequirements).not.toContain('IR-VOICE-STEP-ALTERNATION');
+    expect(stepUp.implementationRequirements).toContain('IR-VOICE-SAFETY-SUBSUMPTION');
+    expect(resolveTrainingVoiceRuntimeReadinessV21({ exerciseId: 'step-up' }).selectable).toBe(false);
+  });
+});
+
+describe('Training Voice V2.1 target grammar', () => {
+  it('resolves every default target from the live prescription', () => {
+    for (const contract of listTrainingVoiceContractsV21()) {
+      const target = resolveTrainingVoiceTargetV21({ contract });
+      expect(target.supported).toBe(true);
+      expect(target.visibleText).toBe(target.spokenText);
+      expect(target.spokenText).not.toMatch(/sets today|set one of/i);
+    }
+  });
+
+  it('resolves generated-session target scaling without rounding or nearby substitution', () => {
+    const squat = getTrainingVoiceContractV21('squat-free');
+    expect(resolveTrainingVoiceTargetV21({ contract: squat, prescribedTarget: { repsPerSet: 7 } })).toMatchObject({
+      supported: true,
+      spokenText: 'Aim for seven reps.',
+      value: 7,
+    });
+
+    const balance = getTrainingVoiceContractV21('balance-feet-together-hold');
+    expect(resolveTrainingVoiceTargetV21({ contract: balance, prescribedTarget: { secondsPerSet: 17 } })).toMatchObject({
+      supported: true,
+      spokenText: 'Hold for seventeen seconds.',
+      value: 17,
+    });
+  });
+
+  it('fails closed for unsupported or non-integer targets', () => {
+    const squat = getTrainingVoiceContractV21('squat-free');
+    expect(resolveTrainingVoiceTargetV21({ contract: squat, prescribedTarget: { repsPerSet: 7.5 } })).toMatchObject({
+      supported: false,
+      reasonCodes: ['non_integer_target'],
+    });
+    const neck = getTrainingVoiceContractV21('neck-rotation');
+    expect(resolveTrainingVoiceTargetV21({ contract: neck, prescribedTarget: { secondsPerSet: 13 } })).toMatchObject({
+      supported: false,
+      reasonCodes: ['unsupported_seconds'],
+    });
+  });
+});
+
+describe('Training Voice V2.1 safety planner', () => {
+  it('uses most-specific wins and instruction absorption', () => {
+    expect(resolveTrainingVoiceSafetyV21({ contract: getTrainingVoiceContractV21('standing-band-row') })).toMatchObject({
+      dueFamily: 'door_anchor_band',
+      absorbedIntoInstruction: true,
+      logicalCueKey: null,
+    });
+    expect(resolveTrainingVoiceSafetyV21({ contract: getTrainingVoiceContractV21('mini-band-lateral-walk') })).toMatchObject({
+      dueFamily: 'mini_band_above_knees',
+      absorbedIntoInstruction: true,
+      logicalCueKey: null,
+    });
+    expect(resolveTrainingVoiceSafetyV21({ contract: getTrainingVoiceContractV21('band-pull-apart') })).toMatchObject({
+      dueFamily: 'long_band_handheld_or_foot_anchored',
+      absorbedIntoInstruction: false,
+      logicalCueKey: 'equip-long-band-v21',
+    });
+  });
+
+  it('does not repeat equipment-family safety once introduced', () => {
+    const memory = rememberTrainingVoiceSafetyFamilyV21(
+      EMPTY_TRAINING_VOICE_SESSION_MEMORY_V21,
+      'long_band_handheld_or_foot_anchored'
+    );
+    expect(resolveTrainingVoiceSafetyV21({ contract: getTrainingVoiceContractV21('band-pull-apart'), sessionMemory: memory })).toMatchObject({
+      dueFamily: 'long_band_handheld_or_foot_anchored',
+      logicalCueKey: null,
+      reasonCodes: ['family_already_introduced'],
+    });
+  });
+});
+
+describe('Training Voice V2.1 sequence planner', () => {
+  it('plans first-use, later-set, and repeat orders without set-count setup cues', () => {
+    const first = planTrainingVoiceSequenceV21({ exerciseId: 'band-pull-apart', exposure: 'first_use' });
+    expect(first.cueKeys).toEqual([
+      'ex-band-pull-apart-first-v21',
+      'equip-long-band-v21',
+      'final-position-set-v21',
+      'target-band-pull-apart-v21',
+    ]);
+    expect(first.scripts.join(' ')).not.toMatch(/sets today|set one of/i);
+
+    const later = planTrainingVoiceSequenceV21({ exerciseId: 'band-pull-apart', exposure: 'later_set' });
+    expect(later.cueKeys).toEqual(['ex-band-pull-apart-next-v21', 'target-band-pull-apart-v21']);
+
+    const repeat = planTrainingVoiceSequenceV21({ exerciseId: 'band-pull-apart', exposure: 'repeat_instructions' });
+    expect(repeat.cueKeys).toEqual(['ex-band-pull-apart-first-v21', 'target-band-pull-apart-v21']);
+  });
+
+  it('includes side cues only when required', () => {
+    const first = planTrainingVoiceSequenceV21({ exerciseId: 'balance-single-leg-hold', exposure: 'first_use' });
+    expect(first.cueKeys).toEqual([
+      'ex-balance-single-leg-hold-first-v21',
+      'side-single-leg-left-v21',
+      'final-position-set-v21',
+      'target-balance-single-leg-hold-v21',
+    ]);
+
+    const laterSame = planTrainingVoiceSequenceV21({ exerciseId: 'balance-single-leg-hold', exposure: 'later_set' });
+    expect(laterSame.cueKeys).toEqual(['ex-balance-single-leg-hold-next-v21', 'target-balance-single-leg-hold-v21']);
+
+    const laterChanged = planTrainingVoiceSequenceV21({
+      exerciseId: 'balance-single-leg-hold',
+      exposure: 'later_set',
+      sideContext: { currentVariantId: 'right', sideChanged: true },
+    });
+    expect(laterChanged.cueKeys).toEqual([
+      'ex-balance-single-leg-hold-next-v21',
+      'switch-legs-v21',
+      'side-single-leg-right-v21',
+      'target-balance-single-leg-hold-v21',
+    ]);
+  });
+
+  it('plans step-up start-lead and wrong-lead correction cues from the alternation plan', () => {
+    const plan = deriveStepUpAlternationPlanForExerciseId('left');
+    const first = planTrainingVoiceSequenceV21({
+      exerciseId: 'step-up',
+      exposure: 'first_use',
+      stepUpContext: { plan, setIndex: 0 },
+    });
+    expect(first.cueKeys).toEqual([
+      'ex-step-up-first-v21',
+      'step-up-start-left-v21',
+      'final-position-set-v21',
+      'target-step-up-v21',
+    ]);
+    expect(first.targetPlan.reasonCodes).toEqual(['target_derived_from_step_up_alternation_plan']);
+
+    const later = planTrainingVoiceSequenceV21({
+      exerciseId: 'step-up',
+      exposure: 'later_set',
+      stepUpContext: { plan, setIndex: 1 },
+    });
+    expect(later.cueKeys).toEqual([
+      'ex-step-up-next-v21',
+      'step-up-start-right-v21',
+      'final-position-set-v21',
+      'target-step-up-v21',
+    ]);
+
+    const correction = planTrainingVoiceSequenceV21({
+      exerciseId: 'step-up',
+      exposure: 'wrong_lead_correction',
+      stepUpContext: { plan, setIndex: 1, expectedLeadSide: 'right' },
+    });
+    expect(correction.cueKeys).toEqual(['step-up-wrong-right-v21', 'final-position-set-v21']);
+  });
+
+  it('returns blockers rather than silently approximating unsupported targets', () => {
+    const plan = planTrainingVoiceSequenceV21({
+      exerciseId: 'neck-rotation',
+      exposure: 'first_use',
+      prescription: { secondsPerSet: 13 },
+    });
+    expect(plan.ready).toBe(false);
+    expect(plan.reasonCodes).toContain('target:unsupported_seconds');
+  });
+});
+
+describe('Training Voice V2.1 runtime and asset gates', () => {
+  it('keeps feature, audio, and behavior gates default closed', () => {
+    expect(TRAINING_VOICE_V2_1_FEATURE_FLAG).toBe('EXPO_PUBLIC_ENABLE_TRAINING_VOICE_V2_1');
+    expect(TRAINING_VOICE_V2_1_AUDIO_READY).toBe(false);
+    expect(TRAINING_VOICE_V2_1_BEHAVIOR_READY).toBe(false);
+    expect(selectTrainingVoiceRuntimeModeV21({ exerciseIds: ['squat-free'], featureEnabled: false })).toMatchObject({
+      mode: 'legacy',
+      v21Selectable: false,
+    });
+    expect(selectTrainingVoiceRuntimeModeV21({ exerciseIds: ['squat-free'], featureEnabled: true })).toMatchObject({
+      mode: 'legacy',
+      v21Selectable: false,
+    });
+  });
+
+  it('fails closed for unknown exercises and keeps one voice mode per session', () => {
+    const selection = selectTrainingVoiceRuntimeModeV21({ exerciseIds: ['unknown-exercise'], featureEnabled: true });
+    expect(selection.mode).toBe('legacy');
+    expect(selection.itemReadiness[0]).toMatchObject({
+      softwareContractValid: false,
+      selectable: false,
+      legacyFallbackAvailable: true,
+    });
+    expect(selection.reasonCodes).toContain('missing_contract:unknown-exercise');
+  });
+
+  it('tracks required runtime speech only when the plan is ready and bound to physical cue keys', () => {
+    const voice = new FakeTrackedVoiceChannel();
+    const runtime = new TrainingVoiceRuntimeV21({ voiceChannel: voice });
+    const scope = runtime.beginStage('test');
+    const plan = planTrainingVoiceSequenceV21({ exerciseId: 'squat-free', exposure: 'first_use' });
+    expect(runtime.speakRequiredSequence({ plan, stageScopeId: scope, physicalCueKeys: [] })).toMatchObject({
+      accepted: false,
+      reason: 'plan_not_ready',
+    });
+    expect(runtime.speakRequiredSequence({ plan, stageScopeId: 'stale', physicalCueKeys: [] })).toMatchObject({
+      accepted: false,
+      reason: 'stale_stage',
+    });
+  });
+
+  it('records logical asset requirements without adding pending keys to the physical manifest', () => {
+    const rows = listTrainingVoiceAssetRequirementsV21();
+    expect(rows.length).toBe(allTrainingVoiceLogicalCuesV21().length);
+    expect(rows.filter((row) => row.reuseDecision === 'reuse_exact_existing_pair').length).toBeGreaterThan(0);
+    expect(rows.filter((row) => row.reuseDecision === 'new_pair_required').length).toBeGreaterThan(0);
+    expect(rows.filter((row) => row.reuseDecision === 'existing_pair_script_mismatch').length).toBeGreaterThan(0);
+    expect(rows.find((row) => row.logicalCueKey === 'ex-squat-free-first-v21')).toMatchObject({
+      claraStatus: 'missing',
+      marcusStatus: 'missing',
+      generationRequiredLater: true,
+    });
+  });
+});
+
+class FakeTrackedVoiceChannel {
+  cancelScope = jest.fn<void, [string, VoiceCancelReason?]>();
+  cancelActive = jest.fn<void, [VoiceCancelReason?]>();
+  speakTracked = jest.fn<TrackedVoiceRequest, [readonly VoiceCueKey[], { priority: number; scopeId: string; required: boolean }]>(
+    (cues, options) => ({
+      requestId: 'fake-request',
+      accepted: cues.length > 0 && options.required,
+      completion: Promise.resolve({
+        requestId: 'fake-request',
+        scopeId: options.scopeId,
+        outcome: 'completed',
+        accepted: cues.length > 0,
+        required: options.required,
+        startedCueKeys: cues.slice(),
+        completedCueKeys: cues.slice(),
+        requestedAtMs: 0,
+        completedAtMs: 1,
+      } satisfies VoicePlaybackResult),
+    })
+  );
+}

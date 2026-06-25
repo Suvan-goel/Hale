@@ -31,6 +31,14 @@ import type {
   ProgressionPolicySelectionReason,
 } from '../exercises';
 import type { PlannedCollectionSelection } from './collectionSelection';
+import type {
+  BothSidesDosePlan,
+  TrainingRoundSide,
+} from './bothSidesRounds';
+import type {
+  StepUpAlternationPlan,
+  StepUpLeadSide,
+} from './stepUpAlternation';
 
 export type PersistedSessionSource = SessionSource | 'legacy';
 
@@ -54,6 +62,10 @@ export interface PersistedGeneratedExerciseSummary {
   doseBeforeAdjustment?: GeneratedExerciseDose;
   adjustmentReasons?: readonly DailyTrainingReasonCode[];
   collectionSelection?: PlannedCollectionSelection;
+  bothSidesDosePlan?: BothSidesDosePlan;
+  bothSidesInitialStartSide?: TrainingRoundSide;
+  stepUpAlternationPlan?: StepUpAlternationPlan;
+  stepUpInitialLeadSide?: StepUpLeadSide;
 }
 
 export interface PersistedPostSessionFeedback {

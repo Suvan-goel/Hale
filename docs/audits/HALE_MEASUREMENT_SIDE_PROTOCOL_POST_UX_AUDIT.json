@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-24",
+  "verdict": "SIDE_PROTOCOL_FOUNDATION_COMPLETE",
+  "findings": {
+    "closed": [
+      {
+        "id": "MSP-P2-001",
+        "severity": "P2",
+        "status": "closed",
+        "summary": "Side-dependent micro-checks require explicit or pinned side setup before capture."
+      },
+      {
+        "id": "MSP-P2-002",
+        "severity": "P2",
+        "status": "closed",
+        "summary": "Side-dependent official retests require explicit opposite-side fallback confirmation."
+      }
+    ],
+    "open": [
+      {
+        "id": "MSP-P3-001",
+        "severity": "P3",
+        "status": "deferred",
+        "summary": "Physical Android/iOS QA remains deferred."
+      }
+    ],
+    "counts": {
+      "P0": 0,
+      "P1": 0,
+      "P2": 0,
+      "P3": 1
+    }
+  },
+  "microChecks": {
+    "typesInspected": 3,
+    "sideDependentTypes": ["single-leg-balance", "mobility-reach"],
+    "sideIndependentTypes": ["chair-power"],
+    "noAnchorScenarios": 2,
+    "existingMicroAnchorScenarios": 2,
+    "officialRecommendationScenarios": 1,
+    "oppositeSideScenarios": 2,
+    "sideDependentWithoutExplicitOrPinnedSide": 0,
+    "chairPowerSideSelectorShown": 0,
+    "firstValidSideKnownFailingToEstablishSeries": 0,
+    "invalidResultEstablishingSeries": 0,
+    "officialAnchorOverwrite": 0,
+    "unrelatedOfficialProtocolBorrowedAsSideAuthority": 0,
+    "sideChangeDuringActiveAttempt": 0
+  },
+  "officialRetest": {
+    "fallbackScenarios": 2,
+    "cancelledFallbackScenarios": 2,
+    "sideDependentRetestWithoutNormalAnchorPath": 0,
+    "fallbackWithoutExplicitConfirmation": 0,
+    "fallbackOverwritingAnchor": 0,
+    "fallbackReportedFullyComparable": 0,
+    "fallbackDefinitiveTrendClaim": 0,
+    "retryRecoveryChangingFallbackSide": 0,
+    "confirmationCopy": "Use the other side? This result may not be directly comparable with your earlier checks. Your usual side will remain unchanged.",
+    "fallbackReplacesAnchor": false
+  },
+  "runtimeConsistency": {
+    "voiceUiControllerGraderSideMismatch": 0,
+    "selectedObservedMismatchAcceptedComparable": 0,
+    "staleCallbackSavingOldSide": 0,
+    "mountedVoiceSwitchChangingSide": 0,
+    "mpv2VoiceSideMismatches": 0
+  },
+  "comparability": {
+    "falseSameSideComparison": 0,
+    "falseCrossProtocolComparison": 0,
+    "anchorOverwrite": 0,
+    "falseTrendClaims": 0
+  },
+  "persistence": {
+    "localRoundTripFailure": 0,
+    "backendRoundTripFailure": 0,
+    "restoreAnchorDrift": 0,
+    "richerSideKnownMetadataLostDuringMerge": 0,
+    "persistenceFailures": 0
+  },
+  "accessibility": {
+    "failures": 0
+  },
+  "audio": {
+    "changed": false,
+    "generated": false,
+    "externalSpeechOrAudioApiCalled": false
+  },
+  "physicalDeviceQa": {
+    "status": "deferred",
+    "remainingSeverity": "P3"
+  },
+  "nextTask": "Approved eyes-open balance protocol V2 reconciliation"
+}

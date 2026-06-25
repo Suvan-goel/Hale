@@ -85,6 +85,12 @@ class ExpoPoseDetectionModule : Module() {
       Prop("nativeSkeletonColor") { view: PoseDetectionView, value: String ->
         view.setNativeSkeletonColorProp(value)
       }
+      Prop("nativeBenchmarkOverlayMode") { view: PoseDetectionView, value: String ->
+        view.setNativeBenchmarkOverlayModeProp(value)
+      }
+      Prop("nativeBenchmarkOverlayResetKey") { view: PoseDetectionView, value: Double ->
+        view.setNativeBenchmarkOverlayResetKeyProp(value.toInt())
+      }
       Prop("canvasColor") { view: PoseDetectionView, value: String ->
         view.setCanvasColorProp(value)
       }

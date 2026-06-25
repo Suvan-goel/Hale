@@ -146,6 +146,19 @@ export type {
   MicroCheckResult,
   MicroCheckType,
 } from './microCheck';
+export {
+  createMicroCheckMeasurementContextForSide,
+  deriveMicroCheckSideSetup,
+  oppositeMicroCheckSide,
+} from './microCheckSideSetup';
+export type {
+  CreateMicroCheckMeasurementContextForSideInput,
+  DeriveMicroCheckSideSetupInput,
+  MicroCheckSideProtocolRegistry,
+  MicroCheckSideReasonCode,
+  MicroCheckSideRecommendationSource,
+  MicroCheckSideSetup,
+} from './microCheckSideSetup';
 export { TrainingStore } from './store';
 export {
   TRAINING_SCHEMA_VERSION,
@@ -170,6 +183,59 @@ export type {
   ValidTimeProgressionSummary,
   ValidTimeSessionSummaryCard,
 } from './validTimeProgression';
+export * from './bothSidesRounds';
+export {
+  STEP_UP_ALTERNATION_PLAN_VERSION,
+  STEP_UP_EXERCISE_ID,
+  TRAINING_STEP_UP_ALTERNATION_DEFAULT_ENABLED,
+  TRAINING_STEP_UP_ALTERNATION_FEATURE_FLAG,
+  TRAINING_STEP_UP_ALTERNATION_SOFTWARE_READY,
+  advanceStepUpAlternationState,
+  attachStepUpAlternationPlansToGeneratedSession,
+  createStepUpAlternationRuntimeState,
+  currentStepUpAttemptId,
+  deriveStepUpAlternationPlan,
+  deriveStepUpAlternationPlanForExerciseDefinition,
+  deriveStepUpAlternationPlanForExerciseId,
+  deriveStepUpAlternationPlanForGeneratedExercise,
+  deserializeStepUpAlternationRuntimeState,
+  diagnosticForStepUpAlternationPlan,
+  hasStepUpAlternationReadiness,
+  isStepUpAlternationPlan,
+  isTrainingStepUpAlternationFeatureEnabled,
+  planFingerprint as stepUpAlternationPlanFingerprint,
+  resolveStepUpRepEvidence,
+  restoreStepUpAlternationRuntimeState,
+  selectTrainingStepUpAlternationMode,
+  serializeStepUpAlternationRuntimeState,
+  setStartLeadForIndex,
+  stepUpAlternationViewModel,
+  stepUpNextLeadCueKey,
+  stepUpSetResultToLegacySetResult,
+  stepUpWrongLeadCueKey,
+  summarizeStepUpAlternationProgression,
+  summarizeStepUpSetResult,
+  type DeriveStepUpAlternationPlanInput,
+  type StepUpAlternationAction,
+  type StepUpAlternationDiagnosticEvent,
+  type StepUpAlternationDiagnosticEventName,
+  type StepUpAlternationPlan,
+  type StepUpAlternationProgressionSummary,
+  type StepUpAlternationReadinessEvidence,
+  type StepUpAlternationReasonCode,
+  type StepUpAlternationRestoreEnvelope,
+  type StepUpAlternationRuntimeState,
+  type StepUpAlternationViewModel,
+  type StepUpGeneratedExerciseLike,
+  type StepUpGeneratedSessionLike,
+  type StepUpLeadSide,
+  type StepUpRepEndReason,
+  type StepUpRepEvidence,
+  type StepUpRepEvidenceInput,
+  type StepUpRepPhase,
+  type StepUpSetResult,
+  type TrainingStepUpAlternationSelection,
+} from './stepUpAlternation';
 export {
   nextSessionExercises,
   nextSessionPlan,
@@ -198,3 +264,4 @@ export type {
   SafetyCueValidationIssue,
   SafetyCueValidationReason,
 } from './safetyCues';
+export * from './voiceV21';

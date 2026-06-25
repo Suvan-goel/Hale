@@ -191,6 +191,39 @@ describe('point-cloud body geometry', () => {
     expect(out.dotCount).toBeLessThanOrEqual(900);
   });
 
+  it('uses the refined 900-dot profile to smooth full-body transitions', () => {
+    const standard = createPointCloudBodyGeometry();
+    const refined = createPointCloudBodyGeometry();
+    const pose = mappedStandingPose();
+
+    buildPointCloudBodyGeometry(pose, standard, {
+      pointCloudBodyEnabled: true,
+      density: 'high',
+      maxDots: 900,
+      showKeypoints: true,
+      dotScale: 1.72,
+    });
+    buildPointCloudBodyGeometry(pose, refined, {
+      pointCloudBodyEnabled: true,
+      density: 'high',
+      maxDots: 900,
+      showKeypoints: false,
+      dotScale: 2.35,
+      shapeProfile: 'refined',
+    });
+
+    expect(refined.dotCount).toBeLessThanOrEqual(900);
+    expect(refined.dotCount).toBeGreaterThanOrEqual(890);
+    expect(refined.keypointDotCount).toBe(0);
+    expect(refined.torsoDotCount + refined.neckDotCount + refined.headDotCount).toBeGreaterThan(
+      standard.torsoDotCount + standard.neckDotCount + standard.headDotCount
+    );
+    expect(refined.handDotCount + refined.footDotCount).toBeLessThan(
+      standard.handDotCount + standard.footDotCount
+    );
+    expect(refined.upperArmDotCount).toBeGreaterThan(standard.upperArmDotCount);
+  });
+
   it('renders the point-cloud head slightly larger than the raw head estimate', () => {
     const pose = mappedStandingPose();
     const estimate = getHeadEstimate(pose);

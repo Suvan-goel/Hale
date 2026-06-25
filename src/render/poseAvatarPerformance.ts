@@ -6,7 +6,10 @@ import type {
   PoseAvatarRendererMode,
   PoseAvatarTrackingQuality,
 } from './poseAvatarTypes';
-import type { PointCloudBodyDensity } from './pointCloudBodyGeometry';
+import type {
+  PointCloudBodyDensity,
+  PointCloudBodyShapeProfile,
+} from './pointCloudBodyGeometry';
 import type {
   ConfidenceAnimationStrength,
   PoseVisualTrackingState,
@@ -44,6 +47,7 @@ export interface PoseAvatarPerformanceSnapshot {
   pointCloudBodyShowKeypoints?: boolean;
   pointCloudBodyDotScale?: number;
   pointCloudBodyOpacity?: number;
+  pointCloudBodyShapeProfile?: PointCloudBodyShapeProfile;
   upperArmDotCount?: number;
   forearmDotCount?: number;
   thighDotCount?: number;
@@ -142,6 +146,7 @@ export function maybeLogPoseAvatarPerformance(
           `bodyConn=${snapshot.pointCloudBodyShowConnections ? 'on' : 'off'} ` +
           `bodySkeleton=${snapshot.pointCloudBodyShowSkeletonLines ? 'on' : 'off'} ` +
           `bodyKeys=${snapshot.pointCloudBodyShowKeypoints ? 'on' : 'off'} ` +
+          `bodyShape=${snapshot.pointCloudBodyShapeProfile ?? 'standard'} ` +
           `bodyDotScale=${(snapshot.pointCloudBodyDotScale ?? 1).toFixed(2)} ` +
           `bodyOpacity=${(snapshot.pointCloudBodyOpacity ?? 1).toFixed(2)} `
         : '') +

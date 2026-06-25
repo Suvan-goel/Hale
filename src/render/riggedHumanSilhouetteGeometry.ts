@@ -6,14 +6,18 @@ import {
 } from './bodyVolumeGeometry';
 import type { ScreenPoseLandmarks } from './poseCoordinateMapper';
 import {
-  MATTE_GRAPHITE_DIGITAL_TWIN_CALIBRATION_SAMPLE_TARGET,
-  MATTE_GRAPHITE_DIGITAL_TWIN_COLORS,
-  MATTE_GRAPHITE_DIGITAL_TWIN_DYNAMIC_PATH_CAP,
-  MATTE_GRAPHITE_DIGITAL_TWIN_INTERNAL_CONTROL_VERTEX_COUNT,
-  MATTE_GRAPHITE_DIGITAL_TWIN_SURFACE_PATH_CAP,
-} from './matteGraphiteDigitalTwinConfig';
+  RIGGED_HUMAN_SILHOUETTE_CALIBRATION_SAMPLE_TARGET,
+  RIGGED_HUMAN_SILHOUETTE_BODY_GRADIENT_ID,
+  RIGGED_HUMAN_SILHOUETTE_COLORS,
+  RIGGED_HUMAN_SILHOUETTE_DYNAMIC_PATH_CAP,
+  RIGGED_HUMAN_SILHOUETTE_HIGHLIGHT_GRADIENT_ID,
+  RIGGED_HUMAN_SILHOUETTE_INTERNAL_CONTROL_VERTEX_COUNT,
+  RIGGED_HUMAN_SILHOUETTE_REAR_GRADIENT_ID,
+  RIGGED_HUMAN_SILHOUETTE_SURFACE_PATH_CAP,
+  RIGGED_HUMAN_SILHOUETTE_VIRTUAL_BONE_COUNT,
+} from './riggedHumanSilhouetteConfig';
 
-export type MatteGraphiteDigitalTwinSurfaceId =
+export type RiggedHumanSilhouetteSurfaceId =
   | 'rightArm'
   | 'rightLeg'
   | 'centralShell'
@@ -23,13 +27,12 @@ export type MatteGraphiteDigitalTwinSurfaceId =
   | 'sideShade'
   | 'sternumAccent';
 
-export type MatteGraphiteDigitalTwinCalibrationState =
-  | 'fallback'
-  | 'collecting'
-  | 'locked';
+export type RiggedHumanSilhouetteCalibrationState = 'neutral' | 'collecting' | 'locked';
 
-export interface MatteGraphiteDigitalTwinSurface {
-  id: MatteGraphiteDigitalTwinSurfaceId;
+export type RiggedHumanSilhouetteOrientationProfile = 'front' | 'three-quarter' | 'side';
+
+export interface RiggedHumanSilhouetteSurface {
+  id: RiggedHumanSilhouetteSurfaceId;
   path: string;
   fill: string;
   opacity: number;
@@ -38,7 +41,7 @@ export interface MatteGraphiteDigitalTwinSurface {
   bounds: Bounds;
 }
 
-export interface MatteGraphiteDigitalTwinProportions {
+export interface RiggedHumanSilhouetteProportions {
   bodyScale: number;
   shoulderWidth: number;
   hipWidth: number;
@@ -51,7 +54,7 @@ export interface MatteGraphiteDigitalTwinProportions {
   lowerLegLength: number;
 }
 
-export interface MatteGraphiteDigitalTwinContinuity {
+export interface RiggedHumanSilhouetteContinuity {
   centralShellContinuous: boolean;
   headAttached: boolean;
   leftArmContinuous: boolean;
@@ -64,7 +67,7 @@ export interface MatteGraphiteDigitalTwinContinuity {
   rightLegHasKnee: boolean;
 }
 
-export interface MatteGraphiteDigitalTwinGeometry {
+export interface RiggedHumanSilhouetteGeometry {
   hasPose: boolean;
   opacity: number;
   surfacePathCount: number;
@@ -73,25 +76,69 @@ export interface MatteGraphiteDigitalTwinGeometry {
   maxDynamicPathCount: number;
   internalControlVertexCount: number;
   maxInternalControlVertexCount: number;
+  virtualBoneCount: number;
+  maxVirtualBoneCount: number;
+  orientationFactor: number;
+  orientationProfile: RiggedHumanSilhouetteOrientationProfile;
   proportionCalibrationComplete: boolean;
-  calibrationState: MatteGraphiteDigitalTwinCalibrationState;
-  proportions: MatteGraphiteDigitalTwinProportions;
+  calibrationState: RiggedHumanSilhouetteCalibrationState;
+  proportions: RiggedHumanSilhouetteProportions;
   bounds: Bounds;
   drawOrderKey: 'deterministic-right-rear-left-front';
-  continuity: MatteGraphiteDigitalTwinContinuity;
-  surfaces: MatteGraphiteDigitalTwinSurface[];
+  continuity: RiggedHumanSilhouetteContinuity;
+  internalControlPoints: Point[];
+  surfaces: RiggedHumanSilhouetteSurface[];
 }
 
-export interface MatteGraphiteDigitalTwinGeometryOptions {
+export interface RiggedHumanSilhouetteGeometryOptions {
   minConfidence?: number;
-  calibration?: MatteGraphiteDigitalTwinCalibration;
+  calibration?: RiggedHumanSilhouetteCalibration;
+  orientationState?: RiggedHumanSilhouetteOrientationState;
 }
 
-export interface MatteGraphiteDigitalTwinCalibration {
+export interface RiggedHumanSilhouetteCalibration {
   samples: ProportionSample[];
   locked: boolean;
-  proportions: MatteGraphiteDigitalTwinProportions;
+  proportions: RiggedHumanSilhouetteProportions;
 }
+
+export interface RiggedHumanSilhouetteOrientationState {
+  initialized: boolean;
+  factor: number;
+  profile: RiggedHumanSilhouetteOrientationProfile;
+}
+
+export interface RiggedHumanSilhouetteBoneTransform {
+  id: RiggedHumanSilhouetteVirtualBoneId;
+  origin: Point;
+  translation: Point;
+  rotationRad: number;
+  scale: number;
+}
+
+export interface RiggedHumanSilhouetteSkinInfluence {
+  boneIndex: number;
+  weight: number;
+}
+
+export type RiggedHumanSilhouetteVirtualBoneId =
+  | 'pelvisRoot'
+  | 'lowerSpine'
+  | 'upperSpine'
+  | 'neck'
+  | 'head'
+  | 'leftClavicle'
+  | 'rightClavicle'
+  | 'leftUpperArm'
+  | 'leftForearm'
+  | 'rightUpperArm'
+  | 'rightForearm'
+  | 'leftThigh'
+  | 'leftLowerLeg'
+  | 'leftFoot'
+  | 'rightThigh'
+  | 'rightLowerLeg'
+  | 'rightFoot';
 
 interface ProportionSample {
   bodyScale: number;
@@ -114,7 +161,7 @@ interface Bounds {
 }
 
 interface LimbModel {
-  surface: MatteGraphiteDigitalTwinSurfaceId;
+  surface: RiggedHumanSilhouetteSurfaceId;
   confidence: number;
   visible: boolean;
   continuous: boolean;
@@ -123,6 +170,12 @@ interface LimbModel {
   bounds: Bounds;
   fill: string;
   opacity: number;
+}
+
+interface RiggedHumanSilhouetteOrientation {
+  factor: number;
+  profile: RiggedHumanSilhouetteOrientationProfile;
+  widthCompression: number;
 }
 
 const DEFAULT_MIN_CONFIDENCE = 0.35;
@@ -134,7 +187,7 @@ const EMPTY_BOUNDS: Bounds = {
   maxY: Number.NEGATIVE_INFINITY,
 };
 
-const SURFACE_IDS: readonly MatteGraphiteDigitalTwinSurfaceId[] = [
+const SURFACE_IDS: readonly RiggedHumanSilhouetteSurfaceId[] = [
   'rightArm',
   'rightLeg',
   'centralShell',
@@ -145,7 +198,7 @@ const SURFACE_IDS: readonly MatteGraphiteDigitalTwinSurfaceId[] = [
   'sternumAccent',
 ];
 
-const DEFAULT_PROPORTIONS: MatteGraphiteDigitalTwinProportions = {
+const DEFAULT_PROPORTIONS: RiggedHumanSilhouetteProportions = {
   bodyScale: 52,
   shoulderWidth: 70,
   hipWidth: 48,
@@ -158,7 +211,78 @@ const DEFAULT_PROPORTIONS: MatteGraphiteDigitalTwinProportions = {
   lowerLegLength: 78,
 };
 
-export function createMatteGraphiteDigitalTwinCalibration(): MatteGraphiteDigitalTwinCalibration {
+export const RIGGED_HUMAN_SILHOUETTE_VIRTUAL_BONES: readonly RiggedHumanSilhouetteVirtualBoneId[] =
+  [
+    'pelvisRoot',
+    'lowerSpine',
+    'upperSpine',
+    'neck',
+    'head',
+    'leftClavicle',
+    'rightClavicle',
+    'leftUpperArm',
+    'leftForearm',
+    'rightUpperArm',
+    'rightForearm',
+    'leftThigh',
+    'leftLowerLeg',
+    'leftFoot',
+    'rightThigh',
+    'rightLowerLeg',
+    'rightFoot',
+  ];
+
+interface RestRing {
+  cx: number;
+  cy: number;
+  rx: number;
+  ry: number;
+}
+
+const REST_RINGS_FRONT: readonly RestRing[] = [
+  { cx: 0, cy: -0.98, rx: 0.12, ry: 0.1 },
+  { cx: 0, cy: -0.82, rx: 0.16, ry: 0.12 },
+  { cx: 0, cy: -0.63, rx: 0.1, ry: 0.08 },
+  { cx: 0, cy: -0.43, rx: 0.31, ry: 0.1 },
+  { cx: 0, cy: -0.2, rx: 0.24, ry: 0.1 },
+  { cx: 0, cy: 0.02, rx: 0.2, ry: 0.09 },
+  { cx: 0, cy: 0.24, rx: 0.24, ry: 0.09 },
+  { cx: -0.17, cy: 0.47, rx: 0.13, ry: 0.09 },
+  { cx: 0.17, cy: 0.47, rx: 0.13, ry: 0.09 },
+  { cx: -0.17, cy: 0.78, rx: 0.1, ry: 0.12 },
+  { cx: 0.17, cy: 0.78, rx: 0.1, ry: 0.12 },
+  { cx: -0.17, cy: 1.08, rx: 0.08, ry: 0.1 },
+  { cx: 0.17, cy: 1.08, rx: 0.08, ry: 0.1 },
+  { cx: 0, cy: 1.26, rx: 0.25, ry: 0.06 },
+];
+
+const REST_RINGS_SIDE: readonly RestRing[] = REST_RINGS_FRONT.map((ring) => ({
+  cx: ring.cx * 0.32,
+  cy: ring.cy,
+  rx: Math.max(0.045, ring.rx * 0.42),
+  ry: ring.ry,
+}));
+
+export const RIGGED_HUMAN_SILHOUETTE_FRONT_TEMPLATE_POINTS: readonly Point[] =
+  createRestTemplatePoints(REST_RINGS_FRONT);
+export const RIGGED_HUMAN_SILHOUETTE_SIDE_TEMPLATE_POINTS: readonly Point[] =
+  createRestTemplatePoints(REST_RINGS_SIDE);
+export const RIGGED_HUMAN_SILHOUETTE_TEMPLATE_INFLUENCES: readonly (readonly RiggedHumanSilhouetteSkinInfluence[])[] =
+  createRestTemplateInfluences(RIGGED_HUMAN_SILHOUETTE_FRONT_TEMPLATE_POINTS);
+
+if (RIGGED_HUMAN_SILHOUETTE_VIRTUAL_BONES.length !== RIGGED_HUMAN_SILHOUETTE_VIRTUAL_BONE_COUNT) {
+  throw new Error('Rigged human silhouette virtual bone count mismatch');
+}
+if (
+  RIGGED_HUMAN_SILHOUETTE_FRONT_TEMPLATE_POINTS.length !==
+    RIGGED_HUMAN_SILHOUETTE_INTERNAL_CONTROL_VERTEX_COUNT ||
+  RIGGED_HUMAN_SILHOUETTE_SIDE_TEMPLATE_POINTS.length !==
+    RIGGED_HUMAN_SILHOUETTE_INTERNAL_CONTROL_VERTEX_COUNT
+) {
+  throw new Error('Rigged human silhouette rest template topology mismatch');
+}
+
+export function createRiggedHumanSilhouetteCalibration(): RiggedHumanSilhouetteCalibration {
   return {
     samples: [],
     locked: false,
@@ -166,34 +290,77 @@ export function createMatteGraphiteDigitalTwinCalibration(): MatteGraphiteDigita
   };
 }
 
-export function resetMatteGraphiteDigitalTwinCalibration(
-  calibration: MatteGraphiteDigitalTwinCalibration
+export function resetRiggedHumanSilhouetteCalibration(
+  calibration: RiggedHumanSilhouetteCalibration
 ): void {
   calibration.samples.length = 0;
   calibration.locked = false;
   calibration.proportions = { ...DEFAULT_PROPORTIONS };
 }
 
-export function createMatteGraphiteDigitalTwinGeometry(): MatteGraphiteDigitalTwinGeometry {
+export function createRiggedHumanSilhouetteOrientationState(): RiggedHumanSilhouetteOrientationState {
+  return {
+    initialized: false,
+    factor: 0,
+    profile: 'front',
+  };
+}
+
+export function resetRiggedHumanSilhouetteOrientationState(
+  state: RiggedHumanSilhouetteOrientationState
+): void {
+  state.initialized = false;
+  state.factor = 0;
+  state.profile = 'front';
+}
+
+export function skinRiggedHumanSilhouettePoint(
+  restPoint: Point,
+  influences: readonly RiggedHumanSilhouetteSkinInfluence[],
+  boneTransforms: readonly RiggedHumanSilhouetteBoneTransform[]
+): Point {
+  if (influences.length === 0) return { ...restPoint };
+  let totalWeight = 0;
+  let x = 0;
+  let y = 0;
+  for (let i = 0; i < influences.length; i++) {
+    const influence = influences[i];
+    const bone = boneTransforms[influence.boneIndex];
+    if (!bone || influence.weight <= 0) continue;
+    const transformed = applyBoneTransform(restPoint, bone);
+    totalWeight += influence.weight;
+    x += transformed.x * influence.weight;
+    y += transformed.y * influence.weight;
+  }
+  if (totalWeight <= 0) return { ...restPoint };
+  return { x: x / totalWeight, y: y / totalWeight };
+}
+
+export function createRiggedHumanSilhouetteGeometry(): RiggedHumanSilhouetteGeometry {
   return {
     hasPose: false,
     opacity: 1,
     surfacePathCount: 0,
-    maxSurfacePathCount: MATTE_GRAPHITE_DIGITAL_TWIN_SURFACE_PATH_CAP,
+    maxSurfacePathCount: RIGGED_HUMAN_SILHOUETTE_SURFACE_PATH_CAP,
     dynamicPathCount: 0,
-    maxDynamicPathCount: MATTE_GRAPHITE_DIGITAL_TWIN_DYNAMIC_PATH_CAP,
+    maxDynamicPathCount: RIGGED_HUMAN_SILHOUETTE_DYNAMIC_PATH_CAP,
     internalControlVertexCount: 0,
-    maxInternalControlVertexCount: MATTE_GRAPHITE_DIGITAL_TWIN_INTERNAL_CONTROL_VERTEX_COUNT,
+    maxInternalControlVertexCount: RIGGED_HUMAN_SILHOUETTE_INTERNAL_CONTROL_VERTEX_COUNT,
+    virtualBoneCount: RIGGED_HUMAN_SILHOUETTE_VIRTUAL_BONE_COUNT,
+    maxVirtualBoneCount: RIGGED_HUMAN_SILHOUETTE_VIRTUAL_BONE_COUNT,
+    orientationFactor: 0,
+    orientationProfile: 'front',
     proportionCalibrationComplete: false,
-    calibrationState: 'fallback',
+    calibrationState: 'neutral',
     proportions: { ...DEFAULT_PROPORTIONS },
     bounds: emptyBounds(),
     drawOrderKey: 'deterministic-right-rear-left-front',
     continuity: emptyContinuity(),
+    internalControlPoints: createControlPointBuffer(),
     surfaces: SURFACE_IDS.map((id) => ({
       id,
       path: '',
-      fill: MATTE_GRAPHITE_DIGITAL_TWIN_COLORS.primaryGraphite,
+      fill: RIGGED_HUMAN_SILHOUETTE_COLORS.primaryGraphite,
       opacity: 0,
       confidence: 0,
       visible: false,
@@ -202,23 +369,27 @@ export function createMatteGraphiteDigitalTwinGeometry(): MatteGraphiteDigitalTw
   };
 }
 
-export function emptyMatteGraphiteDigitalTwinGeometry(
-  out: MatteGraphiteDigitalTwinGeometry
+export function emptyRiggedHumanSilhouetteGeometry(
+  out: RiggedHumanSilhouetteGeometry
 ): void {
   out.hasPose = false;
   out.opacity = 1;
   out.surfacePathCount = 0;
   out.dynamicPathCount = 0;
   out.internalControlVertexCount = 0;
+  out.virtualBoneCount = RIGGED_HUMAN_SILHOUETTE_VIRTUAL_BONE_COUNT;
+  out.orientationFactor = 0;
+  out.orientationProfile = 'front';
   out.proportionCalibrationComplete = false;
-  out.calibrationState = 'fallback';
+  out.calibrationState = 'neutral';
   out.proportions = { ...DEFAULT_PROPORTIONS };
   out.bounds = emptyBounds();
   out.continuity = emptyContinuity();
+  clearControlPoints(out.internalControlPoints);
   for (let i = 0; i < out.surfaces.length; i++) {
     const surface = out.surfaces[i];
     surface.path = '';
-    surface.fill = MATTE_GRAPHITE_DIGITAL_TWIN_COLORS.primaryGraphite;
+    surface.fill = RIGGED_HUMAN_SILHOUETTE_COLORS.primaryGraphite;
     surface.opacity = 0;
     surface.confidence = 0;
     surface.visible = false;
@@ -226,12 +397,12 @@ export function emptyMatteGraphiteDigitalTwinGeometry(
   }
 }
 
-export function buildMatteGraphiteDigitalTwinGeometry(
+export function buildRiggedHumanSilhouetteGeometry(
   pose: ScreenPoseLandmarks,
-  out: MatteGraphiteDigitalTwinGeometry,
-  options: MatteGraphiteDigitalTwinGeometryOptions = {}
+  out: RiggedHumanSilhouetteGeometry,
+  options: RiggedHumanSilhouetteGeometryOptions = {}
 ): void {
-  emptyMatteGraphiteDigitalTwinGeometry(out);
+  emptyRiggedHumanSilhouetteGeometry(out);
   if (!pose.hasPose) return;
   out.hasPose = true;
 
@@ -246,37 +417,50 @@ export function buildMatteGraphiteDigitalTwinGeometry(
       ? 'locked'
       : calibration.samples.length > 0
         ? 'collecting'
-        : 'fallback';
+        : 'neutral';
   } else {
     out.proportions = currentSample ?? { ...DEFAULT_PROPORTIONS };
-    out.calibrationState = currentSample ? 'collecting' : 'fallback';
+    out.calibrationState = currentSample ? 'collecting' : 'neutral';
   }
 
   const centralConfidence = centralConfidenceForPose(pose);
   out.opacity = centralConfidence >= minConfidence ? 1 : 0.7;
-  out.internalControlVertexCount = MATTE_GRAPHITE_DIGITAL_TWIN_INTERNAL_CONTROL_VERTEX_COUNT;
+  out.internalControlVertexCount = RIGGED_HUMAN_SILHOUETTE_INTERNAL_CONTROL_VERTEX_COUNT;
+  out.virtualBoneCount = RIGGED_HUMAN_SILHOUETTE_VIRTUAL_BONE_COUNT;
+  const orientation = resolveOrientation(pose, out.proportions, options.orientationState);
+  out.orientationFactor = orientation.factor;
+  out.orientationProfile = orientation.profile;
 
-  const central = buildCentralShell(pose, out.proportions, minConfidence);
-  setSurface(out, 'centralShell', central.path, central.fill, central.opacity, central.confidence, central.bounds);
+  const central = buildCentralShell(pose, out.proportions, minConfidence, orientation);
+  updateSkinnedControlPoints(out.internalControlPoints, central, orientation);
+  setSurface(
+    out,
+    'centralShell',
+    central.path,
+    central.fill,
+    central.opacity,
+    central.confidence,
+    central.bounds
+  );
   out.continuity.centralShellContinuous = central.visible;
   out.continuity.headAttached = central.headAttached;
 
-  const rightArm = buildArmSurface(pose, 'rightArm', out.proportions, minConfidence);
-  const rightLeg = buildLegSurface(pose, 'rightLeg', out.proportions, minConfidence);
-  const leftLeg = buildLegSurface(pose, 'leftLeg', out.proportions, minConfidence);
-  const leftArm = buildArmSurface(pose, 'leftArm', out.proportions, minConfidence);
+  const rightArm = buildArmSurface(pose, 'rightArm', out.proportions, minConfidence, orientation);
+  const rightLeg = buildLegSurface(pose, 'rightLeg', out.proportions, minConfidence, orientation);
+  const leftLeg = buildLegSurface(pose, 'leftLeg', out.proportions, minConfidence, orientation);
+  const leftArm = buildArmSurface(pose, 'leftArm', out.proportions, minConfidence, orientation);
 
   applyLimb(out, rightArm);
   applyLimb(out, rightLeg);
   applyLimb(out, leftLeg);
   applyLimb(out, leftArm);
 
-  const overlays = buildTonalOverlays(pose, out.proportions, central);
+  const overlays = buildTonalOverlays(pose, out.proportions, central, orientation);
   setSurface(
     out,
     'torsoHighlight',
     overlays.highlightPath,
-    `url(#${'matteGraphiteHighlight'})`,
+    `url(#${RIGGED_HUMAN_SILHOUETTE_HIGHLIGHT_GRADIENT_ID})`,
     overlays.highlightPath ? 0.34 : 0,
     central.confidence,
     overlays.highlightBounds
@@ -285,7 +469,7 @@ export function buildMatteGraphiteDigitalTwinGeometry(
     out,
     'sideShade',
     overlays.shadePath,
-    MATTE_GRAPHITE_DIGITAL_TWIN_COLORS.deepGraphite,
+    RIGGED_HUMAN_SILHOUETTE_COLORS.deepGraphite,
     overlays.shadePath ? 0.22 : 0,
     central.confidence,
     overlays.shadeBounds
@@ -294,8 +478,8 @@ export function buildMatteGraphiteDigitalTwinGeometry(
     out,
     'sternumAccent',
     overlays.accentPath,
-    MATTE_GRAPHITE_DIGITAL_TWIN_COLORS.haleEmeraldAccent,
-    overlays.accentPath ? 0.94 : 0,
+    RIGGED_HUMAN_SILHOUETTE_COLORS.softGraphiteHighlight,
+    overlays.accentPath ? 0.48 : 0,
     central.confidence,
     overlays.accentBounds
   );
@@ -313,25 +497,36 @@ export function buildMatteGraphiteDigitalTwinGeometry(
   out.bounds = finiteBounds(bounds) ? bounds : emptyBounds();
 }
 
-export function getMatteGraphiteDigitalTwinSurface(
-  geometry: MatteGraphiteDigitalTwinGeometry,
-  id: MatteGraphiteDigitalTwinSurfaceId
-): MatteGraphiteDigitalTwinSurface {
+export function getRiggedHumanSilhouetteSurface(
+  geometry: RiggedHumanSilhouetteGeometry,
+  id: RiggedHumanSilhouetteSurfaceId
+): RiggedHumanSilhouetteSurface {
   const surface = geometry.surfaces.find((candidate) => candidate.id === id);
-  if (!surface) throw new Error(`Unknown matte graphite surface: ${id}`);
+  if (!surface) throw new Error(`Unknown rigged human silhouette surface: ${id}`);
   return surface;
 }
 
-export function isFiniteMatteGraphiteDigitalTwinGeometry(
-  geometry: MatteGraphiteDigitalTwinGeometry
+export function isFiniteRiggedHumanSilhouetteGeometry(
+  geometry: RiggedHumanSilhouetteGeometry
 ): boolean {
   if (
     !Number.isFinite(geometry.opacity) ||
     !Number.isFinite(geometry.surfacePathCount) ||
     !Number.isFinite(geometry.dynamicPathCount) ||
-    !Number.isFinite(geometry.internalControlVertexCount)
+    !Number.isFinite(geometry.internalControlVertexCount) ||
+    !Number.isFinite(geometry.virtualBoneCount) ||
+    !Number.isFinite(geometry.orientationFactor)
   ) {
     return false;
+  }
+  if (
+    geometry.internalControlPoints.length !==
+    RIGGED_HUMAN_SILHOUETTE_INTERNAL_CONTROL_VERTEX_COUNT
+  ) {
+    return false;
+  }
+  for (let i = 0; i < geometry.internalControlPoints.length; i++) {
+    if (!pointFinite(geometry.internalControlPoints[i])) return false;
   }
   for (const value of Object.values(geometry.proportions)) {
     if (!Number.isFinite(value)) return false;
@@ -350,10 +545,301 @@ export function isFiniteMatteGraphiteDigitalTwinGeometry(
   return true;
 }
 
+function resolveOrientation(
+  pose: ScreenPoseLandmarks,
+  proportions: RiggedHumanSilhouetteProportions,
+  state?: RiggedHumanSilhouetteOrientationState
+): RiggedHumanSilhouetteOrientation {
+  const target = estimateOrientationFactor(pose, proportions);
+  let factor = target;
+  if (state) {
+    if (!state.initialized) {
+      state.initialized = true;
+      state.factor = target;
+    } else {
+      const delta = target - state.factor;
+      if (Math.abs(delta) >= 0.06) {
+        state.factor = clamp(state.factor + delta * 0.35, 0, 1);
+      }
+    }
+    factor = state.factor;
+    state.profile = profileForOrientationFactor(factor);
+  }
+  const profile = state?.profile ?? profileForOrientationFactor(factor);
+  return {
+    factor,
+    profile,
+    widthCompression: blend(1, 0.44, factor),
+  };
+}
+
+function estimateOrientationFactor(
+  pose: ScreenPoseLandmarks,
+  proportions: RiggedHumanSilhouetteProportions
+): number {
+  const leftShoulder = pointFor(pose, LM.LEFT_SHOULDER);
+  const rightShoulder = pointFor(pose, LM.RIGHT_SHOULDER);
+  const leftHip = pointFor(pose, LM.LEFT_HIP);
+  const rightHip = pointFor(pose, LM.RIGHT_HIP);
+  if (
+    !landmarkReliable(pose, LM.LEFT_SHOULDER) ||
+    !landmarkReliable(pose, LM.RIGHT_SHOULDER) ||
+    !landmarkReliable(pose, LM.LEFT_HIP) ||
+    !landmarkReliable(pose, LM.RIGHT_HIP) ||
+    !pointFinite(leftShoulder) ||
+    !pointFinite(rightShoulder) ||
+    !pointFinite(leftHip) ||
+    !pointFinite(rightHip)
+  ) {
+    return 0;
+  }
+  const shoulderMid = midpoint(leftShoulder, rightShoulder);
+  const hipMid = midpoint(leftHip, rightHip);
+  const torsoLength = Math.max(1, distance(shoulderMid, hipMid));
+  const shoulderRatio = distance(leftShoulder, rightShoulder) / torsoLength;
+  const hipRatio = distance(leftHip, rightHip) / torsoLength;
+  const calibratedShoulderRatio = clamp(
+    proportions.shoulderWidth / Math.max(proportions.torsoLength, 1),
+    0.34,
+    0.72
+  );
+  const calibratedHipRatio = clamp(
+    proportions.hipWidth / Math.max(proportions.torsoLength, 1),
+    0.22,
+    0.56
+  );
+  const shoulderNarrowing = 1 - shoulderRatio / calibratedShoulderRatio;
+  const hipNarrowing = 1 - hipRatio / calibratedHipRatio;
+  return clamp((shoulderNarrowing * 0.72 + hipNarrowing * 0.28) / 0.58, 0, 1);
+}
+
+function profileForOrientationFactor(
+  factor: number
+): RiggedHumanSilhouetteOrientationProfile {
+  if (factor >= 0.68) return 'side';
+  if (factor >= 0.28) return 'three-quarter';
+  return 'front';
+}
+
+function updateSkinnedControlPoints(
+  out: Point[],
+  central: ReturnType<typeof buildCentralShell>,
+  orientation: RiggedHumanSilhouetteOrientation
+): void {
+  if (!central.visible) {
+    clearControlPoints(out);
+    return;
+  }
+  const transforms = createInternalBoneTransforms(orientation);
+  for (let i = 0; i < out.length; i++) {
+    const front = RIGGED_HUMAN_SILHOUETTE_FRONT_TEMPLATE_POINTS[i];
+    const side = RIGGED_HUMAN_SILHOUETTE_SIDE_TEMPLATE_POINTS[i];
+    const rest = {
+      x: blend(front.x, side.x, orientation.factor),
+      y: blend(front.y, side.y, orientation.factor),
+    };
+    const skinned = skinRiggedHumanSilhouettePoint(
+      rest,
+      RIGGED_HUMAN_SILHOUETTE_TEMPLATE_INFLUENCES[i],
+      transforms
+    );
+    const screen = templatePointToScreen(skinned, central);
+    out[i].x = screen.x;
+    out[i].y = screen.y;
+  }
+}
+
+function createInternalBoneTransforms(
+  orientation: RiggedHumanSilhouetteOrientation
+): RiggedHumanSilhouetteBoneTransform[] {
+  return RIGGED_HUMAN_SILHOUETTE_VIRTUAL_BONES.map((id) => ({
+    id,
+    origin: restBoneOrigin(id),
+    translation: restBoneTranslation(id, orientation),
+    rotationRad: restBoneRotation(id, orientation),
+    scale: restBoneScale(id, orientation),
+  }));
+}
+
+function templatePointToScreen(
+  point: Point,
+  central: ReturnType<typeof buildCentralShell>
+): Point {
+  const { shoulderMid, axis, sideAxis, torsoLength, shoulderHalf } = central.anchors;
+  const t = (point.y + 0.43) / 0.67;
+  const sideScale = shoulderHalf * 1.58;
+  return add(add(shoulderMid, scale(axis, torsoLength * t)), scale(sideAxis, point.x * sideScale));
+}
+
+function createRestTemplatePoints(rings: readonly RestRing[]): Point[] {
+  const points: Point[] = [];
+  for (let ringIndex = 0; ringIndex < rings.length; ringIndex++) {
+    const ring = rings[ringIndex];
+    for (let i = 0; i < 8; i++) {
+      const angle = (Math.PI * 2 * i) / 8;
+      points.push({
+        x: ring.cx + Math.cos(angle) * ring.rx,
+        y: ring.cy + Math.sin(angle) * ring.ry,
+      });
+    }
+  }
+  return points;
+}
+
+function createRestTemplateInfluences(
+  points: readonly Point[]
+): (readonly RiggedHumanSilhouetteSkinInfluence[])[] {
+  return points.map((point) => {
+    const primary = boneIndexForRestPoint(point);
+    const secondary = secondaryBoneIndexForRestPoint(point, primary);
+    if (secondary === primary) return [{ boneIndex: primary, weight: 1 }];
+    return [
+      { boneIndex: primary, weight: 0.78 },
+      { boneIndex: secondary, weight: 0.22 },
+    ];
+  });
+}
+
+function boneIndexForRestPoint(point: Point): number {
+  if (point.y < -0.88) return boneIndex('head');
+  if (point.y < -0.68) return boneIndex('neck');
+  if (point.y < -0.28) {
+    if (point.x < -0.22) return boneIndex('leftClavicle');
+    if (point.x > 0.22) return boneIndex('rightClavicle');
+    return boneIndex('upperSpine');
+  }
+  if (point.y < 0.18) return boneIndex('lowerSpine');
+  if (point.y < 0.36) return boneIndex('pelvisRoot');
+  if (point.x < 0) {
+    if (point.y < 0.74) return boneIndex('leftThigh');
+    if (point.y < 1.08) return boneIndex('leftLowerLeg');
+    return boneIndex('leftFoot');
+  }
+  if (point.y < 0.74) return boneIndex('rightThigh');
+  if (point.y < 1.08) return boneIndex('rightLowerLeg');
+  return boneIndex('rightFoot');
+}
+
+function secondaryBoneIndexForRestPoint(point: Point, primary: number): number {
+  if (point.y < -0.88) return boneIndex('neck');
+  if (point.y < -0.68) return boneIndex('upperSpine');
+  if (point.y < -0.28) return boneIndex('lowerSpine');
+  if (point.y < 0.18) return boneIndex('upperSpine');
+  if (point.y < 0.36) return boneIndex('lowerSpine');
+  if (point.x < 0) {
+    if (point.y < 0.74) return boneIndex('pelvisRoot');
+    if (point.y < 1.08) return boneIndex('leftThigh');
+    return boneIndex('leftLowerLeg');
+  }
+  if (point.y < 0.74) return boneIndex('pelvisRoot');
+  if (point.y < 1.08) return boneIndex('rightThigh');
+  const fallback = boneIndex('rightLowerLeg');
+  return fallback === primary ? primary : fallback;
+}
+
+function boneIndex(id: RiggedHumanSilhouetteVirtualBoneId): number {
+  return RIGGED_HUMAN_SILHOUETTE_VIRTUAL_BONES.indexOf(id);
+}
+
+function restBoneOrigin(id: RiggedHumanSilhouetteVirtualBoneId): Point {
+  switch (id) {
+    case 'head':
+      return { x: 0, y: -0.9 };
+    case 'neck':
+      return { x: 0, y: -0.62 };
+    case 'upperSpine':
+      return { x: 0, y: -0.34 };
+    case 'lowerSpine':
+      return { x: 0, y: -0.05 };
+    case 'pelvisRoot':
+      return { x: 0, y: 0.26 };
+    case 'leftClavicle':
+      return { x: -0.24, y: -0.42 };
+    case 'rightClavicle':
+      return { x: 0.24, y: -0.42 };
+    case 'leftUpperArm':
+      return { x: -0.36, y: -0.2 };
+    case 'rightUpperArm':
+      return { x: 0.36, y: -0.2 };
+    case 'leftForearm':
+      return { x: -0.42, y: 0.08 };
+    case 'rightForearm':
+      return { x: 0.42, y: 0.08 };
+    case 'leftThigh':
+      return { x: -0.17, y: 0.48 };
+    case 'rightThigh':
+      return { x: 0.17, y: 0.48 };
+    case 'leftLowerLeg':
+      return { x: -0.17, y: 0.86 };
+    case 'rightLowerLeg':
+      return { x: 0.17, y: 0.86 };
+    case 'leftFoot':
+      return { x: -0.2, y: 1.22 };
+    case 'rightFoot':
+      return { x: 0.2, y: 1.22 };
+  }
+}
+
+function restBoneTranslation(
+  id: RiggedHumanSilhouetteVirtualBoneId,
+  orientation: RiggedHumanSilhouetteOrientation
+): Point {
+  const sideBias = orientation.factor * 0.035;
+  if (id.startsWith('left')) return { x: -sideBias, y: 0 };
+  if (id.startsWith('right')) return { x: sideBias, y: 0 };
+  return { x: 0, y: 0 };
+}
+
+function restBoneRotation(
+  id: RiggedHumanSilhouetteVirtualBoneId,
+  orientation: RiggedHumanSilhouetteOrientation
+): number {
+  const amount = orientation.factor * 0.05;
+  if (id.startsWith('left')) return -amount;
+  if (id.startsWith('right')) return amount;
+  return 0;
+}
+
+function restBoneScale(
+  id: RiggedHumanSilhouetteVirtualBoneId,
+  orientation: RiggedHumanSilhouetteOrientation
+): number {
+  if (id === 'head' || id === 'neck') return blend(1, 0.94, orientation.factor);
+  if (id.includes('Foot')) return blend(1, 0.9, orientation.factor);
+  return 1;
+}
+
+function applyBoneTransform(point: Point, bone: RiggedHumanSilhouetteBoneTransform): Point {
+  const dx = (point.x - bone.origin.x) * bone.scale;
+  const dy = (point.y - bone.origin.y) * bone.scale;
+  const cos = Math.cos(bone.rotationRad);
+  const sin = Math.sin(bone.rotationRad);
+  return {
+    x: bone.origin.x + dx * cos - dy * sin + bone.translation.x,
+    y: bone.origin.y + dx * sin + dy * cos + bone.translation.y,
+  };
+}
+
+function createControlPointBuffer(): Point[] {
+  const points: Point[] = [];
+  for (let i = 0; i < RIGGED_HUMAN_SILHOUETTE_INTERNAL_CONTROL_VERTEX_COUNT; i++) {
+    points.push({ x: 0, y: 0 });
+  }
+  return points;
+}
+
+function clearControlPoints(points: Point[]): void {
+  for (let i = 0; i < points.length; i++) {
+    points[i].x = 0;
+    points[i].y = 0;
+  }
+}
+
 function buildCentralShell(
   pose: ScreenPoseLandmarks,
-  proportions: MatteGraphiteDigitalTwinProportions,
-  minConfidence: number
+  proportions: RiggedHumanSilhouetteProportions,
+  minConfidence: number,
+  orientation: RiggedHumanSilhouetteOrientation
 ): {
   path: string;
   fill: string;
@@ -369,6 +855,9 @@ function buildCentralShell(
     sideAxis: Point;
     neckCenter: Point;
     headCenter: Point;
+    torsoLength: number;
+    shoulderHalf: number;
+    hipHalf: number;
   };
 } {
   const torso = getTorsoEstimate(pose, MIN_RENDER_CONFIDENCE);
@@ -396,13 +885,23 @@ function buildCentralShell(
     { x: leftShoulder.x - rightShoulder.x, y: leftShoulder.y - rightShoulder.y },
     { x: -axis.y, y: axis.x }
   );
-  const shoulderHalf = clamp(proportions.shoulderWidth * 0.58, proportions.bodyScale * 0.42, proportions.bodyScale * 0.9);
-  const hipHalf = clamp(proportions.hipWidth * 0.62, proportions.bodyScale * 0.28, shoulderHalf * 0.92);
+  const widthCompression = orientation.widthCompression;
+  const shoulderHalf = clamp(
+    proportions.shoulderWidth * 0.58 * widthCompression,
+    proportions.bodyScale * 0.2,
+    proportions.bodyScale * 0.9
+  );
+  const hipHalf = clamp(
+    proportions.hipWidth * 0.62 * widthCompression,
+    proportions.bodyScale * 0.16,
+    shoulderHalf * 0.92
+  );
   const waistHalf = clamp((shoulderHalf + hipHalf) * 0.43, proportions.bodyScale * 0.24, shoulderHalf * 0.72);
   const neckHalf = clamp(proportions.headRx * 0.34, proportions.bodyScale * 0.12, proportions.bodyScale * 0.22);
   const head = getHeadEstimate(pose, MIN_RENDER_CONFIDENCE);
   const headRx = clamp(
-    head ? blend(proportions.headRx, head.rx, 0.18) : proportions.headRx,
+    (head ? blend(proportions.headRx, head.rx, 0.18) : proportions.headRx) *
+      blend(1, 0.66, orientation.factor),
     proportions.bodyScale * 0.24,
     proportions.bodyScale * 0.48
   );
@@ -453,7 +952,7 @@ function buildCentralShell(
 
   return {
     path,
-    fill: `url(#${'matteGraphiteBody'})`,
+    fill: `url(#${RIGGED_HUMAN_SILHOUETTE_BODY_GRADIENT_ID})`,
     opacity: opacityForConfidence(confidence, minConfidence),
     confidence,
     bounds: boundsForPoints(points),
@@ -466,6 +965,9 @@ function buildCentralShell(
       sideAxis,
       neckCenter,
       headCenter,
+      torsoLength,
+      shoulderHalf,
+      hipHalf,
     },
   };
 }
@@ -473,8 +975,9 @@ function buildCentralShell(
 function buildArmSurface(
   pose: ScreenPoseLandmarks,
   side: 'leftArm' | 'rightArm',
-  proportions: MatteGraphiteDigitalTwinProportions,
-  minConfidence: number
+  proportions: RiggedHumanSilhouetteProportions,
+  minConfidence: number,
+  orientation: RiggedHumanSilhouetteOrientation
 ): LimbModel {
   const left = side === 'leftArm';
   const shoulder = left ? LM.LEFT_SHOULDER : LM.RIGHT_SHOULDER;
@@ -482,8 +985,8 @@ function buildArmSurface(
   const wrist = left ? LM.LEFT_WRIST : LM.RIGHT_WRIST;
   const index = left ? LM.LEFT_INDEX : LM.RIGHT_INDEX;
   const baseFill = left
-    ? `url(#${'matteGraphiteBody'})`
-    : `url(#${'matteGraphiteRear'})`;
+    ? `url(#${RIGGED_HUMAN_SILHOUETTE_BODY_GRADIENT_ID})`
+    : `url(#${RIGGED_HUMAN_SILHOUETTE_REAR_GRADIENT_ID})`;
   const p0 = pointFor(pose, shoulder);
   const p1 = pointFor(pose, elbow);
   const p2 = pointFor(pose, wrist);
@@ -496,11 +999,12 @@ function buildArmSurface(
     return emptyLimb(side);
   }
   const hand = terminalPoint(pose, wrist, index, proportions.upperArmLength * 0.32, confidence);
+  const widthCompression = blend(1, 0.72, orientation.factor);
   const widths: [number, number, number, number] = [
-    clamp(proportions.bodyScale * 0.2, 8, 25),
-    clamp(proportions.bodyScale * 0.17, 7, 22),
-    clamp(proportions.bodyScale * 0.12, 5, 17),
-    clamp(proportions.bodyScale * 0.07, 3, 12),
+    clamp(proportions.bodyScale * 0.2 * widthCompression, 7, 25),
+    clamp(proportions.bodyScale * 0.17 * widthCompression, 6, 22),
+    clamp(proportions.bodyScale * 0.12 * widthCompression, 5, 17),
+    clamp(proportions.bodyScale * 0.07 * widthCompression, 3, 12),
   ];
   return buildLimbModel(side, [p0, p1, p2, hand.point], widths, confidence, minConfidence, baseFill);
 }
@@ -508,8 +1012,9 @@ function buildArmSurface(
 function buildLegSurface(
   pose: ScreenPoseLandmarks,
   side: 'leftLeg' | 'rightLeg',
-  proportions: MatteGraphiteDigitalTwinProportions,
-  minConfidence: number
+  proportions: RiggedHumanSilhouetteProportions,
+  minConfidence: number,
+  orientation: RiggedHumanSilhouetteOrientation
 ): LimbModel {
   const left = side === 'leftLeg';
   const hip = left ? LM.LEFT_HIP : LM.RIGHT_HIP;
@@ -517,8 +1022,8 @@ function buildLegSurface(
   const ankle = left ? LM.LEFT_ANKLE : LM.RIGHT_ANKLE;
   const foot = left ? LM.LEFT_FOOT_INDEX : LM.RIGHT_FOOT_INDEX;
   const baseFill = left
-    ? `url(#${'matteGraphiteBody'})`
-    : `url(#${'matteGraphiteRear'})`;
+    ? `url(#${RIGGED_HUMAN_SILHOUETTE_BODY_GRADIENT_ID})`
+    : `url(#${RIGGED_HUMAN_SILHOUETTE_REAR_GRADIENT_ID})`;
   const p0 = pointFor(pose, hip);
   const p1 = pointFor(pose, knee);
   const p2 = pointFor(pose, ankle);
@@ -531,17 +1036,18 @@ function buildLegSurface(
     return emptyLimb(side);
   }
   const footTip = terminalPoint(pose, ankle, foot, proportions.lowerLegLength * 0.24, confidence);
+  const widthCompression = blend(1, 0.76, orientation.factor);
   const widths: [number, number, number, number] = [
-    clamp(proportions.bodyScale * 0.26, 11, 32),
-    clamp(proportions.bodyScale * 0.2, 9, 26),
-    clamp(proportions.bodyScale * 0.13, 6, 18),
-    clamp(proportions.bodyScale * 0.1, 5, 16),
+    clamp(proportions.bodyScale * 0.26 * widthCompression, 10, 32),
+    clamp(proportions.bodyScale * 0.2 * widthCompression, 8, 26),
+    clamp(proportions.bodyScale * 0.13 * widthCompression, 6, 18),
+    clamp(proportions.bodyScale * 0.1 * widthCompression, 5, 16),
   ];
   return buildLimbModel(side, [p0, p1, p2, footTip.point], widths, confidence, minConfidence, baseFill);
 }
 
 function buildLimbModel(
-  surface: MatteGraphiteDigitalTwinSurfaceId,
+  surface: RiggedHumanSilhouetteSurfaceId,
   centers: readonly [Point, Point, Point, Point],
   widths: readonly [number, number, number, number],
   confidence: number,
@@ -584,8 +1090,9 @@ function buildLimbModel(
 
 function buildTonalOverlays(
   pose: ScreenPoseLandmarks,
-  proportions: MatteGraphiteDigitalTwinProportions,
-  central: ReturnType<typeof buildCentralShell>
+  proportions: RiggedHumanSilhouetteProportions,
+  central: ReturnType<typeof buildCentralShell>,
+  orientation: RiggedHumanSilhouetteOrientation
 ): {
   highlightPath: string;
   highlightBounds: Bounds;
@@ -606,20 +1113,37 @@ function buildTonalOverlays(
   }
   const { shoulderMid, hipMid, axis, sideAxis } = central.anchors;
   const torsoLength = distance(shoulderMid, hipMid);
-  const highlightTop = add(add(shoulderMid, scale(axis, torsoLength * 0.18)), scale(sideAxis, -proportions.bodyScale * 0.12));
-  const highlightMid = add(add(shoulderMid, scale(axis, torsoLength * 0.44)), scale(sideAxis, -proportions.bodyScale * 0.05));
-  const highlightBottom = add(add(hipMid, scale(axis, torsoLength * 0.02)), scale(sideAxis, proportions.bodyScale * 0.01));
+  const highlightWidth = proportions.bodyScale * blend(0.13, 0.07, orientation.factor);
+  const highlightTop = add(
+    add(shoulderMid, scale(axis, torsoLength * 0.18)),
+    scale(sideAxis, -highlightWidth * 0.8)
+  );
+  const highlightMid = add(
+    add(shoulderMid, scale(axis, torsoLength * 0.44)),
+    scale(sideAxis, -highlightWidth * 0.35)
+  );
+  const highlightBottom = add(
+    add(hipMid, scale(axis, torsoLength * 0.02)),
+    scale(sideAxis, highlightWidth * 0.1)
+  );
   const highlightPath = [
     `M${pointPath(highlightTop)}`,
     `C${pointPath(add(highlightTop, scale(axis, torsoLength * 0.16)))} ${pointPath(add(highlightMid, scale(axis, -torsoLength * 0.1)))} ${pointPath(highlightMid)}`,
     `C${pointPath(add(highlightMid, scale(axis, torsoLength * 0.1)))} ${pointPath(add(highlightBottom, scale(axis, -torsoLength * 0.08)))} ${pointPath(highlightBottom)}`,
-    `C${pointPath(add(highlightBottom, scale(sideAxis, proportions.bodyScale * 0.13)))} ${pointPath(add(highlightTop, scale(sideAxis, proportions.bodyScale * 0.13)))} ${pointPath(highlightTop)} Z`,
+    `C${pointPath(add(highlightBottom, scale(sideAxis, highlightWidth)))} ${pointPath(add(highlightTop, scale(sideAxis, highlightWidth)))} ${pointPath(highlightTop)} Z`,
   ].join(' ');
 
-  const shadeTop = add(add(shoulderMid, scale(axis, torsoLength * 0.1)), scale(sideAxis, proportions.bodyScale * 0.28));
-  const shadeBottom = add(add(hipMid, scale(axis, torsoLength * 0.08)), scale(sideAxis, proportions.bodyScale * 0.18));
-  const shadeInnerTop = add(shadeTop, scale(sideAxis, -proportions.bodyScale * 0.16));
-  const shadeInnerBottom = add(shadeBottom, scale(sideAxis, -proportions.bodyScale * 0.12));
+  const shadeWidth = proportions.bodyScale * blend(0.16, 0.08, orientation.factor);
+  const shadeTop = add(
+    add(shoulderMid, scale(axis, torsoLength * 0.1)),
+    scale(sideAxis, proportions.bodyScale * blend(0.28, 0.12, orientation.factor))
+  );
+  const shadeBottom = add(
+    add(hipMid, scale(axis, torsoLength * 0.08)),
+    scale(sideAxis, proportions.bodyScale * blend(0.18, 0.08, orientation.factor))
+  );
+  const shadeInnerTop = add(shadeTop, scale(sideAxis, -shadeWidth));
+  const shadeInnerBottom = add(shadeBottom, scale(sideAxis, -shadeWidth * 0.74));
   const shadePath = [
     `M${pointPath(shadeTop)}`,
     `C${pointPath(add(shadeTop, scale(axis, torsoLength * 0.25)))} ${pointPath(add(shadeBottom, scale(axis, -torsoLength * 0.08)))} ${pointPath(shadeBottom)}`,
@@ -627,39 +1151,33 @@ function buildTonalOverlays(
     `C${pointPath(add(shadeInnerBottom, scale(axis, -torsoLength * 0.1)))} ${pointPath(add(shadeInnerTop, scale(axis, torsoLength * 0.18)))} ${pointPath(shadeInnerTop)} Z`,
   ].join(' ');
 
-  const sternum = add(shoulderMid, scale(axis, torsoLength * 0.28));
-  const accentA = add(sternum, scale(sideAxis, -proportions.bodyScale * 0.02));
-  const accentB = add(add(sternum, scale(axis, torsoLength * 0.06)), scale(sideAxis, proportions.bodyScale * 0.04));
-  const accentC = add(add(sternum, scale(axis, torsoLength * 0.12)), scale(sideAxis, -proportions.bodyScale * 0.01));
-  const accentWidth = clamp(proportions.bodyScale * 0.035, 1.6, 3.2);
-  const accentPath = smallCapsulePath(accentA, accentB, accentC, accentWidth);
   void pose;
   return {
     highlightPath,
     highlightBounds: boundsForPoints([highlightTop, highlightMid, highlightBottom]),
     shadePath,
     shadeBounds: boundsForPoints([shadeTop, shadeBottom, shadeInnerTop, shadeInnerBottom]),
-    accentPath,
-    accentBounds: boundsForPoints([accentA, accentB, accentC]),
+    accentPath: '',
+    accentBounds: emptyBounds(),
   };
 }
 
 function updateCalibration(
-  calibration: MatteGraphiteDigitalTwinCalibration,
+  calibration: RiggedHumanSilhouetteCalibration,
   sample: ProportionSample | null
 ): void {
   if (calibration.locked || sample === null) return;
   calibration.samples.push(sample);
   calibration.proportions = medianProportions(calibration.samples);
-  if (calibration.samples.length >= MATTE_GRAPHITE_DIGITAL_TWIN_CALIBRATION_SAMPLE_TARGET) {
+  if (calibration.samples.length >= RIGGED_HUMAN_SILHOUETTE_CALIBRATION_SAMPLE_TARGET) {
     calibration.locked = true;
   }
 }
 
 function resolveProportions(
-  calibration: MatteGraphiteDigitalTwinCalibration,
+  calibration: RiggedHumanSilhouetteCalibration,
   sample: ProportionSample | null
-): MatteGraphiteDigitalTwinProportions {
+): RiggedHumanSilhouetteProportions {
   if (calibration.samples.length > 0) return calibration.proportions;
   return sample ?? { ...DEFAULT_PROPORTIONS };
 }
@@ -704,7 +1222,7 @@ function measureProportions(pose: ScreenPoseLandmarks): ProportionSample | null 
   };
 }
 
-function medianProportions(samples: readonly ProportionSample[]): MatteGraphiteDigitalTwinProportions {
+function medianProportions(samples: readonly ProportionSample[]): RiggedHumanSilhouetteProportions {
   return {
     bodyScale: median(samples.map((sample) => sample.bodyScale)),
     shoulderWidth: median(samples.map((sample) => sample.shoulderWidth)),
@@ -721,7 +1239,7 @@ function medianProportions(samples: readonly ProportionSample[]): MatteGraphiteD
 
 function fallbackCentralAnchors(
   pose: ScreenPoseLandmarks,
-  proportions: MatteGraphiteDigitalTwinProportions
+  proportions: RiggedHumanSilhouetteProportions
 ): {
   leftShoulder: Point;
   rightShoulder: Point;
@@ -740,7 +1258,7 @@ function fallbackCentralAnchors(
   };
 }
 
-function applyLimb(out: MatteGraphiteDigitalTwinGeometry, model: LimbModel): void {
+function applyLimb(out: RiggedHumanSilhouetteGeometry, model: LimbModel): void {
   setSurface(out, model.surface, model.path, model.fill, model.opacity, model.confidence, model.bounds);
   if (model.surface === 'leftArm') {
     out.continuity.leftArmContinuous = model.continuous;
@@ -758,15 +1276,15 @@ function applyLimb(out: MatteGraphiteDigitalTwinGeometry, model: LimbModel): voi
 }
 
 function setSurface(
-  out: MatteGraphiteDigitalTwinGeometry,
-  id: MatteGraphiteDigitalTwinSurfaceId,
+  out: RiggedHumanSilhouetteGeometry,
+  id: RiggedHumanSilhouetteSurfaceId,
   path: string,
   fill: string,
   opacity: number,
   confidence: number,
   bounds: Bounds
 ): void {
-  const surface = getMatteGraphiteDigitalTwinSurface(out, id);
+  const surface = getRiggedHumanSilhouetteSurface(out, id);
   surface.path = path;
   surface.fill = fill;
   surface.opacity = opacity;
@@ -833,24 +1351,6 @@ function smoothPath(points: readonly Point[], includeMove = true): string {
   return parts.join(' ');
 }
 
-function smallCapsulePath(a: Point, b: Point, c: Point, width: number): string {
-  const tangentA = normalize({ x: b.x - a.x, y: b.y - a.y });
-  const tangentC = normalize({ x: c.x - b.x, y: c.y - b.y });
-  const normalA = { x: -tangentA.y, y: tangentA.x };
-  const normalC = { x: -tangentC.y, y: tangentC.x };
-  const a1 = add(a, scale(normalA, width));
-  const a2 = add(a, scale(normalA, -width));
-  const c1 = add(c, scale(normalC, width * 0.72));
-  const c2 = add(c, scale(normalC, -width * 0.72));
-  return [
-    `M${pointPath(a1)}`,
-    `C${pointPath(add(b, scale(normalA, width)))} ${pointPath(add(b, scale(normalC, width * 0.72)))} ${pointPath(c1)}`,
-    `Q${pointPath(c)} ${pointPath(c2)}`,
-    `C${pointPath(add(b, scale(normalC, -width * 0.72)))} ${pointPath(add(b, scale(normalA, -width)))} ${pointPath(a2)}`,
-    `Q${pointPath(a)} ${pointPath(a1)} Z`,
-  ].join(' ');
-}
-
 function tangentAt(points: readonly Point[], index: number): Point {
   const prev = points[Math.max(0, index - 1)];
   const next = points[Math.min(points.length - 1, index + 1)];
@@ -861,7 +1361,7 @@ function emptyCentralShell(): ReturnType<typeof buildCentralShell> {
   const zero = { x: 0, y: 0 };
   return {
     path: '',
-    fill: MATTE_GRAPHITE_DIGITAL_TWIN_COLORS.primaryGraphite,
+    fill: RIGGED_HUMAN_SILHOUETTE_COLORS.primaryGraphite,
     opacity: 0,
     confidence: 0,
     bounds: emptyBounds(),
@@ -874,11 +1374,14 @@ function emptyCentralShell(): ReturnType<typeof buildCentralShell> {
       sideAxis: { x: 1, y: 0 },
       neckCenter: zero,
       headCenter: zero,
+      torsoLength: 0,
+      shoulderHalf: 0,
+      hipHalf: 0,
     },
   };
 }
 
-function emptyLimb(surface: MatteGraphiteDigitalTwinSurfaceId): LimbModel {
+function emptyLimb(surface: RiggedHumanSilhouetteSurfaceId): LimbModel {
   return {
     surface,
     confidence: 0,
@@ -887,12 +1390,12 @@ function emptyLimb(surface: MatteGraphiteDigitalTwinSurfaceId): LimbModel {
     jointContinuous: false,
     path: '',
     bounds: emptyBounds(),
-    fill: MATTE_GRAPHITE_DIGITAL_TWIN_COLORS.lowConfidenceGraphite,
+    fill: RIGGED_HUMAN_SILHOUETTE_COLORS.lowConfidenceGraphite,
     opacity: 0,
   };
 }
 
-function emptyContinuity(): MatteGraphiteDigitalTwinContinuity {
+function emptyContinuity(): RiggedHumanSilhouetteContinuity {
   return {
     centralShellContinuous: false,
     headAttached: false,
@@ -967,7 +1470,7 @@ function clampHeadCenter(
 }
 
 function fillForConfidence(confidence: number, minConfidence: number, baseFill: string): string {
-  return confidence >= minConfidence ? baseFill : MATTE_GRAPHITE_DIGITAL_TWIN_COLORS.lowConfidenceGraphite;
+  return confidence >= minConfidence ? baseFill : RIGGED_HUMAN_SILHOUETTE_COLORS.lowConfidenceGraphite;
 }
 
 function opacityForConfidence(confidence: number, minConfidence: number): number {

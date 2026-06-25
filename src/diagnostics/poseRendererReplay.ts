@@ -14,10 +14,19 @@ import {
   buildPointCloudBodyGeometry,
 } from '../render/pointCloudBodyGeometry';
 import {
-  buildMatteGraphiteDigitalTwinGeometry,
-  createMatteGraphiteDigitalTwinCalibration,
-  createMatteGraphiteDigitalTwinGeometry,
-} from '../render/matteGraphiteDigitalTwinGeometry';
+  buildRiggedHumanSilhouetteGeometry,
+  createRiggedHumanSilhouetteCalibration,
+  createRiggedHumanSilhouetteGeometry,
+  createRiggedHumanSilhouetteOrientationState,
+} from '../render/riggedHumanSilhouetteGeometry';
+import {
+  buildShadowSilhouetteGeometry,
+  createShadowSilhouetteGeometry,
+} from '../render/shadowSilhouetteGeometry';
+import {
+  buildVolumetricShadowGeometry,
+  createVolumetricShadowGeometry,
+} from '../render/volumetricShadowGeometry';
 import {
   createScreenPoseLandmarks,
   mapPoseFrameToScreenPose,
@@ -35,9 +44,12 @@ export interface RendererReplayMetricSnapshot {
 
 export type PoseRendererReplayMode =
   | 'raw-skeleton'
-  | 'matte-graphite-digital-twin'
+  | 'rigged-human-silhouette'
+  | 'shadow-silhouette'
+  | 'stipple-sensor-shadow'
   | 'minimal-constellation'
   | 'full-constellation'
+  | 'refined-point-cloud-body'
   | 'full-point-cloud-body';
 
 export interface PoseRendererReplaySummary {
@@ -60,6 +72,11 @@ export interface PoseRendererReplaySummary {
   maxSurfacePathCount: number | null;
   averageInternalVertexCount: number | null;
   maxInternalVertexCount: number | null;
+  averageVirtualBoneCount: number | null;
+  maxVirtualBoneCount: number | null;
+  calibrationState: string | null;
+  orientationFactor: number | null;
+  orientationProfile: string | null;
   proportionCalibrationComplete: boolean;
 }
 
@@ -80,9 +97,12 @@ export function runPoseRendererReplaySuite(
 ): PoseRendererReplaySummary[] {
   const modes: readonly PoseRendererReplayMode[] = [
     'raw-skeleton',
-    'matte-graphite-digital-twin',
+    'rigged-human-silhouette',
+    'shadow-silhouette',
+    'stipple-sensor-shadow',
     'minimal-constellation',
     'full-constellation',
+    'refined-point-cloud-body',
     'full-point-cloud-body',
   ];
   return modes.map((mode) => runPoseRendererReplay(mode, options));
@@ -109,8 +129,11 @@ export function runPoseRendererReplay(
   const constellation = createConstellationGeometry(300);
   const bodyVolume = createBodyVolumeGeometry(180);
   const pointCloud = createPointCloudBodyGeometry(900);
-  const digitalTwin = createMatteGraphiteDigitalTwinGeometry();
-  const digitalTwinCalibration = createMatteGraphiteDigitalTwinCalibration();
+  const silhouette = createRiggedHumanSilhouetteGeometry();
+  const silhouetteCalibration = createRiggedHumanSilhouetteCalibration();
+  const silhouetteOrientation = createRiggedHumanSilhouetteOrientationState();
+  const shadowSilhouette = createShadowSilhouetteGeometry();
+  const volumetricShadow = createVolumetricShadowGeometry();
   const geometryMs = new ReplayMetric();
   let totalDots = 0;
   let maxDots = 0;
@@ -130,6 +153,11 @@ export function runPoseRendererReplay(
   let maxSurfacePathCount = 0;
   let totalInternalVertexCount = 0;
   let maxInternalVertexCount = 0;
+  let totalVirtualBoneCount = 0;
+  let maxVirtualBoneCount = 0;
+  let calibrationState: string | null = null;
+  let orientationFactor: number | null = null;
+  let orientationProfile: string | null = null;
   let proportionCalibrationComplete = false;
 
   for (let i = 0; i < frames.length; i++) {
@@ -146,26 +174,81 @@ export function runPoseRendererReplay(
       maxPrimitiveCount = Math.max(maxPrimitiveCount, lines);
     } else {
       mapPoseFrameToScreenPose(poseFrame, viewport, screenPose);
-      if (mode === 'matte-graphite-digital-twin') {
-        buildMatteGraphiteDigitalTwinGeometry(screenPose, digitalTwin, {
-          calibration: digitalTwinCalibration,
+      if (mode === 'rigged-human-silhouette') {
+        buildRiggedHumanSilhouetteGeometry(screenPose, silhouette, {
+          calibration: silhouetteCalibration,
+          orientationState: silhouetteOrientation,
         });
         shapeFrames++;
         surfaceFrames++;
-        totalShapeCount += digitalTwin.surfacePathCount;
-        maxShapeCount = Math.max(maxShapeCount, digitalTwin.surfacePathCount);
-        totalDynamicPathCount += digitalTwin.dynamicPathCount;
-        maxDynamicPathCount = Math.max(maxDynamicPathCount, digitalTwin.dynamicPathCount);
-        totalSurfacePathCount += digitalTwin.surfacePathCount;
-        maxSurfacePathCount = Math.max(maxSurfacePathCount, digitalTwin.surfacePathCount);
-        totalInternalVertexCount += digitalTwin.internalControlVertexCount;
+        totalShapeCount += silhouette.surfacePathCount;
+        maxShapeCount = Math.max(maxShapeCount, silhouette.surfacePathCount);
+        totalDynamicPathCount += silhouette.dynamicPathCount;
+        maxDynamicPathCount = Math.max(maxDynamicPathCount, silhouette.dynamicPathCount);
+        totalSurfacePathCount += silhouette.surfacePathCount;
+        maxSurfacePathCount = Math.max(maxSurfacePathCount, silhouette.surfacePathCount);
+        totalInternalVertexCount += silhouette.internalControlVertexCount;
         maxInternalVertexCount = Math.max(
           maxInternalVertexCount,
-          digitalTwin.internalControlVertexCount
+          silhouette.internalControlVertexCount
         );
-        proportionCalibrationComplete = digitalTwin.proportionCalibrationComplete;
-        totalPrimitiveCount += digitalTwin.surfacePathCount;
-        maxPrimitiveCount = Math.max(maxPrimitiveCount, digitalTwin.surfacePathCount);
+        totalVirtualBoneCount += silhouette.virtualBoneCount;
+        maxVirtualBoneCount = Math.max(maxVirtualBoneCount, silhouette.virtualBoneCount);
+        calibrationState = silhouette.calibrationState;
+        orientationFactor = silhouette.orientationFactor;
+        orientationProfile = silhouette.orientationProfile;
+        proportionCalibrationComplete = silhouette.proportionCalibrationComplete;
+        totalPrimitiveCount += silhouette.surfacePathCount;
+        maxPrimitiveCount = Math.max(maxPrimitiveCount, silhouette.surfacePathCount);
+      } else if (mode === 'shadow-silhouette') {
+        buildShadowSilhouetteGeometry(screenPose, shadowSilhouette);
+        shapeFrames++;
+        surfaceFrames++;
+        totalShapeCount += shadowSilhouette.shapeCount;
+        maxShapeCount = Math.max(maxShapeCount, shadowSilhouette.shapeCount);
+        totalDynamicPathCount += shadowSilhouette.dynamicPathCount;
+        maxDynamicPathCount = Math.max(
+          maxDynamicPathCount,
+          shadowSilhouette.dynamicPathCount
+        );
+        totalSurfacePathCount += shadowSilhouette.surfacePathCount;
+        maxSurfacePathCount = Math.max(
+          maxSurfacePathCount,
+          shadowSilhouette.surfacePathCount
+        );
+        totalPrimitiveCount += shadowSilhouette.surfacePathCount;
+        maxPrimitiveCount = Math.max(maxPrimitiveCount, shadowSilhouette.surfacePathCount);
+      } else if (mode === 'stipple-sensor-shadow') {
+        buildVolumetricShadowGeometry(screenPose, volumetricShadow, { maxDots: 3000 });
+        buildShadowSilhouetteGeometry(screenPose, shadowSilhouette);
+        shapeFrames++;
+        surfaceFrames++;
+        const hazePathCount =
+          (shadowSilhouette.limbPath ? 1 : 0) +
+          (shadowSilhouette.bodyPath ? 1 : 0) +
+          (shadowSilhouette.neckPath ? 1 : 0) +
+          (shadowSilhouette.earPath ? 1 : 0) +
+          (shadowSilhouette.headPath ? 1 : 0);
+        const renderedVolumetricMarks =
+          volumetricShadow.haloDotCount +
+          volumetricShadow.bodyDotCount +
+          volumetricShadow.coreDotCount +
+          volumetricShadow.accentDotCount +
+          hazePathCount;
+        const surfacePathCount = volumetricShadow.surfacePathCount + hazePathCount;
+        totalDots += volumetricShadow.dotCount;
+        maxDots = Math.max(maxDots, volumetricShadow.dotCount);
+        totalShapeCount += renderedVolumetricMarks;
+        maxShapeCount = Math.max(maxShapeCount, renderedVolumetricMarks);
+        totalDynamicPathCount += surfacePathCount;
+        maxDynamicPathCount = Math.max(maxDynamicPathCount, surfacePathCount);
+        totalSurfacePathCount += surfacePathCount;
+        maxSurfacePathCount = Math.max(maxSurfacePathCount, surfacePathCount);
+        totalPrimitiveCount += volumetricShadow.dotCount + hazePathCount;
+        maxPrimitiveCount = Math.max(
+          maxPrimitiveCount,
+          volumetricShadow.dotCount + hazePathCount
+        );
       } else if (mode === 'minimal-constellation') {
         buildConstellationGeometry(screenPose, chainReliability, constellation, {
           maxDots: 64,
@@ -205,6 +288,26 @@ export function runPoseRendererReplay(
         maxLines = Math.max(maxLines, constellation.lineCount);
         totalPrimitiveCount += dots + constellation.lineCount;
         maxPrimitiveCount = Math.max(maxPrimitiveCount, dots + constellation.lineCount);
+      } else if (mode === 'refined-point-cloud-body') {
+        buildPointCloudBodyGeometry(screenPose, pointCloud, {
+          pointCloudBodyEnabled: true,
+          density: 'high',
+          maxDots: 900,
+          dotScale: 2.35,
+          shapeProfile: 'refined',
+          showConnections: false,
+          showKeypoints: false,
+          lowLatencyMode: false,
+        });
+        totalDots += pointCloud.dotCount;
+        maxDots = Math.max(maxDots, pointCloud.dotCount);
+        totalLines += pointCloud.connectionLineCount;
+        maxLines = Math.max(maxLines, pointCloud.connectionLineCount);
+        totalPrimitiveCount += pointCloud.dotCount + pointCloud.connectionLineCount;
+        maxPrimitiveCount = Math.max(
+          maxPrimitiveCount,
+          pointCloud.dotCount + pointCloud.connectionLineCount
+        );
       } else {
         buildPointCloudBodyGeometry(screenPose, pointCloud, {
           pointCloudBodyEnabled: true,
@@ -252,6 +355,11 @@ export function runPoseRendererReplay(
     averageInternalVertexCount:
       surfaceFrames > 0 ? totalInternalVertexCount / surfaceFrames : null,
     maxInternalVertexCount: surfaceFrames > 0 ? maxInternalVertexCount : null,
+    averageVirtualBoneCount: surfaceFrames > 0 ? totalVirtualBoneCount / surfaceFrames : null,
+    maxVirtualBoneCount: surfaceFrames > 0 ? maxVirtualBoneCount : null,
+    calibrationState,
+    orientationFactor,
+    orientationProfile,
     proportionCalibrationComplete,
   };
 }

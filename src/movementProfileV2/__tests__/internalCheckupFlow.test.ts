@@ -12,6 +12,7 @@ import {
 } from '../../reference/movementProfileV2';
 import {
   ACTIVE_SHOULDER_REACH_V2_ID,
+  BALANCE_EYES_OPEN_V2_ID,
   CHAIR_RISE_V2_ID,
   ONE_LEG_BALANCE_V2_ID,
   type ActiveShoulderReachV2Result,
@@ -20,6 +21,7 @@ import {
 } from '../../movements';
 import {
   createCapturedActiveShoulderReachV2Result,
+  createCapturedBalanceEyesOpenV2Result,
   createCapturedChairRiseV2Result,
   createCapturedHingeReachResult,
   createCapturedOneLegBalanceV2Result,
@@ -86,6 +88,34 @@ describe('internal Movement Profile V2 flow', () => {
       ACTIVE_SHOULDER_REACH_V2_ID,
       'hinge-reach',
     ]);
+  });
+
+  it('materializes the eyes-open balance V2 battery order without mixing old and new balance items', () => {
+    let flow = createMovementProfileV2InternalFlow({ startedAt: '2026-06-24T09:00:00.000Z' });
+    flow = movementProfileV2InternalFlowReducer(flow, { type: 'confirm_chair_setup' });
+    flow = movementProfileV2InternalFlowReducer(flow, { type: 'complete_chair_practice' });
+    flow = movementProfileV2InternalFlowReducer(flow, { type: 'record_chair', result: createCapturedChairRiseV2Result({ reps: 12 }) });
+    flow = movementProfileV2InternalFlowReducer(flow, { type: 'confirm_balance_setup', standingLeg: 'left' });
+    flow = movementProfileV2InternalFlowReducer(flow, {
+      type: 'record_balance',
+      result: createCapturedBalanceEyesOpenV2Result({ standingLeg: 'left' }),
+    });
+    flow = movementProfileV2InternalFlowReducer(flow, { type: 'confirm_shoulder_setup', shoulderSide: 'right' });
+    flow = movementProfileV2InternalFlowReducer(flow, {
+      type: 'record_shoulder',
+      result: createCapturedActiveShoulderReachV2Result({ selectedSide: 'right', peakFlexionDeg: 154 }),
+    });
+    flow = movementProfileV2InternalFlowReducer(flow, { type: 'record_hinge', result: createCapturedHingeReachResult(0.24) });
+
+    const checkUp = movementProfileV2RawCheckUpFromFlow(flow);
+
+    expect(checkUp?.items.map((item) => item.movementId)).toEqual([
+      CHAIR_RISE_V2_ID,
+      BALANCE_EYES_OPEN_V2_ID,
+      ACTIVE_SHOULDER_REACH_V2_ID,
+      'hinge-reach',
+    ]);
+    expect(checkUp?.items.some((item) => item.movementId === ONE_LEG_BALANCE_V2_ID)).toBe(false);
   });
 
   it('resumes the latest raw-complete V2 record at reference details', () => {

@@ -37,6 +37,8 @@ const MISLEADING_EQUIPMENT_COPY =
 const RESULT_COPY_FILES = [
   'src/screens/ResultsScreen.tsx',
   'src/screens/OnboardingResultsScreen.tsx',
+  'src/results/v1ResultsAdapter.ts',
+  'src/results/CheckUpResultsShell.tsx',
   'src/screens/ProgressScreen.tsx',
   'src/screens/WelcomeScreen.tsx',
   'src/screens/PlanScreen.tsx',

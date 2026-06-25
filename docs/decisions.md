@@ -1500,3 +1500,235 @@ PUBLIC RELEASE REMAINS BLOCKED
 - **Evidence:** synthetic replay over 180 frames measured matte-graphite geometry at p50
   0.044 ms, p95 0.187 ms, p99 0.675 ms, max 1.338 ms with 8 surface paths and 92 internal
   control vertices. No physical benchmark was collected in this pass.
+
+## 2026-06-24 — Rigged human silhouette replaces matte benchmark prototype
+
+- **Change:** the rejected `matte-graphite-digital-twin`/`matte_graphite_digital_twin`
+  prototype was removed from active source and replaced with `rigged-human-silhouette` backed
+  by explicit renderer mode `rigged_human_silhouette`. The new renderer remains SVG-only and
+  benchmark-only: one SVG root, 7 visible filled surface paths, no filters, no raster assets,
+  and no new runtime dependency.
+- **Rig:** the renderer uses an original normalized front/side rest template with identical
+  112-control-point topology, 17 virtual bones, one- or two-influence control-point skinning,
+  width-based front/side orientation hysteresis, and benchmark-run proportion calibration.
+  Landmark positions stay raw and unsmoothed; only proportions and orientation state are
+  low-frequency state.
+- **Boundary:** production defaults remain `point_cloud_body`; `rigged_human_silhouette` is not
+  accepted through env/default renderer selection and is not selected by check-up, training,
+  micro-check, recording, or production session screens. The JavaScript benchmark renderer still
+  uses the existing latest-frame RAF scheduler and does not change MediaPipe, native camera,
+  or scheduler behavior.
+- **Evidence:** synthetic replay over 180 frames measured rigged-silhouette geometry at p50
+  0.046 ms, p95 0.131 ms, p99 0.318 ms, max 1.711 ms with 7 visible surface paths, 112 internal
+  control points, and 17 virtual bones. No physical benchmark was collected in this pass.
+
+## 2026-06-24 — Measurement protocol and side metadata becomes canonical
+
+- **Change:** check-up and micro-check persistence now use canonical measurement protocol and
+  side metadata: protocol id/version/variant, side role, selected side, observed side when
+  available, side source, anchor side, comparability status, and stable reason codes.
+  Metadata is additive inside the existing local/backend JSON envelopes; no Supabase migration
+  was introduced.
+- **Policy:** FD-002 is enforced in history/trend surfaces by requiring matching protocol and
+  side series before showing direct change claims. Legacy side-dependent records with missing
+  side remain valid raw history but default to `side_unknown_raw_only`. Chair stand, chair
+  power, TUG, and standing hinge reach remain side-independent comparison series.
+- **Boundary:** the future eyes-open balance protocol was not implemented or registered.
+  Single-leg and mobility micro-checks now fail closed to raw-only unless explicit side metadata
+  is supplied by a later side-aware UI/voice pass. MPV2 side selectors prefer stored
+  `measurementContext` and fall back to older raw side fields.
+- **Evidence:** `npx tsc --noEmit`, `npm run verify:audio`, focused metadata/history/backend/
+  progress suites, and MPV2 live/voice/recovery suites passed. Audit verdict is
+  `REMEDIATION_REQUIRED` for deferred side-aware micro-check UI and dedicated opposite-side
+  fallback copy/action. Physical-device QA remains deferred.
+
+## 2026-06-24 — Side-aware measurement UX pins side before capture
+
+- **Change:** side-dependent micro-checks now resolve side through a pure setup helper before
+  camera capture: existing side-known micro-check series first, compatible official balance
+  anchor second, explicit user choice otherwise. The runner is only created after the side is
+  pinned, and the resulting measurement context travels through the existing local/backend
+  persistence path.
+- **Policy:** mobility micro-checks do not borrow official shoulder, hinge, or balance side
+  metadata. MPV2 balance and shoulder retests show a normal same-side path plus a dedicated
+  "Use the other side" warning path. Confirmed fallback persists as reduced comparability and
+  does not overwrite the usual side anchor.
+- **Boundary:** eyes-open balance protocol V2 was not implemented. No audio assets were
+  generated or changed, and no external speech/audio API was called.
+- **Evidence:** post-UX audit verdict is `SIDE_PROTOCOL_FOUNDATION_COMPLETE` with P0/P1/P2/P3
+  counts `0/0/0/1`; the remaining P3 is deferred physical Android/iOS QA.
+
+## 2026-06-24 — Constellation V2 benchmark modes use Android native Canvas
+
+- **Change:** the diagnostics benchmark now preserves `point-cloud-900` as the clarified
+  `Current 900-dot SVG` baseline and adds Android-only `constellation-v2-900-native` and
+  `constellation-v2-600-native` modes. The V2 modes are rendered inside the local
+  `expo-pose-detection` native view with deterministic fixed topology, stable point identity,
+  preallocated point buffers, and up to 7 `Canvas.drawPoints` batches.
+- **Boundary:** production renderer defaults and screens remain unchanged. V2 modes are exposed
+  only through the diagnostics benchmark, iOS accepts the shared props as no-ops, and no Skia or
+  other dependency was added. The MediaPipe model, delegate, rotation metadata path, latest-only
+  native-to-JS event delivery, and JS benchmark baseline renderer were not changed.
+- **Evidence:** Android unit tests cover topology determinism/counts/roles, transform finiteness,
+  contain/mirror mapping, calibration reset/lock, and the existing native latest-event scheduler.
+  JVM synthetic transform metrics were V2 900 p50/p95/p99 `0.0774/0.2115/0.2293 ms` and V2 600
+  p50/p95/p99 `0.0301/0.0431/0.0555 ms`; no physical benchmark was collected in this pass.
+
+## 2026-06-24 — Constellation V2 600 retuned toward the 900-dot figure
+
+- **Finding:** the first `constellation-v2-600` pass read too sparse and outline-heavy compared
+  with the current 900-dot point-cloud baseline. Sparse roles could also bunch within only part of
+  a body capsule because local coordinates were generated from the whole-region index range.
+- **Change:** the 600 topology now uses role-local sampling so boundary, structural, and interior
+  points span the full length of each body region. Its allocation was retuned toward a perceptual
+  900-dot body: more torso/neck/forearm/hand continuity, fewer oversized foot clusters, a calmer
+  boundary ratio, and a slightly stronger structural/accent allowance. Native Canvas paints now use
+  the app's inky text, secondary stone, and mature Hale green (`#111412`, `#68706A`, `#414C34`)
+  with less oversized 600-mode dot radii.
+- **Boundary:** this remains Android benchmark-only and visual-only. Production renderer defaults,
+  JS point-cloud baseline, MediaPipe inference, pose pipeline, scoring, check-up, and training
+  logic are unchanged.
+- **Evidence:** focused native unit tests passed for Constellation V2 topology and transform
+  coverage: `./gradlew :expo-pose-detection:testDebugUnitTest --tests
+  'expo.modules.posedetection.ConstellationV2TopologyTest' --tests
+  'expo.modules.posedetection.ConstellationV2TransformTest'`. Physical-device visual review is
+  still required before promoting any V2 native mode.
+
+## 2026-06-24 — Android recording screens remain on video rotation at 640x480
+
+- **Change:** after a brief live-stream metadata experiment, training, Movement Check-Up,
+  micro-check, and the direct internal MPV2 check-up camera views now share
+  `ANDROID_VIDEO_ROT_640_POSE_PROFILE`: MediaPipe synchronous video mode, rotated bitmap
+  handling, and 640x480 Android analysis resolution. The unified MPV2 shell inherits this
+  through `CheckUpRecordingShell`.
+- **Boundary:** this restores the production recording-screen native profile to the benchmark
+  equivalent of `VIDEO rot 640`. iOS continues to treat the Android profile props as no-ops,
+  and benchmark-only renderer modes remain benchmark-only.
+- **Evidence:** `npx tsc --noEmit` passed before this rollback; a fresh typecheck should be run
+  with the final worktree before release. Physical Android regression testing remains required
+  for chair reps/rise velocity, balance holds, ROM peaks, and micro-check timing.
+
+## 2026-06-24 — Shadow silhouette benchmark renderer follows MediaPipe limbs
+
+- **Change:** added a benchmark-only `shadow-silhouette` renderer mode that builds a filled,
+  continuous-looking human shadow directly from MediaPipe landmarks. The body uses an overlapping
+  sculpted head, neck bridge, torso, pelvis, tapered arm, hand, leg, foot, and restrained material
+  highlight paths so shoulders, hips, elbows, and knees read as seamless body surfaces instead of
+  exposed skeleton lines or dot clusters.
+- **Boundary:** production recording screens and renderer defaults remain unchanged. The new mode
+  is accepted only when passed explicitly through renderer props, is rejected by env/default
+  renderer selection, uses no image/raster assets, and does not add dependencies.
+- **Evidence:** focused geometry tests cover low path count, finite paths, far-side limb dropping,
+  and limb-following movement. The headless renderer replay includes the new mode and measured 6
+  visible surface paths, 14 simple sub-shapes, and local JS geometry p50/p95 `0.041/0.088 ms` over
+  the synthetic replay stream. Physical-device visual review remains required before replacing the
+  current 900-dot production figure.
+
+## 2026-06-25 — Stipple sensor shadow explores a refined particle-human figure
+
+- **Change:** replaced the discarded volumetric/matte benchmark direction with a user-facing
+  `stipple-sensor-shadow` benchmark inspired by the current 900-dot figure and the product-owner
+  reference: a dense, technical-but-refined microdot human silhouette. The internal renderer still
+  uses `volumetric_shadow` explicit props, but the benchmark now requests 3,000 logical dots,
+  shifts deterministic density toward torso/head/neck mass, uses tiny batched circles instead of
+  toy-like blobs, and adds only a very low-opacity MediaPipe-following silhouette haze underneath
+  the dots to close gaps.
+- **Boundary:** production recording screens and renderer defaults remain unchanged. The mode is
+  explicit-props only, rejected by env/default renderer selection, uses no raster assets, makes no
+  runtime image-generation calls, and adds no dependencies. This is still a benchmark prototype
+  for visual review before any production recording-screen replacement.
+- **Evidence:** focused geometry tests cover finite batched paths, capped dense mark count,
+  far-side confidence degradation, and landmark-following movement. The headless replay includes
+  the new mode and measured 3,000 logical dots, 3,005 rendered primitives including the subtle
+  haze surfaces, 9 active SVG path layers on the synthetic stream, and local JS geometry p50/p95
+  `0.985/1.641 ms`. Physical Android/iOS visual and latency review remains required before
+  promoting this heavier figure beyond the benchmark screen.
+
+## 2026-06-25 — Refined 900-dot benchmark keeps the point-cloud direction lightweight
+
+- **Change:** added a benchmark-only `refined-point-cloud-900` variant beside the existing
+  current 900-dot SVG baseline. It keeps the same point-cloud renderer and dot-first visual
+  identity, but uses a new `refined` body shape profile with fewer extremity/keypoint marks, more
+  visual mass in the torso/head/neck, larger dot scale, unique deterministic cluster seeds, and
+  explicit joint/collar/pelvis bridge clusters so shoulders, hips, elbows, knees, pelvis, and the
+  head-to-neck transition read as one fuller dot-built figure rather than separate body parts.
+- **Boundary:** production recording screens and renderer defaults remain unchanged. The profile
+  is opt-in through explicit renderer props, uses no raster assets or image-generation runtime,
+  adds no native or JS dependency, and keeps the benchmark at a 900-dot cap with no connection
+  lines.
+- **Evidence:** focused geometry/config/benchmark/diagnostics tests pass, and `npm run
+  pose-renderer-replay` includes the new mode. On the synthetic replay stream, the refined profile
+  rendered 900 dots / 900 primitives with no lines and local JS geometry p50/p95 `0.285/0.431 ms`,
+  compared with the current full point-cloud body at 894 dots and p50/p95 `0.273/0.356 ms`.
+  Physical-device visual review remains required before promoting it beyond the benchmark screen.
+
+## 2026-06-25 — Landing page shifts to one-page empathy-to-trust narrative
+
+- **Change:** the website landing page is now planned and implemented as a single scrollable
+  ad destination for adults 45+ who may be skeptical, privacy-conscious, and reluctant to pay
+  for another fitness product. The structure moves from emotional recognition, to measurement
+  explanation, to practical home training, to privacy/trust, to beta access and FAQ.
+- **Rationale:** splitting the product story across several pages adds navigation decisions for
+  less tech-confident users and weakens the guided conversation. A single page lets Hale connect
+  everyday friction (chairs, stairs, stiffness, steadiness and independence) to the Movement
+  Check-Up, then show why the home plan is calmer and more personal than generic exercise videos.
+- **Boundary:** the landing page remains wellness-only and avoids medical claims. Privacy copy
+  continues to emphasize skeleton-only camera display, no mirror view, no public profiles, and
+  beta transparency.
+
+## 2026-06-25 — Training both-sides rounds preserve source dose behind closed gates
+
+- **Change:** added a default-closed both-sides round engine for the six FD-001 training levels:
+  single-leg hold, tandem hold, chair-supported split squat, seated hamstring reach, supported
+  hip-flexor stretch, and wall calf stretch. Each generated internal plan pins an initial side,
+  alternates first side by round, completes both sides before rest, and preserves the source
+  active dose exactly.
+- **Policy:** no source-proven minimum currently forces an adjustment, so all six use direct
+  half-set conversion. Main-plan start-side seeds default left and flip only after successful
+  main-plan completion; manual practice does not mutate the main-plan seed. Hip-flexor side
+  semantics store the stretched rear hip side, not the forward foot.
+- **Boundary:** live legacy training remains unchanged. Training Voice V2.1 and Balance V2 remain
+  default-closed; no audio was generated, changed, listened to, or approved, and no external
+  speech/audio API was called. Step-up alternating-leading-leg support was not implemented.
+- **Evidence:** audit verdict is `TRAINING_BOTH_SIDES_ROUNDS_SOFTWARE_COMPLETE` with P0/P1/P2/P3
+  `0/0/0/0`. `npm run verify:audio`, `npx tsc --noEmit`, the focused both-sides/V2.1 suites,
+  broader training/backend/MPV2/measurement regressions, and the Balance V2 audit passed.
+
+## 2026-06-25 — Step-up alternation model is software-complete and default-closed
+
+- **Change:** added a default-closed FD-005 step-up alternation model. A valid step-up set remains
+  one 12-rep set with 6 accepted left-leading reps and 6 accepted right-leading reps. The expected
+  lead flips only after an accepted rep; wrong, invalid, duplicate, stale, interrupted, paused, and
+  restored partial attempts do not credit, flip, or play rep SFX.
+- **Policy:** set start lead is pinned from the shared main-plan start-side seed and alternates by
+  set start (`L/R/L` or `R/L/R`). The seed flips only after successful main-plan completion;
+  manual/Explore practice does not mutate it.
+- **Boundary:** live legacy step-up grading was not replaced. Training Voice V2.1 remains
+  default-closed, safety/audio/global gates remain closed, no audio assets or manifests changed,
+  Balance V2 remains default-closed, and the floor-transfer readiness gate was not implemented.
+- **Evidence:** audit verdict is `TRAINING_STEP_UP_ALTERNATION_SOFTWARE_COMPLETE_DEFAULT_CLOSED`
+  with 27/27 scenarios passing, P0/P1/P2/P3 `0/0/0/0`, remaining
+  `IR-VOICE-STEP-ALTERNATION` blockers `0`, and audio asset diffs `0`.
+
+## 2026-06-25 — Landing page proof pass makes the beta offer more tangible
+
+- **Change:** added concrete check-up examples, an explicitly labelled HTML/CSS sample result,
+  plain credibility copy, and beta signup reassurance to the website landing page. The proof pass
+  avoids new imagery and keeps all new content editable in the landing content module.
+- **Boundary:** the sample result is illustrative only and does not change app scoring, pricing,
+  signup persistence, store-link behavior, or public APIs. Copy remains wellness-only: movement-age
+  ranges are framed as guidance where appropriate, not diagnosis or exact biological age.
+- **Evidence:** website unit and e2e tests now guard the sample-result label, concrete movement
+  examples, equipment truthfulness, no payment-detail collection on the signup form, and no
+  diagnostic positioning.
+
+## 2026-06-25 — Landing page visual polish reduces card-heavy structure
+
+- **Change:** refined the website landing page structure so the hero flows into a full-width page
+  guide, the proof and credibility material reads as editorial bands, and repeated process,
+  measurement and trust details use ruled layouts instead of stacked cards.
+- **Boundary:** this is a visual and structural CSS pass only. It does not change the landing copy
+  claims, pricing behavior, signup flow, public APIs, imagery, or dependencies.
+- **Evidence:** live desktop and mobile visual checks showed no horizontal overflow and a clearer
+  section rhythm; website lint, typecheck and unit tests passed before the final build and e2e
+  verification.

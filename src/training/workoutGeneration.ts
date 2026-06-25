@@ -57,6 +57,14 @@ import {
   type CollectionExposure,
   type PlannedCollectionSelection,
 } from './collectionSelection';
+import type {
+  BothSidesDosePlan,
+  TrainingRoundSide,
+} from './bothSidesRounds';
+import type {
+  StepUpAlternationPlan,
+  StepUpLeadSide,
+} from './stepUpAlternation';
 
 export type TrainingDomain = 'strength_power' | 'balance_stability' | 'mobility_flexibility';
 export type SessionSource = 'block_generated' | 'preset' | 'manual';
@@ -249,6 +257,10 @@ export interface GeneratedExercise {
   doseBeforeAdjustment?: GeneratedExerciseDose;
   adjustmentReasons?: readonly DailyTrainingReasonCode[];
   collectionSelection?: PlannedCollectionSelection;
+  bothSidesDosePlan?: BothSidesDosePlan;
+  bothSidesInitialStartSide?: TrainingRoundSide;
+  stepUpAlternationPlan?: StepUpAlternationPlan;
+  stepUpInitialLeadSide?: StepUpLeadSide;
 }
 
 export interface GeneratedExerciseDose {

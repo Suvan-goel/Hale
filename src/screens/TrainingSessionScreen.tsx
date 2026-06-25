@@ -41,6 +41,7 @@ import {
   isPoseLatencyDiagnosticsEnabled,
 } from '../diagnostics/poseLatencyDiagnostics';
 import { getExercise, type ExerciseDefinition } from '../exercises';
+import { ANDROID_VIDEO_ROT_640_POSE_PROFILE } from '../pose/nativePoseProfiles';
 import { PosePipeline } from '../pose/pipeline';
 import { PreflightCheck } from '../preflight/preflight';
 import type { PreflightPrompt } from '../preflight/preflight';
@@ -416,6 +417,7 @@ export function TrainingSessionScreen({
               <SafePoseDetectionView
                 active
                 modelVariant="full"
+                {...ANDROID_VIDEO_ROT_640_POSE_PROFILE}
                 latencyDiagnosticsEnabled={poseLatencyDiagnostics !== null}
                 nativeSkeletonOverlayEnabled
                 nativeSkeletonColor={TEMP_TRAINING_NATIVE_SKELETON_COLOR}

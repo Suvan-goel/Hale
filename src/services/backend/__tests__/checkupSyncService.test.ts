@@ -105,6 +105,29 @@ describe('movement check-up sync mapping', () => {
     expect(payload.derived_scores_json).toHaveProperty('scoreSnapshot');
     expect(payload.raw_checkup_json).toMatchObject({ checkupType: 'baseline' });
     expect(payload.raw_checkup_json).toHaveProperty('scoreSnapshot');
+    expect(payload.raw_checkup_json).toMatchObject({
+      checkUp: {
+        measurementProtocol: {
+          protocolId: 'legacy_movement_age_battery_v1',
+          protocolVersion: 1,
+        },
+        items: expect.arrayContaining([
+          expect.objectContaining({
+            movementId: CHAIR_STAND_ID,
+            measurementContext: expect.objectContaining({
+              protocol: { protocolId: 'legacy_chair_stand_30s', protocolVersion: 1 },
+              side: expect.objectContaining({ role: 'not_applicable' }),
+            }),
+          }),
+          expect.objectContaining({
+            movementId: BALANCE_LADDER_ID,
+            measurementContext: expect.objectContaining({
+              comparability: expect.objectContaining({ overallStatus: 'raw_only' }),
+            }),
+          }),
+        ]),
+      },
+    });
 
     const rawJson = JSON.stringify(payload.raw_checkup_json);
     expect(rawJson).not.toContain('frames');

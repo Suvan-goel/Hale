@@ -11,6 +11,8 @@ import {
 } from '../../adherence';
 import {
   MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
+  checkUpMeasurementMetadataRichness,
+  microCheckMeasurementMetadataRichness,
   normalizeCheckUpRecordProtocolPolicy,
   type CheckUp,
 } from '../../checkup';
@@ -407,6 +409,9 @@ function chooseRestoredCheckUp(existing: StoredCheckUp, next: StoredCheckUp): St
   ) {
     return existing;
   }
+  if (checkUpMeasurementMetadataRichness(next.checkUp) > checkUpMeasurementMetadataRichness(existing.checkUp)) {
+    return next;
+  }
   return existing;
 }
 
@@ -466,18 +471,19 @@ export function mapRemoteSessionCompletionsToLocal(
 }
 
 export function mapRemoteMicroChecksToLocal(rows: readonly RemoteMicroCheckRow[]): MicroCheckResult[] {
-  const results: MicroCheckResult[] = [];
-  const seen = new Set<string>();
+  const resultsByKey = new Map<string, MicroCheckResult>();
 
   for (const row of rows) {
     const result = microCheckFromRemoteRow(row);
     if (!result) continue;
     const key = `${result.type}:${result.startedAt}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    results.push(result);
+    const existing = resultsByKey.get(key);
+    if (!existing || microCheckMeasurementMetadataRichness(result) > microCheckMeasurementMetadataRichness(existing)) {
+      resultsByKey.set(key, result);
+    }
   }
 
+  const results = Array.from(resultsByKey.values());
   return results.sort((a, b) => a.startedAt.localeCompare(b.startedAt));
 }
 

@@ -5,6 +5,7 @@ import {
   ScrollView,
   Share,
   StyleSheet,
+  StatusBar,
   Text,
   TextInput,
   View,
@@ -15,12 +16,15 @@ import type {
   AndroidPosePipelineMode,
   AndroidPoseRotationMode,
   LandmarksEventPayload,
+  NativeBenchmarkOverlayMode,
+  PoseLatencyNativeRendererDiagnostics,
 } from '../../modules/expo-pose-detection';
 import {
   CameraUnavailableNotice,
   SafePoseDetectionView,
 } from '../components/SafePoseDetectionView';
 import type { CameraAvailability } from '../components/SafePoseDetectionView';
+import { useSystemInsets } from '../components/SystemInsetsProvider';
 import { PoseLatencyDiagnosticsOverlay } from '../diagnostics/PoseLatencyDiagnosticsOverlay';
 import {
   createPoseLatencyDiagnostics,
@@ -40,14 +44,23 @@ import { colors, monoFamily, radius, spacing, type } from '../theme';
 type BenchmarkModeId =
   | 'no-overlay'
   | 'raw-skeleton'
-  | 'matte-graphite-digital-twin'
+  | 'rigged-human-silhouette'
+  | 'shadow-silhouette'
+  | 'stipple-sensor-shadow'
   | 'minimal-constellation'
   | 'full-constellation'
   | 'point-cloud-225'
   | 'point-cloud-450'
   | 'point-cloud-900'
+  | 'refined-point-cloud-900'
   | 'production-point-cloud'
-  | 'production-point-cloud-no-transitions';
+  | 'production-point-cloud-no-transitions'
+  | 'constellation-v2-900-native'
+  | 'constellation-v2-600-native';
+
+export const CURRENT_900_DOT_BASELINE_MODE_ID: BenchmarkModeId = 'point-cloud-900';
+export const CONSTELLATION_V2_900_MODE_ID: BenchmarkModeId = 'constellation-v2-900-native';
+export const CONSTELLATION_V2_600_MODE_ID: BenchmarkModeId = 'constellation-v2-600-native';
 
 interface BenchmarkMode {
   id: BenchmarkModeId;
@@ -56,6 +69,8 @@ interface BenchmarkMode {
   configuredDotCount: number | null;
   configuredShapeCount?: number | null;
   rendererProps: PoseAvatarRendererProps | null;
+  nativeBenchmarkOverlayMode?: NativeBenchmarkOverlayMode;
+  nativeRendererBackend?: string | null;
 }
 
 interface RendererStats {
@@ -80,8 +95,13 @@ interface RendererStats {
   maxSurfacePathCount: number;
   totalInternalControlVertexCount: number;
   maxInternalControlVertexCount: number;
+  totalVirtualBoneCount: number;
+  maxVirtualBoneCount: number;
   lastSurfacePathCount: number;
   lastInternalControlVertexCount: number;
+  lastVirtualBoneCount: number;
+  lastOrientationFactor: number | null;
+  lastOrientationProfile: string | null;
   lastProportionCalibrationComplete: boolean;
   lastProportionCalibrationState: string | null;
 }
@@ -131,13 +151,20 @@ interface BenchmarkResult {
     maxSurfacePathCount: number;
     averageInternalVertexCount: number | null;
     maxInternalVertexCount: number;
+    averageVirtualBoneCount: number | null;
+    maxVirtualBoneCount: number;
+    orientationFactor: number | null;
+    orientationProfile: string | null;
+    calibrationState: string | null;
     proportionCalibrationComplete: boolean;
     latestDisplayedFrameId: null;
   };
+  rendererNative: PoseLatencyNativeRendererDiagnostics | null;
   unavailableMetrics: string[];
 }
 
-const BENCHMARK_MODES: readonly BenchmarkMode[] = [
+export function createPoseOverlayBenchmarkModes(platformOS: string): readonly BenchmarkMode[] {
+  const modes: BenchmarkMode[] = [
   {
     id: 'no-overlay',
     title: 'No overlay',
@@ -157,16 +184,61 @@ const BENCHMARK_MODES: readonly BenchmarkMode[] = [
     },
   },
   {
-    id: 'matte-graphite-digital-twin',
-    title: 'Matte graphite digital twin',
-    subtitle: 'Continuous low-complexity body surface',
+    id: 'rigged-human-silhouette',
+    title: 'Rigged human silhouette',
+    subtitle: 'Continuous filled body, rigged control mesh',
     configuredDotCount: 0,
     configuredShapeCount: 8,
     rendererProps: {
-      mode: 'matte_graphite_digital_twin',
+      mode: 'rigged_human_silhouette',
       frameSource: 'raw',
       fit: 'contain',
       smoothingEnabled: false,
+      confidenceFadingEnabled: false,
+      confidenceIntensityEnabled: false,
+      reacquisitionFadeEnabled: false,
+      recognitionPulseEnabled: false,
+      measurementStatesEnabled: false,
+      setupGuidesEnabled: false,
+      stateTransitionsEnabled: false,
+      domainEmphasisEnabled: false,
+      scanLineEnabled: false,
+    },
+  },
+  {
+    id: 'shadow-silhouette',
+    title: 'Shadow silhouette',
+    subtitle: 'Filled MediaPipe-following body paths',
+    configuredDotCount: 0,
+    configuredShapeCount: 6,
+    rendererProps: {
+      mode: 'shadow_silhouette',
+      frameSource: 'raw',
+      fit: 'contain',
+      smoothingEnabled: false,
+      confidenceFadingEnabled: false,
+      confidenceIntensityEnabled: false,
+      reacquisitionFadeEnabled: false,
+      recognitionPulseEnabled: false,
+      measurementStatesEnabled: false,
+      setupGuidesEnabled: false,
+      stateTransitionsEnabled: false,
+      domainEmphasisEnabled: false,
+      scanLineEnabled: false,
+    },
+  },
+  {
+    id: 'stipple-sensor-shadow',
+    title: 'Stipple sensor shadow',
+    subtitle: 'Dense microdot body, refined sensor grain',
+    configuredDotCount: 3000,
+    configuredShapeCount: 9,
+    rendererProps: {
+      mode: 'volumetric_shadow',
+      frameSource: 'raw',
+      fit: 'contain',
+      smoothingEnabled: false,
+      pointCloudBodyMaxDots: 3000,
       confidenceFadingEnabled: false,
       confidenceIntensityEnabled: false,
       reacquisitionFadeEnabled: false,
@@ -234,14 +306,37 @@ const BENCHMARK_MODES: readonly BenchmarkMode[] = [
   },
   pointCloudMode('point-cloud-225', 'Point cloud 225', 225, false),
   pointCloudMode('point-cloud-450', 'Point cloud 450', 450, false),
-  pointCloudMode('point-cloud-900', 'Point cloud 900', 900, false),
+  pointCloudMode(CURRENT_900_DOT_BASELINE_MODE_ID, 'Current 900-dot SVG', 900, false),
+  refinedPointCloudMode(),
   productionPointCloudMode('production-point-cloud', 'Production point cloud', false),
   productionPointCloudMode(
     'production-point-cloud-no-transitions',
     'Production, no transitions',
     true
   ),
-];
+  ];
+  if (platformOS === 'android') {
+    modes.push(
+      nativeConstellationV2Mode(
+        CONSTELLATION_V2_900_MODE_ID,
+        'Constellation V2 · 900',
+        'Android native Canvas batches',
+        'constellation-v2-900',
+        900
+      ),
+      nativeConstellationV2Mode(
+        CONSTELLATION_V2_600_MODE_ID,
+        'Constellation V2 · 600',
+        'Android native, silhouette weighted',
+        'constellation-v2-600',
+        600
+      )
+    );
+  }
+  return modes;
+}
+
+const BENCHMARK_MODES: readonly BenchmarkMode[] = createPoseOverlayBenchmarkModes(Platform.OS);
 
 const NATIVE_PROFILES: readonly NativeProfile[] = [
   {
@@ -288,8 +383,14 @@ const NATIVE_PROFILES: readonly NativeProfile[] = [
 
 export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) {
   const diagnosticsAllowed = isPoseLatencyDiagnosticsEnabled();
+  const systemInsets = useSystemInsets();
+  const topChromeOffset =
+    Math.max(systemInsets.top, Platform.OS === 'android' ? StatusBar.currentHeight ?? 0 : 0) +
+    spacing.sm;
+  const bottomChromeOffset = Math.max(systemInsets.bottom, 0) + spacing.md;
   const [modeId, setModeId] = React.useState<BenchmarkModeId>('raw-skeleton');
   const mode = BENCHMARK_MODES.find((candidate) => candidate.id === modeId) ?? BENCHMARK_MODES[1];
+  const nativeBenchmarkOverlayMode = mode.nativeBenchmarkOverlayMode ?? 'off';
   const [nativeProfileId, setNativeProfileId] =
     React.useState<NativeProfileId>('video-rotated-640');
   const nativeProfile =
@@ -306,6 +407,7 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
   const [snapshot, setSnapshot] = React.useState<PoseLatencyDiagnosticsSnapshot | null>(null);
   const [resultJson, setResultJson] = React.useState<string>('');
   const [running, setRunning] = React.useState(false);
+  const [detailsVisible, setDetailsVisible] = React.useState(false);
   const [rendererEpoch, setRendererEpoch] = React.useState(0);
   const stopTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const runStartedAtRef = React.useRef<number | null>(null);
@@ -437,6 +539,17 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
         );
         stats.lastInternalControlVertexCount = event.internalControlVertexCount;
       }
+      if (typeof event.virtualBoneCount === 'number') {
+        stats.totalVirtualBoneCount += event.virtualBoneCount;
+        stats.maxVirtualBoneCount = Math.max(stats.maxVirtualBoneCount, event.virtualBoneCount);
+        stats.lastVirtualBoneCount = event.virtualBoneCount;
+      }
+      if (typeof event.orientationFactor === 'number') {
+        stats.lastOrientationFactor = event.orientationFactor;
+      }
+      if (typeof event.orientationProfile === 'string') {
+        stats.lastOrientationProfile = event.orientationProfile;
+      }
       if (typeof event.proportionCalibrationComplete === 'boolean') {
         stats.lastProportionCalibrationComplete = event.proportionCalibrationComplete;
       }
@@ -484,6 +597,8 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
         androidPipelineMode={nativeProfile.pipelineMode}
         androidRotationMode={nativeProfile.rotationMode}
         androidAnalysisResolution={nativeProfile.analysisResolution}
+        nativeBenchmarkOverlayMode={nativeBenchmarkOverlayMode}
+        nativeBenchmarkOverlayResetKey={rendererEpoch}
         style={StyleSheet.absoluteFill}
         onLandmarks={onLandmarks}
         onAvailabilityChange={setCameraAvailability}
@@ -500,47 +615,38 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
         />
       ) : null}
 
-      <View style={styles.topPanel} pointerEvents="box-none">
+      <View style={[styles.topPanel, { top: topChromeOffset }]} pointerEvents="box-none">
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.eyebrow}>Pose overlay benchmark</Text>
-            <Text style={styles.title}>{mode.title}</Text>
+            <Text style={styles.benchmarkTitle}>{mode.title}</Text>
           </View>
           {onBack ? <BenchmarkButton label="Back" onPress={onBack} compact /> : null}
         </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.modeRow}
-        >
-          {BENCHMARK_MODES.map((candidate) => (
-            <ModeButton
-              key={candidate.id}
-              mode={candidate}
-              selected={candidate.id === mode.id}
-              disabled={running}
-              onPress={() => setModeId(candidate.id)}
-            />
-          ))}
-        </ScrollView>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.modeRow}
-        >
-          {NATIVE_PROFILES.map((candidate) => (
-            <NativeProfileButton
-              key={candidate.id}
-              profile={candidate}
-              selected={candidate.id === nativeProfile.id}
-              disabled={running}
-              onPress={() => setNativeProfileId(candidate.id)}
-            />
-          ))}
-        </ScrollView>
       </View>
 
-      <View style={styles.bottomPanel}>
+      <View
+        style={[
+          styles.bottomPanel,
+          { bottom: bottomChromeOffset },
+          detailsVisible && styles.bottomPanelExpanded,
+        ]}
+      >
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryTextGroup}>
+            <Text style={styles.summaryTitle} numberOfLines={1}>
+              {mode.title}
+            </Text>
+            <Text style={styles.summarySubtitle} numberOfLines={1}>
+              {nativeProfile.title} · {mode.configuredDotCount ?? 0} dots
+            </Text>
+          </View>
+          <BenchmarkButton
+            label={detailsVisible ? 'Hide controls' : 'Change figure'}
+            onPress={() => setDetailsVisible((visible) => !visible)}
+            compact
+          />
+        </View>
         <View style={styles.buttonRow}>
           <BenchmarkButton
             label={running ? 'Running 30s' : 'Run 30s'}
@@ -552,33 +658,75 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
             onPress={() => startMeasurement(60_000)}
             disabled={running}
           />
-          <BenchmarkButton
-            label={running ? 'Running 10m' : 'Run 10m'}
-            onPress={() => startMeasurement(600_000)}
-            disabled={running}
-          />
           <BenchmarkButton label="Stop" onPress={stopMeasurement} disabled={!running} />
           <BenchmarkButton label="Export JSON" onPress={exportJson} disabled={!resultJson} />
         </View>
-        {snapshot ? (
-          <>
-            <MetricsStrip snapshot={snapshot} />
-            <RendererMetricsStrip mode={mode} stats={rendererStatsRef.current} />
-            <NativeRuntimeStrip runtime={snapshot.nativeRuntime} />
-          </>
-        ) : null}
-        {resultJson ? (
-          <TextInput
-            value={resultJson}
-            editable={false}
-            multiline
-            selectTextOnFocus
-            style={styles.resultBox}
-          />
+        {detailsVisible ? (
+          <ScrollView
+            style={styles.detailsScroll}
+            contentContainerStyle={styles.detailsContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <BenchmarkButton
+              label={running ? 'Running 10m' : 'Run 10m'}
+              onPress={() => startMeasurement(600_000)}
+              disabled={running}
+            />
+            <Text style={styles.detailSectionTitle}>Overlay</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.modeRow}
+            >
+              {BENCHMARK_MODES.map((candidate) => (
+                <ModeButton
+                  key={candidate.id}
+                  mode={candidate}
+                  selected={candidate.id === mode.id}
+                  disabled={running}
+                  onPress={() => setModeId(candidate.id)}
+                />
+              ))}
+            </ScrollView>
+            <Text style={styles.detailSectionTitle}>Native profile</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.modeRow}
+            >
+              {NATIVE_PROFILES.map((candidate) => (
+                <NativeProfileButton
+                  key={candidate.id}
+                  profile={candidate}
+                  selected={candidate.id === nativeProfile.id}
+                  disabled={running}
+                  onPress={() => setNativeProfileId(candidate.id)}
+                />
+              ))}
+            </ScrollView>
+            {snapshot ? (
+              <>
+                <Text style={styles.detailSectionTitle}>Metrics</Text>
+                <MetricsStrip snapshot={snapshot} />
+                <RendererMetricsStrip mode={mode} stats={rendererStatsRef.current} />
+                <NativeRuntimeStrip runtime={snapshot.nativeRuntime} />
+                <NativeRendererMetricsStrip nativeRenderer={snapshot.nativeRenderer} />
+              </>
+            ) : null}
+            {resultJson ? (
+              <TextInput
+                value={resultJson}
+                editable={false}
+                multiline
+                selectTextOnFocus
+                style={styles.resultBox}
+              />
+            ) : null}
+          </ScrollView>
         ) : null}
       </View>
 
-      <PoseLatencyDiagnosticsOverlay diagnostics={diagnostics} />
+      {detailsVisible ? <PoseLatencyDiagnosticsOverlay diagnostics={diagnostics} /> : null}
     </View>
   );
 }
@@ -618,6 +766,37 @@ function pointCloudMode(
   };
 }
 
+function refinedPointCloudMode(): BenchmarkMode {
+  return {
+    id: 'refined-point-cloud-900',
+    title: 'Refined organic 900-dot SVG',
+    subtitle: 'Fuller dots, organic joint density',
+    configuredDotCount: 900,
+    rendererProps: {
+      mode: 'point_cloud_body',
+      frameSource: 'raw',
+      fit: 'contain',
+      smoothingEnabled: false,
+      pointCloudBodyDensity: 'high',
+      pointCloudBodyMaxDots: 900,
+      pointCloudBodyDotScale: 2.35,
+      pointCloudBodyShapeProfile: 'refined',
+      pointCloudBodyShowConnections: false,
+      pointCloudBodyShowSkeletonLines: false,
+      pointCloudBodyShowKeypoints: false,
+      confidenceFadingEnabled: false,
+      confidenceIntensityEnabled: false,
+      reacquisitionFadeEnabled: false,
+      recognitionPulseEnabled: false,
+      measurementStatesEnabled: false,
+      setupGuidesEnabled: false,
+      stateTransitionsEnabled: false,
+      domainEmphasisEnabled: false,
+      scanLineEnabled: false,
+    },
+  };
+}
+
 function productionPointCloudMode(
   id: BenchmarkModeId,
   title: string,
@@ -651,6 +830,24 @@ function productionPointCloudMode(
       domainEmphasisEnabled: !disableAllTransitions,
       scanLineEnabled: false,
     },
+  };
+}
+
+function nativeConstellationV2Mode(
+  id: BenchmarkModeId,
+  title: string,
+  subtitle: string,
+  nativeBenchmarkOverlayMode: NativeBenchmarkOverlayMode,
+  configuredDotCount: number
+): BenchmarkMode {
+  return {
+    id,
+    title,
+    subtitle,
+    configuredDotCount,
+    rendererProps: null,
+    nativeBenchmarkOverlayMode,
+    nativeRendererBackend: 'android-native-canvas',
   };
 }
 
@@ -696,6 +893,24 @@ function NativeRuntimeStrip({ runtime }: { runtime: PoseNativeRuntimeSnapshot | 
   );
 }
 
+function NativeRendererMetricsStrip({
+  nativeRenderer,
+}: {
+  nativeRenderer: PoseLatencyNativeRendererDiagnostics | null;
+}) {
+  if (!nativeRenderer) return null;
+  return (
+    <View style={styles.metricsStrip}>
+      <Metric label="Native pts" value={String(nativeRenderer.lastVisiblePointCount)} />
+      <Metric label="Xform p95" value={metricValue(nativeRenderer.transformMs.p95)} />
+      <Metric label="Draw p95" value={metricValue(nativeRenderer.drawMs.p95)} />
+      <Metric label="Native Hz" value={nativeRenderer.publishedHz.toFixed(0)} />
+      <Metric label="Coalesced" value={String(nativeRenderer.framesCoalesced)} />
+      <Metric label="Cal" value={nativeRenderer.calibrationState} />
+    </View>
+  );
+}
+
 function RendererMetricsStrip({
   mode,
   stats,
@@ -703,16 +918,35 @@ function RendererMetricsStrip({
   mode: BenchmarkMode;
   stats: RendererStats;
 }) {
-  if (mode.id !== 'matte-graphite-digital-twin') return null;
+  if (mode.id === 'shadow-silhouette' || mode.id === 'stipple-sensor-shadow') {
+    return (
+      <View style={styles.metricsStrip}>
+        <Metric label="Paths" value={String(stats.lastSurfacePathCount)} />
+        <Metric label="Shapes" value={String(stats.maxShapes)} />
+        <Metric label="Dots" value={String(stats.maxDots)} />
+        <Metric label="Dyn paths" value={String(stats.maxDynamicPaths)} />
+      </View>
+    );
+  }
+  if (mode.id !== 'rigged-human-silhouette') return null;
   return (
     <View style={styles.metricsStrip}>
       <Metric label="Paths" value={String(stats.lastSurfacePathCount)} />
       <Metric label="Ctrl verts" value={String(stats.lastInternalControlVertexCount)} />
+      <Metric label="Bones" value={String(stats.lastVirtualBoneCount)} />
+      <Metric
+        label="Orient"
+        value={
+          stats.lastOrientationProfile
+            ? `${stats.lastOrientationProfile} ${((stats.lastOrientationFactor ?? 0) * 100).toFixed(0)}%`
+            : 'front 0%'
+        }
+      />
       <Metric
         label="Cal"
         value={
           stats.lastProportionCalibrationState ??
-          (stats.lastProportionCalibrationComplete ? 'locked' : 'fallback')
+          (stats.lastProportionCalibrationComplete ? 'locked' : 'neutral')
         }
       />
     </View>
@@ -871,8 +1105,13 @@ function emptyRendererStats(): RendererStats {
     maxSurfacePathCount: 0,
     totalInternalControlVertexCount: 0,
     maxInternalControlVertexCount: 0,
+    totalVirtualBoneCount: 0,
+    maxVirtualBoneCount: 0,
     lastSurfacePathCount: 0,
     lastInternalControlVertexCount: 0,
+    lastVirtualBoneCount: 0,
+    lastOrientationFactor: null,
+    lastOrientationProfile: null,
     lastProportionCalibrationComplete: false,
     lastProportionCalibrationState: null,
   };
@@ -938,9 +1177,16 @@ function buildBenchmarkResult({
       averageInternalVertexCount:
         surfaceFrames > 0 ? rendererStats.totalInternalControlVertexCount / surfaceFrames : null,
       maxInternalVertexCount: rendererStats.maxInternalControlVertexCount,
+      averageVirtualBoneCount:
+        surfaceFrames > 0 ? rendererStats.totalVirtualBoneCount / surfaceFrames : null,
+      maxVirtualBoneCount: rendererStats.maxVirtualBoneCount,
+      orientationFactor: rendererStats.lastOrientationFactor,
+      orientationProfile: rendererStats.lastOrientationProfile,
+      calibrationState: rendererStats.lastProportionCalibrationState,
       proportionCalibrationComplete: rendererStats.lastProportionCalibrationComplete,
       latestDisplayedFrameId: null,
     },
+    rendererNative: snapshot.nativeRenderer,
     unavailableMetrics: [
       'physical display presentation timestamp',
       'latest displayed native frame id',
@@ -964,17 +1210,25 @@ const styles = StyleSheet.create({
     top: spacing.lg,
     left: spacing.md,
     right: spacing.md,
-    gap: spacing.sm,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.md,
+    alignSelf: 'stretch',
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255,253,249,0.78)',
   },
   eyebrow: {
     ...type.cardCaption,
     color: colors.textSecondary,
+  },
+  benchmarkTitle: {
+    ...type.h3,
+    color: colors.textPrimary,
   },
   title: {
     ...type.h1,
@@ -1031,7 +1285,29 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     padding: spacing.sm,
     borderRadius: radius.sm,
-    backgroundColor: 'rgba(251,245,239,0.94)',
+    backgroundColor: 'rgba(255,253,249,0.86)',
+  },
+  bottomPanelExpanded: {
+    maxHeight: '68%',
+    backgroundColor: 'rgba(255,253,249,0.96)',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  summaryTextGroup: {
+    flex: 1,
+    minWidth: 0,
+  },
+  summaryTitle: {
+    ...type.cardRowTitle,
+    color: colors.textPrimary,
+  },
+  summarySubtitle: {
+    ...type.cardCaption,
+    color: colors.textSecondary,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -1053,6 +1329,20 @@ const styles = StyleSheet.create({
   buttonText: {
     ...type.button,
     color: colors.onAccent,
+  },
+  detailsScroll: {
+    flexGrow: 0,
+  },
+  detailsContent: {
+    gap: spacing.sm,
+    paddingBottom: spacing.xs,
+  },
+  detailSectionTitle: {
+    color: colors.textSecondary,
+    fontFamily: monoFamily,
+    fontSize: 10,
+    lineHeight: 13,
+    textTransform: 'uppercase',
   },
   metricsStrip: {
     flexDirection: 'row',

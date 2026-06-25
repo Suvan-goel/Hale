@@ -406,7 +406,13 @@ describe('remote restore service', () => {
     ]);
     expect(mapped.state.adherence.completions[0].id).toBe('session-1');
     expect(blockProgress(mapped.state.adherence.blocks[0], mapped.state.adherence.completions).completedSessions).toBe(0);
-    expect(mapped.state.microChecks[0]).toEqual(microCheck());
+    expect(mapped.state.microChecks[0]).toMatchObject({
+      ...microCheck(),
+      measurementContext: {
+        protocol: { protocolId: 'micro_chair_power_5_reps_v1', protocolVersion: 1 },
+        side: { role: 'not_applicable' },
+      },
+    });
     expect(mapped.state.adherence.reports[0].id).toBe('report-movement-block-1');
     expect(mapped.gaps).toEqual(
       expect.arrayContaining([

@@ -125,7 +125,8 @@ describe('Check-Up flow integration — persist, reload, score, trend', () => {
     expect(vel?.points).toHaveLength(2);
     expect(vel?.delta).toBeCloseTo(0.04, 5); // improved (betterIsHigher)
     expect(bal?.points).toHaveLength(2);
-    expect(bal?.delta).toBeCloseTo(3, 5);
+    expect(bal?.delta).toBeNull();
+    expect(bal?.deltaSuppressedReason).toBe('insufficient_comparability');
   });
 
   it('survives a restart — a fresh store over the same files reloads the history', async () => {

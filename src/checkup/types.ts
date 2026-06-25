@@ -12,6 +12,7 @@
 import { MovementResultBase } from '../movements';
 import type { MovementProfileV2Assessment } from '../reference/movementProfileV2/assessment';
 import type { StoredMovementProfileV2Snapshot } from '../reference/movementProfileV2/snapshot';
+import type { MeasurementContext, MeasurementProtocolRef } from './measurementContext';
 import type { CheckUpProtocolPolicy } from './protocolPolicy';
 
 export type CheckUpItemStatus = 'measured' | 'skipped' | 'unmeasured';
@@ -19,6 +20,12 @@ export type CheckUpItemStatus = 'measured' | 'skipped' | 'unmeasured';
 export interface CheckUpItem {
   movementId: string;
   status: CheckUpItemStatus;
+  /**
+   * Frozen protocol/side context for this measured item. Missing legacy records
+   * are normalized at serialization/read boundaries; side-dependent missing
+   * metadata is raw-only, never inferred.
+   */
+  measurementContext?: MeasurementContext;
   /** The grader result; null when skipped. Present-but-unmeasured carries the
    * grader's own `no-measurement` flag. */
   result: MovementResultBase | null;
@@ -32,6 +39,8 @@ export interface CheckUp {
    * `legacy_movement_age_v1` at validation boundaries.
    */
   protocolPolicy?: CheckUpProtocolPolicy;
+  /** Frozen battery/check-up procedure identity. */
+  measurementProtocol?: MeasurementProtocolRef;
   /** Body-unit scale captured for the session (diagnostic / drift check). */
   bodyUnit: number | null;
   items: CheckUpItem[];

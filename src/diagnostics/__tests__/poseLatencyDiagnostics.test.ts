@@ -26,6 +26,15 @@ describe('pose latency diagnostics', () => {
         true
       )
     ).toBe(true);
+    expect(
+      isPoseLatencyDiagnosticsEnabled(
+        {
+          EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS: 'true',
+        },
+        null,
+        true
+      )
+    ).toBe(false);
   });
 
   it('can be enabled from app config extra', () => {
@@ -60,6 +69,16 @@ describe('pose latency diagnostics', () => {
     ).toBe(true);
     expect(
       isPoseLatencyDiagnosticsEnabled(
+        {
+          EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS: '1',
+          EXPO_PUBLIC_ALLOW_DIAGNOSTICS_IN_RELEASE: 'true',
+        },
+        null,
+        false
+      )
+    ).toBe(false);
+    expect(
+      isPoseLatencyDiagnosticsEnabled(
         {},
         {
           extra: {
@@ -91,6 +110,58 @@ describe('pose latency diagnostics', () => {
       releaseAllowed: true,
       enabled: true,
     });
+  });
+
+  it('keeps app config diagnostics defaults off unless the build env uses exact opt-ins', () => {
+    const originalEnable = process.env.EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS;
+    const originalAllow = process.env.EXPO_PUBLIC_ALLOW_DIAGNOSTICS_IN_RELEASE;
+    const resolveExtra = (
+      enable: string | undefined,
+      allow: string | undefined
+    ): { enablePoseLatencyDiagnostics: boolean; allowDiagnosticsInRelease: boolean } => {
+      jest.resetModules();
+      if (enable === undefined) {
+        delete process.env.EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS;
+      } else {
+        process.env.EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS = enable;
+      }
+      if (allow === undefined) {
+        delete process.env.EXPO_PUBLIC_ALLOW_DIAGNOSTICS_IN_RELEASE;
+      } else {
+        process.env.EXPO_PUBLIC_ALLOW_DIAGNOSTICS_IN_RELEASE = allow;
+      }
+      const buildConfig = require('../../../app.config.js') as (input: {
+        config: { extra?: Record<string, unknown> };
+      }) => { extra: { enablePoseLatencyDiagnostics: boolean; allowDiagnosticsInRelease: boolean } };
+      return buildConfig({ config: { extra: {} } }).extra;
+    };
+
+    try {
+      expect(resolveExtra(undefined, undefined)).toMatchObject({
+        enablePoseLatencyDiagnostics: false,
+        allowDiagnosticsInRelease: false,
+      });
+      expect(resolveExtra('true', 'true')).toMatchObject({
+        enablePoseLatencyDiagnostics: false,
+        allowDiagnosticsInRelease: false,
+      });
+      expect(resolveExtra('1', '1')).toMatchObject({
+        enablePoseLatencyDiagnostics: true,
+        allowDiagnosticsInRelease: true,
+      });
+    } finally {
+      jest.resetModules();
+      if (originalEnable === undefined) {
+        delete process.env.EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS;
+      } else {
+        process.env.EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS = originalEnable;
+      }
+      if (originalAllow === undefined) {
+        delete process.env.EXPO_PUBLIC_ALLOW_DIAGNOSTICS_IN_RELEASE;
+      } else {
+        process.env.EXPO_PUBLIC_ALLOW_DIAGNOSTICS_IN_RELEASE = originalAllow;
+      }
+    }
   });
 
   it('tracks native timings, JS transform cost, rates, stale frames, and ordering', () => {
@@ -164,6 +235,46 @@ describe('pose latency diagnostics', () => {
         nativeEventCoalescedCount: 1,
         nativeEventRejectedCount: 0,
         nativeEventEmittedCount: 2,
+        nativeRenderer: {
+          backend: 'android-native-canvas',
+          mode: 'constellation-v2-900',
+          requestedPointCount: 900,
+          actualPointCount: 900,
+          topologyBuildCount: 1,
+          topologyBuildMs: 0.25,
+          calibrationState: 'collecting',
+          virtualRegionCount: 17,
+          drawBatchCount: 7,
+          pointBufferBytes: 50400,
+          transformMs: { count: 1, p50: 0.4, p90: 0.4, p95: 0.4, p99: 0.4, max: 0.4 },
+          drawMs: { count: 1, p50: 0.8, p90: 0.8, p95: 0.8, p99: 0.8, max: 0.8 },
+          sourceAgeAtDrawStartMs: {
+            count: 1,
+            p50: 405,
+            p90: 405,
+            p95: 405,
+            p99: 405,
+            max: 405,
+          },
+          sourceAgeAtDrawEndMs: {
+            count: 1,
+            p50: 406,
+            p90: 406,
+            p95: 406,
+            p99: 406,
+            max: 406,
+          },
+          framesRequested: 1,
+          framesDrawn: 1,
+          framesCoalesced: 0,
+          framesRejected: 0,
+          latestFrameIdDrawn: 1,
+          publishedHz: 13,
+          droppedInvalidPointCount: 0,
+          nonFiniteGeometryCount: 0,
+          lastVisiblePointCount: 900,
+          emeraldPointCount: 8,
+        },
       },
     });
     now += 3;
@@ -229,6 +340,14 @@ describe('pose latency diagnostics', () => {
       nativeEventCoalescedCount: 1,
       resultFps: 23,
     });
+    expect(snapshot.nativeRenderer).toMatchObject({
+      backend: 'android-native-canvas',
+      requestedPointCount: 900,
+      actualPointCount: 900,
+      drawBatchCount: 7,
+      calibrationState: 'collecting',
+    });
+    expect(snapshot.nativeRenderer?.transformMs.p95).toBe(0.4);
     expect(snapshot.rendererInputWidth).toBe(480);
     expect(snapshot.rendererInputHeight).toBe(640);
     expect(snapshot.jsTransformMs.count).toBe(2);
@@ -245,9 +364,12 @@ describe('pose renderer replay diagnostics', () => {
     });
     expect(summaries.map((summary) => summary.mode)).toEqual([
       'raw-skeleton',
-      'matte-graphite-digital-twin',
+      'rigged-human-silhouette',
+      'shadow-silhouette',
+      'stipple-sensor-shadow',
       'minimal-constellation',
       'full-constellation',
+      'refined-point-cloud-body',
       'full-point-cloud-body',
     ]);
     for (const summary of summaries) {
@@ -256,9 +378,17 @@ describe('pose renderer replay diagnostics', () => {
     }
     expect(summaries[1].maxSurfacePathCount).toBeLessThanOrEqual(8);
     expect(summaries[1].maxDynamicPathCount).toBeLessThanOrEqual(8);
-    expect(summaries[1].maxInternalVertexCount).toBe(92);
+    expect(summaries[1].maxInternalVertexCount).toBe(112);
+    expect(summaries[1].maxVirtualBoneCount).toBe(17);
+    expect(summaries[1].calibrationState).toBe('collecting');
+    expect(summaries[1].orientationProfile).toBeTruthy();
     expect(summaries[1].proportionCalibrationComplete).toBe(false);
-    expect(summaries[4].maxDots).toBeGreaterThan(summaries[2].maxDots);
+    expect(summaries[2].maxSurfacePathCount).toBeLessThanOrEqual(6);
+    expect(summaries[2].maxDynamicPathCount).toBeLessThanOrEqual(6);
+    expect(summaries[3].maxSurfacePathCount).toBeLessThanOrEqual(9);
+    expect(summaries[3].maxDots).toBeLessThanOrEqual(3040);
+    expect(summaries[6].maxDots).toBeLessThanOrEqual(900);
+    expect(summaries[7].maxDots).toBeGreaterThan(summaries[4].maxDots);
   });
 });
 

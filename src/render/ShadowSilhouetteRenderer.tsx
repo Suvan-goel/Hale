@@ -4,19 +4,8 @@ import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 
 import type { PipelineFrameOutput, TrackingState } from '../pose/pipeline';
 import { copyPoseFrame, createPoseFrame, type PoseFrame } from '../pose/types';
+import { colors } from '../theme';
 import { createLatestFrameRafScheduler } from './latestFrameRafScheduler';
-import {
-  MATTE_GRAPHITE_DIGITAL_TWIN_BODY_GRADIENT_ID,
-  MATTE_GRAPHITE_DIGITAL_TWIN_COLORS,
-  MATTE_GRAPHITE_DIGITAL_TWIN_HIGHLIGHT_GRADIENT_ID,
-  MATTE_GRAPHITE_DIGITAL_TWIN_REAR_GRADIENT_ID,
-} from './matteGraphiteDigitalTwinConfig';
-import {
-  buildMatteGraphiteDigitalTwinGeometry,
-  createMatteGraphiteDigitalTwinCalibration,
-  createMatteGraphiteDigitalTwinGeometry,
-  type MatteGraphiteDigitalTwinSurface,
-} from './matteGraphiteDigitalTwinGeometry';
 import {
   createScreenPoseLandmarks,
   mapPoseFrameToScreenPose,
@@ -26,18 +15,19 @@ import {
   markPoseAvatarUpdate,
   maybeLogPoseAvatarPerformance,
 } from './poseAvatarPerformance';
-import type {
-  PoseAvatarRendererHandle,
-  PoseAvatarRendererProps,
-} from './poseAvatarTypes';
+import type { PoseAvatarRendererHandle, PoseAvatarRendererProps } from './poseAvatarTypes';
+import {
+  buildShadowSilhouetteGeometry,
+  createShadowSilhouetteGeometry,
+} from './shadowSilhouetteGeometry';
 
-interface MatteGraphiteRenderInput {
+interface ShadowSilhouetteRenderInput {
   output: PipelineFrameOutput;
   sourceAspect: number;
   order: number;
 }
 
-interface MatteGraphiteRenderSnapshot {
+interface ShadowSilhouetteRenderSnapshot {
   rawFrame: PoseFrame;
   displayFrame: PoseFrame;
   state: TrackingState;
@@ -45,40 +35,40 @@ interface MatteGraphiteRenderSnapshot {
   sourceAspect: number;
 }
 
-interface MatteGraphiteSurfaceRenderState {
-  id: MatteGraphiteDigitalTwinSurface['id'];
-  path: string;
-  fill: string;
+interface ShadowSilhouetteRenderState {
   opacity: number;
-  visible: boolean;
-}
-
-interface MatteGraphiteRenderState {
-  opacity: number;
+  bodyPath: string;
+  neckPath: string;
+  headPath: string;
+  earPath: string;
+  limbPath: string;
+  accentPath: string;
   surfacePathCount: number;
   dynamicPathCount: number;
-  internalControlVertexCount: number;
-  proportionCalibrationComplete: boolean;
-  calibrationState: string;
-  surfaces: MatteGraphiteSurfaceRenderState[];
+  shapeCount: number;
+  skippedPartCount: number;
 }
 
 const EMPTY_D = 'M-9-9';
-
-const EMPTY_STATE: MatteGraphiteRenderState = {
-  opacity: 1,
+const SHADOW_GRADIENT_ID = 'haleShadowSilhouetteFill';
+const EMPTY_STATE: ShadowSilhouetteRenderState = {
+  opacity: 0,
+  bodyPath: '',
+  neckPath: '',
+  headPath: '',
+  earPath: '',
+  limbPath: '',
+  accentPath: '',
   surfacePathCount: 0,
   dynamicPathCount: 0,
-  internalControlVertexCount: 0,
-  proportionCalibrationComplete: false,
-  calibrationState: 'fallback',
-  surfaces: [],
+  shapeCount: 0,
+  skippedPartCount: 0,
 };
 
-export const MatteGraphiteDigitalTwinRenderer = React.forwardRef<
+export const ShadowSilhouetteRenderer = React.forwardRef<
   PoseAvatarRendererHandle,
   PoseAvatarRendererProps
->(function MatteGraphiteDigitalTwinRenderer(
+>(function ShadowSilhouetteRenderer(
   {
     mirrored = true,
     fit = 'contain',
@@ -86,23 +76,26 @@ export const MatteGraphiteDigitalTwinRenderer = React.forwardRef<
     frameSource = 'raw',
     lowLatencyMode = true,
     debug = false,
+    measurementState,
+    activeDomain = null,
+    trackingQuality = 'high',
     onRendererScheduleEvent,
   },
   ref
 ) {
   const sizeRef = React.useRef({ width: 0, height: 0 });
   const screenPose = React.useRef(createScreenPoseLandmarks());
-  const geometry = React.useRef(createMatteGraphiteDigitalTwinGeometry());
-  const calibration = React.useRef(createMatteGraphiteDigitalTwinCalibration());
+  const geometry = React.useRef(createShadowSilhouetteGeometry());
   const perf = React.useRef(createPoseAvatarPerformanceState());
-  const latestRenderSnapshot = React.useRef(createMatteGraphiteRenderSnapshot());
+  const latestRenderSnapshot = React.useRef(createShadowSilhouetteRenderSnapshot());
   const rendererScheduleEventRef = React.useRef(onRendererScheduleEvent);
   const renderLatestRef = React.useRef<(order: number | null) => void>(() => undefined);
   const renderScheduler = React.useRef<ReturnType<
-    typeof createLatestFrameRafScheduler<MatteGraphiteRenderInput>
+    typeof createLatestFrameRafScheduler<ShadowSilhouetteRenderInput>
   > | null>(null);
   const visibleRef = React.useRef(false);
-  const [renderState, setRenderState] = React.useState<MatteGraphiteRenderState>(EMPTY_STATE);
+  const [renderState, setRenderState] =
+    React.useState<ShadowSilhouetteRenderState>(EMPTY_STATE);
   rendererScheduleEventRef.current = onRendererScheduleEvent;
 
   React.useEffect(
@@ -113,12 +106,12 @@ export const MatteGraphiteDigitalTwinRenderer = React.forwardRef<
   );
 
   if (renderScheduler.current === null) {
-    renderScheduler.current = createLatestFrameRafScheduler<MatteGraphiteRenderInput>({
+    renderScheduler.current = createLatestFrameRafScheduler<ShadowSilhouetteRenderInput>({
       requestFrame: requestAnimationFrame,
       cancelFrame: cancelAnimationFrame,
       getOrder: (input) => input.order,
       storeLatest: (input) => {
-        copyMatteGraphiteRenderSnapshot(
+        copyShadowSilhouetteRenderSnapshot(
           input.output,
           input.sourceAspect,
           latestRenderSnapshot.current
@@ -134,7 +127,7 @@ export const MatteGraphiteDigitalTwinRenderer = React.forwardRef<
         ) {
           rendererScheduleEventRef.current?.({
             type: event.type,
-            mode: 'matte_graphite_digital_twin',
+            mode: 'shadow_silhouette',
             frameTimestampMs: event.order,
           });
         }
@@ -147,7 +140,7 @@ export const MatteGraphiteDigitalTwinRenderer = React.forwardRef<
     if (visibleRef.current) {
       setRenderState((current) => ({
         ...current,
-        opacity: current.surfacePathCount > 0 ? 0.32 : 0,
+        opacity: current.surfacePathCount > 0 ? 0.24 : 0,
       }));
     }
   }, []);
@@ -167,35 +160,31 @@ export const MatteGraphiteDigitalTwinRenderer = React.forwardRef<
     );
 
     const geometryStart = Date.now();
-    buildMatteGraphiteDigitalTwinGeometry(screenPose.current, geometry.current, {
-      minConfidence,
-      calibration: calibration.current,
-    });
+    buildShadowSilhouetteGeometry(screenPose.current, geometry.current, { minConfidence });
     const geometryMs = Date.now() - geometryStart;
 
     visibleRef.current = true;
-    setRenderState(snapshotMatteGraphiteRenderState(geometry.current));
+    setRenderState(snapshotShadowSilhouetteRenderState(geometry.current));
     rendererScheduleEventRef.current?.({
       type: 'published',
-      mode: 'matte_graphite_digital_twin',
+      mode: 'shadow_silhouette',
       frameTimestampMs: order,
       geometryMs,
       dotCount: 0,
       lineCount: 0,
-      shapeCount: geometry.current.surfacePathCount,
+      shapeCount: geometry.current.shapeCount,
       dynamicPathCount: geometry.current.dynamicPathCount,
       staticTransformedShapeCount: 0,
       surfacePathCount: geometry.current.surfacePathCount,
-      internalControlVertexCount: geometry.current.internalControlVertexCount,
-      proportionCalibrationComplete: geometry.current.proportionCalibrationComplete,
-      proportionCalibrationState: geometry.current.calibrationState,
+      internalControlVertexCount: 0,
+      virtualBoneCount: 0,
     });
 
     maybeLogPoseAvatarPerformance(
       perf.current,
       {
         timestampMs: frame.timestampMs,
-        mode: 'matte_graphite_digital_twin',
+        mode: 'shadow_silhouette',
         frameSource,
         dotCount: 0,
         lineCount: 0,
@@ -216,9 +205,9 @@ export const MatteGraphiteDigitalTwinRenderer = React.forwardRef<
         reacquisitionFadeEnabled: false,
         recognitionPulseEnabled: false,
         confidenceAnimationStrength: 'off',
-        measurementState: 'default',
-        activeDomain: null,
-        trackingQuality: geometry.current.hasPose ? 'high' : 'none',
+        measurementState: measurementState ?? 'default',
+        activeDomain,
+        trackingQuality: geometry.current.hasPose ? trackingQuality : 'none',
         measurementStatesEnabled: false,
         setupGuidesEnabled: false,
         stateTransitionsEnabled: false,
@@ -231,7 +220,7 @@ export const MatteGraphiteDigitalTwinRenderer = React.forwardRef<
         visualTrackingState: geometry.current.hasPose ? 'tracking' : 'lost',
         averageConfidence: 1,
         recognitionPulseActive: false,
-        skippedLandmarks: 0,
+        skippedLandmarks: geometry.current.skippedPartCount,
         updateFps: timing.updateFps,
         frameAgeMs: timing.frameAgeMs,
         inferenceMs: snapshot.inferenceMs,
@@ -262,85 +251,85 @@ export const MatteGraphiteDigitalTwinRenderer = React.forwardRef<
   );
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <View
-        style={styles.figureCard}
-        onLayout={(e) => {
-          sizeRef.current = {
-            width: e.nativeEvent.layout.width,
-            height: e.nativeEvent.layout.height,
-          };
-        }}
-      >
-        <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
-          <Defs>
-            <LinearGradient
-              id={MATTE_GRAPHITE_DIGITAL_TWIN_BODY_GRADIENT_ID}
-              x1="0"
-              y1="0"
-              x2="1"
-              y2="1"
-            >
-              <Stop offset="0" stopColor={MATTE_GRAPHITE_DIGITAL_TWIN_COLORS.softGraphiteHighlight} />
-              <Stop offset="0.45" stopColor={MATTE_GRAPHITE_DIGITAL_TWIN_COLORS.primaryGraphite} />
-              <Stop offset="1" stopColor={MATTE_GRAPHITE_DIGITAL_TWIN_COLORS.deepGraphite} />
-            </LinearGradient>
-            <LinearGradient
-              id={MATTE_GRAPHITE_DIGITAL_TWIN_REAR_GRADIENT_ID}
-              x1="0"
-              y1="0"
-              x2="1"
-              y2="1"
-            >
-              <Stop offset="0" stopColor={MATTE_GRAPHITE_DIGITAL_TWIN_COLORS.farSideGraphite} />
-              <Stop offset="1" stopColor={MATTE_GRAPHITE_DIGITAL_TWIN_COLORS.deepGraphite} />
-            </LinearGradient>
-            <LinearGradient
-              id={MATTE_GRAPHITE_DIGITAL_TWIN_HIGHLIGHT_GRADIENT_ID}
-              x1="0"
-              y1="0"
-              x2="1"
-              y2="1"
-            >
-              <Stop offset="0" stopColor={MATTE_GRAPHITE_DIGITAL_TWIN_COLORS.softGraphiteHighlight} />
-              <Stop offset="1" stopColor={MATTE_GRAPHITE_DIGITAL_TWIN_COLORS.midGraphite} />
-            </LinearGradient>
-          </Defs>
-          {renderState.surfaces.map((surface) => (
-            <Path
-              key={surface.id}
-              d={surface.path || EMPTY_D}
-              fill={surface.fill}
-              opacity={surface.visible ? surface.opacity * renderState.opacity : 0}
-            />
-          ))}
-        </Svg>
-      </View>
+    <View
+      style={StyleSheet.absoluteFill}
+      pointerEvents="none"
+      onLayout={(e) => {
+        sizeRef.current = {
+          width: e.nativeEvent.layout.width,
+          height: e.nativeEvent.layout.height,
+        };
+      }}
+    >
+      <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
+        <Defs>
+          <LinearGradient
+            id={SHADOW_GRADIENT_ID}
+            x1="0%"
+            y1="0%"
+            x2="88%"
+            y2="100%"
+            gradientUnits="userSpaceOnUse"
+          >
+            <Stop offset="0" stopColor={colors.sageDeep} />
+            <Stop offset="0.54" stopColor="#26301F" />
+            <Stop offset="1" stopColor={colors.textPrimary} />
+          </LinearGradient>
+        </Defs>
+        <Path
+          d={renderState.limbPath || EMPTY_D}
+          fill={`url(#${SHADOW_GRADIENT_ID})`}
+          opacity={renderState.opacity}
+        />
+        <Path
+          d={renderState.bodyPath || EMPTY_D}
+          fill={`url(#${SHADOW_GRADIENT_ID})`}
+          opacity={renderState.opacity}
+        />
+        <Path
+          d={renderState.neckPath || EMPTY_D}
+          fill={`url(#${SHADOW_GRADIENT_ID})`}
+          opacity={renderState.opacity}
+        />
+        <Path
+          d={renderState.earPath || EMPTY_D}
+          fill={`url(#${SHADOW_GRADIENT_ID})`}
+          opacity={renderState.opacity}
+        />
+        <Path
+          d={renderState.headPath || EMPTY_D}
+          fill={`url(#${SHADOW_GRADIENT_ID})`}
+          opacity={renderState.opacity}
+        />
+        <Path
+          d={renderState.accentPath || EMPTY_D}
+          fill={colors.surface}
+          opacity={renderState.opacity * 0.035}
+        />
+      </Svg>
     </View>
   );
 });
 
-function snapshotMatteGraphiteRenderState(
-  source: ReturnType<typeof createMatteGraphiteDigitalTwinGeometry>
-): MatteGraphiteRenderState {
+function snapshotShadowSilhouetteRenderState(
+  source: ReturnType<typeof createShadowSilhouetteGeometry>
+): ShadowSilhouetteRenderState {
   return {
     opacity: source.opacity,
+    bodyPath: source.bodyPath,
+    neckPath: source.neckPath,
+    headPath: source.headPath,
+    earPath: source.earPath,
+    limbPath: source.limbPath,
+    accentPath: source.accentPath,
     surfacePathCount: source.surfacePathCount,
     dynamicPathCount: source.dynamicPathCount,
-    internalControlVertexCount: source.internalControlVertexCount,
-    proportionCalibrationComplete: source.proportionCalibrationComplete,
-    calibrationState: source.calibrationState,
-    surfaces: source.surfaces.map((surface) => ({
-      id: surface.id,
-      path: surface.path,
-      fill: surface.fill,
-      opacity: surface.opacity,
-      visible: surface.visible,
-    })),
+    shapeCount: source.shapeCount,
+    skippedPartCount: source.skippedPartCount,
   };
 }
 
-function createMatteGraphiteRenderSnapshot(): MatteGraphiteRenderSnapshot {
+function createShadowSilhouetteRenderSnapshot(): ShadowSilhouetteRenderSnapshot {
   return {
     rawFrame: createPoseFrame(),
     displayFrame: createPoseFrame(),
@@ -350,10 +339,10 @@ function createMatteGraphiteRenderSnapshot(): MatteGraphiteRenderSnapshot {
   };
 }
 
-function copyMatteGraphiteRenderSnapshot(
+function copyShadowSilhouetteRenderSnapshot(
   output: PipelineFrameOutput,
   sourceAspect: number,
-  snapshot: MatteGraphiteRenderSnapshot
+  snapshot: ShadowSilhouetteRenderSnapshot
 ): void {
   snapshot.sourceAspect = sourceAspect;
   snapshot.state = output.state;
@@ -361,18 +350,3 @@ function copyMatteGraphiteRenderSnapshot(
   copyPoseFrame(output.rawFrame, snapshot.rawFrame);
   copyPoseFrame(output.displayFrame, snapshot.displayFrame);
 }
-
-const styles = StyleSheet.create({
-  figureCard: {
-    position: 'absolute',
-    left: 18,
-    right: 18,
-    top: 168,
-    bottom: 220,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: MATTE_GRAPHITE_DIGITAL_TWIN_COLORS.cardBorder,
-    borderRadius: 8,
-    backgroundColor: MATTE_GRAPHITE_DIGITAL_TWIN_COLORS.cardBackground,
-  },
-});

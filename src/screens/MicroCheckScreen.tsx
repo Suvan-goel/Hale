@@ -24,6 +24,7 @@ import {
   PoseErrorEventPayload,
 } from '../../modules/expo-pose-detection';
 import { SfxChannel, VoiceChannel } from '../audio/voicePlayer';
+import type { BodySide } from '../checkup';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
 import { useSystemInsets } from '../components/SystemInsetsProvider';
@@ -37,6 +38,7 @@ import {
   createPoseLatencyDiagnostics,
   isPoseLatencyDiagnosticsEnabled,
 } from '../diagnostics/poseLatencyDiagnostics';
+import { ANDROID_VIDEO_ROT_640_POSE_PROFILE } from '../pose/nativePoseProfiles';
 import { PosePipeline } from '../pose/pipeline';
 import { PreflightCheck, PreflightPrompt } from '../preflight/preflight';
 import { LandmarkRecorder } from '../recording/recorder';
@@ -48,6 +50,12 @@ import type {
 import { colors, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 import { MicroCheckPhase, MicroCheckResult, MicroCheckRunner, MicroCheckType } from '../training/microCheck';
+import {
+  createMicroCheckMeasurementContextForSide,
+  deriveMicroCheckSideSetup,
+  oppositeMicroCheckSide,
+  type MicroCheckSideSetup,
+} from '../training/microCheckSideSetup';
 import { poseEstimationWindowSize, recordingCameraViewportSize } from './recordingViewport';
 
 const UI_UPDATE_INTERVAL_MS = 100;
@@ -132,12 +140,14 @@ const MICRO_CHECK_SETUP_HELP_STEPS: readonly { title: string; body: string }[] =
 
 export function MicroCheckScreen({
   type: microCheckType,
+  sideSetup,
   onComplete,
   onCancel,
   voiceId,
   debugScenario,
 }: {
   type: MicroCheckType;
+  sideSetup?: MicroCheckSideSetup | null;
   onComplete: (result: MicroCheckResult) => void;
   onCancel?: () => void;
   voiceId?: string;
@@ -145,7 +155,22 @@ export function MicroCheckScreen({
 }) {
   const [pipeline] = React.useState(() => new PosePipeline());
   const [preflight] = React.useState(() => new PreflightCheck());
-  const [runner] = React.useState(() => new MicroCheckRunner(microCheckType, new Date().toISOString(), preflight));
+  const [startedAtIso] = React.useState(() => new Date().toISOString());
+  const effectiveSideSetup = React.useMemo(
+    () =>
+      sideSetup ??
+      deriveMicroCheckSideSetup({
+        microCheckType,
+        history: [],
+        officialCheckUps: [],
+      }),
+    [microCheckType, sideSetup]
+  );
+  const [runner, setRunner] = React.useState<MicroCheckRunner | null>(() =>
+    effectiveSideSetup.sideRequired
+      ? null
+      : new MicroCheckRunner(microCheckType, startedAtIso, preflight)
+  );
   const [voice] = React.useState(() => new VoiceChannel(voiceId));
   const [sfx] = React.useState(() => new SfxChannel());
   const [recorder] = React.useState(() => new LandmarkRecorder());
@@ -172,6 +197,21 @@ export function MicroCheckScreen({
         : null,
     []
   );
+  const metricDebug = debugScenario === 'metric';
+
+  const pinMicroCheckSide = React.useCallback(
+    (selectedSide: BodySide) => {
+      if (runner) return;
+      const measurementContext = createMicroCheckMeasurementContextForSide({
+        microCheckType,
+        startedAt: startedAtIso,
+        setup: effectiveSideSetup,
+        selectedSide,
+      });
+      setRunner(new MicroCheckRunner(microCheckType, startedAtIso, preflight, undefined, measurementContext));
+    },
+    [effectiveSideSetup, microCheckType, preflight, runner, startedAtIso]
+  );
 
   React.useEffect(() => {
     if (__DEV__) recorder.start();
@@ -191,6 +231,11 @@ export function MicroCheckScreen({
       const out = pipeline.process(event);
       poseLatencyDiagnostics?.markJsTransformEnd(latencyFrame);
       const sourceAspect = event.sourceWidth / event.sourceHeight;
+      if (!runner) {
+        skeletonRef.current?.update(out, sourceAspect);
+        poseLatencyDiagnostics?.markRendererUpdateSubmitted(latencyFrame);
+        return;
+      }
 
       if (resumePendingRef.current) {
         runner.shiftTiming(Math.max(0, event.timestampMs - pauseStartedAtRef.current));
@@ -279,7 +324,6 @@ export function MicroCheckScreen({
     onCancel?.();
   }, [onCancel, voice]);
 
-  const metricDebug = debugScenario === 'metric';
   const visibleSnapshot = metricDebug ? metricDebugSnapshot(microCheckType) : snapshot;
   const visiblePaused = metricDebug ? false : paused;
   const visibleShowHelp = metricDebug ? false : showHelp;
@@ -298,7 +342,7 @@ export function MicroCheckScreen({
   const avatarMeasurementState = microCheckAvatarState(visibleSnapshot.phase);
   const avatarDomain = domainForMicroCheck(microCheckType);
   const canControl =
-    visibleCameraAvailability !== 'unavailable' && visibleSnapshot.phase !== 'done';
+    runner !== null && visibleCameraAvailability !== 'unavailable' && visibleSnapshot.phase !== 'done';
   const showUnavailableAction = visibleCameraAvailability === 'unavailable' && !!onCancel;
   const viewportWidth = Math.max(1, Math.min(windowSize.width - spacing.md * 2, spacing.pageMaxWidth));
   const cameraViewport = React.useMemo(
@@ -317,11 +361,23 @@ export function MicroCheckScreen({
     [cameraViewport.height, poseWindow.height, poseWindow.top]
   );
 
+  if (!metricDebug && effectiveSideSetup.sideRequired && runner === null) {
+    return (
+      <MicroCheckSideSetupScreen
+        microCheckType={microCheckType}
+        setup={effectiveSideSetup}
+        onConfirm={pinMicroCheckSide}
+        onCancel={onCancel}
+      />
+    );
+  }
+
   return (
     <View style={styles.container}>
       <SafePoseDetectionView
-        active={!metricDebug}
+        active={!metricDebug && runner !== null}
         modelVariant="full"
+        {...ANDROID_VIDEO_ROT_640_POSE_PROFILE}
         latencyDiagnosticsEnabled={poseLatencyDiagnostics !== null}
         style={StyleSheet.absoluteFill}
         onLandmarks={onLandmarks}
@@ -427,6 +483,137 @@ export function MicroCheckScreen({
       <PoseLatencyDiagnosticsOverlay diagnostics={poseLatencyDiagnostics} />
     </View>
   );
+}
+
+function MicroCheckSideSetupScreen({
+  microCheckType,
+  setup,
+  onConfirm,
+  onCancel,
+}: {
+  microCheckType: MicroCheckType;
+  setup: MicroCheckSideSetup;
+  onConfirm: (side: BodySide) => void;
+  onCancel?: () => void;
+}) {
+  const [confirmOppositeSide, setConfirmOppositeSide] = React.useState<BodySide | null>(null);
+  const responsive = useResponsiveLayout();
+  const systemInsets = useSystemInsets();
+  const copy = microCheckSideSetupCopy(microCheckType, setup);
+  const recommendedSide = setup.selectedSide;
+  const oppositeSide = recommendedSide ? oppositeMicroCheckSide(recommendedSide) : null;
+
+  const confirmRecommended = React.useCallback(() => {
+    if (recommendedSide) onConfirm(recommendedSide);
+  }, [onConfirm, recommendedSide]);
+
+  const useOppositeSide = React.useCallback(() => {
+    if (oppositeSide) onConfirm(oppositeSide);
+  }, [onConfirm, oppositeSide]);
+
+  return (
+    <View style={styles.container}>
+      <ScrollView
+        style={styles.layout}
+        contentContainerStyle={[
+          styles.sideSetupContent,
+          responsive.isCompactPhone && styles.compactScreenPadding,
+          { paddingTop: recordingScreenTopPadding(), paddingBottom: spacing.xl + systemInsets.bottom },
+        ]}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <View style={styles.topBar}>
+          {onCancel ? (
+            <BackArrowButton
+              accessibilityLabel="Leave micro-check"
+              onPress={onCancel}
+              style={styles.topBarBackButton}
+            />
+          ) : null}
+          <Text style={styles.topBarTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>
+            {TITLE[microCheckType]}
+          </Text>
+        </View>
+
+        <View style={[styles.sideSetupPanel, responsive.isCompactPhone && styles.compactCardPadding]}>
+          <View style={styles.sideSetupHeader}>
+            <HeaderLogo size={30} />
+            <Text style={styles.modalEyebrow}>Side setup</Text>
+          </View>
+          <Text style={styles.modalTitle}>{copy.title}</Text>
+          <Text style={styles.modalBody}>{copy.body}</Text>
+
+          {copy.mode === 'choice' ? (
+            <View style={styles.sideSetupActions}>
+              <ControlButton title="Left leg" onPress={() => onConfirm('left')} primary />
+              <ControlButton title="Right leg" onPress={() => onConfirm('right')} />
+            </View>
+          ) : confirmOppositeSide && recommendedSide ? (
+            <View style={styles.sideSetupWarning}>
+              <Text style={styles.modalTitle}>Use the other side?</Text>
+              <Text style={styles.modalBody}>
+                This check will start or continue a separate side comparison. Your usual side will stay unchanged.
+              </Text>
+              <View style={styles.sideSetupActions}>
+                <ControlButton title={`Use ${sideLabel(confirmOppositeSide)} leg`} onPress={useOppositeSide} primary />
+                <ControlButton
+                  title={`Keep ${sideLabel(recommendedSide)} leg`}
+                  onPress={() => setConfirmOppositeSide(null)}
+                />
+              </View>
+            </View>
+          ) : (
+            <View style={styles.sideSetupActions}>
+              <ControlButton title="Continue" onPress={confirmRecommended} primary />
+              {oppositeSide ? (
+                <ControlButton
+                  title={`Use ${sideLabel(oppositeSide)} leg instead`}
+                  onPress={() =>
+                    setup.recommendationSource === 'existing_microcheck_series'
+                      ? setConfirmOppositeSide(oppositeSide)
+                      : onConfirm(oppositeSide)
+                  }
+                />
+              ) : null}
+            </View>
+          )}
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+type MicroCheckSideSetupCopy =
+  | { mode: 'choice'; title: string; body: string }
+  | { mode: 'recommendation'; title: string; body: string };
+
+function microCheckSideSetupCopy(
+  microCheckType: MicroCheckType,
+  setup: MicroCheckSideSetup
+): MicroCheckSideSetupCopy {
+  if (!setup.selectedSide) {
+    return {
+      mode: 'choice',
+      title: 'Which side will you use?',
+      body:
+        microCheckType === 'mobility-reach'
+          ? 'Choose the leg you can extend comfortably. Use the same leg each time for clearer progress.'
+          : 'Choose the leg you can hold most comfortably today. Use the same leg each time for clearer progress.',
+    };
+  }
+  return {
+    mode: 'recommendation',
+    title: `Use your ${sideLabel(setup.selectedSide)} leg`,
+    body:
+      setup.recommendationSource === 'compatible_official_anchor'
+        ? 'This matches your Movement Check-Up.'
+        : 'This matches your earlier micro checks.',
+  };
+}
+
+function sideLabel(side: BodySide): string {
+  return side === 'left' ? 'left' : 'right';
 }
 
 function RecordingSetupNotice({
@@ -836,6 +1023,39 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     flex: 1,
     color: colors.textPrimary,
+  },
+  sideSetupContent: {
+    minHeight: '100%',
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sideSetupPanel: {
+    width: '100%',
+    maxWidth: 520,
+    gap: spacing.md,
+    padding: spacing.lg,
+    borderRadius: radius.card,
+    backgroundColor: colors.bgSurface,
+    ...shadow.card,
+  },
+  sideSetupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  sideSetupActions: {
+    gap: spacing.sm,
+  },
+  sideSetupWarning: {
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    backgroundColor: colors.bgBase,
   },
   avatarSlot: {
     width: '100%',

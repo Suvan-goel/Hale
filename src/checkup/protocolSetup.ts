@@ -6,7 +6,9 @@
  * can decide whether a record is reference-comparable or raw-only.
  */
 
-export type BodySide = 'left' | 'right';
+import type { BodySide } from './measurementContext';
+
+export type { BodySide };
 export type ProtocolSetupSource = 'user' | 'prior_record' | 'default' | 'direct_call';
 export type ProtocolSetupConfidence = 'confirmed' | 'uncertain' | 'bypassed';
 
@@ -19,6 +21,16 @@ export interface ChairRiseV2Setup {
 
 export interface OneLegBalanceV2Setup {
   protocol: 'one_leg_balance_v2_setup';
+  standingLeg: BodySide;
+  confirmed: boolean;
+  confidence: ProtocolSetupConfidence;
+  source: ProtocolSetupSource;
+  priorStandingLeg: BodySide | null;
+  changedFromPrior: boolean;
+}
+
+export interface BalanceEyesOpenV2Setup {
+  protocol: 'balance_eyes_open_v2_setup';
   standingLeg: BodySide;
   confirmed: boolean;
   confidence: ProtocolSetupConfidence;
@@ -40,6 +52,7 @@ export interface ActiveShoulderReachV2Setup {
 export type MovementProfileV2Setup =
   | ChairRiseV2Setup
   | OneLegBalanceV2Setup
+  | BalanceEyesOpenV2Setup
   | ActiveShoulderReachV2Setup;
 
 export function createChairRiseV2Setup({
@@ -70,6 +83,28 @@ export function createOneLegBalanceV2Setup({
 }): OneLegBalanceV2Setup {
   return {
     protocol: 'one_leg_balance_v2_setup',
+    standingLeg,
+    confirmed,
+    confidence: confidenceFor(confirmed, source),
+    source,
+    priorStandingLeg,
+    changedFromPrior: priorStandingLeg !== null && priorStandingLeg !== standingLeg,
+  };
+}
+
+export function createBalanceEyesOpenV2Setup({
+  standingLeg,
+  confirmed,
+  source = 'user',
+  priorStandingLeg = null,
+}: {
+  standingLeg: BodySide;
+  confirmed: boolean;
+  source?: ProtocolSetupSource;
+  priorStandingLeg?: BodySide | null;
+}): BalanceEyesOpenV2Setup {
+  return {
+    protocol: 'balance_eyes_open_v2_setup',
     standingLeg,
     confirmed,
     confidence: confidenceFor(confirmed, source),

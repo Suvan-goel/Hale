@@ -1,0 +1,7 @@
+exerciseId,sideRole,sourceSetCount,sourceTarget,sourceUnit,sourceTotalDose,minimumValidSideTarget,minimumSource,roundCount,sideTargetPerRound,leftTotalDose,rightTotalDose,convertedTotalDose,exactDosePreserved,equalSideDose,conversionReason,voiceTargetStrategy,implementationStatus,notes
+balance-single-leg-hold,standing_leg,3,15000,hold_ms,45000,,,3,7500,22500,22500,45000,true,true,direct_half_set,Hold until I say switch.,software_ready_default_closed,Single-Leg Hold / standing_leg
+balance-tandem-hold,lead_foot,3,20000,hold_ms,60000,,,3,10000,30000,30000,60000,true,true,direct_half_set,Hold for ten seconds.,software_ready_default_closed,Tandem Hold / lead_foot
+chair-supported-split-squat,front_leg,2,8,reps,16,,,2,4,8,8,16,true,true,direct_half_set,Aim for four reps.,software_ready_default_closed,Chair-Supported Split Squat / front_leg
+seated-hamstring-reach,extended_leg,2,12000,rom_window_ms,24000,,,2,6000,12000,12000,24000,true,true,direct_half_set,Reach gently until I say switch.,software_ready_default_closed,Seated Hamstring Reach / extended_leg
+supported-hip-flexor-stretch,stretched_hip_side,2,30000,timer_ms,60000,,,2,15000,30000,30000,60000,true,true,direct_half_set,Hold for fifteen seconds.,software_ready_default_closed,Supported Hip Flexor Stretch / stretched_hip_side
+wall-calf-stretch,stretched_calf_side,2,30000,timer_ms,60000,,,2,15000,30000,30000,60000,true,true,direct_half_set,Hold for fifteen seconds.,software_ready_default_closed,Wall Calf Stretch / stretched_calf_side

@@ -17,7 +17,7 @@ export function SiteFooter() {
         <div className="site-footer__brand">
           <BrandLogo />
           <p>
-            Hale checks strength, balance and mobility with your phone camera, then guides home training.
+            Hale checks strength, balance and mobility with your phone camera, then guides a simple home plan.
           </p>
           <p className="site-footer__beta">Currently in beta.</p>
         </div>

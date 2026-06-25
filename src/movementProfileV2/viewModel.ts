@@ -32,6 +32,18 @@ export interface MovementProfileV2ResultsViewModel {
   dateLabel: string;
   title: string;
   summary: string;
+  focus: {
+    kind: 'domain' | 'balanced' | 'needs_retake';
+    title: string;
+    body: string;
+    domain?: MovementProfileV2Domain;
+    planMode:
+      | 'checkup_reference_focus'
+      | 'checkup_hale_band_focus'
+      | 'goal_led_reference_supported'
+      | 'balanced_insufficient_reference'
+      | 'needs_retake';
+  };
   focusTitle: string;
   focusBody: string;
   domainCards: MovementProfileV2DomainCardViewModel[];
@@ -45,14 +57,16 @@ export function buildMovementProfileV2ResultsViewModel(input: {
   assessment: MovementProfileV2Assessment;
 }): MovementProfileV2ResultsViewModel {
   const domainDetails = DOMAIN_ORDER.map((domain) => domainDetail(domain, input.snapshot));
+  const focus = focusDisplay(input.assessment);
   return {
     checkUpId: input.snapshot.sourceCheckUpId,
     dateLabel: formatDate(input.snapshot.sourceCheckUpId),
     title: 'Your Movement Profile',
     summary:
-      'Where available, comparisons use published reference groups and the setup recorded during your Check-Up. Hale camera results are beta estimates, not medical assessments.',
-    focusTitle: focusTitle(input.assessment),
-    focusBody: focusBody(input.assessment),
+      "Where available, comparisons use published reference groups and the setup recorded during your Check-Up. Hale's camera results are beta estimates, not medical assessments.",
+    focus,
+    focusTitle: focus.kind === 'balanced' ? 'Suggested focus: Balanced plan' : `Suggested focus: ${focus.title}`,
+    focusBody: focus.body,
     domainCards: domainDetails.map(({ rows: _rows, note: _note, ...card }) => card),
     domainDetails,
   };
@@ -113,7 +127,12 @@ function chairDetail(chair: ChairInterpretation): MovementProfileV2DomainDetailV
 
 function balanceDetail(balance: BalanceInterpretation): MovementProfileV2DomainDetailViewModel {
   const seconds = balance.rawMetric?.value;
-  const metric = Number.isFinite(seconds) ? `${formatNumber(seconds)} sec best hold` : 'Not measured';
+  const eyesOpenLadder = balance.rawMetric?.metricId === 'balance_eyes_open_total';
+  const metric = Number.isFinite(seconds)
+    ? eyesOpenLadder
+      ? `${formatNumber(seconds)} sec total held`
+      : `${formatNumber(seconds)} sec best hold`
+    : 'Not measured';
   const band = balance.taskBand ? balanceBandLabel(balance.taskBand) : 'Raw result only';
   const benchmark = balance.sourceBenchmark ? 'Published age-group benchmark saved' : band;
   return {
@@ -121,12 +140,17 @@ function balanceDetail(balance: BalanceInterpretation): MovementProfileV2DomainD
     title: 'Balance',
     metric,
     status: benchmark,
-    body: balance.reachedCeiling
-      ? 'This check-up reached the 45-second task ceiling.'
-      : 'Hale uses the best valid trial from this frozen check-up.',
+    body: eyesOpenLadder
+      ? 'Hale saved the four-stage eyes-open ladder as a new balance comparison series.'
+      : balance.reachedCeiling
+        ? 'This check-up reached the 45-second task ceiling.'
+        : 'Hale uses the best valid trial from this frozen check-up.',
     rows: [
-      { label: 'Best hold', value: metric },
-      { label: 'Task band', value: band },
+      { label: eyesOpenLadder ? 'Eyes-open ladder' : 'Best hold', value: metric },
+      { label: eyesOpenLadder ? 'Comparison status' : 'Task band', value: band },
+      ...(eyesOpenLadder && balance.rawMetric?.metricId === 'balance_eyes_open_total'
+        ? [{ label: 'Stages completed', value: `${balance.rawMetric.completedStageCount} of 4` }]
+        : []),
       { label: 'Standing leg', value: balance.selectedStandingLeg ? sideLabel(balance.selectedStandingLeg) : 'Not saved' },
     ],
     note: 'Balance labels describe this home task only and are not a fall-risk diagnosis.',
@@ -156,22 +180,33 @@ function shoulderDetail(shoulder: ShoulderInterpretation): MovementProfileV2Doma
   };
 }
 
-function focusTitle(assessment: MovementProfileV2Assessment): string {
-  const focus = assessment.focus;
-  if (focus.kind === 'domain') return `Suggested focus: ${domainTitle(focus.focusDomain)}`;
-  if (focus.kind === 'balanced') return 'Suggested focus: Balanced plan';
-  return 'Suggested focus: Retake needed';
-}
-
-function focusBody(assessment: MovementProfileV2Assessment): string {
+function focusDisplay(assessment: MovementProfileV2Assessment): MovementProfileV2ResultsViewModel['focus'] {
   const focus = assessment.focus;
   if (focus.kind === 'domain') {
-    return `This was the clearest area to build from today's Check-Up, based on your results and goal.`;
+    return {
+      kind: 'domain',
+      domain: focus.focusDomain,
+      title: domainTitle(focus.focusDomain),
+      body: focus.planMode === 'goal_led_reference_supported'
+        ? 'Your results were broadly matched, so Hale used your goal to guide the suggestion.'
+        : "This was the clearest area to build from today's Check-Up.",
+      planMode: focus.planMode,
+    };
   }
   if (focus.kind === 'balanced') {
-    return 'Your results did not point to one clear area today.';
+    return {
+      kind: 'balanced',
+      title: 'Balanced',
+      body: 'Your results did not point to one clear area today.',
+      planMode: focus.planMode,
+    };
   }
-  return 'A retake is needed before Hale can suggest a focus from this profile.';
+  return {
+    kind: 'needs_retake',
+    title: 'Retake needed',
+    body: 'A retake is needed before Hale can suggest a focus from this profile.',
+    planMode: focus.planMode,
+  };
 }
 
 function domainTitle(domain: MovementProfileV2Domain): string {
@@ -188,9 +223,9 @@ function balanceBandLabel(band: NonNullable<BalanceInterpretation['taskBand']>):
 }
 
 function shoulderIqrLabel(category: NonNullable<ShoulderInterpretation['iqr']>['category']): string {
-  if (category === 'below_published_middle_range') return 'Below published middle range';
-  if (category === 'above_published_middle_range') return 'Above published middle range';
-  return 'Within published middle range';
+  if (category === 'below_published_middle_range') return 'Below the published middle range';
+  if (category === 'above_published_middle_range') return 'Above the published middle range';
+  return 'Within the published middle range';
 }
 
 function sideLabel(side: string | null | undefined): string {

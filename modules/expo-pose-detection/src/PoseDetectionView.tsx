@@ -26,6 +26,8 @@ export default function PoseDetectionView(props: PoseDetectionViewProps) {
       androidAnalysisResolution={props.androidAnalysisResolution ?? '640x480'}
       nativeSkeletonOverlayEnabled={props.nativeSkeletonOverlayEnabled ?? false}
       nativeSkeletonColor={props.nativeSkeletonColor ?? '#000000'}
+      nativeBenchmarkOverlayMode={props.nativeBenchmarkOverlayMode ?? 'off'}
+      nativeBenchmarkOverlayResetKey={props.nativeBenchmarkOverlayResetKey ?? 0}
       canvasColor={props.canvasColor ?? '#F9F5EF'}
       onLandmarks={props.onLandmarks}
       onCameraReady={props.onCameraReady}

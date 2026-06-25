@@ -2,6 +2,7 @@ import {
   MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
   createCheckUpProtocolPolicy,
   createActiveShoulderReachV2Setup,
+  createBalanceEyesOpenV2Setup,
   createChairRiseV2Setup,
   createOneLegBalanceV2Setup,
   evaluateMovementProfileV2Completeness,
@@ -20,6 +21,9 @@ import {
   OneLegBalanceV2ProtocolController,
   shoulderReachAngleDegForSide,
   shoulderReachLandmarksForSide,
+  BALANCE_EYES_OPEN_V2_ID,
+  BALANCE_EYES_OPEN_V2_STAGE_DESCRIPTORS,
+  BalanceEyesOpenV2ProtocolController,
   type ActiveShoulderReachV2Result,
   type ChairRiseV2Result,
   type OneLegBalanceV2Result,
@@ -104,6 +108,88 @@ describe('Movement Profile V2 protocol controllers', () => {
       bestHoldSec: 45,
       hardCapReached: false,
     });
+  });
+
+  it('defines the approved four-stage eyes-open balance ladder with immutable side roles', () => {
+    expect(BALANCE_EYES_OPEN_V2_STAGE_DESCRIPTORS.map((stage) => stage.id)).toEqual([
+      'feet_together_eyes_open_v2',
+      'semi_tandem_eyes_open_v2',
+      'tandem_eyes_open_v2',
+      'single_leg_eyes_open_v2',
+    ]);
+    expect(BALANCE_EYES_OPEN_V2_STAGE_DESCRIPTORS.map((stage) => stage.capMs)).toEqual([
+      10000,
+      10000,
+      10000,
+      12000,
+    ]);
+    expect(BALANCE_EYES_OPEN_V2_STAGE_DESCRIPTORS.every((stage) => stage.eyesOpen)).toBe(true);
+    expect(BALANCE_EYES_OPEN_V2_STAGE_DESCRIPTORS.map((stage) => stage.sideRole)).toEqual([
+      'not_applicable',
+      'lead_foot',
+      'lead_foot',
+      'standing_leg',
+    ]);
+    expect(() => {
+      (BALANCE_EYES_OPEN_V2_STAGE_DESCRIPTORS as unknown as { push: (value: unknown) => void }).push({});
+    }).toThrow();
+  });
+
+  it('advances only after a full eyes-open stage cap and stops the ladder on early balance loss', () => {
+    const controller = new BalanceEyesOpenV2ProtocolController();
+    expect(controller.startCurrentStageFromGo(0)).toBe(false);
+    expect(controller.confirmSetup(createBalanceEyesOpenV2Setup({ standingLeg: 'right', confirmed: true }), 0)).toBe(true);
+    expect(controller.confirmCurrentStageSetup(1000)).toBe(true);
+    expect(controller.startCurrentStageFromGo(4000)).toBe(true);
+    expect(controller.completeCurrentStageCap(14000)).toBe(true);
+    expect(controller.currentStage.id).toBe('semi_tandem_eyes_open_v2');
+    expect(controller.confirmCurrentStageSetup(15000)).toBe(true);
+    expect(controller.startCurrentStageFromGo(18000)).toBe(true);
+    expect(controller.endCurrentStageEarly({ nowMs: 22500, reason: 'step_detected' })).toBe(true);
+
+    const result = controller.finish(22500);
+    expect(result).toMatchObject({
+      movementId: BALANCE_EYES_OPEN_V2_ID,
+      selectedStandingLeg: 'right',
+      completedStageCount: 1,
+      highestCompletedStage: 'feet_together_eyes_open_v2',
+      terminalStage: 'semi_tandem_eyes_open_v2',
+      terminalStageMaintainedMs: 4500,
+      completedAllStages: false,
+      completionReason: 'stage_completed_early',
+      evidenceStatus: 'reference_protocol_complete',
+    });
+    expect(result.stages).toHaveLength(2);
+    expect(result.stages[0]).toMatchObject({ selectedSide: null, sideRole: 'not_applicable', completedCap: true });
+    expect(result.stages[1]).toMatchObject({ selectedSide: 'right', sideRole: 'lead_foot', endReason: 'step_detected' });
+    expect(isJsonSafeProtocolPayload(JSON.parse(JSON.stringify(result)))).toBe(true);
+  });
+
+  it('discards eyes-open tracking partial time and retries the same stage from zero', () => {
+    const controller = new BalanceEyesOpenV2ProtocolController();
+    controller.confirmSetup(createBalanceEyesOpenV2Setup({ standingLeg: 'left', confirmed: true }), 0);
+    controller.confirmCurrentStageSetup(1000);
+    controller.startCurrentStageFromGo(4000);
+    expect(controller.trackingInterrupted(6200)).toBe(true);
+    expect(controller.currentStage.id).toBe('feet_together_eyes_open_v2');
+    expect(controller.confirmCurrentStageSetup(8000)).toBe(true);
+    expect(controller.startCurrentStageFromGo(11000)).toBe(true);
+    expect(controller.completeCurrentStageCap(21000)).toBe(true);
+
+    const result = controller.finish(21000);
+    expect(result.stages).toHaveLength(1);
+    expect(result.stages[0]).toMatchObject({
+      stageId: 'feet_together_eyes_open_v2',
+      maintainedMs: 10000,
+      startedAtMs: 11000,
+    });
+    expect(result.trackingRetries).toEqual([
+      expect.objectContaining({
+        stageId: 'feet_together_eyes_open_v2',
+        discardedStartedAtMs: 4000,
+        discardedPartialMs: 2200,
+      }),
+    ]);
   });
 
   it('freezes shoulder side selection, allows one invalid retry, and records pain-limited raw evidence', () => {

@@ -15,11 +15,19 @@ describe('resolvePoseAvatarRendererMode', () => {
     expect(resolvePoseAvatarRendererMode('mediapipe_skeleton')).toBe('mediapipe_skeleton');
   });
 
-  it('keeps matte graphite digital twin out of env/default renderer selection', () => {
+  it('keeps silhouette experiments out of env/default renderer selection', () => {
     expect(DEFAULT_POSE_AVATAR_RENDERER_MODE).toBe('point_cloud_body');
-    expect(resolvePoseAvatarRendererMode('matte_graphite_digital_twin')).toBe('classic');
-    expect(resolvePoseAvatarConfig({ mode: 'matte_graphite_digital_twin' }, {}).mode).toBe(
-      'matte_graphite_digital_twin'
+    expect(resolvePoseAvatarRendererMode('rigged_human_silhouette')).toBe('classic');
+    expect(resolvePoseAvatarRendererMode('shadow_silhouette')).toBe('classic');
+    expect(resolvePoseAvatarRendererMode('volumetric_shadow')).toBe('classic');
+    expect(resolvePoseAvatarConfig({ mode: 'rigged_human_silhouette' }, {}).mode).toBe(
+      'rigged_human_silhouette'
+    );
+    expect(resolvePoseAvatarConfig({ mode: 'shadow_silhouette' }, {}).mode).toBe(
+      'shadow_silhouette'
+    );
+    expect(resolvePoseAvatarConfig({ mode: 'volumetric_shadow' }, {}).mode).toBe(
+      'volumetric_shadow'
     );
   });
 
@@ -45,8 +53,8 @@ describe('resolvePoseAvatarRendererMode', () => {
   });
 });
 
-describe('matte graphite digital twin production isolation', () => {
-  it('does not select matte_graphite_digital_twin from production camera screens', () => {
+describe('rigged human silhouette production isolation', () => {
+  it('does not select rigged_human_silhouette from production camera screens', () => {
     const root = path.resolve(__dirname, '../../..');
     const productionScreens = [
       'src/screens/LiveSessionScreen.tsx',
@@ -58,19 +66,28 @@ describe('matte graphite digital twin production isolation', () => {
 
     for (const file of productionScreens) {
       const source = fs.readFileSync(path.join(root, file), 'utf8');
+      expect(source).not.toContain('rigged_human_silhouette');
+      expect(source).not.toContain('shadow_silhouette');
+      expect(source).not.toContain('volumetric_shadow');
       expect(source).not.toContain('matte_graphite_digital_twin');
       expect(source).not.toContain('sculpted_body');
     }
   });
 
-  it('replaces the old sculpted benchmark option with the benchmark-only digital twin', () => {
+  it('adds benchmark-only silhouettes without restoring old experimental options', () => {
     const root = path.resolve(__dirname, '../../..');
     const benchmarkSource = fs.readFileSync(
       path.join(root, 'src/screens/PoseOverlayBenchmarkScreen.tsx'),
       'utf8'
     );
-    expect(benchmarkSource).toContain('matte-graphite-digital-twin');
-    expect(benchmarkSource).toContain('matte_graphite_digital_twin');
+    expect(benchmarkSource).toContain('rigged-human-silhouette');
+    expect(benchmarkSource).toContain('rigged_human_silhouette');
+    expect(benchmarkSource).toContain('shadow-silhouette');
+    expect(benchmarkSource).toContain('shadow_silhouette');
+    expect(benchmarkSource).toContain('stipple-sensor-shadow');
+    expect(benchmarkSource).toContain('volumetric_shadow');
+    expect(benchmarkSource).not.toContain('matte-graphite-digital-twin');
+    expect(benchmarkSource).not.toContain('matte_graphite_digital_twin');
     expect(benchmarkSource).not.toContain('sculpted-figure');
     expect(benchmarkSource).not.toContain('sculpted_body');
   });

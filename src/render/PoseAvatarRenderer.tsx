@@ -3,9 +3,11 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ClassicPoseRenderer } from './ClassicPoseRenderer';
 import { ConstellationPoseRenderer } from './ConstellationPoseRenderer';
-import { MatteGraphiteDigitalTwinRenderer } from './MatteGraphiteDigitalTwinRenderer';
+import { RiggedHumanSilhouetteRenderer } from './RiggedHumanSilhouetteRenderer';
 import { MediaPipeSkeletonRenderer } from './MediaPipeSkeletonRenderer';
 import { PointCloudBodyPoseRenderer } from './PointCloudBodyPoseRenderer';
+import { ShadowSilhouetteRenderer } from './ShadowSilhouetteRenderer';
+import { VolumetricShadowRenderer } from './VolumetricShadowRenderer';
 import {
   POSE_AVATAR_DEBUG_VARIANTS,
   PoseAvatarDebugVariant,
@@ -86,8 +88,12 @@ export const PoseAvatarRenderer = React.forwardRef<
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       {config.mode === 'mediapipe_skeleton' ? (
         <MediaPipeSkeletonRenderer ref={innerRef} {...rendererProps} />
-      ) : config.mode === 'matte_graphite_digital_twin' ? (
-        <MatteGraphiteDigitalTwinRenderer ref={innerRef} {...rendererProps} />
+      ) : config.mode === 'volumetric_shadow' ? (
+        <VolumetricShadowRenderer ref={innerRef} {...rendererProps} />
+      ) : config.mode === 'shadow_silhouette' ? (
+        <ShadowSilhouetteRenderer ref={innerRef} {...rendererProps} />
+      ) : config.mode === 'rigged_human_silhouette' ? (
+        <RiggedHumanSilhouetteRenderer ref={innerRef} {...rendererProps} />
       ) : config.mode === 'point_cloud_body' ? (
         <PointCloudBodyPoseRenderer ref={innerRef} {...rendererProps} />
       ) : config.mode === 'constellation' ? (

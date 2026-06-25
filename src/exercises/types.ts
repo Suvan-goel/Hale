@@ -80,6 +80,17 @@ export interface SetResult {
   flags: string[];
   /** Optional Phase 1 valid active-time metadata. Absent for legacy/rep sets. */
   validTime?: ValidTimeResult;
+  /** Optional FD-005 step-up lead-leg alternation metadata. Absent for legacy/other sets. */
+  stepUpAlternation?: {
+    setIndex: number;
+    startLeadSide: 'left' | 'right';
+    targetTotalReps: number;
+    acceptedRepCount: number;
+    leftLeadRepCount: number;
+    rightLeadRepCount: number;
+    alternationValid: boolean;
+    completedTarget: boolean;
+  };
 }
 
 /** Live per-frame surface the player needs; reused object — never retain. */

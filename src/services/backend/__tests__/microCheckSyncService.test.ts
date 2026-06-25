@@ -105,6 +105,19 @@ describe('micro-check sync mapping', () => {
 
     const resultJson = JSON.stringify(payload.result_json);
     expect(resultJson).toContain('rise_velocity');
+    expect(payload.result_json).toMatchObject({
+      metric: {
+        measurementContext: {
+          protocol: { protocolId: 'micro_chair_power_5_reps_v1', protocolVersion: 1 },
+          side: { role: 'not_applicable' },
+        },
+      },
+      result: {
+        measurementContext: {
+          comparability: { sideStatus: 'not_side_dependent' },
+        },
+      },
+    });
     expect(resultJson).toContain('movement-block-1');
     expect(resultJson).not.toContain('frames');
     expect(resultJson).not.toContain('landmarks');

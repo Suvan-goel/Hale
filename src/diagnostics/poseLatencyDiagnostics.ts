@@ -3,6 +3,7 @@ import Constants from 'expo-constants';
 import type {
   AndroidSensorTimestampSourceName,
   LandmarksEventPayload,
+  PoseLatencyNativeRendererDiagnostics,
 } from '../../modules/expo-pose-detection';
 
 export const POSE_LATENCY_DIAGNOSTICS_ENV = 'EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS';
@@ -129,6 +130,7 @@ export interface PoseLatencyDiagnosticsSnapshot {
   nativeSourceAgeAtMediapipeCallbackMs: MetricSnapshot;
   nativeSourceAgeAtEmitMs: MetricSnapshot;
   nativeRuntime: PoseNativeRuntimeSnapshot | null;
+  nativeRenderer: PoseLatencyNativeRendererDiagnostics | null;
   rendererInputWidth: number | null;
   rendererInputHeight: number | null;
   jsTransformMs: MetricSnapshot;
@@ -186,6 +188,7 @@ export class PoseLatencyDiagnostics {
   private nativeClock: string | null = null;
   private maxApproxPoseAgeMs: number | null = null;
   private nativeRuntime: PoseNativeRuntimeSnapshot | null = null;
+  private nativeRenderer: PoseLatencyNativeRendererDiagnostics | null = null;
   private rendererInputWidth: number | null = null;
   private rendererInputHeight: number | null = null;
 
@@ -263,6 +266,7 @@ export class PoseLatencyDiagnostics {
       pushOptionalMetric(this.nativeEventPayloadBuildMs, native.eventPayloadBuildMs);
       const runtime = nativeRuntimeSnapshot(native);
       if (runtime) this.nativeRuntime = runtime;
+      if (native.nativeRenderer) this.nativeRenderer = native.nativeRenderer;
       if (typeof native.sourceAgeAtMediapipeSubmitMs === 'number') {
         this.nativeSourceAgeAtMediapipeSubmitMs.push(native.sourceAgeAtMediapipeSubmitMs);
       }
@@ -353,6 +357,7 @@ export class PoseLatencyDiagnostics {
       nativeSourceAgeAtMediapipeCallbackMs: this.nativeSourceAgeAtMediapipeCallbackMs.snapshot(),
       nativeSourceAgeAtEmitMs: this.nativeSourceAgeAtEmitMs.snapshot(),
       nativeRuntime: this.nativeRuntime,
+      nativeRenderer: this.nativeRenderer,
       rendererInputWidth: this.rendererInputWidth,
       rendererInputHeight: this.rendererInputHeight,
       jsTransformMs: this.jsTransformMs.snapshot(),

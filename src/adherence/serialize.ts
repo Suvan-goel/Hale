@@ -7,6 +7,7 @@ import type {
   TrainingSessionCompletion,
 } from './types';
 import { isMovementDomain } from './blockFocus';
+import { parseMovementProfileV2BlockReport } from '../haleFlow/movementProfileV2BlockReport';
 
 export const ADHERENCE_SCHEMA_VERSION = 3;
 
@@ -80,6 +81,9 @@ function isMovementAssessment(v: unknown): v is MovementAssessment {
 function isMovementBlockReport(v: unknown): v is MovementBlockReport {
   if (!v || typeof v !== 'object') return false;
   const r = v as Partial<MovementBlockReport>;
+  if (r.kind === 'movement_profile_v2_block_report') {
+    return parseMovementProfileV2BlockReport(v).ok;
+  }
   return (
     typeof r.id === 'string' &&
     typeof r.userId === 'string' &&

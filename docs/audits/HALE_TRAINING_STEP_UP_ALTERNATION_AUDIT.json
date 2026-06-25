@@ -1,0 +1,726 @@
+{
+  "primaryVerdict": "TRAINING_STEP_UP_ALTERNATION_SOFTWARE_COMPLETE_DEFAULT_CLOSED",
+  "generatedAt": "2026-06-25T12:02:39.014Z",
+  "git": {
+    "branch": "dev",
+    "head": "9bcfb4164fccd8430081fd9ca4d300b0a29bbc63",
+    "shortHead": "9bcfb41",
+    "status": "## dev...origin/dev\n M .env.example\n M App.tsx\n M docs/decisions.md\n M modules/expo-pose-detection/android/src/main/java/expo/modules/posedetection/ExpoPoseDetectionModule.kt\n M modules/expo-pose-detection/android/src/main/java/expo/modules/posedetection/PoseDetectionView.kt\n M modules/expo-pose-detection/ios/ExpoPoseDetectionModule.swift\n M modules/expo-pose-detection/ios/PoseDetectionView.swift\n M modules/expo-pose-detection/src/ExpoPoseDetection.types.ts\n M modules/expo-pose-detection/src/PoseDetectionView.tsx\n M src/adherence/types.ts\n M src/checkup/__tests__/checkupFlow.integration.test.ts\n M src/checkup/index.ts\n M src/checkup/movementProfileV2.ts\n M src/checkup/protocolSetup.ts\n M src/checkup/types.ts\n M src/config/__tests__/movementProfileV2Internal.test.ts\n M src/diagnostics/__tests__/poseLatencyDiagnostics.test.ts\n M src/diagnostics/poseLatencyDiagnostics.ts\n M src/diagnostics/poseRendererReplay.ts\n M src/exercises/types.ts\n M src/haleFlow/__tests__/copyGuardrails.test.ts\n M src/haleFlow/__tests__/progressViewModel.test.ts\n M src/haleFlow/progressViewModel.ts\n M src/haleFlow/reports.ts\n M src/history/__tests__/history.test.ts\n M src/history/serialize.ts\n M src/history/trends.ts\n M src/movementProfileV2/__tests__/internalCheckupFlow.test.ts\n M src/movementProfileV2/internalCheckupFlow.ts\n M src/movementProfileV2/viewModel.ts\n M src/movements/__tests__/movementProfileV2Protocols.test.ts\n M src/movements/index.ts\n M src/reference/movementProfileV2/__tests__/referenceEngine.test.ts\n M src/reference/movementProfileV2/engine.ts\n M src/reference/movementProfileV2/snapshot.ts\n M src/reference/movementProfileV2/types.ts\n D src/render/MatteGraphiteDigitalTwinRenderer.tsx\n M src/render/PointCloudBodyPoseRenderer.tsx\n M src/render/PoseAvatarRenderer.tsx\n D src/render/__tests__/matteGraphiteDigitalTwinGeometry.test.ts\n M src/render/__tests__/pointCloudBodyGeometry.test.ts\n M src/render/__tests__/poseAvatarConfig.test.ts\n D src/render/matteGraphiteDigitalTwinConfig.ts\n D src/render/matteGraphiteDigitalTwinGeometry.ts\n M src/render/pointCloudBodyGeometry.ts\n M src/render/poseAvatarPerformance.ts\n M src/render/poseAvatarTypes.ts\n M src/screens/CheckUpScreen.tsx\n M src/screens/MicroCheckScreen.tsx\n M src/screens/MovementProfileV2CheckUpScreen.tsx\n M src/screens/MovementProfileV2ReferenceDetailsScreen.tsx\n M src/screens/OnboardingResultsScreen.tsx\n M src/screens/PoseOverlayBenchmarkScreen.tsx\n M src/screens/ProgressScreen.tsx\n M src/screens/ResultsScreen.tsx\n M src/screens/SettingsScreen.tsx\n M src/screens/TrainingSessionScreen.tsx\n M src/services/backend/__tests__/checkupSyncService.test.ts\n M src/services/backend/__tests__/microCheckSyncService.test.ts\n M src/services/backend/__tests__/restoreService.test.ts\n M src/services/backend/checkupSyncService.ts\n M src/services/backend/microCheckSyncService.ts\n M src/services/backend/restoreService.ts\n M src/training/__tests__/microCheck.test.ts\n M src/training/dynamicState.ts\n M src/training/index.ts\n M src/training/microCheck.ts\n M src/training/serialize.ts\n M src/training/workoutGeneration.ts\n M website/app/globals.css\n M website/app/layout.tsx\n M website/app/page.tsx\n M website/src/components/LandingPage.tsx\n M website/src/components/SiteFooter.tsx\n M website/src/components/SiteHeader.tsx\n M website/src/config/site.ts\n M website/src/content/landing.ts\n M website/tests/e2e/landing.spec.ts\n M website/tests/unit/components.test.tsx\n?? docs/audits/HALE_CONSTELLATION_V2_BENCHMARK.md\n?? docs/audits/HALE_CONSTELLATION_V2_BENCHMARK_CODEX_PROMPT.md\n?? docs/audits/HALE_CONSTELLATION_V2_BENCHMARK_CODEX_PROMPT.txt\n?? docs/audits/HALE_EYES_OPEN_BALANCE_PROTOCOL_V2_CODEX_PROMPT.md\n?? docs/audits/HALE_EYES_OPEN_BALANCE_V2_AUDIT.json\n?? docs/audits/HALE_EYES_OPEN_BALANCE_V2_AUDIT.md\n?? docs/audits/HALE_EYES_OPEN_BALANCE_V2_IMPLEMENTATION.md\n?? docs/audits/HALE_EYES_OPEN_BALANCE_V2_SCENARIOS.csv\n?? docs/audits/HALE_EYES_OPEN_BALANCE_V2_VOICE_ASSET_REQUIREMENTS.csv\n?? docs/audits/HALE_MEASUREMENT_PROTOCOL_COMPATIBILITY_MATRIX.csv\n?? docs/audits/HALE_MEASUREMENT_SIDE_PROTOCOL_METADATA_AUDIT.json\n?? docs/audits/HALE_MEASUREMENT_SIDE_PROTOCOL_METADATA_AUDIT.md\n?? docs/audits/HALE_MEASUREMENT_SIDE_PROTOCOL_METADATA_CODEX_PROMPT.md\n?? docs/audits/HALE_MEASUREMENT_SIDE_PROTOCOL_METADATA_IMPLEMENTATION.md\n?? docs/audits/HALE_MEASUREMENT_SIDE_PROTOCOL_POST_UX_AUDIT.json\n?? docs/audits/HALE_MEASUREMENT_SIDE_PROTOCOL_POST_UX_AUDIT.md\n?? docs/audits/HALE_MEASUREMENT_SIDE_UX_COMPLETION_CODEX_PROMPT.md\n?? docs/audits/HALE_MEASUREMENT_SIDE_UX_COMPLETION_IMPLEMENTATION.md\n?? docs/audits/HALE_MEASUREMENT_SIDE_UX_SCENARIOS.csv\n?? docs/audits/HALE_RIGGED_HUMAN_SILHOUETTE_BENCHMARK.md\n?? docs/audits/HALE_RIGGED_HUMAN_SILHOUETTE_CODEX_PROMPT.md\n?? docs/audits/HALE_TRAINING_BOTH_SIDES_DOSE_CONVERSION_MATRIX.csv\n?? docs/audits/HALE_TRAINING_BOTH_SIDES_ROUNDS_AUDIT.json\n?? docs/audits/HALE_TRAINING_BOTH_SIDES_ROUNDS_AUDIT.md\n?? docs/audits/HALE_TRAINING_BOTH_SIDES_ROUNDS_CODEX_PROMPT.md\n?? docs/audits/HALE_TRAINING_BOTH_SIDES_ROUNDS_IMPLEMENTATION.md\n?? docs/audits/HALE_TRAINING_BOTH_SIDES_ROUND_SCENARIOS.csv\n?? docs/audits/HALE_TRAINING_STEP_UP_ALTERNATION_AUDIT.json\n?? docs/audits/HALE_TRAINING_STEP_UP_ALTERNATION_AUDIT.md\n?? docs/audits/HALE_TRAINING_STEP_UP_ALTERNATION_CODEX_PROMPT.md\n?? docs/audits/HALE_TRAINING_STEP_UP_ALTERNATION_IMPLEMENTATION.md\n?? docs/audits/HALE_TRAINING_STEP_UP_ALTERNATION_SCENARIOS.csv\n?? docs/audits/HALE_TRAINING_STEP_UP_REP_EVIDENCE_MATRIX.csv\n?? docs/audits/HALE_TRAINING_VOICE_V2_1_ASSET_REQUIREMENTS.csv\n?? docs/audits/HALE_TRAINING_VOICE_V2_1_EXERCISE_CONTRACTS.csv\n?? docs/audits/HALE_TRAINING_VOICE_V2_1_FOUNDATION_AUDIT.json\n?? docs/audits/HALE_TRAINING_VOICE_V2_1_FOUNDATION_AUDIT.md\n?? docs/audits/HALE_TRAINING_VOICE_V2_1_FOUNDATION_CODEX_PROMPT.md\n?? docs/audits/HALE_TRAINING_VOICE_V2_1_FOUNDATION_IMPLEMENTATION.md\n?? docs/audits/HALE_TRAINING_VOICE_V2_1_RUNTIME_READINESS.csv\n?? docs/audits/HALE_UNIFIED_MOVEMENT_CHECKUP_STAGE_H0_HEALTH_GATE.md\n?? docs/audits/HALE_UNIFIED_MOVEMENT_CHECKUP_STAGE_H1_V1_SHELL_V2_ADAPTER.md\n?? docs/audits/HALE_UNIFIED_MOVEMENT_CHECKUP_STAGE_H2_V1_RESULTS_SHELL_V2_PROFILE.md\n?? docs/audits/HALE_UNIFIED_MOVEMENT_CHECKUP_STAGE_H3_1_END_TO_END_VERIFICATION.md\n?? docs/audits/HALE_UNIFIED_MOVEMENT_CHECKUP_STAGE_H3_BASELINE_ONBOARDING_CUTOVER.md\n?? docs/audits/HALE_VOICE_PROJECT_POST_BALANCE_V2_HANDOFF.md\n?? docs/audits/HALE_VOICE_PROJECT_POST_BOTH_SIDES_ROUNDS_HANDOFF.md\n?? docs/audits/HALE_VOICE_PROJECT_POST_SIDE_PERSISTENCE_HANDOFF.md\n?? docs/audits/HALE_VOICE_PROJECT_POST_SIDE_UX_HANDOFF.md\n?? docs/audits/HALE_VOICE_PROJECT_POST_STEP_UP_HANDOFF.md\n?? docs/audits/HALE_VOICE_PROJECT_POST_TRAINING_FOUNDATION_HANDOFF.md\n?? docs/audits/Hale_Unified_Movement_CheckUp_Stage_H0_Health_Gate_Prompt.md\n?? docs/audits/Hale_Unified_Movement_CheckUp_Stage_H1_Polished_V1_Shell_V2_Adapter_Prompt.md\n?? docs/audits/Hale_Unified_Movement_CheckUp_Stage_H2_Polished_V1_Results_V2_Profile_Prompt.md\n?? docs/audits/Hale_Unified_Movement_CheckUp_Stage_H3_1_End_to_End_Verification_Prompt.md\n?? docs/audits/Hale_Unified_Movement_CheckUp_Stage_H3_Baseline_Onboarding_Cutover_Prompt.md\n?? docs/audits/Hale_Unified_Movement_CheckUp_Stage_H4_Official_Retest_Report_Next_Block_Prompt.md\n?? modules/expo-pose-detection/android/src/main/java/expo/modules/posedetection/ConstellationV2OverlayRenderer.kt\n?? modules/expo-pose-detection/android/src/main/java/expo/modules/posedetection/ConstellationV2Topology.kt\n?? modules/expo-pose-detection/android/src/main/java/expo/modules/posedetection/ConstellationV2Transform.kt\n?? modules/expo-pose-detection/android/src/test/java/expo/modules/posedetection/ConstellationV2TopologyTest.kt\n?? modules/expo-pose-detection/android/src/test/java/expo/modules/posedetection/ConstellationV2TransformTest.kt\n?? scripts/audits/audit-eyes-open-balance-v2.mjs\n?? scripts/audits/audit-measurement-side-protocol.mjs\n?? scripts/audits/audit-measurement-side-ux.mjs\n?? scripts/audits/audit-training-both-sides-rounds.mjs\n?? scripts/audits/audit-training-step-up-alternation.mjs\n?? scripts/audits/audit-training-voice-v21-foundation.mjs\n?? src/checkup/__tests__/measurementComparability.test.ts\n?? src/checkup/__tests__/measurementProtocolRegistry.test.ts\n?? src/checkup/__tests__/publicCheckUpEngine.test.ts\n?? src/checkup/__tests__/publicUnifiedMovementCheckUpLifecycle.integration.test.ts\n?? src/checkup/measurementComparability.ts\n?? src/checkup/measurementContext.ts\n?? src/checkup/measurementMetadata.ts\n?? src/checkup/measurementProtocolRegistry.ts\n?? src/checkup/publicCheckUpEngine.ts\n?? src/config/__tests__/unifiedMovementCheckUpRelease.test.ts\n?? src/config/eyesOpenBalanceProtocolV2.ts\n?? src/config/unifiedMovementCheckUpRelease.ts\n?? src/movements/balanceEyesOpenV2.ts\n?? src/pose/nativePoseProfiles.ts\n?? src/render/RiggedHumanSilhouetteRenderer.tsx\n?? src/render/ShadowSilhouetteRenderer.tsx\n?? src/render/VolumetricShadowRenderer.tsx\n?? src/render/__tests__/riggedHumanSilhouetteGeometry.test.ts\n?? src/render/__tests__/shadowSilhouetteGeometry.test.ts\n?? src/render/__tests__/volumetricShadowGeometry.test.ts\n?? src/render/riggedHumanSilhouetteConfig.ts\n?? src/render/riggedHumanSilhouetteGeometry.ts\n?? src/render/shadowSilhouetteGeometry.ts\n?? src/render/volumetricShadowGeometry.ts\n?? src/results/\n?? src/screens/CheckUpRecordingShell.tsx\n?? src/screens/MovementProfileV2UnifiedCheckUpScreen.tsx\n?? src/screens/MovementProfileV2UnifiedResultsScreen.tsx\n?? src/screens/__tests__/CheckUpRecordingShell.test.ts\n?? src/screens/__tests__/MicroCheckScreen.sideSetup.test.ts\n?? src/screens/__tests__/PoseOverlayBenchmarkScreen.constellationV2.test.ts\n?? src/training/__tests__/microCheckSideSetup.test.ts\n?? src/training/bothSidesRounds/\n?? src/training/microCheckSideSetup.ts\n?? src/training/stepUpAlternation/\n?? src/training/voiceV21/"
+  },
+  "featureDefaults": {
+    "stepUpAlternation": "off",
+    "trainingVoiceV21": "off",
+    "trainingVoiceV21AudioReady": false,
+    "trainingVoiceV21BehaviorReady": false,
+    "balanceV2DefaultClosed": true,
+    "balanceV2AudioReady": false
+  },
+  "metrics": {
+    "scenarioCount": 27,
+    "passedScenarioCount": 27,
+    "failedScenarioCount": 0,
+    "canonicalTargetTotalReps": 12,
+    "canonicalLeftLeadReps": 6,
+    "canonicalRightLeadReps": 6,
+    "validSetAcceptedRepCount": 12,
+    "validSetRepSfxCount": 12,
+    "wrongLeadNoCreditScenarioCount": 1,
+    "invalidNoCreditScenarioCount": 4,
+    "staleOrDuplicateSuppressionScenarioCount": 3,
+    "acceptedRepEvidenceCount": 12,
+    "rejectedRepEvidenceCount": 5,
+    "generatedSessionDefaultClosedCount": 1,
+    "seedFlipScenarioCount": 2,
+    "voiceStartLeadCueScenarioCount": 1,
+    "voiceWrongLeadCueScenarioCount": 1,
+    "irVoiceStepAlternationRemaining": 0,
+    "safetyBlockerStillPresentCount": 1,
+    "trainingVoiceSelectableCount": 0,
+    "audioAssetDiffCount": 0,
+    "p0": 0,
+    "p1": 0,
+    "p2": 0,
+    "p3": 0
+  },
+  "metricEvidence": {
+    "scenarioCount": {
+      "value": 27,
+      "scenarioIds": [
+        "canonical_plan_left",
+        "canonical_plan_right",
+        "bilateral_readiness_required",
+        "valid_12_rep_set_6_and_6",
+        "wrong_lead_no_credit_no_flip",
+        "generic_no_credit",
+        "no_start_floor_no_credit",
+        "no_return_floor_no_credit",
+        "tracking_interruption_no_credit",
+        "stale_restore_partial_no_credit",
+        "duplicate_completion_suppressed",
+        "pause_background_partial_no_credit",
+        "incomplete_11_reps_blocks_progression",
+        "one_12_rep_set_remains_one_set",
+        "odd_target_blocked",
+        "non_integer_target_blocked",
+        "even_scaled_target_supported",
+        "generated_session_default_closed",
+        "generated_session_annotates_when_enabled",
+        "feature_gate_default_closed",
+        "feature_gate_selectable_when_explicit",
+        "manual_explore_does_not_flip_seed",
+        "main_plan_completion_flips_seed_once",
+        "persistence_roundtrip_and_tamper_reject",
+        "voice_contract_removes_step_alternation_blocker",
+        "voice_start_lead_cues_by_set",
+        "voice_wrong_lead_correction_cue"
+      ]
+    },
+    "passedScenarioCount": {
+      "value": 27,
+      "scenarioIds": [
+        "canonical_plan_left",
+        "canonical_plan_right",
+        "bilateral_readiness_required",
+        "valid_12_rep_set_6_and_6",
+        "wrong_lead_no_credit_no_flip",
+        "generic_no_credit",
+        "no_start_floor_no_credit",
+        "no_return_floor_no_credit",
+        "tracking_interruption_no_credit",
+        "stale_restore_partial_no_credit",
+        "duplicate_completion_suppressed",
+        "pause_background_partial_no_credit",
+        "incomplete_11_reps_blocks_progression",
+        "one_12_rep_set_remains_one_set",
+        "odd_target_blocked",
+        "non_integer_target_blocked",
+        "even_scaled_target_supported",
+        "generated_session_default_closed",
+        "generated_session_annotates_when_enabled",
+        "feature_gate_default_closed",
+        "feature_gate_selectable_when_explicit",
+        "manual_explore_does_not_flip_seed",
+        "main_plan_completion_flips_seed_once",
+        "persistence_roundtrip_and_tamper_reject",
+        "voice_contract_removes_step_alternation_blocker",
+        "voice_start_lead_cues_by_set",
+        "voice_wrong_lead_correction_cue"
+      ]
+    },
+    "failedScenarioCount": {
+      "value": 0,
+      "scenarioIds": []
+    },
+    "canonicalTargetTotalReps": {
+      "value": 12,
+      "scenarioIds": [
+        "canonical_plan_left"
+      ]
+    },
+    "canonicalLeftLeadReps": {
+      "value": 6,
+      "scenarioIds": [
+        "canonical_plan_left"
+      ]
+    },
+    "canonicalRightLeadReps": {
+      "value": 6,
+      "scenarioIds": [
+        "canonical_plan_left"
+      ]
+    },
+    "validSetAcceptedRepCount": {
+      "value": 12,
+      "scenarioIds": [
+        "valid_12_rep_set_6_and_6"
+      ]
+    },
+    "validSetRepSfxCount": {
+      "value": 12,
+      "scenarioIds": [
+        "valid_12_rep_set_6_and_6"
+      ]
+    },
+    "wrongLeadNoCreditScenarioCount": {
+      "value": 1,
+      "scenarioIds": [
+        "wrong_lead_no_credit_no_flip"
+      ]
+    },
+    "invalidNoCreditScenarioCount": {
+      "value": 4,
+      "scenarioIds": [
+        "generic_no_credit",
+        "no_start_floor_no_credit",
+        "no_return_floor_no_credit",
+        "tracking_interruption_no_credit"
+      ]
+    },
+    "staleOrDuplicateSuppressionScenarioCount": {
+      "value": 3,
+      "scenarioIds": [
+        "stale_restore_partial_no_credit",
+        "duplicate_completion_suppressed",
+        "pause_background_partial_no_credit"
+      ]
+    },
+    "acceptedRepEvidenceCount": {
+      "value": 12,
+      "scenarioIds": [
+        "valid12-1",
+        "valid12-2",
+        "valid12-3",
+        "valid12-4",
+        "valid12-5",
+        "valid12-6",
+        "valid12-7",
+        "valid12-8",
+        "valid12-9",
+        "valid12-10",
+        "valid12-11",
+        "valid12-12"
+      ]
+    },
+    "rejectedRepEvidenceCount": {
+      "value": 5,
+      "scenarioIds": [
+        "wrong_lead_no_credit_no_flip",
+        "generic_no_credit",
+        "no_start_floor_no_credit",
+        "no_return_floor_no_credit",
+        "tracking_interruption_no_credit"
+      ]
+    },
+    "generatedSessionDefaultClosedCount": {
+      "value": 1,
+      "scenarioIds": [
+        "generated_session_default_closed"
+      ]
+    },
+    "seedFlipScenarioCount": {
+      "value": 2,
+      "scenarioIds": [
+        "manual_explore_does_not_flip_seed",
+        "main_plan_completion_flips_seed_once"
+      ]
+    },
+    "voiceStartLeadCueScenarioCount": {
+      "value": 1,
+      "scenarioIds": [
+        "voice_start_lead_cues_by_set"
+      ]
+    },
+    "voiceWrongLeadCueScenarioCount": {
+      "value": 1,
+      "scenarioIds": [
+        "voice_wrong_lead_correction_cue"
+      ]
+    },
+    "irVoiceStepAlternationRemaining": {
+      "value": 0,
+      "scenarioIds": [
+        "voice_contract_removes_step_alternation_blocker"
+      ]
+    },
+    "safetyBlockerStillPresentCount": {
+      "value": 1,
+      "scenarioIds": [
+        "voice_contract_removes_step_alternation_blocker"
+      ]
+    },
+    "trainingVoiceSelectableCount": {
+      "value": 0,
+      "scenarioIds": [
+        "voice_contract_removes_step_alternation_blocker"
+      ]
+    },
+    "audioAssetDiffCount": {
+      "value": 0,
+      "scenarioIds": [
+        "git diff --name-only -- assets/audio"
+      ]
+    },
+    "p0": {
+      "value": 0,
+      "scenarioIds": []
+    },
+    "p1": {
+      "value": 0,
+      "scenarioIds": []
+    },
+    "p2": {
+      "value": 0,
+      "scenarioIds": []
+    },
+    "p3": {
+      "value": 0,
+      "scenarioIds": []
+    }
+  },
+  "scenarios": [
+    {
+      "scenarioId": "canonical_plan_left",
+      "category": "plan",
+      "expectedSelectable": true,
+      "observed": "{\"targetTotalReps\":12,\"targetLeftLeadReps\":6,\"targetRightLeadReps\":6,\"setStartLeadSides\":[\"left\",\"right\",\"left\"]}",
+      "passed": true
+    },
+    {
+      "scenarioId": "canonical_plan_right",
+      "category": "plan",
+      "expectedSelectable": true,
+      "observed": "{\"setStartLeadSides\":[\"right\",\"left\",\"right\"]}",
+      "passed": true
+    },
+    {
+      "scenarioId": "bilateral_readiness_required",
+      "category": "evidence_gate",
+      "expectedSelectable": true,
+      "observed": "{\"readyWithBothChains\":true,\"readyWithMissingRightChain\":false}",
+      "passed": true
+    },
+    {
+      "scenarioId": "valid_12_rep_set_6_and_6",
+      "category": "runtime",
+      "expectedSelectable": true,
+      "observed": "{\"acceptedRepCount\":12,\"leftLeadRepCount\":6,\"rightLeadRepCount\":6,\"repSfxCount\":12,\"phase\":\"set_complete\"}",
+      "passed": true
+    },
+    {
+      "scenarioId": "wrong_lead_no_credit_no_flip",
+      "category": "runtime",
+      "expectedSelectable": true,
+      "observed": "{\"endReason\":\"wrong_lead\",\"acceptedRepCount\":0,\"expectedLeadSide\":\"left\",\"repSfxCount\":0}",
+      "passed": true
+    },
+    {
+      "scenarioId": "generic_no_credit",
+      "category": "runtime_invalid",
+      "expectedSelectable": true,
+      "observed": "{\"endReason\":\"invalid_phase\",\"acceptedRepCount\":0,\"expectedLeadSide\":\"left\"}",
+      "passed": true
+    },
+    {
+      "scenarioId": "no_start_floor_no_credit",
+      "category": "runtime_invalid",
+      "expectedSelectable": true,
+      "observed": "{\"endReason\":\"invalid_phase\",\"acceptedRepCount\":0,\"expectedLeadSide\":\"left\"}",
+      "passed": true
+    },
+    {
+      "scenarioId": "no_return_floor_no_credit",
+      "category": "runtime_invalid",
+      "expectedSelectable": true,
+      "observed": "{\"endReason\":\"invalid_phase\",\"acceptedRepCount\":0,\"expectedLeadSide\":\"left\"}",
+      "passed": true
+    },
+    {
+      "scenarioId": "tracking_interruption_no_credit",
+      "category": "runtime_invalid",
+      "expectedSelectable": true,
+      "observed": "{\"endReason\":\"tracking_interrupted\",\"acceptedRepCount\":0,\"expectedLeadSide\":\"left\"}",
+      "passed": true
+    },
+    {
+      "scenarioId": "stale_restore_partial_no_credit",
+      "category": "stale",
+      "expectedSelectable": true,
+      "observed": "{\"acceptedRepCount\":0,\"ignoredStaleActionCount\":1}",
+      "passed": true
+    },
+    {
+      "scenarioId": "duplicate_completion_suppressed",
+      "category": "stale",
+      "expectedSelectable": true,
+      "observed": "{\"acceptedRepCount\":1,\"duplicateSuppressedCount\":1}",
+      "passed": true
+    },
+    {
+      "scenarioId": "pause_background_partial_no_credit",
+      "category": "stale",
+      "expectedSelectable": true,
+      "observed": "{\"acceptedRepCount\":0,\"ignoredStaleActionCount\":1}",
+      "passed": true
+    },
+    {
+      "scenarioId": "incomplete_11_reps_blocks_progression",
+      "category": "progression",
+      "expectedSelectable": false,
+      "observed": "{\"completedTarget\":false,\"alternationValid\":false}",
+      "passed": true
+    },
+    {
+      "scenarioId": "one_12_rep_set_remains_one_set",
+      "category": "progression",
+      "expectedSelectable": true,
+      "observed": "{\"completedSetCount\":3,\"setCount\":3,\"legacyReps\":12,\"legacyReachedTarget\":true}",
+      "passed": true
+    },
+    {
+      "scenarioId": "odd_target_blocked",
+      "category": "plan_blocked",
+      "expectedSelectable": false,
+      "observed": "{\"version\":1,\"exerciseId\":\"step-up\",\"targetTotalReps\":11,\"targetLeftLeadReps\":0,\"targetRightLeadReps\":0,\"setCount\":3,\"initialLeadSide\":\"left\",\"setStartLeadSides\":[],\"sourceSetCount\":3,\"sourceTargetRepsPerSet\":11,\"sourcePrescriptionFingerprint\":\"step-up-source_701cebf4\",\"planFingerprint\":\"sua1_3a585dce\",\"runtimeSelectable\":false,\"blockerReasonCodes\":[\"ODD_STEP_UP_TARGET\"]}",
+      "passed": true
+    },
+    {
+      "scenarioId": "non_integer_target_blocked",
+      "category": "plan_blocked",
+      "expectedSelectable": false,
+      "observed": "{\"version\":1,\"exerciseId\":\"step-up\",\"targetTotalReps\":7.5,\"targetLeftLeadReps\":0,\"targetRightLeadReps\":0,\"setCount\":3,\"initialLeadSide\":\"left\",\"setStartLeadSides\":[],\"sourceSetCount\":3,\"sourceTargetRepsPerSet\":7.5,\"sourcePrescriptionFingerprint\":\"step-up-source_c4eb11ae\",\"planFingerprint\":\"sua1_36c1ccad\",\"runtimeSelectable\":false,\"blockerReasonCodes\":[\"NON_INTEGER_STEP_UP_TARGET\"]}",
+      "passed": true
+    },
+    {
+      "scenarioId": "even_scaled_target_supported",
+      "category": "plan_scaled",
+      "expectedSelectable": true,
+      "observed": "{\"targetTotalReps\":10,\"targetLeftLeadReps\":5,\"targetRightLeadReps\":5,\"setStartLeadSides\":[\"right\",\"left\"]}",
+      "passed": true
+    },
+    {
+      "scenarioId": "generated_session_default_closed",
+      "category": "generation",
+      "expectedSelectable": true,
+      "observed": "{\"hasPlan\":false}",
+      "passed": true
+    },
+    {
+      "scenarioId": "generated_session_annotates_when_enabled",
+      "category": "generation",
+      "expectedSelectable": true,
+      "observed": "{\"hasPlan\":true,\"targetTotalReps\":12}",
+      "passed": true
+    },
+    {
+      "scenarioId": "feature_gate_default_closed",
+      "category": "readiness",
+      "expectedSelectable": true,
+      "observed": "{\"mode\":\"legacy\",\"featureEnabled\":false,\"internalV21RuntimeReady\":false,\"selectable\":false,\"reasonCodes\":[\"feature_flag_off\",\"internal_v21_runtime_not_ready\"]}",
+      "passed": true
+    },
+    {
+      "scenarioId": "feature_gate_selectable_when_explicit",
+      "category": "readiness",
+      "expectedSelectable": true,
+      "observed": "{\"mode\":\"step_up_alternation_internal\",\"featureEnabled\":true,\"internalV21RuntimeReady\":true,\"selectable\":true,\"reasonCodes\":[]}",
+      "passed": true
+    },
+    {
+      "scenarioId": "manual_explore_does_not_flip_seed",
+      "category": "seed",
+      "expectedSelectable": true,
+      "observed": "{\"nextSide\":\"left\"}",
+      "passed": true
+    },
+    {
+      "scenarioId": "main_plan_completion_flips_seed_once",
+      "category": "seed",
+      "expectedSelectable": true,
+      "observed": "{\"nextSideAfterMain\":\"right\",\"duplicateSame\":true}",
+      "passed": true
+    },
+    {
+      "scenarioId": "persistence_roundtrip_and_tamper_reject",
+      "category": "persistence",
+      "expectedSelectable": true,
+      "observed": "{\"restoredAcceptedReps\":12,\"tamperedRejected\":true}",
+      "passed": true
+    },
+    {
+      "scenarioId": "voice_contract_removes_step_alternation_blocker",
+      "category": "voice",
+      "expectedSelectable": true,
+      "observed": "{\"requirements\":[\"IR-VOICE-SAFETY-SUBSUMPTION\"],\"blockers\":[\"behavior_dependency:IR-VOICE-SAFETY-SUBSUMPTION\",\"global_behavior_ready_false\",\"global_audio_ready_false\",\"missing_audio:ex-step-up-first-v21\",\"missing_audio:ex-step-up-next-v21\",\"missing_audio:step-up-start-left-v21\",\"missing_audio:step-up-start-right-v21\",\"missing_audio:target-step-up-v21\"]}",
+      "passed": true
+    },
+    {
+      "scenarioId": "voice_start_lead_cues_by_set",
+      "category": "voice",
+      "expectedSelectable": true,
+      "observed": "{\"firstCueKeys\":[\"ex-step-up-first-v21\",\"step-up-start-left-v21\",\"final-position-set-v21\",\"target-step-up-v21\"],\"laterCueKeys\":[\"ex-step-up-next-v21\",\"step-up-start-right-v21\",\"final-position-set-v21\",\"target-step-up-v21\"]}",
+      "passed": true
+    },
+    {
+      "scenarioId": "voice_wrong_lead_correction_cue",
+      "category": "voice",
+      "expectedSelectable": true,
+      "observed": "{\"cueKeys\":[\"step-up-wrong-right-v21\",\"final-position-set-v21\"]}",
+      "passed": true
+    }
+  ],
+  "evidenceMatrix": [
+    {
+      "scenarioId": "valid_12_rep_set_6_and_6",
+      "repIndex": 1,
+      "repAttemptId": "valid12-1",
+      "expectedLeadSide": "left",
+      "observedLeadSide": "left",
+      "endReason": "accepted",
+      "valid": true,
+      "credited": true,
+      "expectedFlip": true,
+      "expectedSfx": true,
+      "bothFeetAtStart": true,
+      "topPhaseValid": true,
+      "bothFeetReturnedToFloor": true,
+      "trackingValid": true
+    },
+    {
+      "scenarioId": "valid_12_rep_set_6_and_6",
+      "repIndex": 2,
+      "repAttemptId": "valid12-2",
+      "expectedLeadSide": "right",
+      "observedLeadSide": "right",
+      "endReason": "accepted",
+      "valid": true,
+      "credited": true,
+      "expectedFlip": true,
+      "expectedSfx": true,
+      "bothFeetAtStart": true,
+      "topPhaseValid": true,
+      "bothFeetReturnedToFloor": true,
+      "trackingValid": true
+    },
+    {
+      "scenarioId": "valid_12_rep_set_6_and_6",
+      "repIndex": 3,
+      "repAttemptId": "valid12-3",
+      "expectedLeadSide": "left",
+      "observedLeadSide": "left",
+      "endReason": "accepted",
+      "valid": true,
+      "credited": true,
+      "expectedFlip": true,
+      "expectedSfx": true,
+      "bothFeetAtStart": true,
+      "topPhaseValid": true,
+      "bothFeetReturnedToFloor": true,
+      "trackingValid": true
+    },
+    {
+      "scenarioId": "valid_12_rep_set_6_and_6",
+      "repIndex": 4,
+      "repAttemptId": "valid12-4",
+      "expectedLeadSide": "right",
+      "observedLeadSide": "right",
+      "endReason": "accepted",
+      "valid": true,
+      "credited": true,
+      "expectedFlip": true,
+      "expectedSfx": true,
+      "bothFeetAtStart": true,
+      "topPhaseValid": true,
+      "bothFeetReturnedToFloor": true,
+      "trackingValid": true
+    },
+    {
+      "scenarioId": "valid_12_rep_set_6_and_6",
+      "repIndex": 5,
+      "repAttemptId": "valid12-5",
+      "expectedLeadSide": "left",
+      "observedLeadSide": "left",
+      "endReason": "accepted",
+      "valid": true,
+      "credited": true,
+      "expectedFlip": true,
+      "expectedSfx": true,
+      "bothFeetAtStart": true,
+      "topPhaseValid": true,
+      "bothFeetReturnedToFloor": true,
+      "trackingValid": true
+    },
+    {
+      "scenarioId": "valid_12_rep_set_6_and_6",
+      "repIndex": 6,
+      "repAttemptId": "valid12-6",
+      "expectedLeadSide": "right",
+      "observedLeadSide": "right",
+      "endReason": "accepted",
+      "valid": true,
+      "credited": true,
+      "expectedFlip": true,
+      "expectedSfx": true,
+      "bothFeetAtStart": true,
+      "topPhaseValid": true,
+      "bothFeetReturnedToFloor": true,
+      "trackingValid": true
+    },
+    {
+      "scenarioId": "valid_12_rep_set_6_and_6",
+      "repIndex": 7,
+      "repAttemptId": "valid12-7",
+      "expectedLeadSide": "left",
+      "observedLeadSide": "left",
+      "endReason": "accepted",
+      "valid": true,
+      "credited": true,
+      "expectedFlip": true,
+      "expectedSfx": true,
+      "bothFeetAtStart": true,
+      "topPhaseValid": true,
+      "bothFeetReturnedToFloor": true,
+      "trackingValid": true
+    },
+    {
+      "scenarioId": "valid_12_rep_set_6_and_6",
+      "repIndex": 8,
+      "repAttemptId": "valid12-8",
+      "expectedLeadSide": "right",
+      "observedLeadSide": "right",
+      "endReason": "accepted",
+      "valid": true,
+      "credited": true,
+      "expectedFlip": true,
+      "expectedSfx": true,
+      "bothFeetAtStart": true,
+      "topPhaseValid": true,
+      "bothFeetReturnedToFloor": true,
+      "trackingValid": true
+    },
+    {
+      "scenarioId": "valid_12_rep_set_6_and_6",
+      "repIndex": 9,
+      "repAttemptId": "valid12-9",
+      "expectedLeadSide": "left",
+      "observedLeadSide": "left",
+      "endReason": "accepted",
+      "valid": true,
+      "credited": true,
+      "expectedFlip": true,
+      "expectedSfx": true,
+      "bothFeetAtStart": true,
+      "topPhaseValid": true,
+      "bothFeetReturnedToFloor": true,
+      "trackingValid": true
+    },
+    {
+      "scenarioId": "valid_12_rep_set_6_and_6",
+      "repIndex": 10,
+      "repAttemptId": "valid12-10",
+      "expectedLeadSide": "right",
+      "observedLeadSide": "right",
+      "endReason": "accepted",
+      "valid": true,
+      "credited": true,
+      "expectedFlip": true,
+      "expectedSfx": true,
+      "bothFeetAtStart": true,
+      "topPhaseValid": true,
+      "bothFeetReturnedToFloor": true,
+      "trackingValid": true
+    },
+    {
+      "scenarioId": "valid_12_rep_set_6_and_6",
+      "repIndex": 11,
+      "repAttemptId": "valid12-11",
+      "expectedLeadSide": "left",
+      "observedLeadSide": "left",
+      "endReason": "accepted",
+      "valid": true,
+      "credited": true,
+      "expectedFlip": true,
+      "expectedSfx": true,
+      "bothFeetAtStart": true,
+      "topPhaseValid": true,
+      "bothFeetReturnedToFloor": true,
+      "trackingValid": true
+    },
+    {
+      "scenarioId": "valid_12_rep_set_6_and_6",
+      "repIndex": 12,
+      "repAttemptId": "valid12-12",
+      "expectedLeadSide": "right",
+      "observedLeadSide": "right",
+      "endReason": "accepted",
+      "valid": true,
+      "credited": true,
+      "expectedFlip": true,
+      "expectedSfx": true,
+      "bothFeetAtStart": true,
+      "topPhaseValid": true,
+      "bothFeetReturnedToFloor": true,
+      "trackingValid": true
+    },
+    {
+      "scenarioId": "wrong_lead_no_credit_no_flip",
+      "repIndex": 1,
+      "repAttemptId": "wrong-lead-1",
+      "expectedLeadSide": "left",
+      "observedLeadSide": "right",
+      "endReason": "wrong_lead",
+      "valid": false,
+      "credited": false,
+      "expectedFlip": false,
+      "expectedSfx": false,
+      "bothFeetAtStart": true,
+      "topPhaseValid": true,
+      "bothFeetReturnedToFloor": true,
+      "trackingValid": true
+    },
+    {
+      "scenarioId": "generic_no_credit",
+      "repIndex": 1,
+      "repAttemptId": "generic_no_credit",
+      "expectedLeadSide": "left",
+      "observedLeadSide": "",
+      "endReason": "invalid_phase",
+      "valid": false,
+      "credited": false,
+      "expectedFlip": false,
+      "expectedSfx": false,
+      "bothFeetAtStart": true,
+      "topPhaseValid": true,
+      "bothFeetReturnedToFloor": true,
+      "trackingValid": true
+    },
+    {
+      "scenarioId": "no_start_floor_no_credit",
+      "repIndex": 1,
+      "repAttemptId": "no_start_floor_no_credit",
+      "expectedLeadSide": "left",
+      "observedLeadSide": "left",
+      "endReason": "invalid_phase",
+      "valid": false,
+      "credited": false,
+      "expectedFlip": false,
+      "expectedSfx": false,
+      "bothFeetAtStart": false,
+      "topPhaseValid": true,
+      "bothFeetReturnedToFloor": true,
+      "trackingValid": true
+    },
+    {
+      "scenarioId": "no_return_floor_no_credit",
+      "repIndex": 1,
+      "repAttemptId": "no_return_floor_no_credit",
+      "expectedLeadSide": "left",
+      "observedLeadSide": "left",
+      "endReason": "invalid_phase",
+      "valid": false,
+      "credited": false,
+      "expectedFlip": false,
+      "expectedSfx": false,
+      "bothFeetAtStart": true,
+      "topPhaseValid": true,
+      "bothFeetReturnedToFloor": false,
+      "trackingValid": true
+    },
+    {
+      "scenarioId": "tracking_interruption_no_credit",
+      "repIndex": 1,
+      "repAttemptId": "tracking_interruption_no_credit",
+      "expectedLeadSide": "left",
+      "observedLeadSide": "left",
+      "endReason": "tracking_interrupted",
+      "valid": false,
+      "credited": false,
+      "expectedFlip": false,
+      "expectedSfx": false,
+      "bothFeetAtStart": true,
+      "topPhaseValid": true,
+      "bothFeetReturnedToFloor": true,
+      "trackingValid": false
+    }
+  ],
+  "nextTask": "Training floor-transfer readiness gate implementation"
+}

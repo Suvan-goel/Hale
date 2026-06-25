@@ -15,6 +15,7 @@
 
 import { VoiceCueKey, voicePriority } from '../audio/cues';
 import { VoiceRequest } from '../assessment/sessionController';
+import { normalizeMicroCheckMeasurementMetadata, type MeasurementContext } from '../checkup';
 import { ExerciseSetGrader, SetResult } from '../exercises';
 import { HoldSetGrader, RepsSetGrader, RomSetGrader } from '../exercises/setGraders';
 import { AUTOREG_VOICE } from '../exercises/common';
@@ -28,6 +29,7 @@ export type MicroCheckType = 'chair-power' | 'single-leg-balance' | 'mobility-re
 export interface MicroCheckResult {
   type: MicroCheckType;
   startedAt: string;
+  measurementContext?: MeasurementContext;
   /** Rise velocity (bu/s), hold seconds, or peak reach angle depending on type. */
   value: number;
   /** Chair stands credited (chair-power); 0 otherwise. */
@@ -79,6 +81,7 @@ export class MicroCheckRunner {
   private readonly startedAtIso: string;
   private readonly config: MicroCheckConfig;
   private readonly preflight: PreflightCheck;
+  private readonly measurementContext: MeasurementContext | null;
   private readonly grader: ExerciseSetGrader;
   private readonly update_: MicroCheckFrameUpdate = {
     phase: 'preflight',
@@ -105,12 +108,14 @@ export class MicroCheckRunner {
     type: MicroCheckType,
     startedAtIso: string,
     preflight: PreflightCheck,
-    config: MicroCheckConfig = DEFAULT_MICROCHECK_CONFIG
+    config: MicroCheckConfig = DEFAULT_MICROCHECK_CONFIG,
+    measurementContext: MeasurementContext | null = null
   ) {
     this.type = type;
     this.startedAtIso = startedAtIso;
     this.config = config;
     this.preflight = preflight;
+    this.measurementContext = measurementContext;
     this.grader = makeGrader(type, config);
   }
 
@@ -221,31 +226,39 @@ export class MicroCheckRunner {
   }
 
   private finalize(set: SetResult): void {
+    const resultBase = {
+      type: this.type,
+      startedAt: this.startedAtIso,
+      measurementContext: this.measurementContext ?? undefined,
+    };
     if (this.type === 'chair-power') {
       this.finished = {
-        type: this.type,
-        startedAt: this.startedAtIso,
+        ...resultBase,
         value: set.meanVel,
         reps: set.reps,
         measured: set.reps > 0 && Number.isFinite(set.meanVel),
       };
     } else if (this.type === 'single-leg-balance') {
       this.finished = {
-        type: this.type,
-        startedAt: this.startedAtIso,
+        ...resultBase,
         value: set.holdSec,
         reps: 0,
         measured: Number.isFinite(set.holdSec) && set.holdSec > 0,
       };
     } else {
       this.finished = {
-        type: this.type,
-        startedAt: this.startedAtIso,
+        ...resultBase,
         value: set.romPeak,
         reps: 0,
         measured: Number.isFinite(set.romPeak),
       };
     }
+    this.finished = {
+      ...this.finished,
+      measurementContext: normalizeMicroCheckMeasurementMetadata(this.finished, {
+        measurementContext: this.finished.measurementContext,
+      }),
+    };
   }
 }
 
@@ -289,13 +302,16 @@ export function microCheckTrendPoints(results: readonly MicroCheckResult[]): Ext
   const out: ExtraTrendPoint[] = [];
   for (const r of results) {
     if (!r.measured) continue;
+    const measurementContext = normalizeMicroCheckMeasurementMetadata(r, {
+      measurementContext: r.measurementContext,
+    });
     const key =
       r.type === 'chair-power'
         ? 'rise-velocity'
         : r.type === 'single-leg-balance'
           ? 'single-leg-balance'
           : 'seated-reach-angle';
-    out.push({ key, at: r.startedAt, value: r.value });
+    out.push({ key, at: r.startedAt, value: r.value, measurementContext });
   }
   return out;
 }

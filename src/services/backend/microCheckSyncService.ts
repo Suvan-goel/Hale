@@ -1,4 +1,5 @@
 import type { MovementBlock, TrainingSessionCompletion } from '../../adherence';
+import { normalizeMicroCheckMeasurementMetadata } from '../../checkup';
 import type { MicroCheckResult, MicroCheckType } from '../../training';
 import { supabase } from '../../lib/supabase';
 import { addBreadcrumb } from '../observability/sentry';
@@ -259,12 +260,16 @@ function domainForMicroCheck(type: MicroCheckType): RemoteMicroCheckDomain {
 }
 
 function metricForMicroCheck(result: MicroCheckResult): BackendJson {
+  const measurementContext = normalizeMicroCheckMeasurementMetadata(result, {
+    measurementContext: result.measurementContext,
+  });
   if (result.type === 'chair-power') {
     return sanitizeForBackendJson({
       key: 'rise_velocity',
       riseVelocityBuPerSecond: result.value,
       reps: result.reps,
       measured: result.measured,
+      measurementContext,
     });
   }
 
@@ -273,6 +278,7 @@ function metricForMicroCheck(result: MicroCheckResult): BackendJson {
       key: 'single_leg_hold_seconds',
       holdSeconds: result.value,
       measured: result.measured,
+      measurementContext,
     });
   }
 
@@ -280,13 +286,18 @@ function metricForMicroCheck(result: MicroCheckResult): BackendJson {
     key: 'mobility_reach_angle',
     reachAngleDegrees: result.value,
     measured: result.measured,
+    measurementContext,
   });
 }
 
 function sanitizeMicroCheckResult(result: MicroCheckResult): BackendJson {
+  const measurementContext = normalizeMicroCheckMeasurementMetadata(result, {
+    measurementContext: result.measurementContext,
+  });
   return sanitizeForBackendJson({
     type: result.type,
     startedAt: result.startedAt,
+    measurementContext,
     value: result.value,
     reps: result.reps,
     measured: result.measured,

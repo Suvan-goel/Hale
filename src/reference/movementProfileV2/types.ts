@@ -7,6 +7,7 @@ import type {
 } from '../../movements/activeShoulderReachV2';
 import type { CHAIR_RISE_V2_ID, ChairRiseV2Result } from '../../movements/chairRiseV2';
 import type { ONE_LEG_BALANCE_V2_ID, OneLegBalanceV2Result } from '../../movements/oneLegBalanceV2';
+import type { BALANCE_EYES_OPEN_V2_ID, BalanceEyesOpenV2Result } from '../../movements/balanceEyesOpenV2';
 
 export const MOVEMENT_PROFILE_V2_REFERENCE_ENGINE_SCHEMA_VERSION = 1 as const;
 export const MOVEMENT_PROFILE_V2_REFERENCE_ENGINE_VERSION = 1 as const;
@@ -77,6 +78,13 @@ export type RawMetric =
       ceiling: 45;
     }
   | {
+      metricId: 'balance_eyes_open_total';
+      value: number;
+      unit: 'seconds';
+      completedStageCount: number;
+      totalCapSeconds: number;
+    }
+  | {
       metricId: 'active_shoulder_reach';
       value: number;
       unit: 'degrees';
@@ -143,6 +151,7 @@ export type MovementProfileV2DomainId = 'chair' | 'balance' | 'shoulder';
 export type MovementProfileV2HeadlineMovementId =
   | typeof CHAIR_RISE_V2_ID
   | typeof ONE_LEG_BALANCE_V2_ID
+  | typeof BALANCE_EYES_OPEN_V2_ID
   | typeof ACTIVE_SHOULDER_REACH_V2_ID;
 
 export interface ReferenceMetadata {
@@ -212,9 +221,9 @@ export interface ChairInterpretation {
 }
 
 export interface BalanceInterpretation {
-  movementId: typeof ONE_LEG_BALANCE_V2_ID;
+  movementId: typeof ONE_LEG_BALANCE_V2_ID | typeof BALANCE_EYES_OPEN_V2_ID;
   resultKind: ReferenceResultKind;
-  rawMetric: Extract<RawMetric, { metricId: 'one_leg_balance_best' }> | null;
+  rawMetric: Extract<RawMetric, { metricId: 'one_leg_balance_best' | 'balance_eyes_open_total' }> | null;
   taskBand: BalanceTaskBand | null;
   protocolEvidence: MovementProfileV2EvidenceStatus | null;
   claimEligibility: ReferenceClaimEligibility;
@@ -279,6 +288,6 @@ export interface MovementProfileV2ReferenceEngineDependencies {
 
 export interface ExtractedV2Results {
   chair: ChairRiseV2Result | null;
-  balance: OneLegBalanceV2Result | null;
+  balance: OneLegBalanceV2Result | BalanceEyesOpenV2Result | null;
   shoulder: ActiveShoulderReachV2Result | null;
 }

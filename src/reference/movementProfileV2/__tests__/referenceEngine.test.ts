@@ -13,7 +13,12 @@ import {
   type ActiveShoulderReachV2Result,
 } from '../../../movements/activeShoulderReachV2';
 import { CHAIR_RISE_V2_ID, type ChairRiseV2Result } from '../../../movements/chairRiseV2';
+import {
+  BALANCE_EYES_OPEN_V2_ID,
+  type BalanceEyesOpenV2Result,
+} from '../../../movements/balanceEyesOpenV2';
 import { ONE_LEG_BALANCE_V2_ID, type OneLegBalanceV2Result } from '../../../movements/oneLegBalanceV2';
+import { createCapturedBalanceEyesOpenV2Result } from '../../../movementProfileV2/internalCheckupFlow';
 import {
   type ApprovedChairPercentileTransform,
   balanceTaskBand,
@@ -143,6 +148,38 @@ describe('Movement Profile V2 reference engine', () => {
     expect(result.balance.claimEligibility).toBe('invalid_measurement');
     expect(result.shoulder.rawMetric?.value).toBe(151);
     expect(result.shoulder.claimEligibility).toBe('raw_only_pain_limited');
+  });
+
+  it('keeps eyes-open balance V2 raw-only without using old 45-second scoring', () => {
+    const result = interpretMovementProfileV2({
+      checkUp: v2CheckUp({
+        balance: createCapturedBalanceEyesOpenV2Result({
+          standingLeg: 'right',
+          stageDurationsMs: [10000, 6500],
+        }),
+      }),
+      referenceProfile: {
+        ageAtTest: 62,
+        ageBasis: 'exact_age_at_test',
+        referenceSex: 'female',
+      },
+    });
+
+    expect(result.rawCompleteness.referenceComplete).toBe(true);
+    expect(result.balance).toMatchObject({
+      movementId: BALANCE_EYES_OPEN_V2_ID,
+      resultKind: 'raw_only',
+      taskBand: null,
+      sourceBenchmark: null,
+      claimEligibility: 'raw_only_reference_unavailable',
+      selectedStandingLeg: 'right',
+    });
+    expect(result.balance.rawMetric).toMatchObject({
+      metricId: 'balance_eyes_open_total',
+      value: 16.5,
+      completedStageCount: 1,
+      totalCapSeconds: 42,
+    });
   });
 
   it('keeps current reference claims but marks changed side and leg non-comparable longitudinally', () => {
@@ -363,7 +400,7 @@ const STARTED_AT = '2026-06-23T12:00:00.000Z';
 
 function v2CheckUp(overrides: {
   chair?: ChairRiseV2Result;
-  balance?: OneLegBalanceV2Result;
+  balance?: OneLegBalanceV2Result | BalanceEyesOpenV2Result;
   shoulder?: ActiveShoulderReachV2Result;
 } = {}): CheckUp {
   const chair = overrides.chair ?? chairResult();
@@ -375,7 +412,7 @@ function v2CheckUp(overrides: {
     bodyUnit: 1,
     items: [
       { movementId: CHAIR_RISE_V2_ID, status: 'measured', result: chair },
-      { movementId: ONE_LEG_BALANCE_V2_ID, status: 'measured', result: balance },
+      { movementId: balance.movementId, status: 'measured', result: balance },
       { movementId: ACTIVE_SHOULDER_REACH_V2_ID, status: 'measured', result: shoulder },
     ],
   };

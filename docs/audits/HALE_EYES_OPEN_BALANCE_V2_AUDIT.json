@@ -1,0 +1,55 @@
+{
+  "verdict": "EYES_OPEN_BALANCE_V2_SOFTWARE_COMPLETE_AUDIO_PENDING",
+  "protocol": {
+    "protocolId": "home_balance_eyes_open_v2",
+    "protocolVersion": 2,
+    "movementId": "balance-eyes-open-v2",
+    "comparisonGroup": "home_balance_eyes_open_ladder"
+  },
+  "battery": {
+    "protocolId": "movement_profile_v2_battery",
+    "protocolVersion": 2,
+    "rollbackProtocolVersion": 1
+  },
+  "counts": {
+    "registeredProtocolCount": 16,
+    "stageCount": 4,
+    "eyesOpenStageCount": 4,
+    "defaultEyesClosedStageCount": 0,
+    "oldProtocolPreserved": 1,
+    "oldHistoryRewrittenCount": 0,
+    "crossProtocolDeltaCount": 0,
+    "selectedLeadStandingSideMismatchCount": 0,
+    "progressionAfterEarlyLossCount": 0,
+    "trackingPartialTimeCarryoverCount": 0,
+    "missingFreshCountdownCount": 0,
+    "requiredCueSilentContinuationCount": 0,
+    "staleStageCallbackCount": 0,
+    "oldOperationalCueEmissionCountInV2": 0,
+    "eyesClosedCueEmissionCountInV2": 0,
+    "persistenceFailures": 0,
+    "microCheckFalseEquivalenceCount": 0,
+    "legacyParsingFailures": 0,
+    "voiceAssetReuseCount": 11,
+    "pendingNewCuePairCount": 9,
+    "p0": 0,
+    "p1": 0,
+    "p2": 0,
+    "p3": 1
+  },
+  "featureFlag": {
+    "name": "EXPO_PUBLIC_ENABLE_EYES_OPEN_BALANCE_PROTOCOL_V2",
+    "default": "off",
+    "audioReady": false,
+    "liveDefault": false
+  },
+  "audio": {
+    "changed": false,
+    "generated": false,
+    "externalSpeechOrAudioApiCalled": false
+  },
+  "physicalDeviceQa": {
+    "status": "deferred"
+  },
+  "nextPhase": "Training Voice V2.1 implementation foundation and exact instruction mapping for all 37 registered exercise levels"
+}

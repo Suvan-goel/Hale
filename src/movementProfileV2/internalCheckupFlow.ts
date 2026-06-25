@@ -1,6 +1,7 @@
 import type { CheckupType } from '../adherence';
 import {
   MOVEMENT_PROFILE_V2_HEADLINE_MOVEMENT_IDS,
+  MOVEMENT_PROFILE_V2_HEADLINE_MOVEMENT_IDS_V2,
   MOVEMENT_PROFILE_V2_SUPPORTING_MOVEMENT_IDS,
   latestV2ShoulderSide,
   latestV2StandingLeg,
@@ -8,6 +9,7 @@ import {
 import { MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID, createCheckUpProtocolPolicy } from '../checkup/protocolPolicy';
 import {
   type BodySide,
+  createBalanceEyesOpenV2Setup,
   createActiveShoulderReachV2Setup,
   createChairRiseV2Setup,
   createOneLegBalanceV2Setup,
@@ -24,6 +26,11 @@ import {
   ChairRiseV2ProtocolController,
   type ChairRiseV2Result,
 } from '../movements/chairRiseV2';
+import {
+  BALANCE_EYES_OPEN_V2_ID,
+  BalanceEyesOpenV2ProtocolController,
+  type BalanceEyesOpenV2Result,
+} from '../movements/balanceEyesOpenV2';
 import {
   ONE_LEG_BALANCE_V2_ID,
   OneLegBalanceV2ProtocolController,
@@ -50,7 +57,7 @@ export type MovementProfileV2InternalStep =
 
 export interface MovementProfileV2InternalFlowState {
   startedAt: string;
-  sourceType: Extract<CheckupType, 'baseline' | 'baseline_retake'>;
+  sourceType: Extract<CheckupType, 'baseline' | 'baseline_retake' | 'official_retest'>;
   step: MovementProfileV2InternalStep;
   bodyUnit: number | null;
   priorStandingLeg: BodySide | null;
@@ -66,7 +73,7 @@ export type MovementProfileV2InternalFlowEvent =
   | { type: 'complete_chair_practice' }
   | { type: 'record_chair'; result: ChairRiseV2Result }
   | { type: 'confirm_balance_setup'; standingLeg: BodySide }
-  | { type: 'record_balance'; result: OneLegBalanceV2Result }
+  | { type: 'record_balance'; result: OneLegBalanceV2Result | BalanceEyesOpenV2Result }
   | { type: 'confirm_shoulder_setup'; shoulderSide: BodySide }
   | { type: 'record_shoulder'; result: ActiveShoulderReachV2Result }
   | { type: 'record_hinge'; result: HingeReachResult }
@@ -115,8 +122,14 @@ export function movementProfileV2InternalFlowReducer(
         ? { ...state, standingLeg: event.standingLeg, step: 'balance_trials' }
         : state;
     case 'record_balance':
-      if (state.step !== 'balance_trials' || hasItem(state.items, ONE_LEG_BALANCE_V2_ID)) return state;
-      return { ...state, step: 'shoulder_setup', items: [...state.items, measuredItem(ONE_LEG_BALANCE_V2_ID, event.result)] };
+      if (
+        state.step !== 'balance_trials' ||
+        hasItem(state.items, ONE_LEG_BALANCE_V2_ID) ||
+        hasItem(state.items, BALANCE_EYES_OPEN_V2_ID)
+      ) {
+        return state;
+      }
+      return { ...state, step: 'shoulder_setup', items: [...state.items, measuredItem(event.result.movementId, event.result)] };
     case 'confirm_shoulder_setup':
       return state.step === 'shoulder_setup'
         ? { ...state, shoulderSide: event.shoulderSide, step: 'shoulder_active' }
@@ -146,10 +159,13 @@ export function movementProfileV2RawCheckUpFromFlow(
   if (state.step !== 'raw_complete' && state.step !== 'reference_details' && state.step !== 'results') {
     return null;
   }
-  const headlineIds = new Set(MOVEMENT_PROFILE_V2_HEADLINE_MOVEMENT_IDS);
+  const headlineMovementIds = state.items.some((item) => item.movementId === BALANCE_EYES_OPEN_V2_ID)
+    ? MOVEMENT_PROFILE_V2_HEADLINE_MOVEMENT_IDS_V2
+    : MOVEMENT_PROFILE_V2_HEADLINE_MOVEMENT_IDS;
+  const headlineIds = new Set(headlineMovementIds);
   const hasAllHeadline = state.items.filter((item) => headlineIds.has(item.movementId as never)).length === headlineIds.size;
   if (!hasAllHeadline) return null;
-  const ordered = [...MOVEMENT_PROFILE_V2_HEADLINE_MOVEMENT_IDS, ...MOVEMENT_PROFILE_V2_SUPPORTING_MOVEMENT_IDS]
+  const ordered = [...headlineMovementIds, ...MOVEMENT_PROFILE_V2_SUPPORTING_MOVEMENT_IDS]
     .map((movementId) => state.items.find((item) => item.movementId === movementId))
     .filter((item): item is CheckUpItem => !!item);
   return {
@@ -172,6 +188,8 @@ export function latestPendingMovementProfileV2RawCheckUp(
     if (record.checkUp.protocolPolicy?.id !== MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID) continue;
     const checkUp = record.checkUp;
     const hasAllHeadline = MOVEMENT_PROFILE_V2_HEADLINE_MOVEMENT_IDS.every((movementId) =>
+      checkUp.items.some((item) => item.movementId === movementId && item.status === 'measured' && item.result)
+    ) || MOVEMENT_PROFILE_V2_HEADLINE_MOVEMENT_IDS_V2.every((movementId) =>
       checkUp.items.some((item) => item.movementId === movementId && item.status === 'measured' && item.result)
     );
     if (hasAllHeadline) return { record, sourceType: record.checkupType };
@@ -232,6 +250,44 @@ export function createCapturedOneLegBalanceV2Result(input: {
       termination: holdMs >= 45000 ? 'ceiling' : 'touchdown',
     });
     nowMs = endedAtMs + 30000;
+  }
+  return controller.finish(nowMs);
+}
+
+export function createCapturedBalanceEyesOpenV2Result(input: {
+  standingLeg: BodySide;
+  priorStandingLeg?: BodySide | null;
+  stageDurationsMs?: readonly number[];
+  earlyLossStageIndex?: number | null;
+}): BalanceEyesOpenV2Result {
+  const controller = new BalanceEyesOpenV2ProtocolController();
+  controller.confirmSetup(
+    createBalanceEyesOpenV2Setup({
+      standingLeg: input.standingLeg,
+      priorStandingLeg: input.priorStandingLeg ?? null,
+      confirmed: true,
+    }),
+    0
+  );
+  let nowMs = 1000;
+  const durations = input.stageDurationsMs ?? [10000, 10000, 10000, 12000];
+  for (let index = 0; index < durations.length; index++) {
+    const stage = controller.currentStage;
+    controller.confirmCurrentStageSetup(nowMs);
+    controller.startCurrentStageFromGo(nowMs + 3000);
+    const durationMs = Math.max(0, Math.min(stage.capMs, durations[index] ?? stage.capMs));
+    const endMs = nowMs + 3000 + durationMs;
+    if (input.earlyLossStageIndex === index || durationMs < stage.capMs) {
+      controller.endCurrentStageEarly({
+        nowMs: endMs,
+        reason: stage.kind === 'single_leg' ? 'touchdown' : 'step_detected',
+        supportingMetrics: { sway_sd_bu: 0.03 },
+      });
+      nowMs = endMs;
+      break;
+    }
+    controller.completeCurrentStageCap(endMs, { sway_sd_bu: 0.03 });
+    nowMs = endMs + 1000;
   }
   return controller.finish(nowMs);
 }

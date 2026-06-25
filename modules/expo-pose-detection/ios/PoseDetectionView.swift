@@ -152,6 +152,10 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
     skeletonLayer.strokeColor = UIColor(hexString: value)?.cgColor ?? UIColor.black.cgColor
   }
 
+  func setNativeBenchmarkOverlayModeProp(_ value: String) {}
+
+  func setNativeBenchmarkOverlayResetKeyProp(_ value: Int) {}
+
   func setCanvasColorProp(_ value: String) {
     backgroundColor = UIColor(hexString: value)
       ?? UIColor(red: 0xF9 / 255.0, green: 0xF5 / 255.0, blue: 0xEF / 255.0, alpha: 1.0)

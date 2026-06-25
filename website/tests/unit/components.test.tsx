@@ -4,7 +4,15 @@ import { describe, expect, it, vi } from 'vitest';
 import { BetaSignupForm } from '@/components/BetaSignupForm';
 import { FAQ } from '@/components/FAQ';
 import { StoreButtons } from '@/components/StoreButtons';
-import { faqs, trainingMessages, trustStrip } from '@/content/landing';
+import {
+  betaReassurance,
+  checkupActivities,
+  credibilityPoints,
+  exampleResult,
+  faqs,
+  trainingMessages,
+  trustStrip,
+} from '@/content/landing';
 
 describe('conversion components', () => {
   it('falls back to beta signup CTA when store links are missing', () => {
@@ -83,6 +91,7 @@ describe('conversion components', () => {
   it('keeps landing equipment positioning truthful for beta', () => {
     const text = [
       ...trainingMessages,
+      ...checkupActivities.flatMap((item) => [item.title, item.body]),
       ...trustStrip.flatMap((item) => [item.title, item.body]),
       ...faqs.flatMap((item) => [item.question, item.answer]),
     ].join(' ');
@@ -92,5 +101,28 @@ describe('conversion components', () => {
     expect(text).toMatch(/resistance band is recommended/i);
     expect(text).toMatch(/required for pulling exercises/i);
     expect(text).not.toMatch(/zero equipment|nothing but your phone|just your phone|only your phone|every workout needs no equipment/i);
+  });
+
+  it('keeps proof, result, and beta reassurance truthful', () => {
+    const text = [
+      exampleResult.eyebrow,
+      exampleResult.title,
+      exampleResult.body,
+      ...exampleResult.domains.flatMap((item) => [item.label, item.value, item.body]),
+      exampleResult.plan.label,
+      exampleResult.plan.title,
+      exampleResult.plan.body,
+      ...credibilityPoints.flatMap((item) => [item.title, item.body]),
+      ...betaReassurance,
+      ...faqs.flatMap((item) => [item.question, item.answer]),
+    ].join(' ');
+
+    expect(exampleResult.eyebrow).toMatch(/example result/i);
+    expect(text).toMatch(/chair-stand results/i);
+    expect(text).toMatch(/movement-age style ranges/i);
+    expect(text).toMatch(/email, optional first name and platform preference/i);
+    expect(text).toMatch(/price before payment is collected/i);
+    expect(text).toMatch(/not a diagnosis/i);
+    expect(text).not.toMatch(/diagnoses|diagnostic|fall risk|payment details are collected by this page/i);
   });
 });

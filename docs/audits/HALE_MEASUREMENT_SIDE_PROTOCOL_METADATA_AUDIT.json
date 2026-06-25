@@ -1,0 +1,192 @@
+{
+  "generatedAt": "2026-06-24T18:50:27.002Z",
+  "source": "scripts/audits/audit-measurement-side-protocol.mjs",
+  "verdict": "REMEDIATION_REQUIRED",
+  "counts": {
+    "registeredProtocols": 14,
+    "sideRequiredProtocols": 6,
+    "sideIndependentProtocols": 8,
+    "resultTypesMigrated": 3,
+    "backendMappingsChanged": 3,
+    "legacyDefaultParsers": 4,
+    "historySurfacesUpdated": 3,
+    "officialSideAnchorScenarios": 5,
+    "sameSideComparableCases": 4,
+    "reducedComparabilityCases": 2,
+    "rawOnlyCases": 5,
+    "protocolMismatchCases": 2,
+    "selectedObservedMismatchCases": 0,
+    "falseTrendClaimsRemaining": 0,
+    "metadataRoundTripFailures": 0,
+    "mpv2VoiceSideMismatches": 0,
+    "p0": 0,
+    "p1": 0,
+    "p2": 2,
+    "p3": 1
+  },
+  "registeredProtocols": [
+    {
+      "protocolId": "movement_profile_v2_battery",
+      "protocolVersion": 1,
+      "movementId": "movement_profile_v2_battery",
+      "comparisonGroup": "movement_profile_v2_battery",
+      "sideRole": "not_applicable",
+      "sideRequired": false,
+      "officialEvidenceEligible": true,
+      "kind": "battery"
+    },
+    {
+      "protocolId": "legacy_movement_age_battery_v1",
+      "protocolVersion": 1,
+      "movementId": "legacy_movement_age_battery",
+      "comparisonGroup": "legacy_movement_age_battery",
+      "sideRole": "not_applicable",
+      "sideRequired": false,
+      "officialEvidenceEligible": true,
+      "kind": "battery"
+    },
+    {
+      "protocolId": "legacy_chair_stand_30s",
+      "protocolVersion": 1,
+      "movementId": "",
+      "comparisonGroup": "chair_stand_30s",
+      "sideRole": "not_applicable",
+      "sideRequired": false,
+      "officialEvidenceEligible": true,
+      "kind": "checkup_movement"
+    },
+    {
+      "protocolId": "legacy_balance_ladder_v1",
+      "protocolVersion": 1,
+      "movementId": "",
+      "comparisonGroup": "single_leg_balance_hold",
+      "sideRole": "standing_leg",
+      "sideRequired": true,
+      "officialEvidenceEligible": true,
+      "kind": "checkup_movement"
+    },
+    {
+      "protocolId": "legacy_shoulder_flexion_peak_v1",
+      "protocolVersion": 1,
+      "movementId": "",
+      "comparisonGroup": "shoulder_flexion_peak",
+      "sideRole": "measured_arm",
+      "sideRequired": true,
+      "officialEvidenceEligible": true,
+      "kind": "checkup_movement"
+    },
+    {
+      "protocolId": "legacy_hinge_reach_v1",
+      "protocolVersion": 1,
+      "movementId": "",
+      "comparisonGroup": "standing_forward_reach",
+      "sideRole": "not_applicable",
+      "sideRequired": false,
+      "officialEvidenceEligible": true,
+      "kind": "checkup_movement"
+    },
+    {
+      "protocolId": "tug_beta_lateral_v1",
+      "protocolVersion": 1,
+      "movementId": "",
+      "comparisonGroup": "timed_up_and_go",
+      "sideRole": "not_applicable",
+      "sideRequired": false,
+      "officialEvidenceEligible": true,
+      "kind": "checkup_movement"
+    },
+    {
+      "protocolId": "mpv2_chair_rise_30s_v1",
+      "protocolVersion": 1,
+      "movementId": "",
+      "comparisonGroup": "mpv2_chair_rise_30s",
+      "sideRole": "not_applicable",
+      "sideRequired": false,
+      "officialEvidenceEligible": true,
+      "kind": "checkup_movement"
+    },
+    {
+      "protocolId": "mpv2_single_leg_balance_45s_v1",
+      "protocolVersion": 1,
+      "movementId": "",
+      "comparisonGroup": "mpv2_single_leg_balance_hold",
+      "sideRole": "standing_leg",
+      "sideRequired": true,
+      "officialEvidenceEligible": true,
+      "kind": "checkup_movement"
+    },
+    {
+      "protocolId": "mpv2_active_shoulder_reach_v1",
+      "protocolVersion": 1,
+      "movementId": "",
+      "comparisonGroup": "mpv2_active_shoulder_reach",
+      "sideRole": "measured_arm",
+      "sideRequired": true,
+      "officialEvidenceEligible": true,
+      "kind": "checkup_movement"
+    },
+    {
+      "protocolId": "mpv2_hinge_reach_v1",
+      "protocolVersion": 1,
+      "movementId": "",
+      "comparisonGroup": "mpv2_standing_forward_reach",
+      "sideRole": "not_applicable",
+      "sideRequired": false,
+      "officialEvidenceEligible": true,
+      "kind": "checkup_movement"
+    },
+    {
+      "protocolId": "micro_chair_power_5_reps_v1",
+      "protocolVersion": 1,
+      "movementId": "chair-power",
+      "comparisonGroup": "micro_chair_power",
+      "sideRole": "not_applicable",
+      "sideRequired": false,
+      "officialEvidenceEligible": false,
+      "kind": "micro_check"
+    },
+    {
+      "protocolId": "micro_single_leg_balance_v1",
+      "protocolVersion": 1,
+      "movementId": "single-leg-balance",
+      "comparisonGroup": "micro_single_leg_balance",
+      "sideRole": "standing_leg",
+      "sideRequired": true,
+      "officialEvidenceEligible": false,
+      "kind": "micro_check"
+    },
+    {
+      "protocolId": "micro_mobility_reach_v1",
+      "protocolVersion": 1,
+      "movementId": "mobility-reach",
+      "comparisonGroup": "micro_mobility_reach",
+      "sideRole": "extended_leg",
+      "sideRequired": true,
+      "officialEvidenceEligible": false,
+      "kind": "micro_check"
+    }
+  ],
+  "findings": [
+    {
+      "id": "MSP-P2-001",
+      "priority": "P2",
+      "status": "open",
+      "title": "Micro-check side-selection UI is not yet side-aware",
+      "detail": "The metadata contract and raw-only default are implemented. Single-leg and mobility micro-checks need the later voice/UI redesign to provide explicit standing-leg or extended-leg selection."
+    },
+    {
+      "id": "MSP-P2-002",
+      "priority": "P2",
+      "status": "open",
+      "title": "Opposite-side fallback copy/action is represented in metadata but not fully surfaced as a dedicated UI action",
+      "detail": "MPV2 setup preserves changedFromPrior as opposite_side_fallback and reduced comparability. A dedicated calm secondary action/copy remains for the next side-selection UI pass."
+    },
+    {
+      "id": "MSP-P3-001",
+      "priority": "P3",
+      "status": "deferred",
+      "title": "Physical Android/iOS QA remains deferred",
+      "detail": "No speaker-onset or physical-device camera QA was performed in this metadata phase."
+    }
+  ]
+}

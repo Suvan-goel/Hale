@@ -14,16 +14,16 @@ const siteUrl = new URL(config.siteUrl);
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,
-  title: 'Hale - Phone Camera Movement Check-Up and Home Training',
+  title: 'Hale - Movement Check-Up and Home Plan',
   description:
-    'Hale checks your strength, balance and mobility with your phone camera, then gives you a simple home training plan.',
+    'Hale helps adults 45+ understand strength, balance and mobility with a phone-camera check-up, then gives a simple home plan.',
   alternates: {
     canonical: '/',
   },
   openGraph: {
-    title: 'Hale - Phone Camera Movement Check-Up and Home Training',
+    title: 'Hale - Movement Check-Up and Home Plan',
     description:
-      'Hale checks your strength, balance and mobility with your phone camera, then gives you a simple home training plan.',
+      'Hale helps adults 45+ understand strength, balance and mobility with a phone-camera check-up, then gives a simple home plan.',
     url: '/',
     siteName: 'Hale',
     images: [
@@ -38,9 +38,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Hale - Phone Camera Movement Check-Up and Home Training',
+    title: 'Hale - Movement Check-Up and Home Plan',
     description:
-      'Hale checks your strength, balance and mobility with your phone camera, then gives you a simple home training plan.',
+      'Hale helps adults 45+ understand strength, balance and mobility with a phone-camera check-up, then gives a simple home plan.',
     images: [brandAssets.ogImage],
   },
   icons: {

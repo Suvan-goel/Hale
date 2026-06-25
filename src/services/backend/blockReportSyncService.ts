@@ -6,6 +6,7 @@ import {
   type TrainingSessionCompletion,
 } from '../../adherence';
 import { getBlockScheduleState } from '../../haleFlow/blockSchedule';
+import { isMovementProfileV2BlockReport } from '../../haleFlow/movementProfileV2BlockReport';
 import { supabase } from '../../lib/supabase';
 import { addBreadcrumb } from '../observability/sentry';
 
@@ -74,24 +75,29 @@ export async function syncMovementBlockReportToRemote(
 
     try {
       const movementBlockResolution = await resolveMovementBlockId(input, userId);
+      const v2Report = isMovementProfileV2BlockReport(input.report) ? input.report : null;
       const fromCheckupResolution = await resolveCheckupId({
         userId,
         remoteId: input.fromCheckupRemoteId,
-        localCheckupId: localCheckupIdForAssessment(
-          input.report.baselineAssessmentId,
-          input.baselineAssessment,
-          input.assessments
-        ),
+        localCheckupId: v2Report
+          ? v2Report.prior.checkUpId
+          : localCheckupIdForAssessment(
+              input.report.baselineAssessmentId,
+              input.baselineAssessment,
+              input.assessments
+            ),
         label: 'from_checkup_id',
       });
       const toCheckupResolution = await resolveCheckupId({
         userId,
         remoteId: input.toCheckupRemoteId,
-        localCheckupId: localCheckupIdForAssessment(
-          input.report.retestAssessmentId,
-          input.retestAssessment,
-          input.assessments
-        ),
+        localCheckupId: v2Report
+          ? v2Report.current.checkUpId
+          : localCheckupIdForAssessment(
+              input.report.retestAssessmentId,
+              input.retestAssessment,
+              input.assessments
+            ),
         label: 'to_checkup_id',
       });
       const existingReport = await findExistingRemoteReport(userId, localReportId, {
@@ -233,7 +239,9 @@ export function mapLocalBlockReportToRemotePayload(
       progress: progressForReport(input.report, movementBlock, completions),
       completionContext: completions.map(sanitizeCompletion),
       displayCopy: {
-        title: 'Your 4-week report',
+        title: isMovementProfileV2BlockReport(input.report)
+          ? input.report.displayCopy.headline
+          : 'Your 4-week report',
         summary: input.report.summary,
       },
     }),
@@ -418,6 +426,9 @@ function localReportIdFor(report: MovementBlockReport): string {
 }
 
 function sanitizeReport(report: MovementBlockReport): BackendJson {
+  if (isMovementProfileV2BlockReport(report)) {
+    return sanitizeForBackendJson(report);
+  }
   return sanitizeForBackendJson({
     id: report.id,
     blockId: report.blockId,

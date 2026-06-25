@@ -1,12 +1,18 @@
 import type { PipelineFrameOutput } from '../pose/pipeline';
 import type { ConfidenceAnimationStrength, PoseAvatarRecognitionEvent } from './confidenceVisuals';
-import type { PointCloudBodyDensity, PointCloudBodyPart } from './pointCloudBodyGeometry';
+import type {
+  PointCloudBodyDensity,
+  PointCloudBodyPart,
+  PointCloudBodyShapeProfile,
+} from './pointCloudBodyGeometry';
 
 export type PoseAvatarRendererMode =
   | 'classic'
   | 'constellation'
   | 'point_cloud_body'
-  | 'matte_graphite_digital_twin'
+  | 'rigged_human_silhouette'
+  | 'shadow_silhouette'
+  | 'volumetric_shadow'
   | 'mediapipe_skeleton';
 
 export type PoseAvatarFrameSource = 'raw' | 'display';
@@ -58,6 +64,9 @@ export interface PoseAvatarRendererScheduleEvent {
   staticTransformedShapeCount?: number;
   surfacePathCount?: number;
   internalControlVertexCount?: number;
+  virtualBoneCount?: number;
+  orientationFactor?: number;
+  orientationProfile?: string;
   proportionCalibrationComplete?: boolean;
   proportionCalibrationState?: string;
 }
@@ -100,6 +109,7 @@ export interface PoseAvatarRendererProps {
   pointCloudBodyActiveParts?: readonly PointCloudBodyPart[];
   pointCloudBodyDotScale?: number;
   pointCloudBodyOpacity?: number;
+  pointCloudBodyShapeProfile?: PointCloudBodyShapeProfile;
   confidenceFadingEnabled?: boolean;
   confidenceIntensityEnabled?: boolean;
   reacquisitionFadeEnabled?: boolean;

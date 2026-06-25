@@ -44,12 +44,26 @@ import {
   type MovementProfileV2VoiceCoordinatorAction,
   type MovementProfileV2VoiceRuntimeState,
 } from '../movementProfileV2/voiceRuntime';
+import { ANDROID_VIDEO_ROT_640_POSE_PROFILE } from '../pose/nativePoseProfiles';
 import { PosePipeline } from '../pose/pipeline';
 import { DEFAULT_VOICE_ID } from '../profile/voices';
 import { SkeletonView, type SkeletonViewHandle } from '../render/SkeletonView';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 
 const LIVE_TIMER_TICK_MS = 250;
+
+type MovementProfileV2CheckUpSourceType = Extract<
+  CheckupType,
+  'baseline' | 'baseline_retake' | 'official_retest'
+>;
+
+type OfficialSideFallbackKind = 'balance' | 'shoulder';
+
+interface OfficialSideFallbackRequest {
+  kind: OfficialSideFallbackKind;
+  anchorSide: BodySide;
+  fallbackSide: BodySide;
+}
 
 const INITIAL_VOICE_RUNTIME_STATE: MovementProfileV2VoiceRuntimeState = {
   blocking: false,
@@ -72,10 +86,10 @@ export function MovementProfileV2CheckUpScreen({
   onCancel,
 }: {
   startedAt: string;
-  sourceType: Extract<CheckupType, 'baseline' | 'baseline_retake'>;
+  sourceType: MovementProfileV2CheckUpSourceType;
   initialFlow?: MovementProfileV2InternalFlowState | null;
   voiceId?: string;
-  onComplete: (input: { checkUp: CheckUp; sourceType: Extract<CheckupType, 'baseline' | 'baseline_retake'> }) => void;
+  onComplete: (input: { checkUp: CheckUp; sourceType: MovementProfileV2CheckUpSourceType }) => void;
   onCancel: () => void;
 }) {
   const initialState = React.useMemo(
@@ -96,6 +110,8 @@ export function MovementProfileV2CheckUpScreen({
   const [cameraAvailability, setCameraAvailability] = React.useState<CameraAvailability>('checking');
   const [selectedLeg, setSelectedLeg] = React.useState<BodySide>(initialState.standingLeg);
   const [selectedShoulder, setSelectedShoulder] = React.useState<BodySide>(initialState.shoulderSide);
+  const [pendingOfficialFallback, setPendingOfficialFallback] =
+    React.useState<OfficialSideFallbackRequest | null>(null);
   const [live, setLive] = React.useState<MovementProfileV2LiveSnapshot>(() =>
     coordinatorRef.current!.snapshot(defaultNowMs())
   );
@@ -251,6 +267,37 @@ export function MovementProfileV2CheckUpScreen({
     [getVoiceRuntime, refreshLive]
   );
 
+  React.useEffect(() => {
+    setPendingOfficialFallback(null);
+  }, [live.stage]);
+
+  const requestOfficialFallback = React.useCallback(
+    (kind: OfficialSideFallbackKind, anchorSide: BodySide) => {
+      setPendingOfficialFallback({ kind, anchorSide, fallbackSide: oppositeSide(anchorSide) });
+    },
+    []
+  );
+
+  const keepOfficialAnchor = React.useCallback(() => {
+    if (!pendingOfficialFallback) return;
+    if (pendingOfficialFallback.kind === 'balance') setSelectedLeg(pendingOfficialFallback.anchorSide);
+    else setSelectedShoulder(pendingOfficialFallback.anchorSide);
+    setPendingOfficialFallback(null);
+  }, [pendingOfficialFallback]);
+
+  const confirmOfficialFallback = React.useCallback(() => {
+    if (!pendingOfficialFallback) return;
+    const fallbackSide = pendingOfficialFallback.fallbackSide;
+    if (pendingOfficialFallback.kind === 'balance') {
+      setSelectedLeg(fallbackSide);
+      runLiveAction({ type: 'confirm_balance_setup', standingLeg: fallbackSide });
+    } else {
+      setSelectedShoulder(fallbackSide);
+      runLiveAction({ type: 'confirm_shoulder_setup', shoulderSide: fallbackSide });
+    }
+    setPendingOfficialFallback(null);
+  }, [pendingOfficialFallback, runLiveAction]);
+
   const shareDiagnostics = React.useCallback(() => {
     void Share.share({ message: serializeMovementProfileV2LiveDiagnostics(liveRef.current.diagnostics) }).catch(
       (error) => console.warn('[movement-profile-v2-diagnostics]', error)
@@ -274,6 +321,7 @@ export function MovementProfileV2CheckUpScreen({
       <SafePoseDetectionView
         active
         modelVariant="full"
+        {...ANDROID_VIDEO_ROT_640_POSE_PROFILE}
         style={StyleSheet.absoluteFill}
         onLandmarks={onLandmarks}
         onPoseError={onPoseError}
@@ -332,18 +380,32 @@ export function MovementProfileV2CheckUpScreen({
           <CaptureMetrics live={live} />
 
           {live.stage === 'balance_setup' ? (
-            <SidePicker
-              label="Standing leg"
-              value={selectedLeg}
-              onChange={setSelectedLeg}
-            />
+            live.flow.priorStandingLeg ? (
+              <OfficialRetestSideCopy
+                anchorSide={live.flow.priorStandingLeg}
+                pendingFallback={pendingOfficialFallback?.kind === 'balance' ? pendingOfficialFallback : null}
+              />
+            ) : (
+              <SidePicker
+                label="Standing leg"
+                value={selectedLeg}
+                onChange={setSelectedLeg}
+              />
+            )
           ) : null}
           {live.stage === 'shoulder_setup' ? (
-            <SidePicker
-              label="Shoulder side"
-              value={selectedShoulder}
-              onChange={setSelectedShoulder}
-            />
+            live.flow.priorShoulderSide ? (
+              <OfficialRetestSideCopy
+                anchorSide={live.flow.priorShoulderSide}
+                pendingFallback={pendingOfficialFallback?.kind === 'shoulder' ? pendingOfficialFallback : null}
+              />
+            ) : (
+              <SidePicker
+                label="Shoulder side"
+                value={selectedShoulder}
+                onChange={setSelectedShoulder}
+              />
+            )
           ) : null}
 
           <View style={styles.actions}>
@@ -361,11 +423,46 @@ export function MovementProfileV2CheckUpScreen({
               <Text style={styles.waitingText}>Keep moving comfortably until the timer ends.</Text>
             ) : null}
             {live.stage === 'balance_setup' ? (
-              <PrimaryButton
-                title="Confirm setup"
-                disabled={actionDisabled({ type: 'confirm_balance_setup', standingLeg: selectedLeg })}
-                onPress={() => runLiveAction({ type: 'confirm_balance_setup', standingLeg: selectedLeg })}
-              />
+              live.flow.priorStandingLeg && pendingOfficialFallback?.kind === 'balance' ? (
+                <>
+                  <PrimaryButton
+                    title={`Use ${sideName(pendingOfficialFallback.fallbackSide)} side`}
+                    disabled={actionDisabled({
+                      type: 'confirm_balance_setup',
+                      standingLeg: pendingOfficialFallback.fallbackSide,
+                    })}
+                    onPress={confirmOfficialFallback}
+                  />
+                  <SecondaryButton
+                    title={`Keep ${sideName(pendingOfficialFallback.anchorSide)} side`}
+                    onPress={keepOfficialAnchor}
+                  />
+                </>
+              ) : live.flow.priorStandingLeg ? (
+                <>
+                  <PrimaryButton
+                    title="Continue"
+                    disabled={actionDisabled({
+                      type: 'confirm_balance_setup',
+                      standingLeg: live.flow.priorStandingLeg,
+                    })}
+                    onPress={() => runLiveAction({
+                      type: 'confirm_balance_setup',
+                      standingLeg: live.flow.priorStandingLeg as BodySide,
+                    })}
+                  />
+                  <SecondaryButton
+                    title="Use the other side"
+                    onPress={() => requestOfficialFallback('balance', live.flow.priorStandingLeg as BodySide)}
+                  />
+                </>
+              ) : (
+                <PrimaryButton
+                  title="Confirm setup"
+                  disabled={actionDisabled({ type: 'confirm_balance_setup', standingLeg: selectedLeg })}
+                  onPress={() => runLiveAction({ type: 'confirm_balance_setup', standingLeg: selectedLeg })}
+                />
+              )
             ) : null}
             {live.stage === 'balance_ready' ? (
               <>
@@ -405,11 +502,46 @@ export function MovementProfileV2CheckUpScreen({
               </>
             ) : null}
             {live.stage === 'shoulder_setup' ? (
-              <PrimaryButton
-                title="Confirm setup"
-                disabled={actionDisabled({ type: 'confirm_shoulder_setup', shoulderSide: selectedShoulder })}
-                onPress={() => runLiveAction({ type: 'confirm_shoulder_setup', shoulderSide: selectedShoulder })}
-              />
+              live.flow.priorShoulderSide && pendingOfficialFallback?.kind === 'shoulder' ? (
+                <>
+                  <PrimaryButton
+                    title={`Use ${sideName(pendingOfficialFallback.fallbackSide)} side`}
+                    disabled={actionDisabled({
+                      type: 'confirm_shoulder_setup',
+                      shoulderSide: pendingOfficialFallback.fallbackSide,
+                    })}
+                    onPress={confirmOfficialFallback}
+                  />
+                  <SecondaryButton
+                    title={`Keep ${sideName(pendingOfficialFallback.anchorSide)} side`}
+                    onPress={keepOfficialAnchor}
+                  />
+                </>
+              ) : live.flow.priorShoulderSide ? (
+                <>
+                  <PrimaryButton
+                    title="Continue"
+                    disabled={actionDisabled({
+                      type: 'confirm_shoulder_setup',
+                      shoulderSide: live.flow.priorShoulderSide,
+                    })}
+                    onPress={() => runLiveAction({
+                      type: 'confirm_shoulder_setup',
+                      shoulderSide: live.flow.priorShoulderSide as BodySide,
+                    })}
+                  />
+                  <SecondaryButton
+                    title="Use the other side"
+                    onPress={() => requestOfficialFallback('shoulder', live.flow.priorShoulderSide as BodySide)}
+                  />
+                </>
+              ) : (
+                <PrimaryButton
+                  title="Confirm setup"
+                  disabled={actionDisabled({ type: 'confirm_shoulder_setup', shoulderSide: selectedShoulder })}
+                  onPress={() => runLiveAction({ type: 'confirm_shoulder_setup', shoulderSide: selectedShoulder })}
+                />
+              )
             ) : null}
             {live.stage === 'shoulder_ready' || live.stage === 'shoulder_retry_ready' ? (
               <PrimaryButton
@@ -505,6 +637,41 @@ function SidePicker({
       </View>
     </View>
   );
+}
+
+function OfficialRetestSideCopy({
+  anchorSide,
+  pendingFallback,
+}: {
+  anchorSide: BodySide;
+  pendingFallback: OfficialSideFallbackRequest | null;
+}) {
+  if (pendingFallback) {
+    return (
+      <View style={[styles.officialSideBox, styles.officialSideWarning]}>
+        <Text style={styles.officialSideTitle}>Use the other side?</Text>
+        <Text style={styles.officialSideBody}>
+          This result may not be directly comparable with your earlier checks. Your usual side will remain unchanged.
+        </Text>
+      </View>
+    );
+  }
+  return (
+    <View style={styles.officialSideBox}>
+      <Text style={styles.officialSideTitle}>We'll use your {sideName(anchorSide)} side again</Text>
+      <Text style={styles.officialSideBody}>
+        This keeps the result comparable with your earlier checks.
+      </Text>
+    </View>
+  );
+}
+
+function oppositeSide(side: BodySide): BodySide {
+  return side === 'left' ? 'right' : 'left';
+}
+
+function sideName(side: BodySide): string {
+  return side === 'left' ? 'left' : 'right';
 }
 
 function stepCopy(stage: MovementProfileV2LiveStage): { title: string; body: string } {
@@ -695,6 +862,28 @@ const styles = StyleSheet.create({
   },
   sideButtonTextSelected: {
     color: colors.onAccent,
+  },
+  officialSideBox: {
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+    padding: spacing.sm,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    backgroundColor: colors.bgBase,
+  },
+  officialSideWarning: {
+    borderColor: colors.warningClay,
+  },
+  officialSideTitle: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 14,
+    lineHeight: 19,
+    color: colors.textPrimary,
+  },
+  officialSideBody: {
+    ...type.cardCaption,
+    color: colors.textSecondary,
   },
   actions: {
     gap: spacing.sm,

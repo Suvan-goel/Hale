@@ -416,6 +416,8 @@ export function buildProgressDevMockData(today: string): ProgressDevMockData {
     latestScore: latest.score,
     previousScoreSnapshot: baseline.snapshot,
     latestScoreSnapshot: latest.snapshot,
+    previousCheckUp: baseline.record.checkUp,
+    latestCheckUp: latest.record.checkUp,
     completions,
     nowIso: devIso(base, -37),
   });

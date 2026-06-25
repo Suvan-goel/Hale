@@ -146,6 +146,7 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
     pointCloudBodyActiveParts,
     pointCloudBodyDotScale = 1.26,
     pointCloudBodyOpacity = 1,
+    pointCloudBodyShapeProfile = 'standard',
     confidenceFadingEnabled = true,
     confidenceIntensityEnabled = true,
     reacquisitionFadeEnabled = true,
@@ -370,6 +371,7 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
       dotScale: pointCloudBodyDotScale,
       opacity: pointCloudBodyOpacity,
       radiusMultiplier: measurementVisual.radiusMultiplier,
+      shapeProfile: pointCloudBodyShapeProfile,
     });
     if (pointCloudBodyShowSkeletonLines) {
       buildConstellationGeometry(renderPose, output.chainReliability, skeletonGeometry.current, {
@@ -453,6 +455,7 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
         pointCloudBodyShowKeypoints,
         pointCloudBodyDotScale,
         pointCloudBodyOpacity,
+        pointCloudBodyShapeProfile,
         upperArmDotCount: bodyGeometry.current.upperArmDotCount,
         forearmDotCount: bodyGeometry.current.forearmDotCount,
         thighDotCount: bodyGeometry.current.thighDotCount,
@@ -615,6 +618,7 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
                 pointCloudBodyShowKeypoints,
                 pointCloudBodyDotScale,
                 pointCloudBodyOpacity,
+                pointCloudBodyShapeProfile,
                 connectionLineCount: 0,
                 skippedBodyPartCount: 0,
               },
@@ -660,6 +664,7 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
       pointCloudBodyEnabled,
       pointCloudBodyMaxDots,
       pointCloudBodyOpacity,
+      pointCloudBodyShapeProfile,
       pointCloudBodyShowConnections,
       pointCloudBodyShowKeypoints,
       pointCloudBodyShowSkeletonLines,
@@ -681,6 +686,13 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
       trackingQuality,
     ]
   );
+
+  const refinedPointCloud = pointCloudBodyShapeProfile === 'refined';
+  const dotColor = refinedPointCloud ? colors.sageDeep : POINT_CLOUD_DOT_COLOR;
+  const softDotColor = refinedPointCloud ? colors.textSecondary : POINT_CLOUD_DOT_COLOR;
+  const dotOpacity = refinedPointCloud ? 0.84 : POINT_CLOUD_DOT_OPACITY;
+  const softDotOpacity = refinedPointCloud ? 0.42 : POINT_CLOUD_DOT_OPACITY;
+  const keypointOpacity = refinedPointCloud ? 0 : POINT_CLOUD_KEYPOINT_OPACITY;
 
   return (
     <View
@@ -713,7 +725,7 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
         />
         <Path
           d={paths.connectionPath || EMPTY_D}
-          stroke={POINT_CLOUD_DOT_COLOR}
+          stroke={dotColor}
           strokeOpacity={
             paths.connectionOpacity * paths.avatarOpacity * paths.bodyVolumeOpacityMultiplier
           }
@@ -723,7 +735,7 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
         />
         <Path
           d={paths.skeletonLinePath || EMPTY_D}
-          stroke={POINT_CLOUD_DOT_COLOR}
+          stroke={dotColor}
           strokeOpacity={paths.skeletonLineOpacity * paths.avatarOpacity}
           strokeWidth={paths.lineWidth}
           strokeLinecap="round"
@@ -732,7 +744,7 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
         />
         <Path
           d={paths.skeletonMediumLinePath || EMPTY_D}
-          stroke={POINT_CLOUD_DOT_COLOR}
+          stroke={dotColor}
           strokeOpacity={paths.skeletonLineOpacity * 0.7 * paths.avatarOpacity}
           strokeWidth={paths.lineWidth}
           strokeLinecap="round"
@@ -741,7 +753,7 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
         />
         <Path
           d={paths.skeletonLowLinePath || EMPTY_D}
-          stroke={POINT_CLOUD_DOT_COLOR}
+          stroke={dotColor}
           strokeOpacity={paths.skeletonLineOpacity * 0.45 * paths.avatarOpacity}
           strokeWidth={paths.lineWidth}
           strokeLinecap="round"
@@ -750,43 +762,43 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
         />
         <Path
           d={paths.softTorsoDotPath || EMPTY_D}
-          fill={POINT_CLOUD_DOT_COLOR}
-          fillOpacity={POINT_CLOUD_DOT_OPACITY}
+          fill={softDotColor}
+          fillOpacity={softDotOpacity}
         />
         <Path
           d={paths.torsoDotPath || EMPTY_D}
-          fill={POINT_CLOUD_DOT_COLOR}
-          fillOpacity={POINT_CLOUD_DOT_OPACITY}
+          fill={dotColor}
+          fillOpacity={dotOpacity}
         />
         <Path
           d={paths.softLimbDotPath || EMPTY_D}
-          fill={POINT_CLOUD_DOT_COLOR}
-          fillOpacity={POINT_CLOUD_DOT_OPACITY}
+          fill={softDotColor}
+          fillOpacity={softDotOpacity}
         />
         <Path
           d={paths.limbDotPath || EMPTY_D}
-          fill={POINT_CLOUD_DOT_COLOR}
-          fillOpacity={POINT_CLOUD_DOT_OPACITY}
+          fill={dotColor}
+          fillOpacity={dotOpacity}
         />
         <Path
           d={paths.softHeadDotPath || EMPTY_D}
-          fill={POINT_CLOUD_DOT_COLOR}
-          fillOpacity={POINT_CLOUD_DOT_OPACITY}
+          fill={softDotColor}
+          fillOpacity={softDotOpacity}
         />
         <Path
           d={paths.headDotPath || EMPTY_D}
-          fill={POINT_CLOUD_DOT_COLOR}
-          fillOpacity={POINT_CLOUD_DOT_OPACITY}
+          fill={dotColor}
+          fillOpacity={dotOpacity}
         />
         <Path
           d={paths.softExtremityDotPath || EMPTY_D}
-          fill={POINT_CLOUD_DOT_COLOR}
-          fillOpacity={POINT_CLOUD_DOT_OPACITY}
+          fill={softDotColor}
+          fillOpacity={softDotOpacity}
         />
         <Path
           d={paths.extremityDotPath || EMPTY_D}
-          fill={POINT_CLOUD_DOT_COLOR}
-          fillOpacity={POINT_CLOUD_DOT_OPACITY}
+          fill={dotColor}
+          fillOpacity={dotOpacity}
         />
         <Path
           d={paths.softActiveDotPath || EMPTY_D}
@@ -800,8 +812,8 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
         />
         <Path
           d={paths.keypointDotPath || EMPTY_D}
-          fill={POINT_CLOUD_DOT_COLOR}
-          fillOpacity={POINT_CLOUD_KEYPOINT_OPACITY}
+          fill={dotColor}
+          fillOpacity={keypointOpacity}
         />
       </Svg>
     </View>

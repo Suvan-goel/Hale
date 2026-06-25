@@ -1,5 +1,6 @@
 import {
   MOVEMENT_PROFILE_V2_HEADLINE_MOVEMENT_IDS,
+  MOVEMENT_PROFILE_V2_HEADLINE_MOVEMENT_IDS_V2,
   type MovementProfileV2HeadlineMovementId,
 } from '../../checkup/movementProfileV2';
 import {
@@ -9,6 +10,7 @@ import {
 import type { MovementProfileV2EvidenceStatus } from '../../checkup/protocolEvidence';
 import type {
   ActiveShoulderReachV2Setup,
+  BalanceEyesOpenV2Setup,
   BodySide,
   ChairRiseV2Setup,
   OneLegBalanceV2Setup,
@@ -19,6 +21,10 @@ import {
   type ActiveShoulderReachV2Result,
 } from '../../movements/activeShoulderReachV2';
 import { CHAIR_RISE_V2_ID, type ChairRiseV2Result } from '../../movements/chairRiseV2';
+import {
+  BALANCE_EYES_OPEN_V2_ID,
+  type BalanceEyesOpenV2Result,
+} from '../../movements/balanceEyesOpenV2';
 import {
   ONE_LEG_BALANCE_V2_ID,
   type OneLegBalanceV2Result,
@@ -899,7 +905,10 @@ function canonicalMovementProfileV2Source(
   }
 
   const chair = canonicalChairResult(resultForItem<ChairRiseV2Result>(checkUp, CHAIR_RISE_V2_ID));
-  const balance = canonicalBalanceResult(resultForItem<OneLegBalanceV2Result>(checkUp, ONE_LEG_BALANCE_V2_ID));
+  const balance = canonicalBalanceResult(
+    resultForItem<BalanceEyesOpenV2Result>(checkUp, BALANCE_EYES_OPEN_V2_ID) ??
+      resultForItem<OneLegBalanceV2Result>(checkUp, ONE_LEG_BALANCE_V2_ID)
+  );
   const shoulder = canonicalShoulderResult(resultForItem<ActiveShoulderReachV2Result>(checkUp, ACTIVE_SHOULDER_REACH_V2_ID));
   const missingDomains: MovementProfileV2DomainKey[] = [];
   if (!chair.ok) missingDomains.push('chair');
@@ -907,7 +916,9 @@ function canonicalMovementProfileV2Source(
   if (!shoulder.ok) missingDomains.push('shoulder');
 
   if (chair.evidenceStatus) evidenceStatusByMovementId[CHAIR_RISE_V2_ID] = chair.evidenceStatus;
-  if (balance.evidenceStatus) evidenceStatusByMovementId[ONE_LEG_BALANCE_V2_ID] = balance.evidenceStatus;
+  if (balance.evidenceStatus) {
+    evidenceStatusByMovementId[balance.movementId ?? ONE_LEG_BALANCE_V2_ID] = balance.evidenceStatus;
+  }
   if (shoulder.evidenceStatus) evidenceStatusByMovementId[ACTIVE_SHOULDER_REACH_V2_ID] = shoulder.evidenceStatus;
 
   if (missingDomains.length > 0) {
@@ -934,7 +945,11 @@ function canonicalMovementProfileV2Source(
       frozenAt: protocol.policy.frozenAt,
     },
     bodyUnit: jsonSafeValue(checkUp.bodyUnit),
-    headlineMovementIds: [...MOVEMENT_PROFILE_V2_HEADLINE_MOVEMENT_IDS].sort(),
+    headlineMovementIds: [
+      ...(balance.movementId === BALANCE_EYES_OPEN_V2_ID
+        ? MOVEMENT_PROFILE_V2_HEADLINE_MOVEMENT_IDS_V2
+        : MOVEMENT_PROFILE_V2_HEADLINE_MOVEMENT_IDS),
+    ].sort(),
     rawCompleteness: {
       missingDomains: [],
       evidenceStatusByMovementId,
@@ -1000,11 +1015,13 @@ function canonicalChairResult(result: ChairRiseV2Result | null): {
   };
 }
 
-function canonicalBalanceResult(result: OneLegBalanceV2Result | null): {
+function canonicalBalanceResult(result: OneLegBalanceV2Result | BalanceEyesOpenV2Result | null): {
   ok: boolean;
   canonical?: unknown;
   evidenceStatus?: MovementProfileV2EvidenceStatus;
+  movementId?: MovementProfileV2HeadlineMovementId;
 } {
+  if (isBalanceEyesOpenV2Result(result)) return canonicalEyesOpenBalanceResult(result);
   if (
     !result ||
     result.movementId !== ONE_LEG_BALANCE_V2_ID ||
@@ -1025,6 +1042,7 @@ function canonicalBalanceResult(result: OneLegBalanceV2Result | null): {
   return {
     ok: true,
     evidenceStatus: result.evidenceStatus,
+    movementId: ONE_LEG_BALANCE_V2_ID,
     canonical: {
       movementId: result.movementId,
       evidenceStatus: result.evidenceStatus,
@@ -1057,6 +1075,91 @@ function canonicalBalanceResult(result: OneLegBalanceV2Result | null): {
       retryCount: jsonSafeValue(result.retryCount),
       declinedRemainingTrials: result.declinedRemainingTrials === true,
       hardCapReached: result.hardCapReached === true,
+      activeMeasurementWindows: canonicalWindows(result.activeMeasurementWindows),
+      invalidReasons: stringArray(result.invalidReasons).sort(),
+      interruptions: finiteOrNull(result.interruptions),
+    },
+  };
+}
+
+function isBalanceEyesOpenV2Result(
+  result: OneLegBalanceV2Result | BalanceEyesOpenV2Result | null
+): result is BalanceEyesOpenV2Result {
+  return result?.movementId === BALANCE_EYES_OPEN_V2_ID;
+}
+
+function canonicalEyesOpenBalanceResult(result: BalanceEyesOpenV2Result): {
+  ok: boolean;
+  canonical?: unknown;
+  evidenceStatus?: MovementProfileV2EvidenceStatus;
+  movementId?: MovementProfileV2HeadlineMovementId;
+} {
+  if (
+    result.movementId !== BALANCE_EYES_OPEN_V2_ID ||
+    result.protocolPolicyId !== MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID ||
+    result.protocolId !== 'home_balance_eyes_open_v2' ||
+    result.protocolVersion !== 2
+  ) {
+    return { ok: false, movementId: BALANCE_EYES_OPEN_V2_ID };
+  }
+  if (!isMovementProfileV2EvidenceStatus(result.evidenceStatus)) {
+    return { ok: false, movementId: BALANCE_EYES_OPEN_V2_ID };
+  }
+  if (result.evidenceStatus === 'invalid_measurement') {
+    return { ok: false, evidenceStatus: result.evidenceStatus, movementId: BALANCE_EYES_OPEN_V2_ID };
+  }
+  if (result.selectedStandingLeg !== 'left' && result.selectedStandingLeg !== 'right') {
+    return { ok: false, evidenceStatus: result.evidenceStatus, movementId: BALANCE_EYES_OPEN_V2_ID };
+  }
+  const setup = canonicalBalanceEyesOpenSetup(result.setup);
+  if (!setup || !Array.isArray(result.stages) || result.stages.length === 0) {
+    return { ok: false, evidenceStatus: result.evidenceStatus, movementId: BALANCE_EYES_OPEN_V2_ID };
+  }
+  return {
+    ok: true,
+    evidenceStatus: result.evidenceStatus,
+    movementId: BALANCE_EYES_OPEN_V2_ID,
+    canonical: {
+      movementId: result.movementId,
+      protocolId: result.protocolId,
+      protocolVersion: result.protocolVersion,
+      evidenceStatus: result.evidenceStatus,
+      setup,
+      selectedStandingLeg: result.selectedStandingLeg,
+      setupConfidence: result.setupConfidence,
+      stages: result.stages.map((stage) => ({
+        stageId: stage.stageId,
+        order: finiteOrNull(stage.order),
+        capMs: finiteOrNull(stage.capMs),
+        maintainedMs: finiteOrNull(stage.maintainedMs),
+        completedCap: stage.completedCap === true,
+        endReason: stage.endReason,
+        selectedSide: jsonSafeValue(stage.selectedSide),
+        sideRole: stage.sideRole,
+        observedSide: jsonSafeValue(stage.observedSide),
+        valid: stage.valid === true,
+        startedAtMs: finiteOrNull(stage.startedAtMs),
+        endedAtMs: finiteOrNull(stage.endedAtMs),
+        supportingMetrics: jsonSafeValue(stage.supportingMetrics ?? null),
+      })),
+      trackingRetries: Array.isArray(result.trackingRetries)
+        ? result.trackingRetries.map((retry) => ({
+            stageId: retry.stageId,
+            order: finiteOrNull(retry.order),
+            interruptedAtMs: finiteOrNull(retry.interruptedAtMs),
+            discardedStartedAtMs: finiteOrNull(retry.discardedStartedAtMs),
+            discardedPartialMs: finiteOrNull(retry.discardedPartialMs),
+            reason: retry.reason,
+          }))
+        : [],
+      highestCompletedStage: jsonSafeValue(result.highestCompletedStage),
+      terminalStage: jsonSafeValue(result.terminalStage),
+      terminalStageMaintainedMs: jsonSafeValue(result.terminalStageMaintainedMs),
+      completedStageCount: finiteOrNull(result.completedStageCount),
+      totalMaintainedMs: finiteOrNull(result.totalMaintainedMs),
+      totalCapMs: finiteOrNull(result.totalCapMs),
+      completedAllStages: result.completedAllStages === true,
+      completionReason: result.completionReason,
       activeMeasurementWindows: canonicalWindows(result.activeMeasurementWindows),
       invalidReasons: stringArray(result.invalidReasons).sort(),
       interruptions: finiteOrNull(result.interruptions),
@@ -1192,24 +1295,48 @@ function chairInterpretationIsValid(chair: MovementProfileV2Interpretation['chai
 }
 
 function balanceInterpretationIsValid(balance: MovementProfileV2Interpretation['balance']): boolean {
-  if (!isRecord(balance) || balance.movementId !== ONE_LEG_BALANCE_V2_ID) return false;
+  if (
+    !isRecord(balance) ||
+    (balance.movementId !== ONE_LEG_BALANCE_V2_ID && balance.movementId !== BALANCE_EYES_OPEN_V2_ID)
+  ) {
+    return false;
+  }
   if (!RESULT_KINDS.includes(balance.resultKind) || !isClaimEligibility(balance.claimEligibility)) return false;
   if (!Array.isArray(balance.eligibilityReasons) || !balance.eligibilityReasons.every(isClaimEligibility)) return false;
   if (!isRecord(balance.source) || balance.source.sourceId !== 'springer_2007_unipedal_eyes_open') return false;
   if (forbiddenReferenceStatKeys(balance)) return false;
   if (balance.rawMetric !== null) {
-    if (
-      !isRecord(balance.rawMetric) ||
-      balance.rawMetric.metricId !== 'one_leg_balance_best' ||
-      balance.rawMetric.unit !== 'seconds' ||
-      balance.rawMetric.ceiling !== 45 ||
-      !Number.isFinite(balance.rawMetric.value) ||
-      balance.rawMetric.value < 0 ||
-      balance.rawMetric.value > 45
-    ) {
+    if (!isRecord(balance.rawMetric) || balance.rawMetric.unit !== 'seconds') return false;
+    if (balance.rawMetric.metricId === 'one_leg_balance_best') {
+      if (
+        balance.movementId !== ONE_LEG_BALANCE_V2_ID ||
+        balance.rawMetric.ceiling !== 45 ||
+        !Number.isFinite(balance.rawMetric.value) ||
+        balance.rawMetric.value < 0 ||
+        balance.rawMetric.value > 45
+      ) {
+        return false;
+      }
+      if (balance.taskBand !== balanceTaskBand(balance.rawMetric.value)) return false;
+    } else if (balance.rawMetric.metricId === 'balance_eyes_open_total') {
+      if (
+        balance.movementId !== BALANCE_EYES_OPEN_V2_ID ||
+        !Number.isFinite(balance.rawMetric.value) ||
+        balance.rawMetric.value < 0 ||
+        !Number.isInteger(balance.rawMetric.completedStageCount) ||
+        balance.rawMetric.completedStageCount < 0 ||
+        balance.rawMetric.completedStageCount > 4 ||
+        !Number.isFinite(balance.rawMetric.totalCapSeconds) ||
+        balance.rawMetric.totalCapSeconds !== 42
+      ) {
+        return false;
+      }
+      if (balance.taskBand !== null || balance.sourceBenchmark !== null || balance.claimEligibility === 'reference_eligible') {
+        return false;
+      }
+    } else {
       return false;
     }
-    if (balance.taskBand !== balanceTaskBand(balance.rawMetric.value)) return false;
   }
   if (balance.sourceBenchmark !== null) {
     if (!isRecord(balance.sourceBenchmark)) return false;
@@ -1297,9 +1424,15 @@ function containsForbiddenV2SnapshotKeys(value: unknown): boolean {
 }
 
 function duplicateHeadlineMovementId(items: readonly CheckUpItem[]): MovementProfileV2HeadlineMovementId | null {
-  for (const movementId of MOVEMENT_PROFILE_V2_HEADLINE_MOVEMENT_IDS) {
+  for (const movementId of MOVEMENT_PROFILE_V2_HEADLINE_MOVEMENT_IDS_V2) {
     const count = items.filter((item) => item.movementId === movementId).length;
     if (count > 1) return movementId;
+  }
+  if (
+    items.some((item) => item.movementId === ONE_LEG_BALANCE_V2_ID) &&
+    items.some((item) => item.movementId === BALANCE_EYES_OPEN_V2_ID)
+  ) {
+    return BALANCE_EYES_OPEN_V2_ID;
   }
   return null;
 }
@@ -1324,6 +1457,25 @@ function canonicalChairSetup(setup: ChairRiseV2Setup | null | undefined): unknow
 
 function canonicalBalanceSetup(setup: OneLegBalanceV2Setup | null | undefined): unknown | null {
   if (!setup || setup.protocol !== 'one_leg_balance_v2_setup') return null;
+  if (setup.standingLeg !== 'left' && setup.standingLeg !== 'right') return null;
+  if (typeof setup.confirmed !== 'boolean') return null;
+  if (!setupConfidenceIsValid(setup.confidence) || !setupSourceIsValid(setup.source)) return null;
+  if (setup.priorStandingLeg !== null && setup.priorStandingLeg !== 'left' && setup.priorStandingLeg !== 'right') {
+    return null;
+  }
+  return {
+    protocol: setup.protocol,
+    standingLeg: setup.standingLeg,
+    confirmed: setup.confirmed,
+    confidence: setup.confidence,
+    source: setup.source,
+    priorStandingLeg: setup.priorStandingLeg,
+    changedFromPrior: setup.changedFromPrior === true,
+  };
+}
+
+function canonicalBalanceEyesOpenSetup(setup: BalanceEyesOpenV2Setup | null | undefined): unknown | null {
+  if (!setup || setup.protocol !== 'balance_eyes_open_v2_setup') return null;
   if (setup.standingLeg !== 'left' && setup.standingLeg !== 'right') return null;
   if (typeof setup.confirmed !== 'boolean') return null;
   if (!setupConfidenceIsValid(setup.confidence) || !setupSourceIsValid(setup.source)) return null;
@@ -1480,7 +1632,7 @@ function stringArray(value: unknown): string[] {
 
 function domainForMovementId(movementId: MovementProfileV2HeadlineMovementId): MovementProfileV2DomainKey {
   if (movementId === CHAIR_RISE_V2_ID) return 'chair';
-  if (movementId === ONE_LEG_BALANCE_V2_ID) return 'balance';
+  if (movementId === ONE_LEG_BALANCE_V2_ID || movementId === BALANCE_EYES_OPEN_V2_ID) return 'balance';
   return 'shoulder';
 }
 
