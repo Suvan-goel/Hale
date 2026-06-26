@@ -302,7 +302,7 @@ describe('getNextBestAction', () => {
 });
 
 describe('manual check-up rules', () => {
-  it('hides retired full manual V1 check-ups mid-block', () => {
+  it('keeps retired V1 manual options hidden while exposing optional V2 choices', () => {
     const options = getManualCheckupOptions({
       latestAssessment: assessment(),
       activeBlock: block(),
@@ -311,9 +311,19 @@ describe('manual check-up rules', () => {
     });
     expect(options.find((o) => o.type === 'manual_extra')).toBeUndefined();
     expect(options.find((o) => o.type === 'quick_recheck')).toBeUndefined();
+    expect(options.find((o) => o.type === 'micro_check')).toMatchObject({
+      title: 'Quick micro check-up',
+      route: 'optional-microcheck',
+      isOfficialForProgress: false,
+    });
+    expect(options.find((o) => o.type === 'manual_extra_v2')).toMatchObject({
+      title: 'Full Movement Check-Up',
+      route: 'manual-extra-v2-checkup',
+      isOfficialForProgress: false,
+    });
   });
 
-  it('uses simple mid-plan copy for the extra check-up choice', () => {
+  it('uses optional curiosity copy for the extra check-up choice', () => {
     const header = getManualCheckupCopy({ activeBlock: true });
     const options = getManualCheckupOptions({
       latestAssessment: assessment(),
@@ -324,13 +334,13 @@ describe('manual check-up rules', () => {
 
     expect(header).toEqual({
       title: 'Check in on your progress',
-      body: "You're in the middle of a plan. A quick check-in is usually the best way to see how things are going today.",
+      body: "Choose a quick check-in or complete a full Movement Check-Up whenever you're curious. These optional check-ups won't change your plan or Movement Profile.",
     });
-    expect(options.find((option) => option.type === 'micro_check')).toBeUndefined();
+    expect(options.map((option) => option.type)).toEqual(['micro_check', 'manual_extra_v2']);
     expect(options.find((option) => option.type === 'manual_extra')).toBeUndefined();
   });
 
-  it('recommends the current-slot micro-check only after a schedule credit exists', () => {
+  it('keeps optional manual check-up choices separate from the scheduled slot target', () => {
     const b = block();
     const options = getManualCheckupOptions({
       latestAssessment: assessment(),
@@ -340,8 +350,16 @@ describe('manual check-up rules', () => {
     });
 
     expect(options.find((option) => option.type === 'micro_check')).toMatchObject({
-      title: 'One timed balance hold',
+      title: 'Quick micro check-up',
+      route: 'optional-microcheck',
       recommended: true,
+      isOfficialForProgress: false,
+    });
+    expect(options.find((option) => option.type === 'manual_extra_v2')).toMatchObject({
+      title: 'Full Movement Check-Up',
+      route: 'manual-extra-v2-checkup',
+      recommended: false,
+      isOfficialForProgress: false,
     });
     expect(options.find((option) => option.type === 'manual_extra')).toBeUndefined();
   });

@@ -1,0 +1,7 @@
+surface,behaviorReady,physicalAudioSurfaceReady,audioApprovalReady,featureDefault,selectableCount,userReachable,requiredCueCount,physicalReadyCueCount,pendingCueCount,missingCueCount,readinessVerdict,notes
+training,true,true,false,off,0,false,169,169,0,0,physical_ready_listening_pending_feature_closed,"Physical surface is ready; AUDIO_READY and approval remain false, so default route stays legacy."
+micro_check,true,true,false,off,0,false,19,19,0,0,physical_ready_listening_pending_feature_closed,"Physical surface is ready; AUDIO_READY and approval remain false, so default route stays legacy."
+balance_v2,true,true,false,closed,0,false,20,20,0,0,physical_ready_listening_pending_feature_closed,Eyes-open Balance V2 stage cues are generated and manifest-covered; protocol remains closed.
+movement_checkup_mpv2,true,true,false,existing_route_unchanged,0,true,31,31,0,0,physical_ready_listening_pending,MPV2 static/runtime audit previously passed; this audit verifies current physical coverage.
+step_up_alternation,true,true,false,off,0,false,0,0,0,0,closed_internal_path_preserved,Step-up alternation stays closed; V2.1 voice approval is not granted.
+floor_v21,true,true,false,off,0,false,0,0,0,0,closed_internal_path_preserved,Floor gate/final-position readiness is complete but activation remains closed.

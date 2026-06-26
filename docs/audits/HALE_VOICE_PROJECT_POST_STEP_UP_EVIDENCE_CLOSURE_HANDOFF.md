@@ -1,12 +1,11 @@
 # Hale Voice Project Post Step-Up Evidence Closure Handoff
 
-Primary verdict: `TRAINING_STEP_UP_RUNTIME_INTEGRATION_EVIDENCE_VERIFIED`.
-Exact next task: `Training floor-transfer readiness gate implementation`.
+Primary verdict: `TRAINING_STEP_UP_RUNTIME_INTEGRATION_EVIDENCE_INCOMPLETE`.
+Exact next task: `Complete the missing evidence items listed in this report`.
 
-Training floor-transfer readiness gate implementation is unblocked at the software/static level.
-
-Carry forward:
-- step-up alternation remains default off
-- Training Voice V2.1 remains default off
-- Training Voice V2.1 audio remains pending
-- physical step-up validation remains part of the final consolidated device pass
+Do not advance automatically. Missing or incomplete evidence:
+- missing canonical ids: none
+- missing metric evidence: none
+- missing sensitivity probes: none
+- failed validation commands: none
+- recomputation mismatches: generation=0, verifier=0

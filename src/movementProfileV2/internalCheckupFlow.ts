@@ -57,7 +57,7 @@ export type MovementProfileV2InternalStep =
 
 export interface MovementProfileV2InternalFlowState {
   startedAt: string;
-  sourceType: Extract<CheckupType, 'baseline' | 'baseline_retake' | 'official_retest'>;
+  sourceType: Extract<CheckupType, 'baseline' | 'baseline_retake' | 'official_retest' | 'manual_extra_v2'>;
   step: MovementProfileV2InternalStep;
   bodyUnit: number | null;
   priorStandingLeg: BodySide | null;

@@ -1,0 +1,5 @@
+surface,behaviorReady,physicalAudioSurfaceReady,audioApprovalReady,featureDefault,selectableCount,requiredLogicalCueCount,physicalReadyCueCount,pendingCueCount,scriptMismatchCount,verifyAudioStatus,notes
+training,true,true,false,off,0,169,169,0,0,covered,Physical surface is separate from approval/default feature gates.
+micro_check,true,true,false,off,0,19,19,0,0,covered,Physical surface is separate from approval/default feature gates.
+balance_v2,true,true,false,closed,0,22,22,0,0,covered,Physical surface is separate from approval/default feature gates.
+movement_checkup_mpv2,true,true,false,closed_until_runtime_audit,0,31,31,0,0,covered,Physical surface is separate from approval/default feature gates.

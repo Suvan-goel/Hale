@@ -414,9 +414,16 @@ describe('H5B.1 Balanced micro-check verification closure', () => {
     });
     expect(manual[0]).toMatchObject({
       type: 'micro_check',
-      title: 'One timed balance hold',
-      route: 'microcheck',
+      title: 'Quick micro check-up',
+      route: 'optional-microcheck',
       recommended: true,
+      isOfficialForProgress: false,
+    });
+    expect(manual[1]).toMatchObject({
+      type: 'manual_extra_v2',
+      title: 'Full Movement Check-Up',
+      route: 'manual-extra-v2-checkup',
+      recommended: false,
       isOfficialForProgress: false,
     });
 
@@ -438,7 +445,20 @@ describe('H5B.1 Balanced micro-check verification closure', () => {
         completions: afterCompletion,
         now: '2026-06-10T10:00:00.000Z',
       })
-    ).toEqual([]);
+    ).toEqual([
+      expect.objectContaining({
+        type: 'micro_check',
+        title: 'Quick micro check-up',
+        route: 'optional-microcheck',
+        isOfficialForProgress: false,
+      }),
+      expect.objectContaining({
+        type: 'manual_extra_v2',
+        title: 'Full Movement Check-Up',
+        route: 'manual-extra-v2-checkup',
+        isOfficialForProgress: false,
+      }),
+    ]);
   });
 
   it('counts unique Balanced slots for the frozen V2 block report and ignores next-block micro-check state', () => {

@@ -12,8 +12,9 @@ describe('MovementProfileV2CheckUpScreen voice-runtime wiring', () => {
     const text = source();
 
     expect(text).toContain('MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED');
+    expect(text).toContain("voiceExperienceMode === 'v21_beta'");
     expect(text).toContain('new MovementProfileV2VoiceRuntime');
-    expect(text).toContain('if (MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED) return;');
+    expect(text).toContain('if (voiceRuntimeEnabled) return;');
     expect(text).toContain('voiceSequencerRef.current.next(live)');
   });
 

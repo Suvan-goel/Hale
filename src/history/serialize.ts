@@ -201,6 +201,7 @@ function validStoredCheckUpType(value: unknown): StoredCheckUpType | null {
     value === 'baseline' ||
     value === 'baseline_retake' ||
     value === 'manual_extra' ||
+    value === 'manual_extra_v2' ||
     value === 'official_retest' ||
     value === 'quick_recheck' ||
     value === 'micro_check' ||

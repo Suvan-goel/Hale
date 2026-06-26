@@ -29,6 +29,10 @@ import {
 import { LEGACY_V1_CHECKUP_ROLLBACK_ENABLED } from './src/config/legacyV1CheckUpRollback';
 import { MOVEMENT_PROFILE_V2_INTERNAL_ENABLED } from './src/config/movementProfileV2Internal';
 import {
+  resolveVoiceV21Activation,
+  type VoiceV21Activation,
+} from './src/config/voiceExperience';
+import {
   AdherenceStore,
   AdherenceStoreState,
   ActivityLevel,
@@ -41,6 +45,7 @@ import {
   LOCAL_USER_ID,
   MovementAssessment,
   MovementBlock,
+  MovementDomain,
   MovementProfileV2BlockReport,
   MovementProfileV2RetestComparison,
   MovementSafetyProfile,
@@ -60,6 +65,8 @@ import {
   makeTrainingSessionCompletion,
   markMovementBlockComplete,
   mergeMilestones,
+  movementBlockDomainFocus,
+  movementBlockIsBalanced,
   movementBlockSourceCheckUpId,
   normalizeLifeGoalDisplayText,
   recordTrainingSessionCompletion,
@@ -122,12 +129,14 @@ import {
   staleSafetyCuePlanningResult,
   sessionPlanFromPlanningResult,
   microCheckSlotMetadataFromTarget,
+  microCheckTypeForDomain,
   validateHaleSessionPlanEquipment,
   validateHaleSessionPlanMovementCapabilities,
   validateHaleSessionPlanProgressionPolicy,
   validateHaleSessionPlanReleasePolicy,
   validateHaleSessionPlanSafetyCues,
   type GenerationRecoveryAction,
+  type BlockMicroCheckTarget,
   type HaleSessionPlanningResult,
   type HaleSessionPlan,
   type OfficialMovementProfileV2AssessmentRecord,
@@ -225,6 +234,10 @@ import { ExploreScreen } from './src/screens/ExploreScreen';
 import { LadderDetailScreen, LearnDetailScreen } from './src/screens/ExploreDetailScreens';
 import { LiveSessionScreen } from './src/screens/LiveSessionScreen';
 import { ManualCheckupStartScreen } from './src/screens/ManualCheckupStartScreen';
+import {
+  ManualMicroCheckDomainScreen,
+  ManualMicroCheckUnavailableScreen,
+} from './src/screens/ManualMicroCheckChoiceScreen';
 import { MicroCheckScreen } from './src/screens/MicroCheckScreen';
 import { MovementProfileV2CheckUpScreen } from './src/screens/MovementProfileV2CheckUpScreen';
 import { MovementProfileV2BlockReportScreen } from './src/screens/MovementProfileV2BlockReportScreen';
@@ -232,6 +245,7 @@ import { MovementProfileV2ReferenceDetailsScreen } from './src/screens/MovementP
 import { MovementProfileV2ResultsScreen } from './src/screens/MovementProfileV2ResultsScreen';
 import { MovementProfileV2UnifiedCheckUpScreen } from './src/screens/MovementProfileV2UnifiedCheckUpScreen';
 import { MovementProfileV2UnifiedResultsScreen } from './src/screens/MovementProfileV2UnifiedResultsScreen';
+import { MovementProfileV2PracticeResultsScreen } from './src/screens/MovementProfileV2PracticeResultsScreen';
 import { OnboardingBlockScreen } from './src/screens/OnboardingBlockScreen';
 import { OnboardingEquipmentScreen } from './src/screens/OnboardingEquipmentScreen';
 import { OnboardingResultsScreen } from './src/screens/OnboardingResultsScreen';
@@ -250,6 +264,7 @@ import { isPoseLatencyDiagnosticsEnabled } from './src/diagnostics/poseLatencyDi
 import {
   EquipmentProfile,
   MicroCheckResult,
+  MicroCheckType,
   PainArea,
   PersistedPostSessionFeedback,
   TrainingState,
@@ -277,6 +292,8 @@ type Flow =
   | 'safety-profile'
   | 'camera-setup'
   | 'manual-checkup'
+  | 'manual-microcheck-domain'
+  | 'manual-microcheck-unavailable'
   | 'checkup'
   | 'results'
   | 'session-unavailable'
@@ -295,6 +312,7 @@ type Flow =
   | 'movement-profile-v2-unified-checkup'
   | 'movement-profile-v2-reference-details'
   | 'movement-profile-v2-results'
+  | 'movement-profile-v2-practice-results'
   | 'movement-profile-v2-unified-results'
   | 'movement-profile-v2-domain-detail'
   | 'movement-profile-v2-unified-domain-detail'
@@ -308,13 +326,26 @@ type LifeGoalEntry = 'onboarding' | 'review';
 type SafetyProfileEntry = 'onboarding' | 'review';
 type MovementProfileV2ResultSurface = 'standalone' | 'unified';
 type MovementProfileV2EntryContext = 'internal' | 'public_standard' | 'public_onboarding' | 'public_official_retest';
-type MovementProfileV2CheckUpSourceType = Extract<CheckupType, 'baseline' | 'baseline_retake' | 'official_retest'>;
+type MovementProfileV2OfficialCheckUpSourceType = Extract<CheckupType, 'baseline' | 'baseline_retake' | 'official_retest'>;
+type MovementProfileV2PracticeCheckUpSourceType = Extract<CheckupType, 'manual_extra_v2'>;
+type MovementProfileV2CheckUpSourceType = MovementProfileV2OfficialCheckUpSourceType | MovementProfileV2PracticeCheckUpSourceType;
 type MovementProfileV2OfficialRetestContext = {
   priorBlockId: string;
   priorArtifacts: OfficialMovementProfileV2AssessmentRecord;
   priorStandingLeg: BodySide | null;
   priorShoulderSide: BodySide | null;
 };
+
+type MicroCheckLaunch =
+  | {
+      mode: 'scheduled';
+      target: Extract<BlockMicroCheckTarget, { status: 'available' }>;
+    }
+  | {
+      mode: 'optional';
+      microCheckType: MicroCheckType;
+      domain: MovementDomain;
+    };
 
 const DEFAULT_MOVEMENT_PROFILE_V2_PLAN_STATE: MovementProfileV2UnifiedPlanState = {
   status: 'unavailable',
@@ -435,6 +466,16 @@ function flowForOnboardingStep(step: OnboardingStep): Flow | null {
   }
 }
 
+function isActiveVoiceFlow(flow: Flow | null): boolean {
+  return (
+    flow === 'training' ||
+    flow === 'microcheck' ||
+    flow === 'checkup' ||
+    flow === 'movement-profile-v2-checkup' ||
+    flow === 'movement-profile-v2-unified-checkup'
+  );
+}
+
 function recordScoringInputIssues(
   context: string,
   issues: readonly ScoringInputIssue[],
@@ -458,6 +499,62 @@ function recordScoringInputIssues(
 
 function uniqueStrings(values: readonly string[]): string[] {
   return [...new Set(values)].sort();
+}
+
+function isOfficialMovementProfileV2SourceType(
+  sourceType: MovementProfileV2CheckUpSourceType
+): sourceType is MovementProfileV2OfficialCheckUpSourceType {
+  return sourceType === 'baseline' || sourceType === 'baseline_retake' || sourceType === 'official_retest';
+}
+
+type ManualMicroCheckResolution =
+  | { status: 'ready'; microCheckType: MicroCheckType; domain: MovementDomain }
+  | { status: 'choose_domain' }
+  | { status: 'unavailable' };
+
+function resolveManualMicroCheckLaunch(input: {
+  activeBlock: MovementBlock | null;
+  activeMicroCheckTarget: Extract<BlockMicroCheckTarget, { status: 'available' }> | null;
+  activeBlockSchedule: ReturnType<typeof getBlockScheduleState> | null;
+}): ManualMicroCheckResolution {
+  if (input.activeMicroCheckTarget) {
+    return {
+      status: 'ready',
+      microCheckType: input.activeMicroCheckTarget.microCheckType,
+      domain: input.activeMicroCheckTarget.targetDomain,
+    };
+  }
+
+  if (!input.activeBlock) return { status: 'choose_domain' };
+
+  const focusDomain = movementBlockDomainFocus(input.activeBlock);
+  if (focusDomain) {
+    return {
+      status: 'ready',
+      microCheckType: microCheckTypeForDomain(focusDomain),
+      domain: focusDomain,
+    };
+  }
+
+  if (movementBlockIsBalanced(input.activeBlock)) {
+    const domain = balancedManualMicroCheckDomain(input.activeBlockSchedule?.currentWeekIndex);
+    return domain
+      ? { status: 'ready', microCheckType: microCheckTypeForDomain(domain), domain }
+      : { status: 'unavailable' };
+  }
+
+  return { status: 'unavailable' };
+}
+
+function balancedManualMicroCheckDomain(weekIndex: number | null | undefined): MovementDomain | null {
+  if (weekIndex === 0) return 'strength_power';
+  if (weekIndex === 1) return 'balance';
+  if (weekIndex === 2) return 'mobility';
+  return null;
+}
+
+function isOptionalMicroCheckResult(result: MicroCheckResult): boolean {
+  return typeof result.id === 'string' && result.id.startsWith('optional:');
 }
 
 function navigationLocation(tab: TabKey, flow: Flow | null): NavigationLocation {
@@ -709,7 +806,18 @@ function HaleApp() {
     defaultAdherenceStoreState()
   );
   const [microChecks, setMicroChecks] = React.useState<MicroCheckResult[]>([]);
+  const [microCheckLaunch, setMicroCheckLaunch] = React.useState<MicroCheckLaunch | null>(null);
   const [prefs, setPrefs] = React.useState<Preferences>(() => defaultPreferences());
+  const voiceActivation = React.useMemo(
+    () => resolveVoiceV21Activation({ persistedMode: prefs.settings.voiceExperienceMode }),
+    [prefs.settings.voiceExperienceMode]
+  );
+  const [activeTrainingVoiceActivation, setActiveTrainingVoiceActivation] =
+    React.useState<VoiceV21Activation | null>(null);
+  const [activeMicroCheckVoiceActivation, setActiveMicroCheckVoiceActivation] =
+    React.useState<VoiceV21Activation | null>(null);
+  const [activeMovementProfileV2VoiceActivation, setActiveMovementProfileV2VoiceActivation] =
+    React.useState<VoiceV21Activation | null>(null);
   const [historyReady, setHistoryReady] = React.useState(false);
   const [profileReady, setProfileReady] = React.useState(false);
   const [trainingReady, setTrainingReady] = React.useState(false);
@@ -820,6 +928,19 @@ function HaleApp() {
   }, [flow]);
 
   React.useEffect(() => {
+    addBreadcrumb('voice activation resolved', {
+      area: 'voice_v21_activation',
+      mode: voiceActivation.mode,
+      source: voiceActivation.source,
+      trainingVoiceV21Enabled: voiceActivation.trainingVoiceV21Enabled,
+      microCheckVoiceV21Enabled: voiceActivation.microCheckVoiceV21Enabled,
+      movementCheckUpV21Enabled: voiceActivation.movementCheckUpV21Enabled,
+      eyesOpenBalanceV2Enabled: voiceActivation.eyesOpenBalanceV2Enabled,
+      reasonCodes: voiceActivation.reasonCodes,
+    });
+  }, [voiceActivation]);
+
+  React.useEffect(() => {
     addBreadcrumb('app startup hydration started', { area: 'startup' });
     requestCameraPermissionsAsync()
       .then((response) => setPermission(response.granted ? 'granted' : 'denied'))
@@ -860,6 +981,9 @@ function HaleApp() {
     setMovementProfileV2DetailDomain(null);
     setMovementProfileV2SelectedProfileId(null);
     setMovementProfileV2SelectedReportId(null);
+    setActiveTrainingVoiceActivation(null);
+    setActiveMicroCheckVoiceActivation(null);
+    setActiveMovementProfileV2VoiceActivation(null);
     setTraining(defaultTrainingState());
     setMicroChecks([]);
     setPrefs(defaultPreferences());
@@ -1111,6 +1235,10 @@ function HaleApp() {
     setMovementProfileV2ResultSurface('standalone');
     setMovementProfileV2EntryContext('internal');
     setMovementProfileV2DetailDomain(null);
+    setMicroCheckLaunch(null);
+    setActiveTrainingVoiceActivation(null);
+    setActiveMicroCheckVoiceActivation(null);
+    setActiveMovementProfileV2VoiceActivation(null);
   }, [replaceNextNavigationLocation]);
 
   const movementProfileV2FlowAllowed =
@@ -1577,17 +1705,18 @@ function HaleApp() {
   ]);
 
   React.useEffect(() => {
+    const syncableMicroChecks = microChecks.filter((result) => !isOptionalMicroCheckResult(result));
     if (
       !backendSignedIn ||
       !backendUserId ||
       !adherenceReady ||
       !microChecksReady ||
       !restoreReady ||
-      microChecks.length === 0
+      syncableMicroChecks.length === 0
     )
       return;
     const fingerprint = JSON.stringify({
-      microChecks: microChecks.map((result) => [
+      microChecks: syncableMicroChecks.map((result) => [
         result.slotId,
         result.blockId,
         result.type,
@@ -1615,7 +1744,7 @@ function HaleApp() {
     if (lastMicroCheckSyncFingerprintRef.current === fingerprint) return;
 
     addBreadcrumb('sync category started', { category: 'micro_checks' });
-    void syncRecentMicroChecksToRemote(microChecks, {
+    void syncRecentMicroChecksToRemote(syncableMicroChecks, {
       blocks: adherence.blocks,
       completions: adherence.completions,
     })
@@ -2045,8 +2174,17 @@ function HaleApp() {
     [prefs, persistPrefs]
   );
   const onSettingsChange = React.useCallback(
-    (settings: AppSettings) => persistPrefs({ ...prefs, settings }),
-    [prefs, persistPrefs]
+    (settings: AppSettings) => {
+      if (settings.voiceExperienceMode !== prefs.settings.voiceExperienceMode) {
+        addBreadcrumb('voice mode setting changed', {
+          area: 'voice_v21_activation',
+          mode: settings.voiceExperienceMode,
+          appliesNextFlow: isActiveVoiceFlow(flow),
+        });
+      }
+      persistPrefs({ ...prefs, settings });
+    },
+    [flow, prefs, persistPrefs]
   );
 
   const onLifeGoalSave = React.useCallback(
@@ -2251,21 +2389,25 @@ function HaleApp() {
     [displayAdherence, displayHistory, displayPrefs.profile, displayTraining]
   );
 
-  const activeMicroCheckTarget = React.useMemo(() => {
+  const activeBlockSchedule = React.useMemo(() => {
     if (!activeMovementBlock) return null;
-    const schedule = getBlockScheduleState({
+    return getBlockScheduleState({
       block: activeMovementBlock,
       completions: adherence.completions,
       generatedSessionSummaries: training.generatedSessionSummaries,
       today: new Date().toISOString(),
     });
+  }, [activeMovementBlock, adherence.completions, training.generatedSessionSummaries]);
+
+  const activeMicroCheckTarget = React.useMemo(() => {
+    if (!activeMovementBlock || !activeBlockSchedule) return null;
     const target = getBlockMicroCheckTarget({
       block: activeMovementBlock,
-      schedule,
+      schedule: activeBlockSchedule,
       completions: adherence.completions,
     });
     return target.status === 'available' ? target : null;
-  }, [activeMovementBlock, adherence.completions, training.generatedSessionSummaries]);
+  }, [activeMovementBlock, activeBlockSchedule, adherence.completions]);
 
   const requestCameraPermission = React.useCallback(() => {
     requestCameraPermissionsAsync()
@@ -2279,9 +2421,10 @@ function HaleApp() {
       entryContext: PublicMovementCheckUpEntryContext,
       officialRetestContext: MovementProfileV2OfficialRetestContext | null = null
     ) => {
-      const pendingRaw = sourceType === 'official_retest'
-        ? null
-        : latestPendingMovementProfileV2RawCheckUp(history);
+      const pendingRaw =
+        sourceType === 'baseline' || sourceType === 'baseline_retake'
+          ? latestPendingMovementProfileV2RawCheckUp(history)
+          : null;
       setMovementProfileV2Result(null);
       setMovementProfileV2RetestComparison(null);
       setMovementProfileV2BlockReport(null);
@@ -2312,6 +2455,14 @@ function HaleApp() {
 
       const startedAt = new Date().toISOString();
       const initialFlow = createMovementProfileV2InternalFlow({ startedAt, history });
+      setActiveMovementProfileV2VoiceActivation(voiceActivation);
+      addBreadcrumb('movement check-up voice mode pinned', {
+        area: 'voice_v21_activation',
+        flow: 'movement_profile_v2',
+        mode: voiceActivation.mode,
+        source: voiceActivation.source,
+        v21Enabled: voiceActivation.movementCheckUpV21Enabled,
+      });
       setMovementProfileV2InitialFlow({
         ...initialFlow,
         sourceType,
@@ -2331,7 +2482,7 @@ function HaleApp() {
       setMovementProfileV2Raw(null);
       setFlow('movement-profile-v2-unified-checkup');
     },
-    [history]
+    [history, voiceActivation]
   );
 
   const beginCheckUp = React.useCallback(
@@ -2417,6 +2568,14 @@ function HaleApp() {
         return;
       }
       const legacyType = launchDecision.sourceType;
+      setActiveMovementProfileV2VoiceActivation(voiceActivation);
+      addBreadcrumb('movement check-up voice mode pinned', {
+        area: 'voice_v21_activation',
+        flow: 'legacy_checkup',
+        mode: voiceActivation.mode,
+        source: voiceActivation.source,
+        v21Enabled: false,
+      });
       setPendingCheckup({
         type: legacyType,
         sourceBlockId:
@@ -3002,11 +3161,20 @@ function HaleApp() {
       setFlow('session-unavailable');
       return;
     }
-    setSessionType(activeSessionPlan.sessionType);
-    setSessionIds(activeSessionPlan.exercises.map((exercise) => exercise.id));
-    setLastSessionResult(null);
-    setFlow('training');
-  }, [activeSessionPlan, prefs.profile.safetyProfile]);
+      setSessionType(activeSessionPlan.sessionType);
+      setSessionIds(activeSessionPlan.exercises.map((exercise) => exercise.id));
+      setActiveTrainingVoiceActivation(voiceActivation);
+      addBreadcrumb('training voice mode pinned', {
+        area: 'voice_v21_activation',
+        flow: 'training',
+        mode: voiceActivation.mode,
+        source: voiceActivation.source,
+        v21Enabled: voiceActivation.trainingVoiceV21Enabled,
+        selectableCount: voiceActivation.trainingSelectableExerciseCount,
+      });
+      setLastSessionResult(null);
+      setFlow('training');
+  }, [activeSessionPlan, prefs.profile.safetyProfile, voiceActivation]);
 
   const handleSessionComplete = React.useCallback(
     (result: TrainingSessionResult) => {
@@ -3209,13 +3377,40 @@ function HaleApp() {
   const handleMicroCheckComplete = React.useCallback(
     (result: MicroCheckResult) => {
       const completedAt = new Date().toISOString();
-      if (!activeMovementBlock || !activeMicroCheckTarget) {
-        console.warn('[training] micro-check completed without an active due slot; result ignored');
+      if (microCheckLaunch?.mode === 'optional') {
+        const optionalResult: MicroCheckResult = {
+          ...result,
+          id: `optional:${result.type}:${result.startedAt}`,
+          completedAt,
+          targetDomain: microCheckLaunch.domain,
+        };
+        try {
+          trainingStore.saveMicroCheck(optionalResult);
+        } catch (e) {
+          console.warn('[training] optional micro-check save failed', e);
+        }
+        setMicroChecks((prev) => {
+          const key = `${optionalResult.type}:${optionalResult.startedAt}`;
+          const withoutDuplicate = prev.filter(
+            (item) => (item.slotId ?? `${item.type}:${item.startedAt}`) !== key
+          );
+          return [...withoutDuplicate, optionalResult];
+        });
+        setMicroCheckLaunch(null);
         goHome();
         return;
       }
-      const enrichedResult = attachMicroCheckTargetMetadata(result, activeMicroCheckTarget, completedAt);
-      const microCheckSlot = microCheckSlotMetadataFromTarget(activeMicroCheckTarget);
+
+      const scheduledTarget =
+        microCheckLaunch?.mode === 'scheduled' ? microCheckLaunch.target : activeMicroCheckTarget;
+      if (!activeMovementBlock || !scheduledTarget) {
+        console.warn('[training] micro-check completed without an active due slot; result ignored');
+        setMicroCheckLaunch(null);
+        goHome();
+        return;
+      }
+      const enrichedResult = attachMicroCheckTargetMetadata(result, scheduledTarget, completedAt);
+      const microCheckSlot = microCheckSlotMetadataFromTarget(scheduledTarget);
       let localMicroCheckSaved = false;
       try {
         trainingStore.saveMicroCheck(enrichedResult);
@@ -3234,7 +3429,7 @@ function HaleApp() {
         block: activeMovementBlock,
         sessionType: 'micro_check',
         completedAt,
-        plannedDate: activeMicroCheckTarget.slotId,
+        plannedDate: scheduledTarget.slotId,
         durationMinutes: 1,
         mainPlanCredit: false,
         microCheckSlot,
@@ -3265,6 +3460,7 @@ function HaleApp() {
         });
       }
       setLastCompletion(completion);
+      setMicroCheckLaunch(null);
       goHome();
     },
     [
@@ -3274,6 +3470,7 @@ function HaleApp() {
       backendSignedIn,
       backendUserId,
       goHome,
+      microCheckLaunch,
       persistAdherence,
       training,
       trainingStore,
@@ -3729,6 +3926,23 @@ function HaleApp() {
     replaceFlow,
   ]);
 
+  const beginScheduledMicroCheck = React.useCallback(() => {
+    if (activeMicroCheckTarget) {
+      setActiveMicroCheckVoiceActivation(voiceActivation);
+      addBreadcrumb('micro-check voice mode pinned', {
+        area: 'voice_v21_activation',
+        flow: 'microcheck',
+        mode: voiceActivation.mode,
+        source: voiceActivation.source,
+        v21Enabled: voiceActivation.microCheckVoiceV21Enabled,
+      });
+      setMicroCheckLaunch({ mode: 'scheduled', target: activeMicroCheckTarget });
+      setFlow('microcheck');
+      return;
+    }
+    goHome();
+  }, [activeMicroCheckTarget, goHome, voiceActivation]);
+
   const handleTodayPrimaryAction = React.useCallback(
     (preferences?: TodaySessionPreferences | null) => {
       switch (lifecycle.primaryAction.type) {
@@ -3746,11 +3960,7 @@ function HaleApp() {
           handleStartSession(preferences ?? undefined);
           return;
         case 'start_micro_check':
-          if (activeMicroCheckTarget) {
-            setFlow('microcheck');
-          } else {
-            goHome();
-          }
+          beginScheduledMicroCheck();
           return;
         case 'start_retest':
           beginCheckUp('official_retest');
@@ -3771,7 +3981,7 @@ function HaleApp() {
     },
     [
       beginCheckUp,
-      activeMicroCheckTarget,
+      beginScheduledMicroCheck,
       goHome,
       handleStartNextBlock,
       handleStartSession,
@@ -3781,8 +3991,55 @@ function HaleApp() {
     ]
   );
 
+  const beginManualOptionalMicroCheck = React.useCallback(() => {
+    const resolution = resolveManualMicroCheckLaunch({
+      activeBlock: activeMovementBlock,
+      activeMicroCheckTarget,
+      activeBlockSchedule,
+    });
+    if (resolution.status === 'ready') {
+      setActiveMicroCheckVoiceActivation(voiceActivation);
+      addBreadcrumb('micro-check voice mode pinned', {
+        area: 'voice_v21_activation',
+        flow: 'manual_microcheck',
+        mode: voiceActivation.mode,
+        source: voiceActivation.source,
+        v21Enabled: voiceActivation.microCheckVoiceV21Enabled,
+      });
+      setMicroCheckLaunch({
+        mode: 'optional',
+        microCheckType: resolution.microCheckType,
+        domain: resolution.domain,
+      });
+      setFlow('microcheck');
+      return;
+    }
+    setMicroCheckLaunch(null);
+    setFlow(resolution.status === 'choose_domain' ? 'manual-microcheck-domain' : 'manual-microcheck-unavailable');
+  }, [activeBlockSchedule, activeMicroCheckTarget, activeMovementBlock, voiceActivation]);
+
+  const beginManualMicroCheckForDomain = React.useCallback((domain: MovementDomain) => {
+    setActiveMicroCheckVoiceActivation(voiceActivation);
+    addBreadcrumb('micro-check voice mode pinned', {
+      area: 'voice_v21_activation',
+      flow: 'manual_microcheck_domain',
+      mode: voiceActivation.mode,
+      source: voiceActivation.source,
+      v21Enabled: voiceActivation.microCheckVoiceV21Enabled,
+    });
+    setMicroCheckLaunch({
+      mode: 'optional',
+      microCheckType: microCheckTypeForDomain(domain),
+      domain,
+    });
+    setFlow('microcheck');
+  }, [voiceActivation]);
+
   const extraTrendPoints = React.useMemo(() => microCheckTrendPoints(microChecks), [microChecks]);
-  const activeMicroCheckType = activeMicroCheckTarget?.microCheckType ?? null;
+  const activeMicroCheckType =
+    microCheckLaunch?.mode === 'scheduled'
+      ? microCheckLaunch.target.microCheckType
+      : microCheckLaunch?.microCheckType ?? null;
   const activeMicroCheckSideSetup = React.useMemo(
     () =>
       activeMicroCheckType
@@ -3857,10 +4114,18 @@ function HaleApp() {
 
     const startedAt = new Date().toISOString();
     const initialFlow = createMovementProfileV2InternalFlow({ startedAt, history });
+    setActiveMovementProfileV2VoiceActivation(voiceActivation);
+    addBreadcrumb('movement check-up voice mode pinned', {
+      area: 'voice_v21_activation',
+      flow: 'movement_profile_v2_internal',
+      mode: voiceActivation.mode,
+      source: voiceActivation.source,
+      v21Enabled: voiceActivation.movementCheckUpV21Enabled,
+    });
     setMovementProfileV2InitialFlow(initialFlow);
     setMovementProfileV2Raw(null);
     setFlow('movement-profile-v2-checkup');
-  }, [history]);
+  }, [history, voiceActivation]);
 
   const beginMovementProfileV2UnifiedInternal = React.useCallback(() => {
     if (!MOVEMENT_PROFILE_V2_INTERNAL_ENABLED) return;
@@ -3889,10 +4154,18 @@ function HaleApp() {
 
     const startedAt = new Date().toISOString();
     const initialFlow = createMovementProfileV2InternalFlow({ startedAt, history });
+    setActiveMovementProfileV2VoiceActivation(voiceActivation);
+    addBreadcrumb('movement check-up voice mode pinned', {
+      area: 'voice_v21_activation',
+      flow: 'movement_profile_v2_unified_internal',
+      mode: voiceActivation.mode,
+      source: voiceActivation.source,
+      v21Enabled: voiceActivation.movementCheckUpV21Enabled,
+    });
     setMovementProfileV2InitialFlow(initialFlow);
     setMovementProfileV2Raw(null);
     setFlow('movement-profile-v2-unified-checkup');
-  }, [history]);
+  }, [history, voiceActivation]);
 
   const handleMovementProfileV2RawComplete = React.useCallback(
     (input: {
@@ -3920,6 +4193,10 @@ function HaleApp() {
         .loadAll()
         .then(setHistory)
         .catch(() => {});
+      if (!isOfficialMovementProfileV2SourceType(input.sourceType)) {
+        replaceFlow('movement-profile-v2-practice-results');
+        return;
+      }
       replaceFlow('movement-profile-v2-reference-details');
     },
     [replaceFlow, store]
@@ -3928,6 +4205,10 @@ function HaleApp() {
   const handleMovementProfileV2ReferenceSubmit = React.useCallback(
     (referenceProfile: MovementProfileV2ReferenceProfile) => {
       if (!movementProfileV2Raw) return;
+      if (!isOfficialMovementProfileV2SourceType(movementProfileV2Raw.sourceType)) {
+        replaceFlow('movement-profile-v2-practice-results');
+        return;
+      }
       const now = new Date().toISOString();
       const artifactCreatedAt =
         movementProfileV2Raw.sourceType === 'official_retest'
@@ -4321,6 +4602,9 @@ function HaleApp() {
         case 'quick-recheck':
           beginCheckUp('quick_recheck');
           return;
+        case 'manual-extra-v2-checkup':
+          beginCheckUp('manual_extra_v2');
+          return;
         case 'official-retest':
           beginCheckUp('official_retest');
           return;
@@ -4332,11 +4616,7 @@ function HaleApp() {
           handleStartSession();
           return;
         case 'microcheck':
-          if (activeMicroCheckTarget) {
-            setFlow('microcheck');
-          } else {
-            goHome();
-          }
+          beginScheduledMicroCheck();
           return;
         case 'restart-intro':
           setFlow('restart-intro');
@@ -4352,7 +4632,7 @@ function HaleApp() {
     },
     [
       beginCheckUp,
-      activeMicroCheckTarget,
+      beginScheduledMicroCheck,
       goHome,
       handleStartNextBlock,
       handleStartSession,
@@ -4467,8 +4747,18 @@ function HaleApp() {
             activeBlock={activeMovementBlock}
             completions={adherence.completions}
             onSelectCheckup={beginCheckUp}
-            onMicroCheck={() => (activeMicroCheckTarget ? setFlow('microcheck') : goHome())}
+            onMicroCheck={beginManualOptionalMicroCheck}
             onCancel={() => goBack(goHome)}
+          />
+        ) : flow === 'manual-microcheck-domain' ? (
+          <ManualMicroCheckDomainScreen
+            onSelectDomain={beginManualMicroCheckForDomain}
+            onBack={() => goBack(openManualCheckup)}
+          />
+        ) : flow === 'manual-microcheck-unavailable' ? (
+          <ManualMicroCheckUnavailableScreen
+            onBack={() => goBack(openManualCheckup)}
+            onDone={goHome}
           />
         ) : flow === 'checkup' && legacyV1CheckUpFlowAllowed ? (
           <CheckUpScreen
@@ -4532,14 +4822,28 @@ function HaleApp() {
             onComplete={handleSessionComplete}
             onCancel={() => goBack(goHome)}
             voiceId={prefs.settings.voiceId}
+            internalRuntime={{
+              trainingVoiceMode: activeTrainingVoiceActivation?.trainingVoiceV21Enabled ? 'internal_v21' : 'legacy',
+              trainingVoiceBehaviorReady: activeTrainingVoiceActivation?.trainingVoiceV21Enabled ?? false,
+              stepUpAlternationReady: activeTrainingVoiceActivation?.stepUpAlternationEnabled ?? false,
+              floorSetupReady: activeTrainingVoiceActivation?.floorV21Enabled ?? false,
+              stepUpAlternationFeatureEnabled: activeTrainingVoiceActivation?.stepUpAlternationEnabled ?? false,
+              floorV21FeatureEnabled: activeTrainingVoiceActivation?.floorV21Enabled ?? false,
+            }}
           />
         ) : flow === 'microcheck' && activeMicroCheckType ? (
           <MicroCheckScreen
             type={activeMicroCheckType}
             sideSetup={activeMicroCheckSideSetup}
             onComplete={handleMicroCheckComplete}
-            onCancel={() => goBack(goHome)}
+            onCancel={() => {
+              setMicroCheckLaunch(null);
+              goBack(goHome);
+            }}
             voiceId={prefs.settings.voiceId}
+            voiceExperienceMode={
+              activeMicroCheckVoiceActivation?.microCheckVoiceV21Enabled ? 'v21_beta' : 'legacy'
+            }
           />
         ) : flow === 'life-goal' ? (
           <LifeGoalOnboardingScreen
@@ -4606,6 +4910,9 @@ function HaleApp() {
             sourceType={movementProfileV2InitialFlow.sourceType}
             initialFlow={movementProfileV2InitialFlow}
             voiceId={prefs.settings.voiceId}
+            voiceExperienceMode={
+              activeMovementProfileV2VoiceActivation?.movementCheckUpV21Enabled ? 'v21_beta' : 'legacy'
+            }
             onComplete={(input) => handleMovementProfileV2RawComplete(input, 'standalone')}
             onCancel={() => goBack(goHome)}
           />
@@ -4615,6 +4922,9 @@ function HaleApp() {
             sourceType={movementProfileV2InitialFlow.sourceType}
             initialFlow={movementProfileV2InitialFlow}
             voiceId={prefs.settings.voiceId}
+            voiceExperienceMode={
+              activeMovementProfileV2VoiceActivation?.movementCheckUpV21Enabled ? 'v21_beta' : 'legacy'
+            }
             entryMode={
               movementProfileV2EntryContext === 'internal'
                 ? 'internal_comparison'
@@ -4637,6 +4947,14 @@ function HaleApp() {
             entryMode={movementProfileV2EntryContext === 'internal' ? 'internal' : 'public'}
             onSubmit={handleMovementProfileV2ReferenceSubmit}
             onBack={() => goBack(goHome)}
+          />
+        ) : flow === 'movement-profile-v2-practice-results' && movementProfileV2Raw ? (
+          <MovementProfileV2PracticeResultsScreen
+            checkUp={movementProfileV2Raw.checkUp}
+            onDone={() => {
+              setMovementProfileV2Raw(null);
+              goBack(goHome);
+            }}
           />
         ) : flow === 'movement-profile-v2-unified-results' && visibleMovementProfileV2Result ? (
           <MovementProfileV2UnifiedResultsScreen
@@ -4736,6 +5054,8 @@ function HaleApp() {
             startingEffort={onboardingActivityLevel(prefs.profile.safetyProfile?.activityLevel)}
             onProfileChange={onProfileChange}
             onSettingsChange={onSettingsChange}
+            voiceActivation={voiceActivation}
+            voiceModeChangeAppliesNextFlow={isActiveVoiceFlow(flow)}
             onToggleEquipment={toggleEquipment}
             onToggleAvailableEquipment={toggleAvailableEquipment}
             onPreferredDaysChange={handlePreferredWorkoutDaysChange}

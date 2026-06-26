@@ -1,6 +1,6 @@
 {
   "auditVersion": 2,
-  "generatedAt": "2026-06-26T11:15:25.502Z",
+  "generatedAt": "2026-06-26T14:50:43.710Z",
   "verdict": "TRAINING_FLOOR_READINESS_POST_SAFETY_BASELINE_COMPLETE",
   "currentPhaseBaseline": "post_safety_integration",
   "artifacts": {

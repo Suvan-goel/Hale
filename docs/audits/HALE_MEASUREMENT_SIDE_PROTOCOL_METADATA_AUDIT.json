@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-06-24T18:50:27.002Z",
+  "generatedAt": "2026-06-26T12:15:21.698Z",
   "source": "scripts/audits/audit-measurement-side-protocol.mjs",
   "verdict": "REMEDIATION_REQUIRED",
   "counts": {
-    "registeredProtocols": 14,
-    "sideRequiredProtocols": 6,
-    "sideIndependentProtocols": 8,
+    "registeredProtocols": 17,
+    "sideRequiredProtocols": 8,
+    "sideIndependentProtocols": 9,
     "resultTypesMigrated": 3,
     "backendMappingsChanged": 3,
     "legacyDefaultParsers": 4,
@@ -160,6 +160,36 @@
       "protocolVersion": 1,
       "movementId": "mobility-reach",
       "comparisonGroup": "micro_mobility_reach",
+      "sideRole": "extended_leg",
+      "sideRequired": true,
+      "officialEvidenceEligible": false,
+      "kind": "micro_check"
+    },
+    {
+      "protocolId": "micro_chair_power_5_reps_v21",
+      "protocolVersion": 2,
+      "movementId": "chair-power",
+      "comparisonGroup": "micro_chair_power_v21",
+      "sideRole": "not_applicable",
+      "sideRequired": false,
+      "officialEvidenceEligible": false,
+      "kind": "micro_check"
+    },
+    {
+      "protocolId": "micro_single_leg_balance_v21",
+      "protocolVersion": 2,
+      "movementId": "single-leg-balance",
+      "comparisonGroup": "micro_single_leg_balance_v21",
+      "sideRole": "standing_leg",
+      "sideRequired": true,
+      "officialEvidenceEligible": false,
+      "kind": "micro_check"
+    },
+    {
+      "protocolId": "micro_mobility_reach_v21",
+      "protocolVersion": 2,
+      "movementId": "mobility-reach",
+      "comparisonGroup": "micro_mobility_reach_v21",
       "sideRole": "extended_leg",
       "sideRequired": true,
       "officialEvidenceEligible": false,

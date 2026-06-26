@@ -166,16 +166,10 @@ export function getNextBestActionCopy({
   }
 }
 
-export function getManualCheckupCopy(input: { activeBlock?: boolean } = {}): { title: string; body: string } {
-  if (input.activeBlock) {
-    return {
-      title: 'Check in on your progress',
-      body: "You're in the middle of a plan. A quick check-in is usually the best way to see how things are going today.",
-    };
-  }
+export function getManualCheckupCopy(_input: { activeBlock?: boolean } = {}): { title: string; body: string } {
   return {
-    title: 'Start a check-up',
-    body: 'Use a full check-up when you want a fresh strength, balance, and mobility measurement.',
+    title: 'Check in on your progress',
+    body: "Choose a quick check-in or complete a full Movement Check-Up whenever you're curious. These optional check-ups won't change your plan or Movement Profile.",
   };
 }
 

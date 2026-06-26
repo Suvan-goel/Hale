@@ -15,7 +15,7 @@
 
 import { VoiceCueKey, voicePriority } from '../audio/cues';
 import { VoiceRequest } from '../assessment/sessionController';
-import { normalizeMicroCheckMeasurementMetadata, type MeasurementContext } from '../checkup';
+import { normalizeMicroCheckMeasurementMetadata, type BodySide, type MeasurementContext } from '../checkup';
 import { ExerciseSetGrader, SetResult } from '../exercises';
 import { HoldSetGrader, RepsSetGrader, RomSetGrader } from '../exercises/setGraders';
 import { AUTOREG_VOICE } from '../exercises/common';
@@ -24,6 +24,8 @@ import { PipelineFrameOutput } from '../pose/pipeline';
 import { PreflightCheck, PreflightPrompt } from '../preflight/preflight';
 import { shouldSpeakFramingPrompt } from '../preflight/promptTiming';
 import type { MovementDomain, TrainingMicroCheckTargetSource } from '../adherence';
+import { MICRO_CHECK_DEFAULT_MAX_ACTIVE_MS } from './microCheckConfig';
+import { planMicroCheckVoiceSequenceV21 } from './microCheckVoiceV21/sequencePlanner';
 
 export type MicroCheckType = 'chair-power' | 'single-leg-balance' | 'mobility-reach';
 
@@ -75,7 +77,7 @@ export const DEFAULT_MICROCHECK_CONFIG: MicroCheckConfig = {
   promptRepeatMs: 10000,
   postInstructionsDwellMs: 2000,
   countdownStepMs: 1000,
-  maxActiveMs: 45000,
+  maxActiveMs: MICRO_CHECK_DEFAULT_MAX_ACTIVE_MS,
   chairTargetReps: 5,
 };
 
@@ -93,6 +95,8 @@ export class MicroCheckRunner {
   private readonly config: MicroCheckConfig;
   private readonly preflight: PreflightCheck;
   private readonly measurementContext: MeasurementContext | null;
+  private readonly voiceMode: 'legacy' | 'v21_beta';
+  private readonly selectedSide: BodySide | null;
   private readonly grader: ExerciseSetGrader;
   private readonly update_: MicroCheckFrameUpdate = {
     phase: 'preflight',
@@ -120,13 +124,16 @@ export class MicroCheckRunner {
     startedAtIso: string,
     preflight: PreflightCheck,
     config: MicroCheckConfig = DEFAULT_MICROCHECK_CONFIG,
-    measurementContext: MeasurementContext | null = null
+    measurementContext: MeasurementContext | null = null,
+    options: { readonly voiceMode?: 'legacy' | 'v21_beta'; readonly selectedSide?: BodySide | null } = {}
   ) {
     this.type = type;
     this.startedAtIso = startedAtIso;
     this.config = config;
     this.preflight = preflight;
     this.measurementContext = measurementContext;
+    this.voiceMode = options.voiceMode ?? 'legacy';
+    this.selectedSide = options.selectedSide ?? measurementContext?.side?.selectedSide ?? null;
     this.grader = makeGrader(type, config);
   }
 
@@ -142,6 +149,14 @@ export class MicroCheckRunner {
     this.countdownStartMs += deltaMs;
     this.activeStartMs += deltaMs;
     this.preflight.shiftTiming(deltaMs);
+  }
+
+  notifyCountdownGoPlaybackStarted(timestampMs: number): boolean {
+    if (this.voiceMode !== 'v21_beta' || this.phase !== 'countdown') return false;
+    this.phase = 'active';
+    this.activeStartMs = timestampMs;
+    this.grader.reset();
+    return true;
   }
 
   update(out: PipelineFrameOutput, voiceBusy: boolean): MicroCheckFrameUpdate {
@@ -160,9 +175,10 @@ export class MicroCheckRunner {
           this.phase = 'instructions';
           this.instructionsEnteredMs = ts;
           this.instructionsIdleAtMs = -1;
+          const cues = this.instructionCues();
           u.voice = {
-            cues: ['framing-ready', INTRO_CUE[this.type]],
-            priority: voicePriority(INTRO_CUE[this.type]),
+            cues: cues.slice(),
+            priority: maxPriority(cues),
           };
           break;
         }
@@ -192,12 +208,19 @@ export class MicroCheckRunner {
         if (ts - this.instructionsIdleAtMs >= this.config.postInstructionsDwellMs && out.state === 'tracking') {
           this.phase = 'countdown';
           this.countdownStartMs = ts;
-          this.countdownStep = 1;
-          u.voice = { cues: [COUNTDOWN[0]], priority: voicePriority(COUNTDOWN[0]) };
+          if (this.voiceMode === 'v21_beta') {
+            this.countdownStep = COUNTDOWN.length;
+            const cues: VoiceCueKey[] = ['final-position-set-v21', ...COUNTDOWN];
+            u.voice = { cues, priority: maxPriority(cues) };
+          } else {
+            this.countdownStep = 1;
+            u.voice = { cues: [COUNTDOWN[0]], priority: voicePriority(COUNTDOWN[0]) };
+          }
         }
         break;
       }
       case 'countdown': {
+        if (this.voiceMode === 'v21_beta') break;
         if (
           this.countdownStep < COUNTDOWN.length &&
           ts - this.countdownStartMs >= this.countdownStep * this.config.countdownStepMs
@@ -223,7 +246,8 @@ export class MicroCheckRunner {
         u.remainingMs = Math.max(0, this.config.maxActiveMs - elapsed);
         if (g.complete || elapsed >= this.config.maxActiveMs) {
           this.finalize(this.grader.finish(ts));
-          u.voice = { cues: ['microcheck-complete'], priority: voicePriority('microcheck-complete') };
+          const completionCue = this.voiceMode === 'v21_beta' ? 'microcheck-complete-v21' : 'microcheck-complete';
+          u.voice = { cues: [completionCue], priority: voicePriority(completionCue) };
           this.phase = 'done';
         }
         break;
@@ -234,6 +258,18 @@ export class MicroCheckRunner {
 
     u.phase = this.phase;
     return u;
+  }
+
+  private instructionCues(): readonly VoiceCueKey[] {
+    if (this.voiceMode !== 'v21_beta') return ['framing-ready', INTRO_CUE[this.type]];
+    const plan = planMicroCheckVoiceSequenceV21({
+      type: this.type,
+      selectedSide: this.selectedSide,
+      exposure: 'first_setup',
+      phase: 'instruction',
+    });
+    if (!plan.ready) return ['framing-ready', INTRO_CUE[this.type]];
+    return ['framing-ready', ...(plan.cueKeys as readonly VoiceCueKey[])];
   }
 
   private finalize(set: SetResult): void {
@@ -306,6 +342,10 @@ function makeGrader(type: MicroCheckType, config: MicroCheckConfig): ExerciseSet
     endDebounceFrames: 4,
     validTime: false,
   });
+}
+
+function maxPriority(cues: readonly VoiceCueKey[]): number {
+  return cues.reduce((max, cueKey) => Math.max(max, voicePriority(cueKey)), 0);
 }
 
 /** Map a micro-check result onto the existing trend metric keys. */

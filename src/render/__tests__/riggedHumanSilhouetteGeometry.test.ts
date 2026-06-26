@@ -251,10 +251,11 @@ describe('rigged human silhouette geometry', () => {
 
     buildRiggedHumanSilhouetteGeometry(pose, out);
 
-    expect(getRiggedHumanSilhouetteSurface(out, 'leftArm').visible).toBe(true);
-    expect(getRiggedHumanSilhouetteSurface(out, 'rightArm').visible).toBe(true);
-    expect(getRiggedHumanSilhouetteSurface(out, 'leftLeg').visible).toBe(true);
-    expect(getRiggedHumanSilhouetteSurface(out, 'rightLeg').visible).toBe(true);
+    expect(getRiggedHumanSilhouetteSurface(out, 'centralShell').visible).toBe(true);
+    expect(out.continuity.leftArmContinuous).toBe(true);
+    expect(out.continuity.rightArmContinuous).toBe(true);
+    expect(out.continuity.leftLegContinuous).toBe(true);
+    expect(out.continuity.rightLegContinuous).toBe(true);
     expect(isFiniteRiggedHumanSilhouetteGeometry(out)).toBe(true);
   });
 
@@ -292,9 +293,15 @@ describe('rigged human silhouette geometry', () => {
   it('inherits front-camera mirroring from the coordinate mapper', () => {
     const normal = createRiggedHumanSilhouetteGeometry();
     const mirrored = createRiggedHumanSilhouetteGeometry();
+    const normalPose = mappedStandingPose(false);
+    const mirroredPose = mappedStandingPose(true);
+    normalPose.visibility[LM.LEFT_KNEE] = 0.2;
+    normalPose.presence[LM.LEFT_KNEE] = 0.2;
+    mirroredPose.visibility[LM.LEFT_KNEE] = 0.2;
+    mirroredPose.presence[LM.LEFT_KNEE] = 0.2;
 
-    buildRiggedHumanSilhouetteGeometry(mappedStandingPose(false), normal);
-    buildRiggedHumanSilhouetteGeometry(mappedStandingPose(true), mirrored);
+    buildRiggedHumanSilhouetteGeometry(normalPose, normal);
+    buildRiggedHumanSilhouetteGeometry(mirroredPose, mirrored);
 
     expect(centerX(getRiggedHumanSilhouetteSurface(normal, 'leftArm'))).toBeGreaterThan(
       centerX(getRiggedHumanSilhouetteSurface(normal, 'rightArm'))
@@ -321,7 +328,7 @@ describe('rigged human silhouette geometry', () => {
     buildRiggedHumanSilhouetteGeometry(mappedStandingPose(), second);
 
     expect(visiblePaths(first)).toEqual(visiblePaths(second));
-    expect(first.drawOrderKey).toBe('deterministic-limbs-under-core');
+    expect(first.drawOrderKey).toBe('deterministic-natural-human-blend');
     expect(second.drawOrderKey).toBe(first.drawOrderKey);
   });
 

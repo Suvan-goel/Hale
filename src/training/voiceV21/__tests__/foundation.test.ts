@@ -394,7 +394,7 @@ describe('Training Voice V2.1 sequence planner', () => {
 });
 
 describe('Training Voice V2.1 runtime and asset gates', () => {
-  it('keeps feature, audio, and behavior gates default closed', () => {
+  it('keeps approval/default gates closed while beta selectability uses physical audio readiness', () => {
     expect(TRAINING_VOICE_V2_1_FEATURE_FLAG).toBe('EXPO_PUBLIC_ENABLE_TRAINING_VOICE_V2_1');
     expect(TRAINING_VOICE_V2_1_SAFETY_READY).toBe(true);
     expect(TRAINING_VOICE_V2_1_CONTROLS_READY).toBe(true);
@@ -411,6 +411,26 @@ describe('Training Voice V2.1 runtime and asset gates', () => {
     expect(selectTrainingVoiceRuntimeModeV21({ exerciseIds: ['squat-free'], featureEnabled: true })).toMatchObject({
       mode: 'legacy',
       v21Selectable: false,
+    });
+    expect(
+      selectTrainingVoiceRuntimeModeV21({
+        exerciseIds: ['squat-free'],
+        featureEnabled: true,
+        betaDefaultEnabled: true,
+      })
+    ).toMatchObject({
+      mode: 'training_voice_v2_1',
+      v21Selectable: true,
+    });
+    expect(
+      resolveTrainingVoiceRuntimeReadinessV21({
+        exerciseId: 'squat-free',
+        betaDefaultEnabled: true,
+      })
+    ).toMatchObject({
+      audioReady: true,
+      selectable: true,
+      legacyFallbackAvailable: true,
     });
   });
 

@@ -68,6 +68,22 @@ describe('public Movement Check-Up engine selector', () => {
     });
   });
 
+  it('routes optional full extra check-ups through the unified V2 shell with a non-official source', () => {
+    expect(
+      selectPublicMovementCheckUpLaunch({
+        sourceType: 'manual_extra_v2',
+        legacyV1RollbackEnabled: true,
+        hasMalformedMovementProfileV2State: true,
+        hasAcceptedMovementProfileV2State: true,
+      })
+    ).toEqual({
+      status: 'ready',
+      engine: 'unified_movement_profile',
+      sourceType: 'manual_extra_v2',
+      entryContext: 'standard',
+    });
+  });
+
   it('fails closed for unknown public check-up sources', () => {
     expect(
       selectPublicMovementCheckUpLaunch({
@@ -194,6 +210,36 @@ describe('public Movement Check-Up engine selector', () => {
     expect(app).toContain("flow === 'checkup' && legacyV1CheckUpFlowAllowed");
     expect(app).toContain("flow === 'results' && legacyV1ResultsFlowAllowed");
     expect(app).toContain('reason: launchDecision.reason');
+    expect(app).toContain("beginCheckUp('manual_extra_v2')");
+    expect(app).toContain('movement-profile-v2-practice-results');
+  });
+
+  it('keeps optional full and optional micro check-ups out of official artifact and slot-credit paths', () => {
+    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+
+    const rawCompleteStart = app.indexOf('const handleMovementProfileV2RawComplete');
+    const referenceSubmitStart = app.indexOf('const handleMovementProfileV2ReferenceSubmit');
+    const materializeStart = app.indexOf('const materialized = materializeOfficialMovementProfileV2Artifacts');
+    expect(rawCompleteStart).toBeGreaterThanOrEqual(0);
+    expect(referenceSubmitStart).toBeGreaterThan(rawCompleteStart);
+    expect(materializeStart).toBeGreaterThan(referenceSubmitStart);
+    expect(app.slice(rawCompleteStart, referenceSubmitStart)).toContain(
+      "if (!isOfficialMovementProfileV2SourceType(input.sourceType))"
+    );
+    expect(app.slice(referenceSubmitStart, materializeStart)).toContain(
+      "if (!isOfficialMovementProfileV2SourceType(movementProfileV2Raw.sourceType))"
+    );
+
+    const optionalMicroStart = app.indexOf("if (microCheckLaunch?.mode === 'optional')");
+    const scheduledMicroStart = app.indexOf('const scheduledTarget =', optionalMicroStart);
+    expect(optionalMicroStart).toBeGreaterThanOrEqual(0);
+    expect(scheduledMicroStart).toBeGreaterThan(optionalMicroStart);
+    const optionalMicroBranch = app.slice(optionalMicroStart, scheduledMicroStart);
+    expect(optionalMicroBranch).toContain("id: `optional:${result.type}:${result.startedAt}`");
+    expect(optionalMicroBranch).not.toContain('makeTrainingSessionCompletion');
+    expect(optionalMicroBranch).not.toContain('recordTrainingSessionCompletion');
+    expect(optionalMicroBranch).not.toContain('microCheckSlotMetadataFromTarget');
+    expect(app).toContain('isOptionalMicroCheckResult');
   });
 
   it('keeps public unified check-up screens free of internal-facing labels', () => {

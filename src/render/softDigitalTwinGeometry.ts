@@ -189,8 +189,8 @@ export const SOFT_DIGITAL_TWIN_LEAN_VISUAL_PRESET: SoftDigitalTwinVisualQualityP
 };
 
 export const SOFT_DIGITAL_TWIN_BALANCED_VISUAL_PRESET: SoftDigitalTwinVisualQualityPreset = {
-  headScale: 0.86,
-  neckWidth: 1.18,
+  headScale: 1.04,
+  neckWidth: 1.08,
   shoulderSoftness: 0.94,
   jointBlendOpacity: 0.025,
   limbTaper: 1.04,
@@ -201,14 +201,14 @@ export const SOFT_DIGITAL_TWIN_BALANCED_VISUAL_PRESET: SoftDigitalTwinVisualQual
   edgeFeather: 0.06,
   materialDepth: 0.42,
   materialContrast: 0.7,
-  shoulderWidthScale: 1,
-  torsoWidthScale: 1.2,
-  hipWidthScale: 1.1,
+  shoulderWidthScale: 1.16,
+  torsoWidthScale: 1.22,
+  hipWidthScale: 1.24,
   lowerTorsoLength: 0.82,
   neckLength: 0.12,
-  neckBaseWidth: 1.18,
-  limbMass: 1.48,
-  distalMass: 0.98,
+  neckBaseWidth: 1.42,
+  limbMass: 1.42,
+  distalMass: 1.12,
   thighRootSpacing: 1.04,
   thighRootDrop: 0.18,
   torsoWaistTaper: 0.34,
@@ -220,19 +220,19 @@ export const SOFT_DIGITAL_TWIN_BALANCED_VISUAL_PRESET: SoftDigitalTwinVisualQual
   limbOrganicCurve: 1.48,
   handAttachment: 1.62,
   footAttachment: 1.46,
-  headYOffset: 1.18,
+  headYOffset: 1.34,
   shoulderSlope: 0.96,
   ribcageWidth: 1.04,
-  waistTaper: 1.24,
-  hipBlendWidth: 1.02,
+  waistTaper: 0.92,
+  hipBlendWidth: 1.08,
   innerThighSplitDepth: 0.46,
   armLengthScale: 1.1,
   armTaper: 0.92,
-  handScale: 0.94,
+  handScale: 1.12,
   thighWidth: 1.44,
   kneeTaper: 0.98,
   shinTaper: 1,
-  footScale: 1.12,
+  footScale: 1.26,
   torsoSideCurve: 0.48,
   lowerTorsoBlend: 1.18,
   shoulderDrop: 1.36,
@@ -353,12 +353,9 @@ function appendBalancedVisualAnatomy(
   minConfidence: number,
   softMinConfidence: number
 ): void {
-  appendBalancedLegSurfaces(pose, out, axes, preset, minConfidence, softMinConfidence);
-  appendBalancedArmSurfaces(pose, out, torso, axes, preset, minConfidence, softMinConfidence);
-  appendSelfShadows(pose, out, torso, head, axes, preset, minConfidence, softMinConfidence);
   appendBalancedNeck(out, torso, head, axes, preset, minConfidence);
-  appendBalancedPelvis(out, torso, axes, preset, minConfidence);
-  appendBalancedCore(out, torso, axes, preset, minConfidence);
+  appendBalancedBodyEnvelope(pose, out, torso, axes, preset, minConfidence, softMinConfidence);
+  appendSelfShadows(pose, out, torso, head, axes, preset, minConfidence, softMinConfidence);
   appendHead(out, head, axes, preset, minConfidence);
 }
 
@@ -980,19 +977,19 @@ function appendBalancedNeck(
     ? add(head.center, scale(down, head.ry * (0.018 + preset.headYOffset)))
     : null;
   const start = head
-    ? add(headCenter!, scale(down, head.ry * 0.76 * preset.headScale))
+    ? add(headCenter!, scale(down, head.ry * 0.68 * preset.headScale))
     : add(shoulderMid, scale(down, -bodyRef * 0.08));
-  const end = add(shoulderMid, scale(down, bodyRef * 0.032));
+  const end = add(shoulderMid, scale(down, bodyRef * 0.018));
   const path = organicLimbPath(
     start,
     end,
-    bodyRef * 0.038 * preset.neckWidth,
-    bodyRef * 0.062 * preset.neckWidth * preset.neckBaseWidth,
-    bodyRef * 0.006,
-    bodyRef * 0.026,
+    bodyRef * 0.034 * preset.neckWidth,
+    bodyRef * 0.056 * preset.neckWidth * preset.neckBaseWidth,
+    bodyRef * 0.004,
+    bodyRef * 0.016,
     preset
   );
-  addSurface(out, 'neck', path, 'core', confidence, minConfidence, 1);
+  addSurface(out, 'neck', path, 'core', confidence, minConfidence, 0.95);
 }
 
 function appendNeck(
@@ -1329,66 +1326,68 @@ function appendBalancedBodyEnvelope(
     landmarkConfidence(pose, LM.LEFT_ANKLE),
     landmarkConfidence(pose, LM.RIGHT_ANKLE)
   );
-  const shoulderOut = bodyRef * 0.056 * preset.shoulderWidthScale;
-  const ribOut = bodyRef * 0.044 * preset.torsoWidthScale * preset.ribcageWidth;
-  const waistOut = bodyRef * 0.026 * preset.torsoWidthScale * preset.torsoWaistTaper * preset.waistTaper;
-  const hipOut = bodyRef * 0.054 * preset.hipWidthScale * preset.hipBlendWidth;
-  const upperArmOut = bodyRef * 0.05 * preset.limbMass;
-  const elbowOut = bodyRef * 0.036 * preset.limbMass * preset.armTaper;
-  const wristOut = bodyRef * 0.023 * preset.limbMass;
-  const thighOut = bodyRef * 0.058 * preset.thighWidth;
-  const ankleOut = bodyRef * 0.024 * preset.shinTaper;
-  const innerThigh = bodyRef * 0.028 * preset.innerThighSplitDepth;
-  const innerAnkle = bodyRef * 0.014 * preset.shinTaper;
-  const collarHalf = bodyRef * 0.042 * preset.neckWidth;
-  const leftCollar = add(add(shoulderMid, scale(side, collarHalf)), scale(down, -bodyRef * 0.012));
-  const rightCollar = add(add(shoulderMid, scale(side, -collarHalf)), scale(down, -bodyRef * 0.012));
-  const collarSaddle = add(shoulderMid, scale(down, -bodyRef * 0.018));
-  const leftShoulderOuter = add(add(torso.leftShoulder, scale(side, shoulderOut * 0.78)), scale(down, bodyRef * 0.06 * preset.shoulderSlope));
-  const rightShoulderOuter = add(add(torso.rightShoulder, scale(side, -shoulderOut * 0.78)), scale(down, bodyRef * 0.06 * preset.shoulderSlope));
+  const shoulderOut = bodyRef * 0.064 * preset.shoulderWidthScale;
+  const ribOut = bodyRef * 0.047 * preset.torsoWidthScale * preset.ribcageWidth;
+  const waistOut = bodyRef * 0.023 * preset.torsoWidthScale * preset.torsoWaistTaper * preset.waistTaper;
+  const hipOut = bodyRef * 0.07 * preset.hipWidthScale * preset.hipBlendWidth;
+  const upperArmOut = bodyRef * 0.048 * preset.limbMass;
+  const elbowOut = bodyRef * 0.035 * preset.limbMass * preset.armTaper;
+  const wristOut = bodyRef * 0.021 * preset.limbMass;
+  const thighOut = bodyRef * 0.068 * preset.thighWidth;
+  const ankleOut = bodyRef * 0.026 * preset.shinTaper;
+  const innerThigh = bodyRef * 0.024 * preset.innerThighSplitDepth;
+  const innerAnkle = bodyRef * 0.013 * preset.shinTaper;
+  const collarHalf = bodyRef * 0.036 * preset.neckWidth;
+  const leftCollar = add(add(shoulderMid, scale(side, collarHalf)), scale(down, -bodyRef * 0.004));
+  const rightCollar = add(add(shoulderMid, scale(side, -collarHalf)), scale(down, -bodyRef * 0.004));
+  const collarSaddle = add(shoulderMid, scale(down, -bodyRef * 0.008));
+  const leftTrapSlope = add(add(shoulderMid, scale(side, bodyRef * 0.078)), scale(down, bodyRef * 0.01));
+  const rightTrapSlope = add(add(shoulderMid, scale(side, -bodyRef * 0.078)), scale(down, bodyRef * 0.01));
+  const leftShoulderCrest = add(add(torso.leftShoulder, scale(side, shoulderOut * 0.2)), scale(down, bodyRef * 0.04 * preset.shoulderSlope));
+  const rightShoulderCrest = add(add(torso.rightShoulder, scale(side, -shoulderOut * 0.2)), scale(down, bodyRef * 0.04 * preset.shoulderSlope));
   const leftRib = add(lerpPoint(torso.leftShoulder, torso.leftHip, 0.34), scale(side, ribOut));
   const rightRib = add(lerpPoint(torso.rightShoulder, torso.rightHip, 0.34), scale(side, -ribOut));
   const leftWaist = add(lerpPoint(torso.leftShoulder, torso.leftHip, 0.64), scale(side, waistOut));
   const rightWaist = add(lerpPoint(torso.rightShoulder, torso.rightHip, 0.64), scale(side, -waistOut));
   const leftArmpit = add(lerpPoint(torso.leftShoulder, torso.leftHip, 0.22), scale(side, bodyRef * 0.018));
   const rightArmpit = add(lerpPoint(torso.rightShoulder, torso.rightHip, 0.22), scale(side, -bodyRef * 0.018));
-  const leftHip = add(add(torso.leftHip, scale(side, hipOut)), scale(down, bodyRef * 0.004));
-  const rightHip = add(add(torso.rightHip, scale(side, -hipOut)), scale(down, bodyRef * 0.004));
+  const leftHip = add(add(torso.leftHip, scale(side, hipOut)), scale(down, bodyRef * 0.02));
+  const rightHip = add(add(torso.rightHip, scale(side, -hipOut)), scale(down, bodyRef * 0.02));
   const leftElbow = pointFor(pose, LM.LEFT_ELBOW);
   const rightElbow = pointFor(pose, LM.RIGHT_ELBOW);
   const leftWrist = pointForOrFallback(pose, LM.LEFT_WRIST, add(leftElbow, scale(down, bodyRef * 0.3)));
   const rightWrist = pointForOrFallback(pose, LM.RIGHT_WRIST, add(rightElbow, scale(down, bodyRef * 0.3)));
-  const leftUpperArmOuter = add(lerpPoint(torso.leftShoulder, leftElbow, 0.2), scale(side, upperArmOut));
+  const leftUpperArmOuter = add(lerpPoint(torso.leftShoulder, leftElbow, 0.24), scale(side, upperArmOut * 0.84));
   const leftElbowOuter = add(leftElbow, scale(side, elbowOut));
   const leftWristOuter = add(leftWrist, scale(side, wristOut));
   const leftHandOuter = add(
-    add(leftWrist, scale(side, wristOut * 0.86 * preset.handScale)),
-    scale(down, bodyRef * 0.034 * preset.armLengthScale)
+    add(leftWrist, scale(side, wristOut * 1.12 * preset.handScale)),
+    scale(down, bodyRef * 0.038 * preset.armLengthScale)
   );
   const leftHandTip = add(
-    add(leftWrist, scale(side, wristOut * 0.54 * preset.handScale)),
-    scale(down, bodyRef * 0.052 * preset.armLengthScale)
+    add(leftWrist, scale(side, wristOut * 0.42 * preset.handScale)),
+    scale(down, bodyRef * 0.074 * preset.armLengthScale)
   );
   const leftHandInner = add(
-    add(leftWrist, scale(side, -wristOut * 0.42 * preset.handScale)),
-    scale(down, bodyRef * 0.046 * preset.armLengthScale)
+    add(leftWrist, scale(side, -wristOut * 0.72 * preset.handScale)),
+    scale(down, bodyRef * 0.056 * preset.armLengthScale)
   );
   const leftWristInner = add(leftWrist, scale(side, -wristOut * 0.62));
   const leftElbowInner = add(leftElbow, scale(side, -elbowOut * 0.5));
-  const rightUpperArmOuter = add(lerpPoint(torso.rightShoulder, rightElbow, 0.2), scale(side, -upperArmOut));
+  const rightUpperArmOuter = add(lerpPoint(torso.rightShoulder, rightElbow, 0.24), scale(side, -upperArmOut * 0.84));
   const rightElbowOuter = add(rightElbow, scale(side, -elbowOut));
   const rightWristOuter = add(rightWrist, scale(side, -wristOut));
   const rightHandOuter = add(
-    add(rightWrist, scale(side, -wristOut * 0.86 * preset.handScale)),
-    scale(down, bodyRef * 0.034 * preset.armLengthScale)
+    add(rightWrist, scale(side, -wristOut * 1.12 * preset.handScale)),
+    scale(down, bodyRef * 0.038 * preset.armLengthScale)
   );
   const rightHandTip = add(
-    add(rightWrist, scale(side, -wristOut * 0.54 * preset.handScale)),
-    scale(down, bodyRef * 0.052 * preset.armLengthScale)
+    add(rightWrist, scale(side, -wristOut * 0.42 * preset.handScale)),
+    scale(down, bodyRef * 0.074 * preset.armLengthScale)
   );
   const rightHandInner = add(
-    add(rightWrist, scale(side, wristOut * 0.42 * preset.handScale)),
-    scale(down, bodyRef * 0.046 * preset.armLengthScale)
+    add(rightWrist, scale(side, wristOut * 0.72 * preset.handScale)),
+    scale(down, bodyRef * 0.056 * preset.armLengthScale)
   );
   const rightWristInner = add(rightWrist, scale(side, wristOut * 0.62));
   const rightElbowInner = add(rightElbow, scale(side, elbowOut * 0.5));
@@ -1404,56 +1403,71 @@ function appendBalancedBodyEnvelope(
   const leftAnkleInner = add(leftAnkle, scale(side, -innerAnkle));
   const rightAnkleOuter = add(rightAnkle, scale(side, -ankleOut));
   const rightAnkleInner = add(rightAnkle, scale(side, innerAnkle));
-  const leftFootOuter = add(add(leftAnkle, scale(side, ankleOut * 2.45 * preset.footScale)), scale(down, bodyRef * 0.044));
-  const leftFootToe = add(add(leftAnkle, scale(side, ankleOut * 1.28 * preset.footScale)), scale(down, bodyRef * 0.066));
-  const leftFootInner = add(add(leftAnkle, scale(side, -ankleOut * 0.74 * preset.footScale)), scale(down, bodyRef * 0.054));
-  const rightFootOuter = add(add(rightAnkle, scale(side, -ankleOut * 2.45 * preset.footScale)), scale(down, bodyRef * 0.044));
-  const rightFootToe = add(add(rightAnkle, scale(side, -ankleOut * 1.28 * preset.footScale)), scale(down, bodyRef * 0.066));
-  const rightFootInner = add(add(rightAnkle, scale(side, ankleOut * 0.74 * preset.footScale)), scale(down, bodyRef * 0.054));
-  const leftInnerThigh = add(add(hipMid, scale(side, innerThigh)), scale(down, bodyRef * 0.076));
-  const rightInnerThigh = add(add(hipMid, scale(side, -innerThigh)), scale(down, bodyRef * 0.076));
-  const bridge = add(hipMid, scale(down, bodyRef * 0.078));
+  const leftFootOuter = add(add(leftAnkle, scale(side, ankleOut * 1.14 * preset.footScale)), scale(down, bodyRef * 0.044));
+  const leftFootToe = add(add(leftAnkle, scale(side, ankleOut * 0.52 * preset.footScale)), scale(down, bodyRef * 0.068));
+  const leftFootInner = add(add(leftAnkle, scale(side, -ankleOut * 0.16 * preset.footScale)), scale(down, bodyRef * 0.052));
+  const rightFootOuter = add(add(rightAnkle, scale(side, -ankleOut * 1.14 * preset.footScale)), scale(down, bodyRef * 0.044));
+  const rightFootToe = add(add(rightAnkle, scale(side, -ankleOut * 0.52 * preset.footScale)), scale(down, bodyRef * 0.068));
+  const rightFootInner = add(add(rightAnkle, scale(side, ankleOut * 0.16 * preset.footScale)), scale(down, bodyRef * 0.052));
+  const leftInnerThigh = add(add(hipMid, scale(side, innerThigh * 1.1)), scale(down, bodyRef * 0.096));
+  const rightInnerThigh = add(add(hipMid, scale(side, -innerThigh * 1.1)), scale(down, bodyRef * 0.096));
+  const leftBridge = add(add(hipMid, scale(side, innerThigh * 1.16)), scale(down, bodyRef * 0.084));
+  const rightBridge = add(add(hipMid, scale(side, -innerThigh * 1.16)), scale(down, bodyRef * 0.084));
 
-  const path =
-    `M${p(leftCollar)}` +
-    `C${p(add(leftCollar, scale(side, bodyRef * 0.026)))} ${p(add(leftShoulderOuter, scale(down, -bodyRef * 0.034)))} ${p(leftShoulderOuter)}` +
-    `C${p(add(leftShoulderOuter, scale(down, bodyRef * 0.034)))} ${p(add(leftUpperArmOuter, scale(down, -bodyRef * 0.026)))} ${p(leftUpperArmOuter)}` +
-    `C${p(add(leftUpperArmOuter, scale(down, bodyRef * 0.072)))} ${p(add(leftElbowOuter, scale(down, -bodyRef * 0.07)))} ${p(leftElbowOuter)}` +
-    `C${p(add(leftElbowOuter, scale(down, bodyRef * 0.074)))} ${p(add(leftWristOuter, scale(down, -bodyRef * 0.052)))} ${p(leftWristOuter)}` +
-    `C${p(add(leftWristOuter, scale(down, bodyRef * 0.024)))} ${p(leftHandOuter)} ${p(leftHandTip)}` +
-    `C${p(add(leftHandTip, scale(side, -wristOut * 0.42)))} ${p(leftHandInner)} ${p(leftWristInner)}` +
-    `C${p(add(leftWristInner, scale(down, bodyRef * 0.018)))} ${p(add(leftWristInner, scale(down, -bodyRef * 0.034)))} ${p(leftWristInner)}` +
-    `C${p(add(leftElbowInner, scale(down, bodyRef * 0.07)))} ${p(add(leftElbowInner, scale(down, -bodyRef * 0.07)))} ${p(leftElbowInner)}` +
-    `C${p(add(leftArmpit, scale(down, bodyRef * 0.044)))} ${p(add(leftRib, scale(down, -bodyRef * 0.05)))} ${p(leftRib)}` +
-    `C${p(add(leftRib, scale(down, -bodyRef * 0.05)))} ${p(add(leftRib, scale(down, bodyRef * 0.06)))} ${p(leftWaist)}` +
-    `C${p(add(leftWaist, scale(down, bodyRef * 0.06)))} ${p(add(leftHip, scale(down, -bodyRef * 0.012)))} ${p(leftHip)}` +
-    `C${p(add(leftHip, scale(down, bodyRef * 0.07)))} ${p(add(leftKneeOuter, scale(down, -bodyRef * 0.08)))} ${p(leftKneeOuter)}` +
-    `C${p(add(leftKneeOuter, scale(down, bodyRef * 0.08)))} ${p(add(leftAnkleOuter, scale(down, -bodyRef * 0.08)))} ${p(leftAnkleOuter)}` +
-    `C${p(add(leftAnkleOuter, scale(down, bodyRef * 0.026)))} ${p(leftFootOuter)} ${p(leftFootToe)}` +
-    `C${p(add(leftFootToe, scale(side, -ankleOut * 0.42)))} ${p(leftFootInner)} ${p(leftFootInner)}` +
-    `C${p(add(leftAnkleInner, scale(down, bodyRef * 0.018)))} ${p(add(leftAnkleInner, scale(down, -bodyRef * 0.02)))} ${p(leftAnkleInner)}` +
-    `C${p(add(leftKneeInner, scale(down, bodyRef * 0.08)))} ${p(add(leftKneeInner, scale(down, -bodyRef * 0.08)))} ${p(leftKneeInner)}` +
-    `C${p(add(leftInnerThigh, scale(down, bodyRef * 0.048)))} ${p(add(bridge, scale(side, bodyRef * 0.026)))} ${p(bridge)}` +
-    `C${p(add(bridge, scale(side, -bodyRef * 0.026)))} ${p(add(rightInnerThigh, scale(down, bodyRef * 0.048)))} ${p(rightInnerThigh)}` +
-    `C${p(add(rightKneeInner, scale(down, -bodyRef * 0.08)))} ${p(add(rightKneeInner, scale(down, bodyRef * 0.08)))} ${p(rightKneeInner)}` +
-    `C${p(add(rightAnkleInner, scale(down, -bodyRef * 0.02)))} ${p(add(rightAnkleInner, scale(down, bodyRef * 0.018)))} ${p(rightFootInner)}` +
-    `C${p(rightFootInner)} ${p(add(rightFootToe, scale(side, ankleOut * 0.42)))} ${p(rightFootToe)}` +
-    `C${p(rightFootOuter)} ${p(add(rightAnkleOuter, scale(down, bodyRef * 0.026)))} ${p(rightAnkleOuter)}` +
-    `C${p(add(rightAnkleOuter, scale(down, -bodyRef * 0.08)))} ${p(add(rightKneeOuter, scale(down, bodyRef * 0.08)))} ${p(rightKneeOuter)}` +
-    `C${p(add(rightKneeOuter, scale(down, -bodyRef * 0.08)))} ${p(add(rightHip, scale(down, bodyRef * 0.07)))} ${p(rightHip)}` +
-    `C${p(add(rightHip, scale(down, -bodyRef * 0.012)))} ${p(add(rightWaist, scale(down, bodyRef * 0.06)))} ${p(rightWaist)}` +
-    `C${p(add(rightRib, scale(down, bodyRef * 0.06)))} ${p(add(rightRib, scale(down, -bodyRef * 0.05)))} ${p(rightRib)}` +
-    `C${p(add(rightRib, scale(down, -bodyRef * 0.05)))} ${p(add(rightArmpit, scale(down, bodyRef * 0.044)))} ${p(rightElbowInner)}` +
-    `C${p(add(rightElbowInner, scale(down, -bodyRef * 0.07)))} ${p(add(rightElbowInner, scale(down, bodyRef * 0.07)))} ${p(rightWristInner)}` +
-    `C${p(add(rightWristInner, scale(down, -bodyRef * 0.034)))} ${p(add(rightWristInner, scale(down, bodyRef * 0.018)))} ${p(rightWristInner)}` +
-    `C${p(rightHandInner)} ${p(add(rightHandTip, scale(side, wristOut * 0.42)))} ${p(rightHandTip)}` +
-    `C${p(rightHandOuter)} ${p(add(rightWristOuter, scale(down, bodyRef * 0.024)))} ${p(rightWristOuter)}` +
-    `C${p(add(rightWristOuter, scale(down, -bodyRef * 0.052)))} ${p(add(rightElbowOuter, scale(down, bodyRef * 0.074)))} ${p(rightElbowOuter)}` +
-    `C${p(add(rightElbowOuter, scale(down, -bodyRef * 0.07)))} ${p(add(rightUpperArmOuter, scale(down, bodyRef * 0.072)))} ${p(rightUpperArmOuter)}` +
-    `C${p(add(rightUpperArmOuter, scale(down, -bodyRef * 0.026)))} ${p(add(rightShoulderOuter, scale(down, bodyRef * 0.034)))} ${p(rightShoulderOuter)}` +
-    `C${p(add(rightShoulderOuter, scale(down, -bodyRef * 0.034)))} ${p(add(rightCollar, scale(side, -bodyRef * 0.026)))} ${p(rightCollar)}` +
-    `C${p(add(rightCollar, scale(side, bodyRef * 0.018)))} ${p(add(collarSaddle, scale(side, -bodyRef * 0.026)))} ${p(collarSaddle)}` +
-    `C${p(add(collarSaddle, scale(side, bodyRef * 0.026)))} ${p(add(leftCollar, scale(side, -bodyRef * 0.018)))} ${p(leftCollar)}Z`;
+  const path = smoothClosedPath(
+    [
+      leftCollar,
+      leftTrapSlope,
+      leftShoulderCrest,
+      leftUpperArmOuter,
+      leftElbowOuter,
+      leftWristOuter,
+      leftHandOuter,
+      leftHandTip,
+      leftHandInner,
+      leftWristInner,
+      leftElbowInner,
+      leftArmpit,
+      leftRib,
+      leftWaist,
+      leftHip,
+      leftKneeOuter,
+      leftAnkleOuter,
+      leftFootOuter,
+      leftFootToe,
+      leftFootInner,
+      leftAnkleInner,
+      leftKneeInner,
+      leftInnerThigh,
+      leftBridge,
+      rightBridge,
+      rightInnerThigh,
+      rightKneeInner,
+      rightAnkleInner,
+      rightFootInner,
+      rightFootToe,
+      rightFootOuter,
+      rightAnkleOuter,
+      rightKneeOuter,
+      rightHip,
+      rightWaist,
+      rightRib,
+      rightArmpit,
+      rightElbowInner,
+      rightWristInner,
+      rightHandInner,
+      rightHandTip,
+      rightHandOuter,
+      rightWristOuter,
+      rightElbowOuter,
+      rightUpperArmOuter,
+      rightShoulderCrest,
+      rightTrapSlope,
+      rightCollar,
+      collarSaddle,
+    ],
+    0.11
+  );
 
   addSurface(
     out,
@@ -1864,25 +1878,31 @@ function eggHeadPath(
   axes: BodyAxes,
   preset: SoftDigitalTwinVisualQualityPreset
 ): string {
-  const { side, down } = axes;
+  const { down } = axes;
+  const side = { x: -down.y, y: down.x };
   const headScale = preset.headScale;
-  const rx = head.rx * 0.9 * headScale;
-  const ry = head.ry * 0.8 * headScale;
+  const rx = head.rx * 0.82 * headScale;
+  const ry = head.ry * 0.9 * headScale;
   const center = add(head.center, scale(down, head.ry * (0.018 + preset.headYOffset)));
-  const top = add(center, scale(down, -ry * 1.02));
-  const leftTemple = add(add(center, scale(side, rx * 0.93)), scale(down, -ry * 0.2));
-  const rightTemple = add(add(center, scale(side, -rx * 0.93)), scale(down, -ry * 0.2));
-  const leftJaw = add(add(center, scale(side, rx * 0.58)), scale(down, ry * 0.48));
-  const rightJaw = add(add(center, scale(side, -rx * 0.58)), scale(down, ry * 0.48));
-  const chin = add(center, scale(down, ry * 0.8));
+  const crown = add(center, scale(down, -ry));
+  const leftUpper = add(add(center, scale(side, -rx * 0.96)), scale(down, -ry * 0.24));
+  const leftMid = add(add(center, scale(side, -rx * 0.9)), scale(down, ry * 0.2));
+  const leftJaw = add(add(center, scale(side, -rx * 0.56)), scale(down, ry * 0.72));
+  const chin = add(center, scale(down, ry * 0.96));
+  const rightJaw = add(add(center, scale(side, rx * 0.56)), scale(down, ry * 0.72));
+  const rightMid = add(add(center, scale(side, rx * 0.9)), scale(down, ry * 0.2));
+  const rightUpper = add(add(center, scale(side, rx * 0.96)), scale(down, -ry * 0.24));
+
   return (
-    `M${p(top)}` +
-    `C${p(add(top, scale(side, rx * 0.58)))} ${p(add(leftTemple, scale(down, -ry * 0.16)))} ${p(leftTemple)}` +
-    `C${p(add(leftTemple, scale(down, ry * 0.32)))} ${p(add(leftJaw, scale(side, rx * 0.07)))} ${p(leftJaw)}` +
-    `C${p(add(leftJaw, scale(down, ry * 0.24)))} ${p(add(chin, scale(side, rx * 0.22)))} ${p(chin)}` +
-    `C${p(add(chin, scale(side, -rx * 0.22)))} ${p(add(rightJaw, scale(down, ry * 0.24)))} ${p(rightJaw)}` +
-    `C${p(add(rightJaw, scale(side, -rx * 0.07)))} ${p(add(rightTemple, scale(down, ry * 0.32)))} ${p(rightTemple)}` +
-    `C${p(add(rightTemple, scale(down, -ry * 0.16)))} ${p(add(top, scale(side, -rx * 0.58)))} ${p(top)}Z`
+    `M${p(crown)}` +
+    `C${p(add(crown, scale(side, -rx * 0.52)))} ${p(add(leftUpper, scale(down, -ry * 0.42)))} ${p(leftUpper)}` +
+    `C${p(add(leftUpper, scale(down, ry * 0.34)))} ${p(add(leftMid, scale(down, -ry * 0.14)))} ${p(leftMid)}` +
+    `C${p(add(leftMid, scale(down, ry * 0.34)))} ${p(add(leftJaw, scale(side, -rx * 0.08)))} ${p(leftJaw)}` +
+    `C${p(add(leftJaw, scale(down, ry * 0.18)))} ${p(add(chin, scale(side, -rx * 0.24)))} ${p(chin)}` +
+    `C${p(add(chin, scale(side, rx * 0.24)))} ${p(add(rightJaw, scale(down, ry * 0.18)))} ${p(rightJaw)}` +
+    `C${p(add(rightJaw, scale(side, rx * 0.08)))} ${p(add(rightMid, scale(down, ry * 0.34)))} ${p(rightMid)}` +
+    `C${p(add(rightMid, scale(down, -ry * 0.14)))} ${p(add(rightUpper, scale(down, ry * 0.34)))} ${p(rightUpper)}` +
+    `C${p(add(rightUpper, scale(down, -ry * 0.42)))} ${p(add(crown, scale(side, rx * 0.52)))} ${p(crown)}Z`
   );
 }
 
@@ -1905,6 +1925,30 @@ function roundedEllipsePath(center: Point, rx: number, ry: number, axis: Point):
 
 function circlePath(center: Point, radius: number): string {
   return roundedEllipsePath(center, radius, radius, { x: 0, y: 1 });
+}
+
+function smoothClosedPath(points: readonly Point[], tension: number): string {
+  if (points.length === 0) return '';
+  if (points.length === 1) return `M${p(points[0])}Z`;
+
+  let path = `M${p(points[0])}`;
+  const clampedTension = clamp(tension, 0.04, 0.24);
+  for (let i = 0; i < points.length; i++) {
+    const previous = points[(i - 1 + points.length) % points.length];
+    const current = points[i];
+    const next = points[(i + 1) % points.length];
+    const afterNext = points[(i + 2) % points.length];
+    const controlA = {
+      x: current.x + (next.x - previous.x) * clampedTension,
+      y: current.y + (next.y - previous.y) * clampedTension,
+    };
+    const controlB = {
+      x: next.x - (afterNext.x - current.x) * clampedTension,
+      y: next.y - (afterNext.y - current.y) * clampedTension,
+    };
+    path += `C${p(controlA)} ${p(controlB)} ${p(next)}`;
+  }
+  return `${path}Z`;
 }
 
 function addSurface(

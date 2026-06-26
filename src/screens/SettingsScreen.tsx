@@ -14,6 +14,7 @@ import { AccountAuthCard } from '../components/AccountAuthCard';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
 import { Screen, ToggleRow } from '../components/ui';
+import type { VoiceV21Activation } from '../config/voiceExperience';
 import { controlledBetaEquipmentPositioning } from '../haleFlow';
 import {
   AGE_RANGE_OPTIONS,
@@ -88,6 +89,8 @@ type SettingsScreenProps = {
   startingEffort: ActivityLevel;
   onProfileChange: (next: UserProfile) => void;
   onSettingsChange: (next: AppSettings) => void;
+  voiceActivation: VoiceV21Activation;
+  voiceModeChangeAppliesNextFlow?: boolean;
   onToggleEquipment: (key: keyof EquipmentProfile) => void;
   onToggleAvailableEquipment: (item: AvailableEquipment) => void;
   onPreferredDaysChange: (days: string[]) => void;
@@ -114,6 +117,8 @@ function SettingsScreenContent({
   startingEffort,
   onProfileChange,
   onSettingsChange,
+  voiceActivation,
+  voiceModeChangeAppliesNextFlow = false,
   onToggleEquipment,
   onToggleAvailableEquipment,
   onPreferredDaysChange,
@@ -274,11 +279,40 @@ function SettingsScreenContent({
 
     if (openSection === 'voice') {
       return (
-        <VoiceSelectorCard
-          selectedVoiceId={settings.voiceId}
-          onSelectVoice={(voiceId) => onSettingsChange({ ...settings, voiceId })}
-          onPreviewVoice={previewVoice}
-        />
+        <>
+          <DetailOverview
+            title={`Current system: ${voiceActivation.mode === 'v21_beta' ? 'New' : 'Legacy'}`}
+            body="Choose the voice and guidance system Hale uses when you start your next session or check-up."
+          />
+          <DetailCard
+            title="Voice guidance"
+            body="Use Hale's latest voice guidance with clearer setup, countdowns, and recovery prompts."
+          >
+            <View style={styles.toggleStack}>
+              <ToggleRow
+                label="New voice system"
+                description="Switch back if anything sounds wrong during testing."
+                value={settings.voiceExperienceMode === 'v21_beta'}
+                onValueChange={(enabled) =>
+                  onSettingsChange({
+                    ...settings,
+                    voiceExperienceMode: enabled ? 'v21_beta' : 'legacy',
+                  })
+                }
+              />
+              {voiceModeChangeAppliesNextFlow ? (
+                <Text style={styles.detailCardBody}>This will apply from your next session.</Text>
+              ) : (
+                <Text style={styles.detailCardBody}>You can switch back at any time.</Text>
+              )}
+            </View>
+          </DetailCard>
+          <VoiceSelectorCard
+            selectedVoiceId={settings.voiceId}
+            onSelectVoice={(voiceId) => onSettingsChange({ ...settings, voiceId })}
+            onPreviewVoice={previewVoice}
+          />
+        </>
       );
     }
 
@@ -457,6 +491,7 @@ function SettingsScreenContent({
         />
         <ProfileMenuRow
           title={SECTION_COPY.voice.title}
+          subtitle={voiceActivation.mode === 'v21_beta' ? 'New voice system' : 'Legacy voice system'}
           icon="volume"
           onPress={() => openProfileSection('voice')}
           showDivider

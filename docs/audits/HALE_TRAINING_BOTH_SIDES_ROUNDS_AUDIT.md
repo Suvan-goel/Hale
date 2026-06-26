@@ -33,7 +33,7 @@ Primary verdict: `TRAINING_BOTH_SIDES_ROUNDS_SOFTWARE_COMPLETE`
 - Both-sides rounds feature: off, software ready: true
 - Training Voice V2.1 feature: off
 - Training Voice V2.1 audio ready: false
-- Training Voice V2.1 global behaviour ready: false
+- Training Voice V2.1 global behaviour ready: true
 - Balance V2 default closed/audio ready: true / false
 - Physical-device QA: deferred
 - Human listening: waived, not completed
@@ -41,6 +41,6 @@ Primary verdict: `TRAINING_BOTH_SIDES_ROUNDS_SOFTWARE_COMPLETE`
 ## Worktree
 
 - Branch: `dev`
-- HEAD: `9bcfb41`
+- HEAD: `aa7ab05`
 - Upstream: `origin/dev`
 - Audio diff: empty

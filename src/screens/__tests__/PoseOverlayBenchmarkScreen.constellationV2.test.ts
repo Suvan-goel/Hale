@@ -174,7 +174,7 @@ describe('pose overlay benchmark Constellation V2 modes', () => {
     expect(sprite?.nativeBenchmarkOverlayMode).toBeUndefined();
   });
 
-  it('adds the soft digital twin presets as segmented low-shape benchmark options', () => {
+  it('adds the soft digital twin presets as low-shape benchmark options', () => {
     const modes = createPoseOverlayBenchmarkModes('android');
     const leanTwin = modes.find((mode) => mode.id === 'soft-digital-twin-lean');
     const digitalTwin = modes.find((mode) => mode.id === 'soft-digital-twin');
@@ -194,7 +194,7 @@ describe('pose overlay benchmark Constellation V2 modes', () => {
     expect(digitalTwin).toMatchObject({
       title: 'Premium Human Balanced',
       configuredDotCount: 0,
-      configuredShapeCount: 13,
+      configuredShapeCount: 4,
       rendererProps: {
         mode: 'soft_digital_twin',
         softDigitalTwinVisualPreset: 'balanced',
@@ -229,6 +229,7 @@ describe('pose overlay benchmark Constellation V2 modes', () => {
     const modes = createPoseOverlayBenchmarkModes('android').map((mode) => mode.id);
 
     expect(modes).not.toContain('rigged-human-silhouette');
+    expect(modes).not.toContain('natural-human-rig');
     expect(modes).not.toContain('shadow-silhouette');
     expect(modes).not.toContain('stipple-sensor-shadow');
     expect(modes).not.toContain('contour-field-avatar');

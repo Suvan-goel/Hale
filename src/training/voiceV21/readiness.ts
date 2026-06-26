@@ -40,6 +40,7 @@ export interface ResolveTrainingVoiceRuntimeReadinessV21Input {
   readonly prescribedTarget?: TrainingVoicePrescribedTargetV21 | null;
   readonly bothSidesDosePlan?: BothSidesDosePlan | null;
   readonly stepUpAlternationPlan?: StepUpAlternationPlan | null;
+  readonly betaDefaultEnabled?: boolean;
 }
 
 export function resolveTrainingVoiceRuntimeReadinessV21(
@@ -60,16 +61,23 @@ export function resolveTrainingVoiceRuntimeReadinessV21(
       notes: 'Unknown exercise fails closed for Training Voice V2.1.',
     };
   }
-  return readinessForContract(contract, input.prescribedTarget, input.bothSidesDosePlan, input.stepUpAlternationPlan);
+  return readinessForContract(
+    contract,
+    input.prescribedTarget,
+    input.bothSidesDosePlan,
+    input.stepUpAlternationPlan,
+    input.betaDefaultEnabled === true
+  );
 }
 
 export function resolveTrainingVoiceRuntimeReadinessForContractV21(
   contract: TrainingVoiceExerciseContractV21,
   prescribedTarget?: TrainingVoicePrescribedTargetV21 | null,
   bothSidesDosePlan?: BothSidesDosePlan | null,
-  stepUpAlternationPlan?: StepUpAlternationPlan | null
+  stepUpAlternationPlan?: StepUpAlternationPlan | null,
+  betaDefaultEnabled = false
 ): TrainingVoiceRuntimeReadinessV21 {
-  return readinessForContract(contract, prescribedTarget, bothSidesDosePlan, stepUpAlternationPlan);
+  return readinessForContract(contract, prescribedTarget, bothSidesDosePlan, stepUpAlternationPlan, betaDefaultEnabled);
 }
 
 export interface TrainingVoiceRuntimeSelectionV21 {
@@ -84,25 +92,32 @@ export function selectTrainingVoiceRuntimeModeV21(input: {
   readonly exerciseIds: readonly string[];
   readonly prescribedTargetsByExerciseId?: Readonly<Record<string, TrainingVoicePrescribedTargetV21>>;
   readonly featureEnabled?: boolean;
+  readonly betaDefaultEnabled?: boolean;
 }): TrainingVoiceRuntimeSelectionV21 {
   const featureEnabled = input.featureEnabled ?? isTrainingVoiceV21FeatureEnabled();
+  const betaDefaultEnabled = input.betaDefaultEnabled === true;
   const registry = validateTrainingVoiceContractRegistryV21();
   const itemReadiness = input.exerciseIds.map((exerciseId) =>
     resolveTrainingVoiceRuntimeReadinessV21({
       exerciseId,
       prescribedTarget: input.prescribedTargetsByExerciseId?.[exerciseId],
+      betaDefaultEnabled,
     })
   );
   const reasonCodes: string[] = [];
   if (!featureEnabled) reasonCodes.push('feature_flag_off');
+  if (!betaDefaultEnabled) reasonCodes.push('beta_default_off');
   if (!registry.valid) reasonCodes.push('registry_invalid');
-  if (!TRAINING_VOICE_V2_1_AUDIO_READY) reasonCodes.push('audio_ready_false');
+  if (!audioReadyForSelection(betaDefaultEnabled)) {
+    reasonCodes.push(betaDefaultEnabled ? 'physical_audio_surface_ready_false' : 'audio_ready_false');
+  }
   if (!TRAINING_VOICE_V2_1_BEHAVIOR_READY) reasonCodes.push('behavior_ready_false');
   for (const readiness of itemReadiness) {
     if (!readiness.selectable) reasonCodes.push(...readiness.blockers);
   }
   const v21Selectable =
     featureEnabled &&
+    betaDefaultEnabled &&
     registry.valid &&
     itemReadiness.length > 0 &&
     itemReadiness.every((readiness) => readiness.selectable);
@@ -124,7 +139,8 @@ function readinessForContract(
   contract: TrainingVoiceExerciseContractV21,
   prescribedTarget?: TrainingVoicePrescribedTargetV21 | null,
   bothSidesDosePlan?: BothSidesDosePlan | null,
-  stepUpAlternationPlan?: StepUpAlternationPlan | null
+  stepUpAlternationPlan?: StepUpAlternationPlan | null,
+  betaDefaultEnabled = false
 ): TrainingVoiceRuntimeReadinessV21 {
   const registry = validateTrainingVoiceContractRegistryV21();
   const targetPlan = resolveTrainingVoiceTargetV21({ contract, prescribedTarget, bothSidesDosePlan, stepUpAlternationPlan });
@@ -143,13 +159,15 @@ function readinessForContract(
   }
   if (behaviorBlockers.length > 0) blockers.push(...behaviorBlockers);
   if (!TRAINING_VOICE_V2_1_BEHAVIOR_READY) blockers.push('global_behavior_ready_false');
-  if (!TRAINING_VOICE_V2_1_AUDIO_READY) blockers.push('global_audio_ready_false');
+  const audioReady = audioReadyForSelection(betaDefaultEnabled) && missingAudioCueKeys.length === 0;
+  if (!audioReadyForSelection(betaDefaultEnabled)) {
+    blockers.push(betaDefaultEnabled ? 'global_physical_audio_surface_ready_false' : 'global_audio_ready_false');
+  }
   for (const cueKey of missingAudioCueKeys) blockers.push(`missing_audio:${cueKey}`);
   const behaviorReady =
     TRAINING_VOICE_V2_1_BEHAVIOR_READY &&
     behaviorBlockers.length === 0 &&
     contract.runtimeStatus === 'software_ready_audio_pending';
-  const audioReady = TRAINING_VOICE_V2_1_AUDIO_READY && missingAudioCueKeys.length === 0;
   const targetReady = targetPlan.supported;
   const safetyPlanReady = TRAINING_VOICE_V2_1_SAFETY_READY && contract.safetyPlan.ready;
   const softwareContractValid = registry.valid && contract.semanticMatch;
@@ -168,6 +186,12 @@ function readinessForContract(
         ? 'Training Voice V2.1 item is selectable.'
         : 'Training Voice V2.1 item is blocked and must use the legacy voice path.',
   };
+}
+
+function audioReadyForSelection(betaDefaultEnabled: boolean): boolean {
+  return betaDefaultEnabled
+    ? TRAINING_VOICE_V2_1_PHYSICAL_AUDIO_SURFACE_READY
+    : TRAINING_VOICE_V2_1_AUDIO_READY;
 }
 
 function unique(items: readonly string[]): string[] {

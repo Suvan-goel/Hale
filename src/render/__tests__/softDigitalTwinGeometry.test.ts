@@ -28,7 +28,7 @@ function mappedStandingPose(options: Parameters<typeof makeFrame>[2] = {}): Scre
 }
 
 describe('soft digital twin geometry', () => {
-  it('builds the balanced blended human from separate pose-driven surfaces', () => {
+  it('builds the balanced blended human as a unified full-body envelope', () => {
     const out = createSoftDigitalTwinGeometry();
 
     buildSoftDigitalTwinGeometry(mappedStandingPose(), out);
@@ -36,19 +36,24 @@ describe('soft digital twin geometry', () => {
     const ids = out.surfaces.map((surface) => surface.id);
     expect(out.hasPose).toBe(true);
     expect(isFiniteSoftDigitalTwinGeometry(out)).toBe(true);
-    expect(out.surfacePathCount).toBe(13);
+    expect(out.surfacePathCount).toBe(4);
     expect(out.dynamicPathCount).toBe(out.surfacePathCount);
     expect(out.shapeCount).toBe(out.surfacePathCount);
-    expect(ids).toEqual(expect.arrayContaining(['head', 'neck', 'ribcageTorso', 'pelvis']));
-    expect(ids).toEqual(expect.arrayContaining(['leftUpperArm', 'rightUpperArm']));
-    expect(ids).toEqual(expect.arrayContaining(['leftForearmHand', 'rightForearmHand']));
-    expect(ids).toEqual(expect.arrayContaining(['leftThigh', 'rightThigh']));
-    expect(ids).toEqual(expect.arrayContaining(['leftShinFoot', 'rightShinFoot']));
+    expect(ids).toEqual(expect.arrayContaining(['balancedBodyEnvelope', 'softOcclusion', 'neck', 'head']));
+    expect(ids).not.toContain('ribcageTorso');
+    expect(ids).not.toContain('pelvis');
+    expect(ids).not.toContain('leftUpperArm');
+    expect(ids).not.toContain('rightUpperArm');
+    expect(ids).not.toContain('leftForearmHand');
+    expect(ids).not.toContain('rightForearmHand');
+    expect(ids).not.toContain('leftThigh');
+    expect(ids).not.toContain('rightThigh');
+    expect(ids).not.toContain('leftShinFoot');
+    expect(ids).not.toContain('rightShinFoot');
     expect(ids).not.toContain('leftHand');
     expect(ids).not.toContain('rightHand');
     expect(ids).not.toContain('leftFoot');
     expect(ids).not.toContain('rightFoot');
-    expect(ids).not.toContain('balancedBodyEnvelope');
     expect(ids).not.toContain('balancedCoreEnvelope');
     expect(ids).not.toContain('jointBlends');
     expect(out.constructionPoints.map((point) => point.id)).toEqual(
@@ -95,14 +100,13 @@ describe('soft digital twin geometry', () => {
 
     const ids = out.surfaces.map((surface) => surface.id);
     expect(out.hasPose).toBe(true);
-    expect(ids).toContain('ribcageTorso');
-    expect(ids).toContain('pelvis');
-    expect(ids).toContain('leftUpperArm');
-    expect(ids).not.toContain('leftForearmHand');
+    expect(ids).toContain('balancedBodyEnvelope');
+    expect(ids).toContain('neck');
+    expect(ids).toContain('head');
     expect(isFiniteSoftDigitalTwinGeometry(out)).toBe(true);
   });
 
-  it('moves the segmented limb surface with the underlying landmarks', () => {
+  it('moves the unified envelope with the underlying distal landmarks', () => {
     const neutral = mappedStandingPose();
     const raised = mappedStandingPose();
     raised.ys[LM.LEFT_WRIST] -= 190;
@@ -115,12 +119,12 @@ describe('soft digital twin geometry', () => {
     buildSoftDigitalTwinGeometry(neutral, neutralOut);
     buildSoftDigitalTwinGeometry(raised, raisedOut);
 
-    const neutralArm = neutralOut.surfaces.find((surface) => surface.id === 'leftForearmHand');
-    const raisedArm = raisedOut.surfaces.find((surface) => surface.id === 'leftForearmHand');
+    const neutralEnvelope = neutralOut.surfaces.find((surface) => surface.id === 'balancedBodyEnvelope');
+    const raisedEnvelope = raisedOut.surfaces.find((surface) => surface.id === 'balancedBodyEnvelope');
 
-    expect(neutralArm?.path).toBeDefined();
-    expect(raisedArm?.path).toBeDefined();
-    expect(raisedArm?.path).not.toBe(neutralArm?.path);
+    expect(neutralEnvelope?.path).toBeDefined();
+    expect(raisedEnvelope?.path).toBeDefined();
+    expect(raisedEnvelope?.path).not.toBe(neutralEnvelope?.path);
     expect(isFiniteSoftDigitalTwinGeometry(raisedOut)).toBe(true);
   });
 });

@@ -112,10 +112,10 @@ export function ManualCheckupStartScreen({
               ]}
               onPress={() => selectOption(option.type)}
               accessibilityRole="button"
-              accessibilityLabel="Want the full checkup instead?"
+              accessibilityLabel={`${option.title}. ${option.body}`}
             >
               <View style={styles.optionText}>
-                <Text style={styles.optionTitle}>Want the full checkup instead?</Text>
+                <Text style={styles.optionTitle}>{option.title}</Text>
                 <Text style={styles.optionBody}>{option.body}</Text>
               </View>
               <View style={styles.optionAction}>
@@ -161,7 +161,7 @@ function nonOfficialNote(
 }
 
 function recommendationMeta(option: (ReturnType<typeof getManualCheckupOptions>)[number]): string {
-  if (option.type === 'micro_check') return '60 sec';
+  if (option.type === 'micro_check') return 'Quick check-in';
   if (option.type === 'quick_recheck') return 'Short check';
   if (option.type === 'official_retest') return 'Full check-up';
   if (option.type === 'baseline_retake') return 'Retake';

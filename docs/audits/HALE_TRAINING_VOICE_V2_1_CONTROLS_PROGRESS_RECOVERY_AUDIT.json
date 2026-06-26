@@ -1,10 +1,10 @@
 {
   "verdict": "TRAINING_VOICE_V2_1_CONTROLS_PROGRESS_RECOVERY_SOFTWARE_COMPLETE",
-  "generatedAt": "2026-06-26T11:14:05.925Z",
+  "generatedAt": "2026-06-26T14:49:39.647Z",
   "git": {
     "branch": "dev",
-    "head": "87124fedfb942e86ad5b307b5bbc1c10deb69119",
-    "shortHead": "87124fe",
+    "head": "aa7ab05fc28925e02fc8b1088976afd829095e0e",
+    "shortHead": "aa7ab05",
     "upstream": "origin/dev",
     "dirty": true
   },

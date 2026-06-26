@@ -65,6 +65,17 @@ describe('Movement Profile V2 assessment persistence', () => {
       eligible: false,
       compatibility: 'unsupported_source_type',
     });
+    expect(
+      getMovementProfileV2AssessmentPersistenceEligibility({
+        checkUp,
+        checkupType: 'manual_extra_v2',
+        snapshot,
+        assessment,
+      })
+    ).toMatchObject({
+      eligible: false,
+      compatibility: 'unsupported_source_type',
+    });
 
     const changedRaw = makeV2CheckUp('2026-06-23T08:00:00.000Z', { chair: chairV2Result({ reps: 14 }) });
     expect(
@@ -167,6 +178,22 @@ describe('Movement Profile V2 assessment persistence', () => {
 
   it('materializes missing artifacts and reuses frozen artifacts without recomputing on reference-profile drift', () => {
     const checkUp = makeV2CheckUp('2026-06-23T08:00:00.000Z');
+    expect(
+      materializeOfficialMovementProfileV2Artifacts({
+        checkUp,
+        checkupType: 'manual_extra_v2',
+        referenceProfile: REFERENCE_PROFILE,
+        lifeGoal: lifeGoal('stairs'),
+        acceptedHistory: [],
+        snapshotCreatedAt: '2026-06-23T08:01:00.000Z',
+        assessmentCreatedAt: '2026-06-23T08:02:00.000Z',
+      })
+    ).toMatchObject({
+      ok: false,
+      status: 'rejected',
+      reason: 'v2_assessment_orchestration_ineligible_source',
+    });
+
     const created = materializeOfficialMovementProfileV2Artifacts({
       checkUp,
       checkupType: 'baseline',

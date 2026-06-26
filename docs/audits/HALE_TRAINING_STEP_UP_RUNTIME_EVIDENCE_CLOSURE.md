@@ -1,8 +1,8 @@
 # Hale Training Step-Up Runtime Evidence Closure
 
 ## 1. Executive Verdict
-Primary verdict: `TRAINING_STEP_UP_RUNTIME_INTEGRATION_EVIDENCE_VERIFIED`.
-Exact next task: `Training floor-transfer readiness gate implementation`.
+Primary verdict: `TRAINING_STEP_UP_RUNTIME_INTEGRATION_EVIDENCE_INCOMPLETE`.
+Exact next task: `Complete the missing evidence items listed in this report`.
 
 ## 2. Why the Previous Evidence Was Incomplete
 - Previous addendum retained 54 older rows plus 29 new rows rather than reopening the full 90 existing runtime-integration canonical ids.
@@ -12,7 +12,7 @@ Exact next task: `Training floor-transfer readiness gate implementation`.
 - Previous primary verdict used a device-QA-pending suffix outside the required enum.
 
 ## 3. Worktree and Source Freshness
-Branch: `dev`; HEAD: `2b3e28bc48bde987e82f599a5e811d0f801686b8`; upstream: `origin/dev`.
+Branch: `dev`; HEAD: `aa7ab05fc28925e02fc8b1088976afd829095e0e`; upstream: `origin/dev`.
 Worktree already dirty at audit start: `true`.
 
 ## 4. Canonical Scenario Coverage
@@ -65,20 +65,22 @@ voiceExpectedLeadMismatchCount=0; voiceTargetMismatchCount=0; voiceContextMismat
 Critical metrics without evidence: 0. Reducers are named in `metricEvidence` and recomputed from disk by `--verify-existing`.
 
 ## 14. Per-Metric Mutation Sensitivity
-Required: 53; executed: 53; failed: 0.
+Required: 53; executed: 53; failed: 1.
 
 ## 15. Findings and Severity Derivation
-Severity counts: {"P0":0,"P1":0,"P2":0,"P3":2}.
+Severity counts: {"P0":0,"P1":0,"P2":2,"P3":2}.
+- F-PRODUCTION-FILE-CHANGE-COUNT (P2): Production file change count
+- F-EVIDENCE-PRODUCTION-FILE-CHANGE-COUNT-METRIC-SENSITIVITY-MISSING-OR-FAILED (P2): Metric evidence incomplete for productionFileChangeCount
 - F-STEPUP-PHYSICAL-DEVICE-QA-DEFERRED (P3): Physical-device validation remains deferred
 - F-STEPUP-HUMAN-LISTENING-WAIVED (P3): Human listening remains waived
 
 ## 16. Validation Commands
-- audio: exit 0, passed, stdout 12572e2148784aed4e53f2d03bafa88cfa26c05070fd9d629930610a989ad4b1, stderr e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+- audio: exit 0, passed, stdout ba850b4014a6fb073943858d2e1b91d9613e3d4ed1d6e8aa7149740fd841e3ac, stderr e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 - typescript: exit 0, passed, stdout e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855, stderr e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-- focused_jest: exit 0, passed, stdout e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855, stderr de2d9646aa891bedf764d8961cfb752d05aa289d6783dde39e2d467944425bee
-- full_jest: exit 0, passed, stdout df539cde8a1172a606da48eed8a7e7d28bfcdc244d9d86f0362a39e07c67583a, stderr 2b1555ffd84e04b4f9479707f6936934b7579495119317094796682d258fd282
+- focused_jest: exit 0, passed, stdout e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855, stderr 8723ba6be533cfbe3b99234139ea024950c1cceddeb6b3a93407a744302dcdd1
+- full_jest: exit 0, passed, stdout df539cde8a1172a606da48eed8a7e7d28bfcdc244d9d86f0362a39e07c67583a, stderr 84be59fb3c7099fccd966174e0550943a469fb2b0ddf7cc268d6a2ad1879180c
 - generation_mode: exit 0, passed, stdout a91c8d1f98245211e86db090956981ceaf0787832a2a8fc343e4e423224a4895, stderr e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-- verify_existing_mode: exit 0, passed, stdout 9fd3d4e1310ede1ef27a81096909f7fce7806a73484fbcf76ade1ceb81d4a88c, stderr e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+- verify_existing_mode: exit 0, passed, stdout 9e7f8500ca5447a3de081f5ee371f2119f3e0eab76b6245ac37de4bb34805f5f, stderr e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 
 ## 17. Independent Verification
 Generation recomputation mismatches: 0. Independent verifier mismatches: 0.
@@ -89,7 +91,7 @@ Generation recomputation mismatches: 0. Independent verifier mismatches: 0.
 - coverage_failed_scenarios: passed (0)
 - critical_metrics_have_row_evidence: passed ()
 - required_sensitivity_metrics_present: passed ()
-- required_sensitivity_metrics_pass: passed (0)
+- required_sensitivity_metrics_pass: blocked (1)
 - generation_recompute: passed (0)
 - independent_verifier: passed (0)
 - software_defect_metrics_zero: passed (all zero)
@@ -97,16 +99,16 @@ Generation recomputation mismatches: 0. Independent verifier mismatches: 0.
 - validation_commands_present: passed (audio;typescript;focused_jest;full_jest;generation_mode;verify_existing_mode)
 - validation_commands_passed: passed (audio:0;typescript:0;focused_jest:0;full_jest:0;generation_mode:0;verify_existing_mode:0)
 - defaults_closed: passed (all zero)
-- task_integrity: passed (all zero)
+- task_integrity: blocked (productionFileChangeCount=1)
 - harness_static_self_check: passed ()
-- p0_p1_p2_zero: passed ({"P0":0,"P1":0,"P2":0,"P3":2})
+- p0_p1_p2_zero: blocked ({"P0":0,"P1":0,"P2":2,"P3":2})
 
 ## 19. Worktree Integrity
-productionFileChangeCount=0; productionTestChangeCount=0; audioAssetChangeCount=0; manifestChangeCount=0; packageFileChangeCount=0
+productionFileChangeCount=1; productionTestChangeCount=0; audioAssetChangeCount=0; manifestChangeCount=0; packageFileChangeCount=0
 No audio was generated and no external speech/audio API was called.
 
 ## 20. Deferred Device and Listening Boundaries
 Physical-device QA is deferred. Human listening is waived, not completed. Both remain P3 boundaries only.
 
 ## 21. Exact Next Task
-Training floor-transfer readiness gate implementation
+Complete the missing evidence items listed in this report

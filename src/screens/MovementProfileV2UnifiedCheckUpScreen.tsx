@@ -8,6 +8,7 @@ import type { BodySide } from '../checkup/protocolSetup';
 import type { CheckUp } from '../checkup/types';
 import type { CameraAvailability } from '../components/SafePoseDetectionView';
 import { MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED } from '../config/movementProfileV2VoiceRuntimeFoundation';
+import type { VoiceExperienceMode } from '../config/voiceExperienceTypes';
 import { defaultNowMs } from '../diagnostics/poseLatencyDiagnostics';
 import {
   createMovementProfileV2InternalFlow,
@@ -52,7 +53,7 @@ const TOTAL_V2_ITEMS = 4;
 
 type MovementProfileV2CheckUpSourceType = Extract<
   CheckupType,
-  'baseline' | 'baseline_retake' | 'official_retest'
+  'baseline' | 'baseline_retake' | 'official_retest' | 'manual_extra_v2'
 >;
 
 type OfficialSideFallbackKind = 'balance' | 'shoulder';
@@ -80,6 +81,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   sourceType,
   initialFlow,
   voiceId,
+  voiceExperienceMode = 'v21_beta',
   entryMode = 'public_checkup',
   onComplete,
   onCancel,
@@ -88,10 +90,13 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   sourceType: MovementProfileV2CheckUpSourceType;
   initialFlow?: MovementProfileV2InternalFlowState | null;
   voiceId?: string;
+  voiceExperienceMode?: VoiceExperienceMode;
   entryMode?: 'internal_comparison' | 'public_checkup';
   onComplete: (input: { checkUp: CheckUp; sourceType: MovementProfileV2CheckUpSourceType }) => void;
   onCancel: () => void;
 }) {
+  const voiceRuntimeEnabled =
+    voiceExperienceMode === 'v21_beta' && MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED;
   const initialState = React.useMemo(
     () => initialFlow ?? { ...createMovementProfileV2InternalFlow({ startedAt }), sourceType },
     [initialFlow, sourceType, startedAt]
@@ -152,7 +157,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   }, [applyVoiceCoordinatorAction, voice, voiceId]);
 
   React.useEffect(() => {
-    if (MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED) {
+    if (voiceRuntimeEnabled) {
       getVoiceRuntime().sync(liveRef.current);
     } else {
       const intro = initialMovementProfileV2VoiceEvent();
@@ -160,25 +165,25 @@ export function MovementProfileV2UnifiedCheckUpScreen({
     }
     return () => {
       voiceSequencerRef.current.dispose();
-      if (MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED) {
+      if (voiceRuntimeEnabled) {
         voiceRuntimeRef.current?.cancel('screen_unmounted');
       } else {
         voice.stop();
       }
     };
-  }, [getVoiceRuntime, voice]);
+  }, [getVoiceRuntime, voice, voiceRuntimeEnabled]);
 
   React.useEffect(() => {
-    if (!MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED) return;
+    if (!voiceRuntimeEnabled) return;
     getVoiceRuntime().setDesiredVoiceId(voiceId ?? DEFAULT_VOICE_ID, liveRef.current);
-  }, [getVoiceRuntime, voiceId]);
+  }, [getVoiceRuntime, voiceId, voiceRuntimeEnabled]);
 
   React.useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
       const nowMs = defaultNowMs();
       if (state === 'background' || state === 'inactive') {
         coordinatorRef.current?.receiveUserAction({ type: 'backgrounded' }, nowMs);
-        if (MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED) {
+        if (voiceRuntimeEnabled) {
           voiceRuntimeRef.current?.cancel('app_backgrounded');
         } else {
           voice.stop();
@@ -189,7 +194,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
       refreshLive(nowMs);
     });
     return () => sub.remove();
-  }, [refreshLive, voice]);
+  }, [refreshLive, voice, voiceRuntimeEnabled]);
 
   React.useEffect(() => {
     const id = setInterval(() => {
@@ -201,22 +206,22 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   }, [refreshLive]);
 
   React.useEffect(() => {
-    if (MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED) return;
+    if (voiceRuntimeEnabled) return;
     const cue = voiceSequencerRef.current.next(live);
     if (cue) voice.speak(cue.cues, cue.priority);
-  }, [live, live.revision, voice]);
+  }, [live, live.revision, voice, voiceRuntimeEnabled]);
 
   React.useEffect(() => {
-    if (!MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED) return;
+    if (!voiceRuntimeEnabled) return;
     getVoiceRuntime().sync(live);
-  }, [getVoiceRuntime, live, live.revision]);
+  }, [getVoiceRuntime, live, live.revision, voiceRuntimeEnabled]);
 
   React.useEffect(() => {
     if (!live.checkUp || completedRef.current) return;
-    if (MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED && !voiceRuntimeState.completionReady) return;
+    if (voiceRuntimeEnabled && !voiceRuntimeState.completionReady) return;
     completedRef.current = true;
     onComplete({ checkUp: live.checkUp, sourceType });
-  }, [live.checkUp, onComplete, sourceType, voiceRuntimeState.completionReady]);
+  }, [live.checkUp, onComplete, sourceType, voiceRuntimeState.completionReady, voiceRuntimeEnabled]);
 
   const onLandmarks = React.useCallback(
     (event: { nativeEvent: LandmarksEventPayload }) => {
@@ -257,7 +262,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
     (action: MovementProfileV2LiveUserAction) => {
       const nowMs = defaultNowMs();
       if (
-        MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED &&
+        voiceRuntimeEnabled &&
         !getVoiceRuntime().canDispatchAction(action, liveRef.current)
       ) {
         return;
@@ -274,9 +279,9 @@ export function MovementProfileV2UnifiedCheckUpScreen({
 
   const actionDisabled = React.useCallback(
     (action: MovementProfileV2LiveUserAction) =>
-      MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED &&
+      voiceRuntimeEnabled &&
       !getVoiceRuntime().canDispatchAction(action, liveRef.current),
-    [getVoiceRuntime]
+    [getVoiceRuntime, voiceRuntimeEnabled]
   );
 
   const retryAudio = React.useCallback(() => {
@@ -318,7 +323,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
     if (cameraAvailability === 'unavailable') {
       return [{ id: 'close', title: 'Close check-up', onPress: onCancel, primary: true }];
     }
-    if (MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED && voiceRuntimeState.lastFailure) {
+    if (voiceRuntimeEnabled && voiceRuntimeState.lastFailure) {
       return [
         { id: 'audio-retry', title: 'Try again', onPress: retryAudio, primary: true },
         { id: 'audio-exit', title: 'Exit check-up', onPress: onCancel },
@@ -351,6 +356,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
     runLiveAction,
     selectedLeg,
     selectedShoulder,
+    voiceRuntimeEnabled,
     voiceRuntimeState.lastFailure,
   ]);
 
@@ -370,6 +376,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
         cameraAvailability,
         selectedShoulder,
         pendingOfficialFallback,
+        voiceRuntimeEnabled,
         voiceRuntimeState,
       })}
       modalMode={modalMode}
@@ -754,19 +761,21 @@ function movementProfileV2ShellNotice({
   cameraAvailability,
   selectedShoulder,
   pendingOfficialFallback,
+  voiceRuntimeEnabled,
   voiceRuntimeState,
 }: {
   live: MovementProfileV2LiveSnapshot;
   cameraAvailability: CameraAvailability;
   selectedShoulder: BodySide;
   pendingOfficialFallback: OfficialSideFallbackRequest | null;
+  voiceRuntimeEnabled: boolean;
   voiceRuntimeState: MovementProfileV2VoiceRuntimeState;
 }): CheckUpShellNotice | null {
   if (cameraAvailability === 'unavailable') return null;
-  if (MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED && voiceRuntimeState.lastFailure) {
+  if (voiceRuntimeEnabled && voiceRuntimeState.lastFailure) {
     return { text: 'Audio setup needed', action: null };
   }
-  if (MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED && voiceRuntimeState.blocking) {
+  if (voiceRuntimeEnabled && voiceRuntimeState.blocking) {
     return { text: 'Audio guidance', action: null };
   }
   if (live.backgrounded) {

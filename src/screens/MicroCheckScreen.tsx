@@ -23,8 +23,9 @@ import {
   LandmarksEventPayload,
   PoseErrorEventPayload,
 } from '../../modules/expo-pose-detection';
-import { SfxChannel, VoiceChannel } from '../audio/voicePlayer';
+import { SfxChannel, VoiceChannel, type VoiceCueStartedEvent } from '../audio/voicePlayer';
 import type { BodySide } from '../checkup';
+import type { VoiceExperienceMode } from '../config/voiceExperienceTypes';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
 import { useSystemInsets } from '../components/SystemInsetsProvider';
@@ -138,12 +139,25 @@ const MICRO_CHECK_SETUP_HELP_STEPS: readonly { title: string; body: string }[] =
   },
 ];
 
+const MICRO_CHECK_V21_COUNTDOWN_SUFFIX = ['countdown-three', 'countdown-two', 'countdown-one', 'go'] as const;
+
+function shouldSpeakMicroCheckVoiceCountdownTracked(
+  voiceExperienceMode: VoiceExperienceMode,
+  cues: readonly string[]
+): boolean {
+  if (voiceExperienceMode !== 'v21_beta') return false;
+  if (cues.length < MICRO_CHECK_V21_COUNTDOWN_SUFFIX.length) return false;
+  const suffix = cues.slice(cues.length - MICRO_CHECK_V21_COUNTDOWN_SUFFIX.length);
+  return suffix.every((cue, index) => cue === MICRO_CHECK_V21_COUNTDOWN_SUFFIX[index]);
+}
+
 export function MicroCheckScreen({
   type: microCheckType,
   sideSetup,
   onComplete,
   onCancel,
   voiceId,
+  voiceExperienceMode = 'legacy',
   debugScenario,
 }: {
   type: MicroCheckType;
@@ -151,6 +165,7 @@ export function MicroCheckScreen({
   onComplete: (result: MicroCheckResult) => void;
   onCancel?: () => void;
   voiceId?: string;
+  voiceExperienceMode?: VoiceExperienceMode;
   debugScenario?: MicroCheckDebugScenario;
 }) {
   const [pipeline] = React.useState(() => new PosePipeline());
@@ -169,7 +184,9 @@ export function MicroCheckScreen({
   const [runner, setRunner] = React.useState<MicroCheckRunner | null>(() =>
     effectiveSideSetup.sideRequired
       ? null
-      : new MicroCheckRunner(microCheckType, startedAtIso, preflight)
+      : new MicroCheckRunner(microCheckType, startedAtIso, preflight, undefined, null, {
+          voiceMode: voiceExperienceMode === 'v21_beta' ? 'v21_beta' : 'legacy',
+        })
   );
   const [voice] = React.useState(() => new VoiceChannel(voiceId));
   const [sfx] = React.useState(() => new SfxChannel());
@@ -208,9 +225,14 @@ export function MicroCheckScreen({
         setup: effectiveSideSetup,
         selectedSide,
       });
-      setRunner(new MicroCheckRunner(microCheckType, startedAtIso, preflight, undefined, measurementContext));
+      setRunner(
+        new MicroCheckRunner(microCheckType, startedAtIso, preflight, undefined, measurementContext, {
+          voiceMode: voiceExperienceMode === 'v21_beta' ? 'v21_beta' : 'legacy',
+          selectedSide,
+        })
+      );
     },
-    [effectiveSideSetup, microCheckType, preflight, runner, startedAtIso]
+    [effectiveSideSetup, microCheckType, preflight, runner, startedAtIso, voiceExperienceMode]
   );
 
   React.useEffect(() => {
@@ -249,7 +271,24 @@ export function MicroCheckScreen({
 
       const u = runner.update(out, voice.busy);
 
-      if (u.voice) voice.speak(u.voice.cues, u.voice.priority);
+      if (u.voice) {
+        if (shouldSpeakMicroCheckVoiceCountdownTracked(voiceExperienceMode, u.voice.cues)) {
+          const request = voice.speakTracked(u.voice.cues, {
+            priority: u.voice.priority,
+            required: true,
+            scopeId: `micro-check-v21:${microCheckType}:countdown`,
+            onCueStarted: (started: VoiceCueStartedEvent) => {
+              if (started.cueKey !== 'go') return;
+              runner.notifyCountdownGoPlaybackStarted(lastFrameTimestampRef.current);
+            },
+          });
+          if (!request.accepted) {
+            // The runner remains in countdown until the next frame/retry path resolves the audible boundary.
+          }
+        } else {
+          voice.speak(u.voice.cues, u.voice.priority);
+        }
+      }
       if (u.playRepSound) sfx.play('rep-credit');
 
       if (u.phase === 'done' && !completedRef.current) {
@@ -274,7 +313,7 @@ export function MicroCheckScreen({
       skeletonRef.current?.update(out, sourceAspect);
       poseLatencyDiagnostics?.markRendererUpdateSubmitted(latencyFrame);
     },
-    [pipeline, poseLatencyDiagnostics, runner, voice, sfx, recorder, onComplete]
+    [pipeline, poseLatencyDiagnostics, runner, voice, sfx, recorder, onComplete, microCheckType, voiceExperienceMode]
   );
 
   const onPoseError = React.useCallback((e: { nativeEvent: PoseErrorEventPayload }) => {

@@ -165,6 +165,7 @@ export type CheckupType =
   | 'baseline'
   | 'baseline_retake'
   | 'manual_extra'
+  | 'manual_extra_v2'
   | 'official_retest'
   | 'quick_recheck'
   | 'micro_check'

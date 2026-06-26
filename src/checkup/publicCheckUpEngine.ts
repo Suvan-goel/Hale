@@ -8,7 +8,7 @@ export type PublicMovementCheckUpBaselineSourceType = Extract<
 >;
 export type PublicMovementProfileV2SourceType = Extract<
   CheckupType,
-  'baseline' | 'baseline_retake' | 'official_retest'
+  'baseline' | 'baseline_retake' | 'official_retest' | 'manual_extra_v2'
 >;
 export type PublicMovementCheckUpScheduleStatus =
   | 'session_due'
@@ -71,6 +71,15 @@ export function selectPublicMovementCheckUpLaunch(input: {
     !!input.hasMalformedMovementProfileV2State ||
     !!input.hasMovementProfileV2BlockOrReportState ||
     input.activeBlockOriginKind === 'movement_profile_v2_assessment';
+
+  if (input.sourceType === 'manual_extra_v2') {
+    return {
+      status: 'ready',
+      engine: 'unified_movement_profile',
+      sourceType: input.sourceType,
+      entryContext,
+    };
+  }
 
   if (input.hasMalformedMovementProfileV2State) {
     return {

@@ -71,6 +71,10 @@ describe('Movement Profile V2 snapshots', () => {
     expect(getMovementProfileV2SnapshotEligibility(rawOnly, 'official_retest')).toMatchObject({
       eligible: true,
     });
+    expect(getMovementProfileV2SnapshotEligibility(rawOnly, 'manual_extra_v2')).toMatchObject({
+      eligible: false,
+      reason: 'v2_snapshot_ineligible_source_type',
+    });
 
     const invalidBalance = v2CheckUp({
       balance: balanceResult({ evidenceStatus: 'invalid_measurement', bestHoldSec: Number.NaN }),

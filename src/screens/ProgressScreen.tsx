@@ -385,6 +385,9 @@ function MovementProfileV2ProgressContent({
   }
 
   if (viewModel.status !== 'ready') {
+    if (viewModel.status === 'no_profile') {
+      return <ProgressEmptyState onBeginCheckUp={onStartCheckUp} />;
+    }
     const primary = viewModel.actions[0];
     return (
       <MovementProfileV2RecoveryCard
@@ -452,7 +455,11 @@ function MovementProfileV2RecoveryCard({
       {actionLabel && onPress ? (
         <ProgressActionRow
           title={actionLabel}
-          body="Opens saved read-only Movement Profile content or the next safe continuation step."
+          body={
+            actionLabel === 'Start Movement Check-Up'
+              ? 'Opens camera setup for your Movement Check-Up.'
+              : 'Opens the next safe continuation step.'
+          }
           onPress={onPress}
           accessibilityLabel={`${actionLabel}. ${body}`}
         />

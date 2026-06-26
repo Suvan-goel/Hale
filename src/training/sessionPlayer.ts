@@ -43,6 +43,10 @@ import {
   type TrainingSetRuntimeGeneratedExercise,
   type TrainingVoiceRuntimeMode,
 } from './setRuntime';
+import {
+  planTrainingVoiceSequenceV21,
+  planTrainingVoiceSessionEntrySequenceV21,
+} from './voiceV21';
 
 export type TrainingPhase =
   | 'intro'
@@ -457,7 +461,13 @@ export class TrainingSessionPlayer {
       case 'intro':
         if (!this.introSpoken) {
           this.introSpoken = true;
-          u.voice = cueSequence(['training-intro', 'support_keep_support_within_reach']);
+          if (this.shouldUseTrackedTrainingVoiceBehaviorV21()) {
+            const plan = planTrainingVoiceSessionEntrySequenceV21();
+            u.voice = cueSequence(plan.ready ? voiceCueKeys(plan.cueKeys) : ['training-intro-v21', 'safe-session-start-v21']);
+            this.globalSafetySpoken = true;
+          } else {
+            u.voice = cueSequence(['training-intro', 'support_keep_support_within_reach']);
+          }
         } else if (!this.globalSafetySpoken && !voiceBusy) {
           this.globalSafetySpoken = true;
           this.emitSafety(u, SESSION_GLOBAL_SAFETY_CUE_IDS, true);
@@ -485,9 +495,9 @@ export class TrainingSessionPlayer {
         break;
       case 'complete':
         if (!this.completeSpoken) {
-          if (!voiceBusy) {
-            this.completeSpoken = true;
-            u.voice = cue('session-complete');
+      if (!voiceBusy) {
+        this.completeSpoken = true;
+            u.voice = cue(this.shouldUseTrackedTrainingVoiceBehaviorV21() ? 'session-complete-v21' : 'session-complete');
           }
         } else if (!voiceBusy) {
           this.finish();
@@ -592,10 +602,8 @@ export class TrainingSessionPlayer {
       this.phase = 'instructions';
       this.instructionsEnteredMs = ts;
       this.instructionsIdleAtMs = -1;
-      u.voice = {
-        cues: ['framing-ready', ...def.voice.instructions, ...safetyCueIds],
-        priority: maxPriority(['framing-ready', ...def.voice.instructions, ...safetyCueIds]),
-      };
+      const cues = this.instructionCueSequence(def, safetyCueIds);
+      u.voice = cueSequence(cues);
       this.emitSafety(u, safetyCueIds, false);
       return;
     }
@@ -673,7 +681,11 @@ export class TrainingSessionPlayer {
       actionLabel: "I'm ready",
     };
     const transitionCueIds: readonly SafetyCueId[] = transitionRequired ? ['floor_slow_transition'] : [];
-    const instructionCueIds: readonly VoiceCueKey[] = this.setIndex === 0 ? def.voice.instructions : [];
+    const instructionCueIds: readonly VoiceCueKey[] = this.shouldUseTrackedTrainingVoiceBehaviorV21()
+      ? this.trainingVoiceV21InstructionCues(def).filter((cueKey) => cueKey !== 'final-position-set-v21')
+      : this.setIndex === 0
+        ? def.voice.instructions
+        : [];
     const cues = uniqueVoiceCues([...transitionCueIds, ...instructionCueIds]);
     if (cues.length > 0) u.voice = cueSequence(cues);
     this.emitSafety(u, transitionCueIds, false);
@@ -887,7 +899,14 @@ export class TrainingSessionPlayer {
       const isLastUpcoming = this.setIndex + 2 === def.prescription.sets;
       const safety = this.currentSafetyProfile();
       const safetyCueIds = safety?.repeatedSetCueIds ?? [];
-      u.voice = cueSequence([isLastUpcoming ? 'last-set' : 'rest-now', ...safetyCueIds]);
+      const restCue = this.shouldUseTrackedTrainingVoiceBehaviorV21()
+        ? isLastUpcoming
+          ? 'last-set-v21'
+          : 'rest-now-v21'
+        : isLastUpcoming
+          ? 'last-set'
+          : 'rest-now';
+      u.voice = cueSequence([restCue, ...safetyCueIds]);
       this.emitSafety(u, safetyCueIds, false);
     }
     u.remainingMs = Math.max(0, this.restDurationMs - (ts - this.restEnteredMs));
@@ -943,6 +962,38 @@ export class TrainingSessionPlayer {
     );
   }
 
+  private instructionCueSequence(
+    def: ExerciseDefinition,
+    safetyCueIds: readonly SafetyCueId[]
+  ): VoiceCueKey[] {
+    if (!this.shouldUseTrackedTrainingVoiceBehaviorV21()) {
+      return uniqueVoiceCues(['framing-ready', ...def.voice.instructions, ...safetyCueIds]);
+    }
+    return uniqueVoiceCues(['framing-ready', ...this.trainingVoiceV21InstructionCues(def)]);
+  }
+
+  private trainingVoiceV21InstructionCues(def: ExerciseDefinition): VoiceCueKey[] {
+    try {
+      const generated = this.generatedByExerciseId.get(def.id) ?? null;
+      const stepUpPlan = generated?.stepUpAlternationPlan ?? null;
+      const plan = planTrainingVoiceSequenceV21({
+        exerciseId: def.id,
+        exposure: this.setIndex === 0 ? 'first_use' : 'later_set',
+        stepUpContext: stepUpPlan
+          ? {
+              plan: stepUpPlan,
+              setIndex: this.setIndex,
+              startLeadSide: generated?.stepUpInitialLeadSide,
+            }
+          : null,
+      });
+      if (!plan.ready) return def.voice.instructions.slice();
+      return voiceCueKeys(plan.cueKeys);
+    } catch {
+      return def.voice.instructions.slice();
+    }
+  }
+
   private cancelFloorSetup(): void {
     if (!this.floorSetup) return;
     this.floorSetup = null;
@@ -994,6 +1045,10 @@ function uniqueVoiceCues(items: readonly VoiceCueKey[]): VoiceCueKey[] {
     if (!out.includes(item)) out.push(item);
   }
   return out;
+}
+
+function voiceCueKeys(items: readonly string[]): VoiceCueKey[] {
+  return items as VoiceCueKey[];
 }
 
 function uniqueSafety(items: readonly SafetyCueId[]): SafetyCueId[] {

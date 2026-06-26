@@ -1,6 +1,7 @@
 import { parseMovementProfileV2InternalFlag } from '../movementProfileV2Internal';
 import {
   EYES_OPEN_BALANCE_PROTOCOL_V2_AUDIO_READY,
+  EYES_OPEN_BALANCE_PROTOCOL_V2_PHYSICAL_AUDIO_SURFACE_READY,
   parseEyesOpenBalanceProtocolV2Flag,
   isEyesOpenBalanceProtocolV2Selectable,
 } from '../eyesOpenBalanceProtocolV2';
@@ -20,7 +21,9 @@ describe('eyes-open balance protocol V2 gate', () => {
     expect(parseEyesOpenBalanceProtocolV2Flag('1')).toBe(true);
     expect(parseEyesOpenBalanceProtocolV2Flag('true')).toBe(false);
     expect(EYES_OPEN_BALANCE_PROTOCOL_V2_AUDIO_READY).toBe(false);
+    expect(EYES_OPEN_BALANCE_PROTOCOL_V2_PHYSICAL_AUDIO_SURFACE_READY).toBe(true);
     expect(isEyesOpenBalanceProtocolV2Selectable({ flagValue: '1', audioReady: false })).toBe(false);
     expect(isEyesOpenBalanceProtocolV2Selectable({ flagValue: '1', audioReady: true })).toBe(true);
+    expect(isEyesOpenBalanceProtocolV2Selectable({ betaDefaultEnabled: true })).toBe(true);
   });
 });

@@ -1,6 +1,6 @@
 # Hale Measurement-Side Protocol Metadata Audit
 
-Generated: 2026-06-24T18:50:27.002Z
+Generated: 2026-06-26T12:15:21.698Z
 
 ## Verdict
 
@@ -8,9 +8,9 @@ REMEDIATION_REQUIRED
 
 ## Counts
 
-- Registered protocols: 14
-- Side-required protocols: 6
-- Side-independent protocols: 8
+- Registered protocols: 17
+- Side-required protocols: 8
+- Side-independent protocols: 9
 - Result types migrated: 3
 - Backend mappings changed: 3
 - Legacy/default parsers: 4

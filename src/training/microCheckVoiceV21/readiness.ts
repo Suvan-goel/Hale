@@ -21,7 +21,8 @@ export function microCheckVoicePhysicalAudioSurfaceReadyV21(): boolean {
 }
 
 export function resolveMicroCheckVoiceRuntimeReadinessV21(
-  type: MicroCheckType
+  type: MicroCheckType,
+  input: { readonly betaDefaultEnabled?: boolean } = {}
 ): MicroCheckVoiceRuntimeReadinessV21 {
   const contract = maybeMicroCheckVoiceContractV21(type);
   if (!contract) {
@@ -37,6 +38,10 @@ export function resolveMicroCheckVoiceRuntimeReadinessV21(
     };
   }
   const registry = validateMicroCheckVoiceContractRegistryV21();
+  const betaDefaultEnabled = input.betaDefaultEnabled === true;
+  const audioReadyForSelection = betaDefaultEnabled
+    ? MICRO_CHECK_VOICE_V2_1_PHYSICAL_AUDIO_SURFACE_READY
+    : MICRO_CHECK_VOICE_V2_1_AUDIO_READY;
   const missingAudioCueKeys = requiredAssetCueKeysMissingForMicroCheckContractV21(contract);
   const behaviorBlockers = contract.implementationRequirements
     .filter((requirement) => requirement !== 'IR-MICRO-VOICE-AUDIO-ASSETS' && requirement !== 'IR-MICRO-VOICE-FINAL-SCHEMA')
@@ -44,12 +49,14 @@ export function resolveMicroCheckVoiceRuntimeReadinessV21(
   const blockers: string[] = [];
   if (!registry.valid) blockers.push('registry_invalid');
   if (!MICRO_CHECK_VOICE_V2_1_BEHAVIOR_READY) blockers.push('global_behavior_ready_false');
-  if (!MICRO_CHECK_VOICE_V2_1_AUDIO_READY) blockers.push('global_audio_ready_false');
+  if (!audioReadyForSelection) {
+    blockers.push(betaDefaultEnabled ? 'global_physical_audio_surface_ready_false' : 'global_audio_ready_false');
+  }
   for (const requirement of behaviorBlockers) blockers.push(requirement);
   for (const cueKey of missingAudioCueKeys) blockers.push(`missing_audio:${cueKey}`);
   const softwareContractValid = registry.valid && missingAudioCueKeys.length >= 0;
   const behaviorReady = MICRO_CHECK_VOICE_V2_1_BEHAVIOR_READY && behaviorBlockers.length === 0;
-  const audioReady = MICRO_CHECK_VOICE_V2_1_AUDIO_READY && missingAudioCueKeys.length === 0;
+  const audioReady = audioReadyForSelection && missingAudioCueKeys.length === 0;
   return {
     type,
     softwareContractValid,
@@ -68,18 +75,29 @@ export function resolveMicroCheckVoiceRuntimeReadinessV21(
 export function selectMicroCheckVoiceRuntimeModeV21(input: {
   readonly microCheckTypes: readonly MicroCheckType[];
   readonly featureEnabled?: boolean;
+  readonly betaDefaultEnabled?: boolean;
 }): MicroCheckVoiceRuntimeSelectionV21 {
   const featureEnabled = input.featureEnabled ?? isMicroCheckVoiceV21FeatureEnabled();
-  const typeReadiness = input.microCheckTypes.map(resolveMicroCheckVoiceRuntimeReadinessV21);
+  const betaDefaultEnabled = input.betaDefaultEnabled === true;
+  const typeReadiness = input.microCheckTypes.map((type) =>
+    resolveMicroCheckVoiceRuntimeReadinessV21(type, { betaDefaultEnabled })
+  );
   const reasonCodes: string[] = [];
   if (!featureEnabled) reasonCodes.push('feature_flag_off');
+  if (!betaDefaultEnabled) reasonCodes.push('beta_default_off');
   if (!MICRO_CHECK_VOICE_V2_1_BEHAVIOR_READY) reasonCodes.push('behavior_ready_false');
-  if (!MICRO_CHECK_VOICE_V2_1_AUDIO_READY) reasonCodes.push('audio_ready_false');
+  const audioReadyForSelection = betaDefaultEnabled
+    ? MICRO_CHECK_VOICE_V2_1_PHYSICAL_AUDIO_SURFACE_READY
+    : MICRO_CHECK_VOICE_V2_1_AUDIO_READY;
+  if (!audioReadyForSelection) {
+    reasonCodes.push(betaDefaultEnabled ? 'physical_audio_surface_ready_false' : 'audio_ready_false');
+  }
   for (const readiness of typeReadiness) {
     if (!readiness.selectable) reasonCodes.push(...readiness.blockers);
   }
   const v21Selectable =
     featureEnabled &&
+    betaDefaultEnabled &&
     typeReadiness.length > 0 &&
     typeReadiness.every((readiness) => readiness.selectable);
   return {
@@ -92,9 +110,27 @@ export function selectMicroCheckVoiceRuntimeModeV21(input: {
 }
 
 export function microCheckVoiceSelectableTypeCountV21(
-  types: readonly MicroCheckType[] = ['chair-power', 'single-leg-balance', 'mobility-reach']
+  input: MicroCheckVoiceSelectableTypeCountInput = ['chair-power', 'single-leg-balance', 'mobility-reach']
 ): number {
-  return types.filter((type) => resolveMicroCheckVoiceRuntimeReadinessV21(type).selectable).length;
+  const inputIsArray = isMicroCheckTypeList(input);
+  const types: readonly MicroCheckType[] = inputIsArray
+    ? input
+    : input.types ?? ['chair-power', 'single-leg-balance', 'mobility-reach'];
+  const betaDefaultEnabled = !inputIsArray && input.betaDefaultEnabled === true;
+  return types.filter((type) => resolveMicroCheckVoiceRuntimeReadinessV21(type, { betaDefaultEnabled }).selectable).length;
+}
+
+type MicroCheckVoiceSelectableTypeCountInput =
+  | readonly MicroCheckType[]
+  | {
+      readonly types?: readonly MicroCheckType[];
+      readonly betaDefaultEnabled?: boolean;
+    };
+
+function isMicroCheckTypeList(
+  input: MicroCheckVoiceSelectableTypeCountInput
+): input is readonly MicroCheckType[] {
+  return Array.isArray(input);
 }
 
 export function isMicroCheckVoiceV21FeatureEnabled(

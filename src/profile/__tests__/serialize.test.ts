@@ -17,6 +17,7 @@ describe('preferences serialize', () => {
     profile: { name: 'Margaret', age: null, ageBand: '55_64', goal: 'Stay steady on the stairs', lifeGoal, safetyProfile: null },
     settings: {
       voiceId: 'clara',
+      voiceExperienceMode: 'v21_beta',
       remindersEnabled: true,
       phoneStandAvailable: true,
       supportSharingLevel: 'private',
@@ -36,7 +37,7 @@ describe('preferences serialize', () => {
   });
 
   it('writes a schema version', () => {
-    expect(JSON.parse(serializePreferences(sample)).schemaVersion).toBe(4);
+    expect(JSON.parse(serializePreferences(sample)).schemaVersion).toBe(5);
   });
 
   it('migrates legacy exact ages into age bands', () => {
@@ -87,6 +88,7 @@ describe('preferences serialize', () => {
     );
     expect(parsed?.settings).toMatchObject({
       voiceId: 'clara',
+      voiceExperienceMode: 'v21_beta',
       remindersEnabled: true,
       phoneStandAvailable: false,
       supportSharingLevel: 'private',
@@ -180,6 +182,7 @@ describe('ProfileStore', () => {
       profile: { name: 'David', age: null, ageBand: '65_74', goal: '', lifeGoal: null, safetyProfile: null },
       settings: {
         voiceId: 'clara',
+        voiceExperienceMode: 'v21_beta',
         remindersEnabled: true,
         phoneStandAvailable: false,
         supportSharingLevel: 'private',

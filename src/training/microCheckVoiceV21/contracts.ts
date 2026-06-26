@@ -1,4 +1,5 @@
-import { DEFAULT_MICROCHECK_CONFIG, type MicroCheckType } from '../microCheck';
+import type { MicroCheckType } from '../microCheck';
+import { MICRO_CHECK_DEFAULT_MAX_ACTIVE_MS } from '../microCheckConfig';
 import type {
   MicroCheckTypeV21,
   MicroCheckVoiceContractV21,
@@ -46,7 +47,7 @@ export const MICRO_CHECK_VOICE_CONTRACTS_V21 = [
     finalPositionStrategy: 'explicit_ready_plus_camera_readiness',
     endPolicy: 'accepted_rep_target_or_cap',
     targetDescription: '5 accepted chair stands',
-    hardCapMs: DEFAULT_MICROCHECK_CONFIG.maxActiveMs,
+    hardCapMs: MICRO_CHECK_DEFAULT_MAX_ACTIVE_MS,
     repSfxOnly: true,
     progressCueKeys: [],
     stopCueKey: 'times-up-v21',
@@ -72,7 +73,7 @@ export const MICRO_CHECK_VOICE_CONTRACTS_V21 = [
     finalPositionStrategy: 'explicit_ready_plus_selected_side_camera_readiness',
     endPolicy: 'hold_end_or_cap',
     targetDescription: 'hold as long as comfortable; current grader target 40 seconds, runner hard cap 45 seconds',
-    hardCapMs: DEFAULT_MICROCHECK_CONFIG.maxActiveMs,
+    hardCapMs: MICRO_CHECK_DEFAULT_MAX_ACTIVE_MS,
     repSfxOnly: false,
     progressCueKeys: [],
     stopCueKey: 'times-up-v21',
@@ -102,7 +103,7 @@ export const MICRO_CHECK_VOICE_CONTRACTS_V21 = [
     finalPositionStrategy: 'explicit_ready_plus_selected_side_camera_readiness',
     endPolicy: 'fixed_rom_window',
     targetDescription: 'current ROM capture window with runner hard cap preserved at 45 seconds',
-    hardCapMs: DEFAULT_MICROCHECK_CONFIG.maxActiveMs,
+    hardCapMs: MICRO_CHECK_DEFAULT_MAX_ACTIVE_MS,
     repSfxOnly: false,
     progressCueKeys: [],
     stopCueKey: 'micro-relax-v21',

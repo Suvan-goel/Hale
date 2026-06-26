@@ -212,7 +212,7 @@ export function createPoseOverlayBenchmarkModes(platformOS: string): readonly Be
     softDigitalTwinMode(
       'soft-digital-twin',
       'Premium Human Balanced',
-      'Restored matte human mass with cleaner seams',
+      'Unified full-body envelope',
       'balanced'
     ),
     spriteLimbAvatarMode(),
@@ -296,7 +296,7 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
     Math.max(systemInsets.top, Platform.OS === 'android' ? StatusBar.currentHeight ?? 0 : 0) +
     spacing.sm;
   const bottomChromeOffset = Math.max(systemInsets.bottom, 0) + spacing.md;
-  const [modeId, setModeId] = React.useState<BenchmarkModeId>('raw-skeleton');
+  const [modeId, setModeId] = React.useState<BenchmarkModeId>('soft-digital-twin');
   const mode = BENCHMARK_MODES.find((candidate) => candidate.id === modeId) ?? BENCHMARK_MODES[1];
   const nativeBenchmarkOverlayMode = mode.nativeBenchmarkOverlayMode ?? 'off';
   const [nativeProfileId, setNativeProfileId] =
@@ -545,11 +545,11 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
           fit="contain"
           minConfidence={0.25}
           lowLatencyMode
-          mediapipeSkeletonStroke="#2F6F80"
-          mediapipeSkeletonPointColor="#19505D"
-          mediapipeSkeletonLabelColor="#19505D"
-          mediapipeSkeletonOpacity={0.72}
-          mediapipeSkeletonLineWidthScale={0.34}
+          mediapipeSkeletonStroke="#A98243"
+          mediapipeSkeletonPointColor="#A98243"
+          mediapipeSkeletonLabelColor="#7A5D2F"
+          mediapipeSkeletonOpacity={0.76}
+          mediapipeSkeletonLineWidthScale={0.36}
           mediapipeSkeletonConnectionSet="body"
           mediapipeSkeletonShowLandmarks
           mediapipeSkeletonShowLabels={skeletonLabelsEnabled}
@@ -847,7 +847,7 @@ function softDigitalTwinMode(
     title,
     subtitle,
     configuredDotCount: 0,
-    configuredShapeCount: 13,
+    configuredShapeCount: preset === 'balanced' ? 4 : 13,
     rendererProps: {
       mode: 'soft_digital_twin',
       softDigitalTwinVisualPreset: preset,

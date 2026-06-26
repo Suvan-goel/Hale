@@ -67,7 +67,7 @@ The six contracts no longer carry `IR-VOICE-ROUND-STATE` or `IR-VOICE-DOSE-CONVE
 - Both-sides rounds flag: `EXPO_PUBLIC_ENABLE_TRAINING_BOTH_SIDES_ROUNDS`, default off.
 - Training Voice V2.1 flag: `EXPO_PUBLIC_ENABLE_TRAINING_VOICE_V2_1`, default off.
 - Training Voice V2.1 audio ready: false.
-- Training Voice V2.1 global behaviour ready: false.
+- Training Voice V2.1 global behaviour ready: true.
 
 ## 14. Persistence and Sync
 
@@ -87,7 +87,7 @@ Production: `src/training/bothSidesRounds/*`, `src/training/voiceV21/*`, additiv
 
 ## 18. Worktree Integrity
 
-Branch: `dev`; HEAD: `9bcfb41` (`9bcfb4164fccd8430081fd9ca4d300b0a29bbc63`); upstream: `origin/dev`. The worktree was already dirty. No audio was generated or changed.
+Branch: `dev`; HEAD: `aa7ab05` (`aa7ab05fc28925e02fc8b1088976afd829095e0e`); upstream: `origin/dev`. The worktree was already dirty. No audio was generated or changed.
 
 ## 19. Exact Next Phase
 

@@ -1,17 +1,17 @@
 {
   "primaryVerdict": "TRAINING_BOTH_SIDES_ROUNDS_SOFTWARE_COMPLETE",
-  "generatedAt": "2026-06-25T11:13:47.869Z",
+  "generatedAt": "2026-06-26T12:15:22.506Z",
   "git": {
     "branch": "dev",
-    "head": "9bcfb4164fccd8430081fd9ca4d300b0a29bbc63",
-    "headShort": "9bcfb41",
+    "head": "aa7ab05fc28925e02fc8b1088976afd829095e0e",
+    "headShort": "aa7ab05",
     "upstream": "origin/dev"
   },
   "featureDefaults": {
     "bothSidesRounds": "off",
     "trainingVoiceV21": "off",
     "trainingVoiceV21AudioReady": false,
-    "trainingVoiceV21BehaviorReady": false,
+    "trainingVoiceV21BehaviorReady": true,
     "balanceV2DefaultClosed": true,
     "balanceV2AudioReady": false
   },
@@ -38,7 +38,7 @@
     "activeSpokenSetCountCueCount": 0,
     "physicalManifestChanges": 0,
     "remainingRoundDoseBlockerCountInSixContracts": 0,
-    "globalTrainingVoiceV21BehaviorReady": false,
+    "globalTrainingVoiceV21BehaviorReady": true,
     "trainingVoiceV21AudioReady": false,
     "trainingVoiceV21FeatureDefault": "off",
     "balanceV2DefaultClosed": true,
@@ -158,28 +158,18 @@
       "readiness": {
         "exerciseId": "balance-single-leg-hold",
         "softwareContractValid": true,
-        "behaviorReady": false,
+        "behaviorReady": true,
         "targetReady": true,
         "safetyPlanReady": true,
         "audioReady": false,
         "selectable": false,
         "blockers": [
-          "behavior_dependency:IR-VOICE-SAFETY-SUBSUMPTION",
-          "global_behavior_ready_false",
-          "global_audio_ready_false",
-          "missing_audio:ex-balance-single-leg-hold-first-v21",
-          "missing_audio:ex-balance-single-leg-hold-next-v21",
-          "missing_audio:side-single-leg-left-v21",
-          "missing_audio:side-single-leg-right-v21",
-          "missing_audio:switch-legs-v21",
-          "missing_audio:target-balance-single-leg-hold-v21"
+          "global_audio_ready_false"
         ],
         "legacyFallbackAvailable": true,
         "notes": "Training Voice V2.1 item is blocked and must use the legacy voice path."
       },
-      "contractRequirements": [
-        "IR-VOICE-SAFETY-SUBSUMPTION"
-      ]
+      "contractRequirements": []
     },
     {
       "exerciseId": "balance-tandem-hold",
@@ -290,28 +280,18 @@
       "readiness": {
         "exerciseId": "balance-tandem-hold",
         "softwareContractValid": true,
-        "behaviorReady": false,
+        "behaviorReady": true,
         "targetReady": true,
         "safetyPlanReady": true,
         "audioReady": false,
         "selectable": false,
         "blockers": [
-          "behavior_dependency:IR-VOICE-SAFETY-SUBSUMPTION",
-          "global_behavior_ready_false",
-          "global_audio_ready_false",
-          "missing_audio:ex-balance-tandem-hold-first-v21",
-          "missing_audio:ex-balance-tandem-hold-next-v21",
-          "missing_audio:side-tandem-left-front-v21",
-          "missing_audio:side-tandem-right-front-v21",
-          "missing_audio:switch-foot-positions-v21",
-          "missing_audio:target-balance-tandem-hold-v21"
+          "global_audio_ready_false"
         ],
         "legacyFallbackAvailable": true,
         "notes": "Training Voice V2.1 item is blocked and must use the legacy voice path."
       },
-      "contractRequirements": [
-        "IR-VOICE-SAFETY-SUBSUMPTION"
-      ]
+      "contractRequirements": []
     },
     {
       "exerciseId": "chair-supported-split-squat",
@@ -402,28 +382,18 @@
       "readiness": {
         "exerciseId": "chair-supported-split-squat",
         "softwareContractValid": true,
-        "behaviorReady": false,
+        "behaviorReady": true,
         "targetReady": true,
         "safetyPlanReady": true,
         "audioReady": false,
         "selectable": false,
         "blockers": [
-          "behavior_dependency:IR-VOICE-SAFETY-SUBSUMPTION",
-          "global_behavior_ready_false",
-          "global_audio_ready_false",
-          "missing_audio:ex-chair-supported-split-squat-first-v21",
-          "missing_audio:ex-chair-supported-split-squat-next-v21",
-          "missing_audio:side-split-squat-left-forward-v21",
-          "missing_audio:side-split-squat-right-forward-v21",
-          "missing_audio:switch-sides-v21",
-          "missing_audio:target-chair-supported-split-squat-v21"
+          "global_audio_ready_false"
         ],
         "legacyFallbackAvailable": true,
         "notes": "Training Voice V2.1 item is blocked and must use the legacy voice path."
       },
-      "contractRequirements": [
-        "IR-VOICE-SAFETY-SUBSUMPTION"
-      ]
+      "contractRequirements": []
     },
     {
       "exerciseId": "seated-hamstring-reach",
@@ -514,28 +484,18 @@
       "readiness": {
         "exerciseId": "seated-hamstring-reach",
         "softwareContractValid": true,
-        "behaviorReady": false,
+        "behaviorReady": true,
         "targetReady": true,
         "safetyPlanReady": true,
         "audioReady": false,
         "selectable": false,
         "blockers": [
-          "behavior_dependency:IR-VOICE-SAFETY-SUBSUMPTION",
-          "global_behavior_ready_false",
-          "global_audio_ready_false",
-          "missing_audio:ex-seated-hamstring-reach-first-v21",
-          "missing_audio:ex-seated-hamstring-reach-next-v21",
-          "missing_audio:side-hamstring-left-extended-v21",
-          "missing_audio:side-hamstring-right-extended-v21",
-          "missing_audio:switch-sides-v21",
-          "missing_audio:target-seated-hamstring-reach-v21"
+          "global_audio_ready_false"
         ],
         "legacyFallbackAvailable": true,
         "notes": "Training Voice V2.1 item is blocked and must use the legacy voice path."
       },
-      "contractRequirements": [
-        "IR-VOICE-SAFETY-SUBSUMPTION"
-      ]
+      "contractRequirements": []
     },
     {
       "exerciseId": "supported-hip-flexor-stretch",
@@ -626,28 +586,18 @@
       "readiness": {
         "exerciseId": "supported-hip-flexor-stretch",
         "softwareContractValid": true,
-        "behaviorReady": false,
+        "behaviorReady": true,
         "targetReady": true,
         "safetyPlanReady": true,
         "audioReady": false,
         "selectable": false,
         "blockers": [
-          "behavior_dependency:IR-VOICE-SAFETY-SUBSUMPTION",
-          "global_behavior_ready_false",
-          "global_audio_ready_false",
-          "missing_audio:ex-supported-hip-flexor-stretch-first-v21",
-          "missing_audio:ex-supported-hip-flexor-stretch-next-v21",
-          "missing_audio:side-hip-flexor-left-back-v21",
-          "missing_audio:side-hip-flexor-right-back-v21",
-          "missing_audio:switch-sides-v21",
-          "missing_audio:target-supported-hip-flexor-stretch-v21"
+          "global_audio_ready_false"
         ],
         "legacyFallbackAvailable": true,
         "notes": "Training Voice V2.1 item is blocked and must use the legacy voice path."
       },
-      "contractRequirements": [
-        "IR-VOICE-SAFETY-SUBSUMPTION"
-      ]
+      "contractRequirements": []
     },
     {
       "exerciseId": "wall-calf-stretch",
@@ -738,28 +688,18 @@
       "readiness": {
         "exerciseId": "wall-calf-stretch",
         "softwareContractValid": true,
-        "behaviorReady": false,
+        "behaviorReady": true,
         "targetReady": true,
         "safetyPlanReady": true,
         "audioReady": false,
         "selectable": false,
         "blockers": [
-          "behavior_dependency:IR-VOICE-SAFETY-SUBSUMPTION",
-          "global_behavior_ready_false",
-          "global_audio_ready_false",
-          "missing_audio:ex-wall-calf-stretch-first-v21",
-          "missing_audio:ex-wall-calf-stretch-next-v21",
-          "missing_audio:side-calf-left-back-v21",
-          "missing_audio:side-calf-right-back-v21",
-          "missing_audio:switch-sides-v21",
-          "missing_audio:target-wall-calf-stretch-v21"
+          "global_audio_ready_false"
         ],
         "legacyFallbackAvailable": true,
         "notes": "Training Voice V2.1 item is blocked and must use the legacy voice path."
       },
-      "contractRequirements": [
-        "IR-VOICE-SAFETY-SUBSUMPTION"
-      ]
+      "contractRequirements": []
     }
   ],
   "scenarios": [

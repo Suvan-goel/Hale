@@ -104,6 +104,7 @@ describe('rigged human silhouette production isolation', () => {
       'utf8'
     );
     expect(benchmarkSource).not.toContain('rigged-human-silhouette');
+    expect(benchmarkSource).not.toContain('natural-human-rig');
     expect(benchmarkSource).not.toContain('rigged_human_silhouette');
     expect(benchmarkSource).not.toContain('shadow-silhouette');
     expect(benchmarkSource).not.toContain('shadow_silhouette');

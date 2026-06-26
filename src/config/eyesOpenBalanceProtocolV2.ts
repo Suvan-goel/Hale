@@ -29,6 +29,7 @@ export const EYES_OPEN_BALANCE_PROTOCOL_V2_PHYSICAL_AUDIO_SURFACE_READY =
   );
 export const EYES_OPEN_BALANCE_PROTOCOL_V2_AUDIO_APPROVAL_READY = false;
 export const EYES_OPEN_BALANCE_PROTOCOL_V2_AUDIO_READY = false;
+export const EYES_OPEN_BALANCE_PROTOCOL_V2_BETA_DEFAULT_ENABLED = true;
 
 export function parseEyesOpenBalanceProtocolV2Flag(value: unknown): boolean {
   return value === '1';
@@ -37,7 +38,11 @@ export function parseEyesOpenBalanceProtocolV2Flag(value: unknown): boolean {
 export function isEyesOpenBalanceProtocolV2Selectable(input: {
   flagValue?: unknown;
   audioReady?: boolean;
+  betaDefaultEnabled?: boolean;
 } = {}): boolean {
+  if (input.betaDefaultEnabled === true) {
+    return EYES_OPEN_BALANCE_PROTOCOL_V2_PHYSICAL_AUDIO_SURFACE_READY;
+  }
   const flagValue =
     input.flagValue === undefined
       ? process.env.EXPO_PUBLIC_ENABLE_EYES_OPEN_BALANCE_PROTOCOL_V2

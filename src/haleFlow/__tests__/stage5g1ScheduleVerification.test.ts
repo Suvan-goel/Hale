@@ -418,12 +418,21 @@ describe('Stage 5G.1 lapse, restart, and re-test gates', () => {
       completions: lateFinal,
       now: '2026-06-29T12:00:00.000Z',
     }).map((option) => option.type)).not.toContain('official_retest');
-    expect(getManualCheckupOptions({
+    const nextDayManualOptions = getManualCheckupOptions({
       latestAssessment: baseline,
       activeBlock: block,
       completions: lateFinal,
       now: '2026-06-30T08:00:00.000Z',
-    })[0]).toMatchObject({ type: 'official_retest', isOfficialForProgress: true });
+    });
+    expect(nextDayManualOptions.map((option) => option.type)).toEqual(['micro_check', 'manual_extra_v2']);
+    expect(nextDayManualOptions.map((option) => option.isOfficialForProgress)).toEqual([false, false]);
+    expect(getHaleAppLifecycle({
+      profile: profile(),
+      history: [],
+      training: defaultTrainingState(),
+      adherence: { ...defaultAdherenceStoreState(), assessments: [baseline], blocks: [block], completions: lateFinal },
+      today: '2026-06-30T08:00:00.000Z',
+    }).state).toBe('monthly_retest_due');
   });
 });
 
