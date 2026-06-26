@@ -898,13 +898,13 @@ function buildCentralShell(
   );
   const ribHalf = clamp(shoulderHalf * 0.74, hipHalf * 1.02, shoulderHalf * 0.88);
   const waistHalf = clamp((ribHalf + hipHalf) * 0.36, proportions.bodyScale * 0.3, shoulderHalf * 0.66);
-  const neckHalf = clamp(proportions.headRx * 0.44, proportions.bodyScale * 0.14, proportions.bodyScale * 0.25);
+  const neckHalf = clamp(proportions.headRx * 0.62, proportions.bodyScale * 0.12, proportions.bodyScale * 0.22);
   const head = getHeadEstimate(pose, MIN_RENDER_CONFIDENCE);
   const rawHeadRx = head ? blend(proportions.headRx, head.rx, 0.18) : proportions.headRx;
   const headRx = clamp(
     rawHeadRx * 0.78 * blend(1, 0.66, orientation.factor),
-    proportions.shoulderWidth * 0.18,
-    proportions.shoulderWidth * 0.25
+    proportions.shoulderWidth * 0.2,
+    proportions.shoulderWidth * 0.29
   );
   const headRy = clamp(
     head ? blend(proportions.headRy, head.ry, 0.14) : proportions.headRy,
@@ -926,10 +926,10 @@ function buildCentralShell(
   const headRight = add(add(headCenter, scale(axis, -headRy * 0.1)), scale(sideAxis, -headRx));
   const jawLeft = add(add(headCenter, scale(axis, headRy * 0.5)), scale(sideAxis, headRx * 0.58));
   const jawRight = add(add(headCenter, scale(axis, headRy * 0.5)), scale(sideAxis, -headRx * 0.58));
-  const neckTopLeft = add(upperNeck, scale(sideAxis, neckHalf * 0.68));
-  const neckTopRight = add(upperNeck, scale(sideAxis, -neckHalf * 0.68));
-  const neckLeft = add(neckBase, scale(sideAxis, neckHalf * 1.08));
-  const neckRight = add(neckBase, scale(sideAxis, -neckHalf * 1.08));
+  const neckTopLeft = add(upperNeck, scale(sideAxis, neckHalf * 0.58));
+  const neckTopRight = add(upperNeck, scale(sideAxis, -neckHalf * 0.58));
+  const neckLeft = add(neckBase, scale(sideAxis, neckHalf * 1.46));
+  const neckRight = add(neckBase, scale(sideAxis, -neckHalf * 1.46));
   const trapLeft = add(add(shoulderMid, scale(axis, torsoLength * 0.006)), scale(sideAxis, shoulderHalf * 0.42));
   const trapRight = add(add(shoulderMid, scale(axis, torsoLength * 0.006)), scale(sideAxis, -shoulderHalf * 0.42));
   const shoulderLeft = add(add(shoulderMid, scale(axis, torsoLength * 0.076)), scale(sideAxis, shoulderHalf));
