@@ -2,7 +2,7 @@
  * Trainer-voice catalog. Voice lines are pre-generated, bundled audio assets
  * (CLAUDE.md audio rule — no runtime TTS in the session path), so each voice is
  * a full set of recordings synthesized once by scripts/generate-audio.ts via
- * the ElevenLabs API (Flash v2.5 model). The `elevenLabsVoiceId` here is the
+ * the ElevenLabs API (Multilingual v2 model). The `elevenLabsVoiceId` here is the
  * ElevenLabs voice used at *generation* time only; nothing in the app ever
  * calls ElevenLabs at runtime.
  *

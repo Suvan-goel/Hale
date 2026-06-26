@@ -5,7 +5,7 @@ import type {
   PoseAvatarRendererMode,
   PoseAvatarRendererProps,
 } from './poseAvatarTypes';
-import type { PointCloudBodyDensity } from './pointCloudBodyGeometry';
+import type { PointCloudBodyDensity, PointCloudBodyShapeProfile } from './pointCloudBodyGeometry';
 
 export type PoseAvatarDebugVariant =
   | 'classic'
@@ -64,6 +64,7 @@ export interface PoseAvatarResolvedConfig {
   pointCloudBodyShowKeypoints: boolean;
   pointCloudBodyDotScale: number;
   pointCloudBodyOpacity: number;
+  pointCloudBodyShapeProfile: PointCloudBodyShapeProfile;
   confidenceFadingEnabled: boolean;
   confidenceIntensityEnabled: boolean;
   reacquisitionFadeEnabled: boolean;
@@ -391,7 +392,7 @@ export function resolvePoseAvatarConfig(
         env.EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_MAX_DOTS,
         lowLatencyMode ? 520 : 900,
         120,
-        lowLatencyMode ? 560 : 900
+        props.pointCloudBodyMaxDots !== undefined ? 2400 : lowLatencyMode ? 560 : 900
       )
     ),
     pointCloudBodyShowConnections: pointCloudBodyShowConnections && !lowLatencyMode,
@@ -427,6 +428,7 @@ export function resolvePoseAvatarConfig(
       0,
       1
     ),
+    pointCloudBodyShapeProfile: props.pointCloudBodyShapeProfile ?? 'standard',
     confidenceFadingEnabled:
       props.confidenceFadingEnabled ??
       (phase3Enabled

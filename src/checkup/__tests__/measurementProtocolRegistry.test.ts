@@ -19,15 +19,15 @@ import { BALANCE_LADDER_ID, CHAIR_STAND_ID, HINGE_REACH_ID, TUG_ID } from '../..
 describe('measurement protocol registry', () => {
   it('registers stable protocol ids and positive versions for current persisted measurements', () => {
     const protocols = listMeasurementProtocols();
-    expect(protocols.length).toBe(16);
+    expect(protocols.length).toBe(19);
     expect(new Set(protocols.map((protocol) => `${protocol.protocolId}@${protocol.protocolVersion}`)).size).toBe(protocols.length);
     expect(protocols.every((protocol) => protocol.protocolVersion > 0)).toBe(true);
   });
 
   it('keeps side requirements and roles internally consistent', () => {
     const protocols = listMeasurementProtocols();
-    expect(protocols.filter((protocol) => protocol.sideRequired)).toHaveLength(7);
-    expect(protocols.filter((protocol) => !protocol.sideRequired)).toHaveLength(9);
+    expect(protocols.filter((protocol) => protocol.sideRequired)).toHaveLength(9);
+    expect(protocols.filter((protocol) => !protocol.sideRequired)).toHaveLength(10);
     expect(protocols.filter((protocol) => protocol.sideRequired).every((protocol) => protocol.sideRole !== 'not_applicable')).toBe(true);
     expect(protocols.filter((protocol) => !protocol.sideRequired).every((protocol) => protocol.sideRole === 'not_applicable')).toBe(true);
   });
@@ -51,6 +51,21 @@ describe('measurement protocol registry', () => {
     expect(descriptorForMicroCheck('chair-power').protocolId).toBe('micro_chair_power_5_reps_v1');
     expect(getMeasurementProtocolDescriptor('mpv2_single_leg_balance_45s_v1')).not.toBeNull();
     expect(getMeasurementProtocolDescriptor(BALANCE_EYES_OPEN_V2_PROTOCOL_ID, BALANCE_EYES_OPEN_V2_PROTOCOL_VERSION)).not.toBeNull();
+    expect(getMeasurementProtocolDescriptor('micro_chair_power_5_reps_v21', 2)).toMatchObject({
+      movementId: 'chair-power',
+      sideRole: 'not_applicable',
+      comparisonGroup: 'micro_chair_power_v21',
+    });
+    expect(getMeasurementProtocolDescriptor('micro_single_leg_balance_v21', 2)).toMatchObject({
+      movementId: 'single-leg-balance',
+      sideRole: 'standing_leg',
+      sideRequired: true,
+    });
+    expect(getMeasurementProtocolDescriptor('micro_mobility_reach_v21', 2)).toMatchObject({
+      movementId: 'mobility-reach',
+      sideRole: 'extended_leg',
+      sideRequired: true,
+    });
   });
 
   it('preserves TUG variant metadata and fails safely for unknown legacy ids', () => {

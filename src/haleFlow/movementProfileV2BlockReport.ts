@@ -64,7 +64,7 @@ export function createMovementProfileV2BlockReport(input: {
     summary: 'You completed the plan and finished your next Movement Check-Up.',
     sessionsCompleted: input.schedule.totalCredits,
     totalPlannedSessions: input.priorBlock.totalPlannedSessions,
-    microChecksCompleted: 0,
+    microChecksCompleted: input.priorBlock.microChecksCompleted,
     priorBlock: {
       blockId: input.priorBlock.id,
       ...(input.priorBlock.blockFingerprint ? { blockFingerprint: input.priorBlock.blockFingerprint } : {}),

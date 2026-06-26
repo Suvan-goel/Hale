@@ -60,6 +60,24 @@ function completion(): TrainingSessionCompletion {
   };
 }
 
+function slotCompletion(slotId: string): TrainingSessionCompletion {
+  return {
+    ...completion(),
+    id: `completion-movement-block-1-micro_check-${slotId}`,
+    plannedDate: slotId,
+    microCheckSlot: {
+      slotId,
+      policyVersion: 1,
+      policyFingerprint: 'policy-test',
+      targetSource: 'balanced_schedule_rotation',
+      targetDomain: 'balance',
+      microCheckType: 'single-leg-balance',
+      scheduleWeekIndex: 1,
+      scheduleWeekNumber: 2,
+    },
+  };
+}
+
 function selectBuilder(data: unknown, error: unknown = null) {
   const builder: {
     select: jest.Mock;
@@ -134,6 +152,52 @@ describe('micro-check sync mapping', () => {
     expect(
       mapLocalMicroCheckToRemotePayload({ result: microCheck({ type: 'mobility-reach' }) }, 'user-123').domain
     ).toBe('mobility');
+  });
+
+  it('uses slot identity for slot-backed micro-check upserts and payload metadata', () => {
+    const slotId = 'micro-check:movement-block-1:week-2:balanced_schedule_rotation:balance:single-leg-balance';
+    const payload = mapLocalMicroCheckToRemotePayload(
+      {
+        result: microCheck({
+          type: 'single-leg-balance',
+          slotId,
+          blockId: 'movement-block-1',
+          completedAt,
+          policyVersion: 1,
+          policyFingerprint: 'policy-test',
+          targetSource: 'balanced_schedule_rotation',
+          targetDomain: 'balance',
+          scheduleWeekIndex: 1,
+          scheduleWeekNumber: 2,
+          value: 18,
+          reps: 0,
+        }),
+        movementBlock: movementBlock(),
+        completion: slotCompletion(slotId),
+      },
+      'user-123',
+      { movementBlockId: 'remote-block-123' }
+    );
+
+    expect(payload.local_micro_check_id).toMatch(/^microcheck-slot-/);
+    expect(payload.domain).toBe('balance');
+    expect(payload.result_json).toMatchObject({
+      result: {
+        slotId,
+        blockId: 'movement-block-1',
+        targetSource: 'balanced_schedule_rotation',
+        targetDomain: 'balance',
+        scheduleWeekIndex: 1,
+        scheduleWeekNumber: 2,
+      },
+      completion: {
+        microCheckSlot: {
+          slotId,
+          targetDomain: 'balance',
+          microCheckType: 'single-leg-balance',
+        },
+      },
+    });
   });
 
   it('upserts by user and local micro-check id, then skips an unchanged duplicate sync', async () => {

@@ -7,7 +7,7 @@ import {
 } from '../training/safetyCueDefinitions';
 
 export const AUDIO_TTS_PROVIDER = 'elevenlabs' as const;
-export const ELEVENLABS_MODEL = 'eleven_flash_v2_5' as const;
+export const ELEVENLABS_MODEL = 'eleven_multilingual_v2' as const;
 export const AUDIO_OUTPUT_FORMAT = 'mp3_44100_128' as const;
 export const SAFETY_AUDIO_FINGERPRINT_SCHEMA_VERSION = 1 as const;
 
@@ -15,7 +15,7 @@ export const AUDIO_VOICE_SETTINGS = {
   stability: 0.5,
   similarity_boost: 0.75,
   use_speaker_boost: true,
-  speed: 0.95,
+  speed: 0.92,
 } as const;
 
 export interface SafetyAudioAssetMetadata {

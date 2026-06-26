@@ -708,7 +708,8 @@ describe('Stage 5H invalid-state, crash/retry, restore, schema, and UI truthfuln
 
     expect(schedule.status).toBe('session_due');
     expect(schedule.nextTemplateId).toBe('mobility-B');
-    expect(lifecycle.state).toBe('normal_training_day');
+    expect(lifecycle.state).toBe('weekly_micro_check_due');
+    expect(lifecycle.microCheckTarget).toMatchObject({ type: 'mobility-reach', domain: 'mobility' });
     expect(planState.kind).toBe('ready');
     expect(retest.due).toBe(false);
     expect(getPlanEmptyStateCopy('needs_baseline_checkup').body.toLowerCase()).not.toMatch(/diagnosis|fall risk|failed|lost streak/);

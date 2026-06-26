@@ -36,6 +36,7 @@ import {
 import { PosePipeline } from '../pose/pipeline';
 import { SkeletonView, type SkeletonViewHandle } from '../render/SkeletonView';
 import type {
+  PremiumConstellationVolumePreset,
   PoseAvatarRendererProps,
   PoseAvatarRendererScheduleEvent,
 } from '../render/poseAvatarTypes';
@@ -44,15 +45,15 @@ import { colors, monoFamily, radius, spacing, type } from '../theme';
 type BenchmarkModeId =
   | 'no-overlay'
   | 'raw-skeleton'
-  | 'rigged-human-silhouette'
-  | 'shadow-silhouette'
-  | 'stipple-sensor-shadow'
-  | 'minimal-constellation'
-  | 'full-constellation'
-  | 'point-cloud-225'
-  | 'point-cloud-450'
   | 'point-cloud-900'
-  | 'refined-point-cloud-900'
+  | 'organic-balanced-dot-1400'
+  | 'premium-constellation-180'
+  | 'premium-constellation-300'
+  | 'premium-constellation-450'
+  | 'soft-continuous-silhouette'
+  | 'soft-digital-twin-lean'
+  | 'soft-digital-twin'
+  | 'sprite-limb-avatar'
   | 'production-point-cloud'
   | 'production-point-cloud-no-transitions'
   | 'constellation-v2-900-native'
@@ -165,155 +166,62 @@ interface BenchmarkResult {
 
 export function createPoseOverlayBenchmarkModes(platformOS: string): readonly BenchmarkMode[] {
   const modes: BenchmarkMode[] = [
-  {
-    id: 'no-overlay',
-    title: 'No overlay',
-    subtitle: 'Camera and pipeline only',
-    configuredDotCount: 0,
-    rendererProps: null,
-  },
-  {
-    id: 'raw-skeleton',
-    title: 'Raw skeleton',
-    subtitle: 'Classic paths from raw landmarks',
-    configuredDotCount: 0,
-    rendererProps: {
-      mode: 'classic',
-      frameSource: 'raw',
-      fit: 'contain',
+    {
+      id: 'no-overlay',
+      title: 'No overlay',
+      subtitle: 'Camera and pipeline only',
+      configuredDotCount: 0,
+      rendererProps: null,
     },
-  },
-  {
-    id: 'rigged-human-silhouette',
-    title: 'Rigged human silhouette',
-    subtitle: 'Continuous filled body, rigged control mesh',
-    configuredDotCount: 0,
-    configuredShapeCount: 8,
-    rendererProps: {
-      mode: 'rigged_human_silhouette',
-      frameSource: 'raw',
-      fit: 'contain',
-      smoothingEnabled: false,
-      confidenceFadingEnabled: false,
-      confidenceIntensityEnabled: false,
-      reacquisitionFadeEnabled: false,
-      recognitionPulseEnabled: false,
-      measurementStatesEnabled: false,
-      setupGuidesEnabled: false,
-      stateTransitionsEnabled: false,
-      domainEmphasisEnabled: false,
-      scanLineEnabled: false,
+    {
+      id: 'raw-skeleton',
+      title: 'Raw skeleton',
+      subtitle: 'Classic paths from raw landmarks',
+      configuredDotCount: 0,
+      rendererProps: {
+        mode: 'classic',
+        frameSource: 'raw',
+        fit: 'contain',
+      },
     },
-  },
-  {
-    id: 'shadow-silhouette',
-    title: 'Shadow silhouette',
-    subtitle: 'Filled MediaPipe-following body paths',
-    configuredDotCount: 0,
-    configuredShapeCount: 6,
-    rendererProps: {
-      mode: 'shadow_silhouette',
-      frameSource: 'raw',
-      fit: 'contain',
-      smoothingEnabled: false,
-      confidenceFadingEnabled: false,
-      confidenceIntensityEnabled: false,
-      reacquisitionFadeEnabled: false,
-      recognitionPulseEnabled: false,
-      measurementStatesEnabled: false,
-      setupGuidesEnabled: false,
-      stateTransitionsEnabled: false,
-      domainEmphasisEnabled: false,
-      scanLineEnabled: false,
-    },
-  },
-  {
-    id: 'stipple-sensor-shadow',
-    title: 'Stipple sensor shadow',
-    subtitle: 'Dense microdot body, refined sensor grain',
-    configuredDotCount: 3000,
-    configuredShapeCount: 9,
-    rendererProps: {
-      mode: 'volumetric_shadow',
-      frameSource: 'raw',
-      fit: 'contain',
-      smoothingEnabled: false,
-      pointCloudBodyMaxDots: 3000,
-      confidenceFadingEnabled: false,
-      confidenceIntensityEnabled: false,
-      reacquisitionFadeEnabled: false,
-      recognitionPulseEnabled: false,
-      measurementStatesEnabled: false,
-      setupGuidesEnabled: false,
-      stateTransitionsEnabled: false,
-      domainEmphasisEnabled: false,
-      scanLineEnabled: false,
-    },
-  },
-  {
-    id: 'minimal-constellation',
-    title: 'Minimal constellation',
-    subtitle: 'Core dots and lines, no volume',
-    configuredDotCount: 64,
-    rendererProps: {
-      mode: 'constellation',
-      frameSource: 'raw',
-      fit: 'contain',
-      smoothingEnabled: false,
-      sampledDotsEnabled: true,
-      maxDots: 64,
-      sampleDensity: 0.35,
-      bodyVolumeEnabled: false,
-      torsoVolumeEnabled: false,
-      headVolumeEnabled: false,
-      confidenceFadingEnabled: false,
-      confidenceIntensityEnabled: false,
-      reacquisitionFadeEnabled: false,
-      recognitionPulseEnabled: false,
-      measurementStatesEnabled: false,
-      setupGuidesEnabled: false,
-      stateTransitionsEnabled: false,
-      domainEmphasisEnabled: false,
-      scanLineEnabled: false,
-    },
-  },
-  {
-    id: 'full-constellation',
-    title: 'Full constellation',
-    subtitle: 'Dots, torso/head volume, normal styling',
-    configuredDotCount: 330,
-    rendererProps: {
-      mode: 'constellation',
-      frameSource: 'raw',
-      fit: 'contain',
-      smoothingEnabled: false,
-      sampledDotsEnabled: true,
-      maxDots: 180,
-      sampleDensity: 0.82,
-      bodyVolumeEnabled: true,
-      torsoVolumeEnabled: true,
-      headVolumeEnabled: true,
-      maxVolumeDots: 150,
-      torsoVolumeDots: 86,
-      headVolumeDots: 22,
-      confidenceFadingEnabled: false,
-      confidenceIntensityEnabled: false,
-      reacquisitionFadeEnabled: false,
-      recognitionPulseEnabled: false,
-      setupGuidesEnabled: false,
-      stateTransitionsEnabled: false,
-    },
-  },
-  pointCloudMode('point-cloud-225', 'Point cloud 225', 225, false),
-  pointCloudMode('point-cloud-450', 'Point cloud 450', 450, false),
-  pointCloudMode(CURRENT_900_DOT_BASELINE_MODE_ID, 'Current 900-dot SVG', 900, false),
-  refinedPointCloudMode(),
-  productionPointCloudMode('production-point-cloud', 'Production point cloud', false),
-  productionPointCloudMode(
-    'production-point-cloud-no-transitions',
-    'Production, no transitions',
-    true
-  ),
+    pointCloudMode(CURRENT_900_DOT_BASELINE_MODE_ID, 'Current 900-dot SVG', 900, false),
+    organicBalancedDotMode(),
+    premiumConstellationMode(
+      'premium-constellation-180',
+      'Constellation volume · 180',
+      'Premium dot-volume human, lowest budget',
+      'constellationVolume180',
+      180
+    ),
+    premiumConstellationMode(
+      'premium-constellation-300',
+      'Constellation volume · 300',
+      'Balanced premium dot-volume human',
+      'constellationVolume300',
+      300
+    ),
+    premiumConstellationMode(
+      'premium-constellation-450',
+      'Constellation volume · 450',
+      'Denser premium dot-volume human',
+      'constellationVolume450',
+      450
+    ),
+    softContinuousSilhouetteMode(),
+    softDigitalTwinMode('soft-digital-twin-lean', 'Premium Human · Lean', 'Previous thin matte silhouette tuning', 'lean'),
+    softDigitalTwinMode(
+      'soft-digital-twin',
+      'Premium Human Balanced',
+      'Restored matte human mass with cleaner seams',
+      'balanced'
+    ),
+    spriteLimbAvatarMode(),
+    productionPointCloudMode('production-point-cloud', 'Production point cloud', false),
+    productionPointCloudMode(
+      'production-point-cloud-no-transitions',
+      'Production, no transitions',
+      true
+    ),
   ];
   if (platformOS === 'android') {
     modes.push(
@@ -397,6 +305,7 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
     NATIVE_PROFILES.find((candidate) => candidate.id === nativeProfileId) ?? NATIVE_PROFILES[0];
   const [pipeline] = React.useState(() => new PosePipeline());
   const skeletonRef = React.useRef<SkeletonViewHandle>(null);
+  const alignmentSkeletonRef = React.useRef<SkeletonViewHandle>(null);
   const [cameraAvailability, setCameraAvailability] =
     React.useState<CameraAvailability>('checking');
   const [diagnostics, setDiagnostics] = React.useState<PoseLatencyDiagnostics | null>(() =>
@@ -408,10 +317,17 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
   const [resultJson, setResultJson] = React.useState<string>('');
   const [running, setRunning] = React.useState(false);
   const [detailsVisible, setDetailsVisible] = React.useState(false);
+  const [alignmentOverlayEnabled, setAlignmentOverlayEnabled] = React.useState(true);
+  const [skeletonLabelsEnabled, setSkeletonLabelsEnabled] = React.useState(false);
+  const [constructionOverlayEnabled, setConstructionOverlayEnabled] = React.useState(false);
   const [rendererEpoch, setRendererEpoch] = React.useState(0);
   const stopTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const runStartedAtRef = React.useRef<number | null>(null);
   const runDurationRef = React.useRef(0);
+  const alignmentOverlayVisible =
+    alignmentOverlayEnabled && mode.id !== 'no-overlay' && mode.id !== 'raw-skeleton';
+  const constructionOverlayAvailable = mode.rendererProps?.mode === 'soft_digital_twin';
+  const constructionOverlayVisible = constructionOverlayEnabled && constructionOverlayAvailable;
 
   const resetBenchmarkWindow = React.useCallback(() => {
     if (!diagnosticsAllowed) return;
@@ -487,13 +403,17 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
       const currentDiagnostics = diagnosticsRef.current;
       const frameToken = currentDiagnostics?.beginFrame(nativeEvent) ?? null;
       const out = pipeline.process(nativeEvent);
+      const sourceAspect = nativeEvent.sourceWidth / nativeEvent.sourceHeight;
       currentDiagnostics?.markJsTransformEnd(frameToken);
       if (mode.rendererProps) {
-        skeletonRef.current?.update(out, nativeEvent.sourceWidth / nativeEvent.sourceHeight);
+        skeletonRef.current?.update(out, sourceAspect);
         currentDiagnostics?.markRendererUpdateSubmitted(frameToken);
       }
+      if (alignmentOverlayVisible) {
+        alignmentSkeletonRef.current?.update(out, sourceAspect);
+      }
     },
-    [mode.rendererProps, pipeline]
+    [alignmentOverlayVisible, mode.rendererProps, pipeline]
   );
 
   const onRendererScheduleEvent = React.useCallback((event: PoseAvatarRendererScheduleEvent) => {
@@ -611,7 +531,28 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
           ref={skeletonRef}
           mirrored
           {...mode.rendererProps}
+          softDigitalTwinShowConstructionOverlay={constructionOverlayVisible}
           onRendererScheduleEvent={onRendererScheduleEvent}
+        />
+      ) : null}
+      {alignmentOverlayVisible ? (
+        <SkeletonView
+          key={`alignment-${mode.id}-${rendererEpoch}`}
+          ref={alignmentSkeletonRef}
+          mirrored
+          mode="mediapipe_skeleton"
+          frameSource="raw"
+          fit="contain"
+          minConfidence={0.25}
+          lowLatencyMode
+          mediapipeSkeletonStroke="#2F6F80"
+          mediapipeSkeletonPointColor="#19505D"
+          mediapipeSkeletonLabelColor="#19505D"
+          mediapipeSkeletonOpacity={0.72}
+          mediapipeSkeletonLineWidthScale={0.34}
+          mediapipeSkeletonConnectionSet="body"
+          mediapipeSkeletonShowLandmarks
+          mediapipeSkeletonShowLabels={skeletonLabelsEnabled}
         />
       ) : null}
 
@@ -638,14 +579,21 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
               {mode.title}
             </Text>
             <Text style={styles.summarySubtitle} numberOfLines={1}>
-              {nativeProfile.title} · {mode.configuredDotCount ?? 0} dots
+              {nativeProfile.title} · {figureComplexityLabel(mode)}
             </Text>
           </View>
-          <BenchmarkButton
-            label={detailsVisible ? 'Hide controls' : 'Change figure'}
-            onPress={() => setDetailsVisible((visible) => !visible)}
-            compact
-          />
+          <View style={styles.summaryActions}>
+            <BenchmarkButton
+              label={alignmentOverlayEnabled ? 'Skeleton on' : 'Skeleton off'}
+              onPress={() => setAlignmentOverlayEnabled((enabled) => !enabled)}
+              compact
+            />
+            <BenchmarkButton
+              label={detailsVisible ? 'Hide controls' : 'Change figure'}
+              onPress={() => setDetailsVisible((visible) => !visible)}
+              compact
+            />
+          </View>
         </View>
         <View style={styles.buttonRow}>
           <BenchmarkButton
@@ -660,6 +608,16 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
           />
           <BenchmarkButton label="Stop" onPress={stopMeasurement} disabled={!running} />
           <BenchmarkButton label="Export JSON" onPress={exportJson} disabled={!resultJson} />
+          <BenchmarkButton
+            label={skeletonLabelsEnabled ? 'Labels on' : 'Labels off'}
+            onPress={() => setSkeletonLabelsEnabled((enabled) => !enabled)}
+            disabled={!alignmentOverlayEnabled}
+          />
+          <BenchmarkButton
+            label={constructionOverlayEnabled ? 'Rig on' : 'Rig off'}
+            onPress={() => setConstructionOverlayEnabled((enabled) => !enabled)}
+            disabled={!constructionOverlayAvailable}
+          />
         </View>
         {detailsVisible ? (
           <ScrollView
@@ -708,7 +666,6 @@ export function PoseOverlayBenchmarkScreen({ onBack }: { onBack?: () => void }) 
               <>
                 <Text style={styles.detailSectionTitle}>Metrics</Text>
                 <MetricsStrip snapshot={snapshot} />
-                <RendererMetricsStrip mode={mode} stats={rendererStatsRef.current} />
                 <NativeRuntimeStrip runtime={snapshot.nativeRuntime} />
                 <NativeRendererMetricsStrip nativeRenderer={snapshot.nativeRenderer} />
               </>
@@ -766,21 +723,21 @@ function pointCloudMode(
   };
 }
 
-function refinedPointCloudMode(): BenchmarkMode {
+function organicBalancedDotMode(): BenchmarkMode {
   return {
-    id: 'refined-point-cloud-900',
-    title: 'Refined organic 900-dot SVG',
-    subtitle: 'Fuller dots, organic joint density',
-    configuredDotCount: 900,
+    id: 'organic-balanced-dot-1400',
+    title: 'Balanced organic dot SVG',
+    subtitle: 'Baseline shape, fuller fill, lower dot budget',
+    configuredDotCount: 1400,
     rendererProps: {
       mode: 'point_cloud_body',
       frameSource: 'raw',
       fit: 'contain',
       smoothingEnabled: false,
       pointCloudBodyDensity: 'high',
-      pointCloudBodyMaxDots: 900,
-      pointCloudBodyDotScale: 2.35,
-      pointCloudBodyShapeProfile: 'refined',
+      pointCloudBodyMaxDots: 1400,
+      pointCloudBodyDotScale: 1.48,
+      pointCloudBodyShapeProfile: 'organic',
       pointCloudBodyShowConnections: false,
       pointCloudBodyShowSkeletonLines: false,
       pointCloudBodyShowKeypoints: false,
@@ -795,6 +752,126 @@ function refinedPointCloudMode(): BenchmarkMode {
       scanLineEnabled: false,
     },
   };
+}
+
+function premiumConstellationMode(
+  id: BenchmarkModeId,
+  title: string,
+  subtitle: string,
+  preset: PremiumConstellationVolumePreset,
+  configuredDotCount: number
+): BenchmarkMode {
+  return {
+    id,
+    title,
+    subtitle,
+    configuredDotCount,
+    rendererProps: {
+      mode: 'premium_constellation_human',
+      frameSource: 'raw',
+      fit: 'contain',
+      smoothingEnabled: false,
+      premiumConstellationVolumePreset: preset,
+      premiumConstellationShowConnections: false,
+      confidenceFadingEnabled: false,
+      confidenceIntensityEnabled: false,
+      reacquisitionFadeEnabled: false,
+      recognitionPulseEnabled: false,
+      measurementStatesEnabled: false,
+      setupGuidesEnabled: false,
+      stateTransitionsEnabled: false,
+      domainEmphasisEnabled: false,
+      scanLineEnabled: false,
+    },
+  };
+}
+
+function spriteLimbAvatarMode(): BenchmarkMode {
+  return {
+    id: 'sprite-limb-avatar',
+    title: 'Matte limb sprites',
+    subtitle: 'Static segment masks mapped to MediaPipe bones',
+    configuredDotCount: 0,
+    configuredShapeCount: 18,
+    rendererProps: {
+      mode: 'sprite_limb_avatar',
+      frameSource: 'raw',
+      fit: 'contain',
+      smoothingEnabled: false,
+      confidenceFadingEnabled: false,
+      confidenceIntensityEnabled: false,
+      reacquisitionFadeEnabled: false,
+      recognitionPulseEnabled: false,
+      measurementStatesEnabled: false,
+      setupGuidesEnabled: false,
+      stateTransitionsEnabled: false,
+      domainEmphasisEnabled: false,
+      scanLineEnabled: false,
+    },
+  };
+}
+
+function softContinuousSilhouetteMode(): BenchmarkMode {
+  return {
+    id: 'soft-continuous-silhouette',
+    title: 'Soft continuous silhouette',
+    subtitle: 'Refined matte body outline, low path count',
+    configuredDotCount: 0,
+    configuredShapeCount: 2,
+    rendererProps: {
+      mode: 'soft_silhouette_avatar',
+      frameSource: 'raw',
+      fit: 'contain',
+      smoothingEnabled: false,
+      confidenceFadingEnabled: false,
+      confidenceIntensityEnabled: false,
+      reacquisitionFadeEnabled: false,
+      recognitionPulseEnabled: false,
+      measurementStatesEnabled: false,
+      setupGuidesEnabled: false,
+      stateTransitionsEnabled: false,
+      domainEmphasisEnabled: false,
+      scanLineEnabled: false,
+    },
+  };
+}
+
+function softDigitalTwinMode(
+  id: Extract<BenchmarkModeId, 'soft-digital-twin' | 'soft-digital-twin-lean'>,
+  title: string,
+  subtitle: string,
+  preset: 'balanced' | 'lean'
+): BenchmarkMode {
+  return {
+    id,
+    title,
+    subtitle,
+    configuredDotCount: 0,
+    configuredShapeCount: 13,
+    rendererProps: {
+      mode: 'soft_digital_twin',
+      softDigitalTwinVisualPreset: preset,
+      frameSource: 'raw',
+      fit: 'contain',
+      smoothingEnabled: false,
+      confidenceFadingEnabled: false,
+      confidenceIntensityEnabled: false,
+      reacquisitionFadeEnabled: false,
+      recognitionPulseEnabled: false,
+      measurementStatesEnabled: false,
+      setupGuidesEnabled: false,
+      stateTransitionsEnabled: false,
+      domainEmphasisEnabled: false,
+      scanLineEnabled: false,
+    },
+  };
+}
+
+function figureComplexityLabel(mode: BenchmarkMode): string {
+  if (mode.configuredShapeCount !== undefined && mode.configuredShapeCount !== null) {
+    return `${mode.configuredShapeCount} shapes`;
+  }
+  return `${mode.configuredDotCount ?? 0} dots`;
 }
 
 function productionPointCloudMode(
@@ -907,48 +984,6 @@ function NativeRendererMetricsStrip({
       <Metric label="Native Hz" value={nativeRenderer.publishedHz.toFixed(0)} />
       <Metric label="Coalesced" value={String(nativeRenderer.framesCoalesced)} />
       <Metric label="Cal" value={nativeRenderer.calibrationState} />
-    </View>
-  );
-}
-
-function RendererMetricsStrip({
-  mode,
-  stats,
-}: {
-  mode: BenchmarkMode;
-  stats: RendererStats;
-}) {
-  if (mode.id === 'shadow-silhouette' || mode.id === 'stipple-sensor-shadow') {
-    return (
-      <View style={styles.metricsStrip}>
-        <Metric label="Paths" value={String(stats.lastSurfacePathCount)} />
-        <Metric label="Shapes" value={String(stats.maxShapes)} />
-        <Metric label="Dots" value={String(stats.maxDots)} />
-        <Metric label="Dyn paths" value={String(stats.maxDynamicPaths)} />
-      </View>
-    );
-  }
-  if (mode.id !== 'rigged-human-silhouette') return null;
-  return (
-    <View style={styles.metricsStrip}>
-      <Metric label="Paths" value={String(stats.lastSurfacePathCount)} />
-      <Metric label="Ctrl verts" value={String(stats.lastInternalControlVertexCount)} />
-      <Metric label="Bones" value={String(stats.lastVirtualBoneCount)} />
-      <Metric
-        label="Orient"
-        value={
-          stats.lastOrientationProfile
-            ? `${stats.lastOrientationProfile} ${((stats.lastOrientationFactor ?? 0) * 100).toFixed(0)}%`
-            : 'front 0%'
-        }
-      />
-      <Metric
-        label="Cal"
-        value={
-          stats.lastProportionCalibrationState ??
-          (stats.lastProportionCalibrationComplete ? 'locked' : 'neutral')
-        }
-      />
     </View>
   );
 }
@@ -1300,6 +1335,14 @@ const styles = StyleSheet.create({
   summaryTextGroup: {
     flex: 1,
     minWidth: 0,
+  },
+  summaryActions: {
+    flexDirection: 'row',
+    flexShrink: 0,
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: spacing.xs,
+    maxWidth: '56%',
   },
   summaryTitle: {
     ...type.cardRowTitle,

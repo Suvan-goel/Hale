@@ -26,7 +26,7 @@ import {
   LandmarksEventPayload,
   PoseErrorEventPayload,
 } from '../../modules/expo-pose-detection';
-import { SfxChannel, VoiceChannel } from '../audio/voicePlayer';
+import { SfxChannel, VoiceChannel, type VoiceCueStartedEvent } from '../audio/voicePlayer';
 import {
   CameraUnavailableNotice,
   SafePoseDetectionView,
@@ -51,10 +51,12 @@ import type { PoseAvatarActiveDomain } from '../render/poseAvatarTypes';
 import { colors, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 import {
+  type TrainingFloorSetupSnapshot,
   TrainingPhase,
   TrainingSessionPlayer,
   TrainingSessionResult,
 } from '../training/sessionPlayer';
+import type { TrainingSetRuntimeGeneratedExercise } from '../training/setRuntime';
 import type { SafetyCueId } from '../training/safetyCues';
 import { poseEstimationWindowSize, recordingCameraViewportSize } from './recordingViewport';
 
@@ -79,8 +81,21 @@ interface Snapshot {
   validTimeCaption: string | null;
   setupIssue: boolean;
   setupPrompt: PreflightPrompt | null;
+  floorSetup: TrainingFloorSetupSnapshot | null;
   safetyCueIds: readonly SafetyCueId[];
   safetyText: readonly string[];
+  stepUpContext: {
+    readonly expectedLeadSide: 'left' | 'right';
+    readonly startLeadSide: 'left' | 'right';
+    readonly acceptedRepCount: number;
+    readonly leftLeadRepCount: number;
+    readonly rightLeadRepCount: number;
+    readonly targetTotalReps: number;
+  } | null;
+  stepUpCorrection: {
+    readonly code: 'wrong_lead' | 'return_both_feet_to_floor' | 'insufficient_lead_evidence';
+    readonly expectedLeadSide: 'left' | 'right';
+  } | null;
 }
 
 const INITIAL: Snapshot = {
@@ -99,8 +114,11 @@ const INITIAL: Snapshot = {
   validTimeCaption: null,
   setupIssue: false,
   setupPrompt: null,
+  floorSetup: null,
   safetyCueIds: [],
   safetyText: [],
+  stepUpContext: null,
+  stepUpCorrection: null,
 };
 
 const PHASE_CAPTION: Partial<Record<TrainingPhase, string>> = {
@@ -146,11 +164,14 @@ const BUSY_DEBUG_SNAPSHOT: Snapshot = {
   validTimeCaption: null,
   setupIssue: false,
   setupPrompt: 'step-back',
+  floorSetup: null,
   safetyCueIds: [],
   safetyText: [
     'Keep fingertips near a chair or counter.',
     'Stop if you feel dizzy, sharp pain, or unsteady.',
   ],
+  stepUpContext: null,
+  stepUpCorrection: null,
 };
 
 const TRAINING_SETUP_HELP_STEPS: readonly { title: string; body: string }[] = [
@@ -168,6 +189,23 @@ const TRAINING_SETUP_HELP_STEPS: readonly { title: string; body: string }[] = [
   },
 ];
 
+const TRAINING_V21_COUNTDOWN = ['countdown-three', 'countdown-two', 'countdown-one', 'go'] as const;
+
+function shouldSpeakTrainingVoiceCountdownTracked(
+  internalRuntime: {
+    readonly trainingVoiceMode?: 'legacy' | 'internal_v21';
+    readonly trainingVoiceBehaviorReady?: boolean;
+  } | undefined,
+  cues: readonly string[]
+): boolean {
+  return (
+    internalRuntime?.trainingVoiceMode === 'internal_v21' &&
+    internalRuntime.trainingVoiceBehaviorReady === true &&
+    cues.length === TRAINING_V21_COUNTDOWN.length &&
+    cues.every((cue, index) => cue === TRAINING_V21_COUNTDOWN[index])
+  );
+}
+
 export function TrainingSessionScreen({
   exerciseIds,
   sessionTitle,
@@ -175,6 +213,8 @@ export function TrainingSessionScreen({
   onCancel,
   voiceId,
   debugScenario,
+  generatedExercises,
+  internalRuntime,
 }: {
   exerciseIds: string[];
   sessionTitle?: string;
@@ -182,11 +222,32 @@ export function TrainingSessionScreen({
   onCancel?: () => void;
   voiceId?: string;
   debugScenario?: TrainingSessionDebugScenario;
+  generatedExercises?: readonly TrainingSetRuntimeGeneratedExercise[];
+  internalRuntime?: {
+    readonly stepUpAlternationReady?: boolean;
+    readonly floorSetupReady?: boolean;
+    readonly trainingVoiceBehaviorReady?: boolean;
+    readonly trainingVoiceMode?: 'legacy' | 'internal_v21';
+    readonly stepUpAlternationFeatureEnabled?: boolean;
+    readonly floorV21FeatureEnabled?: boolean;
+  };
 }) {
   const [pipeline] = React.useState(() => new PosePipeline());
   const [preflight] = React.useState(() => new PreflightCheck());
   const [player] = React.useState(
-    () => new TrainingSessionPlayer(new Date().toISOString(), exerciseIds, preflight)
+    () =>
+      new TrainingSessionPlayer(new Date().toISOString(), exerciseIds, preflight, undefined, {
+        generatedExercises,
+        trainingVoiceMode: internalRuntime?.trainingVoiceMode,
+        stepUpAlternationFeatureEnabled: internalRuntime?.stepUpAlternationFeatureEnabled,
+        floorV21FeatureEnabled: internalRuntime?.floorV21FeatureEnabled,
+        runtimeCapabilities: {
+          internalStepUpAlternationReady: internalRuntime?.stepUpAlternationReady,
+          internalFloorSetupReady: internalRuntime?.floorSetupReady,
+          internalTrainingVoiceBehaviorReady: internalRuntime?.trainingVoiceBehaviorReady,
+          poseEvidenceAdapterAvailable: internalRuntime?.stepUpAlternationReady,
+        },
+      })
   );
   const [voice] = React.useState(() => new VoiceChannel(voiceId));
   const [sfx] = React.useState(() => new SfxChannel());
@@ -242,7 +303,28 @@ export function TrainingSessionScreen({
       }
       const u = player.update(out, voice.busy);
 
-      if (u.voice) voice.speak(u.voice.cues, u.voice.priority);
+      if (u.voice) {
+        if (shouldSpeakTrainingVoiceCountdownTracked(internalRuntime, u.voice.cues)) {
+          const request = voice.speakTracked(u.voice.cues, {
+            priority: u.voice.priority,
+            required: true,
+            scopeId: `training-v21:item:${u.itemIndex}:set:${u.setIndex}:countdown`,
+            onCueStarted: (started: VoiceCueStartedEvent) => {
+              if (started.cueKey !== 'go') return;
+              player.notifyCountdownGoPlaybackStarted({
+                itemIndex: u.itemIndex,
+                setIndex: u.setIndex,
+                timestampMs: lastFrameTimestampRef.current,
+              });
+            },
+          });
+          if (!request.accepted) {
+            // The player remains in countdown until Retry/Skip/Exit UI resolves the visible failure path.
+          }
+        } else {
+          voice.speak(u.voice.cues, u.voice.priority);
+        }
+      }
       if (u.playRepSound) sfx.play('rep-credit');
 
       if (u.phase === 'done' && !completedRef.current) {
@@ -271,8 +353,11 @@ export function TrainingSessionScreen({
           validTimeCaption: u.validTimeCaption,
           setupIssue: u.setupIssue,
           setupPrompt: u.setupPrompt,
+          floorSetup: u.floorSetup,
           safetyCueIds: u.safetyCueIds.slice(),
           safetyText: u.safetyText.slice(),
+          stepUpContext: u.stepUpContext,
+          stepUpCorrection: u.stepUpCorrection,
         };
         setSnapshot((prev) => {
           const hydratedNext =
@@ -286,7 +371,7 @@ export function TrainingSessionScreen({
         });
       }
     },
-    [pipeline, poseLatencyDiagnostics, player, voice, sfx, recorder, onComplete, exerciseIds.length]
+    [pipeline, poseLatencyDiagnostics, player, voice, sfx, recorder, onComplete, exerciseIds.length, internalRuntime]
   );
 
   const onPoseError = React.useCallback((e: { nativeEvent: PoseErrorEventPayload }) => {
@@ -314,6 +399,12 @@ export function TrainingSessionScreen({
   const canControl =
     visibleCameraAvailability !== 'unavailable' && visibleSnapshot.phase !== 'complete' && visibleSnapshot.phase !== 'done';
   const canRepeat = visibleSnapshot.exerciseId !== null;
+  const showFloorReadyControl =
+    !visiblePaused &&
+    !!visibleSnapshot.floorSetup &&
+    visibleSnapshot.floorSetup.actionLabel !== null &&
+    (visibleSnapshot.floorSetup.phase === 'transition_instruction' ||
+      visibleSnapshot.floorSetup.phase === 'awaiting_user_transition');
   const showRepeatControl = visiblePaused && canRepeat;
   const showSkipControl = canRepeat && (visiblePaused || visibleSnapshot.setupIssue || busyDebug);
   const showUnavailableAction = visibleCameraAvailability === 'unavailable' && !!onCancel;
@@ -337,15 +428,17 @@ export function TrainingSessionScreen({
   const pause = React.useCallback(() => {
     pausedRef.current = true;
     pauseStartedAtRef.current = lastFrameTimestampRef.current;
+    player.pause(pauseStartedAtRef.current);
     voice.stop();
     setPaused(true);
-  }, [voice]);
+  }, [player, voice]);
 
   const resume = React.useCallback(() => {
     pausedRef.current = false;
+    player.resume(lastFrameTimestampRef.current);
     resumePendingRef.current = true;
     setPaused(false);
-  }, []);
+  }, [player]);
 
   const requestDiscardSession = React.useCallback(() => {
     if (!onCancel) return;
@@ -377,6 +470,16 @@ export function TrainingSessionScreen({
     const safetyCues = snapshot.safetyCueIds;
     if (cues.length > 0 || safetyCues.length > 0) voice.speak([...cues, ...safetyCues], 8);
   }, [snapshot.exerciseId, snapshot.safetyCueIds, voice]);
+
+  const confirmFloorStartPosition = React.useCallback(() => {
+    const floorSetup = snapshot.floorSetup;
+    if (!floorSetup) return;
+    player.confirmFloorStartPosition({
+      exerciseId: floorSetup.exerciseId,
+      setIndex: floorSetup.setIndex,
+      setupEpoch: floorSetup.setupEpoch,
+    });
+  }, [player, snapshot.floorSetup]);
 
   const skipCurrent = React.useCallback(() => {
     voice.stop();
@@ -469,6 +572,13 @@ export function TrainingSessionScreen({
           ) : canControl ? (
             <View style={styles.controls}>
               <ControlButton title={visiblePaused ? 'Resume' : 'Pause'} onPress={visiblePaused ? resume : pause} />
+              {showFloorReadyControl ? (
+                <ControlButton
+                  title={visibleSnapshot.floorSetup?.actionLabel ?? "I'm ready"}
+                  onPress={confirmFloorStartPosition}
+                  primary
+                />
+              ) : null}
               {showRepeatControl ? (
                 <ControlButton title="Repeat" onPress={repeatInstructions} />
               ) : null}
@@ -753,8 +863,11 @@ function sameSnapshot(a: Snapshot, b: Snapshot): boolean {
     a.validTimeCaption === b.validTimeCaption &&
     a.setupIssue === b.setupIssue &&
     a.setupPrompt === b.setupPrompt &&
+    sameFloorSetup(a.floorSetup, b.floorSetup) &&
     sameList(a.safetyCueIds, b.safetyCueIds) &&
-    sameList(a.safetyText, b.safetyText)
+    sameList(a.safetyText, b.safetyText) &&
+    sameStepUpContext(a.stepUpContext, b.stepUpContext) &&
+    sameStepUpCorrection(a.stepUpCorrection, b.stepUpCorrection)
   );
 }
 
@@ -816,6 +929,13 @@ function trainingStageDisplay(
     };
   }
   if (snapshot.phase === 'set' && snapshot.kind === 'reps') {
+    if (snapshot.stepUpContext) {
+      return {
+        mode: 'metric',
+        label: `Next: ${leadLabel(snapshot.stepUpContext.expectedLeadSide)} leg`,
+        value: `${snapshot.stepUpContext.acceptedRepCount}/${snapshot.stepUpContext.targetTotalReps}`,
+      };
+    }
     return { mode: 'metric', label: 'Reps', value: `${snapshot.repCount}` };
   }
   if (snapshot.phase === 'set' && (snapshot.kind === 'hold' || snapshot.kind === 'timer')) {
@@ -847,6 +967,12 @@ function trainingSessionNotice(
   if (snapshot.validTimeCaption) {
     return { text: snapshot.validTimeCaption, action: null };
   }
+  if (snapshot.stepUpCorrection) {
+    return { text: stepUpCorrectionText(snapshot.stepUpCorrection), action: null };
+  }
+  if (snapshot.floorSetup) {
+    return { text: floorSetupNoticeText(snapshot.floorSetup), action: null };
+  }
   if (snapshot.phase === 'complete' || snapshot.phase === 'done') {
     return { text: 'Saving session', action: null };
   }
@@ -872,6 +998,56 @@ function trainingSessionNotice(
   return null;
 }
 
+function sameStepUpContext(a: Snapshot['stepUpContext'], b: Snapshot['stepUpContext']): boolean {
+  if (a === null || b === null) return a === b;
+  return (
+    a.expectedLeadSide === b.expectedLeadSide &&
+    a.startLeadSide === b.startLeadSide &&
+    a.acceptedRepCount === b.acceptedRepCount &&
+    a.leftLeadRepCount === b.leftLeadRepCount &&
+    a.rightLeadRepCount === b.rightLeadRepCount &&
+    a.targetTotalReps === b.targetTotalReps
+  );
+}
+
+function sameFloorSetup(a: TrainingFloorSetupSnapshot | null, b: TrainingFloorSetupSnapshot | null): boolean {
+  if (a === null || b === null) return a === b;
+  return (
+    a.exerciseId === b.exerciseId &&
+    a.itemIndex === b.itemIndex &&
+    a.setIndex === b.setIndex &&
+    a.setupEpoch === b.setupEpoch &&
+    a.phase === b.phase &&
+    a.floorTransitionRequired === b.floorTransitionRequired &&
+    a.userConfirmed === b.userConfirmed &&
+    a.movementReady === b.movementReady &&
+    a.finalPositionReadyAtMs === b.finalPositionReadyAtMs &&
+    a.stableForMs === b.stableForMs &&
+    a.setupCaption === b.setupCaption &&
+    a.actionLabel === b.actionLabel
+  );
+}
+
+function sameStepUpCorrection(a: Snapshot['stepUpCorrection'], b: Snapshot['stepUpCorrection']): boolean {
+  if (a === null || b === null) return a === b;
+  return a.code === b.code && a.expectedLeadSide === b.expectedLeadSide;
+}
+
+function leadLabel(side: 'left' | 'right'): string {
+  return side === 'left' ? 'Left' : 'Right';
+}
+
+function stepUpCorrectionText(correction: NonNullable<Snapshot['stepUpCorrection']>): string {
+  const lead = leadLabel(correction.expectedLeadSide).toLowerCase();
+  if (correction.code === 'return_both_feet_to_floor') {
+    return `Return both feet to the floor. Next, lead with your ${lead} leg.`;
+  }
+  if (correction.code === 'insufficient_lead_evidence') {
+    return `Return both feet to the floor. Next, lead with your ${lead} leg.`;
+  }
+  return `Next, lead with your ${lead} leg.`;
+}
+
 function trainingSetupNoticeText(snapshot: Snapshot): string | null {
   switch (snapshot.setupPrompt) {
     case 'step-into-frame':
@@ -892,6 +1068,15 @@ function trainingSetupNoticeText(snapshot: Snapshot): string | null {
     default:
       return snapshot.setupIssue ? 'Adjust your setup' : null;
   }
+}
+
+function floorSetupNoticeText(snapshot: TrainingFloorSetupSnapshot): string {
+  if (snapshot.phase === 'ready') return 'Starting soon';
+  if (snapshot.phase === 'awaiting_visibility' || snapshot.phase === 'stabilizing') {
+    return snapshot.setupCaption ?? 'Hold the start position';
+  }
+  if (snapshot.phase === 'cancelled') return 'Setup cancelled';
+  return 'Move to the floor start position';
 }
 
 const styles = StyleSheet.create({

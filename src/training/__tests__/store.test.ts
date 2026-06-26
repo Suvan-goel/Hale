@@ -54,6 +54,52 @@ describe('TrainingStore persistence', () => {
     ]);
   });
 
+  it('preserves the first slot-backed micro-check for same-slot conflicts', async () => {
+    const files = new Map<string, string>();
+    const store = new TrainingStore(createMemoryFs(files));
+    store.saveMicroCheck({
+      type: 'single-leg-balance',
+      startedAt: '2026-06-21T08:00:00.000Z',
+      completedAt: '2026-06-21T08:01:00.000Z',
+      slotId: 'micro-check:block-1:week-2:balance',
+      blockId: 'block-1',
+      policyVersion: 1,
+      policyFingerprint: 'policy-test',
+      targetSource: 'balanced_schedule_rotation',
+      targetDomain: 'balance',
+      scheduleWeekIndex: 1,
+      scheduleWeekNumber: 2,
+      value: 18,
+      reps: 0,
+      measured: true,
+    });
+    store.saveMicroCheck({
+      type: 'single-leg-balance',
+      startedAt: '2026-06-21T08:02:00.000Z',
+      completedAt: '2026-06-21T08:03:00.000Z',
+      slotId: 'micro-check:block-1:week-2:balance',
+      blockId: 'block-1',
+      policyVersion: 1,
+      policyFingerprint: 'policy-test',
+      targetSource: 'balanced_schedule_rotation',
+      targetDomain: 'balance',
+      scheduleWeekIndex: 1,
+      scheduleWeekNumber: 2,
+      value: 20,
+      reps: 0,
+      measured: true,
+    });
+
+    const checks = await new TrainingStore(createMemoryFs(files)).loadMicroChecks();
+    expect(checks).toHaveLength(1);
+    expect(checks[0]).toMatchObject({
+      slotId: 'micro-check:block-1:week-2:balance',
+      targetSource: 'balanced_schedule_rotation',
+      targetDomain: 'balance',
+      value: 18,
+    });
+  });
+
   it('skips a record from an unknown schema version', () => {
     expect(deserializeTrainingState(JSON.stringify({ schemaVersion: 99, payload: {} }))).toBeNull();
   });
@@ -76,6 +122,54 @@ describe('TrainingStore persistence', () => {
     expect(parsed?.lastPostSessionFeedback).toBeNull();
     expect(parsed?.planPreferences.preferredIntensity).toBe('standard');
     expect(parsed?.appliedProgressionEventIds).toEqual([]);
+  });
+
+  it('round-trips a safe Training Voice V2.1 runtime envelope', () => {
+    const parsed = deserializeTrainingState(
+      JSON.stringify({
+        schemaVersion: 4,
+        payload: {
+          ...defaultTrainingState(),
+          activeTrainingVoiceRuntime: {
+            version: 1,
+            runtimeMode: 'internal_v21',
+            phase: 'active',
+            sessionEpoch: 1,
+            itemEpoch: 2,
+            setEpoch: 3,
+            attemptEpoch: 4,
+            safetyMemory: {
+              version: 1,
+              universalSafety: 'completed',
+              introducedSafetyFamilies: ['chair_seat'],
+              floor: {
+                floorFamilyIntroduced: false,
+                currentEnvironment: 'unknown',
+                currentFloorItemId: null,
+                currentFloorSetupEpoch: 0,
+              },
+              firstUseExerciseIds: ['squat-free'],
+            },
+            pausedOrigin: null,
+            recoveryEpisode: null,
+            completedTransitionIds: ['transition-1'],
+            firedProgressEventIds: ['attempt-1:five'],
+            activeVoiceId: 'marcus',
+            pendingVoiceId: null,
+            planFingerprint: 'plan:test',
+          },
+        },
+      })
+    );
+
+    expect(parsed?.activeTrainingVoiceRuntime).toMatchObject({
+      runtimeMode: 'internal_v21',
+      phase: 'item_setup',
+      activeVoiceId: 'marcus',
+      completedTransitionIds: ['transition-1'],
+      firedProgressEventIds: ['attempt-1:five'],
+    });
+    expect(parsed?.activeTrainingVoiceRuntime?.safetyMemory.universalSafety).toBe('completed');
   });
 
   it('persists dynamic ladder progress and generated session summaries', async () => {

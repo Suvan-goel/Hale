@@ -4,6 +4,11 @@ import {
   type ExerciseDefinition,
   type ExerciseKind,
 } from '../../exercises';
+import {
+  SESSION_GLOBAL_SAFETY_CUE_IDS,
+  requireExerciseSafetyCueProfile,
+  safetyCueSnapshotFingerprint,
+} from '../safetyCues';
 import { resolveTrainingVoiceTargetV21 } from './targetGrammar';
 import type {
   TrainingVoiceExerciseContractV21,
@@ -139,6 +144,7 @@ interface ContractOverride {
   readonly laterality: TrainingVoiceLateralityV21;
   readonly safetyFamily: TrainingVoiceSafetyFamilyV21;
   readonly safetyAbsorbed: boolean;
+  readonly safetyAbsorbedFamilies?: readonly TrainingVoiceSafetyFamilyV21[];
   readonly setupModel: TrainingVoiceSetupModelV21;
   readonly finalPositionRequired: boolean;
   readonly requirements: readonly TrainingVoiceImplementationRequirementId[];
@@ -147,8 +153,8 @@ interface ContractOverride {
   readonly notes?: string;
 }
 
-const FLOOR_REQUIREMENTS = ['IR-VOICE-FLOOR-GATE', 'IR-VOICE-FINAL-POSITION-READINESS', 'IR-VOICE-SAFETY-SUBSUMPTION'] as const;
-const SAFETY_REQUIREMENT = ['IR-VOICE-SAFETY-SUBSUMPTION'] as const;
+const SAFETY_REQUIREMENT = [] as const;
+const FLOOR_SOFTWARE_READY_REQUIREMENTS = SAFETY_REQUIREMENT;
 
 const CONTRACT_OVERRIDES: Readonly<Record<string, ContractOverride>> = {
   'balance-feet-together-hold': blocked({
@@ -208,12 +214,13 @@ const CONTRACT_OVERRIDES: Readonly<Record<string, ContractOverride>> = {
     requirements: SAFETY_REQUIREMENT,
   }),
   'chair-supported-split-squat': blocked({
-    first: 'Supported split squat. Keep fingertips near support.',
+    first: 'Supported split squat. Keep fingertips near sturdy support.',
     later: 'Supported split squat.',
     target: 'Aim for [reps] reps.',
     laterality: 'both_sides_round_required',
-    safetyFamily: 'chair_seat',
+    safetyFamily: 'generic_support',
     safetyAbsorbed: true,
+    safetyAbsorbedFamilies: ['chair_seat'],
     setupModel: 'chair_setup',
     requirements: SAFETY_REQUIREMENT,
     sidePlan: bothSidesRoundPlan(
@@ -233,7 +240,7 @@ const CONTRACT_OVERRIDES: Readonly<Record<string, ContractOverride>> = {
     safetyFamily: 'floor_eligible_user',
     safetyAbsorbed: false,
     setupModel: 'floor_setup',
-    requirements: FLOOR_REQUIREMENTS,
+    requirements: FLOOR_SOFTWARE_READY_REQUIREMENTS,
   }),
   'glute-bridge-reps': blocked({
     first: 'Glute bridge. Lie on your back, knees bent, feet flat. Lift your hips, then lower with control.',
@@ -243,7 +250,7 @@ const CONTRACT_OVERRIDES: Readonly<Record<string, ContractOverride>> = {
     safetyFamily: 'floor_eligible_user',
     safetyAbsorbed: false,
     setupModel: 'floor_setup',
-    requirements: FLOOR_REQUIREMENTS,
+    requirements: FLOOR_SOFTWARE_READY_REQUIREMENTS,
   }),
   'heel-raise-free': readyAfterAudio({
     first: 'Heel raise. Stand tall. Rise onto the balls of your feet, then lower slowly.',
@@ -311,6 +318,7 @@ const CONTRACT_OVERRIDES: Readonly<Record<string, ContractOverride>> = {
     laterality: 'bilateral_sequential_within_set',
     safetyFamily: 'mini_band_above_knees',
     safetyAbsorbed: true,
+    safetyAbsorbedFamilies: ['long_band_handheld_or_foot_anchored', 'balance_support'],
     setupModel: 'band_setup',
     requirements: SAFETY_REQUIREMENT,
     sidePlan: {
@@ -337,7 +345,7 @@ const CONTRACT_OVERRIDES: Readonly<Record<string, ContractOverride>> = {
     target: 'Aim for twelve reps.',
     laterality: 'bilateral_simultaneous',
     safetyFamily: 'long_band_handheld_or_foot_anchored',
-    safetyAbsorbed: true,
+    safetyAbsorbed: false,
     setupModel: 'band_setup',
     requirements: SAFETY_REQUIREMENT,
   }),
@@ -357,6 +365,7 @@ const CONTRACT_OVERRIDES: Readonly<Record<string, ContractOverride>> = {
     laterality: 'bilateral_simultaneous',
     safetyFamily: 'generic_support',
     safetyAbsorbed: true,
+    safetyAbsorbedFamilies: ['chair_seat'],
     setupModel: 'chair_setup',
     requirements: SAFETY_REQUIREMENT,
   }),
@@ -368,7 +377,7 @@ const CONTRACT_OVERRIDES: Readonly<Record<string, ContractOverride>> = {
     safetyFamily: 'floor_eligible_user',
     safetyAbsorbed: false,
     setupModel: 'floor_setup',
-    requirements: FLOOR_REQUIREMENTS,
+    requirements: FLOOR_SOFTWARE_READY_REQUIREMENTS,
   }),
   'push-up-wall': blocked({
     first: 'Wall push-up. Hands on the wall. Lower in with control, then press away.',
@@ -381,12 +390,13 @@ const CONTRACT_OVERRIDES: Readonly<Record<string, ContractOverride>> = {
     requirements: SAFETY_REQUIREMENT,
   }),
   'seated-band-row': blocked({
-    first: 'Seated band row. Sit tall with the band anchored under both feet. Pull elbows back, then return slowly.',
+    first: 'Seated band row. Sit tall on a sturdy chair with the band anchored under both feet. Pull elbows back, then return slowly.',
     later: 'Seated band row.',
     target: 'Aim for ten reps.',
     laterality: 'bilateral_simultaneous',
     safetyFamily: 'long_band_handheld_or_foot_anchored',
-    safetyAbsorbed: true,
+    safetyAbsorbed: false,
+    safetyAbsorbedFamilies: ['chair_seat'],
     setupModel: 'band_setup',
     requirements: SAFETY_REQUIREMENT,
   }),
@@ -442,6 +452,7 @@ const CONTRACT_OVERRIDES: Readonly<Record<string, ContractOverride>> = {
     laterality: 'bilateral_simultaneous',
     safetyFamily: 'generic_support',
     safetyAbsorbed: true,
+    safetyAbsorbedFamilies: ['chair_seat'],
     setupModel: 'chair_setup',
     requirements: SAFETY_REQUIREMENT,
   }),
@@ -451,7 +462,7 @@ const CONTRACT_OVERRIDES: Readonly<Record<string, ContractOverride>> = {
     target: 'Aim for ten reps.',
     laterality: 'bilateral_simultaneous',
     safetyFamily: 'door_anchor_band',
-    safetyAbsorbed: true,
+    safetyAbsorbed: false,
     setupModel: 'band_setup',
     requirements: SAFETY_REQUIREMENT,
   }),
@@ -673,7 +684,12 @@ function buildContract(def: ExerciseDefinition): TrainingVoiceExerciseContractV2
   const laterSetCue = cue(`ex-${def.id}-next-v21`, override.later, 'exercise_later_set');
   const targetCue = cue(`target-${def.id}-v21`, override.target, 'target');
   const sidePlan = override.sidePlan ?? noSidePlan(override.laterality);
-  const safetyPlan = safetyPlanFor(override.safetyFamily, override.safetyAbsorbed);
+  const safetyPlan = safetyPlanFor(
+    def.id,
+    override.safetyFamily,
+    override.safetyAbsorbed,
+    override.safetyAbsorbedFamilies ?? []
+  );
   const partial = {
     exerciseId: def.id,
     setType: setTypeForKind(def.kind),
@@ -763,7 +779,7 @@ function blocked(input: Omit<ContractOverride, 'runtimeStatus' | 'finalPositionR
   return Object.freeze({
     ...input,
     finalPositionRequired: input.finalPositionRequired ?? true,
-    runtimeStatus: 'behavior_dependency_pending',
+    runtimeStatus: input.requirements.length > 0 ? 'behavior_dependency_pending' : 'software_ready_audio_pending',
   });
 }
 
@@ -802,14 +818,52 @@ function supportFor(def: ExerciseDefinition): string[] {
 }
 
 function safetyPlanFor(
+  exerciseId: string,
   family: TrainingVoiceSafetyFamilyV21,
-  absorbedIntoInstruction: boolean
+  absorbedIntoInstruction: boolean,
+  absorbedFamilies: readonly TrainingVoiceSafetyFamilyV21[]
 ): TrainingVoiceSafetyPlanV21 {
+  const cueForFamily = absorbedIntoInstruction ? null : SAFETY_CUE_BY_FAMILY[family];
+  const fulfilment =
+    family === 'none'
+      ? 'not_required'
+      : absorbedIntoInstruction
+        ? 'absorbed_into_exact_instruction'
+        : 'separate_family_cue';
+  const reasonCodes: TrainingVoiceSafetyPlanV21['reasonCodes'] = absorbedIntoInstruction
+    ? ['FAMILY_ABSORBED_IN_EXACT_INSTRUCTION']
+    : ['MOST_SPECIFIC_FAMILY_DUE'];
+  const sourceSafetyProfile = requireExerciseSafetyCueProfile(exerciseId);
+  const sourceSafetyProfileFingerprint = safetyCueSnapshotFingerprint({
+    schemaVersion: sourceSafetyProfile.schemaVersion,
+    globalCueIds: SESSION_GLOBAL_SAFETY_CUE_IDS,
+    exerciseProfiles: [sourceSafetyProfile],
+  });
   return Object.freeze({
+    version: 1,
+    exerciseId,
     family,
+    parentFamily: null,
+    subsumedFamilies: [],
+    absorbedFamilies: absorbedFamilies.slice(),
+    fulfilment,
     absorbedIntoInstruction,
-    cue: absorbedIntoInstruction ? null : SAFETY_CUE_BY_FAMILY[family],
-    reasonCodes: absorbedIntoInstruction ? ['exact_instruction_absorbs_family'] : ['most_specific_family_due'],
+    logicalCueKey: cueForFamily?.key ?? null,
+    exactScript: cueForFamily?.exactScript ?? null,
+    cue: cueForFamily,
+    sourceSafetyProfileSchemaVersion: sourceSafetyProfile.schemaVersion,
+    sourceSafetyProfileFingerprint,
+    sourceSafetyCueIds: unique([
+      ...sourceSafetyProfile.setupCueIds,
+      ...sourceSafetyProfile.activeCueIds,
+      ...sourceSafetyProfile.repeatedSetCueIds,
+      ...sourceSafetyProfile.recoveryCueIds,
+    ]),
+    requiredForVoiceFirst: family !== 'none',
+    policyId: 'instruction',
+    reasonCodes,
+    reactiveSafetyCueIdsDeferred: [],
+    ready: true,
   });
 }
 
@@ -924,4 +978,12 @@ function duplicateCueKeysWithDifferentScripts(contracts: readonly TrainingVoiceE
 
 function duplicates(items: readonly string[]): string[] {
   return items.filter((item, index) => items.indexOf(item) !== index).filter((item, index, arr) => arr.indexOf(item) === index);
+}
+
+function unique<T>(items: readonly T[]): T[] {
+  const out: T[] = [];
+  for (const item of items) {
+    if (!out.includes(item)) out.push(item);
+  }
+  return out;
 }

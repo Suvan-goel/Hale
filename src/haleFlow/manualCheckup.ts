@@ -7,6 +7,7 @@ import {
 } from '../adherence';
 import { getBlockScheduleState } from './blockSchedule';
 import { getManualCheckupCopy } from './copy';
+import { getBlockMicroCheckTarget, getMicroCheckForTarget } from './microCheck';
 
 export interface ManualCheckupOption {
   type: CheckupType;
@@ -56,43 +57,27 @@ export function getManualCheckupOptions({
       ];
     }
     if (schedule.status === 'session_due' && schedule.lapseState === 'restart_recommended') {
-      return [
-        {
-          type: 'quick_recheck',
-          title: 'Quick re-check',
-          body: 'Use a shorter check to decide whether to restart or update the block.',
-          route: 'quick-recheck',
-          recommended: true,
-          isOfficialForProgress: false,
-        },
-        {
-          type: 'manual_extra',
-          title: 'Start full check-up',
-          body: 'Use this if you want the complete strength, balance, and mobility check today.',
-          route: 'manual-extra-checkup',
-          recommended: false,
-          isOfficialForProgress: false,
-        },
-      ];
+      return [];
     }
-    return [
-      {
-        type: 'micro_check',
-        title: 'Do a 60-second micro-check',
-        body: 'A short check-in keeps your progress up to date without replacing your next full check-up.',
-        route: 'microcheck',
-        recommended: true,
-        isOfficialForProgress: false,
-      },
-      {
-        type: 'manual_extra',
-        title: 'Start full check-up',
-        body: 'Use this if you want the complete strength, balance, and mobility check today.',
-        route: 'manual-extra-checkup',
-        recommended: false,
-        isOfficialForProgress: false,
-      },
-    ];
+    const microCheckTarget = getBlockMicroCheckTarget({
+      block: activeBlock,
+      schedule,
+      completions: completions ?? [],
+    });
+    const microCheckDefinition =
+      microCheckTarget.status === 'available' ? getMicroCheckForTarget(microCheckTarget) : null;
+    return microCheckDefinition
+      ? [
+          {
+            type: 'micro_check' as const,
+            title: microCheckDefinition.title,
+            body: microCheckDefinition.body,
+            route: 'microcheck',
+            recommended: true,
+            isOfficialForProgress: false,
+          },
+        ]
+      : [];
   }
 
   if (latestAssessment.type === 'baseline' && daysBetween(latestAssessment.createdAt, now) <= 2) {
@@ -105,25 +90,17 @@ export function getManualCheckupOptions({
         recommended: true,
         isOfficialForProgress: true,
       },
-      {
-        type: 'manual_extra',
-        title: 'Start extra check-up',
-        body: 'Save another result without changing your official trend.',
-        route: 'manual-extra-checkup',
-        recommended: false,
-        isOfficialForProgress: false,
-      },
     ];
   }
 
   return [
     {
-      type: 'manual_extra',
-      title: 'Start full check-up',
+      type: 'baseline_retake',
+      title: 'Start Movement Check-Up',
       body: getManualCheckupCopy().body,
-      route: 'manual-extra-checkup',
+      route: 'baseline-retake',
       recommended: true,
-      isOfficialForProgress: false,
+      isOfficialForProgress: true,
     },
   ];
 }

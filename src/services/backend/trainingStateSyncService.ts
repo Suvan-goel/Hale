@@ -113,6 +113,9 @@ export function mapLocalTrainingStateToRemotePayload(
       planPreferences: input.training.planPreferences,
       ladderProgressById: input.training.ladderProgressById,
       appliedProgressionEventIds: input.training.appliedProgressionEventIds,
+      bothSidesStartSideSeed: input.training.bothSidesStartSideSeed,
+      activeSetRuntime: input.training.activeSetRuntime,
+      activeTrainingVoiceRuntime: input.training.activeTrainingVoiceRuntime,
       generatedSessionContext: {
         totalPersisted: input.training.generatedSessionSummaries.length,
         recentSummaries: input.training.generatedSessionSummaries
@@ -194,6 +197,11 @@ function sanitizeGeneratedExerciseSummary(summary: PersistedGeneratedExerciseSum
     progressionPolicyDiagnostics: summary.progressionPolicyDiagnostics,
     doseBeforeAdjustment: summary.doseBeforeAdjustment,
     adjustmentReasons: summary.adjustmentReasons,
+    collectionSelection: summary.collectionSelection,
+    bothSidesDosePlan: summary.bothSidesDosePlan,
+    bothSidesInitialStartSide: summary.bothSidesInitialStartSide,
+    stepUpAlternationPlan: summary.stepUpAlternationPlan,
+    stepUpInitialLeadSide: summary.stepUpInitialLeadSide,
   });
 }
 

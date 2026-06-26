@@ -14,7 +14,15 @@ import type {
 
 export const TRAINING_VOICE_V2_1_FEATURE_FLAG = 'EXPO_PUBLIC_ENABLE_TRAINING_VOICE_V2_1' as const;
 export const TRAINING_VOICE_V2_1_AUDIO_READY = false as const;
-export const TRAINING_VOICE_V2_1_BEHAVIOR_READY = false as const;
+export const TRAINING_VOICE_V2_1_CONTROLS_READY = true as const;
+export const TRAINING_VOICE_V2_1_PROGRESS_READY = true as const;
+export const TRAINING_VOICE_V2_1_RECOVERY_READY = true as const;
+export const TRAINING_VOICE_V2_1_SAFETY_READY = true as const;
+export const TRAINING_VOICE_V2_1_BEHAVIOR_READY =
+  TRAINING_VOICE_V2_1_CONTROLS_READY &&
+  TRAINING_VOICE_V2_1_PROGRESS_READY &&
+  TRAINING_VOICE_V2_1_RECOVERY_READY &&
+  TRAINING_VOICE_V2_1_SAFETY_READY;
 export const TRAINING_VOICE_V2_1_FOUNDATION_STATUS =
   'founder_assumed_accepted_for_implementation_audio_not_approved' as const;
 
@@ -134,7 +142,7 @@ function readinessForContract(
     contract.runtimeStatus === 'software_ready_audio_pending';
   const audioReady = TRAINING_VOICE_V2_1_AUDIO_READY && missingAudioCueKeys.length === 0;
   const targetReady = targetPlan.supported;
-  const safetyPlanReady = contract.safetyPlan.family !== undefined;
+  const safetyPlanReady = TRAINING_VOICE_V2_1_SAFETY_READY && contract.safetyPlan.ready;
   const softwareContractValid = registry.valid && contract.semanticMatch;
   return {
     exerciseId: contract.exerciseId,

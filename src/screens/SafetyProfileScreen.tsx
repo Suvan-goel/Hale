@@ -33,9 +33,12 @@ type SafetyProfileDraft = {
   activityLevel: ActivityLevel;
   painArea: string;
   floorTransferStatus: CapabilityConfirmationStatus;
+  floorTransferAnswer: FloorTransferAnswer;
   stepUpStatus: CapabilityConfirmationStatus;
   singleLegStatus: SingleLegBalanceCapabilityStatus;
 };
+
+type FloorTransferAnswer = 'yes' | 'no' | 'not_sure' | 'unknown';
 
 export function SafetyProfileScreen({
   profile,
@@ -64,6 +67,9 @@ export function SafetyProfileScreen({
   );
   const [painArea, setPainArea] = React.useState<string>(normalizePainArea(initial?.painNotes));
   const [floorTransferStatus, setFloorTransferStatus] = React.useState(initialCapabilities.floorTransfer.status);
+  const [floorTransferAnswer, setFloorTransferAnswer] = React.useState<FloorTransferAnswer>(
+    floorTransferAnswerForStatus(initialCapabilities.floorTransfer.status)
+  );
   const [stepUpStatus, setStepUpStatus] = React.useState(initialCapabilities.stepUpEnvironment.status);
   const [singleLegStatus, setSingleLegStatus] = React.useState(initialCapabilities.singleLegBalance.status);
   const hasSafeStep = stepUpStatus === 'confirmed';
@@ -73,6 +79,7 @@ export function SafetyProfileScreen({
     activityLevel,
     painArea,
     floorTransferStatus,
+    floorTransferAnswer,
     stepUpStatus,
     singleLegStatus,
   });
@@ -145,9 +152,10 @@ export function SafetyProfileScreen({
     saveIfReviewing({ painArea: next });
   };
 
-  const selectFloorTransferStatus = (next: CapabilityConfirmationStatus) => {
+  const selectFloorTransferStatus = (next: CapabilityConfirmationStatus, answer: FloorTransferAnswer) => {
     setFloorTransferStatus(next);
-    saveIfReviewing({ floorTransferStatus: next });
+    setFloorTransferAnswer(answer);
+    saveIfReviewing({ floorTransferStatus: next, floorTransferAnswer: answer });
   };
 
   const selectStepUpStatus = (next: CapabilityConfirmationStatus) => {
@@ -215,13 +223,13 @@ export function SafetyProfileScreen({
       </ChoiceSection>
 
       <ChoiceSection title="Movements to include" meta="Safety">
-        <Text style={styles.gentle}>Choose No if you are unsure. Hale will use another safe option.</Text>
-        <YesNoQuestion
+        <Text style={styles.gentle}>Hale will use standing alternatives when a setup does not fit.</Text>
+        <FloorTransferQuestion
           title="Floor exercises"
-          description="Can Hale include movements where you get down to the floor and stand back up?"
-          yesSelected={floorTransferStatus === 'confirmed'}
-          onYes={() => selectFloorTransferStatus('confirmed')}
-          onNo={() => selectFloorTransferStatus('avoid_for_now')}
+          selected={floorTransferAnswer}
+          onYes={() => selectFloorTransferStatus('confirmed', 'yes')}
+          onNo={() => selectFloorTransferStatus('avoid_for_now', 'no')}
+          onNotSure={() => selectFloorTransferStatus('avoid_for_now', 'not_sure')}
         />
         <YesNoQuestion
           title="Step exercises"
@@ -246,6 +254,12 @@ export function SafetyProfileScreen({
       ) : null}
     </Screen>
   );
+}
+
+function floorTransferAnswerForStatus(status: CapabilityConfirmationStatus): FloorTransferAnswer {
+  if (status === 'confirmed') return 'yes';
+  if (status === 'avoid_for_now') return 'no';
+  return 'not_sure';
 }
 
 function ChoiceSection({
@@ -302,6 +316,54 @@ function YesNoQuestion({
           selected={!yesSelected}
           onPress={onNo}
           accessibilityLabel={`No, skip ${title.toLowerCase()}`}
+        />
+      </View>
+    </View>
+  );
+}
+
+function FloorTransferQuestion({
+  title,
+  selected,
+  onYes,
+  onNo,
+  onNotSure,
+}: {
+  title: string;
+  selected: FloorTransferAnswer;
+  onYes: () => void;
+  onNo: () => void;
+  onNotSure: () => void;
+}) {
+  return (
+    <View style={styles.subsection}>
+      <View style={styles.questionCopy}>
+        <Text style={styles.subsectionTitle}>{title}</Text>
+        <Text style={styles.questionDescription}>
+          Can you safely get down to the floor and back up without assistance?
+        </Text>
+        <Text style={styles.questionDescription}>
+          Choose "Not sure" if you would rather use standing alternatives for now.
+        </Text>
+      </View>
+      <View style={styles.grid}>
+        <Choice
+          label="Yes"
+          selected={selected === 'yes'}
+          onPress={onYes}
+          accessibilityLabel="Yes, floor exercises can be included"
+        />
+        <Choice
+          label="No"
+          selected={selected === 'no'}
+          onPress={onNo}
+          accessibilityLabel="No, use standing alternatives"
+        />
+        <Choice
+          label="Not sure"
+          selected={selected === 'not_sure' || selected === 'unknown'}
+          onPress={onNotSure}
+          accessibilityLabel="Not sure, use standing alternatives"
         />
       </View>
     </View>

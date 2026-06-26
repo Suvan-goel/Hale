@@ -173,7 +173,7 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
   const screenPose = React.useRef(createScreenPoseLandmarks());
   const smoothedPose = React.useRef(createScreenPoseLandmarks());
   const smoothing = React.useRef(createPoseSmoothingState());
-  const bodyGeometry = React.useRef(createPointCloudBodyGeometry(900));
+  const bodyGeometry = React.useRef(createPointCloudBodyGeometry(pointCloudBodyMaxDots));
   const skeletonGeometry = React.useRef(createConstellationGeometry(0));
   const visualState = React.useRef(createAvatarVisualState());
   const measurementVisualState = React.useRef(createMeasurementStateTransitionState());
@@ -358,6 +358,9 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
     );
     const visualCalculationMs = __DEV__ && debug ? Date.now() - stateVisualStart : 0;
     const geometryStart = Date.now();
+    if (bodyGeometry.current.dotXs.length < pointCloudBodyMaxDots) {
+      bodyGeometry.current = createPointCloudBodyGeometry(pointCloudBodyMaxDots);
+    }
     buildPointCloudBodyGeometry(renderPose, bodyGeometry.current, {
       minConfidence,
       pointCloudBodyEnabled,
@@ -688,11 +691,14 @@ export const PointCloudBodyPoseRenderer = React.forwardRef<
   );
 
   const refinedPointCloud = pointCloudBodyShapeProfile === 'refined';
-  const dotColor = refinedPointCloud ? colors.sageDeep : POINT_CLOUD_DOT_COLOR;
-  const softDotColor = refinedPointCloud ? colors.textSecondary : POINT_CLOUD_DOT_COLOR;
-  const dotOpacity = refinedPointCloud ? 0.84 : POINT_CLOUD_DOT_OPACITY;
-  const softDotOpacity = refinedPointCloud ? 0.42 : POINT_CLOUD_DOT_OPACITY;
-  const keypointOpacity = refinedPointCloud ? 0 : POINT_CLOUD_KEYPOINT_OPACITY;
+  const organicPointCloud = pointCloudBodyShapeProfile === 'organic';
+  const dotColor = refinedPointCloud || organicPointCloud ? colors.sageDeep : POINT_CLOUD_DOT_COLOR;
+  const softDotColor =
+    refinedPointCloud || organicPointCloud ? colors.textSecondary : POINT_CLOUD_DOT_COLOR;
+  const dotOpacity = organicPointCloud ? 0.78 : refinedPointCloud ? 0.84 : POINT_CLOUD_DOT_OPACITY;
+  const softDotOpacity = organicPointCloud ? 0.4 : refinedPointCloud ? 0.42 : POINT_CLOUD_DOT_OPACITY;
+  const keypointOpacity =
+    refinedPointCloud || organicPointCloud ? 0 : POINT_CLOUD_KEYPOINT_OPACITY;
 
   return (
     <View

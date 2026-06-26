@@ -19,16 +19,34 @@ describe('resolvePoseAvatarRendererMode', () => {
     expect(DEFAULT_POSE_AVATAR_RENDERER_MODE).toBe('point_cloud_body');
     expect(resolvePoseAvatarRendererMode('rigged_human_silhouette')).toBe('classic');
     expect(resolvePoseAvatarRendererMode('shadow_silhouette')).toBe('classic');
+    expect(resolvePoseAvatarRendererMode('soft_digital_twin')).toBe('classic');
+    expect(resolvePoseAvatarRendererMode('soft_silhouette_avatar')).toBe('classic');
+    expect(resolvePoseAvatarRendererMode('sprite_limb_avatar')).toBe('classic');
+    expect(resolvePoseAvatarRendererMode('premium_constellation_human')).toBe('classic');
     expect(resolvePoseAvatarRendererMode('volumetric_shadow')).toBe('classic');
+    expect(resolvePoseAvatarRendererMode('contour_field')).toBe('classic');
     expect(resolvePoseAvatarConfig({ mode: 'rigged_human_silhouette' }, {}).mode).toBe(
       'rigged_human_silhouette'
     );
     expect(resolvePoseAvatarConfig({ mode: 'shadow_silhouette' }, {}).mode).toBe(
       'shadow_silhouette'
     );
+    expect(resolvePoseAvatarConfig({ mode: 'soft_digital_twin' }, {}).mode).toBe(
+      'soft_digital_twin'
+    );
+    expect(resolvePoseAvatarConfig({ mode: 'soft_silhouette_avatar' }, {}).mode).toBe(
+      'soft_silhouette_avatar'
+    );
+    expect(resolvePoseAvatarConfig({ mode: 'sprite_limb_avatar' }, {}).mode).toBe(
+      'sprite_limb_avatar'
+    );
+    expect(resolvePoseAvatarConfig({ mode: 'premium_constellation_human' }, {}).mode).toBe(
+      'premium_constellation_human'
+    );
     expect(resolvePoseAvatarConfig({ mode: 'volumetric_shadow' }, {}).mode).toBe(
       'volumetric_shadow'
     );
+    expect(resolvePoseAvatarConfig({ mode: 'contour_field' }, {}).mode).toBe('contour_field');
   });
 
   it('defaults to point-cloud body when no explicit value is set', () => {
@@ -68,24 +86,35 @@ describe('rigged human silhouette production isolation', () => {
       const source = fs.readFileSync(path.join(root, file), 'utf8');
       expect(source).not.toContain('rigged_human_silhouette');
       expect(source).not.toContain('shadow_silhouette');
+      expect(source).not.toContain('soft_digital_twin');
+      expect(source).not.toContain('soft_silhouette_avatar');
+      expect(source).not.toContain('sprite_limb_avatar');
+      expect(source).not.toContain('premium_constellation_human');
       expect(source).not.toContain('volumetric_shadow');
+      expect(source).not.toContain('contour_field');
       expect(source).not.toContain('matte_graphite_digital_twin');
       expect(source).not.toContain('sculpted_body');
     }
   });
 
-  it('adds benchmark-only silhouettes without restoring old experimental options', () => {
+  it('keeps rejected visual experiments out of the benchmark selector', () => {
     const root = path.resolve(__dirname, '../../..');
     const benchmarkSource = fs.readFileSync(
       path.join(root, 'src/screens/PoseOverlayBenchmarkScreen.tsx'),
       'utf8'
     );
-    expect(benchmarkSource).toContain('rigged-human-silhouette');
-    expect(benchmarkSource).toContain('rigged_human_silhouette');
-    expect(benchmarkSource).toContain('shadow-silhouette');
-    expect(benchmarkSource).toContain('shadow_silhouette');
-    expect(benchmarkSource).toContain('stipple-sensor-shadow');
-    expect(benchmarkSource).toContain('volumetric_shadow');
+    expect(benchmarkSource).not.toContain('rigged-human-silhouette');
+    expect(benchmarkSource).not.toContain('rigged_human_silhouette');
+    expect(benchmarkSource).not.toContain('shadow-silhouette');
+    expect(benchmarkSource).not.toContain('shadow_silhouette');
+    expect(benchmarkSource).not.toContain('stipple-sensor-shadow');
+    expect(benchmarkSource).not.toContain('volumetric_shadow');
+    expect(benchmarkSource).not.toContain('contour-field-avatar');
+    expect(benchmarkSource).not.toContain('contour_field');
+    expect(benchmarkSource).not.toContain('minimal-constellation');
+    expect(benchmarkSource).not.toContain('full-constellation');
+    expect(benchmarkSource).not.toContain('point-cloud-225');
+    expect(benchmarkSource).not.toContain('point-cloud-450');
     expect(benchmarkSource).not.toContain('matte-graphite-digital-twin');
     expect(benchmarkSource).not.toContain('matte_graphite_digital_twin');
     expect(benchmarkSource).not.toContain('sculpted-figure');
@@ -233,6 +262,29 @@ describe('resolvePoseAvatarConfig', () => {
     expect(config.pointCloudBodyShowKeypoints).toBe(false);
     expect(config.pointCloudBodyDotScale).toBe(1.4);
     expect(config.pointCloudBodyOpacity).toBe(0.7);
+  });
+
+  it('allows explicit benchmark props to exceed the production point-cloud dot cap', () => {
+    const config = resolvePoseAvatarConfig(
+      {
+        mode: 'point_cloud_body',
+        pointCloudBodyMaxDots: 2200,
+        pointCloudBodyShapeProfile: 'organic',
+      },
+      {
+        EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_MAX_DOTS: '2200',
+      }
+    );
+    const envOnly = resolvePoseAvatarConfig(
+      {},
+      {
+        EXPO_PUBLIC_POSE_AVATAR_POINT_CLOUD_BODY_MAX_DOTS: '2200',
+      }
+    );
+
+    expect(config.pointCloudBodyMaxDots).toBe(2200);
+    expect(config.pointCloudBodyShapeProfile).toBe('organic');
+    expect(envOnly.pointCloudBodyMaxDots).toBe(900);
   });
 
   it('allows explicit env overrides for smoothing and sampled dots', () => {

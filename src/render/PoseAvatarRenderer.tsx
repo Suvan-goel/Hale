@@ -3,10 +3,15 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ClassicPoseRenderer } from './ClassicPoseRenderer';
 import { ConstellationPoseRenderer } from './ConstellationPoseRenderer';
+import { ContourFieldRenderer } from './ContourFieldRenderer';
 import { RiggedHumanSilhouetteRenderer } from './RiggedHumanSilhouetteRenderer';
 import { MediaPipeSkeletonRenderer } from './MediaPipeSkeletonRenderer';
 import { PointCloudBodyPoseRenderer } from './PointCloudBodyPoseRenderer';
+import { PremiumConstellationHumanRenderer } from './PremiumConstellationHumanRenderer';
 import { ShadowSilhouetteRenderer } from './ShadowSilhouetteRenderer';
+import { SoftDigitalTwinRenderer } from './SoftDigitalTwinRenderer';
+import { SoftSilhouetteRenderer } from './SoftSilhouetteRenderer';
+import { SpriteLimbAvatarRenderer } from './SpriteLimbAvatarRenderer';
 import { VolumetricShadowRenderer } from './VolumetricShadowRenderer';
 import {
   POSE_AVATAR_DEBUG_VARIANTS,
@@ -68,6 +73,17 @@ export const PoseAvatarRenderer = React.forwardRef<
     pointCloudBodyShowKeypoints: config.pointCloudBodyShowKeypoints,
     pointCloudBodyDotScale: config.pointCloudBodyDotScale,
     pointCloudBodyOpacity: config.pointCloudBodyOpacity,
+    pointCloudBodyShapeProfile: config.pointCloudBodyShapeProfile,
+    softDigitalTwinVisualPreset: props.softDigitalTwinVisualPreset,
+    softDigitalTwinShowConstructionOverlay: props.softDigitalTwinShowConstructionOverlay,
+    mediapipeSkeletonStroke: props.mediapipeSkeletonStroke,
+    mediapipeSkeletonOpacity: props.mediapipeSkeletonOpacity,
+    mediapipeSkeletonLineWidthScale: props.mediapipeSkeletonLineWidthScale,
+    mediapipeSkeletonConnectionSet: props.mediapipeSkeletonConnectionSet,
+    mediapipeSkeletonShowLandmarks: props.mediapipeSkeletonShowLandmarks,
+    mediapipeSkeletonShowLabels: props.mediapipeSkeletonShowLabels,
+    mediapipeSkeletonPointColor: props.mediapipeSkeletonPointColor,
+    mediapipeSkeletonLabelColor: props.mediapipeSkeletonLabelColor,
     confidenceFadingEnabled: config.confidenceFadingEnabled,
     confidenceIntensityEnabled: config.confidenceIntensityEnabled,
     reacquisitionFadeEnabled: config.reacquisitionFadeEnabled,
@@ -82,6 +98,7 @@ export const PoseAvatarRenderer = React.forwardRef<
     frameSource: config.frameSource,
     lowLatencyMode: config.lowLatencyMode,
     debug: config.debug,
+    onRendererScheduleEvent: props.onRendererScheduleEvent,
   };
 
   return (
@@ -92,8 +109,18 @@ export const PoseAvatarRenderer = React.forwardRef<
         <VolumetricShadowRenderer ref={innerRef} {...rendererProps} />
       ) : config.mode === 'shadow_silhouette' ? (
         <ShadowSilhouetteRenderer ref={innerRef} {...rendererProps} />
+      ) : config.mode === 'soft_digital_twin' ? (
+        <SoftDigitalTwinRenderer ref={innerRef} {...rendererProps} />
+      ) : config.mode === 'soft_silhouette_avatar' ? (
+        <SoftSilhouetteRenderer ref={innerRef} {...rendererProps} />
+      ) : config.mode === 'sprite_limb_avatar' ? (
+        <SpriteLimbAvatarRenderer ref={innerRef} {...rendererProps} />
       ) : config.mode === 'rigged_human_silhouette' ? (
         <RiggedHumanSilhouetteRenderer ref={innerRef} {...rendererProps} />
+      ) : config.mode === 'contour_field' ? (
+        <ContourFieldRenderer ref={innerRef} {...rendererProps} />
+      ) : config.mode === 'premium_constellation_human' ? (
+        <PremiumConstellationHumanRenderer ref={innerRef} {...rendererProps} />
       ) : config.mode === 'point_cloud_body' ? (
         <PointCloudBodyPoseRenderer ref={innerRef} {...rendererProps} />
       ) : config.mode === 'constellation' ? (

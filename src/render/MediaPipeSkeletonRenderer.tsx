@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { StyleSheet, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Text as SvgText } from 'react-native-svg';
 
 import type { PipelineFrameOutput } from '../pose/pipeline';
 import { LM, type PoseFrame } from '../pose/types';
@@ -19,20 +19,37 @@ import type { PoseAvatarRendererHandle, PoseAvatarRendererProps } from './poseAv
 
 interface MediaPipeSkeletonPaths {
   linePath: string;
+  pointPath: string;
   lineWidth: number;
+  pointRadius: number;
+  labels: MediaPipeSkeletonLabel[];
 }
 
 interface MediaPipeSkeletonBuildResult {
   linePath: string;
+  pointPath: string;
   lineCount: number;
+  pointCount: number;
+  labels: MediaPipeSkeletonLabel[];
+}
+
+interface MediaPipeSkeletonLabel {
+  id: string;
+  label: string;
+  x: number;
+  y: number;
 }
 
 const EMPTY_D = 'M-9-9';
 const EMPTY_PATHS: MediaPipeSkeletonPaths = {
   linePath: '',
+  pointPath: '',
   lineWidth: 4,
+  pointRadius: 2,
+  labels: [],
 };
 const SKELETON_STROKE = '#000000';
+const SKELETON_POINT = '#000000';
 
 const MEDIAPIPE_POSE_CONNECTIONS: readonly (readonly [LM, LM])[] = [
   [LM.NOSE, LM.LEFT_EYE_INNER],
@@ -72,6 +89,55 @@ const MEDIAPIPE_POSE_CONNECTIONS: readonly (readonly [LM, LM])[] = [
   [LM.RIGHT_ANKLE, LM.RIGHT_FOOT_INDEX],
 ];
 
+const MEDIAPIPE_BODY_CONNECTIONS: readonly (readonly [LM, LM])[] = [
+  [LM.LEFT_SHOULDER, LM.RIGHT_SHOULDER],
+  [LM.LEFT_SHOULDER, LM.LEFT_ELBOW],
+  [LM.LEFT_ELBOW, LM.LEFT_WRIST],
+  [LM.LEFT_WRIST, LM.LEFT_PINKY],
+  [LM.LEFT_WRIST, LM.LEFT_INDEX],
+  [LM.LEFT_WRIST, LM.LEFT_THUMB],
+  [LM.LEFT_PINKY, LM.LEFT_INDEX],
+  [LM.RIGHT_SHOULDER, LM.RIGHT_ELBOW],
+  [LM.RIGHT_ELBOW, LM.RIGHT_WRIST],
+  [LM.RIGHT_WRIST, LM.RIGHT_PINKY],
+  [LM.RIGHT_WRIST, LM.RIGHT_INDEX],
+  [LM.RIGHT_WRIST, LM.RIGHT_THUMB],
+  [LM.RIGHT_PINKY, LM.RIGHT_INDEX],
+  [LM.LEFT_SHOULDER, LM.LEFT_HIP],
+  [LM.RIGHT_SHOULDER, LM.RIGHT_HIP],
+  [LM.LEFT_HIP, LM.RIGHT_HIP],
+  [LM.LEFT_HIP, LM.LEFT_KNEE],
+  [LM.LEFT_KNEE, LM.LEFT_ANKLE],
+  [LM.LEFT_ANKLE, LM.LEFT_HEEL],
+  [LM.LEFT_HEEL, LM.LEFT_FOOT_INDEX],
+  [LM.LEFT_ANKLE, LM.LEFT_FOOT_INDEX],
+  [LM.RIGHT_HIP, LM.RIGHT_KNEE],
+  [LM.RIGHT_KNEE, LM.RIGHT_ANKLE],
+  [LM.RIGHT_ANKLE, LM.RIGHT_HEEL],
+  [LM.RIGHT_HEEL, LM.RIGHT_FOOT_INDEX],
+  [LM.RIGHT_ANKLE, LM.RIGHT_FOOT_INDEX],
+];
+
+const KEY_LANDMARK_LABELS: readonly (readonly [LM, string])[] = [
+  [LM.NOSE, 'nose'],
+  [LM.LEFT_SHOULDER, 'L shoulder'],
+  [LM.RIGHT_SHOULDER, 'R shoulder'],
+  [LM.LEFT_ELBOW, 'L elbow'],
+  [LM.RIGHT_ELBOW, 'R elbow'],
+  [LM.LEFT_WRIST, 'L wrist'],
+  [LM.RIGHT_WRIST, 'R wrist'],
+  [LM.LEFT_HIP, 'L hip'],
+  [LM.RIGHT_HIP, 'R hip'],
+  [LM.LEFT_KNEE, 'L knee'],
+  [LM.RIGHT_KNEE, 'R knee'],
+  [LM.LEFT_ANKLE, 'L ankle'],
+  [LM.RIGHT_ANKLE, 'R ankle'],
+  [LM.LEFT_HEEL, 'L heel'],
+  [LM.RIGHT_HEEL, 'R heel'],
+  [LM.LEFT_FOOT_INDEX, 'L foot'],
+  [LM.RIGHT_FOOT_INDEX, 'R foot'],
+];
+
 export const MediaPipeSkeletonRenderer = React.forwardRef<
   PoseAvatarRendererHandle,
   PoseAvatarRendererProps
@@ -86,6 +152,14 @@ export const MediaPipeSkeletonRenderer = React.forwardRef<
     measurementState,
     activeDomain = null,
     trackingQuality = 'high',
+    mediapipeSkeletonStroke = SKELETON_STROKE,
+    mediapipeSkeletonOpacity = 1,
+    mediapipeSkeletonLineWidthScale = 1,
+    mediapipeSkeletonConnectionSet = 'full',
+    mediapipeSkeletonShowLandmarks = false,
+    mediapipeSkeletonShowLabels = false,
+    mediapipeSkeletonPointColor = SKELETON_POINT,
+    mediapipeSkeletonLabelColor = SKELETON_POINT,
     onRendererScheduleEvent,
   },
   ref
@@ -94,7 +168,10 @@ export const MediaPipeSkeletonRenderer = React.forwardRef<
   const perf = React.useRef(createPoseAvatarPerformanceState());
   const buildResult = React.useRef<MediaPipeSkeletonBuildResult>({
     linePath: '',
+    pointPath: '',
     lineCount: 0,
+    pointCount: 0,
+    labels: [],
   });
   const lastRenderedTimestampRef = React.useRef<number | null>(null);
   const visibleRef = React.useRef(false);
@@ -141,13 +218,21 @@ export const MediaPipeSkeletonRenderer = React.forwardRef<
             fit,
           },
           minConfidence,
+          {
+            connectionSet: mediapipeSkeletonConnectionSet,
+            showLandmarks: mediapipeSkeletonShowLandmarks,
+            showLabels: mediapipeSkeletonShowLabels,
+          },
           buildResult.current
         );
 
         visibleRef.current = true;
         setPaths({
           linePath: buildResult.current.linePath,
-          lineWidth: estimateSkeletonLineWidth(width, height),
+          pointPath: buildResult.current.pointPath,
+          lineWidth: estimateSkeletonLineWidth(width, height) * mediapipeSkeletonLineWidthScale,
+          pointRadius: estimateSkeletonPointRadius(width, height),
+          labels: buildResult.current.labels.map((label) => ({ ...label })),
         });
 
         onRendererScheduleEvent?.({
@@ -156,7 +241,7 @@ export const MediaPipeSkeletonRenderer = React.forwardRef<
           frameTimestampMs: frame.timestampMs,
           geometryMs: 0,
           dotCount: 0,
-          lineCount: buildResult.current.lineCount,
+          lineCount: buildResult.current.lineCount + buildResult.current.pointCount,
         });
 
         maybeLogPoseAvatarPerformance(
@@ -216,6 +301,10 @@ export const MediaPipeSkeletonRenderer = React.forwardRef<
       frameSource,
       lowLatencyMode,
       measurementState,
+      mediapipeSkeletonConnectionSet,
+      mediapipeSkeletonShowLabels,
+      mediapipeSkeletonShowLandmarks,
+      mediapipeSkeletonLineWidthScale,
       minConfidence,
       mirrored,
       onRendererScheduleEvent,
@@ -237,12 +326,33 @@ export const MediaPipeSkeletonRenderer = React.forwardRef<
       <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
         <Path
           d={paths.linePath || EMPTY_D}
-          stroke={SKELETON_STROKE}
+          stroke={mediapipeSkeletonStroke}
           strokeWidth={paths.lineWidth}
           strokeLinecap="round"
           strokeLinejoin="round"
           fill="none"
+          opacity={mediapipeSkeletonOpacity}
         />
+        {paths.pointPath ? (
+          <Path
+            d={paths.pointPath}
+            fill={mediapipeSkeletonPointColor}
+            opacity={mediapipeSkeletonOpacity}
+          />
+        ) : null}
+        {paths.labels.map((label) => (
+          <SvgText
+            key={label.id}
+            x={label.x}
+            y={label.y}
+            fill={mediapipeSkeletonLabelColor}
+            fontSize={10}
+            fontWeight="600"
+            opacity={mediapipeSkeletonOpacity}
+          >
+            {label.label}
+          </SvgText>
+        ))}
       </Svg>
     </View>
   );
@@ -252,14 +362,24 @@ function buildMediaPipeSkeletonPath(
   frame: PoseFrame,
   viewport: PoseScreenViewport,
   minConfidence: number,
+  options: {
+    connectionSet: 'full' | 'body';
+    showLandmarks: boolean;
+    showLabels: boolean;
+  },
   out: MediaPipeSkeletonBuildResult
 ): void {
   const transform = computeViewportTransform(viewport);
   let path = '';
+  let pointPath = '';
   let lineCount = 0;
+  let pointCount = 0;
+  out.labels.length = 0;
+  const connections =
+    options.connectionSet === 'body' ? MEDIAPIPE_BODY_CONNECTIONS : MEDIAPIPE_POSE_CONNECTIONS;
 
-  for (let i = 0; i < MEDIAPIPE_POSE_CONNECTIONS.length; i++) {
-    const [a, b] = MEDIAPIPE_POSE_CONNECTIONS[i];
+  for (let i = 0; i < connections.length; i++) {
+    const [a, b] = connections[i];
     if (
       !landmarkRenderable(frame, a, minConfidence) ||
       !landmarkRenderable(frame, b, minConfidence)
@@ -271,8 +391,34 @@ function buildMediaPipeSkeletonPath(
     lineCount++;
   }
 
+  if (options.showLandmarks) {
+    for (let lm = 0; lm < frame.xs.length; lm++) {
+      if (!landmarkRenderable(frame, lm as LM, minConfidence)) continue;
+      pointPath += circlePath(
+        mapLandmarkX(frame, lm as LM, transform),
+        mapLandmarkY(frame, lm as LM, transform),
+        estimatePointRadiusFromTransform(transform)
+      );
+      pointCount++;
+    }
+  }
+
+  if (options.showLabels) {
+    for (const [lm, label] of KEY_LANDMARK_LABELS) {
+      if (!landmarkRenderable(frame, lm, minConfidence)) continue;
+      out.labels.push({
+        id: `${lm}`,
+        label,
+        x: mapLandmarkX(frame, lm, transform) + 5,
+        y: mapLandmarkY(frame, lm, transform) - 5,
+      });
+    }
+  }
+
   out.linePath = path;
+  out.pointPath = pointPath;
   out.lineCount = lineCount;
+  out.pointCount = pointCount;
 }
 
 function landmarkRenderable(frame: PoseFrame, lm: LM, minConfidence: number): boolean {
@@ -284,6 +430,18 @@ function landmarkRenderable(frame: PoseFrame, lm: LM, minConfidence: number): bo
 
 function estimateSkeletonLineWidth(width: number, height: number): number {
   return Math.max(2.4, Math.min(5.2, Math.min(width, height) * 0.008));
+}
+
+function estimateSkeletonPointRadius(width: number, height: number): number {
+  return Math.max(2, Math.min(4.4, Math.min(width, height) * 0.006));
+}
+
+function estimatePointRadiusFromTransform(transform: { sx: number; sy: number }): number {
+  return Math.max(2, Math.min(4.4, Math.min(transform.sx, transform.sy) * 0.006));
+}
+
+function circlePath(cx: number, cy: number, r: number): string {
+  return `M${f(cx - r)} ${f(cy)}a${f(r)} ${f(r)} 0 1 0 ${f(r * 2)} 0a${f(r)} ${f(r)} 0 1 0 ${f(-r * 2)} 0`;
 }
 
 function clamp01(value: number): number {

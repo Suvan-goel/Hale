@@ -1,7 +1,7 @@
 /**
  * Generates ALL bundled audio: voice lines via the ElevenLabs text-to-speech
- * API (Flash v2.5 model) — synthesized ONCE at build time, so the session path
- * never touches a runtime TTS API (CLAUDE.md audio law) — plus the rep-credit
+ * API (Multilingual v2 model) — synthesized ONCE at build time, so the session
+ * path never touches a runtime TTS API (CLAUDE.md audio law) — plus the rep-credit
  * chime as raw-PCM WAV, and the typed require() manifest the player imports.
  *
  * Re-run after adding cues to src/audio/cues.ts, changing a line below, or

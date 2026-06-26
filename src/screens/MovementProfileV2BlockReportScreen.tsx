@@ -18,10 +18,12 @@ export function MovementProfileV2BlockReportScreen({
   report,
   onViewNextPlan,
   onDone,
+  readOnly = false,
 }: {
   report: MovementProfileV2BlockReport;
   onViewNextPlan: () => void;
   onDone: () => void;
+  readOnly?: boolean;
 }) {
   const responsive = useResponsiveLayout();
   const comparisonRows = React.useMemo(() => comparisonRowsForReport(report), [report]);
@@ -80,12 +82,21 @@ export function MovementProfileV2BlockReportScreen({
         </View>
       </Card>
 
-      <Card style={styles.nextCard}>
-        <Text style={styles.sectionTitle}>{report.displayCopy.nextPlanTitle}</Text>
-        <Text style={styles.sectionBody}>{report.displayCopy.nextPlanBody}</Text>
-      </Card>
+      {readOnly ? (
+        <Card style={styles.nextCard}>
+          <Text style={styles.sectionTitle}>Saved block report</Text>
+          <Text style={styles.sectionBody}>This report is read-only and does not change your current plan.</Text>
+        </Card>
+      ) : (
+        <>
+          <Card style={styles.nextCard}>
+            <Text style={styles.sectionTitle}>{report.displayCopy.nextPlanTitle}</Text>
+            <Text style={styles.sectionBody}>{report.displayCopy.nextPlanBody}</Text>
+          </Card>
 
-      <PrimaryButton title={report.displayCopy.nextPlanCta} onPress={onViewNextPlan} />
+          <PrimaryButton title={report.displayCopy.nextPlanCta} onPress={onViewNextPlan} />
+        </>
+      )}
     </Screen>
   );
 }

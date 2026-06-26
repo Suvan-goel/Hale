@@ -18,6 +18,7 @@ export function MovementProfileV2ResultsScreen({
   onBackToResults,
   onViewPlan,
   onDone,
+  readOnly = false,
 }: {
   viewModel: MovementProfileV2ResultsViewModel;
   detailDomain?: MovementProfileV2Domain | null;
@@ -25,6 +26,7 @@ export function MovementProfileV2ResultsScreen({
   onBackToResults: () => void;
   onViewPlan?: () => void;
   onDone: () => void;
+  readOnly?: boolean;
 }) {
   const detail = detailDomain ? movementProfileV2DomainDetail(viewModel, detailDomain) : null;
 
@@ -85,7 +87,9 @@ export function MovementProfileV2ResultsScreen({
       </View>
 
       <Text style={styles.note}>
-        {onViewPlan
+        {readOnly
+          ? 'This is a saved read-only Movement Profile. Opening it does not change your current plan.'
+          : onViewPlan
           ? 'Your local 4-week plan is already prepared from this frozen profile. V2 remains closed beta while device behaviour is not yet verified.'
           : 'Internal V2 output is saved for review. V2 remains closed beta while device behaviour is not yet verified.'}
       </Text>

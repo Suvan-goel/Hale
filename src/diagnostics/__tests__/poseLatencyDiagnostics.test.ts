@@ -366,29 +366,75 @@ describe('pose renderer replay diagnostics', () => {
       'raw-skeleton',
       'rigged-human-silhouette',
       'shadow-silhouette',
+      'soft-continuous-silhouette',
+      'soft-digital-twin-lean',
+      'soft-digital-twin',
+      'premium-constellation-180',
+      'premium-constellation-300',
+      'premium-constellation-450',
+      'sprite-limb-avatar',
       'stipple-sensor-shadow',
+      'contour-field-avatar',
       'minimal-constellation',
       'full-constellation',
-      'refined-point-cloud-body',
+      'organic-balanced-point-cloud-body',
       'full-point-cloud-body',
     ]);
     for (const summary of summaries) {
       expect(summary.frames).toBe(8);
       expect(summary.geometryMs.count).toBe(8);
     }
-    expect(summaries[1].maxSurfacePathCount).toBeLessThanOrEqual(8);
-    expect(summaries[1].maxDynamicPathCount).toBeLessThanOrEqual(8);
-    expect(summaries[1].maxInternalVertexCount).toBe(112);
-    expect(summaries[1].maxVirtualBoneCount).toBe(17);
-    expect(summaries[1].calibrationState).toBe('collecting');
-    expect(summaries[1].orientationProfile).toBeTruthy();
-    expect(summaries[1].proportionCalibrationComplete).toBe(false);
-    expect(summaries[2].maxSurfacePathCount).toBeLessThanOrEqual(6);
-    expect(summaries[2].maxDynamicPathCount).toBeLessThanOrEqual(6);
-    expect(summaries[3].maxSurfacePathCount).toBeLessThanOrEqual(9);
-    expect(summaries[3].maxDots).toBeLessThanOrEqual(3040);
-    expect(summaries[6].maxDots).toBeLessThanOrEqual(900);
-    expect(summaries[7].maxDots).toBeGreaterThan(summaries[4].maxDots);
+    const byMode = new Map(summaries.map((summary) => [summary.mode, summary]));
+    const rigged = byMode.get('rigged-human-silhouette');
+    const shadow = byMode.get('shadow-silhouette');
+    const softSilhouette = byMode.get('soft-continuous-silhouette');
+    const softDigitalTwinLean = byMode.get('soft-digital-twin-lean');
+    const softDigitalTwin = byMode.get('soft-digital-twin');
+    const premium180 = byMode.get('premium-constellation-180');
+    const premium300 = byMode.get('premium-constellation-300');
+    const premium450 = byMode.get('premium-constellation-450');
+    const sprite = byMode.get('sprite-limb-avatar');
+    const stipple = byMode.get('stipple-sensor-shadow');
+    const contour = byMode.get('contour-field-avatar');
+    const minimal = byMode.get('minimal-constellation');
+    const organic = byMode.get('organic-balanced-point-cloud-body');
+    const full = byMode.get('full-point-cloud-body');
+
+    expect(rigged?.maxSurfacePathCount).toBeLessThanOrEqual(8);
+    expect(rigged?.maxDynamicPathCount).toBeLessThanOrEqual(8);
+    expect(rigged?.maxInternalVertexCount).toBe(112);
+    expect(rigged?.maxVirtualBoneCount).toBe(17);
+    expect(rigged?.calibrationState).toBe('collecting');
+    expect(rigged?.orientationProfile).toBeTruthy();
+    expect(rigged?.proportionCalibrationComplete).toBe(false);
+    expect(shadow?.maxSurfacePathCount).toBeLessThanOrEqual(6);
+    expect(shadow?.maxDynamicPathCount).toBeLessThanOrEqual(6);
+    expect(softSilhouette?.maxSurfacePathCount).toBeLessThanOrEqual(5);
+    expect(softSilhouette?.maxDynamicPathCount).toBeLessThanOrEqual(5);
+    expect(softDigitalTwinLean?.maxSurfacePathCount).toBeLessThanOrEqual(13);
+    expect(softDigitalTwinLean?.maxDynamicPathCount).toBeLessThanOrEqual(13);
+    expect(softDigitalTwin?.maxSurfacePathCount).toBeLessThanOrEqual(13);
+    expect(softDigitalTwin?.maxDynamicPathCount).toBeLessThanOrEqual(13);
+    expect(premium180?.maxDots).toBeLessThanOrEqual(180);
+    expect(premium300?.maxDots).toBeLessThanOrEqual(300);
+    expect(premium450?.maxDots).toBeLessThanOrEqual(450);
+    expect(premium300?.maxDots).toBeGreaterThan(premium180?.maxDots ?? 0);
+    expect(premium450?.maxDots).toBeGreaterThan(premium300?.maxDots ?? 0);
+    expect(premium180?.maxLines).toBe(0);
+    expect(premium300?.maxLines).toBe(0);
+    expect(premium450?.maxLines).toBe(0);
+    expect(sprite?.maxSurfacePathCount).toBeLessThanOrEqual(18);
+    expect(sprite?.maxDynamicPathCount).toBe(0);
+    expect(sprite?.maxStaticTransformedShapeCount).toBeLessThanOrEqual(18);
+    expect(stipple?.maxSurfacePathCount).toBeLessThanOrEqual(9);
+    expect(stipple?.maxDots).toBeLessThanOrEqual(3040);
+    expect(contour?.maxSurfacePathCount).toBeLessThanOrEqual(4);
+    expect(contour?.maxDynamicPathCount).toBeLessThanOrEqual(4);
+    expect(contour?.maxLines).toBeLessThanOrEqual(180);
+    expect(contour?.maxDots).toBeLessThanOrEqual(120);
+    expect(organic?.maxDots).toBeGreaterThan(1200);
+    expect(organic?.maxDots).toBeLessThanOrEqual(1400);
+    expect(full?.maxDots).toBeGreaterThan(minimal?.maxDots ?? 0);
   });
 });
 

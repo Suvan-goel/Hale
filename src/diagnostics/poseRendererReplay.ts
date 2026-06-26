@@ -2,6 +2,10 @@ import { CHAIN_COUNT } from '../pose/chains';
 import { makeFrame, mulberry32 } from '../pose/testing/syntheticPose';
 import { createPoseFrame, LANDMARK_STRIDE, LM, parseLandmarkEvent, RawLandmarkEvent } from '../pose/types';
 import {
+  buildContourFieldGeometry,
+  createContourFieldGeometry,
+} from '../render/contourFieldGeometry';
+import {
   buildBodyVolumeGeometry,
   createBodyVolumeGeometry,
 } from '../render/bodyVolumeGeometry';
@@ -23,6 +27,23 @@ import {
   buildShadowSilhouetteGeometry,
   createShadowSilhouetteGeometry,
 } from '../render/shadowSilhouetteGeometry';
+import {
+  buildSoftSilhouetteGeometry,
+  createSoftSilhouetteGeometry,
+} from '../render/softSilhouetteGeometry';
+import {
+  buildSoftDigitalTwinGeometry,
+  createSoftDigitalTwinGeometry,
+} from '../render/softDigitalTwinGeometry';
+import { resolvePremiumConstellationVolumeConfig } from '../render/premiumConstellationHumanPresets';
+import {
+  buildPremiumConstellationHumanGeometry,
+  createPremiumConstellationHumanGeometry,
+} from '../render/premiumConstellationHumanGeometry';
+import {
+  buildSpriteLimbAvatarGeometry,
+  createSpriteLimbAvatarGeometry,
+} from '../render/spriteLimbAvatarGeometry';
 import {
   buildVolumetricShadowGeometry,
   createVolumetricShadowGeometry,
@@ -46,10 +67,18 @@ export type PoseRendererReplayMode =
   | 'raw-skeleton'
   | 'rigged-human-silhouette'
   | 'shadow-silhouette'
+  | 'soft-continuous-silhouette'
+  | 'soft-digital-twin-lean'
+  | 'soft-digital-twin'
+  | 'premium-constellation-180'
+  | 'premium-constellation-300'
+  | 'premium-constellation-450'
+  | 'sprite-limb-avatar'
   | 'stipple-sensor-shadow'
+  | 'contour-field-avatar'
   | 'minimal-constellation'
   | 'full-constellation'
-  | 'refined-point-cloud-body'
+  | 'organic-balanced-point-cloud-body'
   | 'full-point-cloud-body';
 
 export interface PoseRendererReplaySummary {
@@ -99,10 +128,18 @@ export function runPoseRendererReplaySuite(
     'raw-skeleton',
     'rigged-human-silhouette',
     'shadow-silhouette',
+    'soft-continuous-silhouette',
+    'soft-digital-twin-lean',
+    'soft-digital-twin',
+    'premium-constellation-180',
+    'premium-constellation-300',
+    'premium-constellation-450',
+    'sprite-limb-avatar',
     'stipple-sensor-shadow',
+    'contour-field-avatar',
     'minimal-constellation',
     'full-constellation',
-    'refined-point-cloud-body',
+    'organic-balanced-point-cloud-body',
     'full-point-cloud-body',
   ];
   return modes.map((mode) => runPoseRendererReplay(mode, options));
@@ -128,12 +165,19 @@ export function runPoseRendererReplay(
   const skeleton = emptySkeletonPaths();
   const constellation = createConstellationGeometry(300);
   const bodyVolume = createBodyVolumeGeometry(180);
-  const pointCloud = createPointCloudBodyGeometry(900);
+  const pointCloud = createPointCloudBodyGeometry(1400);
+  const premiumConstellation180 = createPremiumConstellationHumanGeometry(180);
+  const premiumConstellation300 = createPremiumConstellationHumanGeometry(300);
+  const premiumConstellation450 = createPremiumConstellationHumanGeometry(450);
   const silhouette = createRiggedHumanSilhouetteGeometry();
   const silhouetteCalibration = createRiggedHumanSilhouetteCalibration();
   const silhouetteOrientation = createRiggedHumanSilhouetteOrientationState();
   const shadowSilhouette = createShadowSilhouetteGeometry();
+  const softSilhouette = createSoftSilhouetteGeometry();
+  const softDigitalTwin = createSoftDigitalTwinGeometry();
+  const spriteLimbAvatar = createSpriteLimbAvatarGeometry();
   const volumetricShadow = createVolumetricShadowGeometry();
+  const contourField = createContourFieldGeometry();
   const geometryMs = new ReplayMetric();
   let totalDots = 0;
   let maxDots = 0;
@@ -218,6 +262,76 @@ export function runPoseRendererReplay(
         );
         totalPrimitiveCount += shadowSilhouette.surfacePathCount;
         maxPrimitiveCount = Math.max(maxPrimitiveCount, shadowSilhouette.surfacePathCount);
+      } else if (mode === 'soft-continuous-silhouette') {
+        buildSoftSilhouetteGeometry(screenPose, softSilhouette);
+        shapeFrames++;
+        surfaceFrames++;
+        totalShapeCount += softSilhouette.shapeCount;
+        maxShapeCount = Math.max(maxShapeCount, softSilhouette.shapeCount);
+        totalDynamicPathCount += softSilhouette.dynamicPathCount;
+        maxDynamicPathCount = Math.max(maxDynamicPathCount, softSilhouette.dynamicPathCount);
+        totalSurfacePathCount += softSilhouette.surfacePathCount;
+        maxSurfacePathCount = Math.max(maxSurfacePathCount, softSilhouette.surfacePathCount);
+        totalPrimitiveCount += softSilhouette.surfacePathCount;
+        maxPrimitiveCount = Math.max(maxPrimitiveCount, softSilhouette.surfacePathCount);
+      } else if (mode === 'soft-digital-twin' || mode === 'soft-digital-twin-lean') {
+        buildSoftDigitalTwinGeometry(screenPose, softDigitalTwin, {
+          visualPreset: mode === 'soft-digital-twin-lean' ? 'lean' : 'balanced',
+        });
+        shapeFrames++;
+        surfaceFrames++;
+        totalShapeCount += softDigitalTwin.shapeCount;
+        maxShapeCount = Math.max(maxShapeCount, softDigitalTwin.shapeCount);
+        totalDynamicPathCount += softDigitalTwin.dynamicPathCount;
+        maxDynamicPathCount = Math.max(maxDynamicPathCount, softDigitalTwin.dynamicPathCount);
+        totalSurfacePathCount += softDigitalTwin.surfacePathCount;
+        maxSurfacePathCount = Math.max(maxSurfacePathCount, softDigitalTwin.surfacePathCount);
+        totalPrimitiveCount += softDigitalTwin.surfacePathCount;
+        maxPrimitiveCount = Math.max(maxPrimitiveCount, softDigitalTwin.surfacePathCount);
+      } else if (
+        mode === 'premium-constellation-180' ||
+        mode === 'premium-constellation-300' ||
+        mode === 'premium-constellation-450'
+      ) {
+        const preset = resolvePremiumConstellationReplayPreset(mode);
+        const premiumConstellation =
+          mode === 'premium-constellation-180'
+            ? premiumConstellation180
+            : mode === 'premium-constellation-450'
+              ? premiumConstellation450
+              : premiumConstellation300;
+        buildPremiumConstellationHumanGeometry(screenPose, premiumConstellation, preset, {
+          showGuideStructure: false,
+        });
+        totalDots += premiumConstellation.dotCount;
+        maxDots = Math.max(maxDots, premiumConstellation.dotCount);
+        totalLines += premiumConstellation.guideLineCount;
+        maxLines = Math.max(maxLines, premiumConstellation.guideLineCount);
+        totalPrimitiveCount += premiumConstellation.dotCount + premiumConstellation.guideLineCount;
+        maxPrimitiveCount = Math.max(
+          maxPrimitiveCount,
+          premiumConstellation.dotCount + premiumConstellation.guideLineCount
+        );
+      } else if (mode === 'sprite-limb-avatar') {
+        buildSpriteLimbAvatarGeometry(screenPose, spriteLimbAvatar);
+        shapeFrames++;
+        surfaceFrames++;
+        totalShapeCount += spriteLimbAvatar.surfacePathCount;
+        maxShapeCount = Math.max(maxShapeCount, spriteLimbAvatar.surfacePathCount);
+        totalDynamicPathCount += spriteLimbAvatar.dynamicPathCount;
+        maxDynamicPathCount = Math.max(maxDynamicPathCount, spriteLimbAvatar.dynamicPathCount);
+        totalStaticTransformedShapeCount += spriteLimbAvatar.staticTransformedShapeCount;
+        maxStaticTransformedShapeCount = Math.max(
+          maxStaticTransformedShapeCount,
+          spriteLimbAvatar.staticTransformedShapeCount
+        );
+        totalSurfacePathCount += spriteLimbAvatar.surfacePathCount;
+        maxSurfacePathCount = Math.max(
+          maxSurfacePathCount,
+          spriteLimbAvatar.surfacePathCount
+        );
+        totalPrimitiveCount += spriteLimbAvatar.surfacePathCount;
+        maxPrimitiveCount = Math.max(maxPrimitiveCount, spriteLimbAvatar.surfacePathCount);
       } else if (mode === 'stipple-sensor-shadow') {
         buildVolumetricShadowGeometry(screenPose, volumetricShadow, { maxDots: 3000 });
         buildShadowSilhouetteGeometry(screenPose, shadowSilhouette);
@@ -248,6 +362,25 @@ export function runPoseRendererReplay(
         maxPrimitiveCount = Math.max(
           maxPrimitiveCount,
           volumetricShadow.dotCount + hazePathCount
+        );
+      } else if (mode === 'contour-field-avatar') {
+        buildContourFieldGeometry(screenPose, contourField);
+        shapeFrames++;
+        surfaceFrames++;
+        totalDots += contourField.particleCount;
+        maxDots = Math.max(maxDots, contourField.particleCount);
+        totalLines += contourField.lineCount;
+        maxLines = Math.max(maxLines, contourField.lineCount);
+        totalShapeCount += contourField.shapeCount;
+        maxShapeCount = Math.max(maxShapeCount, contourField.shapeCount);
+        totalDynamicPathCount += contourField.dynamicPathCount;
+        maxDynamicPathCount = Math.max(maxDynamicPathCount, contourField.dynamicPathCount);
+        totalSurfacePathCount += contourField.surfacePathCount;
+        maxSurfacePathCount = Math.max(maxSurfacePathCount, contourField.surfacePathCount);
+        totalPrimitiveCount += contourField.lineCount + contourField.particleCount;
+        maxPrimitiveCount = Math.max(
+          maxPrimitiveCount,
+          contourField.lineCount + contourField.particleCount
         );
       } else if (mode === 'minimal-constellation') {
         buildConstellationGeometry(screenPose, chainReliability, constellation, {
@@ -288,13 +421,13 @@ export function runPoseRendererReplay(
         maxLines = Math.max(maxLines, constellation.lineCount);
         totalPrimitiveCount += dots + constellation.lineCount;
         maxPrimitiveCount = Math.max(maxPrimitiveCount, dots + constellation.lineCount);
-      } else if (mode === 'refined-point-cloud-body') {
+      } else if (mode === 'organic-balanced-point-cloud-body') {
         buildPointCloudBodyGeometry(screenPose, pointCloud, {
           pointCloudBodyEnabled: true,
           density: 'high',
-          maxDots: 900,
-          dotScale: 2.35,
-          shapeProfile: 'refined',
+          maxDots: 1400,
+          dotScale: 1.48,
+          shapeProfile: 'organic',
           showConnections: false,
           showKeypoints: false,
           lowLatencyMode: false,
@@ -362,6 +495,16 @@ export function runPoseRendererReplay(
     orientationProfile,
     proportionCalibrationComplete,
   };
+}
+
+function resolvePremiumConstellationReplayPreset(mode: PoseRendererReplayMode) {
+  if (mode === 'premium-constellation-180') {
+    return resolvePremiumConstellationVolumeConfig('constellationVolume180');
+  }
+  if (mode === 'premium-constellation-450') {
+    return resolvePremiumConstellationVolumeConfig('constellationVolume450');
+  }
+  return resolvePremiumConstellationVolumeConfig('constellationVolume300');
 }
 
 export function createSyntheticRendererReplayFrames(frameCount: number): RawLandmarkEvent[] {

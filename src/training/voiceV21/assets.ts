@@ -9,6 +9,7 @@ import type {
   TrainingVoiceExerciseContractV21,
   TrainingVoiceImplementationRequirementId,
   TrainingVoiceLogicalCueV21,
+  TrainingVoiceSafetyFamilyV21,
 } from './types';
 
 interface PhysicalCandidate {
@@ -72,6 +73,16 @@ const MISMATCH_PHYSICAL_CANDIDATES: Readonly<Record<string, PhysicalCandidate>> 
   ),
 };
 
+const SAFETY_FAMILY_BY_LOGICAL_CUE_KEY: Readonly<Record<string, TrainingVoiceSafetyFamilyV21>> = {
+  'equip-chair-stable-v21': 'chair_seat',
+  'equip-support-close-v21': 'generic_support',
+  'equip-balance-support-v21': 'balance_support',
+  'equip-step-stable-v21': 'step_or_stair',
+  'equip-long-band-v21': 'long_band_handheld_or_foot_anchored',
+  'equip-door-anchor-v21': 'door_anchor_band',
+  'equip-floor-transition-v21': 'floor_eligible_user',
+};
+
 export function listTrainingVoiceAssetRequirementsV21(): TrainingVoiceAssetRequirementV21[] {
   const usage = cueUsage();
   return allTrainingVoiceLogicalCuesV21()
@@ -104,6 +115,7 @@ function assetRequirementFor(
     policyId: cue.policyId,
     exerciseIds: usage?.exerciseIds ?? [],
     usageRole: usage?.usageRoles.join(';') ?? 'shared',
+    safetyFamily: SAFETY_FAMILY_BY_LOGICAL_CUE_KEY[cue.key] ?? null,
     sideVariant: usage?.sideVariants.join(';') ?? '',
     currentCandidateKey: candidate?.key ?? null,
     currentCandidateScript: candidate?.script ?? null,

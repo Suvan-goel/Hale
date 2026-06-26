@@ -14,6 +14,7 @@ import type { PersistedGeneratedSessionSummary } from './dynamicState';
 import type { DiscomfortConstraint } from './dailyTrainingContext';
 import { isExerciseExcludedByDiscomfort } from './dailyTrainingContext';
 import { equipmentSupportsTags } from './equipmentSafety';
+import { deriveFloorExerciseEligibility } from './floorExerciseEligibility';
 import { movementCapabilitySupportsLevel } from './movementCapabilitySafety';
 
 export const MOBILITY_COLLECTION_ID = 'mobility-flexibility';
@@ -258,6 +259,13 @@ function isEligibleCollectionLevel(
 ): boolean {
   return (
     isExerciseLevelAvailableForRelease(level) &&
+    deriveFloorExerciseEligibility({
+      level,
+      ladder,
+      availableEquipment: input.availableEquipment,
+      movementCapabilities: input.movementCapabilities,
+      discomfortConstraint: input.discomfortConstraint,
+    }).eligible &&
     equipmentSupportsTags(level.equipment, input.availableEquipment) &&
     movementCapabilitySupportsLevel(level, input.movementCapabilities) &&
     !isExerciseExcludedByDiscomfort(ladder, level, input.discomfortConstraint)

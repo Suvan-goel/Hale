@@ -1732,3 +1732,359 @@ PUBLIC RELEASE REMAINS BLOCKED
 - **Evidence:** live desktop and mobile visual checks showed no horizontal overflow and a clearer
   section rhythm; website lint, typecheck and unit tests passed before the final build and e2e
   verification.
+
+## 2026-06-25 — Contour field avatar added as benchmark-only visual candidate
+
+- **Change:** added a benchmark-only `contour-field-avatar` mode backed by explicit renderer mode
+  `contour_field`. The renderer builds a line-field human from MediaPipe torso, head, pelvis and
+  limb chains, with head/neck, collar, torso, pelvis, limb, hand and foot contours batched into
+  four SVG paths.
+- **Rationale:** this explores a direction between the 900-dot technical point cloud and the
+  filled silhouette attempts: more premium and human-shaped than sparse dots, but still procedural,
+  lightweight and free of image-generation assets or runtime raster compositing.
+- **Boundary:** production recording screens and env/default renderer selection remain
+  `point_cloud_body`. The contour field is selectable only through benchmark props/replay, adds no
+  dependency, uses no camera self-view, and does not change grading, smoothing, or movement logic.
+- **Evidence:** focused contour/config/benchmark/diagnostics tests pass, `npm run typecheck`
+  passes, and `npm run pose-renderer-replay` reports the contour field at 96 particles, about 149
+  contour lines, 245 primitives, 4 dynamic paths, and local JS geometry p50/p95 `0.133/0.227 ms`.
+  The same replay reports the refined 900-dot body at 900 primitives and p50/p95
+  `0.284/0.410 ms`. Physical-device visual review remains required before promotion.
+
+## 2026-06-25 — Benchmark screen prunes rejected avatar experiments
+
+- **Change:** simplified the pose overlay benchmark selector to the useful comparison set: no
+  overlay, raw skeleton, current 900-dot SVG, organic dense dot SVG, production point cloud,
+  production without transitions, and Android-only native Constellation V2 900/600.
+- **Rationale:** the experimental silhouette, stipple, contour-field, old constellation, and
+  225/450 point-cloud density probes were cluttering the screen and no longer represented visual
+  directions worth comparing during product design review.
+- **Boundary:** this removes those modes from the visible benchmark selector only. The underlying
+  experimental renderer modules and replay diagnostics remain available for code archaeology or
+  future cleanup, and production recording screens are unchanged.
+- **Evidence:** focused benchmark/config tests and `npm run typecheck` pass.
+
+## 2026-06-25 — Balanced organic dot avatar keeps the baseline shape at lower cost
+
+- **Change:** replaced the visible refined 900-dot benchmark candidate with an opt-in
+  `organic-balanced-dot-1400` profile. It keeps the procedural point-cloud body renderer but uses
+  a lower benchmark-only dot budget than the previous 2,200-dot experiment, removes keypoint marks,
+  and uses slightly larger sage dots so the figure stays fuller than the current 894-dot baseline
+  with fewer primitives. After visual review, the organic silhouette was pulled back toward the
+  current 894-dot figure's baseline proportions: slimmer limb capsules, a less stylized torso
+  curve, and subtler pelvis clusters that add cohesion without changing the body outline.
+- **Rationale:** the 900-dot figure remains the most polished production direction, but its sparse
+  landmarks leave visible breaks at the head/neck and pelvis/leg joins. A denser dot-only profile
+  tests the user's particle-human reference without adding raster assets, generated image parts,
+  underlays, or connection lines.
+- **Boundary:** production recording screens and env/default renderer caps remain at the existing
+  point-cloud body budget unless explicit props request the heavier benchmark variant. The profile
+  adds no dependency, makes no image-generation/runtime raster calls, and does not change pose
+  detection, grading, smoothing, or native camera behavior.
+- **Evidence:** focused geometry/config/benchmark/diagnostics tests pass, `npm run typecheck`
+  passes, and `npm run pose-renderer-replay` reports the balanced organic profile at 1,400 dots
+  with local JS geometry p50/p95 about `0.505/0.711 ms`, compared with the full point-cloud body
+  at 894 dots and p50/p95 about `0.284/0.351 ms`. Physical Android/iOS visual and latency review
+  remains required before any production promotion.
+
+## 2026-06-25 — Step-up alternation runtime integrated behind internal gates
+
+- **Change:** connected the default-closed step-up alternation model to an explicit training set
+  runtime abstraction. `TrainingSessionPlayer` now owns one set runtime, selects the alternation
+  runtime only for valid generated step-up items with the feature flag, internal V2.1 mode, and
+  injected runtime capability, and suppresses generic rep-credit SFX in that internal path.
+- **Policy:** lead evidence is conservative: the runtime requires a per-set bilateral floor
+  baseline, one foot initiating while the other remains at the floor boundary, a valid top phase,
+  and a stable both-feet return before credit. Wrong or unknown leads do not credit, play SFX, or
+  flip the expected side.
+- **Persistence:** generated summaries and compact backend sync/restore now retain
+  `stepUpAlternationPlan`, `stepUpInitialLeadSide`, `activeSetRuntime`, and the shared
+  `bothSidesStartSideSeed`. Successful main-plan step-up completion flips the shared seed once;
+  manual/Explore/non-credit paths remain isolated.
+- **Boundary:** ordinary app sessions remain legacy because the app passes metadata but not the
+  internal runtime readiness switch. Training Voice V2.1 and Balance V2 remain default-closed; no
+  audio was generated, changed, listened to, or approved, and the floor-transfer readiness gate was
+  not implemented.
+- **Evidence:** audit verdict is
+  `TRAINING_STEP_UP_RUNTIME_INTEGRATION_COMPLETE_WITH_DEVICE_QA_PENDING` with 53 canonical original
+  scenarios retained, 37 integration scenarios added, 16/16 trace links connected or genuinely
+  not applicable, missing/partial/legacy/uncertain links `0/0/0/0`, P0/P1/P2/P3 `0/0/0/2`, and
+  physical-device QA plus human listening still deferred/waived.
+
+## 2026-06-25 — Matte limb sprite avatar added as a benchmark-only latency probe
+
+- **Change:** added a benchmark-only `sprite-limb-avatar` / `sprite_limb_avatar` renderer option
+  named "Matte limb sprites." It maps one static central body mask plus static upper/lower limb,
+  hand/foot, and shoulder/hip cap masks onto MediaPipe bone transforms, with small elbow/knee gaps
+  so the segments can articulate without overlap.
+- **Rationale:** this tests the user's suggestion that generated/static body-part assets could
+  reduce latency by replacing a 900-1,400 dot field with a handful of transformed body-part
+  surfaces. The first implementation uses deterministic SVG masks rather than PNG assets so the
+  pose mapping, primitive count, and motion behavior can be judged before adding generated bitmap
+  asset management.
+- **Boundary:** production recording screens remain unchanged. The renderer adds no runtime
+  image-generation call, no camera self-view, no new dependency, and no grading/pipeline changes.
+  If this visual direction is promoted later, the static SVG masks could be swapped for bundled
+  generated PNG/WebP textures using the same transform contract.
+- **Evidence:** focused sprite geometry, benchmark selector, config, and diagnostics tests pass.
+  `npm run pose-renderer-replay` reports the sprite avatar at 0 dots, up to 18 transformed shapes,
+  0 dynamic paths, and local JS geometry p50/p95 about `0.019/0.052 ms`, compared with the
+  balanced 1,400-dot avatar at p50/p95 about `0.486/0.649 ms` in the same run. Full
+  `npm run typecheck` is currently blocked by an unrelated existing audit fixture error in
+  `scripts/audits/fixtures/step-up-runtime-evidence-closure/production-runner.ts`.
+
+## 2026-06-25 — Soft continuous silhouette avatar added as option-1 benchmark prototype
+
+- **Change:** added a benchmark-only `soft-continuous-silhouette` option backed by renderer mode
+  `soft_silhouette_avatar`. It builds a cohesive matte inky-green figure from five SVG surfaces:
+  a continuous head/neck/torso/pelvis core, blended limbs, subtle joint cover shapes, a faint
+  internal highlight, and a low-opacity rim stroke.
+- **Rationale:** after dot, stipple, contour, and sprite experiments still felt too technical,
+  noisy, or puppet-like, this tests the simplest premium wellness direction: one calm human
+  presence that follows MediaPipe landmarks without visible dots, hard joints, or generated image
+  assets.
+- **Boundary:** production recording screens remain on the existing point-cloud renderer. The new
+  mode is explicit-props/benchmark-only, adds no dependency, makes no image-generation/runtime
+  raster call, and does not alter camera, pose detection, grading, smoothing, or audio behavior.
+- **Evidence:** focused soft-silhouette, sprite, benchmark selector, config, and diagnostics tests
+  pass. `npm run pose-renderer-replay` reports the soft silhouette at 0 dots, 5 dynamic paths, and
+  local JS geometry p50/p95 about `0.037/0.066 ms`, compared with the balanced 1,400-dot avatar at
+  p50/p95 about `0.488/0.676 ms` and the current full point-cloud body at about `0.275/0.351 ms`
+  in the same run. Full `npm run typecheck` remains blocked by the unrelated audit fixture noted
+  above.
+
+## 2026-06-25 — Soft silhouette unified-contour refinement
+
+- **Change:** refined the benchmark-only soft silhouette so its normal path is one unified
+  exterior body contour instead of a separately painted torso plus limb capsules. The happy path is
+  now three SVG surfaces: unified body fill, subtle internal highlight, and a faint rim. Separate
+  limb/blend surfaces are retained only as fallback behavior when the full contour cannot be built.
+- **Rationale:** the split-shape version made the arms and legs read as attached tubes and left the
+  head/neck/shoulder join feeling puppet-like. A single contour keeps the latency profile low while
+  making the torso, limbs, hips, traps, neck, and head feel more cohesive for benchmark review.
+- **Evidence:** focused soft-silhouette, benchmark selector, config, diagnostics tests, and
+  `npm run typecheck` pass. `npm run pose-renderer-replay` reports the refined soft silhouette at
+  0 dots, 3 dynamic paths, and local JS geometry p50/p95 about `0.033/0.067 ms`, compared with the
+  balanced 1,400-dot avatar at about `0.482/0.685 ms` and the current 894-dot body at about
+  `0.272/0.369 ms` in the same run.
+
+## 2026-06-25 — Benchmark-only Soft Digital Twin renderer added
+
+- **Change:** added a separate benchmark option labeled "Soft digital twin" that renders a
+  premium humanoid from MediaPipe landmarks. The initial segmented mannequin pass was refined into
+  13 SVG surface paths: continuous left/right arm surfaces, continuous left/right leg surfaces,
+  head, neck, ribcage, pelvis, hands, feet, and one subtle occlusion path, with deep
+  emerald/graphite gradients instead of dots or skeleton lines.
+- **Rationale:** this explores the lower-latency direction of a pose-driven human silhouette with
+  believable surface area while keeping it isolated from production camera screens until the visual
+  quality is approved. Distal low-confidence landmarks fade or drop only their local segment so one
+  bad wrist/ankle does not distort the entire body. Visible elbow/knee/hip joint discs were
+  removed because they read as construction markers.
+- **Evidence:** focused soft-digital-twin geometry, benchmark selector, config, diagnostics
+  replay tests, `npm run pose-renderer-replay`, and `npm run typecheck` pass. The replay reports
+  Soft Digital Twin at 0 dots, 13 dynamic paths, and local JS geometry p50/p95 about
+  `0.037/0.068 ms`, compared with the 894-dot body at about `0.282/0.366 ms` in the same run.
+
+## 2026-06-25 — Anatomical flow silhouette refinement
+
+- **Change:** pushed the benchmark-only soft silhouette toward the anatomical reference direction:
+  the visible option is now labeled "Anatomical flow silhouette" and renders a low-opacity human
+  envelope with one batched contour-flow stroke path and one batched node path over the body. The
+  head, neck, shoulders, ribcage, pelvis, limbs, hands, and feet use broader proportion envelopes
+  instead of reading directly as simple bone capsules.
+- **Rationale:** the flat filled silhouette still looked like an abstract pose glyph rather than a
+  premium human figure. The reference image works because it describes body anatomy with contour
+  lines and landmark density, so this keeps the low-latency SVG-path approach while moving the
+  benchmark closer to that visual language.
+- **Evidence:** focused soft-silhouette, benchmark selector, config, diagnostics tests, and
+  `npm run typecheck` pass. `npm run pose-renderer-replay` reports the anatomical flow silhouette
+  at 0 dots, 5 dynamic paths, and local JS geometry p50/p95 about `0.083/0.159 ms`, compared with
+  the 894-dot body at about `0.287/0.488 ms` and the balanced 1,400-dot avatar at about
+  `0.497/0.709 ms` in the same run.
+
+## 2026-06-25 — Soft silhouette restored to matte surface with outline-only anatomy refinement
+
+- **Change:** removed the anatomical contour and node overlay from the benchmark soft silhouette
+  after review clarified that the reference image should inform only the body outline, not the
+  surface style. The option is again labeled "Soft continuous silhouette" and uses the previous
+  inky-green matte fill and subtle rim, with revised head, neck, shoulder, torso, pelvis, arm, and
+  leg envelopes. A follow-up head pass added explicit jaw-angle controls, narrowed the neck under
+  the jaw, and softened the trapezius-to-shoulder curve. A torso pass then narrowed the ribcage
+  under the shoulder line, reduced the abrupt waist pinch, softened the trunk curves, and restrained
+  the pelvis flare so the body reads less like a rigid shield. An arm pass refined the upper-arm,
+  elbow, forearm, wrist, and hand width profile so the arms read less like uniform tubes while still
+  following the same MediaPipe shoulder-elbow-wrist chain. The internal torso highlight was removed
+  after it read as an unintended mark, leaving only the filled body path and rim in the happy path.
+  A leg pass smoothed the waist-to-hip-to-thigh tangent, narrowed the upper-thigh root, and replaced
+  the pointed groin bridge with a centered U-curve so the legs connect more naturally to the pelvis.
+- **Rationale:** the copied contour-field treatment changed the visual direction too much. The
+  desired direction is the calmer premium matte figure, but with a more human outline borrowed from
+  the reference's silhouette proportions.
+- **Evidence:** focused soft-silhouette, benchmark selector, config, and diagnostics tests pass.
+  `npm run pose-renderer-replay` reports the restored matte silhouette at 0 dots, 2 dynamic paths,
+  and local JS geometry p50/p95 about `0.035/0.075 ms`, compared with the 894-dot body at about
+  `0.279/0.368 ms` and the balanced 1,400-dot avatar at about `0.498/0.743 ms` in the same run.
+  Full `npm run typecheck` is currently blocked by unrelated `training/voiceV21` safety-policy
+  type/module errors.
+
+## 2026-06-25 — Training floor-transfer readiness gate closed at software level
+
+- **Change:** reused `MovementCapabilityProfile.floorTransfer.status` as the sole floor-transfer
+  authority, added the approved FD-007 Yes/No/Not sure Safety/Profile question, centralized floor
+  exercise eligibility in `deriveFloorExerciseEligibility`, and added default-off Training Floor
+  V2.1 setup state so floor sessions require explicit user confirmation plus movement-camera
+  readiness before `final-position-set-v21`, countdown, or active work.
+- **Rationale:** `floor_space` is only an environment requirement; it must never imply the user can
+  get down to the floor and back up. The camera cannot robustly prove every exact floor posture
+  without a fragile classifier, so the safe software contract is explicit confirmation after the
+  instruction plus stable movement-specific visibility/readiness.
+- **Boundary:** no audio was generated or changed, no Training Voice V2.1 default was enabled, no
+  Balance V2 or step-up alternation default changed, and live safety-family narration remains the
+  next task. `push-up-standard` stays `v1_optional` and release-blocked for generated eligibility.
+- **Evidence:** `node scripts/audits/audit-training-floor-readiness.mjs` reports
+  `TRAINING_FLOOR_READINESS_SOFTWARE_COMPLETE` with P0/P1/P2/P3 `0/0/0/2`, floor exercise count 3,
+  duplicate floor authority count 0, and no audio manifest/file changes.
+
+## 2026-06-25 — Training Voice V2.1 live safety-family integration complete
+
+- **Change:** connected the canonical Training Voice V2.1 safety-family policy to live contract
+  resolution without replacing `SafetyCueProfile` authority. Each V2.1 safety plan now records the
+  source safety profile schema/fingerprint, source cue ids, deferred reactive cue ids, fulfilment
+  mode, absorbed families, subsumed families, and reason codes. Session safety memory now tracks
+  universal safety completion, introduced families, first-use ids, and delegates floor-family
+  introduction to `TrainingFloorSessionMemory.floorFamilyIntroduced`.
+- **Rationale:** V2.1 needs concise normal setup narration, but safety eligibility and current
+  hazard requirements must continue to come from the existing safety profile/snapshot system. The
+  bridge removes redundant family narration while preserving reactive stop/recovery work as an
+  explicit later phase.
+- **Boundary:** no audio was generated or changed, no pending logical V2.1 safety cue was added to
+  the physical manifest, Training Voice V2.1 remains default off, global behaviour/audio readiness
+  remain false, Balance V2 remains closed, step-up alternation remains default off, and V2.1 has
+  zero selectable exercises.
+- **Evidence:** `node scripts/audits/audit-training-voice-v21-live-safety-integration.mjs` reports
+  `TRAINING_VOICE_V2_1_LIVE_SAFETY_INTEGRATION_SOFTWARE_COMPLETE` with 37/37 safety plans ready,
+  44/44 atomic safety cues classified, `IR-VOICE-SAFETY-SUBSUMPTION` count 0, duplicate family cue
+  count 0, repeat family cue count 0, universal-in-item-setup count 0, and P0/P1/P2/P3 `0/0/0/2`.
+
+## 2026-06-25 — Training Voice V2.1 controls, progress, transitions, and recovery behavior complete
+
+- **Change:** added the default-closed Training Voice V2.1 behavior layer: typed control contracts,
+  tracked countdown/go start, optional active progress scheduling, transition de-duplication,
+  tracking-loss recovery episodes, reactive safety destinations, mounted voice-switch boundaries,
+  and a persisted `activeTrainingVoiceRuntime` envelope. The live player now has an injected
+  internal V2.1 path that waits for `go` playback-start before entering active work; legacy remains
+  the default path.
+- **Rationale:** after safety-family integration, the remaining software blocker was not script
+  content but runtime authority: voice may gate a boundary, yet the training controller must remain
+  authoritative for accepted reps, skips, sets, recovery, progression, and persistence.
+- **Boundary:** no audio was generated or changed, no physical manifest entries were added,
+  Training Voice V2.1 remains default off, audio ready remains false, selectable exercises remain
+  zero, Balance V2 remains closed/audio pending, step-up alternation remains default off, floor
+  V2.1 remains default off, human listening remains waived, and physical-device QA remains
+  deferred.
+- **Evidence:** `node scripts/audits/audit-training-voice-v21-controls-progress-recovery.mjs`
+  reports `TRAINING_VOICE_V2_1_CONTROLS_PROGRESS_RECOVERY_SOFTWARE_COMPLETE`, controls/progress/
+  recovery/safety ready all true, global behavior ready true, audio ready false, V2.1 selectable
+  exercise count 0, `IR-VOICE-TRAINING-CONTROLS` and `IR-VOICE-TRAINING-RECOVERY` remaining counts
+  0, timing hard-max failures 0, audio asset changes 0, and P0/P1/P2/P3 `0/0/0/4`.
+
+## 2026-06-25 — Premium constellation human benchmark renderer added
+
+- **Change:** added a separate `premium_constellation_human` benchmark renderer with three
+  presets: `constellationVolume180`, `constellationVolume300`, and `constellationVolume450`.
+  It uses the existing deterministic organic point-cloud body rig but renders only premium
+  dot-volume paths: no keypoint dots, skeleton lines, solid mannequin surfaces, blur filters, or
+  random per-frame particles. The renderer keeps per-preset dot buffers capped to the configured
+  budget and fades the previous figure softly when tracking is lost.
+- **Rationale:** the solid Soft Digital Twin direction still reads as a geometric mannequin. The
+  constellation direction better preserves Hale's privacy-first, sensor-like presence while avoiding
+  a mirror, a cartoon avatar, and the overly technical feel of the full 900-dot baseline.
+- **Boundary:** production defaults remain `point_cloud_body`; the new renderer is explicit
+  benchmark/replay-only and is not accepted by public env renderer selection.
+- **Evidence:** focused benchmark/config/replay tests pass, `npx tsc --noEmit --pretty false`
+  passes, and `npm run pose-renderer-replay` reports the new presets at 180/300/450 dots with
+  geometry p50/p95 about `0.083/0.182 ms`, `0.117/0.185 ms`, and `0.161/0.244 ms`, compared with
+  the current 894-dot body at about `0.289/0.490 ms` in the same synthetic run.
+
+## 2026-06-25 — Premium constellation human switched to structured templates
+
+- **Change:** replaced the premium constellation renderer's organic scatter builder with
+  deterministic body-part templates for head, neck, torso, upper arms, forearms, hands, thighs,
+  shins, and feet. Each preset now has explicit anatomical dot budgets and a surface-biased mix:
+  outer silhouette dots carry the head/shoulder/torso/limb shape, while lower-opacity internal dots
+  add quiet depth without random dust. The optional guide structure remains off by default.
+- **Rationale:** the 450-dot direction was abstractly promising but still read as a random particle
+  cloud. Structured local templates make the figure feel more intentionally designed while keeping
+  the same pose-driven, non-mannequin visual direction.
+- **Boundary:** benchmark options and production defaults are unchanged; this remains an explicit
+  benchmark/replay renderer, not a public env-selected production default.
+- **Evidence:** focused benchmark/config/replay tests pass, `npx tsc --noEmit --pretty false`
+  passes, and `npm run pose-renderer-replay` reports the structured 180/300/450 presets at
+  geometry p50/p95 about `0.100/0.186 ms`, `0.144/0.185 ms`, and `0.214/0.296 ms`, compared with
+  the current 894-dot body at about `0.277/0.367 ms` in the same run.
+
+## 2026-06-25 — ElevenLabs default generation model moved to Multilingual v2
+
+- **Change:** changed the default build-time ElevenLabs model from `eleven_flash_v2_5` to
+  `eleven_multilingual_v2` while keeping the no-runtime-TTS audio law unchanged.
+- **Rationale:** Hale bundles voice lines at build time, so low-latency generation is not valuable
+  in the user session. Multilingual v2 is the better fit for calm, stable, higher-quality trainer
+  narration than the Flash model optimized for real-time applications.
+- **Evidence:** `npm run audio` regenerated 364 voice lines for Clara and Marcus plus the
+  rep-credit chime using `eleven_multilingual_v2`; `npm run verify:audio` passed with 88 safety
+  assets and 62 Movement Profile V2 assets verified.
+
+## 2026-06-25 — Soft Digital Twin matte silhouette polish
+
+- **Change:** refined the benchmark-only Soft Digital Twin renderer without adding a new visual
+  direction. The solid figure now removes visible elbow/knee cap emphasis, replaces the dark
+  pelvis/crotch patch with a subdued hip bridge, shortens and softens the lower torso closure,
+  narrows the neck, restores a more natural egg-shaped head scale, gives limbs a stronger tapered
+  width profile, overlaps hands/feet more softly, and centralizes visual tuning constants for head,
+  neck, shoulder, limb taper, joint blend, pelvis contrast, material depth, and self-shadow
+  opacity.
+- **Rationale:** the dot/constellation direction was visually rejected for now, while the solid
+  matte human has the best foundation for a calm, premium, non-mirror movement avatar. This pass
+  keeps the renderer efficient and benchmark-isolated while reducing mannequin cues and awkward
+  anatomical emphasis.
+- **Evidence:** focused soft-digital-twin/benchmark/config/diagnostics tests pass, `npx tsc
+  --noEmit --pretty false` passes, and `npm run pose-renderer-replay` reports Soft Digital Twin at
+  0 dots, 13 dynamic paths, and local JS geometry p50/p95 about `0.037/0.069 ms`, compared with the
+  current 894-dot body at about `0.279/0.386 ms` in the same synthetic run.
+
+## 2026-06-25 — Premium Human Balanced preset restores matte figure mass
+
+- **Change:** split the Soft Digital Twin renderer into named visual presets. The previous thin
+  tuning remains selectable as `Premium Human · Lean`, while the default benchmark option is now
+  `Premium Human Balanced`: broader shoulders/ribcage/hips, a larger egg-shaped head, shorter and
+  wider neck, fuller upper arms and thighs, heavier distal hand/foot integration, and a low-contrast
+  hip bridge layered over the thigh roots to restore human weight without returning to visible
+  elbow/knee discs or a dark crotch patch.
+- **Rationale:** the cleaner matte pass removed mannequin seams but overcorrected into a thin
+  alien/coat-hanger figure. The balanced preset keeps the same low-latency segmented renderer and
+  matte material while moving back toward the earlier solid figure's mass and presence.
+- **Evidence:** focused soft-digital-twin/benchmark/config/diagnostics tests pass, `npx tsc
+  --noEmit --pretty false` passes, and `npm run pose-renderer-replay` reports both Soft Digital
+  Twin presets at 0 dots and 13 dynamic paths. In the synthetic replay, `Premium Human Balanced`
+  reports local JS geometry p50/p95 about `0.037/0.055 ms`; `Premium Human · Lean` reports about
+  `0.038/0.072 ms`.
+
+## 2026-06-26 — Final Voice V2.1 cue schema frozen for generation
+
+- **Change:** added an audit-owned final Voice V2.1 cue schema reconciliation that writes the
+  canonical logical cue registry, physical asset classification, manifest change plan, generation
+  backlog, retirement/legacy map, timing rows, scenarios, implementation report, audit JSON, and
+  handoff. The harness measures current MP3 durations from disk and compares audio against the
+  task-start hash snapshot instead of stale Git-HEAD audio diffs.
+- **Rationale:** Training Voice V2.1, Micro-Check Voice V2.1, MPV2, and Balance V2 are
+  software-complete but still audio-pending. The generation phase needs one exact Clara/Marcus
+  backlog with no ambiguous reuse, no pending cue accidentally added to the live manifest, and no
+  feature gate change.
+- **Boundary:** no audio was generated or modified, no external speech/audio API was called, no
+  runtime feature was enabled, and the post-safety floor baseline remains authoritative:
+  `IR-VOICE-FLOOR-GATE`, `IR-VOICE-FINAL-POSITION-READINESS`, and
+  `IR-VOICE-SAFETY-SUBSUMPTION` all remain at zero.
+- **Evidence:** `node scripts/audits/audit-voice-v21-final-cue-schema.mjs` reports
+  `VOICE_V2_1_FINAL_SCHEMA_COMPLETE_GENERATION_PENDING`, `npm run verify:audio` passes, the
+  task-start audio hash diff is `0`, and the final-schema artifact test pins the no-P0/P1/P2,
+  audio-pending, feature-off, and floor-baseline invariants.

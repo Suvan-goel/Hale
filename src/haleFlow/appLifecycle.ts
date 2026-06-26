@@ -21,8 +21,13 @@ import {
   getBlockScheduleState,
   type BlockScheduleState,
 } from './blockSchedule';
-import { isMicroCheckDueForSchedule } from './microCheck';
+import {
+  getBlockMicroCheckTarget,
+  getMicroCheckForTarget,
+  isMicroCheckDueForSchedule,
+} from './microCheck';
 import { PLAN_SESSION_IDS, type PlanSessionId } from './sessionIds';
+import type { MicroCheckDefinition } from './types';
 
 export type HaleLifecycleState =
   | 'needs_onboarding'
@@ -68,6 +73,7 @@ export interface HaleAppLifecycleResult {
   activeBlockSummary?: ActiveBlockSummary;
   movementSnapshot?: MovementSnapshot;
   weekSessionStatuses?: WeekSessionStatus[];
+  microCheckTarget?: MicroCheckDefinition;
   retestDueDate?: string;
   reason: string;
 }
@@ -111,6 +117,16 @@ export function getHaleAppLifecycle(input: HaleAppLifecycleInput): HaleAppLifecy
   const weekSessionStatuses = getWeekSessionStatuses({ ...input, today });
   const completedMainPlanTemplatesThisWeek = schedule?.creditedTemplateIds.length ?? 0;
   const retestDueDate = schedule?.retestNotBeforeDateKey ?? activeBlock?.retestDate ?? undefined;
+  const microCheckTargetResult =
+    activeBlock && schedule
+      ? getBlockMicroCheckTarget({
+          block: activeBlock,
+          schedule,
+          completions: input.adherence?.completions ?? [],
+        })
+      : null;
+  const microCheckTarget =
+    microCheckTargetResult?.status === 'available' ? getMicroCheckForTarget(microCheckTargetResult) : undefined;
 
   let state: HaleLifecycleState;
   let reason: string;
@@ -134,9 +150,9 @@ export function getHaleAppLifecycle(input: HaleAppLifecycleInput): HaleAppLifecy
   } else if (schedule?.status === 'session_due' && schedule.totalCredits === 0) {
     state = 'first_session_ready';
     reason = 'active block exists and no session has been completed yet';
-  } else if (shouldShowWeeklyMicroCheck({ ...input, today })) {
+  } else if (microCheckTargetResult?.status === 'available') {
     state = 'weekly_micro_check_due';
-    reason = 'weekly session target is complete and the weekly micro-check is still open';
+    reason = 'current schedule week has a session credit and the weekly micro-check is still open';
   } else if (schedule?.status === 'week_complete_waiting' || schedule?.status === 'training_complete_waiting_retest') {
     state = 'week_complete';
     reason = 'weekly session target is complete';
@@ -147,16 +163,17 @@ export function getHaleAppLifecycle(input: HaleAppLifecycleInput): HaleAppLifecy
 
   return {
     state,
-    primaryAction: getTodayPrimaryAction(state),
+    primaryAction: getTodayPrimaryAction(state, microCheckTarget),
     activeBlockSummary,
     movementSnapshot,
     weekSessionStatuses,
+    microCheckTarget,
     retestDueDate,
     reason,
   };
 }
 
-export function getTodayPrimaryAction(state: HaleLifecycleState): TodayPrimaryAction {
+export function getTodayPrimaryAction(state: HaleLifecycleState, microCheckTarget?: MicroCheckDefinition): TodayPrimaryAction {
   switch (state) {
     case 'needs_onboarding':
       return {
@@ -191,8 +208,8 @@ export function getTodayPrimaryAction(state: HaleLifecycleState): TodayPrimaryAc
     case 'weekly_micro_check_due':
       return {
         type: 'start_micro_check',
-        title: '60-second check-in',
-        subtitle: 'A quick check-in to keep your plan on track.',
+        title: microCheckTarget ? `${microCheckDomainLabel(microCheckTarget.domain)} check-in` : '60-second check-in',
+        subtitle: microCheckTarget?.body ?? 'A quick check-in to keep your plan on track.',
         ctaLabel: 'Start micro-check',
         tone: 'progress',
       };
@@ -330,10 +347,9 @@ function shouldShowWeeklyMicroCheck(input: HaleAppLifecycleInput): boolean {
   const today = normalizeToday(input.today);
   const activeBlock = getActiveBlock(input);
   if (!activeBlock) return false;
-  if (!movementBlockDomainFocus(activeBlock)) return false;
   const completions = input.adherence?.completions ?? [];
   const schedule = activeBlockSchedule({ ...input, today }, activeBlock);
-  return isMicroCheckDueForSchedule(schedule, completions);
+  return isMicroCheckDueForSchedule(schedule, completions, activeBlock);
 }
 
 function getActiveBlock(input: HaleAppLifecycleInput): MovementBlock | null {
@@ -439,6 +455,12 @@ function focusTitle(domain: MovementDomain): string {
   if (domain === 'strength_power') return 'Building stronger legs and everyday power';
   if (domain === 'balance') return 'Building steadier movement';
   return 'Building more mobile joints';
+}
+
+function microCheckDomainLabel(domain: MovementDomain): string {
+  if (domain === 'strength_power') return 'Strength';
+  if (domain === 'balance') return 'Balance';
+  return 'Mobility';
 }
 
 function shortFocus(domain: MovementDomain | null): string {

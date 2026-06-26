@@ -71,6 +71,7 @@ import {
 import {
   movementCapabilityBlockReasonsForLevel,
 } from '../training/movementCapabilitySafety';
+import { deriveFloorExerciseEligibility } from '../training/floorExerciseEligibility';
 import {
   generateTodaySession as generateDynamicTodaySession,
   type DailyReadiness,
@@ -441,6 +442,7 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         recentSessions: recentSessionsFor(input, schedule),
         collectionExposures: collectionExposuresForPlanning(input, activeBlock.id),
         scheduleSelection: schedule ? templateSelectionSchedule(schedule) : undefined,
+        bothSidesStartSideSeed: input.training?.bothSidesStartSideSeed,
         today: plannedFor,
         source: input.source,
         sessionIntensity: input.sessionIntensity,
@@ -557,6 +559,7 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         painAreas: painContext.explicitDailyInput ? painAreas : undefined,
         ladderProgress: input.ladderProgress ?? input.training?.ladderProgressById ?? {},
         recentSessions: recentSessionsFor(input, null),
+        bothSidesStartSideSeed: input.training?.bothSidesStartSideSeed,
         today: plannedFor,
         source: input.source,
         sessionIntensity: input.sessionIntensity,
@@ -1172,7 +1175,16 @@ export function validateGeneratedSessionForPlanning({
       issues.push({ code: 'unsafe_equipment', exerciseId, templateId, blockId });
     }
     const level = hasExercise(exerciseId) ? getExercise(exerciseId) : null;
-    if (level && movementCapabilityBlockReasonsForLevel(level, movementCapabilities).length > 0) {
+    if (
+      catalogLevel &&
+      deriveFloorExerciseEligibility({
+        level: catalogLevel,
+        availableEquipment,
+        movementCapabilities,
+      }).reasonCodes.includes('floor_transfer_not_confirmed')
+    ) {
+      issues.push({ code: 'unsafe_movement_capability', exerciseId, templateId, blockId });
+    } else if (level && movementCapabilityBlockReasonsForLevel(level, movementCapabilities).length > 0) {
       issues.push({ code: 'unsafe_movement_capability', exerciseId, templateId, blockId });
     }
     const stimulus = stimulusByExerciseId.get(exerciseId);
@@ -1261,7 +1273,17 @@ function practiceLevelIssues(
   discomfortConstraint: ReturnType<typeof discomfortConstraintForContext>
 ): GeneratedSessionIssueCode[] {
   const issues: GeneratedSessionIssueCode[] = [];
+  const floorEligibility = deriveFloorExerciseEligibility({
+    level,
+    ladder,
+    availableEquipment: available,
+    movementCapabilities,
+    discomfortConstraint,
+  });
   if (!equipmentSupportsTags(level.equipment, available)) issues.push('unsafe_equipment');
+  if (floorEligibility.reasonCodes.includes('floor_transfer_not_confirmed')) {
+    issues.push('unsafe_movement_capability');
+  }
   if (movementCapabilityBlockReasonsForLevel(level, movementCapabilities).length > 0) {
     issues.push('unsafe_movement_capability');
   }
@@ -1441,6 +1463,8 @@ export function createGeneratedSessionSummary({
       doseBeforeAdjustment: exercise.doseBeforeAdjustment,
       adjustmentReasons: exercise.adjustmentReasons,
       collectionSelection: exercise.collectionSelection,
+      stepUpAlternationPlan: exercise.stepUpAlternationPlan,
+      stepUpInitialLeadSide: exercise.stepUpInitialLeadSide,
     })) ?? [];
   return {
     id: metadata?.generatedSessionId ?? sessionPlan.id,
@@ -2278,6 +2302,8 @@ function toGeneratedExerciseMetadata(exercise: GeneratedExercise) {
     doseBeforeAdjustment: exercise.doseBeforeAdjustment,
     adjustmentReasons: exercise.adjustmentReasons,
     collectionSelection: exercise.collectionSelection,
+    stepUpAlternationPlan: exercise.stepUpAlternationPlan,
+    stepUpInitialLeadSide: exercise.stepUpInitialLeadSide,
   };
 }
 

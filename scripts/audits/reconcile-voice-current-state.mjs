@@ -720,7 +720,7 @@ function summarizeVoiceParity(assets, manifests, source) {
       clara: 'rfkTsdZrVWEVhDycUYn9',
       marcus: 'lUTamkMw7gOzZbFIwmq4',
     },
-    generationModel: 'eleven_flash_v2_5',
+    generationModel: 'eleven_multilingual_v2',
     outputFormat: 'mp3_44100_128',
     semanticParity:
       missingPairs.length === 0 && [...allKeys].every((key) => source.byKey.has(key))

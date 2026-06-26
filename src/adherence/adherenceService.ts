@@ -63,6 +63,7 @@ export function makeTrainingSessionCompletion({
   workEvidence,
   focusStimulusEvidence,
   progressionEvidencePolicy,
+  microCheckSlot,
   userId = LOCAL_USER_ID,
 }: {
   block: MovementBlock;
@@ -81,9 +82,10 @@ export function makeTrainingSessionCompletion({
   workEvidence?: TrainingSessionCompletion['workEvidence'];
   focusStimulusEvidence?: TrainingSessionCompletion['focusStimulusEvidence'];
   progressionEvidencePolicy?: TrainingSessionCompletion['progressionEvidencePolicy'];
+  microCheckSlot?: TrainingSessionCompletion['microCheckSlot'];
   userId?: string;
 }): TrainingSessionCompletion {
-  const keyDate = plannedDate ?? calendarKey(completedAt);
+  const keyDate = plannedDate ?? microCheckSlot?.slotId ?? calendarKey(completedAt);
   return {
     id: `completion-${block.id}-${sessionType}-${keyDate}`,
     userId,
@@ -104,6 +106,7 @@ export function makeTrainingSessionCompletion({
     workEvidence,
     focusStimulusEvidence,
     progressionEvidencePolicy,
+    microCheckSlot,
     durationMinutes,
     perceivedEffort,
     painReported,
@@ -156,7 +159,12 @@ function recomputeBlockProgress(
 ): MovementBlock {
   const mine = completions.filter((c) => c.blockId === block.id);
   const completedSessions = mine.filter((completion) => completion.scheduleCredit?.credited === true).length;
-  const microChecksCompleted = mine.filter((c) => c.sessionType === 'micro_check').length;
+  const microCheckKeys = new Set(
+    mine
+      .filter((c) => c.sessionType === 'micro_check')
+      .map((c) => c.microCheckSlot?.slotId ?? completionDedupeKey(c))
+  );
+  const microChecksCompleted = microCheckKeys.size;
   const hasRetest = mine.some((c) => c.sessionType === 'retest');
   return {
     ...block,
@@ -168,7 +176,9 @@ function recomputeBlockProgress(
 }
 
 function completionDedupeKey(c: TrainingSessionCompletion): string {
-  return `${c.blockId}:${c.sessionType}:${c.plannedDate ?? calendarKey(c.completedAt)}`;
+  const identity =
+    c.sessionType === 'micro_check' ? c.microCheckSlot?.slotId ?? c.plannedDate ?? calendarKey(c.completedAt) : c.plannedDate ?? calendarKey(c.completedAt);
+  return `${c.blockId}:${c.sessionType}:${identity}`;
 }
 
 function milestoneKey(m: IdentityMilestone): string {

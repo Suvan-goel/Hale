@@ -17,6 +17,11 @@ import {
   getManualCheckupOptions,
   getNextBestAction,
 } from '../index';
+import { getBlockScheduleState } from '../blockSchedule';
+import {
+  getBlockMicroCheckTarget,
+  microCheckSlotMetadataFromTarget,
+} from '../microCheckPolicy';
 
 const START = '2026-06-01T08:00:00.000Z';
 
@@ -100,11 +105,18 @@ function creditedCompletion(b: MovementBlock, templateId: string, completedAt: s
 }
 
 function microCheckCompletion(b: MovementBlock, completedAt: string) {
+  const mainCompletions = [creditedCompletion(b, `${templatePrefix(b)}-A`, '2026-06-02T08:00:00.000Z')];
+  const schedule = getBlockScheduleState({ block: b, completions: mainCompletions, today: completedAt });
+  const target = getBlockMicroCheckTarget({ block: b, schedule, completions: mainCompletions });
+  if (target.status !== 'available') throw new Error(`Expected available micro-check target, got ${target.reason}`);
   return makeTrainingSessionCompletion({
     block: b,
     sessionType: 'micro_check',
     completedAt,
+    plannedDate: target.slotId,
     durationMinutes: 1,
+    mainPlanCredit: false,
+    microCheckSlot: microCheckSlotMetadataFromTarget(target),
   });
 }
 
@@ -181,7 +193,7 @@ describe('getNextBestAction', () => {
     expect(action.state).toBe('active_block_session_due');
   });
 
-  it('keeps session due when the weekly target is not complete yet', () => {
+  it('shows micro-check due after one current-week schedule credit', () => {
     const b = block();
     const action = getNextBestAction({
       profile: { safetyProfile: safety() },
@@ -193,10 +205,11 @@ describe('getNextBestAction', () => {
       ],
       now: '2026-06-03T12:00:00.000Z',
     });
-    expect(action.state).toBe('active_block_session_due');
+    expect(action.state).toBe('active_block_micro_check_due');
+    expect(action.title).toBe('Balance check-in');
   });
 
-  it('shows micro-check due once the weekly target is complete', () => {
+  it('does not carry a micro-check into the week-complete state', () => {
     const b = block();
     const action = getNextBestAction({
       profile: { safetyProfile: safety() },
@@ -210,25 +223,24 @@ describe('getNextBestAction', () => {
       ],
       now: '2026-06-06T12:00:00.000Z',
     });
-    expect(action.state).toBe('active_block_micro_check_due');
+    expect(action.state).toBe('active_block_on_track');
   });
 
   it('does not keep showing the micro-check after it is completed for the week', () => {
     const b = block();
+    const firstCompletion = creditedCompletion(b, 'balance-A', '2026-06-02T08:00:00.000Z');
     const action = getNextBestAction({
       profile: { safetyProfile: safety() },
       lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
       latestAssessment: assessment(),
       activeBlock: b,
       sessionCompletions: [
-        creditedCompletion(b, 'balance-A', '2026-06-02T08:00:00.000Z'),
-        creditedCompletion(b, 'balance-B', '2026-06-04T08:00:00.000Z'),
-        creditedCompletion(b, 'balance-C', '2026-06-06T08:00:00.000Z'),
-        microCheckCompletion(b, '2026-06-06T09:00:00.000Z'),
+        firstCompletion,
+        microCheckCompletion(b, '2026-06-02T09:00:00.000Z'),
       ],
-      now: '2026-06-06T12:00:00.000Z',
+      now: '2026-06-03T12:00:00.000Z',
     });
-    expect(action.state).not.toBe('active_block_micro_check_due');
+    expect(action.state).toBe('active_block_session_due');
   });
 
   it('shows re-test due near the end of the block', () => {
@@ -290,15 +302,15 @@ describe('getNextBestAction', () => {
 });
 
 describe('manual check-up rules', () => {
-  it('marks mid-block manual check-ups as manual_extra and not official', () => {
+  it('hides retired full manual V1 check-ups mid-block', () => {
     const options = getManualCheckupOptions({
       latestAssessment: assessment(),
       activeBlock: block(),
       completions: [],
       now: '2026-06-03T08:00:00.000Z',
     });
-    const manual = options.find((o) => o.type === 'manual_extra');
-    expect(manual?.isOfficialForProgress).toBe(false);
+    expect(options.find((o) => o.type === 'manual_extra')).toBeUndefined();
+    expect(options.find((o) => o.type === 'quick_recheck')).toBeUndefined();
   });
 
   it('uses simple mid-plan copy for the extra check-up choice', () => {
@@ -314,15 +326,24 @@ describe('manual check-up rules', () => {
       title: 'Check in on your progress',
       body: "You're in the middle of a plan. A quick check-in is usually the best way to see how things are going today.",
     });
+    expect(options.find((option) => option.type === 'micro_check')).toBeUndefined();
+    expect(options.find((option) => option.type === 'manual_extra')).toBeUndefined();
+  });
+
+  it('recommends the current-slot micro-check only after a schedule credit exists', () => {
+    const b = block();
+    const options = getManualCheckupOptions({
+      latestAssessment: assessment(),
+      activeBlock: b,
+      completions: [creditedCompletion(b, 'balance-A', '2026-06-02T08:00:00.000Z')],
+      now: '2026-06-03T08:00:00.000Z',
+    });
+
     expect(options.find((option) => option.type === 'micro_check')).toMatchObject({
-      title: 'Do a 60-second micro-check',
-      body: 'A short check-in keeps your progress up to date without replacing your next full check-up.',
+      title: 'One timed balance hold',
       recommended: true,
     });
-    expect(options.find((option) => option.type === 'manual_extra')).toMatchObject({
-      title: 'Start full check-up',
-      body: 'Use this if you want the complete strength, balance, and mobility check today.',
-    });
+    expect(options.find((option) => option.type === 'manual_extra')).toBeUndefined();
   });
 
   it('allows baseline retake replacement only with confirmation', () => {

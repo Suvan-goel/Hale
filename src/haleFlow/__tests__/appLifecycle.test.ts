@@ -25,6 +25,11 @@ import {
   getWeekSessionStatuses,
 } from '../appLifecycle';
 import { createMovementAssessment } from '../assessments';
+import { getBlockScheduleState } from '../blockSchedule';
+import {
+  getBlockMicroCheckTarget,
+  microCheckSlotMetadataFromTarget,
+} from '../microCheckPolicy';
 
 const START = '2026-06-01T08:00:00.000Z';
 
@@ -132,6 +137,25 @@ function completed(block: MovementBlock, completedAt: string, sessionNumber = 1)
     templateId,
     mainPlanCredit: templateId ? true : undefined,
     focusStimulusEvidence: templateId ? focusEvidence(block, templateId) : undefined,
+  });
+}
+
+function completedMicroCheckForCurrentSlot(
+  block: MovementBlock,
+  mainPlanCompletions: ReturnType<typeof completed>[],
+  completedAt: string
+) {
+  const schedule = getBlockScheduleState({ block, completions: mainPlanCompletions, today: completedAt });
+  const target = getBlockMicroCheckTarget({ block, schedule, completions: mainPlanCompletions });
+  if (target.status !== 'available') throw new Error(`Expected available micro-check target, got ${target.reason}`);
+  return makeTrainingSessionCompletion({
+    block,
+    sessionType: 'micro_check',
+    completedAt,
+    plannedDate: target.slotId,
+    durationMinutes: 1,
+    mainPlanCredit: false,
+    microCheckSlot: microCheckSlotMetadataFromTarget(target),
   });
 }
 
@@ -268,9 +292,10 @@ describe('getHaleAppLifecycle', () => {
 
   it('keeps training primary after one weekly session even if the micro-check is done', () => {
     const block = activeBlock();
+    const mainPlanCompletions = [completed(block, '2026-06-02T08:00:00.000Z', 1)];
     const completions = [
-      completed(block, '2026-06-02T08:00:00.000Z', 1),
-      completed(block, '2026-06-02T09:00:00.000Z', 0),
+      ...mainPlanCompletions,
+      completedMicroCheckForCurrentSlot(block, mainPlanCompletions, '2026-06-02T09:00:00.000Z'),
     ];
     const result = getHaleAppLifecycle({
       profile: profile(),
@@ -284,7 +309,7 @@ describe('getHaleAppLifecycle', () => {
     expect(result.primaryAction.type).toBe('start_today_session');
   });
 
-  it('keeps training primary until the weekly session target is met', () => {
+  it('surfaces the weekly micro-check after one current-week schedule credit', () => {
     const block = activeBlock();
     const result = getHaleAppLifecycle({
       profile: profile(),
@@ -298,11 +323,12 @@ describe('getHaleAppLifecycle', () => {
       today: '2026-06-03T08:00:00.000Z',
     });
 
-    expect(result.state).toBe('normal_training_day');
-    expect(result.primaryAction.type).toBe('start_today_session');
+    expect(result.state).toBe('weekly_micro_check_due');
+    expect(result.primaryAction.type).toBe('start_micro_check');
+    expect(result.microCheckTarget?.domain).toBe(block.focusDomain);
   });
 
-  it('surfaces the weekly micro-check once the weekly session target is met', () => {
+  it('marks the week complete once the weekly session target is met without carrying over a micro-check', () => {
     const block = activeBlock();
     const result = getHaleAppLifecycle({
       profile: profile(),
@@ -320,12 +346,17 @@ describe('getHaleAppLifecycle', () => {
       today: '2026-06-06T12:00:00.000Z',
     });
 
-    expect(result.state).toBe('weekly_micro_check_due');
-    expect(result.primaryAction.type).toBe('start_micro_check');
+    expect(result.state).toBe('week_complete');
+    expect(result.primaryAction.type).toBe('explore_extra_sessions');
   });
 
-  it('marks the week complete once the weekly session target and micro-check are done', () => {
+  it('keeps the week complete state stable when a slot-backed micro-check is also done', () => {
     const block = activeBlock();
+    const mainPlanCompletions = [
+      completed(block, '2026-06-02T08:00:00.000Z', 1),
+      completed(block, '2026-06-04T08:00:00.000Z', 2),
+      completed(block, '2026-06-06T08:00:00.000Z', 3),
+    ];
     const result = getHaleAppLifecycle({
       profile: profile(),
       history: [baseline()],
@@ -334,10 +365,8 @@ describe('getHaleAppLifecycle', () => {
         ...adherenceWithBaseline(),
         blocks: [block],
         completions: [
-          completed(block, '2026-06-02T08:00:00.000Z', 1),
-          completed(block, '2026-06-04T08:00:00.000Z', 2),
-          completed(block, '2026-06-06T08:00:00.000Z', 3),
-          completed(block, '2026-06-06T09:00:00.000Z', 0),
+          ...mainPlanCompletions,
+          completedMicroCheckForCurrentSlot(block, mainPlanCompletions.slice(0, 1), '2026-06-02T09:00:00.000Z'),
         ],
       },
       today: '2026-06-06T12:00:00.000Z',

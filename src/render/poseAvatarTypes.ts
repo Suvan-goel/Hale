@@ -5,19 +5,32 @@ import type {
   PointCloudBodyPart,
   PointCloudBodyShapeProfile,
 } from './pointCloudBodyGeometry';
+import type { SoftDigitalTwinVisualPresetName } from './softDigitalTwinGeometry';
 
 export type PoseAvatarRendererMode =
   | 'classic'
   | 'constellation'
+  | 'contour_field'
   | 'point_cloud_body'
+  | 'premium_constellation_human'
   | 'rigged_human_silhouette'
   | 'shadow_silhouette'
+  | 'soft_digital_twin'
+  | 'soft_silhouette_avatar'
+  | 'sprite_limb_avatar'
   | 'volumetric_shadow'
   | 'mediapipe_skeleton';
 
 export type PoseAvatarFrameSource = 'raw' | 'display';
 
 export type PoseAvatarFit = 'cover' | 'contain';
+
+export type MediaPipeSkeletonConnectionSet = 'full' | 'body';
+
+export type PremiumConstellationVolumePreset =
+  | 'constellationVolume180'
+  | 'constellationVolume300'
+  | 'constellationVolume450';
 
 export type PoseAvatarMeasurementState =
   | 'idle'
@@ -110,6 +123,18 @@ export interface PoseAvatarRendererProps {
   pointCloudBodyDotScale?: number;
   pointCloudBodyOpacity?: number;
   pointCloudBodyShapeProfile?: PointCloudBodyShapeProfile;
+  premiumConstellationVolumePreset?: PremiumConstellationVolumePreset;
+  premiumConstellationShowConnections?: boolean;
+  softDigitalTwinVisualPreset?: SoftDigitalTwinVisualPresetName;
+  softDigitalTwinShowConstructionOverlay?: boolean;
+  mediapipeSkeletonStroke?: string;
+  mediapipeSkeletonOpacity?: number;
+  mediapipeSkeletonLineWidthScale?: number;
+  mediapipeSkeletonConnectionSet?: MediaPipeSkeletonConnectionSet;
+  mediapipeSkeletonShowLandmarks?: boolean;
+  mediapipeSkeletonShowLabels?: boolean;
+  mediapipeSkeletonPointColor?: string;
+  mediapipeSkeletonLabelColor?: string;
   confidenceFadingEnabled?: boolean;
   confidenceIntensityEnabled?: boolean;
   reacquisitionFadeEnabled?: boolean;

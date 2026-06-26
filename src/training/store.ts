@@ -2,8 +2,9 @@
  * Local-only training store (no accounts/backend in V1), reusing the injectable
  * HistoryFs so the seam — including "survives restart" — is unit-testable with
  * an in-memory map. The single mutable TrainingState lives in one file
- * (overwritten in place); micro-checks are an append-only log (one file each,
- * no rewrite races), read back and sorted on load.
+ * (overwritten in place); legacy micro-checks are one file per start time,
+ * while slot-backed micro-checks keep the first accepted slot file for
+ * idempotency and conflict containment.
  *
  * The real expo-file-system adapter is the SAME one history uses (see
  * history/fsAdapter); this store just writes different filenames.
@@ -41,23 +42,35 @@ export class TrainingStore {
     this.fs.write(STATE_FILE, serializeTrainingState(state));
   }
 
-  /** Append one micro-check (one file per check, like the check-up log). */
+  /** Save one micro-check, using the stable slot id when present. */
   saveMicroCheck(result: MicroCheckResult): void {
-    const stamp = result.startedAt.replace(/[:.]/g, '-');
-    this.fs.write(`${MICROCHECK_PREFIX}${stamp}.json`, serializeMicroCheck(result));
+    const stamp = microCheckFileStem(result);
+    const fileName = `${MICROCHECK_PREFIX}${stamp}.json`;
+    if (result.slotId && this.fs.list().includes(fileName)) return;
+    this.fs.write(fileName, serializeMicroCheck(result));
   }
 
   /** All stored micro-checks, oldest first; unreadable/foreign files skipped. */
   async loadMicroChecks(): Promise<MicroCheckResult[]> {
-    const out: MicroCheckResult[] = [];
+    const byIdentity = new Map<string, MicroCheckResult>();
     for (const name of this.fs.list()) {
       if (!name.startsWith(MICROCHECK_PREFIX) || !name.endsWith('.json')) continue;
       const json = await this.fs.read(name);
       if (!json) continue;
       const record = deserializeMicroCheck(json);
-      if (record) out.push(record);
+      if (record) byIdentity.set(microCheckIdentity(record), record);
     }
+    const out = Array.from(byIdentity.values());
     out.sort((a, b) => a.startedAt.localeCompare(b.startedAt));
     return out;
   }
+}
+
+function microCheckFileStem(result: MicroCheckResult): string {
+  const identity = result.slotId ?? result.startedAt;
+  return identity.replace(/[^A-Za-z0-9._-]/g, '-');
+}
+
+function microCheckIdentity(result: MicroCheckResult): string {
+  return result.slotId ?? `${result.type}:${result.startedAt}`;
 }

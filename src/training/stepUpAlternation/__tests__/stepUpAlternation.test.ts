@@ -230,7 +230,7 @@ describe('step-up generation, seed, and voice integration', () => {
     expect(annotated.exercises[1].stepUpAlternationPlan).toBeUndefined();
   });
 
-  it('keeps Training Voice V2.1 blocked by safety/audio/global gates but not by step alternation', () => {
+  it('keeps Training Voice V2.1 blocked by audio but not by step alternation, safety, or behavior', () => {
     const stepUp = deriveStepUpAlternationPlanForExerciseId('left');
     const readiness = resolveTrainingVoiceRuntimeReadinessV21({
       exerciseId: 'step-up',
@@ -238,11 +238,9 @@ describe('step-up generation, seed, and voice integration', () => {
     });
     expect(readiness.selectable).toBe(false);
     expect(readiness.blockers).not.toContain('behavior_dependency:IR-VOICE-STEP-ALTERNATION');
-    expect(readiness.blockers).toEqual(expect.arrayContaining([
-      'behavior_dependency:IR-VOICE-SAFETY-SUBSUMPTION',
-      'global_behavior_ready_false',
-      'global_audio_ready_false',
-    ]));
+    expect(readiness.blockers).not.toContain('behavior_dependency:IR-VOICE-SAFETY-SUBSUMPTION');
+    expect(readiness.blockers).not.toContain('global_behavior_ready_false');
+    expect(readiness.blockers).toContain('global_audio_ready_false');
 
     const first = planTrainingVoiceSequenceV21({
       exerciseId: 'step-up',

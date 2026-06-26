@@ -5,8 +5,8 @@
  *
  *   TrainingState   — the single mutable record (active block + progression +
  *                     equipment profile + block progress). Overwritten in place.
- *   MicroCheckResult — append-only log (one file per micro-check), feeding the
- *                     trend line between full check-ups.
+ *   MicroCheckResult — legacy timestamped files plus stable slot-backed files,
+ *                     feeding the trend line between full check-ups.
  *
  * Non-finite numbers (NaN for an unmeasured micro-check value) serialise as null
  * and read back as null; every consumer already guards with Number.isFinite.
@@ -66,7 +66,16 @@ import {
   normalizeBothSidesStartSideSeedState,
   type BothSidesStartSideSeedState,
 } from './bothSidesRounds';
-import { isStepUpAlternationPlan } from './stepUpAlternation';
+import {
+  deserializeStepUpAlternationRuntimeState,
+  isStepUpAlternationPlan,
+} from './stepUpAlternation';
+import type { SerializedTrainingSetRuntime } from './setRuntime';
+import {
+  normalizeTrainingVoiceSafetySessionMemoryV21,
+  type SerializedTrainingVoiceRuntimeV21,
+  type TrainingVoicePhaseV21,
+} from './voiceV21';
 
 export const TRAINING_SCHEMA_VERSION = 4;
 
@@ -89,6 +98,8 @@ export interface TrainingState {
   lastPostSessionFeedback: PersistedPostSessionFeedback | null;
   planPreferences: TrainingPlanPreferences;
   bothSidesStartSideSeed: BothSidesStartSideSeedState;
+  activeSetRuntime: SerializedTrainingSetRuntime | null;
+  activeTrainingVoiceRuntime: SerializedTrainingVoiceRuntimeV21 | null;
 }
 
 export type TrainingIntensityPreference = 'gentle' | 'standard' | 'more_challenge';
@@ -113,6 +124,8 @@ export function defaultTrainingState(): TrainingState {
     lastPostSessionFeedback: null,
     planPreferences: defaultTrainingPlanPreferences(),
     bothSidesStartSideSeed: EMPTY_BOTH_SIDES_START_SIDE_SEED_STATE,
+    activeSetRuntime: null,
+    activeTrainingVoiceRuntime: null,
   };
 }
 
@@ -166,6 +179,8 @@ export function deserializeTrainingState(json: string): TrainingState | null {
     lastPostSessionFeedback: validPostSessionFeedback(p.lastPostSessionFeedback),
     planPreferences: validTrainingPlanPreferences(p.planPreferences),
     bothSidesStartSideSeed: normalizeBothSidesStartSideSeedState(p.bothSidesStartSideSeed),
+    activeSetRuntime: validSerializedTrainingSetRuntime(p.activeSetRuntime),
+    activeTrainingVoiceRuntime: validSerializedTrainingVoiceRuntimeV21(p.activeTrainingVoiceRuntime),
   };
 }
 
@@ -453,6 +468,120 @@ function validGeneratedExerciseSummaries(v: unknown): PersistedGeneratedExercise
       };
     })
     .filter((item): item is PersistedGeneratedExerciseSummary => !!item);
+}
+
+function validSerializedTrainingSetRuntime(v: unknown): SerializedTrainingSetRuntime | null {
+  if (!v || typeof v !== 'object') return null;
+  const runtime = v as Partial<SerializedTrainingSetRuntime>;
+  if (runtime.kind === 'legacy' && runtime.schemaVersion === 1) {
+    return { kind: 'legacy', schemaVersion: 1 };
+  }
+  if (runtime.kind !== 'step_up_alternation' || runtime.schemaVersion !== 1) return null;
+  const candidate = runtime as Partial<Extract<SerializedTrainingSetRuntime, { kind: 'step_up_alternation' }>>;
+  const state = deserializeStepUpAlternationRuntimeState(candidate.state);
+  const adapter = candidate.adapter;
+  if (!state || !adapter || typeof adapter !== 'object' || adapter.schemaVersion !== 1) return null;
+  const floorBaseline = adapter.floorBaseline;
+  if (
+    floorBaseline !== null &&
+    floorBaseline !== undefined &&
+    (!Number.isFinite(floorBaseline.leftFootY) || !Number.isFinite(floorBaseline.rightFootY))
+  ) {
+    return null;
+  }
+  return {
+    kind: 'step_up_alternation',
+    schemaVersion: 1,
+    state,
+    adapter: {
+      schemaVersion: 1,
+      floorBaseline: floorBaseline
+        ? { leftFootY: floorBaseline.leftFootY, rightFootY: floorBaseline.rightFootY }
+        : null,
+    },
+  };
+}
+
+function validSerializedTrainingVoiceRuntimeV21(v: unknown): SerializedTrainingVoiceRuntimeV21 | null {
+  if (!v || typeof v !== 'object') return null;
+  const r = v as Partial<SerializedTrainingVoiceRuntimeV21>;
+  if (r.version !== 1 || r.runtimeMode !== 'internal_v21') return null;
+  if (!isTrainingVoicePhaseV21(r.phase)) return null;
+  const safetyMemory = normalizeTrainingVoiceSafetySessionMemoryV21(r.safetyMemory);
+  if (!safetyMemory) return null;
+  const sessionEpoch = finiteInteger(r.sessionEpoch);
+  const itemEpoch = finiteInteger(r.itemEpoch);
+  const setEpoch = finiteInteger(r.setEpoch);
+  const attemptEpoch = finiteInteger(r.attemptEpoch);
+  if (sessionEpoch < 0 || itemEpoch < 0 || setEpoch < 0 || attemptEpoch < 0) return null;
+  const activeVoiceId = typeof r.activeVoiceId === 'string' && r.activeVoiceId.trim()
+    ? r.activeVoiceId
+    : 'clara';
+  return {
+    version: 1,
+    runtimeMode: 'internal_v21',
+    phase: r.phase === 'active' ? 'item_setup' : r.phase,
+    sessionEpoch,
+    itemEpoch,
+    setEpoch,
+    attemptEpoch,
+    safetyMemory,
+    pausedOrigin: isTrainingVoicePhaseV21(r.pausedOrigin) ? r.pausedOrigin : null,
+    recoveryEpisode: validSerializedTrainingVoiceRecoveryEnvelope(r.recoveryEpisode),
+    completedTransitionIds: stringArray(r.completedTransitionIds),
+    firedProgressEventIds: stringArray(r.firedProgressEventIds),
+    activeVoiceId,
+    pendingVoiceId: typeof r.pendingVoiceId === 'string' ? r.pendingVoiceId : null,
+    planFingerprint:
+      typeof r.planFingerprint === 'string' && r.planFingerprint.trim()
+        ? r.planFingerprint
+        : 'training-voice-v21:unknown',
+  };
+}
+
+function validSerializedTrainingVoiceRecoveryEnvelope(
+  v: unknown
+): SerializedTrainingVoiceRuntimeV21['recoveryEpisode'] {
+  if (!v || typeof v !== 'object') return null;
+  const r = v as Partial<NonNullable<SerializedTrainingVoiceRuntimeV21['recoveryEpisode']>>;
+  if (
+    typeof r.recoveryId !== 'string' ||
+    typeof r.itemId !== 'string' ||
+    typeof r.setId !== 'string' ||
+    typeof r.sourceAttemptId !== 'string'
+  ) {
+    return null;
+  }
+  return {
+    recoveryId: r.recoveryId,
+    itemId: r.itemId,
+    setId: r.setId,
+    sourceAttemptId: r.sourceAttemptId,
+    stableRecoveryReached: r.stableRecoveryReached === true,
+  };
+}
+
+function isTrainingVoicePhaseV21(value: unknown): value is TrainingVoicePhaseV21 {
+  return (
+    value === 'idle' ||
+    value === 'session_entry' ||
+    value === 'item_setup' ||
+    value === 'repeat_instructions' ||
+    value === 'countdown' ||
+    value === 'active' ||
+    value === 'paused' ||
+    value === 'tracking_recovery' ||
+    value === 'reactive_safety_stop' ||
+    value === 'rest_transition' ||
+    value === 'item_transition' ||
+    value === 'session_completion' ||
+    value === 'audio_failure' ||
+    value === 'cancelled'
+  );
+}
+
+function finiteInteger(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0;
 }
 
 function isTrainingDomain(v: unknown): v is TrainingDomain {
@@ -745,6 +874,7 @@ function isFocusExclusionReason(v: unknown): boolean {
 }
 
 const MICRO_TYPES: MicroCheckType[] = ['chair-power', 'single-leg-balance', 'mobility-reach'];
+const MICRO_TARGET_SOURCES = ['domain_focus', 'balanced_schedule_rotation'] as const;
 
 export function serializeMicroCheck(result: MicroCheckResult): string {
   const normalized = {
@@ -787,8 +917,34 @@ export function deserializeMicroCheck(json: string): MicroCheckResult | null {
   };
   return {
     ...base,
+    ...validMicroCheckIdentity(r),
     measurementContext: normalizeMicroCheckMeasurementMetadata(base, {
       measurementContext: r.measurementContext,
     }),
   };
+}
+
+function validMicroCheckIdentity(r: Partial<MicroCheckResult>): Partial<MicroCheckResult> {
+  const out: Partial<MicroCheckResult> = {};
+  if (typeof r.id === 'string' && r.id.length > 0) out.id = r.id;
+  if (typeof r.completedAt === 'string' && Number.isFinite(Date.parse(r.completedAt))) out.completedAt = r.completedAt;
+  if (typeof r.slotId === 'string' && r.slotId.length > 0) out.slotId = r.slotId;
+  if (typeof r.blockId === 'string' && r.blockId.length > 0) out.blockId = r.blockId;
+  if (typeof r.policyVersion === 'number' && Number.isFinite(r.policyVersion)) out.policyVersion = r.policyVersion;
+  if (typeof r.policyFingerprint === 'string' && r.policyFingerprint.length > 0) {
+    out.policyFingerprint = r.policyFingerprint;
+  }
+  if (isMicroCheckTargetSource(r.targetSource)) out.targetSource = r.targetSource;
+  if (isMovementDomain(r.targetDomain)) out.targetDomain = r.targetDomain;
+  if (typeof r.scheduleWeekIndex === 'number' && Number.isInteger(r.scheduleWeekIndex)) {
+    out.scheduleWeekIndex = r.scheduleWeekIndex;
+  }
+  if (typeof r.scheduleWeekNumber === 'number' && Number.isInteger(r.scheduleWeekNumber)) {
+    out.scheduleWeekNumber = r.scheduleWeekNumber;
+  }
+  return out;
+}
+
+function isMicroCheckTargetSource(value: unknown): value is NonNullable<MicroCheckResult['targetSource']> {
+  return typeof value === 'string' && MICRO_TARGET_SOURCES.includes(value as (typeof MICRO_TARGET_SOURCES)[number]);
 }

@@ -187,7 +187,7 @@ profile** (name/age/goal; on-device only, not an account), a **Family** tab back
 toggle** that stores a preference but schedules **no OS notification**, and a **Learn** tab of
 bundled articles. The trainer-voice picker offers two voices — **Clara** (female) and
 **Marcus** (male) — whose lines are synthesized once at build time via the **ElevenLabs API
-(Flash v2.5 model)** by `scripts/generate-audio.ts` and bundled per voice under
+(Multilingual v2 model, `mp3_44100_128` output)** by `scripts/generate-audio.ts` and bundled per voice under
 `assets/audio/voice/<voiceId>/`; nothing in the session path ever calls ElevenLabs at runtime
 (the no-runtime-TTS audio law is unchanged). The `ELEVENLABS_API_KEY` is read from the
 environment at generation time and never committed; each voice's ElevenLabs voice id lives in

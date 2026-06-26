@@ -202,6 +202,20 @@ export type TrainingSessionCompletionType =
 
 export type TrainingSessionCompletionSource = 'block_generated' | 'preset' | 'manual' | 'legacy_fallback';
 
+export type TrainingMicroCheckType = 'chair-power' | 'single-leg-balance' | 'mobility-reach';
+export type TrainingMicroCheckTargetSource = 'domain_focus' | 'balanced_schedule_rotation';
+
+export interface TrainingMicroCheckSlotMetadata {
+  slotId: string;
+  policyVersion: number;
+  policyFingerprint: string;
+  targetSource: TrainingMicroCheckTargetSource;
+  targetDomain: MovementDomain;
+  microCheckType: TrainingMicroCheckType;
+  scheduleWeekIndex: number;
+  scheduleWeekNumber: number;
+}
+
 export type TrainingSessionScheduleCreditDenialReason =
   | 'missing_block'
   | 'invalid_current_date'
@@ -314,6 +328,7 @@ export interface TrainingSessionCompletion {
   workEvidence?: TrainingSessionWorkEvidenceSummary;
   focusStimulusEvidence?: TrainingFocusStimulusEvidenceSummary;
   progressionEvidencePolicy?: ProgressionEvidencePolicy;
+  microCheckSlot?: TrainingMicroCheckSlotMetadata;
   durationMinutes?: number;
   perceivedEffort?: 1 | 2 | 3 | 4 | 5;
   painReported?: boolean;

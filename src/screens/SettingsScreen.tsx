@@ -52,11 +52,11 @@ const SECTION_COPY: Record<ProfileSection, { title: string; subtitle: string }> 
   },
   safety: {
     title: 'Camera setup',
-    subtitle: 'Review camera privacy and where to place your phone.',
+    subtitle: 'Review privacy and phone placement.',
   },
   plan: {
     title: 'Workout Days & Effort',
-    subtitle: 'Choose which days work best and how hard workouts should feel.',
+    subtitle: 'Choose your workout days and starting effort.',
   },
   voice: {
     title: 'Trainer Voice',
@@ -64,11 +64,11 @@ const SECTION_COPY: Record<ProfileSection, { title: string; subtitle: string }> 
   },
   equipment: {
     title: 'Equipment',
-    subtitle: 'Choose what Hale can use safely at home.',
+    subtitle: 'Choose what you have at home.',
   },
   reminders: {
     title: 'Workout Reminders',
-    subtitle: 'Choose whether Hale should remind you about workouts when reminders are ready.',
+    subtitle: 'Choose whether Hale should remind you about workouts.',
   },
   account: {
     title: 'Account & Data',
@@ -76,7 +76,7 @@ const SECTION_COPY: Record<ProfileSection, { title: string; subtitle: string }> 
   },
   privacy: {
     title: 'Privacy & Data',
-    subtitle: 'See what Hale shows, saves, and does not save.',
+    subtitle: 'See what Hale shows and saves.',
   },
 };
 
@@ -141,12 +141,11 @@ function SettingsScreenContent({
   const profileGoalText = goalContinuationText(goalText);
   const effortLabel = startingEffortLabel(startingEffort);
   const planSummary = `${preferredDaysSummary(preferredDays)} · ${effortLabel}`;
-  const setupSummary = equipmentSummary({
-    available,
-    equipment,
-    phoneStandAvailable: settings.phoneStandAvailable,
-  });
-  const showDeveloperSettings = __DEV__ || !!onOpenPoseBenchmarkForDiagnostics;
+  const showInternalDeveloperSettings =
+    !!onStartMovementProfileV2Internal ||
+    !!onStartMovementProfileV2UnifiedInternal ||
+    !!onReplayOnboardingForDev;
+  const showDeveloperSettings = showInternalDeveloperSettings || !!onOpenPoseBenchmarkForDiagnostics;
 
   React.useEffect(() => setName(profile.name), [profile.name]);
   React.useEffect(() => setSelectedAgeBand(profileAgeBand), [profileAgeBand]);
@@ -212,13 +211,13 @@ function SettingsScreenContent({
 
           <DetailCard
             title="Safety setup"
-            body="Update this if your pain, balance confidence, equipment, or home setup has changed."
+            body="Update when your body or home setup changes."
           >
             <View style={styles.setupActionStack}>
               <SetupActionTile
                 icon="shield"
                 title="Safety profile"
-                body="Change the support and comfort details Hale uses before sessions."
+                body="Support and comfort details for sessions."
                 onPress={onOpenSafetyProfile}
               />
             </View>
@@ -231,15 +230,12 @@ function SettingsScreenContent({
       return (
         <>
           <DetailOverview
-            icon="camera"
-            title="Camera ready"
-            body="Hale checks that your whole body is in view before a check-up or guided session starts."
-            meta="Private camera use"
+            title="Private camera use"
+            body="Hale checks your position without showing your video."
+            meta="Video is not saved by the app."
           />
 
-          <SafetyReadinessCard
-            phoneStandAvailable={settings.phoneStandAvailable}
-          />
+          <SafetyReadinessCard />
 
           <SafetyActionsCard
             onOpenCameraSetup={onOpenCameraSetup}
@@ -252,15 +248,14 @@ function SettingsScreenContent({
       return (
         <>
           <DetailOverview
-            icon="sliders"
             title={planSummary}
-            body="These choices guide future workouts. Hale still uses your safety setup and pain notes before choosing movements."
+            body="Hale uses these preferences for future workouts, then adjusts for safety and comfort."
             meta="Used for future workouts"
           />
 
           <PreferenceCard
             title="Training days"
-            subtitle="Choose the days that usually work best for you."
+            subtitle="Pick the days that fit your week."
             meta={trainingDayMeta(preferredDays)}
           >
             <DayPreferencePicker selectedDays={preferredDays} onToggleDay={toggleDay} />
@@ -268,7 +263,7 @@ function SettingsScreenContent({
 
           <PreferenceCard
             title="Workout effort"
-            subtitle="Choose how hard future workouts should feel at the start. Hale may still make a session easier if your safety setup or pain notes call for it."
+            subtitle="Choose how hard workouts should feel at the start."
             meta={effortLabel}
           >
             <SessionFeelPicker selected={startingEffort} onSelect={onStartingEffortChange} />
@@ -291,33 +286,14 @@ function SettingsScreenContent({
       return (
         <>
           <DetailOverview
-            icon="dumbbell"
-            title={setupSummary}
-            body="Hale uses this list to choose exercises that fit your home. Start with a sturdy chair and a wall or counter. Optional items are only used when you turn them on."
+            title="Basic setup"
+            body="Hale starts with a chair and nearby support, then adds optional items you turn on."
             meta={controlledBetaEquipmentPositioning.shortLabel}
           />
 
           <DetailCard
-            title="Basic setup"
-            body="Keep these on if you have them. Hale uses a chair and nearby support for many check-ups and beginner workouts."
-          >
-            <View style={styles.toggleStack}>
-              <ToggleRow
-                label="Stable chair"
-                value={available.includes('chair')}
-                onValueChange={() => onToggleAvailableEquipment('chair')}
-              />
-              <ToggleRow
-                label="Wall or counter support"
-                value={available.includes('wall')}
-                onValueChange={() => onToggleAvailableEquipment('wall')}
-              />
-            </View>
-          </DetailCard>
-
-          <DetailCard
             title="Optional items"
-            body="Turn on only the items you have and feel safe using. Hale will choose other movements when something is off."
+            body="Turn on only items you have and feel safe using. Hale will adapt when something is off."
           >
             <View style={styles.toggleStack}>
               <ToggleRow
@@ -359,16 +335,6 @@ function SettingsScreenContent({
             </View>
           </DetailCard>
 
-          <DetailCard
-            title="Camera setup"
-            body="A steady phone position makes check-ups easier to repeat. A shelf or stack of books is fine if the phone will not slide."
-          >
-            <ToggleRow
-              label="Stable phone stand or shelf"
-              value={settings.phoneStandAvailable}
-              onValueChange={(v) => onSettingsChange({ ...settings, phoneStandAvailable: v })}
-            />
-          </DetailCard>
         </>
       );
     }
@@ -377,23 +343,21 @@ function SettingsScreenContent({
       return (
         <>
           <DetailOverview
-            icon="bell"
             title="Phone reminders are not available yet"
-            body="You can still save your choice for later. Hale will not send workout notifications right now."
+            body="You can save your choice now. Hale will not send notifications today."
             meta="No notifications today"
           />
 
           <DetailCard
-            title="Your reminder choice"
-            body="Turn this on if you would like Hale to use workout reminders when they are added."
+            title="Reminder choice"
+            body="Turn this on if you want reminders when they are added."
           >
             <ToggleRow
-              label="Use workout reminders when available"
-              description="This only saves your choice. It will not send a notification today."
+              label="Use workout reminders"
+              description="Saves your choice for later."
               value={settings.remindersEnabled}
               onValueChange={(v) => onSettingsChange({ ...settings, remindersEnabled: v })}
             />
-            <InfoRow label="Today" value="No notifications will be sent" />
           </DetailCard>
         </>
       );
@@ -407,10 +371,8 @@ function SettingsScreenContent({
       return (
         <>
           <DetailOverview
-            icon="lock"
             title="Private by default"
-            body="During check-ups and workouts, Hale uses the camera to measure movement. You do not see a video of yourself, and Hale does not save your video."
-            meta="Video not saved"
+            body="Hale uses the camera to measure movement. You never see a live video, and Hale does not save it."
           />
 
           <PrivacyStorageCard />
@@ -530,25 +492,27 @@ function SettingsScreenContent({
 
       {showDeveloperSettings ? (
         <SettingsSection title="Developer">
-          <View style={[styles.menuRow, responsive.isCompactPhone && styles.compactCardPadding, styles.menuDivider]}>
-            <MenuIcon name="sliders" />
-            <View style={styles.menuCopy}>
-              <Text style={styles.menuTitle}>Use mock app data</Text>
-              <Text style={styles.menuSubtitle}>
-                Preview Hale after a check-up and a few completed sessions.
-              </Text>
+          {showInternalDeveloperSettings ? (
+            <View style={[styles.menuRow, responsive.isCompactPhone && styles.compactCardPadding, styles.menuDivider]}>
+              <MenuIcon name="sliders" />
+              <View style={styles.menuCopy}>
+                <Text style={styles.menuTitle}>Use mock app data</Text>
+                <Text style={styles.menuSubtitle}>
+                  Preview Hale after a check-up and a few completed sessions.
+                </Text>
+              </View>
+              <Switch
+                value={settings.devMockDataEnabled}
+                onValueChange={(enabled) =>
+                  onSettingsChange({ ...settings, devMockDataEnabled: enabled })
+                }
+                trackColor={{ false: colors.borderHairline, true: colors.sage }}
+                thumbColor={settings.devMockDataEnabled ? colors.accent : colors.bgSurface}
+                ios_backgroundColor={colors.borderHairline}
+                accessibilityLabel="Use mock app data"
+              />
             </View>
-            <Switch
-              value={settings.devMockDataEnabled}
-              onValueChange={(enabled) =>
-                onSettingsChange({ ...settings, devMockDataEnabled: enabled })
-              }
-              trackColor={{ false: colors.borderHairline, true: colors.sage }}
-              thumbColor={settings.devMockDataEnabled ? colors.accent : colors.bgSurface}
-              ios_backgroundColor={colors.borderHairline}
-              accessibilityLabel="Use mock app data"
-            />
-          </View>
+          ) : null}
           {onStartMovementProfileV2Internal ? (
             <ProfileMenuRow
               title="Movement Profile V2"
@@ -640,7 +604,7 @@ function DetailOverview({
   body,
   meta,
 }: {
-  icon: MenuIconName;
+  icon?: MenuIconName;
   title: string;
   body?: string;
   meta?: string;
@@ -648,9 +612,11 @@ function DetailOverview({
   const responsive = useResponsiveLayout();
   return (
     <View style={[styles.detailOverview, responsive.isCompactPhone && styles.compactCardPadding]}>
-      <View style={styles.detailOverviewIcon}>
-        <MenuIcon name={icon} />
-      </View>
+      {icon ? (
+        <View style={styles.detailOverviewIcon}>
+          <MenuIcon name={icon} />
+        </View>
+      ) : null}
       <View style={styles.detailOverviewCopy}>
         <Text style={styles.detailOverviewTitle}>{title}</Text>
         {body ? <Text style={styles.detailOverviewBody}>{body}</Text> : null}
@@ -761,9 +727,6 @@ function VoiceOptionRow({
           <Text style={[styles.voiceOptionTitle, selected && styles.voiceOptionTitleSelected]}>
             {voice.label}
           </Text>
-          <Text style={styles.voiceOptionBody}>
-            {voice.available ? voice.description : `${voice.description} - coming soon`}
-          </Text>
         </View>
         <SelectionIndicator selected={selected} />
       </Pressable>
@@ -771,81 +734,17 @@ function VoiceOptionRow({
   );
 }
 
-function SafetyReadinessCard({ phoneStandAvailable }: { phoneStandAvailable: boolean }) {
+function SafetyReadinessCard() {
   const responsive = useResponsiveLayout();
-  const readyCount = 1 + (phoneStandAvailable ? 1 : 0);
   return (
     <View style={[styles.safetyCard, responsive.isCompactPhone && styles.compactCardPadding]}>
       <View style={styles.safetyCardHeader}>
         <View style={styles.safetyCardTitleGroup}>
-          <Text style={styles.safetyCardTitle}>What Hale uses for camera setup</Text>
+          <Text style={styles.safetyCardTitle}>Phone placement</Text>
           <Text style={styles.safetyCardBody}>
-            These help Hale see your movement clearly and keep each setup repeatable.
+            Place your phone on a steady stand, shelf, or stack of books so it will not slide.
           </Text>
         </View>
-        <View style={styles.safetyScorePill}>
-          <Text style={styles.safetyScoreText}>{readyCount}/2 ready</Text>
-        </View>
-      </View>
-
-      <View style={styles.safetyStatusList}>
-        <SafetyStatusRow
-          label="Camera privacy"
-          body="Hale measures movement without showing your video."
-          value="Private"
-          tone="ready"
-          first
-        />
-        <SafetyStatusRow
-          label="Phone stand"
-          body={
-            phoneStandAvailable
-              ? 'Your phone stand helps keep placement steady.'
-              : 'Use a stand, shelf, or stack of books if the phone will not slide.'
-          }
-          value={phoneStandAvailable ? 'Available' : 'Not set'}
-          tone={phoneStandAvailable ? 'ready' : 'neutral'}
-        />
-      </View>
-    </View>
-  );
-}
-
-function SafetyStatusRow({
-  label,
-  body,
-  value,
-  tone,
-  first,
-}: {
-  label: string;
-  body: string;
-  value: string;
-  tone: 'ready' | 'attention' | 'neutral';
-  first?: boolean;
-}) {
-  return (
-    <View style={[styles.safetyStatusRow, !first && styles.safetyStatusDivider]}>
-      <View style={styles.safetyStatusCopy}>
-        <Text style={styles.safetyStatusLabel}>{label}</Text>
-        <Text style={styles.safetyStatusBody}>{body}</Text>
-      </View>
-      <View
-        style={[
-          styles.safetyStatusPill,
-          tone === 'attention' && styles.safetyStatusPillAttention,
-          tone === 'neutral' && styles.safetyStatusPillNeutral,
-        ]}
-      >
-        <Text
-          style={[
-            styles.safetyStatusPillText,
-            tone === 'attention' && styles.safetyStatusPillTextAttention,
-            tone === 'neutral' && styles.safetyStatusPillTextNeutral,
-          ]}
-        >
-          {value}
-        </Text>
       </View>
     </View>
   );
@@ -861,9 +760,9 @@ function SafetyActionsCard({
     <View style={[styles.safetyCard, responsive.isCompactPhone && styles.compactCardPadding]}>
       <View style={styles.safetyCardHeader}>
         <View style={styles.safetyCardTitleGroup}>
-          <Text style={styles.safetyCardTitle}>Make changes</Text>
+          <Text style={styles.safetyCardTitle}>Review setup</Text>
           <Text style={styles.safetyCardBody}>
-            Use this if you want to review where to place your phone.
+            Check phone placement before a session.
           </Text>
         </View>
       </View>
@@ -871,8 +770,7 @@ function SafetyActionsCard({
       <View style={styles.safetyActionList}>
         <SafetyActionRow
           icon="camera"
-          title="Open camera setup"
-          body="Practice where to place the phone and where to stand."
+          title="See camera setup tips"
           onPress={onOpenCameraSetup}
           first
         />
@@ -890,7 +788,7 @@ function SafetyActionRow({
 }: {
   icon: MenuIconName;
   title: string;
-  body: string;
+  body?: string;
   onPress: () => void;
   first?: boolean;
 }) {
@@ -910,7 +808,7 @@ function SafetyActionRow({
       </View>
       <View style={styles.safetyActionCopy}>
         <Text style={styles.safetyActionTitle}>{title}</Text>
-        <Text style={styles.safetyActionBody}>{body}</Text>
+        {body ? <Text style={styles.safetyActionBody}>{body}</Text> : null}
       </View>
       <Text style={styles.safetyActionChevron}>{'>'}</Text>
     </Pressable>
@@ -940,7 +838,7 @@ function PersonalDetailsCard({
       <View style={styles.personalCardIntro}>
         <Text style={styles.personalCardTitle}>Details</Text>
         <Text style={styles.personalCardDescription}>
-          Hale uses these details to personalize your plan and explain your results. You only need to choose an age range.
+          Hale uses these details to personalize your plan and explain your results.
         </Text>
       </View>
 
@@ -1084,26 +982,26 @@ function PrivacyStorageCard() {
   return (
     <DetailCard
       title="What Hale saves"
-      body="Hale saves the information it needs to keep your plan and results up to date."
+      body="Hale saves only what it needs for your plan and results."
     >
       <View style={styles.privacyLedger}>
         <PrivacyLedgerRow
-          icon="camera"
-          label="Camera video"
-          body="Not shown and not saved."
-          value="Not saved"
+          icon="sliders"
+          label="Check-up and workout results"
+          body="Saved so you can track progress."
+          value="Saved"
           first
         />
         <PrivacyLedgerRow
-          icon="sliders"
-          label="Check-up and workout results"
-          body="Saved so you can compare your progress over time."
+          icon="account"
+          label="Profile information"
+          body="Name, age range, and movement goal."
           value="Saved"
         />
         <PrivacyLedgerRow
-          icon="account"
-          label="Settings"
-          body="Saved so Hale remembers your workout days, effort, equipment, and voice."
+          icon="shield"
+          label="Safety preferences"
+          body="Support, comfort, equipment, and camera setup."
           value="Saved"
         />
       </View>
@@ -1307,34 +1205,6 @@ function trainingDayMeta(days: readonly string[]): string {
   if (days.length === 0) return 'None set';
   if (days.length === 1) return '1 day';
   return `${days.length} days`;
-}
-
-function equipmentSummary({
-  available,
-  equipment,
-  phoneStandAvailable,
-}: {
-  available: readonly AvailableEquipment[];
-  equipment: EquipmentProfile;
-  phoneStandAvailable: boolean;
-}): string {
-  const essentials: string[] = [];
-  if (available.includes('chair')) essentials.push('Chair');
-  if (available.includes('wall')) essentials.push('wall support');
-
-  const optionalCount = [
-    equipment.stair,
-    equipment.band,
-    equipment.miniBand,
-    equipment.load,
-    available.includes('door_anchor'),
-    available.includes('floor_space'),
-    phoneStandAvailable,
-  ].filter(Boolean).length;
-
-  const base = essentials.length > 0 ? essentials.join(', ') : controlledBetaEquipmentPositioning.shortLabel;
-  if (optionalCount === 0) return base;
-  return `${base} + ${optionalCount} optional`;
 }
 
 function goalContinuationText(goal: string): string {
@@ -1674,7 +1544,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   detailOverviewTitle: {
-    ...type.h3,
+    ...type.cardTitle,
     color: colors.primaryText,
   },
   detailOverviewBody: {
@@ -1781,10 +1651,6 @@ const styles = StyleSheet.create({
     color: colors.accentDeep,
     fontFamily: fonts.sansMedium,
   },
-  voiceOptionBody: {
-    ...type.caption,
-    color: colors.textSecondary,
-  },
   safetyCard: {
     gap: spacing.lg,
     paddingHorizontal: spacing.xl,
@@ -1812,85 +1678,6 @@ const styles = StyleSheet.create({
     ...type.cardBody,
     color: colors.textSecondary,
   },
-  safetyScorePill: {
-    minHeight: 32,
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  safetyScoreText: {
-    ...type.caption,
-    lineHeight: 18,
-    color: colors.accentDeep,
-    fontFamily: fonts.sansMedium,
-  },
-  safetyStatusList: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.divider,
-  },
-  safetyStatusRow: {
-    minHeight: 78,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-    paddingVertical: spacing.md,
-  },
-  safetyStatusDivider: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.divider,
-  },
-  safetyStatusCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  safetyStatusLabel: {
-    ...type.bodySmall,
-    color: colors.primaryText,
-    fontFamily: fonts.sansMedium,
-  },
-  safetyStatusBody: {
-    ...type.caption,
-    color: colors.textSecondary,
-  },
-  safetyStatusPill: {
-    minWidth: 92,
-    minHeight: 34,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 7,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  safetyStatusPillAttention: {
-    backgroundColor: colors.cautionSoft,
-    borderColor: colors.cautionBorder,
-  },
-  safetyStatusPillNeutral: {
-    backgroundColor: colors.bgSurface,
-    borderColor: colors.border,
-  },
-  safetyStatusPillText: {
-    ...type.caption,
-    lineHeight: 17,
-    color: colors.accentDeep,
-    fontFamily: fonts.sansMedium,
-  },
-  safetyStatusPillTextAttention: {
-    color: colors.caution,
-  },
-  safetyStatusPillTextNeutral: {
-    color: colors.textSecondary,
-  },
   safetyActionList: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.divider,
@@ -1909,10 +1696,8 @@ const styles = StyleSheet.create({
   safetyActionIcon: {
     width: 44,
     height: 44,
-    borderRadius: radius.input,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.background,
   },
   safetyActionCopy: {
     flex: 1,
@@ -2300,12 +2085,8 @@ const styles = StyleSheet.create({
   privacyLedgerIcon: {
     width: 46,
     height: 46,
-    borderRadius: radius.input,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.bgSurface,
   },
   privacyLedgerCopy: {
     flex: 1,
@@ -2322,23 +2103,16 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   privacyLedgerPill: {
-    width: 104,
-    minHeight: 34,
-    alignItems: 'center',
+    width: 92,
+    alignItems: 'flex-end',
     justifyContent: 'center',
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
   },
   privacyLedgerPillText: {
     ...type.caption,
     lineHeight: 17,
     color: colors.accentDeep,
     fontFamily: fonts.sansMedium,
-    textAlign: 'center',
+    textAlign: 'right',
   },
   pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
 });

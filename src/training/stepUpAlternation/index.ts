@@ -5,6 +5,14 @@ export {
   type StepUpRepEvidenceInput,
 } from './evidence';
 export {
+  createStepUpAlternationEvidenceAdapter,
+  type StepUpAlternationEvidenceAdapter,
+  type StepUpEvidenceAdapterSnapshot,
+  type StepUpEvidenceRepSetup,
+  type StepUpEvidenceSetup,
+  type StepUpFrameObservation,
+} from './evidenceAdapter';
+export {
   deriveStepUpAlternationPlan,
   deriveStepUpAlternationPlanForExerciseDefinition,
   deriveStepUpAlternationPlanForExerciseId,
@@ -55,6 +63,11 @@ export {
   stepUpWrongLeadCueKey,
   type StepUpAlternationViewModel,
 } from './viewModel';
+export {
+  StepUpAlternationSetRuntime,
+  type SerializedStepUpAlternationSetRuntime,
+  type StepUpAlternationRuntimeUpdate,
+} from './runtime';
 export type {
   StepUpAlternationPlan,
   StepUpAlternationProgressionSummary,

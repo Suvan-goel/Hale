@@ -30,6 +30,8 @@ import {
   getLatestDomainEvidence,
   getRetestDueSummary,
   getRetestHistory,
+  type MovementProfileV2ProgressViewModel,
+  type ProgressDataAuthority,
 } from '../haleFlow';
 import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../history';
 import {
@@ -84,6 +86,13 @@ export function ProgressScreen({
   onViewCheckUp,
   showMovementProfileV2Internal,
   onViewMovementProfileV2,
+  progressDataAuthority,
+  movementProfileV2Progress,
+  onStartMovementProfileV2CheckUp,
+  onContinueMovementProfileV2,
+  onViewMovementProfileV2Profile,
+  onViewMovementProfileV2Report,
+  onViewCurrentPlan,
   historyOpen: controlledHistoryOpen,
   onHistoryOpenChange,
   onOpenSettings,
@@ -132,14 +141,50 @@ export function ProgressScreen({
   const retest = getRetestDueSummary({ activeBlock: visibleActiveBlock, today, hasBaseline: !!latest, completions: visibleCompletions });
   const retestBody = retestLine({ activeBlock: visibleActiveBlock, today, fallback: retest.body, due: retest.due });
   const handleViewLatest = onViewLatest;
+  const renderMovementProfileV2Progress =
+    progressDataAuthority?.kind === 'movement_profile_v2' || progressDataAuthority?.kind === 'unavailable';
 
-  if (historyOpen) {
+  if (!renderMovementProfileV2Progress && historyOpen) {
     return (
       <ProgressHistoryView
         history={retestHistory}
         onBack={() => setHistoryOpen(false)}
         onViewCheckUp={onViewCheckUp}
       />
+    );
+  }
+
+  if (renderMovementProfileV2Progress) {
+    return (
+      <Screen contentStyle={styles.screenContent}>
+        <View style={styles.header}>
+          <View style={styles.titleRow}>
+            <View style={styles.titleGroup}>
+              <HeaderLogo />
+              <Text style={[styles.title, responsive.isCompactPhone && compactTypography.pageTitle]}>Progress</Text>
+            </View>
+            <Pressable
+              style={({ pressed }) => [styles.headerIconButton, pressed && styles.pressed]}
+              onPress={onOpenSettings}
+              accessibilityRole="button"
+              accessibilityLabel="Open settings"
+            >
+              <SettingsIcon size={25} color={colors.accentDeep} strokeWidth={1.8} />
+            </Pressable>
+          </View>
+        </View>
+
+        <MovementProfileV2ProgressContent
+          viewModel={movementProfileV2Progress ?? null}
+          unavailable={progressDataAuthority?.kind === 'unavailable'}
+          onStartCheckUp={onStartMovementProfileV2CheckUp ?? onBeginFirstCheckUp}
+          onContinue={onContinueMovementProfileV2 ?? onBeginFirstCheckUp}
+          onViewProfile={onViewMovementProfileV2Profile}
+          onViewReport={onViewMovementProfileV2Report}
+          onViewCurrentPlan={onViewCurrentPlan}
+          ladderCards={ladderCards}
+        />
+      </Screen>
     );
   }
 
@@ -309,6 +354,375 @@ function ProgressEmptyStep({
   );
 }
 
+function MovementProfileV2ProgressContent({
+  viewModel,
+  unavailable,
+  onStartCheckUp,
+  onContinue,
+  onViewProfile,
+  onViewReport,
+  onViewCurrentPlan,
+  ladderCards,
+}: {
+  viewModel: MovementProfileV2ProgressViewModel | null;
+  unavailable: boolean;
+  onStartCheckUp: () => void;
+  onContinue: () => void;
+  onViewProfile?: (sourceCheckUpId: string) => void;
+  onViewReport?: (reportId: string) => void;
+  onViewCurrentPlan?: () => void;
+  ladderCards: ReturnType<typeof getLadderProgressCards>;
+}) {
+  if (!viewModel || unavailable) {
+    return (
+      <MovementProfileV2RecoveryCard
+        title="Movement Profile needs attention"
+        body="Your saved Movement Profile data is still on this phone, but Hale cannot safely show it here yet."
+        actionLabel="Continue"
+        onPress={onContinue}
+      />
+    );
+  }
+
+  if (viewModel.status !== 'ready') {
+    const primary = viewModel.actions[0];
+    return (
+      <MovementProfileV2RecoveryCard
+        title={viewModel.recovery.title}
+        body={viewModel.recovery.body}
+        actionLabel={primary?.label}
+        onPress={
+          primary?.id === 'start_movement_checkup'
+            ? onStartCheckUp
+            : primary
+              ? onContinue
+              : undefined
+        }
+      />
+    );
+  }
+
+  return (
+    <>
+      <MovementProfileV2HeroSection hero={viewModel.hero} />
+      <MovementProfileV2ProfileCard
+        viewModel={viewModel}
+        onViewProfile={onViewProfile}
+      />
+      {viewModel.currentPlan ? (
+        <MovementProfileV2CurrentPlanCard
+          plan={viewModel.currentPlan}
+          onViewCurrentPlan={onViewCurrentPlan}
+        />
+      ) : null}
+      {ladderCards.length > 0 ? <TrainingProgressCard cards={ladderCards} /> : null}
+      <MovementProfileV2OfficialHistoryCard
+        history={viewModel.officialHistory}
+        onViewProfile={onViewProfile}
+      />
+      {viewModel.reports.length > 0 ? (
+        <MovementProfileV2ReportHistoryCard
+          reports={viewModel.reports}
+          onViewReport={onViewReport}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function MovementProfileV2RecoveryCard({
+  title,
+  body,
+  actionLabel,
+  onPress,
+}: {
+  title: string;
+  body: string;
+  actionLabel?: string;
+  onPress?: () => void;
+}) {
+  return (
+    <Card style={styles.progressCard}>
+      <View style={styles.profileHeader}>
+        <View style={styles.sectionText}>
+          <Text style={styles.sectionTitle}>{title}</Text>
+          <Text style={styles.sectionIntro}>{body}</Text>
+        </View>
+      </View>
+      {actionLabel && onPress ? (
+        <ProgressActionRow
+          title={actionLabel}
+          body="Opens saved read-only Movement Profile content or the next safe continuation step."
+          onPress={onPress}
+          accessibilityLabel={`${actionLabel}. ${body}`}
+        />
+      ) : null}
+    </Card>
+  );
+}
+
+function MovementProfileV2HeroSection({ hero }: { hero: Extract<MovementProfileV2ProgressViewModel, { status: 'ready' }>['hero'] }) {
+  const responsive = useResponsiveLayout();
+  const compactHero = responsive.isCompactPhone;
+  const heroMinHeightStyle = { minHeight: responsive.progressHeroHeight };
+  const focus = hero.focusTitle;
+  const heroFacts = [
+    { label: 'Last check-up', value: compactHero ? compactHeroDate(hero.dateLabel) : hero.dateLabel },
+    { label: 'Suggested focus', value: focus },
+    { label: 'Profile', value: 'Saved Movement Profile', wide: true },
+  ];
+
+  return (
+    <View style={styles.heroSection}>
+      <ImageBackground
+        source={PROGRESS_HERO_IMAGE}
+        style={[styles.progressHero, heroMinHeightStyle]}
+        imageStyle={[styles.progressHeroImage, compactHero && styles.progressHeroImageCompact]}
+        resizeMode="cover"
+      >
+        <View style={styles.progressHeroScrim} />
+        <View style={[styles.progressHeroContent, compactHero && styles.progressHeroContentCompact, heroMinHeightStyle]}>
+          <View style={[styles.progressHeroCopy, compactHero && styles.progressHeroCopyCompact]}>
+            <Text style={styles.progressHeroEyebrow}>{hero.title}</Text>
+            <Text style={[styles.progressHeroTitle, compactHero && styles.progressHeroTitleCompact]}>{focus}</Text>
+            <Text style={[styles.progressHeroBody, compactHero && styles.progressHeroBodyCompact]}>{hero.focusBody}</Text>
+          </View>
+          <View style={[styles.progressHeroFacts, compactHero && styles.progressHeroFactsCompact]}>
+            {heroFacts.map((fact) => (
+              <HeroFact
+                key={fact.label}
+                label={fact.label}
+                value={fact.value}
+                compact={compactHero}
+                wide={fact.wide}
+              />
+            ))}
+          </View>
+        </View>
+      </ImageBackground>
+    </View>
+  );
+}
+
+function MovementProfileV2ProfileCard({
+  viewModel,
+  onViewProfile,
+}: {
+  viewModel: Extract<MovementProfileV2ProgressViewModel, { status: 'ready' }>;
+  onViewProfile?: (sourceCheckUpId: string) => void;
+}) {
+  return (
+    <Card style={styles.progressCard}>
+      <View style={styles.profileHeader}>
+        <View style={styles.sectionText}>
+          <Text style={styles.sectionTitle}>Latest Movement Profile</Text>
+          <Text style={styles.sectionIntro}>Frozen from {viewModel.hero.dateLabel}. Hale shows saved raw results and saved reference labels only.</Text>
+        </View>
+      </View>
+      <View style={styles.profileRows}>
+        {viewModel.hero.domains.map((card, index) => (
+          <MovementProfileV2ProgressRow key={card.domain} card={card} showDivider={index > 0} />
+        ))}
+      </View>
+      <ProgressActionRow
+        title="View Movement Profile"
+        body="Opens the saved read-only Movement Profile."
+        onPress={() => onViewProfile?.(viewModel.hero.profileId)}
+        accessibilityLabel={`View Movement Profile. Opens saved read-only results from ${viewModel.hero.dateLabel}.`}
+      />
+    </Card>
+  );
+}
+
+function MovementProfileV2ProgressRow({
+  card,
+  showDivider,
+}: {
+  card: Extract<MovementProfileV2ProgressViewModel, { status: 'ready' }>['hero']['domains'][number];
+  showDivider: boolean;
+}) {
+  return (
+    <View style={[styles.profileRow, showDivider && styles.rowDivider]}>
+      <IconBadge domain={domainIconForMovementProfileV2(card.domain)} size={36} iconSize={22} />
+      <View style={styles.profileRowText}>
+        <Text style={styles.profileRowTitle} numberOfLines={1}>{card.title}</Text>
+        <Text style={styles.profileRowMetric} numberOfLines={1}>{card.metric}</Text>
+      </View>
+      <View style={styles.profileStatusPill}>
+        <Text style={styles.profileStatusText} numberOfLines={1}>{card.interpretation}</Text>
+      </View>
+    </View>
+  );
+}
+
+function MovementProfileV2CurrentPlanCard({
+  plan,
+  onViewCurrentPlan,
+}: {
+  plan: NonNullable<Extract<MovementProfileV2ProgressViewModel, { status: 'ready' }>['currentPlan']>;
+  onViewCurrentPlan?: () => void;
+}) {
+  return (
+    <Card style={styles.progressCard}>
+      <View style={styles.profileHeader}>
+        <View style={styles.sectionText}>
+          <Text style={styles.sectionTitle}>Current plan</Text>
+          <Text style={styles.sectionIntro}>{plan.sourceNote}</Text>
+        </View>
+      </View>
+      <View style={styles.planSummaryRows}>
+        <PlanSummaryPill label="Focus" value={plan.focusTitle} />
+        <PlanSummaryPill label="Week" value={plan.weekLabel} />
+        <PlanSummaryPill label="Sessions" value={plan.sessionsLabel} wide />
+      </View>
+      <Text style={styles.sectionIntro}>{plan.scheduleLabel}</Text>
+      <ProgressActionRow
+        title="View current plan"
+        body="Opens your saved plan without starting a session."
+        onPress={onViewCurrentPlan}
+        accessibilityLabel={`View current plan. ${plan.focusTitle}. ${plan.sessionsLabel}.`}
+      />
+    </Card>
+  );
+}
+
+function PlanSummaryPill({ label, value, wide }: { label: string; value: string; wide?: boolean }) {
+  return (
+    <View style={[styles.planSummaryPill, wide && styles.planSummaryPillWide]}>
+      <Text style={styles.progressHeroFactLabel} numberOfLines={1}>{label}</Text>
+      <Text style={styles.progressHeroFactValue} numberOfLines={2}>{value}</Text>
+    </View>
+  );
+}
+
+function MovementProfileV2OfficialHistoryCard({
+  history,
+  onViewProfile,
+}: {
+  history: Extract<MovementProfileV2ProgressViewModel, { status: 'ready' }>['officialHistory'];
+  onViewProfile?: (sourceCheckUpId: string) => void;
+}) {
+  return (
+    <Card style={styles.progressCard}>
+      <Text style={styles.sectionTitle}>Movement Profile history</Text>
+      <Text style={styles.sectionIntro}>Saved official Check-Ups, newest first.</Text>
+      <View style={styles.historyList}>
+        {history.map((entry, index) => (
+          <MovementProfileV2HistoryRow
+            key={entry.id}
+            entry={entry}
+            latest={index === 0}
+            showDivider={index > 0}
+            onPress={() => onViewProfile?.(entry.id)}
+          />
+        ))}
+      </View>
+    </Card>
+  );
+}
+
+function MovementProfileV2HistoryRow({
+  entry,
+  latest,
+  showDivider,
+  onPress,
+}: {
+  entry: Extract<MovementProfileV2ProgressViewModel, { status: 'ready' }>['officialHistory'][number];
+  latest: boolean;
+  showDivider: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.historyRow, showDivider && styles.rowDivider, pressed && styles.pressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${entry.dateLabel}. ${entry.sourceLabel}. ${entry.focusTitle}. Opens saved read-only Movement Profile.`}
+    >
+      <View style={styles.historyRowText}>
+        <View style={styles.historyTitleRow}>
+          <Text style={styles.historyRowTitle} numberOfLines={1}>{entry.dateLabel}</Text>
+          {latest ? (
+            <View style={styles.historyLatestPill}>
+              <Text style={styles.historyLatestText}>Latest</Text>
+            </View>
+          ) : null}
+        </View>
+        <Text style={styles.historyRowMeta} numberOfLines={2}>
+          {entry.sourceLabel} · {entry.focusTitle}
+        </Text>
+      </View>
+      <Text style={styles.chevron}>›</Text>
+    </Pressable>
+  );
+}
+
+function MovementProfileV2ReportHistoryCard({
+  reports,
+  onViewReport,
+}: {
+  reports: Extract<MovementProfileV2ProgressViewModel, { status: 'ready' }>['reports'];
+  onViewReport?: (reportId: string) => void;
+}) {
+  return (
+    <Card style={styles.progressCard}>
+      <Text style={styles.sectionTitle}>Block reports</Text>
+      <Text style={styles.sectionIntro}>Saved 4-week block reports from completed follow-up Check-Ups.</Text>
+      <View style={styles.historyList}>
+        {reports.map((entry, index) => (
+          <Pressable
+            key={entry.action.targetId ?? entry.id}
+            style={({ pressed }) => [styles.historyRow, index > 0 && styles.rowDivider, pressed && styles.pressed]}
+            onPress={() => entry.action.targetId && onViewReport?.(entry.action.targetId)}
+            accessibilityRole="button"
+            accessibilityLabel={`4-week block complete. ${entry.completedAtLabel}. ${entry.sessionsLabel}. Opens saved read-only block report.`}
+          >
+            <View style={styles.historyRowText}>
+              <Text style={styles.historyRowTitle} numberOfLines={1}>4-week block complete</Text>
+              <Text style={styles.historyRowMeta} numberOfLines={2}>
+                {entry.completedAtLabel} · {entry.priorFocusTitle} to {entry.currentFocusTitle} · {entry.sessionsLabel}
+              </Text>
+            </View>
+            <Text style={styles.chevron}>›</Text>
+          </Pressable>
+        ))}
+      </View>
+    </Card>
+  );
+}
+
+function ProgressActionRow({
+  title,
+  body,
+  onPress,
+  accessibilityLabel,
+}: {
+  title: string;
+  body: string;
+  onPress?: () => void;
+  accessibilityLabel?: string;
+}) {
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.latestResultsAction, !onPress && styles.disabledAction, pressed && onPress && styles.pressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: !onPress }}
+      accessibilityLabel={accessibilityLabel ?? `${title}. ${body}`}
+      disabled={!onPress}
+    >
+      <View style={styles.latestResultsIconWell}>
+        <ProgressPictogram name="calendar" size={20} color={colors.accent} />
+      </View>
+      <View style={styles.latestResultsCopy}>
+        <Text style={styles.latestResultsTitle} numberOfLines={1}>{title}</Text>
+        <Text style={styles.latestResultsBody} numberOfLines={2}>{body}</Text>
+      </View>
+      <Text style={styles.chevron}>›</Text>
+    </Pressable>
+  );
+}
+
 interface ProgressScreenProps {
   history: readonly StoredCheckUp[];
   assessments?: readonly MovementAssessment[];
@@ -326,6 +740,13 @@ interface ProgressScreenProps {
   onViewCheckUp: (checkUpId: string) => void;
   showMovementProfileV2Internal?: boolean;
   onViewMovementProfileV2?: () => void;
+  progressDataAuthority?: ProgressDataAuthority;
+  movementProfileV2Progress?: MovementProfileV2ProgressViewModel | null;
+  onStartMovementProfileV2CheckUp?: () => void;
+  onContinueMovementProfileV2?: () => void;
+  onViewMovementProfileV2Profile?: (sourceCheckUpId: string) => void;
+  onViewMovementProfileV2Report?: (reportId: string) => void;
+  onViewCurrentPlan?: () => void;
   historyOpen?: boolean;
   onHistoryOpenChange?: (open: boolean) => void;
   onOpenSettings: () => void;
@@ -1829,6 +2250,27 @@ const styles = StyleSheet.create({
   profileRows: {
     marginTop: 14,
   },
+  planSummaryRows: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 14,
+    marginBottom: 12,
+  },
+  planSummaryPill: {
+    minWidth: 108,
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: radius.input,
+    backgroundColor: colors.bgBase,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+  },
+  planSummaryPillWide: {
+    flexBasis: '100%',
+  },
   profileRow: {
     minHeight: 76,
     flexDirection: 'row',
@@ -1887,6 +2329,9 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.divider,
+  },
+  disabledAction: {
+    opacity: 0.58,
   },
   latestResultsIconWell: {
     width: 38,

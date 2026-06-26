@@ -26,8 +26,8 @@ import {
   ScreenHeader,
   ScreenScrollClearanceProvider,
 } from './src/components/ui';
+import { LEGACY_V1_CHECKUP_ROLLBACK_ENABLED } from './src/config/legacyV1CheckUpRollback';
 import { MOVEMENT_PROFILE_V2_INTERNAL_ENABLED } from './src/config/movementProfileV2Internal';
-import { UNIFIED_MOVEMENT_CHECKUP_RELEASE_ENABLED } from './src/config/unifiedMovementCheckUpRelease';
 import {
   AdherenceStore,
   AdherenceStoreState,
@@ -94,7 +94,9 @@ import {
   findAssessmentForCheckUp,
   focusStimulusEvidenceSummary,
   annotateCompletionWithScheduleCredit,
+  attachMicroCheckTargetMetadata,
   getBlockScheduleState,
+  getBlockMicroCheckTarget,
   getSessionPlanningRecoveryCopy,
   getBlockCreationEligibility,
   getHaleAppLifecycle,
@@ -103,8 +105,12 @@ import {
   historicalOfficialCheckUpRecords,
   latestUsableOfficialCheckUpRecord,
   latestUsableOfficialAssessment,
+  buildMovementProfileV2ProgressViewModel,
   materializeMovementProfileV2Block,
+  movementProfileV2ProgressProfileBySourceCheckUpId,
+  movementProfileV2ProgressReportById,
   movementProfileV2AssessmentForSourceCheckUpId,
+  selectProgressDataAuthority,
   transitionMovementProfileV2OfficialRetest,
   applyProgressionEvidenceFromSession,
   planLadderPracticeSessionResult,
@@ -115,6 +121,7 @@ import {
   staleReleasePolicyPlanningResult,
   staleSafetyCuePlanningResult,
   sessionPlanFromPlanningResult,
+  microCheckSlotMetadataFromTarget,
   validateHaleSessionPlanEquipment,
   validateHaleSessionPlanMovementCapabilities,
   validateHaleSessionPlanProgressionPolicy,
@@ -243,13 +250,13 @@ import { isPoseLatencyDiagnosticsEnabled } from './src/diagnostics/poseLatencyDi
 import {
   EquipmentProfile,
   MicroCheckResult,
-  type MicroCheckType,
   PainArea,
   PersistedPostSessionFeedback,
   TrainingState,
   TrainingStore,
   TrainingSessionResult,
   TrackingQuality,
+  applyBothSidesExerciseCompletionToStartSideSeed,
   buildBlock,
   defaultTrainingState,
   deriveMicroCheckSideSetup,
@@ -331,7 +338,9 @@ const CAMERA_FLOWS = new Set<Flow>([
 const PUBLIC_MOVEMENT_PROFILE_V2_FLOWS = new Set<Flow>([
   'movement-profile-v2-unified-checkup',
   'movement-profile-v2-reference-details',
+  'movement-profile-v2-results',
   'movement-profile-v2-unified-results',
+  'movement-profile-v2-domain-detail',
   'movement-profile-v2-unified-domain-detail',
   'movement-profile-v2-block-report',
   'movement-profile-v2-retest-unavailable',
@@ -672,6 +681,10 @@ function HaleApp() {
     React.useState<MovementProfileV2EntryContext>('internal');
   const [movementProfileV2DetailDomain, setMovementProfileV2DetailDomain] =
     React.useState<MovementProfileV2Domain | null>(null);
+  const [movementProfileV2SelectedProfileId, setMovementProfileV2SelectedProfileId] =
+    React.useState<string | null>(null);
+  const [movementProfileV2SelectedReportId, setMovementProfileV2SelectedReportId] =
+    React.useState<string | null>(null);
 
   // Auth-scoped local stores. Each backend user gets a separate on-device cache
   // so sign-out/sign-in never lets another account inherit local Hale state.
@@ -845,6 +858,8 @@ function HaleApp() {
     setMovementProfileV2ResultSurface('standalone');
     setMovementProfileV2EntryContext('internal');
     setMovementProfileV2DetailDomain(null);
+    setMovementProfileV2SelectedProfileId(null);
+    setMovementProfileV2SelectedReportId(null);
     setTraining(defaultTrainingState());
     setMicroChecks([]);
     setPrefs(defaultPreferences());
@@ -1098,20 +1113,17 @@ function HaleApp() {
     setMovementProfileV2DetailDomain(null);
   }, [replaceNextNavigationLocation]);
 
+  const movementProfileV2FlowAllowed =
+    MOVEMENT_PROFILE_V2_INTERNAL_ENABLED ||
+    flow === null ||
+    !flow.startsWith('movement-profile-v2') ||
+    flow === 'movement-profile-v2-retest-unavailable' ||
+    (movementProfileV2EntryContext !== 'internal' && PUBLIC_MOVEMENT_PROFILE_V2_FLOWS.has(flow));
+
   React.useEffect(() => {
-    if (
-      MOVEMENT_PROFILE_V2_INTERNAL_ENABLED ||
-      flow === null ||
-      !flow.startsWith('movement-profile-v2') ||
-      flow === 'movement-profile-v2-retest-unavailable' ||
-      (UNIFIED_MOVEMENT_CHECKUP_RELEASE_ENABLED &&
-        movementProfileV2EntryContext !== 'internal' &&
-        PUBLIC_MOVEMENT_PROFILE_V2_FLOWS.has(flow))
-    ) {
-      return;
-    }
+    if (movementProfileV2FlowAllowed) return;
     goHome();
-  }, [flow, goHome, movementProfileV2EntryContext]);
+  }, [goHome, movementProfileV2FlowAllowed]);
 
   const goBack = React.useCallback(
     (fallback?: () => void) => {
@@ -1576,15 +1588,23 @@ function HaleApp() {
       return;
     const fingerprint = JSON.stringify({
       microChecks: microChecks.map((result) => [
+        result.slotId,
+        result.blockId,
         result.type,
         result.startedAt,
+        result.completedAt,
         result.value,
         result.reps,
         result.measured,
       ]),
       microCheckCompletions: adherence.completions
         .filter((completion) => completion.sessionType === 'micro_check')
-        .map((completion) => [completion.id, completion.blockId, completion.completedAt]),
+        .map((completion) => [
+          completion.id,
+          completion.blockId,
+          completion.completedAt,
+          completion.microCheckSlot?.slotId,
+        ]),
       blocks: adherence.blocks.map((block) => [
         block.id,
         block.updatedAt,
@@ -1871,6 +1891,57 @@ function HaleApp() {
     () => getActiveMovementBlock(displayAdherence.blocks),
     [displayAdherence.blocks]
   );
+  const movementProfileV2Progress = React.useMemo(() => {
+    const pendingRaw = latestPendingMovementProfileV2RawCheckUp(displayHistory);
+    return buildMovementProfileV2ProgressViewModel({
+      history: displayHistory,
+      blocks: displayAdherence.blocks,
+      reports: displayAdherence.reports,
+      completions: displayAdherence.completions,
+      today: new Date().toISOString(),
+      pendingV2RawCheckUpId: pendingRaw?.record.checkUp.startedAt ?? null,
+    });
+  }, [displayAdherence.blocks, displayAdherence.completions, displayAdherence.reports, displayHistory]);
+  const movementProfileV2AuthorityFacts = movementProfileV2Progress.authorityFacts;
+  const hasMovementProfileV2AuthorityState =
+    movementProfileV2AuthorityFacts.acceptedProfileIds.length > 0 ||
+    movementProfileV2AuthorityFacts.v2BlockIds.length > 0 ||
+    movementProfileV2AuthorityFacts.acceptedReportIds.length > 0 ||
+    movementProfileV2AuthorityFacts.hasPendingContinuation ||
+    movementProfileV2AuthorityFacts.hasMalformedState;
+  const legacyV1RollbackAvailable =
+    LEGACY_V1_CHECKUP_ROLLBACK_ENABLED && !hasMovementProfileV2AuthorityState;
+  const legacyV1CheckUpFlowAllowed =
+    legacyV1RollbackAvailable &&
+    !!pendingCheckup &&
+    (pendingCheckup.type === 'baseline' ||
+      pendingCheckup.type === 'baseline_retake' ||
+      (pendingCheckup.type === 'official_retest' &&
+        activeMovementBlock?.origin?.kind === 'legacy_v1_assessment'));
+  const legacyV1ResultsFlowAllowed = legacyV1RollbackAvailable;
+  const progressDataAuthority = React.useMemo(
+    () =>
+      selectProgressDataAuthority({
+        acceptedV2OfficialProfiles: movementProfileV2AuthorityFacts.acceptedProfileIds,
+        v2OriginBlocks: displayAdherence.blocks,
+        acceptedV2Reports: displayAdherence.reports.filter((report) =>
+          movementProfileV2AuthorityFacts.acceptedReportIds.includes(report.id)
+        ),
+        hasPendingV2Continuation: movementProfileV2AuthorityFacts.hasPendingContinuation,
+        hasMalformedV2State: movementProfileV2AuthorityFacts.hasMalformedState,
+        v1RollbackAvailable: LEGACY_V1_CHECKUP_ROLLBACK_ENABLED,
+      }),
+    [displayAdherence.blocks, displayAdherence.reports, movementProfileV2AuthorityFacts]
+  );
+  React.useEffect(() => {
+    if (flow === 'checkup' && !legacyV1CheckUpFlowAllowed) {
+      goHome();
+      return;
+    }
+    if (flow === 'results' && !legacyV1ResultsFlowAllowed) {
+      goHome();
+    }
+  }, [flow, goHome, legacyV1CheckUpFlowAllowed, legacyV1ResultsFlowAllowed]);
   const displayMovementBlock = React.useMemo(
     () =>
       blockIntroPreview?.block ?? activeMovementBlock ?? getLatestMovementBlock(adherence.blocks),
@@ -2180,6 +2251,22 @@ function HaleApp() {
     [displayAdherence, displayHistory, displayPrefs.profile, displayTraining]
   );
 
+  const activeMicroCheckTarget = React.useMemo(() => {
+    if (!activeMovementBlock) return null;
+    const schedule = getBlockScheduleState({
+      block: activeMovementBlock,
+      completions: adherence.completions,
+      generatedSessionSummaries: training.generatedSessionSummaries,
+      today: new Date().toISOString(),
+    });
+    const target = getBlockMicroCheckTarget({
+      block: activeMovementBlock,
+      schedule,
+      completions: adherence.completions,
+    });
+    return target.status === 'available' ? target : null;
+  }, [activeMovementBlock, adherence.completions, training.generatedSessionSummaries]);
+
   const requestCameraPermission = React.useCallback(() => {
     requestCameraPermissionsAsync()
       .then((response) => setPermission(response.granted ? 'granted' : 'denied'))
@@ -2210,6 +2297,8 @@ function HaleApp() {
       );
       setMovementProfileV2OfficialRetestContext(officialRetestContext);
       setMovementProfileV2DetailDomain(null);
+      setMovementProfileV2SelectedProfileId(null);
+      setMovementProfileV2SelectedReportId(null);
 
       if (pendingRaw) {
         setMovementProfileV2InitialFlow(null);
@@ -2254,7 +2343,7 @@ function HaleApp() {
         retryMovementIds?: readonly string[];
       } = {}
     ) => {
-      const resolvedType = type ?? (latestAssessment ? 'manual_extra' : 'baseline');
+      const resolvedType = type ?? (latestAssessment ? 'baseline_retake' : 'baseline');
       const activeBlockV2Record =
         activeMovementBlock?.origin?.kind === 'movement_profile_v2_assessment'
           ? movementProfileV2AssessmentForSourceCheckUpId(
@@ -2284,8 +2373,16 @@ function HaleApp() {
       const launchDecision = selectPublicMovementCheckUpLaunch({
         sourceType: resolvedType,
         entryContext: onboardingFlowActive ? 'onboarding' : 'standard',
-        releaseEnabled: UNIFIED_MOVEMENT_CHECKUP_RELEASE_ENABLED,
-        hasAcceptedMovementProfileV2Baseline: !!latestMaterializedMovementProfileV2Result(history),
+        legacyV1RollbackEnabled: LEGACY_V1_CHECKUP_ROLLBACK_ENABLED,
+        hasAcceptedMovementProfileV2State:
+          movementProfileV2AuthorityFacts.acceptedProfileIds.length > 0 ||
+          !!latestMaterializedMovementProfileV2Result(history),
+        hasPendingMovementProfileV2Continuation:
+          movementProfileV2AuthorityFacts.hasPendingContinuation,
+        hasMalformedMovementProfileV2State: movementProfileV2AuthorityFacts.hasMalformedState,
+        hasMovementProfileV2BlockOrReportState:
+          movementProfileV2AuthorityFacts.v2BlockIds.length > 0 ||
+          movementProfileV2AuthorityFacts.acceptedReportIds.length > 0,
         hasAcceptedMovementProfileV2OfficialRetestSourceArtifacts: !!officialRetestContext,
         movementProfileV2OfficialRetestScheduleStatus: activeBlockSchedule?.status ?? null,
         activeBlockOriginKind: activeMovementBlock?.origin?.kind ?? null,
@@ -2342,6 +2439,7 @@ function HaleApp() {
       beginUnifiedMovementProfileV2Public,
       history,
       latestAssessment,
+      movementProfileV2AuthorityFacts,
       onboardingFlowActive,
       training.generatedSessionSummaries,
     ]
@@ -3017,6 +3115,22 @@ function HaleApp() {
             };
             trainingChanged = true;
           }
+          for (const item of result.items) {
+            if (item.exerciseId !== 'step-up' || item.status !== 'completed') continue;
+            const nextSeed = applyBothSidesExerciseCompletionToStartSideSeed(
+              nextTraining.bothSidesStartSideSeed,
+              {
+                exerciseId: item.exerciseId,
+                completed: true,
+                countsTowardMainPlan: true,
+                eventId: `${completion.id}:${item.exerciseId}`,
+              }
+            );
+            if (nextSeed !== nextTraining.bothSidesStartSideSeed) {
+              nextTraining = { ...nextTraining, bothSidesStartSideSeed: nextSeed };
+              trainingChanged = true;
+            }
+          }
           let nextAdherence = recordTrainingSessionCompletion(adherence, completion);
           const updatedBlock = nextAdherence.blocks.find((b) => b.id === block.id) ?? block;
           nextAdherence = mergeMilestones(
@@ -3095,54 +3209,67 @@ function HaleApp() {
   const handleMicroCheckComplete = React.useCallback(
     (result: MicroCheckResult) => {
       const completedAt = new Date().toISOString();
+      if (!activeMovementBlock || !activeMicroCheckTarget) {
+        console.warn('[training] micro-check completed without an active due slot; result ignored');
+        goHome();
+        return;
+      }
+      const enrichedResult = attachMicroCheckTargetMetadata(result, activeMicroCheckTarget, completedAt);
+      const microCheckSlot = microCheckSlotMetadataFromTarget(activeMicroCheckTarget);
       let localMicroCheckSaved = false;
       try {
-        trainingStore.saveMicroCheck(result);
+        trainingStore.saveMicroCheck(enrichedResult);
         localMicroCheckSaved = true;
       } catch (e) {
         console.warn('[training] micro-check save failed', e);
       }
-      setMicroChecks((prev) => [...prev, result]);
-      if (activeMovementBlock) {
-        const completion = makeTrainingSessionCompletion({
-          block: activeMovementBlock,
-          sessionType: 'micro_check',
-          completedAt,
-          durationMinutes: 1,
+      setMicroChecks((prev) => {
+        const key = enrichedResult.slotId ?? `${enrichedResult.type}:${enrichedResult.startedAt}`;
+        const withoutDuplicate = prev.filter(
+          (item) => (item.slotId ?? `${item.type}:${item.startedAt}`) !== key
+        );
+        return [...withoutDuplicate, enrichedResult];
+      });
+      const completion = makeTrainingSessionCompletion({
+        block: activeMovementBlock,
+        sessionType: 'micro_check',
+        completedAt,
+        plannedDate: activeMicroCheckTarget.slotId,
+        durationMinutes: 1,
+        mainPlanCredit: false,
+        microCheckSlot,
+      });
+      const nextAdherence = recordTrainingSessionCompletion(adherence, completion);
+      const updatedBlock =
+        nextAdherence.blocks.find((b) => b.id === activeMovementBlock.id) ?? activeMovementBlock;
+      const adherenceSaved = persistAdherence(nextAdherence);
+      if (adherenceSaved && backendSignedIn && backendUserId) {
+        void syncMovementBlockToRemote({
+          block: updatedBlock,
+          trainingBlock: training.block,
+          training,
+          blockNumber: blockNumberForBlocks(nextAdherence.blocks, updatedBlock.id),
+          sourceCheckupLocalId: movementBlockSourceCheckUpId(updatedBlock),
         });
-        const nextAdherence = recordTrainingSessionCompletion(adherence, completion);
-        const updatedBlock =
-          nextAdherence.blocks.find((b) => b.id === activeMovementBlock.id) ?? activeMovementBlock;
-        const adherenceSaved = persistAdherence(nextAdherence);
-        if (adherenceSaved && backendSignedIn && backendUserId) {
-          void syncMovementBlockToRemote({
-            block: updatedBlock,
-            trainingBlock: training.block,
-            training,
-            blockNumber: blockNumberForBlocks(nextAdherence.blocks, updatedBlock.id),
-            sourceCheckupLocalId: movementBlockSourceCheckUpId(updatedBlock),
-          });
-          if (localMicroCheckSaved) {
-            void syncMicroCheckToRemote({
-              result,
-              movementBlock: updatedBlock,
-              completion,
-            });
-          }
-        } else if (localMicroCheckSaved && backendSignedIn && backendUserId) {
+        if (localMicroCheckSaved) {
           void syncMicroCheckToRemote({
-            result,
-            movementBlock: activeMovementBlock,
+            result: enrichedResult,
+            movementBlock: updatedBlock,
+            completion,
           });
         }
-        setLastCompletion(completion);
       } else if (localMicroCheckSaved && backendSignedIn && backendUserId) {
-        void syncMicroCheckToRemote({ result });
+        void syncMicroCheckToRemote({
+          result: enrichedResult,
+          movementBlock: activeMovementBlock,
+        });
       }
+      setLastCompletion(completion);
       goHome();
     },
     [
       activeMovementBlock,
+      activeMicroCheckTarget,
       adherence,
       backendSignedIn,
       backendUserId,
@@ -3462,7 +3589,7 @@ function HaleApp() {
   const handleStartNextBlock = React.useCallback(() => {
     const official = latestUsableOfficialCheckUpRecord(history, adherence.assessments);
     if (!official) {
-      setFlow('checkup');
+      beginCheckUp('baseline');
       return;
     }
     const now = new Date().toISOString();
@@ -3492,7 +3619,7 @@ function HaleApp() {
     setLastResultScore(score);
     setLastResultScoreSnapshot(scoreSnapshot);
     setFlow('block-intro');
-  }, [adherence, history, prepareBlockFromOfficialCheckUp, training]);
+  }, [adherence, beginCheckUp, history, prepareBlockFromOfficialCheckUp, training]);
 
   const handlePlanningRecoveryAction = React.useCallback(
     (action: GenerationRecoveryAction | undefined) => {
@@ -3619,7 +3746,11 @@ function HaleApp() {
           handleStartSession(preferences ?? undefined);
           return;
         case 'start_micro_check':
-          setFlow('microcheck');
+          if (activeMicroCheckTarget) {
+            setFlow('microcheck');
+          } else {
+            goHome();
+          }
           return;
         case 'start_retest':
           beginCheckUp('official_retest');
@@ -3640,6 +3771,8 @@ function HaleApp() {
     },
     [
       beginCheckUp,
+      activeMicroCheckTarget,
+      goHome,
       handleStartNextBlock,
       handleStartSession,
       lifecycle.primaryAction.type,
@@ -3649,17 +3782,16 @@ function HaleApp() {
   );
 
   const extraTrendPoints = React.useMemo(() => microCheckTrendPoints(microChecks), [microChecks]);
-  const activeMicroCheckType = React.useMemo<MicroCheckType>(
-    () => (activeMovementBlock ? getMicroCheckForBlock(activeMovementBlock)?.type ?? 'chair-power' : 'chair-power'),
-    [activeMovementBlock]
-  );
+  const activeMicroCheckType = activeMicroCheckTarget?.microCheckType ?? null;
   const activeMicroCheckSideSetup = React.useMemo(
     () =>
-      deriveMicroCheckSideSetup({
-        microCheckType: activeMicroCheckType,
-        history: microChecks,
-        officialCheckUps: history,
-      }),
+      activeMicroCheckType
+        ? deriveMicroCheckSideSetup({
+            microCheckType: activeMicroCheckType,
+            history: microChecks,
+            officialCheckUps: history,
+          })
+        : null,
     [activeMicroCheckType, history, microChecks]
   );
   const openManualCheckup = React.useCallback(() => setFlow('manual-checkup'), []);
@@ -3675,6 +3807,30 @@ function HaleApp() {
   const beginProgressAdditionalCheckUp = React.useCallback(() => {
     openManualCheckup();
   }, [openManualCheckup]);
+
+  const continueMovementProfileV2Progress = React.useCallback(() => {
+    const pendingRaw = latestPendingMovementProfileV2RawCheckUp(displayHistory);
+    if (!pendingRaw) {
+      return;
+    }
+    setMovementProfileV2Result(null);
+    setMovementProfileV2RetestComparison(null);
+    setMovementProfileV2BlockReport(null);
+    setMovementProfileV2PlanBlockId(null);
+    setMovementProfileV2PlanState(DEFAULT_MOVEMENT_PROFILE_V2_PLAN_STATE);
+    setMovementProfileV2ResultSurface('unified');
+    setMovementProfileV2EntryContext('public_standard');
+    setMovementProfileV2OfficialRetestContext(null);
+    setMovementProfileV2DetailDomain(null);
+    setMovementProfileV2SelectedProfileId(null);
+    setMovementProfileV2SelectedReportId(null);
+    setMovementProfileV2InitialFlow(null);
+    setMovementProfileV2Raw({
+      checkUp: pendingRaw.record.checkUp,
+      sourceType: pendingRaw.sourceType,
+    });
+    setFlow('movement-profile-v2-reference-details');
+  }, [displayHistory]);
 
   const beginMovementProfileV2Internal = React.useCallback(() => {
     if (!MOVEMENT_PROFILE_V2_INTERNAL_ENABLED) return;
@@ -3718,6 +3874,8 @@ function HaleApp() {
     setMovementProfileV2ResultSurface('unified');
     setMovementProfileV2EntryContext('internal');
     setMovementProfileV2DetailDomain(null);
+    setMovementProfileV2SelectedProfileId(null);
+    setMovementProfileV2SelectedReportId(null);
 
     if (pendingRaw) {
       setMovementProfileV2InitialFlow(null);
@@ -3756,6 +3914,8 @@ function HaleApp() {
       setMovementProfileV2PlanState(DEFAULT_MOVEMENT_PROFILE_V2_PLAN_STATE);
       setMovementProfileV2ResultSurface(surface);
       setMovementProfileV2DetailDomain(null);
+      setMovementProfileV2SelectedProfileId(null);
+      setMovementProfileV2SelectedReportId(null);
       store
         .loadAll()
         .then(setHistory)
@@ -4046,6 +4206,8 @@ function HaleApp() {
     setMovementProfileV2Raw(null);
     setMovementProfileV2InitialFlow(null);
     setMovementProfileV2DetailDomain(null);
+    setMovementProfileV2SelectedProfileId(null);
+    setMovementProfileV2SelectedReportId(null);
     setMovementProfileV2PlanBlockId(planBlock?.id ?? null);
     setMovementProfileV2PlanState(
       planBlock
@@ -4061,6 +4223,69 @@ function HaleApp() {
     setMovementProfileV2Result(movementProfileV2ResultsViewModelForRecord(latest));
     setFlow('movement-profile-v2-unified-results');
   }, [adherence.blocks, history]);
+
+  const viewMovementProfileV2ProgressProfile = React.useCallback(
+    (sourceCheckUpId: string) => {
+      const profile = movementProfileV2ProgressProfileBySourceCheckUpId(displayHistory, sourceCheckUpId);
+      if (!profile) {
+        setFlow(null);
+        setTab('progress');
+        return;
+      }
+      setMovementProfileV2Raw(null);
+      setMovementProfileV2InitialFlow(null);
+      setMovementProfileV2DetailDomain(null);
+      setMovementProfileV2SelectedProfileId(sourceCheckUpId);
+      setMovementProfileV2SelectedReportId(null);
+      setMovementProfileV2PlanBlockId(null);
+      setMovementProfileV2PlanState(DEFAULT_MOVEMENT_PROFILE_V2_PLAN_STATE);
+      setMovementProfileV2ResultSurface('standalone');
+      setMovementProfileV2EntryContext('public_standard');
+      setMovementProfileV2RetestComparison(null);
+      setMovementProfileV2BlockReport(null);
+      setMovementProfileV2Result(movementProfileV2ResultsViewModelForRecord(profile));
+      setFlow('movement-profile-v2-results');
+    },
+    [displayHistory]
+  );
+
+  const viewMovementProfileV2ProgressReport = React.useCallback(
+    (reportId: string) => {
+      const report = movementProfileV2ProgressReportById(displayAdherence.reports, displayHistory, reportId);
+      if (!report) {
+        setFlow(null);
+        setTab('progress');
+        return;
+      }
+      setMovementProfileV2Raw(null);
+      setMovementProfileV2InitialFlow(null);
+      setMovementProfileV2DetailDomain(null);
+      setMovementProfileV2SelectedProfileId(null);
+      setMovementProfileV2SelectedReportId(reportId);
+      setMovementProfileV2ResultSurface('unified');
+      setMovementProfileV2EntryContext('public_standard');
+      setMovementProfileV2RetestComparison(null);
+      setMovementProfileV2BlockReport(report);
+      setFlow('movement-profile-v2-block-report');
+    },
+    [displayAdherence.reports, displayHistory]
+  );
+
+  const viewProgressCurrentPlan = React.useCallback(() => {
+    setFlow(null);
+    setTab('plan');
+  }, []);
+
+  const selectedMovementProfileV2ProgressResult = React.useMemo(() => {
+    if (!movementProfileV2SelectedProfileId) return null;
+    const profile = movementProfileV2ProgressProfileBySourceCheckUpId(displayHistory, movementProfileV2SelectedProfileId);
+    return profile ? movementProfileV2ResultsViewModelForRecord(profile) : null;
+  }, [displayHistory, movementProfileV2SelectedProfileId]);
+
+  const selectedMovementProfileV2ProgressReport = React.useMemo(() => {
+    if (!movementProfileV2SelectedReportId) return null;
+    return movementProfileV2ProgressReportById(displayAdherence.reports, displayHistory, movementProfileV2SelectedReportId);
+  }, [displayAdherence.reports, displayHistory, movementProfileV2SelectedReportId]);
 
   const handleRoute = React.useCallback(
     (route: string | undefined) => {
@@ -4107,7 +4332,11 @@ function HaleApp() {
           handleStartSession();
           return;
         case 'microcheck':
-          setFlow('microcheck');
+          if (activeMicroCheckTarget) {
+            setFlow('microcheck');
+          } else {
+            goHome();
+          }
           return;
         case 'restart-intro':
           setFlow('restart-intro');
@@ -4123,6 +4352,7 @@ function HaleApp() {
     },
     [
       beginCheckUp,
+      activeMicroCheckTarget,
       goHome,
       handleStartNextBlock,
       handleStartSession,
@@ -4154,6 +4384,14 @@ function HaleApp() {
     return <AuthLoadingScreen />;
   }
 
+  if (
+    !movementProfileV2FlowAllowed ||
+    (flow === 'checkup' && !legacyV1CheckUpFlowAllowed) ||
+    (flow === 'results' && !legacyV1ResultsFlowAllowed)
+  ) {
+    return <View style={styles.container} />;
+  }
+
   // Camera flows need permission + audio first; everything else renders freely.
   if (flow !== null && CAMERA_FLOWS.has(flow) && !cameraReady) {
     return (
@@ -4164,6 +4402,12 @@ function HaleApp() {
       />
     );
   }
+
+  const visibleMovementProfileV2Result =
+    selectedMovementProfileV2ProgressResult ?? movementProfileV2Result;
+  const visibleMovementProfileV2BlockReport =
+    selectedMovementProfileV2ProgressReport ?? movementProfileV2BlockReport;
+  const movementProfileV2ReportReadOnly = !!selectedMovementProfileV2ProgressReport;
 
   // A full-screen flow takes over the whole screen (no tab bar).
   if (flow !== null) {
@@ -4207,7 +4451,7 @@ function HaleApp() {
             onBegin={() =>
               onboardingFlowActive
                 ? beginOnboardingCheckUp()
-                : beginCheckUp(latestAssessment ? 'manual_extra' : 'baseline')
+                : beginCheckUp(latestAssessment ? 'baseline_retake' : 'baseline')
             }
             onDoLater={onboardingFlowActive ? deferOnboardingCheckUp : undefined}
             onDevCompleteCheckup={
@@ -4223,17 +4467,17 @@ function HaleApp() {
             activeBlock={activeMovementBlock}
             completions={adherence.completions}
             onSelectCheckup={beginCheckUp}
-            onMicroCheck={() => setFlow('microcheck')}
+            onMicroCheck={() => (activeMicroCheckTarget ? setFlow('microcheck') : goHome())}
             onCancel={() => goBack(goHome)}
           />
-        ) : flow === 'checkup' ? (
+        ) : flow === 'checkup' && legacyV1CheckUpFlowAllowed ? (
           <CheckUpScreen
             onComplete={handleCheckUpComplete}
             onCancel={() => goBack(goHome)}
             voiceId={prefs.settings.voiceId}
             battery={pendingCheckup?.battery}
           />
-        ) : flow === 'results' && visibleResult ? (
+        ) : flow === 'results' && legacyV1ResultsFlowAllowed && visibleResult ? (
           showOnboardingResult ? (
             <OnboardingResultsScreen
               checkUp={visibleResult}
@@ -4284,11 +4528,12 @@ function HaleApp() {
           <TrainingSessionScreen
             exerciseIds={sessionIds}
             sessionTitle={activeSessionPlan?.title}
+            generatedExercises={activeSessionPlan?.metadata?.generatedExercises}
             onComplete={handleSessionComplete}
             onCancel={() => goBack(goHome)}
             voiceId={prefs.settings.voiceId}
           />
-        ) : flow === 'microcheck' ? (
+        ) : flow === 'microcheck' && activeMicroCheckType ? (
           <MicroCheckScreen
             type={activeMicroCheckType}
             sideSetup={activeMicroCheckSideSetup}
@@ -4393,9 +4638,9 @@ function HaleApp() {
             onSubmit={handleMovementProfileV2ReferenceSubmit}
             onBack={() => goBack(goHome)}
           />
-        ) : flow === 'movement-profile-v2-unified-results' && movementProfileV2Result ? (
+        ) : flow === 'movement-profile-v2-unified-results' && visibleMovementProfileV2Result ? (
           <MovementProfileV2UnifiedResultsScreen
-            viewModel={movementProfileV2Result}
+            viewModel={visibleMovementProfileV2Result}
             planState={movementProfileV2PlanState}
             retestComparison={movementProfileV2RetestComparison}
             variant={
@@ -4420,18 +4665,28 @@ function HaleApp() {
               goBack(goHome);
             }}
           />
-        ) : flow === 'movement-profile-v2-block-report' && movementProfileV2BlockReport ? (
+        ) : flow === 'movement-profile-v2-block-report' && visibleMovementProfileV2BlockReport ? (
           <MovementProfileV2BlockReportScreen
-            report={movementProfileV2BlockReport}
+            report={visibleMovementProfileV2BlockReport}
+            readOnly={movementProfileV2ReportReadOnly}
             onViewNextPlan={handleMovementProfileV2ViewPlan}
-            onDone={() => goBack(() => setFlow('movement-profile-v2-unified-results'))}
+            onDone={() => {
+              if (movementProfileV2ReportReadOnly) {
+                setMovementProfileV2SelectedReportId(null);
+                setFlow(null);
+                setTab('progress');
+                return;
+              }
+              goBack(() => setFlow('movement-profile-v2-unified-results'));
+            }}
           />
         ) : (flow === 'movement-profile-v2-results' ||
             flow === 'movement-profile-v2-domain-detail' ||
             flow === 'movement-profile-v2-unified-domain-detail') &&
-          movementProfileV2Result ? (
+          visibleMovementProfileV2Result ? (
           <MovementProfileV2ResultsScreen
-            viewModel={movementProfileV2Result}
+            viewModel={visibleMovementProfileV2Result}
+            readOnly={!!selectedMovementProfileV2ProgressResult}
             detailDomain={
               flow === 'movement-profile-v2-domain-detail' ||
               flow === 'movement-profile-v2-unified-domain-detail'
@@ -4459,6 +4714,12 @@ function HaleApp() {
             }
             onDone={() => {
               setMovementProfileV2DetailDomain(null);
+              if (selectedMovementProfileV2ProgressResult) {
+                setMovementProfileV2SelectedProfileId(null);
+                setFlow(null);
+                setTab('progress');
+                return;
+              }
               goBack(goHome);
             }}
           />
@@ -4491,7 +4752,9 @@ function HaleApp() {
             onOpenPoseBenchmarkForDiagnostics={
               poseLatencyDiagnosticsEnabled ? () => setFlow('pose-benchmark') : undefined
             }
-            onReplayOnboardingForDev={__DEV__ ? replayOnboardingForDev : undefined}
+            onReplayOnboardingForDev={
+              MOVEMENT_PROFILE_V2_INTERNAL_ENABLED && __DEV__ ? replayOnboardingForDev : undefined
+            }
             onBack={goHome}
           />
         ) : flow === 'pose-benchmark' && poseLatencyDiagnosticsEnabled ? (
@@ -4570,6 +4833,13 @@ function HaleApp() {
               onViewCheckUp={devMockData ? () => undefined : viewHistoricalCheckUp}
               showMovementProfileV2Internal={MOVEMENT_PROFILE_V2_INTERNAL_ENABLED && !devMockData}
               onViewMovementProfileV2={devMockData ? undefined : viewLatestMovementProfileV2}
+              progressDataAuthority={devMockData ? undefined : progressDataAuthority}
+              movementProfileV2Progress={devMockData ? null : movementProfileV2Progress}
+              onStartMovementProfileV2CheckUp={beginProgressFirstCheckUp}
+              onContinueMovementProfileV2={continueMovementProfileV2Progress}
+              onViewMovementProfileV2Profile={viewMovementProfileV2ProgressProfile}
+              onViewMovementProfileV2Report={viewMovementProfileV2ProgressReport}
+              onViewCurrentPlan={viewProgressCurrentPlan}
               historyOpen={progressHistoryOpen}
               onHistoryOpenChange={setProgressHistoryOpen}
               onOpenSettings={goSettings}

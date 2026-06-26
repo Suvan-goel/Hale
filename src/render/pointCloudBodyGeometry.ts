@@ -9,7 +9,7 @@ import {
 import type { ScreenPoseLandmarks } from './poseCoordinateMapper';
 
 export type PointCloudBodyDensity = 'low' | 'medium' | 'high';
-export type PointCloudBodyShapeProfile = 'standard' | 'refined';
+export type PointCloudBodyShapeProfile = 'standard' | 'refined' | 'organic';
 
 export type PointCloudBodyPart =
   | 'torso'
@@ -122,7 +122,7 @@ export interface EllipseDotSeed {
 const DEFAULT_MIN_CONFIDENCE = 0.35;
 const DEFAULT_MAX_DOTS = 800;
 const LOW_LATENCY_MAX_DOTS = 560;
-const ABSOLUTE_MAX_DOTS = 900;
+const ABSOLUTE_MAX_DOTS = 2400;
 const POINT_CLOUD_HEAD_SCALE = 1.08;
 const KEYPOINTS: readonly LM[] = [
   LM.NOSE,
@@ -202,7 +202,7 @@ const COUNT_PRESETS: Record<PointCloudBodyDensity, PointCloudBodyCounts> = {
     hand: 42,
     foot: 46,
     jointBridge: 0,
-    maxDots: ABSOLUTE_MAX_DOTS,
+    maxDots: 900,
     connectionMaxLines: 140,
   },
 };
@@ -247,7 +247,52 @@ const REFINED_COUNT_PRESETS: Record<PointCloudBodyDensity, PointCloudBodyCounts>
     hand: 20,
     foot: 22,
     jointBridge: 118,
-    maxDots: ABSOLUTE_MAX_DOTS,
+    maxDots: 900,
+    connectionMaxLines: 112,
+  },
+};
+
+const ORGANIC_COUNT_PRESETS: Record<PointCloudBodyDensity, PointCloudBodyCounts> = {
+  low: {
+    torso: 180,
+    neck: 24,
+    head: 92,
+    upperArm: 50,
+    forearm: 44,
+    thigh: 78,
+    lowerLeg: 68,
+    hand: 24,
+    foot: 24,
+    jointBridge: 82,
+    maxDots: LOW_LATENCY_MAX_DOTS,
+    connectionMaxLines: 0,
+  },
+  medium: {
+    torso: 308,
+    neck: 38,
+    head: 164,
+    upperArm: 88,
+    forearm: 80,
+    thigh: 146,
+    lowerLeg: 130,
+    hand: 42,
+    foot: 42,
+    jointBridge: 152,
+    maxDots: DEFAULT_MAX_DOTS,
+    connectionMaxLines: 96,
+  },
+  high: {
+    torso: 275,
+    neck: 32,
+    head: 155,
+    upperArm: 70,
+    forearm: 64,
+    thigh: 112,
+    lowerLeg: 92,
+    hand: 34,
+    foot: 34,
+    jointBridge: 126,
+    maxDots: 1400,
     connectionMaxLines: 112,
   },
 };
@@ -257,7 +302,7 @@ const HEAD_SEED_CACHE = new Map<string, readonly EllipseDotSeed[]>();
 const CAPSULE_SEED_CACHE = new Map<string, readonly CapsuleDotSeed[]>();
 const CLUSTER_SEED_CACHE = new Map<string, readonly EllipseDotSeed[]>();
 
-export function createPointCloudBodyGeometry(maxDots = ABSOLUTE_MAX_DOTS): PointCloudBodyGeometry {
+export function createPointCloudBodyGeometry(maxDots = 900): PointCloudBodyGeometry {
   const capacity = Math.min(Math.max(0, Math.round(maxDots)), ABSOLUTE_MAX_DOTS);
   return {
     torsoDotPath: '',
@@ -365,18 +410,49 @@ export function buildPointCloudBodyGeometry(
   const showConnections = options.showConnections === true && !options.lowLatencyMode;
   const connectionMaxLines = showConnections ? counts.connectionMaxLines : 0;
   const refinedShape = shapeProfile === 'refined';
-  const upperArmStartWidth = refinedShape ? 0.062 : 0.052;
-  const upperArmEndWidth = refinedShape ? 0.05 : 0.045;
-  const forearmStartWidth = refinedShape ? 0.048 : 0.043;
-  const forearmEndWidth = refinedShape ? 0.037 : 0.034;
-  const thighStartWidth = refinedShape ? 0.092 : 0.079;
-  const thighEndWidth = refinedShape ? 0.067 : 0.06;
-  const lowerLegStartWidth = refinedShape ? 0.062 : 0.056;
-  const lowerLegEndWidth = refinedShape ? 0.045 : 0.041;
+  const organicShape = shapeProfile === 'organic';
+  const upperArmStartWidth = organicShape ? 0.058 : refinedShape ? 0.062 : 0.052;
+  const upperArmEndWidth = organicShape ? 0.049 : refinedShape ? 0.05 : 0.045;
+  const forearmStartWidth = organicShape ? 0.049 : refinedShape ? 0.048 : 0.043;
+  const forearmEndWidth = organicShape ? 0.038 : refinedShape ? 0.037 : 0.034;
+  const thighStartWidth = organicShape ? 0.08 : refinedShape ? 0.092 : 0.079;
+  const thighEndWidth = organicShape ? 0.061 : refinedShape ? 0.067 : 0.06;
+  const lowerLegStartWidth = organicShape ? 0.059 : refinedShape ? 0.062 : 0.056;
+  const lowerLegEndWidth = organicShape ? 0.043 : refinedShape ? 0.045 : 0.041;
 
-  appendTorso(pose, out, counts.torso, minConfidence, bodyRef, radiusMultiplier, showConnections, connectionMaxLines);
-  appendHead(pose, out, counts.head, minConfidence, bodyRef, radiusMultiplier, showConnections, connectionMaxLines);
-  appendNeckBridge(pose, out, counts.neck, minConfidence, bodyRef, radiusMultiplier, showConnections, connectionMaxLines);
+  appendTorso(
+    pose,
+    out,
+    counts.torso,
+    minConfidence,
+    bodyRef,
+    radiusMultiplier,
+    showConnections,
+    connectionMaxLines,
+    shapeProfile
+  );
+  appendHead(
+    pose,
+    out,
+    counts.head,
+    minConfidence,
+    bodyRef,
+    radiusMultiplier,
+    showConnections,
+    connectionMaxLines,
+    shapeProfile
+  );
+  appendNeckBridge(
+    pose,
+    out,
+    counts.neck,
+    minConfidence,
+    bodyRef,
+    radiusMultiplier,
+    showConnections,
+    connectionMaxLines,
+    shapeProfile
+  );
   appendLimbCapsule(
     pose,
     out,
@@ -390,7 +466,8 @@ export function buildPointCloudBodyGeometry(
     upperArmEndWidth,
     radiusMultiplier,
     showConnections,
-    connectionMaxLines
+    connectionMaxLines,
+    shapeProfile
   );
   appendLimbCapsule(
     pose,
@@ -405,7 +482,8 @@ export function buildPointCloudBodyGeometry(
     upperArmEndWidth,
     radiusMultiplier,
     showConnections,
-    connectionMaxLines
+    connectionMaxLines,
+    shapeProfile
   );
   appendLimbCapsule(
     pose,
@@ -420,7 +498,8 @@ export function buildPointCloudBodyGeometry(
     forearmEndWidth,
     radiusMultiplier,
     showConnections,
-    connectionMaxLines
+    connectionMaxLines,
+    shapeProfile
   );
   appendLimbCapsule(
     pose,
@@ -435,7 +514,8 @@ export function buildPointCloudBodyGeometry(
     forearmEndWidth,
     radiusMultiplier,
     showConnections,
-    connectionMaxLines
+    connectionMaxLines,
+    shapeProfile
   );
   appendLimbCapsule(
     pose,
@@ -450,7 +530,8 @@ export function buildPointCloudBodyGeometry(
     thighEndWidth,
     radiusMultiplier,
     showConnections,
-    connectionMaxLines
+    connectionMaxLines,
+    shapeProfile
   );
   appendLimbCapsule(
     pose,
@@ -465,7 +546,8 @@ export function buildPointCloudBodyGeometry(
     thighEndWidth,
     radiusMultiplier,
     showConnections,
-    connectionMaxLines
+    connectionMaxLines,
+    shapeProfile
   );
   appendLimbCapsule(
     pose,
@@ -480,7 +562,8 @@ export function buildPointCloudBodyGeometry(
     lowerLegEndWidth,
     radiusMultiplier,
     showConnections,
-    connectionMaxLines
+    connectionMaxLines,
+    shapeProfile
   );
   appendLimbCapsule(
     pose,
@@ -495,7 +578,8 @@ export function buildPointCloudBodyGeometry(
     lowerLegEndWidth,
     radiusMultiplier,
     showConnections,
-    connectionMaxLines
+    connectionMaxLines,
+    shapeProfile
   );
   appendExtremityCluster(
     pose,
@@ -506,8 +590,8 @@ export function buildPointCloudBodyGeometry(
     counts.hand,
     minConfidence,
     bodyRef,
-    0.064,
-    0.045,
+    organicShape ? 0.09 : 0.064,
+    organicShape ? 0.058 : 0.045,
     radiusMultiplier,
     showConnections,
     connectionMaxLines
@@ -521,8 +605,8 @@ export function buildPointCloudBodyGeometry(
     counts.hand,
     minConfidence,
     bodyRef,
-    0.064,
-    0.045,
+    organicShape ? 0.09 : 0.064,
+    organicShape ? 0.058 : 0.045,
     radiusMultiplier,
     showConnections,
     connectionMaxLines
@@ -536,8 +620,8 @@ export function buildPointCloudBodyGeometry(
     counts.foot,
     minConfidence,
     bodyRef,
-    0.088,
-    0.048,
+    organicShape ? 0.126 : 0.088,
+    organicShape ? 0.062 : 0.048,
     radiusMultiplier,
     showConnections,
     connectionMaxLines
@@ -551,14 +635,14 @@ export function buildPointCloudBodyGeometry(
     counts.foot,
     minConfidence,
     bodyRef,
-    0.088,
-    0.048,
+    organicShape ? 0.126 : 0.088,
+    organicShape ? 0.062 : 0.048,
     radiusMultiplier,
     showConnections,
     connectionMaxLines
   );
 
-  if (shapeProfile === 'refined') {
+  if (shapeProfile === 'refined' || shapeProfile === 'organic') {
     appendRefinedJointBridges(
       pose,
       out,
@@ -567,7 +651,8 @@ export function buildPointCloudBodyGeometry(
       bodyRef,
       radiusMultiplier,
       showConnections,
-      connectionMaxLines
+      connectionMaxLines,
+      shapeProfile
     );
   }
 
@@ -586,10 +671,7 @@ export function resolvePointCloudBodyCounts(options: {
   shapeProfile?: PointCloudBodyShapeProfile;
 } = {}): PointCloudBodyCounts {
   const density = options.lowLatencyMode ? 'low' : options.density ?? 'medium';
-  const preset =
-    options.shapeProfile === 'refined'
-      ? REFINED_COUNT_PRESETS[density]
-      : COUNT_PRESETS[density];
+  const preset = countPresetForProfile(options.shapeProfile, density);
   const maxDots = Math.round(
     clamp(options.maxDots ?? preset.maxDots, 0, options.lowLatencyMode ? LOW_LATENCY_MAX_DOTS : ABSOLUTE_MAX_DOTS)
   );
@@ -622,11 +704,23 @@ export function resolvePointCloudBodyCounts(options: {
       clamp(options.connectionMaxLines ?? preset.connectionMaxLines, 0, 160)
     ),
   };
-  if (options.shapeProfile === 'refined') {
+  if (options.shapeProfile === 'refined' || options.shapeProfile === 'organic') {
     const priority: (keyof Pick<
       PointCloudBodyCounts,
-      'jointBridge' | 'torso' | 'thigh' | 'neck' | 'head' | 'upperArm' | 'lowerLeg'
-    >)[] = ['jointBridge', 'torso', 'thigh', 'neck', 'head', 'upperArm', 'lowerLeg'];
+      | 'jointBridge'
+      | 'torso'
+      | 'thigh'
+      | 'neck'
+      | 'head'
+      | 'upperArm'
+      | 'forearm'
+      | 'lowerLeg'
+      | 'hand'
+      | 'foot'
+    >)[] =
+      options.shapeProfile === 'organic'
+        ? ['thigh', 'lowerLeg', 'upperArm', 'forearm', 'jointBridge', 'head', 'hand', 'foot', 'torso']
+        : ['jointBridge', 'torso', 'thigh', 'neck', 'head', 'upperArm', 'lowerLeg'];
     let allocated =
       resolved.torso +
       resolved.neck +
@@ -643,8 +737,11 @@ export function resolvePointCloudBodyCounts(options: {
       const key = priority[i % priority.length];
       if (
         key === 'upperArm' ||
+        key === 'forearm' ||
         key === 'thigh' ||
-        key === 'lowerLeg'
+        key === 'lowerLeg' ||
+        key === 'hand' ||
+        key === 'foot'
       ) {
         if (allocated + 2 > maxDots) continue;
         resolved[key]++;
@@ -656,6 +753,15 @@ export function resolvePointCloudBodyCounts(options: {
     }
   }
   return resolved;
+}
+
+function countPresetForProfile(
+  shapeProfile: PointCloudBodyShapeProfile | undefined,
+  density: PointCloudBodyDensity
+): PointCloudBodyCounts {
+  if (shapeProfile === 'organic') return ORGANIC_COUNT_PRESETS[density];
+  if (shapeProfile === 'refined') return REFINED_COUNT_PRESETS[density];
+  return COUNT_PRESETS[density];
 }
 
 export function generateTorsoBodyDotSeeds(count: number): readonly TorsoBodyDotSeed[] {
@@ -715,6 +821,45 @@ export function mapPointCloudTorsoSeedToPoint(
   return lerpPoint(left, right, clamp(seed.u, 0, 1));
 }
 
+function mapOrganicTorsoSeedToPoint(
+  seed: TorsoBodyDotSeed,
+  torso: TorsoEstimate,
+  bodyRef: number
+): Point {
+  const shoulderMid = midpoint(torso.leftShoulder, torso.rightShoulder);
+  const hipMid = midpoint(torso.leftHip, torso.rightHip);
+  const down = normalize({ x: hipMid.x - shoulderMid.x, y: hipMid.y - shoulderMid.y });
+  const side = normalize({
+    x: torso.rightShoulder.x - torso.leftShoulder.x + torso.rightHip.x - torso.leftHip.x,
+    y: torso.rightShoulder.y - torso.leftShoulder.y + torso.rightHip.y - torso.leftHip.y,
+  });
+  const v = clamp(seed.v, 0, 1);
+  const lateral = (clamp(seed.u, 0, 1) - 0.5) * 2;
+  const torsoHeight = distance(shoulderMid, hipMid);
+  const center = addPoint(
+    lerpPoint(shoulderMid, hipMid, v),
+    down,
+    bodyRef * (0.008 + 0.024 * smoothstep(0.72, 1, v)),
+    side,
+    bodyRef * 0.006 * Math.sin((v - 0.18) * Math.PI * 2)
+  );
+  const shoulderHalf = distance(torso.leftShoulder, torso.rightShoulder) * 0.51;
+  const hipHalf = distance(torso.leftHip, torso.rightHip) * 0.66;
+  const chest = Math.sin(smoothstep(0.02, 0.38, v) * Math.PI) * bodyRef * 0.018;
+  const waist = Math.sin(smoothstep(0.42, 0.68, v) * Math.PI) * bodyRef * 0.032;
+  const pelvis = Math.sin(smoothstep(0.64, 1, v) * Math.PI) * bodyRef * 0.038;
+  const halfWidth = clamp(
+    lerp(shoulderHalf, hipHalf, v) + chest - waist + pelvis,
+    bodyRef * 0.13,
+    bodyRef * 0.31
+  );
+  const edgeCompression = 0.82 + 0.12 * Math.sin(Math.PI * v);
+  const jitterDown = (hashUnit('organic-torso-depth', Math.round(seed.radiusSeed * 10000)) - 0.5) *
+    torsoHeight *
+    0.012;
+  return addPoint(center, side, lateral * halfWidth * edgeCompression, down, jitterDown);
+}
+
 export function mapHeadBodySeedToPoint(seed: EllipseDotSeed, estimate: HeadEstimate): Point {
   return {
     x: estimate.center.x + (seed.u * 2 - 1) * estimate.rx,
@@ -742,6 +887,41 @@ export function mapCapsuleSeedToPoint(
   };
 }
 
+function mapOrganicLimbSeedToPoint(
+  seed: CapsuleDotSeed,
+  start: Point,
+  end: Point,
+  startHalfWidth: number,
+  endHalfWidth: number
+): Point {
+  const t = clamp(seed.t + seed.tangentJitter * 0.55, 0, 1);
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = -dy / len;
+  const ny = dx / len;
+  const halfWidth = lerp(startHalfWidth, endHalfWidth, t);
+  const radialAbs = Math.abs(seed.radial);
+  const fallbackSide = seed.radiusSeed < 0.5 ? -1 : 1;
+  const side = seed.radial === 0 ? fallbackSide : Math.sign(seed.radial);
+  const interiorJitter = (seed.radiusSeed - 0.5) * 0.26;
+  let radial: number;
+  if (seed.opacitySeed < 0.42) {
+    radial = seed.radial * 0.42 + interiorJitter;
+  } else if (seed.opacitySeed < 0.82) {
+    radial =
+      side * (0.22 + 0.38 * smoothstep(0.04, 1, radialAbs)) +
+      interiorJitter * 0.38;
+  } else {
+    radial = side * (0.62 + 0.27 * smoothstep(0.08, 1, radialAbs));
+  }
+  radial = clamp(radial, -0.92, 0.92);
+  return {
+    x: start.x + dx * t + nx * radial * halfWidth,
+    y: start.y + dy * t + ny * radial * halfWidth,
+  };
+}
+
 function appendTorso(
   pose: ScreenPoseLandmarks,
   out: PointCloudBodyGeometry,
@@ -750,7 +930,8 @@ function appendTorso(
   bodyRef: number,
   radiusMultiplier: number,
   showConnections: boolean,
-  connectionMaxLines: number
+  connectionMaxLines: number,
+  shapeProfile: PointCloudBodyShapeProfile
 ): void {
   if (count <= 0) return;
   const torso = getTorsoEstimate(pose, minConfidence);
@@ -764,9 +945,23 @@ function appendTorso(
   let previousY = 0;
   let hasPrevious = false;
   for (let i = 0; i < seeds.length && out.dotCount < out.dotXs.length; i++) {
-    const point = mapPointCloudTorsoSeedToPoint(seeds[i], torso);
-    const radius = clamp(bodyRef * (0.0036 + seeds[i].radiusSeed * 0.0032) * radiusMultiplier, 0.8, 3.15);
-    const soft = seeds[i].opacitySeed < 0.26 || torso.estimated;
+    const point =
+      shapeProfile === 'organic'
+        ? mapOrganicTorsoSeedToPoint(seeds[i], torso, bodyRef)
+        : mapPointCloudTorsoSeedToPoint(seeds[i], torso);
+    const edge = Math.abs(seeds[i].u - 0.5) * 2;
+    const radius =
+      shapeProfile === 'organic'
+        ? clamp(bodyRef * (0.0042 + seeds[i].radiusSeed * 0.0024) * radiusMultiplier, 0.62, 2.05)
+        : clamp(
+            bodyRef * (0.0036 + seeds[i].radiusSeed * 0.0032) * radiusMultiplier,
+            0.8,
+            3.15
+          );
+    const soft =
+      shapeProfile === 'organic'
+        ? seeds[i].opacitySeed < 0.32 || edge > 0.86 || torso.estimated
+        : seeds[i].opacitySeed < 0.26 || torso.estimated;
     addDot(out, 'torso', point.x, point.y, radius, soft);
     if (showConnections && hasPrevious && i % 5 === 0) {
       addConnection(out, previousX, previousY, point.x, point.y, connectionMaxLines);
@@ -786,7 +981,8 @@ function appendHead(
   bodyRef: number,
   radiusMultiplier: number,
   showConnections: boolean,
-  connectionMaxLines: number
+  connectionMaxLines: number,
+  shapeProfile: PointCloudBodyShapeProfile
 ): void {
   if (count <= 0) return;
   const head = getHeadEstimate(pose, minConfidence);
@@ -795,15 +991,24 @@ function appendHead(
     return;
   }
 
-  const visualHead = scaleHeadEstimate(head, POINT_CLOUD_HEAD_SCALE);
+  const visualHead = scaleHeadEstimate(
+    head,
+    shapeProfile === 'organic' ? POINT_CLOUD_HEAD_SCALE * 1.12 : POINT_CLOUD_HEAD_SCALE
+  );
   const seeds = generateHeadBodyDotSeeds(count);
   let previousX = 0;
   let previousY = 0;
   let hasPrevious = false;
   for (let i = 0; i < seeds.length && out.dotCount < out.dotXs.length; i++) {
     const point = mapHeadBodySeedToPoint(seeds[i], visualHead);
-    const radius = clamp(bodyRef * (0.0035 + seeds[i].radiusSeed * 0.0025) * radiusMultiplier, 0.78, 2.8);
-    const soft = seeds[i].opacitySeed < 0.32 || head.confidence < 0.58;
+    const radius =
+      shapeProfile === 'organic'
+        ? clamp(bodyRef * (0.0034 + seeds[i].radiusSeed * 0.0021) * radiusMultiplier, 0.56, 1.82)
+        : clamp(bodyRef * (0.0035 + seeds[i].radiusSeed * 0.0025) * radiusMultiplier, 0.78, 2.8);
+    const soft =
+      shapeProfile === 'organic'
+        ? seeds[i].opacitySeed < 0.36 || head.confidence < 0.58
+        : seeds[i].opacitySeed < 0.32 || head.confidence < 0.58;
     addDot(out, 'head', point.x, point.y, radius, soft);
     if (showConnections && hasPrevious && i % 6 === 0) {
       addConnection(out, previousX, previousY, point.x, point.y, connectionMaxLines);
@@ -823,7 +1028,8 @@ function appendNeckBridge(
   bodyRef: number,
   radiusMultiplier: number,
   showConnections: boolean,
-  connectionMaxLines: number
+  connectionMaxLines: number,
+  shapeProfile: PointCloudBodyShapeProfile
 ): void {
   if (count <= 0) return;
   const head = getHeadEstimate(pose, minConfidence);
@@ -850,8 +1056,14 @@ function appendNeckBridge(
     landmarkConfidence(pose, LM.RIGHT_SHOULDER)
   );
   const seeds = generateCapsuleDotSeeds(count, 'neckBridge');
-  const startHalfWidth = Math.min(bodyRef * 0.038, visualHead.rx * 0.34);
-  const endHalfWidth = Math.min(bodyRef * 0.028, visualHead.rx * 0.26);
+  const startHalfWidth =
+    shapeProfile === 'organic'
+      ? Math.min(bodyRef * 0.064, visualHead.rx * 0.48)
+      : Math.min(bodyRef * 0.038, visualHead.rx * 0.34);
+  const endHalfWidth =
+    shapeProfile === 'organic'
+      ? Math.min(bodyRef * 0.048, visualHead.rx * 0.4)
+      : Math.min(bodyRef * 0.028, visualHead.rx * 0.26);
   let previousX = 0;
   let previousY = 0;
   let hasPrevious = false;
@@ -860,8 +1072,14 @@ function appendNeckBridge(
     const seed = seeds[i];
     const point = mapCapsuleSeedToPoint(seed, neckBase, neckTop, startHalfWidth, endHalfWidth);
     const widthAtT = lerp(startHalfWidth, endHalfWidth, clamp(seed.t + seed.tangentJitter, 0, 1));
-    const radius = clamp(widthAtT * (0.11 + seed.radiusSeed * 0.055) * radiusMultiplier, 0.58, 1.7);
-    const soft = seed.opacitySeed < 0.16 || confidence < 0.56;
+    const radius =
+      shapeProfile === 'organic'
+        ? clamp(widthAtT * (0.065 + seed.radiusSeed * 0.045) * radiusMultiplier, 0.4, 1.45)
+        : clamp(widthAtT * (0.11 + seed.radiusSeed * 0.055) * radiusMultiplier, 0.58, 1.7);
+    const soft =
+      shapeProfile === 'organic'
+        ? seed.opacitySeed < 0.36 || confidence < 0.56
+        : seed.opacitySeed < 0.16 || confidence < 0.56;
     addDot(out, 'neck', point.x, point.y, radius, soft);
     if (showConnections && hasPrevious && i % 5 === 0) {
       addConnection(out, previousX, previousY, point.x, point.y, connectionMaxLines);
@@ -890,22 +1108,24 @@ function appendRefinedJointBridges(
   bodyRef: number,
   radiusMultiplier: number,
   showConnections: boolean,
-  connectionMaxLines: number
+  connectionMaxLines: number,
+  shapeProfile: PointCloudBodyShapeProfile
 ): void {
   if (count <= 0) return;
-  let neckCollarCount = Math.max(4, Math.floor(count * 0.26));
-  let pelvisCount = Math.max(4, Math.floor(count * 0.25));
-  const shoulderCount = Math.max(2, Math.floor(count * 0.07));
-  const hipCount = Math.max(2, Math.floor(count * 0.065));
-  const elbowCount = Math.max(1, Math.floor(count * 0.035));
-  const kneeCount = Math.max(1, Math.floor(count * 0.045));
+  const organicShape = shapeProfile === 'organic';
+  let neckCollarCount = Math.max(4, Math.floor(count * (organicShape ? 0.39 : 0.26)));
+  let pelvisCount = Math.max(4, Math.floor(count * (organicShape ? 0.24 : 0.25)));
+  const shoulderCount = Math.max(2, Math.floor(count * (organicShape ? 0.08 : 0.07)));
+  const hipCount = Math.max(2, Math.floor(count * (organicShape ? 0.07 : 0.065)));
+  const elbowCount = Math.max(1, Math.floor(count * (organicShape ? 0.04 : 0.035)));
+  const kneeCount = Math.max(1, Math.floor(count * (organicShape ? 0.055 : 0.045)));
   const allocated =
     neckCollarCount +
     pelvisCount +
     2 * (shoulderCount + hipCount + elbowCount + kneeCount);
   const remaining = Math.max(0, count - allocated);
-  neckCollarCount += Math.floor(remaining * 0.42);
-  pelvisCount += remaining - Math.floor(remaining * 0.42);
+  neckCollarCount += Math.floor(remaining * (organicShape ? 0.44 : 0.42));
+  pelvisCount += remaining - Math.floor(remaining * (organicShape ? 0.44 : 0.42));
 
   appendRefinedNeckCollarBridge(
     pose,
@@ -915,7 +1135,8 @@ function appendRefinedJointBridges(
     bodyRef,
     radiusMultiplier,
     showConnections,
-    connectionMaxLines
+    connectionMaxLines,
+    shapeProfile
   );
   appendRefinedPelvisBridge(
     pose,
@@ -925,7 +1146,8 @@ function appendRefinedJointBridges(
     bodyRef,
     radiusMultiplier,
     showConnections,
-    connectionMaxLines
+    connectionMaxLines,
+    shapeProfile
   );
   appendJointBridgeCluster(
     pose,
@@ -1065,7 +1287,8 @@ function appendRefinedPelvisBridge(
   bodyRef: number,
   radiusMultiplier: number,
   showConnections: boolean,
-  connectionMaxLines: number
+  connectionMaxLines: number,
+  shapeProfile: PointCloudBodyShapeProfile
 ): void {
   if (
     count <= 0 ||
@@ -1093,6 +1316,27 @@ function appendRefinedPelvisBridge(
     hasLeftKnee ? Math.max(minConfidence, landmarkConfidence(pose, LM.LEFT_KNEE)) : 1,
     hasRightKnee ? Math.max(minConfidence, landmarkConfidence(pose, LM.RIGHT_KNEE)) : 1
   );
+
+  if (shapeProfile === 'organic') {
+    appendOrganicPelvisBridge(
+      out,
+      count,
+      bodyRef,
+      radiusMultiplier,
+      confidence,
+      minConfidence,
+      leftHip,
+      rightHip,
+      hipMid,
+      kneeMid,
+      down,
+      side,
+      showConnections,
+      connectionMaxLines
+    );
+    return;
+  }
+
   const coreCount = Math.max(3, Math.floor(count * 0.62));
   const innerThighCount = Math.max(1, Math.floor((count - coreCount) / 2));
 
@@ -1146,6 +1390,133 @@ function appendRefinedPelvisBridge(
   );
 }
 
+function appendOrganicPelvisBridge(
+  out: PointCloudBodyGeometry,
+  count: number,
+  bodyRef: number,
+  radiusMultiplier: number,
+  confidence: number,
+  minConfidence: number,
+  leftHip: Point,
+  rightHip: Point,
+  hipMid: Point,
+  kneeMid: Point,
+  down: Point,
+  side: Point,
+  showConnections: boolean,
+  connectionMaxLines: number
+): void {
+  if (count <= 0) return;
+  const lowerAbdomenCount = Math.max(4, Math.floor(count * 0.24));
+  const pelvisBowlCount = Math.max(3, Math.floor(count * 0.18));
+  const hipSocketCount = Math.max(2, Math.floor(count * 0.13));
+  const upperThighCount = Math.max(
+    2,
+    Math.floor((count - lowerAbdomenCount - pelvisBowlCount - hipSocketCount * 2) / 2)
+  );
+  const remainingUpperThighCount = Math.max(
+    2,
+    count - lowerAbdomenCount - pelvisBowlCount - hipSocketCount * 2 - upperThighCount
+  );
+
+  appendOrientedRefinedCluster(
+    out,
+    'torso',
+    addPoint(hipMid, down, -bodyRef * 0.032),
+    down,
+    lowerAbdomenCount,
+    bodyRef * 0.11,
+    bodyRef * 0.054,
+    bodyRef,
+    radiusMultiplier,
+    confidence,
+    minConfidence,
+    'organic-lower-abdomen-pelvis-blend',
+    showConnections,
+    connectionMaxLines
+  );
+  appendOrientedRefinedCluster(
+    out,
+    'torso',
+    addPoint(hipMid, down, bodyRef * 0.048),
+    down,
+    pelvisBowlCount,
+    bodyRef * 0.12,
+    bodyRef * 0.048,
+    bodyRef,
+    radiusMultiplier,
+    confidence,
+    minConfidence,
+    'organic-pelvis-bowl',
+    showConnections,
+    connectionMaxLines
+  );
+  appendOrientedRefinedCluster(
+    out,
+    'leftThigh',
+    addPoint(lerpPoint(hipMid, leftHip, 0.68), down, bodyRef * 0.04),
+    down,
+    hipSocketCount,
+    bodyRef * 0.038,
+    bodyRef * 0.04,
+    bodyRef,
+    radiusMultiplier,
+    confidence,
+    minConfidence,
+    'organic-left-hip-socket',
+    showConnections,
+    connectionMaxLines
+  );
+  appendOrientedRefinedCluster(
+    out,
+    'rightThigh',
+    addPoint(lerpPoint(hipMid, rightHip, 0.68), down, bodyRef * 0.04),
+    down,
+    hipSocketCount,
+    bodyRef * 0.038,
+    bodyRef * 0.04,
+    bodyRef,
+    radiusMultiplier,
+    confidence,
+    minConfidence,
+    'organic-right-hip-socket',
+    showConnections,
+    connectionMaxLines
+  );
+  appendOrientedRefinedCluster(
+    out,
+    'leftThigh',
+    addPoint(lerpPoint(leftHip, kneeMid, 0.18), side, bodyRef * 0.01),
+    down,
+    upperThighCount,
+    bodyRef * 0.044,
+    bodyRef * 0.066,
+    bodyRef,
+    radiusMultiplier,
+    confidence,
+    minConfidence,
+    'organic-left-upper-thigh-funnel',
+    showConnections,
+    connectionMaxLines
+  );
+  appendOrientedRefinedCluster(
+    out,
+    'rightThigh',
+    addPoint(lerpPoint(rightHip, kneeMid, 0.18), side, -bodyRef * 0.01),
+    down,
+    remainingUpperThighCount,
+    bodyRef * 0.044,
+    bodyRef * 0.066,
+    bodyRef,
+    radiusMultiplier,
+    confidence,
+    minConfidence,
+    'organic-right-upper-thigh-funnel',
+    showConnections,
+    connectionMaxLines
+  );
+}
+
 function appendRefinedNeckCollarBridge(
   pose: ScreenPoseLandmarks,
   out: PointCloudBodyGeometry,
@@ -1154,7 +1525,8 @@ function appendRefinedNeckCollarBridge(
   bodyRef: number,
   radiusMultiplier: number,
   showConnections: boolean,
-  connectionMaxLines: number
+  connectionMaxLines: number,
+  shapeProfile: PointCloudBodyShapeProfile
 ): void {
   const head = getHeadEstimate(pose, minConfidence);
   if (
@@ -1186,6 +1558,78 @@ function appendRefinedNeckCollarBridge(
     landmarkConfidence(pose, LM.LEFT_SHOULDER),
     landmarkConfidence(pose, LM.RIGHT_SHOULDER)
   );
+
+  if (shapeProfile === 'organic') {
+    const lowerNeckCount = Math.max(2, Math.floor(count * 0.18));
+    const centralTrapCount = Math.max(3, Math.floor(count * 0.42));
+    const sideTrapCount = Math.max(2, Math.floor((count - lowerNeckCount - centralTrapCount) / 2));
+    const remainingTrapCount = Math.max(2, count - lowerNeckCount - centralTrapCount - sideTrapCount);
+    appendOrientedRefinedCluster(
+      out,
+      'neck',
+      lerpPoint(headBase, shoulderMid, 0.48),
+      axis,
+      lowerNeckCount,
+      visualHead.rx * 0.34,
+      Math.min(bodyRef * 0.042, visualHead.ry * 0.24),
+      bodyRef,
+      radiusMultiplier,
+      confidence,
+      minConfidence,
+      'organic-lower-neck-root',
+      showConnections,
+      connectionMaxLines
+    );
+    appendOrientedRefinedCluster(
+      out,
+      'torso',
+      lerpPoint(shoulderMid, headBase, 0.1),
+      axis,
+      centralTrapCount,
+      bodyRef * 0.19,
+      bodyRef * 0.066,
+      bodyRef,
+      radiusMultiplier,
+      confidence,
+      minConfidence,
+      'organic-central-traps',
+      showConnections,
+      connectionMaxLines
+    );
+    appendOrientedRefinedCluster(
+      out,
+      'torso',
+      addPoint(lerpPoint(shoulderMid, leftShoulder, 0.56), axis, -bodyRef * 0.018),
+      axis,
+      sideTrapCount,
+      bodyRef * 0.072,
+      bodyRef * 0.052,
+      bodyRef,
+      radiusMultiplier,
+      confidence,
+      minConfidence,
+      'organic-left-trap',
+      showConnections,
+      connectionMaxLines
+    );
+    appendOrientedRefinedCluster(
+      out,
+      'torso',
+      addPoint(lerpPoint(shoulderMid, rightShoulder, 0.56), axis, -bodyRef * 0.018),
+      axis,
+      remainingTrapCount,
+      bodyRef * 0.072,
+      bodyRef * 0.052,
+      bodyRef,
+      radiusMultiplier,
+      confidence,
+      minConfidence,
+      'organic-right-trap',
+      showConnections,
+      connectionMaxLines
+    );
+    return;
+  }
 
   appendOrientedRefinedCluster(
     out,
@@ -1338,7 +1782,8 @@ function appendLimbCapsule(
   endWidthFactor: number,
   radiusMultiplier: number,
   showConnections: boolean,
-  connectionMaxLines: number
+  connectionMaxLines: number,
+  shapeProfile: PointCloudBodyShapeProfile
 ): void {
   if (count <= 0) return;
   if (!landmarkIsRenderable(pose, startLm, minConfidence) || !landmarkIsRenderable(pose, endLm, minConfidence)) {
@@ -1359,10 +1804,28 @@ function appendLimbCapsule(
   for (let i = 0; i < seeds.length && out.dotCount < out.dotXs.length; i++) {
     const seed = seeds[i];
     const t = clamp(seed.t + seed.tangentJitter, 0, 1);
-    const point = mapCapsuleSeedToPoint(seed, start, end, startHalfWidth, endHalfWidth);
+    const point =
+      shapeProfile === 'organic'
+        ? mapOrganicLimbSeedToPoint(seed, start, end, startHalfWidth, endHalfWidth)
+        : mapCapsuleSeedToPoint(seed, start, end, startHalfWidth, endHalfWidth);
     const widthAtT = lerp(startHalfWidth, endHalfWidth, t);
-    const radius = clamp(widthAtT * (0.085 + seed.radiusSeed * 0.06) * radiusMultiplier, 0.72, 2.65);
-    const soft = seed.opacitySeed < 0.26 || confidence < 0.56;
+    const organicInteriorFill = shapeProfile === 'organic' && seed.opacitySeed < 0.82;
+    const radius =
+      shapeProfile === 'organic'
+        ? clamp(
+            widthAtT *
+              ((organicInteriorFill ? 0.056 : 0.052) + seed.radiusSeed * 0.034) *
+              radiusMultiplier,
+            0.46,
+            1.58
+          )
+        : clamp(widthAtT * (0.085 + seed.radiusSeed * 0.06) * radiusMultiplier, 0.72, 2.65);
+    const soft =
+      shapeProfile === 'organic'
+        ? (!organicInteriorFill && Math.abs(seed.radial) > 0.78) ||
+          seed.opacitySeed < 0.12 ||
+          confidence < 0.56
+        : seed.opacitySeed < 0.26 || confidence < 0.56;
     addDot(out, part, point.x, point.y, radius, soft);
     if (showConnections && hasPrevious && i % 5 === 0) {
       addConnection(out, previousX, previousY, point.x, point.y, connectionMaxLines);
@@ -1672,8 +2135,11 @@ function midpoint(a: Point, b: Point): Point {
   return { x: (a.x + b.x) * 0.5, y: (a.y + b.y) * 0.5 };
 }
 
-function addPoint(origin: Point, axis: Point, amount: number): Point {
-  return { x: origin.x + axis.x * amount, y: origin.y + axis.y * amount };
+function addPoint(origin: Point, axis: Point, amount: number, axis2?: Point, amount2 = 0): Point {
+  return {
+    x: origin.x + axis.x * amount + (axis2?.x ?? 0) * amount2,
+    y: origin.y + axis.y * amount + (axis2?.y ?? 0) * amount2,
+  };
 }
 
 function lerpPoint(a: Point, b: Point, t: number): Point {
@@ -1691,6 +2157,11 @@ function normalize(point: Point): Point {
 
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
+}
+
+function smoothstep(edge0: number, edge1: number, value: number): number {
+  const t = clamp((value - edge0) / Math.max(0.0001, edge1 - edge0), 0, 1);
+  return t * t * (3 - 2 * t);
 }
 
 function circlePath(cx: number, cy: number, r: number): string {

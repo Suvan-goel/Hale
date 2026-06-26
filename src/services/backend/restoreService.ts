@@ -431,6 +431,9 @@ export function mapRemoteTrainingStateToLocal(row: RemoteTrainingStateRow | null
     progress: stateJson.progress,
     ladderProgressById: stateJson.ladderProgressById,
     appliedProgressionEventIds: stateJson.appliedProgressionEventIds,
+    bothSidesStartSideSeed: stateJson.bothSidesStartSideSeed,
+    activeSetRuntime: stateJson.activeSetRuntime,
+    activeTrainingVoiceRuntime: stateJson.activeTrainingVoiceRuntime,
     generatedSessionSummaries: stateJson.generatedSessionSummaries ?? recentSummaries,
     lastPostSessionFeedback: stateJson.lastPostSessionFeedback ?? null,
     planPreferences: stateJson.planPreferences,
@@ -476,7 +479,7 @@ export function mapRemoteMicroChecksToLocal(rows: readonly RemoteMicroCheckRow[]
   for (const row of rows) {
     const result = microCheckFromRemoteRow(row);
     if (!result) continue;
-    const key = `${result.type}:${result.startedAt}`;
+    const key = result.slotId ?? `${result.type}:${result.startedAt}`;
     const existing = resultsByKey.get(key);
     if (!existing || microCheckMeasurementMetadataRichness(result) > microCheckMeasurementMetadataRichness(existing)) {
       resultsByKey.set(key, result);

@@ -3,7 +3,11 @@ import {
   TRAINING_VOICE_SHARED_LOGICAL_CUES_V21,
 } from './contracts';
 import { resolveTrainingVoiceRuntimeReadinessV21 } from './readiness';
-import { resolveTrainingVoiceSafetyV21 } from './safetyPolicy';
+import {
+  EMPTY_TRAINING_VOICE_SESSION_MEMORY_V21,
+  normalizeTrainingVoiceSafetySessionMemoryV21,
+  resolveTrainingVoiceSafetyV21,
+} from './safetyPolicy';
 import { resolveTrainingVoiceTargetV21, type TrainingVoicePrescribedTargetV21 } from './targetGrammar';
 import {
   voiceSideVariantForExercise,
@@ -53,6 +57,54 @@ export interface PlanTrainingVoiceSequenceV21Input {
   readonly sessionMemory?: TrainingVoiceSessionMemoryV21 | null;
 }
 
+export interface TrainingVoiceSessionEntrySequencePlanV21 {
+  readonly cueKeys: readonly string[];
+  readonly scripts: readonly string[];
+  readonly entries: readonly TrainingVoiceSequenceEntryV21[];
+  readonly required: boolean;
+  readonly universalSafetyDue: boolean;
+  readonly ready: boolean;
+  readonly reasonCodes: readonly string[];
+}
+
+export function planTrainingVoiceSessionEntrySequenceV21(input: {
+  readonly sessionMemory?: TrainingVoiceSessionMemoryV21 | unknown | null;
+} = {}): TrainingVoiceSessionEntrySequencePlanV21 {
+  const memory = normalizeTrainingVoiceSafetySessionMemoryV21(input.sessionMemory);
+  if (!memory) {
+    return {
+      cueKeys: [],
+      scripts: [],
+      entries: [],
+      required: true,
+      universalSafetyDue: true,
+      ready: false,
+      reasonCodes: ['MALFORMED_SAFETY_MEMORY'],
+    };
+  }
+  if (memory.universalSafety === 'completed') {
+    return {
+      cueKeys: [],
+      scripts: [],
+      entries: [],
+      required: false,
+      universalSafetyDue: false,
+      ready: true,
+      reasonCodes: ['UNIVERSAL_SAFETY_ALREADY_COMPLETED'],
+    };
+  }
+  const entries = [required(sharedCue('training-intro-v21')), required(sharedCue('safe-session-start-v21'))];
+  return {
+    cueKeys: entries.map((entry) => entry.cue.key),
+    scripts: entries.map((entry) => entry.cue.exactScript),
+    entries,
+    required: true,
+    universalSafetyDue: true,
+    ready: true,
+    reasonCodes: ['UNIVERSAL_SAFETY_DUE'],
+  };
+}
+
 export function planTrainingVoiceSequenceV21(
   input: PlanTrainingVoiceSequenceV21Input
 ): TrainingVoiceSequencePlanV21 {
@@ -76,7 +128,7 @@ export function planTrainingVoiceSequenceV21(
   });
   const safety = resolveTrainingVoiceSafetyV21({
     contract,
-    sessionMemory: input.sessionMemory,
+    sessionMemory: input.sessionMemory ?? EMPTY_TRAINING_VOICE_SESSION_MEMORY_V21,
   });
   const entries: TrainingVoiceSequenceEntryV21[] = [];
   const targetCue = {
@@ -88,10 +140,14 @@ export function planTrainingVoiceSequenceV21(
     entries.push(required(sharedCue(stepUpWrongLeadCueKey(stepUpExpectedLeadSide(input.stepUpContext)))));
     entries.push(required(sharedCue('final-position-set-v21')));
   } else if (input.exposure === 'first_use') {
+    const leadWithSafety = shouldLeadWithSafetyCue(contract.setupModel, safety.logicalCueKey, safety.exactScript);
+    if (leadWithSafety && safety.logicalCueKey && safety.exactScript) {
+      entries.push(required(cueFor(safety.logicalCueKey, safety.exactScript)));
+    }
     entries.push(required(contract.firstUseCue));
     const variant = currentSideVariant(currentVariantForInput(input, variantFromBothSides), contract.sidePlan.defaultVariantId, contract.sidePlan.variants);
     if (variant) entries.push(required(variant.cue));
-    if (safety.logicalCueKey && safety.exactScript) {
+    if (!leadWithSafety && safety.logicalCueKey && safety.exactScript) {
       entries.push(required(cueFor(safety.logicalCueKey, safety.exactScript)));
     }
     if (contract.finalPositionRequired) {
@@ -143,12 +199,12 @@ export function planTrainingVoiceSequenceV21(
     entries,
     targetPlan,
     sidePlan: contract.sidePlan,
-    safetyPlan: contract.safetyPlan,
+    safetyPlan: safety,
     setupModel: contract.setupModel,
     implementationBlockers,
     assetBlockers,
     runtimeReadiness,
-    ready: runtimeReadiness.selectable,
+    ready: runtimeReadiness.selectable && safety.ready,
     reasonCodes: unique(reasonCodes),
   };
 }
@@ -168,6 +224,24 @@ function stepUpStartLeadSide(context: TrainingVoiceStepUpContextV21): StepUpLead
 function stepUpExpectedLeadSide(context: TrainingVoiceStepUpContextV21 | null | undefined): StepUpLeadSide {
   if (!context) return 'left';
   return context.expectedLeadSide ?? stepUpStartLeadSide(context);
+}
+
+function shouldLeadWithSafetyCue(
+  setupModel: ReturnType<typeof getTrainingVoiceContractV21>['setupModel'],
+  cueKey: string | null,
+  exactScript: string | null
+): boolean {
+  return (
+    !!cueKey &&
+    !!exactScript &&
+    (
+      setupModel === 'material_setup' ||
+      setupModel === 'chair_setup' ||
+      setupModel === 'floor_setup' ||
+      setupModel === 'step_setup' ||
+      setupModel === 'band_setup'
+    )
+  );
 }
 
 function required(cue: TrainingVoiceLogicalCueV21): TrainingVoiceSequenceEntryV21 {

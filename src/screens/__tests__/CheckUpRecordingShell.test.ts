@@ -37,11 +37,12 @@ describe('unified Movement Check-Up recording shell', () => {
     expect(text).not.toMatch(/createCaptured|mockCheckUp|reps:\s*12/);
   });
 
-  it('keeps V1 public routing and the existing V2 harness while adding an internal unified route', () => {
+  it('keeps V1 shell code behind rollback routing and retains the internal V2 harness', () => {
     const app = source('App.tsx');
     const settings = source('src/screens/SettingsScreen.tsx');
 
-    expect(app).toContain("flow === 'checkup' ?");
+    expect(app).toContain("flow === 'checkup' && legacyV1CheckUpFlowAllowed");
+    expect(app).toContain('LEGACY_V1_CHECKUP_ROLLBACK_ENABLED');
     expect(app).toContain('<CheckUpScreen');
     expect(app).toContain("'movement-profile-v2-checkup'");
     expect(app).toContain("'movement-profile-v2-unified-checkup'");

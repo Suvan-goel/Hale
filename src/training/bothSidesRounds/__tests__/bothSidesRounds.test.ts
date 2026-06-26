@@ -505,17 +505,18 @@ describe('both-sides progression aggregation and persistence', () => {
 });
 
 describe('Training Voice V2.1 both-sides reconciliation', () => {
-  it('removes round/dose implementation blockers while preserving safety/audio/global blockers', () => {
+  it('removes round/dose/safety implementation blockers while preserving audio blockers', () => {
     for (const { exerciseId } of EXPECTED_MATRIX) {
       const contract = getTrainingVoiceContractV21(exerciseId);
       expect(contract.implementationRequirements).not.toContain('IR-VOICE-ROUND-STATE');
       expect(contract.implementationRequirements).not.toContain('IR-VOICE-DOSE-CONVERSION');
-      expect(contract.implementationRequirements).toContain('IR-VOICE-SAFETY-SUBSUMPTION');
+      expect(contract.implementationRequirements).not.toContain('IR-VOICE-SAFETY-SUBSUMPTION');
       const readiness = resolveTrainingVoiceRuntimeReadinessV21({ exerciseId });
       expect(readiness.selectable).toBe(false);
       expect(readiness.blockers).not.toContain('behavior_dependency:IR-VOICE-ROUND-STATE');
       expect(readiness.blockers).not.toContain('behavior_dependency:IR-VOICE-DOSE-CONVERSION');
-      expect(readiness.blockers).toContain('global_behavior_ready_false');
+      expect(readiness.blockers).not.toContain('behavior_dependency:IR-VOICE-SAFETY-SUBSUMPTION');
+      expect(readiness.blockers).not.toContain('global_behavior_ready_false');
       expect(readiness.blockers).toContain('global_audio_ready_false');
     }
   });

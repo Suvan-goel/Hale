@@ -23,12 +23,23 @@ import { ExtraTrendPoint } from '../history';
 import { PipelineFrameOutput } from '../pose/pipeline';
 import { PreflightCheck, PreflightPrompt } from '../preflight/preflight';
 import { shouldSpeakFramingPrompt } from '../preflight/promptTiming';
+import type { MovementDomain, TrainingMicroCheckTargetSource } from '../adherence';
 
 export type MicroCheckType = 'chair-power' | 'single-leg-balance' | 'mobility-reach';
 
 export interface MicroCheckResult {
+  id?: string;
   type: MicroCheckType;
   startedAt: string;
+  completedAt?: string;
+  slotId?: string;
+  blockId?: string;
+  policyVersion?: number;
+  policyFingerprint?: string;
+  targetSource?: TrainingMicroCheckTargetSource;
+  targetDomain?: MovementDomain;
+  scheduleWeekIndex?: number;
+  scheduleWeekNumber?: number;
   measurementContext?: MeasurementContext;
   /** Rise velocity (bu/s), hold seconds, or peak reach angle depending on type. */
   value: number;

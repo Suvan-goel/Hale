@@ -237,6 +237,15 @@ function completionForMicroCheck(
   matchedCompletionIds: ReadonlySet<string>
 ): TrainingSessionCompletion | null {
   if (!completions) return null;
+  if (result.slotId) {
+    const slotMatch = completions.find(
+      (completion) =>
+        completion.sessionType === 'micro_check' &&
+        completion.microCheckSlot?.slotId === result.slotId &&
+        !matchedCompletionIds.has(completion.id)
+    );
+    if (slotMatch) return slotMatch;
+  }
   const resultDay = result.startedAt.slice(0, 10);
   const candidates = completions
     .filter((completion) => completion.sessionType === 'micro_check')
@@ -248,6 +257,8 @@ function completionForMicroCheck(
 }
 
 function localMicroCheckIdFor(result: MicroCheckResult): string {
+  const slotId = normalizedString(result.slotId);
+  if (slotId) return `microcheck-slot-${stableHash(slotId)}`;
   const startedAt = normalizedString(result.startedAt);
   if (startedAt) return `microcheck-${startedAt.replace(/[:.]/g, '-')}`;
   return `microcheck-${stableHash(JSON.stringify(sanitizeMicroCheckResult(result)))}`;
@@ -295,8 +306,18 @@ function sanitizeMicroCheckResult(result: MicroCheckResult): BackendJson {
     measurementContext: result.measurementContext,
   });
   return sanitizeForBackendJson({
+    id: result.id,
     type: result.type,
     startedAt: result.startedAt,
+    completedAt: result.completedAt,
+    slotId: result.slotId,
+    blockId: result.blockId,
+    policyVersion: result.policyVersion,
+    policyFingerprint: result.policyFingerprint,
+    targetSource: result.targetSource,
+    targetDomain: result.targetDomain,
+    scheduleWeekIndex: result.scheduleWeekIndex,
+    scheduleWeekNumber: result.scheduleWeekNumber,
     measurementContext,
     value: result.value,
     reps: result.reps,
@@ -336,6 +357,7 @@ function sanitizeCompletion(completion: TrainingSessionCompletion | null | undef
     durationMinutes: completion.durationMinutes,
     focusDomain: completion.focusDomain,
     plannedPrimaryDomain: completion.plannedPrimaryDomain,
+    microCheckSlot: completion.microCheckSlot,
   });
 }
 

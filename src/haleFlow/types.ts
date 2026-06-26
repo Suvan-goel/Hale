@@ -40,6 +40,7 @@ import type {
   ProgressionPolicySelectionReason,
 } from '../exercises';
 import type { PlannedCollectionSelection } from '../training/collectionSelection';
+import type { StepUpAlternationPlan, StepUpLeadSide } from '../training/stepUpAlternation';
 
 export type HaleUserFlowState =
   | 'needs_life_goal'
@@ -190,6 +191,8 @@ export interface HaleGeneratedExerciseMetadata {
   doseBeforeAdjustment?: GeneratedExerciseDose;
   adjustmentReasons?: readonly DailyTrainingReasonCode[];
   collectionSelection?: PlannedCollectionSelection;
+  stepUpAlternationPlan?: StepUpAlternationPlan;
+  stepUpInitialLeadSide?: StepUpLeadSide;
 }
 
 export interface HaleSlotStimulusMetadata {

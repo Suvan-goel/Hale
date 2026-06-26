@@ -224,6 +224,50 @@ describe('point-cloud body geometry', () => {
     expect(refined.upperArmDotCount).toBeGreaterThan(standard.upperArmDotCount);
   });
 
+  it('uses the organic profile to build a fuller dense human silhouette from dots', () => {
+    const standard = createPointCloudBodyGeometry(900);
+    const organic = createPointCloudBodyGeometry(1400);
+    const pose = mappedStandingPose();
+
+    buildPointCloudBodyGeometry(pose, standard, {
+      pointCloudBodyEnabled: true,
+      density: 'high',
+      maxDots: 900,
+      showKeypoints: true,
+      dotScale: 1.72,
+    });
+    buildPointCloudBodyGeometry(pose, organic, {
+      pointCloudBodyEnabled: true,
+      density: 'high',
+      maxDots: 1400,
+      showKeypoints: false,
+      dotScale: 1.48,
+      shapeProfile: 'organic',
+    });
+
+    const organicLimbs =
+      organic.upperArmDotCount +
+      organic.forearmDotCount +
+      organic.thighDotCount +
+      organic.lowerLegDotCount +
+      organic.handDotCount +
+      organic.footDotCount;
+    const organicHeadAndNeck = organic.headDotCount + organic.neckDotCount;
+
+    expect(organic.dotCount).toBeGreaterThan(1300);
+    expect(organic.dotCount).toBeLessThanOrEqual(1400);
+    expect(organic.keypointDotCount).toBe(0);
+    expect(organic.torsoDotCount).toBeGreaterThan(standard.torsoDotCount);
+    expect(organic.torsoDotCount).toBeLessThan(organic.dotCount * 0.3);
+    expect(organicLimbs).toBeGreaterThan(organic.torsoDotCount * 2);
+    expect(organicHeadAndNeck).toBeGreaterThan(standard.headDotCount + standard.neckDotCount);
+    expect(organic.headDotCount).toBeGreaterThan(standard.headDotCount * 1.5);
+    expect(organic.neckDotCount).toBeLessThan(organic.headDotCount * 0.35);
+    expect(organic.thighDotCount + organic.lowerLegDotCount).toBeGreaterThan(
+      standard.thighDotCount + standard.lowerLegDotCount
+    );
+  });
+
   it('renders the point-cloud head slightly larger than the raw head estimate', () => {
     const pose = mappedStandingPose();
     const estimate = getHeadEstimate(pose);

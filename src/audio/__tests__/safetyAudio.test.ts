@@ -23,7 +23,7 @@ describe('safety audio metadata helpers', () => {
       providerVoiceId: 'voice-a',
     });
     expect(base).toMatch(/^safety-audio-v1-/);
-    expect(ELEVENLABS_MODEL).toBe('eleven_flash_v2_5');
+    expect(ELEVENLABS_MODEL).toBe('eleven_multilingual_v2');
     expect(AUDIO_OUTPUT_FORMAT).toBe('mp3_44100_128');
     expect(
       safetyAudioFingerprint({

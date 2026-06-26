@@ -6,15 +6,34 @@
 
 export {
   DEFAULT_TRAINING_CONFIG,
+  TRAINING_FLOOR_V2_1_FEATURE_FLAG,
   TrainingSessionPlayer,
+  isTrainingFloorV21FeatureEnabled,
 } from './sessionPlayer';
 export type {
+  TrainingFinalPositionPhase,
+  TrainingFloorEnvironment,
+  TrainingFloorSessionMemory,
+  TrainingFloorSetupSnapshot,
   TrainingFrameUpdate,
   TrainingItemResult,
   TrainingPhase,
   TrainingPlayerConfig,
   TrainingSessionResult,
 } from './sessionPlayer';
+export {
+  createTrainingSetRuntime,
+  selectTrainingSetRuntime,
+} from './setRuntime';
+export type {
+  SerializedTrainingSetRuntime,
+  TrainingSetRuntime,
+  TrainingSetRuntimeCapabilities,
+  TrainingSetRuntimeGeneratedExercise,
+  TrainingSetRuntimeSelection,
+  TrainingSetRuntimeUpdate,
+  TrainingVoiceRuntimeMode,
+} from './setRuntime';
 export {
   DEFAULT_PROGRESSION_CONFIG,
   applySession,
@@ -190,8 +209,10 @@ export {
   TRAINING_STEP_UP_ALTERNATION_DEFAULT_ENABLED,
   TRAINING_STEP_UP_ALTERNATION_FEATURE_FLAG,
   TRAINING_STEP_UP_ALTERNATION_SOFTWARE_READY,
+  StepUpAlternationSetRuntime,
   advanceStepUpAlternationState,
   attachStepUpAlternationPlansToGeneratedSession,
+  createStepUpAlternationEvidenceAdapter,
   createStepUpAlternationRuntimeState,
   currentStepUpAttemptId,
   deriveStepUpAlternationPlan,
@@ -216,6 +237,8 @@ export {
   summarizeStepUpAlternationProgression,
   summarizeStepUpSetResult,
   type DeriveStepUpAlternationPlanInput,
+  type SerializedStepUpAlternationSetRuntime,
+  type StepUpAlternationEvidenceAdapter,
   type StepUpAlternationAction,
   type StepUpAlternationDiagnosticEvent,
   type StepUpAlternationDiagnosticEventName,
@@ -225,7 +248,10 @@ export {
   type StepUpAlternationReasonCode,
   type StepUpAlternationRestoreEnvelope,
   type StepUpAlternationRuntimeState,
+  type StepUpAlternationRuntimeUpdate,
   type StepUpAlternationViewModel,
+  type StepUpEvidenceAdapterSnapshot,
+  type StepUpFrameObservation,
   type StepUpGeneratedExerciseLike,
   type StepUpGeneratedSessionLike,
   type StepUpLeadSide,

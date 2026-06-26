@@ -802,6 +802,7 @@ export function movementProfileSnapshotCompatibility(
     leftV2.snapshot.interpretation.shoulder.selectedSide !== null &&
     leftV2.snapshot.interpretation.shoulder.selectedSide === rightV2.snapshot.interpretation.shoulder.selectedSide;
   const referenceInterpretationComparable =
+    leftV2.snapshot.referenceProfileFingerprint === rightV2.snapshot.referenceProfileFingerprint &&
     referenceProfileSupportsReferenceComparison(leftV2.snapshot.referenceProfile) &&
     referenceProfileSupportsReferenceComparison(rightV2.snapshot.referenceProfile);
 

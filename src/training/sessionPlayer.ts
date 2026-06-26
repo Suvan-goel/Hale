@@ -18,9 +18,13 @@
 
 import { VoiceCueKey, voicePriority } from '../audio/cues';
 import { VoiceRequest } from '../assessment/sessionController';
-import { ExerciseDefinition, ExerciseSetGrader, SetResult, getExercise } from '../exercises';
+import { ExerciseDefinition, SetResult, getExercise } from '../exercises';
 import type { ValidTimeState } from '../exercises/validTime';
 import { PipelineFrameOutput } from '../pose/pipeline';
+import {
+  MovementCameraReadinessTracker,
+  type MovementCameraReadinessResult,
+} from '../preflight/movementCameraReadiness';
 import { PreflightCheck, PreflightPrompt, PreflightStatus } from '../preflight/preflight';
 import { shouldSpeakFramingPrompt } from '../preflight/promptTiming';
 import {
@@ -31,6 +35,14 @@ import {
   type PlannedSafetyCueSnapshot,
   type SafetyCueId,
 } from './safetyCues';
+import {
+  createTrainingSetRuntime,
+  type SerializedTrainingSetRuntime,
+  type TrainingSetRuntime,
+  type TrainingSetRuntimeCapabilities,
+  type TrainingSetRuntimeGeneratedExercise,
+  type TrainingVoiceRuntimeMode,
+} from './setRuntime';
 
 export type TrainingPhase =
   | 'intro'
@@ -55,6 +67,41 @@ export interface TrainingSessionResult {
   items: TrainingItemResult[];
 }
 
+export type TrainingFloorEnvironment = 'standing' | 'floor' | 'unknown';
+
+export type TrainingFinalPositionPhase =
+  | 'not_required'
+  | 'transition_instruction'
+  | 'awaiting_user_transition'
+  | 'movement_setup'
+  | 'awaiting_visibility'
+  | 'stabilizing'
+  | 'ready'
+  | 'audio_failure'
+  | 'cancelled';
+
+export interface TrainingFloorSetupSnapshot {
+  readonly exerciseId: string;
+  readonly itemIndex: number;
+  readonly setIndex: number;
+  readonly setupEpoch: number;
+  readonly phase: TrainingFinalPositionPhase;
+  readonly floorTransitionRequired: boolean;
+  readonly userConfirmed: boolean;
+  readonly movementReady: boolean;
+  readonly finalPositionReadyAtMs: number | null;
+  readonly stableForMs: number;
+  readonly setupCaption: string | null;
+  readonly actionLabel: string | null;
+}
+
+export interface TrainingFloorSessionMemory {
+  readonly floorFamilyIntroduced: boolean;
+  readonly currentEnvironment: TrainingFloorEnvironment;
+  readonly currentFloorItemId: string | null;
+  readonly currentFloorSetupEpoch: number;
+}
+
 export interface TrainingFrameUpdate {
   phase: TrainingPhase;
   itemIndex: number;
@@ -76,9 +123,27 @@ export interface TrainingFrameUpdate {
   setupIssue: boolean;
   /** Current preflight framing prompt for setup/framing UI. */
   setupPrompt: PreflightPrompt | null;
+  /** Floor transfer/final-position gate state, present only for floor V2.1 setup. */
+  floorSetup: TrainingFloorSetupSnapshot | null;
+  /** Session-local floor setup memory used to avoid repeated transfer prompts. */
+  floorMemory: TrainingFloorSessionMemory;
   /** Canonical safety cue ids surfaced with this update. Text resolves from the same ids. */
   safetyCueIds: readonly SafetyCueId[];
   safetyText: readonly string[];
+  setRuntimeKind: 'legacy' | 'step_up_alternation' | null;
+  stepUpContext: {
+    readonly plan: import('./stepUpAlternation').StepUpAlternationPlan;
+    readonly expectedLeadSide: 'left' | 'right';
+    readonly startLeadSide: 'left' | 'right';
+    readonly acceptedRepCount: number;
+    readonly leftLeadRepCount: number;
+    readonly rightLeadRepCount: number;
+    readonly targetTotalReps: number;
+  } | null;
+  stepUpCorrection: {
+    readonly code: 'wrong_lead' | 'return_both_feet_to_floor' | 'insufficient_lead_evidence';
+    readonly expectedLeadSide: 'left' | 'right';
+  } | null;
 }
 
 export interface TrainingPlayerConfig {
@@ -101,6 +166,24 @@ export const DEFAULT_TRAINING_CONFIG: TrainingPlayerConfig = {
   setSafetyMs: 120000,
 };
 
+export const TRAINING_FLOOR_V2_1_FEATURE_FLAG = 'EXPO_PUBLIC_ENABLE_TRAINING_FLOOR_V2_1' as const;
+
+export function isTrainingFloorV21FeatureEnabled(
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  const raw = env[TRAINING_FLOOR_V2_1_FEATURE_FLAG];
+  return raw === '1' || raw === 'true' || raw === 'TRUE';
+}
+
+export interface TrainingSessionPlayerOptions {
+  readonly generatedExercises?: readonly TrainingSetRuntimeGeneratedExercise[];
+  readonly trainingVoiceMode?: TrainingVoiceRuntimeMode;
+  readonly runtimeCapabilities?: TrainingSetRuntimeCapabilities;
+  readonly stepUpAlternationFeatureEnabled?: boolean;
+  readonly floorV21FeatureEnabled?: boolean;
+  readonly restoredSetRuntime?: SerializedTrainingSetRuntime | null;
+}
+
 const COUNTDOWN: readonly VoiceCueKey[] = ['countdown-three', 'countdown-two', 'countdown-one', 'go'];
 
 export class TrainingSessionPlayer {
@@ -108,6 +191,7 @@ export class TrainingSessionPlayer {
   private readonly startedAtIso: string;
   private readonly definitions: ExerciseDefinition[];
   private readonly preflight: PreflightCheck;
+  private readonly movementReadiness = new MovementCameraReadinessTracker();
   private readonly results: TrainingItemResult[] = [];
   private readonly update_: TrainingFrameUpdate = {
     phase: 'intro',
@@ -125,8 +209,18 @@ export class TrainingSessionPlayer {
     validTimeCaption: null,
     setupIssue: false,
     setupPrompt: null,
+    floorSetup: null,
+    floorMemory: {
+      floorFamilyIntroduced: false,
+      currentEnvironment: 'unknown',
+      currentFloorItemId: null,
+      currentFloorSetupEpoch: 0,
+    },
     safetyCueIds: [],
     safetyText: [],
+    setRuntimeKind: null,
+    stepUpContext: null,
+    stepUpCorrection: null,
   };
 
   private phase: TrainingPhase = 'intro';
@@ -141,6 +235,13 @@ export class TrainingSessionPlayer {
   private lastTimestampMs = 0;
   private setupIssue = false;
   private setupIssueRecoverySpoken = false;
+  private floorSetup: TrainingFloorSetupSnapshot | null = null;
+  private floorMemory: TrainingFloorSessionMemory = {
+    floorFamilyIntroduced: false,
+    currentEnvironment: 'unknown',
+    currentFloorItemId: null,
+    currentFloorSetupEpoch: 0,
+  };
 
   private instructionsEnteredMs = 0;
   private instructionsIdleAtMs = -1;
@@ -149,8 +250,10 @@ export class TrainingSessionPlayer {
 
   private countdownStartMs = 0;
   private countdownStep = 0;
+  private countdownAwaitingTrackedGo = false;
+  private countdownAttemptOrdinal = 0;
 
-  private grader: ExerciseSetGrader | null = null;
+  private runtime: TrainingSetRuntime | null = null;
   private setStartMs = 0;
   /** Fixed set duration (rom/timer capture window); null = grader-terminated. */
   private setDurationMs: number | null = null;
@@ -165,17 +268,24 @@ export class TrainingSessionPlayer {
   private finished: TrainingSessionResult | null = null;
   private readonly safetySnapshot: PlannedSafetyCueSnapshot;
   private readonly safetyByExerciseId: Map<string, PlannedExerciseSafetyCueProfile>;
+  private readonly generatedByExerciseId: Map<string, TrainingSetRuntimeGeneratedExercise>;
+  private readonly options: TrainingSessionPlayerOptions;
 
   constructor(
     startedAtIso: string,
     exerciseIds: readonly string[],
     preflight: PreflightCheck,
-    config: TrainingPlayerConfig = DEFAULT_TRAINING_CONFIG
+    config: TrainingPlayerConfig = DEFAULT_TRAINING_CONFIG,
+    options: TrainingSessionPlayerOptions = {}
   ) {
     this.startedAtIso = startedAtIso;
     this.preflight = preflight;
     this.config = config;
+    this.options = options;
     this.definitions = exerciseIds.map((id) => getExercise(id));
+    this.generatedByExerciseId = new Map(
+      (options.generatedExercises ?? []).map((exercise) => [exercise.exerciseId, exercise])
+    );
     this.safetySnapshot = plannedSafetyCueSnapshotForExercises(exerciseIds);
     this.safetyByExerciseId = new Map(
       this.safetySnapshot.exerciseProfiles.map((profile) => [profile.exerciseId, profile])
@@ -187,6 +297,21 @@ export class TrainingSessionPlayer {
   }
 
   retrySetup(): void {
+    if (this.floorSetup && this.phase === 'instructions') {
+      this.floorSetup = {
+        ...this.floorSetup,
+        phase: 'awaiting_user_transition',
+        userConfirmed: false,
+        movementReady: false,
+        finalPositionReadyAtMs: null,
+        stableForMs: 0,
+        setupCaption: 'Move to the floor start position.',
+        actionLabel: "I'm ready",
+      };
+      this.movementReadiness.reset();
+      this.instructionsIdleAtMs = -1;
+      return;
+    }
     if (this.phase !== 'preflight') return;
     this.setupIssue = false;
     this.setupIssueRecoverySpoken = false;
@@ -194,6 +319,43 @@ export class TrainingSessionPlayer {
     this.itemEnteredMs = this.lastTimestampMs;
     this.lastPromptCue = null;
     this.lastPromptAtMs = -Infinity;
+  }
+
+  confirmFloorStartPosition(guard?: {
+    readonly exerciseId?: string;
+    readonly setIndex?: number;
+    readonly setupEpoch?: number;
+  }): boolean {
+    if (!this.floorSetup || this.phase !== 'instructions') return false;
+    if (guard?.exerciseId !== undefined && guard.exerciseId !== this.floorSetup.exerciseId) return false;
+    if (guard?.setIndex !== undefined && guard.setIndex !== this.floorSetup.setIndex) return false;
+    if (guard?.setupEpoch !== undefined && guard.setupEpoch !== this.floorSetup.setupEpoch) return false;
+    if (
+      this.floorSetup.phase === 'cancelled' ||
+      this.floorSetup.phase === 'audio_failure' ||
+      this.floorSetup.phase === 'not_required'
+    ) {
+      return false;
+    }
+    if (this.floorSetup.userConfirmed) return false;
+    this.floorSetup = {
+      ...this.floorSetup,
+      phase: 'awaiting_visibility',
+      userConfirmed: true,
+      movementReady: false,
+      finalPositionReadyAtMs: null,
+      stableForMs: 0,
+      setupCaption: 'Hold the start position.',
+      actionLabel: null,
+    };
+    this.floorMemory = {
+      ...this.floorMemory,
+      currentEnvironment: 'floor',
+      currentFloorItemId: this.floorSetup.exerciseId,
+    };
+    this.movementReadiness.reset();
+    this.instructionsIdleAtMs = -1;
+    return true;
   }
 
   skipCurrentItem(): boolean {
@@ -206,11 +368,48 @@ export class TrainingSessionPlayer {
     ) {
       return false;
     }
+    this.cancelFloorSetup();
+    this.countdownAwaitingTrackedGo = false;
     this.setupIssue = false;
+    this.runtime?.cancel(this.lastTimestampMs);
     this.results.push({ exerciseId: this.definitions[this.itemIndex].id, status: 'skipped', sets: [] });
     this.currentSets = [];
     this.advanceItem(this.lastTimestampMs);
     return true;
+  }
+
+  pause(atMs: number = this.lastTimestampMs): void {
+    if (this.phase === 'countdown' && this.countdownAwaitingTrackedGo) {
+      this.countdownAwaitingTrackedGo = false;
+      this.phase = 'instructions';
+      this.instructionsEnteredMs = atMs;
+      this.instructionsIdleAtMs = -1;
+      return;
+    }
+    if (this.phase === 'set') this.runtime?.pause(atMs);
+  }
+
+  resume(atMs: number = this.lastTimestampMs): void {
+    if (this.phase === 'set') this.runtime?.resume(atMs);
+  }
+
+  notifyCountdownGoPlaybackStarted(guard?: {
+    readonly itemIndex?: number;
+    readonly setIndex?: number;
+    readonly attemptOrdinal?: number;
+    readonly timestampMs?: number;
+  }): boolean {
+    if (!this.countdownAwaitingTrackedGo || this.phase !== 'countdown') return false;
+    if (guard?.itemIndex !== undefined && guard.itemIndex !== this.itemIndex) return false;
+    if (guard?.setIndex !== undefined && guard.setIndex !== this.setIndex) return false;
+    if (guard?.attemptOrdinal !== undefined && guard.attemptOrdinal !== this.countdownAttemptOrdinal) return false;
+    this.countdownAwaitingTrackedGo = false;
+    this.beginSet(guard?.timestampMs ?? this.lastTimestampMs);
+    return true;
+  }
+
+  serializeCurrentSetRuntime(): SerializedTrainingSetRuntime | null {
+    return this.runtime?.serialize() ?? null;
   }
 
   shiftTiming(deltaMs: number): void {
@@ -224,6 +423,13 @@ export class TrainingSessionPlayer {
     this.setStartMs += deltaMs;
     this.restEnteredMs += deltaMs;
     this.preflight.shiftTiming(deltaMs);
+    this.movementReadiness.shiftTiming(deltaMs);
+    if (this.floorSetup?.finalPositionReadyAtMs !== null && this.floorSetup?.finalPositionReadyAtMs !== undefined) {
+      this.floorSetup = {
+        ...this.floorSetup,
+        finalPositionReadyAtMs: this.floorSetup.finalPositionReadyAtMs + deltaMs,
+      };
+    }
   }
 
   update(out: PipelineFrameOutput, voiceBusy: boolean): TrainingFrameUpdate {
@@ -236,8 +442,13 @@ export class TrainingSessionPlayer {
     u.validTimeCaption = null;
     u.setupIssue = this.setupIssue;
     u.setupPrompt = null;
+    u.floorSetup = null;
+    u.floorMemory = this.floorMemorySnapshot();
     u.safetyCueIds = [];
     u.safetyText = [];
+    u.stepUpContext = null;
+    u.stepUpCorrection = null;
+    u.setRuntimeKind = this.runtime?.kind ?? null;
     const ts = out.frame.timestampMs;
     this.lastTimestampMs = ts;
     const status = this.preflight.update(out);
@@ -293,6 +504,8 @@ export class TrainingSessionPlayer {
     const def = this.currentDefinition();
     u.totalSets = def ? def.prescription.sets : 0;
     u.currentExerciseId = def ? def.id : null;
+    u.floorSetup = cloneFloorSetup(this.floorSetup);
+    u.floorMemory = this.floorMemorySnapshot();
     return u;
   }
 
@@ -303,6 +516,15 @@ export class TrainingSessionPlayer {
   }
 
   private enterTransition(index: number, ts: number): void {
+    const nextDefinition = this.definitions[index] ?? null;
+    if (nextDefinition && !this.shouldUseFloorSetupV21(nextDefinition) && this.floorMemory.currentEnvironment === 'floor') {
+      this.floorMemory = {
+        ...this.floorMemory,
+        currentEnvironment: 'unknown',
+        currentFloorItemId: null,
+      };
+    }
+    this.cancelFloorSetup();
     this.itemIndex = index;
     this.setIndex = 0;
     this.currentSets = [];
@@ -331,6 +553,11 @@ export class TrainingSessionPlayer {
     const settled = ts - this.transitionEnteredMs >= this.config.transitionDwellMs;
     if (this.transitionCuePending === null && !voiceBusy && settled) {
       this.itemEnteredMs = ts;
+      const def = this.currentDefinition();
+      if (def && this.shouldUseFloorSetupV21(def) && this.floorMemory.currentEnvironment === 'floor') {
+        this.enterFloorSetup(ts, u);
+        return;
+      }
       this.phase = 'preflight';
       this.lastPromptCue = null;
       this.lastPromptAtMs = -Infinity;
@@ -353,6 +580,10 @@ export class TrainingSessionPlayer {
     }
     if (status.phase === 'ready' && out.bodyUnit !== null) {
       const def = this.definitions[this.itemIndex];
+      if (this.shouldUseFloorSetupV21(def)) {
+        this.enterFloorSetup(ts, u);
+        return;
+      }
       const safety = this.currentSafetyProfile();
       const safetyCueIds = uniqueSafety([
         ...(safety?.setupCueIds ?? []),
@@ -393,6 +624,10 @@ export class TrainingSessionPlayer {
   }
 
   private runInstructions(out: PipelineFrameOutput, voiceBusy: boolean, ts: number, u: TrainingFrameUpdate): void {
+    if (this.floorSetup) {
+      this.runFloorSetup(out, voiceBusy, ts, u);
+      return;
+    }
     if (ts - this.instructionsEnteredMs < 1000) return;
     if (voiceBusy) {
       this.instructionsIdleAtMs = -1;
@@ -405,15 +640,156 @@ export class TrainingSessionPlayer {
     }
   }
 
+  private enterFloorSetup(ts: number, u: TrainingFrameUpdate): void {
+    const def = this.currentDefinition();
+    if (!def) return;
+    const transitionRequired =
+      this.floorMemory.currentEnvironment !== 'floor' && !this.floorMemory.floorFamilyIntroduced;
+    const setupEpoch = this.floorMemory.currentFloorSetupEpoch + 1;
+    this.phase = 'instructions';
+    this.instructionsEnteredMs = ts;
+    this.instructionsIdleAtMs = -1;
+    this.lastPromptCue = null;
+    this.lastPromptAtMs = -Infinity;
+    this.movementReadiness.reset();
+    this.floorMemory = {
+      ...this.floorMemory,
+      floorFamilyIntroduced: this.floorMemory.floorFamilyIntroduced || transitionRequired,
+      currentFloorItemId: def.id,
+      currentFloorSetupEpoch: setupEpoch,
+    };
+    this.floorSetup = {
+      exerciseId: def.id,
+      itemIndex: Math.max(0, this.itemIndex),
+      setIndex: this.setIndex,
+      setupEpoch,
+      phase: transitionRequired ? 'transition_instruction' : 'awaiting_user_transition',
+      floorTransitionRequired: transitionRequired,
+      userConfirmed: false,
+      movementReady: false,
+      finalPositionReadyAtMs: null,
+      stableForMs: 0,
+      setupCaption: 'Move to the floor start position.',
+      actionLabel: "I'm ready",
+    };
+    const transitionCueIds: readonly SafetyCueId[] = transitionRequired ? ['floor_slow_transition'] : [];
+    const instructionCueIds: readonly VoiceCueKey[] = this.setIndex === 0 ? def.voice.instructions : [];
+    const cues = uniqueVoiceCues([...transitionCueIds, ...instructionCueIds]);
+    if (cues.length > 0) u.voice = cueSequence(cues);
+    this.emitSafety(u, transitionCueIds, false);
+  }
+
+  private runFloorSetup(
+    out: PipelineFrameOutput,
+    voiceBusy: boolean,
+    ts: number,
+    u: TrainingFrameUpdate
+  ): void {
+    const setup = this.floorSetup;
+    const def = this.currentDefinition();
+    if (!setup || !def) return;
+
+    if (setup.phase === 'transition_instruction' && !voiceBusy) {
+      this.floorSetup = {
+        ...setup,
+        phase: 'awaiting_user_transition',
+      };
+    }
+
+    if (!this.floorSetup?.userConfirmed) {
+      return;
+    }
+
+    const readiness = this.movementReadiness.update(out, def.cameraView);
+    if (!readiness.ready) {
+      this.markFloorSetupWaitingForVisibility(readiness);
+      return;
+    }
+
+    if (this.floorSetup.finalPositionReadyAtMs === null) {
+      if (voiceBusy) {
+        this.floorSetup = {
+          ...this.floorSetup,
+          phase: 'stabilizing',
+          movementReady: true,
+          stableForMs: readiness.stableForMs,
+          setupCaption: 'Hold the start position.',
+          actionLabel: null,
+        };
+        this.instructionsIdleAtMs = -1;
+        return;
+      }
+      this.floorSetup = {
+        ...this.floorSetup,
+        phase: 'ready',
+        movementReady: true,
+        finalPositionReadyAtMs: ts,
+        stableForMs: readiness.stableForMs,
+        setupCaption: null,
+        actionLabel: null,
+      };
+      this.floorMemory = {
+        ...this.floorMemory,
+        currentEnvironment: 'floor',
+        currentFloorItemId: def.id,
+      };
+      this.instructionsIdleAtMs = -1;
+      u.voice = cue('final-position-set-v21');
+      return;
+    }
+
+    this.floorSetup = {
+      ...this.floorSetup,
+      phase: 'ready',
+      movementReady: true,
+      stableForMs: readiness.stableForMs,
+      setupCaption: null,
+      actionLabel: null,
+    };
+    if (voiceBusy) {
+      this.instructionsIdleAtMs = -1;
+      return;
+    }
+    if (this.instructionsIdleAtMs < 0) this.instructionsIdleAtMs = ts;
+    if (ts - this.instructionsIdleAtMs >= this.config.postInstructionsDwellMs) {
+      this.startCountdown(ts, u);
+    }
+  }
+
+  private markFloorSetupWaitingForVisibility(readiness: MovementCameraReadinessResult): void {
+    if (!this.floorSetup) return;
+    const phase: TrainingFinalPositionPhase = readiness.stableForMs > 0 ? 'stabilizing' : 'awaiting_visibility';
+    this.floorSetup = {
+      ...this.floorSetup,
+      phase,
+      movementReady: false,
+      finalPositionReadyAtMs: null,
+      stableForMs: readiness.stableForMs,
+      setupCaption: readiness.setupCaption ?? 'Hold the start position.',
+      actionLabel: null,
+    };
+    this.instructionsIdleAtMs = -1;
+  }
+
   private startCountdown(ts: number, u: TrainingFrameUpdate): void {
+    this.cancelFloorSetup();
     this.phase = 'countdown';
     this.countdownStartMs = ts;
-    this.countdownStep = 1;
+    this.countdownAttemptOrdinal++;
     this.lastValidTimeState = null;
+    if (this.shouldUseTrackedTrainingVoiceBehaviorV21()) {
+      this.countdownStep = COUNTDOWN.length;
+      this.countdownAwaitingTrackedGo = true;
+      u.voice = cueSequence(COUNTDOWN);
+      return;
+    }
+    this.countdownStep = 1;
+    this.countdownAwaitingTrackedGo = false;
     u.voice = cue(COUNTDOWN[0]);
   }
 
   private runCountdown(ts: number, u: TrainingFrameUpdate): void {
+    if (this.countdownAwaitingTrackedGo) return;
     if (
       this.countdownStep < COUNTDOWN.length &&
       ts - this.countdownStartMs >= this.countdownStep * this.config.countdownStepMs
@@ -422,31 +798,47 @@ export class TrainingSessionPlayer {
       this.countdownStep++;
       u.voice = cue(c);
       if (c === 'go') {
-        const def = this.definitions[this.itemIndex];
-        this.grader = def.createGrader();
-        this.setStartMs = ts;
-        this.setDurationMs =
-          def.timing?.mode === 'valid_time'
-            ? null
-            : def.kind === 'rom'
-            ? (def.prescription.captureSec ?? 12) * 1000
-            : def.kind === 'timer'
-              ? (def.prescription.timerSec ?? def.prescription.holdSec ?? 20) * 1000
-              : null;
-        this.phase = 'set';
+        this.beginSet(ts);
       }
     }
   }
 
+  private beginSet(ts: number): void {
+    const def = this.definitions[this.itemIndex];
+    this.runtime = createTrainingSetRuntime({
+      exerciseDefinition: def,
+      generatedExercise: this.generatedByExerciseId.get(def.id) ?? null,
+      featureEnabled: this.options.stepUpAlternationFeatureEnabled,
+      trainingVoiceMode: this.options.trainingVoiceMode,
+      runtimeCapabilities: this.options.runtimeCapabilities,
+      restoredRuntime: this.options.restoredSetRuntime,
+      setIndex: this.setIndex,
+    });
+    this.setStartMs = ts;
+    this.setDurationMs =
+      def.timing?.mode === 'valid_time'
+        ? null
+        : def.kind === 'rom'
+        ? (def.prescription.captureSec ?? 12) * 1000
+        : def.kind === 'timer'
+          ? (def.prescription.timerSec ?? def.prescription.holdSec ?? 20) * 1000
+          : null;
+    this.phase = 'set';
+  }
+
   private runSet(out: PipelineFrameOutput, ts: number, u: TrainingFrameUpdate): void {
-    const grader = this.grader as ExerciseSetGrader;
-    const g = grader.update(out);
-    u.playRepSound = g.repCredited;
+    const runtime = this.runtime as TrainingSetRuntime;
+    const runtimeUpdate = runtime.update(out);
+    const g = runtimeUpdate.setUpdate;
+    u.playRepSound = runtime.kind === 'step_up_alternation' ? !!runtimeUpdate.acceptedRepEvent : g.repCredited;
     u.repCount = g.repCount;
     u.holdMs = g.holdMs;
     u.measuring = g.measuring;
     u.validTimeState = g.validTimeState ?? null;
     u.validTimeCaption = g.validTimeCaption ?? null;
+    u.stepUpContext = runtimeUpdate.stepUpContext ?? null;
+    u.stepUpCorrection = runtimeUpdate.correction ?? null;
+    u.setRuntimeKind = runtime.kind;
     if (g.voice) u.voice = { cues: g.voice.cues, priority: g.voice.priority };
     if (g.validTimeState === 'paused' && this.lastValidTimeState !== 'paused') {
       const safety = this.currentSafetyProfile();
@@ -467,7 +859,7 @@ export class TrainingSessionPlayer {
         : NaN;
 
     if (g.complete || clockEnded || safetyEnded) {
-      this.currentSets.push(grader.finish(ts));
+      this.currentSets.push(runtime.finish(ts));
       const def = this.definitions[this.itemIndex];
       // Don't overwrite the autoregulation line ("that's your set") if present.
       if (this.setIndex + 1 < def.prescription.sets) {
@@ -501,12 +893,18 @@ export class TrainingSessionPlayer {
     u.remainingMs = Math.max(0, this.restDurationMs - (ts - this.restEnteredMs));
     if (this.restSpoken && !voiceBusy && ts - this.restEnteredMs >= this.restDurationMs) {
       this.setIndex++;
+      if (this.shouldUseFloorSetupV21(def)) {
+        this.enterFloorSetup(ts, u);
+        return;
+      }
       this.startCountdown(ts, u);
     }
   }
 
   private advanceItem(ts: number): void {
-    this.grader = null;
+    this.runtime = null;
+    this.countdownAwaitingTrackedGo = false;
+    this.cancelFloorSetup();
     const next = this.itemIndex + 1;
     if (next >= this.definitions.length) {
       this.phase = 'complete';
@@ -526,6 +924,39 @@ export class TrainingSessionPlayer {
   private currentSafetyProfile(): PlannedExerciseSafetyCueProfile | null {
     const def = this.currentDefinition();
     return def ? this.safetyByExerciseId.get(def.id) ?? null : null;
+  }
+
+  private shouldUseFloorSetupV21(def: ExerciseDefinition): boolean {
+    const featureEnabled = this.options.floorV21FeatureEnabled ?? isTrainingFloorV21FeatureEnabled();
+    return (
+      def.equipment.includes('floor') &&
+      this.options.trainingVoiceMode === 'internal_v21' &&
+      featureEnabled === true &&
+      this.options.runtimeCapabilities?.internalFloorSetupReady === true
+    );
+  }
+
+  private shouldUseTrackedTrainingVoiceBehaviorV21(): boolean {
+    return (
+      this.options.trainingVoiceMode === 'internal_v21' &&
+      this.options.runtimeCapabilities?.internalTrainingVoiceBehaviorReady === true
+    );
+  }
+
+  private cancelFloorSetup(): void {
+    if (!this.floorSetup) return;
+    this.floorSetup = null;
+    this.movementReadiness.reset();
+    this.instructionsIdleAtMs = -1;
+  }
+
+  private floorMemorySnapshot(): TrainingFloorSessionMemory {
+    return {
+      floorFamilyIntroduced: this.floorMemory.floorFamilyIntroduced,
+      currentEnvironment: this.floorMemory.currentEnvironment,
+      currentFloorItemId: this.floorMemory.currentFloorItemId,
+      currentFloorSetupEpoch: this.floorMemory.currentFloorSetupEpoch,
+    };
   }
 
   private emitSafety(u: TrainingFrameUpdate, cueIds: readonly SafetyCueId[], speak: boolean): void {
@@ -551,6 +982,18 @@ function maxPriority(cues: readonly VoiceCueKey[]): number {
 
 function promptCue(prompt: PreflightPrompt): VoiceCueKey {
   return prompt === 'ready' ? 'framing-ready' : prompt;
+}
+
+function cloneFloorSetup(snapshot: TrainingFloorSetupSnapshot | null): TrainingFloorSetupSnapshot | null {
+  return snapshot ? { ...snapshot } : null;
+}
+
+function uniqueVoiceCues(items: readonly VoiceCueKey[]): VoiceCueKey[] {
+  const out: VoiceCueKey[] = [];
+  for (const item of items) {
+    if (!out.includes(item)) out.push(item);
+  }
+  return out;
 }
 
 function uniqueSafety(items: readonly SafetyCueId[]): SafetyCueId[] {

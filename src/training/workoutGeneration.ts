@@ -51,6 +51,7 @@ import {
   movementCapabilityBlockReasonsForLevel,
   movementCapabilitySupportsLevel,
 } from './movementCapabilitySafety';
+import { deriveFloorExerciseEligibility } from './floorExerciseEligibility';
 import {
   plannedCollectionSelectionFromResult,
   selectCollectionMember,
@@ -59,11 +60,13 @@ import {
 } from './collectionSelection';
 import type {
   BothSidesDosePlan,
+  BothSidesStartSideSeedState,
   TrainingRoundSide,
 } from './bothSidesRounds';
-import type {
-  StepUpAlternationPlan,
-  StepUpLeadSide,
+import {
+  attachStepUpAlternationPlansToGeneratedSession,
+  type StepUpAlternationPlan,
+  type StepUpLeadSide,
 } from './stepUpAlternation';
 
 export type TrainingDomain = 'strength_power' | 'balance_stability' | 'mobility_flexibility';
@@ -215,6 +218,9 @@ export interface GenerateSessionInput {
   collectionExposures?: readonly CollectionExposure[];
   scheduleSelection?: TemplateSelectionSchedule;
   source?: SessionSource;
+  bothSidesStartSideSeed?: Partial<BothSidesStartSideSeedState> | null;
+  stepUpAlternationFeatureEnabled?: boolean;
+  internalStepUpAlternationRuntimeReady?: boolean;
   /** @deprecated Controlled beta ignores caller attempts to enable optional levels. */
   includeOptionalLevels?: boolean;
   sessionIntensity?: SessionIntensity;
@@ -705,7 +711,7 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
   }
 
   const estimatedMinutes = estimateSessionMinutes(exercises, readiness, workingTemplate.estimatedMinutes);
-  return {
+  const session: GeneratedSession = {
     id: `generated-session-${input.block?.id ?? source}-${workingTemplate.id}-${dateKey(input.today ?? new Date())}`,
     blockId: input.block?.id,
     templateId: workingTemplate.id,
@@ -727,6 +733,12 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
     progressionEvidencePolicy,
     adjustmentReasons: unique([...dailyContext.reasonCodes, ...profileModifiers.reasonCodes]),
   };
+  return attachStepUpAlternationPlansToGeneratedSession({
+    session,
+    seedState: input.bothSidesStartSideSeed,
+    featureEnabled: input.stepUpAlternationFeatureEnabled,
+    internalV21RuntimeReady: input.internalStepUpAlternationRuntimeReady,
+  });
 }
 
 export function getExtraSessionPreset(id: string): SessionTemplate | null {
@@ -1170,6 +1182,15 @@ function selectLevelFromLadder(
     if (!level) continue;
     if (!isExerciseLevelAvailableForRelease(level)) continue;
     if (input.usedExerciseIds.has(level.id) && ladder.levels.length > 1) continue;
+    if (
+      !deriveFloorExerciseEligibility({
+        level,
+        ladder,
+        availableEquipment: input.equipment,
+        movementCapabilities: input.movementCapabilities,
+        discomfortConstraint: input.discomfortConstraint,
+      }).eligible
+    ) continue;
     if (!equipmentSupportsTags(level.equipment, input.equipment)) continue;
     if (isExerciseExcludedByDiscomfort(ladder, level, input.discomfortConstraint)) continue;
     if (!movementCapabilitySupportsLevel(level, input.movementCapabilities)) continue;

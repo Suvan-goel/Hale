@@ -8,7 +8,7 @@ import {
   type MovementDomain,
 } from '../adherence';
 import { domainLabel, domainShortLabel } from '../adherence/goalDomainMapping';
-import type { HaleUserFlowState, NextBestAction } from './types';
+import type { HaleUserFlowState, MicroCheckDefinition, NextBestAction } from './types';
 
 export function getBlockPurposeCopy(block: MovementBlock, lifeGoal?: LifeGoal | null): string {
   return getAdherenceBlockPurposeCopy(block, lifeGoal);
@@ -18,10 +18,12 @@ export function getNextBestActionCopy({
   state,
   block,
   lifeGoal,
+  microCheckTarget,
 }: {
   state: HaleUserFlowState;
   block?: MovementBlock | null;
   lifeGoal?: LifeGoal | null;
+  microCheckTarget?: MicroCheckDefinition;
 }): Omit<NextBestAction, 'state'> {
   switch (state) {
     case 'needs_life_goal':
@@ -84,8 +86,8 @@ export function getNextBestActionCopy({
       };
     case 'active_block_micro_check_due':
       return {
-        title: 'Do your 60-second check-in',
-        body: 'Quick check-ins help Hale adjust between full check-ups.',
+        title: microCheckTarget ? `${microCheckDomainLabel(microCheckTarget.domain)} check-in` : 'Do your 60-second check-in',
+        body: microCheckTarget?.body ?? 'Quick check-ins help Hale adjust between full check-ups.',
         primaryCta: 'Start check-in',
         primaryRoute: 'microcheck',
         secondaryCta: "Start today's session",
@@ -249,6 +251,12 @@ function sessionBody(block?: MovementBlock | null, lifeGoal?: LifeGoal | null): 
   if (focusDomain) return `20 minutes to keep building ${domainShortLabel(focusDomain)}.`;
   if (block) return '20 minutes to build strength, balance, and mobility.';
   return '20 minutes to support your progress and keep building toward your goal.';
+}
+
+function microCheckDomainLabel(domain: MovementDomain): string {
+  if (domain === 'strength_power') return 'Strength';
+  if (domain === 'balance') return 'Balance';
+  return 'Mobility';
 }
 
 function focusBody(block?: MovementBlock | null, lifeGoal?: LifeGoal | null, fallback?: string): string {
