@@ -84,7 +84,7 @@ export interface RiggedHumanSilhouetteGeometry {
   calibrationState: RiggedHumanSilhouetteCalibrationState;
   proportions: RiggedHumanSilhouetteProportions;
   bounds: Bounds;
-  drawOrderKey: 'deterministic-right-rear-left-front';
+  drawOrderKey: 'deterministic-limbs-under-core';
   continuity: RiggedHumanSilhouetteContinuity;
   internalControlPoints: Point[];
   surfaces: RiggedHumanSilhouetteSurface[];
@@ -190,9 +190,9 @@ const EMPTY_BOUNDS: Bounds = {
 const SURFACE_IDS: readonly RiggedHumanSilhouetteSurfaceId[] = [
   'rightArm',
   'rightLeg',
-  'centralShell',
   'leftLeg',
   'leftArm',
+  'centralShell',
   'torsoHighlight',
   'sideShade',
   'sternumAccent',
@@ -354,7 +354,7 @@ export function createRiggedHumanSilhouetteGeometry(): RiggedHumanSilhouetteGeom
     calibrationState: 'neutral',
     proportions: { ...DEFAULT_PROPORTIONS },
     bounds: emptyBounds(),
-    drawOrderKey: 'deterministic-right-rear-left-front',
+    drawOrderKey: 'deterministic-limbs-under-core',
     continuity: emptyContinuity(),
     internalControlPoints: createControlPointBuffer(),
     surfaces: SURFACE_IDS.map((id) => ({
@@ -461,7 +461,7 @@ export function buildRiggedHumanSilhouetteGeometry(
     'torsoHighlight',
     overlays.highlightPath,
     `url(#${RIGGED_HUMAN_SILHOUETTE_HIGHLIGHT_GRADIENT_ID})`,
-    overlays.highlightPath ? 0.34 : 0,
+    overlays.highlightPath ? 0.16 : 0,
     central.confidence,
     overlays.highlightBounds
   );
@@ -470,7 +470,7 @@ export function buildRiggedHumanSilhouetteGeometry(
     'sideShade',
     overlays.shadePath,
     RIGGED_HUMAN_SILHOUETTE_COLORS.deepGraphite,
-    overlays.shadePath ? 0.22 : 0,
+    overlays.shadePath ? 0.04 : 0,
     central.confidence,
     overlays.shadeBounds
   );
@@ -887,67 +887,91 @@ function buildCentralShell(
   );
   const widthCompression = orientation.widthCompression;
   const shoulderHalf = clamp(
-    proportions.shoulderWidth * 0.58 * widthCompression,
-    proportions.bodyScale * 0.2,
-    proportions.bodyScale * 0.9
+    proportions.shoulderWidth * 0.72 * widthCompression,
+    proportions.bodyScale * 0.32,
+    proportions.bodyScale * 1.08
   );
   const hipHalf = clamp(
-    proportions.hipWidth * 0.62 * widthCompression,
-    proportions.bodyScale * 0.16,
+    proportions.hipWidth * 0.78 * widthCompression,
+    proportions.bodyScale * 0.24,
     shoulderHalf * 0.92
   );
-  const waistHalf = clamp((shoulderHalf + hipHalf) * 0.43, proportions.bodyScale * 0.24, shoulderHalf * 0.72);
-  const neckHalf = clamp(proportions.headRx * 0.34, proportions.bodyScale * 0.12, proportions.bodyScale * 0.22);
+  const ribHalf = clamp(shoulderHalf * 0.74, hipHalf * 1.02, shoulderHalf * 0.88);
+  const waistHalf = clamp((ribHalf + hipHalf) * 0.36, proportions.bodyScale * 0.3, shoulderHalf * 0.66);
+  const neckHalf = clamp(proportions.headRx * 0.44, proportions.bodyScale * 0.14, proportions.bodyScale * 0.25);
   const head = getHeadEstimate(pose, MIN_RENDER_CONFIDENCE);
+  const rawHeadRx = head ? blend(proportions.headRx, head.rx, 0.18) : proportions.headRx;
   const headRx = clamp(
-    (head ? blend(proportions.headRx, head.rx, 0.18) : proportions.headRx) *
-      blend(1, 0.66, orientation.factor),
-    proportions.bodyScale * 0.24,
-    proportions.bodyScale * 0.48
+    rawHeadRx * 0.78 * blend(1, 0.66, orientation.factor),
+    proportions.shoulderWidth * 0.18,
+    proportions.shoulderWidth * 0.25
   );
   const headRy = clamp(
     head ? blend(proportions.headRy, head.ry, 0.14) : proportions.headRy,
-    headRx * 1.12,
-    headRx * 1.42
+    headRx * 1.1,
+    headRx * 1.24
   );
-  const headCenterFallback = add(shoulderMid, scale(axis, -(headRy + proportions.bodyScale * 0.2)));
+  const headCenterFallback = add(shoulderMid, scale(axis, -(headRy * 2.2 + proportions.bodyScale * 0.12)));
+  const rawHeadCenter = head && pointFinite(head.center)
+    ? add(head.center, scale(axis, headRy * 0.16))
+    : null;
   const headCenter = head && pointFinite(head.center)
-    ? clampHeadCenter(head.center, headCenterFallback, axis, sideAxis, headRx, headRy)
+    ? clampHeadCenter(rawHeadCenter!, headCenterFallback, axis, sideAxis, headRx, headRy)
     : headCenterFallback;
-  const neckCenter = add(shoulderMid, scale(axis, -proportions.bodyScale * 0.08));
-  const upperNeck = add(headCenter, scale(axis, headRy * 0.58));
+  const neckBase = add(shoulderMid, scale(axis, -torsoLength * 0.14));
+  const upperNeck = add(headCenter, scale(axis, headRy * 0.72));
 
   const headTop = add(headCenter, scale(axis, -headRy));
-  const headLeft = add(add(headCenter, scale(axis, -headRy * 0.12)), scale(sideAxis, headRx));
-  const headRight = add(add(headCenter, scale(axis, -headRy * 0.12)), scale(sideAxis, -headRx));
-  const jawLeft = add(add(upperNeck, scale(axis, -headRy * 0.05)), scale(sideAxis, neckHalf * 0.9));
-  const jawRight = add(add(upperNeck, scale(axis, -headRy * 0.05)), scale(sideAxis, -neckHalf * 0.9));
-  const neckLeft = add(neckCenter, scale(sideAxis, neckHalf));
-  const neckRight = add(neckCenter, scale(sideAxis, -neckHalf));
-  const shoulderLeft = add(shoulderMid, scale(sideAxis, shoulderHalf));
-  const shoulderRight = add(shoulderMid, scale(sideAxis, -shoulderHalf));
+  const headLeft = add(add(headCenter, scale(axis, -headRy * 0.1)), scale(sideAxis, headRx));
+  const headRight = add(add(headCenter, scale(axis, -headRy * 0.1)), scale(sideAxis, -headRx));
+  const jawLeft = add(add(headCenter, scale(axis, headRy * 0.5)), scale(sideAxis, headRx * 0.58));
+  const jawRight = add(add(headCenter, scale(axis, headRy * 0.5)), scale(sideAxis, -headRx * 0.58));
+  const neckTopLeft = add(upperNeck, scale(sideAxis, neckHalf * 0.68));
+  const neckTopRight = add(upperNeck, scale(sideAxis, -neckHalf * 0.68));
+  const neckLeft = add(neckBase, scale(sideAxis, neckHalf * 1.08));
+  const neckRight = add(neckBase, scale(sideAxis, -neckHalf * 1.08));
+  const trapLeft = add(add(shoulderMid, scale(axis, torsoLength * 0.006)), scale(sideAxis, shoulderHalf * 0.42));
+  const trapRight = add(add(shoulderMid, scale(axis, torsoLength * 0.006)), scale(sideAxis, -shoulderHalf * 0.42));
+  const shoulderLeft = add(add(shoulderMid, scale(axis, torsoLength * 0.076)), scale(sideAxis, shoulderHalf));
+  const shoulderRight = add(add(shoulderMid, scale(axis, torsoLength * 0.076)), scale(sideAxis, -shoulderHalf));
+  const deltoidLeft = add(add(shoulderMid, scale(axis, torsoLength * 0.15)), scale(sideAxis, shoulderHalf * 1.02));
+  const deltoidRight = add(add(shoulderMid, scale(axis, torsoLength * 0.15)), scale(sideAxis, -shoulderHalf * 1.02));
+  const rib = add(shoulderMid, scale(axis, torsoLength * 0.3));
+  const ribLeft = add(rib, scale(sideAxis, ribHalf));
+  const ribRight = add(rib, scale(sideAxis, -ribHalf));
   const waist = add(shoulderMid, scale(axis, torsoLength * 0.56));
   const waistLeft = add(waist, scale(sideAxis, waistHalf));
   const waistRight = add(waist, scale(sideAxis, -waistHalf));
   const hipLeft = add(add(hipMid, scale(axis, torsoLength * 0.08)), scale(sideAxis, hipHalf));
   const hipRight = add(add(hipMid, scale(axis, torsoLength * 0.08)), scale(sideAxis, -hipHalf));
-  const pelvisBottom = add(hipMid, scale(axis, torsoLength * 0.18));
+  const pelvisBottom = add(hipMid, scale(axis, torsoLength * 0.16));
 
   const points = [
-    headTop, headLeft, jawLeft, neckLeft, shoulderLeft, waistLeft, hipLeft, pelvisBottom,
-    hipRight, waistRight, shoulderRight, neckRight, jawRight, headRight,
+    headTop, headLeft, jawLeft, neckTopLeft, neckLeft, trapLeft, shoulderLeft, deltoidLeft,
+    ribLeft, waistLeft, hipLeft, pelvisBottom, hipRight, waistRight, ribRight, deltoidRight,
+    shoulderRight, trapRight, neckRight, neckTopRight, jawRight, headRight,
   ];
   const path = [
-    `M${pointPath(neckLeft)}`,
-    `C${pointPath(jawLeft)} ${pointPath(headLeft)} ${pointPath(headTop)}`,
-    `C${pointPath(headRight)} ${pointPath(jawRight)} ${pointPath(neckRight)}`,
-    `C${pointPath(add(neckRight, scale(sideAxis, -shoulderHalf * 0.3)))} ${pointPath(add(shoulderRight, scale(axis, -torsoLength * 0.08)))} ${pointPath(shoulderRight)}`,
-    `C${pointPath(add(shoulderRight, scale(axis, torsoLength * 0.2)))} ${pointPath(add(waistRight, scale(axis, -torsoLength * 0.16)))} ${pointPath(waistRight)}`,
-    `C${pointPath(add(waistRight, scale(axis, torsoLength * 0.14)))} ${pointPath(add(hipRight, scale(axis, -torsoLength * 0.08)))} ${pointPath(hipRight)}`,
-    `Q${pointPath(pelvisBottom)} ${pointPath(hipLeft)}`,
-    `C${pointPath(add(hipLeft, scale(axis, -torsoLength * 0.08)))} ${pointPath(add(waistLeft, scale(axis, torsoLength * 0.14)))} ${pointPath(waistLeft)}`,
-    `C${pointPath(add(waistLeft, scale(axis, -torsoLength * 0.16)))} ${pointPath(add(shoulderLeft, scale(axis, torsoLength * 0.2)))} ${pointPath(shoulderLeft)}`,
-    `C${pointPath(add(shoulderLeft, scale(axis, -torsoLength * 0.08)))} ${pointPath(add(neckLeft, scale(sideAxis, shoulderHalf * 0.3)))} ${pointPath(neckLeft)} Z`,
+    `M${pointPath(headTop)}`,
+    `C${pointPath(add(headTop, scale(sideAxis, headRx * 0.7)))} ${pointPath(add(headLeft, scale(axis, -headRy * 0.34)))} ${pointPath(headLeft)}`,
+    `C${pointPath(add(headLeft, scale(axis, headRy * 0.32)))} ${pointPath(add(jawLeft, scale(sideAxis, headRx * 0.14)))} ${pointPath(jawLeft)}`,
+    `C${pointPath(add(jawLeft, scale(axis, headRy * 0.16)))} ${pointPath(add(neckTopLeft, scale(axis, -headRy * 0.08)))} ${pointPath(neckTopLeft)}`,
+    `C${pointPath(add(neckTopLeft, scale(axis, headRy * 0.16)))} ${pointPath(add(neckLeft, scale(sideAxis, -neckHalf * 0.1)))} ${pointPath(neckLeft)}`,
+    `C${pointPath(add(trapLeft, scale(sideAxis, -shoulderHalf * 0.24)))} ${pointPath(add(trapLeft, scale(axis, -torsoLength * 0.028)))} ${pointPath(trapLeft)}`,
+    `C${pointPath(add(shoulderLeft, scale(axis, -torsoLength * 0.042)))} ${pointPath(add(shoulderLeft, scale(sideAxis, -shoulderHalf * 0.08)))} ${pointPath(shoulderLeft)}`,
+    `C${pointPath(add(deltoidLeft, scale(axis, torsoLength * 0.026)))} ${pointPath(add(ribLeft, scale(axis, -torsoLength * 0.112)))} ${pointPath(ribLeft)}`,
+    `C${pointPath(add(ribLeft, scale(axis, torsoLength * 0.104)))} ${pointPath(add(waistLeft, scale(axis, -torsoLength * 0.084)))} ${pointPath(waistLeft)}`,
+    `C${pointPath(add(waistLeft, scale(axis, torsoLength * 0.118)))} ${pointPath(add(hipLeft, scale(axis, -torsoLength * 0.072)))} ${pointPath(hipLeft)}`,
+    `Q${pointPath(pelvisBottom)} ${pointPath(hipRight)}`,
+    `C${pointPath(add(hipRight, scale(axis, -torsoLength * 0.072)))} ${pointPath(add(waistRight, scale(axis, torsoLength * 0.118)))} ${pointPath(waistRight)}`,
+    `C${pointPath(add(waistRight, scale(axis, -torsoLength * 0.084)))} ${pointPath(add(ribRight, scale(axis, torsoLength * 0.104)))} ${pointPath(ribRight)}`,
+    `C${pointPath(add(ribRight, scale(axis, -torsoLength * 0.112)))} ${pointPath(add(deltoidRight, scale(axis, torsoLength * 0.026)))} ${pointPath(deltoidRight)}`,
+    `C${pointPath(add(shoulderRight, scale(sideAxis, shoulderHalf * 0.08)))} ${pointPath(add(shoulderRight, scale(axis, -torsoLength * 0.042)))} ${pointPath(shoulderRight)}`,
+    `C${pointPath(add(trapRight, scale(axis, -torsoLength * 0.028)))} ${pointPath(add(trapRight, scale(sideAxis, shoulderHalf * 0.24)))} ${pointPath(neckRight)}`,
+    `C${pointPath(add(neckRight, scale(sideAxis, neckHalf * 0.1)))} ${pointPath(add(neckTopRight, scale(axis, headRy * 0.16)))} ${pointPath(neckTopRight)}`,
+    `C${pointPath(add(neckTopRight, scale(axis, -headRy * 0.08)))} ${pointPath(add(jawRight, scale(axis, headRy * 0.16)))} ${pointPath(jawRight)}`,
+    `C${pointPath(add(jawRight, scale(sideAxis, -headRx * 0.14)))} ${pointPath(add(headRight, scale(axis, headRy * 0.32)))} ${pointPath(headRight)}`,
+    `C${pointPath(add(headRight, scale(axis, -headRy * 0.34)))} ${pointPath(add(headTop, scale(sideAxis, -headRx * 0.7)))} ${pointPath(headTop)} Z`,
   ].join(' ');
 
   return {
@@ -963,7 +987,7 @@ function buildCentralShell(
       hipMid,
       axis,
       sideAxis,
-      neckCenter,
+      neckCenter: neckBase,
       headCenter,
       torsoLength,
       shoulderHalf,
@@ -998,15 +1022,17 @@ function buildArmSurface(
   if (!pointFinite(p0) || !pointFinite(p1) || !pointFinite(p2) || confidence < MIN_RENDER_CONFIDENCE) {
     return emptyLimb(side);
   }
-  const hand = terminalPoint(pose, wrist, index, proportions.upperArmLength * 0.32, confidence);
+  const root = interpolatePoint(p0, p1, 0.22);
+  const hand = terminalPoint(pose, wrist, index, proportions.upperArmLength * 0.24, confidence);
+  const handPoint = interpolatePoint(p2, hand.point, 0.72);
   const widthCompression = blend(1, 0.72, orientation.factor);
   const widths: [number, number, number, number] = [
-    clamp(proportions.bodyScale * 0.2 * widthCompression, 7, 25),
-    clamp(proportions.bodyScale * 0.17 * widthCompression, 6, 22),
-    clamp(proportions.bodyScale * 0.12 * widthCompression, 5, 17),
-    clamp(proportions.bodyScale * 0.07 * widthCompression, 3, 12),
+    clamp(proportions.bodyScale * 0.24 * widthCompression, 9, 26),
+    clamp(proportions.bodyScale * 0.24 * widthCompression, 9, 26),
+    clamp(proportions.bodyScale * 0.16 * widthCompression, 7, 20),
+    clamp(proportions.bodyScale * 0.1 * widthCompression, 4, 14),
   ];
-  return buildLimbModel(side, [p0, p1, p2, hand.point], widths, confidence, minConfidence, baseFill);
+  return buildLimbModel(side, [root, p1, p2, handPoint], widths, confidence, minConfidence, baseFill);
 }
 
 function buildLegSurface(
@@ -1035,15 +1061,17 @@ function buildLegSurface(
   if (!pointFinite(p0) || !pointFinite(p1) || !pointFinite(p2) || confidence < MIN_RENDER_CONFIDENCE) {
     return emptyLimb(side);
   }
-  const footTip = terminalPoint(pose, ankle, foot, proportions.lowerLegLength * 0.24, confidence);
+  const root = interpolatePoint(p0, p1, 0.04);
+  const footTip = terminalPoint(pose, ankle, foot, proportions.lowerLegLength * 0.16, confidence);
+  const footPoint = interpolatePoint(p2, footTip.point, 0.5);
   const widthCompression = blend(1, 0.76, orientation.factor);
   const widths: [number, number, number, number] = [
-    clamp(proportions.bodyScale * 0.26 * widthCompression, 10, 32),
-    clamp(proportions.bodyScale * 0.2 * widthCompression, 8, 26),
-    clamp(proportions.bodyScale * 0.13 * widthCompression, 6, 18),
-    clamp(proportions.bodyScale * 0.1 * widthCompression, 5, 16),
+    clamp(proportions.bodyScale * 0.44 * widthCompression, 15, 42),
+    clamp(proportions.bodyScale * 0.31 * widthCompression, 11, 32),
+    clamp(proportions.bodyScale * 0.22 * widthCompression, 8, 24),
+    clamp(proportions.bodyScale * 0.14 * widthCompression, 5, 16),
   ];
-  return buildLimbModel(side, [p0, p1, p2, footTip.point], widths, confidence, minConfidence, baseFill);
+  return buildLimbModel(side, [root, p1, p2, footPoint], widths, confidence, minConfidence, baseFill);
 }
 
 function buildLimbModel(
@@ -1466,7 +1494,7 @@ function clampHeadCenter(
   const delta = { x: raw.x - fallback.x, y: raw.y - fallback.y };
   const along = delta.x * axis.x + delta.y * axis.y;
   const side = delta.x * sideAxis.x + delta.y * sideAxis.y;
-  return add(add(fallback, scale(axis, clamp(along, -ry * 0.42, ry * 0.42))), scale(sideAxis, clamp(side, -rx * 0.58, rx * 0.58)));
+  return add(add(fallback, scale(axis, clamp(along, -ry * 2, ry * 1))), scale(sideAxis, clamp(side, -rx * 0.58, rx * 0.58)));
 }
 
 function fillForConfidence(confidence: number, minConfidence: number, baseFill: string): string {
@@ -1492,6 +1520,13 @@ function pointFor(pose: ScreenPoseLandmarks, lm: LM): Point {
 
 function midpoint(a: Point, b: Point): Point {
   return { x: (a.x + b.x) * 0.5, y: (a.y + b.y) * 0.5 };
+}
+
+function interpolatePoint(a: Point, b: Point, amount: number): Point {
+  return {
+    x: blend(a.x, b.x, amount),
+    y: blend(a.y, b.y, amount),
+  };
 }
 
 function add(a: Point, b: Point): Point {

@@ -5,6 +5,8 @@ import { spawnSync } from 'node:child_process';
 
 const ROOT = process.cwd();
 const TASK_START_AUDIO_HASH = '/tmp/hale_floor_post_safety_audio_entry.sha256';
+const VOICE_V21_GENERATION_ENTRY_AUDIO_HASH = '/tmp/hale_voice_v21_generation_audio_entry.sha256';
+const VOICE_V21_GENERATION_PLAN = 'docs/audits/HALE_VOICE_V2_1_GENERATION_PLAN.csv';
 
 const ARTIFACTS = {
   implementation: 'docs/audits/HALE_TRAINING_FLOOR_READINESS_IMPLEMENTATION.md',
@@ -1114,7 +1116,10 @@ Final Voice V2.1 cue schema and physical manifest reconciliation.
 
 function auditAudioIntegrity() {
   const current = audioHashManifest();
-  const entry = readAudioHashManifest(TASK_START_AUDIO_HASH);
+  const entryPath = fs.existsSync(VOICE_V21_GENERATION_ENTRY_AUDIO_HASH)
+    ? VOICE_V21_GENERATION_ENTRY_AUDIO_HASH
+    : TASK_START_AUDIO_HASH;
+  const entry = readAudioHashManifest(entryPath);
   const diff = compareHashManifests(entry?.hashes ?? null, current);
   const verify = runVerifyAudio();
   return {
@@ -1168,17 +1173,59 @@ function readAudioHashManifest(filePath) {
 
 function compareHashManifests(entry, current) {
   if (!entry) return { changed: 0, added: 0, deleted: 0 };
+  const plannedGenerated = plannedVoiceV21AudioPaths();
   let changed = 0;
   let added = 0;
   let deleted = 0;
   for (const [file, hash] of current) {
+    if (plannedGenerated.has(file)) continue;
     if (!entry.has(file)) added++;
     else if (entry.get(file) !== hash) changed++;
   }
   for (const file of entry.keys()) {
+    if (plannedGenerated.has(file)) continue;
     if (!current.has(file)) deleted++;
   }
   return { changed, added, deleted };
+}
+
+function plannedVoiceV21AudioPaths() {
+  const planPath = path.join(ROOT, VOICE_V21_GENERATION_PLAN);
+  if (!fs.existsSync(planPath)) return new Set();
+  const lines = fs.readFileSync(planPath, 'utf8').trim().split(/\r?\n/).filter(Boolean);
+  if (lines.length < 2) return new Set();
+  const headers = parseCsvLine(lines[0]);
+  const outputPathIndex = headers.indexOf('outputPath');
+  if (outputPathIndex < 0) return new Set();
+  return new Set(lines.slice(1).map((line) => parseCsvLine(line)[outputPathIndex]).filter(Boolean));
+}
+
+function parseCsvLine(line) {
+  const out = [];
+  let current = '';
+  let quoted = false;
+  for (let index = 0; index < line.length; index++) {
+    const char = line[index];
+    if (quoted) {
+      if (char === '"' && line[index + 1] === '"') {
+        current += '"';
+        index++;
+      } else if (char === '"') {
+        quoted = false;
+      } else {
+        current += char;
+      }
+    } else if (char === '"') {
+      quoted = true;
+    } else if (char === ',') {
+      out.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  out.push(current);
+  return out;
 }
 
 function listFiles(dir) {

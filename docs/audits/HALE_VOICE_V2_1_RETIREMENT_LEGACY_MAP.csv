@@ -1,14 +1,14 @@
 cueKey,currentFlowReachability,v21Lifecycle,legacyRequired,conditionalLegacyReason,retireAfterFeatureGate,physicalAssetAction,manifestAction,notes
 balance_no_eyes_closed_or_unstable_surface,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 balance_stop_if_unsteady,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
-balance_support_within_reach,training,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for equip-balance-support-v21 but not semantically reusable.
+balance_support_within_reach,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 balance_supported_if_hesitant,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
-balance-feet-together,balance_v2,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for checkup-balance-feet-together-v21 but not semantically reusable.
+balance-feet-together,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 balance-intro,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
-balance-semi-tandem,balance_v2;balance_v2,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for checkup-balance-semi-tandem-left-v21;checkup-balance-semi-tandem-right-v21 but not semantically reusable.
+balance-semi-tandem,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 balance-setup,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 balance-single-leg,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
-balance-tandem,balance_v2;balance_v2,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for checkup-balance-tandem-left-v21;checkup-balance-tandem-right-v21 but not semantically reusable.
+balance-tandem,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 band_anchor_feet_secure,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 band_controlled_return,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 band_do_not_overstretch,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
@@ -18,13 +18,22 @@ band_never_release_under_tension,legacy_safety_or_setup,legacy_only,true,,false,
 band_secure_grip,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 band_stable_stance,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 band_stop_if_slips_or_shifts,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
-center-yourself,training,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for setup-center-v21 but not semantically reusable.
+center-yourself,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 chair_controlled_sit,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
-chair_use_sturdy_chair,training,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for equip-chair-stable-v21 but not semantically reusable.
+chair_use_sturdy_chair,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 chair-stand-intro,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 chair-stand-setup,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+checkup-balance-feet-together-v21,balance_v2,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 checkup-balance-intro-v21,balance_v2;movement_checkup,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
-checkup-balance-single-leg-v21,movement_checkup;balance_v2;balance_v2,physical_ready,true,,false,keep,no_change_in_schema_task,Candidate for checkup-balance-single-leg-left-v21;checkup-balance-single-leg-right-v21 but not semantically reusable.
+checkup-balance-next-stance-v21,balance_v2,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+checkup-balance-semi-tandem-left-v21,balance_v2,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+checkup-balance-semi-tandem-right-v21,balance_v2,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+checkup-balance-single-leg-left-v21,balance_v2,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+checkup-balance-single-leg-right-v21,balance_v2,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+checkup-balance-single-leg-v21,movement_checkup,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+checkup-balance-support-touch-v21,balance_v2,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+checkup-balance-tandem-left-v21,balance_v2,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+checkup-balance-tandem-right-v21,balance_v2,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 checkup-chair-stand-intro-v21,movement_checkup,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 checkup-chair-stand-setup-v21,movement_checkup,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 checkup-complete,movement_checkup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
@@ -46,25 +55,108 @@ door_anchor_fully_closed,legacy_safety_or_setup,legacy_only,true,,false,keep,no_
 door_anchor_stay_out_of_door_path,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 door_anchor_stop_if_moves,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 door_anchor_test_light_tension,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+equip-balance-support-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+equip-chair-stable-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+equip-door-anchor-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+equip-floor-transition-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+equip-long-band-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+equip-step-stable-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+equip-support-close-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 ex-balance,legacy_training_family_instruction,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-balance-feet-together-hold-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-balance-feet-together-hold-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-balance-single-leg-hold-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-balance-single-leg-hold-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-balance-tandem-hold-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-balance-tandem-hold-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-band-pull-apart-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-band-pull-apart-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-chair-supported-split-squat-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-chair-supported-split-squat-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 ex-glute-bridge,legacy_training_family_instruction,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
-ex-hamstring-reach,micro_check;micro_check,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for micro-mobility-left-v21;micro-mobility-right-v21 but not semantically reusable.
+ex-glute-bridge-hold-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-glute-bridge-hold-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-glute-bridge-reps-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-glute-bridge-reps-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-hamstring-reach,legacy_training_family_instruction,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 ex-heel-raise,legacy_training_family_instruction,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-heel-raise-free-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-heel-raise-free-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-heel-raise-supported-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-heel-raise-supported-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 ex-hip-hinge,legacy_training_family_instruction,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-hip-hinge-free-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-hip-hinge-free-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-hip-hinge-wall-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-hip-hinge-wall-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-loaded-march-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-loaded-march-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-loaded-sit-to-stand-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-loaded-sit-to-stand-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 ex-march,legacy_training_family_instruction,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-mini-band-lateral-walk-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-mini-band-lateral-walk-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 ex-neck-rotation,legacy_training_family_instruction,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-neck-rotation-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-neck-rotation-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 ex-overhead,legacy_training_family_instruction,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-overhead-press-band-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-overhead-press-band-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-overhead-reach-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-overhead-reach-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 ex-push-up,legacy_training_family_instruction,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-push-up-incline-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-push-up-incline-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-push-up-standard-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-push-up-standard-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-push-up-wall-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-push-up-wall-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-seated-band-row-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-seated-band-row-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-seated-hamstring-reach-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-seated-hamstring-reach-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 ex-sit-to-stand,legacy_training_family_instruction,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 ex-squat,legacy_training_family_instruction,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-squat-free-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-squat-free-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-squat-loaded-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-squat-loaded-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-squat-slow-eccentric-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-squat-slow-eccentric-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-squat-supported-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-squat-supported-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-standing-band-row-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-standing-band-row-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 ex-step-up,legacy_training_family_instruction,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
-exercise-skipped,training,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for training-skip-v21 but not semantically reusable.
+ex-step-up-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-step-up-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-sts-cushion-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-sts-cushion-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-sts-power-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-sts-power-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-sts-slow-eccentric-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-sts-slow-eccentric-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-sts-standard-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-sts-standard-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-supported-hip-flexor-stretch-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-supported-hip-flexor-stretch-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-supported-side-step-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-supported-side-step-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-thoracic-rotation-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-thoracic-rotation-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-toe-raise-supported-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-toe-raise-supported-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-wall-calf-stretch-first-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+ex-wall-calf-stretch-next-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+exercise-skipped,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 face-forward,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 final-position-set-v21,balance_v2;micro_check;movement_checkup;training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+five-seconds-left-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 floor_clear_space,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
-floor_slow_transition,training,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for equip-floor-transition-v21 but not semantically reusable.
+floor_slow_transition,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 floor_stop_if_transfer_unsteady,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 floor_use_support_for_transfer,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+floor-gate-question-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 framing-ready,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 global_breathe_normally,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 global_clear_space,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
@@ -73,15 +165,25 @@ global_stop_dizzy_or_lightheaded,legacy_safety_or_setup,legacy_only,true,,false,
 global_stop_if_support_moves,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 global_stop_sharp_or_increasing_pain,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 go,balance_v2;micro_check;training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+halfway-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 hinge-intro,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 hinge-setup,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
-hold-still,training,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for setup-hold-still-v21 but not semantically reusable.
+hold-still,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 item-complete,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
-item-complete-v21,movement_checkup;training;balance_v2,physical_ready,true,,false,keep,no_change_in_schema_task,Candidate for checkup-balance-next-stance-v21 but not semantically reusable.
-last-set,training,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for last-set-v21 but not semantically reusable.
-microcheck-balance,micro_check;micro_check,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for micro-single-leg-left-v21;micro-single-leg-right-v21 but not semantically reusable.
-microcheck-chair,micro_check,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for micro-chair-power-v21 but not semantically reusable.
-microcheck-complete,micro_check,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for microcheck-complete-v21 but not semantically reusable.
+item-complete-v21,movement_checkup;training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+last-set,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+last-set-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+micro-chair-power-v21,micro_check,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+micro-discard-v21,micro_check,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+micro-mobility-left-v21,micro_check,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+micro-mobility-right-v21,micro_check,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+micro-relax-v21,micro_check,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+micro-single-leg-left-v21,micro_check,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+micro-single-leg-right-v21,micro_check,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+microcheck-balance,legacy_micro_check,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+microcheck-chair,legacy_micro_check,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+microcheck-complete,legacy_micro_check,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+microcheck-complete-v21,micro_check,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 microcheck-intro,legacy_micro_check,retired,false,Retired/inactive for Micro-Check V2.1.,true,keep_for_now_no_delete_in_schema_task,no_change_in_schema_task,Classified from current physical corpus.
 mobility_no_forcing,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 mpv2_balance_attempt_saved,movement_checkup,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
@@ -100,7 +202,8 @@ mpv2_hinge_complete,movement_checkup,physical_ready,true,,false,keep,no_change_i
 mpv2_hinge_no_measurement,movement_checkup,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 mpv2_shoulder_tracking_retry,movement_checkup,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 next-exercise,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
-next-up,training,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for next-exercise-v21 but not semantically reusable.
+next-exercise-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+next-up,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 no-reps,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 num-0,legacy_results_number_stitching,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 num-1,legacy_results_number_stitching,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
@@ -144,16 +247,41 @@ num-7,legacy_results_number_stitching,legacy_only,true,,false,keep,no_change_in_
 num-8,legacy_results_number_stitching,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 num-9,legacy_results_number_stitching,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 open-your-eyes,conditional_legacy_balance,conditional_legacy_only,true,Eyes-closed balance is absent from default Balance V2.,false,keep,no_change_in_schema_task,Classified from current physical corpus.
-relax-arm,micro_check,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for micro-relax-v21 but not semantically reusable.
-rest-now,training,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for rest-now-v21 but not semantically reusable.
+paused-v21,micro_check;training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+relax-arm,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+rest-now,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+rest-now-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+resuming-v21,micro_check;training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 retry-v21,balance_v2;micro_check;movement_checkup;training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
-session-complete,training,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for session-complete-v21 but not semantically reusable.
-set-done,training,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for set-complete-v21 but not semantically reusable.
+safe-session-start-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+session-complete,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+session-complete-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+set-complete-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+set-done,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 set-plan-four-v21,none,not_required,false,,false,none_no_asset,do_not_add,Set-plan total-set-count setup cues are not part of default V2.1.
 set-plan-three-v21,none,not_required,false,,false,none_no_asset,do_not_add,Set-plan total-set-count setup cues are not part of default V2.1.
 set-plan-two-v21,none,not_required,false,,false,none_no_asset,do_not_add,Set-plan total-set-count setup cues are not part of default V2.1.
+setup-back-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+setup-center-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+setup-clearer-view-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+setup-closer-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+setup-enter-view-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+setup-hold-still-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+setup-light-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 shoulder-intro,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 shoulder-setup,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+side-calf-left-back-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+side-calf-right-back-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+side-hamstring-left-extended-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+side-hamstring-right-extended-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+side-hip-flexor-left-back-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+side-hip-flexor-right-back-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+side-single-leg-left-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+side-single-leg-right-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+side-split-squat-left-forward-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+side-split-squat-right-forward-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+side-tandem-left-front-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+side-tandem-right-front-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 stand-tall,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 stands-suffix,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 step_clear_dry_area,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
@@ -162,11 +290,57 @@ step_fixed_support_nearby,legacy_safety_or_setup,legacy_only,true,,false,keep,no
 step_phone_out_of_path,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 step_stop_if_unstable,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 step_use_low_stable_step,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
-step-back,training,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for setup-back-v21 but not semantically reusable.
-step-closer,training,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for setup-closer-v21 but not semantically reusable.
-step-into-frame,training,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for setup-enter-view-v21 but not semantically reusable.
-support_keep_support_within_reach,training,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for equip-support-close-v21 but not semantically reusable.
+step-back,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+step-closer,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+step-into-frame,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+step-up-next-left-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+step-up-next-right-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+step-up-start-left-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+step-up-start-right-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+step-up-wrong-left-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+step-up-wrong-right-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+support_keep_support_within_reach,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 support_use_sturdy_support,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+switch-foot-positions-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+switch-legs-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+switch-sides-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-balance-feet-together-hold-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-balance-single-leg-hold-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-balance-tandem-hold-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-band-pull-apart-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-chair-supported-split-squat-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-glute-bridge-hold-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-glute-bridge-reps-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-heel-raise-free-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-heel-raise-supported-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-hip-hinge-free-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-hip-hinge-wall-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-loaded-march-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-loaded-sit-to-stand-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-mini-band-lateral-walk-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-neck-rotation-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-overhead-press-band-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-overhead-reach-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-push-up-incline-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-push-up-standard-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-push-up-wall-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-seated-band-row-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-seated-hamstring-reach-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-squat-free-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-squat-loaded-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-squat-slow-eccentric-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-squat-supported-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-standing-band-row-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-step-up-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-sts-cushion-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-sts-power-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-sts-slow-eccentric-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-sts-standard-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-supported-hip-flexor-stretch-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-supported-side-step-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-thoracic-rotation-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-toe-raise-supported-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+target-wall-calf-stretch-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 thats-your-set,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 time-to-retest,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 times-up,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
@@ -177,10 +351,12 @@ tracking_no_rush_or_exaggerate,legacy_safety_or_setup,legacy_only,true,,false,ke
 tracking_pause_and_reset,legacy_safety_or_setup,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 tracking-loss-v21,balance_v2;micro_check;movement_checkup;training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 tracking-recovered-v21,balance_v2;micro_check;movement_checkup;training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
-training-intro,training,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for training-intro-v21 but not semantically reusable.
+training-intro,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+training-intro-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
+training-skip-v21,training,physical_ready,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 tug-intro,conditional_legacy_tug,conditional_legacy_only,true,TUG remains conditional/legacy outside default V2.1.,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 tug-setup,conditional_legacy_tug,conditional_legacy_only,true,TUG remains conditional/legacy outside default V2.1.,false,keep,no_change_in_schema_task,Classified from current physical corpus.
-turn-on-light,training,script_mismatch_candidate,true,,false,keep,no_change_in_schema_task,Candidate for setup-light-v21 but not semantically reusable.
+turn-on-light,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 turn-side-on,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 voice-preview,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.
 you-completed,legacy_shared_or_current_manifest,legacy_only,true,,false,keep,no_change_in_schema_task,Classified from current physical corpus.

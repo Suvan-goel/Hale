@@ -3,6 +3,7 @@ import {
   TRAINING_VOICE_EXERCISE_CONTRACTS_V21,
   TRAINING_VOICE_SHARED_LOGICAL_CUES_V21,
 } from './contracts';
+import { VOICE_V2_1_AUDIO_ASSET_METADATA } from '../../audio/voiceV21AudioManifest';
 import type {
   TrainingVoiceAssetRequirementV21,
   TrainingVoiceAssetStatusV21,
@@ -83,6 +84,8 @@ const SAFETY_FAMILY_BY_LOGICAL_CUE_KEY: Readonly<Record<string, TrainingVoiceSaf
   'equip-floor-transition-v21': 'floor_eligible_user',
 };
 
+const REQUIRED_GENERATED_VOICE_IDS = ['clara', 'marcus'] as const;
+
 export function listTrainingVoiceAssetRequirementsV21(): TrainingVoiceAssetRequirementV21[] {
   const usage = cueUsage();
   return allTrainingVoiceLogicalCuesV21()
@@ -106,7 +109,11 @@ function assetRequirementFor(
   cue: TrainingVoiceLogicalCueV21,
   usage?: CueUsage
 ): TrainingVoiceAssetRequirementV21 {
-  const candidate = EXACT_EXISTING_PHYSICAL_CANDIDATES[cue.key] ?? MISMATCH_PHYSICAL_CANDIDATES[cue.key] ?? null;
+  const candidate =
+    generatedExactCandidate(cue.key, cue.exactScript) ??
+    EXACT_EXISTING_PHYSICAL_CANDIDATES[cue.key] ??
+    MISMATCH_PHYSICAL_CANDIDATES[cue.key] ??
+    null;
   const status = assetStatusFor(candidate);
   return {
     logicalCueKey: cue.key,
@@ -246,4 +253,17 @@ function exact(key: string, script: string): PhysicalCandidate {
 
 function mismatch(key: string, script: string): PhysicalCandidate {
   return { key, script, existsForBothVoices: true, semanticMatch: false };
+}
+
+function generatedExactCandidate(key: string, script: string): PhysicalCandidate | null {
+  const hasExactGeneratedPair = REQUIRED_GENERATED_VOICE_IDS.every((voiceId) => {
+    const metadata = VOICE_V2_1_AUDIO_ASSET_METADATA[voiceId]?.[key];
+    return (
+      metadata?.logicalCueKey === key &&
+      metadata.physicalCueKey === key &&
+      metadata.script === script &&
+      metadata.path === `assets/audio/voice/${voiceId}/${key}.mp3`
+    );
+  });
+  return hasExactGeneratedPair ? exact(key, script) : null;
 }

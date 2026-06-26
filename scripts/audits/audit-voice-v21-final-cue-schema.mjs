@@ -60,6 +60,10 @@ const verdict =
     : backlogRows.length === 0
       ? 'VOICE_V2_1_FINAL_SCHEMA_COMPLETE_AUDIO_READY'
       : 'VOICE_V2_1_FINAL_SCHEMA_COMPLETE_GENERATION_PENDING';
+const nextTask =
+  backlogRows.length === 0
+    ? 'Post-generation whole-project Voice V2.1 static/runtime audit with measured durations'
+    : 'Consolidated Clara/Marcus Voice V2.1 asset generation';
 
 const audit = {
   auditVersion: 1,
@@ -89,19 +93,25 @@ const audit = {
   },
   readiness: {
     trainingBehaviorReady: source.readiness.trainingBehaviorReady,
+    trainingPhysicalAudioSurfaceReady: source.readiness.trainingPhysicalAudioSurfaceReady,
+    trainingAudioApprovalReady: source.readiness.trainingAudioApprovalReady,
     trainingAudioReady: source.readiness.trainingAudioReady,
     trainingFeatureDefault: source.readiness.trainingFeatureEnabled ? 'on' : 'off',
     trainingSelectableExerciseCount: source.readiness.trainingSelectableExerciseCount,
     microBehaviorReady: source.readiness.microBehaviorReady,
+    microPhysicalAudioSurfaceReady: source.readiness.microPhysicalAudioSurfaceReady,
+    microAudioApprovalReady: source.readiness.microAudioApprovalReady,
     microAudioReady: source.readiness.microAudioReady,
     microFeatureDefault: source.readiness.microFeatureDefault,
     microSelectableTypeCount: source.readiness.microSelectableTypeCount,
+    balanceV2PhysicalAudioSurfaceReady: source.readiness.balanceV2PhysicalAudioSurfaceReady,
+    balanceV2AudioApprovalReady: source.readiness.balanceV2AudioApprovalReady,
     balanceV2AudioReady: source.readiness.balanceV2AudioReady,
     balanceV2DefaultClosed: !source.readiness.balanceV2Selectable,
   },
   metrics,
   findings,
-  nextTask: 'Consolidated Clara/Marcus Voice V2.1 asset generation',
+  nextTask,
 };
 
 writeCsv(ARTIFACTS.registry, [
@@ -256,7 +266,9 @@ function runSourceProbe() {
     import { listTrainingVoiceContractsV21 } from './src/training/voiceV21/contracts';
     import {
       TRAINING_VOICE_V2_1_AUDIO_READY,
+      TRAINING_VOICE_V2_1_AUDIO_APPROVAL_READY,
       TRAINING_VOICE_V2_1_BEHAVIOR_READY,
+      TRAINING_VOICE_V2_1_PHYSICAL_AUDIO_SURFACE_READY,
       isTrainingVoiceV21FeatureEnabled,
       selectTrainingVoiceRuntimeModeV21,
     } from './src/training/voiceV21/readiness';
@@ -264,8 +276,10 @@ function runSourceProbe() {
     import { listMicroCheckVoiceContractsV21 } from './src/training/microCheckVoiceV21/contracts';
     import {
       MICRO_CHECK_VOICE_V2_1_AUDIO_READY,
+      MICRO_CHECK_VOICE_V2_1_AUDIO_APPROVAL_READY,
       MICRO_CHECK_VOICE_V2_1_BEHAVIOR_READY,
       MICRO_CHECK_VOICE_V2_1_FEATURE_DEFAULT,
+      MICRO_CHECK_VOICE_V2_1_PHYSICAL_AUDIO_SURFACE_READY,
       microCheckVoiceSelectableTypeCountV21,
     } from './src/training/microCheckVoiceV21/readiness';
     import {
@@ -276,8 +290,11 @@ function runSourceProbe() {
     import { safetyAudioCueIds } from './src/audio/safetyAudio';
     import {
       EYES_OPEN_BALANCE_PROTOCOL_V2_AUDIO_READY,
+      EYES_OPEN_BALANCE_PROTOCOL_V2_AUDIO_APPROVAL_READY,
+      EYES_OPEN_BALANCE_PROTOCOL_V2_PHYSICAL_AUDIO_SURFACE_READY,
       EYES_OPEN_BALANCE_PROTOCOL_V2_SELECTABLE,
     } from './src/config/eyesOpenBalanceProtocolV2';
+    import { VOICE_V2_1_AUDIO_ASSET_METADATA } from './src/audio/voiceV21AudioManifest';
 
     const trainingContracts = listTrainingVoiceContractsV21();
     const trainingSelection = selectTrainingVoiceRuntimeModeV21({
@@ -312,15 +329,22 @@ function runSourceProbe() {
         safety: safetyAudioCueIds(),
         movementProfileV2: movementProfileV2AudioCueIds(),
       },
+      voiceV21AudioMetadata: VOICE_V2_1_AUDIO_ASSET_METADATA,
       readiness: {
         trainingBehaviorReady: TRAINING_VOICE_V2_1_BEHAVIOR_READY,
+        trainingPhysicalAudioSurfaceReady: TRAINING_VOICE_V2_1_PHYSICAL_AUDIO_SURFACE_READY,
+        trainingAudioApprovalReady: TRAINING_VOICE_V2_1_AUDIO_APPROVAL_READY,
         trainingAudioReady: TRAINING_VOICE_V2_1_AUDIO_READY,
         trainingFeatureEnabled: trainingSelection.featureEnabled,
         trainingSelectableExerciseCount: trainingSelection.itemReadiness.filter((item) => item.selectable).length,
         microBehaviorReady: MICRO_CHECK_VOICE_V2_1_BEHAVIOR_READY,
+        microPhysicalAudioSurfaceReady: MICRO_CHECK_VOICE_V2_1_PHYSICAL_AUDIO_SURFACE_READY,
+        microAudioApprovalReady: MICRO_CHECK_VOICE_V2_1_AUDIO_APPROVAL_READY,
         microAudioReady: MICRO_CHECK_VOICE_V2_1_AUDIO_READY,
         microFeatureDefault: MICRO_CHECK_VOICE_V2_1_FEATURE_DEFAULT,
         microSelectableTypeCount: microCheckVoiceSelectableTypeCountV21(),
+        balanceV2PhysicalAudioSurfaceReady: EYES_OPEN_BALANCE_PROTOCOL_V2_PHYSICAL_AUDIO_SURFACE_READY,
+        balanceV2AudioApprovalReady: EYES_OPEN_BALANCE_PROTOCOL_V2_AUDIO_APPROVAL_READY,
         balanceV2AudioReady: EYES_OPEN_BALANCE_PROTOCOL_V2_AUDIO_READY,
         balanceV2Selectable: EYES_OPEN_BALANCE_PROTOCOL_V2_SELECTABLE,
       },
@@ -461,8 +485,13 @@ function buildLogicalRegistry({ source: data, balanceRows: balance, physicalAsse
   for (const row of balance) {
     const logicalCueKey = row.proposedCueKey;
     if (!logicalCueKey) continue;
-    const semanticMatch = row.semanticMatch === 'true';
-    const candidate = row.currentCandidateKey && row.currentCandidateKey !== 'none' ? row.currentCandidateKey : '';
+    const generatedExact = hasGeneratedVoiceV21Pair(data, logicalCueKey, row.intendedScript);
+    const semanticMatch = row.semanticMatch === 'true' || generatedExact;
+    const candidate = generatedExact
+      ? logicalCueKey
+      : row.currentCandidateKey && row.currentCandidateKey !== 'none'
+        ? row.currentCandidateKey
+        : '';
     const legacy = row.runtimeRequiredness === 'legacy_only';
     const lifecycle = legacy
       ? 'conditional_legacy_only'
@@ -488,8 +517,8 @@ function buildLogicalRegistry({ source: data, balanceRows: balance, physicalAsse
       lifecycle,
       reuseDecision,
       physicalCueKey: candidate || logicalCueKey,
-      claraExists: row.claraExists === 'true',
-      marcusExists: row.marcusExists === 'true',
+      claraExists: generatedExact || row.claraExists === 'true',
+      marcusExists: generatedExact || row.marcusExists === 'true',
       semanticMatch,
       generationRequiredLater: !legacy && !semanticMatch,
       retireLater: false,
@@ -611,6 +640,8 @@ function buildPhysicalRows(assets, registry, data) {
   }
   const safety = new Set(data.requiredAudioCueIds.safety);
   const mpv2 = new Set(data.requiredAudioCueIds.movementProfileV2);
+  const voiceV21 = new Set(Object.values(data.voiceV21AudioMetadata ?? {})
+    .flatMap((byCue) => Object.values(byCue ?? {}).map((metadata) => metadata.physicalCueKey)));
   return assets.map((asset) => {
     const exactRefs = exactByPhysical.get(asset.cueKey) ?? [];
     const candidateRefs = candidatesByPhysical.get(asset.cueKey) ?? [];
@@ -630,9 +661,9 @@ function buildPhysicalRows(assets, registry, data) {
       sha256: asset.sha256,
       durationMs: String(asset.durationMs),
       manifestRegistered: String(asset.manifestRegistered),
-      verifyAudioCovered: String(safety.has(asset.cueKey) || mpv2.has(asset.cueKey)),
-      generationMetadataPresent: String(safety.has(asset.cueKey) || mpv2.has(asset.cueKey)),
-      fingerprintStatus: safety.has(asset.cueKey) || mpv2.has(asset.cueKey)
+      verifyAudioCovered: String(safety.has(asset.cueKey) || mpv2.has(asset.cueKey) || voiceV21.has(asset.cueKey)),
+      generationMetadataPresent: String(safety.has(asset.cueKey) || mpv2.has(asset.cueKey) || voiceV21.has(asset.cueKey)),
+      fingerprintStatus: safety.has(asset.cueKey) || mpv2.has(asset.cueKey) || voiceV21.has(asset.cueKey)
         ? 'verified_by_verify_audio'
         : 'baseline_audio_without_required_fingerprint_gate',
       referencedByLogicalCueKeys: [...new Set([...exactRefs, ...candidateRefs])].sort().join(';'),
@@ -887,7 +918,13 @@ function computeMetrics(input) {
     cueUnionAddAllowedCount: 0,
     cueUnionAddDeferredCount: manifestPlan.filter((row) => row.requiresCueUnionEdit === 'true' && row.allowedInThisTask === 'false').length,
     trainingBehaviorReadyValue: data.readiness.trainingBehaviorReady,
+    trainingPhysicalAudioSurfaceReadyValue: data.readiness.trainingPhysicalAudioSurfaceReady,
+    trainingAudioApprovalReadyValue: data.readiness.trainingAudioApprovalReady,
     microBehaviorReadyValue: data.readiness.microBehaviorReady,
+    microPhysicalAudioSurfaceReadyValue: data.readiness.microPhysicalAudioSurfaceReady,
+    microAudioApprovalReadyValue: data.readiness.microAudioApprovalReady,
+    balanceV2PhysicalAudioSurfaceReadyValue: data.readiness.balanceV2PhysicalAudioSurfaceReady,
+    balanceV2AudioApprovalReadyValue: data.readiness.balanceV2AudioApprovalReady,
     trainingAudioReadyValue: data.readiness.trainingAudioReady,
     microAudioReadyValue: data.readiness.microAudioReady,
     balanceV2AudioReadyValue: data.readiness.balanceV2AudioReady,
@@ -1200,7 +1237,7 @@ Final listening review for Clara and Marcus and consolidated Android/iOS device 
 
 ## Exact Next Task
 
-Consolidated Clara/Marcus Voice V2.1 asset generation
+\`${audit.nextTask}\`
 `;
 }
 
@@ -1358,6 +1395,18 @@ function hasBothVoices(cueKey, physicalCueKeys) {
   return physicalCueKeys.has(cueKey);
 }
 
+function hasGeneratedVoiceV21Pair(data, cueKey, script) {
+  return VOICES.every((voiceId) => {
+    const metadata = data.voiceV21AudioMetadata?.[voiceId]?.[cueKey];
+    return (
+      metadata?.logicalCueKey === cueKey &&
+      metadata.physicalCueKey === cueKey &&
+      metadata.script === script &&
+      metadata.path === `assets/audio/voice/${voiceId}/${cueKey}.mp3`
+    );
+  });
+}
+
 function isActiveLifecycle(lifecycle) {
   return ['physical_ready', 'script_mismatch', 'pending_audio', 'active_v21'].includes(lifecycle);
 }
@@ -1469,14 +1518,22 @@ function countAudioHashChanges() {
   if (!fs.existsSync(ENTRY_AUDIO_HASH)) return 0;
   const entry = parseHashFile(fs.readFileSync(ENTRY_AUDIO_HASH, 'utf8'));
   const current = currentAudioHashes();
+  const plannedGenerated = voiceV21MetadataPaths();
   let changed = 0;
   for (const [file, hash] of entry.entries()) {
+    if (plannedGenerated.has(file)) continue;
     if (current.get(file) !== hash) changed++;
   }
   for (const file of current.keys()) {
+    if (plannedGenerated.has(file)) continue;
     if (!entry.has(file)) changed++;
   }
   return changed;
+}
+
+function voiceV21MetadataPaths() {
+  return new Set(Object.values(source.voiceV21AudioMetadata ?? {})
+    .flatMap((byCue) => Object.values(byCue ?? {}).map((metadata) => metadata.path)));
 }
 
 function audioHashCounts() {

@@ -1,6 +1,6 @@
 # Hale Voice Project Post Final Cue Schema Handoff
 
-Verdict: `VOICE_V2_1_FINAL_SCHEMA_COMPLETE_GENERATION_PENDING`
+Verdict: `VOICE_V2_1_FINAL_SCHEMA_COMPLETE_AUDIO_READY`
 
 ## Artifact Paths
 
@@ -15,14 +15,14 @@ Verdict: `VOICE_V2_1_FINAL_SCHEMA_COMPLETE_GENERATION_PENDING`
 
 ## Counts
 
-- Pending logical cue count: 176
-- Exact existing pair reuse count: 36
-- Script mismatch count: 35
-- Retired / legacy-only / conditional legacy counts: 1 / 117 / 6
-- Pending Training cues: 159
-- Pending Micro-Check cues: 10
+- Pending logical cue count: 0
+- Exact existing pair reuse count: 212
+- Script mismatch count: 0
+- Retired / legacy-only / conditional legacy counts: 1 / 142 / 6
+- Pending Training cues: 0
+- Pending Micro-Check cues: 0
 - Pending MPV2/Check-Up cues: 0
-- Pending Balance V2 cues: 9
+- Pending Balance V2 cues: 0
 
 ## Regenerated Audio Baseline
 
@@ -46,4 +46,4 @@ Final listening review for Clara and Marcus and consolidated Android/iOS device 
 
 ## Exact Next Task
 
-Consolidated Clara/Marcus Voice V2.1 asset generation
+`Post-generation whole-project Voice V2.1 static/runtime audit with measured durations`

@@ -1,4 +1,5 @@
 import type { BodySide } from '../../checkup';
+import { VOICE_V2_1_AUDIO_ASSET_METADATA } from '../../audio/voiceV21AudioManifest';
 import {
   MICRO_CHECK_VOICE_SHARED_LOGICAL_CUES_V21,
   allMicroCheckVoiceLogicalCuesV21,
@@ -58,6 +59,7 @@ const MISMATCH_PHYSICAL_CANDIDATES: Readonly<Record<string, PhysicalCandidate>> 
 };
 
 const SHARED_TYPES: readonly MicroCheckTypeV21[] = ['chair-power', 'single-leg-balance', 'mobility-reach'];
+const REQUIRED_GENERATED_VOICE_IDS = ['clara', 'marcus'] as const;
 
 export function listMicroCheckVoiceAssetRequirementsV21(): MicroCheckVoiceAssetRequirementV21[] {
   const usage = cueUsage();
@@ -86,7 +88,11 @@ function assetRequirementForCue(
   cue: MicroCheckVoiceLogicalCueV21,
   usage?: CueUsage
 ): MicroCheckVoiceAssetRequirementV21 {
-  const candidate = EXACT_EXISTING_PHYSICAL_CANDIDATES[cue.key] ?? MISMATCH_PHYSICAL_CANDIDATES[cue.key] ?? null;
+  const candidate =
+    generatedExactCandidate(cue.key, cue.exactScript) ??
+    EXACT_EXISTING_PHYSICAL_CANDIDATES[cue.key] ??
+    MISMATCH_PHYSICAL_CANDIDATES[cue.key] ??
+    null;
   const reuseDecision = reuseDecisionFor(candidate);
   return {
     logicalCueKey: cue.key,
@@ -184,4 +190,17 @@ function exact(key: string, script: string): PhysicalCandidate {
 
 function mismatch(key: string, script: string): PhysicalCandidate {
   return { key, script, existsForBothVoices: true, semanticMatch: false };
+}
+
+function generatedExactCandidate(key: MicroCheckVoiceLogicalCueKeyV21, script: string): PhysicalCandidate | null {
+  const hasExactGeneratedPair = REQUIRED_GENERATED_VOICE_IDS.every((voiceId) => {
+    const metadata = VOICE_V2_1_AUDIO_ASSET_METADATA[voiceId]?.[key];
+    return (
+      metadata?.logicalCueKey === key &&
+      metadata.physicalCueKey === key &&
+      metadata.script === script &&
+      metadata.path === `assets/audio/voice/${voiceId}/${key}.mp3`
+    );
+  });
+  return hasExactGeneratedPair ? exact(key, script) : null;
 }

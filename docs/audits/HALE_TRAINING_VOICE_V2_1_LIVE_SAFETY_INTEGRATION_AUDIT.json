@@ -1,10 +1,10 @@
 {
   "verdict": "TRAINING_VOICE_V2_1_LIVE_SAFETY_INTEGRATION_SOFTWARE_COMPLETE",
-  "generatedAt": "2026-06-26T09:57:25.027Z",
+  "generatedAt": "2026-06-26T11:14:05.899Z",
   "git": {
     "branch": "dev",
-    "head": "2b3e28bc48bde987e82f599a5e811d0f801686b8",
-    "shortHead": "2b3e28b",
+    "head": "87124fedfb942e86ad5b307b5bbc1c10deb69119",
+    "shortHead": "87124fe",
     "upstream": "origin/dev"
   },
   "metrics": {

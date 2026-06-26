@@ -19,9 +19,12 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import * as crypto from 'node:crypto';
+import { spawnSync } from 'node:child_process';
 
 import {
   AUDIO_OUTPUT_FORMAT,
+  AUDIO_TTS_PROVIDER,
   AUDIO_VOICE_SETTINGS,
   ELEVENLABS_MODEL,
   safetyAudioCueIds,
@@ -35,6 +38,12 @@ import {
 } from '../src/audio/movementProfileV2Audio';
 import { MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA } from '../src/audio/movementProfileV2AudioManifest';
 import { SAFETY_AUDIO_ASSET_METADATA } from '../src/audio/safetyAudioManifest';
+import {
+  voiceV21AudioExpectedPath,
+  voiceV21AudioFingerprint,
+  type VoiceV21AudioAssetMetadata,
+} from '../src/audio/voiceV21Audio';
+import { VOICE_V2_1_AUDIO_ASSET_METADATA } from '../src/audio/voiceV21AudioManifest';
 import {
   MOVEMENT_PROFILE_V2_CUE_DEFINITIONS,
   movementProfileV2CueText,
@@ -223,11 +232,74 @@ interface CliOptions {
   dryRun: boolean;
   force: boolean;
   cue: string | null;
+  fromBacklog: string | null;
+  mode: string | null;
+  targeted: boolean;
 }
 
 interface SelectedVoice {
   id: string;
   elevenLabsVoiceId: string;
+}
+
+interface BacklogRow {
+  logicalCueKey: string;
+  exactScript: string;
+  flow: string;
+  category: string;
+  policyId: string;
+  requiredForVoiceFirst: string;
+  voiceIdsNeeded: string;
+  currentPhysicalCandidate: string;
+  reuseDecision: string;
+  reasonForGeneration: string;
+  budgetClass: string;
+  sourceArtifact: string;
+  notes: string;
+}
+
+interface VoiceV21GenerationJob {
+  jobId: string;
+  rowIndex: number;
+  logicalCueKey: string;
+  physicalCueKey: string;
+  voice: SelectedVoice;
+  exactScript: string;
+  flow: string;
+  category: string;
+  policyId: string;
+  reuseDecision: string;
+  reasonForGeneration: string;
+  budgetClass: string;
+  sourceArtifact: string;
+  notes: string;
+  outputPath: string;
+  outputAbsPath: string;
+  fingerprint: string;
+  status: AudioAssetStatus | 'blocked';
+  dryRunStatus: string;
+  blockingReason: string;
+  willCreateNew: boolean;
+  willReplaceExisting: boolean;
+  legacyAffected: boolean;
+  currentMetadata: VoiceV21AudioAssetMetadata | undefined;
+}
+
+interface ProbedAudio {
+  fileSizeBytes: number;
+  sha256: string;
+  durationMs: number;
+  sampleRateHz: number;
+  channels: number;
+}
+
+interface VoiceV21JobResult {
+  job: VoiceV21GenerationJob;
+  status: 'generated' | 'skipped_current' | 'failed';
+  stagingPath: string;
+  errorCode: string;
+  errorMessage: string;
+  probe: ProbedAudio | null;
 }
 
 interface SafetyAssetPlanRow {
@@ -280,6 +352,9 @@ function parseArgs(argv: readonly string[]): CliOptions {
     dryRun: false,
     force: false,
     cue: null,
+    fromBacklog: null,
+    mode: null,
+    targeted: false,
   };
   for (let index = 0; index < argv.length; index++) {
     const arg = argv[index];
@@ -303,9 +378,29 @@ function parseArgs(argv: readonly string[]): CliOptions {
       options.cue = argv[++index] ?? null;
     } else if (arg.startsWith('--cue=')) {
       options.cue = arg.slice('--cue='.length);
+    } else if (arg === '--from-backlog') {
+      options.fromBacklog = argv[++index] ?? null;
+    } else if (arg.startsWith('--from-backlog=')) {
+      options.fromBacklog = arg.slice('--from-backlog='.length);
+    } else if (arg === '--voices') {
+      options.voice = argv[++index] ?? 'all';
+    } else if (arg.startsWith('--voices=')) {
+      options.voice = arg.slice('--voices='.length);
+    } else if (arg === '--mode') {
+      options.mode = argv[++index] ?? null;
+    } else if (arg.startsWith('--mode=')) {
+      options.mode = arg.slice('--mode='.length);
+    } else if (arg === '--targeted') {
+      options.targeted = true;
     } else {
       throw new Error(`unknown audio generation option: ${arg}`);
     }
+  }
+  if (options.fromBacklog !== null) {
+    if (options.group !== 'all') throw new Error('--from-backlog cannot be combined with --group');
+    if (options.cue !== null) throw new Error('--from-backlog cannot be combined with --cue');
+    if (options.mode !== 'v2.1') throw new Error('--from-backlog requires --mode v2.1');
+    if (!options.targeted) throw new Error('--from-backlog requires --targeted');
   }
   if (options.cue !== null && options.group !== 'all') {
     throw new Error('--cue is only supported with the default full voice-line group');
@@ -328,9 +423,19 @@ function isAudioGroup(value: string | undefined): value is AudioGroup {
 }
 
 function selectVoices(selector: VoiceSelector): SelectedVoice[] {
-  const voices = selector === 'all' ? VOICE_OPTIONS : VOICE_OPTIONS.filter((voice) => voice.id === selector);
+  const requested = selector === 'all'
+    ? null
+    : selector.split(',').map((item) => item.trim()).filter(Boolean);
+  const voices = requested === null
+    ? VOICE_OPTIONS
+    : VOICE_OPTIONS.filter((voice) => requested.includes(voice.id));
   if (voices.length === 0) {
     throw new Error(`unknown voice '${selector}'. Expected one of: ${VOICE_OPTIONS.map((voice) => voice.id).join(', ')}, all`);
+  }
+  if (requested !== null && voices.length !== requested.length) {
+    const known = new Set(VOICE_OPTIONS.map((voice) => voice.id));
+    const missing = requested.filter((voiceId) => !known.has(voiceId));
+    throw new Error(`unknown voice '${missing.join(',')}'. Expected one of: ${VOICE_OPTIONS.map((voice) => voice.id).join(', ')}, all`);
   }
   return voices.map((voice) => {
     if (!voice.elevenLabsVoiceId) {
@@ -343,7 +448,7 @@ function selectVoices(selector: VoiceSelector): SelectedVoice[] {
 function lineKeysForGroup(group: AudioGroup): string[] {
   if (group === 'safety') return safetyAudioCueIds();
   if (group === 'movement_profile_v2') return movementProfileV2AudioCueIds();
-  return Object.keys(LINES).sort();
+  return [...new Set([...Object.keys(LINES), ...voiceV21MetadataLineKeys()])].sort();
 }
 
 function buildSafetyPlan(voices: readonly SelectedVoice[], force: boolean): SafetyAssetPlanRow[] {
@@ -390,10 +495,28 @@ function needsGeneration(row: { status: AudioAssetStatus }): boolean {
 }
 
 function lineTextForVoice(key: string, voiceId: string): string {
-  const line = LINES[key];
+  const line = LINES[key] ?? voiceV21MetadataLineText(key);
   if (!line) throw new Error(`missing line for cue '${key}'`);
   const voiceName = VOICE_OPTIONS.find((voice) => voice.id === voiceId)?.label ?? 'Hale';
   return line.replaceAll('{voiceName}', voiceName);
+}
+
+function voiceV21MetadataLineKeys(): string[] {
+  const keys = new Set<string>();
+  for (const byCue of Object.values(VOICE_V2_1_AUDIO_ASSET_METADATA)) {
+    for (const metadata of Object.values(byCue ?? {})) {
+      if (metadata?.physicalCueKey) keys.add(metadata.physicalCueKey);
+    }
+  }
+  return [...keys];
+}
+
+function voiceV21MetadataLineText(key: string): string | null {
+  for (const byCue of Object.values(VOICE_V2_1_AUDIO_ASSET_METADATA)) {
+    const metadata = byCue?.[key];
+    if (metadata?.script) return metadata.script;
+  }
+  return null;
 }
 
 function printSafetyPlan(rows: readonly SafetyAssetPlanRow[], dryRun: boolean): void {
@@ -582,6 +705,606 @@ async function generateMovementProfileV2Assets(
   return generated;
 }
 
+function loadVoiceV21Backlog(backlogPath: string): BacklogRow[] {
+  const absPath = path.resolve(ROOT, backlogPath);
+  if (!absPath.startsWith(ROOT) || !fs.existsSync(absPath)) {
+    throw new Error(`generation backlog is missing: ${backlogPath}`);
+  }
+  const rows = parseCsv(fs.readFileSync(absPath, 'utf8')) as unknown as BacklogRow[];
+  validateVoiceV21Backlog(rows);
+  return rows;
+}
+
+function validateVoiceV21Backlog(rows: readonly BacklogRow[]): void {
+  if (rows.length === 0) throw new Error('generation backlog is empty or malformed');
+  const byLogical = new Map<string, BacklogRow>();
+  const registryByKey = new Map(
+    parseCsv(fs.readFileSync(path.join(ROOT, 'docs/audits/HALE_VOICE_V2_1_FINAL_CUE_REGISTRY.csv'), 'utf8'))
+      .map((row) => [row.logicalCueKey, row])
+  );
+  const allowedReuseDecisions = new Set(['new_pair_required', 'existing_pair_script_mismatch']);
+  for (const row of rows) {
+    if (!row.logicalCueKey) throw new Error('backlog row missing logicalCueKey');
+    if (!row.exactScript) throw new Error(`backlog row missing exactScript: ${row.logicalCueKey}`);
+    if (!row.flow || !row.category || !row.policyId) {
+      throw new Error(`backlog row missing flow/category/policy: ${row.logicalCueKey}`);
+    }
+    if (!allowedReuseDecisions.has(row.reuseDecision)) {
+      throw new Error(`backlog row has non-generating reuseDecision ${row.reuseDecision}: ${row.logicalCueKey}`);
+    }
+    if (!isSafeCueKey(row.logicalCueKey)) {
+      throw new Error(`backlog row has unsafe logical cue key: ${row.logicalCueKey}`);
+    }
+    const voices = parseVoiceIdsNeeded(row.voiceIdsNeeded);
+    if (voices.length !== 2 || !voices.includes('clara') || !voices.includes('marcus')) {
+      throw new Error(`backlog row does not request exact Clara/Marcus pair: ${row.logicalCueKey}`);
+    }
+    const existing = byLogical.get(row.logicalCueKey);
+    if (existing && existing.exactScript !== row.exactScript) {
+      throw new Error(`duplicate logical cue with conflicting script: ${row.logicalCueKey}`);
+    }
+    byLogical.set(row.logicalCueKey, row);
+    const registry = registryByKey.get(row.logicalCueKey);
+    if (!registry) throw new Error(`backlog row missing from final cue registry: ${row.logicalCueKey}`);
+    if (registry.exactScript !== row.exactScript) {
+      throw new Error(`backlog script conflicts with final cue registry: ${row.logicalCueKey}`);
+    }
+    if (registry.reuseDecision === 'reuse_exact_existing_pair') {
+      throw new Error(`backlog includes exact-ready pair: ${row.logicalCueKey}`);
+    }
+    const lifecycle = registry.lifecycle ?? '';
+    if (lifecycle.includes('legacy') || lifecycle === 'retired' || lifecycle === 'not_required') {
+      throw new Error(`backlog includes non-active cue ${lifecycle}: ${row.logicalCueKey}`);
+    }
+  }
+}
+
+function buildVoiceV21GenerationJobs(
+  rows: readonly BacklogRow[],
+  voices: readonly SelectedVoice[],
+  force: boolean
+): VoiceV21GenerationJob[] {
+  const selectedById = new Map(voices.map((voice) => [voice.id, voice]));
+  const jobs: VoiceV21GenerationJob[] = [];
+  for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+    const row = rows[rowIndex];
+    const needed = parseVoiceIdsNeeded(row.voiceIdsNeeded);
+    for (const voiceId of needed) {
+      const voice = selectedById.get(voiceId);
+      if (!voice) continue;
+      const physicalCueKey = row.logicalCueKey;
+      const outputPath = voiceV21AudioExpectedPath(voice.id, physicalCueKey);
+      const outputAbsPath = path.join(ROOT, outputPath);
+      const fingerprint = voiceV21AudioFingerprint({
+        logicalCueKey: row.logicalCueKey,
+        physicalCueKey,
+        voiceId: voice.id,
+        providerVoiceId: voice.elevenLabsVoiceId,
+        script: row.exactScript,
+      });
+      const currentMetadata = VOICE_V2_1_AUDIO_ASSET_METADATA[voice.id]?.[physicalCueKey];
+      const exists = fs.existsSync(outputAbsPath);
+      const bytes = exists ? fs.statSync(outputAbsPath).size : 0;
+      const metadataCurrent =
+        currentMetadata?.logicalCueKey === row.logicalCueKey &&
+        currentMetadata.physicalCueKey === physicalCueKey &&
+        currentMetadata.voiceId === voice.id &&
+        currentMetadata.providerVoiceId === voice.elevenLabsVoiceId &&
+        currentMetadata.model === ELEVENLABS_MODEL &&
+        currentMetadata.outputFormat === AUDIO_OUTPUT_FORMAT &&
+        currentMetadata.path === outputPath &&
+        currentMetadata.script === row.exactScript &&
+        currentMetadata.fingerprint === fingerprint;
+      const status: VoiceV21GenerationJob['status'] = !exists
+        ? 'missing'
+        : bytes <= 0
+          ? 'zero-byte'
+          : force
+            ? 'forced'
+            : metadataCurrent
+              ? 'valid'
+              : 'blocked';
+      const blockingReason = status === 'blocked'
+        ? 'existing_v21_output_path_without_matching_metadata'
+        : '';
+      jobs.push({
+        jobId: `voice-v21-${String(jobs.length + 1).padStart(3, '0')}`,
+        rowIndex,
+        logicalCueKey: row.logicalCueKey,
+        physicalCueKey,
+        voice,
+        exactScript: row.exactScript,
+        flow: row.flow,
+        category: row.category,
+        policyId: row.policyId,
+        reuseDecision: row.reuseDecision,
+        reasonForGeneration: row.reasonForGeneration,
+        budgetClass: row.budgetClass,
+        sourceArtifact: row.sourceArtifact,
+        notes: row.notes,
+        outputPath,
+        outputAbsPath,
+        fingerprint,
+        status,
+        dryRunStatus: status === 'valid' ? 'already_current_skip' : status === 'blocked' ? 'blocked' : 'ready_to_generate',
+        blockingReason,
+        willCreateNew: !exists,
+        willReplaceExisting: exists && status !== 'valid' && status !== 'blocked',
+        legacyAffected: Boolean(row.currentPhysicalCandidate && row.currentPhysicalCandidate !== physicalCueKey),
+        currentMetadata,
+      });
+    }
+  }
+  return jobs;
+}
+
+function validateVoiceV21GenerationJobs(jobs: readonly VoiceV21GenerationJob[], expectedRows: number): void {
+  if (jobs.length !== expectedRows * 2) {
+    throw new Error(`planned job count mismatch: expected ${expectedRows * 2}, got ${jobs.length}`);
+  }
+  for (const job of jobs) {
+    if (job.status === 'blocked') {
+      throw new Error(`blocked generation job ${job.jobId} ${job.voice.id}/${job.logicalCueKey}: ${job.blockingReason}`);
+    }
+    if (!job.outputPath.startsWith(`assets/audio/voice/${job.voice.id}/`)) {
+      throw new Error(`planned output path outside voice directory: ${job.outputPath}`);
+    }
+    if (job.outputPath.includes('..') || path.isAbsolute(job.outputPath)) {
+      throw new Error(`unsafe planned output path: ${job.outputPath}`);
+    }
+    if (!job.voice.elevenLabsVoiceId || !ELEVENLABS_MODEL || !AUDIO_OUTPUT_FORMAT) {
+      throw new Error(`missing provider/model config for ${job.jobId}`);
+    }
+  }
+}
+
+function printVoiceV21Plan(jobs: readonly VoiceV21GenerationJob[], dryRun: boolean): void {
+  const valid = jobs.filter((job) => job.status === 'valid').length;
+  const generate = jobs.filter((job) => job.status !== 'valid').length;
+  console.log(
+    [
+      dryRun ? 'Voice V2.1 backlog dry run' : 'Voice V2.1 backlog generation plan',
+      `logicalRows=${new Set(jobs.map((job) => job.logicalCueKey)).size}`,
+      `jobs=${jobs.length}`,
+      `valid=${valid}`,
+      `providerCalls=${generate}`,
+      `provider=${AUDIO_TTS_PROVIDER}`,
+      `model=${ELEVENLABS_MODEL}`,
+      `voices=${[...new Set(jobs.map((job) => job.voice.id))].join(',')}`,
+      `providerCredentials=${API_KEY ? 'present' : 'missing'}`,
+    ].join(' ')
+  );
+}
+
+function writeVoiceV21GenerationPlan(jobs: readonly VoiceV21GenerationJob[]): void {
+  writeCsvFile('docs/audits/HALE_VOICE_V2_1_GENERATION_PLAN.csv', [
+    'jobId',
+    'logicalCueKey',
+    'physicalCueKey',
+    'voiceId',
+    'exactScript',
+    'flow',
+    'category',
+    'policyId',
+    'reuseDecision',
+    'reasonForGeneration',
+    'provider',
+    'model',
+    'providerVoiceId',
+    'outputPath',
+    'willCreateNew',
+    'willReplaceExisting',
+    'legacyAffected',
+    'manifestTarget',
+    'metadataTarget',
+    'dryRunStatus',
+    'blockingReason',
+    'notes',
+  ], jobs.map((job) => ({
+    jobId: job.jobId,
+    logicalCueKey: job.logicalCueKey,
+    physicalCueKey: job.physicalCueKey,
+    voiceId: job.voice.id,
+    exactScript: job.exactScript,
+    flow: job.flow,
+    category: job.category,
+    policyId: job.policyId,
+    reuseDecision: job.reuseDecision,
+    reasonForGeneration: job.reasonForGeneration,
+    provider: AUDIO_TTS_PROVIDER,
+    model: ELEVENLABS_MODEL,
+    providerVoiceId: job.voice.elevenLabsVoiceId,
+    outputPath: job.outputPath,
+    willCreateNew: String(job.willCreateNew),
+    willReplaceExisting: String(job.willReplaceExisting),
+    legacyAffected: String(job.legacyAffected),
+    manifestTarget: 'src/audio/manifest.ts',
+    metadataTarget: 'src/audio/voiceV21AudioManifest.ts',
+    dryRunStatus: job.dryRunStatus,
+    blockingReason: job.blockingReason,
+    notes: job.notes,
+  })));
+}
+
+async function generateVoiceV21BacklogAssets(jobs: readonly VoiceV21GenerationJob[]): Promise<{
+  results: VoiceV21JobResult[];
+  stagingDir: string;
+  generatedAt: string;
+}> {
+  const generatedAt = new Date().toISOString();
+  const stagingDir = path.join('/tmp', 'hale_voice_v21_generation_staging', generatedAt.replace(/[:.]/g, '-'));
+  fs.mkdirSync(stagingDir, { recursive: true });
+  const results: VoiceV21JobResult[] = [];
+  for (const job of jobs) {
+    if (job.status === 'valid' && job.currentMetadata) {
+      results.push({
+        job,
+        status: 'skipped_current',
+        stagingPath: '',
+        errorCode: '',
+        errorMessage: '',
+        probe: {
+          fileSizeBytes: job.currentMetadata.fileSizeBytes,
+          sha256: job.currentMetadata.sha256,
+          durationMs: job.currentMetadata.durationMs,
+          sampleRateHz: job.currentMetadata.sampleRateHz,
+          channels: job.currentMetadata.channels,
+        },
+      });
+      continue;
+    }
+    const stagingPath = path.join(stagingDir, job.voice.id, `${job.physicalCueKey}.mp3`);
+    fs.mkdirSync(path.dirname(stagingPath), { recursive: true });
+    try {
+      const mp3 = await synthesizeLine(job.voice.elevenLabsVoiceId, job.exactScript);
+      if (!looksLikeMp3(mp3)) {
+        throw new Error(`provider response for ${job.voice.id}/${job.logicalCueKey} was not recognized as mp3`);
+      }
+      fs.writeFileSync(stagingPath, mp3);
+      const probe = probeGeneratedAudio(stagingPath);
+      results.push({
+        job,
+        status: 'generated',
+        stagingPath,
+        errorCode: '',
+        errorMessage: '',
+        probe,
+      });
+      console.log(`staged\t${job.voice.id}\t${job.logicalCueKey}\t${probe.fileSizeBytes} bytes\t${stagingPath}`);
+    } catch (error) {
+      results.push({
+        job,
+        status: 'failed',
+        stagingPath,
+        errorCode: 'generation_failed',
+        errorMessage: error instanceof Error ? sanitizeProviderDetail(error.message) : String(error),
+        probe: null,
+      });
+      break;
+    }
+  }
+  const failed = results.filter((result) => result.status === 'failed');
+  if (failed.length > 0 || results.length !== jobs.length) {
+    writeVoiceV21ResultLedger(results, generatedAt);
+    throw new Error(
+      `Voice V2.1 generation stopped before promotion; staging remains at ${stagingDir}; failures=${failed.length}`
+    );
+  }
+  promoteVoiceV21GeneratedPairs(results);
+  writeVoiceV21Metadata(results, generatedAt);
+  writeManifestFromDisk(new Set(jobs.map((job) => job.physicalCueKey)));
+  writeVoiceV21ResultLedger(results, generatedAt);
+  writeVoiceV21GeneratedInventory(results);
+  writeVoiceV21ManifestChanges(results);
+  return { results, stagingDir, generatedAt };
+}
+
+function promoteVoiceV21GeneratedPairs(results: readonly VoiceV21JobResult[]): void {
+  const byCue = new Map<string, VoiceV21JobResult[]>();
+  for (const result of results) {
+    const group = byCue.get(result.job.physicalCueKey) ?? [];
+    group.push(result);
+    byCue.set(result.job.physicalCueKey, group);
+  }
+  for (const [cueKey, group] of byCue) {
+    const completedVoices = new Set(group.filter((item) => item.status !== 'failed').map((item) => item.job.voice.id));
+    if (!completedVoices.has('clara') || !completedVoices.has('marcus')) {
+      throw new Error(`cannot promote incomplete generated pair for ${cueKey}`);
+    }
+  }
+  for (const result of results) {
+    if (result.status === 'skipped_current') continue;
+    fs.mkdirSync(path.dirname(result.job.outputAbsPath), { recursive: true });
+    const tempPath = `${result.job.outputAbsPath}.tmp-${process.pid}`;
+    fs.copyFileSync(result.stagingPath, tempPath);
+    fs.renameSync(tempPath, result.job.outputAbsPath);
+  }
+}
+
+function writeVoiceV21Metadata(results: readonly VoiceV21JobResult[], generatedAt: string): void {
+  const out: Record<string, Partial<Record<string, VoiceV21AudioAssetMetadata>>> = {};
+  for (const [voiceId, byCue] of Object.entries(VOICE_V2_1_AUDIO_ASSET_METADATA)) {
+    out[voiceId] = { ...(byCue ?? {}) };
+  }
+  for (const result of results) {
+    if (!result.probe) continue;
+    const { job, probe } = result;
+    const existingGeneratedAt = result.status === 'skipped_current'
+      ? job.currentMetadata?.generatedAt ?? generatedAt
+      : generatedAt;
+    out[job.voice.id] = out[job.voice.id] ?? {};
+    out[job.voice.id][job.physicalCueKey] = {
+      schemaVersion: 1,
+      logicalCueKey: job.logicalCueKey,
+      physicalCueKey: job.physicalCueKey,
+      voiceId: job.voice.id,
+      provider: AUDIO_TTS_PROVIDER,
+      providerVoiceId: job.voice.elevenLabsVoiceId,
+      model: ELEVENLABS_MODEL,
+      outputFormat: AUDIO_OUTPUT_FORMAT,
+      voiceSettings: AUDIO_VOICE_SETTINGS,
+      path: job.outputPath,
+      script: job.exactScript,
+      fingerprint: job.fingerprint,
+      sha256: probe.sha256,
+      fileSizeBytes: probe.fileSizeBytes,
+      durationMs: probe.durationMs,
+      sampleRateHz: probe.sampleRateHz,
+      channels: probe.channels,
+      generatedAt: existingGeneratedAt,
+    };
+  }
+  const content = [
+    '/**',
+    ' * AUTO-GENERATED by scripts/generate-audio.ts -- do not edit by hand.',
+    ' * Pure metadata for consolidated Voice V2.1 generated cue audio. Static',
+    ' * require() asset mapping lives in src/audio/manifest.ts.',
+    ' */',
+    '',
+    "import type { VoiceV21AudioMetadataByVoice } from './voiceV21Audio';",
+    '',
+    `export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = ${JSON.stringify(out, null, 2)};`,
+    '',
+  ].join('\n');
+  fs.writeFileSync(path.join(ROOT, 'src/audio/voiceV21AudioManifest.ts'), content);
+}
+
+function writeVoiceV21ResultLedger(results: readonly VoiceV21JobResult[], generatedAt: string): void {
+  writeCsvFile('docs/audits/HALE_VOICE_V2_1_GENERATION_RESULT_LEDGER.csv', [
+    'jobId',
+    'logicalCueKey',
+    'physicalCueKey',
+    'voiceId',
+    'exactScript',
+    'outputPath',
+    'status',
+    'provider',
+    'model',
+    'providerVoiceId',
+    'fileSizeBytes',
+    'sha256',
+    'durationMs',
+    'sampleRateHz',
+    'channels',
+    'metadataWritten',
+    'manifestRegistered',
+    'verifyAudioCovered',
+    'errorCode',
+    'errorMessage',
+    'notes',
+  ], results.map((result) => ({
+    jobId: result.job.jobId,
+    logicalCueKey: result.job.logicalCueKey,
+    physicalCueKey: result.job.physicalCueKey,
+    voiceId: result.job.voice.id,
+    exactScript: result.job.exactScript,
+    outputPath: result.job.outputPath,
+    status: result.status,
+    provider: AUDIO_TTS_PROVIDER,
+    model: ELEVENLABS_MODEL,
+    providerVoiceId: result.job.voice.elevenLabsVoiceId,
+    fileSizeBytes: String(result.probe?.fileSizeBytes ?? ''),
+    sha256: result.probe?.sha256 ?? '',
+    durationMs: String(result.probe?.durationMs ?? ''),
+    sampleRateHz: String(result.probe?.sampleRateHz ?? ''),
+    channels: String(result.probe?.channels ?? ''),
+    metadataWritten: String(result.status !== 'failed'),
+    manifestRegistered: String(result.status !== 'failed'),
+    verifyAudioCovered: String(result.status !== 'failed'),
+    errorCode: result.errorCode,
+    errorMessage: result.errorMessage,
+    notes: `generatedAt=${generatedAt}; ${result.job.notes}`,
+  })));
+}
+
+function writeVoiceV21GeneratedInventory(results: readonly VoiceV21JobResult[]): void {
+  writeCsvFile('docs/audits/HALE_VOICE_V2_1_GENERATED_ASSET_INVENTORY.csv', [
+    'physicalCueKey',
+    'logicalCueKey',
+    'voiceId',
+    'path',
+    'exists',
+    'sha256',
+    'durationMs',
+    'fileSizeBytes',
+    'sampleRateHz',
+    'channels',
+    'script',
+    'sourceBacklogRow',
+    'reuseDecision',
+    'generationStatus',
+    'manifestRegistered',
+    'fingerprintStatus',
+    'notes',
+  ], results.map((result) => ({
+    physicalCueKey: result.job.physicalCueKey,
+    logicalCueKey: result.job.logicalCueKey,
+    voiceId: result.job.voice.id,
+    path: result.job.outputPath,
+    exists: String(fs.existsSync(result.job.outputAbsPath)),
+    sha256: result.probe?.sha256 ?? '',
+    durationMs: String(result.probe?.durationMs ?? ''),
+    fileSizeBytes: String(result.probe?.fileSizeBytes ?? ''),
+    sampleRateHz: String(result.probe?.sampleRateHz ?? ''),
+    channels: String(result.probe?.channels ?? ''),
+    script: result.job.exactScript,
+    sourceBacklogRow: String(result.job.rowIndex + 1),
+    reuseDecision: result.job.reuseDecision,
+    generationStatus: result.status,
+    manifestRegistered: String(result.status !== 'failed'),
+    fingerprintStatus: result.status === 'failed' ? 'missing' : 'current',
+    notes: result.job.notes,
+  })));
+}
+
+function writeVoiceV21ManifestChanges(results: readonly VoiceV21JobResult[]): void {
+  const seen = new Set<string>();
+  const rows = [];
+  let index = 1;
+  for (const result of results) {
+    if (seen.has(result.job.physicalCueKey)) continue;
+    seen.add(result.job.physicalCueKey);
+    rows.push({
+      changeId: `manifest-change-${String(index++).padStart(3, '0')}`,
+      changeType: 'add_generated_voice_v21_pair',
+      filePath: 'src/audio/manifest.ts',
+      logicalCueKey: result.job.logicalCueKey,
+      physicalCueKey: result.job.physicalCueKey,
+      voiceId: 'clara;marcus',
+      beforeStatus: 'not_manifested',
+      afterStatus: 'static_require_registered',
+      staticRequirePath: `assets/audio/voice/{clara,marcus}/${result.job.physicalCueKey}.mp3`,
+      verifyAudioImpact: 'covered_by_verify_audio_voice_v21_backlog',
+      featureGateImpact: 'none_feature_defaults_remain_closed',
+      reason: result.job.reasonForGeneration,
+      notes: result.job.notes,
+    });
+  }
+  writeCsvFile('docs/audits/HALE_VOICE_V2_1_POST_GENERATION_MANIFEST_CHANGES.csv', [
+    'changeId',
+    'changeType',
+    'filePath',
+    'logicalCueKey',
+    'physicalCueKey',
+    'voiceId',
+    'beforeStatus',
+    'afterStatus',
+    'staticRequirePath',
+    'verifyAudioImpact',
+    'featureGateImpact',
+    'reason',
+    'notes',
+  ], rows);
+}
+
+function probeGeneratedAudio(absPath: string): ProbedAudio {
+  const bytes = fs.readFileSync(absPath);
+  if (!looksLikeMp3(bytes)) throw new Error(`staged file is not recognized as mp3: ${absPath}`);
+  const result = spawnSync(
+    'ffprobe',
+    [
+      '-v',
+      'error',
+      '-select_streams',
+      'a:0',
+      '-show_entries',
+      'stream=sample_rate,channels',
+      '-show_entries',
+      'format=duration',
+      '-of',
+      'json',
+      absPath,
+    ],
+    { encoding: 'utf8' }
+  );
+  if (result.error) throw new Error(`ffprobe unavailable: ${result.error.message}`);
+  if (result.status !== 0) throw new Error(`ffprobe failed: ${result.stderr.trim()}`);
+  const parsed = JSON.parse(result.stdout) as {
+    format?: { duration?: string };
+    streams?: Array<{ sample_rate?: string; channels?: number }>;
+  };
+  const durationSec = Number(parsed.format?.duration);
+  const stream = parsed.streams?.[0];
+  const sampleRateHz = Number(stream?.sample_rate);
+  const channels = Number(stream?.channels);
+  if (!Number.isFinite(durationSec) || durationSec <= 0) {
+    throw new Error(`invalid generated duration: ${absPath}`);
+  }
+  if (!Number.isFinite(sampleRateHz) || sampleRateHz <= 0 || !Number.isFinite(channels) || channels <= 0) {
+    throw new Error(`invalid generated audio stream metadata: ${absPath}`);
+  }
+  return {
+    fileSizeBytes: bytes.length,
+    sha256: crypto.createHash('sha256').update(bytes).digest('hex'),
+    durationMs: Math.round(durationSec * 1000),
+    sampleRateHz,
+    channels,
+  };
+}
+
+function parseVoiceIdsNeeded(value: string): string[] {
+  return value.split(';').map((item) => item.trim()).filter(Boolean);
+}
+
+function isSafeCueKey(value: string): boolean {
+  return /^[a-z0-9][a-z0-9_-]*$/.test(value) && !value.includes('..') && !value.includes('/');
+}
+
+function parseCsv(text: string): Record<string, string>[] {
+  const lines = text.trim().split(/\r?\n/).filter(Boolean);
+  if (lines.length < 2) return [];
+  const headers = parseCsvLine(lines[0]);
+  return lines.slice(1).map((line) => {
+    const values = parseCsvLine(line);
+    return Object.fromEntries(headers.map((header, index) => [header, values[index] ?? '']));
+  });
+}
+
+function parseCsvLine(line: string): string[] {
+  const out: string[] = [];
+  let current = '';
+  let quoted = false;
+  for (let index = 0; index < line.length; index++) {
+    const char = line[index];
+    if (quoted) {
+      if (char === '"' && line[index + 1] === '"') {
+        current += '"';
+        index++;
+      } else if (char === '"') {
+        quoted = false;
+      } else {
+        current += char;
+      }
+    } else if (char === '"') {
+      quoted = true;
+    } else if (char === ',') {
+      out.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  out.push(current);
+  return out;
+}
+
+function writeCsvFile(
+  relPath: string,
+  headers: readonly string[],
+  rows: readonly Record<string, string>[]
+): void {
+  const content = [
+    headers.join(','),
+    ...rows.map((row) => headers.map((header) => csvEscape(row[header] ?? '')).join(',')),
+  ].join('\n');
+  fs.writeFileSync(path.join(ROOT, relPath), `${content}\n`);
+}
+
+function csvEscape(value: string): string {
+  if (/[",\n\r]/.test(value)) return `"${value.replaceAll('"', '""')}"`;
+  return value;
+}
+
 /** Rep-credit chime: 880 Hz sine, fast attack, exponential decay, 160 ms. */
 function writeRepCreditWav(): void {
   const sampleRate = 24000;
@@ -615,10 +1338,10 @@ function writeRepCreditWav(): void {
 }
 
 /** Write the typed manifest: per-voice voice lines + voice-independent sfx. */
-function writeManifestFromDisk(): void {
+function writeManifestFromDisk(additionalKnownVoiceKeys: ReadonlySet<string> = new Set()): void {
   const voiceBlocks = VOICE_OPTIONS
     .map(({ id: voiceId }) => {
-      const keys = existingVoiceKeys(voiceId);
+      const keys = existingVoiceKeys(voiceId, additionalKnownVoiceKeys);
       const entries = keys
         .map((key) => `    '${key}': require('../../assets/audio/voice/${voiceId}/${key}.mp3'),`)
         .join('\n');
@@ -727,14 +1450,15 @@ function writeMovementProfileV2Metadata(
   fs.writeFileSync(path.join(ROOT, 'src/audio/movementProfileV2AudioManifest.ts'), content);
 }
 
-function existingVoiceKeys(voiceId: string): string[] {
+function existingVoiceKeys(voiceId: string, additionalKnownVoiceKeys: ReadonlySet<string> = new Set()): string[] {
   const dir = path.join(VOICE_DIR, voiceId);
   if (!fs.existsSync(dir)) return [];
+  const knownKeys = new Set([...Object.keys(LINES), ...voiceV21MetadataLineKeys(), ...additionalKnownVoiceKeys]);
   return fs
     .readdirSync(dir)
     .filter((file) => file.endsWith('.mp3'))
     .map((file) => file.slice(0, -'.mp3'.length))
-    .filter((key) => key in LINES)
+    .filter((key) => knownKeys.has(key))
     .sort();
 }
 
@@ -756,6 +1480,25 @@ async function main(): Promise<void> {
   const voices = selectVoices(options.voice);
   fs.mkdirSync(VOICE_DIR, { recursive: true });
   fs.mkdirSync(SFX_DIR, { recursive: true });
+
+  if (options.fromBacklog !== null) {
+    const backlog = loadVoiceV21Backlog(options.fromBacklog);
+    const jobs = buildVoiceV21GenerationJobs(backlog, voices, options.force);
+    validateVoiceV21GenerationJobs(jobs, backlog.length);
+    writeVoiceV21GenerationPlan(jobs);
+    printVoiceV21Plan(jobs, options.dryRun);
+    if (options.dryRun) return;
+    if (!API_KEY) {
+      throw new Error('ELEVENLABS_API_KEY is not set; Voice V2.1 backlog assets were not generated');
+    }
+    const output = await generateVoiceV21BacklogAssets(jobs);
+    const generated = output.results.filter((result) => result.status === 'generated').length;
+    const skipped = output.results.filter((result) => result.status === 'skipped_current').length;
+    console.log(
+      `\nVoice V2.1 backlog generation complete: generated=${generated} skipped=${skipped} staging=${output.stagingDir}`
+    );
+    return;
+  }
 
   if (options.group === 'safety') {
     const plan = buildSafetyPlan(voices, options.force);

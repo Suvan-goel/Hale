@@ -321,7 +321,7 @@ describe('rigged human silhouette geometry', () => {
     buildRiggedHumanSilhouetteGeometry(mappedStandingPose(), second);
 
     expect(visiblePaths(first)).toEqual(visiblePaths(second));
-    expect(first.drawOrderKey).toBe('deterministic-right-rear-left-front');
+    expect(first.drawOrderKey).toBe('deterministic-limbs-under-core');
     expect(second.drawOrderKey).toBe(first.drawOrderKey);
   });
 

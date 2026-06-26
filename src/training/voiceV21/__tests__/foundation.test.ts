@@ -2,9 +2,11 @@ import { listExercises, resolveExerciseLevel } from '../../../exercises';
 import {
   EMPTY_TRAINING_VOICE_SESSION_MEMORY_V21,
   TRAINING_VOICE_V2_1_AUDIO_READY,
+  TRAINING_VOICE_V2_1_AUDIO_APPROVAL_READY,
   TRAINING_VOICE_V2_1_BEHAVIOR_READY,
   TRAINING_VOICE_V2_1_CONTROLS_READY,
   TRAINING_VOICE_V2_1_FEATURE_FLAG,
+  TRAINING_VOICE_V2_1_PHYSICAL_AUDIO_SURFACE_READY,
   TRAINING_VOICE_V2_1_PROGRESS_READY,
   TRAINING_VOICE_V2_1_RECOVERY_READY,
   TRAINING_VOICE_V2_1_SAFETY_READY,
@@ -399,6 +401,8 @@ describe('Training Voice V2.1 runtime and asset gates', () => {
     expect(TRAINING_VOICE_V2_1_PROGRESS_READY).toBe(true);
     expect(TRAINING_VOICE_V2_1_RECOVERY_READY).toBe(true);
     expect(TRAINING_VOICE_V2_1_BEHAVIOR_READY).toBe(true);
+    expect(TRAINING_VOICE_V2_1_PHYSICAL_AUDIO_SURFACE_READY).toBe(true);
+    expect(TRAINING_VOICE_V2_1_AUDIO_APPROVAL_READY).toBe(false);
     expect(TRAINING_VOICE_V2_1_AUDIO_READY).toBe(false);
     expect(selectTrainingVoiceRuntimeModeV21({ exerciseIds: ['squat-free'], featureEnabled: false })).toMatchObject({
       mode: 'legacy',
@@ -478,16 +482,18 @@ describe('Training Voice V2.1 runtime and asset gates', () => {
     expect(normalizeTrainingVoiceSafetySessionMemoryV21({ version: 1, universalSafety: 'maybe' })).toBeNull();
   });
 
-  it('records logical asset requirements without adding pending keys to the physical manifest', () => {
+  it('records generated logical asset requirements while keeping approval gates closed', () => {
     const rows = listTrainingVoiceAssetRequirementsV21();
     expect(rows.length).toBe(allTrainingVoiceLogicalCuesV21().length);
     expect(rows.filter((row) => row.reuseDecision === 'reuse_exact_existing_pair').length).toBeGreaterThan(0);
-    expect(rows.filter((row) => row.reuseDecision === 'new_pair_required').length).toBeGreaterThan(0);
-    expect(rows.filter((row) => row.reuseDecision === 'existing_pair_script_mismatch').length).toBeGreaterThan(0);
+    expect(rows.filter((row) => row.reuseDecision === 'new_pair_required')).toHaveLength(0);
+    expect(rows.filter((row) => row.reuseDecision === 'existing_pair_script_mismatch')).toHaveLength(0);
     expect(rows.find((row) => row.logicalCueKey === 'ex-squat-free-first-v21')).toMatchObject({
-      claraStatus: 'missing',
-      marcusStatus: 'missing',
-      generationRequiredLater: true,
+      currentCandidateKey: 'ex-squat-free-first-v21',
+      claraStatus: 'exists',
+      marcusStatus: 'exists',
+      semanticMatch: true,
+      generationRequiredLater: false,
     });
   });
 

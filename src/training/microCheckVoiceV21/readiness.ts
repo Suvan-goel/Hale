@@ -1,6 +1,9 @@
 import type { MicroCheckType } from '../microCheck';
 import { maybeMicroCheckVoiceContractV21, validateMicroCheckVoiceContractRegistryV21 } from './contracts';
-import { requiredAssetCueKeysMissingForMicroCheckContractV21 } from './assets';
+import {
+  listMicroCheckVoiceAssetRequirementsV21,
+  requiredAssetCueKeysMissingForMicroCheckContractV21,
+} from './assets';
 import type {
   MicroCheckVoiceRuntimeReadinessV21,
   MicroCheckVoiceRuntimeSelectionV21,
@@ -8,8 +11,14 @@ import type {
 
 export const MICRO_CHECK_VOICE_V2_1_FEATURE_FLAG = 'EXPO_PUBLIC_ENABLE_MICRO_CHECK_VOICE_V2_1' as const;
 export const MICRO_CHECK_VOICE_V2_1_BEHAVIOR_READY = true as const;
+export const MICRO_CHECK_VOICE_V2_1_PHYSICAL_AUDIO_SURFACE_READY = microCheckVoicePhysicalAudioSurfaceReadyV21();
+export const MICRO_CHECK_VOICE_V2_1_AUDIO_APPROVAL_READY = false as const;
 export const MICRO_CHECK_VOICE_V2_1_AUDIO_READY = false as const;
 export const MICRO_CHECK_VOICE_V2_1_FEATURE_DEFAULT = 'off' as const;
+
+export function microCheckVoicePhysicalAudioSurfaceReadyV21(): boolean {
+  return listMicroCheckVoiceAssetRequirementsV21().every((row) => !row.generationRequiredLater);
+}
 
 export function resolveMicroCheckVoiceRuntimeReadinessV21(
   type: MicroCheckType

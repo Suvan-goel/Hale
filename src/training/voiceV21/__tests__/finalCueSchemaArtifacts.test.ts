@@ -50,23 +50,29 @@ function readCsv(relativePath: string): Record<string, string>[] {
 }
 
 describe('Voice V2.1 final cue schema artifacts', () => {
-  it('freezes the schema as generation-pending without enabling runtime audio gates', () => {
+  it('freezes the generated physical surface without enabling runtime audio gates', () => {
     const audit = readJson<{
       verdict: string;
       metrics: Record<string, number | string | boolean>;
     }>('docs/audits/HALE_VOICE_V2_1_FINAL_CUE_SCHEMA_AUDIT.json');
 
-    expect(audit.verdict).toBe('VOICE_V2_1_FINAL_SCHEMA_COMPLETE_GENERATION_PENDING');
+    expect(audit.verdict).toBe('VOICE_V2_1_FINAL_SCHEMA_COMPLETE_AUDIO_READY');
     expect(audit.metrics.p0).toBe(0);
     expect(audit.metrics.p1).toBe(0);
     expect(audit.metrics.p2).toBe(0);
     expect(audit.metrics.verifyAudioFailureCount).toBe(0);
     expect(audit.metrics.taskAudioHashChangedCount).toBe(0);
-    expect(audit.metrics.generationBacklogRowCount).toBeGreaterThan(0);
+    expect(audit.metrics.generationBacklogRowCount).toBe(0);
     expect(audit.metrics.generationBacklogIncludesExactReadyPairCount).toBe(0);
     expect(audit.metrics.pendingCueInPhysicalManifestCount).toBe(0);
     expect(audit.metrics.trainingBehaviorReadyValue).toBe(true);
     expect(audit.metrics.microBehaviorReadyValue).toBe(true);
+    expect(audit.metrics.trainingPhysicalAudioSurfaceReadyValue).toBe(true);
+    expect(audit.metrics.microPhysicalAudioSurfaceReadyValue).toBe(true);
+    expect(audit.metrics.balanceV2PhysicalAudioSurfaceReadyValue).toBe(true);
+    expect(audit.metrics.trainingAudioApprovalReadyValue).toBe(false);
+    expect(audit.metrics.microAudioApprovalReadyValue).toBe(false);
+    expect(audit.metrics.balanceV2AudioApprovalReadyValue).toBe(false);
     expect(audit.metrics.trainingAudioReadyValue).toBe(false);
     expect(audit.metrics.microAudioReadyValue).toBe(false);
     expect(audit.metrics.balanceV2AudioReadyValue).toBe(false);
@@ -75,15 +81,15 @@ describe('Voice V2.1 final cue schema artifacts', () => {
     expect(audit.metrics.featureGatesEnabled).toBe(0);
   });
 
-  it('keeps retired, conditional, and mismatched cues out of default V2.1 reuse', () => {
+  it('keeps retired and conditional cues out while generated V2.1 cues are exact', () => {
     const registry = readCsv('docs/audits/HALE_VOICE_V2_1_FINAL_CUE_REGISTRY.csv');
     const backlog = readCsv('docs/audits/HALE_VOICE_V2_1_GENERATION_BACKLOG.csv');
 
     expect(registry.find((row) => row.logicalCueKey === 'microcheck-intro')).toBeUndefined();
     expect(registry.find((row) => row.logicalCueKey === 'micro-relax-v21')).toMatchObject({
-      reuseDecision: 'existing_pair_script_mismatch',
-      physicalCueKey: 'relax-arm',
-      generationRequiredLater: 'true',
+      reuseDecision: 'reuse_exact_existing_pair',
+      physicalCueKey: 'micro-relax-v21',
+      generationRequiredLater: 'false',
     });
     expect(registry.find((row) => row.logicalCueKey === 'close-your-eyes')).toMatchObject({
       lifecycle: 'conditional_legacy_only',
@@ -93,7 +99,7 @@ describe('Voice V2.1 final cue schema artifacts', () => {
       lifecycle: 'conditional_legacy_only',
       generationRequiredLater: 'false',
     });
-    expect(backlog.map((row) => row.logicalCueKey)).toContain('micro-relax-v21');
+    expect(backlog).toHaveLength(0);
     expect(backlog.some((row) => row.reuseDecision === 'reuse_exact_existing_pair')).toBe(false);
   });
 

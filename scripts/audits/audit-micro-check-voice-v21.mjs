@@ -6,6 +6,8 @@ import { execFileSync } from 'node:child_process';
 const ROOT = process.cwd();
 const VERDICT = 'MICRO_CHECK_VOICE_V2_1_SOFTWARE_COMPLETE';
 const ENTRY_AUDIO_HASH_FILE = '/tmp/hale_micro_check_audio_entry.sha256';
+const VOICE_V21_GENERATION_ENTRY_AUDIO_HASH_FILE = '/tmp/hale_voice_v21_generation_audio_entry.sha256';
+const VOICE_V21_GENERATION_PLAN = 'docs/audits/HALE_VOICE_V2_1_GENERATION_PLAN.csv';
 
 const ARTIFACTS = {
   implementation: 'docs/audits/HALE_MICRO_CHECK_VOICE_V2_1_IMPLEMENTATION.md',
@@ -586,7 +588,11 @@ function scenario(scenarioId, category, description, expected, actual, passed) {
 }
 
 function compareAudioTaskStartHashes() {
-  if (!fs.existsSync(ENTRY_AUDIO_HASH_FILE)) {
+  const usingVoiceV21GenerationEntry = fs.existsSync(VOICE_V21_GENERATION_ENTRY_AUDIO_HASH_FILE);
+  const entryHashFile = usingVoiceV21GenerationEntry
+    ? VOICE_V21_GENERATION_ENTRY_AUDIO_HASH_FILE
+    : ENTRY_AUDIO_HASH_FILE;
+  if (!fs.existsSync(entryHashFile)) {
     return {
       available: false,
       changedCount: 0,
@@ -597,12 +603,14 @@ function compareAudioTaskStartHashes() {
       deletedPaths: [],
     };
   }
-  const entry = readHashFile(ENTRY_AUDIO_HASH_FILE);
-  const current = hashAudioBaselinePaths();
+  const entry = readHashFile(entryHashFile);
+  const current = usingVoiceV21GenerationEntry ? hashAudioOnlyPaths() : hashAudioBaselinePaths();
+  const plannedGenerated = plannedVoiceV21AudioPaths();
   const changedPaths = [];
   const addedPaths = [];
   const deletedPaths = [];
   for (const [filePath, hash] of entry) {
+    if (plannedGenerated.has(filePath)) continue;
     if (!current.has(filePath)) {
       deletedPaths.push(filePath);
     } else if (current.get(filePath) !== hash) {
@@ -610,6 +618,7 @@ function compareAudioTaskStartHashes() {
     }
   }
   for (const filePath of current.keys()) {
+    if (plannedGenerated.has(filePath)) continue;
     if (!entry.has(filePath)) addedPaths.push(filePath);
   }
   return {
@@ -621,6 +630,58 @@ function compareAudioTaskStartHashes() {
     addedPaths,
     deletedPaths,
   };
+}
+
+function hashAudioOnlyPaths() {
+  const files = listFiles(path.join(ROOT, 'assets/audio'))
+    .map((filePath) => path.relative(ROOT, filePath))
+    .sort();
+  const map = new Map();
+  for (const filePath of files) {
+    const abs = path.join(ROOT, filePath);
+    if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) continue;
+    map.set(filePath, crypto.createHash('sha256').update(fs.readFileSync(abs)).digest('hex'));
+  }
+  return map;
+}
+
+function plannedVoiceV21AudioPaths() {
+  const planPath = path.join(ROOT, VOICE_V21_GENERATION_PLAN);
+  if (!fs.existsSync(planPath)) return new Set();
+  const lines = fs.readFileSync(planPath, 'utf8').trim().split(/\r?\n/).filter(Boolean);
+  if (lines.length < 2) return new Set();
+  const headers = parseCsvLine(lines[0]);
+  const outputPathIndex = headers.indexOf('outputPath');
+  if (outputPathIndex < 0) return new Set();
+  return new Set(lines.slice(1).map((line) => parseCsvLine(line)[outputPathIndex]).filter(Boolean));
+}
+
+function parseCsvLine(line) {
+  const out = [];
+  let current = '';
+  let quoted = false;
+  for (let index = 0; index < line.length; index++) {
+    const char = line[index];
+    if (quoted) {
+      if (char === '"' && line[index + 1] === '"') {
+        current += '"';
+        index++;
+      } else if (char === '"') {
+        quoted = false;
+      } else {
+        current += char;
+      }
+    } else if (char === '"') {
+      quoted = true;
+    } else if (char === ',') {
+      out.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  out.push(current);
+  return out;
 }
 
 function readHashFile(filePath) {

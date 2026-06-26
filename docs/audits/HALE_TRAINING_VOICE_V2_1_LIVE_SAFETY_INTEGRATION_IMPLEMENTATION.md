@@ -24,6 +24,6 @@ Verdict: `TRAINING_VOICE_V2_1_LIVE_SAFETY_INTEGRATION_SOFTWARE_COMPLETE`.
 ## Worktree
 
 - Branch: `dev`
-- HEAD: `2b3e28b`
+- HEAD: `87124fe`
 - Upstream: `origin/dev`
 - Worktree was already dirty before this task: true

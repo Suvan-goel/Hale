@@ -10,9 +10,9 @@ The original floor-readiness audit was correct when safety-family integration wa
 
 ## 3. Worktree and Regenerated-Audio Baseline
 
-Task-start audio hash file: `/tmp/hale_floor_post_safety_audio_entry.sha256`. Available: true. Task-start hash count: 365. Current hash count: 365. Hash diffs this task: 0.
+Task-start audio hash file: `/tmp/hale_floor_post_safety_audio_entry.sha256`. Available: true. Task-start hash count: 365. Current hash count: 717. Hash diffs this task: 0.
 
-Git HEAD audio diff count is 364; this is documented as `baseline_audio_diff_method_stale_not_product_failure`.
+Git HEAD audio diff count is 0; this is documented as `git_head_audio_diff_empty`.
 
 ## 4. Current Phase Reconciliation
 

@@ -17,6 +17,11 @@ import {
 import { SAFETY_AUDIO_ASSET_METADATA } from '../src/audio/safetyAudioManifest';
 import { VOICE_OPTIONS } from '../src/profile/voices';
 import {
+  voiceV21AudioExpectedPath,
+  voiceV21AudioFingerprint,
+} from '../src/audio/voiceV21Audio';
+import { VOICE_V2_1_AUDIO_ASSET_METADATA } from '../src/audio/voiceV21AudioManifest';
+import {
   isMovementProfileV2CueId,
   movementProfileV2CueText,
   type MovementProfileV2CueId,
@@ -65,19 +70,25 @@ const issues: string[] = [];
 function main(): void {
   const manifestEntries = parseVoiceManifest();
   const manifestByVoiceCue = new Map<string, ManifestEntry>();
+  const voiceV21GeneratedCueIds = voiceV21MetadataCueIds();
   for (const entry of manifestEntries) {
     manifestByVoiceCue.set(`${entry.voiceId}:${entry.cueId}`, entry);
     if (looksLikeSafetyCueKey(entry.cueId) && !isSafetyCueId(entry.cueId)) {
       issues.push(`unknown safety-like cue in static manifest: ${entry.voiceId}/${entry.cueId}`);
     }
-    if (looksLikeMovementProfileV2CueKey(entry.cueId) && !isMovementProfileV2CueId(entry.cueId)) {
+    if (
+      looksLikeMovementProfileV2CueKey(entry.cueId) &&
+      !isMovementProfileV2CueId(entry.cueId) &&
+      !voiceV21GeneratedCueIds.has(entry.cueId)
+    ) {
       issues.push(`unknown Movement Profile V2 cue in static manifest: ${entry.voiceId}/${entry.cueId}`);
     }
   }
 
   const safetyAssets = verifySafetyAssets(manifestByVoiceCue);
   const movementProfileV2Assets = verifyMovementProfileV2Assets(manifestByVoiceCue);
-  const verified = [...safetyAssets, ...movementProfileV2Assets];
+  const voiceV21Assets = verifyVoiceV21Assets(manifestByVoiceCue);
+  const verified = [...safetyAssets, ...movementProfileV2Assets, ...voiceV21Assets];
 
   verifyDuplicateAudio(verified);
   verifyNoPartialFiles();
@@ -108,6 +119,7 @@ function main(): void {
       `requiredAssets=${movementProfileV2Summary.requiredAssets}`,
       `totalBytes=${movementProfileV2Summary.totalBytes}`,
       `durationRange=${movementProfileV2Summary.minDuration.toFixed(3)}-${movementProfileV2Summary.maxDuration.toFixed(3)}s`,
+      `voiceV21: requiredAssets=${voiceV21Assets.length}`,
       `total: requiredAssets=${verified.length}`,
     ].join(' ')
   );
@@ -141,6 +153,112 @@ function verifyMovementProfileV2Assets(
     cueText: (cueId) => movementProfileV2CueText(cueId as MovementProfileV2CueId),
     manifestByVoiceCue,
   });
+}
+
+function verifyVoiceV21Assets(manifestByVoiceCue: ReadonlyMap<string, ManifestEntry>): VerifiedAsset[] {
+  const planRows = parseGenerationPlanRows();
+  const planByVoiceCue = new Map(planRows.map((row) => [`${row.voiceId}:${row.physicalCueKey}`, row]));
+  const metadataEntries = voiceV21MetadataEntries();
+  const verified: VerifiedAsset[] = [];
+
+  if (metadataEntries.length === 0) return verified;
+
+  if (planRows.length > 0) {
+    for (const row of planRows) {
+      const metadata = VOICE_V2_1_AUDIO_ASSET_METADATA[row.voiceId]?.[row.physicalCueKey];
+      if (!metadata) {
+        issues.push(`missing Voice V2.1 generated metadata for ${row.voiceId}:${row.physicalCueKey}`);
+      }
+    }
+  }
+
+  for (const metadata of metadataEntries) {
+    const key = `${metadata.voiceId}:${metadata.physicalCueKey}`;
+    const plan = planByVoiceCue.get(key);
+    if (planRows.length > 0 && !plan) {
+      issues.push(`Voice V2.1 metadata is outside generation plan: ${key}`);
+    }
+    const expectedPath = voiceV21AudioExpectedPath(metadata.voiceId, metadata.physicalCueKey);
+    if (metadata.path !== expectedPath) {
+      issues.push(`wrong Voice V2.1 metadata path for ${key}: expected ${expectedPath}, got ${metadata.path}`);
+    }
+    if (metadata.logicalCueKey !== metadata.physicalCueKey) {
+      issues.push(`Voice V2.1 logical/physical key mismatch for ${key}`);
+    }
+    if (plan && metadata.script !== plan.exactScript) {
+      issues.push(`Voice V2.1 metadata script conflicts with generation plan for ${key}`);
+    }
+    const voice = VOICE_OPTIONS.find((item) => item.id === metadata.voiceId);
+    if (!voice) {
+      issues.push(`Voice V2.1 metadata has unknown voice id: ${metadata.voiceId}`);
+      continue;
+    }
+    const expectedFingerprint = voiceV21AudioFingerprint({
+      logicalCueKey: metadata.logicalCueKey,
+      physicalCueKey: metadata.physicalCueKey,
+      voiceId: metadata.voiceId,
+      providerVoiceId: voice.elevenLabsVoiceId,
+      script: metadata.script,
+    });
+    if (metadata.providerVoiceId !== voice.elevenLabsVoiceId) {
+      issues.push(`Voice V2.1 provider voice id mismatch for ${key}`);
+    }
+    if (metadata.fingerprint !== expectedFingerprint) {
+      issues.push(`stale Voice V2.1 fingerprint for ${key}`);
+    }
+
+    const entry = manifestByVoiceCue.get(key);
+    if (!entry) {
+      issues.push(`missing static mapping for Voice V2.1 ${key}`);
+    } else if (entry.path !== expectedPath) {
+      issues.push(`wrong static path for Voice V2.1 ${key}: expected ${expectedPath}, got ${entry.path}`);
+    }
+
+    const absPath = path.join(ROOT, expectedPath);
+    if (!fs.existsSync(absPath)) {
+      issues.push(`missing mp3 file for Voice V2.1 ${key}: ${expectedPath}`);
+      continue;
+    }
+    const stat = fs.statSync(absPath);
+    if (!stat.isFile()) {
+      issues.push(`audio path is not a regular file for Voice V2.1 ${key}: ${expectedPath}`);
+      continue;
+    }
+    if (stat.size < MIN_MP3_BYTES) {
+      issues.push(`audio file too small for Voice V2.1 ${key}: ${stat.size} bytes`);
+    }
+    const bytes = fs.readFileSync(absPath);
+    const sha256 = crypto.createHash('sha256').update(bytes).digest('hex');
+    if (sha256 !== metadata.sha256) {
+      issues.push(`Voice V2.1 sha256 mismatch for ${key}`);
+    }
+    if (stat.size !== metadata.fileSizeBytes) {
+      issues.push(`Voice V2.1 file size mismatch for ${key}`);
+    }
+    if (!looksLikeMp3(bytes)) {
+      issues.push(`audio file is not recognized as mp3 for Voice V2.1 ${key}`);
+    }
+    const durationSec = probeDuration(absPath, `Voice V2.1 ${key}`);
+    const durationMs = Math.round(durationSec * 1000);
+    if (!Number.isFinite(durationSec) || durationSec <= 0) {
+      issues.push(`audio duration is not finite and positive for Voice V2.1 ${key}: ${durationSec}`);
+    } else if (Math.abs(durationMs - metadata.durationMs) > 5) {
+      issues.push(`Voice V2.1 duration metadata mismatch for ${key}: expected ${metadata.durationMs}, got ${durationMs}`);
+    } else if (!durationLooksPlausible(metadata.script, durationSec)) {
+      issues.push(`audio duration is outside broad text bounds for Voice V2.1 ${key}: ${durationSec.toFixed(3)}s`);
+    }
+    verified.push({
+      group: 'movementProfileV2',
+      cueId: metadata.physicalCueKey as MovementProfileV2CueId,
+      voiceId: metadata.voiceId,
+      path: expectedPath,
+      bytes: stat.size,
+      durationSec,
+      fingerprint: metadata.fingerprint,
+      sha256,
+    });
+  }
+  return verified;
 }
 
 function verifyRequiredAssets(input: {
@@ -240,6 +358,67 @@ function parseVoiceManifest(): ManifestEntry[] {
     });
   }
   return entries;
+}
+
+function voiceV21MetadataCueIds(): Set<string> {
+  return new Set(voiceV21MetadataEntries().map((entry) => entry.physicalCueKey));
+}
+
+function voiceV21MetadataEntries() {
+  return Object.values(VOICE_V2_1_AUDIO_ASSET_METADATA)
+    .flatMap((byCue) => Object.values(byCue ?? {}))
+    .filter((metadata): metadata is NonNullable<typeof metadata> => Boolean(metadata));
+}
+
+function parseGenerationPlanRows(): Array<{
+  voiceId: string;
+  logicalCueKey: string;
+  physicalCueKey: string;
+  exactScript: string;
+}> {
+  const planPath = path.join(ROOT, 'docs/audits/HALE_VOICE_V2_1_GENERATION_PLAN.csv');
+  if (!fs.existsSync(planPath)) return [];
+  const lines = fs.readFileSync(planPath, 'utf8').trim().split(/\r?\n/).filter(Boolean);
+  if (lines.length < 2) return [];
+  const headers = parseCsvLine(lines[0]);
+  return lines.slice(1).map((line) => {
+    const values = parseCsvLine(line);
+    const row = Object.fromEntries(headers.map((header, index) => [header, values[index] ?? '']));
+    return {
+      voiceId: row.voiceId,
+      logicalCueKey: row.logicalCueKey,
+      physicalCueKey: row.physicalCueKey,
+      exactScript: row.exactScript,
+    };
+  });
+}
+
+function parseCsvLine(line: string): string[] {
+  const out: string[] = [];
+  let current = '';
+  let quoted = false;
+  for (let index = 0; index < line.length; index++) {
+    const char = line[index];
+    if (quoted) {
+      if (char === '"' && line[index + 1] === '"') {
+        current += '"';
+        index++;
+      } else if (char === '"') {
+        quoted = false;
+      } else {
+        current += char;
+      }
+    } else if (char === '"') {
+      quoted = true;
+    } else if (char === ',') {
+      out.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  out.push(current);
+  return out;
 }
 
 function looksLikeSafetyCueKey(key: string): boolean {

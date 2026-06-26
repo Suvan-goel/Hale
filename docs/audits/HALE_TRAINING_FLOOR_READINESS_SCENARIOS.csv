@@ -69,6 +69,6 @@ floor_later_set_logical_sequence,voice_readiness,glute-bridge-hold,confirmed,tru
 repeat_instructions_no_capability_question,voice_readiness,glute-bridge-hold,confirmed,true,ready,,voice_readiness,repeat_no_question,,,,,awaiting_user_transition,false,false,ex-glute-bridge-hold-first-v21|target-glute-bridge-hold-v21,,true,voiceV21 foundation.test.ts,
 post_safety_safety_subsumption_removed,voice_readiness,glute-bridge-hold,confirmed,true,ready,,voice_readiness,post_safety_removed,,,,,,false,false,,,true,voiceV21 foundation.test.ts,Safety integration is complete; IR-VOICE-SAFETY-SUBSUMPTION is expected to be absent.
 physical_manifest_unchanged_this_task,voice_readiness,,,,ready,,voice_readiness,audio_unchanged,,,,,,false,false,,,true,task-start audio hashes,"Audio integrity is checked against task-start hashes, not Git HEAD."
-training_voice_stays_closed,defaults,,,,ready,,defaults,legacy,,,,,,false,false,,audio_ready_false|global_audio_ready_false|missing_audio:equip-floor-transition-v21|missing_audio:ex-glute-bridge-hold-first-v21|missing_audio:ex-glute-bridge-hold-next-v21|missing_audio:target-glute-bridge-hold-v21,true,voiceV21 foundation.test.ts,
+training_voice_stays_closed,defaults,,,,ready,,defaults,legacy,,,,,,false,false,,audio_ready_false|global_audio_ready_false,true,voiceV21 foundation.test.ts,
 balance_v2_stays_closed,defaults,,,,ready,,defaults,default_closed_audio_pending,,,,,,false,false,,,true,project default audit,
 step_up_stays_closed,defaults,,,,ready,,defaults,default_off,,,,,,false,false,,,true,step-up closure tests,

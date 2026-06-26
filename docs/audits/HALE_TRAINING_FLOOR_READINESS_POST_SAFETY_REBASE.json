@@ -1,6 +1,6 @@
 {
   "auditVersion": 2,
-  "generatedAt": "2026-06-26T09:58:46.699Z",
+  "generatedAt": "2026-06-26T11:15:25.502Z",
   "verdict": "TRAINING_FLOOR_READINESS_POST_SAFETY_BASELINE_COMPLETE",
   "currentPhaseBaseline": "post_safety_integration",
   "artifacts": {
@@ -217,7 +217,7 @@
     "audioGeneratedCount": 0,
     "externalSpeechAudioApiCallCount": 0,
     "physicalManifestChangeCount": 0,
-    "gitAudioDiffAgainstHeadCount": 364,
+    "gitAudioDiffAgainstHeadCount": 0,
     "p0": 0,
     "p1": 0,
     "p2": 0,
@@ -265,12 +265,12 @@
     "taskStartAudioHashPath": "/tmp/hale_floor_post_safety_audio_entry.sha256",
     "taskStartAudioHashAvailable": true,
     "taskStartAudioHashCount": 365,
-    "currentAudioHashCount": 365,
+    "currentAudioHashCount": 717,
     "audioHashChangedCount": 0,
     "audioGenerated": false,
     "externalSpeechApiCalled": false,
-    "gitAudioDiffAgainstHeadCount": 364,
-    "gitAudioDiffMethodNote": "baseline_audio_diff_method_stale_not_product_failure",
+    "gitAudioDiffAgainstHeadCount": 0,
+    "gitAudioDiffMethodNote": "git_head_audio_diff_empty",
     "humanListening": "waived_not_completed",
     "physicalDeviceQa": "deferred"
   },

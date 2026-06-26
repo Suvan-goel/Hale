@@ -2,7 +2,7 @@
 
 Verdict: **MICRO_CHECK_VOICE_V2_1_SOFTWARE_COMPLETE**
 
-Generated: 2026-06-26T09:59:58.559Z
+Generated: 2026-06-26T11:14:12.815Z
 
 ## Readiness
 
@@ -30,10 +30,10 @@ Generated: 2026-06-26T09:59:58.559Z
 - audioReadyValue: false
 - selectableTypeCount: 0
 - featureDefaultOff: true
-- missingAudioLogicalCueCount: 10
-- microRelaxPendingLogicalCueCount: 1
-- exactExistingCueCount: 9
-- semanticMismatchCueCount: 7
+- missingAudioLogicalCueCount: 0
+- microRelaxPendingLogicalCueCount: 0
+- exactExistingCueCount: 19
+- semanticMismatchCueCount: 0
 - goPlaybackStartBoundaryCount: 1
 - missingGoActiveStartCount: 0
 - staleGoMutationCount: 0
@@ -42,8 +42,8 @@ Generated: 2026-06-26T09:59:58.559Z
 - discardResultEmissionCount: 0
 - progressCueCount: 0
 - repSfxVoiceCueCount: 0
-- timingEstimateRowCount: 7
-- timingMeasuredRowCount: 28
+- timingEstimateRowCount: 0
+- timingMeasuredRowCount: 35
 - timelineHardCapMismatchCount: 0
 - physicalManifestChangeCount: 0
 - audioAssetChangeCount: 0

@@ -1,8 +1,10 @@
 import {
   MICRO_CHECK_VOICE_TYPES_V21,
+  MICRO_CHECK_VOICE_V2_1_AUDIO_APPROVAL_READY,
   MICRO_CHECK_VOICE_V2_1_AUDIO_READY,
   MICRO_CHECK_VOICE_V2_1_BEHAVIOR_READY,
   MICRO_CHECK_VOICE_V2_1_FEATURE_DEFAULT,
+  MICRO_CHECK_VOICE_V2_1_PHYSICAL_AUDIO_SURFACE_READY,
   MicroCheckVoiceRuntimeV21,
   assetRequirementForMicroCheckCueV21,
   listMicroCheckProtocolCompatibilityV21,
@@ -72,6 +74,8 @@ describe('Micro-Check Voice V2.1 contracts', () => {
 
   it('keeps Micro-Check Voice V2.1 behavior ready but audio/default closed', () => {
     expect(MICRO_CHECK_VOICE_V2_1_BEHAVIOR_READY).toBe(true);
+    expect(MICRO_CHECK_VOICE_V2_1_PHYSICAL_AUDIO_SURFACE_READY).toBe(true);
+    expect(MICRO_CHECK_VOICE_V2_1_AUDIO_APPROVAL_READY).toBe(false);
     expect(MICRO_CHECK_VOICE_V2_1_AUDIO_READY).toBe(false);
     expect(MICRO_CHECK_VOICE_V2_1_FEATURE_DEFAULT).toBe('off');
     expect(microCheckVoiceSelectableTypeCountV21()).toBe(0);
@@ -121,19 +125,19 @@ describe('Micro-Check Voice V2.1 sequence planning and assets', () => {
     expect(allCueKeys).not.toContain('microcheck-intro' as MicroCheckVoiceLogicalCueKeyV21);
   });
 
-  it('marks pending logical cues without reusing semantically wrong legacy audio', () => {
+  it('uses generated exact logical cues without reusing semantically wrong legacy audio', () => {
     expect(assetRequirementForMicroCheckCueV21('micro-relax-v21')).toMatchObject({
       exactScript: 'Relax.',
-      currentCandidateKey: 'relax-arm',
-      semanticMatch: false,
-      reuseDecision: 'existing_pair_script_mismatch',
-      generationRequiredLater: true,
+      currentCandidateKey: 'micro-relax-v21',
+      semanticMatch: true,
+      reuseDecision: 'reuse_exact_existing_pair',
+      generationRequiredLater: false,
     });
     expect(assetRequirementForMicroCheckCueV21('microcheck-complete-v21')).toMatchObject({
       exactScript: 'Check complete.',
-      currentCandidateKey: 'microcheck-complete',
-      semanticMatch: false,
-      generationRequiredLater: true,
+      currentCandidateKey: 'microcheck-complete-v21',
+      semanticMatch: true,
+      generationRequiredLater: false,
     });
     expect(assetRequirementForMicroCheckCueV21('go')).toMatchObject({
       exactScript: 'Go!',

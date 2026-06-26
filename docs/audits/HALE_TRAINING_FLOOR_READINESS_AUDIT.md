@@ -40,7 +40,7 @@
 - audioGeneratedCount: 0
 - externalSpeechAudioApiCallCount: 0
 - physicalManifestChangeCount: 0
-- gitAudioDiffAgainstHeadCount: 364
+- gitAudioDiffAgainstHeadCount: 0
 - p0/p1/p2/p3: 0/0/0/4
 
 ## Findings

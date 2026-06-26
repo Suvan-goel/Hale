@@ -10,6 +10,7 @@
 
 import type { SafetyCueId } from '../training/safetyCueDefinitions';
 import type { MovementProfileV2CueId } from '../movementProfileV2/voiceCues';
+import type { MicroCheckVoiceLogicalCueKeyV21 } from '../training/microCheckVoiceV21/types';
 
 /** Spoken number words for stitched results ("You completed" + "twelve" + …). */
 export type NumberCueKey = `num-${number}`;
@@ -136,6 +137,18 @@ export type VoiceCueKey =
   | `target-${string}-v21`
   | `side-${string}-v21`
   | `step-up-start-${'left' | 'right'}-v21`
+  // Eyes-Open Balance V2 stage-specific generated cues.
+  | 'checkup-balance-feet-together-v21'
+  | 'checkup-balance-semi-tandem-left-v21'
+  | 'checkup-balance-semi-tandem-right-v21'
+  | 'checkup-balance-tandem-left-v21'
+  | 'checkup-balance-tandem-right-v21'
+  | 'checkup-balance-single-leg-left-v21'
+  | 'checkup-balance-single-leg-right-v21'
+  | 'checkup-balance-next-stance-v21'
+  | 'checkup-balance-support-touch-v21'
+  // Micro-Check Voice V2.1 generated cue keys.
+  | MicroCheckVoiceLogicalCueKeyV21
   // Results.
   | 'you-completed'
   | 'stands-suffix'
