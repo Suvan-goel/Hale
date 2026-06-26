@@ -1,0 +1,24 @@
+scenarioId,category,description,expected,actual,passed
+contract_count_exact_three,contracts,three live micro-check types,3,3,true
+no_generic_microcheck_intro,contracts,no generic microcheck-intro in V2.1 path,0,0,true
+chair_exact_instruction,sequence,Five quick chair stands. Arms crossed. Stand and sit five times as quickly as safely comfortable.,exact,exact,true
+balance_left_exact_instruction,sequence,left standing-leg setup cue,micro-single-leg-left-v21,micro-single-leg-left-v21,true
+balance_right_exact_instruction,sequence,right standing-leg setup cue,micro-single-leg-right-v21,micro-single-leg-right-v21,true
+mobility_left_exact_instruction,sequence,left extended-leg setup cue,micro-mobility-left-v21,micro-mobility-left-v21,true
+mobility_right_exact_instruction,sequence,right extended-leg setup cue,micro-mobility-right-v21,micro-mobility-right-v21,true
+final_position_before_countdown,sequence,final-position-set-v21 precedes countdown,true,true,true
+runtime_go_playback_start_boundary,runtime,active starts from go playback-start callback,go_playback_started,go_playback_started,true
+runtime_go_dispatch_not_active,runtime,dispatching countdown request alone does not start active,countdown,countdown,true
+runtime_missing_go_blocks_active,runtime,missing go leaves runtime in audio_failure,audio_failure,audio_failure,true
+runtime_stale_go_ignored,runtime,stale old request go callback cannot mutate active attempt,ignored,ignored,true
+runtime_pause_invalidates_attempt,controls,pause cancels active attempt and speaks paused-v21,paused-v21,paused-v21,true
+runtime_resume_returns_setup,controls,resume speaks resuming-v21 and returns to setup/instruction,instruction,instruction,true
+runtime_retry_returns_setup,controls,retry speaks retry-v21 and resets attempt,instruction,instruction,true
+runtime_discard_no_result,controls,discard speaks micro-discard-v21 and emits no result,discarded,discarded,true
+tracking_loss_deduped,recovery,same attempt tracking loss dedupes into one episode,one_episode,one_episode,true
+tracking_recovered_fresh_countdown,recovery,recovered path requires fresh setup and countdown,fresh_countdown_required,fresh_countdown_required,true
+chair_rep_sfx_only,runtime,"chair reps keep SFX only, no spoken progress counts",true,true,true
+balance_hold_end_or_cap,runtime,balance stops on hold termination or 45s hard cap,hold_end_or_cap,hold_end_or_cap,true
+mobility_relax_pending_logical,assets,"mobility stop cue is pending micro-relax-v21, not relax-arm",micro-relax-v21,micro-relax-v21,true
+feature_default_closed,readiness,feature remains off/selectable zero,legacy,legacy,true
+audio_ready_false,readiness,audio not ready blocks V2.1 selection,false,false,true

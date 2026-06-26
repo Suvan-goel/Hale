@@ -1,0 +1,284 @@
+{
+  "auditVersion": 2,
+  "generatedAt": "2026-06-26T09:58:46.699Z",
+  "verdict": "TRAINING_FLOOR_READINESS_POST_SAFETY_BASELINE_COMPLETE",
+  "currentPhaseBaseline": "post_safety_integration",
+  "artifacts": {
+    "implementation": "docs/audits/HALE_TRAINING_FLOOR_READINESS_IMPLEMENTATION.md",
+    "auditMd": "docs/audits/HALE_TRAINING_FLOOR_READINESS_AUDIT.md",
+    "auditJson": "docs/audits/HALE_TRAINING_FLOOR_READINESS_AUDIT.json",
+    "scenariosCsv": "docs/audits/HALE_TRAINING_FLOOR_READINESS_SCENARIOS.csv",
+    "contractMatrixCsv": "docs/audits/HALE_TRAINING_FLOOR_CONTRACT_MATRIX.csv",
+    "handoff": "docs/audits/HALE_VOICE_PROJECT_POST_FLOOR_READINESS_HANDOFF.md"
+  },
+  "postSafetyArtifacts": {
+    "reportMd": "docs/audits/HALE_TRAINING_FLOOR_READINESS_POST_SAFETY_REBASE.md",
+    "auditJson": "docs/audits/HALE_TRAINING_FLOOR_READINESS_POST_SAFETY_REBASE.json",
+    "scenariosCsv": "docs/audits/HALE_TRAINING_FLOOR_READINESS_POST_SAFETY_SCENARIOS.csv",
+    "contractMatrixCsv": "docs/audits/HALE_TRAINING_FLOOR_CONTRACT_MATRIX_POST_SAFETY.csv",
+    "handoff": "docs/audits/HALE_VOICE_PROJECT_POST_FLOOR_READINESS_POST_SAFETY_HANDOFF.md"
+  },
+  "floorExerciseInventory": [
+    {
+      "exerciseId": "glute-bridge-hold",
+      "displayName": "Bridge Hold",
+      "releaseStatus": "v1_core",
+      "equipment": [
+        "floor"
+      ],
+      "orientation": "side",
+      "setType": "hold",
+      "target": "20 seconds"
+    },
+    {
+      "exerciseId": "glute-bridge-reps",
+      "displayName": "Glute Bridge",
+      "releaseStatus": "v1_core",
+      "equipment": [
+        "floor"
+      ],
+      "orientation": "side",
+      "setType": "reps",
+      "target": "12 reps"
+    },
+    {
+      "exerciseId": "push-up-standard",
+      "displayName": "Push-Up",
+      "releaseStatus": "v1_optional",
+      "equipment": [
+        "floor"
+      ],
+      "orientation": "side",
+      "setType": "reps",
+      "target": "8 reps"
+    }
+  ],
+  "sourceOfTruth": [
+    [
+      "floor_space",
+      "MovementSafetyProfile.availableEquipment includes floor_space",
+      "Safety/Profile equipment UI",
+      "equipmentSafety/floorExerciseEligibility",
+      "profile serialize/backend safety_json",
+      "safety_json.safetyProfile.availableEquipment",
+      "environment requirement only",
+      "settings/equipment",
+      "not a transfer capability",
+      "reused"
+    ],
+    [
+      "movementCapabilities",
+      "MovementSafetyProfile.movementCapabilities",
+      "SafetyProfileScreen/profile merge",
+      "profile helpers/planners",
+      "profile serialize/backend safety_json",
+      "safety_json.safetyProfile.movementCapabilities",
+      "capability authority container",
+      "Safety/Profile",
+      "already canonical",
+      "reused"
+    ],
+    [
+      "floorTransfer",
+      "MovementCapabilityProfile.floorTransfer.status",
+      "SafetyProfileScreen",
+      "floorExerciseEligibility/movementCapabilitySafety",
+      "movementCapabilityProfileForPersistence",
+      "movementCapabilities.floorTransfer.status",
+      "floor exercise transfer gate",
+      "FD-007 question",
+      "needed 3-action UI and runtime final setup",
+      "completed"
+    ],
+    [
+      "capability status enum",
+      "CapabilityConfirmationStatus = confirmed|avoid_for_now|not_confirmed",
+      "adherence/types",
+      "profile normalization/eligibility",
+      "JSON",
+      "JSON",
+      "fail-closed gate",
+      "answer mapping",
+      "complete",
+      "reused"
+    ],
+    [
+      "capability fingerprint",
+      "PlannedMovementCapabilitySnapshot.fingerprint",
+      "plannedMovementCapabilitySnapshotFromProfile",
+      "start-time validation",
+      "plan metadata",
+      "training state JSON",
+      "stale-plan invalidation",
+      "none",
+      "complete",
+      "reused"
+    ],
+    [
+      "generated eligibility",
+      "deriveFloorExerciseEligibility + workoutGeneration/collectionSelection",
+      "planner",
+      "generated sessions",
+      "plan snapshot",
+      "training state",
+      "substitute/skip",
+      "preview/explore",
+      "needed central helper",
+      "completed"
+    ],
+    [
+      "manual/explore eligibility",
+      "sessionPlanning practiceLevelIssues + Explore view model",
+      "manual/explore selection",
+      "player launch guards",
+      "n/a",
+      "n/a",
+      "direct path parity",
+      "detail CTA copy",
+      "mostly complete; central helper added to direct planning",
+      "completed"
+    ],
+    [
+      "floor safety cue family",
+      "floor_eligible_user/equip-floor-transition-v21",
+      "voice contracts",
+      "sequence planner",
+      "logical contract",
+      "n/a",
+      "V2.1 logical transition",
+      "voice runtime",
+      "live safety integration complete",
+      "completed"
+    ],
+    [
+      "final-position readiness",
+      "TrainingFloorSetupSnapshot",
+      "TrainingSessionPlayer internal V2.1 path",
+      "TrainingSessionScreen/player",
+      "not persisted long-term",
+      "active state restore later",
+      "blocks countdown/active set",
+      "I am ready action",
+      "missing before floor task",
+      "completed default-off"
+    ]
+  ],
+  "metrics": {
+    "scenarioCount": 73,
+    "postSafetyScenarioCount": 28,
+    "floorExerciseCount": 3,
+    "floorContractCount": 3,
+    "coreFloorExerciseCount": 2,
+    "optionalFloorExerciseCount": 1,
+    "canonicalFloorAuthorityCount": 1,
+    "duplicateFloorAuthorityCount": 0,
+    "confirmedEligibleScenarioCount": 3,
+    "irVoiceFloorGateRemainingCount": 0,
+    "irVoiceFinalPositionRemainingCount": 0,
+    "irVoiceSafetySubsumptionRemainingCount": 0,
+    "safetyIntegrationCompleteValue": true,
+    "trainingVoiceSafetyReadyValue": true,
+    "trainingVoiceBehaviorReadyValue": true,
+    "trainingVoiceAudioReadyValue": false,
+    "trainingVoiceFeatureDefault": "off",
+    "trainingVoiceSelectableExerciseCount": 0,
+    "floorGateLeakCount": 0,
+    "floorSpaceOnlyLeakCount": 0,
+    "unconfirmedFloorExerciseLeakCount": 0,
+    "avoidFloorExerciseLeakCount": 0,
+    "confirmedWithoutFloorSpaceLeakCount": 0,
+    "directHelperBypassCount": 0,
+    "generatedPathBypassCount": 0,
+    "manualPathBypassCount": 0,
+    "explorePathBypassCount": 0,
+    "restorePromotionCount": 0,
+    "stalePlanStartCount": 0,
+    "falsePrimaryFocusCreditCount": 0,
+    "silentUnrelatedSubstitutionCount": 0,
+    "optionalPushupPromotionCount": 0,
+    "firstFloorTransitionCount": 1,
+    "duplicateFloorTransitionCount": 0,
+    "laterSetTransitionRepeatCount": 0,
+    "prematureFinalPositionCueCount": 0,
+    "countdownBeforeFinalPositionCount": 0,
+    "activeBeforeFinalPositionCount": 0,
+    "staleReadinessMutationCount": 0,
+    "staleFloorSetupMutationCount": 0,
+    "restoreAutoStartCount": 0,
+    "localProfileRoundTripFailureCount": 0,
+    "backendProfileRoundTripFailureCount": 0,
+    "capabilitySnapshotRoundTripFailureCount": 0,
+    "safetySubsumptionBlockerRemovedIncorrectlyCount": 0,
+    "legacyFloorAuditStaleExpectationCount": 0,
+    "postSafetyRebaseAppliedCount": 1,
+    "postSafetyExpectationMismatchCount": 0,
+    "verifyAudioFailureCount": 0,
+    "audioHashChangedCount": 0,
+    "audioGeneratedCount": 0,
+    "externalSpeechAudioApiCallCount": 0,
+    "physicalManifestChangeCount": 0,
+    "gitAudioDiffAgainstHeadCount": 364,
+    "p0": 0,
+    "p1": 0,
+    "p2": 0,
+    "p3": 4
+  },
+  "findings": [
+    {
+      "id": "P3-PHYSICAL-DEVICE-QA",
+      "severity": "P3",
+      "status": "deferred",
+      "detail": "Physical device floor setup reliability remains deferred."
+    },
+    {
+      "id": "P3-HUMAN-LISTENING",
+      "severity": "P3",
+      "status": "waived",
+      "detail": "Human listening remains waived; regenerated corpus not human-listened in this task."
+    },
+    {
+      "id": "P3-REGENERATED-CORPUS-LISTENING",
+      "severity": "P3",
+      "status": "waived",
+      "detail": "Regenerated audio corpus is verified by manifest/hash only; human listening remains outside this task."
+    },
+    {
+      "id": "P3-PHYSICAL-SPEAKER-TIMING",
+      "severity": "P3",
+      "status": "deferred",
+      "detail": "Physical speaker/device timing remains deferred."
+    }
+  ],
+  "defaults": {
+    "canonicalFloorCapabilityGate": "active",
+    "floorV21FeatureDefault": "off",
+    "floorV21FeatureFlag": "EXPO_PUBLIC_ENABLE_TRAINING_FLOOR_V2_1",
+    "trainingVoiceV21FeatureDefault": "off",
+    "trainingVoiceV21SafetyReady": true,
+    "trainingVoiceV21AudioReady": false,
+    "trainingVoiceV21GlobalBehaviorReady": true,
+    "balanceV2": "default_closed_audio_pending",
+    "stepUpAlternation": "default_off",
+    "microCheckVoiceV21": "software_complete_audio_false_feature_off"
+  },
+  "integrity": {
+    "taskStartAudioHashPath": "/tmp/hale_floor_post_safety_audio_entry.sha256",
+    "taskStartAudioHashAvailable": true,
+    "taskStartAudioHashCount": 365,
+    "currentAudioHashCount": 365,
+    "audioHashChangedCount": 0,
+    "audioGenerated": false,
+    "externalSpeechApiCalled": false,
+    "gitAudioDiffAgainstHeadCount": 364,
+    "gitAudioDiffMethodNote": "baseline_audio_diff_method_stale_not_product_failure",
+    "humanListening": "waived_not_completed",
+    "physicalDeviceQa": "deferred"
+  },
+  "validation": {
+    "verifyAudioPassed": true,
+    "safetyIntegrationComplete": true,
+    "controlsProgressRecoveryReady": true,
+    "microCheckVoiceSoftwareComplete": true
+  },
+  "nextTask": "Final Voice V2.1 cue schema and physical manifest reconciliation"
+}

@@ -1,0 +1,29 @@
+scenarioId,category,exerciseId,currentPhaseBaseline,trainingSafetyReady,trainingBehaviorReady,blockersBefore,blockersAfter,capabilityStatus,floorSpace,entryPath,finalPositionPhase,countdownAllowed,activeAllowed,expectedOutcome,observedOutcome,passed,notes
+post_safety_floor_gate_blocker_removed,contract_blocker_state,glute-bridge-hold,post_safety_integration,true,true,IR-VOICE-FLOOR-GATE,,,,,,,,removed,0,true,Floor gate implementation blocker was removed after the canonical capability gate shipped.
+post_safety_final_position_blocker_removed,contract_blocker_state,glute-bridge-hold,post_safety_integration,true,true,IR-VOICE-FINAL-POSITION-READINESS,,,,,,,,removed,0,true,Final-position runtime readiness is implemented in the default-closed floor path.
+post_safety_safety_subsumption_removed,contract_blocker_state,glute-bridge-hold,post_safety_integration,true,true,IR-VOICE-SAFETY-SUBSUMPTION,,,,,,,,removed_post_safety,0,true,"Live safety-family integration is complete, so the old safety blocker should not be re-added."
+floor_contracts_no_stale_safety_blocker,contract_blocker_state,,post_safety_integration,true,true,,,,,,,,,zero_stale_safety_blockers,0,true,All three floor contracts match the post-safety baseline.
+floor_contracts_no_new_unknown_blocker,contract_blocker_state,,post_safety_integration,true,true,,,,,,,,,no_unknown_blocker,,true,Remaining floor implementation blockers are empty.
+floor_space_only_still_blocked,floor_gate,glute-bridge-hold,post_safety_integration,true,true,,,not_confirmed,true,deriveFloorExerciseEligibility,,,,blocked,blocked,true,floor_transfer_not_confirmed
+unconfirmed_floor_transfer_still_blocked,floor_gate,glute-bridge-hold,post_safety_integration,true,true,,,not_confirmed,true,deriveFloorExerciseEligibility,,,,blocked,blocked,true,floor_transfer_not_confirmed
+avoid_floor_transfer_still_blocked,floor_gate,glute-bridge-hold,post_safety_integration,true,true,,,avoid_for_now,true,deriveFloorExerciseEligibility,,,,blocked,blocked,true,floor_transfer_not_confirmed
+confirmed_without_floor_space_still_blocked,floor_gate,glute-bridge-hold,post_safety_integration,true,true,,,confirmed,false,deriveFloorExerciseEligibility,,,,blocked,blocked,true,floor_space_missing
+confirmed_with_floor_space_eligible_subject_to_other_gates,floor_gate,glute-bridge-hold,post_safety_integration,true,true,,,confirmed,true,deriveFloorExerciseEligibility,,,,eligible,eligible,true,Core floor exercise is eligible; optional push-up still obeys release policy.
+direct_helper_cannot_bypass_floor_gate,floor_gate,glute-bridge-hold,post_safety_integration,true,true,,,not_confirmed,true,direct_helper,,,,blocked,blocked,true,Direct helper uses the same canonical capability gate.
+floor_final_position_blocks_countdown,final_position,glute-bridge-hold,post_safety_integration,true,true,,,,,,awaiting_user_transition,false,false,blocked,blocked,true,TrainingSessionPlayer does not call startCountdown while floorSetup awaits confirmation/readiness.
+floor_final_position_blocks_active,final_position,glute-bridge-hold,post_safety_integration,true,true,,,,,,awaiting_visibility,false,false,blocked,blocked,true,Active work cannot begin before finalPositionReadyAtMs is set.
+floor_confirmation_plus_readiness_allows_countdown,final_position,glute-bridge-hold,post_safety_integration,true,true,,,,,,ready,true,true,ready_then_countdown,ready_then_countdown,true,The ready phase speaks final-position-set-v21 before countdown.
+stale_floor_setup_callback_ignored,final_position,glute-bridge-hold,post_safety_integration,true,true,,,,,,awaiting_user_transition,false,false,guard_rejected,guard_rejected,true,"confirmFloorStartPosition checks exerciseId, setIndex, and setupEpoch."
+restore_floor_setup_no_auto_start,final_position,glute-bridge-hold,post_safety_integration,true,true,,,,,,awaiting_visibility,false,false,no_auto_start,no_auto_start,true,Restore preserves boundaries and does not promote active floor work.
+training_safety_ready_true,post_safety_sanity,,post_safety_integration,true,true,,,,,,,,,true,true,true,
+training_behavior_ready_true,post_safety_sanity,,post_safety_integration,true,true,,,,,,,,,true,true,true,
+training_audio_ready_false,post_safety_sanity,,post_safety_integration,true,true,,,,,,,,,false,false,true,
+training_feature_default_off,post_safety_sanity,,post_safety_integration,true,true,,,,,,,,,off,off,true,
+v21_selectable_exercises_zero,post_safety_sanity,,post_safety_integration,true,true,,,,,,,,,0,0,true,
+floor_v21_default_off,post_safety_sanity,,post_safety_integration,true,true,,,,,,,,,off,off,true,
+balance_v2_default_closed,post_safety_sanity,,post_safety_integration,true,true,,,,,,,,,closed,closed,true,
+step_up_default_off,post_safety_sanity,,post_safety_integration,true,true,,,,,,,,,off,off,true,
+micro_check_v21_software_complete_audio_false,post_safety_sanity,,post_safety_integration,true,true,,,,,,,,,software_complete_audio_false,software_complete_audio_false,true,
+verify_audio_passes_regenerated_baseline,audio_baseline,,post_safety_integration,true,true,,,,,,,,,verify_audio_passes,pass,true," | AUDIO VERIFICATION PASS safety: requiredCues=44 voices=clara,marcus requiredAssets=88 totalBytes=4944110 durationRange=1.904-5.805s movementProfileV2: requiredCues=31 voices=clara,marcus requiredAssets=62 totalBytes=3350553 durationRange=0.743-7.430s total: requiredAssets=150"
+audio_hashes_unchanged_this_task,audio_baseline,,post_safety_integration,true,true,,,,,,,,,0_hash_diffs,0,true,task_start_hash_count=365
+no_external_audio_api_called,audio_baseline,,post_safety_integration,true,true,,,,,,,,,0_calls,0,true,Audit and verification do not invoke audio generation or external speech APIs.
