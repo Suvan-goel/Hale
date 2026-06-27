@@ -8,13 +8,19 @@
 import type { AgeBand, LifeGoal, MovementSafetyProfile } from '../adherence';
 import type { VoiceExperienceMode } from '../config/voiceExperienceTypes';
 
+export type ProfileReferenceSex = 'female' | 'male';
+
 /** A single person on this device. All fields optional until the user fills them in. */
 export interface UserProfile {
   /** Display name shown on Home; '' when unset. */
   name: string;
-  /** Deprecated legacy exact age. New profile saves keep this null and use ageBand. */
+  /** Exact whole-year age used for published reference comparisons. */
+  exactAge: number | null;
+  /** Reference group used for sex-specific published comparisons. */
+  referenceSex: ProfileReferenceSex | null;
+  /** Deprecated legacy exact age mirror for older V1 surfaces. */
   age: number | null;
-  /** Age range selected during onboarding or Settings. */
+  /** Legacy age range retained for old records and non-reference copy. */
   ageBand: AgeBand | null;
   /** One-line personal goal in the user's own words; '' when unset. */
   goal: string;
@@ -82,6 +88,8 @@ export interface Preferences {
 
 export const EMPTY_PROFILE: UserProfile = {
   name: '',
+  exactAge: null,
+  referenceSex: null,
   age: null,
   ageBand: null,
   goal: '',

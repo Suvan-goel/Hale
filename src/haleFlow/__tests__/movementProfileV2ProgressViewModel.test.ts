@@ -58,7 +58,9 @@ describe('Movement Profile V2 Progress view model', () => {
     expect(viewModel.hero.title).toBe('Movement Profile');
     expect(viewModel.hero.profileId).toBe(BASELINE_AT);
     expect(viewModel.hero.domains.map((card) => card.metric)).toContain('12 rises in 30 seconds');
-    expect(viewModel.hero.domains.find((card) => card.domain === 'strength_power')?.interpretation).toMatch(/Saved|Published/);
+    expect(viewModel.hero.domains.find((card) => card.domain === 'strength_power')?.interpretation).toBe(
+      'Around the 10th-40th percentile'
+    );
     expect(viewModel.actions).toEqual([
       { id: 'view_movement_profile', label: 'View Movement Profile', targetId: BASELINE_AT },
     ]);

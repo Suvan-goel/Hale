@@ -51,12 +51,12 @@ const REFERENCE_PROFILE = {
 
 describe('Movement Profile V2 assessment contract', () => {
   it('exposes independent V2 policy versions and deterministic fingerprints', () => {
-    expect(MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_VERSION).toBe(1);
-    expect(MOVEMENT_PROFILE_V2_FOCUS_POLICY_VERSION).toBe(1);
+    expect(MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_VERSION).toBe(2);
+    expect(MOVEMENT_PROFILE_V2_FOCUS_POLICY_VERSION).toBe(2);
     expect(MOVEMENT_PROFILE_V2_ASSESSMENT_SCHEMA_VERSION).toBe(1);
     expect(MOVEMENT_PROFILE_V2_LIFE_GOAL_ADAPTER_VERSION).toBe(1);
-    expect(MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_FINGERPRINT).toMatch(/^mpv2-domain-evidence-policy-v1-/);
-    expect(MOVEMENT_PROFILE_V2_FOCUS_POLICY_FINGERPRINT).toMatch(/^mpv2-focus-policy-v1-/);
+    expect(MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_FINGERPRINT).toMatch(/^mpv2-domain-evidence-policy-v2-/);
+    expect(MOVEMENT_PROFILE_V2_FOCUS_POLICY_FINGERPRINT).toMatch(/^mpv2-focus-policy-v2-/);
     expect(MOVEMENT_PROFILE_V2_LIFE_GOAL_MAPPING_FINGERPRINT).toBe(movementProfileV2LifeGoalMappingFingerprint());
   });
 
@@ -71,10 +71,10 @@ describe('Movement Profile V2 assessment contract', () => {
     expect(evidence).toEqual([
       expect.objectContaining({
         domain: 'strength_power',
-        category: 'raw_only_valid',
-        evidenceSource: 'raw_only',
+        category: 'hale_building',
+        evidenceSource: 'published_reference',
         focusEligible: false,
-        reasons: expect.arrayContaining(['chair_warden_transform_disabled', 'raw_only_source_transform_unapproved']),
+        reasons: expect.arrayContaining(['chair_percentile_range_below_40_conservative']),
       }),
       expect.objectContaining({
         domain: 'balance',
@@ -94,7 +94,7 @@ describe('Movement Profile V2 assessment contract', () => {
     expect(JSON.stringify(evidence)).not.toMatch(/movementAge|bodyAge|weakestDomain|scoreSnapshot|MovementBlock/);
   });
 
-  it('keeps future chair percentile evidence explicit and focus-neutral for bounded ranges', () => {
+  it('maps chair percentile evidence without exposing exact percentiles', () => {
     const base = mustCreateSnapshot(v2CheckUp());
 
     expect(chairEvidence(base, { kind: 'below_10' })).toMatchObject({
@@ -107,11 +107,23 @@ describe('Movement Profile V2 assessment contract', () => {
       evidenceSource: 'published_reference',
       focusEligible: false,
     });
+    expect(chairEvidence(base, { kind: 'range', low: 0, high: 20 })).toMatchObject({
+      category: 'hale_starting_point',
+      evidenceSource: 'published_reference',
+      focusEligible: true,
+      reasons: expect.arrayContaining(['chair_percentile_range_below_25_conservative']),
+    });
     expect(chairEvidence(base, { kind: 'range', low: 20, high: 40 })).toMatchObject({
-      category: 'raw_only_valid',
+      category: 'hale_building',
       evidenceSource: 'published_reference',
       focusEligible: false,
-      reasons: expect.arrayContaining(['chair_percentile_focus_threshold_not_approved']),
+      reasons: expect.arrayContaining(['chair_percentile_range_below_40_conservative']),
+    });
+    expect(chairEvidence(base, { kind: 'range', low: 40, high: 60 })).toMatchObject({
+      category: 'within_reference',
+      evidenceSource: 'published_reference',
+      focusEligible: false,
+      reasons: expect.arrayContaining(['chair_percentile_range_neutral']),
     });
   });
 

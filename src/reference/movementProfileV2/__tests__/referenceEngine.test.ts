@@ -30,8 +30,10 @@ import {
   REFERENCE_SOURCES,
   REFERENCE_TRANSFORMATIONS,
   SPRINGER_2007_BALANCE_BENCHMARKS,
+  WARDEN_CHAIR_TRANSFORMATION_ID,
   validateBalanceBenchmarkTable,
   validateGillShoulderTable,
+  wardenChairPercentileFor,
 } from '../index';
 
 describe('Movement Profile V2 reference engine', () => {
@@ -48,8 +50,8 @@ describe('Movement Profile V2 reference engine', () => {
     expect(result.protocolSupported).toBe(true);
     expect(result.rawCompleteness.referenceComplete).toBe(true);
     expect(result.chair.rawMetric).toMatchObject({ metricId: 'chair_rises_30s', value: 12 });
-    expect(result.chair.claimEligibility).toBe('raw_only_source_transform_unapproved');
-    expect(result.chair.percentileRange).toBeNull();
+    expect(result.chair.claimEligibility).toBe('reference_eligible');
+    expect(result.chair.percentileRange).toEqual({ kind: 'range', low: 10, high: 40 });
     expect(result.balance.taskBand).toBe('building');
     expect(result.balance.sourceBenchmark).toMatchObject({
       sourceAgeGroupId: 'springer_60_69',
@@ -286,6 +288,21 @@ describe('Movement Profile V2 shoulder references', () => {
 });
 
 describe('Movement Profile V2 chair transform gate', () => {
+  it.each([
+    ['female', 50, 8, 0.5711107758],
+    ['female', 50, 16, 54.3702038045],
+    ['female', 50, 22, 91.7669230622],
+    ['female', 65, 14, 46.0114070645],
+    ['female', 75, 19, 92.3552071922],
+    ['male', 50, 8, 0.3801460030],
+    ['male', 50, 16, 47.3987009797],
+    ['male', 50, 24, 92.6966398804],
+    ['male', 65, 15, 51.6090044946],
+    ['male', 75, 21, 92.6254719616],
+  ] as const)('matches the Warden calculator golden example for %s age %s with %s rises', (referenceSex, ageAtTest, repetitions, expected) => {
+    expect(wardenChairPercentileFor({ referenceSex, ageAtTest, repetitions })).toBeCloseTo(expected, 3);
+  });
+
   it('structures approved percentile ranges without exposing exact percentiles', () => {
     const provider = fakeChairProvider([47, 52, 54]);
     expect(
@@ -307,20 +324,20 @@ describe('Movement Profile V2 chair transform gate', () => {
     });
   });
 
-  it('requires explicit enabled transformation, matching fingerprints, and approval', () => {
+  it('uses the approved default transform and fails closed when transform identity does not match', () => {
     const defaultResult = interpretMovementProfileV2({
       checkUp: v2CheckUp(),
       referenceProfile: { ageAtTest: 62, ageBasis: 'exact_age_at_test', referenceSex: 'female' },
     });
-    expect(defaultResult.chair.claimEligibility).toBe('raw_only_source_transform_unapproved');
+    expect(defaultResult.chair.claimEligibility).toBe('reference_eligible');
+    expect(defaultResult.chair.percentileRange).toEqual({ kind: 'range', low: 10, high: 40 });
 
     const transformations = createReferenceTransformations({
-      chairPercentileEnabled: true,
       chairApprovalId: 'unit-test-approved-transform',
     });
     const warden = REFERENCE_SOURCES.find((source) => source.sourceId === 'warden_2022_30s_sts')!;
     const chairTransform = transformations.find(
-      (transformation) => transformation.transformationId === 'chair_percentile_range_v1_pending_transform'
+      (transformation) => transformation.transformationId === WARDEN_CHAIR_TRANSFORMATION_ID
     )!;
     const approvedProvider = fakeChairProvider([47, 52, 54], {
       sourceFingerprint: warden.sourceFingerprint,
@@ -495,7 +512,7 @@ function fakeChairProvider(
   return {
     sourceId: 'warden_2022_30s_sts',
     sourceFingerprint: identity.sourceFingerprint ?? 'test-source',
-    transformationId: 'chair_percentile_range_v1_pending_transform',
+    transformationId: WARDEN_CHAIR_TRANSFORMATION_ID,
     transformationFingerprint: identity.transformationFingerprint ?? 'test-transform',
     approvalId: identity.approvalId ?? 'test-approval',
     percentileFor: identity.percentileFor ?? (() => percentiles[Math.min(index++, percentiles.length - 1)] ?? null),

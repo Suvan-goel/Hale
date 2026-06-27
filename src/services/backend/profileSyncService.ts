@@ -49,6 +49,8 @@ export function preferencesToBackendProfileUpdate(prefs: Preferences): BackendPr
     profile_json: toBackendJson({
       schemaVersion: PREFERENCES_SCHEMA_VERSION,
       name: prefs.profile.name,
+      exactAge: prefs.profile.exactAge,
+      referenceSex: prefs.profile.referenceSex,
       age: prefs.profile.age,
       ageBand: prefs.profile.ageBand,
       goal: normalizeLifeGoalDisplayText(prefs.profile.goal),
@@ -85,6 +87,8 @@ export function mergeRemoteProfileIntoLocal(
   return {
     profile: {
       name: hasText(localPrefs.profile.name) ? localPrefs.profile.name : remotePrefs.profile.name,
+      exactAge: localPrefs.profile.exactAge ?? remotePrefs.profile.exactAge,
+      referenceSex: localPrefs.profile.referenceSex ?? remotePrefs.profile.referenceSex,
       age: localPrefs.profile.age ?? remotePrefs.profile.age,
       ageBand: localPrefs.profile.ageBand ?? remotePrefs.profile.ageBand,
       goal: normalizeLifeGoalDisplayText(
@@ -247,6 +251,8 @@ function preferencesFromBackendProfile(remoteProfile: BackendProfile): Preferenc
   const onboarding = asObject(onboardingJson.onboarding);
   const profile = {
     name: stringValue(profileJson.name) ?? remoteProfile.full_name ?? '',
+    exactAge: numberValue(profileJson.exactAge) ?? numberValue(profileJson.age) ?? ageFromBirthYear(remoteProfile.birth_year),
+    referenceSex: profileJson.referenceSex,
     age: numberValue(profileJson.age) ?? ageFromBirthYear(remoteProfile.birth_year),
     ageBand: profileJson.ageBand ?? null,
     goal: normalizeLifeGoalDisplayText(stringValue(profileJson.goal) ?? ''),

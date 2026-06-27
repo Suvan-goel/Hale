@@ -8,13 +8,13 @@
 import { LIFE_GOAL_CATEGORIES, normalizeLifeGoalDisplayText } from '../adherence';
 import type { ActivityLevel, LifeGoal, MovementSafetyProfile } from '../adherence';
 import { DEFAULT_VOICE_EXPERIENCE_MODE, parseVoiceExperienceMode } from '../config/voiceExperienceTypes';
-import { AppSettings, EMPTY_PROFILE, OnboardingState, OnboardingStep, Preferences, UserProfile } from './types';
+import { AppSettings, EMPTY_PROFILE, OnboardingState, OnboardingStep, Preferences, ProfileReferenceSex, UserProfile } from './types';
 import { ageBandForAge, isAgeBand, representativeAgeForAgeBand } from './age';
 import { isCanonicalEquipmentStatus, normalizeAvailableEquipmentForPersistence } from './equipment';
 import { movementCapabilityProfileForPersistence } from './movementCapabilities';
 import { DEFAULT_VOICE_ID, VOICE_OPTIONS } from './voices';
 
-export const PREFERENCES_SCHEMA_VERSION = 5;
+export const PREFERENCES_SCHEMA_VERSION = 6;
 
 const ONBOARDING_STEPS: OnboardingStep[] = [
   'welcome',
@@ -78,13 +78,15 @@ function validProfile(v: unknown): UserProfile {
   const def = defaultPreferences().profile;
   if (typeof v !== 'object' || v === null) return def;
   const p = v as Partial<UserProfile>;
-  const age = typeof p.age === 'number' && Number.isFinite(p.age) ? p.age : null;
+  const exactAge = validExactAge(p.exactAge) ?? validExactAge(p.age);
   const ageBand = isAgeBand(p.ageBand)
     ? p.ageBand
-    : ageBandForAge(age);
+    : ageBandForAge(exactAge);
   return {
     name: typeof p.name === 'string' ? p.name : def.name,
-    age: null,
+    exactAge,
+    referenceSex: validReferenceSex(p.referenceSex),
+    age: exactAge,
     ageBand,
     goal: normalizeLifeGoalDisplayText(typeof p.goal === 'string' ? p.goal : def.goal),
     lifeGoal: validLifeGoal(p.lifeGoal),
@@ -127,7 +129,7 @@ function validSafetyProfile(v: unknown): MovementSafetyProfile | null {
   const ageBand = isAgeBand(p.ageBand)
     ? p.ageBand
     : ageBandForAge(rawAge);
-  const age = representativeAgeForAgeBand(ageBand) ?? undefined;
+  const age = rawAge ?? representativeAgeForAgeBand(ageBand) ?? undefined;
   const activityLevel =
     typeof p.activityLevel === 'string' && ACTIVITY_LEVELS.includes(p.activityLevel as ActivityLevel)
       ? (p.activityLevel as ActivityLevel)
@@ -175,6 +177,14 @@ function validSafetyProfile(v: unknown): MovementSafetyProfile | null {
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
   };
+}
+
+function validExactAge(value: unknown): number | null {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 18 && value <= 120 ? value : null;
+}
+
+function validReferenceSex(value: unknown): ProfileReferenceSex | null {
+  return value === 'female' || value === 'male' ? value : null;
 }
 
 function validSettings(v: unknown): AppSettings {

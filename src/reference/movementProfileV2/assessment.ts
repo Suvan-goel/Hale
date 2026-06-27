@@ -22,8 +22,8 @@ import type {
   ShoulderInterpretation,
 } from './types';
 
-export const MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_VERSION = 1 as const;
-export const MOVEMENT_PROFILE_V2_FOCUS_POLICY_VERSION = 1 as const;
+export const MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_VERSION = 2 as const;
+export const MOVEMENT_PROFILE_V2_FOCUS_POLICY_VERSION = 2 as const;
 export const MOVEMENT_PROFILE_V2_ASSESSMENT_SCHEMA_VERSION = 1 as const;
 export const MOVEMENT_PROFILE_V2_LIFE_GOAL_ADAPTER_VERSION = 1 as const;
 export const MOVEMENT_PROFILE_V2_ASSESSMENT_KIND = 'movement_profile_v2_assessment' as const;
@@ -226,14 +226,18 @@ export interface CreateMovementProfileV2AssessmentInput {
 }
 
 export const MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_FINGERPRINT = deterministicFingerprint(
-  'mpv2-domain-evidence-policy-v1',
+  'mpv2-domain-evidence-policy-v2',
   {
     version: MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_VERSION,
     domainOrder: MOVEMENT_PROFILE_V2_DOMAIN_ORDER,
     chair: {
       rawOnlyProductionFocusEligible: false,
-      percentileRangeFocusThresholdApproved: false,
+      percentileRangeFocusThresholdApproved: true,
       below10Category: 'below_reference',
+      percentileRangeUsesUpperBoundForSeverity: true,
+      rangeUpTo25Category: 'hale_starting_point',
+      rangeUpTo40Category: 'hale_building',
+      rangeAbove40Category: 'within_reference',
       above90Category: 'above_reference_or_ceiling',
     },
     balanceTaskBands: {
@@ -251,7 +255,7 @@ export const MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_FINGERPRINT = determinis
 );
 
 export const MOVEMENT_PROFILE_V2_FOCUS_POLICY_FINGERPRINT = deterministicFingerprint(
-  'mpv2-focus-policy-v1',
+  'mpv2-focus-policy-v2',
   {
     version: MOVEMENT_PROFILE_V2_FOCUS_POLICY_VERSION,
     domainOrder: MOVEMENT_PROFILE_V2_DOMAIN_ORDER,
@@ -265,7 +269,7 @@ export const MOVEMENT_PROFILE_V2_FOCUS_POLICY_FINGERPRINT = deterministicFingerp
     ],
     balancedFallback: true,
     priorV2FocusOfficialRetestOnly: true,
-    rawOnlyChairProductionFocusEligible: false,
+    chairPercentileRangesCanProduceHaleBands: true,
   }
 );
 
@@ -866,13 +870,35 @@ function chairDomainEvidence(chair: ChairInterpretation): MovementProfileV2Domai
     });
   }
   if (chair.percentileRange?.kind === 'range') {
+    const chairBand = chairRangeEvidenceBand(chair.percentileRange);
+    if (chairBand === 'starting_point') {
+      return domainEvidence({
+        domain: 'strength_power',
+        category: 'hale_starting_point',
+        evidenceSource: 'published_reference',
+        sourceResultKind: chair.resultKind,
+        claimEligibility: chair.claimEligibility,
+        focusEligible: true,
+        reasons: ['chair_percentile_range_below_25_conservative', ...reasonCodes(chair)],
+      });
+    }
+    if (chairBand === 'building') {
+      return domainEvidence({
+        domain: 'strength_power',
+        category: 'hale_building',
+        evidenceSource: 'published_reference',
+        sourceResultKind: chair.resultKind,
+        claimEligibility: chair.claimEligibility,
+        reasons: ['chair_percentile_range_below_40_conservative', ...reasonCodes(chair)],
+      });
+    }
     return domainEvidence({
       domain: 'strength_power',
-      category: 'raw_only_valid',
+      category: 'within_reference',
       evidenceSource: 'published_reference',
       sourceResultKind: chair.resultKind,
       claimEligibility: chair.claimEligibility,
-      reasons: ['chair_percentile_focus_threshold_not_approved', ...reasonCodes(chair)],
+      reasons: ['chair_percentile_range_neutral', ...reasonCodes(chair)],
     });
   }
   return domainEvidence({
@@ -887,6 +913,12 @@ function chairDomainEvidence(chair: ChairInterpretation): MovementProfileV2Domai
       ...reasonCodes(chair),
     ],
   });
+}
+
+function chairRangeEvidenceBand(range: Extract<ChairInterpretation['percentileRange'], { kind: 'range' }>): 'starting_point' | 'building' | 'neutral' {
+  if (range.high <= 25) return 'starting_point';
+  if (range.high <= 40) return 'building';
+  return 'neutral';
 }
 
 function balanceDomainEvidence(balance: BalanceInterpretation): MovementProfileV2DomainEvidence {

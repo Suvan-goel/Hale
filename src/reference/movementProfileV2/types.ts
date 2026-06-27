@@ -109,13 +109,13 @@ export interface ReferenceSourceDefinition {
   publicUseStatus:
     | 'approved_numeric_table'
     | 'approved_benchmark_only'
-    | 'transform_use_pending_approval';
+    | 'approved_calculator_transform';
   sourceDataFingerprint: string;
   sourceFingerprint: string;
 }
 
 export type ReferenceTransformationId =
-  | 'chair_percentile_range_v1_pending_transform'
+  | 'warden_2022_30s_sts_percentile_v1'
   | 'balance_task_band_v1'
   | 'balance_age_group_benchmark_v1'
   | 'shoulder_iqr_category_v1';
@@ -270,7 +270,7 @@ export interface MovementProfileV2Interpretation {
 export interface ApprovedChairPercentileTransform {
   sourceId: 'warden_2022_30s_sts';
   sourceFingerprint: string;
-  transformationId: 'chair_percentile_range_v1_pending_transform';
+  transformationId: 'warden_2022_30s_sts_percentile_v1';
   transformationFingerprint: string;
   approvalId: string;
   percentileFor(input: {

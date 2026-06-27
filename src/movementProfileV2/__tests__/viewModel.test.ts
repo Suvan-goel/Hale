@@ -45,7 +45,7 @@ describe('Movement Profile V2 view model', () => {
     expect(model.domainCards.map((card) => card.domain)).toEqual(['strength_power', 'balance', 'mobility']);
     expect(model.focusTitle).toMatch(/^Suggested focus:/);
     expect(text).not.toMatch(/movement age|improved|declined|fingerprint|v2_|reason/i);
-    expect(text).toContain('Saved as your personal baseline');
+    expect(text).toContain('Around the 10th-40th percentile');
   });
 });
 

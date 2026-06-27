@@ -70,6 +70,21 @@ export function latestMovementProfileV2ReferenceDetailsDraft(
   return latest ? movementProfileV2ReferenceDetailsDraftFromSnapshot(latest.snapshot) : null;
 }
 
+export function movementProfileV2ReferenceDetailsDraftFromProfile(profile: {
+  exactAge?: number | null;
+  ageBand?: AgeBand | null;
+  referenceSex?: ReferenceSexForPublishedComparisons | null;
+}): MovementProfileV2ReferenceDetailsDraft | null {
+  if (!validReferenceAge(profile.exactAge)) return null;
+  if (profile.referenceSex !== 'female' && profile.referenceSex !== 'male') return null;
+  return enteredMovementProfileV2ReferenceDetailsDraft({
+    exactAge: profile.exactAge,
+    ageBand: profile.ageBand ?? null,
+    referenceSex: profile.referenceSex,
+    prefilled: true,
+  });
+}
+
 export function movementProfileV2ReferenceDetailsDraftFromSnapshot(
   snapshot: StoredMovementProfileV2Snapshot
 ): MovementProfileV2ReferenceDetailsDraft {

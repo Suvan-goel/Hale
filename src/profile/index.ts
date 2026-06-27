@@ -5,7 +5,7 @@
  * never pulls in a native module.
  */
 
-export type { AppSettings, OnboardingState, OnboardingStep, Preferences, UserProfile } from './types';
+export type { AppSettings, OnboardingState, OnboardingStep, Preferences, ProfileReferenceSex, UserProfile } from './types';
 export { EMPTY_PROFILE } from './types';
 export {
   AGE_RANGE_OPTIONS,

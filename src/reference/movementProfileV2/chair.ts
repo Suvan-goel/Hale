@@ -10,9 +10,7 @@ import type {
 } from './types';
 import { hasBinaryReferenceSex, hasExactReferenceAge } from './referenceProfile';
 import type { NormalizedMovementProfileV2ReferenceProfile } from './types';
-
-const WARDEN_SOURCE_MIN_AGE = 18;
-const WARDEN_SOURCE_MAX_AGE = 80;
+import { WARDEN_CHAIR_TRANSFORMATION_ID, wardenChairAgeRangeFor } from './wardenChairTransform';
 
 export function buildChairPercentileRange({
   repetitions,
@@ -27,8 +25,9 @@ export function buildChairPercentileRange({
 }): ChairPercentileRange | null {
   const percentiles: number[] = [];
   for (const repetitionInput of [repetitions - 1, repetitions, repetitions + 1]) {
+    if (repetitionInput <= 0) continue;
     const percentile = provider.percentileFor({
-      repetitions: Math.max(0, repetitionInput),
+      repetitions: repetitionInput,
       ageAtTest,
       referenceSex,
     });
@@ -77,7 +76,7 @@ export function validateApprovedChairTransform({
   if (provider.sourceFingerprint !== source.sourceFingerprint) {
     diagnostics.push({ code: 'chair_percentile_provider_source_fingerprint_mismatch', severity: 'error', domain: 'chair' });
   }
-  if (provider.transformationId !== 'chair_percentile_range_v1_pending_transform') {
+  if (provider.transformationId !== WARDEN_CHAIR_TRANSFORMATION_ID) {
     diagnostics.push({ code: 'chair_percentile_provider_transformation_mismatch', severity: 'error', domain: 'chair' });
   }
   if (provider.transformationFingerprint !== transformation.transformationFingerprint) {
@@ -132,7 +131,8 @@ export function interpretChairPercentile({
     };
   }
   const ageAtTest = profile.ageAtTest;
-  if (ageAtTest < WARDEN_SOURCE_MIN_AGE || ageAtTest > WARDEN_SOURCE_MAX_AGE) {
+  const ageRange = wardenChairAgeRangeFor(profile.referenceSex);
+  if (ageAtTest < ageRange.min || ageAtTest > ageRange.max) {
     return {
       claimEligibility: 'raw_only_outside_reference_age',
       eligibilityReasons: ['raw_only_outside_reference_age'],

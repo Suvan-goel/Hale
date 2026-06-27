@@ -94,7 +94,9 @@ function onboardingPrefs() {
   const prefs = defaultPreferences();
   prefs.profile.lifeGoal = createLifeGoal({ category: 'stairs', nowIso: START });
   prefs.profile.goal = 'Climb stairs easily';
-  prefs.profile.age = null;
+  prefs.profile.exactAge = 60;
+  prefs.profile.referenceSex = 'female';
+  prefs.profile.age = 60;
   prefs.profile.ageBand = '55_64';
   prefs.profile.safetyProfile = safetyProfile();
   prefs.onboarding.currentStep = 'camera_setup';

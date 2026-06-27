@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import {
   AgeBand,
@@ -12,13 +12,12 @@ import {
 import { BackArrowButton } from '../components/BackArrowButton';
 import { PrimaryButton, Screen, ScreenHeader } from '../components/ui';
 import {
-  AGE_RANGE_OPTIONS,
   STARTING_PACE_OPTIONS,
   ageBandForAge,
   movementCapabilitiesFromSafetyProfile,
   onboardingActivityLevel,
-  representativeAgeForAgeBand,
   safetyProfileWithMovementCapabilities,
+  type ProfileReferenceSex,
   type UserProfile,
 } from '../profile';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
@@ -27,9 +26,15 @@ import { useResponsiveLayout } from '../theme/responsive';
 const PAIN_OPTIONS = ['Knee', 'Hip', 'Back', 'Shoulder', 'Ankle', 'Neck', 'None'] as const;
 
 type SafetyProfileSaveOptions = { stayOnScreen?: boolean };
+type SafetyProfileReferenceDetails = {
+  exactAge: number;
+  ageBand: AgeBand | null;
+  referenceSex: ProfileReferenceSex;
+};
 
 type SafetyProfileDraft = {
-  ageBand: AgeBand | null;
+  exactAge: number | null;
+  referenceSex: ProfileReferenceSex | null;
   activityLevel: ActivityLevel;
   painArea: string;
   floorTransferStatus: CapabilityConfirmationStatus;
@@ -49,7 +54,7 @@ export function SafetyProfileScreen({
   profile: UserProfile;
   onSave: (
     safetyProfile: MovementSafetyProfile,
-    ageBand: AgeBand | null,
+    referenceDetails: SafetyProfileReferenceDetails,
     options?: SafetyProfileSaveOptions
   ) => void;
   showContinueAction?: boolean;
@@ -57,11 +62,13 @@ export function SafetyProfileScreen({
 }) {
   const initial = profile.safetyProfile;
   const initialCapabilities = React.useMemo(() => movementCapabilitiesFromSafetyProfile(initial), [initial]);
-  const initialAgeBand =
-    initial?.ageBand ??
-    profile.ageBand ??
-    ageBandForAge(initial?.age ?? profile.age);
-  const [ageBand, setAgeBand] = React.useState<AgeBand | null>(initialAgeBand);
+  const initialExactAge = profile.exactAge ?? profile.age ?? initial?.age ?? null;
+  const [exactAgeText, setExactAgeText] = React.useState(
+    typeof initialExactAge === 'number' && Number.isInteger(initialExactAge)
+      ? String(initialExactAge)
+      : ''
+  );
+  const [referenceSex, setReferenceSex] = React.useState<ProfileReferenceSex | null>(profile.referenceSex);
   const [activityLevel, setActivityLevel] = React.useState<ActivityLevel>(
     onboardingActivityLevel(initial?.activityLevel)
   );
@@ -73,9 +80,13 @@ export function SafetyProfileScreen({
   const [stepUpStatus, setStepUpStatus] = React.useState(initialCapabilities.stepUpEnvironment.status);
   const [singleLegStatus, setSingleLegStatus] = React.useState(initialCapabilities.singleLegBalance.status);
   const hasSafeStep = stepUpStatus === 'confirmed';
+  const exactAge = parseExactAge(exactAgeText);
+  const exactAgeInvalid = exactAgeText.trim().length > 0 && exactAge === null;
+  const canSaveReferenceDetails = exactAge !== null && referenceSex !== null;
 
   const currentDraft = (): SafetyProfileDraft => ({
-    ageBand,
+    exactAge,
+    referenceSex,
     activityLevel,
     painArea,
     floorTransferStatus,
@@ -86,13 +97,13 @@ export function SafetyProfileScreen({
 
   const buildSafetyProfile = (draft: SafetyProfileDraft): MovementSafetyProfile => {
     const nowIso = new Date().toISOString();
-    const representativeAge = representativeAgeForAgeBand(draft.ageBand);
+    const ageBand = draft.exactAge !== null ? ageBandForAge(draft.exactAge) : null;
     const draftHasSafeStep = draft.stepUpStatus === 'confirmed';
     const baseProfile: MovementSafetyProfile = {
       id: initial?.id ?? `safety-profile-${nowIso.replace(/[:.]/g, '-')}`,
       userId: initial?.userId ?? LOCAL_USER_ID,
-      age: representativeAge ?? undefined,
-      ageBand: draft.ageBand ?? undefined,
+      age: draft.exactAge ?? undefined,
+      ageBand: ageBand ?? undefined,
       activityLevel: draft.activityLevel,
       hasCurrentPain: draft.painArea !== 'None',
       painNotes: draft.painArea !== 'None' ? draft.painArea.toLowerCase() : undefined,
@@ -127,7 +138,16 @@ export function SafetyProfileScreen({
   };
 
   const saveDraft = (draft: SafetyProfileDraft, options?: SafetyProfileSaveOptions) => {
-    onSave(buildSafetyProfile(draft), draft.ageBand, options);
+    if (draft.exactAge === null || draft.referenceSex === null) return;
+    onSave(
+      buildSafetyProfile(draft),
+      {
+        exactAge: draft.exactAge,
+        ageBand: ageBandForAge(draft.exactAge),
+        referenceSex: draft.referenceSex,
+      },
+      options
+    );
   };
 
   const save = () => saveDraft(currentDraft());
@@ -137,9 +157,15 @@ export function SafetyProfileScreen({
     saveDraft({ ...currentDraft(), ...overrides }, { stayOnScreen: true });
   };
 
-  const selectAgeBand = (next: AgeBand | null) => {
-    setAgeBand(next);
-    saveIfReviewing({ ageBand: next });
+  const updateExactAgeText = (next: string) => {
+    setExactAgeText(next);
+    const nextAge = parseExactAge(next);
+    if (nextAge !== null) saveIfReviewing({ exactAge: nextAge });
+  };
+
+  const selectReferenceSex = (next: ProfileReferenceSex) => {
+    setReferenceSex(next);
+    saveIfReviewing({ referenceSex: next });
   };
 
   const selectActivityLevel = (next: ActivityLevel) => {
@@ -177,16 +203,38 @@ export function SafetyProfileScreen({
         subtitle="A few quick answers help Hale avoid movements that do not feel right for you today."
       />
 
-      <ChoiceSection title="Age range" meta="Optional">
-        <View style={styles.grid}>
-          {AGE_RANGE_OPTIONS.map((option) => (
+      <ChoiceSection title="Age and reference group" meta="Required">
+        <View style={styles.referenceStack}>
+          <Text style={styles.gentle}>
+            Hale uses your whole-year age and reference group only for published comparisons.
+          </Text>
+          <TextInput
+            value={exactAgeText}
+            onChangeText={updateExactAgeText}
+            keyboardType="number-pad"
+            placeholder="Exact age"
+            placeholderTextColor={colors.textTertiary}
+            style={[styles.input, exactAgeInvalid && styles.inputInvalid]}
+            maxLength={3}
+            accessibilityLabel="Exact age"
+          />
+          {exactAgeInvalid ? (
+            <Text style={styles.errorText}>Enter an age from 18 to 100.</Text>
+          ) : null}
+          <View style={styles.grid}>
             <Choice
-              key={option.label}
-              label={option.label}
-              selected={ageBand === option.value}
-              onPress={() => selectAgeBand(option.value)}
+              label="Female"
+              selected={referenceSex === 'female'}
+              onPress={() => selectReferenceSex('female')}
+              accessibilityLabel="Use female reference group"
             />
-          ))}
+            <Choice
+              label="Male"
+              selected={referenceSex === 'male'}
+              onPress={() => selectReferenceSex('male')}
+              accessibilityLabel="Use male reference group"
+            />
+          </View>
         </View>
       </ChoiceSection>
 
@@ -249,7 +297,7 @@ export function SafetyProfileScreen({
 
       {showContinueAction ? (
         <View style={styles.actions}>
-          <PrimaryButton title="Continue" onPress={save} />
+          <PrimaryButton title="Continue" onPress={save} disabled={!canSaveReferenceDetails} />
         </View>
       ) : null}
     </Screen>
@@ -408,6 +456,14 @@ function normalizePainArea(value: string | undefined): string {
   return PAIN_OPTIONS.find((option) => option.toLowerCase() === value.toLowerCase()) ?? 'None';
 }
 
+function parseExactAge(value: string): number | null {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return null;
+  const parsed = Number(trimmed);
+  if (!Number.isInteger(parsed) || parsed < 18 || parsed > 100) return null;
+  return parsed;
+}
+
 const styles = StyleSheet.create({
   sectionCard: {
     gap: spacing.lg,
@@ -452,6 +508,28 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  referenceStack: {
+    gap: spacing.md,
+  },
+  input: {
+    minHeight: 52,
+    borderRadius: radius.input,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    paddingHorizontal: spacing.lg,
+    color: colors.textPrimary,
+    backgroundColor: colors.background,
+    fontFamily: fonts.sansRegular,
+    fontSize: 16,
+    letterSpacing: 0,
+  },
+  inputInvalid: {
+    borderColor: colors.warningClay,
+  },
+  errorText: {
+    ...type.cardCaption,
+    color: colors.warningClay,
+  },
   subsection: {
     gap: spacing.md,
   },

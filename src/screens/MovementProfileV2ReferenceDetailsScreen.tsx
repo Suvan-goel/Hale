@@ -4,17 +4,12 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import type { AgeBand } from '../adherence';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
-import { PrimaryButton, SecondaryButton } from '../components/ui';
+import { PrimaryButton } from '../components/ui';
 import {
   enteredMovementProfileV2ReferenceDetailsDraft,
   referenceProfileFromMovementProfileV2Draft,
-  skippedMovementProfileV2ReferenceDetailsDraft,
   type MovementProfileV2ReferenceDetailsDraft,
 } from '../movementProfileV2/referenceDetailsDraft';
-import {
-  AGE_RANGE_OPTIONS,
-  ageBandLabel,
-} from '../profile';
 import type {
   MovementProfileV2ReferenceProfile,
   ReferenceSexForPublishedComparisons,
@@ -26,7 +21,6 @@ type ReferenceSex = ReferenceSexForPublishedComparisons;
 const SEX_OPTIONS: readonly { label: string; value: ReferenceSex }[] = [
   { label: 'Female', value: 'female' },
   { label: 'Male', value: 'male' },
-  { label: 'Prefer not to say', value: 'prefer_not_to_say' },
 ];
 
 export function MovementProfileV2ReferenceDetailsScreen({
@@ -50,19 +44,15 @@ export function MovementProfileV2ReferenceDetailsScreen({
       ? String(initialExactAge)
       : ''
   );
-  const [ageBand, setAgeBand] = React.useState<AgeBand | null>(
-    ageBandFromReferenceDraft(initialDraft)
-  );
   const [referenceSex, setReferenceSex] = React.useState<ReferenceSex>(
     initialDraft?.referenceSex === 'female' ||
-      initialDraft?.referenceSex === 'male' ||
-      initialDraft?.referenceSex === 'prefer_not_to_say'
+      initialDraft?.referenceSex === 'male'
       ? initialDraft.referenceSex
       : 'unknown'
   );
 
   const exactAge = parseAge(exactAgeText);
-  const canContinue = exactAgeText.trim().length === 0 || exactAge !== null;
+  const canContinue = exactAge !== null && (referenceSex === 'female' || referenceSex === 'male');
 
   const submit = () => {
     if (!canContinue) return;
@@ -70,18 +60,13 @@ export function MovementProfileV2ReferenceDetailsScreen({
       referenceProfileFromMovementProfileV2Draft(
         enteredMovementProfileV2ReferenceDetailsDraft({
           exactAge,
-          ageBand,
+          ageBand: null,
           referenceSex,
           prefilled: !!initialDraft,
         })
       )
     );
   };
-
-  const skip = () =>
-    onSubmit(
-      referenceProfileFromMovementProfileV2Draft(skippedMovementProfileV2ReferenceDetailsDraft())
-    );
 
   return (
     <ScrollView
@@ -104,7 +89,7 @@ export function MovementProfileV2ReferenceDetailsScreen({
           <Text style={styles.title}>Published comparisons</Text>
         </View>
         <Text style={styles.subtitle}>
-          Your raw results are already saved. These optional details help Hale choose the closest
+          Your raw results are already saved. Confirm these details so Hale can choose the closest
           published reference group.
         </Text>
       </View>
@@ -112,7 +97,7 @@ export function MovementProfileV2ReferenceDetailsScreen({
       <View style={styles.card}>
         <Text style={styles.cardTitle}>How old are you today?</Text>
         <Text style={styles.cardBody}>
-          Use whole years if you want published comparisons. You can leave this blank.
+          Use whole years. Hale stores the exact age only for published comparisons.
         </Text>
         <TextInput
           value={exactAgeText}
@@ -125,24 +110,14 @@ export function MovementProfileV2ReferenceDetailsScreen({
           accessibilityLabel="Exact age"
         />
         {exactAgeText.trim().length > 0 && exactAge === null ? (
-          <Text style={styles.errorText}>Enter an age from 18 to 120, or leave this blank.</Text>
+          <Text style={styles.errorText}>Enter an age from 18 to 100.</Text>
         ) : null}
-        <View style={styles.optionGrid}>
-          {AGE_RANGE_OPTIONS.map((option) => (
-            <OptionButton
-              key={option.label}
-              label={option.label}
-              selected={ageBand === option.value}
-              onPress={() => setAgeBand(option.value)}
-            />
-          ))}
-        </View>
       </View>
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>For published comparisons, which reference group should Hale use?</Text>
         <Text style={styles.cardBody}>
-          This is optional. It does not change your raw result or training access.
+          This does not change your raw result or training access.
         </Text>
         <View style={styles.optionStack}>
           {SEX_OPTIONS.map((option) => (
@@ -157,7 +132,6 @@ export function MovementProfileV2ReferenceDetailsScreen({
       </View>
 
       <PrimaryButton title="Save Movement Profile" onPress={submit} disabled={!canContinue} />
-      <SecondaryButton title="Continue without published comparisons" onPress={skip} />
     </ScrollView>
   );
 }
@@ -192,17 +166,8 @@ function parseAge(value: string): number | null {
   const trimmed = value.trim();
   if (trimmed.length === 0) return null;
   const parsed = Number(trimmed);
-  if (!Number.isInteger(parsed) || parsed < 18 || parsed > 120) return null;
+  if (!Number.isInteger(parsed) || parsed < 18 || parsed > 100) return null;
   return parsed;
-}
-
-function ageBandFromReferenceDraft(
-  draft: MovementProfileV2ReferenceDetailsDraft | null | undefined
-): AgeBand | null {
-  if (!draft || draft.ageBasis === 'exact_age_at_test' || draft.ageBasis === 'birth_year_month_derived') {
-    return null;
-  }
-  return AGE_RANGE_OPTIONS.find((option) => option.value && option.label === draft.ageGroupLabel)?.value ?? null;
 }
 
 const styles = StyleSheet.create({
@@ -266,11 +231,6 @@ const styles = StyleSheet.create({
   errorText: {
     ...type.cardCaption,
     color: colors.warningClay,
-  },
-  optionGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
   },
   optionStack: {
     gap: spacing.sm,

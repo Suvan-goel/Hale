@@ -26,7 +26,9 @@ import {
   transformationMetadata,
   validateReferenceTransformations,
 } from './transformations';
+import { createWardenChairPercentileTransform, WARDEN_CHAIR_TRANSFORMATION_ID } from './wardenChairTransform';
 import type {
+  ApprovedChairPercentileTransform,
   BalanceInterpretation,
   ChairInterpretation,
   ExtractedV2Results,
@@ -55,7 +57,7 @@ const MISSING_SOURCE: ReferenceMetadata = {
 };
 
 const MISSING_TRANSFORMATION: TransformationMetadata = {
-  transformationId: 'chair_percentile_range_v1_pending_transform',
+  transformationId: WARDEN_CHAIR_TRANSFORMATION_ID,
   transformationVersion: 0,
   transformationFingerprint: 'missing-transformation',
   enabled: false,
@@ -80,12 +82,18 @@ export function interpretMovementProfileV2(
     !!protocol?.supported && protocol.policy.id === MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID;
   const rawCompleteness = checkUp ? evaluateMovementProfileV2Completeness(checkUp) : emptyRawCompleteness();
   const extracted = protocolSupported && checkUp ? extractV2Results(checkUp) : { chair: null, balance: null, shoulder: null };
+  const chairSource = sourceOrMissing(sources, 'warden_2022_30s_sts');
+  const chairTransformation = transformationOrMissing(transformations, WARDEN_CHAIR_TRANSFORMATION_ID);
+  const chairPercentileTransform =
+    dependencies.chairPercentileTransform === undefined
+      ? defaultWardenChairProvider(chairSource, chairTransformation)
+      : dependencies.chairPercentileTransform;
 
   const chair = interpretChair({
     result: extracted.chair,
-    source: sourceOrMissing(sources, 'warden_2022_30s_sts'),
-    transformation: transformationOrMissing(transformations, 'chair_percentile_range_v1_pending_transform'),
-    provider: dependencies.chairPercentileTransform,
+    source: chairSource,
+    transformation: chairTransformation,
+    provider: chairPercentileTransform,
     profile: normalizedProfile,
     integrityOk,
   });
@@ -175,7 +183,7 @@ function interpretChair({
   const raw = chairRawMetric(result);
   const sourceMeta = source ? sourceMetadata(source) : MISSING_SOURCE;
   const transformationDef = transformation ?? {
-    transformationId: 'chair_percentile_range_v1_pending_transform',
+    transformationId: WARDEN_CHAIR_TRANSFORMATION_ID,
     transformationVersion: 0,
     sourceIds: ['warden_2022_30s_sts'],
     transformationFingerprint: 'missing-transformation',
@@ -211,6 +219,18 @@ function interpretChair({
     rawInvalidReasons: raw.invalidReasons,
     diagnostics: interpreted.diagnostics,
   };
+}
+
+function defaultWardenChairProvider(
+  source: ReferenceSourceDefinition | null,
+  transformation: ReferenceTransformationDefinition | null
+): ApprovedChairPercentileTransform | null {
+  if (!source || !transformation) return null;
+  return createWardenChairPercentileTransform({
+    sourceFingerprint: source.sourceFingerprint,
+    transformationFingerprint: transformation.transformationFingerprint,
+    approvalId: transformation.approvalId,
+  });
 }
 
 function interpretBalance({

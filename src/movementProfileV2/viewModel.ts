@@ -7,6 +7,7 @@ import {
 import type {
   BalanceInterpretation,
   ChairInterpretation,
+  ChairPercentileRange,
   MovementProfileV2Assessment,
   ShoulderInterpretation,
   StoredMovementProfileV2Snapshot,
@@ -107,22 +108,29 @@ function domainDetail(
 function chairDetail(chair: ChairInterpretation): MovementProfileV2DomainDetailViewModel {
   const reps = chair.rawMetric?.value;
   const metric = Number.isFinite(reps) ? `${reps} rises in 30 seconds` : 'Not measured';
-  const status = chair.percentileRange ? 'Published comparison saved' : 'Saved as your personal baseline';
+  const percentileLabel = chair.percentileRange ? chairPercentileRangeLabel(chair.percentileRange) : null;
+  const status = percentileLabel ?? 'Saved as your personal baseline';
   return {
     domain: 'strength_power',
     title: 'Strength / Power',
     metric,
     status,
     body: chair.percentileRange
-      ? 'Hale saved the published comparison that was available for this check-up.'
+      ? 'Hale compared this 30-second chair-rise result with your age and reference group.'
       : 'Hale saved this raw chair-rise result without a published comparison.',
     rows: [
       { label: '30-second protocol', value: metric },
-      { label: 'Reference status', value: status },
+      { label: 'Published comparison', value: status },
       { label: 'Use in focus', value: chair.percentileRange ? 'Reference-supported' : 'Raw baseline only' },
     ],
     note: 'This is a measurement summary, not a form critique or diagnosis.',
   };
+}
+
+export function chairPercentileRangeLabel(range: ChairPercentileRange): string {
+  if (range.kind === 'below_10') return 'Below the 10th percentile';
+  if (range.kind === 'above_90') return 'Above the 90th percentile';
+  return `Around the ${range.low}th-${range.high}th percentile`;
 }
 
 function balanceDetail(balance: BalanceInterpretation): MovementProfileV2DomainDetailViewModel {

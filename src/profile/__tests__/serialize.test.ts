@@ -14,7 +14,16 @@ describe('preferences serialize', () => {
     nowIso: '2026-06-16T08:00:00.000Z',
   });
   const sample: Preferences = {
-    profile: { name: 'Margaret', age: null, ageBand: '55_64', goal: 'Stay steady on the stairs', lifeGoal, safetyProfile: null },
+    profile: {
+      name: 'Margaret',
+      exactAge: 58,
+      referenceSex: 'female',
+      age: 58,
+      ageBand: '55_64',
+      goal: 'Stay steady on the stairs',
+      lifeGoal,
+      safetyProfile: null,
+    },
     settings: {
       voiceId: 'clara',
       voiceExperienceMode: 'v21_beta',
@@ -37,10 +46,10 @@ describe('preferences serialize', () => {
   });
 
   it('writes a schema version', () => {
-    expect(JSON.parse(serializePreferences(sample)).schemaVersion).toBe(5);
+    expect(JSON.parse(serializePreferences(sample)).schemaVersion).toBe(6);
   });
 
-  it('migrates legacy exact ages into age bands', () => {
+  it('migrates legacy exact ages into exact profile details and age bands', () => {
     const parsed = deserializePreferences(JSON.stringify({
       profile: {
         name: 'Margaret',
@@ -58,10 +67,12 @@ describe('preferences serialize', () => {
       },
     }));
 
-    expect(parsed?.profile.age).toBeNull();
+    expect(parsed?.profile.exactAge).toBe(58);
+    expect(parsed?.profile.referenceSex).toBeNull();
+    expect(parsed?.profile.age).toBe(58);
     expect(parsed?.profile.ageBand).toBe('55_64');
     expect(parsed?.profile.safetyProfile).toMatchObject({
-      age: 60,
+      age: 58,
       ageBand: '55_64',
     });
   });
@@ -179,7 +190,16 @@ describe('ProfileStore', () => {
   it('persists and reloads (survives restart)', async () => {
     const fs = createMemoryFs();
     const prefs: Preferences = {
-      profile: { name: 'David', age: null, ageBand: '65_74', goal: '', lifeGoal: null, safetyProfile: null },
+      profile: {
+        name: 'David',
+        exactAge: 68,
+        referenceSex: 'male',
+        age: 68,
+        ageBand: '65_74',
+        goal: '',
+        lifeGoal: null,
+        safetyProfile: null,
+      },
       settings: {
         voiceId: 'clara',
         voiceExperienceMode: 'v21_beta',

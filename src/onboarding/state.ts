@@ -23,7 +23,7 @@ export function deriveOnboardingStep(input: OnboardingProgressInput): Onboarding
   if (!prefs.profile.lifeGoal) {
     return prefs.onboarding.currentStep === 'life_goal' ? 'life_goal' : 'welcome';
   }
-  if (!prefs.profile.safetyProfile) return 'safety_profile';
+  if (!profileReferenceDetailsComplete(prefs) || !prefs.profile.safetyProfile) return 'safety_profile';
   if (!equipmentStepComplete(prefs)) return 'equipment';
   const hasUsableBaseline = !!latestUsableOfficialCheckUpRecord(history, input.assessments ?? []);
   if (!hasUsableBaseline) {
@@ -36,6 +36,16 @@ export function deriveOnboardingStep(input: OnboardingProgressInput): Onboarding
   }
   if (prefs.onboarding.currentStep === 'create_block') return 'create_block';
   return 'results';
+}
+
+function profileReferenceDetailsComplete(prefs: Preferences): boolean {
+  return (
+    typeof prefs.profile.exactAge === 'number' &&
+    Number.isInteger(prefs.profile.exactAge) &&
+    prefs.profile.exactAge >= 18 &&
+    prefs.profile.exactAge <= 120 &&
+    (prefs.profile.referenceSex === 'female' || prefs.profile.referenceSex === 'male')
+  );
 }
 
 export function equipmentStepComplete(prefs: Preferences): boolean {

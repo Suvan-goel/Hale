@@ -69,6 +69,14 @@ export {
   validateReferenceTransformations,
 } from './transformations';
 export {
+  WARDEN_2022_30S_STS_DATA_FINGERPRINT,
+  WARDEN_CHAIR_APPROVAL_ID,
+  WARDEN_CHAIR_TRANSFORMATION_ID,
+  createWardenChairPercentileTransform,
+  wardenChairAgeRangeFor,
+  wardenChairPercentileFor,
+} from './wardenChairTransform';
+export {
   normalizeMovementProfileV2ReferenceProfile,
 } from './referenceProfile';
 export {

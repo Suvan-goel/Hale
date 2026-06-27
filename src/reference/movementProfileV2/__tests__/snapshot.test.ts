@@ -48,7 +48,7 @@ describe('Movement Profile V2 snapshots', () => {
       officialEvidencePolicyVersion: 1,
       displayPolicyVersion: 1,
       interpretation: {
-        chair: { rawMetric: { value: 12 }, percentileRange: null },
+        chair: { rawMetric: { value: 12 }, percentileRange: { kind: 'range', low: 10, high: 40 } },
         balance: { rawMetric: { value: 32 }, taskBand: 'building' },
         shoulder: { rawMetric: { value: 151, side: 'right' } },
       },

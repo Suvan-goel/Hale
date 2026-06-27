@@ -36,6 +36,7 @@ import {
   movementProfileV2SourceSetFingerprint,
 } from './engine';
 import { normalizeMovementProfileV2ReferenceProfile } from './referenceProfile';
+import { WARDEN_CHAIR_TRANSFORMATION_ID } from './wardenChairTransform';
 import {
   MOVEMENT_PROFILE_V2_REFERENCE_ENGINE_SCHEMA_VERSION,
   MOVEMENT_PROFILE_V2_REFERENCE_ENGINE_VERSION,
@@ -1271,7 +1272,7 @@ function chairInterpretationIsValid(chair: MovementProfileV2Interpretation['chai
   if (!isRecord(chair.source) || chair.source.sourceId !== 'warden_2022_30s_sts') return false;
   if (
     !isRecord(chair.transformation) ||
-    chair.transformation.transformationId !== 'chair_percentile_range_v1_pending_transform'
+    chair.transformation.transformationId !== WARDEN_CHAIR_TRANSFORMATION_ID
   ) {
     return false;
   }
@@ -1572,7 +1573,11 @@ function setupSourceIsValid(value: unknown): boolean {
 }
 
 function referenceProfileSupportsReferenceComparison(profile: NormalizedMovementProfileV2ReferenceProfile): boolean {
-  return profile.ageBasis !== 'unknown' && profile.referenceSex !== 'unknown' && profile.referenceSex !== 'prefer_not_to_say';
+  return (
+    (profile.ageBasis === 'exact_age_at_test' || profile.ageBasis === 'birth_year_month_derived') &&
+    profile.ageAtTest !== null &&
+    (profile.referenceSex === 'female' || profile.referenceSex === 'male')
+  );
 }
 
 function looksLikeLegacyDerivedArtifact(value: unknown): boolean {

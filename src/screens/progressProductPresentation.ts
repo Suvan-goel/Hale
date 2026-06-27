@@ -30,7 +30,13 @@ export interface ProgressPlanSummaryCardCopy {
 
 export function progressSummaryStatusLabel(card: MovementProfileV2ProgressDomainSummary): string {
   const label = card.interpretation.toLowerCase();
-  if (card.domain === 'strength_power') return 'Saved result';
+  if (card.domain === 'strength_power') {
+    if (label.includes('below the 10th')) return 'Below 10th percentile';
+    if (label.includes('above the 90th')) return 'Above 90th percentile';
+    const match = card.interpretation.match(/Around the ([0-9]+th-[0-9]+th) percentile/);
+    if (match?.[1]) return `${match[1]} percentile`;
+    return 'Saved result';
+  }
   if (card.domain === 'balance') {
     if (label.includes('45-second') || label.includes('published') || label.includes('full')) return 'Strong hold';
     if (label.includes('building')) return 'Building hold';

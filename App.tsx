@@ -153,6 +153,7 @@ import {
 } from './src/movementProfileV2/internalCheckupFlow';
 import {
   latestMovementProfileV2ReferenceDetailsDraft,
+  movementProfileV2ReferenceDetailsDraftFromProfile,
   movementProfileV2ReferenceDetailsDraftFromSnapshot,
 } from './src/movementProfileV2/referenceDetailsDraft';
 import {
@@ -2271,16 +2272,15 @@ function HaleApp() {
   const onSafetyProfileSave = React.useCallback(
     (
       safetyProfile: MovementSafetyProfile,
-      ageBand: AgeBand | null,
+      referenceDetails: { exactAge: number; ageBand: AgeBand | null; referenceSex: 'female' | 'male' },
       options?: { stayOnScreen?: boolean }
     ) => {
       const now = new Date().toISOString();
-      const representativeAge = representativeAgeForAgeBand(ageBand);
       const nextSafetyProfile = safetyProfileWithCanonicalEquipment(
         {
           ...safetyProfile,
-          age: representativeAge ?? undefined,
-          ageBand: ageBand ?? undefined,
+          age: referenceDetails.exactAge,
+          ageBand: referenceDetails.ageBand ?? undefined,
         },
         safetyProfile.availableEquipment,
         {
@@ -2295,8 +2295,10 @@ function HaleApp() {
         ...prefs,
         profile: {
           ...prefs.profile,
-          age: null,
-          ageBand,
+          exactAge: referenceDetails.exactAge,
+          referenceSex: referenceDetails.referenceSex,
+          age: referenceDetails.exactAge,
+          ageBand: referenceDetails.ageBand,
           safetyProfile: nextSafetyProfile,
         },
         onboarding: onboardingFlowActive
@@ -4978,8 +4980,9 @@ function HaleApp() {
                     movementProfileV2OfficialRetestContext.priorArtifacts.snapshot
                   )
                 : movementProfileV2Raw.sourceType === 'baseline_retake'
-                ? latestMovementProfileV2ReferenceDetailsDraft(history)
-                : null
+                ? latestMovementProfileV2ReferenceDetailsDraft(history) ??
+                  movementProfileV2ReferenceDetailsDraftFromProfile(prefs.profile)
+                : movementProfileV2ReferenceDetailsDraftFromProfile(prefs.profile)
             }
             entryMode={movementProfileV2EntryContext === 'internal' ? 'internal' : 'public'}
             onSubmit={handleMovementProfileV2ReferenceSubmit}
@@ -5238,11 +5241,13 @@ function HaleApp() {
 function buildDevCompletedOnboardingProfile(profile: UserProfile, nowIso: string): UserProfile {
   const lifeGoal = profile.lifeGoal ?? createLifeGoal({ category: 'stairs', nowIso });
   const ageBand = profile.ageBand ?? '55_64';
-  const safetyProfile = profile.safetyProfile ?? buildDevSafetyProfile(profile.age, ageBand, nowIso);
+  const safetyProfile = profile.safetyProfile ?? buildDevSafetyProfile(profile.exactAge ?? profile.age, ageBand, nowIso);
   return {
     ...profile,
     name: profile.name.trim() || 'Suvan',
-    age: profile.age,
+    exactAge: profile.exactAge ?? profile.age ?? 60,
+    referenceSex: profile.referenceSex ?? 'male',
+    age: profile.exactAge ?? profile.age ?? 60,
     ageBand,
     goal: getLifeGoalDisplayText(lifeGoal) || normalizeLifeGoalDisplayText(profile.goal),
     lifeGoal,
@@ -5254,7 +5259,7 @@ function buildDevSafetyProfile(age: number | null, ageBand: AgeBand | null, nowI
   return {
     id: 'dev-preview-safety-profile',
     userId: LOCAL_USER_ID,
-    age: representativeAgeForAgeBand(ageBand) ?? age ?? 60,
+    age: age ?? representativeAgeForAgeBand(ageBand) ?? 60,
     ageBand: ageBand ?? undefined,
     activityLevel: 'lightly_active',
     hasCurrentPain: false,

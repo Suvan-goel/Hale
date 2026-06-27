@@ -7,14 +7,8 @@ import {
   GILL_2020_SHOULDER_DATA_FINGERPRINT,
   validateGillShoulderTable,
 } from './shoulder';
+import { WARDEN_2022_30S_STS_DATA_FINGERPRINT } from './wardenChairTransform';
 import type { ReferenceEngineDiagnostic, ReferenceSourceDefinition, ReferenceSourceId } from './types';
-
-const WARDEN_2022_30S_STS_DATA_FINGERPRINT = deterministicFingerprint('warden-source-data-v1', {
-  transformDataEmbedded: false,
-  centileCalculatorEmbedded: false,
-  sourceRange: { minAge: 18, maxAge: 80 },
-  outcome: '30s-STS repetitions',
-});
 
 function sourceFingerprint(definition: Omit<ReferenceSourceDefinition, 'sourceFingerprint'>): string {
   return deterministicFingerprint('reference-source-v1', definition);
@@ -36,9 +30,9 @@ export const REFERENCE_SOURCES: readonly ReferenceSourceDefinition[] = [
     year: 2022,
     doi: '10.1093/ptj/pzab299',
     protocolIds: ['chair-rise-30s-v2'],
-    populationSummary: 'Adults age 18 to 80; sex-specific 30-second sit-to-stand centile curves.',
-    statisticKind: 'centile calculator metadata only; production transform pending approval',
-    publicUseStatus: 'transform_use_pending_approval',
+    populationSummary: 'Adults age 18 to 80 for female reference values and 18 to 79.3 for male reference values; sex-specific 30-second sit-to-stand centile calculator.',
+    statisticKind: 'official LMS calculator table with lower-bound CDF adjustment and z > 2 linear upper-tail modification',
+    publicUseStatus: 'approved_calculator_transform',
     sourceDataFingerprint: WARDEN_2022_30S_STS_DATA_FINGERPRINT,
   }),
   defineSource({

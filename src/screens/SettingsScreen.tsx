@@ -7,7 +7,7 @@ import * as React from 'react';
 import { BackHandler, Platform, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-import type { ActivityLevel, AgeBand, AvailableEquipment } from '../adherence';
+import type { ActivityLevel, AvailableEquipment } from '../adherence';
 import { getLifeGoalDisplayText, normalizeLifeGoalDisplayText } from '../adherence';
 import { VoiceChannel } from '../audio/voicePlayer';
 import { AccountAuthCard } from '../components/AccountAuthCard';
@@ -17,13 +17,11 @@ import { Screen, ToggleRow } from '../components/ui';
 import type { VoiceV21Activation } from '../config/voiceExperience';
 import { controlledBetaEquipmentPositioning } from '../haleFlow';
 import {
-  AGE_RANGE_OPTIONS,
   AppSettings,
   STARTING_PACE_OPTIONS,
   ageBandForAge,
-  ageDisplayLabel,
-  representativeAgeForAgeBand,
   startingEffortLabel,
+  type ProfileReferenceSex,
   UserProfile,
   VOICE_OPTIONS,
 } from '../profile';
@@ -49,7 +47,7 @@ type VoiceCatalogOption = (typeof VOICE_OPTIONS)[number];
 const SECTION_COPY: Record<ProfileSection, { title: string; subtitle: string }> = {
   details: {
     title: 'Your Profile',
-    subtitle: 'Update your name, age range, and movement goal.',
+    subtitle: 'Update your name, reference details, and movement goal.',
   },
   safety: {
     title: 'Camera setup',
@@ -135,8 +133,12 @@ function SettingsScreenContent({
   const responsive = useResponsiveLayout();
   const [openSection, setOpenSection] = React.useState<ProfileSection | null>(null);
   const [name, setName] = React.useState(profile.name);
-  const profileAgeBand = profile.ageBand ?? ageBandForAge(profile.age);
-  const [selectedAgeBand, setSelectedAgeBand] = React.useState<AgeBand | null>(profileAgeBand);
+  const [exactAgeText, setExactAgeText] = React.useState(
+    typeof (profile.exactAge ?? profile.age) === 'number'
+      ? String(profile.exactAge ?? profile.age)
+      : ''
+  );
+  const [referenceSex, setReferenceSex] = React.useState<ProfileReferenceSex | null>(profile.referenceSex);
   const voicePreviewRef = React.useRef<VoiceChannel | null>(null);
   const available = profile.safetyProfile?.availableEquipment ?? ['chair', 'wall'];
   const displayName = profile.name.trim() || 'Your details';
@@ -153,7 +155,11 @@ function SettingsScreenContent({
   const showDeveloperSettings = showInternalDeveloperSettings || !!onOpenPoseBenchmarkForDiagnostics;
 
   React.useEffect(() => setName(profile.name), [profile.name]);
-  React.useEffect(() => setSelectedAgeBand(profileAgeBand), [profileAgeBand]);
+  React.useEffect(() => {
+    const age = profile.exactAge ?? profile.age;
+    setExactAgeText(typeof age === 'number' ? String(age) : '');
+  }, [profile.exactAge, profile.age]);
+  React.useEffect(() => setReferenceSex(profile.referenceSex), [profile.referenceSex]);
   React.useEffect(() => () => voicePreviewRef.current?.stop(), []);
   React.useEffect(() => {
     if (Platform.OS !== 'android' || openSection === null) return;
@@ -174,23 +180,33 @@ function SettingsScreenContent({
   }, []);
 
   const commitName = () => onProfileChange({ ...profile, name: name.trim() });
-  const commitAgeBand = (ageBand: AgeBand | null) => {
-    const representativeAge = representativeAgeForAgeBand(ageBand);
+  const commitReferenceDetails = (
+    ageText: string = exactAgeText,
+    nextReferenceSex: ProfileReferenceSex | null = referenceSex
+  ) => {
+    const exactAge = parseSettingsExactAge(ageText);
+    if (exactAge === null || nextReferenceSex === null) return;
+    const ageBand = ageBandForAge(exactAge);
     const now = new Date().toISOString();
-    setSelectedAgeBand(ageBand);
     onProfileChange({
       ...profile,
-      age: null,
+      exactAge,
+      referenceSex: nextReferenceSex,
+      age: exactAge,
       ageBand,
       safetyProfile: profile.safetyProfile
         ? {
             ...profile.safetyProfile,
-            age: representativeAge ?? undefined,
+            age: exactAge,
             ageBand: ageBand ?? undefined,
             updatedAt: now,
           }
         : profile.safetyProfile,
-    });
+        });
+  };
+  const updateReferenceSex = (next: ProfileReferenceSex) => {
+    setReferenceSex(next);
+    commitReferenceDetails(exactAgeText, next);
   };
 
   const toggleDay = (day: string) => {
@@ -208,8 +224,11 @@ function SettingsScreenContent({
             name={name}
             onNameChange={setName}
             onNameBlur={commitName}
-            ageBand={selectedAgeBand}
-            onAgeBandChange={commitAgeBand}
+            exactAgeText={exactAgeText}
+            onExactAgeChange={setExactAgeText}
+            onExactAgeBlur={() => commitReferenceDetails()}
+            referenceSex={referenceSex}
+            onReferenceSexChange={updateReferenceSex}
             movementGoal={goalText}
             onOpenLifeGoal={onOpenLifeGoal}
           />
@@ -854,20 +873,28 @@ function PersonalDetailsCard({
   name,
   onNameChange,
   onNameBlur,
-  ageBand,
-  onAgeBandChange,
+  exactAgeText,
+  onExactAgeChange,
+  onExactAgeBlur,
+  referenceSex,
+  onReferenceSexChange,
   movementGoal,
   onOpenLifeGoal,
 }: {
   name: string;
   onNameChange: (value: string) => void;
   onNameBlur: () => void;
-  ageBand: AgeBand | null;
-  onAgeBandChange: (value: AgeBand | null) => void;
+  exactAgeText: string;
+  onExactAgeChange: (value: string) => void;
+  onExactAgeBlur: () => void;
+  referenceSex: ProfileReferenceSex | null;
+  onReferenceSexChange: (value: ProfileReferenceSex) => void;
   movementGoal: string;
   onOpenLifeGoal: () => void;
 }) {
   const responsive = useResponsiveLayout();
+  const exactAge = parseSettingsExactAge(exactAgeText);
+  const exactAgeInvalid = exactAgeText.trim().length > 0 && exactAge === null;
   return (
     <View style={[styles.personalCard, responsive.isCompactPhone && styles.compactCardPadding]}>
       <View style={styles.personalCardIntro}>
@@ -900,25 +927,40 @@ function PersonalDetailsCard({
 
         <View style={[styles.personalAgeRangePanel, responsive.isCompactPhone && styles.compactCardPadding]}>
           <View style={styles.personalAgeRangeHeader}>
-            <Text style={styles.personalFieldLabel}>Age range</Text>
-            <Text style={styles.personalAgeRangeValue}>{personalAgeRangeSummary(ageBand)}</Text>
+            <Text style={styles.personalFieldLabel}>Reference details</Text>
+            <Text style={styles.personalAgeRangeValue}>
+              {exactAge !== null && referenceSex ? `${exactAge} · ${referenceSexSummary(referenceSex)}` : 'Required'}
+            </Text>
           </View>
+          <TextInput
+            style={[styles.personalFieldInput, exactAgeInvalid && styles.personalFieldInputInvalid]}
+            value={exactAgeText}
+            onChangeText={onExactAgeChange}
+            onBlur={onExactAgeBlur}
+            placeholder="Exact age"
+            placeholderTextColor={colors.textTertiary}
+            keyboardType="number-pad"
+            maxLength={3}
+            accessibilityLabel="Exact age"
+          />
+          {exactAgeInvalid ? (
+            <Text style={styles.personalFieldError}>Enter an age from 18 to 100.</Text>
+          ) : null}
           <View style={styles.personalAgeOptionGrid}>
-            {AGE_RANGE_OPTIONS.map((option) => {
-              const selected = ageBand === option.value;
-              const wideOption = option.label === 'Prefer not to say' || option.label === 'Under 45';
+            {(['female', 'male'] as const).map((option) => {
+              const selected = referenceSex === option;
               return (
                 <Pressable
-                  key={option.label}
+                  key={option}
                   style={({ pressed }) => [
                     styles.personalAgeOption,
-                    wideOption ? styles.personalAgeOptionWide : styles.personalAgeOptionCompact,
+                    styles.personalAgeOptionWide,
                     selected && styles.personalAgeOptionSelected,
                     pressed && styles.pressed,
                   ]}
-                  onPress={() => onAgeBandChange(option.value)}
+                  onPress={() => onReferenceSexChange(option)}
                   accessibilityRole="button"
-                  accessibilityLabel={`Age range ${option.label}`}
+                  accessibilityLabel={`Use ${option} reference group`}
                   accessibilityState={{ selected }}
                 >
                   <Text
@@ -927,7 +969,7 @@ function PersonalDetailsCard({
                     adjustsFontSizeToFit
                     minimumFontScale={0.88}
                   >
-                    {option.label}
+                    {referenceSexSummary(option)}
                   </Text>
                 </Pressable>
               );
@@ -962,11 +1004,15 @@ function PersonalDetailsCard({
   );
 }
 
-function personalAgeRangeSummary(ageBand: AgeBand | null): string {
-  const label = ageDisplayLabel(null, ageBand);
-  if (label === 'Age not set') return 'Not set';
-  if (label === 'Age under 45') return 'Under 45';
-  return label.replace(/^Age\s/, '');
+function parseSettingsExactAge(value: string): number | null {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return null;
+  const parsed = Number(trimmed);
+  return Number.isInteger(parsed) && parsed >= 18 && parsed <= 100 ? parsed : null;
+}
+
+function referenceSexSummary(referenceSex: ProfileReferenceSex): string {
+  return referenceSex === 'female' ? 'Female' : 'Male';
 }
 
 function SetupActionTile({
@@ -1030,7 +1076,7 @@ function PrivacyStorageCard() {
         <PrivacyLedgerRow
           icon="account"
           label="Profile information"
-          body="Name, age range, and movement goal."
+          body="Name, age, reference group, and movement goal."
           value="Saved"
         />
         <PrivacyLedgerRow
@@ -1796,6 +1842,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   personalAgeRangePanel: {
+    gap: spacing.sm,
     borderRadius: radius.card,
     borderWidth: 1,
     borderColor: colors.borderHairline,
@@ -1839,6 +1886,13 @@ const styles = StyleSheet.create({
     marginTop: 1,
     color: colors.primaryText,
     backgroundColor: 'transparent',
+  },
+  personalFieldInputInvalid: {
+    color: colors.warningClay,
+  },
+  personalFieldError: {
+    ...type.cardCaption,
+    color: colors.warningClay,
   },
   personalAgeOptionGrid: {
     flexDirection: 'row',

@@ -222,7 +222,7 @@ describe('H3.1 public unified Movement Check-Up lifecycle', () => {
     expect(app).toContain('OnboardingResultsScreen');
   });
 
-  it('completes flag-on public onboarding through a live-derived Balance-domain V2 baseline', async () => {
+  it('completes flag-on public onboarding through a live-derived Strength-domain V2 baseline', async () => {
     const raw = liveDerivedRawCheckUp();
     const prefs = completedProfilePreferences();
     const result = await runPublicV2Onboarding({
@@ -242,7 +242,7 @@ describe('H3.1 public unified Movement Check-Up lifecycle', () => {
     expect(result.pendingRaw?.record.checkUp.startedAt).toBe(raw.startedAt);
     expect(result.materialized.createdSnapshot).toBe(true);
     expect(result.materialized.createdAssessment).toBe(true);
-    expect(result.assessment.focus).toMatchObject({ kind: 'domain', focusDomain: 'balance' });
+    expect(result.assessment.focus).toMatchObject({ kind: 'domain', focusDomain: 'strength_power' });
     expect(result.block.origin).toMatchObject({
       kind: 'movement_profile_v2_assessment',
       sourceCheckUpId: raw.startedAt,
@@ -250,12 +250,12 @@ describe('H3.1 public unified Movement Check-Up lifecycle', () => {
       snapshotId: result.snapshot.snapshotId,
       assessmentId: result.assessment.assessmentId,
     });
-    expect(result.block.focus).toEqual({ kind: 'domain', domain: 'balance' });
+    expect(result.block.focus).toEqual({ kind: 'domain', domain: 'strength_power' });
     expect(result.presentation.variant).toBe('onboarding');
-    expect(result.presentation.focus.title).toBe('Balance');
+    expect(result.presentation.focus.title).toBe('Strength / Power');
     expect(result.presentation.domains[0]).toMatchObject({
       title: 'Strength / Power',
-      interpretation: 'Saved as your personal baseline',
+      interpretation: expect.stringMatching(/percentile/),
     });
     expect(result.presentation.actions).toHaveLength(1);
     expect(result.presentation.actions[0]).toMatchObject({
@@ -326,7 +326,7 @@ describe('H3.1 public unified Movement Check-Up lifecycle', () => {
       referenceSex: 'male',
     });
     expect(profileBefore.profile.age).toBe(61);
-    expect(entered.snapshot.interpretation.chair.percentileRange).toBeNull();
+    expect(entered.snapshot.interpretation.chair.percentileRange).toEqual({ kind: 'range', low: 10, high: 40 });
 
     const skipped = await runPublicV2Onboarding({
       raw: capturedV2CheckUp({ startedAt: '2026-06-25T11:00:00.000Z' }),
@@ -941,7 +941,10 @@ function completedProfilePreferences(): Preferences {
     profile: {
       ...prefs.profile,
       name: 'Sam',
+      exactAge: 61,
+      referenceSex: 'female',
       age: 61,
+      ageBand: '55_64',
       goal: 'Keep stairs feeling manageable',
       lifeGoal,
       safetyProfile: safetyProfile(),

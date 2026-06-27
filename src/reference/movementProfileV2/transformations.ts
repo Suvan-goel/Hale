@@ -4,6 +4,7 @@ import type {
   ReferenceTransformationId,
   ReferenceEngineDiagnostic,
 } from './types';
+import { WARDEN_CHAIR_APPROVAL_ID, WARDEN_CHAIR_TRANSFORMATION_ID } from './wardenChairTransform';
 
 export interface ReferenceTransformationRegistryOptions {
   chairPercentileEnabled?: boolean;
@@ -26,15 +27,16 @@ function defineTransformation(
 export function createReferenceTransformations(
   options: ReferenceTransformationRegistryOptions = {}
 ): readonly ReferenceTransformationDefinition[] {
-  const chairEnabled = options.chairPercentileEnabled === true && typeof options.chairApprovalId === 'string' && options.chairApprovalId.length > 0;
+  const chairEnabled = options.chairPercentileEnabled !== false;
+  const chairApprovalId = options.chairApprovalId ?? WARDEN_CHAIR_APPROVAL_ID;
   return [
     defineTransformation({
-      transformationId: 'chair_percentile_range_v1_pending_transform',
+      transformationId: WARDEN_CHAIR_TRANSFORMATION_ID,
       transformationVersion: 1,
       sourceIds: ['warden_2022_30s_sts'],
       enabled: chairEnabled,
       ...(chairEnabled
-        ? { approvalId: options.chairApprovalId }
+        ? { approvalId: chairApprovalId }
         : { reasonIfDisabled: 'source_transform_unapproved' }),
     }),
     defineTransformation({
@@ -99,7 +101,7 @@ export function validateReferenceTransformations(
     }
   }
   for (const expected of [
-    'chair_percentile_range_v1_pending_transform',
+    WARDEN_CHAIR_TRANSFORMATION_ID,
     'balance_task_band_v1',
     'balance_age_group_benchmark_v1',
     'shoulder_iqr_category_v1',
