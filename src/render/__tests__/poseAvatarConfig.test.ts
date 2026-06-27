@@ -23,6 +23,7 @@ describe('resolvePoseAvatarRendererMode', () => {
     expect(resolvePoseAvatarRendererMode('soft_silhouette_avatar')).toBe('classic');
     expect(resolvePoseAvatarRendererMode('sprite_limb_avatar')).toBe('classic');
     expect(resolvePoseAvatarRendererMode('premium_constellation_human')).toBe('classic');
+    expect(resolvePoseAvatarRendererMode('privacy_shadow')).toBe('classic');
     expect(resolvePoseAvatarRendererMode('volumetric_shadow')).toBe('classic');
     expect(resolvePoseAvatarRendererMode('contour_field')).toBe('classic');
     expect(resolvePoseAvatarConfig({ mode: 'rigged_human_silhouette' }, {}).mode).toBe(
@@ -42,6 +43,9 @@ describe('resolvePoseAvatarRendererMode', () => {
     );
     expect(resolvePoseAvatarConfig({ mode: 'premium_constellation_human' }, {}).mode).toBe(
       'premium_constellation_human'
+    );
+    expect(resolvePoseAvatarConfig({ mode: 'privacy_shadow' }, {}).mode).toBe(
+      'privacy_shadow'
     );
     expect(resolvePoseAvatarConfig({ mode: 'volumetric_shadow' }, {}).mode).toBe(
       'volumetric_shadow'
@@ -90,6 +94,7 @@ describe('rigged human silhouette production isolation', () => {
       expect(source).not.toContain('soft_silhouette_avatar');
       expect(source).not.toContain('sprite_limb_avatar');
       expect(source).not.toContain('premium_constellation_human');
+      expect(source).not.toContain('privacy_shadow');
       expect(source).not.toContain('volumetric_shadow');
       expect(source).not.toContain('contour_field');
       expect(source).not.toContain('matte_graphite_digital_twin');

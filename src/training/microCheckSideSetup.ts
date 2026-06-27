@@ -19,6 +19,9 @@ import {
 } from '../checkup';
 import type { CheckupType } from '../adherence';
 import type { CheckUp } from '../checkup/types';
+import { CHAIN_IDS } from '../pose/chains';
+import type { PipelineFrameOutput } from '../pose/pipeline';
+import { LM } from '../pose/types';
 import type { MicroCheckResult, MicroCheckType } from './microCheck';
 
 export type MicroCheckSideRecommendationSource =
@@ -72,7 +75,35 @@ export interface CreateMicroCheckMeasurementContextForSideInput {
   setup: MicroCheckSideSetup;
   selectedSide?: BodySide | null;
   observedSide?: BodySide | null;
+  source?: MeasurementSideSource;
   userConfirmed?: boolean;
+}
+
+export type MicroCheckCameraSideSetupReason =
+  | 'not_required'
+  | 'waiting_for_tracking'
+  | 'waiting_for_balance_lift'
+  | 'waiting_for_side_view'
+  | 'hold_still'
+  | 'ready';
+
+export interface MicroCheckCameraSideSetupConfig {
+  stableMs: number;
+  fallbackMs: number;
+  balanceLiftBu: number;
+  reliabilityThreshold: number;
+  sideReliabilityMargin: number;
+}
+
+export interface MicroCheckCameraSideSetupResult {
+  ready: boolean;
+  selectedSide: BodySide | null;
+  observedSide: BodySide | null;
+  source: MeasurementSideSource | null;
+  stableForMs: number;
+  fallbackAvailable: boolean;
+  reason: MicroCheckCameraSideSetupReason;
+  setupCaption: string;
 }
 
 interface MicroCheckAnchor {
@@ -88,6 +119,121 @@ const DEFAULT_PROTOCOL_REGISTRY: MicroCheckSideProtocolRegistry = {
 
 const BALANCE_EYES_OPEN_V2_PROTOCOL_ID = 'home_balance_eyes_open_v2';
 const MPV2_BALANCE_PROTOCOL_ID = 'mpv2_single_leg_balance_45s_v1';
+const LEFT_SIDE_CHAIN = CHAIN_IDS.indexOf('leftSide');
+const RIGHT_SIDE_CHAIN = CHAIN_IDS.indexOf('rightSide');
+
+export const DEFAULT_MICRO_CHECK_CAMERA_SIDE_SETUP_CONFIG: MicroCheckCameraSideSetupConfig = {
+  stableMs: 700,
+  fallbackMs: 12000,
+  balanceLiftBu: 0.14,
+  reliabilityThreshold: 0.45,
+  sideReliabilityMargin: 0.1,
+};
+
+export class MicroCheckCameraSideResolver {
+  private firstTimestampMs = -1;
+  private candidateSide: BodySide | null = null;
+  private candidateSinceMs = 0;
+  private readonly result: MicroCheckCameraSideSetupResult = {
+    ready: false,
+    selectedSide: null,
+    observedSide: null,
+    source: null,
+    stableForMs: 0,
+    fallbackAvailable: false,
+    reason: 'waiting_for_tracking',
+    setupCaption: '',
+  };
+
+  update(
+    out: PipelineFrameOutput,
+    microCheckType: MicroCheckType,
+    setup: MicroCheckSideSetup,
+    config: MicroCheckCameraSideSetupConfig = DEFAULT_MICRO_CHECK_CAMERA_SIDE_SETUP_CONFIG
+  ): MicroCheckCameraSideSetupResult {
+    const timestampMs = Number.isFinite(out.frame.timestampMs) ? out.frame.timestampMs : 0;
+    if (this.firstTimestampMs < 0) this.firstTimestampMs = timestampMs;
+
+    if (!setup.sideRequired) {
+      return this.setResult({
+        ready: true,
+        selectedSide: null,
+        observedSide: null,
+        source: 'not_applicable',
+        stableForMs: 0,
+        fallbackAvailable: false,
+        reason: 'not_required',
+        setupCaption: '',
+      });
+    }
+
+    const candidate = inferMicroCheckSideFromCamera({ microCheckType, setup, output: out, config });
+    if (candidate !== this.candidateSide) {
+      this.candidateSide = candidate;
+      this.candidateSinceMs = timestampMs;
+    }
+    const stableForMs = candidate ? Math.max(0, timestampMs - this.candidateSinceMs) : 0;
+    const fallbackAvailable = timestampMs - this.firstTimestampMs >= config.fallbackMs;
+    const ready = candidate !== null && stableForMs >= config.stableMs;
+    const reason = ready
+      ? 'ready'
+      : candidate
+        ? 'hold_still'
+        : reasonForWaiting(microCheckType, out);
+
+    return this.setResult({
+      ready,
+      selectedSide: candidate,
+      observedSide: candidate,
+      source: ready ? microCheckCameraSideSource(setup, candidate) : null,
+      stableForMs,
+      fallbackAvailable,
+      reason,
+      setupCaption: microCheckCameraSideSetupCaption(microCheckType, setup, reason),
+    });
+  }
+
+  reset(): void {
+    this.firstTimestampMs = -1;
+    this.candidateSide = null;
+    this.candidateSinceMs = 0;
+  }
+
+  shiftTiming(deltaMs: number): void {
+    if (deltaMs <= 0) return;
+    if (this.firstTimestampMs >= 0) this.firstTimestampMs += deltaMs;
+    this.candidateSinceMs += deltaMs;
+  }
+
+  private setResult(next: MicroCheckCameraSideSetupResult): MicroCheckCameraSideSetupResult {
+    this.result.ready = next.ready;
+    this.result.selectedSide = next.selectedSide;
+    this.result.observedSide = next.observedSide;
+    this.result.source = next.source;
+    this.result.stableForMs = next.stableForMs;
+    this.result.fallbackAvailable = next.fallbackAvailable;
+    this.result.reason = next.reason;
+    this.result.setupCaption = next.setupCaption;
+    return this.result;
+  }
+}
+
+export function inferMicroCheckSideFromCamera({
+  microCheckType,
+  setup,
+  output,
+  config = DEFAULT_MICRO_CHECK_CAMERA_SIDE_SETUP_CONFIG,
+}: {
+  microCheckType: MicroCheckType;
+  setup: MicroCheckSideSetup;
+  output: PipelineFrameOutput;
+  config?: MicroCheckCameraSideSetupConfig;
+}): BodySide | null {
+  if (!setup.sideRequired) return null;
+  if (microCheckType === 'single-leg-balance') return inferBalanceStandingLeg(output, setup, config);
+  if (microCheckType === 'mobility-reach') return inferMobilityReachSide(output, setup, config);
+  return null;
+}
 
 export function deriveMicroCheckSideSetup({
   microCheckType,
@@ -175,6 +321,7 @@ export function createMicroCheckMeasurementContextForSide({
   setup,
   selectedSide,
   observedSide,
+  source,
   userConfirmed = true,
 }: CreateMicroCheckMeasurementContextForSideInput): MeasurementContext {
   if (!setup.sideRequired) {
@@ -196,7 +343,7 @@ export function createMicroCheckMeasurementContextForSide({
     role: descriptor.sideRole,
     selectedSide: pinnedSide,
     observedSide: observedSide ?? pinnedSide,
-    source: microCheckSideSource(setup, pinnedSide),
+    source: microCheckSideSource(setup, pinnedSide, source),
     userConfirmed,
     anchorResultId,
     anchorSide,
@@ -293,8 +440,11 @@ function officialAnchorForProtocol(
   return anchor ? { side: anchor.side, resultId: anchor.resultId } : null;
 }
 
-function microCheckSideSource(setup: MicroCheckSideSetup, selectedSide: BodySide): MeasurementSideSource {
-  if (setup.recommendationSource === 'compatible_official_anchor') return 'microcheck_official_anchor';
+function microCheckSideSource(
+  setup: MicroCheckSideSetup,
+  selectedSide: BodySide,
+  source?: MeasurementSideSource | null
+): MeasurementSideSource {
   if (
     setup.recommendationSource === 'existing_microcheck_series' &&
     setup.anchorSide &&
@@ -302,5 +452,121 @@ function microCheckSideSource(setup: MicroCheckSideSetup, selectedSide: BodySide
   ) {
     return 'opposite_side_fallback';
   }
+  if (source) return source;
+  if (setup.recommendationSource === 'compatible_official_anchor') return 'microcheck_official_anchor';
   return 'manual_user_selected';
+}
+
+function microCheckCameraSideSource(
+  setup: MicroCheckSideSetup,
+  selectedSide: BodySide
+): MeasurementSideSource {
+  if (
+    setup.recommendationSource === 'existing_microcheck_series' &&
+    setup.anchorSide &&
+    selectedSide !== setup.anchorSide
+  ) {
+    return 'opposite_side_fallback';
+  }
+  if (
+    setup.recommendationSource === 'existing_microcheck_series' &&
+    setup.anchorSide === selectedSide
+  ) {
+    return 'prior_micro_check_camera_verified';
+  }
+  if (
+    setup.recommendationSource === 'compatible_official_anchor' &&
+    setup.selectedSide === selectedSide
+  ) {
+    return 'prior_record_camera_verified';
+  }
+  return 'camera_inferred';
+}
+
+function inferBalanceStandingLeg(
+  out: PipelineFrameOutput,
+  setup: MicroCheckSideSetup,
+  config: MicroCheckCameraSideSetupConfig
+): BodySide | null {
+  if (
+    out.state !== 'tracking' ||
+    !out.frame.hasPose ||
+    out.bodyUnit === null ||
+    out.chainReliability[LEFT_SIDE_CHAIN] < config.reliabilityThreshold ||
+    out.chainReliability[RIGHT_SIDE_CHAIN] < config.reliabilityThreshold
+  ) {
+    return null;
+  }
+
+  if (setup.selectedSide && selectedLegRaised(out, setup.selectedSide, config.balanceLiftBu)) {
+    return setup.selectedSide;
+  }
+
+  const leftLowerThanRightBu =
+    (out.frame.ys[LM.LEFT_ANKLE] - out.frame.ys[LM.RIGHT_ANKLE]) / out.bodyUnit;
+  if (leftLowerThanRightBu > config.balanceLiftBu) return 'left';
+  if (leftLowerThanRightBu < -config.balanceLiftBu) return 'right';
+  return null;
+}
+
+function inferMobilityReachSide(
+  out: PipelineFrameOutput,
+  setup: MicroCheckSideSetup,
+  config: MicroCheckCameraSideSetupConfig
+): BodySide | null {
+  if (out.state !== 'tracking' || !out.frame.hasPose) return null;
+  const leftScore = out.chainReliability[LEFT_SIDE_CHAIN];
+  const rightScore = out.chainReliability[RIGHT_SIDE_CHAIN];
+  const leftReliable = leftScore >= config.reliabilityThreshold;
+  const rightReliable = rightScore >= config.reliabilityThreshold;
+
+  if (setup.selectedSide === 'left' && leftReliable) return 'left';
+  if (setup.selectedSide === 'right' && rightReliable) return 'right';
+  if (!leftReliable && !rightReliable) return null;
+  if (leftReliable && !rightReliable) return 'left';
+  if (rightReliable && !leftReliable) return 'right';
+  if (Math.abs(leftScore - rightScore) < config.sideReliabilityMargin) return null;
+  return leftScore > rightScore ? 'left' : 'right';
+}
+
+function selectedLegRaised(
+  out: PipelineFrameOutput,
+  standingLeg: BodySide,
+  liftBu: number
+): boolean {
+  if (out.bodyUnit === null) return false;
+  const standingAnkle = standingLeg === 'left' ? LM.LEFT_ANKLE : LM.RIGHT_ANKLE;
+  const raisedAnkle = standingLeg === 'left' ? LM.RIGHT_ANKLE : LM.LEFT_ANKLE;
+  return (out.frame.ys[standingAnkle] - out.frame.ys[raisedAnkle]) / out.bodyUnit > liftBu;
+}
+
+function reasonForWaiting(
+  microCheckType: MicroCheckType,
+  out: PipelineFrameOutput
+): MicroCheckCameraSideSetupReason {
+  if (out.state !== 'tracking' || !out.frame.hasPose) return 'waiting_for_tracking';
+  if (microCheckType === 'single-leg-balance') return 'waiting_for_balance_lift';
+  return 'waiting_for_side_view';
+}
+
+function microCheckCameraSideSetupCaption(
+  microCheckType: MicroCheckType,
+  setup: MicroCheckSideSetup,
+  reason: MicroCheckCameraSideSetupReason
+): string {
+  if (reason === 'ready') return 'Side detected. Keep listening.';
+  if (reason === 'hold_still') return 'Hold still for a moment.';
+  if (microCheckType === 'single-leg-balance') {
+    if (setup.selectedSide) {
+      return `Use your ${setup.selectedSide} leg if comfortable. I'll start automatically when I can see it.`;
+    }
+    return "Stand on one leg when you're ready. I'll start automatically.";
+  }
+  if (microCheckType === 'mobility-reach') {
+    if (setup.selectedSide) {
+      return `Use your ${setup.selectedSide} side if comfortable. I'll start automatically when I can see it.`;
+    }
+    return "Turn side-on and reach when you're ready. I'll capture it automatically.";
+  }
+  return '';
 }

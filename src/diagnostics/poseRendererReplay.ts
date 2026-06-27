@@ -41,6 +41,10 @@ import {
   createPremiumConstellationHumanGeometry,
 } from '../render/premiumConstellationHumanGeometry';
 import {
+  buildPrivacyShadowGeometry,
+  createPrivacyShadowGeometry,
+} from '../render/privacyShadowGeometry';
+import {
   buildSpriteLimbAvatarGeometry,
   createSpriteLimbAvatarGeometry,
 } from '../render/spriteLimbAvatarGeometry';
@@ -67,6 +71,7 @@ export type PoseRendererReplayMode =
   | 'raw-skeleton'
   | 'rigged-human-silhouette'
   | 'shadow-silhouette'
+  | 'privacy-shadow'
   | 'soft-continuous-silhouette'
   | 'soft-digital-twin-lean'
   | 'soft-digital-twin'
@@ -128,6 +133,7 @@ export function runPoseRendererReplaySuite(
     'raw-skeleton',
     'rigged-human-silhouette',
     'shadow-silhouette',
+    'privacy-shadow',
     'soft-continuous-silhouette',
     'soft-digital-twin-lean',
     'soft-digital-twin',
@@ -173,6 +179,7 @@ export function runPoseRendererReplay(
   const silhouetteCalibration = createRiggedHumanSilhouetteCalibration();
   const silhouetteOrientation = createRiggedHumanSilhouetteOrientationState();
   const shadowSilhouette = createShadowSilhouetteGeometry();
+  const privacyShadow = createPrivacyShadowGeometry();
   const softSilhouette = createSoftSilhouetteGeometry();
   const softDigitalTwin = createSoftDigitalTwinGeometry();
   const spriteLimbAvatar = createSpriteLimbAvatarGeometry();
@@ -262,6 +269,24 @@ export function runPoseRendererReplay(
         );
         totalPrimitiveCount += shadowSilhouette.surfacePathCount;
         maxPrimitiveCount = Math.max(maxPrimitiveCount, shadowSilhouette.surfacePathCount);
+      } else if (mode === 'privacy-shadow') {
+        buildPrivacyShadowGeometry(screenPose, privacyShadow);
+        shapeFrames++;
+        surfaceFrames++;
+        totalShapeCount += privacyShadow.shapeCount;
+        maxShapeCount = Math.max(maxShapeCount, privacyShadow.shapeCount);
+        totalDynamicPathCount += privacyShadow.dynamicPathCount;
+        maxDynamicPathCount = Math.max(
+          maxDynamicPathCount,
+          privacyShadow.dynamicPathCount
+        );
+        totalSurfacePathCount += privacyShadow.surfacePathCount;
+        maxSurfacePathCount = Math.max(
+          maxSurfacePathCount,
+          privacyShadow.surfacePathCount
+        );
+        totalPrimitiveCount += privacyShadow.surfacePathCount;
+        maxPrimitiveCount = Math.max(maxPrimitiveCount, privacyShadow.surfacePathCount);
       } else if (mode === 'soft-continuous-silhouette') {
         buildSoftSilhouetteGeometry(screenPose, softSilhouette);
         shapeFrames++;

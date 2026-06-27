@@ -51,6 +51,14 @@ import { colors, fonts, imageOverlayControl, radius, shadow, spacing, type } fro
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 import { SettingsIcon } from '../navigation/icons';
 import {
+  buildProgressNextCheckUpCard,
+  buildProgressPlanSummaryCard,
+  progressPracticeStatusLabel,
+  progressSummaryStatusLabel,
+  type ProgressNextCheckUpCardCopy,
+  type ProgressPlanSummaryCardCopy,
+} from './progressProductPresentation';
+import {
   BALANCE_LADDER_ID,
   CHAIR_STAND_ID,
   HINGE_REACH_ID,
@@ -182,6 +190,13 @@ export function ProgressScreen({
           onViewProfile={onViewMovementProfileV2Profile}
           onViewReport={onViewMovementProfileV2Report}
           onViewCurrentPlan={onViewCurrentPlan}
+          onBeginExtraCheckUp={onBeginAdditionalCheckUp}
+          onStartRetest={onStartRetest}
+          activeBlock={visibleActiveBlock}
+          blocks={visibleBlocks}
+          reports={visibleReports}
+          completions={visibleCompletions}
+          today={today}
           ladderCards={ladderCards}
         />
       </Screen>
@@ -261,43 +276,121 @@ export function ProgressScreen({
   );
 }
 
+interface ProgressEmptyStateStepCopy {
+  index: string;
+  title: string;
+  body: string;
+  state: 'current' | 'upcoming';
+}
+
+interface ProgressEmptyStateCopy {
+  kicker: string;
+  metaLabel: string;
+  title: string;
+  body: string;
+  stepsAccessibilityLabel: string;
+  steps: readonly ProgressEmptyStateStepCopy[];
+  actionLabel: string;
+  actionAccessibilityLabel: string;
+  note: string;
+}
+
+const PROGRESS_EMPTY_STATE_COPY: ProgressEmptyStateCopy = {
+  kicker: 'Set your starting point',
+  metaLabel: '~10 min',
+  title: 'Start with your first Movement Check-Up',
+  body: 'Hale guides you through simple movements and saves your first strength, balance, and mobility numbers. Future check-ups use the same movements so you can see what changed.',
+  stepsAccessibilityLabel: 'Progress preparation steps',
+  steps: [
+    {
+      index: '1',
+      title: 'Do the first check-up',
+      body: 'Hale talks you through each movement while the camera estimates your results.',
+      state: 'current',
+    },
+    {
+      index: '2',
+      title: 'Get a 4-week plan',
+      body: 'Your plan starts with the area that needs the most practice.',
+      state: 'upcoming',
+    },
+    {
+      index: '3',
+      title: 'Repeat the check-up',
+      body: 'After a few weeks, repeat it so Hale can compare the same movements.',
+      state: 'upcoming',
+    },
+  ],
+  actionLabel: 'Start Movement Check-Up',
+  actionAccessibilityLabel: 'Start Movement Check-Up',
+  note: 'Progress is based on repeat check-ups, not one-day changes. That keeps this page focused on meaningful patterns.',
+};
+
+const PROGRESS_PENDING_PROFILE_COPY: ProgressEmptyStateCopy = {
+  kicker: 'Check-Up saved',
+  metaLabel: 'Next step',
+  title: 'Finish your Movement Profile',
+  body: 'Your raw Movement Check-Up is saved. Add or skip reference details so Hale can save the profile and show it here in Progress.',
+  stepsAccessibilityLabel: 'Movement Profile continuation steps',
+  steps: [
+    {
+      index: '1',
+      title: 'Raw Check-Up saved',
+      body: 'Hale has the measurements from your completed camera check-up.',
+      state: 'current',
+    },
+    {
+      index: '2',
+      title: 'Add or skip details',
+      body: 'Choose the reference details you want Hale to use, or skip them if you prefer.',
+      state: 'current',
+    },
+    {
+      index: '3',
+      title: 'View your saved profile',
+      body: 'Hale will show strength, balance, and mobility from this check-up.',
+      state: 'upcoming',
+    },
+  ],
+  actionLabel: 'Continue Movement Profile',
+  actionAccessibilityLabel: 'Continue Movement Profile',
+  note: 'This step does not change your raw results. It only controls which optional details Hale can use.',
+};
+
 function ProgressEmptyState({ onBeginCheckUp }: { onBeginCheckUp: () => void }) {
+  return <ProgressStructuredState copy={PROGRESS_EMPTY_STATE_COPY} onPress={onBeginCheckUp} />;
+}
+
+function ProgressPendingMovementProfileState({ onContinue }: { onContinue: () => void }) {
+  return <ProgressStructuredState copy={PROGRESS_PENDING_PROFILE_COPY} onPress={onContinue} />;
+}
+
+function ProgressStructuredState({ copy, onPress }: { copy: ProgressEmptyStateCopy; onPress: () => void }) {
   const responsive = useResponsiveLayout();
   return (
     <View style={styles.emptyProgressWrap}>
       <View style={[styles.emptyProgressCard, responsive.isCompactPhone && styles.compactCardPadding]}>
         <View style={styles.emptyProgressHeader}>
-          <Text style={styles.emptyProgressKicker}>Set your starting point</Text>
+          <Text style={styles.emptyProgressKicker}>{copy.kicker}</Text>
           <View style={styles.emptyProgressMetaPill}>
-            <Text style={styles.emptyProgressMetaText}>~10 min</Text>
+            <Text style={styles.emptyProgressMetaText}>{copy.metaLabel}</Text>
           </View>
         </View>
 
-        <Text style={styles.emptyProgressTitle}>Start with your first Movement Check-Up</Text>
-        <Text style={styles.emptyProgressBody}>
-          Hale guides you through simple movements and saves your first strength, balance, and mobility numbers. Future check-ups use the same movements so you can see what changed.
-        </Text>
+        <Text style={styles.emptyProgressTitle}>{copy.title}</Text>
+        <Text style={styles.emptyProgressBody}>{copy.body}</Text>
 
-        <View style={[styles.emptyProgressSteps, responsive.isCompactPhone && styles.compactCardPadding]} accessibilityLabel="Progress preparation steps">
-          <ProgressEmptyStep
-            index="1"
-            title="Do the first check-up"
-            body="Hale talks you through each movement while the camera estimates your results."
-            state="current"
-          />
-          <ProgressEmptyStep
-            index="2"
-            title="Get a 4-week plan"
-            body="Your plan starts with the area that needs the most practice."
-            state="upcoming"
-          />
-          <ProgressEmptyStep
-            index="3"
-            title="Repeat the check-up"
-            body="After a few weeks, repeat it so Hale can compare the same movements."
-            state="upcoming"
-            last
-          />
+        <View style={[styles.emptyProgressSteps, responsive.isCompactPhone && styles.compactCardPadding]} accessibilityLabel={copy.stepsAccessibilityLabel}>
+          {copy.steps.map((step, index) => (
+            <ProgressEmptyStep
+              key={step.index}
+              index={step.index}
+              title={step.title}
+              body={step.body}
+              state={step.state}
+              last={index === copy.steps.length - 1}
+            />
+          ))}
         </View>
 
         <Pressable
@@ -306,19 +399,17 @@ function ProgressEmptyState({ onBeginCheckUp }: { onBeginCheckUp: () => void }) 
             responsive.isCompactPhone && styles.compactCardPadding,
             pressed && styles.pressed,
           ]}
-          onPress={onBeginCheckUp}
+          onPress={onPress}
           accessibilityRole="button"
-          accessibilityLabel="Start Movement Check-Up"
+          accessibilityLabel={copy.actionAccessibilityLabel}
         >
-          <Text style={styles.emptyProgressButtonText}>Start Movement Check-Up</Text>
+          <Text style={styles.emptyProgressButtonText}>{copy.actionLabel}</Text>
           <Text style={styles.emptyProgressButtonArrow}>›</Text>
         </Pressable>
       </View>
 
       <View style={styles.emptyProgressNote}>
-        <Text style={styles.emptyProgressNoteText}>
-          Progress is based on repeat check-ups, not one-day changes. That keeps this page focused on meaningful patterns.
-        </Text>
+        <Text style={styles.emptyProgressNoteText}>{copy.note}</Text>
       </View>
     </View>
   );
@@ -362,6 +453,13 @@ function MovementProfileV2ProgressContent({
   onViewProfile,
   onViewReport,
   onViewCurrentPlan,
+  onBeginExtraCheckUp,
+  onStartRetest,
+  activeBlock,
+  blocks,
+  reports,
+  completions,
+  today,
   ladderCards,
 }: {
   viewModel: MovementProfileV2ProgressViewModel | null;
@@ -371,15 +469,33 @@ function MovementProfileV2ProgressContent({
   onViewProfile?: (sourceCheckUpId: string) => void;
   onViewReport?: (reportId: string) => void;
   onViewCurrentPlan?: () => void;
+  onBeginExtraCheckUp: () => void;
+  onStartRetest: () => void;
+  activeBlock?: MovementBlock | null;
+  blocks?: readonly MovementBlock[] | null;
+  reports?: readonly MovementBlockReport[] | null;
+  completions?: readonly TrainingSessionCompletion[] | null;
+  today: string;
   ladderCards: ReturnType<typeof getLadderProgressCards>;
 }) {
   if (!viewModel || unavailable) {
+    const recoveryViewModel = viewModel && viewModel.status !== 'ready' ? viewModel : null;
+    const primary = recoveryViewModel?.actions[0];
     return (
       <MovementProfileV2RecoveryCard
-        title="Movement Profile needs attention"
-        body="Your saved Movement Profile data is still on this phone, but Hale cannot safely show it here yet."
-        actionLabel="Continue"
-        onPress={onContinue}
+        title={recoveryViewModel?.recovery.title ?? 'Movement Profile needs attention'}
+        body={
+          recoveryViewModel?.recovery.body ??
+          'Your saved Movement Profile data is still on this phone, but Hale cannot safely show it here yet.'
+        }
+        actionLabel={primary?.label}
+        onPress={
+          primary?.id === 'start_movement_checkup'
+            ? onStartCheckUp
+            : primary
+              ? onContinue
+              : undefined
+        }
       />
     );
   }
@@ -387,6 +503,9 @@ function MovementProfileV2ProgressContent({
   if (viewModel.status !== 'ready') {
     if (viewModel.status === 'no_profile') {
       return <ProgressEmptyState onBeginCheckUp={onStartCheckUp} />;
+    }
+    if (viewModel.status === 'pending_reference_details') {
+      return <ProgressPendingMovementProfileState onContinue={onContinue} />;
     }
     const primary = viewModel.actions[0];
     return (
@@ -405,6 +524,21 @@ function MovementProfileV2ProgressContent({
     );
   }
 
+  const nextCheckUp = buildProgressNextCheckUpCard({
+    hasReadyProfile: true,
+    activeBlock,
+    reports,
+    completions,
+    today,
+  });
+  const planSummary = buildProgressPlanSummaryCard({
+    activeBlock,
+    blocks,
+    reports,
+    completions,
+    today,
+  });
+
   return (
     <>
       <MovementProfileV2HeroSection hero={viewModel.hero} />
@@ -412,17 +546,26 @@ function MovementProfileV2ProgressContent({
         viewModel={viewModel}
         onViewProfile={onViewProfile}
       />
-      {viewModel.currentPlan ? (
-        <MovementProfileV2CurrentPlanCard
-          plan={viewModel.currentPlan}
+      {nextCheckUp ? (
+        <MovementProfileV2NextCheckUpCard
+          card={nextCheckUp}
+          onStartRetest={onStartRetest}
+        />
+      ) : null}
+      {planSummary ? (
+        <MovementProfileV2PlanSummaryCard
+          card={planSummary}
           onViewCurrentPlan={onViewCurrentPlan}
         />
       ) : null}
       {ladderCards.length > 0 ? <TrainingProgressCard cards={ladderCards} /> : null}
-      <MovementProfileV2OfficialHistoryCard
-        history={viewModel.officialHistory}
-        onViewProfile={onViewProfile}
-      />
+      <MovementProfileV2ExtraCheckUpCard onPress={onBeginExtraCheckUp} />
+      {viewModel.officialHistory.length >= 2 ? (
+        <MovementProfileV2OfficialHistoryCard
+          history={viewModel.officialHistory}
+          onViewProfile={onViewProfile}
+        />
+      ) : null}
       {viewModel.reports.length > 0 ? (
         <MovementProfileV2ReportHistoryCard
           reports={viewModel.reports}
@@ -523,7 +666,7 @@ function MovementProfileV2ProfileCard({
       <View style={styles.profileHeader}>
         <View style={styles.sectionText}>
           <Text style={styles.sectionTitle}>Latest Movement Profile</Text>
-          <Text style={styles.sectionIntro}>Frozen from {viewModel.hero.dateLabel}. Hale shows saved raw results and saved reference labels only.</Text>
+          <Text style={styles.sectionIntro}>Your latest Movement Check-Up results.</Text>
         </View>
       </View>
       <View style={styles.profileRows}>
@@ -553,52 +696,83 @@ function MovementProfileV2ProgressRow({
       <IconBadge domain={domainIconForMovementProfileV2(card.domain)} size={36} iconSize={22} />
       <View style={styles.profileRowText}>
         <Text style={styles.profileRowTitle} numberOfLines={1}>{card.title}</Text>
-        <Text style={styles.profileRowMetric} numberOfLines={1}>{card.metric}</Text>
+        <Text style={styles.profileRowMetric} numberOfLines={2}>{card.metric}</Text>
       </View>
       <View style={styles.profileStatusPill}>
-        <Text style={styles.profileStatusText} numberOfLines={1}>{card.interpretation}</Text>
+        <Text style={styles.profileStatusText} numberOfLines={2}>{progressSummaryStatusLabel(card)}</Text>
       </View>
     </View>
   );
 }
 
-function MovementProfileV2CurrentPlanCard({
-  plan,
-  onViewCurrentPlan,
+function MovementProfileV2NextCheckUpCard({
+  card,
+  onStartRetest,
 }: {
-  plan: NonNullable<Extract<MovementProfileV2ProgressViewModel, { status: 'ready' }>['currentPlan']>;
-  onViewCurrentPlan?: () => void;
+  card: ProgressNextCheckUpCardCopy;
+  onStartRetest: () => void;
 }) {
   return (
     <Card style={styles.progressCard}>
-      <View style={styles.profileHeader}>
-        <View style={styles.sectionText}>
-          <Text style={styles.sectionTitle}>Current plan</Text>
-          <Text style={styles.sectionIntro}>{plan.sourceNote}</Text>
+      <Text style={styles.sectionTitle}>{card.title}</Text>
+      <View style={styles.nextCheckUpPanel}>
+        <IconBadge domain="calendar" size={38} iconSize={23} />
+        <View style={styles.nextCheckUpCopy}>
+          <Text style={styles.nextCheckUpTitle}>{card.lead}</Text>
+          <Text style={styles.nextCheckUpBody}>{card.body}</Text>
         </View>
       </View>
-      <View style={styles.planSummaryRows}>
-        <PlanSummaryPill label="Focus" value={plan.focusTitle} />
-        <PlanSummaryPill label="Week" value={plan.weekLabel} />
-        <PlanSummaryPill label="Sessions" value={plan.sessionsLabel} wide />
+      {card.actionLabel ? (
+        <ProgressActionRow
+          title={card.actionLabel}
+          body="Opens camera setup for your Movement Check-Up."
+          onPress={onStartRetest}
+          accessibilityLabel={`${card.actionLabel}. ${card.lead} ${card.body}`}
+        />
+      ) : null}
+    </Card>
+  );
+}
+
+function MovementProfileV2PlanSummaryCard({
+  card,
+  onViewCurrentPlan,
+}: {
+  card: ProgressPlanSummaryCardCopy;
+  onViewCurrentPlan?: () => void;
+}) {
+  const summaryIcon = planSummaryIcon(card.meta);
+  return (
+    <Card style={styles.progressCard}>
+      <Text style={styles.sectionTitle}>{card.title}</Text>
+      <View style={styles.planSummaryPanel}>
+        <IconBadge domain={summaryIcon} size={38} iconSize={23} />
+        <View style={styles.planSummaryCopy}>
+          <Text style={styles.planSummaryTitle}>Plan progress</Text>
+          <Text style={styles.planSummaryBody}>{card.meta}</Text>
+        </View>
       </View>
-      <Text style={styles.sectionIntro}>{plan.scheduleLabel}</Text>
       <ProgressActionRow
-        title="View current plan"
+        title={card.actionLabel}
         body="Opens your saved plan without starting a session."
         onPress={onViewCurrentPlan}
-        accessibilityLabel={`View current plan. ${plan.focusTitle}. ${plan.sessionsLabel}.`}
+        accessibilityLabel={card.accessibilityLabel}
       />
     </Card>
   );
 }
 
-function PlanSummaryPill({ label, value, wide }: { label: string; value: string; wide?: boolean }) {
+function MovementProfileV2ExtraCheckUpCard({ onPress }: { onPress: () => void }) {
   return (
-    <View style={[styles.planSummaryPill, wide && styles.planSummaryPillWide]}>
-      <Text style={styles.progressHeroFactLabel} numberOfLines={1}>{label}</Text>
-      <Text style={styles.progressHeroFactValue} numberOfLines={2}>{value}</Text>
-    </View>
+    <Card style={styles.progressCard}>
+      <RecordRow
+        title="Extra check-up"
+        meta="Try a quick check-in or a full optional check-up. This won't change your plan."
+        onPress={onPress}
+        accessibilityLabel="Extra check-up. Try a quick check-in or a full optional check-up. This will not change your plan."
+        showDivider={false}
+      />
+    </Card>
   );
 }
 
@@ -1383,7 +1557,7 @@ function TrainingProgressCard({
   return (
     <Card style={styles.progressCard}>
       <Text style={styles.sectionTitle}>What you are practicing now</Text>
-      <Text style={styles.sectionIntro}>Hale can make these movements easier or harder based on how your sessions go.</Text>
+      <Text style={styles.sectionIntro}>Hale adjusts these movements based on your completed sessions.</Text>
       <View style={styles.levelRows}>
         {visible.map((card, index) => (
           <LadderProgressRow key={card.ladderId} card={card} showDivider={index > 0} />
@@ -1410,7 +1584,7 @@ function LadderProgressRow({
         <Text style={styles.levelRowTitle} numberOfLines={1}>{card.title}</Text>
         <Text style={styles.levelRowMeta} numberOfLines={1}>{card.levelName}</Text>
       </View>
-      <InlineStatusPill label={compactLadderStatus(card.status)} compact />
+      <InlineStatusPill label={progressPracticeStatusLabel(card.status)} compact />
     </View>
   );
 }
@@ -1862,6 +2036,13 @@ function ladderDomain(ladderId: string): Domain {
   return 'strength';
 }
 
+function planSummaryIcon(meta: string): Domain | 'calendar' {
+  if (meta.startsWith('Strength / Power')) return 'strength';
+  if (meta.startsWith('Balance')) return 'balance';
+  if (meta.startsWith('Mobility')) return 'mobility';
+  return 'calendar';
+}
+
 function displayMetric(metric: string): string {
   return metric.replace(/ -> /g, ' → ');
 }
@@ -1876,12 +2057,6 @@ function trendLabel(trend: string): string {
 function visibleTrendLabel(trend: string): string | null {
   if (trend === 'higher' || trend === 'lower') return trendLabel(trend);
   return null;
-}
-
-function compactLadderStatus(status: string): string {
-  if (status === 'Ready for next step') return 'Ready';
-  if (status === 'Same level for now') return 'Same level';
-  return status;
 }
 
 function bandLabel(band: MovementProfileBand): string {
@@ -2257,27 +2432,6 @@ const styles = StyleSheet.create({
   profileRows: {
     marginTop: 14,
   },
-  planSummaryRows: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 14,
-    marginBottom: 12,
-  },
-  planSummaryPill: {
-    minWidth: 108,
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: radius.input,
-    backgroundColor: colors.bgBase,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-  },
-  planSummaryPillWide: {
-    flexBasis: '100%',
-  },
   profileRow: {
     minHeight: 76,
     flexDirection: 'row',
@@ -2291,12 +2445,12 @@ const styles = StyleSheet.create({
   },
   profileStatusPill: {
     minWidth: 86,
-    maxWidth: 116,
-    minHeight: 28,
+    maxWidth: 134,
+    minHeight: 34,
     flexShrink: 0,
     justifyContent: 'center',
     paddingHorizontal: spacing.sm,
-    borderRadius: 14,
+    borderRadius: 17,
     backgroundColor: colors.bgSurface,
   },
   profileStatusPillMuted: {
@@ -2479,6 +2633,36 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
   },
   nextCheckUpBody: {
+    marginTop: 4,
+    color: colors.textSecondary,
+    fontFamily: fonts.sansRegular,
+    fontSize: 14,
+    lineHeight: 20,
+    letterSpacing: 0,
+  },
+  planSummaryPanel: {
+    minHeight: 86,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderRadius: radius.input,
+    backgroundColor: colors.bgElevated,
+  },
+  planSummaryCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  planSummaryTitle: {
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: 0,
+  },
+  planSummaryBody: {
     marginTop: 4,
     color: colors.textSecondary,
     fontFamily: fonts.sansRegular,

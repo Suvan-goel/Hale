@@ -127,4 +127,65 @@ describe('soft digital twin geometry', () => {
     expect(raisedEnvelope?.path).not.toBe(neutralEnvelope?.path);
     expect(isFiniteSoftDigitalTwinGeometry(raisedOut)).toBe(true);
   });
+
+  it('ignores finite but low-confidence wrist spikes when deforming the balanced envelope', () => {
+    const pose = mappedStandingPose();
+    pose.xs[LM.LEFT_WRIST] = 9999;
+    pose.ys[LM.LEFT_WRIST] = -9999;
+    for (const lm of [LM.LEFT_WRIST, LM.LEFT_INDEX, LM.LEFT_PINKY, LM.LEFT_THUMB]) {
+      pose.visibility[lm] = 0.01;
+      pose.presence[lm] = 0.01;
+    }
+    const out = createSoftDigitalTwinGeometry();
+
+    buildSoftDigitalTwinGeometry(pose, out);
+
+    const envelope = out.surfaces.find((surface) => surface.id === 'balancedBodyEnvelope');
+    expect(envelope?.path).toBeDefined();
+    expect(envelope?.path).not.toContain('9999');
+    expect(envelope?.path).not.toContain('-9999');
+    expect(isFiniteSoftDigitalTwinGeometry(out)).toBe(true);
+  });
+
+  it('uses confident hand landmarks to orient the balanced hand envelope', () => {
+    const neutral = mappedStandingPose();
+    const handTurned = mappedStandingPose();
+    handTurned.xs[LM.LEFT_INDEX] -= 80;
+    handTurned.ys[LM.LEFT_INDEX] -= 40;
+    handTurned.xs[LM.LEFT_PINKY] -= 70;
+    handTurned.ys[LM.LEFT_PINKY] -= 30;
+
+    const neutralOut = createSoftDigitalTwinGeometry();
+    const turnedOut = createSoftDigitalTwinGeometry();
+    buildSoftDigitalTwinGeometry(neutral, neutralOut);
+    buildSoftDigitalTwinGeometry(handTurned, turnedOut);
+
+    const neutralEnvelope = neutralOut.surfaces.find((surface) => surface.id === 'balancedBodyEnvelope');
+    const turnedEnvelope = turnedOut.surfaces.find((surface) => surface.id === 'balancedBodyEnvelope');
+    expect(turnedEnvelope?.path).toBeDefined();
+    expect(turnedEnvelope?.path).not.toBe(neutralEnvelope?.path);
+    expect(isFiniteSoftDigitalTwinGeometry(turnedOut)).toBe(true);
+  });
+
+  it('adds pose-driven raised arm surfaces without dropping the unified balanced body', () => {
+    const pose = mappedStandingPose();
+    pose.xs[LM.LEFT_ELBOW] += 36;
+    pose.ys[LM.LEFT_ELBOW] -= 86;
+    pose.xs[LM.LEFT_WRIST] += 42;
+    pose.ys[LM.LEFT_WRIST] -= 166;
+    pose.xs[LM.LEFT_INDEX] += 48;
+    pose.ys[LM.LEFT_INDEX] -= 188;
+    pose.xs[LM.LEFT_PINKY] += 32;
+    pose.ys[LM.LEFT_PINKY] -= 184;
+    const out = createSoftDigitalTwinGeometry();
+
+    buildSoftDigitalTwinGeometry(pose, out);
+
+    const ids = out.surfaces.map((surface) => surface.id);
+    expect(ids).toContain('balancedBodyEnvelope');
+    expect(ids).toContain('leftRaisedUpperArm');
+    expect(ids).toContain('leftRaisedForearmHand');
+    expect(out.surfacePathCount).toBeGreaterThan(4);
+    expect(isFiniteSoftDigitalTwinGeometry(out)).toBe(true);
+  });
 });

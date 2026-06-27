@@ -202,7 +202,11 @@ function MovementSnapshotCard({
     <View style={[styles.snapshotCard, compact && styles.compactCardPadding]}>
       <Text style={styles.snapshotTitle}>Your movement snapshot</Text>
       {!hasMeasuredDomains ? (
-        <Text style={styles.snapshotIntro}>Complete your check-up to see strength, balance, and mobility here.</Text>
+        <Text style={styles.snapshotIntro}>
+          {lifecycle.state === 'needs_movement_profile_completion'
+            ? 'Finish your Movement Profile to see strength, balance, and mobility here.'
+            : 'Complete your check-up to see strength, balance, and mobility here.'}
+        </Text>
       ) : null}
       <View style={[styles.snapshotBody, compact && styles.snapshotBodyCompact]}>
         <SnapshotProgressRing
@@ -283,7 +287,7 @@ function SnapshotProgressRing({
 
 function TodayContextStrip({ compact, lifecycle }: { compact: boolean; lifecycle: HaleAppLifecycleResult }) {
   const block = lifecycle.activeBlockSummary;
-  if (block) {
+  if (block && shouldShowActivePlanContext(lifecycle.state)) {
     return (
       <View style={[styles.contextStrip, compact && styles.compactCardPadding]}>
         <Text style={styles.contextTitle}>Your 4-week plan</Text>
@@ -317,7 +321,9 @@ function TodayContextStrip({ compact, lifecycle }: { compact: boolean; lifecycle
         <View style={styles.contextSecondary}>
           <Text style={styles.contextLabel}>Check-up</Text>
           <Text style={styles.contextValue} numberOfLines={1}>
-            {lifecycle.movementSnapshot ? 'Check-up saved' : 'Check-up not started'}
+            {lifecycle.movementSnapshot || lifecycle.state === 'needs_movement_profile_completion'
+              ? 'Check-up saved'
+              : 'Check-up not started'}
           </Text>
         </View>
       </View>
@@ -696,7 +702,7 @@ function movementProfileProgress(
   snapshot: MovementSnapshot | null | undefined
 ): { progress: number; value: string; noun: string; verb: string } {
   const block = lifecycle.activeBlockSummary;
-  if (block) {
+  if (block && shouldShowActivePlanContext(lifecycle.state)) {
     const total = Math.max(1, block.sessionsTargetThisWeek);
     const current = Math.max(0, Math.min(total, block.sessionsCompleteThisWeek));
     return {
@@ -717,6 +723,17 @@ function movementProfileProgress(
   };
 }
 
+function shouldShowActivePlanContext(state: HaleAppLifecycleResult['state']): boolean {
+  return (
+    state === 'first_session_ready' ||
+    state === 'normal_training_day' ||
+    state === 'weekly_micro_check_due' ||
+    state === 'monthly_retest_due' ||
+    state === 'week_complete' ||
+    state === 'inactive_restart'
+  );
+}
+
 function retestLabel(days: number | undefined, totalWeeks = 4): string {
   if (days === undefined) return `End of week ${totalWeeks}`;
   if (days <= 0) return 'Ready now';
@@ -730,6 +747,7 @@ function retestLabel(days: number | undefined, totalWeeks = 4): string {
 
 function contextValue(title: string): string {
   if (title.length <= 22) return title;
+  if (title.includes('Movement Profile')) return 'Movement profile';
   if (title.includes('Movement Check-Up')) return 'Check-up';
   if (title.includes('4-week')) return 'Plan';
   return 'Next action';

@@ -21,6 +21,7 @@ import { VoiceRequest } from '../assessment/sessionController';
 import { ExerciseDefinition, SetResult, getExercise } from '../exercises';
 import type { ValidTimeState } from '../exercises/validTime';
 import { PipelineFrameOutput } from '../pose/pipeline';
+import { LM } from '../pose/types';
 import {
   MovementCameraReadinessTracker,
   type MovementCameraReadinessResult,
@@ -84,6 +85,8 @@ export type TrainingFinalPositionPhase =
   | 'audio_failure'
   | 'cancelled';
 
+export type TrainingFloorSetupReadinessSource = 'camera_inferred' | 'user_fallback_selected';
+
 export interface TrainingFloorSetupSnapshot {
   readonly exerciseId: string;
   readonly itemIndex: number;
@@ -97,6 +100,8 @@ export interface TrainingFloorSetupSnapshot {
   readonly stableForMs: number;
   readonly setupCaption: string | null;
   readonly actionLabel: string | null;
+  readonly fallbackAvailable: boolean;
+  readonly readinessSource: TrainingFloorSetupReadinessSource | null;
 }
 
 export interface TrainingFloorSessionMemory {
@@ -171,6 +176,10 @@ export const DEFAULT_TRAINING_CONFIG: TrainingPlayerConfig = {
 };
 
 export const TRAINING_FLOOR_V2_1_FEATURE_FLAG = 'EXPO_PUBLIC_ENABLE_TRAINING_FLOOR_V2_1' as const;
+const TRAINING_FLOOR_SETUP_STABLE_DWELL_MS = 900;
+const TRAINING_FLOOR_SETUP_FALLBACK_TIMEOUT_MS = 12000;
+const TRAINING_FLOOR_SETUP_FLOOR_POSTURE_TORSO_RATIO = 0.65;
+const TRAINING_FLOOR_SETUP_MAX_HIP_ABOVE_ANKLE_NORM = 0.18;
 
 export function isTrainingFloorV21FeatureEnabled(
   env: Record<string, string | undefined> = process.env
@@ -185,6 +194,7 @@ export interface TrainingSessionPlayerOptions {
   readonly runtimeCapabilities?: TrainingSetRuntimeCapabilities;
   readonly stepUpAlternationFeatureEnabled?: boolean;
   readonly floorV21FeatureEnabled?: boolean;
+  readonly handsFreeTrainingSetup?: boolean;
   readonly restoredSetRuntime?: SerializedTrainingSetRuntime | null;
 }
 
@@ -195,7 +205,9 @@ export class TrainingSessionPlayer {
   private readonly startedAtIso: string;
   private readonly definitions: ExerciseDefinition[];
   private readonly preflight: PreflightCheck;
-  private readonly movementReadiness = new MovementCameraReadinessTracker();
+  private readonly movementReadiness = new MovementCameraReadinessTracker({
+    stableMs: TRAINING_FLOOR_SETUP_STABLE_DWELL_MS,
+  });
   private readonly results: TrainingItemResult[] = [];
   private readonly update_: TrainingFrameUpdate = {
     phase: 'intro',
@@ -240,6 +252,7 @@ export class TrainingSessionPlayer {
   private setupIssue = false;
   private setupIssueRecoverySpoken = false;
   private floorSetup: TrainingFloorSetupSnapshot | null = null;
+  private floorSetupListeningStartedMs = -1;
   private floorMemory: TrainingFloorSessionMemory = {
     floorFamilyIntroduced: false,
     currentEnvironment: 'unknown',
@@ -302,16 +315,22 @@ export class TrainingSessionPlayer {
 
   retrySetup(): void {
     if (this.floorSetup && this.phase === 'instructions') {
+      const handsFreeSetup = this.shouldUseHandsFreeTrainingSetup();
       this.floorSetup = {
         ...this.floorSetup,
-        phase: 'awaiting_user_transition',
+        phase: handsFreeSetup ? 'movement_setup' : 'awaiting_user_transition',
         userConfirmed: false,
         movementReady: false,
         finalPositionReadyAtMs: null,
         stableForMs: 0,
-        setupCaption: 'Move to the floor start position.',
-        actionLabel: "I'm ready",
+        setupCaption: handsFreeSetup
+          ? "Move safely to the floor. I'll start once you're in position."
+          : 'Move to the floor start position.',
+        actionLabel: handsFreeSetup ? null : "I'm ready",
+        fallbackAvailable: false,
+        readinessSource: null,
       };
+      this.floorSetupListeningStartedMs = handsFreeSetup ? this.lastTimestampMs : -1;
       this.movementReadiness.reset();
       this.instructionsIdleAtMs = -1;
       return;
@@ -342,22 +361,25 @@ export class TrainingSessionPlayer {
       return false;
     }
     if (this.floorSetup.userConfirmed) return false;
+    const handsFreeSetup = this.shouldUseHandsFreeTrainingSetup();
+    if (handsFreeSetup && !this.floorSetup.fallbackAvailable) return false;
     this.floorSetup = {
       ...this.floorSetup,
-      phase: 'awaiting_visibility',
+      phase: handsFreeSetup ? 'ready' : 'awaiting_visibility',
       userConfirmed: true,
-      movementReady: false,
+      movementReady: handsFreeSetup,
       finalPositionReadyAtMs: null,
-      stableForMs: 0,
-      setupCaption: 'Hold the start position.',
+      stableForMs: handsFreeSetup ? this.floorSetup.stableForMs : 0,
+      setupCaption: handsFreeSetup ? null : 'Hold the start position.',
       actionLabel: null,
+      readinessSource: handsFreeSetup ? 'user_fallback_selected' : null,
     };
     this.floorMemory = {
       ...this.floorMemory,
       currentEnvironment: 'floor',
       currentFloorItemId: this.floorSetup.exerciseId,
     };
-    this.movementReadiness.reset();
+    if (!handsFreeSetup) this.movementReadiness.reset();
     this.instructionsIdleAtMs = -1;
     return true;
   }
@@ -654,12 +676,14 @@ export class TrainingSessionPlayer {
     const transitionRequired =
       this.floorMemory.currentEnvironment !== 'floor' && !this.floorMemory.floorFamilyIntroduced;
     const setupEpoch = this.floorMemory.currentFloorSetupEpoch + 1;
+    const handsFreeSetup = this.shouldUseHandsFreeTrainingSetup();
     this.phase = 'instructions';
     this.instructionsEnteredMs = ts;
     this.instructionsIdleAtMs = -1;
     this.lastPromptCue = null;
     this.lastPromptAtMs = -Infinity;
     this.movementReadiness.reset();
+    this.floorSetupListeningStartedMs = transitionRequired ? -1 : ts;
     this.floorMemory = {
       ...this.floorMemory,
       floorFamilyIntroduced: this.floorMemory.floorFamilyIntroduced || transitionRequired,
@@ -671,14 +695,22 @@ export class TrainingSessionPlayer {
       itemIndex: Math.max(0, this.itemIndex),
       setIndex: this.setIndex,
       setupEpoch,
-      phase: transitionRequired ? 'transition_instruction' : 'awaiting_user_transition',
+      phase: transitionRequired
+        ? 'transition_instruction'
+        : handsFreeSetup
+          ? 'movement_setup'
+          : 'awaiting_user_transition',
       floorTransitionRequired: transitionRequired,
       userConfirmed: false,
       movementReady: false,
       finalPositionReadyAtMs: null,
       stableForMs: 0,
-      setupCaption: 'Move to the floor start position.',
-      actionLabel: "I'm ready",
+      setupCaption: handsFreeSetup
+        ? "Move safely to the floor. I'll start once you're in position."
+        : 'Move to the floor start position.',
+      actionLabel: handsFreeSetup ? null : "I'm ready",
+      fallbackAvailable: false,
+      readinessSource: null,
     };
     const transitionCueIds: readonly SafetyCueId[] = transitionRequired ? ['floor_slow_transition'] : [];
     const instructionCueIds: readonly VoiceCueKey[] = this.shouldUseTrackedTrainingVoiceBehaviorV21()
@@ -700,28 +732,83 @@ export class TrainingSessionPlayer {
     const setup = this.floorSetup;
     const def = this.currentDefinition();
     if (!setup || !def) return;
+    const handsFreeSetup = this.shouldUseHandsFreeTrainingSetup();
 
-    if (setup.phase === 'transition_instruction' && !voiceBusy) {
+    if (setup.phase === 'transition_instruction' && voiceBusy) return;
+    if (setup.phase === 'transition_instruction') {
       this.floorSetup = {
         ...setup,
-        phase: 'awaiting_user_transition',
+        phase: handsFreeSetup ? 'movement_setup' : 'awaiting_user_transition',
       };
+      this.floorSetupListeningStartedMs = ts;
+      this.movementReadiness.reset();
     }
 
-    if (!this.floorSetup?.userConfirmed) {
+    const activeSetup = this.floorSetup;
+    if (!activeSetup) return;
+
+    if (handsFreeSetup) {
+      this.exposeFloorSetupFallbackIfTimedOut(ts);
+    } else if (!activeSetup.userConfirmed) {
+      return;
+    }
+
+    const setupBeforeReadiness = this.floorSetup;
+    if (!setupBeforeReadiness) return;
+    const readinessSource = setupBeforeReadiness.readinessSource;
+    if (readinessSource === 'user_fallback_selected') {
+      const fallbackSetup = this.floorSetup;
+      if (!fallbackSetup) return;
+      if (fallbackSetup.finalPositionReadyAtMs === null) {
+        if (voiceBusy) {
+          this.floorSetup = {
+            ...fallbackSetup,
+            phase: 'ready',
+            movementReady: true,
+            setupCaption: null,
+            actionLabel: null,
+          };
+          this.instructionsIdleAtMs = -1;
+          return;
+        }
+        this.markFloorSetupReadyFromSource(ts, u, 'user_fallback_selected', fallbackSetup.stableForMs);
+        return;
+      }
+      this.floorSetup = {
+        ...fallbackSetup,
+        phase: 'ready',
+        movementReady: true,
+        setupCaption: null,
+        actionLabel: null,
+      };
+      if (voiceBusy) {
+        this.instructionsIdleAtMs = -1;
+        return;
+      }
+      if (this.instructionsIdleAtMs < 0) this.instructionsIdleAtMs = ts;
+      if (ts - this.instructionsIdleAtMs >= this.config.postInstructionsDwellMs) {
+        this.startCountdown(ts, u);
+      }
       return;
     }
 
     const readiness = this.movementReadiness.update(out, def.cameraView);
-    if (!readiness.ready) {
-      this.markFloorSetupWaitingForVisibility(readiness);
+    const floorPostureReady = isFloorStartPostureReady(out);
+    if (!readiness.ready || (handsFreeSetup && !floorPostureReady)) {
+      const caption =
+        handsFreeSetup && readiness.ready && !floorPostureReady
+          ? "Move safely to the floor. I'll start once you're in position."
+          : readiness.setupCaption;
+      this.markFloorSetupWaitingForVisibility(readiness, caption);
       return;
     }
 
-    if (this.floorSetup.finalPositionReadyAtMs === null) {
+    const floorSetup = this.floorSetup;
+    if (!floorSetup) return;
+    if (floorSetup.finalPositionReadyAtMs === null) {
       if (voiceBusy) {
         this.floorSetup = {
-          ...this.floorSetup,
+          ...floorSetup,
           phase: 'stabilizing',
           movementReady: true,
           stableForMs: readiness.stableForMs,
@@ -731,32 +818,23 @@ export class TrainingSessionPlayer {
         this.instructionsIdleAtMs = -1;
         return;
       }
-      this.floorSetup = {
-        ...this.floorSetup,
-        phase: 'ready',
-        movementReady: true,
-        finalPositionReadyAtMs: ts,
-        stableForMs: readiness.stableForMs,
-        setupCaption: null,
-        actionLabel: null,
-      };
-      this.floorMemory = {
-        ...this.floorMemory,
-        currentEnvironment: 'floor',
-        currentFloorItemId: def.id,
-      };
-      this.instructionsIdleAtMs = -1;
-      u.voice = cue('final-position-set-v21');
+      this.markFloorSetupReadyFromSource(
+        ts,
+        u,
+        handsFreeSetup ? 'camera_inferred' : null,
+        readiness.stableForMs
+      );
       return;
     }
 
     this.floorSetup = {
-      ...this.floorSetup,
+      ...floorSetup,
       phase: 'ready',
       movementReady: true,
       stableForMs: readiness.stableForMs,
       setupCaption: null,
       actionLabel: null,
+      readinessSource: handsFreeSetup ? 'camera_inferred' : floorSetup.readinessSource,
     };
     if (voiceBusy) {
       this.instructionsIdleAtMs = -1;
@@ -768,7 +846,61 @@ export class TrainingSessionPlayer {
     }
   }
 
-  private markFloorSetupWaitingForVisibility(readiness: MovementCameraReadinessResult): void {
+  private exposeFloorSetupFallbackIfTimedOut(ts: number): void {
+    if (!this.floorSetup || this.floorSetup.fallbackAvailable || this.floorSetup.movementReady) return;
+    if (this.floorSetupListeningStartedMs < 0) this.floorSetupListeningStartedMs = ts;
+    if (ts - this.floorSetupListeningStartedMs < TRAINING_FLOOR_SETUP_FALLBACK_TIMEOUT_MS) return;
+    this.floorSetup = {
+      ...this.floorSetup,
+      phase: 'awaiting_user_transition',
+      fallbackAvailable: true,
+      setupCaption: "Having trouble detecting your position? Start when you're safely set.",
+      actionLabel: "I'm ready",
+    };
+  }
+
+  private markFloorSetupReadyFromSource(
+    ts: number,
+    u: TrainingFrameUpdate,
+    source: TrainingFloorSetupReadinessSource | null,
+    stableForMs: number
+  ): void {
+    if (!this.floorSetup) return;
+    if (this.floorSetup.finalPositionReadyAtMs === null) {
+      this.floorSetup = {
+        ...this.floorSetup,
+        phase: 'ready',
+        movementReady: true,
+        finalPositionReadyAtMs: ts,
+        stableForMs,
+        setupCaption: null,
+        actionLabel: null,
+        readinessSource: source,
+      };
+      this.floorMemory = {
+        ...this.floorMemory,
+        currentEnvironment: 'floor',
+        currentFloorItemId: this.floorSetup.exerciseId,
+      };
+      this.instructionsIdleAtMs = -1;
+      u.voice = cue('final-position-set-v21');
+      return;
+    }
+    this.floorSetup = {
+      ...this.floorSetup,
+      phase: 'ready',
+      movementReady: true,
+      stableForMs,
+      setupCaption: null,
+      actionLabel: null,
+      readinessSource: source,
+    };
+  }
+
+  private markFloorSetupWaitingForVisibility(
+    readiness: MovementCameraReadinessResult,
+    captionOverride?: string | null
+  ): void {
     if (!this.floorSetup) return;
     const phase: TrainingFinalPositionPhase = readiness.stableForMs > 0 ? 'stabilizing' : 'awaiting_visibility';
     this.floorSetup = {
@@ -777,8 +909,9 @@ export class TrainingSessionPlayer {
       movementReady: false,
       finalPositionReadyAtMs: null,
       stableForMs: readiness.stableForMs,
-      setupCaption: readiness.setupCaption ?? 'Hold the start position.',
-      actionLabel: null,
+      setupCaption: captionOverride ?? readiness.setupCaption ?? 'Hold the start position.',
+      actionLabel: this.floorSetup.fallbackAvailable ? this.floorSetup.actionLabel : null,
+      readinessSource: null,
     };
     this.instructionsIdleAtMs = -1;
   }
@@ -955,6 +1088,10 @@ export class TrainingSessionPlayer {
     );
   }
 
+  private shouldUseHandsFreeTrainingSetup(): boolean {
+    return this.options.handsFreeTrainingSetup !== false;
+  }
+
   private shouldUseTrackedTrainingVoiceBehaviorV21(): boolean {
     return (
       this.options.trainingVoiceMode === 'internal_v21' &&
@@ -997,6 +1134,7 @@ export class TrainingSessionPlayer {
   private cancelFloorSetup(): void {
     if (!this.floorSetup) return;
     this.floorSetup = null;
+    this.floorSetupListeningStartedMs = -1;
     this.movementReadiness.reset();
     this.instructionsIdleAtMs = -1;
   }
@@ -1033,6 +1171,45 @@ function maxPriority(cues: readonly VoiceCueKey[]): number {
 
 function promptCue(prompt: PreflightPrompt): VoiceCueKey {
   return prompt === 'ready' ? 'framing-ready' : prompt;
+}
+
+function isFloorStartPostureReady(out: PipelineFrameOutput): boolean {
+  if (out.state !== 'tracking' || !out.frame.hasPose || !out.validity.valid) return false;
+  return (
+    isFloorSideStartPostureReady(out, LM.LEFT_SHOULDER, LM.LEFT_HIP, LM.LEFT_ANKLE) ||
+    isFloorSideStartPostureReady(out, LM.RIGHT_SHOULDER, LM.RIGHT_HIP, LM.RIGHT_ANKLE)
+  );
+}
+
+function isFloorSideStartPostureReady(
+  out: PipelineFrameOutput,
+  shoulder: LM,
+  hip: LM,
+  ankle: LM
+): boolean {
+  const frame = out.frame;
+  const shoulderX = frame.xs[shoulder];
+  const shoulderY = frame.ys[shoulder];
+  const hipX = frame.xs[hip];
+  const hipY = frame.ys[hip];
+  const ankleY = frame.ys[ankle];
+  if (
+    !Number.isFinite(shoulderX) ||
+    !Number.isFinite(shoulderY) ||
+    !Number.isFinite(hipX) ||
+    !Number.isFinite(hipY) ||
+    !Number.isFinite(ankleY)
+  ) {
+    return false;
+  }
+  const torsoHorizontal = Math.abs(shoulderX - hipX);
+  const torsoVertical = Math.abs(shoulderY - hipY);
+  const hipAboveAnkle = ankleY - hipY;
+  return (
+    torsoHorizontal > 0 &&
+    torsoVertical <= torsoHorizontal * TRAINING_FLOOR_SETUP_FLOOR_POSTURE_TORSO_RATIO &&
+    hipAboveAnkle <= TRAINING_FLOOR_SETUP_MAX_HIP_ABOVE_ANKLE_NORM
+  );
 }
 
 function cloneFloorSetup(snapshot: TrainingFloorSetupSnapshot | null): TrainingFloorSetupSnapshot | null {

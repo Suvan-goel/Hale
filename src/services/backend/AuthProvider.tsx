@@ -68,11 +68,15 @@ async function profileForSession(session: AuthSession | null): Promise<BackendPr
 
 function mergeIncomingAuthState(current: AuthState, next: AuthState): AuthState {
   const isPasswordRecovery = next.isPasswordRecovery || (current.isPasswordRecovery && next.isSignedIn);
+  const sameSignedInUser =
+    next.isSignedIn &&
+    typeof next.user?.id === 'string' &&
+    next.user.id === current.user?.id;
   return {
     ...current,
     ...next,
     isPasswordRecovery,
-    profile: next.isSignedIn ? current.profile : null,
+    profile: sameSignedInUser ? current.profile : null,
     loading: false,
   };
 }

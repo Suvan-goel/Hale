@@ -353,6 +353,7 @@ function appendBalancedVisualAnatomy(
   minConfidence: number,
   softMinConfidence: number
 ): void {
+  appendRaisedBalancedArmSurfaces(pose, out, torso, axes, preset, minConfidence, softMinConfidence);
   appendBalancedNeck(out, torso, head, axes, preset, minConfidence);
   appendBalancedBodyEnvelope(pose, out, torso, axes, preset, minConfidence, softMinConfidence);
   appendSelfShadows(pose, out, torso, head, axes, preset, minConfidence, softMinConfidence);
@@ -514,6 +515,58 @@ export function isFiniteSoftDigitalTwinGeometry(geometry: SoftDigitalTwinGeometr
     }
   }
   return true;
+}
+
+function appendBalancedTorsoPelvisEnvelope(
+  out: SoftDigitalTwinGeometry,
+  torso: TorsoEstimate,
+  axes: BodyAxes,
+  preset: SoftDigitalTwinVisualQualityPreset,
+  minConfidence: number
+): void {
+  const { side, down, shoulderMid, hipMid, bodyRef } = axes;
+  const visual = createVisualTorsoAnchors(torso, axes, preset);
+  const neckHalf = bodyRef * 0.038 * preset.neckWidth;
+  const shoulderOut = bodyRef * 0.084 * preset.shoulderWidthScale;
+  const ribOut = bodyRef * 0.066 * preset.torsoWidthScale * preset.ribcageWidth;
+  const waistOut = bodyRef * 0.032 * preset.torsoWidthScale * preset.torsoWaistTaper * preset.waistTaper;
+  const hipOut = bodyRef * 0.092 * preset.hipWidthScale * preset.hipBlendWidth;
+  const pelvisHalf = bodyRef * 0.066 * preset.hipBlendWidth;
+  const neckSaddle = add(shoulderMid, scale(down, -bodyRef * 0.012));
+  const leftNeck = add(add(shoulderMid, scale(side, neckHalf)), scale(down, bodyRef * 0.002));
+  const rightNeck = add(add(shoulderMid, scale(side, -neckHalf)), scale(down, bodyRef * 0.002));
+  const leftTrap = add(add(shoulderMid, scale(side, bodyRef * 0.074)), scale(down, bodyRef * 0.024 * preset.shoulderSlope));
+  const rightTrap = add(add(shoulderMid, scale(side, -bodyRef * 0.074)), scale(down, bodyRef * 0.024 * preset.shoulderSlope));
+  const leftShoulder = add(add(visual.leftShoulder, scale(side, shoulderOut)), scale(down, bodyRef * 0.028 * preset.shoulderSlope));
+  const rightShoulder = add(add(visual.rightShoulder, scale(side, -shoulderOut)), scale(down, bodyRef * 0.028 * preset.shoulderSlope));
+  const leftRib = add(lerpPoint(torso.leftShoulder, torso.leftHip, 0.34), scale(side, ribOut));
+  const rightRib = add(lerpPoint(torso.rightShoulder, torso.rightHip, 0.34), scale(side, -ribOut));
+  const leftWaist = add(lerpPoint(torso.leftShoulder, torso.leftHip, 0.65), scale(side, waistOut));
+  const rightWaist = add(lerpPoint(torso.rightShoulder, torso.rightHip, 0.65), scale(side, -waistOut));
+  const leftHip = add(add(torso.leftHip, scale(side, hipOut)), scale(down, bodyRef * 0.018));
+  const rightHip = add(add(torso.rightHip, scale(side, -hipOut)), scale(down, bodyRef * 0.018));
+  const leftPelvis = add(add(hipMid, scale(side, pelvisHalf)), scale(down, bodyRef * 0.084 * preset.pelvisBlendHeight));
+  const rightPelvis = add(add(hipMid, scale(side, -pelvisHalf)), scale(down, bodyRef * 0.084 * preset.pelvisBlendHeight));
+  const pelvisBridge = add(hipMid, scale(down, bodyRef * 0.074 * preset.pelvisBlendHeight));
+
+  const path =
+    `M${p(leftNeck)}` +
+    `C${p(add(leftTrap, scale(side, -bodyRef * 0.024)))} ${p(leftTrap)} ${p(leftShoulder)}` +
+    `C${p(add(leftShoulder, scale(down, bodyRef * 0.058)))} ${p(add(leftRib, scale(down, -bodyRef * 0.042)))} ${p(leftRib)}` +
+    `C${p(add(leftRib, scale(down, bodyRef * 0.086)))} ${p(add(leftWaist, scale(side, -bodyRef * 0.018)))} ${p(leftWaist)}` +
+    `C${p(add(leftWaist, scale(down, bodyRef * 0.078)))} ${p(add(leftHip, scale(down, -bodyRef * 0.044)))} ${p(leftHip)}` +
+    `C${p(add(leftHip, scale(down, bodyRef * 0.046)))} ${p(add(leftPelvis, scale(side, bodyRef * 0.02)))} ${p(leftPelvis)}` +
+    `C${p(add(leftPelvis, scale(side, -bodyRef * 0.042)))} ${p(add(pelvisBridge, scale(side, bodyRef * 0.038)))} ${p(pelvisBridge)}` +
+    `C${p(add(pelvisBridge, scale(side, -bodyRef * 0.038)))} ${p(add(rightPelvis, scale(side, bodyRef * 0.042)))} ${p(rightPelvis)}` +
+    `C${p(add(rightPelvis, scale(side, -bodyRef * 0.02)))} ${p(add(rightHip, scale(down, bodyRef * 0.046)))} ${p(rightHip)}` +
+    `C${p(add(rightHip, scale(down, -bodyRef * 0.044)))} ${p(add(rightWaist, scale(down, bodyRef * 0.078)))} ${p(rightWaist)}` +
+    `C${p(add(rightWaist, scale(side, bodyRef * 0.018)))} ${p(add(rightRib, scale(down, bodyRef * 0.086)))} ${p(rightRib)}` +
+    `C${p(add(rightRib, scale(down, -bodyRef * 0.042)))} ${p(add(rightShoulder, scale(down, bodyRef * 0.058)))} ${p(rightShoulder)}` +
+    `C${p(rightTrap)} ${p(add(rightTrap, scale(side, bodyRef * 0.024)))} ${p(rightNeck)}` +
+    `C${p(add(rightNeck, scale(side, bodyRef * 0.022)))} ${p(add(neckSaddle, scale(side, -bodyRef * 0.026)))} ${p(neckSaddle)}` +
+    `C${p(add(neckSaddle, scale(side, bodyRef * 0.026)))} ${p(add(leftNeck, scale(side, -bodyRef * 0.022)))} ${p(leftNeck)}Z`;
+
+  addSurface(out, 'balancedTorsoPelvis', path, 'core', torso.confidence, minConfidence, 1);
 }
 
 function appendCore(
@@ -751,11 +804,100 @@ function appendBalancedArmSurfaces(
   );
 }
 
+function appendRaisedBalancedArmSurfaces(
+  pose: ScreenPoseLandmarks,
+  out: SoftDigitalTwinGeometry,
+  torso: TorsoEstimate,
+  axes: BodyAxes,
+  preset: SoftDigitalTwinVisualQualityPreset,
+  minConfidence: number,
+  softMinConfidence: number
+): void {
+  const visual = createVisualTorsoAnchors(torso, axes, preset);
+  appendRaisedBalancedArmSurface(
+    pose,
+    out,
+    axes,
+    'leftRaised',
+    visual.leftShoulder,
+    LM.LEFT_ELBOW,
+    LM.LEFT_WRIST,
+    LM.LEFT_INDEX,
+    LM.LEFT_PINKY,
+    1,
+    preset,
+    minConfidence,
+    softMinConfidence
+  );
+  appendRaisedBalancedArmSurface(
+    pose,
+    out,
+    axes,
+    'rightRaised',
+    visual.rightShoulder,
+    LM.RIGHT_ELBOW,
+    LM.RIGHT_WRIST,
+    LM.RIGHT_INDEX,
+    LM.RIGHT_PINKY,
+    -1,
+    preset,
+    minConfidence,
+    softMinConfidence
+  );
+}
+
+function appendRaisedBalancedArmSurface(
+  pose: ScreenPoseLandmarks,
+  out: SoftDigitalTwinGeometry,
+  axes: BodyAxes,
+  prefix: 'leftRaised' | 'rightRaised',
+  shoulder: Point,
+  elbowLm: LM,
+  wristLm: LM,
+  indexLm: LM,
+  pinkyLm: LM,
+  sideMultiplier: number,
+  preset: SoftDigitalTwinVisualQualityPreset,
+  minConfidence: number,
+  softMinConfidence: number
+): void {
+  if (
+    !landmarkFinite(pose, elbowLm) ||
+    landmarkConfidence(pose, elbowLm) < softMinConfidence
+  ) {
+    return;
+  }
+  const elbow = pointFor(pose, elbowLm);
+  const wrist = pointForConfidentOrFallback(
+    pose,
+    wristLm,
+    softMinConfidence,
+    add(elbow, scale(normalize({ x: elbow.x - shoulder.x, y: elbow.y - shoulder.y }), axes.bodyRef * 0.28))
+  );
+  if (!armIsDetachedFromEnvelope(shoulder, elbow, wrist, axes.down, axes.bodyRef)) return;
+
+  appendBalancedArmSurface(
+    pose,
+    out,
+    axes,
+    prefix,
+    shoulder,
+    elbowLm,
+    wristLm,
+    indexLm,
+    pinkyLm,
+    sideMultiplier,
+    preset,
+    minConfidence,
+    softMinConfidence
+  );
+}
+
 function appendBalancedArmSurface(
   pose: ScreenPoseLandmarks,
   out: SoftDigitalTwinGeometry,
   axes: BodyAxes,
-  prefix: 'left' | 'right',
+  prefix: string,
   shoulder: Point,
   elbowLm: LM,
   wristLm: LM,
@@ -775,8 +917,8 @@ function appendBalancedArmSurface(
   const { side, down, bodyRef } = axes;
   const elbow = pointFor(pose, elbowLm);
   const shoulderRoot = add(
-    add(lerpPoint(shoulder, elbow, 0.42), scale(side, -bodyRef * 0.006 * sideMultiplier)),
-    scale(down, bodyRef * 0.022 * preset.upperArmShoulderBlend)
+    add(lerpPoint(shoulder, elbow, 0.1), scale(side, -bodyRef * 0.006 * sideMultiplier)),
+    scale(down, bodyRef * 0.012 * preset.upperArmShoulderBlend)
   );
   const upperStartWidth = bodyRef * 0.041 * preset.limbMass * preset.upperArmWidth;
   const elbowWidth = bodyRef * 0.027 * preset.limbMass * preset.armTaper;
@@ -789,7 +931,7 @@ function appendBalancedArmSurface(
     bodyRef * 0.018,
     preset
   );
-  addSurface(out, `${prefix}UpperArm`, upperPath, 'limb', elbowConfidence, minConfidence, 1);
+  addSurface(out, `${prefix}UpperArm`, upperPath, 'core', elbowConfidence, minConfidence, 1);
 
   const wristConfidence = landmarkConfidence(pose, wristLm);
   if (wristConfidence < softMinConfidence || !landmarkFinite(pose, wristLm)) {
@@ -825,6 +967,8 @@ function appendBalancedArmSurface(
     minConfidence,
     1
   );
+  const latestSurface = out.surfaces[out.surfaces.length - 1];
+  if (latestSurface?.id === `${prefix}ForearmHand`) latestSurface.fillKey = 'core';
 }
 
 function appendBalancedLegSurfaces(
@@ -916,7 +1060,7 @@ function appendBalancedLegSurface(
     out,
     `${prefix}Thigh`,
     thighPath,
-    'limb',
+    'core',
     Math.min(hipConfidence, kneeConfidence),
     minConfidence,
     1
@@ -961,6 +1105,8 @@ function appendBalancedLegSurface(
     minConfidence,
     1
   );
+  const latestSurface = out.surfaces[out.surfaces.length - 1];
+  if (latestSurface?.id === `${prefix}ShinFoot`) latestSurface.fillKey = 'core';
 }
 
 function appendBalancedNeck(
@@ -1355,60 +1501,138 @@ function appendBalancedBodyEnvelope(
   const rightHip = add(add(torso.rightHip, scale(side, -hipOut)), scale(down, bodyRef * 0.02));
   const leftElbow = pointFor(pose, LM.LEFT_ELBOW);
   const rightElbow = pointFor(pose, LM.RIGHT_ELBOW);
-  const leftWrist = pointForOrFallback(pose, LM.LEFT_WRIST, add(leftElbow, scale(down, bodyRef * 0.3)));
-  const rightWrist = pointForOrFallback(pose, LM.RIGHT_WRIST, add(rightElbow, scale(down, bodyRef * 0.3)));
-  const leftUpperArmOuter = add(lerpPoint(torso.leftShoulder, leftElbow, 0.24), scale(side, upperArmOut * 0.84));
-  const leftElbowOuter = add(leftElbow, scale(side, elbowOut));
-  const leftWristOuter = add(leftWrist, scale(side, wristOut));
-  const leftHandOuter = add(
-    add(leftWrist, scale(side, wristOut * 1.12 * preset.handScale)),
-    scale(down, bodyRef * 0.038 * preset.armLengthScale)
+  const leftArmOutward = scale(side, 1);
+  const rightArmOutward = scale(side, -1);
+  const leftWrist = pointForConfidentOrFallback(
+    pose,
+    LM.LEFT_WRIST,
+    softMinConfidence,
+    add(leftElbow, scale(normalize({ x: leftElbow.x - torso.leftShoulder.x, y: leftElbow.y - torso.leftShoulder.y }), bodyRef * 0.32))
   );
-  const leftHandTip = add(
-    add(leftWrist, scale(side, wristOut * 0.42 * preset.handScale)),
-    scale(down, bodyRef * 0.074 * preset.armLengthScale)
+  const rightWrist = pointForConfidentOrFallback(
+    pose,
+    LM.RIGHT_WRIST,
+    softMinConfidence,
+    add(rightElbow, scale(normalize({ x: rightElbow.x - torso.rightShoulder.x, y: rightElbow.y - torso.rightShoulder.y }), bodyRef * 0.32))
   );
-  const leftHandInner = add(
-    add(leftWrist, scale(side, -wristOut * 0.72 * preset.handScale)),
-    scale(down, bodyRef * 0.056 * preset.armLengthScale)
+  const leftUpperNormal = segmentNormalToward(torso.leftShoulder, leftElbow, leftArmOutward);
+  const leftForearmNormal = segmentNormalToward(leftElbow, leftWrist, leftArmOutward);
+  const leftElbowNormal = jointNormalToward(torso.leftShoulder, leftElbow, leftWrist, leftArmOutward);
+  const rightUpperNormal = segmentNormalToward(torso.rightShoulder, rightElbow, rightArmOutward);
+  const rightForearmNormal = segmentNormalToward(rightElbow, rightWrist, rightArmOutward);
+  const rightElbowNormal = jointNormalToward(torso.rightShoulder, rightElbow, rightWrist, rightArmOutward);
+  const leftHand = distalTargetFromPair(
+    pose,
+    leftWrist,
+    LM.LEFT_INDEX,
+    LM.LEFT_PINKY,
+    normalize({ x: leftWrist.x - leftElbow.x, y: leftWrist.y - leftElbow.y }),
+    bodyRef * 0.066 * preset.armLengthScale,
+    softMinConfidence
   );
-  const leftWristInner = add(leftWrist, scale(side, -wristOut * 0.62));
-  const leftElbowInner = add(leftElbow, scale(side, -elbowOut * 0.5));
-  const rightUpperArmOuter = add(lerpPoint(torso.rightShoulder, rightElbow, 0.24), scale(side, -upperArmOut * 0.84));
-  const rightElbowOuter = add(rightElbow, scale(side, -elbowOut));
-  const rightWristOuter = add(rightWrist, scale(side, -wristOut));
-  const rightHandOuter = add(
-    add(rightWrist, scale(side, -wristOut * 1.12 * preset.handScale)),
-    scale(down, bodyRef * 0.038 * preset.armLengthScale)
+  const rightHand = distalTargetFromPair(
+    pose,
+    rightWrist,
+    LM.RIGHT_INDEX,
+    LM.RIGHT_PINKY,
+    normalize({ x: rightWrist.x - rightElbow.x, y: rightWrist.y - rightElbow.y }),
+    bodyRef * 0.066 * preset.armLengthScale,
+    softMinConfidence
   );
-  const rightHandTip = add(
-    add(rightWrist, scale(side, -wristOut * 0.42 * preset.handScale)),
-    scale(down, bodyRef * 0.074 * preset.armLengthScale)
-  );
-  const rightHandInner = add(
-    add(rightWrist, scale(side, wristOut * 0.72 * preset.handScale)),
-    scale(down, bodyRef * 0.056 * preset.armLengthScale)
-  );
-  const rightWristInner = add(rightWrist, scale(side, wristOut * 0.62));
-  const rightElbowInner = add(rightElbow, scale(side, elbowOut * 0.5));
+  const leftHandAxis = normalize({ x: leftHand.x - leftWrist.x, y: leftHand.y - leftWrist.y });
+  const rightHandAxis = normalize({ x: rightHand.x - rightWrist.x, y: rightHand.y - rightWrist.y });
+  const leftHandNormal = segmentNormalToward(leftWrist, leftHand, leftArmOutward);
+  const rightHandNormal = segmentNormalToward(rightWrist, rightHand, rightArmOutward);
+  let leftUpperArmOuter = add(lerpPoint(torso.leftShoulder, leftElbow, 0.24), scale(leftUpperNormal, upperArmOut * 0.84));
+  let leftElbowOuter = add(leftElbow, scale(leftElbowNormal, elbowOut));
+  let leftWristOuter = add(leftWrist, scale(leftForearmNormal, wristOut));
+  let leftHandOuter = add(add(leftWrist, scale(leftHandNormal, wristOut * 1.12 * preset.handScale)), scale(leftHandAxis, bodyRef * 0.038 * preset.armLengthScale));
+  let leftHandTip = add(add(leftWrist, scale(leftHandNormal, wristOut * 0.42 * preset.handScale)), scale(leftHandAxis, bodyRef * 0.074 * preset.armLengthScale));
+  let leftHandInner = add(add(leftWrist, scale(leftHandNormal, -wristOut * 0.72 * preset.handScale)), scale(leftHandAxis, bodyRef * 0.056 * preset.armLengthScale));
+  let leftWristInner = add(leftWrist, scale(leftForearmNormal, -wristOut * 0.62));
+  let leftElbowInner = add(leftElbow, scale(leftElbowNormal, -elbowOut * 0.5));
+  let leftUpperArmInnerRoot = add(lerpPoint(torso.leftShoulder, leftElbow, 0.12), scale(leftUpperNormal, -upperArmOut * 0.34));
+  let rightUpperArmOuter = add(lerpPoint(torso.rightShoulder, rightElbow, 0.24), scale(rightUpperNormal, upperArmOut * 0.84));
+  let rightElbowOuter = add(rightElbow, scale(rightElbowNormal, elbowOut));
+  let rightWristOuter = add(rightWrist, scale(rightForearmNormal, wristOut));
+  let rightHandOuter = add(add(rightWrist, scale(rightHandNormal, wristOut * 1.12 * preset.handScale)), scale(rightHandAxis, bodyRef * 0.038 * preset.armLengthScale));
+  let rightHandTip = add(add(rightWrist, scale(rightHandNormal, wristOut * 0.42 * preset.handScale)), scale(rightHandAxis, bodyRef * 0.074 * preset.armLengthScale));
+  let rightHandInner = add(add(rightWrist, scale(rightHandNormal, -wristOut * 0.72 * preset.handScale)), scale(rightHandAxis, bodyRef * 0.056 * preset.armLengthScale));
+  let rightWristInner = add(rightWrist, scale(rightForearmNormal, -wristOut * 0.62));
+  let rightElbowInner = add(rightElbow, scale(rightElbowNormal, -elbowOut * 0.5));
+  let rightUpperArmInnerRoot = add(lerpPoint(torso.rightShoulder, rightElbow, 0.12), scale(rightUpperNormal, -upperArmOut * 0.34));
+  if (armIsDetachedFromEnvelope(torso.leftShoulder, leftElbow, leftWrist, down, bodyRef)) {
+    const shoulderShell = add(leftShoulderCrest, scale(down, bodyRef * 0.018));
+    const shoulderUnder = add(leftArmpit, scale(down, -bodyRef * 0.02));
+    leftUpperArmOuter = shoulderShell;
+    leftElbowOuter = add(shoulderShell, scale(down, bodyRef * 0.012));
+    leftWristOuter = leftElbowOuter;
+    leftHandOuter = leftElbowOuter;
+    leftHandTip = leftElbowOuter;
+    leftHandInner = shoulderUnder;
+    leftWristInner = shoulderUnder;
+    leftElbowInner = shoulderUnder;
+    leftUpperArmInnerRoot = shoulderUnder;
+  }
+  if (armIsDetachedFromEnvelope(torso.rightShoulder, rightElbow, rightWrist, down, bodyRef)) {
+    const shoulderShell = add(rightShoulderCrest, scale(down, bodyRef * 0.018));
+    const shoulderUnder = add(rightArmpit, scale(down, -bodyRef * 0.02));
+    rightUpperArmOuter = shoulderShell;
+    rightElbowOuter = add(shoulderShell, scale(down, bodyRef * 0.012));
+    rightWristOuter = rightElbowOuter;
+    rightHandOuter = rightElbowOuter;
+    rightHandTip = rightElbowOuter;
+    rightHandInner = shoulderUnder;
+    rightWristInner = shoulderUnder;
+    rightElbowInner = shoulderUnder;
+    rightUpperArmInnerRoot = shoulderUnder;
+  }
   const leftKnee = pointFor(pose, LM.LEFT_KNEE);
   const rightKnee = pointFor(pose, LM.RIGHT_KNEE);
   const leftAnkle = pointFor(pose, LM.LEFT_ANKLE);
   const rightAnkle = pointFor(pose, LM.RIGHT_ANKLE);
-  const leftKneeOuter = add(leftKnee, scale(side, thighOut * preset.kneeTaper));
-  const leftKneeInner = add(leftKnee, scale(side, -innerThigh));
-  const rightKneeOuter = add(rightKnee, scale(side, -thighOut * preset.kneeTaper));
-  const rightKneeInner = add(rightKnee, scale(side, innerThigh));
-  const leftAnkleOuter = add(leftAnkle, scale(side, ankleOut));
-  const leftAnkleInner = add(leftAnkle, scale(side, -innerAnkle));
-  const rightAnkleOuter = add(rightAnkle, scale(side, -ankleOut));
-  const rightAnkleInner = add(rightAnkle, scale(side, innerAnkle));
-  const leftFootOuter = add(add(leftAnkle, scale(side, ankleOut * 1.14 * preset.footScale)), scale(down, bodyRef * 0.044));
-  const leftFootToe = add(add(leftAnkle, scale(side, ankleOut * 0.52 * preset.footScale)), scale(down, bodyRef * 0.068));
-  const leftFootInner = add(add(leftAnkle, scale(side, -ankleOut * 0.16 * preset.footScale)), scale(down, bodyRef * 0.052));
-  const rightFootOuter = add(add(rightAnkle, scale(side, -ankleOut * 1.14 * preset.footScale)), scale(down, bodyRef * 0.044));
-  const rightFootToe = add(add(rightAnkle, scale(side, -ankleOut * 0.52 * preset.footScale)), scale(down, bodyRef * 0.068));
-  const rightFootInner = add(add(rightAnkle, scale(side, ankleOut * 0.16 * preset.footScale)), scale(down, bodyRef * 0.052));
+  const leftLegOutward = scale(side, 1);
+  const rightLegOutward = scale(side, -1);
+  const leftKneeNormal = jointNormalToward(torso.leftHip, leftKnee, leftAnkle, leftLegOutward);
+  const leftShinNormal = segmentNormalToward(leftKnee, leftAnkle, leftLegOutward);
+  const rightKneeNormal = jointNormalToward(torso.rightHip, rightKnee, rightAnkle, rightLegOutward);
+  const rightShinNormal = segmentNormalToward(rightKnee, rightAnkle, rightLegOutward);
+  const leftFootTarget = footTargetFromLandmarks(
+    pose,
+    leftAnkle,
+    LM.LEFT_HEEL,
+    LM.LEFT_FOOT_INDEX,
+    normalize({ x: leftAnkle.x - leftKnee.x, y: leftAnkle.y - leftKnee.y }),
+    bodyRef * 0.07,
+    softMinConfidence
+  );
+  const rightFootTarget = footTargetFromLandmarks(
+    pose,
+    rightAnkle,
+    LM.RIGHT_HEEL,
+    LM.RIGHT_FOOT_INDEX,
+    normalize({ x: rightAnkle.x - rightKnee.x, y: rightAnkle.y - rightKnee.y }),
+    bodyRef * 0.07,
+    softMinConfidence
+  );
+  const leftFootAxis = normalize({ x: leftFootTarget.x - leftAnkle.x, y: leftFootTarget.y - leftAnkle.y });
+  const rightFootAxis = normalize({ x: rightFootTarget.x - rightAnkle.x, y: rightFootTarget.y - rightAnkle.y });
+  const leftFootNormal = segmentNormalToward(leftAnkle, leftFootTarget, leftLegOutward);
+  const rightFootNormal = segmentNormalToward(rightAnkle, rightFootTarget, rightLegOutward);
+  const leftKneeOuter = add(leftKnee, scale(leftKneeNormal, thighOut * preset.kneeTaper));
+  const leftKneeInner = add(leftKnee, scale(leftKneeNormal, -innerThigh));
+  const rightKneeOuter = add(rightKnee, scale(rightKneeNormal, thighOut * preset.kneeTaper));
+  const rightKneeInner = add(rightKnee, scale(rightKneeNormal, -innerThigh));
+  const leftAnkleOuter = add(leftAnkle, scale(leftShinNormal, ankleOut));
+  const leftAnkleInner = add(leftAnkle, scale(leftShinNormal, -innerAnkle));
+  const rightAnkleOuter = add(rightAnkle, scale(rightShinNormal, ankleOut));
+  const rightAnkleInner = add(rightAnkle, scale(rightShinNormal, -innerAnkle));
+  const leftFootOuter = add(add(leftAnkle, scale(leftFootNormal, ankleOut * 1.14 * preset.footScale)), scale(leftFootAxis, bodyRef * 0.044));
+  const leftFootToe = add(add(leftAnkle, scale(leftFootNormal, ankleOut * 0.52 * preset.footScale)), scale(leftFootAxis, bodyRef * 0.068));
+  const leftFootInner = add(add(leftAnkle, scale(leftFootNormal, -ankleOut * 0.16 * preset.footScale)), scale(leftFootAxis, bodyRef * 0.052));
+  const rightFootOuter = add(add(rightAnkle, scale(rightFootNormal, ankleOut * 1.14 * preset.footScale)), scale(rightFootAxis, bodyRef * 0.044));
+  const rightFootToe = add(add(rightAnkle, scale(rightFootNormal, ankleOut * 0.52 * preset.footScale)), scale(rightFootAxis, bodyRef * 0.068));
+  const rightFootInner = add(add(rightAnkle, scale(rightFootNormal, -ankleOut * 0.16 * preset.footScale)), scale(rightFootAxis, bodyRef * 0.052));
   const leftInnerThigh = add(add(hipMid, scale(side, innerThigh * 1.1)), scale(down, bodyRef * 0.096));
   const rightInnerThigh = add(add(hipMid, scale(side, -innerThigh * 1.1)), scale(down, bodyRef * 0.096));
   const leftBridge = add(add(hipMid, scale(side, innerThigh * 1.16)), scale(down, bodyRef * 0.084));
@@ -1427,6 +1651,7 @@ function appendBalancedBodyEnvelope(
       leftHandInner,
       leftWristInner,
       leftElbowInner,
+      leftUpperArmInnerRoot,
       leftArmpit,
       leftRib,
       leftWaist,
@@ -1453,6 +1678,7 @@ function appendBalancedBodyEnvelope(
       rightWaist,
       rightRib,
       rightArmpit,
+      rightUpperArmInnerRoot,
       rightElbowInner,
       rightWristInner,
       rightHandInner,
@@ -2024,6 +2250,90 @@ function pointForOrFallback(pose: ScreenPoseLandmarks, lm: LM, fallback: Point):
   return landmarkFinite(pose, lm) ? pointFor(pose, lm) : fallback;
 }
 
+function pointForConfidentOrFallback(
+  pose: ScreenPoseLandmarks,
+  lm: LM,
+  minConfidence: number,
+  fallback: Point
+): Point {
+  return landmarkFinite(pose, lm) && landmarkConfidence(pose, lm) >= minConfidence
+    ? pointFor(pose, lm)
+    : fallback;
+}
+
+function distalTargetFromPair(
+  pose: ScreenPoseLandmarks,
+  root: Point,
+  firstLm: LM,
+  secondLm: LM,
+  fallbackAxis: Point,
+  fallbackLength: number,
+  minConfidence: number
+): Point {
+  if (
+    landmarkFinite(pose, firstLm) &&
+    landmarkFinite(pose, secondLm) &&
+    landmarkConfidence(pose, firstLm) >= minConfidence &&
+    landmarkConfidence(pose, secondLm) >= minConfidence
+  ) {
+    const target = midpoint(pointFor(pose, firstLm), pointFor(pose, secondLm));
+    if (distance(root, target) > fallbackLength * 0.2) return target;
+  }
+  return add(root, scale(fallbackAxis, fallbackLength));
+}
+
+function footTargetFromLandmarks(
+  pose: ScreenPoseLandmarks,
+  ankle: Point,
+  heelLm: LM,
+  toeLm: LM,
+  fallbackAxis: Point,
+  fallbackLength: number,
+  minConfidence: number
+): Point {
+  if (
+    landmarkFinite(pose, heelLm) &&
+    landmarkFinite(pose, toeLm) &&
+    landmarkConfidence(pose, heelLm) >= minConfidence &&
+    landmarkConfidence(pose, toeLm) >= minConfidence
+  ) {
+    const heel = pointFor(pose, heelLm);
+    const toe = pointFor(pose, toeLm);
+    const target = add(lerpPoint(heel, toe, 0.68), scale(normalize({ x: toe.x - heel.x, y: toe.y - heel.y }), fallbackLength * 0.18));
+    if (distance(ankle, target) > fallbackLength * 0.18) return target;
+  }
+  return add(ankle, scale(fallbackAxis, fallbackLength));
+}
+
+function armIsDetachedFromEnvelope(
+  shoulder: Point,
+  elbow: Point,
+  wrist: Point,
+  down: Point,
+  bodyRef: number
+): boolean {
+  const elbowDrop = dot({ x: elbow.x - shoulder.x, y: elbow.y - shoulder.y }, down);
+  const wristDrop = dot({ x: wrist.x - shoulder.x, y: wrist.y - shoulder.y }, down);
+  return elbowDrop < bodyRef * 0.12 || wristDrop < bodyRef * 0.22;
+}
+
+function segmentNormalToward(start: Point, end: Point, outward: Point): Point {
+  const axis = normalize({ x: end.x - start.x, y: end.y - start.y });
+  return orientToward({ x: -axis.y, y: axis.x }, outward);
+}
+
+function jointNormalToward(start: Point, joint: Point, end: Point, outward: Point): Point {
+  const first = segmentNormalToward(start, joint, outward);
+  const second = segmentNormalToward(joint, end, outward);
+  const combined = normalize({ x: first.x + second.x, y: first.y + second.y });
+  if (Math.hypot(combined.x, combined.y) < 0.01) return second;
+  return orientToward(combined, outward);
+}
+
+function orientToward(vector: Point, target: Point): Point {
+  return dot(vector, target) >= 0 ? vector : scale(vector, -1);
+}
+
 function midpoint(a: Point, b: Point): Point {
   return { x: (a.x + b.x) * 0.5, y: (a.y + b.y) * 0.5 };
 }
@@ -2038,6 +2348,10 @@ function lerp(a: number, b: number, t: number): number {
 
 function distance(a: Point, b: Point): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function dot(a: Point, b: Point): number {
+  return a.x * b.x + a.y * b.y;
 }
 
 function normalize(point: Point): Point {

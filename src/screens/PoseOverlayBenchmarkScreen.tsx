@@ -50,6 +50,7 @@ type BenchmarkModeId =
   | 'premium-constellation-180'
   | 'premium-constellation-300'
   | 'premium-constellation-450'
+  | 'privacy-shadow'
   | 'soft-continuous-silhouette'
   | 'soft-digital-twin-lean'
   | 'soft-digital-twin'
@@ -207,6 +208,7 @@ export function createPoseOverlayBenchmarkModes(platformOS: string): readonly Be
       'constellationVolume450',
       450
     ),
+    privacyShadowMode(),
     softContinuousSilhouetteMode(),
     softDigitalTwinMode('soft-digital-twin-lean', 'Premium Human · Lean', 'Previous thin matte silhouette tuning', 'lean'),
     softDigitalTwinMode(
@@ -820,6 +822,31 @@ function softContinuousSilhouetteMode(): BenchmarkMode {
     configuredShapeCount: 2,
     rendererProps: {
       mode: 'soft_silhouette_avatar',
+      frameSource: 'raw',
+      fit: 'contain',
+      smoothingEnabled: false,
+      confidenceFadingEnabled: false,
+      confidenceIntensityEnabled: false,
+      reacquisitionFadeEnabled: false,
+      recognitionPulseEnabled: false,
+      measurementStatesEnabled: false,
+      setupGuidesEnabled: false,
+      stateTransitionsEnabled: false,
+      domainEmphasisEnabled: false,
+      scanLineEnabled: false,
+    },
+  };
+}
+
+function privacyShadowMode(): BenchmarkMode {
+  return {
+    id: 'privacy-shadow',
+    title: 'Privacy Shadow',
+    subtitle: 'Diffused movement shadow, no anatomy',
+    configuredDotCount: 0,
+    configuredShapeCount: 3,
+    rendererProps: {
+      mode: 'privacy_shadow',
       frameSource: 'raw',
       fit: 'contain',
       smoothingEnabled: false,

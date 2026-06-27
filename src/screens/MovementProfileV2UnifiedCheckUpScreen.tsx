@@ -97,13 +97,14 @@ export function MovementProfileV2UnifiedCheckUpScreen({
 }) {
   const voiceRuntimeEnabled =
     voiceExperienceMode === 'v21_beta' && MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED;
+  const handsFreeMode = entryMode === 'public_checkup' && voiceRuntimeEnabled;
   const initialState = React.useMemo(
     () => initialFlow ?? { ...createMovementProfileV2InternalFlow({ startedAt }), sourceType },
     [initialFlow, sourceType, startedAt]
   );
   const coordinatorRef = React.useRef<MovementProfileV2LiveCoordinator | null>(null);
   if (coordinatorRef.current === null) {
-    coordinatorRef.current = new MovementProfileV2LiveCoordinator(initialState);
+    coordinatorRef.current = new MovementProfileV2LiveCoordinator(initialState, { handsFreeMode });
   }
   const [pipeline] = React.useState(() => new PosePipeline());
   const [voice] = React.useState(() => new VoiceChannel(voiceId));
@@ -277,6 +278,11 @@ export function MovementProfileV2UnifiedCheckUpScreen({
     setPendingOfficialFallback(null);
   }, [live.stage]);
 
+  React.useEffect(() => {
+    setSelectedLeg(live.flow.standingLeg);
+    setSelectedShoulder(live.flow.shoulderSide);
+  }, [live.flow.shoulderSide, live.flow.standingLeg]);
+
   const actionDisabled = React.useCallback(
     (action: MovementProfileV2LiveUserAction) =>
       voiceRuntimeEnabled &&
@@ -331,6 +337,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
     }
     return movementProfileV2ShellControls({
       live,
+      handsFreeMode,
       selectedLeg,
       selectedShoulder,
       pendingOfficialFallback,
@@ -347,6 +354,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
     actionDisabled,
     cameraAvailability,
     confirmOfficialFallback,
+    handsFreeMode,
     keepOfficialAnchor,
     live,
     onCancel,
@@ -401,6 +409,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
 
 function movementProfileV2ShellControls({
   live,
+  handsFreeMode,
   selectedLeg,
   selectedShoulder,
   pendingOfficialFallback,
@@ -414,6 +423,7 @@ function movementProfileV2ShellControls({
   onCancel,
 }: {
   live: MovementProfileV2LiveSnapshot;
+  handsFreeMode: boolean;
   selectedLeg: BodySide;
   selectedShoulder: BodySide;
   pendingOfficialFallback: OfficialSideFallbackRequest | null;
@@ -429,10 +439,11 @@ function movementProfileV2ShellControls({
   const cancel: CheckUpShellControl = { id: 'cancel', title: 'Cancel', onPress: onCancel };
   switch (live.stage) {
     case 'chair_setup':
+      if (handsFreeMode && !live.handsFreeFallbackAvailable) return [cancel];
       return [
         {
           id: 'confirm-chair',
-          title: 'Confirm setup',
+          title: handsFreeMode ? 'Use setup fallback' : 'Confirm setup',
           onPress: () => runLiveAction({ type: 'confirm_chair_setup' }),
           disabled: actionDisabled({ type: 'confirm_chair_setup' }),
           primary: true,
@@ -444,6 +455,7 @@ function movementProfileV2ShellControls({
     case 'chair_active':
       return [cancel];
     case 'balance_setup':
+      if (handsFreeMode && !live.handsFreeFallbackAvailable) return [cancel];
       return balanceSetupControls({
         live,
         selectedLeg,
@@ -457,11 +469,12 @@ function movementProfileV2ShellControls({
         cancel,
       });
     case 'balance_ready':
+      if (handsFreeMode && !live.handsFreeFallbackAvailable) return [cancel];
       return live.balanceBestHoldSec !== null
         ? [
             {
               id: 'balance-use-result',
-              title: 'Use this result',
+              title: 'Save best result',
               onPress: () => runLiveAction({ type: 'balance_use_result' }),
               disabled: actionDisabled({ type: 'balance_use_result' }),
               primary: true,
@@ -481,10 +494,11 @@ function movementProfileV2ShellControls({
         cancel,
       ];
     case 'balance_rest':
+      if (handsFreeMode) return [cancel];
       return [
         {
           id: 'balance-ready',
-          title: live.canContinueAfterRest ? "I'm ready" : `Rest ${formatCompactSeconds(live.restMinimumRemainingMs)}`,
+          title: live.canContinueAfterRest ? 'Ready now' : `Rest ${formatCompactSeconds(live.restMinimumRemainingMs)}`,
           onPress: () => runLiveAction({ type: 'balance_ready' }),
           disabled: !live.canContinueAfterRest || actionDisabled({ type: 'balance_ready' }),
           primary: true,
@@ -492,7 +506,7 @@ function movementProfileV2ShellControls({
         ...(live.balanceBestHoldSec !== null
           ? [{
               id: 'balance-use-result',
-              title: 'Use this result',
+              title: 'Save best result',
               onPress: () => runLiveAction({ type: 'balance_use_result' }),
               disabled: actionDisabled({ type: 'balance_use_result' }),
             }]
@@ -500,6 +514,7 @@ function movementProfileV2ShellControls({
         cancel,
       ];
     case 'shoulder_setup':
+      if (handsFreeMode && !live.handsFreeFallbackAvailable) return [cancel];
       return shoulderSetupControls({
         live,
         selectedShoulder,
@@ -514,10 +529,11 @@ function movementProfileV2ShellControls({
       });
     case 'shoulder_ready':
     case 'shoulder_retry_ready':
+      if (handsFreeMode && !live.handsFreeFallbackAvailable) return [cancel];
       return [
         {
           id: 'start-shoulder',
-          title: 'Start reach',
+          title: handsFreeMode ? 'Use reach fallback' : 'Start reach',
           onPress: () => runLiveAction({ type: 'start_shoulder_capture' }),
           disabled: actionDisabled({ type: 'start_shoulder_capture' }),
           primary: true,
@@ -535,10 +551,11 @@ function movementProfileV2ShellControls({
         cancel,
       ];
     case 'hinge_setup':
+      if (handsFreeMode && !live.handsFreeFallbackAvailable) return [cancel];
       return [
         {
           id: 'start-hinge',
-          title: 'Start capture',
+          title: handsFreeMode ? 'Use capture fallback' : 'Start capture',
           onPress: () => runLiveAction({ type: 'start_hinge_capture' }),
           disabled: actionDisabled({ type: 'start_hinge_capture' }),
           primary: true,
@@ -546,6 +563,7 @@ function movementProfileV2ShellControls({
         cancel,
       ];
     case 'hinge_active':
+      if (handsFreeMode) return [cancel];
       return [
         {
           id: 'finish-hinge',

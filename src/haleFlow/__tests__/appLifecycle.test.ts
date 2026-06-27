@@ -249,6 +249,37 @@ describe('getHaleAppLifecycle', () => {
     expect(result.primaryAction.type).toBe('start_checkup');
   });
 
+  it('asks users with a saved raw V2 check-up to finish the Movement Profile', () => {
+    const result = getHaleAppLifecycle({
+      profile: profile(),
+      history: [],
+      training: defaultTrainingState(),
+      adherence: defaultAdherenceStoreState(),
+      today: START,
+      pendingMovementProfileV2RawCheckUpId: 'pending-v2-checkup',
+    });
+
+    expect(result.state).toBe('needs_movement_profile_completion');
+    expect(result.primaryAction.type).toBe('continue_movement_profile');
+    expect(result.primaryAction.ctaLabel).toBe('Continue Movement Profile');
+  });
+
+  it('keeps a pending Movement Profile continuation ahead of active plan sessions', () => {
+    const block = activeBlock();
+    const result = getHaleAppLifecycle({
+      profile: profile(),
+      history: [baseline()],
+      training: defaultTrainingState(),
+      adherence: adherenceWithBaseline({ blocks: [block] }),
+      today: '2026-06-02T08:00:00.000Z',
+      pendingMovementProfileV2RawCheckUpId: 'pending-v2-retake',
+    });
+
+    expect(result.state).toBe('needs_movement_profile_completion');
+    expect(result.primaryAction.type).toBe('continue_movement_profile');
+    expect(result.weekSessionStatuses?.some((session) => session.status === 'next')).toBe(true);
+  });
+
   it('asks for block creation after baseline when no active plan exists', () => {
     const result = getHaleAppLifecycle({
       profile: profile(),

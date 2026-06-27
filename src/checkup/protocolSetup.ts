@@ -9,7 +9,13 @@
 import type { BodySide } from './measurementContext';
 
 export type { BodySide };
-export type ProtocolSetupSource = 'user' | 'prior_record' | 'default' | 'direct_call';
+export type ProtocolSetupSource =
+  | 'user'
+  | 'prior_record'
+  | 'default'
+  | 'camera_inferred'
+  | 'prior_record_camera_verified'
+  | 'direct_call';
 export type ProtocolSetupConfidence = 'confirmed' | 'uncertain' | 'bypassed';
 
 export interface ChairRiseV2Setup {

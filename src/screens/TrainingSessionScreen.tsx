@@ -402,9 +402,7 @@ export function TrainingSessionScreen({
   const showFloorReadyControl =
     !visiblePaused &&
     !!visibleSnapshot.floorSetup &&
-    visibleSnapshot.floorSetup.actionLabel !== null &&
-    (visibleSnapshot.floorSetup.phase === 'transition_instruction' ||
-      visibleSnapshot.floorSetup.phase === 'awaiting_user_transition');
+    visibleSnapshot.floorSetup.actionLabel !== null;
   const showRepeatControl = visiblePaused && canRepeat;
   const showSkipControl = canRepeat && (visiblePaused || visibleSnapshot.setupIssue || busyDebug);
   const showUnavailableAction = visibleCameraAvailability === 'unavailable' && !!onCancel;
@@ -1024,7 +1022,9 @@ function sameFloorSetup(a: TrainingFloorSetupSnapshot | null, b: TrainingFloorSe
     a.finalPositionReadyAtMs === b.finalPositionReadyAtMs &&
     a.stableForMs === b.stableForMs &&
     a.setupCaption === b.setupCaption &&
-    a.actionLabel === b.actionLabel
+    a.actionLabel === b.actionLabel &&
+    a.fallbackAvailable === b.fallbackAvailable &&
+    a.readinessSource === b.readinessSource
   );
 }
 
@@ -1072,11 +1072,16 @@ function trainingSetupNoticeText(snapshot: Snapshot): string | null {
 
 function floorSetupNoticeText(snapshot: TrainingFloorSetupSnapshot): string {
   if (snapshot.phase === 'ready') return 'Starting soon';
-  if (snapshot.phase === 'awaiting_visibility' || snapshot.phase === 'stabilizing') {
+  if (
+    snapshot.phase === 'movement_setup' ||
+    snapshot.phase === 'awaiting_user_transition' ||
+    snapshot.phase === 'awaiting_visibility' ||
+    snapshot.phase === 'stabilizing'
+  ) {
     return snapshot.setupCaption ?? 'Hold the start position';
   }
   if (snapshot.phase === 'cancelled') return 'Setup cancelled';
-  return 'Move to the floor start position';
+  return snapshot.setupCaption ?? 'Move safely to the floor';
 }
 
 const styles = StyleSheet.create({

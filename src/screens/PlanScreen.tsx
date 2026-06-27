@@ -47,6 +47,7 @@ export function PlanScreen({
   preferredDays,
   startingEffort,
   onStartOnboarding,
+  onContinueMovementProfile,
   onStartCheckUp,
   onCreateBlock,
   onStartPlanSession,
@@ -60,6 +61,7 @@ export function PlanScreen({
   preferredDays: readonly string[];
   startingEffort: ActivityLevel;
   onStartOnboarding: () => void;
+  onContinueMovementProfile: () => void;
   onStartCheckUp: () => void;
   onCreateBlock: () => void;
   onStartPlanSession: (id: PlanSessionId, preferences?: TodaySessionPreferences | null) => void;
@@ -77,9 +79,11 @@ export function PlanScreen({
     : 0;
   const showRetestCard = shouldShowRetestCard(activeBlockSummary);
   const heroAction = getPlanHeroAction(activeBlockSummary, retest, nextSession, lifecycleState);
+  const showBlockingNextAction = shouldShowPlanPreparationState(lifecycleState);
 
   function runEmptyAction(action: ReturnType<typeof getPlanEmptyStateCopy>['action']) {
     if (action === 'onboarding') onStartOnboarding();
+    else if (action === 'continue_movement_profile') onContinueMovementProfile();
     else if (action === 'checkup') onStartCheckUp();
     else onCreateBlock();
   }
@@ -134,7 +138,7 @@ export function PlanScreen({
           <PlanGoalSummary goalText={goalText} />
         </View>
 
-        {!activeBlockSummary ? (
+        {showBlockingNextAction || !activeBlockSummary ? (
           <EmptyPlanState lifecycleState={lifecycleState} onAction={runEmptyAction} />
         ) : (
           <>
@@ -433,14 +437,17 @@ function EmptyPlanState({
   const responsive = useResponsiveLayout();
   const copy = getPlanEmptyStateCopy(lifecycleState);
   const setupReady = lifecycleState === 'needs_block_creation';
+  const movementProfilePending = lifecycleState === 'needs_movement_profile_completion';
 
   return (
     <View style={styles.emptyPlanWrap}>
       <View style={[styles.emptyPlanCard, responsive.isCompactPhone && styles.compactCardPadding]}>
         <View style={styles.emptyPlanHeader}>
-          <Text style={styles.emptyPlanKicker}>{setupReady ? 'Plan preparation' : 'Before your plan starts'}</Text>
+          <Text style={styles.emptyPlanKicker}>
+            {movementProfilePending ? 'Movement Profile' : setupReady ? 'Plan preparation' : 'Before your plan starts'}
+          </Text>
           <View style={styles.emptyPlanMetaPill}>
-            <Text style={styles.emptyPlanMetaText}>{setupReady ? 'Ready' : '~10 min'}</Text>
+            <Text style={styles.emptyPlanMetaText}>{setupReady || movementProfilePending ? 'Ready' : '~10 min'}</Text>
           </View>
         </View>
 
@@ -452,14 +459,14 @@ function EmptyPlanState({
           <EmptyPlanStep
             index="1"
             title="Check-up"
-            body="Hale checks strength, balance, and mobility at home."
-            state={setupReady ? 'complete' : 'current'}
+            body={movementProfilePending ? 'Your camera check-up is saved.' : 'Hale checks strength, balance, and mobility at home.'}
+            state={setupReady || movementProfilePending ? 'complete' : 'current'}
           />
           <EmptyPlanStep
             index="2"
-            title="Preparation"
-            body="Hale uses the result to shape your first plan."
-            state={setupReady ? 'current' : 'upcoming'}
+            title={movementProfilePending ? 'Movement Profile' : 'Preparation'}
+            body={movementProfilePending ? 'Add or skip the final details to finish the profile.' : 'Hale uses the result to shape your first plan.'}
+            state={setupReady || movementProfilePending ? 'current' : 'upcoming'}
           />
           <EmptyPlanStep
             index="3"
@@ -648,6 +655,15 @@ function shouldShowRetestCard(summary: ActiveBlockSummary | undefined): boolean 
   if (!summary) return false;
   if (summary.retestInDays === undefined) return false;
   return summary.retestInDays <= 7;
+}
+
+function shouldShowPlanPreparationState(state: HaleLifecycleState): boolean {
+  return (
+    state === 'needs_onboarding' ||
+    state === 'needs_movement_profile_completion' ||
+    state === 'needs_baseline_checkup' ||
+    state === 'needs_block_creation'
+  );
 }
 
 function getPlanHeroAction(

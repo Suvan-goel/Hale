@@ -1563,7 +1563,12 @@ function setupConfidenceIsValid(value: unknown): boolean {
 }
 
 function setupSourceIsValid(value: unknown): boolean {
-  return value === 'user' || value === 'prior_record' || value === 'default' || value === 'direct_call';
+  return value === 'user' ||
+    value === 'prior_record' ||
+    value === 'default' ||
+    value === 'camera_inferred' ||
+    value === 'prior_record_camera_verified' ||
+    value === 'direct_call';
 }
 
 function referenceProfileSupportsReferenceComparison(profile: NormalizedMovementProfileV2ReferenceProfile): boolean {

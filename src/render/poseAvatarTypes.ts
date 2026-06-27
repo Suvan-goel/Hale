@@ -13,6 +13,7 @@ export type PoseAvatarRendererMode =
   | 'contour_field'
   | 'point_cloud_body'
   | 'premium_constellation_human'
+  | 'privacy_shadow'
   | 'rigged_human_silhouette'
   | 'shadow_silhouette'
   | 'soft_digital_twin'

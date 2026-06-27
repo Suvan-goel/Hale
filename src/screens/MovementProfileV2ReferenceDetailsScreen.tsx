@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import type { AgeBand } from '../adherence';
 import { BackArrowButton } from '../components/BackArrowButton';
@@ -84,7 +84,14 @@ export function MovementProfileV2ReferenceDetailsScreen({
     );
 
   return (
-    <View style={styles.root}>
+    <ScrollView
+      style={styles.root}
+      contentContainerStyle={styles.content}
+      contentInsetAdjustmentBehavior="automatic"
+      keyboardDismissMode="on-drag"
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+    >
       <BackArrowButton
         accessibilityLabel={
           entryMode === 'internal' ? 'Back to Movement Profile' : 'Back to Movement Check-Up'
@@ -151,7 +158,7 @@ export function MovementProfileV2ReferenceDetailsScreen({
 
       <PrimaryButton title="Save Movement Profile" onPress={submit} disabled={!canContinue} />
       <SecondaryButton title="Continue without published comparisons" onPress={skip} />
-    </View>
+    </ScrollView>
   );
 }
 
@@ -202,6 +209,9 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.bgBase,
+  },
+  content: {
+    flexGrow: 1,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xl,
     paddingBottom: spacing.xl,

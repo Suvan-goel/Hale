@@ -18,6 +18,7 @@ describe('pose overlay benchmark Constellation V2 modes', () => {
       'premium-constellation-180',
       'premium-constellation-300',
       'premium-constellation-450',
+      'privacy-shadow',
       'soft-continuous-silhouette',
       'soft-digital-twin-lean',
       'soft-digital-twin',
@@ -35,6 +36,7 @@ describe('pose overlay benchmark Constellation V2 modes', () => {
       'premium-constellation-180',
       'premium-constellation-300',
       'premium-constellation-450',
+      'privacy-shadow',
       'soft-continuous-silhouette',
       'soft-digital-twin-lean',
       'soft-digital-twin',
@@ -223,6 +225,24 @@ describe('pose overlay benchmark Constellation V2 modes', () => {
       },
     });
     expect(silhouette?.nativeBenchmarkOverlayMode).toBeUndefined();
+  });
+
+  it('adds the Privacy Shadow renderer as a low-path benchmark option', () => {
+    const modes = createPoseOverlayBenchmarkModes('android');
+    const privacyShadow = modes.find((mode) => mode.id === 'privacy-shadow');
+
+    expect(privacyShadow).toMatchObject({
+      title: 'Privacy Shadow',
+      configuredDotCount: 0,
+      configuredShapeCount: 3,
+      rendererProps: {
+        mode: 'privacy_shadow',
+        frameSource: 'raw',
+        fit: 'contain',
+        smoothingEnabled: false,
+      },
+    });
+    expect(privacyShadow?.nativeBenchmarkOverlayMode).toBeUndefined();
   });
 
   it('keeps rejected visual experiments out of the benchmark selector', () => {

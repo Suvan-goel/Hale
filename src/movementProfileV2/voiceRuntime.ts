@@ -32,11 +32,14 @@ export type Mpv2VoiceRequirement =
   | 'optional_reassurance';
 
 export type MovementProfileV2VoiceCoordinatorAction =
+  | { type: 'chair_setup_voice_completed' }
   | { type: 'chair_practice_voice_completed' }
   | { type: 'chair_official_ready_voice_completed' }
   | { type: 'chair_countdown_started' }
   | { type: 'chair_go_playback_started' }
+  | { type: 'balance_setup_voice_completed' }
   | { type: 'balance_attempt_voice_completed' }
+  | { type: 'shoulder_transition_voice_completed' }
   | { type: 'shoulder_setup_voice_completed' }
   | { type: 'hinge_setup_voice_completed' }
   | { type: 'recovery_voice_completed'; recoveryId: string };
@@ -664,7 +667,9 @@ function baseVoicePlanForSnapshot(
   switch (snapshot.stage) {
     case 'chair_setup': {
       const intro = initialMovementProfileV2VoiceEvent();
-      return plan(scopeId, 'blocking_prerequisite', intro.cues);
+      return plan(scopeId, 'blocking_prerequisite', intro.cues, [
+        { type: 'chair_setup_voice_completed' },
+      ]);
     }
     case 'chair_practice':
       return plan(scopeId, 'blocking_prerequisite', ['mpv2_chair_practice_start'], [
@@ -682,7 +687,7 @@ function baseVoicePlanForSnapshot(
         'times-up-v21',
         'checkup-balance-intro-v21',
         'checkup-balance-single-leg-v21',
-      ]));
+      ]), [{ type: 'balance_setup_voice_completed' }]);
     case 'balance_ready':
       return plan(scopeId, 'blocking_prerequisite', cuesForCurrentTransition(snapshot, [
         'mpv2_balance_attempt_start',
@@ -695,7 +700,7 @@ function baseVoicePlanForSnapshot(
     case 'shoulder_setup':
       return plan(scopeId, 'blocking_transition', cuesForCurrentTransition(snapshot, [
         'mpv2_balance_complete',
-      ]));
+      ]), [{ type: 'shoulder_transition_voice_completed' }]);
     case 'shoulder_ready':
       return plan(scopeId, 'blocking_prerequisite', cuesForCurrentTransition(snapshot, [
         shoulderTurnCue(snapshot.flow.shoulderSide),

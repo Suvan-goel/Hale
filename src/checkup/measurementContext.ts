@@ -14,6 +14,10 @@ export type MeasurementSideSource =
   | 'official_retest_anchor'
   | 'baseline_retake_anchor'
   | 'manual_user_selected'
+  | 'camera_inferred'
+  | 'prior_record_camera_verified'
+  | 'prior_micro_check_camera_verified'
+  | 'user_fallback_selected'
   | 'microcheck_official_anchor'
   | 'opposite_side_fallback'
   | 'legacy_unknown'
@@ -105,6 +109,10 @@ const SIDE_SOURCES: readonly MeasurementSideSource[] = [
   'official_retest_anchor',
   'baseline_retake_anchor',
   'manual_user_selected',
+  'camera_inferred',
+  'prior_record_camera_verified',
+  'prior_micro_check_camera_verified',
+  'user_fallback_selected',
   'microcheck_official_anchor',
   'opposite_side_fallback',
   'legacy_unknown',

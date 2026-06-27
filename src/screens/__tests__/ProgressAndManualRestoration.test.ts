@@ -36,4 +36,22 @@ describe('Progress and Manual / Extra Check-Up UI restoration', () => {
     expect(screen).not.toMatch(/Movement Age|weakest-domain|V1|V2/);
     expect(`${rules}\n${copy}`).not.toMatch(/Movement Age|weakest-domain/);
   });
+
+  it('restores the V2 Progress dashboard cards without technical summary copy', () => {
+    const progress = readFileSync(join(process.cwd(), 'src/screens/ProgressScreen.tsx'), 'utf8');
+    const publicProfileCard = progress.slice(
+      progress.indexOf('function MovementProfileV2ProfileCard'),
+      progress.indexOf('function MovementProfileV2ProgressRow')
+    );
+
+    expect(progress).toContain('<MovementProfileV2NextCheckUpCard');
+    expect(progress).toContain('<MovementProfileV2PlanSummaryCard');
+    expect(progress).toContain('<TrainingProgressCard cards={ladderCards} />');
+    expect(progress).toContain('<MovementProfileV2ExtraCheckUpCard');
+    expect(progress).toContain('viewModel.officialHistory.length >= 2');
+    expect(publicProfileCard).toContain('Your latest Movement Check-Up results.');
+    expect(publicProfileCard).not.toMatch(/Frozen|reference labels|schema|fingerprint/);
+    expect(progress).toContain('progressSummaryStatusLabel(card)');
+    expect(progress).not.toContain('Your current plan is based on your previous Movement Profile');
+  });
 });

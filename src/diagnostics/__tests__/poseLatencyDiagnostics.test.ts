@@ -366,6 +366,7 @@ describe('pose renderer replay diagnostics', () => {
       'raw-skeleton',
       'rigged-human-silhouette',
       'shadow-silhouette',
+      'privacy-shadow',
       'soft-continuous-silhouette',
       'soft-digital-twin-lean',
       'soft-digital-twin',
@@ -387,6 +388,7 @@ describe('pose renderer replay diagnostics', () => {
     const byMode = new Map(summaries.map((summary) => [summary.mode, summary]));
     const rigged = byMode.get('rigged-human-silhouette');
     const shadow = byMode.get('shadow-silhouette');
+    const privacyShadow = byMode.get('privacy-shadow');
     const softSilhouette = byMode.get('soft-continuous-silhouette');
     const softDigitalTwinLean = byMode.get('soft-digital-twin-lean');
     const softDigitalTwin = byMode.get('soft-digital-twin');
@@ -409,6 +411,11 @@ describe('pose renderer replay diagnostics', () => {
     expect(rigged?.proportionCalibrationComplete).toBe(false);
     expect(shadow?.maxSurfacePathCount).toBeLessThanOrEqual(6);
     expect(shadow?.maxDynamicPathCount).toBeLessThanOrEqual(6);
+    expect(privacyShadow?.maxDots).toBe(0);
+    expect(privacyShadow?.maxLines).toBe(0);
+    expect(privacyShadow?.maxSurfacePathCount).toBeLessThanOrEqual(3);
+    expect(privacyShadow?.maxDynamicPathCount).toBeLessThanOrEqual(3);
+    expect(privacyShadow?.maxShapeCount).toBeLessThanOrEqual(18);
     expect(softSilhouette?.maxSurfacePathCount).toBeLessThanOrEqual(5);
     expect(softSilhouette?.maxDynamicPathCount).toBeLessThanOrEqual(5);
     expect(softDigitalTwinLean?.maxSurfacePathCount).toBeLessThanOrEqual(13);

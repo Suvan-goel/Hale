@@ -42,16 +42,14 @@ const REFERENCE_PROFILE = {
 };
 
 describe('Movement Profile V2 Progress view model', () => {
-  it('shows the latest frozen profile, source-bound current plan, and neutral official history', () => {
+  it('shows the latest frozen profile and neutral official history without current-plan actions', () => {
     const baseline = artifacts('baseline', BASELINE_AT);
     const block = mustMaterializeBlock(baseline, BLOCK_START);
-    const completions = planCompletions(block, 4);
 
     const viewModel = buildMovementProfileV2ProgressViewModel({
       history: [baseline.record],
       blocks: [block],
       reports: [],
-      completions,
       today: '2026-06-12T12:00:00.000Z',
     });
 
@@ -61,12 +59,9 @@ describe('Movement Profile V2 Progress view model', () => {
     expect(viewModel.hero.profileId).toBe(BASELINE_AT);
     expect(viewModel.hero.domains.map((card) => card.metric)).toContain('12 rises in 30 seconds');
     expect(viewModel.hero.domains.find((card) => card.domain === 'strength_power')?.interpretation).toMatch(/Saved|Published/);
-    expect(viewModel.currentPlan).toMatchObject({
-      blockId: block.id,
-      sourceMatchesLatest: true,
-      sourceNote: 'Prepared from your latest Movement Profile',
-      sessionsLabel: '4 of 12 plan sessions completed',
-    });
+    expect(viewModel.actions).toEqual([
+      { id: 'view_movement_profile', label: 'View Movement Profile', targetId: BASELINE_AT },
+    ]);
     expect(viewModel.officialHistory).toHaveLength(1);
     expect(viewModel.officialHistory[0]).toMatchObject({
       id: BASELINE_AT,
@@ -78,7 +73,7 @@ describe('Movement Profile V2 Progress view model', () => {
     );
   });
 
-  it('keeps the latest profile separate when the active plan came from a previous profile', () => {
+  it('does not surface current-plan provenance when the active plan came from a previous profile', () => {
     const baseline = artifacts('baseline', BASELINE_AT, { balance: balanceResult({ bestHoldSec: 8 }) });
     const activeBlock = mustMaterializeBlock(baseline, BLOCK_START);
     const retake = artifacts('baseline_retake', RETAKE_AT, { chair: chairResult({ reps: 15 }) });
@@ -87,20 +82,17 @@ describe('Movement Profile V2 Progress view model', () => {
       history: [baseline.record, retake.record],
       blocks: [activeBlock],
       reports: [],
-      completions: [],
       today: '2026-06-12T12:00:00.000Z',
     });
 
     expect(viewModel.status).toBe('ready');
     if (viewModel.status !== 'ready') throw new Error(viewModel.status);
     expect(viewModel.hero.profileId).toBe(RETAKE_AT);
-    expect(viewModel.currentPlan?.sourceProfileId).toBe(BASELINE_AT);
-    expect(viewModel.currentPlan?.sourceMatchesLatest).toBe(false);
-    expect(viewModel.currentPlan?.sourceNote).toBe(
-      'Your current plan is based on your previous Movement Profile. Your latest Movement Profile is saved.'
-    );
-    expect(viewModel.diagnostics).toEqual(
-      expect.arrayContaining([expect.objectContaining({ code: 'progress_v2_plan_source_differs' })])
+    expect(viewModel.actions).toEqual([
+      { id: 'view_movement_profile', label: 'View Movement Profile', targetId: RETAKE_AT },
+    ]);
+    expect(JSON.stringify(viewModel)).not.toMatch(
+      /current plan|View current plan|previous Movement Profile|progress_v2_plan_source_differs/i
     );
   });
 
@@ -116,7 +108,6 @@ describe('Movement Profile V2 Progress view model', () => {
       history: [baseline.record, retest.record],
       blocks: [priorBlock, nextBlock],
       reports: [invalidReport, report],
-      completions: planCompletions(priorBlock, 12),
       today: '2026-06-30T12:00:00.000Z',
     });
 
@@ -142,7 +133,6 @@ describe('Movement Profile V2 Progress view model', () => {
       history: [],
       blocks: [],
       reports: [],
-      completions: [],
       today: '2026-06-12T12:00:00.000Z',
       pendingV2RawCheckUpId: BASELINE_AT,
     });
@@ -157,11 +147,21 @@ describe('Movement Profile V2 Progress view model', () => {
       }],
       blocks: [],
       reports: [],
-      completions: [],
       today: '2026-06-12T12:00:00.000Z',
     });
     expect(malformed.status).toBe('artifact_recovery');
+    expect(malformed.actions).toEqual([]);
     expect(JSON.stringify(malformed).toLowerCase()).not.toContain('movement age');
+
+    const orphanedV2Block = mustMaterializeBlock(artifacts('baseline', RETAKE_AT), BLOCK_START);
+    const conflict = buildMovementProfileV2ProgressViewModel({
+      history: [],
+      blocks: [orphanedV2Block],
+      reports: [],
+      today: '2026-06-12T12:00:00.000Z',
+    });
+    expect(conflict.status).toBe('active_block_conflict');
+    expect(conflict.actions).toEqual([]);
   });
 });
 

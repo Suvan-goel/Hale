@@ -4,7 +4,6 @@ import type {
   MovementBlockReport,
   MovementDomain,
   MovementProfileV2BlockReport,
-  TrainingSessionCompletion,
 } from '../adherence';
 import type { StoredCheckUp, StoredCheckUpType } from '../history';
 import {
@@ -13,7 +12,6 @@ import {
 } from '../movementProfileV2/viewModel';
 import { type MovementProfileV2Assessment } from '../reference/movementProfileV2';
 import type { StoredMovementProfileV2Snapshot } from '../reference/movementProfileV2';
-import { getBlockScheduleState } from './blockSchedule';
 import {
   officialMovementProfileV2AssessmentSelection,
   type OfficialMovementProfileV2AssessmentRecord,
@@ -37,7 +35,6 @@ export interface MovementProfileV2ProgressAction {
     | 'start_movement_checkup'
     | 'continue_movement_profile'
     | 'view_movement_profile'
-    | 'view_current_plan'
     | 'view_block_report';
   label: string;
   targetId?: string;
@@ -59,19 +56,6 @@ export interface MovementProfileV2ProgressHero {
   focusTitle: string;
   focusBody: string;
   domains: readonly MovementProfileV2ProgressDomainSummary[];
-}
-
-export interface MovementProfileV2CurrentPlanSummary {
-  blockId: string;
-  focusKind: 'domain' | 'balanced';
-  focusTitle: string;
-  weekLabel: string;
-  scheduleLabel: string;
-  sessionsLabel: string;
-  sourceProfileId?: string;
-  sourceMatchesLatest: boolean;
-  sourceNote: string;
-  action: MovementProfileV2ProgressAction;
 }
 
 export interface MovementProfileV2HistoryEntry {
@@ -100,10 +84,8 @@ export interface MovementProfileV2ProgressDiagnostic {
     | 'progress_v2_latest_profile_selected'
     | 'progress_v2_history_conflict'
     | 'progress_v2_report_invalid'
-    | 'progress_v2_plan_source_differs'
     | 'progress_v2_pending_continuation'
-    | 'progress_v2_malformed_artifact'
-    | 'progress_v2_active_block_source_invalid';
+    | 'progress_v2_malformed_artifact';
   checkUpId?: string;
   snapshotId?: string;
   assessmentId?: string;
@@ -125,7 +107,6 @@ export type MovementProfileV2ProgressViewModel =
       status: 'ready';
       authorityFacts: MovementProfileV2ProgressAuthorityFacts;
       hero: MovementProfileV2ProgressHero;
-      currentPlan: MovementProfileV2CurrentPlanSummary | null;
       officialHistory: readonly MovementProfileV2HistoryEntry[];
       reports: readonly MovementProfileV2ReportHistoryEntry[];
       actions: readonly MovementProfileV2ProgressAction[];
@@ -148,7 +129,6 @@ export interface MovementProfileV2ProgressInput {
   history: readonly StoredCheckUp[] | null | undefined;
   blocks: readonly MovementBlock[] | null | undefined;
   reports: readonly MovementBlockReport[] | null | undefined;
-  completions: readonly TrainingSessionCompletion[] | null | undefined;
   today: string;
   pendingV2RawCheckUpId?: string | null;
 }
@@ -161,7 +141,6 @@ export function buildMovementProfileV2ProgressViewModel(
   const history = input.history ?? [];
   const blocks = input.blocks ?? [];
   const reports = input.reports ?? [];
-  const completions = input.completions ?? [];
   const selection = officialMovementProfileV2AssessmentSelection(history);
   const acceptedProfiles = sortProfiles(selection.records);
   const acceptedReports = selectMovementProfileV2ReportHistory({
@@ -230,7 +209,7 @@ export function buildMovementProfileV2ProgressViewModel(
           title: 'Movement Profile needs attention',
           body: 'Your saved Movement Profile data is still on this phone, but Hale cannot safely show it here yet.',
         },
-        actions: [{ id: 'continue_movement_profile', label: 'Continue' }],
+        actions: [],
         diagnostics,
         officialHistory,
         reports: acceptedReports.entries,
@@ -285,18 +264,9 @@ export function buildMovementProfileV2ProgressViewModel(
     })),
   };
 
-  const currentPlan = buildCurrentPlan({
-    blocks,
-    completions,
-    today: input.today,
-    latest,
-    profiles: acceptedProfiles,
-    diagnostics,
-  });
   const actions: MovementProfileV2ProgressAction[] = [
     { id: 'view_movement_profile', label: 'View Movement Profile', targetId: latest.assessment.sourceCheckUpId },
   ];
-  if (currentPlan) actions.push(currentPlan.action);
 
   diagnostics.push({
     code: 'progress_v2_latest_profile_selected',
@@ -309,7 +279,6 @@ export function buildMovementProfileV2ProgressViewModel(
     status: 'ready',
     authorityFacts,
     hero,
-    currentPlan,
     officialHistory,
     reports: acceptedReports.entries,
     actions,
@@ -341,66 +310,6 @@ export function movementProfileV2ProgressReportById(
   const profiles = sortProfiles(officialMovementProfileV2AssessmentSelection(history).records);
   const selection = selectMovementProfileV2ReportHistory({ reports: reports ?? [], profiles });
   return selection.acceptedReports.find((report) => report.id === reportId) ?? null;
-}
-
-function buildCurrentPlan({
-  blocks,
-  completions,
-  today,
-  latest,
-  profiles,
-  diagnostics,
-}: {
-  blocks: readonly MovementBlock[];
-  completions: readonly TrainingSessionCompletion[];
-  today: string;
-  latest: AcceptedProfile;
-  profiles: readonly AcceptedProfile[];
-  diagnostics: MovementProfileV2ProgressDiagnostic[];
-}): MovementProfileV2CurrentPlanSummary | null {
-  const block = blocks
-    .filter((item) => item.origin?.kind === 'movement_profile_v2_assessment')
-    .filter((item) => item.status === 'active' || item.status === 'paused')
-    .slice()
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0] ?? null;
-  if (!block || block.origin?.kind !== 'movement_profile_v2_assessment') return null;
-
-  const source = profiles.find((profile) => blockMatchesProfile(block, profile)) ?? null;
-  const sourceMatchesLatest = !!source && profilesSame(source, latest);
-  if (!source) {
-    diagnostics.push({
-      code: 'progress_v2_active_block_source_invalid',
-      blockId: block.id,
-      checkUpId: block.origin.sourceCheckUpId,
-      snapshotId: block.origin.snapshotId,
-      assessmentId: block.origin.assessmentId,
-    });
-  } else if (!sourceMatchesLatest) {
-    diagnostics.push({
-      code: 'progress_v2_plan_source_differs',
-      blockId: block.id,
-      checkUpId: source.assessment.sourceCheckUpId,
-      snapshotId: source.snapshot.snapshotId,
-      assessmentId: source.assessment.assessmentId,
-    });
-  }
-  const schedule = getBlockScheduleState({ block, completions, today });
-  return {
-    blockId: block.id,
-    focusKind: block.focus?.kind === 'balanced' ? 'balanced' : 'domain',
-    focusTitle: focusTitle(block.focus ?? (block.focusDomain ? { kind: 'domain', domain: block.focusDomain } : null)),
-    weekLabel: `Week ${Math.max(1, schedule.currentWeekNumber)} of 4`,
-    scheduleLabel: scheduleLabel(schedule.status, schedule.nextUnlockDateKey ?? schedule.retestNotBeforeDateKey),
-    sessionsLabel: `${schedule.totalCredits} of ${block.totalPlannedSessions} plan sessions completed`,
-    ...(source ? { sourceProfileId: source.assessment.sourceCheckUpId } : {}),
-    sourceMatchesLatest,
-    sourceNote: source
-      ? sourceMatchesLatest
-        ? 'Prepared from your latest Movement Profile'
-        : 'Your current plan is based on your previous Movement Profile. Your latest Movement Profile is saved.'
-      : 'Hale could not verify which Movement Profile prepared this current plan.',
-    action: { id: 'view_current_plan', label: 'View current plan', targetId: block.id },
-  };
 }
 
 function buildOfficialHistory(
@@ -541,27 +450,6 @@ function reportEndpointMatchesProfile(
   );
 }
 
-function blockMatchesProfile(block: MovementBlock, profile: AcceptedProfile): boolean {
-  const origin = block.origin;
-  return (
-    origin?.kind === 'movement_profile_v2_assessment' &&
-    origin.sourceCheckUpId === profile.assessment.sourceCheckUpId &&
-    origin.snapshotId === profile.snapshot.snapshotId &&
-    origin.snapshotFingerprint === profile.snapshot.snapshotFingerprint &&
-    origin.assessmentId === profile.assessment.assessmentId &&
-    origin.assessmentFingerprint === profile.assessment.assessmentFingerprint
-  );
-}
-
-function profilesSame(a: AcceptedProfile, b: AcceptedProfile): boolean {
-  return (
-    a.assessment.assessmentId === b.assessment.assessmentId &&
-    a.assessment.assessmentFingerprint === b.assessment.assessmentFingerprint &&
-    a.snapshot.snapshotId === b.snapshot.snapshotId &&
-    a.snapshot.snapshotFingerprint === b.snapshot.snapshotFingerprint
-  );
-}
-
 function sortProfiles(records: readonly AcceptedProfile[]): AcceptedProfile[] {
   return records.slice().sort(compareProfiles);
 }
@@ -602,23 +490,8 @@ function domainTitle(domain: MovementDomain): string {
   return 'Strength / Power';
 }
 
-function scheduleLabel(status: string, dateKey?: string): string {
-  if (status === 'session_due') return 'Next plan session is ready.';
-  if (status === 'week_complete_waiting') {
-    return dateKey ? `Waiting until ${formatDateKey(dateKey)}.` : 'This week is complete.';
-  }
-  if (status === 'training_complete_waiting_retest') return 'Plan sessions are complete. Your next Check-Up opens soon.';
-  if (status === 'retest_due') return 'Movement Check-Up is due.';
-  if (status === 'block_completed') return 'Block complete.';
-  return 'Schedule state is saved.';
-}
-
 function formatDate(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return 'Saved date';
   return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
-}
-
-function formatDateKey(dateKey: string): string {
-  return formatDate(`${dateKey}T12:00:00.000Z`);
 }

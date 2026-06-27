@@ -64,6 +64,7 @@ describe('Hale V1 copy guardrails', () => {
   it('keeps primary Today, Plan, Progress, and Explore view-model copy warm and non-medical', () => {
     const lifecycleStates: HaleLifecycleState[] = [
       'needs_onboarding',
+      'needs_movement_profile_completion',
       'needs_baseline_checkup',
       'needs_block_creation',
       'first_session_ready',

@@ -10,8 +10,12 @@ import {
   createCapturedBalanceEyesOpenV2Result,
   createCapturedOneLegBalanceV2Result,
 } from '../../movementProfileV2/internalCheckupFlow';
+import { CHAIN_IDS } from '../../pose/chains';
+import type { PipelineFrameOutput, TrackingState } from '../../pose/pipeline';
+import { createPoseFrame, LM } from '../../pose/types';
 import type { MicroCheckResult } from '../microCheck';
 import {
+  MicroCheckCameraSideResolver,
   createMicroCheckMeasurementContextForSide,
   deriveMicroCheckSideSetup,
 } from '../microCheckSideSetup';
@@ -141,7 +145,227 @@ describe('micro-check side setup', () => {
     expect(oppositeSide.side.source).toBe('opposite_side_fallback');
     expect(oppositeSide.comparability.overallStatus).toBe('reduced_comparability');
   });
+
+  it('infers a balance standing leg from stable camera evidence and records camera source metadata', () => {
+    const setup = deriveMicroCheckSideSetup({ microCheckType: 'single-leg-balance' });
+    const resolver = new MicroCheckCameraSideResolver();
+    const first = { ...resolver.update(
+      poseOutput({ timestampMs: 1000, leftAnkleY: 0.72, rightAnkleY: 0.5 }),
+      'single-leg-balance',
+      setup
+    ) };
+    const ready = resolver.update(
+      poseOutput({ timestampMs: 1800, leftAnkleY: 0.72, rightAnkleY: 0.5 }),
+      'single-leg-balance',
+      setup
+    );
+
+    expect(first).toMatchObject({ ready: false, selectedSide: 'left', reason: 'hold_still' });
+    expect(ready).toMatchObject({
+      ready: true,
+      selectedSide: 'left',
+      observedSide: 'left',
+      source: 'camera_inferred',
+      reason: 'ready',
+    });
+
+    const context = createMicroCheckMeasurementContextForSide({
+      microCheckType: 'single-leg-balance',
+      startedAt: '2026-06-21T08:00:00.000Z',
+      setup,
+      selectedSide: ready.selectedSide,
+      observedSide: ready.observedSide,
+      source: ready.source ?? undefined,
+      userConfirmed: false,
+    });
+
+    expect(context.side).toMatchObject({
+      role: 'standing_leg',
+      selectedSide: 'left',
+      observedSide: 'left',
+      source: 'camera_inferred',
+      userConfirmed: false,
+    });
+    expect(context.comparability.overallStatus).toBe('establishes_new_baseline');
+  });
+
+  it('marks camera-verified balance setup from a compatible official anchor as a prior record verification', () => {
+    const official = officialBalanceRecord('right', '2026-06-01T09:00:00.000Z');
+    const setup = deriveMicroCheckSideSetup({
+      microCheckType: 'single-leg-balance',
+      officialCheckUps: [official],
+    });
+    const resolver = new MicroCheckCameraSideResolver();
+    resolver.update(
+      poseOutput({ timestampMs: 1000, leftAnkleY: 0.45, rightAnkleY: 0.68 }),
+      'single-leg-balance',
+      setup
+    );
+    const ready = resolver.update(
+      poseOutput({ timestampMs: 1800, leftAnkleY: 0.45, rightAnkleY: 0.68 }),
+      'single-leg-balance',
+      setup
+    );
+    const context = createMicroCheckMeasurementContextForSide({
+      microCheckType: 'single-leg-balance',
+      startedAt: '2026-06-21T08:00:00.000Z',
+      setup,
+      selectedSide: ready.selectedSide,
+      source: ready.source ?? undefined,
+      userConfirmed: false,
+    });
+
+    expect(ready).toMatchObject({ ready: true, selectedSide: 'right', source: 'prior_record_camera_verified' });
+    expect(context.side.source).toBe('prior_record_camera_verified');
+    expect(context.side.userConfirmed).toBe(false);
+    expect(context.comparability.overallStatus).toBe('establishes_new_baseline');
+  });
+
+  it('marks camera-verified same-side micro-check setup as prior micro-check verification', () => {
+    const firstSetup = deriveMicroCheckSideSetup({ microCheckType: 'single-leg-balance' });
+    const firstContext = createMicroCheckMeasurementContextForSide({
+      microCheckType: 'single-leg-balance',
+      startedAt: '2026-06-10T08:00:00.000Z',
+      setup: firstSetup,
+      selectedSide: 'left',
+      source: 'camera_inferred',
+      userConfirmed: false,
+    });
+    const prior: MicroCheckResult = {
+      type: 'single-leg-balance',
+      startedAt: '2026-06-10T08:00:00.000Z',
+      value: 12,
+      reps: 0,
+      measured: true,
+      measurementContext: firstContext,
+    };
+    const setup = deriveMicroCheckSideSetup({
+      microCheckType: 'single-leg-balance',
+      history: [prior],
+    });
+    const resolver = new MicroCheckCameraSideResolver();
+    resolver.update(
+      poseOutput({ timestampMs: 1000, leftAnkleY: 0.72, rightAnkleY: 0.5 }),
+      'single-leg-balance',
+      setup
+    );
+    const ready = resolver.update(
+      poseOutput({ timestampMs: 1800, leftAnkleY: 0.72, rightAnkleY: 0.5 }),
+      'single-leg-balance',
+      setup
+    );
+    const context = createMicroCheckMeasurementContextForSide({
+      microCheckType: 'single-leg-balance',
+      startedAt: '2026-06-21T08:00:00.000Z',
+      setup,
+      selectedSide: ready.selectedSide,
+      source: ready.source ?? undefined,
+      userConfirmed: false,
+    });
+
+    expect(ready).toMatchObject({ ready: true, selectedSide: 'left', source: 'prior_micro_check_camera_verified' });
+    expect(context.side.source).toBe('prior_micro_check_camera_verified');
+    expect(context.comparability.overallStatus).toBe('comparable');
+  });
+
+  it('infers the mobility reach side from the reliable side-view chain', () => {
+    const setup = deriveMicroCheckSideSetup({ microCheckType: 'mobility-reach' });
+    const resolver = new MicroCheckCameraSideResolver();
+    resolver.update(
+      poseOutput({ timestampMs: 1000, leftReliability: 0.86, rightReliability: 0.22 }),
+      'mobility-reach',
+      setup
+    );
+    const ready = resolver.update(
+      poseOutput({ timestampMs: 1800, leftReliability: 0.86, rightReliability: 0.22 }),
+      'mobility-reach',
+      setup
+    );
+    const context = createMicroCheckMeasurementContextForSide({
+      microCheckType: 'mobility-reach',
+      startedAt: '2026-06-21T08:00:00.000Z',
+      setup,
+      selectedSide: ready.selectedSide,
+      source: ready.source ?? undefined,
+      userConfirmed: false,
+    });
+
+    expect(ready).toMatchObject({ ready: true, selectedSide: 'left', source: 'camera_inferred' });
+    expect(context.side).toMatchObject({
+      role: 'extended_leg',
+      selectedSide: 'left',
+      source: 'camera_inferred',
+      userConfirmed: false,
+    });
+  });
+
+  it('keeps side inference optional by exposing fallback only after timeout', () => {
+    const setup = deriveMicroCheckSideSetup({ microCheckType: 'mobility-reach' });
+    const resolver = new MicroCheckCameraSideResolver();
+    const first = { ...resolver.update(
+      poseOutput({ timestampMs: 1000, state: 'warmup', leftReliability: 0.1, rightReliability: 0.1 }),
+      'mobility-reach',
+      setup
+    ) };
+    const fallback = resolver.update(
+      poseOutput({ timestampMs: 13200, state: 'tracking', leftReliability: 0.2, rightReliability: 0.2 }),
+      'mobility-reach',
+      setup
+    );
+
+    expect(first).toMatchObject({ ready: false, fallbackAvailable: false });
+    expect(fallback).toMatchObject({
+      ready: false,
+      selectedSide: null,
+      fallbackAvailable: true,
+      reason: 'waiting_for_side_view',
+    });
+  });
 });
+
+function poseOutput({
+  timestampMs,
+  state = 'tracking',
+  bodyUnit = 1,
+  leftReliability = 0.9,
+  rightReliability = 0.9,
+  leftAnkleY = 0.62,
+  rightAnkleY = 0.62,
+}: {
+  timestampMs: number;
+  state?: TrackingState;
+  bodyUnit?: number | null;
+  leftReliability?: number;
+  rightReliability?: number;
+  leftAnkleY?: number;
+  rightAnkleY?: number;
+}): PipelineFrameOutput {
+  const frame = createPoseFrame();
+  frame.timestampMs = timestampMs;
+  frame.hasPose = true;
+  frame.visibility.fill(1);
+  frame.presence.fill(1);
+  frame.ys[LM.LEFT_ANKLE] = leftAnkleY;
+  frame.ys[LM.RIGHT_ANKLE] = rightAnkleY;
+  const chainReliability = new Float64Array(CHAIN_IDS.length);
+  chainReliability[CHAIN_IDS.indexOf('leftSide')] = leftReliability;
+  chainReliability[CHAIN_IDS.indexOf('rightSide')] = rightReliability;
+  const reliableSideChains =
+    (leftReliability >= 0.45 ? 1 : 0) + (rightReliability >= 0.45 ? 1 : 0);
+  return {
+    state,
+    inferenceMs: null,
+    frame,
+    rawFrame: frame,
+    displayFrame: frame,
+    chainReliability,
+    reliableSideChains,
+    validity: { valid: true, reason: 'ok' },
+    bodyUnit,
+    events: [],
+    fps: 30,
+  } as unknown as PipelineFrameOutput;
+}
 
 function officialBalanceRecord(side: 'left' | 'right', startedAt: string): { checkUp: CheckUp; checkupType: 'baseline' } {
   return {

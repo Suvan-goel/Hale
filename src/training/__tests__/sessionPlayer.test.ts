@@ -20,6 +20,8 @@ import {
   STS_STANDARD_ID,
   getExercise,
 } from '../../exercises';
+import * as fs from 'fs';
+import * as path from 'path';
 import { PosePipeline } from '../../pose/pipeline';
 import { makeFrame, mulberry32 } from '../../pose/testing/syntheticPose';
 import { makeSideFrame, type SideJoints } from '../../pose/testing/syntheticSideView';
@@ -385,85 +387,80 @@ describe('TrainingSessionPlayer — floor final-position readiness', () => {
     expect(latestFloorSetup(run)).toMatchObject({
       userConfirmed: false,
       movementReady: false,
+      readinessSource: null,
     });
   });
 
   it.each([BRIDGE_HOLD_ID, BRIDGE_REPS_ID, PUSHUP_STANDARD_ID])(
-    'requires confirmation and stable visibility before countdown for %s',
+    'starts hands-free after stable floor camera readiness for %s',
     (exerciseId) => {
-      let confirmed = false;
+      let setupSeen = false;
       const standing = sideStanding();
       const floor = floorStartSide();
       const run = runFloorPartial({
         exerciseId,
-        frameAt: (ts) => (confirmed ? floor(ts) : standing(ts)),
+        frameAt: (ts) => (setupSeen ? floor(ts) : standing(ts)),
         maxFrames: 1800,
-        onUpdate: (u, player) => {
-          if (confirmed || !u.floorSetup) return;
-          confirmed = player.confirmFloorStartPosition({
-            exerciseId: u.floorSetup.exerciseId,
-            setIndex: u.floorSetup.setIndex,
-            setupEpoch: u.floorSetup.setupEpoch,
-          });
+        onUpdate: (u) => {
+          if (u.floorSetup) setupSeen = true;
         },
       });
       const final = run.spoken.indexOf('final-position-set-v21');
       const countdown = run.spoken.indexOf('countdown-three');
       const go = run.spoken.indexOf('go');
-      expect(confirmed).toBe(true);
       expect(final).toBeGreaterThan(-1);
       expect(countdown).toBeGreaterThan(final);
       expect(go).toBeGreaterThan(countdown);
       expect(run.updates.some((update) => update.phase === 'set')).toBe(true);
+      expect(latestFloorSetup(run).readinessSource).toBe('camera_inferred');
     }
   );
 
-  it('blocks user confirmation without required visibility', () => {
-    let dropPose = false;
-    let confirmed = false;
-    const standing = sideStanding();
+  it('does not offer the manual fallback before the hands-free timeout', () => {
     const run = runFloorPartial({
-      frameAt: (ts) => (dropPose ? { timestampMs: ts, landmarks: [] } : standing(ts)),
-      maxFrames: 1400,
+      frameAt: sideStanding(),
+      maxFrames: 600,
+    });
+    expect(run.spoken).not.toContain('final-position-set-v21');
+    expect(run.spoken).not.toContain('countdown-three');
+    expect(latestFloorSetup(run)).toMatchObject({
+      fallbackAvailable: false,
+      actionLabel: null,
+      readinessSource: null,
+    });
+  });
+
+  it('allows the delayed manual fallback to start when camera floor detection cannot settle', () => {
+    let firstFallbackAccepted: boolean | null = null;
+    const run = runFloorPartial({
+      frameAt: sideStanding(),
+      maxFrames: 1600,
       onUpdate: (u, player) => {
-        if (confirmed || !u.floorSetup) return;
-        confirmed = player.confirmFloorStartPosition({
+        if (!u.floorSetup?.fallbackAvailable || firstFallbackAccepted !== null) return;
+        firstFallbackAccepted = player.confirmFloorStartPosition({
           exerciseId: u.floorSetup.exerciseId,
           setIndex: u.floorSetup.setIndex,
           setupEpoch: u.floorSetup.setupEpoch,
         });
-        dropPose = confirmed;
       },
     });
-    expect(confirmed).toBe(true);
-    expect(run.spoken).not.toContain('final-position-set-v21');
-    expect(run.spoken).not.toContain('countdown-three');
-    expect(latestFloorSetup(run).phase).toBe('awaiting_visibility');
-  });
-
-  it('blocks camera readiness without the required explicit floor confirmation', () => {
-    let setupSeen = false;
-    const standing = sideStanding();
-    const floor = floorStartSide();
-    const run = runFloorPartial({
-      frameAt: (ts) => (setupSeen ? floor(ts) : standing(ts)),
-      maxFrames: 1600,
-      onUpdate: (u) => {
-        if (u.floorSetup) setupSeen = true;
-      },
+    expect(firstFallbackAccepted).toBe(true);
+    expect(run.spoken).toContain('final-position-set-v21');
+    expect(run.spoken).toContain('countdown-three');
+    expect(latestFloorSetup(run)).toMatchObject({
+      userConfirmed: true,
+      readinessSource: 'user_fallback_selected',
     });
-    expect(run.spoken).not.toContain('final-position-set-v21');
-    expect(run.spoken).not.toContain('countdown-three');
-    expect(latestFloorSetup(run).userConfirmed).toBe(false);
   });
 
-  it('deduplicates rapid ready taps with the setup epoch guard', () => {
+  it('deduplicates rapid fallback taps with the setup epoch guard', () => {
     let first: boolean | null = null;
     let second: boolean | null = null;
     runFloorPartial({
-      maxFrames: 1000,
+      frameAt: sideStanding(),
+      maxFrames: 1600,
       onUpdate: (u, player) => {
-        if (!u.floorSetup || first !== null) return;
+        if (!u.floorSetup?.fallbackAvailable || first !== null) return;
         const guard = {
           exerciseId: u.floorSetup.exerciseId,
           setIndex: u.floorSetup.setIndex,
@@ -478,20 +475,15 @@ describe('TrainingSessionPlayer — floor final-position readiness', () => {
   });
 
   it('returns to visibility readiness when tracking is lost during floor setup', () => {
-    let confirmed = false;
+    let setupSeen = false;
     let dropPose = false;
     const standing = sideStanding();
     const floor = floorStartSide();
     const run = runFloorPartial({
-      frameAt: (ts) => (dropPose ? { timestampMs: ts, landmarks: [] } : confirmed ? floor(ts) : standing(ts)),
+      frameAt: (ts) => (dropPose ? { timestampMs: ts, landmarks: [] } : setupSeen ? floor(ts) : standing(ts)),
       maxFrames: 1800,
-      onUpdate: (u, player) => {
-        if (confirmed || !u.floorSetup) return;
-        confirmed = player.confirmFloorStartPosition({
-          exerciseId: u.floorSetup.exerciseId,
-          setIndex: u.floorSetup.setIndex,
-          setupEpoch: u.floorSetup.setupEpoch,
-        });
+      onUpdate: (u) => {
+        if (u.floorSetup) setupSeen = true;
       },
       onVoice: (cues) => {
         if (cues.includes('final-position-set-v21')) dropPose = true;
@@ -507,12 +499,11 @@ describe('TrainingSessionPlayer — floor final-position readiness', () => {
   });
 
   it('keeps the floor transition to one first-use cue across later floor sets', () => {
-    let confirmations = 0;
-    let confirmedForEpoch = -1;
+    let setupSeen = false;
     const standing = sideStanding();
     const floor = floorStartSide();
     const run = runFloorPartial({
-      frameAt: (ts) => (confirmedForEpoch >= 0 ? floor(ts) : standing(ts)),
+      frameAt: (ts) => (setupSeen ? floor(ts) : standing(ts)),
       config: {
         ...DEFAULT_TRAINING_CONFIG,
         postInstructionsDwellMs: 200,
@@ -521,21 +512,23 @@ describe('TrainingSessionPlayer — floor final-position readiness', () => {
       },
       maxFrames: 4500,
       stopAtSet: false,
-      onUpdate: (u, player) => {
-        if (!u.floorSetup || u.floorSetup.userConfirmed) return;
-        if (
-          player.confirmFloorStartPosition({
-            exerciseId: u.floorSetup.exerciseId,
-            setIndex: u.floorSetup.setIndex,
-            setupEpoch: u.floorSetup.setupEpoch,
-          })
-        ) {
-          confirmations++;
-          confirmedForEpoch = u.floorSetup.setupEpoch;
-        }
+      onUpdate: (u) => {
+        if (u.floorSetup) setupSeen = true;
       },
     });
-    expect(confirmations).toBeGreaterThan(1);
+    const cameraReadyFloorSetups = run.updates.filter(
+      (update) => update.floorSetup?.readinessSource === 'camera_inferred'
+    );
+    expect(cameraReadyFloorSetups.length).toBeGreaterThan(1);
     expect(run.spoken.filter((cue) => cue === 'floor_slow_transition')).toHaveLength(1);
+  });
+
+  it('keeps floor setup free of training credit and progression authorities', () => {
+    const source = fs.readFileSync(path.join(process.cwd(), 'src/training/sessionPlayer.ts'), 'utf8');
+    expect(source).not.toMatch(/makeTrainingSessionCompletion/);
+    expect(source).not.toMatch(/annotateCompletionWithScheduleCredit/);
+    expect(source).not.toMatch(/applyProgressionEvidence/);
+    expect(source).not.toMatch(/recordTrainingSessionCompletion/);
+    expect(source).not.toMatch(/percentile/);
   });
 });

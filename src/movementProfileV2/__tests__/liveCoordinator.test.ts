@@ -91,6 +91,44 @@ describe('MovementProfileV2LiveCoordinator', () => {
     expect(chair?.reps).not.toBe(12);
   });
 
+  it('does not let post-window chair frames inflate the displayed count beyond the saved result', () => {
+    const coordinator = createCoordinator();
+    const activeAt = advanceToChairActive(coordinator, 0);
+    const session = chairStandSession({
+      seed: 909,
+      noiseAmp: 0,
+      calibrationMs: 100,
+      riseMsPerRep: [900, 900, 900],
+      sitMs: 600,
+      settleMs: 300,
+      topMs: 400,
+      descendMs: 700,
+      restMs: 500,
+      tailMs: 1000,
+      nearSide: 'right',
+    });
+
+    for (const raw of session.frames) {
+      const nowMs = activeAt + 31000 + raw.timestampMs;
+      feedOutput(
+        coordinator,
+        trackingOutput({ ...raw, timestampMs: nowMs }, session.truth.bodyUnit, { leftSide: 0.3, rightSide: 0.95 }),
+        nowMs
+      );
+    }
+
+    expect(coordinator.snapshot(activeAt + 40000).chairReps).toBe(0);
+    coordinator.receiveTimerTick(activeAt + 40000);
+    const snapshot = coordinator.snapshot(activeAt + 40000);
+    const chair = snapshot.flow.items.find((item) => item.movementId === CHAIR_RISE_V2_ID)?.result as
+      | { reps: number }
+      | undefined;
+
+    expect(snapshot.stage).toBe('balance_setup');
+    expect(chair?.reps).toBe(snapshot.diagnostics.chair.officialReps);
+    expect(chair?.reps).toBe(0);
+  });
+
   it('starts balance from live foot lift, enforces minimum rest, and can store the best live trial', () => {
     const coordinator = createCoordinator();
     let nowMs = advanceThroughChair(coordinator, 0) + 100;
@@ -148,6 +186,99 @@ describe('MovementProfileV2LiveCoordinator', () => {
     expect(hinge.receiveUserAction({ type: 'start_hinge_capture' }, nowMs)).toBe(false);
     expect(hinge.receiveUserAction({ type: 'hinge_setup_voice_completed' }, nowMs + 1)).toBe(true);
     expect(hinge.receiveUserAction({ type: 'start_hinge_capture' }, nowMs + 2)).toBe(true);
+  });
+
+  it('auto-advances public hands-free chair setup only after voice guidance and stable camera readiness', () => {
+    const coordinator = createHandsFreeCoordinator();
+    expect(coordinator.snapshot(0)).toMatchObject({
+      stage: 'chair_setup',
+      handsFreeMode: true,
+      handsFreeFallbackAvailable: false,
+    });
+
+    feedOutput(coordinator, trackingOutput(chairSetupRaw(100), 0.3, { leftSide: 0.3, rightSide: 0.95 }), 100);
+    expect(coordinator.snapshot(100).stage).toBe('chair_setup');
+
+    expect(coordinator.receiveUserAction({ type: 'chair_setup_voice_completed' }, 200)).toBe(true);
+    feedOutput(coordinator, trackingOutput(chairSetupRaw(300), 0.3, { leftSide: 0.3, rightSide: 0.95 }), 300);
+    expect(coordinator.snapshot(300).stage).toBe('chair_setup');
+
+    feedOutput(coordinator, trackingOutput(chairSetupRaw(1600), 0.3, { leftSide: 0.3, rightSide: 0.95 }), 1600);
+    const snapshot = coordinator.snapshot(1600);
+    expect(snapshot.stage).toBe('chair_practice');
+    expect(snapshot.lastTransition?.reason).toBe('chair_setup_confirmed');
+  });
+
+  it('infers balance leg hands-free, starts from stable foot lift, and auto-saves the best rest result', () => {
+    const coordinator = createHandsFreeCoordinator();
+    let nowMs = advanceThroughChair(coordinator, 0) + 100;
+    expect(coordinator.snapshot(nowMs).stage).toBe('balance_setup');
+    expect(coordinator.receiveUserAction({ type: 'balance_setup_voice_completed' }, nowMs)).toBe(true);
+
+    feedOutput(coordinator, trackingOutput(balanceRaw(nowMs + 100, 'left', true)), nowMs + 100);
+    expect(coordinator.snapshot(nowMs + 100).stage).toBe('balance_setup');
+    feedOutput(coordinator, trackingOutput(balanceRaw(nowMs + 1400, 'left', true)), nowMs + 1400);
+    let snapshot = coordinator.snapshot(nowMs + 1400);
+    expect(snapshot.stage).toBe('balance_ready');
+    expect(snapshot.flow.standingLeg).toBe('left');
+
+    expect(coordinator.receiveUserAction({ type: 'balance_attempt_voice_completed' }, nowMs + 1500)).toBe(true);
+    for (let index = 1; index <= 4; index++) {
+      feedOutput(
+        coordinator,
+        trackingOutput(balanceRaw(nowMs + 1500 + index * 100, 'left', true)),
+        nowMs + 1500 + index * 100
+      );
+    }
+    nowMs += 1900;
+    expect(coordinator.snapshot(nowMs).stage).toBe('balance_trial');
+    nowMs = finishBalanceByTouchdown(coordinator, nowMs, 'left');
+    coordinator.receiveTimerTick(nowMs + 60000);
+
+    snapshot = coordinator.snapshot(nowMs + 60000);
+    const balance = snapshot.flow.items.find((item) => item.movementId === ONE_LEG_BALANCE_V2_ID)?.result as
+      | { declinedRemainingTrials: boolean; setup?: { source?: string; standingLeg?: BodySide } | null }
+      | undefined;
+    expect(snapshot.stage).toBe('shoulder_setup');
+    expect(snapshot.lastTransition?.reason).toBe('balance_auto_best_after_rest');
+    expect(balance?.declinedRemainingTrials).toBe(true);
+    expect(balance?.setup).toMatchObject({ source: 'camera_inferred', standingLeg: 'left' });
+  });
+
+  it('infers shoulder side and starts shoulder plus hinge captures hands-free from stable capture poses', () => {
+    const shoulderCoordinator = createHandsFreeCoordinator();
+    let nowMs = advanceThroughShoulderSetup(shoulderCoordinator, 0);
+    expect(shoulderCoordinator.snapshot(nowMs).stage).toBe('shoulder_setup');
+    expect(shoulderCoordinator.receiveUserAction({ type: 'shoulder_transition_voice_completed' }, nowMs)).toBe(true);
+
+    feedOutput(
+      shoulderCoordinator,
+      trackingOutput(shoulderRaw(nowMs + 100, 'right'), 0.3, { leftSide: 0.3, rightSide: 0.95, rightArm: 0.95 }),
+      nowMs + 100
+    );
+    feedOutput(
+      shoulderCoordinator,
+      trackingOutput(shoulderRaw(nowMs + 1400, 'right'), 0.3, { leftSide: 0.3, rightSide: 0.95, rightArm: 0.95 }),
+      nowMs + 1400
+    );
+    let snapshot = shoulderCoordinator.snapshot(nowMs + 1400);
+    expect(snapshot.stage).toBe('shoulder_ready');
+    expect(snapshot.flow.shoulderSide).toBe('right');
+
+    expect(shoulderCoordinator.receiveUserAction({ type: 'shoulder_setup_voice_completed' }, nowMs + 1500)).toBe(true);
+    feedOutput(shoulderCoordinator, trackingOutput(shoulderRaw(nowMs + 1600, 'right')), nowMs + 1600);
+    feedOutput(shoulderCoordinator, trackingOutput(shoulderRaw(nowMs + 2900, 'right')), nowMs + 2900);
+    snapshot = shoulderCoordinator.snapshot(nowMs + 2900);
+    expect(snapshot.stage).toBe('shoulder_active');
+    expect(snapshot.diagnostics.shoulder.attempts).toBe(1);
+
+    const hingeCoordinator = createHandsFreeCoordinator();
+    nowMs = completeLiveCheckupUntilHinge(hingeCoordinator);
+    expect(hingeCoordinator.snapshot(nowMs).stage).toBe('hinge_setup');
+    expect(hingeCoordinator.receiveUserAction({ type: 'hinge_setup_voice_completed' }, nowMs)).toBe(true);
+    feedOutput(hingeCoordinator, trackingOutput(hingeRaw(nowMs + 100)), nowMs + 100);
+    feedOutput(hingeCoordinator, trackingOutput(hingeRaw(nowMs + 1400)), nowMs + 1400);
+    expect(hingeCoordinator.snapshot(nowMs + 1400).stage).toBe('hinge_active');
   });
 
   it('recovers safely from app backgrounding during active live protocol stages', () => {
@@ -388,6 +519,13 @@ function createCoordinator(): MovementProfileV2LiveCoordinator {
   });
 }
 
+function createHandsFreeCoordinator(): MovementProfileV2LiveCoordinator {
+  return new MovementProfileV2LiveCoordinator({
+    ...createMovementProfileV2InternalFlow({ startedAt: STARTED_AT }),
+    sourceType: 'baseline',
+  }, { handsFreeMode: true });
+}
+
 function completeLiveCheckup(coordinator: MovementProfileV2LiveCoordinator): CheckUp | null {
   let nowMs = completeLiveCheckupUntilHinge(coordinator);
 
@@ -528,8 +666,10 @@ function startBalanceTrial(
   expect(coordinator.receiveUserAction({ type: 'balance_attempt_voice_completed' }, startMs + 1)).toBe(true);
   let nowMs = startMs + 100;
   feedOutput(coordinator, trackingOutput(balanceRaw(nowMs, standingLeg, false)), nowMs);
-  nowMs += 100;
-  feedOutput(coordinator, trackingOutput(balanceRaw(nowMs, standingLeg, true)), nowMs);
+  for (let index = 1; index <= 4; index++) {
+    nowMs += 100;
+    feedOutput(coordinator, trackingOutput(balanceRaw(nowMs, standingLeg, true)), nowMs);
+  }
   expect(coordinator.snapshot(nowMs).stage).toBe('balance_trial');
   return nowMs;
 }
@@ -644,6 +784,21 @@ function lostOutput(timestampMs: number): PipelineFrameOutput {
     events: [{ type: 'tracking-interrupted', timestampMs }],
     fps: 30,
   };
+}
+
+function chairSetupRaw(timestampMs: number): RawLandmarkEvent {
+  return rawFromPoints(timestampMs, [
+    [LM.LEFT_SHOULDER, 0.44, 0.42],
+    [LM.RIGHT_SHOULDER, 0.56, 0.42],
+    [LM.LEFT_HIP, 0.48, 0.62],
+    [LM.RIGHT_HIP, 0.52, 0.62],
+    [LM.LEFT_KNEE, 0.40, 0.72],
+    [LM.RIGHT_KNEE, 0.60, 0.72],
+    [LM.LEFT_ANKLE, 0.49, 0.86],
+    [LM.RIGHT_ANKLE, 0.51, 0.86],
+    [LM.LEFT_WRIST, 0.45, 0.49],
+    [LM.RIGHT_WRIST, 0.55, 0.49],
+  ]);
 }
 
 function balanceRaw(timestampMs: number, standingLeg: BodySide, raised: boolean): RawLandmarkEvent {

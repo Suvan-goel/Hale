@@ -8,6 +8,7 @@ import { RiggedHumanSilhouetteRenderer } from './RiggedHumanSilhouetteRenderer';
 import { MediaPipeSkeletonRenderer } from './MediaPipeSkeletonRenderer';
 import { PointCloudBodyPoseRenderer } from './PointCloudBodyPoseRenderer';
 import { PremiumConstellationHumanRenderer } from './PremiumConstellationHumanRenderer';
+import { PrivacyShadowRenderer } from './PrivacyShadowRenderer';
 import { ShadowSilhouetteRenderer } from './ShadowSilhouetteRenderer';
 import { SoftDigitalTwinRenderer } from './SoftDigitalTwinRenderer';
 import { SoftSilhouetteRenderer } from './SoftSilhouetteRenderer';
@@ -121,6 +122,8 @@ export const PoseAvatarRenderer = React.forwardRef<
         <ContourFieldRenderer ref={innerRef} {...rendererProps} />
       ) : config.mode === 'premium_constellation_human' ? (
         <PremiumConstellationHumanRenderer ref={innerRef} {...rendererProps} />
+      ) : config.mode === 'privacy_shadow' ? (
+        <PrivacyShadowRenderer ref={innerRef} {...rendererProps} />
       ) : config.mode === 'point_cloud_body' ? (
         <PointCloudBodyPoseRenderer ref={innerRef} {...rendererProps} />
       ) : config.mode === 'constellation' ? (

@@ -19,12 +19,13 @@ import {
   ViewStyle,
 } from 'react-native';
 
+import { VoiceCueKey, voicePriority } from '../audio/cues';
 import {
   LandmarksEventPayload,
   PoseErrorEventPayload,
 } from '../../modules/expo-pose-detection';
 import { SfxChannel, VoiceChannel, type VoiceCueStartedEvent } from '../audio/voicePlayer';
-import type { BodySide } from '../checkup';
+import type { BodySide, MeasurementSideSource } from '../checkup';
 import type { VoiceExperienceMode } from '../config/voiceExperienceTypes';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
@@ -42,6 +43,7 @@ import {
 import { ANDROID_VIDEO_ROT_640_POSE_PROFILE } from '../pose/nativePoseProfiles';
 import { PosePipeline } from '../pose/pipeline';
 import { PreflightCheck, PreflightPrompt } from '../preflight/preflight';
+import { shouldSpeakFramingPrompt } from '../preflight/promptTiming';
 import { LandmarkRecorder } from '../recording/recorder';
 import { SkeletonView, SkeletonViewHandle } from '../render/SkeletonView';
 import type {
@@ -52,6 +54,7 @@ import { colors, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 import { MicroCheckPhase, MicroCheckResult, MicroCheckRunner, MicroCheckType } from '../training/microCheck';
 import {
+  MicroCheckCameraSideResolver,
   createMicroCheckMeasurementContextForSide,
   deriveMicroCheckSideSetup,
   oppositeMicroCheckSide,
@@ -158,6 +161,7 @@ export function MicroCheckScreen({
   onCancel,
   voiceId,
   voiceExperienceMode = 'legacy',
+  handsFreeMode = true,
   debugScenario,
 }: {
   type: MicroCheckType;
@@ -166,10 +170,12 @@ export function MicroCheckScreen({
   onCancel?: () => void;
   voiceId?: string;
   voiceExperienceMode?: VoiceExperienceMode;
+  handsFreeMode?: boolean;
   debugScenario?: MicroCheckDebugScenario;
 }) {
   const [pipeline] = React.useState(() => new PosePipeline());
   const [preflight] = React.useState(() => new PreflightCheck());
+  const [sideResolver] = React.useState(() => new MicroCheckCameraSideResolver());
   const [startedAtIso] = React.useState(() => new Date().toISOString());
   const effectiveSideSetup = React.useMemo(
     () =>
@@ -194,6 +200,9 @@ export function MicroCheckScreen({
   const skeletonRef = React.useRef<SkeletonViewHandle>(null);
   const lastUiUpdateRef = React.useRef(0);
   const lastFrameTimestampRef = React.useRef(0);
+  const sideSelectionPinnedRef = React.useRef(false);
+  const setupLastPromptCueRef = React.useRef<VoiceCueKey | null>(null);
+  const setupLastPromptAtMsRef = React.useRef(-Infinity);
   const pauseStartedAtRef = React.useRef(0);
   const pausedRef = React.useRef(false);
   const resumePendingRef = React.useRef(false);
@@ -203,6 +212,9 @@ export function MicroCheckScreen({
   const [paused, setPaused] = React.useState(false);
   const [showHelp, setShowHelp] = React.useState(false);
   const [discardModalVisible, setDiscardModalVisible] = React.useState(false);
+  const [handsFreeSetupNotice, setHandsFreeSetupNotice] = React.useState<string | null>(null);
+  const [manualSideFallbackAvailable, setManualSideFallbackAvailable] = React.useState(false);
+  const [manualSideFallbackVisible, setManualSideFallbackVisible] = React.useState(false);
   const [cameraAvailability, setCameraAvailability] = React.useState<CameraAvailability>('checking');
   const windowSize = useWindowDimensions();
   const responsive = useResponsiveLayout();
@@ -217,13 +229,26 @@ export function MicroCheckScreen({
   const metricDebug = debugScenario === 'metric';
 
   const pinMicroCheckSide = React.useCallback(
-    (selectedSide: BodySide) => {
-      if (runner) return;
+    (
+      selectedSide: BodySide,
+      options: {
+        observedSide?: BodySide | null;
+        source?: MeasurementSideSource | null;
+        userConfirmed?: boolean;
+      } = {}
+    ) => {
+      if (runner || sideSelectionPinnedRef.current) return;
+      sideSelectionPinnedRef.current = true;
+      setHandsFreeSetupNotice(null);
+      setManualSideFallbackAvailable(false);
       const measurementContext = createMicroCheckMeasurementContextForSide({
         microCheckType,
         startedAt: startedAtIso,
         setup: effectiveSideSetup,
         selectedSide,
+        observedSide: options.observedSide ?? selectedSide,
+        source: options.source ?? undefined,
+        userConfirmed: options.userConfirmed ?? true,
       });
       setRunner(
         new MicroCheckRunner(microCheckType, startedAtIso, preflight, undefined, measurementContext, {
@@ -236,6 +261,16 @@ export function MicroCheckScreen({
   );
 
   React.useEffect(() => {
+    sideResolver.reset();
+    sideSelectionPinnedRef.current = false;
+    setupLastPromptCueRef.current = null;
+    setupLastPromptAtMsRef.current = -Infinity;
+    setHandsFreeSetupNotice(null);
+    setManualSideFallbackAvailable(false);
+    setManualSideFallbackVisible(false);
+  }, [effectiveSideSetup, microCheckType, sideResolver]);
+
+  React.useEffect(() => {
     if (__DEV__) recorder.start();
     return () => {
       void recorder.stop();
@@ -243,6 +278,13 @@ export function MicroCheckScreen({
       sfx.release();
     };
   }, [recorder, voice, sfx]);
+
+  const handsFreeSideSetupActive =
+    !metricDebug &&
+    handsFreeMode &&
+    effectiveSideSetup.sideRequired &&
+    runner === null &&
+    !manualSideFallbackVisible;
 
   const onLandmarks = React.useCallback(
     (e: { nativeEvent: LandmarksEventPayload }) => {
@@ -254,6 +296,44 @@ export function MicroCheckScreen({
       poseLatencyDiagnostics?.markJsTransformEnd(latencyFrame);
       const sourceAspect = event.sourceWidth / event.sourceHeight;
       if (!runner) {
+        if (handsFreeSideSetupActive) {
+          const preflightStatus = preflight.update(out);
+          const sideStatus = sideResolver.update(out, microCheckType, effectiveSideSetup);
+          if (!sideStatus.ready && preflightStatus.prompt !== 'ready') {
+            const cue = preflightPromptCue(preflightStatus.prompt);
+            if (
+              shouldSpeakFramingPrompt({
+                cue,
+                lastCue: setupLastPromptCueRef.current,
+                lastSpokenAtMs: setupLastPromptAtMsRef.current,
+                nowMs: event.timestampMs,
+                repeatMs: 10000,
+              })
+            ) {
+              setupLastPromptCueRef.current = cue;
+              setupLastPromptAtMsRef.current = event.timestampMs;
+              voice.speak([cue], voicePriority(cue));
+            }
+          }
+          if (sideStatus.ready && sideStatus.selectedSide) {
+            pinMicroCheckSide(sideStatus.selectedSide, {
+              observedSide: sideStatus.observedSide,
+              source: sideStatus.source,
+              userConfirmed: false,
+            });
+          }
+          if (event.timestampMs - lastUiUpdateRef.current >= UI_UPDATE_INTERVAL_MS) {
+            lastUiUpdateRef.current = event.timestampMs;
+            const next: Snapshot = {
+              ...INITIAL,
+              phase: 'preflight',
+              setupPrompt: preflightStatus.prompt,
+            };
+            setSnapshot((prev) => (sameSnapshot(prev, next) ? prev : next));
+            setHandsFreeSetupNotice(sideStatus.setupCaption || null);
+            setManualSideFallbackAvailable(sideStatus.fallbackAvailable);
+          }
+        }
         skeletonRef.current?.update(out, sourceAspect);
         poseLatencyDiagnostics?.markRendererUpdateSubmitted(latencyFrame);
         return;
@@ -313,7 +393,22 @@ export function MicroCheckScreen({
       skeletonRef.current?.update(out, sourceAspect);
       poseLatencyDiagnostics?.markRendererUpdateSubmitted(latencyFrame);
     },
-    [pipeline, poseLatencyDiagnostics, runner, voice, sfx, recorder, onComplete, microCheckType, voiceExperienceMode]
+    [
+      effectiveSideSetup,
+      handsFreeSideSetupActive,
+      microCheckType,
+      onComplete,
+      pinMicroCheckSide,
+      pipeline,
+      poseLatencyDiagnostics,
+      preflight,
+      recorder,
+      runner,
+      sideResolver,
+      sfx,
+      voice,
+      voiceExperienceMode,
+    ]
   );
 
   const onPoseError = React.useCallback((e: { nativeEvent: PoseErrorEventPayload }) => {
@@ -373,7 +468,8 @@ export function MicroCheckScreen({
     visibleSnapshot,
     visiblePaused,
     visibleShowHelp,
-    visibleCameraAvailability
+    visibleCameraAvailability,
+    handsFreeSideSetupActive ? handsFreeSetupNotice : null
   );
   const sessionNoticeAction = sessionNotice?.action ?? null;
   const footerMeta = microCheckFooterMeta(microCheckType);
@@ -382,6 +478,8 @@ export function MicroCheckScreen({
   const avatarDomain = domainForMicroCheck(microCheckType);
   const canControl =
     runner !== null && visibleCameraAvailability !== 'unavailable' && visibleSnapshot.phase !== 'done';
+  const showManualSideFallbackAction =
+    handsFreeSideSetupActive && visibleCameraAvailability !== 'unavailable' && manualSideFallbackAvailable;
   const showUnavailableAction = visibleCameraAvailability === 'unavailable' && !!onCancel;
   const viewportWidth = Math.max(1, Math.min(windowSize.width - spacing.md * 2, spacing.pageMaxWidth));
   const cameraViewport = React.useMemo(
@@ -400,12 +498,22 @@ export function MicroCheckScreen({
     [cameraViewport.height, poseWindow.height, poseWindow.top]
   );
 
-  if (!metricDebug && effectiveSideSetup.sideRequired && runner === null) {
+  if (
+    !metricDebug &&
+    effectiveSideSetup.sideRequired &&
+    runner === null &&
+    (!handsFreeMode || manualSideFallbackVisible)
+  ) {
     return (
       <MicroCheckSideSetupScreen
         microCheckType={microCheckType}
         setup={effectiveSideSetup}
-        onConfirm={pinMicroCheckSide}
+        onConfirm={(side) =>
+          pinMicroCheckSide(side, {
+            source: handsFreeMode ? 'user_fallback_selected' : undefined,
+            userConfirmed: true,
+          })
+        }
         onCancel={onCancel}
       />
     );
@@ -414,7 +522,7 @@ export function MicroCheckScreen({
   return (
     <View style={styles.container}>
       <SafePoseDetectionView
-        active={!metricDebug && runner !== null}
+        active={!metricDebug && (runner !== null || handsFreeSideSetupActive)}
         modelVariant="full"
         {...ANDROID_VIDEO_ROT_640_POSE_PROFILE}
         latencyDiagnosticsEnabled={poseLatencyDiagnostics !== null}
@@ -508,6 +616,10 @@ export function MicroCheckScreen({
           ) : canControl ? (
             <View style={styles.controls}>
               <ControlButton title={visiblePaused ? 'Resume' : 'Pause'} onPress={visiblePaused ? resume : pause} />
+            </View>
+          ) : showManualSideFallbackAction ? (
+            <View style={styles.controls}>
+              <ControlButton title="Choose side manually" onPress={() => setManualSideFallbackVisible(true)} />
             </View>
           ) : null}
         </View>
@@ -980,12 +1092,14 @@ function microCheckSessionNotice(
   snapshot: Snapshot,
   paused: boolean,
   showHelp: boolean,
-  cameraAvailability: CameraAvailability
+  cameraAvailability: CameraAvailability,
+  handsFreeSetupNotice: string | null = null
 ): MicroCheckNotice | null {
   if (cameraAvailability === 'unavailable') return null;
   if (paused) return { text: 'Paused', action: null };
   if (showHelp) return { text: 'Setup help', action: null };
   if (snapshot.phase === 'done') return { text: 'Logged', action: null };
+  if (handsFreeSetupNotice) return { text: handsFreeSetupNotice, action: 'help' };
   const setupText = microCheckSetupNoticeText(snapshot.setupPrompt);
   if (setupText) return { text: setupText, action: 'help' };
   if (snapshot.phase === 'preflight') return { text: PHASE_CAPTION.preflight ?? 'Getting you framed', action: null };
@@ -996,6 +1110,10 @@ function microCheckSessionNotice(
     return { text: 'Reach comfortably and return tall', action: null };
   }
   return null;
+}
+
+function preflightPromptCue(prompt: PreflightPrompt): VoiceCueKey {
+  return prompt === 'ready' ? 'framing-ready' : prompt;
 }
 
 function microCheckSetupNoticeText(prompt: PreflightPrompt | null): string | null {
