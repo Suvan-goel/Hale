@@ -19,6 +19,7 @@ export type ArtDirectedHumanSurfaceId =
   | 'head';
 
 export type ArtDirectedHumanFillKey = 'body' | 'limb';
+export type ArtDirectedHumanJointStyle = 'connected' | 'separated';
 
 export interface ArtDirectedHumanSurface {
   id: ArtDirectedHumanSurfaceId;
@@ -43,6 +44,7 @@ export interface ArtDirectedHumanGeometry {
 
 export interface ArtDirectedHumanGeometryOptions {
   minConfidence?: number;
+  jointStyle?: ArtDirectedHumanJointStyle;
 }
 
 interface Bounds {
@@ -74,15 +76,15 @@ interface HeadAnchor {
 const DEFAULT_MIN_CONFIDENCE = 0.35;
 const MIN_RENDER_CONFIDENCE = 0.12;
 const SURFACE_IDS: readonly ArtDirectedHumanSurfaceId[] = [
-  'body',
   'rightLeg',
   'leftLeg',
+  'body',
   'rightArm',
   'leftArm',
   'rightFoot',
   'leftFoot',
-  'rightHand',
   'leftHand',
+  'rightHand',
   'head',
 ];
 const EMPTY_BOUNDS: Bounds = {
@@ -143,6 +145,7 @@ export function buildArtDirectedHumanGeometry(
   if (!pose.hasPose) return;
 
   const minConfidence = options.minConfidence ?? DEFAULT_MIN_CONFIDENCE;
+  const jointStyle = options.jointStyle ?? 'connected';
   const torso = getTorsoEstimate(pose, MIN_RENDER_CONFIDENCE);
   if (torso === null || torso.confidence < MIN_RENDER_CONFIDENCE) return;
 
@@ -150,14 +153,15 @@ export function buildArtDirectedHumanGeometry(
   out.hasPose = true;
   out.opacity = confidenceOpacity(torso.confidence, minConfidence);
 
-  // Art direction: the torso/head template owns the neutral proportions; landmarks
-  // only anchor it in the frame. Limbs then bend toward MediaPipe joints with
-  // clamped lengths so tracking jitter does not destroy the human silhouette.
-  buildLeg(pose, out, axes, 'right', minConfidence);
-  buildLeg(pose, out, axes, 'left', minConfidence);
-  buildArm(pose, out, axes, 'right', minConfidence);
-  buildArm(pose, out, axes, 'left', minConfidence);
+  // Art direction: keep the torso/hip envelope stable and let limbs deform as
+  // independent soft shapes. A single full-body path self-intersects when arms
+  // bend across the torso; overlapping same-fill segments preserve continuity
+  // without letting one noisy wrist reshape the whole body.
+  buildLeg(pose, out, axes, 'right', minConfidence, jointStyle);
+  buildLeg(pose, out, axes, 'left', minConfidence, jointStyle);
   buildBody(pose, out, axes, torso.confidence, minConfidence);
+  buildArm(pose, out, axes, 'right', minConfidence, jointStyle);
+  buildArm(pose, out, axes, 'left', minConfidence, jointStyle);
   buildHead(pose, out, axes, torso.confidence, minConfidence);
 
   let visible = 0;
@@ -209,27 +213,27 @@ function buildBody(
 ): void {
   const { side, down, shoulderMid, hipMid, bodyRef, shoulderHalf, hipHalf } = axes;
   const head = resolveHeadAnchor(pose, axes);
-  const neckTop = add(head.center, scale(down, head.ry * 0.9));
-  const neckBase = add(shoulderMid, scale(down, -bodyRef * 0.036));
-  const neckTopHalf = bodyRef * 0.038;
-  const neckBaseHalf = bodyRef * 0.122;
+  const neckTop = add(head.center, scale(down, head.ry * 0.86));
+  const neckBase = add(shoulderMid, scale(down, -bodyRef * 0.006));
+  const neckTopHalf = bodyRef * 0.052;
+  const neckBaseHalf = bodyRef * 0.098;
   const ribHalf = shoulderHalf * 0.76;
-  const waistHalf = Math.max(bodyRef * 0.158, shoulderHalf * 0.59);
-  const lowerWaistHalf = Math.max(bodyRef * 0.21, shoulderHalf * 0.76);
-  const hipBridgeHalf = Math.max(hipHalf * 1.2, bodyRef * 0.288);
+  const waistHalf = Math.max(bodyRef * 0.158, shoulderHalf * 0.53);
+  const lowerWaistHalf = Math.max(bodyRef * 0.196, shoulderHalf * 0.68);
+  const hipBridgeHalf = Math.max(hipHalf * 1.08, bodyRef * 0.255);
 
   const neckTopLeft = add(neckTop, scale(side, neckTopHalf));
   const neckLeft = add(neckBase, scale(side, neckBaseHalf));
-  const trapLeft = add(add(shoulderMid, scale(down, bodyRef * 0.004)), scale(side, shoulderHalf * 0.36));
-  const shoulderLeft = add(add(shoulderMid, scale(down, bodyRef * 0.052)), scale(side, shoulderHalf * 0.72));
-  const deltoidLeft = add(add(shoulderMid, scale(down, bodyRef * 0.152)), scale(side, shoulderHalf * 0.94));
-  const underArmLeft = add(add(shoulderMid, scale(down, bodyRef * 0.285)), scale(side, shoulderHalf * 0.72));
-  const ribLeft = add(add(shoulderMid, scale(down, bodyRef * 0.355)), scale(side, ribHalf));
-  const waistLeft = add(add(shoulderMid, scale(down, bodyRef * 0.61)), scale(side, waistHalf));
-  const lowWaistLeft = add(add(shoulderMid, scale(down, bodyRef * 0.74)), scale(side, lowerWaistHalf));
+  const trapLeft = add(add(shoulderMid, scale(down, bodyRef * 0.034)), scale(side, shoulderHalf * 0.42));
+  const shoulderLeft = add(add(shoulderMid, scale(down, bodyRef * 0.082)), scale(side, shoulderHalf * 0.74));
+  const deltoidLeft = add(add(shoulderMid, scale(down, bodyRef * 0.144)), scale(side, shoulderHalf * 0.86));
+  const underArmLeft = add(add(shoulderMid, scale(down, bodyRef * 0.286)), scale(side, shoulderHalf * 0.7));
+  const ribLeft = add(add(shoulderMid, scale(down, bodyRef * 0.36)), scale(side, ribHalf));
+  const waistLeft = add(add(shoulderMid, scale(down, bodyRef * 0.6)), scale(side, waistHalf));
+  const lowWaistLeft = add(add(shoulderMid, scale(down, bodyRef * 0.72)), scale(side, lowerWaistHalf));
   const hipLeft = add(add(hipMid, scale(down, bodyRef * 0.018)), scale(side, hipBridgeHalf));
-  const pelvisLeft = add(add(hipMid, scale(down, bodyRef * 0.106)), scale(side, hipHalf * 0.42));
-  const pelvisBottom = add(hipMid, scale(down, bodyRef * 0.135));
+  const pelvisLeft = add(add(hipMid, scale(down, bodyRef * 0.094)), scale(side, hipHalf * 0.36));
+  const pelvisBottom = add(hipMid, scale(down, bodyRef * 0.128));
 
   const points = [
     neckTopLeft,
@@ -275,7 +279,8 @@ function buildArm(
   out: ArtDirectedHumanGeometry,
   axes: BodyAxes,
   sideName: 'left' | 'right',
-  minConfidence: number
+  minConfidence: number,
+  jointStyle: ArtDirectedHumanJointStyle
 ): void {
   const shoulderLm = sideName === 'left' ? LM.LEFT_SHOULDER : LM.RIGHT_SHOULDER;
   const elbowLm = sideName === 'left' ? LM.LEFT_ELBOW : LM.RIGHT_ELBOW;
@@ -289,14 +294,14 @@ function buildArm(
 
   const sideSign = sideName === 'left' ? 1 : -1;
   const root = add(
-    add(pointFor(pose, shoulderLm), scale(axes.down, axes.bodyRef * 0.13)),
-    scale(axes.side, axes.bodyRef * 0.078 * sideSign)
+    add(pointFor(pose, shoulderLm), scale(axes.down, axes.bodyRef * 0.07)),
+    scale(axes.side, axes.bodyRef * 0.064 * sideSign)
   );
   const rawElbow = pointFor(pose, elbowLm);
-  const elbow = constrainFrom(root, rawElbow, axes.bodyRef * 0.24, axes.bodyRef * 0.6);
+  const elbow = constrainFrom(root, rawElbow, axes.bodyRef * 0.27, axes.bodyRef * 0.62);
   const wristFallback = add(elbow, scale(normalize(sub(elbow, root)), axes.bodyRef * 0.42));
   const wrist = landmarkUsable(pose, wristLm)
-    ? constrainFrom(elbow, pointFor(pose, wristLm), axes.bodyRef * 0.22, axes.bodyRef * 0.56)
+    ? constrainFrom(elbow, pointFor(pose, wristLm), axes.bodyRef * 0.28, axes.bodyRef * 0.6)
     : wristFallback;
   const handTarget = handTargetFromLandmarks(pose, wrist, elbow, indexLm, pinkyLm, axes.bodyRef);
   const confidence = Math.min(
@@ -306,17 +311,21 @@ function buildArm(
   );
   const upperMid = lerpPoint(root, elbow, 0.46);
   const forearmMid = lerpPoint(elbow, wrist, 0.56);
-  const path = ribbonPath(
+  const connectedPath = ribbonPath(
     [root, upperMid, elbow, forearmMid, wrist],
     [
-      axes.bodyRef * 0.044,
-      axes.bodyRef * 0.074,
+      axes.bodyRef * 0.078,
+      axes.bodyRef * 0.086,
+      axes.bodyRef * 0.058,
       axes.bodyRef * 0.054,
-      axes.bodyRef * 0.052,
-      axes.bodyRef * 0.032,
+      axes.bodyRef * 0.034,
     ],
     0.13
   );
+  const path =
+    jointStyle === 'separated'
+      ? separatedArmPath(root, elbow, wrist, axes.bodyRef)
+      : connectedPath;
   setSurface(out, `${sideName}Arm`, path, 'limb', confidence, minConfidence, 1);
   setSurface(
     out,
@@ -334,7 +343,8 @@ function buildLeg(
   out: ArtDirectedHumanGeometry,
   axes: BodyAxes,
   sideName: 'left' | 'right',
-  minConfidence: number
+  minConfidence: number,
+  jointStyle: ArtDirectedHumanJointStyle
 ): void {
   const hipLm = sideName === 'left' ? LM.LEFT_HIP : LM.RIGHT_HIP;
   const kneeLm = sideName === 'left' ? LM.LEFT_KNEE : LM.RIGHT_KNEE;
@@ -365,7 +375,7 @@ function buildLeg(
   );
   const thighMid = lerpPoint(root, knee, 0.42);
   const calfMid = lerpPoint(knee, ankle, 0.52);
-  const path = ribbonPath(
+  const connectedPath = ribbonPath(
     [root, thighMid, knee, calfMid, ankle],
     [
       axes.bodyRef * 0.17,
@@ -376,6 +386,10 @@ function buildLeg(
     ],
     0.13
   );
+  const path =
+    jointStyle === 'separated'
+      ? separatedLegPath(root, knee, ankle, axes.bodyRef)
+      : connectedPath;
   setSurface(out, `${sideName}Leg`, path, 'limb', confidence, minConfidence, 1);
   setSurface(
     out,
@@ -386,6 +400,58 @@ function buildLeg(
     minConfidence,
     1
   );
+}
+
+function separatedArmPath(root: Point, elbow: Point, wrist: Point, bodyRef: number): string {
+  const shoulderGap = bodyRef * 0.014;
+  const elbowGap = bodyRef * 0.052;
+  const wristGap = bodyRef * 0.018;
+  const upperStart = insetToward(root, elbow, shoulderGap);
+  const upperEnd = insetToward(elbow, root, elbowGap);
+  const lowerStart = insetToward(elbow, wrist, elbowGap);
+  const lowerEnd = insetToward(wrist, elbow, wristGap);
+
+  const upperArm = ribbonPath(
+    [upperStart, lerpPoint(upperStart, upperEnd, 0.5), upperEnd],
+    [bodyRef * 0.076, bodyRef * 0.086, bodyRef * 0.056],
+    0.16
+  );
+  const forearm = ribbonPath(
+    [lowerStart, lerpPoint(lowerStart, lowerEnd, 0.54), lowerEnd],
+    [bodyRef * 0.052, bodyRef * 0.052, bodyRef * 0.034],
+    0.16
+  );
+  return `${upperArm}${forearm}`;
+}
+
+function separatedLegPath(root: Point, knee: Point, ankle: Point, bodyRef: number): string {
+  const hipGap = bodyRef * 0.014;
+  const kneeGap = bodyRef * 0.06;
+  const ankleGap = bodyRef * 0.024;
+  const thighStart = insetToward(root, knee, hipGap);
+  const thighEnd = insetToward(knee, root, kneeGap);
+  const shinStart = insetToward(knee, ankle, kneeGap);
+  const shinEnd = insetToward(ankle, knee, ankleGap);
+
+  const thigh = ribbonPath(
+    [thighStart, lerpPoint(thighStart, thighEnd, 0.43), thighEnd],
+    [bodyRef * 0.156, bodyRef * 0.142, bodyRef * 0.084],
+    0.16
+  );
+  const shin = ribbonPath(
+    [shinStart, lerpPoint(shinStart, shinEnd, 0.54), shinEnd],
+    [bodyRef * 0.078, bodyRef * 0.096, bodyRef * 0.044],
+    0.16
+  );
+  return `${thigh}${shin}`;
+}
+
+function insetToward(from: Point, toward: Point, amount: number): Point {
+  const delta = sub(toward, from);
+  const len = Math.hypot(delta.x, delta.y);
+  if (len < 0.001) return from;
+  const clamped = Math.min(amount, len * 0.42);
+  return add(from, scale(delta, clamped / len));
 }
 
 function createBodyAxes(
@@ -410,8 +476,8 @@ function createBodyAxes(
   );
   const down = normalizeOr(sub(hipMid, shoulderMid), { x: 0, y: 1 });
   const side = normalizeOr(sub(leftShoulder, rightShoulder), { x: -down.y, y: down.x });
-  const shoulderHalf = clamp(Math.max(shoulderWidth * 0.82, bodyRef * 0.345), bodyRef * 0.31, bodyRef * 0.43);
-  const hipHalf = clamp(Math.max(hipWidth * 1.0, bodyRef * 0.29), bodyRef * 0.255, shoulderHalf * 0.98);
+  const shoulderHalf = clamp(Math.max(shoulderWidth * 0.86, bodyRef * 0.35), bodyRef * 0.315, bodyRef * 0.44);
+  const hipHalf = clamp(Math.max(hipWidth * 1.04, bodyRef * 0.305), bodyRef * 0.27, shoulderHalf * 1.02);
   return {
     side,
     down,
@@ -435,11 +501,13 @@ function handTargetFromLandmarks(
   bodyRef: number
 ): Point {
   const axis = normalizeOr(sub(wrist, elbow), { x: 0, y: 1 });
+  const template = add(wrist, scale(axis, bodyRef * 0.17));
   if (landmarkUsable(pose, indexLm) && landmarkUsable(pose, pinkyLm)) {
     const palm = midpoint(pointFor(pose, indexLm), pointFor(pose, pinkyLm));
-    return constrainFrom(wrist, palm, bodyRef * 0.16, bodyRef * 0.23);
+    const tracked = constrainFrom(wrist, palm, bodyRef * 0.14, bodyRef * 0.22);
+    return lerpPoint(template, tracked, 0.16);
   }
-  return add(wrist, scale(axis, bodyRef * 0.17));
+  return template;
 }
 
 function footTargetFromLandmarks(
@@ -467,8 +535,8 @@ function footTargetFromLandmarks(
 function resolveHeadAnchor(pose: ScreenPoseLandmarks, axes: BodyAxes): HeadAnchor {
   const { down, side, shoulderMid, bodyRef } = axes;
   const estimate = getHeadEstimate(pose, MIN_RENDER_CONFIDENCE);
-  const ry = clamp((estimate?.ry ?? bodyRef * 0.18) * 0.99, bodyRef * 0.154, bodyRef * 0.22);
-  const rx = clamp((estimate?.rx ?? ry * 0.78) * 0.98, bodyRef * 0.116, bodyRef * 0.168);
+  const ry = clamp((estimate?.ry ?? bodyRef * 0.18) * 1.0, bodyRef * 0.158, bodyRef * 0.22);
+  const rx = clamp((estimate?.rx ?? ry * 0.78) * 0.98, bodyRef * 0.116, bodyRef * 0.166);
   const templateCenter = add(shoulderMid, scale(down, -(ry * 1.72 + bodyRef * 0.02)));
   const trackedCenter =
     estimate && pointFinite(estimate.center)
@@ -482,23 +550,25 @@ function resolveHeadAnchor(pose: ScreenPoseLandmarks, axes: BodyAxes): HeadAncho
     bodyRef * 0.08,
     bodyRef * 0.06
   );
-  return { center: add(center, scale(down, bodyRef * 0.054)), rx, ry };
+  return { center: add(center, scale(down, bodyRef * 0.118)), rx, ry };
 }
 
 function headPath(center: Point, rx: number, ry: number, down: Point): string {
   const side = { x: -down.y, y: down.x };
+  const k = 0.5522847498;
   const top = add(center, scale(down, -ry));
-  const browRight = add(add(center, scale(down, -ry * 0.56)), scale(side, -rx * 0.88));
-  const cheekRight = add(add(center, scale(down, ry * 0.02)), scale(side, -rx));
-  const jawRight = add(add(center, scale(down, ry * 0.66)), scale(side, -rx * 0.58));
-  const bottom = add(center, scale(down, ry * 0.96));
-  const jawLeft = add(add(center, scale(down, ry * 0.66)), scale(side, rx * 0.58));
-  const cheekLeft = add(add(center, scale(down, ry * 0.02)), scale(side, rx));
-  const browLeft = add(add(center, scale(down, -ry * 0.56)), scale(side, rx * 0.88));
-  return smoothClosedPath(
-    [top, browRight, cheekRight, jawRight, bottom, jawLeft, cheekLeft, browLeft],
-    0.18
-  );
+  const right = add(center, scale(side, -rx));
+  const bottom = add(center, scale(down, ry));
+  const left = add(center, scale(side, rx));
+  const topToRightA = add(top, scale(side, -rx * k));
+  const topToRightB = add(right, scale(down, -ry * k));
+  const rightToBottomA = add(right, scale(down, ry * k));
+  const rightToBottomB = add(bottom, scale(side, -rx * k * 0.82));
+  const bottomToLeftA = add(bottom, scale(side, rx * k * 0.82));
+  const bottomToLeftB = add(left, scale(down, ry * k));
+  const leftToTopA = add(left, scale(down, -ry * k));
+  const leftToTopB = add(top, scale(side, rx * k));
+  return `M${p(top)}C${p(topToRightA)} ${p(topToRightB)} ${p(right)}C${p(rightToBottomA)} ${p(rightToBottomB)} ${p(bottom)}C${p(bottomToLeftA)} ${p(bottomToLeftB)} ${p(left)}C${p(leftToTopA)} ${p(leftToTopB)} ${p(top)}Z`;
 }
 
 function ribbonPath(points: readonly Point[], widths: readonly number[], tension: number): string {
@@ -526,35 +596,25 @@ function handPath(
   const normal = { x: -axis.y * sideSign, y: axis.x * sideSign };
   const outer = normal;
   const inner = scale(normal, -1);
-  const wristHalf = bodyRef * 0.03;
-  const palmLength = bodyRef * 0.098;
-  const fingerLength = bodyRef * 0.082;
-  const palmHalf = bodyRef * 0.05;
-  const fingerSpread = bodyRef * 0.043;
+  const wristHalf = bodyRef * 0.033;
+  const palmLength = bodyRef * 0.118;
+  const palmHalf = bodyRef * 0.049;
   const baseOuter = add(wrist, scale(outer, wristHalf));
   const baseInner = add(wrist, scale(inner, wristHalf * 0.92));
-  const thumbBase = add(add(wrist, scale(axis, palmLength * 0.42)), scale(outer, palmHalf * 0.78));
-  const thumbTip = add(add(wrist, scale(axis, palmLength * 0.62)), scale(outer, bodyRef * 0.07));
-  const palmOuter = add(add(wrist, scale(axis, palmLength * 0.86)), scale(outer, palmHalf * 0.9));
-  const indexTip = add(add(wrist, scale(axis, palmLength + fingerLength * 0.7)), scale(outer, fingerSpread));
-  const middleTip = add(add(wrist, scale(axis, palmLength + fingerLength)), scale(outer, fingerSpread * 0.16));
-  const ringTip = add(add(wrist, scale(axis, palmLength + fingerLength * 0.88)), scale(inner, fingerSpread * 0.36));
-  const littleTip = add(add(wrist, scale(axis, palmLength + fingerLength * 0.62)), scale(inner, fingerSpread * 0.82));
-  const palmInner = add(add(wrist, scale(axis, palmLength * 0.54)), scale(inner, palmHalf));
+  const palmOuter = add(add(wrist, scale(axis, palmLength * 0.42)), scale(outer, palmHalf));
+  const distalOuter = add(add(wrist, scale(axis, palmLength)), scale(outer, palmHalf * 0.48));
+  const distalInner = add(add(wrist, scale(axis, palmLength * 1.01)), scale(inner, palmHalf * 0.5));
+  const palmInner = add(add(wrist, scale(axis, palmLength * 0.38)), scale(inner, palmHalf * 0.9));
   return smoothClosedPath(
     [
       baseOuter,
-      thumbBase,
-      thumbTip,
       palmOuter,
-      indexTip,
-      middleTip,
-      ringTip,
-      littleTip,
+      distalOuter,
+      distalInner,
       palmInner,
       baseInner,
     ],
-    0.12
+    0.18
   );
 }
 
@@ -570,18 +630,18 @@ function footPath(
   const outer = normal;
   const inner = scale(normal, -1);
   const ankleHalf = bodyRef * 0.034;
-  const instepHalf = bodyRef * 0.056;
-  const toeHalf = bodyRef * 0.092;
-  const length = bodyRef * 0.132;
+  const instepHalf = bodyRef * 0.058;
+  const toeHalf = bodyRef * 0.096;
+  const length = bodyRef * 0.135;
   const heelOuter = add(ankle, scale(outer, ankleHalf));
   const heelInner = add(ankle, scale(inner, ankleHalf * 0.92));
   const instepOuter = add(add(ankle, scale(axis, length * 0.5)), scale(outer, instepHalf));
   const instepInner = add(add(ankle, scale(axis, length * 0.5)), scale(inner, instepHalf * 0.9));
   const toeLine = add(ankle, scale(axis, length));
-  const bigToe = add(add(toeLine, scale(axis, bodyRef * 0.012)), scale(outer, toeHalf * 0.62));
-  const toeOuter = add(add(toeLine, scale(axis, bodyRef * 0.018)), scale(outer, toeHalf * 0.28));
-  const toeCenter = add(toeLine, scale(axis, bodyRef * 0.02));
-  const toeInner = add(add(toeLine, scale(axis, bodyRef * 0.014)), scale(inner, toeHalf * 0.36));
+  const bigToe = add(add(toeLine, scale(axis, bodyRef * 0.012)), scale(outer, toeHalf * 0.66));
+  const toeOuter = add(add(toeLine, scale(axis, bodyRef * 0.02)), scale(outer, toeHalf * 0.22));
+  const toeCenter = add(toeLine, scale(axis, bodyRef * 0.022));
+  const toeInner = add(add(toeLine, scale(axis, bodyRef * 0.014)), scale(inner, toeHalf * 0.34));
   const smallToe = add(add(toeLine, scale(axis, bodyRef * 0.004)), scale(inner, toeHalf * 0.72));
   return smoothClosedPath(
     [
@@ -595,7 +655,7 @@ function footPath(
       instepInner,
       heelInner,
     ],
-    0.12
+    0.14
   );
 }
 

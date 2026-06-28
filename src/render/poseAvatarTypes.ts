@@ -6,6 +6,7 @@ import type {
   PointCloudBodyShapeProfile,
 } from './pointCloudBodyGeometry';
 import type { SoftDigitalTwinVisualPresetName } from './softDigitalTwinGeometry';
+import type { ArtDirectedHumanJointStyle } from './artDirectedHumanGeometry';
 
 export type PoseAvatarRendererMode =
   | 'art_directed_human'
@@ -129,6 +130,7 @@ export interface PoseAvatarRendererProps {
   premiumConstellationShowConnections?: boolean;
   softDigitalTwinVisualPreset?: SoftDigitalTwinVisualPresetName;
   softDigitalTwinShowConstructionOverlay?: boolean;
+  artDirectedHumanJointStyle?: ArtDirectedHumanJointStyle;
   mediapipeSkeletonStroke?: string;
   mediapipeSkeletonOpacity?: number;
   mediapipeSkeletonLineWidthScale?: number;

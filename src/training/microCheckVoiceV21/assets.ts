@@ -47,12 +47,12 @@ const MISMATCH_PHYSICAL_CANDIDATES: Readonly<Record<string, PhysicalCandidate>> 
     'Balance check: stand on one leg with a counter or wall nearby. Hold steady as long as you can.'
   ),
   'micro-mobility-left-v21': mismatch(
-    'ex-hamstring-reach',
-    'Sit tall with one leg long and reach gently toward your toes. Stay in a comfortable range.'
+    'hinge-setup',
+    'Bend forward from the hips and reach toward the floor. Go only as far as comfortable.'
   ),
   'micro-mobility-right-v21': mismatch(
-    'ex-hamstring-reach',
-    'Sit tall with one leg long and reach gently toward your toes. Stay in a comfortable range.'
+    'hinge-setup',
+    'Bend forward from the hips and reach toward the floor. Go only as far as comfortable.'
   ),
   'micro-relax-v21': mismatch('relax-arm', 'Lovely. Lower your arm and relax.'),
   'microcheck-complete-v21': mismatch('microcheck-complete', "Got it - that's logged. Nice work."),

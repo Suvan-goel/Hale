@@ -2110,3 +2110,23 @@ PUBLIC RELEASE REMAINS BLOCKED
   internal launch shortcuts no longer provide useful product or QA coverage.
 - **Boundary:** this does not change Movement Profile V2 measurement logic, public Check-Up
   routing, reference-detail collection, frozen result materialization, or Progress history views.
+
+## 2026-06-28 — ElevenLabs voice settings updated
+
+- **Change:** changed the shared build-time ElevenLabs voice settings to stability `0.35` and
+  similarity boost `0.85`, while keeping speaker boost enabled and speed at `0.92`.
+- **Boundary:** no runtime TTS was added and no existing bundled MP3 assets were regenerated in
+  this pass; the updated settings apply the next time `npm run audio` is run with an
+  `ELEVENLABS_API_KEY`.
+
+## 2026-06-28 — Fit Frame Pose Trace preview added as an isolated experiment
+
+- **Change:** added a Settings developer entry for `Try Fit Frame Pose Trace`, which opens a
+  recording-shell preview using the real camera/pose pipeline and preflight status copy while
+  swapping only the central renderer for a private fit-frame + sparse landmark trace.
+- **Boundary:** Movement Check-Up, training, micro-check, benchmark defaults, result saving, plan
+  progress, and sync flows are unchanged. The new renderer is not registered as a production
+  pose-avatar mode and is only reached through the preview flow.
+- **Evidence:** `npm test -- --runTestsByPath src/render/__tests__/fitFramePoseTraceGeometry.test.ts
+  src/screens/__tests__/CheckUpRecordingShell.test.ts` passes, and `npx tsc --noEmit --pretty
+  false` passes.

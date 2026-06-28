@@ -61,12 +61,12 @@ describe('Micro-Check Voice V2.1 contracts', () => {
       }),
       expect.objectContaining({
         type: 'mobility-reach',
-        sideRole: 'extended_leg',
-        sideRequired: true,
+        sideRole: 'not_applicable',
+        sideRequired: false,
         setupCueKey: 'micro-mobility-left-v21',
-        exactScript: 'Quick mobility check. Extend your left leg and reach gently until I say relax.',
+        exactScript: 'Quick mobility check. Stand side-on, hinge forward, and reach toward the floor until I say stand tall.',
         endPolicy: 'fixed_rom_window',
-        stopCueKey: 'micro-relax-v21',
+        stopCueKey: null,
         progressCueKeys: [],
       }),
     ]);
@@ -74,7 +74,7 @@ describe('Micro-Check Voice V2.1 contracts', () => {
 
   it('keeps approval/default gates closed while beta selectability uses physical audio readiness', () => {
     expect(MICRO_CHECK_VOICE_V2_1_BEHAVIOR_READY).toBe(true);
-    expect(MICRO_CHECK_VOICE_V2_1_PHYSICAL_AUDIO_SURFACE_READY).toBe(true);
+    expect(MICRO_CHECK_VOICE_V2_1_PHYSICAL_AUDIO_SURFACE_READY).toBe(false);
     expect(MICRO_CHECK_VOICE_V2_1_AUDIO_APPROVAL_READY).toBe(false);
     expect(MICRO_CHECK_VOICE_V2_1_AUDIO_READY).toBe(false);
     expect(MICRO_CHECK_VOICE_V2_1_FEATURE_DEFAULT).toBe('off');
@@ -95,10 +95,10 @@ describe('Micro-Check Voice V2.1 contracts', () => {
       mode: 'legacy',
       v21Selectable: false,
     });
-    expect(microCheckVoiceSelectableTypeCountV21({ betaDefaultEnabled: true })).toBe(3);
+    expect(microCheckVoiceSelectableTypeCountV21({ betaDefaultEnabled: true })).toBe(0);
     expect(resolveMicroCheckVoiceRuntimeReadinessV21('chair-power', { betaDefaultEnabled: true })).toMatchObject({
-      audioReady: true,
-      selectable: true,
+      audioReady: false,
+      selectable: false,
       legacyFallbackAvailable: true,
     });
     expect(
@@ -108,8 +108,8 @@ describe('Micro-Check Voice V2.1 contracts', () => {
         betaDefaultEnabled: true,
       })
     ).toMatchObject({
-      mode: 'micro_check_voice_v2_1',
-      v21Selectable: true,
+      mode: 'legacy',
+      v21Selectable: false,
     });
   });
 });
@@ -133,7 +133,6 @@ describe('Micro-Check Voice V2.1 sequence planning and assets', () => {
     expect(
       planMicroCheckVoiceSequenceV21({
         type: 'mobility-reach',
-        selectedSide: 'left',
         exposure: 'repeat_instructions',
       }).cueKeys
     ).toEqual(['micro-mobility-left-v21']);

@@ -75,4 +75,17 @@ describe('art-directed human geometry', () => {
     expect(raisedArm).not.toBe(neutralArm);
     expect(isFiniteArtDirectedHumanGeometry(raisedOut)).toBe(true);
   });
+
+  it('can render separated arm and leg subsegments for joint-gap testing', () => {
+    const out = createArtDirectedHumanGeometry();
+
+    buildArtDirectedHumanGeometry(mappedStandingPose(), out, { jointStyle: 'separated' });
+
+    const leftArm = out.surfaces.find((surface) => surface.id === 'leftArm')?.path ?? '';
+    const leftLeg = out.surfaces.find((surface) => surface.id === 'leftLeg')?.path ?? '';
+    expect(out.hasPose).toBe(true);
+    expect(isFiniteArtDirectedHumanGeometry(out)).toBe(true);
+    expect((leftArm.match(/M/g) ?? []).length).toBeGreaterThanOrEqual(2);
+    expect((leftLeg.match(/M/g) ?? []).length).toBeGreaterThanOrEqual(2);
+  });
 });

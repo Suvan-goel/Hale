@@ -52,6 +52,7 @@ type BenchmarkModeId =
   | 'premium-constellation-450'
   | 'privacy-shadow'
   | 'art-directed-human'
+  | 'art-directed-human-separated'
   | 'soft-continuous-silhouette'
   | 'soft-digital-twin-lean'
   | 'soft-digital-twin'
@@ -211,6 +212,7 @@ export function createPoseOverlayBenchmarkModes(platformOS: string): readonly Be
     ),
     privacyShadowMode(),
     artDirectedHumanMode(),
+    artDirectedHumanSeparatedMode(),
     softContinuousSilhouetteMode(),
     softDigitalTwinMode('soft-digital-twin-lean', 'Premium Human · Lean', 'Previous thin matte silhouette tuning', 'lean'),
     softDigitalTwinMode(
@@ -869,11 +871,37 @@ function artDirectedHumanMode(): BenchmarkMode {
   return {
     id: 'art-directed-human',
     title: 'Art-directed human',
-    subtitle: 'Template rig with constrained MediaPipe deformation',
+    subtitle: 'Layered human silhouette with stable torso and pose-driven limbs',
     configuredDotCount: 0,
     configuredShapeCount: 10,
     rendererProps: {
       mode: 'art_directed_human',
+      frameSource: 'raw',
+      fit: 'contain',
+      smoothingEnabled: false,
+      confidenceFadingEnabled: false,
+      confidenceIntensityEnabled: false,
+      reacquisitionFadeEnabled: false,
+      recognitionPulseEnabled: false,
+      measurementStatesEnabled: false,
+      setupGuidesEnabled: false,
+      stateTransitionsEnabled: false,
+      domainEmphasisEnabled: false,
+      scanLineEnabled: false,
+    },
+  };
+}
+
+function artDirectedHumanSeparatedMode(): BenchmarkMode {
+  return {
+    id: 'art-directed-human-separated',
+    title: 'Art-directed human · separated',
+    subtitle: 'Segmented limbs with real elbow and knee gaps',
+    configuredDotCount: 0,
+    configuredShapeCount: 10,
+    rendererProps: {
+      mode: 'art_directed_human',
+      artDirectedHumanJointStyle: 'separated',
       frameSource: 'raw',
       fit: 'contain',
       smoothingEnabled: false,

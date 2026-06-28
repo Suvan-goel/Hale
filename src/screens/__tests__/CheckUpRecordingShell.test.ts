@@ -36,6 +36,9 @@ describe('unified Movement Check-Up recording shell', () => {
     expect(text).toContain('createMovementProfileV2LivePoseSample');
     expect(text).toContain('new MovementProfileV2VoiceRuntime');
     expect(text).toContain('canDispatchAction(action, liveRef.current)');
+    expect(text).toContain("live.balanceTimerKind === 'rest'");
+    expect(text).toContain("label: 'Rest'");
+    expect(text).toContain('live.timerRemainingMs !== null');
     expect(text).not.toMatch(/createCaptured|mockCheckUp|reps:\s*12/);
   });
 

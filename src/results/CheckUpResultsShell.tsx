@@ -166,17 +166,6 @@ function OnboardingResultsVariant({
         </View>
         <Text style={onboardingStyles.heroTitle}>{presentation.focus.title}</Text>
         <Text style={onboardingStyles.heroBody}>{presentation.focus.body}</Text>
-        <View style={onboardingStyles.heroStatRow}>
-          <View style={onboardingStyles.heroStat}>
-            <Text style={onboardingStyles.heroStatValue}>3</Text>
-            <Text style={onboardingStyles.heroStatLabel}>Areas checked</Text>
-          </View>
-          <View style={onboardingStyles.heroStatDivider} />
-          <View style={onboardingStyles.heroStat}>
-            <Text style={onboardingStyles.heroStatValue}>4</Text>
-            <Text style={onboardingStyles.heroStatLabel}>Week plan</Text>
-          </View>
-        </View>
       </View>
 
       <View style={onboardingStyles.sectionIntro}>
@@ -341,7 +330,7 @@ function OnboardingDomainSummaryCard({
       <View style={onboardingStyles.domainCopy}>
         <View style={onboardingStyles.domainTitleRow}>
           <View style={[onboardingStyles.domainMark, domain.featured && onboardingStyles.domainMarkFeatured]}>
-            <DomainGlyph iconToken={domain.iconToken} />
+            <DomainGlyph iconToken={domain.iconToken} flush />
           </View>
           <View style={onboardingStyles.domainTitleCopy}>
             <View style={onboardingStyles.domainNameRow}>
@@ -402,13 +391,15 @@ function splitMetricDisplay(display: string): { value: string; separator: string
 function DomainGlyph({
   iconToken,
   emphasized,
+  flush,
 }: {
   iconToken: UnifiedDomainResultCard['iconToken'];
   emphasized?: boolean;
+  flush?: boolean;
 }) {
   const stroke = emphasized ? colors.onAccent : colors.accentDeep;
   return (
-    <View style={[styles.domainIcon, emphasized && styles.domainIconEmphasized]}>
+    <View style={[styles.domainIcon, flush && styles.domainIconFlush, emphasized && styles.domainIconEmphasized]}>
       <Svg width={25} height={25} viewBox="0 0 24 24" accessibilityElementsHidden>
         {iconToken === 'strength' ? (
           <>
@@ -438,12 +429,6 @@ function domainIdToMovementDomain(id: UnifiedResultDomainId) {
   if (id === 'strength_power') return 'strength_power';
   if (id === 'balance_stability') return 'balance';
   return 'mobility';
-}
-
-function domainIconLetter(id: UnifiedResultDomainId): string {
-  if (id === 'strength_power') return 'S';
-  if (id === 'balance_stability') return 'B';
-  return 'M';
 }
 
 const styles = StyleSheet.create({
@@ -538,6 +523,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  domainIconFlush: {
+    marginTop: 0,
   },
   domainIconEmphasized: {
     backgroundColor: 'transparent',
@@ -699,25 +687,35 @@ const styles = StyleSheet.create({
 });
 
 const onboardingStyles = StyleSheet.create({
-  header: { gap: spacing.xs },
-  focusCard: {
-    gap: spacing.md,
+  screenContent: {
+    gap: spacing.lg,
+  },
+  header: {
+    gap: spacing.xs,
+  },
+  heroCard: {
+    gap: spacing.lg,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.xl,
     borderRadius: radius.panel,
     backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    boxShadow: '0 12px 30px rgba(17,20,18,0.04)',
+    borderColor: colors.goldBorder,
+    overflow: 'hidden',
+    boxShadow: '0 18px 40px rgba(17,20,18,0.055)',
   },
   compactCardPadding: {
     paddingHorizontal: 14,
     paddingVertical: 16,
   },
-  focusTopRow: {
+  compactHeroPadding: {
+    paddingHorizontal: 18,
+    paddingVertical: 20,
+  },
+  heroTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
     gap: spacing.md,
   },
   eyebrow: {
@@ -725,38 +723,60 @@ const onboardingStyles = StyleSheet.create({
     color: colors.textSecondary,
     flexShrink: 1,
   },
-  focusTitle: {
-    fontFamily: fonts.serifMedium,
-    fontSize: 34,
-    lineHeight: 40,
-    letterSpacing: 0,
-    color: colors.textPrimary,
-  },
-  focusRule: {
-    width: 48,
-    height: 2,
+  heroPill: {
+    minHeight: 30,
+    justifyContent: 'center',
     borderRadius: radius.pill,
-    backgroundColor: colors.accentGold,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.bgGold,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.goldBorder,
   },
-  focusBody: {
+  heroPillText: {
+    ...type.cardCaption,
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+  },
+  heroTitle: {
+    fontFamily: fonts.serifMedium,
+    fontSize: 40,
+    lineHeight: 46,
+    letterSpacing: 0,
+    color: colors.accentDeep,
+  },
+  heroBody: {
     ...type.bodySmall,
+    color: colors.textSecondary,
+    maxWidth: 340,
+  },
+  sectionIntro: {
+    gap: spacing.xs,
+    paddingTop: spacing.xs,
+  },
+  sectionTitle: {
+    ...type.cardTitle,
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  sectionBody: {
+    ...type.caption,
     color: colors.textSecondary,
   },
   domainStack: {
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   domainCard: {
-    minHeight: 94,
+    minHeight: 104,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     paddingVertical: spacing.lg,
     borderRadius: radius.card,
     backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
-    boxShadow: '0 8px 22px rgba(17,20,18,0.026)',
+    boxShadow: '0 10px 26px rgba(17,20,18,0.035)',
   },
   domainCardFeatured: {
     borderColor: colors.goldBorder,
@@ -768,25 +788,34 @@ const onboardingStyles = StyleSheet.create({
     borderRadius: radius.input,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.bgBase,
+    backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
   },
   domainMarkFeatured: {
     backgroundColor: colors.surface,
-  },
-  domainMarkText: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 16,
-    lineHeight: 20,
-    letterSpacing: 0,
-    color: colors.textSecondary,
-  },
-  domainMarkTextFeatured: {
-    color: colors.accentDeep,
+    borderColor: colors.goldBorder,
   },
   domainCopy: {
     flex: 1,
     minWidth: 0,
-    gap: spacing.xs,
+  },
+  domainTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    minWidth: 0,
+  },
+  domainTitleCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  domainNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
   },
   domainTitle: {
     ...type.cardRowTitle,
@@ -797,20 +826,52 @@ const onboardingStyles = StyleSheet.create({
     ...type.caption,
     color: colors.textSecondary,
   },
+  focusPill: {
+    minHeight: 24,
+    justifyContent: 'center',
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.goldBorder,
+  },
+  focusPillText: {
+    ...type.cardCaption,
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+  },
   domainBandWrap: {
-    maxWidth: 132,
+    maxWidth: 118,
     alignItems: 'flex-end',
+    gap: 2,
+  },
+  domainBandLabel: {
+    ...type.cardCaption,
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
   },
   domainBand: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 16,
-    lineHeight: 22,
-    letterSpacing: 0,
-    color: colors.accentDeep,
     textAlign: 'right',
+    color: colors.textPrimary,
+    flexShrink: 1,
+  },
+  domainBandNumber: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 24,
+    lineHeight: 29,
+    letterSpacing: 0,
+    color: colors.textPrimary,
+    fontVariant: ['tabular-nums'],
+  },
+  domainBandUnit: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0,
+    color: colors.textSecondary,
   },
   nextCard: {
-    gap: spacing.md,
+    gap: spacing.sm,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.xl,
     borderRadius: radius.panel,
@@ -819,12 +880,29 @@ const onboardingStyles = StyleSheet.create({
     borderColor: colors.borderHairline,
     boxShadow: '0 10px 26px rgba(17,20,18,0.032)',
   },
-  noteHead: {
+  nextTopRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.md,
-    flexWrap: 'wrap',
+  },
+  nextKicker: {
+    ...type.label,
+    color: colors.textSecondary,
+  },
+  nextStatusPill: {
+    minHeight: 28,
+    justifyContent: 'center',
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.bgGold,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.goldBorder,
+  },
+  nextStatusText: {
+    ...type.cardCaption,
+    fontFamily: fonts.sansMedium,
+    color: colors.accentDeep,
   },
   nextTitle: {
     fontFamily: fonts.serifMedium,
@@ -833,10 +911,6 @@ const onboardingStyles = StyleSheet.create({
     letterSpacing: 0,
     color: colors.textPrimary,
     flexShrink: 1,
-  },
-  nextRule: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.borderHairline,
   },
   nextBody: {
     ...type.bodySmall,

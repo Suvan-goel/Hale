@@ -113,6 +113,8 @@ export type MovementProfileV2LiveStage =
   | 'hinge_active'
   | 'raw_complete';
 
+export type MovementProfileV2BalanceTimerKind = 'active_trial' | 'rest' | 'none';
+
 export interface MovementProfileV2LivePoseSample {
   frameId: number | string;
   timestampMs: number;
@@ -219,6 +221,7 @@ export interface MovementProfileV2LiveSnapshot {
   checkUp: CheckUp | null;
   statusText: string;
   timerRemainingMs: number | null;
+  balanceTimerKind: MovementProfileV2BalanceTimerKind;
   restMinimumRemainingMs: number | null;
   restDefaultRemainingMs: number | null;
   canContinueAfterRest: boolean;
@@ -317,10 +320,13 @@ export class MovementProfileV2LiveCoordinator {
   private balanceRestStartedAtMs: number | null = null;
   private balanceRestMinUntilMs: number | null = null;
   private balanceRestDefaultUntilMs: number | null = null;
+  private balanceSetupConfirmedAtMs: number | null = null;
   private balanceSetupVoiceCompleted = false;
   private balanceAttemptVoiceCompleted = false;
   private balanceLostFrames = 0;
   private balanceRaisedFrames = 0;
+  private balanceReadyRaisedSinceMs: number | null = null;
+  private balanceReadyRaisedStandingLeg: BodySide | null = null;
   private balanceSway = createWelford();
   private balanceValidTrials = 0;
   private balanceInvalidTrials = 0;
@@ -387,6 +393,7 @@ export class MovementProfileV2LiveCoordinator {
       checkUp: this.completedCheckUp,
       statusText: this.statusText(),
       timerRemainingMs: timer,
+      balanceTimerKind: this.balanceTimerKind(),
       restMinimumRemainingMs: restMin,
       restDefaultRemainingMs: restDefault,
       canContinueAfterRest: this.stage === 'balance_rest' && restMin === 0,
@@ -476,6 +483,7 @@ export class MovementProfileV2LiveCoordinator {
           type: 'confirm_balance_setup',
           standingLeg: action.standingLeg,
         });
+        this.balanceSetupConfirmedAtMs = nowMs;
         this.transition('balance_ready', nowMs, 'balance_setup_confirmed');
         this.attemptEpochId = this.nextAttemptEpoch('balance-ready');
         break;
@@ -632,19 +640,11 @@ export class MovementProfileV2LiveCoordinator {
       const deadline = this.balanceTrialStartedAtMs + DEFAULT_ONE_LEG_BALANCE_V2_CONFIG.maxTrialMs;
       if (nowMs >= deadline) this.completeBalanceTrial(deadline, 'ceiling');
     }
+    if (this.completeBalanceAtHardCapIfNeeded(nowMs)) return this.revision !== before;
     if (this.stage === 'balance_rest') {
       if (this.balanceRestDefaultUntilMs !== null && nowMs >= this.balanceRestDefaultUntilMs) {
-        if (this.handsFreeMode && this.balanceBestHoldSec !== null) {
-          this.balance.declineRemainingTrials(this.balanceRestDefaultUntilMs);
-          this.recordBalanceResult(
-            this.balance.finish(this.balanceRestDefaultUntilMs),
-            this.balanceRestDefaultUntilMs,
-            'balance_auto_best_after_rest'
-          );
-        } else {
-          this.transition('balance_ready', this.balanceRestDefaultUntilMs, 'balance_default_rest_elapsed');
-          this.attemptEpochId = this.nextAttemptEpoch('balance-ready');
-        }
+        this.transition('balance_ready', this.balanceRestDefaultUntilMs, 'balance_default_rest_elapsed');
+        this.attemptEpochId = this.nextAttemptEpoch('balance-ready');
       } else {
         this.bump();
       }
@@ -747,10 +747,17 @@ export class MovementProfileV2LiveCoordinator {
       case 'balance_setup': {
         if (!this.balanceSetupVoiceCompleted) {
           this.noteHandsFreeReadiness('balance_setup', 'voice', false, nowMs);
+          this.clearBalanceReadyLiftEvidence();
           break;
         }
         const inferred = inferBalanceStandingLeg(sample.output, this.flow.priorStandingLeg);
-        if (this.noteHandsFreeReadiness('balance_setup', inferred ?? 'none', inferred !== null, nowMs) && inferred) {
+        const ready = this.noteHandsFreeReadiness('balance_setup', inferred ?? 'none', inferred !== null, nowMs);
+        if (!inferred) {
+          this.clearBalanceReadyLiftEvidence();
+          break;
+        }
+        if (ready) {
+          this.seedBalanceReadyLiftEvidence(inferred, this.handsFreeReadySinceMs ?? nowMs);
           this.receiveUserAction({
             type: 'confirm_balance_setup',
             standingLeg: inferred,
@@ -898,23 +905,28 @@ export class MovementProfileV2LiveCoordinator {
   private updateBalance(sample: MovementProfileV2LivePoseSample, nowMs: number): void {
     const leg = this.flow.standingLeg;
     if (sample.trackingQuality !== 'good' || sample.output.bodyUnit === null) {
+      if (this.stage === 'balance_ready') this.clearBalanceReadyLiftEvidence();
       if (this.stage === 'balance_trial') this.balanceLostFrames++;
       if (this.balanceLostFrames >= BALANCE_TOUCHDOWN_DEBOUNCE_FRAMES) this.invalidateBalanceTrial(nowMs, 'tracking_invalid');
       return;
     }
+    if (this.stage === 'balance_ready' && !balanceStartEvidenceReliable(sample.output)) {
+      this.clearBalanceReadyLiftEvidence();
+      return;
+    }
     const raised = selectedLegRaised(sample.output.frame, sample.output.bodyUnit, leg);
     if (this.stage === 'balance_ready') {
-      if (!this.balanceAttemptVoiceCompleted) return;
       if (!raised) {
-        this.balanceRaisedFrames = 0;
+        this.clearBalanceReadyLiftEvidence();
         return;
       }
-      this.balanceRaisedFrames++;
-      if (this.handsFreeMode && this.balanceRaisedFrames < BALANCE_TOUCHDOWN_DEBOUNCE_FRAMES) return;
+      this.noteBalanceReadyLiftEvidence(leg, nowMs);
+      if (!this.balanceAttemptVoiceCompleted) return;
+      if (this.handsFreeMode && !this.balanceReadyLiftDwellSatisfied(nowMs)) return;
       if (!this.balance.startTrial(nowMs)) return;
       this.balanceTrialStartedAtMs = nowMs;
       this.balanceLostFrames = 0;
-      this.balanceRaisedFrames = 0;
+      this.clearBalanceReadyLiftEvidence();
       this.balanceSway = createWelford();
       this.balanceAttemptedTrials++;
       this.diagnostics.balance.attemptedTrials = this.balanceAttemptedTrials;
@@ -1060,6 +1072,8 @@ export class MovementProfileV2LiveCoordinator {
   }
 
   private enterBalanceRest(nowMs: number, reason: string): void {
+    this.balanceTrialStartedAtMs = null;
+    this.clearBalanceReadyLiftEvidence();
     this.balanceRestStartedAtMs = nowMs;
     this.balanceRestMinUntilMs = nowMs + BALANCE_REST_MIN_MS;
     this.balanceRestDefaultUntilMs = nowMs + BALANCE_REST_DEFAULT_MS;
@@ -1262,6 +1276,8 @@ export class MovementProfileV2LiveCoordinator {
   private recordBalanceResult(result: OneLegBalanceV2Result, nowMs: number, reason: string): void {
     if (this.balanceResult) return;
     this.balanceResult = result;
+    this.balanceTrialStartedAtMs = null;
+    this.clearBalanceReadyLiftEvidence();
     this.diagnostics.balance.hardCapReached = result.hardCapReached;
     this.flow = movementProfileV2InternalFlowReducer(this.flow, { type: 'record_balance', result });
     this.transition('shoulder_setup', nowMs, reason);
@@ -1286,6 +1302,8 @@ export class MovementProfileV2LiveCoordinator {
       this.recordChairResult(this.chair.finish(nowMs), nowMs, 'chair_backgrounded');
     } else if (this.stage === 'balance_trial') {
       this.invalidateBalanceTrial(nowMs, 'app_backgrounded');
+    } else if (this.stage === 'balance_setup' || this.stage === 'balance_ready') {
+      this.clearBalanceReadyLiftEvidence();
     } else if (this.stage === 'shoulder_active') {
       this.shoulder.recordInvalidCapture(nowMs, 'app_backgrounded');
       this.finishShoulderAttempt(nowMs, 'app_backgrounded');
@@ -1330,10 +1348,16 @@ export class MovementProfileV2LiveCoordinator {
     }
     if (stage === 'balance_ready') {
       this.balanceAttemptVoiceCompleted = false;
-      this.balanceRaisedFrames = 0;
+      if (this.balanceReadyRaisedStandingLeg !== this.flow.standingLeg) {
+        this.clearBalanceReadyLiftEvidence();
+      } else {
+        this.balanceRaisedFrames = 0;
+      }
     }
     if (stage === 'balance_setup') {
       this.balanceSetupVoiceCompleted = false;
+      this.balanceSetupConfirmedAtMs = null;
+      this.clearBalanceReadyLiftEvidence();
     }
     if (stage === 'shoulder_setup') {
       this.shoulderTransitionVoiceCompleted = false;
@@ -1381,6 +1405,56 @@ export class MovementProfileV2LiveCoordinator {
     return null;
   }
 
+  private balanceTimerKind(): MovementProfileV2BalanceTimerKind {
+    if (this.stage === 'balance_trial' && this.balanceTrialStartedAtMs !== null) return 'active_trial';
+    if (this.stage === 'balance_rest') return 'rest';
+    return 'none';
+  }
+
+  private completeBalanceAtHardCapIfNeeded(nowMs: number): boolean {
+    if (
+      this.balanceSetupConfirmedAtMs === null ||
+      (this.stage !== 'balance_ready' && this.stage !== 'balance_rest')
+    ) {
+      return false;
+    }
+    const hardCapAtMs = this.balanceSetupConfirmedAtMs + DEFAULT_ONE_LEG_BALANCE_V2_CONFIG.hardCapMs;
+    if (nowMs < hardCapAtMs) return false;
+    if (this.balanceBestHoldSec !== null) this.balance.declineRemainingTrials(hardCapAtMs);
+    this.recordBalanceResult(this.balance.finish(hardCapAtMs), hardCapAtMs, 'balance_hard_cap');
+    return true;
+  }
+
+  private seedBalanceReadyLiftEvidence(standingLeg: BodySide, stableSinceMs: number): void {
+    this.balanceReadyRaisedStandingLeg = standingLeg;
+    this.balanceReadyRaisedSinceMs = stableSinceMs;
+    this.balanceRaisedFrames = 0;
+  }
+
+  private noteBalanceReadyLiftEvidence(standingLeg: BodySide, nowMs: number): void {
+    if (
+      this.balanceReadyRaisedStandingLeg !== standingLeg ||
+      this.balanceReadyRaisedSinceMs === null
+    ) {
+      this.balanceReadyRaisedStandingLeg = standingLeg;
+      this.balanceReadyRaisedSinceMs = nowMs;
+      this.balanceRaisedFrames = 1;
+      return;
+    }
+    this.balanceRaisedFrames++;
+  }
+
+  private balanceReadyLiftDwellSatisfied(nowMs: number): boolean {
+    if (this.balanceReadyRaisedSinceMs === null) return false;
+    return nowMs - this.balanceReadyRaisedSinceMs >= this.handsFreeSetupDwellMs;
+  }
+
+  private clearBalanceReadyLiftEvidence(): void {
+    this.balanceReadyRaisedStandingLeg = null;
+    this.balanceReadyRaisedSinceMs = null;
+    this.balanceRaisedFrames = 0;
+  }
+
   private statusText(): string {
     switch (this.stage) {
       case 'chair_setup':
@@ -1393,14 +1467,17 @@ export class MovementProfileV2LiveCoordinator {
       case 'chair_active':
         return 'Official chair rise capture is running.';
       case 'balance_setup':
-        if (this.handsFreeMode) return 'Stand near support and lift the other foot slightly. Hale will set the attempt.';
+        if (this.handsFreeMode) return "Lift one foot when you're ready. I'll start when you're steady.";
         return 'Choose the standing leg, with support close by.';
       case 'balance_ready':
-        return 'Lift the other foot to start the 45-second attempt.';
+        if (this.handsFreeMode && this.balanceBestHoldSec !== null) {
+          return "Lift one foot again when you're ready.";
+        }
+        return 'Hold steady - starting soon.';
       case 'balance_trial':
-        return 'Hold steady. Touch support or stop if you need to.';
+        return 'Keep holding.';
       case 'balance_rest':
-        if (this.handsFreeMode) return 'Rest before the next attempt. Hale will continue automatically.';
+        if (this.handsFreeMode) return "Attempt saved. Rest before the next try.";
         return 'Rest before the next attempt. The minimum rest cannot be skipped.';
       case 'shoulder_setup':
         if (this.handsFreeMode) return 'Turn side-on to the phone. Hale will pick the visible side.';
@@ -1563,8 +1640,7 @@ function inferBalanceStandingLeg(out: PipelineFrameOutput, priorStandingLeg: Bod
     out.state !== 'tracking' ||
     !out.frame.hasPose ||
     out.bodyUnit === null ||
-    out.chainReliability[LEFT_SIDE_CHAIN] < SETUP_CHAIN_RELIABILITY ||
-    out.chainReliability[RIGHT_SIDE_CHAIN] < SETUP_CHAIN_RELIABILITY
+    !balanceStartEvidenceReliable(out)
   ) {
     return null;
   }
@@ -1575,6 +1651,11 @@ function inferBalanceStandingLeg(out: PipelineFrameOutput, priorStandingLeg: Bod
   if (leftLowerThanRightBu > BALANCE_LIFT_BU) return 'left';
   if (leftLowerThanRightBu < -BALANCE_LIFT_BU) return 'right';
   return null;
+}
+
+function balanceStartEvidenceReliable(out: PipelineFrameOutput): boolean {
+  return out.chainReliability[LEFT_SIDE_CHAIN] >= SETUP_CHAIN_RELIABILITY &&
+    out.chainReliability[RIGHT_SIDE_CHAIN] >= SETUP_CHAIN_RELIABILITY;
 }
 
 function sourceForCameraInferredSide(priorSide: BodySide | null, selectedSide: BodySide): ProtocolSetupSource {

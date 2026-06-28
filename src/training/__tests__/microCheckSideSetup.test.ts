@@ -87,18 +87,19 @@ describe('micro-check side setup', () => {
     });
   });
 
-  it('does not borrow an official balance side for mobility reach', () => {
+  it('does not require side setup for mobility reach', () => {
     const setup = deriveMicroCheckSideSetup({
       microCheckType: 'mobility-reach',
       officialCheckUps: [officialBalanceRecord('right', '2026-06-01T09:00:00.000Z')],
     });
 
     expect(setup).toMatchObject({
-      recommendationSource: 'user_choice_required',
+      sideRequired: false,
+      recommendationSource: 'not_applicable',
       selectedSide: null,
-      role: 'extended_leg',
+      role: 'not_applicable',
     });
-    expect(setup.reasonCodes).toContain('MOBILITY_OFFICIAL_ANCHOR_NOT_SUPPORTED');
+    expect(setup.reasonCodes).toEqual(['MICRO_CHECK_SIDE_NOT_REQUIRED']);
   });
 
   it('prefers an existing side-known micro-check series over official recommendations', () => {
@@ -268,14 +269,9 @@ describe('micro-check side setup', () => {
     expect(context.comparability.overallStatus).toBe('comparable');
   });
 
-  it('infers the mobility reach side from the reliable side-view chain', () => {
+  it('does not run a side resolver for mobility reach', () => {
     const setup = deriveMicroCheckSideSetup({ microCheckType: 'mobility-reach' });
     const resolver = new MicroCheckCameraSideResolver();
-    resolver.update(
-      poseOutput({ timestampMs: 1000, leftReliability: 0.86, rightReliability: 0.22 }),
-      'mobility-reach',
-      setup
-    );
     const ready = resolver.update(
       poseOutput({ timestampMs: 1800, leftReliability: 0.86, rightReliability: 0.22 }),
       'mobility-reach',
@@ -285,21 +281,19 @@ describe('micro-check side setup', () => {
       microCheckType: 'mobility-reach',
       startedAt: '2026-06-21T08:00:00.000Z',
       setup,
-      selectedSide: ready.selectedSide,
-      source: ready.source ?? undefined,
       userConfirmed: false,
     });
 
-    expect(ready).toMatchObject({ ready: true, selectedSide: 'left', source: 'camera_inferred' });
+    expect(ready).toMatchObject({ ready: true, selectedSide: null, source: 'not_applicable' });
     expect(context.side).toMatchObject({
-      role: 'extended_leg',
-      selectedSide: 'left',
-      source: 'camera_inferred',
+      role: 'not_applicable',
+      selectedSide: null,
+      source: 'not_applicable',
       userConfirmed: false,
     });
   });
 
-  it('keeps side inference optional by exposing fallback only after timeout', () => {
+  it('does not expose manual side fallback for mobility reach', () => {
     const setup = deriveMicroCheckSideSetup({ microCheckType: 'mobility-reach' });
     const resolver = new MicroCheckCameraSideResolver();
     const first = { ...resolver.update(
@@ -307,18 +301,18 @@ describe('micro-check side setup', () => {
       'mobility-reach',
       setup
     ) };
-    const fallback = resolver.update(
+    const later = resolver.update(
       poseOutput({ timestampMs: 13200, state: 'tracking', leftReliability: 0.2, rightReliability: 0.2 }),
       'mobility-reach',
       setup
     );
 
-    expect(first).toMatchObject({ ready: false, fallbackAvailable: false });
-    expect(fallback).toMatchObject({
-      ready: false,
+    expect(first).toMatchObject({ ready: true, fallbackAvailable: false });
+    expect(later).toMatchObject({
+      ready: true,
       selectedSide: null,
-      fallbackAvailable: true,
-      reason: 'waiting_for_side_view',
+      fallbackAvailable: false,
+      reason: 'not_required',
     });
   });
 });

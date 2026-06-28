@@ -28,13 +28,22 @@ export function BlockIntroScreen({
         subtitle="Hale built this from your latest check-up, your goal, and your home setup."
       />
 
-      <Card style={styles.planCard}>
-        <View style={styles.focusPanel}>
-          <Text style={styles.sectionLabel}>Main focus</Text>
-          <Text style={styles.focusTitle}>{focus}</Text>
-          <Text style={styles.focusBody}>{focusDomain ? focusBenefitCopy(focusDomain) : 'This plan balances strength, steadiness, and mobility across the week.'}</Text>
+      <View style={styles.focusHero}>
+        <View style={styles.focusHeroTopRow}>
+          <Text style={styles.focusHeroKicker}>Main focus</Text>
+          <View style={styles.readyPill}>
+            <Text style={styles.readyPillText}>Ready</Text>
+          </View>
         </View>
+        <Text style={styles.focusHeroTitle}>{focus}</Text>
+        <Text style={styles.focusHeroBody}>
+          {focusDomain
+            ? focusBenefitCopy(focusDomain)
+            : 'This plan balances strength, steadiness, and mobility across the week.'}
+        </Text>
+      </View>
 
+      <Card style={styles.planCard}>
         <View style={styles.rhythmSection}>
           <Text style={styles.sectionLabel}>Plan rhythm</Text>
           <View style={styles.metricList}>
@@ -57,8 +66,11 @@ export function BlockIntroScreen({
             />
           </View>
         </View>
+      </Card>
 
+      <Card style={styles.supportCard}>
         <View style={styles.helpPanel}>
+          <Text style={styles.sectionLabel}>During sessions</Text>
           <Text style={styles.helpTitle}>If something does not feel right</Text>
           <Text style={styles.helpBody}>
             Before a session starts, you can make it shorter, gentler, or use less equipment.
@@ -100,7 +112,56 @@ function PlanMetric({ value, label, detail }: { value: string; label: string; de
 
 const styles = StyleSheet.create({
   screenContent: {
-    gap: spacing.xl,
+    gap: spacing.lg,
+  },
+  focusHero: {
+    gap: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    borderRadius: radius.panel,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.goldBorder,
+    overflow: 'hidden',
+    boxShadow: '0 18px 40px rgba(17,20,18,0.055)',
+  },
+  focusHeroTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  focusHeroKicker: {
+    ...type.label,
+    color: colors.textSecondary,
+    flexShrink: 1,
+  },
+  readyPill: {
+    minHeight: 30,
+    justifyContent: 'center',
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.bgGold,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.goldBorder,
+  },
+  readyPillText: {
+    ...type.cardCaption,
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+  },
+  focusHeroTitle: {
+    fontFamily: fonts.serifMedium,
+    fontSize: 40,
+    lineHeight: 46,
+    letterSpacing: 0,
+    color: colors.accentDeep,
+    flexShrink: 1,
+  },
+  focusHeroBody: {
+    ...type.bodySmall,
+    color: colors.textSecondary,
+    maxWidth: 340,
   },
   planCard: {
     gap: spacing.lg,
@@ -112,58 +173,43 @@ const styles = StyleSheet.create({
     borderColor: colors.borderHairline,
     boxShadow: '0 12px 30px rgba(17,20,18,0.045)',
   },
-  focusPanel: {
-    gap: spacing.sm,
-  },
-  focusTitle: {
-    fontFamily: fonts.serifMedium,
-    fontSize: 22,
-    lineHeight: 28,
-    letterSpacing: 0,
-    color: colors.textPrimary,
-  },
-  focusBody: {
-    ...type.bodySmall,
-    color: colors.textSecondary,
-  },
   rhythmSection: {
     gap: spacing.md,
-    paddingTop: spacing.lg,
-    marginTop: spacing.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.divider,
   },
   sectionLabel: {
     ...type.label,
     color: colors.textSecondary,
   },
   metricList: {
+    overflow: 'hidden',
+    borderRadius: radius.input,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderColor: colors.divider,
   },
   metricRow: {
-    minHeight: 68,
+    minHeight: 74,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xs,
   },
   metricRule: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.divider,
-    marginLeft: 54,
+    marginLeft: 58,
   },
   metricNumberWrap: {
-    width: 40,
+    width: 44,
     alignItems: 'center',
   },
   metricValue: {
     fontFamily: fonts.serifMedium,
-    fontSize: 28,
-    lineHeight: 34,
+    fontSize: 30,
+    lineHeight: 36,
     letterSpacing: 0,
-    color: colors.textPrimary,
+    color: colors.accentDeep,
     fontVariant: ['tabular-nums'],
   },
   metricCopy: {
@@ -180,11 +226,18 @@ const styles = StyleSheet.create({
     ...type.cardCaption,
     color: colors.textSecondary,
   },
+  supportCard: {
+    gap: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    borderRadius: radius.panel,
+    backgroundColor: colors.bgGold,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.goldBorder,
+    boxShadow: '0 10px 26px rgba(17,20,18,0.032)',
+  },
   helpPanel: {
     gap: spacing.xs,
-    paddingTop: spacing.lg,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.divider,
   },
   helpTitle: {
     ...type.bodySmall,

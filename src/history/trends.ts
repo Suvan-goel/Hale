@@ -3,8 +3,9 @@
  * extracts each headline metric from the raw results, drops unmeasured points,
  * and reports first→latest change. Rise velocity (leg power) and single-leg
  * balance time are the trends that matter most (CLAUDE.md), but every age-
- * mapped metric gets one. Mobility micro-checks add a seated-reach angle trend
- * without pretending it is the full forward-reach assessment metric.
+ * mapped metric gets one. Mobility micro-checks now reuse the full standing
+ * forward-reach metric so quick checks and Movement Check-Ups speak the same
+ * measurement language.
  */
 
 import { validateCheckUpForScoring } from '../scoring/scoringInputValidation';
@@ -222,6 +223,12 @@ function fallbackMicroContextForTrendKey(key: string, at: string): MeasurementCo
       startedAt: at,
     });
   }
+  if (key === 'forward-reach') {
+    return normalizeMicroCheckMeasurementMetadata({
+      type: 'mobility-reach',
+      startedAt: at,
+    });
+  }
   if (key === 'seated-reach-angle') {
     return normalizeMicroCheckMeasurementMetadata({
       type: 'mobility-reach',
@@ -234,6 +241,7 @@ function fallbackMicroContextForTrendKey(key: string, at: string): MeasurementCo
 function microComparisonGroup(key: string): string {
   if (key === 'rise-velocity') return 'micro_chair_power';
   if (key === 'single-leg-balance') return 'micro_single_leg_balance';
+  if (key === 'forward-reach') return 'standing_forward_reach';
   if (key === 'seated-reach-angle') return 'micro_mobility_reach';
   return 'unknown_micro_metric';
 }

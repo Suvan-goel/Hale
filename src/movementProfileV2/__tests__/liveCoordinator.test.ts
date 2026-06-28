@@ -209,7 +209,7 @@ describe('MovementProfileV2LiveCoordinator', () => {
     expect(snapshot.lastTransition?.reason).toBe('chair_setup_confirmed');
   });
 
-  it('infers balance leg hands-free, starts from stable foot lift, and auto-saves the best rest result', () => {
+  it('carries a first lifted leg from balance setup into ready and starts after the attempt voice boundary', () => {
     const coordinator = createHandsFreeCoordinator();
     let nowMs = advanceThroughChair(coordinator, 0) + 100;
     expect(coordinator.snapshot(nowMs).stage).toBe('balance_setup');
@@ -221,28 +221,238 @@ describe('MovementProfileV2LiveCoordinator', () => {
     let snapshot = coordinator.snapshot(nowMs + 1400);
     expect(snapshot.stage).toBe('balance_ready');
     expect(snapshot.flow.standingLeg).toBe('left');
+    expect(snapshot.statusText).toBe('Hold steady - starting soon.');
+    expect(snapshot.balanceTimerKind).toBe('none');
+    expect(snapshot.timerRemainingMs).toBeNull();
 
     expect(coordinator.receiveUserAction({ type: 'balance_attempt_voice_completed' }, nowMs + 1500)).toBe(true);
-    for (let index = 1; index <= 4; index++) {
-      feedOutput(
-        coordinator,
-        trackingOutput(balanceRaw(nowMs + 1500 + index * 100, 'left', true)),
-        nowMs + 1500 + index * 100
-      );
-    }
-    nowMs += 1900;
+    nowMs += 1533;
+    feedOutput(coordinator, trackingOutput(balanceRaw(nowMs, 'left', true)), nowMs);
     expect(coordinator.snapshot(nowMs).stage).toBe('balance_trial');
-    nowMs = finishBalanceByTouchdown(coordinator, nowMs, 'left');
-    coordinator.receiveTimerTick(nowMs + 60000);
+    snapshot = coordinator.snapshot(nowMs);
+    expect(snapshot.lastTransition?.reason).toBe('balance_lift_detected');
+    expect(snapshot.balanceTimerKind).toBe('active_trial');
+    expect(snapshot.timerRemainingMs).toBeGreaterThan(0);
+  });
 
-    snapshot = coordinator.snapshot(nowMs + 60000);
+  it('starts hands-free balance from a lift that appears at the ready transition after dwell', () => {
+    const coordinator = createHandsFreeCoordinator();
+    let nowMs = advanceThroughChair(coordinator, 0) + 100;
+    expect(coordinator.receiveUserAction({ type: 'confirm_balance_setup', standingLeg: 'left' }, nowMs)).toBe(true);
+    expect(coordinator.snapshot(nowMs).stage).toBe('balance_ready');
+    expect(coordinator.receiveUserAction({ type: 'balance_attempt_voice_completed' }, nowMs + 1)).toBe(true);
+
+    feedOutput(coordinator, trackingOutput(balanceRaw(nowMs + 100, 'left', true)), nowMs + 100);
+    expect(coordinator.snapshot(nowMs + 100).stage).toBe('balance_ready');
+
+    nowMs += 1400;
+    feedOutput(coordinator, trackingOutput(balanceRaw(nowMs, 'left', true)), nowMs);
+    expect(coordinator.snapshot(nowMs).stage).toBe('balance_trial');
+  });
+
+  it('keeps ambiguous hands-free balance setup waiting and exposes the fallback after timeout', () => {
+    const coordinator = createHandsFreeCoordinator();
+    const nowMs = advanceThroughChair(coordinator, 0) + 100;
+    expect(coordinator.receiveUserAction({ type: 'balance_setup_voice_completed' }, nowMs)).toBe(true);
+
+    feedOutput(
+      coordinator,
+      trackingOutput(balanceRaw(nowMs + 100, 'left', true), 0.3, { leftSide: 0.2, rightSide: 0.2 }),
+      nowMs + 100
+    );
+    feedOutput(
+      coordinator,
+      trackingOutput(balanceRaw(nowMs + 1400, 'left', true), 0.3, { leftSide: 0.2, rightSide: 0.2 }),
+      nowMs + 1400
+    );
+    expect(coordinator.snapshot(nowMs + 1400).stage).toBe('balance_setup');
+    expect(coordinator.snapshot(nowMs + 1400).handsFreeFallbackAvailable).toBe(false);
+
+    coordinator.receiveTimerTick(nowMs + 10200);
+    const snapshot = coordinator.snapshot(nowMs + 10200);
+    expect(snapshot.stage).toBe('balance_setup');
+    expect(snapshot.handsFreeFallbackAvailable).toBe(true);
+  });
+
+  it('resets carried balance lift evidence after tracking loss before the attempt voice boundary', () => {
+    const coordinator = createHandsFreeCoordinator();
+    let nowMs = advanceThroughChair(coordinator, 0) + 100;
+    expect(coordinator.receiveUserAction({ type: 'balance_setup_voice_completed' }, nowMs)).toBe(true);
+    feedOutput(coordinator, trackingOutput(balanceRaw(nowMs + 100, 'left', true)), nowMs + 100);
+    feedOutput(coordinator, trackingOutput(balanceRaw(nowMs + 1400, 'left', true)), nowMs + 1400);
+    expect(coordinator.snapshot(nowMs + 1400).stage).toBe('balance_ready');
+
+    feedOutput(coordinator, lostOutput(nowMs + 1450), nowMs + 1450);
+    expect(coordinator.receiveUserAction({ type: 'balance_attempt_voice_completed' }, nowMs + 1500)).toBe(true);
+    feedOutput(coordinator, trackingOutput(balanceRaw(nowMs + 1600, 'left', true)), nowMs + 1600);
+    expect(coordinator.snapshot(nowMs + 1600).stage).toBe('balance_ready');
+
+    nowMs += 2900;
+    feedOutput(coordinator, trackingOutput(balanceRaw(nowMs, 'left', true)), nowMs);
+    expect(coordinator.snapshot(nowMs).stage).toBe('balance_trial');
+  });
+
+  it('preserves camera-inferred changed-leg metadata through the balance result', () => {
+    const coordinator = createHandsFreeCoordinator({ priorStandingLeg: 'right', standingLeg: 'right' });
+    let nowMs = advanceThroughChair(coordinator, 0) + 100;
+    nowMs = startHandsFreeBalanceTrialFromSetup(coordinator, nowMs, 'left');
+    nowMs = finishBalanceByTouchdownAfter(coordinator, nowMs, 'left', 20000);
+    expect(coordinator.receiveUserAction({ type: 'balance_use_result' }, nowMs + 1)).toBe(true);
+
+    const snapshot = coordinator.snapshot(nowMs + 1);
     const balance = snapshot.flow.items.find((item) => item.movementId === ONE_LEG_BALANCE_V2_ID)?.result as
-      | { declinedRemainingTrials: boolean; setup?: { source?: string; standingLeg?: BodySide } | null }
+      | { setup?: { source?: string; standingLeg?: BodySide; priorStandingLeg?: BodySide | null; changedFromPrior?: boolean } | null }
+      | undefined;
+    expect(balance?.setup).toMatchObject({
+      source: 'camera_inferred',
+      standingLeg: 'left',
+      priorStandingLeg: 'right',
+      changedFromPrior: true,
+    });
+  });
+
+  it('clears the active balance timer and shows rest after a valid 20-second touchdown', () => {
+    const coordinator = createCoordinator();
+    let nowMs = advanceThroughChair(coordinator, 0) + 100;
+    const trialStartedAtMs = startBalanceTrial(coordinator, nowMs, 'left');
+    const staleTrialDeadlineMs = trialStartedAtMs + 45000;
+
+    nowMs = finishBalanceByTouchdownAfter(coordinator, trialStartedAtMs, 'left', 20000);
+    let snapshot = coordinator.snapshot(nowMs);
+    expect(snapshot.stage).toBe('balance_rest');
+    expect(snapshot.statusText).toBe('Rest before the next attempt. The minimum rest cannot be skipped.');
+    expect(snapshot.balanceTimerKind).toBe('rest');
+    expect(snapshot.timerRemainingMs).toBeNull();
+    expect(snapshot.restMinimumRemainingMs).toBeGreaterThan(0);
+    expect(snapshot.lastTransition?.reason).toBe('balance_valid_trial_rest');
+
+    coordinator.receiveTimerTick(staleTrialDeadlineMs);
+    snapshot = coordinator.snapshot(staleTrialDeadlineMs);
+    expect(snapshot.stage).toBe('balance_rest');
+    expect(snapshot.balanceTimerKind).toBe('rest');
+    expect(snapshot.timerRemainingMs).toBeNull();
+  });
+
+  it('clears the active balance timer when support touch or stop saves an attempt', () => {
+    const supportTouched = createCoordinator();
+    let nowMs = advanceThroughChair(supportTouched, 0) + 100;
+    let trialStartedAtMs = startBalanceTrial(supportTouched, nowMs, 'left');
+    expect(supportTouched.receiveUserAction({ type: 'balance_support_touched' }, trialStartedAtMs + 500)).toBe(true);
+    expect(supportTouched.snapshot(trialStartedAtMs + 500)).toMatchObject({
+      stage: 'balance_rest',
+      balanceTimerKind: 'rest',
+      timerRemainingMs: null,
+    });
+
+    const stopped = createCoordinator();
+    nowMs = advanceThroughChair(stopped, 0) + 100;
+    trialStartedAtMs = startBalanceTrial(stopped, nowMs, 'left');
+    expect(stopped.receiveUserAction({ type: 'balance_stop' }, trialStartedAtMs + 500)).toBe(true);
+    expect(stopped.snapshot(trialStartedAtMs + 500)).toMatchObject({
+      stage: 'balance_rest',
+      balanceTimerKind: 'rest',
+      timerRemainingMs: null,
+    });
+  });
+
+  it('offers hands-free balance attempts two and three after non-ceiling valid trials before saving the best', () => {
+    const coordinator = createHandsFreeCoordinator();
+    let nowMs = advanceThroughChair(coordinator, 0) + 100;
+    nowMs = startHandsFreeBalanceTrialFromSetup(coordinator, nowMs, 'left');
+    nowMs = finishBalanceByTouchdownAfter(coordinator, nowMs, 'left', 20000);
+
+    let snapshot = coordinator.snapshot(nowMs);
+    expect(snapshot.stage).toBe('balance_rest');
+    expect(snapshot.statusText).toBe("Attempt saved. Rest before the next try.");
+    expect(snapshot.balanceValidTrials).toBe(1);
+    expect(snapshot.flow.items.find((item) => item.movementId === ONE_LEG_BALANCE_V2_ID)).toBeUndefined();
+
+    coordinator.receiveTimerTick(nowMs + 60000);
+    snapshot = coordinator.snapshot(nowMs + 60000);
+    expect(snapshot.stage).toBe('balance_ready');
+    expect(snapshot.statusText).toBe("Lift one foot again when you're ready.");
+    expect(snapshot.lastTransition?.reason).toBe('balance_default_rest_elapsed');
+
+    nowMs = startHandsFreeBalanceTrialFromReady(coordinator, nowMs + 60100, 'left');
+    nowMs = finishBalanceByTouchdownAfter(coordinator, nowMs, 'left', 25000);
+    snapshot = coordinator.snapshot(nowMs);
+    expect(snapshot.stage).toBe('balance_rest');
+    expect(snapshot.balanceValidTrials).toBe(2);
+    expect(snapshot.flow.items.find((item) => item.movementId === ONE_LEG_BALANCE_V2_ID)).toBeUndefined();
+
+    coordinator.receiveTimerTick(nowMs + 60000);
+    expect(coordinator.snapshot(nowMs + 60000).stage).toBe('balance_ready');
+
+    nowMs = startHandsFreeBalanceTrialFromReady(coordinator, nowMs + 60100, 'left');
+    nowMs = finishBalanceByTouchdownAfter(coordinator, nowMs, 'left', 18000, 'shoulder_setup');
+    snapshot = coordinator.snapshot(nowMs);
+    const balance = snapshot.flow.items.find((item) => item.movementId === ONE_LEG_BALANCE_V2_ID)?.result as
+      | { validTrialCount: number; bestHoldSec: number; declinedRemainingTrials: boolean }
       | undefined;
     expect(snapshot.stage).toBe('shoulder_setup');
-    expect(snapshot.lastTransition?.reason).toBe('balance_auto_best_after_rest');
-    expect(balance?.declinedRemainingTrials).toBe(true);
-    expect(balance?.setup).toMatchObject({ source: 'camera_inferred', standingLeg: 'left' });
+    expect(snapshot.lastTransition?.reason).toBe('balance_section_complete');
+    expect(balance?.validTrialCount).toBe(3);
+    expect(balance?.bestHoldSec).toBeCloseTo(25, 0);
+    expect(balance?.declinedRemainingTrials).toBe(false);
+  });
+
+  it('auto-saves balance immediately when the first hands-free attempt reaches the 45-second ceiling', () => {
+    const coordinator = createHandsFreeCoordinator();
+    let nowMs = advanceThroughChair(coordinator, 0) + 100;
+    nowMs = startHandsFreeBalanceTrialFromSetup(coordinator, nowMs, 'left');
+    coordinator.receiveTimerTick(nowMs + 45000);
+
+    const snapshot = coordinator.snapshot(nowMs + 45000);
+    const balance = snapshot.flow.items.find((item) => item.movementId === ONE_LEG_BALANCE_V2_ID)?.result as
+      | { validTrialCount: number; trials: { termination: string }[] }
+      | undefined;
+    expect(snapshot.stage).toBe('shoulder_setup');
+    expect(snapshot.lastTransition?.reason).toBe('balance_section_complete');
+    expect(balance?.validTrialCount).toBe(1);
+    expect(balance?.trials[0]?.termination).toBe('ceiling');
+  });
+
+  it('keeps invalid tracking balance attempts out of the valid attempt count', () => {
+    const coordinator = createCoordinator();
+    let nowMs = advanceThroughChair(coordinator, 0) + 100;
+    nowMs = startBalanceTrial(coordinator, nowMs, 'left');
+    for (let index = 1; index <= 4; index++) {
+      feedOutput(coordinator, lostOutput(nowMs + index * 33), nowMs + index * 33);
+    }
+
+    const snapshot = coordinator.snapshot(nowMs + 200);
+    expect(snapshot.stage).toBe('balance_rest');
+    expect(snapshot.balanceValidTrials).toBe(0);
+    expect(snapshot.diagnostics.balance.invalidTrials).toBe(1);
+    expect(snapshot.flow.items.find((item) => item.movementId === ONE_LEG_BALANCE_V2_ID)).toBeUndefined();
+  });
+
+  it('uses hard-cap auto-save for the best valid balance attempt and records no-measurement when no valid attempt exists', () => {
+    const withValidBest = createHandsFreeCoordinator();
+    let nowMs = advanceThroughChair(withValidBest, 0) + 100;
+    nowMs = startHandsFreeBalanceTrialFromSetup(withValidBest, nowMs, 'left');
+    nowMs = finishBalanceByTouchdownAfter(withValidBest, nowMs, 'left', 20000);
+    withValidBest.receiveTimerTick(nowMs + 360000);
+    let snapshot = withValidBest.snapshot(nowMs + 360000);
+    const validBestBalance = snapshot.flow.items.find((item) => item.movementId === ONE_LEG_BALANCE_V2_ID)?.result as
+      | { validTrialCount: number; hardCapReached: boolean; declinedRemainingTrials: boolean }
+      | undefined;
+    expect(snapshot.stage).toBe('shoulder_setup');
+    expect(snapshot.lastTransition?.reason).toBe('balance_hard_cap');
+    expect(validBestBalance).toMatchObject({ validTrialCount: 1, hardCapReached: true, declinedRemainingTrials: true });
+
+    const noValid = createCoordinator();
+    nowMs = advanceThroughChair(noValid, 0) + 100;
+    expect(noValid.receiveUserAction({ type: 'confirm_balance_setup', standingLeg: 'left' }, nowMs)).toBe(true);
+    noValid.receiveTimerTick(nowMs + 360000);
+    snapshot = noValid.snapshot(nowMs + 360000);
+    const noValidBalance = snapshot.flow.items.find((item) => item.movementId === ONE_LEG_BALANCE_V2_ID)?.result as
+      | { validTrialCount: number; hardCapReached: boolean; flags: string[] }
+      | undefined;
+    expect(snapshot.stage).toBe('shoulder_setup');
+    expect(noValidBalance?.validTrialCount).toBe(0);
+    expect(noValidBalance?.hardCapReached).toBe(true);
+    expect(noValidBalance?.flags).toEqual(expect.arrayContaining(['no-measurement', 'protocol-incomplete']));
   });
 
   it('infers shoulder side and starts shoulder plus hinge captures hands-free from stable capture poses', () => {
@@ -519,9 +729,12 @@ function createCoordinator(): MovementProfileV2LiveCoordinator {
   });
 }
 
-function createHandsFreeCoordinator(): MovementProfileV2LiveCoordinator {
+function createHandsFreeCoordinator(
+  overrides: Partial<ReturnType<typeof createMovementProfileV2InternalFlow>> = {}
+): MovementProfileV2LiveCoordinator {
   return new MovementProfileV2LiveCoordinator({
     ...createMovementProfileV2InternalFlow({ startedAt: STARTED_AT }),
+    ...overrides,
     sourceType: 'baseline',
   }, { handsFreeMode: true });
 }
@@ -670,6 +883,40 @@ function startBalanceTrial(
     nowMs += 100;
     feedOutput(coordinator, trackingOutput(balanceRaw(nowMs, standingLeg, true)), nowMs);
   }
+  if (coordinator.snapshot(nowMs).stage !== 'balance_trial') {
+    nowMs = startMs + 1500;
+    feedOutput(coordinator, trackingOutput(balanceRaw(nowMs, standingLeg, true)), nowMs);
+  }
+  expect(coordinator.snapshot(nowMs).stage).toBe('balance_trial');
+  return nowMs;
+}
+
+function startHandsFreeBalanceTrialFromSetup(
+  coordinator: MovementProfileV2LiveCoordinator,
+  startMs: number,
+  standingLeg: BodySide
+): number {
+  expect(coordinator.snapshot(startMs).stage).toBe('balance_setup');
+  expect(coordinator.receiveUserAction({ type: 'balance_setup_voice_completed' }, startMs)).toBe(true);
+  feedOutput(coordinator, trackingOutput(balanceRaw(startMs + 100, standingLeg, true)), startMs + 100);
+  feedOutput(coordinator, trackingOutput(balanceRaw(startMs + 1400, standingLeg, true)), startMs + 1400);
+  expect(coordinator.snapshot(startMs + 1400).stage).toBe('balance_ready');
+  return startHandsFreeBalanceTrialFromReady(coordinator, startMs + 1500, standingLeg);
+}
+
+function startHandsFreeBalanceTrialFromReady(
+  coordinator: MovementProfileV2LiveCoordinator,
+  startMs: number,
+  standingLeg: BodySide
+): number {
+  expect(coordinator.snapshot(startMs).stage).toBe('balance_ready');
+  expect(coordinator.receiveUserAction({ type: 'balance_attempt_voice_completed' }, startMs)).toBe(true);
+  let nowMs = startMs + 100;
+  feedOutput(coordinator, trackingOutput(balanceRaw(nowMs, standingLeg, true)), nowMs);
+  if (coordinator.snapshot(nowMs).stage !== 'balance_trial') {
+    nowMs = startMs + 1400;
+    feedOutput(coordinator, trackingOutput(balanceRaw(nowMs, standingLeg, true)), nowMs);
+  }
   expect(coordinator.snapshot(nowMs).stage).toBe('balance_trial');
   return nowMs;
 }
@@ -689,6 +936,23 @@ function finishBalanceByTouchdown(
     feedOutput(coordinator, trackingOutput(balanceRaw(nowMs, standingLeg, false)), nowMs);
   }
   expect(coordinator.snapshot(nowMs).stage).toBe('balance_rest');
+  return nowMs;
+}
+
+function finishBalanceByTouchdownAfter(
+  coordinator: MovementProfileV2LiveCoordinator,
+  trialStartedAtMs: number,
+  standingLeg: BodySide,
+  holdMs: number,
+  expectedStage: 'balance_rest' | 'shoulder_setup' = 'balance_rest'
+): number {
+  let nowMs = trialStartedAtMs + holdMs;
+  feedOutput(coordinator, trackingOutput(balanceRaw(nowMs, standingLeg, true)), nowMs);
+  for (let index = 1; index <= 4; index++) {
+    nowMs += 33;
+    feedOutput(coordinator, trackingOutput(balanceRaw(nowMs, standingLeg, false)), nowMs);
+  }
+  expect(coordinator.snapshot(nowMs).stage).toBe(expectedStage);
   return nowMs;
 }
 

@@ -752,7 +752,7 @@ function movementProfileV2StageDisplay(
   if (live.stage === 'chair_active') {
     return { mode: 'metric', label: 'Reps', value: `${live.chairReps}` };
   }
-  if (live.stage === 'balance_rest') {
+  if (live.balanceTimerKind === 'rest') {
     return { mode: 'metric', label: 'Rest', value: formatCompactSeconds(live.restMinimumRemainingMs) };
   }
   if (live.timerRemainingMs !== null) {

@@ -94,19 +94,19 @@ export const MICRO_CHECK_VOICE_CONTRACTS_V21 = [
     currentProtocolVersion: 1,
     finalProtocolId: 'micro_mobility_reach_v21',
     finalProtocolVersion: 2,
-    comparisonGroup: 'micro_mobility_reach_v21',
-    sideRole: 'extended_leg',
-    sideRequired: true,
+    comparisonGroup: 'standing_forward_reach',
+    sideRole: 'not_applicable',
+    sideRequired: false,
     setupCueKey: 'micro-mobility-left-v21',
-    exactScript: 'Quick mobility check. Extend your left leg and reach gently until I say relax.',
+    exactScript: 'Quick mobility check. Stand side-on, hinge forward, and reach toward the floor until I say stand tall.',
     finalPositionRequired: true,
-    finalPositionStrategy: 'explicit_ready_plus_selected_side_camera_readiness',
+    finalPositionStrategy: 'explicit_ready_plus_camera_readiness',
     endPolicy: 'fixed_rom_window',
-    targetDescription: 'current ROM capture window with runner hard cap preserved at 45 seconds',
-    hardCapMs: MICRO_CHECK_DEFAULT_MAX_ACTIVE_MS,
+    targetDescription: '9-second standing forward-reach capture using the Movement Check-Up hinge reach grader',
+    hardCapMs: 9000,
     repSfxOnly: false,
     progressCueKeys: [],
-    stopCueKey: 'micro-relax-v21',
+    stopCueKey: null,
     completionCueKey: 'microcheck-complete-v21',
     requiredness: requiredness(),
     implementationRequirements: ['IR-MICRO-VOICE-AUDIO-ASSETS', 'IR-MICRO-VOICE-FINAL-SCHEMA'],
@@ -115,7 +115,7 @@ export const MICRO_CHECK_VOICE_CONTRACTS_V21 = [
       'src/training/microCheckSideSetup.ts',
       'src/training/microCheckVoiceV21/contracts.ts',
     ],
-    notes: 'Extended leg is pinned before runner construction; the stop cue is a pending logical Relax line, not relax-arm.',
+    notes: 'Uses the same standing HingeReachGrader and side-independent near-chain selection as the Movement Check-Up.',
   },
 ] as const satisfies readonly MicroCheckVoiceContractV21[];
 
@@ -140,11 +140,11 @@ export function microCheckVoiceSetupCueForSideV21(
   selectedSide: 'left' | 'right' | null
 ): MicroCheckVoiceLogicalCueV21 | null {
   if (type === 'chair-power') return logicalCueV21('micro-chair-power-v21');
-  if (!selectedSide) return null;
   if (type === 'single-leg-balance') {
+    if (!selectedSide) return null;
     return logicalCueV21(selectedSide === 'left' ? 'micro-single-leg-left-v21' : 'micro-single-leg-right-v21');
   }
-  return logicalCueV21(selectedSide === 'left' ? 'micro-mobility-left-v21' : 'micro-mobility-right-v21');
+  return logicalCueV21('micro-mobility-left-v21');
 }
 
 export function logicalCueV21(key: MicroCheckVoiceLogicalCueKeyV21): MicroCheckVoiceLogicalCueV21 {
@@ -178,14 +178,14 @@ export function allMicroCheckVoiceLogicalCuesV21(): MicroCheckVoiceLogicalCueV21
     ),
     cue(
       'micro-mobility-left-v21',
-      'Quick mobility check. Extend your left leg and reach gently until I say relax.',
+      'Quick mobility check. Stand side-on, hinge forward, and reach toward the floor until I say stand tall.',
       'micro_instruction',
       'instruction',
       true
     ),
     cue(
       'micro-mobility-right-v21',
-      'Quick mobility check. Extend your right leg and reach gently until I say relax.',
+      'Quick mobility check. Stand side-on, hinge forward, and reach toward the floor until I say stand tall.',
       'micro_instruction',
       'instruction',
       true
@@ -219,7 +219,7 @@ export function validateMicroCheckVoiceContractRegistryV21(): MicroCheckVoiceCon
   const sideRoleMismatchCount = contracts.filter((contract) => {
     if (contract.type === 'chair-power') return contract.sideRole !== 'not_applicable' || contract.sideRequired;
     if (contract.type === 'single-leg-balance') return contract.sideRole !== 'standing_leg' || !contract.sideRequired;
-    return contract.sideRole !== 'extended_leg' || !contract.sideRequired;
+    return contract.sideRole !== 'not_applicable' || contract.sideRequired;
   }).length;
   return {
     valid:

@@ -20,6 +20,7 @@ describe('pose overlay benchmark Constellation V2 modes', () => {
       'premium-constellation-450',
       'privacy-shadow',
       'art-directed-human',
+      'art-directed-human-separated',
       'soft-continuous-silhouette',
       'soft-digital-twin-lean',
       'soft-digital-twin',
@@ -39,6 +40,7 @@ describe('pose overlay benchmark Constellation V2 modes', () => {
       'premium-constellation-450',
       'privacy-shadow',
       'art-directed-human',
+      'art-directed-human-separated',
       'soft-continuous-silhouette',
       'soft-digital-twin-lean',
       'soft-digital-twin',
@@ -250,6 +252,7 @@ describe('pose overlay benchmark Constellation V2 modes', () => {
   it('adds the art-directed human rig as a low-path benchmark option', () => {
     const modes = createPoseOverlayBenchmarkModes('android');
     const artDirected = modes.find((mode) => mode.id === 'art-directed-human');
+    const separated = modes.find((mode) => mode.id === 'art-directed-human-separated');
 
     expect(artDirected).toMatchObject({
       title: 'Art-directed human',
@@ -262,7 +265,20 @@ describe('pose overlay benchmark Constellation V2 modes', () => {
         smoothingEnabled: false,
       },
     });
+    expect(separated).toMatchObject({
+      title: 'Art-directed human · separated',
+      configuredDotCount: 0,
+      configuredShapeCount: 10,
+      rendererProps: {
+        mode: 'art_directed_human',
+        artDirectedHumanJointStyle: 'separated',
+        frameSource: 'raw',
+        fit: 'contain',
+        smoothingEnabled: false,
+      },
+    });
     expect(artDirected?.nativeBenchmarkOverlayMode).toBeUndefined();
+    expect(separated?.nativeBenchmarkOverlayMode).toBeUndefined();
   });
 
   it('keeps rejected visual experiments out of the benchmark selector', () => {

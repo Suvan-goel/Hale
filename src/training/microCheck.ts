@@ -1,25 +1,33 @@
 /**
  * Weekly micro-check — a ~60-second single-item check between full Check-Ups,
  * feeding the trend line so progress stays visible without a 10-minute battery.
- * Three flavours, all reusing the existing set graders:
+ * Three flavours, reusing the existing graders:
  *   chair-power        — 5 fast chair stands → rise velocity (RepsSetGrader)
  *   single-leg-balance — a single-leg hold → seconds (HoldSetGrader)
- *   mobility-reach     — seated hamstring reach → peak hip angle (RomSetGrader)
+ *   mobility-reach     — standing hinge reach → wrist-to-floor body units
+ *                         (same HingeReachGrader as the Movement Check-Up)
  *
  * MicroCheckRunner is a compact pure-TS state machine (preflight → instructions
  * → countdown → active → done), the same audio-first, frame-timestamp-driven
  * shape as the assessment SessionController, so it replays deterministically.
- * Its result maps onto the existing rise-velocity / single-leg-balance trend
- * keys via microCheckTrendPoints().
+ * Its result maps onto the existing rise-velocity / single-leg-balance /
+ * forward-reach trend keys via microCheckTrendPoints().
  */
 
 import { VoiceCueKey, voicePriority } from '../audio/cues';
 import { VoiceRequest } from '../assessment/sessionController';
 import { normalizeMicroCheckMeasurementMetadata, type BodySide, type MeasurementContext } from '../checkup';
 import { ExerciseSetGrader, SetResult } from '../exercises';
-import { HoldSetGrader, RepsSetGrader, RomSetGrader } from '../exercises/setGraders';
+import { HoldSetGrader, RepsSetGrader } from '../exercises/setGraders';
 import { AUTOREG_VOICE } from '../exercises/common';
 import { ExtraTrendPoint } from '../history';
+import {
+  getMovement,
+  HINGE_REACH_ID,
+  type GraderUpdate,
+  type HingeReachResult,
+  type MovementGrader,
+} from '../movements';
 import { PipelineFrameOutput } from '../pose/pipeline';
 import { PreflightCheck, PreflightPrompt } from '../preflight/preflight';
 import { shouldSpeakFramingPrompt } from '../preflight/promptTiming';
@@ -43,7 +51,7 @@ export interface MicroCheckResult {
   scheduleWeekIndex?: number;
   scheduleWeekNumber?: number;
   measurementContext?: MeasurementContext;
-  /** Rise velocity (bu/s), hold seconds, or peak reach angle depending on type. */
+  /** Rise velocity (bu/s), hold seconds, or forward-reach body units depending on type. */
   value: number;
   /** Chair stands credited (chair-power); 0 otherwise. */
   reps: number;
@@ -86,8 +94,10 @@ const COUNTDOWN: readonly VoiceCueKey[] = ['countdown-three', 'countdown-two', '
 const INTRO_CUE: Record<MicroCheckType, VoiceCueKey> = {
   'chair-power': 'microcheck-chair',
   'single-leg-balance': 'microcheck-balance',
-  'mobility-reach': 'ex-hamstring-reach',
+  'mobility-reach': 'hinge-intro',
 };
+
+const HINGE_REACH_DEFINITION = getMovement(HINGE_REACH_ID);
 
 export class MicroCheckRunner {
   private readonly type: MicroCheckType;
@@ -243,11 +253,12 @@ export class MicroCheckRunner {
         u.holdSec = g.holdMs > 0 ? g.holdMs / 1000 : NaN;
         u.measuring = g.measuring;
         const elapsed = ts - this.activeStartMs;
-        u.remainingMs = Math.max(0, this.config.maxActiveMs - elapsed);
-        if (g.complete || elapsed >= this.config.maxActiveMs) {
+        const activeWindowMs = this.activeWindowMs();
+        u.remainingMs = Math.max(0, activeWindowMs - elapsed);
+        if (g.complete || elapsed >= activeWindowMs) {
           this.finalize(this.grader.finish(ts));
-          const completionCue = this.voiceMode === 'v21_beta' ? 'microcheck-complete-v21' : 'microcheck-complete';
-          u.voice = { cues: [completionCue], priority: voicePriority(completionCue) };
+          const completionCues = this.completionCues();
+          u.voice = { cues: completionCues, priority: maxPriority(completionCues) };
           this.phase = 'done';
         }
         break;
@@ -261,15 +272,36 @@ export class MicroCheckRunner {
   }
 
   private instructionCues(): readonly VoiceCueKey[] {
-    if (this.voiceMode !== 'v21_beta') return ['framing-ready', INTRO_CUE[this.type]];
+    const legacyCues = this.type === 'mobility-reach'
+      ? HINGE_REACH_DEFINITION.voice.instructions
+      : [INTRO_CUE[this.type]];
+    if (this.voiceMode !== 'v21_beta' || this.type === 'mobility-reach') {
+      return ['framing-ready', ...legacyCues];
+    }
     const plan = planMicroCheckVoiceSequenceV21({
       type: this.type,
       selectedSide: this.selectedSide,
       exposure: 'first_setup',
       phase: 'instruction',
     });
-    if (!plan.ready) return ['framing-ready', INTRO_CUE[this.type]];
+    if (!plan.ready) return ['framing-ready', ...legacyCues];
     return ['framing-ready', ...(plan.cueKeys as readonly VoiceCueKey[])];
+  }
+
+  private activeWindowMs(): number {
+    if (this.type === 'mobility-reach' && HINGE_REACH_DEFINITION.durationMs !== null) {
+      return HINGE_REACH_DEFINITION.durationMs;
+    }
+    return this.config.maxActiveMs;
+  }
+
+  private completionCues(): VoiceCueKey[] {
+    const completionCue = this.voiceMode === 'v21_beta' ? 'microcheck-complete-v21' : 'microcheck-complete';
+    if (this.type === 'mobility-reach') {
+      const endCue = HINGE_REACH_DEFINITION.voice.endCue;
+      return endCue ? [endCue, completionCue] : [completionCue];
+    }
+    return [completionCue];
   }
 
   private finalize(set: SetResult): void {
@@ -325,11 +357,7 @@ function makeGrader(type: MicroCheckType, config: MicroCheckConfig): ExerciseSet
     });
   }
   if (type === 'mobility-reach') {
-    return new RomSetGrader({
-      exerciseId: 'micro-mobility-reach',
-      signal: { kind: 'angle', a: 'shoulder', vertex: 'hip', b: 'knee', direction: 'min' },
-      emaAlpha: 0.3,
-    });
+    return new HingeReachMicroCheckGrader();
   }
   return new HoldSetGrader({
     exerciseId: 'micro-single-leg',
@@ -342,6 +370,53 @@ function makeGrader(type: MicroCheckType, config: MicroCheckConfig): ExerciseSet
     endDebounceFrames: 4,
     validTime: false,
   });
+}
+
+class HingeReachMicroCheckGrader implements ExerciseSetGrader {
+  private readonly grader: MovementGrader<HingeReachResult>;
+
+  constructor() {
+    this.grader = HINGE_REACH_DEFINITION.createGrader() as MovementGrader<HingeReachResult>;
+  }
+
+  update(out: PipelineFrameOutput) {
+    return setUpdateFromMovementUpdate(this.grader.update(out));
+  }
+
+  finish(timestampMs: number): SetResult {
+    const result = this.grader.finish(timestampMs);
+    const reachBu = typeof result.reachBu === 'number' && Number.isFinite(result.reachBu)
+      ? result.reachBu
+      : NaN;
+    return {
+      exerciseId: HINGE_REACH_ID,
+      reps: 0,
+      meanVel: NaN,
+      holdSec: NaN,
+      romPeak: reachBu,
+      autoregulated: false,
+      reachedTarget: Number.isFinite(reachBu),
+      interruptions: result.interruptions,
+      flags: result.flags.slice(),
+      ...(result.validTime ? { validTime: result.validTime } : {}),
+    };
+  }
+
+  reset(): void {
+    this.grader.reset();
+  }
+}
+
+function setUpdateFromMovementUpdate(update: GraderUpdate) {
+  return {
+    repCredited: update.repCredited,
+    repCount: update.repCount,
+    measuring: update.measuring,
+    holdMs: 0,
+    autoregulationStop: false,
+    complete: update.complete,
+    voice: update.voice,
+  };
 }
 
 function maxPriority(cues: readonly VoiceCueKey[]): number {
@@ -361,7 +436,7 @@ export function microCheckTrendPoints(results: readonly MicroCheckResult[]): Ext
         ? 'rise-velocity'
         : r.type === 'single-leg-balance'
           ? 'single-leg-balance'
-          : 'seated-reach-angle';
+          : 'forward-reach';
     out.push({ key, at: r.startedAt, value: r.value, measurementContext });
   }
   return out;

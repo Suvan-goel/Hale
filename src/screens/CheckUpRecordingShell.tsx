@@ -65,6 +65,11 @@ export interface CheckUpShellControl {
   primary?: boolean;
 }
 
+export interface CheckUpRecordingAreaContext {
+  cameraViewport: { width: number; height: number };
+  poseWindow: { width: number; height: number; left: number; top: number };
+}
+
 export interface CheckUpRecordingShellProps {
   title: string;
   currentMovementName: string;
@@ -96,6 +101,7 @@ export interface CheckUpRecordingShellProps {
   };
   latencyOverlay?: React.ReactNode;
   pointCloudBodyDotScale?: number;
+  renderRecordingArea?: (context: CheckUpRecordingAreaContext) => React.ReactNode;
 }
 
 const CHECKUP_SETUP_ISSUE_TITLE = 'Hale cannot see this movement clearly';
@@ -144,6 +150,7 @@ export function CheckUpRecordingShell({
   discardModal,
   latencyOverlay,
   pointCloudBodyDotScale = 1.72,
+  renderRecordingArea,
 }: CheckUpRecordingShellProps) {
   const windowSize = useWindowDimensions();
   const responsive = useResponsiveLayout();
@@ -231,6 +238,8 @@ export function CheckUpRecordingShell({
             </View>
             {cameraAvailability === 'unavailable' ? (
               <CameraUnavailableNotice compact style={styles.recordingCameraUnavailableNotice} />
+            ) : renderRecordingArea ? (
+              renderRecordingArea({ cameraViewport, poseWindow })
             ) : (
               <SkeletonView
                 ref={skeletonRef}

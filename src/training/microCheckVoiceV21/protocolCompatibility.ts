@@ -38,7 +38,7 @@ export function protocolCompatibilityForMicroCheckV21(
         ? 'accepted five-rep target or hard cap; rep-credit remains sound-effect only'
         : type === 'single-leg-balance'
           ? 'hold termination or hard cap; interrupted holds cannot produce partial V2.1 results'
-          : 'ROM capture window or hard cap; stop speech is pending logical micro-relax-v21',
+          : '9-second standing forward-reach capture uses the Movement Check-Up hinge reach grader',
     classification: 'new_protocol_version_required',
     directComparisonAllowed: false,
     oldHistoryPreserved: true,

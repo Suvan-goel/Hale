@@ -101,6 +101,7 @@ type SettingsScreenProps = {
   onOpenLifeGoal: () => void;
   onOpenSafetyProfile: () => void;
   onOpenCameraSetup: () => void;
+  onOpenFitFramePoseTracePreview?: () => void;
   onOpenPoseBenchmarkForDiagnostics?: () => void;
   onReplayOnboardingForDev?: () => void;
   onBack?: () => void;
@@ -127,6 +128,7 @@ function SettingsScreenContent({
   onOpenLifeGoal,
   onOpenSafetyProfile,
   onOpenCameraSetup,
+  onOpenFitFramePoseTracePreview,
   onOpenPoseBenchmarkForDiagnostics,
   onReplayOnboardingForDev,
   onBack,
@@ -149,7 +151,10 @@ function SettingsScreenContent({
   const effortLabel = startingEffortLabel(startingEffort);
   const planSummary = `${preferredDaysSummary(preferredDays)} · ${effortLabel}`;
   const showInternalDeveloperSettings = !!onReplayOnboardingForDev;
-  const showDeveloperSettings = showInternalDeveloperSettings || !!onOpenPoseBenchmarkForDiagnostics;
+  const showDeveloperSettings =
+    showInternalDeveloperSettings ||
+    !!onOpenPoseBenchmarkForDiagnostics ||
+    !!onOpenFitFramePoseTracePreview;
 
   React.useEffect(() => setName(profile.name), [profile.name]);
   React.useEffect(() => {
@@ -585,6 +590,7 @@ function SettingsScreenContent({
               subtitle="Open the first-run flow without clearing app data."
               icon="sliders"
               onPress={onReplayOnboardingForDev}
+              showDivider={!!onOpenPoseBenchmarkForDiagnostics || !!onOpenFitFramePoseTracePreview}
             />
           ) : null}
           {onOpenPoseBenchmarkForDiagnostics ? (
@@ -593,6 +599,15 @@ function SettingsScreenContent({
               subtitle="Run renderer latency modes on this device."
               icon="sliders"
               onPress={onOpenPoseBenchmarkForDiagnostics}
+              showDivider={!!onOpenFitFramePoseTracePreview}
+            />
+          ) : null}
+          {onOpenFitFramePoseTracePreview ? (
+            <ProfileMenuRow
+              title="Try Fit Frame Pose Trace"
+              subtitle="Preview a private recording view without camera preview."
+              icon="camera"
+              onPress={onOpenFitFramePoseTracePreview}
             />
           ) : null}
         </SettingsSection>

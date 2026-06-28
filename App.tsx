@@ -128,6 +128,7 @@ import {
   staleReleasePolicyPlanningResult,
   staleSafetyCuePlanningResult,
   sessionPlanFromPlanningResult,
+  buildMicroCheckSummaryViewModel,
   microCheckSlotMetadataFromTarget,
   microCheckTypeForDomain,
   validateHaleSessionPlanEquipment,
@@ -139,12 +140,18 @@ import {
   type BlockMicroCheckTarget,
   type HaleSessionPlanningResult,
   type HaleSessionPlan,
+  type MicroCheckSummaryViewModel,
   type OfficialMovementProfileV2AssessmentRecord,
   type PlanSessionId,
   type TodaySessionPreferences,
 } from './src/haleFlow';
-import { HistoryStore, StoredCheckUp } from './src/history';
+import { HistoryStore, HISTORY_SCHEMA_VERSION, StoredCheckUp } from './src/history';
 import { createExpoHistoryFs } from './src/history/fsAdapter';
+import {
+  BALANCE_LADDER_ID,
+  CHAIR_STAND_ID,
+  HINGE_REACH_ID,
+} from './src/movements';
 import {
   createMovementProfileV2InternalFlow,
   latestMaterializedMovementProfileV2Result,
@@ -233,6 +240,7 @@ import { CameraExplanationScreen } from './src/screens/CameraExplanationScreen';
 import { CameraSetupScreen } from './src/screens/CameraSetupScreen';
 import { CheckUpScreen } from './src/screens/CheckUpScreen';
 import { ExploreScreen } from './src/screens/ExploreScreen';
+import { FitFramePoseTracePreviewScreen } from './src/screens/FitFramePoseTracePreviewScreen';
 import { LadderDetailScreen, LearnDetailScreen } from './src/screens/ExploreDetailScreens';
 import { LiveSessionScreen } from './src/screens/LiveSessionScreen';
 import { ManualCheckupStartScreen } from './src/screens/ManualCheckupStartScreen';
@@ -241,6 +249,7 @@ import {
   ManualMicroCheckUnavailableScreen,
 } from './src/screens/ManualMicroCheckChoiceScreen';
 import { MicroCheckScreen } from './src/screens/MicroCheckScreen';
+import { MicroCheckSummaryScreen } from './src/screens/MicroCheckSummaryScreen';
 import { MovementProfileV2BlockReportScreen } from './src/screens/MovementProfileV2BlockReportScreen';
 import { MovementProfileV2ResultsScreen } from './src/screens/MovementProfileV2ResultsScreen';
 import { MovementProfileV2UnifiedCheckUpScreen } from './src/screens/MovementProfileV2UnifiedCheckUpScreen';
@@ -300,6 +309,7 @@ type Flow =
   | 'session-preview'
   | 'training'
   | 'microcheck'
+  | 'microcheck-summary'
   | 'life-goal'
   | 'onboarding-block'
   | 'block-intro'
@@ -308,6 +318,7 @@ type Flow =
   | 'ladder-detail'
   | 'learn-detail'
   | 'settings'
+  | 'fit-frame-pose-trace-preview'
   | 'movement-profile-v2-unified-checkup'
   | 'movement-profile-v2-results'
   | 'movement-profile-v2-practice-results'
@@ -368,6 +379,7 @@ const CAMERA_FLOWS = new Set<Flow>([
   'training',
   'microcheck',
   'movement-profile-v2-unified-checkup',
+  'fit-frame-pose-trace-preview',
   'pose-benchmark',
   'dev-live',
 ]);
@@ -425,6 +437,109 @@ function buildBlockIntroPreview(nowIso: string): {
       createdAt: nowIso,
       updatedAt: nowIso,
     },
+  };
+}
+
+function buildDevMicroCheckSummaryPreview(variant: string | null): MicroCheckSummaryViewModel | null {
+  if (!__DEV__) return null;
+  const history = [buildDevMicroCheckBaseline()];
+  if (variant === 'scheduled-mobility') {
+    return buildMicroCheckSummaryViewModel({
+      result: {
+        type: 'mobility-reach',
+        startedAt: '2026-06-28T08:00:00.000Z',
+        completedAt: '2026-06-28T08:01:00.000Z',
+        value: 0.24,
+        reps: 0,
+        measured: true,
+        targetDomain: 'mobility',
+        scheduleWeekNumber: 3,
+      },
+      source: 'scheduled',
+      targetDomain: 'mobility',
+      scheduleWeekNumber: 3,
+      history,
+    });
+  }
+  if (variant === 'optional' || variant === 'optional-mobility') {
+    return buildMicroCheckSummaryViewModel({
+      result: {
+        type: 'mobility-reach',
+        startedAt: '2026-06-28T08:00:00.000Z',
+        completedAt: '2026-06-28T08:01:00.000Z',
+        value: 0.24,
+        reps: 0,
+        measured: true,
+        targetDomain: 'mobility',
+      },
+      source: 'optional',
+      targetDomain: 'mobility',
+      history,
+    });
+  }
+  if (!variant || variant === 'scheduled' || variant === 'scheduled-strength') {
+    return buildMicroCheckSummaryViewModel({
+      result: {
+        type: 'chair-power',
+        startedAt: '2026-06-28T08:00:00.000Z',
+        completedAt: '2026-06-28T08:01:00.000Z',
+        value: 0.42,
+        reps: 5,
+        measured: true,
+        targetDomain: 'strength_power',
+        scheduleWeekNumber: 2,
+      },
+      source: 'scheduled',
+      targetDomain: 'strength_power',
+      scheduleWeekNumber: 2,
+      history,
+    });
+  }
+  return null;
+}
+
+function buildDevMicroCheckBaseline(): StoredCheckUp {
+  const startedAt = '2026-06-19T08:00:00.000Z';
+  return {
+    schemaVersion: HISTORY_SCHEMA_VERSION,
+    checkupType: 'baseline',
+    checkUp: {
+      startedAt,
+      bodyUnit: 0.33,
+      items: [
+        devMeasuredCheckUpItem(CHAIR_STAND_ID, {
+          reps: 12,
+          repStats: [],
+          sessionMeanVel: 0.34,
+          sessionMeanPeakVel: 0.44,
+          pushOffDetected: false,
+        }),
+        devMeasuredCheckUpItem(BALANCE_LADDER_ID, {
+          stages: [],
+          singleLegEyesOpenSec: 10,
+        }),
+        devMeasuredCheckUpItem(HINGE_REACH_ID, {
+          reachBu: 0.3,
+        }),
+      ],
+    },
+    scoreSnapshotCompatibility: 'legacy_unversioned',
+  };
+}
+
+function devMeasuredCheckUpItem(
+  movementId: string,
+  result: Record<string, unknown>
+): CheckUp['items'][number] {
+  return {
+    movementId,
+    status: 'measured',
+    result: {
+      movementId,
+      flags: [],
+      interruptions: 0,
+      ...result,
+    } as never,
   };
 }
 
@@ -814,6 +929,8 @@ function HaleApp() {
   );
   const [microChecks, setMicroChecks] = React.useState<MicroCheckResult[]>([]);
   const [microCheckLaunch, setMicroCheckLaunch] = React.useState<MicroCheckLaunch | null>(null);
+  const [lastMicroCheckSummary, setLastMicroCheckSummary] =
+    React.useState<MicroCheckSummaryViewModel | null>(null);
   const [prefs, setPrefs] = React.useState<Preferences>(() => defaultPreferences());
   const voiceActivation = React.useMemo(
     () => resolveVoiceV21Activation({ persistedMode: prefs.settings.voiceExperienceMode }),
@@ -928,6 +1045,31 @@ function HaleApp() {
     },
     [replaceNextNavigationLocation]
   );
+
+  React.useEffect(() => {
+    if (!__DEV__) return undefined;
+    const openDevMicroCheckSummary = (url: string | null | undefined) => {
+      if (!url || !url.startsWith('hale://')) return;
+      let parsed: URL;
+      try {
+        parsed = new URL(url);
+      } catch {
+        return;
+      }
+      if (parsed.hostname !== 'dev' || parsed.pathname !== '/microcheck-summary') return;
+      const summary = buildDevMicroCheckSummaryPreview(parsed.searchParams.get('variant'));
+      if (!summary) return;
+      setLastMicroCheckSummary(summary);
+      setMicroCheckLaunch(null);
+      setActiveMicroCheckVoiceActivation(null);
+      replaceFlow('microcheck-summary');
+    };
+    const subscription = Linking.addEventListener('url', (event) => openDevMicroCheckSummary(event.url));
+    void Linking.getInitialURL()
+      .then(openDevMicroCheckSummary)
+      .catch(() => undefined);
+    return () => subscription.remove();
+  }, [replaceFlow]);
 
   React.useEffect(() => {
     if (flow !== 'results') {
@@ -1244,6 +1386,7 @@ function HaleApp() {
     setMovementProfileV2EntryContext('internal');
     setMovementProfileV2DetailDomain(null);
     setMicroCheckLaunch(null);
+    setLastMicroCheckSummary(null);
     setActiveTrainingVoiceActivation(null);
     setActiveMicroCheckVoiceActivation(null);
     setActiveMovementProfileV2VoiceActivation(null);
@@ -3413,8 +3556,10 @@ function HaleApp() {
           completedAt,
           targetDomain: microCheckLaunch.domain,
         };
+        let localMicroCheckSaved = false;
         try {
           trainingStore.saveMicroCheck(optionalResult);
+          localMicroCheckSaved = true;
         } catch (e) {
           console.warn('[training] optional micro-check save failed', e);
         }
@@ -3425,8 +3570,18 @@ function HaleApp() {
           );
           return [...withoutDuplicate, optionalResult];
         });
+        setLastMicroCheckSummary(
+          buildMicroCheckSummaryViewModel({
+            result: optionalResult,
+            source: 'optional',
+            targetDomain: microCheckLaunch.domain,
+            saved: localMicroCheckSaved,
+            history,
+            assessments: adherence.assessments,
+          })
+        );
         setMicroCheckLaunch(null);
-        goHome();
+        replaceFlow('microcheck-summary');
         return;
       }
 
@@ -3489,8 +3644,19 @@ function HaleApp() {
         });
       }
       setLastCompletion(completion);
+      setLastMicroCheckSummary(
+        buildMicroCheckSummaryViewModel({
+          result: enrichedResult,
+          source: 'scheduled',
+          targetDomain: scheduledTarget.targetDomain,
+          scheduleWeekNumber: scheduledTarget.scheduleWeekNumber,
+          saved: localMicroCheckSaved,
+          history,
+          assessments: adherence.assessments,
+        })
+      );
       setMicroCheckLaunch(null);
-      goHome();
+      replaceFlow('microcheck-summary');
     },
     [
       activeMovementBlock,
@@ -3499,8 +3665,10 @@ function HaleApp() {
       backendSignedIn,
       backendUserId,
       goHome,
+      history,
       microCheckLaunch,
       persistAdherence,
+      replaceFlow,
       training,
       trainingStore,
     ]
@@ -4819,6 +4987,11 @@ function HaleApp() {
               activeMicroCheckVoiceActivation?.microCheckVoiceV21Enabled ? 'v21_beta' : 'legacy'
             }
           />
+        ) : flow === 'microcheck-summary' && lastMicroCheckSummary ? (
+          <MicroCheckSummaryScreen
+            summary={lastMicroCheckSummary}
+            onDone={goHome}
+          />
         ) : flow === 'life-goal' ? (
           <LifeGoalOnboardingScreen
             initialGoal={prefs.profile.lifeGoal}
@@ -5005,6 +5178,7 @@ function HaleApp() {
             onOpenLifeGoal={() => openLifeGoal('review')}
             onOpenSafetyProfile={() => openSafetyProfile('review')}
             onOpenCameraSetup={() => openCameraSetup('review')}
+            onOpenFitFramePoseTracePreview={() => setFlow('fit-frame-pose-trace-preview')}
             onOpenPoseBenchmarkForDiagnostics={
               poseLatencyDiagnosticsEnabled ? () => setFlow('pose-benchmark') : undefined
             }
@@ -5013,6 +5187,8 @@ function HaleApp() {
             }
             onBack={goHome}
           />
+        ) : flow === 'fit-frame-pose-trace-preview' ? (
+          <FitFramePoseTracePreviewScreen onBack={() => goBack(goSettings)} />
         ) : flow === 'pose-benchmark' && poseLatencyDiagnosticsEnabled ? (
           <PoseOverlayBenchmarkScreen onBack={() => goBack(goHome)} />
         ) : flow === 'dev-live' ? (

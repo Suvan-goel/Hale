@@ -74,7 +74,7 @@ const TITLE: Record<MicroCheckType, string> = {
 const MOVEMENT_NAME: Record<MicroCheckType, string> = {
   'chair-power': 'Chair Power',
   'single-leg-balance': 'Single-Leg Balance',
-  'mobility-reach': 'Mobility Reach',
+  'mobility-reach': 'Forward Reach',
 };
 
 const DOMAIN_LABEL: Record<MicroCheckType, string> = {
@@ -749,7 +749,7 @@ function microCheckSideSetupCopy(
       title: 'Which side will you use?',
       body:
         microCheckType === 'mobility-reach'
-          ? 'Choose the leg you can extend comfortably. Use the same leg each time for clearer progress.'
+          ? 'Choose the side you can keep clearly in view. Use the same side each time for clearer progress.'
           : 'Choose the leg you can hold most comfortably today. Use the same leg each time for clearer progress.',
     };
   }
@@ -1107,7 +1107,7 @@ function microCheckSessionNotice(
     return { text: PHASE_CAPTION[snapshot.phase] ?? 'Get ready', action: null };
   }
   if (snapshot.phase === 'active' && microCheckType === 'mobility-reach') {
-    return { text: 'Reach comfortably and return tall', action: null };
+    return { text: 'Reach toward the floor, then stand tall', action: null };
   }
   return null;
 }

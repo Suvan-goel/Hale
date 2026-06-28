@@ -16,6 +16,7 @@ export * from './focusStimulusEvidence';
 export * from './manualCheckup';
 export * from './mainPlanEvents';
 export * from './microCheck';
+export * from './microCheckSummary';
 export * from './movementProfileV2Block';
 export * from './movementProfileV2BlockReport';
 export * from './movementProfileV2OfficialRetestTransition';

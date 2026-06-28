@@ -290,11 +290,13 @@ describe('Movement Profile V2 shoulder references', () => {
 describe('Movement Profile V2 chair transform gate', () => {
   it.each([
     ['female', 50, 8, 0.5711107758],
+    ['female', 19, 11, 1.8415747857],
     ['female', 50, 16, 54.3702038045],
     ['female', 50, 22, 91.7669230622],
     ['female', 65, 14, 46.0114070645],
     ['female', 75, 19, 92.3552071922],
     ['male', 50, 8, 0.3801460030],
+    ['male', 19, 11, 1.2690627304],
     ['male', 50, 16, 47.3987009797],
     ['male', 50, 24, 92.6966398804],
     ['male', 65, 15, 51.6090044946],
@@ -316,11 +318,18 @@ describe('Movement Profile V2 chair transform gate', () => {
   });
 
   it('handles lower and upper percentile boundaries', () => {
+    const wardenProvider = fakeChairProvider([], { percentileFor: wardenChairPercentileFor });
     expect(buildChairPercentileRange({ repetitions: 1, ageAtTest: 62, referenceSex: 'female', provider: fakeChairProvider([1, 4, 8]) })).toEqual({
       kind: 'below_10',
     });
     expect(buildChairPercentileRange({ repetitions: 30, ageAtTest: 62, referenceSex: 'female', provider: fakeChairProvider([91, 94, 97]) })).toEqual({
       kind: 'above_90',
+    });
+    expect(buildChairPercentileRange({ repetitions: 11, ageAtTest: 19, referenceSex: 'female', provider: wardenProvider })).toEqual({
+      kind: 'below_10',
+    });
+    expect(buildChairPercentileRange({ repetitions: 11, ageAtTest: 19, referenceSex: 'male', provider: wardenProvider })).toEqual({
+      kind: 'below_10',
     });
   });
 

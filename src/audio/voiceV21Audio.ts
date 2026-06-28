@@ -2,6 +2,7 @@ import {
   AUDIO_OUTPUT_FORMAT,
   AUDIO_TTS_PROVIDER,
   AUDIO_VOICE_SETTINGS,
+  type AudioVoiceSettingsMetadata,
   ELEVENLABS_MODEL,
 } from './safetyAudio';
 
@@ -16,7 +17,7 @@ export interface VoiceV21AudioAssetMetadata {
   readonly providerVoiceId: string;
   readonly model: typeof ELEVENLABS_MODEL;
   readonly outputFormat: typeof AUDIO_OUTPUT_FORMAT;
-  readonly voiceSettings: typeof AUDIO_VOICE_SETTINGS;
+  readonly voiceSettings: AudioVoiceSettingsMetadata;
   readonly path: string;
   readonly script: string;
   readonly fingerprint: string;

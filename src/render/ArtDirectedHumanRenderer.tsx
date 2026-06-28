@@ -79,6 +79,7 @@ export const ArtDirectedHumanRenderer = React.forwardRef<
     measurementState,
     activeDomain = null,
     trackingQuality = 'high',
+    artDirectedHumanJointStyle = 'connected',
     onRendererScheduleEvent,
   },
   ref
@@ -160,7 +161,10 @@ export const ArtDirectedHumanRenderer = React.forwardRef<
     );
 
     const geometryStart = Date.now();
-    buildArtDirectedHumanGeometry(screenPose.current, geometry.current, { minConfidence });
+    buildArtDirectedHumanGeometry(screenPose.current, geometry.current, {
+      minConfidence,
+      jointStyle: artDirectedHumanJointStyle,
+    });
     const geometryMs = Date.now() - geometryStart;
 
     visibleRef.current = true;
@@ -247,7 +251,7 @@ export const ArtDirectedHumanRenderer = React.forwardRef<
         });
       },
     }),
-    [dimFigureForTrackingLoss, fit, frameSource, minConfidence, mirrored]
+    [artDirectedHumanJointStyle, dimFigureForTrackingLoss, fit, frameSource, minConfidence, mirrored]
   );
 
   return (

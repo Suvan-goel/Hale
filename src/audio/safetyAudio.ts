@@ -11,12 +11,19 @@ export const ELEVENLABS_MODEL = 'eleven_multilingual_v2' as const;
 export const AUDIO_OUTPUT_FORMAT = 'mp3_44100_128' as const;
 export const SAFETY_AUDIO_FINGERPRINT_SCHEMA_VERSION = 1 as const;
 
+export type AudioVoiceSettingsMetadata = Readonly<{
+  stability: number;
+  similarity_boost: number;
+  use_speaker_boost: boolean;
+  speed: number;
+}>;
+
 export const AUDIO_VOICE_SETTINGS = {
-  stability: 0.5,
-  similarity_boost: 0.75,
+  stability: 0.35,
+  similarity_boost: 0.85,
   use_speaker_boost: true,
   speed: 0.92,
-} as const;
+} as const satisfies AudioVoiceSettingsMetadata;
 
 export interface SafetyAudioAssetMetadata {
   schemaVersion: typeof SAFETY_AUDIO_FINGERPRINT_SCHEMA_VERSION;

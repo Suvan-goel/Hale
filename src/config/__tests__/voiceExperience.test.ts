@@ -12,7 +12,7 @@ describe('Voice V2.1 beta activation resolver', () => {
       mode: 'v21_beta',
       source: 'default',
       trainingVoiceV21Enabled: true,
-      microCheckVoiceV21Enabled: true,
+      microCheckVoiceV21Enabled: false,
       movementCheckUpV21Enabled: true,
       eyesOpenBalanceV2Enabled: true,
       stepUpAlternationEnabled: true,
@@ -21,7 +21,7 @@ describe('Voice V2.1 beta activation resolver', () => {
       legacyFallbackAvailable: true,
     });
     expect(activation.trainingSelectableExerciseCount).toBeGreaterThan(0);
-    expect(activation.microCheckSelectableTypeCount).toBe(3);
+    expect(activation.microCheckSelectableTypeCount).toBe(0);
   });
 
   it('uses persisted legacy and V2.1 settings when no emergency override is active', () => {
@@ -36,7 +36,7 @@ describe('Voice V2.1 beta activation resolver', () => {
       mode: 'v21_beta',
       source: 'persisted_setting',
       trainingVoiceV21Enabled: true,
-      microCheckVoiceV21Enabled: true,
+      microCheckVoiceV21Enabled: false,
     });
   });
 
@@ -78,7 +78,7 @@ describe('Voice V2.1 beta activation resolver', () => {
     const legacy = resolveVoiceV21Activation({ persistedMode: 'legacy', env: {} });
 
     expect(beta.trainingSelectableExerciseCount).toBeGreaterThan(0);
-    expect(beta.microCheckSelectableTypeCount).toBe(3);
+    expect(beta.microCheckSelectableTypeCount).toBe(0);
     expect(legacy.trainingSelectableExerciseCount).toBe(0);
     expect(legacy.microCheckSelectableTypeCount).toBe(0);
     expect(beta.trainingSelectableExerciseCountLegacy).toBe(0);

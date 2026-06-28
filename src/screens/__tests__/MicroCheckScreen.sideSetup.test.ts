@@ -22,7 +22,7 @@ describe('side-aware setup screens', () => {
     expect(text).toContain("Turn side-on and reach when you're ready. I'll capture it automatically.");
     expect(text).toContain('Which side will you use?');
     expect(text).toContain('Choose the leg you can hold most comfortably today.');
-    expect(text).toContain('Choose the leg you can extend comfortably.');
+    expect(text).toContain('Use the same leg each time for clearer progress.');
     expect(text).toContain('This matches your earlier micro checks.');
     expect(text).toContain('This matches your Movement Check-Up.');
     expect(text).toContain('This check will start or continue a separate side comparison.');

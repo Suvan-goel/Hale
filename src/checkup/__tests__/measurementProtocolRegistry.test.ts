@@ -26,8 +26,8 @@ describe('measurement protocol registry', () => {
 
   it('keeps side requirements and roles internally consistent', () => {
     const protocols = listMeasurementProtocols();
-    expect(protocols.filter((protocol) => protocol.sideRequired)).toHaveLength(9);
-    expect(protocols.filter((protocol) => !protocol.sideRequired)).toHaveLength(10);
+    expect(protocols.filter((protocol) => protocol.sideRequired)).toHaveLength(7);
+    expect(protocols.filter((protocol) => !protocol.sideRequired)).toHaveLength(12);
     expect(protocols.filter((protocol) => protocol.sideRequired).every((protocol) => protocol.sideRole !== 'not_applicable')).toBe(true);
     expect(protocols.filter((protocol) => !protocol.sideRequired).every((protocol) => protocol.sideRole === 'not_applicable')).toBe(true);
   });
@@ -49,6 +49,13 @@ describe('measurement protocol registry', () => {
         ?.protocolId
     ).toBe('mpv2_hinge_reach_v1');
     expect(descriptorForMicroCheck('chair-power').protocolId).toBe('micro_chair_power_5_reps_v1');
+    expect(descriptorForMicroCheck('mobility-reach')).toMatchObject({
+      protocolId: 'micro_mobility_reach_v1',
+      metricIds: ['wrist_to_floor_body_units'],
+      sideRole: 'not_applicable',
+      sideRequired: false,
+      comparisonGroup: 'standing_forward_reach',
+    });
     expect(getMeasurementProtocolDescriptor('mpv2_single_leg_balance_45s_v1')).not.toBeNull();
     expect(getMeasurementProtocolDescriptor(BALANCE_EYES_OPEN_V2_PROTOCOL_ID, BALANCE_EYES_OPEN_V2_PROTOCOL_VERSION)).not.toBeNull();
     expect(getMeasurementProtocolDescriptor('micro_chair_power_5_reps_v21', 2)).toMatchObject({
@@ -63,8 +70,10 @@ describe('measurement protocol registry', () => {
     });
     expect(getMeasurementProtocolDescriptor('micro_mobility_reach_v21', 2)).toMatchObject({
       movementId: 'mobility-reach',
-      sideRole: 'extended_leg',
-      sideRequired: true,
+      metricIds: ['wrist_to_floor_body_units'],
+      sideRole: 'not_applicable',
+      sideRequired: false,
+      comparisonGroup: 'standing_forward_reach',
     });
   });
 
