@@ -38,7 +38,7 @@ export function progressSummaryStatusLabel(card: MovementProfileV2ProgressDomain
     return 'Saved result';
   }
   if (card.domain === 'balance') {
-    if (label.includes('45-second') || label.includes('published') || label.includes('full')) return 'Strong hold';
+    if (label.includes('45-second') || label.includes('typical range') || label.includes('full')) return 'Strong hold';
     if (label.includes('building')) return 'Building hold';
     if (label.includes('starting') || label.includes('clear place')) return 'Starting point';
     return 'Saved result';

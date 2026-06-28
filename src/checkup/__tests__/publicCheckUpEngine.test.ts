@@ -217,17 +217,17 @@ describe('public Movement Check-Up engine selector', () => {
   it('keeps optional full and optional micro check-ups out of official artifact and slot-credit paths', () => {
     const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
 
-    const rawCompleteStart = app.indexOf('const handleMovementProfileV2RawComplete');
-    const referenceSubmitStart = app.indexOf('const handleMovementProfileV2ReferenceSubmit');
+    const rawCompleteStart = app.indexOf('function handleMovementProfileV2RawComplete');
+    const finalizeStart = app.indexOf('function finalizeMovementProfileV2Raw');
     const materializeStart = app.indexOf('const materialized = materializeOfficialMovementProfileV2Artifacts');
     expect(rawCompleteStart).toBeGreaterThanOrEqual(0);
-    expect(referenceSubmitStart).toBeGreaterThan(rawCompleteStart);
-    expect(materializeStart).toBeGreaterThan(referenceSubmitStart);
-    expect(app.slice(rawCompleteStart, referenceSubmitStart)).toContain(
-      "if (!isOfficialMovementProfileV2SourceType(input.sourceType))"
+    expect(finalizeStart).toBeGreaterThan(rawCompleteStart);
+    expect(materializeStart).toBeGreaterThan(finalizeStart);
+    expect(app.slice(rawCompleteStart, finalizeStart)).toContain(
+      'finalizeMovementProfileV2Raw(input'
     );
-    expect(app.slice(referenceSubmitStart, materializeStart)).toContain(
-      "if (!isOfficialMovementProfileV2SourceType(movementProfileV2Raw.sourceType))"
+    expect(app.slice(finalizeStart, materializeStart)).toContain(
+      'if (!isOfficialMovementProfileV2SourceType(raw.sourceType))'
     );
 
     const optionalMicroStart = app.indexOf("if (microCheckLaunch?.mode === 'optional')");
@@ -247,12 +247,7 @@ describe('public Movement Check-Up engine selector', () => {
       join(process.cwd(), 'src/screens/MovementProfileV2UnifiedCheckUpScreen.tsx'),
       'utf8'
     );
-    const referenceDetails = readFileSync(
-      join(process.cwd(), 'src/screens/MovementProfileV2ReferenceDetailsScreen.tsx'),
-      'utf8'
-    );
 
     expect(unifiedCheckUp).not.toContain('Leave internal Movement Profile');
-    expect(referenceDetails).not.toContain('Back to internal Movement Profile');
   });
 });

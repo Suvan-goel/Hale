@@ -82,7 +82,6 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   initialFlow,
   voiceId,
   voiceExperienceMode = 'v21_beta',
-  entryMode = 'public_checkup',
   onComplete,
   onCancel,
 }: {
@@ -91,13 +90,12 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   initialFlow?: MovementProfileV2InternalFlowState | null;
   voiceId?: string;
   voiceExperienceMode?: VoiceExperienceMode;
-  entryMode?: 'internal_comparison' | 'public_checkup';
   onComplete: (input: { checkUp: CheckUp; sourceType: MovementProfileV2CheckUpSourceType }) => void;
   onCancel: () => void;
 }) {
   const voiceRuntimeEnabled =
     voiceExperienceMode === 'v21_beta' && MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED;
-  const handsFreeMode = entryMode === 'public_checkup' && voiceRuntimeEnabled;
+  const handsFreeMode = voiceRuntimeEnabled;
   const initialState = React.useMemo(
     () => initialFlow ?? { ...createMovementProfileV2InternalFlow({ startedAt }), sourceType },
     [initialFlow, sourceType, startedAt]
@@ -395,9 +393,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
       avatarDomain={movementProfileV2AvatarDomain(live.stage)}
       controls={controls}
       onRequestBack={onCancel}
-      backAccessibilityLabel={
-        entryMode === 'internal_comparison' ? 'Leave Movement Profile' : 'Leave Movement Check-Up'
-      }
+      backAccessibilityLabel="Leave Movement Check-Up"
       onOpenSupportModal={setModalMode}
       onCloseSupportModal={closeSupportModal}
       onTryAgain={closeSupportModal}

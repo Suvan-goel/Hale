@@ -14,7 +14,9 @@ export type ProfileReferenceSex = 'female' | 'male';
 export interface UserProfile {
   /** Display name shown on Home; '' when unset. */
   name: string;
-  /** Exact whole-year age used for published reference comparisons. */
+  /** Local calendar date of birth, stored as YYYY-MM-DD and used to derive current age. */
+  dateOfBirth: string | null;
+  /** Derived whole-year age used as a compatibility mirror for published comparison flows. */
   exactAge: number | null;
   /** Reference group used for sex-specific published comparisons. */
   referenceSex: ProfileReferenceSex | null;
@@ -88,6 +90,7 @@ export interface Preferences {
 
 export const EMPTY_PROFILE: UserProfile = {
   name: '',
+  dateOfBirth: null,
   exactAge: null,
   referenceSex: null,
   age: null,

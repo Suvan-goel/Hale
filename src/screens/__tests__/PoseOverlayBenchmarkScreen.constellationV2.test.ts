@@ -19,6 +19,7 @@ describe('pose overlay benchmark Constellation V2 modes', () => {
       'premium-constellation-300',
       'premium-constellation-450',
       'privacy-shadow',
+      'art-directed-human',
       'soft-continuous-silhouette',
       'soft-digital-twin-lean',
       'soft-digital-twin',
@@ -37,6 +38,7 @@ describe('pose overlay benchmark Constellation V2 modes', () => {
       'premium-constellation-300',
       'premium-constellation-450',
       'privacy-shadow',
+      'art-directed-human',
       'soft-continuous-silhouette',
       'soft-digital-twin-lean',
       'soft-digital-twin',
@@ -243,6 +245,24 @@ describe('pose overlay benchmark Constellation V2 modes', () => {
       },
     });
     expect(privacyShadow?.nativeBenchmarkOverlayMode).toBeUndefined();
+  });
+
+  it('adds the art-directed human rig as a low-path benchmark option', () => {
+    const modes = createPoseOverlayBenchmarkModes('android');
+    const artDirected = modes.find((mode) => mode.id === 'art-directed-human');
+
+    expect(artDirected).toMatchObject({
+      title: 'Art-directed human',
+      configuredDotCount: 0,
+      configuredShapeCount: 10,
+      rendererProps: {
+        mode: 'art_directed_human',
+        frameSource: 'raw',
+        fit: 'contain',
+        smoothingEnabled: false,
+      },
+    });
+    expect(artDirected?.nativeBenchmarkOverlayMode).toBeUndefined();
   });
 
   it('keeps rejected visual experiments out of the benchmark selector', () => {

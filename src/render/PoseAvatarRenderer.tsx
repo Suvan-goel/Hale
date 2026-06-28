@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { ArtDirectedHumanRenderer } from './ArtDirectedHumanRenderer';
 import { ClassicPoseRenderer } from './ClassicPoseRenderer';
 import { ConstellationPoseRenderer } from './ConstellationPoseRenderer';
 import { ContourFieldRenderer } from './ContourFieldRenderer';
@@ -104,7 +105,9 @@ export const PoseAvatarRenderer = React.forwardRef<
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      {config.mode === 'mediapipe_skeleton' ? (
+      {config.mode === 'art_directed_human' ? (
+        <ArtDirectedHumanRenderer ref={innerRef} {...rendererProps} />
+      ) : config.mode === 'mediapipe_skeleton' ? (
         <MediaPipeSkeletonRenderer ref={innerRef} {...rendererProps} />
       ) : config.mode === 'volumetric_shadow' ? (
         <VolumetricShadowRenderer ref={innerRef} {...rendererProps} />

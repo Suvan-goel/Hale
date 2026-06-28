@@ -203,9 +203,7 @@ function MovementSnapshotCard({
       <Text style={styles.snapshotTitle}>Your movement snapshot</Text>
       {!hasMeasuredDomains ? (
         <Text style={styles.snapshotIntro}>
-          {lifecycle.state === 'needs_movement_profile_completion'
-            ? 'Finish your Movement Profile to see strength, balance, and mobility here.'
-            : 'Complete your check-up to see strength, balance, and mobility here.'}
+          Complete your check-up to see strength, balance, and mobility here.
         </Text>
       ) : null}
       <View style={[styles.snapshotBody, compact && styles.snapshotBodyCompact]}>
@@ -321,9 +319,7 @@ function TodayContextStrip({ compact, lifecycle }: { compact: boolean; lifecycle
         <View style={styles.contextSecondary}>
           <Text style={styles.contextLabel}>Check-up</Text>
           <Text style={styles.contextValue} numberOfLines={1}>
-            {lifecycle.movementSnapshot || lifecycle.state === 'needs_movement_profile_completion'
-              ? 'Check-up saved'
-              : 'Check-up not started'}
+            {lifecycle.movementSnapshot ? 'Check-up saved' : 'Check-up not started'}
           </Text>
         </View>
       </View>

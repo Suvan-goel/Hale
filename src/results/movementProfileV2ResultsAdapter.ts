@@ -41,7 +41,9 @@ export function buildMovementProfileV2UnifiedResultsPresentation(input: {
 }): UnifiedCheckUpResultsPresentation {
   const planReady = input.planState.status === 'ready' || input.planState.status === 'sync_pending_local_ready';
   const retestMode = !!input.retestComparison;
-  const domains = input.viewModel.domainCards.map(domainCardToPresentation);
+  const domains = input.viewModel.domainCards.map((card) =>
+    domainCardToPresentation(card, input.viewModel.focus.domain)
+  );
   const planCopy = planPresentation(input.viewModel, input.planState);
   return {
     variant: input.variant ?? 'standard',
@@ -64,7 +66,7 @@ export function buildMovementProfileV2UnifiedResultsPresentation(input: {
       title: retestMode ? 'Current results' : 'The three areas',
       subtitle: retestMode
         ? 'Hale keeps direct comparison to matching raw measurements from the same protocol setup.'
-        : 'Raw results first, with published comparisons only where this Check-Up was eligible.',
+        : 'Saved results first, with typical ranges where available.',
     },
     domains: toDomainTuple(domains),
     plan: retestMode ? { status: 'hidden' } : planCopy,
@@ -150,7 +152,8 @@ function formatComparisonValue(
 }
 
 function domainCardToPresentation(
-  card: MovementProfileV2ResultsViewModel['domainCards'][number]
+  card: MovementProfileV2ResultsViewModel['domainCards'][number],
+  focusDomain?: MovementProfileV2Domain
 ): UnifiedDomainResultCard {
   const id = domainId(card.domain);
   return {
@@ -160,6 +163,9 @@ function domainCardToPresentation(
     metricValue: card.metric,
     interpretation: card.status,
     body: card.body,
+    statusLabel: card.status,
+    bandLabel: card.metric,
+    featured: card.domain === focusDomain,
     detailActionAvailable: true,
     tone: toneForCard(card),
     iconToken: iconToken(card.domain),
@@ -206,7 +212,7 @@ function domainPlanBody(domain: MovementDomain | undefined): string {
 
 function toneForCard(card: MovementProfileV2ResultsViewModel['domainCards'][number]): UnifiedDomainResultCard['tone'] {
   const text = `${card.status} ${card.body}`.toLowerCase();
-  if (text.includes('clear place to build') || text.includes('below the published middle range')) {
+  if (text.includes('clear place to build') || text.includes('below typical range')) {
     return 'attention';
   }
   if (text.includes('raw') || text.includes('personal baseline')) return 'informational';

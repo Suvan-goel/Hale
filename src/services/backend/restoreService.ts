@@ -819,6 +819,7 @@ function hasMeaningfulPreferences(prefs: Preferences): boolean {
   const defaults = defaultPreferences();
   return (
     hasText(prefs.profile.name) ||
+    prefs.profile.dateOfBirth !== null ||
     prefs.profile.exactAge !== null ||
     prefs.profile.referenceSex !== null ||
     prefs.profile.age !== null ||

@@ -97,7 +97,6 @@ export function ProgressScreen({
   progressDataAuthority,
   movementProfileV2Progress,
   onStartMovementProfileV2CheckUp,
-  onContinueMovementProfileV2,
   onViewMovementProfileV2Profile,
   onViewMovementProfileV2Report,
   onViewCurrentPlan,
@@ -186,7 +185,7 @@ export function ProgressScreen({
           viewModel={movementProfileV2Progress ?? null}
           unavailable={progressDataAuthority?.kind === 'unavailable'}
           onStartCheckUp={onStartMovementProfileV2CheckUp ?? onBeginFirstCheckUp}
-          onContinue={onContinueMovementProfileV2 ?? onBeginFirstCheckUp}
+          onContinue={onBeginFirstCheckUp}
           onViewProfile={onViewMovementProfileV2Profile}
           onViewReport={onViewMovementProfileV2Report}
           onViewCurrentPlan={onViewCurrentPlan}
@@ -298,71 +297,36 @@ interface ProgressEmptyStateCopy {
 const PROGRESS_EMPTY_STATE_COPY: ProgressEmptyStateCopy = {
   kicker: 'Set your starting point',
   metaLabel: '~10 min',
-  title: 'Start with your first Movement Check-Up',
-  body: 'Hale guides you through simple movements and saves your first strength, balance, and mobility numbers. Future check-ups use the same movements so you can see what changed.',
-  stepsAccessibilityLabel: 'Progress preparation steps',
+  title: 'Start with your check-up',
+  body: 'A short guided check-up gives Hale what it needs to build your first plan.',
+  stepsAccessibilityLabel: 'Plan preparation steps',
   steps: [
     {
       index: '1',
-      title: 'Do the first check-up',
-      body: 'Hale talks you through each movement while the camera estimates your results.',
+      title: 'Check-up',
+      body: 'Hale checks strength, balance, and mobility at home.',
       state: 'current',
     },
     {
       index: '2',
-      title: 'Get a 4-week plan',
-      body: 'Your plan starts with the area that needs the most practice.',
+      title: 'Preparation',
+      body: 'Hale uses the result to shape your first plan.',
       state: 'upcoming',
     },
     {
       index: '3',
-      title: 'Repeat the check-up',
-      body: 'After a few weeks, repeat it so Hale can compare the same movements.',
+      title: 'First week',
+      body: 'Three calm sessions appear here when your plan is ready.',
       state: 'upcoming',
     },
   ],
-  actionLabel: 'Start Movement Check-Up',
-  actionAccessibilityLabel: 'Start Movement Check-Up',
-  note: 'Progress is based on repeat check-ups, not one-day changes. That keeps this page focused on meaningful patterns.',
-};
-
-const PROGRESS_PENDING_PROFILE_COPY: ProgressEmptyStateCopy = {
-  kicker: 'Check-Up saved',
-  metaLabel: 'Next step',
-  title: 'Finish your Movement Profile',
-  body: 'Your raw Movement Check-Up is saved. Add or skip reference details so Hale can save the profile and show it here in Progress.',
-  stepsAccessibilityLabel: 'Movement Profile continuation steps',
-  steps: [
-    {
-      index: '1',
-      title: 'Raw Check-Up saved',
-      body: 'Hale has the measurements from your completed camera check-up.',
-      state: 'current',
-    },
-    {
-      index: '2',
-      title: 'Add or skip details',
-      body: 'Choose the reference details you want Hale to use, or skip them if you prefer.',
-      state: 'current',
-    },
-    {
-      index: '3',
-      title: 'View your saved profile',
-      body: 'Hale will show strength, balance, and mobility from this check-up.',
-      state: 'upcoming',
-    },
-  ],
-  actionLabel: 'Continue Movement Profile',
-  actionAccessibilityLabel: 'Continue Movement Profile',
-  note: 'This step does not change your raw results. It only controls which optional details Hale can use.',
+  actionLabel: 'Start check-up',
+  actionAccessibilityLabel: 'Start check-up',
+  note: 'Your camera view stays private. Hale never shows a live camera view.',
 };
 
 function ProgressEmptyState({ onBeginCheckUp }: { onBeginCheckUp: () => void }) {
   return <ProgressStructuredState copy={PROGRESS_EMPTY_STATE_COPY} onPress={onBeginCheckUp} />;
-}
-
-function ProgressPendingMovementProfileState({ onContinue }: { onContinue: () => void }) {
-  return <ProgressStructuredState copy={PROGRESS_PENDING_PROFILE_COPY} onPress={onContinue} />;
 }
 
 function ProgressStructuredState({ copy, onPress }: { copy: ProgressEmptyStateCopy; onPress: () => void }) {
@@ -503,9 +467,6 @@ function MovementProfileV2ProgressContent({
   if (viewModel.status !== 'ready') {
     if (viewModel.status === 'no_profile') {
       return <ProgressEmptyState onBeginCheckUp={onStartCheckUp} />;
-    }
-    if (viewModel.status === 'pending_reference_details') {
-      return <ProgressPendingMovementProfileState onContinue={onContinue} />;
     }
     const primary = viewModel.actions[0];
     return (
@@ -924,7 +885,6 @@ interface ProgressScreenProps {
   progressDataAuthority?: ProgressDataAuthority;
   movementProfileV2Progress?: MovementProfileV2ProgressViewModel | null;
   onStartMovementProfileV2CheckUp?: () => void;
-  onContinueMovementProfileV2?: () => void;
   onViewMovementProfileV2Profile?: (sourceCheckUpId: string) => void;
   onViewMovementProfileV2Report?: (reportId: string) => void;
   onViewCurrentPlan?: () => void;
@@ -2257,7 +2217,7 @@ const styles = StyleSheet.create({
   emptyProgressButton: {
     minHeight: 58,
     marginTop: 24,
-    borderRadius: radius.pill,
+    borderRadius: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',

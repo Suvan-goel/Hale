@@ -2,7 +2,11 @@ import {
   ageBandForAge,
   ageBandForRepresentativeAge,
   ageDisplayLabel,
+  ageFromDateOfBirth,
   ageRangeLabelForAge,
+  dateOfBirthInputLabel,
+  formatDateOfBirthInputText,
+  normalizeDateOfBirthInput,
   representativeAgeForAgeBand,
 } from '../age';
 
@@ -31,5 +35,25 @@ describe('age display labels', () => {
   it('handles unset age', () => {
     expect(ageDisplayLabel(null)).toBe('Age not set');
     expect(ageDisplayLabel(undefined)).toBe('Age not set');
+  });
+
+  it('normalizes date of birth input and derives whole-year age', () => {
+    const asOf = new Date('2026-06-27T12:00:00.000Z');
+
+    expect(formatDateOfBirthInputText('07011968')).toBe('07/01/1968');
+    expect(normalizeDateOfBirthInput('07/01/1968')).toBe('1968-07-01');
+    expect(dateOfBirthInputLabel('1968-07-01')).toBe('07/01/1968');
+    expect(ageFromDateOfBirth('1968-07-01', asOf)).toBe(57);
+    expect(ageFromDateOfBirth('1968-06-01', asOf)).toBe(58);
+  });
+
+  it('treats the 120-year maximum as an exact date boundary', () => {
+    const asOf = new Date('2026-06-28T12:00:00.000Z');
+
+    expect(ageFromDateOfBirth('1906-06-28', asOf)).toBe(120);
+    expect(ageFromDateOfBirth('1906-06-27', asOf)).toBeNull();
+    expect(ageFromDateOfBirth('1906-06-29', asOf)).toBe(119);
+    expect(ageFromDateOfBirth('2008-06-28', asOf)).toBe(18);
+    expect(ageFromDateOfBirth('2008-06-29', asOf)).toBeNull();
   });
 });

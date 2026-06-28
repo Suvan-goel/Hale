@@ -2,10 +2,12 @@ import { ProfileStore } from '../store';
 import { createMemoryFs } from '../../history';
 import { createLifeGoal } from '../../adherence';
 import {
+  ageBandForAge,
+  ageFromDateOfBirth,
   defaultPreferences,
   deserializePreferences,
   serializePreferences,
-} from '../serialize';
+} from '..';
 import { Preferences } from '../types';
 
 describe('preferences serialize', () => {
@@ -16,6 +18,7 @@ describe('preferences serialize', () => {
   const sample: Preferences = {
     profile: {
       name: 'Margaret',
+      dateOfBirth: null,
       exactAge: 58,
       referenceSex: 'female',
       age: 58,
@@ -46,7 +49,26 @@ describe('preferences serialize', () => {
   });
 
   it('writes a schema version', () => {
-    expect(JSON.parse(serializePreferences(sample)).schemaVersion).toBe(6);
+    expect(JSON.parse(serializePreferences(sample)).schemaVersion).toBe(7);
+  });
+
+  it('derives current exact age from date of birth', () => {
+    const dateOfBirth = '1968-07-01';
+    const parsed = deserializePreferences(JSON.stringify({
+      profile: {
+        name: 'Margaret',
+        dateOfBirth,
+        exactAge: 99,
+        age: 99,
+        goal: '',
+      },
+    }));
+    const expectedAge = ageFromDateOfBirth(dateOfBirth);
+
+    expect(parsed?.profile.dateOfBirth).toBe(dateOfBirth);
+    expect(parsed?.profile.exactAge).toBe(expectedAge);
+    expect(parsed?.profile.age).toBe(expectedAge);
+    expect(parsed?.profile.ageBand).toBe(ageBandForAge(expectedAge));
   });
 
   it('migrates legacy exact ages into exact profile details and age bands', () => {
@@ -192,6 +214,7 @@ describe('ProfileStore', () => {
     const prefs: Preferences = {
       profile: {
         name: 'David',
+        dateOfBirth: null,
         exactAge: 68,
         referenceSex: 'male',
         age: 68,

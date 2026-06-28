@@ -22,17 +22,13 @@ describe('Progress data authority', () => {
     });
   });
 
-  it('selects V2 for V2 blocks, reports, and pending continuation before rollback', () => {
+  it('selects V2 for V2 blocks and reports before rollback', () => {
     expect(base({
       v2OriginBlocks: [{ origin: { kind: 'movement_profile_v2_assessment' } }],
     })).toEqual({ kind: 'movement_profile_v2', reason: 'v2_block_exists' });
     expect(base({ acceptedV2Reports: [{ kind: 'movement_profile_v2_block_report' }] })).toEqual({
       kind: 'movement_profile_v2',
       reason: 'v2_report_exists',
-    });
-    expect(base({ hasPendingV2Continuation: true })).toEqual({
-      kind: 'movement_profile_v2',
-      reason: 'v2_pending_continuation',
     });
   });
 
@@ -50,7 +46,6 @@ function base(overrides: Partial<Parameters<typeof selectProgressDataAuthority>[
     acceptedV2OfficialProfiles: [],
     v2OriginBlocks: [],
     acceptedV2Reports: [],
-    hasPendingV2Continuation: false,
     hasMalformedV2State: false,
     v1RollbackAvailable: false,
     ...overrides,

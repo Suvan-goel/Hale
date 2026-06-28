@@ -119,10 +119,10 @@ describe('conversion components', () => {
 
     expect(exampleResult.eyebrow).toMatch(/example result/i);
     expect(text).toMatch(/chair-stand results/i);
-    expect(text).toMatch(/movement-age style ranges/i);
+    expect(text).toMatch(/source-backed chair-stand ranges/i);
     expect(text).toMatch(/email, optional first name and platform preference/i);
     expect(text).toMatch(/price before payment is collected/i);
-    expect(text).toMatch(/not a diagnosis/i);
-    expect(text).not.toMatch(/diagnoses|diagnostic|fall risk|payment details are collected by this page/i);
+    expect(text).toMatch(/not medical labels/i);
+    expect(text).not.toMatch(/movement-age|movement age|body age|diagnos|fall risk|payment details are collected by this page/i);
   });
 });

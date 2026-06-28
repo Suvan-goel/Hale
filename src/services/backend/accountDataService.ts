@@ -33,7 +33,7 @@ const CHECKUP_PREFIX = 'checkup-';
 const MICROCHECK_PREFIX = 'microcheck-';
 
 export const CLOUD_ACCOUNT_DELETION_DEFERRED_MESSAGE =
-  'Cloud account deletion needs a secure Hale server function before it can run from the app. No local data was cleared.';
+  'Cloud account deletion needs a secure Hale server function before it can run from the app. Clear this device in the app, then contact Hale support for cloud account deletion.';
 
 export async function getLocalDataSummary(options: ClearLocalHaleDataOptions = {}): Promise<LocalDataSummary> {
   const fs = options.fs ?? await defaultHistoryFs(options.userId);

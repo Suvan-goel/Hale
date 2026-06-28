@@ -70,6 +70,21 @@ const SENSITIVE_KEY_EXACT = new Set([
   'secret',
   ['service', 'role'].join('_'),
 ]);
+const HEALTH_FREE_TEXT_KEY_EXACT = new Set([
+  'painnotes',
+  'injurynotes',
+  'notes',
+  'note',
+  'freetext',
+  'description',
+  'details',
+  'symptoms',
+  'medicalnotes',
+  'healthnotes',
+  'injurydescription',
+  'paindescription',
+]);
+const MAX_EXPORT_SANITIZE_DEPTH = 32;
 
 export async function exportCurrentUserData(): Promise<HaleDataExport> {
   const session = await getCurrentSession();
@@ -176,18 +191,26 @@ export async function shareHaleDataExport(exportData?: HaleDataExport): Promise<
   }
 }
 
-export function sanitizeForDataExport(value: unknown, key = ''): BackendJson {
-  if (isSensitiveExportKey(key)) return null;
+export function sanitizeForDataExport(
+  value: unknown,
+  key = '',
+  depth = 0,
+  seen: WeakSet<object> = new WeakSet<object>()
+): BackendJson {
+  if (isOmittedExportKey(key)) return null;
+  if (depth > MAX_EXPORT_SANITIZE_DEPTH) return null;
   if (value === null || value === undefined) return null;
   if (typeof value === 'boolean') return value;
   if (typeof value === 'number') return Number.isFinite(value) ? value : null;
   if (typeof value === 'string') return isSensitiveStringValue(value) ? null : value;
-  if (Array.isArray(value)) return value.map((item) => sanitizeForDataExport(item));
+  if (Array.isArray(value)) return value.map((item) => sanitizeForDataExport(item, '', depth + 1, seen));
   if (typeof value === 'object') {
+    if (seen.has(value)) return null;
+    seen.add(value);
     const out: JsonRecord = {};
     for (const [childKey, childValue] of Object.entries(value)) {
-      if (isSensitiveExportKey(childKey)) continue;
-      out[childKey] = sanitizeForDataExport(childValue, childKey);
+      if (isOmittedExportKey(childKey)) continue;
+      out[childKey] = sanitizeForDataExport(childValue, childKey, depth + 1, seen);
     }
     return out;
   }
@@ -277,13 +300,23 @@ function isSensitiveExportKey(key: string): boolean {
     normalized.includes('servicerole') ||
     normalized.endsWith('uri') ||
     normalized.endsWith('path') ||
-    normalized.endsWith('file') ||
+    (normalized.endsWith('file') && !normalized.endsWith('profile')) ||
     normalized.endsWith('files') ||
     normalized.includes('frame') ||
     normalized.includes('landmark') ||
     normalized.includes('video') ||
     normalized.includes('image')
   );
+}
+
+function isHealthFreeTextExportKey(key: string): boolean {
+  if (!key) return false;
+  const normalized = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return HEALTH_FREE_TEXT_KEY_EXACT.has(normalized);
+}
+
+function isOmittedExportKey(key: string): boolean {
+  return isSensitiveExportKey(key) || isHealthFreeTextExportKey(key);
 }
 
 function isSensitiveStringValue(value: string): boolean {

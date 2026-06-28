@@ -13,10 +13,6 @@ describe('planViewModel', () => {
       ctaLabel: 'Start',
       action: 'onboarding',
     });
-    expect(getPlanEmptyStateCopy('needs_movement_profile_completion')).toMatchObject({
-      ctaLabel: 'Continue Movement Profile',
-      action: 'continue_movement_profile',
-    });
     expect(getPlanEmptyStateCopy('needs_baseline_checkup')).toMatchObject({
       ctaLabel: 'Start check-up',
       action: 'checkup',

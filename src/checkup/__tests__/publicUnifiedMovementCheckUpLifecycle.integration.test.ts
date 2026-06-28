@@ -135,10 +135,10 @@ describe('H3.1 public unified Movement Check-Up lifecycle', () => {
     expect(parseLegacyV1CheckUpRollbackFlag('1')).toBe(true);
 
     const matrix = [
-      { release: false, internal: false, engine: 'unified_movement_profile', rows: 'hidden' },
-      { release: false, internal: true, engine: 'unified_movement_profile', rows: 'shown' },
-      { release: true, internal: false, engine: 'unified_movement_profile', rows: 'hidden' },
-      { release: true, internal: true, engine: 'unified_movement_profile', rows: 'shown' },
+      { release: false, internal: false, engine: 'unified_movement_profile' },
+      { release: false, internal: true, engine: 'unified_movement_profile' },
+      { release: true, internal: false, engine: 'unified_movement_profile' },
+      { release: true, internal: true, engine: 'unified_movement_profile' },
     ] as const;
 
     for (const row of matrix) {
@@ -149,15 +149,14 @@ describe('H3.1 public unified Movement Check-Up lifecycle', () => {
           releaseEnabled: row.release,
         })
       ).toMatchObject({ status: 'ready', engine: row.engine });
-      expect(row.rows).toBe(row.internal ? 'shown' : 'hidden');
     }
 
     const app = source('App.tsx');
     expect(app).not.toContain('UNIFIED_MOVEMENT_CHECKUP_RELEASE_ENABLED');
     expect(app).toContain('LEGACY_V1_CHECKUP_ROLLBACK_ENABLED');
     expect(app).toContain('selectPublicMovementCheckUpLaunch');
-    expect(app).toContain('MOVEMENT_PROFILE_V2_INTERNAL_ENABLED ? beginMovementProfileV2Internal : undefined');
-    expect(app).toContain('MOVEMENT_PROFILE_V2_INTERNAL_ENABLED ? beginMovementProfileV2UnifiedInternal : undefined');
+    expect(app).not.toContain('beginMovementProfileV2Internal');
+    expect(app).not.toContain('beginMovementProfileV2UnifiedInternal');
     expect(app).toContain(
       'MOVEMENT_PROFILE_V2_INTERNAL_ENABLED && __DEV__ ? replayOnboardingForDev : undefined'
     );
@@ -307,7 +306,7 @@ describe('H3.1 public unified Movement Check-Up lifecycle', () => {
     expect(result.blockIntroRoute).toEqual({ flow: 'block-intro', blockId: result.block.id });
   });
 
-  it('handles entered/skipped reference details and fails closed on invalid headline evidence', async () => {
+  it('handles entered/skipped reference profiles and fails closed on invalid headline evidence', async () => {
     const profileBefore = completedProfilePreferences();
     const entered = await runPublicV2Onboarding({
       raw: capturedV2CheckUp({ startedAt: '2026-06-25T10:00:00.000Z', shoulderPeakDeg: 151 }),
@@ -752,7 +751,7 @@ describe('H3.1 public unified Movement Check-Up lifecycle', () => {
     expect(app).not.toContain('movement-profile-v2-report');
   });
 
-  it('keeps public copy clean, internal harnesses retained, and breadcrumbs privacy-bounded', () => {
+  it('keeps public copy clean, obsolete internal launchers removed, and breadcrumbs privacy-bounded', () => {
     const run = buildViewOnlyPresentation();
     const publicText = JSON.stringify(run.presentation);
     expect(publicText).not.toMatch(/v2|unified|internal|developer|diagnostics|schema|fingerprint|source id|movement age|weakest|physical validation|build my plan|create my plan|generate my plan|personalise my plan/i);
@@ -760,16 +759,16 @@ describe('H3.1 public unified Movement Check-Up lifecycle', () => {
     expect(publicText).toContain('View my 4-week plan');
 
     const shell = source('src/screens/MovementProfileV2UnifiedCheckUpScreen.tsx');
-    const reference = source('src/screens/MovementProfileV2ReferenceDetailsScreen.tsx');
     const results = source('src/screens/MovementProfileV2UnifiedResultsScreen.tsx');
     expect(shell).toContain('CheckUpRecordingShell');
-    expect(shell).toContain('public_checkup');
-    expect(reference).toContain('Back to Movement Check-Up');
+    expect(shell).toContain('const handsFreeMode = voiceRuntimeEnabled');
+    expect(shell).not.toContain('internal_comparison');
     expect(results).toContain('buildMovementProfileV2UnifiedResultsPresentation');
 
     const settings = source('src/screens/SettingsScreen.tsx');
-    expect(settings).toContain('onStartMovementProfileV2Internal');
-    expect(settings).toContain('onStartMovementProfileV2UnifiedInternal');
+    expect(settings).not.toContain('onStartMovementProfileV2Internal');
+    expect(settings).not.toContain('onStartMovementProfileV2UnifiedInternal');
+    expect(settings).not.toContain('Movement Profile V2 unified shell');
 
     const sanitized = sanitizeForObservability({
       engine: 'unified_movement_profile',

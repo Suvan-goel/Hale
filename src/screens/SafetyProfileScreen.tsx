@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
   AgeBand,
@@ -10,11 +10,15 @@ import {
   SingleLegBalanceCapabilityStatus,
 } from '../adherence';
 import { BackArrowButton } from '../components/BackArrowButton';
+import { DateOfBirthPickerModal } from '../components/DateOfBirthPickerModal';
 import { PrimaryButton, Screen, ScreenHeader } from '../components/ui';
 import {
   STARTING_PACE_OPTIONS,
+  ageFromDateOfBirth,
   ageBandForAge,
+  dateOfBirthInputLabel,
   movementCapabilitiesFromSafetyProfile,
+  normalizeDateOfBirth,
   onboardingActivityLevel,
   safetyProfileWithMovementCapabilities,
   type ProfileReferenceSex,
@@ -27,12 +31,14 @@ const PAIN_OPTIONS = ['Knee', 'Hip', 'Back', 'Shoulder', 'Ankle', 'Neck', 'None'
 
 type SafetyProfileSaveOptions = { stayOnScreen?: boolean };
 type SafetyProfileReferenceDetails = {
+  dateOfBirth: string;
   exactAge: number;
   ageBand: AgeBand | null;
   referenceSex: ProfileReferenceSex;
 };
 
 type SafetyProfileDraft = {
+  dateOfBirth: string | null;
   exactAge: number | null;
   referenceSex: ProfileReferenceSex | null;
   activityLevel: ActivityLevel;
@@ -62,12 +68,10 @@ export function SafetyProfileScreen({
 }) {
   const initial = profile.safetyProfile;
   const initialCapabilities = React.useMemo(() => movementCapabilitiesFromSafetyProfile(initial), [initial]);
-  const initialExactAge = profile.exactAge ?? profile.age ?? initial?.age ?? null;
-  const [exactAgeText, setExactAgeText] = React.useState(
-    typeof initialExactAge === 'number' && Number.isInteger(initialExactAge)
-      ? String(initialExactAge)
-      : ''
+  const [dateOfBirthText, setDateOfBirthText] = React.useState(
+    dateOfBirthInputLabel(profile.dateOfBirth)
   );
+  const [datePickerVisible, setDatePickerVisible] = React.useState(false);
   const [referenceSex, setReferenceSex] = React.useState<ProfileReferenceSex | null>(profile.referenceSex);
   const [activityLevel, setActivityLevel] = React.useState<ActivityLevel>(
     onboardingActivityLevel(initial?.activityLevel)
@@ -80,11 +84,12 @@ export function SafetyProfileScreen({
   const [stepUpStatus, setStepUpStatus] = React.useState(initialCapabilities.stepUpEnvironment.status);
   const [singleLegStatus, setSingleLegStatus] = React.useState(initialCapabilities.singleLegBalance.status);
   const hasSafeStep = stepUpStatus === 'confirmed';
-  const exactAge = parseExactAge(exactAgeText);
-  const exactAgeInvalid = exactAgeText.trim().length > 0 && exactAge === null;
-  const canSaveReferenceDetails = exactAge !== null && referenceSex !== null;
+  const dateOfBirth = normalizeDateOfBirth(dateOfBirthText);
+  const exactAge = ageFromDateOfBirth(dateOfBirth);
+  const canSaveReferenceDetails = dateOfBirth !== null && exactAge !== null && referenceSex !== null;
 
   const currentDraft = (): SafetyProfileDraft => ({
+    dateOfBirth,
     exactAge,
     referenceSex,
     activityLevel,
@@ -138,10 +143,11 @@ export function SafetyProfileScreen({
   };
 
   const saveDraft = (draft: SafetyProfileDraft, options?: SafetyProfileSaveOptions) => {
-    if (draft.exactAge === null || draft.referenceSex === null) return;
+    if (draft.dateOfBirth === null || draft.exactAge === null || draft.referenceSex === null) return;
     onSave(
       buildSafetyProfile(draft),
       {
+        dateOfBirth: draft.dateOfBirth,
         exactAge: draft.exactAge,
         ageBand: ageBandForAge(draft.exactAge),
         referenceSex: draft.referenceSex,
@@ -157,10 +163,13 @@ export function SafetyProfileScreen({
     saveDraft({ ...currentDraft(), ...overrides }, { stayOnScreen: true });
   };
 
-  const updateExactAgeText = (next: string) => {
-    setExactAgeText(next);
-    const nextAge = parseExactAge(next);
-    if (nextAge !== null) saveIfReviewing({ exactAge: nextAge });
+  const updateDateOfBirth = (nextDateOfBirth: string) => {
+    const nextAge = ageFromDateOfBirth(nextDateOfBirth);
+    setDatePickerVisible(false);
+    setDateOfBirthText(dateOfBirthInputLabel(nextDateOfBirth));
+    if (nextDateOfBirth !== null && nextAge !== null) {
+      saveIfReviewing({ dateOfBirth: nextDateOfBirth, exactAge: nextAge });
+    }
   };
 
   const selectReferenceSex = (next: ProfileReferenceSex) => {
@@ -203,23 +212,24 @@ export function SafetyProfileScreen({
         subtitle="A few quick answers help Hale avoid movements that do not feel right for you today."
       />
 
-      <ChoiceSection title="Age and reference group" meta="Required">
+      <ChoiceSection title="Date of birth and reference group" meta="Required">
         <View style={styles.referenceStack}>
           <Text style={styles.gentle}>
-            Hale uses your whole-year age and reference group only for published comparisons.
+            Hale uses your date of birth to calculate whole-year age for your saved Movement Profile.
           </Text>
-          <TextInput
-            value={exactAgeText}
-            onChangeText={updateExactAgeText}
-            keyboardType="number-pad"
-            placeholder="Exact age"
-            placeholderTextColor={colors.textTertiary}
-            style={[styles.input, exactAgeInvalid && styles.inputInvalid]}
-            maxLength={3}
-            accessibilityLabel="Exact age"
-          />
-          {exactAgeInvalid ? (
-            <Text style={styles.errorText}>Enter an age from 18 to 100.</Text>
+          <Pressable
+            style={({ pressed }) => [styles.dateButton, pressed && styles.pressed]}
+            onPress={() => setDatePickerVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Select date of birth"
+          >
+            <Text style={[styles.dateButtonValue, !dateOfBirthText && styles.dateButtonPlaceholder]} numberOfLines={1}>
+              {dateOfBirthText || 'Select date of birth'}
+            </Text>
+            <Text style={styles.dateButtonAction}>{dateOfBirthText ? 'Change' : 'Select'}</Text>
+          </Pressable>
+          {exactAge !== null ? (
+            <Text style={styles.gentle}>Age {exactAge} today</Text>
           ) : null}
           <View style={styles.grid}>
             <Choice
@@ -300,6 +310,14 @@ export function SafetyProfileScreen({
           <PrimaryButton title="Continue" onPress={save} disabled={!canSaveReferenceDetails} />
         </View>
       ) : null}
+      <DateOfBirthPickerModal
+        visible={datePickerVisible}
+        value={dateOfBirth}
+        title="Date of birth"
+        maximumAge={120}
+        onCancel={() => setDatePickerVisible(false)}
+        onConfirm={updateDateOfBirth}
+      />
     </Screen>
   );
 }
@@ -456,14 +474,6 @@ function normalizePainArea(value: string | undefined): string {
   return PAIN_OPTIONS.find((option) => option.toLowerCase() === value.toLowerCase()) ?? 'None';
 }
 
-function parseExactAge(value: string): number | null {
-  const trimmed = value.trim();
-  if (trimmed.length === 0) return null;
-  const parsed = Number(trimmed);
-  if (!Number.isInteger(parsed) || parsed < 18 || parsed > 100) return null;
-  return parsed;
-}
-
 const styles = StyleSheet.create({
   sectionCard: {
     gap: spacing.lg,
@@ -511,24 +521,36 @@ const styles = StyleSheet.create({
   referenceStack: {
     gap: spacing.md,
   },
-  input: {
+  dateButton: {
     minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
     borderRadius: radius.input,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     paddingHorizontal: spacing.lg,
-    color: colors.textPrimary,
+    paddingVertical: spacing.md,
     backgroundColor: colors.background,
+  },
+  dateButtonValue: {
     fontFamily: fonts.sansRegular,
     fontSize: 16,
+    lineHeight: 22,
     letterSpacing: 0,
+    color: colors.textPrimary,
+    flex: 1,
+    minWidth: 0,
+    fontVariant: ['tabular-nums'],
   },
-  inputInvalid: {
-    borderColor: colors.warningClay,
+  dateButtonPlaceholder: {
+    color: colors.textTertiary,
   },
-  errorText: {
+  dateButtonAction: {
     ...type.cardCaption,
-    color: colors.warningClay,
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
   },
   subsection: {
     gap: spacing.md,

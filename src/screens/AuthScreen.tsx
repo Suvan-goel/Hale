@@ -51,7 +51,7 @@ export function AuthScreen() {
               <Text style={[styles.title, isCompactPhone && styles.titleCompact]}>Age better, at home</Text>
               <View style={[styles.titleRule, isCompactPhone && styles.titleRuleCompact]} />
               <Text style={[styles.subtitle, isCompactPhone && styles.subtitleCompact]}>
-                Hale helps you understand your strength, balance, and mobility, and then guides you through a simple plan to address your weakest areas.
+                Hale helps you understand your strength, balance, and mobility, then guides you through a simple plan around where to start.
               </Text>
             </View>
           </View>

@@ -1,5 +1,10 @@
 import { ACCOUNT_SIGNED_IN_COPY, isAppleSignInEnabled } from '../accountAuthConfig';
-import { canConfirmAccountDataAction } from '../accountDeletionConfig';
+import {
+  CLEAR_THIS_DEVICE_COPY,
+  CLEAR_THIS_DEVICE_TITLE,
+  CLOUD_ACCOUNT_DELETION_CONTACT_COPY,
+  canConfirmAccountDataAction,
+} from '../accountDeletionConfig';
 
 describe('AccountAuthCard auth hardening', () => {
   it('hides Apple sign-in unless the explicit env flag is enabled', () => {
@@ -18,5 +23,14 @@ describe('AccountAuthCard auth hardening', () => {
     expect(canConfirmAccountDataAction('delete-account', '')).toBe(false);
     expect(canConfirmAccountDataAction('delete-account', 'delete')).toBe(true);
     expect(canConfirmAccountDataAction('clear-local-data', '')).toBe(true);
+  });
+
+  it('keeps destructive account copy truthful while cloud deletion is deferred', () => {
+    const copy = `${CLEAR_THIS_DEVICE_TITLE} ${CLEAR_THIS_DEVICE_COPY} ${CLOUD_ACCOUNT_DELETION_CONTACT_COPY}`;
+
+    expect(copy).toMatch(/Clear this device/i);
+    expect(copy).toMatch(/does not delete your cloud account/i);
+    expect(copy).toMatch(/contact Hale support/i);
+    expect(copy).not.toMatch(/will delete synced account data|request account deletion/i);
   });
 });

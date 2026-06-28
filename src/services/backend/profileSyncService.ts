@@ -2,6 +2,9 @@ import { LOCAL_USER_ID } from '../../adherence/types';
 import { normalizeLifeGoalDisplayText } from '../../adherence/goalDomainMapping';
 import {
   PREFERENCES_SCHEMA_VERSION,
+  ageBandForAge,
+  ageFromDateOfBirth,
+  birthYearFromDateOfBirth,
   canonicalEquipmentFromSafetyProfile,
   canonicalEquipmentToAvailableEquipment,
   defaultPreferences,
@@ -40,15 +43,19 @@ export async function loadRemoteProfile(): Promise<BackendProfile | null> {
 
 export function preferencesToBackendProfileUpdate(prefs: Preferences): BackendProfileUpdate {
   const fullName = prefs.profile.name.trim();
+  const birthYear = birthYearFromDateOfBirth(prefs.profile.dateOfBirth);
   const onboardingCompletedAt =
     prefs.onboarding.completedAt ?? (prefs.onboarding.currentStep === 'complete' ? prefs.onboarding.updatedAt : null);
 
   return {
     local_user_id: LOCAL_USER_ID,
     ...(fullName ? { full_name: fullName } : {}),
+    ...(birthYear !== null ? { birth_year: birthYear } : {}),
+    ...(prefs.profile.referenceSex ? { sex: prefs.profile.referenceSex } : {}),
     profile_json: toBackendJson({
       schemaVersion: PREFERENCES_SCHEMA_VERSION,
       name: prefs.profile.name,
+      dateOfBirth: prefs.profile.dateOfBirth,
       exactAge: prefs.profile.exactAge,
       referenceSex: prefs.profile.referenceSex,
       age: prefs.profile.age,
@@ -83,14 +90,21 @@ export function mergeRemoteProfileIntoLocal(
 
   const defaults = defaultPreferences();
   const hydrateRoutingFields = options.hydrateRoutingFields === true;
+  const dateOfBirth = localPrefs.profile.dateOfBirth ?? remotePrefs.profile.dateOfBirth;
+  const derivedAge = ageFromDateOfBirth(dateOfBirth);
+  const exactAge = derivedAge ?? localPrefs.profile.exactAge ?? remotePrefs.profile.exactAge;
 
   return {
     profile: {
       name: hasText(localPrefs.profile.name) ? localPrefs.profile.name : remotePrefs.profile.name,
-      exactAge: localPrefs.profile.exactAge ?? remotePrefs.profile.exactAge,
+      dateOfBirth,
+      exactAge,
       referenceSex: localPrefs.profile.referenceSex ?? remotePrefs.profile.referenceSex,
-      age: localPrefs.profile.age ?? remotePrefs.profile.age,
-      ageBand: localPrefs.profile.ageBand ?? remotePrefs.profile.ageBand,
+      age: derivedAge ?? localPrefs.profile.age ?? remotePrefs.profile.age,
+      ageBand:
+        derivedAge !== null
+          ? ageBandForAge(derivedAge)
+          : localPrefs.profile.ageBand ?? remotePrefs.profile.ageBand ?? ageBandForAge(exactAge),
       goal: normalizeLifeGoalDisplayText(
         hasText(localPrefs.profile.goal) ? localPrefs.profile.goal : remotePrefs.profile.goal
       ),
@@ -251,8 +265,9 @@ function preferencesFromBackendProfile(remoteProfile: BackendProfile): Preferenc
   const onboarding = asObject(onboardingJson.onboarding);
   const profile = {
     name: stringValue(profileJson.name) ?? remoteProfile.full_name ?? '',
+    dateOfBirth: stringValue(profileJson.dateOfBirth),
     exactAge: numberValue(profileJson.exactAge) ?? numberValue(profileJson.age) ?? ageFromBirthYear(remoteProfile.birth_year),
-    referenceSex: profileJson.referenceSex,
+    referenceSex: profileJson.referenceSex ?? remoteProfile.sex,
     age: numberValue(profileJson.age) ?? ageFromBirthYear(remoteProfile.birth_year),
     ageBand: profileJson.ageBand ?? null,
     goal: normalizeLifeGoalDisplayText(stringValue(profileJson.goal) ?? ''),

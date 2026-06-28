@@ -2,7 +2,10 @@ import type { AgeBand } from '../adherence';
 import { latestOfficialMovementProfileV2Snapshot } from '../haleFlow/checkupHistory';
 import type { StoredCheckUp } from '../history';
 import {
+  ageFromDateOfBirth,
   ageBandLabel,
+  dateOfBirthInputLabel,
+  normalizeDateOfBirth,
 } from '../profile';
 import type {
   MovementProfileV2ReferenceProfile,
@@ -20,6 +23,7 @@ export interface MovementProfileV2ReferenceDetailsDraft {
   ageAtTest?: number;
   ageBasis: ReferenceAgeBasis;
   ageGroupLabel?: string;
+  dateOfBirth?: string;
   referenceSex: ReferenceSexForPublishedComparisons;
   inputStatus: MovementProfileV2ReferenceDetailsInputStatus;
 }
@@ -27,11 +31,13 @@ export interface MovementProfileV2ReferenceDetailsDraft {
 export function enteredMovementProfileV2ReferenceDetailsDraft(input: {
   exactAge?: number | null;
   ageBand?: AgeBand | null;
+  dateOfBirth?: string | null;
   referenceSex: ReferenceSexForPublishedComparisons;
   prefilled?: boolean;
 }): MovementProfileV2ReferenceDetailsDraft {
   const exactAge = validReferenceAge(input.exactAge) ? input.exactAge : undefined;
   const ageGroupLabel = input.ageBand ? ageBandLabel(input.ageBand) ?? undefined : undefined;
+  const dateOfBirth = normalizeDateOfBirth(input.dateOfBirth);
   return {
     ...(exactAge !== undefined
       ? { ageAtTest: exactAge, ageBasis: 'exact_age_at_test' as const }
@@ -39,6 +45,7 @@ export function enteredMovementProfileV2ReferenceDetailsDraft(input: {
           ageBasis: input.ageBand ? ('legacy_age_band_representative' as const) : ('unknown' as const),
           ...(ageGroupLabel ? { ageGroupLabel } : {}),
         }),
+    ...(dateOfBirth ? { dateOfBirth } : {}),
     referenceSex: input.referenceSex,
     inputStatus: input.prefilled ? 'prefilled_confirmed' : 'entered',
   };
@@ -71,15 +78,19 @@ export function latestMovementProfileV2ReferenceDetailsDraft(
 }
 
 export function movementProfileV2ReferenceDetailsDraftFromProfile(profile: {
+  dateOfBirth?: string | null;
   exactAge?: number | null;
   ageBand?: AgeBand | null;
   referenceSex?: ReferenceSexForPublishedComparisons | null;
-}): MovementProfileV2ReferenceDetailsDraft | null {
-  if (!validReferenceAge(profile.exactAge)) return null;
+}, asOf: Date = new Date()): MovementProfileV2ReferenceDetailsDraft | null {
+  const dateOfBirth = normalizeDateOfBirth(profile.dateOfBirth);
+  const exactAge = ageFromDateOfBirth(dateOfBirth, asOf) ?? profile.exactAge;
+  if (!validReferenceAge(exactAge)) return null;
   if (profile.referenceSex !== 'female' && profile.referenceSex !== 'male') return null;
   return enteredMovementProfileV2ReferenceDetailsDraft({
-    exactAge: profile.exactAge,
+    exactAge,
     ageBand: profile.ageBand ?? null,
+    dateOfBirth,
     referenceSex: profile.referenceSex,
     prefilled: true,
   });
@@ -96,6 +107,15 @@ export function movementProfileV2ReferenceDetailsDraftFromSnapshot(
     referenceSex: profile.referenceSex,
     inputStatus: 'prefilled_confirmed',
   };
+}
+
+export function referenceDetailsAgeDisplayLabel(input: {
+  dateOfBirth?: string | null;
+  exactAge?: number | null;
+}): string {
+  const dateOfBirthLabel = dateOfBirthInputLabel(input.dateOfBirth);
+  if (dateOfBirthLabel) return dateOfBirthLabel;
+  return validReferenceAge(input.exactAge) ? `Age ${input.exactAge}` : '';
 }
 
 function validReferenceAge(value: number | null | undefined): value is number {

@@ -53,7 +53,6 @@ export function selectPublicMovementCheckUpLaunch(input: {
   legacyV1RollbackEnabled?: boolean;
   hasAcceptedMovementProfileV2Baseline?: boolean;
   hasAcceptedMovementProfileV2State?: boolean;
-  hasPendingMovementProfileV2Continuation?: boolean;
   hasMalformedMovementProfileV2State?: boolean;
   hasMovementProfileV2BlockOrReportState?: boolean;
   hasAcceptedMovementProfileV2OfficialRetestSourceArtifacts?: boolean;
@@ -67,7 +66,6 @@ export function selectPublicMovementCheckUpLaunch(input: {
     !!input.hasAcceptedMovementProfileV2Baseline;
   const hasMovementProfileV2AuthorityState =
     hasAcceptedMovementProfileV2State ||
-    !!input.hasPendingMovementProfileV2Continuation ||
     !!input.hasMalformedMovementProfileV2State ||
     !!input.hasMovementProfileV2BlockOrReportState ||
     input.activeBlockOriginKind === 'movement_profile_v2_assessment';

@@ -139,7 +139,7 @@ function movementProfileViewModel(
       title: 'Strength and power',
       metric: '12 reps',
       status: 'Saved as your personal baseline',
-      body: 'Chair rise is currently raw-only while the reference pipeline stays locked.',
+      body: 'Chair rise is saved as a starting point.',
     },
     {
       domain: 'balance',
@@ -152,8 +152,8 @@ function movementProfileViewModel(
       domain: 'mobility',
       title: 'Mobility',
       metric: '151 deg',
-      status: 'Within the published middle range',
-      body: 'Shoulder flexion was compared with the published middle range.',
+      status: 'Within typical range',
+      body: 'Shoulder reach is within the typical range.',
     },
   ];
 
@@ -162,7 +162,7 @@ function movementProfileViewModel(
     dateLabel: '24 Jun 2026',
     title: 'Your Movement Profile',
     summary:
-      "Where available, comparisons use published reference groups and the setup recorded during your Check-Up. Hale's camera results are beta estimates, not medical assessments.",
+      "Where available, Hale uses your age and reference group with the setup recorded during your Check-Up. Camera results are beta estimates that help you track movement at home.",
     focus,
     focusTitle: focus.kind === 'balanced' ? 'Suggested focus: Balanced plan' : `Suggested focus: ${focus.title}`,
     focusBody: focus.body,

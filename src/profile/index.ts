@@ -9,12 +9,18 @@ export type { AppSettings, OnboardingState, OnboardingStep, Preferences, Profile
 export { EMPTY_PROFILE } from './types';
 export {
   AGE_RANGE_OPTIONS,
+  ageFromDateOfBirth,
   ageBandForAge,
   ageBandForRepresentativeAge,
   ageBandLabel,
   ageDisplayLabel,
   ageRangeLabelForAge,
+  birthYearFromDateOfBirth,
+  dateOfBirthInputLabel,
+  formatDateOfBirthInputText,
   isAgeBand,
+  normalizeDateOfBirth,
+  normalizeDateOfBirthInput,
   representativeAgeForAgeBand,
 } from './age';
 export type { AgeRangeOption } from './age';

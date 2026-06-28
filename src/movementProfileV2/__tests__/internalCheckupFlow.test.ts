@@ -118,7 +118,7 @@ describe('internal Movement Profile V2 flow', () => {
     expect(checkUp?.items.some((item) => item.movementId === ONE_LEG_BALANCE_V2_ID)).toBe(false);
   });
 
-  it('resumes the latest raw-complete V2 record at reference details', () => {
+  it('selects the latest raw-complete V2 record for auto-finalization', () => {
     const pending = storedRawV2(makeV2CheckUp('2026-06-24T09:00:00.000Z'), 'baseline');
     const materialized = storedV2Assessment(makeV2CheckUp('2026-06-01T09:00:00.000Z'), 'baseline');
 

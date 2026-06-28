@@ -1,6 +1,7 @@
 import type { MovementAssessment, MovementBlock } from '../adherence';
 import { latestUsableOfficialCheckUpRecord } from '../haleFlow/checkupHistory';
 import type { StoredCheckUp } from '../history';
+import { ageFromDateOfBirth } from '../profile';
 import type { OnboardingStep, Preferences } from '../profile';
 
 export const V1_BASELINE_MOVEMENT_IDS = [
@@ -39,11 +40,12 @@ export function deriveOnboardingStep(input: OnboardingProgressInput): Onboarding
 }
 
 function profileReferenceDetailsComplete(prefs: Preferences): boolean {
+  const referenceAge = ageFromDateOfBirth(prefs.profile.dateOfBirth) ?? prefs.profile.exactAge;
   return (
-    typeof prefs.profile.exactAge === 'number' &&
-    Number.isInteger(prefs.profile.exactAge) &&
-    prefs.profile.exactAge >= 18 &&
-    prefs.profile.exactAge <= 120 &&
+    typeof referenceAge === 'number' &&
+    Number.isInteger(referenceAge) &&
+    referenceAge >= 18 &&
+    referenceAge <= 120 &&
     (prefs.profile.referenceSex === 'female' || prefs.profile.referenceSex === 'male')
   );
 }

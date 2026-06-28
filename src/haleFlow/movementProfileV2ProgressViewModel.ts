@@ -24,7 +24,6 @@ import {
 export type MovementProfileV2ProgressStatus =
   | 'ready'
   | 'no_profile'
-  | 'pending_reference_details'
   | 'pending_artifact_materialisation'
   | 'needs_retake'
   | 'artifact_recovery'
@@ -33,7 +32,6 @@ export type MovementProfileV2ProgressStatus =
 export interface MovementProfileV2ProgressAction {
   id:
     | 'start_movement_checkup'
-    | 'continue_movement_profile'
     | 'view_movement_profile'
     | 'view_block_report';
   label: string;
@@ -84,7 +82,6 @@ export interface MovementProfileV2ProgressDiagnostic {
     | 'progress_v2_latest_profile_selected'
     | 'progress_v2_history_conflict'
     | 'progress_v2_report_invalid'
-    | 'progress_v2_pending_continuation'
     | 'progress_v2_malformed_artifact';
   checkUpId?: string;
   snapshotId?: string;
@@ -98,7 +95,6 @@ export interface MovementProfileV2ProgressAuthorityFacts {
   acceptedProfileIds: readonly string[];
   v2BlockIds: readonly string[];
   acceptedReportIds: readonly string[];
-  hasPendingContinuation: boolean;
   hasMalformedState: boolean;
 }
 
@@ -130,7 +126,6 @@ export interface MovementProfileV2ProgressInput {
   blocks: readonly MovementBlock[] | null | undefined;
   reports: readonly MovementBlockReport[] | null | undefined;
   today: string;
-  pendingV2RawCheckUpId?: string | null;
 }
 
 type AcceptedProfile = OfficialMovementProfileV2AssessmentRecord;
@@ -169,31 +164,9 @@ export function buildMovementProfileV2ProgressViewModel(
       .filter((block) => block.origin?.kind === 'movement_profile_v2_assessment')
       .map((block) => block.id),
     acceptedReportIds: acceptedReports.acceptedReports.map((report) => report.id),
-    hasPendingContinuation: !!input.pendingV2RawCheckUpId,
     hasMalformedState: malformed.length > 0 || selection.conflicts.length > 0,
   };
   const officialHistory = buildOfficialHistory(acceptedProfiles, acceptedReports.entries);
-
-  if (input.pendingV2RawCheckUpId) {
-    return {
-      status: 'pending_reference_details',
-      authorityFacts,
-      recovery: {
-        title: 'Finish your Movement Profile',
-        body: 'Your Check-Up is saved.',
-      },
-      actions: [{ id: 'continue_movement_profile', label: 'Continue', targetId: input.pendingV2RawCheckUpId }],
-      diagnostics: [
-        ...diagnostics,
-        {
-          code: 'progress_v2_pending_continuation',
-          checkUpId: input.pendingV2RawCheckUpId,
-        },
-      ],
-      officialHistory,
-      reports: acceptedReports.entries,
-    };
-  }
 
   const latest = acceptedProfiles[acceptedProfiles.length - 1] ?? null;
   if (!latest) {

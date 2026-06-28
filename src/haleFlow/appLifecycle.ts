@@ -31,7 +31,6 @@ import type { MicroCheckDefinition } from './types';
 
 export type HaleLifecycleState =
   | 'needs_onboarding'
-  | 'needs_movement_profile_completion'
   | 'needs_baseline_checkup'
   | 'needs_block_creation'
   | 'first_session_ready'
@@ -43,7 +42,6 @@ export type HaleLifecycleState =
 
 export type TodayPrimaryActionType =
   | 'start_onboarding'
-  | 'continue_movement_profile'
   | 'start_checkup'
   | 'create_block'
   | 'start_first_session'
@@ -67,7 +65,6 @@ export interface HaleAppLifecycleInput {
   training?: TrainingState | null;
   adherence?: AdherenceStoreState | null;
   today: string;
-  pendingMovementProfileV2RawCheckUpId?: string | null;
 }
 
 export interface HaleAppLifecycleResult {
@@ -115,7 +112,6 @@ export function getHaleAppLifecycle(input: HaleAppLifecycleInput): HaleAppLifecy
   const schedule = activeBlock ? activeBlockSchedule({ ...input, today }, activeBlock) : null;
   const latestScore = latestUsableCheckUpScore(input.history, input.adherence?.assessments);
   const hasBaseline = !!latestScore || hasOfficialAssessment(input.adherence) || hasOfficialMovementProfileV2Assessment(input.history);
-  const hasPendingMovementProfile = !!input.pendingMovementProfileV2RawCheckUpId;
   const activeBlockSummary = getActiveBlockSummary({ ...input, today });
   const movementSnapshot = getMovementSnapshot({ score: latestScore });
   const weekSessionStatuses = getWeekSessionStatuses({ ...input, today });
@@ -137,9 +133,6 @@ export function getHaleAppLifecycle(input: HaleAppLifecycleInput): HaleAppLifecy
   if (!hasCompletedFirstRunProfile(input.profile)) {
     state = 'needs_onboarding';
     reason = 'life goal or safety profile is missing';
-  } else if (hasPendingMovementProfile) {
-    state = 'needs_movement_profile_completion';
-    reason = 'a raw Movement Check-Up is saved and needs Movement Profile reference details';
   } else if (!hasBaseline) {
     state = 'needs_baseline_checkup';
     reason = 'profile exists but no Movement Check-Up is stored';
@@ -188,14 +181,6 @@ export function getTodayPrimaryAction(state: HaleLifecycleState, microCheckTarge
         title: 'Welcome to Hale',
         subtitle: 'Start with a short check-up so Hale can build your first plan.',
         ctaLabel: 'Start',
-      };
-    case 'needs_movement_profile_completion':
-      return {
-        type: 'continue_movement_profile',
-        title: 'Finish your Movement Profile',
-        subtitle: 'Your check-up is saved. Add or skip the final details so Hale can prepare your plan.',
-        ctaLabel: 'Continue Movement Profile',
-        tone: 'progress',
       };
     case 'needs_baseline_checkup':
       return {

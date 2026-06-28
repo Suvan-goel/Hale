@@ -389,7 +389,7 @@ function TrustSection() {
           ))}
         </div>
         <p className="disclaimer">
-          Hale is for general fitness and wellbeing. It is not medical advice, a diagnosis, a treatment or a medical device.
+          Hale is for general fitness and wellbeing. It is not medical advice, treatment or a medical device.
         </p>
       </div>
     </section>

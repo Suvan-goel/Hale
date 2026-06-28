@@ -130,17 +130,7 @@ describe('Movement Profile V2 Progress view model', () => {
     );
   });
 
-  it('uses typed pending/recovery states without V1 fallback copy', () => {
-    const pending = buildMovementProfileV2ProgressViewModel({
-      history: [],
-      blocks: [],
-      reports: [],
-      today: '2026-06-12T12:00:00.000Z',
-      pendingV2RawCheckUpId: BASELINE_AT,
-    });
-    expect(pending.status).toBe('pending_reference_details');
-    expect(pending.actions[0]).toMatchObject({ label: 'Continue', targetId: BASELINE_AT });
-
+  it('uses typed recovery states without V1 fallback copy', () => {
     const malformed = buildMovementProfileV2ProgressViewModel({
       history: [{
         ...artifacts('baseline', BASELINE_AT).record,

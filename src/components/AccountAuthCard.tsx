@@ -12,6 +12,9 @@ import {
 import { colors, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 import {
+  CLEAR_THIS_DEVICE_COPY,
+  CLEAR_THIS_DEVICE_TITLE,
+  CLOUD_ACCOUNT_DELETION_CONTACT_COPY,
   DELETE_CONFIRMATION_WORD,
   canConfirmAccountDataAction,
   type AccountDataAction,
@@ -263,7 +266,7 @@ export function AccountAuthCard({
       }
 
       await signOut();
-      setNotice('Local Hale data was deleted from this device.');
+      setNotice('Hale data was cleared from this device and you were signed out.');
     } catch (err) {
       setLocalError(messageFromError(err));
     } finally {
@@ -321,22 +324,24 @@ export function AccountAuthCard({
         {pendingDataAction ? (
           <View style={[styles.compactConfirmPanel, responsive.isCompactPhone && styles.compactCardPadding]}>
             <Typography variant="bodySmall" color={colors.textPrimary}>
-              Deleting your account is permanent. Hale will request account deletion, then remove Hale data from this phone.
+              {CLEAR_THIS_DEVICE_COPY} {CLOUD_ACCOUNT_DELETION_CONTACT_COPY}
             </Typography>
-            <Input
-              label={`Type ${DELETE_CONFIRMATION_WORD} to confirm`}
-              value={confirmationText}
-              onChangeText={setConfirmationText}
-              placeholder={DELETE_CONFIRMATION_WORD}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              returnKeyType="done"
-              accessibilityLabel="Delete account confirmation"
-              containerStyle={styles.field}
-            />
+            {pendingDataAction === 'delete-account' ? (
+              <Input
+                label={`Type ${DELETE_CONFIRMATION_WORD} to confirm`}
+                value={confirmationText}
+                onChangeText={setConfirmationText}
+                placeholder={DELETE_CONFIRMATION_WORD}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                returnKeyType="done"
+                accessibilityLabel="Delete account confirmation"
+                containerStyle={styles.field}
+              />
+            ) : null}
             <View style={styles.dangerButtonRow}>
               <Button
-                title={dataActionLoading ? 'Working...' : 'Delete account'}
+                title={dataActionLoading ? 'Working...' : CLEAR_THIS_DEVICE_TITLE}
                 variant="danger"
                 onPress={confirmDataAction}
                 disabled={dataActionLoading || loading}
@@ -354,12 +359,12 @@ export function AccountAuthCard({
         ) : (
           <Pressable
             style={({ pressed }) => [styles.deleteAccountLink, pressed && styles.pressed]}
-            onPress={() => beginDataAction('delete-account')}
+            onPress={() => beginDataAction('clear-local-data')}
             disabled={loading || dataActionLoading}
             accessibilityRole="button"
-            accessibilityLabel="Delete account"
+            accessibilityLabel={CLEAR_THIS_DEVICE_TITLE}
           >
-            <Text style={styles.deleteAccountText}>Delete account</Text>
+            <Text style={styles.deleteAccountText}>{CLEAR_THIS_DEVICE_TITLE}</Text>
           </Pressable>
         )}
 
@@ -563,14 +568,12 @@ export function AccountAuthCard({
             <View style={styles.dangerZone}>
               <Typography variant="label" color={colors.error}>Account data</Typography>
               <Typography variant="caption" color={colors.textSecondary} style={styles.dangerCopy}>
-                Delete Hale data from this phone, or delete your account and synced Hale data.
+                {CLEAR_THIS_DEVICE_COPY} {CLOUD_ACCOUNT_DELETION_CONTACT_COPY}
               </Typography>
               {pendingDataAction ? (
                 <View style={styles.confirmPanel}>
                   <Typography variant="bodySmall" color={colors.textPrimary}>
-                    {pendingDataAction === 'delete-account'
-                      ? 'This asks Hale to delete synced account data, then removes Hale data from this phone and signs you out.'
-                      : 'This removes Hale data stored on this phone and signs you out. Synced account data is not deleted.'}
+                    {CLEAR_THIS_DEVICE_COPY} {CLOUD_ACCOUNT_DELETION_CONTACT_COPY}
                   </Typography>
                   {pendingDataAction === 'delete-account' ? (
                     <Input
@@ -587,7 +590,7 @@ export function AccountAuthCard({
                   ) : null}
                   <View style={styles.dangerButtonRow}>
                     <Button
-                      title={dataActionLoading ? 'Working...' : pendingDataAction === 'delete-account' ? 'Delete account' : 'Delete local data'}
+                      title={dataActionLoading ? 'Working...' : CLEAR_THIS_DEVICE_TITLE}
                       variant="danger"
                       onPress={confirmDataAction}
                       disabled={dataActionLoading || loading}
@@ -605,16 +608,9 @@ export function AccountAuthCard({
               ) : (
                 <View style={styles.dangerButtonRow}>
                   <Button
-                    title="Delete local data only"
-                    variant="secondary"
-                    onPress={() => beginDataAction('clear-local-data')}
-                    disabled={loading || dataActionLoading}
-                    style={styles.dangerButton}
-                  />
-                  <Button
-                    title="Delete account"
+                    title={CLEAR_THIS_DEVICE_TITLE}
                     variant="danger"
-                    onPress={() => beginDataAction('delete-account')}
+                    onPress={() => beginDataAction('clear-local-data')}
                     disabled={loading || dataActionLoading}
                     style={styles.dangerButton}
                   />

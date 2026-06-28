@@ -31,7 +31,7 @@ describe('unified Movement Check-Up recording shell', () => {
 
     expect(text).toContain('CheckUpRecordingShell');
     expect(text).toContain('new MovementProfileV2LiveCoordinator');
-    expect(text).toContain("handsFreeMode = entryMode === 'public_checkup' && voiceRuntimeEnabled");
+    expect(text).toContain('const handsFreeMode = voiceRuntimeEnabled');
     expect(text).toContain('handsFreeFallbackAvailable');
     expect(text).toContain('createMovementProfileV2LivePoseSample');
     expect(text).toContain('new MovementProfileV2VoiceRuntime');
@@ -39,19 +39,19 @@ describe('unified Movement Check-Up recording shell', () => {
     expect(text).not.toMatch(/createCaptured|mockCheckUp|reps:\s*12/);
   });
 
-  it('keeps V1 shell code behind rollback routing and retains the internal V2 harness', () => {
+  it('keeps V1 shell code behind rollback routing and removes the obsolete internal V2 launchers', () => {
     const app = source('App.tsx');
     const settings = source('src/screens/SettingsScreen.tsx');
 
     expect(app).toContain("flow === 'checkup' && legacyV1CheckUpFlowAllowed");
     expect(app).toContain('LEGACY_V1_CHECKUP_ROLLBACK_ENABLED');
     expect(app).toContain('<CheckUpScreen');
-    expect(app).toContain("'movement-profile-v2-checkup'");
     expect(app).toContain("'movement-profile-v2-unified-checkup'");
-    expect(app).toContain('<MovementProfileV2CheckUpScreen');
     expect(app).toContain('<MovementProfileV2UnifiedCheckUpScreen');
-    expect(settings).toContain('onStartMovementProfileV2Internal');
-    expect(settings).toContain('onStartMovementProfileV2UnifiedInternal');
-    expect(settings).toContain('Movement Profile V2 unified shell');
+    expect(app).not.toContain("'movement-profile-v2-checkup'");
+    expect(app).not.toContain('<MovementProfileV2CheckUpScreen');
+    expect(settings).not.toContain('onStartMovementProfileV2Internal');
+    expect(settings).not.toContain('onStartMovementProfileV2UnifiedInternal');
+    expect(settings).not.toContain('Movement Profile V2 unified shell');
   });
 });

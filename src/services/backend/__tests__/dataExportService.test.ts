@@ -145,6 +145,151 @@ describe('Hale data export service', () => {
     expect(raw).not.toContain('secret');
   });
 
+  it('omits legacy free-text health notes recursively while preserving structured beta export data', () => {
+    const exported = buildHaleDataExport({
+      exportedAt: '2026-06-28T12:00:00.000Z',
+      user: { id: 'user-123', email: undefined },
+      data: {
+        profile: {
+          id: 'user-123',
+          profile_json: {
+            exactAge: 60,
+            referenceSex: 'female',
+            safetyProfile: {
+              hasCurrentPain: true,
+              painNotes: 'left knee pain after stairs',
+              hasRecentInjury: true,
+              injuryNotes: 'old ankle injury',
+              availableEquipment: ['chair', 'wall'],
+              equipmentStatus: 'confirmed',
+              movementCapabilities: {
+                floorTransfer: { status: 'avoid_for_now' },
+                stepUpEnvironment: { status: 'confirmed', lowStableStep: true },
+                singleLegBalance: { status: 'confirmed_with_support' },
+              },
+              nestedLegacy: {
+                painNotes: 'nested pain text',
+                injuryNotes: 'nested injury text',
+                medicalNotes: 'medical free text',
+                healthNotes: 'health free text',
+                symptoms: 'symptom free text',
+              },
+            },
+          },
+        },
+        movementCheckups: [
+          {
+            id: 'checkup-1',
+            derived_scores_json: {
+              movementProfileV2Snapshot: {
+                kind: 'movement_profile_v2_snapshot',
+                referenceProfile: {
+                  ageAtTest: 60,
+                  ageBasis: 'exact_age_at_test',
+                  referenceSex: 'female',
+                },
+                sourceSetFingerprint: 'mpv2-source-fp',
+                interpretation: {
+                  chair: {
+                    percentileRange: {
+                      kind: 'range',
+                      low: 10,
+                      high: 40,
+                      sourceId: 'warden-30s-sts',
+                      transformId: 'warden-chair-lms-v1',
+                      sourceFingerprint: 'warden-source-fp',
+                    },
+                    details: 'do not export chair free text',
+                  },
+                },
+              },
+            },
+          },
+        ],
+        movementBlocks: [{ id: 'block-1', note: 'legacy block note', focus_domain: 'strength_power' }],
+        trainingState: {
+          state_json: {
+            adherence: {
+              freeText: 'training health note',
+              free_text: 'training snake health note',
+              description: 'training description',
+              details: 'training details',
+              structuredStatus: 'active',
+            },
+          },
+        },
+        trainingSessionCompletions: [
+          {
+            id: 'session-1',
+            notes: 'session health note',
+            feedback: [
+              { note: 'array note object', selectedOption: 'felt_ok' },
+              { injuryDescription: 'array injury text', painDescription: 'array pain text' },
+            ],
+          },
+        ],
+        microChecks: [{ id: 'micro-1', result_json: { healthNotes: 'micro health text', type: 'chair-power' } }],
+        movementBlockReports: [{ id: 'report-1', report_json: { medicalNotes: 'report note', status: 'complete' } }],
+      },
+    });
+
+    const raw = JSON.stringify(exported);
+    expect(raw).not.toMatch(
+      /painNotes|injuryNotes|medicalNotes|healthNotes|symptoms|freeText|free_text|description|details|notes|note|injuryDescription|painDescription/
+    );
+    expect(raw).not.toMatch(
+      /left knee pain|old ankle injury|nested pain text|training health note|array note object|micro health text|report note/
+    );
+    expect(exported.data.profile).toMatchObject({
+      profile_json: {
+        exactAge: 60,
+        referenceSex: 'female',
+        safetyProfile: {
+          hasCurrentPain: true,
+          hasRecentInjury: true,
+          availableEquipment: ['chair', 'wall'],
+          equipmentStatus: 'confirmed',
+          movementCapabilities: {
+            floorTransfer: { status: 'avoid_for_now' },
+            stepUpEnvironment: { status: 'confirmed', lowStableStep: true },
+            singleLegBalance: { status: 'confirmed_with_support' },
+          },
+        },
+      },
+    });
+    expect(exported.data.movementCheckups[0]).toMatchObject({
+      derived_scores_json: {
+        movementProfileV2Snapshot: {
+          referenceProfile: {
+            ageAtTest: 60,
+            ageBasis: 'exact_age_at_test',
+            referenceSex: 'female',
+          },
+          sourceSetFingerprint: 'mpv2-source-fp',
+          interpretation: {
+            chair: {
+              percentileRange: {
+                kind: 'range',
+                low: 10,
+                high: 40,
+                sourceId: 'warden-30s-sts',
+                transformId: 'warden-chair-lms-v1',
+                sourceFingerprint: 'warden-source-fp',
+              },
+            },
+          },
+        },
+      },
+    });
+    expect(exported.data.trainingState).toMatchObject({
+      state_json: { adherence: { structuredStatus: 'active' } },
+    });
+    expect(exported.data.trainingSessionCompletions[0]).toMatchObject({
+      id: 'session-1',
+      feedback: [{ selectedOption: 'felt_ok' }, {}],
+    });
+  });
+
   it('fails clearly when signed out', async () => {
     (getCurrentSession as jest.Mock).mockResolvedValue(null);
 

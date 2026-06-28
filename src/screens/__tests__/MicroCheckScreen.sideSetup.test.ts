@@ -7,7 +7,7 @@ describe('side-aware setup screens', () => {
   const microCheckSideSetupSource = () =>
     fs.readFileSync(path.join(process.cwd(), 'src/training/microCheckSideSetup.ts'), 'utf8');
   const movementProfileSource = () =>
-    fs.readFileSync(path.join(process.cwd(), 'src/screens/MovementProfileV2CheckUpScreen.tsx'), 'utf8');
+    fs.readFileSync(path.join(process.cwd(), 'src/screens/MovementProfileV2UnifiedCheckUpScreen.tsx'), 'utf8');
 
   it('keeps side-dependent micro-check capture hands-free with timeout fallback copy', () => {
     const text = `${microCheckSource()}\n${microCheckSideSetupSource()}`;
@@ -32,10 +32,9 @@ describe('side-aware setup screens', () => {
     const text = movementProfileSource();
 
     expect(text).toContain('pendingOfficialFallback');
-    expect(text).toContain('Use the other side');
-    expect(text).toContain('This result may not be directly comparable with your earlier checks.');
-    expect(text).toContain('Your usual side will remain unchanged.');
-    expect(text).toContain("We'll use your");
-    expect(text).toContain('This keeps the result comparable with your earlier checks.');
+    expect(text).toContain('Use other side');
+    expect(text).toContain('Side change affects comparison');
+    expect(text).toContain('Keep ${sideName(pendingOfficialFallback.anchorSide)} side');
+    expect(text).toContain('Use ${sideName(pendingOfficialFallback.fallbackSide)} side');
   });
 });

@@ -24,7 +24,7 @@ export default function TermsPage() {
         </p>
         <h2>Wellbeing product</h2>
         <p>
-          Hale is a general fitness and wellbeing product. It is not medical advice, a diagnosis, a treatment, or a medical device. Stop if you feel pain, dizziness or unsafe.
+          Hale is a general fitness and wellbeing product. It is not medical advice, treatment, or a medical device. Stop if you feel pain, dizziness or unsafe.
         </p>
         <h2>Pricing</h2>
         <p>

@@ -6,6 +6,10 @@ import {
   createContourFieldGeometry,
 } from '../render/contourFieldGeometry';
 import {
+  buildArtDirectedHumanGeometry,
+  createArtDirectedHumanGeometry,
+} from '../render/artDirectedHumanGeometry';
+import {
   buildBodyVolumeGeometry,
   createBodyVolumeGeometry,
 } from '../render/bodyVolumeGeometry';
@@ -72,6 +76,7 @@ export type PoseRendererReplayMode =
   | 'rigged-human-silhouette'
   | 'shadow-silhouette'
   | 'privacy-shadow'
+  | 'art-directed-human'
   | 'soft-continuous-silhouette'
   | 'soft-digital-twin-lean'
   | 'soft-digital-twin'
@@ -134,6 +139,7 @@ export function runPoseRendererReplaySuite(
     'rigged-human-silhouette',
     'shadow-silhouette',
     'privacy-shadow',
+    'art-directed-human',
     'soft-continuous-silhouette',
     'soft-digital-twin-lean',
     'soft-digital-twin',
@@ -180,6 +186,7 @@ export function runPoseRendererReplay(
   const silhouetteOrientation = createRiggedHumanSilhouetteOrientationState();
   const shadowSilhouette = createShadowSilhouetteGeometry();
   const privacyShadow = createPrivacyShadowGeometry();
+  const artDirectedHuman = createArtDirectedHumanGeometry();
   const softSilhouette = createSoftSilhouetteGeometry();
   const softDigitalTwin = createSoftDigitalTwinGeometry();
   const spriteLimbAvatar = createSpriteLimbAvatarGeometry();
@@ -287,6 +294,24 @@ export function runPoseRendererReplay(
         );
         totalPrimitiveCount += privacyShadow.surfacePathCount;
         maxPrimitiveCount = Math.max(maxPrimitiveCount, privacyShadow.surfacePathCount);
+      } else if (mode === 'art-directed-human') {
+        buildArtDirectedHumanGeometry(screenPose, artDirectedHuman);
+        shapeFrames++;
+        surfaceFrames++;
+        totalShapeCount += artDirectedHuman.shapeCount;
+        maxShapeCount = Math.max(maxShapeCount, artDirectedHuman.shapeCount);
+        totalDynamicPathCount += artDirectedHuman.dynamicPathCount;
+        maxDynamicPathCount = Math.max(
+          maxDynamicPathCount,
+          artDirectedHuman.dynamicPathCount
+        );
+        totalSurfacePathCount += artDirectedHuman.surfacePathCount;
+        maxSurfacePathCount = Math.max(
+          maxSurfacePathCount,
+          artDirectedHuman.surfacePathCount
+        );
+        totalPrimitiveCount += artDirectedHuman.surfacePathCount;
+        maxPrimitiveCount = Math.max(maxPrimitiveCount, artDirectedHuman.surfacePathCount);
       } else if (mode === 'soft-continuous-silhouette') {
         buildSoftSilhouetteGeometry(screenPose, softSilhouette);
         shapeFrames++;

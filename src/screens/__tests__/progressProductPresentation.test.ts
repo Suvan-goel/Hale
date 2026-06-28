@@ -9,11 +9,11 @@ import {
 
 describe('Progress product presentation helpers', () => {
   it('converts technical Movement Profile labels into public Progress labels', () => {
-    expect(progressSummaryStatusLabel(domainCard('strength_power', 'Published comparison saved'))).toBe('Saved result');
-    expect(progressSummaryStatusLabel(domainCard('balance', 'Published age-group benchmark saved'))).toBe('Strong hold');
+    expect(progressSummaryStatusLabel(domainCard('strength_power', 'Typical range saved'))).toBe('Saved result');
+    expect(progressSummaryStatusLabel(domainCard('balance', 'Typical range saved'))).toBe('Strong hold');
     expect(progressSummaryStatusLabel(domainCard('balance', 'Building the hold'))).toBe('Building hold');
-    expect(progressSummaryStatusLabel(domainCard('mobility', 'Within the published middle range'))).toBe('Within typical range');
-    expect(progressSummaryStatusLabel(domainCard('mobility', 'Raw angle only'))).toBe('Saved result');
+    expect(progressSummaryStatusLabel(domainCard('mobility', 'Within typical range'))).toBe('Within typical range');
+    expect(progressSummaryStatusLabel(domainCard('mobility', 'Saved result'))).toBe('Saved result');
   });
 
   it('uses short practice statuses that fit the Progress row treatment', () => {

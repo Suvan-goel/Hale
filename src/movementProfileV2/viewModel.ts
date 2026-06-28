@@ -64,7 +64,7 @@ export function buildMovementProfileV2ResultsViewModel(input: {
     dateLabel: formatDate(input.snapshot.sourceCheckUpId),
     title: 'Your Movement Profile',
     summary:
-      "Where available, comparisons use published reference groups and the setup recorded during your Check-Up. Hale's camera results are beta estimates, not medical assessments.",
+      "Where available, Hale uses your age and reference group with the setup recorded during your Check-Up. Camera results are beta estimates that help you track movement at home.",
     focus,
     focusTitle: focus.kind === 'balanced' ? 'Suggested focus: Balanced plan' : `Suggested focus: ${focus.title}`,
     focusBody: focus.body,
@@ -116,14 +116,14 @@ function chairDetail(chair: ChairInterpretation): MovementProfileV2DomainDetailV
     metric,
     status,
     body: chair.percentileRange
-      ? 'Hale compared this 30-second chair-rise result with your age and reference group.'
-      : 'Hale saved this raw chair-rise result without a published comparison.',
+      ? 'For your age and reference group, this 30-second chair-rise result falls in this range.'
+      : 'Hale saved this chair-rise result as your starting point.',
     rows: [
       { label: '30-second protocol', value: metric },
-      { label: 'Published comparison', value: status },
-      { label: 'Use in focus', value: chair.percentileRange ? 'Reference-supported' : 'Raw baseline only' },
+      { label: 'Typical range', value: status },
+      { label: 'Use in focus', value: chair.percentileRange ? 'Used for focus suggestion' : 'Starting point only' },
     ],
-    note: 'This is a measurement summary, not a form critique or diagnosis.',
+    note: 'This is a measurement summary to help you track movement at home.',
   };
 }
 
@@ -142,12 +142,12 @@ function balanceDetail(balance: BalanceInterpretation): MovementProfileV2DomainD
       : `${formatNumber(seconds)} sec best hold`
     : 'Not measured';
   const band = balance.taskBand ? balanceBandLabel(balance.taskBand) : 'Raw result only';
-  const benchmark = balance.sourceBenchmark ? 'Published age-group benchmark saved' : band;
+  const status = balance.sourceBenchmark ? 'Typical range saved' : band;
   return {
     domain: 'balance',
     title: 'Balance',
     metric,
-    status: benchmark,
+    status,
     body: eyesOpenLadder
       ? 'Hale saved the four-stage eyes-open ladder as a new balance comparison series.'
       : balance.reachedCeiling
@@ -155,13 +155,13 @@ function balanceDetail(balance: BalanceInterpretation): MovementProfileV2DomainD
         : 'Hale uses the best valid trial from this frozen check-up.',
     rows: [
       { label: eyesOpenLadder ? 'Eyes-open ladder' : 'Best hold', value: metric },
-      { label: eyesOpenLadder ? 'Comparison status' : 'Task band', value: band },
+      { label: eyesOpenLadder ? 'Typical range' : 'Hold band', value: band },
       ...(eyesOpenLadder && balance.rawMetric?.metricId === 'balance_eyes_open_total'
         ? [{ label: 'Stages completed', value: `${balance.rawMetric.completedStageCount} of 4` }]
         : []),
       { label: 'Standing leg', value: balance.selectedStandingLeg ? sideLabel(balance.selectedStandingLeg) : 'Not saved' },
     ],
-    note: 'Balance labels describe this home task only and are not a fall-risk diagnosis.',
+    note: 'Balance labels describe this home task only.',
   };
 }
 
@@ -170,7 +170,7 @@ function shoulderDetail(shoulder: ShoulderInterpretation): MovementProfileV2Doma
   const metric = Number.isFinite(degrees)
     ? `${formatNumber(degrees)} deg ${sideLabel(shoulder.selectedSide)}`
     : 'Not measured';
-  const status = shoulder.iqr ? shoulderIqrLabel(shoulder.iqr.category) : 'Raw angle only';
+  const status = shoulder.iqr ? shoulderIqrLabel(shoulder.iqr.category) : 'Saved result';
   return {
     domain: 'mobility',
     title: 'Mobility',
@@ -181,10 +181,10 @@ function shoulderDetail(shoulder: ShoulderInterpretation): MovementProfileV2Doma
       : 'Hale stores the active shoulder-reach angle from the selected side.',
     rows: [
       { label: 'Shoulder reach', value: metric },
-      { label: 'Reference status', value: status },
+      { label: 'Typical range', value: status },
       { label: 'Selected side', value: shoulder.selectedSide ? sideLabel(shoulder.selectedSide) : 'Not saved' },
     ],
-    note: 'Mobility reference labels are broad bands, not medical ranges.',
+    note: 'Mobility labels are broad home-movement ranges.',
   };
 }
 
@@ -231,9 +231,9 @@ function balanceBandLabel(band: NonNullable<BalanceInterpretation['taskBand']>):
 }
 
 function shoulderIqrLabel(category: NonNullable<ShoulderInterpretation['iqr']>['category']): string {
-  if (category === 'below_published_middle_range') return 'Below the published middle range';
-  if (category === 'above_published_middle_range') return 'Above the published middle range';
-  return 'Within the published middle range';
+  if (category === 'below_published_middle_range') return 'Below typical range';
+  if (category === 'above_published_middle_range') return 'Above typical range';
+  return 'Within typical range';
 }
 
 function sideLabel(side: string | null | undefined): string {

@@ -8,8 +8,13 @@ describe('Progress and Manual / Extra Check-Up UI restoration', () => {
 
     expect(progress).toContain("viewModel.status === 'no_profile'");
     expect(progress).toContain('<ProgressEmptyState onBeginCheckUp={onStartCheckUp} />');
-    expect(progress).toContain('Start with your first Movement Check-Up');
-    expect(progress).toContain('Start Movement Check-Up');
+    expect(progress).toContain('Set your starting point');
+    expect(progress).toContain('Start with your check-up');
+    expect(progress).toContain('A short guided check-up gives Hale what it needs to build your first plan.');
+    expect(progress).toContain('Three calm sessions appear here when your plan is ready.');
+    expect(progress).toContain('Start check-up');
+    expect(progress).toContain('Your camera view stays private. Hale never shows a live camera view.');
+    expect(progress).not.toContain('Progress is based on repeat check-ups, not one-day changes.');
     expect(progress).toContain('Opens camera setup for your Movement Check-Up.');
     expect(progress).not.toContain(
       'Opens saved read-only Movement Profile content or the next safe continuation step.'
@@ -17,6 +22,14 @@ describe('Progress and Manual / Extra Check-Up UI restoration', () => {
     expect(app).toContain('selectPublicMovementCheckUpLaunch');
     expect(app).toContain('beginUnifiedMovementProfileV2Public');
     expect(app).toContain("flow === 'checkup' && legacyV1CheckUpFlowAllowed");
+  });
+
+  it('keeps the Plan goal summary hidden until a plan exists', () => {
+    const plan = readFileSync(join(process.cwd(), 'src/screens/PlanScreen.tsx'), 'utf8');
+
+    expect(plan).toContain('const showCreatedPlanHeaderSummary = !showBlockingNextAction && !!activeBlockSummary;');
+    expect(plan).toContain('{showCreatedPlanHeaderSummary ? <PlanGoalSummary goalText={goalText} /> : null}');
+    expect(plan).toContain('Built around what matters to you: {goalText}.');
   });
 
   it('keeps the Manual / Extra Check-Up screen polished and never blank', () => {

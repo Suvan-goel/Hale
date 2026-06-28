@@ -144,6 +144,22 @@ describe('profile equipment sync merge', () => {
     expect(safetyJson.safetyProfile.equipmentRevision).toBe(5);
   });
 
+  it('syncs date of birth through profile json and backend birth year', () => {
+    const localPrefs = prefs(null);
+    localPrefs.profile.dateOfBirth = '1968-07-01';
+    localPrefs.profile.exactAge = 57;
+    localPrefs.profile.referenceSex = 'female';
+    localPrefs.profile.age = 57;
+    localPrefs.profile.ageBand = '55_64';
+
+    const update = preferencesToBackendProfileUpdate(localPrefs);
+    const profileJson = update.profile_json as unknown as { dateOfBirth: string };
+
+    expect(update.birth_year).toBe(1968);
+    expect(update.sex).toBe('female');
+    expect(profileJson.dateOfBirth).toBe('1968-07-01');
+  });
+
   it('hydrates explicit remote movement capability confirmations over legacy-missing local data', () => {
     const merged = mergeRemoteProfileIntoLocal(
       remoteProfile(safety(['chair'], { movementCapabilities: confirmedMovementCapabilities(3, '2026-06-21T09:00:00.000Z') })),

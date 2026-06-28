@@ -2088,3 +2088,25 @@ PUBLIC RELEASE REMAINS BLOCKED
   `VOICE_V2_1_FINAL_SCHEMA_COMPLETE_GENERATION_PENDING`, `npm run verify:audio` passes, the
   task-start audio hash diff is `0`, and the final-schema artifact test pins the no-P0/P1/P2,
   audio-pending, feature-off, and floor-baseline invariants.
+
+## 2026-06-27 — Safety profile collects DOB, not raw age
+
+- **Change:** onboarding Safety Profile and Settings personal details now collect date of birth
+  (`YYYY-MM-DD` in local persistence, entered as `MM/DD/YYYY`) and derive the current whole-year
+  age from it. `profile.exactAge`, `profile.age`, `profile.ageBand`, and `safetyProfile.age`
+  remain compatibility mirrors for existing scoring, planning, and reference-comparison paths.
+- **Rationale:** the product intent is that users provide date of birth once and Hale calculates
+  age dynamically, instead of asking them to maintain a raw age field after birthdays.
+- **Boundary:** existing legacy profiles that only have exact age still load and can complete
+  onboarding; historical result snapshots continue to freeze age-at-test and are not recomputed.
+
+## 2026-06-28 — Obsolete Movement Profile V2 developer launchers removed
+
+- **Change:** removed the Settings developer rows for the standalone Movement Profile V2 harness
+  and the Movement Profile V2 unified-shell comparison launcher. The standalone check-up screen
+  and app route they depended on were deleted; the public unified Movement Check-Up remains the
+  only live V2 check-up entry point.
+- **Rationale:** Movement Profile V2 is already integrated into the normal app flow, so these
+  internal launch shortcuts no longer provide useful product or QA coverage.
+- **Boundary:** this does not change Movement Profile V2 measurement logic, public Check-Up
+  routing, reference-detail collection, frozen result materialization, or Progress history views.

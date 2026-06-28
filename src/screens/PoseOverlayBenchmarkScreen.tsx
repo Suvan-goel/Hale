@@ -51,6 +51,7 @@ type BenchmarkModeId =
   | 'premium-constellation-300'
   | 'premium-constellation-450'
   | 'privacy-shadow'
+  | 'art-directed-human'
   | 'soft-continuous-silhouette'
   | 'soft-digital-twin-lean'
   | 'soft-digital-twin'
@@ -209,6 +210,7 @@ export function createPoseOverlayBenchmarkModes(platformOS: string): readonly Be
       450
     ),
     privacyShadowMode(),
+    artDirectedHumanMode(),
     softContinuousSilhouetteMode(),
     softDigitalTwinMode('soft-digital-twin-lean', 'Premium Human · Lean', 'Previous thin matte silhouette tuning', 'lean'),
     softDigitalTwinMode(
@@ -847,6 +849,31 @@ function privacyShadowMode(): BenchmarkMode {
     configuredShapeCount: 3,
     rendererProps: {
       mode: 'privacy_shadow',
+      frameSource: 'raw',
+      fit: 'contain',
+      smoothingEnabled: false,
+      confidenceFadingEnabled: false,
+      confidenceIntensityEnabled: false,
+      reacquisitionFadeEnabled: false,
+      recognitionPulseEnabled: false,
+      measurementStatesEnabled: false,
+      setupGuidesEnabled: false,
+      stateTransitionsEnabled: false,
+      domainEmphasisEnabled: false,
+      scanLineEnabled: false,
+    },
+  };
+}
+
+function artDirectedHumanMode(): BenchmarkMode {
+  return {
+    id: 'art-directed-human',
+    title: 'Art-directed human',
+    subtitle: 'Template rig with constrained MediaPipe deformation',
+    configuredDotCount: 0,
+    configuredShapeCount: 10,
+    rendererProps: {
+      mode: 'art_directed_human',
       frameSource: 'raw',
       fit: 'contain',
       smoothingEnabled: false,

@@ -9,12 +9,18 @@ import { LIFE_GOAL_CATEGORIES, normalizeLifeGoalDisplayText } from '../adherence
 import type { ActivityLevel, LifeGoal, MovementSafetyProfile } from '../adherence';
 import { DEFAULT_VOICE_EXPERIENCE_MODE, parseVoiceExperienceMode } from '../config/voiceExperienceTypes';
 import { AppSettings, EMPTY_PROFILE, OnboardingState, OnboardingStep, Preferences, ProfileReferenceSex, UserProfile } from './types';
-import { ageBandForAge, isAgeBand, representativeAgeForAgeBand } from './age';
+import {
+  ageBandForAge,
+  ageFromDateOfBirth,
+  isAgeBand,
+  normalizeDateOfBirth,
+  representativeAgeForAgeBand,
+} from './age';
 import { isCanonicalEquipmentStatus, normalizeAvailableEquipmentForPersistence } from './equipment';
 import { movementCapabilityProfileForPersistence } from './movementCapabilities';
 import { DEFAULT_VOICE_ID, VOICE_OPTIONS } from './voices';
 
-export const PREFERENCES_SCHEMA_VERSION = 6;
+export const PREFERENCES_SCHEMA_VERSION = 7;
 
 const ONBOARDING_STEPS: OnboardingStep[] = [
   'welcome',
@@ -45,7 +51,7 @@ export function defaultPreferences(): Preferences {
 }
 
 export function serializePreferences(prefs: Preferences): string {
-  return JSON.stringify({ schemaVersion: PREFERENCES_SCHEMA_VERSION, ...prefs });
+  return JSON.stringify({ schemaVersion: PREFERENCES_SCHEMA_VERSION, ...validPreferences(prefs) });
 }
 
 export function deserializePreferences(json: string): Preferences | null {
@@ -64,6 +70,14 @@ export function deserializePreferences(json: string): Preferences | null {
   };
 }
 
+function validPreferences(prefs: Preferences): Preferences {
+  return {
+    profile: validProfile(prefs.profile),
+    settings: validSettings(prefs.settings),
+    onboarding: validOnboarding(prefs.onboarding),
+  };
+}
+
 function defaultOnboardingState(): OnboardingState {
   return {
     currentStep: 'welcome',
@@ -78,12 +92,18 @@ function validProfile(v: unknown): UserProfile {
   const def = defaultPreferences().profile;
   if (typeof v !== 'object' || v === null) return def;
   const p = v as Partial<UserProfile>;
-  const exactAge = validExactAge(p.exactAge) ?? validExactAge(p.age);
-  const ageBand = isAgeBand(p.ageBand)
-    ? p.ageBand
-    : ageBandForAge(exactAge);
+  const dateOfBirth = normalizeDateOfBirth(p.dateOfBirth);
+  const derivedAge = ageFromDateOfBirth(dateOfBirth);
+  const exactAge = derivedAge ?? validExactAge(p.exactAge) ?? validExactAge(p.age);
+  const ageBand =
+    derivedAge !== null
+      ? ageBandForAge(derivedAge)
+      : isAgeBand(p.ageBand)
+        ? p.ageBand
+        : ageBandForAge(exactAge);
   return {
     name: typeof p.name === 'string' ? p.name : def.name,
+    dateOfBirth,
     exactAge,
     referenceSex: validReferenceSex(p.referenceSex),
     age: exactAge,

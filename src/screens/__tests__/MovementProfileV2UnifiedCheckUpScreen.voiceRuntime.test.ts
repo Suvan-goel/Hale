@@ -1,10 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 
-describe('MovementProfileV2CheckUpScreen voice-runtime wiring', () => {
+describe('MovementProfileV2UnifiedCheckUpScreen voice-runtime wiring', () => {
   const source = () =>
     fs.readFileSync(
-      path.join(process.cwd(), 'src/screens/MovementProfileV2CheckUpScreen.tsx'),
+      path.join(process.cwd(), 'src/screens/MovementProfileV2UnifiedCheckUpScreen.tsx'),
       'utf8'
     );
 
@@ -22,16 +22,16 @@ describe('MovementProfileV2CheckUpScreen voice-runtime wiring', () => {
     const text = source();
 
     expect(text).toContain('!getVoiceRuntime().canDispatchAction(action, liveRef.current)');
-    expect(text).toContain("disabled={actionDisabled({ type: 'confirm_chair_setup' })}");
-    expect(text).toContain("disabled={actionDisabled({ type: 'start_shoulder_capture' })}");
-    expect(text).toContain("disabled={actionDisabled({ type: 'start_hinge_capture' })}");
+    expect(text).toContain("disabled: actionDisabled({ type: 'confirm_chair_setup' })");
+    expect(text).toContain("disabled: actionDisabled({ type: 'start_shoulder_capture' })");
+    expect(text).toContain("disabled: actionDisabled({ type: 'start_hinge_capture' })");
   });
 
   it('renders retry/cancel for required audio failure and does not offer continue without audio', () => {
     const text = source();
 
     expect(text).toContain("voiceRuntimeState.lastFailure");
-    expect(text).toContain('Audio guidance couldn');
+    expect(text).toContain('Audio setup needed');
     expect(text).toContain('Try again');
     expect(text).toContain('Exit check-up');
     expect(text).not.toContain('Continue without audio');

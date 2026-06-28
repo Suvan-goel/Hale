@@ -36,6 +36,13 @@ tmp/
 .codex_tmp_completed_profile_preview/
 .codex/screen-captures/
 
+# local Codex prompt files; keep audit reports explicit
+docs/audits/Hale_*_Prompt.md
+docs/audits/*_Prompt.md
+docs/audits/*Prompt*.md
+docs/audits/*PROMPT*.md
+docs/audits/*.prompt.md
+
 # local env files
 .env
 .env.local

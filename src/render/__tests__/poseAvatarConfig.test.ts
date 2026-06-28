@@ -18,6 +18,7 @@ describe('resolvePoseAvatarRendererMode', () => {
   it('keeps silhouette experiments out of env/default renderer selection', () => {
     expect(DEFAULT_POSE_AVATAR_RENDERER_MODE).toBe('point_cloud_body');
     expect(resolvePoseAvatarRendererMode('rigged_human_silhouette')).toBe('classic');
+    expect(resolvePoseAvatarRendererMode('art_directed_human')).toBe('classic');
     expect(resolvePoseAvatarRendererMode('shadow_silhouette')).toBe('classic');
     expect(resolvePoseAvatarRendererMode('soft_digital_twin')).toBe('classic');
     expect(resolvePoseAvatarRendererMode('soft_silhouette_avatar')).toBe('classic');
@@ -28,6 +29,9 @@ describe('resolvePoseAvatarRendererMode', () => {
     expect(resolvePoseAvatarRendererMode('contour_field')).toBe('classic');
     expect(resolvePoseAvatarConfig({ mode: 'rigged_human_silhouette' }, {}).mode).toBe(
       'rigged_human_silhouette'
+    );
+    expect(resolvePoseAvatarConfig({ mode: 'art_directed_human' }, {}).mode).toBe(
+      'art_directed_human'
     );
     expect(resolvePoseAvatarConfig({ mode: 'shadow_silhouette' }, {}).mode).toBe(
       'shadow_silhouette'
@@ -82,13 +86,14 @@ describe('rigged human silhouette production isolation', () => {
       'src/screens/LiveSessionScreen.tsx',
       'src/screens/CheckUpScreen.tsx',
       'src/screens/MicroCheckScreen.tsx',
-      'src/screens/MovementProfileV2CheckUpScreen.tsx',
+      'src/screens/MovementProfileV2UnifiedCheckUpScreen.tsx',
       'src/screens/TrainingSessionScreen.tsx',
     ];
 
     for (const file of productionScreens) {
       const source = fs.readFileSync(path.join(root, file), 'utf8');
       expect(source).not.toContain('rigged_human_silhouette');
+      expect(source).not.toContain('art_directed_human');
       expect(source).not.toContain('shadow_silhouette');
       expect(source).not.toContain('soft_digital_twin');
       expect(source).not.toContain('soft_silhouette_avatar');

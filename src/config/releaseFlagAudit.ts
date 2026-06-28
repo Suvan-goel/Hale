@@ -60,6 +60,8 @@ export type BetaReleaseFlagAuditResult =
 
 export type ReleaseFlagRawEnv = Partial<Record<ReleaseFlagEnvName, unknown>>;
 
+const BETA_RELEASE_BUILD_PROFILES = new Set(['preview', 'beta', 'internal', 'production', 'release']);
+
 export function parseExactReleaseFlag(value: unknown): boolean {
   return value === '1';
 }
@@ -135,6 +137,11 @@ export function auditBetaReleaseFlags(
       { code: 'pose_renderer_benchmark_flag_not_present' },
     ],
   };
+}
+
+export function isBetaReleaseBuildProfile(buildProfile: string | null | undefined): boolean {
+  if (!buildProfile) return false;
+  return BETA_RELEASE_BUILD_PROFILES.has(buildProfile.trim().toLowerCase());
 }
 
 function isDevelopmentBuildProfile(buildProfile: string | null | undefined): boolean {

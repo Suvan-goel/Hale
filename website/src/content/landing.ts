@@ -46,7 +46,7 @@ export const howItWorks = [
   },
   {
     title: 'See what needs attention',
-    body: 'Hale turns your results into plain focus areas, so you are not guessing what to work on.',
+    body: 'Hale turns your results into a suggested focus, so you are not guessing where to start.',
   },
   {
     title: 'Train and re-check',
@@ -123,7 +123,7 @@ export const reframePrinciples = [
   },
   {
     title: 'Train what matters',
-    body: 'Your plan starts with the area that most needs attention: strength, balance or mobility.',
+    body: 'Your plan starts with a useful focus: strength, balance or mobility.',
   },
   {
     title: 'Track change over time',
@@ -141,8 +141,8 @@ export const credibilityPoints = [
     body: 'Monthly re-checks make progress easier to see than a one-off workout or a guess about how you feel.',
   },
   {
-    title: 'Wellness language, not diagnosis',
-    body: 'Results are explained as practical focus areas and movement-age style ranges where appropriate, not medical labels.',
+    title: 'Wellness language, not medical labels',
+    body: 'Results are explained as a Movement Profile with source-backed chair-stand ranges where available, not medical labels.',
   },
 ] as const;
 
@@ -260,7 +260,7 @@ export const faqs = [
   {
     question: 'Who is Hale designed for?',
     answer:
-      'Hale is designed for adults around 45-65 who want a practical way to stay strong, steady and mobile. It is not for competitive fitness, medical diagnosis or treatment.',
+      'Hale is designed for adults around 45-65 who want a practical way to stay strong, steady and mobile. It is not for competitive fitness or medical care.',
   },
   {
     question: 'How does the Movement Check-Up work?',
@@ -275,12 +275,12 @@ export const faqs = [
   {
     question: 'What results will I see?',
     answer:
-      'Hale shows your strength, balance and mobility in plain language, highlights the area that needs the most attention, and turns that into your next home plan.',
+      'Hale shows your strength, balance and mobility in plain language, suggests a focus, and turns that into your next home plan.',
   },
   {
-    question: 'Will Hale give me a movement age?',
+    question: 'How precise are the result ranges?',
     answer:
-      'Hale is designed to explain domain results in movement-age style ranges where appropriate. Those ranges are wellness guidance, not a diagnosis or an exact biological age.',
+      'Hale explains Movement Profile domains as practical ranges where source-backed reference data is available. It avoids exact biological-age claims.',
   },
   {
     question: 'What equipment do I need?',
@@ -305,7 +305,7 @@ export const faqs = [
   {
     question: 'Is Hale a medical product?',
     answer:
-      'No. Hale is a general fitness and wellbeing product. It does not diagnose, treat or prevent medical conditions, and it is not a medical device.',
+      'No. Hale is a general fitness and wellbeing product. It is not medical care, and it is not a medical device.',
   },
   {
     question: 'What does being in beta mean?',

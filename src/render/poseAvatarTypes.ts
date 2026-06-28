@@ -8,6 +8,7 @@ import type {
 import type { SoftDigitalTwinVisualPresetName } from './softDigitalTwinGeometry';
 
 export type PoseAvatarRendererMode =
+  | 'art_directed_human'
   | 'classic'
   | 'constellation'
   | 'contour_field'

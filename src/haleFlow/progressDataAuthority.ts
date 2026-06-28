@@ -5,7 +5,6 @@ export type ProgressDataAuthority =
         | 'accepted_v2_profile'
         | 'v2_block_exists'
         | 'v2_report_exists'
-        | 'v2_pending_continuation'
         | 'public_v2_default';
     }
   | {
@@ -22,7 +21,6 @@ export interface ProgressDataAuthorityInput {
   acceptedV2OfficialProfiles: readonly unknown[];
   v2OriginBlocks: readonly { origin?: { kind?: string } | null }[];
   acceptedV2Reports: readonly { kind?: string }[];
-  hasPendingV2Continuation: boolean;
   hasMalformedV2State: boolean;
   v1RollbackAvailable: boolean;
 }
@@ -38,9 +36,6 @@ export function selectProgressDataAuthority(
   }
   if (input.acceptedV2Reports.some((report) => report.kind === 'movement_profile_v2_block_report')) {
     return { kind: 'movement_profile_v2', reason: 'v2_report_exists' };
-  }
-  if (input.hasPendingV2Continuation) {
-    return { kind: 'movement_profile_v2', reason: 'v2_pending_continuation' };
   }
   if (input.hasMalformedV2State) {
     return { kind: 'unavailable', reason: 'v2_malformed_state' };

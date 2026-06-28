@@ -7,7 +7,7 @@ export interface PlanEmptyStateCopy {
   title: string;
   body: string;
   ctaLabel: string;
-  action: 'onboarding' | 'continue_movement_profile' | 'checkup' | 'create_block';
+  action: 'onboarding' | 'checkup' | 'create_block';
 }
 
 export interface PlanFocusCopy {
@@ -28,14 +28,6 @@ export function getPlanEmptyStateCopy(state: HaleLifecycleState): PlanEmptyState
       body: 'Hale uses your goal and check-up to build your first plan.',
       ctaLabel: 'Start',
       action: 'onboarding',
-    };
-  }
-  if (state === 'needs_movement_profile_completion') {
-    return {
-      title: 'Finish your Movement Profile',
-      body: 'Your check-up is saved. Add or skip the final details so Hale can prepare your plan.',
-      ctaLabel: 'Continue Movement Profile',
-      action: 'continue_movement_profile',
     };
   }
   if (state === 'needs_baseline_checkup') {

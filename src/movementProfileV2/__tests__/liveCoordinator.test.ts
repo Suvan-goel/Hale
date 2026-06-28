@@ -499,7 +499,7 @@ describe('MovementProfileV2LiveCoordinator', () => {
 
   it('does not expose canned V2 measurement controls from the internal live screen', () => {
     const source = fs.readFileSync(
-      path.join(process.cwd(), 'src/screens/MovementProfileV2CheckUpScreen.tsx'),
+      path.join(process.cwd(), 'src/screens/MovementProfileV2UnifiedCheckUpScreen.tsx'),
       'utf8'
     );
 

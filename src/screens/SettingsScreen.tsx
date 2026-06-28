@@ -12,6 +12,7 @@ import { getLifeGoalDisplayText, normalizeLifeGoalDisplayText } from '../adheren
 import { VoiceChannel } from '../audio/voicePlayer';
 import { AccountAuthCard } from '../components/AccountAuthCard';
 import { BackArrowButton } from '../components/BackArrowButton';
+import { DateOfBirthPickerModal } from '../components/DateOfBirthPickerModal';
 import { HeaderLogo } from '../components/HeaderLogo';
 import { Screen, ToggleRow } from '../components/ui';
 import type { VoiceV21Activation } from '../config/voiceExperience';
@@ -19,7 +20,11 @@ import { controlledBetaEquipmentPositioning } from '../haleFlow';
 import {
   AppSettings,
   STARTING_PACE_OPTIONS,
+  ageFromDateOfBirth,
   ageBandForAge,
+  dateOfBirthInputLabel,
+  normalizeDateOfBirth,
+  normalizeDateOfBirthInput,
   startingEffortLabel,
   type ProfileReferenceSex,
   UserProfile,
@@ -96,8 +101,6 @@ type SettingsScreenProps = {
   onOpenLifeGoal: () => void;
   onOpenSafetyProfile: () => void;
   onOpenCameraSetup: () => void;
-  onStartMovementProfileV2Internal?: () => void;
-  onStartMovementProfileV2UnifiedInternal?: () => void;
   onOpenPoseBenchmarkForDiagnostics?: () => void;
   onReplayOnboardingForDev?: () => void;
   onBack?: () => void;
@@ -124,8 +127,6 @@ function SettingsScreenContent({
   onOpenLifeGoal,
   onOpenSafetyProfile,
   onOpenCameraSetup,
-  onStartMovementProfileV2Internal,
-  onStartMovementProfileV2UnifiedInternal,
   onOpenPoseBenchmarkForDiagnostics,
   onReplayOnboardingForDev,
   onBack,
@@ -133,11 +134,10 @@ function SettingsScreenContent({
   const responsive = useResponsiveLayout();
   const [openSection, setOpenSection] = React.useState<ProfileSection | null>(null);
   const [name, setName] = React.useState(profile.name);
-  const [exactAgeText, setExactAgeText] = React.useState(
-    typeof (profile.exactAge ?? profile.age) === 'number'
-      ? String(profile.exactAge ?? profile.age)
-      : ''
+  const [dateOfBirthText, setDateOfBirthText] = React.useState(
+    dateOfBirthInputLabel(profile.dateOfBirth)
   );
+  const [datePickerVisible, setDatePickerVisible] = React.useState(false);
   const [referenceSex, setReferenceSex] = React.useState<ProfileReferenceSex | null>(profile.referenceSex);
   const voicePreviewRef = React.useRef<VoiceChannel | null>(null);
   const available = profile.safetyProfile?.availableEquipment ?? ['chair', 'wall'];
@@ -148,17 +148,13 @@ function SettingsScreenContent({
   const profileGoalText = goalContinuationText(goalText);
   const effortLabel = startingEffortLabel(startingEffort);
   const planSummary = `${preferredDaysSummary(preferredDays)} · ${effortLabel}`;
-  const showInternalDeveloperSettings =
-    !!onStartMovementProfileV2Internal ||
-    !!onStartMovementProfileV2UnifiedInternal ||
-    !!onReplayOnboardingForDev;
+  const showInternalDeveloperSettings = !!onReplayOnboardingForDev;
   const showDeveloperSettings = showInternalDeveloperSettings || !!onOpenPoseBenchmarkForDiagnostics;
 
   React.useEffect(() => setName(profile.name), [profile.name]);
   React.useEffect(() => {
-    const age = profile.exactAge ?? profile.age;
-    setExactAgeText(typeof age === 'number' ? String(age) : '');
-  }, [profile.exactAge, profile.age]);
+    setDateOfBirthText(dateOfBirthInputLabel(profile.dateOfBirth));
+  }, [profile.dateOfBirth]);
   React.useEffect(() => setReferenceSex(profile.referenceSex), [profile.referenceSex]);
   React.useEffect(() => () => voicePreviewRef.current?.stop(), []);
   React.useEffect(() => {
@@ -181,15 +177,17 @@ function SettingsScreenContent({
 
   const commitName = () => onProfileChange({ ...profile, name: name.trim() });
   const commitReferenceDetails = (
-    ageText: string = exactAgeText,
+    birthDateText: string = dateOfBirthText,
     nextReferenceSex: ProfileReferenceSex | null = referenceSex
   ) => {
-    const exactAge = parseSettingsExactAge(ageText);
-    if (exactAge === null || nextReferenceSex === null) return;
+    const dateOfBirth = normalizeDateOfBirth(birthDateText) ?? normalizeDateOfBirthInput(birthDateText);
+    const exactAge = ageFromDateOfBirth(dateOfBirth);
+    if (dateOfBirth === null || exactAge === null) return;
     const ageBand = ageBandForAge(exactAge);
     const now = new Date().toISOString();
     onProfileChange({
       ...profile,
+      dateOfBirth,
       exactAge,
       referenceSex: nextReferenceSex,
       age: exactAge,
@@ -204,9 +202,14 @@ function SettingsScreenContent({
         : profile.safetyProfile,
         });
   };
+  const updateDateOfBirth = (dateOfBirth: string) => {
+    setDatePickerVisible(false);
+    setDateOfBirthText(dateOfBirthInputLabel(dateOfBirth));
+    commitReferenceDetails(dateOfBirth);
+  };
   const updateReferenceSex = (next: ProfileReferenceSex) => {
     setReferenceSex(next);
-    commitReferenceDetails(exactAgeText, next);
+    commitReferenceDetails(dateOfBirthText, next);
   };
 
   const toggleDay = (day: string) => {
@@ -224,9 +227,8 @@ function SettingsScreenContent({
             name={name}
             onNameChange={setName}
             onNameBlur={commitName}
-            exactAgeText={exactAgeText}
-            onExactAgeChange={setExactAgeText}
-            onExactAgeBlur={() => commitReferenceDetails()}
+            dateOfBirthText={dateOfBirthText}
+            onOpenDateOfBirthPicker={() => setDatePickerVisible(true)}
             referenceSex={referenceSex}
             onReferenceSexChange={updateReferenceSex}
             movementGoal={goalText}
@@ -440,22 +442,32 @@ function SettingsScreenContent({
     const copy = SECTION_COPY[openSection];
 
     return (
-      <Screen contentStyle={styles.screenContent}>
-        <View style={styles.detailBackRow}>
-          <BackArrowButton
-            accessibilityLabel="Back to settings"
-            onPress={() => setOpenSection(null)}
-          />
-        </View>
-        <View style={styles.detailHeader}>
-          <View style={styles.titleGroup}>
-            <HeaderLogo />
-            <Text style={[styles.title, responsive.isCompactPhone && compactTypography.pageTitle]}>{copy.title}</Text>
+      <>
+        <Screen contentStyle={styles.screenContent}>
+          <View style={styles.detailBackRow}>
+            <BackArrowButton
+              accessibilityLabel="Back to settings"
+              onPress={() => setOpenSection(null)}
+            />
           </View>
-          <Text style={styles.detailSubtitle}>{copy.subtitle}</Text>
-        </View>
-        {renderSectionContent()}
-      </Screen>
+          <View style={styles.detailHeader}>
+            <View style={styles.titleGroup}>
+              <HeaderLogo />
+              <Text style={[styles.title, responsive.isCompactPhone && compactTypography.pageTitle]}>{copy.title}</Text>
+            </View>
+            <Text style={styles.detailSubtitle}>{copy.subtitle}</Text>
+          </View>
+          {renderSectionContent()}
+        </Screen>
+        <DateOfBirthPickerModal
+          visible={datePickerVisible}
+          value={normalizeDateOfBirth(dateOfBirthText) ?? profile.dateOfBirth}
+          title="Date of birth"
+          maximumAge={120}
+          onCancel={() => setDatePickerVisible(false)}
+          onConfirm={updateDateOfBirth}
+        />
+      </>
     );
   }
 
@@ -566,24 +578,6 @@ function SettingsScreenContent({
                 accessibilityLabel="Use mock app data"
               />
             </View>
-          ) : null}
-          {onStartMovementProfileV2Internal ? (
-            <ProfileMenuRow
-              title="Movement Profile V2"
-              subtitle="Open the internal check-up and frozen result review."
-              icon="sliders"
-              onPress={onStartMovementProfileV2Internal}
-              showDivider
-            />
-          ) : null}
-          {onStartMovementProfileV2UnifiedInternal ? (
-            <ProfileMenuRow
-              title="Movement Profile V2 unified shell"
-              subtitle="Run the V2 live coordinator inside the polished check-up shell."
-              icon="sliders"
-              onPress={onStartMovementProfileV2UnifiedInternal}
-              showDivider
-            />
           ) : null}
           {onReplayOnboardingForDev ? (
             <ProfileMenuRow
@@ -873,9 +867,8 @@ function PersonalDetailsCard({
   name,
   onNameChange,
   onNameBlur,
-  exactAgeText,
-  onExactAgeChange,
-  onExactAgeBlur,
+  dateOfBirthText,
+  onOpenDateOfBirthPicker,
   referenceSex,
   onReferenceSexChange,
   movementGoal,
@@ -884,17 +877,16 @@ function PersonalDetailsCard({
   name: string;
   onNameChange: (value: string) => void;
   onNameBlur: () => void;
-  exactAgeText: string;
-  onExactAgeChange: (value: string) => void;
-  onExactAgeBlur: () => void;
+  dateOfBirthText: string;
+  onOpenDateOfBirthPicker: () => void;
   referenceSex: ProfileReferenceSex | null;
   onReferenceSexChange: (value: ProfileReferenceSex) => void;
   movementGoal: string;
   onOpenLifeGoal: () => void;
 }) {
   const responsive = useResponsiveLayout();
-  const exactAge = parseSettingsExactAge(exactAgeText);
-  const exactAgeInvalid = exactAgeText.trim().length > 0 && exactAge === null;
+  const dateOfBirth = normalizeDateOfBirth(dateOfBirthText);
+  const exactAge = ageFromDateOfBirth(dateOfBirth);
   return (
     <View style={[styles.personalCard, responsive.isCompactPhone && styles.compactCardPadding]}>
       <View style={styles.personalCardIntro}>
@@ -932,20 +924,23 @@ function PersonalDetailsCard({
               {exactAge !== null && referenceSex ? `${exactAge} · ${referenceSexSummary(referenceSex)}` : 'Required'}
             </Text>
           </View>
-          <TextInput
-            style={[styles.personalFieldInput, exactAgeInvalid && styles.personalFieldInputInvalid]}
-            value={exactAgeText}
-            onChangeText={onExactAgeChange}
-            onBlur={onExactAgeBlur}
-            placeholder="Exact age"
-            placeholderTextColor={colors.textTertiary}
-            keyboardType="number-pad"
-            maxLength={3}
-            accessibilityLabel="Exact age"
-          />
-          {exactAgeInvalid ? (
-            <Text style={styles.personalFieldError}>Enter an age from 18 to 100.</Text>
-          ) : null}
+          <Pressable
+            style={({ pressed }) => [styles.personalDateButton, pressed && styles.pressed]}
+            onPress={onOpenDateOfBirthPicker}
+            accessibilityRole="button"
+            accessibilityLabel="Select date of birth"
+          >
+            <Text
+              style={[
+                styles.personalFieldInput,
+                !dateOfBirthText && styles.personalFieldPlaceholder,
+              ]}
+              numberOfLines={1}
+            >
+              {dateOfBirthText || 'Select date of birth'}
+            </Text>
+            <Text style={styles.personalDateButtonAction}>{dateOfBirthText ? 'Change' : 'Select'}</Text>
+          </Pressable>
           <View style={styles.personalAgeOptionGrid}>
             {(['female', 'male'] as const).map((option) => {
               const selected = referenceSex === option;
@@ -1002,13 +997,6 @@ function PersonalDetailsCard({
       </View>
     </View>
   );
-}
-
-function parseSettingsExactAge(value: string): number | null {
-  const trimmed = value.trim();
-  if (trimmed.length === 0) return null;
-  const parsed = Number(trimmed);
-  return Number.isInteger(parsed) && parsed >= 18 && parsed <= 100 ? parsed : null;
 }
 
 function referenceSexSummary(referenceSex: ProfileReferenceSex): string {
@@ -1887,12 +1875,28 @@ const styles = StyleSheet.create({
     color: colors.primaryText,
     backgroundColor: 'transparent',
   },
-  personalFieldInputInvalid: {
-    color: colors.warningClay,
+  personalDateButton: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    borderRadius: radius.input,
+    borderWidth: 1,
+    borderColor: colors.borderHairline,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.bgSurface,
   },
-  personalFieldError: {
-    ...type.cardCaption,
-    color: colors.warningClay,
+  personalFieldPlaceholder: {
+    color: colors.textTertiary,
+  },
+  personalDateButtonAction: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 14,
+    lineHeight: 19,
+    letterSpacing: 0,
+    color: colors.accentDeep,
   },
   personalAgeOptionGrid: {
     flexDirection: 'row',

@@ -41,7 +41,14 @@ describe('local Hale account data service', () => {
 
   it('clears expected local stores and preserves unrelated files', async () => {
     const files = new Map<string, string>([
-      ['preferences.json', '{}'],
+      ['preferences.json', JSON.stringify({
+        profile: {
+          safetyProfile: {
+            painNotes: 'legacy pain note',
+            injuryNotes: 'legacy injury note',
+          },
+        },
+      })],
       ['checkup-2026-06-18T10-00-00-000Z.json', '{}'],
       ['training-state.json', '{}'],
       ['microcheck-2026-06-25T10-00-00-000Z.json', '{}'],
@@ -67,6 +74,7 @@ describe('local Hale account data service', () => {
       ])
     );
     expect(Array.from(files.keys())).toEqual(['notes.json']);
+    expect(Array.from(files.values()).join('\n')).not.toMatch(/legacy pain note|legacy injury note/);
     expect(Array.from(recordings)).toEqual([]);
   });
 

@@ -148,7 +148,7 @@ function OnboardingResultsVariant({
 }) {
   const responsive = useResponsiveLayout();
   return (
-    <Screen>
+    <Screen contentStyle={onboardingStyles.screenContent}>
       <View style={onboardingStyles.header}>
         <ScreenHeader
           eyebrow={presentation.header.eyebrow ?? ''}
@@ -157,13 +157,31 @@ function OnboardingResultsVariant({
         />
       </View>
 
-      <View style={[onboardingStyles.focusCard, responsive.isCompactPhone && onboardingStyles.compactCardPadding]}>
-        <View style={onboardingStyles.focusTopRow}>
+      <View style={[onboardingStyles.heroCard, responsive.isCompactPhone && onboardingStyles.compactHeroPadding]}>
+        <View style={onboardingStyles.heroTopRow}>
           <Text style={onboardingStyles.eyebrow}>{presentation.focus.kicker}</Text>
+          <View style={onboardingStyles.heroPill}>
+            <Text style={onboardingStyles.heroPillText}>Plan ready</Text>
+          </View>
         </View>
-        <Text style={onboardingStyles.focusTitle}>{presentation.focus.title}</Text>
-        <View style={onboardingStyles.focusRule} />
-        <Text style={onboardingStyles.focusBody}>{presentation.focus.body}</Text>
+        <Text style={onboardingStyles.heroTitle}>{presentation.focus.title}</Text>
+        <Text style={onboardingStyles.heroBody}>{presentation.focus.body}</Text>
+        <View style={onboardingStyles.heroStatRow}>
+          <View style={onboardingStyles.heroStat}>
+            <Text style={onboardingStyles.heroStatValue}>3</Text>
+            <Text style={onboardingStyles.heroStatLabel}>Areas checked</Text>
+          </View>
+          <View style={onboardingStyles.heroStatDivider} />
+          <View style={onboardingStyles.heroStat}>
+            <Text style={onboardingStyles.heroStatValue}>4</Text>
+            <Text style={onboardingStyles.heroStatLabel}>Week plan</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={onboardingStyles.sectionIntro}>
+        <Text style={onboardingStyles.sectionTitle}>Your three areas</Text>
+        <Text style={onboardingStyles.sectionBody}>Tap any area to see the saved measurements behind it.</Text>
       </View>
 
       <View style={onboardingStyles.domainStack}>
@@ -178,10 +196,13 @@ function OnboardingResultsVariant({
 
       {presentation.plan.status !== 'hidden' && presentation.plan.title && presentation.plan.body ? (
         <View style={[onboardingStyles.nextCard, responsive.isCompactPhone && onboardingStyles.compactCardPadding]}>
-          <View style={onboardingStyles.noteHead}>
-            <Text style={onboardingStyles.nextTitle}>{presentation.plan.title}</Text>
+          <View style={onboardingStyles.nextTopRow}>
+            <Text style={onboardingStyles.nextKicker}>Next</Text>
+            <View style={onboardingStyles.nextStatusPill}>
+              <Text style={onboardingStyles.nextStatusText}>Ready</Text>
+            </View>
           </View>
-          <View style={onboardingStyles.nextRule} />
+          <Text style={onboardingStyles.nextTitle}>{presentation.plan.title}</Text>
           <Text style={onboardingStyles.nextBody}>{presentation.plan.body}</Text>
         </View>
       ) : null}
@@ -308,6 +329,7 @@ function OnboardingDomainSummaryCard({
   onAction: (action: UnifiedCheckUpResultsAction) => void;
 }) {
   const responsive = useResponsiveLayout();
+  const metricDisplay = splitMetricDisplay(domain.bandLabel ?? domain.metricValue);
   const card = (
     <View
       style={[
@@ -316,17 +338,41 @@ function OnboardingDomainSummaryCard({
         domain.featured && onboardingStyles.domainCardFeatured,
       ]}
     >
-      <View style={[onboardingStyles.domainMark, domain.featured && onboardingStyles.domainMarkFeatured]}>
-        <Text style={[onboardingStyles.domainMarkText, domain.featured && onboardingStyles.domainMarkTextFeatured]}>
-          {domainIconLetter(domain.id)}
-        </Text>
-      </View>
       <View style={onboardingStyles.domainCopy}>
-        <Text style={onboardingStyles.domainTitle}>{domain.title}</Text>
-        <Text style={onboardingStyles.domainStatus}>{domain.statusLabel ?? domain.interpretation}</Text>
+        <View style={onboardingStyles.domainTitleRow}>
+          <View style={[onboardingStyles.domainMark, domain.featured && onboardingStyles.domainMarkFeatured]}>
+            <DomainGlyph iconToken={domain.iconToken} />
+          </View>
+          <View style={onboardingStyles.domainTitleCopy}>
+            <View style={onboardingStyles.domainNameRow}>
+              <Text style={onboardingStyles.domainTitle}>{domain.title}</Text>
+              {domain.featured ? (
+                <View style={onboardingStyles.focusPill}>
+                  <Text style={onboardingStyles.focusPillText}>Focus</Text>
+                </View>
+              ) : null}
+            </View>
+            <Text style={onboardingStyles.domainStatus}>{domain.statusLabel ?? domain.interpretation}</Text>
+          </View>
+        </View>
       </View>
       <View style={onboardingStyles.domainBandWrap}>
-        <Text style={onboardingStyles.domainBand}>{domain.bandLabel ?? domain.metricValue}</Text>
+        <Text style={onboardingStyles.domainBandLabel}>Result</Text>
+        <Text style={onboardingStyles.domainBand} numberOfLines={2}>
+          {metricDisplay ? (
+            <>
+              <Text style={onboardingStyles.domainBandNumber}>{metricDisplay.value}</Text>
+              {metricDisplay.unit ? (
+                <Text style={onboardingStyles.domainBandUnit}>
+                  {metricDisplay.separator}
+                  {metricDisplay.unit}
+                </Text>
+              ) : null}
+            </>
+          ) : (
+            domain.bandLabel ?? domain.metricValue
+          )}
+        </Text>
       </View>
     </View>
   );
