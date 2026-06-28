@@ -275,7 +275,7 @@ export class MicroCheckRunner {
     const legacyCues = this.type === 'mobility-reach'
       ? HINGE_REACH_DEFINITION.voice.instructions
       : [INTRO_CUE[this.type]];
-    if (this.voiceMode !== 'v21_beta' || this.type === 'mobility-reach') {
+    if (this.voiceMode !== 'v21_beta') {
       return ['framing-ready', ...legacyCues];
     }
     const plan = planMicroCheckVoiceSequenceV21({

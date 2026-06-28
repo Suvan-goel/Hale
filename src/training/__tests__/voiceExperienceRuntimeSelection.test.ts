@@ -24,7 +24,7 @@ describe('Voice experience runtime selection', () => {
     ).toMatchObject({ mode: 'legacy', v21Selectable: false });
   });
 
-  it('keeps Micro-Check Voice V2.1 on legacy while mobility hinge audio is awaiting regeneration', () => {
+  it('selects Micro-Check Voice V2.1 in beta mode once physical audio is complete', () => {
     const beta = resolveVoiceV21Activation({ persistedMode: 'v21_beta', env: {} });
     const legacy = resolveVoiceV21Activation({ persistedMode: 'legacy', env: {} });
 
@@ -34,7 +34,7 @@ describe('Voice experience runtime selection', () => {
         featureEnabled: beta.microCheckVoiceV21Enabled,
         betaDefaultEnabled: beta.voiceV21BetaDefaultEnabled,
       })
-    ).toMatchObject({ mode: 'legacy', v21Selectable: false });
+    ).toMatchObject({ mode: 'micro_check_voice_v2_1', v21Selectable: true });
     expect(
       selectMicroCheckVoiceRuntimeModeV21({
         microCheckTypes: ['chair-power', 'single-leg-balance', 'mobility-reach'],

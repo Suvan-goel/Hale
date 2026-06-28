@@ -330,7 +330,7 @@ function RecordingSetupNotice({
           <View style={styles.recordingSetupNoticeDot} />
         </View>
         <View style={styles.recordingSetupNoticeCopy}>
-          <Text style={styles.recordingSetupNoticeTitle} numberOfLines={1}>
+          <Text style={styles.recordingSetupNoticeTitle} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.84}>
             {text}
           </Text>
         </View>

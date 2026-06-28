@@ -9,6 +9,7 @@ import {
 } from '../audio/voicePlayer';
 import { BodySide } from '../checkup/protocolSetup';
 import { DEFAULT_VOICE_ID } from '../profile/voices';
+import { movementProfileV2InstructionCueIdsForStage } from '../training/instructionProfiles';
 import { MPV2_CHAIR_COUNTDOWN_CADENCE_MS } from './liveCoordinator';
 import type {
   Mpv2RecoveryEpisode,
@@ -208,6 +209,23 @@ export class MovementProfileV2VoiceRuntime {
     if (!plan) return;
     this.completedScopes.delete(plan.scopeId);
     void this.runRetryThenPlan(plan, ++this.currentEpoch);
+  }
+
+  replayInstruction(snapshot: MovementProfileV2LiveSnapshot): boolean {
+    const cues = movementProfileV2InstructionCueIdsForStage({
+      stage: snapshot.stage,
+      selectedShoulder: snapshot.flow.shoulderSide,
+      repeatedAttempt: snapshot.stage === 'balance_ready' || snapshot.stage === 'balance_trial',
+    });
+    if (cues.length === 0) return false;
+    const accepted = this.voice.speak(cues, priorityForCues(cues));
+    this.pushDiagnostic({
+      event: accepted ? 'instruction_replay_accepted' : 'instruction_replay_dropped',
+      atMs: this.nowMs(),
+      scopeId: `help:${scopeBaseForSnapshot(snapshot)}`,
+      cueKey: cues[0],
+    });
+    return accepted;
   }
 
   cancel(reason: VoiceCancelReason): void {

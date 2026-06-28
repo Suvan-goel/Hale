@@ -24,6 +24,10 @@ import {
   type MicroCheckVoicePlaybackOutcomeV21,
   type MicroCheckVoicePlaybackResultV21,
 } from '..';
+import { VOICE_V2_1_AUDIO_ASSET_METADATA } from '../../../audio/voiceV21AudioManifest';
+
+const CURRENT_MICRO_MOBILITY_SCRIPT =
+  'Quick mobility check. Stand side-on, hinge forward, and reach toward the floor until I say stand tall.';
 
 describe('Micro-Check Voice V2.1 contracts', () => {
   it('defines exactly the three live micro-check contracts and exact instruction scripts', () => {
@@ -74,7 +78,7 @@ describe('Micro-Check Voice V2.1 contracts', () => {
 
   it('keeps approval/default gates closed while beta selectability uses physical audio readiness', () => {
     expect(MICRO_CHECK_VOICE_V2_1_BEHAVIOR_READY).toBe(true);
-    expect(MICRO_CHECK_VOICE_V2_1_PHYSICAL_AUDIO_SURFACE_READY).toBe(false);
+    expect(MICRO_CHECK_VOICE_V2_1_PHYSICAL_AUDIO_SURFACE_READY).toBe(true);
     expect(MICRO_CHECK_VOICE_V2_1_AUDIO_APPROVAL_READY).toBe(false);
     expect(MICRO_CHECK_VOICE_V2_1_AUDIO_READY).toBe(false);
     expect(MICRO_CHECK_VOICE_V2_1_FEATURE_DEFAULT).toBe('off');
@@ -95,10 +99,10 @@ describe('Micro-Check Voice V2.1 contracts', () => {
       mode: 'legacy',
       v21Selectable: false,
     });
-    expect(microCheckVoiceSelectableTypeCountV21({ betaDefaultEnabled: true })).toBe(0);
+    expect(microCheckVoiceSelectableTypeCountV21({ betaDefaultEnabled: true })).toBe(3);
     expect(resolveMicroCheckVoiceRuntimeReadinessV21('chair-power', { betaDefaultEnabled: true })).toMatchObject({
-      audioReady: false,
-      selectable: false,
+      audioReady: true,
+      selectable: true,
       legacyFallbackAvailable: true,
     });
     expect(
@@ -108,8 +112,8 @@ describe('Micro-Check Voice V2.1 contracts', () => {
         betaDefaultEnabled: true,
       })
     ).toMatchObject({
-      mode: 'legacy',
-      v21Selectable: false,
+      mode: 'micro_check_voice_v2_1',
+      v21Selectable: true,
     });
   });
 });
@@ -141,6 +145,20 @@ describe('Micro-Check Voice V2.1 sequence planning and assets', () => {
   });
 
   it('uses generated exact logical cues without reusing semantically wrong legacy audio', () => {
+    expect(assetRequirementForMicroCheckCueV21('micro-mobility-left-v21')).toMatchObject({
+      exactScript: CURRENT_MICRO_MOBILITY_SCRIPT,
+      currentCandidateKey: 'micro-mobility-left-v21',
+      semanticMatch: true,
+      reuseDecision: 'reuse_exact_existing_pair',
+      generationRequiredLater: false,
+    });
+    expect(assetRequirementForMicroCheckCueV21('micro-mobility-right-v21')).toMatchObject({
+      exactScript: CURRENT_MICRO_MOBILITY_SCRIPT,
+      currentCandidateKey: 'micro-mobility-right-v21',
+      semanticMatch: true,
+      reuseDecision: 'reuse_exact_existing_pair',
+      generationRequiredLater: false,
+    });
     expect(assetRequirementForMicroCheckCueV21('micro-relax-v21')).toMatchObject({
       exactScript: 'Relax.',
       currentCandidateKey: 'micro-relax-v21',
@@ -159,6 +177,23 @@ describe('Micro-Check Voice V2.1 sequence planning and assets', () => {
       reuseDecision: 'reuse_exact_existing_pair',
       generationRequiredLater: false,
     });
+  });
+
+  it('keeps generated micro mobility metadata aligned with the current reach script', () => {
+    const scripts = [
+      VOICE_V2_1_AUDIO_ASSET_METADATA.clara?.['micro-mobility-left-v21']?.script,
+      VOICE_V2_1_AUDIO_ASSET_METADATA.clara?.['micro-mobility-right-v21']?.script,
+      VOICE_V2_1_AUDIO_ASSET_METADATA.marcus?.['micro-mobility-left-v21']?.script,
+      VOICE_V2_1_AUDIO_ASSET_METADATA.marcus?.['micro-mobility-right-v21']?.script,
+    ];
+
+    expect(scripts).toEqual([
+      CURRENT_MICRO_MOBILITY_SCRIPT,
+      CURRENT_MICRO_MOBILITY_SCRIPT,
+      CURRENT_MICRO_MOBILITY_SCRIPT,
+      CURRENT_MICRO_MOBILITY_SCRIPT,
+    ]);
+    expect(scripts.join('\n')).not.toMatch(/Extend your (left|right) leg/i);
   });
 });
 

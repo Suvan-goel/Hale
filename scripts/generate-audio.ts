@@ -222,7 +222,7 @@ Object.assign(
 loadRootDotEnv();
 const API_KEY = process.env.ELEVENLABS_API_KEY;
 
-type AudioGroup = 'all' | 'safety' | 'movement_profile_v2';
+type AudioGroup = 'all' | 'safety' | 'movement_profile_v2' | 'voice_v21';
 type VoiceSelector = 'all' | string;
 type AudioAssetStatus = 'valid' | 'missing' | 'stale' | 'zero-byte' | 'forced';
 
@@ -255,6 +255,26 @@ interface BacklogRow {
   reasonForGeneration: string;
   budgetClass: string;
   sourceArtifact: string;
+  notes: string;
+}
+
+interface FinalCueRegistryRow {
+  logicalCueKey: string;
+  exactScript: string;
+  flows: string;
+  categories: string;
+  policyId: string;
+  requiredForVoiceFirst: string;
+  lifecycle: string;
+  reuseDecision: string;
+  physicalCueKey: string;
+  physicalManifestStatus: string;
+  claraExists: string;
+  marcusExists: string;
+  semanticMatch: string;
+  generationRequiredLater: string;
+  retireLater: string;
+  sourceArtifacts: string;
   notes: string;
 }
 
@@ -419,7 +439,7 @@ function parseArgs(argv: readonly string[]): CliOptions {
 }
 
 function isAudioGroup(value: string | undefined): value is AudioGroup {
-  return value === 'all' || value === 'safety' || value === 'movement_profile_v2';
+  return value === 'all' || value === 'safety' || value === 'movement_profile_v2' || value === 'voice_v21';
 }
 
 function selectVoices(selector: VoiceSelector): SelectedVoice[] {
@@ -448,6 +468,7 @@ function selectVoices(selector: VoiceSelector): SelectedVoice[] {
 function lineKeysForGroup(group: AudioGroup): string[] {
   if (group === 'safety') return safetyAudioCueIds();
   if (group === 'movement_profile_v2') return movementProfileV2AudioCueIds();
+  if (group === 'voice_v21') return voiceV21MetadataLineKeys();
   return [...new Set([...Object.keys(LINES), ...voiceV21MetadataLineKeys()])].sort();
 }
 
@@ -715,6 +736,44 @@ function loadVoiceV21Backlog(backlogPath: string): BacklogRow[] {
   return rows;
 }
 
+function loadVoiceV21RefreshRows(): BacklogRow[] {
+  const registryRows = parseCsv(
+    fs.readFileSync(path.join(ROOT, 'docs/audits/HALE_VOICE_V2_1_FINAL_CUE_REGISTRY.csv'), 'utf8')
+  ) as unknown as FinalCueRegistryRow[];
+  const registryByKey = new Map(registryRows.map((row) => [row.logicalCueKey, row]));
+  const metadataKeys = voiceV21MetadataLineKeys().sort();
+  if (metadataKeys.length === 0) throw new Error('Voice V2.1 metadata is empty; nothing to refresh');
+  return metadataKeys.map((logicalCueKey) => {
+    const registry = registryByKey.get(logicalCueKey);
+    if (!registry) throw new Error(`Voice V2.1 cue missing from final cue registry: ${logicalCueKey}`);
+    if (registry.lifecycle.includes('legacy') || registry.lifecycle === 'retired' || registry.lifecycle === 'not_required') {
+      throw new Error(`Voice V2.1 refresh includes non-active cue ${registry.lifecycle}: ${logicalCueKey}`);
+    }
+    if (registry.physicalCueKey !== logicalCueKey) {
+      throw new Error(`Voice V2.1 refresh requires one-to-one physical cue keys: ${logicalCueKey}`);
+    }
+    const existingScript = VOICE_V2_1_AUDIO_ASSET_METADATA.clara?.[logicalCueKey]?.script ?? '';
+    return {
+      logicalCueKey,
+      exactScript: registry.exactScript,
+      flow: registry.flows,
+      category: registry.categories,
+      policyId: registry.policyId,
+      requiredForVoiceFirst: registry.requiredForVoiceFirst,
+      voiceIdsNeeded: 'clara;marcus',
+      currentPhysicalCandidate: registry.physicalCueKey,
+      reuseDecision: registry.reuseDecision,
+      reasonForGeneration:
+        existingScript && existingScript !== registry.exactScript
+          ? 'current_candidate_script_mismatch'
+          : 'stale_fingerprint_refresh',
+      budgetClass: registry.categories,
+      sourceArtifact: registry.sourceArtifacts,
+      notes: `Voice V2.1 refresh from final cue registry. ${registry.notes}`,
+    };
+  });
+}
+
 function validateVoiceV21Backlog(rows: readonly BacklogRow[]): void {
   if (rows.length === 0) throw new Error('generation backlog is empty or malformed');
   const byLogical = new Map<string, BacklogRow>();
@@ -762,7 +821,8 @@ function validateVoiceV21Backlog(rows: readonly BacklogRow[]): void {
 function buildVoiceV21GenerationJobs(
   rows: readonly BacklogRow[],
   voices: readonly SelectedVoice[],
-  force: boolean
+  force: boolean,
+  options: { allowExistingRefresh?: boolean } = {}
 ): VoiceV21GenerationJob[] {
   const selectedById = new Map(voices.map((voice) => [voice.id, voice]));
   const jobs: VoiceV21GenerationJob[] = [];
@@ -803,7 +863,9 @@ function buildVoiceV21GenerationJobs(
             ? 'forced'
             : metadataCurrent
               ? 'valid'
-              : 'blocked';
+              : options.allowExistingRefresh
+                ? 'stale'
+                : 'blocked';
       const blockingReason = status === 'blocked'
         ? 'existing_v21_output_path_without_matching_metadata'
         : '';
@@ -860,16 +922,29 @@ function validateVoiceV21GenerationJobs(jobs: readonly VoiceV21GenerationJob[], 
 
 function printVoiceV21Plan(jobs: readonly VoiceV21GenerationJob[], dryRun: boolean): void {
   const valid = jobs.filter((job) => job.status === 'valid').length;
-  const generate = jobs.filter((job) => job.status !== 'valid').length;
+  const missing = jobs.filter((job) => job.status === 'missing').length;
+  const stale = jobs.filter((job) => job.status === 'stale').length;
+  const zeroByte = jobs.filter((job) => job.status === 'zero-byte').length;
+  const forced = jobs.filter((job) => job.status === 'forced').length;
+  const blocked = jobs.filter((job) => job.status === 'blocked').length;
+  const generate = jobs.filter((job) => job.status !== 'valid' && job.status !== 'blocked').length;
   console.log(
     [
       dryRun ? 'Voice V2.1 backlog dry run' : 'Voice V2.1 backlog generation plan',
       `logicalRows=${new Set(jobs.map((job) => job.logicalCueKey)).size}`,
       `jobs=${jobs.length}`,
+      `requiredAssets=${jobs.length}`,
       `valid=${valid}`,
+      `missing=${missing}`,
+      `stale=${stale}`,
+      `zeroByte=${zeroByte}`,
+      `forced=${forced}`,
+      `blocked=${blocked}`,
       `providerCalls=${generate}`,
       `provider=${AUDIO_TTS_PROVIDER}`,
       `model=${ELEVENLABS_MODEL}`,
+      `outputFormat=${AUDIO_OUTPUT_FORMAT}`,
+      `voiceSettings=stability:${AUDIO_VOICE_SETTINGS.stability},similarity_boost:${AUDIO_VOICE_SETTINGS.similarity_boost},use_speaker_boost:${AUDIO_VOICE_SETTINGS.use_speaker_boost},speed:${AUDIO_VOICE_SETTINGS.speed}`,
       `voices=${[...new Set(jobs.map((job) => job.voice.id))].join(',')}`,
       `providerCredentials=${API_KEY ? 'present' : 'missing'}`,
     ].join(' ')
@@ -1164,14 +1239,15 @@ function writeVoiceV21ManifestChanges(results: readonly VoiceV21JobResult[]): vo
   for (const result of results) {
     if (seen.has(result.job.physicalCueKey)) continue;
     seen.add(result.job.physicalCueKey);
+    const refresh = !result.job.willCreateNew;
     rows.push({
       changeId: `manifest-change-${String(index++).padStart(3, '0')}`,
-      changeType: 'add_generated_voice_v21_pair',
+      changeType: refresh ? 'refresh_generated_voice_v21_pair' : 'add_generated_voice_v21_pair',
       filePath: 'src/audio/manifest.ts',
       logicalCueKey: result.job.logicalCueKey,
       physicalCueKey: result.job.physicalCueKey,
       voiceId: 'clara;marcus',
-      beforeStatus: 'not_manifested',
+      beforeStatus: refresh ? 'static_require_registered' : 'not_manifested',
       afterStatus: 'static_require_registered',
       staticRequirePath: `assets/audio/voice/{clara,marcus}/${result.job.physicalCueKey}.mp3`,
       verifyAudioImpact: 'covered_by_verify_audio_voice_v21_backlog',
@@ -1525,6 +1601,25 @@ async function main(): Promise<void> {
     writeManifestFromDisk();
     writeMovementProfileV2Metadata(generatedCueKeys);
     console.log(`\n${generatedCueKeys.size} Movement Profile V2 line(s) generated, manifest updated`);
+    return;
+  }
+
+  if (options.group === 'voice_v21') {
+    const refreshRows = loadVoiceV21RefreshRows();
+    const jobs = buildVoiceV21GenerationJobs(refreshRows, voices, options.force, { allowExistingRefresh: true });
+    validateVoiceV21GenerationJobs(jobs, refreshRows.length);
+    writeVoiceV21GenerationPlan(jobs);
+    printVoiceV21Plan(jobs, options.dryRun);
+    if (options.dryRun) return;
+    if (!API_KEY) {
+      throw new Error('ELEVENLABS_API_KEY is not set; Voice V2.1 refresh assets were not generated');
+    }
+    const output = await generateVoiceV21BacklogAssets(jobs);
+    const generated = output.results.filter((result) => result.status === 'generated').length;
+    const skipped = output.results.filter((result) => result.status === 'skipped_current').length;
+    console.log(
+      `\nVoice V2.1 refresh complete: generated=${generated} skipped=${skipped} staging=${output.stagingDir}`
+    );
     return;
   }
 

@@ -6,6 +6,7 @@
  */
 
 import { computeTrends } from '../../history';
+import type { VoiceCueKey } from '../../audio/cues';
 import { normalizeMicroCheckMeasurementMetadata } from '../../checkup';
 import { PosePipeline } from '../../pose/pipeline';
 import { balanceSession } from '../../pose/testing/syntheticBalance';
@@ -48,6 +49,29 @@ function runMicroCheck(type: MicroCheckType, frames: RawLandmarkEvent[]): MicroC
   return runner.result;
 }
 
+function firstInstructionCues(
+  type: MicroCheckType,
+  frames: RawLandmarkEvent[],
+  options: ConstructorParameters<typeof MicroCheckRunner>[5] = {}
+): VoiceCueKey[] {
+  const pipeline = new PosePipeline();
+  const preflight = new PreflightCheck();
+  const runner = new MicroCheckRunner(
+    type,
+    '2026-06-21T08:00:00.000Z',
+    preflight,
+    DEFAULT_MICROCHECK_CONFIG,
+    null,
+    options
+  );
+  for (const frame of frames) {
+    const out = pipeline.process(frame);
+    const u = runner.update(out, false);
+    if (u.phase === 'instructions' && u.voice) return u.voice.cues as VoiceCueKey[];
+  }
+  return [];
+}
+
 describe('MicroCheckRunner', () => {
   it('chair-power: measures rise velocity from a few fast stands', () => {
     const session = chairStandSession({ seed: 71, calibrationMs: 16000, riseMsPerRep: [800, 800, 800, 800, 800, 800] });
@@ -88,6 +112,16 @@ describe('MicroCheckRunner', () => {
       protocol: { protocolId: 'micro_mobility_reach_v1', protocolVersion: 1 },
       side: { role: 'not_applicable' },
     });
+  });
+
+  it('mobility-reach uses the exact Micro-Check V2.1 setup cue when V2.1 is selected', () => {
+    const session = hingeReachSession({ seed: 74, calibrationMs: 14000, peakFoldDeg: 70 });
+    expect(
+      firstInstructionCues('mobility-reach', pad(session.frames, 400), { voiceMode: 'v21_beta' })
+    ).toEqual(['framing-ready', 'micro-mobility-left-v21']);
+    expect(
+      firstInstructionCues('mobility-reach', pad(session.frames, 400))
+    ).toEqual(['framing-ready', 'hinge-intro', 'hinge-setup']);
   });
 });
 

@@ -220,6 +220,23 @@ describe('MovementProfileV2VoiceRuntime', () => {
       pendingVoiceId: null,
     });
   });
+
+  it('replays the current movement instruction for Help without advancing the coordinator', () => {
+    const runtime = createRuntime();
+    const accepted = runtime.replayInstruction(snapshot('shoulder_ready'));
+
+    expect(accepted).toBe(true);
+    expect(players).toHaveLength(1);
+    expect(runtimeActions).toEqual([]);
+    expect(runtime.state.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'instruction_replay_accepted',
+          cueKey: 'checkup-shoulder-turn-right-v21',
+        }),
+      ])
+    );
+  });
 });
 
 function createRuntime(options: {

@@ -58,6 +58,12 @@ import {
 } from '../training/sessionPlayer';
 import type { TrainingSetRuntimeGeneratedExercise } from '../training/setRuntime';
 import type { SafetyCueId } from '../training/safetyCues';
+import {
+  getTrainingInstructionProfile,
+  instructionCueIds,
+  visibleInstructionText,
+  type ExerciseInstructionProfile,
+} from '../training/instructionProfiles';
 import { poseEstimationWindowSize, recordingCameraViewportSize } from './recordingViewport';
 
 const UI_UPDATE_INTERVAL_MS = 100;
@@ -392,6 +398,9 @@ export function TrainingSessionScreen({
   );
   const sessionNoticeAction = sessionNotice?.action ?? null;
   const currentExerciseName = visibleSnapshot.exerciseName ?? exerciseDefinitions[0]?.displayName ?? 'Today\'s Hale session';
+  const currentInstructionProfile = visibleSnapshot.exerciseId
+    ? getTrainingInstructionProfile(visibleSnapshot.exerciseId)
+    : null;
   const totalItems = visibleSnapshot.totalItems || exerciseDefinitions.length || exerciseIds.length;
   const visibleItemNumber = totalItems > 0 ? Math.min(visibleSnapshot.itemIndex + 1, totalItems) : 0;
   const footerMeta = trainingFooterMeta(visibleSnapshot, visibleItemNumber, totalItems);
@@ -464,10 +473,16 @@ export function TrainingSessionScreen({
 
   const repeatInstructions = React.useCallback(() => {
     if (!snapshot.exerciseId) return;
-    const cues = getExercise(snapshot.exerciseId).voice.instructions;
+    const profile = getTrainingInstructionProfile(snapshot.exerciseId);
+    const cues = profile ? instructionCueIds(profile.help) : getExercise(snapshot.exerciseId).voice.instructions;
     const safetyCues = snapshot.safetyCueIds;
     if (cues.length > 0 || safetyCues.length > 0) voice.speak([...cues, ...safetyCues], 8);
   }, [snapshot.exerciseId, snapshot.safetyCueIds, voice]);
+
+  const openHelp = React.useCallback(() => {
+    setShowHelp(true);
+    repeatInstructions();
+  }, [repeatInstructions]);
 
   const confirmFloorStartPosition = React.useCallback(() => {
     const floorSetup = snapshot.floorSetup;
@@ -534,7 +549,7 @@ export function TrainingSessionScreen({
               <RecordingSetupNotice
                 visible={sessionNotice !== null}
                 text={sessionNotice?.text ?? ''}
-                onPress={sessionNoticeAction ? () => setShowHelp(true) : undefined}
+                onPress={sessionNoticeAction ? openHelp : undefined}
               />
               <Pressable
                 style={({ pressed }) => [
@@ -542,7 +557,7 @@ export function TrainingSessionScreen({
                   showHelp && styles.helpIconButtonSelected,
                   pressed && styles.controlPressed,
                 ]}
-                onPress={() => setShowHelp(true)}
+                onPress={openHelp}
                 accessibilityRole="button"
                 accessibilityLabel="Open help"
                 accessibilityState={{ selected: showHelp }}
@@ -590,7 +605,11 @@ export function TrainingSessionScreen({
         onKeep={keepSession}
         onDiscard={discardSession}
       />
-      <SessionHelpModal visible={showHelp} onClose={() => setShowHelp(false)} />
+      <SessionHelpModal
+        visible={showHelp}
+        instructionProfile={currentInstructionProfile}
+        onClose={() => setShowHelp(false)}
+      />
       <PoseLatencyDiagnosticsOverlay diagnostics={poseLatencyDiagnostics} />
     </View>
   );
@@ -622,7 +641,7 @@ function RecordingSetupNotice({
           <View style={styles.recordingSetupNoticeDot} />
         </View>
         <View style={styles.recordingSetupNoticeCopy}>
-          <Text style={styles.recordingSetupNoticeTitle} numberOfLines={1}>
+          <Text style={styles.recordingSetupNoticeTitle} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.84}>
             {text}
           </Text>
         </View>
@@ -633,9 +652,11 @@ function RecordingSetupNotice({
 
 function SessionHelpModal({
   visible,
+  instructionProfile,
   onClose,
 }: {
   visible: boolean;
+  instructionProfile: ExerciseInstructionProfile | null;
   onClose: () => void;
 }) {
   const responsive = useResponsiveLayout();
@@ -653,8 +674,14 @@ function SessionHelpModal({
             <Text style={styles.modalEyebrow}>Setup help</Text>
           </View>
           <View style={styles.helpIntro}>
-            <Text style={styles.modalTitle}>Help Hale see you clearly</Text>
-            <Text style={styles.modalBody}>Use these quick checks before you start.</Text>
+            <Text style={styles.modalTitle}>
+              {instructionProfile ? instructionProfile.displayName : 'Help Hale see you clearly'}
+            </Text>
+            <Text style={styles.modalBody}>
+              {instructionProfile
+                ? visibleInstructionText(instructionProfile)
+                : 'Use these quick checks before you start.'}
+            </Text>
           </View>
           <View style={styles.helpStepList}>
             {TRAINING_SETUP_HELP_STEPS.map((step, index) => (
@@ -988,12 +1015,21 @@ function trainingSessionNotice(
     return { text: PHASE_CAPTION.preflight ?? 'Getting you framed', action: null };
   }
   if (snapshot.phase === 'instructions' || snapshot.phase === 'countdown') {
-    return { text: PHASE_CAPTION[snapshot.phase] ?? 'Get ready', action: null };
+    return {
+      text: trainingInstructionNoticeText(snapshot.exerciseId) ?? PHASE_CAPTION[snapshot.phase] ?? 'Get ready',
+      action: 'help',
+    };
   }
   if (snapshot.phase === 'set' && snapshot.kind === 'rom') {
     return { text: 'Measuring', action: null };
   }
   return null;
+}
+
+function trainingInstructionNoticeText(exerciseId: string | null): string | null {
+  if (!exerciseId) return null;
+  const profile = getTrainingInstructionProfile(exerciseId);
+  return profile ? visibleInstructionText(profile) : null;
 }
 
 function sameStepUpContext(a: Snapshot['stepUpContext'], b: Snapshot['stepUpContext']): boolean {

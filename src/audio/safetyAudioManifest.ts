@@ -18,7 +18,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/balance_no_eyes_closed_or_unstable_surface.mp3",
-      "fingerprint": "safety-audio-v1-1qeomgu"
+      "fingerprint": "safety-audio-v1-yyz3d2"
     },
     "balance_stop_if_unsteady": {
       "schemaVersion": 1,
@@ -30,7 +30,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/balance_stop_if_unsteady.mp3",
-      "fingerprint": "safety-audio-v1-1vpnv6c"
+      "fingerprint": "safety-audio-v1-g0bsbs"
     },
     "balance_support_within_reach": {
       "schemaVersion": 1,
@@ -42,7 +42,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/balance_support_within_reach.mp3",
-      "fingerprint": "safety-audio-v1-l8n1xf"
+      "fingerprint": "safety-audio-v1-iueui5"
     },
     "balance_supported_if_hesitant": {
       "schemaVersion": 1,
@@ -54,7 +54,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/balance_supported_if_hesitant.mp3",
-      "fingerprint": "safety-audio-v1-1tnhp4s"
+      "fingerprint": "safety-audio-v1-1kfxe9c"
     },
     "band_anchor_feet_secure": {
       "schemaVersion": 1,
@@ -66,7 +66,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/band_anchor_feet_secure.mp3",
-      "fingerprint": "safety-audio-v1-e6itvz"
+      "fingerprint": "safety-audio-v1-1xqgbvt"
     },
     "band_controlled_return": {
       "schemaVersion": 1,
@@ -78,7 +78,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/band_controlled_return.mp3",
-      "fingerprint": "safety-audio-v1-wrkkqs"
+      "fingerprint": "safety-audio-v1-18299eg"
     },
     "band_do_not_overstretch": {
       "schemaVersion": 1,
@@ -90,7 +90,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/band_do_not_overstretch.mp3",
-      "fingerprint": "safety-audio-v1-7opyco"
+      "fingerprint": "safety-audio-v1-19czato"
     },
     "band_face_and_eyes_clear": {
       "schemaVersion": 1,
@@ -102,7 +102,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/band_face_and_eyes_clear.mp3",
-      "fingerprint": "safety-audio-v1-1mec15d"
+      "fingerprint": "safety-audio-v1-1r8xbx3"
     },
     "band_inspect_before_use": {
       "schemaVersion": 1,
@@ -114,7 +114,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/band_inspect_before_use.mp3",
-      "fingerprint": "safety-audio-v1-e99ohi"
+      "fingerprint": "safety-audio-v1-14s4l3y"
     },
     "band_never_release_under_tension": {
       "schemaVersion": 1,
@@ -126,7 +126,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/band_never_release_under_tension.mp3",
-      "fingerprint": "safety-audio-v1-m08pu2"
+      "fingerprint": "safety-audio-v1-irpyf6"
     },
     "band_secure_grip": {
       "schemaVersion": 1,
@@ -138,7 +138,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/band_secure_grip.mp3",
-      "fingerprint": "safety-audio-v1-d58a4s"
+      "fingerprint": "safety-audio-v1-i8lt6o"
     },
     "band_stable_stance": {
       "schemaVersion": 1,
@@ -150,7 +150,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/band_stable_stance.mp3",
-      "fingerprint": "safety-audio-v1-7kvtw8"
+      "fingerprint": "safety-audio-v1-11yld4s"
     },
     "band_stop_if_slips_or_shifts": {
       "schemaVersion": 1,
@@ -162,7 +162,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/band_stop_if_slips_or_shifts.mp3",
-      "fingerprint": "safety-audio-v1-ra2rv"
+      "fingerprint": "safety-audio-v1-12bndbp"
     },
     "chair_controlled_sit": {
       "schemaVersion": 1,
@@ -174,7 +174,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/chair_controlled_sit.mp3",
-      "fingerprint": "safety-audio-v1-cl2gps"
+      "fingerprint": "safety-audio-v1-1ly864k"
     },
     "chair_use_sturdy_chair": {
       "schemaVersion": 1,
@@ -186,7 +186,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/chair_use_sturdy_chair.mp3",
-      "fingerprint": "safety-audio-v1-1amibgm"
+      "fingerprint": "safety-audio-v1-yra6su"
     },
     "comfortable_range_only": {
       "schemaVersion": 1,
@@ -198,7 +198,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/comfortable_range_only.mp3",
-      "fingerprint": "safety-audio-v1-drd5or"
+      "fingerprint": "safety-audio-v1-1licyb9"
     },
     "door_anchor_follow_manufacturer_setup": {
       "schemaVersion": 1,
@@ -210,7 +210,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/door_anchor_follow_manufacturer_setup.mp3",
-      "fingerprint": "safety-audio-v1-1afh02a"
+      "fingerprint": "safety-audio-v1-1keaw4q"
     },
     "door_anchor_fully_closed": {
       "schemaVersion": 1,
@@ -222,7 +222,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/door_anchor_fully_closed.mp3",
-      "fingerprint": "safety-audio-v1-8ico9r"
+      "fingerprint": "safety-audio-v1-9c1ttl"
     },
     "door_anchor_stay_out_of_door_path": {
       "schemaVersion": 1,
@@ -234,7 +234,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/door_anchor_stay_out_of_door_path.mp3",
-      "fingerprint": "safety-audio-v1-1kultpm"
+      "fingerprint": "safety-audio-v1-txbkgy"
     },
     "door_anchor_stop_if_moves": {
       "schemaVersion": 1,
@@ -246,7 +246,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/door_anchor_stop_if_moves.mp3",
-      "fingerprint": "safety-audio-v1-wdmo6j"
+      "fingerprint": "safety-audio-v1-rieetx"
     },
     "door_anchor_test_light_tension": {
       "schemaVersion": 1,
@@ -258,7 +258,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/door_anchor_test_light_tension.mp3",
-      "fingerprint": "safety-audio-v1-eohle4"
+      "fingerprint": "safety-audio-v1-q5yvnk"
     },
     "floor_clear_space": {
       "schemaVersion": 1,
@@ -270,7 +270,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/floor_clear_space.mp3",
-      "fingerprint": "safety-audio-v1-1tjxq2y"
+      "fingerprint": "safety-audio-v1-1n4e70i"
     },
     "floor_slow_transition": {
       "schemaVersion": 1,
@@ -282,7 +282,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/floor_slow_transition.mp3",
-      "fingerprint": "safety-audio-v1-1tzxf3e"
+      "fingerprint": "safety-audio-v1-mw92zm"
     },
     "floor_stop_if_transfer_unsteady": {
       "schemaVersion": 1,
@@ -294,7 +294,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/floor_stop_if_transfer_unsteady.mp3",
-      "fingerprint": "safety-audio-v1-z7110w"
+      "fingerprint": "safety-audio-v1-iqrems"
     },
     "floor_use_support_for_transfer": {
       "schemaVersion": 1,
@@ -306,7 +306,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/floor_use_support_for_transfer.mp3",
-      "fingerprint": "safety-audio-v1-1301w09"
+      "fingerprint": "safety-audio-v1-12uhxzj"
     },
     "global_breathe_normally": {
       "schemaVersion": 1,
@@ -318,7 +318,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/global_breathe_normally.mp3",
-      "fingerprint": "safety-audio-v1-1s4e9d6"
+      "fingerprint": "safety-audio-v1-1u1k0ma"
     },
     "global_clear_space": {
       "schemaVersion": 1,
@@ -330,7 +330,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/global_clear_space.mp3",
-      "fingerprint": "safety-audio-v1-fgt18b"
+      "fingerprint": "safety-audio-v1-1tln9np"
     },
     "global_pause_if_tracking_lost": {
       "schemaVersion": 1,
@@ -342,7 +342,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/global_pause_if_tracking_lost.mp3",
-      "fingerprint": "safety-audio-v1-1l6oo77"
+      "fingerprint": "safety-audio-v1-enjyzx"
     },
     "global_stop_dizzy_or_lightheaded": {
       "schemaVersion": 1,
@@ -354,7 +354,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/global_stop_dizzy_or_lightheaded.mp3",
-      "fingerprint": "safety-audio-v1-1e1d2zd"
+      "fingerprint": "safety-audio-v1-ktddi7"
     },
     "global_stop_if_support_moves": {
       "schemaVersion": 1,
@@ -366,7 +366,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/global_stop_if_support_moves.mp3",
-      "fingerprint": "safety-audio-v1-rqsed2"
+      "fingerprint": "safety-audio-v1-161k28u"
     },
     "global_stop_sharp_or_increasing_pain": {
       "schemaVersion": 1,
@@ -378,7 +378,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/global_stop_sharp_or_increasing_pain.mp3",
-      "fingerprint": "safety-audio-v1-57haag"
+      "fingerprint": "safety-audio-v1-cqx3ek"
     },
     "mobility_no_forcing": {
       "schemaVersion": 1,
@@ -390,7 +390,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/mobility_no_forcing.mp3",
-      "fingerprint": "safety-audio-v1-p712j2"
+      "fingerprint": "safety-audio-v1-1d8rsye"
     },
     "step_clear_dry_area": {
       "schemaVersion": 1,
@@ -402,7 +402,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/step_clear_dry_area.mp3",
-      "fingerprint": "safety-audio-v1-1h3x3zp"
+      "fingerprint": "safety-audio-v1-85fgij"
     },
     "step_controlled_return": {
       "schemaVersion": 1,
@@ -414,7 +414,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/step_controlled_return.mp3",
-      "fingerprint": "safety-audio-v1-1ijkv2n"
+      "fingerprint": "safety-audio-v1-yav06h"
     },
     "step_fixed_support_nearby": {
       "schemaVersion": 1,
@@ -426,7 +426,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/step_fixed_support_nearby.mp3",
-      "fingerprint": "safety-audio-v1-11ekgmc"
+      "fingerprint": "safety-audio-v1-11eoago"
     },
     "step_phone_out_of_path": {
       "schemaVersion": 1,
@@ -438,7 +438,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/step_phone_out_of_path.mp3",
-      "fingerprint": "safety-audio-v1-109f1ka"
+      "fingerprint": "safety-audio-v1-17ckvvm"
     },
     "step_stop_if_unstable": {
       "schemaVersion": 1,
@@ -450,7 +450,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/step_stop_if_unstable.mp3",
-      "fingerprint": "safety-audio-v1-115zxi5"
+      "fingerprint": "safety-audio-v1-1dbsog3"
     },
     "step_use_low_stable_step": {
       "schemaVersion": 1,
@@ -462,7 +462,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/step_use_low_stable_step.mp3",
-      "fingerprint": "safety-audio-v1-q6a0my"
+      "fingerprint": "safety-audio-v1-i7gi9e"
     },
     "support_keep_support_within_reach": {
       "schemaVersion": 1,
@@ -474,7 +474,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/support_keep_support_within_reach.mp3",
-      "fingerprint": "safety-audio-v1-1kd18uz"
+      "fingerprint": "safety-audio-v1-1hnf4cl"
     },
     "support_use_sturdy_support": {
       "schemaVersion": 1,
@@ -486,7 +486,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/support_use_sturdy_support.mp3",
-      "fingerprint": "safety-audio-v1-1ms61mg"
+      "fingerprint": "safety-audio-v1-4imkf0"
     },
     "tracking_keep_full_body_in_view": {
       "schemaVersion": 1,
@@ -498,7 +498,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/tracking_keep_full_body_in_view.mp3",
-      "fingerprint": "safety-audio-v1-122da2g"
+      "fingerprint": "safety-audio-v1-1ucjmk"
     },
     "tracking_move_when_cued": {
       "schemaVersion": 1,
@@ -510,7 +510,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/tracking_move_when_cued.mp3",
-      "fingerprint": "safety-audio-v1-1dd4bt8"
+      "fingerprint": "safety-audio-v1-hppbwg"
     },
     "tracking_no_rush_or_exaggerate": {
       "schemaVersion": 1,
@@ -522,7 +522,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/tracking_no_rush_or_exaggerate.mp3",
-      "fingerprint": "safety-audio-v1-dage23"
+      "fingerprint": "safety-audio-v1-1jwollh"
     },
     "tracking_pause_and_reset": {
       "schemaVersion": 1,
@@ -534,7 +534,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/tracking_pause_and_reset.mp3",
-      "fingerprint": "safety-audio-v1-149b1ty"
+      "fingerprint": "safety-audio-v1-1plje5q"
     }
   },
   "marcus": {
@@ -548,7 +548,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/balance_no_eyes_closed_or_unstable_surface.mp3",
-      "fingerprint": "safety-audio-v1-w9bjw2"
+      "fingerprint": "safety-audio-v1-1mp7jt6"
     },
     "balance_stop_if_unsteady": {
       "schemaVersion": 1,
@@ -560,7 +560,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/balance_stop_if_unsteady.mp3",
-      "fingerprint": "safety-audio-v1-rq7elw"
+      "fingerprint": "safety-audio-v1-1a2qt3c"
     },
     "balance_support_within_reach": {
       "schemaVersion": 1,
@@ -572,7 +572,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/balance_support_within_reach.mp3",
-      "fingerprint": "safety-audio-v1-1rq4gl5"
+      "fingerprint": "safety-audio-v1-z9pcqn"
     },
     "balance_supported_if_hesitant": {
       "schemaVersion": 1,
@@ -584,7 +584,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/balance_supported_if_hesitant.mp3",
-      "fingerprint": "safety-audio-v1-1ootdws"
+      "fingerprint": "safety-audio-v1-46m8kg"
     },
     "band_anchor_feet_secure": {
       "schemaVersion": 1,
@@ -596,7 +596,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/band_anchor_feet_secure.mp3",
-      "fingerprint": "safety-audio-v1-66juu5"
+      "fingerprint": "safety-audio-v1-sg4gg3"
     },
     "band_controlled_return": {
       "schemaVersion": 1,
@@ -608,7 +608,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/band_controlled_return.mp3",
-      "fingerprint": "safety-audio-v1-1b1eyzo"
+      "fingerprint": "safety-audio-v1-1czky2g"
     },
     "band_do_not_overstretch": {
       "schemaVersion": 1,
@@ -620,7 +620,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/band_do_not_overstretch.mp3",
-      "fingerprint": "safety-audio-v1-ydswg0"
+      "fingerprint": "safety-audio-v1-ijxvvo"
     },
     "band_face_and_eyes_clear": {
       "schemaVersion": 1,
@@ -632,7 +632,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/band_face_and_eyes_clear.mp3",
-      "fingerprint": "safety-audio-v1-1n6tpv"
+      "fingerprint": "safety-audio-v1-1gxop25"
     },
     "band_inspect_before_use": {
       "schemaVersion": 1,
@@ -644,7 +644,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/band_inspect_before_use.mp3",
-      "fingerprint": "safety-audio-v1-1tfk6vu"
+      "fingerprint": "safety-audio-v1-1s1leaa"
     },
     "band_never_release_under_tension": {
       "schemaVersion": 1,
@@ -656,7 +656,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/band_never_release_under_tension.mp3",
-      "fingerprint": "safety-audio-v1-1axucom"
+      "fingerprint": "safety-audio-v1-zn5aam"
     },
     "band_secure_grip": {
       "schemaVersion": 1,
@@ -668,7 +668,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/band_secure_grip.mp3",
-      "fingerprint": "safety-audio-v1-1ba3kn0"
+      "fingerprint": "safety-audio-v1-a9gl2o"
     },
     "band_stable_stance": {
       "schemaVersion": 1,
@@ -680,7 +680,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/band_stable_stance.mp3",
-      "fingerprint": "safety-audio-v1-1ywzpo0"
+      "fingerprint": "safety-audio-v1-1jlb7h0"
     },
     "band_stop_if_slips_or_shifts": {
       "schemaVersion": 1,
@@ -692,7 +692,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/band_stop_if_slips_or_shifts.mp3",
-      "fingerprint": "safety-audio-v1-1pkpkkx"
+      "fingerprint": "safety-audio-v1-1y7e1br"
     },
     "chair_controlled_sit": {
       "schemaVersion": 1,
@@ -704,7 +704,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/chair_controlled_sit.mp3",
-      "fingerprint": "safety-audio-v1-huwzt4"
+      "fingerprint": "safety-audio-v1-hr9tbg"
     },
     "chair_use_sturdy_chair": {
       "schemaVersion": 1,
@@ -716,7 +716,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/chair_use_sturdy_chair.mp3",
-      "fingerprint": "safety-audio-v1-1tipqui"
+      "fingerprint": "safety-audio-v1-7s4sf6"
     },
     "comfortable_range_only": {
       "schemaVersion": 1,
@@ -728,7 +728,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/comfortable_range_only.mp3",
-      "fingerprint": "safety-audio-v1-9qb3ld"
+      "fingerprint": "safety-audio-v1-ofxz1z"
     },
     "door_anchor_follow_manufacturer_setup": {
       "schemaVersion": 1,
@@ -740,7 +740,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/door_anchor_follow_manufacturer_setup.mp3",
-      "fingerprint": "safety-audio-v1-ytb2em"
+      "fingerprint": "safety-audio-v1-rqud2u"
     },
     "door_anchor_fully_closed": {
       "schemaVersion": 1,
@@ -752,7 +752,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/door_anchor_fully_closed.mp3",
-      "fingerprint": "safety-audio-v1-5swest"
+      "fingerprint": "safety-audio-v1-1ey3m4z"
     },
     "door_anchor_stay_out_of_door_path": {
       "schemaVersion": 1,
@@ -764,7 +764,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/door_anchor_stay_out_of_door_path.mp3",
-      "fingerprint": "safety-audio-v1-1lz1es6"
+      "fingerprint": "safety-audio-v1-1lqlozi"
     },
     "door_anchor_stop_if_moves": {
       "schemaVersion": 1,
@@ -776,7 +776,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/door_anchor_stop_if_moves.mp3",
-      "fingerprint": "safety-audio-v1-1stqonl"
+      "fingerprint": "safety-audio-v1-1p3cgt3"
     },
     "door_anchor_test_light_tension": {
       "schemaVersion": 1,
@@ -788,7 +788,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/door_anchor_test_light_tension.mp3",
-      "fingerprint": "safety-audio-v1-uxh5h8"
+      "fingerprint": "safety-audio-v1-ksg5ps"
     },
     "floor_clear_space": {
       "schemaVersion": 1,
@@ -800,7 +800,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/floor_clear_space.mp3",
-      "fingerprint": "safety-audio-v1-g9ejau"
+      "fingerprint": "safety-audio-v1-1uy8xr2"
     },
     "floor_slow_transition": {
       "schemaVersion": 1,
@@ -812,7 +812,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/floor_slow_transition.mp3",
-      "fingerprint": "safety-audio-v1-1exyxau"
+      "fingerprint": "safety-audio-v1-1u0a6ym"
     },
     "floor_stop_if_transfer_unsteady": {
       "schemaVersion": 1,
@@ -824,7 +824,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/floor_stop_if_transfer_unsteady.mp3",
-      "fingerprint": "safety-audio-v1-ckabx4"
+      "fingerprint": "safety-audio-v1-tbw264"
     },
     "floor_use_support_for_transfer": {
       "schemaVersion": 1,
@@ -836,7 +836,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/floor_use_support_for_transfer.mp3",
-      "fingerprint": "safety-audio-v1-a3q12z"
+      "fingerprint": "safety-audio-v1-1ykya79"
     },
     "global_breathe_normally": {
       "schemaVersion": 1,
@@ -848,7 +848,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/global_breathe_normally.mp3",
-      "fingerprint": "safety-audio-v1-ftiv2u"
+      "fingerprint": "safety-audio-v1-1i4yx32"
     },
     "global_clear_space": {
       "schemaVersion": 1,
@@ -860,7 +860,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/global_clear_space.mp3",
-      "fingerprint": "safety-audio-v1-1kybc69"
+      "fingerprint": "safety-audio-v1-hv9mhz"
     },
     "global_pause_if_tracking_lost": {
       "schemaVersion": 1,
@@ -872,7 +872,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/global_pause_if_tracking_lost.mp3",
-      "fingerprint": "safety-audio-v1-1nj9l2x"
+      "fingerprint": "safety-audio-v1-1f8rz5r"
     },
     "global_stop_dizzy_or_lightheaded": {
       "schemaVersion": 1,
@@ -884,7 +884,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/global_stop_dizzy_or_lightheaded.mp3",
-      "fingerprint": "safety-audio-v1-1xcq4gb"
+      "fingerprint": "safety-audio-v1-fuwsl1"
     },
     "global_stop_if_support_moves": {
       "schemaVersion": 1,
@@ -896,7 +896,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/global_stop_if_support_moves.mp3",
-      "fingerprint": "safety-audio-v1-1uozo0q"
+      "fingerprint": "safety-audio-v1-13vht76"
     },
     "global_stop_sharp_or_increasing_pain": {
       "schemaVersion": 1,
@@ -908,7 +908,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/global_stop_sharp_or_increasing_pain.mp3",
-      "fingerprint": "safety-audio-v1-1smx5yo"
+      "fingerprint": "safety-audio-v1-lhpivo"
     },
     "mobility_no_forcing": {
       "schemaVersion": 1,
@@ -920,7 +920,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/mobility_no_forcing.mp3",
-      "fingerprint": "safety-audio-v1-1d27av6"
+      "fingerprint": "safety-audio-v1-5l7vh6"
     },
     "step_clear_dry_area": {
       "schemaVersion": 1,
@@ -932,7 +932,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/step_clear_dry_area.mp3",
-      "fingerprint": "safety-audio-v1-1sqq01b"
+      "fingerprint": "safety-audio-v1-deh3t5"
     },
     "step_controlled_return": {
       "schemaVersion": 1,
@@ -944,7 +944,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/step_controlled_return.mp3",
-      "fingerprint": "safety-audio-v1-15s2l3x"
+      "fingerprint": "safety-audio-v1-1pmlhvn"
     },
     "step_fixed_support_nearby": {
       "schemaVersion": 1,
@@ -956,7 +956,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/step_fixed_support_nearby.mp3",
-      "fingerprint": "safety-audio-v1-12ss890"
+      "fingerprint": "safety-audio-v1-6rsftk"
     },
     "step_phone_out_of_path": {
       "schemaVersion": 1,
@@ -968,7 +968,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/step_phone_out_of_path.mp3",
-      "fingerprint": "safety-audio-v1-d6o7q"
+      "fingerprint": "safety-audio-v1-1x7c81q"
     },
     "step_stop_if_unstable": {
       "schemaVersion": 1,
@@ -980,7 +980,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/step_stop_if_unstable.mp3",
-      "fingerprint": "safety-audio-v1-guq0jr"
+      "fingerprint": "safety-audio-v1-12486u9"
     },
     "step_use_low_stable_step": {
       "schemaVersion": 1,
@@ -992,7 +992,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/step_use_low_stable_step.mp3",
-      "fingerprint": "safety-audio-v1-14r6gdi"
+      "fingerprint": "safety-audio-v1-1jw4cb2"
     },
     "support_keep_support_within_reach": {
       "schemaVersion": 1,
@@ -1004,7 +1004,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/support_keep_support_within_reach.mp3",
-      "fingerprint": "safety-audio-v1-zhx8jl"
+      "fingerprint": "safety-audio-v1-ojty6f"
     },
     "support_use_sturdy_support": {
       "schemaVersion": 1,
@@ -1016,7 +1016,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/support_use_sturdy_support.mp3",
-      "fingerprint": "safety-audio-v1-1iggcb4"
+      "fingerprint": "safety-audio-v1-73d1v8"
     },
     "tracking_keep_full_body_in_view": {
       "schemaVersion": 1,
@@ -1028,7 +1028,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/tracking_keep_full_body_in_view.mp3",
-      "fingerprint": "safety-audio-v1-1fs6bio"
+      "fingerprint": "safety-audio-v1-uaf22c"
     },
     "tracking_move_when_cued": {
       "schemaVersion": 1,
@@ -1040,7 +1040,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/tracking_move_when_cued.mp3",
-      "fingerprint": "safety-audio-v1-1ar73cs"
+      "fingerprint": "safety-audio-v1-1b9rak0"
     },
     "tracking_no_rush_or_exaggerate": {
       "schemaVersion": 1,
@@ -1052,7 +1052,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/tracking_no_rush_or_exaggerate.mp3",
-      "fingerprint": "safety-audio-v1-125trf5"
+      "fingerprint": "safety-audio-v1-1q726vr"
     },
     "tracking_pause_and_reset": {
       "schemaVersion": 1,
@@ -1064,7 +1064,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/tracking_pause_and_reset.mp3",
-      "fingerprint": "safety-audio-v1-lbuw8a"
+      "fingerprint": "safety-audio-v1-1ralug2"
     }
   }
 };

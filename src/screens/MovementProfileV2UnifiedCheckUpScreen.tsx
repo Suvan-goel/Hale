@@ -25,7 +25,6 @@ import {
 import {
   MovementProfileV2VoiceSequencer,
   initialMovementProfileV2VoiceEvent,
-  movementProfileV2VisibleCueForStage,
 } from '../movementProfileV2/voiceCues';
 import {
   MovementProfileV2VoiceRuntime,
@@ -34,6 +33,10 @@ import {
 } from '../movementProfileV2/voiceRuntime';
 import { PosePipeline } from '../pose/pipeline';
 import { DEFAULT_VOICE_ID } from '../profile/voices';
+import {
+  movementProfileV2InstructionCueIdsForStage,
+  movementProfileV2InstructionTextForStage,
+} from '../training/instructionProfiles';
 import type { SkeletonViewHandle } from '../render/SkeletonView';
 import type {
   PoseAvatarActiveDomain,
@@ -323,6 +326,28 @@ export function MovementProfileV2UnifiedCheckUpScreen({
     setModalMode(null);
   }, []);
 
+  const replayCurrentInstruction = React.useCallback(() => {
+    if (voiceRuntimeEnabled) {
+      getVoiceRuntime().replayInstruction(liveRef.current);
+      return;
+    }
+    const snapshot = liveRef.current;
+    const cues = movementProfileV2InstructionCueIdsForStage({
+      stage: snapshot.stage,
+      selectedShoulder: snapshot.flow.shoulderSide,
+      repeatedAttempt: snapshot.stage === 'balance_ready' || snapshot.stage === 'balance_trial',
+    });
+    if (cues.length > 0) voice.speak(cues, 8);
+  }, [getVoiceRuntime, voice, voiceRuntimeEnabled]);
+
+  const openSupportModal = React.useCallback(
+    (mode: Exclude<CheckUpShellModalMode, null>) => {
+      if (mode === 'help') replayCurrentInstruction();
+      setModalMode(mode);
+    },
+    [replayCurrentInstruction]
+  );
+
   const controls = React.useMemo<CheckUpShellControl[]>(() => {
     if (cameraAvailability === 'unavailable') {
       return [{ id: 'close', title: 'Close check-up', onPress: onCancel, primary: true }];
@@ -394,7 +419,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
       controls={controls}
       onRequestBack={onCancel}
       backAccessibilityLabel="Leave Movement Check-Up"
-      onOpenSupportModal={setModalMode}
+      onOpenSupportModal={openSupportModal}
       onCloseSupportModal={closeSupportModal}
       onTryAgain={closeSupportModal}
       onSkip={onCancel}
@@ -801,14 +826,10 @@ function movementProfileV2ShellNotice({
   if (pendingOfficialFallback) {
     return { text: 'Side change affects comparison', action: null };
   }
-  return { text: compactVisibleCue(movementProfileV2VisibleCueForStage(live.stage, selectedShoulder).text), action: 'help' };
-}
-
-function compactVisibleCue(text: string): string {
-  const sentence = text.split(/[.!?]/)[0]?.trim();
-  if (!sentence) return text;
-  if (sentence.length <= 28) return sentence;
-  return `${sentence.slice(0, 27).trim()}...`;
+  return {
+    text: movementProfileV2InstructionTextForStage(live.stage, selectedShoulder) ?? 'Follow the voice guidance',
+    action: 'help',
+  };
 }
 
 function movementProfileV2AvatarState(live: MovementProfileV2LiveSnapshot): PoseAvatarMeasurementState {

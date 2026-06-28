@@ -18,20 +18,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/checkup-balance-feet-together-v21.mp3",
       "script": "Feet together. Keep your eyes open and support within reach.",
-      "fingerprint": "voice-v21-audio-v1-1ea7hce",
-      "sha256": "b2103b1787d5de75cc452872458e61afcd1737024d94051ce85950b83eade387",
+      "fingerprint": "voice-v21-audio-v1-11wztue",
+      "sha256": "ace10d61647d2e470be13c2232edfd3a3d45073ab79c58ed6b1e4191f166ef49",
       "fileSizeBytes": 64409,
       "durationMs": 3947,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "checkup-balance-next-stance-v21": {
       "schemaVersion": 1,
@@ -43,20 +43,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/checkup-balance-next-stance-v21.mp3",
       "script": "Nicely done. I will guide the next stance.",
-      "fingerprint": "voice-v21-audio-v1-1gvi25b",
-      "sha256": "7532724d38a3d39dbe6cd34d3d3404fc5e0414369dc76decec9a410bd7cfeb29",
-      "fileSizeBytes": 42675,
-      "durationMs": 2601,
+      "fingerprint": "voice-v21-audio-v1-o9ida1",
+      "sha256": "2d0874d3fb1aef62285266dc4bada7678ec170125855ad9461ac8406b234921a",
+      "fileSizeBytes": 38914,
+      "durationMs": 2368,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "checkup-balance-semi-tandem-left-v21": {
       "schemaVersion": 1,
@@ -68,20 +68,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/checkup-balance-semi-tandem-left-v21.mp3",
       "script": "Place your left foot half a step forward. Keep your eyes open.",
-      "fingerprint": "voice-v21-audio-v1-15wzqxq",
-      "sha256": "cb6370269f6b068721d87ca79d61d595859be823b05052ddad38161f065b70f1",
-      "fileSizeBytes": 58976,
-      "durationMs": 3622,
+      "fingerprint": "voice-v21-audio-v1-ewp1d2",
+      "sha256": "e9ac019715af4fdb4831b93d3383837011494631ed0323161d4ef9b860cf5983",
+      "fileSizeBytes": 60648,
+      "durationMs": 3715,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "checkup-balance-semi-tandem-right-v21": {
       "schemaVersion": 1,
@@ -93,20 +93,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/checkup-balance-semi-tandem-right-v21.mp3",
       "script": "Place your right foot half a step forward. Keep your eyes open.",
-      "fingerprint": "voice-v21-audio-v1-19hmjrf",
-      "sha256": "fb005e152e9694285a61ff2466e243ad2bf7755ef23e8a4391860c3b75930ed5",
+      "fingerprint": "voice-v21-audio-v1-nenlmd",
+      "sha256": "de36af2720038aa20ea7d59f504c7a49bd5aeb68e52136388ddca4ca704055bd",
       "fileSizeBytes": 60648,
       "durationMs": 3715,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "checkup-balance-single-leg-left-v21": {
       "schemaVersion": 1,
@@ -118,20 +118,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/checkup-balance-single-leg-left-v21.mp3",
       "script": "Stand on your left leg and lift your right foot slightly.",
-      "fingerprint": "voice-v21-audio-v1-1a1swl0",
-      "sha256": "75634ec2d05e9588821d1c1c362abe6019cca226e38c801c79bcad564f450bb9",
-      "fileSizeBytes": 53124,
-      "durationMs": 3251,
+      "fingerprint": "voice-v21-audio-v1-1g33yx4",
+      "sha256": "e6521edfacecc6b85a4771b7a238b0c6797b7e9aef860a8b00354997630a1063",
+      "fileSizeBytes": 49363,
+      "durationMs": 3019,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "checkup-balance-single-leg-right-v21": {
       "schemaVersion": 1,
@@ -143,20 +143,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/checkup-balance-single-leg-right-v21.mp3",
       "script": "Stand on your right leg and lift your left foot slightly.",
-      "fingerprint": "voice-v21-audio-v1-1p6eo1q",
-      "sha256": "649572e625e9d68d766fd33c3e8ad2f99b0fe3efe767449ec6a729d03b54ce39",
+      "fingerprint": "voice-v21-audio-v1-10r51i",
+      "sha256": "2c4d6278f36e461cd8c4e71d59fa36cb59d37dc785be14db96dae5917e187bd2",
       "fileSizeBytes": 53124,
       "durationMs": 3251,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "checkup-balance-support-touch-v21": {
       "schemaVersion": 1,
@@ -168,20 +168,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/checkup-balance-support-touch-v21.mp3",
       "script": "Support touch noted. Balance check complete.",
-      "fingerprint": "voice-v21-audio-v1-shy9th",
-      "sha256": "181c9dd518db7114c4d6219d23519144783041c970711d53e06f4c92fcc51fe2",
+      "fingerprint": "voice-v21-audio-v1-wxzjbv",
+      "sha256": "f4186cfd83970f9e0b15414d1f1f9c9bb6c1302a15a6af4c5cbac3875f5f44c4",
       "fileSizeBytes": 51035,
       "durationMs": 3111,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "checkup-balance-tandem-left-v21": {
       "schemaVersion": 1,
@@ -193,20 +193,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/checkup-balance-tandem-left-v21.mp3",
       "script": "Place your left foot directly in front heel to toe. Keep your eyes open.",
-      "fingerprint": "voice-v21-audio-v1-y17t2i",
-      "sha256": "c49b4390dd0c5bf66a5e41421565aa3f2e40d08fbafc320d747793aeaddbcd1e",
-      "fileSizeBytes": 73186,
-      "durationMs": 4505,
+      "fingerprint": "voice-v21-audio-v1-fpgx0i",
+      "sha256": "e8eba5003f5839bc8125747f7c69388b07cda3686dddd4a1cedaac463ad52eee",
+      "fileSizeBytes": 76948,
+      "durationMs": 4737,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "checkup-balance-tandem-right-v21": {
       "schemaVersion": 1,
@@ -218,20 +218,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/checkup-balance-tandem-right-v21.mp3",
       "script": "Place your right foot directly in front heel to toe. Keep your eyes open.",
-      "fingerprint": "voice-v21-audio-v1-q86lwz",
-      "sha256": "66433fd3b84029a1fb0e0d459810b2aeb4aad201a89925b7ec9f320be85fcea1",
+      "fingerprint": "voice-v21-audio-v1-1f51p3x",
+      "sha256": "5464a30f42f1a3a019a08d9df8cb05e95f4aaab94caa829eef0d1e5a6deebcbd",
       "fileSizeBytes": 76948,
       "durationMs": 4737,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "equip-balance-support-v21": {
       "schemaVersion": 1,
@@ -243,20 +243,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/equip-balance-support-v21.mp3",
       "script": "Keep support within easy reach.",
-      "fingerprint": "voice-v21-audio-v1-m3u54u",
-      "sha256": "13c9f0ff04f94fe4a99d8255148bf937d2c62437d0dbca9f3603bd0c990a0285",
-      "fileSizeBytes": 33898,
-      "durationMs": 2043,
+      "fingerprint": "voice-v21-audio-v1-8eubra",
+      "sha256": "1209b3312727b1d8cb39d7cb5a42f7cd35f8d4eb64d781a64924eec2e8dba8bf",
+      "fileSizeBytes": 35988,
+      "durationMs": 2183,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "equip-chair-stable-v21": {
       "schemaVersion": 1,
@@ -268,20 +268,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/equip-chair-stable-v21.mp3",
       "script": "Use a sturdy chair that will not slide.",
-      "fingerprint": "voice-v21-audio-v1-1fkvjil",
-      "sha256": "18a902ce08f14f2bb0b9072224203aa93be9a2e095b880578e688c404fb92dcf",
-      "fileSizeBytes": 40586,
-      "durationMs": 2461,
+      "fingerprint": "voice-v21-audio-v1-1v05x0z",
+      "sha256": "fbd4a168614d371f0e80685bb7a62a2005eed4085856605e538f3ec63bbf4c15",
+      "fileSizeBytes": 42675,
+      "durationMs": 2601,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "equip-door-anchor-v21": {
       "schemaVersion": 1,
@@ -293,20 +293,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/equip-door-anchor-v21.mp3",
       "script": "Use a secure closed door anchor and test light tension first.",
-      "fingerprint": "voice-v21-audio-v1-dhci6j",
-      "sha256": "d54a3a900ca8e7dfd510191264d085cef6a413fb98f1e6f5fc69bac782a8353e",
-      "fileSizeBytes": 64827,
-      "durationMs": 3994,
+      "fingerprint": "voice-v21-audio-v1-ge5vat",
+      "sha256": "ed22c4f792dc494ee19c86b4ebbe8c42d1f8a86456f63ab33a3125285b1ea7c9",
+      "fileSizeBytes": 62737,
+      "durationMs": 3855,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "equip-floor-transition-v21": {
       "schemaVersion": 1,
@@ -318,20 +318,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/equip-floor-transition-v21.mp3",
       "script": "Move down to the floor and settle into the start position.",
-      "fingerprint": "voice-v21-audio-v1-vw5uar",
-      "sha256": "9ebe95f23a8a91a862f1b729bd77687ffa90b2b804162ed3d3e74c4d881167f1",
-      "fileSizeBytes": 49363,
-      "durationMs": 3019,
+      "fingerprint": "voice-v21-audio-v1-1jjdvgt",
+      "sha256": "782dfc72e307ce916604ffd57d363ba70c2a041da3a7be017da7013c4b462e87",
+      "fileSizeBytes": 51453,
+      "durationMs": 3158,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "equip-long-band-v21": {
       "schemaVersion": 1,
@@ -343,20 +343,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/equip-long-band-v21.mp3",
       "script": "Check the band first and keep it away from your face.",
-      "fingerprint": "voice-v21-audio-v1-1qmpsyb",
-      "sha256": "deff1493c316176370a3a59191ed0e06d30d8d4aecb15b8a2acde9520912911b",
-      "fileSizeBytes": 51035,
-      "durationMs": 3111,
+      "fingerprint": "voice-v21-audio-v1-nmudrx",
+      "sha256": "7d7ddbe3249e303976cd63b1a2fc4d9ade91cba322b2d219119db3e2ac0d9c79",
+      "fileSizeBytes": 51453,
+      "durationMs": 3158,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "equip-step-stable-v21": {
       "schemaVersion": 1,
@@ -368,20 +368,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/equip-step-stable-v21.mp3",
       "script": "Use the lowest stable step, with support nearby.",
-      "fingerprint": "voice-v21-audio-v1-k9d0dn",
-      "sha256": "cefbc5ce6f222e3072f4b5ae590fc679b585db91cb1dfc76f07521fdfc9e0034",
-      "fileSizeBytes": 47691,
-      "durationMs": 2926,
+      "fingerprint": "voice-v21-audio-v1-nfc9xx",
+      "sha256": "9090033f5ada3782268339b6ef3b61fe062db2684b6b73e6345795f065771d90",
+      "fileSizeBytes": 51453,
+      "durationMs": 3158,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "equip-support-close-v21": {
       "schemaVersion": 1,
@@ -393,20 +393,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/equip-support-close-v21.mp3",
       "script": "Keep sturdy support within easy reach.",
-      "fingerprint": "voice-v21-audio-v1-13p2u89",
-      "sha256": "075fae70b8d82a6c84fb96b6d1dc3a6d8e740b8d2dae04024d28ce186c8bbb72",
-      "fileSizeBytes": 38078,
-      "durationMs": 2322,
+      "fingerprint": "voice-v21-audio-v1-1jtuhhr",
+      "sha256": "78b29e114b0c659ba9a9e915c5fd2e66d4cd5cd20023a109ffa84045806d286b",
+      "fileSizeBytes": 37660,
+      "durationMs": 2276,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-balance-feet-together-hold-first-v21": {
       "schemaVersion": 1,
@@ -418,20 +418,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-balance-feet-together-hold-first-v21.mp3",
       "script": "Feet-together hold. Stand with feet together, fingertips near support, eyes open.",
-      "fingerprint": "voice-v21-audio-v1-ubcv9s",
-      "sha256": "c3737f7224b6b1ab92e8104cafa909aee430ff6fedaedf30d37e42291cf4c1fa",
-      "fileSizeBytes": 88651,
-      "durationMs": 5480,
+      "fingerprint": "voice-v21-audio-v1-99wuk4",
+      "sha256": "b28d26636fbfd14651b81f3ca10712f9fe73c8ce3d05a30c1afb42609cfad2f7",
+      "fileSizeBytes": 93248,
+      "durationMs": 5759,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-balance-feet-together-hold-next-v21": {
       "schemaVersion": 1,
@@ -443,20 +443,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-balance-feet-together-hold-next-v21.mp3",
       "script": "Feet-together hold.",
-      "fingerprint": "voice-v21-audio-v1-1g93mww",
-      "sha256": "3eb15fed29d81da7c7b083c91b34643156136df0caf41d786629f2f7d74233e9",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "fingerprint": "voice-v21-audio-v1-aa6mg4",
+      "sha256": "7ce80cbe439ccc6e5bbf4c84e5a0aa29cce66ffea9c50f1a4d9eaeefdead9751",
+      "fileSizeBytes": 22613,
+      "durationMs": 1347,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-balance-single-leg-hold-first-v21": {
       "schemaVersion": 1,
@@ -468,20 +468,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-balance-single-leg-hold-first-v21.mp3",
       "script": "Single-leg hold. Keep support close.",
-      "fingerprint": "voice-v21-audio-v1-192psww",
-      "sha256": "c2dabe27288d3ec9d22ad3941cb74ab4f2b4fcafa013af80fddca1db9939f5db",
-      "fileSizeBytes": 43511,
-      "durationMs": 2647,
+      "fingerprint": "voice-v21-audio-v1-1ab7lac",
+      "sha256": "ab7e67a069de25f09683a15eac23beac513b0affca83dcf80d6c918f9c4537fd",
+      "fileSizeBytes": 42675,
+      "durationMs": 2601,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-balance-single-leg-hold-next-v21": {
       "schemaVersion": 1,
@@ -493,20 +493,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-balance-single-leg-hold-next-v21.mp3",
       "script": "Single-leg hold.",
-      "fingerprint": "voice-v21-audio-v1-1qep2j0",
-      "sha256": "17d6658a1fc096865c56056f08df85775c3b1b8d5d3307dc17bfa58fb7960e84",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "fingerprint": "voice-v21-audio-v1-1aoov28",
+      "sha256": "b97da315587406edd01378e00e69e79760ccc6f0f5fe37aefefd2b0e8c3faedd",
+      "fileSizeBytes": 22613,
+      "durationMs": 1347,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-balance-tandem-hold-first-v21": {
       "schemaVersion": 1,
@@ -518,20 +518,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-balance-tandem-hold-first-v21.mp3",
       "script": "Tandem hold. Keep support close.",
-      "fingerprint": "voice-v21-audio-v1-1fq2cbi",
-      "sha256": "2e913c0f0755d3a287699484b1a1f4e0d8102b729046b3342ac825750348a8a7",
-      "fileSizeBytes": 38078,
-      "durationMs": 2322,
+      "fingerprint": "voice-v21-audio-v1-1ch2eee",
+      "sha256": "474664a5b782ea2204c95335ff96613e55297d0382dd0dfbe1629b54b1ea7642",
+      "fileSizeBytes": 35988,
+      "durationMs": 2183,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-balance-tandem-hold-next-v21": {
       "schemaVersion": 1,
@@ -543,20 +543,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-balance-tandem-hold-next-v21.mp3",
       "script": "Tandem hold.",
-      "fingerprint": "voice-v21-audio-v1-1sdhbve",
-      "sha256": "c0b16998f9d05e96ed4f7f22ef2b67b8790cc3e34e721d9d4c910ef79aaf521e",
-      "fileSizeBytes": 19688,
-      "durationMs": 1161,
+      "fingerprint": "voice-v21-audio-v1-sfoj6a",
+      "sha256": "9f98b675c696d80c56eca1cff00ff85fbf964a64f5a344f92097572e589d74d4",
+      "fileSizeBytes": 20524,
+      "durationMs": 1207,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-band-pull-apart-first-v21": {
       "schemaVersion": 1,
@@ -568,20 +568,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-band-pull-apart-first-v21.mp3",
       "script": "Band pull-apart. Hold a light band at chest height. Pull your hands wide, then return slowly.",
-      "fingerprint": "voice-v21-audio-v1-1bvdj7x",
-      "sha256": "b7c0a6920f8f16f370c7f3a9e8cc7aa555cefbb179162328fab9e86d9d3d89b5",
-      "fileSizeBytes": 106623,
-      "durationMs": 6594,
+      "fingerprint": "voice-v21-audio-v1-1s6xr3n",
+      "sha256": "568731672d94f3e3eee077919987dc941485fec70166f70070469227dce92ddb",
+      "fileSizeBytes": 104533,
+      "durationMs": 6455,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-band-pull-apart-next-v21": {
       "schemaVersion": 1,
@@ -593,20 +593,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-band-pull-apart-next-v21.mp3",
       "script": "Band pull-apart.",
-      "fingerprint": "voice-v21-audio-v1-1b6mc11",
-      "sha256": "1f71b4f2b893c7451a3ecffd594bfd8e21d043bfed82395dfb1cb73511cabf37",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "fingerprint": "voice-v21-audio-v1-1br656z",
+      "sha256": "00fdf4a29e2b66867823e0a227e2ea326eb33d1c9a4a331fdd176fad3643a8f8",
+      "fileSizeBytes": 23449,
+      "durationMs": 1393,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-chair-supported-split-squat-first-v21": {
       "schemaVersion": 1,
@@ -618,20 +618,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-chair-supported-split-squat-first-v21.mp3",
       "script": "Supported split squat. Keep fingertips near sturdy support.",
-      "fingerprint": "voice-v21-audio-v1-1yar6oa",
-      "sha256": "611c8e0c1ca26d42dfaa6166455905ed044dfff74abffc63c83bfcf47059560b",
-      "fileSizeBytes": 59812,
-      "durationMs": 3669,
+      "fingerprint": "voice-v21-audio-v1-larhdu",
+      "sha256": "10025f4bff7f07b064a96d873a7408ede099ed286b9c3dbca7462e8c8f4940e3",
+      "fileSizeBytes": 61066,
+      "durationMs": 3762,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-chair-supported-split-squat-next-v21": {
       "schemaVersion": 1,
@@ -643,20 +643,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-chair-supported-split-squat-next-v21.mp3",
       "script": "Supported split squat.",
-      "fingerprint": "voice-v21-audio-v1-mgm856",
-      "sha256": "41f14ac6f92cccca0684f615409004fa18fe12bb0920602cafa35d0bacf480e6",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "fingerprint": "voice-v21-audio-v1-dlhoqa",
+      "sha256": "250b8fb3da7f257a42eb7539e9bfd23d6094170ec7ca2fec7eac094bcff82576",
+      "fileSizeBytes": 27211,
+      "durationMs": 1625,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-glute-bridge-hold-first-v21": {
       "schemaVersion": 1,
@@ -668,20 +668,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-glute-bridge-hold-first-v21.mp3",
       "script": "Bridge hold. Lie on your back, knees bent, feet flat. Lift your hips and hold.",
-      "fingerprint": "voice-v21-audio-v1-2j29qx",
-      "sha256": "b723ae8d4f442b80af2703009ca5dc66f24384d468b667c6c3988e9a57e716ed",
-      "fileSizeBytes": 88651,
-      "durationMs": 5480,
+      "fingerprint": "voice-v21-audio-v1-hs6wbj",
+      "sha256": "041c62a2fb50d91d45f2f596e218ee4e0f53ead2b1658023b2ea4dc6faaa1d55",
+      "fileSizeBytes": 97846,
+      "durationMs": 6037,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-glute-bridge-hold-next-v21": {
       "schemaVersion": 1,
@@ -693,20 +693,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-glute-bridge-hold-next-v21.mp3",
       "script": "Bridge hold.",
-      "fingerprint": "voice-v21-audio-v1-m3eqdq",
-      "sha256": "fda5cbd2cab31882f9d15c4de722ea62814bf0bcfecae66331f37168e02e171e",
+      "fingerprint": "voice-v21-audio-v1-78mqty",
+      "sha256": "f2b91331064d468651f635bf5bdab2bff0221f1cacfd9e3d3f90ecd2f4351cab",
       "fileSizeBytes": 18016,
       "durationMs": 1068,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-glute-bridge-reps-first-v21": {
       "schemaVersion": 1,
@@ -718,20 +718,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-glute-bridge-reps-first-v21.mp3",
       "script": "Glute bridge. Lie on your back, knees bent, feet flat. Lift your hips, then lower with control.",
-      "fingerprint": "voice-v21-audio-v1-wgqayu",
-      "sha256": "cc3ee235fd1fe93ab4927721c706dc22360254c730e4913fc9fe96dd69f043aa",
-      "fileSizeBytes": 129611,
-      "durationMs": 8034,
+      "fingerprint": "voice-v21-audio-v1-1a292su",
+      "sha256": "61074dc48d4a69ae89c0bc7e7f2b681512f152414417a7b987108be34235b411",
+      "fileSizeBytes": 127521,
+      "durationMs": 7895,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-glute-bridge-reps-next-v21": {
       "schemaVersion": 1,
@@ -743,20 +743,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-glute-bridge-reps-next-v21.mp3",
       "script": "Glute bridge.",
-      "fingerprint": "voice-v21-audio-v1-1h94k2k",
-      "sha256": "309d1b2b5bba0c3fd0f440417aedd7fb465a05cac90a983438670d6d48d9cb11",
-      "fileSizeBytes": 19688,
-      "durationMs": 1161,
+      "fingerprint": "voice-v21-audio-v1-1eb1axc",
+      "sha256": "3d63449a11f0b79183705196b693a650e74dc6465055ffcfeaccfa123768d94e",
+      "fileSizeBytes": 20524,
+      "durationMs": 1207,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-heel-raise-free-first-v21": {
       "schemaVersion": 1,
@@ -768,20 +768,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-heel-raise-free-first-v21.mp3",
       "script": "Heel raise. Stand tall. Rise onto the balls of your feet, then lower slowly.",
-      "fingerprint": "voice-v21-audio-v1-1qat9t1",
-      "sha256": "643b3f8f7631aacff2b2967233e7bef648a219668a7548c539ec216605aeaa43",
-      "fileSizeBytes": 94084,
-      "durationMs": 5805,
+      "fingerprint": "voice-v21-audio-v1-1ujpkqz",
+      "sha256": "1fd83ea58dbff6526982d02fbe647dd5372c4b5c987f715e22b6fd3a4fcd94ba",
+      "fileSizeBytes": 91159,
+      "durationMs": 5619,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-heel-raise-free-next-v21": {
       "schemaVersion": 1,
@@ -793,20 +793,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-heel-raise-free-next-v21.mp3",
       "script": "Heel raise.",
-      "fingerprint": "voice-v21-audio-v1-1p1ul4k",
-      "sha256": "ffee03f0647e7d4ea2f6170bd0b4009f6e32683a309929fe1f2f702fdf57cbb2",
-      "fileSizeBytes": 20524,
-      "durationMs": 1207,
+      "fingerprint": "voice-v21-audio-v1-ogt0y0",
+      "sha256": "f5262a77a230693024f424b151dc2ed1c6c812078f5cbcac0c1966b10944bc3f",
+      "fileSizeBytes": 18016,
+      "durationMs": 1068,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-heel-raise-supported-first-v21": {
       "schemaVersion": 1,
@@ -818,20 +818,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-heel-raise-supported-first-v21.mp3",
       "script": "Supported heel raise. Fingertips near support. Rise onto the balls of your feet, then lower slowly.",
-      "fingerprint": "voice-v21-audio-v1-19zzs9m",
-      "sha256": "db79e2723bf24df8937e648d35fbd375d5a0bf52148baf1471d830ba3c3e72eb",
-      "fileSizeBytes": 119162,
-      "durationMs": 7384,
+      "fingerprint": "voice-v21-audio-v1-1a6jssy",
+      "sha256": "34394065f8a9edd49ecb3baf56507a7f855d79688dbb9382b9488553f2846dcc",
+      "fileSizeBytes": 122924,
+      "durationMs": 7616,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-heel-raise-supported-next-v21": {
       "schemaVersion": 1,
@@ -843,20 +843,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-heel-raise-supported-next-v21.mp3",
       "script": "Supported heel raise.",
-      "fingerprint": "voice-v21-audio-v1-1o6akjm",
-      "sha256": "be9fea84385aa0a38d75b41781d2124b13817e077f4a82fd5bf3c21447115b7a",
-      "fileSizeBytes": 26375,
-      "durationMs": 1579,
+      "fingerprint": "voice-v21-audio-v1-waun2y",
+      "sha256": "a8b984275eaa40c37fe8643d5e70b7c041945237d5991ca52cb5649df6f9e71a",
+      "fileSizeBytes": 20942,
+      "durationMs": 1254,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-hip-hinge-free-first-v21": {
       "schemaVersion": 1,
@@ -868,20 +868,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-hip-hinge-free-first-v21.mp3",
       "script": "Hip hinge. Feet under hips. Send hips back with a long spine, then stand tall.",
-      "fingerprint": "voice-v21-audio-v1-1v8k82v",
-      "sha256": "122b4c9e7d3a97d20a93776e0879b5b5f54bc1cb07a0a564b5122a86d63e7893",
-      "fileSizeBytes": 101190,
-      "durationMs": 6269,
+      "fingerprint": "voice-v21-audio-v1-70c4ld",
+      "sha256": "ff6b3bcb0bde4560609e5254111b9e78ec5557a89524b929cb9cd3ab3fb2ae10",
+      "fileSizeBytes": 96174,
+      "durationMs": 5944,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-hip-hinge-free-next-v21": {
       "schemaVersion": 1,
@@ -893,20 +893,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-hip-hinge-free-next-v21.mp3",
       "script": "Hip hinge.",
-      "fingerprint": "voice-v21-audio-v1-5yiwwc",
-      "sha256": "eb4308902cb14c0adbf0fecc90722011e385612edb999ad8d18f9c2ecc4a166f",
-      "fileSizeBytes": 18852,
-      "durationMs": 1115,
+      "fingerprint": "voice-v21-audio-v1-rjtef4",
+      "sha256": "f0b918e84230bc6f35e19884d76fecaf2654efa568431934086258422983cf98",
+      "fileSizeBytes": 20524,
+      "durationMs": 1207,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-hip-hinge-wall-first-v21": {
       "schemaVersion": 1,
@@ -918,20 +918,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-hip-hinge-wall-first-v21.mp3",
       "script": "Wall-tap hinge. Stand a step from the wall. Send hips back to tap the wall, then stand tall.",
-      "fingerprint": "voice-v21-audio-v1-1ug46w9",
-      "sha256": "ab18cc1e03fe052480391421c0e4a6743717209f0206c62ddc40f095ea55d8d6",
-      "fileSizeBytes": 110385,
-      "durationMs": 6827,
+      "fingerprint": "voice-v21-audio-v1-10ig9nz",
+      "sha256": "ff8255815df4c1d11a9db188b3a596b67f46ea2adacf9f173e0fd83e14d6529e",
+      "fileSizeBytes": 99936,
+      "durationMs": 6177,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-hip-hinge-wall-next-v21": {
       "schemaVersion": 1,
@@ -943,20 +943,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-hip-hinge-wall-next-v21.mp3",
       "script": "Wall-tap hinge.",
-      "fingerprint": "voice-v21-audio-v1-lk78aj",
-      "sha256": "71bbf9ae6d214348e493ee35a337d22d8375fe60fb852ceb248da6939bdf1f02",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "fingerprint": "voice-v21-audio-v1-qmjihx",
+      "sha256": "5f81f38a570a09ee9dddd8248e37290fa4d154df79a67976da366518dd545489",
+      "fileSizeBytes": 26375,
+      "durationMs": 1579,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-loaded-march-first-v21": {
       "schemaVersion": 1,
@@ -968,20 +968,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-loaded-march-first-v21.mp3",
       "script": "March in place. Stand tall near support and march with a steady rhythm.",
-      "fingerprint": "voice-v21-audio-v1-nksrx2",
-      "sha256": "7d4aa73358399e41af82ab9d10dea5ed3831ec1c9a00ebccad5545d29a9dacae",
-      "fileSizeBytes": 79874,
-      "durationMs": 4923,
+      "fingerprint": "voice-v21-audio-v1-jlf3i6",
+      "sha256": "470e9d1071603fe6fc44b7107e00cab3578e3207f97104e5e815ccb6d1822018",
+      "fileSizeBytes": 83635,
+      "durationMs": 5155,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-loaded-march-next-v21": {
       "schemaVersion": 1,
@@ -993,20 +993,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-loaded-march-next-v21.mp3",
       "script": "March in place.",
-      "fingerprint": "voice-v21-audio-v1-k2ykpl",
-      "sha256": "419170d85e013bdb44b97ad4894903abf6324d90d5e94c8d79183e368fbc000c",
+      "fingerprint": "voice-v21-audio-v1-ny45un",
+      "sha256": "86798d0126c6d3177b05f68f6cc01ba2fc248e916a9536b58e6855ceac94e549",
       "fileSizeBytes": 22613,
       "durationMs": 1347,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-loaded-sit-to-stand-first-v21": {
       "schemaVersion": 1,
@@ -1018,20 +1018,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-loaded-sit-to-stand-first-v21.mp3",
       "script": "Loaded sit-to-stand. Hold the load close to your chest. Stand fully, then sit with control.",
-      "fingerprint": "voice-v21-audio-v1-178pgib",
-      "sha256": "7a644fbc095a58b7150ada05ee3a1d2156ea472340d4cf16d93a0ebd09cf8db4",
-      "fileSizeBytes": 101190,
-      "durationMs": 6269,
+      "fingerprint": "voice-v21-audio-v1-n7d3y5",
+      "sha256": "e2e21ce4af6393e5abbd371e2e0f42260cf02d79e278cc6ed435d9a6e6db81e9",
+      "fileSizeBytes": 108713,
+      "durationMs": 6734,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-loaded-sit-to-stand-next-v21": {
       "schemaVersion": 1,
@@ -1043,20 +1043,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-loaded-sit-to-stand-next-v21.mp3",
       "script": "Loaded sit-to-stand.",
-      "fingerprint": "voice-v21-audio-v1-1xg23ng",
-      "sha256": "7c453c7a953dc2cf699af8c820aeb377ae4e1d027376c7c4cdd2ffdd177bb6ac",
-      "fileSizeBytes": 27629,
-      "durationMs": 1672,
+      "fingerprint": "voice-v21-audio-v1-1m2eqr4",
+      "sha256": "0fc8bb10a071f7ab31249c144af6580813ba7a3ed3a5cbcdb80180ce06f86d36",
+      "fileSizeBytes": 25539,
+      "durationMs": 1533,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-mini-band-lateral-walk-first-v21": {
       "schemaVersion": 1,
@@ -1068,20 +1068,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-mini-band-lateral-walk-first-v21.mp3",
       "script": "Mini-band lateral walk. Band above your knees. Take small controlled steps both directions.",
-      "fingerprint": "voice-v21-audio-v1-1dq4aro",
-      "sha256": "b824a380b35f6ae5a970f87bf90c4389a96c26cca254f23fde9dcdc1ca74b6f0",
-      "fileSizeBytes": 106623,
-      "durationMs": 6594,
+      "fingerprint": "voice-v21-audio-v1-oboaqg",
+      "sha256": "3956cbb0474bbe362f268d1770afd022bdcc1fa63b8e82a8093aba87c879e18f",
+      "fileSizeBytes": 110385,
+      "durationMs": 6827,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-mini-band-lateral-walk-next-v21": {
       "schemaVersion": 1,
@@ -1093,20 +1093,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-mini-band-lateral-walk-next-v21.mp3",
       "script": "Mini-band lateral walk.",
-      "fingerprint": "voice-v21-audio-v1-1vdkh9v",
-      "sha256": "36b91dc5962e989125940b5ac1c1277bf68b4b5d6032f772d6610a3e56f7ad0f",
+      "fingerprint": "voice-v21-audio-v1-d6yw65",
+      "sha256": "ffa829bdc37683564b10e78716b15262c5e1ada6343838c1daaec17bb88049b7",
       "fileSizeBytes": 27211,
       "durationMs": 1625,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-neck-rotation-first-v21": {
       "schemaVersion": 1,
@@ -1118,20 +1118,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-neck-rotation-first-v21.mp3",
       "script": "Neck rotations. Face the phone, sit or stand tall, and slowly look over one shoulder, then the other.",
-      "fingerprint": "voice-v21-audio-v1-1p4vio2",
-      "sha256": "e18c3bcb5cdf9d0cec9af273a98caca3b990d22e1ab94db963fcf2f1cb8c5865",
-      "fileSizeBytes": 119162,
-      "durationMs": 7384,
+      "fingerprint": "voice-v21-audio-v1-5w3gka",
+      "sha256": "6a853050e380b2ecff54d42440cbaa40b3298f810c79366812a31343caa71809",
+      "fileSizeBytes": 119998,
+      "durationMs": 7430,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-neck-rotation-next-v21": {
       "schemaVersion": 1,
@@ -1143,20 +1143,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-neck-rotation-next-v21.mp3",
       "script": "Neck rotations.",
-      "fingerprint": "voice-v21-audio-v1-1p8jbru",
-      "sha256": "56f4c9814775d9ed403680e8ef52896becdf01714876cc827d34889274d8c310",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "fingerprint": "voice-v21-audio-v1-16n2exe",
+      "sha256": "44e40906772a1a9c15cd63054e80efa02674d04c034e01c784b0336f1f1c9b62",
+      "fileSizeBytes": 24703,
+      "durationMs": 1486,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-overhead-press-band-first-v21": {
       "schemaVersion": 1,
@@ -1168,20 +1168,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-overhead-press-band-first-v21.mp3",
       "script": "Band overhead press. Stand tall with light band tension. Press overhead, then return slowly.",
-      "fingerprint": "voice-v21-audio-v1-1n3kwrs",
-      "sha256": "05d358bfbfd201504b046dca085ac31ec655084543e0e816126eb8f2b3b21be9",
-      "fileSizeBytes": 103697,
-      "durationMs": 6409,
+      "fingerprint": "voice-v21-audio-v1-bjtk24",
+      "sha256": "1e73ebac917d72412e6c4cf3dba8413a01fce2a4a5d9f973029c4c1fa1a31ceb",
+      "fileSizeBytes": 97846,
+      "durationMs": 6037,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-overhead-press-band-next-v21": {
       "schemaVersion": 1,
@@ -1193,20 +1193,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-overhead-press-band-next-v21.mp3",
       "script": "Band overhead press.",
-      "fingerprint": "voice-v21-audio-v1-k74488",
-      "sha256": "5ba5d87c0d264e2d4a4c75af70888e27d815f17d4b50f518ebd96186ddfab6e6",
-      "fileSizeBytes": 25539,
-      "durationMs": 1533,
+      "fingerprint": "voice-v21-audio-v1-1vga6oc",
+      "sha256": "4743a369200acb8a7db655c7783705fcb09ad243d3b177aa07f3272b9e4356ed",
+      "fileSizeBytes": 24285,
+      "durationMs": 1440,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-overhead-reach-first-v21": {
       "schemaVersion": 1,
@@ -1218,20 +1218,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-overhead-reach-first-v21.mp3",
       "script": "Overhead reach. Stand tall. Reach both arms overhead as far as comfortable, then lower.",
-      "fingerprint": "voice-v21-audio-v1-nt8wri",
-      "sha256": "14e80bae749cbf8c4ec1db78ae0a93e4d426febad3336041dae43062df6a417c",
-      "fileSizeBytes": 95338,
-      "durationMs": 5898,
+      "fingerprint": "voice-v21-audio-v1-mzdxly",
+      "sha256": "1b7108170f01fc18ebaebd3fece2bbe9bf24996c9596418ff04262e8d96bfd83",
+      "fileSizeBytes": 99100,
+      "durationMs": 6130,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-overhead-reach-next-v21": {
       "schemaVersion": 1,
@@ -1243,20 +1243,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-overhead-reach-next-v21.mp3",
       "script": "Overhead reach.",
-      "fingerprint": "voice-v21-audio-v1-e6k81b",
-      "sha256": "695c219567fd5c7f193710f8a78007013c61e2c37936c8a2fb85cdfbea24d812",
+      "fingerprint": "voice-v21-audio-v1-nl4eq1",
+      "sha256": "225e907b1819ee447be98c67a1fb6302ecc420e2d56f66db96a781e9024189f4",
       "fileSizeBytes": 21777,
       "durationMs": 1300,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-push-up-incline-first-v21": {
       "schemaVersion": 1,
@@ -1268,20 +1268,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-push-up-incline-first-v21.mp3",
       "script": "Incline push-up. Hands on a stable counter or sturdy chair. Lower in with control, then press away.",
-      "fingerprint": "voice-v21-audio-v1-1wld80f",
-      "sha256": "d37c39c5e23508c487f650673b3e48f805a64b2ecb687ce90b45310dbb4ddd8c",
-      "fileSizeBytes": 119998,
-      "durationMs": 7430,
+      "fingerprint": "voice-v21-audio-v1-1dcvh9l",
+      "sha256": "039f65e15879a57e24e81dfa29e7330156e8a09562b24ea8cf247e6aa0650312",
+      "fileSizeBytes": 124595,
+      "durationMs": 7709,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-push-up-incline-next-v21": {
       "schemaVersion": 1,
@@ -1293,20 +1293,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-push-up-incline-next-v21.mp3",
       "script": "Incline push-up.",
-      "fingerprint": "voice-v21-audio-v1-bkw1x0",
-      "sha256": "c085729eacd6d94b72f12fee425249eebf48078baca8f7ef54bab80cf52a2c94",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "fingerprint": "voice-v21-audio-v1-2dwq88",
+      "sha256": "d0462ecf9b2633518a5792c1aeea7b25c8657a4569c9d35702a9a93117b4ccac",
+      "fileSizeBytes": 22613,
+      "durationMs": 1347,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-push-up-standard-first-v21": {
       "schemaVersion": 1,
@@ -1318,20 +1318,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-push-up-standard-first-v21.mp3",
       "script": "Push-up. Start from the floor position. Lower with control, then press up.",
-      "fingerprint": "voice-v21-audio-v1-xt9gtn",
-      "sha256": "bc24ed66a1843b7790254ca044a7d59abb58bfa23e367f9721137f4531a46f9b",
-      "fileSizeBytes": 88651,
-      "durationMs": 5480,
+      "fingerprint": "voice-v21-audio-v1-1r4kr9",
+      "sha256": "168e6cc0be62f66961d4c053fec4d59a874bcaf287091994ab8be5e490efb0c2",
+      "fileSizeBytes": 89487,
+      "durationMs": 5526,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-push-up-standard-next-v21": {
       "schemaVersion": 1,
@@ -1343,20 +1343,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-push-up-standard-next-v21.mp3",
       "script": "Push-up.",
-      "fingerprint": "voice-v21-audio-v1-qaq6lw",
-      "sha256": "1037539d22e0986c3754d39986588b7eeb77121cd67a50eb38261342be1f0f50",
+      "fingerprint": "voice-v21-audio-v1-1bg9c3s",
+      "sha256": "02450adfb3442a8aa2a1dcfe38544d3c99c49638d2bb3f9ede232d68a95bf37b",
       "fileSizeBytes": 15926,
       "durationMs": 929,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-push-up-wall-first-v21": {
       "schemaVersion": 1,
@@ -1368,20 +1368,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-push-up-wall-first-v21.mp3",
       "script": "Wall push-up. Hands on the wall. Lower in with control, then press away.",
-      "fingerprint": "voice-v21-audio-v1-iueu3n",
-      "sha256": "3e8d12e4fb701b054e0aaf42fa4f823caff8dff94e07c6eb8a3a75cc3606c244",
-      "fileSizeBytes": 87397,
-      "durationMs": 5387,
+      "fingerprint": "voice-v21-audio-v1-k60vnx",
+      "sha256": "4aa34bdddd2adef0da485ab0fbb38d854eb89351dde82152672fac46e0203bd7",
+      "fileSizeBytes": 84889,
+      "durationMs": 5248,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-push-up-wall-next-v21": {
       "schemaVersion": 1,
@@ -1393,20 +1393,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-push-up-wall-next-v21.mp3",
       "script": "Wall push-up.",
-      "fingerprint": "voice-v21-audio-v1-nwf78k",
-      "sha256": "74133477f839d9f50bb6d105705c1a3e3cc7a5fdfa038e98cccc3b105871b162",
+      "fingerprint": "voice-v21-audio-v1-amhcjc",
+      "sha256": "3b7fe5692f687914bbae6bdc5314c01c3b658d23bb47f4d809e776218df92ae7",
       "fileSizeBytes": 20524,
       "durationMs": 1207,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-seated-band-row-first-v21": {
       "schemaVersion": 1,
@@ -1418,20 +1418,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-seated-band-row-first-v21.mp3",
       "script": "Seated band row. Sit tall on a sturdy chair with the band anchored under both feet. Pull elbows back, then return slowly.",
-      "fingerprint": "voice-v21-audio-v1-112js9k",
-      "sha256": "ac9639a8ce65ab361c23766b565e39af2f226d874df55c7bf2a1ce03968e16d4",
-      "fileSizeBytes": 142150,
-      "durationMs": 8824,
+      "fingerprint": "voice-v21-audio-v1-wh2ews",
+      "sha256": "8b0250f7642e886e802120cdc557c999888d286470b7863a208bc1a9956702e1",
+      "fileSizeBytes": 135462,
+      "durationMs": 8406,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-seated-band-row-next-v21": {
       "schemaVersion": 1,
@@ -1443,20 +1443,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-seated-band-row-next-v21.mp3",
       "script": "Seated band row.",
-      "fingerprint": "voice-v21-audio-v1-1v5tlt1",
-      "sha256": "ff6da160f5f063db1ab2952195eeacd2b34dbcc29e969ea6d8cc49b7f478a376",
-      "fileSizeBytes": 22613,
-      "durationMs": 1347,
+      "fingerprint": "voice-v21-audio-v1-y7wp6z",
+      "sha256": "fd4253b4c0db950900bb20a3add49fc7fba369ea1ea6203ac99eec5793917f0d",
+      "fileSizeBytes": 23449,
+      "durationMs": 1393,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-seated-hamstring-reach-first-v21": {
       "schemaVersion": 1,
@@ -1468,20 +1468,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-seated-hamstring-reach-first-v21.mp3",
       "script": "Seated hamstring reach. Sit tall at the chair edge.",
-      "fingerprint": "voice-v21-audio-v1-1lnyszb",
-      "sha256": "597a090352d201624c0041d09e90ad775cde531f43a717723e6f6aaa9771691b",
+      "fingerprint": "voice-v21-audio-v1-47vc9d",
+      "sha256": "79337db81ec4ec0958ce91808ffdb28119051eeed65bf9502f51df01a1c63173",
       "fileSizeBytes": 56050,
       "durationMs": 3437,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-seated-hamstring-reach-next-v21": {
       "schemaVersion": 1,
@@ -1493,20 +1493,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-seated-hamstring-reach-next-v21.mp3",
       "script": "Seated hamstring reach.",
-      "fingerprint": "voice-v21-audio-v1-v0uk7q",
-      "sha256": "df719b2a4f6bccbcd4e98b5a01591ff5a8e39a060e443549c87c9cbda0cf5e21",
-      "fileSizeBytes": 27629,
-      "durationMs": 1672,
+      "fingerprint": "voice-v21-audio-v1-1g4iym",
+      "sha256": "c6bf2d85ed2ee85a8fe02112af7839789a1a1548c595c7c4948357ca02bf0059",
+      "fileSizeBytes": 24703,
+      "durationMs": 1486,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-squat-free-first-v21": {
       "schemaVersion": 1,
@@ -1518,20 +1518,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-squat-free-first-v21.mp3",
       "script": "Squat. Feet about hip width. Lower as if to sit, then stand with control.",
-      "fingerprint": "voice-v21-audio-v1-1u21m4f",
-      "sha256": "9d4ee2a16846c3097251976975b565eb4dd01f9bde2170fb9cdee7e3161dfeb6",
-      "fileSizeBytes": 95338,
-      "durationMs": 5898,
+      "fingerprint": "voice-v21-audio-v1-rds4rd",
+      "sha256": "965f2a61e79d507cdb16db60fbddb0eb79c093508f58d7678c659cfc7a60197f",
+      "fileSizeBytes": 94084,
+      "durationMs": 5805,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-squat-free-next-v21": {
       "schemaVersion": 1,
@@ -1543,20 +1543,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-squat-free-next-v21.mp3",
       "script": "Squat.",
-      "fingerprint": "voice-v21-audio-v1-nh6mtw",
-      "sha256": "b2b3c13a6f30e316791c413de40281c0f00e9624d40ff95f099560bd03cbfddb",
-      "fileSizeBytes": 15090,
-      "durationMs": 882,
+      "fingerprint": "voice-v21-audio-v1-1hd95t4",
+      "sha256": "938b3c8c37e2053268ab322b86ffd89bca6b590b5dd97d6052a63b7a77de895e",
+      "fileSizeBytes": 15926,
+      "durationMs": 929,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-squat-loaded-first-v21": {
       "schemaVersion": 1,
@@ -1568,20 +1568,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-squat-loaded-first-v21.mp3",
       "script": "Loaded squat. Hold the load close to your chest. Lower into a squat, then stand with control.",
-      "fingerprint": "voice-v21-audio-v1-p1srim",
-      "sha256": "6da13a0a53344d8da434a3601a01c3eb6b77b9d84d3cbb53748d28cb863af87d",
-      "fileSizeBytes": 102862,
-      "durationMs": 6362,
+      "fingerprint": "voice-v21-audio-v1-1onqz2u",
+      "sha256": "bd507ec4a197a936e870acd0172c4c7fe992b1f03ce2362d838db9da012288d3",
+      "fileSizeBytes": 107877,
+      "durationMs": 6687,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-squat-loaded-next-v21": {
       "schemaVersion": 1,
@@ -1593,20 +1593,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-squat-loaded-next-v21.mp3",
       "script": "Loaded squat.",
-      "fingerprint": "voice-v21-audio-v1-zhndr3",
-      "sha256": "ffd3930e791e0c40010907f0bcfb6949fbac8bf89c030f67646afafcc2e9d721",
-      "fileSizeBytes": 21777,
-      "durationMs": 1300,
+      "fingerprint": "voice-v21-audio-v1-1e98pmh",
+      "sha256": "88fcd09bffdabf4a2351de39e795de877d57f5af616a8b2ac35347883541c66f",
+      "fileSizeBytes": 20524,
+      "durationMs": 1207,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-squat-slow-eccentric-first-v21": {
       "schemaVersion": 1,
@@ -1618,20 +1618,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-squat-slow-eccentric-first-v21.mp3",
       "script": "Slow-lower squat. Lower slowly, then stand with control.",
-      "fingerprint": "voice-v21-audio-v1-1niikgu",
-      "sha256": "507ff5261766128353d5f132f0a7602ad01b6030c5259459930d92e7e3b9cf2a",
-      "fileSizeBytes": 64409,
-      "durationMs": 3947,
+      "fingerprint": "voice-v21-audio-v1-3r44rq",
+      "sha256": "bcd62c2a9fa69d27d53830cef68b731f97da571cc532b2ebf57db13fb9972918",
+      "fileSizeBytes": 70261,
+      "durationMs": 4319,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-squat-slow-eccentric-next-v21": {
       "schemaVersion": 1,
@@ -1643,20 +1643,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-squat-slow-eccentric-next-v21.mp3",
       "script": "Slow-lower squat.",
-      "fingerprint": "voice-v21-audio-v1-1f2kckj",
-      "sha256": "71021ef73a83905acac77d5f3bcfa7f651e1352fa86dbbe2a1f322d0655657dc",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "fingerprint": "voice-v21-audio-v1-15uifm5",
+      "sha256": "ff373c98861e62e68ed314852a33b438ce48d38187496cf6e2a37075a137340c",
+      "fileSizeBytes": 24285,
+      "durationMs": 1440,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-squat-supported-first-v21": {
       "schemaVersion": 1,
@@ -1668,20 +1668,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-squat-supported-first-v21.mp3",
       "script": "Supported squat. Stand near sturdy support. Lower as if to sit, then stand with control.",
-      "fingerprint": "voice-v21-audio-v1-gp3sbr",
-      "sha256": "7ebb2fa11746474d14399c38ab4bd6f9bda072601306a5e64886b9a3209a5da6",
-      "fileSizeBytes": 103697,
-      "durationMs": 6409,
+      "fingerprint": "voice-v21-audio-v1-102ghdt",
+      "sha256": "445f13da051739f1b53d0cee03c55005d80a1dfbd6eb4500de77638bd42c5da0",
+      "fileSizeBytes": 107459,
+      "durationMs": 6641,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-squat-supported-next-v21": {
       "schemaVersion": 1,
@@ -1693,20 +1693,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-squat-supported-next-v21.mp3",
       "script": "Supported squat.",
-      "fingerprint": "voice-v21-audio-v1-1teerik",
-      "sha256": "2cf47b6c711bc814d7bee2c5a7d8184ace2f147438f8f61c78bdcfb017971a44",
+      "fingerprint": "voice-v21-audio-v1-gca4qo",
+      "sha256": "42009f4778b893a8e1fe7d2cf55ab509fcaee82bdd6e018ce3f3e3987b534415",
       "fileSizeBytes": 22613,
       "durationMs": 1347,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-standing-band-row-first-v21": {
       "schemaVersion": 1,
@@ -1718,20 +1718,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-standing-band-row-first-v21.mp3",
       "script": "Standing band row. Face the secure door anchor in a stable stance. Pull elbows back, then return slowly.",
-      "fingerprint": "voice-v21-audio-v1-pkv35z",
-      "sha256": "ad9d1b005524daa37fab9bbf5eabe636a851f599009240ff95987150b4572cb2",
-      "fileSizeBytes": 123759,
-      "durationMs": 7663,
+      "fingerprint": "voice-v21-audio-v1-12pxrtt",
+      "sha256": "35b310de63caa7698a7c2e6d2cee41b532aa6b7e7e81e03c91c7ee8de4e44b06",
+      "fileSizeBytes": 124595,
+      "durationMs": 7709,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-standing-band-row-next-v21": {
       "schemaVersion": 1,
@@ -1743,20 +1743,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-standing-band-row-next-v21.mp3",
       "script": "Standing band row.",
-      "fingerprint": "voice-v21-audio-v1-1kf7pnh",
-      "sha256": "42114c559a97de7b7c5dd0fc8fab7b88b559aab8d8339b3ce403486a396fc3b9",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "fingerprint": "voice-v21-audio-v1-871keb",
+      "sha256": "6c7958500caeb1253befb1e741f7e20063c09522be6eec841c5700a4fbfea5ad",
+      "fileSizeBytes": 26375,
+      "durationMs": 1579,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-step-up-first-v21": {
       "schemaVersion": 1,
@@ -1768,20 +1768,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-step-up-first-v21.mp3",
       "script": "Step-up. Use the lowest stable step with support nearby. Return both feet to the floor after each rep.",
-      "fingerprint": "voice-v21-audio-v1-97ydc6",
-      "sha256": "6715ac49f243720a780668468c3e107ed0013edbafc0fbffcfb6358a1b1597d1",
-      "fileSizeBytes": 120834,
-      "durationMs": 7477,
+      "fingerprint": "voice-v21-audio-v1-1iweusu",
+      "sha256": "1574a6f68a776ea0b71a1275802f14a3d19ddef4c0be911b115cb7ed37b81cd2",
+      "fileSizeBytes": 115400,
+      "durationMs": 7152,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-step-up-next-v21": {
       "schemaVersion": 1,
@@ -1793,20 +1793,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-step-up-next-v21.mp3",
       "script": "Step-up. Return both feet to the floor after each rep.",
-      "fingerprint": "voice-v21-audio-v1-1d4nm51",
-      "sha256": "6c77cd9f816271af4b159b86ca2cc4735cb1353266f5a863923646c7c9777038",
-      "fileSizeBytes": 56886,
-      "durationMs": 3483,
+      "fingerprint": "voice-v21-audio-v1-16y38zf",
+      "sha256": "51f72204d6898dd008c7e594e281361d2480c21e5424aaf6b373b978606c4ee9",
+      "fileSizeBytes": 56050,
+      "durationMs": 3437,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-sts-cushion-first-v21": {
       "schemaVersion": 1,
@@ -1818,20 +1818,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-sts-cushion-first-v21.mp3",
       "script": "Cushion sit-to-stand. Sit tall on the cushion, feet flat. Stand fully, then sit with control.",
-      "fingerprint": "voice-v21-audio-v1-6c5u45",
-      "sha256": "66d7a2031629f38b8b0a80cf7e36a4e6b0f6851de9fc6abfc26008ef4bdb51b5",
-      "fileSizeBytes": 117908,
-      "durationMs": 7291,
+      "fingerprint": "voice-v21-audio-v1-giammz",
+      "sha256": "eab408b8e9f5535d058a6cd35e374440ec464a3b6d6039047036c6f384a834a3",
+      "fileSizeBytes": 113311,
+      "durationMs": 7012,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-sts-cushion-next-v21": {
       "schemaVersion": 1,
@@ -1843,20 +1843,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-sts-cushion-next-v21.mp3",
       "script": "Cushion sit-to-stand.",
-      "fingerprint": "voice-v21-audio-v1-hve3dw",
-      "sha256": "2053324a476010cbd784a30e97464df8906308be5e07a8dde102d4d4d9766bee",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "fingerprint": "voice-v21-audio-v1-enc77c",
+      "sha256": "c2468627915e1b44340d06fcc8a737e8f7c85a4a45ed90e1a64adbf2fe5dd35d",
+      "fileSizeBytes": 24285,
+      "durationMs": 1440,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-sts-power-first-v21": {
       "schemaVersion": 1,
@@ -1868,20 +1868,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-sts-power-first-v21.mp3",
       "script": "Power sit-to-stand. Sit tall, drive up briskly to standing, then sit with control.",
-      "fingerprint": "voice-v21-audio-v1-erzmgb",
-      "sha256": "aa9f6a799fcfb8a5f61eb73f1a674aa0099729187e356eebbd81ea55cd6c44ea",
-      "fileSizeBytes": 98264,
-      "durationMs": 6084,
+      "fingerprint": "voice-v21-audio-v1-1u3itx",
+      "sha256": "2bc75707ab7d7230c255e17f081639d7c372f209fcc9430aff44b866906a5e37",
+      "fileSizeBytes": 95338,
+      "durationMs": 5898,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-sts-power-next-v21": {
       "schemaVersion": 1,
@@ -1893,20 +1893,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-sts-power-next-v21.mp3",
       "script": "Power sit-to-stand.",
-      "fingerprint": "voice-v21-audio-v1-1oqs95i",
-      "sha256": "11ef27c8d9b29147e85a008bfa863e3acbe6676a373cc01bc4bc5d0f1268827f",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "fingerprint": "voice-v21-audio-v1-a2tg8u",
+      "sha256": "107642dcc64a2a28fd9ab3e574fb2879103476c1406a1162afc6cce1b5435f58",
+      "fileSizeBytes": 24703,
+      "durationMs": 1486,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-sts-slow-eccentric-first-v21": {
       "schemaVersion": 1,
@@ -1918,20 +1918,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-sts-slow-eccentric-first-v21.mp3",
       "script": "Slow-lower sit-to-stand. Stand fully, then lower slowly and steadily before the next rep.",
-      "fingerprint": "voice-v21-audio-v1-1ecs60",
-      "sha256": "f5065e38c660e3134f9f74e841e21a483354ded363d0aa532d0e4ba58191e33a",
-      "fileSizeBytes": 105787,
-      "durationMs": 6548,
+      "fingerprint": "voice-v21-audio-v1-1wguypo",
+      "sha256": "e501db84fa9e05e977ad06892dc3e5e17eb053935b74ce665920d99500f0f5a2",
+      "fileSizeBytes": 104533,
+      "durationMs": 6455,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-sts-slow-eccentric-next-v21": {
       "schemaVersion": 1,
@@ -1943,20 +1943,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-sts-slow-eccentric-next-v21.mp3",
       "script": "Slow-lower sit-to-stand.",
-      "fingerprint": "voice-v21-audio-v1-1js9ghi",
-      "sha256": "12f4a0dc914d7b800fbc1938f879c5ec3c86e54fc62d0597da19b0565f572e58",
-      "fileSizeBytes": 27211,
-      "durationMs": 1625,
+      "fingerprint": "voice-v21-audio-v1-1cmm3xa",
+      "sha256": "bfb3e165873702d3563fc74ff4d9313275f5df6e69258e34f8177d1824ca3055",
+      "fileSizeBytes": 27629,
+      "durationMs": 1672,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-sts-standard-first-v21": {
       "schemaVersion": 1,
@@ -1968,20 +1968,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-sts-standard-first-v21.mp3",
       "script": "Sit-to-stand. Sit tall in the middle of the chair, feet flat. Stand fully, then sit with control.",
-      "fingerprint": "voice-v21-audio-v1-1vhj3qp",
-      "sha256": "abd1afa4573f2ac0aa60d03dfdf917c8b49a34403b18705eb9425afabc0cf7ce",
-      "fileSizeBytes": 127939,
-      "durationMs": 7941,
+      "fingerprint": "voice-v21-audio-v1-iufnqv",
+      "sha256": "e61a5f65c1f9a09ac00fc989211191b5193abcaea55826d2aeb68e810a3c53c9",
+      "fileSizeBytes": 117908,
+      "durationMs": 7291,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-sts-standard-next-v21": {
       "schemaVersion": 1,
@@ -1993,20 +1993,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-sts-standard-next-v21.mp3",
       "script": "Sit-to-stand.",
-      "fingerprint": "voice-v21-audio-v1-1qs4p2v",
-      "sha256": "dbd71aac25423f2a7228366899e14c8fb792024ee98bb36ef258add3706b3bba",
-      "fileSizeBytes": 20524,
-      "durationMs": 1207,
+      "fingerprint": "voice-v21-audio-v1-1sncnwx",
+      "sha256": "5c72443c7dddaf69f0ac0688619971d3a694941012a8799fcb03698577ba4bd8",
+      "fileSizeBytes": 20942,
+      "durationMs": 1254,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-supported-hip-flexor-stretch-first-v21": {
       "schemaVersion": 1,
@@ -2018,20 +2018,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-supported-hip-flexor-stretch-first-v21.mp3",
       "script": "Supported hip-flexor stretch. Keep fingertips near support.",
-      "fingerprint": "voice-v21-audio-v1-u47pc",
-      "sha256": "14522e41450452dbc42cbdc8cc3ed886a4af56d8a9fb5a31dff7a6af42aa3b2a",
-      "fileSizeBytes": 58976,
-      "durationMs": 3622,
+      "fingerprint": "voice-v21-audio-v1-1mcwe78",
+      "sha256": "272cc014ed7f59860e4419d1b5d81e9f34d893fc9d6c102c05c7e9a4aa3faec2",
+      "fileSizeBytes": 63573,
+      "durationMs": 3901,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-supported-hip-flexor-stretch-next-v21": {
       "schemaVersion": 1,
@@ -2043,20 +2043,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-supported-hip-flexor-stretch-next-v21.mp3",
       "script": "Supported hip-flexor stretch.",
-      "fingerprint": "voice-v21-audio-v1-z68col",
-      "sha256": "7a65c5af9903dec1bffd6f0ab91a414555589bc2e54aae921d9241c8e1362923",
+      "fingerprint": "voice-v21-audio-v1-nkjijf",
+      "sha256": "ededa61a28e4d9d86c7d588b8e6d71b07bd235e2d026171290133024ac2ed75a",
       "fileSizeBytes": 29301,
       "durationMs": 1765,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-supported-side-step-first-v21": {
       "schemaVersion": 1,
@@ -2068,20 +2068,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-supported-side-step-first-v21.mp3",
       "script": "Supported side step. Stand near a counter. Step to the side, bring the other foot in, and continue with control.",
-      "fingerprint": "voice-v21-audio-v1-1kmtzm4",
-      "sha256": "a692c2e1c6af17901ec0c66d08aa88f87fad300f54c92ac3f2f2ba23d3011504",
-      "fileSizeBytes": 125013,
-      "durationMs": 7755,
+      "fingerprint": "voice-v21-audio-v1-s9x134",
+      "sha256": "897d2aa7b4e631ee25a9c8f8dd35bec8ced0cae94d0ec8d77fddbb6dc3e072a5",
+      "fileSizeBytes": 119162,
+      "durationMs": 7384,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-supported-side-step-next-v21": {
       "schemaVersion": 1,
@@ -2093,20 +2093,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-supported-side-step-next-v21.mp3",
       "script": "Supported side step.",
-      "fingerprint": "voice-v21-audio-v1-1cpoeef",
-      "sha256": "e21ea1cad905a9834db4aa2f8da985579e715c71aac318a37f548da9cbbcb7a5",
+      "fingerprint": "voice-v21-audio-v1-1yw0pc1",
+      "sha256": "ecf67f13d00d0668b7c2c7929627d7977adcf4412077967492ee3995ff3cdac0",
       "fileSizeBytes": 25539,
       "durationMs": 1533,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-thoracic-rotation-first-v21": {
       "schemaVersion": 1,
@@ -2118,20 +2118,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-thoracic-rotation-first-v21.mp3",
       "script": "Thoracic rotation. Sit or stand tall with arms crossed. Rotate one way, return to center, then rotate the other way.",
-      "fingerprint": "voice-v21-audio-v1-19vqgmf",
-      "sha256": "406a938ec4545a08c42b76c9157dce9bf82ecf2966b3cb6cb7fa66f9349eeb11",
-      "fileSizeBytes": 133373,
-      "durationMs": 8266,
+      "fingerprint": "voice-v21-audio-v1-15o5dvl",
+      "sha256": "ce770b953fdf58d6654f8dfdc58b1c70f114f570c827a058d0008d338a9e0869",
+      "fileSizeBytes": 139224,
+      "durationMs": 8638,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-thoracic-rotation-next-v21": {
       "schemaVersion": 1,
@@ -2143,20 +2143,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-thoracic-rotation-next-v21.mp3",
       "script": "Thoracic rotation.",
-      "fingerprint": "voice-v21-audio-v1-v9wpdt",
-      "sha256": "b20d853ed6708c623fde86623503ab3b4cd836bcafce3e0fab3d173a5ac7898f",
+      "fingerprint": "voice-v21-audio-v1-rkkrwn",
+      "sha256": "3cb67809581045f32a217df21dce27a752042b7aa0b80207b175631427dce123",
       "fileSizeBytes": 25539,
       "durationMs": 1533,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-toe-raise-supported-first-v21": {
       "schemaVersion": 1,
@@ -2168,20 +2168,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-toe-raise-supported-first-v21.mp3",
       "script": "Supported toe raise. Keep heels down, lift the front of your feet, then lower slowly.",
-      "fingerprint": "voice-v21-audio-v1-1cjf8ob",
-      "sha256": "fdd262785262ef55389424db6e7654d43889f90bcba410f7edc9f26ee6e8bcf0",
-      "fileSizeBytes": 87397,
-      "durationMs": 5387,
+      "fingerprint": "voice-v21-audio-v1-jlqcb9",
+      "sha256": "d6a3c1a1ec39ece011dab64e0510e71766a825f00ecd9ebf775b13fe6c72ffb7",
+      "fileSizeBytes": 89487,
+      "durationMs": 5526,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-toe-raise-supported-next-v21": {
       "schemaVersion": 1,
@@ -2193,20 +2193,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-toe-raise-supported-next-v21.mp3",
       "script": "Supported toe raise.",
-      "fingerprint": "voice-v21-audio-v1-ck9234",
-      "sha256": "45b7c8bf066115a83875510597b68453318a46986358b770b26e03101f42065b",
-      "fileSizeBytes": 26375,
-      "durationMs": 1579,
+      "fingerprint": "voice-v21-audio-v1-1sh6pf8",
+      "sha256": "b124fa64f5638eef2d0191b460f44b23000dd55762999a75b88af932fc75b791",
+      "fileSizeBytes": 25539,
+      "durationMs": 1533,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-wall-calf-stretch-first-v21": {
       "schemaVersion": 1,
@@ -2218,20 +2218,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-wall-calf-stretch-first-v21.mp3",
       "script": "Wall calf stretch. Hands on the wall.",
-      "fingerprint": "voice-v21-audio-v1-3mjawr",
-      "sha256": "989515db6d8ba6fa6782170347699f56ede5834697b96588b12c733737f80e28",
-      "fileSizeBytes": 42675,
-      "durationMs": 2601,
+      "fingerprint": "voice-v21-audio-v1-hap9np",
+      "sha256": "ea7b885fe59192327e1e249dae6ddeeeb0c5f6af5d4505fdb655d3f1f406f9c5",
+      "fileSizeBytes": 43511,
+      "durationMs": 2647,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-wall-calf-stretch-next-v21": {
       "schemaVersion": 1,
@@ -2243,20 +2243,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-wall-calf-stretch-next-v21.mp3",
       "script": "Wall calf stretch.",
-      "fingerprint": "voice-v21-audio-v1-f8c621",
-      "sha256": "9ed5635614b9b2f338ee7e34004ddb66927f5f985cf796bc0b6e36c74bc2b4f9",
+      "fingerprint": "voice-v21-audio-v1-1jtzmen",
+      "sha256": "2d737e24dce920c393585e778dbf2f3e541c934e0485d128e76f01053be6e81e",
       "fileSizeBytes": 24703,
       "durationMs": 1486,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "five-seconds-left-v21": {
       "schemaVersion": 1,
@@ -2268,20 +2268,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/five-seconds-left-v21.mp3",
       "script": "Five seconds left.",
-      "fingerprint": "voice-v21-audio-v1-ueb35g",
-      "sha256": "2209adecc8b5dffddc90afb3fb4351ea07adfe66a417259b5e60301cc2f77477",
+      "fingerprint": "voice-v21-audio-v1-1kf9qdk",
+      "sha256": "5b51a7251942141a09e5eb179ec0e57c0b41448c3945f8a5826cf199679f765b",
       "fileSizeBytes": 23449,
       "durationMs": 1393,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "floor-gate-question-v21": {
       "schemaVersion": 1,
@@ -2293,20 +2293,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/floor-gate-question-v21.mp3",
       "script": "Can you safely get down to the floor and back up without assistance?",
-      "fingerprint": "voice-v21-audio-v1-13qtg4z",
-      "sha256": "3e01c16585786cb92e28764025280861afe22b294cf3137624e0b78cb447afce",
-      "fileSizeBytes": 60648,
-      "durationMs": 3715,
+      "fingerprint": "voice-v21-audio-v1-1svltjx",
+      "sha256": "0e65e7a631c2de6df0b020cc307410b6c5fdfc9151fa32bca2b9c70624de4df3",
+      "fileSizeBytes": 61902,
+      "durationMs": 3808,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "halfway-v21": {
       "schemaVersion": 1,
@@ -2318,20 +2318,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/halfway-v21.mp3",
       "script": "Halfway.",
-      "fingerprint": "voice-v21-audio-v1-unup02",
-      "sha256": "ae11e90635c3ec8b397517439edce11a075b70457e72404553dc3d2db9f91624",
+      "fingerprint": "voice-v21-audio-v1-1nh5z1m",
+      "sha256": "0068ac3102461c2f52290ca071131c4ae7368b07468c978b37a12d09d9e98021",
       "fileSizeBytes": 16762,
       "durationMs": 975,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "last-set-v21": {
       "schemaVersion": 1,
@@ -2343,20 +2343,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/last-set-v21.mp3",
       "script": "Last set.",
-      "fingerprint": "voice-v21-audio-v1-19hmvki",
-      "sha256": "0ca41026dc84171b378a1e5299c6bda287dc68a30991547a559383f2516cbc38",
+      "fingerprint": "voice-v21-audio-v1-o7fyi2",
+      "sha256": "c96d50a0f8a72574005b3ede2272e967bf276c5e9ff379707271ac0dd2c28d8b",
       "fileSizeBytes": 18852,
       "durationMs": 1115,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "micro-chair-power-v21": {
       "schemaVersion": 1,
@@ -2368,20 +2368,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/micro-chair-power-v21.mp3",
       "script": "Five quick chair stands. Arms crossed. Stand and sit five times as quickly as safely comfortable.",
-      "fingerprint": "voice-v21-audio-v1-o6ga9g",
-      "sha256": "7e652b985d2a1b4b1c2fbf15bf068e43e21361ab497eae4cdb781cfb210dfddc",
-      "fileSizeBytes": 104951,
-      "durationMs": 6502,
+      "fingerprint": "voice-v21-audio-v1-19yswi0",
+      "sha256": "add772e0a579ee351905a045c79a34b69bf63bfb26da63a2ff961261f7a98806",
+      "fileSizeBytes": 107459,
+      "durationMs": 6641,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "micro-discard-v21": {
       "schemaVersion": 1,
@@ -2393,20 +2393,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/micro-discard-v21.mp3",
       "script": "Check discarded.",
-      "fingerprint": "voice-v21-audio-v1-ug6ycl",
-      "sha256": "9fa855ae843acd3e5eb3c111b5d23a614c1cc01e249a745b7bdcd3a6f3b89fa7",
-      "fileSizeBytes": 21777,
-      "durationMs": 1300,
+      "fingerprint": "voice-v21-audio-v1-1fup87f",
+      "sha256": "a49498eaee118b15d630563cbdf164249499a187844b85e30cc65237347cd42f",
+      "fileSizeBytes": 23449,
+      "durationMs": 1393,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "micro-mobility-left-v21": {
       "schemaVersion": 1,
@@ -2418,20 +2418,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/micro-mobility-left-v21.mp3",
-      "script": "Quick mobility check. Extend your left leg and reach gently until I say relax.",
-      "fingerprint": "voice-v21-audio-v1-amadjv",
-      "sha256": "b8829f158584810164d4d48a8d9d0cc4103485aab5e135596fc90c8777810f90",
-      "fileSizeBytes": 86561,
-      "durationMs": 5341,
+      "script": "Quick mobility check. Stand side-on, hinge forward, and reach toward the floor until I say stand tall.",
+      "fingerprint": "voice-v21-audio-v1-7czi5a",
+      "sha256": "6dece53fd912542fa3d6cd1f9160b078ac65c2d6f108ac9bacf6732cca436dc0",
+      "fileSizeBytes": 112475,
+      "durationMs": 6966,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "micro-mobility-right-v21": {
       "schemaVersion": 1,
@@ -2443,20 +2443,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/micro-mobility-right-v21.mp3",
-      "script": "Quick mobility check. Extend your right leg and reach gently until I say relax.",
-      "fingerprint": "voice-v21-audio-v1-h4ocdu",
-      "sha256": "cd35aff9d807eedced151e76900b60e1b13f20e4058513ab17bcbf6427924145",
-      "fileSizeBytes": 83635,
-      "durationMs": 5155,
+      "script": "Quick mobility check. Stand side-on, hinge forward, and reach toward the floor until I say stand tall.",
+      "fingerprint": "voice-v21-audio-v1-1mt066a",
+      "sha256": "ca3326b80ac6a078272e942af342fa01357f25fe1aad13683690ff94c6cd31f3",
+      "fileSizeBytes": 107877,
+      "durationMs": 6687,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "micro-relax-v21": {
       "schemaVersion": 1,
@@ -2468,20 +2468,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/micro-relax-v21.mp3",
       "script": "Relax.",
-      "fingerprint": "voice-v21-audio-v1-1ooeay6",
-      "sha256": "7af99f058ad4b27e3ec9e72ae0abf4265edb706ea06dc9b02c5258b6e75cba7f",
-      "fileSizeBytes": 17598,
-      "durationMs": 1022,
+      "fingerprint": "voice-v21-audio-v1-98ixme",
+      "sha256": "5938588ffc38e0e708e0ecb39fe6392a9796982898bea14cf9e6793b19612625",
+      "fileSizeBytes": 15090,
+      "durationMs": 882,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "micro-single-leg-left-v21": {
       "schemaVersion": 1,
@@ -2493,20 +2493,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/micro-single-leg-left-v21.mp3",
       "script": "Quick balance check. Stand on your left leg with support nearby. Hold as long as comfortable.",
-      "fingerprint": "voice-v21-audio-v1-fddath",
-      "sha256": "9f78aaefa2782c58d0b9684edd3a047148df22fed42b77d7f670d2d5d953c76e",
-      "fileSizeBytes": 91159,
-      "durationMs": 5619,
+      "fingerprint": "voice-v21-audio-v1-tl3t63",
+      "sha256": "17fff3148c64e704d013b17f88babdc242a8473b3fc65d157ca89ea3c970a8f0",
+      "fileSizeBytes": 96174,
+      "durationMs": 5944,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "micro-single-leg-right-v21": {
       "schemaVersion": 1,
@@ -2518,20 +2518,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/micro-single-leg-right-v21.mp3",
       "script": "Quick balance check. Stand on your right leg with support nearby. Hold as long as comfortable.",
-      "fingerprint": "voice-v21-audio-v1-cpll6c",
-      "sha256": "6f1dd14270e799d6ef516988cb97a5e921ee0d8f6a885c8a7a52fa99088517c0",
-      "fileSizeBytes": 94084,
-      "durationMs": 5805,
+      "fingerprint": "voice-v21-audio-v1-5sxm2w",
+      "sha256": "1faae6f8cbb8c01dca176b6eaecddbef3791f4d36a38d97c1369b29102090b5d",
+      "fileSizeBytes": 95338,
+      "durationMs": 5898,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "microcheck-complete-v21": {
       "schemaVersion": 1,
@@ -2543,20 +2543,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/microcheck-complete-v21.mp3",
       "script": "Check complete.",
-      "fingerprint": "voice-v21-audio-v1-v3n4kj",
-      "sha256": "c738d86c64d47f990fbc818207fff80c6a29c3caa1260f83f1d842c7115e71d3",
-      "fileSizeBytes": 21777,
-      "durationMs": 1300,
+      "fingerprint": "voice-v21-audio-v1-1md2afh",
+      "sha256": "da24d76ecb9757498fb093c70ee78cee9b92a2871a548cd807f48e67fa486265",
+      "fileSizeBytes": 20524,
+      "durationMs": 1207,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "next-exercise-v21": {
       "schemaVersion": 1,
@@ -2568,20 +2568,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/next-exercise-v21.mp3",
       "script": "Next exercise.",
-      "fingerprint": "voice-v21-audio-v1-yh3i79",
-      "sha256": "ddcff779651f57ee4a2837951731694f157c7a3da17e9ffb7f65265e5f1d38e6",
-      "fileSizeBytes": 20524,
-      "durationMs": 1207,
+      "fingerprint": "voice-v21-audio-v1-4qy62z",
+      "sha256": "d7591f8e2aa39270eab4213b4775a30826a13c00e900dfa2893ded2676ebcc88",
+      "fileSizeBytes": 22613,
+      "durationMs": 1347,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "paused-v21": {
       "schemaVersion": 1,
@@ -2593,20 +2593,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/paused-v21.mp3",
       "script": "Paused.",
-      "fingerprint": "voice-v21-audio-v1-vdugy0",
-      "sha256": "bc80e46a6dbac4e8b84b5c41857499d18651a9956227ccab6d4c07b3b4e1a039",
-      "fileSizeBytes": 16762,
-      "durationMs": 975,
+      "fingerprint": "voice-v21-audio-v1-1ybggx8",
+      "sha256": "1d25af469f460b9d1452a8587dc65ffb87ee178e4141ec4a880f82c51ef41db6",
+      "fileSizeBytes": 15926,
+      "durationMs": 929,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "rest-now-v21": {
       "schemaVersion": 1,
@@ -2618,20 +2618,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/rest-now-v21.mp3",
       "script": "Rest now.",
-      "fingerprint": "voice-v21-audio-v1-amhf68",
-      "sha256": "048802ec9791755480cecf26ddf48f81d020c981b760608a951bccb47f305ef9",
-      "fileSizeBytes": 18016,
-      "durationMs": 1068,
+      "fingerprint": "voice-v21-audio-v1-1m90y5w",
+      "sha256": "84a72384eab98ee9ec30c7e642238f94eef19b6a311b63ae2ce3f1039bef4680",
+      "fileSizeBytes": 17598,
+      "durationMs": 1022,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "resuming-v21": {
       "schemaVersion": 1,
@@ -2643,20 +2643,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/resuming-v21.mp3",
       "script": "Resuming.",
-      "fingerprint": "voice-v21-audio-v1-7pmajm",
-      "sha256": "8fb200cec4ac878a69f27f37104c8e7f7934443bbaf56260a8db712caec8671b",
+      "fingerprint": "voice-v21-audio-v1-1xae0xm",
+      "sha256": "0b164382465b9d44185a63a27aace67e43f57b9cedd43b9304a990a33b487b6d",
       "fileSizeBytes": 17598,
       "durationMs": 1022,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "safe-session-start-v21": {
       "schemaVersion": 1,
@@ -2668,20 +2668,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/safe-session-start-v21.mp3",
       "script": "Clear the space around you. Stop for sharp pain, dizziness, or feeling unwell.",
-      "fingerprint": "voice-v21-audio-v1-6et5uc",
-      "sha256": "5318a7395cb74ec6bf0ea8ef429064e9a9327165f3df14f0f724e42a38eb93fd",
-      "fileSizeBytes": 84471,
-      "durationMs": 5201,
+      "fingerprint": "voice-v21-audio-v1-nmssfc",
+      "sha256": "f09fbd3d93402d9a3b0c80cab4fa0308af9b8567a9098e584f733e8dad32189d",
+      "fileSizeBytes": 79874,
+      "durationMs": 4923,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "session-complete-v21": {
       "schemaVersion": 1,
@@ -2693,20 +2693,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/session-complete-v21.mp3",
       "script": "Session complete.",
-      "fingerprint": "voice-v21-audio-v1-yu7ylr",
-      "sha256": "c2282435e15a1687258fed25704018831927a0385f16c00cc1437e2265de48e5",
-      "fileSizeBytes": 22613,
-      "durationMs": 1347,
+      "fingerprint": "voice-v21-audio-v1-10010eh",
+      "sha256": "fd6f122805f2ccc01cb63fcb6ee0be98c42a82977a18062f08bada6e14bc0b15",
+      "fileSizeBytes": 23449,
+      "durationMs": 1393,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "set-complete-v21": {
       "schemaVersion": 1,
@@ -2718,20 +2718,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/set-complete-v21.mp3",
       "script": "Set complete.",
-      "fingerprint": "voice-v21-audio-v1-10bndi3",
-      "sha256": "d0db2fe71c155b6bb143aac9910dcdfe807dbe27ba28c09cbae9cc9b627fc1ab",
-      "fileSizeBytes": 20524,
-      "durationMs": 1207,
+      "fingerprint": "voice-v21-audio-v1-4mva9x",
+      "sha256": "548794199b70d70edfdc29467931efce14878ca2ba17a43bb2be4a619d3f0c12",
+      "fileSizeBytes": 20942,
+      "durationMs": 1254,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "setup-back-v21": {
       "schemaVersion": 1,
@@ -2743,20 +2743,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/setup-back-v21.mp3",
       "script": "Move a little farther back.",
-      "fingerprint": "voice-v21-audio-v1-rj325v",
-      "sha256": "145711ecaeca364b50949135a3470b47a7b84bde8d898d9b489dcddeb42a4402",
-      "fileSizeBytes": 26375,
-      "durationMs": 1579,
+      "fingerprint": "voice-v21-audio-v1-suidjx",
+      "sha256": "581b6108bf60a91e3b90aa466f90ab1373d7f941e790a372139b0b53e76a3ffa",
+      "fileSizeBytes": 27211,
+      "durationMs": 1625,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "setup-center-v21": {
       "schemaVersion": 1,
@@ -2768,20 +2768,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/setup-center-v21.mp3",
       "script": "Move to the centre of the view.",
-      "fingerprint": "voice-v21-audio-v1-1wih8zv",
-      "sha256": "a4f2872f849f4a9a0a3ddc5a66e95a14680da3a68fba2737677865685740ff57",
+      "fingerprint": "voice-v21-audio-v1-1ww3egl",
+      "sha256": "7e2c1fd4d262a1c887068a1e5412d09342af75159b83be36d1b07a779706393f",
       "fileSizeBytes": 28465,
       "durationMs": 1718,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "setup-clearer-view-v21": {
       "schemaVersion": 1,
@@ -2793,20 +2793,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/setup-clearer-view-v21.mp3",
       "script": "I need a clearer view. Make sure your whole body is visible.",
-      "fingerprint": "voice-v21-audio-v1-vl2ugq",
-      "sha256": "e87332ba13686dcce796cdc3bf8f3998a46886f0b1f778f302662aad64f3c573",
-      "fileSizeBytes": 59812,
-      "durationMs": 3669,
+      "fingerprint": "voice-v21-audio-v1-1vysrci",
+      "sha256": "b327ed0d4fd38ecd1d81cf492dcc215343b8d8909a4ea026baad3bbd0318c0a3",
+      "fileSizeBytes": 61066,
+      "durationMs": 3762,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "setup-closer-v21": {
       "schemaVersion": 1,
@@ -2818,20 +2818,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/setup-closer-v21.mp3",
       "script": "Move a little closer.",
-      "fingerprint": "voice-v21-audio-v1-xylp7e",
-      "sha256": "da21bf5f6f1c71401707b73c7ef0ea9e7b91334d7dc0e5df06ba931d8635a244",
+      "fingerprint": "voice-v21-audio-v1-opj98y",
+      "sha256": "b399e4930e9d31528bcb89563fe83fef3d8191af19545803f1e357904fa7fc4e",
       "fileSizeBytes": 23449,
       "durationMs": 1393,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "setup-enter-view-v21": {
       "schemaVersion": 1,
@@ -2843,20 +2843,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/setup-enter-view-v21.mp3",
       "script": "Step into view so your whole body is visible.",
-      "fingerprint": "voice-v21-audio-v1-1g17pt9",
-      "sha256": "704a21f7b8fc2a3c4a5f39391a7cf13e566e08cc514b6c99cb704b12058a4dc3",
+      "fingerprint": "voice-v21-audio-v1-10elhlf",
+      "sha256": "61fb2c7dfd566d422b1dc5e2def4cec340e51b3570cf5d5f4e14a7a567faa5d5",
       "fileSizeBytes": 44347,
       "durationMs": 2694,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "setup-hold-still-v21": {
       "schemaVersion": 1,
@@ -2868,20 +2868,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/setup-hold-still-v21.mp3",
       "script": "Hold still for a moment.",
-      "fingerprint": "voice-v21-audio-v1-7jnzat",
-      "sha256": "485f3a3e8cfc4828cc68d06fc2168ae3362633f19e0d7acbf5844b371452e75c",
-      "fileSizeBytes": 27629,
-      "durationMs": 1672,
+      "fingerprint": "voice-v21-audio-v1-17fe5i3",
+      "sha256": "aed73c485015eb60a53f16280ed8d69b766a492f04960d12155145e4ec4eeb15",
+      "fileSizeBytes": 25539,
+      "durationMs": 1533,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "setup-light-v21": {
       "schemaVersion": 1,
@@ -2893,20 +2893,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/setup-light-v21.mp3",
       "script": "Please turn on the main light.",
-      "fingerprint": "voice-v21-audio-v1-1n3v65k",
-      "sha256": "2262ff562c9a74dc9646d05b81823acd43f75659f39b71a638a7b45ced231fa1",
-      "fileSizeBytes": 28465,
-      "durationMs": 1718,
+      "fingerprint": "voice-v21-audio-v1-eqolak",
+      "sha256": "0677772922bdabe912283cb9e8e4965efb3e46806a298343c37090c7542a340c",
+      "fileSizeBytes": 29301,
+      "durationMs": 1765,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "side-calf-left-back-v21": {
       "schemaVersion": 1,
@@ -2918,20 +2918,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/side-calf-left-back-v21.mp3",
       "script": "Step your left leg back, heel down.",
-      "fingerprint": "voice-v21-audio-v1-10pqqd5",
-      "sha256": "f0724da11f019a5b131e9a52d15d910a8da8fe5f20b709dff449e346cf29ebdf",
-      "fileSizeBytes": 38914,
-      "durationMs": 2368,
+      "fingerprint": "voice-v21-audio-v1-hq97en",
+      "sha256": "fcce544ca689aa01e39004d68e64895d26c2d1e19916f86b8d754c4acd8cce55",
+      "fileSizeBytes": 39750,
+      "durationMs": 2415,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "side-calf-right-back-v21": {
       "schemaVersion": 1,
@@ -2943,20 +2943,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/side-calf-right-back-v21.mp3",
       "script": "Step your right leg back, heel down.",
-      "fingerprint": "voice-v21-audio-v1-j4lat2",
-      "sha256": "dfb3beac8e499ccf817ff6e3cd509f851e9f093f8fc62b071e48e87ef4279e0d",
-      "fileSizeBytes": 40586,
-      "durationMs": 2461,
+      "fingerprint": "voice-v21-audio-v1-124lxcu",
+      "sha256": "2139f08af0ca107eaf02ffd1762b3144ee8f53779aad52d147e0c3c5a5fab13d",
+      "fileSizeBytes": 44347,
+      "durationMs": 2694,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "side-hamstring-left-extended-v21": {
       "schemaVersion": 1,
@@ -2968,20 +2968,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/side-hamstring-left-extended-v21.mp3",
       "script": "Extend your left leg, heel on the floor.",
-      "fingerprint": "voice-v21-audio-v1-2rlujo",
-      "sha256": "62458a6e0c30bf45c0353c99ca274ed7357dd0467e157b92e4da3e7f48d2f07d",
+      "fingerprint": "voice-v21-audio-v1-1gxyvy0",
+      "sha256": "13358a551da3ff36acb6ed3a5e594267e313a92f079a4e6a00f53fd6f5cd7190",
       "fileSizeBytes": 40586,
       "durationMs": 2461,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "side-hamstring-right-extended-v21": {
       "schemaVersion": 1,
@@ -2993,20 +2993,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/side-hamstring-right-extended-v21.mp3",
       "script": "Extend your right leg, heel on the floor.",
-      "fingerprint": "voice-v21-audio-v1-wx6399",
-      "sha256": "ab518c6e9755870123fe47c68c1975640f1a856debf16b263db25815bec3f7b0",
+      "fingerprint": "voice-v21-audio-v1-1un4i5f",
+      "sha256": "c1d1f4c0167a550c61bd22868cdb1a4b725bb806ec917c53cdbe56ec7e96736d",
       "fileSizeBytes": 40586,
       "durationMs": 2461,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "side-hip-flexor-left-back-v21": {
       "schemaVersion": 1,
@@ -3018,20 +3018,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/side-hip-flexor-left-back-v21.mp3",
       "script": "Step your right foot forward so your left hip side stretches.",
-      "fingerprint": "voice-v21-audio-v1-qqy22v",
-      "sha256": "c1411ba96f8ae1b353f69c857b10c9a8871c398be089cef2703636034e3dc76e",
-      "fileSizeBytes": 55214,
-      "durationMs": 3390,
+      "fingerprint": "voice-v21-audio-v1-1lpui8x",
+      "sha256": "6fdba28437d5cadcd4487e76e965902fc266611983aba99f7779377d9f98bfa3",
+      "fileSizeBytes": 59812,
+      "durationMs": 3669,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "side-hip-flexor-right-back-v21": {
       "schemaVersion": 1,
@@ -3043,20 +3043,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/side-hip-flexor-right-back-v21.mp3",
       "script": "Step your left foot forward so your right hip side stretches.",
-      "fingerprint": "voice-v21-audio-v1-lf8bud",
-      "sha256": "003407997a29a8a3bc3d999ede0e966c5cd0d70b3dcc63c67dbbea78e69db330",
-      "fileSizeBytes": 60648,
-      "durationMs": 3715,
+      "fingerprint": "voice-v21-audio-v1-1nuu9cr",
+      "sha256": "498671af90ca18eb5b1a697e341fe9d573e774a1a07a13c8ea2b7633e0e7d176",
+      "fileSizeBytes": 58140,
+      "durationMs": 3576,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "side-single-leg-left-v21": {
       "schemaVersion": 1,
@@ -3068,20 +3068,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/side-single-leg-left-v21.mp3",
       "script": "Start on your left leg. Lift your right foot slightly.",
-      "fingerprint": "voice-v21-audio-v1-2bu4r7",
-      "sha256": "65dac428d4cea6905446c8fa0ef600a45ec424e51d8c534f758780455fc5eaaf",
-      "fileSizeBytes": 57722,
-      "durationMs": 3529,
+      "fingerprint": "voice-v21-audio-v1-182bqf1",
+      "sha256": "c023edad3f773bd7b833c62698b16863e9fd56ddb8689e03a0745f5bf929ae96",
+      "fileSizeBytes": 54378,
+      "durationMs": 3344,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "side-single-leg-right-v21": {
       "schemaVersion": 1,
@@ -3093,20 +3093,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/side-single-leg-right-v21.mp3",
       "script": "Start on your right leg. Lift your left foot slightly.",
-      "fingerprint": "voice-v21-audio-v1-10d1we1",
-      "sha256": "5e60aac629f107aab4b55ac43add69d625837028fc6e8c9f47cc54267e548c70",
-      "fileSizeBytes": 58140,
-      "durationMs": 3576,
+      "fingerprint": "voice-v21-audio-v1-1vph3en",
+      "sha256": "ddd8fe714f874a3fb76a56f81c67d81e145de57f02c0fe9e0f3062299af10ced",
+      "fileSizeBytes": 56050,
+      "durationMs": 3437,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "side-split-squat-left-forward-v21": {
       "schemaVersion": 1,
@@ -3118,20 +3118,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/side-split-squat-left-forward-v21.mp3",
       "script": "Left foot forward, small split stance.",
-      "fingerprint": "voice-v21-audio-v1-o5e5o9",
-      "sha256": "154904c14ddf8729c28488abc1613351dce9b478025c61702b247d28f010c022",
-      "fileSizeBytes": 41004,
-      "durationMs": 2508,
+      "fingerprint": "voice-v21-audio-v1-1b3gt4v",
+      "sha256": "2372f805fdd83a027d67c2dde14d78c4b3d6e9a8f0690f4cc08752f52a9a11b7",
+      "fileSizeBytes": 40586,
+      "durationMs": 2461,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "side-split-squat-right-forward-v21": {
       "schemaVersion": 1,
@@ -3143,20 +3143,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/side-split-squat-right-forward-v21.mp3",
       "script": "Right foot forward, small split stance.",
-      "fingerprint": "voice-v21-audio-v1-p7e6u4",
-      "sha256": "25a8153f8d180c4537677cad56f27086caa12e9ac7595d71379d9c38c6d1c360",
-      "fileSizeBytes": 43511,
-      "durationMs": 2647,
+      "fingerprint": "voice-v21-audio-v1-5b7uhc",
+      "sha256": "42e2ce54e0022d3c54b0334a32814e8f83cdab33db3a014b9c965835510d7361",
+      "fileSizeBytes": 44347,
+      "durationMs": 2694,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "side-tandem-left-front-v21": {
       "schemaVersion": 1,
@@ -3168,20 +3168,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/side-tandem-left-front-v21.mp3",
       "script": "Place your left foot in front, heel to toe.",
-      "fingerprint": "voice-v21-audio-v1-2bkcgc",
-      "sha256": "7d43b1a0f0997fa525e8f280ce2292700c0a6f169701696b177100727f034612",
-      "fileSizeBytes": 39750,
-      "durationMs": 2415,
+      "fingerprint": "voice-v21-audio-v1-1h67osg",
+      "sha256": "54453cf8bfcba8177cd6b5ccdcfab32c84bea8ede8777e2f6543b0ca5b574298",
+      "fileSizeBytes": 43511,
+      "durationMs": 2647,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "side-tandem-right-front-v21": {
       "schemaVersion": 1,
@@ -3193,20 +3193,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/side-tandem-right-front-v21.mp3",
       "script": "Place your right foot in front, heel to toe.",
-      "fingerprint": "voice-v21-audio-v1-rxyqcf",
-      "sha256": "efe52c9c40281baf91dce12536056364e70a085c0866d93fa4a422d8aab0bcf0",
-      "fileSizeBytes": 44347,
-      "durationMs": 2694,
+      "fingerprint": "voice-v21-audio-v1-rpl0e1",
+      "sha256": "c61e1151606526e44437f7bcf5bed6a7468bb23b0810bc0b7b0732586f08531b",
+      "fileSizeBytes": 41839,
+      "durationMs": 2554,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "step-up-next-left-v21": {
       "schemaVersion": 1,
@@ -3218,20 +3218,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/step-up-next-left-v21.mp3",
       "script": "Next rep starts with your left leg.",
-      "fingerprint": "voice-v21-audio-v1-trgiol",
-      "sha256": "7b6f5aaf061242283b8a06e5788475402b0ae58fd2861c26236506aa34ca8fe8",
-      "fileSizeBytes": 35988,
-      "durationMs": 2183,
+      "fingerprint": "voice-v21-audio-v1-d71tob",
+      "sha256": "df0c5c7cfde497df492512a37a697ba84a711e93a2d82dc9d43ddc15ef2690f7",
+      "fileSizeBytes": 37660,
+      "durationMs": 2276,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "step-up-next-right-v21": {
       "schemaVersion": 1,
@@ -3243,20 +3243,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/step-up-next-right-v21.mp3",
       "script": "Next rep starts with your right leg.",
-      "fingerprint": "voice-v21-audio-v1-1evesv4",
-      "sha256": "5e6e7abb7e2734bed5f51135559108710423c1c57bd6df2dea18c93c3fb8a137",
+      "fingerprint": "voice-v21-audio-v1-12ic878",
+      "sha256": "5166570cf4ae42da5d524199a75c517832d1f029c30d3758992205e5b2809384",
       "fileSizeBytes": 35988,
       "durationMs": 2183,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "step-up-start-left-v21": {
       "schemaVersion": 1,
@@ -3268,20 +3268,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/step-up-start-left-v21.mp3",
       "script": "Start with your left leg.",
-      "fingerprint": "voice-v21-audio-v1-1yrs84m",
-      "sha256": "ec55d952b336cb60338dfcdc38733415848b906f166222035b0fa2b539d094f1",
-      "fileSizeBytes": 25539,
-      "durationMs": 1533,
+      "fingerprint": "voice-v21-audio-v1-19mf2by",
+      "sha256": "f50d3cac93b57837bb082fa7fb30170f05d5910c5a7385a008f8903a460df610",
+      "fileSizeBytes": 24703,
+      "durationMs": 1486,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "step-up-start-right-v21": {
       "schemaVersion": 1,
@@ -3293,20 +3293,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/step-up-start-right-v21.mp3",
       "script": "Start with your right leg.",
-      "fingerprint": "voice-v21-audio-v1-18bl0dl",
-      "sha256": "70b04b1dfe3baed09f1bc040eb794f9560c0e849c1a29b88c315e474066b3bd2",
-      "fileSizeBytes": 26375,
-      "durationMs": 1579,
+      "fingerprint": "voice-v21-audio-v1-njtyun",
+      "sha256": "f6138ed4424e863eab76658494dd9722c8afc8fd9c582af0e1ced748439e71a5",
+      "fileSizeBytes": 27211,
+      "durationMs": 1625,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "step-up-wrong-left-v21": {
       "schemaVersion": 1,
@@ -3318,20 +3318,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/step-up-wrong-left-v21.mp3",
       "script": "No rep. Start the next one with your left leg.",
-      "fingerprint": "voice-v21-audio-v1-10tfuz8",
-      "sha256": "4e52dbf8c99e3dc48ed476184aaaf759519ea2f47a372c8130b1483feb53f428",
-      "fileSizeBytes": 47691,
-      "durationMs": 2926,
+      "fingerprint": "voice-v21-audio-v1-1uqj8dk",
+      "sha256": "4cca6413ea92858e3946d8442438666fb57326356e96d9667b1a93f5514348e5",
+      "fileSizeBytes": 50199,
+      "durationMs": 3065,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "step-up-wrong-right-v21": {
       "schemaVersion": 1,
@@ -3343,20 +3343,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/step-up-wrong-right-v21.mp3",
       "script": "No rep. Start the next one with your right leg.",
-      "fingerprint": "voice-v21-audio-v1-tq4n9l",
-      "sha256": "3f5ea2f8202c19bd332782213391d4f7974f4ed6ee5709bd9203a767b37825ab",
-      "fileSizeBytes": 48527,
-      "durationMs": 2972,
+      "fingerprint": "voice-v21-audio-v1-tvrz67",
+      "sha256": "bff7e897b4785f5687e7ea528b6f651e13112177da6b14670f5927c90ecf531b",
+      "fileSizeBytes": 45601,
+      "durationMs": 2786,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "switch-foot-positions-v21": {
       "schemaVersion": 1,
@@ -3368,20 +3368,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/switch-foot-positions-v21.mp3",
       "script": "Switch foot positions.",
-      "fingerprint": "voice-v21-audio-v1-dhuei",
-      "sha256": "83ffc0cc5f4f741e9085047859ea8f2e1915af758d53c7ac4016ee1e7f6c44fa",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "fingerprint": "voice-v21-audio-v1-zscw6a",
+      "sha256": "846574dd82d6f6098bcf41eeca9d6b690f9a1684be3a0aa74cf4c1e461be6f2e",
+      "fileSizeBytes": 26375,
+      "durationMs": 1579,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "switch-legs-v21": {
       "schemaVersion": 1,
@@ -3393,20 +3393,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/switch-legs-v21.mp3",
       "script": "Switch legs.",
-      "fingerprint": "voice-v21-audio-v1-cthgvl",
-      "sha256": "8ed2268e2a63a0c0216823fd130c6b6326da6514f29560549960da7147959b7a",
-      "fileSizeBytes": 19688,
-      "durationMs": 1161,
+      "fingerprint": "voice-v21-audio-v1-791ptj",
+      "sha256": "e5b1a10d48fbf41e93f5175487f01c0c3c3620936ac14b28301a240005047d3a",
+      "fileSizeBytes": 20524,
+      "durationMs": 1207,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "switch-sides-v21": {
       "schemaVersion": 1,
@@ -3418,20 +3418,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/switch-sides-v21.mp3",
       "script": "Switch sides.",
-      "fingerprint": "voice-v21-audio-v1-1wjzwn2",
-      "sha256": "18ba33ea32881f117c30276e08bb4f0fdecbf6d765b2c7fef18af65b467c48b5",
-      "fileSizeBytes": 17598,
-      "durationMs": 1022,
+      "fingerprint": "voice-v21-audio-v1-ao6s92",
+      "sha256": "898adf8912598a793fa0c86e27b48cd07a72e9349d4f9bcf0de9928d39ad6c4e",
+      "fileSizeBytes": 20942,
+      "durationMs": 1254,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-balance-feet-together-hold-v21": {
       "schemaVersion": 1,
@@ -3443,20 +3443,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-balance-feet-together-hold-v21.mp3",
       "script": "Hold for twenty seconds.",
-      "fingerprint": "voice-v21-audio-v1-vez51w",
-      "sha256": "1abee64d76b54719cc08de74a53e1f516a7a98a4df5897cf0453acf09d0d2dc0",
+      "fingerprint": "voice-v21-audio-v1-1dma6i0",
+      "sha256": "89706c741e39d703269f3b6e6a6f09eed35d915cc4d4628e3e72b31263a059bb",
       "fileSizeBytes": 26375,
       "durationMs": 1579,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-balance-single-leg-hold-v21": {
       "schemaVersion": 1,
@@ -3468,20 +3468,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-balance-single-leg-hold-v21.mp3",
       "script": "Hold for [duration].",
-      "fingerprint": "voice-v21-audio-v1-tz4qz8",
-      "sha256": "6aea6d8f5396de8cef9188417c0df725ae625bb9df8a5086efd522697bd7a221",
+      "fingerprint": "voice-v21-audio-v1-8mfjfs",
+      "sha256": "d3795dd5c67e54af7ac872428632eb93068725a399008326b66412d5d024d3a9",
       "fileSizeBytes": 25539,
       "durationMs": 1533,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-balance-tandem-hold-v21": {
       "schemaVersion": 1,
@@ -3493,20 +3493,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-balance-tandem-hold-v21.mp3",
       "script": "Hold for [duration].",
-      "fingerprint": "voice-v21-audio-v1-18y9i88",
-      "sha256": "7ac1569f2beae7bf8383581b81dcd051c29e1f6d6c9977b24cf66d728ca0dd5a",
-      "fileSizeBytes": 25539,
-      "durationMs": 1533,
+      "fingerprint": "voice-v21-audio-v1-wbs6zw",
+      "sha256": "08cadcbc9d409e76bd549f7c896b0356c01dbf9fb31c9116d21ab8da6b0877ed",
+      "fileSizeBytes": 24703,
+      "durationMs": 1486,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-band-pull-apart-v21": {
       "schemaVersion": 1,
@@ -3518,20 +3518,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-band-pull-apart-v21.mp3",
       "script": "Move for thirty seconds.",
-      "fingerprint": "voice-v21-audio-v1-1ybwiun",
-      "sha256": "29c1e7535066a400d7a8f79456327dbdbe44c2a6e57fa29aed6f356b3b1c72f5",
-      "fileSizeBytes": 26375,
-      "durationMs": 1579,
+      "fingerprint": "voice-v21-audio-v1-q7slvt",
+      "sha256": "026d2f1ac84599b9a69c10984902c17c12ebd0a0479e4e819dc4c21fd5a5e14b",
+      "fileSizeBytes": 25539,
+      "durationMs": 1533,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-chair-supported-split-squat-v21": {
       "schemaVersion": 1,
@@ -3543,20 +3543,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-chair-supported-split-squat-v21.mp3",
       "script": "Aim for [reps] reps.",
-      "fingerprint": "voice-v21-audio-v1-ahoh3k",
-      "sha256": "5a089f62d31c39817e176bdf4f165612abaa1f204760f46fc61254fa32b81ec1",
-      "fileSizeBytes": 27211,
-      "durationMs": 1625,
+      "fingerprint": "voice-v21-audio-v1-13zjjas",
+      "sha256": "054dfa0ad378bc09fcf7fd93809985081e25336526e448eb426ca2aedc83be46",
+      "fileSizeBytes": 26375,
+      "durationMs": 1579,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-glute-bridge-hold-v21": {
       "schemaVersion": 1,
@@ -3568,20 +3568,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-glute-bridge-hold-v21.mp3",
       "script": "Hold for twenty seconds.",
-      "fingerprint": "voice-v21-audio-v1-a0e3n0",
-      "sha256": "13d1bfe58b1a0480d4749d74a87e2a527a9770039622b437077df26d3b80ae80",
-      "fileSizeBytes": 26375,
-      "durationMs": 1579,
+      "fingerprint": "voice-v21-audio-v1-g497z4",
+      "sha256": "626dd9bf61ae42670b595a984d7bb47a9421e4856130fb4a56288003133d8dde",
+      "fileSizeBytes": 27211,
+      "durationMs": 1625,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-glute-bridge-reps-v21": {
       "schemaVersion": 1,
@@ -3593,20 +3593,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-glute-bridge-reps-v21.mp3",
       "script": "Aim for twelve reps.",
-      "fingerprint": "voice-v21-audio-v1-ayjnwt",
-      "sha256": "c5b135da60cec16b7e4a1d1c84b1ad1853d8a8586805587a6feb9bf68c2e80e9",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "fingerprint": "voice-v21-audio-v1-bupzqr",
+      "sha256": "99c6f34550457edcc5199b56ebdaa1a16570c42231fc1e66afbe096415b30514",
+      "fileSizeBytes": 24285,
+      "durationMs": 1440,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-heel-raise-free-v21": {
       "schemaVersion": 1,
@@ -3618,20 +3618,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-heel-raise-free-v21.mp3",
       "script": "Aim for eighteen reps.",
-      "fingerprint": "voice-v21-audio-v1-x6endd",
-      "sha256": "cc267afe63310fcdb74da648dd0661473b1dcb747ae4d7276b8d736803b89d27",
-      "fileSizeBytes": 26375,
-      "durationMs": 1579,
+      "fingerprint": "voice-v21-audio-v1-1kxbxxz",
+      "sha256": "dc71c2d40acc05a72b2eec55b86b6990cfc5d1737cc5eddb958ee746ead16958",
+      "fileSizeBytes": 27211,
+      "durationMs": 1625,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-heel-raise-supported-v21": {
       "schemaVersion": 1,
@@ -3643,20 +3643,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-heel-raise-supported-v21.mp3",
       "script": "Aim for fifteen reps.",
-      "fingerprint": "voice-v21-audio-v1-n4oyap",
-      "sha256": "a73dae1a73f9dd830196347362f991e2ddf7dcbcc4e380d9016ca1cf46e26ad3",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "fingerprint": "voice-v21-audio-v1-1xki95z",
+      "sha256": "48d0b1aebf102f22d41a60051fff22a4c36661dca0022032dd2ace98c632804f",
+      "fileSizeBytes": 26375,
+      "durationMs": 1579,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-hip-hinge-free-v21": {
       "schemaVersion": 1,
@@ -3668,20 +3668,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-hip-hinge-free-v21.mp3",
       "script": "Aim for twelve reps.",
-      "fingerprint": "voice-v21-audio-v1-r6cbht",
-      "sha256": "8a798fc0f070cbabab827e5ff4e9a2fa91f215ea687b65dedadc97760b268364",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "fingerprint": "voice-v21-audio-v1-45pzlj",
+      "sha256": "ecf81b03379ccf3971af290f0de2ee4c85fbb51850b2114752bca945eb9260e6",
+      "fileSizeBytes": 25539,
+      "durationMs": 1533,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-hip-hinge-wall-v21": {
       "schemaVersion": 1,
@@ -3693,20 +3693,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-hip-hinge-wall-v21.mp3",
       "script": "Aim for ten reps.",
-      "fingerprint": "voice-v21-audio-v1-17njjv",
-      "sha256": "2caad5cf4c07b5d4bdf711d8a56a6ac4c133ec18762fcb6bd82920655231c3d5",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "fingerprint": "voice-v21-audio-v1-1tr7x45",
+      "sha256": "3570540fcd6a79b365176db3cfe7477bf8790d04834e1bc5acab8b94cbafaae6",
+      "fileSizeBytes": 24703,
+      "durationMs": 1486,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-loaded-march-v21": {
       "schemaVersion": 1,
@@ -3718,20 +3718,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-loaded-march-v21.mp3",
       "script": "Aim for sixteen reps.",
-      "fingerprint": "voice-v21-audio-v1-1044uyi",
-      "sha256": "307afa0b5440ef30677ab55f7f0e0962394539142ac488f448f3ddb31070af8d",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "fingerprint": "voice-v21-audio-v1-1ahev02",
+      "sha256": "1e6b40facde4055db2eaa48df467f5954d00b34add9fe1acf9df2afcadb2aa9b",
+      "fileSizeBytes": 27629,
+      "durationMs": 1672,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-loaded-sit-to-stand-v21": {
       "schemaVersion": 1,
@@ -3743,20 +3743,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-loaded-sit-to-stand-v21.mp3",
       "script": "Aim for eight reps.",
-      "fingerprint": "voice-v21-audio-v1-11i1q8j",
-      "sha256": "4d98787625b74e83158a7883d5fd520bb1e0514a14ade5b3e1b55a4292047beb",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "fingerprint": "voice-v21-audio-v1-1bxe9dp",
+      "sha256": "c71e0fa9372fe54891af1451282c98432caf85df17f509e2d075e42047208e88",
+      "fileSizeBytes": 24285,
+      "durationMs": 1440,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-mini-band-lateral-walk-v21": {
       "schemaVersion": 1,
@@ -3768,20 +3768,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-mini-band-lateral-walk-v21.mp3",
       "script": "Move for thirty seconds.",
-      "fingerprint": "voice-v21-audio-v1-1p97xh9",
-      "sha256": "0d998df2c47e65c9bc0cbd744b1959306a8a560ede1103632d103ac73acbf37a",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "fingerprint": "voice-v21-audio-v1-1du9twj",
+      "sha256": "0ae836ee7fe9f53c9ba36ba95ce3fae2bd7fc99eada6b4e2be95663feb96d779",
+      "fileSizeBytes": 24285,
+      "durationMs": 1440,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-neck-rotation-v21": {
       "schemaVersion": 1,
@@ -3793,20 +3793,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-neck-rotation-v21.mp3",
       "script": "Move slowly until I say stop.",
-      "fingerprint": "voice-v21-audio-v1-pj5g4j",
-      "sha256": "821e87689001955dfb0554bcbbf3817450e96997e8405cd818fb5f5374143ad3",
-      "fileSizeBytes": 35152,
-      "durationMs": 2136,
+      "fingerprint": "voice-v21-audio-v1-fxncjx",
+      "sha256": "6dcf7c7acaefa77b12f97b22d18aae5362451bb5c0a10174ff291da7d3128b83",
+      "fileSizeBytes": 37660,
+      "durationMs": 2276,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-overhead-press-band-v21": {
       "schemaVersion": 1,
@@ -3818,20 +3818,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-overhead-press-band-v21.mp3",
       "script": "Aim for twelve reps.",
-      "fingerprint": "voice-v21-audio-v1-1yg2htl",
-      "sha256": "1a05c68b3745ced06b7981259532984f95268813962598112d8d4a110f21526f",
-      "fileSizeBytes": 25539,
-      "durationMs": 1533,
+      "fingerprint": "voice-v21-audio-v1-1mzuebj",
+      "sha256": "9056e52eb688e146647de3525a0e5c22069437ceb282d64c8c3ea8560a97fef8",
+      "fileSizeBytes": 24703,
+      "durationMs": 1486,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-overhead-reach-v21": {
       "schemaVersion": 1,
@@ -3843,20 +3843,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-overhead-reach-v21.mp3",
       "script": "Aim for twelve reps.",
-      "fingerprint": "voice-v21-audio-v1-omxyu9",
-      "sha256": "6e3096d7cd5f3a2072adae1978b78122ff2395d36694ae5af0dde5d4c00af135",
-      "fileSizeBytes": 21777,
-      "durationMs": 1300,
+      "fingerprint": "voice-v21-audio-v1-11leuav",
+      "sha256": "2c853cb0837626a5f1fbe7ffc5c1792ddf3ff5a11bb27d71e97df2645fbdcf6d",
+      "fileSizeBytes": 24703,
+      "durationMs": 1486,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-push-up-incline-v21": {
       "schemaVersion": 1,
@@ -3868,20 +3868,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-push-up-incline-v21.mp3",
       "script": "Aim for ten reps.",
-      "fingerprint": "voice-v21-audio-v1-u2wizn",
-      "sha256": "1c908a47b2aa23e4f483e8fafabd06d42d5e2daa318f888b09d8926ee5464189",
+      "fingerprint": "voice-v21-audio-v1-1ytsutp",
+      "sha256": "53bc4703717c2433cd3af85b8a3cbd178cf001f81592b64fa103529914df9781",
       "fileSizeBytes": 24703,
       "durationMs": 1486,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-push-up-standard-v21": {
       "schemaVersion": 1,
@@ -3893,20 +3893,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-push-up-standard-v21.mp3",
       "script": "Aim for eight reps.",
-      "fingerprint": "voice-v21-audio-v1-13ij2pr",
-      "sha256": "b6a173545005880d906fe413c4b206978fa5816c7f4723878f3639ea09cc30c0",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "fingerprint": "voice-v21-audio-v1-1otct7d",
+      "sha256": "cc992dcc34d7e7537327a1eeec2bb23b8f3d8059423dda312d093d0bc81aac61",
+      "fileSizeBytes": 24703,
+      "durationMs": 1486,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-push-up-wall-v21": {
       "schemaVersion": 1,
@@ -3918,20 +3918,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-push-up-wall-v21.mp3",
       "script": "Aim for ten reps.",
-      "fingerprint": "voice-v21-audio-v1-1b89lvt",
-      "sha256": "b6e861d1dce79ee8ea43df033cec303a853426a6fdda30af68f6e7a955c8d2ef",
-      "fileSizeBytes": 20942,
-      "durationMs": 1254,
+      "fingerprint": "voice-v21-audio-v1-1s7o9b",
+      "sha256": "ecec3413c26ed66fa89420bfac9846fd73defbff855fde6eed99c0acfd8e5788",
+      "fileSizeBytes": 23449,
+      "durationMs": 1393,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-seated-band-row-v21": {
       "schemaVersion": 1,
@@ -3943,20 +3943,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-seated-band-row-v21.mp3",
       "script": "Aim for ten reps.",
-      "fingerprint": "voice-v21-audio-v1-bxf4cf",
-      "sha256": "be008cd7e6f29c7ab295db0e88de3ae9de5e9e72f9d4e20df81ce931facf5466",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "fingerprint": "voice-v21-audio-v1-1jm3zq1",
+      "sha256": "35378d324814fe5145a2ef8b2136d25502592222c99f135ef7dbf49392983b1d",
+      "fileSizeBytes": 25539,
+      "durationMs": 1533,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-seated-hamstring-reach-v21": {
       "schemaVersion": 1,
@@ -3968,20 +3968,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-seated-hamstring-reach-v21.mp3",
       "script": "Reach gently and hold until I say relax.",
-      "fingerprint": "voice-v21-audio-v1-1pb8tbq",
-      "sha256": "72bb989e072a2bdf9ba09d3a66eec03f36e4c29443b64d75f2148f56f27cd86c",
-      "fileSizeBytes": 44765,
-      "durationMs": 2740,
+      "fingerprint": "voice-v21-audio-v1-qpd38e",
+      "sha256": "ff81c210cedb8a5c26ea7109fb76f21b06969415a6d1209f8ca15310aeea20e9",
+      "fileSizeBytes": 43511,
+      "durationMs": 2647,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-squat-free-v21": {
       "schemaVersion": 1,
@@ -3993,20 +3993,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-squat-free-v21.mp3",
       "script": "Aim for twelve reps.",
-      "fingerprint": "voice-v21-audio-v1-1sk30vz",
-      "sha256": "3ed7560ec11b7fdd60dff75e7e3b1e46a88879e21ca3ea40931ec712cff48ead",
-      "fileSizeBytes": 25539,
-      "durationMs": 1533,
+      "fingerprint": "voice-v21-audio-v1-1qlkx09",
+      "sha256": "360b01b7c4290aa1d5cca858abd7dda9539aa868746a3bf7654e3403276c2179",
+      "fileSizeBytes": 24703,
+      "durationMs": 1486,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-squat-loaded-v21": {
       "schemaVersion": 1,
@@ -4018,20 +4018,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-squat-loaded-v21.mp3",
       "script": "Aim for eight reps.",
-      "fingerprint": "voice-v21-audio-v1-rt03sf",
-      "sha256": "baac71747ec1462dbd5d6fb85c0741edc614601aa5491fb870c6fd93093c1bd9",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "fingerprint": "voice-v21-audio-v1-8wom4p",
+      "sha256": "98bb0e7d76351e0fe1f5da9bdbb744ab7c29132d8cb36d3469f5b98fdd46eb13",
+      "fileSizeBytes": 23449,
+      "durationMs": 1393,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-squat-slow-eccentric-v21": {
       "schemaVersion": 1,
@@ -4043,20 +4043,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-squat-slow-eccentric-v21.mp3",
       "script": "Aim for eight reps.",
-      "fingerprint": "voice-v21-audio-v1-11rfvk5",
-      "sha256": "c65e5f7acc7bc787e821d55c3369ff1318bb3cbf24645f865df89b5cae1db549",
+      "fingerprint": "voice-v21-audio-v1-1vp71t7",
+      "sha256": "d2a8dcf2c69c62f106e9ee74e5ddf9384b4ea7e304b6085bb0517feca8e4c7b1",
       "fileSizeBytes": 24703,
       "durationMs": 1486,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-squat-supported-v21": {
       "schemaVersion": 1,
@@ -4068,20 +4068,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-squat-supported-v21.mp3",
       "script": "Aim for ten reps.",
-      "fingerprint": "voice-v21-audio-v1-1y5kymn",
-      "sha256": "3bff22e9fd0983e7072df4fb6f34d1eac2f9af28aa5a6af2af4ecd96be687909",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "fingerprint": "voice-v21-audio-v1-3uxx9l",
+      "sha256": "5e0c213d9b327f626d5dc7ce74cdaaa1c2003cd3537f6d877f70bf7e1ed1a0e2",
+      "fileSizeBytes": 20942,
+      "durationMs": 1254,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-standing-band-row-v21": {
       "schemaVersion": 1,
@@ -4093,20 +4093,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-standing-band-row-v21.mp3",
       "script": "Aim for ten reps.",
-      "fingerprint": "voice-v21-audio-v1-de9kzf",
-      "sha256": "edcdeb9cc367fdd6340c80845af573b604b805518fb5be37fbabf20a7c13cdf6",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "fingerprint": "voice-v21-audio-v1-ci4zvp",
+      "sha256": "76831b193b3ad5feaff1c4c3e8982ccc072c8c2185af0c360f99ee30e108d4cf",
+      "fileSizeBytes": 24285,
+      "durationMs": 1440,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-step-up-v21": {
       "schemaVersion": 1,
@@ -4118,20 +4118,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-step-up-v21.mp3",
       "script": "Do twelve total reps.",
-      "fingerprint": "voice-v21-audio-v1-1fibjbe",
-      "sha256": "4b522d66632d840371869046294e750f79751fd022f11b5949a474863f00afb2",
-      "fileSizeBytes": 27629,
-      "durationMs": 1672,
+      "fingerprint": "voice-v21-audio-v1-1damvgi",
+      "sha256": "5d0ce3de8676acf60b83b87082c39663abd44fa22e3bf99bb07da3cce894142b",
+      "fileSizeBytes": 26375,
+      "durationMs": 1579,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-sts-cushion-v21": {
       "schemaVersion": 1,
@@ -4143,20 +4143,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-sts-cushion-v21.mp3",
       "script": "Aim for eight reps.",
-      "fingerprint": "voice-v21-audio-v1-1di0jon",
-      "sha256": "6d5908412775f7455f510a2b53a61703ca01f680094d9c78b2ccf09875d8a85c",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "fingerprint": "voice-v21-audio-v1-8foi9t",
+      "sha256": "66284410ff2f466b7c36b09fb922e152474576d4d375950f0fb4deea4618bd03",
+      "fileSizeBytes": 24285,
+      "durationMs": 1440,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-sts-power-v21": {
       "schemaVersion": 1,
@@ -4168,20 +4168,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-sts-power-v21.mp3",
       "script": "Aim for twelve reps.",
-      "fingerprint": "voice-v21-audio-v1-1v9sckh",
-      "sha256": "7dee1f3b28a3e213e111c96efaa51ddbae248fb9606cf570c221439d46775951",
-      "fileSizeBytes": 26375,
-      "durationMs": 1579,
+      "fingerprint": "voice-v21-audio-v1-tu98tj",
+      "sha256": "d16a8fbeb01bd7a3016759e550e9ec023b209eb2e6ca43639707cccc72c688f1",
+      "fileSizeBytes": 25539,
+      "durationMs": 1533,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-sts-slow-eccentric-v21": {
       "schemaVersion": 1,
@@ -4193,20 +4193,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-sts-slow-eccentric-v21.mp3",
       "script": "Aim for eight reps.",
-      "fingerprint": "voice-v21-audio-v1-1ndqysl",
-      "sha256": "bbfbb1b649d74c8ba475e77f38bafd74dd999a596e0a249984071728e766bb14",
-      "fileSizeBytes": 19688,
-      "durationMs": 1161,
+      "fingerprint": "voice-v21-audio-v1-obbi4r",
+      "sha256": "700da10d26a5f0e7e52f15765c134d370fb2e82c3e6367c8fdec726ff114a17f",
+      "fileSizeBytes": 24703,
+      "durationMs": 1486,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-sts-standard-v21": {
       "schemaVersion": 1,
@@ -4218,20 +4218,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-sts-standard-v21.mp3",
       "script": "Aim for ten reps.",
-      "fingerprint": "voice-v21-audio-v1-951tqz",
-      "sha256": "1863aa485778d9ae4b9e7466f8b74d630cb62a8154f872e62c0e8301a24d1c55",
-      "fileSizeBytes": 20942,
-      "durationMs": 1254,
+      "fingerprint": "voice-v21-audio-v1-11so2kl",
+      "sha256": "8a98def94464a8972d6efcb0a5f63f1bc93b394ca98376378a542060718dc5b2",
+      "fileSizeBytes": 23449,
+      "durationMs": 1393,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-supported-hip-flexor-stretch-v21": {
       "schemaVersion": 1,
@@ -4243,20 +4243,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-supported-hip-flexor-stretch-v21.mp3",
       "script": "Hold for [duration].",
-      "fingerprint": "voice-v21-audio-v1-1e0v4ji",
-      "sha256": "a4cf5e3b6a5d10ff1b5c803d494ae5198c087c216f004961897da4519e727e76",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "fingerprint": "voice-v21-audio-v1-gfn9hi",
+      "sha256": "f54beba0316cf2edeb0de07e60b25a18fb2c1dc43650cedccb4568a27d33ae57",
+      "fileSizeBytes": 25539,
+      "durationMs": 1533,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-supported-side-step-v21": {
       "schemaVersion": 1,
@@ -4268,20 +4268,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-supported-side-step-v21.mp3",
       "script": "Move for thirty seconds.",
-      "fingerprint": "voice-v21-audio-v1-ofj6k7",
-      "sha256": "81de8b8f94f33baa31fc9e4afa5c11cafca89ca5b397e15accabda71e9b8d80a",
-      "fileSizeBytes": 27211,
-      "durationMs": 1625,
+      "fingerprint": "voice-v21-audio-v1-nby9ld",
+      "sha256": "e4250d812891aee5c7bf53723c786ab422ba30ffd0526fb323ee6f1019b429bf",
+      "fileSizeBytes": 26375,
+      "durationMs": 1579,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-thoracic-rotation-v21": {
       "schemaVersion": 1,
@@ -4293,20 +4293,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-thoracic-rotation-v21.mp3",
       "script": "Move for thirty seconds.",
-      "fingerprint": "voice-v21-audio-v1-1550i67",
-      "sha256": "eeb77c4ec32a324f76e5b980e1f44e435de39fc9e2d752e23f051c83e21e9977",
-      "fileSizeBytes": 26375,
-      "durationMs": 1579,
+      "fingerprint": "voice-v21-audio-v1-14pwbix",
+      "sha256": "784af260fc2c06e08db0e138e5335db7113fb1123cfd060da0349b6341ccd4f2",
+      "fileSizeBytes": 27629,
+      "durationMs": 1672,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-toe-raise-supported-v21": {
       "schemaVersion": 1,
@@ -4318,20 +4318,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-toe-raise-supported-v21.mp3",
       "script": "Move for thirty seconds.",
-      "fingerprint": "voice-v21-audio-v1-4dyzov",
-      "sha256": "afae77c844f1a3ac31d0b06c7b40a33dc29733df6b9170874f673299f68c9eb3",
-      "fileSizeBytes": 27211,
-      "durationMs": 1625,
+      "fingerprint": "voice-v21-audio-v1-ir711l",
+      "sha256": "25136c071e99d4b062913a03643408858b259622217d7a1d63cb350a1fcbf15d",
+      "fileSizeBytes": 21777,
+      "durationMs": 1300,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-wall-calf-stretch-v21": {
       "schemaVersion": 1,
@@ -4343,20 +4343,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-wall-calf-stretch-v21.mp3",
       "script": "Hold for [duration].",
-      "fingerprint": "voice-v21-audio-v1-q0zlw0",
-      "sha256": "28e2bbd69e6a9801c7b4973f294f216001a8d9f085a5ec5d5f97074051c78181",
-      "fileSizeBytes": 26375,
-      "durationMs": 1579,
+      "fingerprint": "voice-v21-audio-v1-1ef9bw4",
+      "sha256": "16179c2330512ce7e98b1eb2510ea505f80e4b3bd20aa1a329880d340349a211",
+      "fileSizeBytes": 25539,
+      "durationMs": 1533,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "training-intro-v21": {
       "schemaVersion": 1,
@@ -4368,20 +4368,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/training-intro-v21.mp3",
       "script": "Time to train. I will guide the setup, work, and rests. Follow my voice and pause whenever you need.",
-      "fingerprint": "voice-v21-audio-v1-1ymfcpt",
-      "sha256": "880586c5b34c34ad6f46078ad593dee8296cd9a7c22230d13ec24f70e0b98c86",
-      "fileSizeBytes": 114146,
-      "durationMs": 7059,
+      "fingerprint": "voice-v21-audio-v1-1u96vzb",
+      "sha256": "ceed894e5f8dea442ad424b3836de17ea9b4ffca3c2d2055a2da467c7335b2b4",
+      "fileSizeBytes": 119162,
+      "durationMs": 7384,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "training-skip-v21": {
       "schemaVersion": 1,
@@ -4393,20 +4393,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/training-skip-v21.mp3",
       "script": "Skipped. Moving on.",
-      "fingerprint": "voice-v21-audio-v1-zcw23l",
-      "sha256": "bfdfbcef4144389e95569da93f366bc0b3eb6a432721c6fc802831e90c20e071",
-      "fileSizeBytes": 27211,
-      "durationMs": 1625,
+      "fingerprint": "voice-v21-audio-v1-p65zaf",
+      "sha256": "0c7061e434f8d2eb3f671b812b93f52b45e1b502510ff3702b53a35c3ceeb6de",
+      "fileSizeBytes": 27629,
+      "durationMs": 1672,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     }
   },
   "marcus": {
@@ -4420,20 +4420,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/checkup-balance-feet-together-v21.mp3",
       "script": "Feet together. Keep your eyes open and support within reach.",
-      "fingerprint": "voice-v21-audio-v1-11qfbr6",
-      "sha256": "654fc80a0f009df7ccc9285270891d2095841b8d385c76725c8da52eca3cf46d",
-      "fileSizeBytes": 58140,
-      "durationMs": 3576,
+      "fingerprint": "voice-v21-audio-v1-m8td3u",
+      "sha256": "61b5c5af4966b7eac9687e5ef3250da56fa5bac0034567c172579ded50920768",
+      "fileSizeBytes": 56886,
+      "durationMs": 3483,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "checkup-balance-next-stance-v21": {
       "schemaVersion": 1,
@@ -4445,20 +4445,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/checkup-balance-next-stance-v21.mp3",
       "script": "Nicely done. I will guide the next stance.",
-      "fingerprint": "voice-v21-audio-v1-kqcy99",
-      "sha256": "35cbd9579ebb38f1bb83f6739fb565e9b88bf52e8521425dde6fbfc0d008596b",
-      "fileSizeBytes": 35152,
-      "durationMs": 2136,
+      "fingerprint": "voice-v21-audio-v1-1te8sb7",
+      "sha256": "860f7d3d80b5877ef368c03b32a5159e62b352de7f0bd5a3fcc060717e9db339",
+      "fileSizeBytes": 36824,
+      "durationMs": 2229,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "checkup-balance-semi-tandem-left-v21": {
       "schemaVersion": 1,
@@ -4470,20 +4470,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/checkup-balance-semi-tandem-left-v21.mp3",
       "script": "Place your left foot half a step forward. Keep your eyes open.",
-      "fingerprint": "voice-v21-audio-v1-236qxe",
-      "sha256": "4707132a81145c44c1f9f835f5352849cf595cffcd680900540dbef32415e00e",
-      "fileSizeBytes": 55214,
-      "durationMs": 3390,
+      "fingerprint": "voice-v21-audio-v1-16l5ip6",
+      "sha256": "e475b457c57fb672d548c1cc67ce987118ff321215f6d0fe923c54b575befc54",
+      "fileSizeBytes": 53960,
+      "durationMs": 3297,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "checkup-balance-semi-tandem-right-v21": {
       "schemaVersion": 1,
@@ -4495,20 +4495,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/checkup-balance-semi-tandem-right-v21.mp3",
       "script": "Place your right foot half a step forward. Keep your eyes open.",
-      "fingerprint": "voice-v21-audio-v1-1anpsvl",
-      "sha256": "002eca6c0ffa2a24b220afff921c4d9f6343a100befb91230583ecfdbf24024e",
-      "fileSizeBytes": 53124,
-      "durationMs": 3251,
+      "fingerprint": "voice-v21-audio-v1-pgfinr",
+      "sha256": "2494a33fa6faf69fa8935a313dc22448ce63ac40075b15afd1ea082c178299ab",
+      "fileSizeBytes": 52288,
+      "durationMs": 3204,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "checkup-balance-single-leg-left-v21": {
       "schemaVersion": 1,
@@ -4520,20 +4520,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/checkup-balance-single-leg-left-v21.mp3",
       "script": "Stand on your left leg and lift your right foot slightly.",
-      "fingerprint": "voice-v21-audio-v1-11gf5as",
-      "sha256": "9145f2ee060444eb941c328422efa927f28dfc7005903764bc4c4ceffbf6af31",
-      "fileSizeBytes": 49363,
-      "durationMs": 3019,
+      "fingerprint": "voice-v21-audio-v1-13v3ju0",
+      "sha256": "ba31148603395b32f3bd2e8b328b1d35305b545a400bb65c52ff6b2f8687f58a",
+      "fileSizeBytes": 51035,
+      "durationMs": 3111,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "checkup-balance-single-leg-right-v21": {
       "schemaVersion": 1,
@@ -4545,20 +4545,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/checkup-balance-single-leg-right-v21.mp3",
       "script": "Stand on your right leg and lift your left foot slightly.",
-      "fingerprint": "voice-v21-audio-v1-1xc7njm",
-      "sha256": "3aec40ef658e0e828d60f4358eae4cdbbe036ce7f5676fbb4b528f28b1c84325",
-      "fileSizeBytes": 45601,
-      "durationMs": 2786,
+      "fingerprint": "voice-v21-audio-v1-1e2cwp6",
+      "sha256": "103d265da8ef4f369c275c17b9fb28465232804d05f8114a04a6d780f843f654",
+      "fileSizeBytes": 44347,
+      "durationMs": 2694,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "checkup-balance-support-touch-v21": {
       "schemaVersion": 1,
@@ -4570,20 +4570,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/checkup-balance-support-touch-v21.mp3",
       "script": "Support touch noted. Balance check complete.",
-      "fingerprint": "voice-v21-audio-v1-8m40kv",
-      "sha256": "f9e057228923740d31efcca2b1508d2dccfcecd8d94e9b34c04fc6c522d00a24",
-      "fileSizeBytes": 43511,
-      "durationMs": 2647,
+      "fingerprint": "voice-v21-audio-v1-1etnart",
+      "sha256": "dc7499241875104f88a5d032a87eff4659eafb2f0572ba53ee228ed5a15519d8",
+      "fileSizeBytes": 44765,
+      "durationMs": 2740,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "checkup-balance-tandem-left-v21": {
       "schemaVersion": 1,
@@ -4595,20 +4595,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/checkup-balance-tandem-left-v21.mp3",
       "script": "Place your left foot directly in front heel to toe. Keep your eyes open.",
-      "fingerprint": "voice-v21-audio-v1-10ijtg6",
-      "sha256": "d280307722213687bbfaed1702abbefc3b9358ae9a73ff30f5c2d343d1a9e228",
-      "fileSizeBytes": 74440,
-      "durationMs": 4598,
+      "fingerprint": "voice-v21-audio-v1-cnd79a",
+      "sha256": "c99c2a8682800eabb39390724f63eb4ddc02a0ffe6724d264a04b36619c00876",
+      "fileSizeBytes": 61902,
+      "durationMs": 3808,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "checkup-balance-tandem-right-v21": {
       "schemaVersion": 1,
@@ -4620,20 +4620,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/checkup-balance-tandem-right-v21.mp3",
       "script": "Place your right foot directly in front heel to toe. Keep your eyes open.",
-      "fingerprint": "voice-v21-audio-v1-10t7xwp",
-      "sha256": "eed918c98b64127ec47a59792f1c392da291592d163de8aba37828726ceccb00",
-      "fileSizeBytes": 71515,
-      "durationMs": 4412,
+      "fingerprint": "voice-v21-audio-v1-1pwwwhb",
+      "sha256": "13f6deac962b60704a367c82f2b3ac9e1249e4d670e1f671775693d022a5e394",
+      "fileSizeBytes": 71097,
+      "durationMs": 4365,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "equip-balance-support-v21": {
       "schemaVersion": 1,
@@ -4645,20 +4645,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/equip-balance-support-v21.mp3",
       "script": "Keep support within easy reach.",
-      "fingerprint": "voice-v21-audio-v1-kpo2pe",
-      "sha256": "c23120bfd12536a2b6d952fb60cbee6812039903c5f94789ec6704b63a1558d4",
-      "fileSizeBytes": 29301,
-      "durationMs": 1765,
+      "fingerprint": "voice-v21-audio-v1-1894oui",
+      "sha256": "accacffc39c58f34bcc102b69f3b73ed7710cc3a81f8d5370a759f9d46b87e5d",
+      "fileSizeBytes": 30137,
+      "durationMs": 1811,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "equip-chair-stable-v21": {
       "schemaVersion": 1,
@@ -4670,20 +4670,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/equip-chair-stable-v21.mp3",
       "script": "Use a sturdy chair that will not slide.",
-      "fingerprint": "voice-v21-audio-v1-oyfd87",
-      "sha256": "61978c8143a6f6032eeeae07faacd5b0e4d1a0053075963300b148bba7f24d1e",
+      "fingerprint": "voice-v21-audio-v1-1xks85t",
+      "sha256": "38d91860a643b1058031f5e3ef52dce51c33fef8a318ddf338a8ad2fc3592f81",
       "fileSizeBytes": 37660,
       "durationMs": 2276,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "equip-door-anchor-v21": {
       "schemaVersion": 1,
@@ -4695,20 +4695,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/equip-door-anchor-v21.mp3",
       "script": "Use a secure closed door anchor and test light tension first.",
-      "fingerprint": "voice-v21-audio-v1-13n82k1",
-      "sha256": "7200193040d480fc3f2fcec018f429b52d5363c726a7ec8319226e87a48d28cf",
-      "fileSizeBytes": 54378,
-      "durationMs": 3344,
+      "fingerprint": "voice-v21-audio-v1-4nw1br",
+      "sha256": "c68f097dab3803d0493690f271056e3857a1c81759b264656caa36cb75e994ed",
+      "fileSizeBytes": 58976,
+      "durationMs": 3622,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "equip-floor-transition-v21": {
       "schemaVersion": 1,
@@ -4720,20 +4720,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/equip-floor-transition-v21.mp3",
       "script": "Move down to the floor and settle into the start position.",
-      "fingerprint": "voice-v21-audio-v1-jdajrt",
-      "sha256": "262476a630bb383414f913ae1a5d89bde26e536dcd98cc7baba0403f3acd5678",
-      "fileSizeBytes": 51035,
-      "durationMs": 3111,
+      "fingerprint": "voice-v21-audio-v1-12gt17j",
+      "sha256": "ba3929e7517db24dfdae45d85c9e0889edc91a0a8f6a10241c9487f11986bce9",
+      "fileSizeBytes": 48527,
+      "durationMs": 2972,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "equip-long-band-v21": {
       "schemaVersion": 1,
@@ -4745,20 +4745,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/equip-long-band-v21.mp3",
       "script": "Check the band first and keep it away from your face.",
-      "fingerprint": "voice-v21-audio-v1-1uag6dl",
-      "sha256": "15c581e3a8beb7506fdb02e9b9452dcb125f43965b4d8cd8eb701cd3d22ae60e",
-      "fileSizeBytes": 47691,
-      "durationMs": 2926,
+      "fingerprint": "voice-v21-audio-v1-qfzj2n",
+      "sha256": "b8c51322418022c49a777e5ae5f1f2e6df12ba36089948dcdb6c16877f7df1c7",
+      "fileSizeBytes": 43511,
+      "durationMs": 2647,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "equip-step-stable-v21": {
       "schemaVersion": 1,
@@ -4770,20 +4770,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/equip-step-stable-v21.mp3",
       "script": "Use the lowest stable step, with support nearby.",
-      "fingerprint": "voice-v21-audio-v1-5ohfrl",
-      "sha256": "74b9117a50220f24cbdc195938d18910840114060321b3e6dc77b75dfe973175",
-      "fileSizeBytes": 49363,
-      "durationMs": 3019,
+      "fingerprint": "voice-v21-audio-v1-15qttnb",
+      "sha256": "63a57148f8f4e50dcee842177a404051084a31939009b376fec255b69d58d2cb",
+      "fileSizeBytes": 43511,
+      "durationMs": 2647,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "equip-support-close-v21": {
       "schemaVersion": 1,
@@ -4795,20 +4795,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/equip-support-close-v21.mp3",
       "script": "Keep sturdy support within easy reach.",
-      "fingerprint": "voice-v21-audio-v1-1cw9fi3",
-      "sha256": "bc5fcfef2cdd434e4e32721ba83a3d0ce3faa9eb8fe6f42727888d569b17183c",
-      "fileSizeBytes": 35988,
-      "durationMs": 2183,
+      "fingerprint": "voice-v21-audio-v1-wuppwl",
+      "sha256": "e709f7e4d1e254eafeb118fb447668175121a45259b3641995f50fae9f1ea3bf",
+      "fileSizeBytes": 34316,
+      "durationMs": 2090,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-balance-feet-together-hold-first-v21": {
       "schemaVersion": 1,
@@ -4820,20 +4820,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-balance-feet-together-hold-first-v21.mp3",
       "script": "Feet-together hold. Stand with feet together, fingertips near support, eyes open.",
-      "fingerprint": "voice-v21-audio-v1-12qec6w",
-      "sha256": "df60d7c52991c0aa11055786af8d415b31a3c44f20205d6befa7e28526f8b654",
-      "fileSizeBytes": 82799,
-      "durationMs": 5108,
+      "fingerprint": "voice-v21-audio-v1-1lqv5gc",
+      "sha256": "0fa7a23e45570bb5eb78d501ea4e0b4965030e05fa6901e2fdf7bce4c039e0c6",
+      "fileSizeBytes": 75276,
+      "durationMs": 4644,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-balance-feet-together-hold-next-v21": {
       "schemaVersion": 1,
@@ -4845,20 +4845,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-balance-feet-together-hold-next-v21.mp3",
       "script": "Feet-together hold.",
-      "fingerprint": "voice-v21-audio-v1-1nyy1ns",
-      "sha256": "7fd5826420d44772fffc7c40fb60f555e9b9ea5606db2cbe9942dc5f40498a5b",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "fingerprint": "voice-v21-audio-v1-7ib0ek",
+      "sha256": "8c9a4100db0321cf169e82b57ab06bb5b63dc4931b46d7f99413daf01b43aa32",
+      "fileSizeBytes": 22613,
+      "durationMs": 1347,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-balance-single-leg-hold-first-v21": {
       "schemaVersion": 1,
@@ -4870,20 +4870,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-balance-single-leg-hold-first-v21.mp3",
       "script": "Single-leg hold. Keep support close.",
-      "fingerprint": "voice-v21-audio-v1-67weyw",
-      "sha256": "0170c7cfddaab014d990be92c084c174c0b6b3cdf64e1c3e777e6a61df29d955",
+      "fingerprint": "voice-v21-audio-v1-1ens6cs",
+      "sha256": "041b63d01130709ce69820a8e2b7e2c55b26be95f794a1c69f64716e81db8aa3",
       "fileSizeBytes": 35988,
       "durationMs": 2183,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-balance-single-leg-hold-next-v21": {
       "schemaVersion": 1,
@@ -4895,20 +4895,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-balance-single-leg-hold-next-v21.mp3",
       "script": "Single-leg hold.",
-      "fingerprint": "voice-v21-audio-v1-1fg74vw",
-      "sha256": "41b8c74511d813d779459794a99e528327f7080d7cc927b0c6c30bc1f4cc5fc4",
-      "fileSizeBytes": 20942,
-      "durationMs": 1254,
+      "fingerprint": "voice-v21-audio-v1-f9p4s0",
+      "sha256": "317b12704bc45d5ea4a8def2d638fb9f5bd0eb858c309109604ba9b7f1e4d0fa",
+      "fileSizeBytes": 19688,
+      "durationMs": 1161,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-balance-tandem-hold-first-v21": {
       "schemaVersion": 1,
@@ -4920,20 +4920,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-balance-tandem-hold-first-v21.mp3",
       "script": "Tandem hold. Keep support close.",
-      "fingerprint": "voice-v21-audio-v1-16lw3yq",
-      "sha256": "cf76d10f462d879c50b2d6104c158421b02f438bf03b57e0b7ea75cc0752ddde",
-      "fileSizeBytes": 36824,
-      "durationMs": 2229,
+      "fingerprint": "voice-v21-audio-v1-17fcqsq",
+      "sha256": "05eeb08799d2532f8cc097b4b91c83d79b5806598f8043f16a2be41ac3e9d23c",
+      "fileSizeBytes": 33898,
+      "durationMs": 2043,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-balance-tandem-hold-next-v21": {
       "schemaVersion": 1,
@@ -4945,20 +4945,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-balance-tandem-hold-next-v21.mp3",
       "script": "Tandem hold.",
-      "fingerprint": "voice-v21-audio-v1-edylja",
-      "sha256": "7d189ed99a7569dc535ac45f8db4bfa92d305925b8ea181fd5e5f141c6b11fef",
-      "fileSizeBytes": 16762,
-      "durationMs": 975,
+      "fingerprint": "voice-v21-audio-v1-15q504u",
+      "sha256": "53b3daa76ea487f8d0db07112458f2ec5e782203f35569041ca05529284634ac",
+      "fileSizeBytes": 19688,
+      "durationMs": 1161,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-band-pull-apart-first-v21": {
       "schemaVersion": 1,
@@ -4970,20 +4970,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-band-pull-apart-first-v21.mp3",
       "script": "Band pull-apart. Hold a light band at chest height. Pull your hands wide, then return slowly.",
-      "fingerprint": "voice-v21-audio-v1-m577av",
-      "sha256": "c6563158cf1146fe3d00780a08f1d2f11dc05cf1fba7f05b5fda95d24cdd6379",
-      "fileSizeBytes": 105787,
-      "durationMs": 6548,
+      "fingerprint": "voice-v21-audio-v1-1v2pn5",
+      "sha256": "360296263951b824ee198a9a06cc3db79b64d4ccb1820bb903687624f1418c8b",
+      "fileSizeBytes": 111639,
+      "durationMs": 6920,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-band-pull-apart-next-v21": {
       "schemaVersion": 1,
@@ -4995,20 +4995,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-band-pull-apart-next-v21.mp3",
       "script": "Band pull-apart.",
-      "fingerprint": "voice-v21-audio-v1-1pa897j",
-      "sha256": "b2686d808214fc5487f2c13c6e9ccefd061d3f1987b2a12fc9336bdb8b39b34d",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "fingerprint": "voice-v21-audio-v1-196mq2h",
+      "sha256": "907ba9bbac1f5896c9c0cb765142124deefaf2e7c462e5d784d60f056e612cfd",
+      "fileSizeBytes": 21777,
+      "durationMs": 1300,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-chair-supported-split-squat-first-v21": {
       "schemaVersion": 1,
@@ -5020,20 +5020,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-chair-supported-split-squat-first-v21.mp3",
       "script": "Supported split squat. Keep fingertips near sturdy support.",
-      "fingerprint": "voice-v21-audio-v1-l3yqra",
-      "sha256": "66838c3bb7d76452450a4b8156102c92aac1a7a12fc61efba638d7e09d2360bd",
-      "fileSizeBytes": 58140,
-      "durationMs": 3576,
+      "fingerprint": "voice-v21-audio-v1-1jruvq6",
+      "sha256": "9a7c076480130b17d06fa9d7d0544fe644e7cbebf1b9d1ee1a9041ffa2e9e2bf",
+      "fileSizeBytes": 56050,
+      "durationMs": 3437,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-chair-supported-split-squat-next-v21": {
       "schemaVersion": 1,
@@ -5045,20 +5045,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-chair-supported-split-squat-next-v21.mp3",
       "script": "Supported split squat.",
-      "fingerprint": "voice-v21-audio-v1-1057mue",
-      "sha256": "6d3af7bbff1d438049a666c0e6aa4eb3e3917f6d6d8f4fb68b99a3746cdbe8ba",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "fingerprint": "voice-v21-audio-v1-18s96q6",
+      "sha256": "d15301118202123cb06f5b0dd6a0086b03da458ba6c546975e8dc3d81b86a1f0",
+      "fileSizeBytes": 21777,
+      "durationMs": 1300,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-glute-bridge-hold-first-v21": {
       "schemaVersion": 1,
@@ -5070,20 +5070,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-glute-bridge-hold-first-v21.mp3",
       "script": "Bridge hold. Lie on your back, knees bent, feet flat. Lift your hips and hold.",
-      "fingerprint": "voice-v21-audio-v1-1ubjn9n",
-      "sha256": "936deb7b51609b20b0d1d5803999e5457da0465246ad36265b6662baf6baabdb",
-      "fileSizeBytes": 81964,
-      "durationMs": 5062,
+      "fingerprint": "voice-v21-audio-v1-10ovdit",
+      "sha256": "2abfa8473dc30b83e62efffb6036b55d5446e3ca8d2bc480a2b4e015198156ec",
+      "fileSizeBytes": 71097,
+      "durationMs": 4365,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-glute-bridge-hold-next-v21": {
       "schemaVersion": 1,
@@ -5095,20 +5095,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-glute-bridge-hold-next-v21.mp3",
       "script": "Bridge hold.",
-      "fingerprint": "voice-v21-audio-v1-7228qq",
-      "sha256": "d4204106a951e541369e01b394b6c3ee680b522f8152fbfe5d4de3ad1a7b6db2",
-      "fileSizeBytes": 16762,
-      "durationMs": 975,
+      "fingerprint": "voice-v21-audio-v1-1iei7tm",
+      "sha256": "8ba81612effab80cd09958f680057d537f8fae267cfcb92fdcde2216c0a2c90c",
+      "fileSizeBytes": 18016,
+      "durationMs": 1068,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-glute-bridge-reps-first-v21": {
       "schemaVersion": 1,
@@ -5120,20 +5120,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-glute-bridge-reps-first-v21.mp3",
       "script": "Glute bridge. Lie on your back, knees bent, feet flat. Lift your hips, then lower with control.",
-      "fingerprint": "voice-v21-audio-v1-5skkve",
-      "sha256": "045fcee4fe690203615081a48f942f6c21376c7da589e459e3e24adab8d7d6cb",
-      "fileSizeBytes": 109549,
-      "durationMs": 6780,
+      "fingerprint": "voice-v21-audio-v1-1h41izm",
+      "sha256": "0b553ed7ca5e1611294af04326fadb35c7a35626ac31549615808607aee12738",
+      "fileSizeBytes": 104533,
+      "durationMs": 6455,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-glute-bridge-reps-next-v21": {
       "schemaVersion": 1,
@@ -5145,20 +5145,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-glute-bridge-reps-next-v21.mp3",
       "script": "Glute bridge.",
-      "fingerprint": "voice-v21-audio-v1-vul170",
-      "sha256": "048ec9a6668cfe5bfa8c0904bb804edf73cde6f657cca6bbd4466880311218ca",
-      "fileSizeBytes": 18016,
-      "durationMs": 1068,
+      "fingerprint": "voice-v21-audio-v1-qsexog",
+      "sha256": "b552da00503ea61dcd2bc1a9bb5517e34509de241b87e128680db7671ab0a16a",
+      "fileSizeBytes": 20524,
+      "durationMs": 1207,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-heel-raise-free-first-v21": {
       "schemaVersion": 1,
@@ -5170,20 +5170,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-heel-raise-free-first-v21.mp3",
       "script": "Heel raise. Stand tall. Rise onto the balls of your feet, then lower slowly.",
-      "fingerprint": "voice-v21-audio-v1-91nmsf",
-      "sha256": "c64316f008e0a4dfc62f79062041e7803460eb735104f582e350f91e2f6771ee",
-      "fileSizeBytes": 87397,
-      "durationMs": 5387,
+      "fingerprint": "voice-v21-audio-v1-1hvo0l5",
+      "sha256": "1eaa2dc097ecaa856ea6996ad58a16930c23b702c1501d63bfee1b6574609086",
+      "fileSizeBytes": 83635,
+      "durationMs": 5155,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-heel-raise-free-next-v21": {
       "schemaVersion": 1,
@@ -5195,20 +5195,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-heel-raise-free-next-v21.mp3",
       "script": "Heel raise.",
-      "fingerprint": "voice-v21-audio-v1-9u47bo",
-      "sha256": "7b2aab28796461180884ec44a513f50e0760794d0bdadf389f00989865867a15",
+      "fingerprint": "voice-v21-audio-v1-pipsx4",
+      "sha256": "24d6a3bf59cf5226cec5a75f7920366acc7ba54e9239eca95676598d9eec95f1",
       "fileSizeBytes": 18016,
       "durationMs": 1068,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-heel-raise-supported-first-v21": {
       "schemaVersion": 1,
@@ -5220,20 +5220,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-heel-raise-supported-first-v21.mp3",
       "script": "Supported heel raise. Fingertips near support. Rise onto the balls of your feet, then lower slowly.",
-      "fingerprint": "voice-v21-audio-v1-w4tv5y",
-      "sha256": "f5ec73654a762d71ed26596ff9b9408080b99db0222254ce4d021c73ef2665e1",
-      "fileSizeBytes": 115400,
-      "durationMs": 7152,
+      "fingerprint": "voice-v21-audio-v1-1iwcacu",
+      "sha256": "cd20222f05be8c7315d3777ee10c3083ca7aadb398de700bae1952c1f9da1ff6",
+      "fileSizeBytes": 122924,
+      "durationMs": 7616,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-heel-raise-supported-next-v21": {
       "schemaVersion": 1,
@@ -5245,20 +5245,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-heel-raise-supported-next-v21.mp3",
       "script": "Supported heel raise.",
-      "fingerprint": "voice-v21-audio-v1-txdkm6",
-      "sha256": "35d55cf90c753632c9738f02f69f09acf039d6ce1615218950828a482926a7ee",
+      "fingerprint": "voice-v21-audio-v1-1cto1ba",
+      "sha256": "53a6a8f39eed32026d495c0ab2dbe8a7b7e456f08a2749153be6e39cf01f46d0",
       "fileSizeBytes": 23449,
       "durationMs": 1393,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-hip-hinge-free-first-v21": {
       "schemaVersion": 1,
@@ -5270,20 +5270,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-hip-hinge-free-first-v21.mp3",
       "script": "Hip hinge. Feet under hips. Send hips back with a long spine, then stand tall.",
-      "fingerprint": "voice-v21-audio-v1-1u2wxc5",
-      "sha256": "7c83d847e5c031949172b119bf7e76130823b0a9a85d465647dbb6098db6ac2f",
-      "fileSizeBytes": 91577,
-      "durationMs": 5666,
+      "fingerprint": "voice-v21-audio-v1-119tlez",
+      "sha256": "59397686b8606a1da3d2701e83138add822f12d8fca632c8877f36d2ecd4c069",
+      "fileSizeBytes": 91159,
+      "durationMs": 5619,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-hip-hinge-free-next-v21": {
       "schemaVersion": 1,
@@ -5295,20 +5295,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-hip-hinge-free-next-v21.mp3",
       "script": "Hip hinge.",
-      "fingerprint": "voice-v21-audio-v1-wbbo8s",
-      "sha256": "5c4e871bff3e1863db9ae9887bb7271d45aac8250e9211ba02870d53e6ec4dd7",
-      "fileSizeBytes": 18852,
-      "durationMs": 1115,
+      "fingerprint": "voice-v21-audio-v1-1a2rtdc",
+      "sha256": "c6c611e3dd147d7249f5ff0e4873965192b201cdc80adfd9231651696f44c1d8",
+      "fileSizeBytes": 18016,
+      "durationMs": 1068,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-hip-hinge-wall-first-v21": {
       "schemaVersion": 1,
@@ -5320,20 +5320,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-hip-hinge-wall-first-v21.mp3",
       "script": "Wall-tap hinge. Stand a step from the wall. Send hips back to tap the wall, then stand tall.",
-      "fingerprint": "voice-v21-audio-v1-177ebyz",
-      "sha256": "d330a36b19fba6917c1e111884619d915567a9256fbc85e87eef2ba25b224d7b",
-      "fileSizeBytes": 99936,
-      "durationMs": 6177,
+      "fingerprint": "voice-v21-audio-v1-7u90at",
+      "sha256": "9022f63e4fc54d12785d61c39a251c8768d260c7bcde009653b90e4ac73f0149",
+      "fileSizeBytes": 96174,
+      "durationMs": 5944,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-hip-hinge-wall-next-v21": {
       "schemaVersion": 1,
@@ -5345,20 +5345,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-hip-hinge-wall-next-v21.mp3",
       "script": "Wall-tap hinge.",
-      "fingerprint": "voice-v21-audio-v1-do5a8x",
-      "sha256": "9acc8ea7e1606d8da44dcb653346e0939769ecf09ba59183c0c22899bbbf0fb4",
+      "fingerprint": "voice-v21-audio-v1-1lhuyxz",
+      "sha256": "beeb6e45939426887cd36b63a4cd9036f1466e5db5c26bd86fb4b1903a3ad19c",
       "fileSizeBytes": 20942,
       "durationMs": 1254,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-loaded-march-first-v21": {
       "schemaVersion": 1,
@@ -5370,20 +5370,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-loaded-march-first-v21.mp3",
       "script": "March in place. Stand tall near support and march with a steady rhythm.",
-      "fingerprint": "voice-v21-audio-v1-wnku7u",
-      "sha256": "e18064270e8e19a761a2c4977d4abd92bcb3f924664bf197e9e784b40e331be2",
-      "fileSizeBytes": 73186,
-      "durationMs": 4505,
+      "fingerprint": "voice-v21-audio-v1-kuq3oy",
+      "sha256": "9b940ee04c9c1267b7c6c9486405f05b1d33d63614c430b15c3249029c951ba6",
+      "fileSizeBytes": 68589,
+      "durationMs": 4226,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-loaded-march-next-v21": {
       "schemaVersion": 1,
@@ -5395,20 +5395,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-loaded-march-next-v21.mp3",
       "script": "March in place.",
-      "fingerprint": "voice-v21-audio-v1-1gcutn",
-      "sha256": "379c42dfa228101f52061c55aadd42e631ec68be23fbd9b7cf5be9ae47979a4c",
+      "fingerprint": "voice-v21-audio-v1-1yfv6b9",
+      "sha256": "825a2e5e7dbe2cef7c519728eb4988f775e5d736b2ab3eefdfeae5576248402f",
       "fileSizeBytes": 21777,
       "durationMs": 1300,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-loaded-sit-to-stand-first-v21": {
       "schemaVersion": 1,
@@ -5420,20 +5420,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-loaded-sit-to-stand-first-v21.mp3",
       "script": "Loaded sit-to-stand. Hold the load close to your chest. Stand fully, then sit with control.",
-      "fingerprint": "voice-v21-audio-v1-1tuywjt",
-      "sha256": "138f8c86a2dfc100b08ed93b23fdd88a76df2a79d18eb4973993cb6b6d80dedd",
-      "fileSizeBytes": 105787,
-      "durationMs": 6548,
+      "fingerprint": "voice-v21-audio-v1-1u8yonj",
+      "sha256": "0b251b0536768be2e374f97c4193da2b9c5897adc74310df6a50a59865e50ce6",
+      "fileSizeBytes": 104533,
+      "durationMs": 6455,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-loaded-sit-to-stand-next-v21": {
       "schemaVersion": 1,
@@ -5445,20 +5445,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-loaded-sit-to-stand-next-v21.mp3",
       "script": "Loaded sit-to-stand.",
-      "fingerprint": "voice-v21-audio-v1-1qbaqek",
-      "sha256": "3b74a8898dc0ae9bb4952d14a6611a0539d6c9390852882dc8c9fc2961c1e042",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "fingerprint": "voice-v21-audio-v1-1j3cmsg",
+      "sha256": "685aa73df455101ac032768a7dd9dc157c8f4013ce5e84c358ba0a782816b0fe",
+      "fileSizeBytes": 27211,
+      "durationMs": 1625,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-mini-band-lateral-walk-first-v21": {
       "schemaVersion": 1,
@@ -5470,20 +5470,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-mini-band-lateral-walk-first-v21.mp3",
       "script": "Mini-band lateral walk. Band above your knees. Take small controlled steps both directions.",
-      "fingerprint": "voice-v21-audio-v1-rau0bo",
-      "sha256": "4d7e577104e3eb8e0118daa8968ddb6e4ccc0a040bd22bb1064e320f230a959a",
-      "fileSizeBytes": 92413,
-      "durationMs": 5712,
+      "fingerprint": "voice-v21-audio-v1-ecyznc",
+      "sha256": "fb0a812acd8fe10ef735a0d35908259fa1e9bebaa3a7cb7bf2813520a4ed1a76",
+      "fileSizeBytes": 100772,
+      "durationMs": 6223,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-mini-band-lateral-walk-next-v21": {
       "schemaVersion": 1,
@@ -5495,20 +5495,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-mini-band-lateral-walk-next-v21.mp3",
       "script": "Mini-band lateral walk.",
-      "fingerprint": "voice-v21-audio-v1-1xw96y1",
-      "sha256": "4f98f674c23381861ed6da35a17517790df67190c405d9185e10f3f30078ec65",
+      "fingerprint": "voice-v21-audio-v1-152qr1r",
+      "sha256": "3b6ad02fb9c0551a2e437d57368487ba285cd6ba8d233d8f4194621c04d8b39a",
       "fileSizeBytes": 25539,
       "durationMs": 1533,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-neck-rotation-first-v21": {
       "schemaVersion": 1,
@@ -5520,20 +5520,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-neck-rotation-first-v21.mp3",
       "script": "Neck rotations. Face the phone, sit or stand tall, and slowly look over one shoulder, then the other.",
-      "fingerprint": "voice-v21-audio-v1-1kd8jxa",
-      "sha256": "a24c643093c21ed80bbd1b26deaaeb898563933c8d54b7e901b1eef955cf9913",
-      "fileSizeBytes": 100772,
-      "durationMs": 6223,
+      "fingerprint": "voice-v21-audio-v1-21k1uu",
+      "sha256": "bb8c29f7811931a37dc0e09045990cc3d4a7ba6050bcf9982ec4e083117730a3",
+      "fileSizeBytes": 111221,
+      "durationMs": 6873,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-neck-rotation-next-v21": {
       "schemaVersion": 1,
@@ -5545,20 +5545,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-neck-rotation-next-v21.mp3",
       "script": "Neck rotations.",
-      "fingerprint": "voice-v21-audio-v1-slchae",
-      "sha256": "f6c9d06ac63e9ee6ed5357b1f765199a7041ed7f0ee78c3ac4b665bfff7da92d",
+      "fingerprint": "voice-v21-audio-v1-cwf0mm",
+      "sha256": "a6a4e27c8a0f4653db8de84ce0119552c6d94c742e939ce8c5ec2385f8cf644d",
       "fileSizeBytes": 22613,
       "durationMs": 1347,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-overhead-press-band-first-v21": {
       "schemaVersion": 1,
@@ -5570,20 +5570,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-overhead-press-band-first-v21.mp3",
       "script": "Band overhead press. Stand tall with light band tension. Press overhead, then return slowly.",
-      "fingerprint": "voice-v21-audio-v1-13lsvwg",
-      "sha256": "194e92c5ddfa4c5369d138053798338ff7b26ab833c5bdb10fda58c73b00aee0",
-      "fileSizeBytes": 100772,
-      "durationMs": 6223,
+      "fingerprint": "voice-v21-audio-v1-jyr690",
+      "sha256": "2590545ccaad4f6abb03b6cbe330ec1672391b23f349481f3e999e65bb37d5c7",
+      "fileSizeBytes": 85725,
+      "durationMs": 5294,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-overhead-press-band-next-v21": {
       "schemaVersion": 1,
@@ -5595,20 +5595,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-overhead-press-band-next-v21.mp3",
       "script": "Band overhead press.",
-      "fingerprint": "voice-v21-audio-v1-oh5gjk",
-      "sha256": "9d8ada29eb9403cd36423eb9a19c49af45fcff7418673c3861ba939f7f675797",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "fingerprint": "voice-v21-audio-v1-1v2qztw",
+      "sha256": "39c98961c5fd63b94e0f06aad8d943fca2498709abbb9a6784a68f4c27314649",
+      "fileSizeBytes": 21777,
+      "durationMs": 1300,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-overhead-reach-first-v21": {
       "schemaVersion": 1,
@@ -5620,20 +5620,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-overhead-reach-first-v21.mp3",
       "script": "Overhead reach. Stand tall. Reach both arms overhead as far as comfortable, then lower.",
-      "fingerprint": "voice-v21-audio-v1-h47n6a",
-      "sha256": "bf7466425d137fee9f575e8b34e366651d23ffe468d185e17dfa0ab6eeb61de5",
-      "fileSizeBytes": 82799,
-      "durationMs": 5108,
+      "fingerprint": "voice-v21-audio-v1-1xzsqsq",
+      "sha256": "529c6a7c1543e20acc82c55aabc6fc9e8e35b58b4d6582a4acdc7aab91d5f314",
+      "fileSizeBytes": 91577,
+      "durationMs": 5666,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-overhead-reach-next-v21": {
       "schemaVersion": 1,
@@ -5645,20 +5645,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-overhead-reach-next-v21.mp3",
       "script": "Overhead reach.",
-      "fingerprint": "voice-v21-audio-v1-1ldps1p",
-      "sha256": "c0c1443469038bffb2086d92eba6e6ded2d846248ec3c00a9bfbc4c27d3f265c",
+      "fingerprint": "voice-v21-audio-v1-1euk883",
+      "sha256": "0f006f0c9884dee3a44fc6469608c42251b39fd47407ce5f8047f86b4ab61677",
       "fileSizeBytes": 18852,
       "durationMs": 1115,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-push-up-incline-first-v21": {
       "schemaVersion": 1,
@@ -5670,20 +5670,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-push-up-incline-first-v21.mp3",
       "script": "Incline push-up. Hands on a stable counter or sturdy chair. Lower in with control, then press away.",
-      "fingerprint": "voice-v21-audio-v1-1ku3271",
-      "sha256": "daba00392b867056124f924d62de613e56ac393ad41348a73f51380fb6db41c9",
-      "fileSizeBytes": 109549,
-      "durationMs": 6780,
+      "fingerprint": "voice-v21-audio-v1-1k0s2tf",
+      "sha256": "4f64b9fb6ec91659dabdae7e68bd2850e6d2319f1718c58d3c8b94a6c0ecb9da",
+      "fileSizeBytes": 108713,
+      "durationMs": 6734,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-push-up-incline-next-v21": {
       "schemaVersion": 1,
@@ -5695,20 +5695,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-push-up-incline-next-v21.mp3",
       "script": "Incline push-up.",
-      "fingerprint": "voice-v21-audio-v1-190uxuc",
-      "sha256": "4ef9ff4e6b52b21243428697211c964e55abb4be95997c412624295b59ecef3b",
-      "fileSizeBytes": 19688,
-      "durationMs": 1161,
+      "fingerprint": "voice-v21-audio-v1-sp17u0",
+      "sha256": "a0f88f0dd6552c34e2d803ca903b63f4672827245d5c93cc572df6c8ed810721",
+      "fileSizeBytes": 22613,
+      "durationMs": 1347,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-push-up-standard-first-v21": {
       "schemaVersion": 1,
@@ -5720,20 +5720,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-push-up-standard-first-v21.mp3",
       "script": "Push-up. Start from the floor position. Lower with control, then press up.",
-      "fingerprint": "voice-v21-audio-v1-132gukx",
-      "sha256": "1e5f392043da4f92b5d9f76334d7b3d8fa6f73881b4444ee336ccefbdc2e88d5",
-      "fileSizeBytes": 81128,
-      "durationMs": 5016,
+      "fingerprint": "voice-v21-audio-v1-fs4sd3",
+      "sha256": "32abc384e5668cb9a7c3a05c6a2fe70e3893a0820c0c1649fa8bacb9a2a2c84f",
+      "fileSizeBytes": 71097,
+      "durationMs": 4365,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-push-up-standard-next-v21": {
       "schemaVersion": 1,
@@ -5745,20 +5745,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-push-up-standard-next-v21.mp3",
       "script": "Push-up.",
-      "fingerprint": "voice-v21-audio-v1-wtkihg",
-      "sha256": "30bdb3a7eb6ab03ae85f81caec3d73a5d617431410cad172465aeca836111901",
-      "fileSizeBytes": 15926,
-      "durationMs": 929,
+      "fingerprint": "voice-v21-audio-v1-iv3ktk",
+      "sha256": "9562839cd3caf68bb7e85be83b1c233460c277a021e19880ce7ca755ab1b71cf",
+      "fileSizeBytes": 14254,
+      "durationMs": 836,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-push-up-wall-first-v21": {
       "schemaVersion": 1,
@@ -5770,20 +5770,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-push-up-wall-first-v21.mp3",
       "script": "Wall push-up. Hands on the wall. Lower in with control, then press away.",
-      "fingerprint": "voice-v21-audio-v1-1uweg61",
-      "sha256": "da4e3cdb1725322a358c4885343c9aabc6703289215fe02dc203799bd2008a4e",
-      "fileSizeBytes": 71515,
-      "durationMs": 4412,
+      "fingerprint": "voice-v21-audio-v1-1wbyrhb",
+      "sha256": "4a6d24f3b44266a40ec135be3ffe5ca1d0486cb5e166d58b663e38d4881b8a16",
+      "fileSizeBytes": 71097,
+      "durationMs": 4365,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-push-up-wall-next-v21": {
       "schemaVersion": 1,
@@ -5795,20 +5795,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-push-up-wall-next-v21.mp3",
       "script": "Wall push-up.",
-      "fingerprint": "voice-v21-audio-v1-1vs24jo",
-      "sha256": "76af67b835e3e3d9284e9b3bf55f87f53c8248e4cf73f586cdc2047acf767264",
-      "fileSizeBytes": 17598,
-      "durationMs": 1022,
+      "fingerprint": "voice-v21-audio-v1-1ivv1p4",
+      "sha256": "5a3cc0bc6b4f9ca1725dece6c09058b52b29ecff86dc5200a78b6d41d7dd5992",
+      "fileSizeBytes": 18852,
+      "durationMs": 1115,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-seated-band-row-first-v21": {
       "schemaVersion": 1,
@@ -5820,20 +5820,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-seated-band-row-first-v21.mp3",
       "script": "Seated band row. Sit tall on a sturdy chair with the band anchored under both feet. Pull elbows back, then return slowly.",
-      "fingerprint": "voice-v21-audio-v1-dbyfhs",
-      "sha256": "1e7cb3f4a61942d2b7c08b1f2e936e56a718ba492484bccd5bbd148a4b74af57",
-      "fileSizeBytes": 135462,
-      "durationMs": 8406,
+      "fingerprint": "voice-v21-audio-v1-1f977mc",
+      "sha256": "e49ec318561591b644ecffef0e8cf6cc50d28ca4a20582c5573f92612f9842c1",
+      "fileSizeBytes": 128775,
+      "durationMs": 7988,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-seated-band-row-next-v21": {
       "schemaVersion": 1,
@@ -5845,20 +5845,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-seated-band-row-next-v21.mp3",
       "script": "Seated band row.",
-      "fingerprint": "voice-v21-audio-v1-10q2bfj",
-      "sha256": "77dd1d7356d6bf660a485ab8b12eaabef7eeea098a12e5372ecd18264fb5f251",
-      "fileSizeBytes": 22613,
-      "durationMs": 1347,
+      "fingerprint": "voice-v21-audio-v1-1e8ncft",
+      "sha256": "eb640e632cbbd0b2f3ebaf5d9d737ee13493da6de9ae8bcc932147436022de66",
+      "fileSizeBytes": 21777,
+      "durationMs": 1300,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-seated-hamstring-reach-first-v21": {
       "schemaVersion": 1,
@@ -5870,20 +5870,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-seated-hamstring-reach-first-v21.mp3",
       "script": "Seated hamstring reach. Sit tall at the chair edge.",
-      "fingerprint": "voice-v21-audio-v1-1f88xsl",
-      "sha256": "b65e344e0a272c3630ac58e61cd6c8c83c68cc760943274a2634b8ce27a05502",
+      "fingerprint": "voice-v21-audio-v1-xw0bgb",
+      "sha256": "ae7b39b7b5ceb1e4fcf0cf14c689fd4ec6e0e2b22eaf89e233061ba10fc9322a",
       "fileSizeBytes": 50199,
       "durationMs": 3065,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-seated-hamstring-reach-next-v21": {
       "schemaVersion": 1,
@@ -5895,20 +5895,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-seated-hamstring-reach-next-v21.mp3",
       "script": "Seated hamstring reach.",
-      "fingerprint": "voice-v21-audio-v1-eia9oa",
-      "sha256": "7be1c368172c0f795c6970217ec33dc2cca28e66cede0fc22708425e0cd1db5b",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "fingerprint": "voice-v21-audio-v1-1najt82",
+      "sha256": "0b25685cea4d1353b1462cbe47b117131ef69b3131bf8fc60be91bb750b4f17b",
+      "fileSizeBytes": 22613,
+      "durationMs": 1347,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-squat-free-first-v21": {
       "schemaVersion": 1,
@@ -5920,20 +5920,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-squat-free-first-v21.mp3",
       "script": "Squat. Feet about hip width. Lower as if to sit, then stand with control.",
-      "fingerprint": "voice-v21-audio-v1-akdm4t",
-      "sha256": "32417d348b2b767035f9a271e7d25ba4970670bef94ff68e03b822b664cf0143",
-      "fileSizeBytes": 89487,
-      "durationMs": 5526,
+      "fingerprint": "voice-v21-audio-v1-uts88j",
+      "sha256": "2906c3be1d04379e4d0f8446295da67e27aad98d0ad769d77b9dc30f55504dd5",
+      "fileSizeBytes": 78202,
+      "durationMs": 4830,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-squat-free-next-v21": {
       "schemaVersion": 1,
@@ -5945,20 +5945,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-squat-free-next-v21.mp3",
       "script": "Squat.",
-      "fingerprint": "voice-v21-audio-v1-1t34s38",
-      "sha256": "9fe9dff6e60a8c6fd07fb1af193c68c82598774bfac35789cce7fdf470b3a0b4",
-      "fileSizeBytes": 14254,
-      "durationMs": 836,
+      "fingerprint": "voice-v21-audio-v1-7px2dk",
+      "sha256": "8f77f661750f8cd3d37dcfac01c13cb583997875f8fd43869a715ccedbfd541a",
+      "fileSizeBytes": 12164,
+      "durationMs": 697,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-squat-loaded-first-v21": {
       "schemaVersion": 1,
@@ -5970,20 +5970,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-squat-loaded-first-v21.mp3",
       "script": "Loaded squat. Hold the load close to your chest. Lower into a squat, then stand with control.",
-      "fingerprint": "voice-v21-audio-v1-1m7vlaa",
-      "sha256": "e09110a10dba5197a8098d21ddcffb44eb470b3443a78fdd8144deba79b2abb4",
-      "fileSizeBytes": 102862,
-      "durationMs": 6362,
+      "fingerprint": "voice-v21-audio-v1-pdejbu",
+      "sha256": "49e42574c1b4f2f0451986e41a263e6af694e87d592f85dcdd742dc04f658757",
+      "fileSizeBytes": 107877,
+      "durationMs": 6687,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-squat-loaded-next-v21": {
       "schemaVersion": 1,
@@ -5995,20 +5995,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-squat-loaded-next-v21.mp3",
       "script": "Loaded squat.",
-      "fingerprint": "voice-v21-audio-v1-1aq3alp",
-      "sha256": "4d0d2c575ee82ba8161318a9b4eb35a095ee5b40b744de33d17fdcefa74064ea",
-      "fileSizeBytes": 20524,
-      "durationMs": 1207,
+      "fingerprint": "voice-v21-audio-v1-rtgv9v",
+      "sha256": "262ed70bd9090e93ca6481f62e93c0e23190774a68f4775472862e036aeaac61",
+      "fileSizeBytes": 19688,
+      "durationMs": 1161,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-squat-slow-eccentric-first-v21": {
       "schemaVersion": 1,
@@ -6020,20 +6020,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-squat-slow-eccentric-first-v21.mp3",
       "script": "Slow-lower squat. Lower slowly, then stand with control.",
-      "fingerprint": "voice-v21-audio-v1-1pypwb6",
-      "sha256": "9392216ff48be2ea24508aa0d79803ca3b7f085d371af6205fb894681cc06a7f",
-      "fileSizeBytes": 61902,
-      "durationMs": 3808,
+      "fingerprint": "voice-v21-audio-v1-m284bu",
+      "sha256": "6aed800b1838583fc7429541484e8dfc53e19bb885343e994e1dd589cc6584aa",
+      "fileSizeBytes": 56886,
+      "durationMs": 3483,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-squat-slow-eccentric-next-v21": {
       "schemaVersion": 1,
@@ -6045,20 +6045,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-squat-slow-eccentric-next-v21.mp3",
       "script": "Slow-lower squat.",
-      "fingerprint": "voice-v21-audio-v1-5of3x5",
-      "sha256": "68c32ff5b88cb8503ea7dbbfdbaec3649b2cb6ace103a77604ca2748f41afadb",
-      "fileSizeBytes": 22613,
-      "durationMs": 1347,
+      "fingerprint": "voice-v21-audio-v1-1pfmuzj",
+      "sha256": "afdc120ac35fa15afde95c57ad2e6fe3979ea7ee4e1e1fbea64789d6371e2237",
+      "fileSizeBytes": 24703,
+      "durationMs": 1486,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-squat-supported-first-v21": {
       "schemaVersion": 1,
@@ -6070,20 +6070,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-squat-supported-first-v21.mp3",
       "script": "Supported squat. Stand near sturdy support. Lower as if to sit, then stand with control.",
-      "fingerprint": "voice-v21-audio-v1-pj4j9h",
-      "sha256": "4ae5a36465432d4a8e761e8f3c66990513aadf76fbbfe95d7b6396d11248a320",
-      "fileSizeBytes": 95338,
-      "durationMs": 5898,
+      "fingerprint": "voice-v21-audio-v1-13r06p7",
+      "sha256": "c27a2bd29a1d54f7ea64b8350b8fe762e25b80b12765a0304adde0644dd02c62",
+      "fileSizeBytes": 91577,
+      "durationMs": 5666,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-squat-supported-next-v21": {
       "schemaVersion": 1,
@@ -6095,20 +6095,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-squat-supported-next-v21.mp3",
       "script": "Supported squat.",
-      "fingerprint": "voice-v21-audio-v1-19drw70",
-      "sha256": "fa7acd35384c0d397a396957e9ff65ec6b7c23591f713e58d076a742635c98e3",
-      "fileSizeBytes": 20524,
-      "durationMs": 1207,
+      "fingerprint": "voice-v21-audio-v1-1q9ikog",
+      "sha256": "e29cc656660f58a215a4338ddf193d92ba543079657097b68f95a2a1c959bc01",
+      "fileSizeBytes": 20942,
+      "durationMs": 1254,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-standing-band-row-first-v21": {
       "schemaVersion": 1,
@@ -6120,20 +6120,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-standing-band-row-first-v21.mp3",
       "script": "Standing band row. Face the secure door anchor in a stable stance. Pull elbows back, then return slowly.",
-      "fingerprint": "voice-v21-audio-v1-14alijp",
-      "sha256": "98ca748c95d0c17988a501fda8685300017e350c35b5728cb252315cde101bbb",
-      "fileSizeBytes": 127521,
-      "durationMs": 7895,
+      "fingerprint": "voice-v21-audio-v1-12w0ky3",
+      "sha256": "e91c767fddc39d3ff170122b0ea7cb720aa017160a54c06554e9698b930c8548",
+      "fileSizeBytes": 123759,
+      "durationMs": 7663,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-standing-band-row-next-v21": {
       "schemaVersion": 1,
@@ -6145,20 +6145,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-standing-band-row-next-v21.mp3",
       "script": "Standing band row.",
-      "fingerprint": "voice-v21-audio-v1-94avb",
-      "sha256": "568f89448fbb0efe1a83171b9aed9e193be5f00b628eac69dd1460fb54e03bef",
-      "fileSizeBytes": 21777,
-      "durationMs": 1300,
+      "fingerprint": "voice-v21-audio-v1-ysn4yp",
+      "sha256": "1e85812ac7cf2b3b3f841688d56fdb696b9a368b7a4937720c210238485d217f",
+      "fileSizeBytes": 20942,
+      "durationMs": 1254,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-step-up-first-v21": {
       "schemaVersion": 1,
@@ -6170,20 +6170,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-step-up-first-v21.mp3",
       "script": "Step-up. Use the lowest stable step with support nearby. Return both feet to the floor after each rep.",
-      "fingerprint": "voice-v21-audio-v1-emqcve",
-      "sha256": "5dc20fed379ab888b06fea76efea8574dcc6788cb638a5b2fd469855df6983d2",
-      "fileSizeBytes": 117072,
-      "durationMs": 7245,
+      "fingerprint": "voice-v21-audio-v1-1r73882",
+      "sha256": "808088414cfa1aa7f0772318a25f49ab33eb12fb9894cc744aaa9fc346d2f07b",
+      "fileSizeBytes": 114564,
+      "durationMs": 7105,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-step-up-next-v21": {
       "schemaVersion": 1,
@@ -6195,20 +6195,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-step-up-next-v21.mp3",
       "script": "Step-up. Return both feet to the floor after each rep.",
-      "fingerprint": "voice-v21-audio-v1-6qv5lb",
-      "sha256": "8b037b5a6b9a072902a0b46dcc817ccec4fae10f9d909fb8a6f9af8cdec16dd2",
-      "fileSizeBytes": 53124,
-      "durationMs": 3251,
+      "fingerprint": "voice-v21-audio-v1-1pytm21",
+      "sha256": "527f65934cea488221fd17dfcc399ba471b51e8f4a64e72b48886ceee5702693",
+      "fileSizeBytes": 53960,
+      "durationMs": 3297,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-sts-cushion-first-v21": {
       "schemaVersion": 1,
@@ -6220,20 +6220,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-sts-cushion-first-v21.mp3",
       "script": "Cushion sit-to-stand. Sit tall on the cushion, feet flat. Stand fully, then sit with control.",
-      "fingerprint": "voice-v21-audio-v1-1r7j5v3",
-      "sha256": "2400fe0be2fe9cc5d8f7139596f4fd7fd9159ab556581da8540f7280945af14f",
-      "fileSizeBytes": 118326,
-      "durationMs": 7338,
+      "fingerprint": "voice-v21-audio-v1-1wjuguh",
+      "sha256": "dfd445c3603344925eb7f8b29ea17733194daaca3ffa1f6ab6a65e6513e2cdd0",
+      "fileSizeBytes": 108713,
+      "durationMs": 6734,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-sts-cushion-next-v21": {
       "schemaVersion": 1,
@@ -6245,20 +6245,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-sts-cushion-next-v21.mp3",
       "script": "Cushion sit-to-stand.",
-      "fingerprint": "voice-v21-audio-v1-g1g4zo",
-      "sha256": "c7ae02212d4c2c411519568e9095b044668752346a37c259e500745b5ba4cee4",
-      "fileSizeBytes": 22613,
-      "durationMs": 1347,
+      "fingerprint": "voice-v21-audio-v1-x9j254",
+      "sha256": "d7c66e3161e893dd2baa3c5a8a9c6a45445aea23112bc2f55f4ae260c42fcb7b",
+      "fileSizeBytes": 23449,
+      "durationMs": 1393,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-sts-power-first-v21": {
       "schemaVersion": 1,
@@ -6270,20 +6270,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-sts-power-first-v21.mp3",
       "script": "Power sit-to-stand. Sit tall, drive up briskly to standing, then sit with control.",
-      "fingerprint": "voice-v21-audio-v1-135fsnl",
-      "sha256": "f1bd0efe175ab37d59cb0d1dbae9fb808a0a73cb629c112510d562227b9d73b4",
+      "fingerprint": "voice-v21-audio-v1-1d1c87r",
+      "sha256": "3cb2f8f34e771c769e17f5e9b569999d1b9cba663af3dea908643d2fb16f49a6",
       "fileSizeBytes": 80710,
       "durationMs": 4969,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-sts-power-next-v21": {
       "schemaVersion": 1,
@@ -6295,20 +6295,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-sts-power-next-v21.mp3",
       "script": "Power sit-to-stand.",
-      "fingerprint": "voice-v21-audio-v1-n4z6yi",
-      "sha256": "4b2e9445348920f9594fc91b30f8ba9bb29c50278e7e72562ed1dbfa8c58465f",
-      "fileSizeBytes": 22613,
-      "durationMs": 1347,
+      "fingerprint": "voice-v21-audio-v1-lahovm",
+      "sha256": "2b3d5bc14494a9d87acd939890eccfca94f3e124b64c434947b0e972a46fceac",
+      "fileSizeBytes": 21777,
+      "durationMs": 1300,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-sts-slow-eccentric-first-v21": {
       "schemaVersion": 1,
@@ -6320,20 +6320,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-sts-slow-eccentric-first-v21.mp3",
       "script": "Slow-lower sit-to-stand. Stand fully, then lower slowly and steadily before the next rep.",
-      "fingerprint": "voice-v21-audio-v1-ue599s",
-      "sha256": "ab92e819133920d1e5e26d14408e63b5340910dea8d4ab13f4e639b0008e67db",
-      "fileSizeBytes": 110385,
-      "durationMs": 6827,
+      "fingerprint": "voice-v21-audio-v1-q7q9lg",
+      "sha256": "a1ad3d0c903d20e6b34b42e6e422a022d4e6a294a4c10afc02b0a891a72ab81c",
+      "fileSizeBytes": 104951,
+      "durationMs": 6502,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-sts-slow-eccentric-next-v21": {
       "schemaVersion": 1,
@@ -6345,20 +6345,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-sts-slow-eccentric-next-v21.mp3",
       "script": "Slow-lower sit-to-stand.",
-      "fingerprint": "voice-v21-audio-v1-28xnq2",
-      "sha256": "67db74b083790361e44958560ea13ef464ea8ea7e297ee0bedd7a21229ba0a51",
+      "fingerprint": "voice-v21-audio-v1-1tg8kr6",
+      "sha256": "1e4f8c792559dd118476c8cde24af20812811ca11fd1af8eeac1fbf1fe1f0e6c",
       "fileSizeBytes": 25539,
       "durationMs": 1533,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-sts-standard-first-v21": {
       "schemaVersion": 1,
@@ -6370,20 +6370,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-sts-standard-first-v21.mp3",
       "script": "Sit-to-stand. Sit tall in the middle of the chair, feet flat. Stand fully, then sit with control.",
-      "fingerprint": "voice-v21-audio-v1-3hlec3",
-      "sha256": "421586ff998896ac53718f4bb76bbfb90d6a7d71ea0c1aca0524348bb082cc56",
-      "fileSizeBytes": 127521,
-      "durationMs": 7895,
+      "fingerprint": "voice-v21-audio-v1-1jod6pp",
+      "sha256": "581b1de6f5ed30df3b34fa0ddd30e667069ffc709e5b29e0a1cd699ae7519ded",
+      "fileSizeBytes": 114146,
+      "durationMs": 7059,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-sts-standard-next-v21": {
       "schemaVersion": 1,
@@ -6395,20 +6395,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-sts-standard-next-v21.mp3",
       "script": "Sit-to-stand.",
-      "fingerprint": "voice-v21-audio-v1-2fco5x",
-      "sha256": "53a312aabb08721864df14c2d0644cf4a7fedd06e841519c98a3b0b27dd9cda9",
-      "fileSizeBytes": 20524,
-      "durationMs": 1207,
+      "fingerprint": "voice-v21-audio-v1-9cvfej",
+      "sha256": "8c5b6f7beb8f071f5698f4b94f0516256137f4f16f023ce5dee2ab0790d22487",
+      "fileSizeBytes": 18852,
+      "durationMs": 1115,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-supported-hip-flexor-stretch-first-v21": {
       "schemaVersion": 1,
@@ -6420,20 +6420,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-supported-hip-flexor-stretch-first-v21.mp3",
       "script": "Supported hip-flexor stretch. Keep fingertips near support.",
-      "fingerprint": "voice-v21-audio-v1-jtv3qg",
-      "sha256": "548721dfc1922b37c7505981a017b61e1c0809cabeb16360d187edb871a4a61f",
-      "fileSizeBytes": 56886,
-      "durationMs": 3483,
+      "fingerprint": "voice-v21-audio-v1-2aaqrw",
+      "sha256": "6b40a16291e9bf96352824e03db957349a354d84b31b3e47d89e17142b654de1",
+      "fileSizeBytes": 57722,
+      "durationMs": 3529,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-supported-hip-flexor-stretch-next-v21": {
       "schemaVersion": 1,
@@ -6445,20 +6445,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-supported-hip-flexor-stretch-next-v21.mp3",
       "script": "Supported hip-flexor stretch.",
-      "fingerprint": "voice-v21-audio-v1-1y9s1rj",
-      "sha256": "f711a32b83ad1fb43eac2eb4b03550f42ae980e778000479ee7bb3c8d18c5ae9",
+      "fingerprint": "voice-v21-audio-v1-11y9d1l",
+      "sha256": "0801a818d836475f6ca9d2244237bc6f5746b62d1a1c3b2a5ccd8218f548b97e",
       "fileSizeBytes": 27211,
       "durationMs": 1625,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-supported-side-step-first-v21": {
       "schemaVersion": 1,
@@ -6470,20 +6470,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-supported-side-step-first-v21.mp3",
       "script": "Supported side step. Stand near a counter. Step to the side, bring the other foot in, and continue with control.",
-      "fingerprint": "voice-v21-audio-v1-x1faws",
-      "sha256": "75e66216ae5f1ee357ac5b1a1736c8d25d5fcce6ce209856122fa120654e028a",
-      "fileSizeBytes": 104951,
-      "durationMs": 6502,
+      "fingerprint": "voice-v21-audio-v1-imeb5c",
+      "sha256": "1073e6602025e2f611b9d32e65a49d4153cc61eee6c3b47cc3746b6446c034f9",
+      "fileSizeBytes": 113311,
+      "durationMs": 7012,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-supported-side-step-next-v21": {
       "schemaVersion": 1,
@@ -6495,20 +6495,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-supported-side-step-next-v21.mp3",
       "script": "Supported side step.",
-      "fingerprint": "voice-v21-audio-v1-1mxhg3p",
-      "sha256": "35a45f0e246c7ae86f39f53b285c3b1c48d9d918749f5d8ba7a4dea17e186b97",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "fingerprint": "voice-v21-audio-v1-1vr5wvf",
+      "sha256": "be781efac3b6a4af1d39c98a0dfc776d4ee70c4c886b49cb621f48a59cbe8329",
+      "fileSizeBytes": 24703,
+      "durationMs": 1486,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-thoracic-rotation-first-v21": {
       "schemaVersion": 1,
@@ -6520,20 +6520,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-thoracic-rotation-first-v21.mp3",
       "script": "Thoracic rotation. Sit or stand tall with arms crossed. Rotate one way, return to center, then rotate the other way.",
-      "fingerprint": "voice-v21-audio-v1-v4tfr9",
-      "sha256": "781388ab96a84c5622ac5d43aa532f5d1f32fc4a7498ccb5064ce9566640ca20",
+      "fingerprint": "voice-v21-audio-v1-1o3q7hn",
+      "sha256": "c73592307969c23bfdca5d7ddf3337af5e46b2818e632b1da6b3af26637ad7a8",
       "fileSizeBytes": 117072,
       "durationMs": 7245,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-thoracic-rotation-next-v21": {
       "schemaVersion": 1,
@@ -6545,20 +6545,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-thoracic-rotation-next-v21.mp3",
       "script": "Thoracic rotation.",
-      "fingerprint": "voice-v21-audio-v1-1qoedlv",
-      "sha256": "d1d071f981851d761142044261b4ba4fd623404bdb3e1c4137e4eb2be2018d33",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "fingerprint": "voice-v21-audio-v1-xoelsd",
+      "sha256": "51608a701426927ff3c4f0fe4237ab73fc9aa272709b0f3f0d8d55177dfa85e6",
+      "fileSizeBytes": 23449,
+      "durationMs": 1393,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-toe-raise-supported-first-v21": {
       "schemaVersion": 1,
@@ -6570,20 +6570,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-toe-raise-supported-first-v21.mp3",
       "script": "Supported toe raise. Keep heels down, lift the front of your feet, then lower slowly.",
-      "fingerprint": "voice-v21-audio-v1-1uvi4x",
-      "sha256": "b6df06a937195d6cd277d80f28962b98703b16ddcdd267d3c0c108ce69261300",
-      "fileSizeBytes": 72351,
-      "durationMs": 4458,
+      "fingerprint": "voice-v21-audio-v1-sg7jdj",
+      "sha256": "68084ea14db19f390903f3321839e645ce68d1124741a3f32b6f0a2bedd1f227",
+      "fileSizeBytes": 77784,
+      "durationMs": 4783,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-toe-raise-supported-next-v21": {
       "schemaVersion": 1,
@@ -6595,20 +6595,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-toe-raise-supported-next-v21.mp3",
       "script": "Supported toe raise.",
-      "fingerprint": "voice-v21-audio-v1-mwk52w",
-      "sha256": "6565eebf3f7fc33b88dde622e683e4c16777556210856ab00a4744a8b9a97914",
+      "fingerprint": "voice-v21-audio-v1-zzeggs",
+      "sha256": "c253ef5bd66d09a088a16fdb9106de40aa76bb005928194636c366586bbbe974",
       "fileSizeBytes": 24285,
       "durationMs": 1440,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-wall-calf-stretch-first-v21": {
       "schemaVersion": 1,
@@ -6620,20 +6620,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-wall-calf-stretch-first-v21.mp3",
       "script": "Wall calf stretch. Hands on the wall.",
-      "fingerprint": "voice-v21-audio-v1-8ndc69",
-      "sha256": "76ce11476fa05da946a8d8a0d91198ecd11b0804abd8b3a0e70581082760f8ee",
-      "fileSizeBytes": 32226,
-      "durationMs": 1950,
+      "fingerprint": "voice-v21-audio-v1-1dc2opz",
+      "sha256": "ee7e072dcec0d22097203a0b84004a44878072271f3a9af96289011fe1de047b",
+      "fileSizeBytes": 41839,
+      "durationMs": 2554,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "ex-wall-calf-stretch-next-v21": {
       "schemaVersion": 1,
@@ -6645,20 +6645,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-wall-calf-stretch-next-v21.mp3",
       "script": "Wall calf stretch.",
-      "fingerprint": "voice-v21-audio-v1-86d7q3",
-      "sha256": "bc41172d903df4dbce3ba73dd1903a6dc3f5ebd59e550246769db243d6ec6ff7",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "fingerprint": "voice-v21-audio-v1-1479thh",
+      "sha256": "d21d96232f91cffb757c147f91ff2e4881bf284db77a542d1145c807d7672e0e",
+      "fileSizeBytes": 21777,
+      "durationMs": 1300,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "five-seconds-left-v21": {
       "schemaVersion": 1,
@@ -6670,20 +6670,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/five-seconds-left-v21.mp3",
       "script": "Five seconds left.",
-      "fingerprint": "voice-v21-audio-v1-s13w0k",
-      "sha256": "d7015855c611f618c65e8fef220490c5c29c89094016d4cf6000dd4bf4169839",
-      "fileSizeBytes": 21777,
-      "durationMs": 1300,
+      "fingerprint": "voice-v21-audio-v1-1yh533c",
+      "sha256": "c23660474ec6b3097c59f39198b564d9c9d03047072254c957f08f914ba26c0d",
+      "fileSizeBytes": 23449,
+      "durationMs": 1393,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "floor-gate-question-v21": {
       "schemaVersion": 1,
@@ -6695,20 +6695,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/floor-gate-question-v21.mp3",
       "script": "Can you safely get down to the floor and back up without assistance?",
-      "fingerprint": "voice-v21-audio-v1-1ejs2cp",
-      "sha256": "03d5be55d5f31924d50322b87c50286ba2f1e09404cbdb5cc667b85d6d110a00",
-      "fileSizeBytes": 53124,
-      "durationMs": 3251,
+      "fingerprint": "voice-v21-audio-v1-maucj3",
+      "sha256": "a5675404161d2e5b0d6d9466140b24f41d441d0907ac509f08151db5a12deab6",
+      "fileSizeBytes": 51035,
+      "durationMs": 3111,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "halfway-v21": {
       "schemaVersion": 1,
@@ -6720,20 +6720,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/halfway-v21.mp3",
       "script": "Halfway.",
-      "fingerprint": "voice-v21-audio-v1-11w65bi",
-      "sha256": "e7a694c96c88279b3e743261138811f44eb71e3c27c4eed693a20668774681c9",
-      "fileSizeBytes": 15090,
-      "durationMs": 882,
+      "fingerprint": "voice-v21-audio-v1-prb0om",
+      "sha256": "5ec87b732bccd3b9d9ecf7b516ae837565fa58322fea5a15b2050687bea88a53",
+      "fileSizeBytes": 16762,
+      "durationMs": 975,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "last-set-v21": {
       "schemaVersion": 1,
@@ -6745,20 +6745,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/last-set-v21.mp3",
       "script": "Last set.",
-      "fingerprint": "voice-v21-audio-v1-oi5lim",
-      "sha256": "4bc0fed22e6952e07c356cabc181d0a1f7bc715b34754960a367bfa53249d159",
-      "fileSizeBytes": 17598,
-      "durationMs": 1022,
+      "fingerprint": "voice-v21-audio-v1-5aav06",
+      "sha256": "09b0b0c4139a4e98e5785bdbf9d251da4c77207a0f216bafb075e793da356f24",
+      "fileSizeBytes": 16762,
+      "durationMs": 975,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "micro-chair-power-v21": {
       "schemaVersion": 1,
@@ -6770,20 +6770,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/micro-chair-power-v21.mp3",
       "script": "Five quick chair stands. Arms crossed. Stand and sit five times as quickly as safely comfortable.",
-      "fingerprint": "voice-v21-audio-v1-vc42vo",
-      "sha256": "bfdbcd582c4f28dd18f754d07bfa99d490e2769b9c346ad9e65f0dec9e67fc4c",
-      "fileSizeBytes": 124595,
-      "durationMs": 7709,
+      "fingerprint": "voice-v21-audio-v1-1nq5dt4",
+      "sha256": "df23df06bbd1659b7ef6d8121ec47142b82592155289cacc7a8af3b999fda3a6",
+      "fileSizeBytes": 117072,
+      "durationMs": 7245,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "micro-discard-v21": {
       "schemaVersion": 1,
@@ -6795,20 +6795,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/micro-discard-v21.mp3",
       "script": "Check discarded.",
-      "fingerprint": "voice-v21-audio-v1-1tdrc7z",
-      "sha256": "ced29325631c0e54a60de7578ca8d4299eb097f152ff4e84afeb551710a00786",
-      "fileSizeBytes": 20942,
-      "durationMs": 1254,
+      "fingerprint": "voice-v21-audio-v1-1qzo6m1",
+      "sha256": "e1567e05e6eef0829d363712a27cbf9a4541abe5f9742798583a94b8044813e2",
+      "fileSizeBytes": 22613,
+      "durationMs": 1347,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "micro-mobility-left-v21": {
       "schemaVersion": 1,
@@ -6820,20 +6820,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/micro-mobility-left-v21.mp3",
-      "script": "Quick mobility check. Extend your left leg and reach gently until I say relax.",
-      "fingerprint": "voice-v21-audio-v1-1x4f0qp",
-      "sha256": "3f572993be2fd3fb4a3af33e747bc32e6dc1032da4c81fd6e963048c0781aa03",
-      "fileSizeBytes": 78202,
-      "durationMs": 4830,
+      "script": "Quick mobility check. Stand side-on, hinge forward, and reach toward the floor until I say stand tall.",
+      "fingerprint": "voice-v21-audio-v1-1cqr4r6",
+      "sha256": "26f466da038b4e842db2dbd82fe38f3a366443964430fdc39c6675217a2c074f",
+      "fileSizeBytes": 113311,
+      "durationMs": 7012,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "micro-mobility-right-v21": {
       "schemaVersion": 1,
@@ -6845,20 +6845,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/micro-mobility-right-v21.mp3",
-      "script": "Quick mobility check. Extend your right leg and reach gently until I say relax.",
-      "fingerprint": "voice-v21-audio-v1-1w68gzy",
-      "sha256": "3092cc643f1e529716235b654261d314bb796c48b2a678cbff77a46138fdf752",
-      "fileSizeBytes": 79038,
-      "durationMs": 4876,
+      "script": "Quick mobility check. Stand side-on, hinge forward, and reach toward the floor until I say stand tall.",
+      "fingerprint": "voice-v21-audio-v1-5vkof2",
+      "sha256": "e444afea87d5f01ae8a4dd87eae0d32efe26722c95611ae040307eac7fb6fe6e",
+      "fileSizeBytes": 103697,
+      "durationMs": 6409,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "micro-relax-v21": {
       "schemaVersion": 1,
@@ -6870,20 +6870,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/micro-relax-v21.mp3",
       "script": "Relax.",
-      "fingerprint": "voice-v21-audio-v1-dhz4ma",
-      "sha256": "4205f27f81f67e84e86815e30b2dfa6bbbd8dbaec5b7ddde6f42f931aa7b08c7",
-      "fileSizeBytes": 15926,
-      "durationMs": 929,
+      "fingerprint": "voice-v21-audio-v1-uh2bcq",
+      "sha256": "cf4aa0dabbe2e8dc14efd4f50d0d91bbbdc9fef79ee4e8acbd8afd4a447e30e5",
+      "fileSizeBytes": 14254,
+      "durationMs": 836,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "micro-single-leg-left-v21": {
       "schemaVersion": 1,
@@ -6895,20 +6895,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/micro-single-leg-left-v21.mp3",
       "script": "Quick balance check. Stand on your left leg with support nearby. Hold as long as comfortable.",
-      "fingerprint": "voice-v21-audio-v1-1qv05z3",
-      "sha256": "ce2682e0e2380124a2358258b20951c3c99e85835ce9aacf76562a5dcf0edd04",
-      "fileSizeBytes": 87397,
-      "durationMs": 5387,
+      "fingerprint": "voice-v21-audio-v1-i4lcm1",
+      "sha256": "f5cdecd474e175c917e88540f3a0192729a090d38bd7b6504651b10d5ba3be9b",
+      "fileSizeBytes": 80710,
+      "durationMs": 4969,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "micro-single-leg-right-v21": {
       "schemaVersion": 1,
@@ -6920,20 +6920,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/micro-single-leg-right-v21.mp3",
       "script": "Quick balance check. Stand on your right leg with support nearby. Hold as long as comfortable.",
-      "fingerprint": "voice-v21-audio-v1-1q7cufo",
-      "sha256": "5c2556156a76cf330ebf2fe72a2c92920f0963173ad82746943a10d5bd3fb7b4",
-      "fileSizeBytes": 97010,
-      "durationMs": 5991,
+      "fingerprint": "voice-v21-audio-v1-xk0814",
+      "sha256": "aac0fa643e150b4939c77d341643e267183e0efe91450195e9c906db21ac0d1a",
+      "fileSizeBytes": 96174,
+      "durationMs": 5944,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "microcheck-complete-v21": {
       "schemaVersion": 1,
@@ -6945,20 +6945,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/microcheck-complete-v21.mp3",
       "script": "Check complete.",
-      "fingerprint": "voice-v21-audio-v1-y2bsyh",
-      "sha256": "22f1d8fc41767789a431cdcfc4aeaa4a93174a19ddb848bc807665f7b680deeb",
-      "fileSizeBytes": 19688,
-      "durationMs": 1161,
+      "fingerprint": "voice-v21-audio-v1-1bfb5b3",
+      "sha256": "7d7fdc4f207a2908866141773f3f710ad700c143a2b92a8adb733e8e1408a3a6",
+      "fileSizeBytes": 18852,
+      "durationMs": 1115,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "next-exercise-v21": {
       "schemaVersion": 1,
@@ -6970,20 +6970,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/next-exercise-v21.mp3",
       "script": "Next exercise.",
-      "fingerprint": "voice-v21-audio-v1-ia0a3j",
-      "sha256": "f93f2480a7ade97ab4c526f17dd177e5221f46192db8b961f332660e520fb1c0",
+      "fingerprint": "voice-v21-audio-v1-9qa1a1",
+      "sha256": "2551256f19704e8be0c145e2dae4d5f0c57847f78f7e80001aaa988a8a98aa2a",
       "fileSizeBytes": 20942,
       "durationMs": 1254,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "paused-v21": {
       "schemaVersion": 1,
@@ -6995,20 +6995,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/paused-v21.mp3",
       "script": "Paused.",
-      "fingerprint": "voice-v21-audio-v1-1qso7s0",
-      "sha256": "f0661ca4a4c79efa9c16b4f4fa077eb04c60ffa0c14ce3f1471c3c407ee77675",
-      "fileSizeBytes": 11328,
-      "durationMs": 650,
+      "fingerprint": "voice-v21-audio-v1-1jz8fyc",
+      "sha256": "6faca8561633d37760dd50ce9b25a0c298878fd894285743060cd73b45bed509",
+      "fileSizeBytes": 13836,
+      "durationMs": 789,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "rest-now-v21": {
       "schemaVersion": 1,
@@ -7020,20 +7020,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/rest-now-v21.mp3",
       "script": "Rest now.",
-      "fingerprint": "voice-v21-audio-v1-16gmrug",
-      "sha256": "888289f3354333c4b68d06810197eef3752c85880288f8e68d6c0db0990e1477",
-      "fileSizeBytes": 15926,
-      "durationMs": 929,
+      "fingerprint": "voice-v21-audio-v1-s3awpo",
+      "sha256": "5a6e4df04876018c9e988c8c602f846dfc3edc332d35879a28273a31d17e1736",
+      "fileSizeBytes": 16762,
+      "durationMs": 975,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "resuming-v21": {
       "schemaVersion": 1,
@@ -7045,20 +7045,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/resuming-v21.mp3",
       "script": "Resuming.",
-      "fingerprint": "voice-v21-audio-v1-1u50by6",
-      "sha256": "a41b244df5087e4cb271b7f2a1738476c0f2da601a59c192cdba451fe9d333a9",
-      "fileSizeBytes": 15090,
-      "durationMs": 882,
+      "fingerprint": "voice-v21-audio-v1-1uu2y9y",
+      "sha256": "eab3991f81442a6503d0c83899f7ddbe189a7eda7e248eb0a913f1473c380ac3",
+      "fileSizeBytes": 15926,
+      "durationMs": 929,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "safe-session-start-v21": {
       "schemaVersion": 1,
@@ -7070,20 +7070,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/safe-session-start-v21.mp3",
       "script": "Clear the space around you. Stop for sharp pain, dizziness, or feeling unwell.",
-      "fingerprint": "voice-v21-audio-v1-1ya1jzo",
-      "sha256": "958dd0e925da1036cd5fb78971da6789971e84f64ea6ea67154d7eb4ccad1e14",
-      "fileSizeBytes": 80710,
-      "durationMs": 4969,
+      "fingerprint": "voice-v21-audio-v1-1dkygi0",
+      "sha256": "4c7e9ccddcf1005fa4ee09f2aeb6241567ac62829740d332533af93dd9cd0c68",
+      "fileSizeBytes": 82799,
+      "durationMs": 5108,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "session-complete-v21": {
       "schemaVersion": 1,
@@ -7095,20 +7095,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/session-complete-v21.mp3",
       "script": "Session complete.",
-      "fingerprint": "voice-v21-audio-v1-1ltwflp",
-      "sha256": "e6cd4d6c6a30192f121ee26fae950f8f2c0220e04ed0336eea6c0c9d48a1204c",
-      "fileSizeBytes": 20524,
-      "durationMs": 1207,
+      "fingerprint": "voice-v21-audio-v1-io0wyr",
+      "sha256": "16e26806a72d0a7062a45256a9c336ab19afae6b2a62cb37f439847c5ab63104",
+      "fileSizeBytes": 21777,
+      "durationMs": 1300,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "set-complete-v21": {
       "schemaVersion": 1,
@@ -7120,20 +7120,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/set-complete-v21.mp3",
       "script": "Set complete.",
-      "fingerprint": "voice-v21-audio-v1-1lihgg1",
-      "sha256": "9ba12ed068b3843c04cc067a2b6b111e3d37013ebe758155bb0fb6dafaa87cd3",
-      "fileSizeBytes": 18852,
-      "durationMs": 1115,
+      "fingerprint": "voice-v21-audio-v1-hz3jgn",
+      "sha256": "012e366536029ed6e47e15c46f8364172acbbfe4aa3b20c57f3b4ae3c1442ed6",
+      "fileSizeBytes": 17598,
+      "durationMs": 1022,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "setup-back-v21": {
       "schemaVersion": 1,
@@ -7145,20 +7145,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/setup-back-v21.mp3",
       "script": "Move a little farther back.",
-      "fingerprint": "voice-v21-audio-v1-ca4qi1",
-      "sha256": "ad7890450ee58f68d2ed194496874b5ad5f51b80cd2b892814cc8ccf5b37be57",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "fingerprint": "voice-v21-audio-v1-12x5e3z",
+      "sha256": "592485ba990a23a9426d2f9e74ac5d2a52e9cd370b81445aaa4bb6837734d931",
+      "fileSizeBytes": 23449,
+      "durationMs": 1393,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "setup-center-v21": {
       "schemaVersion": 1,
@@ -7170,20 +7170,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/setup-center-v21.mp3",
       "script": "Move to the centre of the view.",
-      "fingerprint": "voice-v21-audio-v1-19lrm0h",
-      "sha256": "6eabd0766426b050aca0925f42b3b56abec8ace631847ad130a4dd78c6f84910",
-      "fileSizeBytes": 27629,
-      "durationMs": 1672,
+      "fingerprint": "voice-v21-audio-v1-17m714n",
+      "sha256": "325059edcd8675877c916c1906c92e81c1004908690a38ea7fadd7f0b7c1c6e5",
+      "fileSizeBytes": 27211,
+      "durationMs": 1625,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "setup-clearer-view-v21": {
       "schemaVersion": 1,
@@ -7195,20 +7195,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/setup-clearer-view-v21.mp3",
       "script": "I need a clearer view. Make sure your whole body is visible.",
-      "fingerprint": "voice-v21-audio-v1-jhenhi",
-      "sha256": "40dd105c7b595d7dcd5d558d13a8d7ec037fc97788feb72e86ff1f925598a796",
-      "fileSizeBytes": 53960,
-      "durationMs": 3297,
+      "fingerprint": "voice-v21-audio-v1-77ej4e",
+      "sha256": "7d895f5c6a19724b9f6af889b17a394df77d7813be61bd474a6a4e5664fd7163",
+      "fileSizeBytes": 57722,
+      "durationMs": 3529,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "setup-closer-v21": {
       "schemaVersion": 1,
@@ -7220,20 +7220,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/setup-closer-v21.mp3",
       "script": "Move a little closer.",
-      "fingerprint": "voice-v21-audio-v1-antbly",
-      "sha256": "9137c1b2369563180e0992692ff592ba4a0ba998e604dbcb80cfc0df9d1bc456",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "fingerprint": "voice-v21-audio-v1-1v702ge",
+      "sha256": "b44984f1249c80e73ce2a1ea90c5d3627502e372ff1a5dc6a1025a9e28cbd984",
+      "fileSizeBytes": 21777,
+      "durationMs": 1300,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "setup-enter-view-v21": {
       "schemaVersion": 1,
@@ -7245,20 +7245,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/setup-enter-view-v21.mp3",
       "script": "Step into view so your whole body is visible.",
-      "fingerprint": "voice-v21-audio-v1-19q01w7",
-      "sha256": "03674f58e3bcda092cf2d086e8d06587e97560512419bec19816b4654c798571",
-      "fileSizeBytes": 39750,
-      "durationMs": 2415,
+      "fingerprint": "voice-v21-audio-v1-1ymgz3l",
+      "sha256": "f66150d1adfd7ec6115c1e8f0dc8977cebf9c153a94594b2470812d6e2c0b7b6",
+      "fileSizeBytes": 40586,
+      "durationMs": 2461,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "setup-hold-still-v21": {
       "schemaVersion": 1,
@@ -7270,20 +7270,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/setup-hold-still-v21.mp3",
       "script": "Hold still for a moment.",
-      "fingerprint": "voice-v21-audio-v1-szkn1r",
-      "sha256": "d2ae7b84ff57f1e369627eadba7f34788afa436efa69a15b1caafaa361d738e6",
-      "fileSizeBytes": 21777,
-      "durationMs": 1300,
+      "fingerprint": "voice-v21-audio-v1-nrburt",
+      "sha256": "fdc71644de01b29f7153e9b4f45dfa5234e9f61a507d20c2fe291997570a2c96",
+      "fileSizeBytes": 22613,
+      "durationMs": 1347,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "setup-light-v21": {
       "schemaVersion": 1,
@@ -7295,20 +7295,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/setup-light-v21.mp3",
       "script": "Please turn on the main light.",
-      "fingerprint": "voice-v21-audio-v1-16snx4w",
-      "sha256": "3474e2c67471a15bfbe4e7cd3f3fadf2eca3defa4987571cb9c4959688825ccd",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "fingerprint": "voice-v21-audio-v1-r85084",
+      "sha256": "eee3fc4540a480f49abf842ab002cc5e61ff180a28f24b585fc9130b4e12b0e5",
+      "fileSizeBytes": 25539,
+      "durationMs": 1533,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "side-calf-left-back-v21": {
       "schemaVersion": 1,
@@ -7320,20 +7320,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/side-calf-left-back-v21.mp3",
       "script": "Step your left leg back, heel down.",
-      "fingerprint": "voice-v21-audio-v1-x994q3",
-      "sha256": "0b916736cca2ea230216a2415cd7adc11b5a877b07adbad4e9bdaa22071ae43b",
-      "fileSizeBytes": 36824,
-      "durationMs": 2229,
+      "fingerprint": "voice-v21-audio-v1-4xkv2t",
+      "sha256": "0ca2c5b48b78551aa225371a92ed26c98c31fac2b32214e7d99813c6a0cebf95",
+      "fileSizeBytes": 40586,
+      "durationMs": 2461,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "side-calf-right-back-v21": {
       "schemaVersion": 1,
@@ -7345,20 +7345,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/side-calf-right-back-v21.mp3",
       "script": "Step your right leg back, heel down.",
-      "fingerprint": "voice-v21-audio-v1-9ot3q2",
-      "sha256": "068c9678414318a0178f6a04fc8ee54f58d22f067de00879421f7d6738e2cd1b",
-      "fileSizeBytes": 38914,
-      "durationMs": 2368,
+      "fingerprint": "voice-v21-audio-v1-1h2ltn6",
+      "sha256": "1b1c66227b1f457fac978e65b8effd0065114c146b4079e6506a105ab4ca98ab",
+      "fileSizeBytes": 34316,
+      "durationMs": 2090,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "side-hamstring-left-extended-v21": {
       "schemaVersion": 1,
@@ -7370,20 +7370,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/side-hamstring-left-extended-v21.mp3",
       "script": "Extend your left leg, heel on the floor.",
-      "fingerprint": "voice-v21-audio-v1-132flz8",
-      "sha256": "6ffb63609811bf9e50c4c0c39ba000e03d49d9b86e9f86cef70b7efbc6cc4924",
-      "fileSizeBytes": 40586,
-      "durationMs": 2461,
+      "fingerprint": "voice-v21-audio-v1-qjm3tk",
+      "sha256": "74b54f3f43b46b8348ee5edf6a5c15d88dda560da54ed9ccc9600c91597a7af3",
+      "fileSizeBytes": 37660,
+      "durationMs": 2276,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "side-hamstring-right-extended-v21": {
       "schemaVersion": 1,
@@ -7395,20 +7395,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/side-hamstring-right-extended-v21.mp3",
       "script": "Extend your right leg, heel on the floor.",
-      "fingerprint": "voice-v21-audio-v1-cpz5gn",
-      "sha256": "0b212d5e5edd4159149185173f8de5824fa7f152f9dd0859cc33d6a68d02c920",
-      "fileSizeBytes": 37660,
-      "durationMs": 2276,
+      "fingerprint": "voice-v21-audio-v1-l0st6p",
+      "sha256": "d641a331d0f1568854607ec8626263e4a670df0343d8d29037c2ade2d0b458e0",
+      "fileSizeBytes": 38914,
+      "durationMs": 2368,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "side-hip-flexor-left-back-v21": {
       "schemaVersion": 1,
@@ -7420,20 +7420,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/side-hip-flexor-left-back-v21.mp3",
       "script": "Step your right foot forward so your left hip side stretches.",
-      "fingerprint": "voice-v21-audio-v1-1hpxcrp",
-      "sha256": "cbb2fac677ee24d4eac02cbf9b59b5445bf551924dceab84f22eb21387155dc5",
-      "fileSizeBytes": 53124,
-      "durationMs": 3251,
+      "fingerprint": "voice-v21-audio-v1-i7tdmz",
+      "sha256": "cc3c815632038afc0d97693a6ebd532b0468337a59033ab486f48e76917285c1",
+      "fileSizeBytes": 50199,
+      "durationMs": 3065,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "side-hip-flexor-right-back-v21": {
       "schemaVersion": 1,
@@ -7445,20 +7445,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/side-hip-flexor-right-back-v21.mp3",
       "script": "Step your left foot forward so your right hip side stretches.",
-      "fingerprint": "voice-v21-audio-v1-19f0qwf",
-      "sha256": "6529383facf3e683c6dc340dd2afac963898c2267d13aff2d240aa799168311b",
-      "fileSizeBytes": 52288,
-      "durationMs": 3204,
+      "fingerprint": "voice-v21-audio-v1-3aludl",
+      "sha256": "211bbaaa40c1cd04062badd8c1da9b0d25634cd3bede3afcc4e682c79df655aa",
+      "fileSizeBytes": 48527,
+      "durationMs": 2972,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "side-single-leg-left-v21": {
       "schemaVersion": 1,
@@ -7470,20 +7470,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/side-single-leg-left-v21.mp3",
       "script": "Start on your left leg. Lift your right foot slightly.",
-      "fingerprint": "voice-v21-audio-v1-7kncsp",
-      "sha256": "67f24920ccfe97d87ce8e63df5a09ed7104ed6aac26f94c0fcbf9fe819feb31e",
-      "fileSizeBytes": 51035,
-      "durationMs": 3111,
+      "fingerprint": "voice-v21-audio-v1-11v0bv3",
+      "sha256": "f900da035152ba597566be3229b1136fc87d07ef00724c7a9178cee5ae796849",
+      "fileSizeBytes": 49363,
+      "durationMs": 3019,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "side-single-leg-right-v21": {
       "schemaVersion": 1,
@@ -7495,20 +7495,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/side-single-leg-right-v21.mp3",
       "script": "Start on your right leg. Lift your left foot slightly.",
-      "fingerprint": "voice-v21-audio-v1-3tkzxn",
-      "sha256": "468bd83ab30b830a9f8a254ea0e7c5eb903f74f2caf3612a48346ae2d5fd381e",
-      "fileSizeBytes": 49363,
-      "durationMs": 3019,
+      "fingerprint": "voice-v21-audio-v1-q3wvbp",
+      "sha256": "358e5ed2fc0f2c2a6da15eac727d0cd5d09c4639a10a1a3ae8487bf866de8407",
+      "fileSizeBytes": 45601,
+      "durationMs": 2786,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "side-split-squat-left-forward-v21": {
       "schemaVersion": 1,
@@ -7520,20 +7520,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/side-split-squat-left-forward-v21.mp3",
       "script": "Left foot forward, small split stance.",
-      "fingerprint": "voice-v21-audio-v1-1i8ormz",
-      "sha256": "169057a6a58533108021c45d77d4403d83711259d500c8b213c019feddb3aa7f",
-      "fileSizeBytes": 36824,
-      "durationMs": 2229,
+      "fingerprint": "voice-v21-audio-v1-ucwaz9",
+      "sha256": "474eee51d190cc75931ba3e7d785e6523eacdfe45c4a1b4c96139081aeef1849",
+      "fileSizeBytes": 37660,
+      "durationMs": 2276,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "side-split-squat-right-forward-v21": {
       "schemaVersion": 1,
@@ -7545,20 +7545,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/side-split-squat-right-forward-v21.mp3",
       "script": "Right foot forward, small split stance.",
-      "fingerprint": "voice-v21-audio-v1-1lvvmq4",
-      "sha256": "35868c3d19c7b704f32d77ea514f0b2eb4c9659d6fa267246b35f80b5b68946f",
+      "fingerprint": "voice-v21-audio-v1-167xv9c",
+      "sha256": "ec4ba76142bf2d50c0d35def687b1eb409780e4d85db8545a8e4a0fa540faf9d",
       "fileSizeBytes": 36824,
       "durationMs": 2229,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "side-tandem-left-front-v21": {
       "schemaVersion": 1,
@@ -7570,20 +7570,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/side-tandem-left-front-v21.mp3",
       "script": "Place your left foot in front, heel to toe.",
-      "fingerprint": "voice-v21-audio-v1-1lxpym4",
-      "sha256": "0b8823acbd890643c0bcc71d7cb98862ec49dfbd8adc7c477bffaadf7141aee7",
+      "fingerprint": "voice-v21-audio-v1-1a9w8g",
+      "sha256": "ea1b4edaab01fdc25ad5ca0068ea96b92824b78f12fac49233195658892a01d6",
       "fileSizeBytes": 37660,
       "durationMs": 2276,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "side-tandem-right-front-v21": {
       "schemaVersion": 1,
@@ -7595,20 +7595,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/side-tandem-right-front-v21.mp3",
       "script": "Place your right foot in front, heel to toe.",
-      "fingerprint": "voice-v21-audio-v1-o6fld9",
-      "sha256": "ffce2063954d5d6f204d517448237951f92869110ac85d03709937db4ed08ee2",
+      "fingerprint": "voice-v21-audio-v1-1x84fkj",
+      "sha256": "69b71072c485612a15c6252bb9959a065894f51e91c92c559e466fb4be214d46",
       "fileSizeBytes": 41839,
       "durationMs": 2554,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "step-up-next-left-v21": {
       "schemaVersion": 1,
@@ -7620,20 +7620,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/step-up-next-left-v21.mp3",
       "script": "Next rep starts with your left leg.",
-      "fingerprint": "voice-v21-audio-v1-1pk4u33",
-      "sha256": "fca88bd4893760ccf0d3a88ef68d0ba0c41d9c205aa51058ab4db78493b1fbec",
-      "fileSizeBytes": 31391,
-      "durationMs": 1904,
+      "fingerprint": "voice-v21-audio-v1-k9xr55",
+      "sha256": "f8995391cfb7b2313f0ab320c7752111484a373bdf7b7871e29848ba844f7b6d",
+      "fileSizeBytes": 33062,
+      "durationMs": 1997,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "step-up-next-right-v21": {
       "schemaVersion": 1,
@@ -7645,20 +7645,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/step-up-next-right-v21.mp3",
       "script": "Next rep starts with your right leg.",
-      "fingerprint": "voice-v21-audio-v1-1xg53uw",
-      "sha256": "479434486e8ddc9bd3229af4690a246fc9023cb5076885ddb2c68484b90427c4",
-      "fileSizeBytes": 32226,
-      "durationMs": 1950,
+      "fingerprint": "voice-v21-audio-v1-vtn3fw",
+      "sha256": "262a0e68ca9f205b8caea494f5fcb6fea317f32906b6049ce4b6e8dbe1eeed41",
+      "fileSizeBytes": 33898,
+      "durationMs": 2043,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "step-up-start-left-v21": {
       "schemaVersion": 1,
@@ -7670,20 +7670,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/step-up-start-left-v21.mp3",
       "script": "Start with your left leg.",
-      "fingerprint": "voice-v21-audio-v1-1s4eqiy",
-      "sha256": "12ec94849d8c7e0e7ba02027c2e6f9ebfbfbcc74280dbf6028d9c0c6b132c5cb",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "fingerprint": "voice-v21-audio-v1-f16kxu",
+      "sha256": "9f160d741456902ec7440c6b6095149f68a82be8474a1fbbcd45a0cec30b1366",
+      "fileSizeBytes": 23449,
+      "durationMs": 1393,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "step-up-start-right-v21": {
       "schemaVersion": 1,
@@ -7695,20 +7695,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/step-up-start-right-v21.mp3",
       "script": "Start with your right leg.",
-      "fingerprint": "voice-v21-audio-v1-1axbm57",
-      "sha256": "604f71a401ff6c8b33e5026f8b0da3fe5b631036475869bfbbaff7e3be0e1352",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "fingerprint": "voice-v21-audio-v1-1so572d",
+      "sha256": "9ba1d6cdfe8c1c8d4bd8c533704999a7b466e9456d471646b59cb7838edbd2ea",
+      "fileSizeBytes": 23449,
+      "durationMs": 1393,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "step-up-wrong-left-v21": {
       "schemaVersion": 1,
@@ -7720,20 +7720,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/step-up-wrong-left-v21.mp3",
       "script": "No rep. Start the next one with your left leg.",
-      "fingerprint": "voice-v21-audio-v1-7fasok",
-      "sha256": "8a925a53899415a23e8f31ff47f02d9570726b38551fbc1f7201da511a4d4a45",
-      "fileSizeBytes": 45601,
-      "durationMs": 2786,
+      "fingerprint": "voice-v21-audio-v1-wjno3s",
+      "sha256": "e90b8e149598af1ddde3f2b8553e665dce1f1e0e0c20575659a387191e9b3577",
+      "fileSizeBytes": 47273,
+      "durationMs": 2879,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "step-up-wrong-right-v21": {
       "schemaVersion": 1,
@@ -7745,20 +7745,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/step-up-wrong-right-v21.mp3",
       "script": "No rep. Start the next one with your right leg.",
-      "fingerprint": "voice-v21-audio-v1-15029n",
-      "sha256": "7b6fd3713e690ba7d495f56da52f57bbe6bd92843d191d9f2c1b6744f122fd19",
-      "fileSizeBytes": 36824,
-      "durationMs": 2229,
+      "fingerprint": "voice-v21-audio-v1-18ygbl1",
+      "sha256": "91f4e02dd5db45fdd61ea0355de873e6ba5952750d3c730c761ce4b7b4667336",
+      "fileSizeBytes": 39750,
+      "durationMs": 2415,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "switch-foot-positions-v21": {
       "schemaVersion": 1,
@@ -7770,20 +7770,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/switch-foot-positions-v21.mp3",
       "script": "Switch foot positions.",
-      "fingerprint": "voice-v21-audio-v1-1ru2qhi",
-      "sha256": "1aa6b57906f8188f62c0c0f30f27bf3733af695efe51e1a39157b59071a23af5",
-      "fileSizeBytes": 21777,
-      "durationMs": 1300,
+      "fingerprint": "voice-v21-audio-v1-14n5vem",
+      "sha256": "cabcbb899a67f0d48ee434fc7d6e89dc1236e907ce23bd703fcc9f3eab1f6643",
+      "fileSizeBytes": 23449,
+      "durationMs": 1393,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "switch-legs-v21": {
       "schemaVersion": 1,
@@ -7795,20 +7795,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/switch-legs-v21.mp3",
       "script": "Switch legs.",
-      "fingerprint": "voice-v21-audio-v1-1qxbidv",
-      "sha256": "b5b4e011fc7c68ecdbb3bf3b736f1582df77b94264333a779192bb32d0dc1232",
-      "fileSizeBytes": 17598,
-      "durationMs": 1022,
+      "fingerprint": "voice-v21-audio-v1-9lyyl",
+      "sha256": "b64396d85bb7216915f3935460f3e49bc0e39d48d03d08c7a2559ea618199199",
+      "fileSizeBytes": 18016,
+      "durationMs": 1068,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "switch-sides-v21": {
       "schemaVersion": 1,
@@ -7820,20 +7820,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/switch-sides-v21.mp3",
       "script": "Switch sides.",
-      "fingerprint": "voice-v21-audio-v1-mz0j76",
-      "sha256": "859ccbc9f4ee7fafffbee7194b991306fd2c90d3663595c1b9d85b92c8bb730b",
-      "fileSizeBytes": 18852,
-      "durationMs": 1115,
+      "fingerprint": "voice-v21-audio-v1-1uzon62",
+      "sha256": "1fd76ed3459820b87c836bf96d5422917827b4e1f69cbb9be1374c3c9af994c4",
+      "fileSizeBytes": 15926,
+      "durationMs": 929,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-balance-feet-together-hold-v21": {
       "schemaVersion": 1,
@@ -7845,20 +7845,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-balance-feet-together-hold-v21.mp3",
       "script": "Hold for twenty seconds.",
-      "fingerprint": "voice-v21-audio-v1-p8ew38",
-      "sha256": "c2f5899ff6a2591e9979ac7e7d0a3d1d0713a712e10e350ff83a714b44a79b49",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "fingerprint": "voice-v21-audio-v1-18qiwzs",
+      "sha256": "70f1d332943a196311f8b94b146785e697c39f6777a65b936931fa5dc8cd2f59",
+      "fileSizeBytes": 25539,
+      "durationMs": 1533,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-balance-single-leg-hold-v21": {
       "schemaVersion": 1,
@@ -7870,20 +7870,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-balance-single-leg-hold-v21.mp3",
       "script": "Hold for [duration].",
-      "fingerprint": "voice-v21-audio-v1-kcb5pw",
-      "sha256": "790c62a4182bfaf75b0961cbdb9b895fa6d9535d3ab7436e15b0be24f6e7b514",
-      "fileSizeBytes": 22613,
-      "durationMs": 1347,
+      "fingerprint": "voice-v21-audio-v1-1gthlu0",
+      "sha256": "647bf19e98f908397a85323b5065debc203642a99ea6d5b76f37261e25ef539d",
+      "fileSizeBytes": 24703,
+      "durationMs": 1486,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-balance-tandem-hold-v21": {
       "schemaVersion": 1,
@@ -7895,20 +7895,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-balance-tandem-hold-v21.mp3",
       "script": "Hold for [duration].",
-      "fingerprint": "voice-v21-audio-v1-dk544g",
-      "sha256": "650cc56ba448419c897470b6ffbbaf7f7c035dd17068455fa535f898a48ae3a6",
+      "fingerprint": "voice-v21-audio-v1-oe7vgk",
+      "sha256": "8bce6ad8b5d180273ec1fb6d674826f833336871a9d33edf02cbfa045a64678a",
       "fileSizeBytes": 24703,
       "durationMs": 1486,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-band-pull-apart-v21": {
       "schemaVersion": 1,
@@ -7920,20 +7920,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-band-pull-apart-v21.mp3",
       "script": "Move for thirty seconds.",
-      "fingerprint": "voice-v21-audio-v1-1c1o131",
-      "sha256": "ab533b51444b1f666dd15207bb466c729a6788acd0ccbe64a57a63ae18147884",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "fingerprint": "voice-v21-audio-v1-htpfmr",
+      "sha256": "b6167a7ef45ac04960f7db2307eff574984faa6156634fc4688eb54dba4b4328",
+      "fileSizeBytes": 23449,
+      "durationMs": 1393,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-chair-supported-split-squat-v21": {
       "schemaVersion": 1,
@@ -7945,20 +7945,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-chair-supported-split-squat-v21.mp3",
       "script": "Aim for [reps] reps.",
-      "fingerprint": "voice-v21-audio-v1-o75czc",
-      "sha256": "bc284c06607da76fff003ab412f9026ebf6f8d99500d809d2fe3d83d3ac446ab",
+      "fingerprint": "voice-v21-audio-v1-jmj6vw",
+      "sha256": "e3f815ab4d342ab1aec6bea3ac95fdbc239497a4781e9b85c45799c13ce63f8d",
       "fileSizeBytes": 22613,
       "durationMs": 1347,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-glute-bridge-hold-v21": {
       "schemaVersion": 1,
@@ -7970,20 +7970,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-glute-bridge-hold-v21.mp3",
       "script": "Hold for twenty seconds.",
-      "fingerprint": "voice-v21-audio-v1-85r8po",
-      "sha256": "c8985fb60c0bdfef2bae4dcb63346127b4c224fdb9201fd52105898baa4b52ba",
-      "fileSizeBytes": 25539,
-      "durationMs": 1533,
+      "fingerprint": "voice-v21-audio-v1-1wuhjk",
+      "sha256": "5eec11f88cd4bf6999e1b24e88f3cea34f7d6b217815032626d08446445348fc",
+      "fileSizeBytes": 20942,
+      "durationMs": 1254,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-glute-bridge-reps-v21": {
       "schemaVersion": 1,
@@ -7995,20 +7995,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-glute-bridge-reps-v21.mp3",
       "script": "Aim for twelve reps.",
-      "fingerprint": "voice-v21-audio-v1-8bk67r",
-      "sha256": "97c9eb65c35f8d6f51113ff1785f663a5f9851acd58eb598a3f9721790bf9ac3",
+      "fingerprint": "voice-v21-audio-v1-u6uf0x",
+      "sha256": "149a4206a87bde1697db72b4064f3d0bca4b7b5e057e10c5ed2d1214fd470662",
       "fileSizeBytes": 21777,
       "durationMs": 1300,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-heel-raise-free-v21": {
       "schemaVersion": 1,
@@ -8020,20 +8020,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-heel-raise-free-v21.mp3",
       "script": "Aim for eighteen reps.",
-      "fingerprint": "voice-v21-audio-v1-1ucphpv",
-      "sha256": "5f8f016c0cf5ffac51da018fcc91989207094e038e4a0f7974075c6be2ea8fac",
-      "fileSizeBytes": 22613,
-      "durationMs": 1347,
+      "fingerprint": "voice-v21-audio-v1-1q9b84d",
+      "sha256": "27cf171247517e67b56d1c2206316aeb9dea0cd056cf87b01819846103bf6f67",
+      "fileSizeBytes": 24285,
+      "durationMs": 1440,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-heel-raise-supported-v21": {
       "schemaVersion": 1,
@@ -8045,20 +8045,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-heel-raise-supported-v21.mp3",
       "script": "Aim for fifteen reps.",
-      "fingerprint": "voice-v21-audio-v1-19ldb43",
-      "sha256": "c822c74a7aa5d174b8fd54612af41e6628427f0620072191eb14f5327a9423e8",
-      "fileSizeBytes": 25539,
-      "durationMs": 1533,
+      "fingerprint": "voice-v21-audio-v1-v2s3jh",
+      "sha256": "a37f4088f50c2e1d4d3fd997d5794f6f1bffe563d410bbe8b31c83a0636509c1",
+      "fileSizeBytes": 23449,
+      "durationMs": 1393,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-hip-hinge-free-v21": {
       "schemaVersion": 1,
@@ -8070,20 +8070,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-hip-hinge-free-v21.mp3",
       "script": "Aim for twelve reps.",
-      "fingerprint": "voice-v21-audio-v1-1ntzs5v",
-      "sha256": "c6a216ce3e97765ddc4767354d36b298e4bea7b663bf71f2d609f5d6c5c630da",
+      "fingerprint": "voice-v21-audio-v1-1w3wfy5",
+      "sha256": "a11eb75ad52f6e514352a87185f574bf45bb4298a6c6f82f8ec4c04c017dfecc",
       "fileSizeBytes": 22613,
       "durationMs": 1347,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-hip-hinge-wall-v21": {
       "schemaVersion": 1,
@@ -8095,20 +8095,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-hip-hinge-wall-v21.mp3",
       "script": "Aim for ten reps.",
-      "fingerprint": "voice-v21-audio-v1-1gstov5",
-      "sha256": "9d78fe0c1edf996935301994dfceb29ae5db67fb8f3c36b665ada11ba3aab646",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "fingerprint": "voice-v21-audio-v1-1m02f6v",
+      "sha256": "91febc75540a1ee0a11e87146935016a59c5b54934634966d34a66ce60bcde35",
+      "fileSizeBytes": 22613,
+      "durationMs": 1347,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-loaded-march-v21": {
       "schemaVersion": 1,
@@ -8120,20 +8120,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-loaded-march-v21.mp3",
       "script": "Aim for sixteen reps.",
-      "fingerprint": "voice-v21-audio-v1-1x14t46",
-      "sha256": "9b93ec8c7bc603dce1061d7fb09b6a0ec6db42e26f4bc229b391a07338154fde",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "fingerprint": "voice-v21-audio-v1-fck4su",
+      "sha256": "01c8845c78aa29e666145707842fd22a70e4edc696df37660d3c243fc2366e8c",
+      "fileSizeBytes": 24285,
+      "durationMs": 1440,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-loaded-sit-to-stand-v21": {
       "schemaVersion": 1,
@@ -8145,20 +8145,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-loaded-sit-to-stand-v21.mp3",
       "script": "Aim for eight reps.",
-      "fingerprint": "voice-v21-audio-v1-bfpvrd",
-      "sha256": "7b5357685ebc4ad680c0ba1642b04b3aed09ec520ca39ffcc92bac1e085a39ae",
+      "fingerprint": "voice-v21-audio-v1-1vidfgv",
+      "sha256": "01000a17279222251735c8fc122d8c87ab90cd61c97013abc43fabe7546806ab",
       "fileSizeBytes": 20942,
       "durationMs": 1254,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-mini-band-lateral-walk-v21": {
       "schemaVersion": 1,
@@ -8170,20 +8170,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-mini-band-lateral-walk-v21.mp3",
       "script": "Move for thirty seconds.",
-      "fingerprint": "voice-v21-audio-v1-gc525j",
-      "sha256": "739aa2502ba90032ccf4fd23bdc95ef6a34267a6cdb589ed91c20d76355adf6f",
-      "fileSizeBytes": 25539,
-      "durationMs": 1533,
+      "fingerprint": "voice-v21-audio-v1-wzxloh",
+      "sha256": "3e70c6f9697031bb7c52b184f5d7b369401abfb91f326ae554b1ad655096d43b",
+      "fileSizeBytes": 24285,
+      "durationMs": 1440,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-neck-rotation-v21": {
       "schemaVersion": 1,
@@ -8195,20 +8195,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-neck-rotation-v21.mp3",
       "script": "Move slowly until I say stop.",
-      "fingerprint": "voice-v21-audio-v1-1qo0x21",
-      "sha256": "2442f17e43965653c1ffca210912b2e9b224dbe6156baf8dfc21b30e328c4daf",
-      "fileSizeBytes": 33062,
-      "durationMs": 1997,
+      "fingerprint": "voice-v21-audio-v1-1vb753z",
+      "sha256": "607c33eb6cee5072de56e159388f13da0e9b6c9567082c6a568579062df50aa6",
+      "fileSizeBytes": 30137,
+      "durationMs": 1811,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-overhead-press-band-v21": {
       "schemaVersion": 1,
@@ -8220,20 +8220,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-overhead-press-band-v21.mp3",
       "script": "Aim for twelve reps.",
-      "fingerprint": "voice-v21-audio-v1-1u52ctn",
-      "sha256": "b376134dc30a221510edc2900252dabec46d9aa49641a568cd4db2064ec2b55d",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "fingerprint": "voice-v21-audio-v1-v7wr9x",
+      "sha256": "16a6dc3bd8411b8ecc510d8678b6f3bc930b783958868d2a871838660442a6b5",
+      "fileSizeBytes": 21777,
+      "durationMs": 1300,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-overhead-reach-v21": {
       "schemaVersion": 1,
@@ -8245,20 +8245,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-overhead-reach-v21.mp3",
       "script": "Aim for twelve reps.",
-      "fingerprint": "voice-v21-audio-v1-dm9w8z",
-      "sha256": "7535ee37c485228ced6fca2f00ef8cf874b3ca3492a27139e80af6d564cf0062",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "fingerprint": "voice-v21-audio-v1-1symst",
+      "sha256": "e3f584b8b05b8f5a548b6394a4d2937977f1a83ab56278be67519c8bf769f397",
+      "fileSizeBytes": 22613,
+      "durationMs": 1347,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-push-up-incline-v21": {
       "schemaVersion": 1,
@@ -8270,20 +8270,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-push-up-incline-v21.mp3",
       "script": "Aim for ten reps.",
-      "fingerprint": "voice-v21-audio-v1-ynpj4p",
-      "sha256": "766f2a452e283279eaff5b7df760be2ea8e018ada9c99d6c37b4214b877ea93b",
+      "fingerprint": "voice-v21-audio-v1-1jwa3mn",
+      "sha256": "0c59d323eeb0ce2dca92f50b47b08d65457ff1a514c691482726cf77c9d1325b",
       "fileSizeBytes": 24285,
       "durationMs": 1440,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-push-up-standard-v21": {
       "schemaVersion": 1,
@@ -8295,20 +8295,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-push-up-standard-v21.mp3",
       "script": "Aim for eight reps.",
-      "fingerprint": "voice-v21-audio-v1-1lgzw99",
-      "sha256": "f0a0666133f9f15c2f626ae9b299e3b6d6e587ba682886442db71fa7c5d08c62",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "fingerprint": "voice-v21-audio-v1-1q1mpdf",
+      "sha256": "d2ed72482467a6e7d534461792492e9d9270247217239fa4ce640f244fdb145c",
+      "fileSizeBytes": 21777,
+      "durationMs": 1300,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-push-up-wall-v21": {
       "schemaVersion": 1,
@@ -8320,20 +8320,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-push-up-wall-v21.mp3",
       "script": "Aim for ten reps.",
-      "fingerprint": "voice-v21-audio-v1-1tvqo8r",
-      "sha256": "ad64517f055d0a1ef6602bb6316eddcfa56e5992d8180b3fae2ddecea23795c6",
-      "fileSizeBytes": 20942,
-      "durationMs": 1254,
+      "fingerprint": "voice-v21-audio-v1-njd9t1",
+      "sha256": "818b5844eae05b30e6a90aaa01fab2f81216bb40c5e9a3cc93c92a60d1798469",
+      "fileSizeBytes": 21777,
+      "durationMs": 1300,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-seated-band-row-v21": {
       "schemaVersion": 1,
@@ -8345,20 +8345,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-seated-band-row-v21.mp3",
       "script": "Aim for ten reps.",
-      "fingerprint": "voice-v21-audio-v1-12sph3h",
-      "sha256": "8338020918ca6bb1d3dc6b08d2dffab7f2dd8c64006c625650054601a51aa4b6",
-      "fileSizeBytes": 20524,
-      "durationMs": 1207,
+      "fingerprint": "voice-v21-audio-v1-7lz19v",
+      "sha256": "f55795bf1f13f02d09dd5a16f91d3dcf46be711e69ec7f7b9ccbf9e4a3aeb076",
+      "fileSizeBytes": 21777,
+      "durationMs": 1300,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-seated-hamstring-reach-v21": {
       "schemaVersion": 1,
@@ -8370,20 +8370,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-seated-hamstring-reach-v21.mp3",
       "script": "Reach gently and hold until I say relax.",
-      "fingerprint": "voice-v21-audio-v1-1xaobkq",
-      "sha256": "fc60ed7d7cee72144d55086718285e0451109f7a555675a1e674871ba2780d89",
-      "fileSizeBytes": 38078,
-      "durationMs": 2322,
+      "fingerprint": "voice-v21-audio-v1-uwg5aq",
+      "sha256": "b19881c3ecfa3ac6fb4fe47520361a713487312ee5d8b9072db708063875c6c7",
+      "fileSizeBytes": 39750,
+      "durationMs": 2415,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-squat-free-v21": {
       "schemaVersion": 1,
@@ -8395,20 +8395,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-squat-free-v21.mp3",
       "script": "Aim for twelve reps.",
-      "fingerprint": "voice-v21-audio-v1-19s6edp",
-      "sha256": "6bac0bf4954e779b7cdf2a2d9f8654d107252e24d285505db8e718af50673625",
-      "fileSizeBytes": 21777,
-      "durationMs": 1300,
+      "fingerprint": "voice-v21-audio-v1-gyhgoj",
+      "sha256": "1c72ac2f5115e24d3589bb9f8d162abcbaf51555218b747381d6ce8d511409f7",
+      "fileSizeBytes": 23449,
+      "durationMs": 1393,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-squat-loaded-v21": {
       "schemaVersion": 1,
@@ -8420,20 +8420,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-squat-loaded-v21.mp3",
       "script": "Aim for eight reps.",
-      "fingerprint": "voice-v21-audio-v1-16p9zgd",
-      "sha256": "f91e6e115df3259438dd58491bc9802f34e6dd8bf6c4e5956890ce0f4f9b6baa",
-      "fileSizeBytes": 22613,
-      "durationMs": 1347,
+      "fingerprint": "voice-v21-audio-v1-1ucnqcj",
+      "sha256": "09cf543685982e226e6948e91cf1af313b4c7ddb191e7220a4a2080aff678966",
+      "fileSizeBytes": 20942,
+      "durationMs": 1254,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-squat-slow-eccentric-v21": {
       "schemaVersion": 1,
@@ -8445,20 +8445,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-squat-slow-eccentric-v21.mp3",
       "script": "Aim for eight reps.",
-      "fingerprint": "voice-v21-audio-v1-txzcn3",
-      "sha256": "77a47db82cd47cc2caa9f864aa161b95a9f9b599d87cb81f23efc60cccebc190",
-      "fileSizeBytes": 20524,
-      "durationMs": 1207,
+      "fingerprint": "voice-v21-audio-v1-1yr39nd",
+      "sha256": "cf58410b25f6b587638e65a4966f6ca91a4139f69b7a096f0d29fceb55d81781",
+      "fileSizeBytes": 21777,
+      "durationMs": 1300,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-squat-supported-v21": {
       "schemaVersion": 1,
@@ -8470,20 +8470,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-squat-supported-v21.mp3",
       "script": "Aim for ten reps.",
-      "fingerprint": "voice-v21-audio-v1-bc5i71",
-      "sha256": "35cf588a382e26f1902d5dc71522fe9382e9a776ff3c010b2eda337077171d8d",
-      "fileSizeBytes": 22613,
-      "durationMs": 1347,
+      "fingerprint": "voice-v21-audio-v1-aqnbgj",
+      "sha256": "db61e8d9a62cc13b1590101bbb4a629bdd315d7b22f3809259eeff4320c1dbcc",
+      "fileSizeBytes": 20942,
+      "durationMs": 1254,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-standing-band-row-v21": {
       "schemaVersion": 1,
@@ -8495,20 +8495,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-standing-band-row-v21.mp3",
       "script": "Aim for ten reps.",
-      "fingerprint": "voice-v21-audio-v1-3ut2e9",
-      "sha256": "62f22e12cf4cb0bb1aeccdcbdf5821e6d240c6049f5d515b040d975f8b661ee5",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "fingerprint": "voice-v21-audio-v1-1yxqqlj",
+      "sha256": "e25e0ff65c7399b24ed43dc045f70fef0631f0764b5be17ac15be27b40d06938",
+      "fileSizeBytes": 20942,
+      "durationMs": 1254,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-step-up-v21": {
       "schemaVersion": 1,
@@ -8520,20 +8520,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-step-up-v21.mp3",
       "script": "Do twelve total reps.",
-      "fingerprint": "voice-v21-audio-v1-1d3u4ty",
-      "sha256": "549457140c1ae0defa5aab67f9fe92972341e3d7b570680d36edc5c2ca89e82c",
-      "fileSizeBytes": 25539,
-      "durationMs": 1533,
+      "fingerprint": "voice-v21-audio-v1-18fcpi6",
+      "sha256": "de9eee6c5d6df5d48ad4ff86dec1f99142983df9038c605e4b83081d116f7500",
+      "fileSizeBytes": 23449,
+      "durationMs": 1393,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-sts-cushion-v21": {
       "schemaVersion": 1,
@@ -8545,20 +8545,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-sts-cushion-v21.mp3",
       "script": "Aim for eight reps.",
-      "fingerprint": "voice-v21-audio-v1-1wxgm4l",
-      "sha256": "a56e0286f29f2900efff368ce627f4fb9fa9006d05d8a207b9774c2c9d3bfcd1",
-      "fileSizeBytes": 22613,
-      "durationMs": 1347,
+      "fingerprint": "voice-v21-audio-v1-k3yq23",
+      "sha256": "f5bc96a7170d78cf2dc6b45ec86bea8abacffeea7bb946d7ab64549bf619c8bf",
+      "fileSizeBytes": 20524,
+      "durationMs": 1207,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-sts-power-v21": {
       "schemaVersion": 1,
@@ -8570,20 +8570,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-sts-power-v21.mp3",
       "script": "Aim for twelve reps.",
-      "fingerprint": "voice-v21-audio-v1-5v4arn",
-      "sha256": "00f2336d9066778494c6ff34dc44f3feb528b308679fb52eb72e39320b5ed28a",
-      "fileSizeBytes": 21777,
-      "durationMs": 1300,
+      "fingerprint": "voice-v21-audio-v1-269kod",
+      "sha256": "13736f4b15cf70ceece1b75bdbc14553753e5ca6fa9cbacb4f7c8b63ce9f4c0e",
+      "fileSizeBytes": 24285,
+      "durationMs": 1440,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-sts-slow-eccentric-v21": {
       "schemaVersion": 1,
@@ -8595,20 +8595,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-sts-slow-eccentric-v21.mp3",
       "script": "Aim for eight reps.",
-      "fingerprint": "voice-v21-audio-v1-qth4db",
-      "sha256": "3f5f870af4a810e33d67debd6d98fb62f45717ca8788efd04467c733a71d5d56",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "fingerprint": "voice-v21-audio-v1-105od6h",
+      "sha256": "b372f73129230d8ccb163a2f774d2e3d0c7a60a2f43b175fd1f0d5d38b283560",
+      "fileSizeBytes": 20942,
+      "durationMs": 1254,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-sts-standard-v21": {
       "schemaVersion": 1,
@@ -8620,20 +8620,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-sts-standard-v21.mp3",
       "script": "Aim for ten reps.",
-      "fingerprint": "voice-v21-audio-v1-bkfb29",
-      "sha256": "5a6aa0d2ca4db5ef696af22cb3a7947ab48cec503c90040e6f341b02048249e4",
+      "fingerprint": "voice-v21-audio-v1-1m6a1hj",
+      "sha256": "df822dc873c6d18e391d8c79642d0f719af5195b655c0f7817aebe667f728497",
       "fileSizeBytes": 22613,
       "durationMs": 1347,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-supported-hip-flexor-stretch-v21": {
       "schemaVersion": 1,
@@ -8645,20 +8645,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-supported-hip-flexor-stretch-v21.mp3",
       "script": "Hold for [duration].",
-      "fingerprint": "voice-v21-audio-v1-dpzq0i",
-      "sha256": "0e21415713e0a73027955e009c9ae6d066748d356afa742b46d63e01b59cf22a",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "fingerprint": "voice-v21-audio-v1-1akluyy",
+      "sha256": "0e559fcfc12569f47c9c5f2d183b3b50824a71c663aeebed8aa9e438b39dad84",
+      "fileSizeBytes": 21777,
+      "durationMs": 1300,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-supported-side-step-v21": {
       "schemaVersion": 1,
@@ -8670,20 +8670,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-supported-side-step-v21.mp3",
       "script": "Move for thirty seconds.",
-      "fingerprint": "voice-v21-audio-v1-w52bth",
-      "sha256": "ac9eaae1ea9d8d6a06293e859dd1dcf8d079e5e6f00fb6ed477e3dffa9989ed2",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "fingerprint": "voice-v21-audio-v1-1f0608r",
+      "sha256": "ecd44dd694bc59cf2b9d1cee4b36d753d733d40dd5edb7a37e08a1719f3121d8",
+      "fileSizeBytes": 23449,
+      "durationMs": 1393,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-thoracic-rotation-v21": {
       "schemaVersion": 1,
@@ -8695,20 +8695,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-thoracic-rotation-v21.mp3",
       "script": "Move for thirty seconds.",
-      "fingerprint": "voice-v21-audio-v1-11djekt",
-      "sha256": "5b22a34e70b45742ab2a744946f62a0b5669ff9b7c9fc1c9a10528029fe3cd02",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "fingerprint": "voice-v21-audio-v1-pcb0xf",
+      "sha256": "b4e9cfb9a6a8237b887a938fd21b8408a0791b4b94cb23354a2457296276d4b0",
+      "fileSizeBytes": 23449,
+      "durationMs": 1393,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-toe-raise-supported-v21": {
       "schemaVersion": 1,
@@ -8720,20 +8720,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-toe-raise-supported-v21.mp3",
       "script": "Move for thirty seconds.",
-      "fingerprint": "voice-v21-audio-v1-1gjsed9",
-      "sha256": "c9caa0f6b3e4b814637b281b0a2bfa759bf42be5c0575e70907b7b16a8e60ab6",
-      "fileSizeBytes": 21777,
-      "durationMs": 1300,
+      "fingerprint": "voice-v21-audio-v1-1l6hlwj",
+      "sha256": "7f3ba58129346fd828b059a14daa646a5f1f3d2b510c45f613a8bc4d9740d58d",
+      "fileSizeBytes": 24285,
+      "durationMs": 1440,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "target-wall-calf-stretch-v21": {
       "schemaVersion": 1,
@@ -8745,20 +8745,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-wall-calf-stretch-v21.mp3",
       "script": "Hold for [duration].",
-      "fingerprint": "voice-v21-audio-v1-ymv5ko",
-      "sha256": "8913e853f0106001a4e8e7bd97b6325d5c14330edbd5e30509be86a20d1da0c3",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "fingerprint": "voice-v21-audio-v1-yqn15o",
+      "sha256": "130ba40c22a1f0b5f4e8f7a87f3274c65a3d66b8b2493b1403027a58b4a220ce",
+      "fileSizeBytes": 27629,
+      "durationMs": 1672,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "training-intro-v21": {
       "schemaVersion": 1,
@@ -8770,20 +8770,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/training-intro-v21.mp3",
       "script": "Time to train. I will guide the setup, work, and rests. Follow my voice and pause whenever you need.",
-      "fingerprint": "voice-v21-audio-v1-16a1xxf",
-      "sha256": "b812c768e441357e944187bb63306e8c11a9703e1584c579a2cf9eb4d5767d25",
-      "fileSizeBytes": 116236,
-      "durationMs": 7198,
+      "fingerprint": "voice-v21-audio-v1-9h4igd",
+      "sha256": "eb9657d8981b2ee7cf7b67275864f0c8d732c63d4a4724682f50f6f58e07d5c2",
+      "fileSizeBytes": 102862,
+      "durationMs": 6362,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     },
     "training-skip-v21": {
       "schemaVersion": 1,
@@ -8795,20 +8795,20 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "voiceSettings": {
-        "stability": 0.5,
-        "similarity_boost": 0.75,
+        "stability": 0.35,
+        "similarity_boost": 0.85,
         "use_speaker_boost": true,
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/training-skip-v21.mp3",
       "script": "Skipped. Moving on.",
-      "fingerprint": "voice-v21-audio-v1-17118j",
-      "sha256": "f4770a410057776c8b7b9828dd033041080d2b1763e619a4a8d05143438aaa1f",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "fingerprint": "voice-v21-audio-v1-12brd2l",
+      "sha256": "b66a1bfeeca3dccf47c321cbf340c9485271525a1c678615212a6152fb7674f0",
+      "fileSizeBytes": 24285,
+      "durationMs": 1440,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-26T10:51:01.115Z"
+      "generatedAt": "2026-06-28T21:48:04.766Z"
     }
   }
 };

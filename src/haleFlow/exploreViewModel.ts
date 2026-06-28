@@ -39,6 +39,10 @@ import {
   exerciseSafetySetupText,
   exerciseSafetySummaryText,
 } from '../training/safetyCues';
+import {
+  getTrainingInstructionProfile,
+  visibleInstructionText,
+} from '../training/instructionProfiles';
 import type { LadderProgress, SessionTemplate, TrainingDomain } from '../training/workoutGeneration';
 import type { AppSettings } from '../profile';
 import { extraSessionCardBody, extraSessionCardTitle, extraSessionDetailBody } from './extraSessionCopy';
@@ -530,12 +534,17 @@ function levelView(
     equipmentLabel: equipmentLabelForLevel(level, available, movementCapabilities),
     measurementLabel: measurementLabel(level.measurementTier),
     cameraLabel: cameraLabel(level.cameraView),
-    instructions: level.instructions,
+    instructions: trainingInstructionText(level.id) ?? level.instructions,
     setupNote: safetyNoteText(exerciseSafetySetupText(level.id)) ?? level.setupNotes,
     safetyNote: safetyNoteText(exerciseSafetySummaryText(level.id)) ?? level.safetyNotes,
     measurementNote: level.measurementNotes,
     isCurrent,
   };
+}
+
+function trainingInstructionText(exerciseId: string): string | null {
+  const profile = getTrainingInstructionProfile(exerciseId);
+  return profile ? visibleInstructionText(profile) : null;
 }
 
 function beforeStartItemsForLevel(

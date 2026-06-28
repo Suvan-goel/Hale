@@ -52,6 +52,12 @@ import type {
 } from '../render/poseAvatarTypes';
 import { colors, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
+import {
+  getMicroCheckInstructionProfile,
+  instructionCueIds,
+  visibleInstructionText,
+  type MicroCheckInstructionProfile,
+} from '../training/instructionProfiles';
 import { MicroCheckPhase, MicroCheckResult, MicroCheckRunner, MicroCheckType } from '../training/microCheck';
 import {
   MicroCheckCameraSideResolver,
@@ -213,6 +219,9 @@ export function MicroCheckScreen({
   const [showHelp, setShowHelp] = React.useState(false);
   const [discardModalVisible, setDiscardModalVisible] = React.useState(false);
   const [handsFreeSetupNotice, setHandsFreeSetupNotice] = React.useState<string | null>(null);
+  const [selectedInstructionSide, setSelectedInstructionSide] = React.useState<BodySide | null>(
+    effectiveSideSetup.selectedSide ?? null
+  );
   const [manualSideFallbackAvailable, setManualSideFallbackAvailable] = React.useState(false);
   const [manualSideFallbackVisible, setManualSideFallbackVisible] = React.useState(false);
   const [cameraAvailability, setCameraAvailability] = React.useState<CameraAvailability>('checking');
@@ -239,6 +248,7 @@ export function MicroCheckScreen({
     ) => {
       if (runner || sideSelectionPinnedRef.current) return;
       sideSelectionPinnedRef.current = true;
+      setSelectedInstructionSide(selectedSide);
       setHandsFreeSetupNotice(null);
       setManualSideFallbackAvailable(false);
       const measurementContext = createMicroCheckMeasurementContextForSide({
@@ -458,6 +468,19 @@ export function MicroCheckScreen({
     onCancel?.();
   }, [onCancel, voice]);
 
+  const repeatInstructions = React.useCallback(() => {
+    if (microCheckType === 'single-leg-balance' && !selectedInstructionSide) return;
+    const profile = getMicroCheckInstructionProfile(microCheckType, selectedInstructionSide);
+    if (!profile) return;
+    const cues = instructionCueIds(profile.help);
+    if (cues.length > 0) voice.speak(cues, 8);
+  }, [microCheckType, selectedInstructionSide, voice]);
+
+  const openHelp = React.useCallback(() => {
+    setShowHelp(true);
+    repeatInstructions();
+  }, [repeatInstructions]);
+
   const visibleSnapshot = metricDebug ? metricDebugSnapshot(microCheckType) : snapshot;
   const visiblePaused = metricDebug ? false : paused;
   const visibleShowHelp = metricDebug ? false : showHelp;
@@ -481,6 +504,7 @@ export function MicroCheckScreen({
   const showManualSideFallbackAction =
     handsFreeSideSetupActive && visibleCameraAvailability !== 'unavailable' && manualSideFallbackAvailable;
   const showUnavailableAction = visibleCameraAvailability === 'unavailable' && !!onCancel;
+  const currentInstructionProfile = getMicroCheckInstructionProfile(microCheckType, selectedInstructionSide);
   const viewportWidth = Math.max(1, Math.min(windowSize.width - spacing.md * 2, spacing.pageMaxWidth));
   const cameraViewport = React.useMemo(
     () => recordingCameraViewportSize(viewportWidth, windowSize.height, visibleShowHelp),
@@ -561,7 +585,7 @@ export function MicroCheckScreen({
               <RecordingSetupNotice
                 visible={sessionNotice !== null}
                 text={sessionNotice?.text ?? ''}
-                onPress={sessionNoticeAction ? () => setShowHelp(true) : undefined}
+                onPress={sessionNoticeAction ? openHelp : undefined}
               />
               <Pressable
                 style={({ pressed }) => [
@@ -569,7 +593,7 @@ export function MicroCheckScreen({
                   showHelp && styles.helpIconButtonSelected,
                   pressed && styles.controlPressed,
                 ]}
-                onPress={() => setShowHelp(true)}
+                onPress={openHelp}
                 accessibilityRole="button"
                 accessibilityLabel="Open help"
                 accessibilityState={{ selected: showHelp }}
@@ -625,7 +649,11 @@ export function MicroCheckScreen({
         </View>
       </ScrollView>
 
-      <MicroCheckHelpModal visible={showHelp} onClose={() => setShowHelp(false)} />
+      <MicroCheckHelpModal
+        visible={showHelp}
+        instructionProfile={currentInstructionProfile}
+        onClose={() => setShowHelp(false)}
+      />
       <DiscardMicroCheckModal
         visible={discardModalVisible}
         onKeep={keepMicroCheck}
@@ -793,7 +821,7 @@ function RecordingSetupNotice({
           <View style={styles.recordingSetupNoticeDot} />
         </View>
         <View style={styles.recordingSetupNoticeCopy}>
-          <Text style={styles.recordingSetupNoticeTitle} numberOfLines={1}>
+          <Text style={styles.recordingSetupNoticeTitle} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.84}>
             {text}
           </Text>
         </View>
@@ -899,9 +927,11 @@ function ControlButton({
 
 function MicroCheckHelpModal({
   visible,
+  instructionProfile,
   onClose,
 }: {
   visible: boolean;
+  instructionProfile: MicroCheckInstructionProfile | null;
   onClose: () => void;
 }) {
   const responsive = useResponsiveLayout();
@@ -919,8 +949,14 @@ function MicroCheckHelpModal({
             <Text style={styles.modalEyebrow}>Setup help</Text>
           </View>
           <View style={styles.helpIntro}>
-            <Text style={styles.modalTitle}>Help Hale see you clearly</Text>
-            <Text style={styles.modalBody}>Use these quick checks before you start.</Text>
+            <Text style={styles.modalTitle}>
+              {instructionProfile ? instructionProfile.displayName : 'Help Hale see you clearly'}
+            </Text>
+            <Text style={styles.modalBody}>
+              {instructionProfile
+                ? visibleInstructionText(instructionProfile)
+                : 'Use these quick checks before you start.'}
+            </Text>
           </View>
           <View style={styles.helpStepList}>
             {MICRO_CHECK_SETUP_HELP_STEPS.map((step, index) => (
@@ -1104,12 +1140,20 @@ function microCheckSessionNotice(
   if (setupText) return { text: setupText, action: 'help' };
   if (snapshot.phase === 'preflight') return { text: PHASE_CAPTION.preflight ?? 'Getting you framed', action: null };
   if (snapshot.phase === 'instructions' || snapshot.phase === 'countdown') {
-    return { text: PHASE_CAPTION[snapshot.phase] ?? 'Get ready', action: null };
+    return {
+      text: microCheckInstructionNoticeText(microCheckType) ?? PHASE_CAPTION[snapshot.phase] ?? 'Get ready',
+      action: 'help',
+    };
   }
   if (snapshot.phase === 'active' && microCheckType === 'mobility-reach') {
     return { text: 'Reach toward the floor, then stand tall', action: null };
   }
   return null;
+}
+
+function microCheckInstructionNoticeText(microCheckType: MicroCheckType): string | null {
+  const profile = getMicroCheckInstructionProfile(microCheckType);
+  return profile ? visibleInstructionText(profile) : null;
 }
 
 function preflightPromptCue(prompt: PreflightPrompt): VoiceCueKey {
