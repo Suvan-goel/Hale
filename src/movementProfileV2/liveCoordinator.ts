@@ -955,7 +955,6 @@ export class MovementProfileV2LiveCoordinator {
       }
       this.noteBalanceReadyLiftEvidence(leg, nowMs);
       if (!this.balanceAttemptVoiceCompleted) return;
-      if (this.handsFreeMode && !this.balanceReadyLiftDwellSatisfied(nowMs)) return;
       if (!this.balance.startTrial(nowMs)) return;
       this.balanceTrialStartedAtMs = nowMs;
       this.balanceLostFrames = 0;
@@ -1520,11 +1519,6 @@ export class MovementProfileV2LiveCoordinator {
       return;
     }
     this.balanceRaisedFrames++;
-  }
-
-  private balanceReadyLiftDwellSatisfied(nowMs: number): boolean {
-    if (this.balanceReadyRaisedSinceMs === null) return false;
-    return nowMs - this.balanceReadyRaisedSinceMs >= this.handsFreeSetupDwellMs;
   }
 
   private clearBalanceReadyLiftEvidence(): void {

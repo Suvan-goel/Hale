@@ -358,9 +358,7 @@ describe('MovementProfileV2LiveCoordinator', () => {
     feedOutput(coordinator, trackingOutput(balanceRaw(nowMs + 1600, 'left', false)), nowMs + 1600);
     expect(coordinator.snapshot(nowMs + 1600).stage).toBe('balance_ready');
     feedOutput(coordinator, trackingOutput(balanceRaw(nowMs + 1700, 'left', true)), nowMs + 1700);
-    expect(coordinator.snapshot(nowMs + 1700).stage).toBe('balance_ready');
-    nowMs += 3000;
-    feedOutput(coordinator, trackingOutput(balanceRaw(nowMs, 'left', true)), nowMs);
+    nowMs += 1700;
     expect(coordinator.snapshot(nowMs).stage).toBe('balance_trial');
     snapshot = coordinator.snapshot(nowMs);
     expect(snapshot.lastTransition?.reason).toBe('balance_lift_detected');
@@ -368,7 +366,7 @@ describe('MovementProfileV2LiveCoordinator', () => {
     expect(snapshot.timerRemainingMs).toBeGreaterThan(0);
   });
 
-  it('starts hands-free balance from a lift that appears at the ready transition after dwell', () => {
+  it('starts hands-free balance immediately from the first lift after the attempt voice boundary', () => {
     const coordinator = createHandsFreeCoordinator();
     let nowMs = advanceThroughChair(coordinator, 0) + 100;
     expect(coordinator.receiveUserAction({ type: 'confirm_balance_setup', standingLeg: 'left' }, nowMs)).toBe(true);
@@ -376,10 +374,7 @@ describe('MovementProfileV2LiveCoordinator', () => {
     expect(coordinator.receiveUserAction({ type: 'balance_attempt_voice_completed' }, nowMs + 1)).toBe(true);
 
     feedOutput(coordinator, trackingOutput(balanceRaw(nowMs + 100, 'left', true)), nowMs + 100);
-    expect(coordinator.snapshot(nowMs + 100).stage).toBe('balance_ready');
-
-    nowMs += 1400;
-    feedOutput(coordinator, trackingOutput(balanceRaw(nowMs, 'left', true)), nowMs);
+    nowMs += 100;
     expect(coordinator.snapshot(nowMs).stage).toBe('balance_trial');
   });
 
@@ -418,10 +413,7 @@ describe('MovementProfileV2LiveCoordinator', () => {
     feedOutput(coordinator, lostOutput(nowMs + 1450), nowMs + 1450);
     expect(coordinator.receiveUserAction({ type: 'balance_attempt_voice_completed' }, nowMs + 1500)).toBe(true);
     feedOutput(coordinator, trackingOutput(balanceRaw(nowMs + 1600, 'left', true)), nowMs + 1600);
-    expect(coordinator.snapshot(nowMs + 1600).stage).toBe('balance_ready');
-
-    nowMs += 2900;
-    feedOutput(coordinator, trackingOutput(balanceRaw(nowMs, 'left', true)), nowMs);
+    nowMs += 1600;
     expect(coordinator.snapshot(nowMs).stage).toBe('balance_trial');
   });
 
