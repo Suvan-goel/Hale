@@ -50,8 +50,12 @@ export const VOICE_OPTIONS: VoiceOption[] = [
   },
 ];
 
-export const DEFAULT_VOICE_ID = 'clara';
+export const DEFAULT_VOICE_ID = 'marcus';
 
 export function getVoice(id: string): VoiceOption {
-  return VOICE_OPTIONS.find((v) => v.id === id) ?? VOICE_OPTIONS[0];
+  return (
+    VOICE_OPTIONS.find((v) => v.id === id) ??
+    VOICE_OPTIONS.find((v) => v.id === DEFAULT_VOICE_ID) ??
+    VOICE_OPTIONS[0]
+  );
 }

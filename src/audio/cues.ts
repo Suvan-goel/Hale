@@ -159,7 +159,12 @@ export type VoiceCueKey =
   | MovementProfileV2CueId;
 
 /** Non-voice session sounds; play on their own channel, may overlap voice. */
-export type SfxCueKey = 'rep-credit';
+export type SfxCueKey =
+  | 'rep-credit'
+  | 'measurement-complete'
+  | 'tracking-paused'
+  | 'tracking-recovered'
+  | 'session-complete';
 
 export type AudioCueKey = VoiceCueKey | SfxCueKey;
 

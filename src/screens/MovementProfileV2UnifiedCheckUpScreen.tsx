@@ -2,13 +2,13 @@ import * as React from 'react';
 import { AppState } from 'react-native';
 
 import type { LandmarksEventPayload, PoseErrorEventPayload } from '../../modules/expo-pose-detection';
-import { VoiceChannel } from '../audio/voicePlayer';
+import { SfxChannel, VoiceChannel } from '../audio/voicePlayer';
 import type { CheckupType } from '../adherence';
 import type { BodySide } from '../checkup/protocolSetup';
 import type { CheckUp } from '../checkup/types';
 import type { CameraAvailability } from '../components/SafePoseDetectionView';
+import { FIT_FRAME_MPV2_RECORDING_VISUAL_ENABLED } from '../config/fitFrameMpv2RecordingVisual';
 import { MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED } from '../config/movementProfileV2VoiceRuntimeFoundation';
-import type { VoiceExperienceMode } from '../config/voiceExperienceTypes';
 import { defaultNowMs } from '../diagnostics/poseLatencyDiagnostics';
 import {
   createMovementProfileV2InternalFlow,
@@ -20,6 +20,7 @@ import {
   MovementProfileV2LiveCoordinator,
   type MovementProfileV2LiveSnapshot,
   type MovementProfileV2LiveStage,
+  type MovementProfileV2LiveTransitionSummary,
   type MovementProfileV2LiveUserAction,
 } from '../movementProfileV2/liveCoordinator';
 import {
@@ -33,6 +34,7 @@ import {
 } from '../movementProfileV2/voiceRuntime';
 import { PosePipeline } from '../pose/pipeline';
 import { DEFAULT_VOICE_ID } from '../profile/voices';
+import { RecordingVisualSurface } from '../recording/RecordingVisualSurface';
 import {
   movementProfileV2InstructionCueIdsForStage,
   movementProfileV2InstructionTextForStage,
@@ -44,6 +46,7 @@ import type {
 } from '../render/poseAvatarTypes';
 import {
   CheckUpRecordingShell,
+  type CheckUpRecordingAreaContext,
   type CheckUpShellControl,
   type CheckUpShellFooterMeta,
   type CheckUpShellModalMode,
@@ -53,6 +56,12 @@ import {
 
 const LIVE_TIMER_TICK_MS = 250;
 const TOTAL_V2_ITEMS = 4;
+const MPV2_MEASUREMENT_COMPLETE_TRANSITION_REASONS = new Set([
+  'balance_valid_trial_rest',
+  'balance_section_complete',
+  'balance_user_accepted_best',
+  'shoulder_section_complete',
+]);
 
 type MovementProfileV2CheckUpSourceType = Extract<
   CheckupType,
@@ -65,6 +74,22 @@ interface OfficialSideFallbackRequest {
   kind: OfficialSideFallbackKind;
   anchorSide: BodySide;
   fallbackSide: BodySide;
+}
+
+function movementProfileV2TransitionSfxKey(transition: MovementProfileV2LiveTransitionSummary): string {
+  return `${transition.atMs}:${transition.from}:${transition.to}:${transition.reason}`;
+}
+
+function shouldPlayMovementProfileV2MeasurementCompleteSfx(
+  snapshot: MovementProfileV2LiveSnapshot
+): boolean {
+  const transition = snapshot.lastTransition;
+  if (!transition || !MPV2_MEASUREMENT_COMPLETE_TRANSITION_REASONS.has(transition.reason)) {
+    return false;
+  }
+  if (transition.reason.startsWith('balance_')) return snapshot.balanceBestHoldSec !== null;
+  if (transition.reason === 'shoulder_section_complete') return snapshot.shoulderPeakDeg !== null;
+  return true;
 }
 
 const INITIAL_VOICE_RUNTIME_STATE: MovementProfileV2VoiceRuntimeState = {
@@ -84,7 +109,6 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   sourceType,
   initialFlow,
   voiceId,
-  voiceExperienceMode = 'v21_beta',
   onComplete,
   onCancel,
 }: {
@@ -92,12 +116,10 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   sourceType: MovementProfileV2CheckUpSourceType;
   initialFlow?: MovementProfileV2InternalFlowState | null;
   voiceId?: string;
-  voiceExperienceMode?: VoiceExperienceMode;
   onComplete: (input: { checkUp: CheckUp; sourceType: MovementProfileV2CheckUpSourceType }) => void;
   onCancel: () => void;
 }) {
-  const voiceRuntimeEnabled =
-    voiceExperienceMode === 'v21_beta' && MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED;
+  const voiceRuntimeEnabled = MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED;
   const handsFreeMode = voiceRuntimeEnabled;
   const initialState = React.useMemo(
     () => initialFlow ?? { ...createMovementProfileV2InternalFlow({ startedAt }), sourceType },
@@ -109,6 +131,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   }
   const [pipeline] = React.useState(() => new PosePipeline());
   const [voice] = React.useState(() => new VoiceChannel(voiceId));
+  const [sfx] = React.useState(() => new SfxChannel());
   const voiceSequencerRef = React.useRef(new MovementProfileV2VoiceSequencer());
   const voiceRuntimeRef = React.useRef<MovementProfileV2VoiceRuntime | null>(null);
   const [voiceRuntimeState, setVoiceRuntimeState] = React.useState<MovementProfileV2VoiceRuntimeState>(
@@ -124,17 +147,59 @@ export function MovementProfileV2UnifiedCheckUpScreen({
     coordinatorRef.current!.snapshot(defaultNowMs())
   );
   const liveRef = React.useRef(live);
+  const lastRepCreditCountRef = React.useRef(live.repCreditCount);
+  const lastSfxTransitionKeyRef = React.useRef<string | null>(null);
   const completedRef = React.useRef(false);
   const skeletonRef = React.useRef<SkeletonViewHandle>(null);
   const diagnosticsEnabled = React.useMemo(() => isMovementProfileV2DiagnosticsEnabled(), []);
 
+  const publishLive = React.useCallback(
+    (next: MovementProfileV2LiveSnapshot) => {
+      const previous = liveRef.current;
+      if (next.repCreditCount > lastRepCreditCountRef.current) {
+        sfx.play('rep-credit');
+      }
+      lastRepCreditCountRef.current = next.repCreditCount;
+      const transitionKey = next.lastTransition ? movementProfileV2TransitionSfxKey(next.lastTransition) : null;
+      if (
+        next.lastTransition &&
+        transitionKey !== lastSfxTransitionKeyRef.current
+      ) {
+        lastSfxTransitionKeyRef.current = transitionKey;
+        if (next.lastTransition.to === 'raw_complete') {
+          sfx.play('session-complete');
+        } else if (shouldPlayMovementProfileV2MeasurementCompleteSfx(next)) {
+          sfx.play('measurement-complete');
+        }
+      }
+      if (!previous.recoveryEpisode && next.recoveryEpisode) {
+        sfx.play('tracking-paused');
+      } else if (
+        previous.recoveryEpisode &&
+        (
+          (!next.recoveryEpisode && previous.recoveryEpisode.phase !== 'voice_completed') ||
+          (
+            next.recoveryEpisode &&
+            previous.recoveryEpisode.id === next.recoveryEpisode.id &&
+            previous.recoveryEpisode.phase !== 'voice_completed' &&
+            next.recoveryEpisode.phase === 'voice_completed'
+          )
+        )
+      ) {
+        sfx.play('tracking-recovered');
+      }
+      liveRef.current = next;
+      setLive(next);
+    },
+    [sfx]
+  );
+
   const refreshLive = React.useCallback((nowMs: number = defaultNowMs()) => {
     const next = coordinatorRef.current?.snapshot(nowMs);
     if (!next) return null;
-    liveRef.current = next;
-    setLive(next);
+    publishLive(next);
     return next;
-  }, []);
+  }, [publishLive]);
 
   const applyVoiceCoordinatorAction = React.useCallback(
     (action: MovementProfileV2VoiceCoordinatorAction, atMs: number) => {
@@ -172,8 +237,9 @@ export function MovementProfileV2UnifiedCheckUpScreen({
       } else {
         voice.stop();
       }
+      sfx.release();
     };
-  }, [getVoiceRuntime, voice, voiceRuntimeEnabled]);
+  }, [getVoiceRuntime, sfx, voice, voiceRuntimeEnabled]);
 
   React.useEffect(() => {
     if (!voiceRuntimeEnabled) return;
@@ -249,11 +315,10 @@ export function MovementProfileV2UnifiedCheckUpScreen({
       coordinatorRef.current?.receivePoseSample(sample);
       const next = coordinatorRef.current?.snapshot(receivedAtMs);
       if (next && next.revision !== liveRef.current.revision) {
-        liveRef.current = next;
-        setLive(next);
+        publishLive(next);
       }
     },
-    [pipeline]
+    [pipeline, publishLive]
   );
 
   const onPoseError = React.useCallback((event: { nativeEvent: PoseErrorEventPayload }) => {
@@ -391,6 +456,21 @@ export function MovementProfileV2UnifiedCheckUpScreen({
     voiceRuntimeState.lastFailure,
   ]);
 
+  const renderFitFrameRecordingArea = React.useCallback(
+    ({ cameraViewport, poseWindow }: CheckUpRecordingAreaContext) => (
+      <RecordingVisualSurface
+        rendererRef={skeletonRef}
+        cameraAvailability={cameraAvailability}
+        cameraViewport={cameraViewport}
+        poseWindow={poseWindow}
+        guidance={live.recordingVisualGuidance}
+        mirrored
+        frameSource="raw"
+      />
+    ),
+    [cameraAvailability, live.recordingVisualGuidance]
+  );
+
   return (
     <CheckUpRecordingShell
       title="Movement Check-Up"
@@ -424,6 +504,9 @@ export function MovementProfileV2UnifiedCheckUpScreen({
       onTryAgain={closeSupportModal}
       onSkip={onCancel}
       pointCloudBodyDotScale={1.72}
+      renderRecordingArea={
+        FIT_FRAME_MPV2_RECORDING_VISUAL_ENABLED ? renderFitFrameRecordingArea : undefined
+      }
     />
   );
 }

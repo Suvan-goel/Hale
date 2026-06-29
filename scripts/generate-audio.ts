@@ -1,8 +1,8 @@
 /**
  * Generates ALL bundled audio: voice lines via the ElevenLabs text-to-speech
  * API (Multilingual v2 model) — synthesized ONCE at build time, so the session
- * path never touches a runtime TTS API (CLAUDE.md audio law) — plus the rep-credit
- * chime as raw-PCM WAV, and the typed require() manifest the player imports.
+ * path never touches a runtime TTS API (CLAUDE.md audio law) — plus session
+ * sound effects as raw-PCM WAV, and the typed require() manifest the player imports.
  *
  * Re-run after adding cues to src/audio/cues.ts, changing a line below, or
  * adding/replacing a voice in src/profile/voices.ts:
@@ -222,7 +222,7 @@ Object.assign(
 loadRootDotEnv();
 const API_KEY = process.env.ELEVENLABS_API_KEY;
 
-type AudioGroup = 'all' | 'safety' | 'movement_profile_v2' | 'voice_v21';
+type AudioGroup = 'all' | 'safety' | 'movement_profile_v2' | 'voice_v21' | 'sfx';
 type VoiceSelector = 'all' | string;
 type AudioAssetStatus = 'valid' | 'missing' | 'stale' | 'zero-byte' | 'forced';
 
@@ -439,7 +439,13 @@ function parseArgs(argv: readonly string[]): CliOptions {
 }
 
 function isAudioGroup(value: string | undefined): value is AudioGroup {
-  return value === 'all' || value === 'safety' || value === 'movement_profile_v2' || value === 'voice_v21';
+  return (
+    value === 'all' ||
+    value === 'safety' ||
+    value === 'movement_profile_v2' ||
+    value === 'voice_v21' ||
+    value === 'sfx'
+  );
 }
 
 function selectVoices(selector: VoiceSelector): SelectedVoice[] {
@@ -469,6 +475,7 @@ function lineKeysForGroup(group: AudioGroup): string[] {
   if (group === 'safety') return safetyAudioCueIds();
   if (group === 'movement_profile_v2') return movementProfileV2AudioCueIds();
   if (group === 'voice_v21') return voiceV21MetadataLineKeys();
+  if (group === 'sfx') return [];
   return [...new Set([...Object.keys(LINES), ...voiceV21MetadataLineKeys()])].sort();
 }
 
@@ -1381,20 +1388,81 @@ function csvEscape(value: string): string {
   return value;
 }
 
-/** Rep-credit chime: 880 Hz sine, fast attack, exponential decay, 160 ms. */
-function writeRepCreditWav(): void {
+const SFX_DEFINITIONS = [
+  {
+    key: 'rep-credit',
+    file: 'rep-credit.wav',
+    durationSec: 0.16,
+    tones: [{ start: 0, duration: 0.16, freq: 880, amp: 0.42, decay: 0.045, attack: 0.008, harmonic: 0.35 }],
+  },
+  {
+    key: 'measurement-complete',
+    file: 'measurement-complete.wav',
+    durationSec: 0.44,
+    tones: [
+      { start: 0.0, duration: 0.28, freq: 523.25, amp: 0.22, decay: 0.12, attack: 0.014, harmonic: 0.28 },
+      { start: 0.13, duration: 0.3, freq: 659.25, amp: 0.24, decay: 0.15, attack: 0.014, harmonic: 0.24 },
+    ],
+  },
+  {
+    key: 'tracking-paused',
+    file: 'tracking-paused.wav',
+    durationSec: 0.34,
+    tones: [
+      { start: 0.0, duration: 0.22, freq: 329.63, amp: 0.16, decay: 0.09, attack: 0.018, harmonic: 0.08 },
+      { start: 0.1, duration: 0.22, freq: 246.94, amp: 0.14, decay: 0.11, attack: 0.018, harmonic: 0.06 },
+    ],
+  },
+  {
+    key: 'tracking-recovered',
+    file: 'tracking-recovered.wav',
+    durationSec: 0.32,
+    tones: [
+      { start: 0.0, duration: 0.2, freq: 392.0, amp: 0.16, decay: 0.08, attack: 0.014, harmonic: 0.12 },
+      { start: 0.08, duration: 0.24, freq: 587.33, amp: 0.2, decay: 0.12, attack: 0.014, harmonic: 0.18 },
+    ],
+  },
+  {
+    key: 'session-complete',
+    file: 'session-complete.wav',
+    durationSec: 0.78,
+    tones: [
+      { start: 0.0, duration: 0.42, freq: 392.0, amp: 0.18, decay: 0.2, attack: 0.02, harmonic: 0.22 },
+      { start: 0.16, duration: 0.42, freq: 523.25, amp: 0.18, decay: 0.22, attack: 0.02, harmonic: 0.2 },
+      { start: 0.32, duration: 0.46, freq: 659.25, amp: 0.16, decay: 0.26, attack: 0.024, harmonic: 0.18 },
+    ],
+  },
+] as const;
+
+interface SfxTone {
+  start: number;
+  duration: number;
+  freq: number;
+  amp: number;
+  decay: number;
+  attack: number;
+  harmonic: number;
+}
+
+/** Voice-independent premium session sounds: short, soft raw-PCM WAVs. */
+function writeSfxWavs(): void {
+  for (const definition of SFX_DEFINITIONS) {
+    writeSfxWav(definition.file, definition.durationSec, definition.tones);
+  }
+}
+
+function writeSfxWav(file: string, durationSec: number, tones: readonly SfxTone[]): void {
   const sampleRate = 24000;
-  const durationSec = 0.16;
   const samples = Math.round(sampleRate * durationSec);
   const data = Buffer.alloc(samples * 2);
   for (let i = 0; i < samples; i++) {
     const t = i / sampleRate;
-    const attack = Math.min(1, t / 0.008);
-    const decay = Math.exp(-t / 0.045);
-    // Soft octave overtone keeps it chime-like instead of a flat beep.
-    const wave = Math.sin(2 * Math.PI * 880 * t) + 0.35 * Math.sin(2 * Math.PI * 1760 * t);
-    const value = Math.round(0.5 * attack * decay * wave * 32767 * 0.74);
-    data.writeInt16LE(Math.max(-32768, Math.min(32767, value)), i * 2);
+    let wave = 0;
+    for (const tone of tones) {
+      wave += sfxToneAt(t, tone);
+    }
+    const value = Math.round(Math.max(-0.92, Math.min(0.92, wave)) * 32767);
+    data.writeInt16LE(value, i * 2);
   }
   const header = Buffer.alloc(44);
   header.write('RIFF', 0);
@@ -1410,7 +1478,21 @@ function writeRepCreditWav(): void {
   header.writeUInt16LE(16, 34); // bits/sample
   header.write('data', 36);
   header.writeUInt32LE(data.length, 40);
-  fs.writeFileSync(path.join(SFX_DIR, 'rep-credit.wav'), Buffer.concat([header, data]));
+  fs.writeFileSync(path.join(SFX_DIR, file), Buffer.concat([header, data]));
+}
+
+function sfxToneAt(t: number, tone: SfxTone): number {
+  const local = t - tone.start;
+  if (local < 0 || local > tone.duration) return 0;
+  const attack = Math.min(1, local / tone.attack);
+  const releaseStart = tone.duration * 0.72;
+  const release =
+    local <= releaseStart ? 1 : Math.max(0, 1 - (local - releaseStart) / (tone.duration - releaseStart));
+  const decay = Math.exp(-local / tone.decay);
+  const fundamental = Math.sin(2 * Math.PI * tone.freq * local);
+  const overtone = Math.sin(2 * Math.PI * tone.freq * 2 * local) * tone.harmonic;
+  const air = Math.sin(2 * Math.PI * tone.freq * 3 * local) * tone.harmonic * 0.08;
+  return (fundamental + overtone + air) * tone.amp * attack * release * decay;
 }
 
 /** Write the typed manifest: per-voice voice lines + voice-independent sfx. */
@@ -1443,7 +1525,9 @@ function writeManifestFromDisk(additionalKnownVoiceKeys: ReadonlySet<string> = n
     '};',
     '',
     'export const SFX_MANIFEST: Partial<Record<SfxCueKey, number>> = {',
-    "  'rep-credit': require('../../assets/audio/sfx/rep-credit.wav'),",
+    ...SFX_DEFINITIONS.map(
+      (definition) => `  '${definition.key}': require('../../assets/audio/sfx/${definition.file}'),`
+    ),
     '};',
     '',
   ];
@@ -1623,6 +1707,13 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (options.group === 'sfx') {
+    writeSfxWavs();
+    writeManifestFromDisk();
+    console.log(`\n${SFX_DEFINITIONS.length} sound effect(s) → assets/audio/sfx/, manifest updated`);
+    return;
+  }
+
   const keys = options.cue === null ? lineKeysForGroup('all') : [options.cue];
   if (options.dryRun) {
     console.log(
@@ -1656,7 +1747,7 @@ async function main(): Promise<void> {
     }
   }
   if (options.cue === null) {
-    writeRepCreditWav();
+    writeSfxWavs();
   }
   writeManifestFromDisk();
   if (options.cue === null) {
@@ -1666,7 +1757,7 @@ async function main(): Promise<void> {
   const total = voices.length * keys.length;
   console.log(
     options.cue === null
-      ? `\n${voices.length} voice(s), ${total} lines + rep-credit chime → assets/audio/, manifest updated`
+      ? `\n${voices.length} voice(s), ${total} lines + ${SFX_DEFINITIONS.length} sound effects → assets/audio/, manifest updated`
       : `\n${voices.length} voice(s), ${total} line(s) → assets/audio/, manifest updated`
   );
 }

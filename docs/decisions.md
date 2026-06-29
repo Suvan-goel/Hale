@@ -2130,3 +2130,118 @@ PUBLIC RELEASE REMAINS BLOCKED
 - **Evidence:** `npm test -- --runTestsByPath src/render/__tests__/fitFramePoseTraceGeometry.test.ts
   src/screens/__tests__/CheckUpRecordingShell.test.ts` passes, and `npx tsc --noEmit --pretty
   false` passes.
+
+## 2026-06-29 — Trainer voice runtime is no longer user-selectable by system
+
+- **Change:** Settings -> Trainer Voice now shows only the Clara/Marcus picker. The app no
+  longer persists or reads a voice-runtime mode preference, and launch flows use the bundled
+  default trainer-voice runtime directly.
+- **Rationale:** the bundled voice runtime is now the product default, so keeping a visible
+  system switch and rollback copy created stale product language.
+- **Boundary:** the selected voice id still persists locally; historical compatibility code for
+  old check-up/training data is unchanged.
+
+## 2026-06-29 — Fit Frame Pose Trace gated for Micro-Check recording
+
+- **Change:** added `EXPO_PUBLIC_ENABLE_FIT_FRAME_MICRO_CHECK=1` as a Micro-Check-only
+  developer flag that swaps the central recording visual from the legacy `SkeletonView` to the
+  shared `RecordingVisualSurface` and Fit Frame Pose Trace renderer.
+- **Boundary:** Micro-Check `SafePoseDetectionView`, pose pipeline, side resolver, runner
+  creation, countdown/tracked-go boundary, scoring, completion, persistence, sync, and voice
+  behavior remain authoritative and unchanged. Training and MPV2 are not integrated.
+
+## 2026-06-29 — Fit Frame Pose Trace gated for Training recording
+
+- **Change:** added `EXPO_PUBLIC_ENABLE_FIT_FRAME_TRAINING=1` as a Training-only developer
+  flag that keeps the existing native camera/pose path but disables the native skeleton overlay
+  and renders the shared `RecordingVisualSurface` in the recording viewport.
+- **Boundary:** TrainingSessionPlayer, preflight, floor setup, valid-time recovery, step-up
+  correction, tracked-go countdown boundary, rep/timer/hold/ROM metrics, session completion,
+  persistence, sync, and voice behavior remain authoritative and unchanged. MPV2 is not
+  integrated.
+
+## 2026-06-29 — MPV2 exposes coordinator-owned Fit Frame guidance only
+
+- **Change:** `MovementProfileV2LiveSnapshot` now includes `recordingVisualGuidance`, derived
+  inside `MovementProfileV2LiveCoordinator` from MPV2 stage, tracking quality, recovery,
+  backgrounding, voice prerequisites, and hands-free readiness state.
+- **Boundary:** MPV2 still does not render Fit Frame or `RecordingVisualSurface`, has no
+  user-facing Fit Frame flag, and keeps official scoring, stage progression, side inference,
+  recovery, materialization, persistence, sync, and voice behavior unchanged.
+
+## 2026-06-29 — Fit Frame Pose Trace gated for MPV2 recording
+
+- **Change:** added `EXPO_PUBLIC_ENABLE_FIT_FRAME_MPV2=1` as an MPV2-only developer flag that
+  swaps the central MPV2 recording visual through `CheckUpRecordingShell.renderRecordingArea`
+  to the shared `RecordingVisualSurface`, consuming coordinator-owned
+  `live.recordingVisualGuidance`.
+- **Boundary:** flag-off MPV2 keeps the existing shell default renderer. Flag-on MPV2 changes
+  only the recording area renderer; the shell remains responsible for camera-unavailable UI,
+  chrome, footer, notice priority, and layout. MPV2 scoring, stage progression, side inference,
+  recovery, materialization, persistence, sync, and voice behavior remain unchanged. Legacy
+  Check-Up, Micro-Check, and Training flags remain isolated.
+
+## 2026-06-29 — Fit Frame Pose Trace is the default recording visual
+
+- **Change:** Fit Frame + Premium Pose Trace now defaults on for legacy Movement Check-Up,
+  Micro-Check, Training, and MPV2. The previous opt-in `EXPO_PUBLIC_ENABLE_FIT_FRAME_*` flags
+  were replaced by temporary per-flow rollback flags:
+  `EXPO_PUBLIC_DISABLE_FIT_FRAME_CHECKUP`,
+  `EXPO_PUBLIC_DISABLE_FIT_FRAME_MICRO_CHECK`,
+  `EXPO_PUBLIC_DISABLE_FIT_FRAME_TRAINING`, and `EXPO_PUBLIC_DISABLE_FIT_FRAME_MPV2`.
+- **Rollback:** unset or `0` means Fit Frame stays on; exact `1` restores the previous visual
+  path only for that flow. Setting all four rollback flags to `1` restores the previous visuals
+  across all recording flows for one more QA cycle.
+- **Settings:** the Fit Frame preview remains available only through the diagnostics/developer
+  path as "Recording visual diagnostics"; it is no longer presented as a normal user-facing
+  experimental visual choice.
+- **Boundary:** this is visual-only. Scoring, readiness, preflight, countdown/tracked-start,
+  active measurement, rep/hold/ROM metrics, side inference/persistence, recovery, completion,
+  result materialisation, evidence policy, persistence, Supabase sync, voice assets, runtime TTS,
+  and audio cue sequencing were not changed. The active edge-warning policy remains unchanged.
+- **QA:** physical Android/iOS QA is still required before beta release, including default and
+  rollback launches for all four flows plus no-subject, framing, active, lost/recovery,
+  completion, and camera-unavailable paths.
+
+## 2026-06-29 — Optional micro-checks require explicit domain choice
+
+- **Change:** the Manual / Extra Check-Up -> Quick micro check-up route now always opens the
+  Strength / Balance / Mobility chooser before camera capture. The selected domain still maps to
+  the existing micro-check primitives: chair power, single-leg balance, or mobility reach.
+- **Rationale:** the extra check-up entry point is an optional curiosity flow, so auto-picking from
+  the active block focus or balanced-week rotation hides user intent. Scheduled Today micro-checks
+  still use the scheduled slot target directly.
+- **Boundary:** optional micro-check results remain non-scheduled and do not complete a weekly
+  slot, change the active plan, create an official Movement Profile, or alter capture/scoring.
+
+## 2026-06-29 — Rep-credit sound effect covers unified Movement Check-Up
+
+- **Change:** MPV2 live snapshots now expose a monotonic `repCreditCount`, incremented whenever
+  the live chair-rise detector credits a practice or official chair rep. The unified Movement
+  Check-Up screen plays the shared `rep-credit` sound effect when that count advances.
+- **Rationale:** Training, micro-check, and legacy Check-Up already play the chime from their
+  `playRepSound` frame updates. MPV2 used a separate coordinator path, so credited chair reps
+  could update the on-screen count without the audio confirmation.
+- **Boundary:** scoring, rep detection thresholds, practice/official result separation, voice
+  sequencing, and persistence are unchanged. The chime remains a sound effect, not spoken form
+  feedback.
+
+## 2026-06-29 — Recording sessions use a small premium SFX vocabulary
+
+- **Change:** added bundled voice-independent sound effects for measurement saved,
+  tracking paused, tracking recovered, and session complete, alongside the existing rep-credit
+  tick. Legacy Check-Up, Training, Micro-Check, and MPV2 now trigger these cues from their
+  measurement/session state rather than from visual UI state.
+- **Rationale:** brief non-verbal confirmations help users know that reps, holds, captures,
+  recovery, and final completion were recorded without adding more spoken chatter.
+- **Boundary:** sound effects never replace required voice guidance and do not change pose
+  detection, scoring, state progression, persistence, or the no-form-critique policy.
+
+## 2026-06-29 — Release runtime blocks developer-only surfaces
+
+- **Change:** added a shared release-surface policy and wired it into the app shell so release
+  runtime blocks dev-live, pose benchmark, Fit Frame preview diagnostics, mock progress data,
+  and internal Movement Profile V2 surfaces even if stale state or an unsafe env bundle points
+  at them.
+- **Boundary:** public unified Movement Profile V2 Check-Up/results, Fit Frame default recording
+  visuals, training, micro-checks, settings, and safe beta flag verification remain unchanged.

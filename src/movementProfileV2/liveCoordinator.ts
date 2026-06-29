@@ -3,6 +3,7 @@ import { CHAIN_IDS } from '../pose/chains';
 import { angleAtDeg, pointToSegmentDist } from '../pose/geometry';
 import type { PipelineFrameOutput } from '../pose/pipeline';
 import { LM, midpointX, type PoseFrame } from '../pose/types';
+import type { RecordingVisualGuidance } from '../recording/recordingVisualGuidance';
 import {
   type BodySide,
   type ProtocolSetupSource,
@@ -220,12 +221,14 @@ export interface MovementProfileV2LiveSnapshot {
   attemptEpochId: string | null;
   checkUp: CheckUp | null;
   statusText: string;
+  recordingVisualGuidance: RecordingVisualGuidance;
   timerRemainingMs: number | null;
   balanceTimerKind: MovementProfileV2BalanceTimerKind;
   restMinimumRemainingMs: number | null;
   restDefaultRemainingMs: number | null;
   canContinueAfterRest: boolean;
   chairReps: number;
+  repCreditCount: number;
   balanceValidTrials: number;
   balanceBestHoldSec: number | null;
   shoulderPeakDeg: number | null;
@@ -304,6 +307,7 @@ export class MovementProfileV2LiveCoordinator {
   private readonly clockBridge = new MonotonicFrameClockBridge();
   private readonly seenFrameIds = new BoundedFrameIdSet(MAX_SEEN_FRAME_IDS);
   private lastSourceTimestampMs: number | null = null;
+  private lastTrackingQuality: MovementProfileV2TrackingQuality | null = null;
 
   private chair = new ChairRiseV2ProtocolController();
   private chairAdapter = new ChairLiveAdapter();
@@ -314,6 +318,7 @@ export class MovementProfileV2LiveCoordinator {
   private chairOfficialReadyVoiceCompleted = false;
   private chairResult: ChairRiseV2Result | null = null;
   private chairLostFrames = 0;
+  private repCreditCount = 0;
 
   private readonly balance = new OneLegBalanceV2ProtocolController();
   private balanceTrialStartedAtMs: number | null = null;
@@ -385,25 +390,42 @@ export class MovementProfileV2LiveCoordinator {
     const restMin = typeof nowMs === 'number' ? this.remainingUntil(this.balanceRestMinUntilMs, nowMs) : null;
     const restDefault =
       typeof nowMs === 'number' ? this.remainingUntil(this.balanceRestDefaultUntilMs, nowMs) : null;
+    const statusText = this.statusText();
+    const recoveryEpisode = this.activeRecoveryEpisode ? { ...this.activeRecoveryEpisode } : null;
     return {
       stage: this.stage,
       flow: this.flow,
       movementEpochId: this.movementEpochId,
       attemptEpochId: this.attemptEpochId,
       checkUp: this.completedCheckUp,
-      statusText: this.statusText(),
+      statusText,
+      recordingVisualGuidance: buildMovementProfileV2RecordingVisualGuidance({
+        stage: this.stage,
+        statusText,
+        trackingQuality: this.lastTrackingQuality,
+        backgrounded: this.backgrounded,
+        recoveryEpisode,
+        handsFreeMode: this.handsFreeMode,
+        handsFreeWaitingStage: this.handsFreeWaitingStage,
+        handsFreeReadyStage: this.handsFreeReadyStage,
+        handsFreeFallbackAvailable: this.handsFreeFallbackAvailable,
+        voicePrerequisitePending: this.voicePrerequisitePending(),
+        metricProtected: this.recordingVisualMetricProtected(),
+        chairCountdownStarted: this.chairCountdownStartedAtMs !== null,
+      }),
       timerRemainingMs: timer,
       balanceTimerKind: this.balanceTimerKind(),
       restMinimumRemainingMs: restMin,
       restDefaultRemainingMs: restDefault,
       canContinueAfterRest: this.stage === 'balance_rest' && restMin === 0,
       chairReps: this.diagnostics.chair.officialReps,
+      repCreditCount: this.repCreditCount,
       balanceValidTrials: this.balanceValidTrials,
       balanceBestHoldSec: this.balanceBestHoldSec,
       shoulderPeakDeg: this.shoulderPeakDeg,
       hingeReachBu: this.hingeReachBu,
       backgrounded: this.backgrounded,
-      recoveryEpisode: this.activeRecoveryEpisode ? { ...this.activeRecoveryEpisode } : null,
+      recoveryEpisode,
       handsFreeMode: this.handsFreeMode,
       handsFreeFallbackAvailable: this.handsFreeFallbackAvailable,
       diagnostics: freezeDiagnostics(this.diagnostics),
@@ -642,8 +664,8 @@ export class MovementProfileV2LiveCoordinator {
     }
     if (this.completeBalanceAtHardCapIfNeeded(nowMs)) return this.revision !== before;
     if (this.stage === 'balance_rest') {
-      if (this.balanceRestDefaultUntilMs !== null && nowMs >= this.balanceRestDefaultUntilMs) {
-        this.transition('balance_ready', this.balanceRestDefaultUntilMs, 'balance_default_rest_elapsed');
+      if (this.balanceRestMinUntilMs !== null && nowMs >= this.balanceRestMinUntilMs) {
+        this.transition('balance_ready', this.balanceRestMinUntilMs, 'balance_rest_ready');
         this.attemptEpochId = this.nextAttemptEpoch('balance-ready');
       } else {
         this.bump();
@@ -669,6 +691,7 @@ export class MovementProfileV2LiveCoordinator {
     if (sample.trackingQuality === 'good') this.diagnostics.trackingGoodFrames++;
     else if (sample.trackingQuality === 'uncertain') this.diagnostics.trackingUncertainFrames++;
     else this.diagnostics.trackingLostFrames++;
+    this.lastTrackingQuality = sample.trackingQuality;
 
     const before = this.revision;
     this.updateHandsFreeFromPose(sample, nowMs);
@@ -751,19 +774,27 @@ export class MovementProfileV2LiveCoordinator {
           break;
         }
         const inferred = inferBalanceStandingLeg(sample.output, this.flow.priorStandingLeg);
-        const ready = this.noteHandsFreeReadiness('balance_setup', inferred ?? 'none', inferred !== null, nowMs);
-        if (!inferred) {
+        const standingLeg = inferred ?? this.flow.priorStandingLeg ?? this.flow.standingLeg;
+        const ready = this.noteHandsFreeReadiness(
+          'balance_setup',
+          inferred ?? `standing:${standingLeg}`,
+          inferred !== null || balanceSetupPoseReady(sample.output),
+          nowMs
+        );
+        if (!ready) {
           this.clearBalanceReadyLiftEvidence();
           break;
         }
-        if (ready) {
+        if (inferred) {
           this.seedBalanceReadyLiftEvidence(inferred, this.handsFreeReadySinceMs ?? nowMs);
-          this.receiveUserAction({
-            type: 'confirm_balance_setup',
-            standingLeg: inferred,
-            source: sourceForCameraInferredSide(this.flow.priorStandingLeg, inferred),
-          }, nowMs);
         }
+        this.receiveUserAction({
+          type: 'confirm_balance_setup',
+          standingLeg,
+          source: inferred
+            ? sourceForCameraInferredSide(this.flow.priorStandingLeg, inferred)
+            : sourceForBalanceSetupPose(this.flow.priorStandingLeg, standingLeg),
+        }, nowMs);
         break;
       }
       case 'shoulder_setup': {
@@ -865,6 +896,7 @@ export class MovementProfileV2LiveCoordinator {
     }
     const update = this.chairAdapter.update(sample.output);
     if (!update.repCredited) return;
+    this.repCreditCount++;
     this.diagnostics.chair.practiceReps++;
     this.diagnostics.chair.practiceCompleted = true;
     this.chair.completePracticeRep(nowMs);
@@ -898,6 +930,7 @@ export class MovementProfileV2LiveCoordinator {
       pushOff: update.pushOff,
     });
     if (!credited) return;
+    this.repCreditCount++;
     this.diagnostics.chair.officialReps++;
     this.bump();
   }
@@ -1411,6 +1444,51 @@ export class MovementProfileV2LiveCoordinator {
     return 'none';
   }
 
+  private voicePrerequisitePending(): boolean {
+    switch (this.stage) {
+      case 'chair_setup':
+        return this.handsFreeMode && !this.chairSetupVoiceCompleted;
+      case 'chair_practice':
+        return !this.chairPracticeVoiceCompleted;
+      case 'chair_countdown':
+        return !this.chairOfficialReadyVoiceCompleted;
+      case 'balance_setup':
+        return this.handsFreeMode && !this.balanceSetupVoiceCompleted;
+      case 'balance_ready':
+        return !this.balanceAttemptVoiceCompleted;
+      case 'shoulder_setup':
+        return this.handsFreeMode && !this.shoulderTransitionVoiceCompleted;
+      case 'shoulder_ready':
+      case 'shoulder_retry_ready':
+        return !this.shoulderSetupVoiceCompleted;
+      case 'hinge_setup':
+        return !this.hingeSetupVoiceCompleted;
+      default:
+        return false;
+    }
+  }
+
+  private recordingVisualMetricProtected(): boolean {
+    switch (this.stage) {
+      case 'chair_countdown':
+      case 'chair_active':
+      case 'balance_trial':
+      case 'balance_rest':
+      case 'shoulder_active':
+      case 'hinge_active':
+        return true;
+      case 'balance_ready':
+        return this.balanceBestHoldSec !== null;
+      case 'shoulder_ready':
+      case 'shoulder_retry_ready':
+        return this.shoulderPeakDeg !== null;
+      case 'hinge_setup':
+        return this.hingeReachBu !== null;
+      default:
+        return false;
+    }
+  }
+
   private completeBalanceAtHardCapIfNeeded(nowMs: number): boolean {
     if (
       this.balanceSetupConfirmedAtMs === null ||
@@ -1467,13 +1545,13 @@ export class MovementProfileV2LiveCoordinator {
       case 'chair_active':
         return 'Official chair rise capture is running.';
       case 'balance_setup':
-        if (this.handsFreeMode) return "Lift one foot when you're ready. I'll start when you're steady.";
+        if (this.handsFreeMode) return 'Stand with both feet on the floor, with support within reach.';
         return 'Choose the standing leg, with support close by.';
       case 'balance_ready':
         if (this.handsFreeMode && this.balanceBestHoldSec !== null) {
           return "Lift one foot again when you're ready.";
         }
-        return 'Hold steady - starting soon.';
+        return "Lift your other foot when you're ready. The timer starts when Hale sees the lift.";
       case 'balance_trial':
         return 'Keep holding.';
       case 'balance_rest':
@@ -1500,6 +1578,194 @@ export class MovementProfileV2LiveCoordinator {
         return '';
     }
   }
+}
+
+interface BuildMovementProfileV2RecordingVisualGuidanceInput {
+  stage: MovementProfileV2LiveStage;
+  statusText: string;
+  trackingQuality: MovementProfileV2TrackingQuality | null;
+  backgrounded: boolean;
+  recoveryEpisode: Mpv2RecoveryEpisode | null;
+  handsFreeMode: boolean;
+  handsFreeWaitingStage: MovementProfileV2LiveStage | null;
+  handsFreeReadyStage: MovementProfileV2LiveStage | null;
+  handsFreeFallbackAvailable: boolean;
+  voicePrerequisitePending: boolean;
+  metricProtected: boolean;
+  chairCountdownStarted: boolean;
+}
+
+function buildMovementProfileV2RecordingVisualGuidance(
+  input: BuildMovementProfileV2RecordingVisualGuidanceInput
+): RecordingVisualGuidance {
+  if (input.backgrounded) {
+    return mpv2RecordingVisualGuidance({
+      visualState: 'recovery',
+      statusText: input.statusText,
+      blocksMeasurement: true,
+      blocksAutoStart: true,
+      metricProtected: true,
+      reason: 'mpv2:backgrounded',
+    });
+  }
+
+  if (input.recoveryEpisode) {
+    return mpv2RecordingVisualGuidance({
+      visualState: 'recovery',
+      statusText: input.statusText,
+      blocksMeasurement: true,
+      blocksAutoStart: true,
+      metricProtected: true,
+      reason: 'mpv2:recovery',
+    });
+  }
+
+  if (input.stage === 'raw_complete') {
+    return mpv2RecordingVisualGuidance({
+      visualState: 'ready',
+      statusText: input.statusText,
+      blocksMeasurement: true,
+      blocksAutoStart: true,
+      metricProtected: false,
+      reason: 'mpv2:complete',
+    });
+  }
+
+  if (input.trackingQuality === null || input.trackingQuality === 'lost') {
+    return mpv2RecordingVisualGuidance({
+      visualState: 'lost',
+      statusText: input.statusText,
+      blocksMeasurement: true,
+      blocksAutoStart: true,
+      metricProtected: input.metricProtected,
+      reason: input.trackingQuality === null ? 'mpv2:no-pose' : 'mpv2:tracking-lost',
+    });
+  }
+
+  if (input.voicePrerequisitePending) {
+    return mpv2RecordingVisualGuidance({
+      visualState: voiceBlockedVisualState(input.stage),
+      statusText: input.statusText,
+      blocksMeasurement: true,
+      blocksAutoStart: true,
+      metricProtected: input.metricProtected,
+      reason: 'mpv2:audio-blocking',
+    });
+  }
+
+  switch (input.stage) {
+    case 'chair_setup':
+    case 'balance_setup':
+    case 'shoulder_setup':
+    case 'hinge_setup': {
+      const visualState = setupVisualState(input);
+      return mpv2RecordingVisualGuidance({
+        visualState,
+        statusText: input.statusText,
+        blocksMeasurement: true,
+        blocksAutoStart: true,
+        metricProtected: input.metricProtected,
+        reason: `mpv2:${visualState === 'ready' ? 'setup-ready' : visualState === 'adjust' ? 'setup-adjust' : 'setup-tracking'}`,
+      });
+    }
+    case 'chair_countdown':
+      return mpv2RecordingVisualGuidance({
+        visualState: 'ready',
+        statusText: input.statusText,
+        blocksMeasurement: true,
+        blocksAutoStart: !input.chairCountdownStarted,
+        metricProtected: true,
+        reason: 'mpv2:countdown',
+      });
+    case 'chair_active':
+    case 'balance_trial':
+    case 'shoulder_active':
+    case 'hinge_active':
+      return mpv2RecordingVisualGuidance({
+        visualState: 'active',
+        statusText: input.statusText,
+        blocksMeasurement: false,
+        blocksAutoStart: false,
+        metricProtected: true,
+        reason: 'mpv2:active',
+      });
+    case 'chair_practice':
+      return mpv2RecordingVisualGuidance({
+        visualState: 'tracking',
+        statusText: input.statusText,
+        blocksMeasurement: false,
+        blocksAutoStart: false,
+        metricProtected: false,
+        reason: 'mpv2:practice',
+      });
+    case 'balance_ready':
+    case 'shoulder_ready':
+    case 'shoulder_retry_ready':
+      return mpv2RecordingVisualGuidance({
+        visualState: 'ready',
+        statusText: input.statusText,
+        blocksMeasurement: true,
+        blocksAutoStart: false,
+        metricProtected: input.metricProtected,
+        reason: 'mpv2:ready',
+      });
+    case 'balance_rest':
+      return mpv2RecordingVisualGuidance({
+        visualState: 'tracking',
+        statusText: input.statusText,
+        blocksMeasurement: true,
+        blocksAutoStart: true,
+        metricProtected: input.metricProtected,
+        reason: 'mpv2:rest',
+      });
+  }
+}
+
+function mpv2RecordingVisualGuidance(input: {
+  visualState: RecordingVisualGuidance['visualState'];
+  statusText: string;
+  blocksMeasurement: boolean;
+  blocksAutoStart: boolean;
+  metricProtected: boolean;
+  reason: string;
+}): RecordingVisualGuidance {
+  return {
+    visualState: input.visualState,
+    source: 'mpv2_live',
+    primaryText: input.statusText,
+    secondaryText: null,
+    blocksMeasurement: input.blocksMeasurement,
+    blocksAutoStart: input.blocksAutoStart,
+    voiceCue: null,
+    metricProtected: input.metricProtected,
+    reason: input.reason,
+  };
+}
+
+function voiceBlockedVisualState(stage: MovementProfileV2LiveStage): RecordingVisualGuidance['visualState'] {
+  switch (stage) {
+    case 'chair_countdown':
+    case 'balance_ready':
+    case 'shoulder_ready':
+    case 'shoulder_retry_ready':
+      return 'ready';
+    default:
+      return 'tracking';
+  }
+}
+
+function setupVisualState(
+  input: BuildMovementProfileV2RecordingVisualGuidanceInput
+): RecordingVisualGuidance['visualState'] {
+  if (
+    input.handsFreeMode &&
+    (input.handsFreeReadyStage === input.stage || input.handsFreeFallbackAvailable)
+  ) {
+    return 'ready';
+  }
+  if (input.trackingQuality === 'uncertain') return 'adjust';
+  if (input.handsFreeMode && input.handsFreeWaitingStage === input.stage) return 'adjust';
+  return 'tracking';
 }
 
 class MonotonicFrameClockBridge {
@@ -1653,6 +1919,19 @@ function inferBalanceStandingLeg(out: PipelineFrameOutput, priorStandingLeg: Bod
   return null;
 }
 
+function balanceSetupPoseReady(out: PipelineFrameOutput): boolean {
+  if (
+    out.state !== 'tracking' ||
+    !out.frame.hasPose ||
+    out.bodyUnit === null ||
+    !balanceStartEvidenceReliable(out)
+  ) {
+    return false;
+  }
+  const ankleDeltaBu = Math.abs((out.frame.ys[LM.LEFT_ANKLE] - out.frame.ys[LM.RIGHT_ANKLE]) / out.bodyUnit);
+  return ankleDeltaBu <= BALANCE_LIFT_BU;
+}
+
 function balanceStartEvidenceReliable(out: PipelineFrameOutput): boolean {
   return out.chainReliability[LEFT_SIDE_CHAIN] >= SETUP_CHAIN_RELIABILITY &&
     out.chainReliability[RIGHT_SIDE_CHAIN] >= SETUP_CHAIN_RELIABILITY;
@@ -1660,6 +1939,10 @@ function balanceStartEvidenceReliable(out: PipelineFrameOutput): boolean {
 
 function sourceForCameraInferredSide(priorSide: BodySide | null, selectedSide: BodySide): ProtocolSetupSource {
   return priorSide === selectedSide ? 'prior_record_camera_verified' : 'camera_inferred';
+}
+
+function sourceForBalanceSetupPose(priorSide: BodySide | null, selectedSide: BodySide): ProtocolSetupSource {
+  return priorSide === selectedSide ? 'prior_record_camera_verified' : 'default';
 }
 
 function inferShoulderSide(out: PipelineFrameOutput, priorShoulderSide: BodySide | null): BodySide | null {

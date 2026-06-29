@@ -9,8 +9,8 @@ import { useResponsiveLayout } from '../theme/responsive';
 const SETUP_HERO_IMAGE = require('../../assets/images/hale-camera-setup-hero-v4.png');
 
 const SETUP_STEPS = [
-  'Prop your phone at about waist height.',
-  'Stand about 8 to 10 feet away, with your whole body in view.',
+  'Set your phone somewhere steady. A shelf, table, phone stand, wall, or sturdy bottle is fine.',
+  'Stand about 2 to 3 meters away, with your whole body in view.',
   'Turn your volume up so you can hear Hale.',
   'Keep your chair and a wall or counter nearby.',
   'Turn on the main light if the room is dim.',

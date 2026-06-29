@@ -21,7 +21,19 @@ import type {
   PoseAvatarRendererHandle,
 } from './poseAvatarTypes';
 
-export type FitFramePoseTraceVisualState = 'lost' | 'adjust' | 'tracking' | 'ready';
+export type FitFramePoseTraceVisualState =
+  | 'lost'
+  | 'adjust'
+  | 'tracking'
+  | 'ready'
+  | 'active';
+
+export type FitFrameEdgeWarningIntensity = 'none' | 'setup' | 'active';
+
+export interface FitFrameEdgeWarningPolicy {
+  flags: FitFrameTraceEdgeFlags;
+  intensity: FitFrameEdgeWarningIntensity;
+}
 
 export interface FitFramePoseTraceRendererProps {
   visualState?: FitFramePoseTraceVisualState;
@@ -61,6 +73,12 @@ const EDGE_OVERLAY_GRADIENT_IDS = {
   bottom: 'fitFramePoseTraceEdgeBottomOverlayGradient',
 } as const;
 const EMPTY_D = 'M-9-9';
+const NO_EDGE_FLAGS: FitFrameTraceEdgeFlags = {
+  left: false,
+  right: false,
+  top: false,
+  bottom: false,
+};
 
 export const FitFramePoseTraceRenderer = React.forwardRef<
   PoseAvatarRendererHandle,
@@ -189,8 +207,8 @@ export const FitFramePoseTraceRenderer = React.forwardRef<
   const lineWidth = frameRect ? estimateLineWidth(frameRect) : 1.6;
   const majorPointOpacity = visualState === 'ready' ? 1 : 0.92;
   const showReadyGlow = visualState === 'ready';
-  const displayEdgeFlags = displayFitFrameTraceEdgeFlags(paths.edgeFlags, mirrored);
-  const edgeHighlightsActive = visualState === 'adjust';
+  const edgeWarning = fitFrameEdgeWarningPolicyForState(visualState, paths, mirrored);
+  const edgeHighlightsActive = edgeWarning.intensity !== 'none';
 
   return (
     <View
@@ -219,14 +237,16 @@ export const FitFramePoseTraceRenderer = React.forwardRef<
             </ClipPath>
             <FitFrameEdgeHighlightGradients
               rect={frameRect}
-              flags={displayEdgeFlags}
+              flags={edgeWarning.flags}
               active={edgeHighlightsActive}
               baseColor={frameStyle.border}
+              intensity={edgeWarning.intensity}
             />
             <FitFrameEdgeOverlayGradients
               rect={frameRect}
-              flags={displayEdgeFlags}
+              flags={edgeWarning.flags}
               active={edgeHighlightsActive}
+              intensity={edgeWarning.intensity}
             />
           </Defs>
           <Rect
@@ -257,8 +277,9 @@ export const FitFramePoseTraceRenderer = React.forwardRef<
           ) : null}
           <FitFrameEdgeOverlays
             rect={frameRect}
-            flags={displayEdgeFlags}
+            flags={edgeWarning.flags}
             active={edgeHighlightsActive}
+            intensity={edgeWarning.intensity}
           />
           <G clipPath="url(#fitFramePoseTraceClip)">
             <Path
@@ -296,14 +317,37 @@ export const FitFramePoseTraceRenderer = React.forwardRef<
           </G>
           <FitFrameEdgeHighlights
             rect={frameRect}
-            flags={displayEdgeFlags}
+            flags={edgeWarning.flags}
             active={edgeHighlightsActive}
+            intensity={edgeWarning.intensity}
           />
         </Svg>
       ) : null}
     </View>
   );
 });
+
+export function fitFrameEdgeWarningPolicyForState(
+  visualState: FitFramePoseTraceVisualState,
+  paths: FitFramePoseTracePaths,
+  mirrored = true
+): FitFrameEdgeWarningPolicy {
+  if (visualState === 'adjust') {
+    return {
+      flags: displayFitFrameTraceEdgeFlags(paths.edgeFlags, mirrored),
+      intensity: 'setup',
+    };
+  }
+
+  if (visualState === 'active') {
+    return {
+      flags: displayFitFrameTraceEdgeFlags(paths.activeEdgeFlags, mirrored),
+      intensity: 'active',
+    };
+  }
+
+  return { flags: NO_EDGE_FLAGS, intensity: 'none' };
+}
 
 function updateVisualConfidence(
   frame: PoseFrame,
@@ -360,10 +404,12 @@ function FitFrameEdgeOverlayGradients({
   rect,
   flags,
   active,
+  intensity,
 }: {
   rect: FitFrameRect;
   flags: FitFrameTraceEdgeFlags;
   active: boolean;
+  intensity: FitFrameEdgeWarningIntensity;
 }) {
   if (!active || (!flags.left && !flags.right && !flags.top && !flags.bottom)) {
     return null;
@@ -378,6 +424,7 @@ function FitFrameEdgeOverlayGradients({
         y1={rect.y}
         x2={rect.x + depth}
         y2={rect.y}
+        intensity={intensity}
       />
       <EdgeOverlayGradient
         id={EDGE_OVERLAY_GRADIENT_IDS.right}
@@ -385,6 +432,7 @@ function FitFrameEdgeOverlayGradients({
         y1={rect.y}
         x2={rect.x + rect.width - depth}
         y2={rect.y}
+        intensity={intensity}
       />
       <EdgeOverlayGradient
         id={EDGE_OVERLAY_GRADIENT_IDS.top}
@@ -392,6 +440,7 @@ function FitFrameEdgeOverlayGradients({
         y1={rect.y}
         x2={rect.x}
         y2={rect.y + depth}
+        intensity={intensity}
       />
       <EdgeOverlayGradient
         id={EDGE_OVERLAY_GRADIENT_IDS.bottom}
@@ -399,6 +448,7 @@ function FitFrameEdgeOverlayGradients({
         y1={rect.y + rect.height}
         x2={rect.x}
         y2={rect.y + rect.height - depth}
+        intensity={intensity}
       />
     </>
   );
@@ -410,13 +460,17 @@ function EdgeOverlayGradient({
   y1,
   x2,
   y2,
+  intensity,
 }: {
   id: string;
   x1: number;
   y1: number;
   x2: number;
   y2: number;
+  intensity: FitFrameEdgeWarningIntensity;
 }) {
+  const startOpacity = intensity === 'active' ? 0.08 : 0.22;
+  const midOpacity = intensity === 'active' ? 0.035 : 0.1;
   return (
     <LinearGradient
       id={id}
@@ -426,8 +480,8 @@ function EdgeOverlayGradient({
       y2={y2}
       gradientUnits="userSpaceOnUse"
     >
-      <Stop offset="0%" stopColor={EDGE_CAUTION} stopOpacity={0.22} />
-      <Stop offset="42%" stopColor={EDGE_CAUTION} stopOpacity={0.1} />
+      <Stop offset="0%" stopColor={EDGE_CAUTION} stopOpacity={startOpacity} />
+      <Stop offset="42%" stopColor={EDGE_CAUTION} stopOpacity={midOpacity} />
       <Stop offset="100%" stopColor={EDGE_CAUTION} stopOpacity={0} />
     </LinearGradient>
   );
@@ -437,12 +491,18 @@ function FitFrameEdgeOverlays({
   rect,
   flags,
   active,
+  intensity,
 }: {
   rect: FitFrameRect;
   flags: FitFrameTraceEdgeFlags;
   active: boolean;
+  intensity: FitFrameEdgeWarningIntensity;
 }) {
-  if (!active || (!flags.left && !flags.right && !flags.top && !flags.bottom)) {
+  if (
+    !active ||
+    intensity === 'none' ||
+    (!flags.left && !flags.right && !flags.top && !flags.bottom)
+  ) {
     return null;
   }
 
@@ -494,13 +554,19 @@ function FitFrameEdgeHighlightGradients({
   flags,
   active,
   baseColor,
+  intensity,
 }: {
   rect: FitFrameRect;
   flags: FitFrameTraceEdgeFlags;
   active: boolean;
   baseColor: string;
+  intensity: FitFrameEdgeWarningIntensity;
 }) {
-  if (!active || (!flags.left && !flags.right && !flags.top && !flags.bottom)) {
+  if (
+    !active ||
+    intensity === 'none' ||
+    (!flags.left && !flags.right && !flags.top && !flags.bottom)
+  ) {
     return null;
   }
 
@@ -613,17 +679,23 @@ function FitFrameEdgeHighlights({
   rect,
   flags,
   active,
+  intensity,
 }: {
   rect: FitFrameRect;
   flags: FitFrameTraceEdgeFlags;
   active: boolean;
+  intensity: FitFrameEdgeWarningIntensity;
 }) {
-  if (!active || (!flags.left && !flags.right && !flags.top && !flags.bottom)) {
+  if (
+    !active ||
+    intensity === 'none' ||
+    (!flags.left && !flags.right && !flags.top && !flags.bottom)
+  ) {
     return null;
   }
 
-  const strokeWidth = 3.2;
-  const opacity = 0.92;
+  const strokeWidth = intensity === 'active' ? 2 : 3.2;
+  const opacity = intensity === 'active' ? 0.42 : 0.92;
 
   return (
     <>
@@ -766,6 +838,7 @@ function visualStyleForState(state: FitFramePoseTraceVisualState): {
     case 'adjust':
       return { border: FRAME_BORDER, borderWidth: 1.25, frameOpacity: 1 };
     case 'tracking':
+    case 'active':
       return { border: FRAME_BORDER, borderWidth: 1.25, frameOpacity: 1 };
     case 'lost':
     default:
@@ -824,6 +897,7 @@ function clonePaths(paths: FitFramePoseTracePaths): FitFramePoseTracePaths {
     averageConfidence: paths.averageConfidence,
     bounds: paths.bounds ? { ...paths.bounds } : null,
     edgeFlags: { ...paths.edgeFlags },
+    activeEdgeFlags: { ...paths.activeEdgeFlags },
   };
 }
 

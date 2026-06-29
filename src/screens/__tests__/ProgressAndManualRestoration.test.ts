@@ -50,6 +50,21 @@ describe('Progress and Manual / Extra Check-Up UI restoration', () => {
     expect(`${rules}\n${copy}`).not.toMatch(/Movement Age|weakest-domain/);
   });
 
+  it('routes optional quick micro check-ups through the domain chooser', () => {
+    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+    const handler = app.slice(
+      app.indexOf('const beginManualOptionalMicroCheck'),
+      app.indexOf('const beginManualMicroCheckForDomain')
+    );
+
+    expect(handler).toContain("setFlow('manual-microcheck-domain')");
+    expect(handler).toContain('setMicroCheckLaunch(null)');
+    expect(handler).not.toContain("setFlow('microcheck')");
+    expect(handler).not.toContain('setMicroCheckLaunch({');
+    expect(app).toContain("flow === 'manual-microcheck-domain'");
+    expect(app).toContain('<ManualMicroCheckDomainScreen');
+  });
+
   it('restores the V2 Progress dashboard cards without technical summary copy', () => {
     const progress = readFileSync(join(process.cwd(), 'src/screens/ProgressScreen.tsx'), 'utf8');
     const publicProfileCard = progress.slice(

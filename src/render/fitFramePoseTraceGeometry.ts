@@ -52,6 +52,7 @@ export interface FitFramePoseTracePaths {
   averageConfidence: number;
   bounds: FitFrameTraceBounds | null;
   edgeFlags: FitFrameTraceEdgeFlags;
+  activeEdgeFlags: FitFrameTraceEdgeFlags;
 }
 
 export interface FitFramePoseTraceBuildOptions {
@@ -71,6 +72,7 @@ const FAINT_CONFIDENCE = 0.18;
 const STRONG_CONFIDENCE = 0.55;
 const FOOT_CONFIDENCE = 0.35;
 const EDGE_MARGIN = 0.055;
+const ACTIVE_EDGE_MARGIN = 0.035;
 const EDGE_VISUAL_FADE_MARGIN = 0.07;
 
 const TRACE_CONNECTIONS: readonly (readonly [LM, LM])[] = [
@@ -108,6 +110,35 @@ const TRACE_POINTS: readonly LM[] = [
   LM.RIGHT_FOOT_INDEX,
 ];
 
+const HEAD_POINTS: readonly LM[] = [
+  LM.NOSE,
+  LM.LEFT_EYE,
+  LM.RIGHT_EYE,
+  LM.LEFT_EAR,
+  LM.RIGHT_EAR,
+  LM.MOUTH_LEFT,
+  LM.MOUTH_RIGHT,
+];
+
+const LEFT_FOOT_POINTS: readonly LM[] = [
+  LM.LEFT_ANKLE,
+  LM.LEFT_HEEL,
+  LM.LEFT_FOOT_INDEX,
+];
+
+const RIGHT_FOOT_POINTS: readonly LM[] = [
+  LM.RIGHT_ANKLE,
+  LM.RIGHT_HEEL,
+  LM.RIGHT_FOOT_INDEX,
+];
+
+const TORSO_EDGE_POINTS: readonly LM[] = [
+  LM.LEFT_SHOULDER,
+  LM.RIGHT_SHOULDER,
+  LM.LEFT_HIP,
+  LM.RIGHT_HIP,
+];
+
 const MAJOR_POINTS = new Set<LM>([
   LM.LEFT_SHOULDER,
   LM.RIGHT_SHOULDER,
@@ -137,6 +168,7 @@ export function emptyFitFramePoseTracePaths(): FitFramePoseTracePaths {
     averageConfidence: 0,
     bounds: null,
     edgeFlags: { left: false, right: false, top: false, bottom: false },
+    activeEdgeFlags: { left: false, right: false, top: false, bottom: false },
   };
 }
 
@@ -327,6 +359,8 @@ export function buildFitFramePoseTracePaths(
       rawLandmarkConfidence(frame, LM.LEFT_ANKLE) < footConfidence ||
       rawLandmarkConfidence(frame, LM.RIGHT_ANKLE) < footConfidence;
   }
+
+  updateActiveEdgeFlags(frame, footConfidence, out.activeEdgeFlags);
 }
 
 function resetPaths(out: FitFramePoseTracePaths): void {
@@ -349,6 +383,71 @@ function resetPaths(out: FitFramePoseTracePaths): void {
   out.edgeFlags.right = false;
   out.edgeFlags.top = false;
   out.edgeFlags.bottom = false;
+  out.activeEdgeFlags.left = false;
+  out.activeEdgeFlags.right = false;
+  out.activeEdgeFlags.top = false;
+  out.activeEdgeFlags.bottom = false;
+}
+
+function updateActiveEdgeFlags(
+  frame: PoseFrame,
+  confidenceThreshold: number,
+  flags: FitFrameTraceEdgeFlags
+): void {
+  const head = groupBounds(frame, HEAD_POINTS, confidenceThreshold);
+  const leftFoot = groupBounds(frame, LEFT_FOOT_POINTS, confidenceThreshold);
+  const rightFoot = groupBounds(frame, RIGHT_FOOT_POINTS, confidenceThreshold);
+  const torso = groupBounds(frame, TORSO_EDGE_POINTS, confidenceThreshold);
+
+  flags.top = head.confidentSamples === 0 || head.minY < ACTIVE_EDGE_MARGIN;
+  flags.bottom =
+    footGroupNeedsActiveBottomWarning(leftFoot) &&
+    footGroupNeedsActiveBottomWarning(rightFoot);
+  flags.left = torso.confidentSamples > 0 && torso.minX < ACTIVE_EDGE_MARGIN;
+  flags.right = torso.confidentSamples > 0 && torso.maxX > 1 - ACTIVE_EDGE_MARGIN;
+}
+
+function footGroupNeedsActiveBottomWarning(bounds: LandmarkGroupBounds): boolean {
+  return bounds.confidentSamples === 0 || bounds.maxY > 1 - ACTIVE_EDGE_MARGIN;
+}
+
+interface LandmarkGroupBounds {
+  confidentSamples: number;
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+}
+
+function groupBounds(
+  frame: PoseFrame,
+  landmarks: readonly LM[],
+  confidenceThreshold: number
+): LandmarkGroupBounds {
+  const bounds: LandmarkGroupBounds = {
+    confidentSamples: 0,
+    minX: Infinity,
+    maxX: -Infinity,
+    minY: Infinity,
+    maxY: -Infinity,
+  };
+
+  for (let i = 0; i < landmarks.length; i++) {
+    const lm = landmarks[i];
+    if (
+      !landmarkFinite(frame, lm) ||
+      rawLandmarkConfidence(frame, lm) < confidenceThreshold
+    ) {
+      continue;
+    }
+    bounds.confidentSamples++;
+    bounds.minX = Math.min(bounds.minX, frame.xs[lm]);
+    bounds.maxX = Math.max(bounds.maxX, frame.xs[lm]);
+    bounds.minY = Math.min(bounds.minY, frame.ys[lm]);
+    bounds.maxY = Math.max(bounds.maxY, frame.ys[lm]);
+  }
+
+  return bounds;
 }
 
 function landmarkFinite(frame: PoseFrame, lm: LM): boolean {

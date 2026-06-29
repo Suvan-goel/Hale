@@ -7,7 +7,6 @@
 
 import { LIFE_GOAL_CATEGORIES, normalizeLifeGoalDisplayText } from '../adherence';
 import type { ActivityLevel, LifeGoal, MovementSafetyProfile } from '../adherence';
-import { DEFAULT_VOICE_EXPERIENCE_MODE, parseVoiceExperienceMode } from '../config/voiceExperienceTypes';
 import { AppSettings, EMPTY_PROFILE, OnboardingState, OnboardingStep, Preferences, ProfileReferenceSex, UserProfile } from './types';
 import {
   ageBandForAge,
@@ -20,7 +19,7 @@ import { isCanonicalEquipmentStatus, normalizeAvailableEquipmentForPersistence }
 import { movementCapabilityProfileForPersistence } from './movementCapabilities';
 import { DEFAULT_VOICE_ID, VOICE_OPTIONS } from './voices';
 
-export const PREFERENCES_SCHEMA_VERSION = 7;
+export const PREFERENCES_SCHEMA_VERSION = 8;
 
 const ONBOARDING_STEPS: OnboardingStep[] = [
   'welcome',
@@ -40,7 +39,6 @@ export function defaultPreferences(): Preferences {
     profile: { ...EMPTY_PROFILE },
     settings: {
       voiceId: DEFAULT_VOICE_ID,
-      voiceExperienceMode: DEFAULT_VOICE_EXPERIENCE_MODE,
       remindersEnabled: false,
       phoneStandAvailable: false,
       supportSharingLevel: 'private',
@@ -221,7 +219,6 @@ function validSettings(v: unknown): AppSettings {
       : def.supportSharingLevel;
   return {
     voiceId: voiceKnown ? (s.voiceId as string) : def.voiceId,
-    voiceExperienceMode: parseVoiceExperienceMode(s.voiceExperienceMode) ?? def.voiceExperienceMode,
     remindersEnabled: typeof s.remindersEnabled === 'boolean' ? s.remindersEnabled : def.remindersEnabled,
     phoneStandAvailable:
       typeof s.phoneStandAvailable === 'boolean' ? s.phoneStandAvailable : def.phoneStandAvailable,

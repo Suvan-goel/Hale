@@ -29,7 +29,6 @@ describe('preferences serialize', () => {
     },
     settings: {
       voiceId: 'clara',
-      voiceExperienceMode: 'v21_beta',
       remindersEnabled: true,
       phoneStandAvailable: true,
       supportSharingLevel: 'private',
@@ -49,7 +48,7 @@ describe('preferences serialize', () => {
   });
 
   it('writes a schema version', () => {
-    expect(JSON.parse(serializePreferences(sample)).schemaVersion).toBe(7);
+    expect(JSON.parse(serializePreferences(sample)).schemaVersion).toBe(8);
   });
 
   it('derives current exact age from date of birth', () => {
@@ -112,7 +111,7 @@ describe('preferences serialize', () => {
     const parsed = deserializePreferences(
       JSON.stringify({ settings: { voiceId: 'does-not-exist', remindersEnabled: false } })
     );
-    expect(parsed?.settings.voiceId).toBe('clara');
+    expect(parsed?.settings.voiceId).toBe('marcus');
   });
 
   it('backfills newer local settings for older records', () => {
@@ -121,7 +120,6 @@ describe('preferences serialize', () => {
     );
     expect(parsed?.settings).toMatchObject({
       voiceId: 'clara',
-      voiceExperienceMode: 'v21_beta',
       remindersEnabled: true,
       phoneStandAvailable: false,
       supportSharingLevel: 'private',
@@ -225,7 +223,6 @@ describe('ProfileStore', () => {
       },
       settings: {
         voiceId: 'clara',
-        voiceExperienceMode: 'v21_beta',
         remindersEnabled: true,
         phoneStandAvailable: false,
         supportSharingLevel: 'private',

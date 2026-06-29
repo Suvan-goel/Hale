@@ -1,4 +1,8 @@
+import fs from 'fs';
+import path from 'path';
+
 import { LANDMARK_COUNT, LM, createPoseFrame, type PoseFrame } from '../../pose/types';
+import { fitFrameEdgeWarningPolicyForState } from '../FitFramePoseTraceRenderer';
 import {
   buildFitFramePoseTracePaths,
   displayFitFrameTraceEdgeFlags,
@@ -10,6 +14,15 @@ import {
 const RECT: FitFrameRect = { x: 50, y: 20, width: 300, height: 400, rx: 32 };
 
 describe('fit frame pose trace geometry', () => {
+  it('returns empty visual paths for no-subject frames', () => {
+    const frame = createPoseFrame();
+    const out = emptyFitFramePoseTracePaths();
+
+    buildFitFramePoseTracePaths(frame, RECT, { sourceAspect: 3 / 4, mirrored: false }, out);
+
+    expect(out).toEqual(emptyFitFramePoseTracePaths());
+  });
+
   it('keeps the detected pose position instead of recentering it', () => {
     const leftFrame = makeStandingFrame(0.25);
     const rightFrame = makeStandingFrame(0.75);
@@ -121,20 +134,66 @@ describe('fit frame pose trace geometry', () => {
     expect(out.ghostLinePath).toContain('M');
     expect(out.ghostPointPath).toContain('M');
     expect(out.edgeFlags.right).toBe(true);
+    expect(out.activeEdgeFlags.right).toBe(false);
+  });
+
+  it('keeps wrist-only active edge issues out of active warning flags', () => {
+    const frame = makeStandingFrame(0.5, 0.9);
+    frame.xs[LM.LEFT_WRIST] = 0.985;
+    frame.xs[LM.LEFT_INDEX] = 0.99;
+    const out = emptyFitFramePoseTracePaths();
+
+    buildFitFramePoseTracePaths(frame, RECT, { sourceAspect: 3 / 4, mirrored: false }, out);
+
+    expect(out.edgeFlags.right).toBe(true);
+    expect(out.activeEdgeFlags.right).toBe(false);
+    expect(fitFrameEdgeWarningPolicyForState('active', out, false)).toMatchObject({
+      intensity: 'active',
+      flags: { left: false, right: false, top: false, bottom: false },
+    });
   });
 
   it('marks only the lower edge when feet are not confidently visible', () => {
     const frame = makeStandingFrame(0.5);
-    frame.visibility[LM.LEFT_ANKLE] = 0.1;
-    frame.presence[LM.LEFT_ANKLE] = 0.1;
-    frame.visibility[LM.RIGHT_ANKLE] = 0.1;
-    frame.presence[LM.RIGHT_ANKLE] = 0.1;
+    setLandmarkConfidence(frame, LM.LEFT_ANKLE, 0.1);
+    setLandmarkConfidence(frame, LM.LEFT_HEEL, 0.1);
+    setLandmarkConfidence(frame, LM.LEFT_FOOT_INDEX, 0.1);
+    setLandmarkConfidence(frame, LM.RIGHT_ANKLE, 0.1);
+    setLandmarkConfidence(frame, LM.RIGHT_HEEL, 0.1);
+    setLandmarkConfidence(frame, LM.RIGHT_FOOT_INDEX, 0.1);
     const out = emptyFitFramePoseTracePaths();
 
     buildFitFramePoseTracePaths(frame, RECT, { sourceAspect: 3 / 4, mirrored: false }, out);
 
     expect(out.edgeFlags.bottom).toBe(true);
+    expect(out.activeEdgeFlags.bottom).toBe(true);
     expect(out.edgeFlags.top).toBe(false);
+    expect(out.edgeFlags.left).toBe(false);
+    expect(out.edgeFlags.right).toBe(false);
+  });
+
+  it('marks only the upper edge when the head is not confidently visible', () => {
+    const frame = makeStandingFrame(0.5);
+    setLandmarkConfidence(frame, LM.NOSE, 0.1);
+    setLandmarkConfidence(frame, LM.LEFT_EYE, 0.1);
+    setLandmarkConfidence(frame, LM.RIGHT_EYE, 0.1);
+    setLandmarkConfidence(frame, LM.LEFT_EAR, 0.1);
+    setLandmarkConfidence(frame, LM.RIGHT_EAR, 0.1);
+    setLandmarkConfidence(frame, LM.MOUTH_LEFT, 0.1);
+    setLandmarkConfidence(frame, LM.MOUTH_RIGHT, 0.1);
+    frame.ys[LM.LEFT_ANKLE] = 0.86;
+    frame.ys[LM.RIGHT_ANKLE] = 0.86;
+    frame.ys[LM.LEFT_HEEL] = 0.9;
+    frame.ys[LM.RIGHT_HEEL] = 0.9;
+    frame.ys[LM.LEFT_FOOT_INDEX] = 0.9;
+    frame.ys[LM.RIGHT_FOOT_INDEX] = 0.9;
+    const out = emptyFitFramePoseTracePaths();
+
+    buildFitFramePoseTracePaths(frame, RECT, { sourceAspect: 3 / 4, mirrored: false }, out);
+
+    expect(out.edgeFlags.top).toBe(true);
+    expect(out.activeEdgeFlags.top).toBe(true);
+    expect(out.edgeFlags.bottom).toBe(false);
     expect(out.edgeFlags.left).toBe(false);
     expect(out.edgeFlags.right).toBe(false);
   });
@@ -189,6 +248,62 @@ describe('fit frame pose trace geometry', () => {
     expect(out.bounds!.minY).toBeCloseTo(rect.y, 6);
     expect(out.bounds!.maxY).toBeCloseTo(rect.y + rect.height, 6);
   });
+
+  it('keeps the renderer contract visual-only and clipped inside the fit frame', () => {
+    const text = source('src/render/FitFramePoseTraceRenderer.tsx');
+
+    expect(text).toContain('React.forwardRef');
+    expect(text).toContain('PoseAvatarRendererHandle');
+    expect(text).toContain('update(output: PipelineFrameOutput, sourceAspect: number)');
+    expect(text).toContain("output.state === 'interrupted'");
+    expect(text).toContain('<ClipPath id="fitFramePoseTraceClip">');
+    expect(text).toContain('<G clipPath="url(#fitFramePoseTraceClip)">');
+    expect(text).not.toMatch(/SafePoseDetectionView|PoseDetectionView|CameraPreview/);
+    expect(text).not.toMatch(/MediaPipeSkeletonRenderer|SkeletonView|mediapipe_skeleton/);
+    expect(text).not.toMatch(/VoiceChannel|VoicePlayer|voicePlayer|speak\(/);
+    expect(text).not.toMatch(/Supabase|AsyncStorage|LandmarkRecorder|scoreCheckUp/);
+  });
+
+  it('renders setup edge warnings from the strong setup flag set', () => {
+    const paths = emptyFitFramePoseTracePaths();
+    paths.edgeFlags.right = true;
+
+    expect(fitFrameEdgeWarningPolicyForState('adjust', paths, false)).toMatchObject({
+      intensity: 'setup',
+      flags: { left: false, right: true, top: false, bottom: false },
+    });
+  });
+
+  it('keeps active visual state from suppressing all critical edge warnings', () => {
+    const paths = emptyFitFramePoseTracePaths();
+    paths.edgeFlags.left = true;
+    paths.activeEdgeFlags.top = true;
+
+    expect(fitFrameEdgeWarningPolicyForState('active', paths, false)).toMatchObject({
+      intensity: 'active',
+      flags: { left: false, right: false, top: true, bottom: false },
+    });
+  });
+
+  it('keeps active edge warnings lower-intensity than setup warnings', () => {
+    const text = source('src/render/FitFramePoseTraceRenderer.tsx');
+
+    expect(text).toContain("intensity === 'active' ? 2 : 3.2");
+    expect(text).toContain("intensity === 'active' ? 0.42 : 0.92");
+    expect(text).toContain("intensity === 'active' ? 0.08 : 0.22");
+    expect(text).toContain("intensity === 'active' ? 0.035 : 0.1");
+  });
+
+  it('lets lost visual state override active edge warnings', () => {
+    const paths = emptyFitFramePoseTracePaths();
+    paths.activeEdgeFlags.top = true;
+    paths.activeEdgeFlags.bottom = true;
+
+    expect(fitFrameEdgeWarningPolicyForState('lost', paths, false)).toMatchObject({
+      intensity: 'none',
+      flags: { left: false, right: false, top: false, bottom: false },
+    });
+  });
 });
 
 function makeStandingFrame(centerXValue: number, confidence = 0.9): PoseFrame {
@@ -229,6 +344,11 @@ function setLandmark(frame: PoseFrame, lm: LM, x: number, y: number, confidence:
   frame.presence[lm] = confidence;
 }
 
+function setLandmarkConfidence(frame: PoseFrame, lm: LM, confidence: number): void {
+  frame.visibility[lm] = confidence;
+  frame.presence[lm] = confidence;
+}
+
 function makeCameraEdgeFrame(): PoseFrame {
   const frame = createPoseFrame();
   frame.hasPose = true;
@@ -250,4 +370,8 @@ function makeFootEndpointFrame(): PoseFrame {
 
 function centerX(bounds: { minX: number; maxX: number }): number {
   return (bounds.minX + bounds.maxX) / 2;
+}
+
+function source(relativePath: string): string {
+  return fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');
 }

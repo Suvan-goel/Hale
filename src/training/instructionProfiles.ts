@@ -93,10 +93,11 @@ const CHECKUP_PROFILES = Object.freeze([
     firstCueIds: ['checkup-balance-intro-v21', 'checkup-balance-single-leg-v21'],
     repeatCueIds: ['mpv2_balance_attempt_start'],
     firstText:
-      "Balance check. Keep support within easy reach. Stand on your selected leg and lift the other foot slightly when you're ready.",
-    repeatText: "Balance again. Lift your other foot when you're ready and hold steady.",
-    setup: 'Stand near support with one foot ready to lift.',
-    execution: 'Lift the other foot and hold steady.',
+      'Balance check. Keep support within easy reach. Stand tall with both feet on the floor until Hale is ready to start.',
+    repeatText:
+      "Balance again. When you're ready, stand on your selected leg, bend your other knee, and keep the lifted foot clear of the floor.",
+    setup: 'Stand near support with both feet on the floor.',
+    execution: 'Bend the other knee, keep the lifted foot clear of the floor, and hold steady.',
     safetyCueIds: ['balance_support_within_reach'],
   }),
   checkupProfile({

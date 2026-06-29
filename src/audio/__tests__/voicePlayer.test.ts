@@ -3,6 +3,7 @@ import {
   resolveVoiceCueAssetFromManifest,
   voiceCompletionWatchdogMs,
   VOICE_START_FALLBACK_PROXY_MS,
+  SfxChannel,
   VoiceChannel,
 } from '../voicePlayer';
 
@@ -59,24 +60,24 @@ describe('voice cue asset resolution', () => {
   it('keeps the historical default fallback for non-safety cues', () => {
     const resolved = resolveVoiceCueAssetFromManifest(
       {
-        clara: { [normalCue]: 101 },
-        marcus: {},
+        clara: {},
+        marcus: { [normalCue]: 202 },
       },
-      'marcus',
+      'clara',
       normalCue
     );
-    expect(resolved).toEqual({ asset: 101, resolvedVoiceId: 'clara', usedFallback: true });
+    expect(resolved).toEqual({ asset: 202, resolvedVoiceId: 'marcus', usedFallback: true });
   });
 
   it('normalizes malformed voice ids through the existing default voice policy', () => {
     const resolved = resolveVoiceCueAssetFromManifest(
       {
-        clara: { [safetyCue]: 101 },
+        marcus: { [safetyCue]: 202 },
       },
       'not-a-voice',
       safetyCue
     );
-    expect(resolved).toEqual({ asset: 101, resolvedVoiceId: 'clara', usedFallback: false });
+    expect(resolved).toEqual({ asset: 202, resolvedVoiceId: 'marcus', usedFallback: false });
   });
 });
 
@@ -378,12 +379,47 @@ describe('VoiceChannel tracked playback', () => {
   });
 });
 
+describe('SfxChannel', () => {
+  let players: FakeAudioPlayer[];
+
+  beforeEach(() => {
+    players = [];
+    mockCreateAudioPlayer.mockReset();
+    mockCreateAudioPlayer.mockImplementation(() => {
+      const player = new FakeAudioPlayer();
+      players.push(player);
+      return player;
+    });
+  });
+
+  it('caches one rewound player per cue and releases all cue players', () => {
+    const channel = new SfxChannel();
+
+    channel.play('rep-credit');
+    channel.play('measurement-complete');
+    channel.play('rep-credit');
+
+    expect(mockCreateAudioPlayer).toHaveBeenCalledTimes(2);
+    expect(players[0].seekTo).toHaveBeenCalledWith(0);
+    expect(players[0].seekTo).toHaveBeenCalledTimes(2);
+    expect(players[0].play).toHaveBeenCalledTimes(2);
+    expect(players[1].seekTo).toHaveBeenCalledWith(0);
+    expect(players[1].play).toHaveBeenCalledTimes(1);
+
+    channel.release();
+
+    expect(players[0].remove).toHaveBeenCalledTimes(1);
+    expect(players[1].remove).toHaveBeenCalledTimes(1);
+  });
+});
+
 class FakeAudioPlayer {
   playing = false;
   duration = 0.25;
   play = jest.fn(() => {
     this.playing = true;
   });
+  seekTo = jest.fn();
   remove = jest.fn();
   removeAllListeners = jest.fn();
   private listener: ((status: { playing?: boolean; didJustFinish?: boolean; duration?: number }) => void) | null = null;

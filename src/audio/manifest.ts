@@ -736,4 +736,8 @@ export const VOICE_MANIFEST: Record<string, Partial<Record<VoiceCueKey, number>>
 
 export const SFX_MANIFEST: Partial<Record<SfxCueKey, number>> = {
   'rep-credit': require('../../assets/audio/sfx/rep-credit.wav'),
+  'measurement-complete': require('../../assets/audio/sfx/measurement-complete.wav'),
+  'tracking-paused': require('../../assets/audio/sfx/tracking-paused.wav'),
+  'tracking-recovered': require('../../assets/audio/sfx/tracking-recovered.wav'),
+  'session-complete': require('../../assets/audio/sfx/session-complete.wav'),
 };

@@ -35,6 +35,7 @@ import {
   completeTrainingVoiceSessionEntrySafetyV21,
   normalizeTrainingVoiceSafetySessionMemoryV21,
 } from './safetyPolicy';
+import { DEFAULT_VOICE_ID } from '../../profile/voices';
 
 const COUNTDOWN_CUES: readonly VoiceCueKey[] = ['countdown-three', 'countdown-two', 'countdown-one', 'go'];
 
@@ -86,7 +87,7 @@ export class TrainingVoiceRuntimeV21 {
     this.voiceChannel = options.voiceChannel;
     this.scopePrefix = options.scopePrefix ?? 'training-v21';
     this.sessionId = options.sessionId ?? 'training-session';
-    this.activeVoiceId = options.voiceId ?? 'clara';
+    this.activeVoiceId = options.voiceId ?? DEFAULT_VOICE_ID;
     if (options.restored) this.restoreRuntime(options.restored);
   }
 

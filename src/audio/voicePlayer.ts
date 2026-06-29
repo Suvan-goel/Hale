@@ -10,8 +10,8 @@
  * - Audio configuration must never interrupt the camera session (Forma
  *   production pain): mixWithOthers + recording disabled, configured once at
  *   app start before the camera mounts.
- * - The rep-credit chime is a sound effect on its own channel; it may overlap
- *   voice and never competes with it.
+ * - Session sound effects play on their own channel; they may overlap voice
+ *   and never compete with it.
  */
 
 import { AudioPlayer, createAudioPlayer, setAudioModeAsync } from 'expo-audio';
@@ -601,20 +601,24 @@ function resolvedTrackedRequest(input: {
   };
 }
 
-/** Fire-and-forget chime channel (rep credits). Reuses one player. */
+/** Fire-and-forget session sound-effect channel. Reuses one player per cue. */
 export class SfxChannel {
-  private player: AudioPlayer | null = null;
+  private readonly players = new Map<SfxCueKey, AudioPlayer>();
 
   play(cue: SfxCueKey = 'rep-credit'): void {
-    if (!this.player) {
-      this.player = createAudioPlayer(sfxAssetFor(cue));
+    let player = this.players.get(cue) ?? null;
+    if (!player) {
+      player = createAudioPlayer(sfxAssetFor(cue));
+      this.players.set(cue, player);
     }
-    void this.player.seekTo(0);
-    this.player.play();
+    void player.seekTo(0);
+    player.play();
   }
 
   release(): void {
-    this.player?.remove();
-    this.player = null;
+    for (const player of this.players.values()) {
+      player.remove();
+    }
+    this.players.clear();
   }
 }

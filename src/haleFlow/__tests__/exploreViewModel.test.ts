@@ -391,7 +391,6 @@ describe('exploreViewModel', () => {
       },
       settings: {
         voiceId: 'clara',
-        voiceExperienceMode: 'v21_beta',
         remindersEnabled: false,
         phoneStandAvailable: true,
         supportSharingLevel: 'private',

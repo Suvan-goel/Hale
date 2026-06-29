@@ -184,7 +184,7 @@ function readinessForContract(
     notes:
       blockers.length === 0
         ? 'Training Voice V2.1 item is selectable.'
-        : 'Training Voice V2.1 item is blocked and must use the legacy voice path.',
+        : 'Training Voice V2.1 item is blocked and must use the standard fallback path.',
   };
 }
 

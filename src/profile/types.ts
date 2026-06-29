@@ -6,7 +6,6 @@
  */
 
 import type { AgeBand, LifeGoal, MovementSafetyProfile } from '../adherence';
-import type { VoiceExperienceMode } from '../config/voiceExperienceTypes';
 
 export type ProfileReferenceSex = 'female' | 'male';
 
@@ -33,13 +32,8 @@ export interface UserProfile {
 }
 
 export interface AppSettings {
-  /** Selected trainer-voice id (see ./voices). Only the default is wired today. */
+  /** Selected trainer-voice id (see ./voices). */
   voiceId: string;
-  /**
-   * Runtime voice system selected for the next launched session/check-up.
-   * Defaults to V2.1 beta while preserving legacy rollback.
-   */
-  voiceExperienceMode: VoiceExperienceMode;
   /**
    * Whether the user has opted in to workout reminders. Stored preference only
    * for now — no OS notification is scheduled (push remains a V1 non-goal; see

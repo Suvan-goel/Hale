@@ -21,12 +21,16 @@ import {
 
 import { VoiceCueKey, voicePriority } from '../audio/cues';
 import {
+  nextMeasurementTrackingSfxState,
+  type MeasurementTrackingSfxState,
+} from '../audio/sessionSfx';
+import {
   LandmarksEventPayload,
   PoseErrorEventPayload,
 } from '../../modules/expo-pose-detection';
 import { SfxChannel, VoiceChannel, type VoiceCueStartedEvent } from '../audio/voicePlayer';
 import type { BodySide, MeasurementSideSource } from '../checkup';
-import type { VoiceExperienceMode } from '../config/voiceExperienceTypes';
+import { FIT_FRAME_MICRO_CHECK_RECORDING_VISUAL_ENABLED } from '../config/fitFrameMicroCheckRecordingVisual';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
 import { useSystemInsets } from '../components/SystemInsetsProvider';
@@ -42,9 +46,15 @@ import {
 } from '../diagnostics/poseLatencyDiagnostics';
 import { ANDROID_VIDEO_ROT_640_POSE_PROFILE } from '../pose/nativePoseProfiles';
 import { PosePipeline } from '../pose/pipeline';
+import type { TrackingState } from '../pose/pipeline';
 import { PreflightCheck, PreflightPrompt } from '../preflight/preflight';
 import { shouldSpeakFramingPrompt } from '../preflight/promptTiming';
+import { RecordingVisualSurface } from '../recording/RecordingVisualSurface';
 import { LandmarkRecorder } from '../recording/recorder';
+import {
+  buildMicroCheckRecordingVisualGuidance,
+  type RecordingVisualGuidance,
+} from '../recording/recordingVisualGuidance';
 import { SkeletonView, SkeletonViewHandle } from '../render/SkeletonView';
 import type {
   PoseAvatarActiveDomain,
@@ -65,6 +75,7 @@ import {
   deriveMicroCheckSideSetup,
   oppositeMicroCheckSide,
   type MicroCheckSideSetup,
+  type MicroCheckCameraSideSetupResult,
 } from '../training/microCheckSideSetup';
 import { poseEstimationWindowSize, recordingCameraViewportSize } from './recordingViewport';
 
@@ -102,6 +113,8 @@ interface Snapshot {
   remainingSec: number;
   measuring: boolean;
   setupPrompt: PreflightPrompt | null;
+  trackingState: TrackingState | null;
+  hasPose: boolean;
 }
 
 interface FooterMeta {
@@ -131,6 +144,8 @@ const INITIAL: Snapshot = {
   remainingSec: NaN,
   measuring: false,
   setupPrompt: null,
+  trackingState: null,
+  hasPose: false,
 };
 
 const MICRO_CHECK_SETUP_HELP_STEPS: readonly { title: string; body: string }[] = [
@@ -151,10 +166,8 @@ const MICRO_CHECK_SETUP_HELP_STEPS: readonly { title: string; body: string }[] =
 const MICRO_CHECK_V21_COUNTDOWN_SUFFIX = ['countdown-three', 'countdown-two', 'countdown-one', 'go'] as const;
 
 function shouldSpeakMicroCheckVoiceCountdownTracked(
-  voiceExperienceMode: VoiceExperienceMode,
   cues: readonly string[]
 ): boolean {
-  if (voiceExperienceMode !== 'v21_beta') return false;
   if (cues.length < MICRO_CHECK_V21_COUNTDOWN_SUFFIX.length) return false;
   const suffix = cues.slice(cues.length - MICRO_CHECK_V21_COUNTDOWN_SUFFIX.length);
   return suffix.every((cue, index) => cue === MICRO_CHECK_V21_COUNTDOWN_SUFFIX[index]);
@@ -166,7 +179,6 @@ export function MicroCheckScreen({
   onComplete,
   onCancel,
   voiceId,
-  voiceExperienceMode = 'legacy',
   handsFreeMode = true,
   debugScenario,
 }: {
@@ -175,7 +187,6 @@ export function MicroCheckScreen({
   onComplete: (result: MicroCheckResult) => void;
   onCancel?: () => void;
   voiceId?: string;
-  voiceExperienceMode?: VoiceExperienceMode;
   handsFreeMode?: boolean;
   debugScenario?: MicroCheckDebugScenario;
 }) {
@@ -197,7 +208,7 @@ export function MicroCheckScreen({
     effectiveSideSetup.sideRequired
       ? null
       : new MicroCheckRunner(microCheckType, startedAtIso, preflight, undefined, null, {
-          voiceMode: voiceExperienceMode === 'v21_beta' ? 'v21_beta' : 'legacy',
+          voiceMode: 'v21_beta',
         })
   );
   const [voice] = React.useState(() => new VoiceChannel(voiceId));
@@ -214,11 +225,15 @@ export function MicroCheckScreen({
   const resumePendingRef = React.useRef(false);
   const completedRef = React.useRef(false);
   const discardWasPausedRef = React.useRef(false);
+  const trackingSfxStateRef = React.useRef<MeasurementTrackingSfxState>('idle');
+  const lastMicroCheckPhaseRef = React.useRef<MicroCheckPhase | null>(null);
   const [snapshot, setSnapshot] = React.useState<Snapshot>(INITIAL);
   const [paused, setPaused] = React.useState(false);
   const [showHelp, setShowHelp] = React.useState(false);
   const [discardModalVisible, setDiscardModalVisible] = React.useState(false);
   const [handsFreeSetupNotice, setHandsFreeSetupNotice] = React.useState<string | null>(null);
+  const [handsFreeSideSetupResult, setHandsFreeSideSetupResult] =
+    React.useState<MicroCheckCameraSideSetupResult | null>(null);
   const [selectedInstructionSide, setSelectedInstructionSide] = React.useState<BodySide | null>(
     effectiveSideSetup.selectedSide ?? null
   );
@@ -250,6 +265,7 @@ export function MicroCheckScreen({
       sideSelectionPinnedRef.current = true;
       setSelectedInstructionSide(selectedSide);
       setHandsFreeSetupNotice(null);
+      setHandsFreeSideSetupResult(null);
       setManualSideFallbackAvailable(false);
       const measurementContext = createMicroCheckMeasurementContextForSide({
         microCheckType,
@@ -262,12 +278,12 @@ export function MicroCheckScreen({
       });
       setRunner(
         new MicroCheckRunner(microCheckType, startedAtIso, preflight, undefined, measurementContext, {
-          voiceMode: voiceExperienceMode === 'v21_beta' ? 'v21_beta' : 'legacy',
+          voiceMode: 'v21_beta',
           selectedSide,
         })
       );
     },
-    [effectiveSideSetup, microCheckType, preflight, runner, startedAtIso, voiceExperienceMode]
+    [effectiveSideSetup, microCheckType, preflight, runner, startedAtIso]
   );
 
   React.useEffect(() => {
@@ -276,6 +292,7 @@ export function MicroCheckScreen({
     setupLastPromptCueRef.current = null;
     setupLastPromptAtMsRef.current = -Infinity;
     setHandsFreeSetupNotice(null);
+    setHandsFreeSideSetupResult(null);
     setManualSideFallbackAvailable(false);
     setManualSideFallbackVisible(false);
   }, [effectiveSideSetup, microCheckType, sideResolver]);
@@ -338,9 +355,16 @@ export function MicroCheckScreen({
               ...INITIAL,
               phase: 'preflight',
               setupPrompt: preflightStatus.prompt,
+              trackingState: out.state,
+              hasPose: out.rawFrame.hasPose,
             };
             setSnapshot((prev) => (sameSnapshot(prev, next) ? prev : next));
             setHandsFreeSetupNotice(sideStatus.setupCaption || null);
+            setHandsFreeSideSetupResult((prev) =>
+              sameMicroCheckCameraSideSetupResult(prev, sideStatus)
+                ? prev
+                : copyMicroCheckCameraSideSetupResult(sideStatus)
+            );
             setManualSideFallbackAvailable(sideStatus.fallbackAvailable);
           }
         }
@@ -362,7 +386,7 @@ export function MicroCheckScreen({
       const u = runner.update(out, voice.busy);
 
       if (u.voice) {
-        if (shouldSpeakMicroCheckVoiceCountdownTracked(voiceExperienceMode, u.voice.cues)) {
+        if (shouldSpeakMicroCheckVoiceCountdownTracked(u.voice.cues)) {
           const request = voice.speakTracked(u.voice.cues, {
             priority: u.voice.priority,
             required: true,
@@ -381,12 +405,27 @@ export function MicroCheckScreen({
       }
       if (u.playRepSound) sfx.play('rep-credit');
 
+      if (
+        lastMicroCheckPhaseRef.current === 'active' &&
+        u.phase === 'done' &&
+        microCheckType !== 'chair-power'
+      ) {
+        sfx.play('measurement-complete');
+      }
+      const trackingSfx = nextMeasurementTrackingSfxState(trackingSfxStateRef.current, {
+        measurementActive: u.phase === 'active',
+        trackingOk: u.measuring === true && out.state === 'tracking',
+      });
+      trackingSfxStateRef.current = trackingSfx.state;
+      if (trackingSfx.cue) sfx.play(trackingSfx.cue);
+
       if (u.phase === 'done' && !completedRef.current) {
         completedRef.current = true;
         const result = runner.result;
         if (result) onComplete(result);
         return;
       }
+      lastMicroCheckPhaseRef.current = u.phase;
 
       if (event.timestampMs - lastUiUpdateRef.current >= UI_UPDATE_INTERVAL_MS) {
         lastUiUpdateRef.current = event.timestampMs;
@@ -397,6 +436,8 @@ export function MicroCheckScreen({
           remainingSec: Number.isFinite(u.remainingMs) ? Math.ceil(u.remainingMs / 1000) : NaN,
           measuring: u.measuring,
           setupPrompt: u.setupPrompt,
+          trackingState: out.state,
+          hasPose: out.rawFrame.hasPose,
         };
         setSnapshot((prev) => (sameSnapshot(prev, next) ? prev : next));
       }
@@ -417,7 +458,6 @@ export function MicroCheckScreen({
       sideResolver,
       sfx,
       voice,
-      voiceExperienceMode,
     ]
   );
 
@@ -499,6 +539,28 @@ export function MicroCheckScreen({
   const stageDisplay = microCheckStageDisplay(microCheckType, visibleSnapshot, visibleCameraAvailability);
   const avatarMeasurementState = microCheckAvatarState(visibleSnapshot.phase);
   const avatarDomain = domainForMicroCheck(microCheckType);
+  const recordingVisualGuidance = React.useMemo<RecordingVisualGuidance>(
+    () =>
+      buildMicroCheckRecordingVisualGuidance({
+        cameraAvailability: visibleCameraAvailability,
+        pipelineState: visibleSnapshot.trackingState,
+        hasPose: visibleSnapshot.hasPose,
+        sideSetupActive: handsFreeSideSetupActive,
+        sideSetupResult: handsFreeSideSetupActive ? handsFreeSideSetupResult : null,
+        runnerPhase: runner ? visibleSnapshot.phase : null,
+        setupPrompt: visibleSnapshot.setupPrompt,
+        measuring: visibleSnapshot.measuring,
+        paused: visiblePaused,
+      }),
+    [
+      handsFreeSideSetupActive,
+      handsFreeSideSetupResult,
+      runner,
+      visibleCameraAvailability,
+      visiblePaused,
+      visibleSnapshot,
+    ]
+  );
   const canControl =
     runner !== null && visibleCameraAvailability !== 'unavailable' && visibleSnapshot.phase !== 'done';
   const showManualSideFallbackAction =
@@ -603,6 +665,16 @@ export function MicroCheckScreen({
             </View>
             {visibleCameraAvailability === 'unavailable' ? (
               <CameraUnavailableNotice compact style={styles.recordingCameraUnavailableNotice} />
+            ) : FIT_FRAME_MICRO_CHECK_RECORDING_VISUAL_ENABLED ? (
+              <RecordingVisualSurface
+                rendererRef={skeletonRef}
+                cameraAvailability={visibleCameraAvailability}
+                cameraViewport={cameraViewport}
+                poseWindow={poseWindow}
+                guidance={recordingVisualGuidance}
+                mirrored
+                frameSource="raw"
+              />
             ) : (
               <SkeletonView
                 ref={skeletonRef}
@@ -1044,7 +1116,42 @@ function sameSnapshot(a: Snapshot, b: Snapshot): boolean {
     a.holdSec === b.holdSec &&
     a.remainingSec === b.remainingSec &&
     a.measuring === b.measuring &&
-    a.setupPrompt === b.setupPrompt
+    a.setupPrompt === b.setupPrompt &&
+    a.trackingState === b.trackingState &&
+    a.hasPose === b.hasPose
+  );
+}
+
+function copyMicroCheckCameraSideSetupResult(
+  result: MicroCheckCameraSideSetupResult
+): MicroCheckCameraSideSetupResult {
+  return {
+    ready: result.ready,
+    selectedSide: result.selectedSide,
+    observedSide: result.observedSide,
+    source: result.source,
+    stableForMs: result.stableForMs,
+    fallbackAvailable: result.fallbackAvailable,
+    reason: result.reason,
+    setupCaption: result.setupCaption,
+  };
+}
+
+function sameMicroCheckCameraSideSetupResult(
+  a: MicroCheckCameraSideSetupResult | null,
+  b: MicroCheckCameraSideSetupResult | null
+): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return (
+    a.ready === b.ready &&
+    a.selectedSide === b.selectedSide &&
+    a.observedSide === b.observedSide &&
+    a.source === b.source &&
+    a.stableForMs === b.stableForMs &&
+    a.fallbackAvailable === b.fallbackAvailable &&
+    a.reason === b.reason &&
+    a.setupCaption === b.setupCaption
   );
 }
 
@@ -1085,12 +1192,35 @@ function recordingScreenTopPadding(): number {
 
 function metricDebugSnapshot(microCheckType: MicroCheckType): Snapshot {
   if (microCheckType === 'chair-power') {
-    return { ...INITIAL, phase: 'active', repCount: 3, remainingSec: 31, measuring: true };
+    return {
+      ...INITIAL,
+      phase: 'active',
+      repCount: 3,
+      remainingSec: 31,
+      measuring: true,
+      trackingState: 'tracking',
+      hasPose: true,
+    };
   }
   if (microCheckType === 'single-leg-balance') {
-    return { ...INITIAL, phase: 'active', holdSec: 18, remainingSec: 27, measuring: true };
+    return {
+      ...INITIAL,
+      phase: 'active',
+      holdSec: 18,
+      remainingSec: 27,
+      measuring: true,
+      trackingState: 'tracking',
+      hasPose: true,
+    };
   }
-  return { ...INITIAL, phase: 'active', remainingSec: 24, measuring: true };
+  return {
+    ...INITIAL,
+    phase: 'active',
+    remainingSec: 24,
+    measuring: true,
+    trackingState: 'tracking',
+    hasPose: true,
+  };
 }
 
 function microCheckFooterMeta(microCheckType: MicroCheckType): FooterMeta {

@@ -12,9 +12,14 @@ import {
   LandmarksEventPayload,
   PoseErrorEventPayload,
 } from '../../modules/expo-pose-detection';
+import {
+  nextMeasurementTrackingSfxState,
+  type MeasurementTrackingSfxState,
+} from '../audio/sessionSfx';
 import { SfxChannel, VoiceChannel } from '../audio/voicePlayer';
 import { CheckUpOrchestrator, CheckUpPhase, DEFAULT_BATTERY, DEFAULT_CHECKUP_CONFIG } from '../checkup';
 import { CheckUp } from '../checkup/types';
+import { FIT_FRAME_CHECKUP_RECORDING_VISUAL_ENABLED } from '../config/fitFrameCheckUpRecordingVisual';
 import type { CameraAvailability } from '../components/SafePoseDetectionView';
 import { PoseLatencyDiagnosticsOverlay } from '../diagnostics/PoseLatencyDiagnosticsOverlay';
 import {
@@ -24,8 +29,14 @@ import {
 import { AssessmentPhase } from '../assessment/sessionController';
 import { getMovement } from '../movements';
 import { PosePipeline } from '../pose/pipeline';
+import type { TrackingState } from '../pose/pipeline';
 import { PreflightCheck, PreflightPrompt } from '../preflight/preflight';
+import { RecordingVisualSurface } from '../recording/RecordingVisualSurface';
 import { LandmarkRecorder } from '../recording/recorder';
+import {
+  buildCheckUpRecordingVisualGuidance,
+  type RecordingVisualGuidance,
+} from '../recording/recordingVisualGuidance';
 import { SkeletonViewHandle } from '../render/SkeletonView';
 import type {
   PoseAvatarActiveDomain,
@@ -33,6 +44,7 @@ import type {
 } from '../render/poseAvatarTypes';
 import {
   CheckUpRecordingShell,
+  type CheckUpRecordingAreaContext,
   type CheckUpShellControl,
   type CheckUpShellFooterMeta,
   type CheckUpShellModalMode,
@@ -42,6 +54,7 @@ import {
 
 const UI_UPDATE_INTERVAL_MS = 100;
 const TOTAL_ITEMS = DEFAULT_BATTERY.length;
+const REP_BASED_CHECKUP_MOVEMENTS = new Set(['chair-stand-30s', 'chair-rise-30s-v2']);
 
 type ModalMode = CheckUpShellModalMode;
 
@@ -56,6 +69,9 @@ interface Snapshot {
   setupIssue: boolean;
   setupPrompt: PreflightPrompt | null;
   setupCaption: string | null;
+  trackingState: TrackingState | null;
+  hasPose: boolean;
+  measuring: boolean;
   totalItems: number;
 }
 
@@ -77,6 +93,9 @@ const INITIAL: Snapshot = {
   setupIssue: false,
   setupPrompt: null,
   setupCaption: null,
+  trackingState: null,
+  hasPose: false,
+  measuring: false,
   totalItems: TOTAL_ITEMS,
 };
 
@@ -91,6 +110,9 @@ const METRIC_DEBUG_SNAPSHOT: Snapshot = {
   setupIssue: false,
   setupPrompt: null,
   setupCaption: null,
+  trackingState: 'tracking',
+  hasPose: true,
+  measuring: true,
   totalItems: TOTAL_ITEMS,
 };
 
@@ -124,6 +146,9 @@ export function CheckUpScreen({
   const resumePendingRef = React.useRef(false);
   const completedRef = React.useRef(false);
   const discardWasPausedRef = React.useRef(false);
+  const trackingSfxStateRef = React.useRef<MeasurementTrackingSfxState>('idle');
+  const lastItemPhaseRef = React.useRef<AssessmentPhase | null>(null);
+  const lastMovementIdRef = React.useRef<string | null>(null);
   const [snapshot, setSnapshot] = React.useState<Snapshot>(() => ({ ...INITIAL, totalItems }));
   const [paused, setPaused] = React.useState(false);
   const [modalMode, setModalMode] = React.useState<ModalMode>(null);
@@ -170,13 +195,31 @@ export function CheckUpScreen({
 
       if (u.voice) voice.speak(u.voice.cues, u.voice.priority);
       if (u.playRepSound) sfx.play('rep-credit');
+      if (
+        u.phase !== 'done' &&
+        lastItemPhaseRef.current === 'active' &&
+        u.item?.phase === 'result' &&
+        lastMovementIdRef.current &&
+        !REP_BASED_CHECKUP_MOVEMENTS.has(lastMovementIdRef.current)
+      ) {
+        sfx.play('measurement-complete');
+      }
+      const trackingSfx = nextMeasurementTrackingSfxState(trackingSfxStateRef.current, {
+        measurementActive: u.item?.phase === 'active',
+        trackingOk: u.item?.measuring === true && out.state === 'tracking',
+      });
+      trackingSfxStateRef.current = trackingSfx.state;
+      if (trackingSfx.cue) sfx.play(trackingSfx.cue);
 
       if (u.phase === 'done' && !completedRef.current) {
         completedRef.current = true;
+        sfx.play('session-complete');
         const result = orchestrator.result;
         if (result) onComplete(result);
         return;
       }
+      lastItemPhaseRef.current = u.item?.phase ?? null;
+      lastMovementIdRef.current = u.currentMovementId;
 
       if (event.timestampMs - lastUiUpdateRef.current >= UI_UPDATE_INTERVAL_MS) {
         lastUiUpdateRef.current = event.timestampMs;
@@ -192,6 +235,9 @@ export function CheckUpScreen({
           setupIssue: u.setupIssue,
           setupPrompt: u.setupPrompt,
           setupCaption: u.item ? u.item.setupCaption : null,
+          trackingState: out.state,
+          hasPose: out.rawFrame.hasPose,
+          measuring: u.item ? u.item.measuring : false,
           totalItems: u.totalItems,
         };
         setSnapshot((prev) => (sameSnapshot(prev, next) ? prev : next));
@@ -296,6 +342,22 @@ export function CheckUpScreen({
   const stageDisplay = checkupStageDisplay(visibleSnapshot, visiblePaused, visibleModalMode, visibleCameraAvailability);
   const avatarMeasurementState = checkupAvatarState(visibleSnapshot);
   const avatarDomain = domainForCheckupMovement(visibleSnapshot.movementId);
+  const recordingVisualGuidance = React.useMemo<RecordingVisualGuidance>(
+    () =>
+      buildCheckUpRecordingVisualGuidance({
+        cameraAvailability: visibleCameraAvailability,
+        pipelineState: visibleSnapshot.trackingState,
+        hasPose: visibleSnapshot.hasPose,
+        checkUpPhase: visibleSnapshot.phase,
+        itemPhase: visibleSnapshot.itemPhase,
+        setupIssue: visibleSnapshot.setupIssue,
+        setupPrompt: visibleSnapshot.setupPrompt,
+        setupCaption: visibleSnapshot.setupCaption,
+        measuring: visibleSnapshot.measuring,
+        paused: visiblePaused,
+      }),
+    [visibleCameraAvailability, visiblePaused, visibleSnapshot]
+  );
   const canControl =
     visibleCameraAvailability !== 'unavailable' && visibleSnapshot.phase !== 'complete' && visibleSnapshot.phase !== 'done';
   const canRepeat = visibleSnapshot.movementId !== null;
@@ -303,6 +365,20 @@ export function CheckUpScreen({
   const showRepeatControl = visiblePaused && canRepeat;
   const showSkipControl = canSkip && (visiblePaused || visibleSnapshot.setupIssue);
   const showUnavailableAction = visibleCameraAvailability === 'unavailable' && !!onCancel;
+  const renderFitFrameRecordingArea = React.useCallback(
+    ({ cameraViewport, poseWindow }: CheckUpRecordingAreaContext) => (
+      <RecordingVisualSurface
+        rendererRef={skeletonRef}
+        cameraAvailability={visibleCameraAvailability}
+        cameraViewport={cameraViewport}
+        poseWindow={poseWindow}
+        guidance={recordingVisualGuidance}
+        mirrored
+        frameSource="raw"
+      />
+    ),
+    [recordingVisualGuidance, visibleCameraAvailability]
+  );
   const controls = React.useMemo<CheckUpShellControl[]>(() => {
     if (showUnavailableAction) {
       return [{ id: 'close', title: 'Close check-up', onPress: () => onCancel?.(), primary: true }];
@@ -367,6 +443,9 @@ export function CheckUpScreen({
         onDiscard: discardCheckup,
       }}
       latencyOverlay={<PoseLatencyDiagnosticsOverlay diagnostics={poseLatencyDiagnostics} />}
+      renderRecordingArea={
+        FIT_FRAME_CHECKUP_RECORDING_VISUAL_ENABLED ? renderFitFrameRecordingArea : undefined
+      }
     />
   );
 }
@@ -383,6 +462,9 @@ function sameSnapshot(a: Snapshot, b: Snapshot): boolean {
     a.setupIssue === b.setupIssue &&
     a.setupPrompt === b.setupPrompt &&
     a.setupCaption === b.setupCaption &&
+    a.trackingState === b.trackingState &&
+    a.hasPose === b.hasPose &&
+    a.measuring === b.measuring &&
     a.totalItems === b.totalItems
   );
 }

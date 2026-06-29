@@ -21,13 +21,11 @@ export type OnboardingEquipmentId =
   | 'door_anchor'
   | 'mini_band'
   | 'load'
-  | 'floor_space'
-  | 'phone_stand';
+  | 'floor_space';
 
 const CHECKUP_OPTIONS: readonly { id: OnboardingEquipmentId; label: string; note: string }[] = [
   { id: 'chair', label: 'Sturdy chair', note: 'Choose this if you have a firm chair that will not slide.' },
   { id: 'wall', label: 'Wall or counter', note: 'Choose this if you can stand near something solid for support.' },
-  { id: 'phone_stand', label: 'Phone stand', note: 'Helpful if you have one. A shelf or stack of books is fine too.' },
 ];
 
 const TRAINING_OPTIONS: readonly { id: OnboardingEquipmentId; label: string; note: string }[] = [
@@ -153,7 +151,7 @@ export function OnboardingEquipmentScreen({
         <View style={styles.reassuranceCopy}>
           <Text style={styles.reassuranceTitle}>You can start simply</Text>
           <Text style={styles.reassuranceBody}>
-            A chair and wall or counter are enough to begin. If you skip an optional item, Hale will choose another option.
+            A chair and wall or counter are enough to begin. For the camera, a shelf, table, or stack of books works well.
           </Text>
         </View>
       </View>

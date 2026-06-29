@@ -131,7 +131,7 @@ function recoveryPolicyFor(disposition: TrainingVoiceReactiveSafetyDispositionV2
     case 'preventative_instruction_already_fulfilled':
       return 'No duplicate reactive speech; requirement is fulfilled by exact setup/instruction or safety memory.';
     case 'legacy_only':
-      return 'Preserved only for legacy voice path.';
+      return 'Preserved only for the standard fallback path.';
     default:
       return 'Critical stop requires explicit user recovery action before fresh setup/countdown.';
   }

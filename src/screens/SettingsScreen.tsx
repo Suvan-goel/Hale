@@ -15,7 +15,6 @@ import { BackArrowButton } from '../components/BackArrowButton';
 import { DateOfBirthPickerModal } from '../components/DateOfBirthPickerModal';
 import { HeaderLogo } from '../components/HeaderLogo';
 import { Screen, ToggleRow } from '../components/ui';
-import type { VoiceV21Activation } from '../config/voiceExperience';
 import { controlledBetaEquipmentPositioning } from '../haleFlow';
 import {
   AppSettings,
@@ -29,6 +28,7 @@ import {
   type ProfileReferenceSex,
   UserProfile,
   VOICE_OPTIONS,
+  getVoice,
 } from '../profile';
 import { EquipmentProfile } from '../training';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
@@ -92,8 +92,6 @@ type SettingsScreenProps = {
   startingEffort: ActivityLevel;
   onProfileChange: (next: UserProfile) => void;
   onSettingsChange: (next: AppSettings) => void;
-  voiceActivation: VoiceV21Activation;
-  voiceModeChangeAppliesNextFlow?: boolean;
   onToggleEquipment: (key: keyof EquipmentProfile) => void;
   onToggleAvailableEquipment: (item: AvailableEquipment) => void;
   onPreferredDaysChange: (days: string[]) => void;
@@ -102,7 +100,6 @@ type SettingsScreenProps = {
   onOpenSafetyProfile: () => void;
   onOpenCameraSetup: () => void;
   onOpenFitFramePoseTracePreview?: () => void;
-  onOpenPoseBenchmarkForDiagnostics?: () => void;
   onReplayOnboardingForDev?: () => void;
   onBack?: () => void;
 };
@@ -119,8 +116,6 @@ function SettingsScreenContent({
   startingEffort,
   onProfileChange,
   onSettingsChange,
-  voiceActivation,
-  voiceModeChangeAppliesNextFlow = false,
   onToggleEquipment,
   onToggleAvailableEquipment,
   onPreferredDaysChange,
@@ -129,7 +124,6 @@ function SettingsScreenContent({
   onOpenSafetyProfile,
   onOpenCameraSetup,
   onOpenFitFramePoseTracePreview,
-  onOpenPoseBenchmarkForDiagnostics,
   onReplayOnboardingForDev,
   onBack,
 }: SettingsScreenProps) {
@@ -150,10 +144,10 @@ function SettingsScreenContent({
   const profileGoalText = goalContinuationText(goalText);
   const effortLabel = startingEffortLabel(startingEffort);
   const planSummary = `${preferredDaysSummary(preferredDays)} · ${effortLabel}`;
+  const selectedVoiceLabel = getVoice(settings.voiceId).label;
   const showInternalDeveloperSettings = !!onReplayOnboardingForDev;
   const showDeveloperSettings =
     showInternalDeveloperSettings ||
-    !!onOpenPoseBenchmarkForDiagnostics ||
     !!onOpenFitFramePoseTracePreview;
 
   React.useEffect(() => setName(profile.name), [profile.name]);
@@ -305,40 +299,11 @@ function SettingsScreenContent({
 
     if (openSection === 'voice') {
       return (
-        <>
-          <DetailOverview
-            title={`Current system: ${voiceActivation.mode === 'v21_beta' ? 'New' : 'Legacy'}`}
-            body="Choose the voice and guidance system Hale uses when you start your next session or check-up."
-          />
-          <DetailCard
-            title="Voice guidance"
-            body="Use Hale's latest voice guidance with clearer setup, countdowns, and recovery prompts."
-          >
-            <View style={styles.toggleStack}>
-              <ToggleRow
-                label="New voice system"
-                description="Switch back if anything sounds wrong during testing."
-                value={settings.voiceExperienceMode === 'v21_beta'}
-                onValueChange={(enabled) =>
-                  onSettingsChange({
-                    ...settings,
-                    voiceExperienceMode: enabled ? 'v21_beta' : 'legacy',
-                  })
-                }
-              />
-              {voiceModeChangeAppliesNextFlow ? (
-                <Text style={styles.detailCardBody}>This will apply from your next session.</Text>
-              ) : (
-                <Text style={styles.detailCardBody}>You can switch back at any time.</Text>
-              )}
-            </View>
-          </DetailCard>
-          <VoiceSelectorCard
-            selectedVoiceId={settings.voiceId}
-            onSelectVoice={(voiceId) => onSettingsChange({ ...settings, voiceId })}
-            onPreviewVoice={previewVoice}
-          />
-        </>
+        <VoiceSelectorCard
+          selectedVoiceId={settings.voiceId}
+          onSelectVoice={(voiceId) => onSettingsChange({ ...settings, voiceId })}
+          onPreviewVoice={previewVoice}
+        />
       );
     }
 
@@ -527,7 +492,7 @@ function SettingsScreenContent({
         />
         <ProfileMenuRow
           title={SECTION_COPY.voice.title}
-          subtitle={voiceActivation.mode === 'v21_beta' ? 'New voice system' : 'Legacy voice system'}
+          subtitle={selectedVoiceLabel}
           icon="volume"
           onPress={() => openProfileSection('voice')}
           showDivider
@@ -590,22 +555,13 @@ function SettingsScreenContent({
               subtitle="Open the first-run flow without clearing app data."
               icon="sliders"
               onPress={onReplayOnboardingForDev}
-              showDivider={!!onOpenPoseBenchmarkForDiagnostics || !!onOpenFitFramePoseTracePreview}
-            />
-          ) : null}
-          {onOpenPoseBenchmarkForDiagnostics ? (
-            <ProfileMenuRow
-              title="Pose overlay benchmark"
-              subtitle="Run renderer latency modes on this device."
-              icon="sliders"
-              onPress={onOpenPoseBenchmarkForDiagnostics}
               showDivider={!!onOpenFitFramePoseTracePreview}
             />
           ) : null}
           {onOpenFitFramePoseTracePreview ? (
             <ProfileMenuRow
-              title="Try Fit Frame Pose Trace"
-              subtitle="Preview a private recording view without camera preview."
+              title="Recording visual diagnostics"
+              subtitle="Inspect the default Fit Frame recording visual."
               icon="camera"
               onPress={onOpenFitFramePoseTracePreview}
             />

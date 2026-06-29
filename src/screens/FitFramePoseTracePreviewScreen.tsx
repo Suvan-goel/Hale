@@ -5,13 +5,16 @@ import type {
   PoseErrorEventPayload,
 } from '../../modules/expo-pose-detection';
 import type { CameraAvailability } from '../components/SafePoseDetectionView';
-import { PreflightCheck, type PreflightPrompt, type PreflightStatus } from '../preflight/preflight';
+import { PreflightCheck, type PreflightStatus } from '../preflight/preflight';
 import { PosePipeline, type PipelineFrameOutput } from '../pose/pipeline';
 import { LM, type PoseFrame } from '../pose/types';
+import { RecordingVisualSurface } from '../recording/RecordingVisualSurface';
 import {
-  FitFramePoseTraceRenderer,
-  type FitFramePoseTraceVisualState,
-} from '../render/FitFramePoseTraceRenderer';
+  buildPreviewRecordingVisualGuidance,
+  INITIAL_PREVIEW_RECORDING_VISUAL_GUIDANCE,
+  type RecordingVisualGuidance,
+  type RecordingVisualState,
+} from '../recording/recordingVisualGuidance';
 import type { PoseAvatarRendererHandle } from '../render/poseAvatarTypes';
 import {
   CheckUpRecordingShell,
@@ -25,14 +28,14 @@ const UI_UPDATE_INTERVAL_MS = 100;
 
 interface PreviewSnapshot {
   instruction: string;
-  visualState: FitFramePoseTraceVisualState;
+  guidance: RecordingVisualGuidance;
   stageValue: string;
   setupIssue: boolean;
 }
 
 const INITIAL_SNAPSHOT: PreviewSnapshot = {
   instruction: 'Step into view.',
-  visualState: 'lost',
+  guidance: INITIAL_PREVIEW_RECORDING_VISUAL_GUIDANCE,
   stageValue: 'Find',
   setupIssue: false,
 };
@@ -84,16 +87,18 @@ export function FitFramePoseTracePreviewScreen({ onBack }: { onBack: () => void 
   }, [pipeline, preflight]);
 
   const renderRecordingArea = React.useCallback(
-    ({ poseWindow }: CheckUpRecordingAreaContext) => (
-      <FitFramePoseTraceRenderer
-        ref={traceRef}
-        contentWindow={poseWindow}
-        visualState={snapshot.visualState}
+    ({ cameraViewport, poseWindow }: CheckUpRecordingAreaContext) => (
+      <RecordingVisualSurface
+        rendererRef={traceRef}
+        cameraAvailability={cameraAvailability}
+        cameraViewport={cameraViewport}
+        poseWindow={poseWindow}
+        guidance={snapshot.guidance}
         mirrored
         frameSource="raw"
       />
     ),
-    [snapshot.visualState]
+    [cameraAvailability, snapshot.guidance]
   );
 
   const sessionNotice: CheckUpShellNotice | null =
@@ -137,7 +142,7 @@ export function FitFramePoseTracePreviewScreen({ onBack }: { onBack: () => void 
         label: 'Sensor',
         value: snapshot.stageValue,
       }}
-      avatarMeasurementState={snapshot.visualState === 'ready' ? 'ready' : 'framing'}
+      avatarMeasurementState={snapshot.guidance.visualState === 'ready' ? 'ready' : 'framing'}
       avatarDomain={null}
       controls={controls}
       onRequestBack={onBack}
@@ -155,83 +160,39 @@ function snapshotFromPose(
   out: PipelineFrameOutput,
   status: PreflightStatus
 ): PreviewSnapshot {
-  const lowerBodyMissing = out.rawFrame.hasPose && !feetVisible(out.rawFrame);
-  const instruction = lowerBodyMissing
-    ? 'Step back until your feet are visible.'
-    : instructionForStatus(out, status);
-  const visualState = lowerBodyMissing ? 'adjust' : visualStateForStatus(out, status);
+  const guidance = buildPreviewRecordingVisualGuidance({
+    output: out,
+    preflightStatus: status,
+    feetVisible: out.rawFrame.hasPose ? previewFeetVisible(out.rawFrame) : null,
+  });
+
   return {
-    instruction,
-    visualState,
-    stageValue: stageValueForVisualState(visualState),
+    instruction: guidance.primaryText ?? 'Step into view.',
+    guidance,
+    stageValue: stageValueForVisualState(guidance.visualState),
     setupIssue: status.prompt === 'turn-on-light',
   };
 }
 
-function instructionForStatus(out: PipelineFrameOutput, status: PreflightStatus): string {
-  if (!out.rawFrame.hasPose || out.state === 'no-subject' || out.state === 'interrupted') {
-    return 'Step into view.';
-  }
-
-  switch (status.prompt) {
-    case 'center-yourself':
-      return 'Center yourself in the frame.';
-    case 'step-back':
-      return 'Step back slightly.';
-    case 'step-closer':
-      return 'Step closer.';
-    case 'hold-still':
-      return status.phase === 'sampling' ? 'Perfect - hold still.' : 'Hold still.';
-    case 'turn-on-light':
-      return 'Turn on the main light.';
-    case 'ready':
-      return 'Tracking stable.';
-    case 'step-into-frame':
-    default:
-      return 'Step into view.';
-  }
-}
-
-function visualStateForStatus(
-  out: PipelineFrameOutput,
-  status: PreflightStatus
-): FitFramePoseTraceVisualState {
-  if (!out.rawFrame.hasPose || out.state === 'no-subject' || out.state === 'interrupted') {
-    return 'lost';
-  }
-  if (status.prompt === 'ready' || status.phase === 'ready') {
-    return 'ready';
-  }
-  if (adjustPrompt(status.prompt)) {
-    return 'adjust';
-  }
-  return 'tracking';
-}
-
-function adjustPrompt(prompt: PreflightPrompt): boolean {
-  return (
-    prompt === 'center-yourself' ||
-    prompt === 'step-back' ||
-    prompt === 'step-closer' ||
-    prompt === 'turn-on-light'
-  );
-}
-
-function stageValueForVisualState(state: FitFramePoseTraceVisualState): string {
+function stageValueForVisualState(state: RecordingVisualState): string {
   switch (state) {
     case 'ready':
       return 'Ready';
+    case 'active':
     case 'tracking':
       return 'Hold';
     case 'adjust':
       return 'Adjust';
+    case 'recovery':
     case 'lost':
     default:
       return 'Find';
   }
 }
 
-function feetVisible(frame: PoseFrame): boolean {
+// Preview-only confidence hint. Production recording readiness remains owned by
+// the pipeline/preflight/controller layers, not this landmark helper.
+function previewFeetVisible(frame: PoseFrame): boolean {
   return (
     lowerLandmarkConfidence(frame, LM.LEFT_ANKLE, LM.LEFT_HEEL, LM.LEFT_FOOT_INDEX) >= 0.35 &&
     lowerLandmarkConfidence(frame, LM.RIGHT_ANKLE, LM.RIGHT_HEEL, LM.RIGHT_FOOT_INDEX) >= 0.35
@@ -260,8 +221,25 @@ function clamp01(value: number): number {
 function samePreviewSnapshot(a: PreviewSnapshot, b: PreviewSnapshot): boolean {
   return (
     a.instruction === b.instruction &&
-    a.visualState === b.visualState &&
+    sameRecordingVisualGuidance(a.guidance, b.guidance) &&
     a.stageValue === b.stageValue &&
     a.setupIssue === b.setupIssue
+  );
+}
+
+function sameRecordingVisualGuidance(
+  a: RecordingVisualGuidance,
+  b: RecordingVisualGuidance
+): boolean {
+  return (
+    a.visualState === b.visualState &&
+    a.source === b.source &&
+    a.primaryText === b.primaryText &&
+    a.secondaryText === b.secondaryText &&
+    a.blocksMeasurement === b.blocksMeasurement &&
+    a.blocksAutoStart === b.blocksAutoStart &&
+    a.voiceCue === b.voiceCue &&
+    a.metricProtected === b.metricProtected &&
+    a.reason === b.reason
   );
 }

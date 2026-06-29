@@ -1,4 +1,7 @@
-import { parseMovementProfileV2InternalFlag } from '../movementProfileV2Internal';
+import {
+  isMovementProfileV2InternalEnabled,
+  parseMovementProfileV2InternalFlag,
+} from '../movementProfileV2Internal';
 import {
   EYES_OPEN_BALANCE_PROTOCOL_V2_AUDIO_READY,
   EYES_OPEN_BALANCE_PROTOCOL_V2_PHYSICAL_AUDIO_SURFACE_READY,
@@ -13,6 +16,12 @@ describe('Movement Profile V2 internal gate', () => {
     expect(parseMovementProfileV2InternalFlag('0')).toBe(false);
     expect(parseMovementProfileV2InternalFlag(true)).toBe(false);
     expect(parseMovementProfileV2InternalFlag(undefined)).toBe(false);
+  });
+
+  it('keeps the internal harness disabled in release runtime even when the flag is set', () => {
+    expect(isMovementProfileV2InternalEnabled('1', true)).toBe(true);
+    expect(isMovementProfileV2InternalEnabled('1', false)).toBe(false);
+    expect(isMovementProfileV2InternalEnabled('0', true)).toBe(false);
   });
 });
 

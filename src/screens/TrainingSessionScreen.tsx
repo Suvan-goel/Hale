@@ -26,7 +26,12 @@ import {
   LandmarksEventPayload,
   PoseErrorEventPayload,
 } from '../../modules/expo-pose-detection';
+import {
+  nextMeasurementTrackingSfxState,
+  type MeasurementTrackingSfxState,
+} from '../audio/sessionSfx';
 import { SfxChannel, VoiceChannel, type VoiceCueStartedEvent } from '../audio/voicePlayer';
+import { FIT_FRAME_TRAINING_RECORDING_VISUAL_ENABLED } from '../config/fitFrameTrainingRecordingVisual';
 import {
   CameraUnavailableNotice,
   SafePoseDetectionView,
@@ -35,7 +40,6 @@ import type { CameraAvailability } from '../components/SafePoseDetectionView';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
 import { useSystemInsets } from '../components/SystemInsetsProvider';
-import { PoseLatencyDiagnosticsOverlay } from '../diagnostics/PoseLatencyDiagnosticsOverlay';
 import {
   createPoseLatencyDiagnostics,
   isPoseLatencyDiagnosticsEnabled,
@@ -43,11 +47,20 @@ import {
 import { getExercise, type ExerciseDefinition } from '../exercises';
 import { ANDROID_VIDEO_ROT_640_POSE_PROFILE } from '../pose/nativePoseProfiles';
 import { PosePipeline } from '../pose/pipeline';
+import type { TrackingState } from '../pose/pipeline';
 import { PreflightCheck } from '../preflight/preflight';
 import type { PreflightPrompt } from '../preflight/preflight';
 import { FRAMING_READY_COPY } from '../preflight/setupCopy';
+import { RecordingVisualSurface } from '../recording/RecordingVisualSurface';
 import { LandmarkRecorder } from '../recording/recorder';
-import type { PoseAvatarActiveDomain } from '../render/poseAvatarTypes';
+import {
+  buildTrainingRecordingVisualGuidance,
+  type RecordingVisualGuidance,
+} from '../recording/recordingVisualGuidance';
+import type {
+  PoseAvatarActiveDomain,
+  PoseAvatarRendererHandle,
+} from '../render/poseAvatarTypes';
 import { colors, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 import {
@@ -84,6 +97,9 @@ interface Snapshot {
   repCount: number;
   holdSec: number;
   restSec: number;
+  measuring: boolean;
+  trackingState: TrackingState | null;
+  hasPose: boolean;
   validTimeCaption: string | null;
   setupIssue: boolean;
   setupPrompt: PreflightPrompt | null;
@@ -117,6 +133,9 @@ const INITIAL: Snapshot = {
   repCount: 0,
   holdSec: NaN,
   restSec: NaN,
+  measuring: false,
+  trackingState: null,
+  hasPose: false,
   validTimeCaption: null,
   setupIssue: false,
   setupPrompt: null,
@@ -167,6 +186,9 @@ const BUSY_DEBUG_SNAPSHOT: Snapshot = {
   repCount: 0,
   holdSec: 18,
   restSec: NaN,
+  measuring: true,
+  trackingState: 'tracking',
+  hasPose: true,
   validTimeCaption: null,
   setupIssue: false,
   setupPrompt: 'step-back',
@@ -258,6 +280,7 @@ export function TrainingSessionScreen({
   const [voice] = React.useState(() => new VoiceChannel(voiceId));
   const [sfx] = React.useState(() => new SfxChannel());
   const [recorder] = React.useState(() => new LandmarkRecorder());
+  const trainingRendererRef = React.useRef<PoseAvatarRendererHandle>(null);
   const lastUiUpdateRef = React.useRef(0);
   const lastFrameTimestampRef = React.useRef(0);
   const pauseStartedAtRef = React.useRef(0);
@@ -265,6 +288,9 @@ export function TrainingSessionScreen({
   const resumePendingRef = React.useRef(false);
   const completedRef = React.useRef(false);
   const discardWasPausedRef = React.useRef(false);
+  const trackingSfxStateRef = React.useRef<MeasurementTrackingSfxState>('idle');
+  const lastTrainingPhaseRef = React.useRef<TrainingPhase | null>(null);
+  const lastSetKindRef = React.useRef<ExerciseDefinition['kind'] | null>(null);
   const [snapshot, setSnapshot] = React.useState<Snapshot>({ ...INITIAL, totalItems: exerciseIds.length });
   const [paused, setPaused] = React.useState(false);
   const [showHelp, setShowHelp] = React.useState(false);
@@ -300,6 +326,8 @@ export function TrainingSessionScreen({
       if (__DEV__) recorder.record(event);
       const out = pipeline.process(event);
       poseLatencyDiagnostics?.markJsTransformEnd(latencyFrame);
+      const sourceAspect = event.sourceWidth / event.sourceHeight;
+      trainingRendererRef.current?.update(out, sourceAspect);
       if (resumePendingRef.current) {
         player.shiftTiming(Math.max(0, event.timestampMs - pauseStartedAtRef.current));
         resumePendingRef.current = false;
@@ -333,12 +361,32 @@ export function TrainingSessionScreen({
       }
       if (u.playRepSound) sfx.play('rep-credit');
 
+      const currentSetDef = u.phase === 'set' && u.currentExerciseId ? getExercise(u.currentExerciseId) : null;
+      if (
+        u.phase !== 'done' &&
+        lastTrainingPhaseRef.current === 'set' &&
+        u.phase !== 'set' &&
+        lastSetKindRef.current !== null &&
+        lastSetKindRef.current !== 'reps'
+      ) {
+        sfx.play('measurement-complete');
+      }
+      const trackingSfx = nextMeasurementTrackingSfxState(trackingSfxStateRef.current, {
+        measurementActive: u.phase === 'set',
+        trackingOk: u.measuring === true && out.state === 'tracking',
+      });
+      trackingSfxStateRef.current = trackingSfx.state;
+      if (trackingSfx.cue) sfx.play(trackingSfx.cue);
+
       if (u.phase === 'done' && !completedRef.current) {
         completedRef.current = true;
+        sfx.play('session-complete');
         const result = player.result;
         if (result) onComplete(result);
         return;
       }
+      lastTrainingPhaseRef.current = u.phase;
+      lastSetKindRef.current = currentSetDef?.kind ?? null;
 
       if (event.timestampMs - lastUiUpdateRef.current >= UI_UPDATE_INTERVAL_MS) {
         lastUiUpdateRef.current = event.timestampMs;
@@ -356,6 +404,9 @@ export function TrainingSessionScreen({
           repCount: u.repCount,
           holdSec: u.holdMs > 0 ? u.holdMs / 1000 : NaN,
           restSec: u.phase === 'rest' ? Math.ceil(u.remainingMs / 1000) : NaN,
+          measuring: u.measuring,
+          trackingState: out.state,
+          hasPose: out.rawFrame.hasPose,
           validTimeCaption: u.validTimeCaption,
           setupIssue: u.setupIssue,
           setupPrompt: u.setupPrompt,
@@ -405,6 +456,29 @@ export function TrainingSessionScreen({
   const visibleItemNumber = totalItems > 0 ? Math.min(visibleSnapshot.itemIndex + 1, totalItems) : 0;
   const footerMeta = trainingFooterMeta(visibleSnapshot, visibleItemNumber, totalItems);
   const stageDisplay = trainingStageDisplay(visibleSnapshot, visibleCameraAvailability);
+  const recordingVisualGuidance = React.useMemo<RecordingVisualGuidance>(
+    () =>
+      buildTrainingRecordingVisualGuidance({
+        cameraAvailability: visibleCameraAvailability,
+        pipelineState: visibleSnapshot.trackingState,
+        hasPose: visibleSnapshot.hasPose,
+        phase: visibleSnapshot.phase,
+        setupPrompt: visibleSnapshot.setupPrompt,
+        setupIssue: visibleSnapshot.setupIssue,
+        floorSetup: visibleSnapshot.floorSetup,
+        validTimeCaption: visibleSnapshot.validTimeCaption,
+        stepUpCorrection: visibleSnapshot.stepUpCorrection,
+        measuring: visibleSnapshot.measuring,
+        paused: visiblePaused,
+        showHelp: visibleShowHelp,
+      }),
+    [
+      visibleCameraAvailability,
+      visiblePaused,
+      visibleShowHelp,
+      visibleSnapshot,
+    ]
+  );
   const canControl =
     visibleCameraAvailability !== 'unavailable' && visibleSnapshot.phase !== 'complete' && visibleSnapshot.phase !== 'done';
   const canRepeat = visibleSnapshot.exerciseId !== null;
@@ -535,7 +609,7 @@ export function TrainingSessionScreen({
                 modelVariant="full"
                 {...ANDROID_VIDEO_ROT_640_POSE_PROFILE}
                 latencyDiagnosticsEnabled={poseLatencyDiagnostics !== null}
-                nativeSkeletonOverlayEnabled
+                nativeSkeletonOverlayEnabled={!FIT_FRAME_TRAINING_RECORDING_VISUAL_ENABLED}
                 nativeSkeletonColor={TEMP_TRAINING_NATIVE_SKELETON_COLOR}
                 canvasColor={TEMP_TRAINING_NATIVE_SKELETON_CANVAS}
                 style={StyleSheet.absoluteFill}
@@ -567,6 +641,16 @@ export function TrainingSessionScreen({
             </View>
             {visibleCameraAvailability === 'unavailable' ? (
               <CameraUnavailableNotice compact style={styles.recordingCameraUnavailableNotice} />
+            ) : FIT_FRAME_TRAINING_RECORDING_VISUAL_ENABLED ? (
+              <RecordingVisualSurface
+                rendererRef={trainingRendererRef}
+                cameraAvailability={visibleCameraAvailability}
+                cameraViewport={cameraViewport}
+                poseWindow={poseWindow}
+                guidance={recordingVisualGuidance}
+                mirrored
+                frameSource="raw"
+              />
             ) : null}
             <RecordingCardFooter
               exerciseName={currentExerciseName}
@@ -610,7 +694,6 @@ export function TrainingSessionScreen({
         instructionProfile={currentInstructionProfile}
         onClose={() => setShowHelp(false)}
       />
-      <PoseLatencyDiagnosticsOverlay diagnostics={poseLatencyDiagnostics} />
     </View>
   );
 }
@@ -885,6 +968,9 @@ function sameSnapshot(a: Snapshot, b: Snapshot): boolean {
     a.repCount === b.repCount &&
     a.holdSec === b.holdSec &&
     a.restSec === b.restSec &&
+    a.measuring === b.measuring &&
+    a.trackingState === b.trackingState &&
+    a.hasPose === b.hasPose &&
     a.validTimeCaption === b.validTimeCaption &&
     a.setupIssue === b.setupIssue &&
     a.setupPrompt === b.setupPrompt &&

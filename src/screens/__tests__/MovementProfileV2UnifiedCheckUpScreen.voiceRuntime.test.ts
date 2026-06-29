@@ -8,11 +8,12 @@ describe('MovementProfileV2UnifiedCheckUpScreen voice-runtime wiring', () => {
       'utf8'
     );
 
-  it('uses the foundation runtime behind a rollback flag without running the legacy sequencer in the enabled path', () => {
+  it('uses the foundation runtime without a rollback prop', () => {
     const text = source();
 
     expect(text).toContain('MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED');
-    expect(text).toContain("voiceExperienceMode === 'v21_beta'");
+    expect(text).toContain('const voiceRuntimeEnabled = MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED;');
+    expect(text).not.toContain(['voiceExperience', 'Mode'].join(''));
     expect(text).toContain('new MovementProfileV2VoiceRuntime');
     expect(text).toContain('if (voiceRuntimeEnabled) return;');
     expect(text).toContain('voiceSequencerRef.current.next(live)');
@@ -42,6 +43,24 @@ describe('MovementProfileV2UnifiedCheckUpScreen voice-runtime wiring', () => {
 
     expect(text).toContain('!voiceRuntimeState.completionReady');
     expect(text).toContain('onComplete({ checkUp: live.checkUp, sourceType })');
+  });
+
+  it('keeps visual wiring out of voice runtime dispatch', () => {
+    const text = source();
+    const visualStart = text.indexOf('<RecordingVisualSurface');
+    const visualBlock = text.slice(visualStart, text.indexOf('/>', visualStart) + 2);
+
+    expect(text).toContain('guidance={live.recordingVisualGuidance}');
+    expect(visualBlock).not.toMatch(/getVoiceRuntime|voice\.|speak|canDispatchAction|receiveUserAction|runLiveAction/);
+  });
+
+  it('plays the rep-credit sound effect when the coordinator reports a new rep credit', () => {
+    const text = source();
+
+    expect(text).toContain('new SfxChannel()');
+    expect(text).toContain('next.repCreditCount > lastRepCreditCountRef.current');
+    expect(text).toContain("sfx.play('rep-credit')");
+    expect(text).toContain('sfx.release()');
   });
 
   it('applies mounted voice changes through the runtime instead of remounting the channel path', () => {
