@@ -214,9 +214,9 @@ export function buildFitFramePoseTracePaths(
     mirrored: options.mirrored ?? true,
     fit: options.fit ?? 'contain',
   });
-  const majorRadius = estimatePointRadius(frameRect) * 1.16;
-  const minorRadius = estimatePointRadius(frameRect) * 0.88;
-  const faintRadius = estimatePointRadius(frameRect) * 0.76;
+  const majorRadius = estimatePointRadius(frameRect) * 0.98;
+  const minorRadius = estimatePointRadius(frameRect) * 0.66;
+  const faintRadius = estimatePointRadius(frameRect) * 0.58;
   let confidenceSum = 0;
   let confidenceSamples = 0;
   let minEdgeNormX = Infinity;

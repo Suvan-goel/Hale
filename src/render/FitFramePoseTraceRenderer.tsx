@@ -33,12 +33,10 @@ const EMPTY_PATHS = emptyFitFramePoseTracePaths();
 const TRACE_STROKE = 'rgba(65,76,52,0.72)';
 const TRACE_STROKE_FAINT = 'rgba(65,76,52,0.28)';
 const TRACE_STROKE_GHOST = 'rgba(65,76,52,0.12)';
-const TRACE_POINT = 'rgba(17,20,18,0.64)';
-const TRACE_POINT_MAJOR = 'rgba(65,76,52,0.82)';
-const TRACE_POINT_FAINT = 'rgba(65,76,52,0.28)';
-const TRACE_POINT_GHOST = 'rgba(65,76,52,0.12)';
-const GUIDE_STROKE = 'rgba(104,112,106,0.22)';
-const SAFE_GUIDE_STROKE = 'rgba(104,112,106,0.14)';
+const TRACE_POINT = 'rgba(17,20,18,0.44)';
+const TRACE_POINT_MAJOR = 'rgba(65,76,52,0.66)';
+const TRACE_POINT_FAINT = 'rgba(65,76,52,0.18)';
+const TRACE_POINT_GHOST = 'rgba(65,76,52,0.08)';
 const FRAME_BORDER = 'rgba(65,76,52,0.48)';
 const EDGE_CAUTION = '#F26A1B';
 const CONFIDENCE_ATTACK_MS = 70;
@@ -144,7 +142,6 @@ export const FitFramePoseTraceRenderer = React.forwardRef<
   const frameStyle = visualStyleForState(visualState);
   const lineWidth = frameRect ? estimateLineWidth(frameRect) : 1.6;
   const majorPointOpacity = visualState === 'ready' ? 1 : 0.92;
-  const guideOpacity = visualState === 'lost' ? 0.7 : 1;
   const showReadyGlow = visualState === 'ready';
   const displayEdgeFlags = displayFitFrameTraceEdgeFlags(paths.edgeFlags, mirrored);
   const edgeHighlightsActive = visualState === 'adjust';
@@ -217,7 +214,6 @@ export const FitFramePoseTraceRenderer = React.forwardRef<
             flags={displayEdgeFlags}
             active={edgeHighlightsActive}
           />
-          <FitFrameGuides rect={frameRect} opacity={guideOpacity} />
           <G clipPath="url(#fitFramePoseTraceClip)">
             <Path
               d={paths.ghostLinePath || EMPTY_D}
@@ -245,7 +241,7 @@ export const FitFramePoseTraceRenderer = React.forwardRef<
             />
             <Path d={paths.ghostPointPath || EMPTY_D} fill={TRACE_POINT_GHOST} />
             <Path d={paths.faintPointPath || EMPTY_D} fill={TRACE_POINT_FAINT} />
-            <Path d={paths.minorPointPath || EMPTY_D} fill={TRACE_POINT} opacity={0.84} />
+            <Path d={paths.minorPointPath || EMPTY_D} fill={TRACE_POINT} opacity={0.68} />
             <Path d={paths.majorPointPath || EMPTY_D} fill={TRACE_POINT_MAJOR} opacity={majorPointOpacity} />
           </G>
           <FitFrameEdgeHighlights
@@ -307,39 +303,6 @@ function clamp01(value: number): number {
   if (value < 0) return 0;
   if (value > 1) return 1;
   return value;
-}
-
-function FitFrameGuides({ rect, opacity }: { rect: FitFrameRect; opacity: number }) {
-  const centerX = rect.x + rect.width / 2;
-  const inset = rect.width * 0.105;
-
-  return (
-    <>
-      <Line
-        x1={centerX}
-        y1={rect.y + rect.height * 0.09}
-        x2={centerX}
-        y2={rect.y + rect.height * 0.94}
-        stroke={SAFE_GUIDE_STROKE}
-        strokeWidth={1}
-        strokeDasharray="5 9"
-        opacity={opacity}
-      />
-      <Rect
-        x={rect.x + inset}
-        y={rect.y + rect.height * 0.07}
-        width={Math.max(1, rect.width - inset * 2)}
-        height={rect.height * 0.86}
-        rx={Math.max(1, rect.rx - 12)}
-        ry={Math.max(1, rect.rx - 12)}
-        fill="none"
-        stroke={SAFE_GUIDE_STROKE}
-        strokeWidth={1}
-        strokeDasharray="6 10"
-        opacity={opacity}
-      />
-    </>
-  );
 }
 
 function FitFrameEdgeOverlayGradients({
