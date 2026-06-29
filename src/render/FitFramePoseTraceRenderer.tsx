@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { StyleSheet, View } from 'react-native';
-import Svg, { ClipPath, Defs, G, Line, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import Svg, { ClipPath, Defs, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import type { PipelineFrameOutput } from '../pose/pipeline';
 import { LANDMARK_COUNT, type PoseFrame } from '../pose/types';
@@ -11,6 +11,7 @@ import {
   emptyFitFramePoseTracePaths,
   resolveFitFrameRect,
   type FitFrameContentWindow,
+  type FitFramePoseTraceBuildOptions,
   type FitFramePoseTracePaths,
   type FitFrameRect,
   type FitFrameTraceEdgeFlags,
@@ -34,9 +35,14 @@ const TRACE_STROKE = 'rgba(65,76,52,0.72)';
 const TRACE_STROKE_FAINT = 'rgba(65,76,52,0.28)';
 const TRACE_STROKE_GHOST = 'rgba(65,76,52,0.12)';
 const TRACE_POINT = 'rgba(17,20,18,0.44)';
+const TRACE_POINT_MINOR_HALO = 'rgba(65,76,52,0.07)';
+const TRACE_POINT_MAJOR_HALO = 'rgba(65,76,52,0.13)';
 const TRACE_POINT_MAJOR = 'rgba(65,76,52,0.66)';
 const TRACE_POINT_FAINT = 'rgba(65,76,52,0.18)';
 const TRACE_POINT_GHOST = 'rgba(65,76,52,0.08)';
+const TRACE_POINT_HEAD_HALO = 'rgba(65,76,52,0.12)';
+const TRACE_POINT_HEAD = 'rgba(65,76,52,0.72)';
+const DEFAULT_SOURCE_ASPECT = 3 / 4;
 const FRAME_BORDER = 'rgba(65,76,52,0.48)';
 const EDGE_CAUTION = '#F26A1B';
 const CONFIDENCE_ATTACK_MS = 70;
@@ -69,11 +75,20 @@ export const FitFramePoseTraceRenderer = React.forwardRef<
   ref
 ) {
   const sizeRef = React.useRef({ width: 0, height: 0 });
-  const lastSourceAspectRef = React.useRef(3 / 4);
+  const lastSourceAspectRef = React.useRef(DEFAULT_SOURCE_ASPECT);
   const visibleRef = React.useRef(false);
   const visualConfidenceRef = React.useRef(new Float64Array(LANDMARK_COUNT));
+  const buildOptionsRef = React.useRef<FitFramePoseTraceBuildOptions>({
+    sourceAspect: DEFAULT_SOURCE_ASPECT,
+    mirrored,
+    fit: 'contain',
+    visualConfidence: visualConfidenceRef.current,
+  });
   const lastConfidenceTimestampRef = React.useRef<number | null>(null);
   const scratchPaths = React.useRef(emptyFitFramePoseTracePaths());
+  const frameRectRef = React.useRef<FitFrameRect | null>(null);
+  const renderedFrameRectRef = React.useRef<FitFrameRect | null>(null);
+  const frameRectInputsRef = React.useRef(emptyRectInputs());
   const [frameRect, setFrameRect] = React.useState<FitFrameRect | null>(null);
   const [paths, setPaths] = React.useState<FitFramePoseTracePaths>(EMPTY_PATHS);
 
@@ -81,8 +96,40 @@ export const FitFramePoseTraceRenderer = React.forwardRef<
     (sourceAspect = lastSourceAspectRef.current) => {
       const { width, height } = sizeRef.current;
       if (width <= 0 || height <= 0) return null;
-      const next = resolveFitFrameRect(width, height, sourceAspect, contentWindow);
-      setFrameRect((prev) => (sameRect(prev, next) ? prev : next));
+      const resolvedSourceAspect =
+        Number.isFinite(sourceAspect) && sourceAspect > 0
+          ? sourceAspect
+          : DEFAULT_SOURCE_ASPECT;
+      const windowLeft = contentWindow?.left ?? 0;
+      const windowTop = contentWindow?.top ?? 0;
+      const windowWidth = contentWindow?.width ?? width;
+      const windowHeight = contentWindow?.height ?? height;
+      const cachedInputs = frameRectInputsRef.current;
+      if (
+        frameRectRef.current &&
+        cachedInputs.viewportWidth === width &&
+        cachedInputs.viewportHeight === height &&
+        cachedInputs.sourceAspect === resolvedSourceAspect &&
+        cachedInputs.windowLeft === windowLeft &&
+        cachedInputs.windowTop === windowTop &&
+        cachedInputs.windowWidth === windowWidth &&
+        cachedInputs.windowHeight === windowHeight
+      ) {
+        return frameRectRef.current;
+      }
+      cachedInputs.viewportWidth = width;
+      cachedInputs.viewportHeight = height;
+      cachedInputs.sourceAspect = resolvedSourceAspect;
+      cachedInputs.windowLeft = windowLeft;
+      cachedInputs.windowTop = windowTop;
+      cachedInputs.windowWidth = windowWidth;
+      cachedInputs.windowHeight = windowHeight;
+      const next = resolveFitFrameRect(width, height, resolvedSourceAspect, contentWindow);
+      frameRectRef.current = next;
+      if (!sameRect(renderedFrameRectRef.current, next)) {
+        renderedFrameRectRef.current = next;
+        setFrameRect(next);
+      }
       return next;
     },
     [contentWindow]
@@ -121,15 +168,14 @@ export const FitFramePoseTraceRenderer = React.forwardRef<
           visualConfidenceRef.current,
           lastConfidenceTimestampRef
         );
+        const buildOptions = buildOptionsRef.current;
+        buildOptions.sourceAspect = lastSourceAspectRef.current;
+        buildOptions.mirrored = mirrored;
+        buildOptions.visualConfidence = visualConfidenceRef.current;
         buildFitFramePoseTracePaths(
           frame,
           rect,
-          {
-            sourceAspect: lastSourceAspectRef.current,
-            mirrored,
-            fit: 'contain',
-            visualConfidence: visualConfidenceRef.current,
-          },
+          buildOptions,
           scratchPaths.current
         );
         visibleRef.current = true;
@@ -241,8 +287,12 @@ export const FitFramePoseTraceRenderer = React.forwardRef<
             />
             <Path d={paths.ghostPointPath || EMPTY_D} fill={TRACE_POINT_GHOST} />
             <Path d={paths.faintPointPath || EMPTY_D} fill={TRACE_POINT_FAINT} />
+            <Path d={paths.minorPointHaloPath || EMPTY_D} fill={TRACE_POINT_MINOR_HALO} />
+            <Path d={paths.majorPointHaloPath || EMPTY_D} fill={TRACE_POINT_MAJOR_HALO} />
+            <Path d={paths.headPointHaloPath || EMPTY_D} fill={TRACE_POINT_HEAD_HALO} />
             <Path d={paths.minorPointPath || EMPTY_D} fill={TRACE_POINT} opacity={0.68} />
             <Path d={paths.majorPointPath || EMPTY_D} fill={TRACE_POINT_MAJOR} opacity={majorPointOpacity} />
+            <Path d={paths.headPointPath || EMPTY_D} fill={TRACE_POINT_HEAD} opacity={majorPointOpacity} />
           </G>
           <FitFrameEdgeHighlights
             rect={frameRect}
@@ -277,11 +327,12 @@ function updateVisualConfidence(
   }
 
   const dt = Math.min(100, frame.timestampMs - previousTimestamp);
+  const attackAlpha = 1 - Math.exp(-dt / CONFIDENCE_ATTACK_MS);
+  const releaseAlpha = 1 - Math.exp(-dt / CONFIDENCE_RELEASE_MS);
   for (let i = 0; i < LANDMARK_COUNT; i++) {
     const target = landmarkConfidence(frame, i);
     const current = visualConfidence[i];
-    const timeConstant = target > current ? CONFIDENCE_ATTACK_MS : CONFIDENCE_RELEASE_MS;
-    const alpha = 1 - Math.exp(-dt / timeConstant);
+    const alpha = target > current ? attackAlpha : releaseAlpha;
     visualConfidence[i] = current + (target - current) * alpha;
   }
 }
@@ -722,6 +773,28 @@ function visualStyleForState(state: FitFramePoseTraceVisualState): {
   }
 }
 
+interface FitFrameRectInputs {
+  viewportWidth: number;
+  viewportHeight: number;
+  sourceAspect: number;
+  windowLeft: number;
+  windowTop: number;
+  windowWidth: number;
+  windowHeight: number;
+}
+
+function emptyRectInputs(): FitFrameRectInputs {
+  return {
+    viewportWidth: Number.NaN,
+    viewportHeight: Number.NaN,
+    sourceAspect: Number.NaN,
+    windowLeft: Number.NaN,
+    windowTop: Number.NaN,
+    windowWidth: Number.NaN,
+    windowHeight: Number.NaN,
+  };
+}
+
 function sameRect(a: FitFrameRect | null, b: FitFrameRect): boolean {
   if (!a) return false;
   return (
@@ -738,6 +811,10 @@ function clonePaths(paths: FitFramePoseTracePaths): FitFramePoseTracePaths {
     strongLinePath: paths.strongLinePath,
     faintLinePath: paths.faintLinePath,
     ghostLinePath: paths.ghostLinePath,
+    headPointHaloPath: paths.headPointHaloPath,
+    headPointPath: paths.headPointPath,
+    majorPointHaloPath: paths.majorPointHaloPath,
+    minorPointHaloPath: paths.minorPointHaloPath,
     majorPointPath: paths.majorPointPath,
     minorPointPath: paths.minorPointPath,
     faintPointPath: paths.faintPointPath,

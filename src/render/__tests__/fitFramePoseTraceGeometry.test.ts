@@ -45,10 +45,38 @@ describe('fit frame pose trace geometry', () => {
     buildFitFramePoseTracePaths(frame, RECT, { sourceAspect: 3 / 4, mirrored: false }, out);
 
     expect(out.strongLinePath).toBe('');
+    expect(out.headPointPath).toBe('');
+    expect(out.headPointHaloPath).toBe('');
+    expect(out.majorPointHaloPath).toBe('');
+    expect(out.minorPointHaloPath).toBe('');
     expect(out.majorPointPath).toBe('');
     expect(out.minorPointPath).toBe('');
     expect(out.faintLinePath).toContain('M');
     expect(out.faintPointPath).toContain('M');
+  });
+
+  it('renders premium node hierarchy for high-confidence head, major, and minor points', () => {
+    const frame = makeStandingFrame(0.5);
+    const out = emptyFitFramePoseTracePaths();
+
+    buildFitFramePoseTracePaths(frame, RECT, { sourceAspect: 3 / 4, mirrored: false }, out);
+
+    expect(out.headPointPath).toContain('M');
+    expect(out.headPointHaloPath).toContain('M');
+    expect(out.majorPointPath).toContain('M');
+    expect(out.majorPointHaloPath).toContain('M');
+    expect(out.minorPointPath).toContain('M');
+    expect(out.minorPointHaloPath).toContain('M');
+  });
+
+  it('uses a simplified foot endpoint instead of raw heel chains', () => {
+    const frame = makeFootEndpointFrame();
+    const out = emptyFitFramePoseTracePaths();
+
+    buildFitFramePoseTracePaths(frame, RECT, { sourceAspect: 3 / 4, mirrored: false }, out);
+
+    expect(out.lineCount).toBe(1);
+    expect(out.pointCount).toBe(2);
   });
 
   it('uses visual confidence for trace visibility', () => {
@@ -207,6 +235,16 @@ function makeCameraEdgeFrame(): PoseFrame {
   frame.timestampMs = 1000;
   setLandmark(frame, LM.NOSE, 0, 0, 0.9);
   setLandmark(frame, LM.RIGHT_FOOT_INDEX, 1, 1, 0.9);
+  return frame;
+}
+
+function makeFootEndpointFrame(): PoseFrame {
+  const frame = createPoseFrame();
+  frame.hasPose = true;
+  frame.timestampMs = 1000;
+  setLandmark(frame, LM.LEFT_ANKLE, 0.48, 0.88, 0.9);
+  setLandmark(frame, LM.LEFT_FOOT_INDEX, 0.43, 0.94, 0.9);
+  setLandmark(frame, LM.LEFT_HEEL, 0.46, 0.94, 0.9);
   return frame;
 }
 

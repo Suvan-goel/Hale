@@ -39,6 +39,10 @@ export interface FitFramePoseTracePaths {
   strongLinePath: string;
   faintLinePath: string;
   ghostLinePath: string;
+  headPointHaloPath: string;
+  headPointPath: string;
+  majorPointHaloPath: string;
+  minorPointHaloPath: string;
   majorPointPath: string;
   minorPointPath: string;
   faintPointPath: string;
@@ -82,10 +86,8 @@ const TRACE_CONNECTIONS: readonly (readonly [LM, LM])[] = [
   [LM.LEFT_KNEE, LM.LEFT_ANKLE],
   [LM.RIGHT_HIP, LM.RIGHT_KNEE],
   [LM.RIGHT_KNEE, LM.RIGHT_ANKLE],
-  [LM.LEFT_ANKLE, LM.LEFT_HEEL],
-  [LM.LEFT_HEEL, LM.LEFT_FOOT_INDEX],
-  [LM.RIGHT_ANKLE, LM.RIGHT_HEEL],
-  [LM.RIGHT_HEEL, LM.RIGHT_FOOT_INDEX],
+  [LM.LEFT_ANKLE, LM.LEFT_FOOT_INDEX],
+  [LM.RIGHT_ANKLE, LM.RIGHT_FOOT_INDEX],
 ];
 
 const TRACE_POINTS: readonly LM[] = [
@@ -102,8 +104,6 @@ const TRACE_POINTS: readonly LM[] = [
   LM.RIGHT_KNEE,
   LM.LEFT_ANKLE,
   LM.RIGHT_ANKLE,
-  LM.LEFT_HEEL,
-  LM.RIGHT_HEEL,
   LM.LEFT_FOOT_INDEX,
   LM.RIGHT_FOOT_INDEX,
 ];
@@ -124,6 +124,10 @@ export function emptyFitFramePoseTracePaths(): FitFramePoseTracePaths {
     strongLinePath: '',
     faintLinePath: '',
     ghostLinePath: '',
+    headPointHaloPath: '',
+    headPointPath: '',
+    majorPointHaloPath: '',
+    minorPointHaloPath: '',
     majorPointPath: '',
     minorPointPath: '',
     faintPointPath: '',
@@ -214,9 +218,14 @@ export function buildFitFramePoseTracePaths(
     mirrored: options.mirrored ?? true,
     fit: options.fit ?? 'contain',
   });
-  const majorRadius = estimatePointRadius(frameRect) * 0.98;
-  const minorRadius = estimatePointRadius(frameRect) * 0.66;
-  const faintRadius = estimatePointRadius(frameRect) * 0.58;
+  const pointRadius = estimatePointRadius(frameRect);
+  const headRadius = pointRadius * 1.06;
+  const headHaloRadius = pointRadius * 3.25;
+  const majorRadius = pointRadius * 0.98;
+  const majorHaloRadius = pointRadius * 2.35;
+  const minorRadius = pointRadius * 0.66;
+  const minorHaloRadius = pointRadius * 1.72;
+  const faintRadius = pointRadius * 0.58;
   let confidenceSum = 0;
   let confidenceSamples = 0;
   let minEdgeNormX = Infinity;
@@ -290,9 +299,14 @@ export function buildFitFramePoseTracePaths(
       out.ghostPointPath += circlePath(x, y, faintRadius);
     } else if (confidence < strongConfidence) {
       out.faintPointPath += circlePath(x, y, faintRadius);
+    } else if (lm === LM.NOSE) {
+      out.headPointHaloPath += circlePath(x, y, headHaloRadius);
+      out.headPointPath += circlePath(x, y, headRadius);
     } else if (MAJOR_POINTS.has(lm)) {
+      out.majorPointHaloPath += circlePath(x, y, majorHaloRadius);
       out.majorPointPath += circlePath(x, y, majorRadius);
     } else {
+      out.minorPointHaloPath += circlePath(x, y, minorHaloRadius);
       out.minorPointPath += circlePath(x, y, minorRadius);
     }
     out.pointCount++;
@@ -319,6 +333,10 @@ function resetPaths(out: FitFramePoseTracePaths): void {
   out.strongLinePath = '';
   out.faintLinePath = '';
   out.ghostLinePath = '';
+  out.headPointHaloPath = '';
+  out.headPointPath = '';
+  out.majorPointHaloPath = '';
+  out.minorPointHaloPath = '';
   out.majorPointPath = '';
   out.minorPointPath = '';
   out.faintPointPath = '';
