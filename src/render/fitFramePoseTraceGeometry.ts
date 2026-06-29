@@ -38,9 +38,11 @@ export interface FitFrameTraceBounds {
 export interface FitFramePoseTracePaths {
   strongLinePath: string;
   faintLinePath: string;
+  ghostLinePath: string;
   majorPointPath: string;
   minorPointPath: string;
   faintPointPath: string;
+  ghostPointPath: string;
   lineCount: number;
   pointCount: number;
   averageConfidence: number;
@@ -52,16 +54,20 @@ export interface FitFramePoseTraceBuildOptions {
   sourceAspect: number;
   mirrored?: boolean;
   fit?: PoseViewportFit;
+  visualConfidence?: ArrayLike<number>;
+  edgeFadeMargin?: number;
   minConfidence?: number;
   strongConfidence?: number;
   footConfidence?: number;
 }
 
 const DEFAULT_SOURCE_ASPECT = 3 / 4;
-const MIN_CONFIDENCE = 0.18;
+const MIN_CONFIDENCE = 0.06;
+const FAINT_CONFIDENCE = 0.18;
 const STRONG_CONFIDENCE = 0.55;
 const FOOT_CONFIDENCE = 0.35;
 const EDGE_MARGIN = 0.055;
+const EDGE_VISUAL_FADE_MARGIN = 0.07;
 
 const TRACE_CONNECTIONS: readonly (readonly [LM, LM])[] = [
   [LM.LEFT_SHOULDER, LM.RIGHT_SHOULDER],
@@ -117,14 +123,31 @@ export function emptyFitFramePoseTracePaths(): FitFramePoseTracePaths {
   return {
     strongLinePath: '',
     faintLinePath: '',
+    ghostLinePath: '',
     majorPointPath: '',
     minorPointPath: '',
     faintPointPath: '',
+    ghostPointPath: '',
     lineCount: 0,
     pointCount: 0,
     averageConfidence: 0,
     bounds: null,
     edgeFlags: { left: false, right: false, top: false, bottom: false },
+  };
+}
+
+export function displayFitFrameTraceEdgeFlags(
+  flags: FitFrameTraceEdgeFlags,
+  mirrored: boolean
+): FitFrameTraceEdgeFlags {
+  if (!mirrored) {
+    return flags;
+  }
+  return {
+    left: flags.right,
+    right: flags.left,
+    top: flags.top,
+    bottom: flags.bottom,
   };
 }
 
@@ -143,8 +166,8 @@ export function resolveFitFrameRect(
   };
   const width = Math.max(1, window.width);
   const height = Math.max(1, window.height);
-  const sideInset = Math.min(Math.max(18, width * 0.12), width * 0.22);
-  const verticalInset = Math.min(Math.max(14, height * 0.035), height * 0.12);
+  const sideInset = Math.min(Math.max(10, width * 0.04), width * 0.1);
+  const verticalInset = Math.min(Math.max(8, height * 0.015), height * 0.06);
   const maxFrameWidth = Math.max(1, width - sideInset * 2);
   const maxFrameHeight = Math.max(1, height - verticalInset * 2);
   let frameWidth = Math.min(maxFrameWidth, maxFrameHeight * source);
@@ -182,6 +205,8 @@ export function buildFitFramePoseTracePaths(
   const minConfidence = options.minConfidence ?? MIN_CONFIDENCE;
   const strongConfidence = options.strongConfidence ?? STRONG_CONFIDENCE;
   const footConfidence = options.footConfidence ?? FOOT_CONFIDENCE;
+  const visualConfidence = options.visualConfidence;
+  const edgeFadeMargin = options.edgeFadeMargin ?? EDGE_VISUAL_FADE_MARGIN;
   const transform = computeViewportTransform({
     width: frameRect.width,
     height: frameRect.height,
@@ -194,10 +219,11 @@ export function buildFitFramePoseTracePaths(
   const faintRadius = estimatePointRadius(frameRect) * 0.76;
   let confidenceSum = 0;
   let confidenceSamples = 0;
-  let minNormX = Infinity;
-  let maxNormX = -Infinity;
-  let minNormY = Infinity;
-  let maxNormY = -Infinity;
+  let minEdgeNormX = Infinity;
+  let maxEdgeNormX = -Infinity;
+  let minEdgeNormY = Infinity;
+  let maxEdgeNormY = -Infinity;
+  let edgeSamples = 0;
   let minX = Infinity;
   let maxX = -Infinity;
   let minY = Infinity;
@@ -208,20 +234,24 @@ export function buildFitFramePoseTracePaths(
   const notePoint = (lm: LM, x: number, y: number, confidence: number) => {
     confidenceSum += confidence;
     confidenceSamples++;
-    minNormX = Math.min(minNormX, frame.xs[lm]);
-    maxNormX = Math.max(maxNormX, frame.xs[lm]);
-    minNormY = Math.min(minNormY, frame.ys[lm]);
-    maxNormY = Math.max(maxNormY, frame.ys[lm]);
     minX = Math.min(minX, x);
     maxX = Math.max(maxX, x);
     minY = Math.min(minY, y);
     maxY = Math.max(maxY, y);
   };
+  const noteEdgeCandidate = (lm: LM, confidence: number) => {
+    if (confidence < minConfidence || !landmarkFinite(frame, lm)) return;
+    edgeSamples++;
+    minEdgeNormX = Math.min(minEdgeNormX, frame.xs[lm]);
+    maxEdgeNormX = Math.max(maxEdgeNormX, frame.xs[lm]);
+    minEdgeNormY = Math.min(minEdgeNormY, frame.ys[lm]);
+    maxEdgeNormY = Math.max(maxEdgeNormY, frame.ys[lm]);
+  };
 
   for (let i = 0; i < TRACE_CONNECTIONS.length; i++) {
     const [a, b] = TRACE_CONNECTIONS[i];
-    const aConfidence = landmarkConfidence(frame, a);
-    const bConfidence = landmarkConfidence(frame, b);
+    const aConfidence = landmarkVisualConfidence(frame, a, visualConfidence, edgeFadeMargin);
+    const bConfidence = landmarkVisualConfidence(frame, b, visualConfidence, edgeFadeMargin);
     const confidence = Math.min(aConfidence, bConfidence);
     if (
       confidence < minConfidence ||
@@ -238,8 +268,10 @@ export function buildFitFramePoseTracePaths(
     const path = `M${f(ax)} ${f(ay)}L${f(bx)} ${f(by)}`;
     if (confidence >= strongConfidence) {
       out.strongLinePath += path;
-    } else {
+    } else if (confidence >= FAINT_CONFIDENCE) {
       out.faintLinePath += path;
+    } else {
+      out.ghostLinePath += path;
     }
     out.lineCount++;
   }
@@ -247,13 +279,16 @@ export function buildFitFramePoseTracePaths(
   for (let i = 0; i < TRACE_POINTS.length; i++) {
     const lm = TRACE_POINTS[i];
     if (!landmarkFinite(frame, lm)) continue;
-    const confidence = landmarkConfidence(frame, lm);
+    noteEdgeCandidate(lm, rawLandmarkConfidence(frame, lm));
+    const confidence = landmarkVisualConfidence(frame, lm, visualConfidence, edgeFadeMargin);
     if (confidence < minConfidence) continue;
     const x = mapX(lm);
     const y = mapY(lm);
     notePoint(lm, x, y, confidence);
 
-    if (confidence < strongConfidence) {
+    if (confidence < FAINT_CONFIDENCE) {
+      out.ghostPointPath += circlePath(x, y, faintRadius);
+    } else if (confidence < strongConfidence) {
       out.faintPointPath += circlePath(x, y, faintRadius);
     } else if (MAJOR_POINTS.has(lm)) {
       out.majorPointPath += circlePath(x, y, majorRadius);
@@ -266,22 +301,28 @@ export function buildFitFramePoseTracePaths(
   if (confidenceSamples > 0) {
     out.averageConfidence = confidenceSum / confidenceSamples;
     out.bounds = { minX, maxX, minY, maxY };
-    out.edgeFlags.left = minNormX < EDGE_MARGIN;
-    out.edgeFlags.right = maxNormX > 1 - EDGE_MARGIN;
-    out.edgeFlags.top = minNormY < EDGE_MARGIN || landmarkConfidence(frame, LM.NOSE) < footConfidence;
+  }
+
+  if (edgeSamples > 0) {
+    out.edgeFlags.left = minEdgeNormX < EDGE_MARGIN;
+    out.edgeFlags.right = maxEdgeNormX > 1 - EDGE_MARGIN;
+    out.edgeFlags.top =
+      minEdgeNormY < EDGE_MARGIN || rawLandmarkConfidence(frame, LM.NOSE) < footConfidence;
     out.edgeFlags.bottom =
-      maxNormY > 1 - EDGE_MARGIN ||
-      landmarkConfidence(frame, LM.LEFT_ANKLE) < footConfidence ||
-      landmarkConfidence(frame, LM.RIGHT_ANKLE) < footConfidence;
+      maxEdgeNormY > 1 - EDGE_MARGIN ||
+      rawLandmarkConfidence(frame, LM.LEFT_ANKLE) < footConfidence ||
+      rawLandmarkConfidence(frame, LM.RIGHT_ANKLE) < footConfidence;
   }
 }
 
 function resetPaths(out: FitFramePoseTracePaths): void {
   out.strongLinePath = '';
   out.faintLinePath = '';
+  out.ghostLinePath = '';
   out.majorPointPath = '';
   out.minorPointPath = '';
   out.faintPointPath = '';
+  out.ghostPointPath = '';
   out.lineCount = 0;
   out.pointCount = 0;
   out.averageConfidence = 0;
@@ -296,8 +337,34 @@ function landmarkFinite(frame: PoseFrame, lm: LM): boolean {
   return Number.isFinite(frame.xs[lm]) && Number.isFinite(frame.ys[lm]);
 }
 
-function landmarkConfidence(frame: PoseFrame, lm: LM): number {
+function landmarkVisualConfidence(
+  frame: PoseFrame,
+  lm: LM,
+  visualConfidence: ArrayLike<number> | undefined,
+  edgeFadeMargin: number
+): number {
+  if (visualConfidence && lm < visualConfidence.length) {
+    return clamp01(visualConfidence[lm]) * landmarkEdgeAlpha(frame, lm, edgeFadeMargin);
+  }
+  return rawLandmarkConfidence(frame, lm) * landmarkEdgeAlpha(frame, lm, edgeFadeMargin);
+}
+
+function rawLandmarkConfidence(frame: PoseFrame, lm: LM): number {
   return Math.min(clamp01(frame.visibility[lm]), clamp01(frame.presence[lm]));
+}
+
+function landmarkEdgeAlpha(frame: PoseFrame, lm: LM, margin: number): number {
+  const x = frame.xs[lm];
+  const y = frame.ys[lm];
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return 0;
+  if (margin <= 0) {
+    return x >= 0 && x <= 1 && y >= 0 && y <= 1 ? 1 : 0;
+  }
+  const distanceToEdge = Math.min(x, 1 - x, y, 1 - y);
+  if (distanceToEdge <= 0) return 0;
+  if (distanceToEdge >= EDGE_VISUAL_FADE_MARGIN) return 1;
+  const t = distanceToEdge / EDGE_VISUAL_FADE_MARGIN;
+  return t * t * (3 - 2 * t);
 }
 
 function estimatePointRadius(rect: FitFrameRect): number {

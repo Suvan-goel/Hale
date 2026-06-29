@@ -1,11 +1,13 @@
 import * as React from 'react';
 import { StyleSheet, View } from 'react-native';
-import Svg, { ClipPath, Defs, G, Line, Path, Rect } from 'react-native-svg';
+import Svg, { ClipPath, Defs, G, Line, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import type { PipelineFrameOutput } from '../pose/pipeline';
+import { LANDMARK_COUNT, type PoseFrame } from '../pose/types';
 import { colors } from '../theme';
 import {
   buildFitFramePoseTracePaths,
+  displayFitFrameTraceEdgeFlags,
   emptyFitFramePoseTracePaths,
   resolveFitFrameRect,
   type FitFrameContentWindow,
@@ -30,11 +32,30 @@ export interface FitFramePoseTraceRendererProps {
 const EMPTY_PATHS = emptyFitFramePoseTracePaths();
 const TRACE_STROKE = 'rgba(65,76,52,0.72)';
 const TRACE_STROKE_FAINT = 'rgba(65,76,52,0.28)';
+const TRACE_STROKE_GHOST = 'rgba(65,76,52,0.12)';
 const TRACE_POINT = 'rgba(17,20,18,0.64)';
 const TRACE_POINT_MAJOR = 'rgba(65,76,52,0.82)';
 const TRACE_POINT_FAINT = 'rgba(65,76,52,0.28)';
+const TRACE_POINT_GHOST = 'rgba(65,76,52,0.12)';
 const GUIDE_STROKE = 'rgba(104,112,106,0.22)';
 const SAFE_GUIDE_STROKE = 'rgba(104,112,106,0.14)';
+const FRAME_BORDER = 'rgba(65,76,52,0.48)';
+const EDGE_CAUTION = '#F26A1B';
+const CONFIDENCE_ATTACK_MS = 70;
+const CONFIDENCE_RELEASE_MS = 260;
+const CONFIDENCE_RESET_GAP_MS = 700;
+const EDGE_GRADIENT_IDS = {
+  left: 'fitFramePoseTraceEdgeLeftGradient',
+  right: 'fitFramePoseTraceEdgeRightGradient',
+  top: 'fitFramePoseTraceEdgeTopGradient',
+  bottom: 'fitFramePoseTraceEdgeBottomGradient',
+} as const;
+const EDGE_OVERLAY_GRADIENT_IDS = {
+  left: 'fitFramePoseTraceEdgeLeftOverlayGradient',
+  right: 'fitFramePoseTraceEdgeRightOverlayGradient',
+  top: 'fitFramePoseTraceEdgeTopOverlayGradient',
+  bottom: 'fitFramePoseTraceEdgeBottomOverlayGradient',
+} as const;
 const EMPTY_D = 'M-9-9';
 
 export const FitFramePoseTraceRenderer = React.forwardRef<
@@ -52,6 +73,8 @@ export const FitFramePoseTraceRenderer = React.forwardRef<
   const sizeRef = React.useRef({ width: 0, height: 0 });
   const lastSourceAspectRef = React.useRef(3 / 4);
   const visibleRef = React.useRef(false);
+  const visualConfidenceRef = React.useRef(new Float64Array(LANDMARK_COUNT));
+  const lastConfidenceTimestampRef = React.useRef<number | null>(null);
   const scratchPaths = React.useRef(emptyFitFramePoseTracePaths());
   const [frameRect, setFrameRect] = React.useState<FitFrameRect | null>(null);
   const [paths, setPaths] = React.useState<FitFramePoseTracePaths>(EMPTY_PATHS);
@@ -91,9 +114,15 @@ export const FitFramePoseTraceRenderer = React.forwardRef<
             visibleRef.current = false;
             setPaths(EMPTY_PATHS);
           }
+          resetVisualConfidence(visualConfidenceRef.current, lastConfidenceTimestampRef);
           return;
         }
 
+        updateVisualConfidence(
+          frame,
+          visualConfidenceRef.current,
+          lastConfidenceTimestampRef
+        );
         buildFitFramePoseTracePaths(
           frame,
           rect,
@@ -101,6 +130,7 @@ export const FitFramePoseTraceRenderer = React.forwardRef<
             sourceAspect: lastSourceAspectRef.current,
             mirrored,
             fit: 'contain',
+            visualConfidence: visualConfidenceRef.current,
           },
           scratchPaths.current
         );
@@ -116,6 +146,8 @@ export const FitFramePoseTraceRenderer = React.forwardRef<
   const majorPointOpacity = visualState === 'ready' ? 1 : 0.92;
   const guideOpacity = visualState === 'lost' ? 0.7 : 1;
   const showReadyGlow = visualState === 'ready';
+  const displayEdgeFlags = displayFitFrameTraceEdgeFlags(paths.edgeFlags, mirrored);
+  const edgeHighlightsActive = visualState === 'adjust';
 
   return (
     <View
@@ -142,6 +174,17 @@ export const FitFramePoseTraceRenderer = React.forwardRef<
                 ry={frameRect.rx}
               />
             </ClipPath>
+            <FitFrameEdgeHighlightGradients
+              rect={frameRect}
+              flags={displayEdgeFlags}
+              active={edgeHighlightsActive}
+              baseColor={frameStyle.border}
+            />
+            <FitFrameEdgeOverlayGradients
+              rect={frameRect}
+              flags={displayEdgeFlags}
+              active={edgeHighlightsActive}
+            />
           </Defs>
           <Rect
             x={frameRect.x}
@@ -169,8 +212,21 @@ export const FitFramePoseTraceRenderer = React.forwardRef<
               opacity={0.08}
             />
           ) : null}
+          <FitFrameEdgeOverlays
+            rect={frameRect}
+            flags={displayEdgeFlags}
+            active={edgeHighlightsActive}
+          />
           <FitFrameGuides rect={frameRect} opacity={guideOpacity} />
           <G clipPath="url(#fitFramePoseTraceClip)">
+            <Path
+              d={paths.ghostLinePath || EMPTY_D}
+              stroke={TRACE_STROKE_GHOST}
+              strokeWidth={lineWidth}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+            />
             <Path
               d={paths.faintLinePath || EMPTY_D}
               stroke={TRACE_STROKE_FAINT}
@@ -187,14 +243,15 @@ export const FitFramePoseTraceRenderer = React.forwardRef<
               strokeLinejoin="round"
               fill="none"
             />
+            <Path d={paths.ghostPointPath || EMPTY_D} fill={TRACE_POINT_GHOST} />
             <Path d={paths.faintPointPath || EMPTY_D} fill={TRACE_POINT_FAINT} />
             <Path d={paths.minorPointPath || EMPTY_D} fill={TRACE_POINT} opacity={0.84} />
             <Path d={paths.majorPointPath || EMPTY_D} fill={TRACE_POINT_MAJOR} opacity={majorPointOpacity} />
           </G>
           <FitFrameEdgeHighlights
             rect={frameRect}
-            flags={paths.edgeFlags}
-            active={visualState === 'adjust'}
+            flags={displayEdgeFlags}
+            active={edgeHighlightsActive}
           />
         </Svg>
       ) : null}
@@ -202,11 +259,58 @@ export const FitFramePoseTraceRenderer = React.forwardRef<
   );
 });
 
+function updateVisualConfidence(
+  frame: PoseFrame,
+  visualConfidence: Float64Array,
+  lastTimestampRef: React.MutableRefObject<number | null>
+): void {
+  const previousTimestamp = lastTimestampRef.current;
+  lastTimestampRef.current = frame.timestampMs;
+
+  if (
+    previousTimestamp === null ||
+    !Number.isFinite(previousTimestamp) ||
+    !Number.isFinite(frame.timestampMs) ||
+    frame.timestampMs <= previousTimestamp ||
+    frame.timestampMs - previousTimestamp > CONFIDENCE_RESET_GAP_MS
+  ) {
+    for (let i = 0; i < LANDMARK_COUNT; i++) {
+      visualConfidence[i] = landmarkConfidence(frame, i);
+    }
+    return;
+  }
+
+  const dt = Math.min(100, frame.timestampMs - previousTimestamp);
+  for (let i = 0; i < LANDMARK_COUNT; i++) {
+    const target = landmarkConfidence(frame, i);
+    const current = visualConfidence[i];
+    const timeConstant = target > current ? CONFIDENCE_ATTACK_MS : CONFIDENCE_RELEASE_MS;
+    const alpha = 1 - Math.exp(-dt / timeConstant);
+    visualConfidence[i] = current + (target - current) * alpha;
+  }
+}
+
+function resetVisualConfidence(
+  visualConfidence: Float64Array,
+  lastTimestampRef: React.MutableRefObject<number | null>
+): void {
+  visualConfidence.fill(0);
+  lastTimestampRef.current = null;
+}
+
+function landmarkConfidence(frame: PoseFrame, index: number): number {
+  return Math.min(clamp01(frame.visibility[index]), clamp01(frame.presence[index]));
+}
+
+function clamp01(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  if (value < 0) return 0;
+  if (value > 1) return 1;
+  return value;
+}
+
 function FitFrameGuides({ rect, opacity }: { rect: FitFrameRect; opacity: number }) {
   const centerX = rect.x + rect.width / 2;
-  const headY = rect.y + rect.height * 0.14;
-  const feetY = rect.y + rect.height * 0.91;
-  const tick = rect.width * 0.16;
   const inset = rect.width * 0.105;
 
   return (
@@ -234,27 +338,260 @@ function FitFrameGuides({ rect, opacity }: { rect: FitFrameRect; opacity: number
         strokeDasharray="6 10"
         opacity={opacity}
       />
-      <Line
-        x1={centerX - tick}
-        y1={headY}
-        x2={centerX + tick}
-        y2={headY}
-        stroke={GUIDE_STROKE}
-        strokeWidth={2}
-        strokeLinecap="round"
-        opacity={opacity}
+    </>
+  );
+}
+
+function FitFrameEdgeOverlayGradients({
+  rect,
+  flags,
+  active,
+}: {
+  rect: FitFrameRect;
+  flags: FitFrameTraceEdgeFlags;
+  active: boolean;
+}) {
+  if (!active || (!flags.left && !flags.right && !flags.top && !flags.bottom)) {
+    return null;
+  }
+
+  const depth = edgeOverlayDepth(rect);
+  return (
+    <>
+      <EdgeOverlayGradient
+        id={EDGE_OVERLAY_GRADIENT_IDS.left}
+        x1={rect.x}
+        y1={rect.y}
+        x2={rect.x + depth}
+        y2={rect.y}
       />
-      <Line
-        x1={centerX - tick * 1.12}
-        y1={feetY}
-        x2={centerX + tick * 1.12}
-        y2={feetY}
-        stroke={GUIDE_STROKE}
-        strokeWidth={2}
-        strokeLinecap="round"
-        opacity={opacity}
+      <EdgeOverlayGradient
+        id={EDGE_OVERLAY_GRADIENT_IDS.right}
+        x1={rect.x + rect.width}
+        y1={rect.y}
+        x2={rect.x + rect.width - depth}
+        y2={rect.y}
+      />
+      <EdgeOverlayGradient
+        id={EDGE_OVERLAY_GRADIENT_IDS.top}
+        x1={rect.x}
+        y1={rect.y}
+        x2={rect.x}
+        y2={rect.y + depth}
+      />
+      <EdgeOverlayGradient
+        id={EDGE_OVERLAY_GRADIENT_IDS.bottom}
+        x1={rect.x}
+        y1={rect.y + rect.height}
+        x2={rect.x}
+        y2={rect.y + rect.height - depth}
       />
     </>
+  );
+}
+
+function EdgeOverlayGradient({
+  id,
+  x1,
+  y1,
+  x2,
+  y2,
+}: {
+  id: string;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}) {
+  return (
+    <LinearGradient
+      id={id}
+      x1={x1}
+      y1={y1}
+      x2={x2}
+      y2={y2}
+      gradientUnits="userSpaceOnUse"
+    >
+      <Stop offset="0%" stopColor={EDGE_CAUTION} stopOpacity={0.22} />
+      <Stop offset="42%" stopColor={EDGE_CAUTION} stopOpacity={0.1} />
+      <Stop offset="100%" stopColor={EDGE_CAUTION} stopOpacity={0} />
+    </LinearGradient>
+  );
+}
+
+function FitFrameEdgeOverlays({
+  rect,
+  flags,
+  active,
+}: {
+  rect: FitFrameRect;
+  flags: FitFrameTraceEdgeFlags;
+  active: boolean;
+}) {
+  if (!active || (!flags.left && !flags.right && !flags.top && !flags.bottom)) {
+    return null;
+  }
+
+  const depth = edgeOverlayDepth(rect);
+  return (
+    <G clipPath="url(#fitFramePoseTraceClip)">
+      {flags.left ? (
+        <Rect
+          x={rect.x}
+          y={rect.y}
+          width={depth}
+          height={rect.height}
+          fill={`url(#${EDGE_OVERLAY_GRADIENT_IDS.left})`}
+        />
+      ) : null}
+      {flags.right ? (
+        <Rect
+          x={rect.x + rect.width - depth}
+          y={rect.y}
+          width={depth}
+          height={rect.height}
+          fill={`url(#${EDGE_OVERLAY_GRADIENT_IDS.right})`}
+        />
+      ) : null}
+      {flags.top ? (
+        <Rect
+          x={rect.x}
+          y={rect.y}
+          width={rect.width}
+          height={depth}
+          fill={`url(#${EDGE_OVERLAY_GRADIENT_IDS.top})`}
+        />
+      ) : null}
+      {flags.bottom ? (
+        <Rect
+          x={rect.x}
+          y={rect.y + rect.height - depth}
+          width={rect.width}
+          height={depth}
+          fill={`url(#${EDGE_OVERLAY_GRADIENT_IDS.bottom})`}
+        />
+      ) : null}
+    </G>
+  );
+}
+
+function FitFrameEdgeHighlightGradients({
+  rect,
+  flags,
+  active,
+  baseColor,
+}: {
+  rect: FitFrameRect;
+  flags: FitFrameTraceEdgeFlags;
+  active: boolean;
+  baseColor: string;
+}) {
+  if (!active || (!flags.left && !flags.right && !flags.top && !flags.bottom)) {
+    return null;
+  }
+
+  const r = resolvedCornerRadius(rect);
+  const k = Math.SQRT1_2;
+  const horizontalFade = cornerFadeRatio(rect.width, r);
+  const verticalFade = cornerFadeRatio(rect.height, r);
+  const leftX = rect.x + r - r * k;
+  const rightX = rect.x + rect.width - r + r * k;
+  const topY = rect.y + r - r * k;
+  const bottomY = rect.y + rect.height - r + r * k;
+
+  return (
+    <>
+      <EdgeLinearGradient
+        id={EDGE_GRADIENT_IDS.left}
+        x1={rect.x}
+        y1={topY}
+        x2={rect.x}
+        y2={bottomY}
+        baseColor={baseColor}
+        startActive={flags.top}
+        endActive={flags.bottom}
+        fade={verticalFade}
+      />
+      <EdgeLinearGradient
+        id={EDGE_GRADIENT_IDS.right}
+        x1={rect.x + rect.width}
+        y1={topY}
+        x2={rect.x + rect.width}
+        y2={bottomY}
+        baseColor={baseColor}
+        startActive={flags.top}
+        endActive={flags.bottom}
+        fade={verticalFade}
+      />
+      <EdgeLinearGradient
+        id={EDGE_GRADIENT_IDS.top}
+        x1={leftX}
+        y1={rect.y}
+        x2={rightX}
+        y2={rect.y}
+        baseColor={baseColor}
+        startActive={flags.left}
+        endActive={flags.right}
+        fade={horizontalFade}
+      />
+      <EdgeLinearGradient
+        id={EDGE_GRADIENT_IDS.bottom}
+        x1={leftX}
+        y1={rect.y + rect.height}
+        x2={rightX}
+        y2={rect.y + rect.height}
+        baseColor={baseColor}
+        startActive={flags.left}
+        endActive={flags.right}
+        fade={horizontalFade}
+      />
+    </>
+  );
+}
+
+function EdgeLinearGradient({
+  id,
+  x1,
+  y1,
+  x2,
+  y2,
+  baseColor,
+  startActive,
+  endActive,
+  fade,
+}: {
+  id: string;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  baseColor: string;
+  startActive: boolean;
+  endActive: boolean;
+  fade: number;
+}) {
+  return (
+    <LinearGradient
+      id={id}
+      x1={x1}
+      y1={y1}
+      x2={x2}
+      y2={y2}
+      gradientUnits="userSpaceOnUse"
+    >
+      <Stop
+        offset="0%"
+        stopColor={startActive ? EDGE_CAUTION : baseColor}
+        stopOpacity={startActive ? 1 : 0}
+      />
+      <Stop offset={formatPercent(fade)} stopColor={EDGE_CAUTION} />
+      <Stop offset={formatPercent(1 - fade)} stopColor={EDGE_CAUTION} />
+      <Stop
+        offset="100%"
+        stopColor={endActive ? EDGE_CAUTION : baseColor}
+        stopOpacity={endActive ? 1 : 0}
+      />
+    </LinearGradient>
   );
 }
 
@@ -271,65 +608,137 @@ function FitFrameEdgeHighlights({
     return null;
   }
 
-  const color = colors.caution;
-  const inset = 4;
-  const verticalStart = rect.y + rect.rx;
-  const verticalEnd = rect.y + rect.height - rect.rx;
-  const horizontalStart = rect.x + rect.rx;
-  const horizontalEnd = rect.x + rect.width - rect.rx;
+  const strokeWidth = 3.2;
+  const opacity = 0.92;
 
   return (
     <>
       {flags.left ? (
-        <Line
-          x1={rect.x + inset}
-          y1={verticalStart}
-          x2={rect.x + inset}
-          y2={verticalEnd}
-          stroke={color}
-          strokeWidth={3}
+        <Path
+          d={edgePath(rect, 'left')}
+          stroke={`url(#${EDGE_GRADIENT_IDS.left})`}
+          strokeWidth={strokeWidth}
           strokeLinecap="round"
-          opacity={0.48}
+          strokeLinejoin="round"
+          fill="none"
+          opacity={opacity}
         />
       ) : null}
       {flags.right ? (
-        <Line
-          x1={rect.x + rect.width - inset}
-          y1={verticalStart}
-          x2={rect.x + rect.width - inset}
-          y2={verticalEnd}
-          stroke={color}
-          strokeWidth={3}
+        <Path
+          d={edgePath(rect, 'right')}
+          stroke={`url(#${EDGE_GRADIENT_IDS.right})`}
+          strokeWidth={strokeWidth}
           strokeLinecap="round"
-          opacity={0.48}
+          strokeLinejoin="round"
+          fill="none"
+          opacity={opacity}
         />
       ) : null}
       {flags.top ? (
-        <Line
-          x1={horizontalStart}
-          y1={rect.y + inset}
-          x2={horizontalEnd}
-          y2={rect.y + inset}
-          stroke={color}
-          strokeWidth={3}
+        <Path
+          d={edgePath(rect, 'top')}
+          stroke={`url(#${EDGE_GRADIENT_IDS.top})`}
+          strokeWidth={strokeWidth}
           strokeLinecap="round"
-          opacity={0.48}
+          strokeLinejoin="round"
+          fill="none"
+          opacity={opacity}
         />
       ) : null}
       {flags.bottom ? (
-        <Line
-          x1={horizontalStart}
-          y1={rect.y + rect.height - inset}
-          x2={horizontalEnd}
-          y2={rect.y + rect.height - inset}
-          stroke={color}
-          strokeWidth={3}
+        <Path
+          d={edgePath(rect, 'bottom')}
+          stroke={`url(#${EDGE_GRADIENT_IDS.bottom})`}
+          strokeWidth={strokeWidth}
           strokeLinecap="round"
-          opacity={0.48}
+          strokeLinejoin="round"
+          fill="none"
+          opacity={opacity}
         />
       ) : null}
     </>
   );
+}
+
+function edgePath(rect: FitFrameRect, edge: keyof FitFrameTraceEdgeFlags): string {
+  const x = rect.x;
+  const y = rect.y;
+  const w = rect.width;
+  const h = rect.height;
+  const r = resolvedCornerRadius(rect);
+  const k = Math.SQRT1_2;
+  const right = x + w;
+  const bottom = y + h;
+  const leftMidCorner = { x: x + r - r * k, y: y + r - r * k };
+  const rightTopMidCorner = { x: right - r + r * k, y: y + r - r * k };
+  const rightBottomMidCorner = { x: right - r + r * k, y: bottom - r + r * k };
+  const leftBottomMidCorner = { x: x + r - r * k, y: bottom - r + r * k };
+  switch (edge) {
+    case 'left':
+      return [
+        moveTo(leftMidCorner.x, leftMidCorner.y),
+        arcTo(r, x, y + r, 0),
+        lineTo(x, bottom - r),
+        arcTo(r, leftBottomMidCorner.x, leftBottomMidCorner.y, 0),
+      ].join('');
+    case 'right':
+      return [
+        moveTo(rightTopMidCorner.x, rightTopMidCorner.y),
+        arcTo(r, right, y + r, 1),
+        lineTo(right, bottom - r),
+        arcTo(r, rightBottomMidCorner.x, rightBottomMidCorner.y, 1),
+      ].join('');
+    case 'top':
+      return [
+        moveTo(leftMidCorner.x, leftMidCorner.y),
+        arcTo(r, x + r, y, 1),
+        lineTo(right - r, y),
+        arcTo(r, rightTopMidCorner.x, rightTopMidCorner.y, 1),
+      ].join('');
+    case 'bottom':
+    default:
+      return [
+        moveTo(leftBottomMidCorner.x, leftBottomMidCorner.y),
+        arcTo(r, x + r, bottom, 0),
+        lineTo(right - r, bottom),
+        arcTo(r, rightBottomMidCorner.x, rightBottomMidCorner.y, 0),
+      ].join('');
+  }
+}
+
+function resolvedCornerRadius(rect: FitFrameRect): number {
+  return Math.min(rect.rx, rect.width / 2, rect.height / 2);
+}
+
+function cornerFadeRatio(length: number, radius: number): number {
+  const span = Math.max(1, length - 2 * radius + 2 * radius * Math.SQRT1_2);
+  return Math.max(0.04, Math.min(0.28, (radius * Math.SQRT1_2) / span));
+}
+
+function edgeOverlayDepth(rect: FitFrameRect): number {
+  return Math.max(28, Math.min(76, Math.min(rect.width, rect.height) * 0.18));
+}
+
+function moveTo(x: number, y: number): string {
+  return `M${formatPathNumber(x)} ${formatPathNumber(y)}`;
+}
+
+function lineTo(x: number, y: number): string {
+  return `L${formatPathNumber(x)} ${formatPathNumber(y)}`;
+}
+
+function arcTo(radius: number, x: number, y: number, sweepFlag: 0 | 1): string {
+  const r = formatPathNumber(radius);
+  return `A${r} ${r} 0 0 ${sweepFlag} ${formatPathNumber(x)} ${formatPathNumber(y)}`;
+}
+
+function formatPathNumber(value: number): string {
+  return value.toFixed(1);
+}
+
+function formatPercent(value: number): string {
+  return `${(value * 100).toFixed(1)}%`;
 }
 
 function visualStyleForState(state: FitFramePoseTraceVisualState): {
@@ -341,9 +750,9 @@ function visualStyleForState(state: FitFramePoseTraceVisualState): {
     case 'ready':
       return { border: colors.accentDeep, borderWidth: 1.8, frameOpacity: 1 };
     case 'adjust':
-      return { border: colors.caution, borderWidth: 1.5, frameOpacity: 1 };
+      return { border: FRAME_BORDER, borderWidth: 1.25, frameOpacity: 1 };
     case 'tracking':
-      return { border: 'rgba(65,76,52,0.48)', borderWidth: 1.25, frameOpacity: 1 };
+      return { border: FRAME_BORDER, borderWidth: 1.25, frameOpacity: 1 };
     case 'lost':
     default:
       return { border: colors.border, borderWidth: 1.1, frameOpacity: 0.92 };
@@ -365,9 +774,11 @@ function clonePaths(paths: FitFramePoseTracePaths): FitFramePoseTracePaths {
   return {
     strongLinePath: paths.strongLinePath,
     faintLinePath: paths.faintLinePath,
+    ghostLinePath: paths.ghostLinePath,
     majorPointPath: paths.majorPointPath,
     minorPointPath: paths.minorPointPath,
     faintPointPath: paths.faintPointPath,
+    ghostPointPath: paths.ghostPointPath,
     lineCount: paths.lineCount,
     pointCount: paths.pointCount,
     averageConfidence: paths.averageConfidence,

@@ -1,6 +1,7 @@
 import { LANDMARK_COUNT, LM, createPoseFrame, type PoseFrame } from '../../pose/types';
 import {
   buildFitFramePoseTracePaths,
+  displayFitFrameTraceEdgeFlags,
   emptyFitFramePoseTracePaths,
   resolveFitFrameRect,
   type FitFrameRect,
@@ -24,7 +25,7 @@ describe('fit frame pose trace geometry', () => {
     expect(centerX(right.bounds!)).toBeGreaterThan(RECT.x + RECT.width * 0.5);
   });
 
-  it('preserves oversize/clipped coordinates at the frame edges', () => {
+  it('marks oversize coordinates at the frame edges', () => {
     const frame = makeStandingFrame(0.5);
     frame.ys[LM.NOSE] = -0.08;
     frame.ys[LM.LEFT_ANKLE] = 1.05;
@@ -35,8 +36,6 @@ describe('fit frame pose trace geometry', () => {
 
     expect(out.edgeFlags.top).toBe(true);
     expect(out.edgeFlags.bottom).toBe(true);
-    expect(out.bounds!.minY).toBeLessThan(RECT.y);
-    expect(out.bounds!.maxY).toBeGreaterThan(RECT.y + RECT.height);
   });
 
   it('fades low-confidence landmarks into faint paths', () => {
@@ -52,7 +51,51 @@ describe('fit frame pose trace geometry', () => {
     expect(out.faintPointPath).toContain('M');
   });
 
-  it('marks the lower edge when feet are not confidently visible', () => {
+  it('uses visual confidence for trace visibility', () => {
+    const frame = makeStandingFrame(0.5, 0.9);
+    const visualConfidence = new Float64Array(LANDMARK_COUNT);
+    const out = emptyFitFramePoseTracePaths();
+
+    buildFitFramePoseTracePaths(frame, RECT, {
+      sourceAspect: 3 / 4,
+      mirrored: false,
+      visualConfidence,
+    }, out);
+
+    expect(out.lineCount).toBe(0);
+    expect(out.pointCount).toBe(0);
+  });
+
+  it('can keep a raw low-confidence trace visible during visual fade-out', () => {
+    const frame = makeStandingFrame(0.5, 0.05);
+    const visualConfidence = new Float64Array(LANDMARK_COUNT);
+    visualConfidence.fill(0.4);
+    const out = emptyFitFramePoseTracePaths();
+
+    buildFitFramePoseTracePaths(frame, RECT, {
+      sourceAspect: 3 / 4,
+      mirrored: false,
+      visualConfidence,
+    }, out);
+
+    expect(out.lineCount).toBeGreaterThan(0);
+    expect(out.pointCount).toBeGreaterThan(0);
+    expect(out.faintLinePath).toContain('M');
+  });
+
+  it('fades landmarks near the camera edge into ghost paths before clipping', () => {
+    const frame = makeStandingFrame(0.5, 0.9);
+    frame.xs[LM.LEFT_WRIST] = 0.985;
+    const out = emptyFitFramePoseTracePaths();
+
+    buildFitFramePoseTracePaths(frame, RECT, { sourceAspect: 3 / 4, mirrored: false }, out);
+
+    expect(out.ghostLinePath).toContain('M');
+    expect(out.ghostPointPath).toContain('M');
+    expect(out.edgeFlags.right).toBe(true);
+  });
+
+  it('marks only the lower edge when feet are not confidently visible', () => {
     const frame = makeStandingFrame(0.5);
     frame.visibility[LM.LEFT_ANKLE] = 0.1;
     frame.presence[LM.LEFT_ANKLE] = 0.1;
@@ -63,6 +106,24 @@ describe('fit frame pose trace geometry', () => {
     buildFitFramePoseTracePaths(frame, RECT, { sourceAspect: 3 / 4, mirrored: false }, out);
 
     expect(out.edgeFlags.bottom).toBe(true);
+    expect(out.edgeFlags.top).toBe(false);
+    expect(out.edgeFlags.left).toBe(false);
+    expect(out.edgeFlags.right).toBe(false);
+  });
+
+  it('flips horizontal edge flags for mirrored display', () => {
+    expect(
+      displayFitFrameTraceEdgeFlags(
+        { left: true, right: false, top: false, bottom: true },
+        true
+      )
+    ).toEqual({ left: false, right: true, top: false, bottom: true });
+    expect(
+      displayFitFrameTraceEdgeFlags(
+        { left: true, right: false, top: true, bottom: false },
+        false
+      )
+    ).toEqual({ left: true, right: false, top: true, bottom: false });
   });
 
   it('resolves a camera-aspect fit frame inside the recording window', () => {
@@ -76,6 +137,29 @@ describe('fit frame pose trace geometry', () => {
     expect(rect.x).toBeGreaterThan(0);
     expect(rect.y).toBeGreaterThan(64);
     expect(rect.width / rect.height).toBeCloseTo(3 / 4, 3);
+  });
+
+  it('maps camera edges to the fit frame edges without internal padding', () => {
+    const rect = resolveFitFrameRect(390, 680, 3 / 4, {
+      left: 0,
+      top: 64,
+      width: 390,
+      height: 520,
+    });
+    const frame = makeCameraEdgeFrame();
+    const out = emptyFitFramePoseTracePaths();
+
+    buildFitFramePoseTracePaths(frame, rect, {
+      sourceAspect: 3 / 4,
+      mirrored: false,
+      edgeFadeMargin: 0,
+    }, out);
+
+    expect(out.bounds).not.toBeNull();
+    expect(out.bounds!.minX).toBeCloseTo(rect.x, 6);
+    expect(out.bounds!.maxX).toBeCloseTo(rect.x + rect.width, 6);
+    expect(out.bounds!.minY).toBeCloseTo(rect.y, 6);
+    expect(out.bounds!.maxY).toBeCloseTo(rect.y + rect.height, 6);
   });
 });
 
@@ -115,6 +199,15 @@ function setLandmark(frame: PoseFrame, lm: LM, x: number, y: number, confidence:
   frame.ys[lm] = y;
   frame.visibility[lm] = confidence;
   frame.presence[lm] = confidence;
+}
+
+function makeCameraEdgeFrame(): PoseFrame {
+  const frame = createPoseFrame();
+  frame.hasPose = true;
+  frame.timestampMs = 1000;
+  setLandmark(frame, LM.NOSE, 0, 0, 0.9);
+  setLandmark(frame, LM.RIGHT_FOOT_INDEX, 1, 1, 0.9);
+  return frame;
 }
 
 function centerX(bounds: { minX: number; maxX: number }): number {
