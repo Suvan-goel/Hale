@@ -11,7 +11,7 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
     "mpv2_checkup_intro": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_checkup_intro",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -19,12 +19,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/mpv2_checkup_intro.mp3",
-      "fingerprint": "mpv2-audio-v1-12xh36x"
+      "fingerprint": "mpv2-audio-v1-u9oey"
     },
     "mpv2_chair_practice_start": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_chair_practice_start",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -32,12 +32,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/mpv2_chair_practice_start.mp3",
-      "fingerprint": "mpv2-audio-v1-1umjr3l"
+      "fingerprint": "mpv2-audio-v1-a7zv2a"
     },
     "mpv2_chair_official_ready": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_chair_official_ready",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -45,12 +45,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/mpv2_chair_official_ready.mp3",
-      "fingerprint": "mpv2-audio-v1-1h3d49l"
+      "fingerprint": "mpv2-audio-v1-1adkhnd"
     },
     "mpv2_balance_attempt_start": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_balance_attempt_start",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -58,12 +58,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/mpv2_balance_attempt_start.mp3",
-      "fingerprint": "mpv2-audio-v1-pn9uln"
+      "fingerprint": "mpv2-audio-v1-1f38swt"
     },
     "mpv2_balance_attempt_saved": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_balance_attempt_saved",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -71,12 +71,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/mpv2_balance_attempt_saved.mp3",
-      "fingerprint": "mpv2-audio-v1-lfskek"
+      "fingerprint": "mpv2-audio-v1-a3uph7"
     },
     "mpv2_balance_rest": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_balance_rest",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -84,12 +84,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/mpv2_balance_rest.mp3",
-      "fingerprint": "mpv2-audio-v1-11lwvah"
+      "fingerprint": "mpv2-audio-v1-18jydc7"
     },
     "mpv2_balance_ready_after_30": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_balance_ready_after_30",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -97,12 +97,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/mpv2_balance_ready_after_30.mp3",
-      "fingerprint": "mpv2-audio-v1-1w3mvvg"
+      "fingerprint": "mpv2-audio-v1-1bqpenm"
     },
     "mpv2_balance_ready_after_60": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_balance_ready_after_60",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -110,12 +110,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/mpv2_balance_ready_after_60.mp3",
-      "fingerprint": "mpv2-audio-v1-1w5s56d"
+      "fingerprint": "mpv2-audio-v1-zwua43"
     },
     "mpv2_balance_use_best": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_balance_use_best",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -123,12 +123,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/mpv2_balance_use_best.mp3",
-      "fingerprint": "mpv2-audio-v1-4kdtlt"
+      "fingerprint": "mpv2-audio-v1-ua85ev"
     },
     "mpv2_balance_tracking_retry": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_balance_tracking_retry",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -136,12 +136,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/mpv2_balance_tracking_retry.mp3",
-      "fingerprint": "mpv2-audio-v1-2sr6xy"
+      "fingerprint": "mpv2-audio-v1-w8g84n"
     },
     "mpv2_balance_full_hold": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_balance_full_hold",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -149,12 +149,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/mpv2_balance_full_hold.mp3",
-      "fingerprint": "mpv2-audio-v1-1d0kze8"
+      "fingerprint": "mpv2-audio-v1-z4537v"
     },
     "mpv2_balance_complete": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_balance_complete",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -162,12 +162,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/mpv2_balance_complete.mp3",
-      "fingerprint": "mpv2-audio-v1-1n804rs"
+      "fingerprint": "mpv2-audio-v1-1ym8bba"
     },
     "mpv2_shoulder_tracking_retry": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_shoulder_tracking_retry",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -175,12 +175,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/mpv2_shoulder_tracking_retry.mp3",
-      "fingerprint": "mpv2-audio-v1-cm4npf"
+      "fingerprint": "mpv2-audio-v1-cqtk23"
     },
     "mpv2_hinge_complete": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_hinge_complete",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -188,12 +188,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/mpv2_hinge_complete.mp3",
-      "fingerprint": "mpv2-audio-v1-5bc5cb"
+      "fingerprint": "mpv2-audio-v1-j8lsya"
     },
     "mpv2_hinge_no_measurement": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_hinge_no_measurement",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -201,12 +201,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/mpv2_hinge_no_measurement.mp3",
-      "fingerprint": "mpv2-audio-v1-1q5nhzm"
+      "fingerprint": "mpv2-audio-v1-1adljb5"
     },
     "final-position-set-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "final-position-set-v21",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -214,12 +214,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/final-position-set-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-zc8j3v"
+      "fingerprint": "mpv2-audio-v1-183o596"
     },
     "tracking-loss-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "tracking-loss-v21",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -227,12 +227,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/tracking-loss-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-g34piu"
+      "fingerprint": "mpv2-audio-v1-1iidjaz"
     },
     "tracking-recovered-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "tracking-recovered-v21",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -240,12 +240,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/tracking-recovered-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-1vtc2gg"
+      "fingerprint": "mpv2-audio-v1-noz608"
     },
     "retry-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "retry-v21",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -253,12 +253,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/retry-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-h4006g"
+      "fingerprint": "mpv2-audio-v1-77krhg"
     },
     "times-up-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "times-up-v21",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -266,12 +266,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/times-up-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-1lkhf72"
+      "fingerprint": "mpv2-audio-v1-qxo2gy"
     },
     "checkup-complete-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "checkup-complete-v21",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -279,12 +279,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/checkup-complete-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-11b02dr"
+      "fingerprint": "mpv2-audio-v1-1pw895c"
     },
     "item-complete-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "item-complete-v21",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -292,12 +292,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/item-complete-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-gslyin"
+      "fingerprint": "mpv2-audio-v1-1enptw9"
     },
     "checkup-chair-stand-intro-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "checkup-chair-stand-intro-v21",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -305,12 +305,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/checkup-chair-stand-intro-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-1tox0td"
+      "fingerprint": "mpv2-audio-v1-1v3girt"
     },
     "checkup-chair-stand-setup-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "checkup-chair-stand-setup-v21",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -318,12 +318,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/checkup-chair-stand-setup-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-upjn4i"
+      "fingerprint": "mpv2-audio-v1-m5q3bf"
     },
     "checkup-balance-intro-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "checkup-balance-intro-v21",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -331,12 +331,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/checkup-balance-intro-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-t4q3t2"
+      "fingerprint": "mpv2-audio-v1-16j7rls"
     },
     "checkup-balance-single-leg-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "checkup-balance-single-leg-v21",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -344,12 +344,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/checkup-balance-single-leg-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-ixry67"
+      "fingerprint": "mpv2-audio-v1-1uwqzm0"
     },
     "checkup-shoulder-turn-left-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "checkup-shoulder-turn-left-v21",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -357,12 +357,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/checkup-shoulder-turn-left-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-179sixk"
+      "fingerprint": "mpv2-audio-v1-jcyxil"
     },
     "checkup-shoulder-turn-right-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "checkup-shoulder-turn-right-v21",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -370,12 +370,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/checkup-shoulder-turn-right-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-103gnk6"
+      "fingerprint": "mpv2-audio-v1-j9813"
     },
     "checkup-shoulder-raise-left-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "checkup-shoulder-raise-left-v21",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -383,12 +383,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/checkup-shoulder-raise-left-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-ivkde1"
+      "fingerprint": "mpv2-audio-v1-154f7qk"
     },
     "checkup-shoulder-raise-right-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "checkup-shoulder-raise-right-v21",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -396,12 +396,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/checkup-shoulder-raise-right-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-1d4y0pt"
+      "fingerprint": "mpv2-audio-v1-1c4c05g"
     },
     "checkup-hinge-setup-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "checkup-hinge-setup-v21",
       "voiceId": "clara",
       "provider": "elevenlabs",
@@ -409,14 +409,14 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/checkup-hinge-setup-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-6clcai"
+      "fingerprint": "mpv2-audio-v1-14s70lp"
     }
   },
   "marcus": {
     "mpv2_checkup_intro": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_checkup_intro",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -424,12 +424,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/mpv2_checkup_intro.mp3",
-      "fingerprint": "mpv2-audio-v1-5vkvlv"
+      "fingerprint": "mpv2-audio-v1-1d7lr8m"
     },
     "mpv2_chair_practice_start": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_chair_practice_start",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -437,12 +437,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/mpv2_chair_practice_start.mp3",
-      "fingerprint": "mpv2-audio-v1-1da2s63"
+      "fingerprint": "mpv2-audio-v1-zu0cta"
     },
     "mpv2_chair_official_ready": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_chair_official_ready",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -450,12 +450,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/mpv2_chair_official_ready.mp3",
-      "fingerprint": "mpv2-audio-v1-4eww6r"
+      "fingerprint": "mpv2-audio-v1-wc9tgz"
     },
     "mpv2_balance_attempt_start": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_balance_attempt_start",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -463,12 +463,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/mpv2_balance_attempt_start.mp3",
-      "fingerprint": "mpv2-audio-v1-1d2pmqh"
+      "fingerprint": "mpv2-audio-v1-15qggvj"
     },
     "mpv2_balance_attempt_saved": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_balance_attempt_saved",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -476,12 +476,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/mpv2_balance_attempt_saved.mp3",
-      "fingerprint": "mpv2-audio-v1-1qnwzxg"
+      "fingerprint": "mpv2-audio-v1-1i1ar3d"
     },
     "mpv2_balance_rest": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_balance_rest",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -489,12 +489,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/mpv2_balance_rest.mp3",
-      "fingerprint": "mpv2-audio-v1-15p4v7n"
+      "fingerprint": "mpv2-audio-v1-y06j1"
     },
     "mpv2_balance_ready_after_30": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_balance_ready_after_30",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -502,12 +502,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/mpv2_balance_ready_after_30.mp3",
-      "fingerprint": "mpv2-audio-v1-1o5djuc"
+      "fingerprint": "mpv2-audio-v1-p5trny"
     },
     "mpv2_balance_ready_after_60": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_balance_ready_after_60",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -515,12 +515,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/mpv2_balance_ready_after_60.mp3",
-      "fingerprint": "mpv2-audio-v1-j9ohtj"
+      "fingerprint": "mpv2-audio-v1-u6z0nl"
     },
     "mpv2_balance_use_best": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_balance_use_best",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -528,12 +528,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/mpv2_balance_use_best.mp3",
-      "fingerprint": "mpv2-audio-v1-1ipj4ln"
+      "fingerprint": "mpv2-audio-v1-3d8ajx"
     },
     "mpv2_balance_tracking_retry": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_balance_tracking_retry",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -541,12 +541,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/mpv2_balance_tracking_retry.mp3",
-      "fingerprint": "mpv2-audio-v1-1wsmiay"
+      "fingerprint": "mpv2-audio-v1-1t5yzl9"
     },
     "mpv2_balance_full_hold": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_balance_full_hold",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -554,12 +554,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/mpv2_balance_full_hold.mp3",
-      "fingerprint": "mpv2-audio-v1-1tog468"
+      "fingerprint": "mpv2-audio-v1-1jx02ih"
     },
     "mpv2_balance_complete": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_balance_complete",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -567,12 +567,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/mpv2_balance_complete.mp3",
-      "fingerprint": "mpv2-audio-v1-1mfoo94"
+      "fingerprint": "mpv2-audio-v1-14a4fwq"
     },
     "mpv2_shoulder_tracking_retry": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_shoulder_tracking_retry",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -580,12 +580,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/mpv2_shoulder_tracking_retry.mp3",
-      "fingerprint": "mpv2-audio-v1-4dvrz5"
+      "fingerprint": "mpv2-audio-v1-e0zg9"
     },
     "mpv2_hinge_complete": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_hinge_complete",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -593,12 +593,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/mpv2_hinge_complete.mp3",
-      "fingerprint": "mpv2-audio-v1-f6i33t"
+      "fingerprint": "mpv2-audio-v1-1bnmcry"
     },
     "mpv2_hinge_no_measurement": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "mpv2_hinge_no_measurement",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -606,12 +606,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/mpv2_hinge_no_measurement.mp3",
-      "fingerprint": "mpv2-audio-v1-c248q6"
+      "fingerprint": "mpv2-audio-v1-3mxiaz"
     },
     "final-position-set-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "final-position-set-v21",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -619,12 +619,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/final-position-set-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-f589rd"
+      "fingerprint": "mpv2-audio-v1-1m5slt2"
     },
     "tracking-loss-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "tracking-loss-v21",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -632,12 +632,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/tracking-loss-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-1kdzji2"
+      "fingerprint": "mpv2-audio-v1-db4so9"
     },
     "tracking-recovered-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "tracking-recovered-v21",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -645,12 +645,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/tracking-recovered-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-15anlr4"
+      "fingerprint": "mpv2-audio-v1-hniitk"
     },
     "retry-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "retry-v21",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -658,12 +658,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/retry-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-1d9wa2w"
+      "fingerprint": "mpv2-audio-v1-1bvmdvw"
     },
     "times-up-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "times-up-v21",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -671,12 +671,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/times-up-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-1g2p0v6"
+      "fingerprint": "mpv2-audio-v1-1msu3by"
     },
     "checkup-complete-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "checkup-complete-v21",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -684,12 +684,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/checkup-complete-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-q50bj9"
+      "fingerprint": "mpv2-audio-v1-1hchpvk"
     },
     "item-complete-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "item-complete-v21",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -697,12 +697,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/item-complete-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-mcyz9"
+      "fingerprint": "mpv2-audio-v1-1yhpe7n"
     },
     "checkup-chair-stand-intro-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "checkup-chair-stand-intro-v21",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -710,12 +710,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/checkup-chair-stand-intro-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-1yxgsln"
+      "fingerprint": "mpv2-audio-v1-4yrz8j"
     },
     "checkup-chair-stand-setup-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "checkup-chair-stand-setup-v21",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -723,12 +723,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/checkup-chair-stand-setup-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-1ha3k1a"
+      "fingerprint": "mpv2-audio-v1-1t3tp89"
     },
     "checkup-balance-intro-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "checkup-balance-intro-v21",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -736,12 +736,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/checkup-balance-intro-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-1d3bc3u"
+      "fingerprint": "mpv2-audio-v1-ya9cmo"
     },
     "checkup-balance-single-leg-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "checkup-balance-single-leg-v21",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -749,12 +749,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/checkup-balance-single-leg-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-1txq5p1"
+      "fingerprint": "mpv2-audio-v1-yak63s"
     },
     "checkup-shoulder-turn-left-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "checkup-shoulder-turn-left-v21",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -762,12 +762,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/checkup-shoulder-turn-left-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-egouwo"
+      "fingerprint": "mpv2-audio-v1-1wdxx8f"
     },
     "checkup-shoulder-turn-right-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "checkup-shoulder-turn-right-v21",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -775,12 +775,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/checkup-shoulder-turn-right-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-1e8kakq"
+      "fingerprint": "mpv2-audio-v1-1i6tw4t"
     },
     "checkup-shoulder-raise-left-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "checkup-shoulder-raise-left-v21",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -788,12 +788,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/checkup-shoulder-raise-left-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-1788nkz"
+      "fingerprint": "mpv2-audio-v1-1gyug78"
     },
     "checkup-shoulder-raise-right-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "checkup-shoulder-raise-right-v21",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -801,12 +801,12 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/checkup-shoulder-raise-right-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-1a24umj"
+      "fingerprint": "mpv2-audio-v1-s4fxf0"
     },
     "checkup-hinge-setup-v21": {
       "schemaVersion": 1,
       "cueSchemaVersion": 1,
-      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1c4174p",
+      "cuePolicyFingerprint": "mpv2-cue-policy-v1-1k0cq5m",
       "cueId": "checkup-hinge-setup-v21",
       "voiceId": "marcus",
       "provider": "elevenlabs",
@@ -814,7 +814,7 @@ export const MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA: MovementProfileV2AudioMet
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/checkup-hinge-setup-v21.mp3",
-      "fingerprint": "mpv2-audio-v1-12ny6rq"
+      "fingerprint": "mpv2-audio-v1-udxli7"
     }
   }
 };
