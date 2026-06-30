@@ -89,7 +89,11 @@ describe('canonical instruction profiles', () => {
       'checkup-shoulder-turn-left-v21',
       'checkup-shoulder-raise-left-v21',
     ]);
-    expect(movementProfileV2InstructionTextForStage('hinge_setup')).toMatch(/reach toward the floor/i);
+    expect(movementProfileV2InstructionCueIdsForStage({ stage: 'hinge_setup' })).toEqual([
+      'checkup-hinge-setup-v21',
+      'hinge-setup',
+    ]);
+    expect(movementProfileV2InstructionTextForStage('hinge_setup')).toMatch(/reach your hands toward the floor/i);
   });
 
   it('covers the three micro-check types with side-specific help cues where needed', () => {

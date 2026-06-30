@@ -730,17 +730,12 @@ function baseVoicePlanForSnapshot(
         'mpv2_shoulder_tracking_retry',
       ]), [{ type: 'shoulder_setup_voice_completed' }]);
     case 'hinge_setup':
-      return plan(scopeId, 'blocking_prerequisite', cuesForCurrentTransition(snapshot, [
-        'item-complete-v21',
-        'checkup-hinge-setup-v21',
-        'final-position-set-v21',
-      ]), [{ type: 'hinge_setup_voice_completed' }]);
+      return plan(scopeId, 'blocking_prerequisite', cuesForHingeSetup(snapshot), [
+        { type: 'hinge_setup_voice_completed' },
+      ]);
     case 'raw_complete':
       return {
-        ...plan(scopeId, 'blocking_transition', cuesForCurrentTransition(snapshot, [
-          snapshot.diagnostics.hinge.captureValid ? 'mpv2_hinge_complete' : 'mpv2_hinge_no_measurement',
-          'checkup-complete-v21',
-        ])),
+        ...plan(scopeId, 'blocking_transition', cuesForRawComplete(snapshot)),
         marksCompletionReady: true,
       };
     default:
@@ -753,7 +748,7 @@ function baseCuesAfterRecovery(
   episode: Mpv2RecoveryEpisode
 ): readonly VoiceCueKey[] {
   if (episode.item === 'balance' || episode.item === 'shoulder') return [];
-  if (episode.item === 'hinge') return ['final-position-set-v21'];
+  if (episode.item === 'hinge') return ['hinge-setup'];
   return baseCues;
 }
 
@@ -800,6 +795,34 @@ function priorityForCues(cues: readonly VoiceCueKey[]): number {
     if (isMovementProfileV2Cue(cue)) return movementProfileV2CueDefinition(cue).priority;
     return voicePriority(cue);
   }), 0);
+}
+
+function cuesForHingeSetup(snapshot: MovementProfileV2LiveSnapshot): readonly VoiceCueKey[] {
+  const cues = cuesForCurrentTransition(snapshot, [
+    'item-complete-v21',
+    'checkup-hinge-setup-v21',
+  ]);
+  const transition = snapshot.lastTransition;
+  if (!transition || transition.to !== 'hinge_setup' || !transition.from.startsWith('shoulder_')) {
+    return appendVoiceCue(cues.filter((cue) => cue !== 'final-position-set-v21'), 'hinge-setup');
+  }
+  return appendVoiceCue([
+    'relax-arm',
+    ...cues.filter((cue) => cue !== 'item-complete-v21' && cue !== 'final-position-set-v21'),
+  ], 'hinge-setup');
+}
+
+function appendVoiceCue(cues: readonly VoiceCueKey[], cue: VoiceCueKey): readonly VoiceCueKey[] {
+  return cues.includes(cue) ? cues : [...cues, cue];
+}
+
+function cuesForRawComplete(snapshot: MovementProfileV2LiveSnapshot): readonly VoiceCueKey[] {
+  const cues = cuesForCurrentTransition(snapshot, [
+    snapshot.diagnostics.hinge.captureValid ? 'mpv2_hinge_complete' : 'mpv2_hinge_no_measurement',
+    'checkup-complete-v21',
+  ]);
+  if (!snapshot.diagnostics.hinge.captureValid) return cues;
+  return ['stand-tall', ...cues.filter((cue) => cue !== 'mpv2_hinge_complete')];
 }
 
 function cuesForCurrentTransition(

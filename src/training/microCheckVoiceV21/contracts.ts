@@ -14,7 +14,7 @@ export const MICRO_CHECK_VOICE_TYPES_V21: readonly MicroCheckTypeV21[] = [
 ] as const;
 
 export const MICRO_CHECK_VOICE_SHARED_LOGICAL_CUES_V21 = [
-  cue('final-position-set-v21', "You're set.", 'final_position', 'setup_recovery', true),
+  cue('final-position-set-v21', 'Good. Hold that position until I tell you what to do next.', 'final_position', 'setup_recovery', true),
   cue('countdown-three', 'Three.', 'countdown', 'critical_window', true),
   cue('countdown-two', 'Two.', 'countdown', 'critical_window', true),
   cue('countdown-one', 'One.', 'countdown', 'critical_window', true),
@@ -23,10 +23,10 @@ export const MICRO_CHECK_VOICE_SHARED_LOGICAL_CUES_V21 = [
   cue('micro-relax-v21', 'Relax.', 'active_stop', 'critical_stop', true),
   cue('paused-v21', 'Paused.', 'control', 'result_transition', true),
   cue('resuming-v21', 'Resuming.', 'control', 'result_transition', true),
-  cue('retry-v21', "Let's try that again.", 'control', 'result_transition', true),
+  cue('retry-v21', "That's okay. We'll try that part again. Take a moment, then follow my voice.", 'control', 'result_transition', true),
   cue('micro-discard-v21', 'Check discarded.', 'control', 'result_transition', true),
-  cue('tracking-loss-v21', 'Pause. Return to the setup position.', 'recovery', 'critical_stop', true),
-  cue('tracking-recovered-v21', "You're back in position. We'll restart.", 'recovery', 'setup_recovery', true),
+  cue('tracking-loss-v21', "Pause there. I've lost sight of you, so this part needs to start again. Come back into view and wait for my next instruction.", 'recovery', 'critical_stop', true),
+  cue('tracking-recovered-v21', "Good, I can see you again. Stay there and wait. I'll guide you from here.", 'recovery', 'setup_recovery', true),
   cue('microcheck-complete-v21', 'Check complete.', 'completion', 'result_transition', true),
 ] as const satisfies readonly MicroCheckVoiceLogicalCueV21[];
 

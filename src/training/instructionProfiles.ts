@@ -81,10 +81,11 @@ const CHECKUP_PROFILES = Object.freeze([
     firstCueIds: ['checkup-chair-stand-intro-v21', 'checkup-chair-stand-setup-v21'],
     repeatCueIds: ['checkup-chair-stand-setup-v21'],
     firstText:
-      'Chair stand. Sit in the middle of a sturdy chair, side-on to the phone. Cross your arms, stand fully, then sit with control until I say time.',
-    repeatText: 'Chair stand again. Stand fully, then sit with control until I say time.',
-    setup: 'Sit side-on in a sturdy chair with feet flat.',
-    execution: 'Cross your arms. Stand fully, then sit with control.',
+      "We'll start with the chair stand. Place a sturdy chair so your side faces the phone, and make sure the camera can see your whole body and the chair. Then sit in the middle of the chair with both feet flat on the floor. We'll begin once you're seated. Cross your arms over your chest. When I say go, stand all the way up, then sit back down with control. Keep going until I say stop.",
+    repeatText:
+      'Chair stand again. Cross your arms over your chest. Stand all the way up, then sit back down with control until I say stop.',
+    setup: 'Sit in a sturdy chair with your side facing the phone and both feet flat.',
+    execution: 'Cross your arms. Stand all the way up, then sit back down with control.',
     safetyCueIds: ['chair_use_sturdy_chair'],
   }),
   checkupProfile({
@@ -93,11 +94,11 @@ const CHECKUP_PROFILES = Object.freeze([
     firstCueIds: ['checkup-balance-intro-v21', 'checkup-balance-single-leg-v21'],
     repeatCueIds: ['mpv2_balance_attempt_start'],
     firstText:
-      'Balance check. Keep support within easy reach. Stand tall with both feet on the floor until Hale is ready to start.',
+      "Next is your balance check. Stand facing the phone, with your whole body in view from head to feet. Keep a counter, wall, or sturdy chair close enough that you can touch it if you need to. Start with both feet flat on the floor. Choose the leg that feels safest to stand on today, but keep both feet down for now. We'll begin once you're standing still.",
     repeatText:
-      "Balance again. When you're ready, stand on your selected leg, bend your other knee, and keep the lifted foot clear of the floor.",
-    setup: 'Stand near support with both feet on the floor.',
-    execution: 'Bend the other knee, keep the lifted foot clear of the floor, and hold steady.',
+      "Balance again. Keep your support close. When you're ready, lift your foot high off the floor. The timer starts when I see your foot lift.",
+    setup: 'Stand facing the phone near support, with your whole body in view and both feet on the floor.',
+    execution: 'Lift your foot high when prompted, hold steady, and put your foot down whenever you need to.',
     safetyCueIds: ['balance_support_within_reach'],
   }),
   checkupProfile({
@@ -106,22 +107,24 @@ const CHECKUP_PROFILES = Object.freeze([
     firstCueIds: ['checkup-shoulder-turn-right-v21', 'checkup-shoulder-raise-right-v21'],
     repeatCueIds: ['checkup-shoulder-raise-right-v21'],
     firstText:
-      'Shoulder reach. Turn side-on to the phone. Raise the arm closest to the phone as high as comfortable and hold there until I say relax.',
-    repeatText: 'Shoulder reach again. Raise the arm closest to the phone as high as comfortable.',
-    setup: 'Turn side-on to the phone.',
-    execution: 'Raise the nearest arm as high as comfortable.',
+      "Next is your shoulder reach check. I'll ask you to turn so the phone can see one side of your body. Make sure the camera can see your raised hand, shoulder, and hip. Move only when I tell you which side to face, and keep the movement comfortable. Turn so your selected side is closest to the phone. Keep your feet still, stand tall, and let your arms rest by your sides. Now raise your selected arm straight forward and up, as high as feels comfortable. Do not push into pain. Hold it there until I tell you to relax.",
+    repeatText:
+      'Shoulder reach again. Raise your selected arm straight forward and up, as high as feels comfortable. Do not push into pain.',
+    setup: 'Turn so your selected side is closest to the phone, with feet still and arms by your sides.',
+    execution: 'Raise your selected arm straight forward and up within a comfortable range.',
     safetyCueIds: ['comfortable_range_only'],
   }),
   checkupProfile({
     protocolId: HINGE_REACH_ID,
     displayName: 'Hinge Reach',
-    firstCueIds: ['checkup-hinge-setup-v21'],
-    repeatCueIds: ['checkup-hinge-setup-v21'],
+    firstCueIds: ['checkup-hinge-setup-v21', 'hinge-setup'],
+    repeatCueIds: ['hinge-setup'],
     firstText:
-      'Hinge reach. Stand side-on, fold from your hips, and reach toward the floor. Hold there until I say stand tall.',
-    repeatText: 'Hinge reach again. Fold from your hips and reach toward the floor.',
-    setup: 'Stand side-on with feet under your hips.',
-    execution: 'Fold from your hips and reach toward the floor.',
+      "Last is your forward reach check. Stay side-on to the phone, with your feet about hip-width apart. Make sure the camera can see from your shoulders down to your feet, including your hands. Stand tall and let your arms hang comfortably. Move slowly, and only go as far as feels comfortable. When you're ready, fold forward from your hips and reach your hands toward the floor. Hold there until I tell you to stand tall.",
+    repeatText:
+      "Stand tall and let your arms hang comfortably. Move slowly, and only go as far as feels comfortable. When you're ready, fold forward from your hips and reach your hands toward the floor. Hold there until I tell you to stand tall.",
+    setup: 'Stand side-on with feet about hip-width apart, hands and feet in view.',
+    execution: 'Fold forward from your hips, reach your hands toward the floor, and hold until told to stand tall.',
     safetyCueIds: ['comfortable_range_only'],
   }),
 ] as const);

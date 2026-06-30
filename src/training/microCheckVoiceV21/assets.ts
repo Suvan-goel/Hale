@@ -22,15 +22,15 @@ interface PhysicalCandidate {
 }
 
 const EXACT_EXISTING_PHYSICAL_CANDIDATES: Readonly<Record<string, PhysicalCandidate>> = {
-  'final-position-set-v21': exact('final-position-set-v21', "You're set."),
+  'final-position-set-v21': exact('final-position-set-v21', 'Good. Hold that position until I tell you what to do next.'),
   'countdown-three': exact('countdown-three', 'Three.'),
   'countdown-two': exact('countdown-two', 'Two.'),
   'countdown-one': exact('countdown-one', 'One.'),
   go: exact('go', 'Go!'),
   'times-up-v21': exact('times-up-v21', 'Time.'),
-  'tracking-loss-v21': exact('tracking-loss-v21', 'Pause. Return to the setup position.'),
-  'tracking-recovered-v21': exact('tracking-recovered-v21', "You're back in position. We'll restart."),
-  'retry-v21': exact('retry-v21', "Let's try that again."),
+  'tracking-loss-v21': exact('tracking-loss-v21', "Pause there. I've lost sight of you, so this part needs to start again. Come back into view and wait for my next instruction."),
+  'tracking-recovered-v21': exact('tracking-recovered-v21', "Good, I can see you again. Stay there and wait. I'll guide you from here."),
+  'retry-v21': exact('retry-v21', "That's okay. We'll try that part again. Take a moment, then follow my voice."),
 };
 
 const MISMATCH_PHYSICAL_CANDIDATES: Readonly<Record<string, PhysicalCandidate>> = {
@@ -54,7 +54,10 @@ const MISMATCH_PHYSICAL_CANDIDATES: Readonly<Record<string, PhysicalCandidate>> 
     'hinge-setup',
     'Bend forward from the hips and reach toward the floor. Go only as far as comfortable.'
   ),
-  'micro-relax-v21': mismatch('relax-arm', 'Lovely. Lower your arm and relax.'),
+  'micro-relax-v21': mismatch(
+    'relax-arm',
+    "Relax your arm now. Shoulder reach saved. We'll move on to the final movement."
+  ),
   'microcheck-complete-v21': mismatch('microcheck-complete', "Got it - that's logged. Nice work."),
 };
 

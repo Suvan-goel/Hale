@@ -350,7 +350,7 @@ describe('MovementProfileV2LiveCoordinator', () => {
     let snapshot = coordinator.snapshot(nowMs + 1400);
     expect(snapshot.stage).toBe('balance_ready');
     expect(snapshot.flow.standingLeg).toBe('left');
-    expect(snapshot.statusText).toBe("Lift your other foot when you're ready. The timer starts when Hale sees the lift.");
+    expect(snapshot.statusText).toBe("Lift your foot high when you're ready. The timer starts when Hale sees the lift.");
     expect(snapshot.balanceTimerKind).toBe('none');
     expect(snapshot.timerRemainingMs).toBeNull();
 
@@ -507,12 +507,15 @@ describe('MovementProfileV2LiveCoordinator', () => {
   it('clears the active balance timer and shows rest after a valid 20-second touchdown', () => {
     const coordinator = createCoordinator();
     let nowMs = advanceThroughChair(coordinator, 0) + 100;
-    const trialStartedAtMs = startBalanceTrial(coordinator, nowMs, 'left');
+    const trialReadyFrameMs = startBalanceTrial(coordinator, nowMs, 'left');
+    const trialStartedAtMs = coordinator.snapshot(trialReadyFrameMs).lastTransition?.atMs;
+    if (typeof trialStartedAtMs !== 'number') throw new Error('expected balance trial transition');
     const staleTrialDeadlineMs = trialStartedAtMs + 45000;
 
-    nowMs = finishBalanceByTouchdownAfter(coordinator, trialStartedAtMs, 'left', 20000);
+    nowMs = finishBalanceByTouchdownAt(coordinator, trialStartedAtMs, 'left', trialStartedAtMs + 20000);
     let snapshot = coordinator.snapshot(nowMs);
     expect(snapshot.stage).toBe('balance_rest');
+    expect(snapshot.balanceBestHoldSec).toBeCloseTo(20, 6);
     expect(snapshot.statusText).toBe('Rest before the next attempt. The minimum rest cannot be skipped.');
     expect(snapshot.balanceTimerKind).toBe('rest');
     expect(snapshot.timerRemainingMs).toBeNull();
@@ -1163,6 +1166,22 @@ function finishBalanceByTouchdownAfter(
   for (let index = 1; index <= 4; index++) {
     nowMs += 33;
     feedOutput(coordinator, trackingOutput(balanceRaw(nowMs, standingLeg, false)), nowMs);
+  }
+  expect(coordinator.snapshot(nowMs).stage).toBe(expectedStage);
+  return nowMs;
+}
+
+function finishBalanceByTouchdownAt(
+  coordinator: MovementProfileV2LiveCoordinator,
+  trialStartedAtMs: number,
+  standingLeg: BodySide,
+  touchdownAtMs: number,
+  expectedStage: 'balance_rest' | 'shoulder_setup' = 'balance_rest'
+): number {
+  let nowMs = Math.max(trialStartedAtMs, touchdownAtMs);
+  for (let index = 0; index < 4; index++) {
+    feedOutput(coordinator, trackingOutput(balanceRaw(nowMs, standingLeg, false)), nowMs);
+    if (index < 3) nowMs += 33;
   }
   expect(coordinator.snapshot(nowMs).stage).toBe(expectedStage);
   return nowMs;

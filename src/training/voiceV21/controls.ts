@@ -64,7 +64,7 @@ export const TRAINING_VOICE_CONTROL_CONTRACTS_V21: readonly TrainingVoiceControl
     contract({
       control: 'retry',
       logicalCueKey: 'retry-v21',
-      exactScript: "Let's try that again.",
+      exactScript: "That's okay. We'll try that part again. Take a moment, then follow my voice.",
       allowedPhases: ['audio_failure', 'tracking_recovery', 'reactive_safety_stop', 'paused', 'item_setup'],
       actionSemantics:
         'Create one fresh control transaction and fresh attempt where required; preserve already accepted work and discard partial current work.',

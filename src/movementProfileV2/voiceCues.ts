@@ -68,37 +68,37 @@ export interface MovementProfileV2CueEvent {
 }
 
 export const MOVEMENT_PROFILE_V2_CUE_DEFINITIONS: readonly MovementProfileV2CueDefinition[] = [
-  definition('mpv2_checkup_intro', 'Movement Profile Check-Up. I will guide each capture and save what the camera can measure.', 'intro', 60, 'stage_3d_b_2e_a_1_fallback'),
-  definition('mpv2_chair_practice_start', 'Try one practice stand. This one will not count.', 'setup', 60, 'stage_3d_b_2e_a_1_fallback'),
-  definition('mpv2_chair_official_ready', 'Sit back down. The 30-second check starts after the countdown.', 'countdown_lead_in', 90, 'stage_3d_b_2e_a_1_fallback'),
-  definition('mpv2_balance_attempt_start', "When you're ready, stand on your selected leg, bend your other knee, and keep the lifted foot clear of the floor. This attempt can last up to 45 seconds.", 'active_transition', 60, 'stage_3d_b_2e_a_1_fallback'),
-  definition('mpv2_balance_attempt_saved', 'That attempt is saved.', 'completion', 70, 'stage_3d_b_2e_a_1_fallback'),
-  definition('mpv2_balance_rest', 'Rest now. You can start again after 30 seconds, or use your best result.', 'rest', 70, 'stage_3d_b_2e_a_1_fallback'),
-  definition('mpv2_balance_ready_after_30', "You can start the next attempt when you're ready.", 'ready', 70, 'stage_3d_b_2e_a_1_fallback'),
-  definition('mpv2_balance_ready_after_60', "You're ready for the next attempt.", 'ready', 70, 'stage_3d_b_2e_a_1_fallback'),
-  definition('mpv2_balance_use_best', 'Your best hold is saved.', 'completion', 70, 'stage_3d_b_2e_a_1_fallback'),
-  definition('mpv2_balance_tracking_retry', "Tracking was interrupted, so this attempt will not count. Return to the setup position and we'll try again.", 'recovery', 100, 'stage_3d_b_2e_a_1_fallback'),
-  definition('mpv2_balance_full_hold', 'You completed the full 45-second hold.', 'completion', 70, 'stage_3d_b_2e_a_1_fallback'),
-  definition('mpv2_balance_complete', 'Balance check complete.', 'completion', 70, 'stage_3d_b_2e_a_1_fallback'),
-  definition('mpv2_shoulder_tracking_retry', "Tracking was interrupted. Lower your arm, return to the setup position, and we'll try once more.", 'recovery', 100, 'stage_3d_b_2e_a_1_fallback'),
-  definition('mpv2_hinge_complete', 'Forward reach saved.', 'completion', 70, 'stage_3d_b_2e_a_1_fallback'),
-  definition('mpv2_hinge_no_measurement', 'Forward reach was not measured. Your main Check-Up is saved.', 'completion', 70, 'stage_3d_b_2e_a_1_fallback'),
-  definition('final-position-set-v21', "You're set.", 'setup', 50, 'approved_v21'),
-  definition('tracking-loss-v21', 'Pause. Return to the setup position.', 'recovery', 100, 'approved_v21'),
-  definition('tracking-recovered-v21', "You're back in position. We'll restart.", 'recovery', 50, 'approved_v21'),
-  definition('retry-v21', "Let's try that again.", 'recovery', 70, 'approved_v21'),
-  definition('times-up-v21', 'Time.', 'completion', 100, 'approved_v21'),
-  definition('checkup-complete-v21', 'Check-up complete. Your results are ready.', 'completion', 70, 'approved_v21'),
-  definition('item-complete-v21', 'Complete.', 'completion', 70, 'approved_v21'),
-  definition('checkup-chair-stand-intro-v21', 'Chair stand. Sit in the middle of a sturdy chair, side-on to the phone.', 'setup', 60, 'approved_v21'),
-  definition('checkup-chair-stand-setup-v21', 'Cross your arms. When I say go, stand fully and sit with control until I say time.', 'setup', 60, 'approved_v21'),
-  definition('checkup-balance-intro-v21', 'Balance check. Keep support within easy reach. I will guide each stance.', 'setup', 60, 'approved_v21'),
-  definition('checkup-balance-single-leg-v21', 'Single-leg balance. Stand tall with both feet on the floor and keep support within easy reach.', 'setup', 60, 'approved_v21'),
-  definition('checkup-shoulder-turn-left-v21', 'Turn so your left side is nearest the phone.', 'setup', 60, 'approved_v21'),
-  definition('checkup-shoulder-turn-right-v21', 'Turn so your right side is nearest the phone.', 'setup', 60, 'approved_v21'),
-  definition('checkup-shoulder-raise-left-v21', 'Raise your left arm as high as comfortable. Hold there until I say relax.', 'setup', 60, 'approved_v21'),
-  definition('checkup-shoulder-raise-right-v21', 'Raise your right arm as high as comfortable. Hold there until I say relax.', 'setup', 60, 'approved_v21'),
-  definition('checkup-hinge-setup-v21', 'Slowly fold from your hips and reach toward the floor. Hold there until I say stand tall.', 'setup', 60, 'approved_v21'),
+  definition('mpv2_checkup_intro', "Welcome to your Movement Check-Up. I'll guide you through each step by voice, so you don't need to touch the phone. Move only when I ask you to, and stop if anything feels unsafe.", 'intro', 60, 'stage_3d_b_2e_a_1_fallback'),
+  definition('mpv2_chair_practice_start', "First, let's do one practice stand. This one will not count. Stand up once, then sit back down.", 'setup', 60, 'stage_3d_b_2e_a_1_fallback'),
+  definition('mpv2_chair_official_ready', 'Good. Now stay seated and get ready. The 30-second check starts after the countdown. Wait until I say go.', 'countdown_lead_in', 90, 'stage_3d_b_2e_a_1_fallback'),
+  definition('mpv2_balance_attempt_start', "Hold your balance for as long as you comfortably can, up to 45 seconds. Keep your support close, and put your foot down whenever you need to. When you're ready, lift your foot high off the floor. The timer starts when I see your foot lift.", 'active_transition', 60, 'stage_3d_b_2e_a_1_fallback'),
+  definition('mpv2_balance_attempt_saved', 'Good. That attempt is saved.', 'completion', 70, 'stage_3d_b_2e_a_1_fallback'),
+  definition('mpv2_balance_rest', "Rest now. Stand with both feet on the floor. I'll tell you when it's time for the next attempt.", 'rest', 70, 'stage_3d_b_2e_a_1_fallback'),
+  definition('mpv2_balance_ready_after_30', "You can start the next attempt now. Keep your support close. When you're ready, lift your foot high off the floor. The timer starts when I see your foot lift.", 'ready', 70, 'stage_3d_b_2e_a_1_fallback'),
+  definition('mpv2_balance_ready_after_60', "You're ready for the next attempt. Keep your support close. When you're ready, lift your foot high off the floor. The timer starts when I see your foot lift.", 'ready', 70, 'stage_3d_b_2e_a_1_fallback'),
+  definition('mpv2_balance_use_best', 'Your best balance hold is saved.', 'completion', 70, 'stage_3d_b_2e_a_1_fallback'),
+  definition('mpv2_balance_tracking_retry', "I lost sight of you, so that attempt won't count. Stand facing the phone again with your whole body in view. We'll try once more.", 'recovery', 100, 'stage_3d_b_2e_a_1_fallback'),
+  definition('mpv2_balance_full_hold', 'Excellent. You held the full 45 seconds.', 'completion', 70, 'stage_3d_b_2e_a_1_fallback'),
+  definition('mpv2_balance_complete', "Balance check complete. Next is your shoulder reach check. I'll ask you to turn so the phone can see one side of your body. Make sure the camera can see your raised hand, shoulder, and hip. Move only when I tell you which side to face, and keep the movement comfortable.", 'completion', 70, 'stage_3d_b_2e_a_1_fallback'),
+  definition('mpv2_shoulder_tracking_retry', "I lost sight of your arm, so that attempt won't count. Lower your arm, stand tall side-on to the phone again, and we'll try once more.", 'recovery', 100, 'stage_3d_b_2e_a_1_fallback'),
+  definition('mpv2_hinge_complete', 'Stand tall now. Forward reach saved.', 'completion', 70, 'stage_3d_b_2e_a_1_fallback'),
+  definition('mpv2_hinge_no_measurement', "Stand tall now. I couldn't get a clear forward reach measurement, but your main Check-Up is saved.", 'completion', 70, 'stage_3d_b_2e_a_1_fallback'),
+  definition('final-position-set-v21', 'Good. Hold that position until I tell you what to do next.', 'setup', 50, 'approved_v21'),
+  definition('tracking-loss-v21', "Pause there. I've lost sight of you, so this part needs to start again. Come back into view and wait for my next instruction.", 'recovery', 100, 'approved_v21'),
+  definition('tracking-recovered-v21', "Good, I can see you again. Stay there and wait. I'll guide you from here.", 'recovery', 50, 'approved_v21'),
+  definition('retry-v21', "That's okay. We'll try that part again. Take a moment, then follow my voice.", 'recovery', 70, 'approved_v21'),
+  definition('times-up-v21', 'Stop there. Sit down and rest.', 'completion', 100, 'approved_v21'),
+  definition('checkup-complete-v21', "That's the end of your Movement Check-Up. Well done. Your results are ready on the screen.", 'completion', 70, 'approved_v21'),
+  definition('item-complete-v21', 'Good. That part is done.', 'completion', 70, 'approved_v21'),
+  definition('checkup-chair-stand-intro-v21', "We'll start with the chair stand. Place a sturdy chair so your side faces the phone, and make sure the camera can see your whole body and the chair. Then sit in the middle of the chair with both feet flat on the floor. We'll begin once you're seated.", 'setup', 60, 'approved_v21'),
+  definition('checkup-chair-stand-setup-v21', 'Cross your arms over your chest. When I say go, stand all the way up, then sit back down with control. Keep going until I say stop.', 'setup', 60, 'approved_v21'),
+  definition('checkup-balance-intro-v21', 'Next is your balance check. Stand facing the phone, with your whole body in view from head to feet. Keep a counter, wall, or sturdy chair close enough that you can touch it if you need to.', 'setup', 60, 'approved_v21'),
+  definition('checkup-balance-single-leg-v21', "Start with both feet flat on the floor. Choose the leg that feels safest to stand on today, but keep both feet down for now. We'll begin once you're standing still.", 'setup', 60, 'approved_v21'),
+  definition('checkup-shoulder-turn-left-v21', 'Turn so your left side is closest to the phone. Keep your feet still, stand tall, and let your arms rest by your sides.', 'setup', 60, 'approved_v21'),
+  definition('checkup-shoulder-turn-right-v21', 'Turn so your right side is closest to the phone. Keep your feet still, stand tall, and let your arms rest by your sides.', 'setup', 60, 'approved_v21'),
+  definition('checkup-shoulder-raise-left-v21', 'Now raise your left arm straight forward and up, as high as feels comfortable. Do not push into pain. Hold it there until I tell you to relax.', 'setup', 60, 'approved_v21'),
+  definition('checkup-shoulder-raise-right-v21', 'Now raise your right arm straight forward and up, as high as feels comfortable. Do not push into pain. Hold it there until I tell you to relax.', 'setup', 60, 'approved_v21'),
+  definition('checkup-hinge-setup-v21', 'Last is your forward reach check. Stay side-on to the phone, with your feet about hip-width apart. Make sure the camera can see from your shoulders down to your feet, including your hands.', 'setup', 60, 'approved_v21'),
 ] as const;
 
 const DEFINITIONS_BY_ID: Readonly<Record<MovementProfileV2CueId, MovementProfileV2CueDefinition>> =
@@ -234,7 +234,7 @@ export function resolveMovementProfileV2CueIdsForTransition(input: {
     case 'shoulder_retry_ready':
       return ['mpv2_shoulder_tracking_retry'];
     case 'hinge_setup':
-      return ['item-complete-v21', 'checkup-hinge-setup-v21', 'final-position-set-v21'];
+      return ['item-complete-v21', 'checkup-hinge-setup-v21'];
     case 'hinge_active':
       return [];
     case 'raw_complete':

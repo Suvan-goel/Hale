@@ -46,7 +46,7 @@ const POLICY_BY_CATEGORY: Readonly<Record<TrainingVoiceLogicalCueCategoryV21, Tr
   completion: 'result_transition',
 };
 
-const FINAL_POSITION_CUE = cue('final-position-set-v21', "You're set.", 'final_position');
+const FINAL_POSITION_CUE = cue('final-position-set-v21', 'Good. Hold that position until I tell you what to do next.', 'final_position');
 const HALFWAY_CUE = cue('halfway-v21', 'Halfway.', 'progress', 'low_reassurance', false);
 const FIVE_SECONDS_LEFT_CUE = cue('five-seconds-left-v21', 'Five seconds left.', 'progress', 'low_reassurance', false);
 
@@ -69,8 +69,8 @@ export const TRAINING_VOICE_SHARED_LOGICAL_CUES_V21: readonly TrainingVoiceLogic
   cue('setup-closer-v21', 'Move a little closer.', 'recovery', 'setup_recovery'),
   cue('setup-hold-still-v21', 'Hold still for a moment.', 'recovery', 'setup_recovery'),
   cue('setup-light-v21', 'Please turn on the main light.', 'recovery', 'setup_recovery'),
-  cue('tracking-loss-v21', 'Pause. Return to the setup position.', 'recovery', 'critical_stop'),
-  cue('tracking-recovered-v21', "You're back in position. We'll restart.", 'recovery', 'setup_recovery'),
+  cue('tracking-loss-v21', "Pause there. I've lost sight of you, so this part needs to start again. Come back into view and wait for my next instruction.", 'recovery', 'critical_stop'),
+  cue('tracking-recovered-v21', "Good, I can see you again. Stay there and wait. I'll guide you from here.", 'recovery', 'setup_recovery'),
   cue('countdown-three', 'Three.', 'control', 'critical_window'),
   cue('countdown-two', 'Two.', 'control', 'critical_window'),
   cue('countdown-one', 'One.', 'control', 'critical_window'),
@@ -80,14 +80,14 @@ export const TRAINING_VOICE_SHARED_LOGICAL_CUES_V21: readonly TrainingVoiceLogic
   FIVE_SECONDS_LEFT_CUE,
   cue('paused-v21', 'Paused.', 'control'),
   cue('resuming-v21', 'Resuming.', 'control'),
-  cue('retry-v21', "Let's try that again.", 'recovery', 'result_transition'),
+  cue('retry-v21', "That's okay. We'll try that part again. Take a moment, then follow my voice.", 'recovery', 'result_transition'),
   cue('training-skip-v21', 'Skipped. Moving on.', 'control'),
   cue('set-complete-v21', 'Set complete.', 'completion'),
   cue('rest-now-v21', 'Rest now.', 'rest_transition'),
   cue('last-set-v21', 'Last set.', 'rest_transition'),
   cue('next-exercise-v21', 'Next exercise.', 'rest_transition'),
   cue('session-complete-v21', 'Session complete.', 'completion'),
-  cue('item-complete-v21', 'Complete.', 'completion'),
+  cue('item-complete-v21', 'Good. That part is done.', 'completion'),
   cue('equip-chair-stable-v21', 'Use a sturdy chair that will not slide.', 'equipment_first_use'),
   cue('equip-support-close-v21', 'Keep sturdy support within easy reach.', 'equipment_first_use'),
   cue('equip-balance-support-v21', 'Keep support within easy reach.', 'equipment_first_use'),

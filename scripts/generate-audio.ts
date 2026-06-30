@@ -106,15 +106,17 @@ const LINES: Record<string, string> = {
   'shoulder-setup':
     'When I say go, raise that arm straight out in front of you and up as high ' +
     'as it comfortably goes, and hold it there.',
-  'relax-arm': 'Lovely. Lower your arm and relax.',
+  'relax-arm': "Relax your arm now. Shoulder reach saved. We'll move on to the final movement.",
   // Hinge reach.
   'hinge-intro':
     'Last one, a forward reach. Stay side-on to the phone, standing tall with ' +
     'your feet under your hips.',
   'hinge-setup':
-    'When I say go, slowly fold forward from your hips and reach your hands ' +
-    'toward the floor, as far as is comfortable, and hold.',
-  'stand-tall': "That's great. Slowly roll back up to standing.",
+    'Stand tall and let your arms hang comfortably. Move slowly, and only go ' +
+    "as far as feels comfortable. When you're ready, fold forward from your " +
+    'hips and reach your hands toward the floor. Hold there until I tell you ' +
+    'to stand tall.',
+  'stand-tall': 'Stand tall now. Forward reach saved.',
   // Shared result acknowledgement.
   'item-complete': 'Nicely done.',
   // Check-Up battery orchestration.

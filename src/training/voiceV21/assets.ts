@@ -21,12 +21,12 @@ interface PhysicalCandidate {
 }
 
 const EXACT_EXISTING_PHYSICAL_CANDIDATES: Readonly<Record<string, PhysicalCandidate>> = {
-  'final-position-set-v21': exact('final-position-set-v21', "You're set."),
-  'tracking-loss-v21': exact('tracking-loss-v21', 'Pause. Return to the setup position.'),
-  'tracking-recovered-v21': exact('tracking-recovered-v21', "You're back in position. We'll restart."),
-  'retry-v21': exact('retry-v21', "Let's try that again."),
+  'final-position-set-v21': exact('final-position-set-v21', 'Good. Hold that position until I tell you what to do next.'),
+  'tracking-loss-v21': exact('tracking-loss-v21', "Pause there. I've lost sight of you, so this part needs to start again. Come back into view and wait for my next instruction."),
+  'tracking-recovered-v21': exact('tracking-recovered-v21', "Good, I can see you again. Stay there and wait. I'll guide you from here."),
+  'retry-v21': exact('retry-v21', "That's okay. We'll try that part again. Take a moment, then follow my voice."),
   'times-up-v21': exact('times-up-v21', 'Time.'),
-  'item-complete-v21': exact('item-complete-v21', 'Complete.'),
+  'item-complete-v21': exact('item-complete-v21', 'Good. That part is done.'),
   'countdown-three': exact('countdown-three', 'Three.'),
   'countdown-two': exact('countdown-two', 'Two.'),
   'countdown-one': exact('countdown-one', 'One.'),

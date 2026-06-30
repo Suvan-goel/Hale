@@ -330,6 +330,7 @@ export class MovementProfileV2LiveCoordinator {
   private balanceSetupVoiceCompleted = false;
   private balanceAttemptVoiceCompleted = false;
   private balanceLostFrames = 0;
+  private balanceTouchdownStartedAtMs: number | null = null;
   private balanceRaisedFrames = 0;
   private balanceReadyRaisedSinceMs: number | null = null;
   private balanceReadyRaisedStandingLeg: BodySide | null = null;
@@ -953,6 +954,7 @@ export class MovementProfileV2LiveCoordinator {
       if (!this.balance.startTrial(nowMs)) return;
       this.balanceTrialStartedAtMs = nowMs;
       this.balanceLostFrames = 0;
+      this.balanceTouchdownStartedAtMs = null;
       this.clearBalanceReadyLiftEvidence();
       this.balanceSway = createWelford();
       this.balanceAttemptedTrials++;
@@ -964,13 +966,15 @@ export class MovementProfileV2LiveCoordinator {
     const raised = selectedLegRaised(sample.output.frame, sample.output.bodyUnit, leg);
     if (raised) {
       this.balanceLostFrames = 0;
+      this.balanceTouchdownStartedAtMs = null;
       this.balanceRaisedFrames++;
       this.balanceSway.push(midpointX(sample.output.frame, LM.LEFT_HIP, LM.RIGHT_HIP) / sample.output.bodyUnit);
       return;
     }
+    if (this.balanceLostFrames === 0) this.balanceTouchdownStartedAtMs = nowMs;
     this.balanceLostFrames++;
     if (this.balanceRaisedFrames > 0 && this.balanceLostFrames >= BALANCE_TOUCHDOWN_DEBOUNCE_FRAMES) {
-      this.completeBalanceTrial(nowMs, 'touchdown');
+      this.completeBalanceTrial(nowMs, 'touchdown', this.balanceTouchdownStartedAtMs ?? nowMs);
     }
   }
 
@@ -1037,19 +1041,25 @@ export class MovementProfileV2LiveCoordinator {
     this.bump();
   }
 
-  private completeBalanceTrial(nowMs: number, termination: 'touchdown' | 'user_stopped' | 'ceiling'): void {
+  private completeBalanceTrial(
+    nowMs: number,
+    termination: 'touchdown' | 'user_stopped' | 'ceiling',
+    measuredEndMs: number = nowMs
+  ): void {
     if (this.balanceTrialStartedAtMs === null) return;
+    const measurementEndedAtMs = termination === 'ceiling' ? nowMs : measuredEndMs;
     const holdMs =
       termination === 'ceiling'
         ? DEFAULT_ONE_LEG_BALANCE_V2_CONFIG.maxTrialMs
-        : Math.max(0, nowMs - this.balanceTrialStartedAtMs);
+        : Math.max(0, measurementEndedAtMs - this.balanceTrialStartedAtMs);
     this.balance.completeTrial({
-      nowMs,
+      nowMs: measurementEndedAtMs,
       holdMs,
       swaySd: this.balanceSway.sd(),
       termination,
     });
     this.balanceTrialStartedAtMs = null;
+    this.balanceTouchdownStartedAtMs = null;
     const holdSec = holdMs / 1000;
     this.balanceValidTrials++;
     this.balanceBestHoldSec =
@@ -1074,6 +1084,7 @@ export class MovementProfileV2LiveCoordinator {
         : this.balance.invalidateTrial(nowMs, reason);
     if (!invalidated) return;
     this.balanceTrialStartedAtMs = null;
+    this.balanceTouchdownStartedAtMs = null;
     this.balanceInvalidTrials++;
     this.diagnostics.trackingInterruptions++;
     this.diagnostics.balance.invalidTrials = this.balanceInvalidTrials;
@@ -1101,6 +1112,7 @@ export class MovementProfileV2LiveCoordinator {
 
   private enterBalanceRest(nowMs: number, reason: string): void {
     this.balanceTrialStartedAtMs = null;
+    this.balanceTouchdownStartedAtMs = null;
     this.clearBalanceReadyLiftEvidence();
     this.balanceRestStartedAtMs = nowMs;
     this.balanceRestMinUntilMs = nowMs + BALANCE_REST_MIN_MS;
@@ -1305,6 +1317,7 @@ export class MovementProfileV2LiveCoordinator {
     if (this.balanceResult) return;
     this.balanceResult = result;
     this.balanceTrialStartedAtMs = null;
+    this.balanceTouchdownStartedAtMs = null;
     this.clearBalanceReadyLiftEvidence();
     this.diagnostics.balance.hardCapReached = result.hardCapReached;
     this.flow = movementProfileV2InternalFlowReducer(this.flow, { type: 'record_balance', result });
@@ -1566,27 +1579,27 @@ export class MovementProfileV2LiveCoordinator {
         if (this.handsFreeMode && this.balanceBestHoldSec !== null) {
           return "Lift one foot again when you're ready.";
         }
-        return "Lift your other foot when you're ready. The timer starts when Hale sees the lift.";
+        return "Lift your foot high when you're ready. The timer starts when Hale sees the lift.";
       case 'balance_trial':
         return 'Keep holding.';
       case 'balance_rest':
         if (this.handsFreeMode) return "Attempt saved. Rest before the next try.";
         return 'Rest before the next attempt. The minimum rest cannot be skipped.';
       case 'shoulder_setup':
-        if (this.handsFreeMode) return 'Turn side-on to the phone. Hale will pick the visible side.';
+        if (this.handsFreeMode) return 'Turn side-on to the phone with your feet still and arms by your sides.';
         return 'Choose the shoulder side closest to the camera.';
       case 'shoulder_ready':
-        if (this.handsFreeMode) return 'Raise the selected arm comfortably. Hale will save the reach automatically.';
+        if (this.handsFreeMode) return 'Raise your selected arm straight forward and up within a comfortable range.';
         return 'Start when your selected side is in view.';
       case 'shoulder_active':
-        return 'Raise the selected arm forward within a comfortable range.';
+        return 'Hold still with your arm raised comfortably.';
       case 'shoulder_retry_ready':
-        return 'Tracking was not clear enough. One retry is available.';
+        return 'Lower your arm, stand tall side-on, and try once more.';
       case 'hinge_setup':
-        if (this.handsFreeMode) return 'Fold forward comfortably and hold. Hale will save the closest reach automatically.';
+        if (this.handsFreeMode) return 'Stand side-on, move slowly, and fold forward when instructed.';
         return 'Set up side-on for the supporting forward reach.';
       case 'hinge_active':
-        return 'Fold forward comfortably; Hale is saving the closest reach.';
+        return 'Hold there. Hale is saving the reach now.';
       case 'raw_complete':
         return 'Your raw Check-Up is saved.';
       default:

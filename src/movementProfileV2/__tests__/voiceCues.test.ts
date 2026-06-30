@@ -61,7 +61,7 @@ describe('Movement Profile V2 voice cues', () => {
       'checkup-chair-stand-intro-v21',
       'checkup-chair-stand-setup-v21',
     ]);
-    expect(intro.visibleText).toContain('Movement Profile Check-Up');
+    expect(intro.visibleText).toContain('Welcome to your Movement Check-Up');
 
     const sequencer = new MovementProfileV2VoiceSequencer();
     const live = snapshot({
@@ -103,13 +103,102 @@ describe('Movement Profile V2 voice cues', () => {
     expect(cuesFor('shoulder_retry_ready', 'hinge_setup', 'shoulder_capture_complete')).toEqual([
       'item-complete-v21',
       'checkup-hinge-setup-v21',
-      'final-position-set-v21',
     ]);
     expect(
       cuesFor('hinge_active', 'raw_complete', 'hinge_capture_complete', {
         hingeCaptureValid: false,
       })
     ).toEqual(['mpv2_hinge_no_measurement', 'checkup-complete-v21']);
+  });
+
+  it('keeps balance lift instructions in the final pre-lift cue', () => {
+    const liftInstruction =
+      "When you're ready, lift your foot high off the floor. The timer starts when I see your foot lift.";
+
+    expect(movementProfileV2CueDefinition('checkup-balance-single-leg-v21').text).toContain(
+      'keep both feet down for now'
+    );
+    expect(movementProfileV2CueDefinition('checkup-balance-single-leg-v21').text).not.toContain(
+      'lift your other foot'
+    );
+    expect(movementProfileV2CueDefinition('mpv2_balance_attempt_start').text).toMatch(
+      new RegExp(`${escapeRegExp(liftInstruction)}$`)
+    );
+    expect(movementProfileV2CueDefinition('mpv2_balance_ready_after_30').text).toMatch(
+      new RegExp(`${escapeRegExp(liftInstruction)}$`)
+    );
+    expect(movementProfileV2CueDefinition('mpv2_balance_ready_after_60').text).toMatch(
+      new RegExp(`${escapeRegExp(liftInstruction)}$`)
+    );
+  });
+
+  it('uses clear guided copy for balance save, rest, retry, and completion cues', () => {
+    expect(movementProfileV2CueDefinition('mpv2_balance_attempt_saved').text).toBe(
+      'Good. That attempt is saved.'
+    );
+    expect(movementProfileV2CueDefinition('mpv2_balance_rest').text).toBe(
+      "Rest now. Stand with both feet on the floor. I'll tell you when it's time for the next attempt."
+    );
+    expect(movementProfileV2CueDefinition('mpv2_balance_tracking_retry').text).toBe(
+      "I lost sight of you, so that attempt won't count. Stand facing the phone again with your whole body in view. We'll try once more."
+    );
+    expect(movementProfileV2CueDefinition('mpv2_balance_full_hold').text).toBe(
+      'Excellent. You held the full 45 seconds.'
+    );
+    expect(movementProfileV2CueDefinition('mpv2_balance_complete').text).toBe(
+      "Balance check complete. Next is your shoulder reach check. I'll ask you to turn so the phone can see one side of your body. Make sure the camera can see your raised hand, shoulder, and hip. Move only when I tell you which side to face, and keep the movement comfortable."
+    );
+  });
+
+  it('uses clear guided copy for shoulder setup, reach, and retry cues', () => {
+    expect(movementProfileV2CueDefinition('checkup-shoulder-turn-right-v21').text).toBe(
+      'Turn so your right side is closest to the phone. Keep your feet still, stand tall, and let your arms rest by your sides.'
+    );
+    expect(movementProfileV2CueDefinition('checkup-shoulder-turn-left-v21').text).toBe(
+      'Turn so your left side is closest to the phone. Keep your feet still, stand tall, and let your arms rest by your sides.'
+    );
+    expect(movementProfileV2CueDefinition('checkup-shoulder-raise-right-v21').text).toBe(
+      'Now raise your right arm straight forward and up, as high as feels comfortable. Do not push into pain. Hold it there until I tell you to relax.'
+    );
+    expect(movementProfileV2CueDefinition('checkup-shoulder-raise-left-v21').text).toBe(
+      'Now raise your left arm straight forward and up, as high as feels comfortable. Do not push into pain. Hold it there until I tell you to relax.'
+    );
+    expect(movementProfileV2CueDefinition('mpv2_shoulder_tracking_retry').text).toBe(
+      "I lost sight of your arm, so that attempt won't count. Lower your arm, stand tall side-on to the phone again, and we'll try once more."
+    );
+  });
+
+  it('uses human shared recovery and acknowledgement cues', () => {
+    expect(movementProfileV2CueDefinition('final-position-set-v21').text).toBe(
+      'Good. Hold that position until I tell you what to do next.'
+    );
+    expect(movementProfileV2CueDefinition('tracking-loss-v21').text).toBe(
+      "Pause there. I've lost sight of you, so this part needs to start again. Come back into view and wait for my next instruction."
+    );
+    expect(movementProfileV2CueDefinition('tracking-recovered-v21').text).toBe(
+      "Good, I can see you again. Stay there and wait. I'll guide you from here."
+    );
+    expect(movementProfileV2CueDefinition('retry-v21').text).toBe(
+      "That's okay. We'll try that part again. Take a moment, then follow my voice."
+    );
+    expect(movementProfileV2CueDefinition('item-complete-v21').text).toBe(
+      'Good. That part is done.'
+    );
+  });
+
+  it('uses clear guided copy for final forward reach setup and completion cues', () => {
+    expect(movementProfileV2CueDefinition('checkup-hinge-setup-v21').text).toBe(
+      'Last is your forward reach check. Stay side-on to the phone, with your feet about hip-width apart. Make sure the camera can see from your shoulders down to your feet, including your hands.'
+    );
+    expect(movementProfileV2CueDefinition('mpv2_hinge_complete').text).toBe(
+      'Stand tall now. Forward reach saved.'
+    );
+    expect(movementProfileV2CueDefinition('mpv2_hinge_no_measurement').text).toBe(
+      "Stand tall now. I couldn't get a clear forward reach measurement, but your main Check-Up is saved."
+    );
+    expect(movementProfileV2CueDefinition('checkup-complete-v21').text).toBe(
+      "That's the end of your Movement Check-Up. Well done. Your results are ready on the screen."
+    );
   });
 });
 
@@ -140,6 +229,10 @@ function transition(
   atMs: number
 ): MovementProfileV2LiveTransitionSummary {
   return { atMs, from, to, reason };
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function snapshot({
