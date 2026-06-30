@@ -107,6 +107,15 @@ export class OneLegBalanceV2ProtocolController {
     return true;
   }
 
+  updateSetupBeforeFirstTrial(setup: OneLegBalanceV2Setup): boolean {
+    if (this.phase_ !== 'ready' || this.activeTrialStartedAtMs !== null || this.trials.length > 0) {
+      return false;
+    }
+    if (!setupHasUserConfirmation(setup)) return false;
+    this.setup_ = setup;
+    return true;
+  }
+
   startTrial(nowMs: number): boolean {
     if (!this.canContinue(nowMs)) return false;
     if (this.phase_ !== 'ready' && this.phase_ !== 'rest') return false;

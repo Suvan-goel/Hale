@@ -73,6 +73,7 @@ export type MovementProfileV2InternalFlowEvent =
   | { type: 'complete_chair_practice' }
   | { type: 'record_chair'; result: ChairRiseV2Result }
   | { type: 'confirm_balance_setup'; standingLeg: BodySide }
+  | { type: 'update_balance_standing_leg'; standingLeg: BodySide }
   | { type: 'record_balance'; result: OneLegBalanceV2Result | BalanceEyesOpenV2Result }
   | { type: 'confirm_shoulder_setup'; shoulderSide: BodySide }
   | { type: 'record_shoulder'; result: ActiveShoulderReachV2Result }
@@ -120,6 +121,10 @@ export function movementProfileV2InternalFlowReducer(
     case 'confirm_balance_setup':
       return state.step === 'balance_setup'
         ? { ...state, standingLeg: event.standingLeg, step: 'balance_trials' }
+        : state;
+    case 'update_balance_standing_leg':
+      return state.step === 'balance_trials'
+        ? { ...state, standingLeg: event.standingLeg }
         : state;
     case 'record_balance':
       if (

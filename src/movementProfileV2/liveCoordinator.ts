@@ -326,6 +326,7 @@ export class MovementProfileV2LiveCoordinator {
   private balanceRestMinUntilMs: number | null = null;
   private balanceRestDefaultUntilMs: number | null = null;
   private balanceSetupConfirmedAtMs: number | null = null;
+  private balanceSetupSource: ProtocolSetupSource | null = null;
   private balanceSetupVoiceCompleted = false;
   private balanceAttemptVoiceCompleted = false;
   private balanceLostFrames = 0;
@@ -488,13 +489,14 @@ export class MovementProfileV2LiveCoordinator {
         break;
       case 'confirm_balance_setup':
         if (this.stage !== 'balance_setup') return false;
+        const balanceSetupSource = action.source ?? 'user';
         if (
           !this.balance.confirmSetup(
             createOneLegBalanceV2Setup({
               standingLeg: action.standingLeg,
               priorStandingLeg: this.flow.priorStandingLeg,
               confirmed: true,
-              source: action.source ?? 'user',
+              source: balanceSetupSource,
             }),
             nowMs
           )
@@ -506,6 +508,7 @@ export class MovementProfileV2LiveCoordinator {
           standingLeg: action.standingLeg,
         });
         this.balanceSetupConfirmedAtMs = nowMs;
+        this.balanceSetupSource = balanceSetupSource;
         this.transition('balance_ready', nowMs, 'balance_setup_confirmed');
         this.attemptEpochId = this.nextAttemptEpoch('balance-ready');
         break;
@@ -773,27 +776,21 @@ export class MovementProfileV2LiveCoordinator {
           this.clearBalanceReadyLiftEvidence();
           break;
         }
-        const inferred = inferBalanceStandingLeg(sample.output, this.flow.priorStandingLeg);
-        const standingLeg = inferred ?? this.flow.priorStandingLeg ?? this.flow.standingLeg;
+        const standingLeg = this.flow.priorStandingLeg ?? this.flow.standingLeg;
         const ready = this.noteHandsFreeReadiness(
           'balance_setup',
-          inferred ?? `standing:${standingLeg}`,
-          inferred !== null || balanceSetupPoseReady(sample.output),
+          `standing:${standingLeg}`,
+          balanceSetupPoseReady(sample.output),
           nowMs
         );
         if (!ready) {
           this.clearBalanceReadyLiftEvidence();
           break;
         }
-        if (inferred) {
-          this.seedBalanceReadyLiftEvidence(inferred, this.handsFreeReadySinceMs ?? nowMs);
-        }
         this.receiveUserAction({
           type: 'confirm_balance_setup',
           standingLeg,
-          source: inferred
-            ? sourceForCameraInferredSide(this.flow.priorStandingLeg, inferred)
-            : sourceForBalanceSetupPose(this.flow.priorStandingLeg, standingLeg),
+          source: sourceForBalanceSetupPose(this.flow.priorStandingLeg, standingLeg),
         }, nowMs);
         break;
       }
@@ -936,25 +933,23 @@ export class MovementProfileV2LiveCoordinator {
   }
 
   private updateBalance(sample: MovementProfileV2LivePoseSample, nowMs: number): void {
-    const leg = this.flow.standingLeg;
+    let leg = this.flow.standingLeg;
     if (sample.trackingQuality !== 'good' || sample.output.bodyUnit === null) {
       if (this.stage === 'balance_ready') this.clearBalanceReadyLiftEvidence();
       if (this.stage === 'balance_trial') this.balanceLostFrames++;
       if (this.balanceLostFrames >= BALANCE_TOUCHDOWN_DEBOUNCE_FRAMES) this.invalidateBalanceTrial(nowMs, 'tracking_invalid');
       return;
     }
-    if (this.stage === 'balance_ready' && !balanceStartEvidenceReliable(sample.output)) {
-      this.clearBalanceReadyLiftEvidence();
-      return;
-    }
-    const raised = selectedLegRaised(sample.output.frame, sample.output.bodyUnit, leg);
     if (this.stage === 'balance_ready') {
-      if (!raised) {
+      const liftedStandingLeg = inferBalanceStandingLegFromLift(sample.output, leg);
+      if (!liftedStandingLeg) {
         this.clearBalanceReadyLiftEvidence();
         return;
       }
-      this.noteBalanceReadyLiftEvidence(leg, nowMs);
+      this.noteBalanceReadyLiftEvidence(liftedStandingLeg, nowMs);
       if (!this.balanceAttemptVoiceCompleted) return;
+      if (!this.updateBalanceStandingLegFromLift(liftedStandingLeg)) return;
+      leg = liftedStandingLeg;
       if (!this.balance.startTrial(nowMs)) return;
       this.balanceTrialStartedAtMs = nowMs;
       this.balanceLostFrames = 0;
@@ -966,6 +961,7 @@ export class MovementProfileV2LiveCoordinator {
       this.attemptEpochId = this.nextAttemptEpoch('balance-trial');
     }
     if (this.stage !== 'balance_trial') return;
+    const raised = selectedLegRaised(sample.output.frame, sample.output.bodyUnit, leg);
     if (raised) {
       this.balanceLostFrames = 0;
       this.balanceRaisedFrames++;
@@ -1389,6 +1385,7 @@ export class MovementProfileV2LiveCoordinator {
     if (stage === 'balance_setup') {
       this.balanceSetupVoiceCompleted = false;
       this.balanceSetupConfirmedAtMs = null;
+      this.balanceSetupSource = null;
       this.clearBalanceReadyLiftEvidence();
     }
     if (stage === 'shoulder_setup') {
@@ -1502,10 +1499,34 @@ export class MovementProfileV2LiveCoordinator {
     return true;
   }
 
-  private seedBalanceReadyLiftEvidence(standingLeg: BodySide, stableSinceMs: number): void {
-    this.balanceReadyRaisedStandingLeg = standingLeg;
-    this.balanceReadyRaisedSinceMs = stableSinceMs;
-    this.balanceRaisedFrames = 0;
+  private updateBalanceStandingLegFromLift(standingLeg: BodySide): boolean {
+    if (this.balanceAttemptedTrials > 0) {
+      return standingLeg === this.flow.standingLeg;
+    }
+    const source = sourceForBalanceLiftStart(
+      this.flow.priorStandingLeg,
+      this.flow.standingLeg,
+      standingLeg,
+      this.balanceSetupSource
+    );
+    if (
+      !this.balance.updateSetupBeforeFirstTrial(
+        createOneLegBalanceV2Setup({
+          standingLeg,
+          priorStandingLeg: this.flow.priorStandingLeg,
+          confirmed: true,
+          source,
+        })
+      )
+    ) {
+      return false;
+    }
+    this.flow = movementProfileV2InternalFlowReducer(this.flow, {
+      type: 'update_balance_standing_leg',
+      standingLeg,
+    });
+    this.balanceSetupSource = source;
+    return true;
   }
 
   private noteBalanceReadyLiftEvidence(standingLeg: BodySide, nowMs: number): void {
@@ -1875,6 +1896,13 @@ function selectedLegRaised(frame: PoseFrame, bodyUnit: number, standingLeg: Body
   return (frame.ys[standing] - frame.ys[raised]) / bodyUnit > BALANCE_LIFT_BU;
 }
 
+function standingLegFromAnkleLift(frame: PoseFrame, bodyUnit: number): BodySide | null {
+  const leftLowerThanRightBu = (frame.ys[LM.LEFT_ANKLE] - frame.ys[LM.RIGHT_ANKLE]) / bodyUnit;
+  if (leftLowerThanRightBu > BALANCE_LIFT_BU) return 'left';
+  if (leftLowerThanRightBu < -BALANCE_LIFT_BU) return 'right';
+  return null;
+}
+
 function isHandsFreeWaitingStage(stage: MovementProfileV2LiveStage): boolean {
   return stage === 'chair_setup' ||
     stage === 'balance_setup' ||
@@ -1895,22 +1923,16 @@ function chairSetupReady(out: PipelineFrameOutput): boolean {
   return angleAtDeg(out.frame, landmarks.hip, landmarks.knee, landmarks.ankle) <= CHAIR_SETUP_SEATED_KNEE_MAX_DEG;
 }
 
-function inferBalanceStandingLeg(out: PipelineFrameOutput, priorStandingLeg: BodySide | null): BodySide | null {
-  if (
-    out.state !== 'tracking' ||
-    !out.frame.hasPose ||
-    out.bodyUnit === null ||
-    !balanceStartEvidenceReliable(out)
-  ) {
-    return null;
-  }
-  if (priorStandingLeg && selectedLegRaised(out.frame, out.bodyUnit, priorStandingLeg)) {
-    return priorStandingLeg;
-  }
-  const leftLowerThanRightBu = (out.frame.ys[LM.LEFT_ANKLE] - out.frame.ys[LM.RIGHT_ANKLE]) / out.bodyUnit;
-  if (leftLowerThanRightBu > BALANCE_LIFT_BU) return 'left';
-  if (leftLowerThanRightBu < -BALANCE_LIFT_BU) return 'right';
-  return null;
+function inferBalanceStandingLegFromLift(
+  out: PipelineFrameOutput,
+  currentStandingLeg: BodySide
+): BodySide | null {
+  if (out.state !== 'tracking' || !out.frame.hasPose || out.bodyUnit === null) return null;
+  const inferred = selectedLegRaised(out.frame, out.bodyUnit, currentStandingLeg)
+    ? currentStandingLeg
+    : standingLegFromAnkleLift(out.frame, out.bodyUnit);
+  if (!inferred || !balanceLiftStartEvidenceReliable(out, inferred)) return null;
+  return inferred;
 }
 
 function balanceSetupPoseReady(out: PipelineFrameOutput): boolean {
@@ -1931,12 +1953,29 @@ function balanceStartEvidenceReliable(out: PipelineFrameOutput): boolean {
     out.chainReliability[RIGHT_SIDE_CHAIN] >= SETUP_CHAIN_RELIABILITY;
 }
 
+function balanceLiftStartEvidenceReliable(out: PipelineFrameOutput, standingLeg: BodySide): boolean {
+  const standingChain = standingLeg === 'left' ? LEFT_SIDE_CHAIN : RIGHT_SIDE_CHAIN;
+  return out.chainReliability[standingChain] >= SETUP_CHAIN_RELIABILITY;
+}
+
 function sourceForCameraInferredSide(priorSide: BodySide | null, selectedSide: BodySide): ProtocolSetupSource {
   return priorSide === selectedSide ? 'prior_record_camera_verified' : 'camera_inferred';
 }
 
 function sourceForBalanceSetupPose(priorSide: BodySide | null, selectedSide: BodySide): ProtocolSetupSource {
   return priorSide === selectedSide ? 'prior_record_camera_verified' : 'default';
+}
+
+function sourceForBalanceLiftStart(
+  priorSide: BodySide | null,
+  setupStandingLeg: BodySide,
+  liftedStandingLeg: BodySide,
+  setupSource: ProtocolSetupSource | null
+): ProtocolSetupSource {
+  if (setupStandingLeg === liftedStandingLeg && setupSource !== null && setupSource !== 'default') {
+    return setupSource;
+  }
+  return sourceForCameraInferredSide(priorSide, liftedStandingLeg);
 }
 
 function inferShoulderSide(out: PipelineFrameOutput, priorShoulderSide: BodySide | null): BodySide | null {
