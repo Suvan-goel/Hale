@@ -260,16 +260,30 @@ export class MovementProfileV2VoiceRuntime {
       lastFailure: null,
     });
     this.pushDiagnostic({ event: 'request_created', scopeId: plan.scopeId, atMs: this.nowMs() });
-    const result = await this.playRequiredSequence(plan.cues, plan, epoch);
+    const optional = !isBlockingRequirement(plan.requirement);
+    const result = optional
+      ? await this.playOptionalSequence(plan.cues, plan, epoch)
+      : await this.playRequiredSequence(plan.cues, plan, epoch);
     if (!this.isCurrent(epoch, plan.scopeId)) return;
     if (result.outcome !== 'completed') {
-      this.fail(plan, result);
-      return;
+      if (!optional) {
+        this.fail(plan, result);
+        return;
+      }
+      this.pushDiagnostic({
+        event: 'optional_request_completion',
+        scopeId: plan.scopeId,
+        outcome: result.outcome,
+        atMs: result.completedAtMs,
+        requestId: result.requestId,
+      });
     }
     this.completedScopes.add(plan.scopeId);
-    for (const action of plan.onCompleted ?? []) {
-      if (!this.isCurrent(epoch, plan.scopeId)) return;
-      this.dispatch(action, result.completedAtMs);
+    if (result.outcome === 'completed') {
+      for (const action of plan.onCompleted ?? []) {
+        if (!this.isCurrent(epoch, plan.scopeId)) return;
+        this.dispatch(action, result.completedAtMs);
+      }
     }
     if (plan.startsChairCountdown) {
       await this.runChairCountdown(plan.scopeId, epoch);
@@ -733,6 +747,8 @@ function baseVoicePlanForSnapshot(
       return plan(scopeId, 'blocking_prerequisite', cuesForHingeSetup(snapshot), [
         { type: 'hinge_setup_voice_completed' },
       ]);
+    case 'hinge_active':
+      return plan(scopeId, 'optional_reassurance', ['final-position-set-v21']);
     case 'raw_complete':
       return {
         ...plan(scopeId, 'blocking_transition', cuesForRawComplete(snapshot)),

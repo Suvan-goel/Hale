@@ -104,6 +104,17 @@ function useCameraAvailability(cameraFacing: CameraFacing): CameraAvailability {
         cancelled = true;
       };
     }
+
+    // On real devices, the native PoseDetectionView bind is the source of
+    // truth. A separate availability probe can be wrong on vendor camera
+    // stacks and should not prevent the real camera session from starting.
+    if (Platform.OS === 'android' || Platform.OS === 'ios') {
+      setAvailability('available');
+      return () => {
+        cancelled = true;
+      };
+    }
+
     isCameraAvailableAsync(cameraFacing)
       .then((available) => {
         if (!cancelled) setAvailability(available ? 'available' : 'unavailable');

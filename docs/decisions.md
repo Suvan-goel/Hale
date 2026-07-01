@@ -2245,3 +2245,42 @@ PUBLIC RELEASE REMAINS BLOCKED
   at them.
 - **Boundary:** public unified Movement Profile V2 Check-Up/results, Fit Frame default recording
   visuals, training, micro-checks, settings, and safe beta flag verification remain unchanged.
+
+## 2026-07-01 — Android beta uses EAS internal distribution
+
+- **Change:** added an EAS `beta` build profile for Android release-style internal distribution.
+  The profile builds an installable APK, uses the EAS `preview` environment, auto-increments
+  build versions, and forces rollback, internal, diagnostic, renderer benchmark, Sentry, and
+  Apple Sign-In flags off. The app config now omits the Sentry Expo plugin unless Sentry is
+  explicitly enabled, so beta builds do not require Sentry project credentials.
+- **Rationale:** first Android beta testers need a direct download link without Play Console
+  setup, while still receiving a production-like binary rather than a dev client.
+- **Boundary:** Google Play Internal Testing remains the later formal beta path. Supabase
+  publishable client values stay in EAS environment variables, not committed source files.
+
+## 2026-07-01 — Beta audio config avoids microphone permissions
+
+- **Change:** configured the Expo Audio plugin for playback-only use: microphone permission,
+  Android `RECORD_AUDIO`, background recording, and background playback are disabled at the
+  native manifest/config-plugin layer.
+- **Rationale:** Hale uses bundled foreground voice guidance and explicitly disables recording
+  in the runtime audio mode, so beta testers should not see microphone/background-audio
+  permissions that imply audio capture.
+- **Boundary:** foreground guidance playback remains unchanged. If future sessions need
+  background audio or microphone capture, this config must be revisited deliberately.
+
+## 2026-07-01 — EAS beta builds fetch pose models before native generation
+
+- **Change:** EAS now runs `scripts/download-models.sh` and `scripts/verify-pose-models.sh` in
+  `eas-build-pre-install`, and the local Android beta command runs the same check before
+  launching `eas build`. `SafePoseDetectionView` also treats the native camera bind as the source
+  of truth on physical iOS/Android devices instead of blocking capture on a separate availability
+  probe.
+- **Rationale:** MediaPipe `.task` files are intentionally gitignored. A clean EAS worker can
+  build an installable app without those binaries unless they are fetched during the build, which
+  makes runtime landmarker startup fail and surface to testers as a misleading camera-unavailable
+  state even after permission is granted. The pre-install hook runs before Expo prebuild/CocoaPods,
+  so both Android assets and iOS pod resources see the downloaded models.
+- **Boundary:** camera permission policy, no-video rendering, model variants, pose thresholds,
+  and measurement logic are unchanged. Real camera bind failures still show the existing
+  unavailable state.

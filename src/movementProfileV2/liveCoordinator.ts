@@ -64,7 +64,7 @@ const HANDS_FREE_FALLBACK_TIMEOUT_MS = 10000;
 const SETUP_CHAIN_RELIABILITY = 0.45;
 const CHAIR_SETUP_SEATED_KNEE_MAX_DEG = 145;
 const SHOULDER_CAPTURE_ARM_MIN_DEG = 35;
-const HINGE_SETUP_FOLDED_TRUNK_MAX_DEG = 165;
+const HINGE_FOLDED_TRUNK_MAX_DEG = 165;
 
 export type MovementProfileV2TrackingQuality = 'good' | 'uncertain' | 'lost';
 
@@ -820,7 +820,7 @@ export class MovementProfileV2LiveCoordinator {
         break;
       }
       case 'hinge_setup': {
-        const ready = this.hingeSetupVoiceCompleted && hingeSetupReady(sample.output);
+        const ready = this.hingeSetupVoiceCompleted && hingeSetupFolded(sample.output);
         if (this.noteHandsFreeReadiness('hinge_setup', 'hinge', ready, nowMs)) {
           this.receiveUserAction({ type: 'start_hinge_capture' }, nowMs);
         }
@@ -1028,7 +1028,7 @@ export class MovementProfileV2LiveCoordinator {
     const floorY = Math.max(frame.ys[ankle], frame.ys[heel], frame.ys[foot]);
     const reachBu = (floorY - frame.ys[wrist]) / sample.output.bodyUnit;
     const trunkAngle = angleAtDeg(frame, shoulder, hip, knee);
-    if (trunkAngle > 165) {
+    if (trunkAngle > HINGE_FOLDED_TRUNK_MAX_DEG) {
       this.hingeValidTrackingStartedAtMs = null;
       return;
     }
@@ -2007,14 +2007,14 @@ function shoulderReadyForAutoCapture(out: PipelineFrameOutput, side: BodySide): 
   return shoulderReachAngleDegForSide(out.frame, side) >= SHOULDER_CAPTURE_ARM_MIN_DEG;
 }
 
-function hingeSetupReady(out: PipelineFrameOutput): boolean {
+function hingeSetupFolded(out: PipelineFrameOutput): boolean {
   if (out.state !== 'tracking' || !out.frame.hasPose || out.bodyUnit === null) return false;
   const side = moreReliableSide(out);
   if (!side || side.reliability < SETUP_CHAIN_RELIABILITY) return false;
   const shoulder = side.side === 'left' ? LM.LEFT_SHOULDER : LM.RIGHT_SHOULDER;
   const hip = side.side === 'left' ? LM.LEFT_HIP : LM.RIGHT_HIP;
   const knee = side.side === 'left' ? LM.LEFT_KNEE : LM.RIGHT_KNEE;
-  return angleAtDeg(out.frame, shoulder, hip, knee) <= HINGE_SETUP_FOLDED_TRUNK_MAX_DEG;
+  return angleAtDeg(out.frame, shoulder, hip, knee) <= HINGE_FOLDED_TRUNK_MAX_DEG;
 }
 
 function moreReliableSide(out: PipelineFrameOutput): { side: BodySide; reliability: number } | null {

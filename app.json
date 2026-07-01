@@ -8,7 +8,15 @@
     "icon": "./assets/ios-icon.png",
     "plugins": [
       "./modules/expo-pose-detection/app.plugin.js",
-      "expo-audio",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundRecording": false,
+          "enableBackgroundPlayback": false
+        }
+      ],
       "expo-font",
       [
         "expo-web-browser",
@@ -43,6 +51,14 @@
       ],
       "predictiveBackGestureEnabled": false,
       "package": "com.suvangoel.hale"
-    }
+    },
+    "extra": {
+      "enablePoseLatencyDiagnostics": false,
+      "allowDiagnosticsInRelease": false,
+      "eas": {
+        "projectId": "ad184e1a-235f-471c-89a1-62494d93ff3c"
+      }
+    },
+    "owner": "suvangoel"
   }
 }

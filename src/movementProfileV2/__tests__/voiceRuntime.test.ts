@@ -391,6 +391,37 @@ describe('MovementProfileV2VoiceRuntime', () => {
     expect(runtimeActions.map((entry) => entry.action.type)).toContain('hinge_setup_voice_completed');
   });
 
+  it('speaks a non-blocking hold cue during active forward reach capture', async () => {
+    const runtime = createRuntime();
+    runtime.sync(snapshot('hinge_active', {
+      lastTransition: {
+        atMs: 0,
+        from: 'hinge_setup',
+        to: 'hinge_active',
+        reason: 'hinge_capture_started',
+      },
+    }));
+
+    expect(runtime.state).toMatchObject({
+      blocking: false,
+      activeRequirement: 'optional_reassurance',
+    });
+    expect(runtime.state.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'optional_cue_playback_start_evidence',
+          cueKey: 'final-position-set-v21',
+        }),
+      ])
+    );
+
+    players[0].finish();
+    await flushAsync();
+
+    expect(runtimeActions).toEqual([]);
+    expect(runtime.state.lastFailure).toBeNull();
+  });
+
   it('replays the current movement instruction for Help without advancing the coordinator', () => {
     const runtime = createRuntime();
     const accepted = runtime.replayInstruction(snapshot('shoulder_ready'));

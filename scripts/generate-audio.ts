@@ -114,8 +114,8 @@ const LINES: Record<string, string> = {
   'hinge-setup':
     'Stand tall and let your arms hang comfortably. Move slowly, and only go ' +
     "as far as feels comfortable. When you're ready, fold forward from your " +
-    'hips and reach your hands toward the floor. Hold there until I tell you ' +
-    'to stand tall.',
+    'hips and reach your hands toward the floor. The measurement starts when ' +
+    'I see you folded forward. Hold there until I tell you to stand tall.',
   'stand-tall': 'Stand tall now. Forward reach saved.',
   // Shared result acknowledgement.
   'item-complete': 'Nicely done.',
@@ -1499,11 +1499,25 @@ function sfxToneAt(t: number, tone: SfxTone): number {
 
 /** Write the typed manifest: per-voice voice lines + voice-independent sfx. */
 function writeManifestFromDisk(additionalKnownVoiceKeys: ReadonlySet<string> = new Set()): void {
-  const voiceBlocks = VOICE_OPTIONS
-    .map(({ id: voiceId }) => {
-      const keys = existingVoiceKeys(voiceId, additionalKnownVoiceKeys);
+  const voiceKeysById = VOICE_OPTIONS.map(({ id: voiceId }) => ({
+    voiceId,
+    keys: existingVoiceKeys(voiceId, additionalKnownVoiceKeys),
+  }));
+  const voiceBlocks = voiceKeysById
+    .map(({ voiceId, keys }) => {
       const entries = keys
         .map((key) => `    '${key}': require('../../assets/audio/voice/${voiceId}/${key}.mp3'),`)
+        .join('\n');
+      return `  ${voiceId}: {\n${entries}\n  },`;
+    })
+    .join('\n');
+  const durationBlocks = voiceKeysById
+    .map(({ voiceId, keys }) => {
+      const entries = keys
+        .map((key) => {
+          const durationMs = probeGeneratedAudio(path.join(VOICE_DIR, voiceId, `${key}.mp3`)).durationMs;
+          return `    '${key}': ${durationMs},`;
+        })
         .join('\n');
       return `  ${voiceId}: {\n${entries}\n  },`;
     })
@@ -1524,6 +1538,10 @@ function writeManifestFromDisk(additionalKnownVoiceKeys: ReadonlySet<string> = n
     '',
     'export const VOICE_MANIFEST: Record<string, Partial<Record<VoiceCueKey, number>>> = {',
     voiceBlocks,
+    '};',
+    '',
+    'export const VOICE_DURATION_MANIFEST: Record<string, Partial<Record<VoiceCueKey, number>>> = {',
+    durationBlocks,
     '};',
     '',
     'export const SFX_MANIFEST: Partial<Record<SfxCueKey, number>> = {',
@@ -1591,7 +1609,10 @@ function writeMovementProfileV2Metadata(
       const exists = fs.existsSync(path.join(ROOT, expected.path));
       const current = MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA[voice.id]?.[cueId];
       if ((generatedCueKeys.has(key) || forceAllExistingMovementProfileV2) && exists) {
-        out[voice.id][cueId] = expected;
+        out[voice.id][cueId] = {
+          ...expected,
+          durationMs: probeGeneratedAudio(path.join(ROOT, expected.path)).durationMs,
+        };
       } else if (current) {
         out[voice.id][cueId] = current;
       }
@@ -1680,12 +1701,13 @@ async function main(): Promise<void> {
     const plan = buildMovementProfileV2Plan(voices, options.force);
     printMovementProfileV2Plan(plan, options.dryRun);
     if (options.dryRun) return;
-    if (!API_KEY) {
+    const needsProvider = plan.some(needsGeneration);
+    if (needsProvider && !API_KEY) {
       throw new Error('ELEVENLABS_API_KEY is not set; Movement Profile V2 audio assets were not generated');
     }
-    const generatedCueKeys = await generateMovementProfileV2Assets(plan);
+    const generatedCueKeys = needsProvider ? await generateMovementProfileV2Assets(plan) : new Set<string>();
     writeManifestFromDisk();
-    writeMovementProfileV2Metadata(generatedCueKeys);
+    writeMovementProfileV2Metadata(generatedCueKeys, !needsProvider);
     console.log(`\n${generatedCueKeys.size} Movement Profile V2 line(s) generated, manifest updated`);
     return;
   }

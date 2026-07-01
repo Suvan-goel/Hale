@@ -1,11 +1,15 @@
 import { VoiceCueKey } from '../cues';
+import { VOICE_DURATION_MANIFEST } from '../manifest';
 import {
   resolveVoiceCueAssetFromManifest,
+  VOICE_COMPLETION_POLL_INTERVAL_MS,
+  VOICE_INFERRED_COMPLETION_MARGIN_MS,
   voiceCompletionWatchdogMs,
   VOICE_START_FALLBACK_PROXY_MS,
   SfxChannel,
   VoiceChannel,
 } from '../voicePlayer';
+import { MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA } from '../movementProfileV2AudioManifest';
 
 const mockCreateAudioPlayer = jest.fn();
 
@@ -371,6 +375,94 @@ describe('VoiceChannel tracked playback', () => {
     await expect(request.completion).resolves.toMatchObject({ outcome: 'completion_timeout' });
   });
 
+  it('advances when a player reaches the end without a finish event', async () => {
+    const channel = new VoiceChannel('clara');
+    const request = channel.speakTracked(['training-intro', 'next-up'], {
+      priority: 9,
+      required: true,
+      scopeId: 'mpv2:no-finish-event',
+    });
+
+    players[0].emit({ playing: true });
+    players[0].endWithoutFinishEvent();
+    jest.advanceTimersByTime(VOICE_COMPLETION_POLL_INTERVAL_MS);
+    await flushAsync();
+
+    expect(players).toHaveLength(2);
+    players[1].finish();
+    await expect(request.completion).resolves.toMatchObject({
+      outcome: 'completed',
+      completedCueKeys: ['training-intro', 'next-up'],
+    });
+    expect(channel.busy).toBe(false);
+  });
+
+  it('advances Movement Profile V2 cues by bundled duration when native completion status never arrives', async () => {
+    const introDurationMs = MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA.clara?.mpv2_checkup_intro?.durationMs;
+    expect(introDurationMs).toBeGreaterThan(0);
+    const nowSpy = jest.spyOn(performance, 'now').mockReturnValue(0);
+
+    try {
+      const channel = new VoiceChannel('clara');
+      const request = channel.speakTracked(['mpv2_checkup_intro', 'mpv2_chair_practice_start'], {
+        priority: 9,
+        required: true,
+        scopeId: 'mpv2:bundled-duration',
+      });
+
+      players[0].duration = 0;
+      players[0].emit({ playing: true, duration: 0, currentTime: 0 });
+      jest.advanceTimersByTime(VOICE_COMPLETION_POLL_INTERVAL_MS);
+      await flushAsync();
+
+      expect(players).toHaveLength(1);
+      nowSpy.mockReturnValue(introDurationMs! + VOICE_INFERRED_COMPLETION_MARGIN_MS);
+      jest.advanceTimersByTime(VOICE_COMPLETION_POLL_INTERVAL_MS);
+      await flushAsync();
+
+      expect(players).toHaveLength(2);
+      players[1].finish();
+      await expect(request.completion).resolves.toMatchObject({
+        outcome: 'completed',
+        completedCueKeys: ['mpv2_checkup_intro', 'mpv2_chair_practice_start'],
+      });
+      expect(channel.busy).toBe(false);
+    } finally {
+      nowSpy.mockRestore();
+    }
+  });
+
+  it('advances legacy check-up cues by bundled duration when native completion status never arrives', async () => {
+    const hingeSetupDurationMs = VOICE_DURATION_MANIFEST.clara?.['hinge-setup'];
+    expect(hingeSetupDurationMs).toBeGreaterThan(0);
+    const nowSpy = jest.spyOn(performance, 'now').mockReturnValue(0);
+
+    try {
+      const channel = new VoiceChannel('clara');
+      const request = channel.speakTracked(['hinge-setup', 'next-up'], {
+        priority: 9,
+        required: true,
+        scopeId: 'mpv2:legacy-duration',
+      });
+
+      players[0].duration = 0;
+      players[0].emit({ playing: true, duration: 0, currentTime: 0 });
+      nowSpy.mockReturnValue(hingeSetupDurationMs! + VOICE_INFERRED_COMPLETION_MARGIN_MS);
+      jest.advanceTimersByTime(VOICE_COMPLETION_POLL_INTERVAL_MS);
+      await flushAsync();
+
+      expect(players).toHaveLength(2);
+      players[1].finish();
+      await expect(request.completion).resolves.toMatchObject({
+        outcome: 'completed',
+        completedCueKeys: ['hinge-setup', 'next-up'],
+      });
+      expect(channel.busy).toBe(false);
+    } finally {
+      nowSpy.mockRestore();
+    }
+  });
+
   it('keeps legacy speak behavior compatible', () => {
     const channel = new VoiceChannel('clara');
     expect(channel.speak(['training-intro'], 8)).toBe(true);
@@ -416,29 +508,65 @@ describe('SfxChannel', () => {
 class FakeAudioPlayer {
   playing = false;
   duration = 0.25;
+  currentTime = 0;
+  private statusOverride: Partial<FakeAudioStatus> = {};
   play = jest.fn(() => {
     this.playing = true;
+    this.statusOverride = {};
   });
   seekTo = jest.fn();
   remove = jest.fn();
   removeAllListeners = jest.fn();
-  private listener: ((status: { playing?: boolean; didJustFinish?: boolean; duration?: number }) => void) | null = null;
+  private listener: ((status: FakeAudioStatus) => void) | null = null;
 
-  addListener = jest.fn((event: string, listener: (status: { playing?: boolean; didJustFinish?: boolean; duration?: number }) => void) => {
+  get currentStatus(): FakeAudioStatus {
+    return {
+      playing: this.playing,
+      didJustFinish: false,
+      duration: this.duration,
+      currentTime: this.currentTime,
+      ...this.statusOverride,
+    };
+  }
+
+  addListener = jest.fn((event: string, listener: (status: FakeAudioStatus) => void) => {
     if (event === 'playbackStatusUpdate') this.listener = listener;
     return { remove: jest.fn() };
   });
 
-  emit(status: { playing?: boolean; didJustFinish?: boolean; duration?: number }) {
+  emit(status: Partial<FakeAudioStatus>) {
     this.listener?.({
       playing: status.playing ?? this.playing,
       didJustFinish: status.didJustFinish ?? false,
       duration: status.duration ?? this.duration,
+      currentTime: status.currentTime ?? this.currentTime,
     });
   }
 
-  finish() {
+  endWithoutFinishEvent() {
     this.playing = false;
+    this.currentTime = this.duration;
+    this.statusOverride = {
+      playing: false,
+      didJustFinish: true,
+      currentTime: this.currentTime,
+    };
+  }
+
+  finish() {
+    this.endWithoutFinishEvent();
     this.emit({ playing: false, didJustFinish: true });
   }
+}
+
+interface FakeAudioStatus {
+  playing: boolean;
+  didJustFinish: boolean;
+  duration: number;
+  currentTime: number;
+}
+
+async function flushAsync(): Promise<void> {
+  await Promise.resolve();
+  await Promise.resolve();
 }

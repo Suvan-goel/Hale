@@ -691,6 +691,27 @@ describe('MovementProfileV2LiveCoordinator', () => {
     expect(hingeCoordinator.snapshot(nowMs + 1400).stage).toBe('hinge_active');
   });
 
+  it('keeps hands-free forward reach waiting while upright, then starts when folded', () => {
+    const hingeCoordinator = createHandsFreeCoordinator();
+    const nowMs = completeLiveCheckupUntilHinge(hingeCoordinator);
+    expect(hingeCoordinator.snapshot(nowMs).stage).toBe('hinge_setup');
+    expect(hingeCoordinator.receiveUserAction({ type: 'hinge_setup_voice_completed' }, nowMs)).toBe(true);
+
+    feedOutput(hingeCoordinator, trackingOutput(uprightHingeSetupRaw(nowMs + 100)), nowMs + 100);
+    feedOutput(hingeCoordinator, trackingOutput(uprightHingeSetupRaw(nowMs + 1400)), nowMs + 1400);
+
+    let snapshot = hingeCoordinator.snapshot(nowMs + 1400);
+    expect(snapshot.stage).toBe('hinge_setup');
+
+    feedOutput(hingeCoordinator, trackingOutput(hingeRaw(nowMs + 1500)), nowMs + 1500);
+    feedOutput(hingeCoordinator, trackingOutput(hingeRaw(nowMs + 2800)), nowMs + 2800);
+
+    snapshot = hingeCoordinator.snapshot(nowMs + 2800);
+    expect(snapshot.stage).toBe('hinge_active');
+    expect(snapshot.diagnostics.hinge.captureValid).toBe(false);
+    expect(snapshot.diagnostics.hinge.reachBu).toBeGreaterThan(0);
+  });
+
   it('recovers safely from app backgrounding during active live protocol stages', () => {
     const chairInterrupted = createCoordinator();
     let nowMs = advanceToChairActive(chairInterrupted, 0);
@@ -1339,6 +1360,10 @@ function hingeRaw(timestampMs: number): RawLandmarkEvent {
     [LM.LEFT_WRIST, 0.66, 0.79],
     [LM.RIGHT_WRIST, 0.67, 0.79],
   ]);
+}
+
+function uprightHingeSetupRaw(timestampMs: number): RawLandmarkEvent {
+  return rawFromPoints(timestampMs, []);
 }
 
 function rawFromPoints(timestampMs: number, overrides: readonly [LM, number, number][]): RawLandmarkEvent {

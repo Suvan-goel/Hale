@@ -27,6 +27,7 @@ export interface MovementProfileV2AudioAssetMetadata {
   outputFormat: typeof AUDIO_OUTPUT_FORMAT;
   path: string;
   fingerprint: string;
+  durationMs?: number;
 }
 
 export type MovementProfileV2AudioMetadataByVoice = Readonly<

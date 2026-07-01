@@ -4,6 +4,7 @@ const enablePoseLatencyDiagnostics =
   process.env.EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS === '1';
 const allowDiagnosticsInRelease =
   process.env.EXPO_PUBLIC_ALLOW_DIAGNOSTICS_IN_RELEASE === '1';
+const enableSentry = process.env.EXPO_PUBLIC_ENABLE_SENTRY === '1';
 const betaReleaseBuildProfiles = new Set(['preview', 'beta', 'internal', 'production', 'release']);
 
 const unsafeBetaReleaseFlags = [
@@ -53,10 +54,14 @@ function assertSafeBetaReleaseFlags() {
 
 module.exports = ({ config }) => {
   assertSafeBetaReleaseFlags();
+  const plugins = enableSentry
+    ? appJson.expo.plugins
+    : appJson.expo.plugins.filter((plugin) => plugin !== '@sentry/react-native/expo');
 
   return {
     ...config,
     ...appJson.expo,
+    plugins,
     extra: {
       ...config.extra,
       ...appJson.expo.extra,

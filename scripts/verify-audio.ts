@@ -271,6 +271,7 @@ function verifyRequiredAssets(input: {
     fingerprint: string;
     voiceId: string;
     cueId: string;
+    durationMs?: number;
   } | undefined;
   cueText: (cueId: RequiredCueId) => string;
   manifestByVoiceCue: ReadonlyMap<string, ManifestEntry>;
@@ -322,8 +323,17 @@ function verifyRequiredAssets(input: {
         issues.push(`audio file is not recognized as mp3 for ${input.group} ${key}`);
       }
       const durationSec = probeDuration(absPath, `${input.group} ${key}`);
+      const durationMs = Math.round(durationSec * 1000);
+      const metadataDurationMs = Number(metadata?.durationMs);
       if (!Number.isFinite(durationSec) || durationSec <= 0) {
         issues.push(`audio duration is not finite and positive for ${input.group} ${key}: ${durationSec}`);
+      } else if (
+        input.group === 'movementProfileV2' &&
+        (!Number.isFinite(metadataDurationMs) || Math.abs(durationMs - metadataDurationMs) > 5)
+      ) {
+        issues.push(
+          `${input.group} duration metadata mismatch for ${key}: expected ${metadata?.durationMs}, got ${durationMs}`
+        );
       } else if (!durationLooksPlausible(input.cueText(cueId), durationSec)) {
         issues.push(`audio duration is outside broad text bounds for ${input.group} ${key}: ${durationSec.toFixed(3)}s`);
       }

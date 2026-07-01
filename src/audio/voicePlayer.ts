@@ -14,10 +14,11 @@
  *   and never compete with it.
  */
 
-import { AudioPlayer, createAudioPlayer, setAudioModeAsync } from 'expo-audio';
+import { AudioPlayer, createAudioPlayer, setAudioModeAsync, type AudioStatus } from 'expo-audio';
 
 import { SfxCueKey, VoiceCueKey } from './cues';
-import { SFX_MANIFEST, VOICE_MANIFEST } from './manifest';
+import { SFX_MANIFEST, VOICE_DURATION_MANIFEST, VOICE_MANIFEST } from './manifest';
+import { MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA } from './movementProfileV2AudioManifest';
 import { DEFAULT_VOICE_ID, getVoice } from '../profile/voices';
 import { isMovementProfileV2CueId } from '../movementProfileV2/voiceCues';
 import { isSafetyCueId } from '../training/safetyCueDefinitions';
@@ -89,8 +90,11 @@ export interface TrackedVoiceRequest {
 
 export const VOICE_PLAYER_STATUS_UPDATE_INTERVAL_MS = 50;
 export const VOICE_START_FALLBACK_PROXY_MS = 75;
+export const VOICE_COMPLETION_POLL_INTERVAL_MS = 100;
+export const VOICE_INFERRED_COMPLETION_MARGIN_MS = 750;
 export const VOICE_COMPLETION_WATCHDOG_MARGIN_MS = 1500;
 export const VOICE_COMPLETION_WATCHDOG_FALLBACK_MS = 6000;
+const VOICE_COMPLETION_EPSILON_SEC = 0.03;
 
 export function voiceCompletionWatchdogMs(durationSec: number | null | undefined): number {
   const durationMs = typeof durationSec === 'number' && Number.isFinite(durationSec) && durationSec > 0
@@ -197,9 +201,12 @@ interface ActiveTrackedVoiceRequest {
   lastOptionalFailure?: VoicePlaybackOutcome;
   startTimer: ReturnType<typeof setTimeout> | null;
   watchdogTimer: ReturnType<typeof setTimeout> | null;
+  completionPollTimer: ReturnType<typeof setInterval> | null;
   currentCue: VoiceCueKey | null;
   currentCueIndex: number;
   currentCueStarted: boolean;
+  currentCueStartedAtMs: number | null;
+  currentCueDurationMs: number | null;
 }
 
 export class VoiceChannel {
@@ -284,9 +291,12 @@ export class VoiceChannel {
       completed: false,
       startTimer: null,
       watchdogTimer: null,
+      completionPollTimer: null,
       currentCue: null,
       currentCueIndex: -1,
       currentCueStarted: false,
+      currentCueStartedAtMs: null,
+      currentCueDurationMs: null,
     };
 
     this.activeTrackedRequest = active;
@@ -386,6 +396,8 @@ export class VoiceChannel {
     active.currentCue = cue;
     active.currentCueIndex = active.cueIndex++;
     active.currentCueStarted = false;
+    active.currentCueStartedAtMs = null;
+    active.currentCueDurationMs = bundledVoiceCueDurationMs(this.voiceId, cue);
     this.clearTrackedTimers(active);
     this.releasePlayer();
 
@@ -418,7 +430,7 @@ export class VoiceChannel {
       if (status.playing) {
         this.markTrackedCueStarted(active, cue, active.currentCueIndex, 'native_playing_status');
       }
-      if (!status.didJustFinish) return;
+      if (!playbackStatusLooksFinished(status)) return;
       this.completeTrackedCue(active, cue);
     });
 
@@ -438,16 +450,20 @@ export class VoiceChannel {
       this.markTrackedCueStarted(active, cue, active.currentCueIndex, 'fallback_proxy');
     }, VOICE_START_FALLBACK_PROXY_MS);
 
-    const durationSec = typeof player.duration === 'number' && Number.isFinite(player.duration)
-      ? player.duration
-      : null;
+    const durationSec = finitePositiveSeconds(player.duration) ?? durationMsToSeconds(active.currentCueDurationMs);
     active.watchdogTimer = setTimeout(() => {
       if (this.player !== player || this.activeTrackedRequest !== active || active.completed) return;
+      if (this.completeTrackedCueFromPlayerState(active, cue, player)) return;
       this.resolveTrackedRequest(active, 'completion_timeout', {
         failedCueKey: cue,
         errorCode: 'watchdog_timeout',
       });
     }, voiceCompletionWatchdogMs(durationSec));
+
+    active.completionPollTimer = setInterval(() => {
+      if (this.player !== player || this.activeTrackedRequest !== active || active.completed) return;
+      this.completeTrackedCueFromPlayerState(active, cue, player);
+    }, VOICE_COMPLETION_POLL_INTERVAL_MS);
   }
 
   private markTrackedCueStarted(
@@ -459,6 +475,7 @@ export class VoiceChannel {
     if (this.activeTrackedRequest !== active || active.completed || active.currentCueStarted) return;
     active.currentCueStarted = true;
     const startedAtMs = monotonicNowMs();
+    active.currentCueStartedAtMs = startedAtMs;
     active.startedCueKeys.push(cue);
     if (active.firstCueStartedAtMs === undefined) active.firstCueStartedAtMs = startedAtMs;
     active.onCueStarted?.({
@@ -481,6 +498,36 @@ export class VoiceChannel {
       return;
     }
     this.resolveTrackedRequest(active, 'completed', { accepted: true });
+  }
+
+  private completeTrackedCueFromPlayerState(
+    active: ActiveTrackedVoiceRequest,
+    cue: VoiceCueKey,
+    player: AudioPlayer
+  ): boolean {
+    if (this.activeTrackedRequest !== active || active.completed || active.currentCue !== cue) return false;
+    const status = readPlayerStatus(player);
+    if (status && playbackStatusLooksFinished(status)) {
+      this.completeTrackedCue(active, cue);
+      return true;
+    }
+    const durationSec = finitePositiveSeconds(player.duration);
+    const currentTimeSec = finiteSeconds(player.currentTime);
+    if (
+      active.currentCueStarted &&
+      durationSec !== null &&
+      currentTimeSec !== null &&
+      currentTimeSec >= durationSec - VOICE_COMPLETION_EPSILON_SEC &&
+      player.playing === false
+    ) {
+      this.completeTrackedCue(active, cue);
+      return true;
+    }
+    if (cueHasReachedBundledDuration(active)) {
+      this.completeTrackedCue(active, cue);
+      return true;
+    }
+    return false;
   }
 
   private handleTrackedCueFailure(
@@ -565,6 +612,10 @@ export class VoiceChannel {
       clearTimeout(active.watchdogTimer);
       active.watchdogTimer = null;
     }
+    if (active.completionPollTimer) {
+      clearInterval(active.completionPollTimer);
+      active.completionPollTimer = null;
+    }
   }
 
   private releasePlayer(): void {
@@ -574,6 +625,58 @@ export class VoiceChannel {
       this.player = null;
     }
   }
+}
+
+function readPlayerStatus(player: AudioPlayer): AudioStatus | null {
+  try {
+    return player.currentStatus;
+  } catch {
+    return null;
+  }
+}
+
+function playbackStatusLooksFinished(
+  status: Pick<AudioStatus, 'currentTime' | 'duration' | 'playing' | 'didJustFinish'>
+): boolean {
+  if (status.didJustFinish) return true;
+  const durationSec = finitePositiveSeconds(status.duration);
+  const currentTimeSec = finiteSeconds(status.currentTime);
+  return (
+    durationSec !== null &&
+    currentTimeSec !== null &&
+    currentTimeSec >= durationSec - VOICE_COMPLETION_EPSILON_SEC &&
+    status.playing === false
+  );
+}
+
+function finitePositiveSeconds(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function finiteSeconds(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function durationMsToSeconds(durationMs: number | null): number | null {
+  return durationMs !== null && Number.isFinite(durationMs) && durationMs > 0 ? durationMs / 1000 : null;
+}
+
+function bundledVoiceCueDurationMs(voiceId: string, cue: VoiceCueKey): number | null {
+  const manifestDurationMs = VOICE_DURATION_MANIFEST[voiceId]?.[cue];
+  if (typeof manifestDurationMs === 'number' && Number.isFinite(manifestDurationMs) && manifestDurationMs > 0) {
+    return manifestDurationMs;
+  }
+  if (!isMovementProfileV2CueId(cue)) return null;
+  const durationMs = MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA[voiceId]?.[cue]?.durationMs;
+  return typeof durationMs === 'number' && Number.isFinite(durationMs) && durationMs > 0 ? durationMs : null;
+}
+
+function cueHasReachedBundledDuration(active: ActiveTrackedVoiceRequest): boolean {
+  if (!active.currentCueStarted || active.currentCueStartedAtMs === null || active.currentCueDurationMs === null) {
+    return false;
+  }
+  const elapsedMs = monotonicNowMs() - active.currentCueStartedAtMs;
+  return elapsedMs >= active.currentCueDurationMs + VOICE_INFERRED_COMPLETION_MARGIN_MS;
 }
 
 function resolvedTrackedRequest(input: {

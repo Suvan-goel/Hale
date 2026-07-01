@@ -120,9 +120,9 @@ const CHECKUP_PROFILES = Object.freeze([
     firstCueIds: ['checkup-hinge-setup-v21', 'hinge-setup'],
     repeatCueIds: ['hinge-setup'],
     firstText:
-      "Last is your forward reach check. Stay side-on to the phone, with your feet about hip-width apart. Make sure the camera can see from your shoulders down to your feet, including your hands. Stand tall and let your arms hang comfortably. Move slowly, and only go as far as feels comfortable. When you're ready, fold forward from your hips and reach your hands toward the floor. Hold there until I tell you to stand tall.",
+      "Last is your forward reach check. Stay side-on to the phone, with your feet about hip-width apart. Make sure the camera can see from your shoulders down to your feet, including your hands. Stand tall and let your arms hang comfortably. Move slowly, and only go as far as feels comfortable. When you're ready, fold forward from your hips and reach your hands toward the floor. The measurement starts when I see you folded forward. Hold there until I tell you to stand tall.",
     repeatText:
-      "Stand tall and let your arms hang comfortably. Move slowly, and only go as far as feels comfortable. When you're ready, fold forward from your hips and reach your hands toward the floor. Hold there until I tell you to stand tall.",
+      "Stand tall and let your arms hang comfortably. Move slowly, and only go as far as feels comfortable. When you're ready, fold forward from your hips and reach your hands toward the floor. The measurement starts when I see you folded forward. Hold there until I tell you to stand tall.",
     setup: 'Stand side-on with feet about hip-width apart, hands and feet in view.',
     execution: 'Fold forward from your hips, reach your hands toward the floor, and hold until told to stand tall.',
     safetyCueIds: ['comfortable_range_only'],
