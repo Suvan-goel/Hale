@@ -19,6 +19,7 @@ export const ONE_LEG_BALANCE_V2_ID = 'one-leg-balance-45s-v2';
 export type OneLegBalanceV2TrialTermination =
   | 'ceiling'
   | 'touchdown'
+  | 'support_touched'
   | 'user_stopped'
   | 'tracking_invalid'
   | 'app_backgrounded'
@@ -140,7 +141,7 @@ export class OneLegBalanceV2ProtocolController {
     nowMs: number;
     holdMs: number;
     swaySd?: number | null;
-    termination: 'touchdown' | 'user_stopped' | 'ceiling';
+    termination: 'touchdown' | 'support_touched' | 'user_stopped' | 'ceiling';
   }): boolean {
     if (this.phase_ !== 'trial' || this.activeTrialStartedAtMs === null) return false;
     const clampedHoldMs = Math.max(0, Math.min(this.config.maxTrialMs, holdMs));

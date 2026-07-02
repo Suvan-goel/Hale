@@ -1132,12 +1132,17 @@ function startBalanceTrial(
 ): number {
   expect(coordinator.receiveUserAction({ type: 'confirm_balance_setup', standingLeg }, startMs)).toBe(true);
   expect(coordinator.receiveUserAction({ type: 'balance_attempt_voice_completed' }, startMs + 1)).toBe(true);
-  let nowMs = startMs + 100;
-  feedOutput(coordinator, trackingOutput(balanceRaw(nowMs, standingLeg, false)), nowMs);
-  nowMs += 100;
-  feedOutput(coordinator, trackingOutput(balanceRaw(nowMs, standingLeg, true)), nowMs);
+  feedOutput(coordinator, trackingOutput(balanceRaw(startMs + 100, standingLeg, false)), startMs + 100);
+  // Lift evidence must persist through the confirmation window before the trial starts.
+  const firstLiftMs = startMs + 200;
+  let nowMs = firstLiftMs;
+  for (let index = 0; index <= 6; index++) {
+    nowMs = firstLiftMs + index * 33;
+    feedOutput(coordinator, trackingOutput(balanceRaw(nowMs, standingLeg, true)), nowMs);
+    if (coordinator.snapshot(nowMs).stage === 'balance_trial') break;
+  }
   expect(coordinator.snapshot(nowMs).stage).toBe('balance_trial');
-  return nowMs;
+  return firstLiftMs;
 }
 
 function finishBalanceByTouchdown(

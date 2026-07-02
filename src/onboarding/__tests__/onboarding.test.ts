@@ -174,6 +174,34 @@ describe('Hale V1 onboarding results and equipment', () => {
     ]);
   });
 
+  it('reads result bands against the user\'s own age when known', () => {
+    const score = scoreCheckUp(syntheticCheckUp(START));
+    const measured = score.domains.filter((domain) => domain.measured);
+    expect(measured.length).toBeGreaterThan(0);
+
+    // The same movement ages read as strong to an older user and as a
+    // starting point to a much younger one.
+    const keyForDomain = {
+      strength: 'strength_power',
+      balance: 'balance_stability',
+      mobility: 'mobility_flexibility',
+    } as const;
+    const asOlderUser = onboardingDomainSummaries(score, 120);
+    const asYoungerUser = onboardingDomainSummaries(score, 18);
+    for (const domain of score.domains) {
+      if (!domain.measured) continue;
+      const key = keyForDomain[domain.domain];
+      expect(asOlderUser.find((summary) => summary.key === key)?.band).toBe('strong');
+      expect(asYoungerUser.find((summary) => summary.key === key)?.band).toBe('starting_point');
+    }
+
+    // Without a known age the historical absolute cutoffs still apply.
+    const withoutAge = onboardingDomainSummaries(score);
+    for (const summary of withoutAge) {
+      expect(['strong', 'building', 'starting_point', 'baseline_pending']).toContain(summary.band);
+    }
+  });
+
   it('uses the planned block focus when onboarding display focus differs from the raw score', () => {
     const score = scoreCheckUp(syntheticCheckUp(START));
 

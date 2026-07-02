@@ -145,6 +145,57 @@ describe('VoiceChannel playback failure handling', () => {
     expect(removeAllListeners).toHaveBeenCalledWith('playbackStatusUpdate');
     expect(remove).toHaveBeenCalled();
     expect(channel.busy).toBe(true);
+    channel.stop();
+  });
+});
+
+describe('VoiceChannel untracked playback watchdog', () => {
+  let warnSpy: jest.SpyInstance;
+  let players: FakeAudioPlayer[];
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    players = [];
+    mockCreateAudioPlayer.mockReset();
+    mockCreateAudioPlayer.mockImplementation(() => {
+      const player = new FakeAudioPlayer();
+      players.push(player);
+      return player;
+    });
+    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    warnSpy.mockRestore();
+    jest.useRealTimers();
+  });
+
+  it('recovers a wedged untracked cue so later lines are not silently dropped', () => {
+    const channel = new VoiceChannel('clara');
+    expect(channel.speak(['training-intro'], 8)).toBe(true);
+    expect(channel.busy).toBe(true);
+
+    // Playback ended but didJustFinish never arrived (missed status event).
+    players[0].endWithoutFinishEvent();
+    jest.advanceTimersByTime(voiceCompletionWatchdogMs(players[0].duration) + 1);
+
+    expect(channel.busy).toBe(false);
+    expect(channel.speak(['next-up'], 7)).toBe(true);
+    channel.stop();
+  });
+
+  it('does not cut short an untracked cue that still reports live playback', () => {
+    const channel = new VoiceChannel('clara');
+    expect(channel.speak(['training-intro'], 8)).toBe(true);
+    players[0].currentTime = 0.1;
+
+    jest.advanceTimersByTime(voiceCompletionWatchdogMs(players[0].duration) + 1);
+    expect(channel.busy).toBe(true);
+
+    // Once playback actually stops, the re-armed watchdog recovers the channel.
+    players[0].endWithoutFinishEvent();
+    jest.advanceTimersByTime(voiceCompletionWatchdogMs(players[0].duration) + 1);
+    expect(channel.busy).toBe(false);
   });
 });
 

@@ -10,23 +10,26 @@ export interface OnboardingDomainSummary {
   band: OnboardingBand | 'baseline_pending';
 }
 
-export function onboardingDomainSummaries(score: CheckUpScore | null): OnboardingDomainSummary[] {
+export function onboardingDomainSummaries(
+  score: CheckUpScore | null,
+  userAge?: number | null
+): OnboardingDomainSummary[] {
   const domain = (name: Domain) => score?.domains.find((d) => d.domain === name);
   return [
     {
       key: 'strength_power',
       title: 'Strength & Power',
-      band: bandForDomain(domain('strength')),
+      band: bandForDomain(domain('strength'), userAge),
     },
     {
       key: 'balance_stability',
       title: 'Balance',
-      band: bandForDomain(domain('balance')),
+      band: bandForDomain(domain('balance'), userAge),
     },
     {
       key: 'mobility_flexibility',
       title: 'Mobility',
-      band: bandForDomain(domain('mobility')),
+      band: bandForDomain(domain('mobility'), userAge),
     },
   ];
 }
@@ -74,11 +77,22 @@ export function bandLabel(band: OnboardingBand | 'baseline_pending'): string {
   return 'Baseline pending';
 }
 
-function bandForDomain(domain: CheckUpScore['domains'][number] | undefined): OnboardingBand | 'baseline_pending' {
+function bandForDomain(
+  domain: CheckUpScore['domains'][number] | undefined,
+  userAge?: number | null
+): OnboardingBand | 'baseline_pending' {
   if (!domain?.measured || !Number.isFinite(domain.ageLow) || !Number.isFinite(domain.ageHigh)) {
     return 'baseline_pending';
   }
   const mid = (domain.ageLow + domain.ageHigh) / 2;
+  // Bands are read against the user's own age when known: a movement age a
+  // little younger than you is strong, near/just above you is building.
+  // Absolute cutoffs remain only as a fallback when no age was captured.
+  if (typeof userAge === 'number' && Number.isFinite(userAge)) {
+    if (mid <= userAge - 2) return 'strong';
+    if (mid <= userAge + 8) return 'building';
+    return 'starting_point';
+  }
   if (mid <= 58) return 'strong';
   if (mid <= 72) return 'building';
   return 'starting_point';

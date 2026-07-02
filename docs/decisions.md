@@ -2284,3 +2284,51 @@ PUBLIC RELEASE REMAINS BLOCKED
 - **Boundary:** camera permission policy, no-video rendering, model variants, pose thresholds,
   and measurement logic are unchanged. Real camera bind failures still show the existing
   unavailable state.
+
+## 2026-07-02 — Production-readiness fixes: interruption handling, permission timing, balance dwell
+
+- **Change (interruption handling):** the MPV2 live coordinator and flow reducer now clear
+  `backgrounded` when the app resumes (the flag previously latched forever, leaving the rest of
+  a check-up in a permanent "Capture interrupted"/recovery visual state after any brief iOS
+  `inactive` blip). TrainingSessionScreen and MicroCheckScreen now auto-pause on AppState
+  `background`/`inactive` via their existing pause paths: both are frame-timestamp driven and
+  camera clocks keep advancing while suspended, so an unpaused gap silently completed sets and
+  rest timers. Resume stays explicit — after an interruption the user may not be in position.
+  The micro-check only auto-pauses once a measurement runner exists; side setup has no clock to
+  protect. The legacy V1 CheckUpScreen (release-gated off) was deliberately left unchanged.
+- **Change (permission timing):** app startup now *checks* camera permission
+  (`getCameraPermissionsAsync`) instead of requesting it, adding an `undetermined` state. The
+  OS dialog first appears from the camera-explanation/setup screens (or the readiness gate's
+  new "Allow camera access" action), after the privacy case is made — the cold prompt at first
+  launch undermined the explanation flow and grant rates.
+- **Change (balance measurement):** a one-leg balance trial now requires 150 ms of continuous
+  lift evidence before starting (`BALANCE_LIFT_CONFIRM_MS`), and the trial clock plus the
+  `balance_lift_detected` transition are retro-dated to the first lift frame so no hold time is
+  lost. Previously a single jittery frame with >0.14 BU ankle separation started a trial,
+  which could burn one of the three valid trials (~0.1 s "hold") and force a 30 s rest. Lift
+  evidence also only accumulates after the attempt voice boundary, so an early lift during the
+  cue can no longer backdate the clock to before "go". Support touches are now recorded with a
+  distinct `support_touched` trial termination instead of folding into `user_stopped`.
+- **Change (crash recovery):** pending raw MPV2 check-up recovery now also covers
+  `official_retest` records. A crash between raw save and finalize previously stranded the
+  retest permanently (never materialized, block transition never ran). The launch auto-finalize
+  rebuilds the prior-block context from the active block's V2 origin; the baseline launch path
+  explicitly ignores pending retest raws so they are never finalized as baselines.
+- **Change (smaller):** the untracked `VoiceChannel.speak()` path gained a duration-based
+  completion watchdog (a missed `didJustFinish` previously wedged the channel busy forever,
+  silently dropping later cues and blocking session completion); `SfxChannel.play` no longer
+  throws into the render path; post-session feedback only syncs completions to the backend
+  that adherence actually recorded (non-credited sessions created remote records a restore
+  could not reproduce); Android hardware back on the home tab now defers to the OS
+  (backgrounds the app) instead of being swallowed; V1 onboarding result bands read movement
+  age relative to the user's own age when known (absolute cutoffs remain only as a no-age
+  fallback).
+- **Rationale:** a pre-production audit found the shipped-quality risks concentrated in
+  real-world interruptions (calls, notification pulls, crashes, jittery frames) rather than in
+  the measurement logic itself. These changes close those paths without touching scoring,
+  norms, thresholds, or the audio laws.
+- **Boundary:** the MPV2 unified check-up still has no lighting/framing pre-flight (needs a
+  seated-framing protocol design — the existing PreflightCheck assumes a standing subject);
+  the eyes-open balance V2 protocol remains built but not wired into the live coordinator;
+  the balance dwell change should still be validated against real landmark recordings per the
+  working agreements.

@@ -6,6 +6,7 @@
 
 import * as React from 'react';
 import {
+  AppState,
   Modal,
   Platform,
   Pressable,
@@ -477,6 +478,19 @@ export function MicroCheckScreen({
     resumePendingRef.current = true;
     setPaused(false);
   }, []);
+
+  // Backgrounding must pause an active measurement: the runner is
+  // frame-timestamp driven and camera clocks keep advancing while suspended,
+  // so an unpaused gap would silently expire the capture window. Side setup
+  // (runner not yet created) has no measurement clock to protect.
+  React.useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'background' && state !== 'inactive') return;
+      if (!runner || pausedRef.current || completedRef.current) return;
+      pause();
+    });
+    return () => sub.remove();
+  }, [pause, runner]);
 
   const requestDiscardMicroCheck = React.useCallback(() => {
     if (!onCancel) return;

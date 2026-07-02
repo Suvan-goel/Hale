@@ -127,6 +127,16 @@ describe('internal Movement Profile V2 flow', () => {
     expect(resumed?.record.checkUp.startedAt).toBe('2026-06-24T09:00:00.000Z');
     expect(resumed?.sourceType).toBe('baseline');
   });
+
+  it('recovers a stranded official-retest raw check-up for auto-finalization', () => {
+    const pendingRetest = storedRawV2(makeV2CheckUp('2026-06-29T09:00:00.000Z'), 'official_retest');
+    const materialized = storedV2Assessment(makeV2CheckUp('2026-06-01T09:00:00.000Z'), 'baseline');
+
+    const resumed = latestPendingMovementProfileV2RawCheckUp([materialized, pendingRetest]);
+
+    expect(resumed?.record.checkUp.startedAt).toBe('2026-06-29T09:00:00.000Z');
+    expect(resumed?.sourceType).toBe('official_retest');
+  });
 });
 
 const REFERENCE_PROFILE = {
@@ -148,7 +158,10 @@ function makeV2CheckUp(startedAt: string): CheckUp {
   };
 }
 
-function storedRawV2(checkUp: CheckUp, checkupType: 'baseline' | 'baseline_retake'): StoredCheckUp {
+function storedRawV2(
+  checkUp: CheckUp,
+  checkupType: 'baseline' | 'baseline_retake' | 'official_retest'
+): StoredCheckUp {
   return {
     schemaVersion: HISTORY_SCHEMA_VERSION,
     checkUp,

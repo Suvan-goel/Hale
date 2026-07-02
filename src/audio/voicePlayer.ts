@@ -215,6 +215,7 @@ export class VoiceChannel {
   private currentPriority = -1;
   private playing = false;
   private activeTrackedRequest: ActiveTrackedVoiceRequest | null = null;
+  private untrackedWatchdogTimer: ReturnType<typeof setTimeout> | null = null;
 
   /** @param voiceId selected trainer voice (see src/profile/voices.ts). */
   private readonly voiceId: string;
@@ -357,14 +358,7 @@ export class VoiceChannel {
     this.player = player;
     player.addListener('playbackStatusUpdate', (status) => {
       if (!status.didJustFinish || this.player !== player) return;
-      const next = this.pendingCues.shift();
-      if (next !== undefined) {
-        this.playCue(next);
-      } else {
-        this.releasePlayer();
-        this.playing = false;
-        this.currentPriority = -1;
-      }
+      this.advanceUntrackedQueue();
     });
     try {
       player.play();
@@ -379,7 +373,42 @@ export class VoiceChannel {
       this.currentPriority = -1;
       return false;
     }
+    this.armUntrackedWatchdog(player, cue);
     return true;
+  }
+
+  private advanceUntrackedQueue(): void {
+    const next = this.pendingCues.shift();
+    if (next !== undefined) {
+      this.playCue(next);
+    } else {
+      this.releasePlayer();
+      this.playing = false;
+      this.currentPriority = -1;
+    }
+  }
+
+  /**
+   * A missed didJustFinish on the untracked path would leave the channel busy
+   * forever, silently dropping every later ≤-priority line. Infer completion
+   * from the bundled duration; if the player still reports live playback,
+   * re-arm rather than cut audible speech short.
+   */
+  private armUntrackedWatchdog(player: AudioPlayer, cue: VoiceCueKey): void {
+    const durationSec =
+      finitePositiveSeconds(player.duration) ??
+      durationMsToSeconds(bundledVoiceCueDurationMs(this.voiceId, cue));
+    this.untrackedWatchdogTimer = setTimeout(() => {
+      this.untrackedWatchdogTimer = null;
+      if (this.player !== player || this.activeTrackedRequest !== null) return;
+      const status = readPlayerStatus(player);
+      if (status && status.playing === true && !playbackStatusLooksFinished(status)) {
+        this.armUntrackedWatchdog(player, cue);
+        return;
+      }
+      console.warn('[audio] voice cue completion inferred by watchdog', { cue });
+      this.advanceUntrackedQueue();
+    }, voiceCompletionWatchdogMs(durationSec));
   }
 
   private playNextTrackedCue(active: ActiveTrackedVoiceRequest): void {
@@ -619,6 +648,10 @@ export class VoiceChannel {
   }
 
   private releasePlayer(): void {
+    if (this.untrackedWatchdogTimer) {
+      clearTimeout(this.untrackedWatchdogTimer);
+      this.untrackedWatchdogTimer = null;
+    }
     if (this.player) {
       this.player.removeAllListeners('playbackStatusUpdate');
       this.player.remove();
@@ -709,13 +742,19 @@ export class SfxChannel {
   private readonly players = new Map<SfxCueKey, AudioPlayer>();
 
   play(cue: SfxCueKey = 'rep-credit'): void {
-    let player = this.players.get(cue) ?? null;
-    if (!player) {
-      player = createAudioPlayer(sfxAssetFor(cue));
-      this.players.set(cue, player);
+    // Sound effects are garnish; a missing asset or player failure must never
+    // take down the session render path that triggered the chime.
+    try {
+      let player = this.players.get(cue) ?? null;
+      if (!player) {
+        player = createAudioPlayer(sfxAssetFor(cue));
+        this.players.set(cue, player);
+      }
+      void player.seekTo(0);
+      player.play();
+    } catch (error) {
+      console.warn('[audio] skipped sfx cue', { cue, reason: String(error) });
     }
-    void player.seekTo(0);
-    player.play();
   }
 
   release(): void {

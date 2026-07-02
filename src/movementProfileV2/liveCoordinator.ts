@@ -50,6 +50,9 @@ export const MPV2_CHAIR_COUNTDOWN_TOTAL_MS = 3000;
 const BALANCE_REST_MIN_MS = 30000;
 const BALANCE_REST_DEFAULT_MS = 60000;
 const BALANCE_TOUCHDOWN_DEBOUNCE_FRAMES = 4;
+/** Continuous lift evidence required before a trial starts (anti-jitter; the
+ * trial clock is retro-dated to the first lift frame so no hold time is lost). */
+const BALANCE_LIFT_CONFIRM_MS = 150;
 const ACTIVE_TRACKING_LOSS_CONFIRM_FRAMES = 4;
 const BALANCE_LIFT_BU = 0.14;
 const CHAIR_MAX_REPS = 64;
@@ -538,7 +541,7 @@ export class MovementProfileV2LiveCoordinator {
         if (this.stage !== 'balance_trial' || this.balanceTrialStartedAtMs === null) return false;
         this.completeBalanceTrial(
           nowMs,
-          action.type === 'balance_support_touched' ? 'user_stopped' : 'user_stopped'
+          action.type === 'balance_support_touched' ? 'support_touched' : 'user_stopped'
         );
         break;
       case 'balance_use_result':
@@ -639,6 +642,7 @@ export class MovementProfileV2LiveCoordinator {
         this.bump();
         break;
       case 'resumed':
+        this.backgrounded = false;
         this.flow = movementProfileV2InternalFlowReducer(this.flow, { type: 'resumed' });
         this.bump();
         break;
@@ -649,7 +653,8 @@ export class MovementProfileV2LiveCoordinator {
       isVoiceBoundaryAction(action) ||
       action.type === 'recovery_voice_completed' ||
       action.type === 'shoulder_pain_limited' ||
-      action.type === 'backgrounded';
+      action.type === 'backgrounded' ||
+      action.type === 'resumed';
   }
 
   receiveTimerTick(nowMs: number): boolean {
@@ -947,19 +952,24 @@ export class MovementProfileV2LiveCoordinator {
         this.clearBalanceReadyLiftEvidence();
         return;
       }
+      if (!this.balanceAttemptVoiceCompleted) {
+        this.clearBalanceReadyLiftEvidence();
+        return;
+      }
       this.noteBalanceReadyLiftEvidence(liftedStandingLeg, nowMs);
-      if (!this.balanceAttemptVoiceCompleted) return;
+      const raisedSinceMs = this.balanceReadyRaisedSinceMs;
+      if (raisedSinceMs === null || nowMs - raisedSinceMs < BALANCE_LIFT_CONFIRM_MS) return;
       if (!this.updateBalanceStandingLegFromLift(liftedStandingLeg)) return;
       leg = liftedStandingLeg;
-      if (!this.balance.startTrial(nowMs)) return;
-      this.balanceTrialStartedAtMs = nowMs;
+      if (!this.balance.startTrial(raisedSinceMs)) return;
+      this.balanceTrialStartedAtMs = raisedSinceMs;
       this.balanceLostFrames = 0;
       this.balanceTouchdownStartedAtMs = null;
       this.clearBalanceReadyLiftEvidence();
       this.balanceSway = createWelford();
       this.balanceAttemptedTrials++;
       this.diagnostics.balance.attemptedTrials = this.balanceAttemptedTrials;
-      this.transition('balance_trial', nowMs, 'balance_lift_detected');
+      this.transition('balance_trial', raisedSinceMs, 'balance_lift_detected');
       this.attemptEpochId = this.nextAttemptEpoch('balance-trial');
     }
     if (this.stage !== 'balance_trial') return;
@@ -1043,7 +1053,7 @@ export class MovementProfileV2LiveCoordinator {
 
   private completeBalanceTrial(
     nowMs: number,
-    termination: 'touchdown' | 'user_stopped' | 'ceiling',
+    termination: 'touchdown' | 'support_touched' | 'user_stopped' | 'ceiling',
     measuredEndMs: number = nowMs
   ): void {
     if (this.balanceTrialStartedAtMs === null) return;

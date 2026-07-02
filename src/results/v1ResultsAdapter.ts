@@ -138,6 +138,7 @@ export function buildV1OnboardingResultsPresentation(input: {
   score?: CheckUpScore | null;
   scoreSnapshot?: VersionedCheckUpScoreSnapshot | null;
   plannedBlock?: MovementBlock | null;
+  userAge?: number | null;
 }): UnifiedCheckUpResultsPresentation {
   const resultState = getAssessmentResultState({
     score: input.score ?? null,
@@ -153,7 +154,7 @@ export function buildV1OnboardingResultsPresentation(input: {
     : null;
   const focusDiffersFromScore =
     !!focus && !!input.score && !!input.plannedBlock && focus !== onboardingFocusDomain(input.score);
-  const summaries = input.score ? onboardingDomainSummaries(input.score) : [];
+  const summaries = input.score ? onboardingDomainSummaries(input.score, input.userAge) : [];
   const recoveryTitle =
     resultState.recoveryTitle ?? 'Hale needs a clearer check-up to build your plan.';
   const recoveryBody =

@@ -152,7 +152,7 @@ export function movementProfileV2InternalFlowReducer(
     case 'backgrounded':
       return { ...state, backgrounded: true };
     case 'resumed':
-      return state;
+      return state.backgrounded ? { ...state, backgrounded: false } : state;
     default:
       return state;
   }
@@ -181,14 +181,25 @@ export function movementProfileV2RawCheckUpFromFlow(
   };
 }
 
+export type PendingMovementProfileV2SourceType = Extract<
+  CheckupType,
+  'baseline' | 'baseline_retake' | 'official_retest'
+>;
+
 export function latestPendingMovementProfileV2RawCheckUp(
   history: readonly StoredCheckUp[] | null | undefined
-): { record: StoredCheckUp; sourceType: Extract<CheckupType, 'baseline' | 'baseline_retake'> } | null {
+): { record: StoredCheckUp; sourceType: PendingMovementProfileV2SourceType } | null {
   const sorted = (history ?? [])
     .slice()
     .sort((a, b) => b.checkUp.startedAt.localeCompare(a.checkUp.startedAt));
   for (const record of sorted) {
-    if (record.checkupType !== 'baseline' && record.checkupType !== 'baseline_retake') continue;
+    if (
+      record.checkupType !== 'baseline' &&
+      record.checkupType !== 'baseline_retake' &&
+      record.checkupType !== 'official_retest'
+    ) {
+      continue;
+    }
     if (record.movementProfileV2Assessment || record.movementProfileV2Snapshot) continue;
     if (record.checkUp.protocolPolicy?.id !== MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID) continue;
     const checkUp = record.checkUp;

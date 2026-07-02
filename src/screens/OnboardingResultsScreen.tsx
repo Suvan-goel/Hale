@@ -13,6 +13,7 @@ export function OnboardingResultsScreen({
   score,
   scoreSnapshot,
   plannedBlock,
+  userAge,
   onContinue,
   onRetake,
   onDone,
@@ -22,6 +23,7 @@ export function OnboardingResultsScreen({
   score?: CheckUpScore | null;
   scoreSnapshot?: VersionedCheckUpScoreSnapshot | null;
   plannedBlock?: MovementBlock | null;
+  userAge?: number | null;
   onContinue: () => void;
   onRetake: () => void;
   onDone: () => void;
@@ -33,8 +35,9 @@ export function OnboardingResultsScreen({
         score,
         scoreSnapshot,
         plannedBlock,
+        userAge,
       }),
-    [assessment, plannedBlock, score, scoreSnapshot]
+    [assessment, plannedBlock, score, scoreSnapshot, userAge]
   );
 
   const handleAction = React.useCallback(

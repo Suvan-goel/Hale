@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 
 import {
+  getCameraPermissionsAsync,
   requestCameraPermissionsAsync,
   setAndroidNavigationBarVisibleAsync,
 } from './modules/expo-pose-detection';
@@ -292,7 +293,7 @@ import {
 } from './src/training';
 import { colors, fonts, radius, shadow, spacing, type } from './src/theme';
 
-type PermissionState = 'checking' | 'granted' | 'denied';
+type PermissionState = 'checking' | 'granted' | 'undetermined' | 'denied';
 /** Full-screen flows launched on top of the tab shell (hands-free sessions + dev tools). */
 type Flow =
   | 'welcome'
@@ -1034,11 +1035,21 @@ function HaleApp() {
 
   React.useEffect(() => {
     addBreadcrumb('app startup hydration started', { area: 'startup' });
-    requestCameraPermissionsAsync()
-      .then((response) => setPermission(response.granted ? 'granted' : 'denied'))
+    // Check-only at startup: the OS permission dialog must first appear from
+    // the camera-explanation screen, after the privacy case has been made.
+    getCameraPermissionsAsync()
+      .then((response) =>
+        setPermission(
+          response.granted
+            ? 'granted'
+            : response.status === 'undetermined'
+              ? 'undetermined'
+              : 'denied'
+        )
+      )
       .catch((error) => {
         captureError(error, { area: 'startup', action: 'camera_permission' });
-        setPermission('denied');
+        setPermission('undetermined');
       });
     configureSessionAudio()
       .catch((error) => {
@@ -1394,7 +1405,8 @@ function HaleApp() {
       return true;
     }
 
-    return true;
+    // Home tab with no history: let the OS handle back (backgrounds the app).
+    return false;
   }, [goBack, goHome, progressHistoryOpen]);
 
   React.useEffect(() => {
@@ -2505,7 +2517,15 @@ function HaleApp() {
 
   const requestCameraPermission = React.useCallback(() => {
     requestCameraPermissionsAsync()
-      .then((response) => setPermission(response.granted ? 'granted' : 'denied'))
+      .then((response) =>
+        setPermission(
+          response.granted
+            ? 'granted'
+            : response.status === 'undetermined'
+              ? 'undetermined'
+              : 'denied'
+        )
+      )
       .catch(() => setPermission('denied'));
   }, []);
 
@@ -2515,9 +2535,17 @@ function HaleApp() {
       entryContext: PublicMovementCheckUpEntryContext,
       officialRetestContext: MovementProfileV2OfficialRetestContext | null = null
     ) => {
-      const pendingRaw =
+      const latestPendingRaw =
         sourceType === 'baseline' || sourceType === 'baseline_retake'
           ? latestPendingMovementProfileV2RawCheckUp(history)
+          : null;
+      // A stranded official-retest raw is finalized by the launch effect with
+      // its rebuilt prior-block context, never as a baseline here.
+      const pendingRaw =
+        latestPendingRaw &&
+        (latestPendingRaw.sourceType === 'baseline' ||
+          latestPendingRaw.sourceType === 'baseline_retake')
+          ? latestPendingRaw
           : null;
       setMovementProfileV2Result(null);
       setMovementProfileV2RetestComparison(null);
@@ -3604,6 +3632,9 @@ function HaleApp() {
       trackingQuality?: TrackingQuality;
     }) => {
       if (!lastCompletion) return;
+      // Non-credited completions are never recorded in adherence; syncing them
+      // would create remote records that a restore can't reproduce locally.
+      const completionRecorded = adherence.completions.some((c) => c.id === lastCompletion.id);
       const nextCompletion = { ...lastCompletion, ...feedback };
       const submittedAt = new Date().toISOString();
       const persistedFeedback: PersistedPostSessionFeedback = {
@@ -3706,7 +3737,7 @@ function HaleApp() {
         }
       }
       persistTraining(nextTraining);
-      if (adherenceSaved && backendSignedIn && backendUserId) {
+      if (adherenceSaved && completionRecorded && backendSignedIn && backendUserId) {
         const completionBlock =
           nextAdherence.blocks.find((block) => block.id === nextCompletion.blockId) ??
           activeMovementBlock ??
@@ -4497,16 +4528,49 @@ function HaleApp() {
     const attemptKey = `${raw.sourceType}:${raw.checkUp.startedAt}`;
     if (movementProfileV2AutoFinalizeAttemptRef.current === attemptKey) return;
     movementProfileV2AutoFinalizeAttemptRef.current = attemptKey;
+    // A retest stranded by a crash between raw save and finalize still needs
+    // its prior-block context so the block transition and report can complete.
+    const priorBlock =
+      raw.sourceType === 'official_retest' &&
+      activeMovementBlock?.origin?.kind === 'movement_profile_v2_assessment'
+        ? activeMovementBlock
+        : null;
+    const priorRecord = priorBlock
+      ? movementProfileV2AssessmentForSourceCheckUpId(
+          history,
+          priorBlock.origin?.kind === 'movement_profile_v2_assessment'
+            ? priorBlock.origin.sourceCheckUpId
+            : ''
+        )
+      : null;
+    const officialRetestContext =
+      priorBlock && priorRecord
+        ? {
+            priorBlockId: priorBlock.id,
+            priorArtifacts: priorRecord,
+            priorStandingLeg: latestV2StandingLeg([priorRecord.record.checkUp]),
+            priorShoulderSide: latestV2ShoulderSide([priorRecord.record.checkUp]),
+          }
+        : null;
+    if (raw.sourceType === 'official_retest') {
+      addBreadcrumb('movement profile v2 pending retest auto-finalize', {
+        area: 'movement_profile_v2',
+        checkUpId: raw.checkUp.startedAt,
+        priorContextRebuilt: !!officialRetestContext,
+      });
+    }
     finalizeMovementProfileV2Raw(raw, {
       entryContext:
         !prefs.onboarding.completedAt && onboardingStep !== 'complete'
           ? 'public_onboarding'
           : 'public_standard',
-      officialRetestContext: null,
+      officialRetestContext,
       resultSurface: 'unified',
     });
   }, [
+    activeMovementBlock,
     adherenceReady,
+    history,
     historyReady,
     onboardingStep,
     pendingMovementProfileV2Raw,
@@ -4714,6 +4778,7 @@ function HaleApp() {
       <CameraReadinessGate
         permission={permission}
         audioReady={audioReady}
+        onRequestPermission={requestCameraPermission}
         onBack={() => goBack(goHome)}
       />
     );
@@ -4811,6 +4876,7 @@ function HaleApp() {
               score={visibleResultScore}
               scoreSnapshot={visibleResultSnapshot}
               plannedBlock={displayMovementBlock}
+              userAge={prefs.profile.age}
               onContinue={handleOnboardingResultsContinue}
               onRetake={handleRetakeVisibleResult}
               onDone={goHome}
@@ -5294,10 +5360,12 @@ function MovementProfileRetestUnavailableScreen({ onDone }: { onDone: () => void
 function CameraReadinessGate({
   permission,
   audioReady,
+  onRequestPermission,
   onBack,
 }: {
   permission: PermissionState;
   audioReady: boolean;
+  onRequestPermission: () => void;
   onBack: () => void;
 }) {
   const waiting = permission === 'checking' || !audioReady;
@@ -5314,7 +5382,7 @@ function CameraReadinessGate({
     <View style={styles.container}>
       <StatusBar style="dark" />
       <Screen contentStyle={styles.cameraGateScreen}>
-        {permission === 'denied' ? (
+        {permission === 'denied' || permission === 'undetermined' ? (
           <BackArrowButton accessibilityLabel="Back" onPress={onBack} />
         ) : null}
         <ScreenHeader eyebrow="Camera access" title={title} subtitle={subtitle} />
@@ -5362,6 +5430,16 @@ function CameraReadinessGate({
               />
             </View>
           </CameraGateSection>
+        ) : permission === 'undetermined' ? (
+          <CameraGateSection title="Turn it on" meta="One tap">
+            <View style={styles.cameraGatePointList}>
+              <CameraGatePoint
+                index={1}
+                title="Allow Camera"
+                body="Use the button below, then choose Allow when your phone asks."
+              />
+            </View>
+          </CameraGateSection>
         ) : (
           <CameraGateSection title="Almost ready" meta="One moment">
             <View style={styles.cameraGatePointList}>
@@ -5377,6 +5455,10 @@ function CameraReadinessGate({
         {permission === 'denied' ? (
           <View style={styles.cameraGateActions}>
             <PrimaryButton title="Open Settings" onPress={openSettings} />
+          </View>
+        ) : permission === 'undetermined' ? (
+          <View style={styles.cameraGateActions}>
+            <PrimaryButton title="Allow camera access" onPress={onRequestPermission} />
           </View>
         ) : null}
       </Screen>

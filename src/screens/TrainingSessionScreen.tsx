@@ -9,6 +9,7 @@
 
 import * as React from 'react';
 import {
+  AppState,
   Modal,
   Platform,
   Pressable,
@@ -520,6 +521,19 @@ export function TrainingSessionScreen({
     resumePendingRef.current = true;
     setPaused(false);
   }, [player]);
+
+  // Backgrounding (calls, notification pulls) must pause the session: the
+  // player is frame-timestamp driven and camera clocks keep advancing while
+  // suspended, so an unpaused gap would silently complete sets and rests.
+  // The user resumes explicitly — they may no longer be in position.
+  React.useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'background' && state !== 'inactive') return;
+      if (pausedRef.current || completedRef.current) return;
+      pause();
+    });
+    return () => sub.remove();
+  }, [pause]);
 
   const requestDiscardSession = React.useCallback(() => {
     if (!onCancel) return;
