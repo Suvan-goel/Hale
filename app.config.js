@@ -5,7 +5,15 @@ const enablePoseLatencyDiagnostics =
 const allowDiagnosticsInRelease =
   process.env.EXPO_PUBLIC_ALLOW_DIAGNOSTICS_IN_RELEASE === '1';
 const enableSentry = process.env.EXPO_PUBLIC_ENABLE_SENTRY === '1';
-const betaReleaseBuildProfiles = new Set(['preview', 'beta', 'internal', 'production', 'release']);
+const betaReleaseBuildProfiles = new Set([
+  'preview',
+  'beta',
+  'internal',
+  'playinternal',
+  'play-internal',
+  'production',
+  'release',
+]);
 
 const unsafeBetaReleaseFlags = [
   {

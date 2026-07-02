@@ -60,7 +60,15 @@ export type BetaReleaseFlagAuditResult =
 
 export type ReleaseFlagRawEnv = Partial<Record<ReleaseFlagEnvName, unknown>>;
 
-const BETA_RELEASE_BUILD_PROFILES = new Set(['preview', 'beta', 'internal', 'production', 'release']);
+const BETA_RELEASE_BUILD_PROFILES = new Set([
+  'preview',
+  'beta',
+  'internal',
+  'playinternal',
+  'play-internal',
+  'production',
+  'release',
+]);
 
 export function parseExactReleaseFlag(value: unknown): boolean {
   return value === '1';

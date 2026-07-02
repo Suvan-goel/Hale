@@ -86,7 +86,15 @@ describe('beta/release flag audit', () => {
   });
 
   it('treats tester-facing build profiles as beta/release-like', () => {
-    for (const profile of ['preview', 'beta', 'internal', 'production', 'release']) {
+    for (const profile of [
+      'preview',
+      'beta',
+      'internal',
+      'playInternal',
+      'play-internal',
+      'production',
+      'release',
+    ]) {
       expect(isBetaReleaseBuildProfile(profile)).toBe(true);
       expect(isBetaReleaseBuildProfile(` ${profile.toUpperCase()} `)).toBe(true);
     }
@@ -143,6 +151,12 @@ describe('beta/release flag audit', () => {
     expect(envExample).toContain(`${RELEASE_FLAG_ENV_NAMES.poseRendererBenchmarks}=0`);
     expect(packageJson.scripts?.['verify:safe-beta-flags']).toContain('EAS_BUILD_PROFILE=beta');
     expect(packageJson.scripts?.['verify:safe-beta-flags']).toContain(
+      `${RELEASE_FLAG_ENV_NAMES.poseLatencyDiagnostics}=0`
+    );
+    expect(packageJson.scripts?.['verify:play-internal-flags']).toContain(
+      'EAS_BUILD_PROFILE=playInternal'
+    );
+    expect(packageJson.scripts?.['verify:play-internal-flags']).toContain(
       `${RELEASE_FLAG_ENV_NAMES.poseLatencyDiagnostics}=0`
     );
   });

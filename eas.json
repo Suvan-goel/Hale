@@ -33,6 +33,27 @@
         "buildType": "apk"
       }
     },
+    "playInternal": {
+      "environment": "preview",
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN": "0",
+        "EXPO_PUBLIC_ENABLE_SENTRY": "0",
+        "EXPO_PUBLIC_ENABLE_LEGACY_V1_CHECKUP_ROLLBACK": "0",
+        "EXPO_PUBLIC_ENABLE_MOVEMENT_PROFILE_V2_INTERNAL": "0",
+        "EXPO_PUBLIC_ENABLE_MOVEMENT_PROFILE_V2_DIAGNOSTICS": "0",
+        "EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS": "0",
+        "EXPO_PUBLIC_ALLOW_DIAGNOSTICS_IN_RELEASE": "0",
+        "EXPO_PUBLIC_ENABLE_POSE_RENDERER_BENCHMARKS": "0",
+        "EXPO_PUBLIC_DISABLE_FIT_FRAME_CHECKUP": "0",
+        "EXPO_PUBLIC_DISABLE_FIT_FRAME_MICRO_CHECK": "0",
+        "EXPO_PUBLIC_DISABLE_FIT_FRAME_TRAINING": "0",
+        "EXPO_PUBLIC_DISABLE_FIT_FRAME_MPV2": "0"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    },
     "production": {
       "environment": "production",
       "autoIncrement": true,
@@ -46,6 +67,14 @@
       },
       "android": {
         "buildType": "app-bundle"
+      }
+    }
+  },
+  "submit": {
+    "playInternal": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "completed"
       }
     }
   }

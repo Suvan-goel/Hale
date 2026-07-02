@@ -61,4 +61,5 @@ new beta APK when testing native changes such as icons, permissions, or bundled 
 
 Use Google Play Internal Testing when the beta needs Play-managed installation and updates. That
 requires a Play Console app, store listing setup, a first manual AAB upload, and Play service
-account credentials for `eas submit`.
+account credentials for `eas submit`. See `docs/google-play-internal-testing.md` for the
+repeatable Play Internal Testing workflow.
