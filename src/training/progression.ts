@@ -1,4 +1,10 @@
 /**
+ * @deprecated NOT WIRED INTO THE APP. The authoritative progression system is
+ * the controlled-beta ladder progression (`workoutGeneration.
+ * updateLadderProgressAfterSession` applied via `haleFlow/progressionEvidence`).
+ * This module survives only because `TrainingState.progression` is persisted;
+ * do not extend it — fold any new rules into the ladder system.
+ *
  * Progression engine v1 — deterministic, fully replayable, NO machine learning
  * (V1 non-goal). After a session it decides, per exercise family, whether to
  * promote to the next level, hold, or demote — and tracks a per-exercise

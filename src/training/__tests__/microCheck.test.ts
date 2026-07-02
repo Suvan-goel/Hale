@@ -178,3 +178,54 @@ describe('micro-checks feed the trend line', () => {
     expect(trends.find((t) => t.key === 'single-leg-balance')!.delta).toBe(4);
   });
 });
+
+describe('micro-check pause measurement integrity', () => {
+  it('a paused single-leg measurement restarts fresh and is not inflated by the gap', () => {
+    const session = balanceSession({
+      seed: 75,
+      calibrationMs: 14000,
+      stages: [{ stance: 'single-leg', windowMs: 25000, outcome: 'completed' }],
+    });
+    const frames = pad(session.frames, 3500);
+    const pipeline = new PosePipeline();
+    const preflight = new PreflightCheck();
+    const runner = new MicroCheckRunner(
+      'single-leg-balance',
+      '2026-06-21T08:00:00.000Z',
+      preflight,
+      DEFAULT_MICROCHECK_CONFIG
+    );
+    const PAUSE_MS = 45000;
+    let voiceBusyUntil = -1;
+    let offset = 0;
+    let pausedOnce = false;
+    let sawInstructionsAfterReset = false;
+
+    for (const raw of frames) {
+      const frame = offset === 0 ? raw : { ...raw, timestampMs: raw.timestampMs + offset };
+      const out = pipeline.process(frame);
+      const u = runner.update(out, frame.timestampMs < voiceBusyUntil);
+      if (u.voice) voiceBusyUntil = frame.timestampMs + u.voice.cues.length * 1200;
+      if (pausedOnce && u.phase === 'instructions') sawInstructionsAfterReset = true;
+      if (!pausedOnce && u.phase === 'active' && Number.isFinite(u.holdSec) && u.holdSec > 1) {
+        // Screen pause mid-hold: measurement discarded; a long wall-clock gap
+        // passes; on resume the screen shifts the runner's clocks by the gap.
+        expect(runner.resetActiveMeasurement(frame.timestampMs)).toBe(true);
+        runner.shiftTiming(PAUSE_MS);
+        offset = PAUSE_MS;
+        pausedOnce = true;
+      }
+      if (u.phase === 'done') break;
+    }
+
+    expect(pausedOnce).toBe(true);
+    expect(sawInstructionsAfterReset).toBe(true);
+    const result = runner.result;
+    expect(result).not.toBeNull();
+    expect(result!.measured).toBe(true);
+    // The redone hold is a fresh measurement: nowhere near the 45s pause gap
+    // (nor the 40s target cap a stitched hold would have been credited to).
+    expect(result!.value).toBeGreaterThan(1);
+    expect(result!.value).toBeLessThan(30);
+  });
+});

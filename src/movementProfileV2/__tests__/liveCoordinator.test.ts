@@ -608,6 +608,11 @@ describe('MovementProfileV2LiveCoordinator', () => {
     const coordinator = createHandsFreeCoordinator();
     let nowMs = advanceThroughChair(coordinator, 0) + 100;
     nowMs = startHandsFreeBalanceTrialFromSetup(coordinator, nowMs, 'left');
+    // The subject keeps holding on camera through the whole ceiling window —
+    // a ceiling is only credited while frames flow.
+    for (let heldMs = nowMs + 250; heldMs < nowMs + 45000; heldMs += 250) {
+      feedOutput(coordinator, trackingOutput(balanceRaw(heldMs, 'left', true)), heldMs);
+    }
     coordinator.receiveTimerTick(nowMs + 45000);
 
     const snapshot = coordinator.snapshot(nowMs + 45000);
@@ -618,6 +623,29 @@ describe('MovementProfileV2LiveCoordinator', () => {
     expect(snapshot.lastTransition?.reason).toBe('balance_section_complete');
     expect(balance?.validTrialCount).toBe(1);
     expect(balance?.trials[0]?.termination).toBe('ceiling');
+  });
+
+  it('never credits wall-clock results while pose frames are stalled', () => {
+    // Balance: frames stop mid-trial; the ceiling tick invalidates the
+    // attempt instead of crediting an unobserved maximal hold.
+    const balanceStalled = createCoordinator();
+    let nowMs = advanceThroughChair(balanceStalled, 0) + 100;
+    nowMs = startBalanceTrial(balanceStalled, nowMs, 'left');
+    balanceStalled.receiveTimerTick(nowMs + 45000);
+    let snapshot = balanceStalled.snapshot(nowMs + 45000);
+    expect(snapshot.stage).toBe('balance_rest');
+    expect(snapshot.balanceValidTrials).toBe(0);
+    expect(snapshot.diagnostics.balance.invalidTrials).toBe(1);
+
+    // Chair: frames stop mid-official-window; the deadline restarts the test
+    // instead of recording a silently truncated official result.
+    const chairStalled = createCoordinator();
+    const activeAt = advanceToChairActive(chairStalled, 0);
+    chairStalled.receiveTimerTick(activeAt + 30000);
+    snapshot = chairStalled.snapshot(activeAt + 30000);
+    expect(snapshot.stage).toBe('chair_countdown');
+    expect(snapshot.flow.items.find((item) => item.movementId === CHAIR_RISE_V2_ID)).toBeUndefined();
+    expect(snapshot.recoveryEpisode).toMatchObject({ item: 'chair', targetStage: 'chair_countdown' });
   });
 
   it('keeps invalid tracking balance attempts out of the valid attempt count', () => {
@@ -720,14 +748,20 @@ describe('MovementProfileV2LiveCoordinator', () => {
     expect(snapshot.diagnostics.hinge.reachBu).toBeGreaterThan(0);
   });
 
-  it('recovers safely from app backgrounding during active live protocol stages', () => {
+  it('restarts interrupted official measures fresh after app backgrounding', () => {
     const chairInterrupted = createCoordinator();
     let nowMs = advanceToChairActive(chairInterrupted, 0);
     expect(chairInterrupted.snapshot(nowMs).stage).toBe('chair_active');
     expect(chairInterrupted.receiveUserAction({ type: 'backgrounded' }, nowMs + 1000)).toBe(true);
-    expect(chairInterrupted.snapshot(nowMs + 1000).stage).toBe('balance_setup');
-    expect(chairInterrupted.snapshot(nowMs + 1000).diagnostics.chair.trackingInterruptions).toBe(1);
-    expect(chairInterrupted.snapshot(nowMs + 1000).recordingVisualGuidance).toMatchObject({
+    let snapshot = chairInterrupted.snapshot(nowMs + 1000);
+    // The truncated attempt is never recorded: the chair test restarts fresh,
+    // same contract as tracking loss.
+    expect(snapshot.stage).toBe('chair_countdown');
+    expect(snapshot.flow.items.find((item) => item.movementId === CHAIR_RISE_V2_ID)).toBeUndefined();
+    expect(snapshot.diagnostics.chair.trackingInterruptions).toBe(1);
+    expect(snapshot.diagnostics.chair.officialReps).toBe(0);
+    expect(snapshot.recoveryEpisode).toMatchObject({ item: 'chair', targetStage: 'chair_countdown' });
+    expect(snapshot.recordingVisualGuidance).toMatchObject({
       visualState: 'recovery',
       reason: 'mpv2:backgrounded',
       blocksMeasurement: true,
@@ -748,15 +782,29 @@ describe('MovementProfileV2LiveCoordinator', () => {
     expect(shoulderInterrupted.receiveUserAction({ type: 'shoulder_setup_voice_completed' }, nowMs + 1)).toBe(true);
     expect(shoulderInterrupted.receiveUserAction({ type: 'start_shoulder_capture' }, nowMs + 100)).toBe(true);
     expect(shoulderInterrupted.receiveUserAction({ type: 'backgrounded' }, nowMs + 500)).toBe(true);
-    expect(shoulderInterrupted.snapshot(nowMs + 500).stage).toBe('shoulder_retry_ready');
+    snapshot = shoulderInterrupted.snapshot(nowMs + 500);
+    expect(snapshot.stage).toBe('shoulder_retry_ready');
+    expect(snapshot.recoveryEpisode).toMatchObject({ item: 'shoulder', targetStage: 'shoulder_retry_ready' });
+    expect(snapshot.flow.items.find((item) => item.movementId === ACTIVE_SHOULDER_REACH_V2_ID)).toBeUndefined();
 
     const hingeInterrupted = createCoordinator();
-    const checkUpBeforeHinge = completeLiveCheckupUntilHinge(hingeInterrupted);
-    nowMs = checkUpBeforeHinge;
+    nowMs = completeLiveCheckupUntilHinge(hingeInterrupted);
     expect(hingeInterrupted.receiveUserAction({ type: 'hinge_setup_voice_completed' }, nowMs - 1)).toBe(true);
     expect(hingeInterrupted.receiveUserAction({ type: 'start_hinge_capture' }, nowMs)).toBe(true);
     expect(hingeInterrupted.receiveUserAction({ type: 'backgrounded' }, nowMs + 500)).toBe(true);
-    const snapshot = hingeInterrupted.snapshot(nowMs + 500);
+    snapshot = hingeInterrupted.snapshot(nowMs + 500);
+    // The check-up is NOT force-completed with a missing hinge: the hinge
+    // capture restarts and the check-up completes with a real measurement.
+    expect(snapshot.stage).toBe('hinge_setup');
+    expect(snapshot.checkUp).toBeNull();
+    expect(snapshot.recoveryEpisode).toMatchObject({ item: 'hinge', targetStage: 'hinge_setup' });
+
+    expect(hingeInterrupted.receiveUserAction({ type: 'resumed' }, nowMs + 600)).toBe(true);
+    expect(hingeInterrupted.receiveUserAction({ type: 'hinge_setup_voice_completed' }, nowMs + 700)).toBe(true);
+    expect(hingeInterrupted.receiveUserAction({ type: 'start_hinge_capture' }, nowMs + 800)).toBe(true);
+    feedHingeCapture(hingeInterrupted, nowMs + 900);
+    hingeInterrupted.receiveTimerTick(nowMs + 800 + 9200);
+    snapshot = hingeInterrupted.snapshot(nowMs + 800 + 9200);
     expect(snapshot.stage).toBe('raw_complete');
     expect(snapshot.checkUp?.items.map((item) => item.movementId)).toEqual([
       CHAIR_RISE_V2_ID,
@@ -767,7 +815,7 @@ describe('MovementProfileV2LiveCoordinator', () => {
     const hinge = snapshot.checkUp?.items.find((item) => item.movementId === HINGE_REACH_ID)?.result as
       | { reachBu?: number | null }
       | undefined;
-    expect(hinge?.reachBu).toBeNull();
+    expect(hinge?.reachBu).not.toBeNull();
     expectJsonSafe(snapshot.checkUp);
   });
 
@@ -865,15 +913,21 @@ describe('MovementProfileV2LiveCoordinator', () => {
   });
 
   it('lets terminal timer events win before same-boundary tracking loss', () => {
-    const coordinator = createCoordinator();
-    const activeAt = advanceToChairActive(coordinator, 0);
-    const deadline = activeAt + 30000;
+    const coordinator = createHandsFreeCoordinator();
+    let nowMs = advanceThroughChair(coordinator, 0) + 100;
+    nowMs = startHandsFreeBalanceTrialFromSetup(coordinator, nowMs, 'left');
+    // The subject holds on camera through the whole ceiling window; the loss
+    // frame arrives on the same boundary as the terminal ceiling tick.
+    for (let heldMs = nowMs + 250; heldMs < nowMs + 45000; heldMs += 250) {
+      feedOutput(coordinator, trackingOutput(balanceRaw(heldMs, 'left', true)), heldMs);
+    }
+    const deadline = nowMs + 45000;
     coordinator.receiveTimerTick(deadline);
     feedOutput(coordinator, lostOutput(deadline), deadline);
     const snapshot = coordinator.snapshot(deadline);
-    expect(snapshot.stage).toBe('balance_setup');
+    expect(snapshot.stage).toBe('shoulder_setup');
     expect(snapshot.recoveryEpisode).toBeNull();
-    expect(snapshot.lastTransition?.reason).toBe('chair_deadline');
+    expect(snapshot.lastTransition?.reason).toBe('balance_section_complete');
   });
 
   it('bounds shoulder retries and records the retry capture from live selected-side frames', () => {
@@ -1079,8 +1133,19 @@ function advanceThroughChair(coordinator: MovementProfileV2LiveCoordinator, star
     }
     if (coordinator.snapshot(nowMs).stage === 'balance_setup') return nowMs;
   }
-  coordinator.receiveTimerTick(nowMs + 31000);
-  return nowMs + 31000;
+  // Keep the camera live (subject seated) until the official window's
+  // wall-clock deadline fires: deadlines only credit results while frames flow.
+  const lastRaw = session.frames[session.frames.length - 1];
+  for (let keepAliveMs = nowMs + 250; keepAliveMs <= nowMs + 40000; keepAliveMs += 250) {
+    coordinator.receiveTimerTick(keepAliveMs);
+    if (coordinator.snapshot(keepAliveMs).stage === 'balance_setup') return keepAliveMs;
+    feedOutput(
+      coordinator,
+      trackingOutput({ ...lastRaw, timestampMs: keepAliveMs }, session.truth.bodyUnit, { leftSide: 0.3, rightSide: 0.95 }),
+      keepAliveMs
+    );
+  }
+  throw new Error('chair official window did not complete');
 }
 
 function advanceToChairActive(coordinator: MovementProfileV2LiveCoordinator, startMs: number): number {

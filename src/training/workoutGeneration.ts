@@ -1457,6 +1457,13 @@ function toGeneratedExercise({
     if (repsPerSet) repsPerSet = Math.max(4, Math.round(repsPerSet * 0.85));
     if (secondsPerSet) secondsPerSet = Math.max(10, Math.round(secondsPerSet * 0.85));
   }
+  // Valid-time targets are instrument settings: daily adjustments may change
+  // sets and rest, never the per-set valid-time target — otherwise the plan's
+  // promise diverges from what the grader actually measures and completing
+  // the promised dose would read as failure evidence.
+  if (selected.def.timing?.mode === 'valid_time') {
+    secondsPerSet = doseBeforeAdjustment.secondsPerSet;
+  }
 
   return {
     id: `${slot.id}-${selected.level.id}-${index + 1}`,

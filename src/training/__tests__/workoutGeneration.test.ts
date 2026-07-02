@@ -1447,3 +1447,32 @@ function mobilityExposure(exerciseId: string, date: string): CollectionExposure 
     completionId: `completion-${exerciseId}-${date}`,
   };
 }
+
+describe('valid-time measurement targets under daily adjustments', () => {
+  it('adjusts sets but never the per-set valid-time target', () => {
+    const { getExercise } = require('../../exercises') as typeof import('../../exercises');
+    const block = createTrainingBlockFromAssessment({ focusDomain: 'balance_stability', startDate: START });
+    const session = generateTodaySession({
+      block,
+      today: START,
+      availableEquipment: ['chair', 'wall', 'resistance_band'],
+      sessionIntensity: 'beginner',
+    });
+
+    const validTimeExercises = session.exercises.filter(
+      (exercise) => getExercise(exercise.exerciseId).timing?.mode === 'valid_time'
+    );
+    expect(validTimeExercises.length).toBeGreaterThan(0);
+    for (const exercise of validTimeExercises) {
+      // The measurement target is an instrument setting: identical to the
+      // unadjusted dose no matter what the daily adjustment did.
+      expect(exercise.secondsPerSet).toBe(exercise.doseBeforeAdjustment?.secondsPerSet);
+    }
+    // The volume adjustment itself still applies (beginner set clamps).
+    expect(
+      session.exercises.some(
+        (exercise) => (exercise.doseBeforeAdjustment?.sets ?? 0) > exercise.sets
+      )
+    ).toBe(true);
+  });
+});

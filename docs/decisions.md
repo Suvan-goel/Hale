@@ -2332,3 +2332,73 @@ PUBLIC RELEASE REMAINS BLOCKED
   the eyes-open balance V2 protocol remains built but not wired into the live coordinator;
   the balance dwell change should still be validated against real landmark recordings per the
   working agreements.
+
+## 2026-07-02 — Production-readiness fixes, round two: measurement integrity under pause, dose honesty, local schedule days
+
+- **Context:** a second same-day audit focused on the live session/check-up runtimes and the
+  plan/progression pipeline, after the first round's interruption fixes landed.
+- **Change (pause = restart the set):** pausing a training session or micro-check mid-measurement
+  (manual Pause or the AppState auto-pause) now discards the in-flight set/measurement and
+  redoes it from the instructions dwell → countdown on resume. The graders are frame-timestamp
+  driven and cannot represent a wall-clock gap: `shiftTiming` shifted only the player's own
+  clocks, so on resume `HoldTracker` credited the entire pause into the hold
+  (`holdMs = ts - startTs`) and `ValidTimeAccumulator` added the whole gap as one `dt` while
+  `counting` — a phone call mid-balance-hold completed the set "at target" and could emit the
+  `strong` valid-time signal that gates the balance auto-progression. Pipeline interruption
+  events fired while paused also never reached the graders (the player is not called while
+  paused), so rep/hold state machines were never reset across the gap. Sets already completed
+  before the pause are kept; only the interrupted set restarts. Skipping an item now also
+  preserves the sets finished before the skip in the result (still excluded from progression).
+- **Change (MPV2 backgrounding = fresh restart):** backgrounding during an official measure
+  (chair active window, shoulder capture, hinge capture) now follows the same contract as
+  camera tracking loss: the truncated attempt is invalidated and the test restarts fresh via
+  the existing recovery episode + voice flow. Previously the chair test *recorded* the
+  truncated attempt as the official result (flagged raw-only) and moved on — a call at second
+  10 of the 30-second test permanently downgraded the month's headline strength measurement —
+  and a backgrounded hinge force-completed the whole check-up with `no-measurement`.
+  Product-owner decision 2026-07-02: restart fresh.
+- **Change (wall-clock deadlines require live frames):** `receiveTimerTick` no longer credits
+  results the camera did not observe: a balance trial reaching its ceiling with stalled frames
+  (>1.5 s since the last accepted frame) is invalidated instead of credited a maximal hold,
+  and a chair deadline with stalled frames restarts the test instead of recording a silently
+  truncated window.
+- **Change (the plan's dose is what the session runs):** the training player now honors the
+  generated daily dose (sets, reps-per-set, seconds-per-set for player-clocked sets, and rest
+  seconds — `restSeconds` added to the plan metadata) over the catalog prescription. Previously
+  daily adjustments (something-hurts sets−1, short-on-time clamps, beginner rep caps, the 75+
+  rest buffer) appeared in the preview but the session ran the full catalog dose — and a
+  reduced-rep user who finished their promised reps stood waiting for the 120 s safety cap.
+  Valid-time exercises are the deliberate exception: generation no longer adjusts their
+  `secondsPerSet` (sets and rest still adapt) because the valid-time target is an instrument
+  setting — measuring against the catalog target while promising a shorter one would read a
+  perfectly-followed plan as failure evidence.
+- **Change (progression reads measured completion):** progression evidence now computes
+  `completionRate` from the graded set results against the planned dose (reps: credited/planned;
+  hold/timer: accumulated seconds/planned) instead of a hardcoded 1. Self-reported RPE alone
+  can no longer turn a mostly-incomplete dose into an "easy exposure" toward a ladder
+  transition. Tracking artifacts stay neutral: any set flagged `no-measurement` or
+  `tracking-interrupted` leaves the rate at 1 and defers to the validTime/tracking signals
+  (never demote on a tracking failure).
+- **Change (schedule days are local calendar days):** the block schedule, planned-date keys,
+  and credit ids now derive date keys from the device-local calendar day instead of the UTC
+  date. Under UTC keys, an evening session (or any session for users east of UTC) landed on
+  the wrong "day": two local days could collide into one UTC date (second session denied
+  `daily_credit_already_used`) or one local day could straddle two UTC dates (two credits in a
+  day). Date-only strings pass through unchanged; week arithmetic stays pure date-key math.
+- **Change (smaller):** the MPV2 voice runtime stops the old `VoiceChannel` before swapping
+  voices mid-check-up; the legacy v1 progression engine (`training/progression.ts`) is marked
+  deprecated — it is not wired into the app and survives only because `TrainingState` persists
+  its shape; the controlled-beta ladder progression is authoritative.
+- **Tests:** suite grew 1534 → 1544 (pause-restart and dose honoring in the player; micro-check
+  pause restart against synthetic balance frames; MPV2 backgrounding restart, stall guard, and
+  terminal-event precedence; local-day schedule credits built from local-time components so
+  they hold in any machine timezone; measured completion-rate progression denial; valid-time
+  target invariance under beginner adjustments). Coordinator test helpers now keep the camera
+  "live" (seated subject) up to wall-clock deadlines, matching production frame flow.
+- **Boundary:** per the working agreements, the pause-restart behavior should also be verified
+  on a real device with a landmark recording (the synthetic tests model the screen contract,
+  not real re-framing). Switching schedule days from UTC to local re-derives past credits from
+  stored `completedAt` timestamps — fine pre-launch, but if any tester data matters, expect
+  day boundaries near midnight UTC to shift by one day. The stall guard covers balance ceiling
+  and chair deadline; shoulder/hinge deadlines were already safe via their valid-tracking
+  minimums.

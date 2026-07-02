@@ -124,6 +124,51 @@ describe('authoritative progression evidence', () => {
     expect(second.decisions[0].decisionKind).toBe('progressed');
   });
 
+  it('keeps partial-rep sessions from accruing progression evidence', () => {
+    const b = block();
+    const plan = sessionPlan(b, singleExerciseSession(STS_CUSHION_ID));
+    const partialSet = {
+      exerciseId: STS_CUSHION_ID,
+      reps: 3,
+      meanVel: 0.4,
+      holdSec: NaN,
+      romPeak: NaN,
+      autoregulated: false,
+      reachedTarget: false,
+      interruptions: 0,
+      flags: [],
+    };
+    const result: TrainingSessionResult = {
+      startedAt: START,
+      items: [{ exerciseId: STS_CUSHION_ID, status: 'completed', sets: [partialSet, partialSet] }],
+    };
+    const completion = creditedCompletion(b, plan, result);
+
+    const applied = applyProgressionEvidenceFromSession({
+      state: defaultTrainingState(),
+      sessionPlan: plan,
+      completion,
+      activeBlock: b,
+      sessionResult: result,
+      perceivedEffort: 2,
+      painReported: false,
+      trackingQuality: 'good',
+    });
+
+    expect(applied.eligibility.eligible).toBe(true);
+    expect(applied.appliedEvents).toHaveLength(1);
+    // 6 of the 16 planned reps: measured, not self-reported.
+    const plannedReps =
+      (getExercise(STS_CUSHION_ID).prescription.repsPerSet ?? 0) *
+      getExercise(STS_CUSHION_ID).prescription.sets;
+    expect(applied.appliedEvents[0].result.completionRate).toBeCloseTo(6 / plannedReps, 5);
+    const progress = applied.nextState.ladderProgressById['sit-to-stand'];
+    // A low-effort report cannot turn a mostly-incomplete dose into an easy exposure.
+    expect(progress.currentLevelId).toBe(STS_CUSHION_ID);
+    expect(progress.completedSessionsAtLevel).toBe(0);
+    expect(progress.readyToProgress).toBeFalsy();
+  });
+
   it('records hold-only adjusted evidence without advancing after easy completions', () => {
     const b = block();
     const plan = {

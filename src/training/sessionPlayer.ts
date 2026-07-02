@@ -63,7 +63,7 @@ export type TrainingPhase =
 export interface TrainingItemResult {
   exerciseId: string;
   status: 'completed' | 'skipped';
-  /** One SetResult per completed set (empty when skipped). */
+  /** One SetResult per completed set. A skipped item keeps any sets finished before the skip. */
   sets: SetResult[];
 }
 
@@ -251,6 +251,7 @@ export class TrainingSessionPlayer {
   private lastTimestampMs = 0;
   private setupIssue = false;
   private setupIssueRecoverySpoken = false;
+  private pendingFloorSetupReentry = false;
   private floorSetup: TrainingFloorSetupSnapshot | null = null;
   private floorSetupListeningStartedMs = -1;
   private floorMemory: TrainingFloorSessionMemory = {
@@ -398,7 +399,14 @@ export class TrainingSessionPlayer {
     this.countdownAwaitingTrackedGo = false;
     this.setupIssue = false;
     this.runtime?.cancel(this.lastTimestampMs);
-    this.results.push({ exerciseId: this.definitions[this.itemIndex].id, status: 'skipped', sets: [] });
+    // Sets already completed before the skip stay in the result (measurement
+    // data is never thrown away); the skipped status still excludes the item
+    // from progression evidence.
+    this.results.push({
+      exerciseId: this.definitions[this.itemIndex].id,
+      status: 'skipped',
+      sets: this.currentSets.slice(),
+    });
     this.currentSets = [];
     this.advanceItem(this.lastTimestampMs);
     return true;
@@ -412,11 +420,27 @@ export class TrainingSessionPlayer {
       this.instructionsIdleAtMs = -1;
       return;
     }
-    if (this.phase === 'set') this.runtime?.pause(atMs);
+    // A paused set is discarded and redone from the countdown. Graders are
+    // frame-timestamp driven and cannot represent a wall-clock gap: stitching
+    // across one credits the pause into holds/valid-time (and interruption
+    // events fired while paused never reach them), so restarting the set is
+    // the only honest measurement.
+    if (this.phase === 'set') this.discardInFlightSet(atMs);
   }
 
   resume(atMs: number = this.lastTimestampMs): void {
     if (this.phase === 'set') this.runtime?.resume(atMs);
+  }
+
+  private discardInFlightSet(atMs: number): void {
+    const def = this.currentDefinition();
+    this.runtime?.cancel(atMs);
+    this.runtime = null;
+    this.lastValidTimeState = null;
+    this.phase = 'instructions';
+    this.instructionsEnteredMs = atMs;
+    this.instructionsIdleAtMs = -1;
+    this.pendingFloorSetupReentry = def !== null && this.shouldUseFloorSetupV21(def);
   }
 
   notifyCountdownGoPlaybackStarted(guard?: {
@@ -534,7 +558,7 @@ export class TrainingSessionPlayer {
     u.itemIndex = Math.max(0, this.itemIndex);
     u.setIndex = this.setIndex;
     const def = this.currentDefinition();
-    u.totalSets = def ? def.prescription.sets : 0;
+    u.totalSets = def ? this.effectiveDose(def).sets : 0;
     u.currentExerciseId = def ? def.id : null;
     u.floorSetup = cloneFloorSetup(this.floorSetup);
     u.floorMemory = this.floorMemorySnapshot();
@@ -547,6 +571,27 @@ export class TrainingSessionPlayer {
       : null;
   }
 
+  /**
+   * The daily generated dose (sets/reps/seconds/rest) overrides the catalog
+   * prescription: the session must run exactly what the plan promised.
+   * Valid-time measurement targets stay grader-owned (generation never adjusts
+   * secondsPerSet for valid-time exercises).
+   */
+  private effectiveDose(def: ExerciseDefinition): {
+    sets: number;
+    repsPerSet?: number;
+    secondsPerSet?: number;
+    restSec: number;
+  } {
+    const generated = this.generatedByExerciseId.get(def.id);
+    return {
+      sets: positiveInteger(generated?.sets) ?? def.prescription.sets,
+      repsPerSet: positiveInteger(generated?.repsPerSet) ?? def.prescription.repsPerSet,
+      secondsPerSet: positiveFinite(generated?.secondsPerSet),
+      restSec: positiveFinite(generated?.restSeconds) ?? def.prescription.restSec,
+    };
+  }
+
   private enterTransition(index: number, ts: number): void {
     const nextDefinition = this.definitions[index] ?? null;
     if (nextDefinition && !this.shouldUseFloorSetupV21(nextDefinition) && this.floorMemory.currentEnvironment === 'floor') {
@@ -557,6 +602,7 @@ export class TrainingSessionPlayer {
       };
     }
     this.cancelFloorSetup();
+    this.pendingFloorSetupReentry = false;
     this.itemIndex = index;
     this.setIndex = 0;
     this.currentSets = [];
@@ -654,6 +700,14 @@ export class TrainingSessionPlayer {
   }
 
   private runInstructions(out: PipelineFrameOutput, voiceBusy: boolean, ts: number, u: TrainingFrameUpdate): void {
+    if (this.pendingFloorSetupReentry) {
+      this.pendingFloorSetupReentry = false;
+      const def = this.currentDefinition();
+      if (def && this.shouldUseFloorSetupV21(def) && !this.floorSetup) {
+        this.enterFloorSetup(ts, u);
+        return;
+      }
+    }
     if (this.floorSetup) {
       this.runFloorSetup(out, voiceBusy, ts, u);
       return;
@@ -960,13 +1014,14 @@ export class TrainingSessionPlayer {
       setIndex: this.setIndex,
     });
     this.setStartMs = ts;
+    const dose = this.effectiveDose(def);
     this.setDurationMs =
       def.timing?.mode === 'valid_time'
         ? null
         : def.kind === 'rom'
-        ? (def.prescription.captureSec ?? 12) * 1000
+        ? (dose.secondsPerSet ?? def.prescription.captureSec ?? 12) * 1000
         : def.kind === 'timer'
-          ? (def.prescription.timerSec ?? def.prescription.holdSec ?? 20) * 1000
+          ? (dose.secondsPerSet ?? def.prescription.timerSec ?? def.prescription.holdSec ?? 20) * 1000
           : null;
     this.phase = 'set';
   }
@@ -994,20 +1049,29 @@ export class TrainingSessionPlayer {
     }
     this.lastValidTimeState = g.validTimeState ?? null;
 
+    const def = this.definitions[this.itemIndex];
+    const dose = this.effectiveDose(def);
     const elapsed = ts - this.setStartMs;
     const clockEnded = this.setDurationMs !== null && elapsed >= this.setDurationMs;
     const safetyEnded = this.setDurationMs === null && elapsed >= this.config.setSafetyMs;
+    // The plan's daily rep dose ends the set even when the catalog grader
+    // targets more reps — otherwise a reduced-dose user finishes their reps
+    // and stands waiting for the safety clock.
+    const doseRepsReached =
+      runtime.kind === 'legacy' &&
+      def.kind === 'reps' &&
+      dose.repsPerSet !== undefined &&
+      g.repCount >= dose.repsPerSet;
     u.remainingMs = Number.isFinite(g.remainingMs)
       ? (g.remainingMs as number)
       : this.setDurationMs !== null
         ? Math.max(0, this.setDurationMs - elapsed)
         : NaN;
 
-    if (g.complete || clockEnded || safetyEnded) {
+    if (g.complete || clockEnded || safetyEnded || doseRepsReached) {
       this.currentSets.push(runtime.finish(ts));
-      const def = this.definitions[this.itemIndex];
       // Don't overwrite the autoregulation line ("that's your set") if present.
-      if (this.setIndex + 1 < def.prescription.sets) {
+      if (this.setIndex + 1 < dose.sets) {
         this.enterRest(ts);
       } else {
         this.results.push({ exerciseId: def.id, status: 'completed', sets: this.currentSets.slice() });
@@ -1021,7 +1085,7 @@ export class TrainingSessionPlayer {
     this.phase = 'rest';
     this.restEnteredMs = ts;
     this.restSpoken = false;
-    this.restDurationMs = def.prescription.restSec * 1000;
+    this.restDurationMs = this.effectiveDose(def).restSec * 1000;
   }
 
   private runRest(ts: number, voiceBusy: boolean, u: TrainingFrameUpdate): void {
@@ -1029,7 +1093,7 @@ export class TrainingSessionPlayer {
     if (!this.restSpoken && !voiceBusy) {
       this.restSpoken = true;
       // Announce the final set so the user can pace the effort.
-      const isLastUpcoming = this.setIndex + 2 === def.prescription.sets;
+      const isLastUpcoming = this.setIndex + 2 === this.effectiveDose(def).sets;
       const safety = this.currentSafetyProfile();
       const safetyCueIds = safety?.repeatedSetCueIds ?? [];
       const restCue = this.shouldUseTrackedTrainingVoiceBehaviorV21()
@@ -1234,4 +1298,12 @@ function uniqueSafety(items: readonly SafetyCueId[]): SafetyCueId[] {
     if (!out.includes(item)) out.push(item);
   }
   return out;
+}
+
+function positiveInteger(value: number | undefined): number | undefined {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : undefined;
+}
+
+function positiveFinite(value: number | undefined): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined;
 }

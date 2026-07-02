@@ -638,16 +638,32 @@ function diagnosticForCandidate(
   };
 }
 
+/**
+ * Schedule days are the USER'S calendar days: timestamps resolve to the
+ * device-local date, never the UTC date. Otherwise an evening session (or any
+ * session for users east of UTC) lands on the wrong day, and the
+ * one-credit-per-day and week-unlock rules misfire. Date-only strings are
+ * already calendar days and pass through unchanged.
+ */
 function dateKeyFromUnknown(value: string | Date): { ok: true; dateKey: string } | { ok: false; dateKey?: string } {
   if (value instanceof Date) {
     if (!Number.isFinite(value.getTime())) return { ok: false };
-    return { ok: true, dateKey: value.toISOString().slice(0, 10) };
+    return { ok: true, dateKey: localDateKey(value) };
   }
   if (typeof value !== 'string') return { ok: false };
-  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!match) return { ok: false };
-  const dateKey = `${match[1]}-${match[2]}-${match[3]}`;
-  return isValidDateKey(dateKey) ? { ok: true, dateKey } : { ok: false, dateKey };
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return isValidDateKey(value) ? { ok: true, dateKey: value } : { ok: false, dateKey: value };
+  }
+  if (!/^\d{4}-\d{2}-\d{2}[T ]/.test(value)) return { ok: false };
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime())) return { ok: false };
+  return { ok: true, dateKey: localDateKey(parsed) };
+}
+
+function localDateKey(date: Date): string {
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
 }
 
 function isValidDateKey(value: string): boolean {

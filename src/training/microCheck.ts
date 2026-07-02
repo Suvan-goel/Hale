@@ -161,6 +161,22 @@ export class MicroCheckRunner {
     this.preflight.shiftTiming(deltaMs);
   }
 
+  /**
+   * A paused countdown or measurement is discarded and redone from the
+   * instructions dwell: the grader is frame-timestamp driven and cannot span a
+   * wall-clock pause without corrupting the measurement (a mid-hold pause
+   * would credit the whole gap into the hold).
+   */
+  resetActiveMeasurement(atMs: number): boolean {
+    if (this.phase !== 'countdown' && this.phase !== 'active') return false;
+    this.grader.reset();
+    this.phase = 'instructions';
+    this.instructionsEnteredMs = atMs;
+    this.instructionsIdleAtMs = -1;
+    this.countdownStep = 0;
+    return true;
+  }
+
   notifyCountdownGoPlaybackStarted(timestampMs: number): boolean {
     if (this.voiceMode !== 'v21_beta' || this.phase !== 'countdown') return false;
     this.phase = 'active';

@@ -238,3 +238,80 @@ function focusEvidence(): TrainingFocusStimulusEvidenceSummary {
     focusMismatchExerciseIds: [],
   };
 }
+
+describe('block schedule local calendar days', () => {
+  // Timestamps built from LOCAL components so these assertions hold in any
+  // machine timezone: schedule days must be the user's calendar days, never
+  // the UTC date of the completion timestamp.
+  function localIso(year: number, month1: number, day: number, hour: number, minute = 0): string {
+    return new Date(year, month1 - 1, day, hour, minute).toISOString();
+  }
+
+  function localBlock(): MovementBlock {
+    return block({ startDate: localIso(2026, 6, 1, 8) });
+  }
+
+  it('credits a late-evening session to the user\'s local day', () => {
+    const late = completion({
+      id: 'late-evening',
+      templateId: 'strength-A',
+      plannedDate: 'strength-A:2026-06-02',
+      completedAt: localIso(2026, 6, 2, 23, 30),
+    });
+    const schedule = getBlockScheduleState({
+      block: localBlock(),
+      completions: [late],
+      today: localIso(2026, 6, 3, 8),
+    });
+    expect(schedule.totalCredits).toBe(1);
+    expect(schedule.credits[0]?.dateKey).toBe('2026-06-02');
+  });
+
+  it('treats an evening session and the next local morning as two distinct credit days', () => {
+    const evening = completion({
+      id: 'evening',
+      templateId: 'strength-A',
+      plannedDate: 'strength-A:2026-06-02',
+      completedAt: localIso(2026, 6, 2, 21),
+    });
+    const nextMorning = completion({
+      id: 'next-morning',
+      templateId: 'strength-B',
+      plannedDate: 'strength-B:2026-06-03',
+      completedAt: localIso(2026, 6, 3, 7),
+    });
+    const schedule = getBlockScheduleState({
+      block: localBlock(),
+      completions: [evening, nextMorning],
+      today: localIso(2026, 6, 3, 9),
+    });
+    expect(schedule.totalCredits).toBe(2);
+    expect(schedule.credits.map((credit) => credit.dateKey)).toEqual(['2026-06-02', '2026-06-03']);
+  });
+
+  it('denies a second session on the same local day even across UTC midnight', () => {
+    const first = completion({
+      id: 'same-day-first',
+      templateId: 'strength-A',
+      plannedDate: 'strength-A:2026-06-02',
+      completedAt: localIso(2026, 6, 2, 9),
+    });
+    const second = completion({
+      id: 'same-day-second',
+      templateId: 'strength-B',
+      plannedDate: 'strength-B:2026-06-02',
+      completedAt: localIso(2026, 6, 2, 23, 45),
+    });
+    const schedule = getBlockScheduleState({
+      block: localBlock(),
+      completions: [first, second],
+      today: localIso(2026, 6, 3, 8),
+    });
+    expect(schedule.totalCredits).toBe(1);
+    expect(schedule.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ eventId: 'same-day-second', reason: 'daily_credit_already_used' }),
+      ])
+    );
+  });
+});

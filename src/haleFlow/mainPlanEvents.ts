@@ -270,10 +270,13 @@ function weekIndexForDate(block: MovementBlock, value: string): number {
   return Math.max(1, Math.min(4, Math.floor((completed - start) / (7 * 24 * 60 * 60 * 1000)) + 1));
 }
 
+// Credit days are the user's local calendar days (same rule as blockSchedule).
 function dateKey(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'unknown-date';
-  return date.toISOString().slice(0, 10);
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
 }
 
 function iso(value: string | Date): string {

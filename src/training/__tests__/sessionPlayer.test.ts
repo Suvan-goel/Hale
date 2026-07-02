@@ -532,3 +532,93 @@ describe('TrainingSessionPlayer — floor final-position readiness', () => {
     expect(source).not.toMatch(/percentile/);
   });
 });
+
+describe('TrainingSessionPlayer — pause measurement integrity and daily dose', () => {
+  const config: TrainingPlayerConfig = { ...DEFAULT_TRAINING_CONFIG, setSafetyMs: 4000 };
+
+  function stepper(exerciseIds: string[], options: TrainingSessionPlayerOptions = {}) {
+    const pipeline = new PosePipeline();
+    const preflight = new PreflightCheck();
+    const player = new TrainingSessionPlayer(
+      '2026-06-14T09:00:00.000Z',
+      exerciseIds,
+      preflight,
+      config,
+      options
+    );
+    const frameAt = framedStanding();
+    let voiceBusyUntil = -1;
+    let ts = 0;
+    const step = () => {
+      const out = pipeline.process(frameAt(Math.round(ts)));
+      const u = player.update(out, ts < voiceBusyUntil);
+      if (u.voice) voiceBusyUntil = ts + u.voice.cues.length * CUE_PLAY_MS;
+      ts += FRAME_MS;
+      return u;
+    };
+    const stepUntil = (predicate: (u: TrainingFrameUpdate) => boolean, maxFrames = 60000) => {
+      for (let i = 0; i < maxFrames; i++) {
+        const u = step();
+        if (predicate(u)) return u;
+      }
+      throw new Error('condition not reached within frame cap');
+    };
+    return {
+      player,
+      step,
+      stepUntil,
+      jump(deltaMs: number) {
+        ts += deltaMs;
+      },
+    };
+  }
+
+  it('discards the in-flight set on pause and redoes it after resume', () => {
+    const run = stepper([STS_STANDARD_ID]);
+    run.stepUntil((u) => u.phase === 'set');
+    for (let i = 0; i < 15; i++) run.step();
+
+    // Pause mid-set (as the screen does), a long break passes, then the
+    // screen shifts timing on the first resumed frame.
+    run.player.pause();
+    const pauseMs = 45000;
+    run.jump(pauseMs);
+    run.player.shiftTiming(pauseMs);
+    const afterResume = run.step();
+    // The interrupted set was discarded, not stitched across the gap.
+    expect(afterResume.phase).toBe('instructions');
+
+    const done = run.stepUntil((u) => u.phase === 'done', 120000);
+    expect(done.phase).toBe('done');
+    const result = run.player.result!;
+    // The redone set still counts: full prescribed set count, item completed.
+    expect(result.items[0].status).toBe('completed');
+    expect(result.items[0].sets).toHaveLength(getExercise(STS_STANDARD_ID).prescription.sets);
+  });
+
+  it('keeps sets completed before a skip in the skipped item result', () => {
+    const run = stepper([STS_STANDARD_ID, NECK_ROTATION_ID]);
+    run.stepUntil((u) => u.phase === 'rest');
+    expect(run.player.skipCurrentItem()).toBe(true);
+    run.stepUntil((u) => u.phase === 'done', 120000);
+    const result = run.player.result!;
+    expect(result.items[0].status).toBe('skipped');
+    // The set finished before the skip is preserved as measurement data.
+    expect(result.items[0].sets).toHaveLength(1);
+  });
+
+  it('honors the generated daily dose over the catalog prescription', () => {
+    const catalogSets = getExercise(STS_STANDARD_ID).prescription.sets;
+    expect(catalogSets).toBeGreaterThan(1);
+    const run = stepper([STS_STANDARD_ID], {
+      generatedExercises: [{ exerciseId: STS_STANDARD_ID, sets: 1, repsPerSet: 6, restSeconds: 10 }],
+    });
+    const inSet = run.stepUntil((u) => u.phase === 'set');
+    expect(inSet.totalSets).toBe(1);
+    run.stepUntil((u) => u.phase === 'done', 120000);
+    const result = run.player.result!;
+    expect(result.items[0].status).toBe('completed');
+    // One set as planned for today — not the catalog's larger prescription.
+    expect(result.items[0].sets).toHaveLength(1);
+  });
+});

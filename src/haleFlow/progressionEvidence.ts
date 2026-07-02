@@ -360,8 +360,14 @@ export function buildExerciseProgressionEvidence(input: {
 
     const validTime = summarizeValidTimeItem(singleItem);
     const progressionPolicy = progressionPolicyByExerciseId.get(exerciseId);
+    const measuredCompletion = measuredCompletionRate({
+      item: singleItem,
+      metadata: plannedMetadata,
+      exerciseId,
+    });
     out.push({
       ...base,
+      ...(measuredCompletion !== null ? { completionRate: measuredCompletion } : {}),
       progressionEventId: progressionEventIdFor({
         completionId: input.eligibility.completionId,
         blockId: input.eligibility.blockId,
@@ -846,6 +852,66 @@ function classifyGeneratedExerciseMetadata(input: {
     levelIndex,
     role: metadata.stimulusRole,
   };
+}
+
+/**
+ * Completion of the PLANNED daily dose, measured from the graded set results.
+ * A tracking artifact must never read as user failure: any set flagged
+ * unmeasured or interrupted leaves the rate neutral (null → the evidence
+ * keeps 1 and defers to the validTime/tracking signals).
+ */
+function measuredCompletionRate(input: {
+  item: TrainingItemResult;
+  metadata: HaleGeneratedExerciseMetadata;
+  exerciseId: string;
+}): number | null {
+  const sets = input.item.sets;
+  if (!Array.isArray(sets) || sets.length === 0) return null;
+  if (sets.some((set) => setMeasurementUnusable(set.flags))) return null;
+  let definition;
+  try {
+    definition = getExercise(input.exerciseId);
+  } catch {
+    return null;
+  }
+  const plannedSets = positiveInteger(input.metadata.sets) ?? definition.prescription.sets;
+  if (!plannedSets) return null;
+  if (definition.kind === 'reps') {
+    const plannedReps = positiveInteger(input.metadata.repsPerSet) ?? definition.prescription.repsPerSet;
+    if (!plannedReps) return null;
+    return clamp01(sumFinite(sets.map((set) => set.reps)) / (plannedReps * plannedSets));
+  }
+  if (definition.kind === 'hold' || definition.kind === 'timer') {
+    const plannedSeconds =
+      positiveFinite(input.metadata.secondsPerSet) ??
+      definition.prescription.holdSec ??
+      definition.prescription.timerSec;
+    if (!plannedSeconds) return null;
+    return clamp01(sumFinite(sets.map((set) => set.holdSec)) / (plannedSeconds * plannedSets));
+  }
+  // rom is a capture, not a work volume — no completion rate to measure.
+  return null;
+}
+
+function setMeasurementUnusable(flags: readonly string[] | undefined): boolean {
+  if (!Array.isArray(flags)) return false;
+  return flags.includes('no-measurement') || flags.includes('tracking-interrupted');
+}
+
+function positiveInteger(value: number | undefined): number | undefined {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : undefined;
+}
+
+function positiveFinite(value: number | undefined): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined;
+}
+
+function sumFinite(values: readonly number[]): number {
+  let total = 0;
+  for (const value of values) {
+    if (Number.isFinite(value)) total += value;
+  }
+  return total;
 }
 
 function progressionFeedbackFor(input: {

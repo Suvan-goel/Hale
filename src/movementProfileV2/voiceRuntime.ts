@@ -515,6 +515,7 @@ export class MovementProfileV2VoiceRuntime {
     event: 'voice_change_applied_immediately' | 'voice_change_applied_at_safe_boundary'
   ): void {
     this.cancelActive('voice_changed');
+    this.voice.stop('voice_changed');
     this.activeVoiceId = voiceId;
     this.pendingVoiceId = null;
     this.voice = this.createVoiceChannel(voiceId);

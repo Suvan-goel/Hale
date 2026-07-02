@@ -469,9 +469,12 @@ export function MicroCheckScreen({
   const pause = React.useCallback(() => {
     pausedRef.current = true;
     pauseStartedAtRef.current = lastFrameTimestampRef.current;
+    // A paused countdown/measurement restarts fresh on resume — the grader
+    // cannot span a wall-clock gap without corrupting the measurement.
+    runner?.resetActiveMeasurement(lastFrameTimestampRef.current);
     voice.stop();
     setPaused(true);
-  }, [voice]);
+  }, [runner, voice]);
 
   const resume = React.useCallback(() => {
     pausedRef.current = false;

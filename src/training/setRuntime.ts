@@ -22,6 +22,11 @@ export type TrainingVoiceRuntimeMode = 'legacy' | 'internal_v21';
 
 export interface TrainingSetRuntimeGeneratedExercise {
   readonly exerciseId: string;
+  /** Daily generated dose. The player honors these over the catalog prescription. */
+  readonly sets?: number;
+  readonly repsPerSet?: number;
+  readonly secondsPerSet?: number;
+  readonly restSeconds?: number;
   readonly stepUpAlternationPlan?: StepUpAlternationPlan;
   readonly stepUpInitialLeadSide?: StepUpLeadSide;
 }

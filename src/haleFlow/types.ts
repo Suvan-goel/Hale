@@ -179,6 +179,7 @@ export interface HaleGeneratedExerciseMetadata {
   sets?: number;
   repsPerSet?: number;
   secondsPerSet?: number;
+  restSeconds?: number;
   measurementTier?: 'measured' | 'camera_assisted' | 'voice_guided';
   intendedDomain?: TrainingDomain;
   stimulusRole?: SlotStimulusRole;

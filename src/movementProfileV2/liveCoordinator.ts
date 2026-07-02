@@ -64,6 +64,8 @@ const MAX_TRANSITIONS = 80;
 const MAX_SEEN_FRAME_IDS = 256;
 const HANDS_FREE_SETUP_DWELL_MS = 1200;
 const HANDS_FREE_FALLBACK_TIMEOUT_MS = 10000;
+/** Wall-clock deadlines may only credit results while pose frames are flowing. */
+const FRAME_STALL_INVALID_MS = 1500;
 const SETUP_CHAIN_RELIABILITY = 0.45;
 const CHAIR_SETUP_SEATED_KNEE_MAX_DEG = 145;
 const SHOULDER_CAPTURE_ARM_MIN_DEG = 35;
@@ -310,6 +312,7 @@ export class MovementProfileV2LiveCoordinator {
   private readonly clockBridge = new MonotonicFrameClockBridge();
   private readonly seenFrameIds = new BoundedFrameIdSet(MAX_SEEN_FRAME_IDS);
   private lastSourceTimestampMs: number | null = null;
+  private lastAcceptedFrameAppMs: number | null = null;
   private lastTrackingQuality: MovementProfileV2TrackingQuality | null = null;
 
   private chair = new ChairRiseV2ProtocolController();
@@ -663,13 +666,23 @@ export class MovementProfileV2LiveCoordinator {
     if (this.stage === 'chair_active' && this.chairActiveStartedAtMs !== null) {
       const deadline = this.chairActiveStartedAtMs + DEFAULT_CHAIR_RISE_V2_CONFIG.activeWindowMs;
       if (nowMs >= deadline) {
-        this.diagnostics.chair.deadlineDriftMs = Math.max(0, nowMs - deadline);
-        this.recordChairResult(this.chair.finish(deadline), deadline, 'chair_deadline');
+        if (this.framesStalledAt(nowMs)) {
+          // A stalled camera means part of the window was never observed —
+          // restart rather than record a silently truncated official result.
+          this.recoverChairFromTrackingLoss(nowMs);
+        } else {
+          this.diagnostics.chair.deadlineDriftMs = Math.max(0, nowMs - deadline);
+          this.recordChairResult(this.chair.finish(deadline), deadline, 'chair_deadline');
+        }
       }
     }
     if (this.stage === 'balance_trial' && this.balanceTrialStartedAtMs !== null) {
       const deadline = this.balanceTrialStartedAtMs + DEFAULT_ONE_LEG_BALANCE_V2_CONFIG.maxTrialMs;
-      if (nowMs >= deadline) this.completeBalanceTrial(deadline, 'ceiling');
+      if (nowMs >= deadline) {
+        // Never credit a ceiling hold the camera did not actually observe.
+        if (this.framesStalledAt(nowMs)) this.invalidateBalanceTrial(nowMs, 'tracking_invalid');
+        else this.completeBalanceTrial(deadline, 'ceiling');
+      }
     }
     if (this.completeBalanceAtHardCapIfNeeded(nowMs)) return this.revision !== before;
     if (this.stage === 'balance_rest') {
@@ -762,7 +775,12 @@ export class MovementProfileV2LiveCoordinator {
     }
     this.seenFrameIds.add(frameKey);
     this.lastSourceTimestampMs = sample.timestampMs;
+    this.lastAcceptedFrameAppMs = normalized;
     return { accepted: true, nowMs: normalized };
+  }
+
+  private framesStalledAt(nowMs: number): boolean {
+    return this.lastAcceptedFrameAppMs === null || nowMs - this.lastAcceptedFrameAppMs > FRAME_STALL_INVALID_MS;
   }
 
   private updateHandsFreeFromPose(sample: MovementProfileV2LivePoseSample, nowMs: number): void {
@@ -1346,20 +1364,19 @@ export class MovementProfileV2LiveCoordinator {
   }
 
   private handleBackground(nowMs: number): void {
+    // Backgrounding mid-measure follows the same contract as tracking loss:
+    // the interrupted attempt is invalidated and the test restarts fresh on
+    // return. A truncated attempt is never recorded as an official result.
     if (this.stage === 'chair_active') {
-      this.chair.trackingInterrupted(nowMs);
-      this.diagnostics.trackingInterruptions++;
-      this.diagnostics.chair.trackingInterruptions++;
-      this.recordChairResult(this.chair.finish(nowMs), nowMs, 'chair_backgrounded');
+      this.recoverChairFromTrackingLoss(nowMs);
     } else if (this.stage === 'balance_trial') {
       this.invalidateBalanceTrial(nowMs, 'app_backgrounded');
     } else if (this.stage === 'balance_setup' || this.stage === 'balance_ready') {
       this.clearBalanceReadyLiftEvidence();
     } else if (this.stage === 'shoulder_active') {
-      this.shoulder.recordInvalidCapture(nowMs, 'app_backgrounded');
-      this.finishShoulderAttempt(nowMs, 'app_backgrounded');
+      this.recoverShoulderFromTrackingLoss(nowMs);
     } else if (this.stage === 'hinge_active') {
-      this.finishHinge(nowMs, 'app_backgrounded');
+      this.recoverHingeFromTrackingLoss(nowMs);
     }
   }
 

@@ -2288,6 +2288,7 @@ function toGeneratedExerciseMetadata(exercise: GeneratedExercise) {
     sets: exercise.sets,
     repsPerSet: exercise.repsPerSet,
     secondsPerSet: exercise.secondsPerSet,
+    restSeconds: exercise.restSeconds,
     measurementTier: exercise.measurementTier,
     intendedDomain: exercise.intendedDomain,
     stimulusRole: exercise.stimulusRole,
@@ -2487,10 +2488,16 @@ function plannedDateKey(templateId: string | undefined, plannedFor: string | Dat
   return `${templateId ?? 'session'}:${dateKey(plannedFor)}`;
 }
 
+// Plan days are the user's local calendar days (same rule as blockSchedule).
 function dateKey(value: string | Date): string {
   const date = typeof value === 'string' ? new Date(value) : value;
-  if (Number.isNaN(date.getTime())) return new Date().toISOString().slice(0, 10);
-  return date.toISOString().slice(0, 10);
+  return localCalendarDateKey(Number.isNaN(date.getTime()) ? new Date() : date);
+}
+
+function localCalendarDateKey(date: Date): string {
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
 }
 
 function iso(value: string | Date): string {

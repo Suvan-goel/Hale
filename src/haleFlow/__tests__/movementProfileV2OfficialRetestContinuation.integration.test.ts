@@ -903,8 +903,19 @@ function advanceThroughChair(coordinator: MovementProfileV2LiveCoordinator, star
     }
     if (coordinator.snapshot(nowMs).stage === 'balance_setup') return nowMs;
   }
-  coordinator.receiveTimerTick(nowMs + 31000);
-  return nowMs + 31000;
+  // Keep the camera live (subject seated) until the official window's
+  // wall-clock deadline fires: deadlines only credit results while frames flow.
+  const lastRaw = session.frames[session.frames.length - 1];
+  for (let keepAliveMs = nowMs + 250; keepAliveMs <= nowMs + 40000; keepAliveMs += 250) {
+    coordinator.receiveTimerTick(keepAliveMs);
+    if (coordinator.snapshot(keepAliveMs).stage === 'balance_setup') return keepAliveMs;
+    feedOutput(
+      coordinator,
+      trackingOutput({ ...lastRaw, timestampMs: keepAliveMs }, session.truth.bodyUnit, { leftSide: 0.3, rightSide: 0.95 }),
+      keepAliveMs
+    );
+  }
+  throw new Error('chair official window did not complete');
 }
 
 function startBalanceTrial(
