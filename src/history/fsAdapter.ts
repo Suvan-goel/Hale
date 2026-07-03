@@ -7,7 +7,7 @@
 
 import { Directory, File, Paths } from 'expo-file-system';
 
-import { historyDirectorySegments } from './localScope';
+import { historyDirectorySegments, moveLocalFiles } from './localScope';
 import { HistoryFs } from './store';
 
 export interface ExpoHistoryFsOptions {
@@ -56,3 +56,15 @@ export function createExpoHistoryFs(options: ExpoHistoryFsOptions = {}): History
 }
 
 export const expoHistoryFs: HistoryFs = createExpoHistoryFs();
+
+/**
+ * Moves device-local guest files (the unscoped directory) into a signed-in
+ * user's scope. Used once, when an account is first created on a device that
+ * already has guest data: the account adopts the guest's check-ups, training
+ * state, and preferences instead of starting empty. Existing files in the
+ * user scope are never overwritten; guest files are removed after the move so
+ * a second account on the same device cannot adopt another person's data.
+ */
+export async function adoptGuestLocalFiles(userId: string): Promise<{ moved: number }> {
+  return moveLocalFiles(createExpoHistoryFs(), createExpoHistoryFs({ userId }));
+}

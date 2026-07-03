@@ -136,7 +136,7 @@ import {
   type TodaySessionPreferences,
 } from './src/haleFlow';
 import { HistoryStore, HISTORY_SCHEMA_VERSION, StoredCheckUp } from './src/history';
-import { createExpoHistoryFs } from './src/history/fsAdapter';
+import { adoptGuestLocalFiles, createExpoHistoryFs } from './src/history/fsAdapter';
 import {
   BALANCE_LADDER_ID,
   CHAIR_STAND_ID,
@@ -712,12 +712,11 @@ function AppGate() {
   const auth = useAuth();
   const authUserId =
     typeof auth.user?.id === 'string' && auth.user.id.length > 0 ? auth.user.id : null;
+  // Guest-first: the app runs without an account on device-local data. The
+  // auth screen appears only for password recovery; signing in (to back up
+  // results) lives in Settings → Account.
   const shouldRenderHaleApp =
-    fontsLoaded &&
-    !auth.loading &&
-    auth.isSignedIn &&
-    authUserId !== null &&
-    !auth.isPasswordRecovery;
+    fontsLoaded && !auth.loading && !auth.isPasswordRecovery;
 
   React.useEffect(() => {
     if (shouldRenderHaleApp) return;
@@ -728,15 +727,15 @@ function AppGate() {
     return <AuthLoadingScreen />;
   }
 
-  if (!auth.isSignedIn || auth.isPasswordRecovery) {
+  if (auth.isPasswordRecovery) {
     return <AuthScreen />;
   }
 
-  return <HaleApp key={authUserId} />;
+  return <HaleApp key={authUserId ?? 'guest'} />;
 }
 
 function HaleApp() {
-  const { isSignedIn: backendSignedIn, signOut, user } = useAuth();
+  const { isSignedIn: backendSignedIn, user } = useAuth();
   const systemInsets = useSystemInsets();
   const backendUserId = user?.id ?? null;
   const [permission, setPermission] = React.useState<PermissionState>('checking');
@@ -1105,7 +1104,9 @@ function HaleApp() {
         clearTimeout(launchSyncRetryTimerRef.current);
         launchSyncRetryTimerRef.current = null;
       }
-      setRestoreReady(false);
+      // Guest mode: there is no remote state to wait for, so the app proceeds
+      // on local data immediately.
+      setRestoreReady(true);
       if (trainingStateSyncTimerRef.current) {
         clearTimeout(trainingStateSyncTimerRef.current);
         trainingStateSyncTimerRef.current = null;
@@ -1164,17 +1165,56 @@ function HaleApp() {
     });
     let cancelled = false;
 
-    void restoreRemoteStateIfLocalEmpty({
-      local: launchLocalState,
-      stores: {
-        profileStore,
-        historyStore: store,
-        trainingStore,
-        adherenceStore,
-      },
-    })
+    // Guest-first: when an account is first used on a device that already has
+    // guest data, the account adopts that data (moved into the user scope)
+    // before any remote restore. Launch sync then pushes it to the backend.
+    const adoptGuestStateIfLocalEmpty = async (): Promise<boolean> => {
+      if (!isLocalStateEmptyForRestore(launchLocalState)) return false;
+      const { moved } = await adoptGuestLocalFiles(backendUserId);
+      if (moved === 0) return false;
+      const [nextHistory, nextTraining, nextMicroChecks, nextSessionInProgress, nextPrefs, nextAdherence] =
+        await Promise.all([
+          store.loadAll(),
+          trainingStore.loadState(),
+          trainingStore.loadMicroChecks(),
+          trainingStore.loadSessionInProgress(),
+          profileStore.load(),
+          adherenceStore.load(),
+        ]);
+      if (cancelled) return true;
+      setHistory(nextHistory);
+      setTraining(nextTraining);
+      setMicroChecks(nextMicroChecks);
+      setSessionInProgress(nextSessionInProgress);
+      setPrefs(nextPrefs);
+      setAdherence(nextAdherence);
+      addBreadcrumb('guest local state adopted', { area: 'restore', moved });
+      return true;
+    };
+
+    void adoptGuestStateIfLocalEmpty()
+      .catch((error) => {
+        captureError(error, { area: 'restore', action: 'adopt_guest_state' });
+        return false;
+      })
+      .then((adopted) => {
+        if (cancelled) return null;
+        if (adopted) {
+          setRestoreOutcome('skipped_non_empty_local');
+          return null;
+        }
+        return restoreRemoteStateIfLocalEmpty({
+          local: launchLocalState,
+          stores: {
+            profileStore,
+            historyStore: store,
+            trainingStore,
+            adherenceStore,
+          },
+        });
+      })
       .then((result) => {
-        if (cancelled) return;
+        if (cancelled || result === null) return;
         setRestoreOutcome(launchRestoreOutcomeFromStatus(result.status));
         addBreadcrumb('restore completed', {
           status: result.status,
@@ -2326,11 +2366,6 @@ function HaleApp() {
     });
     setFlow('welcome');
   }, [persistPrefs, prefs]);
-
-  const signOutFromOnboarding = React.useCallback(async () => {
-    setDevOnboardingReplay(false);
-    await signOut();
-  }, [signOut]);
 
   const newestMilestone = React.useMemo(() => latestMilestone(adherence), [adherence]);
   // Scored most-recent check-up, for Home's progress snapshot and adherence milestones.
@@ -4353,7 +4388,6 @@ function HaleApp() {
           <WelcomeScreen
             onStart={handleWelcomeStart}
             onDone={goHome}
-            onBack={onboardingFlowActive ? signOutFromOnboarding : undefined}
             showDashboardLink={!onboardingFlowActive}
           />
         ) : flow === 'safety-profile' ? (

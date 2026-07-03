@@ -2739,3 +2739,29 @@ PUBLIC RELEASE REMAINS BLOCKED
   to the regenerated lines on device) and the legacy voice fallback for unknown exercises
   stays as the fail-closed path. **Owed:** founder listening pass on device; after approval,
   tear down the V2.0 cue paths and collapse the readiness lattice to a single constant.
+
+## 2026-07-04 — App-simplification Stage 5a: guest-first launch; sign-in becomes optional backup
+
+- **Context:** Stage 5 of the approved simplification plan. Requiring an email/password
+  account before a 60-year-old has seen anything was the single most hostile step in a
+  ten-stage onboarding funnel. Product owner approved deferring auth.
+- **Change (AppGate):** the app now renders without an account. The auth screen appears only
+  for password recovery; `HaleApp` is keyed by the user id or `'guest'`. Signing in lives in
+  Settings → Account ("Sign in if you want Hale to keep your check-up history … available
+  when you return"), which already had a full sign-in/sign-up card.
+- **Change (storage):** guest data uses the existing unscoped local directory; signed-in data
+  keeps its per-user scope. New `moveLocalFiles` (src/history/localScope.ts, unit-tested) and
+  `adoptGuestLocalFiles`: when an account is first used on a device with guest data and the
+  user scope is empty, the guest files are **moved** into the user scope before any remote
+  restore — never overwriting, and emptying the guest scope so a second account cannot adopt
+  another person's data. Launch sync then pushes the adopted state to the backend.
+- **Change (restore gating):** a signed-out launch marks restore ready immediately (no remote
+  to wait for). The Welcome screen's "Back to sign in" escape and the onboarding sign-out
+  path are gone — Welcome is now the true first screen.
+- **Sync behavior:** all sync effects were already gated on a signed-in session and now
+  simply idle in guest mode.
+- **Owed (device):** guest onboarding end-to-end; sign-in-after-guest-data adoption; sign-out
+  → guest → sign-in round trip; password-recovery deep link. These require a real device and
+  the Supabase project.
+- **CLAUDE.md note:** the local-only/no-accounts language is now closer to true for the
+  default experience; the doc is reconciled in Stage 7.
