@@ -238,8 +238,8 @@ function CheckupSection() {
           <Image
             src={brandAssets.checkupBackground}
             alt="A phone on a stand beside a chair for a home movement check-up."
-            width={1672}
-            height={941}
+            width={1448}
+            height={1086}
             sizes="(max-width: 900px) 100vw, 45vw"
           />
         </div>
@@ -335,8 +335,8 @@ function FirstMonthSection() {
         <Image
           src={brandAssets.firstBlock}
           alt="A tidy home setup with Hale training cards and everyday exercise equipment."
-          width={1672}
-          height={941}
+          width={1448}
+          height={1086}
           sizes="(max-width: 900px) 100vw, 45vw"
         />
         <div className="month-section__phone">
