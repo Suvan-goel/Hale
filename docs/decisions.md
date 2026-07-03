@@ -2716,3 +2716,26 @@ PUBLIC RELEASE REMAINS BLOCKED
 - **Verification:** tsc clean, `expo config` clean, 1,398 tests passing with only the same 4
   pre-existing voice-activation failures as the recorded baseline. Owed: on-device onboarding
   smoke (welcome → synthetic V2 baseline via dev shortcut → results → block intro).
+
+## 2026-07-04 — App-simplification Stage 4: Voice V2.1 audio backlog cleared; V2.1 is the live default
+
+- **Context:** Stage 4 of the approved simplification plan. The Voice V2.1 migration had been
+  frozen mid-flight: cues rewritten in source, audio intentionally pending, and a readiness
+  lattice holding the runtime on legacy voice until the assets existed. Four aspirational
+  tests encoding the finished state were failing on purpose.
+- **Change (target grammar):** both-sides per-side rep targets now speak the short form
+  ("Aim for four reps.") without the per-exercise guidance suffix — the side/switch cues
+  around them already carry the reassurance; the suffix stays for standard single-side
+  targets. This was the in-flight cue-rework contract the failing test described.
+- **Change (generation):** ran the ElevenLabs batch (Multilingual v2, mp3_44100_128) for the
+  158 stale Voice V2.1 jobs (79 cue keys × Clara/Marcus) and the 46 stale Movement Profile V2
+  check-up lines (23 keys × 2). `verify:audio` passes across all 502 required assets.
+- **Effect:** the physical-audio-surface readiness (computed from the manifests) flipped on
+  its own; `resolveVoiceV21Activation` now reports `featureSelectable: true` with 37
+  selectable exercises and a single `default_voice_system_enabled` reason code. Training,
+  micro-check, Movement Check-Up, eyes-open balance, and floor V2.1 voice paths are all the
+  runtime default. Full suite green for the first time on this branch: 1,402/1,402.
+- **Deliberately kept:** `AUDIO_APPROVAL_READY` stays `false` (the founder has not listened
+  to the regenerated lines on device) and the legacy voice fallback for unknown exercises
+  stays as the fail-closed path. **Owed:** founder listening pass on device; after approval,
+  tear down the V2.0 cue paths and collapse the readiness lattice to a single constant.

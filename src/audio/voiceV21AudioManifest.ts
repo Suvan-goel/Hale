@@ -299,14 +299,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/equip-door-anchor-v21.mp3",
-      "script": "Use a secure closed door anchor and test light tension first.",
-      "fingerprint": "voice-v21-audio-v1-ge5vat",
-      "sha256": "ed22c4f792dc494ee19c86b4ebbe8c42d1f8a86456f63ab33a3125285b1ea7c9",
-      "fileSizeBytes": 62737,
-      "durationMs": 3855,
+      "script": "Before using the door anchor, make sure the door is fully closed and the anchor feels secure. Test with light tension first. If it does not feel secure, skip this exercise.",
+      "fingerprint": "voice-v21-audio-v1-1grrosa",
+      "sha256": "0d282d104515e11f7f58f2a2bd0c6a650bc854fb591a22d602362282aba9d863",
+      "fileSizeBytes": 193559,
+      "durationMs": 12028,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "equip-floor-transition-v21": {
       "schemaVersion": 1,
@@ -324,14 +324,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/equip-floor-transition-v21.mp3",
-      "script": "Move down to the floor and settle into the start position.",
-      "fingerprint": "voice-v21-audio-v1-1jjdvgt",
-      "sha256": "782dfc72e307ce916604ffd57d363ba70c2a041da3a7be017da7013c4b462e87",
-      "fileSizeBytes": 51453,
-      "durationMs": 3158,
+      "script": "Take your time getting down to the floor. Use support if you need it. Once you are comfortable, settle into the starting position and wait for my countdown.",
+      "fingerprint": "voice-v21-audio-v1-u10p5",
+      "sha256": "c211babf61a5abeddd56f811a8995cae2dc49f3e15886808a2a36a8e55334482",
+      "fileSizeBytes": 160122,
+      "durationMs": 9938,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "equip-long-band-v21": {
       "schemaVersion": 1,
@@ -349,14 +349,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/equip-long-band-v21.mp3",
-      "script": "Check the band first and keep it away from your face.",
-      "fingerprint": "voice-v21-audio-v1-nmudrx",
-      "sha256": "7d7ddbe3249e303976cd63b1a2fc4d9ade91cba322b2d219119db3e2ac0d9c79",
-      "fileSizeBytes": 51453,
-      "durationMs": 3158,
+      "script": "Before using the band, check that it is not cracked, torn, or frayed. Keep the band away from your face, and use light tension only.",
+      "fingerprint": "voice-v21-audio-v1-x00m7x",
+      "sha256": "33113ebffedd6f7d8efcd83721be1d1fbeb0376d5a6ceaf9c1cda91ee33fb3e5",
+      "fileSizeBytes": 145911,
+      "durationMs": 9056,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "equip-step-stable-v21": {
       "schemaVersion": 1,
@@ -424,14 +424,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-balance-feet-together-hold-first-v21.mp3",
-      "script": "Feet-together hold. Stand with feet together, fingertips near support, eyes open.",
-      "fingerprint": "voice-v21-audio-v1-99wuk4",
-      "sha256": "b28d26636fbfd14651b81f3ca10712f9fe73c8ce3d05a30c1afb42609cfad2f7",
-      "fileSizeBytes": 93248,
-      "durationMs": 5759,
+      "script": "Feet-together hold. Stand with your feet together and keep your eyes open. Keep fingertips near a counter, wall, or sturdy chair.",
+      "fingerprint": "voice-v21-audio-v1-1vuyz2m",
+      "sha256": "83f1e4f5e1fe2bc8adedf6369a787fad2af6cc197f0c4d3f8da465ee72d45668",
+      "fileSizeBytes": 146747,
+      "durationMs": 9102,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-balance-feet-together-hold-next-v21": {
       "schemaVersion": 1,
@@ -449,14 +449,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-balance-feet-together-hold-next-v21.mp3",
-      "script": "Feet-together hold.",
-      "fingerprint": "voice-v21-audio-v1-aa6mg4",
-      "sha256": "7ce80cbe439ccc6e5bbf4c84e5a0aa29cce66ffea9c50f1a4d9eaeefdead9751",
-      "fileSizeBytes": 22613,
-      "durationMs": 1347,
+      "script": "Feet-together hold again. Eyes open, support close, and stand as steady as you can.",
+      "fingerprint": "voice-v21-audio-v1-hetpnn",
+      "sha256": "a43a33008cbde268f5613179ff21a12d1763172af82f55613d636365dbe8f930",
+      "fileSizeBytes": 88651,
+      "durationMs": 5480,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-balance-single-leg-hold-first-v21": {
       "schemaVersion": 1,
@@ -474,14 +474,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-balance-single-leg-hold-first-v21.mp3",
-      "script": "Single-leg hold. Keep support close.",
-      "fingerprint": "voice-v21-audio-v1-1ab7lac",
-      "sha256": "ab7e67a069de25f09683a15eac23beac513b0affca83dcf80d6c918f9c4537fd",
-      "fileSizeBytes": 42675,
-      "durationMs": 2601,
+      "script": "Single-leg hold. Stand near support. You'll lift one foot slightly off the floor and hold steady.",
+      "fingerprint": "voice-v21-audio-v1-c2py7y",
+      "sha256": "b47788afb72dae803ba047a9e253640abcff84d3cdc0655cc99f51fb17b03f71",
+      "fileSizeBytes": 111221,
+      "durationMs": 6873,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-balance-single-leg-hold-next-v21": {
       "schemaVersion": 1,
@@ -499,14 +499,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-balance-single-leg-hold-next-v21.mp3",
-      "script": "Single-leg hold.",
-      "fingerprint": "voice-v21-audio-v1-1aoov28",
-      "sha256": "b97da315587406edd01378e00e69e79760ccc6f0f5fe37aefefd2b0e8c3faedd",
-      "fileSizeBytes": 22613,
-      "durationMs": 1347,
+      "script": "Single-leg hold again. Keep support close and lift the other foot only a little.",
+      "fingerprint": "voice-v21-audio-v1-lts13m",
+      "sha256": "6915e2bedd682fc51058cfc39d911d7ff70f4e49c61117aeb0413b1d4193b477",
+      "fileSizeBytes": 83635,
+      "durationMs": 5155,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-balance-tandem-hold-first-v21": {
       "schemaVersion": 1,
@@ -524,14 +524,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-balance-tandem-hold-first-v21.mp3",
-      "script": "Tandem hold. Keep support close.",
-      "fingerprint": "voice-v21-audio-v1-1ch2eee",
-      "sha256": "474664a5b782ea2204c95335ff96613e55297d0382dd0dfbe1629b54b1ea7642",
-      "fileSizeBytes": 35988,
-      "durationMs": 2183,
+      "script": "Tandem hold. Stand near support, with one foot directly in front of the other like you're standing on a line.",
+      "fingerprint": "voice-v21-audio-v1-l3u6dd",
+      "sha256": "b94dc6bb7f0ba71c11d495a487224024b0260a66a6baaa3465ac4bd0e81957a6",
+      "fileSizeBytes": 107459,
+      "durationMs": 6641,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-balance-tandem-hold-next-v21": {
       "schemaVersion": 1,
@@ -549,14 +549,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-balance-tandem-hold-next-v21.mp3",
-      "script": "Tandem hold.",
-      "fingerprint": "voice-v21-audio-v1-sfoj6a",
-      "sha256": "9f98b675c696d80c56eca1cff00ff85fbf964a64f5a344f92097572e589d74d4",
-      "fileSizeBytes": 20524,
-      "durationMs": 1207,
+      "script": "Tandem hold again. Keep support close and stand as steady as you can.",
+      "fingerprint": "voice-v21-audio-v1-1orydmm",
+      "sha256": "db2d47a08344d68d511378a716cc2c38515787de34e0573fe5d3888344a086f4",
+      "fileSizeBytes": 72351,
+      "durationMs": 4458,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-band-pull-apart-first-v21": {
       "schemaVersion": 1,
@@ -574,14 +574,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-band-pull-apart-first-v21.mp3",
-      "script": "Band pull-apart. Hold a light band at chest height. Pull your hands wide, then return slowly.",
-      "fingerprint": "voice-v21-audio-v1-1s6xr3n",
-      "sha256": "568731672d94f3e3eee077919987dc941485fec70166f70070469227dce92ddb",
-      "fileSizeBytes": 104533,
-      "durationMs": 6455,
+      "script": "Band pull-apart. Hold the band at chest height with your arms in front of you. Pull your hands apart gently, then return slowly.",
+      "fingerprint": "voice-v21-audio-v1-1wcwd7d",
+      "sha256": "d1606e68d634981dbea693de095920c3be99d604a2cdacf9cc9237b88fb5f2a5",
+      "fileSizeBytes": 134626,
+      "durationMs": 8359,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-band-pull-apart-next-v21": {
       "schemaVersion": 1,
@@ -599,14 +599,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-band-pull-apart-next-v21.mp3",
-      "script": "Band pull-apart.",
-      "fingerprint": "voice-v21-audio-v1-1br656z",
-      "sha256": "00fdf4a29e2b66867823e0a227e2ea326eb33d1c9a4a331fdd176fad3643a8f8",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "script": "Band pull-apart again. Chest height, light tension, and return slowly.",
+      "fingerprint": "voice-v21-audio-v1-128w0cy",
+      "sha256": "50b3bd04e67406373cf60a1da31f15c5a2368596ca6fd1cab61a334b750e05c9",
+      "fileSizeBytes": 77784,
+      "durationMs": 4783,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-chair-supported-split-squat-first-v21": {
       "schemaVersion": 1,
@@ -624,14 +624,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-chair-supported-split-squat-first-v21.mp3",
-      "script": "Supported split squat. Keep fingertips near sturdy support.",
-      "fingerprint": "voice-v21-audio-v1-larhdu",
-      "sha256": "10025f4bff7f07b064a96d873a7408ede099ed286b9c3dbca7462e8c8f4940e3",
-      "fileSizeBytes": 61066,
-      "durationMs": 3762,
+      "script": "Supported split squat. Stand beside sturdy support. Put one foot forward and one foot back, then bend both knees a little and stand tall again.",
+      "fingerprint": "voice-v21-audio-v1-1qe7voi",
+      "sha256": "da1b40a9e2a76f34805cca7ccb27d9f46ea6d10c9780c6ae4fc009c8616bc685",
+      "fileSizeBytes": 178094,
+      "durationMs": 11053,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-chair-supported-split-squat-next-v21": {
       "schemaVersion": 1,
@@ -649,14 +649,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-chair-supported-split-squat-next-v21.mp3",
-      "script": "Supported split squat.",
-      "fingerprint": "voice-v21-audio-v1-dlhoqa",
-      "sha256": "250b8fb3da7f257a42eb7539e9bfd23d6094170ec7ca2fec7eac094bcff82576",
-      "fileSizeBytes": 27211,
-      "durationMs": 1625,
+      "script": "Supported split squat again. Keep fingertips near support and move only as low as feels comfortable.",
+      "fingerprint": "voice-v21-audio-v1-10g5ya",
+      "sha256": "e764eceb3f428549d861f7abb3734c418db805169d88b338bfd151bacf9c727c",
+      "fileSizeBytes": 105787,
+      "durationMs": 6548,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-glute-bridge-hold-first-v21": {
       "schemaVersion": 1,
@@ -674,14 +674,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-glute-bridge-hold-first-v21.mp3",
-      "script": "Bridge hold. Lie on your back, knees bent, feet flat. Lift your hips and hold.",
-      "fingerprint": "voice-v21-audio-v1-hs6wbj",
-      "sha256": "041c62a2fb50d91d45f2f596e218ee4e0f53ead2b1658023b2ea4dc6faaa1d55",
-      "fileSizeBytes": 97846,
-      "durationMs": 6037,
+      "script": "Bridge hold. Lie on your back with your knees bent and both feet flat on the floor. When we start, lift your hips a little and hold steady.",
+      "fingerprint": "voice-v21-audio-v1-d4vu3n",
+      "sha256": "e6d9bdc605d75b152008bfc7d7af455c52278e64df9464a8d2b9d24c22744918",
+      "fileSizeBytes": 156360,
+      "durationMs": 9706,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-glute-bridge-hold-next-v21": {
       "schemaVersion": 1,
@@ -699,14 +699,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-glute-bridge-hold-next-v21.mp3",
-      "script": "Bridge hold.",
-      "fingerprint": "voice-v21-audio-v1-78mqty",
-      "sha256": "f2b91331064d468651f635bf5bdab2bff0221f1cacfd9e3d3f90ecd2f4351cab",
-      "fileSizeBytes": 18016,
-      "durationMs": 1068,
+      "script": "Bridge hold again. Feet flat, lift your hips a little, and hold steady.",
+      "fingerprint": "voice-v21-audio-v1-pjxtn6",
+      "sha256": "6e279b62a915658b313a484596353778289b530fde214ba68c9e8c19272c0541",
+      "fileSizeBytes": 74022,
+      "durationMs": 4551,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-glute-bridge-reps-first-v21": {
       "schemaVersion": 1,
@@ -724,14 +724,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-glute-bridge-reps-first-v21.mp3",
-      "script": "Glute bridge. Lie on your back, knees bent, feet flat. Lift your hips, then lower with control.",
-      "fingerprint": "voice-v21-audio-v1-1a292su",
-      "sha256": "61074dc48d4a69ae89c0bc7e7f2b681512f152414417a7b987108be34235b411",
-      "fileSizeBytes": 127521,
-      "durationMs": 7895,
+      "script": "Glute bridge. Lie on your back with your knees bent and both feet flat on the floor. Lift your hips a little, then lower back down with control.",
+      "fingerprint": "voice-v21-audio-v1-y3g57h",
+      "sha256": "a3e1af4be8f17ac9a72e680f813941c8c1ed04d4788b550081a8f949a0df345b",
+      "fileSizeBytes": 154271,
+      "durationMs": 9567,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-glute-bridge-reps-next-v21": {
       "schemaVersion": 1,
@@ -749,14 +749,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-glute-bridge-reps-next-v21.mp3",
-      "script": "Glute bridge.",
-      "fingerprint": "voice-v21-audio-v1-1eb1axc",
-      "sha256": "3d63449a11f0b79183705196b693a650e74dc6465055ffcfeaccfa123768d94e",
-      "fileSizeBytes": 20524,
-      "durationMs": 1207,
+      "script": "Glute bridge again. Lift your hips a little, then lower with control.",
+      "fingerprint": "voice-v21-audio-v1-rgpcu0",
+      "sha256": "d908a165fed5d1054b087a30d70ac39b65e94fcb7118e9cfdceed2d396631f63",
+      "fileSizeBytes": 75276,
+      "durationMs": 4644,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-heel-raise-free-first-v21": {
       "schemaVersion": 1,
@@ -974,14 +974,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-loaded-march-first-v21.mp3",
-      "script": "March in place. Stand tall near support and march with a steady rhythm.",
-      "fingerprint": "voice-v21-audio-v1-jlf3i6",
-      "sha256": "470e9d1071603fe6fc44b7107e00cab3578e3207f97104e5e815ccb6d1822018",
-      "fileSizeBytes": 83635,
-      "durationMs": 5155,
+      "script": "March in place. Stand tall near support. Lift one knee, put it down, then lift the other, like a slow steady march.",
+      "fingerprint": "voice-v21-audio-v1-xlda1m",
+      "sha256": "36b952375cafd361ecb4003e92346a3675c52ff1eb26167b0797ccec21620cb7",
+      "fileSizeBytes": 134626,
+      "durationMs": 8359,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-loaded-march-next-v21": {
       "schemaVersion": 1,
@@ -999,14 +999,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-loaded-march-next-v21.mp3",
-      "script": "March in place.",
-      "fingerprint": "voice-v21-audio-v1-ny45un",
-      "sha256": "86798d0126c6d3177b05f68f6cc01ba2fc248e916a9536b58e6855ceac94e549",
-      "fileSizeBytes": 22613,
-      "durationMs": 1347,
+      "script": "March in place again. Stand tall, keep support nearby, and move steadily.",
+      "fingerprint": "voice-v21-audio-v1-10twgji",
+      "sha256": "32510df8b32372ccf6582b6bcacaa8fa74f46b6342c381c0d1dd3cc344f8d321",
+      "fileSizeBytes": 84471,
+      "durationMs": 5201,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-loaded-sit-to-stand-first-v21": {
       "schemaVersion": 1,
@@ -1024,14 +1024,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-loaded-sit-to-stand-first-v21.mp3",
-      "script": "Loaded sit-to-stand. Hold the load close to your chest. Stand fully, then sit with control.",
-      "fingerprint": "voice-v21-audio-v1-n7d3y5",
-      "sha256": "e2e21ce4af6393e5abbd371e2e0f42260cf02d79e278cc6ed435d9a6e6db81e9",
-      "fileSizeBytes": 108713,
-      "durationMs": 6734,
+      "script": "Loaded sit-to-stand. Hold the weight close to your chest. Sit tall with feet flat, stand fully, then sit back down with control.",
+      "fingerprint": "voice-v21-audio-v1-1rmoh0e",
+      "sha256": "f9d3aeef4f0f2faa8ef724c727195629c0edc245bac46355a9df36aed8342d97",
+      "fileSizeBytes": 153435,
+      "durationMs": 9520,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-loaded-sit-to-stand-next-v21": {
       "schemaVersion": 1,
@@ -1049,14 +1049,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-loaded-sit-to-stand-next-v21.mp3",
-      "script": "Loaded sit-to-stand.",
-      "fingerprint": "voice-v21-audio-v1-1m2eqr4",
-      "sha256": "0fc8bb10a071f7ab31249c144af6580813ba7a3ed3a5cbcdb80180ce06f86d36",
-      "fileSizeBytes": 25539,
-      "durationMs": 1533,
+      "script": "Loaded sit-to-stand again. Keep the weight close, stand tall, then sit with control.",
+      "fingerprint": "voice-v21-audio-v1-1krfgn9",
+      "sha256": "eb5cca9788921848cd5de1a12fd7ab2e2265d116577ed63c670092f8570a3bb7",
+      "fileSizeBytes": 88651,
+      "durationMs": 5480,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-mini-band-lateral-walk-first-v21": {
       "schemaVersion": 1,
@@ -1074,14 +1074,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-mini-band-lateral-walk-first-v21.mp3",
-      "script": "Mini-band lateral walk. Band above your knees. Take small controlled steps both directions.",
-      "fingerprint": "voice-v21-audio-v1-oboaqg",
-      "sha256": "3956cbb0474bbe362f268d1770afd022bdcc1fa63b8e82a8093aba87c879e18f",
-      "fileSizeBytes": 110385,
-      "durationMs": 6827,
+      "script": "Mini-band lateral walk. Place the band above your knees. Stand near support, take small steps to the side, then step back the other way.",
+      "fingerprint": "voice-v21-audio-v1-1o5cnwh",
+      "sha256": "f75af7ced85f2571aeebc2534913c34a77a149d6c1bf5014d24ee45f4a4ff6f7",
+      "fileSizeBytes": 157196,
+      "durationMs": 9752,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-mini-band-lateral-walk-next-v21": {
       "schemaVersion": 1,
@@ -1099,14 +1099,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-mini-band-lateral-walk-next-v21.mp3",
-      "script": "Mini-band lateral walk.",
-      "fingerprint": "voice-v21-audio-v1-d6yw65",
-      "sha256": "ffa829bdc37683564b10e78716b15262c5e1ada6343838c1daaec17bb88049b7",
-      "fileSizeBytes": 27211,
-      "durationMs": 1625,
+      "script": "Mini-band lateral walk again. Small side steps, support nearby, and stay in control.",
+      "fingerprint": "voice-v21-audio-v1-4ziur0",
+      "sha256": "1bdc5b1429c925693a7a9040e21c101e40b2579552a1443350ebfebd1aeadd07",
+      "fileSizeBytes": 92413,
+      "durationMs": 5712,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-neck-rotation-first-v21": {
       "schemaVersion": 1,
@@ -1174,14 +1174,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-overhead-press-band-first-v21.mp3",
-      "script": "Band overhead press. Stand tall with light band tension. Press overhead, then return slowly.",
-      "fingerprint": "voice-v21-audio-v1-bjtk24",
-      "sha256": "1e73ebac917d72412e6c4cf3dba8413a01fce2a4a5d9f973029c4c1fa1a31ceb",
-      "fileSizeBytes": 97846,
-      "durationMs": 6037,
+      "script": "Band overhead press. Stand tall with the band held securely. Press your hands overhead only as far as feels comfortable, then return slowly.",
+      "fingerprint": "voice-v21-audio-v1-qb0kut",
+      "sha256": "380c50c2ce9069b14c057eef0725dac9e2b16fd797ce74db8820d9be3a70aef6",
+      "fileSizeBytes": 145075,
+      "durationMs": 9009,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-overhead-press-band-next-v21": {
       "schemaVersion": 1,
@@ -1199,14 +1199,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-overhead-press-band-next-v21.mp3",
-      "script": "Band overhead press.",
-      "fingerprint": "voice-v21-audio-v1-1vga6oc",
-      "sha256": "4743a369200acb8a7db655c7783705fcb09ad243d3b177aa07f3272b9e4356ed",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "script": "Band overhead press again. Press only as far as comfortable, then return slowly.",
+      "fingerprint": "voice-v21-audio-v1-153uh61",
+      "sha256": "2dae44c24257fbed968db2fdc516cd27233166f1ff9865fea1a65f3aa13d43bd",
+      "fileSizeBytes": 83635,
+      "durationMs": 5155,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-overhead-reach-first-v21": {
       "schemaVersion": 1,
@@ -1324,14 +1324,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-push-up-standard-first-v21.mp3",
-      "script": "Push-up. Start from the floor position. Lower with control, then press up.",
-      "fingerprint": "voice-v21-audio-v1-1r4kr9",
-      "sha256": "168e6cc0be62f66961d4c053fec4d59a874bcaf287091994ab8be5e490efb0c2",
-      "fileSizeBytes": 89487,
-      "durationMs": 5526,
+      "script": "Push-up. Start on the floor with your hands under your shoulders. Lower only as far as feels comfortable, then press back up.",
+      "fingerprint": "voice-v21-audio-v1-1oaljya",
+      "sha256": "37aed5d5d3985bdab7bc926ba31854853fa5371f5c84a782dffe1cf04155b271",
+      "fileSizeBytes": 134626,
+      "durationMs": 8359,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-push-up-standard-next-v21": {
       "schemaVersion": 1,
@@ -1349,14 +1349,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-push-up-standard-next-v21.mp3",
-      "script": "Push-up.",
-      "fingerprint": "voice-v21-audio-v1-1bg9c3s",
-      "sha256": "02450adfb3442a8aa2a1dcfe38544d3c99c49638d2bb3f9ede232d68a95bf37b",
-      "fileSizeBytes": 15926,
-      "durationMs": 929,
+      "script": "Push-up again. Lower only as far as feels comfortable, then press back up.",
+      "fingerprint": "voice-v21-audio-v1-134jbdt",
+      "sha256": "caad96dcfdf2892a7ed477f3f22f3298469ea819b09a2950b35d279f6cdbcd20",
+      "fileSizeBytes": 80710,
+      "durationMs": 4969,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-push-up-wall-first-v21": {
       "schemaVersion": 1,
@@ -1424,14 +1424,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-seated-band-row-first-v21.mp3",
-      "script": "Seated band row. Sit tall on a sturdy chair with the band anchored under both feet. Pull elbows back, then return slowly.",
-      "fingerprint": "voice-v21-audio-v1-wh2ews",
-      "sha256": "8b0250f7642e886e802120cdc557c999888d286470b7863a208bc1a9956702e1",
-      "fileSizeBytes": 135462,
-      "durationMs": 8406,
+      "script": "Seated band row. Sit tall on a sturdy chair. Anchor the band under both feet, hold the ends securely, pull your elbows back, then return slowly.",
+      "fingerprint": "voice-v21-audio-v1-1x4kruw",
+      "sha256": "49eb78b2c00832fb2701e2b9c1e709d778e8b3f379d9caea5949bef5638b3b8b",
+      "fileSizeBytes": 163048,
+      "durationMs": 10124,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-seated-band-row-next-v21": {
       "schemaVersion": 1,
@@ -1449,14 +1449,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-seated-band-row-next-v21.mp3",
-      "script": "Seated band row.",
-      "fingerprint": "voice-v21-audio-v1-y7wp6z",
-      "sha256": "fd4253b4c0db950900bb20a3add49fc7fba369ea1ea6203ac99eec5793917f0d",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "script": "Seated band row again. Sit tall, pull elbows back, then return slowly.",
+      "fingerprint": "voice-v21-audio-v1-ptbkex",
+      "sha256": "7becb4b5ca460cdf305fb3f4aedbb28942e595da5c0a08dc65c026ce346efceb",
+      "fileSizeBytes": 90323,
+      "durationMs": 5573,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-seated-hamstring-reach-first-v21": {
       "schemaVersion": 1,
@@ -1724,14 +1724,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-standing-band-row-first-v21.mp3",
-      "script": "Standing band row. Face the secure door anchor in a stable stance. Pull elbows back, then return slowly.",
-      "fingerprint": "voice-v21-audio-v1-12pxrtt",
-      "sha256": "35b310de63caa7698a7c2e6d2cee41b532aa6b7e7e81e03c91c7ee8de4e44b06",
-      "fileSizeBytes": 124595,
-      "durationMs": 7709,
+      "script": "Standing band row. Face the door anchor in a steady stance. Hold the band securely, pull your elbows back, then return slowly.",
+      "fingerprint": "voice-v21-audio-v1-1x0py65",
+      "sha256": "a458a8112e2986eb9d16a6ec0e06a46d145e04d917f745c5beab38ef4b2253cc",
+      "fileSizeBytes": 151763,
+      "durationMs": 9427,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-standing-band-row-next-v21": {
       "schemaVersion": 1,
@@ -1749,14 +1749,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-standing-band-row-next-v21.mp3",
-      "script": "Standing band row.",
-      "fingerprint": "voice-v21-audio-v1-871keb",
-      "sha256": "6c7958500caeb1253befb1e741f7e20063c09522be6eec841c5700a4fbfea5ad",
-      "fileSizeBytes": 26375,
-      "durationMs": 1579,
+      "script": "Standing band row again. Stand steady, pull elbows back, then return slowly.",
+      "fingerprint": "voice-v21-audio-v1-bsepc4",
+      "sha256": "1a083b7d0845d3b00a43b89175d56e135c04b11d387ef76197525edac1615980",
+      "fileSizeBytes": 87397,
+      "durationMs": 5387,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-step-up-first-v21": {
       "schemaVersion": 1,
@@ -1774,14 +1774,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-step-up-first-v21.mp3",
-      "script": "Step-up. Use the lowest stable step with support nearby. Return both feet to the floor after each rep.",
-      "fingerprint": "voice-v21-audio-v1-1iweusu",
-      "sha256": "1574a6f68a776ea0b71a1275802f14a3d19ddef4c0be911b115cb7ed37b81cd2",
-      "fileSizeBytes": 115400,
-      "durationMs": 7152,
+      "script": "Step-up. Use the lowest stable step with support nearby. Step up, bring both feet onto the step, then step back down to the floor.",
+      "fingerprint": "voice-v21-audio-v1-3tdlhw",
+      "sha256": "c739e9dd0e02d58a6c3a190d1bbe05d3b7fb585a7abdec2e3f49845bf52f5aad",
+      "fileSizeBytes": 154271,
+      "durationMs": 9567,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-step-up-next-v21": {
       "schemaVersion": 1,
@@ -1799,14 +1799,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-step-up-next-v21.mp3",
-      "script": "Step-up. Return both feet to the floor after each rep.",
-      "fingerprint": "voice-v21-audio-v1-16y38zf",
-      "sha256": "51f72204d6898dd008c7e594e281361d2480c21e5424aaf6b373b978606c4ee9",
-      "fileSizeBytes": 56050,
-      "durationMs": 3437,
+      "script": "Step-up again. Step up, bring both feet up, then return both feet to the floor.",
+      "fingerprint": "voice-v21-audio-v1-6bq0wr",
+      "sha256": "ee62c53ccd95837e97c51280c6ec0d5fd5ef85414ce70e1a9a9f1039b5c978cb",
+      "fileSizeBytes": 90323,
+      "durationMs": 5573,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-sts-cushion-first-v21": {
       "schemaVersion": 1,
@@ -1824,14 +1824,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-sts-cushion-first-v21.mp3",
-      "script": "Cushion sit-to-stand. Sit tall on the cushion, feet flat. Stand fully, then sit with control.",
-      "fingerprint": "voice-v21-audio-v1-giammz",
-      "sha256": "eab408b8e9f5535d058a6cd35e374440ec464a3b6d6039047036c6f384a834a3",
-      "fileSizeBytes": 113311,
-      "durationMs": 7012,
+      "script": "Cushion sit-to-stand. Sit tall on the cushion with both feet flat on the floor. Stand all the way up, then sit back down gently.",
+      "fingerprint": "voice-v21-audio-v1-rynlxf",
+      "sha256": "cc02d9bb3387fa67206fbe376bc63dfd7a0ef20a9eccbd6c047c10dc9cfc581e",
+      "fileSizeBytes": 148837,
+      "durationMs": 9242,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-sts-cushion-next-v21": {
       "schemaVersion": 1,
@@ -1849,14 +1849,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-sts-cushion-next-v21.mp3",
-      "script": "Cushion sit-to-stand.",
-      "fingerprint": "voice-v21-audio-v1-enc77c",
-      "sha256": "c2468627915e1b44340d06fcc8a737e8f7c85a4a45ed90e1a64adbf2fe5dd35d",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "script": "Cushion sit-to-stand again. Stand fully, then sit back down gently.",
+      "fingerprint": "voice-v21-audio-v1-10949xp",
+      "sha256": "70fbdd766b2ae1e2a3ba55ce2aeb2201b35c561c7852351eb940d8392fc04107",
+      "fileSizeBytes": 71515,
+      "durationMs": 4412,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-sts-power-first-v21": {
       "schemaVersion": 1,
@@ -1874,14 +1874,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-sts-power-first-v21.mp3",
-      "script": "Power sit-to-stand. Sit tall, drive up briskly to standing, then sit with control.",
-      "fingerprint": "voice-v21-audio-v1-1u3itx",
-      "sha256": "2bc75707ab7d7230c255e17f081639d7c372f209fcc9430aff44b866906a5e37",
-      "fileSizeBytes": 95338,
-      "durationMs": 5898,
+      "script": "Power sit-to-stand. Sit tall with both feet flat. Stand up briskly, then sit back down with control.",
+      "fingerprint": "voice-v21-audio-v1-10embmx",
+      "sha256": "c137fc169a496353d39188c133c59b9395293d1260c57e3796a028c043a5c681",
+      "fileSizeBytes": 112475,
+      "durationMs": 6966,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-sts-power-next-v21": {
       "schemaVersion": 1,
@@ -1899,14 +1899,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-sts-power-next-v21.mp3",
-      "script": "Power sit-to-stand.",
-      "fingerprint": "voice-v21-audio-v1-a2tg8u",
-      "sha256": "107642dcc64a2a28fd9ab3e574fb2879103476c1406a1162afc6cce1b5435f58",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "script": "Power sit-to-stand again. Stand up briskly, then sit back down with control.",
+      "fingerprint": "voice-v21-audio-v1-13gu82i",
+      "sha256": "789fa755ece790e3bbf86aa6728598571365fb8c969331c940dc332a7e5a1413",
+      "fileSizeBytes": 83635,
+      "durationMs": 5155,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-sts-slow-eccentric-first-v21": {
       "schemaVersion": 1,
@@ -1924,14 +1924,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-sts-slow-eccentric-first-v21.mp3",
-      "script": "Slow-lower sit-to-stand. Stand fully, then lower slowly and steadily before the next rep.",
-      "fingerprint": "voice-v21-audio-v1-1wguypo",
-      "sha256": "e501db84fa9e05e977ad06892dc3e5e17eb053935b74ce665920d99500f0f5a2",
-      "fileSizeBytes": 104533,
-      "durationMs": 6455,
+      "script": "Slow-lower sit-to-stand. Start seated, stand all the way up, then lower slowly and steadily back to the chair.",
+      "fingerprint": "voice-v21-audio-v1-8nslkw",
+      "sha256": "2337c1954048ac1cd28e0f7e99f912dbd11b29e23cd1be1a88d0c1851da9650c",
+      "fileSizeBytes": 134208,
+      "durationMs": 8313,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-sts-slow-eccentric-next-v21": {
       "schemaVersion": 1,
@@ -1949,14 +1949,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-sts-slow-eccentric-next-v21.mp3",
-      "script": "Slow-lower sit-to-stand.",
-      "fingerprint": "voice-v21-audio-v1-1cmm3xa",
-      "sha256": "bfb3e165873702d3563fc74ff4d9313275f5df6e69258e34f8177d1824ca3055",
-      "fileSizeBytes": 27629,
-      "durationMs": 1672,
+      "script": "Slow-lower sit-to-stand again. Stand tall, then lower slowly to the chair.",
+      "fingerprint": "voice-v21-audio-v1-1e2km6o",
+      "sha256": "e6120b035f559136aa5c7e5a32f05dcd2c90dbc124d4ddee0865dc2009c96b38",
+      "fileSizeBytes": 84889,
+      "durationMs": 5248,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-sts-standard-first-v21": {
       "schemaVersion": 1,
@@ -1974,14 +1974,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-sts-standard-first-v21.mp3",
-      "script": "Sit-to-stand. Sit tall in the middle of the chair, feet flat. Stand fully, then sit with control.",
-      "fingerprint": "voice-v21-audio-v1-iufnqv",
-      "sha256": "e61a5f65c1f9a09ac00fc989211191b5193abcaea55826d2aeb68e810a3c53c9",
-      "fileSizeBytes": 117908,
-      "durationMs": 7291,
+      "script": "Sit-to-stand. Sit in the middle of a sturdy chair with both feet flat on the floor. When we start, stand all the way up, then sit back down with control.",
+      "fingerprint": "voice-v21-audio-v1-1ge16v3",
+      "sha256": "8e7615a8ac993ebd0323d89ab63db7fa212a02c4a46fb1e9dd32afa7e14134e8",
+      "fileSizeBytes": 168063,
+      "durationMs": 10449,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-sts-standard-next-v21": {
       "schemaVersion": 1,
@@ -1999,14 +1999,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-sts-standard-next-v21.mp3",
-      "script": "Sit-to-stand.",
-      "fingerprint": "voice-v21-audio-v1-1sncnwx",
-      "sha256": "5c72443c7dddaf69f0ac0688619971d3a694941012a8799fcb03698577ba4bd8",
-      "fileSizeBytes": 20942,
-      "durationMs": 1254,
+      "script": "Sit-to-stand again. Feet flat, stand tall, then sit back down with control.",
+      "fingerprint": "voice-v21-audio-v1-1ympwjg",
+      "sha256": "5654c7c30fc24f8438ef1e64e60733e4c8b7c3be08e7eb999babddec1ac8cd99",
+      "fileSizeBytes": 88651,
+      "durationMs": 5480,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-supported-hip-flexor-stretch-first-v21": {
       "schemaVersion": 1,
@@ -2074,14 +2074,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-supported-side-step-first-v21.mp3",
-      "script": "Supported side step. Stand near a counter. Step to the side, bring the other foot in, and continue with control.",
-      "fingerprint": "voice-v21-audio-v1-s9x134",
-      "sha256": "897d2aa7b4e631ee25a9c8f8dd35bec8ced0cae94d0ec8d77fddbb6dc3e072a5",
-      "fileSizeBytes": 119162,
-      "durationMs": 7384,
+      "script": "Supported side step. Stand near a counter or sturdy support. Step to the side, bring the other foot in, and keep moving with control.",
+      "fingerprint": "voice-v21-audio-v1-6dsuc5",
+      "sha256": "b0568f518d066e6b8305e87e2fcd594dec3cf88a2ba8dc1aff5c99b33883a77b",
+      "fileSizeBytes": 153435,
+      "durationMs": 9520,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-supported-side-step-next-v21": {
       "schemaVersion": 1,
@@ -2099,14 +2099,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/ex-supported-side-step-next-v21.mp3",
-      "script": "Supported side step.",
-      "fingerprint": "voice-v21-audio-v1-1yw0pc1",
-      "sha256": "ecf67f13d00d0668b7c2c7929627d7977adcf4412077967492ee3995ff3cdac0",
-      "fileSizeBytes": 25539,
-      "durationMs": 1533,
+      "script": "Supported side step again. Small steps, support nearby, and keep control.",
+      "fingerprint": "voice-v21-audio-v1-1b5qv80",
+      "sha256": "8e3987f6726758da8f1c618cdc91fbdf199b74bbbb2cb8ee6aff00b7526d89e1",
+      "fileSizeBytes": 81964,
+      "durationMs": 5062,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-thoracic-rotation-first-v21": {
       "schemaVersion": 1,
@@ -2299,14 +2299,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/floor-gate-question-v21.mp3",
-      "script": "Can you safely get down to the floor and back up without assistance?",
-      "fingerprint": "voice-v21-audio-v1-1svltjx",
-      "sha256": "0e65e7a631c2de6df0b020cc307410b6c5fdfc9151fa32bca2b9c70624de4df3",
-      "fileSizeBytes": 61902,
-      "durationMs": 3808,
+      "script": "Before we do floor exercises, check that you can get down to the floor and back up again safely without help. If not, skip this exercise and I'll guide you to the next one.",
+      "fingerprint": "voice-v21-audio-v1-1ager1x",
+      "sha256": "8dc7e712fe057d34055fb6f6c657f5ad49d2c50e411848961aab34aab804f14d",
+      "fileSizeBytes": 174751,
+      "durationMs": 10867,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "halfway-v21": {
       "schemaVersion": 1,
@@ -3074,14 +3074,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/side-single-leg-left-v21.mp3",
-      "script": "Start on your left leg. Lift your right foot slightly.",
-      "fingerprint": "voice-v21-audio-v1-182bqf1",
-      "sha256": "c023edad3f773bd7b833c62698b16863e9fd56ddb8689e03a0745f5bf929ae96",
-      "fileSizeBytes": 54378,
-      "durationMs": 3344,
+      "script": "Stand on your left leg. Lift your right foot slightly off the floor.",
+      "fingerprint": "voice-v21-audio-v1-dle1kl",
+      "sha256": "35554400c533413d8cb1762aad9d839e3bd72e71eaa001fa2fa123c3fca43b26",
+      "fileSizeBytes": 69425,
+      "durationMs": 4272,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "side-single-leg-right-v21": {
       "schemaVersion": 1,
@@ -3099,14 +3099,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/side-single-leg-right-v21.mp3",
-      "script": "Start on your right leg. Lift your left foot slightly.",
-      "fingerprint": "voice-v21-audio-v1-1vph3en",
-      "sha256": "ddd8fe714f874a3fb76a56f81c67d81e145de57f02c0fe9e0f3062299af10ced",
-      "fileSizeBytes": 56050,
-      "durationMs": 3437,
+      "script": "Stand on your right leg. Lift your left foot slightly off the floor.",
+      "fingerprint": "voice-v21-audio-v1-1gou8yb",
+      "sha256": "4e9a9888e08492f7fa07e3e0a51b8ad6b07b48eea5ee426ee4aff1546fb9c367",
+      "fileSizeBytes": 68589,
+      "durationMs": 4226,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "side-split-squat-left-forward-v21": {
       "schemaVersion": 1,
@@ -3124,14 +3124,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/side-split-squat-left-forward-v21.mp3",
-      "script": "Left foot forward, small split stance.",
-      "fingerprint": "voice-v21-audio-v1-1b3gt4v",
-      "sha256": "2372f805fdd83a027d67c2dde14d78c4b3d6e9a8f0690f4cc08752f52a9a11b7",
-      "fileSizeBytes": 40586,
-      "durationMs": 2461,
+      "script": "Place your left foot forward and your right foot back. Keep the stance small and steady.",
+      "fingerprint": "voice-v21-audio-v1-uncyh1",
+      "sha256": "a0b11c965457f4f4d10ab6cce27d7dfae3a3a23a51f2200df0e27476e1992128",
+      "fileSizeBytes": 87397,
+      "durationMs": 5387,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "side-split-squat-right-forward-v21": {
       "schemaVersion": 1,
@@ -3149,14 +3149,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/side-split-squat-right-forward-v21.mp3",
-      "script": "Right foot forward, small split stance.",
-      "fingerprint": "voice-v21-audio-v1-5b7uhc",
-      "sha256": "42e2ce54e0022d3c54b0334a32814e8f83cdab33db3a014b9c965835510d7361",
-      "fileSizeBytes": 44347,
-      "durationMs": 2694,
+      "script": "Place your right foot forward and your left foot back. Keep the stance small and steady.",
+      "fingerprint": "voice-v21-audio-v1-1y2t8f9",
+      "sha256": "140e147a4785d78e94b90ca8a1635e51e72625c6e505610152b72bdb7187608b",
+      "fileSizeBytes": 87397,
+      "durationMs": 5387,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "side-tandem-left-front-v21": {
       "schemaVersion": 1,
@@ -3174,14 +3174,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/side-tandem-left-front-v21.mp3",
-      "script": "Place your left foot in front, heel to toe.",
-      "fingerprint": "voice-v21-audio-v1-1h67osg",
-      "sha256": "54453cf8bfcba8177cd6b5ccdcfab32c84bea8ede8777e2f6543b0ca5b574298",
-      "fileSizeBytes": 43511,
-      "durationMs": 2647,
+      "script": "Place your left foot in front, heel to toe. Keep support close before you let go.",
+      "fingerprint": "voice-v21-audio-v1-yohryl",
+      "sha256": "4ca91cd081539526a7fb5d73db835faed7cf42fbbf4330bc16e05978e529554b",
+      "fileSizeBytes": 84471,
+      "durationMs": 5201,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "side-tandem-right-front-v21": {
       "schemaVersion": 1,
@@ -3199,14 +3199,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/side-tandem-right-front-v21.mp3",
-      "script": "Place your right foot in front, heel to toe.",
-      "fingerprint": "voice-v21-audio-v1-rpl0e1",
-      "sha256": "c61e1151606526e44437f7bcf5bed6a7468bb23b0810bc0b7b0732586f08531b",
-      "fileSizeBytes": 41839,
-      "durationMs": 2554,
+      "script": "Place your right foot in front, heel to toe. Keep support close before you let go.",
+      "fingerprint": "voice-v21-audio-v1-1hxb1dw",
+      "sha256": "27397ac0f2bfbc64fe22a5236c6ce786549bbbc8ba4030bc271da3fb1a30ae48",
+      "fileSizeBytes": 89487,
+      "durationMs": 5526,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "step-up-next-left-v21": {
       "schemaVersion": 1,
@@ -3224,14 +3224,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/step-up-next-left-v21.mp3",
-      "script": "Next rep starts with your left leg.",
-      "fingerprint": "voice-v21-audio-v1-d71tob",
-      "sha256": "df0c5c7cfde497df492512a37a697ba84a711e93a2d82dc9d43ddc15ef2690f7",
-      "fileSizeBytes": 37660,
-      "durationMs": 2276,
+      "script": "Next rep starts with your left leg. Set both feet on the floor, then step up.",
+      "fingerprint": "voice-v21-audio-v1-qb54vq",
+      "sha256": "5f521d686652a3c06a99247c149fe56e7fea18fa4d84e54f4129786165c11b2b",
+      "fileSizeBytes": 81964,
+      "durationMs": 5062,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "step-up-next-right-v21": {
       "schemaVersion": 1,
@@ -3249,14 +3249,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/step-up-next-right-v21.mp3",
-      "script": "Next rep starts with your right leg.",
-      "fingerprint": "voice-v21-audio-v1-12ic878",
-      "sha256": "5166570cf4ae42da5d524199a75c517832d1f029c30d3758992205e5b2809384",
-      "fileSizeBytes": 35988,
-      "durationMs": 2183,
+      "script": "Next rep starts with your right leg. Set both feet on the floor, then step up.",
+      "fingerprint": "voice-v21-audio-v1-dvkcrl",
+      "sha256": "7ac78015f27f98ef8c22fa23f908d61ac9f811736af303ff318b76d2666381f6",
+      "fileSizeBytes": 87397,
+      "durationMs": 5387,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "step-up-start-left-v21": {
       "schemaVersion": 1,
@@ -3274,14 +3274,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/step-up-start-left-v21.mp3",
-      "script": "Start with your left leg.",
-      "fingerprint": "voice-v21-audio-v1-19mf2by",
-      "sha256": "f50d3cac93b57837bb082fa7fb30170f05d5910c5a7385a008f8903a460df610",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "script": "Start with your left leg. Step up with the left foot first.",
+      "fingerprint": "voice-v21-audio-v1-1jwgnwf",
+      "sha256": "87b9ecdef2e898dab259524f232e8000c6eb3653bf62f57c0b24f2de8ff8b455",
+      "fileSizeBytes": 63573,
+      "durationMs": 3901,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "step-up-start-right-v21": {
       "schemaVersion": 1,
@@ -3299,14 +3299,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/step-up-start-right-v21.mp3",
-      "script": "Start with your right leg.",
-      "fingerprint": "voice-v21-audio-v1-njtyun",
-      "sha256": "f6138ed4424e863eab76658494dd9722c8afc8fd9c582af0e1ced748439e71a5",
-      "fileSizeBytes": 27211,
-      "durationMs": 1625,
+      "script": "Start with your right leg. Step up with the right foot first.",
+      "fingerprint": "voice-v21-audio-v1-7omuhl",
+      "sha256": "0a68a78ce85f34ab091e7f810e006273a6f99515a4bdce37f3317bc1adc4b64e",
+      "fileSizeBytes": 66499,
+      "durationMs": 4087,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "step-up-wrong-left-v21": {
       "schemaVersion": 1,
@@ -3324,14 +3324,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/step-up-wrong-left-v21.mp3",
-      "script": "No rep. Start the next one with your left leg.",
-      "fingerprint": "voice-v21-audio-v1-1uqj8dk",
-      "sha256": "4cca6413ea92858e3946d8442438666fb57326356e96d9667b1a93f5514348e5",
-      "fileSizeBytes": 50199,
-      "durationMs": 3065,
+      "script": "That one won't count. Set both feet on the floor, then start the next rep with your left leg.",
+      "fingerprint": "voice-v21-audio-v1-1kywu4",
+      "sha256": "e8ffe8f1854756b90a29327814bedd76102951b904ea838c91365c2e95e0961f",
+      "fileSizeBytes": 92413,
+      "durationMs": 5712,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "step-up-wrong-right-v21": {
       "schemaVersion": 1,
@@ -3349,14 +3349,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/step-up-wrong-right-v21.mp3",
-      "script": "No rep. Start the next one with your right leg.",
-      "fingerprint": "voice-v21-audio-v1-tvrz67",
-      "sha256": "bff7e897b4785f5687e7ea528b6f651e13112177da6b14670f5927c90ecf531b",
-      "fileSizeBytes": 45601,
-      "durationMs": 2786,
+      "script": "That one won't count. Set both feet on the floor, then start the next rep with your right leg.",
+      "fingerprint": "voice-v21-audio-v1-u1phfz",
+      "sha256": "62e35da26a39f435e49a2e08c33ff3079b4b42143d77f84f16e403e40a8515be",
+      "fileSizeBytes": 89487,
+      "durationMs": 5526,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "switch-foot-positions-v21": {
       "schemaVersion": 1,
@@ -3374,14 +3374,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/switch-foot-positions-v21.mp3",
-      "script": "Switch foot positions.",
-      "fingerprint": "voice-v21-audio-v1-zscw6a",
-      "sha256": "846574dd82d6f6098bcf41eeca9d6b690f9a1684be3a0aa74cf4c1e461be6f2e",
-      "fileSizeBytes": 26375,
-      "durationMs": 1579,
+      "script": "Switch foot positions now. Take your time, then stand still again.",
+      "fingerprint": "voice-v21-audio-v1-1o0cryu",
+      "sha256": "9f49368562e119d5cd3b5d0cbd879fe97c20486e9c8c6a446244029407ee4244",
+      "fileSizeBytes": 67753,
+      "durationMs": 4180,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "switch-legs-v21": {
       "schemaVersion": 1,
@@ -3399,14 +3399,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/switch-legs-v21.mp3",
-      "script": "Switch legs.",
-      "fingerprint": "voice-v21-audio-v1-791ptj",
-      "sha256": "e5b1a10d48fbf41e93f5175487f01c0c3c3620936ac14b28301a240005047d3a",
-      "fileSizeBytes": 20524,
-      "durationMs": 1207,
+      "script": "Switch legs now. Get steady first, then lift the other foot.",
+      "fingerprint": "voice-v21-audio-v1-1mrqxxe",
+      "sha256": "8e9f1a80490cbfd348ece1cccc1e42ac61d5e71e6c3dba14f1966ddd43616651",
+      "fileSizeBytes": 64409,
+      "durationMs": 3947,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "switch-sides-v21": {
       "schemaVersion": 1,
@@ -3424,14 +3424,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/switch-sides-v21.mp3",
-      "script": "Switch sides.",
-      "fingerprint": "voice-v21-audio-v1-ao6s92",
-      "sha256": "898adf8912598a793fa0c86e27b48cd07a72e9349d4f9bcf0de9928d39ad6c4e",
-      "fileSizeBytes": 20942,
-      "durationMs": 1254,
+      "script": "Switch sides now. Take your time getting set before the next round.",
+      "fingerprint": "voice-v21-audio-v1-1cib14e",
+      "sha256": "6b8834e3b619cd2f649825960ff95377655bdce58148dc10b13f4e1e302f6eb6",
+      "fileSizeBytes": 67753,
+      "durationMs": 4180,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-balance-feet-together-hold-v21": {
       "schemaVersion": 1,
@@ -3449,14 +3449,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-balance-feet-together-hold-v21.mp3",
-      "script": "Hold for twenty seconds.",
-      "fingerprint": "voice-v21-audio-v1-1dma6i0",
-      "sha256": "89706c741e39d703269f3b6e6a6f09eed35d915cc4d4628e3e72b31263a059bb",
-      "fileSizeBytes": 26375,
-      "durationMs": 1579,
+      "script": "Hold for twenty seconds. Breathe normally, and I'll tell you when to stop.",
+      "fingerprint": "voice-v21-audio-v1-94z9zl",
+      "sha256": "baea8ed1218f6583de439d2bda5fb84d054eae46ad374a24a7453682fffad63c",
+      "fileSizeBytes": 73186,
+      "durationMs": 4505,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-balance-single-leg-hold-v21": {
       "schemaVersion": 1,
@@ -3474,14 +3474,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-balance-single-leg-hold-v21.mp3",
-      "script": "Hold for [duration].",
-      "fingerprint": "voice-v21-audio-v1-8mfjfs",
-      "sha256": "d3795dd5c67e54af7ac872428632eb93068725a399008326b66412d5d024d3a9",
-      "fileSizeBytes": 25539,
-      "durationMs": 1533,
+      "script": "Hold for [duration]. Breathe normally, and use support if you feel unsteady.",
+      "fingerprint": "voice-v21-audio-v1-lr4mir",
+      "sha256": "c8f0c9fd64b99390841d203247143a10dd734b5782b4b5fc2527d47ab4ce3531",
+      "fileSizeBytes": 80710,
+      "durationMs": 4969,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-balance-tandem-hold-v21": {
       "schemaVersion": 1,
@@ -3499,14 +3499,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-balance-tandem-hold-v21.mp3",
-      "script": "Hold for [duration].",
-      "fingerprint": "voice-v21-audio-v1-wbs6zw",
-      "sha256": "08cadcbc9d409e76bd549f7c896b0356c01dbf9fb31c9116d21ab8da6b0877ed",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "script": "Hold for [duration]. Keep breathing, and touch support if you need to.",
+      "fingerprint": "voice-v21-audio-v1-1fdvw43",
+      "sha256": "a3a74c4322f115920fe80d59b3c96c12f3a080a60cb81789a8db42b8c48e6d3e",
+      "fileSizeBytes": 70261,
+      "durationMs": 4319,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-band-pull-apart-v21": {
       "schemaVersion": 1,
@@ -3524,14 +3524,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-band-pull-apart-v21.mp3",
-      "script": "Move for thirty seconds.",
-      "fingerprint": "voice-v21-audio-v1-q7slvt",
-      "sha256": "026d2f1ac84599b9a69c10984902c17c12ebd0a0479e4e819dc4c21fd5a5e14b",
-      "fileSizeBytes": 25539,
-      "durationMs": 1533,
+      "script": "Move for thirty seconds. Keep the band tension light and comfortable.",
+      "fingerprint": "voice-v21-audio-v1-15igj6n",
+      "sha256": "d4143cc4cd0db568f19cd467ff1bf378641726c565d69e6b5daec042d6ebcc62",
+      "fileSizeBytes": 71515,
+      "durationMs": 4412,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-chair-supported-split-squat-v21": {
       "schemaVersion": 1,
@@ -3549,14 +3549,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-chair-supported-split-squat-v21.mp3",
-      "script": "Aim for [reps] reps.",
-      "fingerprint": "voice-v21-audio-v1-13zjjas",
-      "sha256": "054dfa0ad378bc09fcf7fd93809985081e25336526e448eb426ca2aedc83be46",
-      "fileSizeBytes": 26375,
-      "durationMs": 1579,
+      "script": "Aim for [reps] reps. Take your time and use support whenever you need it.",
+      "fingerprint": "voice-v21-audio-v1-1mmmx1i",
+      "sha256": "65b93f392ad0257837c176cd320d1b673e8557fe599cec50a99815e6c41342bb",
+      "fileSizeBytes": 76112,
+      "durationMs": 4690,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-glute-bridge-hold-v21": {
       "schemaVersion": 1,
@@ -3574,14 +3574,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-glute-bridge-hold-v21.mp3",
-      "script": "Hold for twenty seconds.",
-      "fingerprint": "voice-v21-audio-v1-g497z4",
-      "sha256": "626dd9bf61ae42670b595a984d7bb47a9421e4856130fb4a56288003133d8dde",
-      "fileSizeBytes": 27211,
-      "durationMs": 1625,
+      "script": "Hold for twenty seconds. Breathe normally, and I'll tell you when to lower down.",
+      "fingerprint": "voice-v21-audio-v1-mw8f3i",
+      "sha256": "ec0c85514ac210764a34992edf0e3c60ff8f0d99d19c1e35d8b8c135d5a4c0de",
+      "fileSizeBytes": 78202,
+      "durationMs": 4830,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-glute-bridge-reps-v21": {
       "schemaVersion": 1,
@@ -3599,14 +3599,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-glute-bridge-reps-v21.mp3",
-      "script": "Aim for twelve reps.",
-      "fingerprint": "voice-v21-audio-v1-bupzqr",
-      "sha256": "99c6f34550457edcc5199b56ebdaa1a16570c42231fc1e66afbe096415b30514",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "script": "Aim for twelve reps. Move slowly and stay comfortable.",
+      "fingerprint": "voice-v21-audio-v1-1wmfp1c",
+      "sha256": "4166829efe46d081f464719e1ce7257eaffe3b118555e7392a161411e6cdc6a3",
+      "fileSizeBytes": 56886,
+      "durationMs": 3483,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-heel-raise-free-v21": {
       "schemaVersion": 1,
@@ -3724,14 +3724,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-loaded-march-v21.mp3",
-      "script": "Aim for sixteen reps.",
-      "fingerprint": "voice-v21-audio-v1-1ahev02",
-      "sha256": "1e6b40facde4055db2eaa48df467f5954d00b34add9fe1acf9df2afcadb2aa9b",
-      "fileSizeBytes": 27629,
-      "durationMs": 1672,
+      "script": "Aim for sixteen total marches. Left and right both count.",
+      "fingerprint": "voice-v21-audio-v1-x5h491",
+      "sha256": "b8a10a568009c9b67295cc80bb2ea7fa43a79d504eef8893bd7f7641d2f4ce51",
+      "fileSizeBytes": 64409,
+      "durationMs": 3947,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-loaded-sit-to-stand-v21": {
       "schemaVersion": 1,
@@ -3749,14 +3749,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-loaded-sit-to-stand-v21.mp3",
-      "script": "Aim for eight reps.",
-      "fingerprint": "voice-v21-audio-v1-1bxe9dp",
-      "sha256": "c71e0fa9372fe54891af1451282c98432caf85df17f509e2d075e42047208e88",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "script": "Aim for eight reps. Move steadily and keep the weight close to your body.",
+      "fingerprint": "voice-v21-audio-v1-1ossu6g",
+      "sha256": "1297dfd94089c6e632c3f683a2a34408ea700a2681dc714e25562f1c2da6912a",
+      "fileSizeBytes": 74440,
+      "durationMs": 4598,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-mini-band-lateral-walk-v21": {
       "schemaVersion": 1,
@@ -3774,14 +3774,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-mini-band-lateral-walk-v21.mp3",
-      "script": "Move for thirty seconds.",
-      "fingerprint": "voice-v21-audio-v1-1du9twj",
-      "sha256": "0ae836ee7fe9f53c9ba36ba95ce3fae2bd7fc99eada6b4e2be95663feb96d779",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "script": "Move for thirty seconds. Keep the steps small and steady.",
+      "fingerprint": "voice-v21-audio-v1-6lkvog",
+      "sha256": "a671010758740fb3da47a374a3fade81b8785a835bda34f11ea41ccf9d50099f",
+      "fileSizeBytes": 56886,
+      "durationMs": 3483,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-neck-rotation-v21": {
       "schemaVersion": 1,
@@ -3824,14 +3824,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-overhead-press-band-v21.mp3",
-      "script": "Aim for twelve reps.",
-      "fingerprint": "voice-v21-audio-v1-1mzuebj",
-      "sha256": "9056e52eb688e146647de3525a0e5c22069437ceb282d64c8c3ea8560a97fef8",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "script": "Aim for twelve reps. Keep the tension light and stop if your shoulders do not feel comfortable.",
+      "fingerprint": "voice-v21-audio-v1-rh7ir",
+      "sha256": "787b2c85f4eac98e81cf9aebfebaaef87597e466b6b7dc7c0f936ff9e446fecb",
+      "fileSizeBytes": 91577,
+      "durationMs": 5666,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-overhead-reach-v21": {
       "schemaVersion": 1,
@@ -3899,14 +3899,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-push-up-standard-v21.mp3",
-      "script": "Aim for eight reps.",
-      "fingerprint": "voice-v21-audio-v1-1otct7d",
-      "sha256": "cc992dcc34d7e7537327a1eeec2bb23b8f3d8059423dda312d093d0bc81aac61",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "script": "Aim for eight reps. Move with control, and stop if it does not feel right.",
+      "fingerprint": "voice-v21-audio-v1-8lev4y",
+      "sha256": "a82e67755a5228c08552db4ed9e18c146956738fb263781932bc304de1c7a66f",
+      "fileSizeBytes": 77784,
+      "durationMs": 4783,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-push-up-wall-v21": {
       "schemaVersion": 1,
@@ -3949,14 +3949,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-seated-band-row-v21.mp3",
-      "script": "Aim for ten reps.",
-      "fingerprint": "voice-v21-audio-v1-1jm3zq1",
-      "sha256": "35378d324814fe5145a2ef8b2136d25502592222c99f135ef7dbf49392983b1d",
-      "fileSizeBytes": 25539,
-      "durationMs": 1533,
+      "script": "Aim for ten reps. Keep the band secure under your feet and move with control.",
+      "fingerprint": "voice-v21-audio-v1-bvn1z1",
+      "sha256": "deca7bc7587a9db9ea65deb43c5af6eb5ff20cb108af8b5093e12ade50e1820d",
+      "fileSizeBytes": 79038,
+      "durationMs": 4876,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-seated-hamstring-reach-v21": {
       "schemaVersion": 1,
@@ -4099,14 +4099,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-standing-band-row-v21.mp3",
-      "script": "Aim for ten reps.",
-      "fingerprint": "voice-v21-audio-v1-ci4zvp",
-      "sha256": "76831b193b3ad5feaff1c4c3e8982ccc072c8c2185af0c360f99ee30e108d4cf",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "script": "Aim for ten reps. Keep the tension light and the anchor secure.",
+      "fingerprint": "voice-v21-audio-v1-4hzhn7",
+      "sha256": "a27dd2685389a25045b2dfc584a9f550aeed5e15e15690726fdfb4e502b336be",
+      "fileSizeBytes": 64827,
+      "durationMs": 3994,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-step-up-v21": {
       "schemaVersion": 1,
@@ -4124,14 +4124,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-step-up-v21.mp3",
-      "script": "Do twelve total reps.",
-      "fingerprint": "voice-v21-audio-v1-1damvgi",
-      "sha256": "5d0ce3de8676acf60b83b87082c39663abd44fa22e3bf99bb07da3cce894142b",
-      "fileSizeBytes": 26375,
-      "durationMs": 1579,
+      "script": "Do twelve total reps. Move carefully, and set both feet on the floor after each rep.",
+      "fingerprint": "voice-v21-audio-v1-m92pmu",
+      "sha256": "4a3188003f2d08d8849c816aed184d14a5ad3414b75e10f75bc69e826becf4e5",
+      "fileSizeBytes": 83635,
+      "durationMs": 5155,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-sts-cushion-v21": {
       "schemaVersion": 1,
@@ -4149,14 +4149,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-sts-cushion-v21.mp3",
-      "script": "Aim for eight reps.",
-      "fingerprint": "voice-v21-audio-v1-8foi9t",
-      "sha256": "66284410ff2f466b7c36b09fb922e152474576d4d375950f0fb4deea4618bd03",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "script": "Aim for eight reps. Take your time and move with control.",
+      "fingerprint": "voice-v21-audio-v1-1i1v8dn",
+      "sha256": "e86e5d525c7c54c52cfc6f9f742832d7eb817e0e3f200d774ebacb9c6b9f787d",
+      "fileSizeBytes": 57722,
+      "durationMs": 3529,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-sts-power-v21": {
       "schemaVersion": 1,
@@ -4174,14 +4174,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-sts-power-v21.mp3",
-      "script": "Aim for twelve reps.",
-      "fingerprint": "voice-v21-audio-v1-tu98tj",
-      "sha256": "d16a8fbeb01bd7a3016759e550e9ec023b209eb2e6ca43639707cccc72c688f1",
-      "fileSizeBytes": 25539,
-      "durationMs": 1533,
+      "script": "Aim for twelve reps. Stand up with energy, but keep each sit-down controlled.",
+      "fingerprint": "voice-v21-audio-v1-1bkutgq",
+      "sha256": "4cbeb70ff5c00cfe665828d0dda38dcfe9d647923027b568694f9e5e8fddbd02",
+      "fileSizeBytes": 84471,
+      "durationMs": 5201,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-sts-slow-eccentric-v21": {
       "schemaVersion": 1,
@@ -4199,14 +4199,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-sts-slow-eccentric-v21.mp3",
-      "script": "Aim for eight reps.",
-      "fingerprint": "voice-v21-audio-v1-obbi4r",
-      "sha256": "700da10d26a5f0e7e52f15765c134d370fb2e82c3e6367c8fdec726ff114a17f",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "script": "Aim for eight reps. The slow sit-down is the important part.",
+      "fingerprint": "voice-v21-audio-v1-b9132u",
+      "sha256": "606dd97ecaf7949c40d703ce55a4801c849766bfd2df8e395214947ebdb2a17d",
+      "fileSizeBytes": 61066,
+      "durationMs": 3762,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-sts-standard-v21": {
       "schemaVersion": 1,
@@ -4224,14 +4224,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-sts-standard-v21.mp3",
-      "script": "Aim for ten reps.",
-      "fingerprint": "voice-v21-audio-v1-11so2kl",
-      "sha256": "8a98def94464a8972d6efcb0a5f63f1bc93b394ca98376378a542060718dc5b2",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "script": "Aim for ten reps. Move at a steady pace, and I'll tell you when the set is done.",
+      "fingerprint": "voice-v21-audio-v1-130xsll",
+      "sha256": "16807b472d0770b17d238c040fbffb83050f39ec9c6ea8552fb345f8ef1aee02",
+      "fileSizeBytes": 84471,
+      "durationMs": 5201,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-supported-hip-flexor-stretch-v21": {
       "schemaVersion": 1,
@@ -4274,14 +4274,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/target-supported-side-step-v21.mp3",
-      "script": "Move for thirty seconds.",
-      "fingerprint": "voice-v21-audio-v1-nby9ld",
-      "sha256": "e4250d812891aee5c7bf53723c786ab422ba30ffd0526fb323ee6f1019b429bf",
-      "fileSizeBytes": 26375,
-      "durationMs": 1579,
+      "script": "Move for thirty seconds. Stay comfortable, and I'll tell you when to stop.",
+      "fingerprint": "voice-v21-audio-v1-kgllky",
+      "sha256": "a472547cdb1fab41258076a44fc0cac0f56b2be2da9dae299e2c129fdff68c71",
+      "fileSizeBytes": 72351,
+      "durationMs": 4458,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-thoracic-rotation-v21": {
       "schemaVersion": 1,
@@ -4701,14 +4701,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/equip-door-anchor-v21.mp3",
-      "script": "Use a secure closed door anchor and test light tension first.",
-      "fingerprint": "voice-v21-audio-v1-4nw1br",
-      "sha256": "c68f097dab3803d0493690f271056e3857a1c81759b264656caa36cb75e994ed",
-      "fileSizeBytes": 58976,
-      "durationMs": 3622,
+      "script": "Before using the door anchor, make sure the door is fully closed and the anchor feels secure. Test with light tension first. If it does not feel secure, skip this exercise.",
+      "fingerprint": "voice-v21-audio-v1-g9i29y",
+      "sha256": "a9dba0ef921dff5aa8c0181268f5c8601762a82aa30896f129e679289dc71ebe",
+      "fileSizeBytes": 204844,
+      "durationMs": 12725,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "equip-floor-transition-v21": {
       "schemaVersion": 1,
@@ -4726,14 +4726,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/equip-floor-transition-v21.mp3",
-      "script": "Move down to the floor and settle into the start position.",
-      "fingerprint": "voice-v21-audio-v1-12gt17j",
-      "sha256": "ba3929e7517db24dfdae45d85c9e0889edc91a0a8f6a10241c9487f11986bce9",
-      "fileSizeBytes": 48527,
-      "durationMs": 2972,
+      "script": "Take your time getting down to the floor. Use support if you need it. Once you are comfortable, settle into the starting position and wait for my countdown.",
+      "fingerprint": "voice-v21-audio-v1-h636g3",
+      "sha256": "bd9d9f5ebb1e8539049be9f80a50b25b63837e19c455f427d185f7fab428c991",
+      "fileSizeBytes": 140896,
+      "durationMs": 8731,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "equip-long-band-v21": {
       "schemaVersion": 1,
@@ -4751,14 +4751,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/equip-long-band-v21.mp3",
-      "script": "Check the band first and keep it away from your face.",
-      "fingerprint": "voice-v21-audio-v1-qfzj2n",
-      "sha256": "b8c51322418022c49a777e5ae5f1f2e6df12ba36089948dcdb6c16877f7df1c7",
-      "fileSizeBytes": 43511,
-      "durationMs": 2647,
+      "script": "Before using the band, check that it is not cracked, torn, or frayed. Keep the band away from your face, and use light tension only.",
+      "fingerprint": "voice-v21-audio-v1-1hynspb",
+      "sha256": "983901d780537376609fc879c70c418313cc3cef043c791b1c466ed801e78fe7",
+      "fileSizeBytes": 133373,
+      "durationMs": 8266,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "equip-step-stable-v21": {
       "schemaVersion": 1,
@@ -4826,14 +4826,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-balance-feet-together-hold-first-v21.mp3",
-      "script": "Feet-together hold. Stand with feet together, fingertips near support, eyes open.",
-      "fingerprint": "voice-v21-audio-v1-1lqv5gc",
-      "sha256": "0fa7a23e45570bb5eb78d501ea4e0b4965030e05fa6901e2fdf7bce4c039e0c6",
-      "fileSizeBytes": 75276,
-      "durationMs": 4644,
+      "script": "Feet-together hold. Stand with your feet together and keep your eyes open. Keep fingertips near a counter, wall, or sturdy chair.",
+      "fingerprint": "voice-v21-audio-v1-1qef7k2",
+      "sha256": "70040f28d7b3d172cfc61571648d7ba6eb295baae9c0dd71b3bb2af35307dd7c",
+      "fileSizeBytes": 161376,
+      "durationMs": 10031,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-balance-feet-together-hold-next-v21": {
       "schemaVersion": 1,
@@ -4851,14 +4851,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-balance-feet-together-hold-next-v21.mp3",
-      "script": "Feet-together hold.",
-      "fingerprint": "voice-v21-audio-v1-7ib0ek",
-      "sha256": "8c9a4100db0321cf169e82b57ab06bb5b63dc4931b46d7f99413daf01b43aa32",
-      "fileSizeBytes": 22613,
-      "durationMs": 1347,
+      "script": "Feet-together hold again. Eyes open, support close, and stand as steady as you can.",
+      "fingerprint": "voice-v21-audio-v1-1x9s6m9",
+      "sha256": "fd20c9a19199945be3b82602b355e756ff386ffe6bccc92fb08aaad3f5b9aecb",
+      "fileSizeBytes": 77784,
+      "durationMs": 4783,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-balance-single-leg-hold-first-v21": {
       "schemaVersion": 1,
@@ -4876,14 +4876,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-balance-single-leg-hold-first-v21.mp3",
-      "script": "Single-leg hold. Keep support close.",
-      "fingerprint": "voice-v21-audio-v1-1ens6cs",
-      "sha256": "041b63d01130709ce69820a8e2b7e2c55b26be95f794a1c69f64716e81db8aa3",
-      "fileSizeBytes": 35988,
-      "durationMs": 2183,
+      "script": "Single-leg hold. Stand near support. You'll lift one foot slightly off the floor and hold steady.",
+      "fingerprint": "voice-v21-audio-v1-18v2b76",
+      "sha256": "dc0641e4292991e7db3a6ba24f2b470d1187d216791b9e09788386fda3f33705",
+      "fileSizeBytes": 105787,
+      "durationMs": 6548,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-balance-single-leg-hold-next-v21": {
       "schemaVersion": 1,
@@ -4901,14 +4901,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-balance-single-leg-hold-next-v21.mp3",
-      "script": "Single-leg hold.",
-      "fingerprint": "voice-v21-audio-v1-f9p4s0",
-      "sha256": "317b12704bc45d5ea4a8def2d638fb9f5bd0eb858c309109604ba9b7f1e4d0fa",
-      "fileSizeBytes": 19688,
-      "durationMs": 1161,
+      "script": "Single-leg hold again. Keep support close and lift the other foot only a little.",
+      "fingerprint": "voice-v21-audio-v1-1670qcu",
+      "sha256": "fdbb1cd484c13985d62ba5fc0ee103397e615f37532d6981aaf5a39ff737add2",
+      "fileSizeBytes": 71515,
+      "durationMs": 4412,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-balance-tandem-hold-first-v21": {
       "schemaVersion": 1,
@@ -4926,14 +4926,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-balance-tandem-hold-first-v21.mp3",
-      "script": "Tandem hold. Keep support close.",
-      "fingerprint": "voice-v21-audio-v1-17fcqsq",
-      "sha256": "05eeb08799d2532f8cc097b4b91c83d79b5806598f8043f16a2be41ac3e9d23c",
-      "fileSizeBytes": 33898,
-      "durationMs": 2043,
+      "script": "Tandem hold. Stand near support, with one foot directly in front of the other like you're standing on a line.",
+      "fingerprint": "voice-v21-audio-v1-hb2uj",
+      "sha256": "1c8cce9ff8747b8fb9f7c14ca96597eaddba0942fb865dbe3f56bf050b251aa4",
+      "fileSizeBytes": 111221,
+      "durationMs": 6873,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-balance-tandem-hold-next-v21": {
       "schemaVersion": 1,
@@ -4951,14 +4951,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-balance-tandem-hold-next-v21.mp3",
-      "script": "Tandem hold.",
-      "fingerprint": "voice-v21-audio-v1-15q504u",
-      "sha256": "53b3daa76ea487f8d0db07112458f2ec5e782203f35569041ca05529284634ac",
-      "fileSizeBytes": 19688,
-      "durationMs": 1161,
+      "script": "Tandem hold again. Keep support close and stand as steady as you can.",
+      "fingerprint": "voice-v21-audio-v1-1utbn76",
+      "sha256": "f1d17f1cb0638c77a90a1fb7b0983e74e1edc1d1bee0f496af532ef8d97a9e94",
+      "fileSizeBytes": 74022,
+      "durationMs": 4551,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-band-pull-apart-first-v21": {
       "schemaVersion": 1,
@@ -4976,14 +4976,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-band-pull-apart-first-v21.mp3",
-      "script": "Band pull-apart. Hold a light band at chest height. Pull your hands wide, then return slowly.",
-      "fingerprint": "voice-v21-audio-v1-1v2pn5",
-      "sha256": "360296263951b824ee198a9a06cc3db79b64d4ccb1820bb903687624f1418c8b",
-      "fileSizeBytes": 111639,
-      "durationMs": 6920,
+      "script": "Band pull-apart. Hold the band at chest height with your arms in front of you. Pull your hands apart gently, then return slowly.",
+      "fingerprint": "voice-v21-audio-v1-1bhp8fn",
+      "sha256": "c21ede0d604c34cdb836fc1277a3a325573fb2bc6621dc6cd1a1188a828dc0a6",
+      "fileSizeBytes": 147583,
+      "durationMs": 9149,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-band-pull-apart-next-v21": {
       "schemaVersion": 1,
@@ -5001,14 +5001,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-band-pull-apart-next-v21.mp3",
-      "script": "Band pull-apart.",
-      "fingerprint": "voice-v21-audio-v1-196mq2h",
-      "sha256": "907ba9bbac1f5896c9c0cb765142124deefaf2e7c462e5d784d60f056e612cfd",
-      "fileSizeBytes": 21777,
-      "durationMs": 1300,
+      "script": "Band pull-apart again. Chest height, light tension, and return slowly.",
+      "fingerprint": "voice-v21-audio-v1-10hpcmm",
+      "sha256": "d45cbc729673129b765dd59b87382c183646a5aafbef128db4de5ffac230ab83",
+      "fileSizeBytes": 72351,
+      "durationMs": 4458,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-chair-supported-split-squat-first-v21": {
       "schemaVersion": 1,
@@ -5026,14 +5026,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-chair-supported-split-squat-first-v21.mp3",
-      "script": "Supported split squat. Keep fingertips near sturdy support.",
-      "fingerprint": "voice-v21-audio-v1-1jruvq6",
-      "sha256": "9a7c076480130b17d06fa9d7d0544fe644e7cbebf1b9d1ee1a9041ffa2e9e2bf",
-      "fileSizeBytes": 56050,
-      "durationMs": 3437,
+      "script": "Supported split squat. Stand beside sturdy support. Put one foot forward and one foot back, then bend both knees a little and stand tall again.",
+      "fingerprint": "voice-v21-audio-v1-4icqgu",
+      "sha256": "267955de8723c6af8d02987e591f6fbed02bd03d1d186a9102edab7bd1489537",
+      "fileSizeBytes": 125849,
+      "durationMs": 7802,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-chair-supported-split-squat-next-v21": {
       "schemaVersion": 1,
@@ -5051,14 +5051,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-chair-supported-split-squat-next-v21.mp3",
-      "script": "Supported split squat.",
-      "fingerprint": "voice-v21-audio-v1-18s96q6",
-      "sha256": "d15301118202123cb06f5b0dd6a0086b03da458ba6c546975e8dc3d81b86a1f0",
-      "fileSizeBytes": 21777,
-      "durationMs": 1300,
+      "script": "Supported split squat again. Keep fingertips near support and move only as low as feels comfortable.",
+      "fingerprint": "voice-v21-audio-v1-1l5evb2",
+      "sha256": "357a92d427255701da156e72be143b5d66ce32a45e8703ebf8ead7beca2b3e98",
+      "fileSizeBytes": 93248,
+      "durationMs": 5759,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-glute-bridge-hold-first-v21": {
       "schemaVersion": 1,
@@ -5076,14 +5076,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-glute-bridge-hold-first-v21.mp3",
-      "script": "Bridge hold. Lie on your back, knees bent, feet flat. Lift your hips and hold.",
-      "fingerprint": "voice-v21-audio-v1-10ovdit",
-      "sha256": "2abfa8473dc30b83e62efffb6036b55d5446e3ca8d2bc480a2b4e015198156ec",
-      "fileSizeBytes": 71097,
-      "durationMs": 4365,
+      "script": "Bridge hold. Lie on your back with your knees bent and both feet flat on the floor. When we start, lift your hips a little and hold steady.",
+      "fingerprint": "voice-v21-audio-v1-1eq994x",
+      "sha256": "29ebe10613b2a897e290c980a8f2b615f17f57dda42570980f3e33204cfc6620",
+      "fileSizeBytes": 139224,
+      "durationMs": 8638,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-glute-bridge-hold-next-v21": {
       "schemaVersion": 1,
@@ -5101,14 +5101,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-glute-bridge-hold-next-v21.mp3",
-      "script": "Bridge hold.",
-      "fingerprint": "voice-v21-audio-v1-1iei7tm",
-      "sha256": "8ba81612effab80cd09958f680057d537f8fae267cfcb92fdcde2216c0a2c90c",
-      "fileSizeBytes": 18016,
-      "durationMs": 1068,
+      "script": "Bridge hold again. Feet flat, lift your hips a little, and hold steady.",
+      "fingerprint": "voice-v21-audio-v1-1yxo59q",
+      "sha256": "0ca843825d1481e056f92602a7892803c85955178735e4f068963bf916c6a2c7",
+      "fileSizeBytes": 69425,
+      "durationMs": 4272,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-glute-bridge-reps-first-v21": {
       "schemaVersion": 1,
@@ -5126,14 +5126,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-glute-bridge-reps-first-v21.mp3",
-      "script": "Glute bridge. Lie on your back, knees bent, feet flat. Lift your hips, then lower with control.",
-      "fingerprint": "voice-v21-audio-v1-1h41izm",
-      "sha256": "0b553ed7ca5e1611294af04326fadb35c7a35626ac31549615808607aee12738",
-      "fileSizeBytes": 104533,
-      "durationMs": 6455,
+      "script": "Glute bridge. Lie on your back with your knees bent and both feet flat on the floor. Lift your hips a little, then lower back down with control.",
+      "fingerprint": "voice-v21-audio-v1-bzgdwv",
+      "sha256": "04b9b3ac1ac8c6ce86e9b0a641842093add981884e8a893f32a270daa72b249d",
+      "fileSizeBytes": 149673,
+      "durationMs": 9288,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-glute-bridge-reps-next-v21": {
       "schemaVersion": 1,
@@ -5151,14 +5151,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-glute-bridge-reps-next-v21.mp3",
-      "script": "Glute bridge.",
-      "fingerprint": "voice-v21-audio-v1-qsexog",
-      "sha256": "b552da00503ea61dcd2bc1a9bb5517e34509de241b87e128680db7671ab0a16a",
-      "fileSizeBytes": 20524,
-      "durationMs": 1207,
+      "script": "Glute bridge again. Lift your hips a little, then lower with control.",
+      "fingerprint": "voice-v21-audio-v1-1lr94go",
+      "sha256": "39f97226b68b1e5e06faec9ab69cdafd9249c659d6a888412cb2b3275599f1b4",
+      "fileSizeBytes": 64409,
+      "durationMs": 3947,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-heel-raise-free-first-v21": {
       "schemaVersion": 1,
@@ -5376,14 +5376,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-loaded-march-first-v21.mp3",
-      "script": "March in place. Stand tall near support and march with a steady rhythm.",
-      "fingerprint": "voice-v21-audio-v1-kuq3oy",
-      "sha256": "9b940ee04c9c1267b7c6c9486405f05b1d33d63614c430b15c3249029c951ba6",
-      "fileSizeBytes": 68589,
-      "durationMs": 4226,
+      "script": "March in place. Stand tall near support. Lift one knee, put it down, then lift the other, like a slow steady march.",
+      "fingerprint": "voice-v21-audio-v1-1dmchra",
+      "sha256": "b2772130f28598c7723432acfc7712b2259db6383f2db91d967c5a17b648048e",
+      "fileSizeBytes": 122924,
+      "durationMs": 7616,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-loaded-march-next-v21": {
       "schemaVersion": 1,
@@ -5401,14 +5401,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-loaded-march-next-v21.mp3",
-      "script": "March in place.",
-      "fingerprint": "voice-v21-audio-v1-1yfv6b9",
-      "sha256": "825a2e5e7dbe2cef7c519728eb4988f775e5d736b2ab3eefdfeae5576248402f",
-      "fileSizeBytes": 21777,
-      "durationMs": 1300,
+      "script": "March in place again. Stand tall, keep support nearby, and move steadily.",
+      "fingerprint": "voice-v21-audio-v1-d4f6r6",
+      "sha256": "650900886ed64044d692be974dc66f3da2e24d264573ea67e875b3d825aa7bd6",
+      "fileSizeBytes": 74022,
+      "durationMs": 4551,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-loaded-sit-to-stand-first-v21": {
       "schemaVersion": 1,
@@ -5426,14 +5426,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-loaded-sit-to-stand-first-v21.mp3",
-      "script": "Loaded sit-to-stand. Hold the load close to your chest. Stand fully, then sit with control.",
-      "fingerprint": "voice-v21-audio-v1-1u8yonj",
-      "sha256": "0b251b0536768be2e374f97c4193da2b9c5897adc74310df6a50a59865e50ce6",
-      "fileSizeBytes": 104533,
-      "durationMs": 6455,
+      "script": "Loaded sit-to-stand. Hold the weight close to your chest. Sit tall with feet flat, stand fully, then sit back down with control.",
+      "fingerprint": "voice-v21-audio-v1-uvrvwy",
+      "sha256": "e1fbe3c16c4869c94ecf2f73dc28d4875b82adae660fa993c79e7422d7d21d99",
+      "fileSizeBytes": 154271,
+      "durationMs": 9567,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-loaded-sit-to-stand-next-v21": {
       "schemaVersion": 1,
@@ -5451,14 +5451,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-loaded-sit-to-stand-next-v21.mp3",
-      "script": "Loaded sit-to-stand.",
-      "fingerprint": "voice-v21-audio-v1-1j3cmsg",
-      "sha256": "685aa73df455101ac032768a7dd9dc157c8f4013ce5e84c358ba0a782816b0fe",
-      "fileSizeBytes": 27211,
-      "durationMs": 1625,
+      "script": "Loaded sit-to-stand again. Keep the weight close, stand tall, then sit with control.",
+      "fingerprint": "voice-v21-audio-v1-tyqo07",
+      "sha256": "60a371b88c52d9db584fcdc9b71f3d11871f24c21889dc9373358388021e0eae",
+      "fileSizeBytes": 88651,
+      "durationMs": 5480,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-mini-band-lateral-walk-first-v21": {
       "schemaVersion": 1,
@@ -5476,14 +5476,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-mini-band-lateral-walk-first-v21.mp3",
-      "script": "Mini-band lateral walk. Band above your knees. Take small controlled steps both directions.",
-      "fingerprint": "voice-v21-audio-v1-ecyznc",
-      "sha256": "fb0a812acd8fe10ef735a0d35908259fa1e9bebaa3a7cb7bf2813520a4ed1a76",
-      "fileSizeBytes": 100772,
-      "durationMs": 6223,
+      "script": "Mini-band lateral walk. Place the band above your knees. Stand near support, take small steps to the side, then step back the other way.",
+      "fingerprint": "voice-v21-audio-v1-cwtn1n",
+      "sha256": "65627df95426205420b596fe2debcc849ca64f786f28b826e1054c4096140234",
+      "fileSizeBytes": 140060,
+      "durationMs": 8684,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-mini-band-lateral-walk-next-v21": {
       "schemaVersion": 1,
@@ -5501,14 +5501,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-mini-band-lateral-walk-next-v21.mp3",
-      "script": "Mini-band lateral walk.",
-      "fingerprint": "voice-v21-audio-v1-152qr1r",
-      "sha256": "3b6ad02fb9c0551a2e437d57368487ba285cd6ba8d233d8f4194621c04d8b39a",
-      "fileSizeBytes": 25539,
-      "durationMs": 1533,
+      "script": "Mini-band lateral walk again. Small side steps, support nearby, and stay in control.",
+      "fingerprint": "voice-v21-audio-v1-18c5k5g",
+      "sha256": "2579b7c547e3bef228863a9a21e9eae6a4488903b435568fba447c2ac9185f30",
+      "fileSizeBytes": 77784,
+      "durationMs": 4783,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-neck-rotation-first-v21": {
       "schemaVersion": 1,
@@ -5576,14 +5576,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-overhead-press-band-first-v21.mp3",
-      "script": "Band overhead press. Stand tall with light band tension. Press overhead, then return slowly.",
-      "fingerprint": "voice-v21-audio-v1-jyr690",
-      "sha256": "2590545ccaad4f6abb03b6cbe330ec1672391b23f349481f3e999e65bb37d5c7",
-      "fileSizeBytes": 85725,
-      "durationMs": 5294,
+      "script": "Band overhead press. Stand tall with the band held securely. Press your hands overhead only as far as feels comfortable, then return slowly.",
+      "fingerprint": "voice-v21-audio-v1-1m68lz",
+      "sha256": "854021db7d52fd279a23900075802d01cf13fc3e77440ca99ceddbce26f5b5e4",
+      "fileSizeBytes": 150509,
+      "durationMs": 9334,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-overhead-press-band-next-v21": {
       "schemaVersion": 1,
@@ -5601,14 +5601,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-overhead-press-band-next-v21.mp3",
-      "script": "Band overhead press.",
-      "fingerprint": "voice-v21-audio-v1-1v2qztw",
-      "sha256": "39c98961c5fd63b94e0f06aad8d943fca2498709abbb9a6784a68f4c27314649",
-      "fileSizeBytes": 21777,
-      "durationMs": 1300,
+      "script": "Band overhead press again. Press only as far as comfortable, then return slowly.",
+      "fingerprint": "voice-v21-audio-v1-uu3nyb",
+      "sha256": "67db1356381477b76e937564d51974ecbeabd54dde465ba2ca94fdd6fb973e60",
+      "fileSizeBytes": 82799,
+      "durationMs": 5108,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-overhead-reach-first-v21": {
       "schemaVersion": 1,
@@ -5726,14 +5726,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-push-up-standard-first-v21.mp3",
-      "script": "Push-up. Start from the floor position. Lower with control, then press up.",
-      "fingerprint": "voice-v21-audio-v1-fs4sd3",
-      "sha256": "32abc384e5668cb9a7c3a05c6a2fe70e3893a0820c0c1649fa8bacb9a2a2c84f",
-      "fileSizeBytes": 71097,
-      "durationMs": 4365,
+      "script": "Push-up. Start on the floor with your hands under your shoulders. Lower only as far as feels comfortable, then press back up.",
+      "fingerprint": "voice-v21-audio-v1-11l1h26",
+      "sha256": "0dd6e98a219eed358407cda3ce7e684fcbe1080c3253949d3de6fd0a9c3c2b79",
+      "fileSizeBytes": 135462,
+      "durationMs": 8406,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-push-up-standard-next-v21": {
       "schemaVersion": 1,
@@ -5751,14 +5751,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-push-up-standard-next-v21.mp3",
-      "script": "Push-up.",
-      "fingerprint": "voice-v21-audio-v1-iv3ktk",
-      "sha256": "9562839cd3caf68bb7e85be83b1c233460c277a021e19880ce7ca755ab1b71cf",
-      "fileSizeBytes": 14254,
-      "durationMs": 836,
+      "script": "Push-up again. Lower only as far as feels comfortable, then press back up.",
+      "fingerprint": "voice-v21-audio-v1-jexbrf",
+      "sha256": "829f3ce722b8a73477f02fb76f198868cd6fc00d8018c6204b3078366ecb5c67",
+      "fileSizeBytes": 85725,
+      "durationMs": 5294,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-push-up-wall-first-v21": {
       "schemaVersion": 1,
@@ -5826,14 +5826,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-seated-band-row-first-v21.mp3",
-      "script": "Seated band row. Sit tall on a sturdy chair with the band anchored under both feet. Pull elbows back, then return slowly.",
-      "fingerprint": "voice-v21-audio-v1-1f977mc",
-      "sha256": "e49ec318561591b644ecffef0e8cf6cc50d28ca4a20582c5573f92612f9842c1",
-      "fileSizeBytes": 128775,
-      "durationMs": 7988,
+      "script": "Seated band row. Sit tall on a sturdy chair. Anchor the band under both feet, hold the ends securely, pull your elbows back, then return slowly.",
+      "fingerprint": "voice-v21-audio-v1-1gsu7c8",
+      "sha256": "2eda08e19e6109800b5041538632cb329fa0698d6bc5cdf000949dd98e293fb1",
+      "fileSizeBytes": 161376,
+      "durationMs": 10031,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-seated-band-row-next-v21": {
       "schemaVersion": 1,
@@ -5851,14 +5851,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-seated-band-row-next-v21.mp3",
-      "script": "Seated band row.",
-      "fingerprint": "voice-v21-audio-v1-1e8ncft",
-      "sha256": "eb640e632cbbd0b2f3ebaf5d9d737ee13493da6de9ae8bcc932147436022de66",
-      "fileSizeBytes": 21777,
-      "durationMs": 1300,
+      "script": "Seated band row again. Sit tall, pull elbows back, then return slowly.",
+      "fingerprint": "voice-v21-audio-v1-122cypf",
+      "sha256": "61cdaee6c2c3285b723c483a25995f86e2bb9d2e2a678eaeb7441ab550680d8e",
+      "fileSizeBytes": 97846,
+      "durationMs": 6037,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-seated-hamstring-reach-first-v21": {
       "schemaVersion": 1,
@@ -6126,14 +6126,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-standing-band-row-first-v21.mp3",
-      "script": "Standing band row. Face the secure door anchor in a stable stance. Pull elbows back, then return slowly.",
-      "fingerprint": "voice-v21-audio-v1-12w0ky3",
-      "sha256": "e91c767fddc39d3ff170122b0ea7cb720aa017160a54c06554e9698b930c8548",
-      "fileSizeBytes": 123759,
-      "durationMs": 7663,
+      "script": "Standing band row. Face the door anchor in a steady stance. Hold the band securely, pull your elbows back, then return slowly.",
+      "fingerprint": "voice-v21-audio-v1-1pueqmn",
+      "sha256": "fbab70816bdf79febcb1144326248cd056fc0f23ea46b8af0f2e4a0b852cd868",
+      "fileSizeBytes": 137134,
+      "durationMs": 8499,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-standing-band-row-next-v21": {
       "schemaVersion": 1,
@@ -6151,14 +6151,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-standing-band-row-next-v21.mp3",
-      "script": "Standing band row.",
-      "fingerprint": "voice-v21-audio-v1-ysn4yp",
-      "sha256": "1e85812ac7cf2b3b3f841688d56fdb696b9a368b7a4937720c210238485d217f",
-      "fileSizeBytes": 20942,
-      "durationMs": 1254,
+      "script": "Standing band row again. Stand steady, pull elbows back, then return slowly.",
+      "fingerprint": "voice-v21-audio-v1-izv5yk",
+      "sha256": "633c14a7d91f27124b8fc520e4c10346f3eaf12b40aebb9d93aaac52869df1a3",
+      "fileSizeBytes": 79038,
+      "durationMs": 4876,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-step-up-first-v21": {
       "schemaVersion": 1,
@@ -6176,14 +6176,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-step-up-first-v21.mp3",
-      "script": "Step-up. Use the lowest stable step with support nearby. Return both feet to the floor after each rep.",
-      "fingerprint": "voice-v21-audio-v1-1r73882",
-      "sha256": "808088414cfa1aa7f0772318a25f49ab33eb12fb9894cc744aaa9fc346d2f07b",
-      "fileSizeBytes": 114564,
-      "durationMs": 7105,
+      "script": "Step-up. Use the lowest stable step with support nearby. Step up, bring both feet onto the step, then step back down to the floor.",
+      "fingerprint": "voice-v21-audio-v1-pfxayk",
+      "sha256": "bfc1b4724d73f9ff294261b318c8fd28f5de320e598e1960406770f0d89861bb",
+      "fileSizeBytes": 171825,
+      "durationMs": 10681,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-step-up-next-v21": {
       "schemaVersion": 1,
@@ -6201,14 +6201,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-step-up-next-v21.mp3",
-      "script": "Step-up. Return both feet to the floor after each rep.",
-      "fingerprint": "voice-v21-audio-v1-1pytm21",
-      "sha256": "527f65934cea488221fd17dfcc399ba471b51e8f4a64e72b48886ceee5702693",
-      "fileSizeBytes": 53960,
-      "durationMs": 3297,
+      "script": "Step-up again. Step up, bring both feet up, then return both feet to the floor.",
+      "fingerprint": "voice-v21-audio-v1-dqmcw9",
+      "sha256": "1bbd0dfa2e6f85b19d90572b8ec222c1a8350e989c802147e881c34cb00cd9f1",
+      "fileSizeBytes": 86561,
+      "durationMs": 5341,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-sts-cushion-first-v21": {
       "schemaVersion": 1,
@@ -6226,14 +6226,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-sts-cushion-first-v21.mp3",
-      "script": "Cushion sit-to-stand. Sit tall on the cushion, feet flat. Stand fully, then sit with control.",
-      "fingerprint": "voice-v21-audio-v1-1wjuguh",
-      "sha256": "dfd445c3603344925eb7f8b29ea17733194daaca3ffa1f6ab6a65e6513e2cdd0",
-      "fileSizeBytes": 108713,
-      "durationMs": 6734,
+      "script": "Cushion sit-to-stand. Sit tall on the cushion with both feet flat on the floor. Stand all the way up, then sit back down gently.",
+      "fingerprint": "voice-v21-audio-v1-mr3mw1",
+      "sha256": "2dcb4dd40b6379c3fe61dbbfda48b9f72e391585ae172e7904cd863901bcd32a",
+      "fileSizeBytes": 136298,
+      "durationMs": 8452,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-sts-cushion-next-v21": {
       "schemaVersion": 1,
@@ -6251,14 +6251,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-sts-cushion-next-v21.mp3",
-      "script": "Cushion sit-to-stand.",
-      "fingerprint": "voice-v21-audio-v1-x9j254",
-      "sha256": "d7c66e3161e893dd2baa3c5a8a9c6a45445aea23112bc2f55f4ae260c42fcb7b",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "script": "Cushion sit-to-stand again. Stand fully, then sit back down gently.",
+      "fingerprint": "voice-v21-audio-v1-g4mh7j",
+      "sha256": "d7af47edbc18997864af3777a76b705622d123f2326b9b4472498057b16eea8f",
+      "fileSizeBytes": 67335,
+      "durationMs": 4133,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-sts-power-first-v21": {
       "schemaVersion": 1,
@@ -6276,14 +6276,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-sts-power-first-v21.mp3",
-      "script": "Power sit-to-stand. Sit tall, drive up briskly to standing, then sit with control.",
-      "fingerprint": "voice-v21-audio-v1-1d1c87r",
-      "sha256": "3cb2f8f34e771c769e17f5e9b569999d1b9cba663af3dea908643d2fb16f49a6",
-      "fileSizeBytes": 80710,
-      "durationMs": 4969,
+      "script": "Power sit-to-stand. Sit tall with both feet flat. Stand up briskly, then sit back down with control.",
+      "fingerprint": "voice-v21-audio-v1-1i9v8cj",
+      "sha256": "44aaa99dd739456145c677c7faf2c339ecb30a7b71e44cf55940785dd7dd3224",
+      "fileSizeBytes": 113311,
+      "durationMs": 7012,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-sts-power-next-v21": {
       "schemaVersion": 1,
@@ -6301,14 +6301,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-sts-power-next-v21.mp3",
-      "script": "Power sit-to-stand.",
-      "fingerprint": "voice-v21-audio-v1-lahovm",
-      "sha256": "2b3d5bc14494a9d87acd939890eccfca94f3e124b64c434947b0e972a46fceac",
-      "fileSizeBytes": 21777,
-      "durationMs": 1300,
+      "script": "Power sit-to-stand again. Stand up briskly, then sit back down with control.",
+      "fingerprint": "voice-v21-audio-v1-oldqcm",
+      "sha256": "97ea65817d85f4f4984236d1624b01ce0436f6735f88a2bb8cd66ce3fc537786",
+      "fileSizeBytes": 73186,
+      "durationMs": 4505,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-sts-slow-eccentric-first-v21": {
       "schemaVersion": 1,
@@ -6326,14 +6326,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-sts-slow-eccentric-first-v21.mp3",
-      "script": "Slow-lower sit-to-stand. Stand fully, then lower slowly and steadily before the next rep.",
-      "fingerprint": "voice-v21-audio-v1-q7q9lg",
-      "sha256": "a1ad3d0c903d20e6b34b42e6e422a022d4e6a294a4c10afc02b0a891a72ab81c",
-      "fileSizeBytes": 104951,
-      "durationMs": 6502,
+      "script": "Slow-lower sit-to-stand. Start seated, stand all the way up, then lower slowly and steadily back to the chair.",
+      "fingerprint": "voice-v21-audio-v1-xwuueo",
+      "sha256": "dcc8ac47558da04ba09180bb61e150562078c647d21d3207391340c106b7bb55",
+      "fileSizeBytes": 118326,
+      "durationMs": 7338,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-sts-slow-eccentric-next-v21": {
       "schemaVersion": 1,
@@ -6351,14 +6351,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-sts-slow-eccentric-next-v21.mp3",
-      "script": "Slow-lower sit-to-stand.",
-      "fingerprint": "voice-v21-audio-v1-1tg8kr6",
-      "sha256": "1e4f8c792559dd118476c8cde24af20812811ca11fd1af8eeac1fbf1fe1f0e6c",
-      "fileSizeBytes": 25539,
-      "durationMs": 1533,
+      "script": "Slow-lower sit-to-stand again. Stand tall, then lower slowly to the chair.",
+      "fingerprint": "voice-v21-audio-v1-1bffc5c",
+      "sha256": "2b8b140f86c7fe5e6baf7c9050d7c3c7aef5cf5ca3e4245d757bd33fb70bc60a",
+      "fileSizeBytes": 76948,
+      "durationMs": 4737,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-sts-standard-first-v21": {
       "schemaVersion": 1,
@@ -6376,14 +6376,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-sts-standard-first-v21.mp3",
-      "script": "Sit-to-stand. Sit tall in the middle of the chair, feet flat. Stand fully, then sit with control.",
-      "fingerprint": "voice-v21-audio-v1-1jod6pp",
-      "sha256": "581b1de6f5ed30df3b34fa0ddd30e667069ffc709e5b29e0a1cd699ae7519ded",
-      "fileSizeBytes": 114146,
-      "durationMs": 7059,
+      "script": "Sit-to-stand. Sit in the middle of a sturdy chair with both feet flat on the floor. When we start, stand all the way up, then sit back down with control.",
+      "fingerprint": "voice-v21-audio-v1-1w88d91",
+      "sha256": "643063d050e02451a783495454cf636745241650b59288125e57432fad103af7",
+      "fileSizeBytes": 148001,
+      "durationMs": 9195,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-sts-standard-next-v21": {
       "schemaVersion": 1,
@@ -6401,14 +6401,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-sts-standard-next-v21.mp3",
-      "script": "Sit-to-stand.",
-      "fingerprint": "voice-v21-audio-v1-9cvfej",
-      "sha256": "8c5b6f7beb8f071f5698f4b94f0516256137f4f16f023ce5dee2ab0790d22487",
-      "fileSizeBytes": 18852,
-      "durationMs": 1115,
+      "script": "Sit-to-stand again. Feet flat, stand tall, then sit back down with control.",
+      "fingerprint": "voice-v21-audio-v1-etpnpw",
+      "sha256": "5611b4571aaf54b4df83b5d25190fe6d7c00f1ea927ad2f2e55e1ce9cecca7b3",
+      "fileSizeBytes": 77784,
+      "durationMs": 4783,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-supported-hip-flexor-stretch-first-v21": {
       "schemaVersion": 1,
@@ -6476,14 +6476,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-supported-side-step-first-v21.mp3",
-      "script": "Supported side step. Stand near a counter. Step to the side, bring the other foot in, and continue with control.",
-      "fingerprint": "voice-v21-audio-v1-imeb5c",
-      "sha256": "1073e6602025e2f611b9d32e65a49d4153cc61eee6c3b47cc3746b6446c034f9",
-      "fileSizeBytes": 113311,
-      "durationMs": 7012,
+      "script": "Supported side step. Stand near a counter or sturdy support. Step to the side, bring the other foot in, and keep moving with control.",
+      "fingerprint": "voice-v21-audio-v1-1ybemtz",
+      "sha256": "eee63e7cd94cc9beda9124c64e63c4e7cd041001d9b464bbb78ec660980b38ac",
+      "fileSizeBytes": 135462,
+      "durationMs": 8406,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-supported-side-step-next-v21": {
       "schemaVersion": 1,
@@ -6501,14 +6501,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/ex-supported-side-step-next-v21.mp3",
-      "script": "Supported side step.",
-      "fingerprint": "voice-v21-audio-v1-1vr5wvf",
-      "sha256": "be781efac3b6a4af1d39c98a0dfc776d4ee70c4c886b49cb621f48a59cbe8329",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "script": "Supported side step again. Small steps, support nearby, and keep control.",
+      "fingerprint": "voice-v21-audio-v1-114m4n4",
+      "sha256": "b3086475d37cdc7cd9ad869f8472afb7b4ed1a55ae977dddb26c752beab01033",
+      "fileSizeBytes": 76112,
+      "durationMs": 4690,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "ex-thoracic-rotation-first-v21": {
       "schemaVersion": 1,
@@ -6701,14 +6701,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/floor-gate-question-v21.mp3",
-      "script": "Can you safely get down to the floor and back up without assistance?",
-      "fingerprint": "voice-v21-audio-v1-maucj3",
-      "sha256": "a5675404161d2e5b0d6d9466140b24f41d441d0907ac509f08151db5a12deab6",
-      "fileSizeBytes": 51035,
-      "durationMs": 3111,
+      "script": "Before we do floor exercises, check that you can get down to the floor and back up again safely without help. If not, skip this exercise and I'll guide you to the next one.",
+      "fingerprint": "voice-v21-audio-v1-1mh3zsn",
+      "sha256": "a451d0fd5cb28ba9765ca01f0d14d90d7fdaa730747b2b684c7eb856e41eebde",
+      "fileSizeBytes": 168063,
+      "durationMs": 10449,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "halfway-v21": {
       "schemaVersion": 1,
@@ -7476,14 +7476,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/side-single-leg-left-v21.mp3",
-      "script": "Start on your left leg. Lift your right foot slightly.",
-      "fingerprint": "voice-v21-audio-v1-11v0bv3",
-      "sha256": "f900da035152ba597566be3229b1136fc87d07ef00724c7a9178cee5ae796849",
-      "fileSizeBytes": 49363,
-      "durationMs": 3019,
+      "script": "Stand on your left leg. Lift your right foot slightly off the floor.",
+      "fingerprint": "voice-v21-audio-v1-qz4y5z",
+      "sha256": "de0cb0f0effd686caace9ba915853f11807435c5baffcc9ce605823f2fb9ef87",
+      "fileSizeBytes": 70261,
+      "durationMs": 4319,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "side-single-leg-right-v21": {
       "schemaVersion": 1,
@@ -7501,14 +7501,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/side-single-leg-right-v21.mp3",
-      "script": "Start on your right leg. Lift your left foot slightly.",
-      "fingerprint": "voice-v21-audio-v1-q3wvbp",
-      "sha256": "358e5ed2fc0f2c2a6da15eac727d0cd5d09c4639a10a1a3ae8487bf866de8407",
-      "fileSizeBytes": 45601,
-      "durationMs": 2786,
+      "script": "Stand on your right leg. Lift your left foot slightly off the floor.",
+      "fingerprint": "voice-v21-audio-v1-1qxm5o1",
+      "sha256": "0cf1608b6c88a89e9c36dc7aa120683e09ba0541ff05d430a3c073725b19d959",
+      "fileSizeBytes": 60648,
+      "durationMs": 3715,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "side-split-squat-left-forward-v21": {
       "schemaVersion": 1,
@@ -7526,14 +7526,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/side-split-squat-left-forward-v21.mp3",
-      "script": "Left foot forward, small split stance.",
-      "fingerprint": "voice-v21-audio-v1-ucwaz9",
-      "sha256": "474eee51d190cc75931ba3e7d785e6523eacdfe45c4a1b4c96139081aeef1849",
-      "fileSizeBytes": 37660,
-      "durationMs": 2276,
+      "script": "Place your left foot forward and your right foot back. Keep the stance small and steady.",
+      "fingerprint": "voice-v21-audio-v1-1ihxdon",
+      "sha256": "572e68efa713004dd0ff674b1c7e623f3cd461ac1a30d8219e6b52ceb36ecd32",
+      "fileSizeBytes": 79874,
+      "durationMs": 4923,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "side-split-squat-right-forward-v21": {
       "schemaVersion": 1,
@@ -7551,14 +7551,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/side-split-squat-right-forward-v21.mp3",
-      "script": "Right foot forward, small split stance.",
-      "fingerprint": "voice-v21-audio-v1-167xv9c",
-      "sha256": "ec4ba76142bf2d50c0d35def687b1eb409780e4d85db8545a8e4a0fa540faf9d",
-      "fileSizeBytes": 36824,
-      "durationMs": 2229,
+      "script": "Place your right foot forward and your left foot back. Keep the stance small and steady.",
+      "fingerprint": "voice-v21-audio-v1-1nieo6f",
+      "sha256": "0509c8716029cb14411a9c7aae07f8414a88f25ec8a9bf84a3e036f519f43065",
+      "fileSizeBytes": 81128,
+      "durationMs": 5016,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "side-tandem-left-front-v21": {
       "schemaVersion": 1,
@@ -7576,14 +7576,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/side-tandem-left-front-v21.mp3",
-      "script": "Place your left foot in front, heel to toe.",
-      "fingerprint": "voice-v21-audio-v1-1a9w8g",
-      "sha256": "ea1b4edaab01fdc25ad5ca0068ea96b92824b78f12fac49233195658892a01d6",
-      "fileSizeBytes": 37660,
-      "durationMs": 2276,
+      "script": "Place your left foot in front, heel to toe. Keep support close before you let go.",
+      "fingerprint": "voice-v21-audio-v1-1l1brxb",
+      "sha256": "54865ab4101cd3f578058743944836176ddcd989049f767dd5372826d8a85e32",
+      "fileSizeBytes": 75276,
+      "durationMs": 4644,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "side-tandem-right-front-v21": {
       "schemaVersion": 1,
@@ -7601,14 +7601,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/side-tandem-right-front-v21.mp3",
-      "script": "Place your right foot in front, heel to toe.",
-      "fingerprint": "voice-v21-audio-v1-1x84fkj",
-      "sha256": "69b71072c485612a15c6252bb9959a065894f51e91c92c559e466fb4be214d46",
-      "fileSizeBytes": 41839,
-      "durationMs": 2554,
+      "script": "Place your right foot in front, heel to toe. Keep support close before you let go.",
+      "fingerprint": "voice-v21-audio-v1-nfwxrg",
+      "sha256": "ef8c7c93b5c97e97423079d5d71ef8175b9456bd621040cbce9883b61e085a11",
+      "fileSizeBytes": 80710,
+      "durationMs": 4969,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "step-up-next-left-v21": {
       "schemaVersion": 1,
@@ -7626,14 +7626,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/step-up-next-left-v21.mp3",
-      "script": "Next rep starts with your left leg.",
-      "fingerprint": "voice-v21-audio-v1-k9xr55",
-      "sha256": "f8995391cfb7b2313f0ab320c7752111484a373bdf7b7871e29848ba844f7b6d",
-      "fileSizeBytes": 33062,
-      "durationMs": 1997,
+      "script": "Next rep starts with your left leg. Set both feet on the floor, then step up.",
+      "fingerprint": "voice-v21-audio-v1-1r4zwe2",
+      "sha256": "292c99e9952d4bcd26b8f4aa2f93ced9de21c5bfa76c686d4631347cd1d9ddc8",
+      "fileSizeBytes": 78202,
+      "durationMs": 4830,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "step-up-next-right-v21": {
       "schemaVersion": 1,
@@ -7651,14 +7651,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/step-up-next-right-v21.mp3",
-      "script": "Next rep starts with your right leg.",
-      "fingerprint": "voice-v21-audio-v1-vtn3fw",
-      "sha256": "262a0e68ca9f205b8caea494f5fcb6fea317f32906b6049ce4b6e8dbe1eeed41",
-      "fileSizeBytes": 33898,
-      "durationMs": 2043,
+      "script": "Next rep starts with your right leg. Set both feet on the floor, then step up.",
+      "fingerprint": "voice-v21-audio-v1-6q4oln",
+      "sha256": "8d9b85820089486b9941761b6cf318943bb46d715da79e40ee2c643dc261cad8",
+      "fileSizeBytes": 76112,
+      "durationMs": 4690,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "step-up-start-left-v21": {
       "schemaVersion": 1,
@@ -7676,14 +7676,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/step-up-start-left-v21.mp3",
-      "script": "Start with your left leg.",
-      "fingerprint": "voice-v21-audio-v1-f16kxu",
-      "sha256": "9f160d741456902ec7440c6b6095149f68a82be8474a1fbbcd45a0cec30b1366",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "script": "Start with your left leg. Step up with the left foot first.",
+      "fingerprint": "voice-v21-audio-v1-1qx6zo5",
+      "sha256": "d5d867d706621f98ba0ac13546ca79f65e01e6dfe74e33603a983ef994c21b44",
+      "fileSizeBytes": 52288,
+      "durationMs": 3204,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "step-up-start-right-v21": {
       "schemaVersion": 1,
@@ -7701,14 +7701,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/step-up-start-right-v21.mp3",
-      "script": "Start with your right leg.",
-      "fingerprint": "voice-v21-audio-v1-1so572d",
-      "sha256": "9ba1d6cdfe8c1c8d4bd8c533704999a7b466e9456d471646b59cb7838edbd2ea",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "script": "Start with your right leg. Step up with the right foot first.",
+      "fingerprint": "voice-v21-audio-v1-uhvldf",
+      "sha256": "1f6647ef27fcc11df123b1bba7c28b6cc976178930323b14aa539543b46f0471",
+      "fileSizeBytes": 55214,
+      "durationMs": 3390,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "step-up-wrong-left-v21": {
       "schemaVersion": 1,
@@ -7726,14 +7726,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/step-up-wrong-left-v21.mp3",
-      "script": "No rep. Start the next one with your left leg.",
-      "fingerprint": "voice-v21-audio-v1-wjno3s",
-      "sha256": "e90b8e149598af1ddde3f2b8553e665dce1f1e0e0c20575659a387191e9b3577",
-      "fileSizeBytes": 47273,
-      "durationMs": 2879,
+      "script": "That one won't count. Set both feet on the floor, then start the next rep with your left leg.",
+      "fingerprint": "voice-v21-audio-v1-rg62z8",
+      "sha256": "943682298f67652cb8ba8eb8ce10af3f674cd44275a73a8e30c6b282acf43e7d",
+      "fileSizeBytes": 90323,
+      "durationMs": 5573,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "step-up-wrong-right-v21": {
       "schemaVersion": 1,
@@ -7751,14 +7751,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/step-up-wrong-right-v21.mp3",
-      "script": "No rep. Start the next one with your right leg.",
-      "fingerprint": "voice-v21-audio-v1-18ygbl1",
-      "sha256": "91f4e02dd5db45fdd61ea0355de873e6ba5952750d3c730c761ce4b7b4667336",
-      "fileSizeBytes": 39750,
-      "durationMs": 2415,
+      "script": "That one won't count. Set both feet on the floor, then start the next rep with your right leg.",
+      "fingerprint": "voice-v21-audio-v1-1cvq7dx",
+      "sha256": "46bccdca174cef833d6db8a2e96391ca1aa7dcdc82b4c1820e5b718a5af24b87",
+      "fileSizeBytes": 87815,
+      "durationMs": 5433,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "switch-foot-positions-v21": {
       "schemaVersion": 1,
@@ -7776,14 +7776,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/switch-foot-positions-v21.mp3",
-      "script": "Switch foot positions.",
-      "fingerprint": "voice-v21-audio-v1-14n5vem",
-      "sha256": "cabcbb899a67f0d48ee434fc7d6e89dc1236e907ce23bd703fcc9f3eab1f6643",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "script": "Switch foot positions now. Take your time, then stand still again.",
+      "fingerprint": "voice-v21-audio-v1-c3d4gq",
+      "sha256": "80b5c729215aebfb403ce26373db0386b7c99799a2453b5b37a9d2ee27fed846",
+      "fileSizeBytes": 66499,
+      "durationMs": 4087,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "switch-legs-v21": {
       "schemaVersion": 1,
@@ -7801,14 +7801,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/switch-legs-v21.mp3",
-      "script": "Switch legs.",
-      "fingerprint": "voice-v21-audio-v1-9lyyl",
-      "sha256": "b64396d85bb7216915f3935460f3e49bc0e39d48d03d08c7a2559ea618199199",
-      "fileSizeBytes": 18016,
-      "durationMs": 1068,
+      "script": "Switch legs now. Get steady first, then lift the other foot.",
+      "fingerprint": "voice-v21-audio-v1-1qudevy",
+      "sha256": "a9cf2d6795456044df8242d426e50e19430553e7e65f57ae296ac139bd23f466",
+      "fileSizeBytes": 48527,
+      "durationMs": 2972,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "switch-sides-v21": {
       "schemaVersion": 1,
@@ -7826,14 +7826,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/switch-sides-v21.mp3",
-      "script": "Switch sides.",
-      "fingerprint": "voice-v21-audio-v1-1uzon62",
-      "sha256": "1fd76ed3459820b87c836bf96d5422917827b4e1f69cbb9be1374c3c9af994c4",
-      "fileSizeBytes": 15926,
-      "durationMs": 929,
+      "script": "Switch sides now. Take your time getting set before the next round.",
+      "fingerprint": "voice-v21-audio-v1-18ebyoy",
+      "sha256": "fbc8137b2206388ebdc8757808dc470b26172f6b34e57c61f6ded56cff15abe9",
+      "fileSizeBytes": 58976,
+      "durationMs": 3622,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-balance-feet-together-hold-v21": {
       "schemaVersion": 1,
@@ -7851,14 +7851,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-balance-feet-together-hold-v21.mp3",
-      "script": "Hold for twenty seconds.",
-      "fingerprint": "voice-v21-audio-v1-18qiwzs",
-      "sha256": "70f1d332943a196311f8b94b146785e697c39f6777a65b936931fa5dc8cd2f59",
-      "fileSizeBytes": 25539,
-      "durationMs": 1533,
+      "script": "Hold for twenty seconds. Breathe normally, and I'll tell you when to stop.",
+      "fingerprint": "voice-v21-audio-v1-1r6hdob",
+      "sha256": "5e4b5227fa2402d9120f109a33025ee4a7b3316ebf8f9d768cb4ca849e9120a9",
+      "fileSizeBytes": 70261,
+      "durationMs": 4319,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-balance-single-leg-hold-v21": {
       "schemaVersion": 1,
@@ -7876,14 +7876,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-balance-single-leg-hold-v21.mp3",
-      "script": "Hold for [duration].",
-      "fingerprint": "voice-v21-audio-v1-1gthlu0",
-      "sha256": "647bf19e98f908397a85323b5065debc203642a99ea6d5b76f37261e25ef539d",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "script": "Hold for [duration]. Breathe normally, and use support if you feel unsteady.",
+      "fingerprint": "voice-v21-audio-v1-1srrplt",
+      "sha256": "a83c517b4ff2cdac89168b1c6250eb496d1b22170c032689f21d1e92b7410fb8",
+      "fileSizeBytes": 76112,
+      "durationMs": 4690,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-balance-tandem-hold-v21": {
       "schemaVersion": 1,
@@ -7901,14 +7901,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-balance-tandem-hold-v21.mp3",
-      "script": "Hold for [duration].",
-      "fingerprint": "voice-v21-audio-v1-oe7vgk",
-      "sha256": "8bce6ad8b5d180273ec1fb6d674826f833336871a9d33edf02cbfa045a64678a",
-      "fileSizeBytes": 24703,
-      "durationMs": 1486,
+      "script": "Hold for [duration]. Keep breathing, and touch support if you need to.",
+      "fingerprint": "voice-v21-audio-v1-1y1cu5t",
+      "sha256": "4a29828b281283da03dc54c2ca951467a5a56419127477248a0b4fbbb10a6f20",
+      "fileSizeBytes": 71097,
+      "durationMs": 4365,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-band-pull-apart-v21": {
       "schemaVersion": 1,
@@ -7926,14 +7926,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-band-pull-apart-v21.mp3",
-      "script": "Move for thirty seconds.",
-      "fingerprint": "voice-v21-audio-v1-htpfmr",
-      "sha256": "b6167a7ef45ac04960f7db2307eff574984faa6156634fc4688eb54dba4b4328",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "script": "Move for thirty seconds. Keep the band tension light and comfortable.",
+      "fingerprint": "voice-v21-audio-v1-akix4l",
+      "sha256": "497bda58336381380699595103d4e59ebc4eaefc6dee18469abe0f37674b6d01",
+      "fileSizeBytes": 54378,
+      "durationMs": 3344,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-chair-supported-split-squat-v21": {
       "schemaVersion": 1,
@@ -7951,14 +7951,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-chair-supported-split-squat-v21.mp3",
-      "script": "Aim for [reps] reps.",
-      "fingerprint": "voice-v21-audio-v1-jmj6vw",
-      "sha256": "e3f815ab4d342ab1aec6bea3ac95fdbc239497a4781e9b85c45799c13ce63f8d",
-      "fileSizeBytes": 22613,
-      "durationMs": 1347,
+      "script": "Aim for [reps] reps. Take your time and use support whenever you need it.",
+      "fingerprint": "voice-v21-audio-v1-3epdsa",
+      "sha256": "adbfced8535a8d3fafe69bd74744de6169b388be6b6b97da34c8a29a6682d5fa",
+      "fileSizeBytes": 68589,
+      "durationMs": 4226,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-glute-bridge-hold-v21": {
       "schemaVersion": 1,
@@ -7976,14 +7976,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-glute-bridge-hold-v21.mp3",
-      "script": "Hold for twenty seconds.",
-      "fingerprint": "voice-v21-audio-v1-1wuhjk",
-      "sha256": "5eec11f88cd4bf6999e1b24e88f3cea34f7d6b217815032626d08446445348fc",
-      "fileSizeBytes": 20942,
-      "durationMs": 1254,
+      "script": "Hold for twenty seconds. Breathe normally, and I'll tell you when to lower down.",
+      "fingerprint": "voice-v21-audio-v1-lsfd5u",
+      "sha256": "c8a6e9a572ce3017dcc718c615079ac0427952b44fd38babb4954395701b85a4",
+      "fileSizeBytes": 66499,
+      "durationMs": 4087,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-glute-bridge-reps-v21": {
       "schemaVersion": 1,
@@ -8001,14 +8001,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-glute-bridge-reps-v21.mp3",
-      "script": "Aim for twelve reps.",
-      "fingerprint": "voice-v21-audio-v1-u6uf0x",
-      "sha256": "149a4206a87bde1697db72b4064f3d0bca4b7b5e057e10c5ed2d1214fd470662",
-      "fileSizeBytes": 21777,
-      "durationMs": 1300,
+      "script": "Aim for twelve reps. Move slowly and stay comfortable.",
+      "fingerprint": "voice-v21-audio-v1-zrchf4",
+      "sha256": "1d2f1ead0c392b18e1eb0586ee5045b3d49dea8b248884833d497149c85d710e",
+      "fileSizeBytes": 49363,
+      "durationMs": 3019,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-heel-raise-free-v21": {
       "schemaVersion": 1,
@@ -8126,14 +8126,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-loaded-march-v21.mp3",
-      "script": "Aim for sixteen reps.",
-      "fingerprint": "voice-v21-audio-v1-fck4su",
-      "sha256": "01c8845c78aa29e666145707842fd22a70e4edc696df37660d3c243fc2366e8c",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "script": "Aim for sixteen total marches. Left and right both count.",
+      "fingerprint": "voice-v21-audio-v1-3997if",
+      "sha256": "96e2ac1d8fcab233c1d10dd77ac9937d0801228a540de8c79936369af1257ebc",
+      "fileSizeBytes": 51453,
+      "durationMs": 3158,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-loaded-sit-to-stand-v21": {
       "schemaVersion": 1,
@@ -8151,14 +8151,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-loaded-sit-to-stand-v21.mp3",
-      "script": "Aim for eight reps.",
-      "fingerprint": "voice-v21-audio-v1-1vidfgv",
-      "sha256": "01000a17279222251735c8fc122d8c87ab90cd61c97013abc43fabe7546806ab",
-      "fileSizeBytes": 20942,
-      "durationMs": 1254,
+      "script": "Aim for eight reps. Move steadily and keep the weight close to your body.",
+      "fingerprint": "voice-v21-audio-v1-1m67a3s",
+      "sha256": "393d2fd8ee579d57d5f62e22f411b887f45261c0f002533cb5c1cba00dff924c",
+      "fileSizeBytes": 70261,
+      "durationMs": 4319,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-mini-band-lateral-walk-v21": {
       "schemaVersion": 1,
@@ -8176,14 +8176,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-mini-band-lateral-walk-v21.mp3",
-      "script": "Move for thirty seconds.",
-      "fingerprint": "voice-v21-audio-v1-wzxloh",
-      "sha256": "3e70c6f9697031bb7c52b184f5d7b369401abfb91f326ae554b1ad655096d43b",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "script": "Move for thirty seconds. Keep the steps small and steady.",
+      "fingerprint": "voice-v21-audio-v1-li0iog",
+      "sha256": "82a89a0bfa4ed6f1c499a9c67da0be94d7af7b0b4333cce676b291944cafe2b3",
+      "fileSizeBytes": 53124,
+      "durationMs": 3251,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-neck-rotation-v21": {
       "schemaVersion": 1,
@@ -8226,14 +8226,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-overhead-press-band-v21.mp3",
-      "script": "Aim for twelve reps.",
-      "fingerprint": "voice-v21-audio-v1-v7wr9x",
-      "sha256": "16a6dc3bd8411b8ecc510d8678b6f3bc930b783958868d2a871838660442a6b5",
-      "fileSizeBytes": 21777,
-      "durationMs": 1300,
+      "script": "Aim for twelve reps. Keep the tension light and stop if your shoulders do not feel comfortable.",
+      "fingerprint": "voice-v21-audio-v1-1j2ba9d",
+      "sha256": "1450ce90d374f8931aa3e31af84b06fb3742826defd69a2255a4f305f0a10f0c",
+      "fileSizeBytes": 93248,
+      "durationMs": 5759,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-overhead-reach-v21": {
       "schemaVersion": 1,
@@ -8301,14 +8301,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-push-up-standard-v21.mp3",
-      "script": "Aim for eight reps.",
-      "fingerprint": "voice-v21-audio-v1-1q1mpdf",
-      "sha256": "d2ed72482467a6e7d534461792492e9d9270247217239fa4ce640f244fdb145c",
-      "fileSizeBytes": 21777,
-      "durationMs": 1300,
+      "script": "Aim for eight reps. Move with control, and stop if it does not feel right.",
+      "fingerprint": "voice-v21-audio-v1-1mi0fzy",
+      "sha256": "f386366d7936a853cf9e9528b417ae9b9dd26ec7b0d492b65a64d4a5f8f00a92",
+      "fileSizeBytes": 80710,
+      "durationMs": 4969,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-push-up-wall-v21": {
       "schemaVersion": 1,
@@ -8351,14 +8351,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-seated-band-row-v21.mp3",
-      "script": "Aim for ten reps.",
-      "fingerprint": "voice-v21-audio-v1-7lz19v",
-      "sha256": "f55795bf1f13f02d09dd5a16f91d3dcf46be711e69ec7f7b9ccbf9e4a3aeb076",
-      "fileSizeBytes": 21777,
-      "durationMs": 1300,
+      "script": "Aim for ten reps. Keep the band secure under your feet and move with control.",
+      "fingerprint": "voice-v21-audio-v1-cgy21b",
+      "sha256": "fa46222bbd5bd35a9c8f34f8a4acfbd678ff5451f0d57c725869049163369162",
+      "fileSizeBytes": 76948,
+      "durationMs": 4737,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-seated-hamstring-reach-v21": {
       "schemaVersion": 1,
@@ -8501,14 +8501,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-standing-band-row-v21.mp3",
-      "script": "Aim for ten reps.",
-      "fingerprint": "voice-v21-audio-v1-1yxqqlj",
-      "sha256": "e25e0ff65c7399b24ed43dc045f70fef0631f0764b5be17ac15be27b40d06938",
-      "fileSizeBytes": 20942,
-      "durationMs": 1254,
+      "script": "Aim for ten reps. Keep the tension light and the anchor secure.",
+      "fingerprint": "voice-v21-audio-v1-t346i9",
+      "sha256": "0ba441ac9db3b59c0c4b7b429aa7671bd314a5dec36391d55ec0c02f8c860452",
+      "fileSizeBytes": 59812,
+      "durationMs": 3669,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-step-up-v21": {
       "schemaVersion": 1,
@@ -8526,14 +8526,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-step-up-v21.mp3",
-      "script": "Do twelve total reps.",
-      "fingerprint": "voice-v21-audio-v1-18fcpi6",
-      "sha256": "de9eee6c5d6df5d48ad4ff86dec1f99142983df9038c605e4b83081d116f7500",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "script": "Do twelve total reps. Move carefully, and set both feet on the floor after each rep.",
+      "fingerprint": "voice-v21-audio-v1-bh9si2",
+      "sha256": "82690cbd6033bfb72287f790f2c052d35a4d469b1f92104390766e38d72e8c5c",
+      "fileSizeBytes": 83635,
+      "durationMs": 5155,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-sts-cushion-v21": {
       "schemaVersion": 1,
@@ -8551,14 +8551,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-sts-cushion-v21.mp3",
-      "script": "Aim for eight reps.",
-      "fingerprint": "voice-v21-audio-v1-k3yq23",
-      "sha256": "f5bc96a7170d78cf2dc6b45ec86bea8abacffeea7bb946d7ab64549bf619c8bf",
-      "fileSizeBytes": 20524,
-      "durationMs": 1207,
+      "script": "Aim for eight reps. Take your time and move with control.",
+      "fingerprint": "voice-v21-audio-v1-1ogy15l",
+      "sha256": "b7592fff4efa3cf35f75e92c83e18af5af408e505183524ecaf029ef3aba4154",
+      "fileSizeBytes": 57722,
+      "durationMs": 3529,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-sts-power-v21": {
       "schemaVersion": 1,
@@ -8576,14 +8576,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-sts-power-v21.mp3",
-      "script": "Aim for twelve reps.",
-      "fingerprint": "voice-v21-audio-v1-269kod",
-      "sha256": "13736f4b15cf70ceece1b75bdbc14553753e5ca6fa9cbacb4f7c8b63ce9f4c0e",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "script": "Aim for twelve reps. Stand up with energy, but keep each sit-down controlled.",
+      "fingerprint": "voice-v21-audio-v1-1p63a5y",
+      "sha256": "75b8f62df46fb33286762bb66015330a02a8ae6a7d661f92cea18bca2f36ad76",
+      "fileSizeBytes": 74440,
+      "durationMs": 4598,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-sts-slow-eccentric-v21": {
       "schemaVersion": 1,
@@ -8601,14 +8601,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-sts-slow-eccentric-v21.mp3",
-      "script": "Aim for eight reps.",
-      "fingerprint": "voice-v21-audio-v1-105od6h",
-      "sha256": "b372f73129230d8ccb163a2f774d2e3d0c7a60a2f43b175fd1f0d5d38b283560",
-      "fileSizeBytes": 20942,
-      "durationMs": 1254,
+      "script": "Aim for eight reps. The slow sit-down is the important part.",
+      "fingerprint": "voice-v21-audio-v1-1mw0wq",
+      "sha256": "f44828cbee6f93d4e9195cb674b502254960bb6264e28716c872b296eb436110",
+      "fileSizeBytes": 56886,
+      "durationMs": 3483,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-sts-standard-v21": {
       "schemaVersion": 1,
@@ -8626,14 +8626,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-sts-standard-v21.mp3",
-      "script": "Aim for ten reps.",
-      "fingerprint": "voice-v21-audio-v1-1m6a1hj",
-      "sha256": "df822dc873c6d18e391d8c79642d0f719af5195b655c0f7817aebe667f728497",
-      "fileSizeBytes": 22613,
-      "durationMs": 1347,
+      "script": "Aim for ten reps. Move at a steady pace, and I'll tell you when the set is done.",
+      "fingerprint": "voice-v21-audio-v1-1lp5rmr",
+      "sha256": "99384acf17b58cc9db701ab48765bee5a3f61909fc12d15c208b105e6a1385fa",
+      "fileSizeBytes": 68589,
+      "durationMs": 4226,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-supported-hip-flexor-stretch-v21": {
       "schemaVersion": 1,
@@ -8676,14 +8676,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/target-supported-side-step-v21.mp3",
-      "script": "Move for thirty seconds.",
-      "fingerprint": "voice-v21-audio-v1-1f0608r",
-      "sha256": "ecd44dd694bc59cf2b9d1cee4b36d753d733d40dd5edb7a37e08a1719f3121d8",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "script": "Move for thirty seconds. Stay comfortable, and I'll tell you when to stop.",
+      "fingerprint": "voice-v21-audio-v1-6u907y",
+      "sha256": "474237e3cdae40dd07523f0e99299ee663e95eb807ffb2da62fd5bdae325252b",
+      "fileSizeBytes": 69425,
+      "durationMs": 4272,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-03T23:14:13.749Z"
     },
     "target-thoracic-rotation-v21": {
       "schemaVersion": 1,

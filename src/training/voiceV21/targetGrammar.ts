@@ -211,9 +211,11 @@ function targetFromBothSidesPlan(
   if (setType === 'reps' && typeof target.targetReps === 'number') {
     const value = target.targetReps;
     const noun = value === 1 ? 'rep' : 'reps';
+    // Per-side rounds already add switch/side cues around the target, so the
+    // spoken target stays short here — no per-exercise guidance suffix.
     return supportedTarget(
       input.contract.targetCue.key,
-      repsTargetText(input.contract.exerciseId, value, noun),
+      `Aim for ${numberWord(value)} ${noun}.`,
       value,
       'rep',
       input.prescribedTarget,
