@@ -94,6 +94,7 @@ import {
 import {
   MOBILITY_COLLECTION_ID,
   collectionExposuresFromGeneratedSessionSummaries,
+  presetCollectionExposuresFromGeneratedSessionSummaries,
   isPlannedCollectionSelection,
 } from '../training/collectionSelection';
 import {
@@ -559,6 +560,9 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         painAreas: painContext.explicitDailyInput ? painAreas : undefined,
         ladderProgress: input.ladderProgress ?? input.training?.ladderProgressById ?? {},
         recentSessions: recentSessionsFor(input, null),
+        collectionExposures: presetCollectionExposuresFromGeneratedSessionSummaries({
+          summaries: input.training?.generatedSessionSummaries,
+        }),
         bothSidesStartSideSeed: input.training?.bothSidesStartSideSeed,
         today: plannedFor,
         source: input.source,

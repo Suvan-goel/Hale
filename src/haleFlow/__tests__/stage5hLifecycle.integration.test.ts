@@ -1282,6 +1282,7 @@ function domainResult(domain: Domain, age: number): DomainResult {
     estimated: false,
     interpretation: 'Measured.',
     rows: [],
+    primaryMetricValue: age,
   };
 }
 

@@ -218,26 +218,6 @@ export function creditedMainPlanCompletionsForBlock(
   return completions.filter((completion) => classifyMainPlanCompletion(block, completion).credited);
 }
 
-export function countCreditedMainPlanTemplatesThisWeek(input: {
-  block: MovementBlock;
-  completions: readonly TrainingSessionCompletion[];
-  summaries?: readonly PersistedGeneratedSessionSummary[];
-  today: string | Date;
-}): number {
-  const week = weekIndexForDate(input.block, iso(input.today));
-  const templates = new Set(
-    mainPlanRecentSessionsForGeneration({
-      activeBlock: input.block,
-      completions: input.completions,
-      generatedSessionSummaries: input.summaries,
-    })
-      .filter((session) => weekIndexForDate(input.block, session.completedAt) === week)
-      .map((session) => session.templateId)
-      .filter((templateId): templateId is string => !!templateId)
-  );
-  return templates.size;
-}
-
 export function templateIdFromPlannedDateKey(plannedDateKey: string | undefined): string | undefined {
   if (!plannedDateKey) return undefined;
   const [templateId] = plannedDateKey.split(':');
@@ -277,9 +257,4 @@ function dateKey(value: string): string {
   const month = `${date.getMonth() + 1}`.padStart(2, '0');
   const day = `${date.getDate()}`.padStart(2, '0');
   return `${date.getFullYear()}-${month}-${day}`;
-}
-
-function iso(value: string | Date): string {
-  const date = typeof value === 'string' ? new Date(value) : value;
-  return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
 }

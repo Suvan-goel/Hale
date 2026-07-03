@@ -20,7 +20,7 @@ export const TRAINING_VOICE_CONTROL_CONTRACTS_V21: readonly TrainingVoiceControl
     contract({
       control: 'pause',
       logicalCueKey: 'paused-v21',
-      exactScript: 'Paused.',
+      exactScript: 'Paused. Take your time. This set will restart when you resume.',
       allowedPhases: ['session_entry', 'item_setup', 'repeat_instructions', 'countdown', 'active', 'rest_transition'],
       actionSemantics:
         'The canonical player/set runtime accepts pause first; active partial work is frozen or discarded according to runtime kind.',
@@ -34,7 +34,7 @@ export const TRAINING_VOICE_CONTROL_CONTRACTS_V21: readonly TrainingVoiceControl
     contract({
       control: 'resume',
       logicalCueKey: 'resuming-v21',
-      exactScript: 'Resuming.',
+      exactScript: 'Resuming. Get back into position and wait for my countdown.',
       allowedPhases: ['paused'],
       actionSemantics:
         'Resume confirms the accepted paused state, re-enters setup/final-position/readiness, then requires a fresh countdown before active work.',
@@ -78,7 +78,7 @@ export const TRAINING_VOICE_CONTROL_CONTRACTS_V21: readonly TrainingVoiceControl
     contract({
       control: 'skip',
       logicalCueKey: 'training-skip-v21',
-      exactScript: 'Skipped. Moving on.',
+      exactScript: "Skipped. No problem. We'll move on to the next part.",
       allowedPhases: SAFE_SETUP_PHASES,
       actionSemantics:
         'The canonical controller accepts skip first; skipped work receives no progression credit.',

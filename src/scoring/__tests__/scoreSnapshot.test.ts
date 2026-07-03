@@ -32,6 +32,7 @@ function domainResult(domain: Domain, midpoint: number): DomainResult {
     estimated: false,
     interpretation: 'Measured.',
     rows: [],
+    primaryMetricValue: midpoint,
   };
 }
 

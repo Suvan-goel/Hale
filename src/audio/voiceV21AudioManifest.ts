@@ -2349,14 +2349,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/last-set-v21.mp3",
-      "script": "Last set.",
-      "fingerprint": "voice-v21-audio-v1-o7fyi2",
-      "sha256": "c96d50a0f8a72574005b3ede2272e967bf276c5e9ff379707271ac0dd2c28d8b",
-      "fileSizeBytes": 18852,
-      "durationMs": 1115,
+      "script": "Rest now. One more set of this exercise, then we'll move on.",
+      "fingerprint": "voice-v21-audio-v1-8zylsm",
+      "sha256": "565c3ac300b84c6507074bb2898a0cdfc843aa379e959cbe3f433107d41bf701",
+      "fileSizeBytes": 67335,
+      "durationMs": 4133,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "micro-chair-power-v21": {
       "schemaVersion": 1,
@@ -2574,14 +2574,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/next-exercise-v21.mp3",
-      "script": "Next exercise.",
-      "fingerprint": "voice-v21-audio-v1-4qy62z",
-      "sha256": "d7591f8e2aa39270eab4213b4775a30826a13c00e900dfa2893ded2676ebcc88",
-      "fileSizeBytes": 22613,
-      "durationMs": 1347,
+      "script": "Good work. We're moving to the next exercise. Wait while I guide the setup.",
+      "fingerprint": "voice-v21-audio-v1-mvoi9g",
+      "sha256": "cc63c223d06140616a2f419a1f6eb769965b27d78ba51ddd2392f2d013358fc8",
+      "fileSizeBytes": 94084,
+      "durationMs": 5805,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "paused-v21": {
       "schemaVersion": 1,
@@ -2599,14 +2599,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/paused-v21.mp3",
-      "script": "Paused.",
-      "fingerprint": "voice-v21-audio-v1-1ybggx8",
-      "sha256": "1d25af469f460b9d1452a8587dc65ffb87ee178e4141ec4a880f82c51ef41db6",
-      "fileSizeBytes": 15926,
-      "durationMs": 929,
+      "script": "Paused. Take your time. This set will restart when you resume.",
+      "fingerprint": "voice-v21-audio-v1-1s0axl4",
+      "sha256": "96ff9cac070af0ff51a2dce422ead9c2dfae98c6507ba8cd4a72b7712886d6b8",
+      "fileSizeBytes": 75276,
+      "durationMs": 4644,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "rest-now-v21": {
       "schemaVersion": 1,
@@ -2624,14 +2624,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/rest-now-v21.mp3",
-      "script": "Rest now.",
-      "fingerprint": "voice-v21-audio-v1-1m90y5w",
-      "sha256": "84a72384eab98ee9ec30c7e642238f94eef19b6a311b63ae2ce3f1039bef4680",
-      "fileSizeBytes": 17598,
-      "durationMs": 1022,
+      "script": "Rest now. Breathe easily and stay nearby. I'll tell you when to start again.",
+      "fingerprint": "voice-v21-audio-v1-17baxbk",
+      "sha256": "940e025acba265966c39546350a2ecfcfb6845e7a3584db2c12eae6b746fe403",
+      "fileSizeBytes": 93248,
+      "durationMs": 5759,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "resuming-v21": {
       "schemaVersion": 1,
@@ -2649,14 +2649,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/resuming-v21.mp3",
-      "script": "Resuming.",
-      "fingerprint": "voice-v21-audio-v1-1xae0xm",
-      "sha256": "0b164382465b9d44185a63a27aace67e43f57b9cedd43b9304a990a33b487b6d",
-      "fileSizeBytes": 17598,
-      "durationMs": 1022,
+      "script": "Resuming. Get back into position and wait for my countdown.",
+      "fingerprint": "voice-v21-audio-v1-v6ispg",
+      "sha256": "c9ae7255579fc50fc3c6075889070366a38b61ffbb3652d56e1e226f35d172eb",
+      "fileSizeBytes": 58976,
+      "durationMs": 3622,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "safe-session-start-v21": {
       "schemaVersion": 1,
@@ -2674,14 +2674,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/safe-session-start-v21.mp3",
-      "script": "Clear the space around you. Stop for sharp pain, dizziness, or feeling unwell.",
-      "fingerprint": "voice-v21-audio-v1-nmssfc",
-      "sha256": "f09fbd3d93402d9a3b0c80cab4fa0308af9b8567a9098e584f733e8dad32189d",
-      "fileSizeBytes": 79874,
-      "durationMs": 4923,
+      "script": "Before we begin, clear a little space around you. Keep something sturdy nearby for support. Stop if you feel sharp pain, dizziness, or unwell.",
+      "fingerprint": "voice-v21-audio-v1-1tmi3rm",
+      "sha256": "22384b0035ab9f6608cd7927f48c1d084666669b158a9e815fd212d08acffc23",
+      "fileSizeBytes": 151763,
+      "durationMs": 9427,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "session-complete-v21": {
       "schemaVersion": 1,
@@ -2699,14 +2699,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/session-complete-v21.mp3",
-      "script": "Session complete.",
-      "fingerprint": "voice-v21-audio-v1-10010eh",
-      "sha256": "fd6f122805f2ccc01cb63fcb6ee0be98c42a82977a18062f08bada6e14bc0b15",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "script": "That's your session complete. Well done. Take a moment, have some water if you'd like, and move carefully.",
+      "fingerprint": "voice-v21-audio-v1-1oelxiz",
+      "sha256": "a692fe3a20aa34a32c079a66bf642e1ec710ac0a10196fe14d211486518141f9",
+      "fileSizeBytes": 122924,
+      "durationMs": 7616,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "set-complete-v21": {
       "schemaVersion": 1,
@@ -2724,14 +2724,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/set-complete-v21.mp3",
-      "script": "Set complete.",
-      "fingerprint": "voice-v21-audio-v1-4mva9x",
-      "sha256": "548794199b70d70edfdc29467931efce14878ca2ba17a43bb2be4a619d3f0c12",
-      "fileSizeBytes": 20942,
-      "durationMs": 1254,
+      "script": "Good. That set is complete. Stop moving and get comfortable for your rest.",
+      "fingerprint": "voice-v21-audio-v1-1ylw1tw",
+      "sha256": "cd8d48f8b1ebfbfbab8aafaa823a12373eecbbd1e464dc8003c19fd470a03753",
+      "fileSizeBytes": 84889,
+      "durationMs": 5248,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "setup-back-v21": {
       "schemaVersion": 1,
@@ -2749,14 +2749,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/setup-back-v21.mp3",
-      "script": "Move a little farther back.",
-      "fingerprint": "voice-v21-audio-v1-suidjx",
-      "sha256": "581b6108bf60a91e3b90aa466f90ab1373d7f941e790a372139b0b53e76a3ffa",
-      "fileSizeBytes": 27211,
-      "durationMs": 1625,
+      "script": "Take one small step farther back, so I can see more of your body.",
+      "fingerprint": "voice-v21-audio-v1-1vhay72",
+      "sha256": "381b3c00b5bc79b1f9caf8a8addea5bb5fb9599222fb8c787e0fe03ba551f322",
+      "fileSizeBytes": 60648,
+      "durationMs": 3715,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "setup-center-v21": {
       "schemaVersion": 1,
@@ -2774,14 +2774,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/setup-center-v21.mp3",
-      "script": "Move to the centre of the view.",
-      "fingerprint": "voice-v21-audio-v1-1ww3egl",
-      "sha256": "7e2c1fd4d262a1c887068a1e5412d09342af75159b83be36d1b07a779706393f",
-      "fileSizeBytes": 28465,
-      "durationMs": 1718,
+      "script": "Move toward the center of the camera view. Take your time.",
+      "fingerprint": "voice-v21-audio-v1-nqp2yd",
+      "sha256": "c5b5180e036f75819f1982530db33b5bb5a349d6468657395b223351a52e712d",
+      "fileSizeBytes": 55214,
+      "durationMs": 3390,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "setup-clearer-view-v21": {
       "schemaVersion": 1,
@@ -2799,14 +2799,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/setup-clearer-view-v21.mp3",
-      "script": "I need a clearer view. Make sure your whole body is visible.",
-      "fingerprint": "voice-v21-audio-v1-1vysrci",
-      "sha256": "b327ed0d4fd38ecd1d81cf492dcc215343b8d8909a4ea026baad3bbd0318c0a3",
-      "fileSizeBytes": 61066,
-      "durationMs": 3762,
+      "script": "I need a clearer view. Make sure your whole body is visible, and move any chair or object that is blocking you.",
+      "fingerprint": "voice-v21-audio-v1-14iiix0",
+      "sha256": "feaf2f1804d0829c4353b8726b70c605f4fb7ebca4df65c2b980ff328196804a",
+      "fileSizeBytes": 105787,
+      "durationMs": 6548,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "setup-closer-v21": {
       "schemaVersion": 1,
@@ -2824,14 +2824,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/setup-closer-v21.mp3",
-      "script": "Move a little closer.",
-      "fingerprint": "voice-v21-audio-v1-opj98y",
-      "sha256": "b399e4930e9d31528bcb89563fe83fef3d8191af19545803f1e357904fa7fc4e",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "script": "Take one small step closer to the phone.",
+      "fingerprint": "voice-v21-audio-v1-1vgih1w",
+      "sha256": "8e17f14261bf2863abb5869197a1e9a57ae14a2b5ab8f2eae0d65e26dbd7d81d",
+      "fileSizeBytes": 39750,
+      "durationMs": 2415,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "setup-enter-view-v21": {
       "schemaVersion": 1,
@@ -2849,14 +2849,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/setup-enter-view-v21.mp3",
-      "script": "Step into view so your whole body is visible.",
-      "fingerprint": "voice-v21-audio-v1-10elhlf",
-      "sha256": "61fb2c7dfd566d422b1dc5e2def4cec340e51b3570cf5d5f4e14a7a567faa5d5",
-      "fileSizeBytes": 44347,
-      "durationMs": 2694,
+      "script": "Step into view so I can see your whole body, from head to feet.",
+      "fingerprint": "voice-v21-audio-v1-1yef2zi",
+      "sha256": "cd2ed95248a881677fac4650b0936a578c810860e13a0f2df7675a94f78e7fad",
+      "fileSizeBytes": 60648,
+      "durationMs": 3715,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "setup-hold-still-v21": {
       "schemaVersion": 1,
@@ -2874,14 +2874,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/setup-hold-still-v21.mp3",
-      "script": "Hold still for a moment.",
-      "fingerprint": "voice-v21-audio-v1-17fe5i3",
-      "sha256": "aed73c485015eb60a53f16280ed8d69b766a492f04960d12155145e4ec4eeb15",
-      "fileSizeBytes": 25539,
-      "durationMs": 1533,
+      "script": "Good. Hold still for a moment while I check your position.",
+      "fingerprint": "voice-v21-audio-v1-vmakny",
+      "sha256": "751c68beb7c0f5c781227f18142d5f6f3b0ba833ef4af9b04ace60681ccb6d1c",
+      "fileSizeBytes": 57722,
+      "durationMs": 3529,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "setup-light-v21": {
       "schemaVersion": 1,
@@ -2899,14 +2899,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/setup-light-v21.mp3",
-      "script": "Please turn on the main light.",
-      "fingerprint": "voice-v21-audio-v1-eqolak",
-      "sha256": "0677772922bdabe912283cb9e8e4965efb3e46806a298343c37090c7542a340c",
-      "fileSizeBytes": 29301,
-      "durationMs": 1765,
+      "script": "It looks a little dim. Please turn on the main light, then come back into view.",
+      "fingerprint": "voice-v21-audio-v1-147et59",
+      "sha256": "a70b05da0ff6b20e1dd7dfb8ec3758c718dba40b0113f2fe08f5748529defe0d",
+      "fileSizeBytes": 76948,
+      "durationMs": 4737,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "side-calf-left-back-v21": {
       "schemaVersion": 1,
@@ -4374,14 +4374,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/training-intro-v21.mp3",
-      "script": "Time to train. I will guide the setup, work, and rests. Follow my voice and pause whenever you need.",
-      "fingerprint": "voice-v21-audio-v1-1u96vzb",
-      "sha256": "ceed894e5f8dea442ad424b3836de17ea9b4ffca3c2d2055a2da467c7335b2b4",
-      "fileSizeBytes": 119162,
-      "durationMs": 7384,
+      "script": "Time to train. I'll guide you by voice through each setup, exercise, and rest. You don't need to touch the phone unless you want to pause or stop.",
+      "fingerprint": "voice-v21-audio-v1-thkz5z",
+      "sha256": "ddf6dc9c067dba761a9c6150637140b0e691480de15ff97ba1e70e6429c70a3a",
+      "fileSizeBytes": 154688,
+      "durationMs": 9613,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "training-skip-v21": {
       "schemaVersion": 1,
@@ -4399,14 +4399,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/clara/training-skip-v21.mp3",
-      "script": "Skipped. Moving on.",
-      "fingerprint": "voice-v21-audio-v1-p65zaf",
-      "sha256": "0c7061e434f8d2eb3f671b812b93f52b45e1b502510ff3702b53a35c3ceeb6de",
-      "fileSizeBytes": 27629,
-      "durationMs": 1672,
+      "script": "Skipped. No problem. We'll move on to the next part.",
+      "fingerprint": "voice-v21-audio-v1-r9d90j",
+      "sha256": "e5f28a20e2d69a11284788d6de01d5b9e5b82f05c93b2daaee1860563320f782",
+      "fileSizeBytes": 61902,
+      "durationMs": 3808,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     }
   },
   "marcus": {
@@ -6751,14 +6751,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/last-set-v21.mp3",
-      "script": "Last set.",
-      "fingerprint": "voice-v21-audio-v1-5aav06",
-      "sha256": "09b0b0c4139a4e98e5785bdbf9d251da4c77207a0f216bafb075e793da356f24",
-      "fileSizeBytes": 16762,
-      "durationMs": 975,
+      "script": "Rest now. One more set of this exercise, then we'll move on.",
+      "fingerprint": "voice-v21-audio-v1-hil95m",
+      "sha256": "d8fdc8256965323fee8ea5ce8dbb4bb11881371023496d6d207ec483eaecc4e6",
+      "fileSizeBytes": 61902,
+      "durationMs": 3808,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "micro-chair-power-v21": {
       "schemaVersion": 1,
@@ -6976,14 +6976,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/next-exercise-v21.mp3",
-      "script": "Next exercise.",
-      "fingerprint": "voice-v21-audio-v1-9qa1a1",
-      "sha256": "2551256f19704e8be0c145e2dae4d5f0c57847f78f7e80001aaa988a8a98aa2a",
-      "fileSizeBytes": 20942,
-      "durationMs": 1254,
+      "script": "Good work. We're moving to the next exercise. Wait while I guide the setup.",
+      "fingerprint": "voice-v21-audio-v1-fe3wkc",
+      "sha256": "81ce62685b82082ef9e0f392c92269513ea828f105ff63c1b4bf7c7d099fea4a",
+      "fileSizeBytes": 75276,
+      "durationMs": 4644,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "paused-v21": {
       "schemaVersion": 1,
@@ -7001,14 +7001,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/paused-v21.mp3",
-      "script": "Paused.",
-      "fingerprint": "voice-v21-audio-v1-1jz8fyc",
-      "sha256": "6faca8561633d37760dd50ce9b25a0c298878fd894285743060cd73b45bed509",
-      "fileSizeBytes": 13836,
-      "durationMs": 789,
+      "script": "Paused. Take your time. This set will restart when you resume.",
+      "fingerprint": "voice-v21-audio-v1-ecdw6g",
+      "sha256": "77b4655a96e3b6d070a0e14c0b591e3ada082f25880b2e1b6038185091f3a766",
+      "fileSizeBytes": 70261,
+      "durationMs": 4319,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "rest-now-v21": {
       "schemaVersion": 1,
@@ -7026,14 +7026,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/rest-now-v21.mp3",
-      "script": "Rest now.",
-      "fingerprint": "voice-v21-audio-v1-s3awpo",
-      "sha256": "5a6e4df04876018c9e988c8c602f846dfc3edc332d35879a28273a31d17e1736",
-      "fileSizeBytes": 16762,
-      "durationMs": 975,
+      "script": "Rest now. Breathe easily and stay nearby. I'll tell you when to start again.",
+      "fingerprint": "voice-v21-audio-v1-14ognj4",
+      "sha256": "a8690961fa35dc7de4055f8e65f4ee3df9d076dd6e9eebb09d3233b2d66634bb",
+      "fileSizeBytes": 74440,
+      "durationMs": 4598,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "resuming-v21": {
       "schemaVersion": 1,
@@ -7051,14 +7051,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/resuming-v21.mp3",
-      "script": "Resuming.",
-      "fingerprint": "voice-v21-audio-v1-1uu2y9y",
-      "sha256": "eab3991f81442a6503d0c83899f7ddbe189a7eda7e248eb0a913f1473c380ac3",
-      "fileSizeBytes": 15926,
-      "durationMs": 929,
+      "script": "Resuming. Get back into position and wait for my countdown.",
+      "fingerprint": "voice-v21-audio-v1-1xlmrr0",
+      "sha256": "79ce13ad94c60d64360d761d6b77d69867a732b4218a9c28276c4dd16f69c3ee",
+      "fileSizeBytes": 50199,
+      "durationMs": 3065,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "safe-session-start-v21": {
       "schemaVersion": 1,
@@ -7076,14 +7076,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/safe-session-start-v21.mp3",
-      "script": "Clear the space around you. Stop for sharp pain, dizziness, or feeling unwell.",
-      "fingerprint": "voice-v21-audio-v1-1dkygi0",
-      "sha256": "4c7e9ccddcf1005fa4ee09f2aeb6241567ac62829740d332533af93dd9cd0c68",
-      "fileSizeBytes": 82799,
-      "durationMs": 5108,
+      "script": "Before we begin, clear a little space around you. Keep something sturdy nearby for support. Stop if you feel sharp pain, dizziness, or unwell.",
+      "fingerprint": "voice-v21-audio-v1-61ux66",
+      "sha256": "d720e17702848a0db301db6835c13a0f9ee35db112cda9a7efa0249c70eb2f4f",
+      "fileSizeBytes": 166809,
+      "durationMs": 10356,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "session-complete-v21": {
       "schemaVersion": 1,
@@ -7101,14 +7101,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/session-complete-v21.mp3",
-      "script": "Session complete.",
-      "fingerprint": "voice-v21-audio-v1-io0wyr",
-      "sha256": "16e26806a72d0a7062a45256a9c336ab19afae6b2a62cb37f439847c5ab63104",
-      "fileSizeBytes": 21777,
-      "durationMs": 1300,
+      "script": "That's your session complete. Well done. Take a moment, have some water if you'd like, and move carefully.",
+      "fingerprint": "voice-v21-audio-v1-194e71l",
+      "sha256": "0ba848376e3ec06691724060995fc3761025cfc8c7396def175216372834a5e8",
+      "fileSizeBytes": 91159,
+      "durationMs": 5619,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "set-complete-v21": {
       "schemaVersion": 1,
@@ -7126,14 +7126,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/set-complete-v21.mp3",
-      "script": "Set complete.",
-      "fingerprint": "voice-v21-audio-v1-hz3jgn",
-      "sha256": "012e366536029ed6e47e15c46f8364172acbbfe4aa3b20c57f3b4ae3c1442ed6",
-      "fileSizeBytes": 17598,
-      "durationMs": 1022,
+      "script": "Good. That set is complete. Stop moving and get comfortable for your rest.",
+      "fingerprint": "voice-v21-audio-v1-y7zq7g",
+      "sha256": "3c90077533d02559c4389581a770bbcdf96043a7d3cfa89018eb270b68eca7b3",
+      "fileSizeBytes": 80710,
+      "durationMs": 4969,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "setup-back-v21": {
       "schemaVersion": 1,
@@ -7151,14 +7151,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/setup-back-v21.mp3",
-      "script": "Move a little farther back.",
-      "fingerprint": "voice-v21-audio-v1-12x5e3z",
-      "sha256": "592485ba990a23a9426d2f9e74ac5d2a52e9cd370b81445aaa4bb6837734d931",
-      "fileSizeBytes": 23449,
-      "durationMs": 1393,
+      "script": "Take one small step farther back, so I can see more of your body.",
+      "fingerprint": "voice-v21-audio-v1-1jjh32q",
+      "sha256": "abd5875e02b31ce66fdcc5fa25a9f9b5692547f393e6ec01943c3fd1abb8b049",
+      "fileSizeBytes": 53960,
+      "durationMs": 3297,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "setup-center-v21": {
       "schemaVersion": 1,
@@ -7176,14 +7176,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/setup-center-v21.mp3",
-      "script": "Move to the centre of the view.",
-      "fingerprint": "voice-v21-audio-v1-17m714n",
-      "sha256": "325059edcd8675877c916c1906c92e81c1004908690a38ea7fadd7f0b7c1c6e5",
-      "fileSizeBytes": 27211,
-      "durationMs": 1625,
+      "script": "Move toward the center of the camera view. Take your time.",
+      "fingerprint": "voice-v21-audio-v1-i6sg1j",
+      "sha256": "5573406932de07a873b1d73ea2b5e4f942324cafe0e65e53c107bff98ade020e",
+      "fileSizeBytes": 53960,
+      "durationMs": 3297,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "setup-clearer-view-v21": {
       "schemaVersion": 1,
@@ -7201,14 +7201,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/setup-clearer-view-v21.mp3",
-      "script": "I need a clearer view. Make sure your whole body is visible.",
-      "fingerprint": "voice-v21-audio-v1-77ej4e",
-      "sha256": "7d895f5c6a19724b9f6af889b17a394df77d7813be61bd474a6a4e5664fd7163",
-      "fileSizeBytes": 57722,
-      "durationMs": 3529,
+      "script": "I need a clearer view. Make sure your whole body is visible, and move any chair or object that is blocking you.",
+      "fingerprint": "voice-v21-audio-v1-1gpudt8",
+      "sha256": "084ccbdbff417ce9f5fa68aafc5547e860184ab73430445bb73e7957591a5766",
+      "fileSizeBytes": 111639,
+      "durationMs": 6920,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "setup-closer-v21": {
       "schemaVersion": 1,
@@ -7226,14 +7226,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/setup-closer-v21.mp3",
-      "script": "Move a little closer.",
-      "fingerprint": "voice-v21-audio-v1-1v702ge",
-      "sha256": "b44984f1249c80e73ce2a1ea90c5d3627502e372ff1a5dc6a1025a9e28cbd984",
-      "fileSizeBytes": 21777,
-      "durationMs": 1300,
+      "script": "Take one small step closer to the phone.",
+      "fingerprint": "voice-v21-audio-v1-1l2t058",
+      "sha256": "2bae499e494ef0b14eb6f0bf47552dca6e331ff02cc9ad2261fecbc8638c0fb2",
+      "fileSizeBytes": 37660,
+      "durationMs": 2276,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "setup-enter-view-v21": {
       "schemaVersion": 1,
@@ -7251,14 +7251,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/setup-enter-view-v21.mp3",
-      "script": "Step into view so your whole body is visible.",
-      "fingerprint": "voice-v21-audio-v1-1ymgz3l",
-      "sha256": "f66150d1adfd7ec6115c1e8f0dc8977cebf9c153a94594b2470812d6e2c0b7b6",
-      "fileSizeBytes": 40586,
-      "durationMs": 2461,
+      "script": "Step into view so I can see your whole body, from head to feet.",
+      "fingerprint": "voice-v21-audio-v1-1ve6aoi",
+      "sha256": "132597ab79ca85c45762300eb24855fe00608795b58c3d638627672978a523b3",
+      "fileSizeBytes": 52288,
+      "durationMs": 3204,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "setup-hold-still-v21": {
       "schemaVersion": 1,
@@ -7276,14 +7276,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/setup-hold-still-v21.mp3",
-      "script": "Hold still for a moment.",
-      "fingerprint": "voice-v21-audio-v1-nrburt",
-      "sha256": "fdc71644de01b29f7153e9b4f45dfa5234e9f61a507d20c2fe291997570a2c96",
-      "fileSizeBytes": 22613,
-      "durationMs": 1347,
+      "script": "Good. Hold still for a moment while I check your position.",
+      "fingerprint": "voice-v21-audio-v1-1m6os42",
+      "sha256": "787447f4f8af58175d7fd6caaa0bdeedb2036c91c46d764fcbe21f0cb4921138",
+      "fileSizeBytes": 54378,
+      "durationMs": 3344,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "setup-light-v21": {
       "schemaVersion": 1,
@@ -7301,14 +7301,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/setup-light-v21.mp3",
-      "script": "Please turn on the main light.",
-      "fingerprint": "voice-v21-audio-v1-r85084",
-      "sha256": "eee3fc4540a480f49abf842ab002cc5e61ff180a28f24b585fc9130b4e12b0e5",
-      "fileSizeBytes": 25539,
-      "durationMs": 1533,
+      "script": "It looks a little dim. Please turn on the main light, then come back into view.",
+      "fingerprint": "voice-v21-audio-v1-3lispr",
+      "sha256": "88fdf60acf0c6de90a3958299cb83610614495c1ed2e21abe2f5beda85bdffa6",
+      "fileSizeBytes": 70261,
+      "durationMs": 4319,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "side-calf-left-back-v21": {
       "schemaVersion": 1,
@@ -8776,14 +8776,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/training-intro-v21.mp3",
-      "script": "Time to train. I will guide the setup, work, and rests. Follow my voice and pause whenever you need.",
-      "fingerprint": "voice-v21-audio-v1-9h4igd",
-      "sha256": "eb9657d8981b2ee7cf7b67275864f0c8d732c63d4a4724682f50f6f58e07d5c2",
-      "fileSizeBytes": 102862,
-      "durationMs": 6362,
+      "script": "Time to train. I'll guide you by voice through each setup, exercise, and rest. You don't need to touch the phone unless you want to pause or stop.",
+      "fingerprint": "voice-v21-audio-v1-121r8r1",
+      "sha256": "13daf346baa71f610ad16176e35ab8655f9372983dcb45eccc571c45b32aca4d",
+      "fileSizeBytes": 167645,
+      "durationMs": 10403,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     },
     "training-skip-v21": {
       "schemaVersion": 1,
@@ -8801,14 +8801,14 @@ export const VOICE_V2_1_AUDIO_ASSET_METADATA: VoiceV21AudioMetadataByVoice = {
         "speed": 0.92
       },
       "path": "assets/audio/voice/marcus/training-skip-v21.mp3",
-      "script": "Skipped. Moving on.",
-      "fingerprint": "voice-v21-audio-v1-12brd2l",
-      "sha256": "b66a1bfeeca3dccf47c321cbf340c9485271525a1c678615212a6152fb7674f0",
-      "fileSizeBytes": 24285,
-      "durationMs": 1440,
+      "script": "Skipped. No problem. We'll move on to the next part.",
+      "fingerprint": "voice-v21-audio-v1-1oxxtxd",
+      "sha256": "59edfef3d4c2ffd956877f2f5450301521d8ee180b3ca03cc58f848b3393a115",
+      "fileSizeBytes": 48527,
+      "durationMs": 2972,
       "sampleRateHz": 44100,
       "channels": 1,
-      "generatedAt": "2026-06-28T21:48:04.766Z"
+      "generatedAt": "2026-07-02T15:05:52.182Z"
     }
   }
 };

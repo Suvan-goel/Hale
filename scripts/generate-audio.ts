@@ -424,14 +424,19 @@ function parseArgs(argv: readonly string[]): CliOptions {
     if (options.mode !== 'v2.1') throw new Error('--from-backlog requires --mode v2.1');
     if (!options.targeted) throw new Error('--from-backlog requires --targeted');
   }
-  if (options.cue !== null && options.group !== 'all') {
-    throw new Error('--cue is only supported with the default full voice-line group');
+  if (options.cue !== null && options.group !== 'all' && options.group !== 'movement_profile_v2') {
+    throw new Error('--cue is only supported with the default full voice-line group or --group movement_profile_v2');
   }
-  if (options.cue !== null && !LINES[options.cue]) {
+  if (options.cue !== null && options.group === 'movement_profile_v2') {
+    if (!movementProfileV2AudioCueIds().includes(options.cue as MovementProfileV2CueId)) {
+      throw new Error(`unknown Movement Profile V2 cue '${options.cue}'`);
+    }
+  } else if (options.cue !== null && !LINES[options.cue]) {
     throw new Error(`unknown cue '${options.cue}'`);
   }
   if (
     options.cue !== null &&
+    options.group !== 'movement_profile_v2' &&
     (safetyAudioCueIds().includes(options.cue as SafetyCueId) ||
       movementProfileV2AudioCueIds().includes(options.cue as MovementProfileV2CueId))
   ) {
@@ -576,11 +581,13 @@ function printSafetyPlan(rows: readonly SafetyAssetPlanRow[], dryRun: boolean): 
 
 function buildMovementProfileV2Plan(
   voices: readonly SelectedVoice[],
-  force: boolean
+  force: boolean,
+  cueFilter: MovementProfileV2CueId | null = null
 ): MovementProfileV2AssetPlanRow[] {
   const rows: MovementProfileV2AssetPlanRow[] = [];
   for (const voice of voices) {
     for (const cueId of movementProfileV2AudioCueIds()) {
+      if (cueFilter !== null && cueId !== cueFilter) continue;
       const expected = movementProfileV2AudioMetadataFor({
         cueId,
         voiceId: voice.id,
@@ -1698,7 +1705,7 @@ async function main(): Promise<void> {
   }
 
   if (options.group === 'movement_profile_v2') {
-    const plan = buildMovementProfileV2Plan(voices, options.force);
+    const plan = buildMovementProfileV2Plan(voices, options.force, options.cue as MovementProfileV2CueId | null);
     printMovementProfileV2Plan(plan, options.dryRun);
     if (options.dryRun) return;
     const needsProvider = plan.some(needsGeneration);

@@ -23,7 +23,7 @@ export {
 };
 
 export function sessionTemplatesForMovementBlock(block: MovementBlock): SessionTemplate[] {
-  if (movementBlockIsBalanced(block)) return createBalancedSessionTemplates();
+  if (movementBlockIsBalanced(block)) return createBalancedSessionTemplates(block.id);
   return createSessionTemplatesForFocus(plannedPrimaryDomainForMovementBlock(block));
 }
 

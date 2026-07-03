@@ -115,6 +115,7 @@ import {
   latestUsableOfficialAssessment,
   buildMovementProfileV2ProgressViewModel,
   materializeMovementProfileV2Block,
+  measuredCapabilityFromMovementProfileV2Interpretation,
   movementProfileV2ProgressProfileBySourceCheckUpId,
   movementProfileV2ProgressReportById,
   movementProfileV2AssessmentForSourceCheckUpId,
@@ -286,6 +287,7 @@ import {
   buildSessionInProgress,
   defaultTrainingState,
   deriveMicroCheckSideSetup,
+  initialLadderProgressFromMeasuredCapability,
   mergeResumedSessionResult,
   microCheckTrendPoints,
   resumableSessionStart,
@@ -4545,6 +4547,21 @@ function HaleApp() {
             status: backendSignedIn && backendUserId ? 'sync_pending_local_ready' : 'ready',
             blockId: planBlock.block.id,
           };
+          // Seeds only ladders the user has never touched, from this
+          // check-up's own measured chair-stand/single-leg values (never
+          // age) — training-earned progress from a prior block is untouched.
+          const measuredCapability = measuredCapabilityFromMovementProfileV2Interpretation(
+            materialized.snapshot.interpretation
+          );
+          persistTraining({
+            ...training,
+            ladderProgressById: initialLadderProgressFromMeasuredCapability({
+              previousLadderProgress: training.ladderProgressById,
+              chairStandReps: measuredCapability.chairStandReps,
+              singleLegHoldSec: measuredCapability.singleLegHoldSec,
+              nowIso: now,
+            }),
+          });
           if (backendSignedIn && backendUserId) {
             void syncMovementBlockToRemote({
               block: planBlock.block,

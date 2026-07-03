@@ -22,6 +22,7 @@ import {
   parseStoredMovementProfileV2Snapshot,
   validateMovementProfileV2AssessmentSource,
   type MovementProfileV2Assessment,
+  type MovementProfileV2Interpretation,
   type StoredMovementProfileV2Snapshot,
 } from '../reference/movementProfileV2';
 import { deterministicFingerprint } from '../reference/movementProfileV2/fingerprint';
@@ -240,6 +241,38 @@ export function movementProfileV2BlockFingerprint(
 ): string {
   const { blockFingerprint: _blockFingerprint, ...material } = block as MovementBlock;
   return deterministicFingerprint('mpv2-block-v1', material);
+}
+
+/**
+ * Extracts the same two raw capability values the legacy CheckUpScore battery
+ * exposes (chair-stand reps, single-leg hold seconds) from a V2 snapshot's
+ * interpretation, for initialLadderProgressFromMeasuredCapability. Never
+ * reads age. Only trusts a raw metric that resolved without an invalid
+ * reason; balance_eyes_open_total is a different (cumulative) metric from
+ * the single continuous hold this calibration models, so it is left null.
+ */
+export function measuredCapabilityFromMovementProfileV2Interpretation(
+  interpretation: MovementProfileV2Interpretation | null | undefined
+): { chairStandReps: number | null; singleLegHoldSec: number | null } {
+  const chairMetric = interpretation?.chair.rawMetric;
+  const chairStandReps =
+    chairMetric &&
+    chairMetric.metricId === 'chair_rises_30s' &&
+    Number.isFinite(chairMetric.value) &&
+    (interpretation?.chair.rawInvalidReasons.length ?? 0) === 0
+      ? chairMetric.value
+      : null;
+
+  const balanceMetric = interpretation?.balance.rawMetric;
+  const singleLegHoldSec =
+    balanceMetric &&
+    balanceMetric.metricId === 'one_leg_balance_best' &&
+    Number.isFinite(balanceMetric.value) &&
+    (interpretation?.balance.rawInvalidReasons.length ?? 0) === 0
+      ? balanceMetric.value
+      : null;
+
+  return { chairStandReps, singleLegHoldSec };
 }
 
 function templateIdsForAssessmentFocus(focus: MovementProfileV2Assessment['focus']): string[] {

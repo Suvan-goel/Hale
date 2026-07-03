@@ -86,7 +86,7 @@ describe('Training Voice V2.1 contract registry', () => {
     expect(getTrainingVoiceContractV21('chair-supported-split-squat').firstUseCue.exactScript).toMatch(/split squat/i);
     expect(getTrainingVoiceContractV21('toe-raise-supported').firstUseCue.exactScript).toMatch(/toe raise/i);
     expect(getTrainingVoiceContractV21('glute-bridge-hold').firstUseCue.exactScript).toMatch(/hold/i);
-    expect(getTrainingVoiceContractV21('glute-bridge-reps').firstUseCue.exactScript).toMatch(/lower with control/i);
+    expect(getTrainingVoiceContractV21('glute-bridge-reps').firstUseCue.exactScript).toMatch(/lower.*with control/i);
     expect(getTrainingVoiceContractV21('hip-hinge-wall').firstUseCue.exactScript).toMatch(/Wall-tap/i);
     expect(getTrainingVoiceContractV21('hip-hinge-free').firstUseCue.exactScript).toMatch(/^Hip hinge/i);
     expect(getTrainingVoiceContractV21('push-up-incline').firstUseCue.exactScript).toMatch(/counter or sturdy chair/i);
@@ -134,12 +134,12 @@ describe('Training Voice V2.1 laterality', () => {
 
   it('represents mini-band and step-up founder decisions without changing live dose', () => {
     const miniBand = getTrainingVoiceContractV21('mini-band-lateral-walk');
-    expect(miniBand.firstUseCue.exactScript).toMatch(/Band above your knees/);
+    expect(miniBand.firstUseCue.exactScript).toMatch(/band above your knees/i);
     expect(miniBand.sidePlan.schedule).toBe('both_directions_within_timed_set');
     expect(miniBand.implementationRequirements).not.toContain('IR-VOICE-ROUND-STATE');
 
     const stepUp = getTrainingVoiceContractV21('step-up');
-    expect(stepUp.targetPlan.spokenText).toBe('Do twelve total reps.');
+    expect(stepUp.targetPlan.spokenText).toBe('Do twelve total reps. Move carefully, and set both feet on the floor after each rep.');
     expect(stepUp.laterality).toBe('alternating_lead_leg_each_rep');
     expect(stepUp.sidePlan.required).toBe(true);
     expect(stepUp.sidePlan.variants.map((variant) => variant.variantId)).toEqual(['left', 'right']);
@@ -172,7 +172,7 @@ describe('Training Voice V2.1 target grammar', () => {
     const balance = getTrainingVoiceContractV21('balance-feet-together-hold');
     expect(resolveTrainingVoiceTargetV21({ contract: balance, prescribedTarget: { secondsPerSet: 17 } })).toMatchObject({
       supported: true,
-      spokenText: 'Hold for seventeen seconds.',
+      spokenText: "Hold for seventeen seconds. Breathe normally, and I'll tell you when to stop.",
       value: 17,
     });
   });
@@ -395,13 +395,14 @@ describe('Training Voice V2.1 sequence planner', () => {
 
 describe('Training Voice V2.1 runtime and asset gates', () => {
   it('keeps approval/default gates closed while beta selectability uses physical audio readiness', () => {
+    const physicalAudioReady = listTrainingVoiceAssetRequirementsV21().every((row) => !row.generationRequiredLater);
     expect(TRAINING_VOICE_V2_1_FEATURE_FLAG).toBe('EXPO_PUBLIC_ENABLE_TRAINING_VOICE_V2_1');
     expect(TRAINING_VOICE_V2_1_SAFETY_READY).toBe(true);
     expect(TRAINING_VOICE_V2_1_CONTROLS_READY).toBe(true);
     expect(TRAINING_VOICE_V2_1_PROGRESS_READY).toBe(true);
     expect(TRAINING_VOICE_V2_1_RECOVERY_READY).toBe(true);
     expect(TRAINING_VOICE_V2_1_BEHAVIOR_READY).toBe(true);
-    expect(TRAINING_VOICE_V2_1_PHYSICAL_AUDIO_SURFACE_READY).toBe(true);
+    expect(TRAINING_VOICE_V2_1_PHYSICAL_AUDIO_SURFACE_READY).toBe(physicalAudioReady);
     expect(TRAINING_VOICE_V2_1_AUDIO_APPROVAL_READY).toBe(false);
     expect(TRAINING_VOICE_V2_1_AUDIO_READY).toBe(false);
     expect(selectTrainingVoiceRuntimeModeV21({ exerciseIds: ['squat-free'], featureEnabled: false })).toMatchObject({
@@ -412,26 +413,37 @@ describe('Training Voice V2.1 runtime and asset gates', () => {
       mode: 'legacy',
       v21Selectable: false,
     });
+    const betaSelection = selectTrainingVoiceRuntimeModeV21({
+      exerciseIds: ['squat-free'],
+      featureEnabled: true,
+      betaDefaultEnabled: true,
+    });
+    expect(betaSelection).toMatchObject({
+      mode: physicalAudioReady ? 'training_voice_v2_1' : 'legacy',
+      v21Selectable: physicalAudioReady,
+    });
+    if (!physicalAudioReady) {
+      expect(betaSelection.reasonCodes).toContain('physical_audio_surface_ready_false');
+    }
+    const betaReadiness = resolveTrainingVoiceRuntimeReadinessV21({
+      exerciseId: 'squat-free',
+      betaDefaultEnabled: true,
+    });
+    expect(betaReadiness).toMatchObject({
+      audioReady: physicalAudioReady,
+      selectable: physicalAudioReady,
+      legacyFallbackAvailable: true,
+    });
+    if (!physicalAudioReady) {
+      expect(betaReadiness.blockers).toContain('global_physical_audio_surface_ready_false');
+    }
     expect(
       selectTrainingVoiceRuntimeModeV21({
         exerciseIds: ['squat-free'],
         featureEnabled: true,
         betaDefaultEnabled: true,
       })
-    ).toMatchObject({
-      mode: 'training_voice_v2_1',
-      v21Selectable: true,
-    });
-    expect(
-      resolveTrainingVoiceRuntimeReadinessV21({
-        exerciseId: 'squat-free',
-        betaDefaultEnabled: true,
-      })
-    ).toMatchObject({
-      audioReady: true,
-      selectable: true,
-      legacyFallbackAvailable: true,
-    });
+    ).toEqual(betaSelection);
   });
 
   it('fails closed for unknown exercises and keeps one voice mode per session', () => {
@@ -504,10 +516,12 @@ describe('Training Voice V2.1 runtime and asset gates', () => {
 
   it('records generated logical asset requirements while keeping approval gates closed', () => {
     const rows = listTrainingVoiceAssetRequirementsV21();
+    const pending = rows.filter((row) => row.generationRequiredLater);
     expect(rows.length).toBe(allTrainingVoiceLogicalCuesV21().length);
     expect(rows.filter((row) => row.reuseDecision === 'reuse_exact_existing_pair').length).toBeGreaterThan(0);
     expect(rows.filter((row) => row.reuseDecision === 'new_pair_required')).toHaveLength(0);
-    expect(rows.filter((row) => row.reuseDecision === 'existing_pair_script_mismatch')).toHaveLength(0);
+    expect(rows.filter((row) => row.reuseDecision === 'existing_pair_script_mismatch')).toHaveLength(pending.length);
+    expect(pending.every((row) => row.reuseDecision === 'existing_pair_script_mismatch')).toBe(true);
     expect(rows.find((row) => row.logicalCueKey === 'ex-squat-free-first-v21')).toMatchObject({
       currentCandidateKey: 'ex-squat-free-first-v21',
       claraStatus: 'exists',

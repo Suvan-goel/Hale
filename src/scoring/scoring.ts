@@ -48,6 +48,14 @@ export interface DomainResult {
   estimated: boolean;
   interpretation: string;
   rows: MetricRow[];
+  /**
+   * The raw value behind the age mapping (chair-stand reps, single-leg hold
+   * seconds, shoulder flexion degrees) — NaN when unmeasured. Age never
+   * chooses exercises or levels (see workoutGeneration.ts), so this is the
+   * only signal training calibration may read from a check-up; it is never
+   * compared against the user's own age.
+   */
+  primaryMetricValue: number;
 }
 
 export interface CheckUpScore {
@@ -111,16 +119,18 @@ function unmeasured(domain: Domain, rows: MetricRow[]): DomainResult {
     estimated: false,
     interpretation: 'Not measured this time. You can complete this part on your next check-up.',
     rows,
+    primaryMetricValue: NaN,
   };
 }
 
-function measuredDomain(domain: Domain, m: AgeMapping, rows: MetricRow[]): DomainResult {
+function measuredDomain(domain: Domain, m: AgeMapping, rows: MetricRow[], primaryMetricValue: number): DomainResult {
   const result: DomainResult = {
     domain,
     label: DOMAIN_LABEL[domain],
     measured: true,
     ...m,
     rows,
+    primaryMetricValue,
   };
   if (!domainResultIsSafe(result)) return unmeasured(domain, rows);
   return result;
@@ -153,7 +163,7 @@ function strengthDomain(inputs: ValidatedScoringInputs): DomainResult {
   ];
   if (!cs) return unmeasured('strength', rows);
   const m = mapAge('strength', CHAIR_STAND_REPS_NORM, cs.reps);
-  return measuredDomain('strength', m, rows);
+  return measuredDomain('strength', m, rows, cs.reps);
 }
 
 function balanceDomain(inputs: ValidatedScoringInputs): DomainResult {
@@ -181,7 +191,7 @@ function balanceDomain(inputs: ValidatedScoringInputs): DomainResult {
   if (slSec < 8) {
     interpretation += ' Holding a one-leg stand was tricky — a good thing to practise.';
   }
-  return measuredDomain('balance', { ...m, interpretation }, rows);
+  return measuredDomain('balance', { ...m, interpretation }, rows, slSec);
 }
 
 function mobilityDomain(inputs: ValidatedScoringInputs): DomainResult {
@@ -203,7 +213,7 @@ function mobilityDomain(inputs: ValidatedScoringInputs): DomainResult {
   ];
   if (!sh) return unmeasured('mobility', rows);
   const m = mapAge('mobility', SHOULDER_FLEXION_NORM, sh.peakFlexionDeg);
-  return measuredDomain('mobility', m, rows);
+  return measuredDomain('mobility', m, rows, sh.peakFlexionDeg);
 }
 
 export function scoreCheckUpWithDiagnostics(checkUp: CheckUp): CheckUpScoreWithDiagnostics {

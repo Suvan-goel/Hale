@@ -11,9 +11,11 @@ import type { DiscomfortConstraint } from '../dailyTrainingContext';
 import {
   MOBILITY_COLLECTION_CORE_MEMBER_IDS,
   MOBILITY_COLLECTION_ID,
+  PRESET_COLLECTION_EXPOSURE_SCOPE_ID,
   collectionCoverageSummary,
   collectionExposuresFromGeneratedSessionSummaries,
   eligibleCollectionMemberIds,
+  presetCollectionExposuresFromGeneratedSessionSummaries,
   selectCollectionMember,
   type CollectionExposure,
 } from '../collectionSelection';
@@ -138,6 +140,32 @@ describe('collectionSelection', () => {
     const exposures = collectionExposuresFromGeneratedSessionSummaries({ blockId: BLOCK_ID, summaries });
 
     expect(exposures.map((item) => item.exerciseId)).toEqual([HAMSTRING_REACH_ID]);
+  });
+
+  it('tracks preset/manual session exposures under a shared pseudo-block scope so repeats rotate', () => {
+    const summaries = [
+      summary({ id: 'preset-1', source: 'preset', completionSource: 'preset', exerciseId: HAMSTRING_REACH_ID }),
+      summary({ id: 'manual-1', source: 'manual', completionSource: 'manual', exerciseId: THORACIC_ROTATION_ID }),
+      // Block-generated and skipped sessions never contribute to preset variety.
+      summary({ id: 'block-1', exerciseId: HIP_FLEXOR_STRETCH_ID }),
+      summary({ id: 'skipped-preset', source: 'preset', completionSource: 'preset', status: 'skipped', exerciseId: WALL_CALF_STRETCH_ID }),
+    ];
+
+    const exposures = presetCollectionExposuresFromGeneratedSessionSummaries({ summaries });
+
+    // Same plannedDateKey/completedAt (fixture defaults), so ties break on
+    // completionId ('manual-1' < 'preset-1').
+    expect(exposures.map((item) => item.exerciseId)).toEqual([THORACIC_ROTATION_ID, HAMSTRING_REACH_ID]);
+    expect(exposures.every((item) => item.blockId === PRESET_COLLECTION_EXPOSURE_SCOPE_ID)).toBe(true);
+
+    // Feeding that history back in picks a member the presets haven't used yet.
+    expect(
+      selectCollectionMember({
+        ...baseInput(),
+        blockId: PRESET_COLLECTION_EXPOSURE_SCOPE_ID,
+        exposures,
+      })
+    ).toMatchObject({ available: true, selectedExerciseId: HIP_FLEXOR_STRETCH_ID, reason: 'never_practised_first' });
   });
 
   it('applies equipment, discomfort, no-eligible, and same-session duplicate filters deterministically', () => {

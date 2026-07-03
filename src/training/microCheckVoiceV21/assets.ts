@@ -22,14 +22,14 @@ interface PhysicalCandidate {
 }
 
 const EXACT_EXISTING_PHYSICAL_CANDIDATES: Readonly<Record<string, PhysicalCandidate>> = {
-  'final-position-set-v21': exact('final-position-set-v21', 'Good. Hold that position until I tell you what to do next.'),
+  'final-position-set-v21': exact('final-position-set-v21', "Good. Hold that position and stay still. I'll tell you when to begin."),
   'countdown-three': exact('countdown-three', 'Three.'),
   'countdown-two': exact('countdown-two', 'Two.'),
   'countdown-one': exact('countdown-one', 'One.'),
   go: exact('go', 'Go!'),
-  'times-up-v21': exact('times-up-v21', 'Time.'),
+  'times-up-v21': exact('times-up-v21', 'Time. Stop there and rest.'),
   'tracking-loss-v21': exact('tracking-loss-v21', "Pause there. I've lost sight of you, so this part needs to start again. Come back into view and wait for my next instruction."),
-  'tracking-recovered-v21': exact('tracking-recovered-v21', "Good, I can see you again. Stay there and wait. I'll guide you from here."),
+  'tracking-recovered-v21': exact('tracking-recovered-v21', "Good, I can see you again. Stay where you are and wait. I'll guide you from here."),
   'retry-v21': exact('retry-v21', "That's okay. We'll try that part again. Take a moment, then follow my voice."),
 };
 

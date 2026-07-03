@@ -25,6 +25,7 @@ function domainResult(domain: Domain, age: number, measured = true): DomainResul
     estimated: false,
     interpretation: measured ? 'Measured.' : 'Not measured.',
     rows: [],
+    primaryMetricValue: measured ? age : NaN,
   };
 }
 

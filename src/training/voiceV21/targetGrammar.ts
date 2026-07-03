@@ -76,6 +76,29 @@ const NUMBER_WORDS: Readonly<Record<number, string>> = {
   40: 'forty',
 };
 
+const TARGET_GUIDANCE_BY_EXERCISE_ID: Readonly<Record<string, string>> = {
+  'balance-feet-together-hold': "Breathe normally, and I'll tell you when to stop.",
+  'balance-single-leg-hold': 'Breathe normally, and use support if you feel unsteady.',
+  'balance-tandem-hold': 'Keep breathing, and touch support if you need to.',
+  'band-pull-apart': 'Keep the band tension light and comfortable.',
+  'chair-supported-split-squat': 'Take your time and use support whenever you need it.',
+  'glute-bridge-hold': "Breathe normally, and I'll tell you when to lower down.",
+  'glute-bridge-reps': 'Move slowly and stay comfortable.',
+  'loaded-march': 'Left and right both count.',
+  'loaded-sit-to-stand': 'Move steadily and keep the weight close to your body.',
+  'mini-band-lateral-walk': 'Keep the steps small and steady.',
+  'overhead-press-band': 'Keep the tension light and stop if your shoulders do not feel comfortable.',
+  'push-up-standard': 'Move with control, and stop if it does not feel right.',
+  'seated-band-row': 'Keep the band secure under your feet and move with control.',
+  'step-up': 'Move carefully, and set both feet on the floor after each rep.',
+  'standing-band-row': 'Keep the tension light and the anchor secure.',
+  'sts-cushion': 'Take your time and move with control.',
+  'sts-power': 'Stand up with energy, but keep each sit-down controlled.',
+  'sts-slow-eccentric': 'The slow sit-down is the important part.',
+  'sts-standard': "Move at a steady pace, and I'll tell you when the set is done.",
+  'supported-side-step': "Stay comfortable, and I'll tell you when to stop.",
+};
+
 export function resolveTrainingVoiceTargetV21(
   input: ResolveTrainingVoiceTargetV21Input
 ): TrainingVoiceTargetPlanV21 {
@@ -103,10 +126,7 @@ export function resolveTrainingVoiceTargetV21(
       ]);
     }
     const noun = value === 1 ? 'rep' : 'reps';
-    const text =
-      input.contract.exerciseId === 'step-up'
-        ? `Do ${numberWord(value)} total ${noun}.`
-        : `Aim for ${numberWord(value)} ${noun}.`;
+    const text = repsTargetText(input.contract.exerciseId, value, noun);
     return supportedTarget(input.contract.targetCue.key, text, value, 'rep', input.prescribedTarget);
   }
 
@@ -117,7 +137,7 @@ export function resolveTrainingVoiceTargetV21(
       ]);
     }
     const noun = value === 1 ? 'second' : 'seconds';
-    const text = `Hold for ${numberWord(value)} ${noun}.`;
+    const text = withTargetGuidance(input.contract.exerciseId, `Hold for ${numberWord(value)} ${noun}.`);
     return supportedTarget(input.contract.targetCue.key, text, value, 'second', input.prescribedTarget);
   }
 
@@ -128,7 +148,7 @@ export function resolveTrainingVoiceTargetV21(
       ]);
     }
     const noun = value === 1 ? 'second' : 'seconds';
-    const text = `Move for ${numberWord(value)} ${noun}.`;
+    const text = withTargetGuidance(input.contract.exerciseId, `Move for ${numberWord(value)} ${noun}.`);
     return supportedTarget(input.contract.targetCue.key, text, value, 'second', input.prescribedTarget);
   }
 
@@ -168,7 +188,7 @@ function targetFromStepUpAlternationPlan(
   const noun = value === 1 ? 'rep' : 'reps';
   return supportedTarget(
     input.contract.targetCue.key,
-    `Do ${numberWord(value)} total ${noun}.`,
+    repsTargetText(input.contract.exerciseId, value, noun),
     value,
     'rep',
     input.prescribedTarget,
@@ -193,7 +213,7 @@ function targetFromBothSidesPlan(
     const noun = value === 1 ? 'rep' : 'reps';
     return supportedTarget(
       input.contract.targetCue.key,
-      `Aim for ${numberWord(value)} ${noun}.`,
+      repsTargetText(input.contract.exerciseId, value, noun),
       value,
       'rep',
       input.prescribedTarget,
@@ -233,7 +253,7 @@ function targetFromBothSidesPlan(
     const verb = holdLanguage ? 'Hold' : 'Move';
     return supportedTarget(
       input.contract.targetCue.key,
-      `${verb} for ${numberWord(seconds)} ${noun}.`,
+      withTargetGuidance(input.contract.exerciseId, `${verb} for ${numberWord(seconds)} ${noun}.`),
       seconds,
       'second',
       input.prescribedTarget,
@@ -242,6 +262,22 @@ function targetFromBothSidesPlan(
     );
   }
   return null;
+}
+
+function repsTargetText(exerciseId: string, value: number, noun: 'rep' | 'reps'): string {
+  if (exerciseId === 'loaded-march') {
+    const marchNoun = value === 1 ? 'march' : 'marches';
+    return withTargetGuidance(exerciseId, `Aim for ${numberWord(value)} total ${marchNoun}.`);
+  }
+  if (exerciseId === 'step-up') {
+    return withTargetGuidance(exerciseId, `Do ${numberWord(value)} total ${noun}.`);
+  }
+  return withTargetGuidance(exerciseId, `Aim for ${numberWord(value)} ${noun}.`);
+}
+
+function withTargetGuidance(exerciseId: string, baseText: string): string {
+  const guidance = TARGET_GUIDANCE_BY_EXERCISE_ID[exerciseId];
+  return guidance ? `${baseText} ${guidance}` : baseText;
 }
 
 export function defaultTargetValueForContractV21(

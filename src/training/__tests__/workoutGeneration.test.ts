@@ -24,16 +24,20 @@ import {
   listExerciseLadders,
 } from '../../exercises';
 import {
+  createBalancedSessionTemplates,
   createSessionTemplatesForFocus,
   createTrainingBlockFromAssessment,
   generatePresetSession,
   generateTodaySession,
   getTemplateSelection,
+  initialLadderProgressFromCheckUp,
+  initialLadderProgressFromMeasuredCapability,
   listExtraSessionPresets,
   selectNextSessionTemplate,
   updateLadderProgressAfterSession,
   type LadderProgress,
 } from '../workoutGeneration';
+import type { CheckUpScore } from '../../scoring';
 import { createLifeGoal, getLifeGoalWorkoutBias, type MovementSafetyProfile } from '../../adherence';
 import type { CollectionExposure } from '../collectionSelection';
 import { formatDebugWorkoutScenarios, generateDebugWorkoutScenarios } from '../debugWorkoutScenarios';
@@ -387,6 +391,20 @@ describe('dynamic workout generation', () => {
         expect.objectContaining({ role: 'skipped', reason: 'support_required' }),
       ])
     );
+  });
+
+  it('does not overstate session length when equipment limits skip a slot', () => {
+    const session = generatePresetSession({
+      presetId: 'preset-band-upper-back',
+      today: START,
+      availableEquipment: ['chair', 'wall'], // no band: the pull slot is skipped, leaving two short mobility items
+    });
+
+    expect(session.skippedSlots.length).toBeGreaterThan(0);
+    expect(session.exercises.length).toBeGreaterThan(0);
+    // The old behaviour floored every session at ~12 minutes; a two-item
+    // mobility-only session should now read shorter than that floor.
+    expect(session.estimatedMinutes).toBeLessThan(12);
   });
 
   it('skips upper-back pulling honestly when no resistance band is available', () => {
@@ -1474,5 +1492,152 @@ describe('valid-time measurement targets under daily adjustments', () => {
         (exercise) => (exercise.doseBeforeAdjustment?.sets ?? 0) > exercise.sets
       )
     ).toBe(true);
+  });
+});
+
+describe('initial ladder progress from measured capability', () => {
+  const NOW = '2026-07-02T08:00:00.000Z';
+
+  function domainResult(overrides: Partial<CheckUpScore['domains'][number]>): CheckUpScore['domains'][number] {
+    return {
+      domain: 'strength',
+      label: 'Strength & Power',
+      measured: true,
+      ageLow: 50,
+      ageHigh: 58,
+      estimated: false,
+      interpretation: 'typical',
+      rows: [],
+      primaryMetricValue: NaN,
+      ...overrides,
+    };
+  }
+
+  it('starts a very weak chair-stand result one level easier than the ladder default', () => {
+    const next = initialLadderProgressFromMeasuredCapability({
+      previousLadderProgress: {},
+      chairStandReps: 6, // at/below the oldest published Rikli & Jones anchor
+      nowIso: NOW,
+    });
+    expect(next['sit-to-stand']?.currentLevelId).toBe(STS_CUSHION_ID);
+    expect(next['sit-to-stand']?.completedSessionsAtLevel).toBe(0);
+    expect(next.balance).toBeUndefined();
+  });
+
+  it('starts a very strong chair-stand result one level harder than the ladder default, never an optional level', () => {
+    const next = initialLadderProgressFromMeasuredCapability({
+      previousLadderProgress: {},
+      chairStandReps: 25, // above the youngest published anchor
+      nowIso: NOW,
+    });
+    expect(next['sit-to-stand']?.currentLevelId).toBe(STS_SLOW_ECC_ID);
+  });
+
+  it('leaves the ladder default alone for an ordinary chair-stand result', () => {
+    const next = initialLadderProgressFromMeasuredCapability({
+      previousLadderProgress: {},
+      chairStandReps: 13,
+      nowIso: NOW,
+    });
+    expect(next['sit-to-stand']).toBeUndefined();
+  });
+
+  it('only ever steps the balance ladder up (its default is already the easiest level)', () => {
+    const strongHold = initialLadderProgressFromMeasuredCapability({
+      previousLadderProgress: {},
+      singleLegHoldSec: 35,
+      nowIso: NOW,
+    });
+    expect(strongHold.balance?.currentLevelId).toBe(BALANCE_TANDEM_ID);
+
+    const weakHold = initialLadderProgressFromMeasuredCapability({
+      previousLadderProgress: {},
+      singleLegHoldSec: 3,
+      nowIso: NOW,
+    });
+    expect(weakHold.balance).toBeUndefined();
+  });
+
+  it('never overwrites a ladder that already has training-earned progress', () => {
+    const existing: LadderProgress = {
+      ladderId: 'sit-to-stand',
+      currentLevelId: STS_POWER_ID,
+      completedSessionsAtLevel: 3,
+      failedSessionsAtLevel: 0,
+      recentCompletionRates: [1],
+      recentRpe: [],
+      recentPain: [],
+      updatedAt: NOW,
+    };
+    const next = initialLadderProgressFromMeasuredCapability({
+      previousLadderProgress: { 'sit-to-stand': existing },
+      chairStandReps: 4, // would otherwise seed the cushion level
+      nowIso: NOW,
+    });
+    expect(next['sit-to-stand']).toBe(existing);
+  });
+
+  it('ignores missing/non-finite values and leaves ladders untouched', () => {
+    const next = initialLadderProgressFromMeasuredCapability({
+      previousLadderProgress: {},
+      chairStandReps: null,
+      singleLegHoldSec: undefined,
+      nowIso: NOW,
+    });
+    expect(next).toEqual({});
+  });
+
+  it('initialLadderProgressFromCheckUp reads the same signal from a CheckUpScore, never from age', () => {
+    const score: CheckUpScore = {
+      startedAt: NOW,
+      weakestDomain: 'strength',
+      domains: [
+        domainResult({ domain: 'strength', primaryMetricValue: 6 }),
+        domainResult({ domain: 'balance', label: 'Balance', primaryMetricValue: 35 }),
+        domainResult({ domain: 'mobility', label: 'Mobility', measured: false, primaryMetricValue: NaN }),
+      ],
+    };
+    const next = initialLadderProgressFromCheckUp({ previousLadderProgress: {}, score, nowIso: NOW });
+    expect(next['sit-to-stand']?.currentLevelId).toBe(STS_CUSHION_ID);
+    expect(next.balance?.currentLevelId).toBe(BALANCE_TANDEM_ID);
+  });
+
+  it('initialLadderProgressFromCheckUp ignores an unmeasured domain entirely', () => {
+    const score: CheckUpScore = {
+      startedAt: NOW,
+      weakestDomain: null,
+      domains: [domainResult({ domain: 'strength', measured: false, primaryMetricValue: NaN })],
+    };
+    const next = initialLadderProgressFromCheckUp({ previousLadderProgress: {}, score: score, nowIso: NOW });
+    expect(next).toEqual({});
+    expect(initialLadderProgressFromCheckUp({ previousLadderProgress: {}, score: null, nowIso: NOW })).toEqual({});
+  });
+});
+
+describe('balanced session template rotation', () => {
+  it('defaults to the original strength-A/balance-B/mobility-C combo with no seed', () => {
+    const templates = createBalancedSessionTemplates();
+    expect(templates.map((t) => t.sourceTemplateId)).toEqual(['strength-A', 'balance-B', 'mobility-C']);
+  });
+
+  it('is deterministic for a given block id and covers more than one combo across ids', () => {
+    const first = createBalancedSessionTemplates('movement-block-v2:abc');
+    const again = createBalancedSessionTemplates('movement-block-v2:abc');
+    expect(first.map((t) => t.sourceTemplateId)).toEqual(again.map((t) => t.sourceTemplateId));
+
+    const combos = new Set(
+      Array.from({ length: 30 }, (_, i) => `movement-block-v2:seed-${i}`).map((seed) =>
+        createBalancedSessionTemplates(seed).map((t) => t.sourceTemplateId).join(',')
+      )
+    );
+    expect(combos.size).toBeGreaterThan(1);
+  });
+
+  it('always keeps template ids and per-slot domains stable regardless of rotation', () => {
+    for (const seed of ['a', 'b', 'c', 'd', 'e']) {
+      const templates = createBalancedSessionTemplates(seed);
+      expect(templates.map((t) => t.id)).toEqual(['balanced-A', 'balanced-B', 'balanced-C']);
+      expect(templates.map((t) => t.focusDomain)).toEqual(['strength_power', 'balance_stability', 'mobility_flexibility']);
+    }
   });
 });

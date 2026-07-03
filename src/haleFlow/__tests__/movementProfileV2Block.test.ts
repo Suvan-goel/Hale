@@ -86,15 +86,26 @@ describe('Movement Profile V2 block materialization', () => {
     expect(created.adherence.blocks).toEqual([block]);
 
     expect(requiredMainPlanTemplatesForBlock(block).templateIds).toEqual(['balanced-A', 'balanced-B', 'balanced-C']);
+    // Balanced blocks now rotate their source day-variant by a hash of the
+    // block id (see docs/decisions.md), so this asserts consistency with
+    // that same seeded call rather than one hardcoded combo, plus the
+    // invariant that each balanced slot always maps to the same domain.
+    const expectedBalancedTemplates = createBalancedSessionTemplates(block.id).map((template) => ({
+      id: template.id,
+      focusDomain: template.focusDomain,
+      sourceTemplateId: template.sourceTemplateId,
+    }));
+    expect(expectedBalancedTemplates.map((t) => t.id)).toEqual(['balanced-A', 'balanced-B', 'balanced-C']);
+    expect(expectedBalancedTemplates.map((t) => t.focusDomain)).toEqual([
+      'strength_power',
+      'balance_stability',
+      'mobility_flexibility',
+    ]);
     expect(sessionTemplatesForMovementBlock(block).map((template) => ({
       id: template.id,
       focusDomain: template.focusDomain,
       sourceTemplateId: template.sourceTemplateId,
-    }))).toEqual([
-      { id: 'balanced-A', focusDomain: 'strength_power', sourceTemplateId: 'strength-A' },
-      { id: 'balanced-B', focusDomain: 'balance_stability', sourceTemplateId: 'balance-B' },
-      { id: 'balanced-C', focusDomain: 'mobility_flexibility', sourceTemplateId: 'mobility-C' },
-    ]);
+    }))).toEqual(expectedBalancedTemplates);
     expect(createBalancedSessionTemplates().map((template) => [template.id, template.sourceTemplateId])).toEqual(
       Object.entries(MOVEMENT_PROFILE_V2_BALANCED_TEMPLATE_SOURCES)
     );

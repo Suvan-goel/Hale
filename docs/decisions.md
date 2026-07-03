@@ -2403,6 +2403,127 @@ PUBLIC RELEASE REMAINS BLOCKED
   and chair deadline; shoulder/hinge deadlines were already safe via their valid-tracking
   minimums.
 
+## 2026-07-02 — Training shared voice cues rewritten for hands-free older-adult guidance
+
+- **Context:** the next voice-guidance pass after Movement Check-Up focused on Training Voice
+  V2.1 shared cues: setup, safety, rest, pause/resume, recovery, skip, and session-completion
+  lines. These cues are the glue between exercises, so they need to tell a 50+ novice exactly
+  what to do without assuming they are looking at or touching the phone.
+- **Change:** shared training cue copy now uses clearer, more reassuring instructions that name
+  the action, the waiting state, and what the app will do next. The same shared cue text was
+  synchronized across Training Voice V2.1, micro-check voice, and Movement Profile V2 where the
+  ids overlap.
+- **Change:** Clara and Marcus bundled audio was regenerated for the updated Training Voice V2.1
+  shared cues. The overlapping Movement Profile V2 shared cues were regenerated with the same
+  text, and `scripts/generate-audio.ts` now supports `--cue` for `movement_profile_v2` so a
+  single changed check-up cue can be refreshed without forcing the entire group through the
+  provider.
+- **Boundary:** the repo still has a broader Movement Profile V2 audio-fingerprint backlog not
+  caused by this pass. The updated/shared cues validate cleanly in targeted dry runs, but a full
+  `verify:audio` will continue to fail until the remaining Movement Profile V2 stale assets are
+  either regenerated or their source text is reconciled.
+
+## 2026-07-02 — Training exercise setup cues drafted into source, audio intentionally pending
+
+- **Context:** the next Training Voice V2.1 pass focused on higher-risk novice setup cues:
+  sit-to-stand variants, balance/support holds, supported side steps, step-ups, and
+  chair-supported split squats. These are the places where an older adult is most likely to need
+  exact, reassuring hands-free guidance before the countdown starts.
+- **Change:** first-use, later-set, target, side-switch, side-setup, and step-up correction cue
+  scripts for those exercises now use fuller instructions: where to stand or sit, where support
+  should be, what the movement looks like, what pace matters, and what the app will do next.
+  Dynamic target grammar now preserves those reassuring suffixes when dose values are resolved
+  from the live plan.
+- **Boundary:** no Clara or Marcus audio was regenerated in this pass by product-owner request.
+  The final cue registry marks the 51 changed cue keys as `audio_pending`, and a Voice V2.1
+  dry-run reports 102 stale generation jobs (51 cue keys times 2 voices) for the later batch.
+
+## 2026-07-02 — Floor exercise voice cues rewritten, audio intentionally pending
+
+- **Context:** the next Training Voice V2.1 pass focused on floor transitions and floor
+  exercises: the floor eligibility prompt, floor transition setup, bridge holds, bridge reps,
+  and standard push-ups. This is a confidence-critical section for older novices because getting
+  down to the floor and back up can be the most intimidating part of a hands-free session.
+- **Change:** floor cues now explicitly give permission to skip if getting down and up is not
+  safe, ask the user to take their time, mention support, and describe each start position and
+  movement in plain language. Dynamic target grammar now keeps the reassuring floor-specific
+  endings for hold, rep, and push-up targets when live plan doses are resolved.
+- **Boundary:** no Clara or Marcus audio was regenerated in this pass. The final cue registry
+  marks 11 additional floor cue keys as `audio_pending`; the Voice V2.1 dry-run now reports 124
+  stale generation jobs total (62 cue keys times 2 voices) for the later batch.
+
+## 2026-07-02 — Band and anchored-equipment voice cues rewritten, audio intentionally pending
+
+- **Context:** the next Training Voice V2.1 pass focused on resistance-band and anchored-band
+  setup cues: long-band inspection, door-anchor checks, band pull-aparts, overhead band presses,
+  seated rows, standing rows, and mini-band lateral walks. These cues need to reduce uncertainty
+  around equipment setup, tension, and when to skip.
+- **Change:** band cues now explicitly ask the user to inspect the band, keep it away from the
+  face, use light tension, test door anchors gently, and skip if the anchor does not feel secure.
+  Exercise cues now name the band position, stance or chair setup, controlled movement, and
+  comfort limits. Dynamic target grammar keeps the band-specific reassuring endings when live
+  doses are resolved.
+- **Boundary:** no Clara or Marcus audio was regenerated in this pass. The final cue registry
+  marks 17 additional band cue keys as `audio_pending`; the Voice V2.1 dry-run now reports 158
+  stale generation jobs total (79 cue keys times 2 voices) for the later batch.
+
+## 2026-07-02 — Plan generation quality pass: measured-capability calibration, mobility rotation, balanced-block variety
+
+- **Context:** a read-only audit of the workout/plan generation pipeline (block creation,
+  session generation, progression, scheduling) found the algorithm itself sound but identified
+  several gaps between what the app measures and what it actually uses to build a plan. This
+  entry covers the fixes.
+- **Starting exercise difficulty now reads the check-up's own measured value, never age.**
+  `DomainResult` (src/scoring/scoring.ts) gained `primaryMetricValue` — the raw chair-stand
+  reps / single-leg hold seconds / shoulder-flexion degrees behind each domain's age mapping,
+  already computed but previously discarded after picking the focus domain. New
+  `initialLadderProgressFromMeasuredCapability` (src/training/workoutGeneration.ts) seeds a
+  ladder's starting level ±1 step from its catalog default — only onto a `v1_core` level, only
+  for a ladder the user has never touched (training-earned progress always wins), and using
+  absolute thresholds pinned to the whole published norm table's span (Rikli & Jones: ≤8 reps
+  or ≥20 reps; Bohannon: ≥30s), never the user's age — preserving the existing "age never
+  chooses exercises or levels" rule. Wired into both block-creation paths: the legacy V1
+  `createAutomaticMovementBlock` (via a `CheckUpScore`-reading wrapper,
+  `initialLadderProgressFromCheckUp`) and the current Movement Profile V2 flow (a new
+  `measuredCapabilityFromMovementProfileV2Interpretation` in `movementProfileV2Block.ts`
+  extracts the same two raw values from the V2 snapshot's interpretation, only trusting a raw
+  metric with no invalid reason, and deliberately skipping `balance_eyes_open_total` since it
+  is a different cumulative metric from the single hold this calibration models). Mobility has
+  no leveled ladder (it is a rotation collection), so it is not calibrated.
+- **Preset/Explore sessions now rotate mobility-collection exercises across repeat use.**
+  Previously `collectionExposures` were force-emptied for any non-`block_generated` source, so
+  a repeated preset like "10-Minute Mobility Reset" always landed on the same one or two
+  stretches. New `presetCollectionExposuresFromGeneratedSessionSummaries` and
+  `PRESET_COLLECTION_EXPOSURE_SCOPE_ID` (src/training/collectionSelection.ts) track exposure
+  history for `preset`/`manual` sessions under a shared pseudo-block scope (no real block to key
+  by); `generateTodaySession` now passes through whatever `collectionExposures` it is given
+  instead of gating on source. Main-plan credit/progression semantics are unchanged — this only
+  affects which of the interchangeable stretches gets picked.
+- **Balanced (tied-domain) blocks now vary their session content.** `createBalancedSessionTemplates`
+  previously always composed `balanced-A/B/C` from the exact same
+  strength-A/balance-B/mobility-C combo for every balanced block, ever. It now accepts an
+  optional rotation seed (`sessionTemplatesForMovementBlock` passes `block.id`) and picks one of
+  three source combos via a stable hash — template ids and each slot's domain stay constant
+  (required by the schedule's per-block-constant required-template-ids), only which day-variant
+  each slot sources from varies. `MOVEMENT_PROFILE_V2_BALANCED_TEMPLATE_POLICY_VERSION` bumped
+  to 2 (the fingerprint is stamped provenance metadata only, never compared for validation, so
+  this was safe to change without a snapshot-compatibility shim). The no-seed default is
+  unchanged (still strength-A/balance-B/mobility-C), preserving existing behavior for the one
+  call site that only needs template ids.
+- **Smaller fixes:** `estimateSessionMinutes` no longer floors a session at ~12 minutes when
+  equipment/pain skipped one or more slots — an honest (still template-capped) estimate is used
+  instead, so a two-item fallback session no longer claims to be a full one.
+  `beginnerPrescription`'s sit-to-stand rep caps now match on the typed `STS_CUSHION_ID`/
+  `STS_STANDARD_ID` constants instead of `id.includes(...)` substring checks. Removed
+  `countCreditedMainPlanTemplatesThisWeek` (and the `iso()` helper it alone used) from
+  `mainPlanEvents.ts` — dead code (no callers outside its own file) with a week-boundary
+  calculation that diverged from the authoritative `blockSchedule.ts` model, a latent trap for a
+  future caller.
+- **Verification:** `npx tsc --noEmit` and the full Jest suite pass (1554/1558; the 4 remaining
+  failures are pre-existing, in unrelated Training Voice V2.1/voice-activation work already
+  in progress on this branch — confirmed unaffected by this change via a scoped `git stash` of
+  only the files this pass touched).
+
 ## 2026-07-03 — Sprint 1 of the trust/friction/habit plan: instrument, prime, resume, fast re-frame
 
 - **Context:** product direction discussion (2026-07-03) prioritized reducing session friction

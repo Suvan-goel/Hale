@@ -10,7 +10,13 @@ import {
 } from '../adherence';
 import type { UserProfile } from '../profile';
 import type { CheckUpScore, VersionedCheckUpScoreSnapshot } from '../scoring';
-import { buildBlock, startBlock, type TrainingBlock, type TrainingState } from '../training';
+import {
+  buildBlock,
+  initialLadderProgressFromCheckUp,
+  startBlock,
+  type TrainingBlock,
+  type TrainingState,
+} from '../training';
 import { getBlockCreationEligibility, type BlockCreationEligibility } from './assessmentEligibility';
 
 export type AutomaticBlockCreationResult =
@@ -70,10 +76,21 @@ export function createAutomaticMovementBlock({
     })
   );
 
+  const startedTraining = startBlock(training, trainingBlock);
   return {
     ok: true,
     adherence: nextAdherence,
-    training: startBlock(training, trainingBlock),
+    training: {
+      ...startedTraining,
+      // Seeds only ladders the user has never touched, from the check-up's
+      // own measured value (never age) — training-earned progress is
+      // untouched. See docs/decisions.md.
+      ladderProgressById: initialLadderProgressFromCheckUp({
+        previousLadderProgress: startedTraining.ladderProgressById,
+        score,
+        nowIso,
+      }),
+    },
     movementBlock,
     trainingBlock,
   };

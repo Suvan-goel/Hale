@@ -19,6 +19,13 @@ import { movementCapabilitySupportsLevel } from './movementCapabilitySafety';
 
 export const MOBILITY_COLLECTION_ID = 'mobility-flexibility';
 
+/**
+ * Pseudo block-scope for preset/manual sessions, which are not tied to any
+ * real block. Used only to key mobility-collection variety across repeated
+ * preset use — it carries no main-plan/progression meaning.
+ */
+export const PRESET_COLLECTION_EXPOSURE_SCOPE_ID = 'presets';
+
 export const MOBILITY_COLLECTION_CORE_MEMBER_IDS = [
   HAMSTRING_REACH_ID,
   THORACIC_ROTATION_ID,
@@ -225,6 +232,48 @@ export function collectionExposuresFromGeneratedSessionSummaries(input: {
       seen.add(key);
       out.push({
         blockId: input.blockId,
+        exerciseId,
+        plannedDateKey: summary.plannedDateKey,
+        completedAt: summary.completedAt,
+        completionId,
+      });
+    }
+  }
+
+  return out.sort(compareExposures);
+}
+
+/**
+ * Exposure history for preset/manual sessions (Explore), which have no real
+ * block to scope by. Deliberately simpler than the main-plan variant above:
+ * presets carry no progression/credit consequence, so this only needs to
+ * know "was this mobility exercise part of a completed preset recently" to
+ * keep repeated preset use from always landing on the same one or two
+ * stretches. Scoped under PRESET_COLLECTION_EXPOSURE_SCOPE_ID rather than a
+ * blockId.
+ */
+export function presetCollectionExposuresFromGeneratedSessionSummaries(input: {
+  summaries?: readonly PersistedGeneratedSessionSummary[] | null;
+  collectionId?: string;
+}): CollectionExposure[] {
+  const collectionId = input.collectionId ?? MOBILITY_COLLECTION_ID;
+  const validIds = new Set(collectionMembers(validCollectionLadder(collectionId)).map((level) => level.id));
+  const out: CollectionExposure[] = [];
+  const seen = new Set<string>();
+
+  for (const summary of input.summaries ?? []) {
+    if (summary.source !== 'preset' && summary.source !== 'manual') continue;
+    if (summary.status === 'skipped') continue;
+    if (!summary.plannedDateKey || !summary.completedAt) continue;
+    const completionId = summary.id;
+    if (!completionId) continue;
+    for (const exerciseId of summary.exerciseIds ?? []) {
+      if (!validIds.has(exerciseId)) continue;
+      const key = `${completionId}:${exerciseId}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({
+        blockId: PRESET_COLLECTION_EXPOSURE_SCOPE_ID,
         exerciseId,
         plannedDateKey: summary.plannedDateKey,
         completedAt: summary.completedAt,

@@ -81,6 +81,8 @@ export {
   generateTodaySession as generateDynamicTodaySession,
   getExtraSessionPreset,
   getTemplateSelection,
+  initialLadderProgressFromCheckUp,
+  initialLadderProgressFromMeasuredCapability,
   listExtraSessionPresets,
   scoreDomainFromTrainingDomain,
   selectNextSessionTemplate,

@@ -330,6 +330,9 @@ function domainFromJson(value: unknown): DomainResult | null {
     estimated: value.estimated,
     interpretation: value.interpretation,
     rows,
+    // Not persisted in the versioned snapshot (live-only calibration signal);
+    // a snapshot round-trip always yields "no signal" here.
+    primaryMetricValue: NaN,
   };
 }
 

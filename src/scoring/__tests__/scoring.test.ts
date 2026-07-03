@@ -98,6 +98,21 @@ describe('domain scoring', () => {
     expect(score).not.toHaveProperty('compositeScore');
   });
 
+  it('exposes the raw measured value behind the age mapping, and NaN when unmeasured', () => {
+    const score = scoreCheckUp(checkUp(fullItems));
+    const strength = score.domains.find((d) => d.domain === 'strength')!;
+    const balance = score.domains.find((d) => d.domain === 'balance')!;
+    const mobility = score.domains.find((d) => d.domain === 'mobility')!;
+    expect(strength.primaryMetricValue).toBe(14); // chair-stand reps
+    expect(balance.primaryMetricValue).toBe(12); // single-leg hold seconds
+    expect(mobility.primaryMetricValue).toBe(158); // shoulder flexion degrees
+
+    const items: CheckUp['items'] = [{ movementId: CHAIR_STAND_ID, status: 'skipped', result: null }];
+    const unmeasured = scoreCheckUp(checkUp(items)).domains.find((d) => d.domain === 'strength')!;
+    expect(unmeasured.measured).toBe(false);
+    expect(Number.isNaN(unmeasured.primaryMetricValue)).toBe(true);
+  });
+
   it('picks the oldest measured domain as weakest', () => {
     // Short one-leg hold → balance reads old; strong chair stand → strength reads young.
     const items: CheckUp['items'] = [

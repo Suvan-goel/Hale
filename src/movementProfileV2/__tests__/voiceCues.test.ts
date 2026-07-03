@@ -170,19 +170,19 @@ describe('Movement Profile V2 voice cues', () => {
 
   it('uses human shared recovery and acknowledgement cues', () => {
     expect(movementProfileV2CueDefinition('final-position-set-v21').text).toBe(
-      'Good. Hold that position until I tell you what to do next.'
+      "Good. Hold that position and stay still. I'll tell you when to begin."
     );
     expect(movementProfileV2CueDefinition('tracking-loss-v21').text).toBe(
       "Pause there. I've lost sight of you, so this part needs to start again. Come back into view and wait for my next instruction."
     );
     expect(movementProfileV2CueDefinition('tracking-recovered-v21').text).toBe(
-      "Good, I can see you again. Stay there and wait. I'll guide you from here."
+      "Good, I can see you again. Stay where you are and wait. I'll guide you from here."
     );
     expect(movementProfileV2CueDefinition('retry-v21').text).toBe(
       "That's okay. We'll try that part again. Take a moment, then follow my voice."
     );
     expect(movementProfileV2CueDefinition('item-complete-v21').text).toBe(
-      'Good. That part is done.'
+      "Good. That exercise is done. I'll guide what comes next."
     );
   });
 

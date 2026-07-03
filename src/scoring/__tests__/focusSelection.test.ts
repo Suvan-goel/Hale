@@ -20,6 +20,7 @@ function domainResult(domain: Domain, midpoint: number, measured = true): Domain
     estimated: false,
     interpretation: measured ? 'Measured.' : 'Not measured.',
     rows: [],
+    primaryMetricValue: measured ? midpoint : NaN,
   };
 }
 

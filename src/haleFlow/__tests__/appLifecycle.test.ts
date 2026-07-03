@@ -207,6 +207,7 @@ function domainResult(domain: Domain, age: number, measured = true): DomainResul
     estimated: false,
     interpretation: 'Measured range.',
     rows: [],
+    primaryMetricValue: age,
   };
 }
 

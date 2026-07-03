@@ -7,6 +7,8 @@ import {
   isExerciseLevelAvailableForRelease,
   transitionEvidenceKeyFor,
   transitionPolicyFor,
+  STS_CUSHION_ID,
+  STS_STANDARD_ID,
   type ExerciseDefinition,
   type ExerciseKind,
   type ExerciseLadder,
@@ -55,6 +57,7 @@ import { deriveFloorExerciseEligibility } from './floorExerciseEligibility';
 import {
   plannedCollectionSelectionFromResult,
   selectCollectionMember,
+  PRESET_COLLECTION_EXPOSURE_SCOPE_ID,
   type CollectionExposure,
   type PlannedCollectionSelection,
 } from './collectionSelection';
@@ -354,6 +357,18 @@ const WEEKS = 4;
 const SESSIONS_PER_WEEK = 3;
 const MAX_RECENT = 4;
 
+// Check-up-informed starting level (see initialLadderProgressFromCheckUp).
+// Age never chooses exercises or levels — these thresholds read only the
+// check-up's own measured value against the whole published norm table's
+// span, never the user's age. Rikli & Jones chair-stand-reps anchors run
+// ~8.5 (oldest, 92y) to ~19 (youngest, 47y); Bohannon single-leg-stance
+// anchors run ~8.5s (85y) to ~35s (50y) — see src/scoring/norms.ts.
+const STRENGTH_CALIBRATION_LADDER_ID = 'sit-to-stand';
+const STRENGTH_CALIBRATION_LOW_REPS = 8;
+const STRENGTH_CALIBRATION_HIGH_REPS = 20;
+const BALANCE_CALIBRATION_LADDER_ID = 'balance';
+const BALANCE_CALIBRATION_HIGH_HOLD_SEC = 30;
+
 const DOMAIN_ORDER: readonly TrainingDomain[] = [
   'strength_power',
   'balance_stability',
@@ -435,14 +450,39 @@ const DOMAIN_LABEL: Record<TrainingDomain, string> = {
   mobility_flexibility: 'Mobility & Flexibility',
 };
 
-export const MOVEMENT_PROFILE_V2_BALANCED_TEMPLATE_POLICY_VERSION = 1 as const;
+export const MOVEMENT_PROFILE_V2_BALANCED_TEMPLATE_POLICY_VERSION = 2 as const;
 export const MOVEMENT_PROFILE_V2_BALANCED_TEMPLATE_POLICY_FINGERPRINT =
-  'mpv2-balanced-template-policy-v1:balanced-A=strength-A;balanced-B=balance-B;balanced-C=mobility-C' as const;
+  'mpv2-balanced-template-policy-v2:rotated-by-block-id;combos=strength-A,balance-B,mobility-C|strength-B,balance-C,mobility-A|strength-C,balance-A,mobility-B' as const;
 export const MOVEMENT_PROFILE_V2_BALANCED_TEMPLATE_SOURCES = {
   'balanced-A': 'strength-A',
   'balanced-B': 'balance-B',
   'balanced-C': 'mobility-C',
 } as const;
+
+/**
+ * A balanced (tied-domain) block otherwise always played the exact same 3
+ * fixed session templates for the whole block's life. Rotating the SOURCE
+ * combo by a stable hash of the block id keeps template ids
+ * (balanced-A/B/C) — which the schedule/credit system requires to stay
+ * constant for a given block — while giving different blocks (a user's
+ * repeat block after a retest; different users) a different slot mix.
+ */
+const BALANCED_TEMPLATE_ROTATIONS: readonly {
+  strength: 'strength-A' | 'strength-B' | 'strength-C';
+  balance: 'balance-A' | 'balance-B' | 'balance-C';
+  mobility: 'mobility-A' | 'mobility-B' | 'mobility-C';
+}[] = [
+  { strength: 'strength-A', balance: 'balance-B', mobility: 'mobility-C' },
+  { strength: 'strength-B', balance: 'balance-C', mobility: 'mobility-A' },
+  { strength: 'strength-C', balance: 'balance-A', mobility: 'mobility-B' },
+];
+
+function balancedTemplateRotationIndex(seed: string | undefined): number {
+  if (!seed) return 0;
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  return hash % BALANCED_TEMPLATE_ROTATIONS.length;
+}
 
 const TRAINING_DOMAIN_BY_MOVEMENT_DOMAIN: Record<MovementDomain, TrainingDomain> = {
   strength_power: 'strength_power',
@@ -491,11 +531,12 @@ export function createSessionTemplatesForFocus(focusDomain: TrainingDomain): Ses
   return strengthTemplates();
 }
 
-export function createBalancedSessionTemplates(): SessionTemplate[] {
+export function createBalancedSessionTemplates(rotationSeed?: string): SessionTemplate[] {
+  const rotation = BALANCED_TEMPLATE_ROTATIONS[balancedTemplateRotationIndex(rotationSeed)];
   const sourceTemplates = [
-    { id: 'balanced-A' as const, source: strengthTemplates().find((item) => item.id === 'strength-A') },
-    { id: 'balanced-B' as const, source: balanceTemplates().find((item) => item.id === 'balance-B') },
-    { id: 'balanced-C' as const, source: mobilityTemplates().find((item) => item.id === 'mobility-C') },
+    { id: 'balanced-A' as const, source: strengthTemplates().find((item) => item.id === rotation.strength) },
+    { id: 'balanced-B' as const, source: balanceTemplates().find((item) => item.id === rotation.balance) },
+    { id: 'balanced-C' as const, source: mobilityTemplates().find((item) => item.id === rotation.mobility) },
   ];
 
   return sourceTemplates.map(({ id, source }) => {
@@ -680,8 +721,11 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
       sessionIntensity,
       ladderProgress: input.ladderProgress ?? {},
       usedExerciseIds,
-      collectionExposures: source === 'block_generated' ? input.collectionExposures ?? [] : [],
-      blockId: input.block?.id,
+      collectionExposures: input.collectionExposures ?? [],
+      // Preset/manual sessions have no real block; scope mobility-collection
+      // variety to a shared pseudo-block instead so repeated Explore use
+      // still rotates rather than always landing on the same stretch.
+      blockId: input.block?.id ?? (source !== 'block_generated' ? PRESET_COLLECTION_EXPOSURE_SCOPE_ID : undefined),
     });
     if (!selected) {
       const stimulus = skippedSlotStimulus(slot, equipment, movementCapabilities, painAreas);
@@ -710,7 +754,7 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
     );
   }
 
-  const estimatedMinutes = estimateSessionMinutes(exercises, readiness, workingTemplate.estimatedMinutes);
+  const estimatedMinutes = estimateSessionMinutes(exercises, readiness, workingTemplate.estimatedMinutes, skippedSlots.length > 0);
   const session: GeneratedSession = {
     id: `generated-session-${input.block?.id ?? source}-${workingTemplate.id}-${dateKey(input.today ?? new Date())}`,
     blockId: input.block?.id,
@@ -1361,8 +1405,8 @@ function beginnerPrescription(input: {
   if (input.level.domain === 'strength_power') {
     sets = Math.min(sets, 2);
     if (repsPerSet) {
-      if (id.includes('sts-cushion')) repsPerSet = Math.min(repsPerSet, 8);
-      else if (id.includes('sts-standard')) repsPerSet = Math.min(repsPerSet, 10);
+      if (id === STS_CUSHION_ID) repsPerSet = Math.min(repsPerSet, 8);
+      else if (id === STS_STANDARD_ID) repsPerSet = Math.min(repsPerSet, 10);
       else if (input.slot.type === 'upper_body_push') repsPerSet = Math.min(repsPerSet, 8);
       else repsPerSet = Math.min(repsPerSet, 8);
     }
@@ -1916,16 +1960,122 @@ function estimateExerciseMinutes(sets: number, reps?: number, seconds?: number, 
 function estimateSessionMinutes(
   exercises: readonly GeneratedExercise[],
   readiness: DailyReadiness,
-  templateMinutes: number
+  templateMinutes: number,
+  hasSkippedSlots = false
 ): number {
   if (readiness === 'short_on_time') return 10;
+  if (exercises.length === 0) return 0;
   const estimated = sum(exercises.map((e) => e.estimatedMinutes)) + Math.max(1, exercises.length - 1);
-  return Math.max(Math.min(templateMinutes, estimated), Math.min(templateMinutes, 12));
+  const cappedEstimate = Math.min(templateMinutes, estimated);
+  // A normal, fully-filled session floors at ~12 min even if per-exercise
+  // math undershoots. But when equipment/pain limits skipped one or more
+  // slots, that floor would overstate what the user is actually about to
+  // do, so an honest (still template-capped) estimate is used instead.
+  if (hasSkippedSlots) return Math.max(1, cappedEstimate);
+  return Math.max(cappedEstimate, Math.min(templateMinutes, 12));
 }
 
 function durationLabel(minutes: number, readiness: DailyReadiness): string {
   if (readiness === 'short_on_time') return 'About 10 min';
   return `${minutes} min`;
+}
+
+/**
+ * Seeds a brand-new ladder's starting level from a MEASURED capability value
+ * (chair-stand reps for strength; single-leg hold seconds for balance) —
+ * never from the user's age (age never chooses exercises or levels). Only
+ * steps one level away from the ladder's catalog default, only onto a
+ * v1_core level (adjacentLevelId already excludes v1_optional), and never
+ * overwrites a ladder that already has progress — training-earned progress
+ * always wins over a fresh check-up guess.
+ *
+ * Source-agnostic on purpose: both the legacy CheckUpScore battery and the
+ * Movement Profile V2 protocol measure the same chair-stand reps / single-leg
+ * hold seconds, just through different result shapes — see
+ * initialLadderProgressFromCheckUp (V1) and the V2 call site in App.tsx,
+ * which both funnel their raw values through this one function.
+ *
+ * Mobility has no leveled ladder to seed (mobility-flexibility is a
+ * rotation collection, not a linear progression), so it is intentionally
+ * not calibrated here.
+ */
+export function initialLadderProgressFromMeasuredCapability(input: {
+  previousLadderProgress: Record<string, LadderProgress>;
+  chairStandReps?: number | null;
+  singleLegHoldSec?: number | null;
+  nowIso: string;
+}): Record<string, LadderProgress> {
+  const next = { ...input.previousLadderProgress };
+  seedLadderFromMeasuredValue({
+    next,
+    ladderId: STRENGTH_CALIBRATION_LADDER_ID,
+    value: input.chairStandReps,
+    nowIso: input.nowIso,
+    direction: (value) => {
+      if (value <= STRENGTH_CALIBRATION_LOW_REPS) return -1;
+      if (value >= STRENGTH_CALIBRATION_HIGH_REPS) return 1;
+      return 0;
+    },
+  });
+  seedLadderFromMeasuredValue({
+    next,
+    ladderId: BALANCE_CALIBRATION_LADDER_ID,
+    value: input.singleLegHoldSec,
+    nowIso: input.nowIso,
+    // The balance ladder's default is already its easiest level, so there is
+    // no gentler level to seed a weak result into; only a strong hold moves
+    // the starting point.
+    direction: (value) => (value >= BALANCE_CALIBRATION_HIGH_HOLD_SEC ? 1 : 0),
+  });
+  return next;
+}
+
+/** V1 CheckUpScore convenience wrapper around initialLadderProgressFromMeasuredCapability. */
+export function initialLadderProgressFromCheckUp(input: {
+  previousLadderProgress: Record<string, LadderProgress>;
+  score: CheckUpScore | null | undefined;
+  nowIso: string;
+}): Record<string, LadderProgress> {
+  return initialLadderProgressFromMeasuredCapability({
+    previousLadderProgress: input.previousLadderProgress,
+    chairStandReps: measuredCheckUpDomainValue(input.score, 'strength'),
+    singleLegHoldSec: measuredCheckUpDomainValue(input.score, 'balance'),
+    nowIso: input.nowIso,
+  });
+}
+
+function measuredCheckUpDomainValue(score: CheckUpScore | null | undefined, domain: Domain): number | null {
+  const result = score?.domains.find((d) => d.domain === domain);
+  if (!result?.measured || !Number.isFinite(result.primaryMetricValue)) return null;
+  return result.primaryMetricValue;
+}
+
+function seedLadderFromMeasuredValue(input: {
+  next: Record<string, LadderProgress>;
+  ladderId: string;
+  value: number | null | undefined;
+  nowIso: string;
+  direction: (value: number) => -1 | 0 | 1;
+}): void {
+  if (input.next[input.ladderId]) return;
+  if (typeof input.value !== 'number' || !Number.isFinite(input.value)) return;
+  const direction = input.direction(input.value);
+  if (direction === 0) return;
+  const ladder = safeLadder(input.ladderId);
+  if (!ladder || ladder.progressionModel !== 'linear_progression') return;
+  const seededLevelId = adjacentLevelId(ladder, ladder.defaultLevelId, direction);
+  if (seededLevelId === ladder.defaultLevelId) return;
+  input.next[input.ladderId] = {
+    ladderId: input.ladderId,
+    currentLevelId: seededLevelId,
+    currentLevelIndex: levelIndex(input.ladderId, seededLevelId),
+    completedSessionsAtLevel: 0,
+    failedSessionsAtLevel: 0,
+    recentCompletionRates: [],
+    recentRpe: [],
+    recentPain: [],
+    updatedAt: input.nowIso,
+  };
 }
 
 function existingOrInitialProgress(
