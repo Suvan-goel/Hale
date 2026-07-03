@@ -20,6 +20,10 @@ import type {
   PoseAvatarFrameSource,
   PoseAvatarRendererHandle,
 } from './poseAvatarTypes';
+import {
+  fitFrameCanvasFill,
+  resolveSegmentationMaskFigureEnabled,
+} from './segmentationMaskFigureConfig';
 
 export type FitFramePoseTraceVisualState =
   | 'lost'
@@ -73,6 +77,9 @@ const EDGE_OVERLAY_GRADIENT_IDS = {
   bottom: 'fitFramePoseTraceEdgeBottomOverlayGradient',
 } as const;
 const EMPTY_D = 'M-9-9';
+// When the native segmentation-mask figure is on, it renders BEHIND this SVG;
+// an opaque card fill would hide it entirely.
+const CARD_FILL = fitFrameCanvasFill(resolveSegmentationMaskFigureEnabled(), colors.bgBase);
 const NO_EDGE_FLAGS: FitFrameTraceEdgeFlags = {
   left: false,
   right: false,
@@ -256,7 +263,7 @@ export const FitFramePoseTraceRenderer = React.forwardRef<
             height={frameRect.height}
             rx={frameRect.rx}
             ry={frameRect.rx}
-            fill={colors.bgBase}
+            fill={CARD_FILL}
             stroke={frameStyle.border}
             strokeWidth={frameStyle.borderWidth}
             opacity={frameStyle.frameOpacity}

@@ -10,6 +10,7 @@ import type {
   PoseDetectionViewProps,
   PoseErrorEventPayload,
 } from '../../modules/expo-pose-detection';
+import { resolveSegmentationMaskFigureEnabled } from '../render/segmentationMaskFigureConfig';
 import { colors, radius, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 
@@ -25,6 +26,8 @@ export function SafePoseDetectionView({
   fallback = null,
   onAvailabilityChange,
   onPoseError,
+  segmentationMaskFigureEnabled = resolveSegmentationMaskFigureEnabled(),
+  segmentationMaskFigureColor = colors.accentDeep,
   ...props
 }: SafePoseDetectionViewProps) {
   const availability = useCameraAvailability(cameraFacing);
@@ -61,6 +64,8 @@ export function SafePoseDetectionView({
     <PoseDetectionView
       {...props}
       cameraFacing={cameraFacing}
+      segmentationMaskFigureEnabled={segmentationMaskFigureEnabled}
+      segmentationMaskFigureColor={segmentationMaskFigureColor}
       onPoseError={handlePoseError}
     />
   );

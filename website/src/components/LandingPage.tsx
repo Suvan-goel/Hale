@@ -36,6 +36,27 @@ interface LandingPageProps {
   betaSignupEnabled: boolean;
 }
 
+const workflowVisuals = [
+  {
+    image: brandAssets.workflow.setup,
+    alt: 'A phone on a stand facing a chair and open movement space for a Hale Movement Check-Up.',
+    screenshot: null,
+    screenshotAlt: '',
+  },
+  {
+    image: brandAssets.workflow.result,
+    alt: 'A phone set on a warm home counter after a Hale Movement Check-Up.',
+    screenshot: brandAssets.screenshots.progress,
+    screenshotAlt: 'Hale app Progress screen.',
+  },
+  {
+    image: brandAssets.workflow.training,
+    alt: 'A Hale home training setup with a phone nearby and an adult doing a supported band movement.',
+    screenshot: brandAssets.screenshots.plan,
+    screenshotAlt: 'Hale app Plan screen.',
+  },
+] as const;
+
 export function LandingPage({ focus, pricing, storeLinks, betaSignupEnabled }: LandingPageProps) {
   return (
     <main id="top">
@@ -98,6 +119,16 @@ function HeroSection({
           ) : null}
         </p>
       </div>
+      <div className="hero__app-preview" aria-hidden="true">
+        <Image
+          src={brandAssets.screenshots.progress}
+          alt=""
+          width={720}
+          height={1600}
+          sizes="180px"
+          priority
+        />
+      </div>
     </section>
   );
 }
@@ -130,6 +161,15 @@ function ProblemSection() {
           <li key={point}>{point}</li>
         ))}
       </ul>
+      <div className="problem-section__visual">
+        <Image
+          src={brandAssets.dailyMovement}
+          alt="An adult standing from a chair near stairs in a warm home."
+          width={1672}
+          height={941}
+          sizes="(max-width: 900px) 100vw, 760px"
+        />
+      </div>
     </section>
   );
 }
@@ -145,15 +185,33 @@ function HowItWorksSection() {
         </p>
       </div>
       <div className="steps">
-        {howItWorks.map((step, index) => (
-          <article className="step-card" key={step.title}>
-            <span className="step-card__number">{String(index + 1).padStart(2, '0')}</span>
-            <h3>{step.title}</h3>
-            <p>{step.body}</p>
-          </article>
-        ))}
+        {howItWorks.map((step, index) => {
+          const visual = workflowVisuals[index] ?? workflowVisuals[0];
+
+          return (
+            <article className="step-card" key={step.title}>
+              <WorkflowStepMedia visual={visual} />
+              <span className="step-card__number">{String(index + 1).padStart(2, '0')}</span>
+              <h3>{step.title}</h3>
+              <p>{step.body}</p>
+            </article>
+          );
+        })}
       </div>
     </section>
+  );
+}
+
+function WorkflowStepMedia({ visual }: { visual: (typeof workflowVisuals)[number] }) {
+  return (
+    <div className="step-card__media">
+      <Image src={visual.image} alt={visual.alt} fill sizes="(max-width: 779px) 100vw, 340px" />
+      {visual.screenshot ? (
+        <div className="step-card__phone">
+          <Image src={visual.screenshot} alt={visual.screenshotAlt} width={720} height={1600} sizes="96px" />
+        </div>
+      ) : null}
+    </div>
   );
 }
 

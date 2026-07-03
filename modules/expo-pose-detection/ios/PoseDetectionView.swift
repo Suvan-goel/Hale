@@ -136,6 +136,12 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
     latencyDiagnosticsEnabled = value
   }
 
+  // Android-only for now: the iOS mask figure lands after the Android
+  // spike passes its fps/edge-quality gate (see docs/decisions.md).
+  func setSegmentationMaskFigureEnabledProp(_ value: Bool) {}
+
+  func setSegmentationMaskFigureColorProp(_ value: String) {}
+
   func setAndroidPipelineModeProp(_ value: String) {}
 
   func setAndroidRotationModeProp(_ value: String) {}
@@ -196,6 +202,9 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
       return
     }
     running = true
+    // Hands-free sessions run for minutes with no touches; hold the screen on
+    // while the camera is live so the device never dims or locks mid-recording.
+    UIApplication.shared.isIdleTimerDisabled = true
     lastTimestampMs = -1
     frameId = 0
     sessionQueue.async { [weak self] in
@@ -223,6 +232,7 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
 
   private func stop() {
     running = false
+    UIApplication.shared.isIdleTimerDisabled = false
     sessionQueue.async { [weak self] in
       guard let self else { return }
       if self.session.isRunning {

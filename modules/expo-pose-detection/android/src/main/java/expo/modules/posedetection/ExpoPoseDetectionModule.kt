@@ -70,6 +70,12 @@ class ExpoPoseDetectionModule : Module() {
       Prop("latencyDiagnosticsEnabled") { view: PoseDetectionView, value: Boolean ->
         view.setLatencyDiagnosticsEnabledProp(value)
       }
+      Prop("segmentationMaskFigureEnabled") { view: PoseDetectionView, value: Boolean ->
+        view.setSegmentationMaskFigureEnabledProp(value)
+      }
+      Prop("segmentationMaskFigureColor") { view: PoseDetectionView, value: String ->
+        view.setSegmentationMaskFigureColorProp(value)
+      }
       Prop("androidPipelineMode") { view: PoseDetectionView, value: String ->
         view.setAndroidPipelineModeProp(value)
       }

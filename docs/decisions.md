@@ -2580,3 +2580,52 @@ PUBLIC RELEASE REMAINS BLOCKED
   no-gamification law.
 - **Status:** awaiting product-owner sign-off before any implementation. If approved, the
   V1 non-goals list in CLAUDE.md should be amended in the same change.
+
+## 2026-07-03 — Screen stays awake while the camera runs (native, not expo-keep-awake)
+
+- **Problem:** during hands-free sessions the OS idle timer dimmed and locked the screen
+  mid-recording — the user never touches the screen (audio-first law), so nothing resets
+  the timer.
+- **Decision:** hold the screen awake inside `PoseDetectionView`'s native start/stop
+  lifecycle on both platforms — Android `View.keepScreenOn`, iOS
+  `UIApplication.isIdleTimerDisabled` — instead of the JS `useKeepAwake()` hook
+  (expo-keep-awake ships transitively with the `expo` package, so either was dependency-free).
+  Native wins because the wake lock's lifetime exactly matches the camera session: every
+  current and future screen that runs the camera gets it for free, it can't be forgotten on
+  a new screen, and it releases even if JS tears down uncleanly. Session screens keep the
+  view `active` through rest timers, so the screen stays on for the whole session.
+- **Verification:** `:expo-pose-detection:compileDebugKotlin` clean. **Owed:** on-device
+  check that the screen no longer dims during a session; iOS compile is verified at the
+  next iOS build (two-line change, stock UIKit API).
+
+## 2026-07-03 — Segmentation-mask matte figure added behind a default-off flag (Android)
+
+- **Context:** the fit-frame pose trace was judged too abstract and too jittery by the
+  product owner. Direction chosen: render the MediaPipe person segmentation mask as the
+  recording figure — the user's true contour as a tinted matte. This is not camera video:
+  background pixels are never rendered, only a brand-green alpha matte of the person, so
+  product law #1 (no self-view video) stands.
+- **Change:** `PoseLandmarker` segmentation output and a native
+  `SegmentationMaskFigureRenderer` (Android) — per-pixel asymmetric EMA over mask
+  confidence (fast attack / slow release) to convert boundary flicker into a feathered
+  edge, 2x downsample, upright-rotation remap, double-buffered bitmap, contain-fit +
+  mirror draw identical to the JS fit-frame math. Wired via new view props
+  `segmentationMaskFigureEnabled` / `segmentationMaskFigureColor` (iOS accepts and
+  ignores). JS default comes from `EXPO_PUBLIC_SEGMENTATION_MASK_FIGURE` (off unless
+  `1|on|true`) resolved in `SafePoseDetectionView`; when on, the fit-frame card fill goes
+  transparent so the native figure shows through. Masks never cross the JS bridge.
+- **Gates before this can default on:** (1) inference fps with masks enabled on the
+  mid-range Android device — masks recreate the landmarker with segmentation output, which
+  costs inference time; latency diagnostics already report `outputSegmentationMasks` and
+  `resultFps`; (2) mask edge quality in dim domestic evening light at ~3 m; (3) alignment
+  QA in shell flows whose `poseWindow` content window differs from the full viewport —
+  the native figure contain-fits the whole native view, not the JS content window;
+  (4) subject-gone behavior (figure hides instantly on empty landmarks — verify no ghost).
+  iOS implementation is deliberately deferred until the Android spike passes.
+- **Known limits:** record/replay stores landmark JSONL only — mask visuals are not
+  reproducible in the replay harness; the mask segments any person, so multi-person scenes
+  rely on the landmark-empty gate rather than subject validity. Extraction failures
+  self-disable after 3 attempts and emit one `segmentation-mask-extract-failed` pose error.
+- **Verification:** `npx tsc --noEmit` clean; targeted jest suites (recording visual,
+  fit-frame geometry, new `segmentationMaskFigureConfig` tests) pass;
+  `:expo-pose-detection:compileDebugKotlin` clean. **Owed:** all four on-device gates.

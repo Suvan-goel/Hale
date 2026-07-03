@@ -167,6 +167,16 @@ export type PoseDetectionViewProps = {
   minTrackingConfidence?: number;
   minPresenceConfidence?: number;
   latencyDiagnosticsEnabled?: boolean;
+  /**
+   * Renders the MediaPipe person segmentation mask natively as a tinted matte
+   * figure (the user's true contour — never camera pixels). Enabling this
+   * recreates the landmarker with segmentation output on, which costs
+   * inference time; check latency diagnostics before defaulting it anywhere.
+   * Android-only for now; iOS accepts and ignores it.
+   */
+  segmentationMaskFigureEnabled?: boolean;
+  /** RGB tint for the mask figure. Alpha is managed natively. */
+  segmentationMaskFigureColor?: string;
   androidPipelineMode?: AndroidPosePipelineMode;
   androidRotationMode?: AndroidPoseRotationMode;
   androidAnalysisResolution?: AndroidPoseAnalysisResolution;

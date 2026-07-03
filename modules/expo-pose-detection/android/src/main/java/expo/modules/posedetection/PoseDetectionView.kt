@@ -46,7 +46,7 @@ private const val LANDMARK_COUNT = 33
 private const val LANDMARK_STRIDE = 5
 private const val DEFAULT_SKELETON_CONFIDENCE = 0.35
 private const val NUM_POSES = 1
-private const val OUTPUT_SEGMENTATION_MASKS = false
+private const val DEFAULT_MASK_FIGURE_COLOR = "#414C34"
 private const val DEFAULT_MODEL_VARIANT = "full"
 private const val DEFAULT_MODEL_ASSET = "pose_landmarker_full.task"
 private const val DEFAULT_PIPELINE_MODE = "full-video-sync"
@@ -266,6 +266,13 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
     nowMs = { nativeNowMs() },
     requestDraw = { postInvalidateOnAnimation() },
   )
+  private val segmentationMaskFigureRenderer = SegmentationMaskFigureRenderer(
+    requestDraw = { postInvalidateOnAnimation() },
+  ).also { renderer ->
+    renderer.onExtractionUnavailable = { message ->
+      mainHandler.post { onPoseError(mapOf("message" to message)) }
+    }
+  }
   private var latestSkeletonLandmarks = DoubleArray(0)
   private var latestSkeletonSourceWidth = 1
   private var latestSkeletonSourceHeight = 1
@@ -278,6 +285,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
   private var minTrackingConfidence = 0.35f
   private var minPresenceConfidence = 0.35f
   private var latencyDiagnosticsEnabled = false
+  private var segmentationMaskFigureEnabled = false
   private var nativeSkeletonOverlayEnabled = false
   private var nativeBenchmarkOverlayMode = "off"
   private var nativeBenchmarkOverlayResetKey = 0
@@ -330,6 +338,21 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
 
   fun setLatencyDiagnosticsEnabledProp(value: Boolean) {
     latencyDiagnosticsEnabled = value
+  }
+
+  fun setSegmentationMaskFigureEnabledProp(value: Boolean) {
+    if (segmentationMaskFigureEnabled == value) return
+    segmentationMaskFigureEnabled = value
+    segmentationMaskFigureRenderer.clear()
+    // Landmarker options changed: masks are only produced when requested at creation.
+    restartIfRunning()
+  }
+
+  fun setSegmentationMaskFigureColorProp(value: String) {
+    segmentationMaskFigureRenderer.setColor(
+      parseColorOr(value, Color.parseColor(DEFAULT_MASK_FIGURE_COLOR))
+    )
+    postInvalidateOnAnimation()
   }
 
   fun setAndroidPipelineModeProp(value: String) {
@@ -398,6 +421,9 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
 
   override fun onDraw(canvas: Canvas) {
     super.onDraw(canvas)
+    if (segmentationMaskFigureEnabled) {
+      segmentationMaskFigureRenderer.draw(canvas, width, height, cameraFacing != "back")
+    }
     constellationV2OverlayRenderer.draw(canvas, width, height, cameraFacing != "back")
     if (!nativeSkeletonOverlayEnabled) return
     drawNativeSkeleton(canvas)
@@ -436,6 +462,9 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
       return
     }
     running = true
+    // Hands-free sessions run for minutes with no touches; hold the screen on
+    // while the camera is live so the device never dims or locks mid-recording.
+    keepScreenOn = true
     lastTimestampMs = -1L
     frameId = 0L
     lastResultFrameId = 0L
@@ -800,6 +829,23 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
       nativePostprocessEndMs = nativePostprocessEndMs,
       resultFlattenMs = flattenEndMs - flattenStartMs,
     )
+    if (segmentationMaskFigureEnabled) {
+      // Extract synchronously: in live-stream mode the mask images are only
+      // valid inside the result callback. The result owns the mask MPImages;
+      // they are ByteBuffer-backed and GC-managed, so they are not closed here.
+      val masks = result.segmentationMasks()
+      val maskList = if (masks.isPresent) masks.get() else null
+      if (flat.isEmpty() || maskList.isNullOrEmpty()) {
+        segmentationMaskFigureRenderer.submitNoSubject()
+      } else {
+        segmentationMaskFigureRenderer.submitMask(
+          mask = maskList[0],
+          rotationDegrees = landmarkRotationDegrees,
+          uprightWidth = width,
+          uprightHeight = height,
+        )
+      }
+    }
     constellationV2OverlayRenderer.submitPose(
       frameId = frameId,
       sourceTimestampMs = timestampMs.toDouble(),
@@ -905,7 +951,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
       mpImageWidth = mpImageWidth,
       mpImageHeight = mpImageHeight,
       numPoses = NUM_POSES,
-      outputSegmentationMasks = OUTPUT_SEGMENTATION_MASKS,
+      outputSegmentationMasks = segmentationMaskFigureEnabled,
       cameraInputFps = cameraInputRate.hz(nativeNowMs()),
       acceptedFrameFps = acceptedFrameRate.hz(nativeNowMs()),
       submittedInferenceFps = submittedInferenceRate.hz(nativeNowMs()),
@@ -1135,7 +1181,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
       .setMinPoseDetectionConfidence(minDetectionConfidence)
       .setMinTrackingConfidence(minTrackingConfidence)
       .setMinPosePresenceConfidence(minPresenceConfidence)
-      .setOutputSegmentationMasks(OUTPUT_SEGMENTATION_MASKS)
+      .setOutputSegmentationMasks(segmentationMaskFigureEnabled)
     if (runningMode == RunningMode.LIVE_STREAM) {
       builder
         .setResultListener { result, input -> onLiveStreamResult(result, input) }
@@ -1185,9 +1231,11 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
 
   private fun stop() {
     running = false
+    keepScreenOn = false
     sessionGeneration += 1L
     nativeEventScheduler.cancel()
     constellationV2OverlayRenderer.reset()
+    segmentationMaskFigureRenderer.clear()
     inferenceInFlight.set(false)
     clearPendingInference(closeImage = true)
     cameraProvider?.unbindAll()
