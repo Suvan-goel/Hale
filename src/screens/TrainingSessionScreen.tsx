@@ -62,6 +62,9 @@ import type {
   PoseAvatarActiveDomain,
   PoseAvatarRendererHandle,
 } from '../render/poseAvatarTypes';
+import { addBreadcrumb, captureError } from '../services/observability/sentry';
+import { buildStoredSessionFunnel, SessionFunnelStore } from '../telemetry';
+import { expoSessionFunnelFs } from '../telemetry/fsAdapter';
 import { colors, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 import {
@@ -263,9 +266,11 @@ export function TrainingSessionScreen({
 }) {
   const [pipeline] = React.useState(() => new PosePipeline());
   const [preflight] = React.useState(() => new PreflightCheck());
+  const [sessionStartedAtIso] = React.useState(() => new Date().toISOString());
+  const [funnelStore] = React.useState(() => new SessionFunnelStore(expoSessionFunnelFs));
   const [player] = React.useState(
     () =>
-      new TrainingSessionPlayer(new Date().toISOString(), exerciseIds, preflight, undefined, {
+      new TrainingSessionPlayer(sessionStartedAtIso, exerciseIds, preflight, undefined, {
         generatedExercises,
         trainingVoiceMode: internalRuntime?.trainingVoiceMode,
         stepUpAlternationFeatureEnabled: internalRuntime?.stepUpAlternationFeatureEnabled,
@@ -290,6 +295,7 @@ export function TrainingSessionScreen({
   const completedRef = React.useRef(false);
   const discardWasPausedRef = React.useRef(false);
   const trackingSfxStateRef = React.useRef<MeasurementTrackingSfxState>('idle');
+  const setupIssueSeenRef = React.useRef(false);
   const lastTrainingPhaseRef = React.useRef<TrainingPhase | null>(null);
   const lastSetKindRef = React.useRef<ExerciseDefinition['kind'] | null>(null);
   const [snapshot, setSnapshot] = React.useState<Snapshot>({ ...INITIAL, totalItems: exerciseIds.length });
@@ -318,6 +324,45 @@ export function TrainingSessionScreen({
       sfx.release();
     };
   }, [recorder, voice, sfx]);
+
+  const funnelRecordedRef = React.useRef(false);
+  const recordFunnel = React.useCallback(
+    (outcome: 'completed' | 'abandoned') => {
+      if (funnelRecordedRef.current) return;
+      funnelRecordedRef.current = true;
+      const funnel = player.funnelSnapshot();
+      try {
+        funnelStore.save(
+          buildStoredSessionFunnel({
+            startedAt: sessionStartedAtIso,
+            endedAt: new Date().toISOString(),
+            outcome,
+            funnel,
+          })
+        );
+      } catch (error) {
+        captureError(error, { area: 'telemetry', action: 'session_funnel_save' });
+      }
+      addBreadcrumb('training.session_funnel', {
+        outcome,
+        endedInPhase: funnel.endedInPhase,
+        items: funnel.items.length,
+        setupIssueCount: funnel.setupIssueCount,
+        timeToFirstSetMs: funnel.timeToFirstSetMs,
+        timeToFirstRepMs: funnel.timeToFirstRepMs,
+      });
+    },
+    [funnelStore, player, sessionStartedAtIso]
+  );
+
+  // Any exit without a completed result is an abandonment; unmount covers
+  // stop/back/navigation in one place (recordFunnel is idempotent, so a
+  // completed session never double-records).
+  React.useEffect(() => {
+    return () => {
+      recordFunnel('abandoned');
+    };
+  }, [recordFunnel]);
 
   const onLandmarks = React.useCallback(
     (e: { nativeEvent: LandmarksEventPayload }) => {
@@ -381,11 +426,19 @@ export function TrainingSessionScreen({
 
       if (u.phase === 'done' && !completedRef.current) {
         completedRef.current = true;
+        recordFunnel('completed');
         sfx.play('session-complete');
         const result = player.result;
         if (result) onComplete(result);
         return;
       }
+      if (u.phase !== lastTrainingPhaseRef.current) {
+        addBreadcrumb('training.phase', { phase: u.phase, itemIndex: u.itemIndex });
+      }
+      if (u.setupIssue && !setupIssueSeenRef.current) {
+        addBreadcrumb('training.setup_issue', { itemIndex: u.itemIndex, exerciseId: u.currentExerciseId });
+      }
+      setupIssueSeenRef.current = u.setupIssue;
       lastTrainingPhaseRef.current = u.phase;
       lastSetKindRef.current = currentSetDef?.kind ?? null;
 
@@ -429,7 +482,7 @@ export function TrainingSessionScreen({
         });
       }
     },
-    [pipeline, poseLatencyDiagnostics, player, voice, sfx, recorder, onComplete, exerciseIds.length, internalRuntime]
+    [pipeline, poseLatencyDiagnostics, player, voice, sfx, recorder, onComplete, recordFunnel, exerciseIds.length, internalRuntime]
   );
 
   const onPoseError = React.useCallback((e: { nativeEvent: PoseErrorEventPayload }) => {

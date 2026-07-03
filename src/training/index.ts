@@ -21,6 +21,7 @@ export type {
   TrainingPlayerConfig,
   TrainingSessionResult,
 } from './sessionPlayer';
+export type { TrainingItemFunnel, TrainingSessionFunnel } from './sessionFunnel';
 export {
   createTrainingSetRuntime,
   selectTrainingSetRuntime,

@@ -28,6 +28,7 @@ import {
 } from '../preflight/movementCameraReadiness';
 import { PreflightCheck, PreflightPrompt, PreflightStatus } from '../preflight/preflight';
 import { shouldSpeakFramingPrompt } from '../preflight/promptTiming';
+import { SessionFunnelTracker, TrainingSessionFunnel } from './sessionFunnel';
 import {
   SESSION_GLOBAL_SAFETY_CUE_IDS,
   plannedSafetyCueSnapshotForExercises,
@@ -70,6 +71,8 @@ export interface TrainingItemResult {
 export interface TrainingSessionResult {
   startedAt: string;
   items: TrainingItemResult[];
+  /** Setup-funnel instrumentation; absent on records stored before it existed. */
+  funnel?: TrainingSessionFunnel;
 }
 
 export type TrainingFloorEnvironment = 'standing' | 'floor' | 'unknown';
@@ -208,6 +211,7 @@ export class TrainingSessionPlayer {
   private readonly movementReadiness = new MovementCameraReadinessTracker({
     stableMs: TRAINING_FLOOR_SETUP_STABLE_DWELL_MS,
   });
+  private readonly funnel = new SessionFunnelTracker();
   private readonly results: TrainingItemResult[] = [];
   private readonly update_: TrainingFrameUpdate = {
     phase: 'intro',
@@ -314,6 +318,11 @@ export class TrainingSessionPlayer {
     return this.finished;
   }
 
+  /** Live funnel snapshot — the app layer persists this when a session is abandoned. */
+  funnelSnapshot(): TrainingSessionFunnel {
+    return this.funnel.snapshot(this.phase, this.phase === 'done');
+  }
+
   retrySetup(): void {
     if (this.floorSetup && this.phase === 'instructions') {
       const handsFreeSetup = this.shouldUseHandsFreeTrainingSetup();
@@ -398,6 +407,7 @@ export class TrainingSessionPlayer {
     this.cancelFloorSetup();
     this.countdownAwaitingTrackedGo = false;
     this.setupIssue = false;
+    this.funnel.itemSkipped();
     this.runtime?.cancel(this.lastTimestampMs);
     // Sets already completed before the skip stay in the result (measurement
     // data is never thrown away); the skipped status still excludes the item
@@ -474,6 +484,7 @@ export class TrainingSessionPlayer {
     this.restEnteredMs += deltaMs;
     this.preflight.shiftTiming(deltaMs);
     this.movementReadiness.shiftTiming(deltaMs);
+    this.funnel.shiftTiming(deltaMs);
     if (this.floorSetup?.finalPositionReadyAtMs !== null && this.floorSetup?.finalPositionReadyAtMs !== undefined) {
       this.floorSetup = {
         ...this.floorSetup,
@@ -501,6 +512,7 @@ export class TrainingSessionPlayer {
     u.setRuntimeKind = this.runtime?.kind ?? null;
     const ts = out.frame.timestampMs;
     this.lastTimestampMs = ts;
+    this.funnel.sessionStarted(ts);
     const status = this.preflight.update(out);
 
     switch (this.phase) {
@@ -632,6 +644,7 @@ export class TrainingSessionPlayer {
     if (this.transitionCuePending === null && !voiceBusy && settled) {
       this.itemEnteredMs = ts;
       const def = this.currentDefinition();
+      if (def) this.funnel.itemSetupStarted(def.id, ts);
       if (def && this.shouldUseFloorSetupV21(def) && this.floorMemory.currentEnvironment === 'floor') {
         this.enterFloorSetup(ts, u);
         return;
@@ -657,6 +670,7 @@ export class TrainingSessionPlayer {
       return;
     }
     if (status.phase === 'ready' && out.bodyUnit !== null) {
+      this.funnel.framingReady(ts);
       const def = this.definitions[this.itemIndex];
       if (this.shouldUseFloorSetupV21(def)) {
         this.enterFloorSetup(ts, u);
@@ -678,6 +692,7 @@ export class TrainingSessionPlayer {
     // Ask the user what to do instead of silently skipping.
     if (ts - this.itemEnteredMs >= this.config.maxFramingMs) {
       this.setupIssue = true;
+      this.funnel.setupIssueLatched();
       u.setupIssue = true;
       this.emitSafety(u, ['tracking_pause_and_reset'], !voiceBusy);
       this.setupIssueRecoverySpoken = !voiceBusy;
@@ -1003,6 +1018,7 @@ export class TrainingSessionPlayer {
   }
 
   private beginSet(ts: number): void {
+    this.funnel.setStarted(ts);
     const def = this.definitions[this.itemIndex];
     this.runtime = createTrainingSetRuntime({
       exerciseDefinition: def,
@@ -1031,6 +1047,7 @@ export class TrainingSessionPlayer {
     const runtimeUpdate = runtime.update(out);
     const g = runtimeUpdate.setUpdate;
     u.playRepSound = runtime.kind === 'step_up_alternation' ? !!runtimeUpdate.acceptedRepEvent : g.repCredited;
+    if (u.playRepSound) this.funnel.repCredited(ts);
     u.repCount = g.repCount;
     u.holdMs = g.holdMs;
     u.measuring = g.measuring;
@@ -1134,7 +1151,11 @@ export class TrainingSessionPlayer {
     for (let i = this.results.length; i < this.definitions.length; i++) {
       this.results.push({ exerciseId: this.definitions[i].id, status: 'skipped', sets: [] });
     }
-    this.finished = { startedAt: this.startedAtIso, items: this.results.slice() };
+    this.finished = {
+      startedAt: this.startedAtIso,
+      items: this.results.slice(),
+      funnel: this.funnel.snapshot('done', true),
+    };
   }
 
   private currentSafetyProfile(): PlannedExerciseSafetyCueProfile | null {
