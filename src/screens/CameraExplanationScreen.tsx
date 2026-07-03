@@ -27,6 +27,10 @@ const CHECKUP_POINTS = [
 
 const PRIVACY_POINTS = [
   {
+    title: 'No video is saved',
+    body: 'The camera measures your movement in the moment. Pictures and video are never saved, shown, or sent anywhere.',
+  },
+  {
     title: 'Saved on this phone',
     body: 'Hale saves your movement results and settings on this device.',
   },
