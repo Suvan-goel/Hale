@@ -2402,3 +2402,60 @@ PUBLIC RELEASE REMAINS BLOCKED
   day boundaries near midnight UTC to shift by one day. The stall guard covers balance ceiling
   and chair deadline; shoulder/hinge deadlines were already safe via their valid-tracking
   minimums.
+
+## 2026-07-03 — Sprint 1 of the trust/friction/habit plan: instrument, prime, resume, fast re-frame
+
+- **Context:** product direction discussion (2026-07-03) prioritized reducing session friction
+  and building instrument trust ahead of wider beta. Sprint 1 is deliberately
+  measurement-first: instrument the setup funnel before optimizing it, and fix the known
+  session-loss paths. Rise-velocity noise-floor validation proceeds in parallel with rollout
+  (product-owner decision) and is explicitly not a blocker for this work.
+- **Change (funnel instrumentation):** `TrainingSessionPlayer` now tracks a per-session setup
+  funnel (per-item framing/first-set durations, setup-issue latches, time to first set/rep),
+  frame-timestamp-driven so replays reproduce it exactly. Completed sessions carry it in the
+  result; abandoned sessions are captured on screen unmount. Records persist to a new
+  local-only `src/telemetry` store (schema-versioned JSON per session, deliberately separate
+  from product data), with sanitized Sentry breadcrumbs on phase changes and outcomes. The
+  go/no-go for the larger audio-only-session investment (Phase 3 of the friction plan) reads
+  from this data, not assumptions.
+- **Change (permission priming copy):** the camera-explanation screen now leads its privacy
+  points with the camera promise itself, worded to stay accurate against current telemetry
+  reality: images processed in the moment, never saved/shown/uploaded; movement *results*
+  stored on this phone.
+- **Change (session resume):** planned sessions write a schema-versioned snapshot of finished
+  items at item boundaries (`TrainingStore`, single overwritten file) and clear it on
+  completion. When the same plan (block + template + planned local day + exercise list) is
+  started again, the session continues after the last finished item and the merged result is
+  evaluated whole. Explicit stop keeps the snapshot (the preview offers Continue / Start over);
+  in-flight sets are never restored — same honesty rule as the 2026-07-02 pause fix. A
+  fully-banked snapshot (death during the closing line) clears and the session restarts rather
+  than crediting an unfinalized run.
+- **Change (preflight fast path):** `PreflightCheck` gains opt-in `passedSampleMs`
+  (training config = 0.5 s): after one full 2 s lighting/stability pass in a session, later
+  per-item re-checks keep the framing gate but shorten the sample. Camera-view changes and
+  setup retries revoke it via `requireFullSample()`. Check-up/micro-check configs are
+  untouched — the shortcut exists only where the camera is a session pacer, not an instrument.
+- **Deferred:** the spoken week-position at session close ("that's two of three this week")
+  waits for the in-flight Training Voice V2.1 cue rework to land — it needs new cue contracts
+  and ElevenLabs generation for both voices, and colliding with that WIP now would tangle two
+  unfinished changes in the same files.
+- **Verification:** `npx tsc --noEmit` clean; targeted suites green (funnel, resume, preflight,
+  player, check-up/assessment; 53 + 129 tests), plus the full-suite state matching the known
+  4 pre-existing voice-activation failures. **Owed:** on-device verification of resume and the
+  fast re-frame with a landmark recording, per working agreements (pose behavior can't be
+  exercised in the emulator).
+
+## 2026-07-03 — PROPOSAL: reopen the "no notifications" non-goal for on-device reminders
+
+- **Context:** the workout-reminder toggle stores a preference and schedules nothing
+  (2026-06-15 prototype exception). Habit analysis in today's product discussion identified
+  the missing cue as the largest gap in the retention loop: the app has routine and repair
+  machinery (restart sessions, flexible adjustments, week progress) but no cue side at all.
+- **Proposal:** upgrade the toggle to real *local* scheduled notifications (expo-notifications)
+  anchored to a user-chosen routine moment ("after morning coffee"), per implementation-
+  intention evidence. No server push, nothing leaves the device — the original non-goal
+  ("push notifications") targeted server infrastructure and engagement spam; an on-device,
+  user-set, easily-silenced reminder violates neither the local-only rule nor the
+  no-gamification law.
+- **Status:** awaiting product-owner sign-off before any implementation. If approved, the
+  V1 non-goals list in CLAUDE.md should be amended in the same change.
