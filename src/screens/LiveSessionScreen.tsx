@@ -31,8 +31,8 @@ import { PreflightCheck, PreflightPrompt } from '../preflight/preflight';
 import { PreflightBanner } from '../preflight/PreflightBanner';
 import { LandmarkRecorder } from '../recording/recorder';
 import { DevOverlay, OverlaySnapshot } from '../render/DevOverlay';
-import { SkeletonView, SkeletonViewHandle } from '../render/SkeletonView';
-import type { PoseAvatarMeasurementState } from '../render/poseAvatarTypes';
+import { MediaPipeSkeletonRenderer } from '../render/MediaPipeSkeletonRenderer';
+import type { PoseAvatarRendererHandle } from '../render/poseAvatarTypes';
 import { colors, spacing, type } from '../theme';
 
 const UI_UPDATE_INTERVAL_MS = 100; // ~10fps for React state
@@ -51,7 +51,7 @@ export function LiveSessionScreen() {
   const [pipeline] = React.useState(() => new PosePipeline());
   const [recorder] = React.useState(() => new LandmarkRecorder());
   const [preflight] = React.useState(() => new PreflightCheck());
-  const skeletonRef = React.useRef<SkeletonViewHandle>(null);
+  const skeletonRef = React.useRef<PoseAvatarRendererHandle>(null);
   const lastUiUpdateRef = React.useRef(0);
   const inferenceMsRef = React.useRef(0);
   const [snapshot, setSnapshot] = React.useState<OverlaySnapshot>(INITIAL_SNAPSHOT);
@@ -117,7 +117,6 @@ export function LiveSessionScreen() {
       recorder.start();
     }
   }, [recorder]);
-  const avatarMeasurementState = liveAvatarState(prompt.key);
 
   return (
     <View style={styles.container}>
@@ -133,22 +132,7 @@ export function LiveSessionScreen() {
       {cameraAvailability === 'unavailable' ? (
         <CameraUnavailableNotice />
       ) : (
-        <SkeletonView
-          ref={skeletonRef}
-          mirrored
-          frameSource="raw"
-          smoothingEnabled={false}
-          pointCloudBodyDensity="high"
-          pointCloudBodyMaxDots={900}
-          pointCloudBodyDotScale={1.72}
-          confidenceFadingEnabled={false}
-          confidenceIntensityEnabled={false}
-          reacquisitionFadeEnabled={false}
-          recognitionPulseEnabled={false}
-          measurementState={avatarMeasurementState}
-          setupGuidesEnabled={false}
-          stateTransitionsEnabled={false}
-        />
+        <MediaPipeSkeletonRenderer ref={skeletonRef} mirrored frameSource="raw" />
       )}
       <PreflightBanner prompt={prompt.key} sampleProgress={prompt.progress} />
       <DevOverlay snapshot={snapshot} onToggleRecording={onToggleRecording} />
@@ -160,12 +144,6 @@ export function LiveSessionScreen() {
       )}
     </View>
   );
-}
-
-function liveAvatarState(prompt: PreflightPrompt): PoseAvatarMeasurementState {
-  if (prompt === 'ready') return 'ready';
-  if (prompt === 'step-into-frame') return 'setup';
-  return 'framing';
 }
 
 const styles = StyleSheet.create({

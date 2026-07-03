@@ -2652,3 +2652,33 @@ PUBLIC RELEASE REMAINS BLOCKED
   `expo config` clean.
 - **If support/family returns:** design it against the real backend (invites, sharing) rather
   than reviving these local stubs; git history has them if needed.
+
+## 2026-07-03 — App-simplification Stage 2: avatar experiment graveyard removed
+
+- **Context:** Stage 2 of the approved simplification plan. The Fit Frame Pose Trace has been
+  the default recording visual on every surface since 2026-06-29; twelve rejected renderer
+  families, two developer screens, and four per-surface rollback flags remained.
+- **Removed:** all benchmark-only renderers and their geometry (point cloud body, constellation,
+  premium constellation human, rigged human silhouette, soft digital twin, soft/shadow/privacy/
+  volumetric silhouettes, sprite limb, contour field, art-directed human, classic), the
+  `PoseAvatarRenderer`/`SkeletonView` dispatch stack and `poseAvatarConfig` env machinery,
+  `PoseOverlayBenchmarkScreen`, `FitFramePoseTracePreviewScreen` (+ its Settings row and flows),
+  the `poseRendererReplay` benchmark harness + script, and the four
+  `EXPO_PUBLIC_DISABLE_FIT_FRAME_*` rollback flags (env example, eas.json, configs).
+  `EXPO_PUBLIC_ENABLE_POSE_RENDERER_BENCHMARKS` is gone from the release-flag audit,
+  app.config.js, eas.json, and the verify scripts.
+- **Kept:** `FitFramePoseTraceRenderer` (the shipped visual), `MediaPipeSkeletonRenderer`
+  (debug skeleton; now drives the dev-only Live screen directly), `RecordingVisualSurface`
+  as the single owner of the recording visual, the in-flight segmentation-mask figure work,
+  and the record/replay + latency diagnostics that are not renderer-comparison tooling.
+- **Behavioral note:** the removed rollback flags were unset everywhere, so every production
+  surface already rendered Fit Frame unconditionally — runtime behavior is unchanged. The
+  per-screen avatar-state plumbing (`avatarMeasurementState`/`avatarDomain` → SkeletonView)
+  fed only the dead fallback and is gone; `CheckUpRecordingShell.renderRecordingArea` is now
+  required. A new `recordingVisualSurfaceWiring` test guards the single-camera-path invariant.
+- **Verification:** tsc clean, expo config clean, 1,413 tests passing with only the same 4
+  pre-existing voice-activation failures as the recorded baseline. Owed: routine on-device
+  smoke of one recording flow at the next device session (expected no visual change).
+- **If a new figure direction is wanted:** build it as a candidate next to Fit Frame (like the
+  segmentation-mask experiment), not by reviving the deleted dispatch stack; git history has
+  every experiment.

@@ -99,7 +99,6 @@ type SettingsScreenProps = {
   onOpenLifeGoal: () => void;
   onOpenSafetyProfile: () => void;
   onOpenCameraSetup: () => void;
-  onOpenFitFramePoseTracePreview?: () => void;
   onReplayOnboardingForDev?: () => void;
   onBack?: () => void;
 };
@@ -123,7 +122,6 @@ function SettingsScreenContent({
   onOpenLifeGoal,
   onOpenSafetyProfile,
   onOpenCameraSetup,
-  onOpenFitFramePoseTracePreview,
   onReplayOnboardingForDev,
   onBack,
 }: SettingsScreenProps) {
@@ -146,9 +144,7 @@ function SettingsScreenContent({
   const planSummary = `${preferredDaysSummary(preferredDays)} · ${effortLabel}`;
   const selectedVoiceLabel = getVoice(settings.voiceId).label;
   const showInternalDeveloperSettings = !!onReplayOnboardingForDev;
-  const showDeveloperSettings =
-    showInternalDeveloperSettings ||
-    !!onOpenFitFramePoseTracePreview;
+  const showDeveloperSettings = showInternalDeveloperSettings;
 
   React.useEffect(() => setName(profile.name), [profile.name]);
   React.useEffect(() => {
@@ -555,15 +551,6 @@ function SettingsScreenContent({
               subtitle="Open the first-run flow without clearing app data."
               icon="sliders"
               onPress={onReplayOnboardingForDev}
-              showDivider={!!onOpenFitFramePoseTracePreview}
-            />
-          ) : null}
-          {onOpenFitFramePoseTracePreview ? (
-            <ProfileMenuRow
-              title="Recording visual diagnostics"
-              subtitle="Inspect the default Fit Frame recording visual."
-              icon="camera"
-              onPress={onOpenFitFramePoseTracePreview}
             />
           ) : null}
         </SettingsSection>

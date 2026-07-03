@@ -19,7 +19,6 @@ import {
 import { SfxChannel, VoiceChannel } from '../audio/voicePlayer';
 import { CheckUpOrchestrator, CheckUpPhase, DEFAULT_BATTERY, DEFAULT_CHECKUP_CONFIG } from '../checkup';
 import { CheckUp } from '../checkup/types';
-import { FIT_FRAME_CHECKUP_RECORDING_VISUAL_ENABLED } from '../config/fitFrameCheckUpRecordingVisual';
 import type { CameraAvailability } from '../components/SafePoseDetectionView';
 import { PoseLatencyDiagnosticsOverlay } from '../diagnostics/PoseLatencyDiagnosticsOverlay';
 import {
@@ -37,10 +36,9 @@ import {
   buildCheckUpRecordingVisualGuidance,
   type RecordingVisualGuidance,
 } from '../recording/recordingVisualGuidance';
-import { SkeletonViewHandle } from '../render/SkeletonView';
 import type {
   PoseAvatarActiveDomain,
-  PoseAvatarMeasurementState,
+  PoseAvatarRendererHandle,
 } from '../render/poseAvatarTypes';
 import {
   CheckUpRecordingShell,
@@ -138,7 +136,7 @@ export function CheckUpScreen({
   const [voice] = React.useState(() => new VoiceChannel(voiceId));
   const [sfx] = React.useState(() => new SfxChannel());
   const [recorder] = React.useState(() => new LandmarkRecorder());
-  const skeletonRef = React.useRef<SkeletonViewHandle>(null);
+  const skeletonRef = React.useRef<PoseAvatarRendererHandle>(null);
   const lastUiUpdateRef = React.useRef(0);
   const lastFrameTimestampRef = React.useRef(0);
   const pauseStartedAtRef = React.useRef(0);
@@ -340,8 +338,6 @@ export function CheckUpScreen({
   const visibleItemNumber = totalItems > 0 ? Math.min(visibleSnapshot.itemIndex + 1, totalItems) : 0;
   const footerMeta = checkupFooterMeta(visibleSnapshot, visibleItemNumber, totalItems);
   const stageDisplay = checkupStageDisplay(visibleSnapshot, visiblePaused, visibleModalMode, visibleCameraAvailability);
-  const avatarMeasurementState = checkupAvatarState(visibleSnapshot);
-  const avatarDomain = domainForCheckupMovement(visibleSnapshot.movementId);
   const recordingVisualGuidance = React.useMemo<RecordingVisualGuidance>(
     () =>
       buildCheckUpRecordingVisualGuidance({
@@ -428,8 +424,6 @@ export function CheckUpScreen({
       setupIssue={visibleSnapshot.setupIssue}
       footerMeta={footerMeta}
       stageDisplay={stageDisplay}
-      avatarMeasurementState={avatarMeasurementState}
-      avatarDomain={avatarDomain}
       controls={controls}
       onRequestBack={onCancel ? requestDiscardCheckup : undefined}
       backAccessibilityLabel="Leave Movement Check-Up"
@@ -443,9 +437,7 @@ export function CheckUpScreen({
         onDiscard: discardCheckup,
       }}
       latencyOverlay={<PoseLatencyDiagnosticsOverlay diagnostics={poseLatencyDiagnostics} />}
-      renderRecordingArea={
-        FIT_FRAME_CHECKUP_RECORDING_VISUAL_ENABLED ? renderFitFrameRecordingArea : undefined
-      }
+      renderRecordingArea={renderFitFrameRecordingArea}
     />
   );
 }
@@ -475,16 +467,6 @@ function shouldConfirmDiscardCheckup(snapshot: Snapshot, cameraAvailability: Cam
   if (snapshot.phase === 'transition') return snapshot.itemIndex > 0;
   if (snapshot.phase !== 'item') return false;
   return snapshot.itemPhase === 'active' || snapshot.itemPhase === 'result' || snapshot.itemPhase === 'done';
-}
-
-function checkupAvatarState(snapshot: Snapshot): PoseAvatarMeasurementState {
-  if (snapshot.phase === 'complete' || snapshot.phase === 'done') return 'success';
-  if (snapshot.phase === 'intro' || snapshot.phase === 'transition') return 'setup';
-  if (snapshot.itemPhase === 'preflight') return 'framing';
-  if (snapshot.itemPhase === 'instructions' || snapshot.itemPhase === 'countdown') return 'ready';
-  if (snapshot.itemPhase === 'active') return 'checkup';
-  if (snapshot.itemPhase === 'result' || snapshot.itemPhase === 'done') return 'success';
-  return 'checkup';
 }
 
 function domainForCheckupMovement(movementId: string | null): PoseAvatarActiveDomain | null {

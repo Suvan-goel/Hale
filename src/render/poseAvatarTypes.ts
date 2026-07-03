@@ -1,39 +1,13 @@
 import type { PipelineFrameOutput } from '../pose/pipeline';
 import type { ConfidenceAnimationStrength, PoseAvatarRecognitionEvent } from './confidenceVisuals';
-import type {
-  PointCloudBodyDensity,
-  PointCloudBodyPart,
-  PointCloudBodyShapeProfile,
-} from './pointCloudBodyGeometry';
-import type { SoftDigitalTwinVisualPresetName } from './softDigitalTwinGeometry';
-import type { ArtDirectedHumanJointStyle } from './artDirectedHumanGeometry';
 
-export type PoseAvatarRendererMode =
-  | 'art_directed_human'
-  | 'classic'
-  | 'constellation'
-  | 'contour_field'
-  | 'point_cloud_body'
-  | 'premium_constellation_human'
-  | 'privacy_shadow'
-  | 'rigged_human_silhouette'
-  | 'shadow_silhouette'
-  | 'soft_digital_twin'
-  | 'soft_silhouette_avatar'
-  | 'sprite_limb_avatar'
-  | 'volumetric_shadow'
-  | 'mediapipe_skeleton';
+export type PoseAvatarRendererMode = 'mediapipe_skeleton';
 
 export type PoseAvatarFrameSource = 'raw' | 'display';
 
 export type PoseAvatarFit = 'cover' | 'contain';
 
 export type MediaPipeSkeletonConnectionSet = 'full' | 'body';
-
-export type PremiumConstellationVolumePreset =
-  | 'constellationVolume180'
-  | 'constellationVolume300'
-  | 'constellationVolume450';
 
 export type PoseAvatarMeasurementState =
   | 'idle'
@@ -76,15 +50,6 @@ export interface PoseAvatarRendererScheduleEvent {
   dotCount?: number;
   lineCount?: number;
   shapeCount?: number;
-  dynamicPathCount?: number;
-  staticTransformedShapeCount?: number;
-  surfacePathCount?: number;
-  internalControlVertexCount?: number;
-  virtualBoneCount?: number;
-  orientationFactor?: number;
-  orientationProfile?: string;
-  proportionCalibrationComplete?: boolean;
-  proportionCalibrationState?: string;
 }
 
 export interface PoseAvatarRendererProps {
@@ -96,41 +61,6 @@ export interface PoseAvatarRendererProps {
   trackingQuality?: PoseAvatarTrackingQuality;
   minConfidence?: number;
   smoothingEnabled?: boolean;
-  adaptiveSmoothingEnabled?: boolean;
-  smoothingAlpha?: number;
-  smoothingMinAlpha?: number;
-  smoothingMaxAlpha?: number;
-  smoothingSlowSpeedPxPerSec?: number;
-  smoothingFastSpeedPxPerSec?: number;
-  smoothingSnapFrames?: number;
-  sampledDotsEnabled?: boolean;
-  maxDots?: number;
-  sampleDensity?: number;
-  bodyVolumeEnabled?: boolean;
-  torsoVolumeEnabled?: boolean;
-  headVolumeEnabled?: boolean;
-  shoulderHipDensityEnabled?: boolean;
-  maxVolumeDots?: number;
-  torsoVolumeDots?: number;
-  headVolumeDots?: number;
-  shoulderHipDensityDots?: number;
-  pointCloudBodyEnabled?: boolean;
-  pointCloudBodyDensity?: PointCloudBodyDensity;
-  pointCloudBodyMaxDots?: number;
-  pointCloudBodyShowConnections?: boolean;
-  pointCloudBodyConnectionOpacity?: number;
-  pointCloudBodyConnectionMaxLines?: number;
-  pointCloudBodyShowSkeletonLines?: boolean;
-  pointCloudBodyShowKeypoints?: boolean;
-  pointCloudBodyActiveParts?: readonly PointCloudBodyPart[];
-  pointCloudBodyDotScale?: number;
-  pointCloudBodyOpacity?: number;
-  pointCloudBodyShapeProfile?: PointCloudBodyShapeProfile;
-  premiumConstellationVolumePreset?: PremiumConstellationVolumePreset;
-  premiumConstellationShowConnections?: boolean;
-  softDigitalTwinVisualPreset?: SoftDigitalTwinVisualPresetName;
-  softDigitalTwinShowConstructionOverlay?: boolean;
-  artDirectedHumanJointStyle?: ArtDirectedHumanJointStyle;
   mediapipeSkeletonStroke?: string;
   mediapipeSkeletonOpacity?: number;
   mediapipeSkeletonLineWidthScale?: number;
@@ -145,12 +75,6 @@ export interface PoseAvatarRendererProps {
   recognitionPulseEnabled?: boolean;
   confidenceAnimationStrength?: ConfidenceAnimationStrength;
   recognitionEvent?: PoseAvatarRecognitionEvent | null;
-  measurementStatesEnabled?: boolean;
-  setupGuidesEnabled?: boolean;
-  stateTransitionsEnabled?: boolean;
-  domainEmphasisEnabled?: boolean;
-  scanLineEnabled?: boolean;
-  measurementStateIntensity?: PoseAvatarMeasurementStateIntensity;
   frameSource?: PoseAvatarFrameSource;
   lowLatencyMode?: boolean;
   debug?: boolean;

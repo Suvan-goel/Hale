@@ -1,7 +1,4 @@
-export type ReleaseGatedFlow =
-  | 'fit-frame-pose-trace-preview'
-  | 'pose-benchmark'
-  | 'dev-live';
+export type ReleaseGatedFlow = 'dev-live';
 
 export interface RuntimeSurfacePolicyInput {
   dev?: boolean;
@@ -9,10 +6,6 @@ export interface RuntimeSurfacePolicyInput {
   internalEnabled?: boolean;
 }
 
-const DIAGNOSTIC_FLOWS = new Set<string>([
-  'fit-frame-pose-trace-preview',
-  'pose-benchmark',
-]);
 const DEV_ONLY_FLOWS = new Set<string>(['dev-live']);
 
 export function isDeveloperRuntime(input: Pick<RuntimeSurfacePolicyInput, 'dev'> = {}): boolean {
@@ -37,7 +30,6 @@ export function isReleaseGatedFlowAllowed(
 ): boolean {
   if (!flow) return true;
   if (DEV_ONLY_FLOWS.has(flow)) return isDeveloperRuntime(input);
-  if (DIAGNOSTIC_FLOWS.has(flow)) return isDiagnosticsDeveloperSurfaceAllowed(input);
   return true;
 }
 

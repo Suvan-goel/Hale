@@ -7,7 +7,6 @@ import type { CheckupType } from '../adherence';
 import type { BodySide } from '../checkup/protocolSetup';
 import type { CheckUp } from '../checkup/types';
 import type { CameraAvailability } from '../components/SafePoseDetectionView';
-import { FIT_FRAME_MPV2_RECORDING_VISUAL_ENABLED } from '../config/fitFrameMpv2RecordingVisual';
 import { MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED } from '../config/movementProfileV2VoiceRuntimeFoundation';
 import { defaultNowMs } from '../diagnostics/poseLatencyDiagnostics';
 import {
@@ -39,10 +38,9 @@ import {
   movementProfileV2InstructionCueIdsForStage,
   movementProfileV2InstructionTextForStage,
 } from '../training/instructionProfiles';
-import type { SkeletonViewHandle } from '../render/SkeletonView';
 import type {
   PoseAvatarActiveDomain,
-  PoseAvatarMeasurementState,
+  PoseAvatarRendererHandle,
 } from '../render/poseAvatarTypes';
 import {
   CheckUpRecordingShell,
@@ -150,7 +148,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   const lastRepCreditCountRef = React.useRef(live.repCreditCount);
   const lastSfxTransitionKeyRef = React.useRef<string | null>(null);
   const completedRef = React.useRef(false);
-  const skeletonRef = React.useRef<SkeletonViewHandle>(null);
+  const skeletonRef = React.useRef<PoseAvatarRendererHandle>(null);
   const diagnosticsEnabled = React.useMemo(() => isMovementProfileV2DiagnosticsEnabled(), []);
 
   const publishLive = React.useCallback(
@@ -494,8 +492,6 @@ export function MovementProfileV2UnifiedCheckUpScreen({
       setupIssue={false}
       footerMeta={movementProfileV2FooterMeta(live.stage)}
       stageDisplay={movementProfileV2StageDisplay(live, cameraAvailability)}
-      avatarMeasurementState={movementProfileV2AvatarState(live)}
-      avatarDomain={movementProfileV2AvatarDomain(live.stage)}
       controls={controls}
       onRequestBack={onCancel}
       backAccessibilityLabel="Leave Movement Check-Up"
@@ -503,10 +499,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
       onCloseSupportModal={closeSupportModal}
       onTryAgain={closeSupportModal}
       onSkip={onCancel}
-      pointCloudBodyDotScale={1.72}
-      renderRecordingArea={
-        FIT_FRAME_MPV2_RECORDING_VISUAL_ENABLED ? renderFitFrameRecordingArea : undefined
-      }
+      renderRecordingArea={renderFitFrameRecordingArea}
     />
   );
 }
@@ -913,33 +906,6 @@ function movementProfileV2ShellNotice({
     text: movementProfileV2InstructionTextForStage(live.stage, selectedShoulder) ?? 'Follow the voice guidance',
     action: 'help',
   };
-}
-
-function movementProfileV2AvatarState(live: MovementProfileV2LiveSnapshot): PoseAvatarMeasurementState {
-  if (live.recoveryEpisode || live.backgrounded) return 'tracking_lost';
-  switch (live.stage) {
-    case 'raw_complete':
-      return 'success';
-    case 'chair_setup':
-    case 'balance_setup':
-    case 'shoulder_setup':
-    case 'hinge_setup':
-      return 'setup';
-    case 'chair_practice':
-    case 'chair_countdown':
-    case 'balance_ready':
-    case 'shoulder_ready':
-    case 'shoulder_retry_ready':
-      return 'ready';
-    case 'balance_rest':
-      return 'rest';
-    case 'chair_active':
-    case 'balance_trial':
-    case 'shoulder_active':
-    case 'hinge_active':
-    default:
-      return 'checkup';
-  }
 }
 
 function movementProfileV2AvatarDomain(stage: MovementProfileV2LiveStage): PoseAvatarActiveDomain | null {

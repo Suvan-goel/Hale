@@ -26,11 +26,7 @@ import {
   type CameraAvailability,
 } from '../components/SafePoseDetectionView';
 import { ANDROID_VIDEO_ROT_640_POSE_PROFILE } from '../pose/nativePoseProfiles';
-import { SkeletonView, type SkeletonViewHandle } from '../render/SkeletonView';
-import type {
-  PoseAvatarActiveDomain,
-  PoseAvatarMeasurementState,
-} from '../render/poseAvatarTypes';
+import type { PoseAvatarRendererHandle } from '../render/poseAvatarTypes';
 import { colors, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 import { poseEstimationWindowSize, recordingCameraViewportSize } from './recordingViewport';
@@ -79,14 +75,12 @@ export interface CheckUpRecordingShellProps {
   onLandmarks: (event: { nativeEvent: LandmarksEventPayload }) => void;
   onPoseError: (event: { nativeEvent: PoseErrorEventPayload }) => void;
   onAvailabilityChange?: (availability: CameraAvailability) => void;
-  skeletonRef: React.Ref<SkeletonViewHandle>;
+  skeletonRef: React.Ref<PoseAvatarRendererHandle>;
   sessionNotice: CheckUpShellNotice | null;
   modalMode: CheckUpShellModalMode;
   setupIssue: boolean;
   footerMeta: CheckUpShellFooterMeta;
   stageDisplay: CheckUpShellStageDisplay | null;
-  avatarMeasurementState: PoseAvatarMeasurementState;
-  avatarDomain: PoseAvatarActiveDomain | null;
   controls: readonly CheckUpShellControl[];
   onRequestBack?: () => void;
   backAccessibilityLabel?: string;
@@ -100,8 +94,7 @@ export interface CheckUpRecordingShellProps {
     onDiscard: () => void;
   };
   latencyOverlay?: React.ReactNode;
-  pointCloudBodyDotScale?: number;
-  renderRecordingArea?: (context: CheckUpRecordingAreaContext) => React.ReactNode;
+  renderRecordingArea: (context: CheckUpRecordingAreaContext) => React.ReactNode;
 }
 
 const CHECKUP_SETUP_ISSUE_TITLE = 'Hale cannot see this movement clearly';
@@ -138,8 +131,6 @@ export function CheckUpRecordingShell({
   setupIssue,
   footerMeta,
   stageDisplay,
-  avatarMeasurementState,
-  avatarDomain,
   controls,
   onRequestBack,
   backAccessibilityLabel = 'Leave Movement Check-Up',
@@ -149,7 +140,6 @@ export function CheckUpRecordingShell({
   onSkip,
   discardModal,
   latencyOverlay,
-  pointCloudBodyDotScale = 1.72,
   renderRecordingArea,
 }: CheckUpRecordingShellProps) {
   const windowSize = useWindowDimensions();
@@ -238,27 +228,8 @@ export function CheckUpRecordingShell({
             </View>
             {cameraAvailability === 'unavailable' ? (
               <CameraUnavailableNotice compact style={styles.recordingCameraUnavailableNotice} />
-            ) : renderRecordingArea ? (
-              renderRecordingArea({ cameraViewport, poseWindow })
             ) : (
-              <SkeletonView
-                ref={skeletonRef}
-                mirrored
-                fit="contain"
-                frameSource="raw"
-                smoothingEnabled={false}
-                pointCloudBodyDensity="high"
-                pointCloudBodyMaxDots={900}
-                pointCloudBodyDotScale={pointCloudBodyDotScale}
-                confidenceFadingEnabled={false}
-                confidenceIntensityEnabled={false}
-                reacquisitionFadeEnabled={false}
-                recognitionPulseEnabled={false}
-                measurementState={avatarMeasurementState}
-                activeDomain={avatarDomain}
-                setupGuidesEnabled={false}
-                stateTransitionsEnabled={false}
-              />
+              renderRecordingArea({ cameraViewport, poseWindow })
             )}
             <CheckupCardFooter
               title={currentMovementName}

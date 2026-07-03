@@ -32,7 +32,6 @@ import {
   type MeasurementTrackingSfxState,
 } from '../audio/sessionSfx';
 import { SfxChannel, VoiceChannel, type VoiceCueStartedEvent } from '../audio/voicePlayer';
-import { FIT_FRAME_TRAINING_RECORDING_VISUAL_ENABLED } from '../config/fitFrameTrainingRecordingVisual';
 import {
   CameraUnavailableNotice,
   SafePoseDetectionView,
@@ -691,7 +690,7 @@ export function TrainingSessionScreen({
                 modelVariant="full"
                 {...ANDROID_VIDEO_ROT_640_POSE_PROFILE}
                 latencyDiagnosticsEnabled={poseLatencyDiagnostics !== null}
-                nativeSkeletonOverlayEnabled={!FIT_FRAME_TRAINING_RECORDING_VISUAL_ENABLED}
+                nativeSkeletonOverlayEnabled={false}
                 nativeSkeletonColor={TEMP_TRAINING_NATIVE_SKELETON_COLOR}
                 canvasColor={TEMP_TRAINING_NATIVE_SKELETON_CANVAS}
                 style={StyleSheet.absoluteFill}
@@ -723,7 +722,7 @@ export function TrainingSessionScreen({
             </View>
             {visibleCameraAvailability === 'unavailable' ? (
               <CameraUnavailableNotice compact style={styles.recordingCameraUnavailableNotice} />
-            ) : FIT_FRAME_TRAINING_RECORDING_VISUAL_ENABLED ? (
+            ) : (
               <RecordingVisualSurface
                 rendererRef={trainingRendererRef}
                 cameraAvailability={visibleCameraAvailability}
@@ -733,7 +732,7 @@ export function TrainingSessionScreen({
                 mirrored
                 frameSource="raw"
               />
-            ) : null}
+            )}
             <RecordingCardFooter
               exerciseName={currentExerciseName}
               meta={footerMeta}

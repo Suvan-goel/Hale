@@ -27,18 +27,4 @@ describe('RecordingVisualSurface', () => {
     expect(text).not.toMatch(/Supabase|AsyncStorage|LandmarkRecorder|scoreCheckUp/);
     expect(text).not.toMatch(/blocksMeasurement|blocksAutoStart|voiceCue/);
   });
-
-  it('keeps the Settings preview routed through diagnostics and the shared visual surface', () => {
-    const app = source('App.tsx');
-    const settings = source('src/screens/SettingsScreen.tsx');
-    const text = source('src/screens/FitFramePoseTracePreviewScreen.tsx');
-
-    expect(app).toContain('poseLatencyDiagnosticsEnabled');
-    expect(app).toContain('onOpenFitFramePoseTracePreview={');
-    expect(settings).toContain('Recording visual diagnostics');
-    expect(settings).not.toContain('Try Fit Frame Pose Trace');
-    expect(text).toContain('RecordingVisualSurface');
-    expect(text).toContain('buildPreviewRecordingVisualGuidance');
-    expect(text).not.toContain('<FitFramePoseTraceRenderer');
-  });
 });

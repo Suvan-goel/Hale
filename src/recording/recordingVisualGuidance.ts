@@ -56,13 +56,6 @@ export interface BuildPreflightRecordingVisualGuidanceOptions {
   cameraAvailability?: CameraAvailability;
 }
 
-export interface BuildPreviewRecordingVisualGuidanceOptions {
-  output: PipelineFrameOutput;
-  preflightStatus: PreflightStatus;
-  cameraAvailability?: CameraAvailability;
-  feetVisible?: boolean | null;
-}
-
 export interface BuildCheckUpRecordingVisualGuidanceOptions {
   cameraAvailability?: CameraAvailability;
   pipelineState: TrackingState | null;
@@ -101,57 +94,6 @@ export interface BuildTrainingRecordingVisualGuidanceOptions {
   measuring: boolean;
   paused?: boolean;
   showHelp?: boolean;
-}
-
-export const INITIAL_PREVIEW_RECORDING_VISUAL_GUIDANCE: RecordingVisualGuidance = {
-  visualState: 'lost',
-  source: 'preview',
-  primaryText: 'Step into view.',
-  secondaryText: null,
-  blocksMeasurement: true,
-  blocksAutoStart: true,
-  voiceCue: 'step-into-frame',
-  metricProtected: false,
-  reason: 'preview:initial',
-};
-
-export function buildPreviewRecordingVisualGuidance({
-  output,
-  preflightStatus,
-  cameraAvailability,
-  feetVisible,
-}: BuildPreviewRecordingVisualGuidanceOptions): RecordingVisualGuidance {
-  if (cameraAvailability === 'unavailable') {
-    return cameraUnavailableGuidance();
-  }
-
-  if (output.rawFrame.hasPose && feetVisible === false) {
-    return {
-      visualState: 'adjust',
-      source: 'preview',
-      primaryText: 'Step back until your feet are visible.',
-      secondaryText: null,
-      blocksMeasurement: true,
-      blocksAutoStart: true,
-      voiceCue: 'step-back',
-      metricProtected: false,
-      reason: 'preview:feet-not-visible',
-    };
-  }
-
-  const pipelineGuidance = buildPipelineRecordingVisualGuidance(output, {
-    cameraAvailability,
-  });
-  if (
-    pipelineGuidance.visualState === 'lost' ||
-    pipelineGuidance.visualState === 'recovery'
-  ) {
-    return pipelineGuidance;
-  }
-
-  return buildPreflightRecordingVisualGuidance(preflightStatus, {
-    cameraAvailability,
-  });
 }
 
 export function buildPreflightRecordingVisualGuidance(

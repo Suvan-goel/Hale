@@ -6,31 +6,20 @@ import {
 } from '../releaseSurfacePolicy';
 
 describe('release surface policy', () => {
-  it('blocks developer and diagnostics flows outside dev runtime even when flags are true', () => {
-    expect(
-      isReleaseGatedFlowAllowed('fit-frame-pose-trace-preview', {
-        dev: false,
-        poseLatencyDiagnosticsEnabled: true,
-      })
-    ).toBe(false);
-    expect(
-      isReleaseGatedFlowAllowed('pose-benchmark', {
-        dev: false,
-        poseLatencyDiagnosticsEnabled: true,
-      })
-    ).toBe(false);
+  it('blocks developer flows outside dev runtime even when flags are true', () => {
     expect(isReleaseGatedFlowAllowed('dev-live', { dev: false })).toBe(false);
+    expect(
+      isReleaseGatedFlowAllowed('dev-live', {
+        dev: false,
+        poseLatencyDiagnosticsEnabled: true,
+      })
+    ).toBe(false);
   });
 
-  it('allows diagnostics flows only when both dev runtime and diagnostics are enabled', () => {
+  it('allows the dev live flow only in a dev runtime', () => {
+    expect(isReleaseGatedFlowAllowed('dev-live', { dev: true })).toBe(true);
     expect(
-      isReleaseGatedFlowAllowed('fit-frame-pose-trace-preview', {
-        dev: true,
-        poseLatencyDiagnosticsEnabled: false,
-      })
-    ).toBe(false);
-    expect(
-      isReleaseGatedFlowAllowed('fit-frame-pose-trace-preview', {
+      isDiagnosticsDeveloperSurfaceAllowed({
         dev: true,
         poseLatencyDiagnosticsEnabled: true,
       })
@@ -38,9 +27,9 @@ describe('release surface policy', () => {
     expect(
       isDiagnosticsDeveloperSurfaceAllowed({
         dev: true,
-        poseLatencyDiagnosticsEnabled: true,
+        poseLatencyDiagnosticsEnabled: false,
       })
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it('keeps normal product flows allowed while blocking release-only developer surfaces', () => {

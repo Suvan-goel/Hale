@@ -31,7 +31,6 @@ import {
 } from '../../modules/expo-pose-detection';
 import { SfxChannel, VoiceChannel, type VoiceCueStartedEvent } from '../audio/voicePlayer';
 import type { BodySide, MeasurementSideSource } from '../checkup';
-import { FIT_FRAME_MICRO_CHECK_RECORDING_VISUAL_ENABLED } from '../config/fitFrameMicroCheckRecordingVisual';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
 import { useSystemInsets } from '../components/SystemInsetsProvider';
@@ -56,11 +55,7 @@ import {
   buildMicroCheckRecordingVisualGuidance,
   type RecordingVisualGuidance,
 } from '../recording/recordingVisualGuidance';
-import { SkeletonView, SkeletonViewHandle } from '../render/SkeletonView';
-import type {
-  PoseAvatarActiveDomain,
-  PoseAvatarMeasurementState,
-} from '../render/poseAvatarTypes';
+import type { PoseAvatarRendererHandle } from '../render/poseAvatarTypes';
 import { colors, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 import {
@@ -215,7 +210,7 @@ export function MicroCheckScreen({
   const [voice] = React.useState(() => new VoiceChannel(voiceId));
   const [sfx] = React.useState(() => new SfxChannel());
   const [recorder] = React.useState(() => new LandmarkRecorder());
-  const skeletonRef = React.useRef<SkeletonViewHandle>(null);
+  const skeletonRef = React.useRef<PoseAvatarRendererHandle>(null);
   const lastUiUpdateRef = React.useRef(0);
   const lastFrameTimestampRef = React.useRef(0);
   const sideSelectionPinnedRef = React.useRef(false);
@@ -554,8 +549,6 @@ export function MicroCheckScreen({
   const sessionNoticeAction = sessionNotice?.action ?? null;
   const footerMeta = microCheckFooterMeta(microCheckType);
   const stageDisplay = microCheckStageDisplay(microCheckType, visibleSnapshot, visibleCameraAvailability);
-  const avatarMeasurementState = microCheckAvatarState(visibleSnapshot.phase);
-  const avatarDomain = domainForMicroCheck(microCheckType);
   const recordingVisualGuidance = React.useMemo<RecordingVisualGuidance>(
     () =>
       buildMicroCheckRecordingVisualGuidance({
@@ -682,7 +675,7 @@ export function MicroCheckScreen({
             </View>
             {visibleCameraAvailability === 'unavailable' ? (
               <CameraUnavailableNotice compact style={styles.recordingCameraUnavailableNotice} />
-            ) : FIT_FRAME_MICRO_CHECK_RECORDING_VISUAL_ENABLED ? (
+            ) : (
               <RecordingVisualSurface
                 rendererRef={skeletonRef}
                 cameraAvailability={visibleCameraAvailability}
@@ -691,25 +684,6 @@ export function MicroCheckScreen({
                 guidance={recordingVisualGuidance}
                 mirrored
                 frameSource="raw"
-              />
-            ) : (
-              <SkeletonView
-                ref={skeletonRef}
-                mirrored
-                fit="contain"
-                frameSource="raw"
-                smoothingEnabled={false}
-                pointCloudBodyDensity="high"
-                pointCloudBodyMaxDots={900}
-                pointCloudBodyDotScale={1.72}
-                confidenceFadingEnabled={false}
-                confidenceIntensityEnabled={false}
-                reacquisitionFadeEnabled={false}
-                recognitionPulseEnabled={false}
-                measurementState={avatarMeasurementState}
-                activeDomain={avatarDomain}
-                setupGuidesEnabled={false}
-                stateTransitionsEnabled={false}
               />
             )}
             <MicroCheckCardFooter
@@ -1175,26 +1149,6 @@ function sameMicroCheckCameraSideSetupResult(
 function shouldConfirmDiscardMicroCheck(snapshot: Snapshot, cameraAvailability: CameraAvailability): boolean {
   if (cameraAvailability === 'unavailable') return false;
   return snapshot.phase === 'active' || snapshot.phase === 'done';
-}
-
-function microCheckAvatarState(phase: MicroCheckPhase): PoseAvatarMeasurementState {
-  switch (phase) {
-    case 'preflight':
-      return 'framing';
-    case 'instructions':
-    case 'countdown':
-      return 'ready';
-    case 'active':
-      return 'micro_check';
-    case 'done':
-      return 'success';
-  }
-}
-
-function domainForMicroCheck(microCheckType: MicroCheckType): PoseAvatarActiveDomain {
-  if (microCheckType === 'chair-power') return 'strength_power';
-  if (microCheckType === 'single-leg-balance') return 'balance';
-  return 'mobility';
 }
 
 function recordingScreenTopPadding(): number {

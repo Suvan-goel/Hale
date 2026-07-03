@@ -18,7 +18,6 @@ const SAFE_FLAGS: BetaReleaseFlagAuditFlags = {
   movementProfileV2DiagnosticsEnabled: false,
   poseLatencyDiagnosticsEnabled: false,
   allowDiagnosticsInRelease: false,
-  poseRendererBenchmarksEnabled: false,
   devMockDataEnabled: false,
 };
 
@@ -37,7 +36,6 @@ describe('beta/release flag audit', () => {
         { code: 'public_v2_default_is_expected' },
         { code: 'apple_sign_in_flag_not_internal' },
         { code: 'observability_flag_not_internal' },
-        { code: 'pose_renderer_benchmark_flag_not_present' },
       ],
     });
   });
@@ -53,7 +51,6 @@ describe('beta/release flag audit', () => {
           movementProfileV2DiagnosticsEnabled: true,
           poseLatencyDiagnosticsEnabled: true,
           allowDiagnosticsInRelease: true,
-          poseRendererBenchmarksEnabled: true,
           devMockDataEnabled: true,
         },
       })
@@ -65,7 +62,6 @@ describe('beta/release flag audit', () => {
         'movement_profile_v2_diagnostics_enabled',
         'pose_latency_diagnostics_enabled',
         'release_diagnostics_allowed',
-        'pose_renderer_benchmarks_enabled',
         'dev_mock_data_enabled',
       ],
     });
@@ -110,7 +106,6 @@ describe('beta/release flag audit', () => {
     ['Movement Profile diagnostics', { movementProfileV2DiagnosticsEnabled: true }, 'movement_profile_v2_diagnostics_enabled'],
     ['pose diagnostics', { poseLatencyDiagnosticsEnabled: true }, 'pose_latency_diagnostics_enabled'],
     ['release diagnostics', { allowDiagnosticsInRelease: true }, 'release_diagnostics_allowed'],
-    ['pose renderer benchmarks', { poseRendererBenchmarksEnabled: true }, 'pose_renderer_benchmarks_enabled'],
   ] as const)('blocks unsafe beta profile when %s is enabled', (_label, override, reason) => {
     expect(
       auditBetaReleaseFlags({
@@ -148,7 +143,6 @@ describe('beta/release flag audit', () => {
     expect(envExample).toContain(`${RELEASE_FLAG_ENV_NAMES.movementProfileV2Diagnostics}=0`);
     expect(envExample).toContain(`${RELEASE_FLAG_ENV_NAMES.poseLatencyDiagnostics}=0`);
     expect(envExample).toContain(`${RELEASE_FLAG_ENV_NAMES.allowDiagnosticsInRelease}=0`);
-    expect(envExample).toContain(`${RELEASE_FLAG_ENV_NAMES.poseRendererBenchmarks}=0`);
     expect(packageJson.scripts?.['verify:safe-beta-flags']).toContain('EAS_BUILD_PROFILE=beta');
     expect(packageJson.scripts?.['verify:safe-beta-flags']).toContain(
       `${RELEASE_FLAG_ENV_NAMES.poseLatencyDiagnostics}=0`
@@ -184,7 +178,6 @@ describe('beta/release flag audit', () => {
         EXPO_PUBLIC_ENABLE_MOVEMENT_PROFILE_V2_DIAGNOSTICS: '0',
         EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS: '0',
         EXPO_PUBLIC_ALLOW_DIAGNOSTICS_IN_RELEASE: '0',
-        EXPO_PUBLIC_ENABLE_POSE_RENDERER_BENCHMARKS: '0',
       })
     ).toMatchObject({
       enablePoseLatencyDiagnostics: false,
@@ -248,8 +241,6 @@ function flagExpectationFor(name: ReleaseFlagEnvName): Partial<BetaReleaseFlagAu
       return { poseLatencyDiagnosticsEnabled: true };
     case RELEASE_FLAG_ENV_NAMES.allowDiagnosticsInRelease:
       return { allowDiagnosticsInRelease: true };
-    case RELEASE_FLAG_ENV_NAMES.poseRendererBenchmarks:
-      return { poseRendererBenchmarksEnabled: true };
     case RELEASE_FLAG_ENV_NAMES.appleSignIn:
       return { appleSignInEnabled: true };
     case RELEASE_FLAG_ENV_NAMES.sentry:

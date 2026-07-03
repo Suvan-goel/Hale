@@ -8,47 +8,17 @@ import {
   buildMicroCheckRecordingVisualGuidance,
   buildPipelineRecordingVisualGuidance,
   buildPreflightRecordingVisualGuidance,
-  buildPreviewRecordingVisualGuidance,
   buildTrainingRecordingVisualGuidance,
 } from '../recordingVisualGuidance';
 import type { MicroCheckCameraSideSetupResult } from '../../training/microCheckSideSetup';
 import type { TrainingFloorSetupSnapshot } from '../../training/sessionPlayer';
 
 describe('recording visual guidance adapters', () => {
-  it('prioritizes camera unavailable before preview-specific positioning copy', () => {
-    const guidance = buildPreviewRecordingVisualGuidance({
-      output: pipelineOutput('tracking', true),
-      preflightStatus: preflightStatus('ready', 'ready'),
-      cameraAvailability: 'unavailable',
-      feetVisible: false,
-    });
-
-    expect(guidance).toMatchObject({
-      visualState: 'lost',
-      source: 'camera_unavailable',
-      blocksMeasurement: true,
-      blocksAutoStart: true,
-      voiceCue: null,
-      reason: 'camera_unavailable',
-    });
-  });
-
-  it('keeps preview-only missing-feet guidance out of generic preflight mapping', () => {
-    const preview = buildPreviewRecordingVisualGuidance({
-      output: pipelineOutput('tracking', true),
-      preflightStatus: preflightStatus('ready', 'ready'),
-      feetVisible: false,
-    });
+  it('maps ready preflight to the ready visual state', () => {
     const preflight = buildPreflightRecordingVisualGuidance(
       preflightStatus('ready', 'ready')
     );
 
-    expect(preview).toMatchObject({
-      visualState: 'adjust',
-      source: 'preview',
-      primaryText: 'Step back until your feet are visible.',
-      reason: 'preview:feet-not-visible',
-    });
     expect(preflight).toMatchObject({
       visualState: 'ready',
       source: 'preflight',

@@ -241,7 +241,6 @@ import { CameraExplanationScreen } from './src/screens/CameraExplanationScreen';
 import { CameraSetupScreen } from './src/screens/CameraSetupScreen';
 import { CheckUpScreen } from './src/screens/CheckUpScreen';
 import { ExploreScreen } from './src/screens/ExploreScreen';
-import { FitFramePoseTracePreviewScreen } from './src/screens/FitFramePoseTracePreviewScreen';
 import { LadderDetailScreen, LearnDetailScreen } from './src/screens/ExploreDetailScreens';
 import { LiveSessionScreen } from './src/screens/LiveSessionScreen';
 import { ManualCheckupStartScreen } from './src/screens/ManualCheckupStartScreen';
@@ -260,7 +259,6 @@ import { OnboardingBlockScreen } from './src/screens/OnboardingBlockScreen';
 import { OnboardingEquipmentScreen } from './src/screens/OnboardingEquipmentScreen';
 import { OnboardingResultsScreen } from './src/screens/OnboardingResultsScreen';
 import { PlanScreen } from './src/screens/PlanScreen';
-import { PoseOverlayBenchmarkScreen } from './src/screens/PoseOverlayBenchmarkScreen';
 import { ProgressScreen, buildProgressDevMockData } from './src/screens/ProgressScreen';
 import { ResultsScreen } from './src/screens/ResultsScreen';
 import { SafetyProfileScreen } from './src/screens/SafetyProfileScreen';
@@ -326,7 +324,6 @@ type Flow =
   | 'ladder-detail'
   | 'learn-detail'
   | 'settings'
-  | 'fit-frame-pose-trace-preview'
   | 'movement-profile-v2-unified-checkup'
   | 'movement-profile-v2-results'
   | 'movement-profile-v2-practice-results'
@@ -335,7 +332,6 @@ type Flow =
   | 'movement-profile-v2-unified-domain-detail'
   | 'movement-profile-v2-block-report'
   | 'movement-profile-v2-retest-unavailable'
-  | 'pose-benchmark'
   | 'dev-live';
 
 type CameraSetupEntry = 'checkup' | 'review';
@@ -387,8 +383,6 @@ const CAMERA_FLOWS = new Set<Flow>([
   'training',
   'microcheck',
   'movement-profile-v2-unified-checkup',
-  'fit-frame-pose-trace-preview',
-  'pose-benchmark',
   'dev-live',
 ]);
 const PUBLIC_MOVEMENT_PROFILE_V2_FLOWS = new Set<Flow>([
@@ -5236,20 +5230,11 @@ function HaleApp() {
             onOpenLifeGoal={() => openLifeGoal('review')}
             onOpenSafetyProfile={() => openSafetyProfile('review')}
             onOpenCameraSetup={() => openCameraSetup('review')}
-            onOpenFitFramePoseTracePreview={
-              diagnosticsDeveloperSurfaceEnabled
-                ? () => setFlow('fit-frame-pose-trace-preview')
-                : undefined
-            }
             onReplayOnboardingForDev={
               MOVEMENT_PROFILE_V2_INTERNAL_ENABLED && __DEV__ ? replayOnboardingForDev : undefined
             }
             onBack={goHome}
           />
-        ) : flow === 'fit-frame-pose-trace-preview' && diagnosticsDeveloperSurfaceEnabled ? (
-          <FitFramePoseTracePreviewScreen onBack={() => goBack(goSettings)} />
-        ) : flow === 'pose-benchmark' && diagnosticsDeveloperSurfaceEnabled ? (
-          <PoseOverlayBenchmarkScreen onBack={() => goBack(goHome)} />
         ) : flow === 'dev-live' && developerRuntime ? (
           <LiveSessionScreen />
         ) : (

@@ -5,7 +5,6 @@ export const RELEASE_FLAG_ENV_NAMES = {
   movementProfileV2Diagnostics: 'EXPO_PUBLIC_ENABLE_MOVEMENT_PROFILE_V2_DIAGNOSTICS',
   poseLatencyDiagnostics: 'EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS',
   allowDiagnosticsInRelease: 'EXPO_PUBLIC_ALLOW_DIAGNOSTICS_IN_RELEASE',
-  poseRendererBenchmarks: 'EXPO_PUBLIC_ENABLE_POSE_RENDERER_BENCHMARKS',
   appleSignIn: 'EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN',
   sentry: 'EXPO_PUBLIC_ENABLE_SENTRY',
 } as const;
@@ -19,7 +18,6 @@ export type ReleaseFlagUnsafeReason =
   | 'movement_profile_v2_diagnostics_enabled'
   | 'pose_latency_diagnostics_enabled'
   | 'release_diagnostics_allowed'
-  | 'pose_renderer_benchmarks_enabled'
   | 'dev_mock_data_enabled';
 
 export type SafeDiagnosticCode =
@@ -27,8 +25,7 @@ export type SafeDiagnosticCode =
   | 'development_profile_not_audited'
   | 'public_v2_default_is_expected'
   | 'observability_flag_not_internal'
-  | 'apple_sign_in_flag_not_internal'
-  | 'pose_renderer_benchmark_flag_not_present';
+  | 'apple_sign_in_flag_not_internal';
 
 export interface SafeDiagnostic {
   code: SafeDiagnosticCode;
@@ -42,7 +39,6 @@ export interface BetaReleaseFlagAuditFlags {
   movementProfileV2DiagnosticsEnabled: boolean;
   poseLatencyDiagnosticsEnabled: boolean;
   allowDiagnosticsInRelease: boolean;
-  poseRendererBenchmarksEnabled: boolean;
   devMockDataEnabled: boolean;
   appleSignInEnabled?: boolean;
   sentryEnabled?: boolean;
@@ -94,9 +90,6 @@ export function parseReleaseFlagAuditEnv(env: ReleaseFlagRawEnv): BetaReleaseFla
     allowDiagnosticsInRelease: parseExactReleaseFlag(
       env[RELEASE_FLAG_ENV_NAMES.allowDiagnosticsInRelease]
     ),
-    poseRendererBenchmarksEnabled: parseExactReleaseFlag(
-      env[RELEASE_FLAG_ENV_NAMES.poseRendererBenchmarks]
-    ),
     appleSignInEnabled: parseExactReleaseFlag(env[RELEASE_FLAG_ENV_NAMES.appleSignIn]),
     sentryEnabled: parseExactReleaseFlag(env[RELEASE_FLAG_ENV_NAMES.sentry]),
     devMockDataEnabled: false,
@@ -123,9 +116,6 @@ export function auditBetaReleaseFlags(
   }
   if (input.flags.poseLatencyDiagnosticsEnabled) reasons.push('pose_latency_diagnostics_enabled');
   if (input.flags.allowDiagnosticsInRelease) reasons.push('release_diagnostics_allowed');
-  if (input.flags.poseRendererBenchmarksEnabled) {
-    reasons.push('pose_renderer_benchmarks_enabled');
-  }
   if (input.flags.devMockDataEnabled) reasons.push('dev_mock_data_enabled');
 
   if (reasons.length > 0) {
@@ -142,7 +132,6 @@ export function auditBetaReleaseFlags(
       { code: 'public_v2_default_is_expected' },
       { code: 'apple_sign_in_flag_not_internal' },
       { code: 'observability_flag_not_internal' },
-      { code: 'pose_renderer_benchmark_flag_not_present' },
     ],
   };
 }
