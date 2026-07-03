@@ -1,5 +1,4 @@
 import type { MovementDomain } from '../adherence';
-import type { TrainingIntensityPreference } from '../training';
 import type { ActiveBlockSummary, HaleLifecycleState } from './appLifecycle';
 import type { PlanSessionId } from './sessionIds';
 
@@ -120,16 +119,4 @@ export function getRetestCopy(summary: ActiveBlockSummary | undefined): { title:
     body: 'Your next check-up helps Hale update your plan.',
     due: false,
   };
-}
-
-export function formatPreferredDays(days: readonly string[] | undefined): string {
-  if (!days || days.length === 0) return 'Choose the days you prefer to train.';
-  if (days.length === 1) return days[0];
-  return days.join(', ');
-}
-
-export function intensityLabel(value: TrainingIntensityPreference): string {
-  if (value === 'gentle') return 'Gentle';
-  if (value === 'more_challenge') return 'More challenge';
-  return 'Standard';
 }

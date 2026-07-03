@@ -21,7 +21,6 @@ export * from './movementProfileV2Block';
 export * from './movementProfileV2BlockReport';
 export * from './movementProfileV2OfficialRetestTransition';
 export * from './movementProfileV2RetestComparison';
-export * from './nextBestAction';
 export * from './planViewModel';
 export * from './progressDataAuthority';
 export * from './progressViewModel';

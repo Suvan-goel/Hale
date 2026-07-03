@@ -31,7 +31,6 @@ describe('preferences serialize', () => {
       voiceId: 'clara',
       remindersEnabled: true,
       phoneStandAvailable: true,
-      supportSharingLevel: 'private',
       devMockDataEnabled: true,
     },
     onboarding: {
@@ -122,7 +121,6 @@ describe('preferences serialize', () => {
       voiceId: 'clara',
       remindersEnabled: true,
       phoneStandAvailable: false,
-      supportSharingLevel: 'private',
       devMockDataEnabled: false,
     });
   });
@@ -225,7 +223,6 @@ describe('ProfileStore', () => {
         voiceId: 'clara',
         remindersEnabled: true,
         phoneStandAvailable: false,
-        supportSharingLevel: 'private',
         devMockDataEnabled: false,
       },
       onboarding: {

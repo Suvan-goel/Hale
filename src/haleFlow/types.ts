@@ -1,14 +1,9 @@
 import type {
   CheckupType,
-  LifeGoal,
   MovementAssessment,
-  MovementBlock,
-  MovementBlockReport,
   MovementDomain,
-  MovementSafetyProfile,
   TrainingPrimaryDomain,
   TrainingFocusStimulusPlanStatus,
-  TrainingSessionCompletion,
   TrainingSessionCompletionType,
 } from '../adherence';
 import type { CheckUpScore, VersionedCheckUpScoreSnapshot } from '../scoring';
@@ -41,56 +36,6 @@ import type {
 } from '../exercises';
 import type { PlannedCollectionSelection } from '../training/collectionSelection';
 import type { StepUpAlternationPlan, StepUpLeadSide } from '../training/stepUpAlternation';
-
-export type HaleUserFlowState =
-  | 'needs_life_goal'
-  | 'needs_profile_safety'
-  | 'needs_camera_setup'
-  | 'needs_baseline_checkup'
-  | 'baseline_checkup_incomplete'
-  | 'baseline_checkup_invalid'
-  | 'baseline_complete_needs_block'
-  | 'active_block_session_due'
-  | 'active_block_micro_check_due'
-  | 'active_block_on_track'
-  | 'active_block_slightly_behind'
-  | 'active_block_restart_needed'
-  | 'active_block_retest_due'
-  | 'block_complete_needs_report'
-  | 'report_ready'
-  | 'needs_next_block'
-  | 'no_active_block';
-
-export interface HaleUserLike {
-  id?: string;
-}
-
-export interface HaleProfileLike {
-  age?: number | null;
-  safetyProfile?: MovementSafetyProfile | null;
-}
-
-export interface NextBestActionInput {
-  user?: HaleUserLike | null;
-  profile?: HaleProfileLike | null;
-  lifeGoal?: LifeGoal | null;
-  latestAssessment?: MovementAssessment | null;
-  activeBlock?: MovementBlock | null;
-  sessionCompletions?: readonly TrainingSessionCompletion[];
-  microChecks?: readonly unknown[];
-  latestReport?: MovementBlockReport | null;
-  now?: string | Date;
-}
-
-export interface NextBestAction {
-  state: HaleUserFlowState;
-  title: string;
-  body: string;
-  primaryCta: string;
-  primaryRoute: string;
-  secondaryCta?: string;
-  secondaryRoute?: string;
-}
 
 export type ExerciseFamily =
   | 'sit_to_stand'

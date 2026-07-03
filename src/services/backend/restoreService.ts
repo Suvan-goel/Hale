@@ -860,10 +860,7 @@ function hasMeaningfulAdherenceState(adherence: AdherenceStoreState): boolean {
     adherence.assessments.length > 0 ||
     adherence.reports.length > 0 ||
     adherence.completions.length > 0 ||
-    adherence.milestones.length > 0 ||
-    adherence.supportConnections.length > 0 ||
-    adherence.notificationEvents.length > 0 ||
-    adherence.weeklySummaries.length > 0
+    adherence.milestones.length > 0
   );
 }
 

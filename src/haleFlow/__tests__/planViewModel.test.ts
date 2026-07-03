@@ -1,10 +1,8 @@
 import {
-  formatPreferredDays,
   getPlanEmptyStateCopy,
   getPlanFocusCopy,
   getPlanSessionCategoryCopy,
   getRetestCopy,
-  intensityLabel,
 } from '../planViewModel';
 
 describe('planViewModel', () => {
@@ -51,13 +49,5 @@ describe('planViewModel', () => {
         retestInDays: 0,
       })
     ).toMatchObject({ due: true, title: 'Check-up is ready' });
-  });
-
-  it('formats local schedule and intensity preferences', () => {
-    expect(formatPreferredDays([])).toContain('Choose');
-    expect(formatPreferredDays(['Mon', 'Wed', 'Fri'])).toBe('Mon, Wed, Fri');
-    expect(intensityLabel('gentle')).toBe('Gentle');
-    expect(intensityLabel('standard')).toBe('Standard');
-    expect(intensityLabel('more_challenge')).toBe('More challenge');
   });
 });

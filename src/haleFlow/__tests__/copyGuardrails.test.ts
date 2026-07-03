@@ -1,10 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import {
-  getMicroCheckCopy,
-  getNextBestActionCopy,
-} from '../copy';
+import { getMicroCheckCopy } from '../copy';
 import { controlledBetaEquipmentPositioning } from '../equipmentPositioning';
 import {
   getTodayPrimaryAction,
@@ -26,7 +23,6 @@ import {
   getPlanSessionCategoryCopy,
   getRetestCopy,
 } from '../planViewModel';
-import type { HaleUserFlowState } from '../types';
 
 const BANNED_USER_COPY =
   /diagnosis|treatment|fall risk|frailty|failed|skipped workout|lost streak|medical-grade|poor score|medical diagnosis|camera measured|typical of age|typical ages|movement age|weakest[- ]+(area|areas|domain)|published comparison|published age-group|published middle range|reference labels|raw-only|source transform|main opportunity|best place to focus|protects progress|protect your progress|protected your progress|progress protected|improved|held steady|declined/i;
@@ -77,28 +73,7 @@ describe('Hale V1 copy guardrails', () => {
       'week_complete',
       'inactive_restart',
     ];
-    const flowStates: HaleUserFlowState[] = [
-      'needs_life_goal',
-      'needs_profile_safety',
-      'needs_camera_setup',
-      'needs_baseline_checkup',
-      'baseline_checkup_incomplete',
-      'baseline_checkup_invalid',
-      'baseline_complete_needs_block',
-      'active_block_session_due',
-      'active_block_micro_check_due',
-      'active_block_on_track',
-      'active_block_slightly_behind',
-      'active_block_restart_needed',
-      'active_block_retest_due',
-      'block_complete_needs_report',
-      'report_ready',
-      'needs_next_block',
-      'no_active_block',
-    ];
-
     assertCleanCopy(lifecycleStates.flatMap((state) => Object.values(getTodayPrimaryAction(state))));
-    assertCleanCopy(flowStates.flatMap((state) => Object.values(getNextBestActionCopy({ state }))));
     assertCleanCopy([
       ...lifecycleStates.flatMap((state) => Object.values(getPlanEmptyStateCopy(state))),
       ...(['strength_power', 'balance', 'mobility', undefined] as const).flatMap((domain) =>

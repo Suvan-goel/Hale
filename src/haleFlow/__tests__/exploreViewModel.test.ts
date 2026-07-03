@@ -393,7 +393,6 @@ describe('exploreViewModel', () => {
         voiceId: 'clara',
         remindersEnabled: false,
         phoneStandAvailable: true,
-        supportSharingLevel: 'private',
         devMockDataEnabled: false,
       },
     });

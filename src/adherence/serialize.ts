@@ -3,7 +3,6 @@ import type {
   MovementAssessment,
   MovementBlock,
   MovementBlockReport,
-  SupportConnection,
   TrainingSessionCompletion,
 } from './types';
 import { isMovementDomain } from './blockFocus';
@@ -23,9 +22,6 @@ export function defaultAdherenceStoreState(): AdherenceStoreState {
     reports: [],
     completions: [],
     milestones: [],
-    supportConnections: [],
-    notificationEvents: [],
-    weeklySummaries: [],
   };
 }
 
@@ -59,9 +55,6 @@ export function deserializeAdherenceState(json: string): AdherenceStoreState | n
     reports: Array.isArray(payload.reports) ? payload.reports.filter(isMovementBlockReport) : [],
     completions: Array.isArray(payload.completions) ? payload.completions.filter(isCompletion) : [],
     milestones: Array.isArray(payload.milestones) ? payload.milestones : [],
-    supportConnections: Array.isArray(payload.supportConnections) ? payload.supportConnections.filter(isSupportConnection) : [],
-    notificationEvents: Array.isArray(payload.notificationEvents) ? payload.notificationEvents : [],
-    weeklySummaries: Array.isArray(payload.weeklySummaries) ? payload.weeklySummaries : [],
   };
 }
 
@@ -143,10 +136,4 @@ function isCompletion(v: unknown): v is TrainingSessionCompletion {
   if (!v || typeof v !== 'object') return false;
   const c = v as Partial<TrainingSessionCompletion>;
   return typeof c.id === 'string' && typeof c.blockId === 'string' && typeof c.completedAt === 'string';
-}
-
-function isSupportConnection(v: unknown): v is SupportConnection {
-  if (!v || typeof v !== 'object') return false;
-  const c = v as Partial<SupportConnection>;
-  return typeof c.id === 'string' && typeof c.userId === 'string' && typeof c.sharingLevel === 'string';
 }

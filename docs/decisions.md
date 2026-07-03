@@ -2629,3 +2629,26 @@ PUBLIC RELEASE REMAINS BLOCKED
 - **Verification:** `npx tsc --noEmit` clean; targeted jest suites (recording visual,
   fit-frame geometry, new `segmentationMaskFigureConfig` tests) pass;
   `:expo-pose-detection:compileDebugKotlin` clean. **Owed:** all four on-device gates.
+
+## 2026-07-03 — App-simplification Stage 1: dead code removed (product-owner directed)
+
+- **Context:** a complexity audit (2026-07-03) found the app carrying unwired features and a
+  duplicate "next action" engine. Product owner approved a staged simplification plan; this is
+  Stage 1 — code with **no callers and no UI** only. Branch: `app-simplification`.
+- **Removed — second next-action engine:** `haleFlow/nextBestAction.ts` plus its
+  `HaleUserFlowState`/`NextBestAction*` types and `getNextBestActionCopy`. It duplicated the
+  `appLifecycle.ts` state machine that actually drives Home; nothing imported it outside tests.
+- **Removed — support-circle prototype:** `adherence/supportCircleService.ts`,
+  `inviteService.ts` (stub: never sent anything), `notificationService.ts` (no-op scheduler),
+  `privacyFilters.ts`, `weeklySummary.ts`; the `SupportConnection`/`NotificationEvent`/
+  `WeeklySummary` types and their `AdherenceStoreState` fields; the never-passed-down
+  App.tsx handlers; and the unused `supportSharingLevel` profile setting. This was the old
+  Family-tab prototype living on as headless services. Old persisted JSON with these keys
+  still parses (fields are simply ignored); no schema bump needed.
+- **Removed — dead planViewModel helpers:** `formatPreferredDays`, `intensityLabel`.
+- **Tests:** suites/assertions that exercised only the removed code were deleted; integration
+  tests that asserted against both engines kept their live-engine assertions. 1576 tests pass;
+  the same 4 pre-existing voice-activation failures as the recorded baseline remain; tsc and
+  `expo config` clean.
+- **If support/family returns:** design it against the real backend (invites, sharing) rather
+  than reviving these local stubs; git history has them if needed.

@@ -26,7 +26,6 @@ import {
 import {
   materializeMovementProfileV2Block,
 } from '../../haleFlow/movementProfileV2Block';
-import { getNextBestAction } from '../../haleFlow/nextBestAction';
 import { requireHaleSessionPlan } from '../../haleFlow/sessionPlanning';
 import { createMovementAssessment } from '../../haleFlow/assessments';
 import {
@@ -710,16 +709,6 @@ describe('H3.1 public unified Movement Check-Up lifecycle', () => {
         entryContext: 'standard',
       });
     }
-
-    const oldHome = getNextBestAction({
-      lifeGoal: completedProfilePreferences().profile.lifeGoal,
-      profile: completedProfilePreferences().profile,
-      latestAssessment: null,
-      activeBlock: run.block,
-      sessionCompletions: completions,
-      now: RETEST_DUE_AT,
-    });
-    expect(oldHome.state).not.toBe('active_block_retest_due');
 
     expect(
       selectPublicMovementCheckUpLaunch({

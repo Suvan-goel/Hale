@@ -54,7 +54,6 @@ import {
   MovementProfileV2RetestComparison,
   MovementSafetyProfile,
   RestartSessionScreen,
-  SupportConnection,
   SessionCompletionScreen,
   TrainingSessionCompletion,
   TrainingSessionCompletionType,
@@ -3987,31 +3986,6 @@ function HaleApp() {
       });
     },
     [persistPrefs, prefs]
-  );
-
-  const handleSaveSupportConnection = React.useCallback(
-    (connection: SupportConnection) => {
-      const existing = adherence.supportConnections.some((c) => c.id === connection.id);
-      persistAdherence({
-        ...adherence,
-        supportConnections: existing
-          ? adherence.supportConnections.map((c) => (c.id === connection.id ? connection : c))
-          : [...adherence.supportConnections, connection],
-      });
-    },
-    [adherence, persistAdherence]
-  );
-
-  const handleRemoveSupportConnection = React.useCallback(
-    (id: string) => {
-      persistAdherence({
-        ...adherence,
-        supportConnections: adherence.supportConnections.map((c) =>
-          c.id === id ? { ...c, status: 'removed', updatedAt: new Date().toISOString() } : c
-        ),
-      });
-    },
-    [adherence, persistAdherence]
   );
 
   const viewLast = React.useCallback(() => {

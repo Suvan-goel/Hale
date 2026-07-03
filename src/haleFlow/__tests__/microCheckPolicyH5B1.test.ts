@@ -40,7 +40,6 @@ import {
   movementProfileV2RetestComparisonFingerprint,
 } from '../movementProfileV2RetestComparison';
 import { getManualCheckupOptions } from '../manualCheckup';
-import { getNextBestAction } from '../nextBestAction';
 
 const START = '2026-06-01T08:00:00.000Z';
 const USER_ID = 'local-device-user';
@@ -389,14 +388,6 @@ describe('H5B.1 Balanced micro-check verification closure', () => {
       adherence: { ...adherence, assessments: [latestAssessment] },
       today: '2026-06-10T08:00:00.000Z',
     });
-    const nextBestAction = getNextBestAction({
-      profile,
-      lifeGoal: profile.lifeGoal,
-      latestAssessment,
-      activeBlock: block,
-      sessionCompletions: completions,
-      now: '2026-06-10T08:00:00.000Z',
-    });
     const manual = getManualCheckupOptions({
       latestAssessment,
       activeBlock: block,
@@ -407,11 +398,6 @@ describe('H5B.1 Balanced micro-check verification closure', () => {
     expect(today.state).toBe('weekly_micro_check_due');
     expect(today.primaryAction.type).toBe('start_micro_check');
     expect(today.microCheckTarget).toMatchObject({ domain: 'balance', type: 'single-leg-balance' });
-    expect(nextBestAction).toMatchObject({
-      state: 'active_block_micro_check_due',
-      title: 'Balance check-in',
-      primaryRoute: 'microcheck',
-    });
     expect(manual[0]).toMatchObject({
       type: 'micro_check',
       title: 'Quick micro check-up',

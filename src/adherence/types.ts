@@ -543,75 +543,12 @@ export interface IdentityMilestone {
   seenAt?: string;
 }
 
-export type SupportRelationshipType =
-  | 'spouse_partner'
-  | 'adult_child'
-  | 'sibling'
-  | 'friend'
-  | 'training_buddy'
-  | 'other';
-
-export type SharingLevel = 'private' | 'completion_only' | 'progress_summary' | 'detailed';
-
-export type SupportConnectionStatus = 'pending' | 'accepted' | 'declined' | 'removed';
-
-export interface SupportConnection {
-  id: string;
-  userId: string;
-  supporterUserId?: string;
-  inviteEmailOrPhone?: string;
-  relationshipType: SupportRelationshipType;
-  status: SupportConnectionStatus;
-  sharingLevel: SharingLevel;
-  notifyOnMissedWeek: boolean;
-  notifyOnMilestones: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export type NotificationEventType =
-  | 'planned_session'
-  | 'weekly_micro_check'
-  | 'retest_approaching'
-  | 'supporter_milestone'
-  | 'missed_week_support'
-  | 'lapse_recovery';
-
-export interface NotificationEvent {
-  id: string;
-  userId: string;
-  blockId?: string;
-  supportConnectionId?: string;
-  type: NotificationEventType;
-  dedupeKey: string;
-  createdAt: string;
-  deliveredAt?: string;
-}
-
-export interface WeeklySummary {
-  id: string;
-  userId: string;
-  blockId: string;
-  weekNumber: number;
-  weekStart: string;
-  weekEnd: string;
-  sessionsCompleted: number;
-  microCheckCompleted: boolean;
-  title: string;
-  body: string;
-  nextFocus: string;
-  createdAt: string;
-}
-
 export interface AdherenceStoreState {
   blocks: MovementBlock[];
   assessments: MovementAssessment[];
   reports: MovementBlockReport[];
   completions: TrainingSessionCompletion[];
   milestones: IdentityMilestone[];
-  supportConnections: SupportConnection[];
-  notificationEvents: NotificationEvent[];
-  weeklySummaries: WeeklySummary[];
 }
 
 export interface AssessmentForBlock {

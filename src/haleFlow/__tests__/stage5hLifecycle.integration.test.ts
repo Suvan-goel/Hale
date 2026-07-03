@@ -13,7 +13,6 @@ import {
   focusStimulusEvidenceSummary,
   getBlockScheduleState,
   getHaleAppLifecycle,
-  getNextBestAction,
   getPlanEmptyStateCopy,
   getRetestDueSummary,
   getSessionPlanningRecoveryCopy,
@@ -428,17 +427,7 @@ describe('Stage 5H invalid-state, crash/retry, restore, schema, and UI truthfuln
       completions: allTraining,
       nowIso: RETEST_DUE,
     });
-    expect(
-      getNextBestAction({
-        profile: { safetyProfile: safety() },
-        lifeGoal: lifeGoal(),
-        latestAssessment: assessmentForScore(scoreForFocus('balance')).assessment,
-        activeBlock: staleCompleted,
-        latestReport: report,
-        sessionCompletions: allTraining,
-        now: RETEST_DUE,
-      }).state
-    ).toBe('active_block_retest_due');
+    expect(report.comparison?.status).toBe('missing_snapshot');
 
     const missingEquipmentPlan: HaleSessionPlan = {
       ...plan,

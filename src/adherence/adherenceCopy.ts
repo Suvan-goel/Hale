@@ -11,7 +11,6 @@ import type {
   LifeGoal,
   MovementBlock,
   MovementDomain,
-  NotificationEventType,
 } from './types';
 
 // Copy guardrails: no shame, no streak pressure, no clinical claims, and no
@@ -140,72 +139,6 @@ export function getProtectionCopy({
   return 'Support the strength you use every day.';
 }
 
-export function getWeeklySummaryCopy({
-  block,
-  lifeGoal,
-  sessionsCompleted,
-  microCheckCompleted,
-  adherenceState,
-}: {
-  block: MovementBlock;
-  lifeGoal?: LifeGoal | null;
-  sessionsCompleted: number;
-  microCheckCompleted: boolean;
-  adherenceState: AdherenceState;
-}): { title: string; body: string; nextFocus: string } {
-  const focusDomain = movementBlockDomainFocus(block);
-  const focusShort = focusDomain ? domainShortLabel(focusDomain) : 'movement';
-  const goal = lifeGoal ? goalSummaryFragment(lifeGoal) : focusShort;
-  if (sessionsCompleted >= block.sessionsPerWeekTarget) {
-    return {
-      title: 'Good week',
-      body: `You completed ${sessionsCompleted} sessions${microCheckCompleted ? ' and your 60-second check-in' : ''}. You supported your ${focusShort} progress for ${goal}.`,
-      nextFocus: `Next week, keep building ${focusShort} with steady practice.`,
-    };
-  }
-  if (adherenceState === 'inactive_this_week' || adherenceState === 'inactive_14_days') {
-    return {
-      title: 'Fresh start',
-      body: 'The block is still here. Start next week with one shorter restart session.',
-      nextFocus: 'Next week begins with a clean slate.',
-    };
-  }
-  if (sessionsCompleted > 0) {
-    return {
-      title: 'You restarted this week',
-      body: 'That matters. Next week is a clean slate, with shorter sessions available if you need them.',
-      nextFocus: `Next week, rebuild rhythm around ${focusShort}.`,
-    };
-  }
-  return {
-    title: 'A quiet week',
-    body: 'The plan is ready when life has room again. One short session is enough to restart.',
-    nextFocus: `Next week, start with ${focusShort}.`,
-  };
-}
-
-export function getSupportNotificationCopy(userName: string | null | undefined): string {
-  const name = userName?.trim() || 'Someone you support';
-  return `${name} asked Hale to let you know they have not checked in this week. A quick encouraging message could help them restart.`;
-}
-
-export function getNotificationCopy(type: NotificationEventType): string {
-  switch (type) {
-    case 'planned_session':
-      return 'Your Hale session is ready. 20 minutes to support your progress.';
-    case 'weekly_micro_check':
-      return 'Time for a 60-second check-in. Keep your trend line alive.';
-    case 'retest_approaching':
-      return 'Your 4-week re-test is coming up. It will add another data point.';
-    case 'lapse_recovery':
-      return 'Clean slate today. Start with a shorter session.';
-    case 'supporter_milestone':
-      return 'A Hale milestone is ready to share with your supporter.';
-    case 'missed_week_support':
-      return 'Your supporter can send a quick note to help you restart gently.';
-  }
-}
-
 export function retestCountdownCopy(block: MovementBlock, nowIso: string): string {
   const days = daysUntil(block.retestDate, nowIso);
   if (days === 0) return 'Re-test today';
@@ -227,21 +160,6 @@ function goalTitleFragment(goal: LifeGoal): string | null {
       return 'stay-capable';
     default:
       return null;
-  }
-}
-
-function goalSummaryFragment(goal: LifeGoal): string {
-  switch (goal.category) {
-    case 'stairs':
-      return 'stairs';
-    case 'travel':
-      return 'travel and longer walks';
-    case 'grandchildren':
-      return 'keeping up with family';
-    case 'custom':
-      return getLifeGoalDisplayText(goal).toLowerCase();
-    default:
-      return getLifeGoalDisplayText(goal).toLowerCase();
   }
 }
 

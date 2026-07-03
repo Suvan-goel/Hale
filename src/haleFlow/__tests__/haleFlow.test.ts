@@ -15,7 +15,6 @@ import {
   generateTodaySession,
   getManualCheckupCopy,
   getManualCheckupOptions,
-  getNextBestAction,
 } from '../index';
 import { getBlockScheduleState } from '../blockSchedule';
 import {
@@ -153,154 +152,6 @@ function focusEvidence(
   };
 }
 
-describe('getNextBestAction', () => {
-  it('routes a new user to life goal first', () => {
-    expect(getNextBestAction({ now: START }).state).toBe('needs_life_goal');
-  });
-
-  it('routes a profiled user with no baseline to check-up', () => {
-    const goal = createLifeGoal({ category: 'stairs', nowIso: START });
-    const action = getNextBestAction({
-      profile: { safetyProfile: safety() },
-      lifeGoal: goal,
-      now: START,
-    });
-    expect(action.state).toBe('needs_baseline_checkup');
-    expect(action.primaryRoute).toBe('camera-setup');
-  });
-
-  it('routes completed baseline with no block to block creation', () => {
-    const goal = createLifeGoal({ category: 'stairs', nowIso: START });
-    expect(
-      getNextBestAction({
-        profile: { safetyProfile: safety() },
-        lifeGoal: goal,
-        latestAssessment: assessment(),
-        now: START,
-      }).state
-    ).toBe('baseline_complete_needs_block');
-  });
-
-  it('shows session due before a weekly micro-check when no session is done', () => {
-    const goal = createLifeGoal({ category: 'stairs', nowIso: START });
-    const action = getNextBestAction({
-      profile: { safetyProfile: safety() },
-      lifeGoal: goal,
-      latestAssessment: assessment(),
-      activeBlock: block(),
-      sessionCompletions: [],
-      now: '2026-06-02T08:00:00.000Z',
-    });
-    expect(action.state).toBe('active_block_session_due');
-  });
-
-  it('shows micro-check due after one current-week schedule credit', () => {
-    const b = block();
-    const action = getNextBestAction({
-      profile: { safetyProfile: safety() },
-      lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
-      latestAssessment: assessment(),
-      activeBlock: b,
-      sessionCompletions: [
-        creditedCompletion(b, 'balance-A', '2026-06-02T08:00:00.000Z'),
-      ],
-      now: '2026-06-03T12:00:00.000Z',
-    });
-    expect(action.state).toBe('active_block_micro_check_due');
-    expect(action.title).toBe('Balance check-in');
-  });
-
-  it('does not carry a micro-check into the week-complete state', () => {
-    const b = block();
-    const action = getNextBestAction({
-      profile: { safetyProfile: safety() },
-      lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
-      latestAssessment: assessment(),
-      activeBlock: b,
-      sessionCompletions: [
-        creditedCompletion(b, 'balance-A', '2026-06-02T08:00:00.000Z'),
-        creditedCompletion(b, 'balance-B', '2026-06-04T08:00:00.000Z'),
-        creditedCompletion(b, 'balance-C', '2026-06-06T08:00:00.000Z'),
-      ],
-      now: '2026-06-06T12:00:00.000Z',
-    });
-    expect(action.state).toBe('active_block_on_track');
-  });
-
-  it('does not keep showing the micro-check after it is completed for the week', () => {
-    const b = block();
-    const firstCompletion = creditedCompletion(b, 'balance-A', '2026-06-02T08:00:00.000Z');
-    const action = getNextBestAction({
-      profile: { safetyProfile: safety() },
-      lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
-      latestAssessment: assessment(),
-      activeBlock: b,
-      sessionCompletions: [
-        firstCompletion,
-        microCheckCompletion(b, '2026-06-02T09:00:00.000Z'),
-      ],
-      now: '2026-06-03T12:00:00.000Z',
-    });
-    expect(action.state).toBe('active_block_session_due');
-  });
-
-  it('shows re-test due near the end of the block', () => {
-    const b = block();
-    const action = getNextBestAction({
-      profile: { safetyProfile: safety() },
-      lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
-      latestAssessment: assessment(),
-      activeBlock: b,
-      sessionCompletions: scheduledBlockCompletions(b),
-      now: '2026-06-29T08:00:00.000Z',
-    });
-    expect(action.state).toBe('active_block_retest_due');
-  });
-
-  it('shows report ready after a completed block has a report', () => {
-    const b = { ...block(), status: 'completed' as const };
-    const report = createMovementBlockReport({
-      block: b,
-      previousScore: score('balance'),
-      latestScore: score('mobility'),
-      completions: [...scheduledBlockCompletions(b), retestCompletion(b)],
-      nowIso: '2026-06-30T08:00:00.000Z',
-    });
-    expect(
-      getNextBestAction({
-        profile: { safetyProfile: safety() },
-        lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
-        latestAssessment: assessment('official_retest'),
-        activeBlock: b,
-        latestReport: report,
-        sessionCompletions: [...scheduledBlockCompletions(b), retestCompletion(b)],
-        now: '2026-06-30T08:00:00.000Z',
-      }).state
-    ).toBe('report_ready');
-  });
-
-  it('does not treat a stale completed block flag as report-ready without retest evidence', () => {
-    const b = { ...block(), status: 'completed' as const };
-    const report = createMovementBlockReport({
-      block: b,
-      previousScore: score('balance'),
-      latestScore: score('mobility'),
-      completions: scheduledBlockCompletions(b),
-      nowIso: '2026-06-30T08:00:00.000Z',
-    });
-    expect(
-      getNextBestAction({
-        profile: { safetyProfile: safety() },
-        lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
-        latestAssessment: assessment('official_retest'),
-        activeBlock: b,
-        latestReport: report,
-        sessionCompletions: scheduledBlockCompletions(b),
-        now: '2026-06-30T08:00:00.000Z',
-      }).state
-    ).toBe('active_block_retest_due');
-  });
-});
 
 describe('manual check-up rules', () => {
   it('keeps retired V1 manual options hidden while exposing optional V2 choices', () => {
@@ -437,19 +288,9 @@ describe('session planning and reports', () => {
   });
 
   it('keeps core flow copy away from banned phrases', () => {
-    const samples = [
-      getNextBestAction({
-        profile: { safetyProfile: safety() },
-        lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
-        latestAssessment: assessment(),
-        activeBlock: block(),
-        sessionCompletions: [],
-        now: '2026-06-02T08:00:00.000Z',
-      }).body,
-      getManualCheckupOptions({ latestAssessment: assessment(), activeBlock: block(), completions: [] })
-        .map((o) => `${o.title} ${o.body}`)
-        .join(' '),
-    ].join(' ');
+    const samples = getManualCheckupOptions({ latestAssessment: assessment(), activeBlock: block(), completions: [] })
+      .map((o) => `${o.title} ${o.body}`)
+      .join(' ');
     expect(samples.toLowerCase()).not.toMatch(
       /failed|lost streak|fall risk|diagnosis|treatment|frailty|disease|patient|medical-grade|prevent falls|prevent disease/
     );

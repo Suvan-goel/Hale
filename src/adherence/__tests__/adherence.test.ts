@@ -3,11 +3,8 @@ import { toStoredScoreSnapshot } from '../../scoring';
 import {
   createLifeGoal,
   createMovementBlockFromAssessment,
-  createSupportInvite,
   blockProgress,
-  filterSupportSummaryForSharing,
   generateMilestones,
-  generateWeeklySummary,
   getAdherenceState,
   getBlockPurposeCopy,
   getDashboardCopy,
@@ -17,14 +14,10 @@ import {
   getLifeGoalWorkoutBias,
   getProtectionCopy,
   LIFE_GOAL_PRESETS,
-  makeNotificationEvent,
   makeTrainingSessionCompletion,
-  notificationCopy,
   normalizeLifeGoalDisplayText,
   recordTrainingSessionCompletion,
-  shouldTriggerMissedWeekSupportNotification,
   defaultAdherenceStoreState,
-  createSupportSummary,
   currentWeekProgress,
   deserializeAdherenceState,
 } from '../index';
@@ -357,84 +350,6 @@ describe('adherence state and restart completion', () => {
   });
 });
 
-describe('weekly summary, privacy, and notifications', () => {
-  it('generates non-shaming weekly copy from completions', () => {
-    const b = block();
-    const completions = [
-      completion(b, 'standard', '2026-06-02T08:00:00.000Z', 'balance-A:2026-06-02'),
-      completion(b, 'standard', '2026-06-04T08:00:00.000Z', 'balance-B:2026-06-04'),
-      completion(b, 'standard', '2026-06-06T08:00:00.000Z', 'balance-C:2026-06-06'),
-      completion(b, 'micro_check', '2026-06-06T08:05:00.000Z', '2026-06-06-micro'),
-    ];
-    const summary = generateWeeklySummary({
-      block: b,
-      lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
-      completions,
-      nowIso: '2026-06-06T10:00:00.000Z',
-    });
-    expect(summary.sessionsCompleted).toBe(3);
-    expect(summary.microCheckCompleted).toBe(true);
-    expect(summary.body).toContain('supported');
-  });
-
-  it('filters support summaries by sharing level', () => {
-    const b = block();
-    const connection = createSupportInvite({
-      relationshipType: 'adult_child',
-      sharingLevel: 'detailed',
-      nowIso: START,
-    });
-    const summary = createSupportSummary({
-      connection,
-      block: b,
-      completions: [completion(b, 'standard', '2026-06-02T08:00:00.000Z')],
-      recentMilestoneTitle: 'Training for what matters',
-      nowIso: '2026-06-03T08:00:00.000Z',
-    });
-    expect(filterSupportSummaryForSharing(summary, 'completion_only').milestone).toBeUndefined();
-    expect(filterSupportSummaryForSharing(summary, 'progress_summary').milestone).toBeUndefined();
-    expect(filterSupportSummaryForSharing(summary, 'detailed').milestone).toBe('Training for what matters');
-    expect(filterSupportSummaryForSharing(summary, 'private').visible).toBe(false);
-  });
-
-  it('triggers missed-week support notification only after explicit opt-in and only once per lapse window', () => {
-    const b = block();
-    const off = createSupportInvite({
-      relationshipType: 'friend',
-      notifyOnMissedWeek: false,
-      nowIso: START,
-    });
-    expect(
-      shouldTriggerMissedWeekSupportNotification({
-        connection: off,
-        block: b,
-        completions: [],
-        events: [],
-        nowIso: '2026-06-08T08:00:00.000Z',
-      }).shouldTrigger
-    ).toBe(false);
-
-    const on = { ...off, notifyOnMissedWeek: true };
-    const first = shouldTriggerMissedWeekSupportNotification({
-      connection: on,
-      block: b,
-      completions: [],
-      events: [],
-      nowIso: '2026-06-08T08:00:00.000Z',
-    });
-    expect(first.shouldTrigger).toBe(true);
-    expect(
-      shouldTriggerMissedWeekSupportNotification({
-        connection: on,
-        block: b,
-        completions: [],
-        events: [first.event ?? makeNotificationEvent({ type: 'missed_week_support', dedupeKey: 'fallback' })],
-        nowIso: '2026-06-08T08:00:00.000Z',
-      }).shouldTrigger
-    ).toBe(false);
-  });
-});
-
 describe('milestones and copy safety', () => {
   it('does not duplicate milestones already stored', () => {
     const b = block();
@@ -453,8 +368,6 @@ describe('milestones and copy safety', () => {
       getLapseRecoveryCopy('inactive_this_week', goal).body,
       getLapseRecoveryCopy('inactive_14_days', goal).body,
       getProtectionCopy({ lifeGoal: goal, focusDomain: b.focusDomain, adherenceState: 'on_track' }),
-      notificationCopy('planned_session'),
-      notificationCopy('retest_approaching'),
     ].join(' ');
     expect(samples.toLowerCase()).not.toMatch(/failed|lost streak|fall risk|diagnosis|frailty|treatment|preventing disease|you skipped|protect your progress|protected your progress/);
   });
