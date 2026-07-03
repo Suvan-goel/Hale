@@ -323,6 +323,20 @@ export class TrainingSessionPlayer {
     return this.funnel.snapshot(this.phase, this.phase === 'done');
   }
 
+  /**
+   * Items finished so far (completed or skipped, in play order) — the app
+   * layer snapshots these at item boundaries so an interrupted session can
+   * resume after the last finished item. In-flight sets are excluded on
+   * purpose: an interrupted measurement restarts (same rule as pause/resume).
+   */
+  completedItemsSnapshot(): TrainingItemResult[] {
+    return this.results.map((item) => ({
+      exerciseId: item.exerciseId,
+      status: item.status,
+      sets: item.sets.slice(),
+    }));
+  }
+
   retrySetup(): void {
     if (this.floorSetup && this.phase === 'instructions') {
       const handsFreeSetup = this.shouldUseHandsFreeTrainingSetup();

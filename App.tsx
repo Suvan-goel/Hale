@@ -283,13 +283,19 @@ import {
   TrackingQuality,
   applyBothSidesExerciseCompletionToStartSideSeed,
   buildBlock,
+  buildSessionInProgress,
   defaultTrainingState,
   deriveMicroCheckSideSetup,
+  mergeResumedSessionResult,
   microCheckTrendPoints,
+  resumableSessionStart,
   startBlock,
   upsertGeneratedSessionSummary,
   validTimeSessionSummaryCards,
   type SessionIntensity,
+  type SessionResumeStart,
+  type TrainingItemResult,
+  type TrainingSessionInProgress,
 } from './src/training';
 import { colors, fonts, radius, shadow, spacing, type } from './src/theme';
 
@@ -909,6 +915,14 @@ function HaleApp() {
   const [sessionIds, setSessionIds] = React.useState<string[]>([]);
   const [sessionType, setSessionType] = React.useState<TrainingSessionCompletionType>('standard');
   const [activeSessionPlan, setActiveSessionPlan] = React.useState<HaleSessionPlan | null>(null);
+  // Mid-session snapshot surviving from an interrupted run (crash/kill/stop);
+  // consumed by resumableSessionStart when the same plan is started again.
+  const [sessionInProgress, setSessionInProgress] = React.useState<TrainingSessionInProgress | null>(null);
+  const sessionResumeContextRef = React.useRef<Pick<
+    SessionResumeStart,
+    'completedItems' | 'startedAt'
+  > | null>(null);
+  const sessionRunStartedAtRef = React.useRef<string>('');
   const [planningRecoveryResult, setPlanningRecoveryResult] =
     React.useState<HaleSessionPlanningResult | null>(null);
   const [lastCompletion, setLastCompletion] = React.useState<TrainingSessionCompletion | null>(
@@ -1122,6 +1136,14 @@ function HaleApp() {
       })
       .finally(() => {
         if (active) setMicroChecksReady(true);
+      });
+    trainingStore
+      .loadSessionInProgress()
+      .then((next) => {
+        if (active) setSessionInProgress(next);
+      })
+      .catch((error) => {
+        captureError(error, { area: 'startup', action: 'load_session_in_progress' });
       });
     profileStore
       .load()
@@ -3173,6 +3195,63 @@ function HaleApp() {
     [activeMovementBlock, prefs.profile.lifeGoal, prefs.profile.safetyProfile, training]
   );
 
+  // A surviving mid-session snapshot that matches today's plan (same block,
+  // template, planned day, and exercise list) — non-null means the next start
+  // of this plan should continue after the last finished item.
+  const sessionResume = React.useMemo(
+    () =>
+      activeSessionPlan
+        ? resumableSessionStart(
+            sessionInProgress,
+            {
+              planId: activeSessionPlan.id,
+              blockId: activeSessionPlan.blockId,
+              templateId: activeSessionPlan.metadata?.templateId,
+              plannedDateKey: activeSessionPlan.metadata?.plannedDateKey,
+              exerciseIds: activeSessionPlan.exercises.map((exercise) => exercise.id),
+            },
+            new Date().toISOString()
+          )
+        : null,
+    [activeSessionPlan, sessionInProgress]
+  );
+
+  const handleSessionItemCompleted = React.useCallback(
+    (completedItems: TrainingItemResult[]) => {
+      const plan = activeSessionPlan;
+      const plannedDateKey = plan?.metadata?.plannedDateKey;
+      if (!plan || !plannedDateKey) return; // resume covers planned daily sessions only
+      const resumeContext = sessionResumeContextRef.current;
+      const snapshot = buildSessionInProgress({
+        startedAt: sessionRunStartedAtRef.current || new Date().toISOString(),
+        savedAt: new Date().toISOString(),
+        plan: {
+          planId: plan.id,
+          blockId: plan.blockId,
+          templateId: plan.metadata?.templateId,
+          plannedDateKey,
+          exerciseIds: plan.exercises.map((exercise) => exercise.id),
+        },
+        completedItems: resumeContext
+          ? [...resumeContext.completedItems, ...completedItems]
+          : completedItems,
+      });
+      try {
+        trainingStore.saveSessionInProgress(snapshot);
+      } catch (error) {
+        captureError(error, { area: 'session_resume', action: 'save_snapshot' });
+      }
+      setSessionInProgress(snapshot);
+    },
+    [activeSessionPlan, trainingStore]
+  );
+
+  const discardSessionInProgress = React.useCallback(() => {
+    trainingStore.clearSessionInProgress();
+    setSessionInProgress(null);
+    sessionResumeContextRef.current = null;
+  }, [trainingStore]);
+
   const beginPlannedSession = React.useCallback(() => {
     if (!activeSessionPlan || activeSessionPlan.exercises.length === 0) return;
     const validation = validateHaleSessionPlanEquipment({
@@ -3285,8 +3364,31 @@ function HaleApp() {
       setFlow('session-unavailable');
       return;
     }
+      // Resume a surviving snapshot of this same plan (crash/kill/explicit
+      // stop): the relaunched run plays only the remaining items and the
+      // results merge on completion. A fully-banked snapshot (death during
+      // the closing line) can't finalize without a result, so it clears and
+      // the session starts over.
+      const resume = sessionResume && sessionResume.remainingExerciseIds.length > 0 ? sessionResume : null;
+      if (sessionResume && !resume) {
+        trainingStore.clearSessionInProgress();
+        setSessionInProgress(null);
+      }
+      sessionResumeContextRef.current = resume
+        ? { completedItems: resume.completedItems, startedAt: resume.startedAt }
+        : null;
+      sessionRunStartedAtRef.current = resume ? resume.startedAt : new Date().toISOString();
+      if (resume) {
+        addBreadcrumb('training session resumed from snapshot', {
+          area: 'session_resume',
+          completedItems: resume.completedItems.length,
+          remaining: resume.remainingExerciseIds.length,
+        });
+      }
       setSessionType(activeSessionPlan.sessionType);
-      setSessionIds(activeSessionPlan.exercises.map((exercise) => exercise.id));
+      setSessionIds(
+        resume ? resume.remainingExerciseIds : activeSessionPlan.exercises.map((exercise) => exercise.id)
+      );
       addBreadcrumb('training voice runtime pinned', {
         area: 'voice_v21_activation',
         flow: 'training',
@@ -3295,10 +3397,16 @@ function HaleApp() {
       });
       setLastSessionResult(null);
       setFlow('training');
-  }, [activeSessionPlan, prefs.profile.safetyProfile, voiceActivation]);
+  }, [activeSessionPlan, prefs.profile.safetyProfile, sessionResume, trainingStore, voiceActivation]);
 
   const handleSessionComplete = React.useCallback(
-    (result: TrainingSessionResult) => {
+    (runResult: TrainingSessionResult) => {
+      // Fold any resumed items back in before evidence/credit evaluation, and
+      // retire the surviving snapshot — the session is whole again.
+      const result = mergeResumedSessionResult(sessionResumeContextRef.current, runResult);
+      sessionResumeContextRef.current = null;
+      trainingStore.clearSessionInProgress();
+      setSessionInProgress(null);
       const completedAt = new Date().toISOString();
       const sessionPlan = activeSessionPlan;
       const evidence = evaluateSessionWorkEvidence(sessionPlan, result);
@@ -4913,6 +5021,12 @@ function HaleApp() {
         ) : flow === 'session-preview' && activeSessionPlan ? (
           <SessionPreviewScreen
             plan={activeSessionPlan}
+            resumeFromExercise={
+              sessionResume && sessionResume.remainingExerciseIds.length > 0
+                ? sessionResume.completedItems.length + 1
+                : undefined
+            }
+            onStartOver={sessionResume ? discardSessionInProgress : undefined}
             onStart={beginPlannedSession}
             onCancel={() => goBack(goHome)}
           />
@@ -4922,6 +5036,7 @@ function HaleApp() {
             sessionTitle={activeSessionPlan?.title}
             generatedExercises={activeSessionPlan?.metadata?.generatedExercises}
             onComplete={handleSessionComplete}
+            onItemCompleted={handleSessionItemCompleted}
             onCancel={() => goBack(goHome)}
             voiceId={prefs.settings.voiceId}
             internalRuntime={{

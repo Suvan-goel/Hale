@@ -6,6 +6,7 @@ import {
   Eyebrow,
   PrimaryButton,
   Screen,
+  SecondaryButton,
 } from '../components/ui';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
@@ -15,16 +16,23 @@ import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 
 export function SessionPreviewScreen({
   plan,
+  resumeFromExercise,
+  onStartOver,
   onStart,
   onCancel,
 }: {
   plan: HaleSessionPlan;
+  /** 1-based movement this session continues from (an earlier run was interrupted). */
+  resumeFromExercise?: number;
+  /** Discard the interrupted run's progress and let the session start fresh. */
+  onStartOver?: () => void;
   onStart: () => void;
   onCancel: () => void;
 }) {
   const responsive = useResponsiveLayout();
   const equipment = plan.metadata?.equipmentNeeded ?? [];
   const focusStimulusCopy = focusStimulusPreviewCopy(plan);
+  const resuming = resumeFromExercise !== undefined && resumeFromExercise > 1;
   return (
     <Screen>
       <BackArrowButton accessibilityLabel="Back" onPress={onCancel} />
@@ -49,6 +57,11 @@ export function SessionPreviewScreen({
           <SummaryFact label="Focus" value={focusLabel(plan.focusDomain)} />
           <SummaryFact label="Movements" value={movementCountLabel(plan.exercises.length)} isLast />
         </View>
+        {resuming ? (
+          <Text style={styles.body}>
+            {`You finished ${resumeFromExercise - 1} of ${plan.exercises.length} movements earlier. This session picks up from movement ${resumeFromExercise}.`}
+          </Text>
+        ) : null}
         {focusStimulusCopy ? <Text style={styles.devNote}>{focusStimulusCopy}</Text> : null}
       </Card>
 
@@ -100,11 +113,14 @@ export function SessionPreviewScreen({
 
       <View style={styles.actions}>
         <PrimaryButton
-          title="Start session"
-          accessibilityLabel={`Start ${sessionPreviewTitle(plan)}`}
+          title={resuming ? 'Continue session' : 'Start session'}
+          accessibilityLabel={`${resuming ? 'Continue' : 'Start'} ${sessionPreviewTitle(plan)}`}
           onPress={onStart}
           style={styles.action}
         />
+        {resuming && onStartOver ? (
+          <SecondaryButton title="Start over from the beginning" onPress={onStartOver} />
+        ) : null}
       </View>
     </Screen>
   );

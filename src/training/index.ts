@@ -23,6 +23,20 @@ export type {
 } from './sessionPlayer';
 export type { TrainingItemFunnel, TrainingSessionFunnel } from './sessionFunnel';
 export {
+  SESSION_RESUME_MAX_AGE_MS,
+  SESSION_RESUME_SCHEMA_VERSION,
+  buildSessionInProgress,
+  deserializeSessionInProgress,
+  mergeResumedSessionResult,
+  resumableSessionStart,
+  serializeSessionInProgress,
+} from './sessionResume';
+export type {
+  SessionResumePlanInfo,
+  SessionResumeStart,
+  TrainingSessionInProgress,
+} from './sessionResume';
+export {
   createTrainingSetRuntime,
   selectTrainingSetRuntime,
 } from './setRuntime';

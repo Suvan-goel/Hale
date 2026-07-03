@@ -20,9 +20,15 @@ import {
   serializeMicroCheck,
   serializeTrainingState,
 } from './serialize';
+import {
+  TrainingSessionInProgress,
+  deserializeSessionInProgress,
+  serializeSessionInProgress,
+} from './sessionResume';
 
 const STATE_FILE = 'training-state.json';
 const MICROCHECK_PREFIX = 'microcheck-';
+const SESSION_IN_PROGRESS_FILE = 'training-session-in-progress.json';
 
 export class TrainingStore {
   private readonly fs: HistoryFs;
@@ -63,6 +69,21 @@ export class TrainingStore {
     const out = Array.from(byIdentity.values());
     out.sort((a, b) => a.startedAt.localeCompare(b.startedAt));
     return out;
+  }
+
+  /** Overwrite the single in-flight session snapshot (one at a time by design). */
+  saveSessionInProgress(snapshot: TrainingSessionInProgress): void {
+    this.fs.write(SESSION_IN_PROGRESS_FILE, serializeSessionInProgress(snapshot));
+  }
+
+  /** The surviving mid-session snapshot, or null when absent/unreadable. */
+  async loadSessionInProgress(): Promise<TrainingSessionInProgress | null> {
+    const json = await this.fs.read(SESSION_IN_PROGRESS_FILE);
+    return json ? deserializeSessionInProgress(json) : null;
+  }
+
+  clearSessionInProgress(): void {
+    this.fs.delete?.(SESSION_IN_PROGRESS_FILE);
   }
 }
 

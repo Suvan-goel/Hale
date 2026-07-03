@@ -69,6 +69,7 @@ import { colors, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 import {
   type TrainingFloorSetupSnapshot,
+  type TrainingItemResult,
   TrainingPhase,
   TrainingSessionPlayer,
   TrainingSessionResult,
@@ -243,6 +244,7 @@ export function TrainingSessionScreen({
   sessionTitle,
   onComplete,
   onCancel,
+  onItemCompleted,
   voiceId,
   debugScenario,
   generatedExercises,
@@ -252,6 +254,8 @@ export function TrainingSessionScreen({
   sessionTitle?: string;
   onComplete: (result: TrainingSessionResult) => void;
   onCancel?: () => void;
+  /** Fired at item boundaries with all items finished so far (resume snapshots). */
+  onItemCompleted?: (completedItems: TrainingItemResult[]) => void;
   voiceId?: string;
   debugScenario?: TrainingSessionDebugScenario;
   generatedExercises?: readonly TrainingSetRuntimeGeneratedExercise[];
@@ -296,6 +300,7 @@ export function TrainingSessionScreen({
   const discardWasPausedRef = React.useRef(false);
   const trackingSfxStateRef = React.useRef<MeasurementTrackingSfxState>('idle');
   const setupIssueSeenRef = React.useRef(false);
+  const lastItemIndexRef = React.useRef(0);
   const lastTrainingPhaseRef = React.useRef<TrainingPhase | null>(null);
   const lastSetKindRef = React.useRef<ExerciseDefinition['kind'] | null>(null);
   const [snapshot, setSnapshot] = React.useState<Snapshot>({ ...INITIAL, totalItems: exerciseIds.length });
@@ -435,6 +440,16 @@ export function TrainingSessionScreen({
       if (u.phase !== lastTrainingPhaseRef.current) {
         addBreadcrumb('training.phase', { phase: u.phase, itemIndex: u.itemIndex });
       }
+      // Item boundaries: an itemIndex advance or reaching 'complete' means the
+      // previous item's result was just banked — snapshot for resume.
+      if (
+        onItemCompleted &&
+        (u.itemIndex > lastItemIndexRef.current ||
+          (u.phase === 'complete' && lastTrainingPhaseRef.current !== 'complete'))
+      ) {
+        onItemCompleted(player.completedItemsSnapshot());
+      }
+      lastItemIndexRef.current = u.itemIndex;
       if (u.setupIssue && !setupIssueSeenRef.current) {
         addBreadcrumb('training.setup_issue', { itemIndex: u.itemIndex, exerciseId: u.currentExerciseId });
       }
@@ -482,7 +497,7 @@ export function TrainingSessionScreen({
         });
       }
     },
-    [pipeline, poseLatencyDiagnostics, player, voice, sfx, recorder, onComplete, recordFunnel, exerciseIds.length, internalRuntime]
+    [pipeline, poseLatencyDiagnostics, player, voice, sfx, recorder, onComplete, onItemCompleted, recordFunnel, exerciseIds.length, internalRuntime]
   );
 
   const onPoseError = React.useCallback((e: { nativeEvent: PoseErrorEventPayload }) => {
