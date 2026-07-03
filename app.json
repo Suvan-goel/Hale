@@ -33,6 +33,9 @@
       "supportsTablet": false,
       "icon": "./assets/ios-icon.png",
       "usesAppleSignIn": true,
+      "config": {
+        "usesNonExemptEncryption": false
+      },
       "infoPlist": {
         "NSCameraUsageDescription": "The camera estimates your movement as a skeleton outline. Camera video is never shown or stored."
       },
