@@ -384,7 +384,7 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
         : nil
       dispatch(
         result: result, timestampMs: timestampMs, inferenceMs: inferenceMs,
-        width: image.width, height: image.height, diagnostics: diagnostics)
+        width: Int(image.width), height: Int(image.height), diagnostics: diagnostics)
     } catch {
       DispatchQueue.main.async {
         self.onPoseError(["message": "inference-failed: \(error.localizedDescription)"])
