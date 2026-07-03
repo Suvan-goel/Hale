@@ -18,12 +18,6 @@ export function normalizeHeroFocus(value: string | string[] | undefined): HeroFo
   return raw === 'strength' || raw === 'balance' || raw === 'mobility' ? raw : 'general';
 }
 
-export const heroProofPoints = [
-  'Phone-camera Movement Check-Up',
-  'No mirror view, only a clean skeleton',
-  'Short voice-guided home sessions',
-] as const;
-
 export const trustStrip = [
   { title: 'From home', body: 'Use your phone, a sturdy chair and a wall or counter for support.' },
   { title: 'Around 20 minutes', body: 'Sessions are short enough to fit into ordinary weeks.' },
@@ -168,75 +162,33 @@ export const firstMonthPlan = [
   },
 ] as const;
 
-export const progressLoop = [
-  'Establish a starting point.',
-  'Train consistently.',
-  'Complete small check-ins.',
-  'Re-test after the block.',
-  'Begin the next appropriate block.',
-] as const;
+export const founderNote = {
+  eyebrow: 'Why we built Hale',
+  quote:
+    'We spent a year building camera-based movement technology for people who were already fit and already comfortable in a gym. The more useful problem was the one nobody was building for: giving people in midlife an honest, private way to see how their body is actually changing, and a calm plan to do something about it.',
+  attribution: 'The team building Hale',
+} as const;
 
-export const outcomeExamples = [
-  'Walk and travel with more confidence.',
-  'Keep stairs and chairs feeling manageable.',
-  'Stay active with friends and family.',
-  'Build a routine that supports an independent life.',
-] as const;
+export const valueCase = {
+  title: 'A small monthly habit, built around a large question.',
+  costComparison:
+    'A full year of Hale costs less than a single one-off physiotherapy or personal-training session — for a plan that keeps measuring and adjusting every week, not just once.',
+} as const;
 
-export const differencePoints = [
-  {
-    title: 'More personal than exercise videos',
-    body: 'Videos give everyone the same routine. Hale starts by checking what your body needs most.',
-  },
-  {
-    title: 'Less intimidating than the gym',
-    body: 'Sessions are made for real homes, with voice guidance and simple household setup.',
-  },
-  {
-    title: 'Calmer than fitness apps',
-    body: 'No streak shaming, leaderboards or public profiles. Just a steady plan and monthly re-checks.',
-  },
-] as const;
+export const finalCta = {
+  title: 'Start with a clearer view of how your body is doing.',
+  body: 'One check-up sets your baseline. A calm, voice-guided plan does the rest.',
+} as const;
 
-export const productTour = [
-  {
-    title: 'Today',
-    caption: 'Your next session and movement profile in one place.',
-    metric: '3/3',
-    label: 'weekly sessions',
-  },
-  {
-    title: 'Movement Check-Up',
-    caption: 'Voice-guided camera setup and skeleton-only movement tests from home.',
-    metric: '10 min',
-    label: 'baseline ritual',
-  },
-  {
-    title: 'Plan',
-    caption: 'A four-week home plan based on your check-up results.',
-    metric: '4 weeks',
-    label: 'home block',
-  },
-  {
-    title: 'Progress',
-    caption: 'Simple progress history and monthly re-test prompts.',
-    metric: 'Monthly',
-    label: 're-test',
-  },
-] as const;
+export const betaLifetimeNote =
+  'Beta members keep their beta price for life, even after Hale leaves beta and the regular price goes live.';
 
 export const betaValueList = [
   'Phone-camera Movement Check-Up',
   'Personalised four-week home plan',
   'Voice-guided sessions',
   'Monthly re-tests',
-  'Beta-member pricing',
-] as const;
-
-export const betaTransparency = [
-  'Try the core check-up and training plan early.',
-  'Tell us what is clear, confusing or missing.',
-  'Get beta-member pricing before the regular launch price.',
+  'Beta-member pricing, kept for life',
 ] as const;
 
 export const betaReassurance = [
@@ -278,11 +230,6 @@ export const faqs = [
       'Hale shows your strength, balance and mobility in plain language, suggests a focus, and turns that into your next home plan.',
   },
   {
-    question: 'How precise are the result ranges?',
-    answer:
-      'Hale explains Movement Profile domains as practical ranges where source-backed reference data is available. It avoids exact biological-age claims.',
-  },
-  {
     question: 'What equipment do I need?',
     answer:
       'You can start with a sturdy chair and a wall or counter for support. No specialist gym equipment is needed to begin. A long resistance band is recommended for fuller upper-body training and is required for pulling exercises.',
@@ -298,34 +245,19 @@ export const faqs = [
       'A typical week is three guided sessions of about 20 minutes, plus a monthly Movement Check-Up.',
   },
   {
-    question: 'Why not just follow exercise videos?',
-    answer:
-      'Exercise videos can be useful, but they usually give everyone the same routine. Hale starts with a check-up, then chooses a plan around your strength, balance and mobility.',
-  },
-  {
     question: 'Is Hale a medical product?',
     answer:
       'No. Hale is a general fitness and wellbeing product. It is not medical care, and it is not a medical device.',
   },
   {
-    question: 'What does being in beta mean?',
-    answer:
-      'Hale is still improving. Beta members can try the core experience early, may see some changes, and can help shape what gets clearer before launch.',
-  },
-  {
     question: 'How does beta pricing work?',
     answer:
-      'Beta members receive a substantial discount compared with the regular launch price. Exact pricing is shown when it is configured for the current beta offer.',
+      'Beta members receive a substantial discount compared with the regular launch price, and keep that beta price for life, even after Hale leaves beta.',
   },
   {
     question: 'Does this page collect payment details?',
     answer:
       'No. The beta signup form collects your email, optional first name and platform preference. If payment is part of a future offer, you will see the price before payment is collected.',
-  },
-  {
-    question: 'Is Hale available on iPhone and Android?',
-    answer:
-      'Hale is being prepared for iPhone and Android beta access. When a store beta link is available, this page shows it. Otherwise, the signup form records your platform preference.',
   },
   {
     question: 'What happens if I feel pain or cannot perform a movement?',
