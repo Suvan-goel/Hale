@@ -5,7 +5,7 @@ import {
   type MovementSafetyProfile,
 } from '../../adherence';
 import { DEFAULT_BATTERY } from '../../checkup';
-import { syntheticCheckUp } from '../../checkup/devFixture';
+import { legacySyntheticCheckUp as syntheticCheckUp } from '../../checkup/testing/legacyCheckUpFixture';
 import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../../history';
 import { TUG_ID } from '../../movements';
 import { defaultPreferences } from '../../profile';

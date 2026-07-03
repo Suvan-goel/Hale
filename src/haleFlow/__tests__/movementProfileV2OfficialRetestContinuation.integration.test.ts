@@ -127,7 +127,6 @@ describe('H4.1 Movement Profile V2 official retest continuation matrix', () => {
     const launch = selectPublicMovementCheckUpLaunch({
       sourceType: 'official_retest',
       entryContext: 'standard',
-      releaseEnabled: true,
       activeBlockOriginKind: priorBlock.origin?.kind ?? null,
       movementProfileV2OfficialRetestScheduleStatus: due.schedule.status,
       hasAcceptedMovementProfileV2OfficialRetestSourceArtifacts: true,

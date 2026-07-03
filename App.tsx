@@ -27,7 +27,6 @@ import {
   ScreenHeader,
   ScreenScrollClearanceProvider,
 } from './src/components/ui';
-import { LEGACY_V1_CHECKUP_ROLLBACK_ENABLED } from './src/config/legacyV1CheckUpRollback';
 import { MOVEMENT_PROFILE_V2_INTERNAL_ENABLED } from './src/config/movementProfileV2Internal';
 import {
   isDevMockDataAllowed,
@@ -57,7 +56,6 @@ import {
   SessionCompletionScreen,
   TrainingSessionCompletion,
   TrainingSessionCompletionType,
-  createMovementBlockFromAssessment,
   createLifeGoal,
   defaultAdherenceStoreState,
   generateMilestones,
@@ -66,14 +64,11 @@ import {
   getLifeGoalDisplayText,
   latestMilestone,
   makeTrainingSessionCompletion,
-  markMovementBlockComplete,
   mergeMilestones,
   movementBlockSourceCheckUpId,
   normalizeLifeGoalDisplayText,
   recordTrainingSessionCompletion,
-  scoreDomainFromMovementDomain,
   upsertMovementAssessment,
-  upsertMovementBlockReport,
   upsertMovementBlock,
 } from './src/adherence';
 import { configureSessionAudio } from './src/audio/voicePlayer';
@@ -81,8 +76,6 @@ import {
   CheckUp,
   latestV2ShoulderSide,
   latestV2StandingLeg,
-  mergeCheckUpRetry,
-  retryBatteryForMissingHeadlineDomains,
 } from './src/checkup';
 import type { BodySide } from './src/checkup/protocolSetup';
 import {
@@ -93,13 +86,11 @@ import {
 import {
   createMovementAssessment,
   createAutomaticMovementBlock,
-  createMovementBlockReport,
   createGeneratedSessionSummary,
   checkUpCompletionTimestamp,
   countsTowardMainPlan,
   evaluateCompletedFocusStimulusEvidence,
   evaluateSessionWorkEvidence,
-  findAssessmentForCheckUp,
   focusStimulusEvidenceSummary,
   annotateCompletionWithScheduleCredit,
   attachMicroCheckTargetMetadata,
@@ -108,8 +99,6 @@ import {
   getSessionPlanningRecoveryCopy,
   getBlockCreationEligibility,
   getHaleAppLifecycle,
-  headlineEvidenceFromScore,
-  historicalOfficialCheckUpRecords,
   latestUsableOfficialCheckUpRecord,
   latestUsableOfficialAssessment,
   buildMovementProfileV2ProgressViewModel,
@@ -200,13 +189,7 @@ import {
   type MovementProfileV2ReferenceProfile,
   type StoredMovementProfileV2Snapshot,
 } from './src/reference/movementProfileV2';
-import {
-  CheckUpScore,
-  ScoringInputIssue,
-  VersionedCheckUpScoreSnapshot,
-  createCurrentVersionedScoreSnapshot,
-  parseStoredScoreSnapshot,
-} from './src/scoring';
+import { CheckUpScore, VersionedCheckUpScoreSnapshot } from './src/scoring';
 import {
   AuthProvider,
   syncMovementBlockReportToRemote,
@@ -239,7 +222,6 @@ import {
 import { AuthScreen } from './src/screens/AuthScreen';
 import { CameraExplanationScreen } from './src/screens/CameraExplanationScreen';
 import { CameraSetupScreen } from './src/screens/CameraSetupScreen';
-import { CheckUpScreen } from './src/screens/CheckUpScreen';
 import { ExploreScreen } from './src/screens/ExploreScreen';
 import { LadderDetailScreen, LearnDetailScreen } from './src/screens/ExploreDetailScreens';
 import { LiveSessionScreen } from './src/screens/LiveSessionScreen';
@@ -257,10 +239,8 @@ import { MovementProfileV2UnifiedResultsScreen } from './src/screens/MovementPro
 import { MovementProfileV2PracticeResultsScreen } from './src/screens/MovementProfileV2PracticeResultsScreen';
 import { OnboardingBlockScreen } from './src/screens/OnboardingBlockScreen';
 import { OnboardingEquipmentScreen } from './src/screens/OnboardingEquipmentScreen';
-import { OnboardingResultsScreen } from './src/screens/OnboardingResultsScreen';
 import { PlanScreen } from './src/screens/PlanScreen';
 import { ProgressScreen, buildProgressDevMockData } from './src/screens/ProgressScreen';
-import { ResultsScreen } from './src/screens/ResultsScreen';
 import { SafetyProfileScreen } from './src/screens/SafetyProfileScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { SessionPlanningRecoveryScreen } from './src/screens/SessionPlanningRecoveryScreen';
@@ -280,15 +260,12 @@ import {
   TrainingSessionResult,
   TrackingQuality,
   applyBothSidesExerciseCompletionToStartSideSeed,
-  buildBlock,
   buildSessionInProgress,
   defaultTrainingState,
   deriveMicroCheckSideSetup,
   initialLadderProgressFromMeasuredCapability,
   mergeResumedSessionResult,
-  microCheckTrendPoints,
   resumableSessionStart,
-  startBlock,
   upsertGeneratedSessionSummary,
   validTimeSessionSummaryCards,
   type SessionIntensity,
@@ -309,8 +286,6 @@ type Flow =
   | 'manual-checkup'
   | 'manual-microcheck-domain'
   | 'manual-microcheck-unavailable'
-  | 'checkup'
-  | 'results'
   | 'session-unavailable'
   | 'session-preview'
   | 'training'
@@ -379,7 +354,6 @@ type NavigationLocation = {
 
 /** Flows that mount the camera; gated on permission + audio configuration. */
 const CAMERA_FLOWS = new Set<Flow>([
-  'checkup',
   'training',
   'microcheck',
   'movement-profile-v2-unified-checkup',
@@ -397,7 +371,6 @@ const PUBLIC_MOVEMENT_PROFILE_V2_FLOWS = new Set<Flow>([
 const MAX_NAVIGATION_HISTORY_ENTRIES = 40;
 const LAUNCH_SYNC_RETRY_DELAY_MS = 5000;
 const STATUS_BAR_BACKDROP_EXTRA_HEIGHT = 8;
-const EXPECTED_SCORING_INPUT_ISSUES = new Set<ScoringInputIssue['code']>(['no_measurement']);
 const TEMP_PREVIEW_BLOCK_INTRO_SCREEN = __DEV__ && false;
 
 initObservability();
@@ -581,35 +554,12 @@ function flowForOnboardingStep(step: OnboardingStep): Flow | null {
       return 'camera-setup';
     case 'results':
     case 'create_block':
-      return 'results';
+      // Unified Movement Check-Up results resume through the pending raw
+      // completion recovery path; there is no separate results flow to reopen.
+      return null;
     case 'complete':
       return null;
   }
-}
-
-function recordScoringInputIssues(
-  context: string,
-  issues: readonly ScoringInputIssue[],
-  checkupType?: CheckupType
-): void {
-  const unexpected = issues.filter((issue) => !EXPECTED_SCORING_INPUT_ISSUES.has(issue.code));
-  if (unexpected.length === 0) return;
-  addBreadcrumb('scoring input validation issues', {
-    area: 'scoring_input_validation',
-    context,
-    checkupType,
-    issueCount: unexpected.length,
-    issueCodes: uniqueStrings(unexpected.map((issue) => issue.code)),
-    movementIds: uniqueStrings(
-      unexpected
-        .map((issue) => issue.movementId)
-        .filter((movementId): movementId is string => typeof movementId === 'string')
-    ),
-  });
-}
-
-function uniqueStrings(values: readonly string[]): string[] {
-  return [...new Set(values)].sort();
 }
 
 function isOfficialMovementProfileV2SourceType(
@@ -700,21 +650,6 @@ function syncStatusCounts(results: readonly { status?: string }[]): Record<strin
     counts[status] = (counts[status] ?? 0) + 1;
     return counts;
   }, {});
-}
-
-function assessmentForCheckUp(
-  assessments: readonly MovementAssessment[],
-  checkUpStartedAt: string
-): MovementAssessment | null {
-  return (
-    assessments
-      .slice()
-      .sort((a, b) => (b.completedAt ?? b.createdAt).localeCompare(a.completedAt ?? a.createdAt))
-      .find((assessment) => {
-        const checkUpId = assessment.results?.rawMetrics?.checkUpId;
-        return checkUpId === checkUpStartedAt || assessment.createdAt === checkUpStartedAt;
-      }) ?? null
-  );
 }
 
 function App() {
@@ -826,7 +761,6 @@ function HaleApp() {
     TEMP_PREVIEW_BLOCK_INTRO_SCREEN ? 'block-intro' : null
   );
   const [progressHistoryOpen, setProgressHistoryOpen] = React.useState(false);
-  const [progressResultCheckUpId, setProgressResultCheckUpId] = React.useState<string | null>(null);
   const [cameraSetupEntry, setCameraSetupEntry] =
     React.useState<CameraSetupEntry>('checkup');
   const [lifeGoalEntry, setLifeGoalEntry] =
@@ -872,13 +806,6 @@ function HaleApp() {
   const profileStore = React.useMemo(() => new ProfileStore(localFs), [localFs]);
   const adherenceStore = React.useMemo(() => new AdherenceStore(localFs), [localFs]);
   const [history, setHistory] = React.useState<StoredCheckUp[]>([]);
-  const [lastResult, setLastResult] = React.useState<CheckUp | null>(null);
-  const [lastResultScore, setLastResultScore] = React.useState<CheckUpScore | null>(null);
-  const [lastResultScoreSnapshot, setLastResultScoreSnapshot] =
-    React.useState<VersionedCheckUpScoreSnapshot | null>(null);
-  const [lastResultCheckupType, setLastResultCheckupType] = React.useState<CheckupType | null>(
-    null
-  );
   const [training, setTraining] = React.useState<TrainingState>(() => defaultTrainingState());
   const [adherence, setAdherence] = React.useState<AdherenceStoreState>(() =>
     defaultAdherenceStoreState()
@@ -898,14 +825,6 @@ function HaleApp() {
   const [restoreOutcome, setRestoreOutcome] = React.useState<LaunchRestoreOutcome>('pending');
   const [localWasEmptyAtRestore, setLocalWasEmptyAtRestore] = React.useState(false);
   const [launchSyncRetryTick, setLaunchSyncRetryTick] = React.useState(0);
-  const [pendingCheckup, setPendingCheckup] = React.useState<{
-    type: CheckupType;
-    sourceBlockId?: string;
-    isOfficialForProgress?: boolean;
-    battery?: readonly string[];
-    retryOfCheckUpId?: string;
-    retryMovementIds?: readonly string[];
-  } | null>(null);
   // The exercise ids of the session about to run (resolved at launch).
   const [sessionIds, setSessionIds] = React.useState<string[]>([]);
   const [sessionType, setSessionType] = React.useState<TrainingSessionCompletionType>('standard');
@@ -1026,12 +945,6 @@ function HaleApp() {
   }, [replaceFlow]);
 
   React.useEffect(() => {
-    if (flow !== 'results') {
-      setProgressResultCheckUpId(null);
-    }
-  }, [flow]);
-
-  React.useEffect(() => {
     addBreadcrumb('voice activation resolved', {
       area: 'voice_v21_activation',
       trainingVoiceV21Enabled: voiceActivation.trainingVoiceV21Enabled,
@@ -1076,10 +989,6 @@ function HaleApp() {
     setProfileReady(false);
     setAdherenceReady(false);
     setHistory([]);
-    setLastResult(null);
-    setLastResultScore(null);
-    setLastResultScoreSnapshot(null);
-    setLastResultCheckupType(null);
     setMovementProfileV2InitialFlow(null);
     setMovementProfileV2Raw(null);
     setMovementProfileV2Result(null);
@@ -2154,21 +2063,6 @@ function HaleApp() {
     });
   }, [displayAdherence.blocks, displayAdherence.reports, displayHistory]);
   const movementProfileV2AuthorityFacts = movementProfileV2Progress.authorityFacts;
-  const hasMovementProfileV2AuthorityState =
-    movementProfileV2AuthorityFacts.acceptedProfileIds.length > 0 ||
-    movementProfileV2AuthorityFacts.v2BlockIds.length > 0 ||
-    movementProfileV2AuthorityFacts.acceptedReportIds.length > 0 ||
-    movementProfileV2AuthorityFacts.hasMalformedState;
-  const legacyV1RollbackAvailable =
-    LEGACY_V1_CHECKUP_ROLLBACK_ENABLED && !hasMovementProfileV2AuthorityState;
-  const legacyV1CheckUpFlowAllowed =
-    legacyV1RollbackAvailable &&
-    !!pendingCheckup &&
-    (pendingCheckup.type === 'baseline' ||
-      pendingCheckup.type === 'baseline_retake' ||
-      (pendingCheckup.type === 'official_retest' &&
-        activeMovementBlock?.origin?.kind === 'legacy_v1_assessment'));
-  const legacyV1ResultsFlowAllowed = legacyV1RollbackAvailable;
   const progressDataAuthority = React.useMemo(
     () =>
       selectProgressDataAuthority({
@@ -2178,19 +2072,10 @@ function HaleApp() {
           movementProfileV2AuthorityFacts.acceptedReportIds.includes(report.id)
         ),
         hasMalformedV2State: movementProfileV2AuthorityFacts.hasMalformedState,
-        v1RollbackAvailable: LEGACY_V1_CHECKUP_ROLLBACK_ENABLED,
+        v1RollbackAvailable: false,
       }),
     [displayAdherence.blocks, displayAdherence.reports, movementProfileV2AuthorityFacts]
   );
-  React.useEffect(() => {
-    if (flow === 'checkup' && !legacyV1CheckUpFlowAllowed) {
-      goHome();
-      return;
-    }
-    if (flow === 'results' && !legacyV1ResultsFlowAllowed) {
-      goHome();
-    }
-  }, [flow, goHome, legacyV1CheckUpFlowAllowed, legacyV1ResultsFlowAllowed]);
   const displayMovementBlock = React.useMemo(
     () =>
       blockIntroPreview?.block ?? activeMovementBlock ?? getLatestMovementBlock(adherence.blocks),
@@ -2208,43 +2093,6 @@ function HaleApp() {
   );
   const onboardingIncomplete = onboardingStep !== 'complete';
   const onboardingFlowActive = onboardingIncomplete || devOnboardingReplay;
-  const latestStoredCheckUp = history.length > 0 ? history[history.length - 1].checkUp : null;
-  const visibleResult = lastResult ?? latestStoredCheckUp;
-  const visibleResultRecord = React.useMemo(
-    () =>
-      visibleResult
-        ? (history.find((record) => record.checkUp.startedAt === visibleResult.startedAt) ?? null)
-        : null,
-    [history, visibleResult]
-  );
-  const visibleResultSnapshot = React.useMemo(() => {
-    if (visibleResult && lastResult?.startedAt === visibleResult.startedAt)
-      return lastResultScoreSnapshot;
-    return visibleResultRecord?.scoreSnapshot ?? null;
-  }, [lastResult, lastResultScoreSnapshot, visibleResult, visibleResultRecord]);
-  const visibleResultScore = React.useMemo(() => {
-    if (visibleResult && lastResult?.startedAt === visibleResult.startedAt) return lastResultScore;
-    const parsed = parseStoredScoreSnapshot(visibleResultRecord?.scoreSnapshot);
-    return parsed.ok ? parsed.score : null;
-  }, [lastResult, lastResultScore, visibleResult, visibleResultRecord]);
-  const visibleResultAssessment = React.useMemo(
-    () =>
-      visibleResult ? assessmentForCheckUp(adherence.assessments, visibleResult.startedAt) : null,
-    [adherence.assessments, visibleResult]
-  );
-  const visibleResultNextPlanReady = React.useMemo(() => {
-    const visibleType = lastResultCheckupType ?? visibleResultAssessment?.type ?? null;
-    if (visibleType !== 'official_retest' || !visibleResult || !activeMovementBlock) return false;
-    return movementBlockSourceCheckUpId(activeMovementBlock) === visibleResult.startedAt;
-  }, [activeMovementBlock, lastResultCheckupType, visibleResult, visibleResultAssessment]);
-  const visibleResultOpenedFromProgress =
-    !!visibleResult && progressResultCheckUpId === visibleResult.startedAt;
-  const showingPendingOnboardingResult =
-    !prefs.onboarding.completedAt &&
-    (prefs.onboarding.currentStep === 'results' || prefs.onboarding.currentStep === 'create_block');
-  const showOnboardingResult =
-    (onboardingFlowActive || showingPendingOnboardingResult) &&
-    (prefs.onboarding.currentStep === 'results' || prefs.onboarding.currentStep === 'create_block');
   const onboardingDecisionReady = historyReady && profileReady && adherenceReady && restoreReady;
   const pendingInitialOnboardingFlow =
     onboardingDecisionReady && flow === null ? flowForOnboardingStep(onboardingStep) : null;
@@ -2476,10 +2324,6 @@ function HaleApp() {
         updatedAt: now,
       },
     });
-    setLastResult(null);
-    setLastResultScore(null);
-    setLastResultScoreSnapshot(null);
-    setLastResultCheckupType(null);
     setFlow('welcome');
   }, [persistPrefs, prefs]);
 
@@ -2632,14 +2476,7 @@ function HaleApp() {
   );
 
   const beginCheckUp = React.useCallback(
-    (
-      type?: CheckupType,
-      options: {
-        battery?: readonly string[];
-        retryOfCheckUpId?: string;
-        retryMovementIds?: readonly string[];
-      } = {}
-    ) => {
+    (type?: CheckupType) => {
       const resolvedType = type ?? (latestAssessment ? 'baseline_retake' : 'baseline');
       const activeBlockV2Record =
         activeMovementBlock?.origin?.kind === 'movement_profile_v2_assessment'
@@ -2670,7 +2507,6 @@ function HaleApp() {
       const launchDecision = selectPublicMovementCheckUpLaunch({
         sourceType: resolvedType,
         entryContext: onboardingFlowActive ? 'onboarding' : 'standard',
-        legacyV1RollbackEnabled: LEGACY_V1_CHECKUP_ROLLBACK_ENABLED,
         hasAcceptedMovementProfileV2State:
           movementProfileV2AuthorityFacts.acceptedProfileIds.length > 0 ||
           !!latestMaterializedMovementProfileV2Result(history),
@@ -2688,7 +2524,6 @@ function HaleApp() {
           reason: launchDecision.reason,
           sourceType: launchDecision.sourceType,
         });
-        setPendingCheckup(null);
         setMovementProfileV2EntryContext('public_standard');
         setMovementProfileV2OfficialRetestContext(null);
         setMovementProfileV2RetestComparison(null);
@@ -2696,42 +2531,17 @@ function HaleApp() {
         setFlow('movement-profile-v2-retest-unavailable');
         return;
       }
-      if (launchDecision.engine === 'unified_movement_profile') {
-        addBreadcrumb('public movement check-up launch', {
-          area: 'checkup_launch',
-          engine: launchDecision.engine,
-          sourceType: launchDecision.sourceType,
-          entryContext: launchDecision.entryContext,
-        });
-        setPendingCheckup(null);
-        beginUnifiedMovementProfileV2Public(
-          launchDecision.sourceType,
-          launchDecision.entryContext,
-          launchDecision.sourceType === 'official_retest' ? officialRetestContext : null
-        );
-        return;
-      }
-      const legacyType = launchDecision.sourceType;
-      addBreadcrumb('movement check-up voice runtime pinned', {
-        area: 'voice_v21_activation',
-        flow: 'legacy_checkup',
-        v21Enabled: false,
+      addBreadcrumb('public movement check-up launch', {
+        area: 'checkup_launch',
+        engine: launchDecision.engine,
+        sourceType: launchDecision.sourceType,
+        entryContext: launchDecision.entryContext,
       });
-      setPendingCheckup({
-        type: legacyType,
-        sourceBlockId:
-          legacyType === 'official_retest' || legacyType === 'quick_recheck'
-            ? activeMovementBlock?.id
-            : undefined,
-        isOfficialForProgress:
-          legacyType === 'baseline' ||
-          legacyType === 'baseline_retake' ||
-          legacyType === 'official_retest',
-        battery: options.battery,
-        retryOfCheckUpId: options.retryOfCheckUpId,
-        retryMovementIds: options.retryMovementIds,
-      });
-      setFlow('checkup');
+      beginUnifiedMovementProfileV2Public(
+        launchDecision.sourceType,
+        launchDecision.entryContext,
+        launchDecision.sourceType === 'official_retest' ? officialRetestContext : null
+      );
     },
     [
       activeMovementBlock,
@@ -2758,270 +2568,16 @@ function HaleApp() {
     beginCheckUp('baseline');
   }, [beginCheckUp, persistPrefs, prefs]);
 
-  // A finished check-up: persist it, show it, reload history (feeds trends).
-  const handleCheckUpComplete = React.useCallback(
-    (completedCheckUp: CheckUp, checkupOverride?: typeof pendingCheckup) => {
-      const block = activeMovementBlock;
-      const resolvedPendingCheckup = checkupOverride ?? pendingCheckup;
-      const baseRetryCheckUp = resolvedPendingCheckup?.retryOfCheckUpId
-        ? (history.find(
-            (record) => record.checkUp.startedAt === resolvedPendingCheckup.retryOfCheckUpId
-          )?.checkUp ?? null)
-        : null;
-      const checkUp =
-        baseRetryCheckUp && resolvedPendingCheckup?.retryMovementIds
-          ? mergeCheckUpRetry({
-              baseCheckUp: baseRetryCheckUp,
-              retryCheckUp: completedCheckUp,
-              retriedMovementIds: resolvedPendingCheckup.retryMovementIds,
-            })
-          : completedCheckUp;
-      const completedAt = checkUpCompletionTimestamp(checkUp, new Date().toISOString());
-      const scheduleAtCheckup = block
-        ? getBlockScheduleState({
-            block,
-            completions: adherence.completions,
-            generatedSessionSummaries: training.generatedSessionSummaries,
-            today: completedAt,
-          })
-        : null;
-      const scheduleRetestDue = scheduleAtCheckup?.status === 'retest_due';
-      const requestedCheckupType =
-        resolvedPendingCheckup?.type ??
-        (block && scheduleRetestDue
-          ? 'official_retest'
-          : history.length === 0
-            ? 'baseline'
-            : 'manual_extra');
-      const checkupType =
-        requestedCheckupType === 'official_retest' && !scheduleRetestDue
-          ? 'manual_extra'
-          : requestedCheckupType;
-      const isRetest = !!block && checkupType === 'official_retest' && scheduleRetestDue;
-      const {
-        score,
-        snapshot: scoreSnapshot,
-        issues: scoringInputIssues,
-      } = createCurrentVersionedScoreSnapshot(checkUp, {
-        createdAt: completedAt,
-        activeFocusDomain:
-          isRetest && block?.focusDomain ? scoreDomainFromMovementDomain(block.focusDomain) : null,
-      });
-      recordScoringInputIssues('checkup_completion', scoringInputIssues, checkupType);
-      const assessment = createMovementAssessment({
-        checkUpId: checkUp.startedAt,
-        type: checkupType,
-        score,
-        scoreSnapshot,
-        sourceBlockId: resolvedPendingCheckup?.sourceBlockId ?? (isRetest ? block?.id : undefined),
-        completedAt,
-        isOfficialForProgress: isRetest
-          ? true
-          : checkupType === requestedCheckupType
-            ? resolvedPendingCheckup?.isOfficialForProgress
-            : false,
-      });
-      const eligibility = getBlockCreationEligibility({
-        score,
-        scoreSnapshot,
-        assessment,
-      });
-      let localHistorySaved = false;
-      try {
-        store.save(checkUp, {
-          checkupType,
-          sourceAssessmentId: assessment.id,
-          retryOfCheckUpId: resolvedPendingCheckup?.retryOfCheckUpId,
-          scoreSnapshot,
-        });
-        localHistorySaved = true;
-      } catch (e) {
-        console.warn('[history] save failed', e);
-      }
-      if (localHistorySaved && backendSignedIn && backendUserId) {
-        void syncMovementCheckupToRemote({
-          checkUp,
-          checkupType,
-          status: assessment.status,
-          completedAt,
-          score,
-          scoreSnapshot,
-          assessment,
-        });
-      }
-      setLastResult(checkUp);
-      setLastResultScore(score);
-      setLastResultScoreSnapshot(scoreSnapshot);
-      setLastResultCheckupType(checkupType);
-      store
-        .loadAll()
-        .then(setHistory)
-        .catch(() => {});
-      let nextAdherence = upsertMovementAssessment(adherence, assessment);
-      if (isRetest && block) {
-        if (!eligibility.eligible) {
-          recordBlockedBlockCreation('official_retest_completion', eligibility, checkupType);
-          persistAdherence(nextAdherence);
-          setPendingCheckup(null);
-          replaceFlow('results');
-          return;
-        }
-        const completion = makeTrainingSessionCompletion({
-          block,
-          sessionType: 'retest',
-          completedAt,
-          plannedDate: 'retest',
-        });
-        nextAdherence = recordTrainingSessionCompletion(nextAdherence, completion);
-        nextAdherence = markMovementBlockComplete(nextAdherence, block.id, completedAt);
-        const updatedBlock = nextAdherence.blocks.find((b) => b.id === block.id) ?? block;
-        const sourceCheckUpId = movementBlockSourceCheckUpId(block);
-        const previous = sourceCheckUpId
-          ? history.find((h) => h.checkUp.startedAt === sourceCheckUpId)
-          : undefined;
-        const previousParsed = parseStoredScoreSnapshot(previous?.scoreSnapshot);
-        const previousScore = previousParsed.ok ? previousParsed.score : null;
-        const reportComparisonCompatible =
-          previousParsed.ok && scoreSnapshot
-            ? previousParsed.snapshot.schemaVersion === scoreSnapshot.schemaVersion &&
-              previousParsed.snapshot.scoringVersion === scoreSnapshot.scoringVersion &&
-              previousParsed.snapshot.normVersion === scoreSnapshot.normVersion
-            : false;
-        nextAdherence = mergeMilestones(
-          nextAdherence,
-          generateMilestones({
-            user: prefs.profile,
-            block: updatedBlock,
-            lifeGoal: prefs.profile.lifeGoal,
-            latestAssessment: score,
-            previousAssessment: reportComparisonCompatible ? previousScore : null,
-            completions: nextAdherence.completions,
-            existing: nextAdherence.milestones,
-            nowIso: completedAt,
-          })
-        );
-        const blockReport = createMovementBlockReport({
-          block: updatedBlock,
-          baselineAssessment: sourceCheckUpId
-            ? findAssessmentForCheckUp(nextAdherence.assessments, sourceCheckUpId)
-            : null,
-          retestAssessment: assessment,
-          previousScore,
-          latestScore: score,
-          previousScoreSnapshot: previousParsed.ok ? previousParsed.snapshot : null,
-          latestScoreSnapshot: scoreSnapshot,
-          completions: nextAdherence.completions,
-          nowIso: completedAt,
-        });
-        nextAdherence = upsertMovementBlockReport(nextAdherence, blockReport);
-        const nextTrainingBlock = buildBlock(score, training.equipment, completedAt);
-        const nextMovementBlock = createMovementBlockFromAssessment({
-          latestAssessment: {
-            score,
-            scoreSnapshot,
-            sourceCheckUpId: checkUp.startedAt,
-            assessment,
-          },
-          lifeGoal: prefs.profile.lifeGoal,
-          startDate: completedAt,
-        });
-        nextAdherence = upsertMovementBlock(nextAdherence, nextMovementBlock);
-        const adherenceSaved = persistAdherence(nextAdherence);
-        const nextTraining = startBlock(training, nextTrainingBlock);
-        persistTraining(nextTraining);
-        if (adherenceSaved && backendSignedIn && backendUserId) {
-          void syncMovementBlockToRemote({
-            block: updatedBlock,
-            trainingBlock: training.block,
-            training,
-            blockNumber: blockNumberForBlocks(nextAdherence.blocks, updatedBlock.id),
-            sourceCheckupLocalId: movementBlockSourceCheckUpId(updatedBlock),
-          });
-          void syncMovementBlockToRemote({
-            block: nextMovementBlock,
-            trainingBlock: nextTrainingBlock,
-            training: nextTraining,
-            blockNumber: blockNumberForBlocks(nextAdherence.blocks, nextMovementBlock.id),
-            sourceCheckupLocalId: checkUp.startedAt,
-          });
-          void syncMovementBlockReportToRemote({
-            report: blockReport,
-            movementBlock: updatedBlock,
-            assessments: nextAdherence.assessments,
-            baselineAssessment:
-              nextAdherence.assessments.find((a) => a.id === blockReport.baselineAssessmentId) ??
-              null,
-            retestAssessment: assessment,
-            completions: nextAdherence.completions,
-          });
-        }
-        setLastCompletion(completion);
-        setPendingCheckup(null);
-        replaceFlow('results');
-      } else {
-        const preparedBlock = eligibility.eligible
-          ? prepareBlockFromOfficialCheckUp({
-              baseAdherence: nextAdherence,
-              baseTraining: training,
-              sourceCheckUpId: checkUp.startedAt,
-              score,
-              scoreSnapshot,
-              assessment,
-              nowIso: completedAt,
-              source: 'official_checkup_completion',
-            })
-          : null;
-        if (!preparedBlock) {
-          if (!eligibility.eligible && assessment.isOfficialForProgress) {
-            recordBlockedBlockCreation('official_checkup_completion', eligibility, checkupType);
-          }
-          persistAdherence(nextAdherence);
-        }
-        if (onboardingFlowActive) {
-          persistPrefs({
-            ...prefs,
-            onboarding: {
-              ...prefs.onboarding,
-              currentStep: 'results',
-              baselineResultId: checkUp.startedAt,
-              updatedAt: completedAt,
-            },
-          });
-        }
-        setPendingCheckup(null);
-        replaceFlow('results');
-      }
-    },
-    [
-      activeMovementBlock,
-      adherence,
-      backendSignedIn,
-      backendUserId,
-      history,
-      onboardingFlowActive,
-      pendingCheckup,
-      persistAdherence,
-      persistPrefs,
-      persistTraining,
-      prepareBlockFromOfficialCheckUp,
-      prefs,
-      recordBlockedBlockCreation,
-      replaceFlow,
-      store,
-      training,
-    ]
-  );
-
-  const completeDevOnboardingCheckUp = React.useCallback(() => {
+  function completeDevOnboardingCheckUp() {
     if (!__DEV__) return;
     const { syntheticCheckUp } = require('./src/checkup/devFixture') as typeof import(
       './src/checkup/devFixture'
     );
-    handleCheckUpComplete(syntheticCheckUp(new Date().toISOString()), {
-      type: 'baseline',
-      isOfficialForProgress: true,
-    });
-  }, [handleCheckUpComplete]);
+    handleMovementProfileV2RawComplete(
+      { checkUp: syntheticCheckUp(new Date().toISOString()), sourceType: 'baseline' },
+      'unified'
+    );
+  }
 
   const deferOnboardingCheckUp = React.useCallback(() => {
     const now = new Date().toISOString();
@@ -3034,29 +2590,8 @@ function HaleApp() {
         updatedAt: now,
       },
     });
-    setPendingCheckup(null);
     goHome();
   }, [goHome, persistPrefs, prefs]);
-
-  const handleOnboardingResultsContinue = React.useCallback(() => {
-    const now = new Date().toISOString();
-    setDevOnboardingReplay(false);
-    persistPrefs({
-      ...prefs,
-      onboarding: {
-        ...prefs.onboarding,
-        currentStep: 'complete',
-        completedAt: prefs.onboarding.completedAt ?? now,
-        updatedAt: now,
-      },
-    });
-    if (displayMovementBlock) {
-      setFlow('onboarding-block');
-    } else {
-      setFlow(null);
-      setTab('plan');
-    }
-  }, [displayMovementBlock, persistPrefs, prefs]);
 
   const handleStartSession = React.useCallback(
     (
@@ -3982,34 +3517,6 @@ function HaleApp() {
     [persistPrefs, prefs]
   );
 
-  const viewLast = React.useCallback(() => {
-    const latest = latestUsableOfficialCheckUpRecord(history, adherence.assessments);
-    if (latest) {
-      setLastResult(latest.record.checkUp);
-      setLastResultScore(latest.score);
-      setLastResultScoreSnapshot(latest.scoreSnapshot);
-      setLastResultCheckupType(latest.type);
-      setProgressResultCheckUpId(latest.record.checkUp.startedAt);
-      setFlow('results');
-    }
-  }, [adherence.assessments, history]);
-
-  const viewHistoricalCheckUp = React.useCallback(
-    (checkUpId: string) => {
-      const selected = historicalOfficialCheckUpRecords(history, adherence.assessments).find(
-        (entry) => entry.record.checkUp.startedAt === checkUpId
-      );
-      if (!selected) return;
-      setLastResult(selected.record.checkUp);
-      setLastResultScore(selected.score);
-      setLastResultScoreSnapshot(selected.scoreSnapshot);
-      setLastResultCheckupType(selected.type);
-      setProgressResultCheckUpId(selected.record.checkUp.startedAt);
-      setFlow('results');
-    },
-    [adherence.assessments, history]
-  );
-
   const handleStartNextBlock = React.useCallback(() => {
     const official = latestUsableOfficialCheckUpRecord(history, adherence.assessments);
     if (!official) {
@@ -4018,32 +3525,32 @@ function HaleApp() {
     }
     const now = new Date().toISOString();
     const sourceResult = official.record.checkUp;
-    const score = official.score;
-    const scoreSnapshot = official.scoreSnapshot;
-    const sourceAssessment = official.assessment;
     const preparedBlock = prepareBlockFromOfficialCheckUp({
       baseAdherence: adherence,
       baseTraining: training,
       sourceCheckUpId: sourceResult.startedAt,
-      score,
-      scoreSnapshot,
-      assessment: sourceAssessment,
+      score: official.score,
+      scoreSnapshot: official.scoreSnapshot,
+      assessment: official.assessment,
       nowIso: now,
       source: 'start_next_block',
     });
     if (!preparedBlock) {
-      setLastResult(sourceResult);
-      setLastResultScore(score);
-      setLastResultScoreSnapshot(scoreSnapshot);
-      setLastResultCheckupType(sourceAssessment?.type ?? null);
-      setFlow('results');
+      // Block creation was blocked (ineligible source); Progress explains state.
+      replaceNextNavigationLocation(navigationLocation('progress', null));
+      setFlow(null);
+      setTab('progress');
       return;
     }
-    setLastResult(sourceResult);
-    setLastResultScore(score);
-    setLastResultScoreSnapshot(scoreSnapshot);
     setFlow('block-intro');
-  }, [adherence, beginCheckUp, history, prepareBlockFromOfficialCheckUp, training]);
+  }, [
+    adherence,
+    beginCheckUp,
+    history,
+    prepareBlockFromOfficialCheckUp,
+    replaceNextNavigationLocation,
+    training,
+  ]);
 
   const handlePlanningRecoveryAction = React.useCallback(
     (action: GenerationRecoveryAction | undefined) => {
@@ -4079,46 +3586,6 @@ function HaleApp() {
     },
     [goHome, goSettings, handleStartNextBlock, handleStartSession, openCameraSetup]
   );
-
-  const handleRetakeVisibleResult = React.useCallback(() => {
-    const score = visibleResultScore;
-    const evidence = headlineEvidenceFromScore(score);
-    const retryMovementIds = retryBatteryForMissingHeadlineDomains(evidence.missingDomains);
-    const retryOptions =
-      visibleResult && evidence.measuredDomainCount > 0 && !evidence.complete
-        ? {
-            battery: retryMovementIds,
-            retryOfCheckUpId: visibleResult.startedAt,
-            retryMovementIds,
-          }
-        : undefined;
-    const visibleType = lastResultCheckupType ?? visibleResultAssessment?.type ?? null;
-    if (visibleType === 'official_retest') {
-      beginCheckUp('official_retest', retryOptions);
-      return;
-    }
-    if (visibleType === 'manual_extra' || visibleType === 'quick_recheck') {
-      beginCheckUp(visibleType, retryOptions);
-      return;
-    }
-    if (onboardingFlowActive) {
-      if (retryOptions) {
-        beginCheckUp('baseline', retryOptions);
-        return;
-      }
-      openCameraSetup();
-      return;
-    }
-    beginCheckUp('baseline_retake', retryOptions);
-  }, [
-    beginCheckUp,
-    lastResultCheckupType,
-    onboardingFlowActive,
-    openCameraSetup,
-    visibleResult,
-    visibleResultAssessment,
-    visibleResultScore,
-  ]);
 
   const handleViewPlanFromResults = React.useCallback(() => {
     replaceNextNavigationLocation(navigationLocation('plan', null));
@@ -4234,7 +3701,6 @@ function HaleApp() {
     setFlow('microcheck');
   }, [voiceActivation]);
 
-  const extraTrendPoints = React.useMemo(() => microCheckTrendPoints(microChecks), [microChecks]);
   const activeMicroCheckType =
     microCheckLaunch?.mode === 'scheduled'
       ? microCheckLaunch.target.microCheckType
@@ -4856,12 +4322,7 @@ function HaleApp() {
     return <AuthLoadingScreen />;
   }
 
-  if (
-    !releaseGatedFlowAllowed ||
-    !movementProfileV2FlowAllowed ||
-    (flow === 'checkup' && !legacyV1CheckUpFlowAllowed) ||
-    (flow === 'results' && !legacyV1ResultsFlowAllowed)
-  ) {
+  if (!releaseGatedFlowAllowed || !movementProfileV2FlowAllowed) {
     return <View style={styles.container} />;
   }
 
@@ -4954,43 +4415,6 @@ function HaleApp() {
             onBack={() => goBack(openManualCheckup)}
             onDone={goHome}
           />
-        ) : flow === 'checkup' && legacyV1CheckUpFlowAllowed ? (
-          <CheckUpScreen
-            onComplete={handleCheckUpComplete}
-            onCancel={() => goBack(goHome)}
-            voiceId={prefs.settings.voiceId}
-            battery={pendingCheckup?.battery}
-          />
-        ) : flow === 'results' && legacyV1ResultsFlowAllowed && visibleResult ? (
-          showOnboardingResult ? (
-            <OnboardingResultsScreen
-              checkUp={visibleResult}
-              assessment={visibleResultAssessment}
-              score={visibleResultScore}
-              scoreSnapshot={visibleResultSnapshot}
-              plannedBlock={displayMovementBlock}
-              userAge={prefs.profile.age}
-              onContinue={handleOnboardingResultsContinue}
-              onRetake={handleRetakeVisibleResult}
-              onDone={goHome}
-            />
-          ) : (
-            <ResultsScreen
-              checkUp={visibleResult}
-              assessment={visibleResultAssessment}
-              score={visibleResultScore}
-              scoreSnapshot={visibleResultSnapshot}
-              age={prefs.profile.age}
-              ageBand={prefs.profile.ageBand}
-              history={history}
-              extraTrendPoints={extraTrendPoints}
-              onDone={() => goBack(goHome)}
-              onRetake={handleRetakeVisibleResult}
-              nextPlanReady={visibleResultNextPlanReady}
-              showBackButton={visibleResultOpenedFromProgress}
-              onViewPlan={visibleResultNextPlanReady ? handleViewPlanFromResults : undefined}
-            />
-          )
         ) : flow === 'session-unavailable' && planningRecoveryResult?.kind === 'unavailable' ? (
           <SessionPlanningRecoveryScreen
             result={planningRecoveryResult}
@@ -5305,8 +4729,8 @@ function HaleApp() {
               onBeginFirstCheckUp={beginProgressFirstCheckUp}
               onBeginAdditionalCheckUp={beginProgressAdditionalCheckUp}
               onStartRetest={() => beginCheckUp('official_retest')}
-              onViewLatest={devMockData ? () => undefined : viewLast}
-              onViewCheckUp={devMockData ? () => undefined : viewHistoricalCheckUp}
+              onViewLatest={() => undefined}
+              onViewCheckUp={() => undefined}
               showMovementProfileV2Internal={
                 movementProfileV2InternalSurfaceEnabled && !devMockData
               }

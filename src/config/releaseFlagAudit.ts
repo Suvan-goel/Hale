@@ -1,6 +1,4 @@
 export const RELEASE_FLAG_ENV_NAMES = {
-  legacyV1Rollback: 'EXPO_PUBLIC_ENABLE_LEGACY_V1_CHECKUP_ROLLBACK',
-  unifiedMovementCheckUp: 'EXPO_PUBLIC_ENABLE_UNIFIED_MOVEMENT_CHECKUP',
   movementProfileV2Internal: 'EXPO_PUBLIC_ENABLE_MOVEMENT_PROFILE_V2_INTERNAL',
   movementProfileV2Diagnostics: 'EXPO_PUBLIC_ENABLE_MOVEMENT_PROFILE_V2_DIAGNOSTICS',
   poseLatencyDiagnostics: 'EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS',
@@ -13,7 +11,6 @@ export type ReleaseFlagEnvName =
   (typeof RELEASE_FLAG_ENV_NAMES)[keyof typeof RELEASE_FLAG_ENV_NAMES];
 
 export type ReleaseFlagUnsafeReason =
-  | 'legacy_v1_rollback_enabled'
   | 'movement_profile_v2_internal_enabled'
   | 'movement_profile_v2_diagnostics_enabled'
   | 'pose_latency_diagnostics_enabled'
@@ -23,7 +20,6 @@ export type ReleaseFlagUnsafeReason =
 export type SafeDiagnosticCode =
   | 'beta_release_profile_audited'
   | 'development_profile_not_audited'
-  | 'public_v2_default_is_expected'
   | 'observability_flag_not_internal'
   | 'apple_sign_in_flag_not_internal';
 
@@ -33,8 +29,6 @@ export interface SafeDiagnostic {
 }
 
 export interface BetaReleaseFlagAuditFlags {
-  legacyV1RollbackEnabled: boolean;
-  unifiedMovementCheckUpEnabled: boolean;
   movementProfileV2InternalEnabled: boolean;
   movementProfileV2DiagnosticsEnabled: boolean;
   poseLatencyDiagnosticsEnabled: boolean;
@@ -72,12 +66,6 @@ export function parseExactReleaseFlag(value: unknown): boolean {
 
 export function parseReleaseFlagAuditEnv(env: ReleaseFlagRawEnv): BetaReleaseFlagAuditFlags {
   return {
-    legacyV1RollbackEnabled: parseExactReleaseFlag(
-      env[RELEASE_FLAG_ENV_NAMES.legacyV1Rollback]
-    ),
-    unifiedMovementCheckUpEnabled: parseExactReleaseFlag(
-      env[RELEASE_FLAG_ENV_NAMES.unifiedMovementCheckUp]
-    ),
     movementProfileV2InternalEnabled: parseExactReleaseFlag(
       env[RELEASE_FLAG_ENV_NAMES.movementProfileV2Internal]
     ),
@@ -107,7 +95,6 @@ export function auditBetaReleaseFlags(
   }
 
   const reasons: ReleaseFlagUnsafeReason[] = [];
-  if (input.flags.legacyV1RollbackEnabled) reasons.push('legacy_v1_rollback_enabled');
   if (input.flags.movementProfileV2InternalEnabled) {
     reasons.push('movement_profile_v2_internal_enabled');
   }
@@ -129,7 +116,6 @@ export function auditBetaReleaseFlags(
         code: 'beta_release_profile_audited',
         detail: [input.buildProfile ?? 'unspecified', input.platform ?? 'all'].join(':'),
       },
-      { code: 'public_v2_default_is_expected' },
       { code: 'apple_sign_in_flag_not_internal' },
       { code: 'observability_flag_not_internal' },
     ],

@@ -25,14 +25,7 @@ describe('recording session sound-effect wiring', () => {
     }
   });
 
-  it('wires the shared session cues into legacy check-up, training, and micro-check flows', () => {
-    const checkUp = source('src/screens/CheckUpScreen.tsx');
-    expect(checkUp).toContain('REP_BASED_CHECKUP_MOVEMENTS');
-    expect(checkUp).toContain('nextMeasurementTrackingSfxState');
-    expect(checkUp).toContain("sfx.play('rep-credit')");
-    expect(checkUp).toContain("sfx.play('measurement-complete')");
-    expect(checkUp).toContain("sfx.play('session-complete')");
-
+  it('wires the shared session cues into training and micro-check flows', () => {
     const training = source('src/screens/TrainingSessionScreen.tsx');
     expect(training).toContain('lastSetKindRef');
     expect(training).toContain('nextMeasurementTrackingSfxState');

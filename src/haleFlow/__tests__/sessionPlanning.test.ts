@@ -6,7 +6,7 @@ import {
   type MovementSafetyProfile,
   type TrainingFocusStimulusEvidenceSummary,
 } from '../../adherence';
-import { syntheticCheckUp } from '../../checkup/devFixture';
+import { legacySyntheticCheckUp as syntheticCheckUp } from '../../checkup/testing/legacyCheckUpFixture';
 import {
   BRIDGE_HOLD_ID,
   LOADED_STS_ID,

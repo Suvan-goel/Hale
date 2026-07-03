@@ -21,7 +21,6 @@ describe('Progress and Manual / Extra Check-Up UI restoration', () => {
     );
     expect(app).toContain('selectPublicMovementCheckUpLaunch');
     expect(app).toContain('beginUnifiedMovementProfileV2Public');
-    expect(app).toContain("flow === 'checkup' && legacyV1CheckUpFlowAllowed");
   });
 
   it('keeps the Plan goal summary hidden until a plan exists', () => {

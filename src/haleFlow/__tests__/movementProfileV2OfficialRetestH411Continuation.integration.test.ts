@@ -550,7 +550,6 @@ describe('H4.1.1 Movement Profile V2 official retest continuation closure', () =
     expect(selectPublicMovementCheckUpLaunch({
       sourceType: 'official_retest',
       entryContext: 'standard',
-      releaseEnabled: true,
       activeBlockOriginKind: priorBlock.origin?.kind ?? null,
       movementProfileV2OfficialRetestScheduleStatus: due.schedule.status,
       hasAcceptedMovementProfileV2OfficialRetestSourceArtifacts: true,
@@ -602,7 +601,6 @@ describe('H4.1.1 Movement Profile V2 official retest continuation closure', () =
     expect(selectPublicMovementCheckUpLaunch({
       sourceType: 'official_retest',
       entryContext: 'standard',
-      releaseEnabled: true,
       activeBlockOriginKind: transition.nextBlock.origin?.kind ?? null,
       movementProfileV2OfficialRetestScheduleStatus: getBlockScheduleState({
         block: transition.nextBlock,
@@ -614,7 +612,6 @@ describe('H4.1.1 Movement Profile V2 official retest continuation closure', () =
     expect(selectPublicMovementCheckUpLaunch({
       sourceType: 'official_retest',
       entryContext: 'standard',
-      releaseEnabled: false,
       activeBlockOriginKind: priorBlock.origin?.kind ?? null,
       movementProfileV2OfficialRetestScheduleStatus: due.schedule.status,
       hasAcceptedMovementProfileV2OfficialRetestSourceArtifacts: true,

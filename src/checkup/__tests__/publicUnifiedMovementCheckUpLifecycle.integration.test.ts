@@ -87,13 +87,6 @@ import {
   serializeCheckUp,
   type StoredCheckUp,
 } from '../../history';
-import { syntheticCheckUp } from '../devFixture';
-import {
-  parseUnifiedMovementCheckUpReleaseFlag,
-} from '../../config/unifiedMovementCheckUpRelease';
-import {
-  parseLegacyV1CheckUpRollbackFlag,
-} from '../../config/legacyV1CheckUpRollback';
 import { selectPublicMovementCheckUpLaunch } from '../publicCheckUpEngine';
 import { createCheckUpProtocolPolicy, MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID } from '../protocolPolicy';
 import type { BodySide } from '../protocolSetup';
@@ -123,101 +116,26 @@ const SKIPPED_REFERENCE_PROFILE = referenceProfileFromMovementProfileV2Draft(
 );
 
 describe('H3.1 public unified Movement Check-Up lifecycle', () => {
-  it('keeps public V2 default independent from retired release and internal harness flags', () => {
-    expect(parseUnifiedMovementCheckUpReleaseFlag(undefined)).toBe(false);
-    expect(parseUnifiedMovementCheckUpReleaseFlag('0')).toBe(false);
-    expect(parseUnifiedMovementCheckUpReleaseFlag('true')).toBe(false);
-    expect(parseUnifiedMovementCheckUpReleaseFlag('1')).toBe(true);
-    expect(parseLegacyV1CheckUpRollbackFlag(undefined)).toBe(false);
-    expect(parseLegacyV1CheckUpRollbackFlag('0')).toBe(false);
-    expect(parseLegacyV1CheckUpRollbackFlag('true')).toBe(false);
-    expect(parseLegacyV1CheckUpRollbackFlag('1')).toBe(true);
-
-    const matrix = [
-      { release: false, internal: false, engine: 'unified_movement_profile' },
-      { release: false, internal: true, engine: 'unified_movement_profile' },
-      { release: true, internal: false, engine: 'unified_movement_profile' },
-      { release: true, internal: true, engine: 'unified_movement_profile' },
-    ] as const;
-
-    for (const row of matrix) {
-      expect(
-        selectPublicMovementCheckUpLaunch({
-          sourceType: 'baseline',
-          entryContext: 'onboarding',
-          releaseEnabled: row.release,
-        })
-      ).toMatchObject({ status: 'ready', engine: row.engine });
-    }
+  it('keeps the unified engine as the only public check-up launch path', () => {
+    expect(
+      selectPublicMovementCheckUpLaunch({
+        sourceType: 'baseline',
+        entryContext: 'onboarding',
+      })
+    ).toMatchObject({ status: 'ready', engine: 'unified_movement_profile' });
 
     const app = source('App.tsx');
     expect(app).not.toContain('UNIFIED_MOVEMENT_CHECKUP_RELEASE_ENABLED');
-    expect(app).toContain('LEGACY_V1_CHECKUP_ROLLBACK_ENABLED');
+    expect(app).not.toContain('LEGACY_V1_CHECKUP_ROLLBACK_ENABLED');
     expect(app).toContain('selectPublicMovementCheckUpLaunch');
+    expect(app).not.toContain('handleCheckUpComplete');
+    expect(app).not.toContain('OnboardingResultsScreen');
     expect(app).not.toContain('beginMovementProfileV2Internal');
     expect(app).not.toContain('beginMovementProfileV2UnifiedInternal');
     expect(app).toContain(
       'MOVEMENT_PROFILE_V2_INTERNAL_ENABLED && __DEV__ ? replayOnboardingForDev : undefined'
     );
     expect(app).toContain('PUBLIC_MOVEMENT_PROFILE_V2_FLOWS');
-  });
-
-  it('preserves V1 baseline artifacts only as explicit rollback evidence', async () => {
-    expect(
-      selectPublicMovementCheckUpLaunch({
-        sourceType: 'baseline',
-        entryContext: 'onboarding',
-        releaseEnabled: false,
-      })
-    ).toMatchObject({ status: 'ready', engine: 'unified_movement_profile', sourceType: 'baseline' });
-    expect(
-      selectPublicMovementCheckUpLaunch({
-        sourceType: 'baseline',
-        entryContext: 'onboarding',
-        legacyV1RollbackEnabled: true,
-      })
-    ).toMatchObject({ status: 'ready', engine: 'legacy_v1', sourceType: 'baseline' });
-
-    const checkUp = syntheticCheckUp('2026-06-25T07:00:00.000Z');
-    const scored = createCurrentVersionedScoreSnapshot(checkUp);
-    const assessment = createMovementAssessment({
-      checkUpId: checkUp.startedAt,
-      type: 'baseline',
-      score: scored.score,
-      scoreSnapshot: scored.snapshot,
-      completedAt: checkUp.startedAt,
-      isOfficialForProgress: true,
-    });
-    const block = createMovementBlockFromAssessment({
-      latestAssessment: {
-        score: scored.score,
-        scoreSnapshot: scored.snapshot,
-        sourceCheckUpId: checkUp.startedAt,
-        assessment,
-      },
-      lifeGoal: createLifeGoal({ category: 'stairs', nowIso: checkUp.startedAt }),
-      startDate: checkUp.startedAt,
-    });
-    const store = new HistoryStore(createMemoryFs());
-    store.save(checkUp, {
-      checkupType: 'baseline',
-      sourceAssessmentId: assessment.id,
-      scoreSnapshot: scored.snapshot,
-    });
-    const history = await store.loadAll();
-
-    expect(history).toHaveLength(1);
-    expect(history[0].scoreSnapshotCompatibility).toBe('current');
-    expect(history[0].movementProfileV2Snapshot).toBeUndefined();
-    expect(history[0].movementProfileV2Assessment).toBeUndefined();
-    expect(assessment.id).toContain('assessment-baseline');
-    expect(block.id).not.toMatch(/^movement-block-v2:/);
-    expect(block.origin?.kind).not.toBe('movement_profile_v2_assessment');
-
-    const app = source('App.tsx');
-    expect(app).toContain("flow === 'checkup'");
-    expect(app).toContain('handleCheckUpComplete');
-    expect(app).toContain('OnboardingResultsScreen');
   });
 
   it('completes flag-on public onboarding through a live-derived Strength-domain V2 baseline', async () => {
@@ -404,7 +322,6 @@ describe('H3.1 public unified Movement Check-Up lifecycle', () => {
     expect(
       selectPublicMovementCheckUpLaunch({
         sourceType: 'baseline',
-        releaseEnabled: true,
         hasAcceptedMovementProfileV2Baseline: true,
       })
     ).toMatchObject({
@@ -592,7 +509,6 @@ describe('H3.1 public unified Movement Check-Up lifecycle', () => {
     expect(
       selectPublicMovementCheckUpLaunch({
         sourceType: 'baseline',
-        releaseEnabled: false,
       })
     ).toMatchObject({ status: 'ready', engine: 'unified_movement_profile' });
     expect(remote.state.history[0].scoreSnapshot).toBeUndefined();
@@ -628,13 +544,11 @@ describe('H3.1 public unified Movement Check-Up lifecycle', () => {
 
     const off = selectPublicMovementCheckUpLaunch({
       sourceType: 'baseline',
-      releaseEnabled: false,
       hasAcceptedMovementProfileV2Baseline: true,
       activeBlockOriginKind: run.block.origin?.kind ?? null,
     });
     const onAgain = selectPublicMovementCheckUpLaunch({
       sourceType: 'baseline',
-      releaseEnabled: true,
       hasAcceptedMovementProfileV2Baseline: true,
       activeBlockOriginKind: run.block.origin?.kind ?? null,
     });
@@ -699,7 +613,6 @@ describe('H3.1 public unified Movement Check-Up lifecycle', () => {
       expect(
         selectPublicMovementCheckUpLaunch({
           sourceType: 'official_retest',
-          releaseEnabled: entry === 'today',
           activeBlockOriginKind: run.block.origin?.kind ?? null,
         })
       ).toEqual({
@@ -713,23 +626,11 @@ describe('H3.1 public unified Movement Check-Up lifecycle', () => {
     expect(
       selectPublicMovementCheckUpLaunch({
         sourceType: 'official_retest',
-        releaseEnabled: false,
         activeBlockOriginKind: undefined,
       })
     ).toMatchObject({
       status: 'unavailable',
-      reason: 'legacy_v1_rollback_disabled',
-    });
-    expect(
-      selectPublicMovementCheckUpLaunch({
-        sourceType: 'official_retest',
-        legacyV1RollbackEnabled: true,
-        activeBlockOriginKind: 'legacy_v1_assessment',
-      })
-    ).toMatchObject({
-      status: 'ready',
-      engine: 'legacy_v1',
-      sourceType: 'official_retest',
+      reason: 'v2_official_retest_source_artifacts_unavailable',
     });
 
     const app = source('App.tsx');

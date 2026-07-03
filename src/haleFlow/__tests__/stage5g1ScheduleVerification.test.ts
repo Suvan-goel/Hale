@@ -21,7 +21,7 @@ import {
   type TrainingSessionCompletion,
   type TrainingSessionWorkEvidenceSummary,
 } from '../../adherence';
-import { syntheticCheckUp } from '../../checkup/devFixture';
+import { legacySyntheticCheckUp as syntheticCheckUp } from '../../checkup/testing/legacyCheckUpFixture';
 import { defaultPreferences, type UserProfile } from '../../profile';
 import { createCurrentVersionedScoreSnapshot, type CheckUpScore } from '../../scoring';
 import {

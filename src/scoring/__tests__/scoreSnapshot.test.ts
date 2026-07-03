@@ -1,4 +1,4 @@
-import { syntheticCheckUp } from '../../checkup/devFixture';
+import { legacySyntheticCheckUp as syntheticCheckUp } from '../../checkup/testing/legacyCheckUpFixture';
 import {
   MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
   createCheckUpProtocolPolicy,

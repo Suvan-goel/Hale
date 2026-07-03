@@ -2682,3 +2682,37 @@ PUBLIC RELEASE REMAINS BLOCKED
 - **If a new figure direction is wanted:** build it as a candidate next to Fit Frame (like the
   segmentation-mask experiment), not by reviving the deleted dispatch stack; git history has
   every experiment.
+
+## 2026-07-04 — App-simplification Stage 3a: legacy V1 check-up retired; unified engine is the only path
+
+- **Context:** Stage 3 of the approved simplification plan. Since 2026-06-29 the unified
+  Movement Profile check-up has been the public engine, with legacy V1 kept behind an
+  emergency rollback flag and a 12-input arbitration layer. With no shipped users to roll
+  back, the insurance cost more than it protected.
+- **Removed:** `EXPO_PUBLIC_ENABLE_LEGACY_V1_CHECKUP_ROLLBACK` and the never-wired
+  `EXPO_PUBLIC_ENABLE_UNIFIED_MOVEMENT_CHECKUP` (configs, eas.json, .env.example,
+  app.config.js audit, verify scripts, release-flag audit); the `legacy_v1` engine and its
+  unavailable-reasons from `publicCheckUpEngine` (now a unified-only decision);
+  `CheckUpScreen`, `ResultsScreen`, `OnboardingResultsScreen`, `v1ResultsAdapter`; the
+  App.tsx `'checkup'`/`'results'` flows, `handleCheckUpComplete` (legacy scoring/completion,
+  ~250 lines), the visible-result chain, retake/retry-battery machinery, `pendingCheckup`
+  state, and the legacy last-result state block.
+- **Dev shortcut preserved:** the emulator synthetic check-up (`devFixture.syntheticCheckUp`)
+  now builds a **unified V2** raw check-up through the internal flow reducer and completes via
+  the same `handleMovementProfileV2RawComplete` path as a live capture. The old legacy-format
+  synthetic moved to `src/checkup/testing/legacyCheckUpFixture.ts` for the tests that still
+  exercise stored-snapshot scoring.
+- **Still present (Stage 3b, deliberately deferred):** the legacy graders
+  (`chairStand`/`balanceLadder`/`shoulderFlexion`/`tug`), `DEFAULT_BATTERY`, the legacy
+  scoring/score-snapshot module (still parses stored snapshots and feeds
+  `latestUsableOfficialCheckUpRecord` block repair), and ProgressScreen's legacy
+  presentation + dev-mock builders (unreachable under V2 data authority). These are
+  entangled with adherence/assessment types and come out in a follow-up pass.
+- **Behavioral notes:** onboarding steps `results`/`create_block` no longer map to a flow —
+  the pending-raw MPV2 recovery path owns results resumption; `handleStartNextBlock`'s
+  blocked-eligibility fallback now lands on Progress instead of the deleted results screen;
+  Progress "view check-up" rows are inert pending the Stage 3b V2 history surface (they
+  already bounced home in the shipping config).
+- **Verification:** tsc clean, `expo config` clean, 1,398 tests passing with only the same 4
+  pre-existing voice-activation failures as the recorded baseline. Owed: on-device onboarding
+  smoke (welcome → synthetic V2 baseline via dev shortcut → results → block intro).

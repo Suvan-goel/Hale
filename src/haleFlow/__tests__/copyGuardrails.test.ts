@@ -31,9 +31,6 @@ const MISLEADING_EQUIPMENT_COPY =
   /no equipment needed|zero equipment|nothing but your phone|just your phone|only your phone|complete programme with only your phone|every workout needs no equipment|full-body strength without equipment|resistance band is never needed/i;
 
 const RESULT_COPY_FILES = [
-  'src/screens/ResultsScreen.tsx',
-  'src/screens/OnboardingResultsScreen.tsx',
-  'src/results/v1ResultsAdapter.ts',
   'src/results/CheckUpResultsShell.tsx',
   'src/screens/ProgressScreen.tsx',
   'src/screens/AuthScreen.tsx',

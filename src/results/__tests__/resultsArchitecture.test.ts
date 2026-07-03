@@ -9,19 +9,6 @@ describe('unified check-up results architecture', () => {
     expect(source).not.toMatch(/computeTrends|getAssessmentResultState|materializeMovementProfileV2Block|interpretMovementProfileV2/);
   });
 
-  it('keeps V1 results screens as thin wrappers around the shared shell', () => {
-    const results = readSource('src/screens/ResultsScreen.tsx');
-    const onboarding = readSource('src/screens/OnboardingResultsScreen.tsx');
-
-    expect(results).toContain('CheckUpResultsShell');
-    expect(results).toContain('buildV1StandardResultsPresentation');
-    expect(results).not.toMatch(/StyleSheet|react-native-svg|computeTrends|getAssessmentResultState|DOMAIN_LABEL/);
-
-    expect(onboarding).toContain('CheckUpResultsShell');
-    expect(onboarding).toContain('buildV1OnboardingResultsPresentation');
-    expect(onboarding).not.toMatch(/StyleSheet|onboardingDomainSummaries|plannedOnboardingFocusDomain/);
-  });
-
   it('keeps the V2 adapter downstream of the frozen view model only', () => {
     const adapter = readSource('src/results/movementProfileV2ResultsAdapter.ts');
 

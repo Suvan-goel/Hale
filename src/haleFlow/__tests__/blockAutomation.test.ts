@@ -2,7 +2,7 @@ import {
   createLifeGoal,
   defaultAdherenceStoreState,
 } from '../../adherence';
-import { syntheticCheckUp } from '../../checkup/devFixture';
+import { legacySyntheticCheckUp as syntheticCheckUp } from '../../checkup/testing/legacyCheckUpFixture';
 import { createCurrentVersionedScoreSnapshot } from '../../scoring';
 import { defaultTrainingState } from '../../training';
 import { createMovementAssessment } from '../assessments';

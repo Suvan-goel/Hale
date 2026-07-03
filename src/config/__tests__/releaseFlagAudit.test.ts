@@ -12,8 +12,6 @@ import {
 } from '../releaseFlagAudit';
 
 const SAFE_FLAGS: BetaReleaseFlagAuditFlags = {
-  legacyV1RollbackEnabled: false,
-  unifiedMovementCheckUpEnabled: false,
   movementProfileV2InternalEnabled: false,
   movementProfileV2DiagnosticsEnabled: false,
   poseLatencyDiagnosticsEnabled: false,
@@ -33,7 +31,6 @@ describe('beta/release flag audit', () => {
       status: 'safe',
       diagnostics: [
         { code: 'beta_release_profile_audited', detail: 'beta:ios' },
-        { code: 'public_v2_default_is_expected' },
         { code: 'apple_sign_in_flag_not_internal' },
         { code: 'observability_flag_not_internal' },
       ],
@@ -46,7 +43,6 @@ describe('beta/release flag audit', () => {
         buildProfile: 'production',
         flags: {
           ...SAFE_FLAGS,
-          legacyV1RollbackEnabled: true,
           movementProfileV2InternalEnabled: true,
           movementProfileV2DiagnosticsEnabled: true,
           poseLatencyDiagnosticsEnabled: true,
@@ -57,7 +53,6 @@ describe('beta/release flag audit', () => {
     ).toEqual({
       status: 'unsafe',
       reasons: [
-        'legacy_v1_rollback_enabled',
         'movement_profile_v2_internal_enabled',
         'movement_profile_v2_diagnostics_enabled',
         'pose_latency_diagnostics_enabled',
@@ -101,7 +96,6 @@ describe('beta/release flag audit', () => {
   });
 
   it.each([
-    ['legacy rollback', { legacyV1RollbackEnabled: true }, 'legacy_v1_rollback_enabled'],
     ['internal harness', { movementProfileV2InternalEnabled: true }, 'movement_profile_v2_internal_enabled'],
     ['Movement Profile diagnostics', { movementProfileV2DiagnosticsEnabled: true }, 'movement_profile_v2_diagnostics_enabled'],
     ['pose diagnostics', { poseLatencyDiagnosticsEnabled: true }, 'pose_latency_diagnostics_enabled'],
@@ -138,7 +132,6 @@ describe('beta/release flag audit', () => {
       scripts?: Record<string, string>;
     };
 
-    expect(envExample).toContain(`${RELEASE_FLAG_ENV_NAMES.legacyV1Rollback}=0`);
     expect(envExample).toContain(`${RELEASE_FLAG_ENV_NAMES.movementProfileV2Internal}=0`);
     expect(envExample).toContain(`${RELEASE_FLAG_ENV_NAMES.movementProfileV2Diagnostics}=0`);
     expect(envExample).toContain(`${RELEASE_FLAG_ENV_NAMES.poseLatencyDiagnostics}=0`);
@@ -173,7 +166,6 @@ describe('beta/release flag audit', () => {
     expect(
       resolveAppConfigExtra({
         EAS_BUILD_PROFILE: 'beta',
-        EXPO_PUBLIC_ENABLE_LEGACY_V1_CHECKUP_ROLLBACK: '0',
         EXPO_PUBLIC_ENABLE_MOVEMENT_PROFILE_V2_INTERNAL: '0',
         EXPO_PUBLIC_ENABLE_MOVEMENT_PROFILE_V2_DIAGNOSTICS: '0',
         EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS: '0',
@@ -229,10 +221,6 @@ function resolveAppConfigExtra(env: Record<string, string | undefined>) {
 
 function flagExpectationFor(name: ReleaseFlagEnvName): Partial<BetaReleaseFlagAuditFlags> {
   switch (name) {
-    case RELEASE_FLAG_ENV_NAMES.legacyV1Rollback:
-      return { legacyV1RollbackEnabled: true };
-    case RELEASE_FLAG_ENV_NAMES.unifiedMovementCheckUp:
-      return { unifiedMovementCheckUpEnabled: true };
     case RELEASE_FLAG_ENV_NAMES.movementProfileV2Internal:
       return { movementProfileV2InternalEnabled: true };
     case RELEASE_FLAG_ENV_NAMES.movementProfileV2Diagnostics:

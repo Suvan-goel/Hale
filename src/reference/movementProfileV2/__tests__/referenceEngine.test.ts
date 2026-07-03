@@ -416,7 +416,7 @@ describe('Movement Profile V2 source-set integrity', () => {
       expect(contents).not.toMatch(/scoring\/norms|inferAge|scoreCheckUp|focusSelection|MovementBlock|ScoreSnapshot/);
     }
     expect(DEFAULT_BATTERY).toEqual(['chair-stand-30s', 'balance-ladder', 'shoulder-flexion-peak', 'hinge-reach']);
-    for (const appFile of ['src/screens/CheckUpScreen.tsx', 'src/screens/OnboardingResultsScreen.tsx', 'src/screens/ProgressScreen.tsx']) {
+    for (const appFile of ['src/screens/ProgressScreen.tsx']) {
       expect(fs.readFileSync(path.resolve(process.cwd(), appFile), 'utf8')).not.toContain('interpretMovementProfileV2');
     }
   });

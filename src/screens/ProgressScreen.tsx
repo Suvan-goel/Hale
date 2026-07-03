@@ -18,7 +18,7 @@ import {
   type MovementDomain,
   type TrainingSessionCompletion,
 } from '../adherence';
-import { syntheticCheckUp } from '../checkup/devFixture';
+import { legacySyntheticCheckUp as syntheticCheckUp } from '../checkup/testing/legacyCheckUpFixture';
 import type { CheckUp } from '../checkup/types';
 import {
   createMovementAssessment,

@@ -17,10 +17,6 @@ const betaReleaseBuildProfiles = new Set([
 
 const unsafeBetaReleaseFlags = [
   {
-    env: 'EXPO_PUBLIC_ENABLE_LEGACY_V1_CHECKUP_ROLLBACK',
-    reason: 'legacy_v1_rollback_enabled',
-  },
-  {
     env: 'EXPO_PUBLIC_ENABLE_MOVEMENT_PROFILE_V2_INTERNAL',
     reason: 'movement_profile_v2_internal_enabled',
   },

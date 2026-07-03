@@ -8,7 +8,7 @@ import {
   type MovementSafetyProfile,
   type TrainingFocusStimulusEvidenceSummary,
 } from '../../adherence';
-import { syntheticCheckUp } from '../../checkup/devFixture';
+import { legacySyntheticCheckUp as syntheticCheckUp } from '../../checkup/testing/legacyCheckUpFixture';
 import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../../history';
 import { defaultPreferences, type UserProfile } from '../../profile';
 import {

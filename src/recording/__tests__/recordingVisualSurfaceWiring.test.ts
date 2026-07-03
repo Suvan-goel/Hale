@@ -10,10 +10,7 @@ const RECORDING_SCREENS = [
   'src/screens/TrainingSessionScreen.tsx',
 ] as const;
 
-const SHELL_SCREENS = [
-  'src/screens/CheckUpScreen.tsx',
-  'src/screens/MovementProfileV2UnifiedCheckUpScreen.tsx',
-] as const;
+const SHELL_SCREENS = ['src/screens/MovementProfileV2UnifiedCheckUpScreen.tsx'] as const;
 
 describe('recording visual wiring', () => {
   it('renders every direct recording screen through RecordingVisualSurface with one camera path', () => {
