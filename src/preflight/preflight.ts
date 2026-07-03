@@ -55,6 +55,15 @@ export interface PreflightConfig {
   framingStableMs: number;
   /** Stability sample length. */
   sampleMs: number;
+  /**
+   * Optional shortened sample once a full sample has passed this session
+   * (across reset()s). A pure re-verification time-save for the training
+   * flow, which re-frames per item in an unchanged scene; measurement flows
+   * (check-up, micro-check) leave this unset and always run the full sample.
+   * Camera-view changes and setup retries restore the full sample via
+   * requireFullSample().
+   */
+  passedSampleMs?: number;
   /** Pass thresholds for the sample. */
   minMeanVisibility: number;
   /** Mean per-frame raw landmark displacement (normalized units at ~30fps). */
@@ -73,6 +82,12 @@ export const DEFAULT_PREFLIGHT_CONFIG: PreflightConfig = {
   minMeanVisibility: 0.6,
   maxMeanJitter: 0.008,
   failRetryMs: 1500,
+};
+
+/** Training-session variant: full scrutiny once, short re-verification after. */
+export const TRAINING_PREFLIGHT_CONFIG: PreflightConfig = {
+  ...DEFAULT_PREFLIGHT_CONFIG,
+  passedSampleMs: 500,
 };
 
 /** Landmarks that must be inside the frame and feed the sample stats. */
@@ -96,6 +111,7 @@ export class PreflightCheck {
   private framingGoodSinceMs = -1;
   private sampleStartMs = -1;
   private failedAtMs = -1;
+  private passedOnce = false;
   private sampleFrames = 0;
   private visibilitySum = 0;
   private jitterSum = 0;
@@ -153,8 +169,8 @@ export class PreflightCheck {
         }
         this.accumulateSample(out.rawFrame);
         status.prompt = 'hold-still';
-        status.sampleProgress = Math.min(1, (ts - this.sampleStartMs) / this.config.sampleMs);
-        if (ts - this.sampleStartMs >= this.config.sampleMs) {
+        status.sampleProgress = Math.min(1, (ts - this.sampleStartMs) / this.effectiveSampleMs());
+        if (ts - this.sampleStartMs >= this.effectiveSampleMs()) {
           this.finishSample(ts);
         }
         break;
@@ -227,6 +243,7 @@ export class PreflightCheck {
       meanVisibility >= this.config.minMeanVisibility &&
       meanJitter <= this.config.maxMeanJitter
     ) {
+      this.passedOnce = true;
       this.status.phase = 'ready';
       this.status.prompt = 'ready';
       this.status.sampleProgress = 1;
@@ -238,9 +255,21 @@ export class PreflightCheck {
     }
   }
 
+  /** Per-item phase reset; an earlier pass this session keeps the short sample. */
   reset(): void {
     this.toWaiting();
     this.status.phase = 'waiting-for-subject';
+  }
+
+  /** Demand the full sample again (camera-view change, setup retry). */
+  requireFullSample(): void {
+    this.passedOnce = false;
+  }
+
+  private effectiveSampleMs(): number {
+    return this.passedOnce && this.config.passedSampleMs !== undefined
+      ? this.config.passedSampleMs
+      : this.config.sampleMs;
   }
 
   shiftTiming(deltaMs: number): void {

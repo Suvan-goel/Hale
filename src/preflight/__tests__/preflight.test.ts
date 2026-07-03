@@ -1,6 +1,11 @@
 import { PosePipeline } from '../../pose/pipeline';
 import { makeFrame, mulberry32, SyntheticFrameOptions, timestamps30fps } from '../../pose/testing/syntheticPose';
-import { PreflightCheck, PreflightPhase, PreflightPrompt } from '../preflight';
+import {
+  PreflightCheck,
+  PreflightPhase,
+  PreflightPrompt,
+  TRAINING_PREFLIGHT_CONFIG,
+} from '../preflight';
 
 interface Trace {
   phases: PreflightPhase[];
@@ -101,5 +106,53 @@ describe('PreflightCheck', () => {
     ]);
     expect(trace.phases).toContain('failed-lighting');
     expect(trace.last.phase).toBe('ready');
+  });
+});
+
+describe('PreflightCheck — short re-verification sample (training config)', () => {
+  const FRAME_MS = 1000 / 30;
+  // Full path per run: framing stability (0.5s) + full sample (2s); the short
+  // path swaps the sample for 0.5s. Acquisition only applies to the first run
+  // because the feed (and pipeline) keep going between resets.
+  const FULL_RUN_FLOOR_FRAMES = Math.floor((500 + 2000) / FRAME_MS);
+  const SHORT_RUN_CEIL_FRAMES = Math.floor((500 + 500) / FRAME_MS) + 15;
+
+  function makeContinuousRunner(preflight: PreflightCheck) {
+    const pipeline = new PosePipeline();
+    const rng = mulberry32(99);
+    let ts = 0;
+    return function framesToReady(): number {
+      let frames = 0;
+      for (; frames < 400; frames++, ts += FRAME_MS) {
+        const out = pipeline.process(makeFrame(Math.round(ts), rng, { noiseAmp: 0.002 }));
+        if (preflight.update(out).phase === 'ready') return frames;
+      }
+      throw new Error('never became ready');
+    };
+  }
+
+  it('after one full pass, later resets re-verify with the short sample', () => {
+    const preflight = new PreflightCheck(TRAINING_PREFLIGHT_CONFIG);
+    const framesToReady = makeContinuousRunner(preflight);
+    expect(framesToReady()).toBeGreaterThanOrEqual(FULL_RUN_FLOOR_FRAMES);
+    preflight.reset();
+    expect(framesToReady()).toBeLessThanOrEqual(SHORT_RUN_CEIL_FRAMES);
+  });
+
+  it('requireFullSample restores the full sample', () => {
+    const preflight = new PreflightCheck(TRAINING_PREFLIGHT_CONFIG);
+    const framesToReady = makeContinuousRunner(preflight);
+    framesToReady();
+    preflight.requireFullSample();
+    preflight.reset();
+    expect(framesToReady()).toBeGreaterThanOrEqual(FULL_RUN_FLOOR_FRAMES);
+  });
+
+  it('the default (measurement) config always runs the full sample', () => {
+    const preflight = new PreflightCheck();
+    const framesToReady = makeContinuousRunner(preflight);
+    framesToReady();
+    preflight.reset();
+    expect(framesToReady()).toBeGreaterThanOrEqual(FULL_RUN_FLOOR_FRAMES);
   });
 });

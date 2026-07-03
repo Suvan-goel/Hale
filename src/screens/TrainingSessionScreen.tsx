@@ -49,7 +49,7 @@ import { getExercise, type ExerciseDefinition } from '../exercises';
 import { ANDROID_VIDEO_ROT_640_POSE_PROFILE } from '../pose/nativePoseProfiles';
 import { PosePipeline } from '../pose/pipeline';
 import type { TrackingState } from '../pose/pipeline';
-import { PreflightCheck } from '../preflight/preflight';
+import { PreflightCheck, TRAINING_PREFLIGHT_CONFIG } from '../preflight/preflight';
 import type { PreflightPrompt } from '../preflight/preflight';
 import { FRAMING_READY_COPY } from '../preflight/setupCopy';
 import { RecordingVisualSurface } from '../recording/RecordingVisualSurface';
@@ -269,7 +269,7 @@ export function TrainingSessionScreen({
   };
 }) {
   const [pipeline] = React.useState(() => new PosePipeline());
-  const [preflight] = React.useState(() => new PreflightCheck());
+  const [preflight] = React.useState(() => new PreflightCheck(TRAINING_PREFLIGHT_CONFIG));
   const [sessionStartedAtIso] = React.useState(() => new Date().toISOString());
   const [funnelStore] = React.useState(() => new SessionFunnelStore(expoSessionFunnelFs));
   const [player] = React.useState(

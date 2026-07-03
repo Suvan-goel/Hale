@@ -362,6 +362,9 @@ export class TrainingSessionPlayer {
     if (this.phase !== 'preflight') return;
     this.setupIssue = false;
     this.setupIssueRecoverySpoken = false;
+    // Setup already struggled for a full framing window — re-earn the full
+    // sample rather than fast-passing a scene that just failed.
+    this.preflight.requireFullSample();
     this.preflight.reset();
     this.itemEnteredMs = this.lastTimestampMs;
     this.lastPromptCue = null;
@@ -636,6 +639,11 @@ export class TrainingSessionPlayer {
     this.transitionEnteredMs = ts;
     this.transitionCuePending = this.transitionCue(index);
     this.setupIssueRecoverySpoken = false;
+    // Turning to a new camera view changes what the stability sample saw:
+    // any short re-verification sample (training config) is off the table.
+    if (this.transitionCuePending === 'face-forward' || this.transitionCuePending === 'turn-side-on') {
+      this.preflight.requireFullSample();
+    }
     this.preflight.reset();
   }
 

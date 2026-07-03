@@ -5,11 +5,15 @@
  * the player runs on — a replayed recording must reproduce them exactly.
  */
 
-import { STS_STANDARD_ID, NECK_ROTATION_ID } from '../../exercises';
+import { BRIDGE_HOLD_ID, STS_STANDARD_ID, NECK_ROTATION_ID } from '../../exercises';
 import { PosePipeline } from '../../pose/pipeline';
 import { makeFrame, mulberry32 } from '../../pose/testing/syntheticPose';
 import { RawLandmarkEvent } from '../../pose/types';
-import { PreflightCheck } from '../../preflight/preflight';
+import {
+  PreflightCheck,
+  TRAINING_PREFLIGHT_CONFIG,
+  type PreflightConfig,
+} from '../../preflight/preflight';
 import { SessionFunnelTracker } from '../sessionFunnel';
 import {
   DEFAULT_TRAINING_CONFIG,
@@ -89,10 +93,11 @@ function runSession(
   frameAt: (ts: number) => RawLandmarkEvent,
   config: TrainingPlayerConfig,
   maxFrames = 60000,
-  onUpdate?: (update: TrainingFrameUpdate, player: TrainingSessionPlayer) => void
+  onUpdate?: (update: TrainingFrameUpdate, player: TrainingSessionPlayer) => void,
+  preflightConfig?: PreflightConfig
 ): { result: TrainingSessionResult | null; player: TrainingSessionPlayer } {
   const pipeline = new PosePipeline();
-  const preflight = new PreflightCheck();
+  const preflight = new PreflightCheck(preflightConfig);
   const player = new TrainingSessionPlayer('2026-07-03T09:00:00.000Z', exerciseIds, preflight, config);
   let voiceBusyUntil = -1;
   let ts = 0;
@@ -155,6 +160,39 @@ describe('TrainingSessionPlayer — funnel', () => {
       expect(item.toFirstSetMs).toBeNull();
     }
     expect(funnel.timeToFirstSetMs).toBeNull();
+  });
+
+  // Preflight keeps evaluating through intro/transition, so once the session
+  // has banked one full pass, a short re-verification usually finishes inside
+  // the transition dwell and the preflight phase is nearly instant. The
+  // observable contrast is against a camera-view change, which revokes the
+  // fast path and pushes the full 2s sample past the transition.
+  it('with the training preflight config, a same-view second item frames on the short sample', () => {
+    // Chair stand → bridge: both side-view, so the fast path applies.
+    const { result } = runSession(
+      [STS_STANDARD_ID, BRIDGE_HOLD_ID],
+      framedStanding(),
+      config,
+      60000,
+      undefined,
+      TRAINING_PREFLIGHT_CONFIG
+    );
+    const items = result?.funnel?.items ?? [];
+    expect(items[1].framingMs).toBeLessThan(600);
+  });
+
+  it('a camera-view change demands the full sample again', () => {
+    // Chair stand (side) → neck rotations (front): the turn revokes the fast path.
+    const { result } = runSession(
+      [STS_STANDARD_ID, NECK_ROTATION_ID],
+      framedStanding(),
+      config,
+      60000,
+      undefined,
+      TRAINING_PREFLIGHT_CONFIG
+    );
+    const items = result?.funnel?.items ?? [];
+    expect(items[1].framingMs).toBeGreaterThan(600);
   });
 
   it('funnelSnapshot reports an unfinished session honestly (abandonment path)', () => {
