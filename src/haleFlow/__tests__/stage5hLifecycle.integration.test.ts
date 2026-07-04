@@ -1,3 +1,5 @@
+import { getRetestDueSummary } from '../testing/legacyProgressSummaryFixture';
+import { createMovementBlockReport } from '../testing/legacyBlockReportFixture';
 import {
   BLOCK_SCHEDULE_POLICY_VERSION,
   annotateCompletionWithScheduleCredit,
@@ -7,14 +9,12 @@ import {
   classifyMainPlanSessionPlan,
   createGeneratedSessionSummary,
   createMovementAssessment,
-  createMovementBlockReport,
   evaluateCompletedFocusStimulusEvidence,
   evaluateSessionWorkEvidence,
   focusStimulusEvidenceSummary,
   getBlockScheduleState,
   getHaleAppLifecycle,
   getPlanEmptyStateCopy,
-  getRetestDueSummary,
   getSessionPlanningRecoveryCopy,
   planTodayHaleSession,
   sessionPlanFromPlanningResult,

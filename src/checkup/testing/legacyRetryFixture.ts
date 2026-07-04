@@ -1,6 +1,6 @@
-import { DEFAULT_BATTERY } from './checkup';
-import type { CheckUp, CheckUpItem } from './types';
-import type { MovementDomain } from '../adherence/types';
+import { DEFAULT_BATTERY } from '../checkup';
+import type { CheckUp, CheckUpItem } from '../types';
+import type { MovementDomain } from '../../adherence/types';
 
 const HEADLINE_RETRY_MOVEMENT_BY_DOMAIN: Record<MovementDomain, string> = {
   strength_power: 'chair-stand-30s',

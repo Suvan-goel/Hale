@@ -11,7 +11,6 @@
  * → countdown → active → done), the same audio-first, frame-timestamp-driven
  * shape as the assessment SessionController, so it replays deterministically.
  * Its result maps onto the existing rise-velocity / single-leg-balance /
- * forward-reach trend keys via microCheckTrendPoints().
  */
 
 import { VoiceCueKey, voicePriority } from '../audio/cues';
@@ -20,7 +19,6 @@ import { normalizeMicroCheckMeasurementMetadata, type BodySide, type Measurement
 import { ExerciseSetGrader, SetResult } from '../exercises';
 import { HoldSetGrader, RepsSetGrader } from '../exercises/setGraders';
 import { AUTOREG_VOICE } from '../exercises/common';
-import { ExtraTrendPoint } from '../history';
 import {
   getMovement,
   HINGE_REACH_ID,
@@ -439,24 +437,6 @@ function maxPriority(cues: readonly VoiceCueKey[]): number {
   return cues.reduce((max, cueKey) => Math.max(max, voicePriority(cueKey)), 0);
 }
 
-/** Map a micro-check result onto the existing trend metric keys. */
-export function microCheckTrendPoints(results: readonly MicroCheckResult[]): ExtraTrendPoint[] {
-  const out: ExtraTrendPoint[] = [];
-  for (const r of results) {
-    if (!r.measured) continue;
-    const measurementContext = normalizeMicroCheckMeasurementMetadata(r, {
-      measurementContext: r.measurementContext,
-    });
-    const key =
-      r.type === 'chair-power'
-        ? 'rise-velocity'
-        : r.type === 'single-leg-balance'
-          ? 'single-leg-balance'
-          : 'forward-reach';
-    out.push({ key, at: r.startedAt, value: r.value, measurementContext });
-  }
-  return out;
-}
 
 function promptCue(prompt: PreflightPrompt): VoiceCueKey {
   return prompt === 'ready' ? 'framing-ready' : prompt;

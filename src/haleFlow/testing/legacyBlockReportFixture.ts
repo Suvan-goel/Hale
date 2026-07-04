@@ -11,29 +11,29 @@ import {
   type LegacyV1MovementBlockReport,
   type MovementDomain,
   type TrainingSessionCompletion,
-} from '../adherence';
+} from '../../adherence';
 import {
   checkUpItemsAllowChangeClaim,
   descriptorForMovementMeasurement,
   normalizeCheckUpMeasurementMetadata,
   protocolPolicyIdForCheckUp,
   type CheckUp,
-} from '../checkup';
+} from '../../checkup';
 import {
   BALANCE_LADDER_ID,
   CHAIR_STAND_ID,
   HINGE_REACH_ID,
   SHOULDER_FLEXION_ID,
-} from '../movements';
-import type { CheckUpScore } from '../scoring';
+} from '../../movements';
+import type { CheckUpScore } from '../../scoring';
 import {
   compareScoreSnapshots,
   scoreSnapshotVersionMetadata,
   type ScoreSnapshotPairCompatibility,
   type VersionedCheckUpScoreSnapshot,
-} from '../scoring';
-import { getReportCopy } from './copy';
-import { getBlockScheduleState } from './blockSchedule';
+} from '../../scoring';
+import { getReportCopy } from '../copy';
+import { getBlockScheduleState } from '../blockSchedule';
 
 export function createMovementBlockReport({
   userId = LOCAL_USER_ID,

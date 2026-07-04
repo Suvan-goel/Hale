@@ -26,7 +26,6 @@ export * from './progressDataAuthority';
 export * from './progressViewModel';
 export * from './movementProfileV2ProgressViewModel';
 export * from './progressionEvidence';
-export * from './reports';
 export * from './sessionPlanning';
 export * from './sessionWorkEvidence';
 export * from './sessionIds';

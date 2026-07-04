@@ -1,3 +1,4 @@
+import { getBlockReportSummaries, getRetestDueSummary } from '../testing/legacyProgressSummaryFixture';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -64,10 +65,6 @@ import {
 } from '../movementProfileV2BlockReport';
 import { transitionMovementProfileV2OfficialRetest } from '../movementProfileV2OfficialRetestTransition';
 import { getRetestCopy } from '../planViewModel';
-import {
-  getBlockReportSummaries,
-  getRetestDueSummary,
-} from '../progressViewModel';
 import { requireHaleSessionPlan } from '../sessionPlanning';
 
 jest.mock('../../lib/supabase', () => ({

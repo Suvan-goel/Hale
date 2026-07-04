@@ -23,7 +23,7 @@ import {
   TUG_ID,
   TugResult,
 } from '../../movements';
-import { HistoryStore, computeTrends, createMemoryFs } from '../../history';
+import { HistoryStore, createMemoryFs } from '../../history';
 import { scoreCheckUp } from '../../scoring';
 import { CheckUp, CheckUpItem } from '../types';
 
@@ -113,22 +113,6 @@ describe('Check-Up flow integration — persist, reload, score, trend', () => {
     expect(score.weakestDomain).not.toBeNull();
   });
 
-  it('contributes the headline metrics (rise velocity, one-leg balance) to the trends', async () => {
-    const store = new HistoryStore(createMemoryFs());
-    store.save(fullCheckUp('2026-05-01T09:00:00.000Z', { reps: 14, vel: 0.3, tugSec: 9.0, balanceSec: 8, shoulderDeg: 158, hingeBu: 0.4 }));
-    store.save(fullCheckUp('2026-06-01T09:00:00.000Z', { reps: 16, vel: 0.34, tugSec: 8.5, balanceSec: 11, shoulderDeg: 160, hingeBu: 0.35 }));
-
-    const trends = computeTrends(await store.loadAll());
-    const vel = trends.find((t) => t.key === 'rise-velocity');
-    const bal = trends.find((t) => t.key === 'single-leg-balance');
-
-    expect(vel?.points).toHaveLength(2);
-    expect(vel?.delta).toBeCloseTo(0.04, 5); // improved (betterIsHigher)
-    expect(bal?.points).toHaveLength(2);
-    expect(bal?.delta).toBeNull();
-    expect(bal?.deltaSuppressedReason).toBe('insufficient_comparability');
-  });
-
   it('survives a restart — a fresh store over the same files reloads the history', async () => {
     const files = new Map<string, string>();
     const before = new HistoryStore(createMemoryFs(files));
@@ -138,7 +122,7 @@ describe('Check-Up flow integration — persist, reload, score, trend', () => {
     const afterRestart = new HistoryStore(createMemoryFs(files)); // App relaunch: load on mount
     const loaded = await afterRestart.loadAll();
     expect(loaded).toHaveLength(2);
-    expect(computeTrends(loaded).find((t) => t.key === 'rise-velocity')?.points).toHaveLength(2);
+    expect(loaded[1].checkUp.startedAt).toBe('2026-06-01T09:00:00.000Z');
   });
 
   it('persists and coherently scores a check-up with skipped and unmeasured tests', async () => {

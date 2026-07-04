@@ -173,7 +173,6 @@ export type {
 export {
   DEFAULT_MICROCHECK_CONFIG,
   MicroCheckRunner,
-  microCheckTrendPoints,
 } from './microCheck';
 export type {
   MicroCheckConfig,

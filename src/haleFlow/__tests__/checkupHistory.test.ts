@@ -1,3 +1,4 @@
+import { mergeCheckUpRetry, retryBatteryForMissingHeadlineDomains } from '../../checkup/testing/legacyRetryFixture';
 import { createMovementAssessment } from '../assessments';
 import {
   historicalOfficialCheckUpRecords,
@@ -19,8 +20,6 @@ import {
   createChairRiseV2Setup,
   createCheckUpProtocolPolicy,
   createOneLegBalanceV2Setup,
-  mergeCheckUpRetry,
-  retryBatteryForMissingHeadlineDomains,
 } from '../../checkup';
 import type { CheckUp, CheckUpItem } from '../../checkup';
 import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../../history';

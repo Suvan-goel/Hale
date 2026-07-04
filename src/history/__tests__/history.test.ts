@@ -27,7 +27,6 @@ import { createMovementProfileV2Assessment, createMovementProfileV2Snapshot } fr
 import { CURRENT_SCORING_VERSION, createCurrentVersionedScoreSnapshot } from '../../scoring';
 import { HISTORY_SCHEMA_VERSION, deserializeCheckUp, migrate, serializeCheckUp } from '../serialize';
 import { HistoryStore, createMemoryFs } from '../store';
-import { computeTrends, hasTrend } from '../trends';
 
 interface Vals {
   reps?: number;
@@ -321,75 +320,6 @@ describe('history store', () => {
 
     expect(write).not.toHaveBeenCalled();
     expect(disk).toEqual(before);
-  });
-});
-
-describe('trends', () => {
-  const records = [
-    makeCheckUp('2026-04-01T10:00:00.000Z', { reps: 11, vel: 0.18, singleLeg: 8, tug: 10.5 }),
-    makeCheckUp('2026-05-01T10:00:00.000Z', { reps: 13, vel: 0.21, singleLeg: 10 }), // no TUG this time
-    makeCheckUp('2026-06-01T10:00:00.000Z', { reps: 15, vel: 0.24, singleLeg: 12, tug: 9.0 }),
-  ].map((c) => ({
-    schemaVersion: HISTORY_SCHEMA_VERSION,
-    checkupType: 'baseline' as const,
-    checkUp: c,
-    scoreSnapshotCompatibility: 'legacy_unversioned' as const,
-  }));
-
-  it('reports chronological points and first→latest deltas', () => {
-    const trends = computeTrends(records);
-    const vel = trends.find((t) => t.key === 'rise-velocity')!;
-    expect(vel.points.map((p) => p.value)).toEqual([0.18, 0.21, 0.24]);
-    expect(vel.delta).toBeCloseTo(0.06, 5);
-    expect(vel.betterIsHigher).toBe(true);
-
-    const tug = trends.find((t) => t.key === 'tug-time')!;
-    expect(tug.points).toHaveLength(2); // the middle check-up skipped TUG
-    expect(tug.delta).toBeCloseTo(-1.5, 5);
-    expect(tug.betterIsHigher).toBe(false);
-  });
-
-  it('hasTrend is true once a metric has two measured points', () => {
-    expect(hasTrend(records)).toBe(true);
-    expect(hasTrend([records[0]])).toBe(false); // a single check-up: no trend yet
-  });
-
-  it('drops unmeasured points (NaN survives a serialize round-trip as null)', () => {
-    const round = records.map((r) => deserializeCheckUp(serializeCheckUp(r.checkUp))!);
-    const trends = computeTrends(round);
-    // singleLeg present in all three; shoulder/hinge never measured → absent.
-    expect(trends.find((t) => t.key === 'single-leg-balance')!.points).toHaveLength(3);
-    expect(trends.find((t) => t.key === 'single-leg-balance')!.delta).toBeNull();
-    expect(trends.find((t) => t.key === 'single-leg-balance')!.deltaSuppressedReason).toBe('insufficient_comparability');
-    expect(trends.find((t) => t.key === 'shoulder-flexion')).toBeUndefined();
-  });
-
-  it('drops malformed and duplicated stored scoring inputs from trends', () => {
-    const valid = makeCheckUp('2026-06-01T10:00:00.000Z', { reps: 12, vel: 0.2, singleLeg: 8 });
-    const malformed = makeCheckUp('2026-06-15T10:00:00.000Z', { reps: 14, vel: 0.24, singleLeg: 999 });
-    const duplicate = makeCheckUp('2026-06-29T10:00:00.000Z', { reps: 15, vel: 0.3, singleLeg: 10 });
-
-    (malformed.items[0].result as unknown as Record<string, unknown>).reps = '14';
-    duplicate.items.unshift({
-      movementId: CHAIR_STAND_ID,
-      status: 'measured',
-      result: {
-        movementId: CHAIR_STAND_ID,
-        flags: [],
-        interruptions: 0,
-        reps: 20,
-        repStats: [],
-        sessionMeanVel: 0.4,
-        sessionMeanPeakVel: 0.5,
-        pushOffDetected: false,
-      } as never,
-    });
-
-    const trends = computeTrends([valid, malformed, duplicate].map((checkUp) => deserializeCheckUp(serializeCheckUp(checkUp))!));
-
-    expect(trends.find((t) => t.key === 'chair-stands')!.points.map((p) => p.value)).toEqual([12]);
-    expect(trends.find((t) => t.key === 'rise-velocity')!.points.map((p) => p.value)).toEqual([0.2]);
-    expect(trends.find((t) => t.key === 'single-leg-balance')!.points.map((p) => p.value)).toEqual([8, 10]);
   });
 });
 

@@ -8,5 +8,3 @@ export { HISTORY_SCHEMA_VERSION, deserializeCheckUp, migrate, serializeCheckUp }
 export type { StoredCheckUp, StoredCheckUpMetadata, StoredCheckUpType } from './serialize';
 export { HistoryStore, createMemoryFs } from './store';
 export type { HistoryFs } from './store';
-export { computeTrends, hasTrend } from './trends';
-export type { ExtraTrendPoint, MetricTrend, TrendPoint } from './trends';

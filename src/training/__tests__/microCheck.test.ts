@@ -5,7 +5,6 @@
  * micro-check point into rise-velocity / single-leg-balance and re-sorts).
  */
 
-import { computeTrends } from '../../history';
 import type { VoiceCueKey } from '../../audio/cues';
 import { normalizeMicroCheckMeasurementMetadata } from '../../checkup';
 import { PosePipeline } from '../../pose/pipeline';
@@ -19,7 +18,6 @@ import {
   MicroCheckResult,
   MicroCheckRunner,
   MicroCheckType,
-  microCheckTrendPoints,
 } from '../microCheck';
 
 const FRAME_STEP_MS = Math.round(1000 / 30);
@@ -122,60 +120,6 @@ describe('MicroCheckRunner', () => {
     expect(
       firstInstructionCues('mobility-reach', pad(session.frames, 400))
     ).toEqual(['framing-ready', 'hinge-intro', 'hinge-setup']);
-  });
-});
-
-describe('micro-checks feed the trend line', () => {
-  it('maps results to the right metric keys and skips unmeasured ones', () => {
-    const results: MicroCheckResult[] = [
-      { type: 'chair-power', startedAt: '2026-06-21T08:00:00.000Z', value: 0.42, reps: 5, measured: true },
-      { type: 'single-leg-balance', startedAt: '2026-06-21T08:05:00.000Z', value: 18, reps: 0, measured: true },
-      { type: 'mobility-reach', startedAt: '2026-06-21T08:08:00.000Z', value: 0.24, reps: 0, measured: true },
-      { type: 'chair-power', startedAt: '2026-06-21T08:10:00.000Z', value: NaN, reps: 0, measured: false },
-    ];
-    const points = microCheckTrendPoints(results);
-    expect(points).toHaveLength(3);
-    expect(points.find((p) => p.key === 'rise-velocity')!.value).toBeCloseTo(0.42, 5);
-    expect(points.find((p) => p.key === 'rise-velocity')!.measurementContext?.protocol.protocolId).toBe('micro_chair_power_5_reps_v1');
-    expect(points.find((p) => p.key === 'single-leg-balance')!.value).toBe(18);
-    expect(points.find((p) => p.key === 'single-leg-balance')!.measurementContext?.comparability.overallStatus).toBe('raw_only');
-    expect(points.find((p) => p.key === 'forward-reach')!.value).toBe(0.24);
-  });
-
-  it('merges micro-check points into computeTrends, chronologically', () => {
-    const extra = microCheckTrendPoints([
-      { type: 'chair-power', startedAt: '2026-06-10T08:00:00.000Z', value: 0.40, reps: 5, measured: true },
-      { type: 'chair-power', startedAt: '2026-06-21T08:00:00.000Z', value: 0.46, reps: 5, measured: true },
-    ]);
-    const trends = computeTrends([], extra);
-    const rise = trends.find((t) => t.key === 'rise-velocity')!;
-    expect(rise.points.map((p) => p.value)).toEqual([0.4, 0.46]); // sorted by time
-    expect(rise.delta).toBeCloseTo(0.06, 5);
-  });
-
-  it('merges mobility micro-checks into the forward-reach trend', () => {
-    const extra = microCheckTrendPoints([
-      { type: 'mobility-reach', startedAt: '2026-06-10T08:00:00.000Z', value: 0.32, reps: 0, measured: true },
-      { type: 'mobility-reach', startedAt: '2026-06-21T08:00:00.000Z', value: 0.24, reps: 0, measured: true },
-    ]);
-    const trends = computeTrends([], extra);
-    const reach = trends.find((t) => t.key === 'forward-reach')!;
-    expect(reach.label).toBe('Forward reach');
-    expect(reach.betterIsHigher).toBe(false);
-    expect(reach.delta).toBeCloseTo(-0.08, 5);
-  });
-
-  it('allows same-side micro-check deltas when side metadata is explicit', () => {
-    const context = normalizeMicroCheckMeasurementMetadata(
-      { type: 'single-leg-balance', startedAt: '2026-06-10T08:00:00.000Z' },
-      { selectedSide: 'left', source: 'microcheck_official_anchor' }
-    );
-    const extra = microCheckTrendPoints([
-      { type: 'single-leg-balance', startedAt: '2026-06-10T08:00:00.000Z', value: 16, reps: 0, measured: true, measurementContext: context },
-      { type: 'single-leg-balance', startedAt: '2026-06-21T08:00:00.000Z', value: 20, reps: 0, measured: true, measurementContext: context },
-    ]);
-    const trends = computeTrends([], extra);
-    expect(trends.find((t) => t.key === 'single-leg-balance')!.delta).toBe(4);
   });
 });
 

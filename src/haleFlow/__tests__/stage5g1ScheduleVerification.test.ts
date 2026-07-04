@@ -1,3 +1,5 @@
+import { getRetestDueSummary } from '../testing/legacyProgressSummaryFixture';
+import { createMovementBlockReport } from '../testing/legacyBlockReportFixture';
 import {
   blockProgress,
   createLifeGoal,
@@ -38,12 +40,10 @@ import {
   checkUpCompletionTimestamp,
   createGeneratedSessionSummary,
   createMovementAssessment,
-  createMovementBlockReport,
   daysBetweenBlockScheduleDates,
   getBlockScheduleState,
   getHaleAppLifecycle,
   getManualCheckupOptions,
-  getRetestDueSummary,
   scheduleCreditForCompletion,
 } from '..';
 import { evaluateCompletedFocusStimulusEvidence, focusStimulusEvidenceSummary } from '../focusStimulusEvidence';

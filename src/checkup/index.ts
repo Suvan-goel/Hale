@@ -125,4 +125,3 @@ export type {
   ProtocolInvalidReason,
   ProtocolMeasurementWindow,
 } from './protocolEvidence';
-export { mergeCheckUpRetry, retryBatteryForMissingHeadlineDomains } from './retry';

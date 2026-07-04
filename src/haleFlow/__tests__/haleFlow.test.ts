@@ -1,3 +1,4 @@
+import { createMovementBlockReport } from '../testing/legacyBlockReportFixture';
 import type { CheckUpScore, Domain, DomainResult, VersionedCheckUpScoreSnapshot } from '../../scoring';
 import { toStoredScoreSnapshot } from '../../scoring';
 import {
@@ -11,7 +12,6 @@ import {
 import {
   canReplaceBaselineWithRetake,
   createMovementAssessment,
-  createMovementBlockReport,
   generateTodaySession,
   getManualCheckupCopy,
   getManualCheckupOptions,
