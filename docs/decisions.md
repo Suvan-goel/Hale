@@ -3106,3 +3106,37 @@ PUBLIC RELEASE REMAINS BLOCKED
   no-intro-replay + notice one-shot/dedupe (voice runtime), screen wiring (source test).
   On-device verification of the frame check with a landmark recording remains owed, alongside
   the pass's other on-device items.
+
+## 2026-07-04 — Navigation simplification: dead flows removed, two drill-downs collapsed
+
+- **Context:** a full screen/flow audit of the hand-rolled `App.tsx` navigation (4 tabs ×
+  28 full-screen flows × 9 lifecycle states, 30 screen components) traced every flow to its
+  setters. Goal: fewer screens and fewer stops between intent and action for the 45–65 user.
+- **Dead surface deleted (no user-visible change), commit `88bca712`:** flows
+  `onboarding-block` (superseded by `block-intro`), `dev-live` (+ `LiveSessionScreen`, the
+  `isReleaseGatedFlowAllowed` release gate, and the dead `CAMERA_FLOWS` entry), and
+  `manual-microcheck-unavailable` had **no setter anywhere**; `MovementProfileV2RecoveryScreen`
+  was never wired into App at all (`git log -S` confirms — the MPV2 recovery behavior lives in
+  `movementProfileV2/recovery.ts`); the `TEMP_PREVIEW_BLOCK_INTRO_SCREEN` flag was hardcoded
+  `__DEV__ && false`. Also merged `movement-profile-v2-unified-domain-detail` into
+  `movement-profile-v2-domain-detail`: the pair only encoded the back-target, which
+  `movementProfileV2ResultSurface` (set on every entry path) already tracks. Flow union 28 → 24.
+- **Quick micro-check is one screen away (product-owner approved), commit `f8db5092`:** the
+  manual check-up entry drilled through two chooser screens (kind → domain) before a 60-second
+  check. The domain choice (Strength / Balance / Mobility) now renders as inline 48px buttons
+  on `ManualCheckupStartScreen` wherever the quick-check option appears;
+  `ManualMicroCheckChoiceScreen.tsx` and flow `manual-microcheck-domain` are deleted. 24 → 23.
+- **Starting a session is one stop (product-owner approved), commit `08ed0274`:** the daily
+  path was Today → adjust sheet → Session Preview → camera. Start now goes straight to the
+  preview, which gains an inline "Adjust for today" card (shorter / gentler / less equipment /
+  something hurts + pain area). Selection state derives from the plan itself
+  (`metadata.userAdjustment` / `painAreas`); toggling re-plans via
+  `handleAdjustPreviewSession`, which preserves the original start target (template/preset)
+  from `lastStartSessionPreferencesRef`, and the movement list updates to match. The card is
+  hidden while resuming an interrupted session; navigation history dedupes the same-location
+  re-plan so Back is unaffected. The `SessionStartMenu` sheet was deleted from Today and Plan.
+- **Verified fine and left alone:** the onboarding chain, `AuthScreen` (password-recovery
+  deep link only), both recovery screens (reachable fail-safes), and all 9 lifecycle states.
+- **Verification:** tsc clean; 1,325/1,325 tests green after each commit; routing tests updated
+  to the one-screen paths. Owed on device: the inline domain buttons, the adjust card +
+  re-plan flow, and Back behavior around the preview.
