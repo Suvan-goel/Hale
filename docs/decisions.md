@@ -2831,3 +2831,39 @@ PUBLIC RELEASE REMAINS BLOCKED
      synthetic/real V2 baseline → results → block intro), sign-in-after-guest-data adoption,
      sign-out round trip, password-recovery link, one recording flow smoke (no visual change
      expected), and the Voice V2.1 listening pass.
+
+## 2026-07-04 — Remaining-cleanups pass (product-owner approved): legacy internals out, plans self-heal
+
+- **Progress (3b.1):** ProgressScreen is Movement Profile V2 only (2,758 → ~1,050 lines). The
+  legacy hero/records/history presentation, its inert view-latest/view-check-up handlers, and
+  the whole legacy-format dev-mock system (builders, Settings toggle, `devMockDataEnabled`
+  preference, App display-overlay) are deleted. `selectProgressDataAuthority` keeps only
+  reachable kinds. The former "inert history rows" gap is resolved by deletion: the V2
+  presentation's own profile/report navigation is the history surface.
+- **Legacy plumbing (3b.2):** deleted `history/trends.ts`, `haleFlow/reports.ts`,
+  `checkup/retry.ts`, the legacy progress summary builders (progressViewModel is now just
+  ladder cards), and the `microCheckTrendPoints` bridge. Integration tests that construct
+  legacy stored data import explicit fixtures under `testing/` — stored legacy records still
+  parse, so the coverage remains meaningful.
+- **Kept with evidence (3b.3):** the four legacy movement graders (the rise-velocity
+  noise-floor go/no-go harness grades recordings through `chair-stand-30s`; rebuilding that
+  instrument on the V2 path right before the go/no-go runs would risk invalidating the
+  metric), `CheckUpOrchestrator` (shared by the training session player), `DEFAULT_BATTERY`
+  (orchestrator config), and the scoring engine (`checkupSyncService`, block auto-repair,
+  and assessment eligibility still call it). These are instruments and stored-data plumbing,
+  not dead code.
+- **Explore view-model:** the unreachable library/ladder builders, section data, level-view
+  helpers, and their guard tests are gone; live surfaces keep coverage.
+- **Session plans self-heal:** `beginPlannedSession` still runs all five validators (one
+  consolidated breadcrumb), but a stale plan now regenerates once from the same start
+  request — preserving the user's shorter/gentler/equipment adjustment — and only a repeat
+  failure or an unplannable state reaches the recovery screen.
+- **Deferred, with triggers (the two items consciously not executed):**
+  1. *MPV2 fingerprint collapse* — 322 references spanning stored artifact schemas, origin
+     validation, retest transitions, sync payloads, and restore checks. Collapse it the next
+     time a policy version genuinely changes (when the lattice's cost is paid anyway), after
+     the on-device create→block→retest→sync→restore round trip can be exercised.
+  2. *Voice V2.0 teardown* — gated on the founder's on-device listening pass;
+     `AUDIO_APPROVAL_READY` encodes ears, not chat approval, and the legacy fallback is the
+     designed fail-closed path for unknown exercises.
+- **Verification:** tsc clean, expo config clean, 1,373/1,373 tests passing.
