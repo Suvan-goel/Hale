@@ -2805,3 +2805,29 @@ PUBLIC RELEASE REMAINS BLOCKED
   were already hidden, leaving exactly two user-facing concepts (quick check-in, full
   Movement Check-Up).
 - **Verification:** tsc clean, 1,405/1,405 tests, expo config clean.
+
+## 2026-07-04 — App-simplification Stage 7: CLAUDE.md reconciled; follow-up register
+
+- **CLAUDE.md:** the data rule now reads local-first with optional sign-in (amendment history
+  preserved in place), and the 2026-06-15 prototype-exception list reflects what actually
+  remains after the cleanup (local profile, Explore Learn+Sessions, two build-time voices).
+- **Simplification branch summary (`app-simplification`, 8 commits):** dead code (second
+  next-action engine, headless support-circle), the avatar experiment graveyard (12 renderer
+  families, 2 developer screens, per-surface visual flags), the legacy V1 check-up engine and
+  its rollback arbitration, the Voice V2.1 audio backlog (now the live default), guest-first
+  launch with guest-data adoption, the onboarding equipment step, the dead-end reminder
+  toggle, the Explore Guides/Movements tabs, and plain-language profile copy.
+  Net: **~34,600 lines removed**; the suite went from 4 known failures to fully green
+  (1,405/1,405); tsc and expo config clean throughout.
+- **Follow-up register (deferred deliberately):**
+  1. *Stage 3b:* legacy graders (`chairStand`, `balanceLadder`, `shoulderFlexion`, `tug`),
+     `DEFAULT_BATTERY`, stored-snapshot scoring paths, ProgressScreen's legacy presentation +
+     dev-mock builders, and the inert Progress history-row handlers (wire to a V2 record view).
+  2. *Voice V2.0 teardown:* after the founder's on-device listening pass approves the
+     regenerated audio, delete the legacy cue paths and collapse the readiness lattice.
+  3. *Opportunistic:* MPV2 provenance fingerprints → single schema version; session-plan
+     stale-validators → regenerate-on-change; unused explore view-model builders.
+  4. *On-device verification owed:* guest onboarding end-to-end (welcome → profile → camera →
+     synthetic/real V2 baseline → results → block intro), sign-in-after-guest-data adoption,
+     sign-out round trip, password-recovery link, one recording flow smoke (no visual change
+     expected), and the Voice V2.1 listening pass.

@@ -126,9 +126,15 @@ notes are the transfer.
   voice line at a time; if busy, drop lower-priority lines rather than queueing stale ones.
   iOS audio mode: MixWithOthers-equivalent interruption mode, recording disabled — **audio
   configuration must never interrupt the camera session** (this caused real production pain).
-- **Data:** local-only for V1 (no accounts, no backend). SQLite or JSON store for
-  results/history with a schema version field from day one. Landmark recordings behind a dev
-  toggle.
+- **Data:** local-first. The app runs fully on-device with no account (guest-first launch,
+  2026-07-04); results/history live in a schema-versioned JSON store. Landmark recordings stay
+  behind a dev toggle. *(Amendment history: the original V1 rule was "local-only, no accounts,
+  no backend". A product-owner-directed Supabase backend was added 2026-06-17 for optional
+  sign-in — backup/restore/sync of the same local state — and on 2026-07-04 the sign-in
+  requirement was removed from launch: an account is optional, offered in Settings as backup.
+  When a user first signs in on a device with guest data, the guest files are adopted (moved)
+  into the account scope and synced up. Nothing in the measurement or session path depends on
+  the network.)*
 
 ## Platform learnings (React Native / Expo — apply with judgment to current versions)
 
@@ -180,19 +186,19 @@ Accounts/backend/sync, payments, push notifications, ML/learned form feedback, s
 features, PDF reports, passive monitoring, rotation-graded movements (except neck yaw),
 floor-pose grading beyond bridge, any form-quality critique.
 
-**2026-06-15 — product-owner-directed exceptions (prototype scope only; the architecture
-above is unchanged — still local-only, no backend, no real push):** a Home/Settings **local
-profile** (name/age/goal; on-device only, not an account), a **Family** tab backed by a
-**local mock** fixture (no real other users/sync — a UI prototype only), a **workout-reminder
-toggle** that stores a preference but schedules **no OS notification**, and a **Learn** tab of
-bundled articles. The trainer-voice picker offers two voices — **Clara** (female) and
+**2026-06-15 — product-owner-directed exceptions (prototype scope only):** a Home/Settings
+**local profile** (name/age/goal; not an account requirement — sign-in is optional backup), and
+an **Explore** tab of bundled articles and extra practice sessions. *(2026-07-04 simplification:
+the earlier Family-tab mock and its headless support-circle services were deleted, the
+never-functional workout-reminder toggle was removed — reminders return only as a real
+local-notification feature if the 2026-07-03 proposal is approved — and Explore was trimmed to
+Learn + Sessions.)* The trainer-voice picker offers two voices — **Clara** (female) and
 **Marcus** (male) — whose lines are synthesized once at build time via the **ElevenLabs API
 (Multilingual v2 model, `mp3_44100_128` output)** by `scripts/generate-audio.ts` and bundled per voice under
 `assets/audio/voice/<voiceId>/`; nothing in the session path ever calls ElevenLabs at runtime
 (the no-runtime-TTS audio law is unchanged). The `ELEVENLABS_API_KEY` is read from the
 environment at generation time and never committed; each voice's ElevenLabs voice id lives in
-`src/profile/voices.ts`. If/when any of these go real (shared family data, actual reminders),
-revisit this list and the local-only data rule first. See docs/decisions.md.
+`src/profile/voices.ts`. See docs/decisions.md.
 
 ## Working agreements
 
