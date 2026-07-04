@@ -49,29 +49,9 @@ export type {
   TrainingSetRuntimeUpdate,
   TrainingVoiceRuntimeMode,
 } from './setRuntime';
-export {
-  DEFAULT_PROGRESSION_CONFIG,
-  applySession,
-  applySessionResult,
-  decideLevel,
-  initialProgressionState,
-  summarizeItem,
-  velocityTrend,
-} from './progression';
-export type {
-  ExerciseSessionSummary,
-  ProgressionAction,
-  ProgressionConfig,
-  ProgressionState,
-} from './progression';
-export {
-  DEFAULT_EQUIPMENT,
-  blockComplete,
-  buildBlock,
-  resolveSession,
-  resolveSlot,
-  totalSessions,
-} from './block';
+export { initialProgressionState } from './progression';
+export type { ProgressionState } from './progression';
+export { DEFAULT_EQUIPMENT } from './block';
 export type { EquipmentProfile, SessionPlan, SlotAssignment, TrainingBlock } from './block';
 export {
   createSessionTemplatesForFocus,
@@ -277,13 +257,6 @@ export {
   type StepUpSetResult,
   type TrainingStepUpAlternationSelection,
 } from './stepUpAlternation';
-export {
-  nextSessionExercises,
-  nextSessionPlan,
-  recordCompletedSession,
-  retestDue,
-  startBlock,
-} from './state';
 export {
   SESSION_GLOBAL_SAFETY_CUE_IDS,
   coreExerciseIdsMissingSafetyProfiles,

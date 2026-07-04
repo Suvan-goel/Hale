@@ -22,10 +22,8 @@ import {
 } from '../../exercises';
 import { createCurrentVersionedScoreSnapshot, scoreCheckUp } from '../../scoring';
 import {
-  DEFAULT_EQUIPMENT,
-  buildBlock,
   defaultTrainingState,
-  startBlock,
+  type TrainingBlock,
   type TrainingSessionResult,
 } from '../../training';
 import type { GeneratedSession, LadderProgress } from '../../training/workoutGeneration';
@@ -129,8 +127,10 @@ function strengthBlock(): MovementBlock {
 }
 
 function legacyTraining() {
-  const checkUp = syntheticCheckUp(START);
-  return startBlock(defaultTrainingState(), buildBlock(scoreCheckUp(checkUp), DEFAULT_EQUIPMENT, START));
+  const legacyBlock: TrainingBlock = {
+    createdAt: START, weeks: 4, sessionsPerWeek: 3, weakestDomain: 'strength', sessions: [],
+  };
+  return { ...defaultTrainingState(), block: legacyBlock };
 }
 
 function ladderProgress(): Record<string, LadderProgress> {

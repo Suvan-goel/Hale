@@ -18,7 +18,7 @@ import {
   type DomainResult,
   scoreCheckUp,
 } from '../../scoring';
-import { DEFAULT_EQUIPMENT, buildBlock, defaultTrainingState, startBlock } from '../../training';
+import { defaultTrainingState, type TrainingBlock } from '../../training';
 import {
   getHaleAppLifecycle,
   getMovementSnapshot,
@@ -476,10 +476,10 @@ describe('getHaleAppLifecycle', () => {
       adherence: undefined,
       today: START,
     });
-    const legacyTraining = startBlock(
-      defaultTrainingState(),
-      buildBlock(scoreCheckUp(baseline().checkUp), DEFAULT_EQUIPMENT, START)
-    );
+    const legacyBlock: TrainingBlock = {
+      createdAt: START, weeks: 4, sessionsPerWeek: 3, weakestDomain: 'strength', sessions: [],
+    };
+    const legacyTraining = { ...defaultTrainingState(), block: legacyBlock };
     const second = getHaleAppLifecycle({
       profile: profile(),
       history: [baseline()],

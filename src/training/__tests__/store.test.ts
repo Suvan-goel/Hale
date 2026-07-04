@@ -7,21 +7,24 @@
  */
 
 import { createMemoryFs } from '../../history';
-import { buildBlock } from '../block';
-import { TrainingItemResult, TrainingSessionResult } from '../sessionPlayer';
-import { STS_STANDARD_ID, THORACIC_ROTATION_ID, getExercise } from '../../exercises';
-import { CheckUpScore } from '../../scoring';
+import { TrainingBlock } from '../block';
+import { STS_STANDARD_ID, THORACIC_ROTATION_ID } from '../../exercises';
 import { TrainingStore } from '../store';
-import { defaultTrainingState, deserializeTrainingState } from '../serialize';
-import { nextSessionExercises, recordCompletedSession, retestDue, startBlock } from '../state';
-
-const score = (): CheckUpScore => ({ startedAt: '2026-06-14T08:00:00.000Z', domains: [], weakestDomain: 'strength' });
+import { TrainingState, defaultTrainingState, deserializeTrainingState } from '../serialize';
 
 describe('TrainingStore persistence', () => {
   it('round-trips training state across a restart', async () => {
     const files = new Map<string, string>();
-    const block = buildBlock(score(), { stair: false, band: false }, '2026-06-14T09:00:00.000Z');
-    let state = startBlock(defaultTrainingState(), block);
+    // A legacy persisted block is just fixture data now — the live plan path is
+    // MovementBlock; this proves the older serialized shape still round-trips.
+    const block: TrainingBlock = {
+      createdAt: '2026-06-14T09:00:00.000Z',
+      weeks: 4,
+      sessionsPerWeek: 3,
+      weakestDomain: 'strength',
+      sessions: [],
+    };
+    let state: TrainingState = { ...defaultTrainingState(), block };
     state = { ...state, progression: { levels: { 'sit-to-stand': 3 }, velHistory: { [STS_STANDARD_ID]: [0.9, NaN] } } };
 
     new TrainingStore(createMemoryFs(files)).saveState(state);
@@ -400,37 +403,3 @@ describe('TrainingStore persistence', () => {
   });
 });
 
-describe('session-completion glue', () => {
-  function completedSession(exerciseId: string): TrainingSessionResult {
-    const item: TrainingItemResult = {
-      exerciseId,
-      status: 'completed',
-      sets: Array.from({ length: getExercise(exerciseId).prescription.sets }, () => ({
-        exerciseId,
-        reps: getExercise(exerciseId).prescription.repsPerSet ?? 0,
-        meanVel: 0.9,
-        holdSec: NaN,
-        romPeak: NaN,
-        autoregulated: false,
-        reachedTarget: true,
-        interruptions: 0,
-        flags: [],
-      })),
-    };
-    return { startedAt: '2026-06-15T08:00:00.000Z', items: [item] };
-  }
-
-  it('advances progress and stamps the re-test marker on the final session', () => {
-    const block = buildBlock(score(), { stair: false, band: false }, '2026-06-14T09:00:00.000Z');
-    let state = startBlock(defaultTrainingState(), block);
-    expect(nextSessionExercises(state)).not.toBeNull();
-
-    for (let i = 0; i < 12; i++) {
-      expect(retestDue(state)).toBe(false);
-      state = recordCompletedSession(state, completedSession(STS_STANDARD_ID), `2026-06-15T0${i}:00:00.000Z`);
-    }
-    expect(state.progress.completedSessions).toBe(12);
-    expect(retestDue(state)).toBe(true);
-    expect(nextSessionExercises(state)).toBeNull(); // block done — no dead end, a clean stop
-  });
-});

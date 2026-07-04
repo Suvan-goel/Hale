@@ -10,12 +10,7 @@ import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../../history';
 import { TUG_ID } from '../../movements';
 import { defaultPreferences } from '../../profile';
 import { createCurrentVersionedScoreSnapshot, scoreCheckUp } from '../../scoring';
-import {
-  DEFAULT_EQUIPMENT,
-  buildBlock,
-  defaultTrainingState,
-  startBlock,
-} from '../../training';
+import { defaultTrainingState, type TrainingBlock } from '../../training';
 import { createMovementAssessment, requireHaleSessionPlan as planTodayHaleSession } from '../../haleFlow';
 import {
   onboardingDomainSummaries,
@@ -216,7 +211,10 @@ describe('Hale V1 onboarding results and equipment', () => {
   it('feeds onboarding equipment into dynamic session generation', () => {
     const checkUp = syntheticCheckUp(START);
     const score = scoreCheckUp(checkUp);
-    const training = startBlock(defaultTrainingState(), buildBlock(score, DEFAULT_EQUIPMENT, START));
+    const training = {
+      ...defaultTrainingState(),
+      block: { createdAt: START, weeks: 4, sessionsPerWeek: 3, weakestDomain: 'strength', sessions: [] } as TrainingBlock,
+    };
     const plan = planTodayHaleSession({
       activeBlock: movementBlock(),
       training: { ...training, equipment: { stair: false, band: false, miniBand: false, load: false } },
@@ -236,7 +234,10 @@ describe('Hale V1 onboarding results and equipment', () => {
   it('feeds onboarding discomfort into dynamic session generation', () => {
     const checkUp = syntheticCheckUp(START);
     const score = scoreCheckUp(checkUp);
-    const training = startBlock(defaultTrainingState(), buildBlock(score, DEFAULT_EQUIPMENT, START));
+    const training = {
+      ...defaultTrainingState(),
+      block: { createdAt: START, weeks: 4, sessionsPerWeek: 3, weakestDomain: 'strength', sessions: [] } as TrainingBlock,
+    };
     const plan = planTodayHaleSession({
       activeBlock: movementBlock(),
       training,
