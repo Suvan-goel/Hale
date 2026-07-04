@@ -3290,8 +3290,75 @@ PUBLIC RELEASE REMAINS BLOCKED
   founder's in-flight LifeGoal category refactor, not this work. Net −1,340 lines. Owed on
   device: the merged Explore layout, featured-card copy, and article detail screens.
 
+## 2026-07-04 — Life-goal consolidation: nine onboarding options become four
+
+- **Product decision: the goal picker was asking for a distinction the product didn't act
+  on.** Of the nine "What matters most for your future?" options, `grandchildren` and
+  `floor_confidence` produced *identical* workout bias; `stairs`/`walking_hiking_sport`/
+  `travel` were near-duplicates; `noticed_decline` and `custom` carried empty bias lists; and
+  nine 96px cards pushed options 7–9 below the fold as step 1 of onboarding. Consolidated to
+  one option per functional training bucket: `stairs_walks` ("Climb stairs and keep up on
+  walks"), `grandchildren` ("Play with children or grandchildren", absorbs floor confidence),
+  `bend_reach_carry` ("Bend, reach, and carry with ease", absorbs gardening + carrying;
+  mobility-forward so the four goals stay differentiated in tie-breaks), and `independence`
+  ("Stay independent and feel strong"). No existing users, so the retired categories,
+  `custom`/`customText`, and the legacy label-alias table were deleted outright — no
+  migration shims.
+- **Selector simplified for the demographic:** the meaningless 1–9 number badges are gone,
+  hints live on the preset (single source), nothing is pre-selected (Continue stays disabled
+  until a deliberate tap; `stairs` was silently pre-chosen before), and the subtitle no
+  longer repeats the title — it now says the plan is shaped by the choice and that it can be
+  changed in Settings.
+- **V2 focus policy v3 (fingerprint seed `mpv2-focus-policy-v3`):** with every remaining goal
+  mapping to 2–3 domains, the single-domain-goal paths died: the `v2_focus_goal_led` branch
+  (all-domains-fine → goal-led domain block; only `carrying_loads` could trigger it) and the
+  `v2_focus_clear_signal_overrides_goal` reason are removed — an all-clear check-up now
+  always yields a balanced block, which matches "the check-up leads; the goal shapes
+  supporting work". The `goal_led_reference_supported` planMode survived only for the
+  official-retest preserve-current case, so it is renamed
+  `prior_focus_reference_supported` and its results copy no longer claims the goal drove the
+  choice. Goal tie-breaking between candidate domains (`uniqueGoalCandidate`) is unchanged
+  and still live.
+- **Verification:** tsc clean; jest 1320/1321 (the one failure is the pre-existing
+  `sessionPreviewTitle` casing expectation from the Explore pass, unrelated). Owed on device:
+  the four-card goal screen on a real phone.
+
 - **Follow-up (owner-directed):** the merged page briefly kept both tabs' heroes stacked —
   two 274px cards that read as two landing pages and gave the mid-scroll article the same
   visual weight as the page's primary action. Now one hero per page: the session hero leads
   (label "For lighter days" — its only occurrence again), Learn flattens to four uniform
   article rows, and `FeaturedInsightCard` is deleted. Act at the top, browse below.
+
+## 2026-07-05 — Safety setup pass: questions stay in onboarding, honestly unanswered and half the text
+
+- **Product decision: keep the three movement-capability questions in onboarding.** A deferral
+  (mirroring the starting-pace/pain deferral) was considered and rejected by the founder: the
+  questions are a deliberate personalization signal — the app visibly waits for answers about
+  the user's situation and genuinely tailors generation with them. The complexity cost is paid
+  in reading, not in tapping, so the pass cut the reading.
+- **FD-007 amended (founder, this pass):** the floor-transfer question drops the "Not sure"
+  option. "No" and "Not sure" always stored the identical `avoid_for_now` status, and the
+  pressed-button distinction was not persisted — a "Not sure" tap re-rendered as "No" after
+  reload. The merged second option is labeled "Not yet" so the safe path is a preference, not
+  an admission. Question copy is now "Can you get down to the floor and back up on your own?"
+  (the "on your own" clause carries FD-007's without-assistance semantics). Everything else in
+  FD-007 — gate floor exercises on the answer, substitute standing alternatives, editable in
+  Settings, no medical/frailty/fall-risk language, never imply Hale assists the transfer — is
+  unchanged. The `SafetyProfileScreen.floorTransfer` contract test pins the amended wording.
+- **Unanswered no longer masquerades as answered:** the screen previously pre-rendered "No"/
+  "Not sure" as selected while the stored status was `not_confirmed`. All three questions now
+  start unselected and are required before Continue (`not_confirmed` blocks the button in
+  onboarding; review mode still shows stored values and saves on tap). Every persisted answer
+  is now one the user actually gave. Post-onboarding profiles always carry three real answers;
+  the generators' `not_confirmed` fallbacks remain as defense in depth.
+- **One voice, one line per question:** all three questions are "you"-framed single lines
+  (floor: ability; step: environment — accurate to `stepUpEnvironment`; single-leg: comfort
+  with support in reach), the two-clause "Choose Yes only if…" caveats folded into the
+  questions, the redundant "Not sure" explainer line and the "Safety" pill (duplicate of the
+  "Safety setup" eyebrow) removed, and the section intro now says the reassuring thing
+  directly: "There are no wrong answers — Hale uses standing alternatives for anything that
+  does not fit today." Section text ~110 → ~55 words. `FloorTransferQuestion` collapsed into
+  the shared `YesNoQuestion` (now with explicit yes/no selection so unanswered renders
+  unselected).
+- **Verification:** tsc clean; jest 159/159 suites, 1322/1322. Owed on device: the unanswered →
+  answered flow on the real onboarding funnel, including the disabled Continue state.
