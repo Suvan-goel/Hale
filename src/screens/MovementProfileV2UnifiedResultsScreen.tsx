@@ -7,17 +7,13 @@ import {
 } from '../results/movementProfileV2ResultsAdapter';
 import type { UnifiedCheckUpResultsAction } from '../results/types';
 import type { MovementProfileV2RetestComparison } from '../adherence';
-import type {
-  MovementProfileV2Domain,
-  MovementProfileV2ResultsViewModel,
-} from '../movementProfileV2/viewModel';
+import type { MovementProfileV2ResultsViewModel } from '../movementProfileV2/viewModel';
 
 export function MovementProfileV2UnifiedResultsScreen({
   viewModel,
   planState,
   variant = 'standard',
   retestComparison,
-  onOpenDomain,
   onViewPlan,
   onViewBlockReport,
   onDone,
@@ -26,7 +22,6 @@ export function MovementProfileV2UnifiedResultsScreen({
   planState: MovementProfileV2UnifiedPlanState;
   variant?: 'standard' | 'onboarding' | 'history';
   retestComparison?: MovementProfileV2RetestComparison | null;
-  onOpenDomain: (domain: MovementProfileV2Domain) => void;
   onViewPlan?: () => void;
   onViewBlockReport?: () => void;
   onDone: () => void;
@@ -38,10 +33,6 @@ export function MovementProfileV2UnifiedResultsScreen({
 
   const handleAction = React.useCallback(
     (action: UnifiedCheckUpResultsAction) => {
-      if (action.type === 'view_domain_detail') {
-        onOpenDomain(action.domain);
-        return;
-      }
       if (action.type === 'view_plan') {
         onViewPlan?.();
         return;
@@ -54,7 +45,7 @@ export function MovementProfileV2UnifiedResultsScreen({
         onDone();
       }
     },
-    [onDone, onOpenDomain, onViewBlockReport, onViewPlan]
+    [onDone, onViewBlockReport, onViewPlan]
   );
 
   return <CheckUpResultsShell presentation={presentation} onAction={handleAction} />;

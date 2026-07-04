@@ -69,7 +69,7 @@ describe('Movement Profile V2 unified results adapter', () => {
     });
 
     expect(presentation.focus).toEqual({
-      kicker: 'Suggested focus',
+      kicker: 'Where to focus',
       title: 'Balanced',
       body: 'Your results did not point to one clear area today.',
     });
@@ -124,7 +124,6 @@ describe('Movement Profile V2 unified results adapter', () => {
       expect.objectContaining({ label: 'Done', action: { type: 'done' } }),
     ]);
     expect(JSON.stringify(presentation.actions)).not.toContain('View my 4-week plan');
-    expect(presentation.domains.every((domain) => domain.detailActionAvailable)).toBe(true);
   });
 
   it('keeps the presentation wellness-side and protocol-neutral', () => {
@@ -141,7 +140,6 @@ describe('Movement Profile V2 unified results adapter', () => {
       'balance_stability',
       'mobility_flexibility',
     ]);
-    expect(presentation.domains.every((domain) => domain.detailActionAvailable)).toBe(true);
     expect(text).not.toMatch(/movement age|fall-risk|diagnos|fingerprint|v2_/i);
   });
 });
@@ -160,23 +158,23 @@ function movementProfileViewModel(
     {
       domain: 'strength_power',
       title: 'Strength and power',
-      metric: '12 reps',
-      status: 'Saved as your personal baseline',
-      body: 'Chair rise is saved as a starting point.',
+      metric: '12 rises in 30 seconds',
+      status: 'Saved result',
+      body: 'Saved as your personal starting point.',
     },
     {
       domain: 'balance',
       title: 'Balance',
       metric: '32 sec best hold',
-      status: 'Hale task band',
-      body: 'This uses the Hale task band for today.',
+      status: 'Building',
+      body: 'Your longest steady hold from this check-up.',
     },
     {
       domain: 'mobility',
       title: 'Mobility',
-      metric: '151 deg',
-      status: 'Within typical range',
-      body: 'Shoulder reach is within the typical range.',
+      metric: '151° reach',
+      status: 'On track',
+      body: 'Within the typical range for your age group.',
     },
   ];
 
@@ -184,17 +182,11 @@ function movementProfileViewModel(
     checkUpId: '2026-06-24T09:00:00.000Z',
     dateLabel: '24 Jun 2026',
     title: 'Your Movement Profile',
-    summary:
-      "Where available, Hale uses your age and reference group with the setup recorded during your Check-Up. Camera results are beta estimates that help you track movement at home.",
+    summary: 'Camera results are beta estimates to help you track your movement at home.',
     focus,
     focusTitle: focus.kind === 'balanced' ? 'Suggested focus: Balanced plan' : `Suggested focus: ${focus.title}`,
     focusBody: focus.body,
     domainCards,
-    domainDetails: domainCards.map((card) => ({
-      ...card,
-      rows: [{ label: 'Result', value: card.metric }],
-      note: card.body,
-    })),
   };
 }
 

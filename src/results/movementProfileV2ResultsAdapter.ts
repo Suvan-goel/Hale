@@ -70,15 +70,12 @@ export function buildMovementProfileV2UnifiedResultsPresentation(input: {
             : 'Your Movement Profile is saved.',
     },
     focus: {
-      kicker: historyMode ? 'Focus at the time' : 'Suggested focus',
+      kicker: historyMode ? 'Focus at the time' : 'Where to focus',
       title: input.viewModel.focus.title,
       body: input.viewModel.focus.body,
     },
     domainSection: {
       title: retestMode ? 'Current results' : 'The three areas',
-      subtitle: retestMode
-        ? 'Hale keeps direct comparison to matching raw measurements from the same protocol setup.'
-        : 'Saved results first, with typical ranges where available.',
     },
     domains: toDomainTuple(domains),
     plan: retestMode || historyMode ? { status: 'hidden' } : planCopy,
@@ -125,7 +122,7 @@ function comparisonPresentation(
 ): UnifiedCheckUpResultsPresentation['comparison'] {
   return {
     title: 'Previous and current',
-    subtitle: 'Raw values are shown only as previous and current results.',
+    subtitle: 'Side by side with your last check-up.',
     rows: [
       comparisonRow('strength_power', comparison.domains.strength_power),
       comparisonRow('balance', comparison.domains.balance),
@@ -178,7 +175,6 @@ function domainCardToPresentation(
     statusLabel: card.status,
     bandLabel: card.metric,
     featured: card.domain === focusDomain,
-    detailActionAvailable: true,
     tone: toneForCard(card),
     iconToken: iconToken(card.domain),
     accessibilityLabel: `${card.title}. ${card.metric}. ${card.status}. ${card.body}`,
@@ -223,11 +219,8 @@ function domainPlanBody(domain: MovementDomain | undefined): string {
 }
 
 function toneForCard(card: MovementProfileV2ResultsViewModel['domainCards'][number]): UnifiedDomainResultCard['tone'] {
-  const text = `${card.status} ${card.body}`.toLowerCase();
-  if (text.includes('clear place to build') || text.includes('below typical range')) {
-    return 'attention';
-  }
-  if (text.includes('raw') || text.includes('personal baseline')) return 'informational';
+  if (card.status === 'Starting point') return 'attention';
+  if (card.status === 'Saved result') return 'informational';
   return 'neutral';
 }
 

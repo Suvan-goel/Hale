@@ -27,7 +27,6 @@ import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 import { SettingsIcon } from '../navigation/icons';
 import {
   buildProgressNextCheckUpCard,
-  progressSummaryStatusLabel,
   type ProgressNextCheckUpCardCopy,
 } from './progressProductPresentation';
 
@@ -452,7 +451,7 @@ function MovementProfileV2ProgressRow({
         <Text style={styles.profileRowMetric} numberOfLines={2}>{card.metric}</Text>
       </View>
       <View style={styles.profileStatusPill}>
-        <Text style={styles.profileStatusText} numberOfLines={2}>{progressSummaryStatusLabel(card)}</Text>
+        <Text style={styles.profileStatusText} numberOfLines={2}>{card.interpretation}</Text>
       </View>
     </View>
   );

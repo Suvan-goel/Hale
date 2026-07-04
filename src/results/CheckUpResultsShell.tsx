@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { BackArrowButton } from '../components/BackArrowButton';
@@ -11,7 +11,6 @@ import type {
   UnifiedCheckUpResultsAction,
   UnifiedCheckUpResultsPresentation,
   UnifiedDomainResultCard,
-  UnifiedResultDomainId,
   UnifiedResultsActionViewModel,
 } from './types';
 
@@ -87,7 +86,6 @@ function StandardResultsVariant({
             key={domain.id}
             domain={domain}
             isLast={index === presentation.domains.length - 1}
-            onAction={onAction}
           />
         ))}
       </Card>
@@ -170,16 +168,12 @@ function OnboardingResultsVariant({
 
       <View style={onboardingStyles.sectionIntro}>
         <Text style={onboardingStyles.sectionTitle}>Your three areas</Text>
-        <Text style={onboardingStyles.sectionBody}>Tap any area to see the saved measurements behind it.</Text>
+        <Text style={onboardingStyles.sectionBody}>The measurements saved from today's check-up.</Text>
       </View>
 
       <View style={onboardingStyles.domainStack}>
         {presentation.domains.map((domain) => (
-          <OnboardingDomainSummaryCard
-            key={domain.id}
-            domain={domain}
-            onAction={onAction}
-          />
+          <OnboardingDomainSummaryCard key={domain.id} domain={domain} />
         ))}
       </View>
 
@@ -244,15 +238,13 @@ function ActionStack({
 function DomainAreaRow({
   domain,
   isLast,
-  onAction,
 }: {
   domain: UnifiedDomainResultCard;
   isLast: boolean;
-  onAction: (action: UnifiedCheckUpResultsAction) => void;
 }) {
   const metricDisplay = domain.metricValue ? splitMetricDisplay(domain.metricValue) : null;
-  const content = (
-    <>
+  return (
+    <View style={[styles.domainAreaRow, isLast && styles.domainAreaRowLast]}>
       <View style={styles.domainAreaHeader}>
         <DomainGlyph iconToken={domain.iconToken} />
         <View style={styles.domainTitleCopy}>
@@ -287,39 +279,14 @@ function DomainAreaRow({
           </Text>
         </View>
       ) : null}
-    </>
+    </View>
   );
-
-  if (domain.detailActionAvailable) {
-    return (
-      <Pressable
-        style={({ pressed }) => [
-          styles.domainAreaRow,
-          isLast && styles.domainAreaRowLast,
-          pressed && styles.pressed,
-        ]}
-        onPress={() => onAction({ type: 'view_domain_detail', domain: domainIdToMovementDomain(domain.id) })}
-        accessibilityRole="button"
-        accessibilityLabel={domain.accessibilityLabel ?? `${domain.title}. ${domain.metricValue}. ${domain.interpretation ?? ''}`}
-      >
-        {content}
-      </Pressable>
-    );
-  }
-
-  return <View style={[styles.domainAreaRow, isLast && styles.domainAreaRowLast]}>{content}</View>;
 }
 
-function OnboardingDomainSummaryCard({
-  domain,
-  onAction,
-}: {
-  domain: UnifiedDomainResultCard;
-  onAction: (action: UnifiedCheckUpResultsAction) => void;
-}) {
+function OnboardingDomainSummaryCard({ domain }: { domain: UnifiedDomainResultCard }) {
   const responsive = useResponsiveLayout();
   const metricDisplay = splitMetricDisplay(domain.bandLabel ?? domain.metricValue);
-  const card = (
+  return (
     <View
       style={[
         onboardingStyles.domainCard,
@@ -364,17 +331,6 @@ function OnboardingDomainSummaryCard({
         </Text>
       </View>
     </View>
-  );
-
-  if (!domain.detailActionAvailable) return card;
-  return (
-    <Pressable
-      onPress={() => onAction({ type: 'view_domain_detail', domain: domainIdToMovementDomain(domain.id) })}
-      accessibilityRole="button"
-      accessibilityLabel={domain.accessibilityLabel ?? `${domain.title}. ${domain.metricValue}. ${domain.interpretation ?? ''}`}
-    >
-      {card}
-    </Pressable>
   );
 }
 
@@ -423,12 +379,6 @@ function DomainGlyph({
       </Svg>
     </View>
   );
-}
-
-function domainIdToMovementDomain(id: UnifiedResultDomainId) {
-  if (id === 'strength_power') return 'strength_power';
-  if (id === 'balance_stability') return 'balance';
-  return 'mobility';
 }
 
 const styles = StyleSheet.create({
@@ -681,9 +631,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   actions: { gap: spacing.md },
-  pressed: {
-    opacity: 0.72,
-  },
 });
 
 const onboardingStyles = StyleSheet.create({

@@ -1,5 +1,3 @@
-import type { MovementDomain } from '../adherence';
-
 /**
  * 'standard'  — fresh results right after a check-up.
  * 'onboarding' — the first-ever results, with onboarding framing.
@@ -16,7 +14,6 @@ export type UnifiedResultDomainId =
 export type UnifiedResultDomainTone = 'neutral' | 'attention' | 'informational';
 
 export type UnifiedCheckUpResultsAction =
-  | { type: 'view_domain_detail'; domain: MovementDomain }
   | { type: 'view_plan' }
   | { type: 'view_block_report' }
   | { type: 'done' }
@@ -44,7 +41,6 @@ export interface UnifiedDomainResultCard {
   statusLabel?: string;
   bandLabel?: string;
   featured?: boolean;
-  detailActionAvailable: boolean;
   tone: UnifiedResultDomainTone;
   iconToken: 'strength' | 'balance' | 'mobility';
   accessibilityLabel?: string;

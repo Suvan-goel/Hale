@@ -86,7 +86,8 @@ describe('Progress and Manual / Extra Check-Up UI restoration', () => {
     expect(profileCard).toContain('Where to focus');
     expect(profileCard).toContain('Last check-up ·');
     expect(profileCard).not.toMatch(/Frozen|reference labels|schema|fingerprint/);
-    expect(progress).toContain('progressSummaryStatusLabel(card)');
+    // Status pills show the shared tier vocabulary straight from the view model.
+    expect(progress).toContain('{card.interpretation}');
     expect(progress).not.toContain('Your current plan is based on your previous Movement Profile');
   });
 });

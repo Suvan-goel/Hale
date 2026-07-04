@@ -28,7 +28,9 @@ describe('unified check-up results architecture', () => {
     expect(app).not.toContain('movement-profile-v2-unified-results');
     expect(app).not.toContain('MovementProfileV2ResultsScreen');
     expect(app).toContain('MovementProfileV2UnifiedResultsScreen');
-    expect(app).toContain('MovementProfileV2DomainDetailScreen');
+    // The per-domain detail layer was removed: the results page is terminal.
+    expect(app).not.toContain('MovementProfileV2DomainDetailScreen');
+    expect(readSource('src/results/CheckUpResultsShell.tsx')).not.toContain('view_domain_detail');
     expect(app).toContain("? 'history'");
     expect(app).toContain('movementProfileV2BlockMatchesResult');
     expect(unifiedScreen).toContain('CheckUpResultsShell');

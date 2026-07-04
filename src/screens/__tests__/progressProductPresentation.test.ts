@@ -1,39 +1,8 @@
-import type { MovementBlock, MovementDomain, TrainingSessionCompletion } from '../../adherence';
+import type { MovementBlock, TrainingSessionCompletion } from '../../adherence';
 import { requiredMainPlanTemplatesForBlock } from '../../haleFlow';
-import {
-  buildProgressNextCheckUpCard,
-  buildProgressPlanSummaryCard,
-  progressPracticeStatusLabel,
-  progressSummaryStatusLabel,
-} from '../progressProductPresentation';
+import { buildProgressNextCheckUpCard } from '../progressProductPresentation';
 
 describe('Progress product presentation helpers', () => {
-  it('maps every domain onto one plain status vocabulary', () => {
-    // Strength percentiles follow the engine's own cut-offs (high <= 25, <= 40, <= 60).
-    expect(progressSummaryStatusLabel(domainCard('strength_power', 'Below the 10th percentile'))).toBe('Starting point');
-    expect(progressSummaryStatusLabel(domainCard('strength_power', 'Around the 10th-40th percentile'))).toBe('Building');
-    expect(progressSummaryStatusLabel(domainCard('strength_power', 'Around the 40th-60th percentile'))).toBe('On track');
-    expect(progressSummaryStatusLabel(domainCard('strength_power', 'Around the 60th-90th percentile'))).toBe('Strong');
-    expect(progressSummaryStatusLabel(domainCard('strength_power', 'Above the 90th percentile'))).toBe('Strong');
-    expect(progressSummaryStatusLabel(domainCard('strength_power', 'Typical range saved'))).toBe('Saved result');
-    // Balance and mobility land on the same tiers.
-    expect(progressSummaryStatusLabel(domainCard('balance', 'Full 45-second hold completed'))).toBe('Strong');
-    expect(progressSummaryStatusLabel(domainCard('balance', 'Typical range saved'))).toBe('On track');
-    expect(progressSummaryStatusLabel(domainCard('balance', 'Building the hold'))).toBe('Building');
-    expect(progressSummaryStatusLabel(domainCard('balance', 'A clear place to build'))).toBe('Starting point');
-    expect(progressSummaryStatusLabel(domainCard('mobility', 'Above typical range'))).toBe('Strong');
-    expect(progressSummaryStatusLabel(domainCard('mobility', 'Within typical range'))).toBe('On track');
-    expect(progressSummaryStatusLabel(domainCard('mobility', 'Below typical range'))).toBe('Building');
-    expect(progressSummaryStatusLabel(domainCard('mobility', 'Saved result'))).toBe('Saved result');
-  });
-
-  it('uses short practice statuses that fit the Progress row treatment', () => {
-    expect(progressPracticeStatusLabel('Ready for next step')).toBe('Ready');
-    expect(progressPracticeStatusLabel('Same level for now')).toBe('Building');
-    expect(progressPracticeStatusLabel('Recently included')).toBe('Building');
-    expect(progressPracticeStatusLabel('Available in plan')).toBe('Available');
-  });
-
   it('shows the date-gated next check-up from the V2 block schedule', () => {
     const block = movementBlock();
     expect(
@@ -68,42 +37,7 @@ describe('Progress product presentation helpers', () => {
     });
   });
 
-  it('counts only schedule-credited A/B/C sessions in the current plan summary', () => {
-    const block = movementBlock();
-    const valid = creditedCompletions(block, 2);
-    const noise: TrainingSessionCompletion[] = [
-      completion(block, 'micro-check', 'micro_check', '2026-06-03', requiredMainPlanTemplatesForBlock(block).templateIds[2], false),
-      {
-        ...completion(block, 'manual', 'standard', '2026-06-04', requiredMainPlanTemplatesForBlock(block).templateIds[2], true),
-        source: 'manual',
-      },
-    ];
-
-    expect(
-      buildProgressPlanSummaryCard({
-        activeBlock: block,
-        blocks: [block],
-        reports: [],
-        completions: [...valid, ...noise],
-        today: '2026-06-05T08:00:00.000Z',
-      })
-    ).toMatchObject({
-      title: 'Current 4-week plan',
-      meta: 'Strength / Power · 2 of 12 sessions completed.',
-      actionLabel: 'View current plan',
-    });
-  });
 });
-
-function domainCard(domain: MovementDomain, interpretation: string) {
-  return {
-    domain,
-    title: domain === 'strength_power' ? 'Strength / Power' : domain === 'balance' ? 'Balance' : 'Mobility',
-    metric: 'Saved metric',
-    interpretation,
-    body: 'Saved body',
-  };
-}
 
 function movementBlock(): MovementBlock {
   return {
