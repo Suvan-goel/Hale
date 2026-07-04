@@ -25,7 +25,6 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   'welcome',
   'life_goal',
   'safety_profile',
-  'equipment',
   'camera_explanation',
   'camera_setup',
   'baseline_checkup',
@@ -77,7 +76,6 @@ function validPreferences(prefs: Preferences): Preferences {
 function defaultOnboardingState(): OnboardingState {
   return {
     currentStep: 'welcome',
-    selectedEquipment: [],
     baselineResultId: null,
     completedAt: null,
     updatedAt: null,
@@ -223,12 +221,11 @@ function validOnboarding(v: unknown): OnboardingState {
   const currentStep =
     typeof o.currentStep === 'string' && ONBOARDING_STEPS.includes(o.currentStep as OnboardingStep)
       ? (o.currentStep as OnboardingStep)
-      : def.currentStep;
+      : (o.currentStep as string) === 'equipment' // retired step from early dev installs
+        ? 'camera_explanation'
+        : def.currentStep;
   return {
     currentStep,
-    selectedEquipment: Array.isArray(o.selectedEquipment)
-      ? o.selectedEquipment.filter((item): item is string => typeof item === 'string')
-      : [],
     baselineResultId: typeof o.baselineResultId === 'string' ? o.baselineResultId : null,
     completedAt: typeof o.completedAt === 'string' ? o.completedAt : null,
     updatedAt: typeof o.updatedAt === 'string' ? o.updatedAt : null,

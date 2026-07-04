@@ -114,14 +114,14 @@ describe('check-up serialization', () => {
   it('stores exact check-up type metadata for new records', () => {
     const stored = deserializeCheckUp(
       serializeCheckUp(makeCheckUp('2026-06-13T10:00:00.000Z', { reps: 14 }), {
-        checkupType: 'quick_recheck',
+        checkupType: 'micro_check',
         sourceAssessmentId: 'assessment-1',
         retryOfCheckUpId: 'baseline-1',
       })
     );
 
     expect(stored).toMatchObject({
-      checkupType: 'quick_recheck',
+      checkupType: 'micro_check',
       sourceAssessmentId: 'assessment-1',
       retryOfCheckUpId: 'baseline-1',
     });

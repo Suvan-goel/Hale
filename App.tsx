@@ -541,9 +541,6 @@ function flowForOnboardingStep(step: OnboardingStep): Flow | null {
       return 'life-goal';
     case 'safety_profile':
       return 'safety-profile';
-    case 'equipment':
-      // The standalone equipment step is retired; equipment lives in Settings.
-      return 'camera-explanation';
     case 'camera_explanation':
       return 'camera-explanation';
     case 'camera_setup':
@@ -4114,11 +4111,7 @@ function HaleApp() {
           openManualCheckup();
           return;
         case 'manual-extra-checkup':
-          beginCheckUp('manual_extra');
-          return;
         case 'quick-recheck':
-          beginCheckUp('quick_recheck');
-          return;
         case 'manual-extra-v2-checkup':
           beginCheckUp('manual_extra_v2');
           return;

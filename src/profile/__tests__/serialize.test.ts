@@ -34,7 +34,6 @@ describe('preferences serialize', () => {
     },
     onboarding: {
       currentStep: 'complete',
-      selectedEquipment: ['chair', 'wall'],
       baselineResultId: 'checkup-1',
       completedAt: '2026-06-16T09:00:00.000Z',
       updatedAt: '2026-06-16T09:00:00.000Z',
@@ -224,7 +223,6 @@ describe('ProfileStore', () => {
       },
       onboarding: {
         currentStep: 'welcome',
-        selectedEquipment: [],
         baselineResultId: null,
         completedAt: null,
         updatedAt: null,

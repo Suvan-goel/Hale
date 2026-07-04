@@ -44,7 +44,7 @@ const START = '2026-06-19T08:00:00.000Z';
 describe('typed official check-up history selectors', () => {
   it('uses only usable official records for official progress', () => {
     const official = stored(fullCheckUp(START), 'baseline');
-    const manual = stored(fullCheckUp('2026-06-20T08:00:00.000Z'), 'manual_extra');
+    const manual = stored(fullCheckUp('2026-06-20T08:00:00.000Z'), 'manual_extra_v2');
     const assessments = [assessmentFor(official), assessmentFor(manual)];
 
     const latest = latestUsableOfficialCheckUpRecord([official, manual], assessments);
@@ -123,7 +123,7 @@ describe('typed official check-up history selectors', () => {
   it('selects only valid official Movement Profile V2 snapshots', () => {
     const valid = storedV2Snapshot(makeV2CheckUp('2026-06-23T08:00:00.000Z'), 'baseline');
     const latest = storedV2Snapshot(makeV2CheckUp('2026-07-23T08:00:00.000Z'), 'official_retest');
-    const manual = storedV2Snapshot(makeV2CheckUp('2026-08-23T08:00:00.000Z'), 'manual_extra');
+    const manual = storedV2Snapshot(makeV2CheckUp('2026-08-23T08:00:00.000Z'), 'manual_extra_v2');
     const mismatched = storedV2Snapshot(makeV2CheckUp('2026-09-23T08:00:00.000Z'), 'baseline');
     (mismatched.checkUp.items[0].result as ChairRiseV2Result).reps = 13;
 
@@ -144,7 +144,7 @@ describe('typed official check-up history selectors', () => {
   it('selects only valid official Movement Profile V2 assessments and reports duplicate conflicts', () => {
     const valid = storedV2Assessment(makeV2CheckUp('2026-06-23T08:00:00.000Z'), 'baseline');
     const latest = storedV2Assessment(makeV2CheckUp('2026-07-23T08:00:00.000Z'), 'official_retest');
-    const manual = storedV2Assessment(makeV2CheckUp('2026-08-23T08:00:00.000Z'), 'manual_extra');
+    const manual = storedV2Assessment(makeV2CheckUp('2026-08-23T08:00:00.000Z'), 'manual_extra_v2');
     const conflict = storedV2Assessment(makeV2CheckUp('2026-06-23T08:00:00.000Z'), 'baseline', true);
 
     const selection = officialMovementProfileV2AssessmentSelection([latest, manual, conflict, valid]);
@@ -254,7 +254,7 @@ function storedV2Snapshot(checkUp: CheckUp, checkupType: CheckupType): StoredChe
 function storedV2Assessment(checkUp: CheckUp, checkupType: CheckupType, alternateGoal = false): StoredCheckUp {
   const created = createMovementProfileV2Snapshot({
     checkUp,
-    checkupType: checkupType === 'manual_extra' ? 'baseline' : checkupType,
+    checkupType: checkupType === 'manual_extra_v2' ? 'baseline' : checkupType,
     referenceProfile: { ageAtTest: 62, ageBasis: 'exact_age_at_test', referenceSex: 'female' },
     createdAt: checkUp.startedAt,
   });

@@ -190,9 +190,8 @@ const RESTORE_TIMEOUT_MS = 8000;
 const CHECKUP_TYPES: CheckupType[] = [
   'baseline',
   'baseline_retake',
-  'manual_extra',
+  'manual_extra_v2',
   'official_retest',
-  'quick_recheck',
   'micro_check',
   'legacy_unknown',
 ];
@@ -829,7 +828,6 @@ function hasMeaningfulPreferences(prefs: Preferences): boolean {
     prefs.profile.safetyProfile !== null ||
     JSON.stringify(prefs.settings) !== JSON.stringify(defaults.settings) ||
     prefs.onboarding.currentStep !== 'welcome' ||
-    prefs.onboarding.selectedEquipment.length > 0 ||
     prefs.onboarding.baselineResultId !== null ||
     prefs.onboarding.completedAt !== null ||
     prefs.onboarding.updatedAt !== null
@@ -878,7 +876,9 @@ function exactCheckupTypeFromRemote(
 }
 
 function mapRemoteCheckupType(value: unknown): CheckupType {
-  if (value === 'baseline' || value === 'official_retest' || value === 'manual_extra') return value;
+  if (value === 'baseline' || value === 'official_retest') return value;
+  // The wire format still says manual_extra; locally that is the V2 practice check-up.
+  if (value === 'manual_extra') return 'manual_extra_v2';
   return 'legacy_unknown';
 }
 

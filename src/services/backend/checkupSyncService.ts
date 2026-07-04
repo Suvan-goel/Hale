@@ -288,6 +288,7 @@ export function mapLocalCheckupToRemotePayload(
 
 function mapCheckupType(type: CheckupType | RemoteMovementCheckupType | undefined): RemoteMovementCheckupType {
   if (type === 'baseline' || type === 'official_retest' || type === 'manual_extra') return type;
+  if (type === 'manual_extra_v2') return 'manual_extra';
   if (type === 'weekly_micro') return 'weekly_micro';
   return 'unknown';
 }
@@ -296,14 +297,16 @@ function exactLocalCheckupType(type: CheckupType | RemoteMovementCheckupType | u
   if (
     type === 'baseline' ||
     type === 'baseline_retake' ||
-    type === 'manual_extra' ||
+    type === 'manual_extra_v2' ||
     type === 'official_retest' ||
-    type === 'quick_recheck' ||
     type === 'micro_check' ||
     type === 'legacy_unknown'
   ) {
     return type;
   }
+  // Retired local types from early dev installs.
+  const raw = type as string | undefined;
+  if (raw === 'manual_extra' || raw === 'quick_recheck') return 'legacy_unknown';
   return undefined;
 }
 

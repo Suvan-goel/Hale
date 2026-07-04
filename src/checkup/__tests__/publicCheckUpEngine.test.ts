@@ -109,7 +109,7 @@ describe('public movement check-up launch decision', () => {
   });
 
   it('rejects source types with no public launch surface', () => {
-    for (const sourceType of ['legacy_unknown', 'manual_extra', 'quick_recheck', 'micro_check'] as const) {
+    for (const sourceType of ['legacy_unknown', 'micro_check'] as const) {
       expect(selectPublicMovementCheckUpLaunch({ sourceType })).toMatchObject({
         status: 'unavailable',
         reason: 'unsupported_public_checkup_source',

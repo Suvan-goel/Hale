@@ -52,7 +52,7 @@ describe('createAutomaticMovementBlock', () => {
     const { checkUp, score, scoreSnapshot } = scoredCheckUp();
     const assessment = createMovementAssessment({
       checkUpId: checkUp.startedAt,
-      type: 'manual_extra',
+      type: 'manual_extra_v2',
       score,
       scoreSnapshot,
       completedAt: START,

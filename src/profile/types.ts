@@ -48,7 +48,6 @@ export type OnboardingStep =
   | 'welcome'
   | 'life_goal'
   | 'safety_profile'
-  | 'equipment'
   | 'camera_explanation'
   | 'camera_setup'
   | 'baseline_checkup'
@@ -58,7 +57,6 @@ export type OnboardingStep =
 
 export interface OnboardingState {
   currentStep: OnboardingStep;
-  selectedEquipment: string[];
   baselineResultId: string | null;
   completedAt: string | null;
   updatedAt: string | null;

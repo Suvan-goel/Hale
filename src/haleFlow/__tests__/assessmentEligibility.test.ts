@@ -337,7 +337,7 @@ describe('assessment block-creation eligibility', () => {
     const snapshot = scoreSnapshotFor(inputScore);
     const resultAssessment = createMovementAssessment({
       checkUpId: inputScore.startedAt,
-      type: 'manual_extra',
+      type: 'manual_extra_v2',
       score: inputScore,
       scoreSnapshot: snapshot,
       completedAt: inputScore.startedAt,

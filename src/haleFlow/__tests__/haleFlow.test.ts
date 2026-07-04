@@ -65,7 +65,7 @@ function safety(): MovementSafetyProfile {
   };
 }
 
-function assessment(type: 'baseline' | 'official_retest' | 'manual_extra' = 'baseline') {
+function assessment(type: 'baseline' | 'official_retest' = 'baseline') {
   const inputScore = score('balance');
   return createMovementAssessment({
     checkUpId: START,
@@ -161,8 +161,6 @@ describe('manual check-up rules', () => {
       completions: [],
       now: '2026-06-03T08:00:00.000Z',
     });
-    expect(options.find((o) => o.type === 'manual_extra')).toBeUndefined();
-    expect(options.find((o) => o.type === 'quick_recheck')).toBeUndefined();
     expect(options.find((o) => o.type === 'micro_check')).toMatchObject({
       title: 'Quick micro check-up',
       route: 'optional-microcheck',
@@ -189,7 +187,6 @@ describe('manual check-up rules', () => {
       body: "Choose a quick check-in or complete a full Movement Check-Up whenever you're curious. These optional check-ups won't change your plan or Movement Profile.",
     });
     expect(options.map((option) => option.type)).toEqual(['micro_check', 'manual_extra_v2']);
-    expect(options.find((option) => option.type === 'manual_extra')).toBeUndefined();
   });
 
   it('keeps optional manual check-up choices separate from the scheduled slot target', () => {
@@ -213,7 +210,6 @@ describe('manual check-up rules', () => {
       recommended: false,
       isOfficialForProgress: false,
     });
-    expect(options.find((option) => option.type === 'manual_extra')).toBeUndefined();
   });
 
   it('allows baseline retake replacement only with confirmation', () => {

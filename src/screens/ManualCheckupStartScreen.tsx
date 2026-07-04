@@ -162,7 +162,6 @@ function nonOfficialNote(
 
 function recommendationMeta(option: (ReturnType<typeof getManualCheckupOptions>)[number]): string {
   if (option.type === 'micro_check') return 'Quick check-in';
-  if (option.type === 'quick_recheck') return 'Short check';
   if (option.type === 'official_retest') return 'Full check-up';
   if (option.type === 'baseline_retake') return 'Retake';
   return 'Full check-up';

@@ -200,15 +200,15 @@ function validStoredCheckUpType(value: unknown): StoredCheckUpType | null {
   if (
     value === 'baseline' ||
     value === 'baseline_retake' ||
-    value === 'manual_extra' ||
     value === 'manual_extra_v2' ||
     value === 'official_retest' ||
-    value === 'quick_recheck' ||
     value === 'micro_check' ||
     value === 'legacy_unknown'
   ) {
     return value;
   }
+  // Retired manual/quick-recheck records from early dev installs.
+  if (value === 'manual_extra' || value === 'quick_recheck') return 'legacy_unknown';
   return null;
 }
 

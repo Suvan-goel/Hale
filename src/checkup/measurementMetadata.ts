@@ -318,7 +318,7 @@ function sourceForSide({
   changedFromPrior: boolean;
 }): MeasurementSideSource {
   if (changedFromPrior) return 'opposite_side_fallback';
-  if (checkupType === 'manual_extra' || checkupType === 'quick_recheck') return 'manual_user_selected';
+  if (checkupType === 'manual_extra_v2') return 'manual_user_selected';
   if (checkupType === 'official_retest' && priorSide) return 'official_retest_anchor';
   if (checkupType === 'baseline_retake' && priorSide) return 'baseline_retake_anchor';
   return 'baseline_user_confirmed';

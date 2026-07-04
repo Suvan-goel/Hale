@@ -164,11 +164,10 @@ export interface MovementBlock {
 export type CheckupType =
   | 'baseline'
   | 'baseline_retake'
-  | 'manual_extra'
   | 'manual_extra_v2'
   | 'official_retest'
-  | 'quick_recheck'
   | 'micro_check'
+  /** Parser fallback for stored/remote records with a missing or retired type. */
   | 'legacy_unknown';
 
 export type CheckupStatus = 'not_started' | 'in_progress' | 'completed' | 'incomplete' | 'invalid' | 'cancelled';

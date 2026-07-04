@@ -100,7 +100,6 @@ function onboardingPrefs() {
   prefs.profile.ageBand = '55_64';
   prefs.profile.safetyProfile = safetyProfile();
   prefs.onboarding.currentStep = 'camera_setup';
-  prefs.onboarding.selectedEquipment = ['chair', 'wall'];
   return prefs;
 }
 
