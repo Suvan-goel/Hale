@@ -103,7 +103,7 @@ describe('Training Voice V2.1 contract registry', () => {
 });
 
 describe('Training Voice V2.1 laterality', () => {
-  it('blocks both-sides round items and carries explicit variants', () => {
+  it('carries explicit side variants for both-sides items and is selectable on the live voice', () => {
     for (const exerciseId of BOTH_SIDES_IDS) {
       const contract = getTrainingVoiceContractV21(exerciseId);
       expect(contract.laterality).toBe('both_sides_round_required');
@@ -112,7 +112,7 @@ describe('Training Voice V2.1 laterality', () => {
       expect(contract.sidePlan.switchCue?.key).toMatch(/^switch-/);
       expect(contract.implementationRequirements).not.toContain('IR-VOICE-ROUND-STATE');
       expect(contract.implementationRequirements).not.toContain('IR-VOICE-DOSE-CONVERSION');
-      expect(resolveTrainingVoiceRuntimeReadinessV21({ exerciseId }).selectable).toBe(false);
+      expect(resolveTrainingVoiceRuntimeReadinessV21({ exerciseId }).selectable).toBe(true);
     }
   });
 
@@ -146,7 +146,7 @@ describe('Training Voice V2.1 laterality', () => {
     expect(stepUp.livePrescription.repsPerSet).toBe(12);
     expect(stepUp.implementationRequirements).not.toContain('IR-VOICE-STEP-ALTERNATION');
     expect(stepUp.implementationRequirements).not.toContain('IR-VOICE-SAFETY-SUBSUMPTION');
-    expect(resolveTrainingVoiceRuntimeReadinessV21({ exerciseId: 'step-up' }).selectable).toBe(false);
+    expect(resolveTrainingVoiceRuntimeReadinessV21({ exerciseId: 'step-up' }).selectable).toBe(true);
   });
 });
 
@@ -358,7 +358,7 @@ describe('Training Voice V2.1 sequence planner', () => {
 });
 
 describe('Training Voice V2.1 runtime and asset gates', () => {
-  it('keeps approval/default gates closed while beta selectability uses physical audio readiness', () => {
+  it('reports approved and ready audio gates for the live default voice', () => {
     const physicalAudioReady = listTrainingVoiceAssetRequirementsV21().every((row) => !row.generationRequiredLater);
     expect(TRAINING_VOICE_V2_1_FEATURE_FLAG).toBe('EXPO_PUBLIC_ENABLE_TRAINING_VOICE_V2_1');
     expect(TRAINING_VOICE_V2_1_SAFETY_READY).toBe(true);
@@ -367,8 +367,8 @@ describe('Training Voice V2.1 runtime and asset gates', () => {
     expect(TRAINING_VOICE_V2_1_RECOVERY_READY).toBe(true);
     expect(TRAINING_VOICE_V2_1_BEHAVIOR_READY).toBe(true);
     expect(TRAINING_VOICE_V2_1_PHYSICAL_AUDIO_SURFACE_READY).toBe(physicalAudioReady);
-    expect(TRAINING_VOICE_V2_1_AUDIO_APPROVAL_READY).toBe(false);
-    expect(TRAINING_VOICE_V2_1_AUDIO_READY).toBe(false);
+    expect(TRAINING_VOICE_V2_1_AUDIO_APPROVAL_READY).toBe(true);
+    expect(TRAINING_VOICE_V2_1_AUDIO_READY).toBe(true);
     expect(selectTrainingVoiceRuntimeModeV21({ exerciseIds: ['squat-free'], featureEnabled: false })).toMatchObject({
       mode: 'legacy',
       v21Selectable: false,
@@ -428,7 +428,7 @@ describe('Training Voice V2.1 runtime and asset gates', () => {
     const plan = planTrainingVoiceSequenceV21({ exerciseId: 'squat-free', exposure: 'first_use' });
     expect(runtime.speakRequiredSequence({ plan, stageScopeId: scope, physicalCueKeys: [] })).toMatchObject({
       accepted: false,
-      reason: 'plan_not_ready',
+      reason: 'missing_physical_binding',
     });
     expect(runtime.speakRequiredSequence({ plan, stageScopeId: 'stale', physicalCueKeys: [] })).toMatchObject({
       accepted: false,
@@ -495,16 +495,14 @@ describe('Training Voice V2.1 runtime and asset gates', () => {
     });
   });
 
-  it('removes completed floor and safety blockers while keeping audio/global behaviour pending', () => {
+  it('clears floor, safety, audio, and behaviour blockers on the live default voice', () => {
     for (const exerciseId of ['glute-bridge-hold', 'glute-bridge-reps', 'push-up-standard', 'step-up']) {
       const contract = getTrainingVoiceContractV21(exerciseId);
       expect(contract.implementationRequirements).not.toContain('IR-VOICE-FLOOR-GATE');
       expect(contract.implementationRequirements).not.toContain('IR-VOICE-FINAL-POSITION-READINESS');
       expect(contract.implementationRequirements).not.toContain('IR-VOICE-SAFETY-SUBSUMPTION');
       expect(contract.runtimeStatus).toBe('software_ready_audio_pending');
-      expect(resolveTrainingVoiceRuntimeReadinessV21({ exerciseId }).blockers).toEqual(
-        expect.arrayContaining(['global_audio_ready_false'])
-      );
+      expect(resolveTrainingVoiceRuntimeReadinessV21({ exerciseId }).blockers).not.toContain('global_audio_ready_false');
       expect(resolveTrainingVoiceRuntimeReadinessV21({ exerciseId }).blockers).not.toContain('global_behavior_ready_false');
     }
   });

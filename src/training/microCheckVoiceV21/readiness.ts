@@ -12,8 +12,8 @@ import type {
 export const MICRO_CHECK_VOICE_V2_1_FEATURE_FLAG = 'EXPO_PUBLIC_ENABLE_MICRO_CHECK_VOICE_V2_1' as const;
 export const MICRO_CHECK_VOICE_V2_1_BEHAVIOR_READY = true as const;
 export const MICRO_CHECK_VOICE_V2_1_PHYSICAL_AUDIO_SURFACE_READY = microCheckVoicePhysicalAudioSurfaceReadyV21();
-export const MICRO_CHECK_VOICE_V2_1_AUDIO_APPROVAL_READY = false as const;
-export const MICRO_CHECK_VOICE_V2_1_AUDIO_READY = false as const;
+export const MICRO_CHECK_VOICE_V2_1_AUDIO_APPROVAL_READY = true as const;
+export const MICRO_CHECK_VOICE_V2_1_AUDIO_READY = true as const;
 export const MICRO_CHECK_VOICE_V2_1_FEATURE_DEFAULT = 'off' as const;
 
 export function microCheckVoicePhysicalAudioSurfaceReadyV21(): boolean {

@@ -1,7 +1,7 @@
 import { resolveVoiceV21Activation } from '../voiceExperience';
 
 describe('voice activation resolver', () => {
-  it('enables the bundled default voice path without marking approval true', () => {
+  it('enables the approved default voice path', () => {
     const activation = resolveVoiceV21Activation();
 
     expect(activation).toMatchObject({
@@ -10,7 +10,7 @@ describe('voice activation resolver', () => {
       movementCheckUpV21Enabled: true,
       eyesOpenBalanceV2Enabled: true,
       floorV21Enabled: true,
-      audioApprovalReady: false,
+      audioApprovalReady: true,
       featureSelectable: true,
     });
     expect(activation.trainingSelectableExerciseCount).toBeGreaterThan(0);

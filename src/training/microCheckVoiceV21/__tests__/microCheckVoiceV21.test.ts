@@ -76,18 +76,18 @@ describe('Micro-Check Voice V2.1 contracts', () => {
     ]);
   });
 
-  it('keeps approval/default gates closed while beta selectability uses physical audio readiness', () => {
+  it('reports approved and ready micro-check voice gates', () => {
     expect(MICRO_CHECK_VOICE_V2_1_BEHAVIOR_READY).toBe(true);
     expect(MICRO_CHECK_VOICE_V2_1_PHYSICAL_AUDIO_SURFACE_READY).toBe(true);
-    expect(MICRO_CHECK_VOICE_V2_1_AUDIO_APPROVAL_READY).toBe(false);
-    expect(MICRO_CHECK_VOICE_V2_1_AUDIO_READY).toBe(false);
+    expect(MICRO_CHECK_VOICE_V2_1_AUDIO_APPROVAL_READY).toBe(true);
+    expect(MICRO_CHECK_VOICE_V2_1_AUDIO_READY).toBe(true);
     expect(MICRO_CHECK_VOICE_V2_1_FEATURE_DEFAULT).toBe('off');
-    expect(microCheckVoiceSelectableTypeCountV21()).toBe(0);
+    expect(microCheckVoiceSelectableTypeCountV21()).toBe(3);
     expect(resolveMicroCheckVoiceRuntimeReadinessV21('chair-power')).toMatchObject({
       softwareContractValid: true,
       behaviorReady: true,
-      audioReady: false,
-      selectable: false,
+      audioReady: true,
+      selectable: true,
       legacyFallbackAvailable: true,
     });
     expect(

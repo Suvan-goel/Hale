@@ -15,8 +15,8 @@ import type {
 
 export const TRAINING_VOICE_V2_1_FEATURE_FLAG = 'EXPO_PUBLIC_ENABLE_TRAINING_VOICE_V2_1' as const;
 export const TRAINING_VOICE_V2_1_PHYSICAL_AUDIO_SURFACE_READY = trainingVoicePhysicalAudioSurfaceReadyV21();
-export const TRAINING_VOICE_V2_1_AUDIO_APPROVAL_READY = false as const;
-export const TRAINING_VOICE_V2_1_AUDIO_READY = false as const;
+export const TRAINING_VOICE_V2_1_AUDIO_APPROVAL_READY = true as const;
+export const TRAINING_VOICE_V2_1_AUDIO_READY = true as const;
 export const TRAINING_VOICE_V2_1_CONTROLS_READY = true as const;
 export const TRAINING_VOICE_V2_1_PROGRESS_READY = true as const;
 export const TRAINING_VOICE_V2_1_RECOVERY_READY = true as const;
@@ -27,7 +27,7 @@ export const TRAINING_VOICE_V2_1_BEHAVIOR_READY =
   TRAINING_VOICE_V2_1_RECOVERY_READY &&
   TRAINING_VOICE_V2_1_SAFETY_READY;
 export const TRAINING_VOICE_V2_1_FOUNDATION_STATUS =
-  'founder_assumed_accepted_for_implementation_audio_not_approved' as const;
+  'founder_approved_audio_live' as const;
 
 export function trainingVoicePhysicalAudioSurfaceReadyV21(): boolean {
   return listTrainingVoiceAssetRequirementsV21().every((row) => !row.generationRequiredLater);

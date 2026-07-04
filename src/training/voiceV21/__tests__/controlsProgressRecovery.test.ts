@@ -30,12 +30,12 @@ import {
 } from '..';
 
 describe('Training Voice V2.1 controls/progress/recovery readiness', () => {
-  it('has complete behavior gates while remaining audio/default closed', () => {
+  it('has complete behavior gates with audio now approved and ready', () => {
     expect(TRAINING_VOICE_V2_1_CONTROLS_READY).toBe(true);
     expect(TRAINING_VOICE_V2_1_PROGRESS_READY).toBe(true);
     expect(TRAINING_VOICE_V2_1_RECOVERY_READY).toBe(true);
     expect(TRAINING_VOICE_V2_1_BEHAVIOR_READY).toBe(true);
-    expect(TRAINING_VOICE_V2_1_AUDIO_READY).toBe(false);
+    expect(TRAINING_VOICE_V2_1_AUDIO_READY).toBe(true);
     expect(selectTrainingVoiceRuntimeModeV21({ exerciseIds: ['squat-free'], featureEnabled: false })).toMatchObject({
       mode: 'legacy',
       v21Selectable: false,

@@ -26,7 +26,7 @@ export interface VoiceV21Activation {
   readonly trainingSelectableExerciseCount: number;
   readonly microCheckSelectableTypeCount: number;
   readonly physicalAudioSurfaceReady: boolean;
-  readonly audioApprovalReady: false;
+  readonly audioApprovalReady: boolean;
   readonly featureSelectable: boolean;
   readonly reasonCodes: readonly string[];
 }
@@ -65,8 +65,8 @@ export function resolveVoiceV21Activation(): VoiceV21Activation {
     reasonCodes.push('balance_physical_audio_surface_not_ready');
   }
   if (!MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED) reasonCodes.push('mpv2_voice_runtime_foundation_disabled');
-  if (TRAINING_VOICE_V2_1_AUDIO_APPROVAL_READY) reasonCodes.push('training_audio_approval_true_unexpected');
-  if (MICRO_CHECK_VOICE_V2_1_AUDIO_APPROVAL_READY) reasonCodes.push('micro_audio_approval_true_unexpected');
+  if (TRAINING_VOICE_V2_1_AUDIO_APPROVAL_READY) reasonCodes.push('training_audio_approved');
+  if (MICRO_CHECK_VOICE_V2_1_AUDIO_APPROVAL_READY) reasonCodes.push('micro_audio_approved');
   if (EYES_OPEN_BALANCE_PROTOCOL_V2_AUDIO_APPROVAL_READY) reasonCodes.push('balance_audio_approval_true_unexpected');
 
   return {
@@ -78,7 +78,8 @@ export function resolveVoiceV21Activation(): VoiceV21Activation {
     trainingSelectableExerciseCount,
     microCheckSelectableTypeCount,
     physicalAudioSurfaceReady,
-    audioApprovalReady: false,
+    audioApprovalReady:
+      TRAINING_VOICE_V2_1_AUDIO_APPROVAL_READY && MICRO_CHECK_VOICE_V2_1_AUDIO_APPROVAL_READY,
     featureSelectable:
       trainingVoiceV21Enabled &&
       microCheckVoiceV21Enabled &&
