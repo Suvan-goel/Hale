@@ -3191,3 +3191,33 @@ PUBLIC RELEASE REMAINS BLOCKED
   and section titles moved to the shared `SettingsIconButton`/`SectionTitle` primitives; dead
   copy removed (`getPlanSessionCategoryCopy` with its never-rendered `categories`, and
   `getRetestCopy`'s never-displayed `body`).
+
+## 2026-07-04 — Settings pass: safety surfaced as one row, one safety card, canonical-only equipment toggles
+
+- **Context:** screen-by-screen polish continued with Settings (read-only review first, then a
+  product-owner-approved pass). The screen was information-rich but had duplicated safety
+  surfaces, a buried safety-setup entry point, and two parallel equipment-toggle code paths.
+- **Safety profile is a first-class menu row** in the Workouts group ("Support, comfort, and
+  pain details."), replacing the Safety-setup tile buried in the details section; the
+  `SetupActionTile` component and its style block are deleted.
+- **One safety card, not two:** `SafetyActionsCard` merged into `SafetyReadinessCard` — phone
+  placement guidance plus the "See camera setup tips" row in a single card. The safety
+  overview's duplicate "Video is not saved by the app." meta line is gone (the privacy section
+  already owns that fact).
+- **Equipment toggles are canonical-only:** all six switches now read/write
+  `safetyProfile.availableEquipment` via `onToggleAvailableEquipment`. The screen's legacy
+  `EquipmentProfile` prop, App's `toggleEquipment` callback, and
+  `legacyEquipmentKeyToCapability` are deleted. The store-level legacy mirror
+  (`training.equipment`, written by `toggleAvailableEquipment`) is unchanged — this removed a
+  duplicate UI path, not the compatibility layer.
+- **Pointer/copy polish:** section headers to sentence case, ASCII `>` chevrons to `›`,
+  redundant "Voice" header inside the Trainer-voice card dropped, and three sub-target
+  controls (voice preview, birth-date button, age options) raised to the 48px tap target.
+- **Orphaned primitives removed:** `Chip`/`Pill` in `src/components/ui.tsx` and the
+  `componentStyles.chip` recipe had no consumers left after the onboarding `Choice` control
+  took over selection UI; deleted rather than kept as speculative API.
+- **Verification:** tsc clean outside the in-flight founder results refactor
+  (`CheckUpResultsShell`); screens/components/theme suites 42/42 green. The 6 failing tests in
+  the full run all live in that refactor's blast radius (results adapter copy changes), not in
+  this pass. Owed on device: the Settings screen walk-through (row order, merged safety card,
+  toggle round-trip).
