@@ -8,12 +8,10 @@ import {
   ACTIVE_SHOULDER_REACH_V2_ID,
   BALANCE_EYES_OPEN_V2_ID,
   CHAIR_RISE_V2_ID,
-  HINGE_REACH_ID,
   ONE_LEG_BALANCE_V2_ID,
   type ActiveShoulderReachV2Result,
   type BalanceEyesOpenV2Result,
   type ChairRiseV2Result,
-  type HingeReachResult,
   type OneLegBalanceV2Result,
 } from '../movements';
 import { colors, spacing, type } from '../theme';

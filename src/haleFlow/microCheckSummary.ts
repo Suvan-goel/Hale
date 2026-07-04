@@ -110,7 +110,8 @@ function summaryTitle({
 }): string {
   if (!measuredAndSaved) return 'Micro-check complete.';
   const lower = domainLabel.toLowerCase();
-  return source === 'optional' ? `Extra ${lower} check saved.` : `Your ${lower} check is saved.`;
+  // Optional (manual) checks are a one-time look — never promise a saved record.
+  return source === 'optional' ? `Extra ${lower} check complete.` : `Your ${lower} check is saved.`;
 }
 
 function summarySubtitle({
@@ -132,7 +133,7 @@ function summarySubtitle({
   if (!measuredAndSaved) {
     return 'Hale could not capture a reliable measurement this time. Your official movement age is unchanged.';
   }
-  if (source === 'optional') return 'For reference only. Your plan is unchanged.';
+  if (source === 'optional') return 'A snapshot of today. Your plan is unchanged.';
   return 'This updates your quick-check trend without changing your movement age.';
 }
 

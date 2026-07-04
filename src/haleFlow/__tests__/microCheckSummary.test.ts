@@ -54,7 +54,7 @@ describe('micro-check summary view model', () => {
       history: [stored(legacyChairCheckUp(0.34))],
     });
 
-    expect(summary.title).toBe('Extra mobility check saved.');
+    expect(summary.title).toBe('Extra mobility check complete.');
     expect(summary.metricLabel).toBe('Forward reach');
     expect(summary.metricValue).toBe('0.24');
     expect(summary.metricUnit).toBe('body units');
