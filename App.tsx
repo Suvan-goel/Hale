@@ -127,6 +127,7 @@ import {
   type GenerationRecoveryAction,
   type BlockMicroCheckTarget,
   type HaleSessionPlanningResult,
+  type HaleLifecycleState,
   type HaleSessionPlan,
   type MicroCheckSummaryViewModel,
   type OfficialMovementProfileV2AssessmentRecord,
@@ -831,6 +832,20 @@ function HaleApp() {
     'completedItems' | 'startedAt'
   > | null>(null);
   const sessionRunStartedAtRef = React.useRef<string>('');
+  // Plans are cheap local artifacts: when a stored preview goes stale against
+  // current inputs (equipment, policies, safety cues), the app regenerates it
+  // instead of asking the user to resolve it. One attempt per plan id; a
+  // second failure falls back to the recovery screen.
+  const lastStartSessionPreferencesRef = React.useRef<
+    | (TodaySessionPreferences & {
+        lifecycleState?: HaleLifecycleState;
+        presetId?: string;
+        targetSessionTemplateId?: PlanSessionId | string;
+        sessionIntensity?: SessionIntensity;
+      })
+    | null
+  >(null);
+  const planRegenerationAttemptedForPlanIdRef = React.useRef<string | null>(null);
   const [planningRecoveryResult, setPlanningRecoveryResult] =
     React.useState<HaleSessionPlanningResult | null>(null);
   const [lastCompletion, setLastCompletion] = React.useState<TrainingSessionCompletion | null>(
@@ -2534,6 +2549,7 @@ function HaleApp() {
         sessionIntensity?: SessionIntensity;
       }
     ) => {
+      lastStartSessionPreferencesRef.current = preferences ?? null;
       const planningLifecycleState = preferences?.lifecycleState ?? lifecycle.state;
       const result = planTodayHaleSession({
         safetyProfile: prefs.profile.safetyProfile,
@@ -2681,116 +2697,91 @@ function HaleApp() {
 
   const beginPlannedSession = React.useCallback(() => {
     if (!activeSessionPlan || activeSessionPlan.exercises.length === 0) return;
-    const validation = validateHaleSessionPlanEquipment({
-      plan: activeSessionPlan,
-      safetyProfile: prefs.profile.safetyProfile,
-    });
-    if (validation.status !== 'current') {
-      addBreadcrumb('stale plan invalidated', {
+    // Validate the previewed plan against current inputs. Staleness (the user
+    // changed equipment or a policy shipped between preview and start) heals
+    // by regenerating the plan from the same start request; only a repeat
+    // failure or a truly unplannable state reaches the recovery screen.
+    const staleResult = (() => {
+      const equipment = validateHaleSessionPlanEquipment({
+        plan: activeSessionPlan,
+        safetyProfile: prefs.profile.safetyProfile,
+      });
+      if (equipment.status !== 'current') {
+        return {
+          validator: 'equipment',
+          status: equipment.status,
+          recovery: staleEquipmentPlanningResult({ plan: activeSessionPlan, validation: equipment }),
+        };
+      }
+      const movementCapabilities = validateHaleSessionPlanMovementCapabilities({
+        plan: activeSessionPlan,
+        safetyProfile: prefs.profile.safetyProfile,
+      });
+      if (movementCapabilities.status !== 'current') {
+        return {
+          validator: 'movement_capabilities',
+          status: movementCapabilities.status,
+          recovery: staleMovementCapabilityPlanningResult({
+            plan: activeSessionPlan,
+            validation: movementCapabilities,
+          }),
+        };
+      }
+      const releasePolicy = validateHaleSessionPlanReleasePolicy({ plan: activeSessionPlan });
+      if (releasePolicy.status !== 'current') {
+        return {
+          validator: 'release_policy',
+          status: releasePolicy.status,
+          recovery: staleReleasePolicyPlanningResult({
+            plan: activeSessionPlan,
+            validation: releasePolicy,
+          }),
+        };
+      }
+      const progressionPolicy = validateHaleSessionPlanProgressionPolicy({ plan: activeSessionPlan });
+      if (progressionPolicy.status !== 'current') {
+        return {
+          validator: 'progression_policy',
+          status: progressionPolicy.status,
+          recovery: staleProgressionPolicyPlanningResult({
+            plan: activeSessionPlan,
+            validation: progressionPolicy,
+          }),
+        };
+      }
+      const safetyCues = validateHaleSessionPlanSafetyCues({ plan: activeSessionPlan });
+      if (safetyCues.status !== 'current') {
+        return {
+          validator: 'safety_cues',
+          status: safetyCues.status,
+          recovery: staleSafetyCuePlanningResult({
+            plan: activeSessionPlan,
+            validation: safetyCues,
+          }),
+        };
+      }
+      return null;
+    })();
+    if (staleResult) {
+      addBreadcrumb('stale plan detected at start', {
         area: 'session_planning',
-        status: validation.status,
+        validator: staleResult.validator,
+        status: staleResult.status,
         blockId: activeSessionPlan.blockId,
         templateId: activeSessionPlan.metadata?.templateId,
         plannedDateKey: activeSessionPlan.metadata?.plannedDateKey,
-        plannedFingerprint: activeSessionPlan.metadata?.equipmentSnapshot?.fingerprint,
-        currentFingerprint: validation.diagnostics[0]?.currentFingerprint,
+        regenerated: planRegenerationAttemptedForPlanIdRef.current !== activeSessionPlan.id,
       });
-      setPlanningRecoveryResult(
-        staleEquipmentPlanningResult({ plan: activeSessionPlan, validation })
-      );
+      if (planRegenerationAttemptedForPlanIdRef.current !== activeSessionPlan.id) {
+        planRegenerationAttemptedForPlanIdRef.current = activeSessionPlan.id;
+        handleStartSession(lastStartSessionPreferencesRef.current ?? undefined);
+        return;
+      }
+      setPlanningRecoveryResult(staleResult.recovery);
       setFlow('session-unavailable');
       return;
     }
-    const movementCapabilityValidation = validateHaleSessionPlanMovementCapabilities({
-      plan: activeSessionPlan,
-      safetyProfile: prefs.profile.safetyProfile,
-    });
-    if (movementCapabilityValidation.status !== 'current') {
-      addBreadcrumb('stale movement setup invalidated', {
-        area: 'session_planning',
-        status: movementCapabilityValidation.status,
-        blockId: activeSessionPlan.blockId,
-        templateId: activeSessionPlan.metadata?.templateId,
-        plannedDateKey: activeSessionPlan.metadata?.plannedDateKey,
-        plannedFingerprint: activeSessionPlan.metadata?.movementCapabilitySnapshot?.fingerprint,
-        currentFingerprint: movementCapabilityValidation.diagnostics[0]?.currentFingerprint,
-      });
-      setPlanningRecoveryResult(
-        staleMovementCapabilityPlanningResult({
-          plan: activeSessionPlan,
-          validation: movementCapabilityValidation,
-        })
-      );
-      setFlow('session-unavailable');
-      return;
-    }
-    const releasePolicyValidation = validateHaleSessionPlanReleasePolicy({
-      plan: activeSessionPlan,
-    });
-    if (releasePolicyValidation.status !== 'current') {
-      addBreadcrumb('release policy plan invalidated', {
-        area: 'session_planning',
-        status: releasePolicyValidation.status,
-        blockId: activeSessionPlan.blockId,
-        templateId: activeSessionPlan.metadata?.templateId,
-        plannedDateKey: activeSessionPlan.metadata?.plannedDateKey,
-        plannedFingerprint: activeSessionPlan.metadata?.releasePolicySnapshot?.fingerprint,
-        currentFingerprint: releasePolicyValidation.diagnostics[0]?.currentFingerprint,
-        issueCount: releasePolicyValidation.diagnostics.length,
-      });
-      setPlanningRecoveryResult(
-        staleReleasePolicyPlanningResult({
-          plan: activeSessionPlan,
-          validation: releasePolicyValidation,
-        })
-      );
-      setFlow('session-unavailable');
-      return;
-    }
-    const progressionPolicyValidation = validateHaleSessionPlanProgressionPolicy({
-      plan: activeSessionPlan,
-    });
-    if (progressionPolicyValidation.status !== 'current') {
-      addBreadcrumb('progression policy plan invalidated', {
-        area: 'session_planning',
-        status: progressionPolicyValidation.status,
-        blockId: activeSessionPlan.blockId,
-        templateId: activeSessionPlan.metadata?.templateId,
-        plannedDateKey: activeSessionPlan.metadata?.plannedDateKey,
-        plannedFingerprint: activeSessionPlan.metadata?.progressionPolicySnapshot?.fingerprint,
-        currentFingerprint: progressionPolicyValidation.diagnostics[0]?.currentFingerprint,
-        issueCount: progressionPolicyValidation.diagnostics.length,
-      });
-      setPlanningRecoveryResult(
-        staleProgressionPolicyPlanningResult({
-          plan: activeSessionPlan,
-          validation: progressionPolicyValidation,
-        })
-      );
-      setFlow('session-unavailable');
-      return;
-    }
-    const safetyCueValidation = validateHaleSessionPlanSafetyCues({
-      plan: activeSessionPlan,
-    });
-    if (safetyCueValidation.status !== 'current') {
-      addBreadcrumb('stale safety cue plan invalidated', {
-        area: 'session_planning',
-        status: safetyCueValidation.status,
-        blockId: activeSessionPlan.blockId,
-        templateId: activeSessionPlan.metadata?.templateId,
-        plannedDateKey: activeSessionPlan.metadata?.plannedDateKey,
-        issueCount: safetyCueValidation.diagnostics.length,
-      });
-      setPlanningRecoveryResult(
-        staleSafetyCuePlanningResult({
-          plan: activeSessionPlan,
-          validation: safetyCueValidation,
-        })
-      );
-      setFlow('session-unavailable');
-      return;
-    }
+    planRegenerationAttemptedForPlanIdRef.current = null;
       // Resume a surviving snapshot of this same plan (crash/kill/explicit
       // stop): the relaunched run plays only the remaining items and the
       // results merge on completion. A fully-banked snapshot (death during
@@ -2824,7 +2815,7 @@ function HaleApp() {
       });
       setLastSessionResult(null);
       setFlow('training');
-  }, [activeSessionPlan, prefs.profile.safetyProfile, sessionResume, trainingStore, voiceActivation]);
+  }, [activeSessionPlan, handleStartSession, prefs.profile.safetyProfile, sessionResume, trainingStore, voiceActivation]);
 
   const handleSessionComplete = React.useCallback(
     (runResult: TrainingSessionResult) => {
