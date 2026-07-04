@@ -48,7 +48,6 @@ export type OnboardingStep =
   | 'welcome'
   | 'life_goal'
   | 'safety_profile'
-  | 'camera_explanation'
   | 'camera_setup'
   | 'baseline_checkup'
   | 'results'

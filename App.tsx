@@ -215,7 +215,6 @@ import {
   wrapWithObservability,
 } from './src/services/observability/sentry';
 import { AuthScreen } from './src/screens/AuthScreen';
-import { CameraExplanationScreen } from './src/screens/CameraExplanationScreen';
 import { CameraSetupScreen } from './src/screens/CameraSetupScreen';
 import { ExploreScreen } from './src/screens/ExploreScreen';
 import { LearnDetailScreen } from './src/screens/ExploreDetailScreens';
@@ -273,7 +272,6 @@ type PermissionState = 'checking' | 'granted' | 'undetermined' | 'denied';
 /** Full-screen flows launched on top of the tab shell (hands-free sessions + dev tools). */
 type Flow =
   | 'welcome'
-  | 'camera-explanation'
   | 'safety-profile'
   | 'camera-setup'
   | 'manual-checkup'
@@ -537,8 +535,6 @@ function flowForOnboardingStep(step: OnboardingStep): Flow | null {
       return 'life-goal';
     case 'safety_profile':
       return 'safety-profile';
-    case 'camera_explanation':
-      return 'camera-explanation';
     case 'camera_setup':
     case 'baseline_checkup':
       return 'camera-setup';
@@ -958,7 +954,7 @@ function HaleApp() {
   React.useEffect(() => {
     addBreadcrumb('app startup hydration started', { area: 'startup' });
     // Check-only at startup: the OS permission dialog must first appear from
-    // the camera-explanation screen, after the privacy case has been made.
+    // the camera setup screen, after the privacy case has been made.
     getCameraPermissionsAsync()
       .then((response) =>
         setPermission(
@@ -2100,7 +2096,7 @@ function HaleApp() {
           safetyProfile: nextSafetyProfile,
         },
         onboarding: onboardingFlowActive
-          ? { ...prefs.onboarding, currentStep: 'camera_explanation', updatedAt: now }
+          ? { ...prefs.onboarding, currentStep: 'camera_setup', updatedAt: now }
           : prefs.onboarding,
       });
       persistTraining({
@@ -2110,26 +2106,13 @@ function HaleApp() {
         ),
       });
       if (onboardingFlowActive) {
-        setFlow('camera-explanation');
+        openCameraSetup();
       } else if (!options?.stayOnScreen) {
         goHome();
       }
     },
-    [goHome, onboardingFlowActive, persistPrefs, persistTraining, prefs, training]
+    [goHome, onboardingFlowActive, openCameraSetup, persistPrefs, persistTraining, prefs, training]
   );
-
-  const handleCameraExplanationContinue = React.useCallback(() => {
-    const now = new Date().toISOString();
-    persistPrefs({
-      ...prefs,
-      onboarding: {
-        ...prefs.onboarding,
-        currentStep: 'camera_setup',
-        updatedAt: now,
-      },
-    });
-    openCameraSetup();
-  }, [openCameraSetup, persistPrefs, prefs]);
 
   const handleWelcomeStart = React.useCallback(() => {
     if (onboardingFlowActive) {
@@ -3947,9 +3930,6 @@ function HaleApp() {
         case 'equipment':
           goSettings();
           return;
-        case 'camera-explanation':
-          setFlow('camera-explanation');
-          return;
         case 'camera-setup':
           openCameraSetup();
           return;
@@ -4064,22 +4044,18 @@ function HaleApp() {
             profile={prefs.profile}
             onSave={onSafetyProfileSave}
             showContinueAction={onboardingFlowActive || safetyProfileEntry !== 'review'}
+            showStartingDetails={!onboardingFlowActive}
+            progress={onboardingFlowActive ? { step: 2, total: 3 } : undefined}
             onCancel={() =>
               goBack(() => (onboardingFlowActive ? replaceFlow('life-goal') : goHome()))
             }
-          />
-        ) : flow === 'camera-explanation' ? (
-          <CameraExplanationScreen
-            permissionGranted={permission === 'granted'}
-            onRequestPermission={requestCameraPermission}
-            onContinue={handleCameraExplanationContinue}
-            onBack={() => goBack(() => replaceFlow('safety-profile'))}
           />
         ) : flow === 'camera-setup' ? (
           <CameraSetupScreen
             permissionGranted={permission === 'granted'}
             onRequestPermission={requestCameraPermission}
             showBeginAction={cameraSetupEntry !== 'review'}
+            progress={onboardingFlowActive ? { step: 3, total: 3 } : undefined}
             onBegin={() =>
               onboardingFlowActive
                 ? beginOnboardingCheckUp()
@@ -4090,7 +4066,7 @@ function HaleApp() {
               __DEV__ && onboardingFlowActive ? completeDevOnboardingCheckUp : undefined
             }
             onCancel={() =>
-              goBack(() => (onboardingFlowActive ? replaceFlow('camera-explanation') : goHome()))
+              goBack(() => (onboardingFlowActive ? replaceFlow('safety-profile') : goHome()))
             }
           />
         ) : flow === 'manual-checkup' ? (
@@ -4174,6 +4150,7 @@ function HaleApp() {
           <LifeGoalOnboardingScreen
             initialGoal={prefs.profile.lifeGoal}
             mode={lifeGoalEntry === 'review' ? 'review' : 'onboarding'}
+            progress={onboardingFlowActive ? { step: 1, total: 3 } : undefined}
             onSave={onLifeGoalSave}
             onCancel={() =>
               lifeGoalEntry === 'review'

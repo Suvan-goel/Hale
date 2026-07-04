@@ -48,6 +48,18 @@ describe('preferences serialize', () => {
     expect(JSON.parse(serializePreferences(sample)).schemaVersion).toBe(8);
   });
 
+  it('resumes retired onboarding steps at the single camera setup screen', () => {
+    for (const retiredStep of ['equipment', 'camera_explanation']) {
+      const parsed = deserializePreferences(
+        JSON.stringify({
+          profile: { name: '', goal: '' },
+          onboarding: { currentStep: retiredStep },
+        })
+      );
+      expect(parsed?.onboarding.currentStep).toBe('camera_setup');
+    }
+  });
+
   it('derives current exact age from date of birth', () => {
     const dateOfBirth = '1968-07-01';
     const parsed = deserializePreferences(JSON.stringify({

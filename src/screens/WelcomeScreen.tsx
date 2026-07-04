@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Path } from 'react-native-svg';
 
 import { BackArrowButton } from '../components/BackArrowButton';
 import { PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../components/ui';
@@ -51,48 +50,12 @@ export function WelcomeScreen({
         </View>
         <Text style={styles.summaryTitle}>Start with a 10-minute check-up.</Text>
         <Text style={styles.summaryBody}>
-          Hale checks a few everyday movements to understand your strength, balance, and mobility.
+          Hale checks a few everyday movements to understand your strength, balance, and mobility, then uses the results to build your plan. Just three short steps and you are ready to begin.
         </Text>
         <View style={styles.summaryFacts}>
           <SummaryMetric value="10 min" detail="Check-up" />
           <SummaryMetric value="3 areas" detail="Measured" />
           <SummaryMetric value="4 weeks" detail="Plan" />
-        </View>
-      </View>
-
-      <View style={[styles.timelineCard, responsive.isCompactPhone && styles.compactCardPadding]}>
-        <SectionHeader title="What happens today" note="Voice guided" />
-        <TimelineStep
-          index="01"
-          title="Choose your goal"
-          body="Tell Hale what you want your body to keep helping you do."
-        />
-        <TimelineStep
-          index="02"
-          title="Set up your space"
-          body="Check your chair, lighting, support, and phone position."
-        />
-        <TimelineStep
-          index="03"
-          title="Do the check-up"
-          body="Follow voice prompts for a few simple movements."
-        />
-        <TimelineStep
-          index="04"
-          title="Get your plan"
-          body="Hale uses your results to choose your first home sessions."
-          isLast
-        />
-      </View>
-
-      <View style={[styles.prepPanel, responsive.isCompactPhone && styles.compactCardPadding]}>
-        <SectionHeader title="Before you begin" note="Simple setup" />
-        <View style={styles.prepList}>
-          <PrepItem icon="chair" label="Stable chair" body="Use a sturdy chair that will not slide." />
-          <View style={styles.prepRule} />
-          <PrepItem icon="audio" label="Audio on" body="Hale will talk you through each step." />
-          <View style={styles.prepRule} />
-          <PrepItem icon="light" label="Clear light" body="Choose a bright spot where your whole body fits on screen." />
         </View>
       </View>
 
@@ -124,96 +87,6 @@ function SummaryMetric({ value, detail }: { value: string; detail: string }) {
       </Text>
       <Text style={styles.summaryDetail}>{detail}</Text>
     </View>
-  );
-}
-
-function SectionHeader({ title, note }: { title: string; note: string }) {
-  return (
-    <View style={styles.sectionHead}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <Text style={styles.sectionNote}>{note}</Text>
-    </View>
-  );
-}
-
-function TimelineStep({ index, title, body, isLast = false }: { index: string; title: string; body: string; isLast?: boolean }) {
-  return (
-    <View style={styles.timelineStep}>
-      <View style={styles.timelineRail}>
-        <Text style={styles.timelineIndex}>{index}</Text>
-        {!isLast ? <View style={styles.timelineLine} /> : null}
-      </View>
-      <View style={styles.timelineCopy}>
-        <Text style={styles.timelineTitle}>{title}</Text>
-        <Text style={styles.timelineBody}>{body}</Text>
-      </View>
-    </View>
-  );
-}
-
-function PrepItem({
-  icon,
-  label,
-  body,
-}: {
-  icon: 'chair' | 'audio' | 'light';
-  label: string;
-  body: string;
-}) {
-  return (
-    <View style={styles.prepItem}>
-      <View style={styles.prepIcon}>
-        <PrepIcon name={icon} />
-      </View>
-      <View style={styles.prepCopy}>
-        <Text style={styles.prepLabel}>{label}</Text>
-        <Text style={styles.prepBody}>{body}</Text>
-      </View>
-    </View>
-  );
-}
-
-function PrepIcon({ name }: { name: 'chair' | 'audio' | 'light' }) {
-  const common = {
-    stroke: colors.accentDeep,
-    strokeWidth: 1.8,
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
-    fill: 'none' as const,
-  };
-
-  return (
-    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-      {name === 'chair' ? (
-        <>
-          <Path d="M7 5.5 H14.5 C16.2 5.5 17.5 6.8 17.5 8.5 V12.5 H7 Z" {...common} />
-          <Path d="M6.3 12.5 H18.6" {...common} />
-          <Path d="M8 12.8 V19" {...common} />
-          <Path d="M17 12.8 V19" {...common} />
-          <Path d="M7 7.2 V12.4" {...common} />
-        </>
-      ) : null}
-      {name === 'audio' ? (
-        <>
-          <Path d="M5.5 10 V14 H9 L13.5 18 V6 L9 10 Z" {...common} />
-          <Path d="M16.4 9.2 C17.1 9.9 17.5 10.9 17.5 12 C17.5 13.1 17.1 14.1 16.4 14.8" {...common} />
-          <Path d="M18.8 7 C20.1 8.4 20.8 10.1 20.8 12 C20.8 13.9 20.1 15.6 18.8 17" {...common} />
-        </>
-      ) : null}
-      {name === 'light' ? (
-        <>
-          <Circle cx={12} cy={12} r={4.1} {...common} />
-          <Path d="M12 3.8 V5.7" {...common} />
-          <Path d="M12 18.3 V20.2" {...common} />
-          <Path d="M3.8 12 H5.7" {...common} />
-          <Path d="M18.3 12 H20.2" {...common} />
-          <Path d="M6.2 6.2 L7.6 7.6" {...common} />
-          <Path d="M16.4 16.4 L17.8 17.8" {...common} />
-          <Path d="M17.8 6.2 L16.4 7.6" {...common} />
-          <Path d="M7.6 16.4 L6.2 17.8" {...common} />
-        </>
-      ) : null}
-    </Svg>
   );
 }
 
@@ -301,120 +174,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     letterSpacing: 0,
-    color: colors.textSecondary,
-  },
-  timelineCard: {
-    gap: spacing.xl,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl,
-    borderRadius: radius.sm,
-    backgroundColor: '#FFFDF9',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(216,211,200,0.82)',
-    boxShadow: '0 10px 26px rgba(17,20,18,0.04)',
-  },
-  sectionHead: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  sectionTitle: {
-    fontFamily: fonts.serifMedium,
-    fontSize: 23,
-    lineHeight: 29,
-    letterSpacing: 0,
-    color: colors.textPrimary,
-    flexShrink: 1,
-  },
-  sectionNote: {
-    ...type.caption,
-    fontFamily: fonts.sansMedium,
-    color: colors.accentDeep,
-    paddingTop: 4,
-  },
-  timelineStep: {
-    flexDirection: 'row',
-    gap: spacing.lg,
-    minHeight: 74,
-  },
-  timelineRail: {
-    width: 38,
-    alignItems: 'center',
-  },
-  timelineIndex: {
-    fontSize: 13,
-    lineHeight: 18,
-    letterSpacing: 0,
-    fontFamily: fonts.sansMedium,
-    color: colors.accentDeep,
-  },
-  timelineLine: {
-    flex: 1,
-    width: StyleSheet.hairlineWidth,
-    minHeight: 34,
-    backgroundColor: colors.borderHairline,
-    marginTop: spacing.md,
-  },
-  timelineCopy: {
-    flex: 1,
-    gap: spacing.xs,
-    paddingBottom: spacing.lg,
-  },
-  timelineTitle: {
-    ...type.h3,
-    fontSize: 17,
-    lineHeight: 23,
-  },
-  timelineBody: {
-    ...type.bodySmall,
-    color: colors.textSecondary,
-  },
-  prepPanel: {
-    gap: spacing.xl,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl,
-    borderRadius: radius.panel,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    boxShadow: '0 12px 30px rgba(17,20,18,0.045)',
-  },
-  prepList: {
-    gap: spacing.sm,
-  },
-  prepItem: {
-    minHeight: 72,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    minWidth: 0,
-    paddingVertical: spacing.sm,
-  },
-  prepRule: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.divider,
-    marginLeft: 56,
-  },
-  prepIcon: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  prepCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  prepLabel: {
-    ...type.cardRowTitle,
-    fontSize: 15,
-    lineHeight: 20,
-    color: colors.accentDeep,
-  },
-  prepBody: {
-    ...type.caption,
     color: colors.textSecondary,
   },
   privacyPanel: {

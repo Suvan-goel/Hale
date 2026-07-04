@@ -55,6 +55,8 @@ export function SafetyProfileScreen({
   profile,
   onSave,
   showContinueAction = true,
+  showStartingDetails = true,
+  progress,
   onCancel,
 }: {
   profile: UserProfile;
@@ -64,6 +66,12 @@ export function SafetyProfileScreen({
     options?: SafetyProfileSaveOptions
   ) => void;
   showContinueAction?: boolean;
+  /**
+   * Starting pace and comfort/pain are deferred out of the onboarding funnel
+   * (they default sensibly and are editable in Settings). Shown in review mode.
+   */
+  showStartingDetails?: boolean;
+  progress?: { step: number; total: number };
   onCancel: () => void;
 }) {
   const initial = profile.safetyProfile;
@@ -207,6 +215,7 @@ export function SafetyProfileScreen({
     <Screen>
       <BackArrowButton accessibilityLabel="Back" onPress={onCancel} />
       <ScreenHeader
+        progress={progress}
         eyebrow="Safety setup"
         title="Help Hale choose a safe start"
         subtitle="A few quick answers help Hale avoid movements that do not feel right for you today."
@@ -248,37 +257,41 @@ export function SafetyProfileScreen({
         </View>
       </ChoiceSection>
 
-      <ChoiceSection title="How should Hale start your workouts?" meta="Workout effort">
-        <View style={styles.grid}>
-          {STARTING_PACE_OPTIONS.map((option) => (
-            <Choice
-              key={option.value}
-              label={option.label}
-              selected={activityLevel === option.value}
-              onPress={() => selectActivityLevel(option.value)}
-            />
-          ))}
-        </View>
-        <Text style={styles.gentle}>
-          You can change this later in Settings. Your check-up, pain notes, and safety setup still decide which movements Hale uses.
-        </Text>
-      </ChoiceSection>
+      {showStartingDetails ? (
+        <ChoiceSection title="How should Hale start your workouts?" meta="Workout effort">
+          <View style={styles.grid}>
+            {STARTING_PACE_OPTIONS.map((option) => (
+              <Choice
+                key={option.value}
+                label={option.label}
+                selected={activityLevel === option.value}
+                onPress={() => selectActivityLevel(option.value)}
+              />
+            ))}
+          </View>
+          <Text style={styles.gentle}>
+            You can change this later in Settings. Your check-up, pain notes, and safety setup still decide which movements Hale uses.
+          </Text>
+        </ChoiceSection>
+      ) : null}
 
-      <ChoiceSection title="Any area that often feels uncomfortable?" meta="Optional">
-        <View style={styles.grid}>
-          {PAIN_OPTIONS.map((option) => (
-            <Choice
-              key={option}
-              label={option}
-              selected={painArea === option}
-              onPress={() => selectPainArea(option)}
-            />
-          ))}
-        </View>
-        <Text style={styles.gentle}>
-          Hale may choose easier options around this area. You can still stop or use support at any time.
-        </Text>
-      </ChoiceSection>
+      {showStartingDetails ? (
+        <ChoiceSection title="Any area that often feels uncomfortable?" meta="Optional">
+          <View style={styles.grid}>
+            {PAIN_OPTIONS.map((option) => (
+              <Choice
+                key={option}
+                label={option}
+                selected={painArea === option}
+                onPress={() => selectPainArea(option)}
+              />
+            ))}
+          </View>
+          <Text style={styles.gentle}>
+            Hale may choose easier options around this area. You can still stop or use support at any time.
+          </Text>
+        </ChoiceSection>
+      ) : null}
 
       <ChoiceSection title="Movements to include" meta="Safety">
         <Text style={styles.gentle}>Hale will use standing alternatives when a setup does not fit.</Text>

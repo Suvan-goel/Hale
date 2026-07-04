@@ -25,7 +25,6 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   'welcome',
   'life_goal',
   'safety_profile',
-  'camera_explanation',
   'camera_setup',
   'baseline_checkup',
   'results',
@@ -218,11 +217,14 @@ function validOnboarding(v: unknown): OnboardingState {
   const def = defaultOnboardingState();
   if (typeof v !== 'object' || v === null) return def;
   const o = v as Partial<OnboardingState>;
+  const legacyStep = o.currentStep as string;
   const currentStep =
     typeof o.currentStep === 'string' && ONBOARDING_STEPS.includes(o.currentStep as OnboardingStep)
       ? (o.currentStep as OnboardingStep)
-      : (o.currentStep as string) === 'equipment' // retired step from early dev installs
-        ? 'camera_explanation'
+      : // retired steps from earlier dev installs (equipment, camera_explanation)
+        // resume at the single camera setup screen.
+        legacyStep === 'equipment' || legacyStep === 'camera_explanation'
+        ? 'camera_setup'
         : def.currentStep;
   return {
     currentStep,

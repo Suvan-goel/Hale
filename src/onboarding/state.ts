@@ -26,14 +26,9 @@ export function deriveOnboardingStep(input: OnboardingProgressInput): Onboarding
   }
   if (!profileReferenceDetailsComplete(prefs) || !prefs.profile.safetyProfile) return 'safety_profile';
   const hasUsableBaseline = !!latestUsableOfficialCheckUpRecord(history, input.assessments ?? []);
-  if (!hasUsableBaseline) {
-    if (prefs.onboarding.currentStep === 'camera_setup' || prefs.onboarding.currentStep === 'baseline_checkup') {
-      return 'camera_setup';
-    }
-    if (history.length > 0 && prefs.onboarding.currentStep === 'results') return 'camera_setup';
-    if (prefs.onboarding.currentStep === 'camera_explanation') return 'camera_explanation';
-    return 'camera_explanation';
-  }
+  // Everything before a usable baseline resumes on the single camera setup
+  // screen (which owns the privacy reassurance and the permission prompt).
+  if (!hasUsableBaseline) return 'camera_setup';
   if (prefs.onboarding.currentStep === 'create_block') return 'create_block';
   return 'results';
 }

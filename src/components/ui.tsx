@@ -431,20 +431,45 @@ export function ScreenHeader({
   eyebrow,
   title,
   subtitle,
+  progress,
 }: {
   eyebrow?: string;
   title: string;
   subtitle?: string;
+  /** Optional "step X of N" indicator shown above the eyebrow (e.g. onboarding). */
+  progress?: { step: number; total: number };
 }) {
   const responsive = useResponsiveLayout();
   return (
     <View style={styles.header}>
+      {progress ? <StepProgress step={progress.step} total={progress.total} /> : null}
       {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
       <View style={styles.headerTitleRow}>
         <HeaderLogo />
         <Text style={[styles.headerTitle, responsive.isCompactPhone && compactTypography.pageTitle]}>{title}</Text>
       </View>
       {subtitle ? <Text style={styles.headerSubtitle}>{subtitle}</Text> : null}
+    </View>
+  );
+}
+
+function StepProgress({ step, total }: { step: number; total: number }) {
+  const clamped = Math.max(1, Math.min(step, total));
+  return (
+    <View
+      style={styles.stepProgress}
+      accessibilityRole="progressbar"
+      accessibilityLabel={`Step ${clamped} of ${total}`}
+    >
+      <View style={styles.stepProgressDots}>
+        {Array.from({ length: total }).map((_, index) => (
+          <View
+            key={index}
+            style={[styles.stepProgressDot, index < clamped && styles.stepProgressDotActive]}
+          />
+        ))}
+      </View>
+      <Text style={styles.stepProgressLabel}>{`Step ${clamped} of ${total}`}</Text>
     </View>
   );
 }
@@ -859,6 +884,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   header: { gap: spacing.xs },
+  stepProgress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingBottom: spacing.xs,
+  },
+  stepProgressDots: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  stepProgressDot: {
+    width: 7,
+    height: 7,
+    borderRadius: radius.pill,
+    backgroundColor: colors.borderHairline,
+  },
+  stepProgressDotActive: {
+    backgroundColor: colors.accentDeep,
+  },
+  stepProgressLabel: {
+    ...type.label,
+    color: colors.textSecondary,
+  },
   headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',

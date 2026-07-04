@@ -22,6 +22,7 @@ export function CameraSetupScreen({
   onRequestPermission,
   onBegin,
   showBeginAction = true,
+  progress,
   onDoLater,
   onDevCompleteCheckup,
   onCancel,
@@ -30,6 +31,7 @@ export function CameraSetupScreen({
   onRequestPermission: () => void;
   onBegin: () => void;
   showBeginAction?: boolean;
+  progress?: { step: number; total: number };
   onDoLater?: () => void;
   onDevCompleteCheckup?: () => void;
   onCancel: () => void;
@@ -42,9 +44,10 @@ export function CameraSetupScreen({
     <Screen>
       <BackArrowButton accessibilityLabel="Back" onPress={onCancel} />
       <ScreenHeader
+        progress={progress}
         eyebrow="Camera and audio"
         title="Set up your phone"
-        subtitle="Place your phone so Hale can see your full body and guide you clearly."
+        subtitle="Place your phone so Hale can see your full body. You will not see a live video of yourself — just a simple outline."
       />
 
       <View style={styles.setupImageCard}>
@@ -75,7 +78,7 @@ export function CameraSetupScreen({
         <View style={styles.expectCopy}>
           <Text style={styles.expectTitle}>What to expect</Text>
           <Text style={styles.expectBody}>
-            When Hale can see you clearly, the check-up will start. You will hear when to move, rest, and continue.
+            When Hale can see you clearly, the check-up starts on its own. You will do four short movements, and Hale tells you when to move, rest, and continue. You can pause or stop whenever you want.
           </Text>
         </View>
       </View>

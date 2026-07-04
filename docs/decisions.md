@@ -2886,3 +2886,38 @@ PUBLIC RELEASE REMAINS BLOCKED
   since unified check-ups create their block at materialization. Milestone generation on
   session completion passes a null legacy score; comparisons live in the V2 block report.
 - **Verification:** tsc clean, expo config clean, 1,369/1,369 tests passing.
+
+## 2026-07-04 — Onboarding simplification: one camera screen, lighter Welcome, deferred profile details, step indicator
+
+- **Context:** an onboarding assessment (analysis-only pass) found the post-simplification
+  funnel still carried redundant reading and no sense of progress — the exact "overwhelmed
+  before they understand it" risk for the 45–65 target user. Four changes, all product-owner
+  requested.
+- **Two camera screens merged into one.** `CameraExplanationScreen` is deleted; the single
+  `CameraSetupScreen` now owns the privacy reassurance ("you will not see a live video of
+  yourself — just a simple outline", in the subtitle) and the "what to expect" line (four short
+  movements, voice-guided, pause/stop anytime), plus the OS permission prompt. The reason:
+  privacy/no-mirror was stated three times across Welcome + Explanation, and audio/chair/light
+  were each duplicated. The `camera_explanation` `OnboardingStep` and the `camera-explanation`
+  `Flow` are retired; `deriveOnboardingStep` collapses everything before a usable baseline to
+  `camera_setup`; stored `camera_explanation`/`equipment` steps migrate to `camera_setup`
+  (serialize, unit-tested). No schema bump (value migration only).
+- **Welcome trimmed.** Dropped the "What happens today" 4-step timeline (it restated the flow
+  the user is about to walk) and the "Before you begin" chair/audio/light prep list (it
+  previewed the camera setup screen's own steps). Kept hero + one-line value + the
+  "10 min · 3 areas · 4 weeks" metric strip + the privacy panel, and the body now names the
+  "three short steps" so the copy matches the new indicator.
+- **Safety Profile softened for onboarding.** New `showStartingDetails` prop (default true;
+  App passes `!onboardingFlowActive`) hides the *starting pace* and *comfort/pain* sections
+  during onboarding — they default sensibly (`lightly_active`, no pain) and are still edited in
+  Settings, which renders the same screen in review mode. Onboarding drops from 7 inputs to 5
+  on that screen; DOB + sex + the three capability questions (floor/step/single-leg) stay, as
+  they gate norms comparison and exercise safety.
+- **Step indicator added.** `ScreenHeader` gained an optional `progress={{ step, total }}` that
+  renders a dot row + "Step X of 3" (accessibilityRole progressbar). Shown only during
+  onboarding on Life goal (1/3), Safety profile (2/3), Camera setup (3/3); Welcome is the cover
+  and the check-up/results/first-block follow. Reused screens (Settings review, retest) pass no
+  progress. Net funnel: Welcome → goal (1/3) → profile (2/3) → camera setup (3/3) → check-up →
+  results → first plan.
+- **Verification:** tsc clean, expo config clean, 1,370/1,370 tests passing (added a serialize
+  migration case). Owed: on-device onboarding run-through alongside the Stage 5 guest checks.

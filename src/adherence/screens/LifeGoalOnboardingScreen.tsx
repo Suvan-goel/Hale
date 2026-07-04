@@ -8,11 +8,13 @@ import type { LifeGoal } from '../types';
 export function LifeGoalOnboardingScreen({
   initialGoal,
   mode = 'onboarding',
+  progress,
   onSave,
   onCancel,
 }: {
   initialGoal?: LifeGoal | null;
   mode?: 'onboarding' | 'review';
+  progress?: { step: number; total: number };
   onSave: (goal: LifeGoal) => void;
   onCancel: () => void;
 }) {
@@ -21,6 +23,7 @@ export function LifeGoalOnboardingScreen({
     <Screen>
       <BackArrowButton accessibilityLabel="Back" onPress={onCancel} />
       <ScreenHeader
+        progress={progress}
         eyebrow={review ? 'Review your goal' : 'Your goal'}
         title={review ? 'Change your movement goal' : 'What matters most for your future?'}
         subtitle="Choose the everyday activity that matters most for your future. Hale will use this when it builds your plan."
