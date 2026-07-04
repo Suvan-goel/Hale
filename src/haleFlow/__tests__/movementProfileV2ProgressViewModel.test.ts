@@ -75,6 +75,35 @@ describe('Movement Profile V2 Progress view model', () => {
     );
   });
 
+  it('summarises change across check-ups only once a second Check-Up exists', () => {
+    const baseline = artifacts('baseline', BASELINE_AT); // default chair result is 12 reps
+    const retake = artifacts('baseline_retake', RETAKE_AT, { chair: chairResult({ reps: 16 }) });
+
+    const single = buildMovementProfileV2ProgressViewModel({
+      history: [baseline.record],
+      blocks: [],
+      reports: [],
+      today: RETAKE_AT,
+    });
+    if (single.status !== 'ready') throw new Error(single.status);
+    expect(single.change).toBeNull();
+
+    const paired = buildMovementProfileV2ProgressViewModel({
+      history: [baseline.record, retake.record],
+      blocks: [],
+      reports: [],
+      today: RETAKE_AT,
+    });
+    if (paired.status !== 'ready') throw new Error(paired.status);
+    expect(paired.change).not.toBeNull();
+    expect(paired.change?.headline).toContain('Since your first check-up');
+    expect(paired.change?.domains.find((domain) => domain.domain === 'strength_power')).toMatchObject({
+      direction: 'up',
+      value: '12 → 16 rises',
+      caption: 'Up 4 rises',
+    });
+  });
+
   it('does not surface current-plan provenance when the active plan came from a previous profile', () => {
     const baseline = artifacts('baseline', BASELINE_AT, { balance: balanceResult({ bestHoldSec: 8 }) });
     const activeBlock = mustMaterializeBlock(baseline, BLOCK_START);

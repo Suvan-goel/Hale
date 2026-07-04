@@ -167,9 +167,8 @@ function balanceDetail(balance: BalanceInterpretation): MovementProfileV2DomainD
 
 function shoulderDetail(shoulder: ShoulderInterpretation): MovementProfileV2DomainDetailViewModel {
   const degrees = shoulder.rawMetric?.value;
-  const metric = Number.isFinite(degrees)
-    ? `${formatNumber(degrees)} deg ${sideLabel(shoulder.selectedSide)}`
-    : 'Not measured';
+  const reachValue = Number.isFinite(degrees) ? `${formatNumber(degrees)}°` : 'Not measured';
+  const metric = Number.isFinite(degrees) ? `${reachValue} reach` : 'Not measured';
   const status = shoulder.iqr ? shoulderIqrLabel(shoulder.iqr.category) : 'Saved result';
   return {
     domain: 'mobility',
@@ -180,7 +179,7 @@ function shoulderDetail(shoulder: ShoulderInterpretation): MovementProfileV2Doma
       ? 'This capture was marked pain-limited, so Hale keeps the result cautious.'
       : 'Hale stores the active shoulder-reach angle from the selected side.',
     rows: [
-      { label: 'Shoulder reach', value: metric },
+      { label: 'Shoulder reach', value: reachValue },
       { label: 'Typical range', value: status },
       { label: 'Selected side', value: shoulder.selectedSide ? sideLabel(shoulder.selectedSide) : 'Not saved' },
     ],

@@ -56,6 +56,21 @@ export interface MovementProfileV2ProgressHero {
   domains: readonly MovementProfileV2ProgressDomainSummary[];
 }
 
+export type MovementProfileV2ProgressChangeDirection = 'up' | 'down' | 'steady';
+
+export interface MovementProfileV2ProgressChangeDomain {
+  domain: MovementProfileV2Domain;
+  title: string;
+  direction: MovementProfileV2ProgressChangeDirection;
+  value: string;
+  caption: string;
+}
+
+export interface MovementProfileV2ProgressChange {
+  headline: string;
+  domains: readonly MovementProfileV2ProgressChangeDomain[];
+}
+
 export interface MovementProfileV2HistoryEntry {
   id: string;
   sourceType: Extract<StoredCheckUpType, 'baseline' | 'baseline_retake' | 'official_retest'>;
@@ -103,6 +118,7 @@ export type MovementProfileV2ProgressViewModel =
       status: 'ready';
       authorityFacts: MovementProfileV2ProgressAuthorityFacts;
       hero: MovementProfileV2ProgressHero;
+      change: MovementProfileV2ProgressChange | null;
       officialHistory: readonly MovementProfileV2HistoryEntry[];
       reports: readonly MovementProfileV2ReportHistoryEntry[];
       actions: readonly MovementProfileV2ProgressAction[];
@@ -252,11 +268,104 @@ export function buildMovementProfileV2ProgressViewModel(
     status: 'ready',
     authorityFacts,
     hero,
+    change: buildMovementProfileV2ProgressChange(acceptedProfiles),
     officialHistory,
     reports: acceptedReports.entries,
     actions,
     diagnostics,
   };
+}
+
+const CHANGE_DOMAIN_ORDER: readonly MovementProfileV2Domain[] = ['strength_power', 'balance', 'mobility'];
+
+// Minimum change (in each domain's own raw unit) worth calling a move rather than
+// noise. Between-session setup variance is the product's #1 measurement threat, so
+// small differences are reported as "holding steady", never as progress or decline.
+const CHANGE_MIN_DELTA: Record<DomainReading['unit'], number> = {
+  reps: 1,
+  seconds: 3,
+  degrees: 5,
+};
+
+interface DomainReading {
+  value: number;
+  metricId: string;
+  unit: 'reps' | 'seconds' | 'degrees';
+}
+
+/**
+ * Builds the "am I improving?" comparison from the first saved Check-Up to the
+ * latest. A domain only appears when both endpoints measured it the same way
+ * (same metricId) — a changed balance ladder, for example, is not a comparable
+ * series and is silently dropped rather than shown as a false change.
+ */
+export function buildMovementProfileV2ProgressChange(
+  profiles: readonly AcceptedProfile[]
+): MovementProfileV2ProgressChange | null {
+  if (profiles.length < 2) return null;
+  const baselineProfile = profiles[0];
+  const latestProfile = profiles[profiles.length - 1];
+  const domains: MovementProfileV2ProgressChangeDomain[] = [];
+  for (const domain of CHANGE_DOMAIN_ORDER) {
+    const baseline = domainReading(domain, baselineProfile.snapshot);
+    const latest = domainReading(domain, latestProfile.snapshot);
+    if (!baseline || !latest || baseline.metricId !== latest.metricId) continue;
+    domains.push(changeDomain(domain, baseline, latest));
+  }
+  if (domains.length === 0) return null;
+  return {
+    headline: `Since your first check-up · ${formatDate(baselineProfile.snapshot.sourceCheckUpId)}`,
+    domains,
+  };
+}
+
+function domainReading(
+  domain: MovementProfileV2Domain,
+  snapshot: StoredMovementProfileV2Snapshot
+): DomainReading | null {
+  if (domain === 'strength_power') {
+    const raw = snapshot.interpretation.chair.rawMetric;
+    return raw && Number.isFinite(raw.value) ? { value: raw.value, metricId: raw.metricId, unit: 'reps' } : null;
+  }
+  if (domain === 'balance') {
+    const raw = snapshot.interpretation.balance.rawMetric;
+    return raw && Number.isFinite(raw.value) ? { value: raw.value, metricId: raw.metricId, unit: 'seconds' } : null;
+  }
+  const raw = snapshot.interpretation.shoulder.rawMetric;
+  return raw && Number.isFinite(raw.value) ? { value: raw.value, metricId: raw.metricId, unit: 'degrees' } : null;
+}
+
+function changeDomain(
+  domain: MovementProfileV2Domain,
+  baseline: DomainReading,
+  latest: DomainReading
+): MovementProfileV2ProgressChangeDomain {
+  const delta = latest.value - baseline.value;
+  const magnitude = Math.abs(delta);
+  const direction: MovementProfileV2ProgressChangeDirection =
+    magnitude < CHANGE_MIN_DELTA[latest.unit] ? 'steady' : delta > 0 ? 'up' : 'down';
+  const value = `${formatReadingNumber(baseline.value)} → ${formatReadingNumber(latest.value)}${unitSuffix(latest.unit, latest.value)}`;
+  const caption =
+    direction === 'steady'
+      ? 'Holding steady'
+      : `${direction === 'up' ? 'Up' : 'Down'} ${formatReadingNumber(magnitude)}${unitSuffix(latest.unit, magnitude)}`;
+  return { domain, title: changeDomainTitle(domain), direction, value, caption };
+}
+
+function changeDomainTitle(domain: MovementProfileV2Domain): string {
+  if (domain === 'balance') return 'Balance';
+  if (domain === 'mobility') return 'Mobility';
+  return 'Strength / Power';
+}
+
+function unitSuffix(unit: DomainReading['unit'], value: number): string {
+  if (unit === 'reps') return value === 1 ? ' rise' : ' rises';
+  if (unit === 'seconds') return ' sec';
+  return '°';
+}
+
+function formatReadingNumber(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
 export function latestMovementProfileV2ProgressProfile(

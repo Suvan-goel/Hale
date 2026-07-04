@@ -64,20 +64,28 @@ describe('Progress and Manual / Extra Check-Up UI restoration', () => {
     expect(app).toContain('<ManualMicroCheckDomainScreen');
   });
 
-  it('restores the V2 Progress dashboard cards without technical summary copy', () => {
+  it('restores the simplified V2 Progress dashboard cards without technical summary copy', () => {
     const progress = readFileSync(join(process.cwd(), 'src/screens/ProgressScreen.tsx'), 'utf8');
-    const publicProfileCard = progress.slice(
-      progress.indexOf('function MovementProfileV2ProfileCard'),
-      progress.indexOf('function MovementProfileV2ProgressRow')
+    const profileCard = progress.slice(
+      progress.indexOf('function MovementProfileCard'),
+      progress.indexOf('function MovementProfileV2ChangeCard')
     );
 
+    // The simplified Progress tab: one merged profile card, the change-over-time card,
+    // a slim next check-up, a merged history card, and the quiet extra check-up.
+    expect(progress).toContain('<MovementProfileCard');
+    expect(progress).toContain('<MovementProfileV2ChangeCard');
     expect(progress).toContain('<MovementProfileV2NextCheckUpCard');
-    expect(progress).toContain('<MovementProfileV2PlanSummaryCard');
-    expect(progress).toContain('<TrainingProgressCard cards={ladderCards} />');
+    expect(progress).toContain('<MovementProfileV2HistoryCard');
     expect(progress).toContain('<MovementProfileV2ExtraCheckUpCard');
     expect(progress).toContain('viewModel.officialHistory.length >= 2');
-    expect(publicProfileCard).toContain('Your latest Movement Check-Up results.');
-    expect(publicProfileCard).not.toMatch(/Frozen|reference labels|schema|fingerprint/);
+    // The plan summary and practice-ladder cards moved off Progress — they duplicated the Plan tab.
+    expect(progress).not.toContain('<MovementProfileV2PlanSummaryCard');
+    expect(progress).not.toContain('<TrainingProgressCard');
+    expect(profileCard).toContain('See full results');
+    expect(profileCard).toContain('Where to focus');
+    expect(profileCard).toContain('Last check-up ·');
+    expect(profileCard).not.toMatch(/Frozen|reference labels|schema|fingerprint/);
     expect(progress).toContain('progressSummaryStatusLabel(card)');
     expect(progress).not.toContain('Your current plan is based on your previous Movement Profile');
   });

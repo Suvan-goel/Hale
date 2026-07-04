@@ -14,39 +14,29 @@ import {
   type TrainingSessionCompletion,
 } from '../adherence';
 import {
-  getLadderProgressCards,
+  type MovementProfileV2ProgressChange,
+  type MovementProfileV2ProgressChangeDomain,
   type MovementProfileV2ProgressViewModel,
   type ProgressDataAuthority,
 } from '../haleFlow';
 import { type MovementProfileV2Domain } from '../movementProfileV2/viewModel';
 import { type Domain } from '../scoring';
 import type { LadderProgress } from '../training';
-import { colors, fonts, imageOverlayControl, radius, shadow, spacing, type } from '../theme';
+import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 import { SettingsIcon } from '../navigation/icons';
 import {
   buildProgressNextCheckUpCard,
-  buildProgressPlanSummaryCard,
-  progressPracticeStatusLabel,
   progressSummaryStatusLabel,
   type ProgressNextCheckUpCardCopy,
-  type ProgressPlanSummaryCardCopy,
 } from './progressProductPresentation';
-
-const DOMAIN_LABEL: Record<Domain, string> = {
-  strength: 'Strength / Power',
-  balance: 'Balance',
-  mobility: 'Mobility',
-};
 
 const PROGRESS_HERO_IMAGE = require('../../assets/images/progress-hero-botanical.png');
 
 export function ProgressScreen({
   activeBlock,
-  blocks,
   reports,
   completions,
-  ladderProgressById,
   today,
   onBeginFirstCheckUp,
   onBeginAdditionalCheckUp,
@@ -55,12 +45,9 @@ export function ProgressScreen({
   movementProfileV2Progress,
   onStartMovementProfileV2CheckUp,
   onViewMovementProfileV2Profile,
-  onViewMovementProfileV2Report,
-  onViewCurrentPlan,
   onOpenSettings,
 }: ProgressScreenProps) {
   const responsive = useResponsiveLayout();
-  const ladderCards = getLadderProgressCards(ladderProgressById);
 
   return (
     <Screen contentStyle={styles.screenContent}>
@@ -87,16 +74,12 @@ export function ProgressScreen({
         onStartCheckUp={onStartMovementProfileV2CheckUp ?? onBeginFirstCheckUp}
         onContinue={onBeginFirstCheckUp}
         onViewProfile={onViewMovementProfileV2Profile}
-        onViewReport={onViewMovementProfileV2Report}
-        onViewCurrentPlan={onViewCurrentPlan}
         onBeginExtraCheckUp={onBeginAdditionalCheckUp}
         onStartRetest={onStartRetest}
         activeBlock={activeBlock}
-        blocks={blocks}
         reports={reports}
         completions={completions}
         today={today}
-        ladderCards={ladderCards}
       />
     </Screen>
   );
@@ -242,32 +225,24 @@ function MovementProfileV2ProgressContent({
   onStartCheckUp,
   onContinue,
   onViewProfile,
-  onViewReport,
-  onViewCurrentPlan,
   onBeginExtraCheckUp,
   onStartRetest,
   activeBlock,
-  blocks,
   reports,
   completions,
   today,
-  ladderCards,
 }: {
   viewModel: MovementProfileV2ProgressViewModel | null;
   unavailable: boolean;
   onStartCheckUp: () => void;
   onContinue: () => void;
   onViewProfile?: (sourceCheckUpId: string) => void;
-  onViewReport?: (reportId: string) => void;
-  onViewCurrentPlan?: () => void;
   onBeginExtraCheckUp: () => void;
   onStartRetest: () => void;
   activeBlock?: MovementBlock | null;
-  blocks?: readonly MovementBlock[] | null;
   reports?: readonly MovementBlockReport[] | null;
   completions?: readonly TrainingSessionCompletion[] | null;
   today: string;
-  ladderCards: ReturnType<typeof getLadderProgressCards>;
 }) {
   if (!viewModel || unavailable) {
     const recoveryViewModel = viewModel && viewModel.status !== 'ready' ? viewModel : null;
@@ -319,47 +294,17 @@ function MovementProfileV2ProgressContent({
     completions,
     today,
   });
-  const planSummary = buildProgressPlanSummaryCard({
-    activeBlock,
-    blocks,
-    reports,
-    completions,
-    today,
-  });
-
   return (
     <>
-      <MovementProfileV2HeroSection hero={viewModel.hero} />
-      <MovementProfileV2ProfileCard
-        viewModel={viewModel}
-        onViewProfile={onViewProfile}
-      />
+      <MovementProfileCard viewModel={viewModel} onViewProfile={onViewProfile} />
+      {viewModel.change ? <MovementProfileV2ChangeCard change={viewModel.change} /> : null}
       {nextCheckUp ? (
-        <MovementProfileV2NextCheckUpCard
-          card={nextCheckUp}
-          onStartRetest={onStartRetest}
-        />
+        <MovementProfileV2NextCheckUpCard card={nextCheckUp} onStartRetest={onStartRetest} />
       ) : null}
-      {planSummary ? (
-        <MovementProfileV2PlanSummaryCard
-          card={planSummary}
-          onViewCurrentPlan={onViewCurrentPlan}
-        />
-      ) : null}
-      {ladderCards.length > 0 ? <TrainingProgressCard cards={ladderCards} /> : null}
-      <MovementProfileV2ExtraCheckUpCard onPress={onBeginExtraCheckUp} />
       {viewModel.officialHistory.length >= 2 ? (
-        <MovementProfileV2OfficialHistoryCard
-          history={viewModel.officialHistory}
-          onViewProfile={onViewProfile}
-        />
+        <MovementProfileV2HistoryCard history={viewModel.officialHistory} onViewProfile={onViewProfile} />
       ) : null}
-      {viewModel.reports.length > 0 ? (
-        <MovementProfileV2ReportHistoryCard
-          reports={viewModel.reports}
-          onViewReport={onViewReport}
-        />
-      ) : null}
+      <MovementProfileV2ExtraCheckUpCard onPress={onBeginExtraCheckUp} />
     </>
   );
 }
@@ -399,101 +344,96 @@ function MovementProfileV2RecoveryCard({
   );
 }
 
-function MovementProfileV2HeroSection({ hero }: { hero: Extract<MovementProfileV2ProgressViewModel, { status: 'ready' }>['hero'] }) {
-  const responsive = useResponsiveLayout();
-  const compactHero = responsive.isCompactPhone;
-  const heroMinHeightStyle = { minHeight: responsive.progressHeroHeight };
-  const focus = hero.focusTitle;
-  const heroFacts = [
-    { label: 'Last check-up', value: compactHero ? compactHeroDate(hero.dateLabel) : hero.dateLabel },
-    { label: 'Suggested focus', value: focus },
-    { label: 'Profile', value: 'Saved Movement Profile', wide: true },
-  ];
-
-  return (
-    <View style={styles.heroSection}>
-      <ImageBackground
-        source={PROGRESS_HERO_IMAGE}
-        style={[styles.progressHero, heroMinHeightStyle]}
-        imageStyle={[styles.progressHeroImage, compactHero && styles.progressHeroImageCompact]}
-        resizeMode="cover"
-      >
-        <View style={styles.progressHeroScrim} />
-        <View style={[styles.progressHeroContent, compactHero && styles.progressHeroContentCompact, heroMinHeightStyle]}>
-          <View style={[styles.progressHeroCopy, compactHero && styles.progressHeroCopyCompact]}>
-            <Text style={styles.progressHeroEyebrow}>{hero.title}</Text>
-            <Text style={[styles.progressHeroTitle, compactHero && styles.progressHeroTitleCompact]}>{focus}</Text>
-            <Text style={[styles.progressHeroBody, compactHero && styles.progressHeroBodyCompact]}>{hero.focusBody}</Text>
-          </View>
-          <View style={[styles.progressHeroFacts, compactHero && styles.progressHeroFactsCompact]}>
-            {heroFacts.map((fact) => (
-              <HeroFact
-                key={fact.label}
-                label={fact.label}
-                value={fact.value}
-                compact={compactHero}
-                wide={fact.wide}
-              />
-            ))}
-          </View>
-        </View>
-      </ImageBackground>
-    </View>
-  );
-}
-
-function HeroFact({
-  label,
-  value,
-  compact,
-  wide,
-  valueLines = 1,
-}: {
-  label: string;
-  value: string;
-  compact?: boolean;
-  wide?: boolean;
-  valueLines?: number;
-}) {
-  return (
-    <View style={[styles.progressHeroFact, compact && styles.progressHeroFactCompact, wide && styles.progressHeroFactWide]}>
-      <Text style={styles.progressHeroFactLabel} numberOfLines={1}>{label}</Text>
-      <Text style={styles.progressHeroFactValue} numberOfLines={valueLines}>{value}</Text>
-    </View>
-  );
-}
-function compactHeroDate(label: string): string {
-  const compact = label.replace(/\s*,?\s*\d{4}$/, '').trim();
-  return compact.length > 0 ? compact : label;
-}
-
-function MovementProfileV2ProfileCard({
+// One "Movement Profile" card: the botanical banner names the focus, and the body
+// carries the date, the three domain readings, and the read-only profile link.
+// This merges the former hero + profile cards, which duplicated the date and focus.
+function MovementProfileCard({
   viewModel,
   onViewProfile,
 }: {
   viewModel: Extract<MovementProfileV2ProgressViewModel, { status: 'ready' }>;
   onViewProfile?: (sourceCheckUpId: string) => void;
 }) {
+  const { hero } = viewModel;
+  return (
+    <View style={styles.profileCard}>
+      <ImageBackground
+        source={PROGRESS_HERO_IMAGE}
+        style={styles.profileBanner}
+        imageStyle={styles.profileBannerImage}
+        resizeMode="cover"
+      >
+        <View style={styles.profileBannerScrim} />
+        <View style={styles.profileBannerContent}>
+          <Text style={styles.profileBannerEyebrow}>Where to focus</Text>
+          <Text style={styles.profileBannerTitle} numberOfLines={2}>{hero.focusTitle}</Text>
+        </View>
+      </ImageBackground>
+      <View style={styles.profileBody}>
+        <Text style={styles.profileMeta}>Last check-up · {hero.dateLabel}</Text>
+        <Text style={styles.profileFocusBody}>{hero.focusBody}</Text>
+        <View style={styles.profileRows}>
+          {hero.domains.map((card, index) => (
+            <MovementProfileV2ProgressRow key={card.domain} card={card} showDivider={index > 0} />
+          ))}
+        </View>
+        <ProgressActionRow
+          title="See full results"
+          body="Your complete check-up breakdown."
+          onPress={() => onViewProfile?.(hero.profileId)}
+          accessibilityLabel={`See full results. Your complete breakdown from ${hero.dateLabel}.`}
+        />
+      </View>
+    </View>
+  );
+}
+
+// "Am I improving?" — the reason a Progress tab exists. Only rendered when the
+// view model has a comparable change across at least two check-ups.
+function MovementProfileV2ChangeCard({ change }: { change: MovementProfileV2ProgressChange }) {
   return (
     <Card style={styles.progressCard}>
-      <View style={styles.profileHeader}>
-        <View style={styles.sectionText}>
-          <Text style={styles.sectionTitle}>Latest Movement Profile</Text>
-          <Text style={styles.sectionIntro}>Your latest Movement Check-Up results.</Text>
-        </View>
-      </View>
-      <View style={styles.profileRows}>
-        {viewModel.hero.domains.map((card, index) => (
-          <MovementProfileV2ProgressRow key={card.domain} card={card} showDivider={index > 0} />
+      <Text style={styles.sectionTitle}>Your change over time</Text>
+      <Text style={styles.sectionIntro}>{change.headline}</Text>
+      <View style={styles.changeRows}>
+        {change.domains.map((domain, index) => (
+          <MovementProfileV2ChangeRow key={domain.domain} domain={domain} showDivider={index > 0} />
         ))}
       </View>
-      <ProgressActionRow
-        title="View Movement Profile"
-        body="Opens the saved read-only Movement Profile."
-        onPress={() => onViewProfile?.(viewModel.hero.profileId)}
-        accessibilityLabel={`View Movement Profile. Opens saved read-only results from ${viewModel.hero.dateLabel}.`}
-      />
     </Card>
+  );
+}
+
+function MovementProfileV2ChangeRow({
+  domain,
+  showDivider,
+}: {
+  domain: MovementProfileV2ProgressChangeDomain;
+  showDivider: boolean;
+}) {
+  const tonePill =
+    domain.direction === 'up'
+      ? styles.changePillUp
+      : domain.direction === 'down'
+        ? styles.changePillDown
+        : styles.changePillSteady;
+  const toneText =
+    domain.direction === 'up'
+      ? styles.changePillTextUp
+      : domain.direction === 'down'
+        ? styles.changePillTextDown
+        : styles.changePillTextSteady;
+  return (
+    <View style={[styles.changeRow, showDivider && styles.rowDivider]}>
+      <IconBadge domain={domainIconForMovementProfileV2(domain.domain)} size={36} iconSize={22} />
+      <View style={styles.changeRowText}>
+        <Text style={styles.changeRowTitle} numberOfLines={1}>{domain.title}</Text>
+        <Text style={styles.changeRowMetric} numberOfLines={1}>{domain.value}</Text>
+      </View>
+      <View style={[styles.changePill, tonePill]}>
+        <Text style={[styles.changePillText, toneText]} numberOfLines={1}>{domain.caption}</Text>
+      </View>
+    </View>
   );
 }
 
@@ -527,12 +467,11 @@ function MovementProfileV2NextCheckUpCard({
 }) {
   return (
     <Card style={styles.progressCard}>
-      <Text style={styles.sectionTitle}>{card.title}</Text>
-      <View style={styles.nextCheckUpPanel}>
-        <IconBadge domain="calendar" size={38} iconSize={23} />
-        <View style={styles.nextCheckUpCopy}>
-          <Text style={styles.nextCheckUpTitle}>{card.lead}</Text>
-          <Text style={styles.nextCheckUpBody}>{card.body}</Text>
+      <View style={styles.nextCheckUpRow}>
+        <IconBadge domain="calendar" size={36} iconSize={22} />
+        <View style={styles.nextCheckUpText}>
+          <Text style={styles.nextCheckUpLabel}>Next check-up</Text>
+          <Text style={styles.nextCheckUpValue} numberOfLines={2}>{card.lead}</Text>
         </View>
       </View>
       {card.actionLabel ? (
@@ -543,34 +482,6 @@ function MovementProfileV2NextCheckUpCard({
           accessibilityLabel={`${card.actionLabel}. ${card.lead} ${card.body}`}
         />
       ) : null}
-    </Card>
-  );
-}
-
-function MovementProfileV2PlanSummaryCard({
-  card,
-  onViewCurrentPlan,
-}: {
-  card: ProgressPlanSummaryCardCopy;
-  onViewCurrentPlan?: () => void;
-}) {
-  const summaryIcon = planSummaryIcon(card.meta);
-  return (
-    <Card style={styles.progressCard}>
-      <Text style={styles.sectionTitle}>{card.title}</Text>
-      <View style={styles.planSummaryPanel}>
-        <IconBadge domain={summaryIcon} size={38} iconSize={23} />
-        <View style={styles.planSummaryCopy}>
-          <Text style={styles.planSummaryTitle}>Plan progress</Text>
-          <Text style={styles.planSummaryBody}>{card.meta}</Text>
-        </View>
-      </View>
-      <ProgressActionRow
-        title={card.actionLabel}
-        body="Opens your saved plan without starting a session."
-        onPress={onViewCurrentPlan}
-        accessibilityLabel={card.accessibilityLabel}
-      />
     </Card>
   );
 }
@@ -589,7 +500,10 @@ function MovementProfileV2ExtraCheckUpCard({ onPress }: { onPress: () => void })
   );
 }
 
-function MovementProfileV2OfficialHistoryCard({
+// A simple list of saved check-ups, newest first — a way back to any past result.
+// The former "4-week block reports" subsection was dropped: it was cryptic
+// ("Strength / Power to Balance") and not what this tab is for.
+function MovementProfileV2HistoryCard({
   history,
   onViewProfile,
 }: {
@@ -598,8 +512,8 @@ function MovementProfileV2OfficialHistoryCard({
 }) {
   return (
     <Card style={styles.progressCard}>
-      <Text style={styles.sectionTitle}>Movement Profile history</Text>
-      <Text style={styles.sectionIntro}>Saved official Check-Ups, newest first.</Text>
+      <Text style={styles.sectionTitle}>History</Text>
+      <Text style={styles.sectionIntro}>Your saved check-ups, newest first.</Text>
       <View style={styles.historyList}>
         {history.map((entry, index) => (
           <MovementProfileV2HistoryRow
@@ -648,40 +562,6 @@ function MovementProfileV2HistoryRow({
       </View>
       <Text style={styles.chevron}>›</Text>
     </Pressable>
-  );
-}
-
-function MovementProfileV2ReportHistoryCard({
-  reports,
-  onViewReport,
-}: {
-  reports: Extract<MovementProfileV2ProgressViewModel, { status: 'ready' }>['reports'];
-  onViewReport?: (reportId: string) => void;
-}) {
-  return (
-    <Card style={styles.progressCard}>
-      <Text style={styles.sectionTitle}>Block reports</Text>
-      <Text style={styles.sectionIntro}>Saved 4-week block reports from completed follow-up Check-Ups.</Text>
-      <View style={styles.historyList}>
-        {reports.map((entry, index) => (
-          <Pressable
-            key={entry.action.targetId ?? entry.id}
-            style={({ pressed }) => [styles.historyRow, index > 0 && styles.rowDivider, pressed && styles.pressed]}
-            onPress={() => entry.action.targetId && onViewReport?.(entry.action.targetId)}
-            accessibilityRole="button"
-            accessibilityLabel={`4-week block complete. ${entry.completedAtLabel}. ${entry.sessionsLabel}. Opens saved read-only block report.`}
-          >
-            <View style={styles.historyRowText}>
-              <Text style={styles.historyRowTitle} numberOfLines={1}>4-week block complete</Text>
-              <Text style={styles.historyRowMeta} numberOfLines={2}>
-                {entry.completedAtLabel} · {entry.priorFocusTitle} to {entry.currentFocusTitle} · {entry.sessionsLabel}
-              </Text>
-            </View>
-            <Text style={styles.chevron}>›</Text>
-          </Pressable>
-        ))}
-      </View>
-    </Card>
   );
 }
 
@@ -745,13 +625,6 @@ interface ProgressScreenProps {
 
 
 
-const DEV_DAY_MS = 24 * 60 * 60 * 1000;
-
-
-
-
-
-
 
 
 
@@ -761,61 +634,6 @@ function domainIconForMovementProfileV2(domain: MovementProfileV2Domain): Domain
   return domain;
 }
 
-
-
-
-
-function TrainingProgressCard({
-  cards,
-}: {
-  cards: ReturnType<typeof getLadderProgressCards>;
-}) {
-  const visible = cards.slice(0, 3);
-  return (
-    <Card style={styles.progressCard}>
-      <Text style={styles.sectionTitle}>What you are practicing now</Text>
-      <Text style={styles.sectionIntro}>Hale adjusts these movements based on your completed sessions.</Text>
-      <View style={styles.levelRows}>
-        {visible.map((card, index) => (
-          <LadderProgressRow key={card.ladderId} card={card} showDivider={index > 0} />
-        ))}
-      </View>
-      {cards.length > visible.length ? (
-        <Text style={styles.moreHistory}>{cards.length - visible.length} more movement groups may appear in future sessions.</Text>
-      ) : null}
-    </Card>
-  );
-}
-
-function LadderProgressRow({
-  card,
-  showDivider,
-}: {
-  card: ReturnType<typeof getLadderProgressCards>[number];
-  showDivider: boolean;
-}) {
-  return (
-    <View style={[styles.levelRow, showDivider && styles.rowDivider]}>
-      <IconBadge domain={ladderDomain(card.ladderId)} size={36} iconSize={22} />
-      <View style={styles.levelRowText}>
-        <Text style={styles.levelRowTitle} numberOfLines={1}>{card.title}</Text>
-        <Text style={styles.levelRowMeta} numberOfLines={1}>{card.levelName}</Text>
-      </View>
-      <InlineStatusPill label={progressPracticeStatusLabel(card.status)} compact />
-    </View>
-  );
-}
-
-
-
-type ProgressRecordTile = {
-  key: string;
-  title: string;
-  meta: string;
-  onPress?: () => void;
-  accessibilityLabel?: string;
-  separated?: boolean;
-};
 
 
 
@@ -866,15 +684,6 @@ function RecordRow({
 
   return <View style={[styles.recordRow, showDivider && styles.rowDivider, separated && styles.recordRowSeparated]}>{content}</View>;
 }
-
-function InlineStatusPill({ label, compact = false }: { label: string; compact?: boolean }) {
-  return (
-    <View style={[styles.inlineStatusPill, compact && styles.inlineStatusPillCompact]}>
-      <Text style={styles.inlineStatusText} numberOfLines={1}>{label}</Text>
-    </View>
-  );
-}
-
 
 function IconBadge({
   domain,
@@ -958,57 +767,6 @@ function iconStroke(color: string) {
   };
 }
 
-function cleanFocusTitle(title: string): string {
-  return title.replace(/^Suggested focus:\s*/, '').replace(/^Closely matched:\s*/, '');
-}
-
-function heroFocusBody(focus: string): string {
-  if (focus === 'Strength / Power') return 'Your current sessions are helping you build leg power for chairs, stairs, and carrying.';
-  if (focus === 'Balance') return 'Your current sessions are helping you feel steadier on stairs, curbs, turns, and uneven ground.';
-  if (focus === 'Mobility') return 'Your current sessions are helping reaching, bending, and daily movement feel easier.';
-  return 'Your current sessions are shaped by your latest check-up and kept simple.';
-}
-
-function compactRetestValue(title: string, body: string): string {
-  if (title === 'Time for your next check-up') return 'Due now';
-  const [, relative] = body.split(' · ');
-  if (relative) return relative;
-
-  const dayMatch = body.match(/\bin (\d+) (day|days)\b/i);
-  if (dayMatch) {
-    const days = Number(dayMatch[1]);
-    if (days === 1) return 'Tomorrow';
-    if (days >= 14) {
-      const weeks = Math.ceil(days / 7);
-      return `In ${weeks} ${weeks === 1 ? 'week' : 'weeks'}`;
-    }
-    return `In ${days} days`;
-  }
-
-  if (body.includes('Start a 4-week plan')) return 'Not scheduled';
-  return body;
-}
-
-function ladderDomain(ladderId: string): Domain {
-  if (ladderId === 'balance') return 'balance';
-  if (ladderId === 'mobility-flexibility') return 'mobility';
-  return 'strength';
-}
-
-function planSummaryIcon(meta: string): Domain | 'calendar' {
-  if (meta.startsWith('Strength / Power')) return 'strength';
-  if (meta.startsWith('Balance')) return 'balance';
-  if (meta.startsWith('Mobility')) return 'mobility';
-  return 'calendar';
-}
-
-function displayMetric(metric: string): string {
-  return metric.replace(/ -> /g, ' → ');
-}
-
-
-
-
 
 const styles = StyleSheet.create({
   screenContent: {
@@ -1048,6 +806,62 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
     ...shadow.card,
+  },
+  profileCard: {
+    overflow: 'hidden',
+    borderRadius: radius.card,
+    backgroundColor: colors.bgSurface,
+    ...shadow.card,
+  },
+  profileBanner: {
+    minHeight: 132,
+    justifyContent: 'flex-end',
+    backgroundColor: colors.accent,
+  },
+  profileBannerImage: {
+    // Image bleeds to the card edges; the card's own overflow:hidden clips it.
+  },
+  profileBannerScrim: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: 'rgba(17,20,18,0.30)',
+  },
+  profileBannerContent: {
+    paddingHorizontal: 18,
+    paddingTop: 22,
+    paddingBottom: 18,
+    gap: 4,
+  },
+  profileBannerEyebrow: {
+    color: colors.onAccent,
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0,
+    opacity: 0.9,
+  },
+  profileBannerTitle: {
+    color: colors.onAccent,
+    fontFamily: fonts.serifMedium,
+    fontSize: 29,
+    lineHeight: 34,
+    letterSpacing: 0,
+  },
+  profileBody: {
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 18,
+  },
+  profileMeta: {
+    ...type.cardCaption,
+    color: colors.textSecondary,
+  },
+  profileFocusBody: {
+    ...type.cardBody,
+    marginTop: spacing.xs,
   },
   compactCardPadding: {
     paddingHorizontal: 14,
@@ -1224,130 +1038,6 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     letterSpacing: 0,
   },
-  heroSection: {
-    gap: 0,
-  },
-  progressHero: {
-    borderRadius: 20,
-    overflow: 'hidden',
-    backgroundColor: colors.accent,
-    ...shadow.card,
-  },
-  progressHeroImage: {
-    borderRadius: 20,
-  },
-  progressHeroImageCompact: {
-    width: '108%',
-    left: '-8%',
-  },
-  progressHeroScrim: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: 'rgba(17,20,18,0.22)',
-  },
-  progressHeroContent: {
-    flex: 1,
-    justifyContent: 'flex-start',
-    paddingHorizontal: 24,
-    paddingTop: 30,
-    paddingBottom: 30,
-    maxWidth: '84%',
-  },
-  progressHeroContentCompact: {
-    paddingHorizontal: 16,
-    paddingTop: 24,
-    paddingBottom: 24,
-    maxWidth: '88%',
-  },
-  progressHeroCopy: {
-    gap: 12,
-  },
-  progressHeroCopyCompact: {
-    gap: 10,
-  },
-  progressHeroEyebrow: {
-    color: colors.onAccent,
-    fontFamily: fonts.sansMedium,
-    fontSize: 13,
-    lineHeight: 18,
-    letterSpacing: 0,
-    opacity: 0.9,
-  },
-  progressHeroTitle: {
-    color: colors.onAccent,
-    fontFamily: fonts.serifMedium,
-    fontSize: 46,
-    lineHeight: 52,
-    letterSpacing: 0,
-  },
-  progressHeroTitleCompact: {
-    fontSize: 43,
-    lineHeight: 48,
-  },
-  progressHeroBody: {
-    color: colors.onAccent,
-    fontFamily: fonts.sansRegular,
-    fontSize: 15,
-    lineHeight: 22,
-    letterSpacing: 0,
-    opacity: 0.94,
-  },
-  progressHeroBodyCompact: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  progressHeroFacts: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 'auto',
-    paddingTop: 18,
-  },
-  progressHeroFactsCompact: {
-    gap: 6,
-    paddingTop: 18,
-  },
-  progressHeroFact: {
-    minWidth: 108,
-    minHeight: 54,
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: radius.input,
-    backgroundColor: imageOverlayControl.background,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: imageOverlayControl.border,
-  },
-  progressHeroFactCompact: {
-    minWidth: 98,
-    minHeight: 50,
-    flexBasis: '47%',
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  progressHeroFactWide: {
-    flexBasis: '100%',
-    flexGrow: 0,
-  },
-  progressHeroFactLabel: {
-    ...type.cardCaption,
-    color: imageOverlayControl.text,
-    fontSize: 11,
-    lineHeight: 15,
-    opacity: 0.72,
-  },
-  progressHeroFactValue: {
-    color: imageOverlayControl.text,
-    fontFamily: fonts.sansMedium,
-    fontSize: 14,
-    lineHeight: 19,
-    letterSpacing: 0,
-    marginTop: 2,
-  },
   sectionText: {
     flex: 1,
     minWidth: 0,
@@ -1482,6 +1172,52 @@ const styles = StyleSheet.create({
   changeRowMetric: {
     ...type.cardCaption,
     marginTop: 3,
+  },
+  changePill: {
+    minHeight: 34,
+    maxWidth: 148,
+    flexShrink: 0,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    borderRadius: 17,
+    borderWidth: StyleSheet.hairlineWidth,
+    backgroundColor: colors.bgElevated,
+  },
+  changePillUp: { borderColor: colors.positive },
+  changePillDown: { borderColor: colors.caution },
+  changePillSteady: { borderColor: colors.divider },
+  changePillText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0,
+    textAlign: 'center',
+  },
+  changePillTextUp: { color: colors.positive },
+  changePillTextDown: { color: colors.caution },
+  changePillTextSteady: { color: colors.textSecondary },
+  nextCheckUpRow: {
+    minHeight: 60,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.md,
+  },
+  nextCheckUpText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  nextCheckUpLabel: {
+    ...type.cardCaption,
+    color: colors.textSecondary,
+  },
+  nextCheckUpValue: {
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
+    fontSize: 16,
+    lineHeight: 22,
+    letterSpacing: 0,
+    marginTop: 2,
   },
   inlineStatusPill: {
     maxWidth: 118,

@@ -8,11 +8,22 @@ import {
 } from '../progressProductPresentation';
 
 describe('Progress product presentation helpers', () => {
-  it('converts technical Movement Profile labels into public Progress labels', () => {
+  it('maps every domain onto one plain status vocabulary', () => {
+    // Strength percentiles follow the engine's own cut-offs (high <= 25, <= 40, <= 60).
+    expect(progressSummaryStatusLabel(domainCard('strength_power', 'Below the 10th percentile'))).toBe('Starting point');
+    expect(progressSummaryStatusLabel(domainCard('strength_power', 'Around the 10th-40th percentile'))).toBe('Building');
+    expect(progressSummaryStatusLabel(domainCard('strength_power', 'Around the 40th-60th percentile'))).toBe('On track');
+    expect(progressSummaryStatusLabel(domainCard('strength_power', 'Around the 60th-90th percentile'))).toBe('Strong');
+    expect(progressSummaryStatusLabel(domainCard('strength_power', 'Above the 90th percentile'))).toBe('Strong');
     expect(progressSummaryStatusLabel(domainCard('strength_power', 'Typical range saved'))).toBe('Saved result');
-    expect(progressSummaryStatusLabel(domainCard('balance', 'Typical range saved'))).toBe('Strong hold');
-    expect(progressSummaryStatusLabel(domainCard('balance', 'Building the hold'))).toBe('Building hold');
-    expect(progressSummaryStatusLabel(domainCard('mobility', 'Within typical range'))).toBe('Within typical range');
+    // Balance and mobility land on the same tiers.
+    expect(progressSummaryStatusLabel(domainCard('balance', 'Full 45-second hold completed'))).toBe('Strong');
+    expect(progressSummaryStatusLabel(domainCard('balance', 'Typical range saved'))).toBe('On track');
+    expect(progressSummaryStatusLabel(domainCard('balance', 'Building the hold'))).toBe('Building');
+    expect(progressSummaryStatusLabel(domainCard('balance', 'A clear place to build'))).toBe('Starting point');
+    expect(progressSummaryStatusLabel(domainCard('mobility', 'Above typical range'))).toBe('Strong');
+    expect(progressSummaryStatusLabel(domainCard('mobility', 'Within typical range'))).toBe('On track');
+    expect(progressSummaryStatusLabel(domainCard('mobility', 'Below typical range'))).toBe('Building');
     expect(progressSummaryStatusLabel(domainCard('mobility', 'Saved result'))).toBe('Saved result');
   });
 
@@ -35,7 +46,7 @@ describe('Progress product presentation helpers', () => {
       })
     ).toEqual({
       title: 'Your next check-up',
-      lead: 'Opens in 6 days.',
+      lead: 'In 6 days.',
       body: 'Hale will guide your next Movement Check-Up when your 4-week plan is ready to review.',
     });
   });

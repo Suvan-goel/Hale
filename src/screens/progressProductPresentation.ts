@@ -28,24 +28,39 @@ export interface ProgressPlanSummaryCardCopy {
   accessibilityLabel: string;
 }
 
-export function progressSummaryStatusLabel(card: MovementProfileV2ProgressDomainSummary): string {
+// One plain status vocabulary shared by all three domains, so the profile rows read
+// in a single language instead of mixing percentiles ("Below 10th percentile"),
+// hold-bands ("Strong hold"), and range-words ("Within typical range"). Tiers rise
+// Starting point → Building → On track → Strong; "Saved result" covers the case where
+// there is no age reference to place the result against. Strength tiers follow the
+// same percentile cut-offs the assessment engine already uses (high ≤ 25, ≤ 40).
+export type ProgressStatusTier = 'Starting point' | 'Building' | 'On track' | 'Strong' | 'Saved result';
+
+export function progressSummaryStatusLabel(card: MovementProfileV2ProgressDomainSummary): ProgressStatusTier {
   const label = card.interpretation.toLowerCase();
   if (card.domain === 'strength_power') {
-    if (label.includes('below the 10th')) return 'Below 10th percentile';
-    if (label.includes('above the 90th')) return 'Above 90th percentile';
-    const match = card.interpretation.match(/Around the ([0-9]+th-[0-9]+th) percentile/);
-    if (match?.[1]) return `${match[1]} percentile`;
+    if (label.includes('below the 10th')) return 'Starting point';
+    if (label.includes('above the 90th')) return 'Strong';
+    const match = card.interpretation.match(/Around the ([0-9]+)th-([0-9]+)th percentile/);
+    if (match) {
+      const high = Number(match[2]);
+      if (high <= 25) return 'Starting point';
+      if (high <= 40) return 'Building';
+      if (high <= 60) return 'On track';
+      return 'Strong';
+    }
     return 'Saved result';
   }
   if (card.domain === 'balance') {
-    if (label.includes('45-second') || label.includes('typical range') || label.includes('full')) return 'Strong hold';
-    if (label.includes('building')) return 'Building hold';
+    if (label.includes('45-second') || label.includes('full')) return 'Strong';
+    if (label.includes('typical range')) return 'On track';
+    if (label.includes('building')) return 'Building';
     if (label.includes('starting') || label.includes('clear place')) return 'Starting point';
     return 'Saved result';
   }
-  if (label.includes('below')) return 'Below typical range';
-  if (label.includes('above')) return 'Above typical range';
-  if (label.includes('within')) return 'Within typical range';
+  if (label.includes('above')) return 'Strong';
+  if (label.includes('within')) return 'On track';
+  if (label.includes('below')) return 'Building';
   return 'Saved result';
 }
 
@@ -91,10 +106,10 @@ export function buildProgressNextCheckUpCard(input: {
 
   const days = daysUntilScheduleRetest({ schedule, block, today: input.today });
   const lead = days === null
-    ? 'Opens after this plan.'
+    ? 'After this plan.'
     : days <= 0
-      ? 'Opens after the planned sessions.'
-      : `Opens in ${days} ${days === 1 ? 'day' : 'days'}.`;
+      ? 'After your planned sessions.'
+      : `In ${days} ${days === 1 ? 'day' : 'days'}.`;
   const body =
     schedule.status === 'training_complete_waiting_retest'
       ? 'Your plan sessions are complete. Hale will open your Movement Check-Up when the date gate is ready.'
