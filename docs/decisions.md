@@ -3140,3 +3140,21 @@ PUBLIC RELEASE REMAINS BLOCKED
 - **Verification:** tsc clean; 1,325/1,325 tests green after each commit; routing tests updated
   to the one-screen paths. Owed on device: the inline domain buttons, the adjust card +
   re-plan flow, and Back behavior around the preview.
+
+## 2026-07-04 — Results unification: saved history renders through the one shared shell
+
+- **Context:** the second screen/flow audit found the last structural duplication — the same
+  official check-up rendered through the shared `CheckUpResultsShell` right after a check-up
+  but through a bespoke 291-line `MovementProfileV2ResultsScreen` when opened later from
+  Progress history: two visual dialects for identical data, double polish cost.
+- **Change (commit `247434e5`):** a new `'history'` presentation variant in
+  `movementProfileV2ResultsAdapter` ("Saved check-up" framing, plan section hidden and plan
+  actions suppressed even when a plan state is ready, Done-only); the
+  `movement-profile-v2-unified-results` flow merged into `movement-profile-v2-results` with
+  the variant derived from `movementProfileV2ResultSurface`; the bespoke screen deleted and
+  its domain-detail branch extracted to `MovementProfileV2DomainDetailScreen` (shared by both
+  surfaces). Practice results deliberately stay their own plain screen — rendering practice
+  numbers in the official shell would make non-official measurements look official.
+- **Flow union 22 → 21** (from 28 at the start of the day's navigation work). Verification:
+  tsc clean, 1,326/1,326 green. Owed on device: open a saved check-up from Progress and
+  confirm the history framing + Done-to-Progress.
