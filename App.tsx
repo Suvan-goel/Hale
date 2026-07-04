@@ -96,6 +96,7 @@ import {
   getSessionPlanningRecoveryCopy,
   getHaleAppLifecycle,
   latestUsableOfficialAssessment,
+  latestOfficialMovementProfileV2Assessment,
   buildMovementProfileV2ProgressViewModel,
   materializeMovementProfileV2Block,
   measuredCapabilityFromMovementProfileV2Interpretation,
@@ -2093,6 +2094,75 @@ function HaleApp() {
       }),
     [displayAdherence, displayHistory, displayPrefs.profile, displayTraining]
   );
+
+  // Blocks are created automatically: needs_block_creation is a recovery state
+  // (a Movement Profile is saved but its block is missing — e.g. a crash
+  // between saves, or restored data). Re-materialize from the latest stored
+  // official profile; one attempt per source check-up so a hard failure never
+  // loops. The manual check-up path remains the user's escape hatch.
+  const autoBlockCreationAttemptedRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (lifecycle.state !== 'needs_block_creation') return;
+    const official = latestOfficialMovementProfileV2Assessment(history);
+    if (!official) return;
+    const sourceCheckUpId = official.assessment.sourceCheckUpId;
+    if (autoBlockCreationAttemptedRef.current === sourceCheckUpId) return;
+    autoBlockCreationAttemptedRef.current = sourceCheckUpId;
+    const nowIso = new Date().toISOString();
+    const planBlock = materializeMovementProfileV2Block({
+      adherence,
+      checkUp: official.record.checkUp,
+      checkupType: official.type,
+      snapshot: official.snapshot,
+      assessment: official.assessment,
+      userId: LOCAL_USER_ID,
+      startDate: nowIso,
+    });
+    addBreadcrumb('movement block auto-creation', {
+      area: 'movement_profile_v2',
+      status: planBlock.ok ? planBlock.status : 'failed',
+      reason: planBlock.ok ? undefined : planBlock.reason,
+      sourceCheckUpId,
+    });
+    if (!planBlock.ok) {
+      if (__DEV__) {
+        console.warn('[movement-profile-v2] block auto-creation failed', planBlock.reason);
+      }
+      return;
+    }
+    if (!persistAdherence(planBlock.adherence)) return;
+    // Same ladder seeding as the check-up completion path: only ladders the
+    // user has never touched, from this profile's own measured values.
+    const measuredCapability = measuredCapabilityFromMovementProfileV2Interpretation(
+      official.snapshot.interpretation
+    );
+    persistTraining({
+      ...training,
+      ladderProgressById: initialLadderProgressFromMeasuredCapability({
+        previousLadderProgress: training.ladderProgressById,
+        chairStandReps: measuredCapability.chairStandReps,
+        singleLegHoldSec: measuredCapability.singleLegHoldSec,
+        nowIso,
+      }),
+    });
+    if (backendSignedIn && backendUserId) {
+      void syncMovementBlockToRemote({
+        block: planBlock.block,
+        training,
+        blockNumber: blockNumberForBlocks(planBlock.adherence.blocks, planBlock.block.id),
+        sourceCheckupLocalId: sourceCheckUpId,
+      });
+    }
+  }, [
+    adherence,
+    backendSignedIn,
+    backendUserId,
+    history,
+    lifecycle.state,
+    persistAdherence,
+    persistTraining,
+    training,
+  ]);
 
   const activeBlockSchedule = React.useMemo(() => {
     if (!activeMovementBlock) return null;
@@ -4254,6 +4324,7 @@ function HaleApp() {
               activeBlockSummary={lifecycle.activeBlockSummary}
               weekSessionStatuses={lifecycle.weekSessionStatuses ?? []}
               preferredDays={displayPrefs.profile.safetyProfile?.preferredWorkoutDays ?? []}
+              availableEquipment={displayPrefs.profile.safetyProfile?.availableEquipment ?? []}
               startingEffort={onboardingActivityLevel(displayPrefs.profile.safetyProfile?.activityLevel)}
               onStartOnboarding={() => setFlow(flowForOnboardingStep(onboardingStep) ?? 'welcome')}
               onStartCheckUp={() => openCameraSetup()}

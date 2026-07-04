@@ -137,10 +137,16 @@ export function getHaleAppLifecycle(input: HaleAppLifecycleInput): HaleAppLifecy
     state = 'needs_baseline_checkup';
     reason = 'profile exists but no Movement Check-Up is stored';
   } else if (!activeBlock) {
-    state = 'needs_block_creation';
-    reason = input.training?.block
-      ? 'legacy training block exists but no active current MovementBlock is stored'
-      : 'baseline exists but no active 4-week block is stored';
+    // Blocks are created automatically from the latest stored Movement Profile
+    // (the app self-heals this state; see the auto-creation effect in App).
+    // Without a usable stored profile, the honest ask is a fresh check-up.
+    if (hasOfficialMovementProfileV2Assessment(input.history)) {
+      state = 'needs_block_creation';
+      reason = 'baseline exists but no active 4-week block is stored; auto-creation pending';
+    } else {
+      state = 'needs_baseline_checkup';
+      reason = 'baseline exists but no stored Movement Profile can prepare a plan; a fresh check-up is needed';
+    }
   } else if (schedule?.status === 'retest_due' || shouldShowRetestPrompt({ ...input, today })) {
     state = 'monthly_retest_due';
     reason = 'active block is complete or due for re-test';
@@ -190,11 +196,13 @@ export function getTodayPrimaryAction(state: HaleLifecycleState, microCheckTarge
         ctaLabel: 'Start check-up',
       };
     case 'needs_block_creation':
+      // Transient: the app creates the block automatically from the stored
+      // Movement Profile. No user action — an empty ctaLabel hides the button.
       return {
         type: 'create_block',
-        title: 'Your results are ready',
-        subtitle: 'Hale is preparing your plan from your check-up.',
-        ctaLabel: 'Prepare plan',
+        title: 'Preparing your plan',
+        subtitle: 'Hale is turning your check-up into your 4-week plan. This finishes on its own.',
+        ctaLabel: '',
         tone: 'progress',
       };
     case 'first_session_ready':

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import {
   Card,
@@ -16,7 +16,7 @@ import {
   type PlanSessionId,
 } from '../haleFlow';
 import { SettingsIcon } from '../navigation/icons';
-import type { ActivityLevel } from '../adherence';
+import type { ActivityLevel, AvailableEquipment } from '../adherence';
 import { startingEffortLabel } from '../profile';
 import { colors, fonts, imageOverlayControl, radius, shadow, spacing, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
@@ -43,6 +43,7 @@ export function PlanScreen({
   activeBlockSummary,
   weekSessionStatuses,
   preferredDays,
+  availableEquipment,
   startingEffort,
   onStartOnboarding,
   onStartCheckUp,
@@ -56,6 +57,7 @@ export function PlanScreen({
   activeBlockSummary?: ActiveBlockSummary;
   weekSessionStatuses: readonly WeekSessionStatus[];
   preferredDays: readonly string[];
+  availableEquipment: readonly AvailableEquipment[];
   startingEffort: ActivityLevel;
   onStartOnboarding: () => void;
   onStartCheckUp: () => void;
@@ -72,7 +74,6 @@ export function PlanScreen({
   const progress = activeBlockSummary
     ? Math.max(0, Math.min(1, activeBlockSummary.sessionsCompleteThisWeek / Math.max(1, activeBlockSummary.sessionsTargetThisWeek)))
     : 0;
-  const showRetestCard = shouldShowRetestCard(activeBlockSummary);
   const heroAction = getPlanHeroAction(activeBlockSummary, retest, nextSession, lifecycleState);
   const showBlockingNextAction = shouldShowPlanPreparationState(lifecycleState);
   const showCreatedPlanHeaderSummary = !showBlockingNextAction && !!activeBlockSummary;
@@ -116,7 +117,6 @@ export function PlanScreen({
         ) : (
           <>
             <PlanHeroCard
-              weekNumber={activeBlockSummary.weekNumber}
               focusCopy={focusCopy}
               action={heroAction}
               onStartPlanSession={startPlanSession}
@@ -132,10 +132,9 @@ export function PlanScreen({
 
             <BlockTimelineCard summary={activeBlockSummary} retest={retest} />
 
-            {showRetestCard ? <RetestCard retest={retest} onStartRetest={onStartRetest} /> : null}
-
             <ProfilePreferencesCard
               preferredDays={preferredDays}
+              availableEquipment={availableEquipment}
               startingEffort={startingEffort}
               onOpenSettings={onOpenSettings}
             />
@@ -155,13 +154,11 @@ function PlanGoalSummary({ goalText }: { goalText?: string }) {
 }
 
 function PlanHeroCard({
-  weekNumber,
   focusCopy,
   action,
   onStartPlanSession,
   onStartRetest,
 }: {
-  weekNumber: number;
   focusCopy: ReturnType<typeof getPlanFocusCopy>;
   action: PlanHeroAction | null;
   onStartPlanSession: (id: PlanSessionId) => void;
@@ -183,9 +180,6 @@ function PlanHeroCard({
       <HeroScrim />
       <View style={[styles.heroContent, compactHero && styles.heroContentCompact, heroMinHeightStyle]}>
         <View style={[styles.heroCopy, compactHero && styles.heroCopyCompact]}>
-          <View style={styles.weekPill}>
-            <Text style={styles.weekPillText}>Week {weekNumber}</Text>
-          </View>
           <Text style={[styles.heroTitle, compactHero && styles.heroTitleCompact]}>{focusCopy.title}</Text>
           <Text style={styles.heroBody}>{focusCopy.body}</Text>
         </View>
@@ -333,64 +327,16 @@ function WeekProgressSegments({ progress, count }: { progress: number; count: nu
   const total = Math.max(1, count);
   const complete = Math.round(Math.max(0, Math.min(1, progress)) * total);
   return (
-    <View style={styles.weekSegments} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: total, now: complete }}>
+    <View
+      style={styles.weekSegments}
+      accessibilityRole="progressbar"
+      accessibilityValue={{ min: 0, max: total, now: complete }}
+      accessibilityLabel={`${complete} of ${total} sessions done this week`}
+    >
       {Array.from({ length: total }, (_, index) => (
         <View key={index} style={[styles.weekSegment, index < complete && styles.weekSegmentComplete]} />
       ))}
     </View>
-  );
-}
-
-function RetestCard({
-  retest,
-  onStartRetest,
-}: {
-  retest: ReturnType<typeof getRetestCopy>;
-  onStartRetest: () => void;
-}) {
-  const responsive = useResponsiveLayout();
-  const content = (
-    <>
-      <View style={styles.retestIcon}>
-        <MovementIcon />
-      </View>
-      <View style={styles.retestCopy}>
-        <Text style={styles.retestTitle}>Next check-up</Text>
-        <Text style={styles.retestValue}>{retest.title}</Text>
-      </View>
-      {retest.due ? <Text style={styles.chevron}>›</Text> : null}
-    </>
-  );
-
-  if (!retest.due) {
-    return <View style={[styles.retestCard, responsive.isCompactPhone && styles.compactCardPadding]}>{content}</View>;
-  }
-
-  return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.retestCard,
-        responsive.isCompactPhone && styles.compactCardPadding,
-        pressed && styles.pressed,
-      ]}
-      onPress={onStartRetest}
-      accessibilityRole="button"
-      accessibilityLabel="Start check-up"
-    >
-      {content}
-    </Pressable>
-  );
-}
-
-function MovementIcon() {
-  return (
-    <Svg width={30} height={30} viewBox="0 0 30 30" fill="none">
-      <Circle cx={15} cy={5.8} r={2.3} stroke={colors.accentDeep} strokeWidth={1.8} />
-      <Path d="M15 8.7 V16.3" stroke={colors.accentDeep} strokeWidth={1.8} strokeLinecap="round" />
-      <Path d="M9.2 13.3 L15 10.7 L20.8 13.3" stroke={colors.accentDeep} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
-      <Path d="M15 16.3 L10.7 24.4" stroke={colors.accentDeep} strokeWidth={1.8} strokeLinecap="round" />
-      <Path d="M15 16.3 L21 23.6" stroke={colors.accentDeep} strokeWidth={1.8} strokeLinecap="round" />
-    </Svg>
   );
 }
 
@@ -413,7 +359,7 @@ function EmptyPlanState({
             {setupReady ? 'Plan preparation' : 'Before your plan starts'}
           </Text>
           <View style={styles.emptyPlanMetaPill}>
-            <Text style={styles.emptyPlanMetaText}>{setupReady ? 'Ready' : '~10 min'}</Text>
+            <Text style={styles.emptyPlanMetaText}>{setupReady ? 'Automatic' : '~10 min'}</Text>
           </View>
         </View>
 
@@ -443,15 +389,17 @@ function EmptyPlanState({
           />
         </View>
 
-        <Pressable
-          style={({ pressed }) => [styles.emptyPlanButton, responsive.isCompactPhone && styles.compactCardPadding, pressed && styles.pressed]}
-          onPress={() => onAction(copy.action)}
-          accessibilityRole="button"
-          accessibilityLabel={copy.ctaLabel}
-        >
-          <Text style={styles.emptyPlanButtonText}>{copy.ctaLabel}</Text>
-          <Text style={styles.emptyPlanButtonArrow}>›</Text>
-        </Pressable>
+        {copy.ctaLabel ? (
+          <Pressable
+            style={({ pressed }) => [styles.emptyPlanButton, responsive.isCompactPhone && styles.compactCardPadding, pressed && styles.pressed]}
+            onPress={() => onAction(copy.action)}
+            accessibilityRole="button"
+            accessibilityLabel={copy.ctaLabel}
+          >
+            <Text style={styles.emptyPlanButtonText}>{copy.ctaLabel}</Text>
+            <Text style={styles.emptyPlanButtonArrow}>›</Text>
+          </Pressable>
+        ) : null}
       </View>
 
       <View style={styles.emptyPlanNote}>
@@ -546,12 +494,37 @@ function SessionCard({
   );
 }
 
+const EQUIPMENT_LABELS: Record<AvailableEquipment, string> = {
+  chair: 'Chair',
+  wall: 'Wall',
+  stairs: 'Stairs',
+  resistance_band: 'Band',
+  door_anchor: 'Door anchor',
+  mini_band: 'Mini band',
+  dumbbells: 'Dumbbells',
+  backpack: 'Backpack',
+  floor_space: 'Floor space',
+  none: 'None',
+};
+
+function equipmentSummary(available: readonly AvailableEquipment[]): string {
+  const labels = available
+    .filter((item) => item !== 'none')
+    .map((item) => EQUIPMENT_LABELS[item])
+    .filter(Boolean);
+  if (labels.length === 0) return 'None yet';
+  if (labels.length <= 3) return labels.join(', ');
+  return `${labels.slice(0, 3).join(', ')} +${labels.length - 3}`;
+}
+
 function ProfilePreferencesCard({
   preferredDays,
+  availableEquipment,
   startingEffort,
   onOpenSettings,
 }: {
   preferredDays: readonly string[];
+  availableEquipment: readonly AvailableEquipment[];
   startingEffort: ActivityLevel;
   onOpenSettings: () => void;
 }) {
@@ -586,7 +559,7 @@ function ProfilePreferencesCard({
         </View>
         <View style={styles.settingsPreviewRows}>
           <SettingPreviewRow label="Effort" value={startingEffortLabel(startingEffort)} />
-          <SettingPreviewRow label="Equipment" value="Change in Settings" last />
+          <SettingPreviewRow label="Equipment" value={equipmentSummary(availableEquipment)} last />
         </View>
       </View>
     </Card>
@@ -615,12 +588,6 @@ function EditGlyph() {
       <Path d="M14.6 6.7 L17.3 9.4" stroke={colors.accentDeep} strokeWidth={1.8} strokeLinecap="round" />
     </Svg>
   );
-}
-
-function shouldShowRetestCard(summary: ActiveBlockSummary | undefined): boolean {
-  if (!summary) return false;
-  if (summary.retestInDays === undefined) return false;
-  return summary.retestInDays <= 7;
 }
 
 function shouldShowPlanPreparationState(state: HaleLifecycleState): boolean {
@@ -778,19 +745,6 @@ const styles = StyleSheet.create({
   heroCopyCompact: {
     width: '70%',
     gap: 11,
-  },
-  weekPill: {
-    alignSelf: 'stretch',
-    alignItems: 'flex-start',
-    backgroundColor: 'transparent',
-  },
-  weekPillText: {
-    color: colors.onAccent,
-    fontFamily: fonts.sansMedium,
-    fontSize: 13,
-    lineHeight: 18,
-    letterSpacing: 0,
-    textAlign: 'left',
   },
   heroTitle: {
     color: colors.onAccent,
@@ -1282,41 +1236,6 @@ const styles = StyleSheet.create({
     lineHeight: 30,
     letterSpacing: 0,
   },
-  retestCard: {
-    minHeight: 76,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderRadius: 16,
-    backgroundColor: colors.surface,
-    ...shadow.card,
-  },
-  retestIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.bgGold,
-  },
-  retestCopy: { flex: 1, minWidth: 0 },
-  retestTitle: {
-    color: colors.textPrimary,
-    fontFamily: fonts.sansMedium,
-    fontSize: 14,
-    lineHeight: 19,
-    letterSpacing: 0,
-  },
-  retestValue: {
-    color: colors.textSecondary,
-    fontFamily: fonts.sansRegular,
-    fontSize: 13,
-    lineHeight: 18,
-    letterSpacing: 0,
-    marginTop: 1,
-  },
   preferencesCard: {
     marginTop: 4,
     paddingHorizontal: 20,
@@ -1337,13 +1256,14 @@ const styles = StyleSheet.create({
     maxWidth: 360,
   },
   preferencesEditButton: {
-    minHeight: 36,
+    // Comfortable tap target for the 50+ audience (matches minTapTarget).
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    borderRadius: 18,
-    paddingHorizontal: 12,
+    borderRadius: 24,
+    paddingHorizontal: 14,
     backgroundColor: 'transparent',
   },
   preferencesEditText: {

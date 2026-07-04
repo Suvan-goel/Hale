@@ -290,17 +290,19 @@ function DailyFocusCard({
             {detail ? <Text style={styles.focusDetail}>{detail}</Text> : null}
           </View>
         </View>
-        <View style={[styles.focusAction, compact && styles.focusActionCompact]}>
-          <Pressable
-            style={({ pressed }) => [styles.focusButton, compact && styles.compactControlPadding, pressed && styles.focusButtonPressed]}
-            onPress={onPress}
-            accessibilityRole="button"
-            accessibilityLabel={ctaLabel}
-          >
-            <Text style={styles.focusButtonText}>{displayCta}</Text>
-            <Text style={styles.focusButtonArrow}>›</Text>
-          </Pressable>
-        </View>
+        {ctaLabel ? (
+          <View style={[styles.focusAction, compact && styles.focusActionCompact]}>
+            <Pressable
+              style={({ pressed }) => [styles.focusButton, compact && styles.compactControlPadding, pressed && styles.focusButtonPressed]}
+              onPress={onPress}
+              accessibilityRole="button"
+              accessibilityLabel={ctaLabel}
+            >
+              <Text style={styles.focusButtonText}>{displayCta}</Text>
+              <Text style={styles.focusButtonArrow}>›</Text>
+            </Pressable>
+          </View>
+        ) : null}
       </View>
     </View>
   );

@@ -15,8 +15,10 @@ describe('planViewModel', () => {
       ctaLabel: 'Start check-up',
       action: 'checkup',
     });
+    // Block creation is automatic — the empty ctaLabel means no button is shown.
     expect(getPlanEmptyStateCopy('needs_block_creation')).toMatchObject({
-      ctaLabel: 'Prepare plan',
+      title: 'Preparing your plan',
+      ctaLabel: '',
       action: 'create_block',
     });
   });

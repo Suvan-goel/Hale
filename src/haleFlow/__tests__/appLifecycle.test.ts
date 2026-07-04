@@ -9,6 +9,11 @@ import {
   type TrainingFocusStimulusEvidenceSummary,
 } from '../../adherence';
 import { legacySyntheticCheckUp as syntheticCheckUp } from '../../checkup/testing/legacyCheckUpFixture';
+import { syntheticCheckUp as syntheticV2CheckUp } from '../../checkup/devFixture';
+import {
+  createMovementProfileV2Assessment,
+  createMovementProfileV2Snapshot,
+} from '../../reference/movementProfileV2';
 import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../../history';
 import { defaultPreferences, type UserProfile } from '../../profile';
 import {
@@ -70,6 +75,36 @@ function baseline(startedAt = START): StoredCheckUp {
     checkUp,
     scoreSnapshot: scored.snapshot ?? undefined,
     scoreSnapshotCompatibility: scored.snapshot ? 'current' : 'invalid_snapshot',
+  };
+}
+
+/** A baseline with a stored official Movement Profile — block auto-creation is possible. */
+function v2Baseline(startedAt = START): StoredCheckUp {
+  const checkUp = syntheticV2CheckUp(startedAt);
+  const scored = createCurrentVersionedScoreSnapshot(checkUp);
+  const snapshot = createMovementProfileV2Snapshot({
+    checkUp,
+    checkupType: 'baseline',
+    referenceProfile: { ageAtTest: 62, ageBasis: 'exact_age_at_test', referenceSex: 'female' },
+    createdAt: startedAt,
+  });
+  if (!snapshot.ok) throw new Error(`expected V2 snapshot: ${snapshot.reason}`);
+  const assessment = createMovementProfileV2Assessment({
+    checkUp,
+    snapshot: snapshot.snapshot,
+    createdAt: startedAt,
+  });
+  if (!assessment.ok) throw new Error(`expected V2 assessment: ${assessment.reason}`);
+  return {
+    schemaVersion: HISTORY_SCHEMA_VERSION,
+    checkupType: 'baseline',
+    checkUp,
+    scoreSnapshot: scored.snapshot ?? undefined,
+    scoreSnapshotCompatibility: scored.snapshot ? 'current' : 'invalid_snapshot',
+    movementProfileV2Snapshot: snapshot.snapshot,
+    movementProfileV2SnapshotCompatibility: 'current',
+    movementProfileV2Assessment: assessment.assessment,
+    movementProfileV2AssessmentCompatibility: 'current',
   };
 }
 
@@ -250,7 +285,23 @@ describe('getHaleAppLifecycle', () => {
     expect(result.primaryAction.type).toBe('start_checkup');
   });
 
-  it('asks for block creation after baseline when no active plan exists', () => {
+  it('prepares the block automatically when a stored Movement Profile exists without an active plan', () => {
+    const result = getHaleAppLifecycle({
+      profile: profile(),
+      history: [v2Baseline()],
+      training: defaultTrainingState(),
+      adherence: adherenceWithBaseline(),
+      today: START,
+    });
+
+    // Transient state: the app auto-creates the block; no user action is asked.
+    expect(result.state).toBe('needs_block_creation');
+    expect(result.primaryAction.type).toBe('create_block');
+    expect(result.primaryAction.ctaLabel).toBe('');
+    expect(result.primaryAction.tone).toBe('progress');
+  });
+
+  it('falls back to a fresh check-up when the baseline cannot prepare a plan', () => {
     const result = getHaleAppLifecycle({
       profile: profile(),
       history: [baseline()],
@@ -259,8 +310,10 @@ describe('getHaleAppLifecycle', () => {
       today: START,
     });
 
-    expect(result.state).toBe('needs_block_creation');
-    expect(result.primaryAction.type).toBe('create_block');
+    // A legacy baseline without a stored Movement Profile cannot materialize a
+    // block, so the honest ask is another check-up.
+    expect(result.state).toBe('needs_baseline_checkup');
+    expect(result.primaryAction.type).toBe('start_checkup');
   });
 
   it('still asks for a Movement Check-Up when stored history has no usable measurements', () => {
@@ -482,7 +535,7 @@ describe('getHaleAppLifecycle', () => {
     const legacyTraining = { ...defaultTrainingState(), block: legacyBlock };
     const second = getHaleAppLifecycle({
       profile: profile(),
-      history: [baseline()],
+      history: [v2Baseline()],
       training: legacyTraining,
       adherence: adherenceWithBaseline(),
       today: START,

@@ -5,6 +5,7 @@ import type { PlanSessionId } from './sessionIds';
 export interface PlanEmptyStateCopy {
   title: string;
   body: string;
+  /** Empty when the state resolves on its own and no user action is needed. */
   ctaLabel: string;
   action: 'onboarding' | 'checkup' | 'create_block';
 }
@@ -37,10 +38,12 @@ export function getPlanEmptyStateCopy(state: HaleLifecycleState): PlanEmptyState
       action: 'checkup',
     };
   }
+  // needs_block_creation: the app creates the block automatically from the
+  // stored Movement Profile, so this state is transient and asks nothing.
   return {
-    title: 'Your plan is being prepared',
-    body: 'Hale is using your check-up to prepare a simple plan for strength, steadiness, and mobility.',
-    ctaLabel: 'Prepare plan',
+    title: 'Preparing your plan',
+    body: 'Hale is turning your check-up into a simple plan for strength, steadiness, and mobility. This finishes on its own.',
+    ctaLabel: '',
     action: 'create_block',
   };
 }
