@@ -18,7 +18,7 @@ import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../../../history';
 import { defaultPreferences } from '../../../profile';
 import { createMovementProfileV2Assessment, createMovementProfileV2Snapshot } from '../../../reference/movementProfileV2';
 import { createCurrentVersionedScoreSnapshot, type VersionedCheckUpScoreSnapshot } from '../../../scoring';
-import { LOADED_STS_ID, STS_STANDARD_ID } from '../../../exercises';
+import { LOADED_STS_ID, STS_POWER_ID } from '../../../exercises';
 import {
   TRAINING_SCHEMA_VERSION,
   createStepUpAlternationRuntimeState,
@@ -634,10 +634,12 @@ describe('remote restore service', () => {
     const sitToStand = plan.metadata?.generatedExercises?.find((exercise) => exercise.ladderId === 'sit-to-stand');
 
     expect(mapped.state.training.ladderProgressById['sit-to-stand'].currentLevelId).toBe(LOADED_STS_ID);
+    // Loaded is release-capped down to power, now the released ceiling, without
+    // rewriting the stored progress.
     expect(sitToStand).toMatchObject({
       requestedLevelId: LOADED_STS_ID,
-      selectedDailyLevelId: STS_STANDARD_ID,
-      adjustmentReasons: expect.arrayContaining(['controlled_beta_release_cap', 'auto_progression_cap', 'legacy_progression_policy_capped']),
+      selectedDailyLevelId: STS_POWER_ID,
+      adjustmentReasons: expect.arrayContaining(['controlled_beta_release_cap']),
     });
   });
 

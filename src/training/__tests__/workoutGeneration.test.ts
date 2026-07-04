@@ -660,8 +660,10 @@ describe('dynamic workout generation', () => {
 
     expect(session.progressionEvidencePolicy).toBe('hold_only');
     expect(strength?.requestedLevelId).toBe(STS_POWER_ID);
-    expect(strength?.selectedDailyLevelId).toBe(STS_CUSHION_ID);
-    expect(strength?.adjustmentReasons).toEqual(expect.arrayContaining(['auto_progression_cap', 'legacy_progression_policy_capped', 'reduced_readiness']));
+    // Power is now the released ceiling, so low readiness steps down one level
+    // (to slow-lower) for the day rather than being capped to cushion.
+    expect(strength?.selectedDailyLevelId).toBe(STS_SLOW_ECC_ID);
+    expect(strength?.adjustmentReasons).toEqual(expect.arrayContaining(['reduced_readiness']));
     expect(strength?.sets).toBeLessThanOrEqual(strength?.doseBeforeAdjustment?.sets ?? Infinity);
     expect(ladderProgress['sit-to-stand'].currentLevelId).toBe(STS_POWER_ID);
   });
@@ -714,7 +716,7 @@ describe('dynamic workout generation', () => {
     expect(second['sit-to-stand'].lastProgressionDecisionReason).toBe('progression_allowed_transition');
   });
 
-  it('holds blocked sit-to-stand cadence progression despite generic easy evidence', () => {
+  it('steps sit-to-stand up from standard to slow-lower after two easy sessions', () => {
     const first = updateLadderProgressAfterSession(
       {},
       {
@@ -745,9 +747,10 @@ describe('dynamic workout generation', () => {
       ],
     });
 
-    expect(second['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
-    expect(second['sit-to-stand'].readyToProgress).toBe(false);
-    expect(second['sit-to-stand'].lastProgressionDecisionReason).toBe('domain_review_required');
+    expect(first['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
+    expect(first['sit-to-stand'].readyToProgress).toBe(true);
+    expect(second['sit-to-stand'].currentLevelId).toBe(STS_SLOW_ECC_ID);
+    expect(second['sit-to-stand'].lastProgressionDecisionReason).toBe('progression_allowed_transition');
   });
 
   it('lets strong valid-time work use the existing two-exposure progression rule', () => {
@@ -982,8 +985,10 @@ describe('dynamic workout generation', () => {
       ],
     });
 
-    expect(regressed['sit-to-stand'].currentLevelId).toBe(STS_CUSHION_ID);
-    expect(poorTracking['sit-to-stand'].currentLevelId).toBe(STS_CUSHION_ID);
+    // Slow-lower now regresses one released level to standard (not all the way
+    // to cushion) since the intermediate levels are reachable.
+    expect(regressed['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
+    expect(poorTracking['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
     expect(poorTracking['sit-to-stand'].lastTrackingQuality).toBe('poor');
   });
 
@@ -1072,11 +1077,13 @@ describe('dynamic workout generation', () => {
     });
 
     expect(session.exercises.map((exercise) => exercise.releaseStatus)).not.toContain('v1_optional');
-    expect(session.exercises.map((exercise) => exercise.exerciseId)).toContain('push-up-wall');
+    // The optional floor push-up is release-capped down to the highest released
+    // level (incline), which is now the ladder ceiling.
+    expect(session.exercises.map((exercise) => exercise.exerciseId)).toContain('push-up-incline');
     expect(session.exercises.find((exercise) => exercise.ladderId === 'push')).toMatchObject({
       requestedLevelId: PUSHUP_STANDARD_ID,
-      selectedDailyLevelId: 'push-up-wall',
-      adjustmentReasons: expect.arrayContaining(['controlled_beta_release_cap', 'auto_progression_cap']),
+      selectedDailyLevelId: 'push-up-incline',
+      adjustmentReasons: expect.arrayContaining(['controlled_beta_release_cap']),
     });
   });
 
@@ -1103,11 +1110,13 @@ describe('dynamic workout generation', () => {
     });
     const selected = session.exercises.find((exercise) => exercise.ladderId === 'sit-to-stand');
 
+    // The optional loaded level is release-capped down to power, which is now
+    // the released ceiling.
     expect(selected).toMatchObject({
-      exerciseId: STS_STANDARD_ID,
+      exerciseId: STS_POWER_ID,
       requestedLevelId: LOADED_STS_ID,
-      selectedDailyLevelId: STS_STANDARD_ID,
-      adjustmentReasons: expect.arrayContaining(['controlled_beta_release_cap', 'auto_progression_cap', 'legacy_progression_policy_capped']),
+      selectedDailyLevelId: STS_POWER_ID,
+      adjustmentReasons: expect.arrayContaining(['controlled_beta_release_cap']),
     });
     expect(ladderProgress['sit-to-stand'].currentLevelId).toBe(LOADED_STS_ID);
   });
@@ -1152,7 +1161,7 @@ describe('dynamic workout generation', () => {
     expect(preset.exercises.some((exercise) => optionalIds.has(exercise.exerciseId))).toBe(false);
   });
 
-  it('caps automatic squat progression at supported squat even for historical free-squat state', () => {
+  it('holds squat at free squat, the released ceiling, despite easy evidence', () => {
     const progress: Record<string, LadderProgress> = {
       squat: {
         ladderId: 'squat',
@@ -1175,10 +1184,12 @@ describe('dynamic workout generation', () => {
       { completedAt: '2026-06-03T08:00:00.000Z', perceivedEffort: 2, painReported: false, trackingQuality: 'good' }
     );
 
-    expect(next.squat.currentLevelId).toBe(SQUAT_SUPPORTED_ID);
+    // Free squat is the top released squat level (the next levels are hidden
+    // optional), so easy evidence holds at the ceiling rather than progressing.
+    expect(next.squat.currentLevelId).toBe(SQUAT_FREE_ID);
     expect(next.squat.currentLevelId).not.toBe(SQUAT_LOADED_ID);
     expect(next.squat.readyToProgress).toBe(false);
-    expect(next.squat.lastProgressionDecisionReason).toBe('domain_review_required');
+    expect(next.squat.lastProgressionDecisionReason).toBe('auto_progression_cap_reached');
   });
 
   it.each([
@@ -1281,7 +1292,7 @@ describe('dynamic workout generation', () => {
     expect(exerciseText('shoulder_pain')).not.toMatch(/push-up|overhead|press|pull-apart/);
     expect(byId.stronger_ready_to_progress.title).toBe('Stronger user ready to progress');
     expect(byId.stronger_ready_to_progress.exercises.map((exercise) => exercise.exerciseId)).toEqual(
-      expect.arrayContaining(['sts-standard', 'seated-band-row', 'balance-tandem-hold', 'seated-hamstring-reach'])
+      expect.arrayContaining(['sts-power', 'seated-band-row', 'balance-tandem-hold', 'seated-hamstring-reach'])
     );
     const optionalIds = new Set<string>(CONTROLLED_BETA_HIDDEN_OPTIONAL_LEVEL_IDS);
     for (const preview of previews) {

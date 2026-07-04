@@ -314,7 +314,9 @@ describe('authoritative progression evidence', () => {
       trackingQuality: 'good',
     });
 
-    expect(applied.nextState.ladderProgressById['sit-to-stand'].currentLevelId).toBe(STS_CUSHION_ID);
+    // Slow-lower regresses one released level to standard (the intermediate
+    // levels are now reachable rather than capped away).
+    expect(applied.nextState.ladderProgressById['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
     expect(applied.nextState.appliedProgressionEventIds).toHaveLength(1);
     expect(duplicate.appliedEvents).toHaveLength(0);
     expect(duplicate.skippedDuplicateEvents).toHaveLength(1);
@@ -392,7 +394,7 @@ describe('authoritative progression evidence', () => {
     expect(applied.nextState.ladderProgressById['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
   });
 
-  it('records automatic cap diagnostics instead of applying historical high-state adjacency', () => {
+  it('holds at the released power ceiling when easy evidence has no higher level to reach', () => {
     const b = block();
     const plan = sessionPlan(b, generatedSession([generatedExercise({ exerciseId: STS_POWER_ID, role: 'primary' })]));
     const result = completedResult([STS_POWER_ID]);
@@ -425,9 +427,10 @@ describe('authoritative progression evidence', () => {
     });
 
     expect(applied.appliedEvents).toHaveLength(1);
-    expect(applied.nextState.ladderProgressById['sit-to-stand'].currentLevelId).toBe(STS_STANDARD_ID);
-    expect(applied.decisions[0]).toMatchObject({ decisionKind: 'regressed', afterLevelId: STS_STANDARD_ID });
-    expect(applied.diagnostics).toEqual(expect.arrayContaining([expect.objectContaining({ reason: 'domain_review_required' })]));
+    // Power is the top released level; easy evidence holds at the ceiling.
+    expect(applied.nextState.ladderProgressById['sit-to-stand'].currentLevelId).toBe(STS_POWER_ID);
+    expect(applied.decisions[0]).toMatchObject({ decisionKind: 'held', afterLevelId: STS_POWER_ID });
+    expect(applied.diagnostics).toEqual(expect.arrayContaining([expect.objectContaining({ reason: 'auto_progression_cap_reached' })]));
   });
 
   it('fails closed for wrong-ladder metadata without blocking unrelated valid primary evidence', () => {

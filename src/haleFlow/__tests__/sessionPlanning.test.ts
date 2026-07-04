@@ -453,8 +453,8 @@ describe('planTodayHaleSession', () => {
 
     expect(sitToStand).toMatchObject({
       requestedLevelId: LOADED_STS_ID,
-      selectedDailyLevelId: STS_STANDARD_ID,
-      adjustmentReasons: expect.arrayContaining(['controlled_beta_release_cap', 'auto_progression_cap', 'legacy_progression_policy_capped']),
+      selectedDailyLevelId: STS_POWER_ID,
+      adjustmentReasons: expect.arrayContaining(['controlled_beta_release_cap']),
     });
     expect(plan.exercises.map((exercise) => exercise.releaseStatus)).not.toContain('v1_optional');
     expect(validateHaleSessionPlanReleasePolicy({ plan }).status).toBe('current');
@@ -1047,8 +1047,8 @@ describe('planTodayHaleSession', () => {
     expect(plan.metadata?.progressionEvidencePolicy).toBe('hold_only');
     expect(plan.metadata?.guidance?.join(' ')).toMatch(/sets are reduced/i);
     expect(sitToStand?.requestedLevelId).toBe(STS_POWER_ID);
-    expect(sitToStand?.selectedDailyLevelId).toBe(STS_CUSHION_ID);
-    expect(sitToStand?.adjustmentReasons).toEqual(expect.arrayContaining(['auto_progression_cap', 'legacy_progression_policy_capped']));
+    expect(sitToStand?.selectedDailyLevelId).toBe(STS_SLOW_ECC_ID);
+    expect(sitToStand?.adjustmentReasons).toEqual(expect.arrayContaining(['reduced_readiness']));
     expect(sitToStand?.sets).toBeLessThanOrEqual(sitToStand?.doseBeforeAdjustment?.sets ?? Infinity);
     expect(progress['sit-to-stand'].currentLevelId).toBe(STS_POWER_ID);
   });

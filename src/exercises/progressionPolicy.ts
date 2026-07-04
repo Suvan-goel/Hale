@@ -154,22 +154,22 @@ export type ProgressionPolicySnapshotValidation =
 export const CONTROLLED_BETA_PROGRESSION_POLICY_SCHEMA_VERSION = 1;
 
 const POLICY_BY_LADDER_ID: Record<string, LadderControlledBetaProgressionPolicy> = {
-  'sit-to-stand': policy('sit-to-stand', STS_STANDARD_ID, STS_STANDARD_ID, [
-    allowed(STS_CUSHION_ID, STS_STANDARD_ID, 'forward', 'allowed_generic', 2, ['generic_easy_exposure'], 'cushion_to_standard_controlled_beta'),
-    blocked(STS_STANDARD_ID, STS_SLOW_ECC_ID, 'forward', 'blocked_pending_domain_review', 'cadence_control_requires_domain_review'),
-    blocked(STS_SLOW_ECC_ID, STS_POWER_ID, 'forward', 'blocked_pending_device_validation', 'power_requires_velocity_and_device_validation'),
+  'sit-to-stand': policy('sit-to-stand', STS_STANDARD_ID, STS_POWER_ID, [
+    allowed(STS_CUSHION_ID, STS_STANDARD_ID, 'forward', 'allowed_generic', 2, ['generic_easy_exposure'], 'cushion_to_standard_gentle_step_up'),
+    allowed(STS_STANDARD_ID, STS_SLOW_ECC_ID, 'forward', 'allowed_generic', 2, ['generic_easy_exposure'], 'standard_to_slow_lower_gentle_step_up'),
+    allowed(STS_SLOW_ECC_ID, STS_POWER_ID, 'forward', 'allowed_generic', 2, ['generic_easy_exposure'], 'slow_lower_to_power_gentle_step_up'),
     blocked(STS_POWER_ID, LOADED_STS_ID, 'forward', 'blocked_manual_only', 'loaded_sit_to_stand_hidden_in_controlled_beta'),
     allowed(STS_STANDARD_ID, STS_CUSHION_ID, 'regression', 'allowed_generic', 1, ['none'], 'standard_to_cushion_safe_regression'),
-    blocked(STS_SLOW_ECC_ID, STS_STANDARD_ID, 'regression', 'blocked_pending_domain_review', 'historical_cadence_state_is_auto_capped'),
-    blocked(STS_POWER_ID, STS_SLOW_ECC_ID, 'regression', 'blocked_pending_device_validation', 'historical_power_state_is_auto_capped'),
+    allowed(STS_SLOW_ECC_ID, STS_STANDARD_ID, 'regression', 'allowed_generic', 1, ['none'], 'slow_lower_to_standard_safe_regression'),
+    allowed(STS_POWER_ID, STS_SLOW_ECC_ID, 'regression', 'allowed_generic', 1, ['none'], 'power_to_slow_lower_safe_regression'),
     blocked(LOADED_STS_ID, STS_POWER_ID, 'regression', 'blocked_manual_only', 'loaded_state_is_release_capped'),
   ]),
-  squat: policy('squat', SQUAT_SUPPORTED_ID, SQUAT_SUPPORTED_ID, [
-    blocked(SQUAT_SUPPORTED_ID, SQUAT_FREE_ID, 'forward', 'blocked_pending_domain_review', 'support_removal_requires_readiness_policy'),
+  squat: policy('squat', SQUAT_SUPPORTED_ID, SQUAT_FREE_ID, [
+    allowed(SQUAT_SUPPORTED_ID, SQUAT_FREE_ID, 'forward', 'allowed_generic', 2, ['generic_easy_exposure'], 'supported_to_free_gentle_step_up'),
     blocked(SQUAT_FREE_ID, SQUAT_SLOW_ECC_ID, 'forward', 'blocked_pending_domain_review', 'cadence_control_requires_domain_review'),
     blocked(SQUAT_SLOW_ECC_ID, SQUAT_LOADED_ID, 'forward', 'blocked_manual_only', 'loaded_squat_hidden_in_controlled_beta'),
     blocked(SQUAT_LOADED_ID, SPLIT_SQUAT_SUPPORTED_ID, 'forward', 'blocked_manual_only', 'split_squat_hidden_in_controlled_beta'),
-    blocked(SQUAT_FREE_ID, SQUAT_SUPPORTED_ID, 'regression', 'blocked_pending_domain_review', 'historical_free_squat_is_auto_capped_without_rewrite'),
+    allowed(SQUAT_FREE_ID, SQUAT_SUPPORTED_ID, 'regression', 'allowed_generic', 1, ['none'], 'free_to_supported_safe_regression'),
     blocked(SQUAT_SLOW_ECC_ID, SQUAT_FREE_ID, 'regression', 'blocked_pending_domain_review', 'historical_slow_squat_is_release_capped'),
     blocked(SQUAT_LOADED_ID, SQUAT_SLOW_ECC_ID, 'regression', 'blocked_manual_only', 'loaded_squat_hidden_in_controlled_beta'),
     blocked(SPLIT_SQUAT_SUPPORTED_ID, SQUAT_LOADED_ID, 'regression', 'blocked_manual_only', 'split_squat_hidden_in_controlled_beta'),
@@ -181,10 +181,10 @@ const POLICY_BY_LADDER_ID: Record<string, LadderControlledBetaProgressionPolicy>
     blocked(HEEL_RAISE_FREE_ID, HEEL_RAISE_SUPPORTED_ID, 'regression', 'blocked_non_linear_model', 'supporting_set_pain_does_not_switch_members'),
     blocked(TOE_RAISE_SUPPORTED_ID, HEEL_RAISE_FREE_ID, 'regression', 'blocked_non_linear_model', 'toe_raise_does_not_regress_to_heel_raise_by_adjacency'),
   ]),
-  push: policy('push', PUSHUP_WALL_ID, PUSHUP_WALL_ID, [
-    blocked(PUSHUP_WALL_ID, PUSHUP_INCLINE_ID, 'forward', 'blocked_pending_device_validation', 'incline_height_and_surface_stability_unvalidated'),
+  push: policy('push', PUSHUP_WALL_ID, PUSHUP_INCLINE_ID, [
+    allowed(PUSHUP_WALL_ID, PUSHUP_INCLINE_ID, 'forward', 'allowed_generic', 2, ['generic_easy_exposure'], 'wall_to_incline_gentle_step_up'),
     blocked(PUSHUP_INCLINE_ID, PUSHUP_STANDARD_ID, 'forward', 'blocked_manual_only', 'floor_push_up_hidden_in_controlled_beta'),
-    blocked(PUSHUP_INCLINE_ID, PUSHUP_WALL_ID, 'regression', 'blocked_pending_device_validation', 'historical_incline_state_is_auto_capped_without_rewrite'),
+    allowed(PUSHUP_INCLINE_ID, PUSHUP_WALL_ID, 'regression', 'allowed_generic', 1, ['none'], 'incline_to_wall_safe_regression'),
     blocked(PUSHUP_STANDARD_ID, PUSHUP_INCLINE_ID, 'regression', 'blocked_manual_only', 'floor_push_up_hidden_in_controlled_beta'),
   ]),
   'pull-upper-back': policy('pull-upper-back', SEATED_BAND_ROW_ID, SEATED_BAND_ROW_ID, [

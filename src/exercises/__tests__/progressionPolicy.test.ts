@@ -2,7 +2,14 @@ import {
   CONTROLLED_BETA_HIDDEN_OPTIONAL_LEVEL_IDS,
   BALANCE_FEET_TOGETHER_ID,
   BALANCE_TANDEM_ID,
+  LOADED_STS_ID,
+  PUSHUP_INCLINE_ID,
+  PUSHUP_WALL_ID,
+  SQUAT_FREE_ID,
+  SQUAT_SUPPORTED_ID,
   STS_CUSHION_ID,
+  STS_POWER_ID,
+  STS_SLOW_ECC_ID,
   STS_STANDARD_ID,
   controlledBetaProgressionPolicyFingerprint,
   getControlledBetaProgressionPolicy,
@@ -49,7 +56,7 @@ describe('controlled-beta progression policy', () => {
     }
   });
 
-  it('allows only the controlled-beta automatic forward transitions', () => {
+  it('allows the gentle step-up forward transitions up to each released ceiling', () => {
     const allowed = policies.flatMap((policy) =>
       policy.transitions
         .filter((transition) => transition.direction === 'forward' && transition.controlledBetaAllowed)
@@ -58,7 +65,11 @@ describe('controlled-beta progression policy', () => {
 
     expect(allowed.sort()).toEqual([
       `balance:${BALANCE_FEET_TOGETHER_ID}->${BALANCE_TANDEM_ID}`,
+      `push:${PUSHUP_WALL_ID}->${PUSHUP_INCLINE_ID}`,
       `sit-to-stand:${STS_CUSHION_ID}->${STS_STANDARD_ID}`,
+      `sit-to-stand:${STS_SLOW_ECC_ID}->${STS_POWER_ID}`,
+      `sit-to-stand:${STS_STANDARD_ID}->${STS_SLOW_ECC_ID}`,
+      `squat:${SQUAT_SUPPORTED_ID}->${SQUAT_FREE_ID}`,
     ].sort());
   });
 
@@ -68,14 +79,16 @@ describe('controlled-beta progression policy', () => {
     }
   });
 
-  it('fails closed for undeclared adjacent transitions', () => {
-    expect(transitionPolicyFor('sit-to-stand', STS_STANDARD_ID, 'sts-slow-eccentric', 'forward')).toMatchObject({
+  it('still fails closed past each released ceiling and for non-linear ladders', () => {
+    // Power is the top released sit-to-stand level; loaded stays optional/hidden.
+    expect(transitionPolicyFor('sit-to-stand', STS_POWER_ID, LOADED_STS_ID, 'forward')).toMatchObject({
+      controlledBetaAllowed: false,
+      status: 'blocked_manual_only',
+    });
+    // Free is the top released squat level; the slow-eccentric progression stays gated.
+    expect(transitionPolicyFor('squat', SQUAT_FREE_ID, 'squat-slow-eccentric', 'forward')).toMatchObject({
       controlledBetaAllowed: false,
       status: 'blocked_pending_domain_review',
-    });
-    expect(transitionPolicyFor('push', 'push-up-wall', 'push-up-incline', 'forward')).toMatchObject({
-      controlledBetaAllowed: false,
-      status: 'blocked_pending_device_validation',
     });
     expect(transitionPolicyFor('mobility-flexibility', 'seated-hamstring-reach', 'thoracic-rotation', 'forward')).toMatchObject({
       controlledBetaAllowed: false,
