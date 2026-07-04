@@ -5,17 +5,17 @@ import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import {
   Card,
   Screen,
+  SectionTitle,
+  SettingsIconButton,
 } from '../components/ui';
 import { HeaderLogo } from '../components/HeaderLogo';
 import type { ActiveBlockSummary, HaleLifecycleState, TodaySessionPreferences, WeekSessionStatus } from '../haleFlow';
 import {
   getPlanEmptyStateCopy,
   getPlanFocusCopy,
-  getPlanSessionCategoryCopy,
   getRetestCopy,
   type PlanSessionId,
 } from '../haleFlow';
-import { SettingsIcon } from '../navigation/icons';
 import type { ActivityLevel, AvailableEquipment } from '../adherence';
 import { startingEffortLabel } from '../profile';
 import { colors, fonts, imageOverlayControl, radius, shadow, spacing, type } from '../theme';
@@ -100,14 +100,7 @@ export function PlanScreen({
               <HeaderLogo />
               <Text style={[styles.title, responsive.isCompactPhone && compactTypography.pageTitle]}>Your plan</Text>
             </View>
-            <Pressable
-              style={({ pressed }) => [styles.headerIconButton, pressed && styles.pressed]}
-              onPress={onOpenSettings}
-              accessibilityRole="button"
-              accessibilityLabel="Open settings"
-            >
-              <SettingsIcon size={25} color={colors.accentDeep} strokeWidth={1.8} />
-            </Pressable>
+            <SettingsIconButton onPress={onOpenSettings} />
           </View>
           {showCreatedPlanHeaderSummary ? <PlanGoalSummary goalText={goalText} /> : null}
         </View>
@@ -242,7 +235,7 @@ function BlockTimelineCard({
   return (
     <Card style={styles.timelineCard}>
       <View style={styles.timelineHeader}>
-        <Text style={styles.sectionTitle}>4-week plan</Text>
+        <SectionTitle>4-week plan</SectionTitle>
         <View style={styles.timelineWeekBadge}>
           <Text style={styles.timelineWeekBadgeText}>
             Week {summary.weekNumber} of {summary.totalWeeks}
@@ -304,7 +297,7 @@ function WeeklySessionsCard({
     <Card style={styles.sessionsCard}>
       <View style={styles.sessionsHeader}>
         <View style={styles.headerCopy}>
-          <Text style={styles.sectionTitle}>This week</Text>
+          <SectionTitle>This week</SectionTitle>
           <Text style={styles.weekSummary}>{weeklySessionSummary(summary)}</Text>
         </View>
         <WeekProgressSegments progress={progress} count={summary.sessionsTargetThisWeek} />
@@ -449,21 +442,23 @@ function SessionCard({
   onStart: () => void;
 }) {
   const responsive = useResponsiveLayout();
-  const copy = getPlanSessionCategoryCopy(session.id);
   const complete = session.status === 'complete';
   const next = session.status === 'next';
-  const detail = copy.body;
+  // The week reads as a story: each row leads with its real template focus
+  // (e.g. "Balance focus"); exact movements stay day-of-generated.
+  const focusLetter = session.focus.trim().charAt(0).toUpperCase() || String(index + 1);
+  const subtitle = `Session ${index + 1}${complete ? ' · Done' : ''}`;
   const content = (
     <>
       {next ? <View style={styles.sessionActiveRail} /> : null}
       <View style={[styles.sessionMark, next && styles.sessionMarkNext, complete && styles.sessionMarkComplete]}>
         <Text style={[styles.sessionMarkText, next && styles.sessionMarkTextNext, complete && styles.sessionMarkTextComplete]}>
-          {copy.title.slice(-1)}
+          {focusLetter}
         </Text>
       </View>
       <View style={styles.sessionCopy}>
-        <Text style={styles.sessionTitle}>{copy.title}</Text>
-        <Text style={styles.sessionDetail}>{detail}</Text>
+        <Text style={styles.sessionTitle}>{session.focus}</Text>
+        <Text style={styles.sessionDetail}>{subtitle}</Text>
       </View>
       {next ? (
         <View style={styles.nextPill}>
@@ -487,7 +482,7 @@ function SessionCard({
       ]}
       onPress={onStart}
       accessibilityRole="button"
-      accessibilityLabel={`Start ${copy.title}`}
+      accessibilityLabel={`Start ${session.focus}, session ${index + 1} of this week`}
     >
       {content}
     </Pressable>
@@ -532,7 +527,7 @@ function ProfilePreferencesCard({
     <Card style={styles.preferencesCard}>
       <View style={styles.preferencesHeader}>
         <View style={styles.preferencesTitleBlock}>
-          <Text style={styles.sectionTitle}>Plan settings</Text>
+          <SectionTitle>Plan settings</SectionTitle>
           <Text style={styles.cardBody}>Change your days, pace, or equipment.</Text>
         </View>
         <Pressable
@@ -696,13 +691,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     letterSpacing: 0,
   },
-  headerIconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   pressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
   heroCard: {
     overflow: 'hidden',
@@ -816,13 +804,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansMedium,
     fontSize: 14,
     lineHeight: 19,
-    letterSpacing: 0,
-  },
-  sectionTitle: {
-    color: colors.textPrimary,
-    fontFamily: fonts.serifMedium,
-    fontSize: 18,
-    lineHeight: 24,
     letterSpacing: 0,
   },
   emptyPlanWrap: {

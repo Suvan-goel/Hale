@@ -1,6 +1,5 @@
 import type { MovementDomain } from '../adherence';
 import type { ActiveBlockSummary, HaleLifecycleState } from './appLifecycle';
-import type { PlanSessionId } from './sessionIds';
 
 export interface PlanEmptyStateCopy {
   title: string;
@@ -15,11 +14,6 @@ export interface PlanFocusCopy {
   body: string;
 }
 
-export interface PlanSessionCategoryCopy {
-  title: string;
-  categories: readonly string[];
-  body: string;
-}
 
 export function getPlanEmptyStateCopy(state: HaleLifecycleState): PlanEmptyStateCopy {
   if (state === 'needs_onboarding') {
@@ -73,53 +67,18 @@ export function getPlanFocusCopy(domain: MovementDomain | undefined): PlanFocusC
   };
 }
 
-export function getPlanSessionCategoryCopy(id: PlanSessionId): PlanSessionCategoryCopy {
-  if (id === 'session_a') {
-    return {
-      title: 'Session 1',
-      categories: ['Foundation', 'Strength', 'Control'],
-      body: 'Start with steady strength and balance practice.',
-    };
-  }
-  if (id === 'session_b') {
-    return {
-      title: 'Session 2',
-      categories: ['Build', 'Stability', 'Mobility'],
-      body: 'Practice the same goal with a few different movements.',
-    };
-  }
-  return {
-    title: 'Session 3',
-    categories: ['Complete', 'Full body', 'Reset'],
-    body: 'Finish the week with full-body movement and easy mobility.',
-  };
-}
-
-export function getRetestCopy(summary: ActiveBlockSummary | undefined): { title: string; body: string; due: boolean } {
+export function getRetestCopy(summary: ActiveBlockSummary | undefined): { title: string; due: boolean } {
   if (!summary) {
-    return {
-      title: 'Check-up after your plan',
-      body: 'Your next check-up helps Hale update your plan.',
-      due: false,
-    };
+    return { title: 'Check-up after your plan', due: false };
   }
   if (summary.retestInDays !== undefined && summary.retestInDays <= 0) {
-    return {
-      title: 'Check-up is ready',
-      body: 'Repeat your check-up when you are ready. Hale will use it to build your next plan.',
-      due: true,
-    };
+    return { title: 'Check-up is ready', due: true };
   }
   if (summary.retestInDays !== undefined) {
     return {
       title: `Check-up in ${summary.retestInDays} ${summary.retestInDays === 1 ? 'day' : 'days'}`,
-      body: 'Keep following this plan. Your next check-up will help Hale update it.',
       due: false,
     };
   }
-  return {
-    title: 'Check-up after this plan',
-    body: 'Your next check-up helps Hale update your plan.',
-    due: false,
-  };
+  return { title: 'Check-up after this plan', due: false };
 }

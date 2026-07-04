@@ -16,7 +16,6 @@ import {
 import {
   getPlanEmptyStateCopy,
   getPlanFocusCopy,
-  getPlanSessionCategoryCopy,
   getRetestCopy,
 } from '../planViewModel';
 
@@ -70,9 +69,6 @@ describe('Hale V1 copy guardrails', () => {
       ...lifecycleStates.flatMap((state) => Object.values(getPlanEmptyStateCopy(state))),
       ...(['strength_power', 'balance', 'mobility', undefined] as const).flatMap((domain) =>
         Object.values(getPlanFocusCopy(domain))
-      ),
-      ...(['session_a', 'session_b', 'session_c'] as const).flatMap((id) =>
-        Object.values(getPlanSessionCategoryCopy(id))
       ),
       ...Object.values(getRetestCopy(undefined)),
       ...Object.values(

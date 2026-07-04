@@ -1,7 +1,6 @@
 import {
   getPlanEmptyStateCopy,
   getPlanFocusCopy,
-  getPlanSessionCategoryCopy,
   getRetestCopy,
 } from '../planViewModel';
 
@@ -27,15 +26,6 @@ describe('planViewModel', () => {
     expect(getPlanFocusCopy('strength_power').title).toBe('This plan focuses on strength');
     expect(getPlanFocusCopy('balance').title).toBe('This plan focuses on balance');
     expect(getPlanFocusCopy('mobility').title).toBe('This plan focuses on mobility');
-  });
-
-  it('labels weekly sessions with expected categories', () => {
-    expect(getPlanSessionCategoryCopy('session_a').title).toBe('Session 1');
-    expect(getPlanSessionCategoryCopy('session_b').title).toBe('Session 2');
-    expect(getPlanSessionCategoryCopy('session_c').title).toBe('Session 3');
-    expect(getPlanSessionCategoryCopy('session_a').categories).toContain('Foundation');
-    expect(getPlanSessionCategoryCopy('session_b').categories).toContain('Stability');
-    expect(getPlanSessionCategoryCopy('session_c').categories).toContain('Full body');
   });
 
   it('surfaces re-test readiness without medical copy', () => {
