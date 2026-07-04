@@ -1000,7 +1000,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.input,
   },
   ghostText: { ...type.bodySmall, color: colors.accentDeep },
-  chipText: { ...type.caption, fontFamily: fonts.sansMedium, color: colors.textSecondary },
+  chipText: { ...type.bodySmall, fontFamily: fonts.sansMedium, color: colors.textSecondary },
   chipTextSelected: { color: colors.accentDeep },
   segmentedTabs: {
     flexDirection: 'row',

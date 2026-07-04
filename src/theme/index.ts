@@ -18,25 +18,6 @@ import { Platform, StyleSheet, TextStyle, ViewStyle } from 'react-native';
  * Colour — crisp premium palette
  * ------------------------------------------------------------------------- */
 
-export const previousWarmStonePalette = {
-  appBackground: '#F4EDE6',
-  cardSurface: '#FBF5EF',
-  elevatedSurface: '#FBF5EF',
-  ink: '#111412',
-  secondaryText: '#68706A',
-  tertiaryText: '#8A908A',
-  brandGreen: '#414C34',
-  brandGreenPressed: '#414C34',
-  emeraldAccent: '#414C34',
-  softGreenFill: 'transparent',
-  verySoftGreenFill: 'transparent',
-  border: '#E4E0D6',
-  strongBorder: '#D8D3C8',
-  warmPremiumAccent: '#A98243',
-  softGoldFill: '#F4EFE4',
-  softShadow: 'rgba(17,20,18,0.08)',
-} as const;
-
 export const palette = {
   appBackground: '#F9F5EF',
   cardSurface: '#FFFDF9',
@@ -229,12 +210,16 @@ export const minTapTarget = 48;
 
 export const shadow = {
   card: {
-    boxShadow: '0 0 16px rgba(17,20,18,0.035)',
+    // Soft but perceptible lift so a card reads as a distinct surface against
+    // the near-identical warm background (bgBase #F9F5EF vs card #FFFDF9).
+    // Kept quiet to preserve the calm aesthetic; a real downward offset does
+    // the work a 0-offset near-zero shadow could not.
+    boxShadow: '0 1px 2px rgba(17,20,18,0.05), 0 4px 14px rgba(17,20,18,0.05)',
     shadowColor: 'rgba(17,20,18,1)',
-    shadowOpacity: 0.035,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 0,
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
   } satisfies ViewStyle,
   soft: {
     shadowColor: 'rgba(17,20,18,1)',
@@ -339,9 +324,11 @@ export const componentStyles = {
   },
   chip: {
     base: {
-      minHeight: 38,
+      // Comfortable tap target for the 50+ audience (was 38, below minTapTarget).
+      minHeight: 46,
       borderRadius: 12,
       paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.bgSurface,
@@ -349,7 +336,9 @@ export const componentStyles = {
       borderColor: colors.borderHairline,
     } satisfies ViewStyle,
     selected: {
-      backgroundColor: colors.accentSoft,
+      // A real fill (matches the onboarding Choice control) so the selected
+      // state does not rely on a near-identical border + text-colour shift.
+      backgroundColor: colors.bgGold,
       borderColor: colors.accentBorder,
     } satisfies ViewStyle,
   },
