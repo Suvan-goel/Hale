@@ -6,6 +6,7 @@ import {
   CheckupType,
   MovementAssessment,
   MovementBlock,
+  MovementDomain,
   TrainingSessionCompletion,
 } from '../adherence';
 import { BackArrowButton } from '../components/BackArrowButton';
@@ -15,19 +16,26 @@ import { getManualCheckupCopy, getManualCheckupOptions } from '../haleFlow';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 
+/** The quick check's three domains, chosen inline so no second chooser screen is needed. */
+const MICRO_CHECK_DOMAINS: readonly { domain: MovementDomain; label: string; hint: string }[] = [
+  { domain: 'strength_power', label: 'Strength', hint: 'A short chair-rise check-in for power.' },
+  { domain: 'balance', label: 'Balance', hint: 'A short steadiness check-in.' },
+  { domain: 'mobility', label: 'Mobility', hint: 'A short range-of-motion check-in.' },
+];
+
 export function ManualCheckupStartScreen({
   latestAssessment,
   activeBlock,
   completions,
   onSelectCheckup,
-  onMicroCheck,
+  onStartMicroCheck,
   onCancel,
 }: {
   latestAssessment: MovementAssessment | null;
   activeBlock: MovementBlock | null;
   completions: readonly TrainingSessionCompletion[];
   onSelectCheckup: (type: CheckupType) => void;
-  onMicroCheck: () => void;
+  onStartMicroCheck: (domain: MovementDomain) => void;
   onCancel: () => void;
 }) {
   const responsive = useResponsiveLayout();
@@ -35,17 +43,6 @@ export function ManualCheckupStartScreen({
   const options = getManualCheckupOptions({ latestAssessment, activeBlock, completions });
   const recommendedOption = options.find((option) => option.recommended) ?? options[0];
   const secondaryOptions = options.filter((option) => option !== recommendedOption);
-
-  const selectOption = React.useCallback(
-    (type: (typeof options)[number]['type']) => {
-      if (type === 'micro_check') {
-        onMicroCheck();
-        return;
-      }
-      onSelectCheckup(type);
-    },
-    [onMicroCheck, onSelectCheckup]
-  );
 
   return (
     <Screen contentStyle={styles.screen}>
@@ -74,11 +71,15 @@ export function ManualCheckupStartScreen({
             <Text style={styles.recommendedBody}>{recommendedOption.body}</Text>
           </View>
 
-          <PrimaryButton
-            title={primaryActionLabel(recommendedOption)}
-            onPress={() => selectOption(recommendedOption.type)}
-            style={styles.recommendedButton}
-          />
+          {recommendedOption.type === 'micro_check' ? (
+            <MicroCheckDomainButtons onStartMicroCheck={onStartMicroCheck} />
+          ) : (
+            <PrimaryButton
+              title={primaryActionLabel(recommendedOption)}
+              onPress={() => onSelectCheckup(recommendedOption.type)}
+              style={styles.recommendedButton}
+            />
+          )}
 
           {!recommendedOption.isOfficialForProgress ? (
             <View style={styles.recommendedNoteRow}>
@@ -102,46 +103,81 @@ export function ManualCheckupStartScreen({
 
       {secondaryOptions.length > 0 ? (
         <View style={styles.secondaryStack}>
-          {secondaryOptions.map((option) => (
-            <Pressable
-              key={`${option.type}-${option.route}`}
-              style={({ pressed }) => [
-                styles.optionRow,
-                responsive.isCompactPhone && styles.compactCardPadding,
-                pressed && styles.optionPressed,
-              ]}
-              onPress={() => selectOption(option.type)}
-              accessibilityRole="button"
-              accessibilityLabel={`${option.title}. ${option.body}`}
-            >
-              <View style={styles.optionText}>
-                <Text style={styles.optionTitle}>{option.title}</Text>
-                <Text style={styles.optionBody}>{option.body}</Text>
-              </View>
-              <View style={styles.optionAction}>
-                <View style={styles.optionArrow}>
-                  <Svg width={7} height={13} viewBox="0 0 7 13" accessibilityElementsHidden>
-                    <Path
-                      d="M1 1.5L5.5 6.5L1 11.5"
-                      fill="none"
-                      stroke={colors.accentDeep}
-                      strokeWidth={1.6}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </Svg>
+          {secondaryOptions.map((option) =>
+            option.type === 'micro_check' ? (
+              <View
+                key={`${option.type}-${option.route}`}
+                style={[styles.optionRow, styles.optionRowStatic, responsive.isCompactPhone && styles.compactCardPadding]}
+              >
+                <View style={styles.optionText}>
+                  <Text style={styles.optionTitle}>{option.title}</Text>
+                  <Text style={styles.optionBody}>{option.body}</Text>
+                  <MicroCheckDomainButtons onStartMicroCheck={onStartMicroCheck} />
                 </View>
               </View>
-            </Pressable>
-          ))}
+            ) : (
+              <Pressable
+                key={`${option.type}-${option.route}`}
+                style={({ pressed }) => [
+                  styles.optionRow,
+                  responsive.isCompactPhone && styles.compactCardPadding,
+                  pressed && styles.optionPressed,
+                ]}
+                onPress={() => onSelectCheckup(option.type)}
+                accessibilityRole="button"
+                accessibilityLabel={`${option.title}. ${option.body}`}
+              >
+                <View style={styles.optionText}>
+                  <Text style={styles.optionTitle}>{option.title}</Text>
+                  <Text style={styles.optionBody}>{option.body}</Text>
+                </View>
+                <View style={styles.optionAction}>
+                  <View style={styles.optionArrow}>
+                    <Svg width={7} height={13} viewBox="0 0 7 13" accessibilityElementsHidden>
+                      <Path
+                        d="M1 1.5L5.5 6.5L1 11.5"
+                        fill="none"
+                        stroke={colors.accentDeep}
+                        strokeWidth={1.6}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </Svg>
+                  </View>
+                </View>
+              </Pressable>
+            )
+          )}
         </View>
       ) : null}
     </Screen>
   );
 }
 
+/** One tap per domain — replaces the former separate domain-chooser screen. */
+function MicroCheckDomainButtons({
+  onStartMicroCheck,
+}: {
+  onStartMicroCheck: (domain: MovementDomain) => void;
+}) {
+  return (
+    <View style={styles.domainRow}>
+      {MICRO_CHECK_DOMAINS.map((item) => (
+        <Pressable
+          key={item.domain}
+          style={({ pressed }) => [styles.domainButton, pressed && styles.optionPressed]}
+          onPress={() => onStartMicroCheck(item.domain)}
+          accessibilityRole="button"
+          accessibilityLabel={`Start ${item.label} check. ${item.hint}`}
+        >
+          <Text style={styles.domainButtonText}>{item.label}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
 function primaryActionLabel(option: (ReturnType<typeof getManualCheckupOptions>)[number]): string {
-  if (option.type === 'micro_check') return 'Start micro-check';
   const title = option.title;
   const trimmed = title.trim();
   const lower = trimmed.toLowerCase();
@@ -312,6 +348,32 @@ const styles = StyleSheet.create({
   optionPressed: {
     opacity: 0.84,
     transform: [{ scale: 0.992 }],
+  },
+  optionRowStatic: {
+    // The quick-check card is not itself pressable — its domain buttons are.
+    justifyContent: 'flex-start',
+  },
+  domainRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    paddingTop: spacing.sm,
+  },
+  domainButton: {
+    flexGrow: 1,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bgGold,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.goldBorder,
+  },
+  domainButtonText: {
+    ...type.bodySmall,
+    fontFamily: fonts.sansMedium,
+    color: colors.accentDeep,
   },
   optionText: {
     flex: 1,

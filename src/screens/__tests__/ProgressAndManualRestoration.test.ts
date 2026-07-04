@@ -49,19 +49,19 @@ describe('Progress and Manual / Extra Check-Up UI restoration', () => {
     expect(`${rules}\n${copy}`).not.toMatch(/Movement Age|weakest-domain/);
   });
 
-  it('routes optional quick micro check-ups through the domain chooser', () => {
+  it('starts optional quick micro check-ups from inline domain buttons, one screen deep', () => {
     const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
-    const handler = app.slice(
-      app.indexOf('const beginManualOptionalMicroCheck'),
-      app.indexOf('const beginManualMicroCheckForDomain')
+    const screen = readFileSync(
+      join(process.cwd(), 'src/screens/ManualCheckupStartScreen.tsx'),
+      'utf8'
     );
 
-    expect(handler).toContain("setFlow('manual-microcheck-domain')");
-    expect(handler).toContain('setMicroCheckLaunch(null)');
-    expect(handler).not.toContain("setFlow('microcheck')");
-    expect(handler).not.toContain('setMicroCheckLaunch({');
-    expect(app).toContain("flow === 'manual-microcheck-domain'");
-    expect(app).toContain('<ManualMicroCheckDomainScreen');
+    // The start screen owns the domain choice; there is no second chooser flow.
+    expect(screen).toContain('MicroCheckDomainButtons');
+    expect(screen).toContain('MICRO_CHECK_DOMAINS');
+    expect(app).toContain('onStartMicroCheck={beginManualMicroCheckForDomain}');
+    expect(app).not.toContain('manual-microcheck-domain');
+    expect(app).not.toContain('ManualMicroCheckDomainScreen');
   });
 
   it('restores the simplified V2 Progress dashboard cards without technical summary copy', () => {

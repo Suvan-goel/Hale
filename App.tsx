@@ -218,7 +218,6 @@ import { CameraSetupScreen } from './src/screens/CameraSetupScreen';
 import { ExploreScreen } from './src/screens/ExploreScreen';
 import { LearnDetailScreen } from './src/screens/ExploreDetailScreens';
 import { ManualCheckupStartScreen } from './src/screens/ManualCheckupStartScreen';
-import { ManualMicroCheckDomainScreen } from './src/screens/ManualMicroCheckChoiceScreen';
 import { MicroCheckScreen } from './src/screens/MicroCheckScreen';
 import { MicroCheckSummaryScreen } from './src/screens/MicroCheckSummaryScreen';
 import { MovementProfileV2BlockReportScreen } from './src/screens/MovementProfileV2BlockReportScreen';
@@ -268,7 +267,6 @@ type Flow =
   | 'safety-profile'
   | 'camera-setup'
   | 'manual-checkup'
-  | 'manual-microcheck-domain'
   | 'session-unavailable'
   | 'session-preview'
   | 'training'
@@ -3321,15 +3319,10 @@ function HaleApp() {
     ]
   );
 
-  const beginManualOptionalMicroCheck = React.useCallback(() => {
-    setMicroCheckLaunch(null);
-    setFlow('manual-microcheck-domain');
-  }, []);
-
   const beginManualMicroCheckForDomain = React.useCallback((domain: MovementDomain) => {
     addBreadcrumb('micro-check voice runtime pinned', {
       area: 'voice_v21_activation',
-      flow: 'manual_microcheck_domain',
+      flow: 'manual_microcheck',
       v21Enabled: voiceActivation.microCheckVoiceV21Enabled,
     });
     setMicroCheckLaunch({
@@ -3993,13 +3986,8 @@ function HaleApp() {
             activeBlock={activeMovementBlock}
             completions={adherence.completions}
             onSelectCheckup={beginCheckUp}
-            onMicroCheck={beginManualOptionalMicroCheck}
+            onStartMicroCheck={beginManualMicroCheckForDomain}
             onCancel={() => goBack(goHome)}
-          />
-        ) : flow === 'manual-microcheck-domain' ? (
-          <ManualMicroCheckDomainScreen
-            onSelectDomain={beginManualMicroCheckForDomain}
-            onBack={() => goBack(openManualCheckup)}
           />
         ) : flow === 'session-unavailable' && planningRecoveryResult?.kind === 'unavailable' ? (
           <SessionPlanningRecoveryScreen
