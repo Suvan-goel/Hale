@@ -84,7 +84,6 @@ import {
 } from './src/checkup/publicCheckUpEngine';
 import {
   createMovementAssessment,
-  createAutomaticMovementBlock,
   createGeneratedSessionSummary,
   checkUpCompletionTimestamp,
   countsTowardMainPlan,
@@ -96,9 +95,7 @@ import {
   getBlockScheduleState,
   getBlockMicroCheckTarget,
   getSessionPlanningRecoveryCopy,
-  getBlockCreationEligibility,
   getHaleAppLifecycle,
-  latestUsableOfficialCheckUpRecord,
   latestUsableOfficialAssessment,
   buildMovementProfileV2ProgressViewModel,
   materializeMovementProfileV2Block,
@@ -188,7 +185,6 @@ import {
   type MovementProfileV2ReferenceProfile,
   type StoredMovementProfileV2Snapshot,
 } from './src/reference/movementProfileV2';
-import { CheckUpScore, VersionedCheckUpScoreSnapshot } from './src/scoring';
 import {
   AuthProvider,
   syncMovementBlockReportToRemote,
@@ -861,7 +857,6 @@ function HaleApp() {
   const lastSessionSyncFingerprintRef = React.useRef<string | null>(null);
   const lastMicroCheckSyncFingerprintRef = React.useRef<string | null>(null);
   const lastBlockReportSyncFingerprintRef = React.useRef<string | null>(null);
-  const autoPreparedBlockSourceRef = React.useRef<string | null>(null);
   const movementProfileV2AutoFinalizeAttemptRef = React.useRef<string | null>(null);
   const remoteProfileHydrationAttemptedRef = React.useRef(false);
   const remoteRestoreAttemptedRef = React.useRef(false);
@@ -1947,83 +1942,6 @@ function HaleApp() {
     [adherenceStore]
   );
 
-  const recordBlockedBlockCreation = React.useCallback(
-    (
-      source: string,
-      eligibility: ReturnType<typeof getBlockCreationEligibility>,
-      checkupType?: CheckupType | null
-    ) => {
-      if (eligibility.eligible) return;
-      addBreadcrumb('block creation blocked', {
-        area: 'assessment_validity',
-        source,
-        reason: eligibility.reason,
-        checkupType: checkupType ?? 'unknown',
-        measuredDomainCount: eligibility.measuredDomains.length,
-      });
-    },
-    []
-  );
-
-  const prepareBlockFromOfficialCheckUp = React.useCallback(
-    ({
-      baseAdherence,
-      baseTraining,
-      sourceCheckUpId,
-      score,
-      scoreSnapshot,
-      assessment,
-      nowIso,
-      source,
-    }: {
-      baseAdherence: AdherenceStoreState;
-      baseTraining: TrainingState;
-      sourceCheckUpId: string;
-      score: CheckUpScore;
-      scoreSnapshot?: VersionedCheckUpScoreSnapshot | null;
-      assessment: MovementAssessment | null | undefined;
-      nowIso: string;
-      source: string;
-    }) => {
-      const result = createAutomaticMovementBlock({
-        adherence: baseAdherence,
-        training: baseTraining,
-        sourceCheckUpId,
-        assessment,
-        score,
-        scoreSnapshot,
-        lifeGoal: prefs.profile.lifeGoal,
-        user: prefs.profile,
-        nowIso,
-      });
-      if (!result.ok) {
-        recordBlockedBlockCreation(source, result.eligibility, assessment?.type);
-        return null;
-      }
-
-      const adherenceSaved = persistAdherence(result.adherence);
-      persistTraining(result.training);
-      if (adherenceSaved && backendSignedIn && backendUserId) {
-        void syncMovementBlockToRemote({
-          block: result.movementBlock,
-          trainingBlock: result.trainingBlock,
-          training: result.training,
-          blockNumber: blockNumberForBlocks(result.adherence.blocks, result.movementBlock.id),
-          sourceCheckupLocalId: sourceCheckUpId,
-        });
-      }
-      return result;
-    },
-    [
-      backendSignedIn,
-      backendUserId,
-      persistAdherence,
-      persistTraining,
-      prefs.profile,
-      recordBlockedBlockCreation,
-    ]
-  );
-
   const activeMovementBlock = React.useMemo(
     () => getActiveMovementBlock(adherence.blocks),
     [adherence.blocks]
@@ -2101,38 +2019,6 @@ function HaleApp() {
     pendingInitialOnboardingFlow,
     pendingMovementProfileV2Raw,
     replaceNextNavigationLocation,
-  ]);
-
-  React.useEffect(() => {
-    if (!historyReady || !adherenceReady || !trainingReady || !restoreReady || activeMovementBlock)
-      return;
-    const official = latestUsableOfficialCheckUpRecord(history, adherence.assessments);
-    if (!official) return;
-
-    const sourceKey = `${official.record.checkUp.startedAt}:${official.assessment.id}`;
-    if (autoPreparedBlockSourceRef.current === sourceKey) return;
-    autoPreparedBlockSourceRef.current = sourceKey;
-
-    prepareBlockFromOfficialCheckUp({
-      baseAdherence: adherence,
-      baseTraining: training,
-      sourceCheckUpId: official.record.checkUp.startedAt,
-      score: official.score,
-      scoreSnapshot: official.scoreSnapshot,
-      assessment: official.assessment,
-      nowIso: new Date().toISOString(),
-      source: 'automatic_missing_block_repair',
-    });
-  }, [
-    activeMovementBlock,
-    adherence,
-    adherenceReady,
-    history,
-    historyReady,
-    prepareBlockFromOfficialCheckUp,
-    restoreReady,
-    training,
-    trainingReady,
   ]);
 
   const onProfileChange = React.useCallback(
@@ -2278,12 +2164,6 @@ function HaleApp() {
 
   const newestMilestone = React.useMemo(() => latestMilestone(adherence), [adherence]);
   // Scored most-recent check-up, for Home's progress snapshot and adherence milestones.
-  const lastScore: CheckUpScore | null = React.useMemo(() => {
-    return (
-      latestUsableOfficialCheckUpRecord(displayHistory, displayAdherence.assessments)?.score ?? null
-    );
-  }, [displayAdherence.assessments, displayHistory]);
-
   const latestAssessment: MovementAssessment | null = React.useMemo(() => {
     return latestUsableOfficialAssessment(adherence.assessments);
   }, [adherence.assessments]);
@@ -2951,7 +2831,9 @@ function HaleApp() {
               user: prefs.profile,
               block: updatedBlock,
               lifeGoal: prefs.profile.lifeGoal,
-              latestAssessment: lastScore,
+              // Score-based milestones applied to legacy data only; unified
+              // check-up comparisons live in the block report instead.
+              latestAssessment: null,
               completions: nextAdherence.completions,
               existing: nextAdherence.milestones,
               nowIso: completedAt,
@@ -3008,7 +2890,6 @@ function HaleApp() {
       backendSignedIn,
       backendUserId,
       goHome,
-      lastScore,
       persistAdherence,
       persistTraining,
       prefs.profile,
@@ -3403,39 +3284,11 @@ function HaleApp() {
   );
 
   const handleStartNextBlock = React.useCallback(() => {
-    const official = latestUsableOfficialCheckUpRecord(history, adherence.assessments);
-    if (!official) {
-      beginCheckUp('baseline');
-      return;
-    }
-    const now = new Date().toISOString();
-    const sourceResult = official.record.checkUp;
-    const preparedBlock = prepareBlockFromOfficialCheckUp({
-      baseAdherence: adherence,
-      baseTraining: training,
-      sourceCheckUpId: sourceResult.startedAt,
-      score: official.score,
-      scoreSnapshot: official.scoreSnapshot,
-      assessment: official.assessment,
-      nowIso: now,
-      source: 'start_next_block',
-    });
-    if (!preparedBlock) {
-      // Block creation was blocked (ineligible source); Progress explains state.
-      replaceNextNavigationLocation(navigationLocation('progress', null));
-      setFlow(null);
-      setTab('progress');
-      return;
-    }
-    setFlow('block-intro');
-  }, [
-    adherence,
-    beginCheckUp,
-    history,
-    prepareBlockFromOfficialCheckUp,
-    replaceNextNavigationLocation,
-    training,
-  ]);
+    // Unified check-ups create their block at materialization, so "start a
+    // new plan" means "do a check-up" — the launch engine resolves whether
+    // that is a first baseline or a retake.
+    beginCheckUp();
+  }, [beginCheckUp]);
 
   const handlePlanningRecoveryAction = React.useCallback(
     (action: GenerationRecoveryAction | undefined) => {

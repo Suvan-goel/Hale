@@ -2031,24 +2031,6 @@ export function initialLadderProgressFromMeasuredCapability(input: {
 }
 
 /** V1 CheckUpScore convenience wrapper around initialLadderProgressFromMeasuredCapability. */
-export function initialLadderProgressFromCheckUp(input: {
-  previousLadderProgress: Record<string, LadderProgress>;
-  score: CheckUpScore | null | undefined;
-  nowIso: string;
-}): Record<string, LadderProgress> {
-  return initialLadderProgressFromMeasuredCapability({
-    previousLadderProgress: input.previousLadderProgress,
-    chairStandReps: measuredCheckUpDomainValue(input.score, 'strength'),
-    singleLegHoldSec: measuredCheckUpDomainValue(input.score, 'balance'),
-    nowIso: input.nowIso,
-  });
-}
-
-function measuredCheckUpDomainValue(score: CheckUpScore | null | undefined, domain: Domain): number | null {
-  const result = score?.domains.find((d) => d.domain === domain);
-  if (!result?.measured || !Number.isFinite(result.primaryMetricValue)) return null;
-  return result.primaryMetricValue;
-}
 
 function seedLadderFromMeasuredValue(input: {
   next: Record<string, LadderProgress>;

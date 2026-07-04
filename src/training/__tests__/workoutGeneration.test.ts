@@ -30,7 +30,6 @@ import {
   generatePresetSession,
   generateTodaySession,
   getTemplateSelection,
-  initialLadderProgressFromCheckUp,
   initialLadderProgressFromMeasuredCapability,
   listExtraSessionPresets,
   selectNextSessionTemplate,
@@ -1587,31 +1586,6 @@ describe('initial ladder progress from measured capability', () => {
     expect(next).toEqual({});
   });
 
-  it('initialLadderProgressFromCheckUp reads the same signal from a CheckUpScore, never from age', () => {
-    const score: CheckUpScore = {
-      startedAt: NOW,
-      weakestDomain: 'strength',
-      domains: [
-        domainResult({ domain: 'strength', primaryMetricValue: 6 }),
-        domainResult({ domain: 'balance', label: 'Balance', primaryMetricValue: 35 }),
-        domainResult({ domain: 'mobility', label: 'Mobility', measured: false, primaryMetricValue: NaN }),
-      ],
-    };
-    const next = initialLadderProgressFromCheckUp({ previousLadderProgress: {}, score, nowIso: NOW });
-    expect(next['sit-to-stand']?.currentLevelId).toBe(STS_CUSHION_ID);
-    expect(next.balance?.currentLevelId).toBe(BALANCE_TANDEM_ID);
-  });
-
-  it('initialLadderProgressFromCheckUp ignores an unmeasured domain entirely', () => {
-    const score: CheckUpScore = {
-      startedAt: NOW,
-      weakestDomain: null,
-      domains: [domainResult({ domain: 'strength', measured: false, primaryMetricValue: NaN })],
-    };
-    const next = initialLadderProgressFromCheckUp({ previousLadderProgress: {}, score: score, nowIso: NOW });
-    expect(next).toEqual({});
-    expect(initialLadderProgressFromCheckUp({ previousLadderProgress: {}, score: null, nowIso: NOW })).toEqual({});
-  });
 });
 
 describe('balanced session template rotation', () => {

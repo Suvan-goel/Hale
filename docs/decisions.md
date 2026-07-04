@@ -2867,3 +2867,22 @@ PUBLIC RELEASE REMAINS BLOCKED
      `AUDIO_APPROVAL_READY` encodes ears, not chat approval, and the legacy fallback is the
      designed fail-closed path for unknown exercises.
 - **Verification:** tsc clean, expo config clean, 1,373/1,373 tests passing.
+
+## 2026-07-04 — Quick-wins pass: bundle weight, taxonomy closure, legacy block-repair removal
+
+- **Images:** ten unreferenced hero PNGs from the palette/redesign trials deleted —
+  assets/images drops 51MB → 32MB of bundle weight.
+- **Taxonomy closed:** `CheckupType` no longer includes the retired `manual_extra` and
+  `quick_recheck`; stored or remote values from early dev installs normalize to
+  `legacy_unknown`, which remains as the documented parser fallback. Restore now maps the
+  wire-format `manual_extra` to the local `manual_extra_v2` practice type (fixing a latent
+  restore mismatch where practice check-ups round-tripped as a retired type). `OnboardingStep`
+  drops the retired `equipment` step (stored values resume at the camera explanation) and
+  `OnboardingState` drops the unused `selectedEquipment` list.
+- **Legacy block repair removed:** `blockAutomation.ts`, App's auto-repair effect,
+  `prepareBlockFromOfficialCheckUp`, and the legacy `CheckUpScore → ladder seed` wrapper are
+  gone — they could only ever fire for legacy-format stored records, which no user has.
+  "Start a new plan" now simply launches a check-up (the engine resolves baseline vs retake),
+  since unified check-ups create their block at materialization. Milestone generation on
+  session completion passes a null legacy score; comparisons live in the V2 block report.
+- **Verification:** tsc clean, expo config clean, 1,369/1,369 tests passing.
