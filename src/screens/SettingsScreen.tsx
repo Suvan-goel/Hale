@@ -30,7 +30,6 @@ import {
   VOICE_OPTIONS,
   getVoice,
 } from '../profile';
-import { EquipmentProfile } from '../training';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 
@@ -50,7 +49,7 @@ type VoiceCatalogOption = (typeof VOICE_OPTIONS)[number];
 
 const SECTION_COPY: Record<ProfileSection, { title: string; subtitle: string }> = {
   details: {
-    title: 'Your Profile',
+    title: 'Your profile',
     subtitle: 'Update your name, reference details, and movement goal.',
   },
   safety: {
@@ -58,11 +57,11 @@ const SECTION_COPY: Record<ProfileSection, { title: string; subtitle: string }> 
     subtitle: 'Review privacy and phone placement.',
   },
   plan: {
-    title: 'Workout Days & Effort',
+    title: 'Workout days & effort',
     subtitle: 'Choose your workout days and starting effort.',
   },
   voice: {
-    title: 'Trainer Voice',
+    title: 'Trainer voice',
     subtitle: 'Choose the voice for check-ups and workouts.',
   },
   equipment: {
@@ -70,11 +69,11 @@ const SECTION_COPY: Record<ProfileSection, { title: string; subtitle: string }> 
     subtitle: 'Choose what you have at home.',
   },
   account: {
-    title: 'Account & Data',
+    title: 'Account & data',
     subtitle: 'Manage sign-in and your Hale data.',
   },
   privacy: {
-    title: 'Privacy & Data',
+    title: 'Privacy & data',
     subtitle: 'See what Hale shows and saves.',
   },
 };
@@ -82,12 +81,10 @@ const SECTION_COPY: Record<ProfileSection, { title: string; subtitle: string }> 
 type SettingsScreenProps = {
   profile: UserProfile;
   settings: AppSettings;
-  equipment: EquipmentProfile;
   preferredDays: readonly string[];
   startingEffort: ActivityLevel;
   onProfileChange: (next: UserProfile) => void;
   onSettingsChange: (next: AppSettings) => void;
-  onToggleEquipment: (key: keyof EquipmentProfile) => void;
   onToggleAvailableEquipment: (item: AvailableEquipment) => void;
   onPreferredDaysChange: (days: string[]) => void;
   onStartingEffortChange: (startingEffort: ActivityLevel) => void;
@@ -105,12 +102,10 @@ export function SettingsScreen(props: SettingsScreenProps) {
 function SettingsScreenContent({
   profile,
   settings,
-  equipment,
   preferredDays,
   startingEffort,
   onProfileChange,
   onSettingsChange,
-  onToggleEquipment,
   onToggleAvailableEquipment,
   onPreferredDaysChange,
   onStartingEffortChange,
@@ -224,20 +219,6 @@ function SettingsScreenContent({
             movementGoal={goalText}
             onOpenLifeGoal={onOpenLifeGoal}
           />
-
-          <DetailCard
-            title="Safety setup"
-            body="Update when your body or home setup changes."
-          >
-            <View style={styles.setupActionStack}>
-              <SetupActionTile
-                icon="shield"
-                title="Safety profile"
-                body="Support and comfort details for sessions."
-                onPress={onOpenSafetyProfile}
-              />
-            </View>
-          </DetailCard>
         </>
       );
     }
@@ -248,14 +229,9 @@ function SettingsScreenContent({
           <DetailOverview
             title="Private camera use"
             body="Hale checks your position without showing your video."
-            meta="Video is not saved by the app."
           />
 
-          <SafetyReadinessCard />
-
-          <SafetyActionsCard
-            onOpenCameraSetup={onOpenCameraSetup}
-          />
+          <SafetyReadinessCard onOpenCameraSetup={onOpenCameraSetup} />
         </>
       );
     }
@@ -315,14 +291,14 @@ function SettingsScreenContent({
               <ToggleRow
                 label="Bottom stair"
                 description="Use only if it is low, stable, and near support."
-                value={equipment.stair}
-                onValueChange={() => onToggleEquipment('stair')}
+                value={available.includes('stairs')}
+                onValueChange={() => onToggleAvailableEquipment('stairs')}
               />
               <ToggleRow
                 label="Resistance band"
                 description="Used for some upper-body pulling exercises."
-                value={equipment.band}
-                onValueChange={() => onToggleEquipment('band')}
+                value={available.includes('resistance_band')}
+                onValueChange={() => onToggleAvailableEquipment('resistance_band')}
               />
               <ToggleRow
                 label="Door anchor for band rows"
@@ -333,14 +309,14 @@ function SettingsScreenContent({
               <ToggleRow
                 label="Mini band"
                 description="Used for some hip and side-step exercises."
-                value={!!equipment.miniBand}
-                onValueChange={() => onToggleEquipment('miniBand')}
+                value={available.includes('mini_band')}
+                onValueChange={() => onToggleAvailableEquipment('mini_band')}
               />
               <ToggleRow
                 label="Backpack or light weight"
                 description="Used only for gentle added load."
-                value={!!equipment.load}
-                onValueChange={() => onToggleEquipment('load')}
+                value={available.includes('backpack')}
+                onValueChange={() => onToggleAvailableEquipment('backpack')}
               />
               <ToggleRow
                 label="Floor space for mat exercises"
@@ -458,6 +434,13 @@ function SettingsScreenContent({
           showDivider
         />
         <ProfileMenuRow
+          title="Safety profile"
+          subtitle="Support, comfort, and pain details."
+          icon="shield"
+          onPress={onOpenSafetyProfile}
+          showDivider
+        />
+        <ProfileMenuRow
           title={SECTION_COPY.voice.title}
           subtitle={selectedVoiceLabel}
           icon="volume"
@@ -543,7 +526,7 @@ function ProfileMenuRow({
         <Text style={styles.menuTitle}>{title}</Text>
         {subtitle ? <Text style={styles.menuSubtitle}>{subtitle}</Text> : null}
       </View>
-      <Text style={styles.chevron}>{'>'}</Text>
+      <Text style={styles.chevron}>{'›'}</Text>
     </Pressable>
   );
 }
@@ -608,7 +591,6 @@ function VoiceSelectorCard({
   return (
     <View style={[styles.voiceSelectorCard, responsive.isCompactPhone && styles.compactCardPadding]}>
       <View style={styles.voiceSelectorHeader}>
-        <Text style={styles.voiceSelectorTitle}>Voice</Text>
         <Text style={styles.voiceSelectorBody}>
           Tap a voice to use it next time.
         </Text>
@@ -684,7 +666,7 @@ function VoiceOptionRow({
   );
 }
 
-function SafetyReadinessCard() {
+function SafetyReadinessCard({ onOpenCameraSetup }: { onOpenCameraSetup: () => void }) {
   const responsive = useResponsiveLayout();
   return (
     <View style={[styles.safetyCard, responsive.isCompactPhone && styles.compactCardPadding]}>
@@ -693,26 +675,6 @@ function SafetyReadinessCard() {
           <Text style={styles.safetyCardTitle}>Phone placement</Text>
           <Text style={styles.safetyCardBody}>
             Place your phone on a steady stand, shelf, or stack of books so it will not slide.
-          </Text>
-        </View>
-      </View>
-    </View>
-  );
-}
-
-function SafetyActionsCard({
-  onOpenCameraSetup,
-}: {
-  onOpenCameraSetup: () => void;
-}) {
-  const responsive = useResponsiveLayout();
-  return (
-    <View style={[styles.safetyCard, responsive.isCompactPhone && styles.compactCardPadding]}>
-      <View style={styles.safetyCardHeader}>
-        <View style={styles.safetyCardTitleGroup}>
-          <Text style={styles.safetyCardTitle}>Review setup</Text>
-          <Text style={styles.safetyCardBody}>
-            Check phone placement before a session.
           </Text>
         </View>
       </View>
@@ -760,7 +722,7 @@ function SafetyActionRow({
         <Text style={styles.safetyActionTitle}>{title}</Text>
         {body ? <Text style={styles.safetyActionBody}>{body}</Text> : null}
       </View>
-      <Text style={styles.safetyActionChevron}>{'>'}</Text>
+      <Text style={styles.safetyActionChevron}>{'›'}</Text>
     </Pressable>
   );
 }
@@ -891,7 +853,7 @@ function PersonalDetailsCard({
                 <Text style={styles.personalGoalValue} numberOfLines={2}>
                   {movementGoal}
                 </Text>
-                <Text style={styles.personalGoalChevron}>{'>'}</Text>
+                <Text style={styles.personalGoalChevron}>{'›'}</Text>
               </View>
             </View>
           </View>
@@ -903,41 +865,6 @@ function PersonalDetailsCard({
 
 function referenceSexSummary(referenceSex: ProfileReferenceSex): string {
   return referenceSex === 'female' ? 'Female' : 'Male';
-}
-
-function SetupActionTile({
-  icon,
-  title,
-  body,
-  onPress,
-}: {
-  icon: MenuIconName;
-  title: string;
-  body: string;
-  onPress: () => void;
-}) {
-  const responsive = useResponsiveLayout();
-  return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.setupActionTile,
-        responsive.isCompactPhone && styles.compactCardPadding,
-        pressed && styles.pressed,
-      ]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={title}
-    >
-      <View style={styles.setupActionIcon}>
-        <MenuIcon name={icon} />
-      </View>
-      <View style={styles.setupActionCopy}>
-        <Text style={styles.setupActionTitle}>{title}</Text>
-        <Text style={styles.setupActionBody}>{body}</Text>
-      </View>
-      <Text style={styles.setupActionChevron}>{'>'}</Text>
-    </Pressable>
-  );
 }
 
 function InfoRow({ label, value, first }: { label: string; value: string; first?: boolean }) {
@@ -1557,10 +1484,6 @@ const styles = StyleSheet.create({
   voiceSelectorHeader: {
     gap: spacing.xs,
   },
-  voiceSelectorTitle: {
-    ...type.cardTitle,
-    color: colors.primaryText,
-  },
   voiceSelectorBody: {
     ...type.cardBody,
     color: colors.textSecondary,
@@ -1592,8 +1515,9 @@ const styles = StyleSheet.create({
     opacity: 0.52,
   },
   voicePreviewButton: {
-    width: 44,
-    height: 44,
+    // Comfortable tap target for the 50+ audience (matches minTapTarget).
+    width: 48,
+    height: 48,
     borderRadius: radius.input,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1778,7 +1702,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   personalDateButton: {
-    minHeight: 44,
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -1808,7 +1732,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   personalAgeOption: {
-    minHeight: 36,
+    minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.md,
@@ -1879,50 +1803,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 27,
     flexShrink: 0,
-  },
-  setupActionStack: {
-    gap: spacing.sm,
-  },
-  setupActionTile: {
-    minHeight: 82,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: radius.input,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  setupActionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.input,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.bgSurface,
-  },
-  setupActionCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  setupActionTitle: {
-    ...type.bodySmall,
-    fontFamily: fonts.sansMedium,
-    color: colors.primaryText,
-  },
-  setupActionBody: {
-    ...type.caption,
-    marginTop: 2,
-    color: colors.textSecondary,
-  },
-  setupActionChevron: {
-    ...type.h2,
-    color: colors.textSecondary,
-    lineHeight: 26,
   },
   preferenceCard: {
     gap: spacing.lg,

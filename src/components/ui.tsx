@@ -493,56 +493,6 @@ export function SettingsIconButton({
   );
 }
 
-export function Pill({
-  label,
-  selected,
-  onPress,
-}: {
-  label: string;
-  selected?: boolean;
-  onPress?: () => void;
-}) {
-  return <Chip label={label} selected={selected} onPress={onPress} />;
-}
-
-export function Chip({
-  label,
-  selected,
-  onPress,
-  style,
-}: {
-  label: string;
-  selected?: boolean;
-  onPress?: () => void;
-  style?: StyleProp<ViewStyle>;
-}) {
-  const responsive = useResponsiveLayout();
-  const content = (
-    <Text style={[styles.chipText, selected && styles.chipTextSelected]} numberOfLines={1}>
-      {label}
-    </Text>
-  );
-  const compactPadding = responsive.isCompactPhone ? styles.compactHorizontalPadding : null;
-  if (!onPress) return <View style={[componentStyles.chip.base, selected && componentStyles.chip.selected, style, compactPadding]}>{content}</View>;
-  return (
-    <Pressable
-      style={({ pressed }) => [
-        componentStyles.chip.base,
-        selected && componentStyles.chip.selected,
-        pressed && styles.pressed,
-        style,
-        compactPadding,
-      ]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      accessibilityLabel={label}
-    >
-      {content}
-    </Pressable>
-  );
-}
-
 export function SegmentedTabs<T extends string>({
   options,
   value,
@@ -1000,8 +950,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.input,
   },
   ghostText: { ...type.bodySmall, color: colors.accentDeep },
-  chipText: { ...type.bodySmall, fontFamily: fonts.sansMedium, color: colors.textSecondary },
-  chipTextSelected: { color: colors.accentDeep },
   segmentedTabs: {
     flexDirection: 'row',
     alignItems: 'flex-end',

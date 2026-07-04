@@ -322,26 +322,6 @@ export const componentStyles = {
       borderColor: colors.error,
     } satisfies ViewStyle,
   },
-  chip: {
-    base: {
-      // Comfortable tap target for the 50+ audience (was 38, below minTapTarget).
-      minHeight: 46,
-      borderRadius: 12,
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.sm,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.bgSurface,
-      borderWidth: 1,
-      borderColor: colors.borderHairline,
-    } satisfies ViewStyle,
-    selected: {
-      // A real fill (matches the onboarding Choice control) so the selected
-      // state does not rely on a near-identical border + text-colour shift.
-      backgroundColor: colors.bgGold,
-      borderColor: colors.accentBorder,
-    } satisfies ViewStyle,
-  },
   listRow: {
     base: {
       minHeight: 64,

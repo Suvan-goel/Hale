@@ -154,7 +154,6 @@ import {
 import {
   buildMovementProfileV2ResultsViewModel,
   movementProfileV2ResultsViewModelForRecord,
-  type MovementProfileV2Domain,
   type MovementProfileV2ResultsViewModel,
 } from './src/movementProfileV2/viewModel';
 import type { MovementProfileV2UnifiedPlanState } from './src/results/movementProfileV2ResultsAdapter';
@@ -223,7 +222,6 @@ import { ManualCheckupStartScreen } from './src/screens/ManualCheckupStartScreen
 import { MicroCheckScreen } from './src/screens/MicroCheckScreen';
 import { MicroCheckSummaryScreen } from './src/screens/MicroCheckSummaryScreen';
 import { MovementProfileV2BlockReportScreen } from './src/screens/MovementProfileV2BlockReportScreen';
-import { MovementProfileV2DomainDetailScreen } from './src/screens/MovementProfileV2DomainDetailScreen';
 import { MovementProfileV2UnifiedCheckUpScreen } from './src/screens/MovementProfileV2UnifiedCheckUpScreen';
 import { MovementProfileV2UnifiedResultsScreen } from './src/screens/MovementProfileV2UnifiedResultsScreen';
 import { MovementProfileV2PracticeResultsScreen } from './src/screens/MovementProfileV2PracticeResultsScreen';
@@ -238,7 +236,6 @@ import { TrainingSessionScreen } from './src/screens/TrainingSessionScreen';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
 import { isPoseLatencyDiagnosticsEnabled } from './src/diagnostics/poseLatencyDiagnostics';
 import {
-  EquipmentProfile,
   MicroCheckResult,
   MicroCheckType,
   PainArea,
@@ -283,7 +280,6 @@ type Flow =
   | 'movement-profile-v2-unified-checkup'
   | 'movement-profile-v2-results'
   | 'movement-profile-v2-practice-results'
-  | 'movement-profile-v2-domain-detail'
   | 'movement-profile-v2-block-report'
   | 'movement-profile-v2-retest-unavailable';
 
@@ -339,7 +335,6 @@ const CAMERA_FLOWS = new Set<Flow>([
 const PUBLIC_MOVEMENT_PROFILE_V2_FLOWS = new Set<Flow>([
   'movement-profile-v2-unified-checkup',
   'movement-profile-v2-results',
-  'movement-profile-v2-domain-detail',
   'movement-profile-v2-block-report',
   'movement-profile-v2-retest-unavailable',
 ]);
@@ -714,8 +709,6 @@ function HaleApp() {
     React.useState<MovementProfileV2ResultSurface>('standalone');
   const [movementProfileV2EntryContext, setMovementProfileV2EntryContext] =
     React.useState<MovementProfileV2EntryContext>('internal');
-  const [movementProfileV2DetailDomain, setMovementProfileV2DetailDomain] =
-    React.useState<MovementProfileV2Domain | null>(null);
   const [movementProfileV2SelectedProfileId, setMovementProfileV2SelectedProfileId] =
     React.useState<string | null>(null);
   const [movementProfileV2SelectedReportId, setMovementProfileV2SelectedReportId] =
@@ -936,9 +929,7 @@ function HaleApp() {
     setMovementProfileV2PlanBlockId(null);
     setMovementProfileV2PlanState(DEFAULT_MOVEMENT_PROFILE_V2_PLAN_STATE);
     setMovementProfileV2ResultSurface('standalone');
-    setMovementProfileV2EntryContext('internal');
-    setMovementProfileV2DetailDomain(null);
-    setMovementProfileV2SelectedProfileId(null);
+    setMovementProfileV2EntryContext('internal');    setMovementProfileV2SelectedProfileId(null);
     setMovementProfileV2SelectedReportId(null);
     setTraining(defaultTrainingState());
     setMicroChecks([]);
@@ -1237,9 +1228,7 @@ function HaleApp() {
     setMovementProfileV2PlanBlockId(null);
     setMovementProfileV2PlanState(DEFAULT_MOVEMENT_PROFILE_V2_PLAN_STATE);
     setMovementProfileV2ResultSurface('standalone');
-    setMovementProfileV2EntryContext('internal');
-    setMovementProfileV2DetailDomain(null);
-    setMicroCheckLaunch(null);
+    setMovementProfileV2EntryContext('internal');    setMicroCheckLaunch(null);
     setLastMicroCheckSummary(null);
   }, [replaceNextNavigationLocation]);
 
@@ -2229,9 +2218,7 @@ function HaleApp() {
             ? 'public_official_retest'
             : 'public_standard'
       );
-      setMovementProfileV2OfficialRetestContext(officialRetestContext);
-      setMovementProfileV2DetailDomain(null);
-      setMovementProfileV2SelectedProfileId(null);
+      setMovementProfileV2OfficialRetestContext(officialRetestContext);      setMovementProfileV2SelectedProfileId(null);
       setMovementProfileV2SelectedReportId(null);
 
       if (pendingRaw) {
@@ -3154,41 +3141,6 @@ function HaleApp() {
     ]
   );
 
-  const toggleEquipment = React.useCallback(
-    (key: keyof EquipmentProfile) => {
-      const safetyProfile = prefs.profile.safetyProfile;
-      if (!safetyProfile) return;
-      const now = new Date().toISOString();
-      const canonical = canonicalEquipmentFromSafetyProfile(safetyProfile);
-      const set = new Set(canonical.status === 'confirmed' ? canonical.capabilities : []);
-      const capability = legacyEquipmentKeyToCapability(key);
-      if (set.has(capability)) set.delete(capability);
-      else set.add(capability);
-      const nextSafetyProfile = safetyProfileWithCanonicalEquipment(
-        safetyProfile,
-        Array.from(set),
-        {
-          status: 'confirmed',
-          updatedAt: now,
-        }
-      );
-      persistPrefs({
-        ...prefs,
-        profile: {
-          ...prefs.profile,
-          safetyProfile: nextSafetyProfile,
-        },
-      });
-      persistTraining({
-        ...training,
-        equipment: legacyEquipmentFromCanonical(
-          canonicalEquipmentFromSafetyProfile(nextSafetyProfile)
-        ),
-      });
-    },
-    [persistPrefs, persistTraining, prefs, training]
-  );
-
   const toggleAvailableEquipment = React.useCallback(
     (item: AvailableEquipment) => {
       const safetyProfile = prefs.profile.safetyProfile;
@@ -3330,9 +3282,7 @@ function HaleApp() {
         completedAt: prefs.onboarding.completedAt ?? now,
         updatedAt: now,
       },
-    });
-    setMovementProfileV2DetailDomain(null);
-    replaceFlow('block-intro');
+    });    replaceFlow('block-intro');
   }, [
     handleViewPlanFromResults,
     movementProfileV2EntryContext,
@@ -3510,9 +3460,7 @@ function HaleApp() {
       setMovementProfileV2PlanState(DEFAULT_MOVEMENT_PROFILE_V2_PLAN_STATE);
       setMovementProfileV2ResultSurface(resolvedResultSurface);
       setMovementProfileV2EntryContext(resolvedEntryContext);
-      setMovementProfileV2OfficialRetestContext(resolvedOfficialRetestContext);
-      setMovementProfileV2DetailDomain(null);
-      setMovementProfileV2SelectedProfileId(null);
+      setMovementProfileV2OfficialRetestContext(resolvedOfficialRetestContext);      setMovementProfileV2SelectedProfileId(null);
       setMovementProfileV2SelectedReportId(null);
 
       if (!isOfficialMovementProfileV2SourceType(raw.sourceType)) {
@@ -3655,7 +3603,6 @@ function HaleApp() {
         setMovementProfileV2Raw(null);
         setMovementProfileV2InitialFlow(null);
         setMovementProfileV2OfficialRetestContext(null);
-        setMovementProfileV2DetailDomain(null);
         setMovementProfileV2PlanBlockId(preparedPlanBlockId);
         setMovementProfileV2PlanState(preparedPlanState);
         setMovementProfileV2RetestComparison(retestComparison);
@@ -3751,9 +3698,7 @@ function HaleApp() {
       }
 
       setMovementProfileV2Raw(null);
-      setMovementProfileV2InitialFlow(null);
-      setMovementProfileV2DetailDomain(null);
-      setMovementProfileV2RetestComparison(null);
+      setMovementProfileV2InitialFlow(null);      setMovementProfileV2RetestComparison(null);
       setMovementProfileV2BlockReport(null);
       setMovementProfileV2PlanBlockId(preparedPlanBlockId);
       setMovementProfileV2PlanState(preparedPlanState);
@@ -3860,9 +3805,7 @@ function HaleApp() {
         return;
       }
       setMovementProfileV2Raw(null);
-      setMovementProfileV2InitialFlow(null);
-      setMovementProfileV2DetailDomain(null);
-      setMovementProfileV2SelectedProfileId(sourceCheckUpId);
+      setMovementProfileV2InitialFlow(null);      setMovementProfileV2SelectedProfileId(sourceCheckUpId);
       setMovementProfileV2SelectedReportId(null);
       setMovementProfileV2PlanBlockId(null);
       setMovementProfileV2PlanState(DEFAULT_MOVEMENT_PROFILE_V2_PLAN_STATE);
@@ -3885,9 +3828,7 @@ function HaleApp() {
         return;
       }
       setMovementProfileV2Raw(null);
-      setMovementProfileV2InitialFlow(null);
-      setMovementProfileV2DetailDomain(null);
-      setMovementProfileV2SelectedProfileId(null);
+      setMovementProfileV2InitialFlow(null);      setMovementProfileV2SelectedProfileId(null);
       setMovementProfileV2SelectedReportId(reportId);
       setMovementProfileV2ResultSurface('unified');
       setMovementProfileV2EntryContext('public_standard');
@@ -4212,10 +4153,6 @@ function HaleApp() {
                   ? 'onboarding'
                   : 'standard'
             }
-            onOpenDomain={(domain) => {
-              setMovementProfileV2DetailDomain(domain);
-              setFlow('movement-profile-v2-domain-detail');
-            }}
             onViewPlan={
               movementProfileV2ResultSurface !== 'standalone' && movementProfileV2PlanBlockId
                 ? handleMovementProfileV2ViewPlan
@@ -4227,7 +4164,6 @@ function HaleApp() {
                 : undefined
             }
             onDone={() => {
-              setMovementProfileV2DetailDomain(null);
               if (movementProfileV2ResultSurface === 'standalone') {
                 setMovementProfileV2SelectedProfileId(null);
                 setFlow(null);
@@ -4252,31 +4188,16 @@ function HaleApp() {
               goBack(() => setFlow('movement-profile-v2-results'));
             }}
           />
-        ) : flow === 'movement-profile-v2-domain-detail' &&
-          visibleMovementProfileV2Result &&
-          movementProfileV2DetailDomain ? (
-          <MovementProfileV2DomainDetailScreen
-            viewModel={visibleMovementProfileV2Result}
-            domain={movementProfileV2DetailDomain}
-            onBack={() => {
-              setMovementProfileV2DetailDomain(null);
-              replaceFlow('movement-profile-v2-results');
-            }}
-          />
         ) : flow === 'movement-profile-v2-retest-unavailable' ? (
           <MovementProfileRetestUnavailableScreen onDone={goHome} />
         ) : flow === 'settings' ? (
           <SettingsScreen
             profile={prefs.profile}
             settings={prefs.settings}
-            equipment={legacyEquipmentFromCanonical(
-              canonicalEquipmentFromSafetyProfile(prefs.profile.safetyProfile)
-            )}
             preferredDays={prefs.profile.safetyProfile?.preferredWorkoutDays ?? []}
             startingEffort={onboardingActivityLevel(prefs.profile.safetyProfile?.activityLevel)}
             onProfileChange={onProfileChange}
             onSettingsChange={onSettingsChange}
-            onToggleEquipment={toggleEquipment}
             onToggleAvailableEquipment={toggleAvailableEquipment}
             onPreferredDaysChange={handlePreferredWorkoutDaysChange}
             onStartingEffortChange={handleStartingEffortChange}
@@ -4610,15 +4531,6 @@ function CameraGatePoint({ index, title, body }: { index: number; title: string;
       </View>
     </View>
   );
-}
-
-function legacyEquipmentKeyToCapability(
-  key: keyof EquipmentProfile
-): Exclude<AvailableEquipment, 'none'> {
-  if (key === 'stair') return 'stairs';
-  if (key === 'band') return 'resistance_band';
-  if (key === 'miniBand') return 'mini_band';
-  return 'backpack';
 }
 
 const styles = StyleSheet.create({
