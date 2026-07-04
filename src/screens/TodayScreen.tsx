@@ -19,6 +19,8 @@ import type {
   MovementSnapshotBand,
   TodaySessionAdjustment,
 } from '../haleFlow';
+// The hero copy (title/subtitle/CTA) comes straight from the lifecycle's
+// primary action — appLifecycle.ts is the single source for that copy.
 import { SettingsIcon } from '../navigation/icons';
 import type { UserProfile } from '../profile';
 import type { PainArea } from '../training';
@@ -48,11 +50,6 @@ export function TodayScreen({
   const bottomScrollClearance = useScreenScrollClearance();
   const compact = responsive.isCompactPhone;
   const snapshot = lifecycle.movementSnapshot;
-  const isSessionAction =
-    lifecycle.primaryAction.type === 'start_first_session' ||
-    lifecycle.primaryAction.type === 'start_today_session';
-  const sessionTitle = todayActionTitle(lifecycle);
-  const sessionSubtitle = todayActionSubtitle(lifecycle);
   const sessionDetail = todaySessionDetail(lifecycle);
 
   // Start goes straight to the session preview, which owns today's
@@ -102,10 +99,10 @@ export function TodayScreen({
         <DailyFocusCard
           compact={compact}
           label="Today"
-          title={sessionTitle}
-          subtitle={sessionSubtitle}
+          title={lifecycle.primaryAction.title}
+          subtitle={lifecycle.primaryAction.subtitle}
           detail={sessionDetail}
-          ctaLabel={isSessionAction ? 'Start session' : actionCta(lifecycle.primaryAction.ctaLabel)}
+          ctaLabel={lifecycle.primaryAction.ctaLabel}
           onPress={handleStartPress}
         />
 
@@ -213,42 +210,24 @@ function SnapshotProgressRing({
 
 function TodayContextStrip({ compact, lifecycle }: { compact: boolean; lifecycle: HaleAppLifecycleResult }) {
   const block = lifecycle.activeBlockSummary;
-  if (block && shouldShowActivePlanContext(lifecycle.state)) {
-    return (
-      <View style={[styles.contextStrip, compact && styles.compactCardPadding]}>
-        <Text style={styles.contextTitle}>Your 4-week plan</Text>
-        <View style={styles.contextBody}>
-          <View style={styles.contextPrimary}>
-            <Text style={styles.contextLabel}>Current week</Text>
-            <Text style={styles.contextValue} numberOfLines={1}>
-              Week <Text style={styles.contextValueNumber}>{block.weekNumber}</Text> of{' '}
-              <Text style={styles.contextValueNumber}>{block.totalWeeks}</Text>
-            </Text>
-          </View>
-          <View style={styles.contextDivider} />
-          <View style={styles.contextSecondary}>
-            <Text style={styles.contextLabel}>Next Check-Up</Text>
-            <Text style={styles.contextValue} numberOfLines={1}>{retestLabel(block.retestInDays, block.totalWeeks)}</Text>
-          </View>
-        </View>
-      </View>
-    );
-  }
-
+  // Without an active plan there is nothing here the hero and snapshot cards
+  // don't already say — one mention per fact.
+  if (!block || !shouldShowActivePlanContext(lifecycle.state)) return null;
   return (
     <View style={[styles.contextStrip, compact && styles.compactCardPadding]}>
-      <Text style={styles.contextTitle}>Next step</Text>
+      <Text style={styles.contextTitle}>Your 4-week plan</Text>
       <View style={styles.contextBody}>
         <View style={styles.contextPrimary}>
-          <Text style={styles.contextLabel}>Today</Text>
-          <Text style={styles.contextValue} numberOfLines={1}>{contextValue(lifecycle.primaryAction.title)}</Text>
+          <Text style={styles.contextLabel}>Current week</Text>
+          <Text style={styles.contextValue} numberOfLines={1}>
+            Week <Text style={styles.contextValueNumber}>{block.weekNumber}</Text> of{' '}
+            <Text style={styles.contextValueNumber}>{block.totalWeeks}</Text>
+          </Text>
         </View>
         <View style={styles.contextDivider} />
         <View style={styles.contextSecondary}>
-          <Text style={styles.contextLabel}>Check-up</Text>
-          <Text style={styles.contextValue} numberOfLines={1}>
-            {lifecycle.movementSnapshot ? 'Check-up saved' : 'Check-up not started'}
-          </Text>
+          <Text style={styles.contextLabel}>Next check-up</Text>
+          <Text style={styles.contextValue} numberOfLines={1}>{retestLabel(block.retestInDays, block.totalWeeks)}</Text>
         </View>
       </View>
     </View>
@@ -273,8 +252,6 @@ function DailyFocusCard({
   onPress: () => void;
 }) {
   const responsive = useResponsiveLayout();
-  const displayCta = ctaLabel === 'Start Session' ? 'Start session' : ctaLabel;
-  const displayTitle = title === 'Move with intention' ? 'Move with\nintention' : title;
   const heroMinHeightStyle = { minHeight: responsive.todayHeroHeight };
 
   return (
@@ -284,7 +261,7 @@ function DailyFocusCard({
       <View style={[styles.focusContent, compact && styles.focusContentCompact, heroMinHeightStyle]}>
         <View style={[styles.focusCopy, compact && styles.focusCopyCompact]}>
           <Text style={styles.focusLabel}>{label}</Text>
-          <Text style={[styles.focusTitle, compact && styles.focusTitleCompact]}>{displayTitle}</Text>
+          <Text style={[styles.focusTitle, compact && styles.focusTitleCompact]}>{title}</Text>
           <View style={styles.focusMeta}>
             <Text style={styles.focusSubtitle}>{subtitle}</Text>
             {detail ? <Text style={styles.focusDetail}>{detail}</Text> : null}
@@ -298,7 +275,7 @@ function DailyFocusCard({
               accessibilityRole="button"
               accessibilityLabel={ctaLabel}
             >
-              <Text style={styles.focusButtonText}>{displayCta}</Text>
+              <Text style={styles.focusButtonText}>{ctaLabel}</Text>
               <Text style={styles.focusButtonArrow}>›</Text>
             </Pressable>
           </View>
@@ -396,11 +373,6 @@ function DomainGlyph({ domain }: { domain: SnapshotKey }) {
   );
 }
 
-function actionTitle(title: string): string {
-  if (title === "Today's Hale Session") return "Today's session";
-  return title.replace('Hale Session', 'Hale session');
-}
-
 function firstName(name?: string | null): string | null {
   const trimmed = name?.trim();
   if (!trimmed) return null;
@@ -418,32 +390,6 @@ function timeOfDayGreeting(): string {
   return 'Good evening';
 }
 
-function todayActionTitle(lifecycle: HaleAppLifecycleResult): string {
-  if (lifecycle.primaryAction.type === 'start_first_session') return 'Your first session is ready';
-  if (lifecycle.primaryAction.type === 'start_today_session') return "Today's session is ready";
-  if (lifecycle.primaryAction.type === 'start_gentle_restart') return 'Clean slate';
-  if (lifecycle.primaryAction.type === 'start_micro_check') return '60-second check-in';
-  if (lifecycle.primaryAction.type === 'start_retest') return 'Time for your next check-up';
-  if (lifecycle.primaryAction.type === 'explore_extra_sessions') return 'Your week is complete';
-  return actionTitle(lifecycle.primaryAction.title);
-}
-
-function todayActionSubtitle(lifecycle: HaleAppLifecycleResult): string {
-  if (lifecycle.primaryAction.type === 'start_first_session') {
-    return 'Built from your check-up.';
-  }
-  if (lifecycle.primaryAction.type === 'start_today_session') {
-    return 'A simple session to build strength, balance, and mobility.';
-  }
-  if (lifecycle.primaryAction.type === 'start_gentle_restart') {
-    return "Let's restart gently and keep your plan moving.";
-  }
-  if (lifecycle.primaryAction.type === 'explore_extra_sessions') {
-    return 'Optional mobility work can support your plan without pressure.';
-  }
-  return lifecycle.primaryAction.subtitle;
-}
-
 function todaySessionDetail(lifecycle: HaleAppLifecycleResult): string | undefined {
   if (lifecycle.primaryAction.type !== 'start_first_session' && lifecycle.primaryAction.type !== 'start_today_session') {
     return undefined;
@@ -453,13 +399,6 @@ function todaySessionDetail(lifecycle: HaleAppLifecycleResult): string | undefin
   return `Today's focus: ${nextSession.focus}`;
 }
 
-function actionCta(label: string): string {
-  if (label === 'Start First Session') return 'Start session';
-  if (label === 'Start Gentle Session') return 'Start session';
-  if (label === 'Start') return 'Start session';
-  return label;
-}
-
 function snapshotRowValue(
   row: SnapshotKey,
   band: MovementSnapshotBand | undefined,
@@ -467,8 +406,11 @@ function snapshotRowValue(
 ): string {
   if (!band) return 'Not checked yet';
   if (snapshotRowMatchesFocus(row, focusDomain)) return 'Your main focus';
-  if (row === 'mobility') return 'Doing well for now';
-  return 'Needs steady practice';
+  // Honest band copy: the label must reflect the measured band, never a
+  // hardcoded per-domain guess.
+  if (band === 'strong') return 'Doing well';
+  if (band === 'building') return 'Building steadily';
+  return 'A good place to start';
 }
 
 function snapshotRowMatchesFocus(
@@ -528,14 +470,6 @@ function retestLabel(days: number | undefined, totalWeeks = 4): string {
   return `In ${days} days`;
 }
 
-function contextValue(title: string): string {
-  if (title.length <= 22) return title;
-  if (title.includes('Movement Profile')) return 'Movement profile';
-  if (title.includes('Movement Check-Up')) return 'Check-up';
-  if (title.includes('4-week')) return 'Plan';
-  return 'Next action';
-}
-
 const styles = StyleSheet.create({
   background: {
     flex: 1,
@@ -580,9 +514,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
   },
   iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    // Comfortable tap target for the 50+ audience (matches minTapTarget);
+    // stays transparent-on-warm rather than the shared chip-style button.
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'transparent',
@@ -657,10 +593,11 @@ const styles = StyleSheet.create({
     ...shadow.card,
   },
   snapshotTitle: {
+    // Matches contextTitle — one card-title style on this screen.
     color: todayHomeColors.primaryText,
-    fontFamily: fonts.sansMedium,
-    fontSize: 16,
-    lineHeight: 22,
+    fontFamily: fonts.serifMedium,
+    fontSize: 18,
+    lineHeight: 24,
     letterSpacing: 0,
   },
   snapshotIntro: {

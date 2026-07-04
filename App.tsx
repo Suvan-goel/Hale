@@ -4227,14 +4227,7 @@ function HaleApp() {
       <StatusBar style="dark" />
       <ScreenScrollClearanceProvider bottom={tabBarScrollClearance}>
         <View style={styles.tabContent}>
-          {activeTabScreen === 'TodayScreen' ? (
-            <TodayScreen
-              profile={displayPrefs.profile}
-              lifecycle={lifecycle}
-              onPrimaryAction={handleTodayPrimaryAction}
-              onOpenSettings={goSettings}
-            />
-          ) : activeTabScreen === 'PlanScreen' ? (
+          {activeTabScreen === 'PlanScreen' ? (
             <PlanScreen
               lifecycleState={lifecycle.state}
               lifeGoalText={

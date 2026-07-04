@@ -232,8 +232,8 @@ export function getTodayPrimaryAction(state: HaleLifecycleState, microCheckTarge
     case 'week_complete':
       return {
         type: 'explore_extra_sessions',
-        title: "You've completed your sessions this week",
-        subtitle: 'Support your progress with an optional mobility reset.',
+        title: 'Your week is complete',
+        subtitle: 'Optional mobility work can support your plan without pressure.',
         ctaLabel: 'Start mobility reset',
         tone: 'gentle',
       };
@@ -241,7 +241,7 @@ export function getTodayPrimaryAction(state: HaleLifecycleState, microCheckTarge
       return {
         type: 'start_gentle_restart',
         title: 'Clean slate',
-        subtitle: "Let's restart gently with a shorter session.",
+        subtitle: "Let's restart gently and keep your plan moving.",
         ctaLabel: 'Restart gently',
         tone: 'gentle',
       };
@@ -249,8 +249,8 @@ export function getTodayPrimaryAction(state: HaleLifecycleState, microCheckTarge
     default:
       return {
         type: 'start_today_session',
-        title: "Today's session",
-        subtitle: 'Your next session uses your check-up and recent sessions.',
+        title: "Today's session is ready",
+        subtitle: 'A simple session to build strength, balance, and mobility.',
         ctaLabel: 'Start session',
       };
   }
