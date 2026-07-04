@@ -3289,3 +3289,9 @@ PUBLIC RELEASE REMAINS BLOCKED
   exploreViewModel suites green). The 11 suites failing at commit time all trace to the
   founder's in-flight LifeGoal category refactor, not this work. Net −1,340 lines. Owed on
   device: the merged Explore layout, featured-card copy, and article detail screens.
+
+- **Follow-up (owner-directed):** the merged page briefly kept both tabs' heroes stacked —
+  two 274px cards that read as two landing pages and gave the mid-scroll article the same
+  visual weight as the page's primary action. Now one hero per page: the session hero leads
+  (label "For lighter days" — its only occurrence again), Learn flattens to four uniform
+  article rows, and `FeaturedInsightCard` is deleted. Act at the top, browse below.
