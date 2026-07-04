@@ -43,7 +43,6 @@ type ProfileSection =
   | 'plan'
   | 'voice'
   | 'equipment'
-  | 'reminders'
   | 'account'
   | 'privacy';
 
@@ -69,10 +68,6 @@ const SECTION_COPY: Record<ProfileSection, { title: string; subtitle: string }> 
   equipment: {
     title: 'Equipment',
     subtitle: 'Choose what you have at home.',
-  },
-  reminders: {
-    title: 'Workout Reminders',
-    subtitle: 'Choose whether Hale should remind you about workouts.',
   },
   account: {
     title: 'Account & Data',
@@ -360,30 +355,6 @@ function SettingsScreenContent({
       );
     }
 
-    if (openSection === 'reminders') {
-      return (
-        <>
-          <DetailOverview
-            title="Phone reminders are not available yet"
-            body="You can save your choice now. Hale will not send notifications today."
-            meta="No notifications today"
-          />
-
-          <DetailCard
-            title="Reminder choice"
-            body="Turn this on if you want reminders when they are added."
-          >
-            <ToggleRow
-              label="Use workout reminders"
-              description="Saves your choice for later."
-              value={settings.remindersEnabled}
-              onValueChange={(v) => onSettingsChange({ ...settings, remindersEnabled: v })}
-            />
-          </DetailCard>
-        </>
-      );
-    }
-
     if (openSection === 'account') {
       return <AccountAuthCard context="settings" />;
     }
@@ -491,12 +462,6 @@ function SettingsScreenContent({
           subtitle={selectedVoiceLabel}
           icon="volume"
           onPress={() => openProfileSection('voice')}
-          showDivider
-        />
-        <ProfileMenuRow
-          title={SECTION_COPY.reminders.title}
-          icon="bell"
-          onPress={() => openProfileSection('reminders')}
         />
       </SettingsSection>
 

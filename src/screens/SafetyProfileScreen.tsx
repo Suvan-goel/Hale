@@ -212,10 +212,10 @@ export function SafetyProfileScreen({
         subtitle="A few quick answers help Hale avoid movements that do not feel right for you today."
       />
 
-      <ChoiceSection title="Date of birth and reference group" meta="Required">
+      <ChoiceSection title="About you" meta="Required">
         <View style={styles.referenceStack}>
           <Text style={styles.gentle}>
-            Hale uses your date of birth to calculate whole-year age for your saved Movement Profile.
+            Hale uses your date of birth and sex to compare your results with people like you.
           </Text>
           <Pressable
             style={({ pressed }) => [styles.dateButton, pressed && styles.pressed]}

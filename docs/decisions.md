@@ -2785,3 +2785,23 @@ PUBLIC RELEASE REMAINS BLOCKED
   camera explanation → check-up → results (plan auto-created by the unified engine).
 - **Verification:** tsc clean, 1,405/1,405 tests, expo config clean. Owed: on-device
   onboarding run-through alongside the Stage 5a guest checks.
+
+## 2026-07-04 — App-simplification Stage 6: dead-end reminder toggle removed; Explore trimmed to two tabs; plain-language profile copy
+
+- **Reminder toggle:** the Settings section literally titled "Phone reminders are not
+  available yet" is gone (product-owner decision: remove rather than implement now). The
+  stored `remindersEnabled` preference field remains for compatibility but has no UI. If
+  reminders are built later (see the 2026-07-03 proposal), they should ship as a real
+  local-notification feature with a fresh surface.
+- **Explore:** trimmed from four tabs to two — **Learn** (articles) and **Sessions** (extra
+  practice sessions). The Guides tab (step-by-step help duplicating in-context help modals)
+  and the Movements ladder browser (a fitness-app browse pattern serving curiosity, not the
+  core loop) are removed, along with `LadderDetailScreen` and the ladder-detail flow. The
+  explore view-model keeps `getLearnDetail` (article details); its now-unconsumed library
+  and ladder-card builders are Stage 7 cleanup candidates.
+- **Copy:** the safety profile's clinical "Date of birth and reference group" section is now
+  "About you" — "Hale uses your date of birth and sex to compare your results with people
+  like you." The check-up chooser needed no change: the retired manual/quick-recheck options
+  were already hidden, leaving exactly two user-facing concepts (quick check-in, full
+  Movement Check-Up).
+- **Verification:** tsc clean, 1,405/1,405 tests, expo config clean.

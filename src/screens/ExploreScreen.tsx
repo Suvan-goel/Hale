@@ -6,80 +6,52 @@ import type { MovementSafetyProfile } from '../adherence';
 import { Screen } from '../components/ui';
 import { HeaderLogo } from '../components/HeaderLogo';
 import {
-  getExploreLibrary,
   getExtraSessionCards,
   getHealthInsightCards,
-  getMovementLadderCards,
   type TodaySessionPreferences,
-  type ExploreLibrarySection,
   type ExtraSessionCard,
   type HealthInsightCard,
-  type LearnCard,
-  type MovementLadderCard,
 } from '../haleFlow';
 import type { EquipmentProfile, LadderProgress, PersistedGeneratedSessionSummary } from '../training';
 import { colors, fonts, imageOverlayControl, radius, shadow, spacing, todayHomeColors, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 import { SettingsIcon } from '../navigation/icons';
-import { INSIGHT_IMAGES, LEARN_IMAGES, LIBRARY_IMAGES, PRACTICE_IMAGES } from './exploreImages';
+import { INSIGHT_IMAGES, PRACTICE_IMAGES } from './exploreImages';
 
 type PictogramName = 'walk' | 'sprout' | 'chair' | 'squat' | 'book' | 'scale' | 'camera' | 'clock';
-type ExploreTab = 'insights' | 'learn' | 'practice' | 'library';
-type LibraryDomainFilter = 'all' | 'Strength' | 'Balance' | 'Mobility';
+type ExploreTab = 'insights' | 'practice';
 
 const EXPLORE_TABS: readonly { key: ExploreTab; label: string }[] = [
   { key: 'insights', label: 'Learn' },
-  { key: 'learn', label: 'Guides' },
   { key: 'practice', label: 'Sessions' },
-  { key: 'library', label: 'Movements' },
 ];
 
 const EXPLORE_TAB_DESCRIPTIONS: Record<ExploreTab, string> = {
   insights: 'Simple articles about movement, recovery, and healthy aging.',
-  learn: 'Step-by-step help for check-ups, camera setup, and your plan.',
   practice: 'Short sessions for lighter days or after your plan is done.',
-  library: 'Browse the exercises Hale can use in your plan.',
 };
-
-const LIBRARY_FILTERS: readonly { key: LibraryDomainFilter; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'Strength', label: 'Strength' },
-  { key: 'Balance', label: 'Balance' },
-  { key: 'Mobility', label: 'Mobility' },
-];
 
 export function ExploreScreen({
   equipment,
   safetyProfile,
   ladderProgressById,
-  activeBlockId,
-  generatedSessionSummaries,
   onStartExtraSession,
-  onOpenLadder,
   onOpenLearn,
   onOpenSettings,
 }: {
   equipment: EquipmentProfile;
   safetyProfile?: MovementSafetyProfile | null;
   ladderProgressById: Record<string, LadderProgress>;
-  activeBlockId?: string | null;
-  generatedSessionSummaries?: readonly PersistedGeneratedSessionSummary[] | null;
   onStartExtraSession: (presetId: string, preferences?: TodaySessionPreferences | null) => void;
-  onOpenLadder: (ladderId: string) => void;
   onOpenLearn: (articleId: string) => void;
   onOpenSettings: () => void;
 }) {
   const responsive = useResponsiveLayout();
   const [activeTab, setActiveTab] = React.useState<ExploreTab>('insights');
-  const library = React.useMemo(() => getExploreLibrary(), []);
   const insights = React.useMemo(() => getHealthInsightCards(), []);
   const extraSessions = React.useMemo(
     () => getExtraSessionCards({ equipment, safetyProfile, ladderProgressById }),
     [equipment, ladderProgressById, safetyProfile]
-  );
-  const ladders = React.useMemo(
-    () => getMovementLadderCards({ ladderProgressById, equipment, safetyProfile, activeBlockId, generatedSessionSummaries }),
-    [activeBlockId, equipment, generatedSessionSummaries, ladderProgressById, safetyProfile]
   );
   const startExtraSession = React.useCallback(
     (presetId: string) => {
@@ -112,15 +84,8 @@ export function ExploreScreen({
 
       {activeTab === 'insights' ? (
         <InsightsTab articles={insights} onOpen={onOpenLearn} />
-      ) : activeTab === 'learn' ? (
-        <LearnTab
-          library={library}
-          onOpenLearn={onOpenLearn}
-        />
-      ) : activeTab === 'practice' ? (
-        <PracticeTab sessions={extraSessions} onStartExtraSession={startExtraSession} />
       ) : (
-        <LibraryTab ladders={ladders} onOpenLadder={onOpenLadder} />
+        <PracticeTab sessions={extraSessions} onStartExtraSession={startExtraSession} />
       )}
     </Screen>
   );
@@ -191,26 +156,6 @@ function InsightsTab({
   );
 }
 
-function LearnTab({
-  library,
-  onOpenLearn,
-}: {
-  library: ReturnType<typeof getExploreLibrary>;
-  onOpenLearn: (articleId: string) => void;
-}) {
-  return (
-    <View style={styles.tabContent}>
-      <FeaturedGuideCard article={library.featured} onOpen={() => onOpenLearn(library.featured.id)} />
-      {library.sections.map((section) => (
-        <GuideSection
-          key={section.id}
-          section={section}
-          onOpen={onOpenLearn}
-        />
-      ))}
-    </View>
-  );
-}
 
 function PracticeTab({
   sessions,
@@ -251,115 +196,9 @@ function PracticeTab({
   );
 }
 
-function LibraryTab({
-  ladders,
-  onOpenLadder,
-}: {
-  ladders: readonly MovementLadderCard[];
-  onOpenLadder: (ladderId: string) => void;
-}) {
-  const responsive = useResponsiveLayout();
-  const [activeFilter, setActiveFilter] = React.useState<LibraryDomainFilter>('all');
-  const filteredLadders = React.useMemo(
-    () => ladders.filter((ladder) => activeFilter === 'all' || ladder.domainLabel === activeFilter),
-    [activeFilter, ladders]
-  );
-  const domainCount = new Set(ladders.map((ladder) => ladder.domainLabel)).size;
 
-  return (
-    <View style={styles.tabContent}>
-      <FeaturedLibraryCard ladderCount={ladders.length} domainCount={domainCount} />
-      <LibraryFilterBar activeFilter={activeFilter} onChange={setActiveFilter} />
-      <View style={styles.section}>
-        <SectionCopy title={activeFilter === 'all' ? 'Movement groups' : `${activeFilter} groups`} />
-        <View style={[styles.listPanel, styles.libraryListPanel, responsive.isCompactPhone && styles.compactListPanel]}>
-          {filteredLadders.map((ladder, index) => (
-            <LadderRow
-              key={ladder.id}
-              ladder={ladder}
-              showDivider={index < filteredLadders.length - 1}
-              onOpen={() => onOpenLadder(ladder.id)}
-            />
-          ))}
-        </View>
-      </View>
-    </View>
-  );
-}
 
-function FeaturedLibraryCard({ ladderCount, domainCount }: { ladderCount: number; domainCount: number }) {
-  const responsive = useResponsiveLayout();
-  const compactHero = responsive.isCompactPhone;
-  const heroMinHeightStyle = { minHeight: responsive.exploreHeroHeight };
 
-  return (
-    <View style={styles.featuredLibrarySection}>
-      <Text style={styles.featuredPostLabel}>Movement options</Text>
-      <View style={[styles.featuredLibraryCard, heroMinHeightStyle]}>
-        <ImageBackground
-          source={LIBRARY_IMAGES.hero}
-          style={[styles.featuredLibraryImage, heroMinHeightStyle]}
-          imageStyle={styles.featuredLibraryImageRadius}
-          resizeMode="cover"
-        >
-          <View style={styles.featuredLibraryScrim} />
-          <View style={[styles.featuredLibraryContent, compactHero && styles.featuredHeroContentCompact, heroMinHeightStyle]}>
-            <View style={[styles.featuredHeroCopy, compactHero && styles.featuredHeroCopyCompact]}>
-              <Text style={styles.featuredPostMeta}>Exercises Hale can use in your plan</Text>
-              <Text style={styles.featuredPostTitle}>See easier and harder options</Text>
-              <Text style={styles.featuredPostBody}>
-                Look through the versions Hale may choose. This will not change today's session.
-              </Text>
-            </View>
-            <View style={styles.featuredHeroAction}>
-              <View style={styles.libraryStatsRow}>
-                <LibraryStatPill label={`${ladderCount} groups`} />
-                <LibraryStatPill label={`${domainCount} areas`} />
-              </View>
-            </View>
-          </View>
-        </ImageBackground>
-      </View>
-    </View>
-  );
-}
-
-function LibraryStatPill({ label }: { label: string }) {
-  return (
-    <View style={styles.libraryStatPill}>
-      <Text style={styles.libraryStatText}>{label}</Text>
-    </View>
-  );
-}
-
-function LibraryFilterBar({
-  activeFilter,
-  onChange,
-}: {
-  activeFilter: LibraryDomainFilter;
-  onChange: (filter: LibraryDomainFilter) => void;
-}) {
-  const responsive = useResponsiveLayout();
-  return (
-    <View style={styles.libraryFilterBar}>
-      {LIBRARY_FILTERS.map((filter) => {
-        const selected = activeFilter === filter.key;
-        return (
-          <Pressable
-            key={filter.key}
-            style={({ pressed }) => [styles.libraryFilterButton, selected && styles.libraryFilterButtonSelected, pressed && styles.pressed]}
-            onPress={() => onChange(filter.key)}
-            accessibilityRole="button"
-            accessibilityState={{ selected }}
-            accessibilityLabel={`${filter.label} movement groups`}
-          >
-            <Text style={[styles.libraryFilterText, selected && styles.libraryFilterTextSelected]}>{filter.label}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
 
 function FeaturedInsightCard({ article, onOpen }: { article: HealthInsightCard; onOpen: () => void }) {
   const responsive = useResponsiveLayout();
@@ -426,44 +265,6 @@ function InsightRow({
   );
 }
 
-function FeaturedGuideCard({ article, onOpen }: { article: LearnCard; onOpen: () => void }) {
-  const responsive = useResponsiveLayout();
-  const compactHero = responsive.isCompactPhone;
-  const heroMinHeightStyle = { minHeight: responsive.exploreHeroHeight };
-
-  return (
-    <View style={styles.featuredGuideSection}>
-      <Text style={styles.featuredPostLabel}>Start here</Text>
-      <Pressable
-        style={({ pressed }) => [styles.featuredGuideCard, heroMinHeightStyle, pressed && styles.pressed]}
-        onPress={onOpen}
-        accessibilityRole="button"
-        accessibilityLabel={`Read ${article.title}`}
-      >
-        <ImageBackground
-          source={LEARN_IMAGES[article.id]}
-          style={[styles.featuredGuideImage, heroMinHeightStyle]}
-          imageStyle={styles.featuredGuideImageRadius}
-          resizeMode="cover"
-        >
-          <View style={styles.featuredGuideScrim} />
-          <View style={[styles.featuredGuideContent, compactHero && styles.featuredHeroContentCompact, heroMinHeightStyle]}>
-            <View style={[styles.featuredHeroCopy, compactHero && styles.featuredHeroCopyCompact]}>
-              <Text style={styles.featuredPostMeta}>Hale guide · {article.readTimeLabel}</Text>
-              <Text style={styles.featuredPostTitle}>{article.title}</Text>
-              <Text style={styles.featuredPostBody}>{article.body}</Text>
-            </View>
-            <View style={styles.featuredHeroAction}>
-              <View style={[styles.featuredPostButton, compactHero && styles.featuredHeroButtonCompact]}>
-                <Text style={styles.featuredPostButtonText}>Read guide</Text>
-              </View>
-            </View>
-          </View>
-        </ImageBackground>
-      </Pressable>
-    </View>
-  );
-}
 
 function FeaturedPracticeCard({ session, onStart }: { session: ExtraSessionCard; onStart: () => void }) {
   const responsive = useResponsiveLayout();
@@ -510,33 +311,6 @@ function FeaturedPracticeCard({ session, onStart }: { session: ExtraSessionCard;
   );
 }
 
-function GuideSection({
-  section,
-  onOpen,
-  footer,
-}: {
-  section: ExploreLibrarySection;
-  onOpen: (articleId: string) => void;
-  footer?: React.ReactNode;
-}) {
-  const responsive = useResponsiveLayout();
-  return (
-    <View style={styles.section}>
-      <SectionCopy title={section.title} body={section.body} />
-      <View style={[styles.listPanel, styles.guideListPanel, responsive.isCompactPhone && styles.compactListPanel]}>
-        {section.articles.map((article, index) => (
-          <GuideRow
-            key={article.id}
-            article={article}
-            showDivider={index < section.articles.length - 1}
-            onOpen={() => onOpen(article.id)}
-          />
-        ))}
-      </View>
-      {footer}
-    </View>
-  );
-}
 
 function SectionCopy({ title, body }: { title: string; body?: string }) {
   return (
@@ -547,68 +321,7 @@ function SectionCopy({ title, body }: { title: string; body?: string }) {
   );
 }
 
-function GuideRow({
-  article,
-  showDivider,
-  onOpen,
-}: {
-  article: LearnCard;
-  showDivider: boolean;
-  onOpen: () => void;
-}) {
-  return (
-    <Pressable
-      style={({ pressed }) => [styles.guideRow, showDivider && styles.listRowDivider, pressed && styles.pressed]}
-      onPress={onOpen}
-      accessibilityRole="button"
-      accessibilityLabel={article.title}
-    >
-      <Image source={LEARN_IMAGES[article.id]} style={styles.guideThumb} resizeMode="cover" />
-      <View style={styles.listCopy}>
-        <Text style={styles.rowTitle}>{article.title}</Text>
-        <View style={styles.guideMetaRow}>
-          <Text style={styles.guideMetaText}>{article.readTimeLabel}</Text>
-        </View>
-      </View>
-      <ChevronIcon />
-    </Pressable>
-  );
-}
 
-function LadderRow({
-  ladder,
-  showDivider,
-  onOpen,
-}: {
-  ladder: MovementLadderCard;
-  showDivider: boolean;
-  onOpen: () => void;
-}) {
-  return (
-    <Pressable
-      style={({ pressed }) => [styles.listRow, styles.libraryRow, showDivider && styles.listRowDivider, pressed && styles.pressed]}
-      onPress={onOpen}
-      accessibilityRole="button"
-      accessibilityLabel={`${ladder.title} movement group`}
-    >
-      <Image source={LIBRARY_IMAGES[ladder.id] ?? LIBRARY_IMAGES.hero} style={styles.libraryThumb} resizeMode="cover" />
-      <View style={styles.listCopy}>
-        <Text style={styles.rowTitle} numberOfLines={1}>
-          {ladder.title}
-        </Text>
-        <Text style={styles.rowSubtitle} numberOfLines={2}>
-          {ladder.body}
-        </Text>
-        <Text style={styles.rowMeta} numberOfLines={1}>
-          {ladder.showCurrentLevel
-            ? `Your version: ${ladder.currentLevelName} · ${ladder.equipmentLabel}`
-            : `${ladder.currentLevelLabel} · ${ladder.equipmentLabel}`}
-        </Text>
-      </View>
-      <ChevronIcon />
-    </Pressable>
-  );
-}
 
 function OptionalSessionRow({
   session,

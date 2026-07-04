@@ -110,7 +110,6 @@ import {
   selectProgressDataAuthority,
   transitionMovementProfileV2OfficialRetest,
   applyProgressionEvidenceFromSession,
-  planLadderPracticeSessionResult,
   planTodayHaleSession,
   staleEquipmentPlanningResult,
   staleMovementCapabilityPlanningResult,
@@ -223,7 +222,7 @@ import { AuthScreen } from './src/screens/AuthScreen';
 import { CameraExplanationScreen } from './src/screens/CameraExplanationScreen';
 import { CameraSetupScreen } from './src/screens/CameraSetupScreen';
 import { ExploreScreen } from './src/screens/ExploreScreen';
-import { LadderDetailScreen, LearnDetailScreen } from './src/screens/ExploreDetailScreens';
+import { LearnDetailScreen } from './src/screens/ExploreDetailScreens';
 import { LiveSessionScreen } from './src/screens/LiveSessionScreen';
 import { ManualCheckupStartScreen } from './src/screens/ManualCheckupStartScreen';
 import {
@@ -294,7 +293,6 @@ type Flow =
   | 'block-intro'
   | 'restart-intro'
   | 'session-complete'
-  | 'ladder-detail'
   | 'learn-detail'
   | 'settings'
   | 'movement-profile-v2-unified-checkup'
@@ -843,7 +841,6 @@ function HaleApp() {
   const [lastSessionResult, setLastSessionResult] = React.useState<TrainingSessionResult | null>(
     null
   );
-  const [selectedLadderId, setSelectedLadderId] = React.useState<string | null>(null);
   const [selectedLearnId, setSelectedLearnId] = React.useState<string | null>(null);
   const profileSyncTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const trainingStateSyncTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1287,7 +1284,6 @@ function HaleApp() {
     setActiveSessionPlan(null);
     setPlanningRecoveryResult(null);
     setLastSessionResult(null);
-    setSelectedLadderId(null);
     setSelectedLearnId(null);
     setMovementProfileV2InitialFlow(null);
     setMovementProfileV2Raw(null);
@@ -1390,14 +1386,12 @@ function HaleApp() {
     setFlow(null);
     setTab('explore');
     setPlanningRecoveryResult(null);
-    setSelectedLadderId(null);
     setSelectedLearnId(null);
   }, [replaceNextNavigationLocation]);
 
   const goSettings = React.useCallback(() => {
     setFlow('settings');
     setPlanningRecoveryResult(null);
-    setSelectedLadderId(null);
     setSelectedLearnId(null);
   }, []);
 
@@ -2677,45 +2671,10 @@ function HaleApp() {
     [handleStartSession]
   );
 
-  const openLadderDetail = React.useCallback((ladderId: string) => {
-    setSelectedLadderId(ladderId);
-    setFlow('ladder-detail');
-  }, []);
-
   const openLearnDetail = React.useCallback((articleId: string) => {
     setSelectedLearnId(articleId);
     setFlow('learn-detail');
   }, []);
-
-  const handleStartLadderPractice = React.useCallback(
-    (ladderId: string, preferences?: TodaySessionPreferences | null) => {
-      const practicePreferences: TodaySessionPreferences = preferences ?? {
-        adjustment: null,
-        painArea: null,
-      };
-      const result = planLadderPracticeSessionResult({
-        ladderId,
-        safetyProfile: prefs.profile.safetyProfile,
-        lifeGoal: prefs.profile.lifeGoal,
-        activeBlock: activeMovementBlock,
-        training,
-        ...practicePreferences,
-        today: new Date(),
-      });
-      const plan = sessionPlanFromPlanningResult(result);
-      if (result.kind === 'unavailable') {
-        setActiveSessionPlan(null);
-        setPlanningRecoveryResult(result);
-        setFlow('session-unavailable');
-        return;
-      }
-      if (!plan || plan.exercises.length === 0) return;
-      setPlanningRecoveryResult(null);
-      setActiveSessionPlan(plan);
-      setFlow('session-preview');
-    },
-    [activeMovementBlock, prefs.profile.lifeGoal, prefs.profile.safetyProfile, training]
-  );
 
   // A surviving mid-session snapshot that matches today's plan (same block,
   // template, planned day, and exercise list) — non-null means the next start
@@ -4499,17 +4458,6 @@ function HaleApp() {
             onFeedback={handleSessionFeedback}
             onDone={goHome}
           />
-        ) : flow === 'ladder-detail' && selectedLadderId ? (
-          <LadderDetailScreen
-            ladderId={selectedLadderId}
-            ladderProgressById={training.ladderProgressById}
-            equipment={training.equipment}
-            safetyProfile={prefs.profile.safetyProfile}
-            activeBlockId={displayActiveMovementBlock?.id}
-            generatedSessionSummaries={training.generatedSessionSummaries}
-            onPractice={() => handleStartLadderPractice(selectedLadderId)}
-            onDone={() => goBack(goExplore)}
-          />
         ) : flow === 'learn-detail' && selectedLearnId ? (
           <LearnDetailScreen
             articleId={selectedLearnId}
@@ -4738,10 +4686,7 @@ function HaleApp() {
               equipment={displayTraining.equipment}
               safetyProfile={displayPrefs.profile.safetyProfile}
               ladderProgressById={displayTraining.ladderProgressById}
-              activeBlockId={displayActiveMovementBlock?.id}
-              generatedSessionSummaries={displayTraining.generatedSessionSummaries}
               onStartExtraSession={handleStartExtraSession}
-              onOpenLadder={openLadderDetail}
               onOpenLearn={openLearnDetail}
               onOpenSettings={goSettings}
             />
