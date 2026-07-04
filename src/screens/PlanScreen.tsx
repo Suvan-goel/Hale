@@ -7,7 +7,7 @@ import {
   Screen,
 } from '../components/ui';
 import { HeaderLogo } from '../components/HeaderLogo';
-import type { ActiveBlockSummary, HaleLifecycleState, TodaySessionAdjustment, TodaySessionPreferences, WeekSessionStatus } from '../haleFlow';
+import type { ActiveBlockSummary, HaleLifecycleState, TodaySessionPreferences, WeekSessionStatus } from '../haleFlow';
 import {
   getPlanEmptyStateCopy,
   getPlanFocusCopy,
@@ -18,8 +18,6 @@ import {
 import { SettingsIcon } from '../navigation/icons';
 import type { ActivityLevel } from '../adherence';
 import { startingEffortLabel } from '../profile';
-import type { PainArea } from '../training';
-import { SessionStartMenu } from './TodayScreen';
 import { colors, fonts, imageOverlayControl, radius, shadow, spacing, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 
@@ -67,7 +65,6 @@ export function PlanScreen({
   onOpenSettings: () => void;
 }) {
   const responsive = useResponsiveLayout();
-  const [pendingSessionId, setPendingSessionId] = React.useState<PlanSessionId | null>(null);
   const goalText = lifeGoalText?.trim();
   const nextSession = weekSessionStatuses.find((session) => session.status === 'next');
   const focusCopy = getPlanFocusCopy(activeBlockSummary?.focusDomain);
@@ -86,33 +83,11 @@ export function PlanScreen({
     else onCreateBlock();
   }
 
-  const openSessionMenu = React.useCallback(
-    (id: PlanSessionId) => {
-      if (lifecycleState === 'inactive_restart') {
-        setPendingSessionId(null);
-        onStartPlanSession(id);
-        return;
-      }
-      setPendingSessionId(id);
-    },
-    [lifecycleState, onStartPlanSession]
-  );
-
-  const closeSessionMenu = React.useCallback(() => {
-    setPendingSessionId(null);
-  }, []);
-
-  const startPendingSession = React.useCallback(
-    (adjustment?: TodaySessionAdjustment | null, painArea?: PainArea | null) => {
-      const targetId = pendingSessionId;
-      setPendingSessionId(null);
-      if (!targetId) return;
-      onStartPlanSession(targetId, {
-        adjustment: adjustment ?? null,
-        painArea: adjustment === 'something_hurts' ? painArea ?? null : null,
-      });
-    },
-    [onStartPlanSession, pendingSessionId]
+  // Starting a plan session goes straight to the session preview, which owns
+  // today's adjustments inline (the former start sheet is gone).
+  const startPlanSession = React.useCallback(
+    (id: PlanSessionId) => onStartPlanSession(id),
+    [onStartPlanSession]
   );
 
   return (
@@ -144,7 +119,7 @@ export function PlanScreen({
               weekNumber={activeBlockSummary.weekNumber}
               focusCopy={focusCopy}
               action={heroAction}
-              onStartPlanSession={openSessionMenu}
+              onStartPlanSession={startPlanSession}
               onStartRetest={onStartRetest}
             />
 
@@ -152,7 +127,7 @@ export function PlanScreen({
               summary={activeBlockSummary}
               progress={progress}
               weekSessionStatuses={weekSessionStatuses}
-              onStartPlanSession={openSessionMenu}
+              onStartPlanSession={startPlanSession}
             />
 
             <BlockTimelineCard summary={activeBlockSummary} retest={retest} />
@@ -167,12 +142,6 @@ export function PlanScreen({
           </>
         )}
       </Screen>
-
-      <SessionStartMenu
-        visible={pendingSessionId !== null}
-        onClose={closeSessionMenu}
-        onStart={startPendingSession}
-      />
     </>
   );
 }

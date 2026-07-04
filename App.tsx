@@ -128,6 +128,7 @@ import {
   type MicroCheckSummaryViewModel,
   type OfficialMovementProfileV2AssessmentRecord,
   type PlanSessionId,
+  type TodaySessionAdjustment,
   type TodaySessionPreferences,
 } from './src/haleFlow';
 import { HistoryStore, HISTORY_SCHEMA_VERSION, StoredCheckUp } from './src/history';
@@ -2404,6 +2405,21 @@ function HaleApp() {
     handleStartSession({ lifecycleState: 'inactive_restart' });
   }, [handleStartSession]);
 
+  /**
+   * Re-plan the previewed session with an adjustment chosen on the preview
+   * screen, keeping the original start target (template/preset) intact.
+   */
+  const handleAdjustPreviewSession = React.useCallback(
+    (adjustment: TodaySessionAdjustment | null, painArea: PainArea | null) => {
+      handleStartSession({
+        ...(lastStartSessionPreferencesRef.current ?? {}),
+        adjustment,
+        painArea,
+      });
+    },
+    [handleStartSession]
+  );
+
   const handleStartPlanSession = React.useCallback(
     (targetSessionTemplateId: PlanSessionId, preferences?: TodaySessionPreferences | null) => {
       if (lifecycle.state === 'inactive_restart') {
@@ -4011,6 +4027,7 @@ function HaleApp() {
             }
             onStartOver={sessionResume ? discardSessionInProgress : undefined}
             onStart={beginPlannedSession}
+            onAdjust={sessionResume ? undefined : handleAdjustPreviewSession}
             onCancel={() => goBack(goHome)}
           />
         ) : flow === 'training' && sessionIds.length > 0 ? (

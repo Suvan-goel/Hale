@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {
   Image,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -34,54 +33,6 @@ const SNAPSHOT_ROWS: readonly { key: SnapshotKey; short: string; title: string }
   { key: 'mobility', short: 'M', title: 'Mobility' },
 ];
 
-const PAIN_AREAS: readonly { label: string; value: PainArea }[] = [
-  { label: 'Knee', value: 'knee' },
-  { label: 'Hip', value: 'hip' },
-  { label: 'Back', value: 'back' },
-  { label: 'Shoulder', value: 'shoulder' },
-  { label: 'Ankle', value: 'ankle' },
-  { label: 'Neck', value: 'neck' },
-  { label: 'Other', value: 'other' },
-];
-
-const SESSION_MENU_OPTIONS: readonly {
-  value: TodaySessionAdjustment | null;
-  label: string;
-  description: string;
-  primaryLabel: string;
-}[] = [
-  {
-    value: null,
-    label: 'Start as planned',
-    description: "Keep today's full session and usual pace.",
-    primaryLabel: 'Start as planned',
-  },
-  {
-    value: 'shorter',
-    label: 'Make it shorter',
-    description: 'Keep the main goal, but spend less time today.',
-    primaryLabel: 'Start shorter session',
-  },
-  {
-    value: 'gentler',
-    label: 'Make it gentler',
-    description: 'Use easier movements, a slower pace, and more rest.',
-    primaryLabel: 'Start gentler session',
-  },
-  {
-    value: 'no_equipment',
-    label: 'Less equipment today',
-    description: 'Hale will use movements that fit what you have available now.',
-    primaryLabel: 'Start with less equipment',
-  },
-  {
-    value: 'something_hurts',
-    label: 'Something hurts',
-    description: 'Tell Hale where you need extra care today.',
-    primaryLabel: 'Start carefully',
-  },
-];
-
 export function TodayScreen({
   profile,
   lifecycle,
@@ -93,15 +44,10 @@ export function TodayScreen({
   onPrimaryAction: (preferences?: { adjustment?: TodaySessionAdjustment | null; painArea?: PainArea | null }) => void;
   onOpenSettings: () => void;
 }) {
-  const [sessionMenuVisible, setSessionMenuVisible] = React.useState(false);
   const responsive = useResponsiveLayout();
   const bottomScrollClearance = useScreenScrollClearance();
   const compact = responsive.isCompactPhone;
   const snapshot = lifecycle.movementSnapshot;
-  const canAdjustSession =
-    lifecycle.state === 'first_session_ready' ||
-    lifecycle.state === 'normal_training_day' ||
-    lifecycle.state === 'week_complete';
   const isSessionAction =
     lifecycle.primaryAction.type === 'start_first_session' ||
     lifecycle.primaryAction.type === 'start_today_session';
@@ -109,21 +55,9 @@ export function TodayScreen({
   const sessionSubtitle = todayActionSubtitle(lifecycle);
   const sessionDetail = todaySessionDetail(lifecycle);
 
-  const startWith = React.useCallback(
-    (adjustment?: TodaySessionAdjustment | null, painArea?: PainArea | null) => {
-      setSessionMenuVisible(false);
-      onPrimaryAction({ adjustment: adjustment ?? null, painArea: adjustment === 'something_hurts' ? painArea ?? null : null });
-    },
-    [onPrimaryAction]
-  );
-
-  const handleStartPress = () => {
-    if (canAdjustSession) {
-      setSessionMenuVisible(true);
-      return;
-    }
-    onPrimaryAction();
-  };
+  // Start goes straight to the session preview, which owns today's
+  // adjustments (shorter / gentler / equipment / something hurts) inline.
+  const handleStartPress = () => onPrimaryAction();
 
   return (
     <View style={styles.background}>
@@ -177,12 +111,6 @@ export function TodayScreen({
 
         <TodayContextStrip compact={compact} lifecycle={lifecycle} />
       </ScrollView>
-
-      <SessionStartMenu
-        visible={sessionMenuVisible}
-        onClose={() => setSessionMenuVisible(false)}
-        onStart={startWith}
-      />
     </View>
   );
 }
@@ -463,149 +391,6 @@ function DomainGlyph({ domain }: { domain: SnapshotKey }) {
       <Path d="M12 13 L8.7 18" {...s} />
       <Path d="M12 13 L15.6 18.5" {...s} />
     </Svg>
-  );
-}
-
-export function SessionStartMenu({
-  visible,
-  onClose,
-  onStart,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  onStart: (adjustment?: TodaySessionAdjustment | null, painArea?: PainArea | null) => void;
-}) {
-  const responsive = useResponsiveLayout();
-  const [selected, setSelected] = React.useState<TodaySessionAdjustment | null>(null);
-  const [painArea, setPainArea] = React.useState<PainArea | null>(null);
-  const compact = responsive.isCompactPhone;
-  const needsPainArea = selected === 'something_hurts' && !painArea;
-  const selectedOption = SESSION_MENU_OPTIONS.find((option) => option.value === selected) ?? SESSION_MENU_OPTIONS[0];
-  const primaryLabel = needsPainArea ? 'Choose an area first' : selectedOption.primaryLabel;
-
-  React.useEffect(() => {
-    if (!visible) return;
-    setSelected(null);
-    setPainArea(null);
-  }, [visible]);
-
-  return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.modalRoot}>
-        <Pressable style={styles.modalScrim} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close session options" />
-        <View style={[styles.sheet, compact && styles.compactCardPadding]}>
-          <View style={styles.sheetHandle} />
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetEyebrow}>Today's session</Text>
-            <Text style={styles.sheetTitle}>How would you like to start?</Text>
-            <Text style={styles.sheetSubtitle}>Choose how Hale should adjust today's session.</Text>
-          </View>
-
-          <ScrollView
-            style={styles.sheetScroll}
-            contentContainerStyle={styles.sheetScrollContent}
-            showsVerticalScrollIndicator={false}
-            bounces={false}
-          >
-            <View style={styles.menuOptions}>
-              {SESSION_MENU_OPTIONS.map((option) => (
-                <MenuOption
-                  key={option.label}
-                  option={option}
-                  selected={selected === option.value}
-                  onPress={() => setSelected(option.value)}
-                />
-              ))}
-            </View>
-
-            {selected === 'something_hurts' ? (
-              <View style={[styles.painMenu, compact && styles.compactCardPadding]}>
-                <View style={[styles.painAccentRail, compact && styles.painAccentRailCompact]} />
-                <View style={[styles.painHeader, compact && styles.painHeaderCompact]}>
-                  <Text style={styles.painTitle}>Where should Hale be careful?</Text>
-                  <Text style={styles.painBody}>Choose one area so the session can stay comfortable.</Text>
-                </View>
-                <View style={styles.painOptions}>
-                  {PAIN_AREAS.map((area) => (
-                    <Pressable
-                      key={area.value}
-                      style={({ pressed }) => [
-                        styles.painChip,
-                        compact && styles.compactControlPadding,
-                        painArea === area.value && styles.painChipSelected,
-                        pressed && styles.pressed,
-                      ]}
-                      onPress={() => setPainArea((value) => (value === area.value ? null : area.value))}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: painArea === area.value }}
-                      accessibilityLabel={area.label}
-                    >
-                      <Text style={[styles.painChipText, painArea === area.value && styles.painChipTextSelected]}>{area.label}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-            ) : null}
-          </ScrollView>
-
-          <View style={styles.sheetActions}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.sheetPrimary,
-                needsPainArea && styles.sheetPrimaryDisabled,
-                pressed && !needsPainArea && styles.sheetPrimaryPressed,
-              ]}
-              onPress={() => onStart(selected, selected === 'something_hurts' ? painArea : null)}
-              disabled={needsPainArea}
-              accessibilityRole="button"
-              accessibilityState={{ disabled: needsPainArea }}
-              accessibilityLabel={needsPainArea ? 'Choose where Hale should be careful' : primaryLabel}
-            >
-              <Text style={styles.sheetPrimaryText}>{primaryLabel}</Text>
-              <Text style={styles.sheetPrimaryArrow}>›</Text>
-            </Pressable>
-            <Pressable style={({ pressed }) => [styles.sheetCancel, pressed && styles.pressed]} onPress={onClose} accessibilityRole="button">
-              <Text style={styles.sheetCancelText}>Cancel</Text>
-            </Pressable>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-function MenuOption({
-  option,
-  selected,
-  onPress,
-}: {
-  option: (typeof SESSION_MENU_OPTIONS)[number];
-  selected: boolean;
-  onPress: () => void;
-}) {
-  const responsive = useResponsiveLayout();
-  return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.menuOption,
-        responsive.isCompactPhone && styles.compactCardPadding,
-        selected && styles.menuOptionSelected,
-        pressed && styles.pressed,
-      ]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      accessibilityLabel={option.label}
-    >
-      <View style={[styles.menuRail, selected && styles.menuRailSelected]} />
-      <View style={styles.menuOptionCopy}>
-        <Text style={[styles.menuOptionText, selected && styles.menuOptionTextSelected]}>{option.label}</Text>
-        <Text style={[styles.menuOptionDescription, selected && styles.menuOptionDescriptionSelected]}>{option.description}</Text>
-      </View>
-      <View style={[styles.menuRadio, selected && styles.menuRadioSelected]}>
-        {selected ? <View style={styles.menuRadioDot} /> : null}
-      </View>
-    </Pressable>
   );
 }
 
@@ -1090,254 +875,6 @@ const styles = StyleSheet.create({
     fontSize: 21,
     lineHeight: 22,
     marginTop: -1,
-  },
-  modalRoot: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-  },
-  modalScrim: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(17,20,18,0.32)',
-  },
-  sheet: {
-    width: '100%',
-    maxWidth: spacing.pageMaxWidth,
-    maxHeight: '92%',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.xl,
-    backgroundColor: colors.bgSurface,
-    ...shadow.card,
-  },
-  sheetHandle: {
-    width: 42,
-    height: 4,
-    borderRadius: 2,
-    alignSelf: 'center',
-    backgroundColor: colors.border,
-    marginBottom: spacing.lg,
-  },
-  sheetHeader: {
-    gap: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    paddingBottom: spacing.md,
-  },
-  sheetEyebrow: {
-    ...type.label,
-    color: colors.accentDeep,
-  },
-  sheetTitle: {
-    fontFamily: fonts.serifMedium,
-    fontSize: 25,
-    lineHeight: 31,
-    letterSpacing: 0,
-    color: colors.textPrimary,
-  },
-  sheetSubtitle: {
-    ...type.bodySmall,
-    color: colors.textSecondary,
-  },
-  sheetScroll: {
-    flexShrink: 1,
-  },
-  sheetScrollContent: {
-    paddingHorizontal: spacing.sm,
-    paddingBottom: spacing.lg,
-  },
-  menuOptions: {
-    gap: spacing.sm,
-  },
-  menuOption: {
-    minHeight: 86,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-    borderRadius: 18,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.bgSurface,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  menuOptionSelected: {
-    backgroundColor: colors.bgGold,
-    borderColor: colors.accentDeep,
-  },
-  menuRail: {
-    width: 4,
-    alignSelf: 'stretch',
-    borderRadius: radius.pill,
-    backgroundColor: colors.background,
-  },
-  menuRailSelected: {
-    backgroundColor: colors.accentDeep,
-  },
-  menuOptionCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  menuOptionText: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 16,
-    lineHeight: 22,
-    letterSpacing: 0,
-    color: colors.textPrimary,
-  },
-  menuOptionTextSelected: {
-    color: colors.accentDeep,
-  },
-  menuOptionDescription: {
-    ...type.caption,
-    color: colors.textSecondary,
-  },
-  menuOptionDescriptionSelected: {
-    color: colors.textSecondary,
-  },
-  menuRadio: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.bgSurface,
-  },
-  menuRadioSelected: {
-    borderColor: colors.accentDeep,
-  },
-  menuRadioDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.accentDeep,
-  },
-  painMenu: {
-    position: 'relative',
-    gap: spacing.lg,
-    marginTop: spacing.md,
-    borderRadius: 24,
-    paddingHorizontal: 22,
-    paddingVertical: 20,
-    backgroundColor: colors.bgSurface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    boxShadow: '0 14px 30px rgba(17,20,18,0.055)',
-  },
-  painAccentRail: {
-    position: 'absolute',
-    top: 22,
-    left: 22,
-    width: 4,
-    height: 56,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accentDeep,
-    opacity: 0.92,
-  },
-  painAccentRailCompact: {
-    left: spacing.md,
-  },
-  painHeader: {
-    gap: 5,
-    paddingLeft: 18,
-    paddingRight: spacing.sm,
-  },
-  painHeaderCompact: {
-    paddingLeft: 14,
-  },
-  painTitle: {
-    color: colors.textPrimary,
-    fontFamily: fonts.sansMedium,
-    fontSize: 17,
-    lineHeight: 23,
-    letterSpacing: 0,
-  },
-  painBody: {
-    color: colors.textSecondary,
-    fontFamily: fonts.sansRegular,
-    fontSize: 15,
-    lineHeight: 22,
-    letterSpacing: 0,
-  },
-  painOptions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  painChip: {
-    minHeight: 42,
-    justifyContent: 'center',
-    borderRadius: radius.pill,
-    paddingHorizontal: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    backgroundColor: colors.bgBase,
-    boxShadow: '0 4px 12px rgba(17,20,18,0.035)',
-  },
-  painChipSelected: {
-    backgroundColor: colors.accentDeep,
-    borderColor: colors.accentDeep,
-  },
-  painChipText: {
-    color: colors.textSecondary,
-    fontFamily: fonts.sansMedium,
-    fontSize: 15,
-    lineHeight: 20,
-    letterSpacing: 0,
-  },
-  painChipTextSelected: {
-    color: colors.onAccent,
-  },
-  sheetActions: {
-    gap: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    paddingTop: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.divider,
-  },
-  sheetPrimary: {
-    minHeight: 58,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accent,
-  },
-  sheetPrimaryPressed: {
-    backgroundColor: colors.accentHover,
-    transform: [{ scale: 0.99 }],
-  },
-  sheetPrimaryDisabled: {
-    backgroundColor: colors.border,
-    opacity: 0.72,
-  },
-  sheetPrimaryText: {
-    ...type.button,
-    color: colors.onAccent,
-  },
-  sheetPrimaryArrow: {
-    color: colors.onAccent,
-    fontFamily: fonts.sansMedium,
-    fontSize: 22,
-    lineHeight: 23,
-    letterSpacing: 0,
-    marginTop: -1,
-  },
-  sheetCancel: {
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: spacing.sm,
-  },
-  sheetCancelText: {
-    ...type.bodySmall,
-    color: colors.textSecondary,
-    fontFamily: fonts.sansMedium,
   },
   pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
 });

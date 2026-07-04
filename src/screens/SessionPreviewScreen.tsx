@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
   Card,
@@ -10,15 +10,43 @@ import {
 } from '../components/ui';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
-import { controlledBetaEquipmentPositioning, extraSessionCardTitle, type HaleSessionPlan } from '../haleFlow';
+import {
+  controlledBetaEquipmentPositioning,
+  extraSessionCardTitle,
+  type HaleSessionPlan,
+  type TodaySessionAdjustment,
+} from '../haleFlow';
+import type { PainArea } from '../training';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
+
+const ADJUST_OPTIONS: readonly {
+  value: TodaySessionAdjustment;
+  label: string;
+  description: string;
+}[] = [
+  { value: 'shorter', label: 'Make it shorter', description: 'Keep the main goal, but spend less time today.' },
+  { value: 'gentler', label: 'Make it gentler', description: 'Easier movements, a slower pace, and more rest.' },
+  { value: 'no_equipment', label: 'Less equipment', description: 'Use movements that fit what you have right now.' },
+  { value: 'something_hurts', label: 'Something hurts', description: 'Tell Hale where to be careful today.' },
+];
+
+const PAIN_AREAS: readonly { label: string; value: PainArea }[] = [
+  { label: 'Knee', value: 'knee' },
+  { label: 'Hip', value: 'hip' },
+  { label: 'Back', value: 'back' },
+  { label: 'Shoulder', value: 'shoulder' },
+  { label: 'Ankle', value: 'ankle' },
+  { label: 'Neck', value: 'neck' },
+  { label: 'Other', value: 'other' },
+];
 
 export function SessionPreviewScreen({
   plan,
   resumeFromExercise,
   onStartOver,
   onStart,
+  onAdjust,
   onCancel,
 }: {
   plan: HaleSessionPlan;
@@ -27,12 +55,18 @@ export function SessionPreviewScreen({
   /** Discard the interrupted run's progress and let the session start fresh. */
   onStartOver?: () => void;
   onStart: () => void;
+  /**
+   * Re-plan today's session with an adjustment (or null to go back to the
+   * planned session). Absent while resuming an interrupted session.
+   */
+  onAdjust?: (adjustment: TodaySessionAdjustment | null, painArea: PainArea | null) => void;
   onCancel: () => void;
 }) {
   const responsive = useResponsiveLayout();
   const equipment = plan.metadata?.equipmentNeeded ?? [];
   const focusStimulusCopy = focusStimulusPreviewCopy(plan);
   const resuming = resumeFromExercise !== undefined && resumeFromExercise > 1;
+  const showAdjust = !!onAdjust && !resuming;
   return (
     <Screen>
       <BackArrowButton accessibilityLabel="Back" onPress={onCancel} />
@@ -64,6 +98,8 @@ export function SessionPreviewScreen({
         ) : null}
         {focusStimulusCopy ? <Text style={styles.devNote}>{focusStimulusCopy}</Text> : null}
       </Card>
+
+      {showAdjust && onAdjust ? <AdjustTodayCard plan={plan} onAdjust={onAdjust} /> : null}
 
       <Card style={styles.exercisesCard}>
         <View style={styles.sectionHead}>
@@ -123,6 +159,121 @@ export function SessionPreviewScreen({
         ) : null}
       </View>
     </Screen>
+  );
+}
+
+/**
+ * The former Today adjust-sheet, folded into the preview so starting a session
+ * is one stop: what's coming and how it should feel live on the same screen.
+ * Selection state derives from the plan itself (metadata.userAdjustment /
+ * painAreas); toggling re-plans and this card re-renders from the new plan.
+ */
+function AdjustTodayCard({
+  plan,
+  onAdjust,
+}: {
+  plan: HaleSessionPlan;
+  onAdjust: (adjustment: TodaySessionAdjustment | null, painArea: PainArea | null) => void;
+}) {
+  const activeAdjustment = plan.metadata?.userAdjustment ?? null;
+  const activePainArea = plan.metadata?.painAreas?.[0] ?? null;
+  // 'Something hurts' needs an area before it can re-plan; this holds the
+  // in-between moment where the option is chosen but no area is picked yet.
+  const [pendingHurt, setPendingHurt] = React.useState(false);
+  const hurtSelected = pendingHurt || activeAdjustment === 'something_hurts';
+
+  const toggleOption = (value: TodaySessionAdjustment) => {
+    if (value === 'something_hurts') {
+      if (hurtSelected) {
+        setPendingHurt(false);
+        if (activeAdjustment === 'something_hurts') onAdjust(null, null);
+        return;
+      }
+      setPendingHurt(true);
+      return;
+    }
+    setPendingHurt(false);
+    if (activeAdjustment === value) {
+      onAdjust(null, null);
+      return;
+    }
+    onAdjust(value, null);
+  };
+
+  const selectPainArea = (area: PainArea) => {
+    setPendingHurt(false);
+    if (activeAdjustment === 'something_hurts' && activePainArea === area) {
+      onAdjust(null, null);
+      return;
+    }
+    onAdjust('something_hurts', area);
+  };
+
+  return (
+    <Card style={styles.adjustCard}>
+      <View style={styles.sectionCopy}>
+        <Text style={styles.cardKicker}>Not feeling 100%?</Text>
+        <Text style={styles.sectionTitle}>Adjust for today</Text>
+      </View>
+      <View style={styles.adjustOptions}>
+        {ADJUST_OPTIONS.map((option) => {
+          const selected =
+            option.value === 'something_hurts' ? hurtSelected : activeAdjustment === option.value;
+          return (
+            <Pressable
+              key={option.value}
+              style={({ pressed }) => [
+                styles.adjustOption,
+                selected && styles.adjustOptionSelected,
+                pressed && styles.adjustPressed,
+              ]}
+              onPress={() => toggleOption(option.value)}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              accessibilityLabel={`${option.label}. ${option.description}`}
+            >
+              <View style={styles.adjustOptionCopy}>
+                <Text style={[styles.adjustOptionLabel, selected && styles.adjustOptionLabelSelected]}>
+                  {option.label}
+                </Text>
+                <Text style={styles.adjustOptionDescription}>{option.description}</Text>
+              </View>
+              <View style={[styles.adjustCheck, selected && styles.adjustCheckSelected]}>
+                {selected ? <View style={styles.adjustCheckDot} /> : null}
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
+      {hurtSelected ? (
+        <View style={styles.painBlock}>
+          <Text style={styles.painPrompt}>Where should Hale be careful?</Text>
+          <View style={styles.painOptions}>
+            {PAIN_AREAS.map((area) => {
+              const selected = activeAdjustment === 'something_hurts' && activePainArea === area.value;
+              return (
+                <Pressable
+                  key={area.value}
+                  style={({ pressed }) => [
+                    styles.painChip,
+                    selected && styles.painChipSelected,
+                    pressed && styles.adjustPressed,
+                  ]}
+                  onPress={() => selectPainArea(area.value)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  accessibilityLabel={area.label}
+                >
+                  <Text style={[styles.painChipText, selected && styles.painChipTextSelected]}>
+                    {area.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
+    </Card>
   );
 }
 
@@ -509,4 +660,112 @@ const styles = StyleSheet.create({
   },
   actions: { gap: spacing.md },
   action: { shadowOpacity: 0 },
+  adjustCard: {
+    gap: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    borderRadius: radius.panel,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+    backgroundColor: colors.surface,
+    ...shadow.card,
+  },
+  adjustOptions: {
+    gap: spacing.sm,
+  },
+  adjustOption: {
+    minHeight: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: radius.input,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+  },
+  adjustOptionSelected: {
+    backgroundColor: colors.bgGold,
+    borderColor: colors.goldBorder,
+  },
+  adjustPressed: {
+    opacity: 0.86,
+    transform: [{ scale: 0.99 }],
+  },
+  adjustOptionCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  adjustOptionLabel: {
+    ...type.bodySmall,
+    fontFamily: fonts.sansMedium,
+    color: colors.textPrimary,
+  },
+  adjustOptionLabelSelected: {
+    color: colors.accentDeep,
+  },
+  adjustOptionDescription: {
+    ...type.caption,
+    color: colors.textSecondary,
+  },
+  adjustCheck: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.inputBorder,
+    backgroundColor: colors.surface,
+  },
+  adjustCheckSelected: {
+    borderColor: colors.accentDeep,
+  },
+  adjustCheckDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: colors.accentDeep,
+  },
+  painBlock: {
+    gap: spacing.md,
+    paddingTop: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
+  },
+  painPrompt: {
+    ...type.bodySmall,
+    fontFamily: fonts.sansMedium,
+    color: colors.textPrimary,
+  },
+  painOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  painChip: {
+    minHeight: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+  },
+  painChipSelected: {
+    backgroundColor: colors.bgGold,
+    borderColor: colors.goldBorder,
+  },
+  painChipText: {
+    ...type.bodySmall,
+    fontFamily: fonts.sansMedium,
+    color: colors.textSecondary,
+  },
+  painChipTextSelected: {
+    color: colors.accentDeep,
+  },
 });

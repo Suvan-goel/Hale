@@ -36,69 +36,57 @@ export function MovementProfileV2PracticeResultsScreen({
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <HeaderLogo />
-          <Text style={styles.title}>Optional check-up saved</Text>
+          <Text style={styles.title}>Your check-in today</Text>
         </View>
         <Text style={styles.subtitle}>
-          This full Movement Check-Up is for your reference only. It did not update your Movement Profile or plan.
+          Here is how today went. Your Movement Profile and plan are unchanged.
         </Text>
       </View>
 
       <Card style={styles.card}>
-        <Text style={styles.cardTitle}>Captured today</Text>
+        <Text style={styles.cardTitle}>Today</Text>
         <View style={styles.rowStack}>
-          {rows.map((row, index) => (
-            <View key={row.label} style={[styles.row, index > 0 && styles.rowDivider]}>
-              <Text style={styles.rowLabel}>{row.label}</Text>
-              <Text style={styles.rowValue}>{row.value}</Text>
-            </View>
-          ))}
+          {rows.length === 0 ? (
+            <Text style={styles.rowLabel}>No measurements were captured this time.</Text>
+          ) : (
+            rows.map((row, index) => (
+              <View key={row.label} style={[styles.row, index > 0 && styles.rowDivider]}>
+                <Text style={styles.rowLabel}>{row.label}</Text>
+                <Text style={styles.rowValue}>{row.value}</Text>
+              </View>
+            ))
+          )}
         </View>
       </Card>
 
       <Text style={styles.note}>
-        Optional check-ups stay separate from your official history, plan timing, and block reports.
+        This was a one-time look at today. Your official check-ups are what update your plan.
       </Text>
       <PrimaryButton title="Done" onPress={onDone} />
     </Screen>
   );
 }
 
+// Only what was actually measured, in plain units — no "Not captured" filler rows and
+// no internal metrics (rise velocity in body units means nothing without a trend).
 function practiceRows(checkUp: CheckUp): ResultRow[] {
   const rows: ResultRow[] = [];
   const chair = resultFor<ChairRiseV2Result>(checkUp, CHAIR_RISE_V2_ID);
   const balanceEyesOpen = resultFor<BalanceEyesOpenV2Result>(checkUp, BALANCE_EYES_OPEN_V2_ID);
   const balanceLegacy = resultFor<OneLegBalanceV2Result>(checkUp, ONE_LEG_BALANCE_V2_ID);
   const shoulder = resultFor<ActiveShoulderReachV2Result>(checkUp, ACTIVE_SHOULDER_REACH_V2_ID);
-  const hinge = resultFor<HingeReachResult>(checkUp, HINGE_REACH_ID);
 
-  rows.push({
-    label: 'Chair rises',
-    value: chair && Number.isFinite(chair.reps) ? `${chair.reps} in 30 seconds` : 'Not captured',
-  });
-  rows.push({
-    label: 'Rise velocity',
-    value: chair && Number.isFinite(chair.sessionMeanVel) ? `${chair.sessionMeanVel.toFixed(2)} body units/sec` : 'Not captured',
-  });
-  rows.push({
-    label: 'Balance',
-    value: balanceEyesOpen && Number.isFinite(balanceEyesOpen.totalMaintainedMs)
-      ? `${Math.round(balanceEyesOpen.totalMaintainedMs / 1000)} sec total`
-      : balanceLegacy && Number.isFinite(balanceLegacy.bestHoldSec)
-      ? `${Math.round(balanceLegacy.bestHoldSec)} sec best hold`
-      : 'Not captured',
-  });
-  rows.push({
-    label: 'Shoulder reach',
-    value: shoulder && Number.isFinite(shoulder.peakFlexionDeg)
-      ? `${Math.round(shoulder.peakFlexionDeg)} deg`
-      : 'Not captured',
-  });
-  rows.push({
-    label: 'Hinge reach',
-    value: hinge && typeof hinge.reachBu === 'number' && Number.isFinite(hinge.reachBu)
-      ? `${hinge.reachBu.toFixed(2)} body units`
-      : 'Not captured',
-  });
+  if (chair && Number.isFinite(chair.reps)) {
+    rows.push({ label: 'Chair rises', value: `${chair.reps} in 30 seconds` });
+  }
+  if (balanceEyesOpen && Number.isFinite(balanceEyesOpen.totalMaintainedMs)) {
+    rows.push({ label: 'Balance', value: `${Math.round(balanceEyesOpen.totalMaintainedMs / 1000)} sec total` });
+  } else if (balanceLegacy && Number.isFinite(balanceLegacy.bestHoldSec)) {
+    rows.push({ label: 'Balance', value: `${Math.round(balanceLegacy.bestHoldSec)} sec best hold` });
+  }
+  if (shoulder && Number.isFinite(shoulder.peakFlexionDeg)) {
+    rows.push({ label: 'Shoulder reach', value: `${Math.round(shoulder.peakFlexionDeg)}°` });
+  }
   return rows;
 }
 
