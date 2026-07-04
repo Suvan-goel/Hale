@@ -3221,3 +3221,35 @@ PUBLIC RELEASE REMAINS BLOCKED
   the full run all live in that refactor's blast radius (results adapter copy changes), not in
   this pass. Owed on device: the Settings screen walk-through (row order, merged safety card,
   toggle round-trip).
+
+## 2026-07-04 — Today pass: measured bands drive the snapshot copy; the hero copy has one source
+
+- **Context:** screen-by-screen polish continued with Today (read-only review, then an
+  approved pass). Layout was strong; the findings were truthfulness and duplication.
+- **Honest snapshot rows (the headline fix):** the lifecycle computes a real per-domain band
+  from measured age ranges (`strong`/`building`/`starting_point`), but the screen hardcoded
+  the row copy — mobility always "Doing well for now", other domains always "Needs steady
+  practice", regardless of data. Rows now map the band: strong → "Doing well", building →
+  "Building steadily", starting_point → "A good place to start"; the focus-domain callout
+  ("Your main focus") is unchanged. Evidence-first presentation is a product law; the label
+  must reflect the measurement.
+- **One source for the hero copy:** TodayScreen re-derived title/subtitle/CTA per action type
+  on top of `getTodayPrimaryAction`, duplicating some lifecycle strings, contradicting others,
+  discarding the micro-check's domain-aware title, and patching strings that no longer exist
+  ("Today's Hale Session", "Start First Session", "Move with intention"). The winning copy was
+  promoted into `appLifecycle` (`week_complete` → "Your week is complete",
+  `inactive_restart` subtitle → "…keep your plan moving.", `normal_training_day` → "Today's
+  session is ready" + simpler subtitle) and the entire screen-side rewrite layer deleted. The
+  micro-check hero regains its domain-aware title ("Balance check-in").
+- **Context strip earns its place or disappears:** the pre-plan "Next step" fallback repeated
+  the hero (same action, compressed via a fragile `contextValue()` heuristic) and the snapshot
+  intro (check-up status) — three check-up mentions on the onboarding screen. The strip now
+  renders only with an active plan (week number + next check-up); the fallback branch and
+  heuristic are gone. "Next Check-Up" → sentence case.
+- **Polish:** settings button to the 48px tap target (kept the intentional transparent-on-warm
+  look over the shared chip-style `SettingsIconButton`); snapshot card title unified to the
+  serif card-title style; App.tsx's duplicate `TodayScreen` ternary branch collapsed into the
+  fallback.
+- **Verification:** tsc clean; 1,323/1,323 green (no test pinned the old copy). Owed on
+  device: each lifecycle state's hero copy, band labels against a real check-up, and the
+  strip's absence pre-plan.
