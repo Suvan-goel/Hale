@@ -600,16 +600,11 @@ describe('Training recording visual guidance adapter', () => {
     });
   });
 
-  it('maps valid-time and step-up recovery states with metric protection', () => {
+  it('maps the valid-time recovery state with metric protection', () => {
     const validTime = buildTrainingRecordingVisualGuidance({
       ...trainingInput(),
       phase: 'set',
       validTimeCaption: 'Tracking paused. Reset your position.',
-    });
-    const stepUp = buildTrainingRecordingVisualGuidance({
-      ...trainingInput(),
-      phase: 'set',
-      stepUpCorrection: { code: 'wrong_lead', expectedLeadSide: 'left' },
     });
 
     expect(validTime).toMatchObject({
@@ -619,14 +614,6 @@ describe('Training recording visual guidance adapter', () => {
       blocksAutoStart: true,
       metricProtected: true,
       reason: 'training:active:valid-time',
-    });
-    expect(stepUp).toMatchObject({
-      visualState: 'adjust',
-      source: 'training_active',
-      blocksMeasurement: true,
-      blocksAutoStart: true,
-      metricProtected: true,
-      reason: 'training:active:step-up:wrong_lead',
     });
   });
 
@@ -717,7 +704,6 @@ function trainingInput(): Parameters<typeof buildTrainingRecordingVisualGuidance
     setupIssue: false,
     floorSetup: null,
     validTimeCaption: null,
-    stepUpCorrection: null,
     measuring: false,
   };
 }

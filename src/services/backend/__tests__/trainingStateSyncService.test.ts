@@ -1,11 +1,5 @@
 import type { TrainingState } from '../../../training';
-import {
-  applyBothSidesExerciseCompletionToStartSideSeed,
-  createStepUpAlternationRuntimeState,
-  defaultTrainingState,
-  deriveStepUpAlternationPlanForExerciseId,
-  serializeStepUpAlternationRuntimeState,
-} from '../../../training';
+import { defaultTrainingState } from '../../../training';
 import { supabase } from '../../../lib/supabase';
 import { normalizeCanonicalEquipment, plannedEquipmentSnapshotFromCanonical } from '../../../profile';
 
@@ -290,97 +284,6 @@ describe('training state snapshot sync mapping', () => {
     });
   });
 
-  it('retains step-up alternation metadata and shared seed in recovery snapshots', () => {
-    const plan = deriveStepUpAlternationPlanForExerciseId('right');
-    const seed = applyBothSidesExerciseCompletionToStartSideSeed(undefined, {
-      exerciseId: 'step-up',
-      completed: true,
-      countsTowardMainPlan: true,
-      eventId: 'main-completion:step-up',
-    });
-    const payload = mapLocalTrainingStateToRemotePayload(
-      {
-        training: trainingState({
-          activeSetRuntime: activeStepUpRuntime(plan),
-          activeTrainingVoiceRuntime: {
-            version: 1,
-            runtimeMode: 'internal_v21',
-            phase: 'paused',
-            sessionEpoch: 1,
-            itemEpoch: 1,
-            setEpoch: 1,
-            attemptEpoch: 1,
-            safetyMemory: defaultTrainingState().activeTrainingVoiceRuntime?.safetyMemory ?? {
-              version: 1,
-              universalSafety: 'completed',
-              introducedSafetyFamilies: [],
-              floor: {
-                floorFamilyIntroduced: false,
-                currentEnvironment: 'unknown',
-                currentFloorItemId: null,
-                currentFloorSetupEpoch: 0,
-              },
-              firstUseExerciseIds: [],
-            },
-            pausedOrigin: 'active',
-            recoveryEpisode: null,
-            completedTransitionIds: ['rest-1'],
-            firedProgressEventIds: [],
-            activeVoiceId: 'clara',
-            pendingVoiceId: null,
-            planFingerprint: 'training-voice-v21:test',
-          },
-          bothSidesStartSideSeed: seed,
-          generatedSessionSummaries: [
-            {
-              id: 'generated-step-up',
-              source: 'block_generated' as const,
-              title: 'Strength Session B',
-              exerciseIds: ['step-up'],
-              exercises: [
-                {
-                  exerciseId: 'step-up',
-                  sets: 3,
-                  repsPerSet: 12,
-                  stepUpAlternationPlan: plan,
-                  stepUpInitialLeadSide: 'right',
-                },
-              ],
-            },
-          ],
-        }),
-        updatedAt,
-      },
-      'user-123'
-    );
-    const json = stateJson(payload);
-    const generatedSessionContext = json.generatedSessionContext as {
-      recentSummaries: Array<{
-        exercises: Array<{
-          stepUpAlternationPlan: { planFingerprint: string };
-          stepUpInitialLeadSide: string;
-        }>;
-      }>;
-    };
-
-    expect(json.bothSidesStartSideSeed).toMatchObject({
-      nextBothSidesStartSideByExercise: { 'step-up': 'right' },
-    });
-    expect(json.activeSetRuntime).toMatchObject({
-      kind: 'step_up_alternation',
-      state: { plan: { planFingerprint: plan.planFingerprint } },
-    });
-    expect(json.activeTrainingVoiceRuntime).toMatchObject({
-      runtimeMode: 'internal_v21',
-      phase: 'paused',
-      completedTransitionIds: ['rest-1'],
-      activeVoiceId: 'clara',
-    });
-    expect(generatedSessionContext.recentSummaries[0].exercises[0].stepUpAlternationPlan.planFingerprint)
-      .toBe(plan.planFingerprint);
-    expect(generatedSessionContext.recentSummaries[0].exercises[0].stepUpInitialLeadSide).toBe('right');
-  });
-
   it('upserts one training_state row per user and skips an unchanged duplicate snapshot', async () => {
     const upsert = jest.fn().mockResolvedValue({ error: null });
     (supabase.from as jest.Mock).mockReturnValue({ upsert });
@@ -413,14 +316,3 @@ describe('training state snapshot sync mapping', () => {
   });
 });
 
-function activeStepUpRuntime(plan: ReturnType<typeof deriveStepUpAlternationPlanForExerciseId>) {
-  return {
-    kind: 'step_up_alternation' as const,
-    schemaVersion: 1 as const,
-    state: serializeStepUpAlternationRuntimeState(createStepUpAlternationRuntimeState(plan, 0)),
-    adapter: {
-      schemaVersion: 1 as const,
-      floorBaseline: { leftFootY: 0.9, rightFootY: 0.9 },
-    },
-  };
-}

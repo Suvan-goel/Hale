@@ -21,10 +21,7 @@ import { createCurrentVersionedScoreSnapshot, type VersionedCheckUpScoreSnapshot
 import { LOADED_STS_ID, STS_POWER_ID } from '../../../exercises';
 import {
   TRAINING_SCHEMA_VERSION,
-  createStepUpAlternationRuntimeState,
   defaultTrainingState,
-  deriveStepUpAlternationPlanForExerciseId,
-  serializeStepUpAlternationRuntimeState,
   type MicroCheckResult,
   type TrainingState,
 } from '../../../training';
@@ -481,98 +478,6 @@ describe('remote restore service', () => {
       targetDomain: 'balance',
       value: 18,
     });
-  });
-
-  it('restores step-up alternation metadata and shared seed from compact training state', () => {
-    const plan = deriveStepUpAlternationPlanForExerciseId('right');
-    const restored = mapRemoteTrainingStateToLocal({
-      user_id: userId,
-      state_json: backendJson({
-        snapshotSchemaVersion: 1,
-        trainingSchemaVersion: TRAINING_SCHEMA_VERSION,
-        activeLegacyTrainingBlock: trainingState().block,
-        progress: trainingState().progress,
-        progression: trainingState().progression,
-        equipment: trainingState().equipment,
-        planPreferences: trainingState().planPreferences,
-        ladderProgressById: trainingState().ladderProgressById,
-        appliedProgressionEventIds: [],
-        bothSidesStartSideSeed: {
-          nextBothSidesStartSideByExercise: { 'step-up': 'right' },
-          appliedBothSidesStartSideFlipEventIds: ['main-completion:step-up'],
-        },
-        activeSetRuntime: {
-          kind: 'step_up_alternation',
-          schemaVersion: 1,
-          state: serializeStepUpAlternationRuntimeState(createStepUpAlternationRuntimeState(plan, 0)),
-          adapter: {
-            schemaVersion: 1,
-            floorBaseline: { leftFootY: 0.9, rightFootY: 0.9 },
-          },
-        },
-        activeTrainingVoiceRuntime: {
-          version: 1,
-          runtimeMode: 'internal_v21',
-          phase: 'active',
-          sessionEpoch: 1,
-          itemEpoch: 2,
-          setEpoch: 3,
-          attemptEpoch: 4,
-          safetyMemory: {
-            version: 1,
-            universalSafety: 'completed',
-            introducedSafetyFamilies: [],
-            floor: {
-              floorFamilyIntroduced: false,
-              currentEnvironment: 'unknown',
-              currentFloorItemId: null,
-              currentFloorSetupEpoch: 0,
-            },
-            firstUseExerciseIds: [],
-          },
-          pausedOrigin: null,
-          recoveryEpisode: null,
-          completedTransitionIds: ['transition-1'],
-          firedProgressEventIds: [],
-          activeVoiceId: 'marcus',
-          pendingVoiceId: null,
-          planFingerprint: 'training-voice-v21:test',
-        },
-        generatedSessionContext: {
-          totalPersisted: 1,
-          recentSummaries: [
-            {
-              id: 'generated-step-up',
-              source: 'block_generated',
-              title: 'Strength Session B',
-              exerciseIds: ['step-up'],
-              exercises: [
-                {
-                  exerciseId: 'step-up',
-                  sets: 3,
-                  repsPerSet: 12,
-                  stepUpAlternationPlan: plan,
-                  stepUpInitialLeadSide: 'right',
-                },
-              ],
-            },
-          ],
-        },
-        lastPostSessionFeedback: null,
-      }),
-      updated_at: '2026-06-19T08:35:00.000Z',
-    });
-
-    expect(restored?.bothSidesStartSideSeed.nextBothSidesStartSideByExercise['step-up']).toBe('right');
-    expect(restored?.activeSetRuntime?.kind).toBe('step_up_alternation');
-    expect(restored?.activeTrainingVoiceRuntime).toMatchObject({
-      runtimeMode: 'internal_v21',
-      phase: 'item_setup',
-      activeVoiceId: 'marcus',
-    });
-    expect(restored?.generatedSessionSummaries[0].exercises?.[0].stepUpAlternationPlan?.planFingerprint)
-      .toBe(plan.planFingerprint);
-    expect(restored?.generatedSessionSummaries[0].exercises?.[0].stepUpInitialLeadSide).toBe('right');
   });
 
   it('restores applied progression event ids without replaying session completion rows', () => {

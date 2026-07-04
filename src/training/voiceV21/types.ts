@@ -1,8 +1,20 @@
 import type { EquipmentTag } from '../../movements';
 import type { ExerciseKind, ExercisePrescription, ReleaseStatus } from '../../exercises';
-import type { TrainingRoundSideRole } from '../bothSidesRounds';
 import type { SafetyCueId } from '../safetyCues';
 import type { TrainingFloorSessionMemory } from '../sessionPlayer';
+
+/**
+ * Semantic role of a side variant (which leg/hip a cue refers to). Inlined here
+ * when the both-sides-rounds subsystem was parked; the native side-variant
+ * contract still uses it.
+ */
+export type TrainingRoundSideRole =
+  | 'standing_leg'
+  | 'lead_foot'
+  | 'front_leg'
+  | 'extended_leg'
+  | 'stretched_hip_side'
+  | 'stretched_calf_side';
 
 export type TrainingVoiceLateralityV21 =
   | 'bilateral_simultaneous'

@@ -443,7 +443,6 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         recentSessions: recentSessionsFor(input, schedule),
         collectionExposures: collectionExposuresForPlanning(input, activeBlock.id),
         scheduleSelection: schedule ? templateSelectionSchedule(schedule) : undefined,
-        bothSidesStartSideSeed: input.training?.bothSidesStartSideSeed,
         today: plannedFor,
         source: input.source,
         sessionIntensity: input.sessionIntensity,
@@ -563,7 +562,6 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         collectionExposures: presetCollectionExposuresFromGeneratedSessionSummaries({
           summaries: input.training?.generatedSessionSummaries,
         }),
-        bothSidesStartSideSeed: input.training?.bothSidesStartSideSeed,
         today: plannedFor,
         source: input.source,
         sessionIntensity: input.sessionIntensity,
@@ -1467,8 +1465,6 @@ export function createGeneratedSessionSummary({
       doseBeforeAdjustment: exercise.doseBeforeAdjustment,
       adjustmentReasons: exercise.adjustmentReasons,
       collectionSelection: exercise.collectionSelection,
-      stepUpAlternationPlan: exercise.stepUpAlternationPlan,
-      stepUpInitialLeadSide: exercise.stepUpInitialLeadSide,
     })) ?? [];
   return {
     id: metadata?.generatedSessionId ?? sessionPlan.id,
@@ -2307,8 +2303,6 @@ function toGeneratedExerciseMetadata(exercise: GeneratedExercise) {
     doseBeforeAdjustment: exercise.doseBeforeAdjustment,
     adjustmentReasons: exercise.adjustmentReasons,
     collectionSelection: exercise.collectionSelection,
-    stepUpAlternationPlan: exercise.stepUpAlternationPlan,
-    stepUpInitialLeadSide: exercise.stepUpInitialLeadSide,
   };
 }
 

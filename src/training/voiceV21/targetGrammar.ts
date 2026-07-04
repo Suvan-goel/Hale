@@ -5,11 +5,6 @@ import type {
   TrainingVoiceTargetReasonCodeV21,
   TrainingVoiceTargetUnitV21,
 } from './types';
-import type {
-  BothSidesDosePlan,
-  TrainingRoundSide,
-} from '../bothSidesRounds';
-import type { StepUpAlternationPlan } from '../stepUpAlternation';
 
 export interface TrainingVoicePrescribedTargetV21 {
   readonly repsPerSet?: number;
@@ -26,10 +21,6 @@ export interface ResolveTrainingVoiceTargetV21Input {
   >;
   readonly prescribedTarget?: TrainingVoicePrescribedTargetV21 | null;
   readonly setType?: TrainingVoiceSetTypeV21;
-  readonly bothSidesDosePlan?: BothSidesDosePlan | null;
-  readonly bothSidesRoundIndex?: number;
-  readonly bothSidesCurrentSide?: TrainingRoundSide | null;
-  readonly stepUpAlternationPlan?: StepUpAlternationPlan | null;
 }
 
 const NUMBER_WORDS: Readonly<Record<number, string>> = {
@@ -103,10 +94,6 @@ export function resolveTrainingVoiceTargetV21(
   input: ResolveTrainingVoiceTargetV21Input
 ): TrainingVoiceTargetPlanV21 {
   const setType = input.setType ?? input.contract.setType;
-  const bothSidesTarget = targetFromBothSidesPlan(input, setType);
-  if (bothSidesTarget) return bothSidesTarget;
-  const stepUpTarget = targetFromStepUpAlternationPlan(input, setType);
-  if (stepUpTarget) return stepUpTarget;
   const value = targetValueFor(setType, input.contract.livePrescription, input.prescribedTarget);
   if (value === null) {
     return unsupportedTarget(input.contract.targetCue.key, input.contract.targetCue.exactScript, null, 'none', [
@@ -171,99 +158,6 @@ export function resolveTrainingVoiceTargetV21(
   return unsupportedTarget(input.contract.targetCue.key, input.contract.targetCue.exactScript, value, 'none', [
     'unsupported_set_type',
   ]);
-}
-
-function targetFromStepUpAlternationPlan(
-  input: ResolveTrainingVoiceTargetV21Input,
-  setType: TrainingVoiceSetTypeV21
-): TrainingVoiceTargetPlanV21 | null {
-  const plan = input.stepUpAlternationPlan;
-  if (!plan || plan.exerciseId !== input.contract.exerciseId) return null;
-  if (!plan.runtimeSelectable || setType !== 'reps') {
-    return unsupportedTarget(input.contract.targetCue.key, input.contract.targetCue.exactScript, plan.targetTotalReps, 'rep', [
-      'unsupported_reps',
-    ]);
-  }
-  const value = plan.targetTotalReps;
-  const noun = value === 1 ? 'rep' : 'reps';
-  return supportedTarget(
-    input.contract.targetCue.key,
-    repsTargetText(input.contract.exerciseId, value, noun),
-    value,
-    'rep',
-    input.prescribedTarget,
-    'target_derived_from_step_up_alternation_plan'
-  );
-}
-
-function targetFromBothSidesPlan(
-  input: ResolveTrainingVoiceTargetV21Input,
-  setType: TrainingVoiceSetTypeV21
-): TrainingVoiceTargetPlanV21 | null {
-  const plan = input.bothSidesDosePlan;
-  if (!plan || !plan.runtimeSelectable || plan.exerciseId !== input.contract.exerciseId) return null;
-  const roundIndex = input.bothSidesRoundIndex ?? 0;
-  const round = plan.rounds[roundIndex];
-  if (!round) return null;
-  const side = input.bothSidesCurrentSide ?? round.sideOrder[0];
-  const target = round.targets[side];
-  if (!target) return null;
-  if (setType === 'reps' && typeof target.targetReps === 'number') {
-    const value = target.targetReps;
-    const noun = value === 1 ? 'rep' : 'reps';
-    // Per-side rounds already add switch/side cues around the target, so the
-    // spoken target stays short here — no per-exercise guidance suffix.
-    return supportedTarget(
-      input.contract.targetCue.key,
-      `Aim for ${numberWord(value)} ${noun}.`,
-      value,
-      'rep',
-      input.prescribedTarget,
-      'target_derived_from_both_sides_dose_plan',
-      `${value} ${noun} each side`
-    );
-  }
-  if (setType === 'rom' && typeof target.targetMs === 'number') {
-    return supportedTarget(
-      input.contract.targetCue.key,
-      'Reach gently until I say switch.',
-      target.targetMs / 1000,
-      'rom_window',
-      input.prescribedTarget,
-      'target_derived_from_both_sides_dose_plan',
-      `${formatSeconds(target.targetMs)} sec each side`
-    );
-  }
-  if ((setType === 'hold' || setType === 'timer') && typeof target.targetMs === 'number') {
-    const seconds = target.targetMs / 1000;
-    const holdLanguage =
-      setType === 'hold' ||
-      input.contract.exerciseId === 'supported-hip-flexor-stretch' ||
-      input.contract.exerciseId === 'wall-calf-stretch';
-    if (!Number.isInteger(seconds)) {
-      return supportedTarget(
-        input.contract.targetCue.key,
-        holdLanguage ? 'Hold until I say switch.' : 'Move until I say switch.',
-        seconds,
-        'second',
-        input.prescribedTarget,
-        'target_derived_from_both_sides_dose_plan',
-        `${formatSeconds(target.targetMs)} sec each side`
-      );
-    }
-    const noun = seconds === 1 ? 'second' : 'seconds';
-    const verb = holdLanguage ? 'Hold' : 'Move';
-    return supportedTarget(
-      input.contract.targetCue.key,
-      withTargetGuidance(input.contract.exerciseId, `${verb} for ${numberWord(seconds)} ${noun}.`),
-      seconds,
-      'second',
-      input.prescribedTarget,
-      'target_derived_from_both_sides_dose_plan',
-      `${seconds} sec each side`
-    );
-  }
-  return null;
 }
 
 function repsTargetText(exerciseId: string, value: number, noun: 'rep' | 'reps'): string {

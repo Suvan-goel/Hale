@@ -9,7 +9,6 @@ import {
   MICRO_CHECK_VOICE_V2_1_PHYSICAL_AUDIO_SURFACE_READY,
   microCheckVoiceSelectableTypeCountV21,
 } from '../training/microCheckVoiceV21/readiness';
-import { TRAINING_STEP_UP_ALTERNATION_SOFTWARE_READY } from '../training/stepUpAlternation';
 import { listTrainingVoiceContractsV21 } from '../training/voiceV21/contracts';
 import {
   TRAINING_VOICE_V2_1_AUDIO_APPROVAL_READY,
@@ -23,7 +22,6 @@ export interface VoiceV21Activation {
   readonly microCheckVoiceV21Enabled: boolean;
   readonly movementCheckUpV21Enabled: boolean;
   readonly eyesOpenBalanceV2Enabled: boolean;
-  readonly stepUpAlternationEnabled: boolean;
   readonly floorV21Enabled: boolean;
   readonly trainingSelectableExerciseCount: number;
   readonly microCheckSelectableTypeCount: number;
@@ -44,7 +42,6 @@ export function resolveVoiceV21Activation(): VoiceV21Activation {
     MICRO_CHECK_VOICE_V2_1_BEHAVIOR_READY && MICRO_CHECK_VOICE_V2_1_PHYSICAL_AUDIO_SURFACE_READY;
   const movementCheckUpV21Enabled = MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED;
   const eyesOpenBalanceV2Enabled = EYES_OPEN_BALANCE_PROTOCOL_V2_PHYSICAL_AUDIO_SURFACE_READY;
-  const stepUpAlternationEnabled = TRAINING_STEP_UP_ALTERNATION_SOFTWARE_READY;
   const floorV21Enabled = trainingVoiceV21Enabled;
   const trainingSelectableExerciseCount = trainingVoiceV21Enabled
     ? listTrainingVoiceContractsV21().filter((contract) =>
@@ -77,7 +74,6 @@ export function resolveVoiceV21Activation(): VoiceV21Activation {
     microCheckVoiceV21Enabled,
     movementCheckUpV21Enabled,
     eyesOpenBalanceV2Enabled,
-    stepUpAlternationEnabled,
     floorV21Enabled,
     trainingSelectableExerciseCount,
     microCheckSelectableTypeCount,

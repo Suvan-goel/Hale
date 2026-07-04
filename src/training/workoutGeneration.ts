@@ -61,16 +61,6 @@ import {
   type CollectionExposure,
   type PlannedCollectionSelection,
 } from './collectionSelection';
-import type {
-  BothSidesDosePlan,
-  BothSidesStartSideSeedState,
-  TrainingRoundSide,
-} from './bothSidesRounds';
-import {
-  attachStepUpAlternationPlansToGeneratedSession,
-  type StepUpAlternationPlan,
-  type StepUpLeadSide,
-} from './stepUpAlternation';
 
 export type TrainingDomain = 'strength_power' | 'balance_stability' | 'mobility_flexibility';
 export type SessionSource = 'block_generated' | 'preset' | 'manual';
@@ -221,9 +211,6 @@ export interface GenerateSessionInput {
   collectionExposures?: readonly CollectionExposure[];
   scheduleSelection?: TemplateSelectionSchedule;
   source?: SessionSource;
-  bothSidesStartSideSeed?: Partial<BothSidesStartSideSeedState> | null;
-  stepUpAlternationFeatureEnabled?: boolean;
-  internalStepUpAlternationRuntimeReady?: boolean;
   /** @deprecated Controlled beta ignores caller attempts to enable optional levels. */
   includeOptionalLevels?: boolean;
   sessionIntensity?: SessionIntensity;
@@ -266,10 +253,6 @@ export interface GeneratedExercise {
   doseBeforeAdjustment?: GeneratedExerciseDose;
   adjustmentReasons?: readonly DailyTrainingReasonCode[];
   collectionSelection?: PlannedCollectionSelection;
-  bothSidesDosePlan?: BothSidesDosePlan;
-  bothSidesInitialStartSide?: TrainingRoundSide;
-  stepUpAlternationPlan?: StepUpAlternationPlan;
-  stepUpInitialLeadSide?: StepUpLeadSide;
 }
 
 export interface GeneratedExerciseDose {
@@ -777,12 +760,7 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
     progressionEvidencePolicy,
     adjustmentReasons: unique([...dailyContext.reasonCodes, ...profileModifiers.reasonCodes]),
   };
-  return attachStepUpAlternationPlansToGeneratedSession({
-    session,
-    seedState: input.bothSidesStartSideSeed,
-    featureEnabled: input.stepUpAlternationFeatureEnabled,
-    internalV21RuntimeReady: input.internalStepUpAlternationRuntimeReady,
-  });
+  return session;
 }
 
 export function getExtraSessionPreset(id: string): SessionTemplate | null {

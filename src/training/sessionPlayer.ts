@@ -142,20 +142,6 @@ export interface TrainingFrameUpdate {
   /** Canonical safety cue ids surfaced with this update. Text resolves from the same ids. */
   safetyCueIds: readonly SafetyCueId[];
   safetyText: readonly string[];
-  setRuntimeKind: 'legacy' | 'step_up_alternation' | null;
-  stepUpContext: {
-    readonly plan: import('./stepUpAlternation').StepUpAlternationPlan;
-    readonly expectedLeadSide: 'left' | 'right';
-    readonly startLeadSide: 'left' | 'right';
-    readonly acceptedRepCount: number;
-    readonly leftLeadRepCount: number;
-    readonly rightLeadRepCount: number;
-    readonly targetTotalReps: number;
-  } | null;
-  stepUpCorrection: {
-    readonly code: 'wrong_lead' | 'return_both_feet_to_floor' | 'insufficient_lead_evidence';
-    readonly expectedLeadSide: 'left' | 'right';
-  } | null;
 }
 
 export interface TrainingPlayerConfig {
@@ -195,7 +181,6 @@ export interface TrainingSessionPlayerOptions {
   readonly generatedExercises?: readonly TrainingSetRuntimeGeneratedExercise[];
   readonly trainingVoiceMode?: TrainingVoiceRuntimeMode;
   readonly runtimeCapabilities?: TrainingSetRuntimeCapabilities;
-  readonly stepUpAlternationFeatureEnabled?: boolean;
   readonly floorV21FeatureEnabled?: boolean;
   readonly handsFreeTrainingSetup?: boolean;
   readonly restoredSetRuntime?: SerializedTrainingSetRuntime | null;
@@ -238,9 +223,6 @@ export class TrainingSessionPlayer {
     },
     safetyCueIds: [],
     safetyText: [],
-    setRuntimeKind: null,
-    stepUpContext: null,
-    stepUpCorrection: null,
   };
 
   private phase: TrainingPhase = 'intro';
@@ -524,9 +506,6 @@ export class TrainingSessionPlayer {
     u.floorMemory = this.floorMemorySnapshot();
     u.safetyCueIds = [];
     u.safetyText = [];
-    u.stepUpContext = null;
-    u.stepUpCorrection = null;
-    u.setRuntimeKind = this.runtime?.kind ?? null;
     const ts = out.frame.timestampMs;
     this.lastTimestampMs = ts;
     this.funnel.sessionStarted(ts);
@@ -1045,7 +1024,6 @@ export class TrainingSessionPlayer {
     this.runtime = createTrainingSetRuntime({
       exerciseDefinition: def,
       generatedExercise: this.generatedByExerciseId.get(def.id) ?? null,
-      featureEnabled: this.options.stepUpAlternationFeatureEnabled,
       trainingVoiceMode: this.options.trainingVoiceMode,
       runtimeCapabilities: this.options.runtimeCapabilities,
       restoredRuntime: this.options.restoredSetRuntime,
@@ -1068,16 +1046,13 @@ export class TrainingSessionPlayer {
     const runtime = this.runtime as TrainingSetRuntime;
     const runtimeUpdate = runtime.update(out);
     const g = runtimeUpdate.setUpdate;
-    u.playRepSound = runtime.kind === 'step_up_alternation' ? !!runtimeUpdate.acceptedRepEvent : g.repCredited;
+    u.playRepSound = g.repCredited;
     if (u.playRepSound) this.funnel.repCredited(ts);
     u.repCount = g.repCount;
     u.holdMs = g.holdMs;
     u.measuring = g.measuring;
     u.validTimeState = g.validTimeState ?? null;
     u.validTimeCaption = g.validTimeCaption ?? null;
-    u.stepUpContext = runtimeUpdate.stepUpContext ?? null;
-    u.stepUpCorrection = runtimeUpdate.correction ?? null;
-    u.setRuntimeKind = runtime.kind;
     if (g.voice) u.voice = { cues: g.voice.cues, priority: g.voice.priority };
     if (g.validTimeState === 'paused' && this.lastValidTimeState !== 'paused') {
       const safety = this.currentSafetyProfile();
@@ -1218,18 +1193,9 @@ export class TrainingSessionPlayer {
 
   private trainingVoiceV21InstructionCues(def: ExerciseDefinition): VoiceCueKey[] {
     try {
-      const generated = this.generatedByExerciseId.get(def.id) ?? null;
-      const stepUpPlan = generated?.stepUpAlternationPlan ?? null;
       const plan = planTrainingVoiceSequenceV21({
         exerciseId: def.id,
         exposure: this.setIndex === 0 ? 'first_use' : 'later_set',
-        stepUpContext: stepUpPlan
-          ? {
-              plan: stepUpPlan,
-              setIndex: this.setIndex,
-              startLeadSide: generated?.stepUpInitialLeadSide,
-            }
-          : null,
       });
       if (!plan.ready) return def.voice.instructions.slice();
       return voiceCueKeys(plan.cueKeys);

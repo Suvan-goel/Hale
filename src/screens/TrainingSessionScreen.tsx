@@ -110,18 +110,6 @@ interface Snapshot {
   floorSetup: TrainingFloorSetupSnapshot | null;
   safetyCueIds: readonly SafetyCueId[];
   safetyText: readonly string[];
-  stepUpContext: {
-    readonly expectedLeadSide: 'left' | 'right';
-    readonly startLeadSide: 'left' | 'right';
-    readonly acceptedRepCount: number;
-    readonly leftLeadRepCount: number;
-    readonly rightLeadRepCount: number;
-    readonly targetTotalReps: number;
-  } | null;
-  stepUpCorrection: {
-    readonly code: 'wrong_lead' | 'return_both_feet_to_floor' | 'insufficient_lead_evidence';
-    readonly expectedLeadSide: 'left' | 'right';
-  } | null;
 }
 
 const INITIAL: Snapshot = {
@@ -146,8 +134,6 @@ const INITIAL: Snapshot = {
   floorSetup: null,
   safetyCueIds: [],
   safetyText: [],
-  stepUpContext: null,
-  stepUpCorrection: null,
 };
 
 const PHASE_CAPTION: Partial<Record<TrainingPhase, string>> = {
@@ -202,8 +188,6 @@ const BUSY_DEBUG_SNAPSHOT: Snapshot = {
     'Keep fingertips near a chair or counter.',
     'Stop if you feel dizzy, sharp pain, or unsteady.',
   ],
-  stepUpContext: null,
-  stepUpCorrection: null,
 };
 
 const TRAINING_SETUP_HELP_STEPS: readonly { title: string; body: string }[] = [
@@ -259,11 +243,9 @@ export function TrainingSessionScreen({
   debugScenario?: TrainingSessionDebugScenario;
   generatedExercises?: readonly TrainingSetRuntimeGeneratedExercise[];
   internalRuntime?: {
-    readonly stepUpAlternationReady?: boolean;
     readonly floorSetupReady?: boolean;
     readonly trainingVoiceBehaviorReady?: boolean;
     readonly trainingVoiceMode?: 'legacy' | 'internal_v21';
-    readonly stepUpAlternationFeatureEnabled?: boolean;
     readonly floorV21FeatureEnabled?: boolean;
   };
 }) {
@@ -276,13 +258,10 @@ export function TrainingSessionScreen({
       new TrainingSessionPlayer(sessionStartedAtIso, exerciseIds, preflight, undefined, {
         generatedExercises,
         trainingVoiceMode: internalRuntime?.trainingVoiceMode,
-        stepUpAlternationFeatureEnabled: internalRuntime?.stepUpAlternationFeatureEnabled,
         floorV21FeatureEnabled: internalRuntime?.floorV21FeatureEnabled,
         runtimeCapabilities: {
-          internalStepUpAlternationReady: internalRuntime?.stepUpAlternationReady,
           internalFloorSetupReady: internalRuntime?.floorSetupReady,
           internalTrainingVoiceBehaviorReady: internalRuntime?.trainingVoiceBehaviorReady,
-          poseEvidenceAdapterAvailable: internalRuntime?.stepUpAlternationReady,
         },
       })
   );
@@ -481,8 +460,6 @@ export function TrainingSessionScreen({
           floorSetup: u.floorSetup,
           safetyCueIds: u.safetyCueIds.slice(),
           safetyText: u.safetyText.slice(),
-          stepUpContext: u.stepUpContext,
-          stepUpCorrection: u.stepUpCorrection,
         };
         setSnapshot((prev) => {
           const hydratedNext =
@@ -535,7 +512,6 @@ export function TrainingSessionScreen({
         setupIssue: visibleSnapshot.setupIssue,
         floorSetup: visibleSnapshot.floorSetup,
         validTimeCaption: visibleSnapshot.validTimeCaption,
-        stepUpCorrection: visibleSnapshot.stepUpCorrection,
         measuring: visibleSnapshot.measuring,
         paused: visiblePaused,
         showHelp: visibleShowHelp,
@@ -1057,9 +1033,7 @@ function sameSnapshot(a: Snapshot, b: Snapshot): boolean {
     a.setupPrompt === b.setupPrompt &&
     sameFloorSetup(a.floorSetup, b.floorSetup) &&
     sameList(a.safetyCueIds, b.safetyCueIds) &&
-    sameList(a.safetyText, b.safetyText) &&
-    sameStepUpContext(a.stepUpContext, b.stepUpContext) &&
-    sameStepUpCorrection(a.stepUpCorrection, b.stepUpCorrection)
+    sameList(a.safetyText, b.safetyText)
   );
 }
 
@@ -1121,13 +1095,6 @@ function trainingStageDisplay(
     };
   }
   if (snapshot.phase === 'set' && snapshot.kind === 'reps') {
-    if (snapshot.stepUpContext) {
-      return {
-        mode: 'metric',
-        label: `Next: ${leadLabel(snapshot.stepUpContext.expectedLeadSide)} leg`,
-        value: `${snapshot.stepUpContext.acceptedRepCount}/${snapshot.stepUpContext.targetTotalReps}`,
-      };
-    }
     return { mode: 'metric', label: 'Reps', value: `${snapshot.repCount}` };
   }
   if (snapshot.phase === 'set' && (snapshot.kind === 'hold' || snapshot.kind === 'timer')) {
@@ -1158,9 +1125,6 @@ function trainingSessionNotice(
   }
   if (snapshot.validTimeCaption) {
     return { text: snapshot.validTimeCaption, action: null };
-  }
-  if (snapshot.stepUpCorrection) {
-    return { text: stepUpCorrectionText(snapshot.stepUpCorrection), action: null };
   }
   if (snapshot.floorSetup) {
     return { text: floorSetupNoticeText(snapshot.floorSetup), action: null };
@@ -1199,18 +1163,6 @@ function trainingInstructionNoticeText(exerciseId: string | null): string | null
   return profile ? visibleInstructionText(profile) : null;
 }
 
-function sameStepUpContext(a: Snapshot['stepUpContext'], b: Snapshot['stepUpContext']): boolean {
-  if (a === null || b === null) return a === b;
-  return (
-    a.expectedLeadSide === b.expectedLeadSide &&
-    a.startLeadSide === b.startLeadSide &&
-    a.acceptedRepCount === b.acceptedRepCount &&
-    a.leftLeadRepCount === b.leftLeadRepCount &&
-    a.rightLeadRepCount === b.rightLeadRepCount &&
-    a.targetTotalReps === b.targetTotalReps
-  );
-}
-
 function sameFloorSetup(a: TrainingFloorSetupSnapshot | null, b: TrainingFloorSetupSnapshot | null): boolean {
   if (a === null || b === null) return a === b;
   return (
@@ -1229,26 +1181,6 @@ function sameFloorSetup(a: TrainingFloorSetupSnapshot | null, b: TrainingFloorSe
     a.fallbackAvailable === b.fallbackAvailable &&
     a.readinessSource === b.readinessSource
   );
-}
-
-function sameStepUpCorrection(a: Snapshot['stepUpCorrection'], b: Snapshot['stepUpCorrection']): boolean {
-  if (a === null || b === null) return a === b;
-  return a.code === b.code && a.expectedLeadSide === b.expectedLeadSide;
-}
-
-function leadLabel(side: 'left' | 'right'): string {
-  return side === 'left' ? 'Left' : 'Right';
-}
-
-function stepUpCorrectionText(correction: NonNullable<Snapshot['stepUpCorrection']>): string {
-  const lead = leadLabel(correction.expectedLeadSide).toLowerCase();
-  if (correction.code === 'return_both_feet_to_floor') {
-    return `Return both feet to the floor. Next, lead with your ${lead} leg.`;
-  }
-  if (correction.code === 'insufficient_lead_evidence') {
-    return `Return both feet to the floor. Next, lead with your ${lead} leg.`;
-  }
-  return `Next, lead with your ${lead} leg.`;
 }
 
 function trainingSetupNoticeText(snapshot: Snapshot): string | null {

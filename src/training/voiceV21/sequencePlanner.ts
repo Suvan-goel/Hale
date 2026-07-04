@@ -9,17 +9,6 @@ import {
   resolveTrainingVoiceSafetyV21,
 } from './safetyPolicy';
 import { resolveTrainingVoiceTargetV21, type TrainingVoicePrescribedTargetV21 } from './targetGrammar';
-import {
-  voiceSideVariantForExercise,
-  type BothSidesDosePlan,
-  type TrainingRoundSide,
-} from '../bothSidesRounds';
-import {
-  setStartLeadForIndex,
-  stepUpWrongLeadCueKey,
-  type StepUpAlternationPlan,
-  type StepUpLeadSide,
-} from '../stepUpAlternation';
 import type {
   TrainingVoiceLogicalCueV21,
   TrainingVoiceSequenceEntryV21,
@@ -33,27 +22,11 @@ export interface TrainingVoiceSideContextV21 {
   readonly sideChanged?: boolean;
 }
 
-export interface TrainingVoiceBothSidesContextV21 {
-  readonly dosePlan: BothSidesDosePlan;
-  readonly roundIndex: number;
-  readonly currentSide: TrainingRoundSide;
-  readonly sideChanged?: boolean;
-}
-
-export interface TrainingVoiceStepUpContextV21 {
-  readonly plan: StepUpAlternationPlan;
-  readonly setIndex: number;
-  readonly startLeadSide?: StepUpLeadSide | null;
-  readonly expectedLeadSide?: StepUpLeadSide | null;
-}
-
 export interface PlanTrainingVoiceSequenceV21Input {
   readonly exerciseId: string;
-  readonly exposure: 'first_use' | 'later_set' | 'repeat_instructions' | 'wrong_lead_correction';
+  readonly exposure: 'first_use' | 'later_set' | 'repeat_instructions';
   readonly prescription?: TrainingVoicePrescribedTargetV21 | null;
   readonly sideContext?: TrainingVoiceSideContextV21 | null;
-  readonly bothSidesContext?: TrainingVoiceBothSidesContextV21 | null;
-  readonly stepUpContext?: TrainingVoiceStepUpContextV21 | null;
   readonly sessionMemory?: TrainingVoiceSessionMemoryV21 | null;
 }
 
@@ -109,22 +82,13 @@ export function planTrainingVoiceSequenceV21(
   input: PlanTrainingVoiceSequenceV21Input
 ): TrainingVoiceSequencePlanV21 {
   const contract = getTrainingVoiceContractV21(input.exerciseId);
-  const variantFromBothSides = input.bothSidesContext
-    ? voiceSideVariantForExercise(input.exerciseId, input.bothSidesContext.currentSide) as TrainingVoiceSideVariantIdV21 | null
-    : null;
   const targetPlan = resolveTrainingVoiceTargetV21({
     contract,
     prescribedTarget: input.prescription,
-    bothSidesDosePlan: input.bothSidesContext?.dosePlan,
-    bothSidesRoundIndex: input.bothSidesContext?.roundIndex,
-    bothSidesCurrentSide: input.bothSidesContext?.currentSide,
-    stepUpAlternationPlan: input.stepUpContext?.plan,
   });
   const runtimeReadiness = resolveTrainingVoiceRuntimeReadinessV21({
     exerciseId: input.exerciseId,
     prescribedTarget: input.prescription,
-    bothSidesDosePlan: input.bothSidesContext?.dosePlan,
-    stepUpAlternationPlan: input.stepUpContext?.plan,
   });
   const safety = resolveTrainingVoiceSafetyV21({
     contract,
@@ -136,16 +100,13 @@ export function planTrainingVoiceSequenceV21(
     exactScript: targetPlan.spokenText,
   };
 
-  if (input.exposure === 'wrong_lead_correction') {
-    entries.push(required(sharedCue(stepUpWrongLeadCueKey(stepUpExpectedLeadSide(input.stepUpContext)))));
-    entries.push(required(sharedCue('final-position-set-v21')));
-  } else if (input.exposure === 'first_use') {
+  if (input.exposure === 'first_use') {
     const leadWithSafety = shouldLeadWithSafetyCue(contract.setupModel, safety.logicalCueKey, safety.exactScript);
     if (leadWithSafety && safety.logicalCueKey && safety.exactScript) {
       entries.push(required(cueFor(safety.logicalCueKey, safety.exactScript)));
     }
     entries.push(required(contract.firstUseCue));
-    const variant = currentSideVariant(currentVariantForInput(input, variantFromBothSides), contract.sidePlan.defaultVariantId, contract.sidePlan.variants);
+    const variant = currentSideVariant(input.sideContext?.currentVariantId, contract.sidePlan.defaultVariantId, contract.sidePlan.variants);
     if (variant) entries.push(required(variant.cue));
     if (!leadWithSafety && safety.logicalCueKey && safety.exactScript) {
       entries.push(required(cueFor(safety.logicalCueKey, safety.exactScript)));
@@ -155,30 +116,16 @@ export function planTrainingVoiceSequenceV21(
     }
     entries.push(required(targetCue));
   } else if (input.exposure === 'later_set') {
-    const bothSidesChanged = input.bothSidesContext?.sideChanged ?? false;
-    if (input.bothSidesContext && contract.sidePlan.required && bothSidesChanged) {
+    entries.push(required(contract.laterSetCue));
+    if (contract.sidePlan.required && input.sideContext?.sideChanged) {
       if (contract.sidePlan.switchCue) entries.push(required(contract.sidePlan.switchCue));
-      const variant = currentSideVariant(variantFromBothSides, contract.sidePlan.defaultVariantId, contract.sidePlan.variants);
-      if (variant) entries.push(required(variant.cue));
-      if (contract.finalPositionRequired) entries.push(required(sharedCue('final-position-set-v21')));
-    } else {
-      entries.push(required(contract.laterSetCue));
-      const variant = input.bothSidesContext || input.stepUpContext
-        ? currentSideVariant(currentVariantForInput(input, variantFromBothSides), contract.sidePlan.defaultVariantId, contract.sidePlan.variants)
-        : null;
-      if (variant) entries.push(required(variant.cue));
-      if ((input.bothSidesContext || input.stepUpContext) && contract.finalPositionRequired) {
-        entries.push(required(sharedCue('final-position-set-v21')));
-      } else if (contract.sidePlan.required && input.sideContext?.sideChanged) {
-        if (contract.sidePlan.switchCue) entries.push(required(contract.sidePlan.switchCue));
-        const sideVariant = currentSideVariant(input.sideContext.currentVariantId, contract.sidePlan.defaultVariantId, contract.sidePlan.variants);
-        if (sideVariant) entries.push(required(sideVariant.cue));
-      }
+      const sideVariant = currentSideVariant(input.sideContext.currentVariantId, contract.sidePlan.defaultVariantId, contract.sidePlan.variants);
+      if (sideVariant) entries.push(required(sideVariant.cue));
     }
     entries.push(required(targetCue));
   } else {
     entries.push(required(contract.firstUseCue));
-    const variant = currentSideVariant(currentVariantForInput(input, variantFromBothSides), contract.sidePlan.defaultVariantId, contract.sidePlan.variants);
+    const variant = currentSideVariant(input.sideContext?.currentVariantId, contract.sidePlan.defaultVariantId, contract.sidePlan.variants);
     if (variant) entries.push(required(variant.cue));
     entries.push(required(targetCue));
   }
@@ -207,23 +154,6 @@ export function planTrainingVoiceSequenceV21(
     ready: runtimeReadiness.selectable && safety.ready,
     reasonCodes: unique(reasonCodes),
   };
-}
-
-function currentVariantForInput(
-  input: PlanTrainingVoiceSequenceV21Input,
-  variantFromBothSides: TrainingVoiceSideVariantIdV21 | null
-): TrainingVoiceSideVariantIdV21 | null | undefined {
-  if (input.stepUpContext) return stepUpStartLeadSide(input.stepUpContext);
-  return variantFromBothSides ?? input.sideContext?.currentVariantId;
-}
-
-function stepUpStartLeadSide(context: TrainingVoiceStepUpContextV21): StepUpLeadSide {
-  return context.startLeadSide ?? setStartLeadForIndex(context.plan, context.setIndex);
-}
-
-function stepUpExpectedLeadSide(context: TrainingVoiceStepUpContextV21 | null | undefined): StepUpLeadSide {
-  if (!context) return 'left';
-  return context.expectedLeadSide ?? stepUpStartLeadSide(context);
 }
 
 function shouldLeadWithSafetyCue(

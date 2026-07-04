@@ -252,7 +252,6 @@ import {
   TrainingStore,
   TrainingSessionResult,
   TrackingQuality,
-  applyBothSidesExerciseCompletionToStartSideSeed,
   buildSessionInProgress,
   defaultTrainingState,
   deriveMicroCheckSideSetup,
@@ -2790,22 +2789,6 @@ function HaleApp() {
             };
             trainingChanged = true;
           }
-          for (const item of result.items) {
-            if (item.exerciseId !== 'step-up' || item.status !== 'completed') continue;
-            const nextSeed = applyBothSidesExerciseCompletionToStartSideSeed(
-              nextTraining.bothSidesStartSideSeed,
-              {
-                exerciseId: item.exerciseId,
-                completed: true,
-                countsTowardMainPlan: true,
-                eventId: `${completion.id}:${item.exerciseId}`,
-              }
-            );
-            if (nextSeed !== nextTraining.bothSidesStartSideSeed) {
-              nextTraining = { ...nextTraining, bothSidesStartSideSeed: nextSeed };
-              trainingChanged = true;
-            }
-          }
           let nextAdherence = recordTrainingSessionCompletion(adherence, completion);
           const updatedBlock = nextAdherence.blocks.find((b) => b.id === block.id) ?? block;
           nextAdherence = mergeMilestones(
@@ -4124,9 +4107,7 @@ function HaleApp() {
             internalRuntime={{
               trainingVoiceMode: 'internal_v21',
               trainingVoiceBehaviorReady: voiceActivation.trainingVoiceV21Enabled,
-              stepUpAlternationReady: voiceActivation.stepUpAlternationEnabled,
               floorSetupReady: voiceActivation.floorV21Enabled,
-              stepUpAlternationFeatureEnabled: voiceActivation.stepUpAlternationEnabled,
               floorV21FeatureEnabled: voiceActivation.floorV21Enabled,
             }}
           />

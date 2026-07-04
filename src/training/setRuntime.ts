@@ -5,18 +5,6 @@ import type {
   SetResult,
 } from '../exercises';
 import type { PipelineFrameOutput } from '../pose/pipeline';
-import {
-  isStepUpAlternationPlan,
-  planFingerprint,
-  selectTrainingStepUpAlternationMode,
-  type StepUpAlternationPlan,
-  type StepUpLeadSide,
-} from './stepUpAlternation';
-import {
-  StepUpAlternationSetRuntime,
-  type SerializedStepUpAlternationSetRuntime,
-  type StepUpAlternationRuntimeUpdate,
-} from './stepUpAlternation/runtime';
 
 export type TrainingVoiceRuntimeMode = 'legacy' | 'internal_v21';
 
@@ -27,20 +15,15 @@ export interface TrainingSetRuntimeGeneratedExercise {
   readonly repsPerSet?: number;
   readonly secondsPerSet?: number;
   readonly restSeconds?: number;
-  readonly stepUpAlternationPlan?: StepUpAlternationPlan;
-  readonly stepUpInitialLeadSide?: StepUpLeadSide;
 }
 
 export interface TrainingSetRuntimeCapabilities {
-  readonly internalStepUpAlternationReady?: boolean;
   readonly internalFloorSetupReady?: boolean;
   readonly internalTrainingVoiceBehaviorReady?: boolean;
   readonly poseEvidenceAdapterAvailable?: boolean;
 }
 
-export type SerializedTrainingSetRuntime =
-  | { readonly kind: 'legacy'; readonly schemaVersion: 1 }
-  | SerializedStepUpAlternationSetRuntime;
+export type SerializedTrainingSetRuntime = { readonly kind: 'legacy'; readonly schemaVersion: 1 };
 
 export interface TrainingSetRuntimeUpdate {
   readonly setUpdate: SetGraderUpdate;
@@ -48,12 +31,10 @@ export interface TrainingSetRuntimeUpdate {
     readonly repAttemptId: string;
     readonly repCount: number;
   };
-  readonly correction?: StepUpAlternationRuntimeUpdate['correction'];
-  readonly stepUpContext?: StepUpAlternationRuntimeUpdate['stepUpContext'];
 }
 
 export interface TrainingSetRuntime {
-  readonly kind: 'legacy' | 'step_up_alternation';
+  readonly kind: 'legacy';
   update(frame: PipelineFrameOutput): TrainingSetRuntimeUpdate;
   pause(atMs: number): TrainingSetRuntimeUpdate;
   resume(atMs: number): TrainingSetRuntimeUpdate;
@@ -63,7 +44,7 @@ export interface TrainingSetRuntime {
 }
 
 export interface TrainingSetRuntimeSelection {
-  readonly kind: 'legacy' | 'step_up_alternation';
+  readonly kind: 'legacy';
   readonly reasonCodes: readonly string[];
 }
 
@@ -76,52 +57,18 @@ export interface SelectTrainingSetRuntimeInput {
   readonly restoredRuntime?: SerializedTrainingSetRuntime | null;
 }
 
-export function selectTrainingSetRuntime(input: SelectTrainingSetRuntimeInput): TrainingSetRuntimeSelection {
-  const reasonCodes: string[] = [];
-  const generated = input.generatedExercise;
-  const plan = generated?.stepUpAlternationPlan;
-  const voiceMode = input.trainingVoiceMode ?? 'legacy';
-  const capabilities = input.runtimeCapabilities ?? {};
-  if (input.exerciseDefinition.id !== 'step-up') reasonCodes.push('not_step_up');
-  if (voiceMode !== 'internal_v21') reasonCodes.push('legacy_voice_mode');
-  if (!capabilities.poseEvidenceAdapterAvailable) reasonCodes.push('pose_evidence_adapter_unavailable');
-  if (!plan) reasonCodes.push('missing_step_up_alternation_plan');
-  if (input.restoredRuntime?.kind === 'legacy') reasonCodes.push('existing_legacy_session');
-  if (plan && !isStepUpAlternationPlan(plan)) reasonCodes.push('invalid_step_up_plan_fingerprint');
-  if (plan && !planMatchesDefinition(plan, input.exerciseDefinition)) reasonCodes.push('source_prescription_mismatch');
-
-  const gated = selectTrainingStepUpAlternationMode({
-    featureEnabled: input.featureEnabled,
-    internalV21RuntimeReady: capabilities.internalStepUpAlternationReady === true,
-    plans: plan ? [plan] : [],
-  });
-  reasonCodes.push(...gated.reasonCodes);
-
-  const selectable =
-    input.exerciseDefinition.id === 'step-up' &&
-    voiceMode === 'internal_v21' &&
-    capabilities.poseEvidenceAdapterAvailable === true &&
-    !!plan &&
-    isStepUpAlternationPlan(plan) &&
-    planMatchesDefinition(plan, input.exerciseDefinition) &&
-    input.restoredRuntime?.kind !== 'legacy' &&
-    gated.selectable;
-
-  return {
-    kind: selectable ? 'step_up_alternation' : 'legacy',
-    reasonCodes: unique(reasonCodes),
-  };
+/**
+ * Every training set now runs through the single legacy grader path. The
+ * alternative step-up-alternation runtime was parked; this stays a function so
+ * the player's call site and the serialized-runtime envelope are unchanged.
+ */
+export function selectTrainingSetRuntime(_input: SelectTrainingSetRuntimeInput): TrainingSetRuntimeSelection {
+  return { kind: 'legacy', reasonCodes: ['legacy_only'] };
 }
 
-export function createTrainingSetRuntime(input: SelectTrainingSetRuntimeInput & { readonly setIndex: number }): TrainingSetRuntime {
-  const selection = selectTrainingSetRuntime(input);
-  if (selection.kind === 'step_up_alternation' && input.generatedExercise?.stepUpAlternationPlan) {
-    return new StepUpAlternationSetRuntime({
-      plan: input.generatedExercise.stepUpAlternationPlan,
-      setIndex: input.setIndex,
-      restored: input.restoredRuntime?.kind === 'step_up_alternation' ? input.restoredRuntime : null,
-    });
-  }
+export function createTrainingSetRuntime(
+  input: SelectTrainingSetRuntimeInput & { readonly setIndex: number }
+): TrainingSetRuntime {
   return new LegacyTrainingSetRuntime(input.exerciseDefinition.createGrader());
 }
 
@@ -155,13 +102,6 @@ class LegacyTrainingSetRuntime implements TrainingSetRuntime {
   }
 }
 
-function planMatchesDefinition(plan: StepUpAlternationPlan, def: ExerciseDefinition): boolean {
-  const expectedSourceReps = def.prescription.repsPerSet ?? 0;
-  if (plan.sourceSetCount !== def.prescription.sets) return false;
-  if (plan.sourceTargetRepsPerSet !== expectedSourceReps) return false;
-  return plan.planFingerprint === planFingerprint(plan);
-}
-
 function legacyIdleUpdate(): SetGraderUpdate {
   return {
     repCredited: false,
@@ -175,12 +115,4 @@ function legacyIdleUpdate(): SetGraderUpdate {
     complete: false,
     voice: null,
   };
-}
-
-function unique(items: readonly string[]): string[] {
-  const out: string[] = [];
-  for (const item of items) {
-    if (!out.includes(item)) out.push(item);
-  }
-  return out;
 }

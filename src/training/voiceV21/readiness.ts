@@ -8,8 +8,6 @@ import {
   requiredAssetCueKeysMissingForContractV21,
 } from './assets';
 import { resolveTrainingVoiceTargetV21, type TrainingVoicePrescribedTargetV21 } from './targetGrammar';
-import type { BothSidesDosePlan } from '../bothSidesRounds';
-import type { StepUpAlternationPlan } from '../stepUpAlternation';
 import type {
   TrainingVoiceExerciseContractV21,
   TrainingVoiceRuntimeReadinessV21,
@@ -38,8 +36,6 @@ export function trainingVoicePhysicalAudioSurfaceReadyV21(): boolean {
 export interface ResolveTrainingVoiceRuntimeReadinessV21Input {
   readonly exerciseId: string;
   readonly prescribedTarget?: TrainingVoicePrescribedTargetV21 | null;
-  readonly bothSidesDosePlan?: BothSidesDosePlan | null;
-  readonly stepUpAlternationPlan?: StepUpAlternationPlan | null;
   readonly betaDefaultEnabled?: boolean;
 }
 
@@ -64,8 +60,6 @@ export function resolveTrainingVoiceRuntimeReadinessV21(
   return readinessForContract(
     contract,
     input.prescribedTarget,
-    input.bothSidesDosePlan,
-    input.stepUpAlternationPlan,
     input.betaDefaultEnabled === true
   );
 }
@@ -73,11 +67,9 @@ export function resolveTrainingVoiceRuntimeReadinessV21(
 export function resolveTrainingVoiceRuntimeReadinessForContractV21(
   contract: TrainingVoiceExerciseContractV21,
   prescribedTarget?: TrainingVoicePrescribedTargetV21 | null,
-  bothSidesDosePlan?: BothSidesDosePlan | null,
-  stepUpAlternationPlan?: StepUpAlternationPlan | null,
   betaDefaultEnabled = false
 ): TrainingVoiceRuntimeReadinessV21 {
-  return readinessForContract(contract, prescribedTarget, bothSidesDosePlan, stepUpAlternationPlan, betaDefaultEnabled);
+  return readinessForContract(contract, prescribedTarget, betaDefaultEnabled);
 }
 
 export interface TrainingVoiceRuntimeSelectionV21 {
@@ -138,12 +130,10 @@ export function isTrainingVoiceV21FeatureEnabled(env: Record<string, string | un
 function readinessForContract(
   contract: TrainingVoiceExerciseContractV21,
   prescribedTarget?: TrainingVoicePrescribedTargetV21 | null,
-  bothSidesDosePlan?: BothSidesDosePlan | null,
-  stepUpAlternationPlan?: StepUpAlternationPlan | null,
   betaDefaultEnabled = false
 ): TrainingVoiceRuntimeReadinessV21 {
   const registry = validateTrainingVoiceContractRegistryV21();
-  const targetPlan = resolveTrainingVoiceTargetV21({ contract, prescribedTarget, bothSidesDosePlan, stepUpAlternationPlan });
+  const targetPlan = resolveTrainingVoiceTargetV21({ contract, prescribedTarget });
   const missingAudioCueKeys = requiredAssetCueKeysMissingForContractV21(contract);
   const behaviorBlockers = contract.implementationRequirements
     .filter((requirement) => requirement !== 'IR-VOICE-AUDIO-ASSETS')
@@ -151,12 +141,6 @@ function readinessForContract(
   const blockers: string[] = [];
   if (!registry.valid) blockers.push('registry_invalid');
   if (!targetPlan.supported) blockers.push(...targetPlan.reasonCodes.map((reason) => `target:${reason}`));
-  if (bothSidesDosePlan && !bothSidesDosePlan.runtimeSelectable) {
-    blockers.push(`behavior_dependency:DOSE_PLAN_UNREPRESENTABLE:${bothSidesDosePlan.exerciseId}`);
-  }
-  if (stepUpAlternationPlan && !stepUpAlternationPlan.runtimeSelectable) {
-    blockers.push(`behavior_dependency:STEP_UP_ALTERNATION_PLAN_BLOCKED:${stepUpAlternationPlan.exerciseId}`);
-  }
   if (behaviorBlockers.length > 0) blockers.push(...behaviorBlockers);
   if (!TRAINING_VOICE_V2_1_BEHAVIOR_READY) blockers.push('global_behavior_ready_false');
   const audioReady = audioReadyForSelection(betaDefaultEnabled) && missingAudioCueKeys.length === 0;

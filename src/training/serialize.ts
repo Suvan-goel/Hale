@@ -60,16 +60,6 @@ import {
   type ProgressionPolicySelectionReason,
 } from '../exercises';
 import { isPlannedCollectionSelection } from './collectionSelection';
-import {
-  EMPTY_BOTH_SIDES_START_SIDE_SEED_STATE,
-  isBothSidesDosePlan,
-  normalizeBothSidesStartSideSeedState,
-  type BothSidesStartSideSeedState,
-} from './bothSidesRounds';
-import {
-  deserializeStepUpAlternationRuntimeState,
-  isStepUpAlternationPlan,
-} from './stepUpAlternation';
 import type { SerializedTrainingSetRuntime } from './setRuntime';
 import {
   normalizeTrainingVoiceSafetySessionMemoryV21,
@@ -97,7 +87,6 @@ export interface TrainingState {
   generatedSessionSummaries: PersistedGeneratedSessionSummary[];
   lastPostSessionFeedback: PersistedPostSessionFeedback | null;
   planPreferences: TrainingPlanPreferences;
-  bothSidesStartSideSeed: BothSidesStartSideSeedState;
   activeSetRuntime: SerializedTrainingSetRuntime | null;
   activeTrainingVoiceRuntime: SerializedTrainingVoiceRuntimeV21 | null;
 }
@@ -123,7 +112,6 @@ export function defaultTrainingState(): TrainingState {
     generatedSessionSummaries: [],
     lastPostSessionFeedback: null,
     planPreferences: defaultTrainingPlanPreferences(),
-    bothSidesStartSideSeed: EMPTY_BOTH_SIDES_START_SIDE_SEED_STATE,
     activeSetRuntime: null,
     activeTrainingVoiceRuntime: null,
   };
@@ -178,7 +166,6 @@ export function deserializeTrainingState(json: string): TrainingState | null {
     generatedSessionSummaries: validGeneratedSessionSummaries(p.generatedSessionSummaries),
     lastPostSessionFeedback: validPostSessionFeedback(p.lastPostSessionFeedback),
     planPreferences: validTrainingPlanPreferences(p.planPreferences),
-    bothSidesStartSideSeed: normalizeBothSidesStartSideSeedState(p.bothSidesStartSideSeed),
     activeSetRuntime: validSerializedTrainingSetRuntime(p.activeSetRuntime),
     activeTrainingVoiceRuntime: validSerializedTrainingVoiceRuntimeV21(p.activeTrainingVoiceRuntime),
   };
@@ -453,18 +440,6 @@ function validGeneratedExerciseSummaries(v: unknown): PersistedGeneratedExercise
         doseBeforeAdjustment: validGeneratedExerciseDose(e.doseBeforeAdjustment),
         adjustmentReasons: validReasonCodes(e.adjustmentReasons),
         collectionSelection: isPlannedCollectionSelection(e.collectionSelection) ? e.collectionSelection : undefined,
-        bothSidesDosePlan: isBothSidesDosePlan(e.bothSidesDosePlan) ? e.bothSidesDosePlan : undefined,
-        bothSidesInitialStartSide:
-          e.bothSidesInitialStartSide === 'left' || e.bothSidesInitialStartSide === 'right'
-            ? e.bothSidesInitialStartSide
-            : undefined,
-        stepUpAlternationPlan: isStepUpAlternationPlan(e.stepUpAlternationPlan)
-          ? e.stepUpAlternationPlan
-          : undefined,
-        stepUpInitialLeadSide:
-          e.stepUpInitialLeadSide === 'left' || e.stepUpInitialLeadSide === 'right'
-            ? e.stepUpInitialLeadSide
-            : undefined,
       };
     })
     .filter((item): item is PersistedGeneratedExerciseSummary => !!item);
@@ -476,30 +451,9 @@ function validSerializedTrainingSetRuntime(v: unknown): SerializedTrainingSetRun
   if (runtime.kind === 'legacy' && runtime.schemaVersion === 1) {
     return { kind: 'legacy', schemaVersion: 1 };
   }
-  if (runtime.kind !== 'step_up_alternation' || runtime.schemaVersion !== 1) return null;
-  const candidate = runtime as Partial<Extract<SerializedTrainingSetRuntime, { kind: 'step_up_alternation' }>>;
-  const state = deserializeStepUpAlternationRuntimeState(candidate.state);
-  const adapter = candidate.adapter;
-  if (!state || !adapter || typeof adapter !== 'object' || adapter.schemaVersion !== 1) return null;
-  const floorBaseline = adapter.floorBaseline;
-  if (
-    floorBaseline !== null &&
-    floorBaseline !== undefined &&
-    (!Number.isFinite(floorBaseline.leftFootY) || !Number.isFinite(floorBaseline.rightFootY))
-  ) {
-    return null;
-  }
-  return {
-    kind: 'step_up_alternation',
-    schemaVersion: 1,
-    state,
-    adapter: {
-      schemaVersion: 1,
-      floorBaseline: floorBaseline
-        ? { leftFootY: floorBaseline.leftFootY, rightFootY: floorBaseline.rightFootY }
-        : null,
-    },
-  };
+  // Any older step-up-alternation runtime envelope is dropped (feature parked);
+  // the session restarts on the legacy path.
+  return null;
 }
 
 function validSerializedTrainingVoiceRuntimeV21(v: unknown): SerializedTrainingVoiceRuntimeV21 | null {

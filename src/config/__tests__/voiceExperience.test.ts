@@ -9,7 +9,6 @@ describe('voice activation resolver', () => {
       microCheckVoiceV21Enabled: true,
       movementCheckUpV21Enabled: true,
       eyesOpenBalanceV2Enabled: true,
-      stepUpAlternationEnabled: true,
       floorV21Enabled: true,
       audioApprovalReady: false,
       featureSelectable: true,

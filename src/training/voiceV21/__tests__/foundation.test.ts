@@ -31,7 +31,6 @@ import {
   validateTrainingVoiceContractRegistryV21,
   type TrainingVoiceLateralityV21,
 } from '..';
-import { deriveStepUpAlternationPlanForExerciseId } from '../../stepUpAlternation';
 import { resolveExerciseSafetyCueProfile } from '../../safetyCues';
 import type { VoiceCancelReason, VoicePlaybackResult, TrackedVoiceRequest } from '../../../audio/voicePlayer';
 import type { VoiceCueKey } from '../../../audio/cues';
@@ -320,41 +319,6 @@ describe('Training Voice V2.1 sequence planner', () => {
       'side-single-leg-right-v21',
       'target-balance-single-leg-hold-v21',
     ]);
-  });
-
-  it('plans step-up start-lead and wrong-lead correction cues from the alternation plan', () => {
-    const plan = deriveStepUpAlternationPlanForExerciseId('left');
-    const first = planTrainingVoiceSequenceV21({
-      exerciseId: 'step-up',
-      exposure: 'first_use',
-      stepUpContext: { plan, setIndex: 0 },
-    });
-    expect(first.cueKeys).toEqual([
-      'ex-step-up-first-v21',
-      'step-up-start-left-v21',
-      'final-position-set-v21',
-      'target-step-up-v21',
-    ]);
-    expect(first.targetPlan.reasonCodes).toEqual(['target_derived_from_step_up_alternation_plan']);
-
-    const later = planTrainingVoiceSequenceV21({
-      exerciseId: 'step-up',
-      exposure: 'later_set',
-      stepUpContext: { plan, setIndex: 1 },
-    });
-    expect(later.cueKeys).toEqual([
-      'ex-step-up-next-v21',
-      'step-up-start-right-v21',
-      'final-position-set-v21',
-      'target-step-up-v21',
-    ]);
-
-    const correction = planTrainingVoiceSequenceV21({
-      exerciseId: 'step-up',
-      exposure: 'wrong_lead_correction',
-      stepUpContext: { plan, setIndex: 1, expectedLeadSide: 'right' },
-    });
-    expect(correction.cueKeys).toEqual(['step-up-wrong-right-v21', 'final-position-set-v21']);
   });
 
   it('returns blockers rather than silently approximating unsupported targets', () => {

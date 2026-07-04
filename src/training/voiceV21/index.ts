@@ -48,9 +48,7 @@ export {
 export type {
   PlanTrainingVoiceSequenceV21Input,
   TrainingVoiceSessionEntrySequencePlanV21,
-  TrainingVoiceBothSidesContextV21,
   TrainingVoiceSideContextV21,
-  TrainingVoiceStepUpContextV21,
 } from './sequencePlanner';
 export {
   TRAINING_VOICE_V2_1_CONTROLS_READY,

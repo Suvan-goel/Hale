@@ -90,7 +90,6 @@ export interface BuildTrainingRecordingVisualGuidanceOptions {
   setupIssue: boolean;
   floorSetup: TrainingFloorSetupSnapshot | null;
   validTimeCaption: string | null;
-  stepUpCorrection: TrainingFrameUpdate['stepUpCorrection'];
   measuring: boolean;
   paused?: boolean;
   showHelp?: boolean;
@@ -583,7 +582,6 @@ export function buildTrainingRecordingVisualGuidance({
   setupIssue,
   floorSetup,
   validTimeCaption,
-  stepUpCorrection,
   measuring,
   paused = false,
   showHelp = false,
@@ -598,8 +596,7 @@ export function buildTrainingRecordingVisualGuidance({
   const metricProtected =
     phase === 'countdown' ||
     phase === 'set' ||
-    validTimeCaption !== null ||
-    stepUpCorrection !== null;
+    validTimeCaption !== null;
 
   if (!hasPose || pipelineState === 'no-subject') {
     return trainingGuidance({
@@ -670,19 +667,6 @@ export function buildTrainingRecordingVisualGuidance({
       voiceCue: null,
       metricProtected: true,
       reason: 'training:active:valid-time',
-    });
-  }
-
-  if (stepUpCorrection) {
-    return trainingGuidance({
-      visualState:
-        stepUpCorrection.code === 'wrong_lead' ? 'adjust' : 'recovery',
-      source: 'training_active',
-      blocksMeasurement: true,
-      blocksAutoStart: true,
-      voiceCue: null,
-      metricProtected: true,
-      reason: `training:active:step-up:${stepUpCorrection.code}`,
     });
   }
 
