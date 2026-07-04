@@ -3158,3 +3158,29 @@ PUBLIC RELEASE REMAINS BLOCKED
 - **Flow union 22 → 21** (from 28 at the start of the day's navigation work). Verification:
   tsc clean, 1,326/1,326 green. Owed on device: open a saved check-up from Progress and
   confirm the history framing + Done-to-Progress.
+
+## 2026-07-04 — Plan screen pass: block auto-creation; one mention per fact
+
+- **Context:** the screen-by-screen polish pass began with Plan (read-only review first). The
+  screen's copy and empty state were strong; the findings were repetition (week number twice,
+  the check-up in up to three places), a copy contradiction in the preparation state ("being
+  prepared" + a "Prepare plan" button), an instruction sitting in the Equipment value slot, and
+  a 36px edit button.
+- **Blocks create themselves (product-owner decision), commit `c490a536`.**
+  `needs_block_creation` is now a transient recovery state: an App effect re-materializes the
+  block from the latest stored official Movement Profile (one attempt per source check-up,
+  breadcrumbed; same ladder seeding + remote sync as the completion path). The lifecycle only
+  enters the state when a stored profile can actually materialize — a baseline that cannot
+  (legacy/V1-only) resolves honestly to `needs_baseline_checkup`. Both Today and the Plan
+  empty state show a CTA-less "Preparing your plan… finishes on its own" (empty `ctaLabel`
+  hides the buttons); the manual check-up path remains the escape hatch.
+- **One mention per fact:** hero week pill removed (the timeline's "Week X of 4" carries it);
+  `RetestCard` deleted — the check-up appears once as information (timeline sentence) and once
+  as the single action (hero CTA when due). The hero + session-row duplication for "start next
+  session" is kept deliberately as a shortcut.
+- **Honest settings row:** Equipment shows the real summary ("Chair, wall, band +1") from the
+  safety profile instead of "Change in Settings". Edit button now meets the 48px tap target;
+  the week-progress segments gained an accessibility label.
+- **Verification:** tsc clean; 1,327/1,327 green (new `v2Baseline` fixture, built through the
+  production snapshot/assessment creators, keeps genuine `needs_block_creation` coverage).
+  Owed on device: the auto-creation round-trip and the tightened Plan layout.
