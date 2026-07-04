@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Image, ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 
 import type { MovementSafetyProfile } from '../adherence';
 import { Screen } from '../components/ui';
@@ -12,34 +12,19 @@ import {
   type ExtraSessionCard,
   type HealthInsightCard,
 } from '../haleFlow';
-import type { EquipmentProfile, LadderProgress, PersistedGeneratedSessionSummary } from '../training';
+import type { LadderProgress } from '../training';
 import { colors, fonts, imageOverlayControl, radius, shadow, spacing, todayHomeColors, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 import { SettingsIcon } from '../navigation/icons';
 import { INSIGHT_IMAGES, PRACTICE_IMAGES } from './exploreImages';
 
-type PictogramName = 'walk' | 'sprout' | 'chair' | 'squat' | 'book' | 'scale' | 'camera' | 'clock';
-type ExploreTab = 'insights' | 'practice';
-
-const EXPLORE_TABS: readonly { key: ExploreTab; label: string }[] = [
-  { key: 'insights', label: 'Learn' },
-  { key: 'practice', label: 'Sessions' },
-];
-
-const EXPLORE_TAB_DESCRIPTIONS: Record<ExploreTab, string> = {
-  insights: 'Simple articles about movement, recovery, and healthy aging.',
-  practice: 'Short sessions for lighter days or after your plan is done.',
-};
-
 export function ExploreScreen({
-  equipment,
   safetyProfile,
   ladderProgressById,
   onStartExtraSession,
   onOpenLearn,
   onOpenSettings,
 }: {
-  equipment: EquipmentProfile;
   safetyProfile?: MovementSafetyProfile | null;
   ladderProgressById: Record<string, LadderProgress>;
   onStartExtraSession: (presetId: string, preferences?: TodaySessionPreferences | null) => void;
@@ -47,11 +32,10 @@ export function ExploreScreen({
   onOpenSettings: () => void;
 }) {
   const responsive = useResponsiveLayout();
-  const [activeTab, setActiveTab] = React.useState<ExploreTab>('insights');
   const insights = React.useMemo(() => getHealthInsightCards(), []);
   const extraSessions = React.useMemo(
-    () => getExtraSessionCards({ equipment, safetyProfile, ladderProgressById }),
-    [equipment, ladderProgressById, safetyProfile]
+    () => getExtraSessionCards({ safetyProfile, ladderProgressById }),
+    [ladderProgressById, safetyProfile]
   );
   const startExtraSession = React.useCallback(
     (presetId: string) => {
@@ -59,6 +43,10 @@ export function ExploreScreen({
     },
     [onStartExtraSession]
   );
+
+  const featuredSession = extraSessions.find((session) => session.id === 'preset-mobility-reset') ?? extraSessions[0];
+  const sessionRows = featuredSession ? extraSessions.filter((session) => session.id !== featuredSession.id) : extraSessions;
+  const [featuredArticle, ...articleRows] = insights;
 
   return (
     <Screen contentStyle={styles.screenContent}>
@@ -77,128 +65,93 @@ export function ExploreScreen({
         </Pressable>
       </View>
 
-      <View style={styles.tabIntro}>
-        <ExploreTabBar activeTab={activeTab} onChange={setActiveTab} />
-        <Text style={styles.tabDescription}>{EXPLORE_TAB_DESCRIPTIONS[activeTab]}</Text>
-      </View>
-
-      {activeTab === 'insights' ? (
-        <InsightsTab articles={insights} onOpen={onOpenLearn} />
-      ) : (
-        <PracticeTab sessions={extraSessions} onStartExtraSession={startExtraSession} />
-      )}
-    </Screen>
-  );
-}
-
-function ExploreTabBar({
-  activeTab,
-  onChange,
-}: {
-  activeTab: ExploreTab;
-  onChange: (tab: ExploreTab) => void;
-}) {
-  const responsive = useResponsiveLayout();
-  return (
-    <View style={styles.tabBar} accessibilityRole="tablist">
-      {EXPLORE_TABS.map((tab) => {
-        const selected = tab.key === activeTab;
-        return (
-          <Pressable
-            key={tab.key}
-            style={({ pressed }) => [styles.tabButton, selected && styles.tabButtonSelected, pressed && styles.pressed]}
-            onPress={() => onChange(tab.key)}
-            accessibilityRole="tab"
-            accessibilityState={{ selected }}
-            accessibilityLabel={`${tab.label} tab`}
-          >
-            <Text
-              style={[styles.tabButtonText, selected && styles.tabButtonTextSelected]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.9}
-            >
-              {tab.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
-function InsightsTab({
-  articles,
-  onOpen,
-}: {
-  articles: readonly HealthInsightCard[];
-  onOpen: (articleId: string) => void;
-}) {
-  const responsive = useResponsiveLayout();
-  const [featured, ...feed] = articles;
-  return (
-    <View style={styles.tabContent}>
-      {featured ? <FeaturedInsightCard article={featured} onOpen={() => onOpen(featured.id)} /> : null}
-      <View style={styles.section}>
-        <SectionCopy title="Helpful reads" />
-        <View style={[styles.listPanel, styles.articleListPanel, responsive.isCompactPhone && styles.compactListPanel]}>
-          {feed.map((article, index) => (
-            <InsightRow
-              key={article.id}
-              article={article}
-              showDivider={index < feed.length - 1}
-              onOpen={() => onOpen(article.id)}
-            />
-          ))}
-        </View>
-      </View>
-    </View>
-  );
-}
-
-
-function PracticeTab({
-  sessions,
-  onStartExtraSession,
-}: {
-  sessions: readonly ExtraSessionCard[];
-  onStartExtraSession: (presetId: string) => void;
-}) {
-  const responsive = useResponsiveLayout();
-  const featuredSession = sessions.find((session) => session.id === 'preset-mobility-reset') ?? sessions[0];
-  const sessionRows = featuredSession ? sessions.filter((session) => session.id !== featuredSession.id) : sessions;
-
-  return (
-    <View style={styles.tabContent}>
       {featuredSession ? (
         <FeaturedPracticeCard
           session={featuredSession}
-          onStart={() => onStartExtraSession(featuredSession.id)}
+          onStart={() => startExtraSession(featuredSession.id)}
         />
       ) : null}
 
       {sessionRows.length > 0 ? (
         <View style={styles.section}>
-          <SectionCopy title="More options" />
-          <View style={[styles.listPanel, styles.practiceListPanel, responsive.isCompactPhone && styles.compactListPanel]}>
+          <SectionCopy title="More sessions" body="Short sessions for lighter days or after your plan is done." />
+          <View style={[styles.listPanel, styles.rowListPanel, responsive.isCompactPhone && styles.compactListPanel]}>
             {sessionRows.map((session, index) => (
               <OptionalSessionRow
                 key={session.id}
                 session={session}
                 showDivider={index < sessionRows.length - 1}
-                onStart={() => onStartExtraSession(session.id)}
+                onStart={() => startExtraSession(session.id)}
               />
             ))}
           </View>
         </View>
       ) : null}
-    </View>
+
+      <View style={styles.section}>
+        <SectionCopy title="Learn" body="Simple articles about movement, recovery, and healthy aging." />
+        {featuredArticle ? (
+          <FeaturedInsightCard article={featuredArticle} onOpen={() => onOpenLearn(featuredArticle.id)} />
+        ) : null}
+        {articleRows.length > 0 ? (
+          <View style={[styles.listPanel, styles.rowListPanel, responsive.isCompactPhone && styles.compactListPanel]}>
+            {articleRows.map((article, index) => (
+              <InsightRow
+                key={article.id}
+                article={article}
+                showDivider={index < articleRows.length - 1}
+                onOpen={() => onOpenLearn(article.id)}
+              />
+            ))}
+          </View>
+        ) : null}
+      </View>
+    </Screen>
   );
 }
 
+function FeaturedPracticeCard({ session, onStart }: { session: ExtraSessionCard; onStart: () => void }) {
+  const responsive = useResponsiveLayout();
+  const compactHero = responsive.isCompactPhone;
+  const heroMinHeightStyle = { minHeight: responsive.exploreHeroHeight };
 
-
-
+  return (
+    <View style={styles.featuredSection}>
+      <Text style={styles.featuredLabel}>Featured session</Text>
+      <Pressable
+        style={({ pressed }) => [styles.featuredCard, heroMinHeightStyle, session.disabled && styles.disabledRow, pressed && styles.pressed]}
+        onPress={onStart}
+        disabled={session.disabled}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: session.disabled }}
+        accessibilityLabel={`Start ${session.title}`}
+      >
+        <ImageBackground
+          source={PRACTICE_IMAGES.hero}
+          style={[styles.featuredImage, heroMinHeightStyle]}
+          imageStyle={styles.featuredImageRadius}
+          resizeMode="cover"
+        >
+          <View style={styles.featuredScrim} />
+          <View style={[styles.featuredContent, compactHero && styles.featuredHeroContentCompact, heroMinHeightStyle]}>
+            <View style={[styles.featuredHeroCopy, compactHero && styles.featuredHeroCopyCompact]}>
+              <Text style={styles.featuredMeta}>
+                Extra session · {durationLabel(session.durationLabel)}
+              </Text>
+              <Text style={styles.featuredTitle}>{session.cardTitle}</Text>
+              <Text style={styles.featuredBody}>{session.detailBody}</Text>
+            </View>
+            <View style={styles.featuredHeroAction}>
+              <View style={[styles.featuredButton, compactHero && styles.featuredHeroButtonCompact]}>
+                <Text style={styles.featuredButtonText}>{session.disabled ? 'Setup needed' : 'Start session'}</Text>
+              </View>
+            </View>
+          </View>
+        </ImageBackground>
+      </Pressable>
+    </View>
+  );
+}
 
 function FeaturedInsightCard({ article, onOpen }: { article: HealthInsightCard; onOpen: () => void }) {
   const responsive = useResponsiveLayout();
@@ -206,36 +159,33 @@ function FeaturedInsightCard({ article, onOpen }: { article: HealthInsightCard; 
   const heroMinHeightStyle = { minHeight: responsive.exploreHeroHeight };
 
   return (
-    <View style={styles.featuredPostSection}>
-      <Text style={styles.featuredPostLabel}>Featured article</Text>
-      <Pressable
-        style={({ pressed }) => [styles.featuredPostCard, heroMinHeightStyle, pressed && styles.pressed]}
-        onPress={onOpen}
-        accessibilityRole="button"
-        accessibilityLabel={`Read ${article.title}`}
+    <Pressable
+      style={({ pressed }) => [styles.featuredCard, heroMinHeightStyle, pressed && styles.pressed]}
+      onPress={onOpen}
+      accessibilityRole="button"
+      accessibilityLabel={`Read ${article.title}`}
+    >
+      <ImageBackground
+        source={INSIGHT_IMAGES[article.id]}
+        style={[styles.featuredImage, heroMinHeightStyle]}
+        imageStyle={styles.featuredImageRadius}
+        resizeMode="cover"
       >
-        <ImageBackground
-          source={INSIGHT_IMAGES[article.id]}
-          style={[styles.featuredPostImage, heroMinHeightStyle]}
-          imageStyle={styles.featuredPostImageRadius}
-          resizeMode="cover"
-        >
-          <View style={styles.featuredPostScrim} />
-          <View style={[styles.featuredPostContent, compactHero && styles.featuredHeroContentCompact, heroMinHeightStyle]}>
-            <View style={[styles.featuredHeroCopy, compactHero && styles.featuredHeroCopyCompact]}>
-              <Text style={styles.featuredPostMeta}>{article.categoryLabel} · {article.readTimeLabel}</Text>
-              <Text style={styles.featuredPostTitle}>{article.title}</Text>
-              <Text style={styles.featuredPostBody}>{article.body}</Text>
-            </View>
-            <View style={styles.featuredHeroAction}>
-              <View style={[styles.featuredPostButton, compactHero && styles.featuredHeroButtonCompact]}>
-                <Text style={styles.featuredPostButtonText}>Read article</Text>
-              </View>
+        <View style={styles.featuredScrim} />
+        <View style={[styles.featuredContent, compactHero && styles.featuredHeroContentCompact, heroMinHeightStyle]}>
+          <View style={[styles.featuredHeroCopy, compactHero && styles.featuredHeroCopyCompact]}>
+            <Text style={styles.featuredMeta}>{article.categoryLabel} · {article.readTimeLabel}</Text>
+            <Text style={styles.featuredTitle}>{article.title}</Text>
+            <Text style={styles.featuredBody}>{article.body}</Text>
+          </View>
+          <View style={styles.featuredHeroAction}>
+            <View style={[styles.featuredButton, compactHero && styles.featuredHeroButtonCompact]}>
+              <Text style={styles.featuredButtonText}>Read article</Text>
             </View>
           </View>
-        </ImageBackground>
-      </Pressable>
-    </View>
+        </View>
+      </ImageBackground>
+    </Pressable>
   );
 }
 
@@ -250,12 +200,12 @@ function InsightRow({
 }) {
   return (
     <Pressable
-      style={({ pressed }) => [styles.listRow, styles.articleRow, showDivider && styles.listRowDivider, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.listRow, showDivider && styles.listRowDivider, pressed && styles.pressed]}
       onPress={onOpen}
       accessibilityRole="button"
       accessibilityLabel={article.title}
     >
-      <Image source={INSIGHT_IMAGES[article.id]} style={styles.articleThumb} resizeMode="cover" />
+      <Image source={INSIGHT_IMAGES[article.id]} style={styles.rowThumb} resizeMode="cover" />
       <View style={styles.listCopy}>
         <Text style={styles.rowTitle}>{article.title}</Text>
         <Text style={styles.rowSubtitle}>{article.categoryLabel} · {article.readTimeLabel}</Text>
@@ -265,53 +215,6 @@ function InsightRow({
   );
 }
 
-
-function FeaturedPracticeCard({ session, onStart }: { session: ExtraSessionCard; onStart: () => void }) {
-  const responsive = useResponsiveLayout();
-  const compactHero = responsive.isCompactPhone;
-  const heroMinHeightStyle = { minHeight: responsive.exploreHeroHeight };
-
-  return (
-    <View style={styles.featuredPracticeSection}>
-      <Text style={styles.featuredPostLabel}>For lighter days</Text>
-      <Pressable
-        style={({ pressed }) => [styles.featuredPracticeCard, heroMinHeightStyle, session.disabled && styles.disabledRow, pressed && styles.pressed]}
-        onPress={onStart}
-        disabled={session.disabled}
-        accessibilityRole="button"
-        accessibilityState={{ disabled: session.disabled }}
-        accessibilityLabel={`Start ${session.title}`}
-      >
-        <ImageBackground
-          source={PRACTICE_IMAGES.hero}
-          style={[styles.featuredPracticeImage, heroMinHeightStyle]}
-          imageStyle={styles.featuredPracticeImageRadius}
-          resizeMode="cover"
-        >
-          <View style={styles.featuredPracticeScrim} />
-          <View style={[styles.featuredPracticeContent, compactHero && styles.featuredHeroContentCompact, heroMinHeightStyle]}>
-            <View style={[styles.featuredHeroCopy, compactHero && styles.featuredHeroCopyCompact]}>
-              <Text style={styles.featuredPostMeta}>
-                Extra session · {durationLabel(session.durationLabel)}
-              </Text>
-              <Text style={styles.featuredPostTitle}>A gentle reset for lighter days</Text>
-              <Text style={styles.featuredPostBody}>
-                Use this when today's session is done, or when you want something calmer.
-              </Text>
-            </View>
-            <View style={styles.featuredHeroAction}>
-              <View style={[styles.featuredPostButton, compactHero && styles.featuredHeroButtonCompact]}>
-                <Text style={styles.featuredPostButtonText}>{session.disabled ? 'Setup needed' : 'Start reset'}</Text>
-              </View>
-            </View>
-          </View>
-        </ImageBackground>
-      </Pressable>
-    </View>
-  );
-}
-
-
 function SectionCopy({ title, body }: { title: string; body?: string }) {
   return (
     <View style={styles.sectionCopy}>
@@ -320,8 +223,6 @@ function SectionCopy({ title, body }: { title: string; body?: string }) {
     </View>
   );
 }
-
-
 
 function OptionalSessionRow({
   session,
@@ -334,7 +235,7 @@ function OptionalSessionRow({
 }) {
   return (
     <View style={[styles.practiceSessionRow, showDivider && styles.listRowDivider, session.disabled && styles.disabledRow]}>
-      <Image source={PRACTICE_IMAGES[session.id] ?? PRACTICE_IMAGES.hero} style={styles.practiceThumb} resizeMode="cover" />
+      <Image source={PRACTICE_IMAGES[session.id] ?? PRACTICE_IMAGES.hero} style={styles.rowThumb} resizeMode="cover" />
       <View style={styles.listCopy}>
         <Text style={styles.rowTitle} numberOfLines={1}>
           {session.cardTitle}
@@ -381,122 +282,6 @@ function SmallStartButton({
   );
 }
 
-function IconWell({ name, compact = false }: { name: PictogramName; compact?: boolean }) {
-  return (
-    <View style={[styles.iconWell, compact && styles.iconWellCompact]}>
-      <Pictogram name={name} size={compact ? 28 : 34} />
-    </View>
-  );
-}
-
-function TimePill({ label, compact = false }: { label: string; compact?: boolean }) {
-  return (
-    <View style={[styles.timePill, compact && styles.timePillCompact]}>
-      <Pictogram name="clock" size={compact ? 14 : 16} />
-      <Text style={styles.timePillText}>{label}</Text>
-    </View>
-  );
-}
-
-function Pictogram({ name, size }: { name: PictogramName; size: number }) {
-  const common = {
-    stroke: todayHomeColors.headingGreen,
-    strokeWidth: 1.75,
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
-    fill: 'none' as const,
-  };
-
-  if (name === 'sprout') {
-    return (
-      <Svg width={size} height={size} viewBox="0 0 24 24">
-        <Path d="M12 19 V11" {...common} />
-        <Path d="M12 11 C8.6 8, 6 8.2, 4.6 10.1 C7.1 10.5, 9.3 12.1, 12 15" {...common} />
-        <Path d="M12 11 C15.6 6.8, 18.2 6.4, 20 8 C17.5 8.8, 15.2 10.9, 12 15" {...common} />
-      </Svg>
-    );
-  }
-
-  if (name === 'chair') {
-    return (
-      <Svg width={size} height={size} viewBox="0 0 24 24">
-        <Path d="M8 4 V20" {...common} />
-        <Path d="M16 4 V20" {...common} />
-        <Path d="M7 11 H17" {...common} />
-        <Path d="M6 14 H18" {...common} />
-        <Path d="M8 20 H6.5" {...common} />
-        <Path d="M16 20 H17.5" {...common} />
-      </Svg>
-    );
-  }
-
-  if (name === 'squat') {
-    return (
-      <Svg width={size} height={size} viewBox="0 0 24 24">
-        <Circle cx={12.2} cy={5.2} r={2.1} {...common} />
-        <Path d="M11.5 8 L9.2 11.8 L12.4 14.1 L16.4 14.1" {...common} />
-        <Path d="M9.2 11.8 L6.7 15.1 L10.1 17.1" {...common} />
-        <Path d="M12.4 14.1 L10.7 19.2" {...common} />
-        <Path d="M15.8 18 H20" {...common} />
-      </Svg>
-    );
-  }
-
-  if (name === 'book') {
-    return (
-      <Svg width={size} height={size} viewBox="0 0 24 24">
-        <Path d="M12 7 C10.1 5.8, 6.9 5.8, 5 6.6 V18.2 C6.9 17.4, 10.1 17.4, 12 18.7" {...common} />
-        <Path d="M12 7 C13.9 5.8, 17.1 5.8, 19 6.6 V18.2 C17.1 17.4, 13.9 17.4, 12 18.7" {...common} />
-        <Path d="M12 7 V18.7" {...common} />
-      </Svg>
-    );
-  }
-
-  if (name === 'scale') {
-    return (
-      <Svg width={size} height={size} viewBox="0 0 24 24">
-        <Path d="M12 5 V19" {...common} />
-        <Path d="M6 8 H18" {...common} />
-        <Path d="M8 8 L5 14 H11 Z" {...common} />
-        <Path d="M16 8 L13 14 H19 Z" {...common} />
-        <Path d="M9 19 H15" {...common} />
-      </Svg>
-    );
-  }
-
-  if (name === 'camera') {
-    return (
-      <Svg width={size} height={size} viewBox="0 0 24 24">
-        <Rect x={4} y={7.5} width={16} height={11} rx={2.2} {...common} />
-        <Path d="M8.2 7.5 L9.4 5.6 H14.6 L15.8 7.5" {...common} />
-        <Circle cx={12} cy={13} r={3} {...common} />
-        <Path d="M17.4 10.2 H17.5" {...common} />
-      </Svg>
-    );
-  }
-
-  if (name === 'clock') {
-    return (
-      <Svg width={size} height={size} viewBox="0 0 24 24">
-        <Circle cx={12} cy={12} r={8} {...common} />
-        <Path d="M12 7.6 V12 L15.2 14" {...common} />
-      </Svg>
-    );
-  }
-
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
-      <Circle cx={12} cy={5.1} r={2} {...common} />
-      <Path d="M12 7.5 V12.5" {...common} />
-      <Path d="M9 10.2 L12 8.6 L15.3 10.2" {...common} />
-      <Path d="M12 12.5 L9.2 18.8" {...common} />
-      <Path d="M12.2 12.6 L16.8 16.4" {...common} />
-      <Path d="M7.8 20 H11" {...common} />
-      <Path d="M15.7 18.1 H19" {...common} />
-    </Svg>
-  );
-}
-
 function ChevronIcon() {
   return (
     <Svg width={22} height={22} viewBox="0 0 24 24">
@@ -536,81 +321,39 @@ const styles = StyleSheet.create({
   },
   title: { ...type.pageTitle, flexShrink: 1 },
   headerIconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    // Comfortable tap target for the 50+ audience (matches minTapTarget).
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tabBar: {
-    width: '100%',
-    alignSelf: 'stretch',
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  tabButton: {
-    flex: 1,
-    minWidth: 0,
-    minHeight: 42,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
-  tabButtonSelected: {
-    backgroundColor: colors.accent,
-  },
-  tabButtonText: {
-    color: todayHomeColors.secondaryText,
-    fontFamily: fonts.sansMedium,
-    fontSize: 13,
-    lineHeight: 18,
-    letterSpacing: 0,
-    textAlign: 'center',
-    maxWidth: '100%',
-  },
-  tabButtonTextSelected: {
-    color: colors.onAccent,
-  },
-  tabIntro: {
-    gap: 10,
-  },
-  tabDescription: {
-    color: todayHomeColors.secondaryText,
-    fontFamily: fonts.sansRegular,
-    fontSize: 14,
-    lineHeight: 20,
-    letterSpacing: 0,
-  },
-  tabContent: {
-    gap: 26,
-  },
-  featuredPostSection: {
+  featuredSection: {
     gap: 12,
   },
-  featuredPostLabel: {
+  featuredLabel: {
     color: todayHomeColors.primaryText,
     fontFamily: fonts.sansMedium,
     fontSize: 16,
     lineHeight: 22,
     letterSpacing: 0,
   },
-  featuredPostCard: {
+  featuredCard: {
     minHeight: 274,
     borderRadius: radius.card,
     overflow: 'hidden',
     backgroundColor: colors.accent,
     ...shadow.card,
   },
-  featuredPostImage: {
+  featuredImage: {
     flex: 1,
     minHeight: 274,
     justifyContent: 'flex-start',
   },
-  featuredPostImageRadius: {
+  featuredImageRadius: {
     borderRadius: radius.card,
   },
-  featuredPostScrim: {
+  featuredScrim: {
     position: 'absolute',
     top: 0,
     right: 0,
@@ -618,7 +361,7 @@ const styles = StyleSheet.create({
     left: 0,
     backgroundColor: 'rgba(17, 20, 18, 0.34)',
   },
-  featuredPostContent: {
+  featuredContent: {
     paddingVertical: 26,
     paddingHorizontal: 24,
     justifyContent: 'flex-start',
@@ -636,14 +379,14 @@ const styles = StyleSheet.create({
     width: '70%',
     gap: 11,
   },
-  featuredPostMeta: {
+  featuredMeta: {
     color: colors.onAccent,
     fontFamily: fonts.sansMedium,
     fontSize: 13,
     lineHeight: 18,
     letterSpacing: 0,
   },
-  featuredPostTitle: {
+  featuredTitle: {
     color: colors.onAccent,
     fontFamily: fonts.serifMedium,
     fontSize: 25,
@@ -651,7 +394,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     maxWidth: '100%',
   },
-  featuredPostBody: {
+  featuredBody: {
     color: colors.onAccent,
     fontFamily: fonts.sansRegular,
     fontSize: 13,
@@ -664,7 +407,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingTop: 16,
   },
-  featuredPostButton: {
+  featuredButton: {
     alignSelf: 'flex-start',
     minHeight: 48,
     borderRadius: 24,
@@ -679,163 +422,12 @@ const styles = StyleSheet.create({
   featuredHeroButtonCompact: {
     paddingHorizontal: 16,
   },
-  featuredPostButtonText: {
+  featuredButtonText: {
     color: imageOverlayControl.text,
     fontFamily: fonts.sansMedium,
     fontSize: 14,
     lineHeight: 19,
     letterSpacing: 0,
-  },
-  featuredGuideSection: {
-    gap: 12,
-  },
-  featuredGuideCard: {
-    minHeight: 274,
-    borderRadius: radius.card,
-    overflow: 'hidden',
-    backgroundColor: colors.accent,
-    ...shadow.card,
-  },
-  featuredGuideImage: {
-    flex: 1,
-    minHeight: 274,
-    justifyContent: 'flex-start',
-  },
-  featuredGuideImageRadius: {
-    borderRadius: radius.card,
-  },
-  featuredGuideScrim: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: 'rgba(11, 43, 33, 0.32)',
-  },
-  featuredGuideContent: {
-    paddingVertical: 26,
-    paddingHorizontal: 24,
-    justifyContent: 'flex-start',
-    zIndex: 1,
-  },
-  featuredPracticeSection: {
-    gap: 12,
-  },
-  featuredPracticeCard: {
-    minHeight: 274,
-    borderRadius: radius.card,
-    overflow: 'hidden',
-    backgroundColor: colors.accent,
-    ...shadow.card,
-  },
-  featuredPracticeImage: {
-    flex: 1,
-    minHeight: 274,
-    justifyContent: 'flex-start',
-  },
-  featuredPracticeImageRadius: {
-    borderRadius: radius.card,
-  },
-  featuredPracticeScrim: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: 'rgba(17, 20, 18, 0.34)',
-  },
-  featuredPracticeContent: {
-    paddingVertical: 26,
-    paddingHorizontal: 24,
-    justifyContent: 'flex-start',
-    zIndex: 1,
-  },
-  featuredLibrarySection: {
-    gap: 12,
-  },
-  featuredLibraryCard: {
-    minHeight: 274,
-    borderRadius: radius.card,
-    overflow: 'hidden',
-    backgroundColor: colors.accent,
-    ...shadow.card,
-  },
-  featuredLibraryImage: {
-    flex: 1,
-    minHeight: 274,
-    justifyContent: 'flex-start',
-  },
-  featuredLibraryImageRadius: {
-    borderRadius: radius.card,
-  },
-  featuredLibraryScrim: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: 'rgba(17, 20, 18, 0.32)',
-  },
-  featuredLibraryContent: {
-    paddingVertical: 26,
-    paddingHorizontal: 24,
-    justifyContent: 'flex-start',
-    zIndex: 1,
-  },
-  compactCardPadding: {
-    paddingHorizontal: 14,
-    paddingVertical: 16,
-  },
-  libraryStatsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  libraryStatPill: {
-    minHeight: 30,
-    borderRadius: 15,
-    justifyContent: 'center',
-    paddingHorizontal: 11,
-    backgroundColor: imageOverlayControl.background,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: imageOverlayControl.border,
-  },
-  libraryStatText: {
-    color: imageOverlayControl.text,
-    fontFamily: fonts.sansMedium,
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 0,
-  },
-  libraryFilterBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-  },
-  libraryFilterButton: {
-    flex: 1,
-    minHeight: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-    backgroundColor: colors.bgElevated,
-    borderWidth: 1,
-    borderColor: todayHomeColors.border,
-  },
-  libraryFilterButtonSelected: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-  },
-  libraryFilterText: {
-    color: todayHomeColors.secondaryText,
-    fontFamily: fonts.sansMedium,
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 0,
-  },
-  libraryFilterTextSelected: {
-    color: colors.onAccent,
   },
   section: {
     gap: 13,
@@ -866,16 +458,7 @@ const styles = StyleSheet.create({
   compactListPanel: {
     paddingHorizontal: spacing.md,
   },
-  articleListPanel: {
-    paddingLeft: 10,
-  },
-  guideListPanel: {
-    paddingLeft: 10,
-  },
-  practiceListPanel: {
-    paddingLeft: 10,
-  },
-  libraryListPanel: {
+  rowListPanel: {
     paddingLeft: 10,
   },
   listRow: {
@@ -883,25 +466,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    paddingVertical: 14,
-  },
-  articleRow: {
-    paddingTop: 10,
-    paddingBottom: 10,
-  },
-  guideRow: {
-    minHeight: 100,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
     paddingVertical: 10,
-  },
-  sessionRow: {
-    minHeight: 96,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    paddingVertical: 14,
   },
   practiceSessionRow: {
     minHeight: 100,
@@ -909,11 +474,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
     paddingVertical: 10,
-  },
-  libraryRow: {
-    minHeight: 118,
-    paddingTop: 12,
-    paddingBottom: 12,
   },
   listRowDivider: {
     borderBottomWidth: 1,
@@ -946,100 +506,21 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     marginTop: 4,
   },
-  articleThumb: {
+  rowThumb: {
     width: 100,
     height: 80,
     borderRadius: 13,
     backgroundColor: todayHomeColors.iconFill,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: todayHomeColors.border,
-  },
-  guideThumb: {
-    width: 100,
-    height: 80,
-    borderRadius: 13,
-    backgroundColor: todayHomeColors.iconFill,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: todayHomeColors.border,
-  },
-  practiceThumb: {
-    width: 100,
-    height: 80,
-    borderRadius: 13,
-    backgroundColor: todayHomeColors.iconFill,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: todayHomeColors.border,
-  },
-  libraryThumb: {
-    width: 100,
-    height: 82,
-    borderRadius: 13,
-    backgroundColor: todayHomeColors.iconFill,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: todayHomeColors.border,
-  },
-  guideMetaRow: {
-    alignSelf: 'flex-start',
-    minHeight: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    paddingHorizontal: 9,
-    marginTop: 10,
-    backgroundColor: todayHomeColors.iconFill,
-    borderWidth: 1,
-    borderColor: todayHomeColors.border,
-  },
-  guideMetaText: {
-    color: todayHomeColors.headingGreen,
-    fontFamily: fonts.sansMedium,
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 0,
-  },
-  iconWell: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: todayHomeColors.iconFill,
-    borderWidth: 1,
-    borderColor: todayHomeColors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconWellCompact: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  timePill: {
-    alignSelf: 'flex-start',
-    minHeight: 38,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    borderRadius: radius.pill,
-    paddingHorizontal: 12,
-    backgroundColor: todayHomeColors.iconFill,
-    borderWidth: 1,
-    borderColor: todayHomeColors.border,
-  },
-  timePillCompact: {
-    minHeight: 32,
-    paddingHorizontal: 10,
-  },
-  timePillText: {
-    color: todayHomeColors.primaryText,
-    fontFamily: fonts.sansRegular,
-    fontSize: 13,
-    lineHeight: 17,
-    letterSpacing: 0,
   },
   startButton: {
-    minHeight: 36,
-    borderRadius: 18,
+    // Comfortable tap target for the 50+ audience (matches minTapTarget).
+    minHeight: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     backgroundColor: todayHomeColors.primary,
   },
   startButtonText: {

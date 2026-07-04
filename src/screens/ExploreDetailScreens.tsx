@@ -2,24 +2,18 @@ import * as React from 'react';
 import { Image, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
 
 import { BackArrowButton } from '../components/BackArrowButton';
-import { PrimaryButton, Screen } from '../components/ui';
+import { Screen } from '../components/ui';
 import { getLearnDetail } from '../haleFlow';
-import type { MovementSafetyProfile } from '../adherence';
-import type { EquipmentProfile, LadderProgress, PersistedGeneratedSessionSummary } from '../training';
-import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { colors, fonts, radius, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 import { articleImageFor } from './exploreImages';
 
 
 export function LearnDetailScreen({
   articleId,
-  onCameraSetup,
-  onEquipment,
   onDone,
 }: {
   articleId: string;
-  onCameraSetup: () => void;
-  onEquipment: () => void;
   onDone: () => void;
 }) {
   const detail = React.useMemo(() => getLearnDetail(articleId), [articleId]);
@@ -27,18 +21,11 @@ export function LearnDetailScreen({
     return (
       <MissingDetailScreen
         title="Learn"
-        subtitle="This guide is not available."
+        subtitle="This article is not available."
         onBack={onDone}
       />
     );
   }
-
-  const primary =
-    detail.id === 'camera-setup'
-      ? { title: 'Open camera setup', onPress: onCameraSetup }
-      : detail.id === 'resistance-band'
-        ? { title: 'Open equipment settings', onPress: onEquipment }
-        : null;
 
   const eyebrow = detail.categoryLabel ? `${detail.categoryLabel} · ${detail.readTimeLabel}` : detail.readTimeLabel;
 
@@ -68,8 +55,6 @@ export function LearnDetailScreen({
           <ArticleSection key={section.title} title={section.title} body={section.body} />
         ))}
       </View>
-
-      {primary ? <PrimaryButton title={primary.title} onPress={primary.onPress} style={styles.primaryAction} /> : null}
     </Screen>
   );
 }
@@ -126,20 +111,11 @@ function ArticleHero({
   );
 }
 
-function ArticleSection({
-  title,
-  body,
-  children,
-}: {
-  title: string;
-  body?: string;
-  children?: React.ReactNode;
-}) {
+function ArticleSection({ title, body }: { title: string; body?: string }) {
   return (
     <View style={styles.articleSection}>
       <Text style={styles.sectionTitle}>{title}</Text>
       {body ? <Text style={styles.articleParagraph}>{body}</Text> : null}
-      {children}
     </View>
   );
 }
@@ -218,9 +194,6 @@ const styles = StyleSheet.create({
   articleBody: {
     gap: spacing.xl,
   },
-  ladderBody: {
-    gap: spacing.lg,
-  },
   articleSection: {
     gap: spacing.md,
     paddingTop: spacing.xl,
@@ -240,176 +213,5 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     letterSpacing: 0,
     color: colors.textSecondary,
-  },
-  currentPanel: {
-    gap: spacing.lg,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-    borderRadius: radius.card,
-    backgroundColor: colors.card,
-    ...shadow.card,
-  },
-  compactCardPadding: {
-    paddingHorizontal: 14,
-    paddingVertical: 16,
-  },
-  currentPanelHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  currentPanelTitleGroup: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  ladderEyebrow: {
-    ...type.label,
-    color: colors.textSecondary,
-  },
-  currentLevelName: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 22,
-    lineHeight: 28,
-    letterSpacing: 0,
-    color: colors.textPrimary,
-  },
-  currentLevelMeta: {
-    ...type.caption,
-    color: colors.textSecondary,
-  },
-  currentTagRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-  },
-  infoPill: {
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 7,
-    backgroundColor: colors.background,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-  },
-  infoPillText: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 13,
-    lineHeight: 17,
-    letterSpacing: 0,
-    color: colors.textPrimary,
-  },
-  currentInstructionBlock: {
-    gap: spacing.xs,
-  },
-  blockLabel: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 13,
-    lineHeight: 18,
-    letterSpacing: 0,
-    color: colors.textPrimary,
-  },
-  currentInstruction: {
-    fontFamily: fonts.sansRegular,
-    fontSize: 16,
-    lineHeight: 25,
-    letterSpacing: 0,
-    color: colors.textSecondary,
-  },
-  ladderSection: {
-    gap: spacing.md,
-    paddingTop: spacing.lg,
-  },
-  ladderSectionHeader: {
-    gap: 3,
-  },
-  ladderSectionTitle: {
-    fontFamily: fonts.serifMedium,
-    fontSize: 22,
-    lineHeight: 28,
-    letterSpacing: 0,
-    color: colors.textPrimary,
-  },
-  ladderSectionBody: {
-    fontFamily: fonts.sansRegular,
-    fontSize: 16,
-    lineHeight: 25,
-    letterSpacing: 0,
-    color: colors.textSecondary,
-  },
-  ladderSectionCaption: {
-    fontFamily: fonts.sansRegular,
-    fontSize: 14,
-    lineHeight: 20,
-    letterSpacing: 0,
-    color: colors.textSecondary,
-  },
-  checklistCard: {
-    gap: spacing.sm,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderRadius: radius.card,
-    backgroundColor: colors.card,
-    ...shadow.soft,
-  },
-  checklistItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
-  checklistBullet: {
-    width: 7,
-    height: 7,
-    borderRadius: 999,
-    backgroundColor: colors.accent,
-    marginTop: 8,
-  },
-  checklistText: {
-    flex: 1,
-    fontFamily: fonts.sansRegular,
-    fontSize: 15,
-    lineHeight: 22,
-    letterSpacing: 0,
-    color: colors.textSecondary,
-  },
-  versionList: {
-    borderRadius: radius.card,
-    paddingHorizontal: 16,
-    backgroundColor: colors.card,
-    ...shadow.soft,
-  },
-  versionRow: {
-    minHeight: 74,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: 13,
-  },
-  versionRowDivider: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.borderHairline,
-  },
-  versionRowCopy: {
-    flex: 1,
-    gap: 3,
-    minWidth: 0,
-  },
-  versionLabel: {
-    ...type.caption,
-    color: colors.textSecondary,
-  },
-  versionTitle: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 16,
-    lineHeight: 22,
-    letterSpacing: 0,
-    color: colors.textPrimary,
-  },
-  versionMeta: {
-    ...type.caption,
-    color: colors.textSecondary,
-  },
-  primaryAction: {
-    marginTop: spacing.sm,
   },
 });

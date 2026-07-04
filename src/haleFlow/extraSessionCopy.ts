@@ -1,11 +1,11 @@
 export const EXTRA_SESSION_CARD_TITLES: Record<string, string> = {
-  'preset-mobility-reset': 'Mobility Reset',
-  'preset-gentle-restart': 'Gentle Restart',
-  'preset-steady-balance': 'Steady Balance',
+  'preset-mobility-reset': 'Mobility reset',
+  'preset-gentle-restart': 'Gentle restart',
+  'preset-steady-balance': 'Steady balance',
   'preset-no-equipment-strength': 'Chair and wall strength',
   'preset-band-upper-back': 'Upper-back band work',
-  'preset-stairs-confidence': 'Stairs Confidence',
-  'preset-quick-full-body': 'Quick Full Body',
+  'preset-stairs-confidence': 'Stairs confidence',
+  'preset-quick-full-body': 'Quick full body',
 };
 
 export const EXTRA_SESSION_CARD_BODY: Record<string, string> = {

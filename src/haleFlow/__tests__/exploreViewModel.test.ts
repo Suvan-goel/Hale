@@ -1,5 +1,4 @@
 import {
-  getEquipmentSetupSummary,
   getExtraSessionCards,
   getHealthInsightCards,
   getLearnDetail,
@@ -63,7 +62,6 @@ describe('exploreViewModel', () => {
 
   it('enables band and stair extras when the matching equipment is available', () => {
     const cards = getExtraSessionCards({
-      equipment: { stair: false, band: false, miniBand: false, load: false },
       safetyProfile: {
         id: 'safety',
         userId: 'local-device-user',
@@ -80,7 +78,6 @@ describe('exploreViewModel', () => {
 
   it('keeps stair extras disabled when a bottom stair has no nearby support', () => {
     const cards = getExtraSessionCards({
-      equipment: { stair: true, band: false, miniBand: false, load: false },
       safetyProfile: {
         id: 'safety',
         userId: 'local-device-user',
@@ -124,29 +121,5 @@ describe('exploreViewModel', () => {
     ]);
     expect(cards.every((card) => card.categoryLabel && card.authorCredential && card.reviewedLabel)).toBe(true);
     expect(getLearnDetail(cards[0].id)?.sections.length).toBeGreaterThan(0);
-  });
-
-  it('summarizes equipment setup from training, safety, and settings state', () => {
-    const summary = getEquipmentSetupSummary({
-      equipment: { stair: true, band: false, miniBand: true, load: false },
-      safetyProfile: {
-        id: 'safety',
-        userId: 'local-device-user',
-        availableEquipment: ['chair', 'wall', 'stairs', 'mini_band'],
-        createdAt: '2026-06-17T08:00:00.000Z',
-        updatedAt: '2026-06-17T08:00:00.000Z',
-      },
-      settings: {
-        voiceId: 'clara',
-        remindersEnabled: false,
-        phoneStandAvailable: true,
-      },
-    });
-
-    expect(summary.availableLabel).toContain('stable chair');
-    expect(summary.availableLabel).toContain('bottom stair');
-    expect(summary.availableLabel).toContain('mini band');
-    expect(summary.missingOptionalLabel).toContain('resistance band');
-    expect(summary.phoneStandLabel).toBe('Phone stand available');
   });
 });

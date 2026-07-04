@@ -8,7 +8,6 @@ import {
   type HaleLifecycleState,
 } from '../appLifecycle';
 import {
-  getEquipmentSetupSummary,
   getExtraSessionCards,
   getHealthInsightCards,
   getLearnDetail,
@@ -82,7 +81,6 @@ describe('Hale V1 copy guardrails', () => {
           retestInDays: 0,
         })
       ),
-      ...Object.values(getEquipmentSetupSummary()),
       ...Object.values(getMicroCheckCopy('balance')),
     ]);
     assertCleanCopy(getExtraSessionCards().flatMap((card) => Object.values(card)));
@@ -107,7 +105,6 @@ describe('Hale V1 copy guardrails', () => {
     expect(text).not.toMatch(BANNED_USER_COPY);
     expect(text).toMatch(/compares your latest check-up result with your age group|Beta estimate|beta estimates/);
     expect(text).toMatch(/Your main focus|Suggested focus/);
-    expect(productionSourceText('src/haleFlow/exploreViewModel.ts')).toMatch(/Camera estimated/);
     expect(text).not.toMatch(/Age \$\{domain\.ageLow\}|Typical age ranges|Movement age profile/);
 
     const appText = productionSourceText('App.tsx');

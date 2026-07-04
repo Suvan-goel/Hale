@@ -4106,8 +4106,6 @@ function HaleApp() {
         ) : flow === 'learn-detail' && selectedLearnId ? (
           <LearnDetailScreen
             articleId={selectedLearnId}
-            onCameraSetup={() => openCameraSetup('review')}
-            onEquipment={goSettings}
             onDone={() => goBack(goExplore)}
           />
         ) : flow === 'movement-profile-v2-unified-checkup' && movementProfileV2InitialFlow ? (
@@ -4271,7 +4269,6 @@ function HaleApp() {
             />
           ) : activeTabScreen === 'ExploreScreen' ? (
             <ExploreScreen
-              equipment={displayTraining.equipment}
               safetyProfile={displayPrefs.profile.safetyProfile}
               ladderProgressById={displayTraining.ladderProgressById}
               onStartExtraSession={handleStartExtraSession}
