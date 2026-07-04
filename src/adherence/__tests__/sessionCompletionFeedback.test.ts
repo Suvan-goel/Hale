@@ -121,7 +121,7 @@ describe('session completion and preview credit copy', () => {
       templateId: 'preset-quick-full-body',
     };
 
-    expect(sessionPreviewTitle(presetPlan)).toBe('Quick Full Body');
+    expect(sessionPreviewTitle(presetPlan)).toBe('Quick full body');
   });
 });
 
