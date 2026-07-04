@@ -2921,3 +2921,46 @@ PUBLIC RELEASE REMAINS BLOCKED
   results → first plan.
 - **Verification:** tsc clean, expo config clean, 1,370/1,370 tests passing (added a serialize
   migration case). Owed: on-device onboarding run-through alongside the Stage 5 guest checks.
+
+## 2026-07-04 — App-logic simplification: within-block progression turned on; dead legacy loop removed
+
+- **Context:** an analysis-only pass over workout generation / progression / check-up /
+  micro-check asked whether the app logic could be simplified for the 45–65 user and made easier
+  to polish. The headline finding: the app carried the machinery of a fully adaptive
+  progressive-overload system, but a "controlled beta" policy layer had switched almost all of it
+  off — every forward transition in `progressionPolicy.ts` was `blocked`, so a user effectively
+  stayed at their check-up-seeded level for the whole 4-week block. The app paid the full cost of
+  a dynamic system while delivering an essentially static one.
+- **Progression turned on (product-confirmed: "gentle auto step-ups").** The "step up after N
+  clean, easy, pain-free sessions" engine already existed; it was only disabled by the policy
+  tables. Flipped the linear-ladder forward transitions from `blocked` to `allowed` up to each
+  exercise's highest RELEASED (v1_core) level, and raised the `autoProgressionCeilingLevelId`s to
+  match: sit-to-stand cushion→standard→slow-lower→power; squat supported→free; push wall→incline;
+  balance feet-together→tandem (single-leg stays gated as a fall-risk pending device validation).
+  Safe one-level regressions on pain/struggle. Optional/hidden levels still release-cap down to
+  the ceiling; supporting-set and collection ladders still never auto-progress by adjacency.
+  Two clean sessions (completion ≥85%, RPE ≤3, no recent pain; strong valid-time for holds) earn
+  a step-up.
+- **Reasoned deviation — kept the progression safety machinery.** The original analysis proposed
+  deleting the fingerprint / plan-snapshot / validator layer as "illegible machinery." After
+  enabling the tables, they read as a clear step-up map, and that layer does real, tested work
+  (detects when a persisted plan predates a policy change and regenerates it). Deleting it would
+  trade a working safety property for line-count, so it stays.
+- **Dead legacy `TrainingState` loop removed.** `buildBlock`, `resolveSession`/`-Slot`, the
+  deterministic `decideLevel`/`applySession` progression engine, and `nextSession*`/
+  `recordCompletedSession` had no production callers since the live plan path became
+  `MovementBlock` + `haleFlow/sessionPlanning` + the exercise-ladder system. Deleted
+  `src/training/state.ts`; trimmed `block.ts`/`progression.ts` to the persisted-shape TYPES only
+  (serialize.ts still reads them for backward-compatible loads — no schema bump); dropped the dead
+  barrel re-exports and obsolete tests (~460 lines net).
+- **Reassessed as NOT worth the risk right now:** freezing the catalog by removing the 7
+  v1_optional levels cascades into audio manifests, pose geometry, safety cues, and the LIVE
+  voice-V2.1 contracts (19 files) and discards V2 headroom; the daily-adjustment model's only
+  UI-unreachable state is `a_bit_stiff` (a plausible future chip). Parking the flag-off beta
+  subsystems (both-sides rounds, step-up alternation, floor V2.1) remains desired but is a large
+  detangle of the live voice-V2.1 sequence planner — recovery branch
+  `parked/training-beta-subsystems` cut; best done as a dedicated pass with the owed on-device
+  voice listening check.
+- **Verification:** tsc clean; 1,345/1,345 tests passing (24 obsolete legacy-loop tests removed).
+  Commits `7c078053` (progression) and `dd64ba70` (legacy removal). Owed: on-device confirmation
+  that within-block step-ups feel right, alongside the noise-floor go/no-go.
