@@ -3184,3 +3184,10 @@ PUBLIC RELEASE REMAINS BLOCKED
 - **Verification:** tsc clean; 1,327/1,327 green (new `v2Baseline` fixture, built through the
   production snapshot/assessment creators, keeps genuine `needs_block_creation` coverage).
   Owed on device: the auto-creation round-trip and the tightened Plan layout.
+- **Follow-up (commit `54968821`, product-owner approved "lead with the focus"):** the weekly
+  session rows now lead with each session's real template focus ("Balance focus"), with the
+  focus initial as the mark and "Session N (· Done)" as the subtitle — truthful because
+  template focus is stable while exact movements stay day-of-generated. Header settings button
+  and section titles moved to the shared `SettingsIconButton`/`SectionTitle` primitives; dead
+  copy removed (`getPlanSessionCategoryCopy` with its never-rendered `categories`, and
+  `getRetestCopy`'s never-displayed `body`).
