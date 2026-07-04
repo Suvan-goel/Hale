@@ -15,6 +15,7 @@ export const VOICE_MANIFEST: Record<string, Partial<Record<VoiceCueKey, number>>
   clara: {
     'balance-feet-together': require('../../assets/audio/voice/clara/balance-feet-together.mp3'),
     'balance-intro': require('../../assets/audio/voice/clara/balance-intro.mp3'),
+    'balance-same-leg': require('../../assets/audio/voice/clara/balance-same-leg.mp3'),
     'balance-semi-tandem': require('../../assets/audio/voice/clara/balance-semi-tandem.mp3'),
     'balance-setup': require('../../assets/audio/voice/clara/balance-setup.mp3'),
     'balance-single-leg': require('../../assets/audio/voice/clara/balance-single-leg.mp3'),
@@ -375,6 +376,7 @@ export const VOICE_MANIFEST: Record<string, Partial<Record<VoiceCueKey, number>>
   marcus: {
     'balance-feet-together': require('../../assets/audio/voice/marcus/balance-feet-together.mp3'),
     'balance-intro': require('../../assets/audio/voice/marcus/balance-intro.mp3'),
+    'balance-same-leg': require('../../assets/audio/voice/marcus/balance-same-leg.mp3'),
     'balance-semi-tandem': require('../../assets/audio/voice/marcus/balance-semi-tandem.mp3'),
     'balance-setup': require('../../assets/audio/voice/marcus/balance-setup.mp3'),
     'balance-single-leg': require('../../assets/audio/voice/marcus/balance-single-leg.mp3'),
@@ -738,6 +740,7 @@ export const VOICE_DURATION_MANIFEST: Record<string, Partial<Record<VoiceCueKey,
   clara: {
     'balance-feet-together': 2368,
     'balance-intro': 9660,
+    'balance-same-leg': 4969,
     'balance-semi-tandem': 4551,
     'balance-setup': 7338,
     'balance-single-leg': 3901,
@@ -1098,6 +1101,7 @@ export const VOICE_DURATION_MANIFEST: Record<string, Partial<Record<VoiceCueKey,
   marcus: {
     'balance-feet-together': 2183,
     'balance-intro': 8220,
+    'balance-same-leg': 4783,
     'balance-semi-tandem': 4365,
     'balance-setup': 7245,
     'balance-single-leg': 3297,

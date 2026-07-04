@@ -273,6 +273,9 @@ export function movementProfileV2InstructionTextForStage(
 
 export function protocolIdForMovementProfileV2Stage(stage: MovementProfileV2LiveStage): string {
   switch (stage) {
+    // The standing frame check precedes the chair item; its Help content is
+    // the chair intro, which opens with the framing directions.
+    case 'standing_frame_check':
     case 'chair_setup':
     case 'chair_practice':
     case 'chair_countdown':

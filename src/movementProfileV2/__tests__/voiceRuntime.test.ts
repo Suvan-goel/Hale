@@ -99,6 +99,91 @@ describe('MovementProfileV2VoiceRuntime', () => {
     });
   });
 
+  it('runs the frame-check plan and starts the chair item with framing confirmation instead of replaying the intro', async () => {
+    const runtime = createRuntime();
+    runtime.sync(snapshot('standing_frame_check', { attemptEpochId: null, movementEpochId: 'frame-check-2' }));
+    expect(players).toHaveLength(1);
+    players[0].finish(); // mpv2_checkup_intro
+    await flushAsync();
+    players[players.length - 1].finish(); // step-into-frame
+    await flushAsync();
+    expect(runtimeActions.map((entry) => entry.action.type)).toEqual(['frame_check_voice_completed']);
+
+    // Frame check passed → chair_setup speaks framing-ready + chair cues, NOT
+    // the check-up intro again.
+    runtime.sync(snapshot('chair_setup', {
+      lastTransition: { atMs: 5000, from: 'standing_frame_check', to: 'chair_setup', reason: 'frame_check_passed' },
+    }));
+    players[players.length - 1].finish();
+    await flushAsync();
+    players[players.length - 1].finish();
+    await flushAsync();
+    players[players.length - 1].finish();
+    await flushAsync();
+    expect(runtimeActions.map((entry) => entry.action.type)).toEqual([
+      'frame_check_voice_completed',
+      'chair_setup_voice_completed',
+    ]);
+    const startedCues = runtime.state.diagnostics
+      .filter((event) => event.event === 'cue_playback_start_evidence')
+      .map((event) => event.cueKey);
+    expect(startedCues).toContain('framing-ready');
+    expect(startedCues.filter((cue) => cue === 'mpv2_checkup_intro')).toHaveLength(1);
+  });
+
+  it('speaks one-shot advisory notices only after the stage plan and dedupes them per scope', async () => {
+    const runtime = createRuntime();
+    const wrongLeg = snapshot('balance_ready', {
+      attemptEpochId: 'balance-ready-7',
+      balanceWrongLegNoticed: true,
+    });
+    runtime.sync(wrongLeg);
+    // The blocking attempt cue owns the channel first; no notice yet.
+    expect(players).toHaveLength(1);
+    players[0].finish();
+    await flushAsync();
+    expect(runtimeActions.map((entry) => entry.action.type)).toEqual(['balance_attempt_voice_completed']);
+
+    runtime.sync(wrongLeg);
+    await flushAsync();
+    expect(players).toHaveLength(2);
+    players[1].finish();
+    await flushAsync();
+    const optionalCues = runtime.state.diagnostics
+      .filter((event) => event.event === 'optional_cue_playback_start_evidence')
+      .map((event) => event.cueKey);
+    expect(optionalCues).toContain('balance-same-leg');
+
+    // Deduped: further syncs with the same attempt do not replay the notice.
+    runtime.sync(wrongLeg);
+    await flushAsync();
+    expect(players).toHaveLength(2);
+
+    // Lighting hint during a stuck frame check follows the same contract.
+    const dimFrameCheck = snapshot('standing_frame_check', {
+      attemptEpochId: null,
+      movementEpochId: 'frame-check-2',
+      frameCheckLightingHintAvailable: true,
+    });
+    runtime.sync(dimFrameCheck);
+    players[players.length - 1].finish(); // intro
+    await flushAsync();
+    players[players.length - 1].finish(); // step-into-frame
+    await flushAsync();
+    runtime.sync(dimFrameCheck);
+    await flushAsync();
+    players[players.length - 1].finish();
+    await flushAsync();
+    const lightCues = runtime.state.diagnostics
+      .filter((event) => event.event === 'optional_cue_playback_start_evidence')
+      .map((event) => event.cueKey);
+    expect(lightCues).toContain('turn-on-light');
+    const playersAfterLight = players.length;
+    runtime.sync(dimFrameCheck);
+    await flushAsync();
+    expect(players).toHaveLength(playersAfterLight);
+  });
+
   it('restarts an interrupted chair countdown on the next sync instead of deadlocking', async () => {
     const runtime = createRuntime();
     runtime.sync(snapshot('chair_countdown'));

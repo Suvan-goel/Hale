@@ -33,6 +33,7 @@ export type Mpv2VoiceRequirement =
   | 'optional_reassurance';
 
 export type MovementProfileV2VoiceCoordinatorAction =
+  | { type: 'frame_check_voice_completed' }
   | { type: 'chair_setup_voice_completed' }
   | { type: 'chair_practice_voice_completed' }
   | { type: 'chair_official_ready_voice_completed' }
@@ -187,22 +188,29 @@ export class MovementProfileV2VoiceRuntime {
     if (this.pendingVoiceId && !isActiveMeasurementStage(snapshot.stage)) {
       this.applyVoiceChange(this.pendingVoiceId, snapshot, 'voice_change_applied_at_safe_boundary');
     }
-    const plan = voicePlanForSnapshot(snapshot, this.retryEpoch);
-    if (!plan) return;
     // Any required failure parks the runtime until the user retries — never
     // auto-restart a plan (even a different scope) over the failure UI.
     if (this.stateValue.lastFailure) return;
-    if (this.completedScopes.has(plan.scopeId)) return;
-    // Derived scopes (`<plan>:countdown`, `<plan>:retry:N`) belong to this
-    // plan; re-syncing while one runs must not cancel and restart it.
-    if (
-      this.currentScopeId !== null &&
-      (this.currentScopeId === plan.scopeId || this.currentScopeId.startsWith(`${plan.scopeId}:`))
-    ) {
+    const plan = voicePlanForSnapshot(snapshot, this.retryEpoch);
+    if (plan && !this.completedScopes.has(plan.scopeId)) {
+      // Derived scopes (`<plan>:countdown`, `<plan>:retry:N`) belong to this
+      // plan; re-syncing while one runs must not cancel and restart it.
+      if (
+        this.currentScopeId !== null &&
+        (this.currentScopeId === plan.scopeId || this.currentScopeId.startsWith(`${plan.scopeId}:`))
+      ) {
+        return;
+      }
+      this.cancelActive('stage_changed');
+      void this.runPlan(plan, ++this.currentEpoch);
       return;
     }
-    this.cancelActive('stage_changed');
-    void this.runPlan(plan, ++this.currentEpoch);
+    // With the stage's own plan done (or absent), one-shot advisory notices
+    // may speak: non-blocking, deduped per scope, never over an active cue.
+    const notice = noticePlanForSnapshot(snapshot);
+    if (notice && !this.completedScopes.has(notice.scopeId) && this.currentScopeId === null) {
+      void this.runPlan(notice, ++this.currentEpoch);
+    }
   }
 
   retry(snapshot: MovementProfileV2LiveSnapshot): void {
@@ -634,7 +642,8 @@ export class MovementProfileV2VoiceRuntime {
 }
 
 export function isVoiceGatedUserAction(action: MovementProfileV2LiveUserAction): boolean {
-  return action.type === 'confirm_chair_setup' ||
+  return action.type === 'skip_frame_check' ||
+    action.type === 'confirm_chair_setup' ||
     action.type === 'confirm_balance_setup' ||
     action.type === 'balance_ready' ||
     action.type === 'balance_use_result' ||
@@ -656,6 +665,8 @@ function actionAllowedForStage(
   stage: MovementProfileV2LiveStage
 ): boolean {
   switch (action.type) {
+    case 'skip_frame_check':
+      return stage === 'standing_frame_check';
     case 'confirm_chair_setup':
       return stage === 'chair_setup';
     case 'confirm_balance_setup':
@@ -714,7 +725,22 @@ function baseVoicePlanForSnapshot(
 ): StageVoicePlan | null {
   const scopeId = `${scopeBaseForSnapshot(snapshot)}:r${retryEpoch}`;
   switch (snapshot.stage) {
+    case 'standing_frame_check':
+      return plan(scopeId, 'blocking_prerequisite', ['mpv2_checkup_intro', 'step-into-frame'], [
+        { type: 'frame_check_voice_completed' },
+      ]);
     case 'chair_setup': {
+      // After the standing frame check, the check-up intro has already
+      // played: confirm the framing and go straight to the chair item.
+      if (snapshot.lastTransition?.to === 'chair_setup' && snapshot.lastTransition.from === 'standing_frame_check') {
+        const framedCues: VoiceCueKey[] =
+          snapshot.lastTransition.reason === 'frame_check_passed'
+            ? ['framing-ready', 'checkup-chair-stand-intro-v21', 'checkup-chair-stand-setup-v21']
+            : ['checkup-chair-stand-intro-v21', 'checkup-chair-stand-setup-v21'];
+        return plan(scopeId, 'blocking_prerequisite', framedCues, [
+          { type: 'chair_setup_voice_completed' },
+        ]);
+      }
       const intro = initialMovementProfileV2VoiceEvent();
       return plan(scopeId, 'blocking_prerequisite', intro.cues, [
         { type: 'chair_setup_voice_completed' },
@@ -774,6 +800,24 @@ function baseVoicePlanForSnapshot(
     default:
       return null;
   }
+}
+
+/**
+ * One-shot advisory cues outside the stage plans. High-confidence findings
+ * only (silence-by-default law): a sustained wrong-leg lift being ignored, or
+ * a frame check that has failed long enough to suggest the room is too dim.
+ * Deduped by scope; the balance notice re-arms per attempt epoch.
+ */
+function noticePlanForSnapshot(snapshot: MovementProfileV2LiveSnapshot): StageVoicePlan | null {
+  if (snapshot.stage === 'balance_ready' && snapshot.balanceWrongLegNoticed) {
+    const scope = `mpv2:notice:balance-wrong-leg:${snapshot.attemptEpochId ?? snapshot.movementEpochId}`;
+    return plan(scope, 'optional_reassurance', ['balance-same-leg']);
+  }
+  if (snapshot.stage === 'standing_frame_check' && snapshot.frameCheckLightingHintAvailable) {
+    const scope = `mpv2:notice:frame-check-light:${snapshot.movementEpochId}`;
+    return plan(scope, 'optional_reassurance', ['turn-on-light']);
+  }
+  return null;
 }
 
 function baseCuesAfterRecovery(

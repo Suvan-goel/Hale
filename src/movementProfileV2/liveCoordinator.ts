@@ -73,6 +73,8 @@ const HANDS_FREE_FALLBACK_TIMEOUT_MS = 10000;
 const FRAME_STALL_INVALID_MS = 1500;
 const SETUP_CHAIN_RELIABILITY = 0.45;
 const CHAIR_SETUP_SEATED_KNEE_MAX_DEG = 145;
+/** Near-extended knee on the reliable side = plausibly standing (raw space). */
+const FRAME_CHECK_STANDING_KNEE_MIN_DEG = 150;
 const SHOULDER_CAPTURE_ARM_MIN_DEG = 35;
 const HINGE_FOLDED_TRUNK_MAX_DEG = 165;
 
@@ -108,6 +110,7 @@ export interface Mpv2RecoveryEpisode {
 }
 
 export type MovementProfileV2LiveStage =
+  | 'standing_frame_check'
   | 'chair_setup'
   | 'chair_practice'
   | 'chair_countdown'
@@ -141,6 +144,8 @@ export interface MovementProfileV2LivePoseSample {
 }
 
 export type MovementProfileV2LiveUserAction =
+  | { type: 'frame_check_voice_completed' }
+  | { type: 'skip_frame_check' }
   | { type: 'confirm_chair_setup'; source?: ProtocolSetupSource }
   | { type: 'chair_setup_voice_completed' }
   | { type: 'chair_practice_voice_completed' }
@@ -242,6 +247,10 @@ export interface MovementProfileV2LiveSnapshot {
   repCreditCount: number;
   balanceValidTrials: number;
   balanceBestHoldSec: number | null;
+  /** A sustained wrong-leg lift is being ignored; the user needs correcting. */
+  balanceWrongLegNoticed: boolean;
+  /** Frame check has struggled long enough that a lighting hint is warranted. */
+  frameCheckLightingHintAvailable: boolean;
   shoulderPeakDeg: number | null;
   hingeReachBu: number | null;
   backgrounded: boolean;
@@ -257,6 +266,12 @@ export interface MovementProfileV2LiveCoordinatorOptions {
   handsFreeMode?: boolean;
   handsFreeSetupDwellMs?: number;
   handsFreeFallbackTimeoutMs?: number;
+  /**
+   * Opens the check-up with a standing "get in frame" gate before the chair
+   * item: lighting/stability check + a guaranteed STANDING body-unit
+   * calibration lock at the session's camera spot (measurement hygiene).
+   */
+  standingFrameCheckEnabled?: boolean;
 }
 
 export function movementProfileV2TrackingQualityFromPipeline(
@@ -320,6 +335,9 @@ export class MovementProfileV2LiveCoordinator {
   private lastSourceTimestampMs: number | null = null;
   private lastAcceptedFrameAppMs: number | null = null;
   private lastTrackingQuality: MovementProfileV2TrackingQuality | null = null;
+
+  private readonly standingFrameCheckEnabled: boolean;
+  private frameCheckVoiceCompleted = false;
 
   private chair = new ChairRiseV2ProtocolController();
   private chairAdapter = new ChairLiveAdapter();
@@ -402,6 +420,11 @@ export class MovementProfileV2LiveCoordinator {
     this.handsFreeMode = options.handsFreeMode === true;
     this.handsFreeSetupDwellMs = options.handsFreeSetupDwellMs ?? HANDS_FREE_SETUP_DWELL_MS;
     this.handsFreeFallbackTimeoutMs = options.handsFreeFallbackTimeoutMs ?? HANDS_FREE_FALLBACK_TIMEOUT_MS;
+    this.standingFrameCheckEnabled = options.standingFrameCheckEnabled === true;
+    if (this.standingFrameCheckEnabled) {
+      this.stage = 'standing_frame_check';
+      this.movementEpochId = this.nextMovementEpoch('frame-check');
+    }
   }
 
   snapshot(nowMs: number | null = null): MovementProfileV2LiveSnapshot {
@@ -441,6 +464,8 @@ export class MovementProfileV2LiveCoordinator {
       repCreditCount: this.repCreditCount,
       balanceValidTrials: this.balanceValidTrials,
       balanceBestHoldSec: this.balanceBestHoldSec,
+      balanceWrongLegNoticed: this.balanceWrongLegNoticed,
+      frameCheckLightingHintAvailable: this.frameCheckLightingHintNeeded(),
       shoulderPeakDeg: this.shoulderPeakDeg,
       hingeReachBu: this.hingeReachBu,
       backgrounded: this.backgrounded,
@@ -456,6 +481,18 @@ export class MovementProfileV2LiveCoordinator {
   receiveUserAction(action: MovementProfileV2LiveUserAction, nowMs: number): boolean {
     const before = this.stage;
     switch (action.type) {
+      case 'frame_check_voice_completed':
+        if (this.stage !== 'standing_frame_check') return false;
+        this.frameCheckVoiceCompleted = true;
+        this.bump();
+        break;
+      case 'skip_frame_check':
+        // Explicit escape (fallback button): calibration will lock later in
+        // whatever posture the user first holds still — the segment-sum scale
+        // keeps that comparable, so skipping degrades nothing structurally.
+        if (this.stage !== 'standing_frame_check') return false;
+        this.passFrameCheck(nowMs, 'frame_check_skipped');
+        break;
       case 'confirm_chair_setup':
         if (this.stage !== 'chair_setup') return false;
         const chairSetup = createChairRiseV2Setup({ confirmed: true, source: action.source ?? 'user' });
@@ -814,6 +851,13 @@ export class MovementProfileV2LiveCoordinator {
     if (!this.handsFreeMode) return;
     this.updateHandsFreeWaiting(nowMs);
     switch (this.stage) {
+      case 'standing_frame_check': {
+        const ready = this.frameCheckVoiceCompleted && standingFrameCheckReady(sample.output);
+        if (this.noteHandsFreeReadiness('standing_frame_check', 'frame', ready, nowMs)) {
+          this.passFrameCheck(nowMs, 'frame_check_passed');
+        }
+        break;
+      }
       case 'chair_setup': {
         const ready = this.chairSetupVoiceCompleted && chairSetupReady(sample.output);
         if (this.noteHandsFreeReadiness('chair_setup', 'chair', ready, nowMs)) {
@@ -1384,6 +1428,23 @@ export class MovementProfileV2LiveCoordinator {
     this.diagnostics.recovery.lastItem = episode.item;
   }
 
+  private passFrameCheck(nowMs: number, reason: string): void {
+    if (this.stage !== 'standing_frame_check') return;
+    this.transition('chair_setup', nowMs, reason);
+    this.movementEpochId = this.nextMovementEpoch('chair');
+    this.attemptEpochId = null;
+  }
+
+  /** After the fallback timeout with tracking still not good, the dominant
+   * home cause is dim light (detection degrades before a room looks dark). */
+  private frameCheckLightingHintNeeded(): boolean {
+    return (
+      this.stage === 'standing_frame_check' &&
+      this.handsFreeFallbackAvailable &&
+      this.lastTrackingQuality !== 'good'
+    );
+  }
+
   private finishHinge(nowMs: number, reason: string): void {
     const valid = this.hingeValidTrackingMs >= HINGE_VALID_TRACKING_MS && this.hingeReachBu !== null;
     this.hingeResult = {
@@ -1486,6 +1547,9 @@ export class MovementProfileV2LiveCoordinator {
   }
 
   private resetVoicePrerequisitesForStage(stage: MovementProfileV2LiveStage): void {
+    if (stage === 'standing_frame_check') {
+      this.frameCheckVoiceCompleted = false;
+    }
     if (stage === 'chair_setup') {
       this.chairSetupVoiceCompleted = false;
     }
@@ -1567,6 +1631,8 @@ export class MovementProfileV2LiveCoordinator {
 
   private voicePrerequisitePending(): boolean {
     switch (this.stage) {
+      case 'standing_frame_check':
+        return this.handsFreeMode && !this.frameCheckVoiceCompleted;
       case 'chair_setup':
         return this.handsFreeMode && !this.chairSetupVoiceCompleted;
       case 'chair_practice':
@@ -1675,6 +1741,11 @@ export class MovementProfileV2LiveCoordinator {
 
   private statusText(): string {
     switch (this.stage) {
+      case 'standing_frame_check':
+        if (this.frameCheckLightingHintNeeded()) {
+          return 'Hale is struggling to see you clearly. Try turning on the main light, then stand still facing the phone.';
+        }
+        return 'Stand still where the camera can see your whole body, about three big steps back from the phone.';
       case 'chair_setup':
         if (this.handsFreeMode) return 'Sit side-on in a sturdy chair. Hale will begin when the camera is ready.';
         return 'Confirm the sturdy chair setup, then Hale will watch for one practice stand.';
@@ -1797,6 +1868,7 @@ function buildMovementProfileV2RecordingVisualGuidance(
   }
 
   switch (input.stage) {
+    case 'standing_frame_check':
     case 'chair_setup':
     case 'balance_setup':
     case 'shoulder_setup':
@@ -2032,13 +2104,31 @@ function standingLegFromAnkleLift(frame: PoseFrame, bodyUnit: number): BodySide 
 }
 
 function isHandsFreeWaitingStage(stage: MovementProfileV2LiveStage): boolean {
-  return stage === 'chair_setup' ||
+  return stage === 'standing_frame_check' ||
+    stage === 'chair_setup' ||
     stage === 'balance_setup' ||
     stage === 'balance_ready' ||
     stage === 'shoulder_setup' ||
     stage === 'shoulder_ready' ||
     stage === 'shoulder_retry_ready' ||
     stage === 'hinge_setup';
+}
+
+/**
+ * Standing, framed, and calibrated: tracking established, the body-unit scale
+ * locked (requires ~1.5s of stillness, so it also proves the user held the
+ * spot), a reliable side chain, and a near-extended knee (standing, not
+ * seated). Passing here guarantees this session calibrated STANDING at the
+ * camera spot.
+ */
+function standingFrameCheckReady(out: PipelineFrameOutput): boolean {
+  if (out.state !== 'tracking' || !out.frame.hasPose || out.bodyUnit === null) return false;
+  const side = moreReliableSide(out);
+  if (!side || side.reliability < SETUP_CHAIN_RELIABILITY) return false;
+  const landmarks = side.side === 'left'
+    ? { hip: LM.LEFT_HIP, knee: LM.LEFT_KNEE, ankle: LM.LEFT_ANKLE }
+    : { hip: LM.RIGHT_HIP, knee: LM.RIGHT_KNEE, ankle: LM.RIGHT_ANKLE };
+  return angleAtDeg(out.frame, landmarks.hip, landmarks.knee, landmarks.ankle) >= FRAME_CHECK_STANDING_KNEE_MIN_DEG;
 }
 
 function chairSetupReady(out: PipelineFrameOutput): boolean {
@@ -2244,7 +2334,8 @@ function boundedAppend<T>(values: T[], value: T): T[] {
 }
 
 function isVoiceBoundaryAction(action: MovementProfileV2LiveUserAction): boolean {
-  return action.type === 'chair_setup_voice_completed' ||
+  return action.type === 'frame_check_voice_completed' ||
+    action.type === 'chair_setup_voice_completed' ||
     action.type === 'chair_practice_voice_completed' ||
     action.type === 'chair_official_ready_voice_completed' ||
     action.type === 'chair_countdown_started' ||

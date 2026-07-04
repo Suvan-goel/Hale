@@ -74,6 +74,18 @@ describe('MovementProfileV2UnifiedCheckUpScreen voice-runtime wiring', () => {
     expect(text).toContain('dispatchBackgrounded');
   });
 
+  it('opens the hands-free check-up with the standing frame check and offers only a skip fallback', () => {
+    const text = source();
+
+    expect(text).toContain('standingFrameCheckEnabled: handsFreeMode');
+    expect(text).toContain("case 'standing_frame_check':");
+    expect(text).toContain('Skip camera check');
+    expect(text).toContain("disabled: actionDisabled({ type: 'skip_frame_check' })");
+    // No manual "confirm framing" — passing requires the camera-verified
+    // standing calibration; the only manual path is skipping.
+    expect(text).not.toContain('Confirm framing');
+  });
+
   it('waits for completion narration before calling onComplete in the foundation path', () => {
     const text = source();
 

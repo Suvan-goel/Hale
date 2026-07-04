@@ -1221,6 +1221,72 @@ describe('MovementProfileV2LiveCoordinator', () => {
     expect(checkUp?.bodyUnit).not.toBeNull();
   });
 
+  it('opens with the standing frame check when enabled and passes only on a calibrated standing pose', () => {
+    const coordinator = createFrameCheckCoordinator();
+    expect(coordinator.snapshot(0).stage).toBe('standing_frame_check');
+
+    // Before the voice boundary, even a perfect standing pose must not pass.
+    feedOutput(coordinator, trackingOutput(balanceRaw(100, 'left', false)), 100);
+    feedOutput(coordinator, trackingOutput(balanceRaw(1400, 'left', false)), 1400);
+    expect(coordinator.snapshot(1400).stage).toBe('standing_frame_check');
+
+    expect(coordinator.receiveUserAction({ type: 'frame_check_voice_completed' }, 1500)).toBe(true);
+
+    // A seated pose (knee bent) never passes the standing gate.
+    feedOutput(coordinator, trackingOutput(chairSetupRaw(1600)), 1600);
+    feedOutput(coordinator, trackingOutput(chairSetupRaw(2900)), 2900);
+    expect(coordinator.snapshot(2900).stage).toBe('standing_frame_check');
+
+    // A standing, calibrated, reliable pose passes after the dwell.
+    feedOutput(coordinator, trackingOutput(balanceRaw(3000, 'left', false)), 3000);
+    feedOutput(coordinator, trackingOutput(balanceRaw(4300, 'left', false)), 4300);
+    const snapshot = coordinator.snapshot(4300);
+    expect(snapshot.stage).toBe('chair_setup');
+    expect(snapshot.lastTransition?.reason).toBe('frame_check_passed');
+
+    // The rest of the battery is unchanged from chair_setup onward.
+    const nowMs = advanceThroughChair(coordinator, 4400) + 100;
+    expect(coordinator.snapshot(nowMs).stage).toBe('balance_setup');
+  });
+
+  it('arms the frame-check fallback with a lighting hint when tracking stays poor, and skip moves on', () => {
+    const coordinator = createFrameCheckCoordinator();
+    expect(coordinator.receiveUserAction({ type: 'frame_check_voice_completed' }, 0)).toBe(true);
+
+    // No usable pose for 10+ seconds: fallback arms and, because tracking is
+    // not good, the lighting hint becomes available.
+    let nowMs = 100;
+    for (; nowMs <= 12000; nowMs += 250) {
+      feedOutput(coordinator, lostOutput(nowMs), nowMs);
+      coordinator.receiveTimerTick(nowMs);
+    }
+    const stuck = coordinator.snapshot(nowMs);
+    expect(stuck.stage).toBe('standing_frame_check');
+    expect(stuck.handsFreeFallbackAvailable).toBe(true);
+    expect(stuck.frameCheckLightingHintAvailable).toBe(true);
+    expect(stuck.statusText).toContain('light');
+
+    expect(coordinator.receiveUserAction({ type: 'skip_frame_check' }, nowMs + 1)).toBe(true);
+    const skipped = coordinator.snapshot(nowMs + 1);
+    expect(skipped.stage).toBe('chair_setup');
+    expect(skipped.lastTransition?.reason).toBe('frame_check_skipped');
+    expect(skipped.frameCheckLightingHintAvailable).toBe(false);
+  });
+
+  it('does not surface the lighting hint while the user is tracked but simply not standing yet', () => {
+    const coordinator = createFrameCheckCoordinator();
+    expect(coordinator.receiveUserAction({ type: 'frame_check_voice_completed' }, 0)).toBe(true);
+    let nowMs = 100;
+    for (; nowMs <= 12000; nowMs += 250) {
+      feedOutput(coordinator, trackingOutput(chairSetupRaw(nowMs)), nowMs);
+      coordinator.receiveTimerTick(nowMs);
+    }
+    const snapshot = coordinator.snapshot(nowMs);
+    expect(snapshot.stage).toBe('standing_frame_check');
+    expect(snapshot.handsFreeFallbackAvailable).toBe(true);
+    expect(snapshot.frameCheckLightingHintAvailable).toBe(false);
+  });
+
   it('does not expose canned V2 measurement controls from the internal live screen', () => {
     const source = fs.readFileSync(
       path.join(process.cwd(), 'src/screens/MovementProfileV2UnifiedCheckUpScreen.tsx'),
@@ -1251,6 +1317,13 @@ function createHandsFreeCoordinator(
     ...overrides,
     sourceType: 'baseline',
   }, { handsFreeMode: true });
+}
+
+function createFrameCheckCoordinator(): MovementProfileV2LiveCoordinator {
+  return new MovementProfileV2LiveCoordinator({
+    ...createMovementProfileV2InternalFlow({ startedAt: STARTED_AT }),
+    sourceType: 'baseline',
+  }, { handsFreeMode: true, standingFrameCheckEnabled: true });
 }
 
 function completeLiveCheckup(coordinator: MovementProfileV2LiveCoordinator): CheckUp | null {

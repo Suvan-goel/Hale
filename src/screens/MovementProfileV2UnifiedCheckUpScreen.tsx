@@ -141,7 +141,12 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   );
   const coordinatorRef = React.useRef<MovementProfileV2LiveCoordinator | null>(null);
   if (coordinatorRef.current === null) {
-    coordinatorRef.current = new MovementProfileV2LiveCoordinator(initialState, { handsFreeMode });
+    coordinatorRef.current = new MovementProfileV2LiveCoordinator(initialState, {
+      handsFreeMode,
+      // The standing frame check is voice-led; it ships with the hands-free
+      // runtime (the legacy button path keeps the original first stage).
+      standingFrameCheckEnabled: handsFreeMode,
+    });
   }
   const [pipeline] = React.useState(() => new PosePipeline());
   const [voice] = React.useState(() => new VoiceChannel(voiceId));
@@ -643,6 +648,17 @@ function movementProfileV2ShellControls({
 }): CheckUpShellControl[] {
   const cancel: CheckUpShellControl = { id: 'cancel', title: 'Cancel', onPress: onCancel };
   switch (live.stage) {
+    case 'standing_frame_check':
+      if (handsFreeMode && !live.handsFreeFallbackAvailable) return [cancel];
+      return [
+        {
+          id: 'skip-frame-check',
+          title: 'Skip camera check',
+          onPress: () => runLiveAction({ type: 'skip_frame_check' }),
+          disabled: actionDisabled({ type: 'skip_frame_check' }),
+        },
+        cancel,
+      ];
     case 'chair_setup':
       if (handsFreeMode && !live.handsFreeFallbackAvailable) return [cancel];
       return [
@@ -930,6 +946,8 @@ function shoulderSetupControls({
 
 function movementProfileV2ShellTitle(stage: MovementProfileV2LiveStage): string {
   switch (stage) {
+    case 'standing_frame_check':
+      return 'Camera Check';
     case 'chair_setup':
     case 'chair_practice':
     case 'chair_countdown':
@@ -955,6 +973,9 @@ function movementProfileV2ShellTitle(stage: MovementProfileV2LiveStage): string 
 }
 
 function movementProfileV2FooterMeta(stage: MovementProfileV2LiveStage): CheckUpShellFooterMeta {
+  if (stage === 'standing_frame_check') {
+    return { progress: null, context: 'Camera setup' };
+  }
   const itemNumber = movementProfileV2ItemNumber(stage);
   if (stage === 'raw_complete') {
     return { progress: null, context: `${TOTAL_V2_ITEMS} tests complete` };

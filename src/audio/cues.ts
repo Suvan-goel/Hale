@@ -36,6 +36,7 @@ export type VoiceCueKey =
   | 'balance-semi-tandem'
   | 'balance-tandem'
   | 'balance-single-leg'
+  | 'balance-same-leg'
   | 'close-your-eyes'
   | 'open-your-eyes'
   // Timed Up and Go instructions.
@@ -243,6 +244,7 @@ export function voicePriority(cue: VoiceCueKey): number {
     case 'balance-semi-tandem':
     case 'balance-tandem':
     case 'balance-single-leg':
+    case 'balance-same-leg':
     case 'close-your-eyes':
     case 'open-your-eyes':
     case 'tug-intro':

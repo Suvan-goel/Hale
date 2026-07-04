@@ -3054,3 +3054,55 @@ PUBLIC RELEASE REMAINS BLOCKED
   product owner, and the discard-confirm + early raw save now cover the main loss paths);
   the V2 lighting/framing pre-flight (needs seated-framing protocol design + voice assets;
   the new recovery caps bound its worst-case symptom); wrong-leg voice line (asset generation).
+
+## 2026-07-04 — Check-up product decisions executed: standing frame check, corrective voice, no-resume, ladder sequencing
+
+- **Context:** the four product decisions deferred from the same-day robustness pass were
+  resolved and carried out: build the pre-flight, generate the corrective voice line, decide
+  against mid-battery resume, and schedule (not build) the balance-ladder protocol switch.
+- **Standing frame check built (hands-free runtime only).** The unified check-up now opens
+  with a `standing_frame_check` stage before the chair item, enabled via a coordinator option
+  the screen sets alongside hands-free mode (`standingFrameCheckEnabled`) — the legacy button
+  path and all existing coordinator tests keep the original first stage. Passing requires,
+  after the voice boundary and the usual hands-free dwell: pipeline `tracking`, a locked
+  body-unit calibration (which itself needs ~1.5 s of stillness), a reliable side chain, and a
+  near-extended knee (≥150° raw-space) so a seated user cannot pass. One design solves three
+  problems: a lighting/stability gate, the framing-hygiene promise ("stand where you stood
+  last time"), and a GUARANTEED standing calibration lock at the camera spot each session —
+  the segment-sum calibration made posture variance survivable; this makes it deterministic.
+  Voice: `mpv2_checkup_intro` + the existing V1 pre-flight line `step-into-frame`; on pass the
+  chair stage speaks `framing-ready` + the chair cues WITHOUT replaying the intro. After the
+  10-second fallback timeout a "Skip camera check" control appears (no manual "confirm
+  framing" — passing is camera-verified or nothing; skipping is honest and safe because the
+  segment-sum scale stays comparable). If tracking is still not good at fallback time, a
+  one-shot `turn-on-light` hint speaks and the status text explains — high-confidence only,
+  per the silence-by-default law. Zero new audio was needed for the gate: the V1 pre-flight
+  lines were already bundled.
+- **One-shot advisory notices in the voice runtime.** New `noticePlanForSnapshot` channel:
+  non-blocking, deduped per scope, only speaks when the stage's own plan is done and the
+  channel is idle. Two notices ship: the balance wrong-leg correction (new generated line
+  `balance-same-leg`, side-agnostic — "Stand on the same leg as your first attempt…" — one
+  ElevenLabs run, both voices, `verify:audio` green across all 502 assets) and the frame-check
+  lighting hint (reuses `turn-on-light`). The wrong-leg notice re-arms per balance attempt.
+  Deliberately NOT added to the MPV2 cue-definition list: that list's policy fingerprint
+  covers every MPV2 asset, so adding a definition would mark all ~62 approved takes stale and
+  force a full regeneration; plain `VoiceCueKey` lines avoid that (V2 plans already mix them).
+- **Decision — mid-battery resume will not be built.** A check-up resumed in a new app launch
+  carries a different body-unit calibration, lighting, and fatigue state: a different protocol
+  wearing the same name, which the evidence taxonomy would downgrade to raw-only anyway. With
+  confirm-before-leave, the early raw save, and pending-raw recovery, an app crash mid-battery
+  is the only remaining loss path, and its cost is one redo of a monthly 10-minute ritual.
+  Revisit only if crash telemetry shows real frequency.
+- **Decision — eyes-open balance ladder is held, with a deadline.** The built
+  `BalanceEyesOpenV2ProtocolController` stays unwired through the noise-floor go/no-go and
+  on-device verification (wiring a multi-stage protocol immediately after a hardening pass
+  would reopen the seam-bug class just closed). It is scheduled as the LAST pre-launch
+  protocol change: the 45-second single-leg ceiling under-discriminates the fit end of the
+  45–65 demographic, and a protocol switch is free before first external users but resets
+  everyone's balance baselines after.
+- **Verification:** tsc, expo config, `verify:audio` clean; 159 suites / 1,327 tests green
+  (suite count reflects the parallel parking of beta subsystems in `ade64afd`). New tests:
+  frame-check pass/seated-reject/fallback-skip/lighting-hint (coordinator), frame-check plan +
+  no-intro-replay + notice one-shot/dedupe (voice runtime), screen wiring (source test).
+  On-device verification of the frame check with a landmark recording remains owed, alongside
+  the pass's other on-device items.

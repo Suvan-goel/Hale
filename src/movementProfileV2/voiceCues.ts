@@ -132,6 +132,8 @@ export function movementProfileV2VisibleCueForStage(
   selectedShoulder: BodySide = 'right'
 ): MovementProfileV2CueDefinition {
   switch (stage) {
+    case 'standing_frame_check':
+      return movementProfileV2CueDefinition('mpv2_checkup_intro');
     case 'chair_setup':
       return movementProfileV2CueDefinition('checkup-chair-stand-intro-v21');
     case 'chair_practice':

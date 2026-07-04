@@ -90,6 +90,8 @@ const LINES: Record<string, string> = {
     'Slide one foot half a step forward, so its instep touches your other big toe.',
   'balance-tandem': 'Place one foot directly in front of the other, heel to toe.',
   'balance-single-leg': 'Now stand on one leg, lifting your other foot just off the floor.',
+  'balance-same-leg':
+    'Stand on the same leg as your first attempt, and lift the other foot high off the floor.',
   'close-your-eyes': 'Keep holding, and gently close your eyes.',
   'open-your-eyes': 'You can open your eyes now.',
   // Timed Up and Go.
