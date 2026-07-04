@@ -46,7 +46,6 @@ export function ExploreScreen({
 
   const featuredSession = extraSessions.find((session) => session.id === 'preset-mobility-reset') ?? extraSessions[0];
   const sessionRows = featuredSession ? extraSessions.filter((session) => session.id !== featuredSession.id) : extraSessions;
-  const [featuredArticle, ...articleRows] = insights;
 
   return (
     <Screen contentStyle={styles.screenContent}>
@@ -74,7 +73,7 @@ export function ExploreScreen({
 
       {sessionRows.length > 0 ? (
         <View style={styles.section}>
-          <SectionCopy title="More sessions" body="Short sessions for lighter days or after your plan is done." />
+          <SectionCopy title="More sessions" body="Optional sessions outside your 4-week plan." />
           <View style={[styles.listPanel, styles.rowListPanel, responsive.isCompactPhone && styles.compactListPanel]}>
             {sessionRows.map((session, index) => (
               <OptionalSessionRow
@@ -90,21 +89,16 @@ export function ExploreScreen({
 
       <View style={styles.section}>
         <SectionCopy title="Learn" body="Simple articles about movement, recovery, and healthy aging." />
-        {featuredArticle ? (
-          <FeaturedInsightCard article={featuredArticle} onOpen={() => onOpenLearn(featuredArticle.id)} />
-        ) : null}
-        {articleRows.length > 0 ? (
-          <View style={[styles.listPanel, styles.rowListPanel, responsive.isCompactPhone && styles.compactListPanel]}>
-            {articleRows.map((article, index) => (
-              <InsightRow
-                key={article.id}
-                article={article}
-                showDivider={index < articleRows.length - 1}
-                onOpen={() => onOpenLearn(article.id)}
-              />
-            ))}
-          </View>
-        ) : null}
+        <View style={[styles.listPanel, styles.rowListPanel, responsive.isCompactPhone && styles.compactListPanel]}>
+          {insights.map((article, index) => (
+            <InsightRow
+              key={article.id}
+              article={article}
+              showDivider={index < insights.length - 1}
+              onOpen={() => onOpenLearn(article.id)}
+            />
+          ))}
+        </View>
       </View>
     </Screen>
   );
@@ -117,7 +111,7 @@ function FeaturedPracticeCard({ session, onStart }: { session: ExtraSessionCard;
 
   return (
     <View style={styles.featuredSection}>
-      <Text style={styles.featuredLabel}>Featured session</Text>
+      <Text style={styles.featuredLabel}>For lighter days</Text>
       <Pressable
         style={({ pressed }) => [styles.featuredCard, heroMinHeightStyle, session.disabled && styles.disabledRow, pressed && styles.pressed]}
         onPress={onStart}
@@ -150,42 +144,6 @@ function FeaturedPracticeCard({ session, onStart }: { session: ExtraSessionCard;
         </ImageBackground>
       </Pressable>
     </View>
-  );
-}
-
-function FeaturedInsightCard({ article, onOpen }: { article: HealthInsightCard; onOpen: () => void }) {
-  const responsive = useResponsiveLayout();
-  const compactHero = responsive.isCompactPhone;
-  const heroMinHeightStyle = { minHeight: responsive.exploreHeroHeight };
-
-  return (
-    <Pressable
-      style={({ pressed }) => [styles.featuredCard, heroMinHeightStyle, pressed && styles.pressed]}
-      onPress={onOpen}
-      accessibilityRole="button"
-      accessibilityLabel={`Read ${article.title}`}
-    >
-      <ImageBackground
-        source={INSIGHT_IMAGES[article.id]}
-        style={[styles.featuredImage, heroMinHeightStyle]}
-        imageStyle={styles.featuredImageRadius}
-        resizeMode="cover"
-      >
-        <View style={styles.featuredScrim} />
-        <View style={[styles.featuredContent, compactHero && styles.featuredHeroContentCompact, heroMinHeightStyle]}>
-          <View style={[styles.featuredHeroCopy, compactHero && styles.featuredHeroCopyCompact]}>
-            <Text style={styles.featuredMeta}>{article.categoryLabel} · {article.readTimeLabel}</Text>
-            <Text style={styles.featuredTitle}>{article.title}</Text>
-            <Text style={styles.featuredBody}>{article.body}</Text>
-          </View>
-          <View style={styles.featuredHeroAction}>
-            <View style={[styles.featuredButton, compactHero && styles.featuredHeroButtonCompact]}>
-              <Text style={styles.featuredButtonText}>Read article</Text>
-            </View>
-          </View>
-        </View>
-      </ImageBackground>
-    </Pressable>
   );
 }
 
