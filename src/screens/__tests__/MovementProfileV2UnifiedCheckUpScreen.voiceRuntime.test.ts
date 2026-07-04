@@ -118,17 +118,4 @@ describe('MovementProfileV2UnifiedCheckUpScreen voice-runtime wiring', () => {
     expect(text).toContain('createVoiceChannel: (nextVoiceId) => new VoiceChannel(nextVoiceId)');
     expect(text).toContain('pendingVoiceId');
   });
-
-  it('keeps the recovery screen on tracked scoped speech with unmount cancellation', () => {
-    const text = fs.readFileSync(
-      path.join(process.cwd(), 'src/screens/MovementProfileV2RecoveryScreen.tsx'),
-      'utf8'
-    );
-
-    expect(text).toContain('voiceRecovery');
-    expect(text).toContain('speakTracked');
-    expect(text).toContain('mpv2:recovery-screen:');
-    expect(text).toContain("cancelScope(scopeId, 'screen_unmounted')");
-    expect(text).toContain('spokenRecoveryIdsRef');
-  });
 });

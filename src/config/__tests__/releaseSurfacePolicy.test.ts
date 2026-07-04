@@ -2,22 +2,10 @@ import {
   isDevMockDataAllowed,
   isDiagnosticsDeveloperSurfaceAllowed,
   isInternalHarnessSurfaceAllowed,
-  isReleaseGatedFlowAllowed,
 } from '../releaseSurfacePolicy';
 
 describe('release surface policy', () => {
-  it('blocks developer flows outside dev runtime even when flags are true', () => {
-    expect(isReleaseGatedFlowAllowed('dev-live', { dev: false })).toBe(false);
-    expect(
-      isReleaseGatedFlowAllowed('dev-live', {
-        dev: false,
-        poseLatencyDiagnosticsEnabled: true,
-      })
-    ).toBe(false);
-  });
-
-  it('allows the dev live flow only in a dev runtime', () => {
-    expect(isReleaseGatedFlowAllowed('dev-live', { dev: true })).toBe(true);
+  it('gates diagnostics surfaces on a dev runtime plus the explicit flag', () => {
     expect(
       isDiagnosticsDeveloperSurfaceAllowed({
         dev: true,
@@ -30,13 +18,17 @@ describe('release surface policy', () => {
         poseLatencyDiagnosticsEnabled: false,
       })
     ).toBe(false);
+    expect(
+      isDiagnosticsDeveloperSurfaceAllowed({
+        dev: false,
+        poseLatencyDiagnosticsEnabled: true,
+      })
+    ).toBe(false);
   });
 
-  it('keeps normal product flows allowed while blocking release-only developer surfaces', () => {
-    expect(isReleaseGatedFlowAllowed(null, { dev: false })).toBe(true);
-    expect(isReleaseGatedFlowAllowed('settings', { dev: false })).toBe(true);
-    expect(isReleaseGatedFlowAllowed('movement-profile-v2-unified-checkup', { dev: false })).toBe(true);
+  it('keeps dev mock data and internal harness surfaces out of release runtimes', () => {
     expect(isDevMockDataAllowed({ dev: false })).toBe(false);
+    expect(isDevMockDataAllowed({ dev: true })).toBe(true);
     expect(isInternalHarnessSurfaceAllowed({ dev: false, internalEnabled: true })).toBe(false);
     expect(isInternalHarnessSurfaceAllowed({ dev: true, internalEnabled: true })).toBe(true);
   });

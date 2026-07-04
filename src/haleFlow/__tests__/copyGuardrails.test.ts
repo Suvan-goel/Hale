@@ -32,7 +32,6 @@ const RESULT_COPY_FILES = [
   'src/screens/AuthScreen.tsx',
   'src/screens/WelcomeScreen.tsx',
   'src/screens/PlanScreen.tsx',
-  'src/screens/OnboardingBlockScreen.tsx',
   'src/screens/SettingsScreen.tsx',
   'src/screens/SafetyProfileScreen.tsx',
   'src/results/movementProfileV2ResultsAdapter.ts',

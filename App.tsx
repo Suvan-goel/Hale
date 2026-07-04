@@ -31,7 +31,6 @@ import { MOVEMENT_PROFILE_V2_INTERNAL_ENABLED } from './src/config/movementProfi
 import {
   isDiagnosticsDeveloperSurfaceAllowed,
   isInternalHarnessSurfaceAllowed,
-  isReleaseGatedFlowAllowed,
 } from './src/config/releaseSurfacePolicy';
 import { resolveVoiceV21Activation } from './src/config/voiceExperience';
 import {
@@ -218,12 +217,8 @@ import { AuthScreen } from './src/screens/AuthScreen';
 import { CameraSetupScreen } from './src/screens/CameraSetupScreen';
 import { ExploreScreen } from './src/screens/ExploreScreen';
 import { LearnDetailScreen } from './src/screens/ExploreDetailScreens';
-import { LiveSessionScreen } from './src/screens/LiveSessionScreen';
 import { ManualCheckupStartScreen } from './src/screens/ManualCheckupStartScreen';
-import {
-  ManualMicroCheckDomainScreen,
-  ManualMicroCheckUnavailableScreen,
-} from './src/screens/ManualMicroCheckChoiceScreen';
+import { ManualMicroCheckDomainScreen } from './src/screens/ManualMicroCheckChoiceScreen';
 import { MicroCheckScreen } from './src/screens/MicroCheckScreen';
 import { MicroCheckSummaryScreen } from './src/screens/MicroCheckSummaryScreen';
 import { MovementProfileV2BlockReportScreen } from './src/screens/MovementProfileV2BlockReportScreen';
@@ -231,7 +226,6 @@ import { MovementProfileV2ResultsScreen } from './src/screens/MovementProfileV2R
 import { MovementProfileV2UnifiedCheckUpScreen } from './src/screens/MovementProfileV2UnifiedCheckUpScreen';
 import { MovementProfileV2UnifiedResultsScreen } from './src/screens/MovementProfileV2UnifiedResultsScreen';
 import { MovementProfileV2PracticeResultsScreen } from './src/screens/MovementProfileV2PracticeResultsScreen';
-import { OnboardingBlockScreen } from './src/screens/OnboardingBlockScreen';
 import { PlanScreen } from './src/screens/PlanScreen';
 import { ProgressScreen } from './src/screens/ProgressScreen';
 import { SafetyProfileScreen } from './src/screens/SafetyProfileScreen';
@@ -275,14 +269,12 @@ type Flow =
   | 'camera-setup'
   | 'manual-checkup'
   | 'manual-microcheck-domain'
-  | 'manual-microcheck-unavailable'
   | 'session-unavailable'
   | 'session-preview'
   | 'training'
   | 'microcheck'
   | 'microcheck-summary'
   | 'life-goal'
-  | 'onboarding-block'
   | 'block-intro'
   | 'restart-intro'
   | 'session-complete'
@@ -293,10 +285,8 @@ type Flow =
   | 'movement-profile-v2-practice-results'
   | 'movement-profile-v2-unified-results'
   | 'movement-profile-v2-domain-detail'
-  | 'movement-profile-v2-unified-domain-detail'
   | 'movement-profile-v2-block-report'
-  | 'movement-profile-v2-retest-unavailable'
-  | 'dev-live';
+  | 'movement-profile-v2-retest-unavailable';
 
 type CameraSetupEntry = 'checkup' | 'review';
 type LifeGoalEntry = 'onboarding' | 'review';
@@ -346,63 +336,20 @@ const CAMERA_FLOWS = new Set<Flow>([
   'training',
   'microcheck',
   'movement-profile-v2-unified-checkup',
-  'dev-live',
 ]);
 const PUBLIC_MOVEMENT_PROFILE_V2_FLOWS = new Set<Flow>([
   'movement-profile-v2-unified-checkup',
   'movement-profile-v2-results',
   'movement-profile-v2-unified-results',
   'movement-profile-v2-domain-detail',
-  'movement-profile-v2-unified-domain-detail',
   'movement-profile-v2-block-report',
   'movement-profile-v2-retest-unavailable',
 ]);
 const MAX_NAVIGATION_HISTORY_ENTRIES = 40;
 const LAUNCH_SYNC_RETRY_DELAY_MS = 5000;
 const STATUS_BAR_BACKDROP_EXTRA_HEIGHT = 8;
-const TEMP_PREVIEW_BLOCK_INTRO_SCREEN = __DEV__ && false;
 
 initObservability();
-
-function buildBlockIntroPreview(nowIso: string): {
-  block: MovementBlock;
-  lifeGoal: LifeGoal;
-} {
-  const start = new Date(nowIso);
-  const end = new Date(start);
-  end.setDate(start.getDate() + 28);
-  const retest = new Date(start);
-  retest.setDate(start.getDate() + 7);
-
-  return {
-    lifeGoal: {
-      id: 'dev-preview-life-goal-stairs',
-      userId: LOCAL_USER_ID,
-      category: 'stairs',
-      createdAt: nowIso,
-      updatedAt: nowIso,
-      isPrimary: true,
-    },
-    block: {
-      id: 'dev-preview-movement-block',
-      userId: LOCAL_USER_ID,
-      lifeGoalId: 'dev-preview-life-goal-stairs',
-      status: 'active',
-      startDate: start.toISOString(),
-      endDate: end.toISOString(),
-      retestDate: retest.toISOString(),
-      focusDomain: 'balance',
-      secondaryDomains: ['strength_power', 'mobility'],
-      sessionsPerWeekTarget: 3,
-      totalPlannedSessions: 12,
-      completedSessions: 0,
-      microChecksCompleted: 0,
-      sourceCheckUpId: 'dev-preview-checkup',
-      createdAt: nowIso,
-      updatedAt: nowIso,
-    },
-  };
-}
 
 function buildDevMicroCheckSummaryPreview(variant: string | null): MicroCheckSummaryViewModel | null {
   if (!__DEV__) return null;
@@ -741,9 +688,7 @@ function HaleApp() {
   // Navigation: which bottom tab is showing, and whether a full-screen flow is
   // on top of it (a flow hides the tab bar; null means "show the tabs").
   const [tab, setTab] = React.useState<TabKey>(DEFAULT_TAB_KEY);
-  const [flow, setFlow] = React.useState<Flow | null>(() =>
-    TEMP_PREVIEW_BLOCK_INTRO_SCREEN ? 'block-intro' : null
-  );
+  const [flow, setFlow] = React.useState<Flow | null>(null);
   const [cameraSetupEntry, setCameraSetupEntry] =
     React.useState<CameraSetupEntry>('checkup');
   const [lifeGoalEntry, setLifeGoalEntry] =
@@ -1306,15 +1251,11 @@ function HaleApp() {
     !flow.startsWith('movement-profile-v2') ||
     flow === 'movement-profile-v2-retest-unavailable' ||
     (movementProfileV2EntryContext !== 'internal' && PUBLIC_MOVEMENT_PROFILE_V2_FLOWS.has(flow));
-  const releaseGatedFlowAllowed = isReleaseGatedFlowAllowed(flow, {
-    dev: developerRuntime,
-    poseLatencyDiagnosticsEnabled,
-  });
 
   React.useEffect(() => {
-    if (movementProfileV2FlowAllowed && releaseGatedFlowAllowed) return;
+    if (movementProfileV2FlowAllowed) return;
     goHome();
-  }, [goHome, movementProfileV2FlowAllowed, releaseGatedFlowAllowed]);
+  }, [goHome, movementProfileV2FlowAllowed]);
 
   const goBack = React.useCallback(
     (fallback?: () => void) => {
@@ -1941,11 +1882,6 @@ function HaleApp() {
     () => getActiveMovementBlock(adherence.blocks),
     [adherence.blocks]
   );
-  const devPreviewNowIso = React.useMemo(() => new Date().toISOString(), []);
-  const blockIntroPreview = React.useMemo(
-    () => (TEMP_PREVIEW_BLOCK_INTRO_SCREEN ? buildBlockIntroPreview(devPreviewNowIso) : null),
-    [devPreviewNowIso]
-  );
   const displayPrefs = prefs;
   const displayHistory = history;
   const pendingMovementProfileV2Raw = React.useMemo(
@@ -1981,9 +1917,8 @@ function HaleApp() {
     [displayAdherence.blocks, displayAdherence.reports, movementProfileV2AuthorityFacts]
   );
   const displayMovementBlock = React.useMemo(
-    () =>
-      blockIntroPreview?.block ?? activeMovementBlock ?? getLatestMovementBlock(adherence.blocks),
-    [activeMovementBlock, adherence.blocks, blockIntroPreview]
+    () => activeMovementBlock ?? getLatestMovementBlock(adherence.blocks),
+    [activeMovementBlock, adherence.blocks]
   );
   const onboardingStep = React.useMemo(
     () =>
@@ -3989,7 +3924,7 @@ function HaleApp() {
     return <AuthLoadingScreen />;
   }
 
-  if (!releaseGatedFlowAllowed || !movementProfileV2FlowAllowed) {
+  if (!movementProfileV2FlowAllowed) {
     return <View style={styles.container} />;
   }
 
@@ -4066,11 +4001,6 @@ function HaleApp() {
             onSelectDomain={beginManualMicroCheckForDomain}
             onBack={() => goBack(openManualCheckup)}
           />
-        ) : flow === 'manual-microcheck-unavailable' ? (
-          <ManualMicroCheckUnavailableScreen
-            onBack={() => goBack(openManualCheckup)}
-            onDone={goHome}
-          />
         ) : flow === 'session-unavailable' && planningRecoveryResult?.kind === 'unavailable' ? (
           <SessionPlanningRecoveryScreen
             result={planningRecoveryResult}
@@ -4139,17 +4069,11 @@ function HaleApp() {
                 : goBack(() => (onboardingFlowActive ? replaceFlow('welcome') : goHome()))
             }
           />
-        ) : flow === 'onboarding-block' && displayMovementBlock ? (
-          <OnboardingBlockScreen
-            block={displayMovementBlock}
-            onStartSession={() => handleStartSession({ lifecycleState: 'first_session_ready' })}
-            onGoToday={goHome}
-          />
         ) : flow === 'block-intro' && displayMovementBlock ? (
           <BlockIntroScreen
             block={displayMovementBlock}
-            lifeGoal={blockIntroPreview?.lifeGoal ?? prefs.profile.lifeGoal}
-            onStartSession={blockIntroPreview ? () => undefined : handleStartSession}
+            lifeGoal={prefs.profile.lifeGoal}
+            onStartSession={handleStartSession}
             onDone={goHome}
           />
         ) : flow === 'restart-intro' && activeMovementBlock ? (
@@ -4216,7 +4140,7 @@ function HaleApp() {
             }
             onOpenDomain={(domain) => {
               setMovementProfileV2DetailDomain(domain);
-              setFlow('movement-profile-v2-unified-domain-detail');
+              setFlow('movement-profile-v2-domain-detail');
             }}
             onViewPlan={
               movementProfileV2PlanBlockId ? handleMovementProfileV2ViewPlan : undefined
@@ -4247,30 +4171,26 @@ function HaleApp() {
             }}
           />
         ) : (flow === 'movement-profile-v2-results' ||
-            flow === 'movement-profile-v2-domain-detail' ||
-            flow === 'movement-profile-v2-unified-domain-detail') &&
+            flow === 'movement-profile-v2-domain-detail') &&
           visibleMovementProfileV2Result ? (
           <MovementProfileV2ResultsScreen
             viewModel={visibleMovementProfileV2Result}
             readOnly={!!selectedMovementProfileV2ProgressResult}
             detailDomain={
-              flow === 'movement-profile-v2-domain-detail' ||
-              flow === 'movement-profile-v2-unified-domain-detail'
+              flow === 'movement-profile-v2-domain-detail'
                 ? movementProfileV2DetailDomain
                 : null
             }
             onOpenDomain={(domain) => {
               setMovementProfileV2DetailDomain(domain);
-              setFlow(
-                flow === 'movement-profile-v2-unified-domain-detail'
-                  ? 'movement-profile-v2-unified-domain-detail'
-                  : 'movement-profile-v2-domain-detail'
-              );
+              setFlow('movement-profile-v2-domain-detail');
             }}
             onBackToResults={() => {
               setMovementProfileV2DetailDomain(null);
+              // The unified (post-check-up) surface returns to the unified
+              // results screen; the standalone history surface to its own.
               replaceFlow(
-                flow === 'movement-profile-v2-unified-domain-detail'
+                movementProfileV2ResultSurface === 'unified'
                   ? 'movement-profile-v2-unified-results'
                   : 'movement-profile-v2-results'
               );
@@ -4314,22 +4234,10 @@ function HaleApp() {
             }
             onBack={goHome}
           />
-        ) : flow === 'dev-live' && developerRuntime ? (
-          <LiveSessionScreen />
         ) : (
           // Defensive: an unsatisfiable flow (e.g. results with no result) falls back home.
           <View />
         )}
-        {__DEV__ && flow === 'dev-live' ? (
-          <Pressable
-            style={styles.back}
-            onPress={() => goBack(goHome)}
-            accessibilityRole="button"
-            accessibilityLabel="Back"
-          >
-            <Text style={styles.backText}>Back</Text>
-          </Pressable>
-        ) : null}
       </View>
     );
   }
@@ -4820,22 +4728,5 @@ const styles = StyleSheet.create({
   text: {
     ...type.body,
     textAlign: 'center',
-  },
-  back: {
-    position: 'absolute',
-    top: 56,
-    left: spacing.lg,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    minHeight: 48,
-    justifyContent: 'center',
-    borderRadius: radius.button,
-    backgroundColor: colors.bgSurface,
-    borderWidth: 1,
-    borderColor: colors.borderHairline,
-  },
-  backText: {
-    ...type.bodySmall,
-    color: colors.accentDeep,
   },
 });

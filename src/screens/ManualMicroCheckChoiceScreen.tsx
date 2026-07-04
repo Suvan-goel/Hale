@@ -5,7 +5,7 @@ import Svg, { Path } from 'react-native-svg';
 import type { MovementDomain } from '../adherence';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
-import { PrimaryButton, Screen } from '../components/ui';
+import { Screen } from '../components/ui';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 
@@ -81,31 +81,6 @@ export function ManualMicroCheckDomainScreen({
           </Pressable>
         ))}
       </View>
-    </Screen>
-  );
-}
-
-export function ManualMicroCheckUnavailableScreen({
-  onBack,
-  onDone,
-}: {
-  onBack: () => void;
-  onDone: () => void;
-}) {
-  return (
-    <Screen contentStyle={styles.screen}>
-      <BackArrowButton accessibilityLabel="Back" onPress={onBack} />
-      <View style={styles.header}>
-        <Text style={styles.eyebrow}>Quick micro check-up</Text>
-        <View style={styles.titleRow}>
-          <HeaderLogo />
-          <Text style={styles.title}>No quick check-in right now</Text>
-        </View>
-        <Text style={styles.subtitle}>
-          Hale could not find a suitable optional micro check-up target from your current plan. Your plan is unchanged.
-        </Text>
-      </View>
-      <PrimaryButton title="Done" onPress={onDone} />
     </Screen>
   );
 }
