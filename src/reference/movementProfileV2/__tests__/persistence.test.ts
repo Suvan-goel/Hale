@@ -109,7 +109,7 @@ describe('Movement Profile V2 assessment persistence', () => {
       })
     ).toMatchObject({ attached: true, status: 'idempotent' });
 
-    const different = assessmentFor(checkUp, snapshot, lifeGoal('stairs'));
+    const different = assessmentFor(checkUp, snapshot, lifeGoal('stairs_walks'));
     expect(different.assessmentFingerprint).not.toBe(assessment.assessmentFingerprint);
     const conflict = attachMovementProfileV2Assessment({
       checkUp: attached.checkUp,
@@ -133,7 +133,7 @@ describe('Movement Profile V2 assessment persistence', () => {
     const duplicate = { ...first };
     const retest = storedAssessment('2026-07-23T08:00:00.000Z', 'official_retest');
     const manual = storedAssessment('2026-08-23T08:00:00.000Z', 'manual_extra');
-    const conflicting = storedAssessment('2026-06-23T08:00:00.000Z', 'baseline', lifeGoal('stairs'));
+    const conflicting = storedAssessment('2026-06-23T08:00:00.000Z', 'baseline', lifeGoal('stairs_walks'));
 
     const selection = selectOfficialMovementProfileV2AssessmentRecords([
       retest,
@@ -183,7 +183,7 @@ describe('Movement Profile V2 assessment persistence', () => {
         checkUp,
         checkupType: 'manual_extra_v2',
         referenceProfile: REFERENCE_PROFILE,
-        lifeGoal: lifeGoal('stairs'),
+        lifeGoal: lifeGoal('stairs_walks'),
         acceptedHistory: [],
         snapshotCreatedAt: '2026-06-23T08:01:00.000Z',
         assessmentCreatedAt: '2026-06-23T08:02:00.000Z',
@@ -198,7 +198,7 @@ describe('Movement Profile V2 assessment persistence', () => {
       checkUp,
       checkupType: 'baseline',
       referenceProfile: REFERENCE_PROFILE,
-      lifeGoal: lifeGoal('stairs'),
+      lifeGoal: lifeGoal('stairs_walks'),
       acceptedHistory: [],
       snapshotCreatedAt: '2026-06-23T08:01:00.000Z',
       assessmentCreatedAt: '2026-06-23T08:02:00.000Z',
@@ -215,7 +215,7 @@ describe('Movement Profile V2 assessment persistence', () => {
       checkUp: created.checkUp,
       checkupType: 'baseline',
       referenceProfile: { ageAtTest: 62, ageBasis: 'exact_age_at_test', referenceSex: 'male' },
-      lifeGoal: lifeGoal('travel'),
+      lifeGoal: lifeGoal('grandchildren'),
       acceptedHistory: [],
       snapshotCreatedAt: '2026-06-23T09:01:00.000Z',
       assessmentCreatedAt: '2026-06-23T09:02:00.000Z',

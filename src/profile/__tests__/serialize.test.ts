@@ -12,7 +12,7 @@ import { Preferences } from '../types';
 
 describe('preferences serialize', () => {
   const lifeGoal = createLifeGoal({
-    category: 'stairs',
+    category: 'stairs_walks',
     nowIso: '2026-06-16T08:00:00.000Z',
   });
   const sample: Preferences = {

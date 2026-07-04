@@ -149,7 +149,7 @@ describe('Movement Profile V2 block materialization', () => {
       balance: balanceResult({ bestHoldSec: 8 }),
     });
     const snapshot = mustCreateSnapshot(checkUp);
-    const assessment = mustAssess({ checkUp, snapshot, lifeGoal: goal('carrying_loads') });
+    const assessment = mustAssess({ checkUp, snapshot, lifeGoal: goal('grandchildren') });
     const first = materializeMovementProfileV2Block({
       adherence: defaultAdherenceStoreState(),
       checkUp,

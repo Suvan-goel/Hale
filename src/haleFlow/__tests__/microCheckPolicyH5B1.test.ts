@@ -376,7 +376,7 @@ describe('H5B.1 Balanced micro-check verification closure', () => {
     const adherence = adherenceFor(block, completions);
     const profile = {
       ...defaultPreferences().profile,
-      lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
+      lifeGoal: createLifeGoal({ category: 'stairs_walks', nowIso: START }),
       safetyProfile: safetyProfile(),
     };
     const latestAssessment = assessment();

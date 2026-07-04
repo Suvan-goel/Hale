@@ -52,11 +52,11 @@ const REFERENCE_PROFILE = {
 describe('Movement Profile V2 assessment contract', () => {
   it('exposes independent V2 policy versions and deterministic fingerprints', () => {
     expect(MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_VERSION).toBe(2);
-    expect(MOVEMENT_PROFILE_V2_FOCUS_POLICY_VERSION).toBe(2);
+    expect(MOVEMENT_PROFILE_V2_FOCUS_POLICY_VERSION).toBe(3);
     expect(MOVEMENT_PROFILE_V2_ASSESSMENT_SCHEMA_VERSION).toBe(1);
     expect(MOVEMENT_PROFILE_V2_LIFE_GOAL_ADAPTER_VERSION).toBe(1);
     expect(MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_FINGERPRINT).toMatch(/^mpv2-domain-evidence-policy-v2-/);
-    expect(MOVEMENT_PROFILE_V2_FOCUS_POLICY_FINGERPRINT).toMatch(/^mpv2-focus-policy-v2-/);
+    expect(MOVEMENT_PROFILE_V2_FOCUS_POLICY_FINGERPRINT).toMatch(/^mpv2-focus-policy-v3-/);
     expect(MOVEMENT_PROFILE_V2_LIFE_GOAL_MAPPING_FINGERPRINT).toBe(movementProfileV2LifeGoalMappingFingerprint());
   });
 
@@ -165,16 +165,10 @@ describe('Movement Profile V2 assessment contract', () => {
 
   it('freezes life-goal context from the existing product mapping and fails unsupported goals closed', () => {
     const expected: Record<LifeGoalCategory, readonly MovementDomain[]> = {
+      stairs_walks: ['strength_power', 'balance'],
       grandchildren: ['strength_power', 'mobility'],
-      stairs: ['strength_power', 'balance'],
-      travel: ['strength_power', 'balance', 'mobility'],
-      walking_hiking_sport: ['strength_power', 'balance'],
-      gardening_hobbies: ['strength_power', 'mobility'],
-      floor_confidence: ['strength_power', 'mobility'],
-      carrying_loads: ['strength_power'],
+      bend_reach_carry: ['strength_power', 'mobility'],
       independence: ['strength_power', 'balance', 'mobility'],
-      noticed_decline: ['strength_power', 'balance', 'mobility'],
-      custom: ['strength_power', 'balance', 'mobility'],
     };
 
     for (const [category, mappedDomains] of Object.entries(expected) as [LifeGoalCategory, readonly MovementDomain[]][]) {
@@ -189,7 +183,7 @@ describe('Movement Profile V2 assessment contract', () => {
     }
     expect(normalizeMovementProfileV2LifeGoalContext(null)).toMatchObject({ kind: 'none', mappedDomains: [] });
     expect(
-      normalizeMovementProfileV2LifeGoalContext({ ...goal('custom'), category: 'unsupported_goal' as LifeGoalCategory })
+      normalizeMovementProfileV2LifeGoalContext({ ...goal('independence'), category: 'unsupported_goal' as LifeGoalCategory })
     ).toMatchObject({ kind: 'unknown_or_unsupported', mappedDomains: [] });
   });
 
@@ -199,11 +193,11 @@ describe('Movement Profile V2 assessment contract', () => {
       shoulder: shoulderResult({ peakFlexionDeg: 120 }),
     });
     const snapshot = mustCreateSnapshot(belowCheckUp);
-    expect(mustAssess({ snapshot, checkUp: belowCheckUp, lifeGoal: goal('carrying_loads') }).focus).toMatchObject({
+    expect(mustAssess({ snapshot, checkUp: belowCheckUp, lifeGoal: goal('grandchildren') }).focus).toMatchObject({
       kind: 'domain',
       focusDomain: 'mobility',
       planMode: 'checkup_reference_focus',
-      reason: 'v2_focus_clear_signal_overrides_goal',
+      reason: 'v2_focus_single_below_reference',
     });
 
     const multipleBelow = selectFromEvidence({
@@ -212,7 +206,7 @@ describe('Movement Profile V2 assessment contract', () => {
         evidence('balance', 'hale_building'),
         evidence('mobility', 'below_reference', true),
       ],
-      lifeGoalContext: normalizeMovementProfileV2LifeGoalContext(goal('carrying_loads')),
+      lifeGoalContext: normalizeMovementProfileV2LifeGoalContext(goal('stairs_walks')),
     });
     expect(multipleBelow.focus).toMatchObject({
       kind: 'domain',
@@ -226,7 +220,7 @@ describe('Movement Profile V2 assessment contract', () => {
         evidence('balance', 'hale_building'),
         evidence('mobility', 'below_reference', true),
       ],
-      lifeGoalContext: normalizeMovementProfileV2LifeGoalContext(goal('floor_confidence')),
+      lifeGoalContext: normalizeMovementProfileV2LifeGoalContext(goal('grandchildren')),
     });
     expect(ambiguousBelow.focus).toMatchObject({
       kind: 'balanced',
@@ -237,7 +231,7 @@ describe('Movement Profile V2 assessment contract', () => {
 
     const startingPoint = mustAssess({
       checkUp: v2CheckUp({ balance: balanceResult({ bestHoldSec: 8 }) }),
-      lifeGoal: goal('carrying_loads'),
+      lifeGoal: goal('stairs_walks'),
     });
     expect(startingPoint.focus).toMatchObject({
       kind: 'domain',
@@ -246,12 +240,10 @@ describe('Movement Profile V2 assessment contract', () => {
       reason: 'v2_focus_single_hale_starting_point',
     });
 
-    const goalLed = mustAssess({ lifeGoal: goal('carrying_loads') });
-    expect(goalLed.focus).toMatchObject({
-      kind: 'domain',
-      focusDomain: 'strength_power',
-      planMode: 'goal_led_reference_supported',
-      reason: 'v2_focus_goal_led',
+    const goalWithoutSignal = mustAssess({ lifeGoal: goal('stairs_walks') });
+    expect(goalWithoutSignal.focus).toMatchObject({
+      kind: 'balanced',
+      reason: 'v2_focus_balanced_no_unique_signal',
     });
     expect(mustAssess().focus).toMatchObject({
       kind: 'balanced',
@@ -280,7 +272,7 @@ describe('Movement Profile V2 assessment contract', () => {
         evidence('balance', 'hale_starting_point', true),
         evidence('mobility', 'within_reference'),
       ],
-      lifeGoalContext: normalizeMovementProfileV2LifeGoalContext(goal('carrying_loads')),
+      lifeGoalContext: normalizeMovementProfileV2LifeGoalContext(goal('grandchildren')),
     });
     expect(startingPointGoal.focus).toMatchObject({
       kind: 'domain',
@@ -389,9 +381,9 @@ describe('Movement Profile V2 assessment contract', () => {
     const snapshot = mustCreateSnapshot(checkUp);
     const beforeCheckUp = JSON.stringify(checkUp);
     const beforeSnapshot = JSON.stringify(snapshot);
-    const assessment = mustAssess({ checkUp, snapshot, lifeGoal: goal('carrying_loads') });
-    const same = mustAssess({ checkUp, snapshot, lifeGoal: goal('carrying_loads') });
-    const changedGoal = mustAssess({ checkUp, snapshot, lifeGoal: goal('travel') });
+    const assessment = mustAssess({ checkUp, snapshot, lifeGoal: goal('grandchildren') });
+    const same = mustAssess({ checkUp, snapshot, lifeGoal: goal('grandchildren') });
+    const changedGoal = mustAssess({ checkUp, snapshot, lifeGoal: goal('stairs_walks') });
 
     expect(assessment).toMatchObject({
       kind: MOVEMENT_PROFILE_V2_ASSESSMENT_KIND,
@@ -529,7 +521,7 @@ describe('Movement Profile V2 assessment contract', () => {
   });
 
   it('strictly parses focus/provenance cross-field compatibility', () => {
-    const valid = mustAssess({ lifeGoal: goal('carrying_loads') });
+    const valid = mustAssess({ lifeGoal: goal('grandchildren') });
     expect(parseMovementProfileV2Assessment(valid)).toMatchObject({ ok: true });
     expect(parseMovementProfileV2Assessment({ ...valid, assessmentFingerprint: 'wrong' })).toMatchObject({
       ok: false,

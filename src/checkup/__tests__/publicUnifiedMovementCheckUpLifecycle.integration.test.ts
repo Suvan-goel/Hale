@@ -170,8 +170,11 @@ describe('H3.1 public unified Movement Check-Up lifecycle', () => {
     expect(result.presentation.variant).toBe('onboarding');
     expect(result.presentation.focus.title).toBe('Strength / Power');
     expect(result.presentation.domains[0]).toMatchObject({
+      // The card leads with the plain shared tier; the percentile evidence
+      // from the reference engine sits in the body line.
       title: 'Strength / Power',
-      interpretation: expect.stringMatching(/percentile/),
+      interpretation: expect.stringMatching(/^(Starting point|Building|On track|Strong)$/),
+      body: expect.stringMatching(/percentile/),
     });
     expect(result.presentation.actions).toHaveLength(1);
     expect(result.presentation.actions[0]).toMatchObject({
@@ -212,7 +215,7 @@ describe('H3.1 public unified Movement Check-Up lifecycle', () => {
     expect(result.block.templateIds).toEqual(['balanced-A', 'balanced-B', 'balanced-C']);
     expect(result.block.secondaryDomains).toEqual(['strength_power', 'balance', 'mobility']);
     expect(result.presentation.focus).toEqual({
-      kicker: 'Suggested focus',
+      kicker: 'Where to focus',
       title: 'Balanced',
       body: 'Your results did not point to one clear area today.',
     });
@@ -824,7 +827,7 @@ function completeOnboardingCta(prefs: Preferences, baselineResultId: string, now
 
 function completedProfilePreferences(): Preferences {
   const prefs = defaultPreferences();
-  const lifeGoal = createLifeGoal({ category: 'stairs', nowIso: MATERIALIZED_AT });
+  const lifeGoal = createLifeGoal({ category: 'stairs_walks', nowIso: MATERIALIZED_AT });
   return {
     ...prefs,
     profile: {

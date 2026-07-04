@@ -195,8 +195,8 @@ describe('H4.1.1 Movement Profile V2 official retest continuation closure', () =
     );
     expect(balancedDomainTransition.nextBlock.focus).toEqual({ kind: 'domain', domain: 'balance' });
 
-    expect(MOVEMENT_PROFILE_V2_FOCUS_POLICY_VERSION).toBe(2);
-    expect(MOVEMENT_PROFILE_V2_FOCUS_POLICY_FINGERPRINT).toMatch(/^mpv2-focus-policy-v2-/);
+    expect(MOVEMENT_PROFILE_V2_FOCUS_POLICY_VERSION).toBe(3);
+    expect(MOVEMENT_PROFILE_V2_FOCUS_POLICY_FINGERPRINT).toMatch(/^mpv2-focus-policy-v3-/);
   });
 
   it('keeps transition replay and reachable partial states exactly-once or fail-closed', () => {

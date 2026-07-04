@@ -65,7 +65,7 @@ function block(): MovementBlock {
   });
   return createMovementBlockFromAssessment({
     latestAssessment: { score: inputScore, scoreSnapshot, id: 'assessment-1', assessment },
-    lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
+    lifeGoal: createLifeGoal({ category: 'stairs_walks', nowIso: START }),
     startDate: START,
   });
 }
@@ -151,14 +151,18 @@ function focusEvidence(
 }
 
 describe('life goal relevance', () => {
-  it('only exposes structured life goals in the selector presets', () => {
-    expect(LIFE_GOAL_PRESETS.map((preset) => preset.category)).not.toContain('custom');
-    expect(LIFE_GOAL_PRESETS.map((preset) => preset.label)).not.toContain('Something else');
+  it('exposes exactly the four consolidated life goals', () => {
+    expect(LIFE_GOAL_PRESETS.map((preset) => preset.category)).toEqual([
+      'stairs_walks',
+      'grandchildren',
+      'bend_reach_carry',
+      'independence',
+    ]);
   });
 
   it('maps life goals to training domains and display copy', () => {
-    const goal = createLifeGoal({ category: 'stairs', nowIso: START });
-    expect(getLifeGoalDisplayText(goal)).toBe('Climb stairs easily');
+    const goal = createLifeGoal({ category: 'stairs_walks', nowIso: START });
+    expect(getLifeGoalDisplayText(goal)).toBe('Climb stairs and keep up on walks');
     expect(getLifeGoalTrainingRelevance(goal).primaryDomains).toEqual(['strength_power', 'balance']);
     expect(getLifeGoalWorkoutBias(goal).preferredLadderIds.slice(0, 3)).toEqual([
       'step-up',
@@ -167,32 +171,23 @@ describe('life goal relevance', () => {
     ]);
   });
 
-  it('labels the neutral check-up-guided goal without implying a strength bias', () => {
-    const goal = createLifeGoal({ category: 'noticed_decline', nowIso: START });
-
-    expect(getLifeGoalDisplayText(goal)).toBe('Feel stronger overall');
-    expect(getLifeGoalWorkoutBias(goal).preferredLadderIds).toEqual([]);
-    expect(getLifeGoalWorkoutBias(goal).preferredSlotTypes).toEqual([]);
+  it('keeps the no-goal fallback neutral so the check-up leads', () => {
+    expect(getLifeGoalDisplayText(null)).toBe('Stay capable for the life you want to keep living');
+    expect(getLifeGoalWorkoutBias(null).preferredLadderIds).toEqual([]);
+    expect(getLifeGoalWorkoutBias(null).preferredSlotTypes).toEqual([]);
+    expect(getLifeGoalTrainingRelevance(null).primaryDomains).toEqual(['strength_power', 'balance', 'mobility']);
   });
 
-  it('normalizes legacy saved life goal labels to the current copy', () => {
-    expect(normalizeLifeGoalDisplayText('Play with children/grandchildren')).toBe('Play with children or grandchildren');
-    expect(normalizeLifeGoalDisplayText('I want to carry groceries or luggage')).toBe('Carry bags and groceries');
-    expect(normalizeLifeGoalDisplayText('In the future, I want to be able to feel less stiff')).toBe('Move without stiffness');
-  });
-
-  it('keeps legacy custom goals readable without exposing them as selector presets', () => {
-    const goal = createLifeGoal({ category: 'custom', customText: 'Return to doubles tennis', nowIso: START });
-
-    expect(getLifeGoalDisplayText(goal)).toBe('Return to doubles tennis');
-    expect(getLifeGoalTrainingRelevance(goal).primaryDomains).toEqual(['strength_power', 'balance', 'mobility']);
-    expect(getLifeGoalWorkoutBias(goal).preferredLadderIds).toEqual([]);
+  it('strips first-person goal prompts from free-text goal labels', () => {
+    expect(normalizeLifeGoalDisplayText('I want to be able to climb stairs')).toBe('climb stairs');
+    expect(normalizeLifeGoalDisplayText('In the future, I want to be able to keep up on walks')).toBe('keep up on walks');
+    expect(normalizeLifeGoalDisplayText('My goal is to stay independent')).toBe('stay independent');
   });
 });
 
 describe('movement block creation', () => {
   it('uses the assessment for focus and the life goal for framing', () => {
-    const goal = createLifeGoal({ category: 'travel', nowIso: START });
+    const goal = createLifeGoal({ category: 'stairs_walks', nowIso: START });
     const inputScore = score('mobility');
     const scoreSnapshot = scoreSnapshotFor(inputScore);
     const assessment = createMovementAssessment({
@@ -212,11 +207,11 @@ describe('movement block creation', () => {
     expect(b.lifeGoalId).toBe(goal.id);
     expect(b.totalPlannedSessions).toBe(12);
     expect(b.retestDate).toBe('2026-06-29T08:00:00.000Z');
-    expect(getBlockPurposeCopy(b, goal)).toContain('travel');
+    expect(getBlockPurposeCopy(b, goal)).toContain('stairs and walks');
   });
 
   it('uses the life goal to order secondary domains after the check-up focus is chosen', () => {
-    const goal = createLifeGoal({ category: 'stairs', nowIso: START });
+    const goal = createLifeGoal({ category: 'stairs_walks', nowIso: START });
     const inputScore = score('mobility');
     const scoreSnapshot = scoreSnapshotFor(inputScore);
     const assessment = createMovementAssessment({
@@ -238,7 +233,7 @@ describe('movement block creation', () => {
   });
 
   it('uses the life goal only as a tie-break when the check-up focus is already tied', () => {
-    const goal = createLifeGoal({ category: 'gardening_hobbies', nowIso: START });
+    const goal = createLifeGoal({ category: 'bend_reach_carry', nowIso: START });
     const inputScore: CheckUpScore = {
       startedAt: '2026-06-01T07:00:00.000Z',
       weakestDomain: 'strength',
@@ -361,7 +356,7 @@ describe('milestones and copy safety', () => {
 
   it('keeps adherence copy away from banned phrases', () => {
     const b = block();
-    const goal = createLifeGoal({ category: 'stairs', nowIso: START });
+    const goal = createLifeGoal({ category: 'stairs_walks', nowIso: START });
     const samples = [
       getBlockPurposeCopy(b, goal),
       getDashboardCopy({ block: b, lifeGoal: goal, adherenceState: 'missed_one_session' }),
@@ -373,7 +368,7 @@ describe('milestones and copy safety', () => {
   });
 
   it('uses clean-slate restart copy after a two-week lapse', () => {
-    const goal = createLifeGoal({ category: 'stairs', nowIso: START });
+    const goal = createLifeGoal({ category: 'stairs_walks', nowIso: START });
 
     expect(getLapseRecoveryCopy('inactive_14_days', goal)).toEqual({
       title: 'Start from where your body is today',
@@ -383,10 +378,10 @@ describe('milestones and copy safety', () => {
   });
 
   it('keeps goal protection copy grammatically safe', () => {
-    const goal = createLifeGoal({ category: 'noticed_decline', nowIso: START });
+    const goal = createLifeGoal({ category: 'independence', nowIso: START });
 
     expect(getProtectionCopy({ lifeGoal: goal, focusDomain: 'strength_power', adherenceState: 'on_track' })).toBe(
-      'Today supports the goal you chose: Feel stronger overall.'
+      'Today supports the goal you chose: Stay independent and feel strong.'
     );
   });
 });

@@ -26,7 +26,7 @@ export function LifeGoalOnboardingScreen({
         progress={progress}
         eyebrow={review ? 'Review your goal' : 'Your goal'}
         title={review ? 'Change your movement goal' : 'What matters most for your future?'}
-        subtitle="Choose the everyday activity that matters most for your future. Hale will use this when it builds your plan."
+        subtitle="Hale shapes your training plan around this. You can change it any time in Settings."
       />
       <LifeGoalSelector
         initialGoal={initialGoal}

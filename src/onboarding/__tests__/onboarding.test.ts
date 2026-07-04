@@ -87,8 +87,8 @@ function storedAssessment(): MovementAssessment {
 
 function onboardingPrefs() {
   const prefs = defaultPreferences();
-  prefs.profile.lifeGoal = createLifeGoal({ category: 'stairs', nowIso: START });
-  prefs.profile.goal = 'Climb stairs easily';
+  prefs.profile.lifeGoal = createLifeGoal({ category: 'stairs_walks', nowIso: START });
+  prefs.profile.goal = 'Climb stairs and keep up on walks';
   prefs.profile.exactAge = 60;
   prefs.profile.referenceSex = 'female';
   prefs.profile.age = 60;
@@ -104,7 +104,7 @@ function movementBlock() {
   const scored = createCurrentVersionedScoreSnapshot(checkUp);
   return createMovementBlockFromAssessment({
     latestAssessment: { id: checkUp.startedAt, score: scored.score, scoreSnapshot: scored.snapshot, assessment },
-    lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
+    lifeGoal: createLifeGoal({ category: 'stairs_walks', nowIso: START }),
     startDate: START,
   });
 }
@@ -219,7 +219,7 @@ describe('Hale V1 onboarding results and equipment', () => {
       activeBlock: movementBlock(),
       training: { ...training, equipment: { stair: false, band: false, miniBand: false, load: false } },
       safetyProfile: safetyProfile(['chair', 'wall']),
-      lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
+      lifeGoal: createLifeGoal({ category: 'stairs_walks', nowIso: START }),
       today: START,
     });
     const required = plan.exercises.flatMap((exercise) => exercise.requiresEquipment ?? []);
@@ -245,7 +245,7 @@ describe('Hale V1 onboarding results and equipment', () => {
         hasCurrentPain: true,
         painNotes: 'shoulder',
       }),
-      lifeGoal: createLifeGoal({ category: 'noticed_decline', nowIso: START }),
+      lifeGoal: createLifeGoal({ category: 'independence', nowIso: START }),
       today: START,
     });
 

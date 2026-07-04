@@ -34,28 +34,14 @@ export function getBlockPurposeCopy(block: MovementBlock, lifeGoal?: LifeGoal | 
       : 'This 4-week block balances strength, steadiness, and mobility so your training has a clear place to start.';
   }
   switch (lifeGoal.category) {
-    case 'stairs':
-      return `This 4-week block focuses on ${domain} so you can feel steadier on stairs.`;
-    case 'travel':
-      return focusDomain === 'strength_power'
-        ? 'This block supports the leg power you use for travel, stairs, and longer walks.'
-        : `This block builds ${domain} for travel days, long walks, and moving with confidence.`;
+    case 'stairs_walks':
+      return `This 4-week block focuses on ${domain} so stairs and walks feel steadier.`;
     case 'grandchildren':
       return 'You said you want to keep up with your children or grandchildren. This block builds the strength and mobility that support that.';
-    case 'walking_hiking_sport':
-      return `This block builds ${domain} for the walking, hiking, or sport you want to keep enjoying.`;
-    case 'gardening_hobbies':
-      return `This block supports the ${domain} that helps you garden and do hobbies comfortably.`;
-    case 'floor_confidence':
-      return `This block builds ${domain} for getting down and back up with more confidence.`;
-    case 'carrying_loads':
-      return 'This block supports the strength you use for shopping, bags, and everyday loads.';
+    case 'bend_reach_carry':
+      return `This block supports the ${domain} you use for bending, reaching, and carrying.`;
     case 'independence':
       return `This block builds ${domain} to support the independence you care about.`;
-    case 'noticed_decline':
-      return `Your latest check-up pointed to ${domain}. This block starts there, with support from the other domains.`;
-    case 'custom':
-      return `You said this matters: ${getLifeGoalDisplayText(lifeGoal)}. This block builds the ${domain} that supports it.`;
   }
 }
 
@@ -148,13 +134,9 @@ export function retestCountdownCopy(block: MovementBlock, nowIso: string): strin
 
 function goalTitleFragment(goal: LifeGoal): string | null {
   switch (goal.category) {
-    case 'stairs':
-      return 'steady-on-stairs';
-    case 'travel':
-      return 'travel-ready';
-    case 'floor_confidence':
-      return 'floor-confidence';
-    case 'carrying_loads':
+    case 'stairs_walks':
+      return 'stairs-and-walks';
+    case 'bend_reach_carry':
       return 'everyday-strength';
     case 'independence':
       return 'stay-capable';

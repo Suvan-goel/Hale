@@ -214,7 +214,7 @@ describe('dynamic workout generation', () => {
       today: START,
       availableEquipment: ['chair', 'wall', 'stairs'],
       movementCapabilities: CONFIRMED_MOVEMENT_CAPABILITIES,
-      lifeGoalBias: getLifeGoalWorkoutBias(createLifeGoal({ category: 'stairs', nowIso: START })),
+      lifeGoalBias: getLifeGoalWorkoutBias(createLifeGoal({ category: 'stairs_walks', nowIso: START })),
     });
 
     expect(session.focusDomain).toBe('strength_power');
@@ -231,7 +231,7 @@ describe('dynamic workout generation', () => {
       block,
       today: START,
       availableEquipment: ['chair', 'wall', 'stairs'],
-      lifeGoalBias: getLifeGoalWorkoutBias(createLifeGoal({ category: 'stairs', nowIso: START })),
+      lifeGoalBias: getLifeGoalWorkoutBias(createLifeGoal({ category: 'stairs_walks', nowIso: START })),
     });
 
     expect(session.exercises.map((exercise) => exercise.exerciseId)).not.toContain(STEP_UP_ID);
@@ -242,13 +242,13 @@ describe('dynamic workout generation', () => {
     });
   });
 
-  it('uses carrying-loads bias to bring upper-back and hinge support forward when safe', () => {
+  it('uses bend-reach-carry bias to bring upper-back and hinge support forward when safe', () => {
     const template = createSessionTemplatesForFocus('mobility_flexibility')[1];
     const session = generateTodaySession({
       template,
       today: START,
       availableEquipment: ['chair', 'wall', 'resistance_band', 'door_anchor'],
-      lifeGoalBias: getLifeGoalWorkoutBias(createLifeGoal({ category: 'carrying_loads', nowIso: START })),
+      lifeGoalBias: getLifeGoalWorkoutBias(createLifeGoal({ category: 'bend_reach_carry', nowIso: START })),
     });
 
     const ladderIds = session.exercises.map((exercise) => exercise.ladderId);

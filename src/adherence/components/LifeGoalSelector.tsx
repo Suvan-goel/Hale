@@ -4,20 +4,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PrimaryButton, SecondaryButton } from '../../components/ui';
 import { colors, fonts, radius, shadow, spacing, type } from '../../theme';
 import { useResponsiveLayout } from '../../theme/responsive';
-import { LIFE_GOAL_PRESETS, createLifeGoal, type SelectableLifeGoalCategory } from '../goalDomainMapping';
-import type { LifeGoal } from '../types';
-
-const LIFE_GOAL_HINTS: Record<SelectableLifeGoalCategory, string> = {
-  grandchildren: 'Practice getting low, standing back up, and keeping pace.',
-  stairs: 'Build leg strength and steadiness for steps.',
-  travel: 'Feel more ready for walking, carrying bags, and moving through new places.',
-  walking_hiking_sport: 'Support the strength and balance that make walks feel easier.',
-  gardening_hobbies: 'Support easier bending, reaching, and everyday movement.',
-  floor_confidence: 'Build strength and mobility for getting down and standing back up.',
-  carrying_loads: 'Support everyday strength for bags, groceries, and home tasks.',
-  independence: 'Keep strength, balance, and mobility working together.',
-  noticed_decline: 'Let your check-up show where support matters most.',
-};
+import { LIFE_GOAL_PRESETS, createLifeGoal } from '../goalDomainMapping';
+import type { LifeGoal, LifeGoalCategory } from '../types';
 
 export function LifeGoalSelector({
   initialGoal,
@@ -30,20 +18,20 @@ export function LifeGoalSelector({
   onCancel?: () => void;
   primaryLabel?: string;
 }) {
-  const initialCategory = initialGoal?.category === 'custom' ? 'stairs' : initialGoal?.category ?? 'stairs';
-  const [selected, setSelected] = React.useState<SelectableLifeGoalCategory>(initialCategory);
+  const [selected, setSelected] = React.useState<LifeGoalCategory | null>(
+    initialGoal?.category ?? null
+  );
 
   return (
     <View style={styles.wrap}>
       <View style={styles.options}>
-        {LIFE_GOAL_PRESETS.map((option, index) => {
+        {LIFE_GOAL_PRESETS.map((option) => {
           const active = option.category === selected;
           return (
             <GoalOptionCard
               key={option.category}
-              number={index + 1}
               title={option.label}
-              detail={LIFE_GOAL_HINTS[option.category]}
+              detail={option.hint}
               selected={active}
               onPress={() => setSelected(option.category)}
             />
@@ -54,7 +42,9 @@ export function LifeGoalSelector({
       <View style={styles.actions}>
         <PrimaryButton
           title={primaryLabel}
+          disabled={selected === null}
           onPress={() => {
+            if (selected === null) return;
             onSave(createLifeGoal({ category: selected }));
           }}
         />
@@ -65,13 +55,11 @@ export function LifeGoalSelector({
 }
 
 function GoalOptionCard({
-  number,
   title,
   detail,
   selected,
   onPress,
 }: {
-  number: number;
   title: string;
   detail: string;
   selected: boolean;
@@ -96,11 +84,6 @@ function GoalOptionCard({
       <View style={styles.optionCopy}>
         <Text style={[styles.optionTitle, selected && styles.optionTitleSelected]}>{title}</Text>
         <Text style={styles.optionDetail}>{detail}</Text>
-      </View>
-      <View style={[styles.optionNumber, selected && styles.optionNumberSelected]}>
-        <Text style={[styles.optionNumberText, selected && styles.optionNumberTextSelected]}>
-          {number}
-        </Text>
       </View>
     </Pressable>
   );
@@ -154,25 +137,6 @@ const styles = StyleSheet.create({
   optionDetail: {
     ...type.cardBody,
     color: colors.textSecondary,
-  },
-  optionNumber: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.background,
-  },
-  optionNumberSelected: {
-    backgroundColor: colors.accentDeep,
-  },
-  optionNumberText: {
-    ...type.cardCaption,
-    fontFamily: fonts.sansMedium,
-    color: colors.textSecondary,
-  },
-  optionNumberTextSelected: {
-    color: colors.onAccent,
   },
   actions: { gap: spacing.md },
   pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },

@@ -86,7 +86,7 @@ describe('movement block service eligibility', () => {
         id: 'assessment-invalid',
         assessment: assessmentFor(inputScore, 'invalid'),
       },
-      lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
+      lifeGoal: createLifeGoal({ category: 'stairs_walks', nowIso: START }),
       startDate: START,
     });
 
@@ -120,7 +120,7 @@ describe('movement block service eligibility', () => {
         sourceCheckUpId: 'checkup-valid',
         assessment: assessmentFor(inputScore),
       },
-      lifeGoal: createLifeGoal({ category: 'gardening_hobbies', nowIso: START }),
+      lifeGoal: createLifeGoal({ category: 'bend_reach_carry', nowIso: START }),
       startDate: START,
     });
 

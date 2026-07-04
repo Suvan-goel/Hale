@@ -93,11 +93,11 @@ function confirmedMovementCapabilities() {
 }
 
 function lifeGoal() {
-  return createLifeGoal({ category: 'stairs', nowIso: START });
+  return createLifeGoal({ category: 'stairs_walks', nowIso: START });
 }
 
 function neutralLifeGoal() {
-  return createLifeGoal({ category: 'noticed_decline', nowIso: START });
+  return null;
 }
 
 function block(): MovementBlock {

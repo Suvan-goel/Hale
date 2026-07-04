@@ -23,7 +23,7 @@ import type {
 } from './types';
 
 export const MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_VERSION = 2 as const;
-export const MOVEMENT_PROFILE_V2_FOCUS_POLICY_VERSION = 2 as const;
+export const MOVEMENT_PROFILE_V2_FOCUS_POLICY_VERSION = 3 as const;
 export const MOVEMENT_PROFILE_V2_ASSESSMENT_SCHEMA_VERSION = 1 as const;
 export const MOVEMENT_PROFILE_V2_LIFE_GOAL_ADAPTER_VERSION = 1 as const;
 export const MOVEMENT_PROFILE_V2_ASSESSMENT_KIND = 'movement_profile_v2_assessment' as const;
@@ -105,7 +105,7 @@ export type MovementProfileV2SuggestedFocus =
       planMode:
         | 'checkup_reference_focus'
         | 'checkup_hale_band_focus'
-        | 'goal_led_reference_supported';
+        | 'prior_focus_reference_supported';
       reason: MovementProfileV2FocusDecisionReason;
       candidateDomains: readonly MovementDomain[];
     }
@@ -131,11 +131,9 @@ export type MovementProfileV2FocusDecisionReason =
   | 'v2_focus_starting_point_preserve_current'
   | 'v2_focus_starting_point_goal_tiebreak'
   | 'v2_focus_starting_point_balanced'
-  | 'v2_focus_goal_led'
   | 'v2_focus_preserve_current_no_clear_candidate'
   | 'v2_focus_balanced_no_unique_signal'
-  | 'v2_focus_needs_retake'
-  | 'v2_focus_clear_signal_overrides_goal';
+  | 'v2_focus_needs_retake';
 
 export interface MovementProfileV2FocusProvenance {
   focusPolicyVersion: typeof MOVEMENT_PROFILE_V2_FOCUS_POLICY_VERSION;
@@ -255,7 +253,7 @@ export const MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_FINGERPRINT = determinis
 );
 
 export const MOVEMENT_PROFILE_V2_FOCUS_POLICY_FINGERPRINT = deterministicFingerprint(
-  'mpv2-focus-policy-v2',
+  'mpv2-focus-policy-v3',
   {
     version: MOVEMENT_PROFILE_V2_FOCUS_POLICY_VERSION,
     domainOrder: MOVEMENT_PROFILE_V2_DOMAIN_ORDER,
@@ -265,7 +263,7 @@ export const MOVEMENT_PROFILE_V2_FOCUS_POLICY_FINGERPRINT = deterministicFingerp
       'multiple_below_reference_prior_then_goal_then_balanced',
       'single_hale_starting_point',
       'multiple_hale_starting_point_prior_then_goal_then_balanced',
-      'no_clear_candidate_prior_then_goal_then_balanced',
+      'no_clear_candidate_prior_then_balanced',
     ],
     balancedFallback: true,
     priorV2FocusOfficialRetestOnly: true,
@@ -518,17 +516,11 @@ export function selectMovementProfileV2SuggestedFocus({
 
   const belowReference = domainsForCategory(evidence, 'below_reference');
   if (belowReference.length === 1) {
-    const focusDomain = belowReference[0];
-    const uniqueGoal = uniqueGoalDomain(lifeGoalContext);
-    const reason =
-      uniqueGoal && uniqueGoal !== focusDomain
-        ? 'v2_focus_clear_signal_overrides_goal'
-        : 'v2_focus_single_below_reference';
     return focusResult({
       focus: domainFocus({
-        focusDomain,
+        focusDomain: belowReference[0],
         planMode: 'checkup_reference_focus',
-        reason,
+        reason: 'v2_focus_single_below_reference',
         candidateDomains: belowReference,
       }),
       sourceSnapshotId,
@@ -539,7 +531,7 @@ export function selectMovementProfileV2SuggestedFocus({
       lifeGoalContext,
       priorFocusContext,
       candidateDomains: belowReference,
-      decisionReason: reason,
+      decisionReason: 'v2_focus_single_below_reference',
     });
   }
   if (belowReference.length > 1) {
@@ -679,7 +671,7 @@ export function selectMovementProfileV2SuggestedFocus({
     return focusResult({
       focus: domainFocus({
         focusDomain: priorFocusContext.focusDomain,
-        planMode: 'goal_led_reference_supported',
+        planMode: 'prior_focus_reference_supported',
         reason: 'v2_focus_preserve_current_no_clear_candidate',
         candidateDomains: validDomains,
       }),
@@ -706,27 +698,6 @@ export function selectMovementProfileV2SuggestedFocus({
       priorFocusContext,
       candidateDomains: validDomains,
       decisionReason: 'v2_focus_preserve_current_no_clear_candidate',
-    });
-  }
-
-  const goalDomain = uniqueGoalDomain(lifeGoalContext);
-  if (goalDomain) {
-    return focusResult({
-      focus: domainFocus({
-        focusDomain: goalDomain,
-        planMode: 'goal_led_reference_supported',
-        reason: 'v2_focus_goal_led',
-        candidateDomains: validDomains,
-      }),
-      sourceSnapshotId,
-      sourceSnapshotFingerprint,
-      sourceCheckUpId,
-      sourceCheckUpType,
-      domainEvidence: evidence,
-      lifeGoalContext,
-      priorFocusContext,
-      candidateDomains: validDomains,
-      decisionReason: 'v2_focus_goal_led',
     });
   }
 
@@ -1195,10 +1166,6 @@ function uniqueGoalCandidate(
   return overlap.length === 1 ? overlap[0] : null;
 }
 
-function uniqueGoalDomain(context: MovementProfileV2LifeGoalContext): MovementDomain | null {
-  return context.mappedDomains.length === 1 ? context.mappedDomains[0] : null;
-}
-
 function priorDomainInCandidates(
   context: MovementProfileV2PriorFocusContext,
   candidates: readonly MovementDomain[]
@@ -1228,7 +1195,7 @@ function parseFocus(value: unknown): MovementProfileV2SuggestedFocus | null {
     if (
       value.planMode !== 'checkup_reference_focus' &&
       value.planMode !== 'checkup_hale_band_focus' &&
-      value.planMode !== 'goal_led_reference_supported'
+      value.planMode !== 'prior_focus_reference_supported'
     ) {
       return null;
     }
@@ -1540,11 +1507,9 @@ function isFocusDecisionReason(value: unknown): value is MovementProfileV2FocusD
     value === 'v2_focus_starting_point_preserve_current' ||
     value === 'v2_focus_starting_point_goal_tiebreak' ||
     value === 'v2_focus_starting_point_balanced' ||
-    value === 'v2_focus_goal_led' ||
     value === 'v2_focus_preserve_current_no_clear_candidate' ||
     value === 'v2_focus_balanced_no_unique_signal' ||
-    value === 'v2_focus_needs_retake' ||
-    value === 'v2_focus_clear_signal_overrides_goal'
+    value === 'v2_focus_needs_retake'
   );
 }
 

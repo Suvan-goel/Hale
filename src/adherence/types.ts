@@ -7,22 +7,15 @@ export type MovementDomain = 'strength_power' | 'balance' | 'mobility';
 export type TrainingPrimaryDomain = 'strength_power' | 'balance_stability' | 'mobility_flexibility';
 
 export type LifeGoalCategory =
+  | 'stairs_walks'
   | 'grandchildren'
-  | 'stairs'
-  | 'travel'
-  | 'walking_hiking_sport'
-  | 'gardening_hobbies'
-  | 'floor_confidence'
-  | 'carrying_loads'
-  | 'independence'
-  | 'noticed_decline'
-  | 'custom';
+  | 'bend_reach_carry'
+  | 'independence';
 
 export interface LifeGoal {
   id: string;
   userId: string;
   category: LifeGoalCategory;
-  customText?: string;
   createdAt: string;
   updatedAt: string;
   isPrimary: boolean;

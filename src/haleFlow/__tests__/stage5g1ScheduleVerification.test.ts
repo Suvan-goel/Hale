@@ -755,7 +755,7 @@ function profile(): UserProfile {
     ...prefs.profile,
     name: 'Sam',
     age: 61,
-    lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
+    lifeGoal: createLifeGoal({ category: 'stairs_walks', nowIso: START }),
     safetyProfile: safety(),
   };
 }

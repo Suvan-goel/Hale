@@ -1726,7 +1726,7 @@ function emptyLocalState() {
 }
 
 function lifeGoal(nowIso = START) {
-  return createLifeGoal({ category: 'stairs', nowIso });
+  return createLifeGoal({ category: 'stairs_walks', nowIso });
 }
 
 function readinessForScenario(context: PairwiseScenario['dailyContext']) {

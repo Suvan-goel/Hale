@@ -266,7 +266,7 @@ function storedV2Assessment(checkUp: CheckUp, checkupType: CheckupType, alternat
       ? {
           id: 'goal-stairs',
           userId: 'local-device-user',
-          category: 'stairs',
+          category: 'stairs_walks',
           createdAt: checkUp.startedAt,
           updatedAt: checkUp.startedAt,
           isPrimary: true,

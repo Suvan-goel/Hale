@@ -124,7 +124,6 @@ function validLifeGoal(v: unknown): LifeGoal | null {
     id: g.id,
     userId: g.userId,
     category: g.category as LifeGoal['category'],
-    customText: typeof g.customText === 'string' ? normalizeLifeGoalDisplayText(g.customText) : undefined,
     createdAt: g.createdAt,
     updatedAt: g.updatedAt,
     isPrimary: g.isPrimary !== false,

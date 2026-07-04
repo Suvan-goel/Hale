@@ -225,7 +225,6 @@ export function sessionCompletionCopy({
 function savedToPlanSubtitle(lifeGoal?: LifeGoal | null): string {
   if (!lifeGoal) return 'Today counted toward your 4-week plan.';
   const goal = getLifeGoalDisplayText(lifeGoal);
-  if (lifeGoal.category === 'custom') return `Today counted toward your goal: ${goal}.`;
   return `Today counted toward your goal to ${lowercaseFirst(goal)}.`;
 }
 

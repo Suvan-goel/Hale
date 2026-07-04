@@ -55,7 +55,7 @@ function safety(): MovementSafetyProfile {
 
 function profile(): UserProfile {
   const prefs = defaultPreferences();
-  const lifeGoal = createLifeGoal({ category: 'stairs', nowIso: START });
+  const lifeGoal = createLifeGoal({ category: 'stairs_walks', nowIso: START });
   return {
     ...prefs.profile,
     name: 'Sam',

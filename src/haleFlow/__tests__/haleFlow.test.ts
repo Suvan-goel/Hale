@@ -82,7 +82,7 @@ function block(): MovementBlock {
   const sourceAssessment = assessment('baseline');
   return createMovementBlockFromAssessment({
     latestAssessment: { score: inputScore, scoreSnapshot, id: 'assessment-1', assessment: sourceAssessment },
-    lifeGoal: createLifeGoal({ category: 'stairs', nowIso: START }),
+    lifeGoal: createLifeGoal({ category: 'stairs_walks', nowIso: START }),
     startDate: START,
   });
 }
@@ -244,7 +244,7 @@ describe('session planning and reports', () => {
     });
     const b = createMovementBlockFromAssessment({
       latestAssessment: { score: inputScore, scoreSnapshot, id: 'assessment-1', assessment: sourceAssessment },
-      lifeGoal: createLifeGoal({ category: 'gardening_hobbies', nowIso: START }),
+      lifeGoal: createLifeGoal({ category: 'bend_reach_carry', nowIso: START }),
       startDate: START,
     });
     const session = generateTodaySession({
