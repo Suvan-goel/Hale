@@ -3253,3 +3253,39 @@ PUBLIC RELEASE REMAINS BLOCKED
 - **Verification:** tsc clean; 1,323/1,323 green (no test pinned the old copy). Owed on
   device: each lifecycle state's hero copy, band labels against a real check-up, and the
   strip's absence pre-plan.
+
+## 2026-07-04 — Explore pass: one page, sessions first; the tab bar and the dead library layer are gone
+
+- **Context:** the screen-by-screen polish reached Explore. The review found the screen mostly
+  carrying residue from the earlier Explore trim, and a product question about its two
+  internal tabs (Learn / Sessions).
+- **Product decision (owner-approved): no internal tabs.** The Learn/Sessions segmented bar
+  hid half the tab's content behind a second tap — Learn was the default, and no flow ever
+  deep-linked to Sessions (Today's week-complete CTA starts the mobility reset directly).
+  Explore is now one scrollable page: featured session → "More sessions" rows → "Learn"
+  section (featured article + reads). Sessions lead because adherence is the product;
+  articles stay because this demographic responds to evidence — they just don't warrant a
+  navigation level. Contextual article placement (surfacing a relevant read from Today or
+  Progress) noted as a possible future refinement.
+- **Featured card honesty:** the hero previously hardcoded "A gentle reset for lighter days"
+  regardless of which session was featured (and said "lighter days" three times across the
+  tab). It now renders the featured session's own `cardTitle`/`detailBody`.
+- **Unreachable content deleted:** the 8 `LEARN_ARTICLES` guides (never listed anywhere; only
+  the 4 health-insight articles are reachable) plus their images, `LIBRARY_IMAGES` and 13
+  library assets, `LEARN_IMAGES`, `ladderImageFor`, and `LearnDetailScreen`'s CTA branches for
+  the deleted camera-setup/resistance-band articles. Camera-setup guidance lives in the real
+  camera-setup flow.
+- **exploreViewModel rebuilt around its live surface (866 → 306 lines):** the transitively
+  dead ladder/checklist presentation layer (level pickers, checklist builders, `LADDER_*`
+  copy tables) and the test-only `getEquipmentSetupSummary` are gone. The ignored legacy
+  `equipment` input was removed end-to-end (view-model params → screen prop → App pass),
+  matching the Settings-pass collapse; equipment resolves solely from the canonical
+  safety-profile store.
+- **Polish:** extra-session titles sentence-cased ("Mobility reset"), header settings button
+  and row Start buttons raised to the 48px tap target. The stale copy-guardrail asserting
+  "Camera estimated" in the explore source (a label that only existed in the deleted library
+  layer) was removed.
+- **Verification:** tsc and jest clean on this pass's surface (copyGuardrails +
+  exploreViewModel suites green). The 11 suites failing at commit time all trace to the
+  founder's in-flight LifeGoal category refactor, not this work. Net −1,340 lines. Owed on
+  device: the merged Explore layout, featured-card copy, and article detail screens.
