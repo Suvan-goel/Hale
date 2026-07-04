@@ -1,7 +1,7 @@
 import type { ExerciseLadder, ExerciseLevel } from './ladders';
 import type { ReleaseStatus } from './types';
 
-export type TrainingReleaseChannel = 'controlled_beta' | 'internal_development';
+export type TrainingReleaseChannel = 'controlled_beta';
 
 export type ExerciseLevelAvailabilityReason =
   | 'v1_core'
@@ -63,7 +63,6 @@ export type ReleasePolicyExerciseSnapshotInput = {
 
 export const TRAINING_RELEASE_POLICY_SCHEMA_VERSION = 1;
 export const CONTROLLED_BETA_RELEASE_CHANNEL: TrainingReleaseChannel = 'controlled_beta';
-export const INTERNAL_DEVELOPMENT_RELEASE_CHANNEL: TrainingReleaseChannel = 'internal_development';
 
 export const CONTROLLED_BETA_HIDDEN_OPTIONAL_LEVEL_IDS = [
   'loaded-sit-to-stand',
@@ -93,7 +92,7 @@ const CONTROLLED_BETA_OPTIONAL_REASON_BY_LEVEL_ID: Record<
 const HIDDEN_OPTIONAL_LEVEL_ID_SET = new Set<string>(CONTROLLED_BETA_HIDDEN_OPTIONAL_LEVEL_IDS);
 
 export function isTrainingReleaseChannel(value: unknown): value is TrainingReleaseChannel {
-  return value === CONTROLLED_BETA_RELEASE_CHANNEL || value === INTERNAL_DEVELOPMENT_RELEASE_CHANNEL;
+  return value === CONTROLLED_BETA_RELEASE_CHANNEL;
 }
 
 export function releasePolicyFingerprint(
