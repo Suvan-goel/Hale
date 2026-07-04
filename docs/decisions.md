@@ -2765,3 +2765,23 @@ PUBLIC RELEASE REMAINS BLOCKED
   the Supabase project.
 - **CLAUDE.md note:** the local-only/no-accounts language is now closer to true for the
   default experience; the doc is reconciled in Stage 7.
+
+## 2026-07-04 — App-simplification Stage 5b: onboarding loses the standalone equipment step
+
+- **Context:** onboarding asked seven equipment questions before the user had seen any value,
+  even though the zero-equipment law guarantees nothing blocks without them, Settings already
+  edits equipment, and session planning already validates and substitutes for it.
+- **Change:** the equipment step is gone. Saving the safety profile during onboarding confirms
+  the zero-equipment baseline (sturdy chair + wall, `status: 'confirmed'`) and goes straight
+  to the camera explanation. `OnboardingEquipmentScreen` is deleted; the `equipment` flow is
+  retired (stored `currentStep: 'equipment'` from existing dev installs resumes at the camera
+  explanation); Explore's equipment route opens Settings. Optional items (band, stair, weight,
+  mat space) are added in Settings when the user actually has them — which is also when the
+  band-gated exercises unlock, unchanged.
+- **Considered and rejected:** merging the life-goal question into the Welcome or safety
+  profile screens. One decision per screen is the right pattern for this demographic; the
+  funnel cost is decision count, not screen count, and the goal question is one warm decision
+  that drives plan personalization. The funnel is now: Welcome → goal → profile →
+  camera explanation → check-up → results (plan auto-created by the unified engine).
+- **Verification:** tsc clean, 1,405/1,405 tests, expo config clean. Owed: on-device
+  onboarding run-through alongside the Stage 5a guest checks.

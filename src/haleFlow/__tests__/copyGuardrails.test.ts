@@ -168,7 +168,6 @@ describe('Hale V1 copy guardrails', () => {
     expect(controlledBetaEquipmentPositioning.optionalSetup).toMatch(/only when you confirm/i);
 
     const source = [
-      productionSourceText('src/screens/OnboardingEquipmentScreen.tsx'),
       productionSourceText('src/screens/SettingsScreen.tsx'),
       productionSourceText('src/screens/SessionPreviewScreen.tsx'),
       productionSourceText('src/screens/TodayScreen.tsx'),

@@ -25,7 +25,6 @@ export function deriveOnboardingStep(input: OnboardingProgressInput): Onboarding
     return prefs.onboarding.currentStep === 'life_goal' ? 'life_goal' : 'welcome';
   }
   if (!profileReferenceDetailsComplete(prefs) || !prefs.profile.safetyProfile) return 'safety_profile';
-  if (!equipmentStepComplete(prefs)) return 'equipment';
   const hasUsableBaseline = !!latestUsableOfficialCheckUpRecord(history, input.assessments ?? []);
   if (!hasUsableBaseline) {
     if (prefs.onboarding.currentStep === 'camera_setup' || prefs.onboarding.currentStep === 'baseline_checkup') {
@@ -48,14 +47,4 @@ function profileReferenceDetailsComplete(prefs: Preferences): boolean {
     referenceAge <= 120 &&
     (prefs.profile.referenceSex === 'female' || prefs.profile.referenceSex === 'male')
   );
-}
-
-export function equipmentStepComplete(prefs: Preferences): boolean {
-  return prefs.onboarding.currentStep === 'camera_explanation' ||
-    prefs.onboarding.currentStep === 'camera_setup' ||
-    prefs.onboarding.currentStep === 'baseline_checkup' ||
-    prefs.onboarding.currentStep === 'results' ||
-    prefs.onboarding.currentStep === 'create_block' ||
-    prefs.onboarding.currentStep === 'complete' ||
-    prefs.onboarding.selectedEquipment.length > 0;
 }

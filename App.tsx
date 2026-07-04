@@ -238,7 +238,6 @@ import { MovementProfileV2UnifiedCheckUpScreen } from './src/screens/MovementPro
 import { MovementProfileV2UnifiedResultsScreen } from './src/screens/MovementProfileV2UnifiedResultsScreen';
 import { MovementProfileV2PracticeResultsScreen } from './src/screens/MovementProfileV2PracticeResultsScreen';
 import { OnboardingBlockScreen } from './src/screens/OnboardingBlockScreen';
-import { OnboardingEquipmentScreen } from './src/screens/OnboardingEquipmentScreen';
 import { PlanScreen } from './src/screens/PlanScreen';
 import { ProgressScreen, buildProgressDevMockData } from './src/screens/ProgressScreen';
 import { SafetyProfileScreen } from './src/screens/SafetyProfileScreen';
@@ -279,7 +278,6 @@ type PermissionState = 'checking' | 'granted' | 'undetermined' | 'denied';
 /** Full-screen flows launched on top of the tab shell (hands-free sessions + dev tools). */
 type Flow =
   | 'welcome'
-  | 'equipment'
   | 'camera-explanation'
   | 'safety-profile'
   | 'camera-setup'
@@ -546,7 +544,8 @@ function flowForOnboardingStep(step: OnboardingStep): Flow | null {
     case 'safety_profile':
       return 'safety-profile';
     case 'equipment':
-      return 'equipment';
+      // The standalone equipment step is retired; equipment lives in Settings.
+      return 'camera-explanation';
     case 'camera_explanation':
       return 'camera-explanation';
     case 'camera_setup':
@@ -2244,9 +2243,9 @@ function HaleApp() {
         },
         safetyProfile.availableEquipment,
         {
-          status:
-            safetyProfile.equipmentStatus ??
-            (onboardingFlowActive ? 'needs_confirmation' : 'confirmed'),
+          // Zero-equipment start (product law): onboarding assumes chair +
+          // wall and confirms immediately; optional items live in Settings.
+          status: safetyProfile.equipmentStatus ?? 'confirmed',
           updatedAt: now,
           revision: safetyProfile.equipmentRevision,
         }
@@ -2263,7 +2262,7 @@ function HaleApp() {
           safetyProfile: nextSafetyProfile,
         },
         onboarding: onboardingFlowActive
-          ? { ...prefs.onboarding, currentStep: 'equipment', updatedAt: now }
+          ? { ...prefs.onboarding, currentStep: 'camera_explanation', updatedAt: now }
           : prefs.onboarding,
       });
       persistTraining({
@@ -2273,54 +2272,12 @@ function HaleApp() {
         ),
       });
       if (onboardingFlowActive) {
-        setFlow('equipment');
+        setFlow('camera-explanation');
       } else if (!options?.stayOnScreen) {
         goHome();
       }
     },
     [goHome, onboardingFlowActive, persistPrefs, persistTraining, prefs, training]
-  );
-
-  const handleEquipmentSave = React.useCallback(
-    (input: {
-      selectedEquipment: string[];
-      availableEquipment: AvailableEquipment[];
-      equipment: EquipmentProfile;
-    }) => {
-      const now = new Date().toISOString();
-      const existingSafetyProfile = prefs.profile.safetyProfile;
-      const nextSafetyProfile = existingSafetyProfile
-        ? safetyProfileWithCanonicalEquipment(existingSafetyProfile, input.availableEquipment, {
-            status: 'confirmed',
-            updatedAt: now,
-          })
-        : null;
-      persistPrefs({
-        ...prefs,
-        profile: nextSafetyProfile
-          ? {
-              ...prefs.profile,
-              safetyProfile: nextSafetyProfile,
-            }
-          : prefs.profile,
-        onboarding: {
-          ...prefs.onboarding,
-          currentStep: 'camera_explanation',
-          selectedEquipment: input.selectedEquipment,
-          updatedAt: now,
-        },
-      });
-      if (nextSafetyProfile) {
-        persistTraining({
-          ...training,
-          equipment: legacyEquipmentFromCanonical(
-            canonicalEquipmentFromSafetyProfile(nextSafetyProfile)
-          ),
-        });
-      }
-      setFlow('camera-explanation');
-    },
-    [persistPrefs, persistTraining, prefs, training]
   );
 
   const handleCameraExplanationContinue = React.useCallback(() => {
@@ -4271,7 +4228,7 @@ function HaleApp() {
           openSafetyProfile();
           return;
         case 'equipment':
-          setFlow('equipment');
+          goSettings();
           return;
         case 'camera-explanation':
           setFlow('camera-explanation');
@@ -4399,18 +4356,12 @@ function HaleApp() {
               goBack(() => (onboardingFlowActive ? replaceFlow('life-goal') : goHome()))
             }
           />
-        ) : flow === 'equipment' ? (
-          <OnboardingEquipmentScreen
-            selectedEquipment={prefs.onboarding.selectedEquipment}
-            onSave={handleEquipmentSave}
-            onBack={() => goBack(() => replaceFlow('safety-profile'))}
-          />
         ) : flow === 'camera-explanation' ? (
           <CameraExplanationScreen
             permissionGranted={permission === 'granted'}
             onRequestPermission={requestCameraPermission}
             onContinue={handleCameraExplanationContinue}
-            onBack={() => goBack(() => replaceFlow('equipment'))}
+            onBack={() => goBack(() => replaceFlow('safety-profile'))}
           />
         ) : flow === 'camera-setup' ? (
           <CameraSetupScreen
