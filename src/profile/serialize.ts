@@ -41,7 +41,6 @@ export function defaultPreferences(): Preferences {
       voiceId: DEFAULT_VOICE_ID,
       remindersEnabled: false,
       phoneStandAvailable: false,
-      devMockDataEnabled: false,
     },
     onboarding: defaultOnboardingState(),
   };
@@ -214,8 +213,6 @@ function validSettings(v: unknown): AppSettings {
     remindersEnabled: typeof s.remindersEnabled === 'boolean' ? s.remindersEnabled : def.remindersEnabled,
     phoneStandAvailable:
       typeof s.phoneStandAvailable === 'boolean' ? s.phoneStandAvailable : def.phoneStandAvailable,
-    devMockDataEnabled:
-      typeof s.devMockDataEnabled === 'boolean' ? s.devMockDataEnabled : def.devMockDataEnabled,
   };
 }
 

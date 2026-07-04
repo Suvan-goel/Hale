@@ -489,27 +489,6 @@ function SettingsScreenContent({
 
       {showDeveloperSettings ? (
         <SettingsSection title="Developer">
-          {showInternalDeveloperSettings ? (
-            <View style={[styles.menuRow, responsive.isCompactPhone && styles.compactCardPadding, styles.menuDivider]}>
-              <MenuIcon name="sliders" />
-              <View style={styles.menuCopy}>
-                <Text style={styles.menuTitle}>Use mock app data</Text>
-                <Text style={styles.menuSubtitle}>
-                  Preview Hale after a check-up and a few completed sessions.
-                </Text>
-              </View>
-              <Switch
-                value={settings.devMockDataEnabled}
-                onValueChange={(enabled) =>
-                  onSettingsChange({ ...settings, devMockDataEnabled: enabled })
-                }
-                trackColor={{ false: colors.borderHairline, true: colors.sage }}
-                thumbColor={settings.devMockDataEnabled ? colors.accent : colors.bgSurface}
-                ios_backgroundColor={colors.borderHairline}
-                accessibilityLabel="Use mock app data"
-              />
-            </View>
-          ) : null}
           {onReplayOnboardingForDev ? (
             <ProfileMenuRow
               title="Replay onboarding"

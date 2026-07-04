@@ -9,43 +9,17 @@ import {
 import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
 import {
-  getLifeGoalDisplayText,
-  LOCAL_USER_ID,
-  type LifeGoal,
-  type MovementAssessment,
   type MovementBlock,
   type MovementBlockReport,
-  type MovementDomain,
   type TrainingSessionCompletion,
 } from '../adherence';
-import { legacySyntheticCheckUp as syntheticCheckUp } from '../checkup/testing/legacyCheckUpFixture';
-import type { CheckUp } from '../checkup/types';
 import {
-  createMovementAssessment,
-  createMovementBlockReport,
-  getBlockReportSummaries,
-  getDomainProgressCards,
   getLadderProgressCards,
-  getLatestCheckUpSummary,
-  getLatestDomainEvidence,
-  getRetestDueSummary,
-  getRetestHistory,
   type MovementProfileV2ProgressViewModel,
   type ProgressDataAuthority,
 } from '../haleFlow';
-import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../history';
-import {
-  latestMovementProfileV2ResultsViewModel,
-  type MovementProfileV2Domain,
-  type MovementProfileV2ResultsViewModel,
-} from '../movementProfileV2/viewModel';
-import {
-  createCurrentVersionedScoreSnapshot,
-  type CheckUpScore,
-  type Domain,
-  type VersionedCheckUpScoreSnapshot,
-} from '../scoring';
-import { BALANCE_FEET_TOGETHER_ID, HAMSTRING_REACH_ID, STS_STANDARD_ID } from '../exercises';
+import { type MovementProfileV2Domain } from '../movementProfileV2/viewModel';
+import { type Domain } from '../scoring';
 import type { LadderProgress } from '../training';
 import { colors, fonts, imageOverlayControl, radius, shadow, spacing, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
@@ -58,16 +32,6 @@ import {
   type ProgressNextCheckUpCardCopy,
   type ProgressPlanSummaryCardCopy,
 } from './progressProductPresentation';
-import {
-  BALANCE_LADDER_ID,
-  CHAIR_STAND_ID,
-  HINGE_REACH_ID,
-  SHOULDER_FLEXION_ID,
-  type BalanceResult,
-  type ChairStandResult,
-  type HingeReachResult,
-  type ShoulderFlexionResult,
-} from '../movements';
 
 const DOMAIN_LABEL: Record<Domain, string> = {
   strength: 'Strength / Power',
@@ -78,129 +42,25 @@ const DOMAIN_LABEL: Record<Domain, string> = {
 const PROGRESS_HERO_IMAGE = require('../../assets/images/progress-hero-botanical.png');
 
 export function ProgressScreen({
-  history,
-  assessments,
   activeBlock,
   blocks,
   reports,
   completions,
   ladderProgressById,
-  lifeGoal,
   today,
   onBeginFirstCheckUp,
   onBeginAdditionalCheckUp,
   onStartRetest,
-  onViewLatest,
-  onViewCheckUp,
-  showMovementProfileV2Internal,
-  onViewMovementProfileV2,
   progressDataAuthority,
   movementProfileV2Progress,
   onStartMovementProfileV2CheckUp,
   onViewMovementProfileV2Profile,
   onViewMovementProfileV2Report,
   onViewCurrentPlan,
-  historyOpen: controlledHistoryOpen,
-  onHistoryOpenChange,
   onOpenSettings,
 }: ProgressScreenProps) {
   const responsive = useResponsiveLayout();
-  const [uncontrolledHistoryOpen, setUncontrolledHistoryOpen] = React.useState(false);
-  const historyOpen = controlledHistoryOpen ?? uncontrolledHistoryOpen;
-
-  React.useEffect(() => {
-    return () => onHistoryOpenChange?.(false);
-  }, [onHistoryOpenChange]);
-
-  const setHistoryOpen = React.useCallback(
-    (open: boolean) => {
-      if (controlledHistoryOpen === undefined) {
-        setUncontrolledHistoryOpen(open);
-      }
-      onHistoryOpenChange?.(open);
-    },
-    [controlledHistoryOpen, onHistoryOpenChange]
-  );
-
-  const visibleHistory = history;
-  const visibleAssessments = assessments;
-  const visibleActiveBlock = activeBlock;
-  const visibleBlocks = blocks;
-  const visibleReports = reports;
-  const visibleCompletions = completions;
-  const visibleLadderProgressById = ladderProgressById;
-
-  const latest = getLatestCheckUpSummary(visibleHistory, visibleAssessments);
-  const latestMovementProfileV2 = showMovementProfileV2Internal
-    ? latestMovementProfileV2ResultsViewModel(visibleHistory)
-    : null;
-  const latestEvidence = getLatestDomainEvidence(visibleHistory, visibleAssessments);
-  const domainCards = getDomainProgressCards(visibleHistory, visibleAssessments);
-  const ladderCards = getLadderProgressCards(visibleLadderProgressById);
-  const retestHistory = getRetestHistory(visibleHistory, visibleAssessments);
-  const reportedBlockIds = new Set(visibleReports.map((report) => report.blockId));
-  const completedPlanSummary = getBlockReportSummaries({
-    blocks: visibleBlocks,
-    reports: visibleReports,
-    completions: visibleCompletions,
-  }).find((summary) => reportedBlockIds.has(summary.blockId)) ?? null;
-  const hasComparison = retestHistory.length > 1;
-  const retest = getRetestDueSummary({ activeBlock: visibleActiveBlock, today, hasBaseline: !!latest, completions: visibleCompletions });
-  const retestBody = retestLine({ activeBlock: visibleActiveBlock, today, fallback: retest.body, due: retest.due });
-  const handleViewLatest = onViewLatest;
-  const renderMovementProfileV2Progress =
-    progressDataAuthority?.kind === 'movement_profile_v2' || progressDataAuthority?.kind === 'unavailable';
-
-  if (!renderMovementProfileV2Progress && historyOpen) {
-    return (
-      <ProgressHistoryView
-        history={retestHistory}
-        onBack={() => setHistoryOpen(false)}
-        onViewCheckUp={onViewCheckUp}
-      />
-    );
-  }
-
-  if (renderMovementProfileV2Progress) {
-    return (
-      <Screen contentStyle={styles.screenContent}>
-        <View style={styles.header}>
-          <View style={styles.titleRow}>
-            <View style={styles.titleGroup}>
-              <HeaderLogo />
-              <Text style={[styles.title, responsive.isCompactPhone && compactTypography.pageTitle]}>Progress</Text>
-            </View>
-            <Pressable
-              style={({ pressed }) => [styles.headerIconButton, pressed && styles.pressed]}
-              onPress={onOpenSettings}
-              accessibilityRole="button"
-              accessibilityLabel="Open settings"
-            >
-              <SettingsIcon size={25} color={colors.accentDeep} strokeWidth={1.8} />
-            </Pressable>
-          </View>
-        </View>
-
-        <MovementProfileV2ProgressContent
-          viewModel={movementProfileV2Progress ?? null}
-          unavailable={progressDataAuthority?.kind === 'unavailable'}
-          onStartCheckUp={onStartMovementProfileV2CheckUp ?? onBeginFirstCheckUp}
-          onContinue={onBeginFirstCheckUp}
-          onViewProfile={onViewMovementProfileV2Profile}
-          onViewReport={onViewMovementProfileV2Report}
-          onViewCurrentPlan={onViewCurrentPlan}
-          onBeginExtraCheckUp={onBeginAdditionalCheckUp}
-          onStartRetest={onStartRetest}
-          activeBlock={visibleActiveBlock}
-          blocks={visibleBlocks}
-          reports={visibleReports}
-          completions={visibleCompletions}
-          today={today}
-          ladderCards={ladderCards}
-        />
-      </Screen>
-    );
-  }
+  const ladderCards = getLadderProgressCards(ladderProgressById);
 
   return (
     <Screen contentStyle={styles.screenContent}>
@@ -221,56 +81,23 @@ export function ProgressScreen({
         </View>
       </View>
 
-      {!latest && !latestMovementProfileV2 ? (
-        <ProgressEmptyState onBeginCheckUp={onBeginFirstCheckUp} />
-      ) : (
-        <>
-          {latest ? (
-            <ProgressHeroSection
-              latest={latest}
-              retestTitle={retest.title}
-              retestBody={retestBody}
-              lifeGoal={lifeGoal}
-            />
-          ) : null}
-
-          {latest && retest.due ? (
-            <RetestCard
-              title={retest.title}
-              body={retestBody}
-              onPress={retest.ctaLabel ? onStartRetest : undefined}
-            />
-          ) : null}
-
-          {latestMovementProfileV2 ? (
-            <MovementProfileV2InternalCard
-              viewModel={latestMovementProfileV2}
-              onPress={onViewMovementProfileV2}
-            />
-          ) : null}
-
-          {latest ? (
-            hasComparison && domainCards.length > 0 ? (
-              <ChangeSinceBaselineCard cards={domainCards} latest={latest} onViewResults={handleViewLatest} />
-            ) : (
-              <MovementProfileCard latest={latest} evidence={latestEvidence} onViewResults={handleViewLatest} />
-            )
-          ) : null}
-
-          {ladderCards.length > 0 ? <TrainingProgressCard cards={ladderCards} /> : null}
-
-          {latest ? (
-            <ProgressRecordsCard
-              retestBody={retestBody}
-              showRetest={!retest.due}
-              history={retestHistory}
-              completedPlan={completedPlanSummary}
-              onBeginCheckUp={onBeginAdditionalCheckUp}
-              onOpenHistory={() => setHistoryOpen(true)}
-            />
-          ) : null}
-        </>
-      )}
+      <MovementProfileV2ProgressContent
+        viewModel={movementProfileV2Progress ?? null}
+        unavailable={progressDataAuthority?.kind === 'unavailable'}
+        onStartCheckUp={onStartMovementProfileV2CheckUp ?? onBeginFirstCheckUp}
+        onContinue={onBeginFirstCheckUp}
+        onViewProfile={onViewMovementProfileV2Profile}
+        onViewReport={onViewMovementProfileV2Report}
+        onViewCurrentPlan={onViewCurrentPlan}
+        onBeginExtraCheckUp={onBeginAdditionalCheckUp}
+        onStartRetest={onStartRetest}
+        activeBlock={activeBlock}
+        blocks={blocks}
+        reports={reports}
+        completions={completions}
+        today={today}
+        ladderCards={ladderCards}
+      />
     </Screen>
   );
 }
@@ -615,6 +442,31 @@ function MovementProfileV2HeroSection({ hero }: { hero: Extract<MovementProfileV
   );
 }
 
+function HeroFact({
+  label,
+  value,
+  compact,
+  wide,
+  valueLines = 1,
+}: {
+  label: string;
+  value: string;
+  compact?: boolean;
+  wide?: boolean;
+  valueLines?: number;
+}) {
+  return (
+    <View style={[styles.progressHeroFact, compact && styles.progressHeroFactCompact, wide && styles.progressHeroFactWide]}>
+      <Text style={styles.progressHeroFactLabel} numberOfLines={1}>{label}</Text>
+      <Text style={styles.progressHeroFactValue} numberOfLines={valueLines}>{value}</Text>
+    </View>
+  );
+}
+function compactHeroDate(label: string): string {
+  const compact = label.replace(/\s*,?\s*\d{4}$/, '').trim();
+  return compact.length > 0 ? compact : label;
+}
+
 function MovementProfileV2ProfileCard({
   viewModel,
   onViewProfile,
@@ -866,647 +718,52 @@ function ProgressActionRow({
 }
 
 interface ProgressScreenProps {
-  history: readonly StoredCheckUp[];
-  assessments?: readonly MovementAssessment[];
   activeBlock?: MovementBlock | null;
   blocks: readonly MovementBlock[];
   reports: readonly MovementBlockReport[];
   completions: readonly TrainingSessionCompletion[];
   ladderProgressById?: Record<string, LadderProgress>;
-  lifeGoal?: LifeGoal | null;
   today: string;
   onBeginFirstCheckUp: () => void;
   onBeginAdditionalCheckUp: () => void;
   onStartRetest: () => void;
-  onViewLatest: () => void;
-  onViewCheckUp: (checkUpId: string) => void;
-  showMovementProfileV2Internal?: boolean;
-  onViewMovementProfileV2?: () => void;
   progressDataAuthority?: ProgressDataAuthority;
   movementProfileV2Progress?: MovementProfileV2ProgressViewModel | null;
   onStartMovementProfileV2CheckUp?: () => void;
   onViewMovementProfileV2Profile?: (sourceCheckUpId: string) => void;
   onViewMovementProfileV2Report?: (reportId: string) => void;
   onViewCurrentPlan?: () => void;
-  historyOpen?: boolean;
-  onHistoryOpenChange?: (open: boolean) => void;
   onOpenSettings: () => void;
 }
 
-export interface ProgressDevMockData {
-  history: StoredCheckUp[];
-  assessments: MovementAssessment[];
-  activeBlock: MovementBlock;
-  blocks: MovementBlock[];
-  reports: MovementBlockReport[];
-  completions: TrainingSessionCompletion[];
-  ladderProgressById: Record<string, LadderProgress>;
-}
 
-interface ScoredDevCheckUp {
-  record: StoredCheckUp;
-  assessment: MovementAssessment;
-  score: CheckUpScore;
-  snapshot: VersionedCheckUpScoreSnapshot;
-}
 
-export function buildProgressDevMockData(today: string): ProgressDevMockData {
-  const base = devBaseDate(today);
-  const baseline = createScoredDevCheckUp(
-    devCheckUp(devIso(base, -74), {
-      chairStandReps: 10,
-      riseVelocity: 0.18,
-      peakRiseVelocity: 0.25,
-      balanceSec: 6,
-      shoulderDeg: 148,
-      hingeReachBu: 0.32,
-    }),
-    'baseline'
-  );
 
-  const completedBlock = devBlock({
-    id: 'dev-progress-block-1',
-    sourceCheckUpId: baseline.record.checkUp.startedAt,
-    status: 'completed',
-    focusDomain: scoreToMovementDomain(baseline.score.weakestDomain) ?? 'balance',
-    startDate: devIso(base, -73),
-    endDate: devIso(base, -45),
-    retestDate: devIso(base, -45),
-    completedSessions: 11,
-    microChecksCompleted: 2,
-    updatedAt: devIso(base, -38),
-  });
 
-  const latest = createScoredDevCheckUp(
-    devCheckUp(devIso(base, -38), {
-      chairStandReps: 14,
-      riseVelocity: 0.23,
-      peakRiseVelocity: 0.33,
-      balanceSec: 12,
-      shoulderDeg: 164,
-      hingeReachBu: 0.18,
-    }),
-    'official_retest',
-    completedBlock.id
-  );
 
-  const activeBlock = devBlock({
-    id: 'dev-progress-block-2',
-    sourceCheckUpId: latest.record.checkUp.startedAt,
-    status: 'active',
-    focusDomain: scoreToMovementDomain(latest.score.weakestDomain) ?? 'balance',
-    startDate: devIso(base, -21),
-    endDate: devIso(base, 7),
-    retestDate: devIso(base, 7),
-    completedSessions: 5,
-    microChecksCompleted: 1,
-    updatedAt: devIso(base, -1),
-  });
 
-  const completions = [
-    ...devSessionCompletions(completedBlock, base, -70, 11),
-    ...devMicroCheckCompletions(completedBlock, base, [-63, -52]),
-    ...devSessionCompletions(activeBlock, base, -19, 5),
-    ...devMicroCheckCompletions(activeBlock, base, [-8]),
-  ];
 
-  const report = createMovementBlockReport({
-    block: completedBlock,
-    baselineAssessment: baseline.assessment,
-    retestAssessment: latest.assessment,
-    previousScore: baseline.score,
-    latestScore: latest.score,
-    previousScoreSnapshot: baseline.snapshot,
-    latestScoreSnapshot: latest.snapshot,
-    previousCheckUp: baseline.record.checkUp,
-    latestCheckUp: latest.record.checkUp,
-    completions,
-    nowIso: devIso(base, -37),
-  });
 
-  return {
-    history: [baseline.record, latest.record],
-    assessments: [baseline.assessment, latest.assessment],
-    activeBlock,
-    blocks: [completedBlock, activeBlock],
-    reports: [report],
-    completions,
-    ladderProgressById: devLadderProgress(base),
-  };
-}
-
-function devLadderProgress(base: Date): Record<string, LadderProgress> {
-  const setbackCountKey = ['fail', 'edSessionsAtLevel'].join('') as keyof LadderProgress;
-  return {
-    'sit-to-stand': {
-      ladderId: 'sit-to-stand',
-      currentLevelId: STS_STANDARD_ID,
-      completedSessionsAtLevel: 2,
-      [setbackCountKey]: 0,
-      recentCompletionRates: [1, 1],
-      recentRpe: [2, 3],
-      recentPain: [false, false],
-      readyToProgress: true,
-      updatedAt: devIso(base, -2),
-    },
-    balance: {
-      ladderId: 'balance',
-      currentLevelId: BALANCE_FEET_TOGETHER_ID,
-      completedSessionsAtLevel: 1,
-      [setbackCountKey]: 0,
-      recentCompletionRates: [0.85],
-      recentRpe: [2],
-      recentPain: [false],
-      updatedAt: devIso(base, -5),
-    },
-    'mobility-flexibility': {
-      ladderId: 'mobility-flexibility',
-      currentLevelId: HAMSTRING_REACH_ID,
-      completedSessionsAtLevel: 1,
-      [setbackCountKey]: 0,
-      recentCompletionRates: [0.9],
-      recentRpe: [2],
-      recentPain: [false],
-      updatedAt: devIso(base, -8),
-    },
-  } as unknown as Record<string, LadderProgress>;
-}
-
-function createScoredDevCheckUp(
-  checkUp: CheckUp,
-  checkupType: StoredCheckUp['checkupType'],
-  sourceBlockId?: string
-): ScoredDevCheckUp {
-  const scored = createCurrentVersionedScoreSnapshot(checkUp, {
-    createdAt: checkUp.startedAt,
-    sourceCheckUpId: checkUp.startedAt,
-  });
-  if (!scored.snapshot) {
-    throw new Error('[ProgressScreen] Unable to build dev mock score snapshot.');
-  }
-  const assessment = createMovementAssessment({
-    checkUpId: checkUp.startedAt,
-    type: checkupType,
-    score: scored.score,
-    scoreSnapshot: scored.snapshot,
-    sourceBlockId,
-    completedAt: checkUp.startedAt,
-  });
-  return {
-    record: {
-      schemaVersion: HISTORY_SCHEMA_VERSION,
-      checkUp,
-      checkupType,
-      sourceAssessmentId: assessment.id,
-      scoreSnapshot: scored.snapshot,
-      scoreSnapshotCompatibility: 'current',
-    },
-    assessment,
-    score: scored.score,
-    snapshot: scored.snapshot,
-  };
-}
-
-function devCheckUp(
-  startedAt: string,
-  values: {
-    chairStandReps: number;
-    riseVelocity: number;
-    peakRiseVelocity: number;
-    balanceSec: number;
-    shoulderDeg: number;
-    hingeReachBu: number;
-  }
-): CheckUp {
-  const checkUp = syntheticCheckUp(startedAt);
-  return {
-    ...checkUp,
-    items: checkUp.items.map((item) => {
-      if (!item.result) return item;
-      if (item.movementId === CHAIR_STAND_ID) {
-        const result = item.result as ChairStandResult;
-        return {
-          ...item,
-          result: {
-            ...result,
-            reps: values.chairStandReps,
-            sessionMeanVel: values.riseVelocity,
-            sessionMeanPeakVel: values.peakRiseVelocity,
-          },
-        };
-      }
-      if (item.movementId === BALANCE_LADDER_ID) {
-        const result = item.result as BalanceResult;
-        return { ...item, result: { ...result, singleLegEyesOpenSec: values.balanceSec } };
-      }
-      if (item.movementId === SHOULDER_FLEXION_ID) {
-        const result = item.result as ShoulderFlexionResult;
-        return { ...item, result: { ...result, peakFlexionDeg: values.shoulderDeg } };
-      }
-      if (item.movementId === HINGE_REACH_ID) {
-        const result = item.result as HingeReachResult;
-        return { ...item, result: { ...result, reachBu: values.hingeReachBu } };
-      }
-      return item;
-    }),
-  };
-}
-
-function devBlock({
-  id,
-  sourceCheckUpId,
-  status,
-  focusDomain,
-  startDate,
-  endDate,
-  retestDate,
-  completedSessions,
-  microChecksCompleted,
-  updatedAt,
-}: {
-  id: string;
-  sourceCheckUpId: string;
-  status: MovementBlock['status'];
-  focusDomain: MovementDomain;
-  startDate: string;
-  endDate: string;
-  retestDate: string;
-  completedSessions: number;
-  microChecksCompleted: number;
-  updatedAt: string;
-}): MovementBlock {
-  return {
-    id,
-    userId: LOCAL_USER_ID,
-    status,
-    startDate,
-    endDate,
-    retestDate,
-    focusDomain,
-    secondaryDomains: secondaryDomainsFor(focusDomain),
-    sessionsPerWeekTarget: 3,
-    totalPlannedSessions: 12,
-    completedSessions,
-    microChecksCompleted,
-    sourceCheckUpId,
-    createdAt: startDate,
-    updatedAt,
-  };
-}
-
-function devSessionCompletions(
-  block: MovementBlock,
-  base: Date,
-  firstOffsetDays: number,
-  count: number
-): TrainingSessionCompletion[] {
-  return Array.from({ length: count }, (_, index) => ({
-    id: `${block.id}-session-${index + 1}`,
-    userId: LOCAL_USER_ID,
-    blockId: block.id,
-    plannedDate: `session-${index + 1}`,
-    completedAt: devIso(base, firstOffsetDays + index * 2),
-    sessionType: index === 0 ? 'starter' : 'standard',
-    focusDomain: block.focusDomain ?? undefined,
-    durationMinutes: index % 3 === 0 ? 16 : 18,
-    perceivedEffort: ((index % 3) + 2) as 2 | 3 | 4,
-    painReported: false,
-  }));
-}
-
-function devMicroCheckCompletions(
-  block: MovementBlock,
-  base: Date,
-  offsets: readonly number[]
-): TrainingSessionCompletion[] {
-  return offsets.map((offset, index) => ({
-    id: `${block.id}-micro-${index + 1}`,
-    userId: LOCAL_USER_ID,
-    blockId: block.id,
-    completedAt: devIso(base, offset),
-    sessionType: 'micro_check',
-    focusDomain: block.focusDomain ?? undefined,
-    durationMinutes: 2,
-    perceivedEffort: 2,
-    painReported: false,
-  }));
-}
-
-function scoreToMovementDomain(domain: Domain | null | undefined): MovementDomain | null {
-  if (domain === 'strength') return 'strength_power';
-  if (domain === 'balance' || domain === 'mobility') return domain;
-  return null;
-}
-
-function secondaryDomainsFor(focusDomain: MovementDomain): MovementDomain[] {
-  return (['strength_power', 'balance', 'mobility'] as MovementDomain[]).filter((domain) => domain !== focusDomain).slice(0, 2);
-}
 
 const DEV_DAY_MS = 24 * 60 * 60 * 1000;
 
-function devBaseDate(today: string): Date {
-  const parsed = new Date(today);
-  const source = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
-  return new Date(Date.UTC(source.getUTCFullYear(), source.getUTCMonth(), source.getUTCDate(), 9));
-}
 
-function devIso(base: Date, offsetDays: number): string {
-  return new Date(base.getTime() + offsetDays * DEV_DAY_MS).toISOString();
-}
 
-function ProgressHeroSection({
-  latest,
-  retestTitle,
-  retestBody,
-  lifeGoal,
-}: {
-  latest: NonNullable<ReturnType<typeof getLatestCheckUpSummary>>;
-  retestTitle: string;
-  retestBody: string;
-  lifeGoal?: LifeGoal | null;
-}) {
-  const responsive = useResponsiveLayout();
-  const compactHero = responsive.isCompactPhone;
-  const focus = cleanFocusTitle(latest.focusTitle);
-  const heroBody = heroFocusBody(focus);
-  const goalText = lifeGoal ? getLifeGoalDisplayText(lifeGoal) : 'Not set yet';
-  const heroMinHeightStyle = { minHeight: responsive.progressHeroHeight };
-  const heroFacts = [
-    { label: 'Last check-up', value: compactHero ? compactHeroDate(latest.dateLabel) : latest.dateLabel },
-    { label: 'Next check-up', value: compactRetestValue(retestTitle, retestBody) },
-    { label: 'Everyday goal', value: goalText, wide: true, valueLines: 2 },
-  ];
 
-  return (
-    <View style={styles.heroSection}>
-      <ImageBackground
-        source={PROGRESS_HERO_IMAGE}
-        style={[styles.progressHero, heroMinHeightStyle]}
-        imageStyle={[styles.progressHeroImage, compactHero && styles.progressHeroImageCompact]}
-        resizeMode="cover"
-      >
-        <View style={styles.progressHeroScrim} />
-        <View style={[styles.progressHeroContent, compactHero && styles.progressHeroContentCompact, heroMinHeightStyle]}>
-          <View style={[styles.progressHeroCopy, compactHero && styles.progressHeroCopyCompact]}>
-            <Text style={styles.progressHeroEyebrow}>Main focus right now</Text>
-            <Text style={[styles.progressHeroTitle, compactHero && styles.progressHeroTitleCompact]}>{focus}</Text>
-            <Text style={[styles.progressHeroBody, compactHero && styles.progressHeroBodyCompact]}>{heroBody}</Text>
-          </View>
-          <View style={[styles.progressHeroFacts, compactHero && styles.progressHeroFactsCompact]}>
-            {heroFacts.map((fact) => (
-              <HeroFact
-                key={fact.label}
-                label={fact.label}
-                value={fact.value}
-                compact={compactHero}
-                wide={fact.wide}
-                valueLines={fact.valueLines}
-              />
-            ))}
-          </View>
-        </View>
-      </ImageBackground>
-    </View>
-  );
-}
 
-function HeroFact({
-  label,
-  value,
-  compact,
-  wide,
-  valueLines = 1,
-}: {
-  label: string;
-  value: string;
-  compact?: boolean;
-  wide?: boolean;
-  valueLines?: number;
-}) {
-  return (
-    <View style={[styles.progressHeroFact, compact && styles.progressHeroFactCompact, wide && styles.progressHeroFactWide]}>
-      <Text style={styles.progressHeroFactLabel} numberOfLines={1}>{label}</Text>
-      <Text style={styles.progressHeroFactValue} numberOfLines={valueLines}>{value}</Text>
-    </View>
-  );
-}
 
-function compactHeroDate(label: string): string {
-  const compact = label.replace(/\s*,?\s*\d{4}$/, '').trim();
-  return compact.length > 0 ? compact : label;
-}
 
-type MovementProfileBand = NonNullable<ReturnType<typeof getLatestCheckUpSummary>>['bands'][Domain];
-type LatestDomainEvidence = ReturnType<typeof getLatestDomainEvidence>[number];
 
-function MovementProfileCard({
-  latest,
-  evidence,
-  onViewResults,
-}: {
-  latest: NonNullable<ReturnType<typeof getLatestCheckUpSummary>>;
-  evidence: ReturnType<typeof getLatestDomainEvidence>;
-  onViewResults: () => void;
-}) {
-  const evidenceByDomain = new Map(evidence.map((card) => [card.domain, card]));
-  const rows: readonly { domain: Domain; title: string; band: MovementProfileBand; metric: string }[] = [
-    {
-      domain: 'strength',
-      title: 'Strength / Power',
-      band: latest.bands.strength,
-      metric: latestResultLine(evidenceByDomain.get('strength')),
-    },
-    {
-      domain: 'balance',
-      title: 'Balance',
-      band: latest.bands.balance,
-      metric: latestResultLine(evidenceByDomain.get('balance')),
-    },
-    {
-      domain: 'mobility',
-      title: 'Mobility',
-      band: latest.bands.mobility,
-      metric: latestResultLine(evidenceByDomain.get('mobility')),
-    },
-  ];
 
-  return (
-    <Card style={styles.progressCard}>
-      <View style={styles.profileHeader}>
-        <View style={styles.sectionText}>
-          <Text style={styles.sectionTitle}>Latest check-up</Text>
-          <Text style={styles.sectionIntro}>Here is what Hale measured most recently.</Text>
-        </View>
-      </View>
-
-      <View style={styles.profileRows}>
-        {rows.map((row, index) => (
-          <MovementProfileRow
-            key={row.domain}
-            domain={row.domain}
-            title={row.title}
-            metric={row.metric}
-            band={row.band}
-            showDivider={index > 0}
-          />
-        ))}
-      </View>
-
-      <LatestCheckUpActionRow
-        latest={latest}
-        title="See full results"
-        body="Tap here to see every movement from this check-up."
-        onPress={onViewResults}
-      />
-    </Card>
-  );
-}
-
-function MovementProfileV2InternalCard({
-  viewModel,
-  onPress,
-}: {
-  viewModel: MovementProfileV2ResultsViewModel;
-  onPress?: () => void;
-}) {
-  return (
-    <Card style={styles.progressCard}>
-      <View style={styles.profileHeader}>
-        <View style={styles.sectionText}>
-          <Text style={styles.sectionTitle}>Latest Movement Profile</Text>
-          <Text style={styles.sectionIntro}>
-            Frozen from {viewModel.dateLabel}. This internal V2 card does not compare against other check-ups.
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.profileRows}>
-        {viewModel.domainCards.map((card, index) => (
-          <MovementProfileV2InternalRow key={card.domain} card={card} showDivider={index > 0} />
-        ))}
-      </View>
-
-      {onPress ? (
-        <Pressable
-          style={({ pressed }) => [styles.latestResultsAction, pressed && styles.pressed]}
-          onPress={onPress}
-          accessibilityRole="button"
-          accessibilityLabel={`Open internal Movement Profile V2 results from ${viewModel.dateLabel}.`}
-        >
-          <View style={styles.latestResultsIconWell}>
-            <ProgressPictogram name="calendar" size={20} color={colors.accent} />
-          </View>
-          <View style={styles.latestResultsCopy}>
-            <Text style={styles.latestResultsTitle} numberOfLines={1}>Review internal V2 profile</Text>
-            <Text style={styles.latestResultsBody} numberOfLines={2}>{viewModel.focusTitle}</Text>
-          </View>
-          <Text style={styles.chevron}>›</Text>
-        </Pressable>
-      ) : null}
-    </Card>
-  );
-}
-
-function MovementProfileV2InternalRow({
-  card,
-  showDivider,
-}: {
-  card: MovementProfileV2ResultsViewModel['domainCards'][number];
-  showDivider: boolean;
-}) {
-  return (
-    <View style={[styles.profileRow, showDivider && styles.rowDivider]}>
-      <IconBadge domain={domainIconForMovementProfileV2(card.domain)} size={36} iconSize={22} />
-      <View style={styles.profileRowText}>
-        <Text style={styles.profileRowTitle} numberOfLines={1}>{card.title}</Text>
-        <Text style={styles.profileRowMetric} numberOfLines={1}>{card.metric}</Text>
-      </View>
-      <View style={styles.profileStatusPill}>
-        <Text style={styles.profileStatusText} numberOfLines={1}>{card.status}</Text>
-      </View>
-    </View>
-  );
-}
 
 function domainIconForMovementProfileV2(domain: MovementProfileV2Domain): Domain {
   if (domain === 'strength_power') return 'strength';
   return domain;
 }
 
-function MovementProfileRow({
-  domain,
-  title,
-  metric,
-  band,
-  showDivider,
-}: {
-  domain: Domain;
-  title: string;
-  metric: string;
-  band: MovementProfileBand;
-  showDivider: boolean;
-}) {
-  return (
-    <View style={[styles.profileRow, showDivider && styles.rowDivider]}>
-      <IconBadge domain={domain} size={36} iconSize={22} />
-      <View style={styles.profileRowText}>
-        <Text style={styles.profileRowTitle} numberOfLines={1}>{title}</Text>
-        <Text style={styles.profileRowMetric} numberOfLines={1}>{metric}</Text>
-      </View>
-      <View style={[styles.profileStatusPill, band === 'pending' && styles.profileStatusPillMuted]}>
-        <Text style={[styles.profileStatusText, band === 'pending' && styles.profileStatusTextMuted]} numberOfLines={1}>
-          {bandLabel(band)}
-        </Text>
-      </View>
-    </View>
-  );
-}
 
-function latestResultLine(card?: LatestDomainEvidence): string {
-  const metric = card?.metrics.find((item) => item.measured);
-  if (!metric) return 'Not checked this time';
-  return `${friendlyMetricLabel(metric.label)}: ${metric.display}`;
-}
 
-function friendlyMetricLabel(label: string): string {
-  if (label === 'Chair stands in 30s') return 'Chair stands';
-  if (label === 'Rise velocity') return 'Standing speed';
-  if (label === 'Up-and-go time') return 'Up-and-go time';
-  if (label === 'One-leg balance') return 'One-leg balance';
-  if (label === 'Shoulder reach') return 'Shoulder reach';
-  if (label === 'Forward reach to floor') return 'Forward reach';
-  return label;
-}
 
-function LatestCheckUpActionRow({
-  latest,
-  title,
-  body,
-  onPress,
-}: {
-  latest: NonNullable<ReturnType<typeof getLatestCheckUpSummary>>;
-  title: string;
-  body: string;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      style={({ pressed }) => [styles.latestResultsAction, pressed && styles.pressed]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${title}. ${body} Latest check-up was ${latest.dateLabel}. Camera estimated strength, balance, and mobility.`}
-    >
-      <View style={styles.latestResultsIconWell}>
-        <ProgressPictogram name="calendar" size={20} color={colors.accent} />
-      </View>
-      <View style={styles.latestResultsCopy}>
-        <Text style={styles.latestResultsTitle} numberOfLines={1}>{title}</Text>
-        <Text style={styles.latestResultsBody} numberOfLines={2}>{body}</Text>
-      </View>
-      <Text style={styles.chevron}>›</Text>
-    </Pressable>
-  );
-}
 
 function TrainingProgressCard({
   cards,
@@ -1549,58 +806,7 @@ function LadderProgressRow({
   );
 }
 
-function ChangeSinceBaselineCard({
-  cards,
-  latest,
-  onViewResults,
-}: {
-  cards: ReturnType<typeof getDomainProgressCards>;
-  latest: NonNullable<ReturnType<typeof getLatestCheckUpSummary>>;
-  onViewResults: () => void;
-}) {
-  const allRowsSimilar = cards.length > 0 && cards.every((card) => card.trend === 'similar');
-  return (
-    <Card style={styles.progressCard}>
-      <Text style={styles.sectionTitle}>Since your first check-up</Text>
-      <Text style={styles.sectionIntro}>
-        {allRowsSimilar
-          ? 'Your latest results are very close to your first check-up. That is normal. Hale looks for patterns over repeat check-ups.'
-          : 'Hale compares these numbers with your first check-up and looks for patterns over repeat check-ups.'}
-      </Text>
-      <View style={styles.changeRows}>
-        {cards.map((card, index) => (
-          <ChangeRow key={card.domain} card={card} showDivider={index > 0} />
-        ))}
-      </View>
-      <LatestCheckUpActionRow
-        latest={latest}
-        title="See latest check-up results"
-        body="Tap here to see the full results from your latest check-up."
-        onPress={onViewResults}
-      />
-    </Card>
-  );
-}
 
-function ChangeRow({
-  card,
-  showDivider,
-}: {
-  card: ReturnType<typeof getDomainProgressCards>[number];
-  showDivider: boolean;
-}) {
-  const trend = visibleTrendLabel(card.trend);
-  return (
-    <View style={[styles.changeRow, showDivider && styles.rowDivider]}>
-      <IconBadge domain={card.domain} size={36} iconSize={22} />
-      <View style={styles.changeRowText}>
-        <Text style={styles.changeRowTitle} numberOfLines={1}>{card.title}</Text>
-        <Text style={styles.changeRowMetric} numberOfLines={1}>{displayMetric(card.metric)}</Text>
-      </View>
-      {trend ? <InlineStatusPill label={trend} compact /> : null}
-    </View>
-  );
-}
 
 type ProgressRecordTile = {
   key: string;
@@ -1611,168 +817,9 @@ type ProgressRecordTile = {
   separated?: boolean;
 };
 
-function ProgressRecordsCard({
-  retestBody,
-  showRetest,
-  history,
-  completedPlan,
-  onBeginCheckUp,
-  onOpenHistory,
-}: {
-  retestBody: string;
-  showRetest: boolean;
-  history: ReturnType<typeof getRetestHistory>;
-  completedPlan: ReturnType<typeof getBlockReportSummaries>[number] | null;
-  onBeginCheckUp: () => void;
-  onOpenHistory: () => void;
-}) {
-  const nextCheckUp = showRetest ? recordNextCheckUp(retestBody) : null;
-  const tiles: ProgressRecordTile[] = [];
 
-  if (history.length > 1) {
-    tiles.push({
-      key: 'history',
-      title: 'Check-up history',
-      meta: `${history.length} check-ups saved.`,
-      onPress: onOpenHistory,
-      accessibilityLabel: `Check-up history. ${history.length} check-ups saved.`,
-    });
-  }
 
-  if (completedPlan) {
-    tiles.push({
-      key: 'completed-plan',
-      title: 'Last 4-week plan',
-      meta: `${completedPlan.focus} · ${completedPlan.sessions}. ${completedPlan.mainChange}`,
-      separated: tiles.length > 0,
-    });
-  }
 
-  tiles.push({
-    key: 'extra-checkup',
-    title: 'Extra check-up',
-    meta: 'Start this if you want to check one area before your next scheduled check-up.',
-    onPress: onBeginCheckUp,
-    accessibilityLabel: 'Extra check-up. Start this if you want to check one area before your next scheduled check-up.',
-    separated: tiles.length > 0,
-  });
-
-  return (
-    <Card style={styles.progressCard}>
-      <Text style={styles.sectionTitle}>{nextCheckUp ? 'Your next check-up' : 'Your check-up records'}</Text>
-      {nextCheckUp ? (
-        <View style={styles.nextCheckUpPanel}>
-          <IconBadge domain="calendar" size={38} iconSize={23} />
-          <View style={styles.nextCheckUpCopy}>
-            <Text style={styles.nextCheckUpTitle}>{nextCheckUp.title}</Text>
-            <Text style={styles.nextCheckUpBody}>{nextCheckUp.body}</Text>
-          </View>
-        </View>
-      ) : null}
-      <View style={[styles.recordRows, nextCheckUp && styles.recordRowsAfterLead]}>
-        {tiles.map(({ key, ...tile }, index) => (
-          <RecordRow key={key} {...tile} showDivider={index > 0} />
-        ))}
-      </View>
-    </Card>
-  );
-}
-
-function recordNextCheckUp(body: string): { title: string; body: string } {
-  const dayMatch = body.match(/\bopens in (\d+) (day|days)\b/i);
-  if (dayMatch) {
-    return {
-      title: `Opens in ${dayMatch[1]} ${dayMatch[2]}.`,
-      body: 'Hale will let you repeat the same check-up then, so you can compare results.',
-    };
-  }
-  if (body.includes('Finish the planned sessions')) {
-    return {
-      title: 'Opens after this 4-week plan.',
-      body: 'Finish the planned sessions, then Hale will open your next check-up.',
-    };
-  }
-  if (body.includes('Start a 4-week plan')) {
-    return {
-      title: 'Not scheduled yet.',
-      body: 'Start a 4-week plan to set the date for your next check-up.',
-    };
-  }
-  return { title: 'Next check-up', body };
-}
-
-function ProgressHistoryView({
-  history,
-  onBack,
-  onViewCheckUp,
-}: {
-  history: ReturnType<typeof getRetestHistory>;
-  onBack: () => void;
-  onViewCheckUp: (checkUpId: string) => void;
-}) {
-  return (
-    <Screen contentStyle={styles.screenContent}>
-      <BackArrowButton accessibilityLabel="Back to Progress" onPress={onBack} style={styles.historyBackButton} />
-      <View style={styles.header}>
-        <View style={styles.titleGroup}>
-          <HeaderLogo />
-          <Text style={styles.title}>Check-up history</Text>
-        </View>
-        <Text style={styles.subtitle}>
-          These are your saved check-ups. Tap one to see the full results.
-        </Text>
-      </View>
-
-      <Card style={styles.progressCard}>
-        <View style={styles.historyList}>
-          {history.map((entry, index) => (
-            <HistoryRecordRow
-              key={entry.id}
-              entry={entry}
-              latest={index === 0}
-              showDivider={index > 0}
-              onPress={() => onViewCheckUp(entry.id)}
-            />
-          ))}
-        </View>
-      </Card>
-    </Screen>
-  );
-}
-
-function HistoryRecordRow({
-  entry,
-  latest,
-  showDivider,
-  onPress,
-}: {
-  entry: ReturnType<typeof getRetestHistory>[number];
-  latest: boolean;
-  showDivider: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      style={({ pressed }) => [styles.historyRow, showDivider && styles.rowDivider, pressed && styles.pressed]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${entry.dateLabel}. ${entry.summaryLine}.`}
-    >
-      <View style={styles.historyRowText}>
-        <View style={styles.historyTitleRow}>
-          <Text style={styles.historyRowTitle} numberOfLines={1}>{entry.dateLabel}</Text>
-          {latest ? (
-            <View style={styles.historyLatestPill}>
-              <Text style={styles.historyLatestText}>Latest</Text>
-            </View>
-          ) : null}
-        </View>
-        <Text style={styles.historyRowMeta} numberOfLines={2}>{entry.summaryLine}</Text>
-      </View>
-      <Text style={styles.chevron}>›</Text>
-    </Pressable>
-  );
-}
 
 function RecordRow({
   title,
@@ -1828,54 +875,6 @@ function InlineStatusPill({ label, compact = false }: { label: string; compact?:
   );
 }
 
-function RetestCard({
-  title,
-  body,
-  onPress,
-}: {
-  title: string;
-  body: string;
-  onPress?: () => void;
-}) {
-  const responsive = useResponsiveLayout();
-  const content = (
-    <>
-      <View style={styles.retestIconWell}>
-        <ProgressPictogram name="calendar" size={24} color={colors.accent} />
-      </View>
-      <View style={styles.retestText}>
-        <Text style={styles.retestTitle}>{title}</Text>
-        <Text style={styles.retestBody}>{body}</Text>
-      </View>
-      {onPress ? (
-        <View style={styles.retestCtaPill}>
-          <Text style={styles.retestCtaText}>Start</Text>
-        </View>
-      ) : null}
-    </>
-  );
-
-  if (!onPress) {
-    return <Card style={[styles.progressCard, styles.retestCard]}>{content}</Card>;
-  }
-
-  return (
-    <Card style={[styles.progressCard, styles.retestCardInteractive]}>
-      <Pressable
-        style={({ pressed }) => [
-          styles.retestPressable,
-          responsive.isCompactPhone && styles.compactCardPadding,
-          pressed && styles.pressed,
-        ]}
-        onPress={onPress}
-        accessibilityRole="button"
-        accessibilityLabel={`${title}. ${body}`}
-      >
-        {content}
-      </Pressable>
-    </Card>
-  );
-}
 
 function IconBadge({
   domain,
@@ -2007,35 +1006,9 @@ function displayMetric(metric: string): string {
   return metric.replace(/ -> /g, ' → ');
 }
 
-function trendLabel(trend: string): string {
-  if (trend === 'higher') return 'Higher';
-  if (trend === 'similar') return 'Similar';
-  if (trend === 'lower') return 'Lower';
-  return 'Starting';
-}
 
-function visibleTrendLabel(trend: string): string | null {
-  if (trend === 'higher' || trend === 'lower') return trendLabel(trend);
-  return null;
-}
 
-function bandLabel(band: MovementProfileBand): string {
-  if (band === 'strong') return 'Strong area';
-  if (band === 'building') return 'In progress';
-  if (band === 'starting_point') return 'Focus area';
-  return 'Not checked';
-}
 
-function retestLine({
-  fallback,
-}: {
-  activeBlock?: MovementBlock | null;
-  today: string;
-  fallback: string;
-  due: boolean;
-}): string {
-  return fallback;
-}
 
 const styles = StyleSheet.create({
   screenContent: {

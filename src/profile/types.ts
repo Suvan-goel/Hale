@@ -42,12 +42,6 @@ export interface AppSettings {
   remindersEnabled: boolean;
   /** Local equipment preference used by setup screens; no camera/session dependency. */
   phoneStandAvailable: boolean;
-  /**
-   * Development-only preview switch. When enabled in __DEV__, screens can render
-   * deterministic local fixture data that represents a user with check-up and
-   * workout history. Release builds ignore this setting.
-   */
-  devMockDataEnabled: boolean;
 }
 
 export type OnboardingStep =

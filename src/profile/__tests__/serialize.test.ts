@@ -31,7 +31,6 @@ describe('preferences serialize', () => {
       voiceId: 'clara',
       remindersEnabled: true,
       phoneStandAvailable: true,
-      devMockDataEnabled: true,
     },
     onboarding: {
       currentStep: 'complete',
@@ -121,7 +120,6 @@ describe('preferences serialize', () => {
       voiceId: 'clara',
       remindersEnabled: true,
       phoneStandAvailable: false,
-      devMockDataEnabled: false,
     });
   });
 
@@ -223,7 +221,6 @@ describe('ProfileStore', () => {
         voiceId: 'clara',
         remindersEnabled: true,
         phoneStandAvailable: false,
-        devMockDataEnabled: false,
       },
       onboarding: {
         currentStep: 'welcome',

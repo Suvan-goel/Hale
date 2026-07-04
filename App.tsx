@@ -29,7 +29,6 @@ import {
 } from './src/components/ui';
 import { MOVEMENT_PROFILE_V2_INTERNAL_ENABLED } from './src/config/movementProfileV2Internal';
 import {
-  isDevMockDataAllowed,
   isDiagnosticsDeveloperSurfaceAllowed,
   isInternalHarnessSurfaceAllowed,
   isReleaseGatedFlowAllowed,
@@ -238,7 +237,7 @@ import { MovementProfileV2UnifiedResultsScreen } from './src/screens/MovementPro
 import { MovementProfileV2PracticeResultsScreen } from './src/screens/MovementProfileV2PracticeResultsScreen';
 import { OnboardingBlockScreen } from './src/screens/OnboardingBlockScreen';
 import { PlanScreen } from './src/screens/PlanScreen';
-import { ProgressScreen, buildProgressDevMockData } from './src/screens/ProgressScreen';
+import { ProgressScreen } from './src/screens/ProgressScreen';
 import { SafetyProfileScreen } from './src/screens/SafetyProfileScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { SessionPlanningRecoveryScreen } from './src/screens/SessionPlanningRecoveryScreen';
@@ -756,7 +755,6 @@ function HaleApp() {
   const [flow, setFlow] = React.useState<Flow | null>(() =>
     TEMP_PREVIEW_BLOCK_INTRO_SCREEN ? 'block-intro' : null
   );
-  const [progressHistoryOpen, setProgressHistoryOpen] = React.useState(false);
   const [cameraSetupEntry, setCameraSetupEntry] =
     React.useState<CameraSetupEntry>('checkup');
   const [lifeGoalEntry, setLifeGoalEntry] =
@@ -1346,11 +1344,6 @@ function HaleApp() {
   );
 
   const handleAndroidHardwareBack = React.useCallback(() => {
-    if (progressHistoryOpen) {
-      setProgressHistoryOpen(false);
-      return true;
-    }
-
     const current = currentLocationRef.current;
     const hasPreviousLocation = navigationHistoryRef.current.some(
       (location) => !sameNavigationLocation(location, current)
@@ -1368,7 +1361,7 @@ function HaleApp() {
 
     // Home tab with no history: let the OS handle back (backgrounds the app).
     return false;
-  }, [goBack, goHome, progressHistoryOpen]);
+  }, [goBack, goHome]);
 
   React.useEffect(() => {
     if (Platform.OS !== 'android') return;
@@ -2023,66 +2016,19 @@ function HaleApp() {
     () => getActiveMovementBlock(adherence.blocks),
     [adherence.blocks]
   );
-  const devMockDataEnabled =
-    isDevMockDataAllowed({ dev: developerRuntime }) && prefs.settings.devMockDataEnabled;
-  const devPreviewNowIso = React.useMemo(() => new Date().toISOString(), [devMockDataEnabled]);
-  const devMockData = React.useMemo(
-    () => (devMockDataEnabled ? buildProgressDevMockData(devPreviewNowIso) : null),
-    [devMockDataEnabled, devPreviewNowIso]
-  );
+  const devPreviewNowIso = React.useMemo(() => new Date().toISOString(), []);
   const blockIntroPreview = React.useMemo(
     () => (TEMP_PREVIEW_BLOCK_INTRO_SCREEN ? buildBlockIntroPreview(devPreviewNowIso) : null),
     [devPreviewNowIso]
   );
-  const displayProfile = React.useMemo(
-    () =>
-      devMockDataEnabled
-        ? buildDevCompletedOnboardingProfile(prefs.profile, devPreviewNowIso)
-        : prefs.profile,
-    [devMockDataEnabled, devPreviewNowIso, prefs.profile]
-  );
-  const displayPrefs = React.useMemo(
-    () =>
-      devMockDataEnabled
-        ? {
-            ...prefs,
-            profile: displayProfile,
-            onboarding: {
-              ...prefs.onboarding,
-              currentStep: 'complete' as const,
-              completedAt: prefs.onboarding.completedAt ?? devPreviewNowIso,
-              updatedAt: prefs.onboarding.updatedAt ?? devPreviewNowIso,
-            },
-          }
-        : prefs,
-    [devMockDataEnabled, devPreviewNowIso, displayProfile, prefs]
-  );
-  const displayHistory = devMockData ? devMockData.history : history;
+  const displayPrefs = prefs;
+  const displayHistory = history;
   const pendingMovementProfileV2Raw = React.useMemo(
     () => latestPendingMovementProfileV2RawCheckUp(history),
     [history]
   );
-  const displayAdherence = React.useMemo(() => {
-    if (devMockData) {
-      return {
-        ...adherence,
-        assessments: devMockData.assessments,
-        blocks: devMockData.blocks,
-        reports: devMockData.reports,
-        completions: devMockData.completions,
-      };
-    }
-    return adherence;
-  }, [adherence, devMockData]);
-  const displayTraining = React.useMemo(() => {
-    if (devMockData) {
-      return {
-        ...training,
-        ladderProgressById: devMockData.ladderProgressById,
-      };
-    }
-    return training;
-  }, [devMockData, training]);
+  const displayAdherence = adherence;
+  const displayTraining = training;
   const displayActiveMovementBlock = React.useMemo(
     () => getActiveMovementBlock(displayAdherence.blocks),
     [displayAdherence.blocks]
@@ -4090,35 +4036,6 @@ function HaleApp() {
     trainingReady,
   ]);
 
-  const viewLatestMovementProfileV2 = React.useCallback(() => {
-    if (!movementProfileV2InternalSurfaceEnabled) return;
-    const latest = latestMaterializedMovementProfileV2Result(history);
-    if (!latest) return;
-    const planBlock =
-      adherence.blocks.find(
-        (block) => movementProfileV2BlockMatchesResult(block, latest.snapshot, latest.assessment)
-      ) ?? null;
-    setMovementProfileV2Raw(null);
-    setMovementProfileV2InitialFlow(null);
-    setMovementProfileV2DetailDomain(null);
-    setMovementProfileV2SelectedProfileId(null);
-    setMovementProfileV2SelectedReportId(null);
-    setMovementProfileV2PlanBlockId(planBlock?.id ?? null);
-    setMovementProfileV2PlanState(
-      planBlock
-        ? { status: 'ready', blockId: planBlock.id }
-        : {
-            status: 'unavailable',
-            title: 'Plan unavailable right now',
-            body: 'This saved Movement Profile does not have a matching prepared 4-week plan on this phone.',
-          }
-    );
-    setMovementProfileV2ResultSurface('unified');
-    setMovementProfileV2EntryContext('internal');
-    setMovementProfileV2Result(movementProfileV2ResultsViewModelForRecord(latest));
-    setFlow('movement-profile-v2-unified-results');
-  }, [adherence.blocks, history, movementProfileV2InternalSurfaceEnabled]);
-
   const viewMovementProfileV2ProgressProfile = React.useCallback(
     (sourceCheckUpId: string) => {
       const profile = movementProfileV2ProgressProfileBySourceCheckUpId(displayHistory, sourceCheckUpId);
@@ -4259,8 +4176,7 @@ function HaleApp() {
     flow === null &&
     restoreReady &&
     onboardingDecisionReady &&
-    !pendingInitialOnboardingFlow &&
-    !(activeTabScreen === 'ProgressScreen' && progressHistoryOpen);
+    !pendingInitialOnboardingFlow;
 
   React.useEffect(() => {
     void setAndroidNavigationBarVisibleAsync(showTabBar);
@@ -4650,26 +4566,17 @@ function HaleApp() {
             />
           ) : activeTabScreen === 'ProgressScreen' ? (
             <ProgressScreen
-              history={displayHistory}
-              assessments={displayAdherence.assessments}
               activeBlock={displayActiveMovementBlock}
               blocks={displayAdherence.blocks}
               reports={displayAdherence.reports}
               completions={displayAdherence.completions}
               ladderProgressById={displayTraining.ladderProgressById}
-              lifeGoal={displayPrefs.profile.lifeGoal}
               today={new Date().toISOString()}
               onBeginFirstCheckUp={beginProgressFirstCheckUp}
               onBeginAdditionalCheckUp={beginProgressAdditionalCheckUp}
               onStartRetest={() => beginCheckUp('official_retest')}
-              onViewLatest={() => undefined}
-              onViewCheckUp={() => undefined}
-              showMovementProfileV2Internal={
-                movementProfileV2InternalSurfaceEnabled && !devMockData
-              }
-              onViewMovementProfileV2={devMockData ? undefined : viewLatestMovementProfileV2}
-              progressDataAuthority={devMockData ? undefined : progressDataAuthority}
-              movementProfileV2Progress={devMockData ? null : movementProfileV2Progress}
+              progressDataAuthority={progressDataAuthority}
+              movementProfileV2Progress={movementProfileV2Progress}
               onStartMovementProfileV2CheckUp={beginProgressFirstCheckUp}
               onViewMovementProfileV2Profile={viewMovementProfileV2ProgressProfile}
               onViewMovementProfileV2Report={viewMovementProfileV2ProgressReport}
@@ -4677,8 +4584,6 @@ function HaleApp() {
                 setFlow(null);
                 setTab('plan');
               }}
-              historyOpen={progressHistoryOpen}
-              onHistoryOpenChange={setProgressHistoryOpen}
               onOpenSettings={goSettings}
             />
           ) : activeTabScreen === 'ExploreScreen' ? (
@@ -4708,22 +4613,6 @@ function HaleApp() {
   );
 }
 
-function buildDevCompletedOnboardingProfile(profile: UserProfile, nowIso: string): UserProfile {
-  const lifeGoal = profile.lifeGoal ?? createLifeGoal({ category: 'stairs', nowIso });
-  const ageBand = profile.ageBand ?? '55_64';
-  const safetyProfile = profile.safetyProfile ?? buildDevSafetyProfile(profile.exactAge ?? profile.age, ageBand, nowIso);
-  return {
-    ...profile,
-    name: profile.name.trim() || 'Suvan',
-    exactAge: profile.exactAge ?? profile.age ?? 60,
-    referenceSex: profile.referenceSex ?? 'male',
-    age: profile.exactAge ?? profile.age ?? 60,
-    ageBand,
-    goal: getLifeGoalDisplayText(lifeGoal) || normalizeLifeGoalDisplayText(profile.goal),
-    lifeGoal,
-    safetyProfile,
-  };
-}
 
 function buildDevSafetyProfile(age: number | null, ageBand: AgeBand | null, nowIso: string): MovementSafetyProfile {
   return {
