@@ -113,6 +113,7 @@ export class PoseSmoother {
   apply(src: PoseFrame, dst: PoseFrame): void {
     dst.timestampMs = src.timestampMs;
     dst.hasPose = src.hasPose;
+    dst.aspect = src.aspect;
     if (!src.hasPose) return;
     const t = src.timestampMs / 1000;
     for (let i = 0; i < LANDMARK_COUNT; i++) {

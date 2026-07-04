@@ -30,6 +30,40 @@ export function angleAtDeg(frame: PoseFrame, a: LM, vertex: LM, b: LM): number {
 }
 
 /**
+ * Interior angle at `vertex` in PHYSICAL degrees: x-deltas are scaled by the
+ * frame aspect so both axes share the same units before the angle is taken.
+ * Use for angles that are REPORTED or compared against published norms
+ * (shoulder flexion peak). Threshold-trigger angles tuned in raw normalized
+ * space (rep-cycle knee angle, setup-pose gates) keep using angleAtDeg —
+ * their constants were tuned in that space and are self-consistent.
+ */
+export function aspectCorrectedAngleAtDeg(frame: PoseFrame, a: LM, vertex: LM, b: LM): number {
+  const s = frame.aspect;
+  const v1x = (frame.xs[a] - frame.xs[vertex]) * s;
+  const v1y = frame.ys[a] - frame.ys[vertex];
+  const v2x = (frame.xs[b] - frame.xs[vertex]) * s;
+  const v2y = frame.ys[b] - frame.ys[vertex];
+  const len1 = Math.sqrt(v1x * v1x + v1y * v1y);
+  const len2 = Math.sqrt(v2x * v2x + v2y * v2y);
+  if (len1 === 0 || len2 === 0) return 0;
+  let cos = (v1x * v2x + v1y * v2y) / (len1 * len2);
+  if (cos > 1) cos = 1;
+  else if (cos < -1) cos = -1;
+  return Math.acos(cos) * RAD_TO_DEG;
+}
+
+/**
+ * Distance between two landmarks in height-normalized units (x-deltas scaled
+ * by the frame aspect). Use where a physically true length matters — the
+ * body-unit calibration measures anatomical leg length with this.
+ */
+export function aspectCorrectedDist(frame: PoseFrame, a: LM, b: LM): number {
+  const dx = (frame.xs[a] - frame.xs[b]) * frame.aspect;
+  const dy = frame.ys[a] - frame.ys[b];
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+/**
  * Estimated head yaw, degrees, signed: 0 facing the camera, positive turning
  * toward the subject's right. 2D pose can't see transverse rotation EXCEPT head
  * yaw, which the nose/ear geometry betrays (CLAUDE.md): facing forward the nose

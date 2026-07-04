@@ -6,6 +6,7 @@ import { LM, midpointX, type PoseFrame } from '../pose/types';
 import type { RecordingVisualGuidance } from '../recording/recordingVisualGuidance';
 import {
   type BodySide,
+  type ChairRiseV2Setup,
   type ProtocolSetupSource,
   createActiveShoulderReachV2Setup,
   createChairRiseV2Setup,
@@ -56,6 +57,10 @@ const BALANCE_LIFT_CONFIRM_MS = 150;
 const ACTIVE_TRACKING_LOSS_CONFIRM_FRAMES = 4;
 const BALANCE_LIFT_BU = 0.14;
 const CHAIR_MAX_REPS = 64;
+/** Bounded tracking-loss restarts: after this many full restarts of an item,
+ * record the flagged partial result instead of looping the user forever. */
+const CHAIR_MAX_RECOVERIES = 2;
+const HINGE_MAX_RECOVERIES = 2;
 const PUSH_OFF_WRIST_THIGH_BU = 0.15;
 const PUSH_OFF_FRAME_FRACTION = 0.5;
 const HINGE_CAPTURE_MS = 9000;
@@ -149,6 +154,7 @@ export type MovementProfileV2LiveUserAction =
   | { type: 'balance_support_touched' }
   | { type: 'balance_stop' }
   | { type: 'balance_use_result' }
+  | { type: 'balance_skip' }
   | { type: 'confirm_shoulder_setup'; shoulderSide: BodySide; source?: ProtocolSetupSource }
   | { type: 'shoulder_transition_voice_completed' }
   | { type: 'shoulder_setup_voice_completed' }
@@ -317,6 +323,7 @@ export class MovementProfileV2LiveCoordinator {
 
   private chair = new ChairRiseV2ProtocolController();
   private chairAdapter = new ChairLiveAdapter();
+  private chairConfirmedSetup: ChairRiseV2Setup | null = null;
   private chairCountdownStartedAtMs: number | null = null;
   private chairActiveStartedAtMs: number | null = null;
   private chairSetupVoiceCompleted = false;
@@ -324,6 +331,7 @@ export class MovementProfileV2LiveCoordinator {
   private chairOfficialReadyVoiceCompleted = false;
   private chairResult: ChairRiseV2Result | null = null;
   private chairLostFrames = 0;
+  private chairRecoveryCount = 0;
   private repCreditCount = 0;
 
   private readonly balance = new OneLegBalanceV2ProtocolController();
@@ -336,7 +344,9 @@ export class MovementProfileV2LiveCoordinator {
   private balanceSetupVoiceCompleted = false;
   private balanceAttemptVoiceCompleted = false;
   private balanceLostFrames = 0;
+  private balanceTouchdownFrames = 0;
   private balanceTouchdownStartedAtMs: number | null = null;
+  private balanceWrongLegNoticed = false;
   private balanceRaisedFrames = 0;
   private balanceReadyRaisedSinceMs: number | null = null;
   private balanceReadyRaisedStandingLeg: BodySide | null = null;
@@ -362,6 +372,7 @@ export class MovementProfileV2LiveCoordinator {
   private shoulderLostFrames = 0;
 
   private hingeStartedAtMs: number | null = null;
+  private hingeRecoveryCount = 0;
   private hingeSetupVoiceCompleted = false;
   private hingePeak = new MaxRomTracker({ emaAlpha: 0.3, direction: 'min' });
   private hingeValidTrackingStartedAtMs: number | null = null;
@@ -447,14 +458,11 @@ export class MovementProfileV2LiveCoordinator {
     switch (action.type) {
       case 'confirm_chair_setup':
         if (this.stage !== 'chair_setup') return false;
-        if (
-          !this.chair.confirmSetup(
-            createChairRiseV2Setup({ confirmed: true, source: action.source ?? 'user' }),
-            nowMs
-          )
-        ) {
+        const chairSetup = createChairRiseV2Setup({ confirmed: true, source: action.source ?? 'user' });
+        if (!this.chair.confirmSetup(chairSetup, nowMs)) {
           return false;
         }
+        this.chairConfirmedSetup = chairSetup;
         this.flow = movementProfileV2InternalFlowReducer(this.flow, { type: 'confirm_chair_setup' });
         this.transition('chair_practice', nowMs, 'chair_setup_confirmed');
         this.attemptEpochId = this.nextAttemptEpoch('chair-practice');
@@ -487,7 +495,9 @@ export class MovementProfileV2LiveCoordinator {
         ) {
           return false;
         }
-        this.chair.startActive(nowMs);
+        // A controller that rejects the start must never leave the coordinator
+        // in chair_active with a dead measurement window.
+        if (!this.chair.startActive(nowMs)) return false;
         this.chairActiveStartedAtMs = nowMs;
         this.chairAdapter = new ChairLiveAdapter();
         this.chairLostFrames = 0;
@@ -553,6 +563,14 @@ export class MovementProfileV2LiveCoordinator {
         }
         this.balance.declineRemainingTrials(nowMs);
         this.recordBalanceResult(this.balance.finish(nowMs), nowMs, 'balance_user_accepted_best');
+        break;
+      case 'balance_skip':
+        // Explicit user escape when the foot-lift is never detected (occluded
+        // ankles, unusual clothing). Records honestly as declined/no-measurement
+        // instead of stranding the user until the hard cap.
+        if (this.stage !== 'balance_rest' && this.stage !== 'balance_ready') return false;
+        this.balance.declineRemainingTrials(nowMs);
+        this.recordBalanceResult(this.balance.finish(nowMs), nowMs, 'balance_skipped_by_user');
         break;
       case 'confirm_shoulder_setup':
         if (this.stage !== 'shoulder_setup') return false;
@@ -714,6 +732,15 @@ export class MovementProfileV2LiveCoordinator {
     else if (sample.trackingQuality === 'uncertain') this.diagnostics.trackingUncertainFrames++;
     else this.diagnostics.trackingLostFrames++;
     this.lastTrackingQuality = sample.trackingQuality;
+    // Capture the session's body-unit scale into the flow so the saved
+    // CheckUp carries it (comparability metadata; V2 previously stored null).
+    if (this.flow.bodyUnit === null && sample.output.bodyUnit !== null) {
+      this.flow = movementProfileV2InternalFlowReducer(this.flow, {
+        type: 'record_body_unit',
+        bodyUnit: sample.output.bodyUnit,
+      });
+      this.bump();
+    }
 
     const before = this.revision;
     this.updateHandsFreeFromPose(sample, nowMs);
@@ -849,6 +876,12 @@ export class MovementProfileV2LiveCoordinator {
         }
         break;
       }
+      case 'balance_ready':
+        // Lift detection in updateBalance starts the trial; no pose-driven
+        // auto-action here. Crucially, do NOT fall through to the default
+        // clear: it would wipe the waiting clock every frame and the manual
+        // fallback controls ("Save best result" / "Skip") could never appear.
+        break;
       default:
         this.clearHandsFreeReadiness();
     }
@@ -960,10 +993,18 @@ export class MovementProfileV2LiveCoordinator {
     let leg = this.flow.standingLeg;
     if (sample.trackingQuality !== 'good' || sample.output.bodyUnit === null) {
       if (this.stage === 'balance_ready') this.clearBalanceReadyLiftEvidence();
-      if (this.stage === 'balance_trial') this.balanceLostFrames++;
-      if (this.balanceLostFrames >= BALANCE_TOUCHDOWN_DEBOUNCE_FRAMES) this.invalidateBalanceTrial(nowMs, 'tracking_invalid');
+      if (this.stage === 'balance_trial') {
+        this.balanceLostFrames++;
+        if (this.balanceLostFrames >= BALANCE_TOUCHDOWN_DEBOUNCE_FRAMES) {
+          this.invalidateBalanceTrial(nowMs, 'tracking_invalid');
+        }
+      }
       return;
     }
+    // Tracking-loss and touchdown evidence use SEPARATE counters: a good frame
+    // clears loss evidence, and only consecutive leg-down frames (never
+    // tracking glitches) may end a trial as a valid touchdown.
+    this.balanceLostFrames = 0;
     if (this.stage === 'balance_ready') {
       const liftedStandingLeg = inferBalanceStandingLegFromLift(sample.output, leg);
       if (!liftedStandingLeg) {
@@ -977,12 +1018,22 @@ export class MovementProfileV2LiveCoordinator {
       this.noteBalanceReadyLiftEvidence(liftedStandingLeg, nowMs);
       const raisedSinceMs = this.balanceReadyRaisedSinceMs;
       if (raisedSinceMs === null || nowMs - raisedSinceMs < BALANCE_LIFT_CONFIRM_MS) return;
-      if (!this.updateBalanceStandingLegFromLift(liftedStandingLeg)) return;
+      if (!this.updateBalanceStandingLegFromLift(liftedStandingLeg)) {
+        // Later trials must reuse the first trial's standing leg. Tell the
+        // user (status text) instead of silently ignoring the sustained lift.
+        if (!this.balanceWrongLegNoticed) {
+          this.balanceWrongLegNoticed = true;
+          this.bump();
+        }
+        return;
+      }
       leg = liftedStandingLeg;
       if (!this.balance.startTrial(raisedSinceMs)) return;
       this.balanceTrialStartedAtMs = raisedSinceMs;
       this.balanceLostFrames = 0;
+      this.balanceTouchdownFrames = 0;
       this.balanceTouchdownStartedAtMs = null;
+      this.balanceWrongLegNoticed = false;
       this.clearBalanceReadyLiftEvidence();
       this.balanceSway = createWelford();
       this.balanceAttemptedTrials++;
@@ -993,15 +1044,20 @@ export class MovementProfileV2LiveCoordinator {
     if (this.stage !== 'balance_trial') return;
     const raised = selectedLegRaised(sample.output.frame, sample.output.bodyUnit, leg);
     if (raised) {
-      this.balanceLostFrames = 0;
+      this.balanceTouchdownFrames = 0;
       this.balanceTouchdownStartedAtMs = null;
       this.balanceRaisedFrames++;
-      this.balanceSway.push(midpointX(sample.output.frame, LM.LEFT_HIP, LM.RIGHT_HIP) / sample.output.bodyUnit);
+      // Scale x into the same (height-normalized) units as the body unit so
+      // the sway proxy is aspect-consistent across devices.
+      this.balanceSway.push(
+        (midpointX(sample.output.frame, LM.LEFT_HIP, LM.RIGHT_HIP) * sample.output.frame.aspect) /
+          sample.output.bodyUnit
+      );
       return;
     }
-    if (this.balanceLostFrames === 0) this.balanceTouchdownStartedAtMs = nowMs;
-    this.balanceLostFrames++;
-    if (this.balanceRaisedFrames > 0 && this.balanceLostFrames >= BALANCE_TOUCHDOWN_DEBOUNCE_FRAMES) {
+    if (this.balanceTouchdownFrames === 0) this.balanceTouchdownStartedAtMs = nowMs;
+    this.balanceTouchdownFrames++;
+    if (this.balanceRaisedFrames > 0 && this.balanceTouchdownFrames >= BALANCE_TOUCHDOWN_DEBOUNCE_FRAMES) {
       this.completeBalanceTrial(nowMs, 'touchdown', this.balanceTouchdownStartedAtMs ?? nowMs);
     }
   }
@@ -1087,6 +1143,7 @@ export class MovementProfileV2LiveCoordinator {
       termination,
     });
     this.balanceTrialStartedAtMs = null;
+    this.balanceTouchdownFrames = 0;
     this.balanceTouchdownStartedAtMs = null;
     const holdSec = holdMs / 1000;
     this.balanceValidTrials++;
@@ -1112,6 +1169,7 @@ export class MovementProfileV2LiveCoordinator {
         : this.balance.invalidateTrial(nowMs, reason);
     if (!invalidated) return;
     this.balanceTrialStartedAtMs = null;
+    this.balanceTouchdownFrames = 0;
     this.balanceTouchdownStartedAtMs = null;
     this.balanceInvalidTrials++;
     this.diagnostics.trackingInterruptions++;
@@ -1140,6 +1198,7 @@ export class MovementProfileV2LiveCoordinator {
 
   private enterBalanceRest(nowMs: number, reason: string): void {
     this.balanceTrialStartedAtMs = null;
+    this.balanceTouchdownFrames = 0;
     this.balanceTouchdownStartedAtMs = null;
     this.clearBalanceReadyLiftEvidence();
     this.balanceRestStartedAtMs = nowMs;
@@ -1183,10 +1242,24 @@ export class MovementProfileV2LiveCoordinator {
     this.chairLostFrames = 0;
     this.chairActiveStartedAtMs = null;
     this.chairCountdownStartedAtMs = null;
+    // Bounded restarts: after the cap, record the tracking-flagged partial
+    // result rather than looping the user through 30-second redos forever
+    // (e.g. in a room too dim for stable detection).
+    if (this.chairRecoveryCount >= CHAIR_MAX_RECOVERIES || !this.chairConfirmedSetup) {
+      this.recordChairResult(this.chair.finish(nowMs), nowMs, 'chair_tracking_loss_retry_limit');
+      return;
+    }
+    this.chairRecoveryCount++;
     this.diagnostics.chair.officialReps = 0;
-    this.chair = new ChairRiseV2ProtocolController();
-    this.chair.confirmSetup(createChairRiseV2Setup({ confirmed: true, source: 'direct_call' }), nowMs);
-    this.chair.completePracticeRep(nowMs);
+    const restarted = new ChairRiseV2ProtocolController();
+    // Reuse the setup the user already confirmed for this item. A synthetic
+    // 'direct_call' bypass here is rejected by the controller's confirmation
+    // gate and would silently void every rep of the redone test.
+    if (!restarted.confirmSetup(this.chairConfirmedSetup, nowMs) || !restarted.completePracticeRep(nowMs)) {
+      this.recordChairResult(this.chair.finish(nowMs), nowMs, 'chair_tracking_loss_restart_failed');
+      return;
+    }
+    this.chair = restarted;
     const recoveryAttemptEpochId = this.nextAttemptEpoch('chair-recovery-countdown');
     this.startRecoveryEpisode({
       item: 'chair',
@@ -1234,6 +1307,14 @@ export class MovementProfileV2LiveCoordinator {
 
   private recoverHingeFromTrackingLoss(nowMs: number): void {
     if (this.stage !== 'hinge_active') return;
+    // Bounded restarts, mirroring the chair cap: record whatever valid
+    // tracking accumulated (or an honest no-measurement) instead of looping.
+    if (this.hingeRecoveryCount >= HINGE_MAX_RECOVERIES) {
+      this.diagnostics.trackingInterruptions++;
+      this.finishHinge(nowMs, 'tracking_invalid_retry_limit');
+      return;
+    }
+    this.hingeRecoveryCount++;
     const lossAttemptEpochId = this.attemptEpochId;
     this.hingeLostFrames = 0;
     this.hingeStartedAtMs = null;
@@ -1345,7 +1426,9 @@ export class MovementProfileV2LiveCoordinator {
     if (this.balanceResult) return;
     this.balanceResult = result;
     this.balanceTrialStartedAtMs = null;
+    this.balanceTouchdownFrames = 0;
     this.balanceTouchdownStartedAtMs = null;
+    this.balanceWrongLegNoticed = false;
     this.clearBalanceReadyLiftEvidence();
     this.diagnostics.balance.hardCapReached = result.hardCapReached;
     this.flow = movementProfileV2InternalFlowReducer(this.flow, { type: 'record_balance', result });
@@ -1416,6 +1499,7 @@ export class MovementProfileV2LiveCoordinator {
     }
     if (stage === 'balance_ready') {
       this.balanceAttemptVoiceCompleted = false;
+      this.balanceWrongLegNoticed = false;
       if (this.balanceReadyRaisedStandingLeg !== this.flow.standingLeg) {
         this.clearBalanceReadyLiftEvidence();
       } else {
@@ -1426,6 +1510,7 @@ export class MovementProfileV2LiveCoordinator {
       this.balanceSetupVoiceCompleted = false;
       this.balanceSetupConfirmedAtMs = null;
       this.balanceSetupSource = null;
+      this.balanceWrongLegNoticed = false;
       this.clearBalanceReadyLiftEvidence();
     }
     if (stage === 'shoulder_setup') {
@@ -1603,6 +1688,9 @@ export class MovementProfileV2LiveCoordinator {
         if (this.handsFreeMode) return 'Stand with both feet on the floor, with support within reach.';
         return 'Choose the standing leg, with support close by.';
       case 'balance_ready':
+        if (this.balanceWrongLegNoticed) {
+          return `Stand on your ${this.flow.standingLeg} leg — the same side as your first attempt — and lift the other foot.`;
+        }
         if (this.handsFreeMode && this.balanceBestHoldSec !== null) {
           return "Lift one foot again when you're ready.";
         }

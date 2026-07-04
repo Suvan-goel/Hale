@@ -55,6 +55,14 @@ export enum LM {
 export interface PoseFrame {
   timestampMs: number;
   hasPose: boolean;
+  /**
+   * Source image width/height. Normalized x and y span different physical
+   * lengths (x is per-width, y is per-height); multiply x-deltas by `aspect`
+   * to express them in the same per-height units as y. Defaults to 1 when the
+   * source dimensions are unknown (legacy recordings, synthetic test frames),
+   * which preserves the historical uncorrected behavior.
+   */
+  aspect: number;
   xs: Float64Array;
   ys: Float64Array;
   zs: Float64Array;
@@ -66,6 +74,7 @@ export function createPoseFrame(): PoseFrame {
   return {
     timestampMs: 0,
     hasPose: false,
+    aspect: 1,
     xs: new Float64Array(LANDMARK_COUNT),
     ys: new Float64Array(LANDMARK_COUNT),
     zs: new Float64Array(LANDMARK_COUNT),
@@ -77,6 +86,7 @@ export function createPoseFrame(): PoseFrame {
 export function copyPoseFrame(src: PoseFrame, dst: PoseFrame): void {
   dst.timestampMs = src.timestampMs;
   dst.hasPose = src.hasPose;
+  dst.aspect = src.aspect;
   dst.xs.set(src.xs);
   dst.ys.set(src.ys);
   dst.zs.set(src.zs);
@@ -89,6 +99,9 @@ export interface RawLandmarkEvent {
   timestampMs: number;
   /** Native pose-model runtime for this frame, when available. */
   inferenceMs?: number;
+  /** Source image dimensions, when the emitter provides them. */
+  sourceWidth?: number;
+  sourceHeight?: number;
   /** Flat [x, y, z, visibility, presence] * 33, or empty when no pose. */
   landmarks: ArrayLike<number>;
 }
@@ -96,6 +109,13 @@ export interface RawLandmarkEvent {
 /** Parses a raw native event into a preallocated frame. Allocation-free. */
 export function parseLandmarkEvent(event: RawLandmarkEvent, out: PoseFrame): void {
   out.timestampMs = event.timestampMs;
+  out.aspect =
+    typeof event.sourceWidth === 'number' &&
+    typeof event.sourceHeight === 'number' &&
+    event.sourceWidth > 0 &&
+    event.sourceHeight > 0
+      ? event.sourceWidth / event.sourceHeight
+      : 1;
   const lm = event.landmarks;
   if (lm.length < LANDMARK_COUNT * LANDMARK_STRIDE) {
     out.hasPose = false;

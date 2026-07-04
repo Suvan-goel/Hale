@@ -189,9 +189,18 @@ export class MovementProfileV2VoiceRuntime {
     }
     const plan = voicePlanForSnapshot(snapshot, this.retryEpoch);
     if (!plan) return;
-    if (this.stateValue.lastFailure?.scopeId === plan.scopeId) return;
+    // Any required failure parks the runtime until the user retries — never
+    // auto-restart a plan (even a different scope) over the failure UI.
+    if (this.stateValue.lastFailure) return;
     if (this.completedScopes.has(plan.scopeId)) return;
-    if (this.currentScopeId === plan.scopeId) return;
+    // Derived scopes (`<plan>:countdown`, `<plan>:retry:N`) belong to this
+    // plan; re-syncing while one runs must not cancel and restart it.
+    if (
+      this.currentScopeId !== null &&
+      (this.currentScopeId === plan.scopeId || this.currentScopeId.startsWith(`${plan.scopeId}:`))
+    ) {
+      return;
+    }
     this.cancelActive('stage_changed');
     void this.runPlan(plan, ++this.currentEpoch);
   }
@@ -278,7 +287,11 @@ export class MovementProfileV2VoiceRuntime {
         requestId: result.requestId,
       });
     }
-    this.completedScopes.add(plan.scopeId);
+    // Countdown plans complete only when 'go' has played (see
+    // runChairCountdown): marking the scope done here would make an
+    // interrupted countdown unrestartable — sync() would skip the plan and the
+    // coordinator would wait for 'go' forever.
+    if (!plan.startsChairCountdown) this.completedScopes.add(plan.scopeId);
     if (result.outcome === 'completed') {
       for (const action of plan.onCompleted ?? []) {
         if (!this.isCurrent(epoch, plan.scopeId)) return;
@@ -467,6 +480,7 @@ export class MovementProfileV2VoiceRuntime {
       }
       if (cue === 'go') {
         this.completedScopes.add(countdownScopeId);
+        this.completedScopes.add(parentScopeId);
         this.currentScopeId = null;
         return;
       }
@@ -624,6 +638,7 @@ export function isVoiceGatedUserAction(action: MovementProfileV2LiveUserAction):
     action.type === 'confirm_balance_setup' ||
     action.type === 'balance_ready' ||
     action.type === 'balance_use_result' ||
+    action.type === 'balance_skip' ||
     action.type === 'confirm_shoulder_setup' ||
     action.type === 'start_shoulder_capture' ||
     action.type === 'start_hinge_capture';
@@ -648,6 +663,7 @@ function actionAllowedForStage(
     case 'balance_ready':
       return stage === 'balance_rest';
     case 'balance_use_result':
+    case 'balance_skip':
       return stage === 'balance_ready' || stage === 'balance_rest';
     case 'confirm_shoulder_setup':
       return stage === 'shoulder_setup';

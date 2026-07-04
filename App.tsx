@@ -4202,6 +4202,17 @@ function HaleApp() {
             initialFlow={movementProfileV2InitialFlow}
             voiceId={prefs.settings.voiceId}
             onComplete={(input) => handleMovementProfileV2RawComplete(input, 'unified')}
+            onRawCheckUpReady={(input) => {
+              // Persist the measured battery the moment it exists. If the
+              // outro voice fails or the app dies before onComplete, the
+              // pending-raw recovery finalizes this record on the next launch.
+              try {
+                store.save(input.checkUp, { checkupType: input.sourceType });
+              } catch (error) {
+                console.warn('[movement-profile-v2] early raw save failed', error);
+                captureError(error, { area: 'movement_profile_v2', action: 'save_raw_checkup_early' });
+              }
+            }}
             onCancel={() => goBack(goHome)}
           />
         ) : flow === 'movement-profile-v2-practice-results' && movementProfileV2Raw ? (

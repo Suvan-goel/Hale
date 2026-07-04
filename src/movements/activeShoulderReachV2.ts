@@ -10,7 +10,7 @@ import {
   setupHasUserConfirmation,
 } from '../checkup/protocolSetup';
 import { MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID } from '../checkup/protocolPolicy';
-import { angleAtDeg } from '../pose/geometry';
+import { aspectCorrectedAngleAtDeg } from '../pose/geometry';
 import { LM, PoseFrame } from '../pose/types';
 import { MovementDefinition, MovementResultBase } from './types';
 import { registerMovement } from './registry';
@@ -197,7 +197,10 @@ export function shoulderReachLandmarksForSide(side: BodySide): ShoulderReachLand
 
 export function shoulderReachAngleDegForSide(frame: PoseFrame, side: BodySide): number {
   const landmarks = shoulderReachLandmarksForSide(side);
-  return angleAtDeg(frame, landmarks.hip, landmarks.shoulder, landmarks.elbow);
+  // This angle is reported to the user and compared against published
+  // reference bands, so it must be in physical degrees — the raw normalized
+  // space distorts mid-range angles by up to ~10° on a portrait camera.
+  return aspectCorrectedAngleAtDeg(frame, landmarks.hip, landmarks.shoulder, landmarks.elbow);
 }
 
 export const activeShoulderReachV2Definition: MovementDefinition<ActiveShoulderReachV2Result> = {

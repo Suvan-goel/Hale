@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { AppState } from 'react-native';
+import { AppState, BackHandler, Platform } from 'react-native';
 
 import type { LandmarksEventPayload, PoseErrorEventPayload } from '../../modules/expo-pose-detection';
 import { SfxChannel, VoiceChannel } from '../audio/voicePlayer';
@@ -54,6 +54,12 @@ import {
 
 const LIVE_TIMER_TICK_MS = 250;
 const TOTAL_V2_ITEMS = 4;
+/**
+ * iOS fires 'inactive' for transient overlays (call banner, control centre,
+ * app switcher). Only treat it as a real backgrounding — which invalidates the
+ * active measurement — if it persists this long or hardens to 'background'.
+ */
+const APP_STATE_INACTIVE_GRACE_MS = 2000;
 const MPV2_MEASUREMENT_COMPLETE_TRANSITION_REASONS = new Set([
   'balance_valid_trial_rest',
   'balance_section_complete',
@@ -108,6 +114,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   initialFlow,
   voiceId,
   onComplete,
+  onRawCheckUpReady,
   onCancel,
 }: {
   startedAt: string;
@@ -115,6 +122,15 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   initialFlow?: MovementProfileV2InternalFlowState | null;
   voiceId?: string;
   onComplete: (input: { checkUp: CheckUp; sourceType: MovementProfileV2CheckUpSourceType }) => void;
+  /**
+   * Fired the moment the raw check-up exists (before the outro voice line).
+   * The caller should persist it here so a crash, audio failure, or exit
+   * between raw completion and the outro can never lose a measured battery.
+   */
+  onRawCheckUpReady?: (input: {
+    checkUp: CheckUp;
+    sourceType: MovementProfileV2CheckUpSourceType;
+  }) => void;
   onCancel: () => void;
 }) {
   const voiceRuntimeEnabled = MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED;
@@ -148,6 +164,8 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   const lastRepCreditCountRef = React.useRef(live.repCreditCount);
   const lastSfxTransitionKeyRef = React.useRef<string | null>(null);
   const completedRef = React.useRef(false);
+  const rawNotifiedRef = React.useRef(false);
+  const [confirmLeaveVisible, setConfirmLeaveVisible] = React.useState(false);
   const skeletonRef = React.useRef<PoseAvatarRendererHandle>(null);
   const diagnosticsEnabled = React.useMemo(() => isMovementProfileV2DiagnosticsEnabled(), []);
 
@@ -245,21 +263,50 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   }, [getVoiceRuntime, voiceId, voiceRuntimeEnabled]);
 
   React.useEffect(() => {
-    const sub = AppState.addEventListener('change', (state) => {
+    let inactiveGraceTimer: ReturnType<typeof setTimeout> | null = null;
+    let backgroundedDispatched = false;
+    const clearGrace = () => {
+      if (inactiveGraceTimer !== null) {
+        clearTimeout(inactiveGraceTimer);
+        inactiveGraceTimer = null;
+      }
+    };
+    const dispatchBackgrounded = () => {
+      clearGrace();
+      if (backgroundedDispatched) return;
+      backgroundedDispatched = true;
       const nowMs = defaultNowMs();
-      if (state === 'background' || state === 'inactive') {
-        coordinatorRef.current?.receiveUserAction({ type: 'backgrounded' }, nowMs);
-        if (voiceRuntimeEnabled) {
-          voiceRuntimeRef.current?.cancel('app_backgrounded');
-        } else {
-          voice.stop();
-        }
-      } else if (state === 'active') {
-        coordinatorRef.current?.receiveUserAction({ type: 'resumed' }, nowMs);
+      coordinatorRef.current?.receiveUserAction({ type: 'backgrounded' }, nowMs);
+      if (voiceRuntimeEnabled) {
+        voiceRuntimeRef.current?.cancel('app_backgrounded');
+      } else {
+        voice.stop();
       }
       refreshLive(nowMs);
+    };
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'background') {
+        dispatchBackgrounded();
+      } else if (state === 'inactive') {
+        // Transient on iOS (call banner, control centre). Give it a grace
+        // window before invalidating the active measurement.
+        if (!backgroundedDispatched && inactiveGraceTimer === null) {
+          inactiveGraceTimer = setTimeout(dispatchBackgrounded, APP_STATE_INACTIVE_GRACE_MS);
+        }
+      } else if (state === 'active') {
+        clearGrace();
+        if (backgroundedDispatched) {
+          backgroundedDispatched = false;
+          const nowMs = defaultNowMs();
+          coordinatorRef.current?.receiveUserAction({ type: 'resumed' }, nowMs);
+          refreshLive(nowMs);
+        }
+      }
     });
-    return () => sub.remove();
+    return () => {
+      clearGrace();
+      sub.remove();
+    };
   }, [refreshLive, voice, voiceRuntimeEnabled]);
 
   React.useEffect(() => {
@@ -283,11 +330,26 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   }, [getVoiceRuntime, live, live.revision, voiceRuntimeEnabled]);
 
   React.useEffect(() => {
+    if (!live.checkUp || rawNotifiedRef.current) return;
+    rawNotifiedRef.current = true;
+    onRawCheckUpReady?.({ checkUp: live.checkUp, sourceType });
+  }, [live.checkUp, onRawCheckUpReady, sourceType]);
+
+  React.useEffect(() => {
     if (!live.checkUp || completedRef.current) return;
     if (voiceRuntimeEnabled && !voiceRuntimeState.completionReady) return;
     completedRef.current = true;
     onComplete({ checkUp: live.checkUp, sourceType });
   }, [live.checkUp, onComplete, sourceType, voiceRuntimeState.completionReady, voiceRuntimeEnabled]);
+
+  /** User-driven completion when the outro voice failed: the measurements are
+   * done, so exit forward to results instead of discarding the battery. */
+  const finishNow = React.useCallback(() => {
+    const checkUp = liveRef.current.checkUp;
+    if (!checkUp || completedRef.current) return;
+    completedRef.current = true;
+    onComplete({ checkUp, sourceType });
+  }, [onComplete, sourceType]);
 
   const onLandmarks = React.useCallback(
     (event: { nativeEvent: LandmarksEventPayload }) => {
@@ -322,6 +384,38 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   const onPoseError = React.useCallback((event: { nativeEvent: PoseErrorEventPayload }) => {
     console.warn('[movement-profile-v2-unified-pose]', event.nativeEvent.message);
   }, []);
+
+  /** Leaving mid-battery discards completed tests; confirm unless there is
+   * nothing to lose (untouched first setup, or the raw check-up is already
+   * saved via onRawCheckUpReady). */
+  const requestClose = React.useCallback(() => {
+    const snapshot = liveRef.current;
+    const nothingToLose =
+      snapshot.checkUp !== null ||
+      (snapshot.stage === 'chair_setup' && snapshot.flow.items.length === 0);
+    if (nothingToLose) {
+      onCancel();
+      return;
+    }
+    setConfirmLeaveVisible(true);
+  }, [onCancel]);
+
+  const keepCheckUp = React.useCallback(() => setConfirmLeaveVisible(false), []);
+  const discardCheckUp = React.useCallback(() => {
+    setConfirmLeaveVisible(false);
+    onCancel();
+  }, [onCancel]);
+
+  React.useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    // Registered after App's global handler, so it runs first (LIFO) and
+    // routes hardware back through the same leave confirmation as the UI.
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      requestClose();
+      return true;
+    });
+    return () => sub.remove();
+  }, [requestClose]);
 
   const runLiveAction = React.useCallback(
     (action: MovementProfileV2LiveUserAction) => {
@@ -413,12 +507,20 @@ export function MovementProfileV2UnifiedCheckUpScreen({
 
   const controls = React.useMemo<CheckUpShellControl[]>(() => {
     if (cameraAvailability === 'unavailable') {
-      return [{ id: 'close', title: 'Close check-up', onPress: onCancel, primary: true }];
+      return [{ id: 'close', title: 'Close check-up', onPress: requestClose, primary: true }];
     }
     if (voiceRuntimeEnabled && voiceRuntimeState.lastFailure) {
+      // With a completed battery, forward exit is always available: the
+      // measurements exist and must never be hostage to the outro cue.
+      if (live.checkUp) {
+        return [
+          { id: 'audio-retry', title: 'Try again', onPress: retryAudio, primary: true },
+          { id: 'audio-continue', title: 'Continue to results', onPress: finishNow },
+        ];
+      }
       return [
         { id: 'audio-retry', title: 'Try again', onPress: retryAudio, primary: true },
-        { id: 'audio-exit', title: 'Exit check-up', onPress: onCancel },
+        { id: 'audio-exit', title: 'Exit check-up', onPress: requestClose },
       ];
     }
     return movementProfileV2ShellControls({
@@ -434,24 +536,25 @@ export function MovementProfileV2UnifiedCheckUpScreen({
       requestOfficialFallback,
       keepOfficialAnchor,
       confirmOfficialFallback,
-      onCancel,
+      onCancel: requestClose,
     });
   }, [
     actionDisabled,
     cameraAvailability,
     confirmOfficialFallback,
+    finishNow,
     handsFreeMode,
     keepOfficialAnchor,
     live,
-    onCancel,
     pendingOfficialFallback,
+    requestClose,
     requestOfficialFallback,
     retryAudio,
     runLiveAction,
     selectedLeg,
     selectedShoulder,
     voiceRuntimeEnabled,
-    voiceRuntimeState.lastFailure,
+    voiceRuntimeState,
   ]);
 
   const renderFitFrameRecordingArea = React.useCallback(
@@ -493,12 +596,17 @@ export function MovementProfileV2UnifiedCheckUpScreen({
       footerMeta={movementProfileV2FooterMeta(live.stage)}
       stageDisplay={movementProfileV2StageDisplay(live, cameraAvailability)}
       controls={controls}
-      onRequestBack={onCancel}
+      onRequestBack={requestClose}
       backAccessibilityLabel="Leave Movement Check-Up"
       onOpenSupportModal={openSupportModal}
       onCloseSupportModal={closeSupportModal}
       onTryAgain={closeSupportModal}
-      onSkip={onCancel}
+      onSkip={requestClose}
+      discardModal={{
+        visible: confirmLeaveVisible,
+        onKeep: keepCheckUp,
+        onDiscard: discardCheckUp,
+      }}
       renderRecordingArea={renderFitFrameRecordingArea}
     />
   );
@@ -578,7 +686,19 @@ function movementProfileV2ShellControls({
             },
             cancel,
           ]
-        : [cancel];
+        : [
+            // No valid hold yet and the lift is not being detected (this
+            // fallback only appears after the hands-free timeout). Never offer
+            // a manual trial start — a trial without a camera-verified lift
+            // could credit a hold that never happened. Skipping is honest.
+            {
+              id: 'balance-skip',
+              title: 'Skip balance test',
+              onPress: () => runLiveAction({ type: 'balance_skip' }),
+              disabled: actionDisabled({ type: 'balance_skip' }),
+            },
+            cancel,
+          ];
     case 'balance_trial':
       return [
         {

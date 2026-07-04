@@ -99,6 +99,50 @@ describe('MovementProfileV2VoiceRuntime', () => {
     });
   });
 
+  it('restarts an interrupted chair countdown on the next sync instead of deadlocking', async () => {
+    const runtime = createRuntime();
+    runtime.sync(snapshot('chair_countdown'));
+    players[0].finish();
+    await flushAsync();
+    expect(players).toHaveLength(2); // countdown 'three' started
+
+    // App backgrounded mid-countdown: everything cancels. The parent scope
+    // must NOT be marked complete — 'go' never played and the coordinator is
+    // still waiting for it.
+    runtime.cancel('app_backgrounded');
+    players.slice().forEach((player) => player.finish());
+    jest.advanceTimersByTime(5000);
+    await flushAsync();
+    expect(runtimeActions.map((entry) => entry.action.type)).toEqual([
+      'chair_official_ready_voice_completed',
+      'chair_countdown_started',
+    ]);
+
+    // On resume the same snapshot syncs again: the plan replays ready +
+    // countdown all the way to 'go'. (The deadlock this pins: the scope was
+    // previously marked complete before the countdown ran, so sync returned
+    // and the check-up hung in chair_countdown forever.)
+    const playersBefore = players.length;
+    runtime.sync(snapshot('chair_countdown'));
+    expect(players.length).toBeGreaterThan(playersBefore);
+    players[players.length - 1].finish(); // official-ready replay
+    await flushAsync();
+    players[players.length - 1].finish(); // three
+    await flushAsync();
+    jest.advanceTimersByTime(1000);
+    await flushAsync();
+    players[players.length - 1].finish(); // two
+    await flushAsync();
+    jest.advanceTimersByTime(1000);
+    await flushAsync();
+    players[players.length - 1].finish(); // one
+    await flushAsync();
+    jest.advanceTimersByTime(1000);
+    await flushAsync();
+    expect(runtimeActions.map((entry) => entry.action.type)).toContain('chair_go_playback_started');
+    expect(runtime.state.lastFailure).toBeNull();
+  });
+
   it('does not let stale cancelled countdown callbacks start a new stage', async () => {
     const runtime = createRuntime();
     runtime.sync(snapshot('chair_countdown'));

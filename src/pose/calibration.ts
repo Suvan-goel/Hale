@@ -4,12 +4,22 @@
  * Never use absolute pixels (or raw normalized units) for measurements:
  * camera distance varies between sessions, and the product's payload is
  * longitudinal trends. All distances/velocities are expressed in body units —
- * 1 body unit = the subject's hip-to-ankle length, captured as a median over
- * a stable standing window.
+ * 1 body unit = the subject's anatomical leg length (hip→knee + knee→ankle),
+ * captured as a median over a stable window.
+ *
+ * The segment SUM — not the direct hip-to-ankle distance — is deliberate:
+ * with a straight leg the two are identical, but the V2 check-up opens with
+ * the user SEATED, and a session could otherwise lock its scale on a
+ * knee-bent pose (direct distance ≈ 70% of leg length) or a standing one
+ * depending on when the subject first held still. That nondeterminism is
+ * exactly the between-session setup variance the product cannot afford. The
+ * sum measures the same anatomical length in any knee position. x-deltas are
+ * aspect-corrected so the scale is in height-normalized units on every device.
  */
 
 import { ChainReliabilityTracker, RELIABLE_THRESHOLD } from './chains';
-import { dist, LM, midpointX, midpointY, PoseFrame } from './types';
+import { aspectCorrectedDist } from './geometry';
+import { LM, midpointX, midpointY, PoseFrame } from './types';
 
 export interface CalibrationConfig {
   /** Samples collected before locking (45 ≈ 1.5s at 30fps). */
@@ -85,8 +95,10 @@ export class BodyScaleCalibrator {
 
     const hipToAnkle =
       side === 'leftSide'
-        ? dist(frame, LM.LEFT_HIP, LM.LEFT_ANKLE)
-        : dist(frame, LM.RIGHT_HIP, LM.RIGHT_ANKLE);
+        ? aspectCorrectedDist(frame, LM.LEFT_HIP, LM.LEFT_KNEE) +
+          aspectCorrectedDist(frame, LM.LEFT_KNEE, LM.LEFT_ANKLE)
+        : aspectCorrectedDist(frame, LM.RIGHT_HIP, LM.RIGHT_KNEE) +
+          aspectCorrectedDist(frame, LM.RIGHT_KNEE, LM.RIGHT_ANKLE);
     this.samples[this.sampleCursor++] = hipToAnkle;
 
     if (this.sampleCursor >= this.config.sampleCount) {

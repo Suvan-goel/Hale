@@ -59,13 +59,23 @@ export function parseRecording(text: string): ParsedRecording {
   if (header.v !== RECORDING_VERSION) {
     throw new Error(`unsupported recording version ${header.v} (expected ${RECORDING_VERSION})`);
   }
+  // Propagate the header's source dimensions onto every frame so replays
+  // reproduce on-device aspect behavior; recordings without them keep the
+  // legacy aspect-1 interpretation.
+  const dims =
+    typeof header.sourceWidth === 'number' &&
+    typeof header.sourceHeight === 'number' &&
+    header.sourceWidth > 0 &&
+    header.sourceHeight > 0
+      ? { sourceWidth: header.sourceWidth, sourceHeight: header.sourceHeight }
+      : null;
   const frames: RawLandmarkEvent[] = [];
   for (let i = 1; i < lines.length; i++) {
     const row = JSON.parse(lines[i]) as { t: number; l: number[] };
     if (typeof row.t !== 'number' || !Array.isArray(row.l)) {
       throw new Error(`malformed frame at line ${i + 1}`);
     }
-    frames.push({ timestampMs: row.t, landmarks: row.l });
+    frames.push({ timestampMs: row.t, landmarks: row.l, ...(dims ?? {}) });
   }
   return { header, frames };
 }

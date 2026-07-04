@@ -69,6 +69,7 @@ export interface MovementProfileV2InternalFlowState {
 }
 
 export type MovementProfileV2InternalFlowEvent =
+  | { type: 'record_body_unit'; bodyUnit: number }
   | { type: 'confirm_chair_setup' }
   | { type: 'complete_chair_practice' }
   | { type: 'record_chair'; result: ChairRiseV2Result }
@@ -111,6 +112,12 @@ export function movementProfileV2InternalFlowReducer(
   event: MovementProfileV2InternalFlowEvent
 ): MovementProfileV2InternalFlowState {
   switch (event.type) {
+    case 'record_body_unit':
+      // First calibration lock of the session; kept for the saved CheckUp's
+      // comparability metadata. Never overwritten within a session.
+      return state.bodyUnit === null && Number.isFinite(event.bodyUnit) && event.bodyUnit > 0
+        ? { ...state, bodyUnit: event.bodyUnit }
+        : state;
     case 'confirm_chair_setup':
       return state.step === 'chair_setup' ? { ...state, step: 'chair_practice' } : state;
     case 'complete_chair_practice':

@@ -2964,3 +2964,93 @@ PUBLIC RELEASE REMAINS BLOCKED
 - **Verification:** tsc clean; 1,345/1,345 tests passing (24 obsolete legacy-loop tests removed).
   Commits `7c078053` (progression) and `dd64ba70` (legacy removal). Owed: on-device confirmation
   that within-block step-ups feel right, alongside the noise-floor go/no-go.
+
+## 2026-07-04 — Movement Check-Up production-robustness pass: recovery, deadlock, persistence, calibration
+
+- **Context:** a deep audit of the V2 unified Movement Check-Up (engine, protocol controllers,
+  voice runtime, screen, persistence) found four critical failure modes plus a set of
+  measurement-validity and resilience gaps. All fixed in this pass; every fix carries a
+  regression test. tsc + expo config clean; full suite 162/1,361 green.
+- **Chair recovery recorded zero reps (critical, fixed).** `recoverChairFromTrackingLoss`
+  rebuilt the controller with a `source: 'direct_call'` setup, which
+  `setupHasUserConfirmation` rejects — `confirmSetup` failed silently, so the restarted
+  controller never left phase `setup` and every redone stand was discarded (HUD frozen at 0,
+  result recorded `no-measurement`). Any ~130 ms pose dropout or backgrounding during
+  `chair_active` triggered it. Fix: the coordinator stores the setup the user confirmed for the
+  item and reuses it on restart; `startActive`'s return value is now checked so a rejecting
+  controller can never leave the coordinator in `chair_active` with a dead window. Recoveries
+  are also now BOUNDED (chair and hinge cap at 2 restarts, mirroring balance/shoulder): after
+  the cap the tracking-flagged partial result is recorded instead of looping the user through
+  30-second redos forever in a dim room.
+- **Backgrounding mid-countdown deadlocked the check-up (critical, fixed).** The voice runtime
+  marked the `chair_countdown` plan's scope complete BEFORE running the 3-2-1-go countdown; a
+  cancel (background / iOS `inactive`) mid-countdown meant `sync()` skipped the "completed"
+  plan on resume and the coordinator waited for `chair_go_playback_started` forever — the only
+  exit was Cancel (discarding everything). Fix: countdown plans complete only when `go` has
+  actually played; `sync()` now refuses to auto-restart over any required failure (failure UI
+  owns recovery) and recognizes derived scopes (`:countdown`, `:retry:N`) as in-flight.
+- **Completed battery was hostage to the outro cue (critical, fixed).** The raw check-up was
+  persisted only in `onComplete`, which was gated on the outro narration finishing; an audio
+  failure at the finish line plus "Exit check-up" discarded four measured tests. Fix: new
+  `onRawCheckUpReady` screen callback fires the moment the raw check-up exists and App saves it
+  immediately (same `startedAt` filename — the later materialized save overwrites it, and the
+  existing pending-raw recovery finalizes it on next launch if the user never reaches results).
+  On outro failure with a completed battery the failure UI now offers "Continue to results"
+  (forward exit) instead of only discard; mid-battery audio remains mandatory (no
+  continue-without-audio).
+- **Hands-free fallback never armed in `balance_ready` (critical, fixed).** Pose samples hit
+  the `default` branch of `updateHandsFreeFromPose`, wiping the waiting clock every frame, so
+  the 10-second manual-fallback timeout could never fire: "Save best result" was unreachable
+  and an undetectable foot-lift (occluded ankles) stranded the user until the 6-minute hard
+  cap. Fix: explicit no-op case keeps the clock armed. Added a `balance_skip` action + control
+  (voice-gated, stage-checked) so a user whose lift is never detected can move on with an
+  honest declined/no-measurement record. Deliberately NO manual trial start: a trial without a
+  camera-verified lift could credit a hold that never happened.
+- **Seated calibration variance (measurement, fixed).** The body-unit calibrator locked on the
+  first still window with no posture requirement — and the V2 battery opens with the user
+  SEATED, so most sessions calibrated on a knee-bent direct hip-to-ankle distance (~70% of leg
+  length) while some locked standing: nondeterministic between-session scale variance on the
+  product's headline metric. Fix: 1 body unit is now the anatomical leg length hip→knee +
+  knee→ankle (segment sum) — identical for a straight leg, posture-invariant for a bent one —
+  with aspect-corrected deltas. Replay fixtures regenerated (bodyUnit shifted ~0.03% on the
+  synthetic standing fixtures; event timings unchanged). The session body unit is also now
+  recorded into the flow (`record_body_unit`) so saved V2 CheckUps carry `bodyUnit` instead of
+  null (comparability metadata).
+- **Aspect-distorted angles (measurement, scoped fix).** Normalized portrait space is
+  anisotropic; angles read mid-range errors up to ~10° on a 3:4 camera. `PoseFrame` now carries
+  `aspect` (from source dimensions; 1 for legacy recordings/synthetic frames), the recording
+  format propagates header dims onto replayed frames, and NEW `aspectCorrectedAngleAtDeg` /
+  `aspectCorrectedDist` helpers exist. Adopted ONLY where values are reported or
+  norm-compared: shoulder-flexion peak and the calibration length. Threshold-trigger angles
+  tuned in raw space (rep-cycle knee 155/110, setup gates) deliberately keep `angleAtDeg` —
+  their constants are self-consistent and re-tuning without real recordings would violate the
+  replay-first agreement. The balance sway proxy now scales x by aspect so it shares units with
+  the body scale across devices.
+- **Balance touchdown debounce split (measurement, fixed).** Tracking-lost frames and leg-down
+  frames shared one counter, so 3 glitch frames + 1 leg-down frame could end a trial as a
+  "valid" touchdown timestamped at `nowMs`. Now separate counters: only 4 consecutive
+  leg-down frames (good tracking) complete a touchdown, timestamped at the first down frame;
+  a good frame clears loss evidence.
+- **Wrong-leg lifts get told (UX, fixed).** Trials 2–3 must reuse the first trial's standing
+  leg; a sustained wrong-leg lift previously did nothing. The coordinator now sets a notice and
+  the status text says which leg to stand on. (A matching voice line needs an ElevenLabs
+  generation run — follow-up; text-only until then.)
+- **Leave-confirmation on every close path (UX, fixed).** Back arrow, Cancel controls, and
+  Android hardware back (screen-level `BackHandler`, registered after App's so it wins) now
+  route through one `requestClose` that shows the shell's existing discard modal when there is
+  progress to lose; it skips the modal when nothing is at stake (untouched first setup, or raw
+  check-up already saved).
+- **iOS `inactive` grace (UX, fixed).** `inactive` fires for transient overlays (call banner,
+  control centre); it previously invalidated the active measurement instantly. Now a 2-second
+  grace window: only a persistent inactive or a real `background` dispatches the backgrounding
+  contract. `resumed` is only dispatched when a backgrounding was actually dispatched.
+- **Smaller:** the shell controls memo now depends on the full voice-runtime state (stale
+  disabled-state fix); audit corrections — iOS keep-awake already existed natively
+  (`isIdleTimerDisabled` in `PoseDetectionView.swift`), and V2's `status: 'measured'` +
+  `evidenceStatus` duality was confirmed coherent end-to-end (reference engine handles
+  `invalid_measurement` per item), so item status semantics were deliberately left unchanged.
+- **Deferred with rationale:** mid-battery resume across app restarts (items would carry
+  different body-unit calibrations across launches — a protocol-comparability decision for the
+  product owner, and the discard-confirm + early raw save now cover the main loss paths);
+  the V2 lighting/framing pre-flight (needs seated-framing protocol design + voice assets;
+  the new recovery caps bound its worst-case symptom); wrong-leg voice line (asset generation).

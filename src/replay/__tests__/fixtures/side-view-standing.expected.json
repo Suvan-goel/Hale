@@ -3,7 +3,7 @@
   "durationMs": 7967,
   "meanFps": 29.998745,
   "finalState": "tracking",
-  "bodyUnit": 0.330609,
+  "bodyUnit": 0.330697,
   "events": [
     {
       "type": "subject-acquired",

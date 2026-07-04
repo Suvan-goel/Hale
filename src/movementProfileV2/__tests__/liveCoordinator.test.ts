@@ -1039,6 +1039,188 @@ describe('MovementProfileV2LiveCoordinator', () => {
     expect(exported).not.toMatch(/landmarks|xs|ys|visibility|presence/);
   });
 
+  it('credits reps in the restarted official window after a chair tracking loss', () => {
+    const coordinator = createCoordinator();
+    const activeAt = advanceToChairActive(coordinator, 0);
+    // A brief pose dropout mid-official-window forces the fresh-start recovery.
+    for (let index = 1; index <= 4; index++) {
+      feedOutput(coordinator, lostOutput(activeAt + index * 33), activeAt + index * 33);
+    }
+    let snapshot = coordinator.snapshot(activeAt + 200);
+    expect(snapshot.stage).toBe('chair_countdown');
+    expect(snapshot.recoveryEpisode).toMatchObject({ item: 'chair' });
+
+    const resumeAt = activeAt + 1000;
+    expect(coordinator.receiveUserAction({ type: 'chair_official_ready_voice_completed' }, resumeAt)).toBe(true);
+    expect(coordinator.receiveUserAction({ type: 'chair_countdown_started' }, resumeAt + 1)).toBe(true);
+    expect(coordinator.receiveUserAction({ type: 'chair_go_playback_started' }, resumeAt + 2)).toBe(true);
+    expect(coordinator.snapshot(resumeAt + 2).stage).toBe('chair_active');
+
+    const session = chairStandSession({
+      seed: 707,
+      noiseAmp: 0,
+      calibrationMs: 100,
+      riseMsPerRep: [900, 900, 900],
+      sitMs: 600,
+      settleMs: 300,
+      topMs: 400,
+      descendMs: 700,
+      restMs: 500,
+      tailMs: 1000,
+      nearSide: 'right',
+    });
+    let nowMs = resumeAt + 2;
+    for (const raw of session.frames) {
+      nowMs = resumeAt + 2 + raw.timestampMs + 1;
+      feedOutput(
+        coordinator,
+        trackingOutput({ ...raw, timestampMs: nowMs }, session.truth.bodyUnit, { leftSide: 0.3, rightSide: 0.95 }),
+        nowMs
+      );
+    }
+    // The regression this pins: the restarted controller rejected its bypassed
+    // setup, so every redone stand was silently discarded and this stayed 0.
+    expect(coordinator.snapshot(nowMs).chairReps).toBeGreaterThan(0);
+
+    const lastRaw = session.frames[session.frames.length - 1];
+    let doneMs = nowMs;
+    for (let keepAliveMs = nowMs + 250; keepAliveMs <= resumeAt + 2 + 31000; keepAliveMs += 250) {
+      feedOutput(
+        coordinator,
+        trackingOutput({ ...lastRaw, timestampMs: keepAliveMs }, session.truth.bodyUnit, { leftSide: 0.3, rightSide: 0.95 }),
+        keepAliveMs
+      );
+      coordinator.receiveTimerTick(keepAliveMs);
+      doneMs = keepAliveMs;
+      if (coordinator.snapshot(keepAliveMs).stage === 'balance_setup') break;
+    }
+    snapshot = coordinator.snapshot(doneMs);
+    expect(snapshot.stage).toBe('balance_setup');
+    const chair = snapshot.flow.items.find((item) => item.movementId === CHAIR_RISE_V2_ID)?.result as
+      | { reps: number; invalidReasons: string[] }
+      | undefined;
+    expect(chair?.reps).toBeGreaterThan(0);
+    expect(chair?.invalidReasons ?? []).not.toContain('setup_not_confirmed');
+    expect(chair?.invalidReasons ?? []).not.toContain('practice_not_completed');
+    expect(chair?.invalidReasons ?? []).not.toContain('active_window_not_started');
+  });
+
+  it('stops restarting the chair after the recovery cap and records the flagged partial result', () => {
+    const coordinator = createCoordinator();
+    let nowMs = advanceToChairActive(coordinator, 0);
+    for (let recovery = 0; recovery < 3; recovery++) {
+      for (let index = 1; index <= 4; index++) {
+        nowMs += 33;
+        feedOutput(coordinator, lostOutput(nowMs), nowMs);
+      }
+      if (recovery < 2) {
+        expect(coordinator.snapshot(nowMs).stage).toBe('chair_countdown');
+        nowMs += 500;
+        coordinator.receiveUserAction({ type: 'chair_official_ready_voice_completed' }, nowMs);
+        coordinator.receiveUserAction({ type: 'chair_countdown_started' }, nowMs + 1);
+        coordinator.receiveUserAction({ type: 'chair_go_playback_started' }, nowMs + 2);
+        nowMs += 2;
+        expect(coordinator.snapshot(nowMs).stage).toBe('chair_active');
+      }
+    }
+    const snapshot = coordinator.snapshot(nowMs);
+    expect(snapshot.stage).toBe('balance_setup');
+    const chair = snapshot.flow.items.find((item) => item.movementId === CHAIR_RISE_V2_ID)?.result as
+      | { flags: string[] }
+      | undefined;
+    expect(chair?.flags).toEqual(expect.arrayContaining(['tracking-interrupted']));
+  });
+
+  it('arms the hands-free fallback in balance_ready and lets the user skip an undetectable lift', () => {
+    const coordinator = createHandsFreeCoordinator();
+    const startMs = advanceThroughChair(coordinator, 0) + 100;
+    expect(coordinator.receiveUserAction({ type: 'balance_setup_voice_completed' }, startMs)).toBe(true);
+    feedOutput(coordinator, trackingOutput(balanceRaw(startMs + 100, 'left', false)), startMs + 100);
+    feedOutput(coordinator, trackingOutput(balanceRaw(startMs + 1400, 'left', false)), startMs + 1400);
+    expect(coordinator.snapshot(startMs + 1400).stage).toBe('balance_ready');
+    expect(coordinator.receiveUserAction({ type: 'balance_attempt_voice_completed' }, startMs + 1500)).toBe(true);
+
+    // Feet stay planted (the lift is never detected). Pose frames used to
+    // reset the fallback clock every frame, so it could never arm.
+    let nowMs = startMs + 1500;
+    for (; nowMs <= startMs + 13000; nowMs += 250) {
+      feedOutput(coordinator, trackingOutput(balanceRaw(nowMs, 'left', false)), nowMs);
+      coordinator.receiveTimerTick(nowMs);
+    }
+    const armed = coordinator.snapshot(nowMs);
+    expect(armed.stage).toBe('balance_ready');
+    expect(armed.handsFreeFallbackAvailable).toBe(true);
+
+    expect(coordinator.receiveUserAction({ type: 'balance_skip' }, nowMs + 1)).toBe(true);
+    const snapshot = coordinator.snapshot(nowMs + 1);
+    expect(snapshot.stage).toBe('shoulder_setup');
+    const balance = snapshot.flow.items.find((item) => item.movementId === ONE_LEG_BALANCE_V2_ID)?.result as
+      | { validTrialCount: number; declinedRemainingTrials: boolean; flags: string[] }
+      | undefined;
+    expect(balance?.validTrialCount).toBe(0);
+    expect(balance?.declinedRemainingTrials).toBe(true);
+    expect(balance?.flags).toEqual(expect.arrayContaining(['no-measurement']));
+  });
+
+  it('tells the user to reuse the first standing leg instead of silently ignoring a wrong-leg lift', () => {
+    const coordinator = createCoordinator();
+    let nowMs = advanceThroughChair(coordinator, 0) + 100;
+    nowMs = startBalanceTrial(coordinator, nowMs, 'left');
+    nowMs = finishBalanceByTouchdown(coordinator, nowMs, 'left');
+    coordinator.receiveTimerTick(nowMs + 30000);
+    expect(coordinator.snapshot(nowMs + 30000).stage).toBe('balance_ready');
+    expect(coordinator.receiveUserAction({ type: 'balance_attempt_voice_completed' }, nowMs + 30001)).toBe(true);
+
+    // Sustained lift while standing on the WRONG leg: no trial may start, and
+    // the status text must say why.
+    let wrongMs = nowMs + 30100;
+    for (let index = 0; index <= 8; index++) {
+      wrongMs = nowMs + 30100 + index * 33;
+      feedOutput(coordinator, trackingOutput(balanceRaw(wrongMs, 'right', true)), wrongMs);
+    }
+    const snapshot = coordinator.snapshot(wrongMs);
+    expect(snapshot.stage).toBe('balance_ready');
+    expect(snapshot.statusText).toContain('same side');
+    expect(snapshot.flow.standingLeg).toBe('left');
+
+    // The correct leg still starts trial two.
+    confirmBalanceLift(coordinator, wrongMs + 100, 'left');
+  });
+
+  it('does not let tracking-lost frames count toward the touchdown debounce', () => {
+    const coordinator = createCoordinator();
+    let nowMs = advanceThroughChair(coordinator, 0) + 100;
+    nowMs = startBalanceTrial(coordinator, nowMs, 'left');
+
+    let t = nowMs + 5000;
+    feedOutput(coordinator, trackingOutput(balanceRaw(t, 'left', true)), t);
+    for (let index = 1; index <= 3; index++) {
+      t += 33;
+      feedOutput(coordinator, lostOutput(t), t);
+    }
+    t += 33;
+    feedOutput(coordinator, trackingOutput(balanceRaw(t, 'left', false)), t);
+    // Old behavior: 3 glitch frames + 1 leg-down frame ended the trial as a
+    // "valid" touchdown. Only consecutive leg-down frames may do that.
+    expect(coordinator.snapshot(t).stage).toBe('balance_trial');
+    for (let index = 1; index <= 3; index++) {
+      t += 33;
+      feedOutput(coordinator, trackingOutput(balanceRaw(t, 'left', false)), t);
+    }
+    expect(coordinator.snapshot(t).stage).toBe('balance_rest');
+  });
+
+  it('captures the first calibrated body unit into the flow for the saved check-up', () => {
+    const coordinator = createCoordinator();
+    expect(coordinator.snapshot(0).flow.bodyUnit).toBeNull();
+    feedOutput(coordinator, trackingOutput(chairSetupRaw(100), 0.31), 100);
+    expect(coordinator.snapshot(100).flow.bodyUnit).toBeCloseTo(0.31);
+
+    const full = createCoordinator();
+    const checkUp = completeLiveCheckup(full);
+    expect(checkUp?.bodyUnit).not.toBeNull();
+  });
+
   it('does not expose canned V2 measurement controls from the internal live screen', () => {
     const source = fs.readFileSync(
       path.join(process.cwd(), 'src/screens/MovementProfileV2UnifiedCheckUpScreen.tsx'),

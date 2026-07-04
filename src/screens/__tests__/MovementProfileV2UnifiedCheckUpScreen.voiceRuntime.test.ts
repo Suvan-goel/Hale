@@ -38,6 +38,42 @@ describe('MovementProfileV2UnifiedCheckUpScreen voice-runtime wiring', () => {
     expect(text).not.toContain('Continue without audio');
   });
 
+  it('persists the raw check-up before the outro and offers forward exit only once the battery is complete', () => {
+    const text = source();
+
+    // Save-on-raw-complete: the measured battery must never be hostage to the
+    // outro cue or a crash between raw completion and onComplete.
+    expect(text).toContain('onRawCheckUpReady?.({ checkUp: live.checkUp, sourceType })');
+    // Forward exit on outro failure exists ONLY behind a completed check-up.
+    expect(text).toContain("title: 'Continue to results'");
+    const failureBranch = text.slice(
+      text.indexOf('voiceRuntimeState.lastFailure) {'),
+      text.indexOf('return movementProfileV2ShellControls')
+    );
+    expect(failureBranch).toContain('if (live.checkUp)');
+    expect(failureBranch).toContain('finishNow');
+  });
+
+  it('confirms before discarding an in-progress battery on every close path', () => {
+    const text = source();
+
+    expect(text).toContain('const requestClose = React.useCallback');
+    expect(text).toContain('setConfirmLeaveVisible(true)');
+    expect(text).toContain('discardModal={{');
+    expect(text).toContain('onRequestBack={requestClose}');
+    expect(text).toContain("BackHandler.addEventListener('hardwareBackPress'");
+    // Cancel controls route through the confirmation, not straight to onCancel.
+    expect(text).toContain('onCancel: requestClose,');
+  });
+
+  it('gives transient iOS inactive states a grace window before invalidating the measurement', () => {
+    const text = source();
+
+    expect(text).toContain('APP_STATE_INACTIVE_GRACE_MS');
+    expect(text).toContain("if (state === 'inactive')");
+    expect(text).toContain('dispatchBackgrounded');
+  });
+
   it('waits for completion narration before calling onComplete in the foundation path', () => {
     const text = source();
 
