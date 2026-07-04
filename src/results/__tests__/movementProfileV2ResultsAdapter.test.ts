@@ -104,6 +104,29 @@ describe('Movement Profile V2 unified results adapter', () => {
     expect(text).not.toMatch(/improv|declin|younger|older|percent|delta/i);
   });
 
+  it('renders saved history read-only: no plan section or plan actions, honest copy', () => {
+    const presentation = buildMovementProfileV2UnifiedResultsPresentation({
+      viewModel: movementProfileViewModel(),
+      // Even a "ready" plan state must not surface plan actions in history —
+      // a saved profile is a record, not a call to action.
+      planState: { status: 'ready', blockId: 'movement-block-v2:abc' },
+      variant: 'history',
+    });
+
+    expect(presentation.variant).toBe('history');
+    expect(presentation.header.eyebrow).toBe('Saved check-up');
+    expect(presentation.header.subtitle).toBe(
+      'A saved check-up from your history. Opening it does not change your plan.'
+    );
+    expect(presentation.focus.kicker).toBe('Focus at the time');
+    expect(presentation.plan.status).toBe('hidden');
+    expect(presentation.actions).toEqual([
+      expect.objectContaining({ label: 'Done', action: { type: 'done' } }),
+    ]);
+    expect(JSON.stringify(presentation.actions)).not.toContain('View my 4-week plan');
+    expect(presentation.domains.every((domain) => domain.detailActionAvailable)).toBe(true);
+  });
+
   it('keeps the presentation wellness-side and protocol-neutral', () => {
     const presentation = buildMovementProfileV2UnifiedResultsPresentation({
       viewModel: movementProfileViewModel(),

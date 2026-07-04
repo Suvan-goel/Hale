@@ -24,7 +24,7 @@ export function MovementProfileV2UnifiedResultsScreen({
 }: {
   viewModel: MovementProfileV2ResultsViewModel;
   planState: MovementProfileV2UnifiedPlanState;
-  variant?: 'standard' | 'onboarding';
+  variant?: 'standard' | 'onboarding' | 'history';
   retestComparison?: MovementProfileV2RetestComparison | null;
   onOpenDomain: (domain: MovementProfileV2Domain) => void;
   onViewPlan?: () => void;

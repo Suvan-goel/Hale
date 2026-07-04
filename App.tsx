@@ -222,7 +222,7 @@ import { ManualCheckupStartScreen } from './src/screens/ManualCheckupStartScreen
 import { MicroCheckScreen } from './src/screens/MicroCheckScreen';
 import { MicroCheckSummaryScreen } from './src/screens/MicroCheckSummaryScreen';
 import { MovementProfileV2BlockReportScreen } from './src/screens/MovementProfileV2BlockReportScreen';
-import { MovementProfileV2ResultsScreen } from './src/screens/MovementProfileV2ResultsScreen';
+import { MovementProfileV2DomainDetailScreen } from './src/screens/MovementProfileV2DomainDetailScreen';
 import { MovementProfileV2UnifiedCheckUpScreen } from './src/screens/MovementProfileV2UnifiedCheckUpScreen';
 import { MovementProfileV2UnifiedResultsScreen } from './src/screens/MovementProfileV2UnifiedResultsScreen';
 import { MovementProfileV2PracticeResultsScreen } from './src/screens/MovementProfileV2PracticeResultsScreen';
@@ -282,7 +282,6 @@ type Flow =
   | 'movement-profile-v2-unified-checkup'
   | 'movement-profile-v2-results'
   | 'movement-profile-v2-practice-results'
-  | 'movement-profile-v2-unified-results'
   | 'movement-profile-v2-domain-detail'
   | 'movement-profile-v2-block-report'
   | 'movement-profile-v2-retest-unavailable';
@@ -339,7 +338,6 @@ const CAMERA_FLOWS = new Set<Flow>([
 const PUBLIC_MOVEMENT_PROFILE_V2_FLOWS = new Set<Flow>([
   'movement-profile-v2-unified-checkup',
   'movement-profile-v2-results',
-  'movement-profile-v2-unified-results',
   'movement-profile-v2-domain-detail',
   'movement-profile-v2-block-report',
   'movement-profile-v2-retest-unavailable',
@@ -3602,7 +3600,7 @@ function HaleApp() {
           .loadAll()
           .then(setHistory)
           .catch(() => {});
-        replaceFlow('movement-profile-v2-unified-results');
+        replaceFlow('movement-profile-v2-results');
         return;
       }
 
@@ -3710,11 +3708,7 @@ function HaleApp() {
         .loadAll()
         .then(setHistory)
         .catch(() => {});
-      replaceFlow(
-        resolvedResultSurface === 'unified'
-          ? 'movement-profile-v2-unified-results'
-          : 'movement-profile-v2-results'
-      );
+      replaceFlow('movement-profile-v2-results');
     }
 
   React.useEffect(() => {
@@ -4133,30 +4127,43 @@ function HaleApp() {
               goBack(goHome);
             }}
           />
-        ) : flow === 'movement-profile-v2-unified-results' && visibleMovementProfileV2Result ? (
+        ) : flow === 'movement-profile-v2-results' && visibleMovementProfileV2Result ? (
+          // One results presentation for both surfaces: fresh results after a
+          // check-up (standard/onboarding) and saved history from Progress
+          // (read-only 'history' variant) render through the same shell.
           <MovementProfileV2UnifiedResultsScreen
             viewModel={visibleMovementProfileV2Result}
             planState={movementProfileV2PlanState}
             retestComparison={movementProfileV2RetestComparison}
             variant={
-              movementProfileV2EntryContext === 'public_onboarding'
-                ? 'onboarding'
-                : 'standard'
+              movementProfileV2ResultSurface === 'standalone'
+                ? 'history'
+                : movementProfileV2EntryContext === 'public_onboarding'
+                  ? 'onboarding'
+                  : 'standard'
             }
             onOpenDomain={(domain) => {
               setMovementProfileV2DetailDomain(domain);
               setFlow('movement-profile-v2-domain-detail');
             }}
             onViewPlan={
-              movementProfileV2PlanBlockId ? handleMovementProfileV2ViewPlan : undefined
+              movementProfileV2ResultSurface !== 'standalone' && movementProfileV2PlanBlockId
+                ? handleMovementProfileV2ViewPlan
+                : undefined
             }
             onViewBlockReport={
-              movementProfileV2BlockReport
+              movementProfileV2ResultSurface !== 'standalone' && movementProfileV2BlockReport
                 ? () => setFlow('movement-profile-v2-block-report')
                 : undefined
             }
             onDone={() => {
               setMovementProfileV2DetailDomain(null);
+              if (movementProfileV2ResultSurface === 'standalone') {
+                setMovementProfileV2SelectedProfileId(null);
+                setFlow(null);
+                setTab('progress');
+                return;
+              }
               goBack(goHome);
             }}
           />
@@ -4172,46 +4179,18 @@ function HaleApp() {
                 setTab('progress');
                 return;
               }
-              goBack(() => setFlow('movement-profile-v2-unified-results'));
+              goBack(() => setFlow('movement-profile-v2-results'));
             }}
           />
-        ) : (flow === 'movement-profile-v2-results' ||
-            flow === 'movement-profile-v2-domain-detail') &&
-          visibleMovementProfileV2Result ? (
-          <MovementProfileV2ResultsScreen
+        ) : flow === 'movement-profile-v2-domain-detail' &&
+          visibleMovementProfileV2Result &&
+          movementProfileV2DetailDomain ? (
+          <MovementProfileV2DomainDetailScreen
             viewModel={visibleMovementProfileV2Result}
-            readOnly={!!selectedMovementProfileV2ProgressResult}
-            detailDomain={
-              flow === 'movement-profile-v2-domain-detail'
-                ? movementProfileV2DetailDomain
-                : null
-            }
-            onOpenDomain={(domain) => {
-              setMovementProfileV2DetailDomain(domain);
-              setFlow('movement-profile-v2-domain-detail');
-            }}
-            onBackToResults={() => {
+            domain={movementProfileV2DetailDomain}
+            onBack={() => {
               setMovementProfileV2DetailDomain(null);
-              // The unified (post-check-up) surface returns to the unified
-              // results screen; the standalone history surface to its own.
-              replaceFlow(
-                movementProfileV2ResultSurface === 'unified'
-                  ? 'movement-profile-v2-unified-results'
-                  : 'movement-profile-v2-results'
-              );
-            }}
-            onViewPlan={
-              movementProfileV2PlanBlockId ? handleMovementProfileV2ViewPlan : undefined
-            }
-            onDone={() => {
-              setMovementProfileV2DetailDomain(null);
-              if (selectedMovementProfileV2ProgressResult) {
-                setMovementProfileV2SelectedProfileId(null);
-                setFlow(null);
-                setTab('progress');
-                return;
-              }
-              goBack(goHome);
+              replaceFlow('movement-profile-v2-results');
             }}
           />
         ) : flow === 'movement-profile-v2-retest-unavailable' ? (

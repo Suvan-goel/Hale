@@ -36,10 +36,15 @@ export type MovementProfileV2UnifiedPlanState =
 export function buildMovementProfileV2UnifiedResultsPresentation(input: {
   viewModel: MovementProfileV2ResultsViewModel;
   planState: MovementProfileV2UnifiedPlanState;
-  variant?: 'standard' | 'onboarding';
+  variant?: 'standard' | 'onboarding' | 'history';
   retestComparison?: MovementProfileV2RetestComparison | null;
 }): UnifiedCheckUpResultsPresentation {
-  const planReady = input.planState.status === 'ready' || input.planState.status === 'sync_pending_local_ready';
+  // A saved profile opened later from Progress: same layout as fresh results,
+  // but read-only — no plan section or plan actions, and honest "saved" copy.
+  const historyMode = input.variant === 'history';
+  const planReady =
+    !historyMode &&
+    (input.planState.status === 'ready' || input.planState.status === 'sync_pending_local_ready');
   const retestMode = !!input.retestComparison;
   const domains = input.viewModel.domainCards.map((card) =>
     domainCardToPresentation(card, input.viewModel.focus.domain)
@@ -48,17 +53,24 @@ export function buildMovementProfileV2UnifiedResultsPresentation(input: {
   return {
     variant: input.variant ?? 'standard',
     header: {
-      eyebrow: input.variant === 'onboarding' ? 'Check-up complete' : 'Movement Check-Up',
+      eyebrow:
+        input.variant === 'onboarding'
+          ? 'Check-up complete'
+          : historyMode
+            ? 'Saved check-up'
+            : 'Movement Check-Up',
       title: 'Your Movement Profile',
       completedAtLabel: input.viewModel.dateLabel,
-      subtitle: retestMode
-        ? 'Your latest Check-Up is saved.'
-        : planReady
-          ? 'Your 4-week plan is ready.'
-          : 'Your Movement Profile is saved.',
+      subtitle: historyMode
+        ? 'A saved check-up from your history. Opening it does not change your plan.'
+        : retestMode
+          ? 'Your latest Check-Up is saved.'
+          : planReady
+            ? 'Your 4-week plan is ready.'
+            : 'Your Movement Profile is saved.',
     },
     focus: {
-      kicker: 'Suggested focus',
+      kicker: historyMode ? 'Focus at the time' : 'Suggested focus',
       title: input.viewModel.focus.title,
       body: input.viewModel.focus.body,
     },
@@ -69,7 +81,7 @@ export function buildMovementProfileV2UnifiedResultsPresentation(input: {
         : 'Saved results first, with typical ranges where available.',
     },
     domains: toDomainTuple(domains),
-    plan: retestMode ? { status: 'hidden' } : planCopy,
+    plan: retestMode || historyMode ? { status: 'hidden' } : planCopy,
     caveat: input.viewModel.summary,
     comparison: input.retestComparison
       ? comparisonPresentation(input.retestComparison)

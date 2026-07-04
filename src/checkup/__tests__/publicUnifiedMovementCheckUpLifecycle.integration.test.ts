@@ -441,11 +441,11 @@ describe('H3.1 public unified Movement Check-Up lifecycle', () => {
     });
 
     const route1 = {
-      flow: 'movement-profile-v2-unified-results',
+      flow: 'movement-profile-v2-results',
       blockId: createdBlock.block.id,
     };
     const route2 = {
-      flow: 'movement-profile-v2-unified-results',
+      flow: 'movement-profile-v2-results',
       blockId: createdBlock.block.id,
     };
     expect(route2).toEqual(route1);

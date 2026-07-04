@@ -1,6 +1,12 @@
 import type { MovementDomain } from '../adherence';
 
-export type UnifiedCheckUpResultsVariant = 'standard' | 'onboarding';
+/**
+ * 'standard'  — fresh results right after a check-up.
+ * 'onboarding' — the first-ever results, with onboarding framing.
+ * 'history'   — a saved profile opened later from Progress; read-only, no plan
+ *               actions. Renders through the standard layout.
+ */
+export type UnifiedCheckUpResultsVariant = 'standard' | 'onboarding' | 'history';
 
 export type UnifiedResultDomainId =
   | 'strength_power'

@@ -16,15 +16,23 @@ describe('unified check-up results architecture', () => {
     expect(adapter).not.toMatch(/materializeMovementProfileV2Block|interpretMovementProfileV2|createMovementProfileV2Snapshot|createMovementProfileV2Assessment|HistoryStore|syncMovement/);
   });
 
-  it('routes the unified internal V2 path to the polished shared shell while retaining the harness', () => {
+  it('routes every results surface through the one shared shell', () => {
     const app = readSource('App.tsx');
     const unifiedScreen = readSource('src/screens/MovementProfileV2UnifiedResultsScreen.tsx');
+    const adapter = readSource('src/results/movementProfileV2ResultsAdapter.ts');
 
-    expect(app).toContain('movement-profile-v2-unified-results');
-    expect(app).toContain('MovementProfileV2ResultsScreen');
+    // One results flow renders both fresh (standard/onboarding) and saved
+    // history ('history' variant) results; the bespoke standalone screen and
+    // its separate 'unified-results' flow are gone.
+    expect(app).toContain("flow === 'movement-profile-v2-results'");
+    expect(app).not.toContain('movement-profile-v2-unified-results');
+    expect(app).not.toContain('MovementProfileV2ResultsScreen');
     expect(app).toContain('MovementProfileV2UnifiedResultsScreen');
+    expect(app).toContain('MovementProfileV2DomainDetailScreen');
+    expect(app).toContain("? 'history'");
     expect(app).toContain('movementProfileV2BlockMatchesResult');
     expect(unifiedScreen).toContain('CheckUpResultsShell');
+    expect(adapter).toContain("'history'");
   });
 });
 
