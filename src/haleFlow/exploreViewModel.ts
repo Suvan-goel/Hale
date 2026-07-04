@@ -60,46 +60,8 @@ export interface ExtraSessionCard {
   disabledReason?: string;
 }
 
-export interface MovementLadderCard {
-  id: string;
-  title: string;
-  body: string;
-  currentLevelName: string;
-  currentLevelLabel: string;
-  showCurrentLevel: boolean;
-  presentationMode: 'levels' | 'movement_set' | 'collection';
-  listTitle: string;
-  coverageLabel?: string;
-  varietyLabel?: string;
-  domainLabel: string;
-  equipmentLabel: string;
-  measurementLabel: string;
-}
 
-export interface MovementLadderDetail extends MovementLadderCard {
-  whyItMatters: string;
-  whyItHelps: string;
-  beforeStartItems: string[];
-  watchText: string;
-  currentLevel: LadderLevelView;
-  easierLevel?: LadderLevelView;
-  harderLevel?: LadderLevelView;
-  levels: LadderLevelView[];
-}
 
-export interface LadderLevelView {
-  id: string;
-  name: string;
-  levelLabel: string;
-  equipmentLabel: string;
-  measurementLabel: string;
-  cameraLabel: string;
-  instructions: string;
-  setupNote?: string;
-  safetyNote?: string;
-  measurementNote?: string;
-  isCurrent: boolean;
-}
 
 export interface LearnCard {
   id: LearnArticleId;
@@ -123,17 +85,7 @@ export interface HealthInsightCard extends LearnCard {
   reviewedLabel: string;
 }
 
-export interface ExploreLibrarySection {
-  id: 'movement_checkup' | 'training_basics' | 'setup_safety';
-  title: string;
-  body: string;
-  articles: LearnCard[];
-}
 
-export interface ExploreLibrary {
-  featured: LearnCard;
-  sections: ExploreLibrarySection[];
-}
 
 export interface EquipmentSetupSummary {
   availableLabel: string;
@@ -157,31 +109,6 @@ export type LearnArticleId =
 
 const FEATURED_LEARN_ARTICLE_ID: LearnArticleId = 'movement-checkup-guide';
 
-const EXPLORE_LIBRARY_SECTIONS: readonly {
-  id: ExploreLibrarySection['id'];
-  title: string;
-  body: string;
-  articleIds: readonly LearnArticleId[];
-}[] = [
-  {
-    id: 'movement_checkup',
-    title: 'Your check-up guide',
-    body: 'Learn what Hale checks, how to set up your camera, and why you repeat the check-up each month.',
-    articleIds: ['camera-setup', 'monthly-retest'],
-  },
-  {
-    id: 'training_basics',
-    title: 'Training basics',
-    body: 'Simple guides for the strength, balance, and mobility work in your plan.',
-    articleIds: ['chair-rise-strength', 'balance-practice', 'mobility-basics'],
-  },
-  {
-    id: 'setup_safety',
-    title: 'Safety and setup',
-    body: 'Simple tips for equipment, discomfort, and safe setup at home.',
-    articleIds: ['movement-discomfort', 'resistance-band'],
-  },
-];
 
 const PRESET_BODY: Record<string, string> = {
   'preset-mobility-reset': 'A short reset for stiffness, travel days, or the day before a re-test.',
@@ -296,116 +223,8 @@ export function getExtraSessionCards(input: {
   });
 }
 
-export function getMovementLadderCards(input: {
-  ladderProgressById?: Record<string, LadderProgress>;
-  equipment?: EquipmentProfile | null;
-  safetyProfile?: MovementSafetyProfile | null;
-  activeBlockId?: string | null;
-  generatedSessionSummaries?: readonly PersistedGeneratedSessionSummary[] | null;
-} = {}): MovementLadderCard[] {
-  const available = availableEquipmentFor({ safetyProfile: input.safetyProfile });
-  const movementCapabilities = movementCapabilitiesFromSafetyProfile(input.safetyProfile);
-  return listExerciseLadders().filter((ladder) => ladder.releaseStatus === 'v1_core').map((ladder) => {
-    const current = currentLevelFor(ladder, input.ladderProgressById?.[ladder.id], available, movementCapabilities);
-    const presentation = ladderPresentationForLadder(ladder);
-    const coverage = coverageForLadder(ladder, input, available, movementCapabilities);
-    return {
-      id: ladder.id,
-      title: movementDisplayTitle(ladder),
-      body: LADDER_CARD_BODY[ladder.id] ?? ladder.description,
-      currentLevelName: presentation.showCurrentLevel ? displayMovementName(current.name) : presentation.listTitle,
-      currentLevelLabel: coverage?.coverageLabel ?? nonLinearCardLabel(presentation.mode, current, ladder),
-      showCurrentLevel: presentation.showCurrentLevel,
-      presentationMode: presentation.mode,
-      listTitle: presentation.listTitle,
-      coverageLabel: coverage?.coverageLabel,
-      varietyLabel: coverage?.varietyLabel,
-      domainLabel: focusLabel(ladder.domain),
-      equipmentLabel: equipmentLabelForLevel(current, available, movementCapabilities),
-      measurementLabel: measurementLabel(current.measurementTier),
-    };
-  });
-}
 
-export function getMovementLadderDetail(
-  ladderId: string,
-  ladderProgressById: Record<string, LadderProgress> = {},
-  input: {
-    equipment?: EquipmentProfile | null;
-    safetyProfile?: MovementSafetyProfile | null;
-    activeBlockId?: string | null;
-    generatedSessionSummaries?: readonly PersistedGeneratedSessionSummary[] | null;
-  } = {}
-): MovementLadderDetail | null {
-  let source: ExerciseLadder;
-  try {
-    source = getExerciseLadder(ladderId);
-  } catch {
-    return null;
-  }
-  if (source.releaseStatus !== 'v1_core') return null;
-  const betaLevels = availableLevelsForRelease(source);
-  const ladder: ExerciseLadder = {
-    ...source,
-    levels: betaLevels,
-  };
-  if (ladder.levels.length === 0) return null;
-  const available = availableEquipmentFor({ safetyProfile: input.safetyProfile });
-  const movementCapabilities = movementCapabilitiesFromSafetyProfile(input.safetyProfile);
-  const current = currentLevelFor(source, ladderProgressById[ladder.id], available, movementCapabilities);
-  const presentation = ladderPresentationForLadder(ladder);
-  const coverage = coverageForLadder(ladder, input, available, movementCapabilities);
-  const currentIndex = Math.max(0, ladder.levels.findIndex((level) => level.id === current.id));
-  const levels = ladder.levels.map((level) => levelView(
-    level,
-    ladder,
-    presentation.showCurrentLevel && level.id === current.id,
-    available,
-    movementCapabilities
-  ));
-  const card = getMovementLadderCards({
-    ladderProgressById,
-    safetyProfile: input.safetyProfile,
-    activeBlockId: input.activeBlockId,
-    generatedSessionSummaries: input.generatedSessionSummaries,
-  }).find((item) => item.id === ladder.id);
-  const showAdjacentLevels = presentation.showEasierHarder;
-  const autoCeilingIndex = showAdjacentLevels
-    ? Math.max(0, ladder.levels.findIndex((level) => level.id === getControlledBetaProgressionPolicy(ladder.id).autoProgressionCeilingLevelId))
-    : -1;
-  return {
-    ...(card ?? {}),
-    id: ladder.id,
-    title: movementDisplayTitle(ladder),
-    body: card?.body ?? LADDER_CARD_BODY[ladder.id] ?? ladder.description,
-    whyItMatters: ladder.whyItMatters,
-    whyItHelps: LADDER_WHY_IT_HELPS[ladder.id] ?? ladder.whyItMatters,
-    beforeStartItems: beforeStartItemsForLevel(current, available, movementCapabilities),
-    watchText: LADDER_WATCH_TEXT[ladder.id] ?? watchTextForLevel(current),
-    currentLevelName: presentation.showCurrentLevel ? displayMovementName(current.name) : presentation.listTitle,
-    currentLevelLabel: coverage?.coverageLabel ?? nonLinearCardLabel(presentation.mode, current, ladder),
-    showCurrentLevel: presentation.showCurrentLevel,
-    presentationMode: presentation.mode,
-    listTitle: presentation.listTitle,
-    coverageLabel: coverage?.coverageLabel,
-    varietyLabel: coverage?.varietyLabel,
-    domainLabel: focusLabel(ladder.domain),
-    equipmentLabel: equipmentLabelForLevel(current, available, movementCapabilities),
-    measurementLabel: measurementLabel(current.measurementTier),
-    currentLevel: levelView(current, ladder, presentation.showCurrentLevel, available, movementCapabilities),
-    easierLevel: showAdjacentLevels && currentIndex > 0
-      ? levelView(ladder.levels[currentIndex - 1], ladder, false, available, movementCapabilities)
-      : undefined,
-    harderLevel: showAdjacentLevels && currentIndex < autoCeilingIndex
-      ? levelView(ladder.levels[currentIndex + 1], ladder, false, available, movementCapabilities)
-      : undefined,
-    levels,
-  };
-}
 
-export function getLearnCards(): LearnCard[] {
-  return LEARN_ARTICLES.map(({ sections: _sections, ...card }) => card);
-}
 
 export function getLearnDetail(id: string): LearnDetail | null {
   return [...LEARN_ARTICLES, ...HEALTH_INSIGHT_ARTICLES].find((article) => article.id === id) ?? null;
@@ -424,18 +243,6 @@ export function getHealthInsightCards(): HealthInsightCard[] {
   }));
 }
 
-export function getExploreLibrary(): ExploreLibrary {
-  const featured = learnCardById(FEATURED_LEARN_ARTICLE_ID) ?? getLearnCards()[0];
-  return {
-    featured,
-    sections: EXPLORE_LIBRARY_SECTIONS.map((section) => ({
-      id: section.id,
-      title: section.title,
-      body: section.body,
-      articles: section.articleIds.map((id) => learnCardById(id)).filter((card): card is LearnCard => !!card),
-    })),
-  };
-}
 
 export function getEquipmentSetupSummary({
   safetyProfile,
@@ -520,27 +327,6 @@ function practiceLevelFor(
   return null;
 }
 
-function levelView(
-  level: ExerciseLevel,
-  ladder: ExerciseLadder,
-  isCurrent: boolean,
-  available?: readonly AvailableEquipment[],
-  movementCapabilities?: NormalizedMovementCapabilityProfile
-): LadderLevelView {
-  return {
-    id: level.id,
-    name: displayMovementName(level.name),
-    levelLabel: levelLabel(level, ladder),
-    equipmentLabel: equipmentLabelForLevel(level, available, movementCapabilities),
-    measurementLabel: measurementLabel(level.measurementTier),
-    cameraLabel: cameraLabel(level.cameraView),
-    instructions: trainingInstructionText(level.id) ?? level.instructions,
-    setupNote: safetyNoteText(exerciseSafetySetupText(level.id)) ?? level.setupNotes,
-    safetyNote: safetyNoteText(exerciseSafetySummaryText(level.id)) ?? level.safetyNotes,
-    measurementNote: level.measurementNotes,
-    isCurrent,
-  };
-}
 
 function trainingInstructionText(exerciseId: string): string | null {
   const profile = getTrainingInstructionProfile(exerciseId);
@@ -666,9 +452,6 @@ function nonLinearCardLabel(
   return levelLabel(level, ladder);
 }
 
-function movementDisplayTitle(ladder: ExerciseLadder): string {
-  return LADDER_DISPLAY_TITLES[ladder.id] ?? ladder.title;
-}
 
 function displayMovementName(name: string): string {
   return name

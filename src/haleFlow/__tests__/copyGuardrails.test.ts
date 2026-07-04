@@ -9,13 +9,9 @@ import {
 } from '../appLifecycle';
 import {
   getEquipmentSetupSummary,
-  getExploreLibrary,
   getExtraSessionCards,
   getHealthInsightCards,
-  getLearnCards,
   getLearnDetail,
-  getMovementLadderCards,
-  getMovementLadderDetail,
 } from '../exploreViewModel';
 import {
   getPlanEmptyStateCopy,
@@ -94,41 +90,7 @@ describe('Hale V1 copy guardrails', () => {
       ...Object.values(getEquipmentSetupSummary()),
       ...Object.values(getMicroCheckCopy('balance')),
     ]);
-    assertCleanCopy(getExploreLibrary().sections.flatMap((section) => [section.title, section.body]));
     assertCleanCopy(getExtraSessionCards().flatMap((card) => Object.values(card)));
-    assertCleanCopy(getMovementLadderCards().flatMap((card) => Object.values(card)));
-    assertCleanCopy(
-      getMovementLadderCards().flatMap((card) => {
-        const detail = getMovementLadderDetail(card.id);
-        return detail
-          ? [
-              detail.title,
-              detail.body,
-              detail.whyItMatters,
-              detail.currentLevel.instructions,
-              detail.currentLevel.setupNote,
-              detail.currentLevel.safetyNote,
-              detail.currentLevel.measurementNote,
-              ...detail.levels.flatMap((level) => [
-                level.name,
-                level.equipmentLabel,
-                level.measurementLabel,
-                level.cameraLabel,
-                level.instructions,
-                level.setupNote,
-                level.safetyNote,
-                level.measurementNote,
-              ]),
-            ]
-          : [];
-      })
-    );
-    assertCleanCopy(
-      getLearnCards().flatMap((card) => {
-        const detail = getLearnDetail(card.id);
-        return [card.title, card.body, ...(detail?.sections.flatMap((section) => [section.title, section.body]) ?? [])];
-      })
-    );
     assertCleanCopy(
       getHealthInsightCards().flatMap((card) => {
         const detail = getLearnDetail(card.id);
@@ -178,28 +140,4 @@ describe('Hale V1 copy guardrails', () => {
     expect(source).not.toMatch(MISLEADING_EQUIPMENT_COPY);
   });
 
-  it('keeps supporting sets and the mobility collection out of ranked level copy', () => {
-    const mobility = getMovementLadderDetail('mobility-flexibility');
-    const shoulder = getMovementLadderDetail('shoulder-reach-press');
-    const linear = getMovementLadderDetail('sit-to-stand');
-
-    expect(mobility).toMatchObject({
-      showCurrentLevel: false,
-      presentationMode: 'collection',
-      currentLevelName: 'Mobility movements',
-    });
-    expect(mobility?.currentLevelLabel).not.toMatch(/Level|current level|harder|easier/i);
-    expect(mobility?.levels.map((level) => level.levelLabel)).toEqual(['Mobility movement', 'Mobility movement', 'Mobility movement', 'Mobility movement']);
-    expect(mobility?.levels.map((level) => level.name)).not.toContain('Neck Rotations');
-
-    expect(shoulder).toMatchObject({
-      showCurrentLevel: false,
-      presentationMode: 'movement_set',
-      harderLevel: undefined,
-      easierLevel: undefined,
-    });
-    expect(shoulder?.levels.map((level) => level.levelLabel)).toEqual(['Movement', 'Movement']);
-    expect(linear).toMatchObject({ showCurrentLevel: true, presentationMode: 'levels' });
-    expect(linear?.currentLevelLabel).toMatch(/Level/i);
-  });
 });
