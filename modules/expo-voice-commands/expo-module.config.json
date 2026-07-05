@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["ExpoVoiceCommandsModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.voicecommands.ExpoVoiceCommandsModule"]
+  }
+}

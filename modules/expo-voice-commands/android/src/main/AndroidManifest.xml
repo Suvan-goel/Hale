@@ -1,0 +1,12 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- Scoped audio-law amendment 2026-07-05: recording capability exists only
+       for windowed voice commands inside voice-guided training sessions. -->
+  <uses-permission android:name="android.permission.RECORD_AUDIO" />
+  <!-- Android 11+ package visibility: without this query the app cannot see
+       the platform RecognitionService and SpeechRecognizer reports unavailable. -->
+  <queries>
+    <intent>
+      <action android:name="android.speech.RecognitionService" />
+    </intent>
+  </queries>
+</manifest>
