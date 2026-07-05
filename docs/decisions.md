@@ -3497,3 +3497,46 @@ PUBLIC RELEASE REMAINS BLOCKED
 - **Kept:** equipment truthfulness strings, "Example result" panel, beta pricing copy, and
   the e2e-pinned "movement check-up and home plan" hero phrase. Verification: vitest 18/18,
   tsc clean, eslint clean, Playwright e2e 4/4 (full build + serve).
+
+## 2026-07-05 — Direction change: v1 sessions are voice-guided with voice commands; conductor parked as v2
+
+- **Product-owner decision (supersedes part of the Conductor v1 spec).** v1 training sessions
+  run with no camera: the app speaks instructions, waits for "I'm ready" (or tap) before each
+  set, and the user says "done" (or taps) to advance. The camera remains the measurement
+  instrument — Movement Check-Up and weekly micro-checks are unchanged. The camera-conducted
+  session mode is PARKED as v2 behind a feature flag (nothing deleted; the detection stack
+  keeps maturing through the measurement flows); the promotion trigger is churn-location
+  telemetry (abandons mid-workout vs never-starts vs check-up-only).
+- **Design of record:** `TDD.md` (conductor, now the v2 reference) and `TDD-ADDENDUM.md`
+  (approved voice direction), both committed on `voice-sessions-v1`. Approved with the
+  addendum: the player tick-source refactor (`PlayerTick` over a second player), native-first
+  on-device KWS with sherpa-onnx as the pre-agreed fallback, a scoped audio-law amendment
+  (below), and a type-level reported-vs-measured rep split (`reportedReps` must be
+  structurally unable to enter measurement surfaces).
+- **Founder amendments at approval:** (1) spike go/no-go criteria frozen BEFORE the spike —
+  `docs/specs/VOICE_KWS_SPIKE_GO_NO_GO.md`; realistic conditions (arm's-reach phone,
+  same-device TTS, background TV, breathless/quiet "done"); per-intent recall reporting; if
+  native fails, sherpa-onnx proceeds without asking. (2) Explicit audio-routing device tests
+  (TTS audibility under an active session, speaker vs earpiece, Bluetooth). (3) The
+  reported/measured split enforced at the type/schema level, not by convention. (4) Privacy
+  copy + in-context mic permission prompt are week-4 beta scope. Checkpoint: pause after
+  spike results before continuing the voice layer.
+- **Scoped audio-law amendment (revisits 2026-07-01 "avoids microphone permissions" as that
+  entry required):** microphone permission returns to the manifest/config plugin; a
+  recording-capable audio session may exist ONLY inside voice-guided training sessions and is
+  restored to playback-only on exit; camera flows (check-up, micro-check) never see a
+  recording session and never initialize the voice module. Windowed listening only (WAITING /
+  ACTIVE / REST, never while the app speaks); no audio stored, no transcripts stored —
+  production emits intent events only. CLAUDE.md amended alongside this entry.
+- **Measurement-context rule (resolves TDD C3):** no silent degradation in measurement flows —
+  a check-up that can't see properly says so and offers Retry (with setup help) or Skip;
+  low-confidence results are marked invalid rather than recorded. The 2026-07-02/03
+  Retry/Skip decisions stand. Reliability gate rescoped to the measurement movements only
+  (chair-rise-v2, one-leg-balance-v2 / balance-eyes-open-v2 pre-switch, active-shoulder-reach-v2,
+  hinge-reach, micro-checks); original thresholds kept; corpus panel doubles as the
+  rise-velocity noise-floor real-data run.
+- **Standing v2-conductor decisions recorded while fresh:** spoken rep counts spec-as-written
+  for slow movements with milestone counts + chime for march (TDD C4); march stays side-view
+  near-knee cycle (C8); floor-last session ordering is a mode-conditional constraint compiled
+  in only for camera-conducted mode (C6); wall sit joins the library as a timer exercise, its
+  grader is v2 work.

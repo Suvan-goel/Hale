@@ -35,6 +35,16 @@ supported (male norms intact); the positioning, not the product, is women-first.
 impact-loading programming, GLP-1 sub-mode, and any composite score are deliberately deferred
 pending positioning validation. See docs/decisions.md.)*
 
+*(2026-07-05 direction — voice-guided sessions: v1 daily training sessions use NO camera.
+The app speaks instructions and the user answers with a tiny voice vocabulary ("I'm ready" /
+"done" / skip / repeat / pause / resume — on-device recognition only, windowed listening,
+never while the app speaks, tap parity for every command) or taps. The camera remains the
+measurement instrument — Movement Check-Up and micro-checks unchanged. The camera-conducted
+session mode ("conductor") is parked as v2 behind a feature flag, nothing deleted; promotion
+trigger is churn-location telemetry. Reps in voice sessions are REPORTED (prescribed target
+confirmed on "done", adjustable on the rest screen), never presented as measured. Design of
+record: TDD.md (v2 conductor) + TDD-ADDENDUM.md (approved v1). See docs/decisions.md.)*
+
 ## Product laws (non-negotiable design rules, validated in user interviews)
 
 1. **Never show self-view camera video.** Render a clean skeleton; users this age want presence
@@ -144,6 +154,11 @@ pending positioning validation. See docs/decisions.md.)*
   voice line at a time; if busy, drop lower-priority lines rather than queueing stale ones.
   iOS audio mode: MixWithOthers-equivalent interruption mode, recording disabled — **audio
   configuration must never interrupt the camera session** (this caused real production pain).
+  *(2026-07-05 scoped amendment: a recording-capable audio session is permitted ONLY inside
+  voice-guided training sessions — no camera runs there — owned by the voice-commands native
+  module and restored to playback-only on exit. Camera flows (check-up, micro-check) never
+  see a recording session and never initialize the voice module. Windowed listening only;
+  no audio and no transcripts are ever stored — production emits intent events only.)*
 - **Data:** local-first. The app runs fully on-device with no account (guest-first launch,
   2026-07-04); results/history live in a schema-versioned JSON store. Landmark recordings stay
   behind a dev toggle. *(Amendment history: the original V1 rule was "local-only, no accounts,
