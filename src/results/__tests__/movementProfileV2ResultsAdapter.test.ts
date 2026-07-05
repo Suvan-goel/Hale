@@ -20,7 +20,7 @@ describe('Movement Profile V2 unified results adapter', () => {
       planState: { status: 'ready', blockId: 'movement-block-v2:abc' },
     });
 
-    expect(presentation.header.title).toBe('Your Movement Profile');
+    expect(presentation.header.title).toBe('Your Strength Profile');
     expect(presentation.plan).toMatchObject({
       status: 'ready',
       title: 'Your 4-week plan is ready',
@@ -181,7 +181,7 @@ function movementProfileViewModel(
   return {
     checkUpId: '2026-06-24T09:00:00.000Z',
     dateLabel: '24 Jun 2026',
-    title: 'Your Movement Profile',
+    title: 'Your Strength Profile',
     summary: 'Camera results are beta estimates to help you track your movement at home.',
     focus,
     focusTitle: focus.kind === 'balanced' ? 'Suggested focus: Balanced plan' : `Suggested focus: ${focus.title}`,

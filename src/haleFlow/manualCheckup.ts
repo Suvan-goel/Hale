@@ -32,7 +32,7 @@ export function getManualCheckupOptions(_input: {
     {
       type: 'manual_extra_v2',
       title: 'Full Movement Check-Up',
-      body: "Complete the full check-up for your own reference. This won't update your Movement Profile or plan.",
+      body: "Complete the full check-up for your own reference. This won't update your Strength Profile or plan.",
       route: 'manual-extra-v2-checkup',
       recommended: false,
       isOfficialForProgress: false,

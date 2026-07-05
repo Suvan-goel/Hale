@@ -88,7 +88,7 @@ export function ExploreScreen({
       ) : null}
 
       <View style={styles.section}>
-        <SectionCopy title="Learn" body="Simple articles about movement, recovery, and healthy aging." />
+        <SectionCopy title="Learn" body="Simple articles about movement, recovery, and staying strong through menopause." />
         <View style={[styles.listPanel, styles.rowListPanel, responsive.isCompactPhone && styles.compactListPanel]}>
           {insights.map((article, index) => (
             <InsightRow

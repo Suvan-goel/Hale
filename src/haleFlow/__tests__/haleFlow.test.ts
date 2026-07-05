@@ -184,7 +184,7 @@ describe('manual check-up rules', () => {
 
     expect(header).toEqual({
       title: 'Check in on your progress',
-      body: "Choose a quick check-in or complete a full Movement Check-Up whenever you're curious. These optional check-ups won't change your plan or Movement Profile.",
+      body: "Choose a quick check-in or complete a full Movement Check-Up whenever you're curious. These optional check-ups won't change your plan or Strength Profile.",
     });
     expect(options.map((option) => option.type)).toEqual(['micro_check', 'manual_extra_v2']);
   });

@@ -114,6 +114,7 @@ describe('exploreViewModel', () => {
     const cards = getHealthInsightCards();
 
     expect(cards.map((card) => card.id)).toEqual([
+      'insight-menopause-muscle',
       'insight-strength-balance-aging',
       'insight-sleep-recovery-rhythm',
       'insight-protein-meal-rhythm',

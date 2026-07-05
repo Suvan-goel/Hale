@@ -46,7 +46,7 @@ export function buildProgressNextCheckUpCard(input: {
     return {
       title: 'Your next check-up',
       lead: 'Ready now.',
-      body: 'Repeat your Movement Check-Up to save your latest Movement Profile.',
+      body: 'Repeat your Movement Check-Up to save your latest Strength Profile.',
       actionLabel: 'Start Movement Check-Up',
     };
   }

@@ -381,7 +381,7 @@ describe('milestones and copy safety', () => {
     const goal = createLifeGoal({ category: 'independence', nowIso: START });
 
     expect(getProtectionCopy({ lifeGoal: goal, focusDomain: 'strength_power', adherenceState: 'on_track' })).toBe(
-      'Today supports the goal you chose: Stay independent and feel strong.'
+      'Today supports the goal you chose: Feel strong and stay independent.'
     );
   });
 });

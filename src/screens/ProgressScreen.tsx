@@ -248,10 +248,10 @@ function MovementProfileV2ProgressContent({
     const primary = recoveryViewModel?.actions[0];
     return (
       <MovementProfileV2RecoveryCard
-        title={recoveryViewModel?.recovery.title ?? 'Movement Profile needs attention'}
+        title={recoveryViewModel?.recovery.title ?? 'Strength Profile needs attention'}
         body={
           recoveryViewModel?.recovery.body ??
-          'Your saved Movement Profile data is still on this phone, but Hale cannot safely show it here yet.'
+          'Your saved Strength Profile data is still on this phone, but Hale cannot safely show it here yet.'
         }
         actionLabel={primary?.label}
         onPress={

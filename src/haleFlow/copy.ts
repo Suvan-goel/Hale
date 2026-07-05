@@ -15,7 +15,7 @@ export function getBlockPurposeCopy(block: MovementBlock, lifeGoal?: LifeGoal | 
 export function getManualCheckupCopy(_input: { activeBlock?: boolean } = {}): { title: string; body: string } {
   return {
     title: 'Check in on your progress',
-    body: "Choose a quick check-in or complete a full Movement Check-Up whenever you're curious. These optional check-ups won't change your plan or Movement Profile.",
+    body: "Choose a quick check-in or complete a full Movement Check-Up whenever you're curious. These optional check-ups won't change your plan or Strength Profile.",
   };
 }
 

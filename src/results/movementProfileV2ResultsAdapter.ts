@@ -59,7 +59,7 @@ export function buildMovementProfileV2UnifiedResultsPresentation(input: {
           : historyMode
             ? 'Saved check-up'
             : 'Movement Check-Up',
-      title: 'Your Movement Profile',
+      title: 'Your Strength Profile',
       completedAtLabel: input.viewModel.dateLabel,
       subtitle: historyMode
         ? 'A saved check-up from your history. Opening it does not change your plan.'
@@ -67,7 +67,7 @@ export function buildMovementProfileV2UnifiedResultsPresentation(input: {
           ? 'Your latest Check-Up is saved.'
           : planReady
             ? 'Your 4-week plan is ready.'
-            : 'Your Movement Profile is saved.',
+            : 'Your Strength Profile is saved.',
     },
     focus: {
       kicker: historyMode ? 'Focus at the time' : 'Where to focus',
@@ -112,7 +112,7 @@ export function buildMovementProfileV2UnifiedResultsPresentation(input: {
           },
         ],
     accessibility: {
-      screenSummary: 'Movement Profile results',
+      screenSummary: 'Strength Profile results',
     },
   };
 }
@@ -204,7 +204,7 @@ function planPresentation(
   return {
     status: 'unavailable',
     title: planState.title ?? 'Plan unavailable right now',
-    body: planState.body ?? 'Your Movement Profile is saved, but Hale could not find a matching prepared plan.',
+    body: planState.body ?? 'Your Strength Profile is saved, but Hale could not find a matching prepared plan.',
   };
 }
 

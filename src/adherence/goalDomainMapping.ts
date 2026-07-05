@@ -27,7 +27,7 @@ export const LIFE_GOAL_PRESETS: { category: LifeGoalCategory; label: string; hin
   },
   {
     category: 'independence',
-    label: 'Stay independent and feel strong',
+    label: 'Feel strong and stay independent',
     hint: 'Keep strength, balance, and mobility working together.',
   },
 ];

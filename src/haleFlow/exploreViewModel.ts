@@ -49,6 +49,7 @@ export interface HealthInsightCard extends LearnCard {
 }
 
 export type LearnArticleId =
+  | 'insight-menopause-muscle'
   | 'insight-strength-balance-aging'
   | 'insight-sleep-recovery-rhythm'
   | 'insight-protein-meal-rhythm'
@@ -174,6 +175,40 @@ function unique<T>(items: readonly T[]): T[] {
 }
 
 const HEALTH_INSIGHT_ARTICLES: readonly LearnDetail[] = [
+  {
+    id: 'insight-menopause-muscle',
+    title: 'Menopause and muscle: what changes, and what helps',
+    body: 'Strength becomes easier to lose and harder to rebuild through the menopause transition. Training changes that math.',
+    readTimeLabel: '5 min',
+    categoryLabel: 'Menopause',
+    authorName: 'Exercise physiologist',
+    authorCredential: 'MS, ACSM-EP',
+    // 2026-07-05 repositioning flagship. Honest label until a real clinical
+    // review happens — never inherit the default 'Reviewed' claim.
+    reviewedLabel: 'Awaiting review',
+    sections: [
+      {
+        title: 'This stage moves faster',
+        body: 'Through perimenopause and the years after, many women notice that strength changes more quickly than before: things feel heavier, recovery takes longer, and the same routine returns less. This is a normal, well-documented part of the transition — and it responds to training. The point of knowing is not worry; it is timing. Work you put in now counts more than at almost any other stage.',
+      },
+      {
+        title: 'Strength work is the strongest lever',
+        body: 'Progressive strength training — regularly asking your muscles to do slightly more than they are used to — is the most consistent way to keep muscle and power through this stage. Power matters as much as raw strength: standing up from a chair without hands, catching your balance on an uneven pavement, climbing stairs without pulling on the rail. These are the abilities Hale measures and trains.',
+      },
+      {
+        title: 'You do not need a gym to start',
+        body: 'Chair rises, supported squats, step-ups, hinges, and wall push-ups cover most of what matters, and each has an easier and a harder version. What makes it work is progression, not equipment: when a movement stops being challenging, the next level should ask a little more. Hale moves you up that ladder gradually and steps back whenever your body asks for it.',
+      },
+      {
+        title: 'Protein and recovery still count',
+        body: 'Training gives your body a reason to keep muscle; food and rest give it the means. Spreading protein across the day and protecting a repeatable sleep rhythm both support the same goal. The nutrition and sleep articles in this section go deeper on each.',
+      },
+      {
+        title: 'What Hale measures — and what it does not',
+        body: 'Hale uses the camera to measure functional strength, balance, and mobility, and compares your results with published values for women your age. It does not measure hormones or bone density, and it never diagnoses anything. Think of it as a regular, honest look at the abilities you use every day — and a plan that trains them.',
+      },
+    ],
+  },
   {
     id: 'insight-strength-balance-aging',
     title: 'Why strength and balance belong together',

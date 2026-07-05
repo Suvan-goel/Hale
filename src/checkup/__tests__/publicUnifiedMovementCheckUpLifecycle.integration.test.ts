@@ -648,7 +648,7 @@ describe('H3.1 public unified Movement Check-Up lifecycle', () => {
     const run = buildViewOnlyPresentation();
     const publicText = JSON.stringify(run.presentation);
     expect(publicText).not.toMatch(/v2|unified|internal|developer|diagnostics|schema|fingerprint|source id|movement age|weakest|physical validation|build my plan|create my plan|generate my plan|personalise my plan/i);
-    expect(publicText).toContain('Movement Profile');
+    expect(publicText).toContain('Strength Profile');
     expect(publicText).toContain('View my 4-week plan');
 
     const shell = source('src/screens/MovementProfileV2UnifiedCheckUpScreen.tsx');

@@ -88,7 +88,7 @@ export function buildMicroCheckSummaryViewModel({
     comparisonTitle: comparison.title,
     comparisonBody: comparison.body,
     ...(comparison.detail ? { comparisonDetail: comparison.detail } : {}),
-    footnote: 'Quick checks are not full retests; your next Movement Check-Up updates your official movement age.',
+    footnote: 'Quick checks are not full retests; your next Movement Check-Up updates your official Strength Profile.',
   };
 }
 
@@ -127,14 +127,14 @@ function summarySubtitle({
 }): string {
   if (!saved) {
     return resultCaptured
-      ? 'Hale measured it, but could not save the result. Your official movement age is unchanged.'
-      : 'Hale could not save a reliable measurement this time. Your official movement age is unchanged.';
+      ? 'Hale measured it, but could not save the result. Your official Strength Profile is unchanged.'
+      : 'Hale could not save a reliable measurement this time. Your official Strength Profile is unchanged.';
   }
   if (!measuredAndSaved) {
-    return 'Hale could not capture a reliable measurement this time. Your official movement age is unchanged.';
+    return 'Hale could not capture a reliable measurement this time. Your official Strength Profile is unchanged.';
   }
   if (source === 'optional') return 'A snapshot of today. Your plan is unchanged.';
-  return 'This updates your quick-check trend without changing your movement age.';
+  return 'This updates your quick-check trend without changing your Strength Profile.';
 }
 
 function domainForMicroCheckType(type: MicroCheckType): MovementDomain {

@@ -24,6 +24,12 @@ const BANNED_USER_COPY =
 const MISLEADING_EQUIPMENT_COPY =
   /no equipment needed|zero equipment|nothing but your phone|just your phone|only your phone|complete programme with only your phone|every workout needs no equipment|full-body strength without equipment|resistance band is never needed/i;
 
+// 2026-07-05 menopause repositioning red lines. Claim-shaped patterns only:
+// honest disclaimers ("does not measure bone density") must stay legal, so
+// affirmative measurement/treatment claims are banned, not the bare words.
+const MENOPAUSE_CLAIM_COPY =
+  /fracture risk|osteoporosis|osteopenia|hormone replacement|\bHRT\b|bone density (score|test|result|reading)|(?<!not |never )(measures?|estimates?|tracks?|predicts?) (your )?(bone density|hormones?)|(treats?|relieves?|cures?|reverses?) (your )?menopause|menopause (treatment|therapy|cure)/i;
+
 const RESULT_COPY_FILES = [
   'src/results/CheckUpResultsShell.tsx',
   'src/screens/ProgressScreen.tsx',
@@ -34,6 +40,7 @@ const RESULT_COPY_FILES = [
   'src/screens/SafetyProfileScreen.tsx',
   'src/results/movementProfileV2ResultsAdapter.ts',
   'src/movementProfileV2/viewModel.ts',
+  'src/haleFlow/microCheckSummary.ts',
 ] as const;
 
 function assertCleanCopy(parts: readonly unknown[]) {
@@ -110,6 +117,30 @@ describe('Hale V1 copy guardrails', () => {
     const appText = productionSourceText('App.tsx');
     expect(appText).toContain('Camera access lets Hale estimate your movement');
     expect(appText).not.toContain('Camera access is needed to measure your movement.');
+  });
+
+  it('keeps menopause positioning wellness-side: no bone, hormone, or treatment claims', () => {
+    const sourceText = [
+      ...RESULT_COPY_FILES.map(productionSourceText),
+      productionSourceText('src/haleFlow/exploreViewModel.ts'),
+      productionSourceText('src/haleFlow/copy.ts'),
+      productionSourceText('src/adherence/goalDomainMapping.ts'),
+    ].join(' ');
+    expect(sourceText).not.toMatch(MENOPAUSE_CLAIM_COPY);
+    expect(
+      getHealthInsightCards()
+        .flatMap((card) => {
+          const detail = getLearnDetail(card.id);
+          return [card.title, card.body, ...(detail?.sections.flatMap((s) => [s.title, s.body]) ?? [])];
+        })
+        .join(' ')
+    ).not.toMatch(MENOPAUSE_CLAIM_COPY);
+
+    // The repositioning itself is pinned: Welcome leads with the menopause
+    // frame, and the flagship article never claims a review that has not
+    // happened.
+    expect(productionSourceText('src/screens/WelcomeScreen.tsx')).toMatch(/menopause/i);
+    expect(getLearnDetail('insight-menopause-muscle')?.reviewedLabel).toBe('Awaiting review');
   });
 
   it('keeps app equipment positioning centralized and truthful', () => {

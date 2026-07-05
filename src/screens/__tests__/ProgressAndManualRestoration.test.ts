@@ -44,7 +44,7 @@ describe('Progress and Manual / Extra Check-Up UI restoration', () => {
     expect(rules).toContain('Full Movement Check-Up');
     expect(rules).toContain("type: 'manual_extra_v2'");
     expect(copy).toContain('Check in on your progress');
-    expect(copy).toContain("These optional check-ups won't change your plan or Movement Profile.");
+    expect(copy).toContain("These optional check-ups won't change your plan or Strength Profile.");
     expect(screen).not.toMatch(/Movement Age|weakest-domain|V1|V2/);
     expect(`${rules}\n${copy}`).not.toMatch(/Movement Age|weakest-domain/);
   });

@@ -31,7 +31,7 @@ export function WelcomeScreen({
       <ScreenHeader
         eyebrow="Welcome"
         title="Welcome to Hale"
-        subtitle="Hale starts by checking how you move today, then builds a simple 4-week plan you can do at home."
+        subtitle="Muscle and strength change faster through the menopause years. Hale measures where you stand today, then builds a simple 4-week strength plan you can do at home."
       />
 
       <View style={styles.heroImageCard}>
@@ -50,7 +50,7 @@ export function WelcomeScreen({
         </View>
         <Text style={styles.summaryTitle}>Start with a 10-minute check-up.</Text>
         <Text style={styles.summaryBody}>
-          Hale checks a few everyday movements to understand your strength, balance, and mobility, then uses the results to build your plan. Just three short steps and you are ready to begin.
+          Hale checks a few everyday movements to measure your strength, balance, and mobility, compares them with published values for people your age, and uses the results to build your plan. Just three short steps and you are ready to begin.
         </Text>
         <View style={styles.summaryFacts}>
           <SummaryMetric value="10 min" detail="Check-up" />
