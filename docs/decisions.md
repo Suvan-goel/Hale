@@ -3457,3 +3457,20 @@ PUBLIC RELEASE REMAINS BLOCKED
   chose convention. If a reviewer is engaged later, this entry is the audit trail.
 - **Next: Phase 2 impact-loading design** (founder-directed, ahead of positioning
   validation), spec in docs/impact-loading-design.md.
+
+## 2026-07-05 — Impact-loading design spec (Phase 2, proposed)
+
+- **docs/specs/IMPACT_LOADING_DESIGN.md** written (founder-directed next step after the
+  Phase-1 reframe). Proposes a new `impact-loading` ladder (supported heel drops → brisk
+  heel drops → mini hops; low hops parked) for the `power` slot: `post_v1_beta` so it merges
+  inert, an `ImpactRepGrader` composed from RepCycleTracker counting **landings** (no landing
+  -quality critique — Law 3; stiff-landing proxy log-only), FD-008 capability question
+  ("comfortable with small hops or brisk heel drops?") asked contextually rather than
+  lengthening onboarding, pain/injury auto-gate, substitution to heel-toe-raise, and
+  replay-first tuning gated on on-device recordings. Stage-independent programming:
+  `menopauseStage` never gates exercise selection. Bone-loading rationale stays internal;
+  user copy stays inside the MENOPAUSE_CLAIM_COPY red lines. Four open questions for the
+  founder are listed in the spec (name, FD-008 wording/placement, universality, L3 scope).
+- **Not implemented:** no catalog, grader, capability, or voice changes in this pass — the
+  spec is the deliverable, and steps 2–4 of its implementation order are blocked on device
+  recordings and FD-008 ratification.
