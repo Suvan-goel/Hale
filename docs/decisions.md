@@ -3442,3 +3442,18 @@ PUBLIC RELEASE REMAINS BLOCKED
   decision: voice lines still say "movement" phrasing in a few longer cues — audit and
   regenerate via `scripts/generate-audio.ts` once the founder confirms the Strength Profile
   vocabulary.
+
+## 2026-07-05 — Reframe ratifications (founder)
+
+- **"Strength Profile" confirmed** as the check-up result name; **"Movement Check-Up"
+  stays** as the activity name — audio audit found no bundled line speaks "movement age" or
+  "Movement Profile" (the only positioning noun spoken is "Movement Check-Up"), so Phase 1
+  requires **zero audio regeneration**.
+- **Founder-directed:** the `insight-menopause-muscle` article label changed
+  "Awaiting review" → "Reviewed Jul 2026" to match the other articles' convention. Recorded
+  for accuracy: no clinical review of this article has occurred as of this entry; the label
+  is a product-convention choice, consistent with how the four 2026-06 articles were
+  labeled. Claude recommended keeping the honest label or hiding the article; the founder
+  chose convention. If a reviewer is engaged later, this entry is the audit trail.
+- **Next: Phase 2 impact-loading design** (founder-directed, ahead of positioning
+  validation), spec in docs/impact-loading-design.md.

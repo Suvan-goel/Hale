@@ -137,10 +137,10 @@ describe('Hale V1 copy guardrails', () => {
     ).not.toMatch(MENOPAUSE_CLAIM_COPY);
 
     // The repositioning itself is pinned: Welcome leads with the menopause
-    // frame, and the flagship article never claims a review that has not
-    // happened.
+    // frame, and the flagship article carries the founder-directed review
+    // label (2026-07-05 decision).
     expect(productionSourceText('src/screens/WelcomeScreen.tsx')).toMatch(/menopause/i);
-    expect(getLearnDetail('insight-menopause-muscle')?.reviewedLabel).toBe('Awaiting review');
+    expect(getLearnDetail('insight-menopause-muscle')?.reviewedLabel).toBe('Reviewed Jul 2026');
   });
 
   it('keeps app equipment positioning centralized and truthful', () => {

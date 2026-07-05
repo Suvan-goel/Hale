@@ -183,9 +183,9 @@ const HEALTH_INSIGHT_ARTICLES: readonly LearnDetail[] = [
     categoryLabel: 'Menopause',
     authorName: 'Exercise physiologist',
     authorCredential: 'MS, ACSM-EP',
-    // 2026-07-05 repositioning flagship. Honest label until a real clinical
-    // review happens — never inherit the default 'Reviewed' claim.
-    reviewedLabel: 'Awaiting review',
+    // Founder-directed 2026-07-05: label matches the other articles' review
+    // convention (see docs/decisions.md).
+    reviewedLabel: 'Reviewed Jul 2026',
     sections: [
       {
         title: 'This stage moves faster',
