@@ -129,11 +129,14 @@ export const VOICE_INTENT_CONFIG: VoiceIntentConfig = {
     maxTranscriptWords: 6,
   },
   pain: {
-    // Recall beats precision here (founder rule): breathless, mangled speech
-    // must still fire, so fuzzy matching starts at 4 letters ("hurt"/"hurts"/
-    // "sore" with one slip all land). Known accepted risk at this setting:
-    // "touch" is edit-distance 1 from "ouch". Generous word cap — pain
-    // arrives wrapped in speech ("oh that really hurts").
+    // Recall beats precision here (founder rule) — but fuzz starts at 5
+    // letters, not 4: mangled breathless speech still fires via "hurts"/
+    // "hurting" (ed-1), while the 4-letter words stay exact because their
+    // ed-1 neighborhoods are everyday speech — "ouch" reaches much/such/
+    // touch/couch, "sore" reaches sure, "hurt" reaches hut/curt. A false
+    // pain fire skips an exercise; that cost rules those neighborhoods out.
+    // Generous word cap — pain arrives wrapped in speech ("oh that really
+    // hurts").
     phrases: [
       'that hurts',
       'it hurts',
@@ -147,10 +150,38 @@ export const VOICE_INTENT_CONFIG: VoiceIntentConfig = {
       'that is sore',
       'too sore',
     ],
-    fuzzyMinWordLength: 4,
+    fuzzyMinWordLength: 5,
     maxTranscriptWords: 8,
   },
 };
+
+/**
+ * Script-lint comparator for bundled voice lines: does this line contain any
+ * HOT phrase or a word inside the matcher's OWN fuzzy neighborhood of one?
+ * Uses the exact matcher comparator (not a precomputed word list), so the
+ * lint can never drift from what the live matcher would hear — and it ignores
+ * maxTranscriptWords, because a hot phrase inside a long TTS line is still a
+ * self-trigger risk. Consumed by the hot-phrase guardrail test; must pass on
+ * every bundled session line before hot listening ships.
+ */
+export function hotPhraseViolations(
+  text: string,
+  config: VoiceIntentConfig = VOICE_INTENT_CONFIG
+): { intent: VoiceIntent; phrase: string }[] {
+  const words = normalizeTranscript(text);
+  const violations: { intent: VoiceIntent; phrase: string }[] = [];
+  if (words.length === 0) return violations;
+  for (const intent of HOT_INTENTS) {
+    const c = config[intent];
+    if (!c) continue;
+    for (const phrase of c.phrases) {
+      if (phraseMatchLength(words, phrase, c.fuzzyMinWordLength) > 0) {
+        violations.push({ intent, phrase });
+      }
+    }
+  }
+  return violations;
+}
 
 /** Lowercase, strip apostrophes/punctuation, collapse whitespace → word array. */
 export function normalizeTranscript(raw: string): string[] {

@@ -124,13 +124,33 @@ zero false `skip`) and now includes safety fires, with at most one false `pain` 
 (a false pain skips an exercise; a false stop is a recoverable halt). This is deliberately
 strict: always-on listening multiplies exposure, and the soak is where that bill arrives.
 
-**Matcher posture for safety words (recall beats precision — founder rule):** `pain`
-fuzzy-matches from 4-letter words so mangled breathless variants fire ("that herts",
-"hurtin"); documented accepted risk at this setting: "touch" is edit-distance 1 from
-"ouch". `stop` earns recall through phrase variants, not fuzz — edit-distance 1 from
-"stop" reaches "step", which this audience says aloud during step-ups. Safety intents are
-matched before commands and win outright; a pure safety tie resolves to `stop` (halt is
-the least destructive response). All in `src/voice/intents.ts` config.
+**Matcher posture for safety words (recall beats precision — founder rule; revised
+pre-run 2026-07-05 during the fuzzy-neighborhood lint work):** `pain` fuzzy-matches from
+**5-letter** words — mangled breathless variants still fire via "hurts"/"hurting"
+("that herts", "hurtin") — while the 4-letter pain words stay exact because their ed-1
+neighborhoods are everyday speech: "ouch" reaches much/such/touch/couch, "sore" reaches
+sure. (The earlier 4-letter posture would have fired pain on "thanks so much".) `stop`
+earns recall through phrase variants, not fuzz — edit-distance 1 from "stop" reaches
+"step", which this audience says aloud during step-ups. Known remaining neighborhood:
+"pause" (5 letters, fuzzy) admits "paused"/"pauses"/"cause" — a false pause is a
+recoverable halt, accepted. Safety intents are matched before commands and win outright;
+a pure safety tie resolves to `stop`. All in `src/voice/intents.ts` config.
+
+**Script-lint guardrail (founder directive):** bundled session lines are linted against
+the matcher's OWN comparator (`hotPhraseViolations`), so the lint covers the fuzzy
+neighborhood by construction and cannot drift from live behavior. The 2026-07-05
+inventory found **no exercise-name collisions** (no "couch stretch" or hot-neighborhood
+word in any display name) but **17 bundled session lines that speak "stop"/"pause(d)"**
+(8 safety cues, 9 V2.1 training scripts) — held in a tripwired temporary allowlist in
+`hotPhraseGuardrail.test.ts` that must be emptied before hot listening ships.
+
+**Self-echo device test (added pre-run, both platforms — decides reword vs suppress for
+those 17 lines):** with a hot listening window open, play the worst real colliding line
+("Stop if you feel sharp pain or discomfort that keeps building.") through the speaker at
+session volume ×10. PASS = zero self-fires (platform echo cancellation holds → the 17
+lines may keep their natural wording and the allowlist is retired as N/A). FAIL = any
+self-fire → the decision returns to the founder with data: reword the 17 lines (+ audio
+regeneration) or suppress hot listening during app speech.
 
 **Harness:** tallies safety-intent recall separately from command recall; the exported
 JSON marks safety trials so the results report can gate them independently.

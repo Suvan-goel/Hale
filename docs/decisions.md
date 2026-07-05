@@ -3572,3 +3572,28 @@ PUBLIC RELEASE REMAINS BLOCKED
 - **Timeline honesty (TDD-ADDENDUM §9):** ≈3–4 added days across weeks 2–3; week-4
   beta-ready holds with thinner buffer; sherpa-onnx fallback (if the spike invokes it)
   would move beta-ready to week 5 with the slice included.
+
+## 2026-07-05 — Hot-phrase lint hardened to the fuzzy neighborhood (pre-run, same day)
+
+- **Founder directive before running the spike:** the script-lint guardrail must catch the
+  matcher's FUZZY NEIGHBORHOOD of hot phrases in bundled session lines, not just exact
+  matches. Implemented as `hotPhraseViolations()` in `src/voice/intents.ts` — the lint runs
+  the matcher's own comparator (ignoring word caps), so neighborhood coverage cannot drift
+  from live behavior. Guardrail test lints the real corpus (safety-cue texts + V2.1
+  training scripts) and proves "set up for the couch stretch" is safely ignored.
+- **Doing the work exposed a live-matcher hazard, fixed pre-run:** pain fuzz at 4-letter
+  words put everyday speech in the firing line — "ouch"±1 = much/such/touch/couch,
+  "sore"±1 = sure ("thanks so much" would have skipped an exercise). Pain
+  `fuzzyMinWordLength` 4→5: breathless mangles still fire via "hurts"/"hurting"; the
+  4-letter pain words are exact. Criteria §8 and TDD-ADDENDUM §9 revised accordingly —
+  all still before any trial ran. Remaining accepted neighborhood: "pause"±1
+  (paused/pauses/cause) — a false pause is a recoverable halt.
+- **Collision inventory (the "tell me now"):** no exercise-name collisions — no "couch
+  stretch" or hot-neighborhood word in any catalog display name or the impact-loading
+  spec. But **17 bundled session lines speak "stop"/"pause(d)"** (8 safety cues incl.
+  "Stop if you feel sharp pain…", 9 V2.1 scripts incl. training-intro/set-complete).
+  Held in a TRIPWIRED temporary allowlist in `hotPhraseGuardrail.test.ts` (new collisions
+  fail CI; stale entries fail CI). Decision deferred to data: a self-echo device test was
+  added to criteria §8 (play the worst line ×10 with a hot window open) — zero self-fires
+  keeps the natural wording; any self-fire returns reword-vs-suppress to the founder.
+- Verification: tsc clean, jest full suite green (56 voice tests incl. 7 new guardrail).

@@ -257,11 +257,16 @@ on your phone, never recorded, never uploaded"). Same on-device layer; intent ev
   event type in telemetry.
 
 **Engineering rules honored:** recall beats precision on this vocabulary — `pain` fuzzy
-matches from 4-letter words so mangled breathless speech fires; `stop` earns recall via
-phrase variants (fuzz would collide with "step"); safety intents beat commands outright,
-and a pure safety tie resolves to `stop`. Tap parity: a visible "something hurts" control
-on every set screen — mic-denied users get safety too. Substitution tables / intelligent
-swaps are v2 — not built.
+matches from 5-letter words (revised pre-run from 4: the 4-letter neighborhoods are
+everyday speech — much/such/touch/couch~"ouch", sure~"sore") so mangled breathless speech
+fires via "hurts"/"hurting"; `stop` earns recall via phrase variants (fuzz would collide
+with "step"); safety intents beat commands outright, and a pure safety tie resolves to
+`stop`. The script-lint guardrail lints bundled session lines with the matcher's own
+comparator (fuzzy neighborhood by construction); 17 current lines speaking
+"stop"/"pause(d)" sit in a tripwired allowlist pending the spike's self-echo test
+(criteria §8) — reword vs suppress-during-speech is decided on that data. Tap parity: a
+visible "something hurts" control on every set screen — mic-denied users get safety too.
+Substitution tables / intelligent swaps are v2 — not built.
 
 **Build-order fold & honest timeline:** matcher vocabulary, criteria cells, and harness
 tallies landed pre-spike (cheapest point — they ride the existing spike). The hot
