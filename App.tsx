@@ -168,6 +168,7 @@ import {
 import { deriveOnboardingStep } from './src/onboarding/state';
 import {
   AppSettings,
+  MenopauseStage,
   OnboardingStep,
   Preferences,
   ProfileStore,
@@ -1986,6 +1987,7 @@ function HaleApp() {
         exactAge: number;
         ageBand: AgeBand | null;
         referenceSex: 'female' | 'male';
+        menopauseStage: MenopauseStage | null;
       },
       options?: { stayOnScreen?: boolean }
     ) => {
@@ -2012,6 +2014,7 @@ function HaleApp() {
           dateOfBirth: referenceDetails.dateOfBirth,
           exactAge: referenceDetails.exactAge,
           referenceSex: referenceDetails.referenceSex,
+          menopauseStage: referenceDetails.menopauseStage,
           age: referenceDetails.exactAge,
           ageBand: referenceDetails.ageBand,
           safetyProfile: nextSafetyProfile,

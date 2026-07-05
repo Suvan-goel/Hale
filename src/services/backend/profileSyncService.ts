@@ -100,6 +100,7 @@ export function mergeRemoteProfileIntoLocal(
       dateOfBirth,
       exactAge,
       referenceSex: localPrefs.profile.referenceSex ?? remotePrefs.profile.referenceSex,
+      menopauseStage: localPrefs.profile.menopauseStage ?? remotePrefs.profile.menopauseStage,
       age: derivedAge ?? localPrefs.profile.age ?? remotePrefs.profile.age,
       ageBand:
         derivedAge !== null

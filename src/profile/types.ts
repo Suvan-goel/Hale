@@ -9,6 +9,25 @@ import type { AgeBand, LifeGoal, MovementSafetyProfile } from '../adherence';
 
 export type ProfileReferenceSex = 'female' | 'male';
 
+/**
+ * Where the user is in the menopause transition (2026-07-05 repositioning).
+ * Copy tone and content selection ONLY — never scoring. Published comparisons
+ * stay keyed to age + referenceSex; no reference source is stage-stratified.
+ */
+export type MenopauseStage =
+  | 'perimenopausal'
+  | 'postmenopausal'
+  | 'neither_or_unsure'
+  | 'prefer_not_to_say';
+
+/** Display options for the stage question (onboarding safety setup + Settings). */
+export const MENOPAUSE_STAGE_OPTIONS: readonly { value: MenopauseStage; label: string }[] = [
+  { value: 'perimenopausal', label: 'Perimenopause' },
+  { value: 'postmenopausal', label: 'Post-menopause' },
+  { value: 'neither_or_unsure', label: 'Neither / not sure' },
+  { value: 'prefer_not_to_say', label: 'Prefer not to say' },
+];
+
 /** A single person on this device. All fields optional until the user fills them in. */
 export interface UserProfile {
   /** Display name shown on Home; '' when unset. */
@@ -19,6 +38,8 @@ export interface UserProfile {
   exactAge: number | null;
   /** Reference group used for sex-specific published comparisons. */
   referenceSex: ProfileReferenceSex | null;
+  /** Menopause-transition stage; shapes copy and content, never measurements. */
+  menopauseStage: MenopauseStage | null;
   /** Deprecated legacy exact age mirror for older V1 surfaces. */
   age: number | null;
   /** Legacy age range retained for old records and non-reference copy. */
@@ -73,6 +94,7 @@ export const EMPTY_PROFILE: UserProfile = {
   dateOfBirth: null,
   exactAge: null,
   referenceSex: null,
+  menopauseStage: null,
   age: null,
   ageBand: null,
   goal: '',

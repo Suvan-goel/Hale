@@ -13,6 +13,7 @@ import { BackArrowButton } from '../components/BackArrowButton';
 import { DateOfBirthPickerModal } from '../components/DateOfBirthPickerModal';
 import { PrimaryButton, Screen, ScreenHeader } from '../components/ui';
 import {
+  MENOPAUSE_STAGE_OPTIONS,
   STARTING_PACE_OPTIONS,
   ageFromDateOfBirth,
   ageBandForAge,
@@ -21,6 +22,7 @@ import {
   normalizeDateOfBirth,
   onboardingActivityLevel,
   safetyProfileWithMovementCapabilities,
+  type MenopauseStage,
   type ProfileReferenceSex,
   type UserProfile,
 } from '../profile';
@@ -35,12 +37,14 @@ type SafetyProfileReferenceDetails = {
   exactAge: number;
   ageBand: AgeBand | null;
   referenceSex: ProfileReferenceSex;
+  menopauseStage: MenopauseStage | null;
 };
 
 type SafetyProfileDraft = {
   dateOfBirth: string | null;
   exactAge: number | null;
   referenceSex: ProfileReferenceSex | null;
+  menopauseStage: MenopauseStage | null;
   activityLevel: ActivityLevel;
   painArea: string;
   floorTransferStatus: CapabilityConfirmationStatus;
@@ -78,6 +82,7 @@ export function SafetyProfileScreen({
   );
   const [datePickerVisible, setDatePickerVisible] = React.useState(false);
   const [referenceSex, setReferenceSex] = React.useState<ProfileReferenceSex | null>(profile.referenceSex);
+  const [menopauseStage, setMenopauseStage] = React.useState<MenopauseStage | null>(profile.menopauseStage);
   const [activityLevel, setActivityLevel] = React.useState<ActivityLevel>(
     onboardingActivityLevel(initial?.activityLevel)
   );
@@ -87,7 +92,11 @@ export function SafetyProfileScreen({
   const [singleLegStatus, setSingleLegStatus] = React.useState(initialCapabilities.singleLegBalance.status);
   const dateOfBirth = normalizeDateOfBirth(dateOfBirthText);
   const exactAge = ageFromDateOfBirth(dateOfBirth);
-  const canSaveReferenceDetails = dateOfBirth !== null && exactAge !== null && referenceSex !== null;
+  const canSaveReferenceDetails =
+    dateOfBirth !== null &&
+    exactAge !== null &&
+    referenceSex !== null &&
+    (referenceSex !== 'female' || menopauseStage !== null);
   const movementAnswersComplete =
     floorTransferStatus !== 'not_confirmed' &&
     stepUpStatus !== 'not_confirmed' &&
@@ -97,6 +106,7 @@ export function SafetyProfileScreen({
     dateOfBirth,
     exactAge,
     referenceSex,
+    menopauseStage,
     activityLevel,
     painArea,
     floorTransferStatus,
@@ -155,6 +165,9 @@ export function SafetyProfileScreen({
         exactAge: draft.exactAge,
         ageBand: ageBandForAge(draft.exactAge),
         referenceSex: draft.referenceSex,
+        // The stage question only shows for the female reference group; never
+        // persist a stale answer for anyone else.
+        menopauseStage: draft.referenceSex === 'female' ? draft.menopauseStage : null,
       },
       options
     );
@@ -179,6 +192,11 @@ export function SafetyProfileScreen({
   const selectReferenceSex = (next: ProfileReferenceSex) => {
     setReferenceSex(next);
     saveIfReviewing({ referenceSex: next });
+  };
+
+  const selectMenopauseStage = (next: MenopauseStage) => {
+    setMenopauseStage(next);
+    saveIfReviewing({ menopauseStage: next });
   };
 
   const selectActivityLevel = (next: ActivityLevel) => {
@@ -249,6 +267,29 @@ export function SafetyProfileScreen({
               accessibilityLabel="Use male reference group"
             />
           </View>
+          {referenceSex === 'female' ? (
+            <View style={styles.subsection}>
+              <View style={styles.questionCopy}>
+                <Text style={styles.subsectionTitle}>Menopause</Text>
+                <Text style={styles.questionDescription}>
+                  Where are you in the menopause transition?
+                </Text>
+              </View>
+              <View style={styles.grid}>
+                {MENOPAUSE_STAGE_OPTIONS.map((option) => (
+                  <Choice
+                    key={option.value}
+                    label={option.label}
+                    selected={menopauseStage === option.value}
+                    onPress={() => selectMenopauseStage(option.value)}
+                  />
+                ))}
+              </View>
+              <Text style={styles.gentle}>
+                This shapes Hale's guidance — it never changes how your results are measured.
+              </Text>
+            </View>
+          ) : null}
         </View>
       </ChoiceSection>
 

@@ -18,6 +18,7 @@ import { Screen, ToggleRow } from '../components/ui';
 import { controlledBetaEquipmentPositioning } from '../haleFlow';
 import {
   AppSettings,
+  MENOPAUSE_STAGE_OPTIONS,
   STARTING_PACE_OPTIONS,
   ageFromDateOfBirth,
   ageBandForAge,
@@ -25,6 +26,7 @@ import {
   normalizeDateOfBirth,
   normalizeDateOfBirthInput,
   startingEffortLabel,
+  type MenopauseStage,
   type ProfileReferenceSex,
   UserProfile,
   VOICE_OPTIONS,
@@ -123,6 +125,7 @@ function SettingsScreenContent({
   );
   const [datePickerVisible, setDatePickerVisible] = React.useState(false);
   const [referenceSex, setReferenceSex] = React.useState<ProfileReferenceSex | null>(profile.referenceSex);
+  const [menopauseStage, setMenopauseStage] = React.useState<MenopauseStage | null>(profile.menopauseStage);
   const voicePreviewRef = React.useRef<VoiceChannel | null>(null);
   const available = profile.safetyProfile?.availableEquipment ?? ['chair', 'wall'];
   const displayName = profile.name.trim() || 'Your details';
@@ -141,6 +144,7 @@ function SettingsScreenContent({
     setDateOfBirthText(dateOfBirthInputLabel(profile.dateOfBirth));
   }, [profile.dateOfBirth]);
   React.useEffect(() => setReferenceSex(profile.referenceSex), [profile.referenceSex]);
+  React.useEffect(() => setMenopauseStage(profile.menopauseStage), [profile.menopauseStage]);
   React.useEffect(() => () => voicePreviewRef.current?.stop(), []);
   React.useEffect(() => {
     if (Platform.OS !== 'android' || openSection === null) return;
@@ -163,7 +167,8 @@ function SettingsScreenContent({
   const commitName = () => onProfileChange({ ...profile, name: name.trim() });
   const commitReferenceDetails = (
     birthDateText: string = dateOfBirthText,
-    nextReferenceSex: ProfileReferenceSex | null = referenceSex
+    nextReferenceSex: ProfileReferenceSex | null = referenceSex,
+    nextMenopauseStage: MenopauseStage | null = menopauseStage
   ) => {
     const dateOfBirth = normalizeDateOfBirth(birthDateText) ?? normalizeDateOfBirthInput(birthDateText);
     const exactAge = ageFromDateOfBirth(dateOfBirth);
@@ -175,6 +180,8 @@ function SettingsScreenContent({
       dateOfBirth,
       exactAge,
       referenceSex: nextReferenceSex,
+      // The stage question only applies to the female reference group.
+      menopauseStage: nextReferenceSex === 'female' ? nextMenopauseStage : null,
       age: exactAge,
       ageBand,
       safetyProfile: profile.safetyProfile
@@ -196,6 +203,10 @@ function SettingsScreenContent({
     setReferenceSex(next);
     commitReferenceDetails(dateOfBirthText, next);
   };
+  const updateMenopauseStage = (next: MenopauseStage) => {
+    setMenopauseStage(next);
+    commitReferenceDetails(dateOfBirthText, referenceSex, next);
+  };
 
   const toggleDay = (day: string) => {
     const next = preferredDays.includes(day)
@@ -216,6 +227,8 @@ function SettingsScreenContent({
             onOpenDateOfBirthPicker={() => setDatePickerVisible(true)}
             referenceSex={referenceSex}
             onReferenceSexChange={updateReferenceSex}
+            menopauseStage={menopauseStage}
+            onMenopauseStageChange={updateMenopauseStage}
             movementGoal={goalText}
             onOpenLifeGoal={onOpenLifeGoal}
           />
@@ -735,6 +748,8 @@ function PersonalDetailsCard({
   onOpenDateOfBirthPicker,
   referenceSex,
   onReferenceSexChange,
+  menopauseStage,
+  onMenopauseStageChange,
   movementGoal,
   onOpenLifeGoal,
 }: {
@@ -745,6 +760,8 @@ function PersonalDetailsCard({
   onOpenDateOfBirthPicker: () => void;
   referenceSex: ProfileReferenceSex | null;
   onReferenceSexChange: (value: ProfileReferenceSex) => void;
+  menopauseStage: MenopauseStage | null;
+  onMenopauseStageChange: (value: MenopauseStage) => void;
   movementGoal: string;
   onOpenLifeGoal: () => void;
 }) {
@@ -834,6 +851,43 @@ function PersonalDetailsCard({
               );
             })}
           </View>
+          {referenceSex === 'female' ? (
+            <>
+              <Text style={styles.personalFieldLabel}>Menopause stage</Text>
+              <View style={styles.personalAgeOptionGrid}>
+                {MENOPAUSE_STAGE_OPTIONS.map((option) => {
+                  const selected = menopauseStage === option.value;
+                  return (
+                    <Pressable
+                      key={option.value}
+                      style={({ pressed }) => [
+                        styles.personalAgeOption,
+                        styles.personalAgeOptionWide,
+                        selected && styles.personalAgeOptionSelected,
+                        pressed && styles.pressed,
+                      ]}
+                      onPress={() => onMenopauseStageChange(option.value)}
+                      accessibilityRole="button"
+                      accessibilityLabel={option.label}
+                      accessibilityState={{ selected }}
+                    >
+                      <Text
+                        style={[styles.personalAgeOptionText, selected && styles.personalAgeOptionTextSelected]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.88}
+                      >
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <Text style={styles.personalFieldHint}>
+                Shapes Hale's guidance — never how your results are measured.
+              </Text>
+            </>
+          ) : null}
         </View>
 
         <Pressable
@@ -1687,6 +1741,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     color: colors.sageDeep,
     textTransform: 'uppercase',
+  },
+  personalFieldHint: {
+    ...type.caption,
+    color: colors.textSecondary,
   },
   personalFieldInput: {
     fontFamily: fonts.serifRegular,

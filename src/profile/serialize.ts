@@ -7,7 +7,7 @@
 
 import { LIFE_GOAL_CATEGORIES, normalizeLifeGoalDisplayText } from '../adherence';
 import type { ActivityLevel, LifeGoal, MovementSafetyProfile } from '../adherence';
-import { AppSettings, EMPTY_PROFILE, OnboardingState, OnboardingStep, Preferences, ProfileReferenceSex, UserProfile } from './types';
+import { AppSettings, EMPTY_PROFILE, MenopauseStage, OnboardingState, OnboardingStep, Preferences, ProfileReferenceSex, UserProfile } from './types';
 import {
   ageBandForAge,
   ageFromDateOfBirth,
@@ -19,7 +19,7 @@ import { isCanonicalEquipmentStatus, normalizeAvailableEquipmentForPersistence }
 import { movementCapabilityProfileForPersistence } from './movementCapabilities';
 import { DEFAULT_VOICE_ID, VOICE_OPTIONS } from './voices';
 
-export const PREFERENCES_SCHEMA_VERSION = 8;
+export const PREFERENCES_SCHEMA_VERSION = 9;
 
 const ONBOARDING_STEPS: OnboardingStep[] = [
   'welcome',
@@ -99,6 +99,7 @@ function validProfile(v: unknown): UserProfile {
     dateOfBirth,
     exactAge,
     referenceSex: validReferenceSex(p.referenceSex),
+    menopauseStage: validMenopauseStage(p.menopauseStage),
     age: exactAge,
     ageBand,
     goal: normalizeLifeGoalDisplayText(typeof p.goal === 'string' ? p.goal : def.goal),
@@ -197,6 +198,18 @@ function validExactAge(value: unknown): number | null {
 
 function validReferenceSex(value: unknown): ProfileReferenceSex | null {
   return value === 'female' || value === 'male' ? value : null;
+}
+
+const MENOPAUSE_STAGES: MenopauseStage[] = [
+  'perimenopausal',
+  'postmenopausal',
+  'neither_or_unsure',
+  'prefer_not_to_say',
+];
+function validMenopauseStage(value: unknown): MenopauseStage | null {
+  return typeof value === 'string' && MENOPAUSE_STAGES.includes(value as MenopauseStage)
+    ? (value as MenopauseStage)
+    : null;
 }
 
 function validSettings(v: unknown): AppSettings {

@@ -21,6 +21,7 @@ describe('preferences serialize', () => {
       dateOfBirth: null,
       exactAge: 58,
       referenceSex: 'female',
+      menopauseStage: 'perimenopausal',
       age: 58,
       ageBand: '55_64',
       goal: 'Stay steady on the stairs',
@@ -45,7 +46,14 @@ describe('preferences serialize', () => {
   });
 
   it('writes a schema version', () => {
-    expect(JSON.parse(serializePreferences(sample)).schemaVersion).toBe(8);
+    expect(JSON.parse(serializePreferences(sample)).schemaVersion).toBe(9);
+  });
+
+  it('drops unknown menopause-stage values instead of persisting them', () => {
+    const parsed = deserializePreferences(
+      JSON.stringify({ profile: { name: '', goal: '', menopauseStage: 'menopausal-typo' } })
+    );
+    expect(parsed?.profile.menopauseStage).toBeNull();
   });
 
   it('resumes retired onboarding steps at the single camera setup screen', () => {
@@ -222,6 +230,7 @@ describe('ProfileStore', () => {
         dateOfBirth: null,
         exactAge: 68,
         referenceSex: 'male',
+        menopauseStage: null,
         age: 68,
         ageBand: '65_74',
         goal: '',
