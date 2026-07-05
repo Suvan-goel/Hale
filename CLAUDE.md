@@ -17,6 +17,24 @@ a gym form-feedback app (Forma) on MediaPipe + React Native; this context distil
 its hard-won pose-detection and architecture knowledge. You have none of that code — these
 notes are the transfer.
 
+*(2026-07-05 repositioning — menopause reframe, Phase 1: the target user is now **women
+~40–60 in perimenopause and menopause**, positioned around menopausal muscle loss and
+fall/fracture-relevant functional decline. The measurement engine is unchanged — the live V2
+battery already compares by age + sex via published sources (Warden 2022 sex-specific 30s STS
+percentiles 18–80, Gill 2020 shoulder IQR by sex, Springer 2007 balance benchmarks). What
+changed is the copy layer: the V2 result is presented as the "Strength Profile" (the spoken
+noun "Movement Check-Up" is unchanged — bundled audio says it), Welcome leads with the
+menopause strength narrative, and the profile gains an optional `menopauseStage` field
+(perimenopausal / postmenopausal / neither-or-unsure / prefer-not-to-say, asked only for the
+female reference group) that shapes **copy and content only, never measurements** — no
+reference source is stage-stratified, so scoring stays keyed to age + referenceSex. Hard
+claim red lines, enforced by `copyGuardrails.test.ts`: never claim to measure/estimate bone
+density or hormones, no fracture-risk/osteoporosis language, no HRT or menopause-treatment
+claims — Hale measures functional strength/balance/mobility, nothing else. Men remain fully
+supported (male norms intact); the positioning, not the product, is women-first. The rename,
+impact-loading programming, GLP-1 sub-mode, and any composite score are deliberately deferred
+pending positioning validation. See docs/decisions.md.)*
+
 ## Product laws (non-negotiable design rules, validated in user interviews)
 
 1. **Never show self-view camera video.** Render a clean skeleton; users this age want presence

@@ -3387,3 +3387,58 @@ PUBLIC RELEASE REMAINS BLOCKED
   oversized for the job but a harmless brand moment.
 - **Verification:** tsc 0 errors, jest 1,321/1,321. Owed on device: Settings → Account in all
   three states (signed out, signed in, forgot-password) and a recovery-link open.
+
+## 2026-07-05 — Menopause repositioning, Phase 1: the copy-layer reframe
+
+- **Product decision (founder-directed): Hale repositions from general "movement age"
+  longevity for adults 45–65 to women ~40–60 in perimenopause/menopause**, focused on
+  menopausal muscle loss and fall/fracture-relevant functional decline. Rationale: acute,
+  searchable, community-dense demand instead of the diffuse worried-well segment; competing
+  menopause fitness apps are content libraries with no objective measurement; and the live V2
+  battery is already validated and sex-referenced for exactly this population (Warden 2022
+  female 30s-STS percentiles cover 18–80). The assessment that motivated this is recorded
+  here as its ground truth: the pivot discards almost no engineering — the reference engine,
+  battery, training loop, and guest-first architecture carry over whole.
+- **Deliberately sequenced.** Phase 1 is the reversible copy layer only. Deferred pending
+  positioning validation: the app rename, impact-loading/bone programming, pelvic-floor
+  content, GLP-1 sub-mode, and any composite single score (which would require amending
+  product law 4 — not done). Also unchanged and still gating everything: the on-device
+  rise-velocity reliability go/no-go.
+- **New profile field `menopauseStage`** (`perimenopausal | postmenopausal |
+  neither_or_unsure | prefer_not_to_say`), schema v8 → v9, defensive parse. Asked in the
+  onboarding safety-setup "About you" section and editable in Settings — only when the
+  female reference group is selected; starts unanswered and is required before Continue
+  (per the 2026-07-05 "unanswered never masquerades as answered" rule); never persisted for
+  other groups; local-wins in the backend profile merge. **Copy and content selection only,
+  never scoring** — no published reference source is stage-stratified, and the intake says so
+  on-screen ("never changes how your results are measured"). Pinned by
+  `SafetyProfileScreen.menopauseStage.test.ts`.
+- **Vocabulary: the V2 result is now the "Strength Profile".** Results header/subtitle/
+  accessibility, Progress recovery card, manual-checkup copy, and the micro-check summary
+  strings (which still said "official movement age" — stale V1 vocabulary under V2) all
+  renamed. The spoken flow noun "Movement Check-Up" is untouched: bundled audio
+  (`mpv2_checkup_intro`, `checkup-complete-v21`) says it, and screens must not diverge from
+  voice. No engine, id, or persisted-record changes — presentation strings only.
+- **Welcome reframe:** the subtitle leads with "Muscle and strength change faster through the
+  menopause years"; the check-up panel now says results are compared with published values
+  for people your age. The `independence` life-goal relabeled "Feel strong and stay
+  independent" (labels stay universal — the goal step precedes the sex question).
+- **New flagship Learn article** `insight-menopause-muscle` ("Menopause and muscle: what
+  changes, and what helps"): five sections ending with an explicit claims-boundary section
+  ("What Hale measures — and what it does not"). Labeled **"Awaiting review"** — it must not
+  inherit the other articles' review claims until a real clinical review happens (founder:
+  arrange review or relabel). Reuses the strength-balance card image pending bespoke art.
+  Learn section copy now says "staying strong through menopause".
+- **Guardrails extended** (`copyGuardrails.test.ts`): new `MENOPAUSE_CLAIM_COPY` red lines
+  ban claim-shaped bone-density/hormone measurement language, fracture-risk/osteoporosis/
+  HRT/menopause-treatment claims across result screens, explore content, and goal copy —
+  while keeping honest disclaimers legal (lookbehind for "not/never measures"). The Welcome
+  menopause frame and the article's honest review label are pinned; `microCheckSummary.ts`
+  joined the scanned files so "movement age" cannot regress there.
+- **Verification:** tsc clean; jest 160/160 suites, 1,328/1,328 tests (6 suites re-pinned to
+  the new copy). Owed on device: the female onboarding funnel end-to-end (stage question
+  required-before-Continue, male path skips it), Settings reference-details editing in both
+  sex states, the new Learn article open/read, and the results screen header. Owed on
+  decision: voice lines still say "movement" phrasing in a few longer cues — audit and
+  regenerate via `scripts/generate-audio.ts` once the founder confirms the Strength Profile
+  vocabulary.
