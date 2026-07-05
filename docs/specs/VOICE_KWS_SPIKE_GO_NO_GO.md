@@ -1,6 +1,8 @@
 # Voice-Command Spike — Protocol & Go/No-Go Criteria
 
 Date: 2026-07-05 · Status: criteria FROZEN before the spike runs (founder amendment 1)
+Amended 2026-07-05 **before any trial ran** (§8 — safety-word slice; post-run amendments
+would not be legitimate and none will be accepted)
 Scope: week-1 spike from `TDD-ADDENDUM.md` §8. Decides Option A (platform-native on-device
 recognition) vs Option B (sherpa-onnx KWS). **Per the founder's amendment, if Option A fails
 these criteria, Option B proceeds without further approval.**
@@ -95,3 +97,40 @@ session, two reports.
 Session player integration, permission UX copy, telemetry schema, sherpa-onnx integration
 (only its feasibility notes if invoked), any tuning beyond the single allowed matcher
 iteration.
+
+## 8. PRE-RUN AMENDMENT (2026-07-05) — safety-word gating cells
+
+Recorded before any trial ran, per the founder's rule that post-run amendments are not
+legitimate. The approved safety-word slice adds a HOT vocabulary — `stop`, `pain`
+("that hurts"/"ow" + variants), plus `pause` — active for the entire session, the one
+exception to windowed listening.
+
+**Additional gating cells (each device independently).** The bar is set at the strictest
+command cell (done@quiet = 95 %) per the founder's instruction, and applies to the two
+conditions named as gating — breathless and quiet-voice — plus the quiet baseline:
+
+| Intent | A quiet | D breathless | E quiet-voice |
+|---|---|---|---|
+| stop | ≥95 % | ≥95 % | ≥95 % |
+| pain ("that hurts" and "ow" each trialled) | ≥95 % | ≥95 % | ≥95 % |
+
+≥10 trials per cell per device; for `pain`, run ≥10 trials on "that hurts"-family phrasing
+and ≥10 on "ow"/"ouch" (they exercise different matcher paths — multi-word fuzzy vs
+short-exact — and must both clear the bar).
+
+**Soak (condition G) now mirrors production:** the hot set (stop, pain, pause) stays
+enabled for the full 10 minutes. The unintended-fire budget is UNCHANGED (≤1 total,
+zero false `skip`) and now includes safety fires, with at most one false `pain` fire
+(a false pain skips an exercise; a false stop is a recoverable halt). This is deliberately
+strict: always-on listening multiplies exposure, and the soak is where that bill arrives.
+
+**Matcher posture for safety words (recall beats precision — founder rule):** `pain`
+fuzzy-matches from 4-letter words so mangled breathless variants fire ("that herts",
+"hurtin"); documented accepted risk at this setting: "touch" is edit-distance 1 from
+"ouch". `stop` earns recall through phrase variants, not fuzz — edit-distance 1 from
+"stop" reaches "step", which this audience says aloud during step-ups. Safety intents are
+matched before commands and win outright; a pure safety tie resolves to `stop` (halt is
+the least destructive response). All in `src/voice/intents.ts` config.
+
+**Harness:** tallies safety-intent recall separately from command recall; the exported
+JSON marks safety trials so the results report can gate them independently.

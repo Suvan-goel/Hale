@@ -3540,3 +3540,35 @@ PUBLIC RELEASE REMAINS BLOCKED
   near-knee cycle (C8); floor-last session ordering is a mode-conditional constraint compiled
   in only for camera-conducted mode (C6); wall sit joins the library as a timer exercise, its
   grader is v2 work.
+
+## 2026-07-05 — Safety-word slice approved; spike criteria amended PRE-RUN
+
+- **Scope addition to the voice direction (product-owner approved), landed before the KWS
+  spike ran** so the frozen go/no-go criteria could be amended legitimately — the criteria
+  doc records this as §8 "PRE-RUN AMENDMENT" and post-run amendments are explicitly
+  illegitimate. Nothing in the original criteria was weakened; safety cells were added at
+  the bar of the strictest command cell (≥95 %), gated specifically under the breathless
+  and quiet-voice conditions, and the false-accept soak now runs with the hot vocabulary
+  enabled for its full 10 minutes (unchanged ≤1-fire budget, now including safety fires,
+  at most one false pain).
+- **The slice:** hot vocabulary (`stop`, `pain` = "that hurts"/"ow" variants, `pause`)
+  active for the entire session — the one exception to windowed listening; during sessions
+  the recognizer runs continuously and "windows" become intent-enablement policy (hot
+  intents stay enabled even while the app speaks; self-trigger prevented by a script-lint
+  guardrail banning hot phrases from session voice lines, not by muting). Deterministic
+  responses only: stop/pause → existing pause flow; pain → halt set, acknowledge without
+  encouraging continuation, skip the exercise, continue the session. `pain_event`
+  {movementId, setIndex, repContext, timestamp} is dual-homed: product store (drives the
+  recurrence rule — same movement in 2 sessions → auto-excluded from generation, plain
+  swap-out notice + gentle see-your-doctor-if-it-continues line) and first-class analytics.
+  Tap parity: a visible "something hurts" control on every set screen. Substitution
+  tables are v2.
+- **Matcher posture (recall beats precision on safety words):** `pain` fuzzy-matches from
+  4-letter words (mangled breathless "that herts"/"hurtin" fire; documented accepted risk:
+  "touch" ~ "ouch"); `stop` gets recall from phrase variants, not fuzz (edit-distance 1
+  from "stop" is "step" — spoken aloud during step-ups); safety intents beat commands
+  outright and a pure safety tie resolves to `stop`. All thresholds in
+  `src/voice/intents.ts` config; 49 matcher tests.
+- **Timeline honesty (TDD-ADDENDUM §9):** ≈3–4 added days across weeks 2–3; week-4
+  beta-ready holds with thinner buffer; sherpa-onnx fallback (if the spike invokes it)
+  would move beta-ready to week 5 with the slice included.

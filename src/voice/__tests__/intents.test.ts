@@ -1,12 +1,23 @@
 import {
+  HOT_INTENTS,
   matchIntent,
   normalizeTranscript,
+  SAFETY_PRIORITY_INTENTS,
   VOICE_INTENT_CONFIG,
   VoiceIntent,
   VoiceIntentConfig,
 } from '../intents';
 
-const ALL: readonly VoiceIntent[] = ['ready', 'done', 'skip', 'repeat', 'pause', 'resume'];
+const ALL: readonly VoiceIntent[] = [
+  'ready',
+  'done',
+  'skip',
+  'repeat',
+  'pause',
+  'resume',
+  'stop',
+  'pain',
+];
 
 function intentOf(transcript: string, enabled: readonly VoiceIntent[] = ALL): VoiceIntent | null {
   return matchIntent(transcript, enabled)?.intent ?? null;
@@ -112,6 +123,61 @@ describe('ambiguity', () => {
       skip: { phrases: ['stop'], fuzzyMinWordLength: 99, maxTranscriptWords: 4 },
     };
     expect(matchIntent('stop', ['pause', 'skip'], config)).toBeNull();
+  });
+});
+
+describe('safety words (pre-spike amendment 2026-07-05)', () => {
+  it('exports the hot vocabulary and safety-priority sets', () => {
+    expect(HOT_INTENTS).toEqual(['stop', 'pain', 'pause']);
+    expect(SAFETY_PRIORITY_INTENTS).toEqual(['stop', 'pain']);
+  });
+
+  it.each([
+    ['stop', 'stop'],
+    ['stop it', 'stop'],
+    ['please stop', 'stop'],
+    ['stop stop', 'stop'],
+    ['that hurts', 'pain'],
+    ['it hurts', 'pain'],
+    ['that hurt', 'pain'],
+    ['ow', 'pain'],
+    ['ouch', 'pain'],
+    ['my knee hurts', 'pain'],
+    ['oh that really hurts', 'pain'],
+    ['too sore', 'pain'],
+  ] as const)('"%s" → %s', (spoken, expected) => {
+    expect(intentOf(spoken)).toBe(expected);
+  });
+
+  it('fires pain on mangled breathless variants (recall beats precision)', () => {
+    expect(intentOf('that herts')).toBe('pain'); // "hurts" ed 1 (substitution)
+    expect(intentOf('it hurs')).toBe('pain'); // "hurts" ed 1 (dropped letter)
+    expect(intentOf('hurtin')).toBe('pain'); // "hurting" ed 1 (dropped g)
+  });
+
+  it('never fires stop from "step" (fuzz stays off the 4-letter safety word)', () => {
+    expect(intentOf('step')).toBeNull();
+    expect(intentOf('step up')).toBeNull();
+  });
+
+  it('safety beats commands regardless of window or phrase length', () => {
+    // "okay" is a ready phrase; "ow" is pain — safety wins the tie in length.
+    expect(intentOf('ow okay', ['ready', 'pain'])).toBe('pain');
+    // A done window with hot intents: pain wins over done.
+    expect(intentOf("i'm done it hurts", ['done', 'stop', 'pain'])).toBe('pain');
+  });
+
+  it('resolves a pure safety tie to stop (halt is the least destructive)', () => {
+    const config: VoiceIntentConfig = {
+      ...VOICE_INTENT_CONFIG,
+      stop: { ...VOICE_INTENT_CONFIG.stop, phrases: ['enough'] },
+      pain: { ...VOICE_INTENT_CONFIG.pain, phrases: ['enough'] },
+    };
+    expect(matchIntent('enough', ['stop', 'pain'], config)?.intent).toBe('stop');
+  });
+
+  it('safety words still fire inside longer natural speech', () => {
+    expect(intentOf('no stop now please', ['stop', 'pain'])).toBe('stop');
   });
 });
 

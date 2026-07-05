@@ -30,7 +30,34 @@
  * diagnosis; that is a dev tool, not this module.)
  */
 
-export type VoiceIntent = 'ready' | 'done' | 'skip' | 'repeat' | 'pause' | 'resume';
+export type VoiceIntent =
+  | 'ready'
+  | 'done'
+  | 'skip'
+  | 'repeat'
+  | 'pause'
+  | 'resume'
+  // Safety-word slice (approved 2026-07-05, pre-spike amendment):
+  | 'stop'
+  | 'pain';
+
+/**
+ * Hot vocabulary — enabled for the ENTIRE session, the one approved exception
+ * to windowed listening. The runtime keeps these in every enabled-intent set,
+ * including while the app itself is speaking (self-trigger risk is handled by
+ * the script-lint guardrail: no bundled session line may contain a hot
+ * phrase — see copyGuardrails).
+ */
+export const HOT_INTENTS: readonly VoiceIntent[] = ['stop', 'pain', 'pause'];
+
+/**
+ * Matched BEFORE commands: any safety match beats any command match
+ * regardless of phrase length (recall beats precision on this vocabulary —
+ * founder rule). Within safety, longer phrase wins; a pure tie resolves to
+ * 'stop' (halting is the least destructive safe response; 'pain' also skips
+ * the exercise).
+ */
+export const SAFETY_PRIORITY_INTENTS: readonly VoiceIntent[] = ['stop', 'pain'];
 
 export interface IntentPhraseConfig {
   /** Accepted phrases, matched after normalization (case/punctuation-free). */
@@ -91,6 +118,37 @@ export const VOICE_INTENT_CONFIG: VoiceIntentConfig = {
     phrases: ['resume', 'continue', 'keep going'],
     fuzzyMinWordLength: 5,
     maxTranscriptWords: 4,
+  },
+  stop: {
+    // Safety word — recall via VARIANTS rather than fuzz: "stop" is 4 letters
+    // and edit-distance 1 reaches "step", a word this audience actually says
+    // during step-ups. A false stop is a recoverable pause, but a per-set
+    // recurring one would erode trust in the hot vocabulary.
+    phrases: ['stop', 'stop it', 'stop now', 'stop please', 'please stop', 'stop stop'],
+    fuzzyMinWordLength: 5,
+    maxTranscriptWords: 6,
+  },
+  pain: {
+    // Recall beats precision here (founder rule): breathless, mangled speech
+    // must still fire, so fuzzy matching starts at 4 letters ("hurt"/"hurts"/
+    // "sore" with one slip all land). Known accepted risk at this setting:
+    // "touch" is edit-distance 1 from "ouch". Generous word cap — pain
+    // arrives wrapped in speech ("oh that really hurts").
+    phrases: [
+      'that hurts',
+      'it hurts',
+      'this hurts',
+      'that hurt',
+      'it hurt',
+      'hurts',
+      'hurting',
+      'ow',
+      'ouch',
+      'that is sore',
+      'too sore',
+    ],
+    fuzzyMinWordLength: 4,
+    maxTranscriptWords: 8,
   },
 };
 
@@ -170,22 +228,14 @@ export interface IntentMatch {
   matchedPhraseWords: number;
 }
 
-/**
- * Match a transcript against the intents valid in the current listening
- * window. Returns at most one intent; ambiguity that survives the
- * longest-phrase rule returns null (silence over wrong action).
- */
-export function matchIntent(
-  transcript: string,
-  enabled: readonly VoiceIntent[],
-  config: VoiceIntentConfig = VOICE_INTENT_CONFIG
-): IntentMatch | null {
-  const words = normalizeTranscript(transcript);
-  if (words.length === 0) return null;
-
+function bestIntentMatch(
+  words: readonly string[],
+  intents: readonly VoiceIntent[],
+  config: VoiceIntentConfig
+): { best: IntentMatch | null; tie: boolean } {
   let best: IntentMatch | null = null;
   let tie = false;
-  for (const intent of enabled) {
+  for (const intent of intents) {
     const c = config[intent];
     if (!c || words.length > c.maxTranscriptWords) continue;
     let intentBest = 0;
@@ -201,5 +251,33 @@ export function matchIntent(
       tie = true;
     }
   }
+  return { best, tie };
+}
+
+/**
+ * Match a transcript against the intents valid in the current listening
+ * window. Safety-priority intents are matched FIRST and win outright over
+ * commands; within safety, iteration order makes 'stop' win pure ties. For
+ * commands, ambiguity that survives the longest-phrase rule returns null
+ * (silence over wrong action).
+ */
+export function matchIntent(
+  transcript: string,
+  enabled: readonly VoiceIntent[],
+  config: VoiceIntentConfig = VOICE_INTENT_CONFIG
+): IntentMatch | null {
+  const words = normalizeTranscript(transcript);
+  if (words.length === 0) return null;
+
+  const safetyEnabled = SAFETY_PRIORITY_INTENTS.filter((intent) => enabled.includes(intent));
+  if (safetyEnabled.length > 0) {
+    // Fixed SAFETY_PRIORITY_INTENTS order + strictly-greater replacement in
+    // bestIntentMatch means 'stop' takes pure ties; a tie never nulls here.
+    const safety = bestIntentMatch(words, safetyEnabled, config);
+    if (safety.best) return safety.best;
+  }
+
+  const commands = enabled.filter((intent) => !SAFETY_PRIORITY_INTENTS.includes(intent));
+  const { best, tie } = bestIntentMatch(words, commands, config);
   return tie ? null : best;
 }

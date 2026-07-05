@@ -27,11 +27,21 @@ import {
 } from '../../modules/expo-voice-commands';
 import { VoiceChannel } from '../audio/voicePlayer';
 import { voicePriority } from '../audio/cues';
-import { matchIntent, VoiceIntent } from '../voice/intents';
+import { matchIntent, SAFETY_PRIORITY_INTENTS, VoiceIntent } from '../voice/intents';
 import { PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../components/ui';
 import { colors, spacing } from '../theme';
 
-const ALL_INTENTS: readonly VoiceIntent[] = ['ready', 'done', 'skip', 'repeat', 'pause', 'resume'];
+/** Full production-shaped set: commands + the always-on safety vocabulary. */
+const ALL_INTENTS: readonly VoiceIntent[] = [
+  'ready',
+  'done',
+  'skip',
+  'repeat',
+  'pause',
+  'resume',
+  'stop',
+  'pain',
+];
 
 /** Conditions from the frozen criteria doc §3. */
 const CONDITIONS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const;
@@ -53,6 +63,8 @@ const SOAK_DURATION_MS = 10 * 60 * 1000;
 interface TrialRecord {
   condition: Condition;
   expectedIntent: VoiceIntent | null; // null in the soak
+  /** Safety cells gate separately (criteria §8) — marked for the results report. */
+  isSafety: boolean;
   transcripts: { transcript: string; isFinal: boolean; atMs: number }[];
   matchedIntent: VoiceIntent | null;
   windowOpenedAtMs: number;
@@ -154,6 +166,7 @@ export function VoiceSpikeScreen(): React.ReactElement {
     const trial: TrialRecord = {
       condition,
       expectedIntent: condition === 'G' ? null : expected,
+      isSafety: condition !== 'G' && SAFETY_PRIORITY_INTENTS.includes(expected),
       transcripts: [],
       matchedIntent: null,
       windowOpenedAtMs: Date.now(),
@@ -203,7 +216,7 @@ export function VoiceSpikeScreen(): React.ReactElement {
     setExportedTo(file.uri);
   }, [availability, permission, trials]);
 
-  const recall = React.useMemo(() => {
+  const { commandRecall, safetyRecall } = React.useMemo(() => {
     const byIntent = new Map<string, RecallCell>();
     for (const trial of trials) {
       if (!trial.expectedIntent) continue;
@@ -213,7 +226,14 @@ export function VoiceSpikeScreen(): React.ReactElement {
       if (trial.matchedIntent === trial.expectedIntent) cell.hits += 1;
       byIntent.set(key, cell);
     }
-    return [...byIntent.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const entries = [...byIntent.entries()].sort(([a], [b]) => a.localeCompare(b));
+    // Safety cells gate separately (criteria doc §8) — tally them apart.
+    const isSafetyKey = (key: string) =>
+      SAFETY_PRIORITY_INTENTS.some((intent) => key.endsWith(`:${intent}`));
+    return {
+      commandRecall: entries.filter(([key]) => !isSafetyKey(key)),
+      safetyRecall: entries.filter(([key]) => isSafetyKey(key)),
+    };
   }, [trials]);
 
   const soakFires = React.useMemo(
@@ -277,17 +297,28 @@ export function VoiceSpikeScreen(): React.ReactElement {
         )}
         <Text style={styles.live}>{live}</Text>
 
-        <Text style={styles.sectionLabel}>Recall (hits/trials per condition:intent)</Text>
-        {recall.length === 0 ? (
-          <Text style={styles.rowText}>No trials yet.</Text>
+        <Text style={styles.sectionLabel}>Safety recall — gates at ≥95% (criteria §8)</Text>
+        {safetyRecall.length === 0 ? (
+          <Text style={styles.rowText}>No safety trials yet.</Text>
         ) : (
-          recall.map(([key, cell]) => (
+          safetyRecall.map(([key, cell]) => (
             <Text key={key} style={styles.rowText}>
               {key} — {cell.hits}/{cell.trials} ({cell.trials > 0 ? Math.round((100 * cell.hits) / cell.trials) : 0}%)
             </Text>
           ))
         )}
-        <Text style={styles.rowText}>Soak false fires: {soakFires}</Text>
+
+        <Text style={styles.sectionLabel}>Command recall (hits/trials per condition:intent)</Text>
+        {commandRecall.length === 0 ? (
+          <Text style={styles.rowText}>No trials yet.</Text>
+        ) : (
+          commandRecall.map(([key, cell]) => (
+            <Text key={key} style={styles.rowText}>
+              {key} — {cell.hits}/{cell.trials} ({cell.trials > 0 ? Math.round((100 * cell.hits) / cell.trials) : 0}%)
+            </Text>
+          ))
+        )}
+        <Text style={styles.rowText}>Soak false fires: {soakFires} (budget: ≤1 total, ≤1 pain, 0 skip)</Text>
 
         <PrimaryButton title="Export results JSON" onPress={exportResults} />
         {exportedTo ? <Text style={styles.rowText}>exported → {exportedTo}</Text> : null}

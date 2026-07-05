@@ -222,3 +222,52 @@ this addendum unless you say otherwise: the tick-source refactor over a second p
 (§1.1), platform-native KWS with sherpa-onnx fallback (§2), the scoped audio-law amendment
 and mic-permission revert (N1), and `reportedReps` as a separate field from measured `reps`
 (§1.4/N5).
+
+*(Approved 2026-07-05 with four amendments — recorded in docs/decisions.md.)*
+
+---
+
+## 9. APPROVED SCOPE ADDITION (2026-07-05, pre-spike) — safety-word slice
+
+Added before the spike ran; the frozen criteria gained matching gating cells as a
+legitimate pre-run amendment (criteria doc §8).
+
+**Hot vocabulary.** `stop`, `pain` ("that hurts"/"ow" + config-driven variants), and
+`pause` are active for the ENTIRE session — the one exception to windowed listening.
+Architecture consequence: during a session the recognizer runs continuously and
+"windows" become an *intent-enablement policy* — hot intents always enabled (including
+while the app speaks), command intents enabled only in their states. Self-triggering is
+prevented by a script-lint guardrail (no bundled session voice line may contain a hot
+phrase) rather than by muting; the mic indicator and privacy copy now honestly describe
+whole-session listening ("listens for safety and session words during workouts — processed
+on your phone, never recorded, never uploaded"). Same on-device layer; intent events only.
+
+**Deterministic responses (scripted, no generation):**
+- `stop`/`pause` → immediate halt into the existing pause/resume flow.
+- `pain` → halt the set immediately → acknowledge, never encourage continuing → skip THIS
+  exercise, continue the session (she can say "stop" to end fully). Logs a `pain_event`
+  {movementId, setIndex, repContext, timestamp}.
+- **Recurrence rule:** `pain_event` on the same movement in 2 sessions → auto-exclude that
+  movement from future generated sessions (hangs on the existing capability/safety
+  exclusion machinery in workout generation), tell her plainly it's been swapped out, with
+  a gentle "worth mentioning to your doctor if it continues" line. Claims discipline: no
+  diagnosis language, no severity guessing — copy guardrails extended to pin this.
+- `pain_event` is dual-homed by design: it lives in the schema-versioned product store
+  (the recurrence rule and generator read it) and is mirrored as a first-class analytics
+  event type in telemetry.
+
+**Engineering rules honored:** recall beats precision on this vocabulary — `pain` fuzzy
+matches from 4-letter words so mangled breathless speech fires; `stop` earns recall via
+phrase variants (fuzz would collide with "step"); safety intents beat commands outright,
+and a pure safety tie resolves to `stop`. Tap parity: a visible "something hurts" control
+on every set screen — mic-denied users get safety too. Substitution tables / intelligent
+swaps are v2 — not built.
+
+**Build-order fold & honest timeline:** matcher vocabulary, criteria cells, and harness
+tallies landed pre-spike (cheapest point — they ride the existing spike). The hot
+enablement policy + halt/pain-skip flow join the week-2 player phases; the `pain_event`
+store + recurrence exclusion + "something hurts" control + ~6 new voice lines (×2 voices)
++ guardrail additions join week 3. Net addition ≈ 3–4 days: the **week-4 beta-ready target
+holds with thinner buffer**; if the spike invokes the sherpa-onnx fallback (+~1 week),
+beta-ready moves to week 5 with the safety slice included. The measurement-gate track is
+unaffected.
