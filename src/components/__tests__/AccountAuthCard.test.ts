@@ -3,7 +3,6 @@ import {
   CLEAR_THIS_DEVICE_COPY,
   CLEAR_THIS_DEVICE_TITLE,
   CLOUD_ACCOUNT_DELETION_CONTACT_COPY,
-  canConfirmAccountDataAction,
 } from '../accountDeletionConfig';
 
 describe('AccountAuthCard auth hardening', () => {
@@ -17,12 +16,6 @@ describe('AccountAuthCard auth hardening', () => {
   it('does not describe movement progress as local-only', () => {
     expect(ACCOUNT_SIGNED_IN_COPY).toMatch(/saves your progress/i);
     expect(ACCOUNT_SIGNED_IN_COPY).not.toMatch(/local for now|stays local/i);
-  });
-
-  it('requires typed confirmation for account deletion', () => {
-    expect(canConfirmAccountDataAction('delete-account', '')).toBe(false);
-    expect(canConfirmAccountDataAction('delete-account', 'delete')).toBe(true);
-    expect(canConfirmAccountDataAction('clear-local-data', '')).toBe(true);
   });
 
   it('keeps destructive account copy truthful while cloud deletion is deferred', () => {

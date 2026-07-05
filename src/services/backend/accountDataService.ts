@@ -32,9 +32,6 @@ const ADHERENCE_STATE_FILE = 'adherence-state.json';
 const CHECKUP_PREFIX = 'checkup-';
 const MICROCHECK_PREFIX = 'microcheck-';
 
-export const CLOUD_ACCOUNT_DELETION_DEFERRED_MESSAGE =
-  'Cloud account deletion needs a secure Hale server function before it can run from the app. Clear this device in the app, then contact Hale support for cloud account deletion.';
-
 export async function getLocalDataSummary(options: ClearLocalHaleDataOptions = {}): Promise<LocalDataSummary> {
   const fs = options.fs ?? await defaultHistoryFs(options.userId);
   const recordings = options.recordings ?? await defaultRecordingArea();
@@ -106,10 +103,6 @@ export async function signOutAndClearLocalData(
   const { signOut } = await import('./authService');
   await signOut();
   return result;
-}
-
-export async function requestCloudAccountDeletion(): Promise<never> {
-  throw new Error(CLOUD_ACCOUNT_DELETION_DEFERRED_MESSAGE);
 }
 
 function isMainStoreClearTarget(name: string): boolean {
