@@ -97,9 +97,9 @@ function HeroSection({
         aria-hidden="true"
       />
       <div className="hero__inner">
-        <p className="hero__chip">For adults 45+ who want to stay capable</p>
+        <p className="hero__chip">For women in perimenopause and menopause</p>
         <h1 id="hero-title">Hale</h1>
-        <p className="hero__promise">A movement check-up and home plan for staying strong, steady and independent.</p>
+        <p className="hero__promise">A movement check-up and home plan for staying strong through the menopause years.</p>
         <p className="hero__body">{heroFocusCopy[focus]}</p>
         <div className="hero__actions">
           <StoreButtons links={storeLinks} ctaLocation="hero" fallbackLabel="Join the Hale beta" />
@@ -150,10 +150,10 @@ function ProblemSection() {
   return (
     <section className="section problem-section" aria-labelledby="problem-title">
       <div className="section-heading section-heading--center">
-        <h2 id="problem-title">The changes are often quiet at first.</h2>
+        <h2 id="problem-title">Through the menopause years, the changes are quicker — and often quiet.</h2>
         <p>
-          Many people do not wake up feeling old. They notice small moments: a chair feels lower, a walk feels longer,
-          or balance takes more thought than it used to.
+          Muscle and strength change faster through perimenopause and menopause. Most women first notice it in small
+          moments: a chair feels lower, a walk feels longer, or balance takes more thought than it used to.
         </p>
       </div>
       <ul className="problem-list">
@@ -283,8 +283,8 @@ function MeasuresSection() {
       <div className="section-heading section-heading--center">
         <h2 id="measures-title">The abilities that keep daily life feeling easier.</h2>
         <p>
-          Hale focuses on strength, balance and mobility because they show up in ordinary moments: stairs, chairs,
-          curbs, reaching and bending.
+          Hale focuses on strength, balance and mobility because that is where the menopause years show up first:
+          stairs, chairs, curbs, reaching and bending.
         </p>
       </div>
       <div className="domain-grid">

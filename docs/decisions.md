@@ -3474,3 +3474,26 @@ PUBLIC RELEASE REMAINS BLOCKED
 - **Not implemented:** no catalog, grader, capability, or voice changes in this pass — the
   spec is the deliverable, and steps 2–4 of its implementation order are blocked on device
   recordings and FD-008 ratification.
+
+## 2026-07-05 — Landing page joins the menopause reframe
+
+- **The marketing site (`website/`) now carries the Phase-1 positioning.** Hero chip "For
+  women in perimenopause and menopause"; hero promise and metadata lead with "Muscle and
+  strength change faster through the menopause years" (mirroring the app's Welcome subtitle);
+  problem/measures section leads, founder note, footer tagline, and the ad-focus hero
+  variants (`?focus=strength|balance|mobility`) reframed to the menopause years. "Movement
+  Profile" → **"Strength Profile"** everywhere on the site; "Movement Check-Up" stays as the
+  activity noun (unchanged, matching voice).
+- **FAQ updates:** audience answer is now women ~40–60 in peri/menopause; new "Is Hale only
+  for women?" (No — men fully supported, results compared by age and sex) and "What does
+  Hale not measure?" (honest bone-density/hormones disclaimer). The latter was deliberately
+  phrased as "not measure" — the question form "Does Hale measure bone density?" trips the
+  claim-shaped red-line regex, and the disclaimer form is the legal shape.
+- **Guardrails extended to the site:** `website/tests/unit/components.test.tsx` gained the
+  same `MENOPAUSE_CLAIM_COPY` red lines as `copyGuardrails.test.ts` (claim-shaped
+  bone/hormone/fracture/osteoporosis/HRT/treatment language banned, honest disclaimers
+  legal), scanning all landing content exports; the menopause hero frame and the Strength
+  Profile name are pinned, "Movement Profile" is banned.
+- **Kept:** equipment truthfulness strings, "Example result" panel, beta pricing copy, and
+  the e2e-pinned "movement check-up and home plan" hero phrase. Verification: vitest 18/18,
+  tsc clean, eslint clean, Playwright e2e 4/4 (full build + serve).

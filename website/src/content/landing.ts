@@ -2,13 +2,13 @@ import type { PlatformPreference } from '@/config/site';
 
 export const heroFocusCopy = {
   general:
-    'If stairs feel harder, balance feels less automatic, or your body no longer moves like it used to, Hale helps you understand what has changed and what to work on next.',
+    'Muscle and strength change faster through the menopause years. Hale measures where you stand today, then builds a simple home plan for the strength, balance and mobility you use every day.',
   strength:
-    'Hale starts with a simple camera check-up, then builds a home plan to help with the strength and power you use for chairs, stairs and everyday movement.',
+    'Hale starts with a simple camera check-up, then builds a home plan for the strength and power that change fastest through the menopause years — chairs, stairs and everyday carrying.',
   balance:
-    'Hale starts with a simple camera check-up, then builds a home plan to help you practise steadiness, control and confidence in ordinary movement.',
+    'Hale starts with a simple camera check-up, then builds a home plan to help you practise steadiness, control and confidence through the menopause years.',
   mobility:
-    'Hale starts with a simple camera check-up, then builds a home plan to help you work on reaching, bending and moving more comfortably.',
+    'Hale starts with a simple camera check-up, then builds a home plan to help you keep reaching, bending and moving comfortably through the menopause years.',
 } as const;
 
 export type HeroFocus = keyof typeof heroFocusCopy;
@@ -28,9 +28,9 @@ export const trustStrip = [
 export const problemPoints = [
   'Getting up from a low chair takes more effort.',
   'Stairs feel harder than they used to.',
-  'You feel stiff after sitting for a while.',
+  'Strength seems to change faster than it did a few years ago.',
   'You pause before stepping off a curb or turning quickly.',
-  'You worry about keeping your independence in the years ahead.',
+  'You want to stay strong and independent in the years ahead.',
 ] as const;
 
 export const howItWorks = [
@@ -39,8 +39,8 @@ export const howItWorks = [
     body: 'Prop up your phone and follow clear voice prompts through simple checks for strength, balance and mobility.',
   },
   {
-    title: 'See what needs attention',
-    body: 'Hale turns your results into a suggested focus, so you are not guessing where to start.',
+    title: 'See your Strength Profile',
+    body: 'Hale turns your results into a Strength Profile with a suggested focus, so you are not guessing where to start.',
   },
   {
     title: 'Train and re-check',
@@ -70,7 +70,7 @@ export const checkupActivities = [
 export const exampleResult = {
   eyebrow: 'Example result',
   title: 'Your main focus: Balance',
-  body: 'This is an example of how Hale turns a check-up into plain next steps. Your own result depends on your movement check-up.',
+  body: 'This is an example of how Hale turns a check-up into a Strength Profile with plain next steps. Your own result depends on your movement check-up.',
   domains: [
     {
       label: 'Strength',
@@ -128,7 +128,7 @@ export const reframePrinciples = [
 export const credibilityPoints = [
   {
     title: 'Built from established movement checks',
-    body: 'Hale uses simple movements that are commonly used to understand everyday strength, balance and mobility.',
+    body: 'Hale uses simple movements that are commonly used to understand everyday strength, balance and mobility, compared with published values for your age and sex.',
   },
   {
     title: 'Designed for change over time',
@@ -136,7 +136,7 @@ export const credibilityPoints = [
   },
   {
     title: 'Wellness language, not medical labels',
-    body: 'Results are explained as a Movement Profile with source-backed chair-stand ranges where available, not medical labels.',
+    body: 'Results are explained as a Strength Profile with source-backed chair-stand ranges where available, not medical labels.',
   },
 ] as const;
 
@@ -165,7 +165,7 @@ export const firstMonthPlan = [
 export const founderNote = {
   eyebrow: 'Why we built Hale',
   quote:
-    'We spent a year building camera-based movement technology for people who were already fit and already comfortable in a gym. The more useful problem was the one nobody was building for: giving people in midlife an honest, private way to see how their body is actually changing, and a calm plan to do something about it.',
+    'We spent a year building camera-based movement technology for people who were already fit and already comfortable in a gym. The more useful problem was the one nobody was building for: giving women in the menopause years an honest, private way to see how their body is actually changing, and a calm plan to do something about it.',
   attribution: 'The team building Hale',
 } as const;
 
@@ -176,7 +176,7 @@ export const valueCase = {
 } as const;
 
 export const finalCta = {
-  title: 'Start with a clearer view of how your body is doing.',
+  title: 'Start with a clearer view of how your strength is changing.',
   body: 'One check-up sets your baseline. A calm, voice-guided plan does the rest.',
 } as const;
 
@@ -185,7 +185,7 @@ export const betaLifetimeNote =
 
 export const betaValueList = [
   'Phone-camera Movement Check-Up',
-  'Personalised four-week home plan',
+  'Personalised four-week home strength plan',
   'Voice-guided sessions',
   'Monthly re-tests',
   'Beta-member pricing, kept for life',
@@ -207,12 +207,22 @@ export const faqs = [
   {
     question: 'What is Hale?',
     answer:
-      'Hale is a mobile app that checks your strength, balance and mobility with your phone camera, then gives you a simple home training plan.',
+      'Hale is a mobile app that checks your strength, balance and mobility with your phone camera, then gives you a simple home training plan built around the menopause years.',
   },
   {
     question: 'Who is Hale designed for?',
     answer:
-      'Hale is designed for adults around 45-65 who want a practical way to stay strong, steady and mobile. It is not for competitive fitness or medical care.',
+      'Hale is designed for women around 40-60 going through perimenopause and menopause who want a practical way to stay strong, steady and mobile. It is not for competitive fitness or medical care.',
+  },
+  {
+    question: 'Is Hale only for women?',
+    answer:
+      'No. Hale leads with the menopause years because that is when muscle and strength tend to change fastest, but men are fully supported — results are always compared with published values for your age and sex.',
+  },
+  {
+    question: 'What does Hale not measure?',
+    answer:
+      'Hale does not measure bone density or hormones. It measures how you move — everyday strength, balance and mobility — and turns that into a simple home plan. For questions about your health, speak to a qualified professional.',
   },
   {
     question: 'How does the Movement Check-Up work?',
@@ -227,7 +237,7 @@ export const faqs = [
   {
     question: 'What results will I see?',
     answer:
-      'Hale shows your strength, balance and mobility in plain language, suggests a focus, and turns that into your next home plan.',
+      'Hale shows your strength, balance and mobility as a Strength Profile in plain language, suggests a focus, and turns that into your next home plan.',
   },
   {
     question: 'What equipment do I need?',

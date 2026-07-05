@@ -14,16 +14,16 @@ const siteUrl = new URL(config.siteUrl);
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,
-  title: 'Hale - Movement Check-Up and Home Plan',
+  title: 'Hale - Movement Check-Up and Home Plan for the Menopause Years',
   description:
-    'Hale helps adults 45+ understand strength, balance and mobility with a phone-camera check-up, then gives a simple home plan.',
+    'Muscle and strength change faster through the menopause years. Hale measures strength, balance and mobility with a phone-camera check-up, then guides a simple home strength plan.',
   alternates: {
     canonical: '/',
   },
   openGraph: {
-    title: 'Hale - Movement Check-Up and Home Plan',
+    title: 'Hale - Movement Check-Up and Home Plan for the Menopause Years',
     description:
-      'Hale helps adults 45+ understand strength, balance and mobility with a phone-camera check-up, then gives a simple home plan.',
+      'Muscle and strength change faster through the menopause years. Hale measures strength, balance and mobility with a phone-camera check-up, then guides a simple home strength plan.',
     url: '/',
     siteName: 'Hale',
     images: [
@@ -38,9 +38,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Hale - Movement Check-Up and Home Plan',
+    title: 'Hale - Movement Check-Up and Home Plan for the Menopause Years',
     description:
-      'Hale helps adults 45+ understand strength, balance and mobility with a phone-camera check-up, then gives a simple home plan.',
+      'Muscle and strength change faster through the menopause years. Hale measures strength, balance and mobility with a phone-camera check-up, then guides a simple home strength plan.',
     images: [brandAssets.ogImage],
   },
   icons: {

@@ -6,12 +6,22 @@ import { FAQ } from '@/components/FAQ';
 import { StoreButtons } from '@/components/StoreButtons';
 import {
   betaReassurance,
+  betaValueList,
   checkupActivities,
   credibilityPoints,
   exampleResult,
   faqs,
+  finalCta,
+  firstMonthPlan,
+  founderNote,
+  heroFocusCopy,
+  howItWorks,
+  measurementDomains,
+  problemPoints,
   trainingMessages,
+  trustDetails,
   trustStrip,
+  valueCase,
 } from '@/content/landing';
 
 describe('conversion components', () => {
@@ -124,5 +134,40 @@ describe('conversion components', () => {
     expect(text).toMatch(/price before payment is collected/i);
     expect(text).toMatch(/not medical labels/i);
     expect(text).not.toMatch(/movement-age|movement age|body age|diagnos|fall risk|payment details are collected by this page/i);
+  });
+
+  // Mirrors MENOPAUSE_CLAIM_COPY in src/haleFlow/__tests__/copyGuardrails.test.ts
+  // (2026-07-05 repositioning red lines). Claim-shaped patterns only: honest
+  // disclaimers ("does not measure bone density") stay legal.
+  it('keeps menopause positioning wellness-side: no bone, hormone, or treatment claims', () => {
+    const menopauseClaimCopy =
+      /fracture risk|osteoporosis|osteopenia|hormone replacement|\bHRT\b|bone density (score|test|result|reading)|(?<!not |never )(measures?|estimates?|tracks?|predicts?) (your )?(bone density|hormones?)|(treats?|relieves?|cures?|reverses?) (your )?menopause|menopause (treatment|therapy|cure)/i;
+
+    const text = [
+      ...Object.values(heroFocusCopy),
+      ...problemPoints,
+      ...howItWorks.flatMap((item) => [item.title, item.body]),
+      ...checkupActivities.flatMap((item) => [item.title, item.body]),
+      exampleResult.body,
+      ...measurementDomains.flatMap((item) => [item.title, item.body]),
+      ...credibilityPoints.flatMap((item) => [item.title, item.body]),
+      ...trainingMessages,
+      ...firstMonthPlan.flatMap((item) => [item.title, item.body]),
+      founderNote.quote,
+      valueCase.title,
+      valueCase.costComparison,
+      finalCta.title,
+      finalCta.body,
+      ...betaValueList,
+      ...trustDetails,
+      ...faqs.flatMap((item) => [item.question, item.answer]),
+    ].join(' ');
+
+    expect(text).not.toMatch(menopauseClaimCopy);
+    // The repositioning itself is pinned: the hero leads with the menopause
+    // frame, and the result is named the Strength Profile.
+    expect(heroFocusCopy.general).toMatch(/menopause/i);
+    expect(text).toMatch(/Strength Profile/);
+    expect(text).not.toMatch(/Movement Profile/);
   });
 });
