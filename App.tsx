@@ -230,6 +230,7 @@ import { PlanScreen } from './src/screens/PlanScreen';
 import { ProgressScreen } from './src/screens/ProgressScreen';
 import { SafetyProfileScreen } from './src/screens/SafetyProfileScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
+import { VoiceSpikeScreen } from './src/screens/VoiceSpikeScreen';
 import { SessionPlanningRecoveryScreen } from './src/screens/SessionPlanningRecoveryScreen';
 import { SessionPreviewScreen } from './src/screens/SessionPreviewScreen';
 import { TodayScreen } from './src/screens/TodayScreen';
@@ -579,6 +580,11 @@ function syncStatusCounts(results: readonly { status?: string }[]): Record<strin
 }
 
 function App() {
+  // Dev-only voice-KWS spike harness (docs/specs/VOICE_KWS_SPIKE_GO_NO_GO.md):
+  // a diagnostics-style boot gate, same pattern as the pose latency build.
+  if (__DEV__ && process.env.EXPO_PUBLIC_VOICE_SPIKE === '1') {
+    return <VoiceSpikeScreen />;
+  }
   return (
     <SystemInsetsProvider>
       <StatusBarBackdrop>
