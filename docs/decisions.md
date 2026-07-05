@@ -3362,3 +3362,28 @@ PUBLIC RELEASE REMAINS BLOCKED
   unselected).
 - **Verification:** tsc clean; jest 159/159 suites, 1322/1322. Owed on device: the unanswered →
   answered flow on the real onboarding funnel, including the disabled Continue state.
+
+## 2026-07-05 — AccountAuthCard pass: the mandatory-sign-in skeleton is gone
+
+- **Context:** the screen-by-screen polish reached the 1,244-line `AccountAuthCard`. The card
+  predates guest-first launch; its `context="required"` consumer (`AuthScreen`) now renders
+  only during password recovery, which quietly orphaned most of the component.
+- **Two of three render branches were unreachable and are deleted:** the polished full
+  required-auth layout (gated on `!isPasswordRecovery`, never true when the screen shows) with
+  `AuthInputField`/field icons/eye toggle/privacy note and ~25 styles; and the generic
+  signed-in account view (needed signed-in outside Settings — the settings branch catches
+  that first), whose danger-zone confirm panel duplicated the live compact one. The live
+  surfaces are unchanged: the Settings signed-in stack, the Settings sign-in/sign-up form,
+  and the recovery card.
+- **Delete-account machinery removed as unreachable:** no initiator ever passed
+  `'delete-account'`, and the backend `requestCloudAccountDeletion` was a stub that threw
+  "deferred". The typed-DELETE confirmation input, `AccountDataAction`,
+  `canConfirmAccountDataAction`, and the stub are gone; "Clear this device" keeps its
+  two-step confirm, and cloud deletion remains honestly "contact Hale support".
+- **Live-form polish:** the bottom mode link duplicated the Sign in / Sign up segmented tabs
+  and now appears only in forgot-password mode as "Back to sign in"; the clear-device /
+  forgot / mode links raised to 48px targets. 1,244 → 794 lines.
+- **Considered, left alone:** AuthScreen's marketing hero now fronts only password recovery —
+  oversized for the job but a harmless brand moment.
+- **Verification:** tsc 0 errors, jest 1,321/1,321. Owed on device: Settings → Account in all
+  three states (signed out, signed in, forgot-password) and a recovery-link open.
