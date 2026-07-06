@@ -85,3 +85,26 @@ OS mic indicator appear and disappear together with the listening window.
 - Filled §4/§8 tables + Block 3/4 observations (photos of notes are fine).
 - Verdict lands in `docs/audits/VOICE_KWS_SPIKE_RESULTS.md`; engine decision +
   allowlist decision + C1 numbers all come out of this one evening.
+
+## Block 6 — Glue verification (manual checks for source-pinned App wiring; ~15 min)
+
+Founder-directed alternative to an App-level test harness (2026-07-06). One device is
+enough; these verify App.tsx glue whose underlying logic is already unit-tested.
+
+1. **Pain fold at completion:** run a voice session, trigger "something hurts" once,
+   finish the session. Verify `training-state.json` painHistory gained the event AND the
+   session's telemetry funnel record carries it (pull both files; the audit record must
+   list the same exerciseId/setIndex).
+2. **Settings reversal round-trip:** with an exclusion active (two pain sessions on one
+   movement, or a seeded state), open Settings → Equipment → Swapped-out movements →
+   bring it back. Verify: the row disappears, the next generated session may include the
+   movement again, `painHistory` events for that ladder are cleared, and the telemetry
+   funnel files are BYTE-IDENTICAL to before the toggle.
+3. **Summary ±rep on the final exercise:** finish a voice session, adjust the final
+   exercise −1 on the summary screen. Verify the adjustment appears in the session data
+   (reportedReps/repsAdjusted) and NOWHERE in measured fields (reps stays 0, meanVel
+   null/NaN) — and that no measurement surface (Progress, check-up history) moved.
+4. **Resume-snapshot write-through:** start a planned voice session, finish one full
+   exercise, force-kill the app mid-second-exercise. Relaunch → the session offers
+   Continue after the last finished item; the first exercise's results (including any
+   ±rep adjustment made in its window) survived.

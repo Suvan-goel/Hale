@@ -3725,3 +3725,17 @@ PUBLIC RELEASE REMAINS BLOCKED
   functions behind them are behavior-tested).
 - DEVICE_SESSION_PROTOCOL.md gains the mic-gate UX pass (founder item 3).
 - Verification: tsc clean; 1444/1444.
+
+## 2026-07-06 — Founder sign-off: never-silently-shrink is the guarantee of record
+
+- **Deviation ACCEPTED.** For pain-exclusion backfill, the implemented guarantee of record
+  is never-SILENTLY-shrink. Rationale (founder): the exhausted case is rare by
+  construction — it needs a pain exclusion PLUS a slot whose remaining same-domain
+  alternatives are all release-hidden or consumed — and an honest explanation beats either
+  duplicate exercises or relaxing invariants. **Exercise-id uniqueness will not be relaxed
+  for this, now or later** (session identity, dose maps, and results key on it).
+  Designated-reserve exercises are PARKED as v2 content work under the substitution table.
+- **App-layer test harness: rejected.** The source-pinned glue items are covered instead by
+  a manual "glue verification" block in DEVICE_SESSION_PROTOCOL.md (pain fold at
+  completion, Settings reversal round-trip, summary ±rep landing only in reported fields,
+  resume-snapshot write-through via kill-and-relaunch).
