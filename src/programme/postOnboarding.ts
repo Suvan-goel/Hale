@@ -51,7 +51,7 @@ export function assessmentInputsFromV2Results(input: {
 export type AssessmentReoffer =
   | 'none'
   | 'deferred_reoffer' // end of session 1 / start of session 2
-  | 'skipped_warm_reoffer' // warm re-offer after week 1
+  | 'skipped_warm_reoffer' // week 1 elapsed OR 2 sessions done, whichever first
   | 'post_gp_reoffer'; // B1 bypass lifts only on gp_confirmed
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -66,13 +66,15 @@ export function assessmentReoffer(state: ProgrammeState, nowIso: string): Assess
   if (assessmentStatus === 'deferred' && state.completedSessionCount >= 1) {
     return 'deferred_reoffer';
   }
-  if (
-    assessmentStatus === 'skipped' &&
-    state.profile.consentHealthData && // §4 decline row: no assessment
-    state.onboardingCompletedAtIso !== null &&
-    Date.parse(nowIso) - Date.parse(state.onboardingCompletedAtIso) >= WEEK_MS
-  ) {
-    return 'skipped_warm_reoffer';
+  if (assessmentStatus === 'skipped' && state.profile.consentHealthData) {
+    // §4 decline row excludes consent-declined users from any re-offer.
+    // Warm re-offer: week 1 elapsed OR 2 completed sessions, whichever first
+    // (founder trigger, 2026-07-06). The card renders once (once-only
+    // registry); Settings/home remains the permanent entry point.
+    const weekElapsed =
+      state.onboardingCompletedAtIso !== null &&
+      Date.parse(nowIso) - Date.parse(state.onboardingCompletedAtIso) >= WEEK_MS;
+    if (weekElapsed || state.completedSessionCount >= 2) return 'skipped_warm_reoffer';
   }
   return 'none';
 }
@@ -81,7 +83,11 @@ export function assessmentReoffer(state: ProgrammeState, nowIso: string): Assess
 // Once-only surfaces (signposts render once, dismissible, never recurring)
 // ---------------------------------------------------------------------------
 
-export type OneTimeSurfaceId = 'doming_check' | 'pelvic_physio_signpost' | 'band_question';
+export type OneTimeSurfaceId =
+  | 'doming_check'
+  | 'pelvic_physio_signpost'
+  | 'band_question'
+  | 'skipped_warm_reoffer_card';
 
 export function surfaceAlreadyShown(state: ProgrammeState, surface: OneTimeSurfaceId): boolean {
   return state.profile.oneTimeSurfacesShown.includes(surface);

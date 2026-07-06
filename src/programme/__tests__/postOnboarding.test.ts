@@ -60,12 +60,21 @@ describe('assessment re-offer (§8) and the B1 bypass (conformance Q1/Q2)', () =
     expect(assessmentReoffer(deferred, NOW)).toBe('deferred_reoffer');
   });
 
-  it('skipped gets the warm re-offer after week 1; consent-declined never does (§4)', () => {
+  it('skipped gets the warm re-offer at week 1 OR 2 sessions, whichever first; consent-declined never (§4)', () => {
     const skipped = onboarded({ assessmentStatus: 'skipped' });
     expect(assessmentReoffer(skipped, '2026-07-10T09:00:00.000Z')).toBe('none');
-    expect(assessmentReoffer(skipped, NOW)).toBe('skipped_warm_reoffer');
+    expect(assessmentReoffer(skipped, NOW)).toBe('skipped_warm_reoffer'); // week elapsed
+
+    const twoSessions = onboarded({ assessmentStatus: 'skipped' });
+    twoSessions.completedSessionCount = 2;
+    expect(assessmentReoffer(twoSessions, '2026-07-08T09:00:00.000Z')).toBe('skipped_warm_reoffer');
+
+    const oneSession = onboarded({ assessmentStatus: 'skipped' });
+    oneSession.completedSessionCount = 1;
+    expect(assessmentReoffer(oneSession, '2026-07-08T09:00:00.000Z')).toBe('none');
 
     const declined = onboarded({ consentHealthData: false, assessmentStatus: 'skipped' });
+    declined.completedSessionCount = 10;
     expect(assessmentReoffer(declined, NOW)).toBe('none');
   });
 });

@@ -4376,6 +4376,16 @@ imports/fields/store file in backup shapes).
   web surface to configure, QA, and promote. Historical docs still mention the old site as
   prior context; new ad-readiness work should target `landing/` only.
 
+## 2026-07-06 — Elegant landing ad-readiness cleanup
+
+- **Public contact:** the landing page now defaults to `suvangoel@gmail.com` for footer,
+  privacy, terms, and thank-you contact surfaces; `VITE_CONTACT_EMAIL` remains an override.
+- **Funnel:** the post-submit page was simplified to a clean waitlist confirmation. The
+  optional survey and founder-chat upsell were removed from the paid-traffic path.
+- **Legal:** Privacy and Terms pages were rewritten as more formal pre-ad drafts covering
+  contact/controller, waitlist data, analytics consent, service providers, retention, rights,
+  beta status, wellness-only positioning, acceptable use, and liability boundaries.
+
 ## 2026-07-06 — Rep-target amendment, trim rotation, and Programme v2 Step 4
 
 - **AMENDMENT to the Step 3 double-progression design (founder fix):** rep-
@@ -4408,3 +4418,43 @@ imports/fields/store file in backup shapes).
   HOST for the assessment (running the actual check-up inside the shell)
   lands with engine-promotion integration; the adapter and re-placement
   paths are built and pinned.
+
+## 2026-07-06 — Skipped re-offer trigger, partial camera host, simulation harness + THREE JOURNEY FINDINGS, design backlog
+
+- **Skipped-path re-offer (conformance gap closed):** the week-1 warm re-offer
+  existed; the trigger now matches the founder spec — assessment_status =
+  skipped AND (≥7 days since onboarding OR ≥2 completed sessions, whichever
+  first). Softer copy than the deferred card; renders ONCE via the once-only
+  registry ('skipped_warm_reoffer_card'); the home-screen movement-check
+  entry is the permanent path. Consent-declined users are never re-offered (§4).
+- **Camera host (partial, honest):** the shell's assessment phase runs T1 FOR
+  REAL — two per-side single-leg-balance micro-check runs (same timed-hold
+  protocol as the battery) → worse side → adapter → applyAssessmentPlacement,
+  ALWAYS upward-only in the host (partial T1-only data never lowers levels).
+  **T3 is deliberately NOT wired through the chair-power micro-check — it is
+  a 5-stand power protocol, not the 30-second sit-to-stand; mapping it through
+  the T3 placement table would be protocol-dishonest.** Remaining owed item:
+  extract a single-movement chair-rise-v2 host from the unified check-up
+  machinery. All three re-offer paths + the B1 bypass gate every entry point
+  (home button included).
+- **Longitudinal simulation harness** (journeySimulation.test.ts): six
+  personas, 8–12 weeks, invariants held across every journey — single-step,
+  teach-only gateways, budget on every plan, quiet/no-stairs/support routing,
+  upward-only deferred re-placement, inactivity regression once per gap,
+  banned-content scans, short-preset A/B pattern coverage. **THREE FINDINGS
+  REPORTED, none quietly fixed** (findings register in the test pins them):
+  1. 'a_few' users on time-based core levels crawl at +2 s/session (~13
+     sessions inside one plank level). Design question: should seconds
+     schemes advance faster than rep schemes?
+  2. 'none'-answering users never promote below top-of-range — §12 by design
+     (hold+reduce protects them); listed so the stall detector stays honest.
+  3. HARNESS DISCOVERY: post-L5 the §11 hinge family split halves standing-
+     hinge promotion cadence for 'a_few' users (only Template B sessions feed
+     the standing ladder): ~10 sessions/level, just over the 3-week stall
+     bar. Founder decision needed: accept as inherent, count hinge stalls on
+     B-session cadence, or scale hinge advancement.
+- **docs/design-backlog.md created:** founder on-device finding (flow
+  structurally sound, visually flat; onboarding screens well below the
+  previous version's polish) + the design-pass brief (warm, calm, spacious,
+  grown-up; confident, unfussy; NOT neon fitness aggression, NOT
+  condescending pastel). Scheduled after engine promotion, before beta.

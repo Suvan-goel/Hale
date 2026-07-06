@@ -17,8 +17,12 @@ import { Button, Screen, Typography } from '../components/ui';
 import { createExpoHistoryFs } from '../history/fsAdapter';
 import {
   acknowledgeOnboardingStep,
+  applyAssessmentPlacement,
   applyProgrammeSessionResults,
+  assessmentInputsFromV2Results,
   assessmentReoffer,
+  markSurfaceShown,
+  surfaceAlreadyShown,
   completeOnboarding,
   currentOnboardingStep,
   effortFromRpe,
@@ -46,12 +50,14 @@ import {
 } from '../programme';
 import type { OnboardingQuestionStepId } from '../programme';
 import { ProfileStore } from '../profile';
+import { deriveMicroCheckSideSetup, type MicroCheckResult } from '../training';
+import { MicroCheckScreen } from './MicroCheckScreen';
 import { buildStoredSessionFunnel, SessionFunnelStore } from '../telemetry';
 import { createExpoSessionFunnelFs } from '../telemetry/fsAdapter';
 import { ProgrammeOnboardingScreen } from './ProgrammeOnboardingScreen';
 import { ProgrammeSessionScreen } from './ProgrammeSessionScreen';
 
-type ShellPhase = 'loading' | 'onboarding' | 'home' | 'session' | 'session_done';
+type ShellPhase = 'loading' | 'onboarding' | 'home' | 'session' | 'session_done' | 'assessment';
 
 export function ProgrammeV2Root() {
   // Dev shell runs guest-scoped; the flag audit keeps this path out of
@@ -71,6 +77,8 @@ export function ProgrammeV2Root() {
   const [physioSignpostVisible, setPhysioSignpostVisible] = React.useState(false);
   const sessionStartRef = React.useRef<{ startedAtIso: string; wasFirstSession: boolean } | null>(null);
   const lastEffortRef = React.useRef<SessionRpe | null>(null);
+  const [assessmentSide, setAssessmentSide] = React.useState<'left' | 'right'>('left');
+  const balanceHoldsRef = React.useRef<{ left?: number; right?: number }>({});
 
   React.useEffect(() => {
     let cancelled = false;
@@ -324,8 +332,31 @@ export function ProgrammeV2Root() {
       return (
         <PromptCard
           title="Ready for that two-minute movement check?"
-          body="It makes your levels exact. It runs at your next check-up — no one sees it but you, and it never leaves your phone."
-          actions={[{ label: 'Sounds good', onPress: () => setLastDecisions({}) }]}
+          body="It makes your levels exact. No one sees it but you, and it never leaves your phone."
+          actions={[
+            { label: "Let's do it", onPress: () => setPhase('assessment') },
+            { label: 'Sounds good — later', onPress: () => setLastDecisions({}) },
+          ]}
+        />
+      );
+    }
+    if (
+      reoffer === 'skipped_warm_reoffer' &&
+      !surfaceAlreadyShown(programmeState, 'skipped_warm_reoffer_card')
+    ) {
+      // Softer than the deferred card; renders exactly once — the home
+      // screen's movement-check entry remains the permanent path.
+      return (
+        <PromptCard
+          title="Whenever you're ready"
+          body="Your workouts get smarter if we do a quick movement check whenever you're ready. It's always waiting on your home screen."
+          actions={[
+            { label: "Let's do it now", onPress: () => setPhase('assessment') },
+            {
+              label: 'Maybe later',
+              onPress: () => persist(markSurfaceShown(programmeState, 'skipped_warm_reoffer_card')),
+            },
+          ]}
         />
       );
     }
@@ -342,6 +373,51 @@ export function ProgrammeV2Root() {
     );
   }
 
+  if (phase === 'assessment') {
+    // T1 runs for real: the single-leg balance micro-check is the same timed
+    // hold as the battery's protocol, once per side (worse side feeds
+    // placement). T3 (30 s chair rise) is NOT run through the 5-stand power
+    // check — protocol mismatch — and awaits a chair-rise-v2 single-movement
+    // host; squat placement stays on activity prior until then. Re-placement
+    // here is ALWAYS upward-only: partial (T1-only) data never lowers levels.
+    const sideSetup = {
+      ...deriveMicroCheckSideSetup({ microCheckType: 'single-leg-balance' }),
+      selectedSide: assessmentSide,
+    };
+    return (
+      <MicroCheckScreen
+        key={assessmentSide}
+        type="single-leg-balance"
+        sideSetup={sideSetup}
+        onComplete={(result: MicroCheckResult) => {
+          balanceHoldsRef.current[assessmentSide] = result.measured ? result.value : undefined;
+          if (assessmentSide === 'left') {
+            setAssessmentSide('right');
+            return;
+          }
+          const holds = balanceHoldsRef.current;
+          const inputs = assessmentInputsFromV2Results({
+            balanceLeft: holds.left !== undefined ? { bestHoldSec: holds.left } : null,
+            balanceRight: holds.right !== undefined ? { bestHoldSec: holds.right } : null,
+          });
+          persist(applyAssessmentPlacement(programmeState, inputs, { deferred: true }));
+          balanceHoldsRef.current = {};
+          setAssessmentSide('left');
+          setPhase('home');
+        }}
+        onCancel={() => {
+          balanceHoldsRef.current = {};
+          setAssessmentSide('left');
+          setPhase('home');
+        }}
+      />
+    );
+  }
+
+  const homeReoffer = assessmentReoffer(programmeState, new Date().toISOString());
+  const assessmentAvailable =
+    programmeState.profile.assessmentStatus !== 'done' &&
+    homeReoffer !== 'none';
   return (
     <Screen>
       <View style={{ flex: 1, padding: 24, gap: 16, justifyContent: 'center' }}>
@@ -350,6 +426,13 @@ export function ProgrammeV2Root() {
           title={programmeState.profile.firstSessionStarted ? 'Start a session' : 'Start your first session — 15 minutes'}
           onPress={startSessionFromHome}
         />
+        {assessmentAvailable ? (
+          <Button
+            title="Do the two-minute movement check"
+            variant="secondary"
+            onPress={() => setPhase('assessment')}
+          />
+        ) : null}
       </View>
     </Screen>
   );
