@@ -3766,3 +3766,32 @@ PUBLIC RELEASE REMAINS BLOCKED
   Retry/Skip, no manual "confirm framing"). No changes made; the pass output is
   this verification record. Next: gate/corpus tooling for the five measurement
   movements (TDD §7), checkpoint before anything engine-specific.
+
+## 2026-07-06 — REPOSITION_TDD approved; flag resolutions recorded (founder)
+
+- **REPOSITION_TDD.md (commit 803cf123) approved.** Slices 1–3 (cognitive claims fence,
+  brand token, dimension registry) authorized to proceed; standing checkpoint rhythm.
+- **F1 resolved — reconciliation, not supersession:** the stage question stays
+  required-before-Continue mechanically, with "Prefer not to say" as a first-class
+  option that satisfies it. The decline is stored explicitly (`prefer_not_to_say`) —
+  no null-vs-declined ambiguity. The 2026-07-05 "unanswered never masquerades as
+  answered" rule and the reposition brief's sensitivity requirement are both honored.
+- **F2 resolved — final stage taxonomy:** perimenopausal / menopausal / postmenopausal /
+  not sure / prefer not to say (schema v10 as designed in the TDD: `menopausal` added;
+  `neither_or_unsure` retained as the stored token, relabeled "Not sure"). "Not sure"
+  is a first-class answer for this audience and becomes a personalization signal
+  (gentle educational content path) — never a gap to re-ask or nag about.
+- **F3/F5 approved:** `younger_than_age_band` milestone retired entirely — age
+  comparison violates the baseline-relative default, and nothing of its kind returns
+  except inside the opt-in normative view, governed by claim eligibility. The block
+  report becomes a phase report (ritual kept, endpoint framing removed).
+- **Export identity approved:** `app: 'Hale'` stays forever as the stable machine
+  format id; a separate display-name field carries the brand. Old backups must always
+  restore regardless of any future rename — pinned by test (slice 2).
+- **Fog items:** the four §5.1 drafts are placeholders pending the founder's clinical
+  review. They stay behind the claims fence and do not ship until final wording
+  returns. (Slice 4 remains blocked on that wording.)
+- **Ghost curve — design constraint of record:** the founder will supply the published
+  decline-rate reference for the fingerprinted-source machinery before slice 8; the
+  ghost curve must use a CONSERVATIVE (understated) decline rate, and the source is
+  transparently cited in-app.
