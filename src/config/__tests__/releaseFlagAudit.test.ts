@@ -16,6 +16,7 @@ const SAFE_FLAGS: BetaReleaseFlagAuditFlags = {
   movementProfileV2DiagnosticsEnabled: false,
   poseLatencyDiagnosticsEnabled: false,
   allowDiagnosticsInRelease: false,
+  clarityDimensionEnabled: false,
   devMockDataEnabled: false,
 };
 
@@ -229,6 +230,8 @@ function flagExpectationFor(name: ReleaseFlagEnvName): Partial<BetaReleaseFlagAu
       return { poseLatencyDiagnosticsEnabled: true };
     case RELEASE_FLAG_ENV_NAMES.allowDiagnosticsInRelease:
       return { allowDiagnosticsInRelease: true };
+    case RELEASE_FLAG_ENV_NAMES.clarityDimension:
+      return { clarityDimensionEnabled: true };
     case RELEASE_FLAG_ENV_NAMES.appleSignIn:
       return { appleSignInEnabled: true };
     case RELEASE_FLAG_ENV_NAMES.sentry:

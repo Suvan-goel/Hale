@@ -22,6 +22,7 @@ import {
 } from './movementProfileV2BlockReport';
 
 import { BRAND } from '../brand';
+import { objectiveMovementDomains } from '../dimensions';
 export type MovementProfileV2ProgressStatus =
   | 'ready'
   | 'no_profile'
@@ -277,7 +278,9 @@ export function buildMovementProfileV2ProgressViewModel(
   };
 }
 
-const CHANGE_DOMAIN_ORDER: readonly MovementProfileV2Domain[] = ['strength_power', 'balance', 'mobility'];
+// Registry-derived (REPOSITION_TDD §4): camera-measured dimensions in surface
+// order; Clarity never appears in measurement change rows.
+const CHANGE_DOMAIN_ORDER: readonly MovementProfileV2Domain[] = objectiveMovementDomains();
 
 // Minimum change (in each domain's own raw unit) worth calling a move rather than
 // noise. Between-session setup variance is the product's #1 measurement threat, so

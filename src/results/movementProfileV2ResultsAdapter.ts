@@ -78,7 +78,7 @@ export function buildMovementProfileV2UnifiedResultsPresentation(input: {
     domainSection: {
       title: retestMode ? 'Current results' : 'The three areas',
     },
-    domains: toDomainTuple(domains),
+    domains: toDomainCards(domains),
     plan: retestMode || historyMode ? { status: 'hidden' } : planCopy,
     caveat: input.viewModel.summary,
     comparison: input.retestComparison
@@ -237,13 +237,12 @@ function iconToken(domain: MovementProfileV2Domain): UnifiedDomainResultCard['ic
   return 'mobility';
 }
 
-function toDomainTuple(domains: UnifiedDomainResultCard[]): [
-  UnifiedDomainResultCard,
-  UnifiedDomainResultCard,
-  UnifiedDomainResultCard,
-] {
-  if (domains.length !== 3) {
-    throw new Error('Movement Profile V2 results require exactly three domain cards.');
+// Dimension-generic (REPOSITION_TDD §4): one card per registered
+// camera-measured dimension — the view model already iterates the registry,
+// so an empty result is the only impossible state worth guarding.
+function toDomainCards(domains: UnifiedDomainResultCard[]): readonly UnifiedDomainResultCard[] {
+  if (domains.length === 0) {
+    throw new Error('Movement Profile V2 results require at least one dimension card.');
   }
-  return [domains[0], domains[1], domains[2]];
+  return domains;
 }

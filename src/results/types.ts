@@ -9,7 +9,11 @@ export type UnifiedCheckUpResultsVariant = 'standard' | 'onboarding' | 'history'
 export type UnifiedResultDomainId =
   | 'strength_power'
   | 'balance_stability'
-  | 'mobility_flexibility';
+  | 'mobility_flexibility'
+  // Registered dimension (REPOSITION_TDD Part 2a). Never rendered as a card in
+  // v1 — Clarity gets its own trend surface; the id exists so a future
+  // dimension needs no type migration.
+  | 'clarity';
 
 export type UnifiedResultDomainTone = 'neutral' | 'attention' | 'informational';
 
@@ -42,9 +46,12 @@ export interface UnifiedDomainResultCard {
   bandLabel?: string;
   featured?: boolean;
   tone: UnifiedResultDomainTone;
-  iconToken: 'strength' | 'balance' | 'mobility';
+  iconToken: 'strength' | 'balance' | 'mobility' | 'clarity';
   accessibilityLabel?: string;
 }
+
+/** Dimension-generic alias (REPOSITION_TDD §4) — cards are registry entries. */
+export type UnifiedDimensionResultCard = UnifiedDomainResultCard;
 
 export interface UnifiedFocusPresentation {
   kicker: string;
@@ -87,11 +94,11 @@ export interface UnifiedCheckUpResultsPresentation {
     showBackButton?: boolean;
     backAccessibilityLabel?: string;
   };
-  domains: readonly [
-    UnifiedDomainResultCard,
-    UnifiedDomainResultCard,
-    UnifiedDomainResultCard,
-  ];
+  /**
+   * Dimension-generic (REPOSITION_TDD §4): one card per active camera-measured
+   * dimension, in registry surface order — no longer a fixed 3-tuple.
+   */
+  domains: readonly UnifiedDomainResultCard[];
   domainSection?: {
     title?: string;
     subtitle?: string;

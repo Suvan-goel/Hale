@@ -14,6 +14,8 @@ import type {
 } from '../reference/movementProfileV2';
 
 import { BRAND } from '../brand';
+import { objectiveMovementDomains } from '../dimensions';
+
 export type MovementProfileV2Domain = MovementDomain;
 
 /**
@@ -60,7 +62,10 @@ export interface MovementProfileV2ResultsViewModel {
   domainCards: MovementProfileV2DomainCardViewModel[];
 }
 
-const DOMAIN_ORDER: readonly MovementProfileV2Domain[] = ['strength_power', 'balance', 'mobility'];
+// Registry-derived (REPOSITION_TDD §4): camera-measured dimensions in surface
+// order. Clarity is structurally excluded — self-report never renders as a
+// measurement card.
+const DOMAIN_ORDER: readonly MovementProfileV2Domain[] = objectiveMovementDomains();
 
 export function buildMovementProfileV2ResultsViewModel(input: {
   snapshot: StoredMovementProfileV2Snapshot;
