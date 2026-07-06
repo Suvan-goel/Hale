@@ -3839,3 +3839,63 @@ PUBLIC RELEASE REMAINS BLOCKED
 - **Next per approved plan:** slice 4 (check-up appendix) blocked on founder fog-item
   wording; slice 5 (results reshape) ready — needs opt-in placement choice; slice 6
   blocked on nothing (F1/F2 resolved). Checkpoint here per standing rhythm.
+
+## 2026-07-06 — Reposition slices 5–7 landed: results reshape, onboarding taxonomy, phase framing
+
+- **Slice 5 — results reshape (founder conditions of record honored, pinned by test):**
+  1. The population-comparison affordance NEVER appears on first-ever results (onboarding
+     variant) nor before the second stored official check-up; the first assessment stays
+     purely diagnosis-shaped. 2. Placement is a quiet, subordinate entry below her own
+     trend — invite copy "See how you compare … Your own trend stays the main story."
+     3. Once opted in (prefs v10 `comparisonOptIn`, default false): the existing
+     claim-eligibility machinery governs what renders (raw-only shows nothing new in
+     either mode), reversible in place, with the Settings switch (Privacy & data →
+     Results) as the always-findable home. Saved-history views show no affordance.
+  - **Diagnosis-shaped focus body:** "[Strongest] is your strongest asset. [Focus] is
+    your biggest opportunity — your plan starts there." Ranking is ordinal-only over the
+    focus engine's existing `domainEvidence` categories (tiers: above-reference >
+    within-reference/hale-building; raw-only/invalid never rank); ties named honestly in
+    the plural; no reference-supported asset → the previous honest line. No engine
+    change — presentation derivation only.
+  - **Baseline-relative card bodies by default** ("Adds to your own X trend with every
+    check-up"); percentile/typical-range copy renders only behind the opt-in. Status
+    tiers (Starting point/Building/On track/Strong) stay in BOTH modes — recorded
+    choice: they are the app-wide band vocabulary, not comparison claims. Progress hero
+    always renders the neutral form (comparison lives only behind the results-screen
+    view). The Progress frozen-surface word-ban dropped bare "trend" (forward-looking
+    personal-trend copy is the framing of record; computed-change words stay banned).
+  - **`younger_than_age_band` milestone retired (F3):** never emitted, filtered from
+    display, stored instances still parse. Nothing age-comparative remains outside the
+    opt-in view.
+  - App keeps a snapshot/assessment source pair behind fresh results so the toggle
+    rebuilds card copy in place; prefs schema v9→v10 (additive, defensive parse; v9
+    records deserialize with the default off).
+- **Slice 6 — stage taxonomy + symptom picture (F1/F2 as resolved):** `menopausal` added;
+  `neither_or_unsure` kept as the stored token relabeled "Not sure" (v9 parses
+  unchanged) and treated as a personalization signal — the educational menopause
+  explainer is GUARANTEED first in Learn for Not-sure readers (test survives future
+  reordering), and a structural test pins that no stage value (including honest null)
+  ever routes back to be re-asked. Required-before-Continue unchanged with
+  prefer-not-to-say first-class (F1 needed no mechanical change — recorded as
+  verification). New optional `symptomPicture` (5 symptoms + exclusive
+  none-of-these/prefer-not-to-say; deselecting the last symptom returns to honest
+  null): shared toggle logic (`profile/symptomPicture.ts`) drives both the onboarding
+  safety setup and Settings so the surfaces cannot drift; female-scoped like the stage;
+  defensive parse; local-wins in the backend profile merge. Personalisation context
+  only — never scoring; the check-up covariates remain slice 4.
+- **Slice 7 — continuous-phase framing (F5) + worse-never-bare:** new phase reports say
+  "Four weeks done — your next phase starts here"; the stored `displayCopy` literal
+  types were widened to `string` so OLD records keep the wording they were created with
+  and their own fingerprints still verify — no migration. User-facing noun is now
+  "phase report" (results + Progress CTAs); internal ids/storage keys unchanged.
+  Progress downward change rows always pair the trainable path (`supportCopy`, warm and
+  mechanism-honest, no promised outcomes), enforced through the shared
+  `bareDownwardChanges` invariant against the real view model. Known-driver context
+  (sleep/symptom load) attaches when slice 4's covariates exist. **Deviation from the
+  slice plan, flagged:** the Clarity trend surface was deferred to ride WITH slice 4 —
+  it has no data model until `CheckUp.selfReport` exists, and building a surface with
+  no possible data would be speculative.
+- Verification: tsc clean; jest 177/177 suites, 1494/1494; `expo config` green.
+  Founder's `landing/` worktree untouched. Remaining blocked work: slice 4 (fog item
+  wording), slice 8 (decline-rate source), rename (name choice), device evening
+  (unchanged gate for anything engine-specific).
