@@ -31,7 +31,7 @@ const TERMS = [
   },
   {
     h: "Not medical advice",
-    p: "Elegant measures functional strength, balance and mobility. It does not diagnose, treat, or prevent any medical condition, and nothing on this site is medical advice. Consult a qualified professional before starting a new exercise programme.",
+    p: "Elegant tracks functional strength, balance, mobility and personal Clarity signals. It does not diagnose, treat, or prevent any medical condition, and nothing on this site is medical advice. Consult a qualified professional before starting a new exercise programme.",
   },
   {
     h: "This site",

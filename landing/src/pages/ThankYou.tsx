@@ -67,6 +67,9 @@ export function ThankYou({ email }: { email: string }) {
           <h2 className="mt-3 font-display text-[1.4rem] leading-snug">
             What's your biggest frustration with staying strong right now?
           </h2>
+          <p className="mt-2 text-sm leading-relaxed text-ink/60">
+            Your answer goes straight to the founder and shapes what gets built.
+          </p>
           {surveyState === "sent" ? (
             <p className="mt-4 font-medium text-pine">Thank you — that genuinely helps.</p>
           ) : (

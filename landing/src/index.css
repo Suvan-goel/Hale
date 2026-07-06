@@ -49,12 +49,6 @@ body {
   transform: none;
 }
 
-/* Skip rendering work for below-the-fold sections until they approach the viewport */
-.cv-auto {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 640px;
-}
-
 summary::-webkit-details-marker {
   display: none;
 }

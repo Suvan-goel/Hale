@@ -50,9 +50,9 @@ function Footer({ onNavigate }: { onNavigate: (route: Route) => void }) {
           </nav>
         </div>
         <p className="mt-8 max-w-2xl text-xs leading-relaxed text-bone/45">
-          Elegant measures functional strength, balance and mobility. It is not medical advice and
-          does not diagnose, treat or prevent any condition. Consult a qualified professional
-          before starting a new exercise programme.
+          Elegant tracks functional strength, balance, mobility and personal Clarity signals. It is
+          not medical advice and does not diagnose, treat or prevent any condition. Consult a
+          qualified professional before starting a new exercise programme.
         </p>
         <p className="mt-3 text-xs text-bone/45">© 2026 Elegant</p>
       </div>
