@@ -52,6 +52,7 @@ const CLARITY_SELF_REPORT_COPY_FILES: readonly string[] = [
   'src/checkup/selfReport.ts',
   'src/screens/ClarityCheckInScreen.tsx',
   'src/haleFlow/clarityTrend.ts',
+  'src/screens/DualTaskScreen.tsx',
 ];
 const CLARITY_BANNED_COPY = /\bvalidated\b/i;
 

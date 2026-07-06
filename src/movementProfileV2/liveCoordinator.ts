@@ -51,10 +51,13 @@ export const MPV2_CHAIR_COUNTDOWN_CADENCE_MS = 1000;
 export const MPV2_CHAIR_COUNTDOWN_TOTAL_MS = 3000;
 const BALANCE_REST_MIN_MS = 30000;
 const BALANCE_REST_DEFAULT_MS = 60000;
-const BALANCE_TOUCHDOWN_DEBOUNCE_FRAMES = 4;
+// Exported (C7-style shared predicate rule): the dual-task runtime re-runs a
+// balance hold with EXACTLY this detection so level 2 measures the same way
+// level 1 did. Values change together or the comparison lies.
+export const BALANCE_TOUCHDOWN_DEBOUNCE_FRAMES = 4;
 /** Continuous lift evidence required before a trial starts (anti-jitter; the
  * trial clock is retro-dated to the first lift frame so no hold time is lost). */
-const BALANCE_LIFT_CONFIRM_MS = 150;
+export const BALANCE_LIFT_CONFIRM_MS = 150;
 const ACTIVE_TRACKING_LOSS_CONFIRM_FRAMES = 4;
 const BALANCE_LIFT_BU = 0.14;
 const CHAIR_MAX_REPS = 64;
@@ -2091,7 +2094,8 @@ class ChairLiveAdapter {
   }
 }
 
-function selectedLegRaised(frame: PoseFrame, bodyUnit: number, standingLeg: BodySide): boolean {
+// Exported for the dual-task runtime (same reason as the constants above).
+export function selectedLegRaised(frame: PoseFrame, bodyUnit: number, standingLeg: BodySide): boolean {
   const standing = standingLeg === 'left' ? LM.LEFT_ANKLE : LM.RIGHT_ANKLE;
   const raised = standingLeg === 'left' ? LM.RIGHT_ANKLE : LM.LEFT_ANKLE;
   return (frame.ys[standing] - frame.ys[raised]) / bodyUnit > BALANCE_LIFT_BU;

@@ -75,3 +75,21 @@ export function verbalTaskPerformed(
   const required = Math.min(config.minSpeechMs, config.minSpeechFraction * summary.windowMs);
   return summary.speechActiveMs >= required;
 }
+
+/**
+ * The production monitor. PLANNED state until device Block 7 passes: no
+ * native implementation exists yet, so this reports 'unavailable' and the
+ * level-2 offer never renders — the instrument records itself honestly as
+ * unavailable rather than shipping flaky (F1 hard gate). The native module
+ * replaces this after the gate, behind the same interface.
+ */
+export function defaultSpeechActivityMonitor(): SpeechActivityMonitor {
+  return {
+    availability: () => Promise.resolve('unavailable'),
+    start: () => {
+      throw new Error('speech-activity monitor unavailable (device gate pending)');
+    },
+    stop: () => ({ speechActiveMs: 0, windowMs: 0 }),
+    onActivity: () => () => undefined,
+  };
+}

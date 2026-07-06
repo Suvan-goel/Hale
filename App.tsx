@@ -74,6 +74,7 @@ import { configureSessionAudio } from './src/audio/voicePlayer';
 import {
   CheckUp,
   CheckUpSelfReport,
+  DualTaskResult,
   latestV2ShoulderSide,
   latestV2StandingLeg,
 } from './src/checkup';
@@ -231,6 +232,13 @@ import { MicroCheckSummaryScreen } from './src/screens/MicroCheckSummaryScreen';
 import { MovementProfileV2BlockReportScreen } from './src/screens/MovementProfileV2BlockReportScreen';
 import { MovementProfileV2UnifiedCheckUpScreen } from './src/screens/MovementProfileV2UnifiedCheckUpScreen';
 import { ClarityCheckInScreen } from './src/screens/ClarityCheckInScreen';
+import { DualTaskScreen } from './src/screens/DualTaskScreen';
+import { dualTaskEligibility, type DualTaskEligibility } from './src/movementProfileV2/dualTaskEligibility';
+import {
+  defaultSpeechActivityMonitor,
+  type SpeechActivityAvailability,
+  type SpeechActivityMonitor,
+} from './src/voice/speechActivity';
 import { MovementProfileV2UnifiedResultsScreen } from './src/screens/MovementProfileV2UnifiedResultsScreen';
 import { MovementProfileV2PracticeResultsScreen } from './src/screens/MovementProfileV2PracticeResultsScreen';
 import { PlanScreen } from './src/screens/PlanScreen';
@@ -293,6 +301,7 @@ type Flow =
   | 'learn-detail'
   | 'settings'
   | 'movement-profile-v2-unified-checkup'
+  | 'dual-task'
   | 'clarity-check-in'
   | 'movement-profile-v2-results'
   | 'movement-profile-v2-practice-results'
@@ -718,6 +727,27 @@ function HaleApp() {
   // early-saved; finalization resumes when the check-in screen returns).
   const [pendingClarityCheckIn, setPendingClarityCheckIn] =
     React.useState<MovementProfileV2RawCompletion | null>(null);
+  // Dual-task appendix (CLARITY_INSTRUMENTS_TDD DT2): eligible official
+  // check-up awaiting its level-2 run, ahead of the check-in.
+  const [pendingDualTask, setPendingDualTask] = React.useState<{
+    input: MovementProfileV2RawCompletion;
+    eligibility: Extract<DualTaskEligibility, { kind: 'eligible' }>;
+  } | null>(null);
+  const [speechMonitor] = React.useState<SpeechActivityMonitor>(() => defaultSpeechActivityMonitor());
+  const [speechMonitorAvailability, setSpeechMonitorAvailability] =
+    React.useState<SpeechActivityAvailability>('unavailable');
+  React.useEffect(() => {
+    let active = true;
+    speechMonitor
+      .availability()
+      .then((availability) => {
+        if (active) setSpeechMonitorAvailability(availability);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [speechMonitor]);
   const [movementProfileV2Result, setMovementProfileV2Result] =
     React.useState<MovementProfileV2ResultsViewModel | null>(null);
   // Source pair behind the fresh-results view model so the population-
@@ -3535,7 +3565,48 @@ function HaleApp() {
       handleMovementProfileV2RawComplete(input, 'unified');
       return;
     }
+    // Dual-task appendix rides only when the clarity dimension is on; while
+    // the flag is off the instrument is entirely dark (no record either way).
+    if (isClarityDimensionEnabled()) {
+      const eligibility = dualTaskEligibility({
+        checkUp: input.checkUp,
+        monitorAvailability: speechMonitorAvailability,
+      });
+      if (eligibility.kind === 'eligible') {
+        setPendingDualTask({ input, eligibility });
+        setFlow('dual-task');
+        return;
+      }
+      // Not offered (unavailable / invalid baseline): recorded honestly.
+      setPendingClarityCheckIn(withDualTaskResult(input, eligibility.record));
+      setFlow('clarity-check-in');
+      return;
+    }
     setPendingClarityCheckIn(input);
+    setFlow('clarity-check-in');
+  }
+
+  function withDualTaskResult(
+    input: MovementProfileV2RawCompletion,
+    dualTask: DualTaskResult
+  ): MovementProfileV2RawCompletion {
+    return {
+      ...input,
+      checkUp: {
+        ...input.checkUp,
+        clarityInstruments: { schemaVersion: 1, dualTask },
+      },
+    };
+  }
+
+  function handleDualTaskDone(result: DualTaskResult) {
+    const pending = pendingDualTask;
+    setPendingDualTask(null);
+    if (!pending) {
+      setFlow(null);
+      return;
+    }
+    setPendingClarityCheckIn(withDualTaskResult(pending.input, result));
     setFlow('clarity-check-in');
   }
 
@@ -4354,6 +4425,12 @@ function HaleApp() {
               }
             }}
             onCancel={() => goBack(goHome)}
+          />
+        ) : flow === 'dual-task' && pendingDualTask ? (
+          <DualTaskScreen
+            eligibility={pendingDualTask.eligibility}
+            speechMonitor={speechMonitor}
+            onDone={handleDualTaskDone}
           />
         ) : flow === 'clarity-check-in' && pendingClarityCheckIn ? (
           <ClarityCheckInScreen
