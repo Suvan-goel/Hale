@@ -3739,3 +3739,30 @@ PUBLIC RELEASE REMAINS BLOCKED
   a manual "glue verification" block in DEVICE_SESSION_PROTOCOL.md (pain fold at
   completion, Settings reversal round-trip, summary ±rep landing only in reported fields,
   resume-snapshot write-through via kill-and-relaunch).
+
+## 2026-07-06 — Measurement-context C3 pass: concluded as VERIFICATION, no code gaps found
+
+- The invalid-marking requirement ("a silently degraded measurement is worse than a
+  missing one") is already built and tested end-to-end, assembled by the 2026-07-02/04
+  hardening passes. Verified chain, per the standing BUILT-vs-PLANNED rule:
+  1. **Taxonomy** — `protocolEvidence.ts`: `invalid_measurement` + four `raw_only_*`
+     downgrade statuses; `ProtocolInvalidReason` includes `tracking_interrupted`,
+     `no_valid_measurement`, `user_declined_retry`, `app_backgrounded`.
+  2. **Per-movement assignment** — every V2 measurement movement self-downgrades
+     (`chairRiseV2.ts:183` pattern): setup unconfirmed → setup_uncertain; any
+     interruption → tracking_uncertain; zero valid reps → invalid_measurement.
+     Declining remaining balance trials → `user_declined_retry`
+     (`oneLegBalanceV2.ts:263`).
+  3. **Claim gating** — the reference engine voids invalid metrics
+     (`engine.ts` chair/balance/shoulder rawMetric guards) and maps every
+     `raw_only_*` status to non-official claim eligibility; only
+     `reference_protocol_complete` is reference-eligible
+     (`reference/movementProfileV2/{chair,balance}.ts`).
+  4. **Consumer honesty** — micro-check `measured:false` is guarded at every
+     haleFlow consumer (appLifecycle/assessments/microCheckSummary — "Not
+     captured", never a number); velocity means only ever aggregate completed
+     reps, with interruption downgrades labeling trust.
+  Retry-with-setup-help stands as decided 2026-07-02/04 (setup-issue latch,
+  Retry/Skip, no manual "confirm framing"). No changes made; the pass output is
+  this verification record. Next: gate/corpus tooling for the five measurement
+  movements (TDD §7), checkpoint before anything engine-specific.
