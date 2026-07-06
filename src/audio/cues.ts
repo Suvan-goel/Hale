@@ -91,6 +91,13 @@ export type VoiceCueKey =
   | 'countdown-one'
   | 'go'
   | 'times-up'
+  // Voice-guided session flow (logical until the voice-lines generation
+  // slice bundles audio — the V2.1 logical-first pattern). Scripts must pass
+  // the hot-phrase lint at generation time.
+  | 'voice-say-ready'
+  | 'voice-say-ready-reprompt'
+  | 'voice-done-reprompt'
+  | 'pain-acknowledge'
   // Training Voice V2.1 logical/runtime cues. Most exercise-specific V2.1
   // keys are logical only until the later physical manifest/audio phase.
   | 'training-intro-v21'
@@ -213,7 +220,12 @@ export function voicePriority(cue: VoiceCueKey): number {
     case 'times-up':
     case 'relax-arm':
     case 'stand-tall':
+    case 'pain-acknowledge': // safety response must never be dropped
       return 10; // window-closing / countdown cues
+    case 'voice-say-ready':
+    case 'voice-say-ready-reprompt':
+    case 'voice-done-reprompt':
+      return 8; // session pacing prompts — droppable under busier lines
     case 'you-completed':
     case 'stands-suffix':
     case 'no-reps':

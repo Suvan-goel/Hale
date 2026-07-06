@@ -3597,3 +3597,39 @@ PUBLIC RELEASE REMAINS BLOCKED
   added to criteria §8 (play the worst line ×10 with a hot window open) — zero self-fires
   keeps the natural wording; any self-fire returns reword-vs-suppress to the founder.
 - Verification: tsc clean, jest full suite green (56 voice tests incl. 7 new guardrail).
+
+## 2026-07-06 — Checkpoint amendment: device checks batched; voice layer proceeds engine-agnostic
+
+- **Product-owner amendment:** all physical-device checks (KWS spike, §8 safety cells,
+  self-echo, §5 routing, soak, airplane pass, iOS pod compile) are deferred into ONE batched
+  device session at the end of implementation — consolidated in
+  `docs/DEVICE_SESSION_PROTOCOL.md` in dependency order. The spike remains a HARD GATE; it
+  moves from "before the voice layer" to "before beta and before any engine-specific
+  tuning." Implementation proceeds engine-agnostic: the intent-matcher API is the stable
+  seam, and anything that would differ between recognizer engines is flagged and deferred,
+  not built.
+- **Tap-only completeness promoted from parity rule to TESTED INVARIANT** — the hedge that
+  makes deferring the spike safe. `voiceSessionPlayer.test.ts` drives a complete
+  multi-exercise session through taps alone with the recognizer never consulted, plus:
+  waiting states never auto-advance (one re-prompt then tap-lean, verified over 10 idle
+  minutes), open rep sets never end themselves (verified over 15 minutes).
+- **Session-flow integration landed (engine-agnostic):** `TrainingSessionPlayer` gains a
+  `voice_guided` mode — clock-tick driven (`tick()`), no camera, phases
+  transition → instructions → `waiting_ready` → countdown → set → rest → next set. Reps
+  sets are open-ended (she says "done"/taps; `reportedReps` recorded, measured `reps`
+  stays 0 and `meanVel` NaN by construction); holds/timers run on the audio clock.
+  Intent surface `handleSessionIntent()` (ready/done/skip/repeat/pause/stop/resume/pain)
+  with tap methods calling the same paths. Pain = deterministic halt → acknowledge →
+  skip exercise (`skipReason: 'pain'`) → session continues; `painEvents` on the result
+  feed the upcoming store slice. Hot-listening policy is pure data
+  (`src/voice/sessionIntentPolicy.ts`): hot intents live in every active phase including
+  during app speech; command intents gated per phase AND on `!voiceBusy` (the
+  self-trigger guard that lets prompts say "say done…"). The camera path is untouched and
+  its full suite still passes; `update()`/`tick()` mutually reject the wrong mode.
+- Four logical cue keys added (V2.1 logical-first pattern; audio in the voice-lines
+  slice, scripts through the hot-phrase lint): voice-say-ready(+reprompt),
+  voice-done-reprompt, pain-acknowledge (priority 10 — never dropped).
+- **Checkpoint rhythm:** paused here for founder review of session-flow integration.
+  Next after review: pain_event store + recurrence auto-exclude → "something hurts"
+  control → voice lines ×2 voices → measurement Retry/Skip flows → gate tooling →
+  instrumentation. Screen/UI wiring for voice sessions rides with the next slice.

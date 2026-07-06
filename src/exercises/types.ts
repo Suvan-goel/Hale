@@ -78,6 +78,16 @@ export interface SetResult {
   reachedTarget: boolean;
   interruptions: number;
   flags: string[];
+  /**
+   * Voice-guided sessions only (TDD-ADDENDUM §1.4, type-level split N5):
+   * the prescribed rep target the user confirmed with "done" — REPORTED, not
+   * measured. Voice-guided sets keep `reps` at 0 and `meanVel` NaN so nothing
+   * reading the measured fields can ever mistake reported effort for
+   * measurement. Absent on all camera-graded sets.
+   */
+  reportedReps?: number;
+  /** User correction applied on the rest screen (delta vs reportedReps). */
+  repsAdjusted?: number;
   /** Optional Phase 1 valid active-time metadata. Absent for legacy/rep sets. */
   validTime?: ValidTimeResult;
   /** Optional FD-005 step-up lead-leg alternation metadata. Absent for legacy/other sets. */

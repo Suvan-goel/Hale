@@ -18,6 +18,7 @@
 
 import { VoiceCueKey, voicePriority } from '../audio/cues';
 import { VoiceRequest } from '../assessment/sessionController';
+import type { VoiceIntent } from '../voice/intents';
 import { ExerciseDefinition, SetResult, getExercise } from '../exercises';
 import type { ValidTimeState } from '../exercises/validTime';
 import { PipelineFrameOutput } from '../pose/pipeline';
@@ -55,15 +56,30 @@ export type TrainingPhase =
   | 'transition'
   | 'preflight'
   | 'instructions'
+  | 'waiting_ready'
   | 'countdown'
   | 'set'
   | 'rest'
+  | 'voice_paused'
   | 'complete'
   | 'done';
+
+/** Session driving mode. Voice-guided is the v1 production mode (2026-07-05
+ * direction); camera_conducted is the parked conductor path, kept fully
+ * working behind this switch and exercised by the existing suites. */
+export type TrainingSessionMode = 'camera_conducted' | 'voice_guided';
+
+export interface TrainingPainEvent {
+  exerciseId: string;
+  setIndex: number;
+  timestampMs: number;
+}
 
 export interface TrainingItemResult {
   exerciseId: string;
   status: 'completed' | 'skipped';
+  /** Present only for safety-word skips; the pain_event store consumes it. */
+  skipReason?: 'pain';
   /** One SetResult per completed set. A skipped item keeps any sets finished before the skip. */
   sets: SetResult[];
 }
@@ -73,6 +89,8 @@ export interface TrainingSessionResult {
   items: TrainingItemResult[];
   /** Setup-funnel instrumentation; absent on records stored before it existed. */
   funnel?: TrainingSessionFunnel;
+  /** Safety-word pain halts (voice sessions); absent when none fired. */
+  painEvents?: TrainingPainEvent[];
 }
 
 export type TrainingFloorEnvironment = 'standing' | 'floor' | 'unknown';
@@ -131,6 +149,14 @@ export interface TrainingFrameUpdate {
   measuring: boolean;
   validTimeState: ValidTimeState | null;
   validTimeCaption: string | null;
+  /**
+   * Voice sessions: a waiting state re-prompted once and is now leaning on
+   * the always-visible tap control (no-stall ladder end state — the player
+   * NEVER auto-advances a waiting user).
+   */
+  tapPromptHighlighted: boolean;
+  /** Voice sessions: the user said "stop" — the screen offers the full-end confirm. */
+  stopRequested: boolean;
   /** True after setup has timed out and the UI must ask the user what to do. */
   setupIssue: boolean;
   /** Current preflight framing prompt for setup/framing UI. */
@@ -184,7 +210,25 @@ export interface TrainingSessionPlayerOptions {
   readonly floorV21FeatureEnabled?: boolean;
   readonly handsFreeTrainingSetup?: boolean;
   readonly restoredSetRuntime?: SerializedTrainingSetRuntime | null;
+  /** Default camera_conducted — every existing construction is unchanged. */
+  readonly sessionMode?: TrainingSessionMode;
 }
+
+/**
+ * Voice-session pacing constants. Waiting states re-prompt ONCE, then lean on
+ * the tap control forever — the app waits for her, it never hurries her.
+ * Values are provisional pre-device-session; tuned only via this object.
+ */
+export const VOICE_SESSION_TIMING = {
+  /** waiting_ready silence before the single gentle re-prompt. */
+  readyRepromptMs: 20000,
+  /** Assumed seconds-per-rep for sizing the done re-prompt window. */
+  defaultRepDurationMs: 4000,
+  /** Floor for the expected-set estimate (slow movers are the norm). */
+  minExpectedSetMs: 30000,
+  /** Done re-prompt fires at expected × this factor; once, then tap-lean. */
+  doneRepromptFactor: 2,
+} as const;
 
 const COUNTDOWN: readonly VoiceCueKey[] = ['countdown-three', 'countdown-two', 'countdown-one', 'go'];
 
@@ -212,6 +256,8 @@ export class TrainingSessionPlayer {
     measuring: false,
     validTimeState: null,
     validTimeCaption: null,
+    tapPromptHighlighted: false,
+    stopRequested: false,
     setupIssue: false,
     setupPrompt: null,
     floorSetup: null,
@@ -270,6 +316,21 @@ export class TrainingSessionPlayer {
 
   private completeSpoken = false;
   private finished: TrainingSessionResult | null = null;
+
+  // Voice-guided mode state (unused in camera mode).
+  private readonly isVoiceMode: boolean;
+  /** Line queued by an intent/tap method; spoken on the next free tick. */
+  private pendingVoiceLine: VoiceRequest | null = null;
+  private waitingReadyEnteredMs = 0;
+  private readyReprompted = false;
+  private tapPromptHighlighted = false;
+  private instructionsPending = false;
+  private voiceSetOpenEnded = false;
+  private voiceSetExpectedMs = 0;
+  private doneReprompted = false;
+  private voicePauseContext: 'rest' | 'active' | null = null;
+  private stopRequested = false;
+  private readonly painEvents: TrainingPainEvent[] = [];
   private readonly safetySnapshot: PlannedSafetyCueSnapshot;
   private readonly safetyByExerciseId: Map<string, PlannedExerciseSafetyCueProfile>;
   private readonly generatedByExerciseId: Map<string, TrainingSetRuntimeGeneratedExercise>;
@@ -286,6 +347,7 @@ export class TrainingSessionPlayer {
     this.preflight = preflight;
     this.config = config;
     this.options = options;
+    this.isVoiceMode = options.sessionMode === 'voice_guided';
     this.definitions = exerciseIds.map((id) => getExercise(id));
     this.generatedByExerciseId = new Map(
       (options.generatedExercises ?? []).map((exercise) => [exercise.exerciseId, exercise])
@@ -315,6 +377,7 @@ export class TrainingSessionPlayer {
     return this.results.map((item) => ({
       exerciseId: item.exerciseId,
       status: item.status,
+      ...(item.skipReason !== undefined ? { skipReason: item.skipReason } : {}),
       sets: item.sets.slice(),
     }));
   }
@@ -406,6 +469,9 @@ export class TrainingSessionPlayer {
     this.cancelFloorSetup();
     this.countdownAwaitingTrackedGo = false;
     this.setupIssue = false;
+    this.stopRequested = false;
+    this.voicePauseContext = null;
+    this.tapPromptHighlighted = false;
     this.funnel.itemSkipped();
     this.runtime?.cancel(this.lastTimestampMs);
     // Sets already completed before the skip stay in the result (measurement
@@ -422,6 +488,10 @@ export class TrainingSessionPlayer {
   }
 
   pause(atMs: number = this.lastTimestampMs): void {
+    if (this.isVoiceMode) {
+      this.haltVoiceSession(false, atMs);
+      return;
+    }
     if (this.phase === 'countdown' && this.countdownAwaitingTrackedGo) {
       this.countdownAwaitingTrackedGo = false;
       this.phase = 'instructions';
@@ -438,6 +508,10 @@ export class TrainingSessionPlayer {
   }
 
   resume(atMs: number = this.lastTimestampMs): void {
+    if (this.isVoiceMode) {
+      this.resumeVoiceSession(atMs);
+      return;
+    }
     if (this.phase === 'set') this.runtime?.resume(atMs);
   }
 
@@ -473,6 +547,7 @@ export class TrainingSessionPlayer {
 
   shiftTiming(deltaMs: number): void {
     if (deltaMs <= 0) return;
+    this.waitingReadyEnteredMs += deltaMs;
     this.transitionEnteredMs += deltaMs;
     this.itemEnteredMs += deltaMs;
     this.instructionsEnteredMs += deltaMs;
@@ -493,6 +568,9 @@ export class TrainingSessionPlayer {
   }
 
   update(out: PipelineFrameOutput, voiceBusy: boolean): TrainingFrameUpdate {
+    if (this.isVoiceMode) {
+      throw new Error('voice_guided sessions are driven by tick(), not update()');
+    }
     const u = this.update_;
     u.voice = null;
     u.playRepSound = false;
@@ -500,6 +578,8 @@ export class TrainingSessionPlayer {
     u.measuring = false;
     u.validTimeState = null;
     u.validTimeCaption = null;
+    u.tapPromptHighlighted = false;
+    u.stopRequested = false;
     u.setupIssue = this.setupIssue;
     u.setupPrompt = null;
     u.floorSetup = null;
@@ -573,6 +653,403 @@ export class TrainingSessionPlayer {
     return u;
   }
 
+  // -------------------------------------------------------------------------
+  // Voice-guided mode (2026-07-05 direction). Clock-tick driven — no camera,
+  // no pose frames. Flow per item:
+  //   transition → instructions → waiting_ready → countdown → set → rest →
+  //   waiting_ready (next set) → … → next item
+  // Every waiting state re-prompts ONCE then leans on the always-visible tap
+  // control; the player never auto-advances a waiting user (no-stall = an
+  // affordance is always live, not that the session moves without her).
+  // -------------------------------------------------------------------------
+
+  /** Voice-mode clock tick (~4 Hz + event-driven). Camera mode uses update(). */
+  tick(timestampMs: number, voiceBusy: boolean): TrainingFrameUpdate {
+    if (!this.isVoiceMode) {
+      throw new Error('tick() is voice_guided-only; camera sessions are driven by update()');
+    }
+    const u = this.update_;
+    u.voice = null;
+    u.playRepSound = false;
+    u.repCount = 0;
+    u.holdMs = 0;
+    u.remainingMs = NaN;
+    u.measuring = false;
+    u.validTimeState = null;
+    u.validTimeCaption = null;
+    u.tapPromptHighlighted = this.tapPromptHighlighted;
+    u.stopRequested = this.stopRequested;
+    u.setupIssue = false;
+    u.setupPrompt = null;
+    u.floorSetup = null;
+    u.floorMemory = this.floorMemorySnapshot();
+    u.safetyCueIds = [];
+    u.safetyText = [];
+    const ts = timestampMs;
+    this.lastTimestampMs = ts;
+    this.funnel.sessionStarted(ts);
+
+    // A line queued by an intent/tap method takes the channel first.
+    let busy = voiceBusy;
+    if (this.pendingVoiceLine && !busy) {
+      u.voice = this.pendingVoiceLine;
+      this.pendingVoiceLine = null;
+      busy = true;
+    }
+
+    switch (this.phase) {
+      case 'intro':
+        if (!this.introSpoken) {
+          if (!busy) {
+            this.introSpoken = true;
+            this.globalSafetySpoken = true;
+            u.voice = cueSequence(['training-intro', ...SESSION_GLOBAL_SAFETY_CUE_IDS]);
+            this.emitSafety(u, SESSION_GLOBAL_SAFETY_CUE_IDS, false);
+          }
+        } else if (!busy) {
+          this.enterTransition(0, ts);
+        }
+        break;
+      case 'transition':
+        if (this.transitionCuePending && !busy) {
+          u.voice = cue(this.transitionCuePending);
+          this.transitionCuePending = null;
+          break;
+        }
+        if (this.transitionCuePending === null && !busy && ts - this.transitionEnteredMs >= this.config.transitionDwellMs) {
+          this.itemEnteredMs = ts;
+          const def = this.currentDefinition();
+          if (def) this.funnel.itemSetupStarted(def.id, ts);
+          this.phase = 'instructions';
+          this.instructionsEnteredMs = ts;
+          this.instructionsPending = true;
+        }
+        break;
+      case 'instructions':
+        this.runVoiceInstructions(ts, busy, u);
+        break;
+      case 'waiting_ready':
+        this.runWaitingReady(ts, busy, u);
+        break;
+      case 'countdown':
+        this.runCountdown(ts, u);
+        break;
+      case 'set':
+        this.runVoiceSet(ts, busy, u);
+        break;
+      case 'rest':
+        this.runVoiceRest(ts, busy, u);
+        break;
+      case 'voice_paused':
+        break;
+      case 'complete':
+        if (!this.completeSpoken) {
+          if (!busy) {
+            this.completeSpoken = true;
+            u.voice = cue('session-complete');
+          }
+        } else if (!busy) {
+          this.finish();
+          this.phase = 'done';
+        }
+        break;
+      default:
+        break;
+    }
+
+    u.phase = this.phase;
+    u.itemIndex = Math.max(0, this.itemIndex);
+    u.setIndex = this.setIndex;
+    u.tapPromptHighlighted = this.tapPromptHighlighted;
+    u.stopRequested = this.stopRequested;
+    const def = this.currentDefinition();
+    u.totalSets = def ? this.effectiveDose(def).sets : 0;
+    u.currentExerciseId = def ? def.id : null;
+    return u;
+  }
+
+  private runVoiceInstructions(ts: number, busy: boolean, u: TrainingFrameUpdate): void {
+    if (this.instructionsPending) {
+      if (busy) return;
+      this.instructionsPending = false;
+      const def = this.currentDefinition();
+      if (!def) return;
+      const safety = this.currentSafetyProfile();
+      const safetyCueIds = uniqueSafety([
+        ...(safety?.setupCueIds ?? []),
+        ...(safety?.activeCueIds ?? []),
+      ]);
+      u.voice = cueSequence(uniqueVoiceCues([...def.voice.instructions, ...safetyCueIds]));
+      this.emitSafety(u, safetyCueIds, false);
+      return;
+    }
+    if (busy) return;
+    if (ts - this.instructionsEnteredMs < 1000) return;
+    this.enterWaitingReady(ts, u);
+  }
+
+  private enterWaitingReady(ts: number, u: TrainingFrameUpdate | null): void {
+    this.phase = 'waiting_ready';
+    this.waitingReadyEnteredMs = ts;
+    this.readyReprompted = false;
+    this.tapPromptHighlighted = false;
+    const prompt = cue('voice-say-ready');
+    if (u && u.voice === null) {
+      u.voice = prompt;
+    } else {
+      this.pendingVoiceLine = prompt;
+    }
+  }
+
+  private runWaitingReady(ts: number, busy: boolean, u: TrainingFrameUpdate): void {
+    if (this.readyReprompted || busy || u.voice !== null) return;
+    if (ts - this.waitingReadyEnteredMs >= VOICE_SESSION_TIMING.readyRepromptMs) {
+      // One gentle re-prompt, then the tap control carries it — forever.
+      this.readyReprompted = true;
+      this.tapPromptHighlighted = true;
+      u.voice = cue('voice-say-ready-reprompt');
+    }
+  }
+
+  private beginVoiceSet(ts: number): void {
+    this.funnel.setStarted(ts);
+    const def = this.definitions[this.itemIndex];
+    const dose = this.effectiveDose(def);
+    this.voiceSetOpenEnded = def.kind === 'reps';
+    if (this.voiceSetOpenEnded) {
+      this.setDurationMs = null;
+      this.voiceSetExpectedMs = Math.max(
+        VOICE_SESSION_TIMING.minExpectedSetMs,
+        (dose.repsPerSet ?? 10) * VOICE_SESSION_TIMING.defaultRepDurationMs
+      );
+    } else {
+      const seconds =
+        dose.secondsPerSet ??
+        def.prescription.holdSec ??
+        def.prescription.timerSec ??
+        def.prescription.captureSec ??
+        20;
+      this.setDurationMs = seconds * 1000;
+      this.voiceSetExpectedMs = this.setDurationMs;
+    }
+    this.setStartMs = ts;
+    this.doneReprompted = false;
+    this.tapPromptHighlighted = false;
+    this.phase = 'set';
+  }
+
+  private runVoiceSet(ts: number, busy: boolean, u: TrainingFrameUpdate): void {
+    const def = this.definitions[this.itemIndex];
+    const elapsed = ts - this.setStartMs;
+    if (this.voiceSetOpenEnded) {
+      // Open set: she works at her own pace and says "done" (or taps). One
+      // gentle check-in well past the expected duration; never auto-ends.
+      if (
+        !this.doneReprompted &&
+        !busy &&
+        u.voice === null &&
+        elapsed >= this.voiceSetExpectedMs * VOICE_SESSION_TIMING.doneRepromptFactor
+      ) {
+        this.doneReprompted = true;
+        this.tapPromptHighlighted = true;
+        u.voice = cue('voice-done-reprompt');
+      }
+      return;
+    }
+    // Timed set (hold / timer / rom-as-timer): audio clock ends it.
+    const durationMs = this.setDurationMs as number;
+    u.remainingMs = Math.max(0, durationMs - elapsed);
+    if (def.kind === 'hold') u.holdMs = Math.min(elapsed, durationMs);
+    if (elapsed >= durationMs) {
+      this.finishVoiceSet(ts, true);
+    }
+  }
+
+  private finishVoiceSet(ts: number, completed: boolean): void {
+    const def = this.definitions[this.itemIndex];
+    const dose = this.effectiveDose(def);
+    const timedElapsedSec =
+      this.setDurationMs !== null
+        ? Math.min(Math.max(0, ts - this.setStartMs), this.setDurationMs) / 1000
+        : NaN;
+    // Reported, never measured: reps stays 0 and meanVel NaN by construction
+    // (type-level split, TDD-ADDENDUM §1.4/N5).
+    this.currentSets.push({
+      exerciseId: def.id,
+      reps: 0,
+      meanVel: NaN,
+      holdSec: this.voiceSetOpenEnded ? NaN : timedElapsedSec,
+      romPeak: NaN,
+      autoregulated: false,
+      reachedTarget: completed,
+      interruptions: 0,
+      flags: ['voice-guided'],
+      ...(this.voiceSetOpenEnded && dose.repsPerSet !== undefined
+        ? { reportedReps: dose.repsPerSet }
+        : {}),
+    });
+    if (this.setIndex + 1 < dose.sets) {
+      this.enterRest(ts);
+    } else {
+      this.results.push({ exerciseId: def.id, status: 'completed', sets: this.currentSets.slice() });
+      this.currentSets = [];
+      this.advanceItem(ts);
+    }
+  }
+
+  private runVoiceRest(ts: number, busy: boolean, u: TrainingFrameUpdate): void {
+    const def = this.definitions[this.itemIndex];
+    if (!this.restSpoken && !busy && u.voice === null) {
+      this.restSpoken = true;
+      const isLastUpcoming = this.setIndex + 2 === this.effectiveDose(def).sets;
+      const safety = this.currentSafetyProfile();
+      const safetyCueIds = safety?.repeatedSetCueIds ?? [];
+      u.voice = cueSequence([isLastUpcoming ? 'last-set' : 'rest-now', ...safetyCueIds]);
+      this.emitSafety(u, safetyCueIds, false);
+    }
+    u.remainingMs = Math.max(0, this.restDurationMs - (ts - this.restEnteredMs));
+    if (this.restSpoken && !busy && ts - this.restEnteredMs >= this.restDurationMs) {
+      this.setIndex++;
+      this.enterWaitingReady(ts, u.voice === null ? u : null);
+    }
+  }
+
+  // ---- Voice intent + tap surface (tap parity is a tested invariant) ------
+
+  /** Route a matched voice intent. Tap controls call the same methods. */
+  handleSessionIntent(intent: VoiceIntent, atMs: number = this.lastTimestampMs): boolean {
+    if (!this.isVoiceMode) return false;
+    switch (intent) {
+      case 'ready':
+        return this.confirmReady(atMs);
+      case 'done':
+        return this.completeCurrentSet(atMs);
+      case 'skip':
+        return this.phase === 'rest' ? this.skipRest(atMs) : this.skipCurrentItem();
+      case 'repeat':
+        return this.repeatVoiceInstructions(atMs);
+      case 'pause':
+        return this.haltVoiceSession(false, atMs);
+      case 'stop':
+        return this.haltVoiceSession(true, atMs);
+      case 'resume':
+        return this.resumeVoiceSession(atMs);
+      case 'pain':
+        return this.recordPainHalt(atMs);
+      default:
+        return false;
+    }
+  }
+
+  confirmReady(atMs: number = this.lastTimestampMs): boolean {
+    if (!this.isVoiceMode || this.phase !== 'waiting_ready') return false;
+    this.tapPromptHighlighted = false;
+    this.phase = 'countdown';
+    this.countdownStartMs = atMs;
+    this.countdownAttemptOrdinal++;
+    this.countdownAwaitingTrackedGo = false;
+    this.countdownStep = 1;
+    this.pendingVoiceLine = cue(COUNTDOWN[0]);
+    return true;
+  }
+
+  completeCurrentSet(atMs: number = this.lastTimestampMs): boolean {
+    if (!this.isVoiceMode || this.phase !== 'set') return false;
+    this.finishVoiceSet(atMs, true);
+    return true;
+  }
+
+  skipRest(atMs: number = this.lastTimestampMs): boolean {
+    if (!this.isVoiceMode || this.phase !== 'rest') return false;
+    this.restSpoken = true;
+    this.restEnteredMs = atMs - this.restDurationMs;
+    return true;
+  }
+
+  repeatVoiceInstructions(atMs: number = this.lastTimestampMs): boolean {
+    if (!this.isVoiceMode || this.phase !== 'waiting_ready') return false;
+    const def = this.currentDefinition();
+    if (!def) return false;
+    this.pendingVoiceLine = cueSequence(uniqueVoiceCues([...def.voice.instructions, 'voice-say-ready']));
+    this.waitingReadyEnteredMs = atMs;
+    this.readyReprompted = false;
+    return true;
+  }
+
+  /**
+   * "pause" (halt) or "stop" (halt + the screen offers the full-end confirm).
+   * An in-flight set is discarded — it restarts from waiting_ready on resume
+   * (nothing was measured; the honest unit is a whole confirmed set).
+   */
+  haltVoiceSession(stopRequested: boolean, atMs: number = this.lastTimestampMs): boolean {
+    if (!this.isVoiceMode) return false;
+    if (
+      this.phase !== 'waiting_ready' &&
+      this.phase !== 'countdown' &&
+      this.phase !== 'set' &&
+      this.phase !== 'rest'
+    ) {
+      if (this.phase === 'voice_paused' && stopRequested) {
+        this.stopRequested = true;
+        return true;
+      }
+      return false;
+    }
+    this.voicePauseContext = this.phase === 'rest' ? 'rest' : 'active';
+    this.phase = 'voice_paused';
+    this.stopRequested = stopRequested;
+    this.tapPromptHighlighted = false;
+    this.setDurationMs = null;
+    this.pendingVoiceLine = cue('paused-v21');
+    return true;
+  }
+
+  resumeVoiceSession(atMs: number = this.lastTimestampMs): boolean {
+    if (!this.isVoiceMode || this.phase !== 'voice_paused') return false;
+    // Pausing out of rest means the rest is over; the next set awaits her.
+    if (this.voicePauseContext === 'rest') this.setIndex++;
+    this.voicePauseContext = null;
+    this.stopRequested = false;
+    this.enterWaitingReady(atMs, null);
+    return true;
+  }
+
+  /**
+   * Safety-word pain response (deterministic, TDD-ADDENDUM §9): halt the set,
+   * acknowledge without encouraging continuation, skip THIS exercise, keep
+   * the session going. She can say "stop" to end fully.
+   */
+  recordPainHalt(atMs: number = this.lastTimestampMs): boolean {
+    if (!this.isVoiceMode) return false;
+    const def = this.currentDefinition();
+    if (!def) return false;
+    if (
+      this.phase !== 'waiting_ready' &&
+      this.phase !== 'countdown' &&
+      this.phase !== 'set' &&
+      this.phase !== 'rest' &&
+      this.phase !== 'voice_paused' &&
+      this.phase !== 'instructions'
+    ) {
+      return false;
+    }
+    this.painEvents.push({ exerciseId: def.id, setIndex: this.setIndex, timestampMs: atMs });
+    this.funnel.itemSkipped();
+    this.results.push({
+      exerciseId: def.id,
+      status: 'skipped',
+      skipReason: 'pain',
+      sets: this.currentSets.slice(),
+    });
+    this.currentSets = [];
+    this.stopRequested = false;
+    this.voicePauseContext = null;
+    this.setDurationMs = null;
+    this.pendingVoiceLine = cue('pain-acknowledge');
+    this.advanceItem(atMs);
+    return true;
+  }
+
   private currentDefinition(): ExerciseDefinition | null {
     return this.itemIndex >= 0 && this.itemIndex < this.definitions.length
       ? this.definitions[this.itemIndex]
@@ -629,6 +1106,8 @@ export class TrainingSessionPlayer {
   /** Turn cue when the view changes; a gentle "next" otherwise; none for item 0. */
   private transitionCue(index: number): VoiceCueKey | null {
     if (index === 0) return null; // the intro already invited them to begin
+    // No camera in voice mode — never speak turn cues, just "next up".
+    if (this.isVoiceMode) return 'next-up';
     const view = this.definitions[index].cameraView.view;
     const prevView = this.definitions[index - 1].cameraView.view;
     if (view !== prevView) return view === 'front' ? 'face-forward' : 'turn-side-on';
@@ -1019,6 +1498,10 @@ export class TrainingSessionPlayer {
   }
 
   private beginSet(ts: number): void {
+    if (this.isVoiceMode) {
+      this.beginVoiceSet(ts);
+      return;
+    }
     this.funnel.setStarted(ts);
     const def = this.definitions[this.itemIndex];
     this.runtime = createTrainingSetRuntime({
@@ -1152,6 +1635,7 @@ export class TrainingSessionPlayer {
       startedAt: this.startedAtIso,
       items: this.results.slice(),
       funnel: this.funnel.snapshot('done', true),
+      ...(this.painEvents.length > 0 ? { painEvents: this.painEvents.slice() } : {}),
     };
   }
 
