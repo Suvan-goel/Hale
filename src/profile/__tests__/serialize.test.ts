@@ -32,6 +32,7 @@ describe('preferences serialize', () => {
       voiceId: 'clara',
       remindersEnabled: true,
       phoneStandAvailable: true,
+      voiceSetup: { promptShown: false, safetyLineShown: false },
     },
     onboarding: {
       currentStep: 'complete',
@@ -241,6 +242,7 @@ describe('ProfileStore', () => {
         voiceId: 'clara',
         remindersEnabled: true,
         phoneStandAvailable: false,
+        voiceSetup: { promptShown: false, safetyLineShown: false },
       },
       onboarding: {
         currentStep: 'welcome',

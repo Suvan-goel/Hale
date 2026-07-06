@@ -39,6 +39,7 @@ export function defaultPreferences(): Preferences {
       voiceId: DEFAULT_VOICE_ID,
       remindersEnabled: false,
       phoneStandAvailable: false,
+      voiceSetup: { promptShown: false, safetyLineShown: false },
     },
     onboarding: defaultOnboardingState(),
   };
@@ -222,6 +223,14 @@ function validSettings(v: unknown): AppSettings {
     remindersEnabled: typeof s.remindersEnabled === 'boolean' ? s.remindersEnabled : def.remindersEnabled,
     phoneStandAvailable:
       typeof s.phoneStandAvailable === 'boolean' ? s.phoneStandAvailable : def.phoneStandAvailable,
+    voiceSetup: {
+      promptShown:
+        typeof s.voiceSetup?.promptShown === 'boolean' ? s.voiceSetup.promptShown : def.voiceSetup.promptShown,
+      safetyLineShown:
+        typeof s.voiceSetup?.safetyLineShown === 'boolean'
+          ? s.voiceSetup.safetyLineShown
+          : def.voiceSetup.safetyLineShown,
+    },
   };
 }
 

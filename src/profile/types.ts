@@ -63,6 +63,14 @@ export interface AppSettings {
   remindersEnabled: boolean;
   /** Local equipment preference used by setup screens; no camera/session dependency. */
   phoneStandAvailable: boolean;
+  /**
+   * Voice-session onboarding state (no-nagging rules, see
+   * src/voice/voicePermissionGate.ts): each flag flips true exactly once.
+   */
+  voiceSetup: {
+    promptShown: boolean;
+    safetyLineShown: boolean;
+  };
 }
 
 export type OnboardingStep =

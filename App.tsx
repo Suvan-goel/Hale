@@ -230,7 +230,9 @@ import { PlanScreen } from './src/screens/PlanScreen';
 import { ProgressScreen } from './src/screens/ProgressScreen';
 import { SafetyProfileScreen } from './src/screens/SafetyProfileScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
+import { VoiceSessionScreen } from './src/screens/VoiceSessionScreen';
 import { VoiceSpikeScreen } from './src/screens/VoiceSpikeScreen';
+import { isCameraConductedSessionsEnabled } from './src/training/sessionModeFlag';
 import { SessionPlanningRecoveryScreen } from './src/screens/SessionPlanningRecoveryScreen';
 import { SessionPreviewScreen } from './src/screens/SessionPreviewScreen';
 import { TodayScreen } from './src/screens/TodayScreen';
@@ -4087,21 +4089,38 @@ function HaleApp() {
             onCancel={() => goBack(goHome)}
           />
         ) : flow === 'training' && sessionIds.length > 0 ? (
-          <TrainingSessionScreen
-            exerciseIds={sessionIds}
-            sessionTitle={activeSessionPlan?.title}
-            generatedExercises={activeSessionPlan?.metadata?.generatedExercises}
-            onComplete={handleSessionComplete}
-            onItemCompleted={handleSessionItemCompleted}
-            onCancel={() => goBack(goHome)}
-            voiceId={prefs.settings.voiceId}
-            internalRuntime={{
-              trainingVoiceMode: 'internal_v21',
-              trainingVoiceBehaviorReady: voiceActivation.trainingVoiceV21Enabled,
-              floorSetupReady: voiceActivation.floorV21Enabled,
-              floorV21FeatureEnabled: voiceActivation.floorV21Enabled,
-            }}
-          />
+          isCameraConductedSessionsEnabled() ? (
+            // Parked conductor path (2026-07-05 direction) — flag-only.
+            <TrainingSessionScreen
+              exerciseIds={sessionIds}
+              sessionTitle={activeSessionPlan?.title}
+              generatedExercises={activeSessionPlan?.metadata?.generatedExercises}
+              onComplete={handleSessionComplete}
+              onItemCompleted={handleSessionItemCompleted}
+              onCancel={() => goBack(goHome)}
+              voiceId={prefs.settings.voiceId}
+              internalRuntime={{
+                trainingVoiceMode: 'internal_v21',
+                trainingVoiceBehaviorReady: voiceActivation.trainingVoiceV21Enabled,
+                floorSetupReady: voiceActivation.floorV21Enabled,
+                floorV21FeatureEnabled: voiceActivation.floorV21Enabled,
+              }}
+            />
+          ) : (
+            <VoiceSessionScreen
+              exerciseIds={sessionIds}
+              sessionTitle={activeSessionPlan?.title}
+              generatedExercises={activeSessionPlan?.metadata?.generatedExercises}
+              onComplete={handleSessionComplete}
+              onItemCompleted={handleSessionItemCompleted}
+              onCancel={() => goBack(goHome)}
+              voiceId={prefs.settings.voiceId}
+              voiceSetup={prefs.settings.voiceSetup}
+              onVoiceSetupChange={(next) =>
+                onSettingsChange({ ...prefs.settings, voiceSetup: next })
+              }
+            />
+          )
         ) : flow === 'microcheck' && activeMicroCheckType ? (
           <MicroCheckScreen
             type={activeMicroCheckType}

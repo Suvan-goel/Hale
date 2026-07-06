@@ -3668,3 +3668,34 @@ PUBLIC RELEASE REMAINS BLOCKED
   first increment after this review.
 - Verification: tsc clean; 1410/1410; verify:audio pass. Founder edits in `landing/`
   observed in the worktree and left untouched.
+
+## 2026-07-06 — Voice-session screen lands: voice is the production session surface
+
+- **Audit-trail confirmation (founder):** verified that no durable telemetry pain record
+  existed (only ephemeral Sentry breadcrumbs), so the immutable home was BUILT: the v2
+  stored session-funnel record (schema 2, v1 readable) carries painEvents alongside
+  sessionMode, the completionPoint churn taxonomy, and voice-vs-tap usage counts.
+  `painAuditTrail.test.ts` pins it end-to-end: after Settings reinstatement, every
+  telemetry byte is identical, records still carry the events on read-back, and the store
+  is append-only by construction (save/loadAll only — asserted against the prototype).
+- **Parity proven, not asserted (requirement 1):** the camera screen's three side
+  contracts moved into a headless `VoiceSessionController` — idempotent abandonment/
+  completion funnel recording, cumulative onItemCompleted at every item boundary, single
+  completion path — with behavior tests driving real sessions, plus a source-wiring test
+  pinning that the screen delegates to it (and that App renders voice by default with the
+  camera surface behind `EXPO_PUBLIC_ENABLE_CAMERA_CONDUCTED_SESSIONS`; camera suites
+  unchanged and green — requirement 4).
+- **Mic flow + N3 (requirement 2):** pure `voicePermissionGate` — one in-context prompt
+  ever (dismissal counts as asked), denial → full-function tap mode with no re-prompts,
+  granted+available → listen with the always-on safety-word line shown exactly once
+  ("I listen for 'stop' and 'that hurts' throughout — on your phone only, never
+  recorded"). Copy pinned implementation-true by test. `AppSettings.voiceSetup` persists
+  the once-ever flags (additive, tolerant deserialize).
+- **Instrumentation from day one (requirement 3):** usage counted only when an action
+  lands, voice and tap tallied separately; completionPoint derives churn location
+  (waiting_ready = setup; voice_paused = mid-set); pain events ride abandoned records too.
+  Rest screen gains the one-tap ±rep adjustment (`adjustReportedReps`, prescribed-vs-
+  reported honesty preserved; final set of an item has no rest screen — spec-literal).
+- Verification: tsc clean, 1437/1437, expo config OK. Owed to the batched device session:
+  real-mic listening lifecycle, gate UX on device, audio route behavior (protocol
+  unchanged). Founder's landing/ worktree edits remain untouched.
