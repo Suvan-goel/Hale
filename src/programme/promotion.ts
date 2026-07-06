@@ -74,6 +74,7 @@ export function freshPatternLadderState(
     lastPainFreeLevel: null,
     gatewayProgress: {},
     bonusSetSuspended: false,
+    currentRepTarget: null,
     lastPerformedAtIso: null,
   };
 }
@@ -199,6 +200,7 @@ export function evaluatePatternOutcome(
         currentLevel: target,
         consecutiveTopSessions: 0,
         consecutiveBottomNoneSessions: 0,
+        currentRepTarget: null,
       },
       decision: { kind: 'regress', toLevel: target, reason: 'pain' },
     };
@@ -256,6 +258,7 @@ export function evaluatePatternOutcome(
         consecutiveTopSessions: 0,
         consecutiveBottomNoneSessions: 0,
         bonusSetSuspended: false,
+        currentRepTarget: null,
       },
       decision: { kind: 'promote', toLevel: nextLevelNumber, reason: promoteReason },
     };
@@ -345,6 +348,7 @@ export function applyInactivityRegressionIfDue(
       currentLevel: clampLevel(pattern, ladder.currentLevel - 1),
       consecutiveTopSessions: 0,
       consecutiveBottomNoneSessions: 0,
+      currentRepTarget: null,
     };
   }
   return {
@@ -381,6 +385,7 @@ export function applyCheckupPlacement(
       currentLevel: nextLevel,
       consecutiveTopSessions: 0,
       consecutiveBottomNoneSessions: 0,
+      currentRepTarget: null,
     };
   }
   return { ...state, ladders };

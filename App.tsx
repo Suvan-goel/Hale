@@ -260,6 +260,8 @@ import { SafetyProfileScreen } from './src/screens/SafetyProfileScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { VoiceSessionScreen } from './src/screens/VoiceSessionScreen';
 import { VoiceSpikeScreen } from './src/screens/VoiceSpikeScreen';
+import { ProgrammeV2Root } from './src/screens/ProgrammeV2Root';
+import { isProgrammeEngineV2Enabled } from './src/config/programmeEngineV2';
 import { isCameraConductedSessionsEnabled } from './src/training/sessionModeFlag';
 import { SessionPlanningRecoveryScreen } from './src/screens/SessionPlanningRecoveryScreen';
 import { SessionPreviewScreen } from './src/screens/SessionPreviewScreen';
@@ -622,6 +624,18 @@ function App() {
   // a diagnostics-style boot gate, same pattern as the pose latency build.
   if (__DEV__ && process.env.EXPO_PUBLIC_VOICE_SPIKE === '1') {
     return <VoiceSpikeScreen />;
+  }
+  // Dev-only programme engine v2 shell (C4 flag-gated parallel build): the
+  // new onboarding + first-session path, fully isolated from the shipping
+  // engine. The release-flag audit keeps this out of beta/release builds.
+  if (isProgrammeEngineV2Enabled()) {
+    return (
+      <SystemInsetsProvider>
+        <StatusBarBackdrop>
+          <ProgrammeV2Root />
+        </StatusBarBackdrop>
+      </SystemInsetsProvider>
+    );
   }
   return (
     <SystemInsetsProvider>

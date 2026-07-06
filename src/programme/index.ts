@@ -102,3 +102,20 @@ export type {
   OnboardingCompletion,
   ProgrammeOnboardingFlowState,
 } from './onboarding/flow';
+export {
+  SESSION_PRESET_TARGET_MINUTES,
+  adaptationBranchById,
+  applyProgrammeSessionResults,
+  estimateSessionMinutes,
+  generateProgrammeSession,
+} from './session';
+export type {
+  AppliedProgrammeSession,
+  GenerateSessionInput,
+  ProgrammeFinisherPlanItem,
+  ProgrammeSessionExercise,
+  ProgrammeSessionPlan,
+  ProgrammeSessionResults,
+  SessionDurationPreset,
+  SessionTemplateId,
+} from './session';

@@ -263,6 +263,12 @@ export interface PatternLadderState {
   gatewayProgress: Record<number, GatewayProgress>;
   /** Hold+reduce active: bonus set withheld until top of range is rebuilt. */
   bonusSetSuspended: boolean;
+  /**
+   * Double progression within the level: the current per-set rep/second
+   * target inside the scheme range. Null = fresh at this level (start at the
+   * scheme minimum); resets on every level change.
+   */
+  currentRepTarget: number | null;
   lastPerformedAtIso: string | null;
 }
 
@@ -277,6 +283,8 @@ export interface ProgrammeState {
   profile: ProgrammeProfile;
   ladders: Record<ProgrammePattern, PatternLadderState>;
   finisher: FinisherState;
+  /** Set by completeOnboarding; null = the flow has not finished on this device. */
+  onboardingCompletedAtIso: string | null;
   /** Last completed session of any kind (drives the 14-day regression). */
   lastSessionAtIso: string | null;
   /** Guard so one inactivity gap regresses each ladder exactly once. */

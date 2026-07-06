@@ -4319,3 +4319,50 @@ imports/fields/store file in backup shapes).
   progress dots, no copy in the component). NOT yet mounted in App.tsx: the
   app-shell wiring behind the flag lands with Step 3, when session generation
   gives the final CTA a real session to start.
+
+## 2026-07-06 — Backlog note: equipment sync (accepted side-effect of the health ruling)
+
+- Equipment ownership is NOT health data. It may be re-added to sync later as
+  its own dedicated non-health field if cross-device restore becomes a
+  priority — deliberately out of scope now (rides nowhere near safety_json).
+
+## 2026-07-06 — Programme v2 Step 3 landed: session generation, time-budget solver, app-shell mount
+
+- **Session generator** (`src/programme/session.ts`, pure): Template A
+  (Squat·Push·Hinge·Pull·Core primaries) / Template B (hinge-led variations);
+  §11 hinge family split — B runs the standing family once L5 unlocks, before
+  that the same-level bridge variation; A trains the bridge family capped at
+  L4. Superset pairing survives as ADJACENCY ORDERING under the approved
+  sequential fallback (an alternating-set scheduler would change the live
+  session player's phase machine — not contained; the 20–25 min budget is the
+  principle, supersets were the optimisation).
+- **Time-budget solver** takes target duration as a parameter (25 standard /
+  15 first-session minimum-dose / 10 starter). TRIM PRIORITY (recorded):
+  1) rest 60→45 s, 2) finisher 2 items→1 (never dropped — it carries the
+  power stimulus), 3) main exercises dropped from the END of template order
+  (Core first), floor of 2 (one lower + one upper always survive),
+  4) rest 45→30 s. Movement prep is NEVER dropped (it carries gateway
+  rehearsals); working sets never trim below the 2-set promise.
+- **Bonus set** (C9 machinery): keyed on the PREVIOUS session's RPE-mapped
+  effort ('lots'), routing (no Gentle Start), per-ladder hold+reduce, and
+  real clock headroom for one extra set. Recorded v1 semantic: effort is
+  session-level and post-hoc in v1, so "answers lots on effort" reads as
+  last session's answer until the per-exercise voice slice lands.
+- **Double progression made concrete:** ladder state gains currentRepTarget
+  (null = level entry → scheme minimum; +1 per session in which every set
+  reached it; resets on any level change). Plans emit repTargetPerSet — the
+  number the runner confirms as REPORTED on "done" (C10/N5).
+- **Completion applier**: promotion evaluation per pattern, hinge rehearsal
+  exposure credits from completed prep (day one onward), finisher dose
+  +5 contacts per completed finisher capped at 50 (provisional config),
+  session recency for the 14-day clock. Never touches firstSessionStarted.
+- **App-shell mount**: flag-gated boot branch in App.tsx (VoiceSpikeScreen
+  pattern) → self-contained ProgrammeV2Root (guest-scoped stores; onboarding
+  → profile handoff incl. menopauseStage/LifeGoal to the existing prefs →
+  first-session CTA generating the 15-minute minimum-dose plan) +
+  ProgrammeSessionScreen (tap-driven runner: overview → prep → exercises with
+  reported-target stepper → finisher → RPE check-in). **firstSessionStarted
+  is written at session START** (runner Begin → markFirstSessionStarted +
+  persist; the same session's funnel record carries the v3 stamp) — never at
+  generation, pinned by test. Voice guidance for programme exercises awaits
+  the founder-owned bundled-audio generation step.

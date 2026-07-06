@@ -69,6 +69,7 @@ export function defaultProgrammeState(): ProgrammeState {
     profile: defaultProgrammeProfile(),
     ladders,
     finisher: { track: 'quiet_power', completedSessions: 0, currentContacts: 20 },
+    onboardingCompletedAtIso: null,
     lastSessionAtIso: null,
     inactivityRegressionAppliedForGapEndingAtIso: null,
     policyFingerprint: programmePolicyFingerprint(),
@@ -92,6 +93,7 @@ export function deserializeProgrammeState(json: string): ProgrammeState | null {
     profile: validProfile(obj.profile),
     ladders: validLadders(obj.ladders),
     finisher: validFinisher(obj.finisher),
+    onboardingCompletedAtIso: isoOrNull(obj.onboardingCompletedAtIso),
     lastSessionAtIso: isoOrNull(obj.lastSessionAtIso),
     inactivityRegressionAppliedForGapEndingAtIso: isoOrNull(
       obj.inactivityRegressionAppliedForGapEndingAtIso
@@ -167,6 +169,10 @@ function validLadderState(pattern: ProgrammePattern, v: unknown): PatternLadderS
         : null,
     gatewayProgress: validGatewayProgress(s.gatewayProgress),
     bonusSetSuspended: s.bonusSetSuspended === true,
+    currentRepTarget:
+      typeof s.currentRepTarget === 'number' && Number.isFinite(s.currentRepTarget)
+        ? s.currentRepTarget
+        : null,
     lastPerformedAtIso: isoOrNull(s.lastPerformedAtIso),
   };
 }

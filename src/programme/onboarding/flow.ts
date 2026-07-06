@@ -241,7 +241,10 @@ export interface OnboardingCompletion {
   assessmentIntent: 'start_now' | null;
 }
 
-export function completeOnboarding(state: ProgrammeOnboardingFlowState): OnboardingCompletion {
+export function completeOnboarding(
+  state: ProgrammeOnboardingFlowState,
+  options: { completedAtIso?: string } = {}
+): OnboardingCompletion {
   const answers = state.answers;
   const consentDeclined = answers.consent === 'decline';
   const gentleStart = gentleStartFromAnswers(answers);
@@ -302,6 +305,7 @@ export function completeOnboarding(state: ProgrammeOnboardingFlowState): Onboard
       completedSessions: 0,
       currentContacts: placementResult.finisherContacts,
     },
+    onboardingCompletedAtIso: options.completedAtIso ?? new Date().toISOString(),
     policyFingerprint: programmePolicyFingerprint(),
   };
 
@@ -340,6 +344,7 @@ export function applyAssessmentPlacement(
         currentLevel: nextLevel,
         consecutiveTopSessions: 0,
         consecutiveBottomNoneSessions: 0,
+        currentRepTarget: null,
       };
     }
   }

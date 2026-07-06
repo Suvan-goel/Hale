@@ -109,6 +109,10 @@ const DISPLAY_NAMES: Record<string, string> = {
   'core.heavy_carry': 'Heavier backpack carry',
   'core.pallof_press': 'Band press-and-hold',
 
+  // Movement prep
+  'prep.easy_march': 'Easy march on the spot',
+  'prep.arm_reaches': 'Easy arm reaches',
+
   // Finisher — quiet power track
   'finisher.heel_drops': 'Heel drops',
   'finisher.moderate_stomps': 'Firm stomps',
