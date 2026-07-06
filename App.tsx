@@ -4017,6 +4017,40 @@ function HaleApp() {
     return movementProfileV2ProgressReportById(displayAdherence.reports, displayHistory, movementProfileV2SelectedReportId);
   }, [displayAdherence.reports, displayHistory, movementProfileV2SelectedReportId]);
 
+  // NOTE: hooks below must stay ABOVE the loading/camera-gate early returns —
+  // a conditional hook count is exactly the "Rendered more hooks" crash the
+  // 2026-07-06 device pass caught.
+
+  // Rebuild fresh-results card copy when the population-comparison preference
+  // flips (reposition slice 5); the stored view model is the fallback for any
+  // path that has no source pair.
+  const displayedMovementProfileV2Result = React.useMemo(() => {
+    if (!movementProfileV2ResultSource) return movementProfileV2Result;
+    return buildMovementProfileV2ResultsViewModel({
+      snapshot: movementProfileV2ResultSource.snapshot,
+      assessment: movementProfileV2ResultSource.assessment,
+      comparisonOptIn: prefs.settings.comparisonOptIn,
+    });
+  }, [movementProfileV2Result, movementProfileV2ResultSource, prefs.settings.comparisonOptIn]);
+
+  // Condition 1 of record (2026-07-06): the comparison affordance exists only
+  // from the second stored official check-up onward.
+  const officialMovementProfileV2Count = React.useMemo(
+    () => validOfficialMovementProfileV2Assessments(displayHistory).length,
+    [displayHistory]
+  );
+
+  // Clarity trend stays off scoring surfaces until its flag flips
+  // (REPOSITION_TDD Part 2a); capture runs regardless.
+  const clarityTrend = React.useMemo(
+    () => (isClarityDimensionEnabled() ? buildClarityTrendViewModel(displayHistory) : null),
+    [displayHistory]
+  );
+
+  // Ghost curve (REPOSITION_TDD §2.4): appears only once ≥4 monthly readings
+  // exist; the view model self-gates on the reading count and reference.
+  const ghostCurve = React.useMemo(() => buildGhostCurveViewModel(displayHistory), [displayHistory]);
+
   const handleRoute = React.useCallback(
     (route: string | undefined) => {
       switch (route) {
@@ -4120,36 +4154,6 @@ function HaleApp() {
       />
     );
   }
-
-  // Rebuild fresh-results card copy when the population-comparison preference
-  // flips (reposition slice 5); the stored view model is the fallback for any
-  // path that has no source pair.
-  const displayedMovementProfileV2Result = React.useMemo(() => {
-    if (!movementProfileV2ResultSource) return movementProfileV2Result;
-    return buildMovementProfileV2ResultsViewModel({
-      snapshot: movementProfileV2ResultSource.snapshot,
-      assessment: movementProfileV2ResultSource.assessment,
-      comparisonOptIn: prefs.settings.comparisonOptIn,
-    });
-  }, [movementProfileV2Result, movementProfileV2ResultSource, prefs.settings.comparisonOptIn]);
-
-  // Condition 1 of record (2026-07-06): the comparison affordance exists only
-  // from the second stored official check-up onward.
-  const officialMovementProfileV2Count = React.useMemo(
-    () => validOfficialMovementProfileV2Assessments(displayHistory).length,
-    [displayHistory]
-  );
-
-  // Clarity trend stays off scoring surfaces until its flag flips
-  // (REPOSITION_TDD Part 2a); capture runs regardless.
-  const clarityTrend = React.useMemo(
-    () => (isClarityDimensionEnabled() ? buildClarityTrendViewModel(displayHistory) : null),
-    [displayHistory]
-  );
-
-  // Ghost curve (REPOSITION_TDD §2.4): appears only once ≥4 monthly readings
-  // exist; the view model self-gates on the reading count and reference.
-  const ghostCurve = React.useMemo(() => buildGhostCurveViewModel(displayHistory), [displayHistory]);
 
   const visibleMovementProfileV2Result =
     selectedMovementProfileV2ProgressResult ?? displayedMovementProfileV2Result;
