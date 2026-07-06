@@ -13,6 +13,7 @@
  * moment a NEW colliding line is added anywhere in the corpus.
  */
 
+import { VOICE_SESSION_LINE_SCRIPTS } from '../../audio/voiceSessionLineScripts';
 import { VOICE_V2_1_AUDIO_ASSET_METADATA } from '../../audio/voiceV21AudioManifest';
 import { SAFETY_CUE_DEFINITIONS } from '../../training/safetyCueDefinitions';
 import { HOT_INTENTS, hotPhraseViolations, matchIntent } from '../intents';
@@ -45,6 +46,11 @@ function corpusLines(): { key: string; text: string }[] {
   const lines: { key: string; text: string }[] = [];
   for (const [id, definition] of Object.entries(SAFETY_CUE_DEFINITIONS)) {
     lines.push({ key: `safety:${id}`, text: definition.text });
+  }
+  // Voice-session lines play WHILE the hot vocabulary listens — zero
+  // tolerance, no allowlist entries permitted for these.
+  for (const [key, script] of Object.entries(VOICE_SESSION_LINE_SCRIPTS)) {
+    lines.push({ key: `session-line:${key}`, text: script });
   }
   // Scripts are identical across voices; lint one voice's metadata per cue.
   const clara = VOICE_V2_1_AUDIO_ASSET_METADATA.clara ?? {};

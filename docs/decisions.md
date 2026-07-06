@@ -3633,3 +3633,38 @@ PUBLIC RELEASE REMAINS BLOCKED
   Next after review: pain_event store + recurrence auto-exclude → "something hurts"
   control → voice lines ×2 voices → measurement Retry/Skip flows → gate tooling →
   instrumentation. Screen/UI wiring for voice sessions rides with the next slice.
+
+## 2026-07-06 — Pain-safety slice landed: recording, recurrence, reversal, lines; NaN question answered
+
+- **Founder item 1 (meanVel: NaN) answered with evidence, no type ripple:** NaN cannot reach
+  stored JSON — the only SetResult persistence paths serialize through `nanReplacer`
+  (non-finite → null; JSON cannot carry a NaN token), and every aggregation guards with
+  `Number.isFinite` (progressionEvidence.sumFinite, micro-check `measured`, autoregulation).
+  The stored sentinel therefore already IS null. `voiceResultSerialization.test.ts` pins the
+  guarantee (no NaN token, null round-trip, isFinite behavior) on real voice-session results.
+- **Item 2:** pausing out of an open rep set → resume speaks `voice-resume-counts` ("every
+  rep you've done this set still counts") before the ready prompt; timed-hold pauses stay
+  plain. Tested both ways.
+- **Item 3 delivered end-to-end:** painHistory rides TrainingState (the store the generator
+  reads — 3c by construction); recurrence = same LADDER in ≥2 distinct sessions; generator
+  filters excluded ladders in `selectExerciseForSlot` and BACKFILLS from remaining slot
+  candidates (3a — tested: same session shape, same slot type, different ladder), with the
+  §9 plain-language swap note (doctor line, reversible-in-Settings) claims-checked in test;
+  Settings equipment section shows swapped-out movements with one-tap bring-back (3b);
+  reversal clears that ladder's events (fresh start). App.tsx folds `result.painEvents` into
+  the store at completion and mirrors to telemetry breadcrumbs.
+- **Something-hurts tap control** on the session control row; `recordPainHalt` works in both
+  session modes (camera mode tears down like a skip first).
+- **Item 4:** five voice-session lines authored in `src/audio/voiceSessionLineScripts.ts`
+  (pure module) — tone-reviewed (patient/warm/never clinical), linted in CI by the
+  hot-phrase guardrail with ZERO allowlist tolerance (they play while the hot vocabulary
+  listens), spread into the generation table, and GENERATED ×2 voices via ElevenLabs
+  (10 assets; `verify:audio` green at 502). Listening review on device owed with the
+  batched session.
+- **Outstanding from the slice:** the voice-session screen surface. Deliberately held at
+  the checkpoint rather than half-wired: it flips the production session path (voice
+  becomes the default; camera surface parks behind the flag) and must replicate
+  TrainingSessionScreen's abandonment-funnel + resume-snapshot side contracts. Lands as the
+  first increment after this review.
+- Verification: tsc clean; 1410/1410; verify:audio pass. Founder edits in `landing/`
+  observed in the worktree and left untouched.

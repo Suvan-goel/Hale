@@ -37,6 +37,7 @@ import {
   movementProfileV2AudioMetadataFor,
 } from '../src/audio/movementProfileV2Audio';
 import { MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA } from '../src/audio/movementProfileV2AudioManifest';
+import { VOICE_SESSION_LINE_SCRIPTS } from '../src/audio/voiceSessionLineScripts';
 import { SAFETY_AUDIO_ASSET_METADATA } from '../src/audio/safetyAudioManifest';
 import {
   voiceV21AudioExpectedPath,
@@ -59,6 +60,10 @@ const MANIFEST_PATH = path.join(ROOT, 'src/audio/manifest.ts');
 
 /** Every VoiceCueKey from src/audio/cues.ts must have a line here. */
 const LINES: Record<string, string> = {
+  // Voice-guided session lines live in src/audio/voiceSessionLineScripts.ts
+  // (pure module) so CI's hot-phrase guardrail lints them — the safety
+  // vocabulary listens while these lines play.
+  ...VOICE_SESSION_LINE_SCRIPTS,
   // Settings voice picker.
   'voice-preview':
     "Hi, I'm {voiceName}. I'll guide you one step at a time.",
