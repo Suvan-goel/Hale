@@ -25,14 +25,25 @@ describe('dual-task flow wiring (DT2)', () => {
   });
 
   it('records not-offered outcomes honestly and orders the appendix before the check-in', () => {
-    expect(app).toContain('setPendingClarityCheckIn(withDualTaskResult(input, eligibility.record))');
+    expect(app).toContain('proceedToFluencyOrCheckIn(withDualTaskResult(input, eligibility.record))');
     expect(app).toContain("setFlow('dual-task')");
-    expect(app).toContain('setPendingClarityCheckIn(withDualTaskResult(pending.input, result))');
   });
 
   it('uses the production monitor stub (PLANNED until device Block 7) — never a fake in production', () => {
     expect(app).toContain('defaultSpeechActivityMonitor()');
     expect(source('src/voice/speechActivity.ts')).toContain("Promise.resolve('unavailable')");
+  });
+
+  it('orders the fluency segment after dual-task and before the check-in, with honest fallbacks (FL2)', () => {
+    // Consent gate first; skip and unavailable record themselves; the
+    // check-in always follows.
+    expect(app).toContain("setFlow('fluency-consent')");
+    expect(app).toContain('proceedToFluencyOrCheckIn(withDualTaskResult(pending.input, result))');
+    expect(app).toContain('fluency: unavailableFluencyResult(categoryId)');
+    expect(app).toContain('fluency: skippedFluencyResult(pending.categoryId)');
+    expect(app).toContain('nextFluencyCategory(displayHistory)');
+    // Production transcriber is the unavailable default until Block 8.
+    expect(app).toContain('defaultFluencyTranscriber()');
   });
 
   it('keeps the level-2 copy honest: presence-only listening, pauses fine, optional', () => {

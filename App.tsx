@@ -75,6 +75,8 @@ import {
   CheckUp,
   CheckUpSelfReport,
   DualTaskResult,
+  FluencyCategoryId,
+  FluencyResult,
   latestV2ShoulderSide,
   latestV2StandingLeg,
 } from './src/checkup';
@@ -233,12 +235,21 @@ import { MovementProfileV2BlockReportScreen } from './src/screens/MovementProfil
 import { MovementProfileV2UnifiedCheckUpScreen } from './src/screens/MovementProfileV2UnifiedCheckUpScreen';
 import { ClarityCheckInScreen } from './src/screens/ClarityCheckInScreen';
 import { DualTaskScreen } from './src/screens/DualTaskScreen';
+import { FluencyConsentScreen } from './src/screens/FluencyConsentScreen';
+import { FluencyTaskScreen } from './src/screens/FluencyTaskScreen';
 import { dualTaskEligibility, type DualTaskEligibility } from './src/movementProfileV2/dualTaskEligibility';
+import { nextFluencyCategory } from './src/checkup/fluencyRotation';
+import { skippedFluencyResult, unavailableFluencyResult } from './src/checkup/fluencyOutcome';
 import {
   defaultSpeechActivityMonitor,
   type SpeechActivityAvailability,
   type SpeechActivityMonitor,
 } from './src/voice/speechActivity';
+import {
+  defaultFluencyTranscriber,
+  type FluencyTranscriber,
+  type FluencyTranscriberAvailability,
+} from './src/voice/fluencyTranscriber';
 import { MovementProfileV2UnifiedResultsScreen } from './src/screens/MovementProfileV2UnifiedResultsScreen';
 import { MovementProfileV2PracticeResultsScreen } from './src/screens/MovementProfileV2PracticeResultsScreen';
 import { PlanScreen } from './src/screens/PlanScreen';
@@ -302,6 +313,8 @@ type Flow =
   | 'settings'
   | 'movement-profile-v2-unified-checkup'
   | 'dual-task'
+  | 'fluency-consent'
+  | 'fluency-task'
   | 'clarity-check-in'
   | 'movement-profile-v2-results'
   | 'movement-profile-v2-practice-results'
@@ -736,6 +749,14 @@ function HaleApp() {
   const [speechMonitor] = React.useState<SpeechActivityMonitor>(() => defaultSpeechActivityMonitor());
   const [speechMonitorAvailability, setSpeechMonitorAvailability] =
     React.useState<SpeechActivityAvailability>('unavailable');
+  // Fluency segment (FL2): per-use consented; dark until device Block 8.
+  const [fluencyTranscriber] = React.useState<FluencyTranscriber>(() => defaultFluencyTranscriber());
+  const [fluencyAvailability, setFluencyAvailability] =
+    React.useState<FluencyTranscriberAvailability>('unavailable');
+  const [pendingFluency, setPendingFluency] = React.useState<{
+    input: MovementProfileV2RawCompletion;
+    categoryId: FluencyCategoryId;
+  } | null>(null);
   React.useEffect(() => {
     let active = true;
     speechMonitor
@@ -744,10 +765,16 @@ function HaleApp() {
         if (active) setSpeechMonitorAvailability(availability);
       })
       .catch(() => undefined);
+    fluencyTranscriber
+      .availability()
+      .then((availability) => {
+        if (active) setFluencyAvailability(availability);
+      })
+      .catch(() => undefined);
     return () => {
       active = false;
     };
-  }, [speechMonitor]);
+  }, [fluencyTranscriber, speechMonitor]);
   const [movementProfileV2Result, setMovementProfileV2Result] =
     React.useState<MovementProfileV2ResultsViewModel | null>(null);
   // Source pair behind the fresh-results view model so the population-
@@ -3578,25 +3605,57 @@ function HaleApp() {
         return;
       }
       // Not offered (unavailable / invalid baseline): recorded honestly.
-      setPendingClarityCheckIn(withDualTaskResult(input, eligibility.record));
-      setFlow('clarity-check-in');
+      proceedToFluencyOrCheckIn(withDualTaskResult(input, eligibility.record));
       return;
     }
     setPendingClarityCheckIn(input);
     setFlow('clarity-check-in');
   }
 
-  function withDualTaskResult(
+  function withClarityInstruments(
     input: MovementProfileV2RawCompletion,
-    dualTask: DualTaskResult
+    patch: { dualTask?: DualTaskResult; fluency?: FluencyResult }
   ): MovementProfileV2RawCompletion {
     return {
       ...input,
       checkUp: {
         ...input.checkUp,
-        clarityInstruments: { schemaVersion: 1, dualTask },
+        clarityInstruments: {
+          schemaVersion: 1,
+          ...input.checkUp.clarityInstruments,
+          ...patch,
+        },
       },
     };
+  }
+
+  function withDualTaskResult(
+    input: MovementProfileV2RawCompletion,
+    dualTask: DualTaskResult
+  ): MovementProfileV2RawCompletion {
+    return withClarityInstruments(input, { dualTask });
+  }
+
+  /**
+   * The fluency segment follows dual-task (FL2): consent per use; unavailable
+   * transcriber (device Block 8 pending) records itself honestly and moves on.
+   */
+  function proceedToFluencyOrCheckIn(input: MovementProfileV2RawCompletion) {
+    if (isClarityDimensionEnabled()) {
+      const categoryId = nextFluencyCategory(displayHistory);
+      if (fluencyAvailability === 'available') {
+        setPendingFluency({ input, categoryId });
+        setFlow('fluency-consent');
+        return;
+      }
+      setPendingClarityCheckIn(
+        withClarityInstruments(input, { fluency: unavailableFluencyResult(categoryId) })
+      );
+      setFlow('clarity-check-in');
+      return;
+    }
+    setPendingClarityCheckIn(input);
+    setFlow('clarity-check-in');
   }
 
   function handleDualTaskDone(result: DualTaskResult) {
@@ -3606,7 +3665,35 @@ function HaleApp() {
       setFlow(null);
       return;
     }
-    setPendingClarityCheckIn(withDualTaskResult(pending.input, result));
+    proceedToFluencyOrCheckIn(withDualTaskResult(pending.input, result));
+  }
+
+  function handleFluencyConsent(consented: boolean) {
+    const pending = pendingFluency;
+    if (!pending) {
+      setPendingFluency(null);
+      setFlow(null);
+      return;
+    }
+    if (consented) {
+      setFlow('fluency-task');
+      return;
+    }
+    setPendingFluency(null);
+    setPendingClarityCheckIn(
+      withClarityInstruments(pending.input, { fluency: skippedFluencyResult(pending.categoryId) })
+    );
+    setFlow('clarity-check-in');
+  }
+
+  function handleFluencyDone(result: FluencyResult) {
+    const pending = pendingFluency;
+    setPendingFluency(null);
+    if (!pending) {
+      setFlow(null);
+      return;
+    }
+    setPendingClarityCheckIn(withClarityInstruments(pending.input, { fluency: result }));
     setFlow('clarity-check-in');
   }
 
@@ -4431,6 +4518,17 @@ function HaleApp() {
             eligibility={pendingDualTask.eligibility}
             speechMonitor={speechMonitor}
             onDone={handleDualTaskDone}
+          />
+        ) : flow === 'fluency-consent' && pendingFluency ? (
+          <FluencyConsentScreen
+            onStart={() => handleFluencyConsent(true)}
+            onSkip={() => handleFluencyConsent(false)}
+          />
+        ) : flow === 'fluency-task' && pendingFluency ? (
+          <FluencyTaskScreen
+            categoryId={pendingFluency.categoryId}
+            transcriber={fluencyTranscriber}
+            onDone={handleFluencyDone}
           />
         ) : flow === 'clarity-check-in' && pendingClarityCheckIn ? (
           <ClarityCheckInScreen
