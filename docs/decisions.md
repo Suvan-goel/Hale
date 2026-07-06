@@ -4489,3 +4489,27 @@ imports/fields/store file in backup shapes).
 - **docs/pre-promotion-checklist.md created** — the single source of truth
   for engine promotion (engineering gates, founder-owned items, deferred-by-
   decision re-entry conditions).
+
+## 2026-07-06 — Check-up #0 scope ruling: two protocols only; full-battery host withdrawn
+
+- **Founder question answered plainly:** in manual_extra_v2 mode the unified
+  check-up screen runs the FULL battery — the internal flow is a fixed step
+  machine starting at chair_setup (max effort FIRST) with no subset support.
+  Both the scope and the order violate Check-up #0's product design (two
+  protocols, gentle-first, ~2 minutes, trust-timed — onboarding-spec §5).
+- **Conformance:** the full-battery assessment host (wired earlier today) is
+  WITHDRAWN from the shell — product design wins over implementation
+  convenience. The assessment phase shows an honest interim card (no camera
+  flow, no untruthful duration copy; levels stay conservative; every gate —
+  B1 bypass, all three re-offer paths — remains in force). The extraction
+  work stands and is a named engineering gate: a two-protocol host
+  (45 s gentle warm-up moment → single-leg balance → 30 s chair rise) built
+  from the unified machinery, consuming the new pinned
+  CHECKUP_ZERO_PROTOCOL_SEQUENCE ('one-leg-balance-45s-v2' →
+  'chair-rise-30s-v2'; shoulder/hinge excluded by test).
+- Routine 4–6-week programme-v2 check-ups also use the minimal battery.
+  The full battery may return only as an explicit opt-in "full movement
+  check" — never the default (recorded in the pre-promotion checklist's
+  deferred list).
+- assessmentInputsFromCheckUp stays as built — it reads exactly the two
+  Check-up #0 protocols and ignores extra items on any legacy record.

@@ -17,9 +17,7 @@ import { Button, Screen, Typography } from '../components/ui';
 import { createExpoHistoryFs } from '../history/fsAdapter';
 import {
   acknowledgeOnboardingStep,
-  applyAssessmentPlacement,
   applyProgrammeSessionResults,
-  assessmentInputsFromCheckUp,
   assessmentReoffer,
   markSurfaceShown,
   surfaceAlreadyShown,
@@ -50,7 +48,6 @@ import {
 } from '../programme';
 import type { OnboardingQuestionStepId } from '../programme';
 import { ProfileStore } from '../profile';
-import { MovementProfileV2UnifiedCheckUpScreen } from './MovementProfileV2UnifiedCheckUpScreen';
 import { buildStoredSessionFunnel, SessionFunnelStore } from '../telemetry';
 import { createExpoSessionFunnelFs } from '../telemetry/fsAdapter';
 import { ProgrammeOnboardingScreen } from './ProgrammeOnboardingScreen';
@@ -76,7 +73,6 @@ export function ProgrammeV2Root() {
   const [physioSignpostVisible, setPhysioSignpostVisible] = React.useState(false);
   const sessionStartRef = React.useRef<{ startedAtIso: string; wasFirstSession: boolean } | null>(null);
   const lastEffortRef = React.useRef<SessionRpe | null>(null);
-  const assessmentStartedAtRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -372,33 +368,19 @@ export function ProgrammeV2Root() {
   }
 
   if (phase === 'assessment') {
-    // The assessment host is the FULL official battery (unified check-up):
-    // T3 comes from the real 30-second chair-rise protocol and T1 from the
-    // per-side balance holds — never the 5-stand power check (protocol
-    // honesty, ratified 2026-07-06). Placement semantics: the immediate
-    // 'now' path (nothing trained yet) replaces placement outright with the
-    // −1 easy start; any path after training history is upward-only.
-    if (!assessmentStartedAtRef.current) {
-      assessmentStartedAtRef.current = new Date().toISOString();
-    }
+    // RULED 2026-07-06: Check-up #0 is TWO protocols only (balance, then the
+    // 30 s chair rise — gentle-first, max effort last, ~2 minutes). The
+    // unified screen runs the FULL battery on a fixed step machine (chair
+    // FIRST) with no subset support, so it may not host this. Honest interim
+    // until the two-protocol host (CHECKUP_ZERO_PROTOCOL_SEQUENCE) is
+    // extracted: no camera flow, no untruthful duration copy, levels stay
+    // comfortable-conservative. Every gate (B1 bypass, re-offer paths)
+    // remains in force around this phase.
     return (
-      <MovementProfileV2UnifiedCheckUpScreen
-        startedAt={assessmentStartedAtRef.current}
-        sourceType="manual_extra_v2"
-        onComplete={({ checkUp }) => {
-          const inputs = assessmentInputsFromCheckUp(checkUp);
-          persist(
-            applyAssessmentPlacement(programmeState, inputs, {
-              deferred: programmeState.completedSessionCount > 0,
-            })
-          );
-          assessmentStartedAtRef.current = null;
-          setPhase('home');
-        }}
-        onCancel={() => {
-          assessmentStartedAtRef.current = null;
-          setPhase('home');
-        }}
+      <PromptCard
+        title="The movement check is nearly ready"
+        body="The two-minute check arrives in the next build. Until then your levels stay comfortably conservative — nothing is held up."
+        actions={[{ label: 'OK', onPress: () => setPhase('home') }]}
       />
     );
   }

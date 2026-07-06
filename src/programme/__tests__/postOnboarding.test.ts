@@ -1,4 +1,5 @@
 import {
+  CHECKUP_ZERO_PROTOCOL_SEQUENCE,
   assessmentInputsFromV2Results,
   assessmentReoffer,
   recordBandAnswer,
@@ -19,6 +20,19 @@ function onboarded(overrides: Partial<ProgrammeState['profile']> = {}): Programm
   state.onboardingCompletedAtIso = '2026-07-06T09:00:00.000Z';
   return state;
 }
+
+describe('Check-up #0 scope (founder ruling: two protocols, gentle-first)', () => {
+  it('is exactly balance then chair rise — never the full battery', () => {
+    // Pinned to the literal protocol ids: the 45 s balance hold first,
+    // the 30-SECOND chair rise (the honest T3 instrument) last.
+    expect(CHECKUP_ZERO_PROTOCOL_SEQUENCE).toEqual(['one-leg-balance-45s-v2', 'chair-rise-30s-v2']);
+    // The full battery's other movements are excluded by construction.
+    for (const id of CHECKUP_ZERO_PROTOCOL_SEQUENCE) {
+      expect(id).not.toMatch(/shoulder|hinge/);
+    }
+    expect(CHECKUP_ZERO_PROTOCOL_SEQUENCE).toHaveLength(2);
+  });
+});
 
 describe('T1/T3 adapter (camera → placement inputs; T2 deferred)', () => {
   it('maps chair-rise reps + hand flags and the worse balance side', () => {

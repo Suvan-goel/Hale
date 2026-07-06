@@ -23,6 +23,13 @@ update status in place.
       session start + funnel v3 stamp on the same record).
 - [ ] Old→new state: no code path reads legacy training state into the new
       engine (fresh placement only; internal testers re-onboard).
+- [ ] Two-protocol Check-up #0 host extracted from the unified machinery
+      (45 s guided gentle warm-up moment → single-leg balance → 30 s chair
+      rise; consumes CHECKUP_ZERO_PROTOCOL_SEQUENCE; the unified full-battery
+      screen runs a fixed chair-first step machine and may NOT host it).
+      Routine 4–6-week programme-v2 check-ups use the same minimal battery.
+- [ ] Assessment-phase scope pinned (two protocols, gentle-first order,
+      on-screen copy truthful to what runs — duration promise included).
 
 ## Founder-owned (named owner: founder)
 
@@ -52,3 +59,6 @@ update status in place.
 - [ ] Core-on-short-sessions — finisher-slot rotation sketch
       (docs/decisions.md trim-rotation entry) if habitual-short telemetry
       shows core starvation.
+- [ ] Full official battery as an explicit OPT-IN "full movement check" for
+      curious users — never the default at Check-up #0 or routine check-ups
+      (ruling 2026-07-06).

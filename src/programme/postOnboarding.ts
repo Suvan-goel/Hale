@@ -47,10 +47,24 @@ export function assessmentInputsFromV2Results(input: {
 }
 
 /**
- * Extracts T1/T3 from a completed OFFICIAL battery (the unified check-up is
- * the shell's assessment host — the real 30-second chair-rise protocol, not
- * the 5-stand power check). Items without a usable result are simply absent;
- * placement then falls back to activity prior for that ladder.
+ * Check-up #0 protocol scope (founder ruling 2026-07-06): TWO protocols only,
+ * gentle-first — single-leg balance, then the 30-second chair rise (max
+ * effort last), behind a brief guided warm-up moment (spec §5). ~2 minutes,
+ * matching the "two minutes of moving" copy. The FULL battery is never
+ * presented at Check-up #0 or the routine programme-v2 check-ups; it may
+ * return later only as an explicit opt-in "full movement check". Any
+ * assessment host MUST consume this sequence — pinned by test.
+ */
+export const CHECKUP_ZERO_PROTOCOL_SEQUENCE = [
+  ONE_LEG_BALANCE_V2_ID,
+  CHAIR_RISE_V2_ID,
+] as const;
+
+/**
+ * Extracts T1/T3 from completed check-up items (the two-protocol Check-up #0
+ * host; also reads any legacy full-battery record — extra items are simply
+ * ignored). Items without a usable result are absent; placement then falls
+ * back to activity prior for that ladder.
  */
 export function assessmentInputsFromCheckUp(checkUp: Pick<CheckUp, 'items'>): AssessmentInputs {
   let chairRise: Pick<ChairRiseV2Result, 'reps' | 'flags'> | null = null;

@@ -120,6 +120,7 @@ export type {
   SessionTemplateId,
 } from './session';
 export {
+  CHECKUP_ZERO_PROTOCOL_SEQUENCE,
   assessmentInputsFromCheckUp,
   assessmentInputsFromV2Results,
   assessmentReoffer,
