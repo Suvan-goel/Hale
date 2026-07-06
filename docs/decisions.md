@@ -4088,3 +4088,46 @@ PUBLIC RELEASE REMAINS BLOCKED
 - Verification: tsc clean; jest 186/186 suites, 1546/1546; expo config green.
   **PAUSED for founder review of FL1 in isolation — FL2 (scoring/rotation) does not
   start until approval.**
+
+## 2026-07-06 — FL1 hardening + FL2–FL4 landed: fluency complete to checkpoint
+
+- **FL1 hardening (5a586a04, both founder requirements):** (1) COUNTER PURITY —
+  `fluencyCounting.ts` carries an enforced purity contract (tokens in, number out; no
+  I/O/logging/telemetry/retention), held by a source scan of its code (console,
+  telemetry, stores, network, timers, module-level mutable state all banned) and a
+  silence canary (a full countWords round-trip over distinctive words produces zero
+  console output and zero Sentry/telemetry writes). (2) ERROR-PATH SANITIZATION —
+  `FluencyCountFailure` is the closed enum; `createSanitizedFluencyTranscriber` is the
+  mandatory adapter for any engine: catches everything, maps by optional `code` ENUM
+  VALUE only (never message text), never rethrows or logs; pinned by a fake engine
+  whose throws embed recognized text in message and metadata — only enum codes emerge,
+  canary words appear nowhere. Empty windows are `no_speech`, never a zero-word score.
+- **FL2 (f58e7827):** counting rules written inside the purity contract — split engine
+  phrases, normalize, drop fillers, naive plural fold, count DISTINCT; intrusions
+  honestly NOT detected (recorded limitation — the metric is "distinct words named",
+  never a clinically scored test); rules frozen to the metric id. History-derived
+  deterministic rotation over the four F3 categories (measured runs consume a form;
+  skips/invalid never do; exhaustion restarts). 60-second task screen: one sanitized
+  window with the pure counter, early "I'm done" via seam stop(), backgrounding
+  invalidates. Flow: dual-task → fluency consent → task → check-in; an unavailable
+  transcriber records itself honestly and moves on.
+- **FL3 (80bb789a):** per-category anchors — raw counts are structurally category-bound;
+  each measured run reads against its own category's rolling anchor from first
+  encounter, so cycle 1 produces no trend points (approved month-5 onset) and a harder
+  category's lower raw count can still be a within-category personal best (tested).
+  `fluency_relative_v1` joins the Clarity surface as "Word-finding" with swing-honest
+  copy. Device protocol Block 8 (frozen): airplane-mode on-device honesty (silent
+  server fallback = hard fail), ≥85 % count recall across quiet/TV/UK-accent
+  conditions, error-path device-log canary check, in-context-only permission UX.
+- **FL4 (e902f6ba):** GP-escalation — 3 consecutive below-band months on one series
+  with ≥5 lifetime readings; relations walk an UNCONTAMINATED baseline (a below month
+  never joins "her usual", so decline cannot hide itself by widening the band;
+  recovery self-heals). Synthetic-history tests: exact-3 fires, 2 never, within-band
+  resets, 5-reading floor holds, covariates alone can never fire it. Calm card + the
+  exportable summary ("not a medical record"; dates, baseline-relative relations,
+  covariate context) — the ONLY escalation path, guardrail-pinned with exactly two
+  allowed doctor-mentions in the product (this card + the pain swap note).
+- Verification: tsc clean; jest 188/188 suites, 1568/1568. Fluency audio runtime
+  remains PLANNED (default transcriber unavailable until Block 8; whole Clarity layer
+  behind the dev flag). Founder's untracked docs/specs files left untouched.
+  **PAUSED at the fluency checkpoint.**
