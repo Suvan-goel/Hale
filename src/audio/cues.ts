@@ -97,6 +97,7 @@ export type VoiceCueKey =
   | 'voice-say-ready'
   | 'voice-say-ready-reprompt'
   | 'voice-done-reprompt'
+  | 'voice-resume-counts'
   | 'pain-acknowledge'
   // Training Voice V2.1 logical/runtime cues. Most exercise-specific V2.1
   // keys are logical only until the later physical manifest/audio phase.
@@ -226,6 +227,8 @@ export function voicePriority(cue: VoiceCueKey): number {
     case 'voice-say-ready-reprompt':
     case 'voice-done-reprompt':
       return 8; // session pacing prompts — droppable under busier lines
+    case 'voice-resume-counts':
+      return 9; // effort-honesty line — a paused set must never read as discarded
     case 'you-completed':
     case 'stands-suffix':
     case 'no-reps':

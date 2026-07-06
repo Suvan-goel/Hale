@@ -329,6 +329,8 @@ export class TrainingSessionPlayer {
   private voiceSetExpectedMs = 0;
   private doneReprompted = false;
   private voicePauseContext: 'rest' | 'active' | null = null;
+  /** Paused OUT of an open rep set — resume must say "every rep counts". */
+  private voicePausedMidRepSet = false;
   private stopRequested = false;
   private readonly painEvents: TrainingPainEvent[] = [];
   private readonly safetySnapshot: PlannedSafetyCueSnapshot;
@@ -996,6 +998,7 @@ export class TrainingSessionPlayer {
       return false;
     }
     this.voicePauseContext = this.phase === 'rest' ? 'rest' : 'active';
+    this.voicePausedMidRepSet = this.phase === 'set' && this.voiceSetOpenEnded;
     this.phase = 'voice_paused';
     this.stopRequested = stopRequested;
     this.tapPromptHighlighted = false;
@@ -1011,6 +1014,12 @@ export class TrainingSessionPlayer {
     this.voicePauseContext = null;
     this.stopRequested = false;
     this.enterWaitingReady(atMs, null);
+    // Interrupted rep set: reps are self-reported, so the restart must never
+    // read as discarded effort — she counts everything done this set.
+    if (this.voicePausedMidRepSet) {
+      this.pendingVoiceLine = cueSequence(['voice-resume-counts', 'voice-say-ready']);
+    }
+    this.voicePausedMidRepSet = false;
     return true;
   }
 

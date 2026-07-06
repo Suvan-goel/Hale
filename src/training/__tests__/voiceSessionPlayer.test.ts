@@ -224,6 +224,32 @@ describe('voice intent surface', () => {
     expect(u.setIndex).toBe(0); // the interrupted set restarts, not skips
   });
 
+  it('resume after a mid-rep-set pause says every rep counts (effort never reads as discarded)', () => {
+    const player = makeVoicePlayer([STS_STANDARD_ID]);
+    const run = startRun(player);
+    toFirstSet(run);
+    run.ts += 12000; // six reps in, she pauses
+    player.handleSessionIntent('pause', run.ts);
+    run.tickUntil(() => run.spoken.includes('paused-v21'), 30000);
+    player.handleSessionIntent('resume', run.ts);
+    run.tickUntil(() => run.spoken.includes('voice-resume-counts'), 30000);
+    const readyIdx = run.spoken.lastIndexOf('voice-say-ready');
+    expect(readyIdx).toBeGreaterThan(run.spoken.indexOf('voice-resume-counts'));
+  });
+
+  it('resume after pausing a TIMED hold set does not speak the rep-counting line', () => {
+    const player = makeVoicePlayer([BALANCE_FEET_TOGETHER_ID]);
+    const run = startRun(player);
+    run.tickUntil((u) => u.phase === 'waiting_ready' && run.ts >= run.voiceBusyUntil);
+    player.handleSessionIntent('ready', run.ts);
+    run.tickUntil((u) => u.phase === 'set');
+    run.ts += 5000;
+    player.handleSessionIntent('pause', run.ts);
+    player.handleSessionIntent('resume', run.ts + 2000);
+    run.tickUntil((u) => u.phase === 'waiting_ready');
+    expect(run.spoken).not.toContain('voice-resume-counts');
+  });
+
   it('stop surfaces stopRequested for the end-session confirm', () => {
     const player = makeVoicePlayer([STS_STANDARD_ID]);
     const run = startRun(player);
