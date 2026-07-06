@@ -34,6 +34,8 @@ export type {
 export {
   CLARITY_INSTRUMENTS_SCHEMA_VERSION,
   DUAL_TASK_RESULT_SCHEMA_VERSION,
+  FLUENCY_CATEGORY_IDS,
+  FLUENCY_RESULT_SCHEMA_VERSION,
   computeDualTaskCostPercent,
   dualTaskReadingValue,
   validClarityInstruments,
@@ -43,6 +45,10 @@ export type {
   DualTaskInvalidReason,
   DualTaskResult,
   DualTaskStatus,
+  FluencyCategoryId,
+  FluencyInvalidReason,
+  FluencyResult,
+  FluencyStatus,
 } from './clarityInstruments';
 export {
   LEGACY_MOVEMENT_AGE_PROTOCOL_POLICY_ID,

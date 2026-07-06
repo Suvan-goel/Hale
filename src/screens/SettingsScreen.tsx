@@ -1047,6 +1047,20 @@ function PrivacyStorageCard() {
           body="Support, comfort, equipment, and camera setup."
           value="Saved"
         />
+        {/* Two mic uses, honestly distinguished (FL1 privacy model, 2026-07-06).
+            The global commands/safety promise is restated, never weakened. */}
+        <PrivacyLedgerRow
+          icon="shield"
+          label="Microphone — session and safety words"
+          body="Listens for a few words during workouts. Processed on your phone as intents only — nothing you say is ever transcribed."
+          value="Never saved"
+        />
+        <PrivacyLedgerRow
+          icon="shield"
+          label="Microphone — optional word-finding check"
+          body="Only during the optional 60-second check-up task, and only after you agree each time: speech becomes words on your phone to count them. The count is saved; the words and audio never are."
+          value="Count only"
+        />
       </View>
     </DetailCard>
   );

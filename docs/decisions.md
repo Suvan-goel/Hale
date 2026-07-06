@@ -4033,3 +4033,58 @@ PUBLIC RELEASE REMAINS BLOCKED
 - Verification: tsc clean; jest 185/185 suites, 1540/1540. **PAUSED at the dual-task
   checkpoint per the approved sequencing — fluency (FL1–FL4) does not start until
   founder approval.**
+
+## 2026-07-06 — Dual-task checkpoint approved; placement ratified; metric scope flagged
+
+- **Placement RATIFIED (founder):** the post-battery appendix on its own screen/camera
+  session is the design of record. Rationale for the record: an F1 coexistence fault is
+  structurally contained to the appendix's own mic window and can never touch a protocol
+  measurement; the fatigue and best-of-vs-single asymmetries are systematic
+  month-to-month and therefore wash out of the within-person trend — which is the only
+  thing shown (absolute values never bare).
+- **KNOWN PROPERTY of the dual-task metric (standing flag against future features):**
+  dual-task cost is comparable WITHIN-PERSON over time but is NOT valid for any
+  cross-person or cross-position comparison — the systematic end-of-battery fatigue
+  offset and the best-of-trials-vs-single-attempt asymmetry are baked into every value.
+  Any future feature that would compare it beyond her own history (population views,
+  percentiles, sharing, leaderboards of any kind) must be flagged against this entry
+  and rejected or redesigned. Also noted in code at the metric definition.
+- **Ladder limitation acknowledged**, deferred to Clarity-enable time.
+- **Fluency proceeds — FL1 ONLY, then pause:** the privacy model, consent surface, and
+  no-transcript/no-audio leak-proofing are built and reviewed IN ISOLATION before any
+  scoring/rotation work (FL2+). The privacy change is the trust-critical surface.
+
+## 2026-07-06 — FL1 landed: the fluency privacy model, built in isolation for review
+
+- **The recorded privacy-model decision (the deliberate, scoped exception):** verbal
+  fluency requires on-device transcription to count words — a per-use, explicitly
+  consented, session-scoped exception to the app-wide "never transcribed" promise. The
+  global promise for COMMANDS and SAFETY WORDS is UNTOUCHED and restated (not weakened)
+  on every new surface; its guardrail tests pass unchanged, and a new test pins that no
+  session/command path imports the fluency seam. What is kept from her speech: the
+  count. What is never kept: the words, the audio. Consent is per-use — the screen has
+  no remember-my-choice surface (pinned) and appears before every fluency task.
+- **Containment is STRUCTURAL, not conventional** (`fluencyPrivacy.test.ts`, pain-audit
+  rigor): the `FluencyTranscriber` seam NEVER RETURNS WORDS — `countWords` hands tokens
+  to a counting callback and resolves with only its numeric output, so no API exists
+  that could carry a transcript to a store, telemetry, or backup. Canary-word test: a
+  scripted transcriber feeds distinctive tokens through the real seam into a serialized
+  check-up — none survive. `FluencyResult` is numbers/literals/closed-enums by type
+  (exhaustive key audit); a smuggled free-text field drops at the defensive boundary.
+  On-device only: any engine that cannot guarantee on-device processing must report
+  `unavailable` — there is no server fallback state in the type.
+- **Surfaces:** `FluencyConsentScreen` (per-use consent, implementation-true copy pinned
+  word-for-word: on-your-phone, count-only, not-stored-not-sent, "different from how the
+  mic normally works here", first-class Skip, 30 s no-stall auto-skip; registered in the
+  Clarity copy fences). Settings privacy ledger now distinguishes the TWO mic uses
+  honestly (session/safety words: intents only, never transcribed, never saved; optional
+  word-finding check: per-use consent, count only). iOS
+  `NSSpeechRecognitionUsageDescription` updated to cover both uses truthfully (shape
+  pins unchanged and green); the in-context permission prompt fires from the consent
+  screen's Start, never at launch (wired in FL2+).
+- **PLANNED until device Block 8:** the native on-device ASR. `defaultFluencyTranscriber`
+  reports `unavailable`, so the consent screen never renders in production — the
+  instrument is dark behind flag + gate, like dual-task.
+- Verification: tsc clean; jest 186/186 suites, 1546/1546; expo config green.
+  **PAUSED for founder review of FL1 in isolation — FL2 (scoring/rotation) does not
+  start until approval.**
