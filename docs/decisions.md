@@ -4131,3 +4131,34 @@ PUBLIC RELEASE REMAINS BLOCKED
   remains PLANNED (default transcriber unavailable until Block 8; whole Clarity layer
   behind the dev flag). Founder's untracked docs/specs files left untouched.
   **PAUSED at the fluency checkpoint.**
+
+## 2026-07-06 — Fluency checkpoint approved; principle of record; episode semantics pinned; device protocol made end-to-end consistent
+
+- **PRINCIPLE OF RECORD (founder): display smoothing and change detection are SEPARATE
+  SYSTEMS.** Kindness in presentation ("holding steady", personal bands, gentle copy)
+  must never contaminate the baseline used for detection — the escalation trigger's
+  uncontaminated-baseline walk (a below month never joins "her usual") is the reference
+  implementation. This binds ANY future escalation or alerting logic.
+- **Episode semantics VERIFIED AS BUILT, then pinned** (no code change needed — the
+  stateless recompute yields exactly the required behavior): the GP card renders when
+  the third consecutive below-band month lands; it persists quietly and findably
+  (identical copy month over month — nothing alert-like exists to re-fire: no push, no
+  modal, no per-month event); continuing below months are the same episode; recovery
+  closes it (card gone) and a relapse must earn the FULL trigger again (1–2 relapse
+  months stay quiet); covariate-heavy months never fire it, before or during an
+  episode. All pinned with synthetic multi-month histories.
+- **Device protocol consistency pass (Blocks 0–9):** three findings, all fixed:
+  1. Blocks 7–8 required native VAD/ASR adapters that do not exist and are themselves
+     engine-specific work gated on the Block-2 spike verdict — they cannot share the
+     evening. The protocol now runs as SESSION A (Blocks 0–6, 9 — one evening) and
+     SESSION B (Blocks 7–8 — follow-up after the engine verdict + adapter builds).
+  2. Several recorded "owed on device" items mapped to NO block. New **Block 9**
+     (Session A, UI-only, no gates) now carries all of them: cold-open render check
+     (the hooks crash class), the menopause Phase-1 funnel items (owed 2026-07-05),
+     the reposition surfaces (tier suppression, comparison opt-in round-trip, symptom
+     picture, phase report, Clarity check-in, ghost-curve render), the clarity-
+     instruments dark-state check (no offer/consent pre-gate; `unavailable` recorded),
+     and the voice-line listening review (owed since the pain-safety slice).
+  3. Block 0 now builds the clarity-flagged dev client Block 9 needs.
+  **The owed-but-unmapped list is now EMPTY.** The clarity-instruments implementation
+  is complete; the frontier is Session A.

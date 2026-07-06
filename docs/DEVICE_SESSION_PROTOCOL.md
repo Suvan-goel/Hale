@@ -1,9 +1,17 @@
 # Batched Device Session — Consolidated Protocol
 
-Date: 2026-07-06 · Owner: founder (one evening, both target devices)
+Date: 2026-07-06 · Owner: founder (both target devices)
 Consolidates EVERY deferred physical-device check (2026-07-06 checkpoint amendment):
 the KWS spike is a HARD GATE that now sits **before beta and before any engine-specific
 tuning** — nothing engine-specific may be built until it passes.
+
+**Two sessions (consistency pass 2026-07-06):**
+- **Session A — Blocks 0–6 and 9** (one evening): everything buildable today.
+- **Session B — Blocks 7–8** (follow-up): the clarity-instrument audio gates. They
+  require native VAD/ASR adapter builds that DO NOT EXIST yet and deliberately follow
+  Session A's Block-2 engine verdict (adapters are engine-specific work, forbidden
+  before the spike passes). Until Session B passes, both instruments stay dark in
+  production by construction (`unavailable` defaults).
 
 Devices: the recent iPhone + the ≥3-year-old mid-range Android. Bring: Bluetooth
 headphones, a lamp-lit room, a TV, a sturdy chair, a charged power bank.
@@ -18,6 +26,9 @@ Run in this order — later blocks depend on earlier ones.
    iOS build since the module landed. If the pod fails, fix before the evening; nothing
    else on iOS can run. (Owed since commit `31268bd2`.)
 3. A second dev-client build per platform WITHOUT the spike flag, for Block 4.
+4. A dev-client build with `EXPO_PUBLIC_ENABLE_CLARITY_DIMENSION=1` (dev-only flag)
+   for Block 9's Clarity surfaces; the build from (3) doubles as Block 9's
+   dark-state check build.
 
 ## Block 1 — Availability + permissions (5 min/device)
 
@@ -109,7 +120,10 @@ enough; these verify App.tsx glue whose underlying logic is already unit-tested.
    Continue after the last finished item; the first exercise's results (including any
    ±rep adjustment made in its window) survived.
 
-## Block 7 — Dual-task VAD go/no-go (clarity instruments; ~30 min/device)
+## Block 7 — Dual-task VAD go/no-go (clarity instruments; SESSION B; ~30 min/device)
+
+**Prerequisite:** a native `SpeechActivityMonitor` adapter, built AFTER Session A's
+Block-2 engine verdict (engine-specific work is gated on the spike).
 
 Criteria FROZEN at CLARITY_INSTRUMENTS_TDD approval (2026-07-06); pre-run amendments
 only, one tuning iteration allowed on the verbal floor, second failure of any gating
@@ -138,7 +152,7 @@ Deliverables: filled cells + floor value chosen → verdict in
 `docs/audits/VOICE_KWS_SPIKE_RESULTS.md` (same file, new section); the
 `defaultSpeechActivityMonitor` stub is replaced by the native module ONLY after PASS.
 
-## Block 8 — On-device ASR go/no-go (fluency; ~30 min/device)
+## Block 8 — On-device ASR go/no-go (fluency; SESSION B; ~30 min/device)
 
 Criteria FROZEN at CLARITY_INSTRUMENTS_TDD approval (2026-07-06); pre-run amendments
 only. Requires a native FluencyTranscriber adapter build (does not exist yet — this
@@ -163,3 +177,35 @@ Deliverables: filled cells → verdict in `docs/audits/VOICE_KWS_SPIKE_RESULTS.m
 section); `defaultFluencyTranscriber` is replaced by the sanitized native adapter ONLY
 after PASS. Fail → fluency ships `unavailable` (recorded limitation), nothing else
 blocked.
+
+## Block 9 — Reposition & Clarity surface glue pass (SESSION A; UI-only, no gates; ~25 min, one device is enough)
+
+Maps every recorded "owed on device" UI item to a block (consistency pass 2026-07-06).
+Plain tap/render flows — no camera or mic behavior is being judged here.
+
+1. **Cold open:** kill and relaunch the production-flagged build — the app reaches
+   Today with no render error (pins the hooks-order crash class caught 2026-07-06).
+2. **Menopause Phase-1 funnel (owed 2026-07-05):** female onboarding shows the stage
+   question with the v10 taxonomy (Perimenopause / Menopause / Post-menopause /
+   Not sure / Prefer not to say), required-before-Continue with prefer-not first-class;
+   male path skips it; Settings reference-details editing behaves in both sex states;
+   the menopause Learn article opens; results header reads "Your Strength Profile".
+3. **Reposition surfaces (owed from slices 4–8):** symptom picture multi-select in
+   onboarding and Settings (exclusive none/prefer-not behavior); first-ever results
+   show NO tier chips and NO comparison affordance; second check-up shows the quiet
+   "See how you compare" entry → toggle round-trip on the results screen AND via
+   Settings → Privacy & data → Results; phase-report noun on retest results; Clarity
+   check-in appears after an official check-up (clarity build), items save
+   all-or-nothing, skip works; ghost curve renders in-frame once ≥4 official readings
+   exist (seeded/dev data acceptable — geometry and copy are the check).
+4. **Clarity instruments dark state (production-flagged build):** after an official
+   check-up, NO level-2 offer and NO fluency consent appear (gates pending), and the
+   stored record carries `unavailable` for both instruments; on the clarity build the
+   same holds (transcriber/monitor defaults still report unavailable) — confirming the
+   double-gating.
+5. **Voice-line listening review (owed since the pain-safety slice):** play the 10
+   generated voice-session/pain assets (×2 voices) once each — tone and pronunciation
+   pass, no clipping.
+
+Deliverables: a checked-off copy of this list; any failure files as a normal bug, not
+a gate.

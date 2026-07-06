@@ -66,6 +66,56 @@ describe('GP-escalation trigger (§6.2 — synthetic multi-month histories)', ()
     expect(early.triggered).toBe(false);
   });
 
+  // ————— Episode semantics (founder requirement, 2026-07-06) —————
+  // The card is STATELESS PERSISTENCE, not an alert: it renders while the
+  // below-band run is ≥3 and disappears when recovery closes the episode.
+  // There is no notification, modal, or per-month event anywhere — nothing
+  // exists that could "re-fire".
+
+  it('episode: continuing decline persists the card quietly — no re-fire, same episode', () => {
+    const third = evaluateClarityEscalation(months([steady, steady, steady, clouded, clouded, clouded]));
+    const fifth = evaluateClarityEscalation(
+      months([steady, steady, steady, clouded, clouded, clouded, clouded, clouded])
+    );
+    expect(third.triggered).toBe(true);
+    expect(fifth.triggered).toBe(true);
+    // Identical presentation month after month: same series, same calm copy —
+    // a continuing episode adds nothing new to say.
+    expect(fifth.seriesId).toBe(third.seriesId);
+    expect(fifth.copy).toBe(third.copy);
+  });
+
+  it('episode: recovery closes it; relapse must earn the FULL trigger again', () => {
+    const base = [steady, steady, steady, clouded, clouded, clouded];
+    // Recovery month rejoins the band → episode closes, card gone.
+    const recovered = evaluateClarityEscalation(months([...base, steady]));
+    expect(recovered.triggered).toBe(false);
+    // One or two relapse months: still closed — no shortcut back.
+    expect(evaluateClarityEscalation(months([...base, steady, clouded])).triggered).toBe(false);
+    expect(evaluateClarityEscalation(months([...base, steady, clouded, clouded])).triggered).toBe(false);
+    // The third relapse month opens a NEW episode.
+    const relapse = evaluateClarityEscalation(months([...base, steady, clouded, clouded, clouded]));
+    expect(relapse.triggered).toBe(true);
+  });
+
+  it('episode: covariate-heavy months never fire, before or during an episode', () => {
+    // Heavy covariates on steady readings: nothing.
+    const heavySteady = [0, 1, 2, 3, 4, 5].map((index) =>
+      month(index, steady, { sleepQuality: 1, symptomLoad: 3 })
+    );
+    expect(evaluateClarityEscalation(heavySteady).triggered).toBe(false);
+    // And during a two-month dip, heavy covariates never substitute for the
+    // third below-band month.
+    const twoDipsHeavy = [
+      month(0, steady),
+      month(1, steady),
+      month(2, steady),
+      month(3, clouded, { sleepQuality: 1, symptomLoad: 3 }),
+      month(4, clouded, { sleepQuality: 1, symptomLoad: 3 }),
+    ];
+    expect(evaluateClarityEscalation(twoDipsHeavy).triggered).toBe(false);
+  });
+
   it('covariates can NEVER fire it alone', () => {
     const roughMonths = [0, 1, 2, 3, 4, 5].map((index) =>
       month(index, null, { sleepQuality: 1, symptomLoad: 3 })
