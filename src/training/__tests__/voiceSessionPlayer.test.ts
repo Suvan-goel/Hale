@@ -277,6 +277,71 @@ describe('voice intent surface', () => {
   });
 });
 
+describe('±rep windows after a final set (founder fix 2026-07-06)', () => {
+  it('adjusts through the exercise-complete transition; closes when the next exercise announces', () => {
+    const player = makeVoicePlayer([STS_STANDARD_ID, BALANCE_FEET_TOGETHER_ID]);
+    const run = startRun(player);
+    const sts = getExercise(STS_STANDARD_ID);
+
+    // Finish every STS set; the last completion enters transition directly.
+    for (let set = 0; set < sts.prescription.sets; set++) {
+      run.tickUntil((u) => u.phase === 'waiting_ready' && run.ts >= run.voiceBusyUntil);
+      player.confirmReady(run.ts);
+      run.tickUntil((u) => u.phase === 'set');
+      player.completeCurrentSet((run.ts += 5000));
+      if (set < sts.prescription.sets - 1) {
+        run.tickUntil((u) => u.phase === 'rest');
+        player.skipRest(run.ts);
+      }
+    }
+    const u = run.tick();
+    expect(u.phase).toBe('transition');
+    expect(player.adjustReportedReps(-1)).toBe(true); // window open post-final-set
+
+    // Next exercise announces → window closed.
+    run.tickUntil(() => run.spoken.includes('ex-balance'), 60000);
+    expect(player.adjustReportedReps(-1)).toBe(false);
+
+    // Finish the session by taps and check the adjustment landed.
+    let guard = 0;
+    while (player.result === null && guard++ < 60) {
+      const next = run.tickUntil(
+        (x) => x.phase === 'done' || (x.phase === 'waiting_ready' && run.ts >= run.voiceBusyUntil)
+      );
+      if (next.phase === 'done') break;
+      player.confirmReady(run.ts);
+      run.tickUntil((x) => x.phase !== 'countdown' && x.phase !== 'waiting_ready');
+    }
+    run.tickUntil((x) => x.phase === 'done');
+    const stsSets = player.result!.items[0].sets;
+    expect(stsSets[stsSets.length - 1].repsAdjusted).toBe(-1);
+    expect(stsSets[stsSets.length - 1].reportedReps).toBe((sts.prescription.repsPerSet as number) - 1);
+  });
+
+  it("the session's final exercise stays adjustable through the complete phase", () => {
+    const player = makeVoicePlayer([STS_STANDARD_ID]);
+    const run = startRun(player);
+    const sts = getExercise(STS_STANDARD_ID);
+    for (let set = 0; set < sts.prescription.sets; set++) {
+      run.tickUntil((u) => u.phase === 'waiting_ready' && run.ts >= run.voiceBusyUntil);
+      player.confirmReady(run.ts);
+      run.tickUntil((u) => u.phase === 'set');
+      player.completeCurrentSet((run.ts += 5000));
+      if (set < sts.prescription.sets - 1) {
+        run.tickUntil((u) => u.phase === 'rest');
+        player.skipRest(run.ts);
+      }
+    }
+    run.tickUntil((u) => u.phase === 'complete');
+    expect(player.adjustReportedReps(2)).toBe(true);
+    run.tickUntil((u) => u.phase === 'done');
+    const sets = player.result!.items[0].sets;
+    expect(sets[sets.length - 1].repsAdjusted).toBe(2);
+    // done = delivered; the summary screen's own control takes over from here.
+    expect(player.adjustReportedReps(1)).toBe(false);
+  });
+});
+
 describe('mode isolation', () => {
   it('voice mode rejects update(); camera mode rejects tick()', () => {
     const voicePlayer = makeVoicePlayer([STS_STANDARD_ID]);

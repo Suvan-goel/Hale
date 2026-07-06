@@ -64,7 +64,11 @@ session is active — no earpiece fallback, no heavy ducking; (2) toggling windo
 flips the route; (3) Bluetooth: TTS to headphones, note which mic captured, listen for
 HFP quality collapse; (4) after session exit, next voice line + user's own music behave
 exactly as before; (5) full camera Check-Up runs untouched with the voice build
-installed (voice module never initializes in camera flows).
+installed (voice module never initializes in camera flows); (6) **mic-gate UX pass**
+(2026-07-06 screen slice): the first voice session shows the one honest prompt exactly
+once — decline lands in full tap mode and the NEXT session shows no prompt; grant starts
+listening with the safety-word line shown once; the in-app "Voice on" indicator and the
+OS mic indicator appear and disappear together with the listening window.
 
 ## Block 5 — Measurement-side numbers (same evening, camera flows; ~20 min)
 

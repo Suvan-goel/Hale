@@ -331,6 +331,12 @@ export class TrainingSessionPlayer {
   private voicePauseContext: 'rest' | 'active' | null = null;
   /** Paused OUT of an open rep set — resume must say "every rep counts". */
   private voicePausedMidRepSet = false;
+  /**
+   * Post-exercise ±rep window (founder fix 2026-07-06): index into results
+   * for the just-completed item, adjustable through transition/complete and
+   * closed the moment the next exercise announces its instructions.
+   */
+  private adjustableCompletedItemIndex: number | null = null;
   private stopRequested = false;
   private readonly painEvents: TrainingPainEvent[] = [];
   private readonly safetySnapshot: PlannedSafetyCueSnapshot;
@@ -785,6 +791,8 @@ export class TrainingSessionPlayer {
     if (this.instructionsPending) {
       if (busy) return;
       this.instructionsPending = false;
+      // The next exercise announces — every earlier ±rep window closes.
+      this.adjustableCompletedItemIndex = null;
       const def = this.currentDefinition();
       if (!def) return;
       const safety = this.currentSafetyProfile();
@@ -905,6 +913,8 @@ export class TrainingSessionPlayer {
       this.enterRest(ts);
     } else {
       this.results.push({ exerciseId: def.id, status: 'completed', sets: this.currentSets.slice() });
+      // Open the post-exercise ±rep window (rest never follows a final set).
+      this.adjustableCompletedItemIndex = this.results.length - 1;
       this.currentSets = [];
       this.advanceItem(ts);
     }
@@ -980,13 +990,16 @@ export class TrainingSessionPlayer {
   }
 
   /**
-   * One-tap rep correction on the rest screen (voice spec): adjusts the JUST
-   * finished set's reported count. Logged as prescribed-vs-reported via
+   * One-tap rep correction (voice spec + founder fix 2026-07-06): adjusts the
+   * JUST finished set's reported count. Windows: the rest screen (mid
+   * exercise), and — because a final set has no rest after it — the
+   * exercise-complete transition and the session-complete phase, closing when
+   * the next exercise announces. Logged as prescribed-vs-reported via
    * repsAdjusted; never voice-quizzed. Floor at zero.
    */
   adjustReportedReps(delta: number): boolean {
-    if (!this.isVoiceMode || this.phase !== 'rest' || !Number.isInteger(delta)) return false;
-    const lastSet = this.currentSets[this.currentSets.length - 1];
+    if (!this.isVoiceMode || !Number.isInteger(delta)) return false;
+    const lastSet = this.adjustableLastSet();
     if (!lastSet || lastSet.reportedReps === undefined) return false;
     const prescribed = lastSet.reportedReps - (lastSet.repsAdjusted ?? 0);
     const nextReported = Math.max(0, lastSet.reportedReps + delta);
@@ -998,6 +1011,20 @@ export class TrainingSessionPlayer {
       lastSet.repsAdjusted = adjustment;
     }
     return true;
+  }
+
+  private adjustableLastSet(): SetResult | null {
+    if (this.phase === 'rest') {
+      return this.currentSets[this.currentSets.length - 1] ?? null;
+    }
+    if (
+      (this.phase === 'transition' || this.phase === 'instructions' || this.phase === 'complete') &&
+      this.adjustableCompletedItemIndex !== null
+    ) {
+      const item = this.results[this.adjustableCompletedItemIndex];
+      return item ? item.sets[item.sets.length - 1] ?? null : null;
+    }
+    return null;
   }
 
   repeatVoiceInstructions(atMs: number = this.lastTimestampMs): boolean {

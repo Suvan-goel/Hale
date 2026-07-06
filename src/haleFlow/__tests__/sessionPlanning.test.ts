@@ -149,6 +149,43 @@ function ladderProgress(): Record<string, LadderProgress> {
 }
 
 describe('planTodayHaleSession', () => {
+  it('threads pain exclusions from TrainingState into generation (audit closure 2026-07-06)', () => {
+    const baseline = planTodayHaleSession({
+      activeBlock: block(),
+      training: legacyTraining(),
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      ladderProgress: ladderProgress(),
+      today: START,
+    });
+    const targetLadderId = baseline.exercises[0].ladderId ?? '';
+    expect(targetLadderId).toBeTruthy();
+
+    const excluded = planTodayHaleSession({
+      activeBlock: block(),
+      training: {
+        ...legacyTraining(),
+        painHistory: {
+          events: [],
+          exclusions: [
+            { ladderId: targetLadderId, excludedAt: START, evidenceSessions: [START] },
+          ],
+        },
+      },
+      safetyProfile: safety(),
+      lifeGoal: lifeGoal(),
+      ladderProgress: ladderProgress(),
+      today: START,
+    });
+    expect(excluded.exercises.some((exercise) => exercise.ladderId === targetLadderId)).toBe(false);
+    // Never SILENTLY shrink: either the slot backfilled (same length), or the
+    // plan's guidance says out loud that the movement is resting after pain.
+    if (excluded.exercises.length !== baseline.exercises.length) {
+      expect(excluded.exercises.length).toBe(baseline.exercises.length - 1);
+      expect((excluded.metadata?.guidance ?? []).join(' ')).toMatch(/resting after it hurt/);
+    }
+  });
+
   it('uses the dynamic generator when an active block and ladder progress exist', () => {
     const plan = planTodayHaleSession({
       activeBlock: block(),

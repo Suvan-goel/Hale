@@ -67,4 +67,19 @@ describe('App session-mode wiring', () => {
     expect(appSource).toContain('voiceSetup={prefs.settings.voiceSetup}');
     expect(appSource).toMatch(/onSettingsChange\(\{ \.\.\.prefs\.settings, voiceSetup: next \}\)/);
   });
+
+  // Retroactive audit closures (standing rule 2026-07-06): App-layer wiring
+  // that earlier reports asserted is now at least source-pinned; the pure
+  // functions behind each are behavior-tested in their own suites.
+  it('App folds painEvents into the product store at completion and wires Settings reversal', () => {
+    expect(appSource).toMatch(/recordSessionPainEvents\(\s*nextTraining\.painHistory/);
+    expect(appSource).toContain('painExclusions={painExclusionRows}');
+    expect(appSource).toContain('onReinstateExercise={handleReinstateExercise}');
+    expect(appSource).toMatch(/reinstateLadder\(training\.painHistory, ladderId\)/);
+  });
+
+  it('App wires the session-summary ±rep window for the final exercise', () => {
+    expect(appSource).toContain('finalExerciseAdjustment={');
+    expect(appSource).toContain('onAdjust: handleAdjustFinalExerciseReps');
+  });
 });

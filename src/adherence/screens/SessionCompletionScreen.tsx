@@ -39,6 +39,7 @@ export function SessionCompletionScreen({
   lifeGoal,
   completion,
   validTimeSummaries = [],
+  finalExerciseAdjustment,
   onFeedback,
   onDone,
 }: {
@@ -46,6 +47,16 @@ export function SessionCompletionScreen({
   lifeGoal?: LifeGoal | null;
   completion?: TrainingSessionCompletion | null;
   validTimeSummaries?: readonly ValidTimeSessionSummaryCard[];
+  /**
+   * ±rep window for the session's FINAL exercise (voice sessions — founder
+   * fix 2026-07-06: a final set has no rest screen after it). The window
+   * closes when this screen is dismissed.
+   */
+  finalExerciseAdjustment?: {
+    exerciseName: string;
+    reportedReps: number;
+    onAdjust: (delta: 1 | -1) => void;
+  } | null;
   onFeedback?: (feedback: SessionFeedbackInput) => void;
   onDone: () => void;
 }) {
@@ -155,6 +166,33 @@ export function SessionCompletionScreen({
           ) : null}
         </View>
       </View>
+
+      {finalExerciseAdjustment ? (
+        <View style={styles.adjustCard}>
+          <Text style={styles.adjustTitle}>
+            {finalExerciseAdjustment.exerciseName} — last set: {finalExerciseAdjustment.reportedReps} reps
+          </Text>
+          <View style={styles.adjustRow}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="One rep fewer"
+              onPress={() => finalExerciseAdjustment.onAdjust(-1)}
+              style={styles.adjustButton}
+            >
+              <Text style={styles.adjustButtonText}>−</Text>
+            </Pressable>
+            <Text style={styles.adjustHint}>Adjust if that count is off</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="One rep more"
+              onPress={() => finalExerciseAdjustment.onAdjust(1)}
+              style={styles.adjustButton}
+            >
+              <Text style={styles.adjustButtonText}>+</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
 
       <View style={styles.actions}>
         <PrimaryButton title="Back to Home" onPress={finish} />
@@ -481,5 +519,25 @@ const styles = StyleSheet.create({
   actions: {
     gap: spacing.md,
   },
+  adjustCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.card,
+    padding: spacing.lg,
+    gap: spacing.sm,
+    ...shadow.card,
+  },
+  adjustTitle: { ...type.bodySmall },
+  adjustRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  adjustHint: { ...type.caption, flex: 1, textAlign: 'center' },
+  adjustButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  adjustButtonText: { fontSize: 22, color: colors.textPrimary, fontFamily: fonts.sansMedium },
   pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
 });

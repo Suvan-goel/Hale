@@ -719,7 +719,7 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
       blockId: input.block?.id ?? (source !== 'block_generated' ? PRESET_COLLECTION_EXPOSURE_SCOPE_ID : undefined),
     });
     if (!selected) {
-      const stimulus = skippedSlotStimulus(slot, equipment, movementCapabilities, painAreas);
+      const stimulus = skippedSlotStimulus(slot, equipment, movementCapabilities, painAreas, new Set((input.painExcludedLadderIds ?? []).map(resolveLadderId)));
       skippedSlots.push(slot.id);
       skippedSlotReasons.push(stimulus.message);
       slotStimulus.push(stimulus);
@@ -1178,6 +1178,7 @@ function selectExerciseForSlot(input: SelectionInput): SelectedExercise | null {
   // candidate order backfills the slot so the session keeps its shape.
   const ladderIds = allCandidates.filter((id) => !input.painExcludedLadderIds.has(id));
   const painSwapHappened = ladderIds.length < allCandidates.length;
+  const firstExcludedCandidate = allCandidates.find((id) => input.painExcludedLadderIds.has(id));
 
   for (const ladderId of ladderIds) {
     const ladder = safeLadder(ladderId);
@@ -1195,6 +1196,24 @@ function selectExerciseForSlot(input: SelectionInput): SelectedExercise | null {
         ...selected,
         substitutions,
       };
+    }
+  }
+
+  // Pain exclusions must never SILENTLY shrink a session (founder rule 3a):
+  // when the slot's own candidate lists come up empty because of an
+  // exclusion, rescue with any eligible, unused same-domain ladder from the
+  // whole library. Exact-duplicate exercise ids are architecturally invalid
+  // (session identity, dose maps, and results key on exerciseId), so if the
+  // domain is genuinely exhausted the slot skips with an EXPLICIT pain-swap
+  // reason — see skippedSlotStimulus's pain branch.
+  if (painSwapHappened && firstExcludedCandidate !== undefined) {
+    for (const ladder of listExerciseLadders()) {
+      if (ladder.domain !== input.slot.domain) continue;
+      if (input.painExcludedLadderIds.has(ladder.id)) continue;
+      const selected = selectLevelFromLadder(ladder, input);
+      if (selected) {
+        return { ...selected, substitutions: painSwapNote(firstExcludedCandidate) };
+      }
     }
   }
   return null;
@@ -1802,8 +1821,27 @@ function skippedSlotStimulus(
   slot: SessionSlot,
   equipment: readonly AvailableEquipment[],
   movementCapabilities: NormalizedMovementCapabilityProfile,
-  painAreas: readonly PainArea[]
+  painAreas: readonly PainArea[],
+  painExcludedLadderIds?: ReadonlySet<string>
 ): SlotStimulus {
+  // A pain exclusion may only shrink a session OUT LOUD (founder rule 3a):
+  // when this slot's candidates included an excluded ladder and the domain
+  // had no other eligible movement, the reason says exactly that.
+  const painBlocked =
+    painExcludedLadderIds !== undefined &&
+    compatibleLadderIdsForSlot(slot).some((id) => painExcludedLadderIds.has(id));
+  if (painBlocked) {
+    return {
+      slotId: slot.id,
+      slotType: slot.type,
+      slotTitle: slot.title,
+      intendedDomain: slot.domain,
+      role: 'skipped',
+      reason: 'no_safe_option',
+      message:
+        `${slot.title} was left out today: its usual movement is resting after it hurt in two recent sessions, and nothing else in that area fits your setup. You can bring it back any time in Settings.`,
+    };
+  }
   const reason = skippedSlotReasonCode(slot, equipment, movementCapabilities, painAreas);
   return {
     slotId: slot.id,

@@ -3699,3 +3699,29 @@ PUBLIC RELEASE REMAINS BLOCKED
 - Verification: tsc clean, 1437/1437, expo config OK. Owed to the batched device session:
   real-mic listening lifecycle, gate UX on device, audio route behavior (protocol
   unchanged). Founder's landing/ worktree edits remain untouched.
+
+## 2026-07-06 — Standing rule applied: ±rep windows fixed; audit closures exposed and fixed a real backfill gap
+
+- **Founder item 2 (final-set ±rep):** the player's adjustment window now spans the rest
+  screen, the exercise-complete transition (including the pre-announce instructions gap),
+  and the complete phase, closing the moment the next exercise announces — tested both
+  ways (adjust lands in the final result; closed window rejects). The session summary
+  screen gains the ±rep control for the session's FINAL exercise, wired through an App
+  handler that is the single adjustment seam (lastSessionResult is currently the only
+  reportedReps consumer post-delivery; documented in code).
+- **Retroactive audit closures (standing rule) — and one found a real bug:** writing the
+  sessionPlanning exclusion-threading test revealed that a pain exclusion could SILENTLY
+  SHRINK a session when the slot's listed alternatives were release-hidden or already
+  used by an earlier slot. Fixes: (1) a domain-wide rescue pass in selectExerciseForSlot
+  (any eligible unused same-domain ladder from the whole library); (2) where the domain is
+  GENUINELY exhausted, the slot skips with an explicit reason ("its usual movement is
+  resting after it hurt… bring it back any time in Settings") that flows into
+  plan.metadata.guidance. **Deviation flagged for founder sign-off:** literal never-shrink
+  is architecturally impossible in the exhausted case — duplicate exercise ids corrupt
+  session identity/dose/results keying — so the guarantee implemented is
+  never-SILENTLY-shrink, tested at plan level. Also closed: camera-mode recordPainHalt now
+  has a real headless test (painHaltCameraMode.test.ts); App-layer pain fold / Settings
+  reversal / summary wiring are source-pinned (declared as the weaker tier — the pure
+  functions behind them are behavior-tested).
+- DEVICE_SESSION_PROTOCOL.md gains the mic-gate UX pass (founder item 3).
+- Verification: tsc clean; 1444/1444.

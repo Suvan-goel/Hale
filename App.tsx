@@ -239,7 +239,7 @@ import { TodayScreen } from './src/screens/TodayScreen';
 import { TrainingSessionScreen } from './src/screens/TrainingSessionScreen';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
 import { isPoseLatencyDiagnosticsEnabled } from './src/diagnostics/poseLatencyDiagnostics';
-import { getExerciseLadder } from './src/exercises';
+import { getExercise, getExerciseLadder } from './src/exercises';
 import {
   MicroCheckResult,
   MicroCheckType,
@@ -1380,6 +1380,53 @@ function HaleApp() {
       addBreadcrumb('pain exclusion reinstated', { area: 'pain_safety', ladderId });
     },
     [persistTraining, training]
+  );
+
+  // Session-summary ±rep window for the FINAL exercise (voice sessions only —
+  // reportedReps exists only on voice sets). lastSessionResult is the sole
+  // in-memory consumer of reportedReps at this point (no store persists it
+  // yet), so this state update is the complete adjustment seam; when a
+  // downstream consumer appears, it must read through here.
+  const finalExerciseAdjustment = React.useMemo(() => {
+    const items = lastSessionResult?.items ?? [];
+    for (let i = items.length - 1; i >= 0; i--) {
+      const item = items[i];
+      if (item.status !== 'completed' || item.sets.length === 0) continue;
+      const lastSet = item.sets[item.sets.length - 1];
+      if (lastSet.reportedReps === undefined) return null;
+      let exerciseName = item.exerciseId;
+      try {
+        exerciseName = getExercise(item.exerciseId).displayName;
+      } catch {
+        // keep the id
+      }
+      return { itemIndex: i, exerciseName, reportedReps: lastSet.reportedReps };
+    }
+    return null;
+  }, [lastSessionResult]);
+
+  const handleAdjustFinalExerciseReps = React.useCallback(
+    (delta: 1 | -1) => {
+      setLastSessionResult((current) => {
+        if (!current || !finalExerciseAdjustment) return current;
+        const items = current.items.map((item, index) => {
+          if (index !== finalExerciseAdjustment.itemIndex) return item;
+          const sets = item.sets.map((set, setIndex) => {
+            if (setIndex !== item.sets.length - 1 || set.reportedReps === undefined) return set;
+            const prescribed = set.reportedReps - (set.repsAdjusted ?? 0);
+            const nextReported = Math.max(0, set.reportedReps + delta);
+            const adjustment = nextReported - prescribed;
+            const next = { ...set, reportedReps: nextReported };
+            if (adjustment === 0) delete (next as { repsAdjusted?: number }).repsAdjusted;
+            else next.repsAdjusted = adjustment;
+            return next;
+          });
+          return { ...item, sets };
+        });
+        return { ...current, items };
+      });
+    },
+    [finalExerciseAdjustment]
   );
 
   const persistPrefs = React.useCallback(
@@ -4170,6 +4217,15 @@ function HaleApp() {
             lifeGoal={prefs.profile.lifeGoal}
             completion={lastCompletion}
             validTimeSummaries={validTimeSessionSummaryCards(lastSessionResult)}
+            finalExerciseAdjustment={
+              finalExerciseAdjustment
+                ? {
+                    exerciseName: finalExerciseAdjustment.exerciseName,
+                    reportedReps: finalExerciseAdjustment.reportedReps,
+                    onAdjust: handleAdjustFinalExerciseReps,
+                  }
+                : null
+            }
             onFeedback={handleSessionFeedback}
             onDone={goHome}
           />
