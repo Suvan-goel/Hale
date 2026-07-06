@@ -23,7 +23,10 @@ import { DEFAULT_VOICE_ID, VOICE_OPTIONS } from './voices';
 // (default false — baseline-relative is the default everywhere); the profile
 // stage taxonomy gains 'menopausal' and the optional symptom picture. All
 // additive with defensive parse; v9 records deserialize unchanged.
-export const PREFERENCES_SCHEMA_VERSION = 10;
+// v11 (2026-07-06, programme-v2 C6 ruling): stage taxonomy additionally gains
+// 'surgical_medical' (onboarding-spec A2, reconciled onto the pinned F2
+// enum). Additive; v9/v10 records deserialize unchanged.
+export const PREFERENCES_SCHEMA_VERSION = 11;
 
 const ONBOARDING_STEPS: OnboardingStep[] = [
   'welcome',
@@ -211,6 +214,7 @@ const MENOPAUSE_STAGES: MenopauseStage[] = [
   'perimenopausal',
   'menopausal', // v10 (F2, 2026-07-06)
   'postmenopausal',
+  'surgical_medical', // v11 (A2 reconciliation, C6 ruling 2026-07-06)
   'neither_or_unsure', // stored token behind the "Not sure" label
   'prefer_not_to_say',
 ];

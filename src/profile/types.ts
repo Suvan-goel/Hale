@@ -27,6 +27,14 @@ export type MenopauseStage =
   | 'perimenopausal'
   | 'menopausal'
   | 'postmenopausal'
+  /**
+   * v11 (2026-07-06, C6 ruling): menopause after surgery or medical treatment
+   * — the onboarding-spec A2 addition, reconciled ADDITIVELY onto the pinned
+   * F2 taxonomy (repo enum wins; the spec's omission of a mid "menopause"
+   * state was a gap, not a decision). Tailors education content and adds one
+   * gentle bone-health GP nudge; copy/content only, never scoring.
+   */
+  | 'surgical_medical'
   | 'neither_or_unsure'
   | 'prefer_not_to_say';
 
@@ -35,6 +43,7 @@ export const MENOPAUSE_STAGE_OPTIONS: readonly { value: MenopauseStage; label: s
   { value: 'perimenopausal', label: 'Perimenopause' },
   { value: 'menopausal', label: 'Menopause' },
   { value: 'postmenopausal', label: 'Post-menopause' },
+  { value: 'surgical_medical', label: 'Menopause after surgery or medical treatment' },
   { value: 'neither_or_unsure', label: 'Not sure' },
   { value: 'prefer_not_to_say', label: 'Prefer not to say' },
 ];

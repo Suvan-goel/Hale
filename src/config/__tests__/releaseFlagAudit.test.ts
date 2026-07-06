@@ -17,6 +17,7 @@ const SAFE_FLAGS: BetaReleaseFlagAuditFlags = {
   poseLatencyDiagnosticsEnabled: false,
   allowDiagnosticsInRelease: false,
   clarityDimensionEnabled: false,
+  programmeEngineV2Enabled: false,
   devMockDataEnabled: false,
 };
 
@@ -101,6 +102,7 @@ describe('beta/release flag audit', () => {
     ['Movement Profile diagnostics', { movementProfileV2DiagnosticsEnabled: true }, 'movement_profile_v2_diagnostics_enabled'],
     ['pose diagnostics', { poseLatencyDiagnosticsEnabled: true }, 'pose_latency_diagnostics_enabled'],
     ['release diagnostics', { allowDiagnosticsInRelease: true }, 'release_diagnostics_allowed'],
+    ['programme engine v2', { programmeEngineV2Enabled: true }, 'programme_engine_v2_enabled'],
   ] as const)('blocks unsafe beta profile when %s is enabled', (_label, override, reason) => {
     expect(
       auditBetaReleaseFlags({
@@ -232,6 +234,8 @@ function flagExpectationFor(name: ReleaseFlagEnvName): Partial<BetaReleaseFlagAu
       return { allowDiagnosticsInRelease: true };
     case RELEASE_FLAG_ENV_NAMES.clarityDimension:
       return { clarityDimensionEnabled: true };
+    case RELEASE_FLAG_ENV_NAMES.programmeEngineV2:
+      return { programmeEngineV2Enabled: true };
     case RELEASE_FLAG_ENV_NAMES.appleSignIn:
       return { appleSignInEnabled: true };
     case RELEASE_FLAG_ENV_NAMES.sentry:

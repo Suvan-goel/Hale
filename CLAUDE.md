@@ -45,6 +45,23 @@ trigger is churn-location telemetry. Reps in voice sessions are REPORTED (prescr
 confirmed on "done", adjustable on the rest screen), never presented as measured. Design of
 record: TDD.md (v2 conductor) + TDD-ADDENDUM.md (approved v1). See docs/decisions.md.)*
 
+*(2026-07-06 direction — programme engine v2: the five-pattern exercise-ladder engine and
+screening-first onboarding (docs/specs/exercise-ladders-spec.md + onboarding-spec.md, read
+with their v0.3 changelog annotations) are being built as a REPLACEMENT programming layer in
+`src/programme`, flag-gated (`EXPO_PUBLIC_ENABLE_PROGRAMME_ENGINE_V2`, audited unsafe for
+beta/release) alongside the existing engine, which keeps shipping until promotion — nothing
+deleted before then. Rulings of record (docs/decisions.md): the Impact bone-finisher track,
+the B2 bone-screening questions, and the osteoporosis hard gate are deferred AS A PACKAGE —
+so **v1 ships ZERO hard gates**, acceptable only because v1 content is uniformly low-risk
+(programme-wide spinal-flexion ban enforced by test, no impact loading, conservative starts);
+**clinical review must bless this before launch**, and the zero-count is pinned by test.
+Gateway levels are TEACH-ONLY (demo + logged rehearsal exposures + self-confirmation) — the
+camera-never-judges-form law is unchanged. Promotion is an adherence/effort decision over
+REPORTED data (effort = existing RPE 1–5 mapped to lots/a-few/none); camera check-ups are the
+measured reconciliation point. Programme health flags are LOCAL-ONLY — excluded from Supabase
+backup shapes, pinned by a structural test. first_session_started is the onboarding success
+metric, local telemetry only.)*
+
 ## Product laws (non-negotiable design rules, validated in user interviews)
 
 1. **Never show self-view camera video.** Render a clean skeleton; users this age want presence

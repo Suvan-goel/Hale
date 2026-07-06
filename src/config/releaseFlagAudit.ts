@@ -4,6 +4,7 @@ export const RELEASE_FLAG_ENV_NAMES = {
   poseLatencyDiagnostics: 'EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS',
   allowDiagnosticsInRelease: 'EXPO_PUBLIC_ALLOW_DIAGNOSTICS_IN_RELEASE',
   clarityDimension: 'EXPO_PUBLIC_ENABLE_CLARITY_DIMENSION',
+  programmeEngineV2: 'EXPO_PUBLIC_ENABLE_PROGRAMME_ENGINE_V2',
   appleSignIn: 'EXPO_PUBLIC_ENABLE_APPLE_SIGN_IN',
   sentry: 'EXPO_PUBLIC_ENABLE_SENTRY',
 } as const;
@@ -17,6 +18,7 @@ export type ReleaseFlagUnsafeReason =
   | 'pose_latency_diagnostics_enabled'
   | 'release_diagnostics_allowed'
   | 'clarity_dimension_enabled'
+  | 'programme_engine_v2_enabled'
   | 'dev_mock_data_enabled';
 
 export type SafeDiagnosticCode =
@@ -37,6 +39,8 @@ export interface BetaReleaseFlagAuditFlags {
   allowDiagnosticsInRelease: boolean;
   /** Clarity scoring surfaces (REPOSITION_TDD Part 2a) — dev-only until shipped. */
   clarityDimensionEnabled: boolean;
+  /** Programme engine v2 (five-pattern ladders) — dev-only until promoted (C4). */
+  programmeEngineV2Enabled: boolean;
   devMockDataEnabled: boolean;
   appleSignInEnabled?: boolean;
   sentryEnabled?: boolean;
@@ -83,6 +87,7 @@ export function parseReleaseFlagAuditEnv(env: ReleaseFlagRawEnv): BetaReleaseFla
       env[RELEASE_FLAG_ENV_NAMES.allowDiagnosticsInRelease]
     ),
     clarityDimensionEnabled: parseExactReleaseFlag(env[RELEASE_FLAG_ENV_NAMES.clarityDimension]),
+    programmeEngineV2Enabled: parseExactReleaseFlag(env[RELEASE_FLAG_ENV_NAMES.programmeEngineV2]),
     appleSignInEnabled: parseExactReleaseFlag(env[RELEASE_FLAG_ENV_NAMES.appleSignIn]),
     sentryEnabled: parseExactReleaseFlag(env[RELEASE_FLAG_ENV_NAMES.sentry]),
     devMockDataEnabled: false,
@@ -109,6 +114,7 @@ export function auditBetaReleaseFlags(
   if (input.flags.poseLatencyDiagnosticsEnabled) reasons.push('pose_latency_diagnostics_enabled');
   if (input.flags.allowDiagnosticsInRelease) reasons.push('release_diagnostics_allowed');
   if (input.flags.clarityDimensionEnabled) reasons.push('clarity_dimension_enabled');
+  if (input.flags.programmeEngineV2Enabled) reasons.push('programme_engine_v2_enabled');
   if (input.flags.devMockDataEnabled) reasons.push('dev_mock_data_enabled');
 
   if (reasons.length > 0) {

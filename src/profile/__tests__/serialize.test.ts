@@ -50,7 +50,9 @@ describe('preferences serialize', () => {
 
   it('writes a schema version', () => {
     // v10: comparisonOptIn + stage taxonomy + symptom picture (2026-07-06).
-    expect(JSON.parse(serializePreferences(sample)).schemaVersion).toBe(10);
+    // v11: stage taxonomy gains 'surgical_medical' (programme-v2 C6 ruling,
+    // 2026-07-06); additive, earlier records deserialize unchanged.
+    expect(JSON.parse(serializePreferences(sample)).schemaVersion).toBe(11);
   });
 
   it('defaults comparisonOptIn to false and round-trips an opt-in (v10, reposition slice 5)', () => {

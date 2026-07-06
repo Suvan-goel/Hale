@@ -4162,3 +4162,93 @@ PUBLIC RELEASE REMAINS BLOCKED
   3. Block 0 now builds the clarity-flagged dev client Block 9 needs.
   **The owed-but-unmapped list is now EMPTY.** The clarity-instruments implementation
   is complete; the frontier is Session A.
+
+## 2026-07-06 — Programme engine v2: founder rulings C1–C10 recorded; Step 1 (shared data contract) landed
+
+Context: two founder specs landed in docs/specs (exercise-ladders-spec v0.2,
+onboarding-spec v0.2) describing a five-pattern-ladder programming engine and a
+screening-first onboarding flow. Implementation surfaced ten contradictions
+with recorded decisions/guardrails; the founder ruled on each before any code.
+
+**The rulings (all founder-decided, binding):**
+
+- **C1+C2 — PACKAGE DEFERRAL.** The Impact finisher track stays deferred (per
+  the 2026-07-05 impact-loading deferral), and B2 (bone questions) plus the
+  osteoporosis hard gate defer WITH it — they exist only to gate that track.
+  Consequences now: the Low-Impact/Quiet track is the universal v1 finisher
+  (presented as the "power finisher"); **v1 ships ZERO hard gates** —
+  acceptable because v1 content is uniformly low-risk (programme-wide
+  spinal-flexion ban as an enforced guardrail test, no impact loading,
+  conservative starts) — **clinical review must bless this before launch**;
+  copyGuardrails is NOT amended now. When impact un-defers, B2 ships with a
+  scoped guardrail exception (clinical screening/settings/unlock contexts
+  only; marketing/motivational/progress copy stays banned). Both spec files
+  carry v0.3 changelog annotations (authoritative-but-superseded) rather than
+  edited history. docs/ is not in the guardrail scan scope (verified — the
+  scan covers registered src copy surfaces only).
+- **C3 — THE CAMERA LAW HOLDS.** Gateways are TEACH-ONLY: demo watched + N
+  logged rehearsal exposures (where a rehearsal drill exists — the movement-
+  prep standing hinge) + a self-confirmation tap. The wall-tap hinge is
+  self-refereeing (the wall is the form feedback). Any future T2 drops
+  "clean reps"/body-line checks; camera protocols count and measure only.
+- **C4 — REPLACEMENT ENGINE, flag-gated parallel build** in src/programme;
+  the existing engine keeps the app shippable until parity. PORTED, not
+  discarded: substitution systems (equipment/pain/floor), pain-recurrence
+  auto-exclusion, and the fingerprinted policy-snapshot governance (the new
+  ladders launch under the same discipline). Blocks, block progress views,
+  and micro-check scheduling decommission WITH the old engine at promotion
+  time; nothing is deleted until promotion.
+- **C5 — SPEC ONBOARDING WINS**; the "no usable baseline → onboarding
+  incomplete" invariant dies deliberately (activation fix). Age + reference
+  sex move to the point of first need (check-up intro), preferring
+  year-of-birth or 5-year band if norms tables support banding; reference sex
+  defaults female with a quiet adjust option.
+- **C6 — REPO STAGE ENUM WINS, ADDITIVELY:** 'surgical_medical' added
+  (preferences schema v11); spec A2 copy maps onto the six values. The spec's
+  missing mid "menopause" state was a gap, not a decision.
+- **C7 — D1 ships WITHOUT the notification opt-in.** Day picker stays (feeds
+  scheduling + welcome-back). Local notifications remain a separate approval.
+- **C8 — LIFEGOAL WINS; A1 retired as a screen** (friction budget −1 screen).
+  LifeGoal becomes messaging/progress-framing only in the new engine (the
+  generation-bias function retires with the old engine). Weight/body-changes
+  stays an open, non-blocking candidate LifeGoal addition post-positioning.
+- **C9 — EFFORT IS TAP-FIRST via the existing RPE (1–5) channel** mapped to
+  the spec's lots/a-few/none (1–2/3–4/5). A 3-intent voice slice is the FIRST
+  post-v1 vocabulary change, under full safety-word discipline, with phonetic
+  collision review ("none" collides with "done"; prefer "easy/okay/all out").
+- **C10 — PROMOTION SEMANTIC OF RECORD:** an adherence/effort decision over
+  REPORTED data, never a measurement; check-up re-placement (upward or
+  downward) is the measured reconciliation point; reported values never enter
+  measurement surfaces (N5). Recorded in the module docs.
+
+**Ambiguity rulings:** (1) flag-gated parallel build approved; (2) **T2
+deferred** — push places by activity prior; T1/T3 reuse the existing balance
+and chair-rise protocols; (3) reuse ActivityLevel, activity_prior derived;
+(4) first_session_started is LOCAL telemetry only (session-funnel schema) —
+no remote analytics; (5) no beta users → no live migration; the old→new
+mapping table ships as documentation and doubles as the promotion parity
+checklist (docs/specs/ladder-migration-map.md); (6) **all programme health
+flags are EXCLUDED from Supabase backup shapes**, pinned by a structural
+test — sync would be its own feature behind its own consent + encryption
+review; (7) the time-budget solver takes target duration as a parameter
+(20–25 standard, 15-min first-session, 10-min starter presets). Floor-based
+levels keep the floor-space/comfort opt-in via the existing eligibility
+system; supersets only if a contained player change, else sequential + time
+budget is acceptable v1.
+
+**Step 1 landed (pure logic, no UI, no wiring):** src/programme — types,
+five pattern ladders + quiet finisher + adaptation branches as data (all
+user-facing names in a plain-language naming layer, jargon-banned by test),
+§12 promotion engine (standard/fast/entry promotion, hold+reduce, pain →
+last-pain-free regression, 14-day inactivity regression applied once per
+gap, teach-only gateway locks, Pull L8 ⇐ Hinge L5 cross-ladder prereq,
+single-step between check-ups, upward-only vs reconcile re-placement),
+placement mapping (B1 bypass → all L1; consent-declined cap L2 with normal
+tone; conservative defaults on skip), tiered routing resolver with the
+ZERO-hard-gates pin, RPE→effort mapping, fingerprinted policy snapshot,
+schema-versioned local store. EXPO_PUBLIC_ENABLE_PROGRAMME_ENGINE_V2
+registered as an unsafe beta/release flag (app.config.js + releaseFlagAudit).
+Guardrail tests: spinal flexion structurally unrepresentable (CoreStimulus)
+plus string-scan ban across ids/names; display-name jargon ban; every
+reachable exercise named; backend-layer containment scan (no programme
+imports/fields/store file in backup shapes).

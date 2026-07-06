@@ -37,6 +37,10 @@ const unsafeBetaReleaseFlags = [
     env: 'EXPO_PUBLIC_ENABLE_CLARITY_DIMENSION',
     reason: 'clarity_dimension_enabled',
   },
+  {
+    env: 'EXPO_PUBLIC_ENABLE_PROGRAMME_ENGINE_V2',
+    reason: 'programme_engine_v2_enabled',
+  },
 ];
 
 function isBetaReleaseBuildProfile(value) {
