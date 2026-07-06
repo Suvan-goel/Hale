@@ -3795,3 +3795,47 @@ PUBLIC RELEASE REMAINS BLOCKED
   decline-rate reference for the fingerprinted-source machinery before slice 8; the
   ghost curve must use a CONSERVATIVE (understated) decline rate, and the source is
   transparently cited in-app.
+
+## 2026-07-06 — Reposition slices 1–3 landed: claims fence, brand token, dimension registry
+
+- **Slice 1 — cognitive claims fence** (`copyGuardrails.test.ts`): `COGNITIVE_CLAIM_COPY`
+  bans dementia/Alzheimer's outright on every product surface (including rule-out /
+  reassurance copy — no disclaimer exemption, unlike the menopause list), fog-treatment
+  verbs, guaranteed cognitive outcomes, disease-risk framing, and brain-training
+  language; approved claim shapes (personal-evidence, mechanism-and-mediators) are
+  documented beside the regex as the template. A pre-created
+  `CLARITY_SELF_REPORT_COPY_FILES` fence bans "validated" on Clarity surfaces — slice 4
+  must register each new copy file at creation. `bareDownwardChanges` helper
+  (`haleFlow/testing/copyInvariants.ts`, unit-tested) is the single definition of the
+  worse-never-bare rule for slices 5/7. The fence found zero violations in existing copy.
+- **Slice 2 — brand token** (`brand/brand.js` + `src/brand`): ~150 string literals
+  across 51 files now interpolate `BRAND.appName` (AST codemod + JSX attribute fixup);
+  app.config.js reads the display name from the token while slug/scheme/bundle ids
+  stay infra identity (F6). The data export gains `appDisplayName`; `app: 'Hale'` is
+  the frozen machine format id (founder decision), pinned by test at both value and
+  source level. `brandToken.test.ts` lints production source so no new hardcoded name
+  can land. The two name-speaking safety cues are tokenized — text stays byte-identical
+  today (`verify:audio` green at 502), and a future rename changes their script text,
+  forcing the regenerate-or-reword decision through `verify:audio`; it cannot happen
+  silently. Three source-scan tests re-pinned to the tokenized form. The rename itself
+  remains: edit brand.js + 4 audio assets + art + website sweep.
+- **Slice 3 — dimension registry** (`src/dimensions`): strength/balance/mobility active,
+  clarity REGISTERED (self_report basis, no training domain — one prescription trains
+  everything; no movement domain) but off all scoring surfaces behind
+  `EXPO_PUBLIC_ENABLE_CLARITY_DIMENSION` (dev-gated, audited unsafe for beta/release
+  builds in app.config.js + releaseFlagAudit). Composite rule of record enforced in the
+  type system: `compositeEligible: false` (literal) + guard test. Results presentation
+  `domains` is now a registry-ordered array (3-tuple retired); V2 results and progress
+  domain iteration derive from `objectiveMovementDomains()`, which excludes clarity
+  STRUCTURALLY (measurement-basis filter, not the flag) — self-report can never render
+  as a measurement card. Rolling-baseline utilities (`rollingBaseline`/`relativeToBand`:
+  windowed median + 25th–75th personal band, null below 3 samples — never fabricated,
+  per-metric by construction) land dimension-generic for the Clarity trend first and the
+  future objective instruments unchanged. The frozen retest-comparison policy
+  fingerprint's domain list was deliberately NOT touched (versioned artifact).
+- Presentation output for the three active dimensions is unchanged. Verification:
+  tsc clean; jest 176/176 suites, 1473/1473; `expo config` resolves name from the
+  token; `verify:audio` 502/502. Founder's `landing/` worktree edits untouched.
+- **Next per approved plan:** slice 4 (check-up appendix) blocked on founder fog-item
+  wording; slice 5 (results reshape) ready — needs opt-in placement choice; slice 6
+  blocked on nothing (F1/F2 resolved). Checkpoint here per standing rhythm.
