@@ -103,8 +103,10 @@ import {
   latestUsableOfficialAssessment,
   latestOfficialMovementProfileV2Assessment,
   validOfficialMovementProfileV2Assessments,
+  buildClarityGpSummary,
   buildClarityTrendViewModel,
   buildGhostCurveViewModel,
+  evaluateClarityEscalation,
   buildMovementProfileV2ProgressViewModel,
   materializeMovementProfileV2Block,
   measuredCapabilityFromMovementProfileV2Interpretation,
@@ -4209,6 +4211,18 @@ function HaleApp() {
   // exist; the view model self-gates on the reading count and reference.
   const ghostCurve = React.useMemo(() => buildGhostCurveViewModel(displayHistory), [displayHistory]);
 
+  // GP-escalation (FL4): rides the flag-gated Clarity surface; the trigger
+  // cannot fire before months of readings accrue.
+  const clarityEscalation = React.useMemo(
+    () => (isClarityDimensionEnabled() ? evaluateClarityEscalation(displayHistory) : null),
+    [displayHistory]
+  );
+  const onShareClarityGpSummary = React.useCallback(() => {
+    void import('react-native').then(({ Share }) =>
+      Share.share({ message: buildClarityGpSummary(displayHistory) }).catch(() => undefined)
+    );
+  }, [displayHistory]);
+
   const handleRoute = React.useCallback(
     (route: string | undefined) => {
       switch (route) {
@@ -4679,6 +4693,8 @@ function HaleApp() {
               movementProfileV2Progress={movementProfileV2Progress}
               clarityTrend={clarityTrend}
               ghostCurve={ghostCurve}
+              clarityEscalation={clarityEscalation}
+              onShareClarityGpSummary={onShareClarityGpSummary}
               onStartMovementProfileV2CheckUp={beginProgressFirstCheckUp}
               onViewMovementProfileV2Profile={viewMovementProfileV2ProgressProfile}
               onViewMovementProfileV2Report={viewMovementProfileV2ProgressReport}

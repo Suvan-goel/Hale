@@ -56,6 +56,7 @@ const CLARITY_SELF_REPORT_COPY_FILES: readonly string[] = [
   'src/screens/FluencyConsentScreen.tsx',
   'src/screens/FluencyTaskScreen.tsx',
   'src/checkup/fluencyRotation.ts',
+  'src/haleFlow/clarityEscalation.ts',
 ];
 const CLARITY_BANNED_COPY = /\bvalidated\b/i;
 

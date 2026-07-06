@@ -5,6 +5,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import {
   Card,
   Screen,
+  SecondaryButton,
 } from '../components/ui';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
@@ -14,6 +15,7 @@ import {
   type TrainingSessionCompletion,
 } from '../adherence';
 import {
+  type ClarityEscalation,
   type ClarityTrendViewModel,
   type GhostCurveViewModel,
   type MovementProfileV2ProgressChange,
@@ -48,6 +50,8 @@ export function ProgressScreen({
   movementProfileV2Progress,
   clarityTrend,
   ghostCurve,
+  clarityEscalation,
+  onShareClarityGpSummary,
   onStartMovementProfileV2CheckUp,
   onViewMovementProfileV2Profile,
   onOpenSettings,
@@ -92,7 +96,11 @@ export function ProgressScreen({
       ) : null}
 
       {clarityTrend && clarityTrend.status === 'ready' ? (
-        <ClarityTrendCard trend={clarityTrend} />
+        <ClarityTrendCard
+          trend={clarityTrend}
+          escalation={clarityEscalation}
+          onShareGpSummary={onShareClarityGpSummary}
+        />
       ) : null}
     </Screen>
   );
@@ -105,7 +113,15 @@ export function ProgressScreen({
  * her own covariates are named when a dip lines up with them. Series are
  * never fused into a single number (composite rule).
  */
-function ClarityTrendCard({ trend }: { trend: Extract<ClarityTrendViewModel, { status: 'ready' }> }) {
+function ClarityTrendCard({
+  trend,
+  escalation,
+  onShareGpSummary,
+}: {
+  trend: Extract<ClarityTrendViewModel, { status: 'ready' }>;
+  escalation?: ClarityEscalation | null;
+  onShareGpSummary?: () => void;
+}) {
   return (
     <Card style={styles.clarityCard}>
       <Text style={styles.clarityLabel}>Clarity</Text>
@@ -132,6 +148,16 @@ function ClarityTrendCard({ trend }: { trend: Extract<ClarityTrendViewModel, { s
         </View>
       ))}
       {trend.covariateContext ? <Text style={styles.claritySupport}>{trend.covariateContext}</Text> : null}
+      {escalation?.triggered && escalation.copy ? (
+        // The ONLY escalation path (CLARITY_INSTRUMENTS_TDD §6.2): calm, one
+        // suggestion, one exportable summary — never alarm.
+        <View style={styles.clarityEscalation}>
+          <Text style={styles.clarityHeadline}>{escalation.copy}</Text>
+          {onShareGpSummary ? (
+            <SecondaryButton title="Share the summary" onPress={onShareGpSummary} />
+          ) : null}
+        </View>
+      ) : null}
       <Text style={styles.clarityNote}>{trend.fluctuationNote}</Text>
     </Card>
   );
@@ -672,6 +698,9 @@ interface ProgressScreenProps {
   clarityTrend?: ClarityTrendViewModel | null;
   /** Ghost curve (REPOSITION_TDD §2.4); null until ≥4 monthly readings exist. */
   ghostCurve?: GhostCurveViewModel | null;
+  /** The only escalation path (flag-gated with the Clarity trend). */
+  clarityEscalation?: ClarityEscalation | null;
+  onShareClarityGpSummary?: () => void;
   onStartMovementProfileV2CheckUp?: () => void;
   onViewMovementProfileV2Profile?: (sourceCheckUpId: string) => void;
   onViewMovementProfileV2Report?: (reportId: string) => void;
@@ -1253,6 +1282,10 @@ const styles = StyleSheet.create({
   claritySupport: {
     ...type.caption,
     color: colors.textSecondary,
+  },
+  clarityEscalation: {
+    gap: spacing.sm,
+    paddingTop: spacing.sm,
   },
   clarityNote: {
     ...type.caption,
