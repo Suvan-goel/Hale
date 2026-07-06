@@ -23,6 +23,7 @@ import {
   normalizeAppliedProgressionEventIds,
 } from './dynamicState';
 import { MicroCheckResult, MicroCheckType } from './microCheck';
+import { defaultPainHistory, type PainHistoryState } from './painHistory';
 import { ProgressionState, initialProgressionState } from './progression';
 import { normalizeMicroCheckMeasurementMetadata } from '../checkup';
 import type {
@@ -89,6 +90,9 @@ export interface TrainingState {
   planPreferences: TrainingPlanPreferences;
   activeSetRuntime: SerializedTrainingSetRuntime | null;
   activeTrainingVoiceRuntime: SerializedTrainingVoiceRuntimeV21 | null;
+  /** Pain events + recurrence exclusions — the generator reads THIS store,
+   * so excluded-in-telemetry-but-present-in-plan is impossible by design. */
+  painHistory: PainHistoryState;
 }
 
 export type TrainingIntensityPreference = 'gentle' | 'standard' | 'more_challenge';
@@ -114,6 +118,7 @@ export function defaultTrainingState(): TrainingState {
     planPreferences: defaultTrainingPlanPreferences(),
     activeSetRuntime: null,
     activeTrainingVoiceRuntime: null,
+    painHistory: defaultPainHistory(),
   };
 }
 
@@ -168,7 +173,37 @@ export function deserializeTrainingState(json: string): TrainingState | null {
     planPreferences: validTrainingPlanPreferences(p.planPreferences),
     activeSetRuntime: validSerializedTrainingSetRuntime(p.activeSetRuntime),
     activeTrainingVoiceRuntime: validSerializedTrainingVoiceRuntimeV21(p.activeTrainingVoiceRuntime),
+    painHistory: validPainHistory(p.painHistory),
   };
+}
+
+function validPainHistory(v: unknown): PainHistoryState {
+  if (!v || typeof v !== 'object') return defaultPainHistory();
+  const p = v as Partial<PainHistoryState>;
+  const events = Array.isArray(p.events)
+    ? p.events.filter(
+        (e): e is PainHistoryState['events'][number] =>
+          !!e &&
+          typeof e === 'object' &&
+          typeof (e as { exerciseId?: unknown }).exerciseId === 'string' &&
+          typeof (e as { ladderId?: unknown }).ladderId === 'string' &&
+          typeof (e as { sessionStartedAt?: unknown }).sessionStartedAt === 'string' &&
+          typeof (e as { timestampMs?: unknown }).timestampMs === 'number' &&
+          Number.isFinite((e as { timestampMs: number }).timestampMs) &&
+          typeof (e as { setIndex?: unknown }).setIndex === 'number'
+      )
+    : [];
+  const exclusions = Array.isArray(p.exclusions)
+    ? p.exclusions.filter(
+        (x): x is PainHistoryState['exclusions'][number] =>
+          !!x &&
+          typeof x === 'object' &&
+          typeof (x as { ladderId?: unknown }).ladderId === 'string' &&
+          typeof (x as { excludedAt?: unknown }).excludedAt === 'string' &&
+          Array.isArray((x as { evidenceSessions?: unknown }).evidenceSessions)
+      )
+    : [];
+  return { events, exclusions };
 }
 
 function validProgression(v: unknown): ProgressionState | null {

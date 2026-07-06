@@ -173,6 +173,19 @@ export type {
   MicroCheckSideRecommendationSource,
   MicroCheckSideSetup,
 } from './microCheckSideSetup';
+export {
+  PAIN_RECURRENCE_SESSION_COUNT,
+  activePainExclusionLadderIds,
+  defaultPainHistory,
+  recordSessionPainEvents,
+  reinstateLadder,
+} from './painHistory';
+export type {
+  PainEventRecord,
+  PainExclusionRecord,
+  PainHistoryState,
+  RecordPainEventsResult,
+} from './painHistory';
 export { TrainingStore } from './store';
 export {
   TRAINING_SCHEMA_VERSION,

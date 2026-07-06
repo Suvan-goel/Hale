@@ -38,6 +38,7 @@ import {
 } from '../exercises';
 import type { HaleLifecycleState } from './appLifecycle';
 import {
+  activePainExclusionLadderIds,
   type PersistedGeneratedSessionSummary,
   type PersistedPostSessionFeedback,
   type TrainingState,
@@ -440,6 +441,7 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         dailyContextSource,
         painAreas: painContext.explicitDailyInput ? painAreas : undefined,
         ladderProgress: input.ladderProgress ?? input.training?.ladderProgressById ?? {},
+        painExcludedLadderIds: activePainExclusionLadderIds(input.training?.painHistory),
         recentSessions: recentSessionsFor(input, schedule),
         collectionExposures: collectionExposuresForPlanning(input, activeBlock.id),
         scheduleSelection: schedule ? templateSelectionSchedule(schedule) : undefined,
@@ -558,6 +560,7 @@ export function planTodayHaleSession(input: PlanTodayHaleSessionInput): HaleSess
         dailyContextSource,
         painAreas: painContext.explicitDailyInput ? painAreas : undefined,
         ladderProgress: input.ladderProgress ?? input.training?.ladderProgressById ?? {},
+        painExcludedLadderIds: activePainExclusionLadderIds(input.training?.painHistory),
         recentSessions: recentSessionsFor(input, null),
         collectionExposures: presetCollectionExposuresFromGeneratedSessionSummaries({
           summaries: input.training?.generatedSessionSummaries,

@@ -215,6 +215,13 @@ export interface GenerateSessionInput {
   includeOptionalLevels?: boolean;
   sessionIntensity?: SessionIntensity;
   lifeGoalBias?: LifeGoalWorkoutBias | null;
+  /**
+   * Ladders auto-excluded by the pain recurrence rule (painHistory in
+   * TrainingState — the SAME store this generator's callers read, by
+   * design). Selection filters these and BACKFILLS from the slot's
+   * remaining candidates, so sessions never silently shrink.
+   */
+  painExcludedLadderIds?: readonly string[];
 }
 
 export interface GeneratedExercise {
@@ -705,6 +712,7 @@ export function generateTodaySession(input: GenerateSessionInput): GeneratedSess
       ladderProgress: input.ladderProgress ?? {},
       usedExerciseIds,
       collectionExposures: input.collectionExposures ?? [],
+      painExcludedLadderIds: new Set((input.painExcludedLadderIds ?? []).map(resolveLadderId)),
       // Preset/manual sessions have no real block; scope mobility-collection
       // variety to a shared pseudo-block instead so repeated Explore use
       // still rotates rather than always landing on the same stretch.
@@ -1086,6 +1094,7 @@ interface SelectionInput {
   ladderProgress: Record<string, LadderProgress>;
   usedExerciseIds: Set<string>;
   collectionExposures: readonly CollectionExposure[];
+  painExcludedLadderIds: ReadonlySet<string>;
   blockId?: string;
 }
 
@@ -1161,10 +1170,14 @@ function profileAdjustedProgressionEvidencePolicy(
 }
 
 function selectExerciseForSlot(input: SelectionInput): SelectedExercise | null {
-  const ladderIds = unique([
+  const allCandidates = unique([
     ...input.slot.preferredLadderIds.map(resolveLadderId),
     ...SLOT_FALLBACK_LADDERS[input.slot.type].map(resolveLadderId),
   ]);
+  // Pain-excluded ladders are filtered, never offered; the remaining
+  // candidate order backfills the slot so the session keeps its shape.
+  const ladderIds = allCandidates.filter((id) => !input.painExcludedLadderIds.has(id));
+  const painSwapHappened = ladderIds.length < allCandidates.length;
 
   for (const ladderId of ladderIds) {
     const ladder = safeLadder(ladderId);
@@ -1175,7 +1188,9 @@ function selectExerciseForSlot(input: SelectionInput): SelectedExercise | null {
       const substitutions =
         ladderId === firstPreferred
           ? selected.substitutions
-          : fallbackReasons(input.slot, selected.ladder, input.equipment);
+          : input.painExcludedLadderIds.has(firstPreferred) && painSwapHappened
+            ? painSwapNote(firstPreferred)
+            : fallbackReasons(input.slot, selected.ladder, input.equipment);
       return {
         ...selected,
         substitutions,
@@ -1183,6 +1198,19 @@ function selectExerciseForSlot(input: SelectionInput): SelectedExercise | null {
     }
   }
   return null;
+}
+
+/**
+ * Plain-language swap notice (§9 script; claims discipline: states what
+ * happened, no diagnosis or severity language). Shown wherever the plan
+ * surfaces substitution notes; also visible + reversible in Settings.
+ */
+function painSwapNote(excludedLadderId: string): string[] {
+  const ladder = safeLadder(excludedLadderId);
+  const name = ladder?.title ?? 'that movement';
+  return [
+    `We've swapped out ${name} for now because it hurt in two recent sessions. If it keeps bothering you, it's worth mentioning to your doctor. You can bring it back any time in Settings.`,
+  ];
 }
 
 function selectLevelFromLadder(
