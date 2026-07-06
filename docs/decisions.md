@@ -3991,3 +3991,45 @@ PUBLIC RELEASE REMAINS BLOCKED
   runs hit the protocol cap; tagged and worded honestly; sway-under-load is future work).
 - **F4 — Clarity stays dev-flagged through this build**; user visibility is a separate
   recorded decision after the device gates.
+
+## 2026-07-06 — Clarity instruments DT1–DT3 landed: dual-task cost built to checkpoint
+
+- **DT1 (fad1ecbd):** `SpeechActivityMonitor` seam (presence-only by module shape — no
+  word/transcript/audio API exists to misuse; pinned) + scripted fake; pause-tolerant
+  verbal floor (F5: cumulative min(8 s, 25 % of window) — long thinking pauses can never
+  invalidate; tuned at Block 7); `CheckUp.clarityInstruments` additive appendix
+  (numeric/enum-only by type, defensive boundary parse, serialization isolation proven
+  byte-identical); `computeDualTaskCostPercent` keeps negative cost and throws rather
+  than fabricates.
+- **DT2 (f25b3c4b):** level-2 flow on its OWN screen with its own camera session
+  (micro-check architecture — deliberately outside the protocol screen, so an F1
+  coexistence fault can never touch a protocol measurement; the recording window is
+  monitor start→stop only). Detection parity by construction: the runtime imports the
+  coordinator's own lift/touchdown predicates and constants (now exported, C7-style) —
+  level 2 measures exactly like level 1, retro-dated clock included. Eligibility is
+  same-session-only (single-leg protocol, valid best-of-trials + standing leg + ceiling
+  flag from the raw result); monitor-unavailable and ladder-protocol sessions record
+  `unavailable` (v1 limitation); invalid baselines record `single_task_invalid`. F5
+  honored end-to-end: touchdown under load = measured (her real capacity); silence
+  below floor = `no_speech_detected` invalid. No-stall: offer auto-skips at 20 s, stance
+  setup times out to an honest skip, tracking interruption retries ONCE then delivers.
+  Flag-dark (clarity dimension) AND production-dark (the default monitor reports
+  unavailable until Block 7 passes — the audio runtime is PLANNED, per the standing rule).
+- **DT3 (5fba4354):** Clarity trend is multi-series (check-in; steadiness under load),
+  per-series bands from the shared per-metric baseline utilities, never fused; covariate
+  context line names her own sleep/symptom covariates only when a dip lines up; Block 7
+  appended to DEVICE_SESSION_PROTOCOL.md with frozen criteria incl. the F1 hard-gate
+  coexistence cell.
+- **Deviation flagged for founder ratification at this checkpoint:** the TDD wording
+  placed the level-2 offer "immediately after the balance movement completes"
+  (mid-battery). Built instead as the FIRST post-battery appendix (before the Clarity
+  check-in), on its own camera session. Rationale: zero changes to the frozen protocol
+  coordinator; a coexistence fault cannot corrupt a measurement; mirrors the micro-check
+  screen precedent. Costs, stated honestly: one extra framing (~15–25 s, worst-case
+  dual-task additions now ~75–95 s) and a consistent end-of-battery fatigue offset —
+  systematic month-to-month, so the trend is unaffected even though absolute cost values
+  carry it. Second known asymmetry: single-task baseline is best-of-trials vs one dual
+  attempt — also consistent, another reason values never show bare and trends lead.
+- Verification: tsc clean; jest 185/185 suites, 1540/1540. **PAUSED at the dual-task
+  checkpoint per the approved sequencing — fluency (FL1–FL4) does not start until
+  founder approval.**
