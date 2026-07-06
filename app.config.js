@@ -1,4 +1,5 @@
 const appJson = require('./app.json');
+const brand = require('./brand/brand');
 
 const enablePoseLatencyDiagnostics =
   process.env.EXPO_PUBLIC_ENABLE_POSE_LATENCY_DIAGNOSTICS === '1';
@@ -61,6 +62,9 @@ module.exports = ({ config }) => {
   return {
     ...config,
     ...appJson.expo,
+    // Display name comes from the brand token (REPOSITION_TDD §3.1 / F6);
+    // slug/scheme stay in app.json deliberately — infra identity, not brand.
+    name: brand.appName,
     plugins,
     extra: {
       ...config.extra,

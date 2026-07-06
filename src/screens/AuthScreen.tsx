@@ -8,6 +8,7 @@ import { useSystemInsets } from '../components/SystemInsetsProvider';
 import { colors, fonts, spacing } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 
+import { BRAND } from '../brand';
 const AUTH_HERO_IMAGE = require('../../assets/images/hale-auth-hero-generated.png');
 const AUTH_CARD_OVERLAP = spacing.huge + spacing.xxxl + spacing.sm;
 
@@ -45,13 +46,13 @@ export function AuthScreen() {
           >
             <View style={styles.brandRow}>
               <HeaderLogo size={isCompactPhone ? 30 : 34} />
-              <Text style={[styles.wordmark, isCompactPhone && styles.wordmarkCompact]}>Hale</Text>
+              <Text style={[styles.wordmark, isCompactPhone && styles.wordmarkCompact]}>{BRAND.appName}</Text>
             </View>
             <View style={[styles.heroCopy, isCompactPhone && styles.heroCopyCompact]}>
               <Text style={[styles.title, isCompactPhone && styles.titleCompact]}>Age better, at home</Text>
               <View style={[styles.titleRule, isCompactPhone && styles.titleRuleCompact]} />
               <Text style={[styles.subtitle, isCompactPhone && styles.subtitleCompact]}>
-                Hale helps you understand your strength, balance, and mobility, then guides you through a simple plan around where to start.
+                {BRAND.appName} helps you understand your strength, balance, and mobility, then guides you through a simple plan around where to start.
               </Text>
             </View>
           </View>

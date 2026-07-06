@@ -21,6 +21,7 @@ import { EquipmentTag } from '../movements';
 import { ExerciseDomain, MeasurementTier, ReleaseStatus } from './types';
 import { isExerciseLevelAvailableForRelease } from './releasePolicy';
 
+import { BRAND } from '../brand';
 export type ExerciseCameraView = 'side' | 'front' | 'side_oblique' | 'not_required';
 export type ExerciseLadderProgressionModel = 'linear_progression' | 'collection' | 'supporting_set';
 export type ExerciseLadderStimulusKind =
@@ -157,7 +158,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         equipment: ['chair'],
         cameraView: 'side',
         instructions: 'Sit tall, then drive up briskly to standing and sit back down with control.',
-        measurementNotes: 'Tracks relative rise velocity trend only. Hale does not infer exact power output.',
+        measurementNotes: `Tracks relative rise velocity trend only. ${BRAND.appName} does not infer exact power output.`,
         legacyExerciseIds: ['power_sit_to_stand'],
       }),
       level({
@@ -170,7 +171,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         equipment: ['chair', 'backpack_or_weight'],
         cameraView: 'side',
         instructions: 'Sit tall on a chair with your feet flat. Hold a backpack or weight close to your chest. Stand all the way up, then sit back down with control.',
-        setupNotes: 'The user selects load difficulty manually. Hale does not infer load from the camera.',
+        setupNotes: `The user selects load difficulty manually. ${BRAND.appName} does not infer load from the camera.`,
         measurementNotes: 'Counts reps and tracks relative rise-speed trend.',
         legacyExerciseIds: ['loaded_sit_to_stand'],
       }),
@@ -198,7 +199,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         equipment: ['chair', 'counter'],
         cameraView: 'side',
         instructions: 'Stand with feet about hip width apart, fingertips near a chair or counter. Lower as if to sit, then stand back up.',
-        measurementNotes: 'Counts squat cycles. Hale cannot know how much support the user takes through their hands.',
+        measurementNotes: `Counts squat cycles. ${BRAND.appName} cannot know how much support the user takes through their hands.`,
         legacyExerciseIds: ['supported_squat'],
       }),
       level({
@@ -237,7 +238,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         equipment: ['backpack_or_weight'],
         cameraView: 'side',
         instructions: 'Hold a backpack or weight close to your chest. Lower into a squat, then stand back up with control.',
-        setupNotes: 'The user selects load difficulty manually. Hale does not infer load from the camera.',
+        setupNotes: `The user selects load difficulty manually. ${BRAND.appName} does not infer load from the camera.`,
         measurementNotes: 'Counts reps and broad tempo only.',
         legacyExerciseIds: ['loaded_squat', 'backpack_squat'],
       }),
@@ -281,7 +282,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         instructions: 'Stand facing the lowest stable step with fingertips near support. Step up with one foot, bring the other to meet it, then step back down leading with the same foot.',
         setupNotes: 'Requires a bottom stair plus nearby wall, rail, chair, or counter support. Do not use a high or unstable step.',
         safetyNotes: 'Use the lowest stable step with support nearby. Stop if the step, surface, or balance feels unsafe.',
-        measurementNotes: 'Counts reps and broad tempo. Hale does not score foot placement or stair height.',
+        measurementNotes: `Counts reps and broad tempo. ${BRAND.appName} does not score foot placement or stair height.`,
         legacyExerciseIds: ['step_up'],
       }),
     ],
@@ -361,7 +362,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         equipment: ['wall'],
         cameraView: 'side',
         instructions: 'Place your hands shoulder width apart on a wall. Lower in with control, then press back out.',
-        measurementNotes: 'Counts broad press cycles and tempo. Hale does not score shoulder or elbow position.',
+        measurementNotes: `Counts broad press cycles and tempo. ${BRAND.appName} does not score shoulder or elbow position.`,
         legacyExerciseIds: ['wall_push_up'],
       }),
       level({
@@ -374,7 +375,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         equipment: ['chair', 'counter'],
         cameraView: 'side',
         instructions: 'Place your hands shoulder width apart on a chair or counter. Lower in with control, then press back out.',
-        measurementNotes: 'Counts broad press cycles and tempo. Hale does not score shoulder or elbow position.',
+        measurementNotes: `Counts broad press cycles and tempo. ${BRAND.appName} does not score shoulder or elbow position.`,
         legacyExerciseIds: ['incline_push_up'],
       }),
       level({
@@ -415,7 +416,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         equipment: ['chair', 'long_band'],
         cameraView: 'side_oblique',
         instructions: 'Sit tall on a chair. Loop a band around your feet or a secure low anchor. Pull your elbows back toward your ribs, pause briefly, then return with control.',
-        measurementNotes: 'Counts broad elbow cycles and tempo. Hale does not infer band tension.',
+        measurementNotes: `Counts broad elbow cycles and tempo. ${BRAND.appName} does not infer band tension.`,
         legacyExerciseIds: ['seated_band_row'],
       }),
       level({
@@ -428,7 +429,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         equipment: ['long_band', 'door_anchor'],
         cameraView: 'side_oblique',
         instructions: 'Stand tall with the band anchored in front of you. Pull your elbows back toward your ribs, pause briefly, then return with control.',
-        measurementNotes: 'Counts broad elbow cycles and tempo. Hale does not score scapular movement.',
+        measurementNotes: `Counts broad elbow cycles and tempo. ${BRAND.appName} does not score scapular movement.`,
         legacyExerciseIds: ['standing_band_row'],
       }),
       level({
@@ -441,7 +442,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         equipment: ['long_band'],
         cameraView: 'front',
         instructions: 'Hold a light band at chest height with both hands. Pull the band apart until your hands move wide, then return slowly.',
-        measurementNotes: 'Counts broad wrist/arm movement. Hale does not score shoulder-blade motion or band tension.',
+        measurementNotes: `Counts broad wrist/arm movement. ${BRAND.appName} does not score shoulder-blade motion or band tension.`,
         legacyExerciseIds: ['band_pull_apart'],
       }),
     ],
@@ -468,7 +469,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         equipment: ['wall'],
         cameraView: 'side',
         instructions: 'Stand a step in front of a wall, feet under your hips. Push your hips back to tap the wall, keeping your back long, then stand tall.',
-        measurementNotes: 'Counts hinge cycles and broad hip/trunk range. Hale does not score back shape.',
+        measurementNotes: `Counts hinge cycles and broad hip/trunk range. ${BRAND.appName} does not score back shape.`,
         legacyExerciseIds: ['wall_tap_hinge'],
       }),
       level({
@@ -481,7 +482,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         equipment: ['none'],
         cameraView: 'side',
         instructions: 'Stand tall with feet under your hips. Push your hips back, then stand tall again with control.',
-        measurementNotes: 'Counts hinge cycles and broad hip/trunk range. Hale does not score back shape.',
+        measurementNotes: `Counts hinge cycles and broad hip/trunk range. ${BRAND.appName} does not score back shape.`,
         legacyExerciseIds: ['hip_hinge'],
       }),
       level({
@@ -553,7 +554,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         cameraView: 'side',
         instructions: 'Stand tall on a long band or hold it safely. Press both hands overhead, then return with control.',
         setupNotes: 'Cross-domain supporting strength level inside a shoulder ladder; do not treat it as a mobility progression endpoint for planning.',
-        measurementNotes: 'Counts reps and broad range. Hale does not infer band tension.',
+        measurementNotes: `Counts reps and broad range. ${BRAND.appName} does not infer band tension.`,
         legacyExerciseIds: ['band_overhead_press'],
       }),
     ],
@@ -646,7 +647,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         equipment: ['mini_band'],
         cameraView: 'front',
         instructions: 'Place a mini band above your knees or around your ankles. Take small controlled side steps, keeping gentle tension on the band.',
-        measurementNotes: 'Timed practice and rhythm support only. Hale does not infer band tension.',
+        measurementNotes: `Timed practice and rhythm support only. ${BRAND.appName} does not infer band tension.`,
         legacyExerciseIds: ['mini_band_lateral_walk'],
       }),
       level({
@@ -740,7 +741,7 @@ export const EXERCISE_LADDERS: readonly ExerciseLadder[] = [
         cameraView: 'not_required',
         instructions: 'Sit or stand tall. Slowly turn your head to look over one shoulder, then the other.',
         setupNotes: 'Optional warm-up or cooldown only; not a core default V1 exercise.',
-        measurementNotes: 'Timer/completion only. Hale does not attempt detailed neck scoring.',
+        measurementNotes: `Timer/completion only. ${BRAND.appName} does not attempt detailed neck scoring.`,
         legacyExerciseIds: ['neck_rotations'],
       }),
     ],

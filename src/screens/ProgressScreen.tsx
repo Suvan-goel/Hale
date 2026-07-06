@@ -30,6 +30,7 @@ import {
   type ProgressNextCheckUpCardCopy,
 } from './progressProductPresentation';
 
+import { BRAND } from '../brand';
 const PROGRESS_HERO_IMAGE = require('../../assets/images/progress-hero-botanical.png');
 
 export function ProgressScreen({
@@ -107,19 +108,19 @@ const PROGRESS_EMPTY_STATE_COPY: ProgressEmptyStateCopy = {
   kicker: 'Set your starting point',
   metaLabel: '~10 min',
   title: 'Start with your check-up',
-  body: 'A short guided check-up gives Hale what it needs to build your first plan.',
+  body: `A short guided check-up gives ${BRAND.appName} what it needs to build your first plan.`,
   stepsAccessibilityLabel: 'Plan preparation steps',
   steps: [
     {
       index: '1',
       title: 'Check-up',
-      body: 'Hale checks strength, balance, and mobility at home.',
+      body: `${BRAND.appName} checks strength, balance, and mobility at home.`,
       state: 'current',
     },
     {
       index: '2',
       title: 'Preparation',
-      body: 'Hale uses the result to shape your first plan.',
+      body: `${BRAND.appName} uses the result to shape your first plan.`,
       state: 'upcoming',
     },
     {
@@ -131,7 +132,7 @@ const PROGRESS_EMPTY_STATE_COPY: ProgressEmptyStateCopy = {
   ],
   actionLabel: 'Start check-up',
   actionAccessibilityLabel: 'Start check-up',
-  note: 'Your camera view stays private. Hale never shows a live camera view.',
+  note: `Your camera view stays private. ${BRAND.appName} never shows a live camera view.`,
 };
 
 function ProgressEmptyState({ onBeginCheckUp }: { onBeginCheckUp: () => void }) {
@@ -251,7 +252,7 @@ function MovementProfileV2ProgressContent({
         title={recoveryViewModel?.recovery.title ?? 'Strength Profile needs attention'}
         body={
           recoveryViewModel?.recovery.body ??
-          'Your saved Strength Profile data is still on this phone, but Hale cannot safely show it here yet.'
+          `Your saved Strength Profile data is still on this phone, but ${BRAND.appName} cannot safely show it here yet.`
         }
         actionLabel={primary?.label}
         onPress={

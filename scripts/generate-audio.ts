@@ -50,6 +50,7 @@ import {
   movementProfileV2CueText,
   type MovementProfileV2CueId,
 } from '../src/movementProfileV2/voiceCues';
+import { BRAND } from '../src/brand';
 import { VOICE_OPTIONS } from '../src/profile/voices';
 import { safetyCueText, SAFETY_VOICE_LINES, type SafetyCueId } from '../src/training/safetyCueDefinitions';
 
@@ -539,7 +540,7 @@ function needsGeneration(row: { status: AudioAssetStatus }): boolean {
 function lineTextForVoice(key: string, voiceId: string): string {
   const line = LINES[key] ?? voiceV21MetadataLineText(key);
   if (!line) throw new Error(`missing line for cue '${key}'`);
-  const voiceName = VOICE_OPTIONS.find((voice) => voice.id === voiceId)?.label ?? 'Hale';
+  const voiceName = VOICE_OPTIONS.find((voice) => voice.id === voiceId)?.label ?? BRAND.appName;
   return line.replaceAll('{voiceName}', voiceName);
 }
 

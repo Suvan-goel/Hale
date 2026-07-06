@@ -1,3 +1,4 @@
+import { BRAND } from '../brand';
 export const SAFETY_CUE_SCHEMA_VERSION = 1 as const;
 
 export type SafetyCueTier = 'global' | 'setup' | 'active' | 'repeat' | 'recovery';
@@ -99,7 +100,7 @@ export const SAFETY_CUE_DEFINITIONS: Readonly<Record<SafetyCueId, SafetyCueDefin
   global_pause_if_tracking_lost: {
     id: 'global_pause_if_tracking_lost',
     tier: 'global',
-    text: 'If tracking pauses, return to your setup position and wait for Hale to reset.',
+    text: `If tracking pauses, return to your setup position and wait for ${BRAND.appName} to reset.`,
   },
   support_use_sturdy_support: {
     id: 'support_use_sturdy_support',
@@ -274,7 +275,7 @@ export const SAFETY_CUE_DEFINITIONS: Readonly<Record<SafetyCueId, SafetyCueDefin
   tracking_keep_full_body_in_view: {
     id: 'tracking_keep_full_body_in_view',
     tier: 'setup',
-    text: 'Keep your full body in view so Hale can follow the movement.',
+    text: `Keep your full body in view so ${BRAND.appName} can follow the movement.`,
   },
   tracking_pause_and_reset: {
     id: 'tracking_pause_and_reset',

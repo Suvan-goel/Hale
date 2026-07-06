@@ -1,3 +1,4 @@
+import { BRAND } from '../brand';
 export const EXTRA_SESSION_CARD_TITLES: Record<string, string> = {
   'preset-mobility-reset': 'Mobility reset',
   'preset-gentle-restart': 'Gentle restart',
@@ -32,7 +33,7 @@ export const EXTRA_SESSION_DETAIL_BODY: Record<string, string> = {
   'preset-stairs-confidence':
     'Step, ankle, and balance practice for everyday stair confidence. Use a bottom stair and keep support nearby.',
   'preset-quick-full-body':
-    'A concise Hale session that touches strength, balance, and mobility when you want a shorter option outside the main plan.',
+    `A concise ${BRAND.appName} session that touches strength, balance, and mobility when you want a shorter option outside the main plan.`,
 };
 
 export function extraSessionCardTitle(presetId: string, fallback: string): string {

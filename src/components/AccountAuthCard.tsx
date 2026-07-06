@@ -18,6 +18,7 @@ import {
 import { ACCOUNT_SIGNED_IN_COPY, isAppleSignInEnabled } from './accountAuthConfig';
 import { Button, Card, Input, SegmentedTabs, Typography } from './ui';
 
+import { BRAND } from '../brand';
 type AccountMode = 'sign-in' | 'sign-up' | 'forgot-password';
 
 // Live surfaces: the Settings account section (signed-in stack or the
@@ -99,7 +100,7 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
     const trimmedEmail = email.trim();
     const trimmedName = fullName.trim();
     if (mode === 'sign-up' && !trimmedName) {
-      setLocalError('Enter the name you want Hale to use.');
+      setLocalError(`Enter the name you want ${BRAND.appName} to use.`);
       return;
     }
     if (!trimmedEmail || !password) {
@@ -117,7 +118,7 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
 
       if (next.isSignedIn) {
         await refreshProfile();
-        setNotice('Signed in. Hale is ready.');
+        setNotice(`Signed in. ${BRAND.appName} is ready.`);
       } else {
         setNotice('Check your email to confirm the account, then sign in here.');
       }
@@ -130,7 +131,7 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
   const submitPasswordReset = async () => {
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
-      setLocalError('Enter the email you use for Hale.');
+      setLocalError(`Enter the email you use for ${BRAND.appName}.`);
       return;
     }
 
@@ -139,7 +140,7 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
 
     try {
       await resetPassword(trimmedEmail);
-      setNotice('Check your email for a password reset link from Hale.');
+      setNotice(`Check your email for a password reset link from ${BRAND.appName}.`);
       setMode('sign-in');
     } catch (err) {
       setLocalError(messageFromError(err));
@@ -163,7 +164,7 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
       await updatePassword(newPassword);
       setNewPassword('');
       setConfirmPassword('');
-      setNotice('Password updated. Hale is ready.');
+      setNotice(`Password updated. ${BRAND.appName} is ready.`);
     } catch (err) {
       setLocalError(messageFromError(err));
     }
@@ -178,7 +179,7 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
 
       if (next.isSignedIn) {
         await refreshProfile();
-        setNotice('Signed in. Hale is ready.');
+        setNotice(`Signed in. ${BRAND.appName} is ready.`);
       }
     } catch (err) {
       setLocalError(messageFromError(err));
@@ -198,7 +199,7 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
 
   const submitExportData = async () => {
     if (!isSignedIn) {
-      setLocalError('Sign in before exporting your Hale data.');
+      setLocalError(`Sign in before exporting your ${BRAND.appName} data.`);
       return;
     }
 
@@ -240,11 +241,11 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
     try {
       const result = await clearLocalHaleData();
       if (result.failures.length > 0) {
-        throw new Error('Some local Hale data could not be deleted. Please try again.');
+        throw new Error(`Some local ${BRAND.appName} data could not be deleted. Please try again.`);
       }
 
       await signOut();
-      setNotice('Hale data was cleared from this device and you were signed out.');
+      setNotice(`${BRAND.appName} data was cleared from this device and you were signed out.`);
     } catch (err) {
       setLocalError(messageFromError(err));
     } finally {
@@ -351,12 +352,12 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
         style={[styles.sectionHint, isRequiredAuth && styles.requiredSectionHint]}
       >
         {isPasswordRecovery
-          ? 'Choose a new password to finish restoring access to your Hale account.'
+          ? `Choose a new password to finish restoring access to your ${BRAND.appName} account.`
           : mode === 'forgot-password'
-          ? 'Enter the email you use for Hale. We will send a link to choose a new password.'
+          ? `Enter the email you use for ${BRAND.appName}. We will send a link to choose a new password.`
           : isSignedIn
           ? ACCOUNT_SIGNED_IN_COPY
-          : 'Sign in if you want Hale to keep your check-up history and account setup available when you return.'}
+          : `Sign in if you want ${BRAND.appName} to keep your check-up history and account setup available when you return.`}
       </Typography>
 
       {isPasswordRecovery ? (
@@ -399,7 +400,7 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
         <View style={[styles.stack, isRequiredAuth && styles.requiredStack]}>
           {mode === 'forgot-password' ? (
             <Typography variant="bodySmall" color={colors.textSecondary}>
-              After you open the link, return to Hale and sign in with your new password.
+              After you open the link, return to {BRAND.appName} and sign in with your new password.
             </Typography>
           ) : (
             <SegmentedTabs
@@ -441,7 +442,7 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
               label="Name"
               value={fullName}
               onChangeText={setFullName}
-              placeholder="What should Hale call you?"
+              placeholder={`What should ${BRAND.appName} call you?`}
               returnKeyType="next"
               accessibilityLabel="Name"
               containerStyle={styles.field}

@@ -14,6 +14,7 @@ import { Card, PrimaryButton, Screen } from '../components/ui';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 
+import { BRAND } from '../brand';
 export function MovementProfileV2BlockReportScreen({
   report,
   onViewNextPlan,
@@ -59,7 +60,7 @@ export function MovementProfileV2BlockReportScreen({
 
       <Card style={styles.comparisonCard}>
         <Text style={styles.sectionTitle}>Previous and current</Text>
-        <Text style={styles.sectionBody}>Hale shows raw values as previous and current results only.</Text>
+        <Text style={styles.sectionBody}>{BRAND.appName} shows raw values as previous and current results only.</Text>
         <View style={styles.comparisonRows}>
           {comparisonRows.map((row, index) => (
             <View

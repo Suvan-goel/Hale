@@ -22,7 +22,7 @@ describe('SafetyProfileScreen menopause-stage question (2026-07-05 repositioning
   });
 
   it('says the stage shapes guidance, never measurements', () => {
-    expect(text).toContain("This shapes Hale's guidance — it never changes how your results are measured.");
+    expect(text).toContain("This shapes {BRAND.appName}'s guidance — it never changes how your results are measured.");
   });
 
   it('offers honest opt-outs and no medical language', () => {

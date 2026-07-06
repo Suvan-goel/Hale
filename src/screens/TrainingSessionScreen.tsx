@@ -83,6 +83,7 @@ import {
 } from '../training/instructionProfiles';
 import { poseEstimationWindowSize, recordingCameraViewportSize } from './recordingViewport';
 
+import { BRAND } from '../brand';
 const UI_UPDATE_INTERVAL_MS = 100;
 const IOS_RECORDING_TOP_CLEARANCE = 44;
 const TEMP_TRAINING_NATIVE_SKELETON_CANVAS = colors.card;
@@ -493,7 +494,7 @@ export function TrainingSessionScreen({
     busyDebug
   );
   const sessionNoticeAction = sessionNotice?.action ?? null;
-  const currentExerciseName = visibleSnapshot.exerciseName ?? exerciseDefinitions[0]?.displayName ?? 'Today\'s Hale session';
+  const currentExerciseName = visibleSnapshot.exerciseName ?? exerciseDefinitions[0]?.displayName ?? `Today's ${BRAND.appName} session`;
   const currentInstructionProfile = visibleSnapshot.exerciseId
     ? getTrainingInstructionProfile(visibleSnapshot.exerciseId)
     : null;
@@ -663,7 +664,7 @@ export function TrainingSessionScreen({
             <BackArrowButton accessibilityLabel="Leave session" onPress={requestDiscardSession} style={styles.topBarBackButton} />
           ) : null}
           <Text style={styles.topBarTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>
-            {sessionTitle?.trim() || 'Today\'s Hale session'}
+            {sessionTitle?.trim() || `Today's ${BRAND.appName} session`}
           </Text>
         </View>
 
@@ -825,7 +826,7 @@ function SessionHelpModal({
           </View>
           <View style={styles.helpIntro}>
             <Text style={styles.modalTitle}>
-              {instructionProfile ? instructionProfile.displayName : 'Help Hale see you clearly'}
+              {instructionProfile ? instructionProfile.displayName : `Help ${BRAND.appName} see you clearly`}
             </Text>
             <Text style={styles.modalBody}>
               {instructionProfile

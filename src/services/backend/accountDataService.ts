@@ -1,6 +1,7 @@
 import type { HistoryFs } from '../../history';
 import { addBreadcrumb, captureError } from '../observability/sentry';
 
+import { BRAND } from '../../brand';
 export interface LocalDataSummary {
   preferences: boolean;
   checkups: number;
@@ -35,7 +36,7 @@ const MICROCHECK_PREFIX = 'microcheck-';
 export async function getLocalDataSummary(options: ClearLocalHaleDataOptions = {}): Promise<LocalDataSummary> {
   const fs = options.fs ?? await defaultHistoryFs(options.userId);
   const recordings = options.recordings ?? await defaultRecordingArea();
-  const names = safeList('local Hale files', fs);
+  const names = safeList(`local ${BRAND.appName} files`, fs);
   const recordingNames = safeList('recordings', recordings);
 
   return {
@@ -61,8 +62,8 @@ export async function clearLocalHaleData(options: ClearLocalHaleDataOptions = {}
     recordings: summary.recordings,
   });
 
-  for (const name of safeList('local Hale files', fs).filter(isMainStoreClearTarget)) {
-    tryDelete('local Hale files', name, fs, deletedFiles, failures);
+  for (const name of safeList(`local ${BRAND.appName} files`, fs).filter(isMainStoreClearTarget)) {
+    tryDelete(`local ${BRAND.appName} files`, name, fs, deletedFiles, failures);
   }
 
   for (const name of safeList('recordings', recordings)) {
@@ -76,7 +77,7 @@ export async function clearLocalHaleData(options: ClearLocalHaleDataOptions = {}
   };
 
   if (failures.length > 0) {
-    captureError(new Error('Local Hale data deletion had failures.'), {
+    captureError(new Error(`Local ${BRAND.appName} data deletion had failures.`), {
       area: 'account_data',
       action: 'clear_local_hale_data',
       failures: failures.map((failure) => ({

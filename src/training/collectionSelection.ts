@@ -17,6 +17,7 @@ import { equipmentSupportsTags } from './equipmentSafety';
 import { deriveFloorExerciseEligibility } from './floorExerciseEligibility';
 import { movementCapabilitySupportsLevel } from './movementCapabilitySafety';
 
+import { BRAND } from '../brand';
 export const MOBILITY_COLLECTION_ID = 'mobility-flexibility';
 
 /**
@@ -464,8 +465,8 @@ function coverageLabel(practised: number, total: number): string {
 
 function varietyLabel(practised: number, total: number): string {
   if (total <= 0) return 'Review your setup to unlock mobility movements.';
-  if (practised >= total) return 'Hale will continue varying these movements across your block.';
-  return 'Hale varies these movements across your block.';
+  if (practised >= total) return `${BRAND.appName} will continue varying these movements across your block.`;
+  return `${BRAND.appName} varies these movements across your block.`;
 }
 
 function isCollectionSelectionReason(value: unknown): value is CollectionSelectionReason {

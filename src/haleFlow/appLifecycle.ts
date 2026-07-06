@@ -29,6 +29,7 @@ import {
 import { PLAN_SESSION_IDS, type PlanSessionId } from './sessionIds';
 import type { MicroCheckDefinition } from './types';
 
+import { BRAND } from '../brand';
 export type HaleLifecycleState =
   | 'needs_onboarding'
   | 'needs_baseline_checkup'
@@ -184,15 +185,15 @@ export function getTodayPrimaryAction(state: HaleLifecycleState, microCheckTarge
     case 'needs_onboarding':
       return {
         type: 'start_onboarding',
-        title: 'Welcome to Hale',
-        subtitle: 'Start with a short check-up so Hale can build your first plan.',
+        title: `Welcome to ${BRAND.appName}`,
+        subtitle: `Start with a short check-up so ${BRAND.appName} can build your first plan.`,
         ctaLabel: 'Start',
       };
     case 'needs_baseline_checkup':
       return {
         type: 'start_checkup',
         title: 'Ready for your first check-up?',
-        subtitle: 'Hale will check strength, balance, and mobility at home.',
+        subtitle: `${BRAND.appName} will check strength, balance, and mobility at home.`,
         ctaLabel: 'Start check-up',
       };
     case 'needs_block_creation':
@@ -201,7 +202,7 @@ export function getTodayPrimaryAction(state: HaleLifecycleState, microCheckTarge
       return {
         type: 'create_block',
         title: 'Preparing your plan',
-        subtitle: 'Hale is turning your check-up into your 4-week plan. This finishes on its own.',
+        subtitle: `${BRAND.appName} is turning your check-up into your 4-week plan. This finishes on its own.`,
         ctaLabel: '',
         tone: 'progress',
       };

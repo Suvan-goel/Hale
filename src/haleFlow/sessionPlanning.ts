@@ -131,6 +131,7 @@ import { dayLabelForPlanSessionId, type PlanSessionId } from './sessionIds';
 import { applyProgressionEvidenceFromSession } from './progressionEvidence';
 import type { ExerciseFamily, HaleExercise, HaleSessionPlan } from './types';
 
+import { BRAND } from '../brand';
 export type TodaySessionAdjustment = 'shorter' | 'gentler' | 'no_equipment' | 'something_hurts';
 
 export interface TodaySessionPreferences {
@@ -941,7 +942,7 @@ export function requireHaleSessionPlan(input: PlanTodayHaleSessionInput): HaleSe
   const result = planTodayHaleSession(input);
   const plan = sessionPlanFromPlanningResult(result);
   if (!plan) {
-    throw new Error(`Expected a playable Hale session plan, received ${result.kind}`);
+    throw new Error(`Expected a playable ${BRAND.appName} session plan, received ${result.kind}`);
   }
   return plan;
 }
@@ -950,7 +951,7 @@ export function getSessionPlanningRecoveryCopy(result: HaleSessionPlanningResult
   if (result.kind !== 'unavailable') return null;
   if (result.reason === 'no_active_block') {
     return {
-      title: 'Hale needs your current plan.',
+      title: `${BRAND.appName} needs your current plan.`,
       body: 'No workout started. This will not affect your progress.',
       primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
       secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
@@ -958,7 +959,7 @@ export function getSessionPlanningRecoveryCopy(result: HaleSessionPlanningResult
   }
   if (result.reason === 'legacy_only_state') {
     return {
-      title: 'Hale needs to refresh your plan.',
+      title: `${BRAND.appName} needs to refresh your plan.`,
       body: 'No workout started. This will not affect your progress.',
       primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
       secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
@@ -974,7 +975,7 @@ export function getSessionPlanningRecoveryCopy(result: HaleSessionPlanningResult
   }
   if (result.reason === 'no_safe_exercises') {
     return {
-      title: 'Hale needs to check your setup.',
+      title: `${BRAND.appName} needs to check your setup.`,
       body: 'No workout started. This will not affect your progress.',
       primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
       secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
@@ -990,7 +991,7 @@ export function getSessionPlanningRecoveryCopy(result: HaleSessionPlanningResult
   }
   if (result.reason === 'daily_context_required') {
     return {
-      title: 'Tell Hale how you feel today.',
+      title: `Tell ${BRAND.appName} how you feel today.`,
       body: 'No workout started. This will not affect your progress.',
       primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
       secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
@@ -1061,7 +1062,7 @@ export function getSessionPlanningRecoveryCopy(result: HaleSessionPlanningResult
     };
   }
   return {
-    title: 'Hale needs to check your setup.',
+    title: `${BRAND.appName} needs to check your setup.`,
     body: 'No workout started. This will not affect your progress.',
     primaryActionLabel: primaryRecoveryLabel(result.recoveryActions[0]),
     secondaryActionLabel: secondaryRecoveryLabel(result.recoveryActions),
@@ -1375,7 +1376,7 @@ export function generateTodaySession({
   });
   const plan = sessionPlanFromPlanningResult(result);
   if (!plan) {
-    throw new Error(`No Hale session plan available: ${result.kind}`);
+    throw new Error(`No ${BRAND.appName} session plan available: ${result.kind}`);
   }
   return plan;
 }

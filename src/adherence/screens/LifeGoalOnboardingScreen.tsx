@@ -5,6 +5,7 @@ import { Screen, ScreenHeader } from '../../components/ui';
 import { LifeGoalSelector } from '../components/LifeGoalSelector';
 import type { LifeGoal } from '../types';
 
+import { BRAND } from '../../brand';
 export function LifeGoalOnboardingScreen({
   initialGoal,
   mode = 'onboarding',
@@ -26,7 +27,7 @@ export function LifeGoalOnboardingScreen({
         progress={progress}
         eyebrow={review ? 'Review your goal' : 'Your goal'}
         title={review ? 'Change your movement goal' : 'What matters most for your future?'}
-        subtitle="Hale shapes your training plan around this. You can change it any time in Settings."
+        subtitle={`${BRAND.appName} shapes your training plan around this. You can change it any time in Settings.`}
       />
       <LifeGoalSelector
         initialGoal={initialGoal}

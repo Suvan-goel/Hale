@@ -31,6 +31,7 @@ import { colors, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 import { poseEstimationWindowSize, recordingCameraViewportSize } from './recordingViewport';
 
+import { BRAND } from '../brand';
 const IOS_RECORDING_TOP_CLEARANCE = 44;
 
 export type CheckUpShellModalMode = 'help' | 'setupIssue' | null;
@@ -97,7 +98,7 @@ export interface CheckUpRecordingShellProps {
   renderRecordingArea: (context: CheckUpRecordingAreaContext) => React.ReactNode;
 }
 
-const CHECKUP_SETUP_ISSUE_TITLE = 'Hale cannot see this movement clearly';
+const CHECKUP_SETUP_ISSUE_TITLE = `${BRAND.appName} cannot see this movement clearly`;
 const CHECKUP_SETUP_ISSUE_BODY =
   'Step back or adjust the phone, then try again. You can also skip this movement.';
 
@@ -111,8 +112,8 @@ const CHECKUP_SETUP_HELP_STEPS: readonly { title: string; body: string }[] = [
     body: 'Place it on a steady stand or shelf.',
   },
   {
-    title: "Follow Hale's direction",
-    body: 'Turn your body only when Hale asks.',
+    title: `Follow ${BRAND.appName}'s direction`,
+    body: `Turn your body only when ${BRAND.appName} asks.`,
   },
 ];
 
@@ -348,7 +349,7 @@ function CheckupSupportModal({
           </View>
           <View style={styles.helpIntro}>
             <Text style={styles.modalTitle}>
-              {isSetupIssue ? CHECKUP_SETUP_ISSUE_TITLE : 'Help Hale see you clearly'}
+              {isSetupIssue ? CHECKUP_SETUP_ISSUE_TITLE : `Help ${BRAND.appName} see you clearly`}
             </Text>
             <Text style={styles.modalBody}>
               {isSetupIssue

@@ -8,6 +8,7 @@ import {
 } from '../adherence';
 import { domainLabel } from '../adherence/goalDomainMapping';
 
+import { BRAND } from '../brand';
 export function getBlockPurposeCopy(block: MovementBlock, lifeGoal?: LifeGoal | null): string {
   return getAdherenceBlockPurposeCopy(block, lifeGoal);
 }
@@ -80,7 +81,7 @@ export function getReportCopy({
   hasComparison: boolean;
 }): string {
   if (hasComparison) {
-    return `Your latest ${domainLabel(focusDomain)} check-up helps Hale update your plan.`;
+    return `Your latest ${domainLabel(focusDomain)} check-up helps ${BRAND.appName} update your plan.`;
   }
   return 'Your latest check-up result will appear here once it is connected.';
 }

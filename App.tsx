@@ -266,6 +266,7 @@ import {
 } from './src/training';
 import { colors, fonts, radius, shadow, spacing, type } from './src/theme';
 
+import { BRAND } from './src/brand';
 type PermissionState = 'checking' | 'granted' | 'undetermined' | 'denied';
 /** Full-screen flows launched on top of the tab shell (hands-free sessions + dev tools). */
 type Flow =
@@ -3644,7 +3645,7 @@ function HaleApp() {
         let preparedPlanState: MovementProfileV2UnifiedPlanState = {
           status: 'unavailable',
           title: 'Plan unavailable right now',
-          body: 'Your latest Movement Profile is saved, but Hale could not prepare the next 4-week plan on this phone.',
+          body: `Your latest Movement Profile is saved, but ${BRAND.appName} could not prepare the next 4-week plan on this phone.`,
         };
         let retestComparison: MovementProfileV2RetestComparison | null = null;
         let blockReport: MovementProfileV2BlockReport | null = null;
@@ -3682,7 +3683,7 @@ function HaleApp() {
             preparedPlanState = {
               status: 'unavailable',
               title: 'Plan unavailable right now',
-              body: 'Your latest Movement Profile is saved, but Hale could not save the completed block or next plan on this phone.',
+              body: `Your latest Movement Profile is saved, but ${BRAND.appName} could not save the completed block or next plan on this phone.`,
             };
           }
         } else {
@@ -3734,7 +3735,7 @@ function HaleApp() {
       let preparedPlanState: MovementProfileV2UnifiedPlanState = {
         status: 'unavailable',
         title: 'Plan unavailable right now',
-        body: 'Your Movement Profile is saved. Hale could not prepare the matching 4-week plan on this phone.',
+        body: `Your Movement Profile is saved. ${BRAND.appName} could not prepare the matching 4-week plan on this phone.`,
       };
       if (planBlock.ok) {
         const adherenceSaved = persistAdherence(planBlock.adherence);
@@ -3771,7 +3772,7 @@ function HaleApp() {
           preparedPlanState = {
             status: 'unavailable',
             title: 'Plan unavailable right now',
-            body: 'Your Movement Profile is saved, but Hale could not save the prepared plan on this phone.',
+            body: `Your Movement Profile is saved, but ${BRAND.appName} could not save the prepared plan on this phone.`,
           };
         }
       } else {
@@ -3793,7 +3794,7 @@ function HaleApp() {
             : {
                 status: 'unavailable',
                 title: 'Plan unavailable right now',
-                body: 'Your Movement Profile is saved, but Hale could not find a matching prepared plan.',
+                body: `Your Movement Profile is saved, but ${BRAND.appName} could not find a matching prepared plan.`,
               };
       }
 
@@ -4460,7 +4461,7 @@ function AuthLoadingScreen() {
       <StatusBar style="dark" />
       <View style={styles.splashBrandRow}>
         <HeaderLogo size={28} />
-        <Text style={styles.splashBrand}>Hale</Text>
+        <Text style={styles.splashBrand}>{BRAND.appName}</Text>
       </View>
       <Text style={styles.splashText}>Preparing your account...</Text>
     </View>
@@ -4487,7 +4488,7 @@ function MovementProfileRetestUnavailableScreen({ onDone }: { onDone: () => void
             <CameraGatePoint
               index={2}
               title="No reset needed"
-              body="Hale will keep your plan history intact until the next guided Check-Up is available."
+              body={`${BRAND.appName} will keep your plan history intact until the next guided Check-Up is available.`}
             />
           </View>
         </CameraGateSection>
@@ -4513,8 +4514,8 @@ function CameraReadinessGate({
   const waiting = permission === 'checking' || !audioReady;
   const title = waiting ? 'Getting camera ready' : 'Allow camera access';
   const subtitle = waiting
-    ? 'Hale is preparing the camera and voice guidance before the movement session begins.'
-    : 'Camera access lets Hale estimate your movement while keeping the experience private and mirror-free.';
+    ? `${BRAND.appName} is preparing the camera and voice guidance before the movement session begins.`
+    : `Camera access lets ${BRAND.appName} estimate your movement while keeping the experience private and mirror-free.`;
 
   const openSettings = React.useCallback(() => {
     void Linking.openSettings().catch(() => undefined);
@@ -4540,8 +4541,8 @@ function CameraReadinessGate({
               title={waiting ? 'Camera and audio' : 'Measure movement'}
               body={
                 waiting
-                  ? 'Hale is checking that camera access and voice guidance are ready before the session opens.'
-                  : 'Camera access lets Hale estimate your movement during guided check-ups and sessions.'
+                  ? `${BRAND.appName} is checking that camera access and voice guidance are ready before the session opens.`
+                  : `Camera access lets ${BRAND.appName} estimate your movement during guided check-ups and sessions.`
               }
             />
             <CameraGatePoint
@@ -4568,7 +4569,7 @@ function CameraReadinessGate({
               <CameraGatePoint
                 index={2}
                 title="Allow Camera"
-                body="Switch Camera on, then return to Hale to begin once you are framed."
+                body={`Switch Camera on, then return to ${BRAND.appName} to begin once you are framed.`}
               />
             </View>
           </CameraGateSection>
@@ -4588,7 +4589,7 @@ function CameraReadinessGate({
               <CameraGatePoint
                 index={1}
                 title="Hold nearby"
-                body="This should only take a moment. Hale will continue automatically when everything is ready."
+                body={`This should only take a moment. ${BRAND.appName} will continue automatically when everything is ready.`}
               />
             </View>
           </CameraGateSection>

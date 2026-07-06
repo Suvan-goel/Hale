@@ -12,6 +12,7 @@ import type { MicroCheckResult, MicroCheckType } from '../training';
 import { isOfficialCheckupType } from './assessmentEvidence';
 import { resolveStoredCheckUpType } from './checkupHistory';
 
+import { BRAND } from '../brand';
 export type MicroCheckSummarySource = 'scheduled' | 'optional';
 
 export type MicroCheckSummaryComparisonKind =
@@ -127,11 +128,11 @@ function summarySubtitle({
 }): string {
   if (!saved) {
     return resultCaptured
-      ? 'Hale measured it, but could not save the result. Your official Strength Profile is unchanged.'
-      : 'Hale could not save a reliable measurement this time. Your official Strength Profile is unchanged.';
+      ? `${BRAND.appName} measured it, but could not save the result. Your official Strength Profile is unchanged.`
+      : `${BRAND.appName} could not save a reliable measurement this time. Your official Strength Profile is unchanged.`;
   }
   if (!measuredAndSaved) {
-    return 'Hale could not capture a reliable measurement this time. Your official Strength Profile is unchanged.';
+    return `${BRAND.appName} could not capture a reliable measurement this time. Your official Strength Profile is unchanged.`;
   }
   if (source === 'optional') return 'A snapshot of today. Your plan is unchanged.';
   return 'This updates your quick-check trend without changing your Strength Profile.';
@@ -159,7 +160,7 @@ function metricDisplay(
       label: definition.label,
       value: result.measured ? 'Not saved' : 'Not captured',
       unit: '',
-      caption: result.measured ? 'Hale could not save this measurement.' : 'Try again when you are ready.',
+      caption: result.measured ? `${BRAND.appName} could not save this measurement.` : 'Try again when you are ready.',
     };
   }
   return {
@@ -213,7 +214,7 @@ function comparisonDisplay({
       kind: 'not_measured',
       eyebrow: 'Status',
       title: 'No reliable measurement',
-      body: 'Hale only saves a quick-check metric when the camera reading is reliable enough.',
+      body: `${BRAND.appName} only saves a quick-check metric when the camera reading is reliable enough.`,
     };
   }
   const baseline = latestComparableOfficialBaseline({
@@ -226,7 +227,7 @@ function comparisonDisplay({
       kind: 'no_comparable_checkup',
       eyebrow: 'Comparison',
       title: 'No comparable Movement Check-Up yet',
-      body: 'Hale will compare this quick check after it has an official result for the same movement.',
+      body: `${BRAND.appName} will compare this quick check after it has an official result for the same movement.`,
     };
   }
 

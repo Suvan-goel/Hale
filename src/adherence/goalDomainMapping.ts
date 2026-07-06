@@ -7,6 +7,7 @@ import type {
 } from './types';
 import { LOCAL_USER_ID } from './types';
 
+import { BRAND } from '../brand';
 // One preset per functional training bucket. Categories that produced the same
 // (or near-identical) workout bias were merged on 2026-07-04; see docs/decisions.md.
 export const LIFE_GOAL_PRESETS: { category: LifeGoalCategory; label: string; hint: string }[] = [
@@ -75,7 +76,7 @@ export function getLifeGoalTrainingRelevance(goal: LifeGoal | null | undefined):
   if (!goal) {
     return {
       primaryDomains: ['strength_power', 'balance', 'mobility'],
-      copy: 'Hale will use your latest check-up to choose the most useful place to start.',
+      copy: `${BRAND.appName} will use your latest check-up to choose the most useful place to start.`,
     };
   }
 

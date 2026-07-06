@@ -3,6 +3,7 @@ import type { CheckUpScore, VersionedCheckUpScoreSnapshot } from '../scoring';
 import { getBlockCreationEligibility, type BlockCreationEligibility } from './assessmentEligibility';
 import { headlineEvidenceFromScore, isOfficialCheckupType } from './assessmentEvidence';
 
+import { BRAND } from '../brand';
 export type AssessmentResultPrimaryAction = 'create_block' | 'retake_checkup' | 'done';
 
 export interface AssessmentResultState {
@@ -55,7 +56,7 @@ export function getAssessmentResultState({
     recoveryTitle:
       evidence.measuredDomainCount > 0
         ? 'A few movements need a retry.'
-        : 'Hale needs a clearer check-up to build your plan.',
+        : `${BRAND.appName} needs a clearer check-up to build your plan.`,
     recoveryBody:
       evidence.measuredDomainCount > 0
         ? `Your saved results are incomplete. Retake ${missing} when you are ready.`

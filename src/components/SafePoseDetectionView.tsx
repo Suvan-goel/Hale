@@ -14,6 +14,7 @@ import { resolveSegmentationMaskFigureEnabled } from '../render/segmentationMask
 import { colors, radius, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 
+import { BRAND } from '../brand';
 export type CameraAvailability = 'checking' | 'available' | 'unavailable';
 
 type SafePoseDetectionViewProps = PoseDetectionViewProps & {
@@ -91,7 +92,7 @@ export function CameraUnavailableNotice({
     >
       <Text style={styles.noticeTitle}>Camera not available</Text>
       <Text style={styles.noticeBody}>
-        Hale could not find a usable camera on this device. You can still review this screen, but measurement needs a device camera.
+        {BRAND.appName} could not find a usable camera on this device. You can still review this screen, but measurement needs a device camera.
       </Text>
     </View>
   );

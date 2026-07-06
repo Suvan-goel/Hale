@@ -13,6 +13,7 @@ import type {
   MovementDomain,
 } from './types';
 
+import { BRAND } from '../brand';
 // Copy guardrails: no shame, no streak pressure, no clinical claims, and no
 // unsupported counterfactual decline math.
 
@@ -58,7 +59,7 @@ export function getDashboardCopy({
     return 'Your 4-week re-test is close. It will add another data point.';
   }
   if (adherenceState === 'inactive_14_days' || adherenceState === 'inactive_this_week') {
-    return 'Clean slate. Hale will ease you back in with a shorter restart session.';
+    return `Clean slate. ${BRAND.appName} will ease you back in with a shorter restart session.`;
   }
   if (adherenceState === 'missed_one_session' || adherenceState === 'slightly_behind') {
     return 'Life gets busy. One short session today keeps the block alive.';
@@ -86,7 +87,7 @@ export function getLapseRecoveryCopy(
   if (state === 'inactive_this_week') {
     return {
       title: 'Clean slate',
-      body: 'Life gets in the way. Hale will ease you back in with a shorter restart session.',
+      body: `Life gets in the way. ${BRAND.appName} will ease you back in with a shorter restart session.`,
       cta: 'Restart gently',
     };
   }
@@ -166,5 +167,5 @@ export function assessmentComparisonCopy({
   if (after === before) {
     return `Your ${domainLabel(focusDomain)} range was similar in the latest re-test.`;
   }
-  return `Your ${domainLabel(focusDomain)} result gives Hale a clear starting point for the next block.`;
+  return `Your ${domainLabel(focusDomain)} result gives ${BRAND.appName} a clear starting point for the next block.`;
 }

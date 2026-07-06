@@ -39,6 +39,7 @@ import { getCurrentSession } from './authService';
 import { mergeRemoteProfileIntoLocal } from './profileSyncService';
 import type { BackendJson, BackendProfile } from './types';
 
+import { BRAND } from '../../brand';
 type JsonRecord = Record<string, unknown>;
 
 type RemoteTableName =
@@ -202,7 +203,7 @@ export async function restoreRemoteStateIfLocalEmpty(input: RestoreRemoteStateIn
     addBreadcrumb('restore skipped', { status: 'skipped_local_not_empty' });
     return {
       status: 'skipped_local_not_empty',
-      skippedReason: 'Local Hale state already has profile, check-up, block, training, or progress data.',
+      skippedReason: `Local ${BRAND.appName} state already has profile, check-up, block, training, or progress data.`,
       gaps: [],
     };
   }
@@ -210,7 +211,7 @@ export async function restoreRemoteStateIfLocalEmpty(input: RestoreRemoteStateIn
   try {
     const snapshot =
       input.snapshot ??
-      (await withTimeout(fetchRemoteHaleSnapshot(), input.timeoutMs ?? RESTORE_TIMEOUT_MS, 'remote Hale restore'));
+      (await withTimeout(fetchRemoteHaleSnapshot(), input.timeoutMs ?? RESTORE_TIMEOUT_MS, `remote ${BRAND.appName} restore`));
 
     if (!snapshot) {
       return { status: 'signed_out', gaps: [] };

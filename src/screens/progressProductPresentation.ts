@@ -10,6 +10,7 @@ import {
   type BlockScheduleState,
 } from '../haleFlow';
 
+import { BRAND } from '../brand';
 export interface ProgressNextCheckUpCardCopy {
   title: 'Your next check-up';
   lead: string;
@@ -60,8 +61,8 @@ export function buildProgressNextCheckUpCard(input: {
       : `In ${days} ${days === 1 ? 'day' : 'days'}.`;
   const body =
     schedule.status === 'training_complete_waiting_retest'
-      ? 'Your plan sessions are complete. Hale will open your Movement Check-Up when the date gate is ready.'
-      : 'Hale will guide your next Movement Check-Up when your 4-week plan is ready to review.';
+      ? `Your plan sessions are complete. ${BRAND.appName} will open your Movement Check-Up when the date gate is ready.`
+      : `${BRAND.appName} will guide your next Movement Check-Up when your 4-week plan is ready to review.`;
 
   return {
     title: 'Your next check-up',

@@ -1,6 +1,7 @@
 import type { MovementDomain } from '../adherence';
 import type { ActiveBlockSummary, HaleLifecycleState } from './appLifecycle';
 
+import { BRAND } from '../brand';
 export interface PlanEmptyStateCopy {
   title: string;
   body: string;
@@ -19,7 +20,7 @@ export function getPlanEmptyStateCopy(state: HaleLifecycleState): PlanEmptyState
   if (state === 'needs_onboarding') {
     return {
       title: 'Start with your check-up',
-      body: 'Hale uses your goal and check-up to build your first plan.',
+      body: `${BRAND.appName} uses your goal and check-up to build your first plan.`,
       ctaLabel: 'Start',
       action: 'onboarding',
     };
@@ -27,7 +28,7 @@ export function getPlanEmptyStateCopy(state: HaleLifecycleState): PlanEmptyState
   if (state === 'needs_baseline_checkup') {
     return {
       title: 'Start with your check-up',
-      body: 'A short guided check-up gives Hale what it needs to build your first plan.',
+      body: `A short guided check-up gives ${BRAND.appName} what it needs to build your first plan.`,
       ctaLabel: 'Start check-up',
       action: 'checkup',
     };
@@ -36,7 +37,7 @@ export function getPlanEmptyStateCopy(state: HaleLifecycleState): PlanEmptyState
   // stored Movement Profile, so this state is transient and asks nothing.
   return {
     title: 'Preparing your plan',
-    body: 'Hale is turning your check-up into a simple plan for strength, steadiness, and mobility. This finishes on its own.',
+    body: `${BRAND.appName} is turning your check-up into a simple plan for strength, steadiness, and mobility. This finishes on its own.`,
     ctaLabel: '',
     action: 'create_block',
   };

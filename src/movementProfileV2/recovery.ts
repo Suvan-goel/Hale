@@ -13,6 +13,7 @@ import {
   type MovementProfileV2SnapshotCompatibility,
 } from '../reference/movementProfileV2';
 
+import { BRAND } from '../brand';
 export type MovementProfileV2RecoveryStateKind =
   | 'ready'
   | 'raw_complete_missing_snapshot'
@@ -231,7 +232,7 @@ export function movementProfileV2RecoveryCopy(
     case 'raw_complete_missing_snapshot':
       return {
         title: 'Finish saved results',
-        body: 'The camera capture is saved. Hale needs to finish preparing the saved result before it can be shown.',
+        body: `The camera capture is saved. ${BRAND.appName} needs to finish preparing the saved result before it can be shown.`,
         primaryAction: 'finish_details',
         primaryLabel: 'Finish details',
         secondaryLabel: 'Retake',
@@ -279,7 +280,7 @@ export function movementProfileV2RecoveryCopy(
     case 'unsupported_future_artifact':
       return {
         title: 'Update needed',
-        body: 'This saved result was prepared by a newer Hale version. Update Hale or retake when you are ready.',
+        body: `This saved result was prepared by a newer ${BRAND.appName} version. Update ${BRAND.appName} or retake when you are ready.`,
         primaryAction: 'retake',
         primaryLabel: 'Retake',
         secondaryLabel: 'Cancel',

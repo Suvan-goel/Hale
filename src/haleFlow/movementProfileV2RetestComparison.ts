@@ -13,6 +13,7 @@ import {
 } from '../reference/movementProfileV2';
 import { deterministicFingerprint } from '../reference/movementProfileV2/fingerprint';
 
+import { BRAND } from '../brand';
 export const MOVEMENT_PROFILE_V2_RETEST_COMPARISON_SCHEMA_VERSION = 1 as const;
 export const MOVEMENT_PROFILE_V2_RETEST_COMPARISON_POLICY_VERSION = 1 as const;
 export const MOVEMENT_PROFILE_V2_RETEST_COMPARISON_POLICY_FINGERPRINT = deterministicFingerprint(
@@ -169,7 +170,7 @@ function chairComparison(
     rawComparable: compatibility.compatible && compatibility.domainComparability.chair.rawComparable,
     referenceComparable: compatibility.compatible && compatibility.domainComparability.chair.referenceComparable,
     incompatibleReason: compatibility.compatible ? null : compatibility.reason,
-    separateNote: 'Hale is showing this chair-rise result separately because the two Check-Ups used different measurement policy details.',
+    separateNote: `${BRAND.appName} is showing this chair-rise result separately because the two Check-Ups used different measurement policy details.`,
   });
 }
 
@@ -193,8 +194,8 @@ function balanceComparison(
     incompatibleReason: compatibility.compatible ? null : compatibility.reason,
     reasonCodes: sameStandingLeg ? [] : ['DIFFERENT_STANDING_LEG'],
     separateNote: sameStandingLeg
-      ? 'Hale is showing this balance result separately because the two Check-Ups used different measurement policy details.'
-      : 'A different standing leg was used this time, so Hale is showing the current balance result separately.',
+      ? `${BRAND.appName} is showing this balance result separately because the two Check-Ups used different measurement policy details.`
+      : `A different standing leg was used this time, so ${BRAND.appName} is showing the current balance result separately.`,
   });
 }
 
@@ -216,8 +217,8 @@ function shoulderComparison(
     incompatibleReason: compatibility.compatible ? null : compatibility.reason,
     reasonCodes: sameSide ? [] : ['DIFFERENT_SHOULDER_SIDE'],
     separateNote: sameSide
-      ? 'Hale is showing this reach result separately because the two Check-Ups used different measurement policy details.'
-      : 'A different shoulder was tested this time, so Hale is showing the current reach result separately.',
+      ? `${BRAND.appName} is showing this reach result separately because the two Check-Ups used different measurement policy details.`
+      : `A different shoulder was tested this time, so ${BRAND.appName} is showing the current reach result separately.`,
   });
 }
 

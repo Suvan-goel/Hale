@@ -10,6 +10,7 @@ import { addBreadcrumb, captureError } from '../observability/sentry';
 import { ensureCurrentProfile, upsertCurrentProfile } from './profileService';
 import type { AuthSession, AuthState, AuthUser, BackendProfile } from './types';
 
+import { BRAND } from '../../brand';
 export type AuthChangeCallback = (state: AuthState) => void;
 
 const OAUTH_REDIRECT_SCHEME = 'hale';
@@ -422,7 +423,7 @@ export async function signInWithGoogle(): Promise<AuthState> {
       devAuthLog('Google sign-in Supabase session exchange failed', {
         message: messageFromUnknown(exchangeError),
       });
-      throw new Error(`Google sign-in could not create a Hale session: ${messageFromUnknown(exchangeError)}`);
+      throw new Error(`Google sign-in could not create a ${BRAND.appName} session: ${messageFromUnknown(exchangeError)}`);
     }
   }
 
@@ -431,10 +432,10 @@ export async function signInWithGoogle(): Promise<AuthState> {
   }
 
   if (result.type === 'dismiss') {
-    throw new Error('Google sign-in closed before Hale received the callback.');
+    throw new Error(`Google sign-in closed before ${BRAND.appName} received the callback.`);
   }
 
-  throw new Error(`Google sign-in did not complete (${result.type}). Try again from Hale.`);
+  throw new Error(`Google sign-in did not complete (${result.type}). Try again from ${BRAND.appName}.`);
 }
 
 export async function signInWithApple(): Promise<AuthState> {

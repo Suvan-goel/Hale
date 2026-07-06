@@ -1,3 +1,4 @@
+import { BRAND } from '../../brand';
 import { supabase } from '../../lib/supabase';
 import { addBreadcrumb, captureError } from '../observability/sentry';
 
@@ -8,7 +9,15 @@ type JsonRecord = Record<string, BackendJson>;
 
 export interface HaleDataExport {
   exportVersion: 1;
+  /**
+   * Stable machine format id — frozen at 'Hale' forever, independent of the
+   * brand token (founder decision 2026-07-06): a future rename must leave old
+   * backups restorable, so format identity never follows display identity.
+   * Pinned by dataExportService.test.ts.
+   */
   app: 'Hale';
+  /** Human-facing app name at export time (brand token). */
+  appDisplayName: string;
   appVersion: string;
   exportedAt: string;
   user: {
@@ -90,7 +99,7 @@ export async function exportCurrentUserData(): Promise<HaleDataExport> {
   const session = await getCurrentSession();
   const user = session?.user;
   if (!user) {
-    throw new Error('Sign in to export your Hale data.');
+    throw new Error(`Sign in to export your ${BRAND.appName} data.`);
   }
 
   addBreadcrumb('export started', { userId: user.id });
@@ -142,7 +151,8 @@ export function buildHaleDataExport(input: BuildHaleDataExportInput): HaleDataEx
 
   return {
     exportVersion: EXPORT_VERSION,
-    app: 'Hale',
+    app: 'Hale', // machine format id — never the brand token (see HaleDataExport)
+    appDisplayName: BRAND.appName,
     appVersion: input.appVersion ?? APP_VERSION,
     exportedAt,
     user: {
@@ -168,12 +178,12 @@ export async function shareHaleDataExport(exportData?: HaleDataExport): Promise<
     const fileUri = await writeHaleDataExportFile(nextExport, filename);
 
     const { Share, Platform } = await import('react-native');
-    const message = `Hale data export created: ${filename}`;
+    const message = `${BRAND.appName} data export created: ${filename}`;
     const result = await Share.share(
       Platform.OS === 'ios'
         ? { title: filename, url: fileUri, message }
         : { title: filename, url: fileUri, message: `${message}\n${fileUri}` },
-      { dialogTitle: 'Export Hale data', subject: filename }
+      { dialogTitle: `Export ${BRAND.appName} data`, subject: filename }
     );
 
     addBreadcrumb('export shared', { filename, shareAction: result.action });

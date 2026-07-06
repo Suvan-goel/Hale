@@ -11,6 +11,7 @@ import {
   parseMovementProfileV2RetestComparison,
 } from './movementProfileV2RetestComparison';
 
+import { BRAND } from '../brand';
 export const MOVEMENT_PROFILE_V2_BLOCK_REPORT_SCHEMA_VERSION = 1 as const;
 export const MOVEMENT_PROFILE_V2_BLOCK_REPORT_POLICY_VERSION = 1 as const;
 export const MOVEMENT_PROFILE_V2_BLOCK_REPORT_POLICY_FINGERPRINT = deterministicFingerprint(
@@ -92,7 +93,7 @@ export function createMovementProfileV2BlockReport(input: {
       headline: 'Your 4-week block is complete',
       body: 'You completed the plan and finished your next Movement Check-Up.',
       nextPlanTitle: 'Your next 4-week plan is ready',
-      nextPlanBody: 'Hale prepared it from your latest Movement Profile.',
+      nextPlanBody: `${BRAND.appName} prepared it from your latest Movement Profile.`,
       nextPlanCta: 'View my next 4-week plan',
     },
     ...(nextFocus.kind === 'domain' ? { recommendedNextFocusDomain: nextFocus.domain } : {}),

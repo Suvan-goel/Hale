@@ -62,6 +62,7 @@ import {
   type PlannedCollectionSelection,
 } from './collectionSelection';
 
+import { BRAND } from '../brand';
 export type TrainingDomain = 'strength_power' | 'balance_stability' | 'mobility_flexibility';
 export type SessionSource = 'block_generated' | 'preset' | 'manual';
 export type DailyReadiness = 'ready' | 'a_bit_stiff' | 'low_energy' | 'something_hurts' | 'short_on_time';
@@ -1075,7 +1076,7 @@ const EXTRA_SESSION_PRESETS: readonly SessionTemplate[] = [
     slot('stairs-ankle', 'ankle', 'Ankle support', 'strength_power', ['heel-toe-raise']),
     slot('stairs-balance', 'balance', 'Balance hold', 'balance_stability', ['balance']),
   ], 'preset'),
-  template('preset-quick-full-body', 'Quick Full-Body Hale Session', 'Extra', 'strength_power', 10, [
+  template('preset-quick-full-body', `Quick Full-Body ${BRAND.appName} Session`, 'Extra', 'strength_power', 10, [
     slot('quick-strength', 'lower_body_strength', 'Strength', 'strength_power', ['sit-to-stand', 'squat']),
     slot('quick-balance', 'balance', 'Balance', 'balance_stability', ['balance']),
     slot('quick-mobility', 'mobility', 'Mobility', 'mobility_flexibility', ['mobility-flexibility', 'shoulder-reach-press']),
@@ -1411,7 +1412,7 @@ function substitutionsForDailySelection(
 ): string[] {
   if (!target.requestedLevelId || target.requestedLevelId === level.id) return [];
   if (target.releaseCapped) {
-    return [`Hale used the closest supported level instead of ${levelName(ladder, target.requestedLevelId)}. Your plan and progress are unchanged.`];
+    return [`${BRAND.appName} used the closest supported level instead of ${levelName(ladder, target.requestedLevelId)}. Your plan and progress are unchanged.`];
   }
   return [`Adjusted from ${levelName(ladder, target.requestedLevelId)} to ${level.name} for today's setup.`];
 }
@@ -1794,7 +1795,7 @@ function selectedStimulusMessage(
   if (role === 'primary') return `${slot.title} matched the intended training stimulus.`;
   if (role === 'fallback') {
     if (reason === 'stair_support_required') {
-      return 'A stair drill needs both a stable bottom stair and support nearby, so Hale used a lower-equipment strength option today.';
+      return `A stair drill needs both a stable bottom stair and support nearby, so ${BRAND.appName} used a lower-equipment strength option today.`;
     }
     if (reason === 'floor_required') {
       return `${slot.title} used ${selected.level.name} because floor space is not marked available.`;
@@ -1862,7 +1863,7 @@ function guidanceForSession(
   const { readiness, discomfortAreas } = dailyContext;
   const guidance: string[] = [];
   if (dailyContext.inputStatus === 'malformed_fail_closed') {
-    guidance.push('Hale used a cautious supporting plan because today\'s readiness choices could not be read clearly.');
+    guidance.push(`${BRAND.appName} used a cautious supporting plan because today's readiness choices could not be read clearly.`);
   }
   if (readiness === 'a_bit_stiff') guidance.push('Mobility comes first today, with the first strength item eased back.');
   if (readiness === 'low_energy') {
@@ -1876,7 +1877,7 @@ function guidanceForSession(
   }
   if (readiness === 'short_on_time') guidance.push('This is about 10 minutes, with one strength, one balance, and one mobility item.');
   if (options.setupDiscomfortApplied) {
-    guidance.push('Hale used gentler options around the area you marked in setup.');
+    guidance.push(`${BRAND.appName} used gentler options around the area you marked in setup.`);
   } else if (readiness === 'something_hurts' || discomfortAreas.length > 0) {
     guidance.push('Today avoids the area you flagged and keeps the session gentle. Move only in a comfortable range. You can stop at any time.');
   }
@@ -1923,7 +1924,7 @@ function skippedSlotReasonCode(
 
 function skippedSlotMessage(slot: SessionSlot, reason: SlotStimulusReason): string {
   if (reason === 'band_required') {
-    return 'Upper-back pulling was skipped because it needs a resistance band. Hale did not replace it with shoulder mobility or another movement.';
+    return `Upper-back pulling was skipped because it needs a resistance band. ${BRAND.appName} did not replace it with shoulder mobility or another movement.`;
   }
   if (reason === 'floor_required') {
     return `${slot.title} was skipped because floor space is not marked available.`;

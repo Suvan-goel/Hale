@@ -35,6 +35,7 @@ import {
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 
+import { BRAND } from '../brand';
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
 const VOICE_PREVIEW_CUE = 'voice-preview' as const;
 
@@ -72,11 +73,11 @@ const SECTION_COPY: Record<ProfileSection, { title: string; subtitle: string }> 
   },
   account: {
     title: 'Account & data',
-    subtitle: 'Manage sign-in and your Hale data.',
+    subtitle: `Manage sign-in and your ${BRAND.appName} data.`,
   },
   privacy: {
     title: 'Privacy & data',
-    subtitle: 'See what Hale shows and saves.',
+    subtitle: `See what ${BRAND.appName} shows and saves.`,
   },
 };
 
@@ -246,7 +247,7 @@ function SettingsScreenContent({
         <>
           <DetailOverview
             title="Private camera use"
-            body="Hale checks your position without showing your video."
+            body={`${BRAND.appName} checks your position without showing your video.`}
           />
 
           <SafetyReadinessCard onOpenCameraSetup={onOpenCameraSetup} />
@@ -259,7 +260,7 @@ function SettingsScreenContent({
         <>
           <DetailOverview
             title={planSummary}
-            body="Hale uses these preferences for future workouts, then adjusts for safety and comfort."
+            body={`${BRAND.appName} uses these preferences for future workouts, then adjusts for safety and comfort.`}
             meta="Used for future workouts"
           />
 
@@ -297,13 +298,13 @@ function SettingsScreenContent({
         <>
           <DetailOverview
             title="Basic setup"
-            body="Hale starts with a chair and nearby support, then adds optional items you turn on."
+            body={`${BRAND.appName} starts with a chair and nearby support, then adds optional items you turn on.`}
             meta={controlledBetaEquipmentPositioning.shortLabel}
           />
 
           <DetailCard
             title="Optional items"
-            body="Turn on only items you have and feel safe using. Hale will adapt when something is off."
+            body={`Turn on only items you have and feel safe using. ${BRAND.appName} will adapt when something is off.`}
           >
             <View style={styles.toggleStack}>
               <ToggleRow
@@ -377,7 +378,7 @@ function SettingsScreenContent({
         <>
           <DetailOverview
             title="Private by default"
-            body="Hale uses the camera to measure movement. You never see a live video, and Hale does not save it."
+            body={`${BRAND.appName} uses the camera to measure movement. You never see a live video, and ${BRAND.appName} does not save it.`}
           />
 
           <PrivacyStorageCard />
@@ -797,7 +798,7 @@ function PersonalDetailsCard({
       <View style={styles.personalCardIntro}>
         <Text style={styles.personalCardTitle}>Details</Text>
         <Text style={styles.personalCardDescription}>
-          Hale uses these details to personalize your plan and explain your results.
+          {BRAND.appName} uses these details to personalize your plan and explain your results.
         </Text>
       </View>
 
@@ -908,7 +909,7 @@ function PersonalDetailsCard({
                 })}
               </View>
               <Text style={styles.personalFieldHint}>
-                Shapes Hale's guidance — never how your results are measured.
+                Shapes {BRAND.appName}'s guidance — never how your results are measured.
               </Text>
             </>
           ) : null}
@@ -957,8 +958,8 @@ function InfoRow({ label, value, first }: { label: string; value: string; first?
 function PrivacyStorageCard() {
   return (
     <DetailCard
-      title="What Hale saves"
-      body="Hale saves only what it needs for your plan and results."
+      title={`What ${BRAND.appName} saves`}
+      body={`${BRAND.appName} saves only what it needs for your plan and results.`}
     >
       <View style={styles.privacyLedger}>
         <PrivacyLedgerRow

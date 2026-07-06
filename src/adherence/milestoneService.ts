@@ -11,6 +11,7 @@ import type {
 } from './types';
 import { LOCAL_USER_ID } from './types';
 
+import { BRAND } from '../brand';
 export function generateMilestones({
   user,
   block,
@@ -90,7 +91,7 @@ export function getMilestoneCopy(type: IdentityMilestoneType, lifeGoal?: LifeGoa
     case 'block_completed':
       return {
         title: 'Four weeks complete',
-        body: 'You completed a full Hale block and built proof you can return to the routine.',
+        body: `You completed a full ${BRAND.appName} block and built proof you can return to the routine.`,
       };
     case 'retest_completed':
       return {
@@ -110,7 +111,7 @@ export function getMilestoneCopy(type: IdentityMilestoneType, lifeGoal?: LifeGoa
     case 'younger_than_age_band':
       return {
         title: 'Beta estimate noted',
-        body: 'This home estimate is below your age. Hale keeps beta ranges labelled in the app.',
+        body: `This home estimate is below your age. ${BRAND.appName} keeps beta ranges labelled in the app.`,
       };
     case 'goal_supported':
       return {

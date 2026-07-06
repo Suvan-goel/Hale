@@ -40,6 +40,7 @@ import {
 } from './internalCheckupFlow';
 import type { MovementProfileV2CueId } from './voiceCues';
 
+import { BRAND } from '../brand';
 const LEFT_SIDE_CHAIN = CHAIN_IDS.indexOf('leftSide');
 const RIGHT_SIDE_CHAIN = CHAIN_IDS.indexOf('rightSide');
 const LEFT_ARM_CHAIN = CHAIN_IDS.indexOf('leftArm');
@@ -1743,12 +1744,12 @@ export class MovementProfileV2LiveCoordinator {
     switch (this.stage) {
       case 'standing_frame_check':
         if (this.frameCheckLightingHintNeeded()) {
-          return 'Hale is struggling to see you clearly. Try turning on the main light, then stand still facing the phone.';
+          return `${BRAND.appName} is struggling to see you clearly. Try turning on the main light, then stand still facing the phone.`;
         }
         return 'Stand still where the camera can see your whole body, about three big steps back from the phone.';
       case 'chair_setup':
-        if (this.handsFreeMode) return 'Sit side-on in a sturdy chair. Hale will begin when the camera is ready.';
-        return 'Confirm the sturdy chair setup, then Hale will watch for one practice stand.';
+        if (this.handsFreeMode) return `Sit side-on in a sturdy chair. ${BRAND.appName} will begin when the camera is ready.`;
+        return `Confirm the sturdy chair setup, then ${BRAND.appName} will watch for one practice stand.`;
       case 'chair_practice':
         return 'Do one practice stand. The practice rep will not count.';
       case 'chair_countdown':
@@ -1765,7 +1766,7 @@ export class MovementProfileV2LiveCoordinator {
         if (this.handsFreeMode && this.balanceBestHoldSec !== null) {
           return "Lift one foot again when you're ready.";
         }
-        return "Lift your foot high when you're ready. The timer starts when Hale sees the lift.";
+        return `Lift your foot high when you're ready. The timer starts when ${BRAND.appName} sees the lift.`;
       case 'balance_trial':
         return 'Keep holding.';
       case 'balance_rest':
@@ -1785,7 +1786,7 @@ export class MovementProfileV2LiveCoordinator {
         if (this.handsFreeMode) return 'Stand side-on, move slowly, and fold forward when instructed.';
         return 'Set up side-on for the supporting forward reach.';
       case 'hinge_active':
-        return 'Hold there. Hale is saving the reach now.';
+        return `Hold there. ${BRAND.appName} is saving the reach now.`;
       case 'raw_complete':
         return 'Your raw Check-Up is saved.';
       default:

@@ -29,6 +29,7 @@ import {
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 
+import { BRAND } from '../brand';
 const PAIN_OPTIONS = ['Knee', 'Hip', 'Back', 'Shoulder', 'Ankle', 'Neck', 'None'] as const;
 
 type SafetyProfileSaveOptions = { stayOnScreen?: boolean };
@@ -230,14 +231,14 @@ export function SafetyProfileScreen({
       <ScreenHeader
         progress={progress}
         eyebrow="Safety setup"
-        title="Help Hale choose a safe start"
-        subtitle="A few quick answers help Hale avoid movements that do not feel right for you today."
+        title={`Help ${BRAND.appName} choose a safe start`}
+        subtitle={`A few quick answers help ${BRAND.appName} avoid movements that do not feel right for you today.`}
       />
 
       <ChoiceSection title="About you" meta="Required">
         <View style={styles.referenceStack}>
           <Text style={styles.gentle}>
-            Hale uses your date of birth and sex to compare your results with people like you.
+            {BRAND.appName} uses your date of birth and sex to compare your results with people like you.
           </Text>
           <Pressable
             style={({ pressed }) => [styles.dateButton, pressed && styles.pressed]}
@@ -286,7 +287,7 @@ export function SafetyProfileScreen({
                 ))}
               </View>
               <Text style={styles.gentle}>
-                This shapes Hale's guidance — it never changes how your results are measured.
+                This shapes {BRAND.appName}'s guidance — it never changes how your results are measured.
               </Text>
             </View>
           ) : null}
@@ -294,7 +295,7 @@ export function SafetyProfileScreen({
       </ChoiceSection>
 
       {showStartingDetails ? (
-        <ChoiceSection title="How should Hale start your workouts?" meta="Workout effort">
+        <ChoiceSection title={`How should ${BRAND.appName} start your workouts?`} meta="Workout effort">
           <View style={styles.grid}>
             {STARTING_PACE_OPTIONS.map((option) => (
               <Choice
@@ -306,7 +307,7 @@ export function SafetyProfileScreen({
             ))}
           </View>
           <Text style={styles.gentle}>
-            You can change this later in Settings. Your check-up, pain notes, and safety setup still decide which movements Hale uses.
+            You can change this later in Settings. Your check-up, pain notes, and safety setup still decide which movements {BRAND.appName} uses.
           </Text>
         </ChoiceSection>
       ) : null}
@@ -324,14 +325,14 @@ export function SafetyProfileScreen({
             ))}
           </View>
           <Text style={styles.gentle}>
-            Hale may choose easier options around this area. You can still stop or use support at any time.
+            {BRAND.appName} may choose easier options around this area. You can still stop or use support at any time.
           </Text>
         </ChoiceSection>
       ) : null}
 
       <ChoiceSection title="Movements to include">
         <Text style={styles.gentle}>
-          Hale uses alternatives for any exercise that does not work for you.
+          {BRAND.appName} uses alternatives for any exercise that does not work for you.
         </Text>
         <YesNoQuestion
           title="Floor exercises"

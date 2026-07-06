@@ -6,6 +6,7 @@ import { PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../compone
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 
+import { BRAND } from '../brand';
 const WELCOME_HERO_IMAGE = require('../../assets/images/hale-welcome-hero-v3.png');
 
 export function WelcomeScreen({
@@ -30,8 +31,8 @@ export function WelcomeScreen({
 
       <ScreenHeader
         eyebrow="Welcome"
-        title="Welcome to Hale"
-        subtitle="Muscle and strength change faster through the menopause years. Hale measures where you stand today, then builds a simple 4-week strength plan you can do at home."
+        title={`Welcome to ${BRAND.appName}`}
+        subtitle={`Muscle and strength change faster through the menopause years. ${BRAND.appName} measures where you stand today, then builds a simple 4-week strength plan you can do at home.`}
       />
 
       <View style={styles.heroImageCard}>
@@ -50,7 +51,7 @@ export function WelcomeScreen({
         </View>
         <Text style={styles.summaryTitle}>Start with a 10-minute check-up.</Text>
         <Text style={styles.summaryBody}>
-          Hale checks a few everyday movements to measure your strength, balance, and mobility, compares them with published values for people your age, and uses the results to build your plan. Just three short steps and you are ready to begin.
+          {BRAND.appName} checks a few everyday movements to measure your strength, balance, and mobility, compares them with published values for people your age, and uses the results to build your plan. Just three short steps and you are ready to begin.
         </Text>
         <View style={styles.summaryFacts}>
           <SummaryMetric value="10 min" detail="Check-up" />
@@ -67,7 +68,7 @@ export function WelcomeScreen({
           </View>
         </View>
         <Text style={styles.privacyIntro}>
-          Hale uses the camera only to measure your movement. You will not see a live video of yourself, and Hale will not criticize how you move.
+          {BRAND.appName} uses the camera only to measure your movement. You will not see a live video of yourself, and {BRAND.appName} will not criticize how you move.
         </Text>
       </View>
 

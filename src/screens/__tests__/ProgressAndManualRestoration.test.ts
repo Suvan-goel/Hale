@@ -10,10 +10,10 @@ describe('Progress and Manual / Extra Check-Up UI restoration', () => {
     expect(progress).toContain('<ProgressEmptyState onBeginCheckUp={onStartCheckUp} />');
     expect(progress).toContain('Set your starting point');
     expect(progress).toContain('Start with your check-up');
-    expect(progress).toContain('A short guided check-up gives Hale what it needs to build your first plan.');
+    expect(progress).toContain('A short guided check-up gives ${BRAND.appName} what it needs to build your first plan.');
     expect(progress).toContain('Three calm sessions appear here when your plan is ready.');
     expect(progress).toContain('Start check-up');
-    expect(progress).toContain('Your camera view stays private. Hale never shows a live camera view.');
+    expect(progress).toContain('Your camera view stays private. ${BRAND.appName} never shows a live camera view.');
     expect(progress).not.toContain('Progress is based on repeat check-ups, not one-day changes.');
     expect(progress).toContain('Opens camera setup for your Movement Check-Up.');
     expect(progress).not.toContain(

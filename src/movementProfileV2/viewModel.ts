@@ -13,6 +13,7 @@ import type {
   StoredMovementProfileV2Snapshot,
 } from '../reference/movementProfileV2';
 
+import { BRAND } from '../brand';
 export type MovementProfileV2Domain = MovementDomain;
 
 /**
@@ -170,7 +171,7 @@ function shoulderCard(shoulder: ShoulderInterpretation): MovementProfileV2Domain
     metric: Number.isFinite(degrees) ? `${formatNumber(degrees)}° reach` : 'Not measured',
     status: shoulderTier(shoulder),
     body: shoulder.painLimited
-      ? 'You noted pain during this reach, so Hale keeps the result cautious.'
+      ? `You noted pain during this reach, so ${BRAND.appName} keeps the result cautious.`
       : shoulderEvidence(shoulder),
   };
 }
@@ -199,7 +200,7 @@ function focusDisplay(assessment: MovementProfileV2Assessment): MovementProfileV
       domain: focus.focusDomain,
       title: domainTitle(focus.focusDomain),
       body: focus.planMode === 'prior_focus_reference_supported'
-        ? 'Your results were broadly matched, so Hale kept the focus from your last block.'
+        ? `Your results were broadly matched, so ${BRAND.appName} kept the focus from your last block.`
         : "This was the clearest area to build from today's Check-Up.",
       planMode: focus.planMode,
     };
@@ -215,7 +216,7 @@ function focusDisplay(assessment: MovementProfileV2Assessment): MovementProfileV
   return {
     kind: 'needs_retake',
     title: 'Retake needed',
-    body: 'A retake is needed before Hale can suggest a focus from this profile.',
+    body: `A retake is needed before ${BRAND.appName} can suggest a focus from this profile.`,
     planMode: focus.planMode,
   };
 }

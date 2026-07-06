@@ -21,6 +21,7 @@ import { startingEffortLabel } from '../profile';
 import { colors, fonts, imageOverlayControl, radius, shadow, spacing, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 
+import { BRAND } from '../brand';
 const PLAN_HERO_IMAGE = require('../../assets/images/hale-plan-hero-mountain.png');
 const PLAN_WEEK_DAYS: readonly { value: string; label: string }[] = [
   { value: 'Mon', label: 'Mo' },
@@ -364,13 +365,13 @@ function EmptyPlanState({
           <EmptyPlanStep
             index="1"
             title="Check-up"
-            body="Hale checks strength, balance, and mobility at home."
+            body={`${BRAND.appName} checks strength, balance, and mobility at home.`}
             state={setupReady ? 'complete' : 'current'}
           />
           <EmptyPlanStep
             index="2"
             title="Preparation"
-            body="Hale uses the result to shape your first plan."
+            body={`${BRAND.appName} uses the result to shape your first plan.`}
             state={setupReady ? 'current' : 'upcoming'}
           />
           <EmptyPlanStep
@@ -396,7 +397,7 @@ function EmptyPlanState({
       </View>
 
       <View style={styles.emptyPlanNote}>
-        <Text style={styles.emptyPlanNoteText}>Your camera view stays private. Hale never shows a live camera view.</Text>
+        <Text style={styles.emptyPlanNoteText}>Your camera view stays private. {BRAND.appName} never shows a live camera view.</Text>
       </View>
     </View>
   );

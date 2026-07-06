@@ -13,6 +13,7 @@ import {
 import type { LadderProgress, SessionTemplate, TrainingDomain } from '../training/workoutGeneration';
 import { extraSessionCardBody, extraSessionCardTitle, extraSessionDetailBody } from './extraSessionCopy';
 
+import { BRAND } from '../brand';
 export interface ExtraSessionCard {
   id: string;
   title: string;
@@ -193,19 +194,19 @@ const HEALTH_INSIGHT_ARTICLES: readonly LearnDetail[] = [
       },
       {
         title: 'Strength work is the strongest lever',
-        body: 'Progressive strength training — regularly asking your muscles to do slightly more than they are used to — is the most consistent way to keep muscle and power through this stage. Power matters as much as raw strength: standing up from a chair without hands, catching your balance on an uneven pavement, climbing stairs without pulling on the rail. These are the abilities Hale measures and trains.',
+        body: `Progressive strength training — regularly asking your muscles to do slightly more than they are used to — is the most consistent way to keep muscle and power through this stage. Power matters as much as raw strength: standing up from a chair without hands, catching your balance on an uneven pavement, climbing stairs without pulling on the rail. These are the abilities ${BRAND.appName} measures and trains.`,
       },
       {
         title: 'You do not need a gym to start',
-        body: 'Chair rises, supported squats, step-ups, hinges, and wall push-ups cover most of what matters, and each has an easier and a harder version. What makes it work is progression, not equipment: when a movement stops being challenging, the next level should ask a little more. Hale moves you up that ladder gradually and steps back whenever your body asks for it.',
+        body: `Chair rises, supported squats, step-ups, hinges, and wall push-ups cover most of what matters, and each has an easier and a harder version. What makes it work is progression, not equipment: when a movement stops being challenging, the next level should ask a little more. ${BRAND.appName} moves you up that ladder gradually and steps back whenever your body asks for it.`,
       },
       {
         title: 'Protein and recovery still count',
         body: 'Training gives your body a reason to keep muscle; food and rest give it the means. Spreading protein across the day and protecting a repeatable sleep rhythm both support the same goal. The nutrition and sleep articles in this section go deeper on each.',
       },
       {
-        title: 'What Hale measures — and what it does not',
-        body: 'Hale uses the camera to measure functional strength, balance, and mobility, and compares your results with published values for women your age. It does not measure hormones or bone density, and it never diagnoses anything. Think of it as a regular, honest look at the abilities you use every day — and a plan that trains them.',
+        title: `What ${BRAND.appName} measures — and what it does not`,
+        body: `${BRAND.appName} uses the camera to measure functional strength, balance, and mobility, and compares your results with published values for women your age. It does not measure hormones or bone density, and it never diagnoses anything. Think of it as a regular, honest look at the abilities you use every day — and a plan that trains them.`,
       },
     ],
   },
@@ -225,7 +226,7 @@ const HEALTH_INSIGHT_ARTICLES: readonly LearnDetail[] = [
       },
       {
         title: 'Balance helps you use that strength',
-        body: 'Strength without steadiness can feel hard to trust. Balance practice helps you control force when the surface changes, the lighting is dim, you turn quickly, or you are carrying something. The two systems are linked in daily life, so Hale trains them together instead of treating them as separate projects.',
+        body: `Strength without steadiness can feel hard to trust. Balance practice helps you control force when the surface changes, the lighting is dim, you turn quickly, or you are carrying something. The two systems are linked in daily life, so ${BRAND.appName} trains them together instead of treating them as separate projects.`,
       },
       {
         title: 'Public-health guidance is mixed on purpose',
@@ -236,8 +237,8 @@ const HEALTH_INSIGHT_ARTICLES: readonly LearnDetail[] = [
         body: 'A useful week might include chair rises, supported squats, wall push-ups, balance holds near a counter, and walks broken into realistic chunks. None of this needs a gym. The goal is a repeatable set of movements that supports the things you already do.',
       },
       {
-        title: 'How Hale uses the pairing',
-        body: 'Hale looks at strength, balance, and mobility separately, then builds a block that still feels like a whole-body routine. If balance is the suggested focus, you will still see strength and mobility. If strength is the suggested focus, steadiness does not disappear. Bodies rarely change in neat categories.',
+        title: `How ${BRAND.appName} uses the pairing`,
+        body: `${BRAND.appName} looks at strength, balance, and mobility separately, then builds a block that still feels like a whole-body routine. If balance is the suggested focus, you will still see strength and mobility. If strength is the suggested focus, steadiness does not disappear. Bodies rarely change in neat categories.`,
       },
     ],
   },
@@ -269,7 +270,7 @@ const HEALTH_INSIGHT_ARTICLES: readonly LearnDetail[] = [
       },
       {
         title: 'Know when to ask for help',
-        body: 'If sleep is persistently short, restless, very long, or leaves you exhausted during normal daytime activity, it is worth speaking with a qualified clinician. Hale can support movement habits, but sleep problems deserve proper attention when they keep repeating.',
+        body: `If sleep is persistently short, restless, very long, or leaves you exhausted during normal daytime activity, it is worth speaking with a qualified clinician. ${BRAND.appName} can support movement habits, but sleep problems deserve proper attention when they keep repeating.`,
       },
     ],
   },
@@ -329,7 +330,7 @@ const HEALTH_INSIGHT_ARTICLES: readonly LearnDetail[] = [
       },
       {
         title: 'Use breaks on low-energy days',
-        body: 'On days when a workout feels too much, walking breaks keep a thread of movement in the day. They also pair well with Hale sessions. A short walk before training can help you arrive warmer and less stiff.',
+        body: `On days when a workout feels too much, walking breaks keep a thread of movement in the day. They also pair well with ${BRAND.appName} sessions. A short walk before training can help you arrive warmer and less stiff.`,
       },
       {
         title: 'Make it measurable without pressure',

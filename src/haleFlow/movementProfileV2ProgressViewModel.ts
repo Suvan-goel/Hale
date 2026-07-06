@@ -21,6 +21,7 @@ import {
   parseMovementProfileV2BlockReport,
 } from './movementProfileV2BlockReport';
 
+import { BRAND } from '../brand';
 export type MovementProfileV2ProgressStatus =
   | 'ready'
   | 'no_profile'
@@ -196,7 +197,7 @@ export function buildMovementProfileV2ProgressViewModel(
         authorityFacts,
         recovery: {
           title: 'Movement Profile needs attention',
-          body: 'Your saved Movement Profile data is still on this phone, but Hale cannot safely show it here yet.',
+          body: `Your saved Movement Profile data is still on this phone, but ${BRAND.appName} cannot safely show it here yet.`,
         },
         actions: [],
         diagnostics,
@@ -228,7 +229,7 @@ export function buildMovementProfileV2ProgressViewModel(
       authorityFacts,
       recovery: {
         title: 'Retake your Movement Check-Up',
-        body: 'Your latest Check-Up is saved, but Hale needs a retake before showing a Movement Profile.',
+        body: `Your latest Check-Up is saved, but ${BRAND.appName} needs a retake before showing a Movement Profile.`,
       },
       actions: [{ id: 'start_movement_checkup', label: 'Start Movement Check-Up' }],
       diagnostics,

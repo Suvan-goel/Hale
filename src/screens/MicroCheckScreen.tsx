@@ -75,6 +75,7 @@ import {
 } from '../training/microCheckSideSetup';
 import { poseEstimationWindowSize, recordingCameraViewportSize } from './recordingViewport';
 
+import { BRAND } from '../brand';
 const UI_UPDATE_INTERVAL_MS = 100;
 const IOS_RECORDING_TOP_CLEARANCE = 44;
 
@@ -1013,7 +1014,7 @@ function MicroCheckHelpModal({
           </View>
           <View style={styles.helpIntro}>
             <Text style={styles.modalTitle}>
-              {instructionProfile ? instructionProfile.displayName : 'Help Hale see you clearly'}
+              {instructionProfile ? instructionProfile.displayName : `Help ${BRAND.appName} see you clearly`}
             </Text>
             <Text style={styles.modalBody}>
               {instructionProfile

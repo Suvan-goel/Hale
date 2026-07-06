@@ -14,6 +14,7 @@ import type {
   UnifiedResultDomainId,
 } from './types';
 
+import { BRAND } from '../brand';
 export type MovementProfileV2UnifiedPlanState =
   | {
       status: 'ready';
@@ -204,7 +205,7 @@ function planPresentation(
   return {
     status: 'unavailable',
     title: planState.title ?? 'Plan unavailable right now',
-    body: planState.body ?? 'Your Strength Profile is saved, but Hale could not find a matching prepared plan.',
+    body: planState.body ?? `Your Strength Profile is saved, but ${BRAND.appName} could not find a matching prepared plan.`,
   };
 }
 

@@ -18,6 +18,7 @@ import type {
   VoicePermissionResponse,
 } from '../../modules/expo-voice-commands';
 
+import { BRAND } from '../brand';
 export interface VoiceSetupPrefs {
   /** The in-context permission prompt has been shown (or dismissed) once. */
   promptShown: boolean;
@@ -57,7 +58,7 @@ export function decideVoiceGate(input: {
  */
 export const VOICE_GATE_COPY = {
   permissionPrompt:
-    'Hale can listen for short session words like “I’m ready” and “done” — processed on your phone only, never recorded, never uploaded.',
+    `${BRAND.appName} can listen for short session words like “I’m ready” and “done” — processed on your phone only, never recorded, never uploaded.`,
   permissionAccept: 'Use voice',
   permissionDecline: 'Not now — I’ll tap',
   safetyLine:

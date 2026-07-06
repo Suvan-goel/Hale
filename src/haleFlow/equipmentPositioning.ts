@@ -1,3 +1,4 @@
+import { BRAND } from '../brand';
 export interface ControlledBetaEquipmentPositioning {
   shortLabel: string;
   startingSetup: string;
@@ -13,5 +14,5 @@ export const controlledBetaEquipmentPositioning: ControlledBetaEquipmentPosition
   specialistEquipment: 'No specialist gym equipment is needed to begin.',
   bandRecommendation: 'A long resistance band is recommended for fuller upper-body training and is required for pulling exercises.',
   optionalSetup: 'Floor space, a low stable step, and a door anchor are used only when you confirm they are available.',
-  noEquipmentClarification: 'Hale plans around what you have, but some movements may be unavailable without household support or a resistance band.',
+  noEquipmentClarification: `${BRAND.appName} plans around what you have, but some movements may be unavailable without household support or a resistance band.`,
 };

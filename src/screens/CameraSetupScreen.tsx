@@ -6,12 +6,13 @@ import { PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../compone
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 
+import { BRAND } from '../brand';
 const SETUP_HERO_IMAGE = require('../../assets/images/hale-camera-setup-hero-v4.png');
 
 const SETUP_STEPS = [
   'Set your phone somewhere steady. A shelf, table, phone stand, wall, or sturdy bottle is fine.',
   'Stand about 2 to 3 meters away, with your whole body in view.',
-  'Turn your volume up so you can hear Hale.',
+  `Turn your volume up so you can hear ${BRAND.appName}.`,
   'Keep your chair and a wall or counter nearby.',
   'Turn on the main light if the room is dim.',
   'Use this same spot for future check-ups when you can.',
@@ -47,7 +48,7 @@ export function CameraSetupScreen({
         progress={progress}
         eyebrow="Camera and audio"
         title="Set up your phone"
-        subtitle="Place your phone so Hale can see your full body. You will not see a live video of yourself — just a simple outline."
+        subtitle={`Place your phone so ${BRAND.appName} can see your full body. You will not see a live video of yourself — just a simple outline.`}
       />
 
       <View style={styles.setupImageCard}>
@@ -78,7 +79,7 @@ export function CameraSetupScreen({
         <View style={styles.expectCopy}>
           <Text style={styles.expectTitle}>What to expect</Text>
           <Text style={styles.expectBody}>
-            When Hale can see you clearly, the check-up starts on its own. You will do four short movements, and Hale tells you when to move, rest, and continue. You can pause or stop whenever you want.
+            When {BRAND.appName} can see you clearly, the check-up starts on its own. You will do four short movements, and {BRAND.appName} tells you when to move, rest, and continue. You can pause or stop whenever you want.
           </Text>
         </View>
       </View>

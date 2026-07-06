@@ -20,6 +20,7 @@ import type { PainArea } from '../training';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 
+import { BRAND } from '../brand';
 const ADJUST_OPTIONS: readonly {
   value: TodaySessionAdjustment;
   label: string;
@@ -28,7 +29,7 @@ const ADJUST_OPTIONS: readonly {
   { value: 'shorter', label: 'Make it shorter', description: 'Keep the main goal, but spend less time today.' },
   { value: 'gentler', label: 'Make it gentler', description: 'Easier movements, a slower pace, and more rest.' },
   { value: 'no_equipment', label: 'Less equipment', description: 'Use movements that fit what you have right now.' },
-  { value: 'something_hurts', label: 'Something hurts', description: 'Tell Hale where to be careful today.' },
+  { value: 'something_hurts', label: 'Something hurts', description: `Tell ${BRAND.appName} where to be careful today.` },
 ];
 
 const PAIN_AREAS: readonly { label: string; value: PainArea }[] = [
@@ -247,7 +248,7 @@ function AdjustTodayCard({
       </View>
       {hurtSelected ? (
         <View style={styles.painBlock}>
-          <Text style={styles.painPrompt}>Where should Hale be careful?</Text>
+          <Text style={styles.painPrompt}>Where should {BRAND.appName} be careful?</Text>
           <View style={styles.painOptions}>
             {PAIN_AREAS.map((area) => {
               const selected = activeAdjustment === 'something_hurts' && activePainArea === area.value;
@@ -347,9 +348,9 @@ function sessionBenefitCopy(plan: HaleSessionPlan): string {
 
 function setupIntroCopy(equipmentCount: number): string {
   if (equipmentCount > 0) {
-    return 'Have these close by before you press start. Hale will talk you through each movement.';
+    return `Have these close by before you press start. ${BRAND.appName} will talk you through each movement.`;
   }
-  return 'Clear a little space before you press start. Hale will talk you through each movement.';
+  return `Clear a little space before you press start. ${BRAND.appName} will talk you through each movement.`;
 }
 
 function movementCountLabel(count: number): string {
@@ -391,13 +392,13 @@ export function focusStimulusPreviewCopy(plan: HaleSessionPlan): string | null {
     return null;
   }
   if (focusStimulus.status === 'no_primary_focus_planned') {
-    return `Hale could not safely include your main ${focus} movement today. This support session will not count toward your plan.`;
+    return `${BRAND.appName} could not safely include your main ${focus} movement today. This support session will not count toward your plan.`;
   }
   if (focusStimulus.status === 'focus_mismatch') {
     return `Today's available movements are different from your main ${focus} focus. This support session will not count toward your plan.`;
   }
   if (focusStimulus.status === 'missing_stimulus_metadata') {
-    return 'Hale cannot confirm the main movement for this plan, so this session will not count toward your plan.';
+    return `${BRAND.appName} cannot confirm the main movement for this plan, so this session will not count toward your plan.`;
   }
   return null;
 }
@@ -405,10 +406,10 @@ export function focusStimulusPreviewCopy(plan: HaleSessionPlan): string | null {
 function userAdjustmentPreviewCopy(
   adjustment: NonNullable<HaleSessionPlan['metadata']>['userAdjustment']
 ): string | null {
-  if (adjustment === 'shorter') return 'Hale has shortened today\'s session.';
-  if (adjustment === 'gentler') return 'Hale has made today\'s session gentler.';
-  if (adjustment === 'something_hurts') return 'Hale has adjusted today\'s session to be more careful.';
-  if (adjustment === 'no_equipment') return 'Hale has adjusted today\'s session for the setup you have today.';
+  if (adjustment === 'shorter') return `${BRAND.appName} has shortened today's session.`;
+  if (adjustment === 'gentler') return `${BRAND.appName} has made today's session gentler.`;
+  if (adjustment === 'something_hurts') return `${BRAND.appName} has adjusted today's session to be more careful.`;
+  if (adjustment === 'no_equipment') return `${BRAND.appName} has adjusted today's session for the setup you have today.`;
   return null;
 }
 

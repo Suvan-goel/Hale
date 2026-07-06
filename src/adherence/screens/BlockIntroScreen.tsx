@@ -7,6 +7,7 @@ import { domainLabel } from '../goalDomainMapping';
 import { movementBlockDomainFocus } from '../blockFocus';
 import type { LifeGoal, MovementBlock } from '../types';
 
+import { BRAND } from '../../brand';
 export function BlockIntroScreen({
   block,
   onStartSession,
@@ -25,7 +26,7 @@ export function BlockIntroScreen({
       <ScreenHeader
         eyebrow="4-week plan"
         title="Your 4-week plan is ready"
-        subtitle="Hale built this from your latest check-up, your goal, and your home setup."
+        subtitle={`${BRAND.appName} built this from your latest check-up, your goal, and your home setup.`}
       />
 
       <View style={styles.focusHero}>
@@ -50,7 +51,7 @@ export function BlockIntroScreen({
             <PlanMetric
               value={String(block.sessionsPerWeekTarget)}
               label="Sessions each week"
-              detail="Hale will talk you through each one."
+              detail={`${BRAND.appName} will talk you through each one.`}
             />
             <View style={styles.metricRule} />
             <PlanMetric

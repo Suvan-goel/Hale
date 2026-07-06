@@ -8,6 +8,7 @@ import { getLifeGoalDisplayText } from '../adherenceCopy';
 import { movementBlockDomainFocus } from '../blockFocus';
 import type { LifeGoal, MovementBlock, TrainingSessionCompletion } from '../types';
 
+import { BRAND } from '../../brand';
 export interface SessionFeedbackInput {
   perceivedEffort?: 1 | 2 | 3 | 4 | 5;
   painReported?: boolean;
@@ -99,7 +100,7 @@ export function SessionCompletionScreen({
           <>
             <View style={styles.divider} />
             <View style={styles.section}>
-              <SectionHeading eyebrow="Recorded" title="What Hale recorded" />
+              <SectionHeading eyebrow="Recorded" title={`What ${BRAND.appName} recorded`} />
               <View style={styles.summaryList}>
                 {validTimeSummaries.map((summary, index) => (
                   <View
@@ -225,8 +226,8 @@ export function sessionCompletionCopy({
       cardEyebrow: 'Saved',
       cardTitle: restarted ? 'Your plan is moving again.' : 'Your plan moved forward.',
       body: adjusted
-        ? 'Hale will keep the next session at this level so it stays comfortable.'
-        : "Hale will use today's effort and comfort feedback to choose your next session.",
+        ? `${BRAND.appName} will keep the next session at this level so it stays comfortable.`
+        : `${BRAND.appName} will use today's effort and comfort feedback to choose your next session.`,
     };
   }
 
@@ -238,8 +239,8 @@ export function sessionCompletionCopy({
     const focus = blockFocusDomain ? focusLabel(blockFocusDomain).toLowerCase() : 'balanced';
     const body =
       focusEvidence.exclusionReason === 'missing_stimulus_metadata'
-        ? 'Hale saved the session, but could not confirm it was part of your current plan.'
-        : `Hale moves the ${focus} plan forward after a planned main exercise is completed.`;
+        ? `${BRAND.appName} saved the session, but could not confirm it was part of your current plan.`
+        : `${BRAND.appName} moves the ${focus} plan forward after a planned main exercise is completed.`;
     return {
       eyebrow: 'Session saved',
       title: `${kind} saved.`,
