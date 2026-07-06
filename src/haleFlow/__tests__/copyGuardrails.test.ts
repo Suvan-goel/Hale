@@ -30,6 +30,27 @@ const MISLEADING_EQUIPMENT_COPY =
 const MENOPAUSE_CLAIM_COPY =
   /fracture risk|osteoporosis|osteopenia|hormone replacement|\bHRT\b|bone density (score|test|result|reading)|(?<!not |never )(measures?|estimates?|tracks?|predicts?) (your )?(bone density|hormones?)|(treats?|relieves?|cures?|reverses?) (your )?menopause|menopause (treatment|therapy|cure)/i;
 
+// 2026-07-06 reposition cognitive fence (REPOSITION_TDD §6, approved). Unlike
+// the menopause list, the disease words are banned OUTRIGHT on every product
+// surface — even reassurance or rule-out copy ("it's menopause, not dementia")
+// is banned in all its forms, so no disclaimer-shaped exemption exists here.
+//
+// Approved claim shapes for anything fog-adjacent (the template for future copy):
+//   - personal evidence:      "track how it changes as you train"
+//   - mechanism-and-mediators: "the same training that rebuilds strength supports
+//     the sleep and symptom relief linked to clearer thinking"
+// Never: measuring fog objectively (no instrument exists), treatment/cure/reverse
+// verbs, guaranteed cognitive outcomes, disease-risk framing, brain-training games.
+const COGNITIVE_CLAIM_COPY =
+  /dementia|alzheimer|(fights?|treats?|cures?|reverses?|fixes|eliminates?|beats?) (your )?(brain fog|mental fog|\bfog\b)|(clears?|clearing) (your )?(brain )?fog\b|guaranteed? (to )?(think|focus|remember|sharper|clearer)|(will|you'?ll) (think|feel) (sharper|clearer)|sharper (mind|memory) in \d|risk of (cognitive decline|memory loss)|(cognitive|memory) (decline|loss) risk|brain[- ]training|brain games?/i;
+
+// Clarity self-report surfaces (REPOSITION_TDD §5.1): the word "validated" is
+// banned there — the items are original self-report tracking, not a validated
+// instrument. Slice 4 adds its new files here as it creates them; the fence
+// exists first so no fog-adjacent string ever ships unscanned.
+const CLARITY_SELF_REPORT_COPY_FILES: readonly string[] = [];
+const CLARITY_BANNED_COPY = /\bvalidated\b/i;
+
 const RESULT_COPY_FILES = [
   'src/results/CheckUpResultsShell.tsx',
   'src/screens/ProgressScreen.tsx',
@@ -49,6 +70,7 @@ function assertCleanCopy(parts: readonly unknown[]) {
     .filter((part): part is string => typeof part === 'string')
     .join(' ');
   expect(text).not.toMatch(BANNED_USER_COPY);
+  expect(text).not.toMatch(COGNITIVE_CLAIM_COPY);
 }
 
 function productionSourceText(file: string): string {
@@ -141,6 +163,45 @@ describe('Hale V1 copy guardrails', () => {
     // label (2026-07-05 decision).
     expect(productionSourceText('src/screens/WelcomeScreen.tsx')).toMatch(/menopause/i);
     expect(getLearnDetail('insight-menopause-muscle')?.reviewedLabel).toBe('Reviewed Jul 2026');
+  });
+
+  it('keeps every product surface clear of cognitive disease and fog-treatment claims', () => {
+    const sourceText = [
+      ...RESULT_COPY_FILES.map(productionSourceText),
+      productionSourceText('src/haleFlow/exploreViewModel.ts'),
+      productionSourceText('src/haleFlow/copy.ts'),
+      productionSourceText('src/haleFlow/planViewModel.ts'),
+      productionSourceText('src/haleFlow/appLifecycle.ts'),
+      productionSourceText('src/adherence/goalDomainMapping.ts'),
+      productionSourceText('src/adherence/adherenceCopy.ts'),
+      productionSourceText('src/adherence/milestoneService.ts'),
+      productionSourceText('src/adherence/screens/LifeGoalOnboardingScreen.tsx'),
+      productionSourceText('src/screens/TodayScreen.tsx'),
+      productionSourceText('src/screens/ManualCheckupStartScreen.tsx'),
+      productionSourceText('src/audio/voiceSessionLineScripts.ts'),
+      productionSourceText('src/training/safetyCueDefinitions.ts'),
+      productionSourceText('App.tsx'),
+    ].join(' ');
+    expect(sourceText).not.toMatch(COGNITIVE_CLAIM_COPY);
+
+    expect(
+      getHealthInsightCards()
+        .flatMap((card) => {
+          const detail = getLearnDetail(card.id);
+          return [card.title, card.body, ...(detail?.sections.flatMap((s) => [s.title, s.body]) ?? [])];
+        })
+        .join(' ')
+    ).not.toMatch(COGNITIVE_CLAIM_COPY);
+  });
+
+  it('keeps Clarity self-report surfaces honest: self-reported tracking, never "validated"', () => {
+    // Empty until slice 4 creates the check-in surfaces; each new Clarity copy
+    // file MUST be added here in the PR that creates it (REPOSITION_TDD §6).
+    for (const file of CLARITY_SELF_REPORT_COPY_FILES) {
+      const text = productionSourceText(file);
+      expect(text).not.toMatch(CLARITY_BANNED_COPY);
+      expect(text).not.toMatch(COGNITIVE_CLAIM_COPY);
+    }
   });
 
   it('keeps app equipment positioning centralized and truthful', () => {
