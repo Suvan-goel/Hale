@@ -101,6 +101,7 @@ import {
   latestOfficialMovementProfileV2Assessment,
   validOfficialMovementProfileV2Assessments,
   buildClarityTrendViewModel,
+  buildGhostCurveViewModel,
   buildMovementProfileV2ProgressViewModel,
   materializeMovementProfileV2Block,
   measuredCapabilityFromMovementProfileV2Interpretation,
@@ -4146,6 +4147,10 @@ function HaleApp() {
     [displayHistory]
   );
 
+  // Ghost curve (REPOSITION_TDD §2.4): appears only once ≥4 monthly readings
+  // exist; the view model self-gates on the reading count and reference.
+  const ghostCurve = React.useMemo(() => buildGhostCurveViewModel(displayHistory), [displayHistory]);
+
   const visibleMovementProfileV2Result =
     selectedMovementProfileV2ProgressResult ?? displayedMovementProfileV2Result;
   const visibleMovementProfileV2BlockReport =
@@ -4494,6 +4499,7 @@ function HaleApp() {
               progressDataAuthority={progressDataAuthority}
               movementProfileV2Progress={movementProfileV2Progress}
               clarityTrend={clarityTrend}
+              ghostCurve={ghostCurve}
               onStartMovementProfileV2CheckUp={beginProgressFirstCheckUp}
               onViewMovementProfileV2Profile={viewMovementProfileV2ProgressProfile}
               onViewMovementProfileV2Report={viewMovementProfileV2ProgressReport}

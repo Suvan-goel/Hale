@@ -15,11 +15,13 @@ import {
 } from '../adherence';
 import {
   type ClarityTrendViewModel,
+  type GhostCurveViewModel,
   type MovementProfileV2ProgressChange,
   type MovementProfileV2ProgressChangeDomain,
   type MovementProfileV2ProgressViewModel,
   type ProgressDataAuthority,
 } from '../haleFlow';
+import { GhostCurveCard } from './GhostCurveCard';
 import { type MovementProfileV2Domain } from '../movementProfileV2/viewModel';
 import { type Domain } from '../scoring';
 import type { LadderProgress } from '../training';
@@ -45,6 +47,7 @@ export function ProgressScreen({
   progressDataAuthority,
   movementProfileV2Progress,
   clarityTrend,
+  ghostCurve,
   onStartMovementProfileV2CheckUp,
   onViewMovementProfileV2Profile,
   onOpenSettings,
@@ -83,6 +86,10 @@ export function ProgressScreen({
         completions={completions}
         today={today}
       />
+
+      {ghostCurve && ghostCurve.status === 'ready' ? (
+        <GhostCurveCard viewModel={ghostCurve} />
+      ) : null}
 
       {clarityTrend && clarityTrend.status !== 'no_data' ? (
         <ClarityTrendCard trend={clarityTrend} />
@@ -653,6 +660,8 @@ interface ProgressScreenProps {
   /** Flag-gated Clarity trend (REPOSITION_TDD §5.4); null while the clarity
    * dimension is off scoring surfaces. */
   clarityTrend?: ClarityTrendViewModel | null;
+  /** Ghost curve (REPOSITION_TDD §2.4); null until ≥4 monthly readings exist. */
+  ghostCurve?: GhostCurveViewModel | null;
   onStartMovementProfileV2CheckUp?: () => void;
   onViewMovementProfileV2Profile?: (sourceCheckUpId: string) => void;
   onViewMovementProfileV2Report?: (reportId: string) => void;
