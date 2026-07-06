@@ -24,6 +24,6 @@ export function effortFromRpe(rpe: SessionRpe | null | undefined): EffortAnswer 
   if (rpe === 3 || rpe === 4) return 'a_few';
   if (rpe === 5) return 'none';
   // Unanswered stays unanswered — the engine treats null conservatively
-  // (no standard/fast promotion on unknown effort).
+  // (no promotion of any kind on unknown effort; deliberate §12 amendment).
   return null;
 }

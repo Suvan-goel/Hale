@@ -1,3 +1,17 @@
+/**
+ * Profile preferences sync — IDENTITY AND SETTINGS ONLY.
+ *
+ * 2026-07-06 ruling (health data local-only, app-wide): the safety profile,
+ * menopause stage, and symptom picture are UK GDPR special-category data and
+ * never leave the device — not uploaded, not hydrated from remote, not merged.
+ * The legacy safety_json payload (which carried the safety profile, and with
+ * it equipment/movement-capability sync) was removed under this ruling;
+ * equipment re-confirms locally on a new device via the existing fail-closed
+ * confirmation flow. Pinned by healthDataLocalOnly.test.ts. Sync of health
+ * data, if ever wanted, is its own feature behind its own special-category
+ * consent + encryption review.
+ */
+
 import { LOCAL_USER_ID } from '../../adherence/types';
 import { normalizeLifeGoalDisplayText } from '../../adherence/goalDomainMapping';
 import {
@@ -5,17 +19,10 @@ import {
   ageBandForAge,
   ageFromDateOfBirth,
   birthYearFromDateOfBirth,
-  canonicalEquipmentFromSafetyProfile,
-  canonicalEquipmentToAvailableEquipment,
   defaultPreferences,
   deserializePreferences,
-  movementCapabilitiesFromSafetyProfile,
-  movementCapabilityProfileForPersistence,
-  resolveCanonicalEquipmentRecords,
-  resolveMovementCapabilityRecords,
   type Preferences,
 } from '../../profile';
-import type { MovementSafetyProfile } from '../../adherence';
 import { addBreadcrumb } from '../observability/sentry';
 import { getCurrentSession } from './authService';
 import { getCurrentProfile, upsertCurrentProfile } from './profileService';
@@ -67,10 +74,7 @@ export function preferencesToBackendProfileUpdate(prefs: Preferences): BackendPr
       onboarding: prefs.onboarding,
       lifeGoal: prefs.profile.lifeGoal,
     }),
-    safety_json: toBackendJson({
-      schemaVersion: PREFERENCES_SCHEMA_VERSION,
-      safetyProfile: normalizedSafetyProfile(prefs.profile.safetyProfile, 'local_user'),
-    }),
+    // No safety payload: health data is local-only (see module header).
     preferences_json: toBackendJson({
       schemaVersion: PREFERENCES_SCHEMA_VERSION,
       settings: prefs.settings,
@@ -96,12 +100,15 @@ export function mergeRemoteProfileIntoLocal(
 
   return {
     profile: {
+      // Local-first spread: the health fields ride through from local state
+      // WITHOUT being named here — hydrating them from remote would require
+      // naming them, which the healthDataLocalOnly scan forbids. Only
+      // identity/routing fields below are remote-aware.
+      ...localPrefs.profile,
       name: hasText(localPrefs.profile.name) ? localPrefs.profile.name : remotePrefs.profile.name,
       dateOfBirth,
       exactAge,
       referenceSex: localPrefs.profile.referenceSex ?? remotePrefs.profile.referenceSex,
-      menopauseStage: localPrefs.profile.menopauseStage ?? remotePrefs.profile.menopauseStage,
-      symptomPicture: localPrefs.profile.symptomPicture ?? remotePrefs.profile.symptomPicture,
       age: derivedAge ?? localPrefs.profile.age ?? remotePrefs.profile.age,
       ageBand:
         derivedAge !== null
@@ -113,110 +120,12 @@ export function mergeRemoteProfileIntoLocal(
       lifeGoal:
         localPrefs.profile.lifeGoal ??
         (hydrateRoutingFields ? remotePrefs.profile.lifeGoal : localPrefs.profile.lifeGoal),
-      safetyProfile: resolveSafetyProfileForMerge({
-        local: localPrefs.profile.safetyProfile,
-        remote: remotePrefs.profile.safetyProfile,
-        hydrateRoutingFields,
-      }),
     },
     settings: sameJson(localPrefs.settings, defaults.settings) ? remotePrefs.settings : localPrefs.settings,
     onboarding:
       hydrateRoutingFields && sameJson(localPrefs.onboarding, defaults.onboarding)
         ? remotePrefs.onboarding
         : localPrefs.onboarding,
-  };
-}
-
-function resolveSafetyProfileForMerge({
-  local,
-  remote,
-  hydrateRoutingFields,
-}: {
-  local: MovementSafetyProfile | null;
-  remote: MovementSafetyProfile | null;
-  hydrateRoutingFields: boolean;
-}): MovementSafetyProfile | null {
-  if (!hydrateRoutingFields) return local;
-  if (!local && !remote) return null;
-  if (!local) return normalizedSafetyProfile(remote, 'remote_profile');
-  if (!remote) return normalizedSafetyProfile(local, 'local_user');
-
-  const resolved = resolveCanonicalEquipmentRecords({
-    local: canonicalEquipmentFromSafetyProfile(local, 'local_user'),
-    remote: canonicalEquipmentFromSafetyProfile(remote, 'remote_profile'),
-  });
-  const resolvedCapabilities = resolveMovementCapabilityRecords({
-    local: movementCapabilitiesFromSafetyProfile(local, 'local_user'),
-    remote: movementCapabilitiesFromSafetyProfile(remote, 'remote_profile'),
-  });
-  const selectedBase = resolved.profile.source === 'remote_profile' ? remote : local;
-  const selectedCapabilityBase = resolvedCapabilities.profile.source === 'remote_profile' ? remote : local;
-  const normalized = {
-    ...selectedBase,
-    availableEquipment: canonicalEquipmentToAvailableEquipment(resolved.profile),
-    equipmentStatus: resolved.profile.status,
-    equipmentRevision: resolved.profile.revision,
-    equipmentUpdatedAt: resolved.profile.updatedAt ?? selectedBase.equipmentUpdatedAt ?? selectedBase.updatedAt,
-    movementCapabilities: movementCapabilityProfileForPersistence(resolvedCapabilities.profile, {
-      source: resolvedCapabilities.profile.source,
-      revision: resolvedCapabilities.profile.revision,
-      updatedAt:
-        resolvedCapabilities.profile.updatedAt ??
-        selectedCapabilityBase.movementCapabilities?.updatedAt ??
-        selectedCapabilityBase.updatedAt,
-    }),
-    updatedAt: resolved.profile.updatedAt ?? selectedBase.updatedAt,
-  };
-
-  for (const diagnostic of resolved.diagnostics) {
-    if (diagnostic.reason.startsWith('equipment_conflict')) {
-      addBreadcrumb('profile equipment conflict resolved', {
-        category: 'profile_preferences',
-        reason: diagnostic.reason,
-        localUpdatedAt: diagnostic.localUpdatedAt,
-        remoteUpdatedAt: diagnostic.remoteUpdatedAt,
-        localRevision: diagnostic.localRevision,
-        remoteRevision: diagnostic.remoteRevision,
-      });
-    }
-  }
-  for (const diagnostic of resolvedCapabilities.diagnostics) {
-    if (diagnostic.reason.startsWith('movement_capability_conflict')) {
-      addBreadcrumb('profile movement capability conflict resolved', {
-        category: 'profile_preferences',
-        reason: diagnostic.reason,
-        localUpdatedAt: diagnostic.localUpdatedAt,
-        remoteUpdatedAt: diagnostic.remoteUpdatedAt,
-        localRevision: diagnostic.localRevision,
-        remoteRevision: diagnostic.remoteRevision,
-      });
-    }
-  }
-
-  return normalized;
-}
-
-function normalizedSafetyProfile(
-  safetyProfile: MovementSafetyProfile | null,
-  source: 'local_user' | 'remote_profile'
-): MovementSafetyProfile | null {
-  if (!safetyProfile) return null;
-  const canonical = canonicalEquipmentFromSafetyProfile(safetyProfile, source);
-  const movementCapabilities = movementCapabilitiesFromSafetyProfile(safetyProfile, source);
-  return {
-    ...safetyProfile,
-    availableEquipment: canonicalEquipmentToAvailableEquipment(canonical),
-    equipmentStatus: canonical.status,
-    equipmentRevision: canonical.revision,
-    equipmentUpdatedAt: canonical.updatedAt ?? safetyProfile.equipmentUpdatedAt ?? safetyProfile.updatedAt,
-    movementCapabilities: movementCapabilityProfileForPersistence(movementCapabilities, {
-      source: movementCapabilities.source,
-      revision: movementCapabilities.revision,
-      updatedAt:
-        movementCapabilities.updatedAt ??
-        safetyProfile.movementCapabilities?.updatedAt ??
-        safetyProfile.updatedAt,
-    }),
   };
 }
 
@@ -262,7 +171,6 @@ export const syncLocalProfileToRemote = syncLocalPreferencesToRemote;
 function preferencesFromBackendProfile(remoteProfile: BackendProfile): Preferences | null {
   const profileJson = asObject(remoteProfile.profile_json);
   const onboardingJson = asObject(remoteProfile.onboarding_json);
-  const safetyJson = asObject(remoteProfile.safety_json);
   const preferencesJson = asObject(remoteProfile.preferences_json);
   const onboarding = asObject(onboardingJson.onboarding);
   const profile = {
@@ -274,7 +182,8 @@ function preferencesFromBackendProfile(remoteProfile: BackendProfile): Preferenc
     ageBand: profileJson.ageBand ?? null,
     goal: normalizeLifeGoalDisplayText(stringValue(profileJson.goal) ?? ''),
     lifeGoal: onboardingJson.lifeGoal ?? null,
-    safetyProfile: safetyJson.safetyProfile ?? null,
+    // Health fields deliberately absent: remote rows carry none (the legacy
+    // safety column is never read), and the defensive parser defaults them.
   };
 
   const settings = asObject(preferencesJson.settings);

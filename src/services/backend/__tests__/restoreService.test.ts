@@ -1,5 +1,5 @@
 import { BALANCE_LADDER_ID, CHAIR_STAND_ID, SHOULDER_FLEXION_ID } from '../../../movements';
-import { blockProgress, defaultAdherenceStoreState, type MovementBlock, type MovementBlockReport } from '../../../adherence';
+import { blockProgress, defaultAdherenceStoreState, type MovementBlock, type MovementBlockReport, type MovementSafetyProfile } from '../../../adherence';
 import {
   MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
   createActiveShoulderReachV2Setup,
@@ -194,6 +194,19 @@ function backendJson(value: unknown): never {
   return JSON.parse(JSON.stringify(value)) as never;
 }
 
+function locallyConfirmedSafetyProfile(): MovementSafetyProfile {
+  return {
+    id: 'safety-local',
+    userId: 'local-device-user',
+    availableEquipment: ['chair', 'wall'],
+    equipmentStatus: 'confirmed',
+    equipmentRevision: 1,
+    equipmentUpdatedAt: '2026-06-21T08:00:00.000Z',
+    createdAt: '2026-06-21T08:00:00.000Z',
+    updatedAt: '2026-06-21T08:00:00.000Z',
+  };
+}
+
 function remoteSnapshot(): RemoteHaleSnapshot {
   const training = trainingState();
   const localCheckUp = checkUp();
@@ -234,10 +247,6 @@ function remoteSnapshot(): RemoteHaleSnapshot {
           updatedAt: '2026-06-18T09:00:00.000Z',
         },
         lifeGoal: null,
-      },
-      safety_json: {
-        schemaVersion: 4,
-        safetyProfile: null,
       },
       preferences_json: backendJson({
         schemaVersion: 4,
@@ -499,19 +508,6 @@ describe('remote restore service', () => {
 
   it('preserves restored optional ladder progress while current planning uses the beta cap', () => {
     const snapshot = remoteSnapshot();
-    snapshot.profile!.safety_json = backendJson({
-      schemaVersion: 4,
-      safetyProfile: {
-        id: 'safety-remote',
-        userId: 'local-device-user',
-        availableEquipment: ['chair', 'wall'],
-        equipmentStatus: 'confirmed',
-        equipmentRevision: 4,
-        equipmentUpdatedAt: '2026-06-20T08:00:00.000Z',
-        createdAt: '2026-06-18T08:00:00.000Z',
-        updatedAt: '2026-06-20T08:00:00.000Z',
-      },
-    });
     snapshot.trainingState!.state_json = backendJson({
       ...(snapshot.trainingState!.state_json as Record<string, unknown>),
       ladderProgressById: {
@@ -529,10 +525,13 @@ describe('remote restore service', () => {
     });
 
     const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
+    // Health data is local-only (2026-07-06 ruling): restore never hydrates a
+    // safety profile, so planning uses one re-confirmed locally post-restore.
+    expect(mapped.state.preferences.profile.safetyProfile).toBeNull();
     const plan = requireHaleSessionPlan({
       activeBlock: mapped.state.adherence.blocks[0],
       training: mapped.state.training,
-      safetyProfile: mapped.state.preferences.profile.safetyProfile,
+      safetyProfile: locallyConfirmedSafetyProfile(),
       targetSessionTemplateId: 'session_a',
       today: '2026-06-21T08:00:00.000Z',
     });
@@ -548,41 +547,41 @@ describe('remote restore service', () => {
     });
   });
 
-  it('does not let restored training-state equipment override a canonical profile', () => {
+  it('ignores a legacy remote safety_json row entirely and degrades planning gracefully', () => {
+    // 2026-07-06 ruling: health data is local-only. A pre-ruling remote row
+    // that still carries safety_json restores WITHOUT it — the safety profile
+    // stays null and planning fails closed into the existing local
+    // equipment-confirmation flow rather than consuming remote health data.
     const snapshot = remoteSnapshot();
-    snapshot.profile!.safety_json = backendJson({
+    (snapshot.profile as unknown as Record<string, unknown>).safety_json = backendJson({
       schemaVersion: 4,
       safetyProfile: {
         id: 'safety-remote',
         userId: 'local-device-user',
-        availableEquipment: ['none'],
+        availableEquipment: ['chair', 'wall'],
         equipmentStatus: 'confirmed',
         equipmentRevision: 4,
         equipmentUpdatedAt: '2026-06-19T08:00:00.000Z',
         createdAt: '2026-06-18T08:00:00.000Z',
         updatedAt: '2026-06-19T08:00:00.000Z',
+        hasCurrentPain: true,
+        painNotes: 'left knee',
       },
-    });
-    snapshot.trainingState!.state_json = backendJson({
-      ...(snapshot.trainingState!.state_json as Record<string, unknown>),
-      equipment: { stair: true, band: true, miniBand: true, load: true },
     });
 
     const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
-    const activeBlock = mapped.state.adherence.blocks[0];
-    const plan = requireHaleSessionPlan({
-      activeBlock,
+    expect(mapped.state.preferences.profile.safetyProfile).toBeNull();
+    expect(JSON.stringify(mapped.state.preferences)).not.toContain('left knee');
+
+    const result = planTodayHaleSession({
+      activeBlock: mapped.state.adherence.blocks[0],
       training: mapped.state.training,
       safetyProfile: mapped.state.preferences.profile.safetyProfile,
       today: '2026-06-21T08:00:00.000Z',
     });
-
-    expect(mapped.state.training.equipment).toMatchObject({ stair: true, band: true, miniBand: true, load: true });
-    expect(mapped.state.preferences.profile.safetyProfile?.availableEquipment).toEqual(['none']);
-    expect(plan.metadata?.equipmentSnapshot?.capabilities).toEqual([]);
-    expect(plan.exercises.flatMap((exercise) => exercise.requiresEquipment ?? [])).not.toEqual(
-      expect.arrayContaining(['stair', 'long_band', 'mini_band', 'backpack_or_weight'])
-    );
+    expect(result.kind).toBe('unavailable');
+    if (result.kind !== 'unavailable') throw new Error('expected unavailable result');
+    expect(result.reason).toBe('equipment_confirmation_required');
   });
 
   it('blocks current planning when restore has only legacy training equipment and no canonical profile', () => {

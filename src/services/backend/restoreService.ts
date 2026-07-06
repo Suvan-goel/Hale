@@ -607,7 +607,6 @@ async function fetchRemoteProfile(
         'sex',
         'profile_json',
         'onboarding_json',
-        'safety_json',
         'preferences_json',
         'onboarding_completed_at',
         'created_at',
@@ -826,7 +825,6 @@ function hasMeaningfulPreferences(prefs: Preferences): boolean {
     prefs.profile.ageBand !== null ||
     hasText(prefs.profile.goal) ||
     prefs.profile.lifeGoal !== null ||
-    prefs.profile.safetyProfile !== null ||
     JSON.stringify(prefs.settings) !== JSON.stringify(defaults.settings) ||
     prefs.onboarding.currentStep !== 'welcome' ||
     prefs.onboarding.baselineResultId !== null ||

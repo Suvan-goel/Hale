@@ -187,14 +187,22 @@ describe('entry promotion', () => {
     expect(result.decision).toEqual({ kind: 'promote', toLevel: 2, reason: 'entry' });
   });
 
-  it('entry promotion needs no effort answer (load is trivial; boredom is the risk)', () => {
+  it('blocks entry promotion on unanswered effort — the deliberate stricter-than-§12 amendment', () => {
     const all = statesAt({ push: 2 }); // L2 entry: 2 × 8–15
-    const result = evaluatePatternOutcome(
+    const unanswered = evaluatePatternOutcome(
       all.push,
       outcome({ pattern: 'push', level: 2, sets: [15, 15], effort: null }),
       all
     );
-    expect(result.decision).toEqual({ kind: 'promote', toLevel: 3, reason: 'entry' });
+    expect(unanswered.decision).toEqual({ kind: 'hold' });
+
+    // Any actual answer (even 'none') lets the entry rule fire.
+    const answered = evaluatePatternOutcome(
+      all.push,
+      outcome({ pattern: 'push', level: 2, sets: [15, 15], effort: 'none' }),
+      all
+    );
+    expect(answered.decision).toEqual({ kind: 'promote', toLevel: 3, reason: 'entry' });
   });
 });
 

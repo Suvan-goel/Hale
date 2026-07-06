@@ -3,6 +3,8 @@ import { supabase } from '../../lib/supabase';
 
 import type { AuthUser, BackendProfile, BackendProfileUpdate } from './types';
 
+// safety_json deliberately absent: health data is local-only (2026-07-06
+// ruling) — never selected, never written.
 const PROFILE_COLUMNS = [
   'id',
   'local_user_id',
@@ -11,7 +13,6 @@ const PROFILE_COLUMNS = [
   'sex',
   'profile_json',
   'onboarding_json',
-  'safety_json',
   'preferences_json',
   'onboarding_completed_at',
   'created_at',

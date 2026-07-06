@@ -1,3 +1,10 @@
+/**
+ * Profile sync is IDENTITY AND SETTINGS ONLY (2026-07-06 ruling: health data
+ * local-only, app-wide). These tests pin both directions: uploads carry no
+ * health fields, and hydration/merge never consumes them from remote — even
+ * from a legacy pre-ruling row that still has them.
+ */
+
 import { defaultPreferences, type Preferences } from '../../../profile';
 import type { MovementSafetyProfile } from '../../../adherence';
 import type { BackendJson, BackendProfile } from '../types';
@@ -21,43 +28,45 @@ jest.mock('../authService', () => ({
 
 const START = '2026-06-21T08:00:00.000Z';
 
-function safety(
-  availableEquipment: MovementSafetyProfile['availableEquipment'],
-  overrides: Partial<MovementSafetyProfile> = {}
-): MovementSafetyProfile {
+function safety(): MovementSafetyProfile {
   return {
     id: 'safety',
     userId: 'local-device-user',
-    availableEquipment,
+    availableEquipment: ['chair'],
     equipmentStatus: 'confirmed',
     equipmentRevision: 1,
     equipmentUpdatedAt: START,
+    hasCurrentPain: true,
+    painNotes: 'left knee twinges',
     createdAt: START,
     updatedAt: START,
-    ...overrides,
   };
 }
 
-function prefs(safetyProfile: MovementSafetyProfile | null): Preferences {
+function healthyLocalPrefs(): Preferences {
+  const prefs = defaultPreferences();
   return {
-    ...defaultPreferences(),
+    ...prefs,
     profile: {
-      ...defaultPreferences().profile,
-      safetyProfile,
+      ...prefs.profile,
+      name: 'Ada',
+      menopauseStage: 'perimenopausal',
+      symptomPicture: { kind: 'selected', symptoms: ['sleep_disruption'] },
+      safetyProfile: safety(),
     },
   };
 }
 
-function remoteProfile(safetyProfile: MovementSafetyProfile | null): BackendProfile {
-  return {
+function remoteProfileRow(extra: Record<string, unknown> = {}): BackendProfile {
+  const base = {
     id: 'user-123',
     local_user_id: 'local-device-user',
-    full_name: null,
+    full_name: 'Remote Ada',
     birth_year: null,
     sex: null,
     profile_json: backendJson({
       schemaVersion: 4,
-      name: '',
+      name: 'Remote Ada',
       age: null,
       goal: '',
     }),
@@ -66,10 +75,6 @@ function remoteProfile(safetyProfile: MovementSafetyProfile | null): BackendProf
       onboarding: defaultPreferences().onboarding,
       lifeGoal: null,
     }),
-    safety_json: backendJson({
-      schemaVersion: 4,
-      safetyProfile,
-    }),
     preferences_json: backendJson({
       schemaVersion: 4,
       settings: defaultPreferences().settings,
@@ -77,75 +82,37 @@ function remoteProfile(safetyProfile: MovementSafetyProfile | null): BackendProf
     onboarding_completed_at: null,
     created_at: START,
     updated_at: START,
+    ...extra,
   };
+  return base as unknown as BackendProfile;
 }
 
 function backendJson(value: unknown): BackendJson {
   return JSON.parse(JSON.stringify(value)) as BackendJson;
 }
 
-function confirmedMovementCapabilities(revision = 1, updatedAt = START): MovementSafetyProfile['movementCapabilities'] {
-  return {
-    schemaVersion: 1,
-    floorTransfer: { status: 'confirmed' },
-    stepUpEnvironment: {
-      status: 'confirmed',
-      lowStableStep: true,
-      fixedSupport: true,
-      clearDryArea: true,
-      phoneOutOfPath: true,
-    },
-    singleLegBalance: { status: 'confirmed_with_support' },
-    revision,
-    updatedAt,
-  };
-}
+describe('upload shape: no health data ever leaves the device', () => {
+  it('builds an update with no safety payload and no health tokens', () => {
+    const update = preferencesToBackendProfileUpdate(healthyLocalPrefs());
 
-describe('profile equipment sync merge', () => {
-  it('uses newer valid remote canonical equipment during restore hydration', () => {
-    const merged = mergeRemoteProfileIntoLocal(
-      remoteProfile(safety(['wall'], { equipmentRevision: 3, equipmentUpdatedAt: '2026-06-21T09:00:00.000Z' })),
-      prefs(safety(['chair'], { equipmentRevision: 2, equipmentUpdatedAt: '2026-06-21T08:00:00.000Z' })),
-      { hydrateRoutingFields: true }
-    );
-
-    expect(merged.profile.safetyProfile?.availableEquipment).toEqual(['wall']);
-    expect(merged.profile.safetyProfile?.equipmentRevision).toBe(3);
+    expect('safety_json' in update).toBe(false);
+    const serialized = JSON.stringify(update);
+    for (const token of [
+      'safetyProfile',
+      'menopauseStage',
+      'symptomPicture',
+      'hasCurrentPain',
+      'painNotes',
+      'left knee twinges',
+      'perimenopausal',
+      'sleep_disruption',
+    ]) {
+      expect({ token, present: serialized.includes(token) }).toEqual({ token, present: false });
+    }
   });
 
-  it('preserves local explicit equipment on equal markers or marker-less conflicts', () => {
-    const merged = mergeRemoteProfileIntoLocal(
-      remoteProfile(safety(['stairs'], { equipmentRevision: 2 })),
-      prefs(safety(['none'], { equipmentRevision: 2 })),
-      { hydrateRoutingFields: true }
-    );
-
-    expect(merged.profile.safetyProfile?.availableEquipment).toEqual(['none']);
-  });
-
-  it('does not hydrate current equipment when routing-field hydration is disabled', () => {
-    const merged = mergeRemoteProfileIntoLocal(
-      remoteProfile(safety(['wall'], { equipmentRevision: 3 })),
-      prefs(safety(['chair'], { equipmentRevision: 2 })),
-      { hydrateRoutingFields: false }
-    );
-
-    expect(merged.profile.safetyProfile?.availableEquipment).toEqual(['chair']);
-  });
-
-  it('syncs canonical equipment metadata through the profile payload', () => {
-    const update = preferencesToBackendProfileUpdate(
-      prefs(safety(['chair', 'resistance_band'], { equipmentRevision: 5 }))
-    );
-    const safetyJson = update.safety_json as unknown as { safetyProfile: MovementSafetyProfile };
-
-    expect(safetyJson.safetyProfile.availableEquipment).toEqual(['chair', 'resistance_band']);
-    expect(safetyJson.safetyProfile.equipmentStatus).toBe('confirmed');
-    expect(safetyJson.safetyProfile.equipmentRevision).toBe(5);
-  });
-
-  it('syncs date of birth through profile json and backend birth year', () => {
-    const localPrefs = prefs(null);
+  it('still syncs identity fields (date of birth, birth year, sex)', () => {
+    const localPrefs = healthyLocalPrefs();
     localPrefs.profile.dateOfBirth = '1968-07-01';
     localPrefs.profile.exactAge = 57;
     localPrefs.profile.referenceSex = 'female';
@@ -159,16 +126,48 @@ describe('profile equipment sync merge', () => {
     expect(update.sex).toBe('female');
     expect(profileJson.dateOfBirth).toBe('1968-07-01');
   });
+});
 
-  it('hydrates explicit remote movement capability confirmations over legacy-missing local data', () => {
+describe('merge/hydration: health fields never arrive from remote', () => {
+  it('keeps local health fields untouched and ignores a legacy remote safety_json row', () => {
+    const localPrefs = healthyLocalPrefs();
     const merged = mergeRemoteProfileIntoLocal(
-      remoteProfile(safety(['chair'], { movementCapabilities: confirmedMovementCapabilities(3, '2026-06-21T09:00:00.000Z') })),
-      prefs(safety(['chair'], { movementCapabilities: undefined, updatedAt: '2026-06-21T10:00:00.000Z' })),
+      remoteProfileRow({
+        safety_json: backendJson({
+          schemaVersion: 4,
+          safetyProfile: { ...safety(), id: 'safety-remote', painNotes: 'remote-only note' },
+        }),
+      }),
+      localPrefs,
       { hydrateRoutingFields: true }
     );
 
-    expect(merged.profile.safetyProfile?.movementCapabilities?.floorTransfer.status).toBe('confirmed');
-    expect(merged.profile.safetyProfile?.movementCapabilities?.stepUpEnvironment.lowStableStep).toBe(true);
-    expect(merged.profile.safetyProfile?.movementCapabilities?.revision).toBe(3);
+    expect(merged.profile.safetyProfile).toEqual(localPrefs.profile.safetyProfile);
+    expect(merged.profile.menopauseStage).toBe('perimenopausal');
+    expect(JSON.stringify(merged)).not.toContain('remote-only note');
+  });
+
+  it('leaves absent local health fields absent even when a legacy row offers them', () => {
+    const merged = mergeRemoteProfileIntoLocal(
+      remoteProfileRow({
+        profile_json: backendJson({
+          schemaVersion: 4,
+          name: 'Remote Ada',
+          age: null,
+          goal: '',
+          menopauseStage: 'postmenopausal',
+          symptomPicture: { kind: 'selected', symptoms: ['hot_flushes'] },
+        }),
+        safety_json: backendJson({ schemaVersion: 4, safetyProfile: safety() }),
+      }),
+      defaultPreferences(),
+      { hydrateRoutingFields: true }
+    );
+
+    expect(merged.profile.safetyProfile).toBeNull();
+    expect(merged.profile.menopauseStage).toBeNull();
+    expect(merged.profile.symptomPicture).toBeNull();
+    // Non-health hydration still works.
+    expect(merged.profile.name).toBe('Remote Ada');
   });
 });

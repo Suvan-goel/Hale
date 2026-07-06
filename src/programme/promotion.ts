@@ -22,6 +22,13 @@
  * Between check-ups promotions are single-step by construction (+1 only);
  * multi-step jumps happen only via applyCheckupPlacement.
  *
+ * DELIBERATE AMENDMENT TO §12 (founder ruling, 2026-07-06): an unanswered
+ * effort question blocks EVERY promotion path — including entry-promotion,
+ * which the spec pseudocode gates on top-of-range alone. Stricter than the
+ * spec, chosen as the conservative default: v1 effort arrives from the
+ * session-level RPE check-in, and a skipped check-in must never level
+ * anyone up.
+ *
  * Voice never announces raw logic — promotions are framed as earned level-ups,
  * regressions as "easing back in" (copy lives with the session layer).
  */
@@ -273,8 +280,11 @@ function promotionReason(
   config: PromotionConfig
 ): 'standard' | 'fast' | 'entry' | null {
   if (!top) return null;
+  // Unanswered effort never promotes — any path (see module header: a
+  // deliberate, stricter-than-§12 amendment; conservative default).
+  if (outcome.effort === null) return null;
   // Entry levels (L1–L2): one session at top of range — early boredom is a
-  // bigger risk than early progression (§1). No effort condition in the spec.
+  // bigger risk than early progression (§1).
   if (level.isEntryLevel) return 'entry';
   if (outcome.effort === 'lots') return 'fast';
   const previousSessionPainFree = state.recentPainFlags.length === 0 || !lastOf(state.recentPainFlags);

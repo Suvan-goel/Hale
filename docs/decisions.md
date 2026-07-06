@@ -4252,3 +4252,36 @@ Guardrail tests: spinal flexion structurally unrepresentable (CoreStimulus)
 plus string-scan ban across ids/names; display-name jargon ban; every
 reachable exercise named; backend-layer containment scan (no programme
 imports/fields/store file in backup shapes).
+
+## 2026-07-06 — Health data local-only APP-WIDE (legacy fields join the programme ruling); effort amendment to §12
+
+- **RULING (founder): the local-only health posture extends to the LEGACY fields
+  now.** menopauseStage and safetyProfile no longer sync to Supabase: the
+  safety_json payload is removed from upload, select lists (profileService,
+  restoreService), the BackendProfile/BackendProfileUpdate types, and all
+  hydration/merge paths (profileSyncService, and restore via the same merge).
+  symptomPicture (never uploaded, but previously named in the merge) is included.
+  With zero users this is the cheapest this fix will ever be, and the Step 2
+  consent copy ("only to tailor your programme; never sold or shared") is only
+  truthful under this posture. Equipment/movement-capability sync rode inside
+  safetyProfile and is removed with it — prefer sending nothing over schema
+  contortions; on a new device, equipment re-confirms locally through the
+  existing fail-closed `equipment_confirmation_required` flow (this is the
+  verified graceful degradation: a restore with a legacy safety_json row maps
+  to safetyProfile = null and planning blocks into local confirmation — pinned
+  by restoreService tests, including a canary that legacy remote pain notes
+  appear nowhere in restored state). The merge is now local-first BY
+  CONSTRUCTION: health fields ride through a spread without being named, so
+  hydrating them would require naming them — which the containment scan forbids.
+- **Containment test extended and renamed** — `healthDataLocalOnly.test.ts`
+  (was programmeLocalOnly): scans non-test backend sources with comments
+  stripped; bans programme tokens AND safety_json / safetyProfile /
+  menopauseStage / symptomPicture / MovementSafetyProfile.
+- The profiles table's safety_json COLUMN may still exist in Supabase; the app
+  sends and reads nothing. Dropping the column is optional backend hygiene.
+- **§12 amendment recorded (conformance spot-check):** an unanswered effort
+  question blocks EVERY promotion path, including entry-promotion (the spec
+  pseudocode gates entry on top-of-range alone). Stricter than spec, chosen as
+  the conservative default — v1 effort arrives from the session-level RPE
+  check-in, and a skipped check-in must never level anyone up. Documented in
+  the promotion module header; pinned by test.
