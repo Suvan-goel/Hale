@@ -170,13 +170,14 @@ describe('H3.1 public unified Movement Check-Up lifecycle', () => {
     expect(result.presentation.variant).toBe('onboarding');
     expect(result.presentation.focus.title).toBe('Strength / Power');
     expect(result.presentation.domains[0]).toMatchObject({
-      // The card leads with the plain shared tier; the body is baseline-
-      // relative by default (reposition slice 5) — percentile evidence
-      // renders only behind the population-comparison opt-in.
+      // First-ever results are purely diagnosis-shaped (founder decision
+      // 2026-07-06): no tier chip, baseline-relative body — percentile
+      // evidence renders only behind the population-comparison opt-in.
       title: 'Strength / Power',
-      interpretation: expect.stringMatching(/^(Starting point|Building|On track|Strong)$/),
       body: 'Adds to your own strength trend with every check-up.',
     });
+    expect(result.presentation.domains[0].statusLabel).toBeUndefined();
+    expect(result.presentation.domains[0].interpretation).toBeUndefined();
     expect(result.presentation.actions).toHaveLength(1);
     expect(result.presentation.actions[0]).toMatchObject({
       label: 'View my 4-week plan',

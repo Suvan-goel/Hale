@@ -14,6 +14,7 @@ import type { MovementProfileV2Assessment } from '../reference/movementProfileV2
 import type { StoredMovementProfileV2Snapshot } from '../reference/movementProfileV2/snapshot';
 import type { MeasurementContext, MeasurementProtocolRef } from './measurementContext';
 import type { CheckUpProtocolPolicy } from './protocolPolicy';
+import type { CheckUpSelfReport } from './selfReport';
 
 export type CheckUpItemStatus = 'measured' | 'skipped' | 'unmeasured';
 
@@ -58,6 +59,13 @@ export interface CheckUp {
    * must not be converted into V1 assessment, block, focus, or report records.
    */
   movementProfileV2Assessment?: MovementProfileV2Assessment;
+  /**
+   * Optional Clarity self-report appendix (REPOSITION_TDD §5). Additive —
+   * absence means not answered/not offered. F8 rule of record: read ONLY by
+   * Clarity surfaces; it never affects protocol evidence, claim eligibility,
+   * or any measurement result.
+   */
+  selfReport?: CheckUpSelfReport;
 }
 
 export function findItem(checkUp: CheckUp, movementId: string): CheckUpItem | undefined {

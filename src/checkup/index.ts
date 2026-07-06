@@ -14,6 +14,24 @@ export type { CheckUpConfig, CheckUpFrameUpdate, CheckUpPhase } from './checkup'
 export { findItem } from './types';
 export type { CheckUp, CheckUpItem, CheckUpItemStatus } from './types';
 export {
+  CHECKUP_SELF_REPORT_SCHEMA_VERSION,
+  CLARITY_ITEM_SET_ID,
+  CLARITY_ITEMS,
+  CLARITY_RECALL_PERIOD_LABEL,
+  CLARITY_SCALE,
+  SLEEP_QUALITY_OPTIONS,
+  SYMPTOM_LOAD_OPTIONS,
+  checkUpLocalHour,
+  clarityReadingValue,
+  validCheckUpSelfReport,
+} from './selfReport';
+export type {
+  CheckUpSelfReport,
+  ClarityItemScore,
+  SleepQuality,
+  SymptomLoad,
+} from './selfReport';
+export {
   LEGACY_MOVEMENT_AGE_PROTOCOL_POLICY_ID,
   MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
   createCheckUpProtocolPolicy,

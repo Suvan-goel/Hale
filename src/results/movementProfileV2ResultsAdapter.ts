@@ -57,7 +57,13 @@ export function buildMovementProfileV2UnifiedResultsPresentation(input: {
     (input.planState.status === 'ready' || input.planState.status === 'sync_pending_local_ready');
   const retestMode = !!input.retestComparison;
   const domains = input.viewModel.domainCards.map((card) =>
-    domainCardToPresentation(card, input.viewModel.focus.domain)
+    domainCardToPresentation(card, input.viewModel.focus.domain, {
+      // Founder decision 2026-07-06: the FIRST-EVER results stay purely
+      // diagnosis-shaped — no tier chip, consistent with the comparison
+      // affordance being gated off there. Tiers remain the app-wide band
+      // vocabulary everywhere else (Today, Progress, later check-ups).
+      suppressStatusTier: input.variant === 'onboarding',
+    })
   );
   const planCopy = planPresentation(input.viewModel, input.planState);
   return {
@@ -203,22 +209,25 @@ function formatComparisonValue(
 
 function domainCardToPresentation(
   card: MovementProfileV2ResultsViewModel['domainCards'][number],
-  focusDomain?: MovementProfileV2Domain
+  focusDomain?: MovementProfileV2Domain,
+  options?: { suppressStatusTier?: boolean }
 ): UnifiedDomainResultCard {
   const id = domainId(card.domain);
+  const suppressTier = options?.suppressStatusTier === true;
   return {
     id,
     title: card.title,
     metricLabel: 'Result',
     metricValue: card.metric,
-    interpretation: card.status,
+    ...(suppressTier ? {} : { interpretation: card.status, statusLabel: card.status }),
     body: card.body,
-    statusLabel: card.status,
     bandLabel: card.metric,
     featured: card.domain === focusDomain,
     tone: toneForCard(card),
     iconToken: iconToken(card.domain),
-    accessibilityLabel: `${card.title}. ${card.metric}. ${card.status}. ${card.body}`,
+    accessibilityLabel: suppressTier
+      ? `${card.title}. ${card.metric}. ${card.body}`
+      : `${card.title}. ${card.metric}. ${card.status}. ${card.body}`,
   };
 }
 

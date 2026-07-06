@@ -7,6 +7,7 @@ export * from './blockSchedule';
 export * from './blockTrainingPlan';
 export * from './checkupHistory';
 export * from './checkupTransition';
+export * from './clarityTrend';
 export * from './copy';
 export * from './equipmentPositioning';
 export * from './extraSessionCopy';

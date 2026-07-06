@@ -46,9 +46,13 @@ const COGNITIVE_CLAIM_COPY =
 
 // Clarity self-report surfaces (REPOSITION_TDD §5.1): the word "validated" is
 // banned there — the items are original self-report tracking, not a validated
-// instrument. Slice 4 adds its new files here as it creates them; the fence
-// exists first so no fog-adjacent string ever ships unscanned.
-const CLARITY_SELF_REPORT_COPY_FILES: readonly string[] = [];
+// instrument. Every new Clarity copy file registers here in the PR that
+// creates it, so no fog-adjacent string ever ships unscanned.
+const CLARITY_SELF_REPORT_COPY_FILES: readonly string[] = [
+  'src/checkup/selfReport.ts',
+  'src/screens/ClarityCheckInScreen.tsx',
+  'src/haleFlow/clarityTrend.ts',
+];
 const CLARITY_BANNED_COPY = /\bvalidated\b/i;
 
 const RESULT_COPY_FILES = [

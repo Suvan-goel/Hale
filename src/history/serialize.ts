@@ -11,6 +11,7 @@
 
 import type { CheckUp } from '../checkup/types';
 import { normalizeCheckUpMeasurementMetadata } from '../checkup/measurementMetadata';
+import { validCheckUpSelfReport } from '../checkup/selfReport';
 import {
   LEGACY_MOVEMENT_AGE_PROTOCOL_POLICY_ID,
   MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
@@ -374,5 +375,10 @@ function checkUpWithoutEmbeddedSnapshots(value: CheckUp): CheckUp {
     movementProfileV2Snapshot?: unknown;
     movementProfileV2Assessment?: unknown;
   };
-  return checkUp;
+  // Additive self-report appendix (no history version bump): a malformed
+  // block drops rather than blocking the measurement record it rides on.
+  const selfReport = validCheckUpSelfReport((checkUp as CheckUp).selfReport);
+  if (selfReport) return { ...checkUp, selfReport };
+  const { selfReport: _selfReport, ...withoutSelfReport } = checkUp as CheckUp;
+  return withoutSelfReport;
 }

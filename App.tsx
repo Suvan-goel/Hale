@@ -27,6 +27,7 @@ import {
   ScreenHeader,
   ScreenScrollClearanceProvider,
 } from './src/components/ui';
+import { isClarityDimensionEnabled } from './src/config/clarityDimension';
 import { MOVEMENT_PROFILE_V2_INTERNAL_ENABLED } from './src/config/movementProfileV2Internal';
 import {
   isDiagnosticsDeveloperSurfaceAllowed,
@@ -72,6 +73,7 @@ import {
 import { configureSessionAudio } from './src/audio/voicePlayer';
 import {
   CheckUp,
+  CheckUpSelfReport,
   latestV2ShoulderSide,
   latestV2StandingLeg,
 } from './src/checkup';
@@ -98,6 +100,7 @@ import {
   latestUsableOfficialAssessment,
   latestOfficialMovementProfileV2Assessment,
   validOfficialMovementProfileV2Assessments,
+  buildClarityTrendViewModel,
   buildMovementProfileV2ProgressViewModel,
   materializeMovementProfileV2Block,
   measuredCapabilityFromMovementProfileV2Interpretation,
@@ -226,6 +229,7 @@ import { MicroCheckScreen } from './src/screens/MicroCheckScreen';
 import { MicroCheckSummaryScreen } from './src/screens/MicroCheckSummaryScreen';
 import { MovementProfileV2BlockReportScreen } from './src/screens/MovementProfileV2BlockReportScreen';
 import { MovementProfileV2UnifiedCheckUpScreen } from './src/screens/MovementProfileV2UnifiedCheckUpScreen';
+import { ClarityCheckInScreen } from './src/screens/ClarityCheckInScreen';
 import { MovementProfileV2UnifiedResultsScreen } from './src/screens/MovementProfileV2UnifiedResultsScreen';
 import { MovementProfileV2PracticeResultsScreen } from './src/screens/MovementProfileV2PracticeResultsScreen';
 import { PlanScreen } from './src/screens/PlanScreen';
@@ -288,6 +292,7 @@ type Flow =
   | 'learn-detail'
   | 'settings'
   | 'movement-profile-v2-unified-checkup'
+  | 'clarity-check-in'
   | 'movement-profile-v2-results'
   | 'movement-profile-v2-practice-results'
   | 'movement-profile-v2-block-report'
@@ -707,6 +712,10 @@ function HaleApp() {
   const [movementProfileV2InitialFlow, setMovementProfileV2InitialFlow] =
     React.useState<MovementProfileV2InternalFlowState | null>(null);
   const [movementProfileV2Raw, setMovementProfileV2Raw] =
+    React.useState<MovementProfileV2RawCompletion | null>(null);
+  // Official check-up awaiting its optional Clarity check-in (already
+  // early-saved; finalization resumes when the check-in screen returns).
+  const [pendingClarityCheckIn, setPendingClarityCheckIn] =
     React.useState<MovementProfileV2RawCompletion | null>(null);
   const [movementProfileV2Result, setMovementProfileV2Result] =
     React.useState<MovementProfileV2ResultsViewModel | null>(null);
@@ -3510,6 +3519,36 @@ function HaleApp() {
     openManualCheckup();
   }, [openManualCheckup]);
 
+  /**
+   * Clarity check-in appendix (REPOSITION_TDD §5): rides ONLY the official
+   * monthly ritual. The raw check-up was already early-saved by
+   * onRawCheckUpReady, so a crash mid-check-in finalizes without a
+   * self-report — the measurement is never blocked (F8).
+   */
+  function handleMovementProfileV2CheckUpFlowComplete(input: MovementProfileV2RawCompletion) {
+    const official =
+      input.sourceType === 'baseline' ||
+      input.sourceType === 'baseline_retake' ||
+      input.sourceType === 'official_retest';
+    if (!official) {
+      handleMovementProfileV2RawComplete(input, 'unified');
+      return;
+    }
+    setPendingClarityCheckIn(input);
+    setFlow('clarity-check-in');
+  }
+
+  function handleClarityCheckInDone(selfReport: CheckUpSelfReport | null) {
+    const pending = pendingClarityCheckIn;
+    setPendingClarityCheckIn(null);
+    if (!pending) {
+      setFlow(null);
+      return;
+    }
+    const checkUp = selfReport ? { ...pending.checkUp, selfReport } : pending.checkUp;
+    handleMovementProfileV2RawComplete({ ...pending, checkUp }, 'unified');
+  }
+
   function handleMovementProfileV2RawComplete(
     input: MovementProfileV2RawCompletion,
     surface: MovementProfileV2ResultSurface = 'standalone'
@@ -4100,6 +4139,13 @@ function HaleApp() {
     [displayHistory]
   );
 
+  // Clarity trend stays off scoring surfaces until its flag flips
+  // (REPOSITION_TDD Part 2a); capture runs regardless.
+  const clarityTrend = React.useMemo(
+    () => (isClarityDimensionEnabled() ? buildClarityTrendViewModel(displayHistory) : null),
+    [displayHistory]
+  );
+
   const visibleMovementProfileV2Result =
     selectedMovementProfileV2ProgressResult ?? displayedMovementProfileV2Result;
   const visibleMovementProfileV2BlockReport =
@@ -4286,7 +4332,7 @@ function HaleApp() {
             sourceType={movementProfileV2InitialFlow.sourceType}
             initialFlow={movementProfileV2InitialFlow}
             voiceId={prefs.settings.voiceId}
-            onComplete={(input) => handleMovementProfileV2RawComplete(input, 'unified')}
+            onComplete={handleMovementProfileV2CheckUpFlowComplete}
             onRawCheckUpReady={(input) => {
               // Persist the measured battery the moment it exists. If the
               // outro voice fails or the app dies before onComplete, the
@@ -4299,6 +4345,11 @@ function HaleApp() {
               }
             }}
             onCancel={() => goBack(goHome)}
+          />
+        ) : flow === 'clarity-check-in' && pendingClarityCheckIn ? (
+          <ClarityCheckInScreen
+            showSymptomLoad={prefs.profile.referenceSex === 'female'}
+            onDone={handleClarityCheckInDone}
           />
         ) : flow === 'movement-profile-v2-practice-results' && movementProfileV2Raw ? (
           <MovementProfileV2PracticeResultsScreen
@@ -4442,6 +4493,7 @@ function HaleApp() {
               onStartRetest={() => beginCheckUp('official_retest')}
               progressDataAuthority={progressDataAuthority}
               movementProfileV2Progress={movementProfileV2Progress}
+              clarityTrend={clarityTrend}
               onStartMovementProfileV2CheckUp={beginProgressFirstCheckUp}
               onViewMovementProfileV2Profile={viewMovementProfileV2ProgressProfile}
               onViewMovementProfileV2Report={viewMovementProfileV2ProgressReport}

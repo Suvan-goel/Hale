@@ -126,6 +126,29 @@ describe('Movement Profile V2 unified results adapter', () => {
     expect(JSON.stringify(presentation.actions)).not.toContain('View my 4-week plan');
   });
 
+  it('suppresses status tiers on the first-ever results only (founder decision 2026-07-06)', () => {
+    // The first assessment stays purely diagnosis-shaped — no tier chip,
+    // consistent with the comparison affordance being gated off there.
+    const onboarding = buildMovementProfileV2UnifiedResultsPresentation({
+      viewModel: movementProfileViewModel(),
+      planState: unavailablePlanState(),
+      variant: 'onboarding',
+    });
+    for (const domain of onboarding.domains) {
+      expect(domain.statusLabel).toBeUndefined();
+      expect(domain.interpretation).toBeUndefined();
+      expect(domain.accessibilityLabel).not.toMatch(/Building|Starting point|On track|Strong/);
+    }
+
+    // Tiers remain the app-wide band vocabulary on every later surface.
+    const standard = buildMovementProfileV2UnifiedResultsPresentation({
+      viewModel: movementProfileViewModel(),
+      planState: unavailablePlanState(),
+      variant: 'standard',
+    });
+    expect(standard.domains.some((domain) => domain.statusLabel)).toBe(true);
+  });
+
   it('keeps the presentation wellness-side and protocol-neutral', () => {
     const presentation = buildMovementProfileV2UnifiedResultsPresentation({
       viewModel: movementProfileViewModel(),

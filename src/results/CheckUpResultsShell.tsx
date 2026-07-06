@@ -321,7 +321,9 @@ function OnboardingDomainSummaryCard({ domain }: { domain: UnifiedDomainResultCa
                 </View>
               ) : null}
             </View>
-            <Text style={onboardingStyles.domainStatus}>{domain.statusLabel ?? domain.interpretation}</Text>
+            {domain.statusLabel ?? domain.interpretation ? (
+              <Text style={onboardingStyles.domainStatus}>{domain.statusLabel ?? domain.interpretation}</Text>
+            ) : null}
           </View>
         </View>
       </View>

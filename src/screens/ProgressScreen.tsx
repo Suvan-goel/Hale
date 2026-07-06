@@ -14,6 +14,7 @@ import {
   type TrainingSessionCompletion,
 } from '../adherence';
 import {
+  type ClarityTrendViewModel,
   type MovementProfileV2ProgressChange,
   type MovementProfileV2ProgressChangeDomain,
   type MovementProfileV2ProgressViewModel,
@@ -43,6 +44,7 @@ export function ProgressScreen({
   onStartRetest,
   progressDataAuthority,
   movementProfileV2Progress,
+  clarityTrend,
   onStartMovementProfileV2CheckUp,
   onViewMovementProfileV2Profile,
   onOpenSettings,
@@ -81,7 +83,40 @@ export function ProgressScreen({
         completions={completions}
         today={today}
       />
+
+      {clarityTrend && clarityTrend.status !== 'no_data' ? (
+        <ClarityTrendCard trend={clarityTrend} />
+      ) : null}
     </Screen>
+  );
+}
+
+/**
+ * Clarity trend (flag-gated): baseline-relative relations and trajectory,
+ * never a raw score in isolation; a clouded month always carries the drivers
+ * and the trainable path (worse never bare).
+ */
+function ClarityTrendCard({ trend }: { trend: Exclude<ClarityTrendViewModel, { status: 'no_data' }> }) {
+  return (
+    <Card style={styles.clarityCard}>
+      <Text style={styles.clarityLabel}>Clarity</Text>
+      <Text style={styles.clarityMeta}>Self-reported tracking · {trend.checkInCount} check-in{trend.checkInCount === 1 ? '' : 's'}</Text>
+      {trend.status === 'ready' ? (
+        <Text style={styles.clarityHeadline}>{trend.headline}</Text>
+      ) : (
+        <Text style={styles.clarityHeadline}>{trend.body}</Text>
+      )}
+      {trend.entries.map((entry) => (
+        <View key={entry.atIso} style={styles.clarityEntryRow}>
+          <Text style={styles.clarityEntryDate}>{entry.dateLabel}</Text>
+          <Text style={styles.clarityEntryRelation}>{entry.relationLabel}</Text>
+        </View>
+      ))}
+      {trend.status === 'ready' && trend.supportCopy ? (
+        <Text style={styles.claritySupport}>{trend.supportCopy}</Text>
+      ) : null}
+      <Text style={styles.clarityNote}>{trend.fluctuationNote}</Text>
+    </Card>
   );
 }
 
@@ -615,6 +650,9 @@ interface ProgressScreenProps {
   onStartRetest: () => void;
   progressDataAuthority?: ProgressDataAuthority;
   movementProfileV2Progress?: MovementProfileV2ProgressViewModel | null;
+  /** Flag-gated Clarity trend (REPOSITION_TDD §5.4); null while the clarity
+   * dimension is off scoring surfaces. */
+  clarityTrend?: ClarityTrendViewModel | null;
   onStartMovementProfileV2CheckUp?: () => void;
   onViewMovementProfileV2Profile?: (sourceCheckUpId: string) => void;
   onViewMovementProfileV2Report?: (reportId: string) => void;
@@ -1156,6 +1194,43 @@ const styles = StyleSheet.create({
   },
   changeRows: {
     marginTop: 14,
+  },
+  clarityCard: {
+    gap: spacing.sm,
+    paddingHorizontal: 24,
+    paddingVertical: 24,
+  },
+  clarityLabel: {
+    ...type.cardTitle,
+  },
+  clarityMeta: {
+    ...type.caption,
+    color: colors.textSecondary,
+  },
+  clarityHeadline: {
+    ...type.cardBody,
+    color: colors.textPrimary,
+  },
+  clarityEntryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  clarityEntryDate: {
+    ...type.caption,
+    color: colors.textSecondary,
+  },
+  clarityEntryRelation: {
+    ...type.caption,
+    color: colors.textPrimary,
+  },
+  claritySupport: {
+    ...type.caption,
+    color: colors.textSecondary,
+  },
+  clarityNote: {
+    ...type.caption,
+    color: colors.textTertiary,
   },
   changeRowBlock: {
     paddingVertical: spacing.md,

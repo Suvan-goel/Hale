@@ -84,6 +84,35 @@ function makeCheckUp(startedAt: string, v: Vals): CheckUp {
 }
 
 describe('check-up serialization', () => {
+  it('round-trips the Clarity self-report additively; malformed blocks drop without touching the record (F8)', () => {
+    const base = makeCheckUp('2026-06-13T10:00:00.000Z', { reps: 14 });
+    const selfReport = {
+      schemaVersion: 1 as const,
+      clarity: { itemSetId: 'clarity_items_v1' as const, itemScores: [0, 1, 2, 1, 0] as (0 | 1 | 2)[] },
+      covariates: { sleepQuality: 2 as const },
+    };
+
+    // Same record with and without the appendix: measurement content identical.
+    const withReport = deserializeCheckUp(serializeCheckUp({ ...base, selfReport }));
+    const withoutReport = deserializeCheckUp(serializeCheckUp(base));
+    expect(withReport!.checkUp.selfReport).toEqual(selfReport);
+    expect(withReport!.checkUp.items).toEqual(withoutReport!.checkUp.items);
+    expect(withReport!.scoreSnapshotCompatibility).toBe(withoutReport!.scoreSnapshotCompatibility);
+
+    // Old records (no field) parse to honest absence; a corrupt block drops
+    // as a unit and never blocks the measurement record it rides on.
+    expect(withoutReport!.checkUp.selfReport).toBeUndefined();
+    const corrupt = deserializeCheckUp(
+      serializeCheckUp({
+        ...base,
+        selfReport: { schemaVersion: 1, clarity: { itemSetId: 'clarity_items_v1', itemScores: [9] } },
+      } as never)
+    );
+    expect(corrupt).not.toBeNull();
+    expect(corrupt!.checkUp.selfReport).toBeUndefined();
+    expect(corrupt!.checkUp.items).toHaveLength(3);
+  });
+
   it('round-trips through the current schema, NaN → null', () => {
     const stored = deserializeCheckUp(serializeCheckUp(makeCheckUp('2026-06-13T10:00:00.000Z', { reps: 14 })));
     expect(stored).not.toBeNull();
