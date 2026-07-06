@@ -369,6 +369,11 @@ export class TrainingSessionPlayer {
     return this.funnel.snapshot(this.phase, this.phase === 'done');
   }
 
+  /** Pain events so far — abandoned sessions must still audit them (telemetry). */
+  painEventsSnapshot(): TrainingPainEvent[] {
+    return this.painEvents.map((event) => ({ ...event }));
+  }
+
   /**
    * Items finished so far (completed or skipped, in play order) — the app
    * layer snapshots these at item boundaries so an interrupted session can
@@ -971,6 +976,27 @@ export class TrainingSessionPlayer {
     if (!this.isVoiceMode || this.phase !== 'rest') return false;
     this.restSpoken = true;
     this.restEnteredMs = atMs - this.restDurationMs;
+    return true;
+  }
+
+  /**
+   * One-tap rep correction on the rest screen (voice spec): adjusts the JUST
+   * finished set's reported count. Logged as prescribed-vs-reported via
+   * repsAdjusted; never voice-quizzed. Floor at zero.
+   */
+  adjustReportedReps(delta: number): boolean {
+    if (!this.isVoiceMode || this.phase !== 'rest' || !Number.isInteger(delta)) return false;
+    const lastSet = this.currentSets[this.currentSets.length - 1];
+    if (!lastSet || lastSet.reportedReps === undefined) return false;
+    const prescribed = lastSet.reportedReps - (lastSet.repsAdjusted ?? 0);
+    const nextReported = Math.max(0, lastSet.reportedReps + delta);
+    lastSet.reportedReps = nextReported;
+    const adjustment = nextReported - prescribed;
+    if (adjustment === 0) {
+      delete lastSet.repsAdjusted;
+    } else {
+      lastSet.repsAdjusted = adjustment;
+    }
     return true;
   }
 

@@ -7,8 +7,13 @@
 export {
   SESSION_FUNNEL_SCHEMA_VERSION,
   buildStoredSessionFunnel,
+  deriveCompletionPoint,
   deserializeSessionFunnel,
   serializeSessionFunnel,
 } from './sessionFunnelRecord';
-export type { SessionFunnelOutcome, StoredSessionFunnel } from './sessionFunnelRecord';
+export type {
+  SessionCompletionPoint,
+  SessionFunnelOutcome,
+  StoredSessionFunnel,
+} from './sessionFunnelRecord';
 export { SessionFunnelStore } from './sessionFunnelStore';
