@@ -113,6 +113,34 @@ describe('check-up serialization', () => {
     expect(corrupt!.checkUp.items).toHaveLength(3);
   });
 
+  it('round-trips clarityInstruments additively with the same isolation guarantees (DT1)', () => {
+    const base = makeCheckUp('2026-06-13T10:00:00.000Z', { reps: 14 });
+    const clarityInstruments = {
+      schemaVersion: 1 as const,
+      dualTask: {
+        schemaVersion: 1 as const,
+        movementId: 'one-leg-balance-45s-v2',
+        status: 'measured' as const,
+        singleTaskSeconds: 30,
+        dualTaskSeconds: 21,
+        costPercent: 30,
+        speechActiveMs: 12000,
+      },
+    };
+    const withInstruments = deserializeCheckUp(serializeCheckUp({ ...base, clarityInstruments }));
+    const withoutInstruments = deserializeCheckUp(serializeCheckUp(base));
+    expect(withInstruments!.checkUp.clarityInstruments).toEqual(clarityInstruments);
+    // Isolation: measurement content and score compatibility byte-identical.
+    expect(withInstruments!.checkUp.items).toEqual(withoutInstruments!.checkUp.items);
+    expect(withInstruments!.scoreSnapshotCompatibility).toBe(withoutInstruments!.scoreSnapshotCompatibility);
+    // Corrupt blocks drop as a unit; the record survives.
+    const corrupt = deserializeCheckUp(
+      serializeCheckUp({ ...base, clarityInstruments: { schemaVersion: 1, dualTask: { status: 'measured' } } } as never)
+    );
+    expect(corrupt!.checkUp.clarityInstruments).toBeUndefined();
+    expect(corrupt!.checkUp.items).toHaveLength(3);
+  });
+
   it('round-trips through the current schema, NaN → null', () => {
     const stored = deserializeCheckUp(serializeCheckUp(makeCheckUp('2026-06-13T10:00:00.000Z', { reps: 14 })));
     expect(stored).not.toBeNull();

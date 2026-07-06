@@ -159,6 +159,14 @@ record: TDD.md (v2 conductor) + TDD-ADDENDUM.md (approved v1). See docs/decision
   module and restored to playback-only on exit. Camera flows (check-up, micro-check) never
   see a recording session and never initialize the voice module. Windowed listening only;
   no audio and no transcripts are ever stored — production emits intent events only.)*
+  *(2026-07-06 second scoped amendment — clarity instruments, founder sign-off: a
+  recording-capable session MAY additionally exist inside the official check-up ONLY during
+  the dual-task run (voice-activity detection — speech presence, never content) and the
+  fluency segment (per-use consented on-device transcription, count-only retention),
+  activated after movement setup confirms and restored to playback-only immediately after
+  the run. Command/safety-word listening in camera flows remains forbidden. HARD GATE:
+  device Block 7.4 camera+mic coexistence — unreliable coexistence on the target device
+  means the instrument ships `unavailable`, never flaky. See docs/decisions.md.)*
 - **Data:** local-first. The app runs fully on-device with no account (guest-first launch,
   2026-07-04); results/history live in a schema-versioned JSON store. Landmark recordings stay
   behind a dev toggle. *(Amendment history: the original V1 rule was "local-only, no accounts,

@@ -32,6 +32,19 @@ export type {
   SymptomLoad,
 } from './selfReport';
 export {
+  CLARITY_INSTRUMENTS_SCHEMA_VERSION,
+  DUAL_TASK_RESULT_SCHEMA_VERSION,
+  computeDualTaskCostPercent,
+  dualTaskReadingValue,
+  validClarityInstruments,
+} from './clarityInstruments';
+export type {
+  ClarityInstrumentsRecord,
+  DualTaskInvalidReason,
+  DualTaskResult,
+  DualTaskStatus,
+} from './clarityInstruments';
+export {
   LEGACY_MOVEMENT_AGE_PROTOCOL_POLICY_ID,
   MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
   createCheckUpProtocolPolicy,

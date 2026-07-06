@@ -15,6 +15,7 @@ import type { StoredMovementProfileV2Snapshot } from '../reference/movementProfi
 import type { MeasurementContext, MeasurementProtocolRef } from './measurementContext';
 import type { CheckUpProtocolPolicy } from './protocolPolicy';
 import type { CheckUpSelfReport } from './selfReport';
+import type { ClarityInstrumentsRecord } from './clarityInstruments';
 
 export type CheckUpItemStatus = 'measured' | 'skipped' | 'unmeasured';
 
@@ -66,6 +67,12 @@ export interface CheckUp {
    * or any measurement result.
    */
   selfReport?: CheckUpSelfReport;
+  /**
+   * Optional objective Clarity instruments (CLARITY_INSTRUMENTS_TDD §3).
+   * Same rules as selfReport: additive, Clarity-surfaces-only, never touches
+   * protocol evidence or claim eligibility.
+   */
+  clarityInstruments?: ClarityInstrumentsRecord;
 }
 
 export function findItem(checkUp: CheckUp, movementId: string): CheckUpItem | undefined {

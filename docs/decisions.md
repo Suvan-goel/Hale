@@ -3958,3 +3958,36 @@ PUBLIC RELEASE REMAINS BLOCKED
   assets + art + website sweep ready to execute), and the device evening (unchanged gate for
   anything engine-specific). Owed on device: the Clarity check-in flow and ghost-curve
   render on a real device; both are plain tap/RN-SVG surfaces with no camera/mic.
+
+## 2026-07-06 — CLARITY_INSTRUMENTS_TDD approved; scoped check-up audio exception granted (F1)
+
+- **CLARITY_INSTRUMENTS_TDD.md (commit 92278c10) approved.** Sequencing binding: dual-task
+  slices DT1–DT3 to a checkpoint, PAUSE; fluency FL1–FL4 only after that approval. Nothing
+  audio-runtime is BUILT-AND-TESTED until device-evening Blocks 7/8 pass; a failed gate
+  degrades the instrument to a recorded `unavailable` limitation.
+- **F1 — deliberate, scoped reversal of part of the 2026-07-05 audio-law amendment
+  (founder sign-off).** That amendment said camera flows never see a recording session and
+  never initialize the voice module — written because audio-session churn once killed
+  camera capture in production (Forma). The new rule of record: a recording-capable audio
+  session MAY exist inside the official check-up ONLY during the dual-task run and the
+  fluency segment, activated after the movement protocol's setup is confirmed and restored
+  to playback-only immediately after the run. Rationale: dual-task cost REQUIRES
+  simultaneous grading + voice-activity detection — coexist-or-degrade; no sequential
+  fallback exists. **HARD GATE: device-evening Block 7.4 (camera+mic coexistence on the
+  target cheap Android) is a blocker — unreliable coexistence means dual-task ships
+  `unavailable` on that platform, never flaky.** CLAUDE.md amended alongside this entry.
+  Commands/safety-word listening in camera flows remains forbidden; this exception is
+  VAD/ASR for the clarity instruments only.
+- **F5 — verbal task confirmed: counting backwards in threes** (language/culture-neutral,
+  no rotation needed, no right-answer checking). Requirements of record: instruction and
+  VAD treat long pauses as "still thinking — keep going", never task abandonment (the
+  validity floor is cumulative speech over the whole window, not continuity); stopping
+  MOVING under load is VALID degradation — her real capacity — while stopping SPEAKING
+  below the floor is INVALID (`no_speech_detected`, she left the verbal task). The two
+  must never be conflated.
+- **F3 — four fluency categories** (animals, foods, countries, kitchen things);
+  month-5 relative-trend onset accepted — the subjective fog series carries months 1–4.
+- **F2 — ceilingLimited honesty approved** for v1 dual-task (cost saturates at 0 when both
+  runs hit the protocol cap; tagged and worded honestly; sway-under-load is future work).
+- **F4 — Clarity stays dev-flagged through this build**; user visibility is a separate
+  recorded decision after the device gates.
