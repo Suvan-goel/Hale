@@ -3899,3 +3899,62 @@ PUBLIC RELEASE REMAINS BLOCKED
   Founder's `landing/` worktree untouched. Remaining blocked work: slice 4 (fog item
   wording), slice 8 (decline-rate source), rename (name choice), device evening
   (unchanged gate for anything engine-specific).
+
+## 2026-07-06 — Reposition slices 4, 8 + tier suppression: Clarity instrument, ghost curve
+
+- **Tier suppression (founder judgment call):** status tier chips (Starting point / Building /
+  On track / Strong) are suppressed on the FIRST-EVER results (onboarding variant) ONLY —
+  the first assessment stays purely diagnosis-shaped, consistent with the comparison
+  affordance being gated off there. Tiers remain everywhere else (Today, Progress, later
+  check-ups) as the app-wide band vocabulary; NOT put behind the opt-in globally. Pinned by
+  test on both the adapter and the public check-up lifecycle.
+- **Slice 4 — Clarity self-report instrument (fog wording FINAL, founder clinical review):**
+  five ORIGINAL items (word-finding, purpose lapse, concentration, mental fatigue, everyday
+  tracking), two-week recall, five-point Not-at-all…A-great-deal scale. Self-reported
+  tracking only — "validated" banned by the slice-1 fence, now registered for the three new
+  Clarity copy files (selfReport.ts, ClarityCheckInScreen.tsx, clarityTrend.ts). Raw scores
+  are fog-direction and persist unaggregated; the trend reading INVERTS them (4 − mean) so
+  higher = clearer and Clarity trains like every dimension. `CheckUp.selfReport` is additive
+  with NO history version bump (rides the existing optional-field tolerance), defensively
+  parsed at the serialize boundary, all-or-nothing on the item set (partial answers can't be
+  compared month to month), and **F8-proven by test**: a present/absent/corrupt appendix
+  leaves the measurement items and score-snapshot compatibility byte-identical. Monthly
+  cadence: the check-in rides ONLY the official check-up ritual (no between-check-up density
+  in v1). Covariates: time-of-day derived from `startedAt` (nothing new stored), one-tap
+  sleep quality, optional female-scoped symptom load. Check-in screen is tap-only and
+  skippable; the raw check-up is early-saved before the screen, so a crash mid-check-in
+  finalizes without a self-report (measurement never blocked). Clarity trend
+  (`haleFlow/clarityTrend`) is baseline-relative ONLY — relations against her own rolling
+  band, never population/age/raw-score-bare; a clouded month always pairs the known drivers
+  (sleep, symptom load, stress) + trainable path (worse never bare, shared invariant);
+  fluctuation stated every render; flag-gated off scoring surfaces via
+  `isClarityDimensionEnabled` and NEVER folded into any composite (registry rule). The
+  GP-escalation path stays PLANNED (spec in the TDD only — cannot fire before months of
+  data).
+- **Slice 8 — ghost curve (founder supplied the source + constraints):** strength-decline
+  reference (`reference/strengthDeclineReference.ts`) admitted through the same fingerprint
+  discipline as the measurement sources — `deterministicFingerprint`, DOI, data fingerprint,
+  public-use status — but deliberately kept OUT of the measurement `ReferenceSourceId` union:
+  it is a trajectory reference for a baseline-relative Progress visual, not a published
+  comparison claim, and must never route through the percentile claim-eligibility system.
+  **Confirmed: the source-definition format already carries a DOI field — no format change
+  needed.** Cited to Hughes et al. 2001 (`10.1093/gerona/56.5.B209`, ~14 %/decade knee-
+  extensor isokinetic decline — citation resolved via DOI). Anchor is DELIBERATELY
+  CONSERVATIVE at 1.0 %/yr for the 45–60 band; `validateStrengthDeclineReference` rejects any
+  anchor at or above the published 0.014/yr rate, so "never over-flatter" is enforced by
+  construction, not convention. Flat-conservative at launch (single band); steepening past 60
+  is a recorded FUTURE decision, not built. The ghost-curve view model
+  (`haleFlow/ghostCurve.ts`) gates on ≥4 monthly official chair-rise readings, normalizes to
+  HER own baseline (100 %) so no population/age value ever appears, and renders a shaded BAND
+  (low ≤ high per point — a region, never a false-precision line) with her trajectory on top.
+  "Strength kept is strength won" when she holds at/above the typical midline; a personal
+  drop below stays trainable, never bare or alarming. `GhostCurveCard` (react-native-svg,
+  dataviz-guided): recessive same-hue band (12 % opacity) + solid accent line+dots as the
+  emphasis, distinguished by shape and an inline key — never color-alone; contrast-checked,
+  geometry verified in-frame.
+- Verification: tsc clean; jest 181/181 suites, 1512/1512; `expo config` resolves name from
+  the brand token. Founder's `landing/` worktree untouched. **All eight reposition slices
+  are now built and tested.** Remaining open: the rename (name choice — token + 4 audio
+  assets + art + website sweep ready to execute), and the device evening (unchanged gate for
+  anything engine-specific). Owed on device: the Clarity check-in flow and ghost-curve
+  render on a real device; both are plain tap/RN-SVG surfaces with no camera/mic.
