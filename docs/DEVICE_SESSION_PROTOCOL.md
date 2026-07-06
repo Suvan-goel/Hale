@@ -108,3 +108,32 @@ enough; these verify App.tsx glue whose underlying logic is already unit-tested.
    exercise, force-kill the app mid-second-exercise. Relaunch → the session offers
    Continue after the last finished item; the first exercise's results (including any
    ±rep adjustment made in its window) survived.
+
+## Block 7 — Dual-task VAD go/no-go (clarity instruments; ~30 min/device)
+
+Criteria FROZEN at CLARITY_INSTRUMENTS_TDD approval (2026-07-06); pre-run amendments
+only, one tuning iteration allowed on the verbal floor, second failure of any gating
+cell → the instrument ships `unavailable` on that platform (recorded limitation).
+Requires a native SpeechActivityMonitor build (does not exist yet — this block gates it).
+
+1. **Speech-presence accuracy at check-up distance (2.5–3.2 m):** count backwards in
+   threes aloud during a real one-leg hold, ≥10 trials per condition (quiet; TV speech
+   ~60 dB). Gate: ≥90 % of speaking windows detected; ≤1 false-active window per silent
+   60 s. Long deliberate pauses (5–10 s mid-count) must NOT drop cumulative speech
+   below the floor for an otherwise-spoken hold (F5).
+2. **Floor tuning:** if a cell fails, ONE iteration on `DUAL_TASK_VERBAL_FLOOR`
+   (src/voice/speechActivity.ts), then re-run that cell.
+3. **Aggregate honesty:** exported summaries carry only {speechActiveMs, windowMs} —
+   confirm no transcript/audio surface exists in the native module API.
+4. **HARD GATE — camera+mic coexistence (F1, founder condition):** on the dual-task
+   screen with the camera live, activate/deactivate the recording session ×10 across
+   a run: camera session must never drop, pose fps must hold (±2 fps), playback-only
+   audio must restore after (next voice line plays normally). ANY camera interruption
+   on the target cheap Android = fail → dual-task `unavailable` there; it does not
+   ship flaky. Also verify a full camera Check-Up afterwards is untouched.
+5. Battery/thermal note over the added ~70 s; airplane-mode pass (VAD must be fully
+   on-device).
+
+Deliverables: filled cells + floor value chosen → verdict in
+`docs/audits/VOICE_KWS_SPIKE_RESULTS.md` (same file, new section); the
+`defaultSpeechActivityMonitor` stub is replaced by the native module ONLY after PASS.

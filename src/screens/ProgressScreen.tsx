@@ -91,7 +91,7 @@ export function ProgressScreen({
         <GhostCurveCard viewModel={ghostCurve} />
       ) : null}
 
-      {clarityTrend && clarityTrend.status !== 'no_data' ? (
+      {clarityTrend && clarityTrend.status === 'ready' ? (
         <ClarityTrendCard trend={clarityTrend} />
       ) : null}
     </Screen>
@@ -99,29 +99,39 @@ export function ProgressScreen({
 }
 
 /**
- * Clarity trend (flag-gated): baseline-relative relations and trajectory,
- * never a raw score in isolation; a clouded month always carries the drivers
- * and the trainable path (worse never bare).
+ * Clarity trend (flag-gated): one row per series, each baseline-relative —
+ * relations and trajectory, never a raw score in isolation; a clouded month
+ * always carries the drivers and the trainable path (worse never bare), and
+ * her own covariates are named when a dip lines up with them. Series are
+ * never fused into a single number (composite rule).
  */
-function ClarityTrendCard({ trend }: { trend: Exclude<ClarityTrendViewModel, { status: 'no_data' }> }) {
+function ClarityTrendCard({ trend }: { trend: Extract<ClarityTrendViewModel, { status: 'ready' }> }) {
   return (
     <Card style={styles.clarityCard}>
       <Text style={styles.clarityLabel}>Clarity</Text>
-      <Text style={styles.clarityMeta}>Self-reported tracking · {trend.checkInCount} check-in{trend.checkInCount === 1 ? '' : 's'}</Text>
-      {trend.status === 'ready' ? (
-        <Text style={styles.clarityHeadline}>{trend.headline}</Text>
-      ) : (
-        <Text style={styles.clarityHeadline}>{trend.body}</Text>
-      )}
-      {trend.entries.map((entry) => (
-        <View key={entry.atIso} style={styles.clarityEntryRow}>
-          <Text style={styles.clarityEntryDate}>{entry.dateLabel}</Text>
-          <Text style={styles.clarityEntryRelation}>{entry.relationLabel}</Text>
+      <Text style={styles.clarityMeta}>Self-reported and measured tracking — against your own usual range.</Text>
+      {trend.series.map((series) => (
+        <View key={series.id} style={styles.claritySeries}>
+          <Text style={styles.claritySeriesLabel}>{series.label}</Text>
+          {series.trend.status === 'ready' ? (
+            <Text style={styles.clarityHeadline}>{series.trend.headline}</Text>
+          ) : series.trend.status === 'building' ? (
+            <Text style={styles.clarityHeadline}>{series.trend.body}</Text>
+          ) : null}
+          {series.trend.status !== 'no_data'
+            ? series.trend.entries.map((entry) => (
+                <View key={entry.atIso} style={styles.clarityEntryRow}>
+                  <Text style={styles.clarityEntryDate}>{entry.dateLabel}</Text>
+                  <Text style={styles.clarityEntryRelation}>{entry.relationLabel}</Text>
+                </View>
+              ))
+            : null}
+          {series.trend.status === 'ready' && series.trend.supportCopy ? (
+            <Text style={styles.claritySupport}>{series.trend.supportCopy}</Text>
+          ) : null}
         </View>
       ))}
-      {trend.status === 'ready' && trend.supportCopy ? (
-        <Text style={styles.claritySupport}>{trend.supportCopy}</Text>
-      ) : null}
+      {trend.covariateContext ? <Text style={styles.claritySupport}>{trend.covariateContext}</Text> : null}
       <Text style={styles.clarityNote}>{trend.fluctuationNote}</Text>
     </Card>
   );
@@ -1215,6 +1225,13 @@ const styles = StyleSheet.create({
   clarityMeta: {
     ...type.caption,
     color: colors.textSecondary,
+  },
+  claritySeries: {
+    gap: spacing.xs,
+    paddingTop: spacing.sm,
+  },
+  claritySeriesLabel: {
+    ...type.cardRowTitle,
   },
   clarityHeadline: {
     ...type.cardBody,
