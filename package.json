@@ -49,6 +49,7 @@
     "build:android:play-internal": "bash scripts/download-models.sh && npm run verify:pose-models && npm run verify:play-internal-flags && npx eas-cli@latest build -p android --profile playInternal",
     "submit:android:play-internal": "npx eas-cli@latest submit -p android --profile playInternal --latest",
     "noise-floor": "tsx scripts/noise-floor.ts",
+    "corpus": "tsx scripts/corpus.ts",
     "skeleton-preview": "tsx scripts/skeleton-preview.ts"
   },
   "jest": {

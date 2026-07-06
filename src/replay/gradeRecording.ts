@@ -19,6 +19,8 @@ export interface GradedReplay<R extends MovementResultBase = MovementResultBase>
   trackingFrames: number;
   /** Frames where the grader was actually measuring. */
   measuringFrames: number;
+  /** Timestamp of the first measuring frame; NaN if none (corpus start-latency metric). */
+  firstMeasuringTimestampMs: number;
   repCreditTimestampsMs: number[];
 }
 
@@ -32,6 +34,7 @@ export function gradeRecording<R extends MovementResultBase = MovementResultBase
 
   let trackingFrames = 0;
   let measuringFrames = 0;
+  let firstMeasuringTimestampMs = NaN;
   let bodyUnit: number | null = null;
   const repCreditTimestampsMs: number[] = [];
 
@@ -39,7 +42,10 @@ export function gradeRecording<R extends MovementResultBase = MovementResultBase
     const out = pipeline.process(frame);
     const update = grader.update(out);
     if (out.state === 'tracking') trackingFrames++;
-    if (update.measuring) measuringFrames++;
+    if (update.measuring) {
+      measuringFrames++;
+      if (Number.isNaN(firstMeasuringTimestampMs)) firstMeasuringTimestampMs = frame.timestampMs;
+    }
     if (update.repCredited) repCreditTimestampsMs.push(frame.timestampMs);
     bodyUnit = out.bodyUnit;
   }
@@ -51,6 +57,7 @@ export function gradeRecording<R extends MovementResultBase = MovementResultBase
     frameCount: frames.length,
     trackingFrames,
     measuringFrames,
+    firstMeasuringTimestampMs,
     repCreditTimestampsMs,
   };
 }
