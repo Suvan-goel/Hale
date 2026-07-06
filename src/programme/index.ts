@@ -120,6 +120,7 @@ export type {
   SessionTemplateId,
 } from './session';
 export {
+  assessmentInputsFromCheckUp,
   assessmentInputsFromV2Results,
   assessmentReoffer,
   markSurfaceShown,

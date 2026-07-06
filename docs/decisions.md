@@ -4458,3 +4458,34 @@ imports/fields/store file in backup shapes).
   previous version's polish) + the design-pass brief (warm, calm, spacious,
   grown-up; confident, unfussy; NOT neon fitness aggression, NOT
   condescending pastel). Scheduled after engine promotion, before beta.
+
+## 2026-07-06 — Findings ruled; full-battery assessment host; pre-promotion checklist
+
+- **T3 refusal RATIFIED** (chair-power ≠ 30 s STS) and the host's always-
+  upward-only rule for partial data endorsed.
+- **Finding 1 RULED — scheme-aware advancement:** seconds schemes +5 per
+  qualifying 'a_few' session (per-scheme constant; reps keep the pinned +2;
+  'lots' → top and 'none' → hold for both). Plank cadence pinned: range top
+  by exposure 6, promotion on 7 (the standard 2-consecutive-top rule adds
+  one — noted so "~5–6 sessions" reads precisely).
+- **Finding 2** acknowledged working-as-designed; stays in the register.
+- **Finding 3 RULED — accept the training behaviour, fix the metric:** the
+  §11 hinge split stands (no advancement/template change); the stall
+  detector moved from calendar to EXPOSURE cadence (>6 counted exposures of
+  the current exercise without promotion = stall), matching promotion's own
+  semantics. KNOWN_STALLS shrank to the 'none' persona only — both prior
+  core/hinge entries resolved by the rulings.
+- **Assessment host completed — full official battery:** the shell's
+  assessment phase now runs MovementProfileV2UnifiedCheckUpScreen
+  (sourceType manual_extra_v2); `assessmentInputsFromCheckUp` extracts T3
+  from the real 30-second chair-rise result (reps + hand-assist flags) and
+  T1 from the worse balance hold. This exceeds the "extract a single-
+  movement chair-rise host" brief deliberately: the hardened battery is the
+  measurement path the product already trusts, no new measurement surface
+  was built, and placement semantics hold — immediate 'now' path (no
+  training history) REPLACES placement with the −1 easy start; any path
+  after training history is upward-only; B1 bypass + all three re-offer
+  paths gate every entry point.
+- **docs/pre-promotion-checklist.md created** — the single source of truth
+  for engine promotion (engineering gates, founder-owned items, deferred-by-
+  decision re-entry conditions).

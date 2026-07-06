@@ -6,6 +6,8 @@
  * recurring — membership in oneTimeSurfacesShown is permanent).
  */
 
+import type { CheckUp } from '../checkup';
+import { CHAIR_RISE_V2_ID, ONE_LEG_BALANCE_V2_ID } from '../movements';
 import type { ChairRiseV2Result } from '../movements/chairRiseV2';
 import type { OneLegBalanceV2Result } from '../movements/oneLegBalanceV2';
 import type { AssessmentInputs } from './placement';
@@ -42,6 +44,32 @@ export function assessmentInputsFromV2Results(input: {
     out.t1 = { worseSideSeconds: Math.min(...holds) };
   }
   return out;
+}
+
+/**
+ * Extracts T1/T3 from a completed OFFICIAL battery (the unified check-up is
+ * the shell's assessment host — the real 30-second chair-rise protocol, not
+ * the 5-stand power check). Items without a usable result are simply absent;
+ * placement then falls back to activity prior for that ladder.
+ */
+export function assessmentInputsFromCheckUp(checkUp: Pick<CheckUp, 'items'>): AssessmentInputs {
+  let chairRise: Pick<ChairRiseV2Result, 'reps' | 'flags'> | null = null;
+  const holds: number[] = [];
+  for (const item of checkUp.items) {
+    if (!item.result) continue;
+    if (item.movementId === CHAIR_RISE_V2_ID) {
+      const result = item.result as unknown as ChairRiseV2Result;
+      if (Number.isFinite(result.reps)) chairRise = { reps: result.reps, flags: result.flags };
+    }
+    if (item.movementId === ONE_LEG_BALANCE_V2_ID) {
+      const result = item.result as unknown as OneLegBalanceV2Result;
+      if (Number.isFinite(result.bestHoldSec)) holds.push(result.bestHoldSec);
+    }
+  }
+  return assessmentInputsFromV2Results({
+    chairRise,
+    balanceLeft: holds.length > 0 ? { bestHoldSec: Math.min(...holds) } : null,
+  });
 }
 
 // ---------------------------------------------------------------------------

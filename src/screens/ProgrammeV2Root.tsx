@@ -19,7 +19,7 @@ import {
   acknowledgeOnboardingStep,
   applyAssessmentPlacement,
   applyProgrammeSessionResults,
-  assessmentInputsFromV2Results,
+  assessmentInputsFromCheckUp,
   assessmentReoffer,
   markSurfaceShown,
   surfaceAlreadyShown,
@@ -50,8 +50,7 @@ import {
 } from '../programme';
 import type { OnboardingQuestionStepId } from '../programme';
 import { ProfileStore } from '../profile';
-import { deriveMicroCheckSideSetup, type MicroCheckResult } from '../training';
-import { MicroCheckScreen } from './MicroCheckScreen';
+import { MovementProfileV2UnifiedCheckUpScreen } from './MovementProfileV2UnifiedCheckUpScreen';
 import { buildStoredSessionFunnel, SessionFunnelStore } from '../telemetry';
 import { createExpoSessionFunnelFs } from '../telemetry/fsAdapter';
 import { ProgrammeOnboardingScreen } from './ProgrammeOnboardingScreen';
@@ -77,8 +76,7 @@ export function ProgrammeV2Root() {
   const [physioSignpostVisible, setPhysioSignpostVisible] = React.useState(false);
   const sessionStartRef = React.useRef<{ startedAtIso: string; wasFirstSession: boolean } | null>(null);
   const lastEffortRef = React.useRef<SessionRpe | null>(null);
-  const [assessmentSide, setAssessmentSide] = React.useState<'left' | 'right'>('left');
-  const balanceHoldsRef = React.useRef<{ left?: number; right?: number }>({});
+  const assessmentStartedAtRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -374,40 +372,31 @@ export function ProgrammeV2Root() {
   }
 
   if (phase === 'assessment') {
-    // T1 runs for real: the single-leg balance micro-check is the same timed
-    // hold as the battery's protocol, once per side (worse side feeds
-    // placement). T3 (30 s chair rise) is NOT run through the 5-stand power
-    // check — protocol mismatch — and awaits a chair-rise-v2 single-movement
-    // host; squat placement stays on activity prior until then. Re-placement
-    // here is ALWAYS upward-only: partial (T1-only) data never lowers levels.
-    const sideSetup = {
-      ...deriveMicroCheckSideSetup({ microCheckType: 'single-leg-balance' }),
-      selectedSide: assessmentSide,
-    };
+    // The assessment host is the FULL official battery (unified check-up):
+    // T3 comes from the real 30-second chair-rise protocol and T1 from the
+    // per-side balance holds — never the 5-stand power check (protocol
+    // honesty, ratified 2026-07-06). Placement semantics: the immediate
+    // 'now' path (nothing trained yet) replaces placement outright with the
+    // −1 easy start; any path after training history is upward-only.
+    if (!assessmentStartedAtRef.current) {
+      assessmentStartedAtRef.current = new Date().toISOString();
+    }
     return (
-      <MicroCheckScreen
-        key={assessmentSide}
-        type="single-leg-balance"
-        sideSetup={sideSetup}
-        onComplete={(result: MicroCheckResult) => {
-          balanceHoldsRef.current[assessmentSide] = result.measured ? result.value : undefined;
-          if (assessmentSide === 'left') {
-            setAssessmentSide('right');
-            return;
-          }
-          const holds = balanceHoldsRef.current;
-          const inputs = assessmentInputsFromV2Results({
-            balanceLeft: holds.left !== undefined ? { bestHoldSec: holds.left } : null,
-            balanceRight: holds.right !== undefined ? { bestHoldSec: holds.right } : null,
-          });
-          persist(applyAssessmentPlacement(programmeState, inputs, { deferred: true }));
-          balanceHoldsRef.current = {};
-          setAssessmentSide('left');
+      <MovementProfileV2UnifiedCheckUpScreen
+        startedAt={assessmentStartedAtRef.current}
+        sourceType="manual_extra_v2"
+        onComplete={({ checkUp }) => {
+          const inputs = assessmentInputsFromCheckUp(checkUp);
+          persist(
+            applyAssessmentPlacement(programmeState, inputs, {
+              deferred: programmeState.completedSessionCount > 0,
+            })
+          );
+          assessmentStartedAtRef.current = null;
           setPhase('home');
         }}
         onCancel={() => {
-          balanceHoldsRef.current = {};
-          setAssessmentSide('left');
+          assessmentStartedAtRef.current = null;
           setPhase('home');
         }}
       />

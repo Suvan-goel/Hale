@@ -377,6 +377,66 @@ describe('double progression rep targets', () => {
   });
 });
 
+describe('scheme-aware advancement (finding 1 ruling)', () => {
+  it("plank levels advance +5 s per 'a_few' session: top of range by exposure 6, promotion on 7", () => {
+    let state = onboardedState();
+    state.ladders.core = freshPatternLadderState('core', 4); // knee plank 15–40 s
+    let promotedAt: number | null = null;
+    for (let session = 1; session <= 8 && promotedAt === null; session++) {
+      const plan = generateProgrammeSession({ state, template: 'A', preset: 'standard' });
+      const core = plan.main.find((e) => e.pattern === 'core');
+      if (!core) throw new Error('core missing from standard plan');
+      const applied = applyProgrammeSessionResults(state, plan, {
+        outcomes: [
+          {
+            pattern: 'core',
+            levelPerformed: core.level,
+            sets: [{ achieved: core.repTargetPerSet }, { achieved: core.repTargetPerSet }],
+            effort: 'a_few',
+            painFlag: false,
+            performedAtIso: '2026-07-06T10:00:00.000Z',
+          },
+        ],
+        prepCompleted: false,
+        finisherCompleted: false,
+        completedAtIso: '2026-07-06T10:20:00.000Z',
+      });
+      state = applied.state;
+      if (applied.decisions.core?.kind === 'promote') promotedAt = session;
+      if (session === 6) {
+        // Target reached the range top (40 s) after five +5 s climbs.
+        expect(
+          generateProgrammeSession({ state, template: 'A', preset: 'standard' }).main.find(
+            (e) => e.pattern === 'core'
+          )?.repTargetPerSet
+        ).toBe(40);
+      }
+    }
+    expect(promotedAt).toBe(7); // 6 climbing exposures + the 2-consecutive-top rule
+  });
+
+  it('rep schemes keep the pinned +2 on a_few', () => {
+    const state = onboardedState();
+    const plan = generateProgrammeSession({ state, template: 'A', preset: 'standard' });
+    const applied = applyProgrammeSessionResults(state, plan, {
+      outcomes: [
+        {
+          pattern: 'squat',
+          levelPerformed: 1,
+          sets: [{ achieved: 10 }, { achieved: 10 }],
+          effort: 'a_few',
+          painFlag: false,
+          performedAtIso: '2026-07-06T10:00:00.000Z',
+        },
+      ],
+      prepCompleted: false,
+      finisherCompleted: false,
+      completedAtIso: '2026-07-06T10:20:00.000Z',
+    });
+    expect(applied.state.ladders.squat.currentRepTarget).toBe(12);
+  });
+});
+
 describe('session completion applier', () => {
   it('credits hinge rehearsal exposures from completed prep, from day one', () => {
     const state = onboardedState();

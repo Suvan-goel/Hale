@@ -426,12 +426,13 @@ export function applyProgrammeSessionResults(
     const before = ladders[outcome.pattern];
     const evaluated = evaluatePatternOutcome(before, outcome, ladders);
     let nextState = evaluated.nextState;
-    // Double progression, EFFORT-SCALED (2026-07-06 amendment to the Step 3
-    // design): advancement is proportional to reported reserve so target
-    // build-up never starves fast-/entry-promotion (which key off top of
-    // range). 'lots' → jump straight to the range top; 'a_few' → +2;
-    // 'none' or unanswered → hold. Applies only when every set reached the
-    // target at the current level; promotion/regression reset the target.
+    // Double progression, EFFORT-SCALED and SCHEME-AWARE (2026-07-06
+    // rulings): 'lots' → jump straight to the range top; 'a_few' → +2 reps
+    // or +5 seconds (per-scheme constant — finding 1 ruling: time ranges are
+    // wider in units, so seconds advance faster without disturbing the
+    // pinned rep behaviour); 'none' or unanswered → hold. Applies only when
+    // every set reached the target at the current level; promotion and
+    // regression reset the target.
     if (
       (evaluated.decision.kind === 'hold' || evaluated.decision.kind === 'promotion_locked') &&
       outcome.levelPerformed === before.currentLevel
@@ -441,7 +442,8 @@ export function applyProgrammeSessionResults(
       const everySetReachedTarget =
         outcome.sets.length > 0 && outcome.sets.every((set) => set.achieved >= target);
       if (everySetReachedTarget) {
-        const advance = outcome.effort === 'lots' ? scheme.max - target : outcome.effort === 'a_few' ? 2 : 0;
+        const aFewStep = scheme.kind === 'seconds' || scheme.kind === 'seconds_per_side' ? 5 : 2;
+        const advance = outcome.effort === 'lots' ? scheme.max - target : outcome.effort === 'a_few' ? aFewStep : 0;
         if (advance > 0) {
           nextState = { ...nextState, currentRepTarget: Math.min(target + advance, scheme.max) };
         }

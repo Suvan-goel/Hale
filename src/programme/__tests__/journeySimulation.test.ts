@@ -45,6 +45,8 @@ interface JourneyLog {
   plans: ProgrammeSessionPlan[];
   levelHistory: Record<ProgrammePattern, number[]>;
   promotionsAtSession: Record<ProgrammePattern, number[]>;
+  /** Longest run of counted exposures at one level without a promotion. */
+  maxNonPromotingExposures: Record<ProgrammePattern, number>;
   inactivityRegressions: number;
   sessionsRun: number;
 }
@@ -74,10 +76,16 @@ function runJourney(persona: Persona): { state: ProgrammeState; log: JourneyLog 
     promotionsAtSession: Object.fromEntries(
       PROGRAMME_PATTERNS.map((p) => [p, [] as number[]])
     ) as unknown as Record<ProgrammePattern, number[]>,
+    maxNonPromotingExposures: Object.fromEntries(
+      PROGRAMME_PATTERNS.map((p) => [p, 0])
+    ) as unknown as Record<ProgrammePattern, number>,
     inactivityRegressions: 0,
     sessionsRun: 0,
   };
   let sessionNumber = 0;
+  const exposureStreak = Object.fromEntries(
+    PROGRAMME_PATTERNS.map((p) => [p, 0])
+  ) as unknown as Record<ProgrammePattern, number>;
 
   for (let week = 1; week <= persona.weeks; week++) {
     if (persona.missedWeeks.includes(week)) continue;
@@ -116,6 +124,28 @@ function runJourney(persona: Persona): { state: ProgrammeState; log: JourneyLog 
       sessionNumber++;
       log.sessionsRun = sessionNumber;
 
+      // Exposure-cadence stall tracking (finding 3 ruling): an exposure is a
+      // session that actually featured this ladder's CURRENT exercise —
+      // reduced-frequency patterns (the §11 hinge split) are judged on their
+      // own cadence, matching promotion's exposure-based semantics.
+      for (const outcome of plan.main) {
+        const pattern = outcome.pattern;
+        if (before[pattern] >= maxProgrammeLevel(pattern)) {
+          exposureStreak[pattern] = 0;
+          continue;
+        }
+        if (outcome.level !== before[pattern]) continue; // not a counted exposure
+        if (applied.decisions[pattern]?.kind === 'promote') {
+          exposureStreak[pattern] = 0;
+        } else {
+          exposureStreak[pattern]++;
+          log.maxNonPromotingExposures[pattern] = Math.max(
+            log.maxNonPromotingExposures[pattern],
+            exposureStreak[pattern]
+          );
+        }
+      }
+
       // Compliant personas complete teach-only gateways when invited.
       for (const [pattern, decision] of Object.entries(applied.decisions) as [
         ProgrammePattern,
@@ -135,6 +165,8 @@ function runJourney(persona: Persona): { state: ProgrammeState; log: JourneyLog 
         log.levelHistory[pattern].push(level);
         // Single-step invariant: sessions never move a ladder more than one.
         expect(Math.abs(level - before[pattern])).toBeLessThanOrEqual(1);
+        // Any level change starts a fresh exercise: reset its exposure streak.
+        if (level !== before[pattern]) exposureStreak[pattern] = 0;
       }
 
       if (persona.assessmentAfterSession === sessionNumber) {
@@ -175,50 +207,41 @@ function assertPlanInvariants(persona: Persona, log: JourneyLog) {
  * (docs/decisions.md). Anything NOT listed here fails the suite so new
  * journey-level surprises surface loudly instead of being absorbed.
  *
- * 1. 'a_few' personas on TIME-BASED core levels (15–45 s ranges) crawl at
- *    +2 s/session: up to ~13 sessions (~4+ weeks) inside one plank level.
- *    Design question, not a code bug: is +2 s/session the intended hold
- *    progression, or should seconds schemes scale faster?
- * 2. Deconditioned ('none'-answering) personas hold level indefinitely by
- *    design — §12 has no promotion path on 'none' below top-of-range, and
- *    hold+reduce protects them instead. Expected behaviour, listed so the
- *    stall detector stays honest.
- * 3. HARNESS DISCOVERY (first run): post-L5, the §11 hinge family split
- *    halves standing-hinge promotion cadence for 'a_few' users — Template A
- *    trains the bridge family (level-mismatch outcomes deliberately don't
- *    feed promotion), so only every other session advances the standing
- *    ladder: ~10 sessions (~3.3 weeks) per level, just over the 3-week bar.
- *    Design question for the founder, not a code bug (options: accept as
- *    inherent to the split; count hinge stalls on B-session cadence; scale
- *    hinge advancement faster). Reported in docs/decisions.md.
+ * 1. RULED (2026-07-06): advancement is scheme-aware — seconds schemes
+ *    advance +5 per qualifying 'a_few' session (reps keep +2; 'lots' → top,
+ *    'none' → hold for both). Plank cadence now ≈ 5 climbing sessions to the
+ *    range top, promotion on the next (the standard 2-consecutive-top rule);
+ *    pinned in session.test.ts.
+ * 2. Working-as-designed (acknowledged): 'none'-answering personas hold
+ *    level indefinitely — §12 has no promotion path on 'none' below
+ *    top-of-range; hold+reduce protects them instead. Listed so the stall
+ *    detector stays honest.
+ * 3. RULED (2026-07-06): training behaviour ACCEPTED — the §11 hinge split
+ *    is deliberate (bridge family keeps training on A days; posterior chain
+ *    works twice weekly; 'lots' users unaffected). The METRIC moved from
+ *    calendar cadence to EXPOSURE cadence: flag when a compliant persona
+ *    sees no promotion within 6 counted exposures of the current exercise —
+ *    matching promotion's own exposure-based semantics and staying honest
+ *    for any future reduced-frequency pattern.
  */
 const KNOWN_STALLS: Record<string, readonly ProgrammePattern[]> = {
   'deconditioned skipper': PROGRAMME_PATTERNS, // finding 2 — 'none' never promotes
-  'quiet-mode flat dweller (a_few)': ['core', 'hinge'], // findings 1 + 3
-  'balance-limited (a_few)': ['core', 'hinge'], // findings 1 + 3
-  'gentle start (a_few)': ['core', 'hinge'], // findings 1 + 3
 };
 
 function assertNoUnexpectedStalls(persona: Persona, log: JourneyLog) {
-  const sessionsPerWeek = 3;
-  const stallWindow = 3 * sessionsPerWeek; // 3 weeks of sessions
+  // Exposure cadence (finding 3 ruling): >6 counted exposures of the current
+  // exercise without a promotion = stall. Exposures reset on any level change.
+  const stallWindow = 6;
   const allowed = KNOWN_STALLS[persona.name] ?? [];
   for (const pattern of PROGRAMME_PATTERNS) {
     if (allowed.includes(pattern)) continue;
-    const promotions = log.promotionsAtSession[pattern];
-    const checkpoints = [...promotions, log.sessionsRun];
-    let previous = 0;
-    for (const point of checkpoints) {
-      const atTop = log.levelHistory[pattern][previous] >= maxProgrammeLevel(pattern);
-      if (atTop) break;
-      expect({
-        persona: persona.name,
-        pattern,
-        gapSessions: point - previous,
-        stalled: point - previous > stallWindow,
-      }).toEqual({ persona: persona.name, pattern, gapSessions: point - previous, stalled: false });
-      previous = point;
-    }
+    const worst = log.maxNonPromotingExposures[pattern];
+    expect({
+      persona: persona.name,
+      pattern,
+      worstExposureGap: worst,
+      stalled: worst > stallWindow,
+    }).toEqual({ persona: persona.name, pattern, worstExposureGap: worst, stalled: false });
   }
 }
 
