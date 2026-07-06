@@ -20,13 +20,17 @@ import {
   AppSettings,
   MENOPAUSE_STAGE_OPTIONS,
   STARTING_PACE_OPTIONS,
+  SYMPTOM_PICTURE_TOGGLE_OPTIONS,
   ageFromDateOfBirth,
   ageBandForAge,
   dateOfBirthInputLabel,
+  isSymptomToggleSelected,
   normalizeDateOfBirth,
   normalizeDateOfBirthInput,
+  toggleSymptomPicture,
   startingEffortLabel,
   type MenopauseStage,
+  type MenopauseSymptomPicture,
   type ProfileReferenceSex,
   UserProfile,
   VOICE_OPTIONS,
@@ -132,6 +136,9 @@ function SettingsScreenContent({
   const [datePickerVisible, setDatePickerVisible] = React.useState(false);
   const [referenceSex, setReferenceSex] = React.useState<ProfileReferenceSex | null>(profile.referenceSex);
   const [menopauseStage, setMenopauseStage] = React.useState<MenopauseStage | null>(profile.menopauseStage);
+  const [symptomPicture, setSymptomPicture] = React.useState<MenopauseSymptomPicture | null>(
+    profile.symptomPicture
+  );
   const voicePreviewRef = React.useRef<VoiceChannel | null>(null);
   const available = profile.safetyProfile?.availableEquipment ?? ['chair', 'wall'];
   const displayName = profile.name.trim() || 'Your details';
@@ -151,6 +158,7 @@ function SettingsScreenContent({
   }, [profile.dateOfBirth]);
   React.useEffect(() => setReferenceSex(profile.referenceSex), [profile.referenceSex]);
   React.useEffect(() => setMenopauseStage(profile.menopauseStage), [profile.menopauseStage]);
+  React.useEffect(() => setSymptomPicture(profile.symptomPicture), [profile.symptomPicture]);
   React.useEffect(() => () => voicePreviewRef.current?.stop(), []);
   React.useEffect(() => {
     if (Platform.OS !== 'android' || openSection === null) return;
@@ -174,7 +182,8 @@ function SettingsScreenContent({
   const commitReferenceDetails = (
     birthDateText: string = dateOfBirthText,
     nextReferenceSex: ProfileReferenceSex | null = referenceSex,
-    nextMenopauseStage: MenopauseStage | null = menopauseStage
+    nextMenopauseStage: MenopauseStage | null = menopauseStage,
+    nextSymptomPicture: MenopauseSymptomPicture | null = symptomPicture
   ) => {
     const dateOfBirth = normalizeDateOfBirth(birthDateText) ?? normalizeDateOfBirthInput(birthDateText);
     const exactAge = ageFromDateOfBirth(dateOfBirth);
@@ -186,8 +195,9 @@ function SettingsScreenContent({
       dateOfBirth,
       exactAge,
       referenceSex: nextReferenceSex,
-      // The stage question only applies to the female reference group.
+      // The stage and symptom questions only apply to the female reference group.
       menopauseStage: nextReferenceSex === 'female' ? nextMenopauseStage : null,
+      symptomPicture: nextReferenceSex === 'female' ? nextSymptomPicture : null,
       age: exactAge,
       ageBand,
       safetyProfile: profile.safetyProfile
@@ -213,6 +223,10 @@ function SettingsScreenContent({
     setMenopauseStage(next);
     commitReferenceDetails(dateOfBirthText, referenceSex, next);
   };
+  const updateSymptomPicture = (next: MenopauseSymptomPicture | null) => {
+    setSymptomPicture(next);
+    commitReferenceDetails(dateOfBirthText, referenceSex, menopauseStage, next);
+  };
 
   const toggleDay = (day: string) => {
     const next = preferredDays.includes(day)
@@ -235,6 +249,8 @@ function SettingsScreenContent({
             onReferenceSexChange={updateReferenceSex}
             menopauseStage={menopauseStage}
             onMenopauseStageChange={updateMenopauseStage}
+            symptomPicture={symptomPicture}
+            onSymptomPictureChange={updateSymptomPicture}
             movementGoal={goalText}
             onOpenLifeGoal={onOpenLifeGoal}
           />
@@ -788,6 +804,8 @@ function PersonalDetailsCard({
   onReferenceSexChange,
   menopauseStage,
   onMenopauseStageChange,
+  symptomPicture,
+  onSymptomPictureChange,
   movementGoal,
   onOpenLifeGoal,
 }: {
@@ -800,6 +818,8 @@ function PersonalDetailsCard({
   onReferenceSexChange: (value: ProfileReferenceSex) => void;
   menopauseStage: MenopauseStage | null;
   onMenopauseStageChange: (value: MenopauseStage) => void;
+  symptomPicture: MenopauseSymptomPicture | null;
+  onSymptomPictureChange: (value: MenopauseSymptomPicture | null) => void;
   movementGoal: string;
   onOpenLifeGoal: () => void;
 }) {
@@ -923,6 +943,39 @@ function PersonalDetailsCard({
               </View>
               <Text style={styles.personalFieldHint}>
                 Shapes {BRAND.appName}'s guidance — never how your results are measured.
+              </Text>
+              <Text style={styles.personalFieldLabel}>Symptom picture (optional)</Text>
+              <View style={styles.personalAgeOptionGrid}>
+                {SYMPTOM_PICTURE_TOGGLE_OPTIONS.map((option) => {
+                  const selected = isSymptomToggleSelected(symptomPicture, option.value);
+                  return (
+                    <Pressable
+                      key={option.value}
+                      style={({ pressed }) => [
+                        styles.personalAgeOption,
+                        styles.personalAgeOptionWide,
+                        selected && styles.personalAgeOptionSelected,
+                        pressed && styles.pressed,
+                      ]}
+                      onPress={() => onSymptomPictureChange(toggleSymptomPicture(symptomPicture, option.value))}
+                      accessibilityRole="button"
+                      accessibilityLabel={option.label}
+                      accessibilityState={{ selected }}
+                    >
+                      <Text
+                        style={[styles.personalAgeOptionText, selected && styles.personalAgeOptionTextSelected]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.88}
+                      >
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <Text style={styles.personalFieldHint}>
+                Helps {BRAND.appName} shape guidance and content — never how your results are measured.
               </Text>
             </>
           ) : null}

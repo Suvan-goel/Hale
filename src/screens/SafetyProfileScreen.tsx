@@ -15,14 +15,19 @@ import { PrimaryButton, Screen, ScreenHeader } from '../components/ui';
 import {
   MENOPAUSE_STAGE_OPTIONS,
   STARTING_PACE_OPTIONS,
+  SYMPTOM_PICTURE_TOGGLE_OPTIONS,
   ageFromDateOfBirth,
   ageBandForAge,
   dateOfBirthInputLabel,
+  isSymptomToggleSelected,
   movementCapabilitiesFromSafetyProfile,
   normalizeDateOfBirth,
   onboardingActivityLevel,
   safetyProfileWithMovementCapabilities,
+  toggleSymptomPicture,
   type MenopauseStage,
+  type MenopauseSymptomPicture,
+  type SymptomPictureToggle,
   type ProfileReferenceSex,
   type UserProfile,
 } from '../profile';
@@ -39,6 +44,7 @@ type SafetyProfileReferenceDetails = {
   ageBand: AgeBand | null;
   referenceSex: ProfileReferenceSex;
   menopauseStage: MenopauseStage | null;
+  symptomPicture: MenopauseSymptomPicture | null;
 };
 
 type SafetyProfileDraft = {
@@ -46,6 +52,7 @@ type SafetyProfileDraft = {
   exactAge: number | null;
   referenceSex: ProfileReferenceSex | null;
   menopauseStage: MenopauseStage | null;
+  symptomPicture: MenopauseSymptomPicture | null;
   activityLevel: ActivityLevel;
   painArea: string;
   floorTransferStatus: CapabilityConfirmationStatus;
@@ -84,6 +91,9 @@ export function SafetyProfileScreen({
   const [datePickerVisible, setDatePickerVisible] = React.useState(false);
   const [referenceSex, setReferenceSex] = React.useState<ProfileReferenceSex | null>(profile.referenceSex);
   const [menopauseStage, setMenopauseStage] = React.useState<MenopauseStage | null>(profile.menopauseStage);
+  const [symptomPicture, setSymptomPicture] = React.useState<MenopauseSymptomPicture | null>(
+    profile.symptomPicture
+  );
   const [activityLevel, setActivityLevel] = React.useState<ActivityLevel>(
     onboardingActivityLevel(initial?.activityLevel)
   );
@@ -108,6 +118,7 @@ export function SafetyProfileScreen({
     exactAge,
     referenceSex,
     menopauseStage,
+    symptomPicture,
     activityLevel,
     painArea,
     floorTransferStatus,
@@ -166,9 +177,10 @@ export function SafetyProfileScreen({
         exactAge: draft.exactAge,
         ageBand: ageBandForAge(draft.exactAge),
         referenceSex: draft.referenceSex,
-        // The stage question only shows for the female reference group; never
-        // persist a stale answer for anyone else.
+        // The stage and symptom questions only show for the female reference
+        // group; never persist a stale answer for anyone else.
         menopauseStage: draft.referenceSex === 'female' ? draft.menopauseStage : null,
+        symptomPicture: draft.referenceSex === 'female' ? draft.symptomPicture : null,
       },
       options
     );
@@ -198,6 +210,12 @@ export function SafetyProfileScreen({
   const selectMenopauseStage = (next: MenopauseStage) => {
     setMenopauseStage(next);
     saveIfReviewing({ menopauseStage: next });
+  };
+
+  const toggleSymptom = (toggle: SymptomPictureToggle) => {
+    const next = toggleSymptomPicture(symptomPicture, toggle);
+    setSymptomPicture(next);
+    saveIfReviewing({ symptomPicture: next });
   };
 
   const selectActivityLevel = (next: ActivityLevel) => {
@@ -288,6 +306,27 @@ export function SafetyProfileScreen({
               </View>
               <Text style={styles.gentle}>
                 This shapes {BRAND.appName}'s guidance — it never changes how your results are measured.
+              </Text>
+              <View style={styles.questionCopy}>
+                <Text style={styles.subsectionTitle}>Your symptom picture</Text>
+                <Text style={styles.questionDescription}>
+                  In the last month, have any of these been part of your life? Optional — pick any
+                  that fit, or skip this.
+                </Text>
+              </View>
+              <View style={styles.grid}>
+                {SYMPTOM_PICTURE_TOGGLE_OPTIONS.map((option) => (
+                  <Choice
+                    key={option.value}
+                    label={option.label}
+                    selected={isSymptomToggleSelected(symptomPicture, option.value)}
+                    onPress={() => toggleSymptom(option.value)}
+                  />
+                ))}
+              </View>
+              <Text style={styles.gentle}>
+                Helps {BRAND.appName} shape guidance and content — never how your results are
+                measured.
               </Text>
             </View>
           ) : null}

@@ -170,6 +170,7 @@ import { deriveOnboardingStep } from './src/onboarding/state';
 import {
   AppSettings,
   MenopauseStage,
+  MenopauseSymptomPicture,
   OnboardingStep,
   Preferences,
   ProfileStore,
@@ -2079,6 +2080,7 @@ function HaleApp() {
         ageBand: AgeBand | null;
         referenceSex: 'female' | 'male';
         menopauseStage: MenopauseStage | null;
+        symptomPicture: MenopauseSymptomPicture | null;
       },
       options?: { stayOnScreen?: boolean }
     ) => {
@@ -2106,6 +2108,7 @@ function HaleApp() {
           exactAge: referenceDetails.exactAge,
           referenceSex: referenceDetails.referenceSex,
           menopauseStage: referenceDetails.menopauseStage,
+          symptomPicture: referenceDetails.symptomPicture,
           age: referenceDetails.exactAge,
           ageBand: referenceDetails.ageBand,
           safetyProfile: nextSafetyProfile,
@@ -4451,6 +4454,7 @@ function HaleApp() {
           ) : activeTabScreen === 'ExploreScreen' ? (
             <ExploreScreen
               safetyProfile={displayPrefs.profile.safetyProfile}
+              menopauseStage={displayPrefs.profile.menopauseStage}
               ladderProgressById={displayTraining.ladderProgressById}
               onStartExtraSession={handleStartExtraSession}
               onOpenLearn={openLearnDetail}

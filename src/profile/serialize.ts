@@ -7,7 +7,7 @@
 
 import { LIFE_GOAL_CATEGORIES, normalizeLifeGoalDisplayText } from '../adherence';
 import type { ActivityLevel, LifeGoal, MovementSafetyProfile } from '../adherence';
-import { AppSettings, EMPTY_PROFILE, MenopauseStage, OnboardingState, OnboardingStep, Preferences, ProfileReferenceSex, UserProfile } from './types';
+import { AppSettings, EMPTY_PROFILE, MenopauseStage, MenopauseSymptom, MenopauseSymptomPicture, OnboardingState, OnboardingStep, Preferences, ProfileReferenceSex, UserProfile } from './types';
 import {
   ageBandForAge,
   ageFromDateOfBirth,
@@ -106,6 +106,7 @@ function validProfile(v: unknown): UserProfile {
     exactAge,
     referenceSex: validReferenceSex(p.referenceSex),
     menopauseStage: validMenopauseStage(p.menopauseStage),
+    symptomPicture: validSymptomPicture(p.symptomPicture),
     age: exactAge,
     ageBand,
     goal: normalizeLifeGoalDisplayText(typeof p.goal === 'string' ? p.goal : def.goal),
@@ -208,14 +209,38 @@ function validReferenceSex(value: unknown): ProfileReferenceSex | null {
 
 const MENOPAUSE_STAGES: MenopauseStage[] = [
   'perimenopausal',
+  'menopausal', // v10 (F2, 2026-07-06)
   'postmenopausal',
-  'neither_or_unsure',
+  'neither_or_unsure', // stored token behind the "Not sure" label
   'prefer_not_to_say',
 ];
 function validMenopauseStage(value: unknown): MenopauseStage | null {
   return typeof value === 'string' && MENOPAUSE_STAGES.includes(value as MenopauseStage)
     ? (value as MenopauseStage)
     : null;
+}
+
+const MENOPAUSE_SYMPTOMS: MenopauseSymptom[] = [
+  'sleep_disruption',
+  'hot_flushes',
+  'joint_aches',
+  'low_mood',
+  'brain_fog',
+];
+function validSymptomPicture(value: unknown): MenopauseSymptomPicture | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const v = value as Partial<MenopauseSymptomPicture>;
+  if (v.kind === 'none_of_these' || v.kind === 'prefer_not_to_say') return { kind: v.kind };
+  if (v.kind === 'selected') {
+    const symptoms = Array.isArray((v as { symptoms?: unknown }).symptoms)
+      ? ((v as { symptoms: unknown[] }).symptoms.filter(
+          (s): s is MenopauseSymptom =>
+            typeof s === 'string' && MENOPAUSE_SYMPTOMS.includes(s as MenopauseSymptom)
+        ) as MenopauseSymptom[])
+      : [];
+    return symptoms.length > 0 ? { kind: 'selected', symptoms } : null;
+  }
+  return null;
 }
 
 function validSettings(v: unknown): AppSettings {

@@ -3,6 +3,7 @@ import { Image, ImageBackground, Pressable, StyleSheet, Text, View } from 'react
 import Svg, { Path } from 'react-native-svg';
 
 import type { MovementSafetyProfile } from '../adherence';
+import type { MenopauseStage } from '../profile';
 import { Screen } from '../components/ui';
 import { HeaderLogo } from '../components/HeaderLogo';
 import {
@@ -20,19 +21,22 @@ import { INSIGHT_IMAGES, PRACTICE_IMAGES } from './exploreImages';
 
 export function ExploreScreen({
   safetyProfile,
+  menopauseStage,
   ladderProgressById,
   onStartExtraSession,
   onOpenLearn,
   onOpenSettings,
 }: {
   safetyProfile?: MovementSafetyProfile | null;
+  /** Personalization signal only ("Not sure" → educational content leads). */
+  menopauseStage?: MenopauseStage | null;
   ladderProgressById: Record<string, LadderProgress>;
   onStartExtraSession: (presetId: string, preferences?: TodaySessionPreferences | null) => void;
   onOpenLearn: (articleId: string) => void;
   onOpenSettings: () => void;
 }) {
   const responsive = useResponsiveLayout();
-  const insights = React.useMemo(() => getHealthInsightCards(), []);
+  const insights = React.useMemo(() => getHealthInsightCards({ menopauseStage }), [menopauseStage]);
   const extraSessions = React.useMemo(
     () => getExtraSessionCards({ safetyProfile, ladderProgressById }),
     [ladderProgressById, safetyProfile]

@@ -119,6 +119,17 @@ describe('Hale V1 onboarding state', () => {
     expect(deriveOnboardingStep({ prefs, history: [] })).toBe('camera_setup');
   });
 
+  it('never routes back to the safety profile over the stage question (F2: never re-ask)', () => {
+    // The stage is answered in-screen (prefer_not_to_say is a first-class
+    // answer, F1); once reference details + safety profile exist, no stage
+    // value — including honest null — may bounce her back to be re-asked.
+    for (const menopauseStage of ['neither_or_unsure', 'prefer_not_to_say', null] as const) {
+      const prefs = onboardingPrefs();
+      prefs.profile.menopauseStage = menopauseStage;
+      expect(deriveOnboardingStep({ prefs, history: [] })).toBe('camera_setup');
+    }
+  });
+
   it('allows onboarding to finish when the first check-up is deferred', () => {
     const prefs = onboardingPrefs();
     prefs.onboarding.currentStep = 'complete';

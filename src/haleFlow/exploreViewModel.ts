@@ -1,4 +1,5 @@
 import type { AvailableEquipment, MovementSafetyProfile } from '../adherence';
+import type { MenopauseStage } from '../profile/types';
 import type { EquipmentTag } from '../movements';
 import { generatePresetSession, listExtraSessionPresets } from '../training';
 import { canonicalEquipmentFromSafetyProfile } from '../profile/equipment';
@@ -121,8 +122,10 @@ export function getLearnDetail(id: string): LearnDetail | null {
   return HEALTH_INSIGHT_ARTICLES.find((article) => article.id === id) ?? null;
 }
 
-export function getHealthInsightCards(): HealthInsightCard[] {
-  return HEALTH_INSIGHT_ARTICLES.map((article) => ({
+export function getHealthInsightCards(options?: {
+  menopauseStage?: MenopauseStage | null;
+}): HealthInsightCard[] {
+  const cards = HEALTH_INSIGHT_ARTICLES.map((article) => ({
     id: article.id,
     title: article.title,
     body: article.body,
@@ -132,6 +135,15 @@ export function getHealthInsightCards(): HealthInsightCard[] {
     authorCredential: article.authorCredential ?? 'Clinical review',
     reviewedLabel: article.reviewedLabel ?? 'Reviewed',
   }));
+  // "Not sure" is a personalization signal, never a gap (founder rule of
+  // record, F2 2026-07-06): the gentle educational path leads — the menopause
+  // explainer is guaranteed first for these readers, whatever the authored
+  // order becomes. No surface may re-ask or nag about the stage.
+  if (options?.menopauseStage === 'neither_or_unsure') {
+    const educational = cards.findIndex((card) => card.id === 'insight-menopause-muscle');
+    if (educational > 0) cards.unshift(cards.splice(educational, 1)[0]);
+  }
+  return cards;
 }
 
 export function availableEquipmentFor({

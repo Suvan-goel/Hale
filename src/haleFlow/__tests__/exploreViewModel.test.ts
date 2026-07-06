@@ -123,4 +123,16 @@ describe('exploreViewModel', () => {
     expect(cards.every((card) => card.categoryLabel && card.authorCredential && card.reviewedLabel)).toBe(true);
     expect(getLearnDetail(cards[0].id)?.sections.length).toBeGreaterThan(0);
   });
+
+  it('guarantees the educational explainer leads for "Not sure" readers (F2 rule of record)', () => {
+    // A personalization signal, never a gap: whatever the authored order
+    // becomes, the menopause explainer is first for neither_or_unsure — and
+    // nothing about the feed changes for other stages.
+    expect(getHealthInsightCards({ menopauseStage: 'neither_or_unsure' })[0].id).toBe(
+      'insight-menopause-muscle'
+    );
+    expect(getHealthInsightCards({ menopauseStage: 'menopausal' }).map((c) => c.id)).toEqual(
+      getHealthInsightCards().map((c) => c.id)
+    );
+  });
 });

@@ -101,6 +101,7 @@ export function mergeRemoteProfileIntoLocal(
       exactAge,
       referenceSex: localPrefs.profile.referenceSex ?? remotePrefs.profile.referenceSex,
       menopauseStage: localPrefs.profile.menopauseStage ?? remotePrefs.profile.menopauseStage,
+      symptomPicture: localPrefs.profile.symptomPicture ?? remotePrefs.profile.symptomPicture,
       age: derivedAge ?? localPrefs.profile.age ?? remotePrefs.profile.age,
       ageBand:
         derivedAge !== null

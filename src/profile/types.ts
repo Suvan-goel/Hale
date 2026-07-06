@@ -10,12 +10,22 @@ import type { AgeBand, LifeGoal, MovementSafetyProfile } from '../adherence';
 export type ProfileReferenceSex = 'female' | 'male';
 
 /**
- * Where the user is in the menopause transition (2026-07-05 repositioning).
- * Copy tone and content selection ONLY — never scoring. Published comparisons
- * stay keyed to age + referenceSex; no reference source is stage-stratified.
+ * Where the user is in the menopause transition (2026-07-05 repositioning;
+ * taxonomy finalized 2026-07-06, F2: peri / meno / post / not sure / prefer
+ * not to say). Copy tone and content selection ONLY — never scoring. Published
+ * comparisons stay keyed to age + referenceSex; no reference source is
+ * stage-stratified.
+ *
+ * 'neither_or_unsure' is the stored token behind the "Not sure" label (kept so
+ * v9 records parse unchanged). Rules of record: "Not sure" is a first-class
+ * answer treated as a personalization signal (gentle educational content
+ * leads — see exploreViewModel) and is NEVER re-asked or nagged about;
+ * 'prefer_not_to_say' is an explicit stored decline (F1) — required-before-
+ * Continue is satisfied by it, and null never masquerades as answered.
  */
 export type MenopauseStage =
   | 'perimenopausal'
+  | 'menopausal'
   | 'postmenopausal'
   | 'neither_or_unsure'
   | 'prefer_not_to_say';
@@ -23,9 +33,36 @@ export type MenopauseStage =
 /** Display options for the stage question (onboarding safety setup + Settings). */
 export const MENOPAUSE_STAGE_OPTIONS: readonly { value: MenopauseStage; label: string }[] = [
   { value: 'perimenopausal', label: 'Perimenopause' },
+  { value: 'menopausal', label: 'Menopause' },
   { value: 'postmenopausal', label: 'Post-menopause' },
-  { value: 'neither_or_unsure', label: 'Neither / not sure' },
+  { value: 'neither_or_unsure', label: 'Not sure' },
   { value: 'prefer_not_to_say', label: 'Prefer not to say' },
+];
+
+/**
+ * Light symptom picture (REPOSITION_TDD §2.1, approved 2026-07-06). Optional
+ * and skippable — null means not answered and is never chased. Used for
+ * personalisation context and (later) check-up covariates ONLY: never
+ * scoring, never diagnosis-flavoured output.
+ */
+export type MenopauseSymptom =
+  | 'sleep_disruption'
+  | 'hot_flushes'
+  | 'joint_aches'
+  | 'low_mood'
+  | 'brain_fog';
+
+export type MenopauseSymptomPicture =
+  | { kind: 'selected'; symptoms: readonly MenopauseSymptom[] }
+  | { kind: 'none_of_these' }
+  | { kind: 'prefer_not_to_say' };
+
+export const MENOPAUSE_SYMPTOM_OPTIONS: readonly { value: MenopauseSymptom; label: string }[] = [
+  { value: 'sleep_disruption', label: 'Disrupted sleep' },
+  { value: 'hot_flushes', label: 'Hot flushes' },
+  { value: 'joint_aches', label: 'Joint aches' },
+  { value: 'low_mood', label: 'Low mood' },
+  { value: 'brain_fog', label: 'Brain fog' },
 ];
 
 /** A single person on this device. All fields optional until the user fills them in. */
@@ -40,6 +77,8 @@ export interface UserProfile {
   referenceSex: ProfileReferenceSex | null;
   /** Menopause-transition stage; shapes copy and content, never measurements. */
   menopauseStage: MenopauseStage | null;
+  /** Optional symptom picture; personalisation context only, never scoring. */
+  symptomPicture: MenopauseSymptomPicture | null;
   /** Deprecated legacy exact age mirror for older V1 surfaces. */
   age: number | null;
   /** Legacy age range retained for old records and non-reference copy. */
@@ -111,6 +150,7 @@ export const EMPTY_PROFILE: UserProfile = {
   exactAge: null,
   referenceSex: null,
   menopauseStage: null,
+  symptomPicture: null,
   age: null,
   ageBand: null,
   goal: '',

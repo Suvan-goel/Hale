@@ -22,6 +22,7 @@ describe('preferences serialize', () => {
       exactAge: 58,
       referenceSex: 'female',
       menopauseStage: 'perimenopausal',
+      symptomPicture: null,
       age: 58,
       ageBand: '55_64',
       goal: 'Stay steady on the stairs',
@@ -74,6 +75,65 @@ describe('preferences serialize', () => {
       JSON.stringify({ profile: { name: '', goal: '', menopauseStage: 'menopausal-typo' } })
     );
     expect(parsed?.profile.menopauseStage).toBeNull();
+  });
+
+  it("round-trips the v10 'menopausal' stage (F2 taxonomy, 2026-07-06)", () => {
+    const parsed = deserializePreferences(
+      serializePreferences({
+        ...sample,
+        profile: { ...sample.profile, menopauseStage: 'menopausal' },
+      })
+    );
+    expect(parsed?.profile.menopauseStage).toBe('menopausal');
+    // The v9 stored token behind "Not sure" still parses unchanged.
+    expect(
+      deserializePreferences(
+        JSON.stringify({ profile: { name: '', goal: '', menopauseStage: 'neither_or_unsure' } })
+      )?.profile.menopauseStage
+    ).toBe('neither_or_unsure');
+  });
+
+  it('round-trips the symptom picture and parses defensively (v10)', () => {
+    const withSymptoms = deserializePreferences(
+      serializePreferences({
+        ...sample,
+        profile: {
+          ...sample.profile,
+          symptomPicture: { kind: 'selected', symptoms: ['brain_fog', 'sleep_disruption'] },
+        },
+      })
+    );
+    expect(withSymptoms?.profile.symptomPicture).toEqual({
+      kind: 'selected',
+      symptoms: ['brain_fog', 'sleep_disruption'],
+    });
+
+    // Unknown symptoms filter out; an empty selection is not a stored answer.
+    const dirty = deserializePreferences(
+      JSON.stringify({
+        profile: {
+          name: '',
+          goal: '',
+          symptomPicture: { kind: 'selected', symptoms: ['brain_fog', 'not-a-symptom'] },
+        },
+      })
+    );
+    expect(dirty?.profile.symptomPicture).toEqual({ kind: 'selected', symptoms: ['brain_fog'] });
+    expect(
+      deserializePreferences(
+        JSON.stringify({ profile: { name: '', goal: '', symptomPicture: { kind: 'selected', symptoms: [] } } })
+      )?.profile.symptomPicture
+    ).toBeNull();
+    expect(
+      deserializePreferences(
+        JSON.stringify({ profile: { name: '', goal: '', symptomPicture: { kind: 'prefer_not_to_say' } } })
+      )?.profile.symptomPicture
+    ).toEqual({ kind: 'prefer_not_to_say' });
+    // v9 records (no field) parse to honest unanswered.
+    expect(
+      deserializePreferences(JSON.stringify({ profile: { name: '', goal: '' } }))?.profile
+        .symptomPicture
+    ).toBeNull();
   });
 
   it('resumes retired onboarding steps at the single camera setup screen', () => {
@@ -251,6 +311,7 @@ describe('ProfileStore', () => {
         exactAge: 68,
         referenceSex: 'male',
         menopauseStage: null,
+        symptomPicture: null,
         age: 68,
         ageBand: '65_74',
         goal: '',

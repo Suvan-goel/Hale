@@ -5,8 +5,8 @@
  * never pulls in a native module.
  */
 
-export type { AppSettings, MenopauseStage, OnboardingState, OnboardingStep, Preferences, ProfileReferenceSex, UserProfile } from './types';
-export { EMPTY_PROFILE, MENOPAUSE_STAGE_OPTIONS } from './types';
+export type { AppSettings, MenopauseStage, MenopauseSymptom, MenopauseSymptomPicture, OnboardingState, OnboardingStep, Preferences, ProfileReferenceSex, UserProfile } from './types';
+export { EMPTY_PROFILE, MENOPAUSE_STAGE_OPTIONS, MENOPAUSE_SYMPTOM_OPTIONS } from './types';
 export {
   AGE_RANGE_OPTIONS,
   ageFromDateOfBirth,
@@ -92,6 +92,12 @@ export {
   deserializePreferences,
   serializePreferences,
 } from './serialize';
+export {
+  SYMPTOM_PICTURE_TOGGLE_OPTIONS,
+  isSymptomToggleSelected,
+  toggleSymptomPicture,
+} from './symptomPicture';
+export type { SymptomPictureToggle } from './symptomPicture';
 export { ProfileStore } from './store';
 export { DEFAULT_VOICE_ID, VOICE_OPTIONS, getVoice } from './voices';
 export type { VoiceOption } from './voices';
