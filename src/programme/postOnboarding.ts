@@ -7,6 +7,7 @@
  */
 
 import type { CheckUp } from '../checkup';
+import type { MovementProfileV2BatteryMovement } from '../movementProfileV2/internalCheckupFlow';
 import { CHAIR_RISE_V2_ID, ONE_LEG_BALANCE_V2_ID } from '../movements';
 import type { ChairRiseV2Result } from '../movements/chairRiseV2';
 import type { OneLegBalanceV2Result } from '../movements/oneLegBalanceV2';
@@ -59,6 +60,20 @@ export const CHECKUP_ZERO_PROTOCOL_SEQUENCE = [
   ONE_LEG_BALANCE_V2_ID,
   CHAIR_RISE_V2_ID,
 ] as const;
+
+/**
+ * The pinned scope constant translated into coordinator battery tokens —
+ * Check-up #0 AND the routine 4–6-week programme-v2 check-ups construct
+ * their battery from this (single source of scope truth). Unknown ids are
+ * construction-time errors.
+ */
+export function checkupZeroBatterySequence(): readonly MovementProfileV2BatteryMovement[] {
+  return CHECKUP_ZERO_PROTOCOL_SEQUENCE.map((movementId) => {
+    if (movementId === ONE_LEG_BALANCE_V2_ID) return 'balance' as const;
+    if (movementId === CHAIR_RISE_V2_ID) return 'chair' as const;
+    throw new Error(`no battery movement for Check-up #0 protocol '${movementId}'`);
+  });
+}
 
 /**
  * Extracts T1/T3 from completed check-up items (the two-protocol Check-up #0

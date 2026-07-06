@@ -1,6 +1,7 @@
 import {
   CHECKUP_ZERO_PROTOCOL_SEQUENCE,
   assessmentInputsFromV2Results,
+  checkupZeroBatterySequence,
   assessmentReoffer,
   recordBandAnswer,
   recordDomingCheck,
@@ -31,6 +32,10 @@ describe('Check-up #0 scope (founder ruling: two protocols, gentle-first)', () =
       expect(id).not.toMatch(/shoulder|hinge/);
     }
     expect(CHECKUP_ZERO_PROTOCOL_SEQUENCE).toHaveLength(2);
+  });
+
+  it('the host battery derives from the pinned constant: balance first, chair last', () => {
+    expect(checkupZeroBatterySequence()).toEqual(['balance', 'chair']);
   });
 });
 

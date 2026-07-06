@@ -34,8 +34,11 @@ import {
   type OneLegBalanceV2Result,
 } from '../movements/oneLegBalanceV2';
 import {
+  movementProfileV2FlowBatterySequence,
   movementProfileV2InternalFlowReducer,
   movementProfileV2RawCheckUpFromFlow,
+  validateMovementProfileV2BatterySequence,
+  type MovementProfileV2BatteryMovement,
   type MovementProfileV2InternalFlowState,
 } from './internalCheckupFlow';
 import type { MovementProfileV2CueId } from './voiceCues';
@@ -323,8 +326,16 @@ export function createMovementProfileV2LivePoseSample(input: {
   };
 }
 
+const BATTERY_MOVEMENT_SETUP_STAGE: Record<MovementProfileV2BatteryMovement, MovementProfileV2LiveStage> = {
+  chair: 'chair_setup',
+  balance: 'balance_setup',
+  shoulder: 'shoulder_setup',
+  hinge: 'hinge_setup',
+};
+
 export class MovementProfileV2LiveCoordinator {
   private flow: MovementProfileV2InternalFlowState;
+  private readonly batterySequence: readonly MovementProfileV2BatteryMovement[];
   private stage: MovementProfileV2LiveStage = 'chair_setup';
   private revision = 0;
   private movementEpochCounter = 0;
@@ -421,6 +432,11 @@ export class MovementProfileV2LiveCoordinator {
     options: MovementProfileV2LiveCoordinatorOptions = {}
   ) {
     this.flow = initialFlow;
+    // Battery order derives from the flow state (single owner — Option 1
+    // ruling 2026-07-06); absent = the default full battery, byte-identical.
+    this.batterySequence = validateMovementProfileV2BatterySequence(
+      movementProfileV2FlowBatterySequence(initialFlow)
+    );
     this.handsFreeMode = options.handsFreeMode === true;
     this.handsFreeSetupDwellMs = options.handsFreeSetupDwellMs ?? HANDS_FREE_SETUP_DWELL_MS;
     this.handsFreeFallbackTimeoutMs = options.handsFreeFallbackTimeoutMs ?? HANDS_FREE_FALLBACK_TIMEOUT_MS;
@@ -428,7 +444,36 @@ export class MovementProfileV2LiveCoordinator {
     if (this.standingFrameCheckEnabled) {
       this.stage = 'standing_frame_check';
       this.movementEpochId = this.nextMovementEpoch('frame-check');
+    } else if (this.batterySequence[0] !== 'chair') {
+      this.stage = BATTERY_MOVEMENT_SETUP_STAGE[this.batterySequence[0]];
+      this.movementEpochId = this.nextMovementEpoch(this.batterySequence[0]);
     }
+  }
+
+  /**
+   * Sequence-driven movement handoff: transitions to the next sequenced
+   * movement's setup stage, or assembles the raw CheckUp when the sequence is
+   * exhausted. For the default battery this reproduces today's hardcoded
+   * chair→balance→shoulder→hinge→raw_complete path with identical stages,
+   * epochs, and reasons.
+   */
+  private advanceAfterMovement(
+    movement: MovementProfileV2BatteryMovement,
+    nowMs: number,
+    reason: string
+  ): void {
+    const index = this.batterySequence.indexOf(movement);
+    const next = index >= 0 ? this.batterySequence[index + 1] : undefined;
+    if (next) {
+      this.transition(BATTERY_MOVEMENT_SETUP_STAGE[next], nowMs, reason);
+      this.movementEpochId = this.nextMovementEpoch(next);
+      this.attemptEpochId = null;
+      return;
+    }
+    this.completedCheckUp = movementProfileV2RawCheckUpFromFlow(this.flow);
+    this.diagnostics.artifactOutcome = this.completedCheckUp ? 'raw_complete' : 'none';
+    this.transition('raw_complete', nowMs, reason);
+    this.attemptEpochId = null;
   }
 
   snapshot(nowMs: number | null = null): MovementProfileV2LiveSnapshot {
@@ -1434,8 +1479,9 @@ export class MovementProfileV2LiveCoordinator {
 
   private passFrameCheck(nowMs: number, reason: string): void {
     if (this.stage !== 'standing_frame_check') return;
-    this.transition('chair_setup', nowMs, reason);
-    this.movementEpochId = this.nextMovementEpoch('chair');
+    const first = this.batterySequence[0];
+    this.transition(BATTERY_MOVEMENT_SETUP_STAGE[first], nowMs, reason);
+    this.movementEpochId = this.nextMovementEpoch(first);
     this.attemptEpochId = null;
   }
 
@@ -1472,19 +1518,14 @@ export class MovementProfileV2LiveCoordinator {
       type: 'record_hinge',
       result: this.hingeResult,
     });
-    this.completedCheckUp = movementProfileV2RawCheckUpFromFlow(this.flow);
-    this.diagnostics.artifactOutcome = this.completedCheckUp ? 'raw_complete' : 'none';
-    this.transition('raw_complete', nowMs, 'hinge_recorded');
-    this.attemptEpochId = null;
+    this.advanceAfterMovement('hinge', nowMs, 'hinge_recorded');
   }
 
   private recordChairResult(result: ChairRiseV2Result, nowMs: number, reason: string): void {
     if (this.chairResult) return;
     this.chairResult = result;
     this.flow = movementProfileV2InternalFlowReducer(this.flow, { type: 'record_chair', result });
-    this.transition('balance_setup', nowMs, reason);
-    this.movementEpochId = this.nextMovementEpoch('balance');
-    this.attemptEpochId = null;
+    this.advanceAfterMovement('chair', nowMs, reason);
   }
 
   private recordBalanceResult(result: OneLegBalanceV2Result, nowMs: number, reason: string): void {
@@ -1497,18 +1538,14 @@ export class MovementProfileV2LiveCoordinator {
     this.clearBalanceReadyLiftEvidence();
     this.diagnostics.balance.hardCapReached = result.hardCapReached;
     this.flow = movementProfileV2InternalFlowReducer(this.flow, { type: 'record_balance', result });
-    this.transition('shoulder_setup', nowMs, reason);
-    this.movementEpochId = this.nextMovementEpoch('shoulder');
-    this.attemptEpochId = null;
+    this.advanceAfterMovement('balance', nowMs, reason);
   }
 
   private recordShoulderResult(result: ActiveShoulderReachV2Result, nowMs: number, reason: string): void {
     if (this.shoulderResult) return;
     this.shoulderResult = result;
     this.flow = movementProfileV2InternalFlowReducer(this.flow, { type: 'record_shoulder', result });
-    this.transition('hinge_setup', nowMs, reason);
-    this.movementEpochId = this.nextMovementEpoch('hinge');
-    this.attemptEpochId = null;
+    this.advanceAfterMovement('shoulder', nowMs, reason);
   }
 
   private handleBackground(nowMs: number): void {

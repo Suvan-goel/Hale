@@ -17,7 +17,9 @@ import { Button, Screen, Typography } from '../components/ui';
 import { createExpoHistoryFs } from '../history/fsAdapter';
 import {
   acknowledgeOnboardingStep,
+  applyAssessmentPlacement,
   applyProgrammeSessionResults,
+  assessmentInputsFromCheckUp,
   assessmentReoffer,
   markSurfaceShown,
   surfaceAlreadyShown,
@@ -48,6 +50,7 @@ import {
 } from '../programme';
 import type { OnboardingQuestionStepId } from '../programme';
 import { ProfileStore } from '../profile';
+import { ProgrammeCheckupZeroScreen } from './ProgrammeCheckupZeroScreen';
 import { buildStoredSessionFunnel, SessionFunnelStore } from '../telemetry';
 import { createExpoSessionFunnelFs } from '../telemetry/fsAdapter';
 import { ProgrammeOnboardingScreen } from './ProgrammeOnboardingScreen';
@@ -368,19 +371,25 @@ export function ProgrammeV2Root() {
   }
 
   if (phase === 'assessment') {
-    // RULED 2026-07-06: Check-up #0 is TWO protocols only (balance, then the
-    // 30 s chair rise — gentle-first, max effort last, ~2 minutes). The
-    // unified screen runs the FULL battery on a fixed step machine (chair
-    // FIRST) with no subset support, so it may not host this. Honest interim
-    // until the two-protocol host (CHECKUP_ZERO_PROTOCOL_SEQUENCE) is
-    // extracted: no camera flow, no untruthful duration copy, levels stay
-    // comfortable-conservative. Every gate (B1 bypass, re-offer paths)
-    // remains in force around this phase.
+    // The two-protocol Check-up #0 host (Option 1 build): warm-up →
+    // balance both sides → 30 s chair rise, run by the real unified
+    // machinery with the batterySequence derived from the pinned scope
+    // constant. 'Now' path (nothing trained) REPLACES placement with the −1
+    // easy start; any post-training-history path is upward-only.
+    // Abandonment applies nothing, burns no once-only surface, and the home
+    // button remains the permanent way back.
     return (
-      <PromptCard
-        title="The movement check is nearly ready"
-        body="The two-minute check arrives in the next build. Until then your levels stay comfortably conservative — nothing is held up."
-        actions={[{ label: 'OK', onPress: () => setPhase('home') }]}
+      <ProgrammeCheckupZeroScreen
+        onComplete={(checkUp) => {
+          const inputs = assessmentInputsFromCheckUp(checkUp);
+          persist(
+            applyAssessmentPlacement(programmeState, inputs, {
+              deferred: programmeState.completedSessionCount > 0,
+            })
+          );
+          setPhase('home');
+        }}
+        onCancel={() => setPhase('home')}
       />
     );
   }

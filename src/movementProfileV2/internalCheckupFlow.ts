@@ -55,6 +55,70 @@ export type MovementProfileV2InternalStep =
   | 'reference_details'
   | 'results';
 
+/**
+ * Battery sequence (2026-07-06 Option 1 ruling): the flow state is the SINGLE
+ * OWNER of which movements run and in what order — the reducer's step
+ * transitions, the raw-CheckUp completeness requirement, and the live
+ * coordinator's stage handoffs all derive from it. An absent field means the
+ * DEFAULT full battery in today's order, byte-identical to pre-ruling
+ * behaviour (pinned by test + the unchanged existing suites). Sequences are
+ * validated at construction: unknown movements, empty sequences, and
+ * duplicates are errors, never runtime surprises.
+ */
+export const MOVEMENT_PROFILE_V2_BATTERY_MOVEMENTS = ['chair', 'balance', 'shoulder', 'hinge'] as const;
+export type MovementProfileV2BatteryMovement = (typeof MOVEMENT_PROFILE_V2_BATTERY_MOVEMENTS)[number];
+
+/** Today's full battery in today's order. Editing this is a deliberate act. */
+export const DEFAULT_MOVEMENT_PROFILE_V2_BATTERY_SEQUENCE: readonly MovementProfileV2BatteryMovement[] = [
+  'chair',
+  'balance',
+  'shoulder',
+  'hinge',
+];
+
+export function validateMovementProfileV2BatterySequence(
+  sequence: readonly MovementProfileV2BatteryMovement[]
+): readonly MovementProfileV2BatteryMovement[] {
+  if (sequence.length === 0) {
+    throw new Error('battery sequence must contain at least one movement');
+  }
+  const seen = new Set<string>();
+  for (const movement of sequence) {
+    if (!(MOVEMENT_PROFILE_V2_BATTERY_MOVEMENTS as readonly string[]).includes(movement)) {
+      throw new Error(`unknown battery movement '${movement}'`);
+    }
+    if (seen.has(movement)) {
+      throw new Error(`duplicate battery movement '${movement}'`);
+    }
+    seen.add(movement);
+  }
+  return sequence;
+}
+
+export function movementProfileV2FlowBatterySequence(
+  state: Pick<MovementProfileV2InternalFlowState, 'batterySequence'>
+): readonly MovementProfileV2BatteryMovement[] {
+  return state.batterySequence ?? DEFAULT_MOVEMENT_PROFILE_V2_BATTERY_SEQUENCE;
+}
+
+/** The flow step each movement's segment begins at. */
+const MOVEMENT_ENTRY_STEP: Record<MovementProfileV2BatteryMovement, MovementProfileV2InternalStep> = {
+  chair: 'chair_setup',
+  balance: 'balance_setup',
+  shoulder: 'shoulder_setup',
+  hinge: 'hinge_capture',
+};
+
+function stepAfterRecord(
+  state: MovementProfileV2InternalFlowState,
+  movement: MovementProfileV2BatteryMovement
+): MovementProfileV2InternalStep {
+  const sequence = movementProfileV2FlowBatterySequence(state);
+  const index = sequence.indexOf(movement);
+  const next = index >= 0 ? sequence[index + 1] : undefined;
+  return next ? MOVEMENT_ENTRY_STEP[next] : 'raw_complete';
+}
+
 export interface MovementProfileV2InternalFlowState {
   startedAt: string;
   sourceType: Extract<CheckupType, 'baseline' | 'baseline_retake' | 'official_retest' | 'manual_extra_v2'>;
@@ -66,6 +130,8 @@ export interface MovementProfileV2InternalFlowState {
   shoulderSide: BodySide;
   backgrounded: boolean;
   items: CheckUpItem[];
+  /** Absent = the default full battery (see DEFAULT_..._BATTERY_SEQUENCE). */
+  batterySequence?: readonly MovementProfileV2BatteryMovement[];
 }
 
 export type MovementProfileV2InternalFlowEvent =
@@ -88,15 +154,20 @@ export function createMovementProfileV2InternalFlow(input: {
   startedAt: string;
   history?: readonly StoredCheckUp[] | null;
   bodyUnit?: number | null;
+  batterySequence?: readonly MovementProfileV2BatteryMovement[];
 }): MovementProfileV2InternalFlowState {
   const acceptedV2 = validOfficialMovementProfileV2Assessments(input.history);
   const priorCheckUps = acceptedV2.map((record) => record.record.checkUp);
   const priorStandingLeg = latestV2StandingLeg(priorCheckUps);
   const priorShoulderSide = latestV2ShoulderSide(priorCheckUps);
+  const batterySequence = input.batterySequence
+    ? validateMovementProfileV2BatterySequence(input.batterySequence)
+    : undefined;
   return {
+    ...(batterySequence ? { batterySequence } : {}),
     startedAt: input.startedAt,
     sourceType: acceptedV2.length > 0 ? 'baseline_retake' : 'baseline',
-    step: 'chair_setup',
+    step: batterySequence ? MOVEMENT_ENTRY_STEP[batterySequence[0]] : 'chair_setup',
     bodyUnit: input.bodyUnit ?? null,
     priorStandingLeg,
     standingLeg: priorStandingLeg ?? 'left',
@@ -124,7 +195,7 @@ export function movementProfileV2InternalFlowReducer(
       return state.step === 'chair_practice' ? { ...state, step: 'chair_active' } : state;
     case 'record_chair':
       if (state.step !== 'chair_active' || hasItem(state.items, CHAIR_RISE_V2_ID)) return state;
-      return { ...state, step: 'balance_setup', items: [...state.items, measuredItem(CHAIR_RISE_V2_ID, event.result)] };
+      return { ...state, step: stepAfterRecord(state, 'chair'), items: [...state.items, measuredItem(CHAIR_RISE_V2_ID, event.result)] };
     case 'confirm_balance_setup':
       return state.step === 'balance_setup'
         ? { ...state, standingLeg: event.standingLeg, step: 'balance_trials' }
@@ -141,17 +212,17 @@ export function movementProfileV2InternalFlowReducer(
       ) {
         return state;
       }
-      return { ...state, step: 'shoulder_setup', items: [...state.items, measuredItem(event.result.movementId, event.result)] };
+      return { ...state, step: stepAfterRecord(state, 'balance'), items: [...state.items, measuredItem(event.result.movementId, event.result)] };
     case 'confirm_shoulder_setup':
       return state.step === 'shoulder_setup'
         ? { ...state, shoulderSide: event.shoulderSide, step: 'shoulder_active' }
         : state;
     case 'record_shoulder':
       if (state.step !== 'shoulder_active' || hasItem(state.items, ACTIVE_SHOULDER_REACH_V2_ID)) return state;
-      return { ...state, step: 'hinge_capture', items: [...state.items, measuredItem(ACTIVE_SHOULDER_REACH_V2_ID, event.result)] };
+      return { ...state, step: stepAfterRecord(state, 'shoulder'), items: [...state.items, measuredItem(ACTIVE_SHOULDER_REACH_V2_ID, event.result)] };
     case 'record_hinge':
       if (state.step !== 'hinge_capture' || hasItem(state.items, HINGE_REACH_ID)) return state;
-      return { ...state, step: 'raw_complete', items: [...state.items, measuredItem(HINGE_REACH_ID, event.result)] };
+      return { ...state, step: stepAfterRecord(state, 'hinge'), items: [...state.items, measuredItem(HINGE_REACH_ID, event.result)] };
     case 'mark_reference_details':
       return state.step === 'raw_complete' ? { ...state, step: 'reference_details' } : state;
     case 'mark_results':
@@ -174,9 +245,18 @@ export function movementProfileV2RawCheckUpFromFlow(
   const headlineMovementIds = state.items.some((item) => item.movementId === BALANCE_EYES_OPEN_V2_ID)
     ? MOVEMENT_PROFILE_V2_HEADLINE_MOVEMENT_IDS_V2
     : MOVEMENT_PROFILE_V2_HEADLINE_MOVEMENT_IDS;
-  const headlineIds = new Set(headlineMovementIds);
-  const hasAllHeadline = state.items.filter((item) => headlineIds.has(item.movementId as never)).length === headlineIds.size;
-  if (!hasAllHeadline) return null;
+  if (state.batterySequence) {
+    // Sequence-scoped battery: complete when EVERY sequenced movement has
+    // its item. (The default path below is deliberately untouched.)
+    const requiredPresent = state.batterySequence.every((movement) =>
+      state.items.some((item) => movementMatchesItem(movement, item.movementId))
+    );
+    if (!requiredPresent) return null;
+  } else {
+    const headlineIds = new Set(headlineMovementIds);
+    const hasAllHeadline = state.items.filter((item) => headlineIds.has(item.movementId as never)).length === headlineIds.size;
+    if (!hasAllHeadline) return null;
+  }
   const ordered = [...headlineMovementIds, ...MOVEMENT_PROFILE_V2_SUPPORTING_MOVEMENT_IDS]
     .map((movementId) => state.items.find((item) => item.movementId === movementId))
     .filter((item): item is CheckUpItem => !!item);
@@ -186,6 +266,19 @@ export function movementProfileV2RawCheckUpFromFlow(
     bodyUnit: state.bodyUnit,
     items: ordered,
   };
+}
+
+function movementMatchesItem(movement: MovementProfileV2BatteryMovement, movementId: string): boolean {
+  switch (movement) {
+    case 'chair':
+      return movementId === CHAIR_RISE_V2_ID;
+    case 'balance':
+      return movementId === ONE_LEG_BALANCE_V2_ID || movementId === BALANCE_EYES_OPEN_V2_ID;
+    case 'shoulder':
+      return movementId === ACTIVE_SHOULDER_REACH_V2_ID;
+    case 'hinge':
+      return movementId === HINGE_REACH_ID;
+  }
 }
 
 export type PendingMovementProfileV2SourceType = Extract<

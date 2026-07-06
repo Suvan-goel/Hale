@@ -122,6 +122,7 @@ export type {
 export {
   CHECKUP_ZERO_PROTOCOL_SEQUENCE,
   assessmentInputsFromCheckUp,
+  checkupZeroBatterySequence,
   assessmentInputsFromV2Results,
   assessmentReoffer,
   markSurfaceShown,

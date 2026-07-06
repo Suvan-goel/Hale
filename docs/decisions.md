@@ -4546,3 +4546,37 @@ are coordinator-internal. Two honest options, materially different in risk:
 
 Stopped per instruction rather than bending the criterion. The build
 proceeds in its own working session once ruled.
+
+## 2026-07-06 — Option 1 built: batterySequence on the measurement flow; Check-up #0 host live in the shell
+
+- **Where the sequence lives (one owner, as ruled):** the FLOW STATE
+  (`internalCheckupFlow.ts`) carries an optional validated `batterySequence`;
+  the reducer's step transitions, the raw-CheckUp completeness requirement,
+  and the live coordinator's stage handoffs all derive from it. This went one
+  level deeper than the ruling's letter (an option on the coordinator alone
+  would NOT have sufficed — the flow reducer is its own chair-first step
+  machine and would have SILENTLY DROPPED a balance-first result; that hazard
+  is now pinned by test). Absent field = default full battery in today's
+  order, byte-identical: the default path's completeness check is literally
+  the untouched original code branch.
+- **Double pin as ruled:** the existing movementProfileV2 suites pass
+  UNCHANGED, plus explicit tests — DEFAULT_MOVEMENT_PROFILE_V2_BATTERY_SEQUENCE
+  equals today's order; an unsequenced flow stores no field and starts at
+  chair_setup; an unsequenced coordinator opens on chair_setup.
+- **Validation as ruled:** empty/duplicate/unknown sequences throw at
+  construction (flow factory AND coordinator).
+- **Warm-up placement (stated choice):** HOST-LEVEL, before the coordinator
+  starts — ~45 s guided marching/easy-reaches card, skippable, no camera, no
+  evidence, no scores. The coordinator's machine stays purely measurement.
+- **Host:** ProgrammeCheckupZeroScreen — intro (truthful "two minutes of
+  moving" + on-device privacy line) → warm-up → unified check-up screen with
+  batterySequence from checkupZeroBatterySequence() (derived from the pinned
+  CHECKUP_ZERO_PROTOCOL_SEQUENCE; unknown ids throw). Max effort last by
+  construction. Shell assessment phase runs it; 'now' replaces placement,
+  post-training paths upward-only; abandonment applies nothing and burns no
+  once-only surface. Routine v2 check-ups construct from the same constant.
+- **GATE STATUS: suite-green (203/1728), NOT closed** — per the ruling, the
+  gate needs BOTH device passes recorded: the full battery unchanged
+  (regression pass over the coordinator change) and the Check-up #0 host
+  against its verbatim criteria (including measured on-device duration vs
+  the two-minute promise).
