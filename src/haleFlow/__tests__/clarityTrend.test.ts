@@ -2,7 +2,9 @@ import {
   buildClarityTrendViewModel,
   clarityReadingsFromHistory,
   dualTaskReadingsFromHistory,
+  fluencyRelativeReadingsFromHistory,
 } from '../clarityTrend';
+import type { FluencyCategoryId } from '../../checkup';
 import { bareDownwardChanges } from '../testing/copyInvariants';
 import type { StoredCheckUp } from '../../history';
 
@@ -13,11 +15,18 @@ function record(
   options: {
     itemScores?: (0 | 1 | 2 | 3 | 4)[] | null;
     dualTaskCost?: number | null;
+    fluency?: { categoryId: FluencyCategoryId; count: number } | null;
     covariates?: { sleepQuality?: 1 | 2 | 3; symptomLoad?: 1 | 2 | 3 };
     checkupType?: StoredCheckUp['checkupType'];
   } = {}
 ): StoredCheckUp {
-  const { itemScores = null, dualTaskCost = null, covariates, checkupType = 'baseline_retake' } = options;
+  const {
+    itemScores = null,
+    dualTaskCost = null,
+    fluency = null,
+    covariates,
+    checkupType = 'baseline_retake',
+  } = options;
   return {
     schemaVersion: 1,
     checkupType,
@@ -37,18 +46,33 @@ function record(
             },
           }
         : {}),
-      ...(dualTaskCost !== null
+      ...(dualTaskCost !== null || fluency
         ? {
             clarityInstruments: {
               schemaVersion: 1 as const,
-              dualTask: {
-                schemaVersion: 1 as const,
-                movementId: 'one-leg-balance-45s-v2',
-                status: 'measured' as const,
-                singleTaskSeconds: 30,
-                dualTaskSeconds: 30 * (1 - dualTaskCost / 100),
-                costPercent: dualTaskCost,
-              },
+              ...(dualTaskCost !== null
+                ? {
+                    dualTask: {
+                      schemaVersion: 1 as const,
+                      movementId: 'one-leg-balance-45s-v2',
+                      status: 'measured' as const,
+                      singleTaskSeconds: 30,
+                      dualTaskSeconds: 30 * (1 - dualTaskCost / 100),
+                      costPercent: dualTaskCost,
+                    },
+                  }
+                : {}),
+              ...(fluency
+                ? {
+                    fluency: {
+                      schemaVersion: 1 as const,
+                      categoryId: fluency.categoryId,
+                      status: 'measured' as const,
+                      validWordCount: fluency.count,
+                      durationSec: 60 as const,
+                    },
+                  }
+                : {}),
             },
           }
         : {}),
@@ -139,6 +163,47 @@ describe('Clarity trend view model (multi-series, DT3)', () => {
     ]);
     if (steadyMonth.status !== 'ready') throw new Error(steadyMonth.status);
     expect(steadyMonth.covariateContext).toBeUndefined();
+  });
+
+  it('fluency: raw counts never cross categories — each run reads against its own category anchor (F3)', () => {
+    // Cycle 1 (months 1–4): four first encounters, each establishing its
+    // anchor — NO trend points yet. Month 5: animals repeats → first relative.
+    const history = [
+      record('2026-01-01T09:00:00.000Z', { fluency: { categoryId: 'animals', count: 20 } }),
+      record('2026-02-01T09:00:00.000Z', { fluency: { categoryId: 'foods', count: 30 } }),
+      record('2026-03-01T09:00:00.000Z', { fluency: { categoryId: 'countries', count: 10 } }),
+      record('2026-04-01T09:00:00.000Z', { fluency: { categoryId: 'kitchen_things', count: 16 } }),
+    ];
+    expect(fluencyRelativeReadingsFromHistory(history)).toEqual([]);
+
+    history.push(record('2026-05-01T09:00:00.000Z', { fluency: { categoryId: 'animals', count: 24 } }));
+    const relative = fluencyRelativeReadingsFromHistory(history);
+    expect(relative).toHaveLength(1);
+    // 24 vs the animals anchor of 20 → 120% — foods' 30 never enters it.
+    expect(relative[0]).toMatchObject({ metricId: 'fluency_relative_v1', value: 120, basis: 'measured' });
+
+    // A harder category scoring fewer RAW words can still be a personal best
+    // WITHIN category: countries 12 vs anchor 10 → 120%, not a dip.
+    history.push(record('2026-06-01T09:00:00.000Z', { fluency: { categoryId: 'countries', count: 12 } }));
+    const twoPoints = fluencyRelativeReadingsFromHistory(history);
+    expect(twoPoints[1]).toMatchObject({ value: 120 });
+  });
+
+  it('surfaces the word-finding series once relative readings exist', () => {
+    const months = ['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'];
+    const categories: FluencyCategoryId[] = ['animals', 'foods', 'countries', 'kitchen_things', 'animals', 'foods'];
+    const history = months.map((month, index) =>
+      record(`${month}-01T09:00:00.000Z`, {
+        itemScores: steady,
+        fluency: { categoryId: categories[index], count: 20 },
+      })
+    );
+    const trend = buildClarityTrendViewModel(history);
+    if (trend.status !== 'ready') throw new Error(trend.status);
+    const fluencySeries = trend.series.find((series) => series.id === 'fluency');
+    expect(fluencySeries?.label).toBe('Word-finding');
+    // Two relative points (months 5–6): building honestly, no band claimed.
+    expect(fluencySeries?.trend.status).toBe('building');
   });
 
   it('never shows population comparison, raw scores, or banned cognitive language', () => {

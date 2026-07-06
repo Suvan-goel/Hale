@@ -137,3 +137,29 @@ Requires a native SpeechActivityMonitor build (does not exist yet — this block
 Deliverables: filled cells + floor value chosen → verdict in
 `docs/audits/VOICE_KWS_SPIKE_RESULTS.md` (same file, new section); the
 `defaultSpeechActivityMonitor` stub is replaced by the native module ONLY after PASS.
+
+## Block 8 — On-device ASR go/no-go (fluency; ~30 min/device)
+
+Criteria FROZEN at CLARITY_INSTRUMENTS_TDD approval (2026-07-06); pre-run amendments
+only. Requires a native FluencyTranscriber adapter build (does not exist yet — this
+block gates it; the adapter MUST go through createSanitizedFluencyTranscriber).
+
+1. **On-device honesty (airplane mode ON):** availability must report truthfully; on
+   iOS the on-device flag must ERROR rather than silently use the server. Any silent
+   server fallback anywhere = hard fail (there is no acceptable cloud state).
+2. **Count recall:** read a scripted 20-word category list aloud over 60 s, ≥5 runs per
+   condition (quiet; TV speech ~60 dB), phone in hand. Gate: counted words ≥85 % of the
+   distinct words spoken (recall on the COUNT, not transcript fidelity), both test
+   voices (founder + one panel voice), UK accents.
+3. **Error-path sanity:** deny the OS speech permission once (→ user_declined recorded,
+   check-up completes); kill the recognizer mid-window (→ transcriber_failed, no crash,
+   no logged transcript anywhere — check device logs for canary words).
+4. **Permission UX:** the iOS speech prompt appears in-context from the consent
+   screen's Start only — never at launch; decline lands honestly and is not re-prompted
+   within the session.
+5. Latency note: window end → count available ≤2 s.
+
+Deliverables: filled cells → verdict in `docs/audits/VOICE_KWS_SPIKE_RESULTS.md` (new
+section); `defaultFluencyTranscriber` is replaced by the sanitized native adapter ONLY
+after PASS. Fail → fluency ships `unavailable` (recorded limitation), nothing else
+blocked.

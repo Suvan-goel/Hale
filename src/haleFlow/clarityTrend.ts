@@ -31,7 +31,7 @@ const CLARITY_DRIVERS_SUPPORT =
 const DUAL_TASK_DRIVERS_SUPPORT =
   'Steadiness under load dips with sleep, symptom load, and stress too — the same training works that gap. Next month adds the fuller picture.';
 
-export type ClaritySeriesId = 'subjective' | 'dual_task';
+export type ClaritySeriesId = 'subjective' | 'dual_task' | 'fluency';
 
 export interface ClarityTrendEntry {
   dateLabel: string;
@@ -125,6 +125,58 @@ export function dualTaskReadingsFromHistory(
     .sort((a, b) => Date.parse(a.atIso) - Date.parse(b.atIso));
 }
 
+/**
+ * Fluency, normalized within category (CLARITY_INSTRUMENTS_TDD §5 scoring;
+ * F3): raw counts NEVER cross categories — each measured run is expressed
+ * relative to that category's own anchor (rolling median of her PRIOR runs in
+ * the same category, starting from the first encounter). A category's first
+ * encounter therefore produces no trend point — it establishes the anchor —
+ * which is exactly the approved month-5 onset. The resulting
+ * `fluency_relative_v1` values (100 = her category anchor) are comparable
+ * across months and feed one honest series.
+ */
+export function fluencyRelativeReadingsFromHistory(
+  history: readonly StoredCheckUp[] | null | undefined
+): DimensionReading[] {
+  const measured = officialRecords(history)
+    .flatMap((record) => {
+      const fluency = record.checkUp.clarityInstruments?.fluency;
+      return fluency && fluency.status === 'measured' && typeof fluency.validWordCount === 'number'
+        ? [{ atIso: record.checkUp.startedAt, categoryId: fluency.categoryId, count: fluency.validWordCount }]
+        : [];
+    })
+    .sort((a, b) => Date.parse(a.atIso) - Date.parse(b.atIso));
+
+  const priorByCategory = new Map<string, DimensionReading[]>();
+  const relative: DimensionReading[] = [];
+  for (const run of measured) {
+    const prior = priorByCategory.get(run.categoryId) ?? [];
+    const anchor = rollingBaseline(prior, { minSamples: 1 });
+    if (anchor && anchor.median > 0) {
+      relative.push({
+        dimensionId: 'clarity',
+        metricId: 'fluency_relative_v1',
+        value: (run.count / anchor.median) * 100,
+        unit: 'percent_of_anchor',
+        atIso: run.atIso,
+        basis: 'measured',
+      });
+    }
+    priorByCategory.set(run.categoryId, [
+      ...prior,
+      {
+        dimensionId: 'clarity',
+        metricId: `fluency_${run.categoryId}_v1`,
+        value: run.count,
+        unit: 'words',
+        atIso: run.atIso,
+        basis: 'measured',
+      },
+    ]);
+  }
+  return relative;
+}
+
 function seriesTrend(
   readings: readonly DimensionReading[],
   copy: { buildingNoun: string; clearer: string; usual: string; clouded: string; support: string }
@@ -181,10 +233,22 @@ export function buildClarityTrendViewModel(
     support: DUAL_TASK_DRIVERS_SUPPORT,
   });
 
+  const fluency = seriesTrend(fluencyRelativeReadingsFromHistory(history), {
+    buildingNoun: 'word-finding run',
+    clearer: 'More words than your usual',
+    usual: 'Your usual word-finding',
+    clouded: 'Fewer words than your usual',
+    support:
+      'Word-finding dips with sleep, symptom load, and stress — and the same training supports all three. This measure swings more than the others; the months-long trend is the story.',
+  });
+
   const series: ClaritySeries[] = [];
   if (subjective.status !== 'no_data') series.push({ id: 'subjective', label: 'Check-in', trend: subjective });
   if (dualTask.status !== 'no_data') {
     series.push({ id: 'dual_task', label: 'Steadiness under load', trend: dualTask });
+  }
+  if (fluency.status !== 'no_data') {
+    series.push({ id: 'fluency', label: 'Word-finding', trend: fluency });
   }
   if (series.length === 0) return { status: 'no_data' };
 
