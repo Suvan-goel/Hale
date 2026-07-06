@@ -66,6 +66,13 @@ export interface MovementProfileV2ProgressChangeDomain {
   direction: MovementProfileV2ProgressChangeDirection;
   value: string;
   caption: string;
+  /**
+   * Worse-never-bare (REPOSITION_TDD §2.4, approved 2026-07-06): every `down`
+   * row carries the trainable path — a lower reading is never presented bare.
+   * Undefined for up/steady rows. Known-driver context (sleep, symptom load)
+   * joins when check-up covariates exist (slice 4).
+   */
+  supportCopy?: string;
 }
 
 export interface MovementProfileV2ProgressChange {
@@ -353,7 +360,27 @@ function changeDomain(
     direction === 'steady'
       ? 'Holding steady'
       : `${direction === 'up' ? 'Up' : 'Down'} ${formatReadingNumber(magnitude)}${unitSuffix(latest.unit, magnitude)}`;
-  return { domain, title: changeDomainTitle(domain), direction, value, caption };
+  return {
+    domain,
+    title: changeDomainTitle(domain),
+    direction,
+    value,
+    caption,
+    ...(direction === 'down' ? { supportCopy: downSupportCopy(domain) } : {}),
+  };
+}
+
+// The trainable path paired with every lower reading (worse never bare).
+// Warm, mechanism-honest, no promised outcomes; measurement honesty is
+// covered by the single-reading caveat these rows sit under.
+function downSupportCopy(domain: MovementProfileV2Domain): string {
+  if (domain === 'balance') {
+    return 'Balance responds to steady practice — your plan keeps it in every week, and next check-up shows the fuller picture.';
+  }
+  if (domain === 'mobility') {
+    return 'Reach rebuilds with the gentle mobility work already in your plan — next check-up shows the fuller picture.';
+  }
+  return 'Strength rebuilds with the same sessions that measured this — your plan keeps working it, and next check-up shows the fuller picture.';
 }
 
 function changeDomainTitle(domain: MovementProfileV2Domain): string {
@@ -471,7 +498,7 @@ function selectMovementProfileV2ReportHistory({
     sessionsLabel: `${report.sessionsCompleted} plan sessions completed`,
     action: {
       id: 'view_block_report' as const,
-      label: 'View block report',
+      label: 'View phase report',
       targetId: report.id,
     },
   }));

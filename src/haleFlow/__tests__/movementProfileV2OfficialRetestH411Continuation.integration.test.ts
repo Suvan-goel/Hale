@@ -426,7 +426,7 @@ describe('H4.1.1 Movement Profile V2 official retest continuation closure', () =
       retestComparison: transition.comparison,
     });
     expect(presentation.actions).toEqual([
-      expect.objectContaining({ label: 'View my block report', action: { type: 'view_block_report' } }),
+      expect.objectContaining({ label: 'View my phase report', action: { type: 'view_block_report' } }),
     ]);
     expect(transition.report.displayCopy.nextPlanCta).toBe('View my next 4-week plan');
   });

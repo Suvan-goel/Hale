@@ -193,7 +193,7 @@ describe('H4.1 Movement Profile V2 official retest continuation matrix', () => {
     });
     expect(presentation.actions).toEqual([
       expect.objectContaining({
-        label: 'View my block report',
+        label: 'View my phase report',
         action: { type: 'view_block_report' },
       }),
     ]);

@@ -489,12 +489,18 @@ export interface MovementProfileV2BlockReport extends MovementBlockReportBase {
     blockFingerprint?: string;
     focus: MovementBlockFocus;
   };
+  /**
+   * Copy frozen into the stored record at creation. Widened from literal
+   * types 2026-07-06 (F5 phase framing): old records keep the wording they
+   * were created with — their own fingerprints still verify — while new
+   * reports carry the continuous-phase copy. No plan ever "ends".
+   */
   displayCopy: {
-    headline: 'Your 4-week block is complete';
+    headline: string;
     body: string;
-    nextPlanTitle: 'Your next 4-week plan is ready';
+    nextPlanTitle: string;
     nextPlanBody: string;
-    nextPlanCta: 'View my next 4-week plan';
+    nextPlanCta: string;
   };
   baselineAssessmentId?: string;
   retestAssessmentId?: string;

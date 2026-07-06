@@ -424,15 +424,21 @@ function MovementProfileV2ChangeRow({
         ? styles.changePillTextDown
         : styles.changePillTextSteady;
   return (
-    <View style={[styles.changeRow, showDivider && styles.rowDivider]}>
-      <IconBadge domain={domainIconForMovementProfileV2(domain.domain)} size={36} iconSize={22} />
-      <View style={styles.changeRowText}>
-        <Text style={styles.changeRowTitle} numberOfLines={1}>{domain.title}</Text>
-        <Text style={styles.changeRowMetric} numberOfLines={1}>{domain.value}</Text>
+    <View style={[styles.changeRowBlock, showDivider && styles.rowDivider]}>
+      <View style={styles.changeRow}>
+        <IconBadge domain={domainIconForMovementProfileV2(domain.domain)} size={36} iconSize={22} />
+        <View style={styles.changeRowText}>
+          <Text style={styles.changeRowTitle} numberOfLines={1}>{domain.title}</Text>
+          <Text style={styles.changeRowMetric} numberOfLines={1}>{domain.value}</Text>
+        </View>
+        <View style={[styles.changePill, tonePill]}>
+          <Text style={[styles.changePillText, toneText]} numberOfLines={1}>{domain.caption}</Text>
+        </View>
       </View>
-      <View style={[styles.changePill, tonePill]}>
-        <Text style={[styles.changePillText, toneText]} numberOfLines={1}>{domain.caption}</Text>
-      </View>
+      {domain.supportCopy ? (
+        // Worse never bare: a lower reading always carries the trainable path.
+        <Text style={styles.changeSupport}>{domain.supportCopy}</Text>
+      ) : null}
     </View>
   );
 }
@@ -1151,12 +1157,19 @@ const styles = StyleSheet.create({
   changeRows: {
     marginTop: 14,
   },
+  changeRowBlock: {
+    paddingVertical: spacing.md,
+  },
   changeRow: {
     minHeight: 72,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    paddingVertical: spacing.md,
+  },
+  changeSupport: {
+    ...type.caption,
+    color: colors.textSecondary,
+    paddingTop: spacing.xs,
   },
   changeRowText: {
     flex: 1,

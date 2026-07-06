@@ -89,8 +89,10 @@ export function createMovementProfileV2BlockReport(input: {
       ...(input.nextBlock.blockFingerprint ? { blockFingerprint: input.nextBlock.blockFingerprint } : {}),
       focus: cloneFocus(nextFocus),
     },
+    // Continuous-phase framing (F5, 2026-07-06): the report marks a phase,
+    // never an ending — the next 4 weeks start from here.
     displayCopy: {
-      headline: 'Your 4-week block is complete',
+      headline: 'Four weeks done — your next phase starts here',
       body: 'You completed the plan and finished your next Movement Check-Up.',
       nextPlanTitle: 'Your next 4-week plan is ready',
       nextPlanBody: `${BRAND.appName} prepared it from your latest Movement Profile.`,

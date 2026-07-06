@@ -98,10 +98,10 @@ export function buildMovementProfileV2UnifiedResultsPresentation(input: {
       ? [
           {
             id: 'view-block-report',
-            label: 'View my block report',
+            label: 'View my phase report',
             action: { type: 'view_block_report' },
             button: 'primary',
-            accessibilityLabel: 'View my block report.',
+            accessibilityLabel: 'View my phase report.',
           },
         ]
       : planReady

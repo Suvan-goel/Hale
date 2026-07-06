@@ -91,7 +91,7 @@ describe('Movement Profile V2 unified results adapter', () => {
     expect(presentation.plan.status).toBe('hidden');
     expect(presentation.actions).toEqual([
       expect.objectContaining({
-        label: 'View my block report',
+        label: 'View my phase report',
         action: { type: 'view_block_report' },
         button: 'primary',
       }),

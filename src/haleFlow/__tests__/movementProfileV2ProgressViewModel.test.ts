@@ -10,6 +10,7 @@ import {
   createOneLegBalanceV2Setup,
 } from '../../checkup/protocolSetup';
 import type { CheckUp } from '../../checkup/types';
+import { bareDownwardChanges } from '../testing/copyInvariants';
 import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../../history';
 import {
   ACTIVE_SHOULDER_REACH_V2_ID,
@@ -110,6 +111,31 @@ describe('Movement Profile V2 Progress view model', () => {
       value: '12 → 16 rises',
       caption: 'Up 4 rises',
     });
+    // Up rows never carry support copy — pairing is for lower readings only.
+    expect(
+      paired.change?.domains.find((domain) => domain.domain === 'strength_power')?.supportCopy
+    ).toBeUndefined();
+  });
+
+  it('never presents a lower reading bare: every down row pairs the trainable path (§2.4)', () => {
+    const baseline = artifacts('baseline', BASELINE_AT); // default chair result is 12 reps
+    const retake = artifacts('baseline_retake', RETAKE_AT, { chair: chairResult({ reps: 9 }) });
+    const paired = buildMovementProfileV2ProgressViewModel({
+      history: [baseline.record, retake.record],
+      blocks: [],
+      reports: [],
+      today: RETAKE_AT,
+    });
+    if (paired.status !== 'ready') throw new Error(paired.status);
+    const rows = (paired.change?.domains ?? []).map((domain) => ({
+      id: domain.domain,
+      direction: domain.direction,
+      supportCopy: domain.supportCopy,
+    }));
+    expect(rows.some((row) => row.direction === 'down')).toBe(true);
+    expect(bareDownwardChanges(rows)).toEqual([]);
+    const down = paired.change?.domains.find((domain) => domain.direction === 'down');
+    expect(down?.supportCopy).toContain('your plan');
   });
 
   it('does not surface current-plan provenance when the active plan came from a previous profile', () => {
@@ -158,7 +184,7 @@ describe('Movement Profile V2 Progress view model', () => {
     ]);
     expect(viewModel.reports).toEqual([
       expect.objectContaining({
-        action: expect.objectContaining({ label: 'View block report', targetId: report.id }),
+        action: expect.objectContaining({ label: 'View phase report', targetId: report.id }),
         sessionsLabel: '12 plan sessions completed',
       }),
     ]);

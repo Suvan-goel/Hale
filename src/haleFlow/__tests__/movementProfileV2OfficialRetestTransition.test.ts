@@ -84,7 +84,7 @@ describe('Movement Profile V2 official retest transition', () => {
     expect(transitioned.report.kind).toBe('movement_profile_v2_block_report');
     expect(transitioned.report.id).toBe(`block-report-${prior.block.id}`);
     expect(transitioned.report.displayCopy).toMatchObject({
-      headline: 'Your 4-week block is complete',
+      headline: 'Four weeks done — your next phase starts here',
       nextPlanTitle: 'Your next 4-week plan is ready',
       nextPlanBody: 'Hale prepared it from your latest Movement Profile.',
       nextPlanCta: 'View my next 4-week plan',
