@@ -57,6 +57,7 @@ export function defaultProgrammeProfile(): ProgrammeProfile {
     assessmentStatus: null,
     chosenDays: [],
     firstSessionStarted: false,
+    oneTimeSurfacesShown: [],
   };
 }
 
@@ -70,6 +71,7 @@ export function defaultProgrammeState(): ProgrammeState {
     ladders,
     finisher: { track: 'quiet_power', completedSessions: 0, currentContacts: 20 },
     onboardingCompletedAtIso: null,
+    completedSessionCount: 0,
     lastSessionAtIso: null,
     inactivityRegressionAppliedForGapEndingAtIso: null,
     policyFingerprint: programmePolicyFingerprint(),
@@ -94,6 +96,7 @@ export function deserializeProgrammeState(json: string): ProgrammeState | null {
     ladders: validLadders(obj.ladders),
     finisher: validFinisher(obj.finisher),
     onboardingCompletedAtIso: isoOrNull(obj.onboardingCompletedAtIso),
+    completedSessionCount: nonNegativeInt(obj.completedSessionCount),
     lastSessionAtIso: isoOrNull(obj.lastSessionAtIso),
     inactivityRegressionAppliedForGapEndingAtIso: isoOrNull(
       obj.inactivityRegressionAppliedForGapEndingAtIso
@@ -124,6 +127,9 @@ function validProfile(v: unknown): ProgrammeProfile {
     assessmentStatus: oneOf(p.assessmentStatus, ASSESSMENT_STATUSES) ?? null,
     chosenDays: stringSubset(p.chosenDays, WEEKDAYS),
     firstSessionStarted: p.firstSessionStarted === true,
+    oneTimeSurfacesShown: Array.isArray(p.oneTimeSurfacesShown)
+      ? p.oneTimeSurfacesShown.filter((v): v is string => typeof v === 'string')
+      : [],
   };
 }
 

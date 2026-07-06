@@ -4366,3 +4366,45 @@ imports/fields/store file in backup shapes).
   persist; the same session's funnel record carries the v3 stamp) — never at
   generation, pinned by test. Voice guidance for programme exercises awaits
   the founder-owned bundled-audio generation step.
+
+## 2026-07-06 — Elegant landing becomes the sole marketing surface
+
+- **Founder direction:** the previous Hale `website/` landing app is obsolete and can be
+  deleted. The menopause / Clarity / strength-through-measurement framing in `landing/`
+  is the committed public landing-page direction for the Meta ads test.
+- **Implementation note:** the retired `website/` tree was removed so there is one active
+  web surface to configure, QA, and promote. Historical docs still mention the old site as
+  prior context; new ad-readiness work should target `landing/` only.
+
+## 2026-07-06 — Rep-target amendment, trim rotation, and Programme v2 Step 4
+
+- **AMENDMENT to the Step 3 double-progression design (founder fix):** rep-
+  target advancement is EFFORT-SCALED, not +1/session — 'lots' jumps straight
+  to the range top, 'a_few' advances +2, 'none'/unanswered holds. Rationale:
+  flat +1 starved fast-/entry-promotion (both key off top-of-range); a
+  consistently-"lots" entry user needed ~10 sessions to become eligible —
+  the exact boredom-churn scenario entry-promotion exists to prevent. Pinned:
+  a consistently-'lots' user entry-promotes in 2 sessions and fast-promotes
+  promptly on standard levels. Reset-on-level-change unchanged.
+- **Trim rotation (cheap, taken):** per-template TRIM_DROP_ORDER — A-short
+  keeps Squat+Push, B-short keeps Hinge+Pull — so a habitual short-preset
+  user trains all four strength patterns across the A/B alternation (the
+  shell alternates templates by completed-session parity). KNOWN LIMITATION:
+  Core is first out on every short session; intended fix (recorded, not
+  built): Core rides the finisher slot on alternate shorts.
+- **Step 4 landed:** `postOnboarding.ts` — T1/T3 adapter from the EXISTING
+  camera protocols (chair-rise reps + hand-assist flag scan; worse side of
+  the two balance holds; T2 deferred) into applyAssessmentPlacement; §8
+  re-offer policy (deferred → end of session 1; skipped → warm re-offer after
+  week 1, never for consent-declined per §4; B1-bypassed → NOTHING until
+  gp_confirmed, then post-GP re-offer); in-context questions (band at the
+  Pull L4 unlock writing nullable has_band; doming at the first core demo →
+  diastasis branch + pelvic-physio signpost) on a once-only surface registry
+  (oneTimeSurfacesShown — membership permanent, so signposts render once,
+  dismissible, never recur). State gains completedSessionCount (re-offer
+  timing). Shell wiring: gateway teach card on a locked promotion (demo
+  watched + self-confirm taps — no camera), deferred re-offer card on
+  session done, band/doming prompts before the relevant session. The camera
+  HOST for the assessment (running the actual check-up inside the shell)
+  lands with engine-promotion integration; the adapter and re-placement
+  paths are built and pinned.

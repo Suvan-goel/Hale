@@ -204,6 +204,11 @@ export interface ProgrammeProfile {
   chosenDays: readonly Weekday[];
   /** The activation event — mirrored into local telemetry (ruling: ambiguity 4). */
   firstSessionStarted: boolean;
+  /**
+   * Once-only in-context surfaces already shown (doming check, signposts…).
+   * Membership means shown-and-dismissed forever — signposts never recur.
+   */
+  oneTimeSurfacesShown: readonly string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -285,6 +290,8 @@ export interface ProgrammeState {
   finisher: FinisherState;
   /** Set by completeOnboarding; null = the flow has not finished on this device. */
   onboardingCompletedAtIso: string | null;
+  /** Completed training sessions (drives the §8 re-offer timing). */
+  completedSessionCount: number;
   /** Last completed session of any kind (drives the 14-day regression). */
   lastSessionAtIso: string | null;
   /** Guard so one inactivity gap regresses each ladder exactly once. */

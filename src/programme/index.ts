@@ -119,3 +119,14 @@ export type {
   SessionDurationPreset,
   SessionTemplateId,
 } from './session';
+export {
+  assessmentInputsFromV2Results,
+  assessmentReoffer,
+  markSurfaceShown,
+  recordBandAnswer,
+  recordDomingCheck,
+  shouldAskBandQuestion,
+  shouldShowDomingCheck,
+  surfaceAlreadyShown,
+} from './postOnboarding';
+export type { AssessmentReoffer, OneTimeSurfaceId } from './postOnboarding';

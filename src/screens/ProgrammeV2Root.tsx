@@ -18,19 +18,30 @@ import { createExpoHistoryFs } from '../history/fsAdapter';
 import {
   acknowledgeOnboardingStep,
   applyProgrammeSessionResults,
+  assessmentReoffer,
   completeOnboarding,
   currentOnboardingStep,
   effortFromRpe,
   generateProgrammeSession,
+  getProgrammeLevel,
   initialOnboardingFlowState,
   markFirstSessionStarted,
   ProgrammeStore,
+  programmeDisplayName,
+  recordBandAnswer,
+  recordDomingCheck,
+  recordGatewayDemoWatched,
+  recordGatewaySelfConfirmation,
   recordOnboardingAnswer,
+  shouldAskBandQuestion,
+  shouldShowDomingCheck,
   SKIPPED,
   type OnboardingAnswerValue,
+  type ProgrammePattern,
   type ProgrammeSessionPlan,
   type ProgrammeSessionResults,
   type ProgrammeState,
+  type PromotionDecision,
   type SessionRpe,
 } from '../programme';
 import type { OnboardingQuestionStepId } from '../programme';
@@ -54,7 +65,12 @@ export function ProgrammeV2Root() {
   const [programmeState, setProgrammeState] = React.useState<ProgrammeState | null>(null);
   const [flowState, setFlowState] = React.useState(initialOnboardingFlowState());
   const [plan, setPlan] = React.useState<ProgrammeSessionPlan | null>(null);
+  const [lastDecisions, setLastDecisions] = React.useState<
+    Partial<Record<ProgrammePattern, PromotionDecision>>
+  >({});
+  const [physioSignpostVisible, setPhysioSignpostVisible] = React.useState(false);
   const sessionStartRef = React.useRef<{ startedAtIso: string; wasFirstSession: boolean } | null>(null);
+  const lastEffortRef = React.useRef<SessionRpe | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -119,11 +135,13 @@ export function ProgrammeV2Root() {
 
   const startSessionFromHome = React.useCallback(() => {
     if (!programmeState) return;
+    // A/B alternation by completed-session parity; effort from the last RPE.
     setPlan(
       generateProgrammeSession({
         state: programmeState,
-        template: 'A',
+        template: programmeState.completedSessionCount % 2 === 0 ? 'A' : 'B',
         preset: programmeState.profile.firstSessionStarted ? 'standard' : 'first_session',
+        lastSessionEffort: effortFromRpe(lastEffortRef.current),
       })
     );
     setPhase('session');
@@ -141,11 +159,13 @@ export function ProgrammeV2Root() {
     (results: ProgrammeSessionResults, rpe: SessionRpe | null) => {
       if (!programmeState || !plan) return;
       const effort = effortFromRpe(rpe);
+      lastEffortRef.current = rpe;
       const applied = applyProgrammeSessionResults(programmeState, plan, {
         ...results,
         outcomes: results.outcomes.map((outcome) => ({ ...outcome, effort })),
       });
       persist(applied.state);
+      setLastDecisions(applied.decisions);
       const start = sessionStartRef.current;
       funnelStore.save(
         buildStoredSessionFunnel({
@@ -200,12 +220,115 @@ export function ProgrammeV2Root() {
   }
 
   if (phase === 'session' && plan) {
+    // In-context questions at their moment of effect (§8): the band question
+    // at the Pull L4 unlock; the doming check when core first features.
+    if (shouldAskBandQuestion(programmeState, plan)) {
+      return (
+        <PromptCard
+          title="Do you have a resistance band?"
+          body="Today's pulling exercise gets a free upgrade with a long band — books-in-a-backpack works meanwhile."
+          actions={[
+            { label: 'Yes, I have one', onPress: () => persist(recordBandAnswer(programmeState, true)) },
+            { label: 'Not yet', onPress: () => persist(recordBandAnswer(programmeState, false)) },
+          ]}
+        />
+      );
+    }
+    if (shouldShowDomingCheck(programmeState, plan)) {
+      return (
+        <PromptCard
+          title="One quick check before the floor work"
+          body="Lying on your back, lift your head: if you see a bulge or ridge down the middle of your tummy, tap the first option — we'll choose kinder core work."
+          actions={[
+            {
+              label: 'I see a bulge',
+              onPress: () => {
+                const result = recordDomingCheck(programmeState, true);
+                persist(result.state);
+                setPhysioSignpostVisible(result.showPhysioSignpost);
+              },
+            },
+            { label: 'All looks fine', onPress: () => persist(recordDomingCheck(programmeState, false).state) },
+          ]}
+        />
+      );
+    }
+    if (physioSignpostVisible) {
+      return (
+        <PromptCard
+          title="Worth knowing"
+          body="A pelvic-health physiotherapist can help with this — it's common and very treatable. We've already adjusted your core work."
+          actions={[{ label: 'Got it', onPress: () => setPhysioSignpostVisible(false) }]}
+        />
+      );
+    }
     return (
       <ProgrammeSessionScreen plan={plan} onStart={handleSessionStart} onFinish={handleSessionFinish} />
     );
   }
 
   if (phase === 'session_done') {
+    // Teach-only gateway surface (C3): a locked promotion invites the demo +
+    // self-confirmation — never a camera verdict.
+    const gatewayLock = (Object.entries(lastDecisions) as [ProgrammePattern, PromotionDecision][]).find(
+      ([, decision]) => decision.kind === 'promotion_locked' && decision.reason === 'gateway_incomplete'
+    );
+    if (gatewayLock) {
+      const [pattern, decision] = gatewayLock;
+      const lockedLevel = decision.kind === 'promotion_locked' ? decision.toLevel : 0;
+      const ladder = programmeState.ladders[pattern];
+      const progress = ladder.gatewayProgress[lockedLevel];
+      const name = programmeDisplayName(getProgrammeLevel(pattern, lockedLevel).primary.id);
+      return (
+        <PromptCard
+          title={`You've earned the next level: ${name}`}
+          body="It's a technique level, so two quick steps unlock it: watch the short demo, then confirm you feel ready. No camera involved."
+          actions={[
+            ...(!progress?.demoWatched
+              ? [
+                  {
+                    label: 'I watched the demo',
+                    onPress: () =>
+                      persist({
+                        ...programmeState,
+                        ladders: {
+                          ...programmeState.ladders,
+                          [pattern]: recordGatewayDemoWatched(ladder, lockedLevel),
+                        },
+                      }),
+                  },
+                ]
+              : []),
+            ...(progress?.demoWatched && !progress?.selfConfirmed
+              ? [
+                  {
+                    label: 'I feel ready — unlock it',
+                    onPress: () =>
+                      persist({
+                        ...programmeState,
+                        ladders: {
+                          ...programmeState.ladders,
+                          [pattern]: recordGatewaySelfConfirmation(ladder, lockedLevel),
+                        },
+                      }),
+                  },
+                ]
+              : []),
+            { label: 'Later', onPress: () => setLastDecisions({}) },
+          ]}
+        />
+      );
+    }
+    const reoffer = assessmentReoffer(programmeState, new Date().toISOString());
+    if (reoffer === 'deferred_reoffer') {
+      return (
+        <PromptCard
+          title="Ready for that two-minute movement check?"
+          body="It makes your levels exact. It runs at your next check-up — no one sees it but you, and it never leaves your phone."
+          actions={[{ label: 'Sounds good', onPress: () => setLastDecisions({}) }]}
+        />
+      );
+    }
     return (
       <Screen>
         <View style={{ flex: 1, padding: 24, gap: 16, justifyContent: 'center' }}>
@@ -227,6 +350,33 @@ export function ProgrammeV2Root() {
           title={programmeState.profile.firstSessionStarted ? 'Start a session' : 'Start your first session — 15 minutes'}
           onPress={startSessionFromHome}
         />
+      </View>
+    </Screen>
+  );
+}
+
+function PromptCard({
+  title,
+  body,
+  actions,
+}: {
+  title: string;
+  body: string;
+  actions: readonly { label: string; onPress: () => void }[];
+}) {
+  return (
+    <Screen>
+      <View style={{ flex: 1, padding: 24, gap: 16, justifyContent: 'center' }}>
+        <Typography variant="h2">{title}</Typography>
+        <Typography variant="body">{body}</Typography>
+        {actions.map((action, index) => (
+          <Button
+            key={action.label}
+            title={action.label}
+            variant={index === 0 ? 'primary' : 'ghost'}
+            onPress={action.onPress}
+          />
+        ))}
       </View>
     </Screen>
   );

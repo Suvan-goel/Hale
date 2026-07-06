@@ -84,19 +84,20 @@ describe('time budget (duration-parameterised solver)', () => {
       expect(plan.finisher.length).toBeGreaterThanOrEqual(1);
       // Sets never trim below the 2-set promise.
       expect(plan.main.every((e) => e.sets === 2)).toBe(true);
-      // Trimming drops from the END of the template order (Core first) and
-      // always keeps one lower + one upper.
+      // Trimming drops per TRIM_DROP_ORDER (Core first) and always keeps
+      // one lower + one upper, in template execution order.
       expect(plan.main.length).toBeGreaterThanOrEqual(2);
+      const order: ProgrammePattern[] = ['squat', 'push', 'hinge', 'pull', 'core'];
       const patterns = plan.main.map((e) => e.pattern);
-      expect(patterns).toEqual(
-        (['squat', 'push', 'hinge', 'pull', 'core'] as ProgrammePattern[]).slice(0, patterns.length)
-      );
+      expect(patterns).toEqual(order.filter((pattern) => patterns.includes(pattern)));
     }
   });
 
-  it('the starter preset reduces to the leading pair', () => {
-    const plan = generateProgrammeSession({ state: onboardedState(), template: 'A', preset: 'starter' });
-    expect(plan.main.map((e) => e.pattern)).toEqual(['squat', 'push']);
+  it('short presets rotate coverage across the A/B alternation (trim rotation)', () => {
+    const shortA = generateProgrammeSession({ state: onboardedState(), template: 'A', preset: 'starter' });
+    expect(shortA.main.map((e) => e.pattern)).toEqual(['squat', 'push']);
+    const shortB = generateProgrammeSession({ state: onboardedState(), template: 'B', preset: 'starter' });
+    expect(shortB.main.map((e) => e.pattern)).toEqual(['hinge', 'pull']);
   });
 });
 
@@ -216,7 +217,7 @@ describe('bonus set (previous-session effort, C9 machinery)', () => {
 });
 
 describe('double progression rep targets', () => {
-  it('starts at the scheme minimum and advances +1 per session where every set hit it', () => {
+  it('starts at the scheme minimum and advances effort-scaled where every set hit it', () => {
     const state = onboardedState();
     const plan = generateProgrammeSession({ state, template: 'A', preset: 'standard' });
     const squat = plan.main.find((e) => e.pattern === 'squat');
@@ -237,10 +238,116 @@ describe('double progression rep targets', () => {
       finisherCompleted: true,
       completedAtIso: '2026-07-06T10:20:00.000Z',
     });
-    expect(applied.state.ladders.squat.currentRepTarget).toBe(11);
+    expect(applied.state.ladders.squat.currentRepTarget).toBe(12); // a_few → +2
 
     const nextPlan = generateProgrammeSession({ state: applied.state, template: 'B', preset: 'standard' });
-    expect(nextPlan.main.find((e) => e.pattern === 'squat')?.repTargetPerSet).toBe(11);
+    expect(nextPlan.main.find((e) => e.pattern === 'squat')?.repTargetPerSet).toBe(12);
+  });
+
+  it("a consistently-'lots' user reaches entry-promotion within 2 sessions", () => {
+    // Session 1: entry level squat L1 (10–20), target 10, effort lots →
+    // target jumps to the range top.
+    const state = onboardedState();
+    const s1 = applyProgrammeSessionResults(
+      state,
+      generateProgrammeSession({ state, template: 'A', preset: 'standard' }),
+      {
+        outcomes: [
+          {
+            pattern: 'squat',
+            levelPerformed: 1,
+            sets: [{ achieved: 10 }, { achieved: 10 }],
+            effort: 'lots',
+            painFlag: false,
+            performedAtIso: '2026-07-06T10:00:00.000Z',
+          },
+        ],
+        prepCompleted: true,
+        finisherCompleted: true,
+        completedAtIso: '2026-07-06T10:20:00.000Z',
+      }
+    );
+    expect(s1.state.ladders.squat.currentRepTarget).toBe(20);
+
+    // Session 2: she hits the top and answers lots → entry-promotes.
+    const s2 = applyProgrammeSessionResults(
+      s1.state,
+      generateProgrammeSession({ state: s1.state, template: 'B', preset: 'standard' }),
+      {
+        outcomes: [
+          {
+            pattern: 'squat',
+            levelPerformed: 1,
+            sets: [{ achieved: 20 }, { achieved: 20 }],
+            effort: 'lots',
+            painFlag: false,
+            performedAtIso: '2026-07-08T10:00:00.000Z',
+          },
+        ],
+        prepCompleted: true,
+        finisherCompleted: true,
+        completedAtIso: '2026-07-08T10:20:00.000Z',
+      }
+    );
+    expect(s2.decisions.squat).toEqual({ kind: 'promote', toLevel: 2, reason: 'entry' });
+  });
+
+  it("fast-promotion arrives promptly on standard levels for a 'lots' user; none/unanswered hold the target", () => {
+    const state = onboardedState();
+    state.ladders.squat = freshPatternLadderState('squat', 3); // 8–15, not entry
+    const plan = generateProgrammeSession({ state, template: 'A', preset: 'standard' });
+    const s1 = applyProgrammeSessionResults(state, plan, {
+      outcomes: [
+        {
+          pattern: 'squat',
+          levelPerformed: 3,
+          sets: [{ achieved: 8 }, { achieved: 8 }],
+          effort: 'lots',
+          painFlag: false,
+          performedAtIso: '2026-07-06T10:00:00.000Z',
+        },
+      ],
+      prepCompleted: false,
+      finisherCompleted: false,
+      completedAtIso: '2026-07-06T10:20:00.000Z',
+    });
+    expect(s1.state.ladders.squat.currentRepTarget).toBe(15); // straight to the top
+
+    const s2 = applyProgrammeSessionResults(s1.state, plan, {
+      outcomes: [
+        {
+          pattern: 'squat',
+          levelPerformed: 3,
+          sets: [{ achieved: 15 }, { achieved: 15 }],
+          effort: 'lots',
+          painFlag: false,
+          performedAtIso: '2026-07-08T10:00:00.000Z',
+        },
+      ],
+      prepCompleted: false,
+      finisherCompleted: false,
+      completedAtIso: '2026-07-08T10:20:00.000Z',
+    });
+    expect(s2.decisions.squat).toEqual({ kind: 'promote', toLevel: 4, reason: 'fast' });
+
+    for (const effort of ['none', null] as const) {
+      const held = applyProgrammeSessionResults(state, plan, {
+        outcomes: [
+          {
+            pattern: 'squat',
+            levelPerformed: 3,
+            sets: [{ achieved: 8 }, { achieved: 8 }],
+            effort,
+            painFlag: false,
+            performedAtIso: '2026-07-06T10:00:00.000Z',
+          },
+        ],
+        prepCompleted: false,
+        finisherCompleted: false,
+        completedAtIso: '2026-07-06T10:20:00.000Z',
+      });
+      expect(held.state.ladders.squat.currentRepTarget).toBeNull(); // unchanged (fresh state had null)
+    }
   });
 
   it('resets the target on promotion', () => {

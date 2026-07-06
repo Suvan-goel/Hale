@@ -14,8 +14,8 @@
  *   1. rest padding 60 s → 45 s
  *   2. finisher 2 items → 1 (never dropped entirely — it carries the power
  *      stimulus)
- *   3. drop main exercises from the END of the template order (Core first),
- *      never below 2 (one lower + one upper always survive)
+ *   3. drop main exercises per the template's TRIM_DROP_ORDER (Core first;
+ *      A-short keeps Squat+Push, B-short keeps Hinge+Pull), never below 2
  *   4. rest 45 s → 30 s (floor)
  * Movement prep is NEVER dropped — it carries the gateway rehearsals — and
  * working sets never trim below the 2-set promise.
@@ -70,6 +70,19 @@ const TEMPLATE_ORDER: Record<SessionTemplateId, readonly ProgrammePattern[]> = {
   B: ['hinge', 'push', 'squat', 'pull', 'core'],
 };
 
+/**
+ * Trim rotation (2026-07-06 refinement): which patterns get dropped first
+ * when the budget bites, per template — so a habitual short-preset user still
+ * trains all four strength patterns across the A/B alternation (A-short keeps
+ * Squat+Push, B-short keeps Hinge+Pull). Known limitation, recorded in
+ * decisions.md: Core is first out on every short session; the sketched fix
+ * (Core riding the finisher slot on alternate shorts) is future work.
+ */
+const TRIM_DROP_ORDER: Record<SessionTemplateId, readonly ProgrammePattern[]> = {
+  A: ['core', 'pull', 'hinge'],
+  B: ['core', 'squat', 'push'],
+};
+
 // Timing model (named constants; provisional until real-session data).
 const TRANSITION_SEC = 40; // announce + set-up between exercises
 const SECONDS_PER_REP = 4; // 3 s down + controlled up
@@ -99,8 +112,9 @@ export interface ProgrammeSessionExercise {
   /**
    * Double progression: the concrete per-set target inside the scheme range
    * (reps or seconds). This is the number the session confirms as REPORTED
-   * on "done" — it starts at the scheme minimum on level entry and advances
-   * +1 per session in which every set reached it.
+   * on "done" — starts at the scheme minimum on level entry and advances
+   * EFFORT-SCALED per session where every set reached it (lots → range top,
+   * a_few → +2, none/unanswered → hold; 2026-07-06 amendment).
    */
   repTargetPerSet: number;
   restSec: number;
@@ -176,7 +190,10 @@ export function generateProgrammeSession(input: GenerateSessionInput): Programme
 
   if (!fits()) restSec = REST_TIERS_SEC[1];
   if (!fits()) finisher = finisherItems(state, routing, 1);
-  while (!fits() && main.length > 2) main = main.slice(0, -1);
+  for (const drop of TRIM_DROP_ORDER[template]) {
+    if (fits() || main.length <= 2) break;
+    main = main.filter((exercise) => exercise.pattern !== drop);
+  }
   if (!fits()) restSec = REST_TIERS_SEC[2];
 
   const mainWithRest = main.map((exercise) => ({ ...exercise, restSec }));
@@ -409,9 +426,12 @@ export function applyProgrammeSessionResults(
     const before = ladders[outcome.pattern];
     const evaluated = evaluatePatternOutcome(before, outcome, ladders);
     let nextState = evaluated.nextState;
-    // Double progression: +1 to the per-set target when every set reached it
-    // at the current level and the level itself did not change (promotion and
-    // regression already reset the target to the new level's minimum).
+    // Double progression, EFFORT-SCALED (2026-07-06 amendment to the Step 3
+    // design): advancement is proportional to reported reserve so target
+    // build-up never starves fast-/entry-promotion (which key off top of
+    // range). 'lots' → jump straight to the range top; 'a_few' → +2;
+    // 'none' or unanswered → hold. Applies only when every set reached the
+    // target at the current level; promotion/regression reset the target.
     if (
       (evaluated.decision.kind === 'hold' || evaluated.decision.kind === 'promotion_locked') &&
       outcome.levelPerformed === before.currentLevel
@@ -421,7 +441,10 @@ export function applyProgrammeSessionResults(
       const everySetReachedTarget =
         outcome.sets.length > 0 && outcome.sets.every((set) => set.achieved >= target);
       if (everySetReachedTarget) {
-        nextState = { ...nextState, currentRepTarget: Math.min(target + 1, scheme.max) };
+        const advance = outcome.effort === 'lots' ? scheme.max - target : outcome.effort === 'a_few' ? 2 : 0;
+        if (advance > 0) {
+          nextState = { ...nextState, currentRepTarget: Math.min(target + advance, scheme.max) };
+        }
       }
     }
     ladders = { ...ladders, [outcome.pattern]: nextState };
@@ -445,7 +468,13 @@ export function applyProgrammeSessionResults(
     : state.finisher;
 
   return {
-    state: { ...state, ladders, finisher, lastSessionAtIso: results.completedAtIso },
+    state: {
+      ...state,
+      ladders,
+      finisher,
+      completedSessionCount: state.completedSessionCount + 1,
+      lastSessionAtIso: results.completedAtIso,
+    },
     decisions,
   };
 }

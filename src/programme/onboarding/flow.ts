@@ -289,6 +289,7 @@ export function completeOnboarding(
           : null, // 'now' → set to 'done' when Check-up #0 completes
     chosenDays: answers.d1Days ?? [],
     firstSessionStarted: false,
+    oneTimeSurfacesShown: [],
   };
 
   const ladders = {} as Record<ProgrammePattern, PatternLadderState>;
