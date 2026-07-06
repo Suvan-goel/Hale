@@ -1,8 +1,9 @@
 /**
  * Check-up #0 host (Option 1 build, acceptance criteria in
  * docs/pre-promotion-checklist.md): brief guided gentle warm-up → the
- * two-protocol battery (one-leg balance both sides, then the 30-second chair
- * rise — max effort LAST), run by the real unified check-up machinery with a
+ * two-protocol battery (one-leg balance on the anchored SINGLE side — ruled
+ * 2026-07-06, preserving the instrument's side-consistency — then the
+ * 30-second chair rise, max effort LAST), run by the real unified machinery with a
  * batterySequence derived from the pinned CHECKUP_ZERO_PROTOCOL_SEQUENCE.
  *
  * WARM-UP PLACEMENT (stated choice, per the ruling's allowance): HOST-LEVEL,
@@ -62,8 +63,8 @@ export function ProgrammeCheckupZeroScreen({
         <View style={{ flex: 1, padding: spacing.lg, gap: spacing.md, justifyContent: 'center' }}>
           <Typography variant="h1">Two minutes of moving</Typography>
           <Typography variant="body" style={{ color: colors.textSecondary }}>
-            A gentle warm-up, a balance hold on each leg, then thirty seconds of chair stands. That’s
-            the whole thing.
+            A gentle warm-up, a balance hold, then thirty seconds of chair stands. That’s the whole
+            thing.
           </Typography>
           <Typography variant="body" style={{ color: colors.textSecondary }}>
             No one sees this but you — it’s processed on your phone and never leaves it.

@@ -4608,3 +4608,23 @@ proceeds in its own working session once ruled.
   Option 1 recommended. Pass B carries this as PENDING RULING; the host copy
   line is corrected either way at ruling time. Engineering PAUSES pending
   device-pass findings; fix-forward, stop-and-flag on recorded decisions.
+
+## 2026-07-06 — T1 RULED: single-side in v1
+
+- **Ruling (founder) with reasoning:** (a) reusing the existing instrument
+  preserves side-consistency (a recorded measurement decision) and makes
+  Check-up #0 longitudinally comparable with every later check-up; (b) the
+  worse-side rule's safety intent is already covered conservatively — B5
+  self-report forces support on, and support-default retains its pinned
+  never-off semantics, so a good measured side can never clear it; (c) a
+  two-side protocol's full device-gate cost buys negligible additional
+  placement signal.
+- Implemented: host intro copy corrected to "a balance hold" (truthful-copy
+  criterion); host header comment aligned; Pass B T1 rows moved to
+  single-side semantics (PENDING RULING removed; side-selection behaviour
+  cross-checked against Pass A6); onboarding-spec §5 carries the v0.3
+  single-side note; the two-side variant joined the deferred-by-decision
+  list with its evidence-based re-entry condition; explicit test pins that
+  one measured hold is the placement signal and that <10 s forces support on
+  (never-off already pinned in flow tests).
+- Engineering remains PAUSED; the device passes run against the protocol.

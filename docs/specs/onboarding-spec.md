@@ -148,7 +148,11 @@ Framed as a feature, not a test: "Two minutes of moving so your programme fits y
 
 **Structure: 45 s guided gentle warm-up (marching, easy reaches), then three items ordered gentle-first, ~5 min total, phone propped per on-screen guide:**
 
-**T1 — Single-leg stand, each side (eyes open, support in reach).**
+**T1 — Single-leg stand, each side (eyes open, support in reach).** *(v0.3, ruled
+2026-07-06: SINGLE-SIDE in v1 — T1 reuses the official balance instrument's anchored
+standing leg, preserving side-consistency and longitudinal comparability; worse-side
+measurement deferred. Safety intent stays conservatively covered: B5 self-report forces
+support on, and support-default is never turned off by a good measured side.)*
 | Time (worse side) | Effect |
 |---|---|
 | < 10 s | `balance_support_default = on` (even if B5 was No) |

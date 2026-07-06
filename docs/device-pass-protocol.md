@@ -28,10 +28,10 @@ path is behaviourally identical on device.
 Run in the programme dev shell (flag on): onboarding with assessment "Let's
 do it", plus re-entry from home and from each re-offer surface.
 
-- [ ] Order: intro → warm-up → one-leg balance → 30-second chair rise; max
-      effort last, always. **T1 side count: PENDING RULING** — the official
-      balance protocol measures the anchored single side; the criterion says
-      both sides. Record what the build does; do not improvise a second side.
+- [ ] Order: intro → warm-up → one-leg balance (SINGLE anchored side —
+      ruled 2026-07-06) → 30-second chair rise; max effort last, always.
+      Confirm the balance segment runs once, on the protocol's anchored
+      standing leg, with the same side-selection behaviour as Pass A6.
 - [ ] Warm-up: ~45 s guided, skippable, produces nothing (no camera during
       warm-up, no evidence, no scores; skipping changes no result).
 - [ ] Copy truthful end-to-end: intro promise matches what runs; the
@@ -51,8 +51,9 @@ do it", plus re-entry from home and from each re-offer surface.
       once, home button permanent); post-GP re-offer only after gp_confirmed.
 - [ ] 'Now' path placement: fresh onboarding → complete the host with a known
       chair-rise count (e.g. 16+ clean reps) → squat ladder shows capacity
-      minus one (L3 for 16+); balance < 10 s on the measured side forces
-      support-variants on; a post-training run only ever moves levels UP.
+      minus one (L3 for 16+); balance < 10 s on the MEASURED side forces
+      support-variants on (never off — a good measured side clears nothing);
+      a post-training run only ever moves levels UP.
 - [ ] Evidence honesty: an interrupted chair segment never records a
       truncated official result (same contract as Pass A8).
 

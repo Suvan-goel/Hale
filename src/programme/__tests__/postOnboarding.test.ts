@@ -50,6 +50,18 @@ describe('T1/T3 adapter (camera → placement inputs; T2 deferred)', () => {
     expect(inputs.t1).toEqual({ worseSideSeconds: 8 });
   });
 
+  it('single-side T1 (ruled 2026-07-06): one measured hold IS the placement signal, and <10 s forces support on', () => {
+    // One side only — the official instrument's anchored standing leg.
+    const inputs = assessmentInputsFromV2Results({ balanceLeft: { bestHoldSec: 8 } });
+    expect(inputs.t1).toEqual({ worseSideSeconds: 8 });
+    // The support-forcing rule keys off the measured side; never-off
+    // semantics are pinned in flow.test.ts ('forces balance support on, and
+    // never turns it off') — a good measured side clears nothing.
+    expect(assessmentInputsFromV2Results({ balanceLeft: { bestHoldSec: 30 } }).t1).toEqual({
+      worseSideSeconds: 30,
+    });
+  });
+
   it('handles missing items and absent hand detection', () => {
     const inputs = assessmentInputsFromV2Results({ chairRise: { reps: 9, flags: [] } });
     expect(inputs.t3).toEqual({ reps: 9, handsUsed: false });

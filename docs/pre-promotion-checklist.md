@@ -82,3 +82,7 @@ update status in place.
 - [ ] Full official battery as an explicit OPT-IN "full movement check" for
       curious users — never the default at Check-up #0 or routine check-ups
       (ruling 2026-07-06).
+- [ ] Two-side balance variant for T1 — re-enter only on evidence that
+      single-side placement misses balance-limited users (support-variant
+      usage patterns or check-up data suggesting undetected asymmetry);
+      carries full protocol + device-gate cost (ruling 2026-07-06).
