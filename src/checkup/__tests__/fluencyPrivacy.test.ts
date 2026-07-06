@@ -3,8 +3,19 @@ import { join } from 'node:path';
 
 import { serializeCheckUp, deserializeCheckUp } from '../../history/serialize';
 import { validClarityInstruments, type FluencyResult } from '../clarityInstruments';
-import { defaultFluencyTranscriber, type FluencyTranscriber } from '../../voice/fluencyTranscriber';
+import {
+  createSanitizedFluencyTranscriber,
+  defaultFluencyTranscriber,
+  type FluencyTranscriber,
+  type RawFluencyEngine,
+} from '../../voice/fluencyTranscriber';
+import * as sentry from '../../services/observability/sentry';
 import type { CheckUp } from '../types';
+
+jest.mock('../../services/observability/sentry', () => ({
+  addBreadcrumb: jest.fn(),
+  captureError: jest.fn(),
+}));
 
 /**
  * FL1 leak-proofing (CLARITY_INSTRUMENTS_TDD §5.4) — the same rigor as the
@@ -93,17 +104,115 @@ describe('fluency privacy containment (FL1)', () => {
 
   it('the seam module exposes no transcript/audio surface and the default is unavailable', async () => {
     const seam = source('src/voice/fluencyTranscriber.ts');
-    // No API returns tokens: countWords resolves to a count or a failure enum.
-    expect(seam).toContain('{ ok: true; validWordCount: number }');
-    expect(seam).not.toMatch(/tokens\s*:\s*readonly string\[\]\s*\}\s*>/); // never in a resolved type
+    // No PUBLIC API returns tokens: the outcome type is count-or-enum only.
+    // (RawFluencyEngine legitimately mentions tokens — it is the UNTRUSTED
+    // input the sanitizer consumes, never what leaves the seam.)
+    const outcomeType = seam.match(/export type FluencyCountOutcome =[\s\S]*?\n\n/)?.[0] ?? '';
+    expect(outcomeType).toContain('validWordCount: number');
+    expect(outcomeType).not.toContain('tokens');
+    expect(outcomeType).not.toMatch(/string\[\]/);
     expect(seam).not.toMatch(/audio(Data|Buffer|File)/i);
     // Production default: PLANNED until device Block 8 — never offers itself.
     const transcriber = defaultFluencyTranscriber();
     await expect(transcriber.availability()).resolves.toBe('unavailable');
     await expect(transcriber.countWords(60, () => 0)).resolves.toEqual({
       ok: false,
-      reason: 'unavailable',
+      reason: 'engine_unavailable',
     });
+  });
+
+  // ————— Founder hardening requirement 1: counter purity —————
+
+  it('counting a distinctive-word list is SILENT: zero console output, zero telemetry writes', async () => {
+    const consoleSpies = (['log', 'warn', 'error', 'info', 'debug'] as const).map((method) =>
+      jest.spyOn(console, method).mockImplementation(() => undefined)
+    );
+    jest.mocked(sentry.addBreadcrumb).mockClear();
+    jest.mocked(sentry.captureError).mockClear();
+    try {
+      const transcriber = createSanitizedFluencyTranscriber({
+        availability: () => Promise.resolve('available'),
+        transcribeOnce: () => Promise.resolve({ tokens: CANARIES }),
+      });
+      const outcome = await transcriber.countWords(60, (tokens) => tokens.length);
+      expect(outcome).toEqual({ ok: true, validWordCount: 4 });
+      for (const spy of consoleSpies) {
+        expect(spy).not.toHaveBeenCalled();
+      }
+      expect(sentry.addBreadcrumb).not.toHaveBeenCalled();
+      expect(sentry.captureError).not.toHaveBeenCalled();
+    } finally {
+      for (const spy of consoleSpies) spy.mockRestore();
+    }
+  });
+
+  it('the counting module is pure by scan: no console/logging/telemetry/store imports, no token retention', () => {
+    const counting = source('src/checkup/fluencyCounting.ts');
+    // The contract is documented at the module (FL2 rules live inside it)...
+    expect(counting).toContain('PURITY CONTRACT');
+    // ...and the CODE (comments stripped) is held to it by scan.
+    const code = counting.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/.*$/gm, ' ');
+    expect(code).not.toMatch(/console\./);
+    expect(code).not.toMatch(/addBreadcrumb|captureError|Sentry|telemetry/i);
+    expect(code).not.toMatch(/from '.*(store|history|services|telemetry)/);
+    expect(code).not.toMatch(/fetch\(|XMLHttpRequest|FileSystem|AsyncStorage/);
+    expect(code).not.toMatch(/setTimeout|setInterval/);
+    // No module-level mutable state that could retain a token array.
+    expect(code).not.toMatch(/^\s*(let|var)\s/m);
+  });
+
+  // ————— Founder hardening requirement 2: error-path sanitization —————
+
+  it('engine errors carrying recognized text surface as enum codes only — the words appear nowhere', async () => {
+    const consoleSpies = (['log', 'warn', 'error', 'info', 'debug'] as const).map((method) =>
+      jest.spyOn(console, method).mockImplementation(() => undefined)
+    );
+    jest.mocked(sentry.addBreadcrumb).mockClear();
+    jest.mocked(sentry.captureError).mockClear();
+    try {
+      const leakyError = Object.assign(new Error(`recognition result: ${CANARIES.join(' ')}`), {
+        bestTranscription: CANARIES.join(' '),
+        metadata: { partial: CANARIES },
+      });
+      const throwingEngine: RawFluencyEngine = {
+        availability: () => Promise.reject(leakyError),
+        transcribeOnce: () => Promise.reject(leakyError),
+      };
+      const transcriber = createSanitizedFluencyTranscriber(throwingEngine);
+
+      // Nothing throws; only enum codes come back.
+      await expect(transcriber.availability()).resolves.toBe('unavailable');
+      const outcome = await transcriber.countWords(60, (tokens) => tokens.length);
+      expect(outcome).toEqual({ ok: false, reason: 'recognition_failed' });
+      expect(JSON.stringify(outcome)).not.toMatch(/wombat|aardvark|pangolin|ninety/);
+
+      // A coded rejection maps by CODE VALUE, never by message text.
+      const codedEngine: RawFluencyEngine = {
+        availability: () => Promise.resolve('available'),
+        transcribeOnce: () =>
+          Promise.reject(Object.assign(new Error(`heard: ${CANARIES[0]}`), { code: 'permission_denied' })),
+      };
+      const coded = await createSanitizedFluencyTranscriber(codedEngine).countWords(60, () => 0);
+      expect(coded).toEqual({ ok: false, reason: 'permission_denied' });
+
+      // And nothing was logged or reported anywhere along the way.
+      for (const spy of consoleSpies) {
+        expect(spy).not.toHaveBeenCalled();
+      }
+      expect(sentry.addBreadcrumb).not.toHaveBeenCalled();
+      expect(sentry.captureError).not.toHaveBeenCalled();
+    } finally {
+      for (const spy of consoleSpies) spy.mockRestore();
+    }
+  });
+
+  it('empty transcription windows map to no_speech, never to a zero-word measurement', async () => {
+    const silentEngine: RawFluencyEngine = {
+      availability: () => Promise.resolve('available'),
+      transcribeOnce: () => Promise.resolve({ tokens: [] }),
+    };
+    const outcome = await createSanitizedFluencyTranscriber(silentEngine).countWords(60, (t) => t.length);
+    expect(outcome).toEqual({ ok: false, reason: 'no_speech' });
   });
 
   it('the global commands/safety promise is untouched: session paths never import the fluency seam', () => {
