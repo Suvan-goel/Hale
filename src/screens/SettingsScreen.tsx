@@ -382,6 +382,19 @@ function SettingsScreenContent({
           />
 
           <PrivacyStorageCard />
+
+          {/* Population-comparison switch (reposition slice 5, condition 3):
+              the results screen is the front door; this is where the switch
+              can always be found. Default off — her own trend leads. */}
+          <View style={styles.detailCard}>
+            <Text style={styles.detailCardTitle}>Results</Text>
+            <ToggleRow
+              label="Compare with published values"
+              description="Show results next to published values for your age and sex, where a result supports it. Off by default — your own trend leads."
+              value={settings.comparisonOptIn}
+              onValueChange={(value) => onSettingsChange({ ...settings, comparisonOptIn: value })}
+            />
+          </View>
         </>
       );
     }

@@ -142,6 +142,63 @@ describe('Movement Profile V2 unified results adapter', () => {
     ]);
     expect(text).not.toMatch(/movement age|fall-risk|diagnos|fingerprint|v2_/i);
   });
+
+  // Founder conditions of record, 2026-07-06 (reposition slice 5).
+  describe('population-comparison entry', () => {
+    const base = { viewModel: movementProfileViewModel(), planState: unavailablePlanState() };
+
+    it('condition 1: never appears on the first-ever results, regardless of opt-in', () => {
+      for (const optedIn of [false, true]) {
+        const presentation = buildMovementProfileV2UnifiedResultsPresentation({
+          ...base,
+          variant: 'onboarding',
+          populationComparison: { available: true, optedIn },
+        });
+        expect(presentation.populationComparison).toBeUndefined();
+      }
+    });
+
+    it('condition 1: unavailable before the second check-up on the standard variant too', () => {
+      const presentation = buildMovementProfileV2UnifiedResultsPresentation({
+        ...base,
+        variant: 'standard',
+        populationComparison: { available: false, optedIn: false },
+      });
+      expect(presentation.populationComparison).toBeUndefined();
+    });
+
+    it('condition 2: the invite is quiet and subordinate — her own trend stays the main story', () => {
+      const presentation = buildMovementProfileV2UnifiedResultsPresentation({
+        ...base,
+        variant: 'standard',
+        populationComparison: { available: true, optedIn: false },
+      });
+      expect(presentation.populationComparison?.state).toBe('invite');
+      expect(presentation.populationComparison?.title).toBe('See how you compare');
+      expect(presentation.populationComparison?.body).toContain('Your own trend stays the main story.');
+      expect(presentation.populationComparison?.body).toContain('Optional');
+    });
+
+    it('condition 3: active state is reversible in place and names the Settings switch', () => {
+      const presentation = buildMovementProfileV2UnifiedResultsPresentation({
+        ...base,
+        variant: 'standard',
+        populationComparison: { available: true, optedIn: true },
+      });
+      expect(presentation.populationComparison?.state).toBe('active');
+      expect(presentation.populationComparison?.toggleLabel).toBe('Hide comparisons');
+      expect(presentation.populationComparison?.body).toContain('here or in Settings');
+    });
+
+    it('saved history shows no affordance (read-only surface)', () => {
+      const presentation = buildMovementProfileV2UnifiedResultsPresentation({
+        ...base,
+        variant: 'history',
+        populationComparison: { available: true, optedIn: true },
+      });
+      expect(presentation.populationComparison).toBeUndefined();
+    });
+  });
 });
 
 function movementProfileViewModel(

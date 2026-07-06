@@ -97,6 +97,7 @@ import {
   getHaleAppLifecycle,
   latestUsableOfficialAssessment,
   latestOfficialMovementProfileV2Assessment,
+  validOfficialMovementProfileV2Assessments,
   buildMovementProfileV2ProgressViewModel,
   materializeMovementProfileV2Block,
   measuredCapabilityFromMovementProfileV2Interpretation,
@@ -708,6 +709,12 @@ function HaleApp() {
     React.useState<MovementProfileV2RawCompletion | null>(null);
   const [movementProfileV2Result, setMovementProfileV2Result] =
     React.useState<MovementProfileV2ResultsViewModel | null>(null);
+  // Source pair behind the fresh-results view model so the population-
+  // comparison toggle (reposition slice 5) can rebuild card copy in place.
+  const [movementProfileV2ResultSource, setMovementProfileV2ResultSource] = React.useState<{
+    snapshot: StoredMovementProfileV2Snapshot;
+    assessment: MovementProfileV2Assessment;
+  } | null>(null);
   const [movementProfileV2OfficialRetestContext, setMovementProfileV2OfficialRetestContext] =
     React.useState<MovementProfileV2OfficialRetestContext | null>(null);
   const [movementProfileV2RetestComparison, setMovementProfileV2RetestComparison] =
@@ -936,6 +943,7 @@ function HaleApp() {
     setMovementProfileV2InitialFlow(null);
     setMovementProfileV2Raw(null);
     setMovementProfileV2Result(null);
+    setMovementProfileV2ResultSource(null);
     setMovementProfileV2OfficialRetestContext(null);
     setMovementProfileV2RetestComparison(null);
     setMovementProfileV2BlockReport(null);
@@ -1235,6 +1243,7 @@ function HaleApp() {
     setMovementProfileV2InitialFlow(null);
     setMovementProfileV2Raw(null);
     setMovementProfileV2Result(null);
+    setMovementProfileV2ResultSource(null);
     setMovementProfileV2OfficialRetestContext(null);
     setMovementProfileV2RetestComparison(null);
     setMovementProfileV2BlockReport(null);
@@ -2291,6 +2300,7 @@ function HaleApp() {
           ? latestPendingRaw
           : null;
       setMovementProfileV2Result(null);
+      setMovementProfileV2ResultSource(null);
       setMovementProfileV2RetestComparison(null);
       setMovementProfileV2BlockReport(null);
       setMovementProfileV2PlanBlockId(null);
@@ -3555,6 +3565,7 @@ function HaleApp() {
       setMovementProfileV2Raw(raw);
       setMovementProfileV2InitialFlow(null);
       setMovementProfileV2Result(null);
+      setMovementProfileV2ResultSource(null);
       setMovementProfileV2RetestComparison(null);
       setMovementProfileV2BlockReport(null);
       setMovementProfileV2PlanBlockId(null);
@@ -3714,6 +3725,10 @@ function HaleApp() {
             assessment: materialized.assessment,
           })
         );
+        setMovementProfileV2ResultSource({
+          snapshot: materialized.snapshot,
+          assessment: materialized.assessment,
+        });
         store
           .loadAll()
           .then(setHistory)
@@ -3809,6 +3824,10 @@ function HaleApp() {
           assessment: materialized.assessment,
         })
       );
+      setMovementProfileV2ResultSource({
+        snapshot: materialized.snapshot,
+        assessment: materialized.assessment,
+      });
       if (resolvedEntryContext === 'public_onboarding') {
         persistPrefs({
           ...prefs,
@@ -3915,6 +3934,10 @@ function HaleApp() {
       setMovementProfileV2RetestComparison(null);
       setMovementProfileV2BlockReport(null);
       setMovementProfileV2Result(movementProfileV2ResultsViewModelForRecord(profile));
+      setMovementProfileV2ResultSource({
+        snapshot: profile.snapshot,
+        assessment: profile.assessment,
+      });
       setFlow('movement-profile-v2-results');
     },
     [displayHistory]
@@ -4055,8 +4078,27 @@ function HaleApp() {
     );
   }
 
+  // Rebuild fresh-results card copy when the population-comparison preference
+  // flips (reposition slice 5); the stored view model is the fallback for any
+  // path that has no source pair.
+  const displayedMovementProfileV2Result = React.useMemo(() => {
+    if (!movementProfileV2ResultSource) return movementProfileV2Result;
+    return buildMovementProfileV2ResultsViewModel({
+      snapshot: movementProfileV2ResultSource.snapshot,
+      assessment: movementProfileV2ResultSource.assessment,
+      comparisonOptIn: prefs.settings.comparisonOptIn,
+    });
+  }, [movementProfileV2Result, movementProfileV2ResultSource, prefs.settings.comparisonOptIn]);
+
+  // Condition 1 of record (2026-07-06): the comparison affordance exists only
+  // from the second stored official check-up onward.
+  const officialMovementProfileV2Count = React.useMemo(
+    () => validOfficialMovementProfileV2Assessments(displayHistory).length,
+    [displayHistory]
+  );
+
   const visibleMovementProfileV2Result =
-    selectedMovementProfileV2ProgressResult ?? movementProfileV2Result;
+    selectedMovementProfileV2ProgressResult ?? displayedMovementProfileV2Result;
   const visibleMovementProfileV2BlockReport =
     selectedMovementProfileV2ProgressReport ?? movementProfileV2BlockReport;
   const movementProfileV2ReportReadOnly = !!selectedMovementProfileV2ProgressReport;
@@ -4271,6 +4313,16 @@ function HaleApp() {
             viewModel={visibleMovementProfileV2Result}
             planState={movementProfileV2PlanState}
             retestComparison={movementProfileV2RetestComparison}
+            populationComparison={{
+              available: officialMovementProfileV2Count >= 2,
+              optedIn: prefs.settings.comparisonOptIn,
+            }}
+            onTogglePopulationComparison={() =>
+              persistPrefs({
+                ...prefs,
+                settings: { ...prefs.settings, comparisonOptIn: !prefs.settings.comparisonOptIn },
+              })
+            }
             variant={
               movementProfileV2ResultSurface === 'standalone'
                 ? 'history'

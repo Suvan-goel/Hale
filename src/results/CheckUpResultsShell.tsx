@@ -130,6 +130,19 @@ function StandardResultsVariant({
         </Card>
       ) : null}
 
+      {presentation.populationComparison ? (
+        // Quiet, subordinate entry below her own trend (founder condition 2) —
+        // deliberately plainer than the result cards above it.
+        <View style={styles.populationComparison} accessibilityLabel={presentation.populationComparison.accessibilityLabel}>
+          <Text style={styles.populationComparisonTitle}>{presentation.populationComparison.title}</Text>
+          <Text style={styles.populationComparisonBody}>{presentation.populationComparison.body}</Text>
+          <SecondaryButton
+            title={presentation.populationComparison.toggleLabel}
+            onPress={() => onAction({ type: 'toggle_population_comparison' })}
+          />
+        </View>
+      ) : null}
+
       {presentation.caveat ? <Text style={styles.caveat}>{presentation.caveat}</Text> : null}
 
       <ActionStack actions={presentation.actions} onAction={onAction} />
@@ -567,6 +580,19 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     color: colors.textSecondary,
     flex: 1,
+  },
+  populationComparison: {
+    gap: spacing.sm,
+    paddingHorizontal: 24,
+    paddingVertical: spacing.md,
+  },
+  populationComparisonTitle: {
+    ...type.cardTitle,
+    color: colors.textSecondary,
+  },
+  populationComparisonBody: {
+    ...type.caption,
+    color: colors.textSecondary,
   },
   trendCard: {
     gap: spacing.sm,

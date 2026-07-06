@@ -1,5 +1,6 @@
 import { calendarKey } from './dateUtils';
 import { movementBlockDomainFocus, movementDomainToTrainingPrimaryDomain } from './blockFocus';
+import { RETIRED_MILESTONE_TYPES } from './milestoneService';
 import type {
   AdherenceStoreState,
   IdentityMilestone,
@@ -148,8 +149,10 @@ export function mergeMilestones(
 }
 
 export function latestMilestone(state: AdherenceStoreState): IdentityMilestone | null {
-  if (state.milestones.length === 0) return null;
-  return state.milestones.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+  // Retired types (F3, 2026-07-06) stay stored but never display.
+  const displayable = state.milestones.filter((m) => !RETIRED_MILESTONE_TYPES.has(m.type));
+  if (displayable.length === 0) return null;
+  return displayable.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
 }
 
 function recomputeBlockProgress(

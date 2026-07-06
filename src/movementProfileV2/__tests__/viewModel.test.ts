@@ -45,9 +45,115 @@ describe('Movement Profile V2 view model', () => {
     expect(model.domainCards.map((card) => card.domain)).toEqual(['strength_power', 'balance', 'mobility']);
     expect(model.focusTitle).toMatch(/^Suggested focus:/);
     expect(text).not.toMatch(/movement age|improved|declined|fingerprint|v2_|reason|published comparison|published middle range|diagnos|fall risk/i);
-    expect(text).toContain('Around the 10th-40th percentile');
+
+    // Baseline-relative default (reposition slice 5): population comparison
+    // never renders without the opt-in.
+    expect(text).not.toMatch(/percentile|for your age group/i);
+    expect(text).toContain('Adds to your own strength trend');
+  });
+
+  it('renders population comparison copy only behind the opt-in, still claim-gated', () => {
+    const { snapshot, assessment } = makeArtifacts();
+
+    const optedIn = buildMovementProfileV2ResultsViewModel({
+      snapshot,
+      assessment,
+      comparisonOptIn: true,
+    });
+    const optedInText = JSON.stringify(optedIn);
+    expect(optedInText).toContain('Around the 10th-40th percentile');
+
+    const optedOut = buildMovementProfileV2ResultsViewModel({
+      snapshot,
+      assessment,
+      comparisonOptIn: false,
+    });
+    expect(JSON.stringify(optedOut)).not.toMatch(/percentile/i);
+    // Reversible in place: same artifacts, same tiers, only comparison copy moves.
+    expect(optedOut.domainCards.map((c) => c.status)).toEqual(
+      optedIn.domainCards.map((c) => c.status)
+    );
+  });
+
+  // Diagnosis-shaped first assessment (REPOSITION_TDD §2.3): strongest asset +
+  // biggest opportunity, ordinal-only from the focus engine's own evidence,
+  // honest fallback when eligibility can't support a ranking.
+  describe('diagnosis-shaped focus body', () => {
+    const { snapshot } = makeArtifacts();
+
+    function focusBodyFor(
+      evidence: { domain: 'strength_power' | 'balance' | 'mobility'; category: string }[]
+    ): string {
+      const assessment = {
+        focus: { kind: 'domain', focusDomain: 'balance', planMode: 'checkup_reference_focus' },
+        focusProvenance: {
+          domainEvidence: evidence.map((item) => ({ ...item, focusEligible: true })),
+        },
+      } as unknown as Parameters<typeof buildMovementProfileV2ResultsViewModel>[0]['assessment'];
+      return buildMovementProfileV2ResultsViewModel({ snapshot, assessment }).focus.body;
+    }
+
+    it('names a single strongest asset and the opportunity, plan-first', () => {
+      expect(
+        focusBodyFor([
+          { domain: 'strength_power', category: 'within_reference' },
+          { domain: 'balance', category: 'below_reference' },
+          { domain: 'mobility', category: 'raw_only_valid' },
+        ])
+      ).toBe('Strength is your strongest asset. Balance is your biggest opportunity — your plan starts there.');
+    });
+
+    it('a unique higher tier wins over a solid one', () => {
+      expect(
+        focusBodyFor([
+          { domain: 'strength_power', category: 'within_reference' },
+          { domain: 'balance', category: 'below_reference' },
+          { domain: 'mobility', category: 'above_reference_or_ceiling' },
+        ])
+      ).toBe('Mobility is your strongest asset. Balance is your biggest opportunity — your plan starts there.');
+    });
+
+    it('names ties honestly in the plural rather than fabricating an order', () => {
+      expect(
+        focusBodyFor([
+          { domain: 'strength_power', category: 'within_reference' },
+          { domain: 'balance', category: 'below_reference' },
+          { domain: 'mobility', category: 'hale_building' },
+        ])
+      ).toBe(
+        'Strength and Mobility are your strongest assets. Balance is your biggest opportunity — your plan starts there.'
+      );
+    });
+
+    it('falls back to the honest focus line when no reference-supported asset exists', () => {
+      expect(
+        focusBodyFor([
+          { domain: 'strength_power', category: 'raw_only_valid' },
+          { domain: 'balance', category: 'below_reference' },
+          { domain: 'mobility', category: 'invalid_or_missing' },
+        ])
+      ).toBe("This was the clearest area to build from today's Check-Up.");
+    });
   });
 });
+
+function makeArtifacts() {
+  const checkUp = makeV2CheckUp();
+  const snapshot = createMovementProfileV2Snapshot({
+    checkUp,
+    checkupType: 'baseline',
+    referenceProfile: { ageAtTest: 62, ageBasis: 'exact_age_at_test', referenceSex: 'female' },
+    createdAt: '2026-06-24T09:01:00.000Z',
+  });
+  if (!snapshot.ok) throw new Error(snapshot.reason);
+  const assessment = createMovementProfileV2Assessment({
+    checkUp,
+    snapshot: snapshot.snapshot,
+    createdAt: '2026-06-24T09:02:00.000Z',
+  });
+  if (!assessment.ok) throw new Error(assessment.reason);
+  return { snapshot: snapshot.snapshot, assessment: assessment.assessment };
+}
 
 function makeV2CheckUp(): CheckUp {
   return {

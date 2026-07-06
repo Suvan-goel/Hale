@@ -354,6 +354,20 @@ describe('milestones and copy safety', () => {
     expect(second).toHaveLength(0);
   });
 
+  it('never emits the retired age-comparison milestone (F3, 2026-07-06)', () => {
+    // A focus-domain age band far below the user's age was exactly the old
+    // trigger; retired because age comparison violates the baseline-relative
+    // default — nothing of its kind returns outside the opt-in view.
+    const types = generateMilestones({
+      user: { age: 70 },
+      block: block(),
+      latestAssessment: score('balance', 45),
+      completions: [],
+      nowIso: START,
+    }).map((m) => m.type);
+    expect(types).not.toContain('younger_than_age_band');
+  });
+
   it('keeps adherence copy away from banned phrases', () => {
     const b = block();
     const goal = createLifeGoal({ category: 'stairs_walks', nowIso: START });

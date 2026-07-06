@@ -19,7 +19,11 @@ import { isCanonicalEquipmentStatus, normalizeAvailableEquipmentForPersistence }
 import { movementCapabilityProfileForPersistence } from './movementCapabilities';
 import { DEFAULT_VOICE_ID, VOICE_OPTIONS } from './voices';
 
-export const PREFERENCES_SCHEMA_VERSION = 9;
+// v10 (2026-07-06, reposition slices 5–6): settings gain comparisonOptIn
+// (default false — baseline-relative is the default everywhere); the profile
+// stage taxonomy gains 'menopausal' and the optional symptom picture. All
+// additive with defensive parse; v9 records deserialize unchanged.
+export const PREFERENCES_SCHEMA_VERSION = 10;
 
 const ONBOARDING_STEPS: OnboardingStep[] = [
   'welcome',
@@ -40,6 +44,7 @@ export function defaultPreferences(): Preferences {
       remindersEnabled: false,
       phoneStandAvailable: false,
       voiceSetup: { promptShown: false, safetyLineShown: false },
+      comparisonOptIn: false,
     },
     onboarding: defaultOnboardingState(),
   };
@@ -231,6 +236,8 @@ function validSettings(v: unknown): AppSettings {
           ? s.voiceSetup.safetyLineShown
           : def.voiceSetup.safetyLineShown,
     },
+    comparisonOptIn:
+      typeof s.comparisonOptIn === 'boolean' ? s.comparisonOptIn : def.comparisonOptIn,
   };
 }
 

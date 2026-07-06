@@ -62,14 +62,20 @@ export function generateMilestones({
     if (latestMid < previousMid) push(out, existing, makeMilestone('domain_recorded_lower', block, nowIso, lifeGoal));
     if (latestMid === previousMid) push(out, existing, makeMilestone('domain_similar', block, nowIso, lifeGoal));
   }
-  if (user?.age && latest?.measured && latest.ageHigh < user.age) {
-    push(out, existing, makeMilestone('younger_than_age_band', block, nowIso, lifeGoal));
-  }
+  // 'younger_than_age_band' RETIRED (founder decision 2026-07-06, F3): age
+  // comparison violates the baseline-relative default, and nothing of its
+  // kind returns outside the opt-in normative view. Stored instances still
+  // parse but are filtered from display and never re-emitted.
   if (lifeGoal && trainingCompletions.length > 0) {
     push(out, existing, makeMilestone('goal_supported', block, nowIso, lifeGoal));
   }
   return out;
 }
+
+/** Milestone types no longer emitted nor displayed; stored instances parse fine. */
+export const RETIRED_MILESTONE_TYPES: ReadonlySet<IdentityMilestoneType> = new Set([
+  'younger_than_age_band',
+]);
 
 export function getMilestoneCopy(type: IdentityMilestoneType, lifeGoal?: LifeGoal | null): { title: string; body: string } {
   switch (type) {

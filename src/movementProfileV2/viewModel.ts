@@ -9,6 +9,7 @@ import type {
   ChairInterpretation,
   ChairPercentileRange,
   MovementProfileV2Assessment,
+  MovementProfileV2DomainEvidence,
   ShoulderInterpretation,
   StoredMovementProfileV2Snapshot,
 } from '../reference/movementProfileV2';
@@ -67,11 +68,25 @@ export interface MovementProfileV2ResultsViewModel {
 // measurement card.
 const DOMAIN_ORDER: readonly MovementProfileV2Domain[] = objectiveMovementDomains();
 
+export interface MovementProfileV2ResultsViewModelOptions {
+  /**
+   * Population-comparison opt-in (REPOSITION_TDD slice 5, founder conditions
+   * 2026-07-06): baseline-relative is the default everywhere — explicit
+   * "for your age group" comparison copy renders ONLY when she opted in, and
+   * only where the claim-eligibility machinery already supports it (raw-only
+   * results show nothing new in either mode). Status tiers stay in both modes:
+   * they are the app-wide band vocabulary, not comparison claims.
+   */
+  comparisonOptIn?: boolean;
+}
+
 export function buildMovementProfileV2ResultsViewModel(input: {
   snapshot: StoredMovementProfileV2Snapshot;
   assessment: MovementProfileV2Assessment;
+  comparisonOptIn?: boolean;
 }): MovementProfileV2ResultsViewModel {
   const focus = focusDisplay(input.assessment);
+  const comparisonOptIn = input.comparisonOptIn === true;
   return {
     checkUpId: input.snapshot.sourceCheckUpId,
     dateLabel: formatDate(input.snapshot.sourceCheckUpId),
@@ -80,43 +95,51 @@ export function buildMovementProfileV2ResultsViewModel(input: {
     focus,
     focusTitle: focus.kind === 'balanced' ? 'Suggested focus: Balanced plan' : `Suggested focus: ${focus.title}`,
     focusBody: focus.body,
-    domainCards: DOMAIN_ORDER.map((domain) => domainCard(domain, input.snapshot)),
+    domainCards: DOMAIN_ORDER.map((domain) => domainCard(domain, input.snapshot, comparisonOptIn)),
   };
 }
 
 export function latestMovementProfileV2ResultsViewModel(
-  history: readonly StoredCheckUp[] | null | undefined
+  history: readonly StoredCheckUp[] | null | undefined,
+  options?: MovementProfileV2ResultsViewModelOptions
 ): MovementProfileV2ResultsViewModel | null {
   const latest = latestOfficialMovementProfileV2Assessment(history);
-  return latest ? movementProfileV2ResultsViewModelForRecord(latest) : null;
+  return latest ? movementProfileV2ResultsViewModelForRecord(latest, options) : null;
 }
 
 export function movementProfileV2ResultsViewModelForRecord(
-  record: OfficialMovementProfileV2AssessmentRecord
+  record: OfficialMovementProfileV2AssessmentRecord,
+  options?: MovementProfileV2ResultsViewModelOptions
 ): MovementProfileV2ResultsViewModel {
   return buildMovementProfileV2ResultsViewModel({
     snapshot: record.snapshot,
     assessment: record.assessment,
+    comparisonOptIn: options?.comparisonOptIn,
   });
 }
 
 function domainCard(
   domain: MovementProfileV2Domain,
-  snapshot: StoredMovementProfileV2Snapshot
+  snapshot: StoredMovementProfileV2Snapshot,
+  comparisonOptIn: boolean
 ): MovementProfileV2DomainCardViewModel {
-  if (domain === 'strength_power') return chairCard(snapshot.interpretation.chair);
-  if (domain === 'balance') return balanceCard(snapshot.interpretation.balance);
-  return shoulderCard(snapshot.interpretation.shoulder);
+  if (domain === 'strength_power') return chairCard(snapshot.interpretation.chair, comparisonOptIn);
+  if (domain === 'balance') return balanceCard(snapshot.interpretation.balance, comparisonOptIn);
+  return shoulderCard(snapshot.interpretation.shoulder, comparisonOptIn);
 }
 
-function chairCard(chair: ChairInterpretation): MovementProfileV2DomainCardViewModel {
+function chairCard(chair: ChairInterpretation, comparisonOptIn: boolean): MovementProfileV2DomainCardViewModel {
   const reps = chair.rawMetric?.value;
   return {
     domain: 'strength_power',
     title: 'Strength / Power',
     metric: Number.isFinite(reps) ? `${reps} rises in 30 seconds` : 'Not measured',
     status: chairTier(chair.percentileRange),
-    body: chairEvidence(chair.percentileRange),
+    body: comparisonOptIn
+      ? chairEvidence(chair.percentileRange)
+      : chair.percentileRange
+        ? 'Adds to your own strength trend with every check-up.'
+        : chairEvidence(null),
   };
 }
 
@@ -138,7 +161,7 @@ function chairEvidence(range: ChairPercentileRange | null): string {
   return `Around the ${range.low}th-${range.high}th percentile for your age group.`;
 }
 
-function balanceCard(balance: BalanceInterpretation): MovementProfileV2DomainCardViewModel {
+function balanceCard(balance: BalanceInterpretation, comparisonOptIn: boolean): MovementProfileV2DomainCardViewModel {
   const seconds = balance.rawMetric?.value;
   const eyesOpenLadder = balance.rawMetric?.metricId === 'balance_eyes_open_total';
   return {
@@ -155,7 +178,9 @@ function balanceCard(balance: BalanceInterpretation): MovementProfileV2DomainCar
       : balance.reachedCeiling
         ? 'You held the full 45 seconds — the longest this check-up measures.'
         : balance.sourceBenchmark
-          ? 'Compared with typical results for your age group.'
+          ? comparisonOptIn
+            ? 'Compared with typical results for your age group.'
+            : 'Adds to your own balance trend with every check-up.'
           : 'Your longest steady hold from this check-up.',
   };
 }
@@ -168,7 +193,7 @@ function balanceTier(balance: BalanceInterpretation): MovementProfileV2StatusTie
   return 'Saved result';
 }
 
-function shoulderCard(shoulder: ShoulderInterpretation): MovementProfileV2DomainCardViewModel {
+function shoulderCard(shoulder: ShoulderInterpretation, comparisonOptIn: boolean): MovementProfileV2DomainCardViewModel {
   const degrees = shoulder.rawMetric?.value;
   return {
     domain: 'mobility',
@@ -177,7 +202,11 @@ function shoulderCard(shoulder: ShoulderInterpretation): MovementProfileV2Domain
     status: shoulderTier(shoulder),
     body: shoulder.painLimited
       ? `You noted pain during this reach, so ${BRAND.appName} keeps the result cautious.`
-      : shoulderEvidence(shoulder),
+      : comparisonOptIn
+        ? shoulderEvidence(shoulder)
+        : shoulder.iqr
+          ? 'Adds to your own mobility trend with every check-up.'
+          : shoulderEvidence(shoulder),
   };
 }
 
@@ -206,7 +235,7 @@ function focusDisplay(assessment: MovementProfileV2Assessment): MovementProfileV
       title: domainTitle(focus.focusDomain),
       body: focus.planMode === 'prior_focus_reference_supported'
         ? `Your results were broadly matched, so ${BRAND.appName} kept the focus from your last block.`
-        : "This was the clearest area to build from today's Check-Up.",
+        : strongestAssetBody(assessment, focus.focusDomain),
       planMode: focus.planMode,
     };
   }
@@ -228,6 +257,57 @@ function focusDisplay(assessment: MovementProfileV2Assessment): MovementProfileV
 
 function domainTitle(domain: MovementProfileV2Domain): string {
   if (domain === 'strength_power') return 'Strength / Power';
+  if (domain === 'balance') return 'Balance';
+  return 'Mobility';
+}
+
+/**
+ * Diagnosis-shaped first-assessment body (REPOSITION_TDD §2.3, approved):
+ * "[strongest] is your strongest asset. [focus] is your biggest opportunity —
+ * your plan starts there." The ranking is ORDINAL ONLY, derived from the
+ * evidence categories the focus engine already computed (no new scoring, no
+ * numbers) and only from reference-supported evidence — when eligibility
+ * can't support naming an asset, this falls back to the honest focus line
+ * rather than fabricating a ranking. Ties are named honestly in the plural.
+ */
+function strongestAssetBody(assessment: MovementProfileV2Assessment, focusDomain: MovementProfileV2Domain): string {
+  const fallback = "This was the clearest area to build from today's Check-Up.";
+  const assets = strongestAssets(assessment, focusDomain);
+  if (assets.length === 0) return fallback;
+  const assetPhrase =
+    assets.length === 1
+      ? `${assetName(assets[0])} is your strongest asset.`
+      : `${assets.map(assetName).join(' and ')} are your strongest assets.`;
+  return `${assetPhrase} ${assetName(focusDomain)} is your biggest opportunity — your plan starts there.`;
+}
+
+// Ordinal tiers over the focus engine's evidence categories. Only
+// reference-supported categories can name an asset; raw-only and invalid
+// evidence never rank (never a fabricated ranking).
+function assetTier(category: MovementProfileV2DomainEvidence['category']): 2 | 1 | 0 {
+  if (category === 'above_reference_or_ceiling') return 2;
+  if (category === 'within_reference' || category === 'hale_building') return 1;
+  return 0;
+}
+
+function strongestAssets(
+  assessment: MovementProfileV2Assessment,
+  focusDomain: MovementProfileV2Domain
+): MovementProfileV2Domain[] {
+  const evidence = assessment.focusProvenance?.domainEvidence ?? [];
+  const candidates = evidence
+    .filter((item) => item.domain !== focusDomain)
+    .map((item) => ({ domain: item.domain, tier: assetTier(item.category) }))
+    .filter((item) => item.tier > 0);
+  if (candidates.length === 0) return [];
+  const topTier = Math.max(...candidates.map((item) => item.tier));
+  return DOMAIN_ORDER.filter((domain) =>
+    candidates.some((item) => item.domain === domain && item.tier === topTier)
+  );
+}
+
+function assetName(domain: MovementProfileV2Domain): string {
+  if (domain === 'strength_power') return 'Strength';
   if (domain === 'balance') return 'Balance';
   return 'Mobility';
 }

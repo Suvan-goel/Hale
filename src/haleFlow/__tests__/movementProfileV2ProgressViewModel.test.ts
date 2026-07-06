@@ -62,7 +62,9 @@ describe('Movement Profile V2 Progress view model', () => {
     // which reads as the plain 'Building' tier everywhere in the product.
     const strength = viewModel.hero.domains.find((card) => card.domain === 'strength_power');
     expect(strength?.interpretation).toBe('Building');
-    expect(strength?.body).toBe('Around the 10th-40th percentile for your age group.');
+    // Baseline-relative default (reposition slice 5): Progress never shows
+    // population comparison — that view lives behind the results-screen opt-in.
+    expect(strength?.body).toBe('Adds to your own strength trend with every check-up.');
     expect(viewModel.actions).toEqual([
       { id: 'view_movement_profile', label: 'View Movement Profile', targetId: BASELINE_AT },
     ]);
@@ -72,8 +74,12 @@ describe('Movement Profile V2 Progress view model', () => {
       sourceLabel: 'First Movement Check-Up',
       action: { label: 'View Movement Profile' },
     });
+    // Computed-change words stay banned on this frozen surface. The bare word
+    // "trend" left the list 2026-07-06 (reposition slice 5): the neutral card
+    // body's forward-looking "your own … trend" is the framing of record and
+    // claims no computed change.
     expect(JSON.stringify(viewModel).toLowerCase()).not.toMatch(
-      /movement age|weakest|improved|declined|increase|decrease|delta|percent change|trend/
+      /movement age|weakest|improved|declined|increase|decrease|delta|percent change/
     );
   });
 

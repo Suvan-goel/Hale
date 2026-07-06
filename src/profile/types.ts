@@ -71,6 +71,14 @@ export interface AppSettings {
     promptShown: boolean;
     safetyLineShown: boolean;
   };
+  /**
+   * Population-comparison opt-in (REPOSITION_TDD slice 5, founder conditions
+   * 2026-07-06): baseline-relative is the default everywhere, so this starts
+   * false. The results screen is the front door (quiet entry from the second
+   * check-up onward); Settings is where the switch can always be found.
+   * Reversible; rendering stays governed by claim eligibility either way.
+   */
+  comparisonOptIn: boolean;
 }
 
 export type OnboardingStep =

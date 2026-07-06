@@ -32,6 +32,7 @@ describe('preferences serialize', () => {
       voiceId: 'clara',
       remindersEnabled: true,
       phoneStandAvailable: true,
+      comparisonOptIn: false,
       voiceSetup: { promptShown: false, safetyLineShown: false },
     },
     onboarding: {
@@ -47,7 +48,25 @@ describe('preferences serialize', () => {
   });
 
   it('writes a schema version', () => {
-    expect(JSON.parse(serializePreferences(sample)).schemaVersion).toBe(9);
+    // v10: comparisonOptIn + stage taxonomy + symptom picture (2026-07-06).
+    expect(JSON.parse(serializePreferences(sample)).schemaVersion).toBe(10);
+  });
+
+  it('defaults comparisonOptIn to false and round-trips an opt-in (v10, reposition slice 5)', () => {
+    // v9 records carry no comparisonOptIn — they deserialize to the default
+    // (off: baseline-relative is the default everywhere).
+    const v9 = JSON.parse(serializePreferences(sample));
+    delete v9.settings.comparisonOptIn;
+    v9.schemaVersion = 9;
+    expect(deserializePreferences(JSON.stringify(v9))?.settings.comparisonOptIn).toBe(false);
+
+    const optedIn = {
+      ...sample,
+      settings: { ...sample.settings, comparisonOptIn: true },
+    };
+    expect(
+      deserializePreferences(serializePreferences(optedIn))?.settings.comparisonOptIn
+    ).toBe(true);
   });
 
   it('drops unknown menopause-stage values instead of persisting them', () => {
@@ -243,6 +262,7 @@ describe('ProfileStore', () => {
         remindersEnabled: true,
         phoneStandAvailable: false,
         voiceSetup: { promptShown: false, safetyLineShown: false },
+        comparisonOptIn: false,
       },
       onboarding: {
         currentStep: 'welcome',

@@ -24,7 +24,23 @@ export type UnifiedCheckUpResultsAction =
   | { type: 'retry_checkup' }
   | { type: 'complete_onboarding' }
   | { type: 'finish_movement_profile' }
-  | { type: 'view_saved_profile' };
+  | { type: 'view_saved_profile' }
+  | { type: 'toggle_population_comparison' };
+
+/**
+ * Optional population-comparison entry (REPOSITION_TDD slice 5, founder
+ * conditions of record 2026-07-06): never on the first-ever results screen;
+ * rendered as a QUIET, subordinate entry below her own baseline-relative
+ * trend; reversible; the Settings toggle is the always-findable switch and
+ * this is only the front door.
+ */
+export interface UnifiedPopulationComparisonPresentation {
+  state: 'invite' | 'active';
+  title: string;
+  body: string;
+  toggleLabel: string;
+  accessibilityLabel: string;
+}
 
 export interface UnifiedResultsActionViewModel {
   id: string;
@@ -111,6 +127,7 @@ export interface UnifiedCheckUpResultsPresentation {
     body: string;
   };
   comparison?: UnifiedRetestComparisonPresentation;
+  populationComparison?: UnifiedPopulationComparisonPresentation;
   actions: readonly UnifiedResultsActionViewModel[];
   recovery?: UnifiedResultsRecoveryPresentation;
   accessibility: {

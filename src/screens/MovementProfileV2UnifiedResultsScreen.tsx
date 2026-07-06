@@ -3,6 +3,7 @@ import * as React from 'react';
 import { CheckUpResultsShell } from '../results/CheckUpResultsShell';
 import {
   buildMovementProfileV2UnifiedResultsPresentation,
+  type MovementProfileV2PopulationComparisonInput,
   type MovementProfileV2UnifiedPlanState,
 } from '../results/movementProfileV2ResultsAdapter';
 import type { UnifiedCheckUpResultsAction } from '../results/types';
@@ -14,6 +15,8 @@ export function MovementProfileV2UnifiedResultsScreen({
   planState,
   variant = 'standard',
   retestComparison,
+  populationComparison,
+  onTogglePopulationComparison,
   onViewPlan,
   onViewBlockReport,
   onDone,
@@ -22,13 +25,22 @@ export function MovementProfileV2UnifiedResultsScreen({
   planState: MovementProfileV2UnifiedPlanState;
   variant?: 'standard' | 'onboarding' | 'history';
   retestComparison?: MovementProfileV2RetestComparison | null;
+  populationComparison?: MovementProfileV2PopulationComparisonInput;
+  onTogglePopulationComparison?: () => void;
   onViewPlan?: () => void;
   onViewBlockReport?: () => void;
   onDone: () => void;
 }) {
   const presentation = React.useMemo(
-    () => buildMovementProfileV2UnifiedResultsPresentation({ viewModel, planState, variant, retestComparison }),
-    [planState, retestComparison, variant, viewModel]
+    () =>
+      buildMovementProfileV2UnifiedResultsPresentation({
+        viewModel,
+        planState,
+        variant,
+        retestComparison,
+        populationComparison,
+      }),
+    [planState, populationComparison, retestComparison, variant, viewModel]
   );
 
   const handleAction = React.useCallback(
@@ -41,11 +53,15 @@ export function MovementProfileV2UnifiedResultsScreen({
         onViewBlockReport?.();
         return;
       }
+      if (action.type === 'toggle_population_comparison') {
+        onTogglePopulationComparison?.();
+        return;
+      }
       if (action.type === 'done') {
         onDone();
       }
     },
-    [onDone, onViewBlockReport, onViewPlan]
+    [onDone, onTogglePopulationComparison, onViewBlockReport, onViewPlan]
   );
 
   return <CheckUpResultsShell presentation={presentation} onAction={handleAction} />;
