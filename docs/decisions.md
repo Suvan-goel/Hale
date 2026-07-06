@@ -4513,3 +4513,36 @@ imports/fields/store file in backup shapes).
   deferred list).
 - assessmentInputsFromCheckUp stays as built — it reads exactly the two
   Check-up #0 protocols and ignores extra items on any legacy record.
+
+## 2026-07-06 — Check-up #0 host: internals RESIST the sequence criterion; stopped for ruling
+
+Reconnaissance for the green-lit two-protocol host found the resist point the
+green-light anticipated: the measurement orchestration does NOT live in
+per-movement components. `MovementProfileV2LiveCoordinator` (2,353 lines) owns
+the stage machine with the battery order HARDCODED (initial stage
+'chair_setup'; transitions embedded in the class), and it also owns the
+measurement-relevant orchestration — hands-free setup dwell, balance
+inter-trial rest windows, standing-frame-check handling, evidence statuses,
+voice cue plans. The protocol controllers (ChairRiseV2ProtocolController,
+OneLegBalanceV2ProtocolController) are reusable, but ordering + orchestration
+are coordinator-internal. Two honest options, materially different in risk:
+
+- **Option 1 (recommended): additive `batterySequence` option on the live
+  coordinator.** The stage machine becomes sequence-driven for included
+  movements; default = current full battery, byte-identical (existing
+  coordinator tests must pass UNCHANGED as the pin). Check-up #0 constructs
+  the coordinator with ['balance', 'chair'] + a warm-up stage. Pro: one owner
+  of measurement orchestration semantics — nothing duplicated; routine v2
+  check-ups get the same host trivially. Con: touches the hardened
+  coordinator the shipping battery and device-gate reports depend on → the
+  full battery must be RE-VERIFIED on device alongside the host's own
+  device pass (both land inside the gate's existing on-device requirement).
+- **Option 2: a thin Check-up #0 coordinator reusing only the protocol
+  controllers.** Pro: zero risk to the shipping measurement path. Con: the
+  dwell/rest/evidence orchestration would have to be re-implemented in the
+  thin host — measurement-relevant semantics duplicated by copy, which the
+  acceptance criterion ("without creating new measurement semantics")
+  exists to forbid. Recommended against.
+
+Stopped per instruction rather than bending the criterion. The build
+proceeds in its own working session once ruled.

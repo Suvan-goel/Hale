@@ -23,13 +23,33 @@ update status in place.
       session start + funnel v3 stamp on the same record).
 - [ ] Old→new state: no code path reads legacy training state into the new
       engine (fresh placement only; internal testers re-onboard).
-- [ ] Two-protocol Check-up #0 host extracted from the unified machinery
-      (45 s guided gentle warm-up moment → single-leg balance → 30 s chair
-      rise; consumes CHECKUP_ZERO_PROTOCOL_SEQUENCE; the unified full-battery
-      screen runs a fixed chair-first step machine and may NOT host it).
-      Routine 4–6-week programme-v2 check-ups use the same minimal battery.
-- [ ] Assessment-phase scope pinned (two protocols, gentle-first order,
-      on-screen copy truthful to what runs — duration promise included).
+- [ ] Two-protocol Check-up #0 host (acceptance criteria verbatim, founder
+      green-light 2026-07-06):
+      - Consumes CHECKUP_ZERO_PROTOCOL_SEQUENCE; any scope or order drift
+        fails tests.
+      - Sequence: brief guided gentle warm-up (~45 s, marching/easy reaches)
+        → one-leg balance, both sides → 30-second chair rise. Max effort
+        comes last, always.
+      - Copy truthful end-to-end: the "two minutes of moving" promise, the
+        "no one sees this but you — it never leaves your phone" line
+        (already implementation-true), and any stated duration must match
+        measured on-device reality.
+      - Reuses the unified check-up internals (protocol setups,
+        standing-frame checks, evidence handling) without creating new
+        measurement semantics; results flow only through
+        assessmentInputsFromCheckUp into applyAssessmentPlacement with
+        established semantics ('now' = replace with the −1 easy start; any
+        post-training-history path upward-only).
+      - Every gate holds at every entry point: B1 bypass, all three re-offer
+        paths, home button.
+      - Routine 4–6-week programme-v2 check-ups use this same host and
+        battery.
+      - Graceful abandonment: exit mid-check without penalty — partial data
+        follows the partial rules (upward-only, never lowers anyone), and
+        abandoning does not burn any once-only re-offer surface; the
+        home-screen movement-check button remains the permanent way back.
+      - The host's own ON-DEVICE PASS is part of its definition of done —
+        suite-green alone doesn't close this gate.
 
 ## Founder-owned (named owner: founder)
 
