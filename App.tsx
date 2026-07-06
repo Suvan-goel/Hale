@@ -237,6 +237,7 @@ import { TodayScreen } from './src/screens/TodayScreen';
 import { TrainingSessionScreen } from './src/screens/TrainingSessionScreen';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
 import { isPoseLatencyDiagnosticsEnabled } from './src/diagnostics/poseLatencyDiagnostics';
+import { getExerciseLadder } from './src/exercises';
 import {
   MicroCheckResult,
   MicroCheckType,
@@ -251,6 +252,8 @@ import {
   deriveMicroCheckSideSetup,
   initialLadderProgressFromMeasuredCapability,
   mergeResumedSessionResult,
+  recordSessionPainEvents,
+  reinstateLadder,
   resumableSessionStart,
   upsertGeneratedSessionSummary,
   validTimeSessionSummaryCards,
@@ -1352,6 +1355,29 @@ function HaleApp() {
       }
     },
     [trainingStore]
+  );
+
+  // Pain-recurrence exclusions: visible + reversible in Settings (§9).
+  const painExclusionRows = React.useMemo(
+    () =>
+      training.painHistory.exclusions.map((exclusion) => {
+        let title = exclusion.ladderId;
+        try {
+          title = getExerciseLadder(exclusion.ladderId).title;
+        } catch {
+          // Unknown ladder id in an old record — show the id rather than hide it.
+        }
+        return { ladderId: exclusion.ladderId, title };
+      }),
+    [training.painHistory]
+  );
+
+  const handleReinstateExercise = React.useCallback(
+    (ladderId: string) => {
+      persistTraining({ ...training, painHistory: reinstateLadder(training.painHistory, ladderId) });
+      addBreadcrumb('pain exclusion reinstated', { area: 'pain_safety', ladderId });
+    },
+    [persistTraining, training]
   );
 
   const persistPrefs = React.useCallback(
@@ -2732,6 +2758,22 @@ function HaleApp() {
       setLastSessionResult(result);
       let nextTraining = training;
       let trainingChanged = false;
+      // Safety-word pain halts: fold into the product store the generator
+      // reads (recurrence auto-exclude), and mirror to telemetry breadcrumbs.
+      if (result.painEvents && result.painEvents.length > 0) {
+        const painOutcome = recordSessionPainEvents(
+          nextTraining.painHistory,
+          result.painEvents,
+          result.startedAt
+        );
+        nextTraining = { ...nextTraining, painHistory: painOutcome.history };
+        trainingChanged = true;
+        addBreadcrumb('pain events recorded', {
+          area: 'pain_safety',
+          count: result.painEvents.length,
+          newlyExcludedLadderIds: painOutcome.newlyExcludedLadderIds,
+        });
+      }
       let generatedSessionSummary: ReturnType<typeof createGeneratedSessionSummary> | null = null;
       if (sessionPlan && sessionPlan.metadata?.source !== 'legacy_fallback') {
         const summary = createGeneratedSessionSummary({
@@ -4211,6 +4253,8 @@ function HaleApp() {
             onOpenLifeGoal={() => openLifeGoal('review')}
             onOpenSafetyProfile={() => openSafetyProfile('review')}
             onOpenCameraSetup={() => openCameraSetup('review')}
+            painExclusions={painExclusionRows}
+            onReinstateExercise={handleReinstateExercise}
             onReplayOnboardingForDev={
               MOVEMENT_PROFILE_V2_INTERNAL_ENABLED && __DEV__ ? replayOnboardingForDev : undefined
             }

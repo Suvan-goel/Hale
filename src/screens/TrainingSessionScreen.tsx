@@ -631,6 +631,15 @@ export function TrainingSessionScreen({
     player.skipCurrentItem();
   }, [player, voice]);
 
+  // Tap parity for the pain safety word: available on every set screen, both
+  // session modes. Deterministic response — halt, acknowledge, skip exercise,
+  // continue the session (never end it).
+  const somethingHurts = React.useCallback(() => {
+    voice.stop();
+    setShowHelp(false);
+    player.recordPainHalt();
+  }, [player, voice]);
+
   const discardSession = React.useCallback(() => {
     setDiscardModalVisible(false);
     voice.stop();
@@ -737,6 +746,7 @@ export function TrainingSessionScreen({
                 <ControlButton title="Repeat" onPress={repeatInstructions} />
               ) : null}
               {showSkipControl ? <ControlButton title="Skip exercise" onPress={skipCurrent} /> : null}
+              <ControlButton title="Something hurts" onPress={somethingHurts} />
             </View>
           ) : null}
         </View>

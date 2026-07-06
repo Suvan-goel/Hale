@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@theme {
+  /* Palette — see README "Design system" */
+  --color-ink: #1a2420; /* near-black evergreen: dark sections, body text */
+  --color-bone: #f3efe7; /* warm paper: page background, text on dark */
+  --color-paper: #fbf8f2; /* raised light surface: cards, phone screen */
+  --color-pine: #2e4638; /* deep green: primary CTA, positive marks */
+  --color-brass: #a67c3d; /* burnished metric accent: dial, highlights */
+  --color-sage: #96a292; /* muted support: decoration only, never data */
+  --color-line: #ddd6c8; /* hairline rules on light surfaces */
+
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-body: "Archivo", ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-bone);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-brass);
+  color: var(--color-bone);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brass);
+  outline-offset: 2px;
+}
+
+/* Scroll reveal — inert under prefers-reduced-motion */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Skip rendering work for below-the-fold sections until they approach the viewport */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 640px;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

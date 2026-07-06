@@ -591,6 +591,12 @@ export class TrainingSessionPlayer {
     const ts = out.frame.timestampMs;
     this.lastTimestampMs = ts;
     this.funnel.sessionStarted(ts);
+    // Camera mode uses the pending line only for the pain acknowledgement.
+    if (this.pendingVoiceLine && !voiceBusy) {
+      u.voice = this.pendingVoiceLine;
+      this.pendingVoiceLine = null;
+      voiceBusy = true;
+    }
     const status = this.preflight.update(out);
 
     switch (this.phase) {
@@ -1024,23 +1030,29 @@ export class TrainingSessionPlayer {
   }
 
   /**
-   * Safety-word pain response (deterministic, TDD-ADDENDUM §9): halt the set,
-   * acknowledge without encouraging continuation, skip THIS exercise, keep
-   * the session going. She can say "stop" to end fully.
+   * Pain response (deterministic, TDD-ADDENDUM §9) — BOTH session modes (tap
+   * parity: the "something hurts" control exists on every set screen; voice
+   * adds the spoken intent). Halt the set, acknowledge without encouraging
+   * continuation, skip THIS exercise, keep the session going.
    */
   recordPainHalt(atMs: number = this.lastTimestampMs): boolean {
-    if (!this.isVoiceMode) return false;
     const def = this.currentDefinition();
     if (!def) return false;
     if (
-      this.phase !== 'waiting_ready' &&
-      this.phase !== 'countdown' &&
-      this.phase !== 'set' &&
-      this.phase !== 'rest' &&
-      this.phase !== 'voice_paused' &&
-      this.phase !== 'instructions'
+      this.phase === 'intro' ||
+      this.phase === 'transition' ||
+      this.phase === 'complete' ||
+      this.phase === 'done'
     ) {
       return false;
+    }
+    if (!this.isVoiceMode) {
+      // Camera mode: tear down exactly like a skip before recording.
+      this.cancelFloorSetup();
+      this.countdownAwaitingTrackedGo = false;
+      this.setupIssue = false;
+      this.runtime?.cancel(atMs);
+      this.runtime = null;
     }
     this.painEvents.push({ exerciseId: def.id, setIndex: this.setIndex, timestampMs: atMs });
     this.funnel.itemSkipped();

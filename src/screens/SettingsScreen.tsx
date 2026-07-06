@@ -93,6 +93,9 @@ type SettingsScreenProps = {
   onOpenLifeGoal: () => void;
   onOpenSafetyProfile: () => void;
   onOpenCameraSetup: () => void;
+  /** Pain-recurrence swapped-out movements (visible + reversible, §9). */
+  painExclusions?: readonly { ladderId: string; title: string }[];
+  onReinstateExercise?: (ladderId: string) => void;
   onReplayOnboardingForDev?: () => void;
   onBack?: () => void;
 };
@@ -114,6 +117,8 @@ function SettingsScreenContent({
   onOpenLifeGoal,
   onOpenSafetyProfile,
   onOpenCameraSetup,
+  painExclusions = [],
+  onReinstateExercise,
   onReplayOnboardingForDev,
   onBack,
 }: SettingsScreenProps) {
@@ -339,6 +344,25 @@ function SettingsScreenContent({
               />
             </View>
           </DetailCard>
+
+          {painExclusions.length > 0 && onReinstateExercise ? (
+            <DetailCard
+              title="Swapped-out movements"
+              body="These were swapped out of your plan after they hurt in two recent sessions. If one keeps bothering you, it's worth mentioning to your doctor. Bring a movement back whenever you're ready."
+            >
+              <View style={styles.toggleStack}>
+                {painExclusions.map((exclusion) => (
+                  <ToggleRow
+                    key={exclusion.ladderId}
+                    label={exclusion.title}
+                    description="Off for now. Turn on to bring it back into your plan."
+                    value={false}
+                    onValueChange={() => onReinstateExercise(exclusion.ladderId)}
+                  />
+                ))}
+              </View>
+            </DetailCard>
+          ) : null}
 
         </>
       );
