@@ -2,8 +2,9 @@ import { HARD_GATE_RULES, resolveSessionRouting } from '../routing';
 import { defaultProgrammeProfile } from '../serialize';
 import type { ProgrammeProfile } from '../types';
 
+/** A consented, onboarded profile — the baseline for most routing tests. */
 function profileWith(overrides: Partial<ProgrammeProfile>): ProgrammeProfile {
-  return { ...defaultProgrammeProfile(), ...overrides };
+  return { ...defaultProgrammeProfile(), consentHealthData: true, ...overrides };
 }
 
 describe('zero hard gates in v1 (C1/C2 package deferral)', () => {
@@ -19,8 +20,8 @@ describe('zero hard gates in v1 (C1/C2 package deferral)', () => {
 });
 
 describe('default routing', () => {
-  it('gives the quiet power track with stomps and bonus sets available', () => {
-    const { routing, decisions } = resolveSessionRouting(defaultProgrammeProfile());
+  it('gives a consented profile the quiet power track with stomps and bonus sets available', () => {
+    const { routing, decisions } = resolveSessionRouting(profileWith({}));
     expect(routing).toEqual({
       finisherTrack: 'quiet_power',
       includeStomps: true,
@@ -30,6 +31,17 @@ describe('default routing', () => {
       pelvicContentUnlocked: false,
     });
     expect(decisions).toHaveLength(0);
+  });
+
+  it('routes conservatively without consent (§4 decline row): stomps out, no content unlock, normal tone', () => {
+    const { routing, decisions } = resolveSessionRouting(defaultProgrammeProfile());
+    expect(routing.includeStomps).toBe(false);
+    expect(routing.pelvicContentUnlocked).toBe(false); // a privacy choice is not a symptom report
+    expect(routing.bonusSetsAllowed).toBe(true); // normal tone — never Gentle Start framing
+    expect(routing.softerCadence).toBe(false);
+    expect(decisions).toEqual([
+      { field: 'includeStomps', tier: 'soft_routing', rule: 'consent_declined_conservative' },
+    ]);
   });
 });
 

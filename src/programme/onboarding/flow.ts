@@ -1,0 +1,363 @@
+/**
+ * Onboarding flow machine — onboarding-spec v0.2 §2/§3/§4 under the
+ * 2026-07-06 rulings. Pure state + transitions; screens render whatever step
+ * this machine says is current, from the content layer.
+ *
+ * Rules encoded here (the gate table, B2 row deferred):
+ * - Consent declined → Stage B never shown; §4 decline row applies (placement
+ *   capped L2, conservative finisher routing, no assessment offer bypass —
+ *   but explicitly NOT Gentle Start: a privacy choice is never a health flag).
+ * - B1 yes → advisory with required acknowledgement, Gentle Start preset,
+ *   movement assessment BYPASSED (offer step never shown; re-offered once
+ *   gp_confirmed). B1 skipped → conservative: same preset and bypass, no
+ *   GP advisory (nothing was disclosed); B1 is re-asked at the first check-up
+ *   (§8 re-asks unanswered Stage B items) and answering No lifts the preset.
+ * - Every skip routes to the CONSERVATIVE default (non-negotiable):
+ *   B5 skip → support variants on; C1 skip → treated as no stairs;
+ *   C2 skip → quiet mode on; A3 skip → activity prior 0.
+ * - Nothing in onboarding ever blocks access to the app.
+ */
+
+import type { ActivityLevel, LifeGoalCategory } from '../../adherence';
+import type { MenopauseStage } from '../../profile';
+import { placementForOnboarding, type AssessmentInputs } from '../placement';
+import { freshPatternLadderState } from '../promotion';
+import { programmePolicyFingerprint } from '../policy';
+import { defaultProgrammeState } from '../serialize';
+import {
+  isOnboardingQuestionStep,
+  type OnboardingQuestionStepId,
+  type OnboardingStepId,
+} from './content';
+import {
+  PROGRAMME_PATTERNS,
+  type JointFlag,
+  type PatternLadderState,
+  type ProgrammePattern,
+  type ProgrammeProfile,
+  type ProgrammeState,
+  type Weekday,
+} from '../types';
+
+// ---------------------------------------------------------------------------
+// Answers
+// ---------------------------------------------------------------------------
+
+export const SKIPPED = 'skipped' as const;
+export type Skipped = typeof SKIPPED;
+
+export interface OnboardingAnswers {
+  lifeGoal: LifeGoalCategory | Skipped | null;
+  menopauseStage: MenopauseStage | null;
+  activityLevel: ActivityLevel | Skipped | null;
+  consent: 'agree' | 'decline' | null;
+  b1Heart: 'yes' | 'no' | Skipped | null;
+  /** Empty array = explicit "none of these". */
+  b3Joints: readonly JointFlag[] | null;
+  b4Pelvic: 'often' | 'sometimes' | 'never' | 'prefer_not_to_say' | null;
+  b5Balance: 'yes' | 'no' | Skipped | null;
+  c1Stairs: 'yes' | 'no' | Skipped | null;
+  c2Quiet: 'yes' | 'no' | Skipped | null;
+  d1Days: readonly Weekday[] | null;
+  assessmentChoice: 'now' | 'after_first_workout' | 'skip' | null;
+}
+
+export function emptyOnboardingAnswers(): OnboardingAnswers {
+  return {
+    lifeGoal: null,
+    menopauseStage: null,
+    activityLevel: null,
+    consent: null,
+    b1Heart: null,
+    b3Joints: null,
+    b4Pelvic: null,
+    b5Balance: null,
+    c1Stairs: null,
+    c2Quiet: null,
+    d1Days: null,
+    assessmentChoice: null,
+  };
+}
+
+export interface ProgrammeOnboardingFlowState {
+  answers: OnboardingAnswers;
+  /** Message steps the user has continued past. */
+  acknowledged: readonly OnboardingStepId[];
+}
+
+export function initialOnboardingFlowState(): ProgrammeOnboardingFlowState {
+  return { answers: emptyOnboardingAnswers(), acknowledged: [] };
+}
+
+/** Gentle Start preset applies on B1 yes AND on B1 skip (conservative). */
+export function gentleStartFromAnswers(answers: OnboardingAnswers): boolean {
+  return answers.consent === 'agree' && (answers.b1Heart === 'yes' || answers.b1Heart === SKIPPED);
+}
+
+// ---------------------------------------------------------------------------
+// Step sequence
+// ---------------------------------------------------------------------------
+
+export function visibleOnboardingSteps(answers: OnboardingAnswers): OnboardingStepId[] {
+  const steps: OnboardingStepId[] = ['welcome', 'a1_life_goal', 'a2_menopause_journey', 'a3_activity', 'consent_health'];
+  if (answers.consent === 'agree' || answers.consent === null) {
+    // Until consent is answered we optimistically include Stage B so progress
+    // reads stably; a decline removes it (§4 decline row, normal tone).
+    steps.push('b_intro', 'b1_heart');
+    if (answers.b1Heart === 'yes') steps.push('b1_advisory');
+    steps.push('b3_joints', 'b4_pelvic', 'b5_balance', 'b_exit');
+  }
+  steps.push('c1_stairs', 'c2_quiet', 'd1_days');
+  // B1 = yes/skip bypasses the movement assessment entirely (max-effort
+  // testing contradicts the flag; re-offered once gp_confirmed), and the §4
+  // consent-decline row includes "no assessment".
+  if (!gentleStartFromAnswers(answers) && answers.consent !== 'decline') {
+    steps.push('assessment_offer');
+  }
+  steps.push('placement_reveal', 'expectation_cta');
+  return steps;
+}
+
+function stepAnswered(answers: OnboardingAnswers, step: OnboardingQuestionStepId): boolean {
+  switch (step) {
+    case 'a1_life_goal':
+      return answers.lifeGoal !== null;
+    case 'a2_menopause_journey':
+      return answers.menopauseStage !== null;
+    case 'a3_activity':
+      return answers.activityLevel !== null;
+    case 'consent_health':
+      return answers.consent !== null;
+    case 'b1_heart':
+      return answers.b1Heart !== null;
+    case 'b3_joints':
+      return answers.b3Joints !== null;
+    case 'b4_pelvic':
+      return answers.b4Pelvic !== null;
+    case 'b5_balance':
+      return answers.b5Balance !== null;
+    case 'c1_stairs':
+      return answers.c1Stairs !== null;
+    case 'c2_quiet':
+      return answers.c2Quiet !== null;
+    case 'd1_days':
+      return answers.d1Days !== null;
+    case 'assessment_offer':
+      return answers.assessmentChoice !== null;
+  }
+}
+
+/** The step the UI should show, or 'complete' when the flow is finished. */
+export function currentOnboardingStep(state: ProgrammeOnboardingFlowState): OnboardingStepId | 'complete' {
+  for (const step of visibleOnboardingSteps(state.answers)) {
+    if (isOnboardingQuestionStep(step)) {
+      if (!stepAnswered(state.answers, step)) return step;
+    } else if (!state.acknowledged.includes(step)) {
+      return step;
+    }
+  }
+  return 'complete';
+}
+
+export function acknowledgeOnboardingStep(
+  state: ProgrammeOnboardingFlowState,
+  step: OnboardingStepId
+): ProgrammeOnboardingFlowState {
+  if (state.acknowledged.includes(step)) return state;
+  return { ...state, acknowledged: [...state.acknowledged, step] };
+}
+
+export type OnboardingAnswerValue =
+  | { step: 'a1_life_goal'; value: LifeGoalCategory | Skipped }
+  | { step: 'a2_menopause_journey'; value: MenopauseStage }
+  | { step: 'a3_activity'; value: ActivityLevel | Skipped }
+  | { step: 'consent_health'; value: 'agree' | 'decline' }
+  | { step: 'b1_heart'; value: 'yes' | 'no' | Skipped }
+  | { step: 'b3_joints'; value: readonly JointFlag[] }
+  | { step: 'b4_pelvic'; value: 'often' | 'sometimes' | 'never' | 'prefer_not_to_say' }
+  | { step: 'b5_balance'; value: 'yes' | 'no' | Skipped }
+  | { step: 'c1_stairs'; value: 'yes' | 'no' | Skipped }
+  | { step: 'c2_quiet'; value: 'yes' | 'no' | Skipped }
+  | { step: 'd1_days'; value: readonly Weekday[] }
+  | { step: 'assessment_offer'; value: 'now' | 'after_first_workout' | 'skip' };
+
+export function recordOnboardingAnswer(
+  state: ProgrammeOnboardingFlowState,
+  answer: OnboardingAnswerValue
+): ProgrammeOnboardingFlowState {
+  const answers = { ...state.answers };
+  switch (answer.step) {
+    case 'a1_life_goal':
+      answers.lifeGoal = answer.value;
+      break;
+    case 'a2_menopause_journey':
+      answers.menopauseStage = answer.value;
+      break;
+    case 'a3_activity':
+      answers.activityLevel = answer.value;
+      break;
+    case 'consent_health':
+      answers.consent = answer.value;
+      break;
+    case 'b1_heart':
+      answers.b1Heart = answer.value;
+      break;
+    case 'b3_joints':
+      answers.b3Joints = [...answer.value];
+      break;
+    case 'b4_pelvic':
+      answers.b4Pelvic = answer.value;
+      break;
+    case 'b5_balance':
+      answers.b5Balance = answer.value;
+      break;
+    case 'c1_stairs':
+      answers.c1Stairs = answer.value;
+      break;
+    case 'c2_quiet':
+      answers.c2Quiet = answer.value;
+      break;
+    case 'd1_days':
+      answers.d1Days = [...answer.value];
+      break;
+    case 'assessment_offer':
+      answers.assessmentChoice = answer.value;
+      break;
+  }
+  return { ...state, answers };
+}
+
+// ---------------------------------------------------------------------------
+// Completion → profile handoff
+// ---------------------------------------------------------------------------
+
+export interface OnboardingCompletion {
+  programmeState: ProgrammeState;
+  /** Written to the EXISTING preferences profile by the app layer (C6). */
+  menopauseStage: MenopauseStage | null;
+  /** Written to the EXISTING LifeGoal surface by the app layer (C8). */
+  lifeGoalCategory: LifeGoalCategory | null;
+  /** 'start_now' → the app launches Check-up #0; placement then re-derives. */
+  assessmentIntent: 'start_now' | null;
+}
+
+export function completeOnboarding(state: ProgrammeOnboardingFlowState): OnboardingCompletion {
+  const answers = state.answers;
+  const consentDeclined = answers.consent === 'decline';
+  const gentleStart = gentleStartFromAnswers(answers);
+
+  const placementResult = placementForOnboarding({
+    // The 'now' assessment runs AFTER onboarding; conservative placement
+    // stands until its results re-derive placement via
+    // applyAssessmentPlacement below.
+    assessment: null,
+    activityLevel: answers.activityLevel === SKIPPED ? null : answers.activityLevel,
+    consentDeclined,
+    gentleStart,
+  });
+
+  const profile: ProgrammeProfile = {
+    consentHealthData: answers.consent === 'agree',
+    activityLevel: answers.activityLevel === SKIPPED ? null : answers.activityLevel,
+    gentleStartActive: gentleStart,
+    gpConfirmed: false,
+    // Conservative default: any pelvic answer other than an explicit "never"
+    // routes low-impact (spec B4); consent-declined stays 'none' — the §4
+    // decline row applies conservative routing WITHOUT the health-content
+    // unlock (a privacy choice is not a symptom report).
+    pelvicRouting:
+      answers.consent === 'agree' && answers.b4Pelvic !== null && answers.b4Pelvic !== 'never'
+        ? 'low_impact'
+        : 'none',
+    quietMode: answers.c2Quiet === 'yes' || answers.c2Quiet === SKIPPED,
+    jointFlags: answers.b3Joints ?? [],
+    balanceSupportDefault:
+      answers.consent === 'agree' && (answers.b5Balance === 'yes' || answers.b5Balance === SKIPPED),
+    hasStairs: answers.c1Stairs === 'yes' ? true : answers.c1Stairs === 'no' ? false : null,
+    hasBand: null,
+    diastasisFlag: false,
+    placement: placementResult.placement,
+    assessmentStatus: gentleStart
+      ? 'bypassed_b1'
+      : answers.assessmentChoice === 'after_first_workout'
+        ? 'deferred'
+        : answers.assessmentChoice === 'skip' || consentDeclined
+          ? 'skipped'
+          : null, // 'now' → set to 'done' when Check-up #0 completes
+    chosenDays: answers.d1Days ?? [],
+    firstSessionStarted: false,
+  };
+
+  const ladders = {} as Record<ProgrammePattern, PatternLadderState>;
+  for (const pattern of PROGRAMME_PATTERNS) {
+    ladders[pattern] = freshPatternLadderState(pattern, placementResult.placement[pattern]);
+  }
+
+  const programmeState: ProgrammeState = {
+    ...defaultProgrammeState(),
+    profile,
+    ladders,
+    finisher: {
+      track: 'quiet_power',
+      completedSessions: 0,
+      currentContacts: placementResult.finisherContacts,
+    },
+    policyFingerprint: programmePolicyFingerprint(),
+  };
+
+  return {
+    programmeState,
+    menopauseStage: answers.menopauseStage,
+    lifeGoalCategory: answers.lifeGoal === SKIPPED ? null : answers.lifeGoal,
+    assessmentIntent: !gentleStart && answers.assessmentChoice === 'now' ? 'start_now' : null,
+  };
+}
+
+/**
+ * Applies a completed Check-up #0 to an onboarded state. The immediate 'now'
+ * path replaces placement outright (nothing trained yet to protect); the
+ * deferred path re-places UPWARD ONLY (spec §6). T1 under 10 s forces
+ * balance-support-default on even when B5 said No — never the reverse.
+ */
+export function applyAssessmentPlacement(
+  state: ProgrammeState,
+  assessment: AssessmentInputs,
+  options: { deferred: boolean }
+): ProgrammeState {
+  const result = placementForOnboarding({
+    assessment,
+    activityLevel: state.profile.activityLevel,
+    consentDeclined: !state.profile.consentHealthData,
+    gentleStart: state.profile.gentleStartActive && !state.profile.gpConfirmed,
+  });
+  const ladders = { ...state.ladders };
+  for (const pattern of PROGRAMME_PATTERNS) {
+    const target = result.placement[pattern];
+    const nextLevel = options.deferred ? Math.max(ladders[pattern].currentLevel, target) : target;
+    if (nextLevel !== ladders[pattern].currentLevel) {
+      ladders[pattern] = {
+        ...ladders[pattern],
+        currentLevel: nextLevel,
+        consecutiveTopSessions: 0,
+        consecutiveBottomNoneSessions: 0,
+      };
+    }
+  }
+  return {
+    ...state,
+    ladders,
+    profile: {
+      ...state.profile,
+      placement: result.placement,
+      assessmentStatus: 'done',
+      balanceSupportDefault:
+        result.balanceSupportRequired === true ? true : state.profile.balanceSupportDefault,
+    },
+  };
+}
+
+/** The activation event (§10): flips once, mirrored into local telemetry. */
+export function markFirstSessionStarted(state: ProgrammeState): ProgrammeState {
+  if (state.profile.firstSessionStarted) return state;
+  return { ...state, profile: { ...state.profile, firstSessionStarted: true } };
+}

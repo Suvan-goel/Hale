@@ -4285,3 +4285,37 @@ imports/fields/store file in backup shapes).
   the conservative default — v1 effort arrives from the session-level RPE
   check-in, and a skipped check-in must never level anyone up. Documented in
   the promotion module header; pinned by test.
+
+## 2026-07-06 — Programme v2 Step 2 landed: onboarding content layer, flow machine, activation event
+
+- **Content layer** (`src/programme/onboarding/content.ts`): every string of the
+  flow — questions, options, why-we-ask lines, Stage B intro/advisory/exit,
+  consent copy, assessment offer, placement reveal, §7 expectation screen —
+  as typed config. Placeholder copy pending the brand-voice pass; Stage B
+  wording edits for clinical review touch only this file. Claims discipline
+  pinned by content.test.ts with the copyGuardrails regexes (no bone-word
+  survives the B2 deferral; D1 carries no notification language per C7).
+- **Flow machine** (`flow.ts`, pure): spec §2 sequence with A1→LifeGoal (C8),
+  B2 absent (C1/C2), consent decline removing Stage B AND the assessment
+  offer (§4 decline row), B1 yes → required advisory acknowledgement + Gentle
+  Start + assessment bypass, B1 skip → same preset conservatively but NO GP
+  advisory (nothing was disclosed; B1 re-asked at first check-up per §8).
+  Conservative skip mapping: B5 skip → support on; C1 skip → no stairs;
+  C2 skip → quiet on; A3 skip → prior 0; any pelvic answer except an explicit
+  "never" → low-impact. Completion emits a full ProgrammeState (ladders at
+  placement levels), the menopause stage + LifeGoal for the EXISTING profile
+  surfaces, and an assessmentIntent for the 'now' path.
+  `applyAssessmentPlacement` handles Check-up #0: 'now' replaces placement
+  outright, deferred re-places upward only; T1 < 10 s forces balance support
+  on and never off. Nothing in the flow can block completion (pinned).
+- **Routing**: new soft rule `consent_declined_conservative` (stomps out,
+  normal tone, no content unlock) — the §4 decline row in the resolver.
+- **Activation event**: session-funnel schema v3 adds `firstSessionStarted`
+  (true only on the first-ever session record; v1/v2 records stay readable);
+  `markFirstSessionStarted` flips the §10 profile flag idempotently. Local
+  telemetry only, per ruling.
+- **Screen**: `ProgrammeOnboardingScreen` — one config-driven component for
+  the whole flow (one question per screen, tappable, skip affordances, Stage B
+  progress dots, no copy in the component). NOT yet mounted in App.tsx: the
+  app-shell wiring behind the flag lands with Step 3, when session generation
+  gives the final CTA a real session to start.

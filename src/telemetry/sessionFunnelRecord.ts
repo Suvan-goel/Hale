@@ -10,12 +10,17 @@
  * the IMMUTABLE AUDIT TRAIL (founder rule): one file per session, append-only
  * store, no rewrite API — the Settings reversal toggle touches only the
  * product store's recurrence state, never these records.
+ *
+ * Schema v3 (2026-07-06, programme-v2 Step 2): adds firstSessionStarted —
+ * the ACTIVATION EVENT (onboarding-spec §10, the flow's success metric).
+ * True only on the record of the user's first-ever session start; local
+ * telemetry only (no remote analytics, per ruling).
  */
 
 import type { TrainingSessionFunnel } from '../training/sessionFunnel';
 import type { TrainingPainEvent, TrainingSessionMode } from '../training/sessionPlayer';
 
-export const SESSION_FUNNEL_SCHEMA_VERSION = 2;
+export const SESSION_FUNNEL_SCHEMA_VERSION = 3;
 
 export type SessionFunnelOutcome = 'completed' | 'abandoned';
 
@@ -48,6 +53,11 @@ export interface StoredSessionFunnel {
   tapActionCounts?: Record<string, number>;
   /** Immutable pain audit trail — never deleted or rewritten. */
   painEvents?: TrainingPainEvent[];
+  /**
+   * v3: the activation event — true only on the user's first-ever session
+   * start (onboarding success metric). Absent on earlier-schema records.
+   */
+  firstSessionStarted?: boolean;
 }
 
 /**
@@ -76,6 +86,7 @@ export function buildStoredSessionFunnel(input: {
   voiceIntentCounts?: Record<string, number>;
   tapActionCounts?: Record<string, number>;
   painEvents?: readonly TrainingPainEvent[];
+  firstSessionStarted?: boolean;
 }): StoredSessionFunnel {
   return {
     schemaVersion: SESSION_FUNNEL_SCHEMA_VERSION,
@@ -91,6 +102,7 @@ export function buildStoredSessionFunnel(input: {
     ...(input.painEvents !== undefined && input.painEvents.length > 0
       ? { painEvents: input.painEvents.map((event) => ({ ...event })) }
       : {}),
+    ...(input.firstSessionStarted === true ? { firstSessionStarted: true } : {}),
   };
 }
 
@@ -144,7 +156,9 @@ export function deserializeSessionFunnel(json: string): StoredSessionFunnel | nu
   }
   if (!parsed || typeof parsed !== 'object') return null;
   const rec = parsed as Partial<StoredSessionFunnel>;
-  if (rec.schemaVersion !== 1 && rec.schemaVersion !== SESSION_FUNNEL_SCHEMA_VERSION) return null;
+  if (rec.schemaVersion !== 1 && rec.schemaVersion !== 2 && rec.schemaVersion !== SESSION_FUNNEL_SCHEMA_VERSION) {
+    return null;
+  }
   if (rec.kind !== 'training') return null;
   if (typeof rec.startedAt !== 'string' || typeof rec.endedAt !== 'string') return null;
   if (rec.outcome !== 'completed' && rec.outcome !== 'abandoned') return null;
@@ -170,5 +184,6 @@ export function deserializeSessionFunnel(json: string): StoredSessionFunnel | nu
     ...(voiceIntentCounts !== undefined ? { voiceIntentCounts } : {}),
     ...(tapActionCounts !== undefined ? { tapActionCounts } : {}),
     ...(painEvents !== undefined ? { painEvents } : {}),
+    ...(rec.firstSessionStarted === true ? { firstSessionStarted: true } : {}),
   };
 }

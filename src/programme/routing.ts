@@ -68,6 +68,15 @@ const SOFT_ROUTING_RULES: readonly RoutingRule[] = [
     apply: () => ({ bonusSetsAllowed: false, softerCadence: true }),
   },
   {
+    // §4 consent-decline row: conservative routing, normal tone. Without
+    // health answers the finisher stays fully quiet — but no pelvic content
+    // unlocks (a privacy choice is never treated as a health flag).
+    tier: 'soft_routing',
+    id: 'consent_declined_conservative',
+    applies: (p) => !p.consentHealthData,
+    apply: () => ({ includeStomps: false }),
+  },
+  {
     tier: 'soft_routing',
     id: 'b4_pelvic_low_impact',
     applies: (p) => p.pelvicRouting === 'low_impact',

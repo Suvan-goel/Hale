@@ -66,3 +66,39 @@ export {
   serializeProgrammeState,
 } from './serialize';
 export { ProgrammeStore } from './store';
+export {
+  ONBOARDING_MESSAGE_STEPS,
+  ONBOARDING_QUESTION_STEPS,
+  STAGE_B_QUESTION_COUNT,
+  allOnboardingCopyStrings,
+  isOnboardingQuestionStep,
+  onboardingMessageContent,
+  onboardingQuestionContent,
+} from './onboarding/content';
+export type {
+  OnboardingMessageContent,
+  OnboardingMessageStepId,
+  OnboardingOption,
+  OnboardingQuestionContent,
+  OnboardingQuestionStepId,
+  OnboardingStepId,
+} from './onboarding/content';
+export {
+  SKIPPED,
+  acknowledgeOnboardingStep,
+  applyAssessmentPlacement,
+  completeOnboarding,
+  currentOnboardingStep,
+  emptyOnboardingAnswers,
+  gentleStartFromAnswers,
+  initialOnboardingFlowState,
+  markFirstSessionStarted,
+  recordOnboardingAnswer,
+  visibleOnboardingSteps,
+} from './onboarding/flow';
+export type {
+  OnboardingAnswerValue,
+  OnboardingAnswers,
+  OnboardingCompletion,
+  ProgrammeOnboardingFlowState,
+} from './onboarding/flow';
