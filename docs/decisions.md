@@ -4580,3 +4580,31 @@ proceeds in its own working session once ruled.
   (regression pass over the coordinator change) and the Check-up #0 host
   against its verbatim criteria (including measured on-device duration vs
   the two-minute promise).
+
+## 2026-07-06 — Flow-level sequence placement RATIFIED as amendment; device-pass protocol; T1 side-count flag
+
+- **AMENDMENT RATIFIED (founder, on review):** the Option 1 ruling said the
+  batterySequence option lives on the live coordinator; implementation
+  correctly placed it in the FLOW STATE, which both machines derive from —
+  satisfying the exactly-one-owner principle more strictly. The deviation was
+  examined, not slipped through. The balance-first silent-drop pin and the
+  host-level warm-up choice are explicitly endorsed.
+- **docs/device-pass-protocol.md created** — Pass A (full-battery regression
+  over the coordinator change) and Pass B (Check-up #0 host against its
+  verbatim criteria) as structured checklists with pass/fail definitions;
+  results land in the pre-promotion checklist. Duration ruling recorded: the
+  warm-up is EXCLUDED from the "two minutes of moving" claim (the copy
+  sequences it as warm-up, then the moving); total experience flagged if it
+  exceeds ~4 minutes.
+- **FLAGGED FOR RULING (protocol-writing discovery): T1 side count.** The
+  verbatim criterion says "one-leg balance, both sides" (spec §5 T1 measures
+  each side, worse side feeds placement). The OFFICIAL balance protocol the
+  host reuses deliberately measures ONE side (anchored standing leg for
+  longitudinal side-consistency — an existing recorded measurement decision).
+  The built host therefore measures one side per run. Options: (1) accept
+  single-side T1 for v1 — zero new measurement semantics, placement keys off
+  the measured side, host copy corrected ("a balance hold" not "each leg");
+  (2) build a two-side balance variant — new protocol + device-gate cost.
+  Option 1 recommended. Pass B carries this as PENDING RULING; the host copy
+  line is corrected either way at ruling time. Engineering PAUSES pending
+  device-pass findings; fix-forward, stop-and-flag on recorded decisions.
