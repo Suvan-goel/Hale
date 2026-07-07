@@ -15,17 +15,28 @@ update status in place.
       policy-snapshot governance; measurement surfaces byte-identical).
       Floor-required v1 ruled 2026-07-07 (floor-comfort question = v2
       candidate). See docs/parity-review-draft.md.
-- [ ] Simulation suite green including the two ruling pins (scheme-aware
+- [x] Simulation suite green including the two ruling pins (scheme-aware
       plank cadence: top by exposure 6, promotion on 7; exposure-cadence
       stall detector ≤6 with KNOWN_STALLS = 'none'-persona only).
+      EXTENDED 2026-07-07 (Phase 5): integratedShellJourney.test.ts drives
+      whole journeys through the shell's own call order — completion routes,
+      today view model, post-session moment loop (termination pinned),
+      re-offer/cadence semantics, B1 bypass, break-and-return easing.
 - [ ] On-device pass of the full shell: onboarding → placement → first
       15-minute session → RPE → promotion surfaces → gateway teach card →
-      re-offer paths → full-battery assessment host → upward-only vs replace
+      re-offer paths → Check-up #0 host → upward-only vs replace
       re-placement semantics verified on device.
+      PROTOCOL READY: DEVICE_SESSION_PROTOCOL.md Blocks 6b + 6c (6c appended
+      2026-07-07 for the integrated shell: merged onboarding + back-nav, the
+      'now' chain, tabs, settings round-trips, sign-in adoption, moment
+      surfaces). Founder-owned; nothing else blocks it.
 - [ ] first_session_started verified end-to-end on device (profile flag at
-      session start + funnel v3 stamp on the same record).
-- [ ] Old→new state: no code path reads legacy training state into the new
-      engine (fresh placement only; internal testers re-onboard).
+      session start + funnel v3 stamp on the same record). (Block 6b check 4.)
+- [x] Old→new state: no code path reads legacy training state into the new
+      engine (fresh placement only; internal testers re-onboard). Verified
+      grep-clean 2026-07-07 (parity review check 2); the integrated shell
+      touches the old engine ONLY via stateless Explore preset generation,
+      run ephemerally with no ladder credit (recorded Phase-4 decision).
 - [ ] Two-protocol Check-up #0 host (acceptance criteria verbatim, founder
       green-light 2026-07-06):
       - Consumes CHECKUP_ZERO_PROTOCOL_SEQUENCE; any scope or order drift
@@ -56,8 +67,9 @@ update status in place.
 
 ## Founder-owned (named owner: founder)
 
-- [ ] Bundled audio generation for programme exercises + prep drills
-      (ElevenLabs pipeline, both voices; the runner is silent until then).
+- [x] Bundled audio generation for programme exercises + prep drills
+      (ElevenLabs pipeline, both voices) — DONE 2026-07-07 (2ce2a338,
+      96 lines × 2 voices, verify:audio green).
 - [ ] Clinical review: Stage B question set, the ZERO-hard-gates v1 posture
       (recorded reasoning in CLAUDE.md), and the exercise catalogue.
 - [ ] Design pass per docs/design-backlog.md (after promotion decision,
@@ -89,3 +101,44 @@ update status in place.
       single-side placement misses balance-limited users (support-variant
       usage patterns or check-up data suggesting undetected asymmetry);
       carries full protocol + device-gate cost (ruling 2026-07-06).
+
+## Promotion commit plan (STAGED 2026-07-07, Phase 5 — execute ONLY when every
+## engineering and founder item above is checked)
+
+The promotion is one commit plus a cleanup commit, both mechanical; every
+decision they encode is already ruled.
+
+**Commit 1 — the flip:**
+1. App.tsx: the v2 shell (ProgrammeV2Root inside AuthProvider) becomes the
+   unconditional app root; the `isProgrammeEngineV2Enabled()` branch and the
+   old AppGate mount are removed.
+2. Flag retirement: `EXPO_PUBLIC_ENABLE_PROGRAMME_ENGINE_V2` deleted from
+   src/config (programmeEngineV2.ts), releaseFlagAudit.ts (env name, flag
+   field, unsafe reason), and the audit tests — the audit stops policing a
+   flag that no longer exists. The ZERO-hard-gates pin and all other release
+   flags are untouched.
+3. Internal testers re-onboard (no live migration — recorded ruling; comms
+   note to testers is founder-owned).
+
+**Commit 2 — the decommission (C4 + parity check 3):**
+1. Delete the old-engine app wiring: AppGate/HaleApp's lifecycle plumbing in
+   App.tsx, old onboarding staging (src/onboarding/state.ts flow), PlanScreen
+   (old block UI), block progress views, BlockIntroScreen, micro-check
+   scheduling surfaces + MicroCheckScreen mounts (the routine 28-day cadence
+   is the recorded replacement), TodayScreen's `lifecycle` mode (programme
+   mode becomes its only data source), and the old TrainingState-driven
+   daily-session generation path.
+2. KEEP (shared or still-shipping surfaces): the exercise registry and
+   movement definitions, the voice player and all V2.1 voice machinery, the
+   unified check-up machinery + Check-up #0 host, results/Progress/Explore/
+   Settings screens, the STATELESS preset generation that Explore's extra
+   practice uses, backup/sync services (programme state stays local-only),
+   and the record/replay + measurement stacks in full.
+3. Reference details (C5): with the old baseline/retest entry points gone,
+   age/sex remain collectible via the Settings safety-profile review; the
+   full official battery returns later as an explicit opt-in with its own
+   intro (deferred-by-decision list) and re-inherits the C5 intro then.
+4. Tests: retire old-engine shell tests with the surfaces they pin;
+   measurement, voice, check-up, results, and programme suites must stay
+   green untouched. The healthDataLocalOnly and copy-guardrail scans run
+   unchanged.

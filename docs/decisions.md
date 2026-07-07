@@ -5000,3 +5000,47 @@ proceeds in its own working session once ruled.
   items). Backup/sync of v2-era data beyond the local-first store is
   unchanged (profile/history services as before; programme state never
   syncs by design).
+
+## 2026-07-07 — Promotion integration Phase 5: verification complete in software; promotion staged, not executed
+
+- **Integrated-shell journey simulation BUILT and green**
+  (integratedShellJourney.test.ts, 6 journeys): whole journeys through the
+  shell's own call order — onboarding flow machine → completion route →
+  today view model (preview/start parity asserted at every session) →
+  generation → results → the post-session moment loop DRIVEN TO TERMINATION
+  (the class of bug both shell fixes belonged to) → check-up offers and the
+  28-day cadence. Pinned end to end: the 'now' path (check-up first, chained
+  first session, cadence clock starts/restarts, routine card at 28d);
+  deferred accept AND dismissal (dismissal terminates, home keeps the
+  standing entry permanently); skipped warm re-offer exactly once with the
+  loop ending on the logged card; B1 bypass showing NO check-up surface
+  across 12 sessions; break-and-return easing (gentle state, eased preview
+  rows, eased exactly once).
+- **Device protocol Block 6c appended** (Session A, ~25 min, one device):
+  the integrated-shell checks — merged onboarding with back-nav, the 'now'
+  chain with its abandon variant, all four tabs (including
+  extra-practice-changes-no-levels on Explore and the partial-battery
+  exclusion on Progress), Settings round-trips incl. programme-owned days,
+  sign-in adoption (move-not-copy, guest scope emptied), and the moment
+  surfaces. Blocks 6b + 6c together satisfy the checklist's on-device
+  shell-pass item; frozen spike criteria untouched.
+- **Pre-promotion checklist statuses updated in place:** simulation item
+  CHECKED (extended by the shell journeys); old→new isolation CHECKED
+  (grep-verified; Explore's stateless-ephemeral exception recorded); founder
+  audio item CHECKED (2ce2a338). Remaining unchecked: parity read-and-approve
+  (founder), the device passes (Blocks 6b/6c + first_session_started e2e +
+  the Check-up #0 host's own device pass), clinical review, design pass,
+  brand-voice pass, weight-question positioning.
+- **Promotion commit plan STAGED in the checklist** (two mechanical commits:
+  the flip — v2 root unconditional, flag retired from config + audit; the
+  decommission — old-engine wiring/blocks/micro-check scheduling/PlanScreen/
+  TodayScreen lifecycle mode deleted, with an explicit KEEP list: registry,
+  voice player, unified check-up machinery, results/Progress/Explore/
+  Settings, stateless preset generation, backup services, measurement stack).
+  C5 note: with old baseline/retest entry points gone, reference details
+  remain collectible via the Settings safety-profile review; the opt-in full
+  battery re-inherits the C5 intro when it returns. EXECUTION IS GATED:
+  nothing flips until every checklist item above the plan is checked.
+- Verified: 210 suites / 1801 tests green, tsc + expo config clean. The
+  promotion-integration software work (Phases 1–5) is COMPLETE; everything
+  that remains on this track is founder-owned validation.

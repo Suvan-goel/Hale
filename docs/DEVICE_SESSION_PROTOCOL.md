@@ -149,6 +149,49 @@ state still advance; no crash, no hang) and record "silent-pass".
    app is killed right after the last movement), placement applied, and the record
    tolerates being listed alongside full-battery check-ups wherever history renders.
 
+## Block 6c — Integrated v2 app shell (SESSION A; ~25 min, one device; appended 2026-07-07, promotion integration Phases 2–4)
+
+Dev build with `EXPO_PUBLIC_ENABLE_PROGRAMME_ENGINE_V2=1`. The shell now boots the
+FULL app (tabs + settings) on the shared screens; Block 6b's checks still apply to
+the session core and are not repeated here. These checks verify the integrated
+shell only. This block, together with 6b, satisfies the pre-promotion checklist's
+"on-device pass of the full shell" item.
+
+1. **Merged onboarding, old design:** welcome (hero + fact tiles) → A questions →
+   consent → Stage B (dots progress in the header) → C/D questions → placement
+   reveal → expectation CTA. Verify: every question shows its "why we ask"; the
+   back arrow steps to the previous question and re-answering works (change an
+   answer, confirm downstream questions re-ask only where visibility changed);
+   skips show their explicit labels; single selects advance on ONE tap.
+2. **The 'now' chain:** answer the assessment offer "Let's do it", tap "Start your
+   first session now" → Check-up #0 runs FIRST (intro → 45 s warm-up with
+   countdown → balance → chair), then the first session starts automatically on
+   the freshly derived placement. Abandon variant: cancel the check-up → lands on
+   the Today tab, no placement applied, first-session CTA present.
+3. **Tab shell:** all four tabs render and switch with state retained; the tab bar
+   hides during sessions, check-ups, settings flows, and learn articles.
+   - **Today:** greeting header; levels card (5 patterns, post-easing numbers);
+     hero action card with truthful minutes; check-up offer card only when due.
+   - **Plan:** mountain hero with the same session CTA; levels list with
+     plain-language names; chosen-day pills match D1 answers.
+   - **Progress:** empty state for a fresh v2 user (partial check-ups NEVER
+     appear as official trends); every check-up CTA opens Check-up #0.
+   - **Explore:** Learn articles open and close; an extra practice session runs
+     on the voice player and completing it changes NO level anywhere (check the
+     levels card before/after — extra practice never feeds promotion).
+4. **Settings in v2:** name/DOB/sex/stage edit and persist; voice picker previews
+   and persists; preferred days round-trip into the programme profile (change
+   days, kill the app, verify they held); starting effort edit persists; NO
+   pain-exclusion section exists; life-goal, safety-profile, and camera-setup
+   reviews open and return; the account card renders.
+5. **Sign-in adoption (one device):** onboard as guest → sign in from Settings →
+   verify programme state, profile, and check-up history survive (adopted into
+   the account scope); sign out → guest scope is empty (moved, not copied).
+6. **Moment surfaces styled:** RPE check-in renders as option cards; session-done
+   card; deferred re-offer "Sounds good — later" lands HOME (no loop) and the
+   Today check-up entry persists; gateway teach card completes demo → confirm →
+   Later without dead ends.
+
 ## Block 7 — Dual-task VAD go/no-go (clarity instruments; SESSION B; ~30 min/device)
 
 **Prerequisite:** a native `SpeechActivityMonitor` adapter, built AFTER Session A's
