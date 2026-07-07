@@ -4948,3 +4948,55 @@ proceeds in its own working session once ruled.
   1795 tests green, tsc + expo config clean. Remaining for Phase 4:
   peripherals + mounting AppGate in v2 mode (tabs, Progress/Explore/
   Settings, account-scoped storage).
+
+## 2026-07-07 — Promotion integration Phase 4: the v2 root is the full app shell
+
+- **Four-tab shell live in v2** (Today / Plan / Progress / Explore on the
+  shared TabBar, Settings as a flow): ProgrammeV2Root is no longer a dev
+  scaffold — it is the v2 app shell, mounted inside AuthProvider. The old
+  AppGate keeps shipping unchanged for flag-off builds; at promotion the
+  flag default flips and AppGate's old-engine wiring decommissions per C4.
+- **Auth-scoped storage with guest adoption:** stores are keyed by the
+  backend user id exactly like the old shell (per-account on-device caches;
+  sign-out/sign-in never inherits another account's state). First sign-in on
+  a device with guest data adopts it (move, not copy) ONLY when the account
+  scope is empty — same emptiness-guard discipline as the old shell's
+  adopt-if-local-empty. Programme health data stays local-only
+  (healthDataLocalOnly structural pin green; nothing backend-shaped changed).
+- **Progress tab** renders the real ProgressScreen fed by
+  buildMovementProfileV2ProgressViewModel over the stored check-up history
+  (empty-safe: partial two-protocol records are structurally excluded from
+  official trends by checkupType, so fresh v2 users see the honest empty
+  state). Every check-up affordance routes to the Check-up #0 host — the v2
+  check-up of record. Old-engine props pass empty; Clarity/ghost surfaces
+  stay absent here until their own gates clear (Clarity is dark by
+  construction; the ghost curve needs official monthly records).
+- **Explore tab** live with Learn detail and extra practice sessions. Extra
+  sessions use the old engine's STATELESS preset generation and run
+  ephemerally on the production voice player: no ladder credit, no
+  training-state writes — extra practice never feeds v2 promotion
+  arithmetic (recorded decision). Equipment gating stands as-is (it is the
+  zero-equipment law, not level gating — the founder's "ungate" concern was
+  about levels, which never gated Explore). KNOWN DISSONANCE, accepted: the
+  stairs-confidence preset stays behind the old step-environment SAFETY
+  confirmation even for users who answered C1 "yes" — C1 asks about having
+  stairs, not about a sturdy confirmed setup; conservative wins. Re-entry:
+  beta feedback.
+- **Settings live in v2 mode** on the shared SettingsScreen: profile
+  (name/DOB/sex/stage), voice picker, account card (sign-in/backup),
+  equipment toggles — all against the shared profile store; preferred days
+  read/write the PROGRAMME profile's chosenDays (D1 data, single source);
+  starting effort reads/writes programme activityLevel (feeds every future
+  check-up re-placement's activity prior). NO pain-exclusion rows by the
+  Pain A ruling. Sub-flows mounted: life-goal review, safety-profile review
+  (reference details + equipment — where age/sex live per C5), camera-setup
+  review with a local permission machine on the shared pose-module API.
+- ProgrammePlanScreen's back arrow is now optional (absent as a tab).
+  Verified: 209 suites / 1795 tests green, tsc + expo config clean.
+- **Remaining (Phase 5):** journey re-simulation + on-device pass of the
+  integrated shell (the checklist's on-device item), then the promotion
+  commit (flag default flip + old-engine decommission) once the
+  pre-promotion checklist closes (device passes, clinical review, founder
+  items). Backup/sync of v2-era data beyond the local-first store is
+  unchanged (profile/history services as before; programme state never
+  syncs by design).

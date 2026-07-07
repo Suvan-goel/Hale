@@ -628,14 +628,18 @@ function App() {
   if (__DEV__ && process.env.EXPO_PUBLIC_VOICE_SPIKE === '1') {
     return <VoiceSpikeScreen />;
   }
-  // Dev-only programme engine v2 shell (C4 flag-gated parallel build): the
-  // new onboarding + first-session path, fully isolated from the shipping
-  // engine. The release-flag audit keeps this out of beta/release builds.
+  // Programme engine v2 app shell (C4 flag-gated; promotion integration
+  // Phase 4): the merged onboarding, session/check-up phases, and the
+  // four-tab shell on the shared screens — inside AuthProvider so storage is
+  // auth-scoped and the Settings account card works. The release-flag audit
+  // keeps this out of beta/release builds until promotion.
   if (isProgrammeEngineV2Enabled()) {
     return (
       <SystemInsetsProvider>
         <StatusBarBackdrop>
-          <ProgrammeV2Root />
+          <AuthProvider>
+            <ProgrammeV2Root />
+          </AuthProvider>
         </StatusBarBackdrop>
       </SystemInsetsProvider>
     );

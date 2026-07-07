@@ -1,8 +1,17 @@
 /**
- * Programme engine v2 shell (flag-gated, C4 parallel build): a self-contained
- * root mounted by App.tsx only under EXPO_PUBLIC_ENABLE_PROGRAMME_ENGINE_V2
- * in dev builds. Owns its own store loading, the onboarding flow, and the
- * first-session path — zero coupling to the shipping engine's state.
+ * Programme engine v2 app shell (flag-gated, C4 parallel build → promotion
+ * integration Phase 4): mounted by App.tsx under
+ * EXPO_PUBLIC_ENABLE_PROGRAMME_ENGINE_V2, inside AuthProvider. Owns store
+ * loading (auth-scoped, guest-adopting), the merged onboarding flow, the
+ * session/check-up phases, and the four-tab shell (Today / Plan / Progress /
+ * Explore) with the Settings flow — all rendered by the SHARED app screens.
+ *
+ * Coupling rules: programme STATE stays zero-coupled to the old engine (no
+ * TrainingStore/TrainingState reads — pinned by the parity review). Explore's
+ * extra practice sessions use the old engine's STATELESS preset generation
+ * and run ephemerally through the voice player: no ladder credit, no
+ * training-state writes (recorded Phase-4 decision). Pain-exclusion rows are
+ * absent from Settings by the Pain A ruling (§12 regression is v1's answer).
  *
  * Activation event (conformance Q4): firstSessionStarted is written when the
  * runner's Begin fires (markFirstSessionStarted + persist), never at plan
@@ -10,11 +19,21 @@
  */
 
 import * as React from 'react';
+import { StyleSheet, View } from 'react-native';
 
-import { LOCAL_USER_ID } from '../adherence';
-import { Screen } from '../components/ui';
-import { createExpoHistoryFs } from '../history/fsAdapter';
-import { HistoryStore } from '../history';
+import {
+  getCameraPermissionsAsync,
+  requestCameraPermissionsAsync,
+} from '../../modules/expo-pose-detection';
+import { LOCAL_USER_ID, type AvailableEquipment } from '../adherence';
+import { LifeGoalOnboardingScreen } from '../adherence/screens/LifeGoalOnboardingScreen';
+import { Screen, ScreenScrollClearanceProvider } from '../components/ui';
+import { useSystemInsets } from '../components/SystemInsetsProvider';
+import { adoptGuestLocalFiles, createExpoHistoryFs } from '../history/fsAdapter';
+import { HistoryStore, type StoredCheckUp } from '../history';
+import { availableEquipmentFor, buildMovementProfileV2ProgressViewModel } from '../haleFlow';
+import { movementCapabilitiesFromSafetyProfile } from '../profile/movementCapabilities';
+import { TAB_BAR_SCROLL_CLEARANCE, TabBar, type TabKey } from '../navigation/TabBar';
 import {
   acknowledgeOnboardingStep,
   applyAssessmentPlacement,
@@ -49,15 +68,32 @@ import {
   type ProgrammeState,
   type PromotionDecision,
   type SessionRpe,
+  type Weekday,
 } from '../programme';
 import type { OnboardingQuestionStepId } from '../programme';
-import { ProfileStore, type Preferences } from '../profile';
+import {
+  onboardingActivityLevel,
+  ProfileStore,
+  safetyProfileWithCanonicalEquipment,
+  canonicalEquipmentFromSafetyProfile,
+  type AppSettings,
+  type Preferences,
+  type UserProfile,
+} from '../profile';
+import { useAuth } from '../services/backend';
+import { generatePresetSession, type GeneratedSession } from '../training/workoutGeneration';
 import type { TrainingSessionResult } from '../training/sessionPlayer';
 import { DEFAULT_VOICE_SETUP_PREFS, type VoiceSetupPrefs } from '../voice/voicePermissionGate';
+import { CameraSetupScreen } from './CameraSetupScreen';
+import { LearnDetailScreen } from './ExploreDetailScreens';
+import { ExploreScreen } from './ExploreScreen';
+import { ProgressScreen } from './ProgressScreen';
 import { ProgrammeCheckupZeroScreen } from './ProgrammeCheckupZeroScreen';
 import { ProgrammeEffortScreen, ProgrammeMomentScreen } from './ProgrammeMomentScreens';
 import { ProgrammeOnboardingScreen } from './ProgrammeOnboardingScreen';
 import { ProgrammePlanScreen } from './ProgrammePlanScreen';
+import { SafetyProfileScreen } from './SafetyProfileScreen';
+import { SettingsScreen } from './SettingsScreen';
 import { TodayScreen } from './TodayScreen';
 import { VoiceSessionScreen } from './VoiceSessionScreen';
 import {
@@ -69,23 +105,42 @@ type ShellPhase =
   | 'loading'
   | 'onboarding'
   | 'home'
-  | 'plan'
   | 'session'
   | 'effort'
   | 'session_done'
   | 'assessment';
 
+type ShellFlow = 'settings' | 'life-goal' | 'safety-profile' | 'camera-setup' | null;
+
+type CameraPermission = 'checking' | 'granted' | 'undetermined' | 'denied';
+
+const WEEKDAY_VALUES: readonly Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
+function isWeekday(value: string): value is Weekday {
+  return (WEEKDAY_VALUES as readonly string[]).includes(value);
+}
+
 export function ProgrammeV2Root() {
-  // Dev shell runs guest-scoped; the flag audit keeps this path out of
-  // beta/release builds entirely.
-  const localFs = React.useMemo(() => createExpoHistoryFs({ userId: null }), []);
+  // Auth-scoped local stores, same discipline as the old shell: each backend
+  // user gets a separate on-device cache so sign-out/sign-in never lets
+  // another account inherit local state. Guests use the unscoped store; the
+  // first sign-in on a device with guest data adopts it (move, not copy)
+  // only when the account scope is still empty.
+  const { user } = useAuth();
+  const backendUserId = user?.id ?? null;
+  const localFs = React.useMemo(() => createExpoHistoryFs({ userId: backendUserId }), [backendUserId]);
   const store = React.useMemo(() => new ProgrammeStore(localFs), [localFs]);
   const profileStore = React.useMemo(() => new ProfileStore(localFs), [localFs]);
   const historyStore = React.useMemo(() => new HistoryStore(localFs), [localFs]);
 
   const [phase, setPhase] = React.useState<ShellPhase>('loading');
+  const [tab, setTab] = React.useState<TabKey>('today');
+  const [flow, setFlow] = React.useState<ShellFlow>(null);
+  const [learnId, setLearnId] = React.useState<string | null>(null);
+  const [extraSession, setExtraSession] = React.useState<GeneratedSession | null>(null);
   const [programmeState, setProgrammeState] = React.useState<ProgrammeState | null>(null);
   const [prefs, setPrefs] = React.useState<Preferences | null>(null);
+  const [history, setHistory] = React.useState<readonly StoredCheckUp[]>([]);
   const [flowState, setFlowState] = React.useState(initialOnboardingFlowState());
   const [plan, setPlan] = React.useState<ProgrammeSessionPlan | null>(null);
   const [sessionResult, setSessionResult] = React.useState<TrainingSessionResult | null>(null);
@@ -93,6 +148,7 @@ export function ProgrammeV2Root() {
     Partial<Record<ProgrammePattern, PromotionDecision>>
   >({});
   const [physioSignpostVisible, setPhysioSignpostVisible] = React.useState(false);
+  const [cameraPermission, setCameraPermission] = React.useState<CameraPermission>('checking');
   const sessionStartRef = React.useRef<{ startedAtIso: string; wasFirstSession: boolean } | null>(null);
   // The expectation CTA's promise when Check-up #0 runs first: completing the
   // check-up chains into the first session (abandoning it lands home — the
@@ -101,19 +157,72 @@ export function ProgrammeV2Root() {
 
   React.useEffect(() => {
     let cancelled = false;
-    Promise.all([store.load(), profileStore.load()]).then(([loaded, loadedPrefs]) => {
+    const run = async () => {
+      let [loaded, loadedPrefs, storedHistory] = await Promise.all([
+        store.load(),
+        profileStore.load(),
+        historyStore.loadAll(),
+      ]);
+      if (
+        backendUserId &&
+        !loaded.onboardingCompletedAtIso &&
+        storedHistory.length === 0
+      ) {
+        // Account scope is empty → adopt any guest data into it, then reload.
+        try {
+          const { moved } = await adoptGuestLocalFiles(backendUserId);
+          if (moved > 0) {
+            [loaded, loadedPrefs, storedHistory] = await Promise.all([
+              store.load(),
+              profileStore.load(),
+              historyStore.loadAll(),
+            ]);
+          }
+        } catch (error) {
+          console.warn('[programme-v2] guest adoption failed', error);
+        }
+      }
       if (cancelled) return;
       // 14+ days away → one level down everywhere, once per gap (§12).
       const regression = applyInactivityRegressionIfDue(loaded, new Date().toISOString());
       if (regression.applied) store.save(regression.state);
       setProgrammeState(regression.state);
       setPrefs(loadedPrefs);
+      setHistory(storedHistory);
       setPhase(regression.state.onboardingCompletedAtIso ? 'home' : 'onboarding');
-    });
+    };
+    void run();
     return () => {
       cancelled = true;
     };
-  }, [store, profileStore]);
+  }, [store, profileStore, historyStore, backendUserId]);
+
+  React.useEffect(() => {
+    getCameraPermissionsAsync()
+      .then((response) =>
+        setCameraPermission(
+          response.granted ? 'granted' : response.status === 'undetermined' ? 'undetermined' : 'denied'
+        )
+      )
+      .catch(() => setCameraPermission('denied'));
+  }, []);
+
+  const requestCameraPermission = React.useCallback(() => {
+    requestCameraPermissionsAsync()
+      .then((response) =>
+        setCameraPermission(
+          response.granted ? 'granted' : response.status === 'undetermined' ? 'undetermined' : 'denied'
+        )
+      )
+      .catch(() => setCameraPermission('denied'));
+  }, []);
+
+  const refreshHistory = React.useCallback(() => {
+    historyStore
+      .loadAll()
+      .then(setHistory)
+      .catch(() => {});
+  }, [historyStore]);
 
   const voiceSetup: VoiceSetupPrefs = prefs?.settings.voiceSetup ?? DEFAULT_VOICE_SETUP_PREFS;
   const handleVoiceSetupChange = React.useCallback(
@@ -134,6 +243,14 @@ export function ProgrammeV2Root() {
       store.save(state);
     },
     [store]
+  );
+
+  const persistPrefs = React.useCallback(
+    (next: Preferences) => {
+      setPrefs(next);
+      profileStore.save(next);
+    },
+    [profileStore]
   );
 
   const finishOnboarding = React.useCallback(
@@ -161,8 +278,7 @@ export function ProgrammeV2Root() {
             : currentPrefs.profile.lifeGoal,
         },
       };
-      profileStore.save(nextPrefs);
-      setPrefs(nextPrefs);
+      persistPrefs(nextPrefs);
       if (route.assessmentFirst) {
         // assessment_offer answered 'now' → Check-up #0 runs first (flow.ts
         // completion contract); the freshly exact placement then shapes the
@@ -183,7 +299,7 @@ export function ProgrammeV2Root() {
         setPhase('home');
       }
     },
-    [flowState, persist, prefs, profileStore]
+    [flowState, persist, persistPrefs, prefs, profileStore]
   );
 
   const startSessionFromHome = React.useCallback(() => {
@@ -233,6 +349,58 @@ export function ProgrammeV2Root() {
     },
     [programmeState, plan, persist]
   );
+
+  // Explore extra practice: the old engine's STATELESS preset generation, run
+  // ephemerally on the voice player — no ladder credit, no training-state
+  // writes (Phase-4 decision; extra practice never feeds v2 promotion).
+  const startExtraSession = React.useCallback(
+    (presetId: string) => {
+      const safetyProfile = prefs?.profile.safetyProfile ?? null;
+      setExtraSession(
+        generatePresetSession({
+          presetId,
+          availableEquipment: availableEquipmentFor({ safetyProfile }),
+          movementCapabilities: movementCapabilitiesFromSafetyProfile(safetyProfile),
+          dailyReadiness: 'ready',
+          painAreas: [],
+          dailyContextSource: 'user_daily_check',
+          ladderProgress: {},
+          today: new Date(),
+        })
+      );
+    },
+    [prefs]
+  );
+
+  const toggleAvailableEquipment = React.useCallback(
+    (item: AvailableEquipment) => {
+      if (!prefs) return;
+      const safetyProfile = prefs.profile.safetyProfile;
+      if (!safetyProfile) return;
+      const now = new Date().toISOString();
+      const canonical = canonicalEquipmentFromSafetyProfile(safetyProfile);
+      const set = new Set(canonical.status === 'confirmed' ? canonical.capabilities : []);
+      if (item === 'none') {
+        set.clear();
+      } else if (set.has(item)) {
+        set.delete(item);
+      } else {
+        set.add(item);
+      }
+      const nextSafetyProfile = safetyProfileWithCanonicalEquipment(safetyProfile, Array.from(set), {
+        status: 'confirmed',
+        updatedAt: now,
+        revision: safetyProfile.equipmentRevision,
+      });
+      persistPrefs({
+        ...prefs,
+        profile: { ...prefs.profile, safetyProfile: nextSafetyProfile },
+      });
+    },
+    [prefs, persistPrefs]
+  );
+
+  const systemInsets = useSystemInsets();
 
   if (phase === 'loading' || !programmeState || !prefs) return <Screen>{null}</Screen>;
 
@@ -324,7 +492,7 @@ export function ProgrammeV2Root() {
     return (
       <ProgrammeVoiceSession
         plan={plan}
-        voiceId={prefs?.settings.voiceId}
+        voiceId={prefs.settings.voiceId}
         firstSessionStarted={!programmeState.profile.firstSessionStarted}
         voiceSetup={voiceSetup}
         onVoiceSetupChange={handleVoiceSetupChange}
@@ -473,10 +641,11 @@ export function ProgrammeV2Root() {
     // the home-screen movement-check button remains the way back.
     return (
       <ProgrammeCheckupZeroScreen
-        voiceId={prefs?.settings.voiceId}
+        voiceId={prefs.settings.voiceId}
         onRawCheckUpReady={(checkUp) => {
           try {
             historyStore.save(checkUp, { checkupType: 'manual_extra_v2' });
+            refreshHistory();
           } catch (error) {
             console.warn('[programme-v2] early raw check-up save failed', error);
           }
@@ -484,6 +653,7 @@ export function ProgrammeV2Root() {
         onComplete={(checkUp) => {
           try {
             historyStore.save(checkUp, { checkupType: 'manual_extra_v2' });
+            refreshHistory();
           } catch (error) {
             console.warn('[programme-v2] final check-up save failed', error);
           }
@@ -514,40 +684,217 @@ export function ProgrammeV2Root() {
     );
   }
 
-  // Home and plan render the REAL app surfaces (promotion integration Phase
-  // 3): the Today screen in programme mode and the levels/plan view, both
-  // fed by the adapter. Level rows show the post-easing levels so what the
-  // user sees is what the next session runs; the easing itself persists at
-  // session start (startSessionFromHome re-checks).
+  // ── Tab shell (phase 'home') ───────────────────────────────────────────
+  // Flows and the ephemeral explore session take the whole screen; the four
+  // tabs render underneath the shared TabBar. Level rows show the
+  // post-easing levels so what the user sees is what the next session runs;
+  // the easing itself persists at session start (startSessionFromHome
+  // re-checks).
   const nowIso = new Date().toISOString();
   const todayVm = programmeTodayViewModel(programmeState, nowIso);
   const easedLevels = programmeLevelRows(
     applyInactivityRegressionIfDue(programmeState, nowIso).state
   );
+  const goAssessment = () => setPhase('assessment');
+  const openSettings = () => setFlow('settings');
 
-  if (phase === 'plan') {
+  if (extraSession) {
     return (
-      <ProgrammePlanScreen
-        today={todayVm}
-        levelRows={easedLevels}
-        chosenDays={programmeState.profile.chosenDays}
-        onBack={() => setPhase('home')}
-        onStartSession={startSessionFromHome}
-        onStartCheckup={todayVm.checkupOffer ? () => setPhase('assessment') : undefined}
+      <VoiceSessionScreen
+        exerciseIds={extraSession.exercises.map((exercise) => exercise.exerciseId)}
+        generatedExercises={extraSession.exercises}
+        sessionTitle={extraSession.title}
+        voiceId={prefs.settings.voiceId}
+        voiceSetup={voiceSetup}
+        onVoiceSetupChange={handleVoiceSetupChange}
+        onComplete={() => setExtraSession(null)}
+        onCancel={() => setExtraSession(null)}
       />
     );
   }
 
+  if (learnId) {
+    return <LearnDetailScreen articleId={learnId} onDone={() => setLearnId(null)} />;
+  }
+
+  if (flow === 'settings') {
+    return (
+      <SettingsScreen
+        profile={prefs.profile}
+        settings={prefs.settings}
+        preferredDays={programmeState.profile.chosenDays}
+        startingEffort={onboardingActivityLevel(programmeState.profile.activityLevel)}
+        onProfileChange={(next: UserProfile) => persistPrefs({ ...prefs, profile: next })}
+        onSettingsChange={(next: AppSettings) => persistPrefs({ ...prefs, settings: next })}
+        onToggleAvailableEquipment={toggleAvailableEquipment}
+        onPreferredDaysChange={(days) =>
+          persist({
+            ...programmeState,
+            profile: { ...programmeState.profile, chosenDays: days.filter(isWeekday) },
+          })
+        }
+        onStartingEffortChange={(level) =>
+          // Read by every future check-up re-placement (activity prior).
+          persist({
+            ...programmeState,
+            profile: { ...programmeState.profile, activityLevel: level },
+          })
+        }
+        onOpenLifeGoal={() => setFlow('life-goal')}
+        onOpenSafetyProfile={() => setFlow('safety-profile')}
+        onOpenCameraSetup={() => setFlow('camera-setup')}
+        // No pain-exclusion rows in v2 by the Pain A ruling (2026-07-07):
+        // the §12 pain regression is v1's answer to exercise pain.
+        onBack={() => setFlow(null)}
+      />
+    );
+  }
+
+  if (flow === 'life-goal') {
+    return (
+      <LifeGoalOnboardingScreen
+        initialGoal={prefs.profile.lifeGoal}
+        mode="review"
+        onSave={(goal) => {
+          persistPrefs({ ...prefs, profile: { ...prefs.profile, lifeGoal: goal } });
+          setFlow('settings');
+        }}
+        onCancel={() => setFlow('settings')}
+      />
+    );
+  }
+
+  if (flow === 'safety-profile') {
+    return (
+      <SafetyProfileReview
+        prefs={prefs}
+        onSave={persistPrefs}
+        onClose={() => setFlow('settings')}
+      />
+    );
+  }
+
+  if (flow === 'camera-setup') {
+    return (
+      <CameraSetupScreen
+        permissionGranted={cameraPermission === 'granted'}
+        onRequestPermission={requestCameraPermission}
+        showBeginAction={false}
+        onBegin={() => setFlow('settings')}
+        onCancel={() => setFlow('settings')}
+      />
+    );
+  }
+
+  const tabBarScrollClearance = TAB_BAR_SCROLL_CLEARANCE + systemInsets.bottom;
   return (
-    <TodayScreen
+    <View style={styles.container}>
+      <ScreenScrollClearanceProvider bottom={tabBarScrollClearance}>
+        <View style={styles.tabContent}>
+          {tab === 'plan' ? (
+            <ProgrammePlanScreen
+              today={todayVm}
+              levelRows={easedLevels}
+              chosenDays={programmeState.profile.chosenDays}
+              onStartSession={startSessionFromHome}
+              onStartCheckup={todayVm.checkupOffer ? goAssessment : undefined}
+            />
+          ) : tab === 'progress' ? (
+            <ProgressScreen
+              blocks={[]}
+              reports={[]}
+              completions={[]}
+              today={nowIso}
+              onBeginFirstCheckUp={goAssessment}
+              onBeginAdditionalCheckUp={goAssessment}
+              onStartRetest={goAssessment}
+              movementProfileV2Progress={buildMovementProfileV2ProgressViewModel({
+                history,
+                blocks: [],
+                reports: [],
+                today: nowIso,
+              })}
+              onStartMovementProfileV2CheckUp={goAssessment}
+              onViewCurrentPlan={() => setTab('plan')}
+              onOpenSettings={openSettings}
+            />
+          ) : tab === 'explore' ? (
+            <ExploreScreen
+              safetyProfile={prefs.profile.safetyProfile}
+              menopauseStage={prefs.profile.menopauseStage}
+              ladderProgressById={{}}
+              onStartExtraSession={startExtraSession}
+              onOpenLearn={setLearnId}
+              onOpenSettings={openSettings}
+            />
+          ) : (
+            <TodayScreen
+              profile={prefs.profile}
+              programme={{
+                today: todayVm,
+                levelRows: easedLevels,
+                onStartCheckup: todayVm.checkupOffer ? goAssessment : undefined,
+                onViewPlan: () => setTab('plan'),
+              }}
+              onPrimaryAction={() => startSessionFromHome()}
+              onOpenSettings={openSettings}
+            />
+          )}
+        </View>
+      </ScreenScrollClearanceProvider>
+      <TabBar active={tab} onChange={setTab} bottomInset={systemInsets.bottom} />
+    </View>
+  );
+}
+
+/** Safety-profile review (Settings): reference details + equipment, saved to
+ * the shared profile store — the same handoff shape the old shell used. */
+function SafetyProfileReview({
+  prefs,
+  onSave,
+  onClose,
+}: {
+  prefs: Preferences;
+  onSave: (next: Preferences) => void;
+  onClose: () => void;
+}) {
+  return (
+    <SafetyProfileScreen
       profile={prefs.profile}
-      programme={{
-        today: todayVm,
-        levelRows: easedLevels,
-        onStartCheckup: todayVm.checkupOffer ? () => setPhase('assessment') : undefined,
-        onViewPlan: () => setPhase('plan'),
+      showContinueAction={false}
+      showStartingDetails
+      onSave={(safetyProfile, referenceDetails, options) => {
+        const now = new Date().toISOString();
+        const nextSafetyProfile = safetyProfileWithCanonicalEquipment(
+          {
+            ...safetyProfile,
+            age: referenceDetails.exactAge,
+            ageBand: referenceDetails.ageBand ?? undefined,
+          },
+          safetyProfile.availableEquipment,
+          {
+            status: safetyProfile.equipmentStatus ?? 'confirmed',
+            updatedAt: now,
+            revision: safetyProfile.equipmentRevision,
+          }
+        );
+        onSave({
+          ...prefs,
+          profile: {
+            ...prefs.profile,
+            dateOfBirth: referenceDetails.dateOfBirth,
+            exactAge: referenceDetails.exactAge,
+            referenceSex: referenceDetails.referenceSex,
+            menopauseStage: referenceDetails.menopauseStage,
+            symptomPicture: referenceDetails.symptomPicture,
+            age: referenceDetails.exactAge,
+            ageBand: referenceDetails.ageBand,
+            safetyProfile: nextSafetyProfile,
+          },
+        });
+        if (!options?.stayOnScreen) onClose();
       }}
-      onPrimaryAction={() => startSessionFromHome()}
+      onCancel={onClose}
     />
   );
 }
@@ -595,3 +942,12 @@ function ProgrammeVoiceSession({
     />
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  tabContent: {
+    flex: 1,
+  },
+});

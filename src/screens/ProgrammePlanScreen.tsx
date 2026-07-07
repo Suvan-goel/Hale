@@ -36,7 +36,8 @@ export function ProgrammePlanScreen({
   today: ProgrammeTodayViewModel;
   levelRows: readonly ProgrammeLevelRow[];
   chosenDays: readonly Weekday[];
-  onBack: () => void;
+  /** Present when pushed as a flow; absent when mounted as the Plan tab. */
+  onBack?: () => void;
   onStartSession: () => void;
   onStartCheckup?: () => void;
 }) {
@@ -49,9 +50,11 @@ export function ProgrammePlanScreen({
 
   return (
     <Screen contentStyle={styles.screen}>
-      <View style={styles.backRow}>
-        <BackArrowButton accessibilityLabel="Back to today" onPress={onBack} />
-      </View>
+      {onBack ? (
+        <View style={styles.backRow}>
+          <BackArrowButton accessibilityLabel="Back to today" onPress={onBack} />
+        </View>
+      ) : null}
 
       <View style={[styles.heroCard, heroMinHeightStyle]}>
         <Image source={PLAN_HERO_IMAGE} style={styles.heroImage} resizeMode="cover" accessible={false} />
