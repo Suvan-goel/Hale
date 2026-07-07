@@ -8,6 +8,8 @@ import {
   shouldAskBandQuestion,
   shouldShowDomingCheck,
 } from '../postOnboarding';
+import { routineCheckupDue } from '../postOnboarding';
+import { applyAssessmentPlacement } from '../onboarding/flow';
 import { generateProgrammeSession } from '../session';
 import { defaultProgrammeState } from '../serialize';
 import { freshPatternLadderState } from '../promotion';
@@ -153,5 +155,46 @@ describe('doming check + pelvic physio signpost (conformance Q3)', () => {
     expect(cleared.profile.diastasisFlag).toBe(false);
     const plan = generateProgrammeSession({ state: cleared, template: 'A', preset: 'standard' });
     expect(shouldShowDomingCheck(cleared, plan)).toBe(false);
+  });
+});
+
+describe('routine check-up cadence (4–6-week reconciliation, C10)', () => {
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const doneAt = (iso: string, overrides: Partial<ProgrammeState['profile']> = {}) =>
+    onboarded({ assessmentStatus: 'done', lastAssessmentAtIso: iso, ...overrides });
+
+  it('is due at 28 days since the last applied assessment, not a day sooner', () => {
+    const state = doneAt('2026-07-01T10:00:00.000Z');
+    const dueAt = Date.parse('2026-07-01T10:00:00.000Z') + 28 * DAY_MS;
+    expect(routineCheckupDue(state, new Date(dueAt - DAY_MS).toISOString())).toBe(false);
+    expect(routineCheckupDue(state, new Date(dueAt).toISOString())).toBe(true);
+    expect(routineCheckupDue(state, new Date(dueAt + 14 * DAY_MS).toISOString())).toBe(true);
+  });
+
+  it('never fires for pre-done states — those belong to the re-offer policy and the B1 gate', () => {
+    for (const status of ['deferred', 'skipped', 'bypassed_b1', null] as const) {
+      const state = onboarded({
+        assessmentStatus: status,
+        lastAssessmentAtIso: '2026-01-01T10:00:00.000Z',
+      });
+      expect(routineCheckupDue(state, '2026-07-07T10:00:00.000Z')).toBe(false);
+    }
+    // 'done' without a stamp (legacy state) also stays quiet rather than nagging.
+    expect(
+      routineCheckupDue(onboarded({ assessmentStatus: 'done' }), '2026-07-07T10:00:00.000Z')
+    ).toBe(false);
+  });
+
+  it('completing a check-up restarts the clock via applyAssessmentPlacement', () => {
+    const overdue = doneAt('2026-06-01T10:00:00.000Z');
+    expect(routineCheckupDue(overdue, '2026-07-07T10:00:00.000Z')).toBe(true);
+    const reconciled = applyAssessmentPlacement(
+      overdue,
+      { t3: { reps: 12, handsUsed: false } },
+      { deferred: true, completedAtIso: '2026-07-07T10:00:00.000Z' }
+    );
+    expect(reconciled.profile.lastAssessmentAtIso).toBe('2026-07-07T10:00:00.000Z');
+    expect(routineCheckupDue(reconciled, '2026-07-20T10:00:00.000Z')).toBe(false);
+    expect(routineCheckupDue(reconciled, '2026-08-05T10:00:00.000Z')).toBe(true);
   });
 });

@@ -21,12 +21,17 @@ export function programmeInstructionCueKey(exerciseId: string): VoiceCueKey {
   return `prog-${exerciseId.replace(/[._]/g, '-')}` as VoiceCueKey;
 }
 
+/** Spoken when the rest window doubles as the once-per-item bonus-set offer. */
+export const PROGRAMME_BONUS_OFFER_CUE: VoiceCueKey = 'prog-bonus-set-offer';
+
 export const PROGRAMME_VOICE_LINES: Record<string, string> = {
   // ---- shared -------------------------------------------------------------
   'prog-programme-prep':
     "Let's warm up together. March gently on the spot and roll your shoulders. Add a few easy hip hinges and arm reaches when you feel like it — I'll tell you when it's time for the first exercise.",
   'prog-power-intent':
     'One thing to remember here: lower down slowly, then come up quick and strong. Slow down, fast up.',
+  'prog-bonus-set-offer':
+    "That's the planned sets done — lovely work. Feeling strong? Say I'm ready for one bonus set, or just rest and we'll move on.",
 
   // ---- squat ladder ---------------------------------------------------------
   'prog-squat-assisted-sit-to-stand':

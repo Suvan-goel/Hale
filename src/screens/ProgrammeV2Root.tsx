@@ -39,6 +39,7 @@ import {
   recordGatewayDemoWatched,
   recordGatewaySelfConfirmation,
   recordOnboardingAnswer,
+  routineCheckupDue,
   shouldAskBandQuestion,
   shouldShowDomingCheck,
   SKIPPED,
@@ -493,10 +494,12 @@ export function ProgrammeV2Root() {
     );
   }
 
-  const homeReoffer = assessmentReoffer(programmeState, new Date().toISOString());
+  const nowIso = new Date().toISOString();
+  const homeReoffer = assessmentReoffer(programmeState, nowIso);
+  const routineDue = routineCheckupDue(programmeState, nowIso);
   const assessmentAvailable =
-    programmeState.profile.assessmentStatus !== 'done' &&
-    homeReoffer !== 'none';
+    routineDue ||
+    (programmeState.profile.assessmentStatus !== 'done' && homeReoffer !== 'none');
   return (
     <Screen>
       <View style={{ flex: 1, padding: 24, gap: 16, justifyContent: 'center' }}>
@@ -507,7 +510,11 @@ export function ProgrammeV2Root() {
         />
         {assessmentAvailable ? (
           <Button
-            title="Do the two-minute movement check"
+            title={
+              routineDue
+                ? 'Time for your movement check — two minutes'
+                : 'Do the two-minute movement check'
+            }
             variant="secondary"
             onPress={() => setPhase('assessment')}
           />
@@ -549,6 +556,7 @@ function ProgrammeVoiceSession({
       generatedExercises={inputs.generatedExercises}
       resolveExercise={inputs.resolveExercise}
       resolveSafetyProfile={inputs.resolveSafetyProfile}
+      bonusSetOffer={inputs.bonusSetOffer}
       sessionTitle="Your session"
       voiceId={voiceId}
       firstSessionStarted={firstSessionStarted}

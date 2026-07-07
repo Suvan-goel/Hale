@@ -121,6 +121,8 @@ export type {
 } from './session';
 export {
   CHECKUP_ZERO_PROTOCOL_SEQUENCE,
+  ROUTINE_CHECKUP_DUE_DAYS,
+  routineCheckupDue,
   assessmentInputsFromCheckUp,
   checkupZeroBatterySequence,
   assessmentInputsFromV2Results,

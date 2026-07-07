@@ -113,6 +113,23 @@ export type AssessmentReoffer =
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
+/**
+ * Routine check-up cadence (spec: every 4–6 weeks the minimal battery is the
+ * measured reconciliation point, C10). Due at 28 days since the last applied
+ * assessment; only ever for users whose assessment is 'done' (pre-done states
+ * are owned by the re-offer policy below, and the B1 bypass by gp_confirmed).
+ * Not once-only: the home surface simply shows while due — completing the
+ * check-up restarts the clock via applyAssessmentPlacement.
+ */
+export const ROUTINE_CHECKUP_DUE_DAYS = 28;
+
+export function routineCheckupDue(state: ProgrammeState, nowIso: string): boolean {
+  const { assessmentStatus, lastAssessmentAtIso } = state.profile;
+  if (assessmentStatus !== 'done' || !lastAssessmentAtIso) return false;
+  const elapsed = Date.parse(nowIso) - Date.parse(lastAssessmentAtIso);
+  return Number.isFinite(elapsed) && elapsed >= ROUTINE_CHECKUP_DUE_DAYS * 24 * 60 * 60 * 1000;
+}
+
 export function assessmentReoffer(state: ProgrammeState, nowIso: string): AssessmentReoffer {
   const { assessmentStatus, gentleStartActive, gpConfirmed } = state.profile;
   // B1 bypass: NO assessment surface exists anywhere until gp_confirmed —

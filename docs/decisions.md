@@ -4720,3 +4720,36 @@ proceeds in its own working session once ruled.
   prog-* lines (runner is caption-only until then); bonus-set offer surface
   (plan.bonusSetEligible is computed but not yet offered in-session —
   PLANNED, needs a player-level extra-set affordance); Block 6b device pass.
+
+## 2026-07-07 — Pre-device front-load: partial-battery proof, bonus-set offer, routine cadence, parity draft
+
+- **Partial-battery contract pinned** (partialBatteryTolerance.test.ts): the
+  two-protocol Check-up #0 record round-trips storage, is structurally
+  EXCLUDED from official Movement Profile assessments/trends by checkupType
+  (before item count matters), never perturbs the Progress view model, and
+  yields the T1/T3 placement inputs. Routine v2 check-ups share this shape.
+- **Bonus-set offer BUILT** (ladder spec §11, closing the computed-but-
+  invisible gap): additive player option `bonusSetOffer` — the rest window
+  after the final planned set of an eligible exercise becomes a once-per-item
+  offer; "I'm ready" (voice or tap; 'ready' enabled in the offer window via
+  the intent policy's bonusOfferPending context) grants EXACTLY one extra
+  set; rest expiry or rest-skip declines silently (the offer never stalls —
+  rests auto-advance). Option absent = byte-identical (existing voice suites
+  unchanged). New line `prog-bonus-set-offer` (zero-tolerance linted); bridge
+  passes eligible exercise ids from plan.bonusSetEligible; extra sets flow
+  into reported outcomes and promotion arithmetic unchanged.
+- **Routine 4–6-week check-up cadence BUILT**: `lastAssessmentAtIso` stamped
+  by applyAssessmentPlacement, `routineCheckupDue` at 28 days, home surface
+  shows a persistent (not once-only) card while due; only for
+  assessmentStatus 'done' — pre-done states stay with the re-offer policy
+  and the B1 gate. This satisfies the C4 decommission precondition (cadence
+  replaces micro-check scheduling).
+- **Parity review DRAFT written** (docs/parity-review-draft.md): checks 1/2/3/5
+  verify clean; check 4 surfaces TWO items — (a) **floor-eligibility routing
+  is NOT ported**: v2 generation carries requiresFloor for safety cues but
+  never substitutes for floor-averse users (the types.ts comment describes
+  intent, not implementation) — needs a floor-substitution build or an
+  explicit v1 ruling; (b) **pain-recurrence auto-exclusion** not ported —
+  engineering recommends deferral (pain regression covers the safety need),
+  founder ruling required either way.
+- Verified: 207 suites / 1761 tests, tsc clean.

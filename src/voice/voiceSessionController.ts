@@ -53,6 +53,8 @@ export interface VoiceSessionControllerOptions {
   /** Injectable catalogue seams (programme v2 bridge); defaults = registry. */
   resolveExercise?: TrainingSessionPlayerOptions['resolveExercise'];
   resolveSafetyProfile?: TrainingSessionPlayerOptions['resolveSafetyProfile'];
+  /** Once-per-item bonus-set offer (programme v2); see player options. */
+  bonusSetOffer?: TrainingSessionPlayerOptions['bonusSetOffer'];
   /** Activation stamp (funnel v3): true when this is her first-ever session. */
   firstSessionStarted?: boolean;
   funnelStore: SessionFunnelStore;
@@ -73,6 +75,7 @@ export class VoiceSessionController {
   private completedFired = false;
   private lastItemCount = 0;
   private lastPhase: TrainingPhase = 'intro';
+  private lastBonusOfferPending = false;
 
   constructor(options: VoiceSessionControllerOptions) {
     this.options = options;
@@ -87,6 +90,7 @@ export class VoiceSessionController {
         generatedExercises: options.generatedExercises,
         resolveExercise: options.resolveExercise,
         resolveSafetyProfile: options.resolveSafetyProfile,
+        bonusSetOffer: options.bonusSetOffer,
       }
     );
   }
@@ -98,6 +102,7 @@ export class VoiceSessionController {
   tick(timestampMs: number, voiceBusy: boolean): TrainingFrameUpdate {
     const update = this.player.tick(timestampMs, voiceBusy);
     this.lastPhase = update.phase;
+    this.lastBonusOfferPending = update.bonusOfferPending;
 
     const items = this.player.completedItemsSnapshot();
     if (items.length !== this.lastItemCount) {
@@ -116,7 +121,10 @@ export class VoiceSessionController {
 
   /** Which intents the recognizer should match right now (policy delegate). */
   enabledIntents(voiceBusy: boolean): readonly VoiceIntent[] {
-    return enabledSessionIntents(this.lastPhase, { voiceBusy });
+    return enabledSessionIntents(this.lastPhase, {
+      voiceBusy,
+      bonusOfferPending: this.lastBonusOfferPending,
+    });
   }
 
   /** A matched voice intent acted (or not); usage counted only on action. */

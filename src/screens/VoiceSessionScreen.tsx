@@ -54,6 +54,7 @@ interface Snapshot {
   remainingSec: number;
   tapPromptHighlighted: boolean;
   stopRequested: boolean;
+  bonusOfferPending: boolean;
 }
 
 function sameSnapshot(a: Snapshot, b: Snapshot): boolean {
@@ -64,7 +65,8 @@ function sameSnapshot(a: Snapshot, b: Snapshot): boolean {
     a.totalSets === b.totalSets &&
     a.remainingSec === b.remainingSec &&
     a.tapPromptHighlighted === b.tapPromptHighlighted &&
-    a.stopRequested === b.stopRequested
+    a.stopRequested === b.stopRequested &&
+    a.bonusOfferPending === b.bonusOfferPending
   );
 }
 
@@ -78,6 +80,7 @@ export function VoiceSessionScreen({
   generatedExercises,
   resolveExercise,
   resolveSafetyProfile,
+  bonusSetOffer,
   firstSessionStarted,
   voiceSetup,
   onVoiceSetupChange,
@@ -93,6 +96,8 @@ export function VoiceSessionScreen({
   /** Injectable catalogue seams (programme v2 bridge); defaults = registry. */
   resolveExercise?: (exerciseId: string) => ReturnType<typeof getExercise>;
   resolveSafetyProfile?: VoiceSessionControllerOptions['resolveSafetyProfile'];
+  /** Once-per-item bonus-set offer (programme v2); rides the rest window. */
+  bonusSetOffer?: VoiceSessionControllerOptions['bonusSetOffer'];
   /** Activation stamp for the funnel record (programme v2 first session). */
   firstSessionStarted?: boolean;
   voiceSetup: VoiceSetupPrefs;
@@ -109,6 +114,7 @@ export function VoiceSessionScreen({
         generatedExercises,
         resolveExercise,
         resolveSafetyProfile,
+        bonusSetOffer,
         firstSessionStarted,
         funnelStore: new SessionFunnelStore(expoSessionFunnelFs),
         onComplete: (result) => {
@@ -129,6 +135,7 @@ export function VoiceSessionScreen({
     remainingSec: NaN,
     tapPromptHighlighted: false,
     stopRequested: false,
+    bonusOfferPending: false,
   });
   const [permission, setPermission] = React.useState<VoicePermissionResponse | null>(null);
   const [availability, setAvailability] = React.useState<OnDeviceAvailability | null>(null);
@@ -151,6 +158,7 @@ export function VoiceSessionScreen({
         remainingSec: Number.isFinite(u.remainingMs) ? Math.ceil(u.remainingMs / 1000) : NaN,
         tapPromptHighlighted: u.tapPromptHighlighted,
         stopRequested: u.stopRequested,
+        bonusOfferPending: u.bonusOfferPending,
       };
       setSnapshot((prev) => (sameSnapshot(prev, next) ? prev : next));
     }, TICK_MS);
@@ -277,7 +285,13 @@ export function VoiceSessionScreen({
           ) : null}
           {snapshot.phase === 'rest' ? (
             <>
-              <PrimaryButton title="Skip rest" onPress={() => controller.handleTap('skip_rest', Date.now())} />
+              {snapshot.bonusOfferPending ? (
+                <PrimaryButton title="One more set" onPress={() => controller.handleTap('ready', Date.now())} />
+              ) : null}
+              <PrimaryButton
+                title={snapshot.bonusOfferPending ? 'No thanks — move on' : 'Skip rest'}
+                onPress={() => controller.handleTap('skip_rest', Date.now())}
+              />
               <View style={styles.adjustRow}>
                 <SecondaryButton title="− rep" onPress={() => controller.handleTap('adjust_reps_down')} />
                 <Text style={styles.adjustLabel}>Adjust last set</Text>

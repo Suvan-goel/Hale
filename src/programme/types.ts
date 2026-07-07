@@ -200,6 +200,11 @@ export interface ProgrammeProfile {
   /** Per-pattern start levels (placement mapping §6). */
   placement: Partial<Record<ProgrammePattern, number>>;
   assessmentStatus: AssessmentStatus | null;
+  /**
+   * When the last applied camera assessment (Check-up #0 or a routine
+   * check-up) completed — the clock the 4–6-week routine cadence reads.
+   */
+  lastAssessmentAtIso: string | null;
   /** D1 day picker (kept per C7; the notification opt-in is NOT built). */
   chosenDays: readonly Weekday[];
   /** The activation event — mirrored into local telemetry (ruling: ambiguity 4). */

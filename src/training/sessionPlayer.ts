@@ -157,6 +157,8 @@ export interface TrainingFrameUpdate {
   tapPromptHighlighted: boolean;
   /** Voice sessions: the user said "stop" — the screen offers the full-end confirm. */
   stopRequested: boolean;
+  /** Voice sessions: the rest window is the once-per-item bonus-set offer. */
+  bonusOfferPending: boolean;
   /** True after setup has timed out and the UI must ask the user what to do. */
   setupIssue: boolean;
   /** Current preflight framing prompt for setup/framing UI. */
@@ -220,6 +222,18 @@ export interface TrainingSessionPlayerOptions {
    */
   readonly resolveExercise?: (exerciseId: string) => ExerciseDefinition;
   readonly resolveSafetyProfile?: (exerciseId: string) => PlannedExerciseSafetyCueProfile;
+  /**
+   * Voice-mode bonus-set offer (programme v2, ladder spec §11): after the
+   * FINAL planned set of a listed exercise, the rest window becomes a
+   * once-per-item offer — `offerCue` is spoken instead of the rest line;
+   * "I'm ready" (voice or tap) grants exactly one extra set; rest expiry or
+   * skipping the rest declines and the item completes as normal. Absent
+   * option = no behaviour change anywhere (old engine never offers).
+   */
+  readonly bonusSetOffer?: {
+    readonly exerciseIds: readonly string[];
+    readonly offerCue: VoiceCueKey;
+  };
 }
 
 /**
@@ -266,6 +280,7 @@ export class TrainingSessionPlayer {
     validTimeCaption: null,
     tapPromptHighlighted: false,
     stopRequested: false,
+    bonusOfferPending: false,
     setupIssue: false,
     setupPrompt: null,
     floorSetup: null,
@@ -339,6 +354,10 @@ export class TrainingSessionPlayer {
   private voicePauseContext: 'rest' | 'active' | null = null;
   /** Paused OUT of an open rep set — resume must say "every rep counts". */
   private voicePausedMidRepSet = false;
+  /** Bonus-set offer state (voice mode; see options.bonusSetOffer). */
+  private bonusOfferPending = false;
+  private bonusSetsGranted = 0;
+  private readonly bonusOfferedItemIds = new Set<string>();
   /**
    * Post-exercise ±rep window (founder fix 2026-07-06): index into results
    * for the just-completed item, adjustable through transition/complete and
@@ -676,7 +695,7 @@ export class TrainingSessionPlayer {
     u.itemIndex = Math.max(0, this.itemIndex);
     u.setIndex = this.setIndex;
     const def = this.currentDefinition();
-    u.totalSets = def ? this.effectiveDose(def).sets : 0;
+    u.totalSets = def ? this.effectiveDose(def).sets + this.bonusSetsGranted : 0;
     u.currentExerciseId = def ? def.id : null;
     u.floorSetup = cloneFloorSetup(this.floorSetup);
     u.floorMemory = this.floorMemorySnapshot();
@@ -709,6 +728,7 @@ export class TrainingSessionPlayer {
     u.validTimeCaption = null;
     u.tapPromptHighlighted = this.tapPromptHighlighted;
     u.stopRequested = this.stopRequested;
+    u.bonusOfferPending = this.bonusOfferPending;
     u.setupIssue = false;
     u.setupPrompt = null;
     u.floorSetup = null;
@@ -792,8 +812,9 @@ export class TrainingSessionPlayer {
     u.setIndex = this.setIndex;
     u.tapPromptHighlighted = this.tapPromptHighlighted;
     u.stopRequested = this.stopRequested;
+    u.bonusOfferPending = this.bonusOfferPending;
     const def = this.currentDefinition();
-    u.totalSets = def ? this.effectiveDose(def).sets : 0;
+    u.totalSets = def ? this.effectiveDose(def).sets + this.bonusSetsGranted : 0;
     u.currentExerciseId = def ? def.id : null;
     return u;
   }
@@ -920,29 +941,60 @@ export class TrainingSessionPlayer {
         ? { reportedReps: dose.repsPerSet }
         : {}),
     });
-    if (this.setIndex + 1 < dose.sets) {
+    if (this.setIndex + 1 < dose.sets + this.bonusSetsGranted) {
+      this.enterRest(ts);
+    } else if (completed && this.bonusOfferEligible(def.id)) {
+      // The rest window doubles as the once-per-item bonus offer: expiry (or
+      // skipping the rest) declines; "I'm ready" grants one extra set.
+      this.bonusOfferedItemIds.add(def.id);
+      this.bonusOfferPending = true;
       this.enterRest(ts);
     } else {
-      this.results.push({ exerciseId: def.id, status: 'completed', sets: this.currentSets.slice() });
-      // Open the post-exercise ±rep window (rest never follows a final set).
-      this.adjustableCompletedItemIndex = this.results.length - 1;
-      this.currentSets = [];
-      this.advanceItem(ts);
+      this.completeCurrentItem(ts);
     }
+  }
+
+  private bonusOfferEligible(exerciseId: string): boolean {
+    const offer = this.options.bonusSetOffer;
+    return (
+      !!offer &&
+      offer.exerciseIds.includes(exerciseId) &&
+      !this.bonusOfferedItemIds.has(exerciseId)
+    );
+  }
+
+  private completeCurrentItem(ts: number): void {
+    const def = this.definitions[this.itemIndex];
+    this.bonusOfferPending = false;
+    this.results.push({ exerciseId: def.id, status: 'completed', sets: this.currentSets.slice() });
+    // Open the post-exercise ±rep window (rest never follows a final set).
+    this.adjustableCompletedItemIndex = this.results.length - 1;
+    this.currentSets = [];
+    this.advanceItem(ts);
   }
 
   private runVoiceRest(ts: number, busy: boolean, u: TrainingFrameUpdate): void {
     const def = this.definitions[this.itemIndex];
     if (!this.restSpoken && !busy && u.voice === null) {
       this.restSpoken = true;
-      const isLastUpcoming = this.setIndex + 2 === this.effectiveDose(def).sets;
       const safety = this.currentSafetyProfile();
       const safetyCueIds = safety?.repeatedSetCueIds ?? [];
-      u.voice = cueSequence([isLastUpcoming ? 'last-set' : 'rest-now', ...safetyCueIds]);
+      if (this.bonusOfferPending) {
+        u.voice = cueSequence([this.options.bonusSetOffer!.offerCue, ...safetyCueIds]);
+      } else {
+        const isLastUpcoming =
+          this.setIndex + 2 === this.effectiveDose(def).sets + this.bonusSetsGranted;
+        u.voice = cueSequence([isLastUpcoming ? 'last-set' : 'rest-now', ...safetyCueIds]);
+      }
       this.emitSafety(u, safetyCueIds, false);
     }
     u.remainingMs = Math.max(0, this.restDurationMs - (ts - this.restEnteredMs));
     if (this.restSpoken && !busy && ts - this.restEnteredMs >= this.restDurationMs) {
+      if (this.bonusOfferPending) {
+        // Silence is a decline — the offer never stalls the session.
+        this.completeCurrentItem(ts);
+        return;
+      }
       this.setIndex++;
       this.enterWaitingReady(ts, u.voice === null ? u : null);
     }
@@ -976,7 +1028,16 @@ export class TrainingSessionPlayer {
   }
 
   confirmReady(atMs: number = this.lastTimestampMs): boolean {
-    if (!this.isVoiceMode || this.phase !== 'waiting_ready') return false;
+    if (!this.isVoiceMode) return false;
+    if (this.phase === 'rest' && this.bonusOfferPending) {
+      // Accepting the bonus offer: exactly one extra set, straight to the
+      // countdown — she just said she's ready.
+      this.bonusOfferPending = false;
+      this.bonusSetsGranted += 1;
+      this.setIndex++;
+    } else if (this.phase !== 'waiting_ready') {
+      return false;
+    }
     this.tapPromptHighlighted = false;
     this.phase = 'countdown';
     this.countdownStartMs = atMs;
@@ -1176,6 +1237,8 @@ export class TrainingSessionPlayer {
     this.itemIndex = index;
     this.setIndex = 0;
     this.currentSets = [];
+    this.bonusOfferPending = false;
+    this.bonusSetsGranted = 0;
     this.phase = 'transition';
     this.transitionEnteredMs = ts;
     this.transitionCuePending = this.transitionCue(index);

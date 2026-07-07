@@ -19,7 +19,7 @@ import { HOT_INTENTS, VoiceIntent } from './intents';
 
 const NO_COMMANDS: readonly VoiceIntent[] = [];
 
-function commandIntentsForPhase(phase: TrainingPhase): readonly VoiceIntent[] {
+function commandIntentsForPhase(phase: TrainingPhase | 'rest_bonus_offer'): readonly VoiceIntent[] {
   switch (phase) {
     case 'waiting_ready':
       return ['ready', 'repeat', 'skip'];
@@ -28,6 +28,10 @@ function commandIntentsForPhase(phase: TrainingPhase): readonly VoiceIntent[] {
     case 'rest':
       // skip = skip the rest timer (the player routes it by phase).
       return ['skip'];
+    case 'rest_bonus_offer':
+      // The once-per-item bonus-set offer rides the rest window: "I'm ready"
+      // accepts (one extra set); skip declines via the rest-skip path.
+      return ['ready', 'skip'];
     case 'voice_paused':
       return ['resume'];
     default:
@@ -43,9 +47,11 @@ function commandIntentsForPhase(phase: TrainingPhase): readonly VoiceIntent[] {
  */
 export function enabledSessionIntents(
   phase: TrainingPhase,
-  options: { voiceBusy: boolean }
+  options: { voiceBusy: boolean; bonusOfferPending?: boolean }
 ): readonly VoiceIntent[] {
   if (phase === 'complete' || phase === 'done') return NO_COMMANDS;
   if (options.voiceBusy) return HOT_INTENTS;
-  return [...HOT_INTENTS, ...commandIntentsForPhase(phase)];
+  const effectivePhase =
+    phase === 'rest' && options.bonusOfferPending === true ? 'rest_bonus_offer' : phase;
+  return [...HOT_INTENTS, ...commandIntentsForPhase(effectivePhase)];
 }

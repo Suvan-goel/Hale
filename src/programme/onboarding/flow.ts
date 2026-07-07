@@ -287,6 +287,7 @@ export function completeOnboarding(
         : answers.assessmentChoice === 'skip' || consentDeclined
           ? 'skipped'
           : null, // 'now' → set to 'done' when Check-up #0 completes
+    lastAssessmentAtIso: null,
     chosenDays: answers.d1Days ?? [],
     firstSessionStarted: false,
     oneTimeSurfacesShown: [],
@@ -327,7 +328,7 @@ export function completeOnboarding(
 export function applyAssessmentPlacement(
   state: ProgrammeState,
   assessment: AssessmentInputs,
-  options: { deferred: boolean }
+  options: { deferred: boolean; completedAtIso?: string }
 ): ProgrammeState {
   const result = placementForOnboarding({
     assessment,
@@ -356,6 +357,8 @@ export function applyAssessmentPlacement(
       ...state.profile,
       placement: result.placement,
       assessmentStatus: 'done',
+      // Starts (and restarts) the routine check-up cadence clock.
+      lastAssessmentAtIso: options.completedAtIso ?? new Date().toISOString(),
       balanceSupportDefault:
         result.balanceSupportRequired === true ? true : state.profile.balanceSupportDefault,
     },

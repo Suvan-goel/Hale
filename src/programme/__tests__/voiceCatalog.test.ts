@@ -70,7 +70,8 @@ describe('programme voice catalogue', () => {
   });
 
   it('has a script line for every instruction cue, and no orphaned lines', () => {
-    const referenced = new Set<string>(['prog-power-intent']);
+    // Session-flow cues spoken outside definition instructions.
+    const referenced = new Set<string>(['prog-power-intent', 'prog-bonus-set-offer']);
     for (const id of allIds) {
       for (const cue of programmeVoiceExerciseDefinition(id).voice.instructions) {
         referenced.add(cue);

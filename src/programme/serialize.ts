@@ -57,6 +57,7 @@ export function defaultProgrammeProfile(): ProgrammeProfile {
     diastasisFlag: false,
     placement: {},
     assessmentStatus: null,
+    lastAssessmentAtIso: null,
     chosenDays: [],
     firstSessionStarted: false,
     oneTimeSurfacesShown: [],
@@ -129,6 +130,7 @@ function validProfile(v: unknown): ProgrammeProfile {
     diastasisFlag: p.diastasisFlag === true,
     placement: validPlacement(p.placement),
     assessmentStatus: oneOf(p.assessmentStatus, ASSESSMENT_STATUSES) ?? null,
+    lastAssessmentAtIso: isoOrNull(p.lastAssessmentAtIso),
     chosenDays: stringSubset(p.chosenDays, WEEKDAYS),
     firstSessionStarted: p.firstSessionStarted === true,
     oneTimeSurfacesShown: Array.isArray(p.oneTimeSurfacesShown)
