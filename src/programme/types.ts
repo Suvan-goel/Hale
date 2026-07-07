@@ -65,7 +65,12 @@ export type CoreStimulus = 'anti_extension' | 'anti_rotation' | 'anti_lateral_fl
 export interface ProgrammeExercise {
   id: string;
   equipment: readonly EquipmentTag[];
-  /** Needs floor space + comfort getting down; routed through the existing floor-eligibility opt-in. */
+  /**
+   * Needs floor space + comfort getting down. RULING 2026-07-07 (Floor: A):
+   * v1 ships floor-required — no floor-avoidance routing exists; this flag
+   * drives safety cues only. A floor-comfort question + substitutions are a
+   * v2 candidate (re-entry: beta feedback from floor-averse users).
+   */
   requiresFloor?: boolean;
   /** Uses the bottom stairs; C1 "no stairs" routing substitutes this id. */
   requiresStairs?: boolean;

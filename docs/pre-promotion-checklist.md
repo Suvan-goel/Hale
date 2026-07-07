@@ -10,8 +10,11 @@ update status in place.
 
 - [ ] Parity review signed off per docs/specs/ladder-migration-map.md
       (every old v1_core level mapped/absorbed/retired deliberately; ported
-      capabilities verified: substitution systems, pain-recurrence exclusion,
+      capabilities verified: substitution systems, pain-recurrence exclusion
+      [DEFERRED by ruling 2026-07-07 — §12 pain regression suffices for v1],
       policy-snapshot governance; measurement surfaces byte-identical).
+      Floor-required v1 ruled 2026-07-07 (floor-comfort question = v2
+      candidate). See docs/parity-review-draft.md.
 - [ ] Simulation suite green including the two ruling pins (scheme-aware
       plank cadence: top by exposure 6, promotion on 7; exposure-cadence
       stall detector ≤6 with KNOWN_STALLS = 'none'-persona only).

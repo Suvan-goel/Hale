@@ -27,7 +27,14 @@ commit (C4). Precondition newly satisfied: the **routine 4–6-week check-up cad
 exists** (`routineCheckupDue`, 28-day clock stamped by `applyAssessmentPlacement`, home
 surface wired 2026-07-07) — level-up progress + this cadence are the stated replacements.
 
-## Check 4 — ported capabilities: TWO GAPS, one clean
+## Check 4 — ported capabilities: RESOLVED BY RULINGS 2026-07-07 (was: two gaps)
+
+**Founder rulings (2026-07-07): Floor A — v1 ships floor-required (no floor-avoidance
+routing; the types.ts comment is corrected; a floor-comfort question is a v2 candidate,
+re-entry on beta feedback). Pain A — the old engine's 2-strike auto-exclusion is DEFERRED
+by decision (the §12 pain regression answers the safety need; re-entry if beta telemetry
+shows repeated pain on one movement despite regression). Both recorded in decisions.md.**
+The original findings are preserved below for the record:
 
 - **Policy-snapshot governance: VERIFIES.** `programmePolicyFingerprint()` covers ladders,
   schemes, gateways, prereqs, finisher, adaptation branches, and promotion config; stored
@@ -65,5 +72,5 @@ The on-device confirmation is Pass A in docs/device-pass-protocol.md — already
 | 1. Mapping completeness | ☑ verifies |
 | 2. Old-state isolation | ☑ verifies |
 | 3. Decommission list | ☑ ready (executes at promotion) |
-| 4. Ported capabilities | ☐ blocked: floor routing gap + pain-exclusion ruling |
+| 4. Ported capabilities | ☑ resolved by 2026-07-07 rulings (Floor A, Pain A) |
 | 5. Measurement byte-identical | ☑ in software; Pass A on device |

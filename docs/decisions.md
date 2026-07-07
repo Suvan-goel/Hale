@@ -4790,3 +4790,22 @@ proceeds in its own working session once ruled.
   legitimately-hot lines (safety cues that TEACH the word "stop"); the
   tripwire against NEW colliding lines is unchanged; a non-zero formal echo
   count at the device evening reopens the decision.
+
+
+## 2026-07-07 — Parity findings RULED: Floor A, Pain A — the build backlog is closed
+
+- **Floor: A.** v1 ships floor-required: no floor-comfort question, no
+  floor-avoidance substitution. `requiresFloor` drives safety cues only
+  (comment corrected — it previously described unimplemented routing). The
+  floor-comfort question + per-level standing/seated substitutions are a v2
+  candidate; re-entry condition = beta feedback from floor-averse users.
+- **Pain: A.** The old engine's 2-strike per-exercise auto-exclusion is
+  DEFERRED by decision. The §12 pain regression (immediate drop to the last
+  pain-free level, promotion counters reset) is v1's answer to exercise pain.
+  Re-entry condition = beta telemetry showing repeated pain flags on one
+  movement despite regression.
+- Parity review check 4 resolved; the review draft is now read-and-approve
+  (checks 1/2/3 verify, 4 resolved by ruling, 5 verifies in software with
+  Pass A owed on device). With these rulings and the generated audio
+  (2ce2a338), NO CODE REMAINS on the pre-device backlog — remaining work is
+  device validation, the noise-floor recordings, and the founder passes.
