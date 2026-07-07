@@ -10,6 +10,29 @@
 
 export * from './types';
 export {
+  PELVIC_PHYSIO_SIGNPOST_COPY,
+  PROGRAMME_EFFORT_CHECKIN_COPY,
+  PROGRAMME_SESSION_RPE_OPTIONS,
+  checkupOfferFor,
+  nextProgrammeSessionInput,
+  patternTitle,
+  postSessionSurface,
+  preSessionPrompt,
+  programmeLevelRows,
+  programmeTodayViewModel,
+} from './appLifecycle';
+export type {
+  NextProgrammeSessionInput,
+  ProgrammeCheckupOffer,
+  ProgrammeLevelRow,
+  ProgrammePostSessionSurface,
+  ProgrammePreSessionPrompt,
+  ProgrammeSessionPreview,
+  ProgrammeTodayAction,
+  ProgrammeTodayStateId,
+  ProgrammeTodayViewModel,
+} from './appLifecycle';
+export {
   ADAPTATION_BRANCHES,
   DEFAULT_REQUIRED_REHEARSAL_EXPOSURES,
   HINGE_REHEARSAL_DRILL_ID,

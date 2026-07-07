@@ -4809,3 +4809,49 @@ proceeds in its own working session once ruled.
   Pass A owed on device). With these rulings and the generated audio
   (2ce2a338), NO CODE REMAINS on the pre-device backlog — remaining work is
   device validation, the noise-floor recordings, and the founder passes.
+
+## 2026-07-07 — Promotion integration begun (founder direction): Phase 1 app-lifecycle adapter
+
+- **Founder direction of record:** bring programme v2 (and the reframe-era
+  logic) into the MAIN app while retaining the pre-reframe design language —
+  the v2 dev shell's bare surfaces are replaced by the existing polished
+  screens fed with v2 view models. Five-phase plan accepted with the
+  engineering recommendations: (1) pure view-model adapters, (2) onboarding
+  merge with a reference-details step after the expectation CTA (framed as
+  "so your check-up can be scored"), (3) Today/Plan/moment surfaces — the
+  Plan tab becomes a "your levels + upcoming session" view; SessionPreview
+  adjustments map onto v2 generation (shorter → time budget, effort →
+  lastSessionEffort), (4) peripherals — Explore extra sessions ship UNGATED
+  in v1 (bundled, uniformly low-risk; v2-aware gating later), Settings
+  pain-exclusion rows retire in v2 mode (Pain A), (5) verification +
+  promotion staging. GOVERNANCE UNCHANGED: everything lands behind
+  EXPO_PUBLIC_ENABLE_PROGRAMME_ENGINE_V2; the default flip + old-engine
+  decommission stays gated on the pre-promotion checklist (device passes,
+  clinical review). No measurement-touching code (2026-07-07 pause ruling 1
+  respected).
+- **Phase 1 SHIPPED — `src/programme/appLifecycle.ts`,** pure and read-only,
+  zero old-engine imports (C4):
+  - `nextProgrammeSessionInput` extracts the A/B-parity + preset rule from
+    the dev shell — preview and start-session generation share one source.
+  - `programmeTodayViewModel(state, nowIso)` projects the Today surface:
+    states first_session_ready / session_ready / returning_after_break
+    (§12 easing → the old design's gentle-restart tone), action copy with
+    truthful durations (the number in copy IS the generated estimate),
+    session detail in plain pattern words (naming law), and the home
+    check-up offer. Previews compute against the post-easing state on a
+    COPY — persisting the easing remains the caller's job at session start.
+  - `checkupOfferFor` preserves dev-shell home semantics exactly (routine
+    28-day persistent card; standing entry for non-'done' placements with a
+    live re-offer; B1-bypass shows nothing until gp_confirmed).
+  - `preSessionPrompt` / `postSessionSurface` move the in-context question
+    and post-session moment logic out of the shell with precedence pinned
+    (band > doming; gateway teach > deferred re-offer > once-only skipped
+    warm re-offer > session logged). All PromptCard copy moved verbatim
+    into the adapter; screens go copy-free at Phase 3.
+  - `programmeLevelRows` — per-pattern plain-language level rows for the
+    Plan/Progress port.
+  - Copy registered in copyGuardrails.test.ts (full state matrix exercised;
+    adapter source added to the cognitive + menopause scans).
+- Verified: 209 suites / 1788 tests green, tsc clean, expo config clean.
+  Dev shell intentionally untouched this phase — it swaps to the adapter
+  when AppGate takes over in Phases 2–3.

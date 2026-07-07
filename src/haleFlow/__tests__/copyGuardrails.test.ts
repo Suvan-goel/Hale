@@ -17,6 +17,18 @@ import {
   getPlanFocusCopy,
   getRetestCopy,
 } from '../planViewModel';
+import {
+  PELVIC_PHYSIO_SIGNPOST_COPY,
+  PROGRAMME_EFFORT_CHECKIN_COPY,
+  PROGRAMME_SESSION_RPE_OPTIONS,
+  checkupOfferFor,
+  defaultProgrammeState,
+  postSessionSurface,
+  programmeLevelRows,
+  programmeTodayViewModel,
+  type ProgrammeState,
+  type PromotionDecision,
+} from '../../programme';
 
 const BANNED_USER_COPY =
   /diagnosis|treatment|fall risk|frailty|failed|skipped workout|lost streak|medical-grade|poor score|medical diagnosis|camera measured|typical of age|typical ages|movement age|weakest[- ]+(area|areas|domain)|published comparison|published age-group|published middle range|reference labels|raw-only|source transform|main opportunity|best place to focus|protects progress|protect your progress|protected your progress|progress protected|improved|held steady|declined/i;
@@ -138,6 +150,64 @@ describe('Hale V1 copy guardrails', () => {
     );
   });
 
+  it('keeps programme v2 app-lifecycle copy warm and non-medical across every state', () => {
+    // The promotion-integration adapter (src/programme/appLifecycle.ts) owns
+    // all programme shell copy — exercise every state it can emit.
+    const NOW = '2026-07-20T10:00:00.000Z';
+    const daysBefore = (days: number) =>
+      new Date(Date.parse(NOW) - days * 24 * 60 * 60 * 1000).toISOString();
+    const base = (): ProgrammeState => {
+      const state = defaultProgrammeState();
+      state.profile = { ...state.profile, consentHealthData: true, hasStairs: true };
+      state.onboardingCompletedAtIso = daysBefore(14);
+      return state;
+    };
+    const fresh = base();
+    const normal = base();
+    normal.profile = { ...normal.profile, firstSessionStarted: true };
+    normal.completedSessionCount = 1;
+    normal.lastSessionAtIso = daysBefore(2);
+    const returning = { ...normal, lastSessionAtIso: daysBefore(20) };
+    const routineDue = base();
+    routineDue.profile = {
+      ...routineDue.profile,
+      firstSessionStarted: true,
+      assessmentStatus: 'done',
+      lastAssessmentAtIso: daysBefore(29),
+    };
+    const deferred = { ...normal, profile: { ...normal.profile, assessmentStatus: 'deferred' as const } };
+    const skippedWarm = {
+      ...normal,
+      completedSessionCount: 2,
+      profile: { ...normal.profile, assessmentStatus: 'skipped' as const },
+    };
+    const lockedHinge: Partial<Record<'hinge', PromotionDecision>> = {
+      hinge: { kind: 'promotion_locked', toLevel: 2, reason: 'gateway_incomplete' },
+    };
+
+    assertCleanCopy(
+      [fresh, normal, returning, routineDue, deferred, skippedWarm].flatMap((state) => {
+        const vm = programmeTodayViewModel(state, NOW);
+        return [
+          ...Object.values(vm.primaryAction),
+          vm.sessionDetail,
+          ...Object.values(vm.checkupOffer ?? {}),
+          ...Object.values(checkupOfferFor(state, NOW) ?? {}),
+          ...Object.values(postSessionSurface(state, lockedHinge, NOW)),
+          ...Object.values(postSessionSurface(state, {}, NOW)),
+        ];
+      })
+    );
+    assertCleanCopy([
+      ...Object.values(PELVIC_PHYSIO_SIGNPOST_COPY),
+      ...Object.values(PROGRAMME_EFFORT_CHECKIN_COPY),
+      ...PROGRAMME_SESSION_RPE_OPTIONS.map((option) => option.label),
+      ...programmeLevelRows(fresh).flatMap((row) => [row.patternTitle, row.levelDisplayName]),
+    ]);
+    // The menopause red lines hold on the adapter source as a whole.
+    expect(productionSourceText('src/programme/appLifecycle.ts')).not.toMatch(MENOPAUSE_CLAIM_COPY);
+  });
+
   it('keeps result, progress, report, onboarding, plan, and settings screen copy beta-safe', () => {
     const text = RESULT_COPY_FILES.map(productionSourceText).join(' ');
     expect(text).not.toMatch(BANNED_USER_COPY);
@@ -182,6 +252,7 @@ describe('Hale V1 copy guardrails', () => {
       productionSourceText('src/haleFlow/copy.ts'),
       productionSourceText('src/haleFlow/planViewModel.ts'),
       productionSourceText('src/haleFlow/appLifecycle.ts'),
+      productionSourceText('src/programme/appLifecycle.ts'),
       productionSourceText('src/adherence/goalDomainMapping.ts'),
       productionSourceText('src/adherence/adherenceCopy.ts'),
       productionSourceText('src/adherence/milestoneService.ts'),
