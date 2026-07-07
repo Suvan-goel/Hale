@@ -15,6 +15,7 @@
 
 import { VOICE_SESSION_LINE_SCRIPTS } from '../../audio/voiceSessionLineScripts';
 import { VOICE_V2_1_AUDIO_ASSET_METADATA } from '../../audio/voiceV21AudioManifest';
+import { PROGRAMME_VOICE_LINES } from '../../programme/voiceScripts';
 import { SAFETY_CUE_DEFINITIONS } from '../../training/safetyCueDefinitions';
 import { HOT_INTENTS, hotPhraseViolations, matchIntent } from '../intents';
 
@@ -51,6 +52,10 @@ function corpusLines(): { key: string; text: string }[] {
   // tolerance, no allowlist entries permitted for these.
   for (const [key, script] of Object.entries(VOICE_SESSION_LINE_SCRIPTS)) {
     lines.push({ key: `session-line:${key}`, text: script });
+  }
+  // Programme v2 session lines: same playback context, same zero tolerance.
+  for (const [key, script] of Object.entries(PROGRAMME_VOICE_LINES)) {
+    lines.push({ key: `programme-line:${key}`, text: script });
   }
   // Scripts are identical across voices; lint one voice's metadata per cue.
   const clara = VOICE_V2_1_AUDIO_ASSET_METADATA.clara ?? {};

@@ -146,6 +146,10 @@ export type VoiceCueKey =
   | `target-${string}-v21`
   | `side-${string}-v21`
   | `step-up-start-${'left' | 'right'}-v21`
+  // Programme engine v2 voice-session lines (src/programme/voiceScripts.ts);
+  // generated with the founder audio run, resolved via VOICE_MANIFEST like
+  // every plain cue — missing assets degrade through the asset_missing path.
+  | `prog-${string}`
   // Eyes-Open Balance V2 stage-specific generated cues.
   | 'checkup-balance-feet-together-v21'
   | 'checkup-balance-semi-tandem-left-v21'
@@ -180,6 +184,8 @@ export type AudioCueKey = VoiceCueKey | SfxCueKey;
 /** Highest wins the channel; a busy channel drops lower-or-equal priority. */
 export function voicePriority(cue: VoiceCueKey): number {
   if (cue.startsWith('num-')) return 9;
+  // Programme v2 lines: instructions + exercise narration tier.
+  if (cue.startsWith('prog-')) return 8;
   if (cue.startsWith('mpv2_') || cue.endsWith('-v21')) {
     if (
       cue.includes('tracking') ||

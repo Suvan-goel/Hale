@@ -120,6 +120,35 @@ enough; these verify App.tsx glue whose underlying logic is already unit-tested.
    Continue after the last finished item; the first exercise's results (including any
    ±rep adjustment made in its window) survived.
 
+## Block 6b — Programme v2 voice-session bridge glue (SESSION A; ~20 min, one device; appended 2026-07-07)
+
+Dev build with `EXPO_PUBLIC_ENABLE_PROGRAMME_ENGINE_V2=1`. The bridge reuses the
+already-gated voice player, so Block 2/3/4 verdicts carry over — these checks verify
+the programme-specific glue only. Audio for programme lines may not exist yet
+(founder generation step); if absent, verify graceful degradation (captions/on-screen
+state still advance; no crash, no hang) and record "silent-pass".
+
+1. **Full bridged session:** onboard → first 15-minute session. Verify order
+   warm-up → main exercises → power finisher; ready-gating waits indefinitely
+   (one gentle re-prompt only); "done" advances; rest timers run; the RPE card
+   follows completion; the level-up/gateway card logic fires off the reported
+   results.
+2. **Safety words in a programme session:** "that hurts" mid-exercise halts the
+   set, skips the exercise, and after finishing the session, the pattern shows the
+   pain regression (level dropped to last pain-free) — never a promotion.
+3. **±rep then promotion arithmetic:** adjust the final set −2 on the rest/summary
+   window; verify the session outcome's reported value carries the adjustment and
+   the double-progression target advances (or holds) accordingly next session.
+4. **Activation stamp:** first-ever session start flips `firstSessionStarted` in
+   programme.json AND the same session's funnel record carries the v3 stamp —
+   exactly one funnel record for the session (controller-owned, none from the shell).
+5. **Abandonment:** exit mid-session via the end-confirmation; funnel records
+   `abandoned` once; the shell returns home; no partial outcomes were applied.
+6. **Check-up #0 persistence (ruling 2026-07-07):** run the movement check from the
+   programme home; verify a `checkup-*.json` record exists (raw-saved even if the
+   app is killed right after the last movement), placement applied, and the record
+   tolerates being listed alongside full-battery check-ups wherever history renders.
+
 ## Block 7 — Dual-task VAD go/no-go (clarity instruments; SESSION B; ~30 min/device)
 
 **Prerequisite:** a native `SpeechActivityMonitor` adapter, built AFTER Session A's

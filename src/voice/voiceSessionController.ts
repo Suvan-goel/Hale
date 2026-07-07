@@ -28,6 +28,7 @@ import {
   TrainingPhase,
   TrainingSessionPlayer,
   TrainingSessionResult,
+  type TrainingSessionPlayerOptions,
 } from '../training/sessionPlayer';
 import { PreflightCheck } from '../preflight/preflight';
 import type { VoiceIntent } from './intents';
@@ -49,6 +50,11 @@ export interface VoiceSessionControllerOptions {
   startedAtIso: string;
   exerciseIds: readonly string[];
   generatedExercises?: readonly TrainingSetRuntimeGeneratedExercise[];
+  /** Injectable catalogue seams (programme v2 bridge); defaults = registry. */
+  resolveExercise?: TrainingSessionPlayerOptions['resolveExercise'];
+  resolveSafetyProfile?: TrainingSessionPlayerOptions['resolveSafetyProfile'];
+  /** Activation stamp (funnel v3): true when this is her first-ever session. */
+  firstSessionStarted?: boolean;
   funnelStore: SessionFunnelStore;
   onComplete: (result: TrainingSessionResult) => void;
   /** Cumulative finished items at every item boundary (resume snapshots). */
@@ -79,6 +85,8 @@ export class VoiceSessionController {
       {
         sessionMode: 'voice_guided',
         generatedExercises: options.generatedExercises,
+        resolveExercise: options.resolveExercise,
+        resolveSafetyProfile: options.resolveSafetyProfile,
       }
     );
   }
@@ -171,6 +179,7 @@ export class VoiceSessionController {
           voiceIntentCounts: this.voiceIntentCounts,
           tapActionCounts: this.tapActionCounts,
           painEvents: this.player.painEventsSnapshot(),
+          firstSessionStarted: this.options.firstSessionStarted === true,
         })
       );
     } catch (error) {

@@ -42,7 +42,7 @@ import {
   VOICE_GATE_COPY,
   type VoiceSetupPrefs,
 } from '../voice/voicePermissionGate';
-import { VoiceSessionController } from '../voice/voiceSessionController';
+import { VoiceSessionController, type VoiceSessionControllerOptions } from '../voice/voiceSessionController';
 
 const TICK_MS = 250;
 
@@ -76,6 +76,9 @@ export function VoiceSessionScreen({
   onItemCompleted,
   voiceId,
   generatedExercises,
+  resolveExercise,
+  resolveSafetyProfile,
+  firstSessionStarted,
   voiceSetup,
   onVoiceSetupChange,
 }: {
@@ -87,6 +90,11 @@ export function VoiceSessionScreen({
   onItemCompleted?: (completedItems: TrainingItemResult[]) => void;
   voiceId?: string;
   generatedExercises?: readonly TrainingSetRuntimeGeneratedExercise[];
+  /** Injectable catalogue seams (programme v2 bridge); defaults = registry. */
+  resolveExercise?: (exerciseId: string) => ReturnType<typeof getExercise>;
+  resolveSafetyProfile?: VoiceSessionControllerOptions['resolveSafetyProfile'];
+  /** Activation stamp for the funnel record (programme v2 first session). */
+  firstSessionStarted?: boolean;
   voiceSetup: VoiceSetupPrefs;
   onVoiceSetupChange: (next: VoiceSetupPrefs) => void;
 }) {
@@ -99,6 +107,9 @@ export function VoiceSessionScreen({
         startedAtIso: sessionStartedAtIso,
         exerciseIds,
         generatedExercises,
+        resolveExercise,
+        resolveSafetyProfile,
+        firstSessionStarted,
         funnelStore: new SessionFunnelStore(expoSessionFunnelFs),
         onComplete: (result) => {
           completedRef.current = true;
@@ -206,7 +217,7 @@ export function VoiceSessionScreen({
   const exerciseName = snapshot.exerciseId
     ? (() => {
         try {
-          return getExercise(snapshot.exerciseId as string).displayName;
+          return (resolveExercise ?? getExercise)(snapshot.exerciseId as string).displayName;
         } catch {
           return snapshot.exerciseId;
         }

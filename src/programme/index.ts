@@ -133,3 +133,16 @@ export {
   surfaceAlreadyShown,
 } from './postOnboarding';
 export type { AssessmentReoffer, OneTimeSurfaceId } from './postOnboarding';
+export {
+  PROGRAMME_PREP_ITEM_ID,
+  allProgrammeVoiceExerciseIds,
+  programmeVoiceExerciseDefinition,
+  programmeVoiceSafetyProfile,
+  withSupportCues,
+} from './voiceCatalog';
+export { PROGRAMME_VOICE_LINES, programmeInstructionCueKey } from './voiceScripts';
+export {
+  programmeResultsFromVoiceSession,
+  voiceSessionInputsFromPlan,
+} from './voiceSession';
+export type { ProgrammeVoiceSessionInputs } from './voiceSession';

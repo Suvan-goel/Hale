@@ -212,6 +212,14 @@ export interface TrainingSessionPlayerOptions {
   readonly restoredSetRuntime?: SerializedTrainingSetRuntime | null;
   /** Default camera_conducted — every existing construction is unchanged. */
   readonly sessionMode?: TrainingSessionMode;
+  /**
+   * Definition + safety-profile sources, injectable for catalogues that live
+   * outside the shared exercise registry (programme v2 voice bridge — C4:
+   * the parallel engine must not couple into old-engine per-exercise
+   * governance). Defaults preserve today's registry lookups exactly.
+   */
+  readonly resolveExercise?: (exerciseId: string) => ExerciseDefinition;
+  readonly resolveSafetyProfile?: (exerciseId: string) => PlannedExerciseSafetyCueProfile;
 }
 
 /**
@@ -356,11 +364,14 @@ export class TrainingSessionPlayer {
     this.config = config;
     this.options = options;
     this.isVoiceMode = options.sessionMode === 'voice_guided';
-    this.definitions = exerciseIds.map((id) => getExercise(id));
+    this.definitions = exerciseIds.map(options.resolveExercise ?? getExercise);
     this.generatedByExerciseId = new Map(
       (options.generatedExercises ?? []).map((exercise) => [exercise.exerciseId, exercise])
     );
-    this.safetySnapshot = plannedSafetyCueSnapshotForExercises(exerciseIds);
+    this.safetySnapshot = plannedSafetyCueSnapshotForExercises(
+      exerciseIds,
+      options.resolveSafetyProfile
+    );
     this.safetyByExerciseId = new Map(
       this.safetySnapshot.exerciseProfiles.map((profile) => [profile.exerciseId, profile])
     );

@@ -37,6 +37,7 @@ import {
   movementProfileV2AudioMetadataFor,
 } from '../src/audio/movementProfileV2Audio';
 import { MOVEMENT_PROFILE_V2_AUDIO_ASSET_METADATA } from '../src/audio/movementProfileV2AudioManifest';
+import { PROGRAMME_VOICE_LINES } from '../src/programme/voiceScripts';
 import { VOICE_SESSION_LINE_SCRIPTS } from '../src/audio/voiceSessionLineScripts';
 import { SAFETY_AUDIO_ASSET_METADATA } from '../src/audio/safetyAudioManifest';
 import {
@@ -65,6 +66,9 @@ const LINES: Record<string, string> = {
   // (pure module) so CI's hot-phrase guardrail lints them — the safety
   // vocabulary listens while these lines play.
   ...VOICE_SESSION_LINE_SCRIPTS,
+  // Programme v2 session lines (src/programme/voiceScripts.ts) — same
+  // pure-module + guardrail-lint discipline as the voice-session lines.
+  ...PROGRAMME_VOICE_LINES,
   // Settings voice picker.
   'voice-preview':
     "Hi, I'm {voiceName}. I'll guide you one step at a time.",

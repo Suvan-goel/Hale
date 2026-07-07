@@ -4672,3 +4672,51 @@ proceeds in its own working session once ruled.
   never touches player code"). verify:audio hard-gates only safety+MPV2
   groups, so script keys may land before the founder audio run; missing
   assets must degrade gracefully until then.
+
+## 2026-07-07 — Programme→voice bridge built: v2 sessions run on the real voice player
+
+- **What shipped:** the flag-gated programme v2 shell now runs its sessions
+  through the PRODUCTION voice-guided player (ready-gated, self-paced, tap
+  parity, always-on safety words, ±rep adjustment, abandonment funnels) —
+  the tap-driven placeholder runner (ProgrammeSessionScreen) is deleted.
+  New modules: src/programme/voiceCatalog.ts (voice-only ExerciseDefinitions
+  + equipment-composed safety profiles for the full catalogue incl.
+  no-stairs alternates, prep, finisher), voiceScripts.ts (95 instruction
+  lines, hot-phrase-linted with ZERO tolerance, wired into generate-audio —
+  the founder audio run is now one command), voiceSession.ts (plan→player
+  inputs; player results→ProgrammeSessionResults).
+- **EXAMINED DEVIATION from the same-day recon conclusion (was: register
+  into the shared exercise registry).** Reconnaissance found every registry
+  sweep carries old-engine per-exercise governance — instruction profiles
+  pinned at exactly 37, voiceV21 contracts reconciled against the OLD
+  ladders, release-policy snapshots — which ~90 programme exercises must not
+  couple into (C4 zero-coupling). The bridge therefore injects definitions
+  through additive resolver seams: TrainingSessionPlayerOptions
+  {resolveExercise, resolveSafetyProfile} (defaults preserve registry
+  behaviour byte-identically; existing suites pass unchanged), forwarded
+  through VoiceSessionController and VoiceSessionScreen. Same pattern as the
+  ratified flow-level batterySequence amendment: the stricter reading of the
+  architecture law wins ("adding an exercise never touches player code" —
+  a one-time seam, then the catalogue grows player-untouched).
+- **Reported-only semantics preserved by construction (C10/N5):** doses
+  arrive via generatedExercises; reps sets confirm the prescribed target on
+  "done" (reportedReps, adjustments in place); timed sets run the player's
+  clock; per-side timed windows = target×2+10s swap buffer with the swap
+  spoken in the instruction line. Pain halts map to painFlag on the pattern
+  outcome (completed sets kept) → §12 pain regression. Deliberate skips
+  produce NO outcome. Pain during warm-up/finisher clears the credit flags
+  but has no ladder to regress — recorded v1 limitation.
+- **One funnel record per session:** the controller owns it; the shell's
+  duplicate write was removed; firstSessionStarted (funnel v3) passes
+  through controller options so the activation stamp rides the same record.
+- **Effort check-in** is a shell phase after onComplete (C9 RPE card);
+  voiceSetup prefs load/persist through the existing Preferences store.
+- **Verified:** 205 suites / 1748 tests green (bridge tests drive a REAL
+  end-to-end voice session through the actual player with no registry);
+  tsc + expo config clean. Device coverage: new Block 6b appended to
+  docs/DEVICE_SESSION_PROTOCOL.md (frozen spike criteria untouched);
+  silent-pass rules recorded for pre-audio builds.
+- **Still owed on this surface:** founder ElevenLabs generation for the
+  prog-* lines (runner is caption-only until then); bonus-set offer surface
+  (plan.bonusSetEligible is computed but not yet offered in-session —
+  PLANNED, needs a player-level extra-set affordance); Block 6b device pass.

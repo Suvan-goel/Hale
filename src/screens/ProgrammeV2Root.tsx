@@ -51,14 +51,33 @@ import {
   type SessionRpe,
 } from '../programme';
 import type { OnboardingQuestionStepId } from '../programme';
-import { ProfileStore } from '../profile';
+import { ProfileStore, type Preferences } from '../profile';
+import type { TrainingSessionResult } from '../training/sessionPlayer';
+import { DEFAULT_VOICE_SETUP_PREFS, type VoiceSetupPrefs } from '../voice/voicePermissionGate';
 import { ProgrammeCheckupZeroScreen } from './ProgrammeCheckupZeroScreen';
-import { buildStoredSessionFunnel, SessionFunnelStore } from '../telemetry';
-import { createExpoSessionFunnelFs } from '../telemetry/fsAdapter';
 import { ProgrammeOnboardingScreen } from './ProgrammeOnboardingScreen';
-import { ProgrammeSessionScreen } from './ProgrammeSessionScreen';
+import { VoiceSessionScreen } from './VoiceSessionScreen';
+import {
+  programmeResultsFromVoiceSession,
+  voiceSessionInputsFromPlan,
+} from '../programme';
 
-type ShellPhase = 'loading' | 'onboarding' | 'home' | 'session' | 'session_done' | 'assessment';
+type ShellPhase =
+  | 'loading'
+  | 'onboarding'
+  | 'home'
+  | 'session'
+  | 'effort'
+  | 'session_done'
+  | 'assessment';
+
+const RPE_OPTIONS: readonly { value: SessionRpe; label: string }[] = [
+  { value: 1, label: 'Easy — I had lots more in me' },
+  { value: 2, label: 'Fairly easy' },
+  { value: 3, label: 'Worked, with a few left in the tank' },
+  { value: 4, label: 'Hard, but a couple left' },
+  { value: 5, label: 'Nothing left' },
+];
 
 export function ProgrammeV2Root() {
   // Dev shell runs guest-scoped; the flag audit keeps this path out of
@@ -67,12 +86,13 @@ export function ProgrammeV2Root() {
   const store = React.useMemo(() => new ProgrammeStore(localFs), [localFs]);
   const profileStore = React.useMemo(() => new ProfileStore(localFs), [localFs]);
   const historyStore = React.useMemo(() => new HistoryStore(localFs), [localFs]);
-  const funnelStore = React.useMemo(() => new SessionFunnelStore(createExpoSessionFunnelFs()), []);
 
   const [phase, setPhase] = React.useState<ShellPhase>('loading');
   const [programmeState, setProgrammeState] = React.useState<ProgrammeState | null>(null);
+  const [prefs, setPrefs] = React.useState<Preferences | null>(null);
   const [flowState, setFlowState] = React.useState(initialOnboardingFlowState());
   const [plan, setPlan] = React.useState<ProgrammeSessionPlan | null>(null);
+  const [sessionResult, setSessionResult] = React.useState<TrainingSessionResult | null>(null);
   const [lastDecisions, setLastDecisions] = React.useState<
     Partial<Record<ProgrammePattern, PromotionDecision>>
   >({});
@@ -81,18 +101,32 @@ export function ProgrammeV2Root() {
 
   React.useEffect(() => {
     let cancelled = false;
-    store.load().then((loaded) => {
+    Promise.all([store.load(), profileStore.load()]).then(([loaded, loadedPrefs]) => {
       if (cancelled) return;
       // 14+ days away → one level down everywhere, once per gap (§12).
       const regression = applyInactivityRegressionIfDue(loaded, new Date().toISOString());
       if (regression.applied) store.save(regression.state);
       setProgrammeState(regression.state);
+      setPrefs(loadedPrefs);
       setPhase(regression.state.onboardingCompletedAtIso ? 'home' : 'onboarding');
     });
     return () => {
       cancelled = true;
     };
-  }, [store]);
+  }, [store, profileStore]);
+
+  const voiceSetup: VoiceSetupPrefs = prefs?.settings.voiceSetup ?? DEFAULT_VOICE_SETUP_PREFS;
+  const handleVoiceSetupChange = React.useCallback(
+    (next: VoiceSetupPrefs) => {
+      setPrefs((current) => {
+        if (!current) return current;
+        const updated = { ...current, settings: { ...current.settings, voiceSetup: next } };
+        profileStore.save(updated);
+        return updated;
+      });
+    },
+    [profileStore]
+  );
 
   const persist = React.useCallback(
     (state: ProgrammeState) => {
@@ -107,13 +141,13 @@ export function ProgrammeV2Root() {
       const completion = completeOnboarding(flowState);
       persist(completion.programmeState);
       // Hand off to the EXISTING profile surfaces (C6/C8).
-      const prefs = await profileStore.load();
+      const currentPrefs = prefs ?? (await profileStore.load());
       const nowIso = new Date().toISOString();
-      profileStore.save({
-        ...prefs,
+      const nextPrefs = {
+        ...currentPrefs,
         profile: {
-          ...prefs.profile,
-          menopauseStage: completion.menopauseStage ?? prefs.profile.menopauseStage,
+          ...currentPrefs.profile,
+          menopauseStage: completion.menopauseStage ?? currentPrefs.profile.menopauseStage,
           lifeGoal: completion.lifeGoalCategory
             ? {
                 id: `lifegoal-${Date.now()}`,
@@ -123,9 +157,11 @@ export function ProgrammeV2Root() {
                 updatedAt: nowIso,
                 isPrimary: true,
               }
-            : prefs.profile.lifeGoal,
+            : currentPrefs.profile.lifeGoal,
         },
-      });
+      };
+      profileStore.save(nextPrefs);
+      setPrefs(nextPrefs);
       if (startNow) {
         // First session defaults to the 15-minute minimum-dose preset (§7).
         setPlan(
@@ -140,7 +176,7 @@ export function ProgrammeV2Root() {
         setPhase('home');
       }
     },
-    [flowState, persist, profileStore]
+    [flowState, persist, prefs, profileStore]
   );
 
   const startSessionFromHome = React.useCallback(() => {
@@ -164,8 +200,10 @@ export function ProgrammeV2Root() {
   }, [programmeState, persist]);
 
   const handleSessionStart = React.useCallback(() => {
-    if (!programmeState) return;
-    // The activation event: written at START, not at generation (Q4).
+    if (!programmeState || sessionStartRef.current) return;
+    // The activation event: written at START, not at generation (Q4). The
+    // funnel record itself (with the v3 firstSessionStarted stamp) is owned
+    // by the VoiceSessionController — one record per session, never two.
     const wasFirstSession = !programmeState.profile.firstSessionStarted;
     sessionStartRef.current = { startedAtIso: new Date().toISOString(), wasFirstSession };
     persist(markFirstSessionStarted(programmeState));
@@ -182,27 +220,11 @@ export function ProgrammeV2Root() {
       });
       persist(applied.state);
       setLastDecisions(applied.decisions);
-      const start = sessionStartRef.current;
-      funnelStore.save(
-        buildStoredSessionFunnel({
-          startedAt: start?.startedAtIso ?? results.completedAtIso,
-          endedAt: results.completedAtIso,
-          outcome: 'completed',
-          funnel: {
-            timeToFirstSetMs: null,
-            timeToFirstRepMs: null,
-            setupIssueCount: 0,
-            items: [],
-            endedInPhase: 'done',
-            completed: true,
-          },
-          firstSessionStarted: start?.wasFirstSession === true,
-        })
-      );
       sessionStartRef.current = null;
+      setSessionResult(null);
       setPhase('session_done');
     },
-    [programmeState, plan, persist, funnelStore]
+    [programmeState, plan, persist]
   );
 
   if (phase === 'loading' || !programmeState) return <Screen>{null}</Screen>;
@@ -278,8 +300,55 @@ export function ProgrammeV2Root() {
         />
       );
     }
+    // The real v1 session surface: the voice-guided player (ready-gated,
+    // self-paced, tap parity, always-on safety words) over the programme
+    // plan via the bridge. The activation event fires on mount (Q4).
     return (
-      <ProgrammeSessionScreen plan={plan} onStart={handleSessionStart} onFinish={handleSessionFinish} />
+      <ProgrammeVoiceSession
+        plan={plan}
+        voiceId={prefs?.settings.voiceId}
+        firstSessionStarted={!programmeState.profile.firstSessionStarted}
+        voiceSetup={voiceSetup}
+        onVoiceSetupChange={handleVoiceSetupChange}
+        onStart={handleSessionStart}
+        onComplete={(result) => {
+          setSessionResult(result);
+          setPhase('effort');
+        }}
+        onCancel={() => {
+          // Abandonment funnel is recorded by the controller on unmount.
+          sessionStartRef.current = null;
+          setPlan(null);
+          setPhase('home');
+        }}
+      />
+    );
+  }
+
+  if (phase === 'effort' && plan && sessionResult) {
+    // The C9 effort check-in (session RPE) — the one answer promotion needs.
+    return (
+      <Screen>
+        <View style={{ flex: 1, padding: 24, gap: 16, justifyContent: 'center' }}>
+          <Typography variant="h2">How did that feel?</Typography>
+          <Typography variant="body">Could you have done more?</Typography>
+          {RPE_OPTIONS.map((option) => (
+            <Button
+              key={option.value}
+              title={option.label}
+              variant="secondary"
+              onPress={() =>
+                handleSessionFinish(programmeResultsFromVoiceSession(plan, sessionResult), option.value)
+              }
+            />
+          ))}
+          <Button
+            title="Skip"
+            variant="ghost"
+            onPress={() => handleSessionFinish(programmeResultsFromVoiceSession(plan, sessionResult), null)}
+          />
+        </View>
+      </Screen>
     );
   }
 
@@ -445,6 +514,49 @@ export function ProgrammeV2Root() {
         ) : null}
       </View>
     </Screen>
+  );
+}
+
+function ProgrammeVoiceSession({
+  plan,
+  voiceId,
+  firstSessionStarted,
+  voiceSetup,
+  onVoiceSetupChange,
+  onStart,
+  onComplete,
+  onCancel,
+}: {
+  plan: ProgrammeSessionPlan;
+  voiceId?: string;
+  firstSessionStarted: boolean;
+  voiceSetup: VoiceSetupPrefs;
+  onVoiceSetupChange: (next: VoiceSetupPrefs) => void;
+  /** Fired once on mount — the activation moment (Q4: started, not generated). */
+  onStart: () => void;
+  onComplete: (result: TrainingSessionResult) => void;
+  onCancel: () => void;
+}) {
+  const inputs = React.useMemo(() => voiceSessionInputsFromPlan(plan), [plan]);
+  React.useEffect(() => {
+    onStart();
+    // Fire exactly once per mounted session; onStart guards re-entry itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return (
+    <VoiceSessionScreen
+      exerciseIds={inputs.exerciseIds}
+      generatedExercises={inputs.generatedExercises}
+      resolveExercise={inputs.resolveExercise}
+      resolveSafetyProfile={inputs.resolveSafetyProfile}
+      sessionTitle="Your session"
+      voiceId={voiceId}
+      firstSessionStarted={firstSessionStarted}
+      voiceSetup={voiceSetup}
+      onVoiceSetupChange={onVoiceSetupChange}
+      onComplete={onComplete}
+      onCancel={onCancel}
+    />
   );
 }
 

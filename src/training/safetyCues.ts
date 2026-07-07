@@ -395,9 +395,12 @@ export function exerciseSafetySummaryText(exerciseId: string): string[] {
 }
 
 export function plannedSafetyCueSnapshotForExercises(
-  exerciseIds: readonly string[]
+  exerciseIds: readonly string[],
+  // Injectable for catalogues outside the shared registry (programme v2
+  // bridge); the default keeps every existing call byte-identical.
+  resolveProfile: (exerciseId: string) => PlannedExerciseSafetyCueProfile = requireExerciseSafetyCueProfile
 ): PlannedSafetyCueSnapshot {
-  const exerciseProfiles = exerciseIds.map(requireExerciseSafetyCueProfile);
+  const exerciseProfiles = exerciseIds.map(resolveProfile);
   const snapshot: PlannedSafetyCueSnapshot = {
     schemaVersion: SAFETY_CUE_SCHEMA_VERSION,
     globalCueIds: SESSION_GLOBAL_SAFETY_CUE_IDS,
