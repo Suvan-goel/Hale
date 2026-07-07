@@ -43,6 +43,17 @@ export interface StartListeningOptions {
    * use). false = single-shot (spike harness trials).
    */
   continuous?: boolean;
+  /**
+   * PRESENCE-ONLY mode (clarity dual-task VAD, second scoped amendment):
+   * transcript events are suppressed entirely — text never crosses the
+   * bridge — and onSpeechActivity emits speaking booleans derived natively.
+   */
+  presenceOnly?: boolean;
+}
+
+export interface SpeechActivityEventPayload {
+  speaking: boolean;
+  timestampMs: number;
 }
 
 export interface TranscriptEventPayload {
@@ -75,4 +86,6 @@ export type ExpoVoiceCommandsEvents = {
   onTranscript: (payload: TranscriptEventPayload) => void;
   onListeningChange: (payload: ListeningChangePayload) => void;
   onVoiceError: (payload: VoiceErrorPayload) => void;
+  /** presenceOnly windows only — booleans and timestamps, never text. */
+  onSpeechActivity: (payload: SpeechActivityEventPayload) => void;
 };

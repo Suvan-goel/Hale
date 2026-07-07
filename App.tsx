@@ -252,6 +252,9 @@ import {
   type FluencyTranscriber,
   type FluencyTranscriberAvailability,
 } from './src/voice/fluencyTranscriber';
+import { createSanitizedFluencyTranscriber } from './src/voice/fluencyTranscriber';
+import { createNativeFluencyEngine } from './src/voice/nativeFluency';
+import { createNativeSpeechActivityMonitor } from './src/voice/nativeSpeechActivity';
 import { MovementProfileV2UnifiedResultsScreen } from './src/screens/MovementProfileV2UnifiedResultsScreen';
 import { MovementProfileV2PracticeResultsScreen } from './src/screens/MovementProfileV2PracticeResultsScreen';
 import { PlanScreen } from './src/screens/PlanScreen';
@@ -762,11 +765,22 @@ function HaleApp() {
     input: MovementProfileV2RawCompletion;
     eligibility: Extract<DualTaskEligibility, { kind: 'eligible' }>;
   } | null>(null);
-  const [speechMonitor] = React.useState<SpeechActivityMonitor>(() => defaultSpeechActivityMonitor());
+  // Native clarity-audio adapters mount ONLY behind the dev-only Clarity flag
+  // until device Blocks 7–8 pass (7.4 coexistence is a HARD GATE) — production
+  // stays 'unavailable', never flaky. Informal Option-A verdict 2026-07-07.
+  const [speechMonitor] = React.useState<SpeechActivityMonitor>(() =>
+    isClarityDimensionEnabled()
+      ? createNativeSpeechActivityMonitor()
+      : defaultSpeechActivityMonitor()
+  );
   const [speechMonitorAvailability, setSpeechMonitorAvailability] =
     React.useState<SpeechActivityAvailability>('unavailable');
   // Fluency segment (FL2): per-use consented; dark until device Block 8.
-  const [fluencyTranscriber] = React.useState<FluencyTranscriber>(() => defaultFluencyTranscriber());
+  const [fluencyTranscriber] = React.useState<FluencyTranscriber>(() =>
+    isClarityDimensionEnabled()
+      ? createSanitizedFluencyTranscriber(createNativeFluencyEngine())
+      : defaultFluencyTranscriber()
+  );
   const [fluencyAvailability, setFluencyAvailability] =
     React.useState<FluencyTranscriberAvailability>('unavailable');
   const [pendingFluency, setPendingFluency] = React.useState<{

@@ -4753,3 +4753,40 @@ proceeds in its own working session once ruled.
   engineering recommends deferral (pain regression covers the safety need),
   founder ruling required either way.
 - Verified: 207 suites / 1761 tests, tsc clean.
+
+## 2026-07-07 — Informal spike verdict: Option A declared working; engine-specific build proceeds
+
+- **FOUNDER AMENDMENT to the 2026-07-06 checkpoint ruling:** the founder
+  tested voice input on device informally and declared it working as
+  intended; no trial-matrix JSONs exist. This UNBLOCKS engine-specific
+  building against Option A (platform-native recognition). It does NOT
+  substitute for the frozen evidence: the §3/§4/§8 trial matrix, condition-G
+  soak, audio-routing rows, and the ×10 self-echo count remain owed at the
+  consolidated device evening, BEFORE BETA. Block 7.4 camera+mic coexistence
+  stays a HARD GATE; the Clarity instruments keep their production
+  'unavailable' defaults until Session B passes on device — built, dark,
+  never flaky.
+- **Native clarity-audio adapters BUILT:**
+  - `presenceOnly` mode added to expo-voice-commands (iOS + Android): in this
+    mode transcript events are SUPPRESSED natively and `onSpeechActivity`
+    emits speaking booleans — text never crosses the bridge in the check-up
+    flow ("speech presence, never content" holds at the module boundary).
+  - `createNativeSpeechActivityMonitor` (src/voice/nativeSpeechActivity.ts):
+    cumulative segment accumulation with an 800 ms pulse-hangover cap so
+    engine hiccups never inflate speech time; F5 pause semantics preserved.
+  - `createNativeFluencyEngine` (src/voice/nativeFluency.ts): on-device ASR
+    over the existing continuous window (no new native code needed); final
+    utterances → tokens; always consumed through the mandatory sanitizer;
+    early-stop supported. On-device honesty enforced natively (iOS errors
+    rather than server; Android prefer-offline caveat surfaces in
+    availability).
+  - App wiring: both adapters mount ONLY behind the dev-only
+    EXPO_PUBLIC_ENABLE_CLARITY_DIMENSION flag (reused deliberately — the
+    instruments are part of the Clarity feature; no new flag machinery);
+    production defaults unchanged.
+- **Hot-phrase allowlist RESOLVED (keep-wording):** per §8, a clean self-echo
+  keeps the 17 lines' wording; the founder's informal pass observed no
+  self-fires. The allowlist becomes the permanent registry of
+  legitimately-hot lines (safety cues that TEACH the word "stop"); the
+  tripwire against NEW colliding lines is unchanged; a non-zero formal echo
+  count at the device evening reopens the decision.

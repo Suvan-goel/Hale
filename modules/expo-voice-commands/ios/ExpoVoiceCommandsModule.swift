@@ -28,12 +28,13 @@ public class ExpoVoiceCommandsModule: Module {
   private var task: SFSpeechRecognitionTask?
   private var windowOpen = false
   private var continuous = false
+  private var presenceOnly = false
   private var localeId = "en-GB"
 
   public func definition() -> ModuleDefinition {
     Name("ExpoVoiceCommands")
 
-    Events("onTranscript", "onListeningChange", "onVoiceError")
+    Events("onTranscript", "onListeningChange", "onVoiceError", "onSpeechActivity")
 
     AsyncFunction("requestPermissionsAsync") { (promise: Promise) in
       // Both mic and speech-recognition authorization are required; the
@@ -93,6 +94,7 @@ public class ExpoVoiceCommandsModule: Module {
     stopListening(emitStopped: false)
 
     continuous = options["continuous"] as? Bool ?? false
+    presenceOnly = options["presenceOnly"] as? Bool ?? false
     if let locale = options["locale"] as? String, !locale.isEmpty {
       localeId = locale
     }
@@ -133,11 +135,7 @@ public class ExpoVoiceCommandsModule: Module {
     task = speechRecognizer.recognitionTask(with: recognitionRequest) { [weak self] result, error in
       guard let self else { return }
       if let result {
-        self.sendEvent("onTranscript", [
-          "transcript": result.bestTranscription.formattedString,
-          "isFinal": result.isFinal,
-          "timestampMs": Date().timeIntervalSince1970 * 1000,
-        ])
+        self.emitRecognition(result)
         if result.isFinal {
           self.handleUtteranceEnd(reason: "ended")
           return
@@ -161,6 +159,30 @@ public class ExpoVoiceCommandsModule: Module {
     }
 
     sendEvent("onListeningChange", ["listening": true, "reason": "started"])
+  }
+
+  /**
+   * Presence-only windows (clarity VAD): text is derived and DISCARDED here,
+   * native-side — only speaking booleans cross the bridge. Command windows
+   * emit the transient transcript exactly as before.
+   */
+  private func emitRecognition(_ result: SFSpeechRecognitionResult) {
+    let atMs = Date().timeIntervalSince1970 * 1000
+    if presenceOnly {
+      let hasSpeech = !result.bestTranscription.formattedString.isEmpty
+      if hasSpeech {
+        sendEvent("onSpeechActivity", ["speaking": true, "timestampMs": atMs])
+      }
+      if result.isFinal {
+        sendEvent("onSpeechActivity", ["speaking": false, "timestampMs": atMs])
+      }
+      return
+    }
+    sendEvent("onTranscript", [
+      "transcript": result.bestTranscription.formattedString,
+      "isFinal": result.isFinal,
+      "timestampMs": atMs,
+    ])
   }
 
   /** One utterance finished: re-arm inside a continuous window, else close. */
@@ -201,11 +223,7 @@ public class ExpoVoiceCommandsModule: Module {
     task = speechRecognizer.recognitionTask(with: recognitionRequest) { [weak self] result, error in
       guard let self else { return }
       if let result {
-        self.sendEvent("onTranscript", [
-          "transcript": result.bestTranscription.formattedString,
-          "isFinal": result.isFinal,
-          "timestampMs": Date().timeIntervalSince1970 * 1000,
-        ])
+        self.emitRecognition(result)
         if result.isFinal {
           self.handleUtteranceEnd(reason: "ended")
           return

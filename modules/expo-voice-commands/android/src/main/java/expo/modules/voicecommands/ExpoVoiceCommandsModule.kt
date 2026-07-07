@@ -32,12 +32,13 @@ class ExpoVoiceCommandsModule : Module() {
   private var recognizer: SpeechRecognizer? = null
   private var windowOpen = false
   private var continuous = false
+  private var presenceOnly = false
   private var localeTag = DEFAULT_LOCALE
 
   override fun definition() = ModuleDefinition {
     Name("ExpoVoiceCommands")
 
-    Events(EVENT_TRANSCRIPT, EVENT_LISTENING_CHANGE, EVENT_ERROR)
+    Events(EVENT_TRANSCRIPT, EVENT_LISTENING_CHANGE, EVENT_ERROR, EVENT_SPEECH_ACTIVITY)
 
     AsyncFunction("requestPermissionsAsync") { promise: Promise ->
       Permissions.askForPermissionsWithPermissionsManager(
@@ -101,6 +102,7 @@ class ExpoVoiceCommandsModule : Module() {
     stopListening(emitStopped = false)
 
     continuous = options["continuous"] == true
+    presenceOnly = options["presenceOnly"] == true
     localeTag = (options["locale"] as? String)?.takeIf { it.isNotBlank() } ?: DEFAULT_LOCALE
 
     val created =
@@ -162,6 +164,13 @@ class ExpoVoiceCommandsModule : Module() {
     val texts = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION) ?: return
     val transcript = texts.firstOrNull()?.trim().orEmpty()
     if (transcript.isEmpty()) return
+    // Presence-only windows (clarity VAD): text is derived and DISCARDED
+    // here — only speaking booleans cross the bridge.
+    if (presenceOnly) {
+      emitSpeechActivity(speaking = true)
+      if (isFinal) emitSpeechActivity(speaking = false)
+      return
+    }
     sendEvent(
       EVENT_TRANSCRIPT,
       mapOf(
@@ -169,6 +178,13 @@ class ExpoVoiceCommandsModule : Module() {
         "isFinal" to isFinal,
         "timestampMs" to System.currentTimeMillis()
       )
+    )
+  }
+
+  private fun emitSpeechActivity(speaking: Boolean) {
+    sendEvent(
+      EVENT_SPEECH_ACTIVITY,
+      mapOf("speaking" to speaking, "timestampMs" to System.currentTimeMillis())
     )
   }
 
@@ -203,10 +219,14 @@ class ExpoVoiceCommandsModule : Module() {
       }
     }
 
-    override fun onBeginningOfSpeech() = Unit
+    override fun onBeginningOfSpeech() {
+      if (presenceOnly) emitSpeechActivity(speaking = true)
+    }
     override fun onRmsChanged(rmsdB: Float) = Unit
     override fun onBufferReceived(buffer: ByteArray?) = Unit
-    override fun onEndOfSpeech() = Unit
+    override fun onEndOfSpeech() {
+      if (presenceOnly) emitSpeechActivity(speaking = false)
+    }
     override fun onEvent(eventType: Int, params: Bundle?) = Unit
   }
 
@@ -227,6 +247,7 @@ class ExpoVoiceCommandsModule : Module() {
     const val EVENT_TRANSCRIPT = "onTranscript"
     const val EVENT_LISTENING_CHANGE = "onListeningChange"
     const val EVENT_ERROR = "onVoiceError"
+    const val EVENT_SPEECH_ACTIVITY = "onSpeechActivity"
     const val DEFAULT_LOCALE = "en-GB"
   }
 }

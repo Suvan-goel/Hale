@@ -6,11 +6,15 @@
  * listening is on. The lint uses the matcher's comparator, so neighborhood
  * coverage can never drift from live behavior.
  *
- * KNOWN_COLLIDING_LINES is a TEMPORARY allowlist of today's bundled lines
- * that speak "stop"/"pause(d)" — inventoried 2026-07-05, decision on
- * reword-vs-suppress pending the spike's self-echo test (criteria §8). It
- * MUST be emptied before hot listening ships (week 3); this test fails the
- * moment a NEW colliding line is added anywhere in the corpus.
+ * KNOWN_COLLIDING_LINES: inventoried 2026-07-05 as a temporary allowlist
+ * pending the §8 self-echo verdict. RESOLVED 2026-07-07 (founder's informal
+ * spike pass, decisions.md): the lines KEEP their wording — the safety cues
+ * legitimately teach the word "stop", and no self-fires were observed in the
+ * founder's informal run. The list is now the PERMANENT registry of lines
+ * allowed to speak hot words; this test still fails the moment a NEW
+ * colliding line is added anywhere in the corpus. The formal ×10 self-echo
+ * count remains owed at the consolidated device evening (before beta) — a
+ * non-zero count there reopens reword-vs-suppress.
  */
 
 import { VOICE_SESSION_LINE_SCRIPTS } from '../../audio/voiceSessionLineScripts';
