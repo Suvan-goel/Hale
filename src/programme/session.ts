@@ -400,6 +400,12 @@ export interface ProgrammeSessionResults {
   prepCompleted: boolean;
   finisherCompleted: boolean;
   completedAtIso: string;
+  /**
+   * Session-level effort (C9: RPE-mapped, same value the caller stamped on
+   * the outcomes). Persisted as lastSessionEffort so the next session's
+   * bonus-set offer survives a restart; absent/null = check-in skipped.
+   */
+  sessionEffort?: EffortAnswer | null;
 }
 
 export interface AppliedProgrammeSession {
@@ -476,6 +482,7 @@ export function applyProgrammeSessionResults(
       finisher,
       completedSessionCount: state.completedSessionCount + 1,
       lastSessionAtIso: results.completedAtIso,
+      lastSessionEffort: results.sessionEffort ?? null,
     },
     decisions,
   };

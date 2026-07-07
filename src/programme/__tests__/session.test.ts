@@ -499,4 +499,27 @@ describe('session completion applier', () => {
     // session runner does, at START (conformance Q4).
     expect(applied.state.profile.firstSessionStarted).toBe(false);
   });
+
+  it('persists the session effort answer (bonus-set offer survives a restart) and clears it when skipped', () => {
+    const state = onboardedState();
+    const plan = generateProgrammeSession({ state, template: 'A', preset: 'standard' });
+    const answered = applyProgrammeSessionResults(state, plan, {
+      outcomes: [],
+      prepCompleted: true,
+      finisherCompleted: true,
+      completedAtIso: '2026-07-06T10:20:00.000Z',
+      sessionEffort: 'lots',
+    });
+    expect(answered.state.lastSessionEffort).toBe('lots');
+
+    // A skipped check-in overwrites — a stale 'lots' must never keep offering
+    // bonus sets on unknown effort (conservative default).
+    const skipped = applyProgrammeSessionResults(answered.state, plan, {
+      outcomes: [],
+      prepCompleted: true,
+      finisherCompleted: true,
+      completedAtIso: '2026-07-07T10:20:00.000Z',
+    });
+    expect(skipped.state.lastSessionEffort).toBeNull();
+  });
 });

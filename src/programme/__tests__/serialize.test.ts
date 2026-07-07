@@ -62,6 +62,7 @@ describe('round-trip', () => {
       lastPerformedAtIso: '2026-07-06T10:00:00.000Z',
     };
     state.lastSessionAtIso = '2026-07-06T10:00:00.000Z';
+    state.lastSessionEffort = 'a_few';
 
     const json = serializeProgrammeState(state);
     expect(JSON.parse(json).schemaVersion).toBe(PROGRAMME_STATE_SCHEMA_VERSION);
@@ -92,6 +93,7 @@ describe('defensive parsing', () => {
         squat: { currentLevel: 42, consecutiveTopSessions: -3, recentPainFlags: [true, 'x', false, true] },
       },
       finisher: { track: 'impact', completedSessions: -1, currentContacts: 500 },
+      lastSessionEffort: 'maximum', // unknown → null (never promotes on unknown effort)
     });
     const state = deserializeProgrammeState(json);
     expect(state).not.toBeNull();
@@ -109,6 +111,7 @@ describe('defensive parsing', () => {
     expect(state?.finisher.track).toBe('quiet_power'); // impact is not a v1 value
     expect(state?.finisher.completedSessions).toBe(0);
     expect(state?.finisher.currentContacts).toBe(50); // clamped into 20–50
+    expect(state?.lastSessionEffort).toBeNull();
   });
 });
 

@@ -294,6 +294,12 @@ export interface ProgrammeState {
   completedSessionCount: number;
   /** Last completed session of any kind (drives the 14-day regression). */
   lastSessionAtIso: string | null;
+  /**
+   * Effort answer of the last completed session (C9: RPE-mapped). Persisted
+   * so the next session's bonus-set offer survives an app restart; null when
+   * the check-in was skipped (conservative: no offer).
+   */
+  lastSessionEffort: EffortAnswer | null;
   /** Guard so one inactivity gap regresses each ladder exactly once. */
   inactivityRegressionAppliedForGapEndingAtIso: string | null;
   /** Fingerprint of the ladder data + promotion config the state was built under. */

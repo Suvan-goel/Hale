@@ -16,6 +16,7 @@ import { programmePolicyFingerprint } from './policy';
 import {
   PROGRAMME_PATTERNS,
   type AssessmentStatus,
+  type EffortAnswer,
   type FinisherState,
   type GatewayProgress,
   type JointFlag,
@@ -36,6 +37,7 @@ const ACTIVITY_LEVELS: readonly ActivityLevel[] = [
   'very_active',
 ];
 const ASSESSMENT_STATUSES: readonly AssessmentStatus[] = ['done', 'deferred', 'skipped', 'bypassed_b1'];
+const EFFORT_ANSWERS: readonly EffortAnswer[] = ['none', 'a_few', 'lots'];
 const JOINT_FLAGS: readonly JointFlag[] = ['knee', 'hip', 'shoulder', 'wrist', 'low_back'];
 const WEEKDAYS: readonly Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
@@ -73,6 +75,7 @@ export function defaultProgrammeState(): ProgrammeState {
     onboardingCompletedAtIso: null,
     completedSessionCount: 0,
     lastSessionAtIso: null,
+    lastSessionEffort: null,
     inactivityRegressionAppliedForGapEndingAtIso: null,
     policyFingerprint: programmePolicyFingerprint(),
   };
@@ -98,6 +101,7 @@ export function deserializeProgrammeState(json: string): ProgrammeState | null {
     onboardingCompletedAtIso: isoOrNull(obj.onboardingCompletedAtIso),
     completedSessionCount: nonNegativeInt(obj.completedSessionCount),
     lastSessionAtIso: isoOrNull(obj.lastSessionAtIso),
+    lastSessionEffort: oneOf(obj.lastSessionEffort, EFFORT_ANSWERS) ?? null,
     inactivityRegressionAppliedForGapEndingAtIso: isoOrNull(
       obj.inactivityRegressionAppliedForGapEndingAtIso
     ),

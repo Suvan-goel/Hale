@@ -226,8 +226,11 @@ const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
   },
   d1_days: {
     id: 'd1_days',
+    // Honesty ruling 2026-07-07: nothing schedules around these days yet, so
+    // the "why" claims only the rhythm; scheduling copy returns with the
+    // local-notifications proposal.
     question: 'Which three days usually suit a short workout?',
-    whyWeAsk: 'Your plan builds itself around your week.',
+    whyWeAsk: 'Three short sessions a week is the rhythm — picking days makes it real.',
     multiSelect: true,
     options: [
       { value: 'mon', label: 'Monday' },

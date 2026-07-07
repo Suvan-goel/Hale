@@ -4628,3 +4628,47 @@ proceeds in its own working session once ruled.
   one measured hold is the placement signal and that <10 s forces support on
   (never-off already pinned in flow tests).
 - Engineering remains PAUSED; the device passes run against the protocol.
+
+## 2026-07-07 — Phase-1 build plan ratified; three founder rulings; shell-hardening slice
+
+- **Build plan of record (founder-approved):** Phase 1 pre-device software
+  (programme→voice bridge, shell hardening, Check-up #0 persistence,
+  programme voice-line scripts, device-protocol Block 6b) → Phase 2 batched
+  device evening (unchanged protocol + Block 6b) → Phase 3 post-verdict
+  engineering → Phase 4 validation/content convergence → Phase 5 promotion.
+- **Ruling 1 — pause scoped:** the 2026-07-06 engineering pause continues to
+  apply to MEASUREMENT-TOUCHING code (live coordinator, protocol controllers,
+  flow reducer) pending Pass A/B. Session-experience and shell work proceeds;
+  nothing in Phase 1 touches the surfaces the device passes verify.
+- **Ruling 2 — Check-up #0 records persist:** saved to check-up history like
+  every other check-up (raw at raw-ready via onRawCheckUpReady, overwritten
+  in place with the finalized record on complete, checkupType
+  manual_extra_v2). KNOWN LIMITATION, accepted: a crash between raw-save and
+  placement application leaves the record saved but placement unapplied — the
+  home-screen movement-check button remains the way back. Results/trends
+  surfaces must tolerate partial (two-protocol) batteries; the routine
+  4–6-week check-ups will produce the same shape.
+- **Ruling 3 — D1 copy honesty:** nothing schedules around the chosen days
+  yet, so the D1 "why we ask" no longer claims the plan builds around the
+  week; scheduling copy returns only with the local-notifications proposal.
+  chosenDays stays collected and stored.
+- **Shell-hardening slice (this commit):** the 14-day inactivity regression
+  is now WIRED (applied at shell load and re-checked at session generation;
+  was built-and-tested but dead code); the session effort answer persists as
+  `lastSessionEffort` on ProgrammeState (engine-owned via
+  ProgrammeSessionResults.sessionEffort — bonus-set offers survive restarts,
+  and a skipped check-in overwrites to null so stale 'lots' never keeps
+  offering on unknown effort); Check-up #0 persistence per ruling 2; stale
+  "both sides" comment corrected to the T1 single-side ruling.
+- **Bridge recon conclusion (design of record for Phase 1.1):** a
+  generatedExercises-only adapter is IMPOSSIBLE — TrainingSessionPlayer
+  hard-requires a registered ExerciseDefinition per id (constructor
+  getExercise) and a safety-cue profile per id (requireExerciseSafetyCueProfile
+  throws). The bridge therefore registers lightweight VOICE-ONLY
+  ExerciseDefinitions for the programme catalogue (kind from the level scheme,
+  doses always overridden by generatedExercises from the plan, createGrader
+  throwing — unreachable in voice mode, per-exercise instruction cue keys) +
+  safety-cue profiles, conforming to the registry law ("adding an exercise
+  never touches player code"). verify:audio hard-gates only safety+MPV2
+  groups, so script keys may land before the founder audio run; missing
+  assets must degrade gracefully until then.

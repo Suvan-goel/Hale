@@ -15,9 +15,11 @@ import { View } from 'react-native';
 import { LOCAL_USER_ID } from '../adherence';
 import { Button, Screen, Typography } from '../components/ui';
 import { createExpoHistoryFs } from '../history/fsAdapter';
+import { HistoryStore } from '../history';
 import {
   acknowledgeOnboardingStep,
   applyAssessmentPlacement,
+  applyInactivityRegressionIfDue,
   applyProgrammeSessionResults,
   assessmentInputsFromCheckUp,
   assessmentReoffer,
@@ -64,6 +66,7 @@ export function ProgrammeV2Root() {
   const localFs = React.useMemo(() => createExpoHistoryFs({ userId: null }), []);
   const store = React.useMemo(() => new ProgrammeStore(localFs), [localFs]);
   const profileStore = React.useMemo(() => new ProfileStore(localFs), [localFs]);
+  const historyStore = React.useMemo(() => new HistoryStore(localFs), [localFs]);
   const funnelStore = React.useMemo(() => new SessionFunnelStore(createExpoSessionFunnelFs()), []);
 
   const [phase, setPhase] = React.useState<ShellPhase>('loading');
@@ -75,14 +78,16 @@ export function ProgrammeV2Root() {
   >({});
   const [physioSignpostVisible, setPhysioSignpostVisible] = React.useState(false);
   const sessionStartRef = React.useRef<{ startedAtIso: string; wasFirstSession: boolean } | null>(null);
-  const lastEffortRef = React.useRef<SessionRpe | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
-    store.load().then((state) => {
+    store.load().then((loaded) => {
       if (cancelled) return;
-      setProgrammeState(state);
-      setPhase(state.onboardingCompletedAtIso ? 'home' : 'onboarding');
+      // 14+ days away → one level down everywhere, once per gap (§12).
+      const regression = applyInactivityRegressionIfDue(loaded, new Date().toISOString());
+      if (regression.applied) store.save(regression.state);
+      setProgrammeState(regression.state);
+      setPhase(regression.state.onboardingCompletedAtIso ? 'home' : 'onboarding');
     });
     return () => {
       cancelled = true;
@@ -140,17 +145,23 @@ export function ProgrammeV2Root() {
 
   const startSessionFromHome = React.useCallback(() => {
     if (!programmeState) return;
-    // A/B alternation by completed-session parity; effort from the last RPE.
+    // Re-check the inactivity gap at generation time — the app may have sat
+    // open (or backgrounded) across the 14-day boundary since load.
+    const regression = applyInactivityRegressionIfDue(programmeState, new Date().toISOString());
+    if (regression.applied) persist(regression.state);
+    const current = regression.state;
+    // A/B alternation by completed-session parity; effort from the persisted
+    // last-session answer (survives restarts).
     setPlan(
       generateProgrammeSession({
-        state: programmeState,
-        template: programmeState.completedSessionCount % 2 === 0 ? 'A' : 'B',
-        preset: programmeState.profile.firstSessionStarted ? 'standard' : 'first_session',
-        lastSessionEffort: effortFromRpe(lastEffortRef.current),
+        state: current,
+        template: current.completedSessionCount % 2 === 0 ? 'A' : 'B',
+        preset: current.profile.firstSessionStarted ? 'standard' : 'first_session',
+        lastSessionEffort: current.lastSessionEffort,
       })
     );
     setPhase('session');
-  }, [programmeState]);
+  }, [programmeState, persist]);
 
   const handleSessionStart = React.useCallback(() => {
     if (!programmeState) return;
@@ -164,10 +175,10 @@ export function ProgrammeV2Root() {
     (results: ProgrammeSessionResults, rpe: SessionRpe | null) => {
       if (!programmeState || !plan) return;
       const effort = effortFromRpe(rpe);
-      lastEffortRef.current = rpe;
       const applied = applyProgrammeSessionResults(programmeState, plan, {
         ...results,
         outcomes: results.outcomes.map((outcome) => ({ ...outcome, effort })),
+        sessionEffort: effort,
       });
       persist(applied.state);
       setLastDecisions(applied.decisions);
@@ -372,15 +383,34 @@ export function ProgrammeV2Root() {
 
   if (phase === 'assessment') {
     // The two-protocol Check-up #0 host (Option 1 build): warm-up →
-    // balance both sides → 30 s chair rise, run by the real unified
-    // machinery with the batterySequence derived from the pinned scope
-    // constant. 'Now' path (nothing trained) REPLACES placement with the −1
-    // easy start; any post-training-history path is upward-only.
+    // single-side balance (T1 ruling 2026-07-06) → 30 s chair rise, run by
+    // the real unified machinery with the batterySequence derived from the
+    // pinned scope constant. 'Now' path (nothing trained) REPLACES placement
+    // with the −1 easy start; any post-training-history path is upward-only.
     // Abandonment applies nothing, burns no once-only surface, and the home
     // button remains the permanent way back.
+    //
+    // Persistence ruling 2026-07-07: the measured record is saved to check-up
+    // history like every other check-up — raw at raw-ready (crash-safe),
+    // overwritten in place (same startedAt key) with the finalized record on
+    // complete. Known limitation, recorded in decisions.md: a crash between
+    // raw-save and placement leaves the record saved but placement unapplied;
+    // the home-screen movement-check button remains the way back.
     return (
       <ProgrammeCheckupZeroScreen
+        onRawCheckUpReady={(checkUp) => {
+          try {
+            historyStore.save(checkUp, { checkupType: 'manual_extra_v2' });
+          } catch (error) {
+            console.warn('[programme-v2] early raw check-up save failed', error);
+          }
+        }}
         onComplete={(checkUp) => {
+          try {
+            historyStore.save(checkUp, { checkupType: 'manual_extra_v2' });
+          } catch (error) {
+            console.warn('[programme-v2] final check-up save failed', error);
+          }
           const inputs = assessmentInputsFromCheckUp(checkUp);
           persist(
             applyAssessmentPlacement(programmeState, inputs, {

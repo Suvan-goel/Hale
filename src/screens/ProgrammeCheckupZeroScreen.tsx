@@ -31,10 +31,13 @@ const WARM_UP_SECONDS = 45;
 
 export function ProgrammeCheckupZeroScreen({
   onComplete,
+  onRawCheckUpReady,
   onCancel,
   voiceId,
 }: {
   onComplete: (checkUp: CheckUp) => void;
+  /** Fired the moment the measured battery exists — persist here (crash-safe). */
+  onRawCheckUpReady?: (checkUp: CheckUp) => void;
   onCancel: () => void;
   voiceId?: string;
 }) {
@@ -106,6 +109,7 @@ export function ProgrammeCheckupZeroScreen({
         sourceType: 'manual_extra_v2',
       }}
       voiceId={voiceId}
+      onRawCheckUpReady={onRawCheckUpReady ? ({ checkUp }) => onRawCheckUpReady(checkUp) : undefined}
       onComplete={({ checkUp }) => onComplete(checkUp)}
       onCancel={onCancel}
     />
