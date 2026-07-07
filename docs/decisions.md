@@ -4905,3 +4905,46 @@ proceeds in its own working session once ruled.
   the component would have made one of the two journeys dishonest.
 - Shell wiring: voiceId now passed to the Check-up #0 host (was silently
   defaulting). Verified: 209 suites / 1795 tests green, tsc + expo config clean.
+
+## 2026-07-07 — Promotion integration Phase 3: the v2 shell renders the real app surfaces
+
+- **TodayScreen gained a programme mode** (optional `programme` prop; the
+  old-engine `lifecycle` prop is now optional and unused on this path): the
+  same header/greeting, hero focus card and card language, driven by
+  `programmeTodayViewModel`. The measured movement-snapshot card is replaced
+  in v2 mode by a **levels card** (per-pattern level rows + "View your plan"
+  link) — v2 users have no official domain bands until they opt into the full
+  check-up, so level rows are the honest equivalent, not fake bands. The
+  persistent check-up offer (routine cadence / standing entry) renders as its
+  own card below the hero. No micro-check or block branches exist on this
+  path. Settings icon hides when no handler is wired (dev shell has none
+  until Phase 4).
+- **ProgrammePlanScreen built** — the "your levels + upcoming session" view
+  that replaces the block/week Plan tab at promotion, in the old Plan
+  screen's language (mountain hero + scrim + pill CTA, warm cards): levels
+  with plain-language names, chosen days as pills (labels from the D1
+  content-layer options — no new copy), and the movement-check card when an
+  offer stands. Level rows everywhere show the POST-EASING levels (computed
+  on a copy) so what's shown is what the next session runs; persisting the
+  easing stays at session start.
+- **Moment surfaces styled** (`ProgrammeMomentScreens.tsx`): a generic
+  ScreenHeader+panel+buttons moment screen for gateway teach / re-offers /
+  session-logged / band / doming / physio signpost, and the C9 effort
+  check-in as one-tap rail option cards. Copy and precedence come from the
+  Phase-1 adapter; the rail OptionCard was extracted to
+  `src/components/OptionCard.tsx` and is shared with onboarding.
+- **Dev-shell bug fixed in the rewire:** the deferred re-offer card's
+  "Sounds good — later" only cleared promotion decisions — the re-offer
+  policy is pure over state, so the same card re-rendered forever. Dismissal
+  now routes home, where the standing movement-check entry remains.
+- **Check-up #0 host restyled**: intro and warm-up now use the check-up
+  design language (ScreenHeader with the Movement-check eyebrow, surface
+  panel, serif countdown numeral, Primary/Secondary/Ghost buttons). Copy
+  UNCHANGED verbatim — those lines carry the truthful-copy criterion. The
+  measured battery path is untouched.
+- ProgrammeV2Root now renders TodayScreen / ProgrammePlanScreen / the moment
+  screens / ProgrammeEffortScreen in place of every bare PromptCard; the
+  PromptCard and its duplicated copy are deleted. Verified: 209 suites /
+  1795 tests green, tsc + expo config clean. Remaining for Phase 4:
+  peripherals + mounting AppGate in v2 mode (tabs, Progress/Explore/
+  Settings, account-scoped storage).

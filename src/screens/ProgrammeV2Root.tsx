@@ -10,10 +10,9 @@
  */
 
 import * as React from 'react';
-import { View } from 'react-native';
 
 import { LOCAL_USER_ID } from '../adherence';
-import { Button, Screen, Typography } from '../components/ui';
+import { Screen } from '../components/ui';
 import { createExpoHistoryFs } from '../history/fsAdapter';
 import { HistoryStore } from '../history';
 import {
@@ -22,27 +21,25 @@ import {
   applyInactivityRegressionIfDue,
   applyProgrammeSessionResults,
   assessmentInputsFromCheckUp,
-  assessmentReoffer,
   markSurfaceShown,
-  surfaceAlreadyShown,
   completeOnboarding,
   currentOnboardingStep,
   effortFromRpe,
   generateProgrammeSession,
-  getProgrammeLevel,
   initialOnboardingFlowState,
   markFirstSessionStarted,
   onboardingCompletionRoute,
+  PELVIC_PHYSIO_SIGNPOST_COPY,
+  postSessionSurface,
+  preSessionPrompt,
   ProgrammeStore,
-  programmeDisplayName,
+  programmeLevelRows,
+  programmeTodayViewModel,
   recordBandAnswer,
   recordDomingCheck,
   recordGatewayDemoWatched,
   recordGatewaySelfConfirmation,
   recordOnboardingAnswer,
-  routineCheckupDue,
-  shouldAskBandQuestion,
-  shouldShowDomingCheck,
   SKIPPED,
   undoLastOnboardingStep,
   type OnboardingAnswerValue,
@@ -58,7 +55,10 @@ import { ProfileStore, type Preferences } from '../profile';
 import type { TrainingSessionResult } from '../training/sessionPlayer';
 import { DEFAULT_VOICE_SETUP_PREFS, type VoiceSetupPrefs } from '../voice/voicePermissionGate';
 import { ProgrammeCheckupZeroScreen } from './ProgrammeCheckupZeroScreen';
+import { ProgrammeEffortScreen, ProgrammeMomentScreen } from './ProgrammeMomentScreens';
 import { ProgrammeOnboardingScreen } from './ProgrammeOnboardingScreen';
+import { ProgrammePlanScreen } from './ProgrammePlanScreen';
+import { TodayScreen } from './TodayScreen';
 import { VoiceSessionScreen } from './VoiceSessionScreen';
 import {
   programmeResultsFromVoiceSession,
@@ -69,18 +69,11 @@ type ShellPhase =
   | 'loading'
   | 'onboarding'
   | 'home'
+  | 'plan'
   | 'session'
   | 'effort'
   | 'session_done'
   | 'assessment';
-
-const RPE_OPTIONS: readonly { value: SessionRpe; label: string }[] = [
-  { value: 1, label: 'Easy — I had lots more in me' },
-  { value: 2, label: 'Fairly easy' },
-  { value: 3, label: 'Worked, with a few left in the tank' },
-  { value: 4, label: 'Hard, but a couple left' },
-  { value: 5, label: 'Nothing left' },
-];
 
 export function ProgrammeV2Root() {
   // Dev shell runs guest-scoped; the flag audit keeps this path out of
@@ -241,7 +234,7 @@ export function ProgrammeV2Root() {
     [programmeState, plan, persist]
   );
 
-  if (phase === 'loading' || !programmeState) return <Screen>{null}</Screen>;
+  if (phase === 'loading' || !programmeState || !prefs) return <Screen>{null}</Screen>;
 
   if (phase === 'onboarding') {
     return (
@@ -273,45 +266,55 @@ export function ProgrammeV2Root() {
   }
 
   if (phase === 'session' && plan) {
-    // In-context questions at their moment of effect (§8): the band question
-    // at the Pull L4 unlock; the doming check when core first features.
-    if (shouldAskBandQuestion(programmeState, plan)) {
+    // In-context questions at their moment of effect (§8): copy and
+    // precedence come from the adapter (band at the Pull L4 unlock first,
+    // then the doming check when core first features).
+    const prompt = preSessionPrompt(programmeState, plan);
+    if (prompt?.kind === 'band_question') {
       return (
-        <PromptCard
-          title="Do you have a resistance band?"
-          body="Today's pulling exercise gets a free upgrade with a long band — books-in-a-backpack works meanwhile."
+        <ProgrammeMomentScreen
+          eyebrow="Quick question"
+          title={prompt.title}
+          body={prompt.body}
           actions={[
-            { label: 'Yes, I have one', onPress: () => persist(recordBandAnswer(programmeState, true)) },
-            { label: 'Not yet', onPress: () => persist(recordBandAnswer(programmeState, false)) },
+            { label: prompt.yesLabel, onPress: () => persist(recordBandAnswer(programmeState, true)) },
+            { label: prompt.noLabel, onPress: () => persist(recordBandAnswer(programmeState, false)) },
           ]}
         />
       );
     }
-    if (shouldShowDomingCheck(programmeState, plan)) {
+    if (prompt?.kind === 'doming_check') {
       return (
-        <PromptCard
-          title="One quick check before the floor work"
-          body="Lying on your back, lift your head: if you see a bulge or ridge down the middle of your tummy, tap the first option — we'll choose kinder core work."
+        <ProgrammeMomentScreen
+          eyebrow="Quick question"
+          title={prompt.title}
+          body={prompt.body}
           actions={[
             {
-              label: 'I see a bulge',
+              label: prompt.yesLabel,
               onPress: () => {
                 const result = recordDomingCheck(programmeState, true);
                 persist(result.state);
                 setPhysioSignpostVisible(result.showPhysioSignpost);
               },
             },
-            { label: 'All looks fine', onPress: () => persist(recordDomingCheck(programmeState, false).state) },
+            {
+              label: prompt.noLabel,
+              onPress: () => persist(recordDomingCheck(programmeState, false).state),
+            },
           ]}
         />
       );
     }
     if (physioSignpostVisible) {
       return (
-        <PromptCard
-          title="Worth knowing"
-          body="A pelvic-health physiotherapist can help with this — it's common and very treatable. We've already adjusted your core work."
-          actions={[{ label: 'Got it', onPress: () => setPhysioSignpostVisible(false) }]}
+        <ProgrammeMomentScreen
+          eyebrow="Quick question"
+          title={PELVIC_PHYSIO_SIGNPOST_COPY.title}
+          body={PELVIC_PHYSIO_SIGNPOST_COPY.body}
+          actions={[
+            { label: PELVIC_PHYSIO_SIGNPOST_COPY.dismissLabel, onPress: () => setPhysioSignpostVisible(false) },
+          ]}
         />
       );
     }
@@ -343,109 +346,100 @@ export function ProgrammeV2Root() {
   if (phase === 'effort' && plan && sessionResult) {
     // The C9 effort check-in (session RPE) — the one answer promotion needs.
     return (
-      <Screen>
-        <View style={{ flex: 1, padding: 24, gap: 16, justifyContent: 'center' }}>
-          <Typography variant="h2">How did that feel?</Typography>
-          <Typography variant="body">Could you have done more?</Typography>
-          {RPE_OPTIONS.map((option) => (
-            <Button
-              key={option.value}
-              title={option.label}
-              variant="secondary"
-              onPress={() =>
-                handleSessionFinish(programmeResultsFromVoiceSession(plan, sessionResult), option.value)
-              }
-            />
-          ))}
-          <Button
-            title="Skip"
-            variant="ghost"
-            onPress={() => handleSessionFinish(programmeResultsFromVoiceSession(plan, sessionResult), null)}
-          />
-        </View>
-      </Screen>
+      <ProgrammeEffortScreen
+        onSelect={(rpe) =>
+          handleSessionFinish(programmeResultsFromVoiceSession(plan, sessionResult), rpe)
+        }
+        onSkip={() => handleSessionFinish(programmeResultsFromVoiceSession(plan, sessionResult), null)}
+      />
     );
   }
 
   if (phase === 'session_done') {
-    // Teach-only gateway surface (C3): a locked promotion invites the demo +
-    // self-confirmation — never a camera verdict.
-    const gatewayLock = (Object.entries(lastDecisions) as [ProgrammePattern, PromotionDecision][]).find(
-      ([, decision]) => decision.kind === 'promotion_locked' && decision.reason === 'gateway_incomplete'
-    );
-    if (gatewayLock) {
-      const [pattern, decision] = gatewayLock;
-      const lockedLevel = decision.kind === 'promotion_locked' ? decision.toLevel : 0;
-      const ladder = programmeState.ladders[pattern];
-      const progress = ladder.gatewayProgress[lockedLevel];
-      const name = programmeDisplayName(getProgrammeLevel(pattern, lockedLevel).primary.id);
+    // Precedence and copy come from the adapter: gateway teach card (C3 —
+    // teach-only, never a camera verdict) > deferred re-offer > once-only
+    // skipped warm re-offer > the session-logged card.
+    const surface = postSessionSurface(programmeState, lastDecisions, new Date().toISOString());
+    if (surface.kind === 'gateway_teach') {
+      const ladder = programmeState.ladders[surface.pattern];
       return (
-        <PromptCard
-          title={`You've earned the next level: ${name}`}
-          body="It's a technique level, so two quick steps unlock it: watch the short demo, then confirm you feel ready. No camera involved."
+        <ProgrammeMomentScreen
+          eyebrow="Session done"
+          title={surface.title}
+          body={surface.body}
           actions={[
-            ...(!progress?.demoWatched
+            ...(!surface.demoWatched
               ? [
                   {
-                    label: 'I watched the demo',
+                    label: surface.demoLabel,
                     onPress: () =>
                       persist({
                         ...programmeState,
                         ladders: {
                           ...programmeState.ladders,
-                          [pattern]: recordGatewayDemoWatched(ladder, lockedLevel),
+                          [surface.pattern]: recordGatewayDemoWatched(ladder, surface.toLevel),
                         },
                       }),
                   },
                 ]
               : []),
-            ...(progress?.demoWatched && !progress?.selfConfirmed
+            ...(surface.demoWatched && !surface.selfConfirmed
               ? [
                   {
-                    label: 'I feel ready — unlock it',
+                    label: surface.confirmLabel,
                     onPress: () =>
                       persist({
                         ...programmeState,
                         ladders: {
                           ...programmeState.ladders,
-                          [pattern]: recordGatewaySelfConfirmation(ladder, lockedLevel),
+                          [surface.pattern]: recordGatewaySelfConfirmation(ladder, surface.toLevel),
                         },
                       }),
                   },
                 ]
               : []),
-            { label: 'Later', onPress: () => setLastDecisions({}) },
+            { label: surface.laterLabel, variant: 'ghost' as const, onPress: () => setLastDecisions({}) },
           ]}
         />
       );
     }
-    const reoffer = assessmentReoffer(programmeState, new Date().toISOString());
-    if (reoffer === 'deferred_reoffer') {
+    if (surface.kind === 'deferred_reoffer') {
       return (
-        <PromptCard
-          title="Ready for that two-minute movement check?"
-          body="It makes your levels exact. No one sees it but you, and it never leaves your phone."
+        <ProgrammeMomentScreen
+          eyebrow="Session done"
+          title={surface.title}
+          body={surface.body}
           actions={[
-            { label: "Let's do it", onPress: () => setPhase('assessment') },
-            { label: 'Sounds good — later', onPress: () => setLastDecisions({}) },
+            { label: surface.startLabel, onPress: () => setPhase('assessment') },
+            {
+              label: surface.laterLabel,
+              variant: 'ghost',
+              // Dismissing must LEAVE this surface — the re-offer policy is
+              // pure over state, so re-rendering would show the same card
+              // forever (dev-shell bug fixed here). Home keeps the standing
+              // movement-check entry.
+              onPress: () => {
+                setLastDecisions({});
+                setPhase('home');
+              },
+            },
           ]}
         />
       );
     }
-    if (
-      reoffer === 'skipped_warm_reoffer' &&
-      !surfaceAlreadyShown(programmeState, 'skipped_warm_reoffer_card')
-    ) {
+    if (surface.kind === 'skipped_warm_reoffer') {
       // Softer than the deferred card; renders exactly once — the home
       // screen's movement-check entry remains the permanent path.
       return (
-        <PromptCard
-          title="Whenever you're ready"
-          body="Your workouts get smarter if we do a quick movement check whenever you're ready. It's always waiting on your home screen."
+        <ProgrammeMomentScreen
+          eyebrow="Session done"
+          title={surface.title}
+          body={surface.body}
           actions={[
-            { label: "Let's do it now", onPress: () => setPhase('assessment') },
+            { label: surface.startLabel, onPress: () => setPhase('assessment') },
             {
-              label: 'Maybe later',
+              label: surface.laterLabel,
+              variant: 'ghost',
               onPress: () => persist(markSurfaceShown(programmeState, 'skipped_warm_reoffer_card')),
             },
           ]}
@@ -453,15 +447,12 @@ export function ProgrammeV2Root() {
       );
     }
     return (
-      <Screen>
-        <View style={{ flex: 1, padding: 24, gap: 16, justifyContent: 'center' }}>
-          <Typography variant="h1">Done — that counts</Typography>
-          <Typography variant="body">
-            Session logged. Showing up is the whole job this month.
-          </Typography>
-          <Button title="Back to home" onPress={() => setPhase('home')} />
-        </View>
-      </Screen>
+      <ProgrammeMomentScreen
+        eyebrow="Session done"
+        title={surface.title}
+        body={surface.body}
+        actions={[{ label: surface.doneLabel, onPress: () => setPhase('home') }]}
+      />
     );
   }
 
@@ -523,33 +514,41 @@ export function ProgrammeV2Root() {
     );
   }
 
+  // Home and plan render the REAL app surfaces (promotion integration Phase
+  // 3): the Today screen in programme mode and the levels/plan view, both
+  // fed by the adapter. Level rows show the post-easing levels so what the
+  // user sees is what the next session runs; the easing itself persists at
+  // session start (startSessionFromHome re-checks).
   const nowIso = new Date().toISOString();
-  const homeReoffer = assessmentReoffer(programmeState, nowIso);
-  const routineDue = routineCheckupDue(programmeState, nowIso);
-  const assessmentAvailable =
-    routineDue ||
-    (programmeState.profile.assessmentStatus !== 'done' && homeReoffer !== 'none');
+  const todayVm = programmeTodayViewModel(programmeState, nowIso);
+  const easedLevels = programmeLevelRows(
+    applyInactivityRegressionIfDue(programmeState, nowIso).state
+  );
+
+  if (phase === 'plan') {
+    return (
+      <ProgrammePlanScreen
+        today={todayVm}
+        levelRows={easedLevels}
+        chosenDays={programmeState.profile.chosenDays}
+        onBack={() => setPhase('home')}
+        onStartSession={startSessionFromHome}
+        onStartCheckup={todayVm.checkupOffer ? () => setPhase('assessment') : undefined}
+      />
+    );
+  }
+
   return (
-    <Screen>
-      <View style={{ flex: 1, padding: 24, gap: 16, justifyContent: 'center' }}>
-        <Typography variant="h1">Ready when you are</Typography>
-        <Button
-          title={programmeState.profile.firstSessionStarted ? 'Start a session' : 'Start your first session — 15 minutes'}
-          onPress={startSessionFromHome}
-        />
-        {assessmentAvailable ? (
-          <Button
-            title={
-              routineDue
-                ? 'Time for your movement check — two minutes'
-                : 'Do the two-minute movement check'
-            }
-            variant="secondary"
-            onPress={() => setPhase('assessment')}
-          />
-        ) : null}
-      </View>
-    </Screen>
+    <TodayScreen
+      profile={prefs.profile}
+      programme={{
+        today: todayVm,
+        levelRows: easedLevels,
+        onStartCheckup: todayVm.checkupOffer ? () => setPhase('assessment') : undefined,
+        onViewPlan: () => setPhase('plan'),
+      }}
+      onPrimaryAction={() => startSessionFromHome()}
+    />
   );
 }
 
@@ -594,32 +593,5 @@ function ProgrammeVoiceSession({
       onComplete={onComplete}
       onCancel={onCancel}
     />
-  );
-}
-
-function PromptCard({
-  title,
-  body,
-  actions,
-}: {
-  title: string;
-  body: string;
-  actions: readonly { label: string; onPress: () => void }[];
-}) {
-  return (
-    <Screen>
-      <View style={{ flex: 1, padding: 24, gap: 16, justifyContent: 'center' }}>
-        <Typography variant="h2">{title}</Typography>
-        <Typography variant="body">{body}</Typography>
-        {actions.map((action, index) => (
-          <Button
-            key={action.label}
-            title={action.label}
-            variant={index === 0 ? 'primary' : 'ghost'}
-            onPress={action.onPress}
-          />
-        ))}
-      </View>
-    </Screen>
   );
 }

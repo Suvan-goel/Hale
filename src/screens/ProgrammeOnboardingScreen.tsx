@@ -18,9 +18,10 @@
  */
 
 import * as React from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { BackArrowButton } from '../components/BackArrowButton';
+import { OptionCard } from '../components/OptionCard';
 import { GhostButton, PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../components/ui';
 import {
   STAGE_B_QUESTION_COUNT,
@@ -178,7 +179,6 @@ export function ProgrammeOnboardingScreen({
               label={option.label}
               microcopy={option.microcopy}
               selected={selected}
-              compact={responsive.isCompactPhone}
               onPress={() =>
                 question.multiSelect ? toggleMulti(option.value) : onSelectOption(step, option.value)
               }
@@ -199,42 +199,6 @@ export function ProgrammeOnboardingScreen({
         ) : null}
       </View>
     </Screen>
-  );
-}
-
-/** Rail-accented selectable card — the LifeGoalSelector option pattern. */
-function OptionCard({
-  label,
-  microcopy,
-  selected,
-  compact,
-  onPress,
-}: {
-  label: string;
-  microcopy?: string;
-  selected: boolean;
-  compact: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.option,
-        compact && styles.compactCardPadding,
-        selected && styles.optionSelected,
-        pressed && styles.pressed,
-      ]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      accessibilityLabel={microcopy ? `${label}: ${microcopy}` : label}
-    >
-      <View style={[styles.optionRail, selected && styles.optionRailSelected]} />
-      <View style={styles.optionCopy}>
-        <Text style={[styles.optionTitle, selected && styles.optionTitleSelected]}>{label}</Text>
-        {microcopy ? <Text style={styles.optionDetail}>{microcopy}</Text> : null}
-      </View>
-    </Pressable>
   );
 }
 
@@ -317,51 +281,9 @@ const styles = StyleSheet.create({
   options: {
     gap: spacing.md,
   },
-  option: {
-    minHeight: 64,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    borderRadius: radius.card,
-    backgroundColor: colors.bgSurface,
-    ...shadow.card,
-  },
   compactCardPadding: {
     paddingHorizontal: 14,
     paddingVertical: 16,
-  },
-  optionSelected: {
-    backgroundColor: colors.bgGold,
-  },
-  optionRail: {
-    width: 4,
-    alignSelf: 'stretch',
-    borderRadius: radius.pill,
-    backgroundColor: colors.background,
-  },
-  optionRailSelected: {
-    backgroundColor: colors.accentDeep,
-  },
-  optionCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: spacing.xs,
-  },
-  optionTitle: {
-    ...type.bodySmall,
-    fontFamily: fonts.sansMedium,
-    fontSize: 16,
-    lineHeight: 22,
-    color: colors.textPrimary,
-  },
-  optionTitleSelected: {
-    color: colors.accentDeep,
-  },
-  optionDetail: {
-    ...type.cardBody,
-    color: colors.textSecondary,
   },
   actions: {
     gap: spacing.md,

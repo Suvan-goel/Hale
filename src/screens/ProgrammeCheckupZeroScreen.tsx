@@ -18,13 +18,14 @@
  */
 
 import * as React from 'react';
-import { View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { Button, Screen, Typography } from '../components/ui';
+import { GhostButton, PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../components/ui';
 import { checkupZeroBatterySequence } from '../programme';
 import { createMovementProfileV2InternalFlow } from '../movementProfileV2/internalCheckupFlow';
 import type { CheckUp } from '../checkup';
-import { colors, spacing } from '../theme';
+import { colors, fonts, radius, spacing, type } from '../theme';
+import { useResponsiveLayout } from '../theme/responsive';
 import { MovementProfileV2UnifiedCheckUpScreen } from './MovementProfileV2UnifiedCheckUpScreen';
 
 const WARM_UP_SECONDS = 45;
@@ -62,37 +63,27 @@ export function ProgrammeCheckupZeroScreen({
 
   if (phase === 'intro') {
     return (
-      <Screen>
-        <View style={{ flex: 1, padding: spacing.lg, gap: spacing.md, justifyContent: 'center' }}>
-          <Typography variant="h1">Two minutes of moving</Typography>
-          <Typography variant="body" style={{ color: colors.textSecondary }}>
-            A gentle warm-up, a balance hold, then thirty seconds of chair stands. That’s the whole
-            thing.
-          </Typography>
-          <Typography variant="body" style={{ color: colors.textSecondary }}>
-            No one sees this but you — it’s processed on your phone and never leaves it.
-          </Typography>
-          <Button title="Start with the warm-up" onPress={() => setPhase('warmup')} />
-          <Button title="Not now" variant="ghost" onPress={onCancel} />
-        </View>
-      </Screen>
+      <CheckupZeroMessage
+        title="Two minutes of moving"
+        subtitle="A gentle warm-up, a balance hold, then thirty seconds of chair stands. That’s the whole thing."
+        panelText="No one sees this but you — it’s processed on your phone and never leaves it."
+      >
+        <PrimaryButton title="Start with the warm-up" onPress={() => setPhase('warmup')} />
+        <GhostButton title="Not now" onPress={onCancel} />
+      </CheckupZeroMessage>
     );
   }
 
   if (phase === 'warmup') {
     return (
-      <Screen>
-        <View style={{ flex: 1, padding: spacing.lg, gap: spacing.md, justifyContent: 'center' }}>
-          <Typography variant="h2">Easy does it</Typography>
-          <Typography variant="body" style={{ color: colors.textSecondary }}>
-            March gently on the spot and roll your shoulders. Add a few easy arm reaches when you
-            feel like it.
-          </Typography>
-          <Typography variant="h1">{warmupRemaining}s</Typography>
-          <Button title="I’m warm — let’s go" variant="secondary" onPress={() => setPhase('battery')} />
-          <Button title="Stop for now" variant="ghost" onPress={onCancel} />
-        </View>
-      </Screen>
+      <CheckupZeroMessage
+        title="Easy does it"
+        subtitle="March gently on the spot and roll your shoulders. Add a few easy arm reaches when you feel like it."
+        countdownSeconds={warmupRemaining}
+      >
+        <SecondaryButton title="I’m warm — let’s go" onPress={() => setPhase('battery')} />
+        <GhostButton title="Stop for now" onPress={onCancel} />
+      </CheckupZeroMessage>
     );
   }
 
@@ -115,3 +106,88 @@ export function ProgrammeCheckupZeroScreen({
     />
   );
 }
+
+/** Intro/warm-up message layout in the check-up flow's design language. */
+function CheckupZeroMessage({
+  title,
+  subtitle,
+  panelText,
+  countdownSeconds,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  panelText?: string;
+  countdownSeconds?: number;
+  children: React.ReactNode;
+}) {
+  const responsive = useResponsiveLayout();
+  return (
+    <Screen contentStyle={checkupStyles.screen}>
+      <ScreenHeader eyebrow="Movement check" title={title} subtitle={subtitle} />
+      {countdownSeconds !== undefined ? (
+        <View style={[checkupStyles.panel, checkupStyles.countdownPanel]}>
+          <Text
+            style={checkupStyles.countdown}
+            accessibilityLabel={`${countdownSeconds} seconds remaining`}
+          >
+            {countdownSeconds}
+            <Text style={checkupStyles.countdownUnit}>s</Text>
+          </Text>
+        </View>
+      ) : null}
+      {panelText ? (
+        <View style={[checkupStyles.panel, responsive.isCompactPhone && checkupStyles.compactCardPadding]}>
+          <Text style={checkupStyles.panelBody}>{panelText}</Text>
+        </View>
+      ) : null}
+      <View style={checkupStyles.actions}>{children}</View>
+    </Screen>
+  );
+}
+
+const checkupStyles = StyleSheet.create({
+  screen: {
+    paddingTop: spacing.pageTop,
+    paddingBottom: spacing.xxxl,
+    gap: spacing.xl,
+  },
+  panel: {
+    gap: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+    boxShadow: '0 10px 26px rgba(17,20,18,0.032)',
+  },
+  compactCardPadding: {
+    paddingHorizontal: 14,
+    paddingVertical: 16,
+  },
+  panelBody: {
+    ...type.bodySmall,
+    color: colors.textSecondary,
+  },
+  countdownPanel: {
+    alignItems: 'center',
+  },
+  countdown: {
+    color: colors.accentDeep,
+    fontFamily: fonts.serifMedium,
+    fontSize: 56,
+    lineHeight: 64,
+    letterSpacing: 0,
+    fontVariant: ['tabular-nums'],
+  },
+  countdownUnit: {
+    color: colors.textSecondary,
+    fontFamily: fonts.sansRegular,
+    fontSize: 20,
+    lineHeight: 26,
+  },
+  actions: {
+    gap: spacing.md,
+  },
+});

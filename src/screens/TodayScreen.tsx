@@ -19,6 +19,7 @@ import type {
   MovementSnapshotBand,
   TodaySessionAdjustment,
 } from '../haleFlow';
+import type { ProgrammeLevelRow, ProgrammeTodayViewModel } from '../programme';
 // The hero copy (title/subtitle/CTA) comes straight from the lifecycle's
 // primary action — appLifecycle.ts is the single source for that copy.
 import { SettingsIcon } from '../navigation/icons';
@@ -35,22 +36,47 @@ const SNAPSHOT_ROWS: readonly { key: SnapshotKey; short: string; title: string }
   { key: 'mobility', short: 'M', title: 'Mobility' },
 ];
 
+/**
+ * Programme-engine v2 data source (promotion integration Phase 3): the same
+ * screen and design, driven by the programme adapter's view model instead of
+ * the old lifecycle. The snapshot card becomes the levels card (v2 has no
+ * measured domain bands until an official check-up exists — level rows are
+ * the honest equivalent), and the persistent check-up offer renders as its
+ * own card. No micro-check or block states exist on this path.
+ */
+export interface TodayProgrammeMode {
+  today: ProgrammeTodayViewModel;
+  levelRows: readonly ProgrammeLevelRow[];
+  onStartCheckup?: () => void;
+  onViewPlan?: () => void;
+}
+
 export function TodayScreen({
   profile,
   lifecycle,
+  programme,
   onPrimaryAction,
   onOpenSettings,
 }: {
   profile: UserProfile;
-  lifecycle: HaleAppLifecycleResult;
+  /** Old-engine data source; required unless `programme` is provided. */
+  lifecycle?: HaleAppLifecycleResult;
+  /** Programme-v2 data source — takes precedence over `lifecycle`. */
+  programme?: TodayProgrammeMode;
   onPrimaryAction: (preferences?: { adjustment?: TodaySessionAdjustment | null; painArea?: PainArea | null }) => void;
-  onOpenSettings: () => void;
+  onOpenSettings?: () => void;
 }) {
   const responsive = useResponsiveLayout();
   const bottomScrollClearance = useScreenScrollClearance();
   const compact = responsive.isCompactPhone;
-  const snapshot = lifecycle.movementSnapshot;
-  const sessionDetail = todaySessionDetail(lifecycle);
+  const snapshot = lifecycle?.movementSnapshot;
+  const sessionDetail = programme
+    ? programme.today.sessionDetail
+    : lifecycle
+      ? todaySessionDetail(lifecycle)
+      : undefined;
+  const primaryAction = programme ? programme.today.primaryAction : lifecycle?.primaryAction;
+  if (!primaryAction) return <View style={styles.background} />;
 
   // Start goes straight to the session preview, which owns today's
   // adjustments (shorter / gentler / equipment / something hurts) inline.
@@ -84,30 +110,119 @@ export function TodayScreen({
               </Text>
             </View>
           </View>
-          <Pressable
-            style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
-            onPress={onOpenSettings}
-            accessibilityRole="button"
-            accessibilityLabel="Open settings"
-          >
-            <SettingsIcon size={24} color={todayHomeColors.headingGreen} strokeWidth={1.8} />
-          </Pressable>
+          {onOpenSettings ? (
+            <Pressable
+              style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
+              onPress={onOpenSettings}
+              accessibilityRole="button"
+              accessibilityLabel="Open settings"
+            >
+              <SettingsIcon size={24} color={todayHomeColors.headingGreen} strokeWidth={1.8} />
+            </Pressable>
+          ) : null}
         </View>
 
-        <MovementSnapshotCard compact={compact} lifecycle={lifecycle} snapshot={snapshot} />
+        {programme ? (
+          <ProgrammeLevelsCard
+            compact={compact}
+            levelRows={programme.levelRows}
+            onViewPlan={programme.onViewPlan}
+          />
+        ) : lifecycle ? (
+          <MovementSnapshotCard compact={compact} lifecycle={lifecycle} snapshot={snapshot} />
+        ) : null}
 
         <DailyFocusCard
           compact={compact}
           label="Today"
-          title={lifecycle.primaryAction.title}
-          subtitle={lifecycle.primaryAction.subtitle}
+          title={primaryAction.title}
+          subtitle={primaryAction.subtitle}
           detail={sessionDetail}
-          ctaLabel={lifecycle.primaryAction.ctaLabel}
+          ctaLabel={primaryAction.ctaLabel}
           onPress={handleStartPress}
         />
 
-        <TodayContextStrip compact={compact} lifecycle={lifecycle} />
+        {programme?.today.checkupOffer && programme.onStartCheckup ? (
+          <CheckupOfferCard
+            compact={compact}
+            title={programme.today.checkupOffer.title}
+            ctaLabel={programme.today.checkupOffer.ctaLabel}
+            onPress={programme.onStartCheckup}
+          />
+        ) : null}
+
+        {lifecycle && !programme ? <TodayContextStrip compact={compact} lifecycle={lifecycle} /> : null}
       </ScrollView>
+    </View>
+  );
+}
+
+/** Per-pattern level rows — the v2 stand-in for the measured snapshot card. */
+function ProgrammeLevelsCard({
+  compact,
+  levelRows,
+  onViewPlan,
+}: {
+  compact: boolean;
+  levelRows: readonly ProgrammeLevelRow[];
+  onViewPlan?: () => void;
+}) {
+  return (
+    <View style={[styles.snapshotCard, compact && styles.compactCardPadding]}>
+      <Text style={styles.snapshotTitle}>Your levels</Text>
+      <View style={styles.levelRows}>
+        {levelRows.map((row) => (
+          <View key={row.pattern} style={styles.levelRow}>
+            <View style={styles.metricCopy}>
+              <Text style={styles.metricLabel}>{row.patternTitle}</Text>
+              <Text style={styles.metricValue}>{row.levelDisplayName}</Text>
+            </View>
+            <Text style={styles.levelValue}>
+              {row.currentLevel}
+              <Text style={styles.levelValueTotal}> / {row.maxLevel}</Text>
+            </Text>
+          </View>
+        ))}
+      </View>
+      {onViewPlan ? (
+        <Pressable
+          style={({ pressed }) => [styles.levelPlanLink, pressed && styles.pressed]}
+          onPress={onViewPlan}
+          accessibilityRole="button"
+          accessibilityLabel="View your plan"
+        >
+          <Text style={styles.levelPlanLinkText}>View your plan</Text>
+          <Text style={styles.levelPlanLinkArrow}>›</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+/** The persistent movement-check affordance (routine cadence / standing entry). */
+function CheckupOfferCard({
+  compact,
+  title,
+  ctaLabel,
+  onPress,
+}: {
+  compact: boolean;
+  title: string;
+  ctaLabel: string;
+  onPress: () => void;
+}) {
+  return (
+    <View style={[styles.contextStrip, compact && styles.compactCardPadding]}>
+      <Text style={styles.contextTitle}>{title}</Text>
+      <Pressable
+        style={({ pressed }) => [styles.checkupButton, pressed && styles.pressed]}
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={ctaLabel}
+      >
+        <Text style={styles.checkupButtonText}>{ctaLabel}</Text>
+        <Text style={styles.checkupButtonArrow}>›</Text>
+      </Pressable>
     </View>
   );
 }
@@ -687,6 +802,80 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     letterSpacing: 0,
     marginTop: 2,
+  },
+  levelRows: {
+    marginTop: 14,
+    gap: 2,
+  },
+  levelRow: {
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  levelValue: {
+    color: todayHomeColors.headingGreen,
+    fontFamily: fonts.serifMedium,
+    fontSize: 20,
+    lineHeight: 25,
+    letterSpacing: 0,
+    fontVariant: ['tabular-nums'],
+  },
+  levelValueTotal: {
+    color: todayHomeColors.secondaryText,
+    fontFamily: fonts.sansRegular,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0,
+  },
+  levelPlanLink: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 4,
+    marginTop: 6,
+  },
+  levelPlanLinkText: {
+    color: todayHomeColors.headingGreen,
+    fontFamily: fonts.sansMedium,
+    fontSize: 14,
+    lineHeight: 19,
+    letterSpacing: 0,
+  },
+  levelPlanLinkArrow: {
+    color: todayHomeColors.headingGreen,
+    fontFamily: fonts.sansMedium,
+    fontSize: 21,
+    lineHeight: 22,
+    marginTop: -1,
+  },
+  checkupButton: {
+    alignSelf: 'flex-start',
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderRadius: 24,
+    paddingHorizontal: 22,
+    paddingVertical: 10,
+    backgroundColor: colors.accentDeep,
+    marginTop: 13,
+  },
+  checkupButtonText: {
+    color: colors.onAccent,
+    fontFamily: fonts.sansMedium,
+    fontSize: 14,
+    lineHeight: 19,
+    letterSpacing: 0,
+  },
+  checkupButtonArrow: {
+    color: colors.onAccent,
+    fontFamily: fonts.sansMedium,
+    fontSize: 21,
+    lineHeight: 22,
+    marginTop: -1,
   },
   focusCard: {
     minHeight: 274,
