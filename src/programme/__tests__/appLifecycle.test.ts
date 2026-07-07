@@ -2,6 +2,7 @@ import {
   PROGRAMME_SESSION_RPE_OPTIONS,
   checkupOfferFor,
   nextProgrammeSessionInput,
+  onboardingCompletionRoute,
   patternTitle,
   postSessionSurface,
   preSessionPrompt,
@@ -231,5 +232,28 @@ describe('programmeLevelRows', () => {
 describe('effort check-in options (C9)', () => {
   it('covers the full RPE 1–5 scale exactly once each', () => {
     expect(PROGRAMME_SESSION_RPE_OPTIONS.map((option) => option.value)).toEqual([1, 2, 3, 4, 5]);
+  });
+});
+
+describe('onboardingCompletionRoute (flow.ts completion contract honored)', () => {
+  it("assessment 'now' launches Check-up #0 first, keeping the CTA's first-session promise for after", () => {
+    expect(
+      onboardingCompletionRoute({ assessmentIntent: 'start_now' }, 'start_first_session')
+    ).toEqual({ assessmentFirst: true, startFirstSession: true });
+    expect(onboardingCompletionRoute({ assessmentIntent: 'start_now' }, 'schedule')).toEqual({
+      assessmentFirst: true,
+      startFirstSession: false,
+    });
+  });
+
+  it('no assessment intent: the CTA routes straight to the session or home', () => {
+    expect(onboardingCompletionRoute({ assessmentIntent: null }, 'start_first_session')).toEqual({
+      assessmentFirst: false,
+      startFirstSession: true,
+    });
+    expect(onboardingCompletionRoute({ assessmentIntent: null }, 'schedule')).toEqual({
+      assessmentFirst: false,
+      startFirstSession: false,
+    });
   });
 });

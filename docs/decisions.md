@@ -4855,3 +4855,53 @@ proceeds in its own working session once ruled.
 - Verified: 209 suites / 1788 tests green, tsc clean, expo config clean.
   Dev shell intentionally untouched this phase — it swaps to the adapter
   when AppGate takes over in Phases 2–3.
+
+## 2026-07-07 — Promotion integration Phase 2: onboarding merge (old design language, machine unchanged in authority)
+
+- **Restyled `ProgrammeOnboardingScreen` to the app's design language:** ScreenHeader
+  with section eyebrows and the shared StepProgress header (which now carries the
+  spec §3 Stage B progress dots), rail-accented option cards (the LifeGoalSelector
+  pattern), surface panels with hairline borders, the welcome hero image + fact
+  tiles, PrimaryButton/SecondaryButton/GhostButton actions. The flow machine stays
+  the single authority — the screen still renders whatever step it reports, all
+  copy still lives in the content layer (eyebrows and welcome facts added there,
+  included in allOnboardingCopyStrings so the claims scan covers them).
+  DELIBERATE: single-select questions remain one-tap-to-advance — the Stage B
+  intro copy promises "four taps, about 30 seconds", so no Continue buttons were
+  added; the old design's select-then-confirm pattern applies only to
+  multi-selects, which already had Continue.
+- **Step-wise back built (`undoLastOnboardingStep`):** machine-level undo clearing
+  the most recent answered/acknowledged step; conditional steps recompute
+  (advisory un-acks before B1 clears; a consent decline drops the Stage B block).
+  Skips undo like answers. No-op at welcome. The screen shows the standard
+  BackArrowButton on every step after welcome.
+- **CONSENT-INTEGRITY FIX (found by building back-nav):** `completeOnboarding`
+  gated pelvicRouting and balanceSupportDefault on consent but NOT jointFlags —
+  with back-navigation a user could answer B3, retract consent, and still have
+  the special-category answer used. jointFlags is now consent-gated like every
+  other Stage B mapping (§4 decline row consistency). Pinned by test.
+- **assessment_offer 'now' finally honored:** the flow's completion contract
+  ("'start_now' → the app launches Check-up #0") was DROPPED by the dev shell —
+  a 'now' answer stranded the user at home with no check-up surface
+  (assessmentStatus null shows nothing by design). New adapter helper
+  `onboardingCompletionRoute` routes it: Check-up #0 runs first; completing it
+  chains into the first session when the CTA promised one (generated from the
+  freshly exact placement — better than the pre-check plan); abandoning the
+  check lands home with the pending chain cleared (penalty-free, unsurprising).
+  Pinned by tests.
+- **Reference details: RECOMMENDATION SUPERSEDED by recorded ruling C5.** The
+  Phase-2 plan's accepted "reference-details step after the expectation CTA"
+  conflicts with C5 (age/sex collected at the check-up intro, not onboarding) —
+  and turns out to be unnecessary: placement inputs are absolute (T1 seconds,
+  T3 reps — `placementForOnboarding` takes no age/sex), Check-up #0 records are
+  structurally excluded from official scoring, and the official check-up's
+  existing intro keeps collecting reference details when the user first runs
+  the full battery. NO onboarding step built; C5 stands. (Stop-and-flag: if the
+  founder still wants DOB earlier for other reasons, that is a new decision.)
+- **Welcome:** the machine's welcome step now renders in the old visual pattern
+  (hero, header, facts) with content-layer copy. The old `WelcomeScreen` is
+  deliberately untouched — its copy describes the OLD journey (10-minute
+  check-up first, three steps) and keeps shipping in flag-off builds; sharing
+  the component would have made one of the two journeys dishonest.
+- Shell wiring: voiceId now passed to the Check-up #0 host (was silently
+  defaulting). Verified: 209 suites / 1795 tests green, tsc + expo config clean.

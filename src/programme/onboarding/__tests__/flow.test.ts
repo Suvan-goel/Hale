@@ -8,6 +8,7 @@ import {
   markFirstSessionStarted,
   recordOnboardingAnswer,
   SKIPPED,
+  undoLastOnboardingStep,
   visibleOnboardingSteps,
   type OnboardingAnswerValue,
   type ProgrammeOnboardingFlowState,
@@ -282,5 +283,87 @@ describe('the activation event', () => {
     const started = markFirstSessionStarted(state);
     expect(started.profile.firstSessionStarted).toBe(true);
     expect(markFirstSessionStarted(started)).toBe(started);
+  });
+});
+
+describe('step-wise back (undoLastOnboardingStep)', () => {
+  it('clears the most recent answer so the flow returns to that question', () => {
+    const atConsent = runFlow(HAPPY_PATH, 'consent_health');
+    expect(currentOnboardingStep(atConsent)).toBe('consent_health');
+    const undone = undoLastOnboardingStep(atConsent);
+    expect(currentOnboardingStep(undone)).toBe('a3_activity');
+    expect(undone.answers.activityLevel).toBeNull();
+    // Re-answering moves forward again — nothing else was lost.
+    const forward = recordOnboardingAnswer(undone, { step: 'a3_activity', value: 'very_active' });
+    expect(currentOnboardingStep(forward)).toBe('consent_health');
+    expect(forward.answers.lifeGoal).toBe('stairs_walks');
+  });
+
+  it('un-acknowledges message steps one at a time (advisory chain: advisory first, then B1)', () => {
+    const withHeartFlag: OnboardingAnswerValue[] = [
+      ...HAPPY_PATH.filter((a) => a.step !== 'b1_heart'),
+      { step: 'b1_heart', value: 'yes' },
+    ];
+    const atB3 = runFlow(withHeartFlag, 'b3_joints');
+    expect(currentOnboardingStep(atB3)).toBe('b3_joints');
+    const one = undoLastOnboardingStep(atB3);
+    expect(currentOnboardingStep(one)).toBe('b1_advisory');
+    const two = undoLastOnboardingStep(one);
+    expect(currentOnboardingStep(two)).toBe('b1_heart');
+    expect(two.answers.b1Heart).toBeNull();
+    // The advisory is no longer visible once B1 is unanswered.
+    expect(visibleOnboardingSteps(two.answers)).not.toContain('b1_advisory');
+  });
+
+  it('undoes a skip like any answer and is a no-op at the first step', () => {
+    let state = initialOnboardingFlowState();
+    state = acknowledgeOnboardingStep(state, 'welcome');
+    state = recordOnboardingAnswer(state, { step: 'a1_life_goal', value: SKIPPED });
+    expect(currentOnboardingStep(state)).toBe('a2_menopause_journey');
+    const undone = undoLastOnboardingStep(state);
+    expect(currentOnboardingStep(undone)).toBe('a1_life_goal');
+    expect(undone.answers.lifeGoal).toBeNull();
+    // Back past a1 returns to welcome; back at welcome is a no-op.
+    const atWelcome = undoLastOnboardingStep(undone);
+    expect(currentOnboardingStep(atWelcome)).toBe('welcome');
+    expect(undoLastOnboardingStep(atWelcome)).toBe(atWelcome);
+  });
+
+  it('an empty multi-select answer ("none of these") undoes back to the question', () => {
+    const noneJoints: OnboardingAnswerValue[] = HAPPY_PATH.map((a) =>
+      a.step === 'b3_joints' ? { step: 'b3_joints', value: [] } : a
+    );
+    const atB4 = runFlow(noneJoints, 'b4_pelvic');
+    const undone = undoLastOnboardingStep(atB4);
+    expect(currentOnboardingStep(undone)).toBe('b3_joints');
+    expect(undone.answers.b3Joints).toBeNull();
+  });
+});
+
+describe('consent integrity with back-navigation', () => {
+  it('joint flags answered under consent are NEVER used after consent is retracted', () => {
+    // Answer the whole consented flow, then back up and retract consent.
+    let state = runFlow(HAPPY_PATH, 'c1_stairs');
+    expect(state.answers.b3Joints).toEqual(['knee']);
+    // Walk back to consent (c-block start → b_exit ack → b5 → b4 → b3 → b1 → b_intro ack → consent).
+    for (let i = 0; i < 12 && currentOnboardingStep(state) !== 'consent_health'; i++) {
+      state = undoLastOnboardingStep(state);
+    }
+    expect(currentOnboardingStep(state)).toBe('consent_health');
+    state = recordOnboardingAnswer(state, { step: 'consent_health', value: 'decline' });
+    // Drive the declined state to completion directly.
+    let declined = state;
+    for (let guard = 0; guard < 20 && currentOnboardingStep(declined) !== 'complete'; guard++) {
+      const step = currentOnboardingStep(declined);
+      if (step === 'c1_stairs') declined = recordOnboardingAnswer(declined, { step, value: 'yes' });
+      else if (step === 'c2_quiet') declined = recordOnboardingAnswer(declined, { step, value: 'no' });
+      else if (step === 'd1_days') declined = recordOnboardingAnswer(declined, { step, value: ['mon'] });
+      else declined = acknowledgeOnboardingStep(declined, step as OnboardingStepId);
+    }
+    expect(currentOnboardingStep(declined)).toBe('complete');
+    const completion = completeOnboarding(declined);
+    // The stale special-category answer is ignored (§4 decline row).
+    expect(completion.programmeState.profile.jointFlags).toEqual([]);
+    expect(completion.programmeState.profile.consentHealthData).toBe(false);
   });
 });

@@ -15,6 +15,7 @@ export {
   PROGRAMME_SESSION_RPE_OPTIONS,
   checkupOfferFor,
   nextProgrammeSessionInput,
+  onboardingCompletionRoute,
   patternTitle,
   postSessionSurface,
   preSessionPrompt,
@@ -23,6 +24,7 @@ export {
 } from './appLifecycle';
 export type {
   NextProgrammeSessionInput,
+  OnboardingRoute,
   ProgrammeCheckupOffer,
   ProgrammeLevelRow,
   ProgrammePostSessionSurface,
@@ -117,6 +119,7 @@ export {
   initialOnboardingFlowState,
   markFirstSessionStarted,
   recordOnboardingAnswer,
+  undoLastOnboardingStep,
   visibleOnboardingSteps,
 } from './onboarding/flow';
 export type {

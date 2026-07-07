@@ -4,15 +4,24 @@
  *
  * Renders whatever step the flow machine says is current, entirely from the
  * content layer: one question per screen, all tappable, no typing, every
- * screen shows its one-line "why we ask", Stage B shows progress dots, and
- * skippable questions carry an explicit skip affordance whose conservative
- * routing lives in the flow machine — never here. No copy in this file.
+ * screen shows its one-line "why we ask", Stage B shows progress via the
+ * shared StepProgress header, and skippable questions carry an explicit skip
+ * affordance whose conservative routing lives in the flow machine — never
+ * here. No copy in this file.
+ *
+ * Promotion integration Phase 2: restyled to the app's design language —
+ * ScreenHeader with eyebrow/progress, rail-accented option cards
+ * (LifeGoalSelector pattern), surface panels with hairline borders, the
+ * welcome hero, and step-wise back via the flow machine's undo. Single-select
+ * questions stay one-tap-to-advance: the Stage B copy promises "four taps,
+ * about 30 seconds", so no Continue button is added to single selects.
  */
 
 import * as React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Screen, Typography } from '../components/ui';
+import { BackArrowButton } from '../components/BackArrowButton';
+import { GhostButton, PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../components/ui';
 import {
   STAGE_B_QUESTION_COUNT,
   currentOnboardingStep,
@@ -23,7 +32,10 @@ import {
   type OnboardingStepId,
   type ProgrammeOnboardingFlowState,
 } from '../programme';
-import { colors, radius, spacing } from '../theme';
+import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { useResponsiveLayout } from '../theme/responsive';
+
+const WELCOME_HERO_IMAGE = require('../../assets/images/hale-welcome-hero-v3.png');
 
 export function ProgrammeOnboardingScreen({
   flowState,
@@ -33,6 +45,7 @@ export function ProgrammeOnboardingScreen({
   onAcknowledge,
   onComplete,
   onSecondaryAction,
+  onBack,
 }: {
   flowState: ProgrammeOnboardingFlowState;
   /** Single-select answer tap (value from the content layer's options). */
@@ -44,7 +57,10 @@ export function ProgrammeOnboardingScreen({
   /** Fired when the machine reports 'complete' and the final CTA is tapped. */
   onComplete: (action: 'start_first_session' | 'schedule') => void;
   onSecondaryAction?: () => void;
+  /** Step-wise back (flow-machine undo). Hidden on the first step. */
+  onBack?: () => void;
 }) {
+  const responsive = useResponsiveLayout();
   const step = currentOnboardingStep(flowState);
   const [multiSelection, setMultiSelection] = React.useState<readonly string[]>([]);
   const stepRef = React.useRef<OnboardingStepId | 'complete'>(step);
@@ -55,31 +71,70 @@ export function ProgrammeOnboardingScreen({
 
   if (step === 'complete') return null;
 
+  const showBack = step !== 'welcome' && !!onBack;
+  const backRow = showBack ? (
+    <View style={styles.backRow}>
+      <BackArrowButton accessibilityLabel="Back to the previous question" onPress={onBack} />
+    </View>
+  ) : null;
+
   if (!isOnboardingQuestionStep(step)) {
     const message = onboardingMessageContent(step);
+    const isWelcome = step === 'welcome';
     const isFinalCta = step === 'expectation_cta';
+    const [subtitle, ...panelLines] = message.body;
     return (
-      <Screen>
-        <View style={styles.container}>
-          <Typography variant="h1">{message.title}</Typography>
-          {message.body.map((line) => (
-            <Typography key={line} variant="body" style={styles.bodyLine}>
-              {line}
-            </Typography>
-          ))}
-          <View style={styles.footer}>
-            <Button
-              title={message.continueLabel}
-              onPress={() => (isFinalCta ? onComplete('start_first_session') : onAcknowledge(step))}
+      <Screen contentStyle={styles.screen}>
+        {backRow}
+        <ScreenHeader eyebrow={message.eyebrow} title={message.title} subtitle={subtitle} />
+        {isWelcome ? (
+          <View style={styles.heroImageCard}>
+            <Image
+              source={WELCOME_HERO_IMAGE}
+              style={styles.heroImage}
+              resizeMode="contain"
+              accessible={false}
+              accessibilityIgnoresInvertColors
             />
-            {isFinalCta && message.secondaryLabel ? (
-              <Button
-                title={message.secondaryLabel}
-                variant="ghost"
-                onPress={() => (onSecondaryAction ? onSecondaryAction() : onComplete('schedule'))}
-              />
+          </View>
+        ) : null}
+        {panelLines.length > 0 || message.facts ? (
+          <View style={[styles.panel, responsive.isCompactPhone && styles.compactCardPadding]}>
+            {panelLines.map((line) => (
+              <Text key={line} style={styles.panelBody}>
+                {line}
+              </Text>
+            ))}
+            {message.facts ? (
+              <View style={styles.factsRow}>
+                {message.facts.map((fact) => (
+                  <View key={fact.detail} style={styles.fact}>
+                    <Text
+                      style={styles.factValue}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.82}
+                    >
+                      {fact.value}
+                    </Text>
+                    <Text style={styles.factDetail}>{fact.detail}</Text>
+                  </View>
+                ))}
+              </View>
             ) : null}
           </View>
+        ) : null}
+        <View style={styles.actions}>
+          <PrimaryButton
+            title={message.continueLabel}
+            onPress={() => (isFinalCta ? onComplete('start_first_session') : onAcknowledge(step))}
+          />
+          {isFinalCta && message.secondaryLabel ? (
+            <SecondaryButton
+              title={message.secondaryLabel}
+              onPress={() => (onSecondaryAction ? onSecondaryAction() : onComplete('schedule'))}
+            />
+          ) : null}
         </View>
       </Screen>
     );
@@ -97,135 +152,222 @@ export function ProgrammeOnboardingScreen({
   };
 
   return (
-    <Screen>
-      <View style={styles.container}>
-        {question.stageBIndex ? (
-          <View style={styles.dotsRow} accessibilityLabel={`Question ${question.stageBIndex} of ${STAGE_B_QUESTION_COUNT}`}>
-            {Array.from({ length: STAGE_B_QUESTION_COUNT }, (_, i) => (
-              <View
-                key={i}
-                style={[styles.dot, i < (question.stageBIndex ?? 0) ? styles.dotDone : null]}
-              />
-            ))}
-          </View>
-        ) : null}
-        <Typography variant="h2">{question.question}</Typography>
-        {question.note ? (
-          <Typography variant="body" style={styles.note}>
-            {question.note}
-          </Typography>
-        ) : null}
-        <View style={styles.options}>
-          {question.options.map((option) => {
-            const selected = question.multiSelect && multiSelection.includes(option.value);
-            return (
-              <Pressable
-                key={option.value}
-                accessibilityRole="button"
-                accessibilityState={selected ? { selected } : undefined}
-                style={({ pressed }) => [
-                  styles.option,
-                  selected && styles.optionSelected,
-                  pressed && styles.optionPressed,
-                ]}
-                onPress={() =>
-                  question.multiSelect ? toggleMulti(option.value) : onSelectOption(step, option.value)
-                }
-              >
-                <Text style={[styles.optionLabel, selected && styles.optionLabelSelected]}>
-                  {option.label}
-                </Text>
-                {option.microcopy ? <Text style={styles.optionMicrocopy}>{option.microcopy}</Text> : null}
-              </Pressable>
-            );
-          })}
+    <Screen contentStyle={styles.screen}>
+      {backRow}
+      <ScreenHeader
+        progress={
+          question.stageBIndex
+            ? { step: question.stageBIndex, total: STAGE_B_QUESTION_COUNT }
+            : undefined
+        }
+        eyebrow={question.eyebrow}
+        title={question.question}
+        subtitle={question.whyWeAsk}
+      />
+      {question.note ? (
+        <View style={[styles.notePanel, responsive.isCompactPhone && styles.compactCardPadding]}>
+          <Text style={styles.noteText}>{question.note}</Text>
         </View>
-        <View style={styles.footer}>
-          {question.multiSelect ? (
-            <Button
-              title="Continue"
-              disabled={multiSelection.length === 0}
-              onPress={() => onSelectMany(step, multiSelection)}
+      ) : null}
+      <View style={styles.options}>
+        {question.options.map((option) => {
+          const selected = !!question.multiSelect && multiSelection.includes(option.value);
+          return (
+            <OptionCard
+              key={option.value}
+              label={option.label}
+              microcopy={option.microcopy}
+              selected={selected}
+              compact={responsive.isCompactPhone}
+              onPress={() =>
+                question.multiSelect ? toggleMulti(option.value) : onSelectOption(step, option.value)
+              }
             />
-          ) : null}
-          {question.skippable ? (
-            <Button
-              title={question.skipLabel ?? 'Skip'}
-              variant="ghost"
-              onPress={() => onSkipQuestion(step)}
-            />
-          ) : null}
-          <Typography variant="caption" style={styles.whyWeAsk}>
-            {question.whyWeAsk}
-          </Typography>
-        </View>
+          );
+        })}
+      </View>
+      <View style={styles.actions}>
+        {question.multiSelect ? (
+          <PrimaryButton
+            title="Continue"
+            disabled={multiSelection.length === 0}
+            onPress={() => onSelectMany(step, multiSelection)}
+          />
+        ) : null}
+        {question.skippable ? (
+          <GhostButton title={question.skipLabel ?? 'Skip'} onPress={() => onSkipQuestion(step)} />
+        ) : null}
       </View>
     </Screen>
   );
 }
 
+/** Rail-accented selectable card — the LifeGoalSelector option pattern. */
+function OptionCard({
+  label,
+  microcopy,
+  selected,
+  compact,
+  onPress,
+}: {
+  label: string;
+  microcopy?: string;
+  selected: boolean;
+  compact: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.option,
+        compact && styles.compactCardPadding,
+        selected && styles.optionSelected,
+        pressed && styles.pressed,
+      ]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      accessibilityLabel={microcopy ? `${label}: ${microcopy}` : label}
+    >
+      <View style={[styles.optionRail, selected && styles.optionRailSelected]} />
+      <View style={styles.optionCopy}>
+        <Text style={[styles.optionTitle, selected && styles.optionTitleSelected]}>{label}</Text>
+        {microcopy ? <Text style={styles.optionDetail}>{microcopy}</Text> : null}
+      </View>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: spacing.lg,
-    gap: spacing.md,
+  screen: {
+    paddingTop: spacing.pageTop,
+    paddingBottom: spacing.xxxl,
+    gap: spacing.xl,
   },
-  bodyLine: {
+  backRow: {
+    alignItems: 'flex-start',
+  },
+  heroImageCard: {
+    aspectRatio: 16 / 9,
+    overflow: 'hidden',
+    borderRadius: radius.card,
+    backgroundColor: colors.bgMaterial,
+    ...shadow.card,
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  panel: {
+    gap: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+    boxShadow: '0 10px 26px rgba(17,20,18,0.032)',
+  },
+  panelBody: {
+    ...type.bodySmall,
     color: colors.textSecondary,
   },
-  note: {
+  factsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingTop: spacing.sm,
+  },
+  fact: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderRadius: radius.sm,
+    backgroundColor: colors.bgBase,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+  },
+  factValue: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 17,
+    lineHeight: 22,
+    letterSpacing: 0,
+    color: colors.textPrimary,
+  },
+  factDetail: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0,
+    color: colors.textSecondary,
+  },
+  notePanel: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+  },
+  noteText: {
+    ...type.cardBody,
     color: colors.textSecondary,
   },
   options: {
-    gap: spacing.sm,
-    marginTop: spacing.sm,
+    gap: spacing.md,
   },
   option: {
-    borderWidth: 1,
-    borderColor: colors.border,
+    minHeight: 64,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
     borderRadius: radius.card,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.bgSurface,
+    ...shadow.card,
+  },
+  compactCardPadding: {
+    paddingHorizontal: 14,
+    paddingVertical: 16,
   },
   optionSelected: {
-    borderColor: colors.accent,
-    backgroundColor: colors.accentSoft,
+    backgroundColor: colors.bgGold,
   },
-  optionPressed: {
-    opacity: 0.85,
+  optionRail: {
+    width: 4,
+    alignSelf: 'stretch',
+    borderRadius: radius.pill,
+    backgroundColor: colors.background,
   },
-  optionLabel: {
-    color: colors.textPrimary,
-    fontSize: 16,
+  optionRailSelected: {
+    backgroundColor: colors.accentDeep,
   },
-  optionLabelSelected: {
-    fontWeight: '600',
-  },
-  optionMicrocopy: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    marginTop: spacing.xs,
-  },
-  footer: {
-    marginTop: 'auto',
-    gap: spacing.sm,
-  },
-  whyWeAsk: {
-    color: colors.textTertiary,
-    textAlign: 'center',
-  },
-  dotsRow: {
-    flexDirection: 'row',
+  optionCopy: {
+    flex: 1,
+    minWidth: 0,
     gap: spacing.xs,
   },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.border,
+  optionTitle: {
+    ...type.bodySmall,
+    fontFamily: fonts.sansMedium,
+    fontSize: 16,
+    lineHeight: 22,
+    color: colors.textPrimary,
   },
-  dotDone: {
-    backgroundColor: colors.accent,
+  optionTitleSelected: {
+    color: colors.accentDeep,
+  },
+  optionDetail: {
+    ...type.cardBody,
+    color: colors.textSecondary,
+  },
+  actions: {
+    gap: spacing.md,
+  },
+  pressed: {
+    opacity: 0.86,
+    transform: [{ scale: 0.99 }],
   },
 });

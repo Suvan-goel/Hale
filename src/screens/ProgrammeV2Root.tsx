@@ -32,6 +32,7 @@ import {
   getProgrammeLevel,
   initialOnboardingFlowState,
   markFirstSessionStarted,
+  onboardingCompletionRoute,
   ProgrammeStore,
   programmeDisplayName,
   recordBandAnswer,
@@ -43,6 +44,7 @@ import {
   shouldAskBandQuestion,
   shouldShowDomingCheck,
   SKIPPED,
+  undoLastOnboardingStep,
   type OnboardingAnswerValue,
   type ProgrammePattern,
   type ProgrammeSessionPlan,
@@ -99,6 +101,10 @@ export function ProgrammeV2Root() {
   >({});
   const [physioSignpostVisible, setPhysioSignpostVisible] = React.useState(false);
   const sessionStartRef = React.useRef<{ startedAtIso: string; wasFirstSession: boolean } | null>(null);
+  // The expectation CTA's promise when Check-up #0 runs first: completing the
+  // check-up chains into the first session (abandoning it lands home — the
+  // home CTA remains the unsurprising way in).
+  const pendingFirstSessionRef = React.useRef(false);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -138,8 +144,9 @@ export function ProgrammeV2Root() {
   );
 
   const finishOnboarding = React.useCallback(
-    async (startNow: boolean) => {
+    async (action: 'start_first_session' | 'schedule') => {
       const completion = completeOnboarding(flowState);
+      const route = onboardingCompletionRoute(completion, action);
       persist(completion.programmeState);
       // Hand off to the EXISTING profile surfaces (C6/C8).
       const currentPrefs = prefs ?? (await profileStore.load());
@@ -163,7 +170,13 @@ export function ProgrammeV2Root() {
       };
       profileStore.save(nextPrefs);
       setPrefs(nextPrefs);
-      if (startNow) {
+      if (route.assessmentFirst) {
+        // assessment_offer answered 'now' → Check-up #0 runs first (flow.ts
+        // completion contract); the freshly exact placement then shapes the
+        // first session when the CTA also asked for one.
+        pendingFirstSessionRef.current = route.startFirstSession;
+        setPhase('assessment');
+      } else if (route.startFirstSession) {
         // First session defaults to the 15-minute minimum-dose preset (§7).
         setPlan(
           generateProgrammeSession({
@@ -251,9 +264,10 @@ export function ProgrammeV2Root() {
         onAcknowledge={(step) => {
           const next = acknowledgeOnboardingStep(flowState, step);
           setFlowState(next);
-          if (currentOnboardingStep(next) === 'complete') void finishOnboarding(false);
+          if (currentOnboardingStep(next) === 'complete') void finishOnboarding('schedule');
         }}
-        onComplete={(action) => void finishOnboarding(action === 'start_first_session')}
+        onComplete={(action) => void finishOnboarding(action)}
+        onBack={() => setFlowState(undoLastOnboardingStep(flowState))}
       />
     );
   }
@@ -468,6 +482,7 @@ export function ProgrammeV2Root() {
     // the home-screen movement-check button remains the way back.
     return (
       <ProgrammeCheckupZeroScreen
+        voiceId={prefs?.settings.voiceId}
         onRawCheckUpReady={(checkUp) => {
           try {
             historyStore.save(checkUp, { checkupType: 'manual_extra_v2' });
@@ -482,14 +497,28 @@ export function ProgrammeV2Root() {
             console.warn('[programme-v2] final check-up save failed', error);
           }
           const inputs = assessmentInputsFromCheckUp(checkUp);
-          persist(
-            applyAssessmentPlacement(programmeState, inputs, {
-              deferred: programmeState.completedSessionCount > 0,
-            })
-          );
+          const applied = applyAssessmentPlacement(programmeState, inputs, {
+            deferred: programmeState.completedSessionCount > 0,
+          });
+          persist(applied);
+          if (pendingFirstSessionRef.current) {
+            // The onboarding CTA promised a first session; the check-up ran
+            // first, so generate it from the freshly exact placement.
+            pendingFirstSessionRef.current = false;
+            setPlan(
+              generateProgrammeSession({ state: applied, template: 'A', preset: 'first_session' })
+            );
+            setPhase('session');
+            return;
+          }
           setPhase('home');
         }}
-        onCancel={() => setPhase('home')}
+        onCancel={() => {
+          // Abandonment is penalty-free and unsurprising: land home, where
+          // the first-session CTA remains the way in.
+          pendingFirstSessionRef.current = false;
+          setPhase('home');
+        }}
       />
     );
   }

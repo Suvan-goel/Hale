@@ -167,6 +167,79 @@ export function acknowledgeOnboardingStep(
   return { ...state, acknowledged: [...state.acknowledged, step] };
 }
 
+/**
+ * Step-wise back (promotion integration Phase 2): clears the most recent
+ * answered/acknowledged step so `currentOnboardingStep` returns to it. The
+ * visible-steps list recomputes from the cleared answers, so conditional
+ * steps (b1_advisory, the Stage B block, assessment_offer) appear and
+ * disappear consistently — undoing past b1_advisory first un-acknowledges
+ * the advisory, then a second undo clears the B1 answer itself. No-op at the
+ * first step. Skips recorded as answers (SKIPPED) undo like any answer;
+ * conservative-default routing is a completion-time mapping, so clearing the
+ * answer fully restores the question.
+ */
+export function undoLastOnboardingStep(
+  state: ProgrammeOnboardingFlowState
+): ProgrammeOnboardingFlowState {
+  const steps = visibleOnboardingSteps(state.answers);
+  const current = currentOnboardingStep(state);
+  const currentIndex = current === 'complete' ? steps.length : steps.indexOf(current);
+  for (let index = currentIndex - 1; index >= 0; index--) {
+    const step = steps[index];
+    if (isOnboardingQuestionStep(step)) {
+      if (stepAnswered(state.answers, step)) {
+        return { ...state, answers: clearAnswer(state.answers, step) };
+      }
+    } else if (state.acknowledged.includes(step)) {
+      return { ...state, acknowledged: state.acknowledged.filter((s) => s !== step) };
+    }
+  }
+  return state;
+}
+
+function clearAnswer(answers: OnboardingAnswers, step: OnboardingQuestionStepId): OnboardingAnswers {
+  const next = { ...answers };
+  switch (step) {
+    case 'a1_life_goal':
+      next.lifeGoal = null;
+      break;
+    case 'a2_menopause_journey':
+      next.menopauseStage = null;
+      break;
+    case 'a3_activity':
+      next.activityLevel = null;
+      break;
+    case 'consent_health':
+      next.consent = null;
+      break;
+    case 'b1_heart':
+      next.b1Heart = null;
+      break;
+    case 'b3_joints':
+      next.b3Joints = null;
+      break;
+    case 'b4_pelvic':
+      next.b4Pelvic = null;
+      break;
+    case 'b5_balance':
+      next.b5Balance = null;
+      break;
+    case 'c1_stairs':
+      next.c1Stairs = null;
+      break;
+    case 'c2_quiet':
+      next.c2Quiet = null;
+      break;
+    case 'd1_days':
+      next.d1Days = null;
+      break;
+    case 'assessment_offer':
+      next.assessmentChoice = null;
+      break;
+  }
+  return next;
+}
+
 export type OnboardingAnswerValue =
   | { step: 'a1_life_goal'; value: LifeGoalCategory | Skipped }
   | { step: 'a2_menopause_journey'; value: MenopauseStage }
@@ -273,7 +346,10 @@ export function completeOnboarding(
         ? 'low_impact'
         : 'none',
     quietMode: answers.c2Quiet === 'yes' || answers.c2Quiet === SKIPPED,
-    jointFlags: answers.b3Joints ?? [],
+    // Consent-gated like every Stage B mapping: with back-navigation a user
+    // can answer B3 and THEN retract consent — stale special-category answers
+    // must never be used (§4 decline row).
+    jointFlags: answers.consent === 'agree' ? (answers.b3Joints ?? []) : [],
     balanceSupportDefault:
       answers.consent === 'agree' && (answers.b5Balance === 'yes' || answers.b5Balance === SKIPPED),
     hasStairs: answers.c1Stairs === 'yes' ? true : answers.c1Stairs === 'no' ? false : null,

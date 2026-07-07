@@ -63,6 +63,8 @@ export interface OnboardingOption {
 
 export interface OnboardingQuestionContent {
   id: OnboardingQuestionStepId;
+  /** Section kicker rendered by the ScreenHeader (old-design language). */
+  eyebrow: string;
   question: string;
   /** One-line "why we ask", shown on every question screen (spec §3). */
   whyWeAsk: string;
@@ -84,10 +86,14 @@ export interface OnboardingQuestionContent {
 
 export interface OnboardingMessageContent {
   id: OnboardingMessageStepId;
+  /** Section kicker rendered by the ScreenHeader (old-design language). */
+  eyebrow: string;
   title: string;
   body: readonly string[];
   continueLabel: string;
   secondaryLabel?: string;
+  /** Small fact tiles (welcome screen), old-design SummaryMetric pattern. */
+  facts?: readonly { value: string; detail: string }[];
 }
 
 // ---------------------------------------------------------------------------
@@ -99,6 +105,7 @@ export const STAGE_B_QUESTION_COUNT = 4; // B1, B3, B4, B5 (B2 deferred)
 const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
   a1_life_goal: {
     id: 'a1_life_goal',
+    eyebrow: 'About you',
     question: 'What do you most want your strength for?',
     whyWeAsk: 'So your progress is framed around what actually matters to you.',
     options: [
@@ -112,6 +119,7 @@ const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
   },
   a2_menopause_journey: {
     id: 'a2_menopause_journey',
+    eyebrow: 'About you',
     question: 'Where are you on the menopause journey?',
     whyWeAsk: 'It shapes what we explain and when — never your results.',
     options: [
@@ -125,6 +133,7 @@ const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
   },
   a3_activity: {
     id: 'a3_activity',
+    eyebrow: 'About you',
     question: 'How active are you these days?',
     whyWeAsk: 'It sets how gently your first weeks start.',
     options: [
@@ -138,6 +147,7 @@ const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
   },
   consent_health: {
     id: 'consent_health',
+    eyebrow: 'Health check',
     question: 'The next few questions touch on your health. OK to use your answers?',
     whyWeAsk: 'They tailor your programme — nothing else.',
     note:
@@ -149,6 +159,7 @@ const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
   },
   b1_heart: {
     id: 'b1_heart',
+    eyebrow: 'Health check',
     question:
       'Has a doctor ever told you that you have a heart condition — or do you get chest pain or serious dizziness when you’re active?',
     whyWeAsk: 'If so, we start extra gently while you check in with your GP.',
@@ -162,6 +173,7 @@ const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
   },
   b3_joints: {
     id: 'b3_joints',
+    eyebrow: 'Health check',
     question: 'Any joints that regularly hurt or feel unreliable?',
     whyWeAsk: 'We’ll pick kinder variations for those joints from day one.',
     multiSelect: true,
@@ -178,6 +190,7 @@ const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
   },
   b4_pelvic: {
     id: 'b4_pelvic',
+    eyebrow: 'Health check',
     question:
       'Do you ever leak a little when you cough, sneeze, laugh or jump — or feel a heaviness in your pelvic area?',
     whyWeAsk: 'We’ll choose a gentler finisher and point you to help that works.',
@@ -192,6 +205,7 @@ const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
   },
   b5_balance: {
     id: 'b5_balance',
+    eyebrow: 'Health check',
     question: 'Have you had a fall in the last year, or do you worry about your balance?',
     whyWeAsk: 'If so, single-leg moves keep a hand’s reach of support by default.',
     options: [
@@ -204,6 +218,7 @@ const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
   },
   c1_stairs: {
     id: 'c1_stairs',
+    eyebrow: 'Your setup',
     question: 'Do you have stairs where you’ll work out?',
     whyWeAsk: 'A few exercises use the bottom step — we’ll swap them if not.',
     options: [
@@ -215,6 +230,7 @@ const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
   },
   c2_quiet: {
     id: 'c2_quiet',
+    eyebrow: 'Your setup',
     question: 'Do your workouts need to be quiet — downstairs neighbours, sleeping family?',
     whyWeAsk: 'We’ll keep every move neighbour-friendly.',
     options: [
@@ -226,6 +242,7 @@ const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
   },
   d1_days: {
     id: 'd1_days',
+    eyebrow: 'Your week',
     // Honesty ruling 2026-07-07: nothing schedules around these days yet, so
     // the "why" claims only the rhythm; scheduling copy returns with the
     // local-notifications proposal.
@@ -244,6 +261,7 @@ const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
   },
   assessment_offer: {
     id: 'assessment_offer',
+    eyebrow: 'Movement check',
     question: 'Two minutes of moving so your programme fits you exactly?',
     whyWeAsk: 'It sets your starting levels precisely — and it’s entirely optional.',
     note: 'No one sees this but you. It’s processed on your phone and never leaves it.',
@@ -262,21 +280,29 @@ const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
 const MESSAGES: Record<OnboardingMessageStepId, OnboardingMessageContent> = {
   welcome: {
     id: 'welcome',
+    eyebrow: 'Welcome',
     title: 'Strength that fits your life',
     body: [
       'Voice-guided strength workouts for the menopause years — 20 to 25 minutes, at home, no equipment to start.',
       'A few quick taps and your first session is ready.',
     ],
     continueLabel: 'Let’s get started',
+    facts: [
+      { value: '15 min', detail: 'First session' },
+      { value: '3 days', detail: 'A week' },
+      { value: '2 min', detail: 'Movement check' },
+    ],
   },
   b_intro: {
     id: 'b_intro',
+    eyebrow: 'Health check',
     title: 'Quick safety tune-up',
     body: ['Four taps, about 30 seconds. This is how we make the programme yours.'],
     continueLabel: 'OK',
   },
   b1_advisory: {
     id: 'b1_advisory',
+    eyebrow: 'Health check',
     title: 'We’ll begin very gently',
     body: [
       'Worth a quick chat with your GP before ramping up — meanwhile we’ll begin very gently.',
@@ -286,12 +312,14 @@ const MESSAGES: Record<OnboardingMessageStepId, OnboardingMessageContent> = {
   },
   b_exit: {
     id: 'b_exit',
+    eyebrow: 'Health check',
     title: 'That’s the health stuff done',
     body: ['Everything from here is about what you can do.'],
     continueLabel: 'Continue',
   },
   placement_reveal: {
     id: 'placement_reveal',
+    eyebrow: 'Your plan',
     title: 'Your starting levels are set',
     body: [
       'Every movement starts at a level chosen for you — deliberately comfortable, ready to build.',
@@ -300,6 +328,7 @@ const MESSAGES: Record<OnboardingMessageStepId, OnboardingMessageContent> = {
   },
   expectation_cta: {
     id: 'expectation_cta',
+    eyebrow: 'Your plan',
     title: 'Here’s how this works',
     body: [
       'We start gently on purpose. Your only job this month is showing up.',
@@ -331,7 +360,7 @@ export function isOnboardingQuestionStep(id: OnboardingStepId): id is Onboarding
 export function allOnboardingCopyStrings(): string[] {
   const out: string[] = [];
   for (const question of Object.values(QUESTIONS)) {
-    out.push(question.question, question.whyWeAsk);
+    out.push(question.eyebrow, question.question, question.whyWeAsk);
     if (question.note) out.push(question.note);
     if (question.skipLabel) out.push(question.skipLabel);
     for (const option of question.options) {
@@ -340,8 +369,9 @@ export function allOnboardingCopyStrings(): string[] {
     }
   }
   for (const message of Object.values(MESSAGES)) {
-    out.push(message.title, ...message.body, message.continueLabel);
+    out.push(message.eyebrow, message.title, ...message.body, message.continueLabel);
     if (message.secondaryLabel) out.push(message.secondaryLabel);
+    for (const fact of message.facts ?? []) out.push(fact.value, fact.detail);
   }
   return out;
 }

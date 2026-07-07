@@ -202,6 +202,35 @@ export function checkupOfferFor(
 }
 
 // ---------------------------------------------------------------------------
+// Onboarding completion routing
+// ---------------------------------------------------------------------------
+
+export interface OnboardingRoute {
+  /** Run Check-up #0 first (assessment_offer answered 'now' — flow contract). */
+  assessmentFirst: boolean;
+  /** Start the first session (after the check-up when assessmentFirst). */
+  startFirstSession: boolean;
+}
+
+/**
+ * Where the app goes when onboarding completes. Honors BOTH promises made in
+ * the flow: an assessment_offer answer of 'now' launches Check-up #0 (the
+ * flow.ts completion contract — previously dropped by the dev shell), and
+ * the expectation CTA's "start your first session" holds either way — after
+ * the check-up when one runs first, so the freshly exact placement shapes
+ * the very first session.
+ */
+export function onboardingCompletionRoute(
+  completion: { assessmentIntent: 'start_now' | null },
+  action: 'start_first_session' | 'schedule'
+): OnboardingRoute {
+  return {
+    assessmentFirst: completion.assessmentIntent === 'start_now',
+    startFirstSession: action === 'start_first_session',
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Pre-session moment (in-context questions at their moment of effect, §8)
 // ---------------------------------------------------------------------------
 
