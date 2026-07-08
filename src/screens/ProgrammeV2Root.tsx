@@ -33,7 +33,12 @@ import { Screen, ScreenScrollClearanceProvider } from '../components/ui';
 import { useSystemInsets } from '../components/SystemInsetsProvider';
 import { adoptGuestLocalFiles, createExpoHistoryFs } from '../history/fsAdapter';
 import { HistoryStore, type StoredCheckUp } from '../history';
-import { buildMovementProfileV2ProgressViewModel } from '../haleFlow';
+import {
+  buildMovementProfileV2ProgressViewModel,
+  movementProfileV2ProgressProfileBySourceCheckUpId,
+  validOfficialMovementProfileV2Assessments,
+} from '../haleFlow';
+import { movementProfileV2ResultsViewModelForRecord } from '../movementProfileV2/viewModel';
 import { TAB_BAR_SCROLL_CLEARANCE, TabBar, type TabKey } from '../navigation/TabBar';
 import {
   acknowledgeOnboardingStep,
@@ -87,6 +92,7 @@ import { DEFAULT_VOICE_SETUP_PREFS, type VoiceSetupPrefs } from '../voice/voiceP
 import { CameraSetupScreen } from './CameraSetupScreen';
 import { LearnDetailScreen } from './ExploreDetailScreens';
 import { ExploreScreen } from './ExploreScreen';
+import { MovementProfileV2UnifiedResultsScreen } from './MovementProfileV2UnifiedResultsScreen';
 import { ProgressScreen } from './ProgressScreen';
 import { ProgrammeCheckupZeroScreen } from './ProgrammeCheckupZeroScreen';
 import { ProgrammeEffortScreen, ProgrammeMomentScreen } from './ProgrammeMomentScreens';
@@ -136,6 +142,15 @@ export function ProgrammeV2Root() {
   const [tab, setTab] = React.useState<TabKey>('today');
   const [flow, setFlow] = React.useState<ShellFlow>(null);
   const [learnId, setLearnId] = React.useState<string | null>(null);
+  // The per-check-up results page (restored 2026-07-08, founder direction):
+  // fresh results right after a check-up ('standard' / 'onboarding' for the
+  // first-ever), and read-only saved results from Progress ('history'). The
+  // view model derives from stored history, so both surfaces share one
+  // derivation path (one-owner rule).
+  const [resultsView, setResultsView] = React.useState<{
+    sourceCheckUpId: string;
+    variant: 'standard' | 'onboarding' | 'history';
+  } | null>(null);
   const [programmeState, setProgrammeState] = React.useState<ProgrammeState | null>(null);
   const [prefs, setPrefs] = React.useState<Preferences | null>(null);
   const [history, setHistory] = React.useState<readonly StoredCheckUp[]>([]);
@@ -217,7 +232,7 @@ export function ProgrammeV2Root() {
 
   // Android navigation bar: visible only on the tab shell — sessions,
   // check-ups, and full-screen flows run immersive (old-shell behavior).
-  const showTabBar = phase === 'home' && flow === null && learnId === null;
+  const showTabBar = phase === 'home' && flow === null && learnId === null && resultsView === null;
   React.useEffect(() => {
     void setAndroidNavigationBarVisibleAsync(showTabBar);
   }, [showTabBar]);
@@ -238,6 +253,45 @@ export function ProgrammeV2Root() {
       .then(setHistory)
       .catch(() => {});
   }, [historyStore]);
+
+  // What happens once fresh results are dismissed (or could not be shown):
+  // the onboarding CTA's promised first session, or home. Consumes the
+  // pending-first-session promise exactly once.
+  const proceedAfterAssessment = React.useCallback(() => {
+    if (pendingFirstSessionRef.current && programmeState) {
+      // The onboarding CTA promised a first session; the check-up ran
+      // first, so generate it from the freshly exact placement.
+      pendingFirstSessionRef.current = false;
+      setPlan(
+        generateProgrammeSession({ state: programmeState, template: 'A', preset: 'first_session' })
+      );
+      setPhase('session');
+      return;
+    }
+    pendingFirstSessionRef.current = false;
+    setPhase('home');
+  }, [programmeState]);
+
+  // Results derive from stored history so fresh and saved views share one
+  // path; rebuilt when the population-comparison preference flips.
+  const resultsViewModel = React.useMemo(() => {
+    if (!resultsView) return null;
+    const record = movementProfileV2ProgressProfileBySourceCheckUpId(
+      history,
+      resultsView.sourceCheckUpId
+    );
+    if (!record) return null;
+    return movementProfileV2ResultsViewModelForRecord(record, {
+      comparisonOptIn: prefs?.settings.comparisonOptIn,
+    });
+  }, [history, resultsView, prefs]);
+
+  // Condition 1 of record (2026-07-06): the comparison affordance exists only
+  // from the second stored official check-up onward.
+  const officialCheckUpCount = React.useMemo(
+    () => validOfficialMovementProfileV2Assessments(history).length,
+    [history]
+  );
 
   const voiceSetup: VoiceSetupPrefs = prefs?.settings.voiceSetup ?? DEFAULT_VOICE_SETUP_PREFS;
   const handleVoiceSetupChange = React.useCallback(
@@ -646,7 +700,6 @@ export function ProgrammeV2Root() {
         onComplete={(checkUp) => {
           try {
             historyStore.save(checkUp, { checkupType: 'manual_extra_v2' });
-            refreshHistory();
           } catch (error) {
             console.warn('[programme-v2] final check-up save failed', error);
           }
@@ -655,17 +708,33 @@ export function ProgrammeV2Root() {
             deferred: programmeState.completedSessionCount > 0,
           });
           persist(applied);
-          if (pendingFirstSessionRef.current) {
-            // The onboarding CTA promised a first session; the check-up ran
-            // first, so generate it from the freshly exact placement.
-            pendingFirstSessionRef.current = false;
-            setPlan(
-              generateProgrammeSession({ state: applied, template: 'A', preset: 'first_session' })
-            );
-            setPhase('session');
-            return;
-          }
-          setPhase('home');
+          // Show fresh results before continuing (restored page, 2026-07-08).
+          // Placement is already applied — the page is purely presentational;
+          // its Done runs the promised chain (first session or home). If the
+          // saved record cannot be read back, skip straight to the chain.
+          historyStore
+            .loadAll()
+            .then((stored) => {
+              setHistory(stored);
+              const record = movementProfileV2ProgressProfileBySourceCheckUpId(
+                stored,
+                checkUp.startedAt
+              );
+              if (record) {
+                setResultsView({
+                  sourceCheckUpId: checkUp.startedAt,
+                  // First-ever results stay diagnosis-shaped (2026-07-06).
+                  variant:
+                    validOfficialMovementProfileV2Assessments(stored).length <= 1
+                      ? 'onboarding'
+                      : 'standard',
+                });
+                setPhase('home');
+                return;
+              }
+              proceedAfterAssessment();
+            })
+            .catch(() => proceedAfterAssessment());
         }}
         onCancel={() => {
           // Abandonment is penalty-free and unsurprising: land home, where
@@ -690,6 +759,30 @@ export function ProgrammeV2Root() {
   );
   const goAssessment = () => setPhase('assessment');
   const openSettings = () => setFlow('settings');
+
+  if (resultsView && resultsViewModel) {
+    return (
+      <MovementProfileV2UnifiedResultsScreen
+        viewModel={resultsViewModel}
+        variant={resultsView.variant}
+        populationComparison={{
+          available: officialCheckUpCount >= 2,
+          optedIn: prefs.settings.comparisonOptIn,
+        }}
+        onTogglePopulationComparison={() =>
+          persistPrefs({
+            ...prefs,
+            settings: { ...prefs.settings, comparisonOptIn: !prefs.settings.comparisonOptIn },
+          })
+        }
+        onDone={() => {
+          const fresh = resultsView.variant !== 'history';
+          setResultsView(null);
+          if (fresh) proceedAfterAssessment();
+        }}
+      />
+    );
+  }
 
   if (learnId) {
     return <LearnDetailScreen articleId={learnId} onDone={() => setLearnId(null)} />;
@@ -768,6 +861,9 @@ export function ProgrammeV2Root() {
                 reports: [],
                 today: nowIso,
               })}
+              onViewMovementProfileV2Profile={(sourceCheckUpId) =>
+                setResultsView({ sourceCheckUpId, variant: 'history' })
+              }
               onOpenSettings={openSettings}
             />
           ) : tab === 'explore' ? (

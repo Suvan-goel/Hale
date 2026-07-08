@@ -26,6 +26,7 @@ export function ProgressScreen({
   onBeginAdditionalCheckUp,
   onStartMovementProfileV2CheckUp,
   movementProfileV2Progress,
+  onViewMovementProfileV2Profile,
   onOpenSettings,
 }: ProgressScreenProps) {
   const responsive = useResponsiveLayout();
@@ -53,6 +54,7 @@ export function ProgressScreen({
         viewModel={movementProfileV2Progress ?? null}
         onStartCheckUp={onStartMovementProfileV2CheckUp ?? onBeginFirstCheckUp}
         onContinue={onBeginFirstCheckUp}
+        onViewProfile={onViewMovementProfileV2Profile}
         onBeginExtraCheckUp={onBeginAdditionalCheckUp}
       />
     </Screen>
@@ -197,11 +199,13 @@ function MovementProfileV2ProgressContent({
   viewModel,
   onStartCheckUp,
   onContinue,
+  onViewProfile,
   onBeginExtraCheckUp,
 }: {
   viewModel: MovementProfileV2ProgressViewModel | null;
   onStartCheckUp: () => void;
   onContinue: () => void;
+  onViewProfile?: (sourceCheckUpId: string) => void;
   onBeginExtraCheckUp: () => void;
 }) {
   if (!viewModel) {
@@ -236,10 +240,10 @@ function MovementProfileV2ProgressContent({
 
   return (
     <>
-      <MovementProfileCard viewModel={viewModel} />
+      <MovementProfileCard viewModel={viewModel} onViewProfile={onViewProfile} />
       {viewModel.change ? <MovementProfileV2ChangeCard change={viewModel.change} /> : null}
       {viewModel.officialHistory.length >= 2 ? (
-        <MovementProfileV2HistoryCard history={viewModel.officialHistory} />
+        <MovementProfileV2HistoryCard history={viewModel.officialHistory} onViewProfile={onViewProfile} />
       ) : null}
       <MovementProfileV2ExtraCheckUpCard onPress={onBeginExtraCheckUp} />
     </>
@@ -281,14 +285,15 @@ function MovementProfileV2RecoveryCard({
   );
 }
 
-// One "Movement Profile" card: the botanical banner names the focus, and the body
-// carries the date and the three domain readings. The read-only profile link
-// retired with the results flow (founder-directed deletion 2026-07-08) — this
-// card is now the full extent of a saved check-up's presentation.
+// One "Movement Profile" card: the botanical banner names the focus, and the
+// body carries the date, the three domain readings, and the read-only results
+// link (restored 2026-07-08 with the per-check-up results page).
 function MovementProfileCard({
   viewModel,
+  onViewProfile,
 }: {
   viewModel: Extract<MovementProfileV2ProgressViewModel, { status: 'ready' }>;
+  onViewProfile?: (sourceCheckUpId: string) => void;
 }) {
   const { hero } = viewModel;
   return (
@@ -313,6 +318,14 @@ function MovementProfileCard({
             <MovementProfileV2ProgressRow key={card.domain} card={card} showDivider={index > 0} />
           ))}
         </View>
+        {onViewProfile ? (
+          <ProgressActionRow
+            title="See full results"
+            body="Your complete check-up breakdown."
+            onPress={() => onViewProfile(hero.profileId)}
+            accessibilityLabel={`See full results. Your complete breakdown from ${hero.dateLabel}.`}
+          />
+        ) : null}
       </View>
     </View>
   );
@@ -413,8 +426,10 @@ function MovementProfileV2ExtraCheckUpCard({ onPress }: { onPress: () => void })
 // ("Strength / Power to Balance") and not what this tab is for.
 function MovementProfileV2HistoryCard({
   history,
+  onViewProfile,
 }: {
   history: Extract<MovementProfileV2ProgressViewModel, { status: 'ready' }>['officialHistory'];
+  onViewProfile?: (sourceCheckUpId: string) => void;
 }) {
   return (
     <Card style={styles.progressCard}>
@@ -427,6 +442,7 @@ function MovementProfileV2HistoryCard({
             entry={entry}
             latest={index === 0}
             showDivider={index > 0}
+            onPress={onViewProfile ? () => onViewProfile(entry.id) : undefined}
           />
         ))}
       </View>
@@ -434,22 +450,21 @@ function MovementProfileV2HistoryCard({
   );
 }
 
-// Plain rows: the read-only saved-profile view retired with the results flow,
-// so a history entry is informational, never a navigation affordance.
+// Rows open the saved read-only results page (restored 2026-07-08); without a
+// handler they degrade to informational rows rather than no-op pressables.
 function MovementProfileV2HistoryRow({
   entry,
   latest,
   showDivider,
+  onPress,
 }: {
   entry: Extract<MovementProfileV2ProgressViewModel, { status: 'ready' }>['officialHistory'][number];
   latest: boolean;
   showDivider: boolean;
+  onPress?: () => void;
 }) {
-  return (
-    <View
-      style={[styles.historyRow, showDivider && styles.rowDivider]}
-      accessibilityLabel={`${entry.dateLabel}. ${entry.sourceLabel}. ${entry.focusTitle}.`}
-    >
+  const body = (
+    <>
       <View style={styles.historyRowText}>
         <View style={styles.historyTitleRow}>
           <Text style={styles.historyRowTitle} numberOfLines={1}>{entry.dateLabel}</Text>
@@ -463,7 +478,28 @@ function MovementProfileV2HistoryRow({
           {entry.sourceLabel} · {entry.focusTitle}
         </Text>
       </View>
-    </View>
+      {onPress ? <Text style={styles.chevron}>›</Text> : null}
+    </>
+  );
+  if (!onPress) {
+    return (
+      <View
+        style={[styles.historyRow, showDivider && styles.rowDivider]}
+        accessibilityLabel={`${entry.dateLabel}. ${entry.sourceLabel}. ${entry.focusTitle}.`}
+      >
+        {body}
+      </View>
+    );
+  }
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.historyRow, showDivider && styles.rowDivider, pressed && styles.pressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${entry.dateLabel}. ${entry.sourceLabel}. ${entry.focusTitle}. Opens the saved read-only results page.`}
+    >
+      {body}
+    </Pressable>
   );
 }
 
@@ -504,6 +540,8 @@ interface ProgressScreenProps {
   onBeginAdditionalCheckUp: () => void;
   onStartMovementProfileV2CheckUp?: () => void;
   movementProfileV2Progress?: MovementProfileV2ProgressViewModel | null;
+  /** Opens the saved read-only results page (restored 2026-07-08). */
+  onViewMovementProfileV2Profile?: (sourceCheckUpId: string) => void;
   onOpenSettings: () => void;
 }
 

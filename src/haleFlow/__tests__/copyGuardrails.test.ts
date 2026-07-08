@@ -55,10 +55,12 @@ const CLARITY_SELF_REPORT_COPY_FILES: readonly string[] = [
 const CLARITY_BANNED_COPY = /\bvalidated\b/i;
 
 const RESULT_COPY_FILES = [
+  'src/results/CheckUpResultsShell.tsx',
   'src/screens/ProgressScreen.tsx',
   'src/screens/AuthScreen.tsx',
   'src/screens/SettingsScreen.tsx',
   'src/screens/SafetyProfileScreen.tsx',
+  'src/results/movementProfileV2ResultsAdapter.ts',
   'src/movementProfileV2/viewModel.ts',
 ] as const;
 
