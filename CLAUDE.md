@@ -43,7 +43,11 @@ measurement instrument — Movement Check-Up and micro-checks unchanged. The cam
 session mode ("conductor") is parked as v2 behind a feature flag, nothing deleted; promotion
 trigger is churn-location telemetry. Reps in voice sessions are REPORTED (prescribed target
 confirmed on "done", adjustable on the rest screen), never presented as measured. Design of
-record: TDD.md (v2 conductor) + TDD-ADDENDUM.md (approved v1). See docs/decisions.md.)*
+record: TDD.md (v2 conductor) + TDD-ADDENDUM.md (approved v1). See docs/decisions.md.
+2026-07-08 amendment, founder-directed simplification: the parked conductor SURFACE
+(TrainingSessionScreen) was deleted outright — git history is the archive; a v2 conductor
+would be rebuilt against TDD.md rather than revived from parked code. The voice-session
+direction above is otherwise unchanged.)*
 
 *(2026-07-06 direction — programme engine v2: the five-pattern exercise-ladder engine and
 screening-first onboarding (docs/specs/exercise-ladders-spec.md + onboarding-spec.md, read
@@ -82,6 +86,21 @@ surfaces lost their mount — both re-enter with pre-beta work. Beta gates are
 unchanged by promotion: clinical review of the zero-hard-gates posture, the formal voice
 trial matrix, and the noise-floor real-data run all still stand between here and beta.
 See docs/decisions.md.)*
+
+*(2026-07-08 — SIMPLIFICATION PASS, founder-directed, same day as promotion: the shell is
+now THREE tabs — Home / Progress / Learn. The Plan tab merged into Home (it duplicated the
+levels card, session CTA, and check-up offer); Explore lost the extra-practice catalogue
+and is labelled Learn (articles only — the daily programme session is the one training
+surface, and the shell no longer touches the old engine's preset generation). Every
+unmounted surface was deleted, overriding the promotion KEEP list on founder direction:
+the parked conductor, both results screens + src/results, the four Clarity screens (the
+clarity ENGINE and its privacy pins stay), the ghost-curve/Clarity-trend Progress cards
+(unshipped for v1; their view models remain), the life-goal review flow (the goal is set
+once in onboarding, read-only in Settings), the voice-spike boot gate, and a verified
+zero-importer module sweep. Progress's "See full results" and pressable history rows —
+no-ops since promotion — were removed; there is currently NO per-check-up results page,
+the Progress cards are the whole presentation. ~8,200 lines net deleted; suite 183/1,532
+green. See docs/decisions.md.)*
 
 ## Product laws (non-negotiable design rules, validated in user interviews)
 
@@ -271,7 +290,8 @@ an **Explore** tab of bundled articles and extra practice sessions. *(2026-07-04
 the earlier Family-tab mock and its headless support-circle services were deleted, the
 never-functional workout-reminder toggle was removed — reminders return only as a real
 local-notification feature if the 2026-07-03 proposal is approved — and Explore was trimmed to
-Learn + Sessions.)* The trainer-voice picker offers two voices — **Clara** (female) and
+Learn + Sessions. 2026-07-08: trimmed again to Learn ONLY — the extra-practice sessions were
+removed with the founder-directed simplification pass and the tab is labelled "Learn".)* The trainer-voice picker offers two voices — **Clara** (female) and
 **Marcus** (male) — whose lines are synthesized once at build time via the **ElevenLabs API
 (Multilingual v2 model, `mp3_44100_128` output)** by `scripts/generate-audio.ts` and bundled per voice under
 `assets/audio/voice/<voiceId>/`; nothing in the session path ever calls ElevenLabs at runtime

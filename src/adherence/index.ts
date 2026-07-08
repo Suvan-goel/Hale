@@ -9,4 +9,3 @@ export * from './milestoneService';
 export * from './serialize';
 export * from './store';
 export * from './types';
-export { CurrentBlockCard } from './components/CurrentBlockCard';

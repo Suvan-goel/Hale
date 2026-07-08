@@ -5124,3 +5124,61 @@ proceeds in its own working session once ruled.
      mounts; consider pre-asking on the host's intro screen (refinement).
 - PROMOTION COMPLETE. The pre-promotion checklist header records both
   commits; CLAUDE.md's annotation updated to the executed state.
+
+## 2026-07-08 — FOUNDER-DIRECTED SIMPLIFICATION PASS: every unmounted surface deleted, 4 tabs → 3, Explore → Learn
+
+**Direction (founder, this session):** make the app as simple as possible —
+the target demographic is more likely to understand and not be overwhelmed,
+and fewer moving parts means more polish on what remains. All Tier-1 dead
+code AND the deliberately-parked Tier-2 surfaces were deleted ("we will make
+new versions if necessary" — git history is the archive). Five staged
+commits, each suite-green.
+
+- **OVERRIDES two recorded rulings, on explicit founder direction:**
+  1. The conductor "parked, nothing deleted" ruling (2026-07-05) —
+     TrainingSessionScreen (1,609 lines) is deleted. Re-entry: git history,
+     promotion trigger (churn-location telemetry) unchanged in spirit.
+  2. The promotion commit-2 "KEPT deliberately" list — both results screens,
+     the results shell (src/results), and the four Clarity screens
+     (ClarityCheckIn, DualTask, FluencyTask, FluencyConsent) are deleted.
+     The clarity ENGINE (checkup/voice adapters, trend/escalation view
+     models, privacy pins) is untouched; any future clarity UI re-registers
+     its consent copy with the fluencyPrivacy suite and the copy fences.
+- **Tab shell: Home / Progress / Learn (was Today/Plan/Progress/Explore).**
+  The Plan tab merged into Home — it duplicated the levels card, session CTA
+  and check-up offer; training days stay editable in Settings. The 'plan'
+  route key normalizes to 'today'. Explore lost the extra-practice catalogue
+  (featured card + 6 preset rows) and is labelled "Learn" (route key stays
+  'explore'): the daily programme session is the ONE training surface, and
+  the shell no longer touches the old engine's preset generation at all
+  (getExtraSessionCards/availableEquipmentFor/extraSessionCopy deleted).
+  The 5 Learn articles stay — they carry the menopause positioning.
+- **Progress tab honesty fixes folded in:** the never-passed props
+  (ghost curve, Clarity trend/escalation, old-engine blocks/reports) are
+  gone; "See full results" and pressable history rows — no-op affordances
+  since promotion — removed (history rows are informational). The
+  next-check-up card could only render from old-engine blocks and is gone;
+  the routine cadence offer on Home/check-up flow is the standing entry.
+  Ghost curve + Clarity trend are therefore UNSHIPPED for v1 (they had
+  silently lost their mount at promotion anyway); their haleFlow view models
+  remain, tests green, for a future re-entry.
+- **Settings diet:** the life-goal review flow (LifeGoalOnboardingScreen +
+  LifeGoalSelector) is deleted; the movement goal is set once in onboarding
+  and shown read-only in profile details. Privacy ledger, camera-setup
+  review, and account/backup stay.
+- **Dev-surface deletions:** VoiceSpikeScreen boot gate (spike concluded),
+  progressProductPresentation, and a verified-orphan sweep: microCheckPolicy,
+  sessionSfx (conductor-only cue machine), preflight UI trio
+  (PreflightBanner/SetupHelpPanel/setupCopy), checkup/copy,
+  referenceDetailsDraft, publicCheckUpEngine, CurrentBlockCard,
+  supabaseSmokeTest, sessionModeFlag — each had zero non-test importers.
+- **Deliberately NOT swept (follow-up, needs export-level analysis):** the
+  old training engine's interior (workoutGeneration, dynamicState,
+  progression, microCheck + microCheckVoiceV21 cluster, cues) — reachable
+  only through the src/training barrel the live session player shares, so a
+  safe excision is its own pass. Audit scripts under scripts/audits that
+  read deleted sources are historical evidence tools; re-run from git
+  history if ever needed.
+- **Suite: 183 suites / 1,532 tests green** (was 192/1,577 — 9 suites and
+  45 tests retired with the surfaces they pinned), tsc clean throughout.
+  Net across the pass: ~8,200 lines deleted.
