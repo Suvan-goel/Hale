@@ -6,7 +6,6 @@ function source(relativePath: string): string {
 }
 
 const RECORDING_SCREENS = [
-  'src/screens/MicroCheckScreen.tsx',
   'src/screens/TrainingSessionScreen.tsx',
 ] as const;
 

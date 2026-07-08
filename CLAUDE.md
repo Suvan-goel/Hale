@@ -69,10 +69,16 @@ the production player, four-tab shell with Progress/Explore/Settings, auth-scope
 with guest adoption) and the founder's device pass (informal declaration; the formal spike
 evidence rules for BETA are unchanged), the flag `EXPO_PUBLIC_ENABLE_PROGRAMME_ENGINE_V2`
 was RETIRED and ProgrammeV2Root became the unconditional app root. The old engine's shell
-(AppGate, blocks, micro-check scheduling, old onboarding staging) is unmounted and
-decommission-pending — promotion commit 2 in docs/pre-promotion-checklist.md deletes it;
-its KEEP list (registry, voice player, unified check-up machinery, measurement stack,
-backup services, stateless preset generation for Explore) is binding. Beta gates are
+(AppGate, blocks, micro-check scheduling, old onboarding staging, PlanScreen, the old
+WelcomeScreen and session-flow screens) was DELETED the same day by promotion commit 2;
+the KEEP list held (registry, voice player, unified check-up machinery + results screens,
+measurement stack, backup services, stateless preset generation for Explore, and the
+parked conductor surface TrainingSessionScreen — "nothing deleted" ruling). App.tsx is now
+a slim root (font/auth/recovery gates + status-bar chrome); the audio-before-camera
+configuration and Android nav-bar immersion moved into the v2 shell. Known post-promotion
+gaps, recorded in decisions.md: remote backup/restore launch sync is not yet wired into
+the v2 shell (sign-in scopes storage and adopts guest data locally), and the Clarity
+surfaces lost their mount — both re-enter with pre-beta work. Beta gates are
 unchanged by promotion: clinical review of the zero-hard-gates posture, the formal voice
 trial matrix, and the noise-floor real-data run all still stand between here and beta.
 See docs/decisions.md.)*

@@ -17,23 +17,16 @@ describe('unified check-up results architecture', () => {
   });
 
   it('routes every results surface through the one shared shell', () => {
-    const app = readSource('App.tsx');
     const unifiedScreen = readSource('src/screens/MovementProfileV2UnifiedResultsScreen.tsx');
     const adapter = readSource('src/results/movementProfileV2ResultsAdapter.ts');
 
-    // One results flow renders both fresh (standard/onboarding) and saved
-    // history ('history' variant) results; the bespoke standalone screen and
-    // its separate 'unified-results' flow are gone.
-    expect(app).toContain("flow === 'movement-profile-v2-results'");
-    expect(app).not.toContain('movement-profile-v2-unified-results');
-    expect(app).not.toContain('MovementProfileV2ResultsScreen');
-    expect(app).toContain('MovementProfileV2UnifiedResultsScreen');
-    // The per-domain detail layer was removed: the results page is terminal.
-    expect(app).not.toContain('MovementProfileV2DomainDetailScreen');
-    expect(readSource('src/results/CheckUpResultsShell.tsx')).not.toContain('view_domain_detail');
-    expect(app).toContain("? 'history'");
-    expect(app).toContain('movementProfileV2BlockMatchesResult');
+    // The results flow is dormant since promotion commit 2 (2026-07-08) —
+    // it returns with the opt-in full movement check. The shared-shell
+    // architecture pins hold on the kept surfaces themselves: one unified
+    // results screen over the one shell, a terminal results page, and the
+    // 'history' variant in the adapter.
     expect(unifiedScreen).toContain('CheckUpResultsShell');
+    expect(readSource('src/results/CheckUpResultsShell.tsx')).not.toContain('view_domain_detail');
     expect(adapter).toContain("'history'");
   });
 });

@@ -7,42 +7,27 @@ import {
   Text,
   View,
 } from 'react-native';
-import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 const HERO_IMAGE = require('../../assets/images/hale-home-hero-botanical.png');
 
 import { HeaderLogo } from '../components/HeaderLogo';
 import { useScreenScrollClearance } from '../components/ui';
-import type {
-  HaleAppLifecycleResult,
-  MovementSnapshot,
-  MovementSnapshotBand,
-  TodaySessionAdjustment,
-} from '../haleFlow';
 import type { ProgrammeLevelRow, ProgrammeTodayViewModel } from '../programme';
-// The hero copy (title/subtitle/CTA) comes straight from the lifecycle's
-// primary action — appLifecycle.ts is the single source for that copy.
+// The hero copy (title/subtitle/CTA) comes straight from the programme
+// adapter's primary action — src/programme/appLifecycle.ts is the single
+// source for that copy.
 import { SettingsIcon } from '../navigation/icons';
 import type { UserProfile } from '../profile';
-import type { PainArea } from '../training';
-import { colors, fonts, imageOverlayControl, radius, shadow, spacing, todayHomeColors, type } from '../theme';
+import { colors, fonts, imageOverlayControl, radius, shadow, spacing, todayHomeColors } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 
-type SnapshotKey = keyof MovementSnapshot;
-
-const SNAPSHOT_ROWS: readonly { key: SnapshotKey; short: string; title: string }[] = [
-  { key: 'strengthPower', short: 'S', title: 'Strength' },
-  { key: 'balance', short: 'B', title: 'Balance' },
-  { key: 'mobility', short: 'M', title: 'Mobility' },
-];
-
 /**
- * Programme-engine v2 data source (promotion integration Phase 3): the same
- * screen and design, driven by the programme adapter's view model instead of
- * the old lifecycle. The snapshot card becomes the levels card (v2 has no
- * measured domain bands until an official check-up exists — level rows are
- * the honest equivalent), and the persistent check-up offer renders as its
- * own card. No micro-check or block states exist on this path.
+ * The Today tab (programme engine v2 — the only data source since the old
+ * engine's decommission, promotion commit 2, 2026-07-08): greeting header,
+ * the levels card (v2 has no measured domain bands until an official
+ * check-up exists — level rows are the honest equivalent), the hero focus
+ * card, and the persistent check-up offer when one is due.
  */
 export interface TodayProgrammeMode {
   today: ProgrammeTodayViewModel;
@@ -53,34 +38,19 @@ export interface TodayProgrammeMode {
 
 export function TodayScreen({
   profile,
-  lifecycle,
   programme,
   onPrimaryAction,
   onOpenSettings,
 }: {
   profile: UserProfile;
-  /** Old-engine data source; required unless `programme` is provided. */
-  lifecycle?: HaleAppLifecycleResult;
-  /** Programme-v2 data source — takes precedence over `lifecycle`. */
-  programme?: TodayProgrammeMode;
-  onPrimaryAction: (preferences?: { adjustment?: TodaySessionAdjustment | null; painArea?: PainArea | null }) => void;
+  programme: TodayProgrammeMode;
+  onPrimaryAction: () => void;
   onOpenSettings?: () => void;
 }) {
   const responsive = useResponsiveLayout();
   const bottomScrollClearance = useScreenScrollClearance();
   const compact = responsive.isCompactPhone;
-  const snapshot = lifecycle?.movementSnapshot;
-  const sessionDetail = programme
-    ? programme.today.sessionDetail
-    : lifecycle
-      ? todaySessionDetail(lifecycle)
-      : undefined;
-  const primaryAction = programme ? programme.today.primaryAction : lifecycle?.primaryAction;
-  if (!primaryAction) return <View style={styles.background} />;
-
-  // Start goes straight to the session preview, which owns today's
-  // adjustments (shorter / gentler / equipment / something hurts) inline.
-  const handleStartPress = () => onPrimaryAction();
+  const primaryAction = programme.today.primaryAction;
 
   return (
     <View style={styles.background}>
@@ -122,27 +92,23 @@ export function TodayScreen({
           ) : null}
         </View>
 
-        {programme ? (
-          <ProgrammeLevelsCard
-            compact={compact}
-            levelRows={programme.levelRows}
-            onViewPlan={programme.onViewPlan}
-          />
-        ) : lifecycle ? (
-          <MovementSnapshotCard compact={compact} lifecycle={lifecycle} snapshot={snapshot} />
-        ) : null}
+        <ProgrammeLevelsCard
+          compact={compact}
+          levelRows={programme.levelRows}
+          onViewPlan={programme.onViewPlan}
+        />
 
         <DailyFocusCard
           compact={compact}
           label="Today"
           title={primaryAction.title}
           subtitle={primaryAction.subtitle}
-          detail={sessionDetail}
+          detail={programme.today.sessionDetail}
           ctaLabel={primaryAction.ctaLabel}
-          onPress={handleStartPress}
+          onPress={onPrimaryAction}
         />
 
-        {programme?.today.checkupOffer && programme.onStartCheckup ? (
+        {programme.today.checkupOffer && programme.onStartCheckup ? (
           <CheckupOfferCard
             compact={compact}
             title={programme.today.checkupOffer.title}
@@ -150,8 +116,6 @@ export function TodayScreen({
             onPress={programme.onStartCheckup}
           />
         ) : null}
-
-        {lifecycle && !programme ? <TodayContextStrip compact={compact} lifecycle={lifecycle} /> : null}
       </ScrollView>
     </View>
   );
@@ -223,128 +187,6 @@ function CheckupOfferCard({
         <Text style={styles.checkupButtonText}>{ctaLabel}</Text>
         <Text style={styles.checkupButtonArrow}>›</Text>
       </Pressable>
-    </View>
-  );
-}
-
-function MovementSnapshotCard({
-  compact,
-  lifecycle,
-  snapshot,
-}: {
-  compact: boolean;
-  lifecycle: HaleAppLifecycleResult;
-  snapshot: MovementSnapshot | null | undefined;
-}) {
-  const progress = movementProfileProgress(lifecycle, snapshot);
-  const hasMeasuredDomains = SNAPSHOT_ROWS.some((row) => snapshot?.[row.key]);
-  return (
-    <View style={[styles.snapshotCard, compact && styles.compactCardPadding]}>
-      <Text style={styles.snapshotTitle}>Your movement snapshot</Text>
-      {!hasMeasuredDomains ? (
-        <Text style={styles.snapshotIntro}>
-          Complete your check-up to see strength, balance, and mobility here.
-        </Text>
-      ) : null}
-      <View style={[styles.snapshotBody, compact && styles.snapshotBodyCompact]}>
-        <SnapshotProgressRing
-          progress={progress.progress}
-          value={progress.value}
-          noun={progress.noun}
-          verb={progress.verb}
-          size={compact ? 148 : 162}
-        />
-        <View style={styles.metricRows}>
-          {SNAPSHOT_ROWS.map((row, index) => {
-            const band = snapshot?.[row.key];
-            return (
-              <MetricRow
-                key={row.key}
-                domain={row.key}
-                label={row.title}
-                value={snapshotRowValue(row.key, band, lifecycle.activeBlockSummary?.focusDomain)}
-              />
-            );
-          })}
-        </View>
-      </View>
-    </View>
-  );
-}
-
-function SnapshotProgressRing({
-  progress,
-  value,
-  noun,
-  verb,
-  size,
-}: {
-  progress: number;
-  value: string;
-  noun: string;
-  verb: string;
-  size: number;
-}) {
-  const stroke = 6;
-  const center = size / 2;
-  const radiusValue = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radiusValue;
-  const clamped = Math.max(0, Math.min(1, progress));
-  const visualProgress = clamped === 0 ? 0.035 : clamped;
-  const [current = value, total = ''] = value.split('/');
-
-  return (
-    <View style={[styles.snapshotRing, { width: size, height: size }]}>
-      <Svg width={size} height={size}>
-        <Circle cx={center} cy={center} r={radiusValue} stroke={todayHomeColors.ringTrack} strokeWidth={stroke} fill="none" />
-        <Circle
-          cx={center}
-          cy={center}
-          r={radiusValue}
-          stroke={todayHomeColors.headingGreen}
-          strokeWidth={stroke}
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray={`${circumference} ${circumference}`}
-          strokeDashoffset={circumference * (1 - visualProgress)}
-          transform={`rotate(-90 ${center} ${center})`}
-        />
-      </Svg>
-      <View style={styles.snapshotRingCenter}>
-        <Text style={styles.snapshotRingValue}>
-          {current}
-          {total ? <Text style={styles.snapshotRingJoin}> of </Text> : null}
-          {total ? <Text>{total}</Text> : null}
-        </Text>
-        <Text style={styles.snapshotRingLabel}>{noun}</Text>
-        <Text style={styles.snapshotRingLabel}>{verb}</Text>
-      </View>
-    </View>
-  );
-}
-
-function TodayContextStrip({ compact, lifecycle }: { compact: boolean; lifecycle: HaleAppLifecycleResult }) {
-  const block = lifecycle.activeBlockSummary;
-  // Without an active plan there is nothing here the hero and snapshot cards
-  // don't already say — one mention per fact.
-  if (!block || !shouldShowActivePlanContext(lifecycle.state)) return null;
-  return (
-    <View style={[styles.contextStrip, compact && styles.compactCardPadding]}>
-      <Text style={styles.contextTitle}>Your 4-week plan</Text>
-      <View style={styles.contextBody}>
-        <View style={styles.contextPrimary}>
-          <Text style={styles.contextLabel}>Current week</Text>
-          <Text style={styles.contextValue} numberOfLines={1}>
-            Week <Text style={styles.contextValueNumber}>{block.weekNumber}</Text> of{' '}
-            <Text style={styles.contextValueNumber}>{block.totalWeeks}</Text>
-          </Text>
-        </View>
-        <View style={styles.contextDivider} />
-        <View style={styles.contextSecondary}>
-          <Text style={styles.contextLabel}>Next check-up</Text>
-          <Text style={styles.contextValue} numberOfLines={1}>{retestLabel(block.retestInDays, block.totalWeeks)}</Text>
-        </View>
-      </View>
     </View>
   );
 }
@@ -422,72 +264,6 @@ function HomeHeroScrim() {
   );
 }
 
-function MetricRow({
-  domain,
-  label,
-  value,
-}: {
-  domain: SnapshotKey;
-  label: string;
-  value: string;
-}) {
-  return (
-    <View style={styles.metricRow}>
-      <View style={styles.metricIcon}>
-        <DomainGlyph domain={domain} />
-      </View>
-      <View style={styles.metricCopy}>
-        <Text style={styles.metricLabel}>{label}</Text>
-        <Text style={styles.metricValue}>{value}</Text>
-      </View>
-    </View>
-  );
-}
-
-function DomainGlyph({ domain }: { domain: SnapshotKey }) {
-  const s = {
-    stroke: todayHomeColors.headingGreen,
-    strokeWidth: 1.8,
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
-    fill: 'none' as const,
-  };
-
-  if (domain === 'strengthPower') {
-    return (
-      <Svg width={22} height={22} viewBox="0 0 24 24">
-        <Path d="M4.8 10 V14" {...s} />
-        <Path d="M7.2 8.5 V15.5" {...s} />
-        <Path d="M9.4 11.8 H14.6" {...s} />
-        <Path d="M16.8 8.5 V15.5" {...s} />
-        <Path d="M19.2 10 V14" {...s} />
-      </Svg>
-    );
-  }
-
-  if (domain === 'balance') {
-    return (
-      <Svg width={22} height={22} viewBox="0 0 24 24">
-        <Path d="M12 5 V18" {...s} />
-        <Path d="M7 8 H17" {...s} />
-        <Path d="M8 8 L5.8 14 H10.2 Z" {...s} />
-        <Path d="M16 8 L13.8 14 H18.2 Z" {...s} />
-        <Path d="M8 18 H16" {...s} />
-      </Svg>
-    );
-  }
-
-  return (
-    <Svg width={28} height={28} viewBox="0 0 24 24">
-      <Circle cx={12} cy={5.7} r={1.5} {...s} />
-      <Path d="M12 8 V13" {...s} />
-      <Path d="M8 10 L12 12 L16 10" {...s} />
-      <Path d="M12 13 L8.7 18" {...s} />
-      <Path d="M12 13 L15.6 18.5" {...s} />
-    </Svg>
-  );
-}
-
 function firstName(name?: string | null): string | null {
   const trimmed = name?.trim();
   if (!trimmed) return null;
@@ -503,86 +279,6 @@ function timeOfDayGreeting(): string {
   if (hour < 12) return 'Good morning';
   if (hour < 18) return 'Good afternoon';
   return 'Good evening';
-}
-
-function todaySessionDetail(lifecycle: HaleAppLifecycleResult): string | undefined {
-  if (lifecycle.primaryAction.type !== 'start_first_session' && lifecycle.primaryAction.type !== 'start_today_session') {
-    return undefined;
-  }
-  const nextSession = lifecycle.weekSessionStatuses?.find((session) => session.status === 'next');
-  if (!nextSession) return undefined;
-  return `Today's focus: ${nextSession.focus}`;
-}
-
-function snapshotRowValue(
-  row: SnapshotKey,
-  band: MovementSnapshotBand | undefined,
-  focusDomain: NonNullable<HaleAppLifecycleResult['activeBlockSummary']>['focusDomain'] | undefined
-): string {
-  if (!band) return 'Not checked yet';
-  if (snapshotRowMatchesFocus(row, focusDomain)) return 'Your main focus';
-  // Honest band copy: the label must reflect the measured band, never a
-  // hardcoded per-domain guess.
-  if (band === 'strong') return 'Doing well';
-  if (band === 'building') return 'Building steadily';
-  return 'A good place to start';
-}
-
-function snapshotRowMatchesFocus(
-  row: SnapshotKey,
-  focusDomain: NonNullable<HaleAppLifecycleResult['activeBlockSummary']>['focusDomain'] | undefined
-): boolean {
-  if (!focusDomain) return false;
-  if (row === 'strengthPower') return focusDomain === 'strength_power';
-  return row === focusDomain;
-}
-
-function movementProfileProgress(
-  lifecycle: HaleAppLifecycleResult,
-  snapshot: MovementSnapshot | null | undefined
-): { progress: number; value: string; noun: string; verb: string } {
-  const block = lifecycle.activeBlockSummary;
-  if (block && shouldShowActivePlanContext(lifecycle.state)) {
-    const total = Math.max(1, block.sessionsTargetThisWeek);
-    const current = Math.max(0, Math.min(total, block.sessionsCompleteThisWeek));
-    return {
-      progress: current / total,
-      value: `${current}/${total}`,
-      noun: 'sessions',
-      verb: 'completed',
-    };
-  }
-
-  const total = SNAPSHOT_ROWS.length;
-  const measured = SNAPSHOT_ROWS.filter((row) => snapshot?.[row.key]).length;
-  return {
-    progress: measured / total,
-    value: `${measured}/${total}`,
-    noun: 'areas',
-    verb: 'checked',
-  };
-}
-
-function shouldShowActivePlanContext(state: HaleAppLifecycleResult['state']): boolean {
-  return (
-    state === 'first_session_ready' ||
-    state === 'normal_training_day' ||
-    state === 'weekly_micro_check_due' ||
-    state === 'monthly_retest_due' ||
-    state === 'week_complete' ||
-    state === 'inactive_restart'
-  );
-}
-
-function retestLabel(days: number | undefined, totalWeeks = 4): string {
-  if (days === undefined) return `End of week ${totalWeeks}`;
-  if (days <= 0) return 'Ready now';
-  if (days === 1) return 'Tomorrow';
-  if (days >= 14) {
-    const weeks = Math.ceil(days / 7);
-    return `In about ${weeks} ${weeks === 1 ? 'week' : 'weeks'}`;
-  }
-  return `In ${days} days`;
 }
 
 const styles = StyleSheet.create({
@@ -660,46 +356,6 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     letterSpacing: 0,
   },
-  contextBody: {
-    minHeight: 42,
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: 18,
-    marginTop: 13,
-  },
-  contextPrimary: {
-    flex: 1,
-    minWidth: 0,
-    justifyContent: 'center',
-  },
-  contextSecondary: {
-    flex: 0.9,
-    minWidth: 0,
-    justifyContent: 'center',
-  },
-  contextDivider: {
-    width: 1,
-    backgroundColor: todayHomeColors.border,
-  },
-  contextLabel: {
-    color: todayHomeColors.secondaryText,
-    fontFamily: fonts.sansRegular,
-    fontSize: 13,
-    lineHeight: 18,
-    letterSpacing: 0,
-  },
-  contextValue: {
-    color: colors.primaryText,
-    fontFamily: fonts.sansMedium,
-    fontSize: 15,
-    lineHeight: 20,
-    letterSpacing: 0,
-    fontVariant: ['tabular-nums'],
-    marginTop: 5,
-  },
-  contextValueNumber: {
-    fontVariant: ['tabular-nums'],
-  },
   snapshotCard: {
     borderRadius: radius.card,
     paddingHorizontal: 22,
@@ -714,75 +370,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 24,
     letterSpacing: 0,
-  },
-  snapshotIntro: {
-    color: todayHomeColors.secondaryText,
-    fontFamily: fonts.sansRegular,
-    fontSize: 13,
-    lineHeight: 18,
-    letterSpacing: 0,
-    marginTop: 6,
-  },
-  snapshotBody: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    marginTop: 20,
-  },
-  snapshotBodyCompact: {
-    gap: 12,
-  },
-  snapshotRing: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  snapshotRingCenter: {
-    position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  snapshotRingValue: {
-    color: todayHomeColors.headingGreen,
-    fontFamily: fonts.serifMedium,
-    fontSize: 31,
-    lineHeight: 35,
-    letterSpacing: 0,
-    fontVariant: ['tabular-nums'],
-  },
-  snapshotRingJoin: {
-    color: todayHomeColors.primaryText,
-    fontFamily: fonts.sansRegular,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  snapshotRingLabel: {
-    color: todayHomeColors.primaryText,
-    fontFamily: fonts.sansRegular,
-    fontSize: 13,
-    lineHeight: 18,
-    letterSpacing: 0,
-  },
-  metricRows: {
-    flex: 1,
-    minWidth: 0,
-    justifyContent: 'center',
-    gap: 8,
-  },
-  metricRow: {
-    minHeight: 58,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 9,
-  },
-  metricIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
   },
   metricCopy: {
     flex: 1,

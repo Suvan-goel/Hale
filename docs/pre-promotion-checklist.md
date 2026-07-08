@@ -5,8 +5,10 @@ after the founder ran the device work and declared it fine ("looks fine for
 now" — informal declaration, recorded in decisions.md; the formal spike
 evidence rules for BETA are unchanged and separately owed). The v2 shell is
 the unconditional app; the flag is retired from config and the release
-audit. Commit 2 (the decommission, per the plan below) is the remaining
-mechanical step.
+audit. **Commit 2 (the decommission) EXECUTED the same day** — the old
+engine's shell is deleted per the plan below; its KEEP list held. PROMOTION
+COMPLETE; everything that remains before beta lives in the founder items and
+the recorded post-promotion gaps (decisions.md 2026-07-08).
 
 Promotion = flipping `EXPO_PUBLIC_ENABLE_PROGRAMME_ENGINE_V2` from dev-only to
 default and decommissioning the old engine (blocks, block progress views,
@@ -114,8 +116,8 @@ update status in place.
       usage patterns or check-up data suggesting undetected asymmetry);
       carries full protocol + device-gate cost (ruling 2026-07-06).
 
-## Promotion commit plan (STAGED 2026-07-07; COMMIT 1 EXECUTED 2026-07-08 —
-## commit 2, the decommission, is the remaining step)
+## Promotion commit plan (STAGED 2026-07-07; COMMITS 1 AND 2 BOTH EXECUTED
+## 2026-07-08 — promotion complete)
 
 The promotion is one commit plus a cleanup commit, both mechanical; every
 decision they encode is already ruled.

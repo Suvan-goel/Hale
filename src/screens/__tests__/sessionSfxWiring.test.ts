@@ -25,7 +25,7 @@ describe('recording session sound-effect wiring', () => {
     }
   });
 
-  it('wires the shared session cues into training and micro-check flows', () => {
+  it('wires the shared session cues into the (parked) camera-conducted training flow', () => {
     const training = source('src/screens/TrainingSessionScreen.tsx');
     expect(training).toContain('lastSetKindRef');
     expect(training).toContain('nextMeasurementTrackingSfxState');
@@ -33,11 +33,6 @@ describe('recording session sound-effect wiring', () => {
     expect(training).toContain("sfx.play('measurement-complete')");
     expect(training).toContain("sfx.play('session-complete')");
 
-    const microCheck = source('src/screens/MicroCheckScreen.tsx');
-    expect(microCheck).toContain('lastMicroCheckPhaseRef');
-    expect(microCheck).toContain('nextMeasurementTrackingSfxState');
-    expect(microCheck).toContain("sfx.play('rep-credit')");
-    expect(microCheck).toContain("sfx.play('measurement-complete')");
   });
 
   it('guards Movement Profile V2 cue playback against duplicate snapshot refreshes', () => {

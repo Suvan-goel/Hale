@@ -24,8 +24,10 @@ import { StyleSheet, View } from 'react-native';
 import {
   getCameraPermissionsAsync,
   requestCameraPermissionsAsync,
+  setAndroidNavigationBarVisibleAsync,
 } from '../../modules/expo-pose-detection';
 import { LOCAL_USER_ID, type AvailableEquipment } from '../adherence';
+import { configureSessionAudio } from '../audio/voicePlayer';
 import { LifeGoalOnboardingScreen } from '../adherence/screens/LifeGoalOnboardingScreen';
 import { Screen, ScreenScrollClearanceProvider } from '../components/ui';
 import { useSystemInsets } from '../components/SystemInsetsProvider';
@@ -206,6 +208,23 @@ export function ProgrammeV2Root() {
       )
       .catch(() => setCameraPermission('denied'));
   }, []);
+
+  // Audio law: the session audio mode is configured ONCE at startup, BEFORE
+  // any camera can mount (an audio-session change must never interrupt a
+  // running camera). The shell stays in 'loading' until this settles.
+  const [audioReady, setAudioReady] = React.useState(false);
+  React.useEffect(() => {
+    configureSessionAudio()
+      .catch((error) => console.warn('[programme-v2] audio mode configuration failed', error))
+      .finally(() => setAudioReady(true));
+  }, []);
+
+  // Android navigation bar: visible only on the tab shell — sessions,
+  // check-ups, and full-screen flows run immersive (old-shell behavior).
+  const showTabBar = phase === 'home' && flow === null && learnId === null && extraSession === null;
+  React.useEffect(() => {
+    void setAndroidNavigationBarVisibleAsync(showTabBar);
+  }, [showTabBar]);
 
   const requestCameraPermission = React.useCallback(() => {
     requestCameraPermissionsAsync()
@@ -402,7 +421,7 @@ export function ProgrammeV2Root() {
 
   const systemInsets = useSystemInsets();
 
-  if (phase === 'loading' || !programmeState || !prefs) return <Screen>{null}</Screen>;
+  if (phase === 'loading' || !audioReady || !programmeState || !prefs) return <Screen>{null}</Screen>;
 
   if (phase === 'onboarding') {
     return (

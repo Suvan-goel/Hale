@@ -9,7 +9,6 @@ import { HeaderLogo } from '../components/HeaderLogo';
 import {
   getExtraSessionCards,
   getHealthInsightCards,
-  type TodaySessionPreferences,
   type ExtraSessionCard,
   type HealthInsightCard,
 } from '../haleFlow';
@@ -31,7 +30,7 @@ export function ExploreScreen({
   /** Personalization signal only ("Not sure" → educational content leads). */
   menopauseStage?: MenopauseStage | null;
   ladderProgressById: Record<string, LadderProgress>;
-  onStartExtraSession: (presetId: string, preferences?: TodaySessionPreferences | null) => void;
+  onStartExtraSession: (presetId: string) => void;
   onOpenLearn: (articleId: string) => void;
   onOpenSettings: () => void;
 }) {
@@ -43,7 +42,7 @@ export function ExploreScreen({
   );
   const startExtraSession = React.useCallback(
     (presetId: string) => {
-      onStartExtraSession(presetId, { adjustment: null, painArea: null });
+      onStartExtraSession(presetId);
     },
     [onStartExtraSession]
   );

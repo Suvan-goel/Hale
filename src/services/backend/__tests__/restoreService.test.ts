@@ -27,8 +27,6 @@ import {
 } from '../../../training';
 import {
   classifyMainPlanCompletion,
-  planTodayHaleSession,
-  requireHaleSessionPlan,
 } from '../../../haleFlow';
 
 import {
@@ -526,25 +524,11 @@ describe('remote restore service', () => {
 
     const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
     // Health data is local-only (2026-07-06 ruling): restore never hydrates a
-    // safety profile, so planning uses one re-confirmed locally post-restore.
+    // safety profile. (The old engine's post-restore plan generation was
+    // decommissioned with promotion commit 2; the stored progress mapping
+    // below remains the live restore contract.)
     expect(mapped.state.preferences.profile.safetyProfile).toBeNull();
-    const plan = requireHaleSessionPlan({
-      activeBlock: mapped.state.adherence.blocks[0],
-      training: mapped.state.training,
-      safetyProfile: locallyConfirmedSafetyProfile(),
-      targetSessionTemplateId: 'session_a',
-      today: '2026-06-21T08:00:00.000Z',
-    });
-    const sitToStand = plan.metadata?.generatedExercises?.find((exercise) => exercise.ladderId === 'sit-to-stand');
-
     expect(mapped.state.training.ladderProgressById['sit-to-stand'].currentLevelId).toBe(LOADED_STS_ID);
-    // Loaded is release-capped down to power, now the released ceiling, without
-    // rewriting the stored progress.
-    expect(sitToStand).toMatchObject({
-      requestedLevelId: LOADED_STS_ID,
-      selectedDailyLevelId: STS_POWER_ID,
-      adjustmentReasons: expect.arrayContaining(['controlled_beta_release_cap']),
-    });
   });
 
   it('ignores a legacy remote safety_json row entirely and degrades planning gracefully', () => {
@@ -572,38 +556,6 @@ describe('remote restore service', () => {
     const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
     expect(mapped.state.preferences.profile.safetyProfile).toBeNull();
     expect(JSON.stringify(mapped.state.preferences)).not.toContain('left knee');
-
-    const result = planTodayHaleSession({
-      activeBlock: mapped.state.adherence.blocks[0],
-      training: mapped.state.training,
-      safetyProfile: mapped.state.preferences.profile.safetyProfile,
-      today: '2026-06-21T08:00:00.000Z',
-    });
-    expect(result.kind).toBe('unavailable');
-    if (result.kind !== 'unavailable') throw new Error('expected unavailable result');
-    expect(result.reason).toBe('equipment_confirmation_required');
-  });
-
-  it('blocks current planning when restore has only legacy training equipment and no canonical profile', () => {
-    const snapshot = remoteSnapshot();
-    snapshot.profile = null;
-    snapshot.trainingState!.state_json = backendJson({
-      ...(snapshot.trainingState!.state_json as Record<string, unknown>),
-      equipment: { stair: true, band: true, miniBand: true, load: true },
-    });
-
-    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
-    const result = planTodayHaleSession({
-      activeBlock: mapped.state.adherence.blocks[0],
-      training: mapped.state.training,
-      safetyProfile: mapped.state.preferences.profile.safetyProfile,
-      today: '2026-06-21T08:00:00.000Z',
-    });
-
-    expect(mapped.state.preferences.profile.safetyProfile).toBeNull();
-    expect(result.kind).toBe('unavailable');
-    if (result.kind !== 'unavailable') throw new Error('expected unavailable result');
-    expect(result.reason).toBe('equipment_confirmation_required');
   });
 
   it('restores supporting-only and missing-focus attempts without promoting them to main-plan credit', () => {

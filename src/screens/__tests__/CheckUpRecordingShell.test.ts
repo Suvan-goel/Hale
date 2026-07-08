@@ -33,15 +33,17 @@ describe('unified Movement Check-Up recording shell', () => {
   });
 
   it('keeps the unified check-up as the only camera check-up surface', () => {
-    const app = source('App.tsx');
+    // Since promotion commit 2 (2026-07-08) the v2 shell mounts camera
+    // check-ups ONLY through the Check-up #0 host, which renders the one
+    // unified screen — no bespoke camera check-up surface anywhere.
+    const shell = source('src/screens/ProgrammeV2Root.tsx');
+    const host = source('src/screens/ProgrammeCheckupZeroScreen.tsx');
     const settings = source('src/screens/SettingsScreen.tsx');
 
-    expect(app).not.toContain('LEGACY_V1_CHECKUP_ROLLBACK_ENABLED');
-    expect(app).not.toContain('<CheckUpScreen');
-    expect(app).toContain("'movement-profile-v2-unified-checkup'");
-    expect(app).toContain('<MovementProfileV2UnifiedCheckUpScreen');
-    expect(app).not.toContain("'movement-profile-v2-checkup'");
-    expect(app).not.toContain('<MovementProfileV2CheckUpScreen');
+    expect(shell).toContain('<ProgrammeCheckupZeroScreen');
+    expect(shell).not.toContain('<MovementProfileV2UnifiedCheckUpScreen');
+    expect(shell).not.toContain('<CheckUpScreen');
+    expect(host).toContain('<MovementProfileV2UnifiedCheckUpScreen');
     expect(settings).not.toContain('onStartMovementProfileV2Internal');
     expect(settings).not.toContain('onStartMovementProfileV2UnifiedInternal');
     expect(settings).not.toContain('Movement Profile V2 unified shell');

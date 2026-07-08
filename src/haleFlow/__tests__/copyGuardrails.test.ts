@@ -1,22 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { getMicroCheckCopy } from '../copy';
 import { controlledBetaEquipmentPositioning } from '../equipmentPositioning';
-import {
-  getTodayPrimaryAction,
-  type HaleLifecycleState,
-} from '../appLifecycle';
 import {
   getExtraSessionCards,
   getHealthInsightCards,
   getLearnDetail,
 } from '../exploreViewModel';
-import {
-  getPlanEmptyStateCopy,
-  getPlanFocusCopy,
-  getRetestCopy,
-} from '../planViewModel';
 import {
   PELVIC_PHYSIO_SIGNPOST_COPY,
   PROGRAMME_EFFORT_CHECKIN_COPY,
@@ -76,13 +66,10 @@ const RESULT_COPY_FILES = [
   'src/results/CheckUpResultsShell.tsx',
   'src/screens/ProgressScreen.tsx',
   'src/screens/AuthScreen.tsx',
-  'src/screens/WelcomeScreen.tsx',
-  'src/screens/PlanScreen.tsx',
   'src/screens/SettingsScreen.tsx',
   'src/screens/SafetyProfileScreen.tsx',
   'src/results/movementProfileV2ResultsAdapter.ts',
   'src/movementProfileV2/viewModel.ts',
-  'src/haleFlow/microCheckSummary.ts',
 ] as const;
 
 function assertCleanCopy(parts: readonly unknown[]) {
@@ -101,38 +88,10 @@ function productionSourceText(file: string): string {
 }
 
 describe('Hale V1 copy guardrails', () => {
-  it('keeps primary Today, Plan, Progress, and Explore view-model copy warm and non-medical', () => {
-    const lifecycleStates: HaleLifecycleState[] = [
-      'needs_onboarding',
-      'needs_baseline_checkup',
-      'needs_block_creation',
-      'first_session_ready',
-      'normal_training_day',
-      'weekly_micro_check_due',
-      'monthly_retest_due',
-      'week_complete',
-      'inactive_restart',
-    ];
-    assertCleanCopy(lifecycleStates.flatMap((state) => Object.values(getTodayPrimaryAction(state))));
-    assertCleanCopy([
-      ...lifecycleStates.flatMap((state) => Object.values(getPlanEmptyStateCopy(state))),
-      ...(['strength_power', 'balance', 'mobility', undefined] as const).flatMap((domain) =>
-        Object.values(getPlanFocusCopy(domain))
-      ),
-      ...Object.values(getRetestCopy(undefined)),
-      ...Object.values(
-        getRetestCopy({
-          focusTitle: 'Strength',
-          focusDomain: 'strength_power',
-          weekNumber: 4,
-          totalWeeks: 4,
-          sessionsCompleteThisWeek: 3,
-          sessionsTargetThisWeek: 3,
-          retestInDays: 0,
-        })
-      ),
-      ...Object.values(getMicroCheckCopy('balance')),
-    ]);
+  it('keeps Explore view-model copy warm and non-medical', () => {
+    // The old engine's Today/Plan/micro-check view models retired with the
+    // shell (promotion commit 2, 2026-07-08); the programme adapter block
+    // below owns the Today/Plan copy scans.
     assertCleanCopy(getExtraSessionCards().flatMap((card) => Object.values(card)));
     assertCleanCopy(
       getHealthInsightCards().flatMap((card) => {
@@ -215,18 +174,18 @@ describe('Hale V1 copy guardrails', () => {
     expect(text).toMatch(/Your main focus|Suggested focus/);
     expect(text).not.toMatch(/Age \$\{domain\.ageLow\}|Typical age ranges|Movement age profile/);
 
-    const appText = productionSourceText('App.tsx');
-    // Source-level pin: copy interpolates the brand token (slice 2, 2026-07-06).
-    expect(appText).toContain('Camera access lets ${BRAND.appName} estimate your movement');
-    expect(appText).not.toContain('Camera access is needed to measure your movement.');
+    // Source-level pin: camera copy interpolates the brand token (slice 2,
+    // 2026-07-06; repointed to its live home when the old shell retired).
+    const cameraText = productionSourceText('src/screens/CameraSetupScreen.tsx');
+    expect(cameraText).toContain('Place your phone so ${BRAND.appName} can see your full body');
   });
 
   it('keeps menopause positioning wellness-side: no bone, hormone, or treatment claims', () => {
     const sourceText = [
       ...RESULT_COPY_FILES.map(productionSourceText),
       productionSourceText('src/haleFlow/exploreViewModel.ts'),
-      productionSourceText('src/haleFlow/copy.ts'),
       productionSourceText('src/adherence/goalDomainMapping.ts'),
+      productionSourceText('src/programme/onboarding/content.ts'),
     ].join(' ');
     expect(sourceText).not.toMatch(MENOPAUSE_CLAIM_COPY);
     expect(
@@ -238,10 +197,10 @@ describe('Hale V1 copy guardrails', () => {
         .join(' ')
     ).not.toMatch(MENOPAUSE_CLAIM_COPY);
 
-    // The repositioning itself is pinned: Welcome leads with the menopause
-    // frame, and the flagship article carries the founder-directed review
-    // label (2026-07-05 decision).
-    expect(productionSourceText('src/screens/WelcomeScreen.tsx')).toMatch(/menopause/i);
+    // The repositioning itself is pinned: the onboarding welcome leads with
+    // the menopause frame, and the flagship article carries the
+    // founder-directed review label (2026-07-05 decision).
+    expect(productionSourceText('src/programme/onboarding/content.ts')).toMatch(/menopause/i);
     expect(getLearnDetail('insight-menopause-muscle')?.reviewedLabel).toBe('Reviewed Jul 2026');
   });
 
@@ -249,16 +208,13 @@ describe('Hale V1 copy guardrails', () => {
     const sourceText = [
       ...RESULT_COPY_FILES.map(productionSourceText),
       productionSourceText('src/haleFlow/exploreViewModel.ts'),
-      productionSourceText('src/haleFlow/copy.ts'),
-      productionSourceText('src/haleFlow/planViewModel.ts'),
-      productionSourceText('src/haleFlow/appLifecycle.ts'),
       productionSourceText('src/programme/appLifecycle.ts'),
+      productionSourceText('src/programme/onboarding/content.ts'),
       productionSourceText('src/adherence/goalDomainMapping.ts'),
       productionSourceText('src/adherence/adherenceCopy.ts'),
       productionSourceText('src/adherence/milestoneService.ts'),
       productionSourceText('src/adherence/screens/LifeGoalOnboardingScreen.tsx'),
       productionSourceText('src/screens/TodayScreen.tsx'),
-      productionSourceText('src/screens/ManualCheckupStartScreen.tsx'),
       productionSourceText('src/audio/voiceSessionLineScripts.ts'),
       productionSourceText('src/training/safetyCueDefinitions.ts'),
       productionSourceText('App.tsx'),
@@ -296,8 +252,6 @@ describe('Hale V1 copy guardrails', () => {
 
     const source = [
       productionSourceText('src/screens/SettingsScreen.tsx'),
-      productionSourceText('src/screens/SessionPreviewScreen.tsx'),
-      productionSourceText('src/screens/TodayScreen.tsx'),
       ...Object.values(controlledBetaEquipmentPositioning),
     ].join(' ');
     expect(source).toMatch(/sturdy chair and a wall or counter/i);

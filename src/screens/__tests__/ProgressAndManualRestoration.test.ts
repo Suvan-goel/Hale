@@ -1,10 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-describe('Progress and Manual / Extra Check-Up UI restoration', () => {
+// Plan/manual-check-up pins retired with the old shell (promotion commit 2,
+// 2026-07-08): PlanScreen and ManualCheckupStartScreen were decommissioned;
+// the ProgressScreen pins below remain live surfaces.
+describe('Progress UI restoration', () => {
   it('renders the founder Progress empty state for a no-profile V2 Progress model', () => {
     const progress = readFileSync(join(process.cwd(), 'src/screens/ProgressScreen.tsx'), 'utf8');
-    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
 
     expect(progress).toContain("viewModel.status === 'no_profile'");
     expect(progress).toContain('<ProgressEmptyState onBeginCheckUp={onStartCheckUp} />');
@@ -19,49 +21,6 @@ describe('Progress and Manual / Extra Check-Up UI restoration', () => {
     expect(progress).not.toContain(
       'Opens saved read-only Movement Profile content or the next safe continuation step.'
     );
-    expect(app).toContain('selectPublicMovementCheckUpLaunch');
-    expect(app).toContain('beginUnifiedMovementProfileV2Public');
-  });
-
-  it('keeps the Plan goal summary hidden until a plan exists', () => {
-    const plan = readFileSync(join(process.cwd(), 'src/screens/PlanScreen.tsx'), 'utf8');
-
-    expect(plan).toContain('const showCreatedPlanHeaderSummary = !showBlockingNextAction && !!activeBlockSummary;');
-    expect(plan).toContain('{showCreatedPlanHeaderSummary ? <PlanGoalSummary goalText={goalText} /> : null}');
-    expect(plan).toContain('Built around what matters to you: {goalText}.');
-  });
-
-  it('keeps the Manual / Extra Check-Up screen polished and never blank', () => {
-    const screen = readFileSync(join(process.cwd(), 'src/screens/ManualCheckupStartScreen.tsx'), 'utf8');
-    const rules = readFileSync(join(process.cwd(), 'src/haleFlow/manualCheckup.ts'), 'utf8');
-    const copy = readFileSync(join(process.cwd(), 'src/haleFlow/copy.ts'), 'utf8');
-
-    expect(screen).toContain('recommendedCard');
-    expect(screen).toContain('secondaryStack');
-    expect(screen).toContain('<HeaderLogo />');
-    expect(screen).toContain('<BackArrowButton');
-    expect(rules).toContain('Quick micro check-up');
-    expect(rules).toContain('Full Movement Check-Up');
-    expect(rules).toContain("type: 'manual_extra_v2'");
-    expect(copy).toContain('Check in on your progress');
-    expect(copy).toContain("These optional check-ups won't change your plan or Strength Profile.");
-    expect(screen).not.toMatch(/Movement Age|weakest-domain|V1|V2/);
-    expect(`${rules}\n${copy}`).not.toMatch(/Movement Age|weakest-domain/);
-  });
-
-  it('starts optional quick micro check-ups from inline domain buttons, one screen deep', () => {
-    const app = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
-    const screen = readFileSync(
-      join(process.cwd(), 'src/screens/ManualCheckupStartScreen.tsx'),
-      'utf8'
-    );
-
-    // The start screen owns the domain choice; there is no second chooser flow.
-    expect(screen).toContain('MicroCheckDomainButtons');
-    expect(screen).toContain('MICRO_CHECK_DOMAINS');
-    expect(app).toContain('onStartMicroCheck={beginManualMicroCheckForDomain}');
-    expect(app).not.toContain('manual-microcheck-domain');
-    expect(app).not.toContain('ManualMicroCheckDomainScreen');
   });
 
   it('restores the simplified V2 Progress dashboard cards without technical summary copy', () => {

@@ -162,12 +162,8 @@ describe('the ONLY escalation path (guardrail)', () => {
       'src/screens/SettingsScreen.tsx',
     ];
     const scanned = [
-      'src/haleFlow/copy.ts',
-      'src/haleFlow/planViewModel.ts',
-      'src/haleFlow/appLifecycle.ts',
       'src/haleFlow/clarityTrend.ts',
       'src/haleFlow/exploreViewModel.ts',
-      'src/haleFlow/microCheckSummary.ts',
       'src/screens/ProgressScreen.tsx',
       'src/screens/TodayScreen.tsx',
       'src/screens/ClarityCheckInScreen.tsx',

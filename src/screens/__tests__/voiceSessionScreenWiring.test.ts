@@ -13,7 +13,7 @@ const screenSource = readFileSync(
   join(process.cwd(), 'src/screens/VoiceSessionScreen.tsx'),
   'utf8'
 );
-const appSource = readFileSync(join(process.cwd(), 'App.tsx'), 'utf8');
+const shellSource = readFileSync(join(process.cwd(), 'src/screens/ProgrammeV2Root.tsx'), 'utf8');
 
 describe('VoiceSessionScreen side-contract wiring', () => {
   it('records abandonment on unmount via the controller (idempotent path)', () => {
@@ -56,30 +56,20 @@ describe('VoiceSessionScreen side-contract wiring', () => {
   });
 });
 
-describe('App session-mode wiring', () => {
-  it('voice is the production default; the camera surface sits behind the flag', () => {
-    expect(appSource).toMatch(/isCameraConductedSessionsEnabled\(\) \? \(/);
-    expect(appSource).toContain('<VoiceSessionScreen');
-    expect(appSource).toContain('<TrainingSessionScreen');
+describe('v2 shell session-mode wiring', () => {
+  // The old shell's camera-conducted flag branch, pain-exclusion fold, and
+  // App-level final-adjustment window retired with promotion commit 2
+  // (2026-07-08): pain exclusions are deferred by the Pain A ruling (§12
+  // regression is v1's answer), rep adjustments live in the player's own
+  // windows (tap parity pinned above), and the parked conductor surface
+  // (TrainingSessionScreen) stays unmounted until its flag re-enters.
+  it('voice is the only mounted session surface (conductor stays parked)', () => {
+    expect(shellSource).toContain('<VoiceSessionScreen');
+    expect(shellSource).not.toContain('TrainingSessionScreen');
   });
 
-  it('voiceSetup prefs persist through the settings pipeline', () => {
-    expect(appSource).toContain('voiceSetup={prefs.settings.voiceSetup}');
-    expect(appSource).toMatch(/onSettingsChange\(\{ \.\.\.prefs\.settings, voiceSetup: next \}\)/);
-  });
-
-  // Retroactive audit closures (standing rule 2026-07-06): App-layer wiring
-  // that earlier reports asserted is now at least source-pinned; the pure
-  // functions behind each are behavior-tested in their own suites.
-  it('App folds painEvents into the product store at completion and wires Settings reversal', () => {
-    expect(appSource).toMatch(/recordSessionPainEvents\(\s*nextTraining\.painHistory/);
-    expect(appSource).toContain('painExclusions={painExclusionRows}');
-    expect(appSource).toContain('onReinstateExercise={handleReinstateExercise}');
-    expect(appSource).toMatch(/reinstateLadder\(training\.painHistory, ladderId\)/);
-  });
-
-  it('App wires the session-summary ±rep window for the final exercise', () => {
-    expect(appSource).toContain('finalExerciseAdjustment={');
-    expect(appSource).toContain('onAdjust: handleAdjustFinalExerciseReps');
+  it('voiceSetup prefs persist through the profile store', () => {
+    expect(shellSource).toContain('voiceSetup={voiceSetup}');
+    expect(shellSource).toMatch(/settings: \{ \.\.\.current\.settings, voiceSetup: next \}/);
   });
 });

@@ -5070,3 +5070,57 @@ proceeds in its own working session once ruled.
   comms are founder-owned.
 - Verified: 210 suites / 1800 tests green (one retired audit case), tsc +
   expo config clean.
+
+## 2026-07-08 — PROMOTION COMMIT 2 EXECUTED: the old engine's shell is deleted
+
+- **App.tsx: ~4,700 lines → a slim root** (font gate, auth loading +
+  password-recovery path, status-bar chrome, the dev spike harness, then
+  ProgrammeV2Root keyed by account). TWO SILENT REGRESSIONS from commit 1
+  found and fixed in the process — the flip had left the app running without
+  the bundled-font gate / password-recovery path AND without the startup
+  audio-mode configuration (the audio-before-camera law) and Android nav-bar
+  immersion, all of which lived in the old AppGate. The gates now live in the
+  slim root; `configureSessionAudio()` runs in the v2 shell's loading phase
+  (camera flows cannot mount before it settles) and the nav bar hides off
+  the tab shell. Builds cut between the two commits carried those gaps.
+- **Deleted per the staged plan:** PlanScreen, the old WelcomeScreen,
+  SessionPreviewScreen, SessionPlanningRecoveryScreen, MicroCheckScreen +
+  MicroCheckSummaryScreen, ManualCheckupStartScreen,
+  MovementProfileV2BlockReportScreen, BlockIntroScreen, RestartSessionScreen,
+  SessionCompletionScreen, the old onboarding staging (src/onboarding), and
+  the old-shell haleFlow view models (appLifecycle, planViewModel,
+  sessionPlanning, microCheck, microCheckSummary, copy, manualCheckup,
+  checkupTransition, focusStimulusEvidence, sessionIds + the legacy block
+  report fixture). TodayScreen's lifecycle mode removed — the programme
+  adapter is its only data source. ExploreScreen's old session-preferences
+  parameter removed.
+- **KEPT deliberately (verified):** TrainingSessionScreen (parked conductor
+  — "nothing deleted" ruling, unmounted), both results screens + the results
+  shell (return with the opt-in full movement check), the four Clarity
+  screens (built-dark), and the data-compat libraries the restore path needs
+  (assessmentEvidence, assessmentResultState, mainPlanEvents, blockSchedule,
+  blockTrainingPlan, assessments, progressionEvidence, movementProfileV2Block
+  modules) — restore round-trips stay pinned by the repaired
+  restoreService test, which keeps every health-data-local-only assertion
+  and drops only the old post-restore planning fixtures.
+- **Tests: 18 old-shell suites retired with the surfaces they pinned**
+  (old lifecycle/plan/micro-check/manual-checkup/stage-5 shell integrations,
+  the old official-retest flow integrations, progressionEvidence's
+  planning-built fixtures, the Clarity App-wiring scan). Scan pins were
+  REPOINTED, not dropped: welcome-leads-with-menopause → the programme
+  onboarding content; the camera brand-token pin → CameraSetupScreen;
+  "unified check-up is the only camera surface" → the ProgrammeV2Root →
+  Check-up #0 host chain; "voice is the only session surface" → the v2
+  shell. Suite: 192 suites / 1577 tests green, tsc + expo config clean.
+- **KNOWN POST-PROMOTION GAPS (recorded re-entry, all pre-beta):**
+  1. Remote backup/restore launch sync is NOT wired into the v2 shell —
+     sign-in scopes storage and adopts guest data locally; the kept backend
+     services (restore, sync) have no caller. Wire before beta: the account
+     card's "optional backup" promise depends on it.
+  2. Clarity surfaces/adapters lost their old-shell mount — they re-enter
+     with the opt-in full movement check work, before Session B's device
+     blocks can run.
+  3. Cold camera-permission ask now happens when the Check-up #0 battery
+     mounts; consider pre-asking on the host's intro screen (refinement).
+- PROMOTION COMPLETE. The pre-promotion checklist header records both
+  commits; CLAUDE.md's annotation updated to the executed state.
