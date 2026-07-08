@@ -3,15 +3,16 @@
  * build became the default and its flag was retired): mounted unconditionally
  * by App.tsx inside AuthProvider. Owns store loading (auth-scoped,
  * guest-adopting), the merged onboarding flow, the session/check-up phases,
- * and the four-tab shell (Today / Plan / Progress / Explore) with the
- * Settings flow — all rendered by the SHARED app screens.
+ * and the three-tab shell (Home / Progress / Learn — the Plan tab merged into
+ * Home and Explore's extra-practice catalogue was removed in the
+ * founder-directed simplification pass, 2026-07-08) with the Settings flow —
+ * all rendered by the SHARED app screens.
  *
  * Coupling rules: programme STATE stays zero-coupled to the old engine (no
- * TrainingStore/TrainingState reads — pinned by the parity review). Explore's
- * extra practice sessions use the old engine's STATELESS preset generation
- * and run ephemerally through the voice player: no ladder credit, no
- * training-state writes (recorded Phase-4 decision). Pain-exclusion rows are
- * absent from Settings by the Pain A ruling (§12 regression is v1's answer).
+ * TrainingStore/TrainingState reads — pinned by the parity review); with the
+ * extra-practice catalogue gone, the shell no longer touches the old engine's
+ * preset generation at all. Pain-exclusion rows are absent from Settings by
+ * the Pain A ruling (§12 regression is v1's answer).
  *
  * Activation event (conformance Q4): firstSessionStarted is written when the
  * runner's Begin fires (markFirstSessionStarted + persist), never at plan
@@ -33,8 +34,7 @@ import { Screen, ScreenScrollClearanceProvider } from '../components/ui';
 import { useSystemInsets } from '../components/SystemInsetsProvider';
 import { adoptGuestLocalFiles, createExpoHistoryFs } from '../history/fsAdapter';
 import { HistoryStore, type StoredCheckUp } from '../history';
-import { availableEquipmentFor, buildMovementProfileV2ProgressViewModel } from '../haleFlow';
-import { movementCapabilitiesFromSafetyProfile } from '../profile/movementCapabilities';
+import { buildMovementProfileV2ProgressViewModel } from '../haleFlow';
 import { TAB_BAR_SCROLL_CLEARANCE, TabBar, type TabKey } from '../navigation/TabBar';
 import {
   acknowledgeOnboardingStep,
@@ -83,7 +83,6 @@ import {
   type UserProfile,
 } from '../profile';
 import { useAuth } from '../services/backend';
-import { generatePresetSession, type GeneratedSession } from '../training/workoutGeneration';
 import type { TrainingSessionResult } from '../training/sessionPlayer';
 import { DEFAULT_VOICE_SETUP_PREFS, type VoiceSetupPrefs } from '../voice/voicePermissionGate';
 import { CameraSetupScreen } from './CameraSetupScreen';
@@ -138,7 +137,6 @@ export function ProgrammeV2Root() {
   const [tab, setTab] = React.useState<TabKey>('today');
   const [flow, setFlow] = React.useState<ShellFlow>(null);
   const [learnId, setLearnId] = React.useState<string | null>(null);
-  const [extraSession, setExtraSession] = React.useState<GeneratedSession | null>(null);
   const [programmeState, setProgrammeState] = React.useState<ProgrammeState | null>(null);
   const [prefs, setPrefs] = React.useState<Preferences | null>(null);
   const [history, setHistory] = React.useState<readonly StoredCheckUp[]>([]);
@@ -220,7 +218,7 @@ export function ProgrammeV2Root() {
 
   // Android navigation bar: visible only on the tab shell — sessions,
   // check-ups, and full-screen flows run immersive (old-shell behavior).
-  const showTabBar = phase === 'home' && flow === null && learnId === null && extraSession === null;
+  const showTabBar = phase === 'home' && flow === null && learnId === null;
   React.useEffect(() => {
     void setAndroidNavigationBarVisibleAsync(showTabBar);
   }, [showTabBar]);
@@ -366,28 +364,6 @@ export function ProgrammeV2Root() {
       setPhase('session_done');
     },
     [programmeState, plan, persist]
-  );
-
-  // Explore extra practice: the old engine's STATELESS preset generation, run
-  // ephemerally on the voice player — no ladder credit, no training-state
-  // writes (Phase-4 decision; extra practice never feeds v2 promotion).
-  const startExtraSession = React.useCallback(
-    (presetId: string) => {
-      const safetyProfile = prefs?.profile.safetyProfile ?? null;
-      setExtraSession(
-        generatePresetSession({
-          presetId,
-          availableEquipment: availableEquipmentFor({ safetyProfile }),
-          movementCapabilities: movementCapabilitiesFromSafetyProfile(safetyProfile),
-          dailyReadiness: 'ready',
-          painAreas: [],
-          dailyContextSource: 'user_daily_check',
-          ladderProgress: {},
-          today: new Date(),
-        })
-      );
-    },
-    [prefs]
   );
 
   const toggleAvailableEquipment = React.useCallback(
@@ -716,21 +692,6 @@ export function ProgrammeV2Root() {
   const goAssessment = () => setPhase('assessment');
   const openSettings = () => setFlow('settings');
 
-  if (extraSession) {
-    return (
-      <VoiceSessionScreen
-        exerciseIds={extraSession.exercises.map((exercise) => exercise.exerciseId)}
-        generatedExercises={extraSession.exercises}
-        sessionTitle={extraSession.title}
-        voiceId={prefs.settings.voiceId}
-        voiceSetup={voiceSetup}
-        onVoiceSetupChange={handleVoiceSetupChange}
-        onComplete={() => setExtraSession(null)}
-        onCancel={() => setExtraSession(null)}
-      />
-    );
-  }
-
   if (learnId) {
     return <LearnDetailScreen articleId={learnId} onDone={() => setLearnId(null)} />;
   }
@@ -824,10 +785,7 @@ export function ProgrammeV2Root() {
             />
           ) : tab === 'explore' ? (
             <ExploreScreen
-              safetyProfile={prefs.profile.safetyProfile}
               menopauseStage={prefs.profile.menopauseStage}
-              ladderProgressById={{}}
-              onStartExtraSession={startExtraSession}
               onOpenLearn={setLearnId}
               onOpenSettings={openSettings}
             />

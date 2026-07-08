@@ -2,11 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { controlledBetaEquipmentPositioning } from '../equipmentPositioning';
-import {
-  getExtraSessionCards,
-  getHealthInsightCards,
-  getLearnDetail,
-} from '../exploreViewModel';
+import { getHealthInsightCards, getLearnDetail } from '../exploreViewModel';
 import {
   PELVIC_PHYSIO_SIGNPOST_COPY,
   PROGRAMME_EFFORT_CHECKIN_COPY,
@@ -82,11 +78,11 @@ function productionSourceText(file: string): string {
 }
 
 describe('Hale V1 copy guardrails', () => {
-  it('keeps Explore view-model copy warm and non-medical', () => {
+  it('keeps Learn view-model copy warm and non-medical', () => {
     // The old engine's Today/Plan/micro-check view models retired with the
-    // shell (promotion commit 2, 2026-07-08); the programme adapter block
+    // shell (promotion commit 2, 2026-07-08), and the extra-session catalogue
+    // with the simplification pass (same day); the programme adapter block
     // below owns the Today/Plan copy scans.
-    assertCleanCopy(getExtraSessionCards().flatMap((card) => Object.values(card)));
     assertCleanCopy(
       getHealthInsightCards().flatMap((card) => {
         const detail = getLearnDetail(card.id);

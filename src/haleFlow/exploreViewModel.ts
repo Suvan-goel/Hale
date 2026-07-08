@@ -1,33 +1,11 @@
-import type { AvailableEquipment, MovementSafetyProfile } from '../adherence';
 import type { MenopauseStage } from '../profile/types';
-import type { EquipmentTag } from '../movements';
-import { generatePresetSession, listExtraSessionPresets } from '../training';
-import { canonicalEquipmentFromSafetyProfile } from '../profile/equipment';
-import {
-  isStepUpEnvironmentConfirmed,
-  movementCapabilitiesFromSafetyProfile,
-} from '../profile/movementCapabilities';
-import {
-  equipmentLabel as equipmentLabelForTags,
-  equipmentMissingLabels,
-} from '../training/equipmentSafety';
-import type { LadderProgress, SessionTemplate, TrainingDomain } from '../training/workoutGeneration';
-import { extraSessionCardBody, extraSessionCardTitle, extraSessionDetailBody } from './extraSessionCopy';
 
 import { BRAND } from '../brand';
-export interface ExtraSessionCard {
-  id: string;
-  title: string;
-  cardTitle: string;
-  body: string;
-  detailBody: string;
-  durationLabel: string;
-  focusLabel: string;
-  equipmentLabel: string;
-  disabled: boolean;
-  disabledReason?: string;
-}
 
+// The extra-practice session catalogue (preset cards + stateless generation
+// hooks) was removed in the founder-directed simplification pass, 2026-07-08:
+// the Learn tab carries the articles only, and the daily programme session is
+// the one training surface.
 export interface LearnCard {
   id: LearnArticleId;
   title: string;
@@ -57,67 +35,6 @@ export type LearnArticleId =
   | 'insight-protein-meal-rhythm'
   | 'insight-walking-breaks';
 
-const PRESET_BODY: Record<string, string> = {
-  'preset-mobility-reset': 'A short reset for stiffness, travel days, or the day before a re-test.',
-  'preset-gentle-restart': 'A calm way back in when you want a clean slate.',
-  'preset-steady-balance': 'Focused balance and ankle support with a steady pace.',
-  'preset-no-equipment-strength': 'Strength, balance, and mobility using the core home setup.',
-  'preset-band-upper-back': 'Upper-back pulling work when a resistance band is available.',
-  'preset-stairs-confidence': 'Step, ankle, and balance practice for everyday stair confidence.',
-  'preset-quick-full-body': 'A concise strength, balance, and mobility session.',
-};
-
-const PRESET_DISPLAY_TITLES: Record<string, string> = {
-  'preset-no-equipment-strength': 'Chair and wall strength',
-  'preset-band-upper-back': 'Upper-back band work',
-};
-
-const PRESET_REQUIRED_EQUIPMENT: Record<string, { tags: EquipmentTag[] }> = {
-  'preset-band-upper-back': { tags: ['long_band'] },
-  'preset-stairs-confidence': { tags: ['stair', 'counter'] },
-};
-
-export function getExtraSessionCards(input: {
-  safetyProfile?: MovementSafetyProfile | null;
-  ladderProgressById?: Record<string, LadderProgress>;
-  today?: string | Date;
-} = {}): ExtraSessionCard[] {
-  const availableEquipment = availableEquipmentFor({ safetyProfile: input.safetyProfile });
-  const movementCapabilities = movementCapabilitiesFromSafetyProfile(input.safetyProfile);
-  return listExtraSessionPresets().map((preset) => {
-    const required = PRESET_REQUIRED_EQUIPMENT[preset.id];
-    const missing = required ? equipmentMissingLabels(required.tags, availableEquipment) : [];
-    const capabilityMissing = missing.length === 0 && preset.id === 'preset-stairs-confidence' && !isStepUpEnvironmentConfirmed(movementCapabilities)
-      ? ['a step or stair']
-      : [];
-    const disabled = missing.length > 0 || capabilityMissing.length > 0;
-    const generated = disabled
-      ? null
-      : generatePresetSession({
-          presetId: preset.id,
-          availableEquipment,
-          movementCapabilities,
-          dailyReadiness: 'ready',
-          painAreas: [],
-          dailyContextSource: 'user_daily_check',
-          ladderProgress: input.ladderProgressById ?? {},
-          today: input.today,
-        });
-    return {
-      id: preset.id,
-      title: PRESET_DISPLAY_TITLES[preset.id] ?? preset.title,
-      cardTitle: extraSessionCardTitle(preset.id, PRESET_DISPLAY_TITLES[preset.id] ?? preset.title),
-      body: extraSessionCardBody(preset.id, PRESET_BODY[preset.id] ?? 'Optional support outside the main 4-week block.'),
-      detailBody: extraSessionDetailBody(preset.id, PRESET_BODY[preset.id] ?? 'Optional support outside the main 4-week block.'),
-      durationLabel: generated?.durationLabel ?? `About ${preset.estimatedMinutes} min`,
-      focusLabel: focusLabel(preset.focusDomain),
-      equipmentLabel: disabled ? `Needs ${humanList([...missing, ...capabilityMissing])}` : equipmentLabelForSession(generated?.exercises ?? [], preset),
-      disabled,
-      disabledReason: disabled ? `Needs ${humanList([...missing, ...capabilityMissing])}` : undefined,
-    };
-  });
-}
-
 export function getLearnDetail(id: string): LearnDetail | null {
   return HEALTH_INSIGHT_ARTICLES.find((article) => article.id === id) ?? null;
 }
@@ -144,47 +61,6 @@ export function getHealthInsightCards(options?: {
     if (educational > 0) cards.unshift(cards.splice(educational, 1)[0]);
   }
   return cards;
-}
-
-export function availableEquipmentFor({
-  safetyProfile,
-}: {
-  safetyProfile?: MovementSafetyProfile | null;
-}): AvailableEquipment[] {
-  const canonical = canonicalEquipmentFromSafetyProfile(safetyProfile);
-  return canonical.status === 'confirmed' ? canonical.capabilities.slice() : [];
-}
-
-function equipmentLabelForSession(exercises: readonly { equipment: readonly string[] }[], preset: SessionTemplate): string {
-  const tags = unique(exercises.flatMap((exercise) => exercise.equipment));
-  if (tags.length > 0) return equipmentLabelForTags(tags as EquipmentTag[]);
-  const templateTags = preset.slots.flatMap((slot) => {
-    if (slot.id.includes('band')) return ['long_band'];
-    if (slot.id.includes('stairs')) return ['stair'];
-    return [];
-  });
-  return equipmentLabelForTags(templateTags as EquipmentTag[]);
-}
-
-function focusLabel(domain: TrainingDomain): string {
-  if (domain === 'strength_power') return 'Strength';
-  if (domain === 'balance_stability') return 'Balance';
-  return 'Mobility';
-}
-
-function humanList(items: readonly string[]): string {
-  const clean = unique(items.filter(Boolean));
-  if (clean.length === 0) return '';
-  if (clean.length === 1) return clean[0];
-  return `${clean.slice(0, -1).join(', ')} and ${clean[clean.length - 1]}`;
-}
-
-function unique<T>(items: readonly T[]): T[] {
-  const out: T[] = [];
-  for (const item of items) {
-    if (!out.includes(item)) out.push(item);
-  }
-  return out;
 }
 
 const HEALTH_INSIGHT_ARTICLES: readonly LearnDetail[] = [

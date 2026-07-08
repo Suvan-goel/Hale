@@ -7,7 +7,6 @@ export * from './clarityEscalation';
 export * from './clarityTrend';
 export * from './ghostCurve';
 export * from './equipmentPositioning';
-export * from './extraSessionCopy';
 export * from './exploreViewModel';
 export * from './movementProfileV2Block';
 export * from './movementProfileV2BlockReport';

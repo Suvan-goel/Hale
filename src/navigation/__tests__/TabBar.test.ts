@@ -4,10 +4,11 @@ import { ExploreIcon, HomeIcon, ProgressIcon } from '../icons';
 import { DEFAULT_TAB_KEY, TAB_DEFS, TabBar, getTabDef, normalizeTabKey, type TabKey } from '../TabBar';
 
 // Three tabs since the founder-directed simplification pass (2026-07-08):
-// the Plan tab merged into Home, which already carried the levels card,
-// session CTA, and check-up offer.
+// the Plan tab merged into Home (which already carried the levels card,
+// session CTA, and check-up offer), and the explore route is labelled
+// "Learn" now that it carries the articles only.
 const CANONICAL_KEYS: readonly TabKey[] = ['today', 'progress', 'explore'];
-const CANONICAL_LABELS = ['Home', 'Progress', 'Explore'];
+const CANONICAL_LABELS = ['Home', 'Progress', 'Learn'];
 
 function collectElements(
   node: React.ReactNode,

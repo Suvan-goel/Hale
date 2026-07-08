@@ -29,7 +29,10 @@ export interface TabDef {
 export const TAB_DEFS: readonly TabDef[] = [
   { key: 'today', label: 'Home', screen: 'TodayScreen', iconName: 'HomeIcon', Icon: HomeIcon },
   { key: 'progress', label: 'Progress', screen: 'ProgressScreen', iconName: 'ProgressIcon', Icon: ProgressIcon },
-  { key: 'explore', label: 'Explore', screen: 'ExploreScreen', iconName: 'ExploreIcon', Icon: ExploreIcon },
+  // Label "Learn": the tab carries the articles only since the extra-practice
+  // catalogue was removed (simplification pass, 2026-07-08). The stable route
+  // key stays 'explore' so persisted/telemetry references keep resolving.
+  { key: 'explore', label: 'Learn', screen: 'ExploreScreen', iconName: 'ExploreIcon', Icon: ExploreIcon },
 ];
 
 export const DEFAULT_TAB_KEY: TabKey = 'today';
