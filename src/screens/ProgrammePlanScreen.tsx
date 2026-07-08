@@ -148,8 +148,10 @@ function HeroScrim() {
 
 const styles = StyleSheet.create({
   screen: {
-    paddingTop: spacing.pageTop,
-    paddingBottom: spacing.xxxl,
+    // No padding overrides: the shared Screen supplies responsive page
+    // padding, and — critically for a TAB screen — the bottom padding is the
+    // floating tab bar's scroll clearance. Overriding it pins the last cards
+    // under the bar and the page "stops scrolling" (bug fixed 2026-07-08).
     gap: spacing.xl,
   },
   backRow: {
