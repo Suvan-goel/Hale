@@ -98,9 +98,22 @@ clarity ENGINE and its privacy pins stay), the ghost-curve/Clarity-trend Progres
 (unshipped for v1; their view models remain), the life-goal review flow (the goal is set
 once in onboarding, read-only in Settings), the voice-spike boot gate, and a verified
 zero-importer module sweep. Progress's "See full results" and pressable history rows —
-no-ops since promotion — were removed; there is currently NO per-check-up results page,
-the Progress cards are the whole presentation. ~8,200 lines net deleted; suite 183/1,532
+no-ops since promotion — were removed. ~8,200 lines net deleted; suite 183/1,532
 green. See docs/decisions.md.)*
+
+*(2026-07-08 later — results page RESTORED + old-engine excision, founder-directed: the
+per-check-up results page returned in a v2 trim (shared CheckUpResultsShell; fresh results
+after every check-up with the first-ever diagnosis-shaped, and read-only saved results from
+Progress — "See full results" and pressable history rows are real again; no plan/block
+actions, population comparison under its recorded conditions). The old-engine dead weight
+was then excised by export-level analysis: the backend's old-engine sync services and
+launch-sync guards are DELETED and restoreService is trimmed to profile + check-up history
+(the backup promise for what the app actually stores — pre-beta wiring unchanged), plus the
+orphaned old-shell haleFlow view models. Deliberately kept, with reasons in decisions.md:
+workoutGeneration (runtime-live via the history-interpretation layer Progress uses), the
+micro-check measurement machinery, sessionResume (NaN-law serialization seam), painHistory,
+the local legacy-file store/serialize layers, and the full-server data export. −7,658 lines;
+suite 173/1,483 green. See docs/decisions.md.)*
 
 ## Product laws (non-negotiable design rules, validated in user interviews)
 

@@ -5182,3 +5182,69 @@ commits, each suite-green.
 - **Suite: 183 suites / 1,532 tests green** (was 192/1,577 — 9 suites and
   45 tests retired with the surfaces they pinned), tsc clean throughout.
   Net across the pass: ~8,200 lines deleted.
+
+## 2026-07-08 — Results page RESTORED (v2 trim) + old-engine dead weight excised
+
+**Founder direction (this session): bring back a per-check-up results page,
+and clean up the remaining old-engine dead weight.** Two commits, both
+suite-green.
+
+**Results page restored (v2 trim).** CheckUpResultsShell + results/types came
+back VERBATIM from git history (presentation-only pin unchanged); the adapter
+and MovementProfileV2UnifiedResultsScreen came back TRIMMED — no 4-week-plan
+states, no block-report actions, no block-bound retest comparison (Progress's
+change-over-time card owns improvement). Two mounts in the v2 shell:
+- FRESH: after a check-up completes. Placement applies first (the page is
+  purely presentational); Done runs the promised chain (onboarding-CTA first
+  session, else home). First-ever results render the diagnosis-shaped
+  'onboarding' variant (2026-07-06 ruling honored: no tier chips, no
+  comparison affordance).
+- SAVED: read-only 'history' variant from Progress — "See full results" and
+  pressable history rows return as real affordances (they were deleted as
+  no-ops in the simplification pass; the page existing again is what makes
+  them honest).
+- Population comparison returns under its recorded conditions (available
+  from the 2nd official check-up; never on first-ever or history; opt-in in
+  settings.comparisonOptIn, toggleable in place). ONE derivation path for
+  both mounts: stored history record → movementProfileV2ResultsViewModelForRecord
+  (one-owner rule). Copy fences re-registered; resultsArchitecture pins
+  restored with the trim made explicit.
+
+**Old-engine cleanup (export-level analysis — the src/training barrel makes
+file-level reachability lie).** Deleted, zero-live-caller verified:
+- The backend old-engine SYNC layer: blockSync, blockReportSync,
+  microCheckSync, sessionSync, trainingStateSync, launchSyncGuards. The
+  programme engine's state is LOCAL-ONLY by ruling; the app cannot produce
+  those record kinds; launch sync was never wired into the v2 shell.
+- restoreService REWRITTEN to the living backup seam: profile + check-up
+  history. This NARROWS the promotion KEEP ("backup services") to what the
+  promoted app actually stores; the pre-beta re-entry (wire backup into the
+  shell) is unchanged, just smaller. The restore suite keeps every V2
+  snapshot/assessment fence and the safety_json local-only-law pin.
+- haleFlow old-shell view models: progressViewModel, progressDataAuthority,
+  assessmentResultState, movementProfileV2OfficialRetestTransition,
+  progressionEvidence.
+
+**Deliberately KEPT, with recorded reasons (the honest residue):**
+- workoutGeneration + its cluster: RUNTIME-LIVE — blockTrainingPlan /
+  movementProfileV2Block call createBalancedSessionTemplates /
+  createSessionTemplatesForFocus while interpreting history for the live
+  Progress view model. Excising means refactoring the history-interpretation
+  layer; own pass if ever worth it.
+- Micro-check machinery (runner, side setup, voiceV21 micro-check runtime):
+  MEASUREMENT stack, typed into live checkup measurementMetadata and
+  recordingVisualGuidance; micro-checks are a camera instrument, not
+  old-engine programming.
+- sessionResume: the SetResult serialization seam pinned by the NaN-
+  containment law (voiceResultSerialization.test).
+- painHistory: telemetry pain-audit fixtures + the GP-mention fence.
+- adherence + training local store/serialize layers: legacy on-device file
+  compat (old installs still carry those files); deleting is a data-policy
+  decision (adopt vs ignore legacy local files), not a code sweep.
+- dataExportService still exports EVERY server table: the privacy promise is
+  what the server holds about the user, not what the app currently writes.
+- assessments.ts + movementProfileV2Block.ts: fixture/factory support for
+  live modules' tests (checkupHistory selection still handles legacy records).
+
+Net this session: results page +~1,600 restored lines; cleanup −7,658 lines.
+Suite: 173 suites / 1,483 tests green; tsc + expo config clean.
