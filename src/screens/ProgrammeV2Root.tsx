@@ -1,10 +1,10 @@
 /**
- * Programme engine v2 app shell (flag-gated, C4 parallel build → promotion
- * integration Phase 4): mounted by App.tsx under
- * EXPO_PUBLIC_ENABLE_PROGRAMME_ENGINE_V2, inside AuthProvider. Owns store
- * loading (auth-scoped, guest-adopting), the merged onboarding flow, the
- * session/check-up phases, and the four-tab shell (Today / Plan / Progress /
- * Explore) with the Settings flow — all rendered by the SHARED app screens.
+ * THE app shell (programme engine v2, PROMOTED 2026-07-08 — the C4 parallel
+ * build became the default and its flag was retired): mounted unconditionally
+ * by App.tsx inside AuthProvider. Owns store loading (auth-scoped,
+ * guest-adopting), the merged onboarding flow, the session/check-up phases,
+ * and the four-tab shell (Today / Plan / Progress / Explore) with the
+ * Settings flow — all rendered by the SHARED app screens.
  *
  * Coupling rules: programme STATE stays zero-coupled to the old engine (no
  * TrainingStore/TrainingState reads — pinned by the parity review). Explore's

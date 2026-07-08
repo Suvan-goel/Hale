@@ -1,5 +1,13 @@
 # Programme engine v2 — pre-promotion checklist (single source of truth)
 
+**PROMOTION EXECUTED 2026-07-08 (commit 1, the flip)** on founder direction
+after the founder ran the device work and declared it fine ("looks fine for
+now" — informal declaration, recorded in decisions.md; the formal spike
+evidence rules for BETA are unchanged and separately owed). The v2 shell is
+the unconditional app; the flag is retired from config and the release
+audit. Commit 2 (the decommission, per the plan below) is the remaining
+mechanical step.
+
 Promotion = flipping `EXPO_PUBLIC_ENABLE_PROGRAMME_ENGINE_V2` from dev-only to
 default and decommissioning the old engine (blocks, block progress views,
 micro-check scheduling) per the C4 ruling. **Nothing promotes with an
@@ -8,13 +16,15 @@ update status in place.
 
 ## Engineering (all must be checked)
 
-- [ ] Parity review signed off per docs/specs/ladder-migration-map.md
+- [x] Parity review signed off per docs/specs/ladder-migration-map.md
       (every old v1_core level mapped/absorbed/retired deliberately; ported
       capabilities verified: substitution systems, pain-recurrence exclusion
       [DEFERRED by ruling 2026-07-07 — §12 pain regression suffices for v1],
       policy-snapshot governance; measurement surfaces byte-identical).
       Floor-required v1 ruled 2026-07-07 (floor-comfort question = v2
-      candidate). See docs/parity-review-draft.md.
+      candidate). See docs/parity-review-draft.md. SIGNED OFF with the
+      2026-07-08 promotion direction (all checks verified or ruled; the
+      draft was read-and-approve).
 - [x] Simulation suite green including the two ruling pins (scheme-aware
       plank cadence: top by exposure 6, promotion on 7; exposure-cadence
       stall detector ≤6 with KNOWN_STALLS = 'none'-persona only).
@@ -22,22 +32,22 @@ update status in place.
       whole journeys through the shell's own call order — completion routes,
       today view model, post-session moment loop (termination pinned),
       re-offer/cadence semantics, B1 bypass, break-and-return easing.
-- [ ] On-device pass of the full shell: onboarding → placement → first
+- [x] On-device pass of the full shell: onboarding → placement → first
       15-minute session → RPE → promotion surfaces → gateway teach card →
       re-offer paths → Check-up #0 host → upward-only vs replace
       re-placement semantics verified on device.
-      PROTOCOL READY: DEVICE_SESSION_PROTOCOL.md Blocks 6b + 6c (6c appended
-      2026-07-07 for the integrated shell: merged onboarding + back-nav, the
-      'now' chain, tabs, settings round-trips, sign-in adoption, moment
-      surfaces). Founder-owned; nothing else blocks it.
-- [ ] first_session_started verified end-to-end on device (profile flag at
-      session start + funnel v3 stamp on the same record). (Block 6b check 4.)
+      DONE per founder declaration 2026-07-08 (device work run against
+      Blocks 6b + 6c; "looks fine for now" — informal, no per-check record;
+      any regressions surface fix-forward).
+- [x] first_session_started verified end-to-end on device (profile flag at
+      session start + funnel v3 stamp on the same record). (Block 6b check 4;
+      covered by the 2026-07-08 founder device declaration.)
 - [x] Old→new state: no code path reads legacy training state into the new
       engine (fresh placement only; internal testers re-onboard). Verified
       grep-clean 2026-07-07 (parity review check 2); the integrated shell
       touches the old engine ONLY via stateless Explore preset generation,
       run ephemerally with no ladder credit (recorded Phase-4 decision).
-- [ ] Two-protocol Check-up #0 host (acceptance criteria verbatim, founder
+- [x] Two-protocol Check-up #0 host (acceptance criteria verbatim, founder
       green-light 2026-07-06):
       - Consumes CHECKUP_ZERO_PROTOCOL_SEQUENCE; any scope or order drift
         fails tests.
@@ -64,6 +74,8 @@ update status in place.
         home-screen movement-check button remains the permanent way back.
       - The host's own ON-DEVICE PASS is part of its definition of done —
         suite-green alone doesn't close this gate.
+      DONE per founder declaration 2026-07-08 (host ran on device within the
+      Blocks 6b/6c pass; criteria pinned in software throughout).
 
 ## Founder-owned (named owner: founder)
 
@@ -102,8 +114,8 @@ update status in place.
       usage patterns or check-up data suggesting undetected asymmetry);
       carries full protocol + device-gate cost (ruling 2026-07-06).
 
-## Promotion commit plan (STAGED 2026-07-07, Phase 5 — execute ONLY when every
-## engineering and founder item above is checked)
+## Promotion commit plan (STAGED 2026-07-07; COMMIT 1 EXECUTED 2026-07-08 —
+## commit 2, the decommission, is the remaining step)
 
 The promotion is one commit plus a cleanup commit, both mechanical; every
 decision they encode is already ruled.

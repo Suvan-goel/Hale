@@ -62,6 +62,21 @@ measured reconciliation point. Programme health flags are LOCAL-ONLY — exclude
 backup shapes, pinned by a structural test. first_session_started is the onboarding success
 metric, local telemetry only.)*
 
+*(2026-07-08 — PROMOTED: programme engine v2 IS the app. After the five-phase promotion
+integration (the v2 logic wearing the established design language: merged screening
+onboarding with step-wise back, Check-up #0 as the check-up of record, voice sessions on
+the production player, four-tab shell with Progress/Explore/Settings, auth-scoped storage
+with guest adoption) and the founder's device pass (informal declaration; the formal spike
+evidence rules for BETA are unchanged), the flag `EXPO_PUBLIC_ENABLE_PROGRAMME_ENGINE_V2`
+was RETIRED and ProgrammeV2Root became the unconditional app root. The old engine's shell
+(AppGate, blocks, micro-check scheduling, old onboarding staging) is unmounted and
+decommission-pending — promotion commit 2 in docs/pre-promotion-checklist.md deletes it;
+its KEEP list (registry, voice player, unified check-up machinery, measurement stack,
+backup services, stateless preset generation for Explore) is binding. Beta gates are
+unchanged by promotion: clinical review of the zero-hard-gates posture, the formal voice
+trial matrix, and the noise-floor real-data run all still stand between here and beta.
+See docs/decisions.md.)*
+
 ## Product laws (non-negotiable design rules, validated in user interviews)
 
 1. **Never show self-view camera video.** Render a clean skeleton; users this age want presence

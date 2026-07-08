@@ -18,8 +18,8 @@
  *     point. Reported values never enter measurement surfaces (N5).
  *
  * Everything in this module is pure data + pure functions — no UI, no native
- * imports — and sits behind the EXPO_PUBLIC_ENABLE_PROGRAMME_ENGINE_V2 flag
- * until promoted (C4: parallel build; the existing engine keeps shipping).
+ * imports. PROMOTED 2026-07-08 (C4 parallel build complete; the flag was
+ * retired and this is the app's programming engine).
  */
 
 import type { ActivityLevel } from '../adherence';

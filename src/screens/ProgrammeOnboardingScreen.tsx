@@ -1,6 +1,6 @@
 /**
  * Programme v2 onboarding — ONE config-driven screen for the whole flow
- * (flag-gated: mounts only under EXPO_PUBLIC_ENABLE_PROGRAMME_ENGINE_V2).
+ * (THE app onboarding since promotion, 2026-07-08).
  *
  * Renders whatever step the flow machine says is current, entirely from the
  * content layer: one question per screen, all tappable, no typing, every

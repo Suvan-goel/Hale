@@ -5044,3 +5044,29 @@ proceeds in its own working session once ruled.
 - Verified: 210 suites / 1801 tests green, tsc + expo config clean. The
   promotion-integration software work (Phases 1–5) is COMPLETE; everything
   that remains on this track is founder-owned validation.
+
+## 2026-07-08 — PROMOTION EXECUTED (commit 1): programme engine v2 is the app
+
+- **Founder declaration of record:** the device work (spike runbook + Session
+  A including Blocks 6b/6c) was run and "looks fine for now" — an INFORMAL
+  declaration, recorded as such (no per-check JSONs/records). It closes the
+  promotion checklist's device-owned engineering items the same way the
+  2026-07-07 informal spike verdict unblocked engine-specific building. What
+  it does NOT change: the formal BETA evidence obligations stand untouched —
+  the §3/§4/§8 voice trial matrix, condition-G soak, audio-routing rows,
+  self-echo count, Block 7.4 camera+mic hard gate, and the noise-floor
+  real-data run all remain owed before beta. Parity review signed off with
+  the same direction (read-and-approve; every check verified or ruled).
+- **Commit 1 (the flip) executed per the staged plan:** ProgrammeV2Root
+  (inside AuthProvider) is the unconditional app root;
+  `EXPO_PUBLIC_ENABLE_PROGRAMME_ENGINE_V2` retired from src/config (file
+  deleted), releaseFlagAudit (env name, field, parse, check, unsafe reason),
+  the audit tests, and app.config.js's build-time guard. Stale flag-gating
+  comments updated (v2 root, programme module headers, onboarding screen).
+  The old AppGate is UNMOUNTED but not yet deleted — commit 2 (the
+  decommission, staged in the checklist with its binding KEEP list) is the
+  remaining mechanical step. CLAUDE.md carries the promotion annotation.
+- Internal testers re-onboard (no live migration — standing ruling); tester
+  comms are founder-owned.
+- Verified: 210 suites / 1800 tests green (one retired audit case), tsc +
+  expo config clean.

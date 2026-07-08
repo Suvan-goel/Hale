@@ -264,7 +264,6 @@ import { SettingsScreen } from './src/screens/SettingsScreen';
 import { VoiceSessionScreen } from './src/screens/VoiceSessionScreen';
 import { VoiceSpikeScreen } from './src/screens/VoiceSpikeScreen';
 import { ProgrammeV2Root } from './src/screens/ProgrammeV2Root';
-import { isProgrammeEngineV2Enabled } from './src/config/programmeEngineV2';
 import { isCameraConductedSessionsEnabled } from './src/training/sessionModeFlag';
 import { SessionPlanningRecoveryScreen } from './src/screens/SessionPlanningRecoveryScreen';
 import { SessionPreviewScreen } from './src/screens/SessionPreviewScreen';
@@ -628,27 +627,17 @@ function App() {
   if (__DEV__ && process.env.EXPO_PUBLIC_VOICE_SPIKE === '1') {
     return <VoiceSpikeScreen />;
   }
-  // Programme engine v2 app shell (C4 flag-gated; promotion integration
-  // Phase 4): the merged onboarding, session/check-up phases, and the
-  // four-tab shell on the shared screens — inside AuthProvider so storage is
-  // auth-scoped and the Settings account card works. The release-flag audit
-  // keeps this out of beta/release builds until promotion.
-  if (isProgrammeEngineV2Enabled()) {
-    return (
-      <SystemInsetsProvider>
-        <StatusBarBackdrop>
-          <AuthProvider>
-            <ProgrammeV2Root />
-          </AuthProvider>
-        </StatusBarBackdrop>
-      </SystemInsetsProvider>
-    );
-  }
+  // THE app (programme engine v2, PROMOTED 2026-07-08 per the pre-promotion
+  // checklist's staged plan): merged onboarding, session/check-up phases,
+  // and the four-tab shell on the shared screens — inside AuthProvider so
+  // storage is auth-scoped and the Settings account card works. The old
+  // engine's shell (AppGate below) is decommission-pending (commit 2 of the
+  // promotion plan) and no longer mounted.
   return (
     <SystemInsetsProvider>
       <StatusBarBackdrop>
         <AuthProvider>
-          <AppGate />
+          <ProgrammeV2Root />
         </AuthProvider>
       </StatusBarBackdrop>
     </SystemInsetsProvider>

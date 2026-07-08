@@ -4,8 +4,8 @@
  * Pure data + pure logic implementing exercise-ladders-spec v0.2 and
  * onboarding-spec v0.2 §10 under the recorded implementation rulings
  * (docs/decisions.md 2026-07-06). Nothing here touches UI, native modules,
- * or the network; the existing training engine keeps shipping until this
- * one is promoted. Gated by EXPO_PUBLIC_ENABLE_PROGRAMME_ENGINE_V2.
+ * or the network. PROMOTED 2026-07-08: this is the app's programming engine
+ * (the old engine's shell is decommission-pending, promotion commit 2).
  */
 
 export * from './types';
