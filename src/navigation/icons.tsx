@@ -54,20 +54,6 @@ export function TodayIcon({ size, color, strokeWidth = 1.8 }: IconProps) {
   );
 }
 
-export function PlanIcon({ size, color, strokeWidth = 1.8 }: IconProps) {
-  const s = common(color, strokeWidth);
-  return (
-    <Frame size={size}>
-      <Path d="M7.4 4.8 H14.6 L18 8.2 V19.2 H7.4 Z" {...s} />
-      <Path d="M14.6 4.8 V8.2 H18" {...s} />
-      <Circle cx={10.3} cy={11.3} r={0.75} fill={color} stroke="none" />
-      <Circle cx={10.3} cy={14.7} r={0.75} fill={color} stroke="none" />
-      <Path d="M12.6 11.3 H15.4" {...s} />
-      <Path d="M12.6 14.7 H15.4" {...s} />
-    </Frame>
-  );
-}
-
 export function ProgressIcon({ size, color, strokeWidth = 1.8 }: IconProps) {
   const s = common(color, strokeWidth);
   return (

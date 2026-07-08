@@ -93,7 +93,6 @@ import { ProgressScreen } from './ProgressScreen';
 import { ProgrammeCheckupZeroScreen } from './ProgrammeCheckupZeroScreen';
 import { ProgrammeEffortScreen, ProgrammeMomentScreen } from './ProgrammeMomentScreens';
 import { ProgrammeOnboardingScreen } from './ProgrammeOnboardingScreen';
-import { ProgrammePlanScreen } from './ProgrammePlanScreen';
 import { SafetyProfileScreen } from './SafetyProfileScreen';
 import { SettingsScreen } from './SettingsScreen';
 import { TodayScreen } from './TodayScreen';
@@ -810,15 +809,7 @@ export function ProgrammeV2Root() {
     <View style={styles.container}>
       <ScreenScrollClearanceProvider bottom={tabBarScrollClearance}>
         <View style={styles.tabContent}>
-          {tab === 'plan' ? (
-            <ProgrammePlanScreen
-              today={todayVm}
-              levelRows={easedLevels}
-              chosenDays={programmeState.profile.chosenDays}
-              onStartSession={startSessionFromHome}
-              onStartCheckup={todayVm.checkupOffer ? goAssessment : undefined}
-            />
-          ) : tab === 'progress' ? (
+          {tab === 'progress' ? (
             <ProgressScreen
               onBeginFirstCheckUp={goAssessment}
               onBeginAdditionalCheckUp={goAssessment}
@@ -847,7 +838,6 @@ export function ProgrammeV2Root() {
                 today: todayVm,
                 levelRows: easedLevels,
                 onStartCheckup: todayVm.checkupOffer ? goAssessment : undefined,
-                onViewPlan: () => setTab('plan'),
               }}
               onPrimaryAction={() => startSessionFromHome()}
               onOpenSettings={openSettings}

@@ -27,13 +27,14 @@ import { useResponsiveLayout } from '../theme/responsive';
  * engine's decommission, promotion commit 2, 2026-07-08): greeting header,
  * the levels card (v2 has no measured domain bands until an official
  * check-up exists — level rows are the honest equivalent), the hero focus
- * card, and the persistent check-up offer when one is due.
+ * card, and the persistent check-up offer when one is due. Since the Plan
+ * tab merged into Home (simplification pass, 2026-07-08) this is the one
+ * place the plan lives; training days stay editable in Settings.
  */
 export interface TodayProgrammeMode {
   today: ProgrammeTodayViewModel;
   levelRows: readonly ProgrammeLevelRow[];
   onStartCheckup?: () => void;
-  onViewPlan?: () => void;
 }
 
 export function TodayScreen({
@@ -92,11 +93,7 @@ export function TodayScreen({
           ) : null}
         </View>
 
-        <ProgrammeLevelsCard
-          compact={compact}
-          levelRows={programme.levelRows}
-          onViewPlan={programme.onViewPlan}
-        />
+        <ProgrammeLevelsCard compact={compact} levelRows={programme.levelRows} />
 
         <DailyFocusCard
           compact={compact}
@@ -125,11 +122,9 @@ export function TodayScreen({
 function ProgrammeLevelsCard({
   compact,
   levelRows,
-  onViewPlan,
 }: {
   compact: boolean;
   levelRows: readonly ProgrammeLevelRow[];
-  onViewPlan?: () => void;
 }) {
   return (
     <View style={[styles.snapshotCard, compact && styles.compactCardPadding]}>
@@ -148,17 +143,6 @@ function ProgrammeLevelsCard({
           </View>
         ))}
       </View>
-      {onViewPlan ? (
-        <Pressable
-          style={({ pressed }) => [styles.levelPlanLink, pressed && styles.pressed]}
-          onPress={onViewPlan}
-          accessibilityRole="button"
-          accessibilityLabel="View your plan"
-        >
-          <Text style={styles.levelPlanLinkText}>View your plan</Text>
-          <Text style={styles.levelPlanLinkArrow}>›</Text>
-        </Pressable>
-      ) : null}
     </View>
   );
 }
@@ -415,28 +399,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     letterSpacing: 0,
-  },
-  levelPlanLink: {
-    minHeight: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 4,
-    marginTop: 6,
-  },
-  levelPlanLinkText: {
-    color: todayHomeColors.headingGreen,
-    fontFamily: fonts.sansMedium,
-    fontSize: 14,
-    lineHeight: 19,
-    letterSpacing: 0,
-  },
-  levelPlanLinkArrow: {
-    color: todayHomeColors.headingGreen,
-    fontFamily: fonts.sansMedium,
-    fontSize: 21,
-    lineHeight: 22,
-    marginTop: -1,
   },
   checkupButton: {
     alignSelf: 'flex-start',
