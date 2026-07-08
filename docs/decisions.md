@@ -5248,3 +5248,31 @@ file-level reachability lie).** Deleted, zero-live-caller verified:
 
 Net this session: results page +~1,600 restored lines; cleanup −7,658 lines.
 Suite: 173 suites / 1,483 tests green; tsc + expo config clean.
+
+## 2026-07-08 — Residual cleanup pass (items 1–4 of the post-excision audit)
+
+Founder-approved follow-up to the old-engine excision; polish work comes next.
+- **Settings dead surface deleted:** the `painExclusions`/`onReinstateExercise`
+  props + "Swapped-out movements" card (never passed by the v2 shell — Pain A)
+  and the `onReplayOnboardingForDev` prop + Developer section (never passed
+  since promotion). GP-fence consequence: Settings lost its only
+  doctor-mention (the pain-swap note), so it moved from the guardrail's
+  allowed list to the scanned list — Settings copy is now pinned GP-free.
+- **16 crash-stale audit scripts deleted** (of 24): each read source files
+  that no longer exist (some broken since promotion, not just this pass).
+  The 8 survivors reference only living sources. movementProfileV2/recovery.ts
+  (+test) went with its two referencing audits — no live callers.
+- **Micro-check voice RUNTIME deleted** (runtime/readiness/assets/
+  protocolCompatibility/index + config/voiceExperience): nothing mounts
+  micro-checks since promotion. KEPT: types, contracts, and the sequence
+  planner — the micro-check MEASUREMENT machinery still plans voice
+  sequences through them, and live cue typing derives from the contracts.
+  defaultVoiceRuntimeSelection + microCheckVoiceV21 suites trimmed to the
+  kept surface (training-voice V2.1 + eyes-open selectability pins intact).
+- **Two orphaned hero images** (clean-slate restart, first-block v4 — screens
+  died at promotion) and the orphaned telemetry barrel (index.ts; deep
+  modules unaffected) deleted.
+- NOT touched, per the standing decisions: the Clarity engine (awaiting an
+  explicit product decision), record/replay + diagnostics infrastructure,
+  workoutGeneration (runtime-live), and the legacy local-file store layers.
+- Suite: 171 suites / 1,469 tests green; tsc + expo config clean.

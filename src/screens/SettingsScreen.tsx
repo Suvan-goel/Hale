@@ -97,10 +97,6 @@ type SettingsScreenProps = {
   onStartingEffortChange: (startingEffort: ActivityLevel) => void;
   onOpenSafetyProfile: () => void;
   onOpenCameraSetup: () => void;
-  /** Pain-recurrence swapped-out movements (visible + reversible, §9). */
-  painExclusions?: readonly { ladderId: string; title: string }[];
-  onReinstateExercise?: (ladderId: string) => void;
-  onReplayOnboardingForDev?: () => void;
   onBack?: () => void;
 };
 
@@ -120,9 +116,6 @@ function SettingsScreenContent({
   onStartingEffortChange,
   onOpenSafetyProfile,
   onOpenCameraSetup,
-  painExclusions = [],
-  onReinstateExercise,
-  onReplayOnboardingForDev,
   onBack,
 }: SettingsScreenProps) {
   const responsive = useResponsiveLayout();
@@ -147,8 +140,6 @@ function SettingsScreenContent({
   const effortLabel = startingEffortLabel(startingEffort);
   const planSummary = `${preferredDaysSummary(preferredDays)} · ${effortLabel}`;
   const selectedVoiceLabel = getVoice(settings.voiceId).label;
-  const showInternalDeveloperSettings = !!onReplayOnboardingForDev;
-  const showDeveloperSettings = showInternalDeveloperSettings;
 
   React.useEffect(() => setName(profile.name), [profile.name]);
   React.useEffect(() => {
@@ -359,25 +350,6 @@ function SettingsScreenContent({
             </View>
           </DetailCard>
 
-          {painExclusions.length > 0 && onReinstateExercise ? (
-            <DetailCard
-              title="Swapped-out movements"
-              body="These were swapped out of your plan after they hurt in two recent sessions. If one keeps bothering you, it's worth mentioning to your doctor. Bring a movement back whenever you're ready."
-            >
-              <View style={styles.toggleStack}>
-                {painExclusions.map((exclusion) => (
-                  <ToggleRow
-                    key={exclusion.ladderId}
-                    label={exclusion.title}
-                    description="Off for now. Turn on to bring it back into your plan."
-                    value={false}
-                    onValueChange={() => onReinstateExercise(exclusion.ladderId)}
-                  />
-                ))}
-              </View>
-            </DetailCard>
-          ) : null}
-
         </>
       );
     }
@@ -533,19 +505,6 @@ function SettingsScreenContent({
           onPress={() => openProfileSection('account')}
         />
       </SettingsSection>
-
-      {showDeveloperSettings ? (
-        <SettingsSection title="Developer">
-          {onReplayOnboardingForDev ? (
-            <ProfileMenuRow
-              title="Replay onboarding"
-              subtitle="Open the first-run flow without clearing app data."
-              icon="sliders"
-              onPress={onReplayOnboardingForDev}
-            />
-          ) : null}
-        </SettingsSection>
-      ) : null}
     </Screen>
   );
 }

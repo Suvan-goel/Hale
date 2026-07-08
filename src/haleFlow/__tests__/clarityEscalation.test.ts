@@ -154,18 +154,21 @@ describe('exportable GP summary', () => {
 describe('the ONLY escalation path (guardrail)', () => {
   it('no product copy mentions GP/doctor outside the two recorded paths', () => {
     // Recorded paths: this escalation + the pain-recurrence swap note (which
-    // lives in the pain store/generator/Settings reversal surfaces).
+    // lives in the pain store/generator). Settings LOST its mention with the
+    // old-engine cleanup (2026-07-08): the swapped-out-movements reversal
+    // card was dead UI behind never-passed props, so Settings now belongs on
+    // the scanned side.
     const allowed = [
       'src/haleFlow/clarityEscalation.ts',
       'src/training/painHistory.ts',
       'src/training/workoutGeneration.ts',
-      'src/screens/SettingsScreen.tsx',
     ];
     const scanned = [
       'src/haleFlow/clarityTrend.ts',
       'src/haleFlow/exploreViewModel.ts',
       'src/screens/ProgressScreen.tsx',
       'src/screens/TodayScreen.tsx',
+      'src/screens/SettingsScreen.tsx',
       'src/movementProfileV2/viewModel.ts',
       'src/results/movementProfileV2ResultsAdapter.ts',
     ];
