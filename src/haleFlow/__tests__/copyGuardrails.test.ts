@@ -203,7 +203,6 @@ describe('Hale V1 copy guardrails', () => {
       productionSourceText('src/adherence/goalDomainMapping.ts'),
       productionSourceText('src/adherence/adherenceCopy.ts'),
       productionSourceText('src/adherence/milestoneService.ts'),
-      productionSourceText('src/adherence/screens/LifeGoalOnboardingScreen.tsx'),
       productionSourceText('src/screens/TodayScreen.tsx'),
       productionSourceText('src/audio/voiceSessionLineScripts.ts'),
       productionSourceText('src/training/safetyCueDefinitions.ts'),

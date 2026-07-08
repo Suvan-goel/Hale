@@ -29,7 +29,6 @@ import {
 } from '../../modules/expo-pose-detection';
 import { LOCAL_USER_ID, type AvailableEquipment } from '../adherence';
 import { configureSessionAudio } from '../audio/voicePlayer';
-import { LifeGoalOnboardingScreen } from '../adherence/screens/LifeGoalOnboardingScreen';
 import { Screen, ScreenScrollClearanceProvider } from '../components/ui';
 import { useSystemInsets } from '../components/SystemInsetsProvider';
 import { adoptGuestLocalFiles, createExpoHistoryFs } from '../history/fsAdapter';
@@ -110,7 +109,7 @@ type ShellPhase =
   | 'session_done'
   | 'assessment';
 
-type ShellFlow = 'settings' | 'life-goal' | 'safety-profile' | 'camera-setup' | null;
+type ShellFlow = 'settings' | 'safety-profile' | 'camera-setup' | null;
 
 type CameraPermission = 'checking' | 'granted' | 'undetermined' | 'denied';
 
@@ -719,26 +718,14 @@ export function ProgrammeV2Root() {
             profile: { ...programmeState.profile, activityLevel: level },
           })
         }
-        onOpenLifeGoal={() => setFlow('life-goal')}
         onOpenSafetyProfile={() => setFlow('safety-profile')}
         onOpenCameraSetup={() => setFlow('camera-setup')}
         // No pain-exclusion rows in v2 by the Pain A ruling (2026-07-07):
-        // the §12 pain regression is v1's answer to exercise pain.
+        // the §12 pain regression is v1's answer to exercise pain. The
+        // life-goal review flow retired in the simplification pass
+        // (2026-07-08): the goal is set once in onboarding and shown
+        // read-only in the profile details.
         onBack={() => setFlow(null)}
-      />
-    );
-  }
-
-  if (flow === 'life-goal') {
-    return (
-      <LifeGoalOnboardingScreen
-        initialGoal={prefs.profile.lifeGoal}
-        mode="review"
-        onSave={(goal) => {
-          persistPrefs({ ...prefs, profile: { ...prefs.profile, lifeGoal: goal } });
-          setFlow('settings');
-        }}
-        onCancel={() => setFlow('settings')}
       />
     );
   }

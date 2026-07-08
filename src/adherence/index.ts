@@ -10,5 +10,3 @@ export * from './serialize';
 export * from './store';
 export * from './types';
 export { CurrentBlockCard } from './components/CurrentBlockCard';
-export { LifeGoalSelector } from './components/LifeGoalSelector';
-export { LifeGoalOnboardingScreen } from './screens/LifeGoalOnboardingScreen';

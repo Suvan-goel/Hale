@@ -95,7 +95,6 @@ type SettingsScreenProps = {
   onToggleAvailableEquipment: (item: AvailableEquipment) => void;
   onPreferredDaysChange: (days: string[]) => void;
   onStartingEffortChange: (startingEffort: ActivityLevel) => void;
-  onOpenLifeGoal: () => void;
   onOpenSafetyProfile: () => void;
   onOpenCameraSetup: () => void;
   /** Pain-recurrence swapped-out movements (visible + reversible, §9). */
@@ -119,7 +118,6 @@ function SettingsScreenContent({
   onToggleAvailableEquipment,
   onPreferredDaysChange,
   onStartingEffortChange,
-  onOpenLifeGoal,
   onOpenSafetyProfile,
   onOpenCameraSetup,
   painExclusions = [],
@@ -252,7 +250,6 @@ function SettingsScreenContent({
             symptomPicture={symptomPicture}
             onSymptomPictureChange={updateSymptomPicture}
             movementGoal={goalText}
-            onOpenLifeGoal={onOpenLifeGoal}
           />
         </>
       );
@@ -807,7 +804,6 @@ function PersonalDetailsCard({
   symptomPicture,
   onSymptomPictureChange,
   movementGoal,
-  onOpenLifeGoal,
 }: {
   name: string;
   onNameChange: (value: string) => void;
@@ -821,7 +817,6 @@ function PersonalDetailsCard({
   symptomPicture: MenopauseSymptomPicture | null;
   onSymptomPictureChange: (value: MenopauseSymptomPicture | null) => void;
   movementGoal: string;
-  onOpenLifeGoal: () => void;
 }) {
   const responsive = useResponsiveLayout();
   const dateOfBirth = normalizeDateOfBirth(dateOfBirthText);
@@ -981,15 +976,11 @@ function PersonalDetailsCard({
           ) : null}
         </View>
 
-        <Pressable
-          style={({ pressed }) => [
-            styles.personalGoalPanel,
-            responsive.isCompactPhone && styles.compactCardPadding,
-            pressed && styles.pressed,
-          ]}
-          onPress={onOpenLifeGoal}
-          accessibilityRole="button"
-          accessibilityLabel={`Change movement goal. Current goal: ${movementGoal}`}
+        {/* Read-only since the simplification pass (2026-07-08): the goal is
+            set once in onboarding; the dedicated review screen was removed. */}
+        <View
+          style={[styles.personalGoalPanel, responsive.isCompactPhone && styles.compactCardPadding]}
+          accessibilityLabel={`Movement goal: ${movementGoal}`}
         >
           <View style={styles.personalGoalRow}>
             <View style={styles.personalGoalCopy}>
@@ -998,11 +989,10 @@ function PersonalDetailsCard({
                 <Text style={styles.personalGoalValue} numberOfLines={2}>
                   {movementGoal}
                 </Text>
-                <Text style={styles.personalGoalChevron}>{'›'}</Text>
               </View>
             </View>
           </View>
-        </Pressable>
+        </View>
       </View>
     </View>
   );
