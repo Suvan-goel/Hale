@@ -229,22 +229,8 @@ describe('fluency privacy containment (FL1)', () => {
     expect(source('src/voice/voicePermissionGate.ts')).toMatch(/never\s+recorded/i);
   });
 
-  it('the consent copy is implementation-true and registered with the fences', () => {
-    const consent = source('src/screens/FluencyConsentScreen.tsx');
-    expect(consent).toContain('ON YOUR PHONE, only to');
-    expect(consent).toContain('not stored and not sent');
-    expect(consent).toContain('the count is all that');
-    expect(consent).toContain('different from how the mic normally works');
-    expect(consent).toContain('nothing');
-    expect(consent).toContain('ever transcribed');
-    expect(consent).toContain('Skip this part');
-    // Per-use: no remember-my-choice surface exists on this screen
-    // (comments stripped — the doc comment legitimately describes the rule).
-    const consentCode = consent.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/.*$/gm, ' ');
-    expect(consentCode).not.toMatch(/remember|don'?t ask again|always allow/i);
-    // Registered in the Clarity copy fence (validated-ban + cognitive scan).
-    expect(source('src/haleFlow/__tests__/copyGuardrails.test.ts')).toContain(
-      'src/screens/FluencyConsentScreen.tsx'
-    );
-  });
+  // The consent-copy pin retired with the fluency UI (founder-directed
+  // deletion 2026-07-08): FluencyConsentScreen was deleted with the other
+  // Clarity screens. The engine seams above stay pinned; any future fluency
+  // UI re-registers its consent copy here and in the Clarity copy fence.
 });

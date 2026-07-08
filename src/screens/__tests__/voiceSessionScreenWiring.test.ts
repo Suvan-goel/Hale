@@ -61,9 +61,10 @@ describe('v2 shell session-mode wiring', () => {
   // App-level final-adjustment window retired with promotion commit 2
   // (2026-07-08): pain exclusions are deferred by the Pain A ruling (§12
   // regression is v1's answer), rep adjustments live in the player's own
-  // windows (tap parity pinned above), and the parked conductor surface
-  // (TrainingSessionScreen) stays unmounted until its flag re-enters.
-  it('voice is the only mounted session surface (conductor stays parked)', () => {
+  // windows (tap parity pinned above), and the conductor surface
+  // (TrainingSessionScreen) was deleted outright on founder direction
+  // (2026-07-08) — recoverable from git history if v2 revives it.
+  it('voice is the only mounted session surface (conductor deleted)', () => {
     expect(shellSource).toContain('<VoiceSessionScreen');
     expect(shellSource).not.toContain('TrainingSessionScreen');
   });

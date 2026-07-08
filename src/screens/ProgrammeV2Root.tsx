@@ -820,21 +820,15 @@ export function ProgrammeV2Root() {
             />
           ) : tab === 'progress' ? (
             <ProgressScreen
-              blocks={[]}
-              reports={[]}
-              completions={[]}
-              today={nowIso}
               onBeginFirstCheckUp={goAssessment}
               onBeginAdditionalCheckUp={goAssessment}
-              onStartRetest={goAssessment}
+              onStartMovementProfileV2CheckUp={goAssessment}
               movementProfileV2Progress={buildMovementProfileV2ProgressViewModel({
                 history,
                 blocks: [],
                 reports: [],
                 today: nowIso,
               })}
-              onStartMovementProfileV2CheckUp={goAssessment}
-              onViewCurrentPlan={() => setTab('plan')}
               onOpenSettings={openSettings}
             />
           ) : tab === 'explore' ? (

@@ -166,12 +166,7 @@ describe('the ONLY escalation path (guardrail)', () => {
       'src/haleFlow/exploreViewModel.ts',
       'src/screens/ProgressScreen.tsx',
       'src/screens/TodayScreen.tsx',
-      'src/screens/ClarityCheckInScreen.tsx',
-      'src/screens/DualTaskScreen.tsx',
-      'src/screens/FluencyConsentScreen.tsx',
-      'src/screens/FluencyTaskScreen.tsx',
       'src/movementProfileV2/viewModel.ts',
-      'src/results/movementProfileV2ResultsAdapter.ts',
     ];
     for (const file of scanned) {
       const text = readFileSync(join(process.cwd(), file), 'utf8');

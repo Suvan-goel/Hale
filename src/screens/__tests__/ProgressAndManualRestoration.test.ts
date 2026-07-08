@@ -30,18 +30,22 @@ describe('Progress UI restoration', () => {
       progress.indexOf('function MovementProfileV2ChangeCard')
     );
 
-    // The simplified Progress tab: one merged profile card, the change-over-time card,
-    // a slim next check-up, a merged history card, and the quiet extra check-up.
+    // The simplified Progress tab: one merged profile card, the change-over-time
+    // card, a merged history card, and the quiet extra check-up. The next-check-up
+    // card and the "See full results" link retired with the founder-directed
+    // deletion pass (2026-07-08): the former could only render from old-engine
+    // blocks the promoted shell never produces, and the latter pointed at the
+    // deleted results flow.
     expect(progress).toContain('<MovementProfileCard');
     expect(progress).toContain('<MovementProfileV2ChangeCard');
-    expect(progress).toContain('<MovementProfileV2NextCheckUpCard');
+    expect(progress).not.toContain('<MovementProfileV2NextCheckUpCard');
     expect(progress).toContain('<MovementProfileV2HistoryCard');
     expect(progress).toContain('<MovementProfileV2ExtraCheckUpCard');
     expect(progress).toContain('viewModel.officialHistory.length >= 2');
     // The plan summary and practice-ladder cards moved off Progress — they duplicated the Plan tab.
     expect(progress).not.toContain('<MovementProfileV2PlanSummaryCard');
     expect(progress).not.toContain('<TrainingProgressCard');
-    expect(profileCard).toContain('See full results');
+    expect(profileCard).not.toContain('See full results');
     expect(profileCard).toContain('Where to focus');
     expect(profileCard).toContain('Last check-up ·');
     expect(profileCard).not.toMatch(/Frozen|reference labels|schema|fingerprint/);

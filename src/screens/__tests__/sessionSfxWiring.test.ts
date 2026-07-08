@@ -25,16 +25,6 @@ describe('recording session sound-effect wiring', () => {
     }
   });
 
-  it('wires the shared session cues into the (parked) camera-conducted training flow', () => {
-    const training = source('src/screens/TrainingSessionScreen.tsx');
-    expect(training).toContain('lastSetKindRef');
-    expect(training).toContain('nextMeasurementTrackingSfxState');
-    expect(training).toContain("sfx.play('rep-credit')");
-    expect(training).toContain("sfx.play('measurement-complete')");
-    expect(training).toContain("sfx.play('session-complete')");
-
-  });
-
   it('guards Movement Profile V2 cue playback against duplicate snapshot refreshes', () => {
     const mpv2 = source('src/screens/MovementProfileV2UnifiedCheckUpScreen.tsx');
 

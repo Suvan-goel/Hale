@@ -52,23 +52,17 @@ const COGNITIVE_CLAIM_COPY =
 // creates it, so no fog-adjacent string ever ships unscanned.
 const CLARITY_SELF_REPORT_COPY_FILES: readonly string[] = [
   'src/checkup/selfReport.ts',
-  'src/screens/ClarityCheckInScreen.tsx',
   'src/haleFlow/clarityTrend.ts',
-  'src/screens/DualTaskScreen.tsx',
-  'src/screens/FluencyConsentScreen.tsx',
-  'src/screens/FluencyTaskScreen.tsx',
   'src/checkup/fluencyRotation.ts',
   'src/haleFlow/clarityEscalation.ts',
 ];
 const CLARITY_BANNED_COPY = /\bvalidated\b/i;
 
 const RESULT_COPY_FILES = [
-  'src/results/CheckUpResultsShell.tsx',
   'src/screens/ProgressScreen.tsx',
   'src/screens/AuthScreen.tsx',
   'src/screens/SettingsScreen.tsx',
   'src/screens/SafetyProfileScreen.tsx',
-  'src/results/movementProfileV2ResultsAdapter.ts',
   'src/movementProfileV2/viewModel.ts',
 ] as const;
 

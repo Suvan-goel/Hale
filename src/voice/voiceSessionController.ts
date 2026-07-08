@@ -4,8 +4,8 @@
  * AND PROVABLE (founder requirement: parity proven, not asserted):
  *
  *   1. abandonment-funnel persistence: recordAbandonment() is idempotent and
- *      the screen calls it on unmount — identical to TrainingSessionScreen's
- *      recordFunnel discipline;
+ *      the screen calls it on unmount — identical to the recordFunnel
+ *      discipline of the deleted camera-conducted session screen;
  *   2. resume snapshots: onItemCompleted fires with the cumulative
  *      completedItemsSnapshot at every item boundary;
  *   3. completion: one funnel record + onComplete(result), never both

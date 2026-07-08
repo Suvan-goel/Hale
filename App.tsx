@@ -5,8 +5,8 @@
  *
  * This file owns only app chrome and gates: observability init, the bundled
  * font gate (headings must never flash a fallback face), auth loading and
- * the password-recovery path, the status-bar backdrop, and the dev-only
- * voice-spike harness. Everything else lives in ProgrammeV2Root.
+ * the password-recovery path, and the status-bar backdrop. Everything else
+ * lives in ProgrammeV2Root.
  */
 
 import { Fraunces_400Regular, Fraunces_500Medium } from '@expo-google-fonts/fraunces';
@@ -23,7 +23,6 @@ import { AuthProvider, useAuth } from './src/services/backend';
 import { initObservability, wrapWithObservability } from './src/services/observability/sentry';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { ProgrammeV2Root } from './src/screens/ProgrammeV2Root';
-import { VoiceSpikeScreen } from './src/screens/VoiceSpikeScreen';
 import { colors, spacing } from './src/theme';
 
 const STATUS_BAR_BACKDROP_EXTRA_HEIGHT = 8;
@@ -31,11 +30,6 @@ const STATUS_BAR_BACKDROP_EXTRA_HEIGHT = 8;
 initObservability();
 
 function App() {
-  // Dev-only voice-KWS spike harness (docs/specs/VOICE_KWS_SPIKE_GO_NO_GO.md):
-  // a diagnostics-style boot gate, same pattern as the pose latency build.
-  if (__DEV__ && process.env.EXPO_PUBLIC_VOICE_SPIKE === '1') {
-    return <VoiceSpikeScreen />;
-  }
   return (
     <SystemInsetsProvider>
       <StatusBarBackdrop>

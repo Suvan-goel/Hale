@@ -5,55 +5,27 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import {
   Card,
   Screen,
-  SecondaryButton,
 } from '../components/ui';
-import { BackArrowButton } from '../components/BackArrowButton';
 import { HeaderLogo } from '../components/HeaderLogo';
 import {
-  type MovementBlock,
-  type MovementBlockReport,
-  type TrainingSessionCompletion,
-} from '../adherence';
-import {
-  type ClarityEscalation,
-  type ClarityTrendViewModel,
-  type GhostCurveViewModel,
   type MovementProfileV2ProgressChange,
   type MovementProfileV2ProgressChangeDomain,
   type MovementProfileV2ProgressViewModel,
-  type ProgressDataAuthority,
 } from '../haleFlow';
-import { GhostCurveCard } from './GhostCurveCard';
 import { type MovementProfileV2Domain } from '../movementProfileV2/viewModel';
 import { type Domain } from '../scoring';
-import type { LadderProgress } from '../training';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 import { SettingsIcon } from '../navigation/icons';
-import {
-  buildProgressNextCheckUpCard,
-  type ProgressNextCheckUpCardCopy,
-} from './progressProductPresentation';
 
 import { BRAND } from '../brand';
 const PROGRESS_HERO_IMAGE = require('../../assets/images/progress-hero-botanical.png');
 
 export function ProgressScreen({
-  activeBlock,
-  reports,
-  completions,
-  today,
   onBeginFirstCheckUp,
   onBeginAdditionalCheckUp,
-  onStartRetest,
-  progressDataAuthority,
-  movementProfileV2Progress,
-  clarityTrend,
-  ghostCurve,
-  clarityEscalation,
-  onShareClarityGpSummary,
   onStartMovementProfileV2CheckUp,
-  onViewMovementProfileV2Profile,
+  movementProfileV2Progress,
   onOpenSettings,
 }: ProgressScreenProps) {
   const responsive = useResponsiveLayout();
@@ -79,87 +51,11 @@ export function ProgressScreen({
 
       <MovementProfileV2ProgressContent
         viewModel={movementProfileV2Progress ?? null}
-        unavailable={progressDataAuthority?.kind === 'unavailable'}
         onStartCheckUp={onStartMovementProfileV2CheckUp ?? onBeginFirstCheckUp}
         onContinue={onBeginFirstCheckUp}
-        onViewProfile={onViewMovementProfileV2Profile}
         onBeginExtraCheckUp={onBeginAdditionalCheckUp}
-        onStartRetest={onStartRetest}
-        activeBlock={activeBlock}
-        reports={reports}
-        completions={completions}
-        today={today}
       />
-
-      {ghostCurve && ghostCurve.status === 'ready' ? (
-        <GhostCurveCard viewModel={ghostCurve} />
-      ) : null}
-
-      {clarityTrend && clarityTrend.status === 'ready' ? (
-        <ClarityTrendCard
-          trend={clarityTrend}
-          escalation={clarityEscalation}
-          onShareGpSummary={onShareClarityGpSummary}
-        />
-      ) : null}
     </Screen>
-  );
-}
-
-/**
- * Clarity trend (flag-gated): one row per series, each baseline-relative —
- * relations and trajectory, never a raw score in isolation; a clouded month
- * always carries the drivers and the trainable path (worse never bare), and
- * her own covariates are named when a dip lines up with them. Series are
- * never fused into a single number (composite rule).
- */
-function ClarityTrendCard({
-  trend,
-  escalation,
-  onShareGpSummary,
-}: {
-  trend: Extract<ClarityTrendViewModel, { status: 'ready' }>;
-  escalation?: ClarityEscalation | null;
-  onShareGpSummary?: () => void;
-}) {
-  return (
-    <Card style={styles.clarityCard}>
-      <Text style={styles.clarityLabel}>Clarity</Text>
-      <Text style={styles.clarityMeta}>Self-reported and measured tracking — against your own usual range.</Text>
-      {trend.series.map((series) => (
-        <View key={series.id} style={styles.claritySeries}>
-          <Text style={styles.claritySeriesLabel}>{series.label}</Text>
-          {series.trend.status === 'ready' ? (
-            <Text style={styles.clarityHeadline}>{series.trend.headline}</Text>
-          ) : series.trend.status === 'building' ? (
-            <Text style={styles.clarityHeadline}>{series.trend.body}</Text>
-          ) : null}
-          {series.trend.status !== 'no_data'
-            ? series.trend.entries.map((entry) => (
-                <View key={entry.atIso} style={styles.clarityEntryRow}>
-                  <Text style={styles.clarityEntryDate}>{entry.dateLabel}</Text>
-                  <Text style={styles.clarityEntryRelation}>{entry.relationLabel}</Text>
-                </View>
-              ))
-            : null}
-          {series.trend.status === 'ready' && series.trend.supportCopy ? (
-            <Text style={styles.claritySupport}>{series.trend.supportCopy}</Text>
-          ) : null}
-        </View>
-      ))}
-      {trend.covariateContext ? <Text style={styles.claritySupport}>{trend.covariateContext}</Text> : null}
-      {escalation?.triggered && escalation.copy ? (
-        // The ONLY escalation path (CLARITY_INSTRUMENTS_TDD §6.2): calm, one
-        // suggestion, one exportable summary — never alarm.
-        <View style={styles.clarityEscalation}>
-          <Text style={styles.clarityHeadline}>{escalation.copy}</Text>
-          {onShareGpSummary ? (
-            <SecondaryButton title="Share the summary" onPress={onShareGpSummary} />
-          ) : null}
-        </View>
-      ) : null}
-      <Text style={styles.clarityNote}>{trend.fluctuationNote}</Text>
-    </Card>
   );
 }
 
@@ -299,47 +195,20 @@ function ProgressEmptyStep({
 
 function MovementProfileV2ProgressContent({
   viewModel,
-  unavailable,
   onStartCheckUp,
   onContinue,
-  onViewProfile,
   onBeginExtraCheckUp,
-  onStartRetest,
-  activeBlock,
-  reports,
-  completions,
-  today,
 }: {
   viewModel: MovementProfileV2ProgressViewModel | null;
-  unavailable: boolean;
   onStartCheckUp: () => void;
   onContinue: () => void;
-  onViewProfile?: (sourceCheckUpId: string) => void;
   onBeginExtraCheckUp: () => void;
-  onStartRetest: () => void;
-  activeBlock?: MovementBlock | null;
-  reports?: readonly MovementBlockReport[] | null;
-  completions?: readonly TrainingSessionCompletion[] | null;
-  today: string;
 }) {
-  if (!viewModel || unavailable) {
-    const recoveryViewModel = viewModel && viewModel.status !== 'ready' ? viewModel : null;
-    const primary = recoveryViewModel?.actions[0];
+  if (!viewModel) {
     return (
       <MovementProfileV2RecoveryCard
-        title={recoveryViewModel?.recovery.title ?? 'Strength Profile needs attention'}
-        body={
-          recoveryViewModel?.recovery.body ??
-          `Your saved Strength Profile data is still on this phone, but ${BRAND.appName} cannot safely show it here yet.`
-        }
-        actionLabel={primary?.label}
-        onPress={
-          primary?.id === 'start_movement_checkup'
-            ? onStartCheckUp
-            : primary
-              ? onContinue
-              : undefined
-        }
+        title="Strength Profile needs attention"
+        body={`Your saved Strength Profile data is still on this phone, but ${BRAND.appName} cannot safely show it here yet.`}
       />
     );
   }
@@ -365,22 +234,12 @@ function MovementProfileV2ProgressContent({
     );
   }
 
-  const nextCheckUp = buildProgressNextCheckUpCard({
-    hasReadyProfile: true,
-    activeBlock,
-    reports,
-    completions,
-    today,
-  });
   return (
     <>
-      <MovementProfileCard viewModel={viewModel} onViewProfile={onViewProfile} />
+      <MovementProfileCard viewModel={viewModel} />
       {viewModel.change ? <MovementProfileV2ChangeCard change={viewModel.change} /> : null}
-      {nextCheckUp ? (
-        <MovementProfileV2NextCheckUpCard card={nextCheckUp} onStartRetest={onStartRetest} />
-      ) : null}
       {viewModel.officialHistory.length >= 2 ? (
-        <MovementProfileV2HistoryCard history={viewModel.officialHistory} onViewProfile={onViewProfile} />
+        <MovementProfileV2HistoryCard history={viewModel.officialHistory} />
       ) : null}
       <MovementProfileV2ExtraCheckUpCard onPress={onBeginExtraCheckUp} />
     </>
@@ -423,14 +282,13 @@ function MovementProfileV2RecoveryCard({
 }
 
 // One "Movement Profile" card: the botanical banner names the focus, and the body
-// carries the date, the three domain readings, and the read-only profile link.
-// This merges the former hero + profile cards, which duplicated the date and focus.
+// carries the date and the three domain readings. The read-only profile link
+// retired with the results flow (founder-directed deletion 2026-07-08) — this
+// card is now the full extent of a saved check-up's presentation.
 function MovementProfileCard({
   viewModel,
-  onViewProfile,
 }: {
   viewModel: Extract<MovementProfileV2ProgressViewModel, { status: 'ready' }>;
-  onViewProfile?: (sourceCheckUpId: string) => void;
 }) {
   const { hero } = viewModel;
   return (
@@ -455,12 +313,6 @@ function MovementProfileCard({
             <MovementProfileV2ProgressRow key={card.domain} card={card} showDivider={index > 0} />
           ))}
         </View>
-        <ProgressActionRow
-          title="See full results"
-          body="Your complete check-up breakdown."
-          onPress={() => onViewProfile?.(hero.profileId)}
-          accessibilityLabel={`See full results. Your complete breakdown from ${hero.dateLabel}.`}
-        />
       </View>
     </View>
   );
@@ -542,42 +394,14 @@ function MovementProfileV2ProgressRow({
   );
 }
 
-function MovementProfileV2NextCheckUpCard({
-  card,
-  onStartRetest,
-}: {
-  card: ProgressNextCheckUpCardCopy;
-  onStartRetest: () => void;
-}) {
-  return (
-    <Card style={styles.progressCard}>
-      <View style={styles.nextCheckUpRow}>
-        <IconBadge domain="calendar" size={36} iconSize={22} />
-        <View style={styles.nextCheckUpText}>
-          <Text style={styles.nextCheckUpLabel}>Next check-up</Text>
-          <Text style={styles.nextCheckUpValue} numberOfLines={2}>{card.lead}</Text>
-        </View>
-      </View>
-      {card.actionLabel ? (
-        <ProgressActionRow
-          title={card.actionLabel}
-          body="Opens camera setup for your Movement Check-Up."
-          onPress={onStartRetest}
-          accessibilityLabel={`${card.actionLabel}. ${card.lead} ${card.body}`}
-        />
-      ) : null}
-    </Card>
-  );
-}
-
 function MovementProfileV2ExtraCheckUpCard({ onPress }: { onPress: () => void }) {
   return (
     <Card style={styles.progressCard}>
       <RecordRow
         title="Extra check-up"
-        meta="Try a quick check-in or a full optional check-up. This won't change your plan."
+        meta="Repeat your movement check whenever you like."
         onPress={onPress}
-        accessibilityLabel="Extra check-up. Try a quick check-in or a full optional check-up. This will not change your plan."
+        accessibilityLabel="Extra check-up. Repeat your movement check whenever you like."
         showDivider={false}
       />
     </Card>
@@ -589,10 +413,8 @@ function MovementProfileV2ExtraCheckUpCard({ onPress }: { onPress: () => void })
 // ("Strength / Power to Balance") and not what this tab is for.
 function MovementProfileV2HistoryCard({
   history,
-  onViewProfile,
 }: {
   history: Extract<MovementProfileV2ProgressViewModel, { status: 'ready' }>['officialHistory'];
-  onViewProfile?: (sourceCheckUpId: string) => void;
 }) {
   return (
     <Card style={styles.progressCard}>
@@ -605,7 +427,6 @@ function MovementProfileV2HistoryCard({
             entry={entry}
             latest={index === 0}
             showDivider={index > 0}
-            onPress={() => onViewProfile?.(entry.id)}
           />
         ))}
       </View>
@@ -613,23 +434,21 @@ function MovementProfileV2HistoryCard({
   );
 }
 
+// Plain rows: the read-only saved-profile view retired with the results flow,
+// so a history entry is informational, never a navigation affordance.
 function MovementProfileV2HistoryRow({
   entry,
   latest,
   showDivider,
-  onPress,
 }: {
   entry: Extract<MovementProfileV2ProgressViewModel, { status: 'ready' }>['officialHistory'][number];
   latest: boolean;
   showDivider: boolean;
-  onPress: () => void;
 }) {
   return (
-    <Pressable
-      style={({ pressed }) => [styles.historyRow, showDivider && styles.rowDivider, pressed && styles.pressed]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${entry.dateLabel}. ${entry.sourceLabel}. ${entry.focusTitle}. Opens saved read-only Movement Profile.`}
+    <View
+      style={[styles.historyRow, showDivider && styles.rowDivider]}
+      accessibilityLabel={`${entry.dateLabel}. ${entry.sourceLabel}. ${entry.focusTitle}.`}
     >
       <View style={styles.historyRowText}>
         <View style={styles.historyTitleRow}>
@@ -644,8 +463,7 @@ function MovementProfileV2HistoryRow({
           {entry.sourceLabel} · {entry.focusTitle}
         </Text>
       </View>
-      <Text style={styles.chevron}>›</Text>
-    </Pressable>
+    </View>
   );
 }
 
@@ -682,29 +500,10 @@ function ProgressActionRow({
 }
 
 interface ProgressScreenProps {
-  activeBlock?: MovementBlock | null;
-  blocks: readonly MovementBlock[];
-  reports: readonly MovementBlockReport[];
-  completions: readonly TrainingSessionCompletion[];
-  ladderProgressById?: Record<string, LadderProgress>;
-  today: string;
   onBeginFirstCheckUp: () => void;
   onBeginAdditionalCheckUp: () => void;
-  onStartRetest: () => void;
-  progressDataAuthority?: ProgressDataAuthority;
-  movementProfileV2Progress?: MovementProfileV2ProgressViewModel | null;
-  /** Flag-gated Clarity trend (REPOSITION_TDD §5.4); null while the clarity
-   * dimension is off scoring surfaces. */
-  clarityTrend?: ClarityTrendViewModel | null;
-  /** Ghost curve (REPOSITION_TDD §2.4); null until ≥4 monthly readings exist. */
-  ghostCurve?: GhostCurveViewModel | null;
-  /** The only escalation path (flag-gated with the Clarity trend). */
-  clarityEscalation?: ClarityEscalation | null;
-  onShareClarityGpSummary?: () => void;
   onStartMovementProfileV2CheckUp?: () => void;
-  onViewMovementProfileV2Profile?: (sourceCheckUpId: string) => void;
-  onViewMovementProfileV2Report?: (reportId: string) => void;
-  onViewCurrentPlan?: () => void;
+  movementProfileV2Progress?: MovementProfileV2ProgressViewModel | null;
   onOpenSettings: () => void;
 }
 
@@ -881,10 +680,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   title: { ...type.pageTitle, flexShrink: 1 },
-  subtitle: { ...type.pageSubtitle, maxWidth: 360 },
-  historyBackButton: {
-    marginBottom: 0,
-  },
   headerIconButton: {
     width: 44,
     height: 44,
@@ -1168,9 +963,6 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     backgroundColor: colors.bgSurface,
   },
-  profileStatusPillMuted: {
-    backgroundColor: colors.bgElevated,
-  },
   profileStatusText: {
     color: colors.sageDeep,
     fontFamily: fonts.sansMedium,
@@ -1178,9 +970,6 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     letterSpacing: 0,
     textAlign: 'center',
-  },
-  profileStatusTextMuted: {
-    color: colors.textTertiary,
   },
   profileRowTitle: {
     color: colors.textPrimary,
@@ -1243,54 +1032,6 @@ const styles = StyleSheet.create({
   changeRows: {
     marginTop: 14,
   },
-  clarityCard: {
-    gap: spacing.sm,
-    paddingHorizontal: 24,
-    paddingVertical: 24,
-  },
-  clarityLabel: {
-    ...type.cardTitle,
-  },
-  clarityMeta: {
-    ...type.caption,
-    color: colors.textSecondary,
-  },
-  claritySeries: {
-    gap: spacing.xs,
-    paddingTop: spacing.sm,
-  },
-  claritySeriesLabel: {
-    ...type.cardRowTitle,
-  },
-  clarityHeadline: {
-    ...type.cardBody,
-    color: colors.textPrimary,
-  },
-  clarityEntryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  clarityEntryDate: {
-    ...type.caption,
-    color: colors.textSecondary,
-  },
-  clarityEntryRelation: {
-    ...type.caption,
-    color: colors.textPrimary,
-  },
-  claritySupport: {
-    ...type.caption,
-    color: colors.textSecondary,
-  },
-  clarityEscalation: {
-    gap: spacing.sm,
-    paddingTop: spacing.sm,
-  },
-  clarityNote: {
-    ...type.caption,
-    color: colors.textTertiary,
-  },
   changeRowBlock: {
     paddingVertical: spacing.md,
   },
@@ -1343,148 +1084,9 @@ const styles = StyleSheet.create({
   changePillTextUp: { color: colors.positive },
   changePillTextDown: { color: colors.caution },
   changePillTextSteady: { color: colors.textSecondary },
-  nextCheckUpRow: {
-    minHeight: 60,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginTop: spacing.md,
-  },
-  nextCheckUpText: {
-    flex: 1,
-    minWidth: 0,
-  },
-  nextCheckUpLabel: {
-    ...type.cardCaption,
-    color: colors.textSecondary,
-  },
-  nextCheckUpValue: {
-    color: colors.textPrimary,
-    fontFamily: fonts.sansMedium,
-    fontSize: 16,
-    lineHeight: 22,
-    letterSpacing: 0,
-    marginTop: 2,
-  },
-  inlineStatusPill: {
-    maxWidth: 118,
-    minHeight: 34,
-    flexShrink: 0,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-    borderRadius: 17,
-    backgroundColor: colors.bgElevated,
-  },
-  inlineStatusText: {
-    color: colors.sageDeep,
-    fontFamily: fonts.sansMedium,
-    fontSize: 13,
-    lineHeight: 18,
-    letterSpacing: 0,
-    textAlign: 'center',
-  },
-  inlineStatusPillCompact: {
-    maxWidth: 88,
-    minHeight: 28,
-    paddingHorizontal: spacing.sm,
-    borderRadius: 14,
-  },
   rowDivider: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.divider,
-  },
-  levelRows: {
-    marginTop: 14,
-  },
-  levelRow: {
-    minHeight: 70,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.md,
-  },
-  levelRowText: {
-    flex: 1,
-    minWidth: 0,
-  },
-  levelRowTitle: {
-    color: colors.textPrimary,
-    fontFamily: fonts.sansMedium,
-    fontSize: 15,
-    lineHeight: 20,
-    letterSpacing: 0,
-  },
-  levelRowMeta: {
-    ...type.cardCaption,
-    marginTop: 3,
-  },
-  recordRows: {
-    marginTop: 14,
-  },
-  recordRowsAfterLead: {
-    marginTop: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.divider,
-  },
-  nextCheckUpPanel: {
-    minHeight: 96,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginTop: spacing.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderRadius: radius.input,
-    backgroundColor: colors.bgElevated,
-  },
-  nextCheckUpCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  nextCheckUpTitle: {
-    color: colors.textPrimary,
-    fontFamily: fonts.sansMedium,
-    fontSize: 18,
-    lineHeight: 24,
-    letterSpacing: 0,
-  },
-  nextCheckUpBody: {
-    marginTop: 4,
-    color: colors.textSecondary,
-    fontFamily: fonts.sansRegular,
-    fontSize: 14,
-    lineHeight: 20,
-    letterSpacing: 0,
-  },
-  planSummaryPanel: {
-    minHeight: 86,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginTop: spacing.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderRadius: radius.input,
-    backgroundColor: colors.bgElevated,
-  },
-  planSummaryCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  planSummaryTitle: {
-    color: colors.textPrimary,
-    fontFamily: fonts.sansMedium,
-    fontSize: 15,
-    lineHeight: 20,
-    letterSpacing: 0,
-  },
-  planSummaryBody: {
-    marginTop: 4,
-    color: colors.textSecondary,
-    fontFamily: fonts.sansRegular,
-    fontSize: 14,
-    lineHeight: 20,
-    letterSpacing: 0,
   },
   recordRow: {
     minHeight: 70,
@@ -1559,54 +1161,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansMedium,
     fontSize: 12,
     lineHeight: 16,
-    letterSpacing: 0,
-  },
-  moreHistory: {
-    ...type.caption,
-    color: colors.textSecondary,
-    marginTop: spacing.md,
-  },
-  retestCard: {
-    minHeight: 92,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  retestCardInteractive: {
-    padding: 0,
-    overflow: 'hidden',
-  },
-  retestPressable: {
-    minHeight: 92,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-  },
-  retestIconWell: {
-    width: 46,
-    height: 46,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.bgElevated,
-  },
-  retestText: { flex: 1, minWidth: 0 },
-  retestTitle: { ...type.cardTitle },
-  retestBody: { ...type.cardBody, color: colors.sageDeep, marginTop: spacing.xs },
-  retestCtaPill: {
-    minHeight: 34,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-    borderRadius: 17,
-    backgroundColor: colors.accent,
-  },
-  retestCtaText: {
-    color: colors.onAccent,
-    fontFamily: fonts.sansMedium,
-    fontSize: 13,
-    lineHeight: 18,
     letterSpacing: 0,
   },
   chevron: { ...type.h2, color: colors.textSecondary },
