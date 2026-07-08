@@ -1,3 +1,7 @@
+// Old-shell view models (progressViewModel, progressDataAuthority,
+// assessmentResultState, the official-retest transition, progressionEvidence)
+// retired 2026-07-08 with the old-engine cleanup — no live importers since
+// the promotion + the backend sync trim.
 export * from './assessments';
 export * from './assessmentEligibility';
 export * from './blockSchedule';
@@ -10,14 +14,9 @@ export * from './equipmentPositioning';
 export * from './exploreViewModel';
 export * from './movementProfileV2Block';
 export * from './movementProfileV2BlockReport';
-export * from './movementProfileV2OfficialRetestTransition';
 export * from './movementProfileV2RetestComparison';
-export * from './progressDataAuthority';
-export * from './progressViewModel';
 export * from './movementProfileV2ProgressViewModel';
-export * from './progressionEvidence';
 export * from './sessionWorkEvidence';
 export * from './types';
 export * from './assessmentEvidence';
 export * from './mainPlanEvents';
-export * from './assessmentResultState';

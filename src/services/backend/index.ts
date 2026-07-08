@@ -1,15 +1,15 @@
+// Old-engine sync services (blocks, block reports, training state, session
+// completions, micro-checks) retired 2026-07-08 with the old-engine cleanup:
+// the promoted programme engine's state is LOCAL-ONLY by ruling, so the app
+// no longer produces those record kinds. What remains is the living backup
+// seam — auth, profile + check-up sync, restore (profile + history), the
+// full-server data export, and local account-data hygiene.
 export * from './AuthProvider';
 export * from './accountDataService';
 export * from './authService';
-export * from './blockReportSyncService';
-export * from './blockSyncService';
 export * from './checkupSyncService';
 export * from './dataExportService';
-export * from './launchSyncGuards';
-export * from './microCheckSyncService';
 export * from './profileService';
 export * from './profileSyncService';
 export * from './restoreService';
-export * from './sessionSyncService';
-export * from './trainingStateSyncService';
 export * from './types';

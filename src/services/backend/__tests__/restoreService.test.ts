@@ -1,5 +1,3 @@
-import { BALANCE_LADDER_ID, CHAIR_STAND_ID, SHOULDER_FLEXION_ID } from '../../../movements';
-import { blockProgress, defaultAdherenceStoreState, type MovementBlock, type MovementBlockReport, type MovementSafetyProfile } from '../../../adherence';
 import {
   MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
   createActiveShoulderReachV2Setup,
@@ -8,6 +6,7 @@ import {
   createOneLegBalanceV2Setup,
   type CheckUp,
 } from '../../../checkup';
+import { BALANCE_LADDER_ID, CHAIR_STAND_ID, SHOULDER_FLEXION_ID } from '../../../movements';
 import {
   ACTIVE_SHOULDER_REACH_V2_ID,
   type ActiveShoulderReachV2Result,
@@ -17,27 +16,23 @@ import { ONE_LEG_BALANCE_V2_ID, type OneLegBalanceV2Result } from '../../../move
 import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../../../history';
 import { defaultPreferences } from '../../../profile';
 import { createMovementProfileV2Assessment, createMovementProfileV2Snapshot } from '../../../reference/movementProfileV2';
-import { createCurrentVersionedScoreSnapshot, type VersionedCheckUpScoreSnapshot } from '../../../scoring';
-import { LOADED_STS_ID, STS_POWER_ID } from '../../../exercises';
-import {
-  TRAINING_SCHEMA_VERSION,
-  defaultTrainingState,
-  type MicroCheckResult,
-  type TrainingState,
-} from '../../../training';
-import {
-  classifyMainPlanCompletion,
-} from '../../../haleFlow';
+import { createCurrentVersionedScoreSnapshot } from '../../../scoring';
 
 import {
   isLocalStateEmptyForRestore,
   mapRemoteHaleSnapshotToLocal,
-  mapRemoteMicroChecksToLocal,
-  mapRemoteTrainingStateToLocal,
   restoreRemoteStateIfLocalEmpty,
   type LocalHaleStateForRestore,
   type RemoteHaleSnapshot,
 } from '../restoreService';
+
+// Trimmed with the old-engine cleanup (2026-07-08, founder direction): the
+// restore path carries the local profile and the check-up history only. The
+// old engine's blocks, training state, session completions, micro-check
+// results, and block reports no longer restore — the programme engine's
+// state is LOCAL-ONLY by ruling, and testers re-onboard (recorded: no live
+// migration). The V2 snapshot/assessment fence tests below are unchanged in
+// substance from the pre-trim suite.
 
 jest.mock('../../../lib/supabase', () => ({
   supabase: {
@@ -108,83 +103,10 @@ function storedCheckUp(): StoredCheckUp {
   };
 }
 
-function movementBlock(): MovementBlock {
-  return {
-    id: 'movement-block-1',
-    userId: 'local-device-user',
-    status: 'active',
-    startDate: '2026-06-18T08:00:00.000Z',
-    endDate: '2026-07-16T08:00:00.000Z',
-    retestDate: '2026-07-16T08:00:00.000Z',
-    focusDomain: 'strength_power',
-    secondaryDomains: ['balance', 'mobility'],
-    sessionsPerWeekTarget: 3,
-    totalPlannedSessions: 12,
-    completedSessions: 1,
-    microChecksCompleted: 0,
-    sourceCheckUpId: startedAt,
-    createdAt: '2026-06-18T08:00:00.000Z',
-    updatedAt: '2026-06-18T08:00:00.000Z',
-  };
-}
-
-function trainingState(): TrainingState {
-  return {
-    ...defaultTrainingState(),
-    block: {
-      createdAt: '2026-06-18T08:00:00.000Z',
-      weeks: 4,
-      sessionsPerWeek: 3,
-      weakestDomain: 'strength',
-      sessions: [
-        {
-          index: 0,
-          week: 1,
-          dayOfWeek: 1,
-          slots: [{ slot: 'lower-push', family: 'sit-to-stand' }],
-        },
-      ],
-    },
-    progress: {
-      completedSessions: 1,
-      lastSessionAt: '2026-06-19T08:30:00.000Z',
-      retestDueAt: null,
-    },
-  };
-}
-
-function microCheck(): MicroCheckResult {
-  return {
-    type: 'chair-power',
-    startedAt: '2026-06-24T08:00:00.000Z',
-    value: 0.31,
-    reps: 5,
-    measured: true,
-  };
-}
-
-function blockReport(): MovementBlockReport {
-  return {
-    id: 'report-movement-block-1',
-    userId: 'local-device-user',
-    blockId: 'movement-block-1',
-    baselineAssessmentId: `assessment-baseline-${startedAt.replace(/[:.]/g, '-')}`,
-    createdAt: '2026-07-16T09:00:00.000Z',
-    summary: 'You completed the block steadily.',
-    sessionsCompleted: 12,
-    totalPlannedSessions: 12,
-    microChecksCompleted: 3,
-    recommendedNextFocusDomain: 'balance',
-  };
-}
-
 function emptyLocal(): LocalHaleStateForRestore {
   return {
     preferences: defaultPreferences(),
     history: [],
-    training: defaultTrainingState(),
-    microChecks: [],
-    adherence: defaultAdherenceStoreState(),
   };
 }
 
@@ -192,35 +114,9 @@ function backendJson(value: unknown): never {
   return JSON.parse(JSON.stringify(value)) as never;
 }
 
-function locallyConfirmedSafetyProfile(): MovementSafetyProfile {
-  return {
-    id: 'safety-local',
-    userId: 'local-device-user',
-    availableEquipment: ['chair', 'wall'],
-    equipmentStatus: 'confirmed',
-    equipmentRevision: 1,
-    equipmentUpdatedAt: '2026-06-21T08:00:00.000Z',
-    createdAt: '2026-06-21T08:00:00.000Z',
-    updatedAt: '2026-06-21T08:00:00.000Z',
-  };
-}
-
 function remoteSnapshot(): RemoteHaleSnapshot {
-  const training = trainingState();
   const localCheckUp = checkUp();
   const scored = createCurrentVersionedScoreSnapshot(localCheckUp);
-  const completion = {
-    id: 'session-1',
-    userId: 'local-device-user',
-    blockId: 'movement-block-1',
-    plannedDate: 'session-1',
-    completedAt: '2026-06-19T08:30:00.000Z',
-    sessionType: 'standard' as const,
-    focusDomain: 'strength_power' as const,
-    durationMinutes: 18,
-    perceivedEffort: 3 as const,
-    painReported: false,
-  };
 
   return {
     profile: {
@@ -263,12 +159,6 @@ function remoteSnapshot(): RemoteHaleSnapshot {
         derived_scores_json: backendJson({
           schemaVersion: 1,
           scoreSnapshot: scored.snapshot,
-          assessment: {
-            type: 'baseline',
-            status: 'completed',
-            completedAt: '2026-06-17T12:08:00.000Z',
-            isOfficialForProgress: true,
-          },
         }),
         raw_checkup_json: backendJson({
           schemaVersion: HISTORY_SCHEMA_VERSION,
@@ -278,84 +168,6 @@ function remoteSnapshot(): RemoteHaleSnapshot {
         created_locally_at: startedAt,
         completed_at: '2026-06-17T12:08:00.000Z',
         created_at: '2026-06-17T12:08:30.000Z',
-      },
-    ],
-    movementBlocks: [
-      {
-        id: 'remote-block-1',
-        local_block_id: 'movement-block-1',
-        block_json: backendJson({
-          schemaVersion: 1,
-          movementBlock: movementBlock(),
-          legacyTrainingBlock: training.block,
-          legacyTrainingProgress: training.progress,
-          equipment: training.equipment,
-        }),
-        created_at: '2026-06-18T08:00:00.000Z',
-        updated_at: '2026-06-18T08:00:00.000Z',
-      },
-    ],
-    trainingState: {
-      user_id: userId,
-      state_json: backendJson({
-        snapshotSchemaVersion: 1,
-        trainingSchemaVersion: TRAINING_SCHEMA_VERSION,
-        capturedAt: '2026-06-19T08:35:00.000Z',
-        activeLegacyTrainingBlock: training.block,
-        progress: training.progress,
-        progression: training.progression,
-        equipment: training.equipment,
-        planPreferences: training.planPreferences,
-        ladderProgressById: training.ladderProgressById,
-        appliedProgressionEventIds: [
-          'progression:session-1:movement-block-1:strength-A:sit-to-stand',
-        ],
-        generatedSessionContext: {
-          totalPersisted: 0,
-          recentSummaries: [],
-        },
-        lastPostSessionFeedback: null,
-      }),
-      updated_at: '2026-06-19T08:35:00.000Z',
-    },
-    trainingSessionCompletions: [
-      {
-        id: 'remote-session-1',
-        local_session_id: 'session-1',
-        summary_json: {
-          schemaVersion: 1,
-          completion,
-        },
-        raw_result_json: {
-          schemaVersion: 1,
-          startedAt: '2026-06-19T08:10:00.000Z',
-        },
-        completed_at: completion.completedAt,
-        created_at: completion.completedAt,
-      },
-    ],
-    microChecks: [
-      {
-        id: 'remote-microcheck-1',
-        local_micro_check_id: 'microcheck-2026-06-24T08-00-00-000Z',
-        result_json: backendJson({
-          schemaVersion: 1,
-          result: microCheck(),
-        }),
-        completed_at: microCheck().startedAt,
-        created_at: microCheck().startedAt,
-      },
-    ],
-    movementBlockReports: [
-      {
-        id: 'remote-report-1',
-        local_report_id: 'report-movement-block-1',
-        report_json: backendJson({
-          schemaVersion: 1,
-          localReportId: 'report-movement-block-1',
-          report: blockReport(),
-        }),
-        created_at: blockReport().createdAt,
       },
     ],
     fetchErrors: {},
@@ -368,826 +180,7 @@ function remoteSnapshotWithCheckups(
   return {
     profile: null,
     movementCheckups,
-    movementBlocks: [],
-    trainingState: null,
-    trainingSessionCompletions: [],
-    microChecks: [],
-    movementBlockReports: [],
     fetchErrors: {},
-  };
-}
-
-describe('remote restore service', () => {
-  it('detects empty local state conservatively', () => {
-    expect(isLocalStateEmptyForRestore(emptyLocal())).toBe(true);
-
-    expect(
-      isLocalStateEmptyForRestore({
-        ...emptyLocal(),
-        history: [storedCheckUp()],
-      })
-    ).toBe(false);
-
-    expect(
-      isLocalStateEmptyForRestore({
-        ...emptyLocal(),
-        preferences: {
-          ...defaultPreferences(),
-          profile: { ...defaultPreferences().profile, name: 'Asha' },
-        },
-      })
-    ).toBe(false);
-  });
-
-  it('maps sanitized remote rows back into local store shapes', () => {
-    const mapped = mapRemoteHaleSnapshotToLocal(remoteSnapshot(), emptyLocal());
-
-    expect(mapped.state.preferences.profile.name).toBe('Asha Rao');
-    expect(mapped.state.preferences.onboarding.currentStep).toBe('complete');
-    expect(mapped.state.history).toHaveLength(1);
-    expect(mapped.state.history[0].checkUp.startedAt).toBe(startedAt);
-    expect(mapped.state.history[0].checkupType).toBe('baseline');
-    expect(mapped.state.adherence.assessments).toHaveLength(1);
-    expect(mapped.state.adherence.blocks[0].id).toBe('movement-block-1');
-    expect(mapped.state.training.block?.weakestDomain).toBe('strength');
-    expect(mapped.state.training.appliedProgressionEventIds).toEqual([
-      'progression:session-1:movement-block-1:strength-A:sit-to-stand',
-    ]);
-    expect(mapped.state.adherence.completions[0].id).toBe('session-1');
-    expect(blockProgress(mapped.state.adherence.blocks[0], mapped.state.adherence.completions).completedSessions).toBe(0);
-    expect(mapped.state.microChecks[0]).toMatchObject({
-      ...microCheck(),
-      measurementContext: {
-        protocol: { protocolId: 'micro_chair_power_5_reps_v1', protocolVersion: 1 },
-        side: { role: 'not_applicable' },
-      },
-    });
-    expect(mapped.state.adherence.reports[0].id).toBe('report-movement-block-1');
-    expect(mapped.gaps).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining('raw_result_json'),
-        expect.stringContaining('compact training_state snapshot'),
-      ])
-    );
-  });
-
-  it('dedupes restored micro-check rows by stable slot identity', () => {
-    const slotId = 'micro-check:movement-block-1:week-2:balanced_schedule_rotation:balance:single-leg-balance';
-    const restored = mapRemoteMicroChecksToLocal([
-      {
-        local_micro_check_id: 'microcheck-slot-old',
-        result_json: backendJson({
-          schemaVersion: 1,
-          result: {
-            ...microCheck(),
-            type: 'single-leg-balance',
-            slotId,
-            blockId: 'movement-block-1',
-            policyVersion: 1,
-            policyFingerprint: 'policy-test',
-            targetSource: 'balanced_schedule_rotation',
-            targetDomain: 'balance',
-            scheduleWeekIndex: 1,
-            scheduleWeekNumber: 2,
-            value: 18,
-            reps: 0,
-          },
-        }),
-        completed_at: '2026-06-24T08:00:00.000Z',
-      },
-      {
-        local_micro_check_id: 'microcheck-slot-new',
-        result_json: backendJson({
-          schemaVersion: 1,
-          result: {
-            ...microCheck(),
-            type: 'single-leg-balance',
-            startedAt: '2026-06-24T08:05:00.000Z',
-            slotId,
-            blockId: 'movement-block-1',
-            policyVersion: 1,
-            policyFingerprint: 'policy-test',
-            targetSource: 'balanced_schedule_rotation',
-            targetDomain: 'balance',
-            scheduleWeekIndex: 1,
-            scheduleWeekNumber: 2,
-            value: 20,
-            reps: 0,
-          },
-        }),
-        completed_at: '2026-06-24T08:05:00.000Z',
-      },
-    ]);
-
-    expect(restored).toHaveLength(1);
-    expect(restored[0]).toMatchObject({
-      slotId,
-      targetDomain: 'balance',
-      value: 18,
-    });
-  });
-
-  it('restores applied progression event ids without replaying session completion rows', () => {
-    const snapshot = remoteSnapshot();
-    const beforeLevel = snapshot.trainingState?.state_json &&
-      typeof snapshot.trainingState.state_json === 'object' &&
-      'ladderProgressById' in snapshot.trainingState.state_json
-      ? JSON.stringify(snapshot.trainingState.state_json.ladderProgressById)
-      : '';
-
-    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
-
-    expect(mapped.state.training.appliedProgressionEventIds).toEqual([
-      'progression:session-1:movement-block-1:strength-A:sit-to-stand',
-    ]);
-    expect(JSON.stringify(mapped.state.training.ladderProgressById)).toBe(beforeLevel);
-    expect(mapped.state.adherence.completions).toHaveLength(1);
-  });
-
-  it('preserves restored optional ladder progress while current planning uses the beta cap', () => {
-    const snapshot = remoteSnapshot();
-    snapshot.trainingState!.state_json = backendJson({
-      ...(snapshot.trainingState!.state_json as Record<string, unknown>),
-      ladderProgressById: {
-        'sit-to-stand': {
-          ladderId: 'sit-to-stand',
-          currentLevelId: LOADED_STS_ID,
-          completedSessionsAtLevel: 1,
-          failedSessionsAtLevel: 0,
-          recentCompletionRates: [0.95],
-          recentRpe: [2],
-          recentPain: [false],
-          updatedAt: '2026-06-18T08:00:00.000Z',
-        },
-      },
-    });
-
-    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
-    // Health data is local-only (2026-07-06 ruling): restore never hydrates a
-    // safety profile. (The old engine's post-restore plan generation was
-    // decommissioned with promotion commit 2; the stored progress mapping
-    // below remains the live restore contract.)
-    expect(mapped.state.preferences.profile.safetyProfile).toBeNull();
-    expect(mapped.state.training.ladderProgressById['sit-to-stand'].currentLevelId).toBe(LOADED_STS_ID);
-  });
-
-  it('ignores a legacy remote safety_json row entirely and degrades planning gracefully', () => {
-    // 2026-07-06 ruling: health data is local-only. A pre-ruling remote row
-    // that still carries safety_json restores WITHOUT it — the safety profile
-    // stays null and planning fails closed into the existing local
-    // equipment-confirmation flow rather than consuming remote health data.
-    const snapshot = remoteSnapshot();
-    (snapshot.profile as unknown as Record<string, unknown>).safety_json = backendJson({
-      schemaVersion: 4,
-      safetyProfile: {
-        id: 'safety-remote',
-        userId: 'local-device-user',
-        availableEquipment: ['chair', 'wall'],
-        equipmentStatus: 'confirmed',
-        equipmentRevision: 4,
-        equipmentUpdatedAt: '2026-06-19T08:00:00.000Z',
-        createdAt: '2026-06-18T08:00:00.000Z',
-        updatedAt: '2026-06-19T08:00:00.000Z',
-        hasCurrentPain: true,
-        painNotes: 'left knee',
-      },
-    });
-
-    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
-    expect(mapped.state.preferences.profile.safetyProfile).toBeNull();
-    expect(JSON.stringify(mapped.state.preferences)).not.toContain('left knee');
-  });
-
-  it('restores supporting-only and missing-focus attempts without promoting them to main-plan credit', () => {
-    const snapshot = remoteSnapshot();
-    const b = movementBlock();
-    const missingFocusCompletion = {
-      id: 'session-missing-focus',
-      userId: 'local-device-user',
-      blockId: b.id,
-      plannedDate: 'strength-A:2026-06-19',
-      completedAt: '2026-06-19T08:30:00.000Z',
-      sessionType: 'standard' as const,
-      focusDomain: 'strength_power' as const,
-      source: 'block_generated' as const,
-      templateId: 'strength-A',
-      mainPlanCredit: true,
-      durationMinutes: 12,
-    };
-    const supportingOnlyCompletion = {
-      ...missingFocusCompletion,
-      id: 'session-supporting-only',
-      plannedDate: 'strength-B:2026-06-20',
-      completedAt: '2026-06-20T08:30:00.000Z',
-      templateId: 'strength-B',
-      mainPlanCredit: false,
-      focusStimulusEvidence: {
-        planStatus: 'eligible' as const,
-        status: 'primary_focus_not_completed' as const,
-        exclusionReason: 'supporting_only' as const,
-        mainPlanCredit: false,
-        blockFocusDomain: 'strength_power' as const,
-        plannedPrimaryFocusExerciseCount: 1,
-        completedPrimaryFocusExerciseCount: 0,
-        completedSupportingExerciseCount: 1,
-        completedFallbackExerciseCount: 0,
-        completedCrossDomainExerciseCount: 0,
-        plannedPrimaryFocusExerciseIds: ['sts-standard'],
-        completedPrimaryFocusExerciseIds: [],
-        completedSupportingExerciseIds: ['balance-tandem-hold'],
-        completedFallbackExerciseIds: [],
-        completedCrossDomainExerciseIds: [],
-        fallbackFocusSlotIds: [],
-        skippedFocusSlotIds: [],
-        focusStimulusExclusionReasons: [],
-        missingMetadataExerciseIds: [],
-        malformedMetadataExerciseIds: [],
-        focusMismatchExerciseIds: [],
-      },
-    };
-    snapshot.trainingSessionCompletions = [
-      {
-        id: 'remote-session-missing-focus',
-        local_session_id: missingFocusCompletion.id,
-        summary_json: {
-          schemaVersion: 1,
-          completion: missingFocusCompletion,
-        },
-        completed_at: missingFocusCompletion.completedAt,
-        created_at: missingFocusCompletion.completedAt,
-      },
-      {
-        id: 'remote-session-supporting-only',
-        local_session_id: supportingOnlyCompletion.id,
-        summary_json: {
-          schemaVersion: 1,
-          completion: supportingOnlyCompletion,
-        },
-        completed_at: supportingOnlyCompletion.completedAt,
-        created_at: supportingOnlyCompletion.completedAt,
-      },
-    ];
-
-    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
-    const restored = mapped.state.adherence.completions;
-
-    expect(restored).toHaveLength(2);
-    expect(restored[0].mainPlanCredit).toBe(true);
-    expect(restored[0].focusStimulusEvidence).toBeUndefined();
-    expect(restored[1].mainPlanCredit).toBe(false);
-    expect(restored[1].focusStimulusEvidence?.exclusionReason).toBe('supporting_only');
-    expect(blockProgress(b, restored).completedSessions).toBe(0);
-    expect(restored.map((completion) => classifyMainPlanCompletion(b, completion).credited)).toEqual([false, false]);
-  });
-
-  it('restores exact local check-up type from JSON metadata before the coarse remote enum', () => {
-    const snapshot = remoteSnapshot();
-    const localCheckUp = checkUp();
-    const scored = createCurrentVersionedScoreSnapshot(localCheckUp);
-    snapshot.movementCheckups[0] = {
-      ...snapshot.movementCheckups[0],
-      checkup_type: 'unknown',
-      derived_scores_json: backendJson({
-        schemaVersion: 1,
-        exactCheckupType: 'baseline_retake',
-        scoreSnapshot: scored.snapshot,
-        assessment: {
-          type: 'baseline_retake',
-          status: 'completed',
-          completedAt: '2026-06-17T12:08:00.000Z',
-          isOfficialForProgress: true,
-        },
-      }),
-      raw_checkup_json: backendJson({
-        schemaVersion: HISTORY_SCHEMA_VERSION,
-        checkupType: 'baseline_retake',
-        scoreSnapshot: scored.snapshot,
-        checkUp: localCheckUp,
-      }),
-    };
-
-    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
-
-    expect(mapped.state.history[0].checkupType).toBe('baseline_retake');
-    expect(mapped.state.adherence.assessments[0].type).toBe('baseline_retake');
-  });
-
-  it('restores assessment scores from the frozen snapshot rather than rescoring divergent raw check-up data', () => {
-    const snapshot = remoteSnapshot();
-    const rawCheckUp = checkUp();
-    const frozenCheckUp = checkUp();
-    const chair = frozenCheckUp.items.find((item) => item.movementId === CHAIR_STAND_ID)!;
-    (chair.result as unknown as Record<string, unknown>).reps = 8;
-    const frozenSnapshot = createCurrentVersionedScoreSnapshot(frozenCheckUp).snapshot!;
-    const frozenStrengthMidpoint = domainMidpoint(frozenSnapshot.score, 'strength');
-    const rawStrengthMidpoint = domainMidpoint(createCurrentVersionedScoreSnapshot(rawCheckUp).score, 'strength');
-
-    snapshot.movementCheckups[0] = {
-      ...snapshot.movementCheckups[0],
-      derived_scores_json: backendJson({
-        schemaVersion: 1,
-        scoreSnapshot: frozenSnapshot,
-        assessment: {
-          type: 'baseline',
-          status: 'completed',
-          completedAt: '2026-06-17T12:08:00.000Z',
-          isOfficialForProgress: true,
-        },
-      }),
-      raw_checkup_json: backendJson({
-        schemaVersion: HISTORY_SCHEMA_VERSION,
-        scoreSnapshot: frozenSnapshot,
-        checkUp: rawCheckUp,
-      }),
-    };
-
-    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
-
-    expect(frozenStrengthMidpoint).not.toBe(rawStrengthMidpoint);
-    expect(mapped.state.history[0].scoreSnapshot?.score).toEqual(frozenSnapshot.score);
-    expect(mapped.state.adherence.assessments[0].results?.strengthPowerScore).toBe(frozenStrengthMidpoint);
-  });
-
-  it('restores exact-tie focus metadata from the frozen snapshot onto the local assessment', () => {
-    const snapshot = remoteSnapshot();
-    const localCheckUp = checkUp();
-    const tieSnapshot = exactTieSnapshotFor(localCheckUp);
-    snapshot.movementCheckups[0] = {
-      ...snapshot.movementCheckups[0],
-      checkup_type: 'official_retest',
-      derived_scores_json: backendJson({
-        schemaVersion: 1,
-        scoreSnapshot: tieSnapshot,
-        assessment: {
-          type: 'official_retest',
-          status: 'completed',
-          completedAt: '2026-06-17T12:08:00.000Z',
-          isOfficialForProgress: true,
-        },
-      }),
-      raw_checkup_json: backendJson({
-        schemaVersion: HISTORY_SCHEMA_VERSION,
-        checkupType: 'official_retest',
-        scoreSnapshot: tieSnapshot,
-        checkUp: localCheckUp,
-      }),
-    };
-
-    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
-    const assessment = mapped.state.adherence.assessments[0];
-
-    expect(mapped.state.history[0].scoreSnapshot?.focusSelection).toEqual(tieSnapshot.focusSelection);
-    expect(assessment.type).toBe('official_retest');
-    expect(assessment.results?.weakestDomain).toBe('balance');
-    expect(assessment.results?.rawMetrics?.focusSelection).toEqual(tieSnapshot.focusSelection);
-    expect(assessment.results?.rawMetrics?.focusTieBreakReason).toBe('preserve_current_focus');
-  });
-
-  it('restores source-mismatched remote snapshots as invalid instead of usable assessments', () => {
-    const snapshot = remoteSnapshot();
-    const rawCheckUp = checkUp();
-    const otherCheckUp = { ...checkUp(), startedAt: '2026-06-18T12:00:00.000Z' };
-    const otherSnapshot = createCurrentVersionedScoreSnapshot(otherCheckUp).snapshot!;
-
-    snapshot.movementCheckups[0] = {
-      ...snapshot.movementCheckups[0],
-      derived_scores_json: backendJson({
-        schemaVersion: 1,
-        scoreSnapshot: otherSnapshot,
-        assessment: {
-          type: 'baseline',
-          status: 'completed',
-          completedAt: '2026-06-17T12:08:00.000Z',
-          isOfficialForProgress: true,
-        },
-      }),
-      raw_checkup_json: backendJson({
-        schemaVersion: HISTORY_SCHEMA_VERSION,
-        scoreSnapshot: otherSnapshot,
-        checkUp: rawCheckUp,
-      }),
-    };
-
-    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
-
-    expect(mapped.state.history[0].scoreSnapshot).toBeUndefined();
-    expect(mapped.state.history[0].scoreSnapshotCompatibility).toBe('invalid_snapshot');
-    expect(mapped.state.adherence.assessments[0].status).toBe('invalid');
-    expect(mapped.state.adherence.assessments[0].results?.weakestDomain).toBeUndefined();
-  });
-
-  it('restores Movement Profile V2 snapshots as history evidence without creating legacy assessments', () => {
-    const rawCheckUp = v2CheckUp(startedAt);
-    const movementProfileV2Snapshot = movementProfileV2SnapshotFor(rawCheckUp);
-    const mapped = mapRemoteHaleSnapshotToLocal(
-      remoteSnapshotWithCheckups([
-        {
-          id: 'remote-v2-checkup',
-          local_checkup_id: startedAt,
-          checkup_type: 'baseline',
-          status: 'completed',
-          derived_scores_json: backendJson({
-            schemaVersion: 1,
-            exactCheckupType: 'baseline',
-            movementProfileV2Snapshot,
-            movementProfileV2SnapshotCompatibility: 'current',
-          }),
-          raw_checkup_json: backendJson({
-            schemaVersion: HISTORY_SCHEMA_VERSION,
-            checkupType: 'baseline',
-            movementProfileV2Snapshot,
-            checkUp: rawCheckUp,
-          }),
-          created_locally_at: startedAt,
-          completed_at: '2026-06-17T12:08:00.000Z',
-          created_at: '2026-06-17T12:08:30.000Z',
-        },
-      ]),
-      emptyLocal()
-    );
-
-    expect(mapped.state.history).toHaveLength(1);
-    expect(mapped.state.history[0].scoreSnapshot).toBeUndefined();
-    expect(mapped.state.history[0].scoreSnapshotCompatibility).toBe('unsupported_checkup_protocol');
-    expect(mapped.state.history[0].movementProfileV2Snapshot?.snapshotFingerprint).toBe(
-      movementProfileV2Snapshot.snapshotFingerprint
-    );
-    expect(mapped.state.history[0].movementProfileV2SnapshotCompatibility).toBe('current');
-    expect(mapped.state.adherence.assessments).toEqual([]);
-  });
-
-  it('restores source-bound Movement Profile V2 assessments without creating legacy assessments', () => {
-    const rawCheckUp = v2CheckUp(startedAt);
-    const movementProfileV2Snapshot = movementProfileV2SnapshotFor(rawCheckUp);
-    const movementProfileV2Assessment = movementProfileV2AssessmentFor(rawCheckUp, movementProfileV2Snapshot);
-    const mapped = mapRemoteHaleSnapshotToLocal(
-      remoteSnapshotWithCheckups([
-        {
-          id: 'remote-v2-checkup',
-          local_checkup_id: startedAt,
-          checkup_type: 'baseline',
-          status: 'completed',
-          derived_scores_json: backendJson({
-            schemaVersion: 1,
-            exactCheckupType: 'baseline',
-            movementProfileV2Snapshot,
-            movementProfileV2SnapshotCompatibility: 'current',
-            movementProfileV2Assessment,
-            movementProfileV2AssessmentCompatibility: 'current',
-          }),
-          raw_checkup_json: backendJson({
-            schemaVersion: HISTORY_SCHEMA_VERSION,
-            checkupType: 'baseline',
-            movementProfileV2Snapshot,
-            movementProfileV2Assessment,
-            checkUp: rawCheckUp,
-          }),
-          created_locally_at: startedAt,
-          completed_at: '2026-06-17T12:08:00.000Z',
-        },
-      ]),
-      emptyLocal()
-    );
-
-    expect(mapped.state.history).toHaveLength(1);
-    expect(mapped.state.history[0].movementProfileV2Snapshot?.snapshotFingerprint).toBe(
-      movementProfileV2Snapshot.snapshotFingerprint
-    );
-    expect(mapped.state.history[0].movementProfileV2Assessment?.assessmentFingerprint).toBe(
-      movementProfileV2Assessment.assessmentFingerprint
-    );
-    expect(mapped.state.history[0].movementProfileV2AssessmentCompatibility).toBe('current');
-    expect(mapped.state.adherence.assessments).toEqual([]);
-  });
-
-  it('keeps raw V2 check-ups when restored V2 snapshots are malformed or missing', () => {
-    const rawCheckUp = v2CheckUp(startedAt);
-    const malformedSnapshot = {
-      ...movementProfileV2SnapshotFor(rawCheckUp),
-      snapshotFingerprint: 'tampered',
-    };
-    const mapped = mapRemoteHaleSnapshotToLocal(
-      remoteSnapshotWithCheckups([
-        {
-          id: 'remote-v2-checkup',
-          local_checkup_id: startedAt,
-          checkup_type: 'baseline',
-          status: 'completed',
-          derived_scores_json: backendJson({
-            schemaVersion: 1,
-            exactCheckupType: 'baseline',
-            movementProfileV2Snapshot: malformedSnapshot,
-          }),
-          raw_checkup_json: backendJson({
-            schemaVersion: HISTORY_SCHEMA_VERSION,
-            checkupType: 'baseline',
-            movementProfileV2Snapshot: malformedSnapshot,
-            checkUp: rawCheckUp,
-          }),
-          created_locally_at: startedAt,
-          completed_at: '2026-06-17T12:08:00.000Z',
-        },
-      ]),
-      emptyLocal()
-    );
-
-    expect(mapped.state.history).toHaveLength(1);
-    expect(mapped.state.history[0].checkUp.items).toHaveLength(3);
-    expect(mapped.state.history[0].movementProfileV2Snapshot).toBeUndefined();
-    expect(mapped.state.history[0].movementProfileV2SnapshotCompatibility).toBe('fingerprint_invalid');
-    expect(mapped.state.adherence.assessments).toEqual([]);
-  });
-
-  it('keeps raw V2 check-ups and valid snapshots when restored V2 assessments are mismatched', () => {
-    const rawCheckUp = v2CheckUp(startedAt);
-    const movementProfileV2Snapshot = movementProfileV2SnapshotFor(rawCheckUp);
-    const otherCheckUp = v2CheckUp(startedAt, { chair: chairV2Result({ reps: 13 }) });
-    const otherSnapshot = movementProfileV2SnapshotFor(otherCheckUp);
-    const otherAssessment = movementProfileV2AssessmentFor(otherCheckUp, otherSnapshot);
-    const mapped = mapRemoteHaleSnapshotToLocal(
-      remoteSnapshotWithCheckups([
-        {
-          id: 'remote-v2-checkup',
-          local_checkup_id: startedAt,
-          checkup_type: 'baseline',
-          status: 'completed',
-          derived_scores_json: backendJson({
-            schemaVersion: 1,
-            exactCheckupType: 'baseline',
-            movementProfileV2Snapshot,
-            movementProfileV2Assessment: otherAssessment,
-          }),
-          raw_checkup_json: backendJson({
-            schemaVersion: HISTORY_SCHEMA_VERSION,
-            checkupType: 'baseline',
-            movementProfileV2Snapshot,
-            movementProfileV2Assessment: otherAssessment,
-            checkUp: rawCheckUp,
-          }),
-          created_locally_at: startedAt,
-          completed_at: '2026-06-17T12:08:00.000Z',
-        },
-      ]),
-      emptyLocal()
-    );
-
-    expect(mapped.state.history).toHaveLength(1);
-    expect(mapped.state.history[0].movementProfileV2Snapshot?.snapshotFingerprint).toBe(
-      movementProfileV2Snapshot.snapshotFingerprint
-    );
-    expect(mapped.state.history[0].movementProfileV2Assessment).toBeUndefined();
-    expect(mapped.state.history[0].movementProfileV2AssessmentCompatibility).toBe('source_mismatch');
-    expect(mapped.state.adherence.assessments).toEqual([]);
-  });
-
-  it('prefers a valid restored V2 snapshot over a duplicate raw-only remote row', () => {
-    const rawCheckUp = v2CheckUp(startedAt);
-    const movementProfileV2Snapshot = movementProfileV2SnapshotFor(rawCheckUp);
-    const mapped = mapRemoteHaleSnapshotToLocal(
-      remoteSnapshotWithCheckups([
-        {
-          id: 'remote-v2-missing',
-          local_checkup_id: startedAt,
-          checkup_type: 'baseline',
-          status: 'completed',
-          derived_scores_json: backendJson({ schemaVersion: 1, exactCheckupType: 'baseline' }),
-          raw_checkup_json: backendJson({
-            schemaVersion: HISTORY_SCHEMA_VERSION,
-            checkupType: 'baseline',
-            checkUp: rawCheckUp,
-          }),
-        },
-        {
-          id: 'remote-v2-valid',
-          local_checkup_id: startedAt,
-          checkup_type: 'baseline',
-          status: 'completed',
-          derived_scores_json: backendJson({
-            schemaVersion: 1,
-            exactCheckupType: 'baseline',
-            movementProfileV2Snapshot,
-          }),
-          raw_checkup_json: backendJson({
-            schemaVersion: HISTORY_SCHEMA_VERSION,
-            checkupType: 'baseline',
-            movementProfileV2Snapshot,
-            checkUp: rawCheckUp,
-          }),
-        },
-      ]),
-      emptyLocal()
-    );
-
-    expect(mapped.state.history).toHaveLength(1);
-    expect(mapped.state.history[0].movementProfileV2Snapshot?.snapshotFingerprint).toBe(
-      movementProfileV2Snapshot.snapshotFingerprint
-    );
-    expect(mapped.state.adherence.assessments).toEqual([]);
-  });
-
-  it('prefers a valid restored V2 assessment over a duplicate snapshot-only remote row', () => {
-    const rawCheckUp = v2CheckUp(startedAt);
-    const movementProfileV2Snapshot = movementProfileV2SnapshotFor(rawCheckUp);
-    const movementProfileV2Assessment = movementProfileV2AssessmentFor(rawCheckUp, movementProfileV2Snapshot);
-    const mapped = mapRemoteHaleSnapshotToLocal(
-      remoteSnapshotWithCheckups([
-        {
-          id: 'remote-v2-snapshot-only',
-          local_checkup_id: startedAt,
-          checkup_type: 'baseline',
-          status: 'completed',
-          derived_scores_json: backendJson({
-            schemaVersion: 1,
-            exactCheckupType: 'baseline',
-            movementProfileV2Snapshot,
-          }),
-          raw_checkup_json: backendJson({
-            schemaVersion: HISTORY_SCHEMA_VERSION,
-            checkupType: 'baseline',
-            movementProfileV2Snapshot,
-            checkUp: rawCheckUp,
-          }),
-        },
-        {
-          id: 'remote-v2-assessment',
-          local_checkup_id: startedAt,
-          checkup_type: 'baseline',
-          status: 'completed',
-          derived_scores_json: backendJson({
-            schemaVersion: 1,
-            exactCheckupType: 'baseline',
-            movementProfileV2Snapshot,
-            movementProfileV2Assessment,
-          }),
-          raw_checkup_json: backendJson({
-            schemaVersion: HISTORY_SCHEMA_VERSION,
-            checkupType: 'baseline',
-            movementProfileV2Snapshot,
-            movementProfileV2Assessment,
-            checkUp: rawCheckUp,
-          }),
-        },
-      ]),
-      emptyLocal()
-    );
-
-    expect(mapped.state.history).toHaveLength(1);
-    expect(mapped.state.history[0].movementProfileV2Assessment?.assessmentFingerprint).toBe(
-      movementProfileV2Assessment.assessmentFingerprint
-    );
-    expect(mapped.state.adherence.assessments).toEqual([]);
-  });
-
-  it('keeps lossy unknown remote check-up types as legacy_unknown', () => {
-    const snapshot = remoteSnapshot();
-    snapshot.movementCheckups[0] = {
-      ...snapshot.movementCheckups[0],
-      checkup_type: 'unknown',
-      derived_scores_json: { schemaVersion: 1 },
-      raw_checkup_json: backendJson({
-        schemaVersion: HISTORY_SCHEMA_VERSION,
-        checkUp: checkUp(),
-      }),
-    };
-
-    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
-
-    expect(mapped.state.history[0].checkupType).toBe('legacy_unknown');
-    expect(mapped.state.adherence.assessments[0].type).toBe('legacy_unknown');
-    expect(mapped.state.adherence.assessments[0].isOfficialForProgress).toBe(false);
-  });
-
-  it('skips restore and does not write stores when local data already exists', async () => {
-    const stores = {
-      profileStore: { save: jest.fn() },
-      historyStore: { save: jest.fn() },
-      trainingStore: { saveState: jest.fn(), saveMicroCheck: jest.fn() },
-      adherenceStore: { save: jest.fn() },
-    };
-
-    const result = await restoreRemoteStateIfLocalEmpty({
-      local: {
-        ...emptyLocal(),
-        history: [storedCheckUp()],
-      },
-      stores,
-      snapshot: remoteSnapshot(),
-    });
-
-    expect(result.status).toBe('skipped_local_not_empty');
-    expect(stores.profileStore.save).not.toHaveBeenCalled();
-    expect(stores.historyStore.save).not.toHaveBeenCalled();
-    expect(stores.trainingStore.saveState).not.toHaveBeenCalled();
-    expect(stores.trainingStore.saveMicroCheck).not.toHaveBeenCalled();
-    expect(stores.adherenceStore.save).not.toHaveBeenCalled();
-  });
-
-  it('handles incomplete remote JSON safely', async () => {
-    const result = await restoreRemoteStateIfLocalEmpty({
-      local: emptyLocal(),
-      snapshot: {
-        profile: null,
-        movementCheckups: [{ raw_checkup_json: { schemaVersion: HISTORY_SCHEMA_VERSION } }],
-        movementBlocks: [{ block_json: { schemaVersion: 1 } }],
-        trainingState: { state_json: { snapshotSchemaVersion: 1 } },
-        trainingSessionCompletions: [{ summary_json: { schemaVersion: 1 } }],
-        microChecks: [{ result_json: { schemaVersion: 1 } }],
-        movementBlockReports: [{ report_json: { schemaVersion: 1 } }],
-        fetchErrors: {},
-      },
-    });
-
-    expect(result.status).toBe('remote_empty');
-    expect(result.restoredCounts).toEqual({
-      profile: 0,
-      checkups: 0,
-      movementBlocks: 0,
-      assessments: 0,
-      trainingState: 0,
-      sessionCompletions: 0,
-      microChecks: 0,
-      blockReports: 0,
-    });
-  });
-
-  it('does not restore malformed raw check-up data as a completed usable assessment', () => {
-    const malformed = checkUp();
-    malformed.items = [malformed.items[0]];
-    (malformed.items[0].result as unknown as Record<string, unknown>).reps = '14';
-
-    const snapshot: RemoteHaleSnapshot = {
-      profile: null,
-      movementCheckups: [
-        {
-          id: 'remote-malformed-checkup',
-          local_checkup_id: startedAt,
-          checkup_type: 'baseline',
-          status: 'completed',
-          derived_scores_json: {
-            schemaVersion: 1,
-            assessment: {
-              type: 'baseline',
-              status: 'completed',
-              completedAt: '2026-06-17T12:08:00.000Z',
-              isOfficialForProgress: true,
-            },
-          },
-          raw_checkup_json: backendJson({
-            schemaVersion: HISTORY_SCHEMA_VERSION,
-            checkUp: malformed,
-          }),
-          created_locally_at: startedAt,
-          completed_at: '2026-06-17T12:08:00.000Z',
-          created_at: '2026-06-17T12:08:30.000Z',
-        },
-      ],
-      movementBlocks: [],
-      trainingState: null,
-      trainingSessionCompletions: [],
-      microChecks: [],
-      movementBlockReports: [],
-      fetchErrors: {},
-    };
-
-    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
-
-    expect(mapped.state.history).toHaveLength(1);
-    expect(mapped.state.adherence.assessments).toHaveLength(1);
-    expect(mapped.state.adherence.assessments[0].status).toBe('invalid');
-    expect(mapped.state.adherence.assessments[0].results?.weakestDomain).toBeUndefined();
-    expect(mapped.state.adherence.assessments[0].results?.confidence).toBe('low');
-  });
-});
-
-function domainMidpoint(
-  score: { domains: readonly { domain: string; ageLow: number | null; ageHigh: number | null }[] },
-  domain: string
-): number {
-  const result = score.domains.find((item) => item.domain === domain)!;
-  if (result.ageLow === null || result.ageHigh === null) throw new Error(`Domain ${domain} was not measured`);
-  return (result.ageLow + result.ageHigh) / 2;
-}
-
-function exactTieSnapshotFor(checkUp: CheckUp): VersionedCheckUpScoreSnapshot {
-  const snapshot = createCurrentVersionedScoreSnapshot(checkUp).snapshot!;
-  return {
-    ...snapshot,
-    score: {
-      ...snapshot.score,
-      weakestDomain: 'balance',
-      domains: snapshot.score.domains.map((domain) => {
-        if (domain.domain === 'strength' || domain.domain === 'balance') {
-          return { ...domain, measured: true, ageLow: 72, ageHigh: 76 };
-        }
-        return { ...domain, measured: true, ageLow: 58, ageHigh: 62 };
-      }),
-    },
-    focusSelection: {
-      kind: 'exact_tie',
-      focusDomain: 'balance',
-      tiedDomains: ['strength', 'balance'],
-      tieBreakReason: 'preserve_current_focus',
-    },
   };
 }
 
@@ -1297,3 +290,383 @@ function shoulderV2Result(overrides: Partial<ActiveShoulderReachV2Result> = {}):
     ...overrides,
   };
 }
+
+describe('remote restore service', () => {
+  it('detects empty local state conservatively', () => {
+    expect(isLocalStateEmptyForRestore(emptyLocal())).toBe(true);
+
+    expect(
+      isLocalStateEmptyForRestore({
+        ...emptyLocal(),
+        history: [storedCheckUp()],
+      })
+    ).toBe(false);
+
+    expect(
+      isLocalStateEmptyForRestore({
+        ...emptyLocal(),
+        preferences: {
+          ...defaultPreferences(),
+          profile: { ...defaultPreferences().profile, name: 'Asha' },
+        },
+      })
+    ).toBe(false);
+  });
+
+  it('maps sanitized remote rows back into local store shapes', () => {
+    const mapped = mapRemoteHaleSnapshotToLocal(remoteSnapshot(), emptyLocal());
+
+    expect(mapped.state.preferences.profile.name).toBe('Asha Rao');
+    expect(mapped.state.preferences.onboarding.currentStep).toBe('complete');
+    expect(mapped.state.history).toHaveLength(1);
+    expect(mapped.state.history[0].checkUp.startedAt).toBe(startedAt);
+    expect(mapped.state.history[0].checkupType).toBe('baseline');
+    expect(mapped.gaps).toEqual([]);
+  });
+
+  it('never restores health data from a legacy remote safety_json field (local-only law)', () => {
+    const snapshot = remoteSnapshot();
+    snapshot.profile = {
+      ...snapshot.profile!,
+      // Legacy pre-460a55ed rows may still carry safety_json on the wire;
+      // the merge has no path for it and must ignore it entirely.
+      safety_json: backendJson({
+        schemaVersion: 1,
+        safetyProfile: { id: 'remote-safety', availableEquipment: ['chair'] },
+      }),
+    } as never;
+
+    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
+
+    expect(mapped.state.preferences.profile.safetyProfile ?? null).toBeNull();
+    expect(JSON.stringify(mapped.state.preferences)).not.toContain('remote-safety');
+  });
+
+  it('restores Movement Profile V2 snapshots as history evidence', () => {
+    const rawCheckUp = v2CheckUp(startedAt);
+    const movementProfileV2Snapshot = movementProfileV2SnapshotFor(rawCheckUp);
+    const mapped = mapRemoteHaleSnapshotToLocal(
+      remoteSnapshotWithCheckups([
+        {
+          id: 'remote-v2-checkup',
+          local_checkup_id: startedAt,
+          checkup_type: 'baseline',
+          status: 'completed',
+          derived_scores_json: backendJson({
+            schemaVersion: 1,
+            exactCheckupType: 'baseline',
+            movementProfileV2Snapshot,
+            movementProfileV2SnapshotCompatibility: 'current',
+          }),
+          raw_checkup_json: backendJson({
+            schemaVersion: HISTORY_SCHEMA_VERSION,
+            checkupType: 'baseline',
+            movementProfileV2Snapshot,
+            checkUp: rawCheckUp,
+          }),
+          created_locally_at: startedAt,
+          completed_at: '2026-06-17T12:08:00.000Z',
+          created_at: '2026-06-17T12:08:30.000Z',
+        },
+      ]),
+      emptyLocal()
+    );
+
+    expect(mapped.state.history).toHaveLength(1);
+    expect(mapped.state.history[0].scoreSnapshot).toBeUndefined();
+    expect(mapped.state.history[0].scoreSnapshotCompatibility).toBe('unsupported_checkup_protocol');
+    expect(mapped.state.history[0].movementProfileV2Snapshot?.snapshotFingerprint).toBe(
+      movementProfileV2Snapshot.snapshotFingerprint
+    );
+    expect(mapped.state.history[0].movementProfileV2SnapshotCompatibility).toBe('current');
+  });
+
+  it('restores source-bound Movement Profile V2 assessments', () => {
+    const rawCheckUp = v2CheckUp(startedAt);
+    const movementProfileV2Snapshot = movementProfileV2SnapshotFor(rawCheckUp);
+    const movementProfileV2Assessment = movementProfileV2AssessmentFor(rawCheckUp, movementProfileV2Snapshot);
+    const mapped = mapRemoteHaleSnapshotToLocal(
+      remoteSnapshotWithCheckups([
+        {
+          id: 'remote-v2-checkup',
+          local_checkup_id: startedAt,
+          checkup_type: 'baseline',
+          status: 'completed',
+          derived_scores_json: backendJson({
+            schemaVersion: 1,
+            exactCheckupType: 'baseline',
+            movementProfileV2Snapshot,
+            movementProfileV2SnapshotCompatibility: 'current',
+            movementProfileV2Assessment,
+            movementProfileV2AssessmentCompatibility: 'current',
+          }),
+          raw_checkup_json: backendJson({
+            schemaVersion: HISTORY_SCHEMA_VERSION,
+            checkupType: 'baseline',
+            movementProfileV2Snapshot,
+            movementProfileV2Assessment,
+            checkUp: rawCheckUp,
+          }),
+          created_locally_at: startedAt,
+          completed_at: '2026-06-17T12:08:00.000Z',
+        },
+      ]),
+      emptyLocal()
+    );
+
+    expect(mapped.state.history).toHaveLength(1);
+    expect(mapped.state.history[0].movementProfileV2Snapshot?.snapshotFingerprint).toBe(
+      movementProfileV2Snapshot.snapshotFingerprint
+    );
+    expect(mapped.state.history[0].movementProfileV2Assessment?.assessmentFingerprint).toBe(
+      movementProfileV2Assessment.assessmentFingerprint
+    );
+    expect(mapped.state.history[0].movementProfileV2AssessmentCompatibility).toBe('current');
+  });
+
+  it('keeps raw V2 check-ups when restored V2 snapshots are malformed or missing', () => {
+    const rawCheckUp = v2CheckUp(startedAt);
+    const malformedSnapshot = {
+      ...movementProfileV2SnapshotFor(rawCheckUp),
+      snapshotFingerprint: 'tampered',
+    };
+    const mapped = mapRemoteHaleSnapshotToLocal(
+      remoteSnapshotWithCheckups([
+        {
+          id: 'remote-v2-checkup',
+          local_checkup_id: startedAt,
+          checkup_type: 'baseline',
+          status: 'completed',
+          derived_scores_json: backendJson({
+            schemaVersion: 1,
+            exactCheckupType: 'baseline',
+            movementProfileV2Snapshot: malformedSnapshot,
+          }),
+          raw_checkup_json: backendJson({
+            schemaVersion: HISTORY_SCHEMA_VERSION,
+            checkupType: 'baseline',
+            movementProfileV2Snapshot: malformedSnapshot,
+            checkUp: rawCheckUp,
+          }),
+          created_locally_at: startedAt,
+          completed_at: '2026-06-17T12:08:00.000Z',
+        },
+      ]),
+      emptyLocal()
+    );
+
+    expect(mapped.state.history).toHaveLength(1);
+    expect(mapped.state.history[0].checkUp.items).toHaveLength(3);
+    expect(mapped.state.history[0].movementProfileV2Snapshot).toBeUndefined();
+    expect(mapped.state.history[0].movementProfileV2SnapshotCompatibility).toBe('fingerprint_invalid');
+  });
+
+  it('keeps raw V2 check-ups and valid snapshots when restored V2 assessments are mismatched', () => {
+    const rawCheckUp = v2CheckUp(startedAt);
+    const movementProfileV2Snapshot = movementProfileV2SnapshotFor(rawCheckUp);
+    const otherCheckUp = v2CheckUp(startedAt, { chair: chairV2Result({ reps: 13 }) });
+    const otherSnapshot = movementProfileV2SnapshotFor(otherCheckUp);
+    const otherAssessment = movementProfileV2AssessmentFor(otherCheckUp, otherSnapshot);
+    const mapped = mapRemoteHaleSnapshotToLocal(
+      remoteSnapshotWithCheckups([
+        {
+          id: 'remote-v2-checkup',
+          local_checkup_id: startedAt,
+          checkup_type: 'baseline',
+          status: 'completed',
+          derived_scores_json: backendJson({
+            schemaVersion: 1,
+            exactCheckupType: 'baseline',
+            movementProfileV2Snapshot,
+            movementProfileV2Assessment: otherAssessment,
+          }),
+          raw_checkup_json: backendJson({
+            schemaVersion: HISTORY_SCHEMA_VERSION,
+            checkupType: 'baseline',
+            movementProfileV2Snapshot,
+            movementProfileV2Assessment: otherAssessment,
+            checkUp: rawCheckUp,
+          }),
+          created_locally_at: startedAt,
+          completed_at: '2026-06-17T12:08:00.000Z',
+        },
+      ]),
+      emptyLocal()
+    );
+
+    expect(mapped.state.history).toHaveLength(1);
+    expect(mapped.state.history[0].movementProfileV2Snapshot?.snapshotFingerprint).toBe(
+      movementProfileV2Snapshot.snapshotFingerprint
+    );
+    expect(mapped.state.history[0].movementProfileV2Assessment).toBeUndefined();
+    expect(mapped.state.history[0].movementProfileV2AssessmentCompatibility).toBe('source_mismatch');
+  });
+
+  it('prefers a valid restored V2 snapshot over a duplicate raw-only remote row', () => {
+    const rawCheckUp = v2CheckUp(startedAt);
+    const movementProfileV2Snapshot = movementProfileV2SnapshotFor(rawCheckUp);
+    const mapped = mapRemoteHaleSnapshotToLocal(
+      remoteSnapshotWithCheckups([
+        {
+          id: 'remote-v2-missing',
+          local_checkup_id: startedAt,
+          checkup_type: 'baseline',
+          status: 'completed',
+          derived_scores_json: backendJson({ schemaVersion: 1, exactCheckupType: 'baseline' }),
+          raw_checkup_json: backendJson({
+            schemaVersion: HISTORY_SCHEMA_VERSION,
+            checkupType: 'baseline',
+            checkUp: rawCheckUp,
+          }),
+        },
+        {
+          id: 'remote-v2-valid',
+          local_checkup_id: startedAt,
+          checkup_type: 'baseline',
+          status: 'completed',
+          derived_scores_json: backendJson({
+            schemaVersion: 1,
+            exactCheckupType: 'baseline',
+            movementProfileV2Snapshot,
+          }),
+          raw_checkup_json: backendJson({
+            schemaVersion: HISTORY_SCHEMA_VERSION,
+            checkupType: 'baseline',
+            movementProfileV2Snapshot,
+            checkUp: rawCheckUp,
+          }),
+        },
+      ]),
+      emptyLocal()
+    );
+
+    expect(mapped.state.history).toHaveLength(1);
+    expect(mapped.state.history[0].movementProfileV2Snapshot?.snapshotFingerprint).toBe(
+      movementProfileV2Snapshot.snapshotFingerprint
+    );
+  });
+
+  it('prefers a valid restored V2 assessment over a duplicate snapshot-only remote row', () => {
+    const rawCheckUp = v2CheckUp(startedAt);
+    const movementProfileV2Snapshot = movementProfileV2SnapshotFor(rawCheckUp);
+    const movementProfileV2Assessment = movementProfileV2AssessmentFor(rawCheckUp, movementProfileV2Snapshot);
+    const mapped = mapRemoteHaleSnapshotToLocal(
+      remoteSnapshotWithCheckups([
+        {
+          id: 'remote-v2-snapshot-only',
+          local_checkup_id: startedAt,
+          checkup_type: 'baseline',
+          status: 'completed',
+          derived_scores_json: backendJson({
+            schemaVersion: 1,
+            exactCheckupType: 'baseline',
+            movementProfileV2Snapshot,
+          }),
+          raw_checkup_json: backendJson({
+            schemaVersion: HISTORY_SCHEMA_VERSION,
+            checkupType: 'baseline',
+            movementProfileV2Snapshot,
+            checkUp: rawCheckUp,
+          }),
+        },
+        {
+          id: 'remote-v2-assessment',
+          local_checkup_id: startedAt,
+          checkup_type: 'baseline',
+          status: 'completed',
+          derived_scores_json: backendJson({
+            schemaVersion: 1,
+            exactCheckupType: 'baseline',
+            movementProfileV2Snapshot,
+            movementProfileV2Assessment,
+          }),
+          raw_checkup_json: backendJson({
+            schemaVersion: HISTORY_SCHEMA_VERSION,
+            checkupType: 'baseline',
+            movementProfileV2Snapshot,
+            movementProfileV2Assessment,
+            checkUp: rawCheckUp,
+          }),
+        },
+      ]),
+      emptyLocal()
+    );
+
+    expect(mapped.state.history).toHaveLength(1);
+    expect(mapped.state.history[0].movementProfileV2Assessment?.assessmentFingerprint).toBe(
+      movementProfileV2Assessment.assessmentFingerprint
+    );
+  });
+
+  it('keeps lossy unknown remote check-up types as legacy_unknown', () => {
+    const snapshot = remoteSnapshot();
+    snapshot.movementCheckups[0] = {
+      ...snapshot.movementCheckups[0],
+      checkup_type: 'unknown',
+      derived_scores_json: { schemaVersion: 1 },
+      raw_checkup_json: backendJson({
+        schemaVersion: HISTORY_SCHEMA_VERSION,
+        checkUp: checkUp(),
+      }),
+    };
+
+    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
+
+    expect(mapped.state.history[0].checkupType).toBe('legacy_unknown');
+  });
+
+  it('skips restore and does not write stores when local data already exists', async () => {
+    const stores = {
+      profileStore: { save: jest.fn() },
+      historyStore: { save: jest.fn() },
+    };
+
+    const result = await restoreRemoteStateIfLocalEmpty({
+      local: {
+        ...emptyLocal(),
+        history: [storedCheckUp()],
+      },
+      stores,
+      snapshot: remoteSnapshot(),
+    });
+
+    expect(result.status).toBe('skipped_local_not_empty');
+    expect(stores.profileStore.save).not.toHaveBeenCalled();
+    expect(stores.historyStore.save).not.toHaveBeenCalled();
+  });
+
+  it('restores profile and history into the stores when local is empty', async () => {
+    const stores = {
+      profileStore: { save: jest.fn() },
+      historyStore: { save: jest.fn() },
+    };
+
+    const result = await restoreRemoteStateIfLocalEmpty({
+      local: emptyLocal(),
+      stores,
+      snapshot: remoteSnapshot(),
+    });
+
+    expect(result.status).toBe('restored');
+    expect(result.restoredCounts).toEqual({ profile: 1, checkups: 1 });
+    expect(stores.profileStore.save).toHaveBeenCalledTimes(1);
+    expect(stores.historyStore.save).toHaveBeenCalledTimes(1);
+  });
+
+  it('handles incomplete remote JSON safely', async () => {
+    const result = await restoreRemoteStateIfLocalEmpty({
+      local: emptyLocal(),
+      snapshot: {
+        profile: null,
+        movementCheckups: [{ raw_checkup_json: { schemaVersion: HISTORY_SCHEMA_VERSION } }],
+        fetchErrors: {},
+      },
+    });
+
+    expect(result.status).toBe('remote_empty');
+    expect(result.restoredCounts).toEqual({
+      profile: 0,
+      checkups: 0,
+    });
+  });
+});
