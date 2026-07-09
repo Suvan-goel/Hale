@@ -8,15 +8,17 @@ describe('MovementProfileV2UnifiedCheckUpScreen voice-runtime wiring', () => {
       'utf8'
     );
 
-  it('uses the foundation runtime without a rollback prop', () => {
+  it('uses the foundation runtime unconditionally — no rollback flag, no legacy sequencer path', () => {
     const text = source();
 
-    expect(text).toContain('MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED');
-    expect(text).toContain('const voiceRuntimeEnabled = MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED;');
+    // The flag-off legacy path never drove the coordinator's voice-completed
+    // prerequisites and could not finish a battery; it was retired 2026-07-09.
+    expect(text).not.toContain('MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED');
+    expect(text).not.toContain('voiceRuntimeEnabled');
+    expect(text).not.toContain('MovementProfileV2VoiceSequencer');
     expect(text).not.toContain(['voiceExperience', 'Mode'].join(''));
     expect(text).toContain('new MovementProfileV2VoiceRuntime');
-    expect(text).toContain('if (voiceRuntimeEnabled) return;');
-    expect(text).toContain('voiceSequencerRef.current.next(live)');
+    expect(text).toContain('handsFreeMode: true');
   });
 
   it('guards required actions in both disabled UI props and the programmatic handler', () => {
@@ -66,6 +68,19 @@ describe('MovementProfileV2UnifiedCheckUpScreen voice-runtime wiring', () => {
     expect(text).toContain('onCancel: requestClose,');
   });
 
+  it('exits forward through onComplete when leaving with a completed battery', () => {
+    const text = source();
+
+    // Back at raw_complete must apply the measurements (placement + results),
+    // never silently drop them because the outro was still speaking.
+    const closeBody = text.slice(
+      text.indexOf('const requestClose = React.useCallback'),
+      text.indexOf('const keepCheckUp')
+    );
+    expect(closeBody).toContain('if (snapshot.checkUp !== null)');
+    expect(closeBody).toContain('finishNow();');
+  });
+
   it('gives transient iOS inactive states a grace window before invalidating the measurement', () => {
     const text = source();
 
@@ -77,7 +92,7 @@ describe('MovementProfileV2UnifiedCheckUpScreen voice-runtime wiring', () => {
   it('opens the hands-free check-up with the standing frame check and offers only a skip fallback', () => {
     const text = source();
 
-    expect(text).toContain('standingFrameCheckEnabled: handsFreeMode');
+    expect(text).toContain('standingFrameCheckEnabled: true');
     expect(text).toContain("case 'standing_frame_check':");
     expect(text).toContain('Skip camera check');
     expect(text).toContain("disabled: actionDisabled({ type: 'skip_frame_check' })");

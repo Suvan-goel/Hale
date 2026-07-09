@@ -1,7 +1,6 @@
 import type { BodySide } from '../checkup/protocolSetup';
 import type {
   MovementProfileV2LiveSnapshot,
-  MovementProfileV2LiveStage,
   MovementProfileV2LiveTransitionSummary,
 } from './liveCoordinator';
 
@@ -75,6 +74,10 @@ export const MOVEMENT_PROFILE_V2_CUE_DEFINITIONS: readonly MovementProfileV2CueD
   definition('mpv2_balance_attempt_saved', 'Good. That attempt is saved.', 'completion', 70, 'stage_3d_b_2e_a_1_fallback'),
   definition('mpv2_balance_rest', "Rest now. Stand with both feet on the floor. I'll tell you when it's time for the next attempt.", 'rest', 70, 'stage_3d_b_2e_a_1_fallback'),
   definition('mpv2_balance_ready_after_30', "You can start the next attempt now. Keep your support close. When you're ready, lift your foot high off the floor. The timer starts when I see your foot lift.", 'ready', 70, 'stage_3d_b_2e_a_1_fallback'),
+  // Currently unreferenced: rest auto-advances at the 30-second minimum, so
+  // only the after_30 line plays. Kept (with its bundled audio) because
+  // removing a definition changes the cue-policy fingerprint and would force
+  // a full mpv2 audio regeneration; drop it on the next real generation run.
   definition('mpv2_balance_ready_after_60', "You're ready for the next attempt. Keep your support close. When you're ready, lift your foot high off the floor. The timer starts when I see your foot lift.", 'ready', 70, 'stage_3d_b_2e_a_1_fallback'),
   definition('mpv2_balance_use_best', 'Your best balance hold is saved.', 'completion', 70, 'stage_3d_b_2e_a_1_fallback'),
   definition('mpv2_balance_tracking_retry', "I lost sight of you, so that attempt won't count. Stand facing the phone again with your whole body in view. We'll try once more.", 'recovery', 100, 'stage_3d_b_2e_a_1_fallback'),
@@ -127,75 +130,12 @@ export function movementProfileV2CueText(id: MovementProfileV2CueId): string {
   return movementProfileV2CueDefinition(id).text;
 }
 
-export function movementProfileV2VisibleCueForStage(
-  stage: MovementProfileV2LiveStage,
-  selectedShoulder: BodySide = 'right'
-): MovementProfileV2CueDefinition {
-  switch (stage) {
-    case 'standing_frame_check':
-      return movementProfileV2CueDefinition('mpv2_checkup_intro');
-    case 'chair_setup':
-      return movementProfileV2CueDefinition('checkup-chair-stand-intro-v21');
-    case 'chair_practice':
-      return movementProfileV2CueDefinition('mpv2_chair_practice_start');
-    case 'chair_countdown':
-      return movementProfileV2CueDefinition('mpv2_chair_official_ready');
-    case 'chair_active':
-      return movementProfileV2CueDefinition('checkup-chair-stand-setup-v21');
-    case 'balance_setup':
-      return movementProfileV2CueDefinition('checkup-balance-intro-v21');
-    case 'balance_ready':
-    case 'balance_trial':
-      return movementProfileV2CueDefinition('mpv2_balance_attempt_start');
-    case 'balance_rest':
-      return movementProfileV2CueDefinition('mpv2_balance_rest');
-    case 'shoulder_setup':
-      return movementProfileV2CueDefinition(shoulderTurnCue(selectedShoulder));
-    case 'shoulder_ready':
-    case 'shoulder_active':
-      return movementProfileV2CueDefinition(shoulderRaiseCue(selectedShoulder));
-    case 'shoulder_retry_ready':
-      return movementProfileV2CueDefinition('mpv2_shoulder_tracking_retry');
-    case 'hinge_setup':
-    case 'hinge_active':
-      return movementProfileV2CueDefinition('checkup-hinge-setup-v21');
-    case 'raw_complete':
-      return movementProfileV2CueDefinition('checkup-complete-v21');
-  }
-}
-
 export function initialMovementProfileV2VoiceEvent(): MovementProfileV2CueEvent {
   return eventForCues('initial:movement-profile-v2', [
     'mpv2_checkup_intro',
     'checkup-chair-stand-intro-v21',
     'checkup-chair-stand-setup-v21',
   ], 1);
-}
-
-export class MovementProfileV2VoiceSequencer {
-  private readonly emittedTransitionKeys = new Set<string>();
-  private cueEpochCounter = 0;
-  private disposed = false;
-
-  next(snapshot: MovementProfileV2LiveSnapshot): MovementProfileV2CueEvent | null {
-    if (this.disposed) return null;
-    const transition = snapshot.lastTransition;
-    if (!transition) return null;
-    const cues = resolveMovementProfileV2CueIdsForTransition({
-      transition,
-      snapshot,
-    });
-    if (cues.length === 0) return null;
-    const key = transitionKey(snapshot, transition);
-    if (this.emittedTransitionKeys.has(key)) return null;
-    this.emittedTransitionKeys.add(key);
-    return eventForCues(key, cues, ++this.cueEpochCounter);
-  }
-
-  dispose(): void {
-    this.disposed = true;
-    this.emittedTransitionKeys.clear();
-  }
 }
 
 export function resolveMovementProfileV2CueIdsForTransition(input: {
@@ -228,7 +168,6 @@ export function resolveMovementProfileV2CueIdsForTransition(input: {
         ? ['times-up-v21', 'checkup-balance-intro-v21', 'checkup-balance-single-leg-v21']
         : ['checkup-balance-intro-v21', 'checkup-balance-single-leg-v21'];
     case 'balance_ready':
-      if (transition.reason === 'balance_default_rest_elapsed') return ['mpv2_balance_ready_after_60'];
       if (transition.reason === 'balance_rest_ready') return ['mpv2_balance_ready_after_30'];
       return ['mpv2_balance_attempt_start'];
     case 'balance_trial':
@@ -326,20 +265,6 @@ function eventForCues(
     priority,
     visibleText: cues.map(movementProfileV2CueText).join(' '),
   };
-}
-
-function transitionKey(
-  snapshot: MovementProfileV2LiveSnapshot,
-  transition: MovementProfileV2LiveTransitionSummary
-): string {
-  return [
-    transition.atMs,
-    transition.from,
-    transition.to,
-    transition.reason,
-    snapshot.movementEpochId,
-    snapshot.attemptEpochId ?? 'no-attempt',
-  ].join(':');
 }
 
 function movementProfileV2CuePolicyFingerprint(): string {

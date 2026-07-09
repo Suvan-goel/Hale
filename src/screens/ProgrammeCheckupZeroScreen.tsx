@@ -18,8 +18,9 @@
  */
 
 import * as React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Linking, StyleSheet, Text, View } from 'react-native';
 
+import { BRAND } from '../brand';
 import { GhostButton, PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../components/ui';
 import { checkupZeroBatterySequence } from '../programme';
 import { createMovementProfileV2InternalFlow } from '../movementProfileV2/internalCheckupFlow';
@@ -37,6 +38,8 @@ export function ProgrammeCheckupZeroScreen({
   onCancel,
   voiceId,
   history,
+  cameraPermissionGranted,
+  onRequestCameraPermission,
 }: {
   onComplete: (checkUp: CheckUp) => void;
   /** Fired the moment the measured battery exists — persist here (crash-safe). */
@@ -46,8 +49,15 @@ export function ProgrammeCheckupZeroScreen({
   /** Stored check-up history: anchors the standing leg / shoulder side to the
    * prior official record (side-consistency is measurement hygiene). */
   history?: readonly StoredCheckUp[];
+  /** Camera permission state, owned by the shell (single source of truth). */
+  cameraPermissionGranted: boolean;
+  /** Requests camera permission; resolves true when granted. The OS dialog
+   * must appear HERE, over this static intro — never mid-battery while the
+   * intro voice line is already speaking over it. */
+  onRequestCameraPermission: () => Promise<boolean>;
 }) {
   const [phase, setPhase] = React.useState<'intro' | 'warmup' | 'battery'>('intro');
+  const [permissionDenied, setPermissionDenied] = React.useState(false);
   const [warmupRemaining, setWarmupRemaining] = React.useState(WARM_UP_SECONDS);
   const startedAtRef = React.useRef<string | null>(null);
 
@@ -66,14 +76,36 @@ export function ProgrammeCheckupZeroScreen({
     return () => clearInterval(interval);
   }, [phase]);
 
+  const startWarmup = React.useCallback(async () => {
+    if (cameraPermissionGranted || (await onRequestCameraPermission())) {
+      setPermissionDenied(false);
+      setPhase('warmup');
+      return;
+    }
+    setPermissionDenied(true);
+  }, [cameraPermissionGranted, onRequestCameraPermission]);
+
   if (phase === 'intro') {
+    if (permissionDenied) {
+      return (
+        <CheckupZeroMessage
+          title="Camera access needed"
+          subtitle={`${BRAND.appName} uses your phone's camera to measure the check-up. You will not see a live video of yourself — just a simple outline, and nothing leaves your phone.`}
+          panelText="If the phone doesn't ask again, allow camera access in your phone's settings, then come back."
+        >
+          <PrimaryButton title="Allow camera" onPress={() => void startWarmup()} />
+          <SecondaryButton title="Open phone settings" onPress={() => void Linking.openSettings()} />
+          <GhostButton title="Not now" onPress={onCancel} />
+        </CheckupZeroMessage>
+      );
+    }
     return (
       <CheckupZeroMessage
         title="Two minutes of moving"
         subtitle="A gentle warm-up, a balance hold, then thirty seconds of chair stands. That’s the whole thing."
-        panelText="No one sees this but you — it’s processed on your phone and never leaves it."
+        panelText="Your phone’s camera does the measuring. No one sees this but you — it’s processed on your phone and never leaves it."
       >
-        <PrimaryButton title="Start with the warm-up" onPress={() => setPhase('warmup')} />
+        <PrimaryButton title="Start with the warm-up" onPress={() => void startWarmup()} />
         <GhostButton title="Not now" onPress={onCancel} />
       </CheckupZeroMessage>
     );

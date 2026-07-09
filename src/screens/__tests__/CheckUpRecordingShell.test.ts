@@ -21,7 +21,7 @@ describe('unified Movement Check-Up recording shell', () => {
 
     expect(text).toContain('CheckUpRecordingShell');
     expect(text).toContain('new MovementProfileV2LiveCoordinator');
-    expect(text).toContain('const handsFreeMode = voiceRuntimeEnabled');
+    expect(text).toContain('handsFreeMode: true');
     expect(text).toContain('handsFreeFallbackAvailable');
     expect(text).toContain('createMovementProfileV2LivePoseSample');
     expect(text).toContain('new MovementProfileV2VoiceRuntime');

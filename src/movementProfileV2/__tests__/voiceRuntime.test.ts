@@ -131,6 +131,31 @@ describe('MovementProfileV2VoiceRuntime', () => {
     expect(startedCues.filter((cue) => cue === 'mpv2_checkup_intro')).toHaveLength(1);
   });
 
+  it('swaps the chair intro for the mid-battery line when another item hands off into the chair', async () => {
+    // Check-up #0 runs balance first: the chair item must not open with
+    // "We'll start with the chair stand" — the bundled 'chair-stand-intro'
+    // ("Next, the thirty second chair stand…") carries the handoff instead.
+    const runtime = createRuntime();
+    runtime.sync(snapshot('chair_setup', {
+      attemptEpochId: null,
+      movementEpochId: 'chair-2',
+      diagnostics: {
+        hinge: { captureValid: true },
+        balance: { ceilingReached: false },
+      } as MovementProfileV2LiveSnapshot['diagnostics'],
+      lastTransition: { atMs: 9000, from: 'balance_trial', to: 'chair_setup', reason: 'balance_section_complete' },
+    }));
+    for (let index = 0; index < 3; index++) {
+      players[players.length - 1].finish();
+      await flushAsync();
+    }
+    const startedCues = runtime.state.diagnostics
+      .filter((event) => event.event === 'cue_playback_start_evidence')
+      .map((event) => event.cueKey);
+    expect(startedCues).toEqual(['item-complete-v21', 'chair-stand-intro', 'checkup-chair-stand-setup-v21']);
+    expect(runtimeActions.map((entry) => entry.action.type)).toEqual(['chair_setup_voice_completed']);
+  });
+
   it('speaks one-shot advisory notices only after the stage plan and dedupes them per scope', async () => {
     const runtime = createRuntime();
     const wrongLeg = snapshot('balance_ready', {
@@ -604,7 +629,6 @@ function snapshot(
       to: stage,
       reason: stage === 'raw_complete' ? 'hinge_recorded' : 'chair_practice_completed',
     },
-    canContinueAfterRest: true,
     recoveryEpisode: null,
     ...extra,
   } as MovementProfileV2LiveSnapshot;

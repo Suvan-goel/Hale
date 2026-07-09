@@ -244,15 +244,25 @@ export function ProgrammeV2Root() {
     void setAndroidNavigationBarVisibleAsync(showTabBar);
   }, [showTabBar]);
 
-  const requestCameraPermission = React.useCallback(() => {
-    requestCameraPermissionsAsync()
-      .then((response) =>
-        setCameraPermission(
-          response.granted ? 'granted' : response.status === 'undetermined' ? 'undetermined' : 'denied'
-        )
-      )
-      .catch(() => setCameraPermission('denied'));
+  // Single permission-request seam: the Check-up #0 intro awaits the result
+  // (the OS dialog must show over that static screen, never mid-battery over
+  // the camera + intro voice) and Settings fires it without awaiting.
+  const ensureCameraPermission = React.useCallback(async (): Promise<boolean> => {
+    try {
+      const response = await requestCameraPermissionsAsync();
+      setCameraPermission(
+        response.granted ? 'granted' : response.status === 'undetermined' ? 'undetermined' : 'denied'
+      );
+      return response.granted;
+    } catch {
+      setCameraPermission('denied');
+      return false;
+    }
   }, []);
+
+  const requestCameraPermission = React.useCallback(() => {
+    void ensureCameraPermission();
+  }, [ensureCameraPermission]);
 
   const refreshHistory = React.useCallback(() => {
     historyStore
@@ -799,6 +809,8 @@ export function ProgrammeV2Root() {
       <ProgrammeCheckupZeroScreen
         voiceId={prefs.settings.voiceId}
         history={history}
+        cameraPermissionGranted={cameraPermission === 'granted'}
+        onRequestCameraPermission={ensureCameraPermission}
         onRawCheckUpReady={(checkUp) => {
           try {
             saveOfficialCheckUp(checkUp);

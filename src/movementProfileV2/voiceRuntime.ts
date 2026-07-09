@@ -262,9 +262,6 @@ export class MovementProfileV2VoiceRuntime {
     if (!isVoiceGatedUserAction(action)) return true;
     if (this.stateValue.lastFailure) return false;
     if (this.stateValue.blocking) return false;
-    if (snapshot.stage === 'balance_rest' && action.type === 'balance_ready' && !snapshot.canContinueAfterRest) {
-      return false;
-    }
     return actionAllowedForStage(action, snapshot.stage);
   }
 
@@ -645,8 +642,8 @@ export class MovementProfileV2VoiceRuntime {
 export function isVoiceGatedUserAction(action: MovementProfileV2LiveUserAction): boolean {
   return action.type === 'skip_frame_check' ||
     action.type === 'confirm_chair_setup' ||
+    action.type === 'complete_chair_practice_fallback' ||
     action.type === 'confirm_balance_setup' ||
-    action.type === 'balance_ready' ||
     action.type === 'balance_use_result' ||
     action.type === 'balance_skip' ||
     action.type === 'confirm_shoulder_setup' ||
@@ -670,10 +667,10 @@ function actionAllowedForStage(
       return stage === 'standing_frame_check';
     case 'confirm_chair_setup':
       return stage === 'chair_setup';
+    case 'complete_chair_practice_fallback':
+      return stage === 'chair_practice';
     case 'confirm_balance_setup':
       return stage === 'balance_setup';
-    case 'balance_ready':
-      return stage === 'balance_rest';
     case 'balance_use_result':
     case 'balance_skip':
       return stage === 'balance_ready' || stage === 'balance_rest';
@@ -745,7 +742,7 @@ function baseVoicePlanForSnapshot(
       // Mid-battery handoffs (non-default sequences) resolve to the generic
       // bridge + chair intro; only a cold start replays the full welcome.
       const intro = initialMovementProfileV2VoiceEvent();
-      return plan(scopeId, 'blocking_prerequisite', cuesForCurrentTransition(snapshot, intro.cues), [
+      return plan(scopeId, 'blocking_prerequisite', cuesForChairSetup(snapshot, intro.cues), [
         { type: 'chair_setup_voice_completed' },
       ]);
     }
@@ -887,6 +884,27 @@ function priorityForCues(cues: readonly VoiceCueKey[]): number {
     if (isMovementProfileV2Cue(cue)) return movementProfileV2CueDefinition(cue).priority;
     return voicePriority(cue);
   }), 0);
+}
+
+/**
+ * The v21 chair intro opens "We'll start with the chair stand", which is only
+ * true when the chair opens the battery (cold start or frame-check entry). On
+ * a mid-battery handoff — Check-up #0 runs balance first — swap in the bundled
+ * 'chair-stand-intro' line ("Next, the thirty second chair stand…") so the
+ * spoken ordering matches the battery the user is actually doing.
+ */
+function cuesForChairSetup(
+  snapshot: MovementProfileV2LiveSnapshot,
+  fallback: readonly MovementProfileV2CueId[]
+): readonly VoiceCueKey[] {
+  const cues = cuesForCurrentTransition(snapshot, fallback);
+  const transition = snapshot.lastTransition;
+  const midBatteryHandoff =
+    transition?.to === 'chair_setup' &&
+    transition.from !== 'standing_frame_check' &&
+    !transition.from.startsWith('chair_');
+  if (!midBatteryHandoff) return cues;
+  return cues.map((cue) => (cue === 'checkup-chair-stand-intro-v21' ? 'chair-stand-intro' : cue));
 }
 
 function cuesForHingeSetup(snapshot: MovementProfileV2LiveSnapshot): readonly VoiceCueKey[] {

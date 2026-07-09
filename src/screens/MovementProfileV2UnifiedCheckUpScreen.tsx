@@ -7,7 +7,6 @@ import type { CheckupType } from '../adherence';
 import type { BodySide } from '../checkup/protocolSetup';
 import type { CheckUp } from '../checkup/types';
 import type { CameraAvailability } from '../components/SafePoseDetectionView';
-import { MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED } from '../config/movementProfileV2VoiceRuntimeFoundation';
 import { defaultNowMs } from '../diagnostics/poseLatencyDiagnostics';
 import {
   createMovementProfileV2InternalFlow,
@@ -25,10 +24,6 @@ import {
   type MovementProfileV2LiveUserAction,
 } from '../movementProfileV2/liveCoordinator';
 import {
-  MovementProfileV2VoiceSequencer,
-  initialMovementProfileV2VoiceEvent,
-} from '../movementProfileV2/voiceCues';
-import {
   MovementProfileV2VoiceRuntime,
   type MovementProfileV2VoiceCoordinatorAction,
   type MovementProfileV2VoiceRuntimeState,
@@ -36,10 +31,7 @@ import {
 import { PosePipeline } from '../pose/pipeline';
 import { DEFAULT_VOICE_ID } from '../profile/voices';
 import { RecordingVisualSurface } from '../recording/RecordingVisualSurface';
-import {
-  movementProfileV2InstructionCueIdsForStage,
-  movementProfileV2InstructionTextForStage,
-} from '../training/instructionProfiles';
+import { movementProfileV2InstructionTextForStage } from '../training/instructionProfiles';
 import type {
   PoseAvatarActiveDomain,
   PoseAvatarRendererHandle,
@@ -134,8 +126,6 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   }) => void;
   onCancel: () => void;
 }) {
-  const voiceRuntimeEnabled = MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED;
-  const handsFreeMode = voiceRuntimeEnabled;
   const initialState = React.useMemo(
     () => initialFlow ?? { ...createMovementProfileV2InternalFlow({ startedAt }), sourceType },
     [initialFlow, sourceType, startedAt]
@@ -143,16 +133,16 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   const coordinatorRef = React.useRef<MovementProfileV2LiveCoordinator | null>(null);
   if (coordinatorRef.current === null) {
     coordinatorRef.current = new MovementProfileV2LiveCoordinator(initialState, {
-      handsFreeMode,
-      // The standing frame check is voice-led; it ships with the hands-free
-      // runtime (the legacy button path keeps the original first stage).
-      standingFrameCheckEnabled: handsFreeMode,
+      // The check-up is hands-free and voice-led (the flag-off legacy button
+      // path was retired 2026-07-09 — it never drove the coordinator's
+      // voice-completed prerequisites and could not finish a battery).
+      handsFreeMode: true,
+      standingFrameCheckEnabled: true,
     });
   }
   const [pipeline] = React.useState(() => new PosePipeline());
   const [voice] = React.useState(() => new VoiceChannel(voiceId));
   const [sfx] = React.useState(() => new SfxChannel());
-  const voiceSequencerRef = React.useRef(new MovementProfileV2VoiceSequencer());
   const voiceRuntimeRef = React.useRef<MovementProfileV2VoiceRuntime | null>(null);
   const [voiceRuntimeState, setVoiceRuntimeState] = React.useState<MovementProfileV2VoiceRuntimeState>(
     INITIAL_VOICE_RUNTIME_STATE
@@ -246,27 +236,16 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   }, [applyVoiceCoordinatorAction, voice, voiceId]);
 
   React.useEffect(() => {
-    if (voiceRuntimeEnabled) {
-      getVoiceRuntime().sync(liveRef.current);
-    } else {
-      const intro = initialMovementProfileV2VoiceEvent();
-      voice.speak(intro.cues, intro.priority);
-    }
+    getVoiceRuntime().sync(liveRef.current);
     return () => {
-      voiceSequencerRef.current.dispose();
-      if (voiceRuntimeEnabled) {
-        voiceRuntimeRef.current?.cancel('screen_unmounted');
-      } else {
-        voice.stop();
-      }
+      voiceRuntimeRef.current?.cancel('screen_unmounted');
       sfx.release();
     };
-  }, [getVoiceRuntime, sfx, voice, voiceRuntimeEnabled]);
+  }, [getVoiceRuntime, sfx]);
 
   React.useEffect(() => {
-    if (!voiceRuntimeEnabled) return;
     getVoiceRuntime().setDesiredVoiceId(voiceId ?? DEFAULT_VOICE_ID, liveRef.current);
-  }, [getVoiceRuntime, voiceId, voiceRuntimeEnabled]);
+  }, [getVoiceRuntime, voiceId]);
 
   React.useEffect(() => {
     let inactiveGraceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -283,11 +262,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
       backgroundedDispatched = true;
       const nowMs = defaultNowMs();
       coordinatorRef.current?.receiveUserAction({ type: 'backgrounded' }, nowMs);
-      if (voiceRuntimeEnabled) {
-        voiceRuntimeRef.current?.cancel('app_backgrounded');
-      } else {
-        voice.stop();
-      }
+      voiceRuntimeRef.current?.cancel('app_backgrounded');
       refreshLive(nowMs);
     };
     const sub = AppState.addEventListener('change', (state) => {
@@ -313,7 +288,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
       clearGrace();
       sub.remove();
     };
-  }, [refreshLive, voice, voiceRuntimeEnabled]);
+  }, [refreshLive]);
 
   React.useEffect(() => {
     const id = setInterval(() => {
@@ -325,15 +300,8 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   }, [refreshLive]);
 
   React.useEffect(() => {
-    if (voiceRuntimeEnabled) return;
-    const cue = voiceSequencerRef.current.next(live);
-    if (cue) voice.speak(cue.cues, cue.priority);
-  }, [live, live.revision, voice, voiceRuntimeEnabled]);
-
-  React.useEffect(() => {
-    if (!voiceRuntimeEnabled) return;
     getVoiceRuntime().sync(live);
-  }, [getVoiceRuntime, live, live.revision, voiceRuntimeEnabled]);
+  }, [getVoiceRuntime, live, live.revision]);
 
   React.useEffect(() => {
     if (!live.checkUp || rawNotifiedRef.current) return;
@@ -343,10 +311,10 @@ export function MovementProfileV2UnifiedCheckUpScreen({
 
   React.useEffect(() => {
     if (!live.checkUp || completedRef.current) return;
-    if (voiceRuntimeEnabled && !voiceRuntimeState.completionReady) return;
+    if (!voiceRuntimeState.completionReady) return;
     completedRef.current = true;
     onComplete({ checkUp: live.checkUp, sourceType });
-  }, [live.checkUp, onComplete, sourceType, voiceRuntimeState.completionReady, voiceRuntimeEnabled]);
+  }, [live.checkUp, onComplete, sourceType, voiceRuntimeState.completionReady]);
 
   /** User-driven completion when the outro voice failed: the measurements are
    * done, so exit forward to results instead of discarding the battery. */
@@ -393,21 +361,24 @@ export function MovementProfileV2UnifiedCheckUpScreen({
 
   /** Leaving mid-battery discards completed tests; confirm unless there is
    * nothing to lose (nothing measured yet at a pre-measurement stage — frame
-   * check or any first setup, whichever movement the sequence starts with —
-   * or the raw check-up is already saved via onRawCheckUpReady). */
+   * check or any first setup, whichever movement the sequence starts with).
+   * With a COMPLETED battery, back exits FORWARD through onComplete: the
+   * measurements exist, so leaving must apply them (placement + results),
+   * never silently skip them because the outro was still speaking. */
   const requestClose = React.useCallback(() => {
     const snapshot = liveRef.current;
+    if (snapshot.checkUp !== null) {
+      finishNow();
+      return;
+    }
     const atPreMeasurementStage =
       snapshot.stage === 'standing_frame_check' || snapshot.stage.endsWith('_setup');
-    const nothingToLose =
-      snapshot.checkUp !== null ||
-      (atPreMeasurementStage && snapshot.flow.items.length === 0);
-    if (nothingToLose) {
+    if (atPreMeasurementStage && snapshot.flow.items.length === 0) {
       onCancel();
       return;
     }
     setConfirmLeaveVisible(true);
-  }, [onCancel]);
+  }, [finishNow, onCancel]);
 
   const keepCheckUp = React.useCallback(() => setConfirmLeaveVisible(false), []);
   const discardCheckUp = React.useCallback(() => {
@@ -429,10 +400,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   const runLiveAction = React.useCallback(
     (action: MovementProfileV2LiveUserAction) => {
       const nowMs = defaultNowMs();
-      if (
-        voiceRuntimeEnabled &&
-        !getVoiceRuntime().canDispatchAction(action, liveRef.current)
-      ) {
+      if (!getVoiceRuntime().canDispatchAction(action, liveRef.current)) {
         return;
       }
       coordinatorRef.current?.receiveUserAction(action, nowMs);
@@ -452,9 +420,8 @@ export function MovementProfileV2UnifiedCheckUpScreen({
 
   const actionDisabled = React.useCallback(
     (action: MovementProfileV2LiveUserAction) =>
-      voiceRuntimeEnabled &&
       !getVoiceRuntime().canDispatchAction(action, liveRef.current),
-    [getVoiceRuntime, voiceRuntimeEnabled]
+    [getVoiceRuntime]
   );
 
   const retryAudio = React.useCallback(() => {
@@ -493,18 +460,8 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   }, []);
 
   const replayCurrentInstruction = React.useCallback(() => {
-    if (voiceRuntimeEnabled) {
-      getVoiceRuntime().replayInstruction(liveRef.current);
-      return;
-    }
-    const snapshot = liveRef.current;
-    const cues = movementProfileV2InstructionCueIdsForStage({
-      stage: snapshot.stage,
-      selectedShoulder: snapshot.flow.shoulderSide,
-      repeatedAttempt: snapshot.stage === 'balance_ready' || snapshot.stage === 'balance_trial',
-    });
-    if (cues.length > 0) voice.speak(cues, 8);
-  }, [getVoiceRuntime, voice, voiceRuntimeEnabled]);
+    getVoiceRuntime().replayInstruction(liveRef.current);
+  }, [getVoiceRuntime]);
 
   const openSupportModal = React.useCallback(
     (mode: Exclude<CheckUpShellModalMode, null>) => {
@@ -518,7 +475,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
     if (cameraAvailability === 'unavailable') {
       return [{ id: 'close', title: 'Close check-up', onPress: requestClose, primary: true }];
     }
-    if (voiceRuntimeEnabled && voiceRuntimeState.lastFailure) {
+    if (voiceRuntimeState.lastFailure) {
       // With a completed battery, forward exit is always available: the
       // measurements exist and must never be hostage to the outro cue.
       if (live.checkUp) {
@@ -534,7 +491,6 @@ export function MovementProfileV2UnifiedCheckUpScreen({
     }
     return movementProfileV2ShellControls({
       live,
-      handsFreeMode,
       selectedLeg,
       selectedShoulder,
       pendingOfficialFallback,
@@ -552,7 +508,6 @@ export function MovementProfileV2UnifiedCheckUpScreen({
     cameraAvailability,
     confirmOfficialFallback,
     finishNow,
-    handsFreeMode,
     keepOfficialAnchor,
     live,
     pendingOfficialFallback,
@@ -562,7 +517,6 @@ export function MovementProfileV2UnifiedCheckUpScreen({
     runLiveAction,
     selectedLeg,
     selectedShoulder,
-    voiceRuntimeEnabled,
     voiceRuntimeState,
   ]);
 
@@ -597,7 +551,6 @@ export function MovementProfileV2UnifiedCheckUpScreen({
         cameraAvailability,
         selectedShoulder,
         pendingOfficialFallback,
-        voiceRuntimeEnabled,
         voiceRuntimeState,
       })}
       modalMode={modalMode}
@@ -623,7 +576,6 @@ export function MovementProfileV2UnifiedCheckUpScreen({
 
 function movementProfileV2ShellControls({
   live,
-  handsFreeMode,
   selectedLeg,
   selectedShoulder,
   pendingOfficialFallback,
@@ -637,7 +589,6 @@ function movementProfileV2ShellControls({
   onCancel,
 }: {
   live: MovementProfileV2LiveSnapshot;
-  handsFreeMode: boolean;
   selectedLeg: BodySide;
   selectedShoulder: BodySide;
   pendingOfficialFallback: OfficialSideFallbackRequest | null;
@@ -650,10 +601,12 @@ function movementProfileV2ShellControls({
   confirmOfficialFallback: () => void;
   onCancel: () => void;
 }): CheckUpShellControl[] {
+  // Hands-free is THE mode: manual controls surface only after the
+  // hands-free timeout (live.handsFreeFallbackAvailable), as honest escapes.
   const cancel: CheckUpShellControl = { id: 'cancel', title: 'Cancel', onPress: onCancel };
   switch (live.stage) {
     case 'standing_frame_check':
-      if (handsFreeMode && !live.handsFreeFallbackAvailable) return [cancel];
+      if (!live.handsFreeFallbackAvailable) return [cancel];
       return [
         {
           id: 'skip-frame-check',
@@ -664,11 +617,11 @@ function movementProfileV2ShellControls({
         cancel,
       ];
     case 'chair_setup':
-      if (handsFreeMode && !live.handsFreeFallbackAvailable) return [cancel];
+      if (!live.handsFreeFallbackAvailable) return [cancel];
       return [
         {
           id: 'confirm-chair',
-          title: handsFreeMode ? 'Use setup fallback' : 'Confirm setup',
+          title: 'Use setup fallback',
           onPress: () => runLiveAction({ type: 'confirm_chair_setup' }),
           disabled: actionDisabled({ type: 'confirm_chair_setup' }),
           primary: true,
@@ -676,11 +629,25 @@ function movementProfileV2ShellControls({
         cancel,
       ];
     case 'chair_practice':
+      // The practice rep can fail to credit in a marginal room; after the
+      // hands-free timeout, let the user vouch for it. Teach-only — the
+      // official 30-second window still requires camera-verified reps.
+      if (!live.handsFreeFallbackAvailable) return [cancel];
+      return [
+        {
+          id: 'chair-practice-done',
+          title: 'I did the practice stand',
+          onPress: () => runLiveAction({ type: 'complete_chair_practice_fallback' }),
+          disabled: actionDisabled({ type: 'complete_chair_practice_fallback' }),
+          primary: true,
+        },
+        cancel,
+      ];
     case 'chair_countdown':
     case 'chair_active':
       return [cancel];
     case 'balance_setup':
-      if (handsFreeMode && !live.handsFreeFallbackAvailable) return [cancel];
+      if (!live.handsFreeFallbackAvailable) return [cancel];
       return balanceSetupControls({
         live,
         selectedLeg,
@@ -694,7 +661,7 @@ function movementProfileV2ShellControls({
         cancel,
       });
     case 'balance_ready':
-      if (handsFreeMode && !live.handsFreeFallbackAvailable) return [cancel];
+      if (!live.handsFreeFallbackAvailable) return [cancel];
       return live.balanceBestHoldSec !== null
         ? [
             {
@@ -731,27 +698,11 @@ function movementProfileV2ShellControls({
         cancel,
       ];
     case 'balance_rest':
-      if (handsFreeMode) return [cancel];
-      return [
-        {
-          id: 'balance-ready',
-          title: live.canContinueAfterRest ? 'Ready now' : `Rest ${formatCompactSeconds(live.restMinimumRemainingMs)}`,
-          onPress: () => runLiveAction({ type: 'balance_ready' }),
-          disabled: !live.canContinueAfterRest || actionDisabled({ type: 'balance_ready' }),
-          primary: true,
-        },
-        ...(live.balanceBestHoldSec !== null
-          ? [{
-              id: 'balance-use-result',
-              title: 'Save best result',
-              onPress: () => runLiveAction({ type: 'balance_use_result' }),
-              disabled: actionDisabled({ type: 'balance_use_result' }),
-            }]
-          : []),
-        cancel,
-      ];
+      // Rest auto-advances at the 30-second minimum (audio-first: the phone
+      // is propped out of reach); no manual continue is offered.
+      return [cancel];
     case 'shoulder_setup':
-      if (handsFreeMode && !live.handsFreeFallbackAvailable) return [cancel];
+      if (!live.handsFreeFallbackAvailable) return [cancel];
       return shoulderSetupControls({
         live,
         selectedShoulder,
@@ -766,11 +717,11 @@ function movementProfileV2ShellControls({
       });
     case 'shoulder_ready':
     case 'shoulder_retry_ready':
-      if (handsFreeMode && !live.handsFreeFallbackAvailable) return [cancel];
+      if (!live.handsFreeFallbackAvailable) return [cancel];
       return [
         {
           id: 'start-shoulder',
-          title: handsFreeMode ? 'Use reach fallback' : 'Start reach',
+          title: 'Use reach fallback',
           onPress: () => runLiveAction({ type: 'start_shoulder_capture' }),
           disabled: actionDisabled({ type: 'start_shoulder_capture' }),
           primary: true,
@@ -788,11 +739,11 @@ function movementProfileV2ShellControls({
         cancel,
       ];
     case 'hinge_setup':
-      if (handsFreeMode && !live.handsFreeFallbackAvailable) return [cancel];
+      if (!live.handsFreeFallbackAvailable) return [cancel];
       return [
         {
           id: 'start-hinge',
-          title: handsFreeMode ? 'Use capture fallback' : 'Start capture',
+          title: 'Use capture fallback',
           onPress: () => runLiveAction({ type: 'start_hinge_capture' }),
           disabled: actionDisabled({ type: 'start_hinge_capture' }),
           primary: true,
@@ -800,16 +751,7 @@ function movementProfileV2ShellControls({
         cancel,
       ];
     case 'hinge_active':
-      if (handsFreeMode) return [cancel];
-      return [
-        {
-          id: 'finish-hinge',
-          title: 'Finish capture',
-          onPress: () => runLiveAction({ type: 'finish_hinge_capture' }),
-          primary: true,
-        },
-        cancel,
-      ];
+      return [cancel];
     case 'raw_complete':
     default:
       return [];
@@ -1057,21 +999,19 @@ function movementProfileV2ShellNotice({
   cameraAvailability,
   selectedShoulder,
   pendingOfficialFallback,
-  voiceRuntimeEnabled,
   voiceRuntimeState,
 }: {
   live: MovementProfileV2LiveSnapshot;
   cameraAvailability: CameraAvailability;
   selectedShoulder: BodySide;
   pendingOfficialFallback: OfficialSideFallbackRequest | null;
-  voiceRuntimeEnabled: boolean;
   voiceRuntimeState: MovementProfileV2VoiceRuntimeState;
 }): CheckUpShellNotice | null {
   if (cameraAvailability === 'unavailable') return null;
-  if (voiceRuntimeEnabled && voiceRuntimeState.lastFailure) {
+  if (voiceRuntimeState.lastFailure) {
     return { text: 'Audio setup needed', action: null };
   }
-  if (voiceRuntimeEnabled && voiceRuntimeState.blocking) {
+  if (voiceRuntimeState.blocking) {
     return { text: 'Audio guidance', action: null };
   }
   if (live.backgrounded) {

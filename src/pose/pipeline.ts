@@ -260,6 +260,7 @@ export class PosePipeline {
     this.lastTimestampMs = -1;
     this.fpsEma = 0;
     this.smoother.reset();
+    this.displaySmoother.reset();
     this.chains.reset();
     this.calibrator.reset();
     this.output.events.length = 0;

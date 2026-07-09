@@ -202,10 +202,11 @@ describe('MovementProfileV2LiveCoordinator', () => {
     let snapshot = coordinator.snapshot(nowMs);
     expect(snapshot.stage).toBe('balance_rest');
     expect(snapshot.balanceBestHoldSec).toBeGreaterThan(0);
-    expect(snapshot.canContinueAfterRest).toBe(false);
 
-    expect(coordinator.receiveUserAction({ type: 'balance_ready' }, nowMs + 29999)).toBe(false);
-    expect(coordinator.receiveUserAction({ type: 'balance_ready' }, nowMs + 30000)).toBe(true);
+    // Rest auto-advances at the 30-second minimum, never before.
+    coordinator.receiveTimerTick(nowMs + 29999);
+    expect(coordinator.snapshot(nowMs + 29999).stage).toBe('balance_rest');
+    coordinator.receiveTimerTick(nowMs + 30000);
     snapshot = coordinator.snapshot(nowMs + 30000);
     expect(snapshot.stage).toBe('balance_ready');
 
@@ -459,6 +460,40 @@ describe('MovementProfileV2LiveCoordinator', () => {
     const snapshot = coordinator.snapshot(nowMs + 10200);
     expect(snapshot.stage).toBe('balance_setup');
     expect(snapshot.handsFreeFallbackAvailable).toBe(true);
+  });
+
+  it('arms the chair-practice fallback after the hands-free timeout and confirms the practice by hand', () => {
+    const coordinator = createHandsFreeCoordinator();
+    expect(coordinator.receiveUserAction({ type: 'confirm_chair_setup' }, 0)).toBe(true);
+    expect(coordinator.snapshot(0).stage).toBe('chair_practice');
+    expect(coordinator.receiveUserAction({ type: 'chair_practice_voice_completed' }, 1)).toBe(true);
+
+    coordinator.receiveTimerTick(1000);
+    expect(coordinator.snapshot(1000).handsFreeFallbackAvailable).toBe(false);
+    coordinator.receiveTimerTick(11100);
+    const armed = coordinator.snapshot(11100);
+    expect(armed.stage).toBe('chair_practice');
+    expect(armed.handsFreeFallbackAvailable).toBe(true);
+
+    expect(coordinator.receiveUserAction({ type: 'complete_chair_practice_fallback' }, 11200)).toBe(true);
+    const after = coordinator.snapshot(11200);
+    expect(after.stage).toBe('chair_countdown');
+    expect(after.diagnostics.chair.practiceCompleted).toBe(true);
+    // Honest diagnostics: no camera-credited practice rep happened.
+    expect(after.diagnostics.chair.practiceReps).toBe(0);
+
+    // The countdown → go path still works on the hand-confirmed practice.
+    expect(coordinator.receiveUserAction({ type: 'chair_official_ready_voice_completed' }, 11300)).toBe(true);
+    expect(coordinator.receiveUserAction({ type: 'chair_countdown_started' }, 11400)).toBe(true);
+    expect(coordinator.receiveUserAction({ type: 'chair_go_playback_started' }, 11500)).toBe(true);
+    expect(coordinator.snapshot(11500).stage).toBe('chair_active');
+  });
+
+  it('rejects the chair-practice fallback before the practice instruction has finished', () => {
+    const coordinator = createHandsFreeCoordinator();
+    expect(coordinator.receiveUserAction({ type: 'confirm_chair_setup' }, 0)).toBe(true);
+    expect(coordinator.receiveUserAction({ type: 'complete_chair_practice_fallback' }, 10)).toBe(false);
+    expect(coordinator.snapshot(10).stage).toBe('chair_practice');
   });
 
   it('requires a two-foot setup stance before waiting for the balance lift', () => {

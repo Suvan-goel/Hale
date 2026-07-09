@@ -53,7 +53,6 @@ const FRAME_STALE_MS = 750;
 export const MPV2_CHAIR_COUNTDOWN_CADENCE_MS = 1000;
 export const MPV2_CHAIR_COUNTDOWN_TOTAL_MS = 3000;
 const BALANCE_REST_MIN_MS = 30000;
-const BALANCE_REST_DEFAULT_MS = 60000;
 // Exported (C7-style shared predicate rule): the dual-task runtime re-runs a
 // balance hold with EXACTLY this detection so level 2 measures the same way
 // level 1 did. Values change together or the comparison lies.
@@ -156,13 +155,13 @@ export type MovementProfileV2LiveUserAction =
   | { type: 'confirm_chair_setup'; source?: ProtocolSetupSource }
   | { type: 'chair_setup_voice_completed' }
   | { type: 'chair_practice_voice_completed' }
+  | { type: 'complete_chair_practice_fallback' }
   | { type: 'chair_official_ready_voice_completed' }
   | { type: 'chair_countdown_started' }
   | { type: 'chair_go_playback_started' }
   | { type: 'confirm_balance_setup'; standingLeg: BodySide; source?: ProtocolSetupSource }
   | { type: 'balance_setup_voice_completed' }
   | { type: 'balance_attempt_voice_completed' }
-  | { type: 'balance_ready' }
   | { type: 'balance_support_touched' }
   | { type: 'balance_stop' }
   | { type: 'balance_use_result' }
@@ -248,8 +247,6 @@ export interface MovementProfileV2LiveSnapshot {
   timerRemainingMs: number | null;
   balanceTimerKind: MovementProfileV2BalanceTimerKind;
   restMinimumRemainingMs: number | null;
-  restDefaultRemainingMs: number | null;
-  canContinueAfterRest: boolean;
   chairReps: number;
   repCreditCount: number;
   balanceValidTrials: number;
@@ -371,7 +368,6 @@ export class MovementProfileV2LiveCoordinator {
   private balanceTrialStartedAtMs: number | null = null;
   private balanceRestStartedAtMs: number | null = null;
   private balanceRestMinUntilMs: number | null = null;
-  private balanceRestDefaultUntilMs: number | null = null;
   private balanceSetupConfirmedAtMs: number | null = null;
   private balanceSetupSource: ProtocolSetupSource | null = null;
   private balanceSetupVoiceCompleted = false;
@@ -482,8 +478,6 @@ export class MovementProfileV2LiveCoordinator {
   snapshot(nowMs: number | null = null): MovementProfileV2LiveSnapshot {
     const timer = typeof nowMs === 'number' ? this.timerRemaining(nowMs) : null;
     const restMin = typeof nowMs === 'number' ? this.remainingUntil(this.balanceRestMinUntilMs, nowMs) : null;
-    const restDefault =
-      typeof nowMs === 'number' ? this.remainingUntil(this.balanceRestDefaultUntilMs, nowMs) : null;
     const statusText = this.statusText();
     const recoveryEpisode = this.activeRecoveryEpisode ? { ...this.activeRecoveryEpisode } : null;
     return {
@@ -510,8 +504,6 @@ export class MovementProfileV2LiveCoordinator {
       timerRemainingMs: timer,
       balanceTimerKind: this.balanceTimerKind(),
       restMinimumRemainingMs: restMin,
-      restDefaultRemainingMs: restDefault,
-      canContinueAfterRest: this.stage === 'balance_rest' && restMin === 0,
       chairReps: this.diagnostics.chair.officialReps,
       repCreditCount: this.repCreditCount,
       balanceValidTrials: this.balanceValidTrials,
@@ -565,6 +557,20 @@ export class MovementProfileV2LiveCoordinator {
         if (this.stage !== 'chair_practice') return false;
         this.chairPracticeVoiceCompleted = true;
         this.bump();
+        break;
+      case 'complete_chair_practice_fallback':
+        // Explicit user escape when the practice stand is never credited
+        // (dim room, occluded knee, too-shallow stand). The practice rep is
+        // teach-only — the official window still requires camera-verified
+        // reps — so confirming it by hand degrades no measurement.
+        if (this.stage !== 'chair_practice' || !this.chairPracticeVoiceCompleted) return false;
+        if (!this.chair.completePracticeRep(nowMs)) return false;
+        this.diagnostics.chair.practiceCompleted = true;
+        this.flow = movementProfileV2InternalFlowReducer(this.flow, { type: 'complete_chair_practice' });
+        this.chairAdapter = new ChairLiveAdapter();
+        this.chairCountdownStartedAtMs = null;
+        this.transition('chair_countdown', nowMs, 'chair_practice_fallback');
+        this.attemptEpochId = this.nextAttemptEpoch('chair-countdown');
         break;
       case 'chair_official_ready_voice_completed':
         if (this.stage !== 'chair_countdown') return false;
@@ -627,16 +633,6 @@ export class MovementProfileV2LiveCoordinator {
         if (this.stage !== 'balance_ready') return false;
         this.balanceAttemptVoiceCompleted = true;
         this.bump();
-        break;
-      case 'balance_ready':
-        if (
-          this.stage !== 'balance_rest' ||
-          (this.remainingUntil(this.balanceRestMinUntilMs, nowMs) ?? Infinity) > 0
-        ) {
-          return false;
-        }
-        this.transition('balance_ready', nowMs, 'balance_rest_ready');
-        this.attemptEpochId = this.nextAttemptEpoch('balance-ready');
         break;
       case 'balance_support_touched':
       case 'balance_stop':
@@ -978,6 +974,11 @@ export class MovementProfileV2LiveCoordinator {
         // clear: it would wipe the waiting clock every frame and the manual
         // fallback controls ("Save best result" / "Skip") could never appear.
         break;
+      case 'chair_practice':
+        // Practice-rep detection in updateChairPractice advances the stage;
+        // same rule as balance_ready — the waiting clock must survive so the
+        // "I did the practice stand" fallback can appear if detection fails.
+        break;
       default:
         this.clearHandsFreeReadiness();
     }
@@ -1299,7 +1300,6 @@ export class MovementProfileV2LiveCoordinator {
     this.clearBalanceReadyLiftEvidence();
     this.balanceRestStartedAtMs = nowMs;
     this.balanceRestMinUntilMs = nowMs + BALANCE_REST_MIN_MS;
-    this.balanceRestDefaultUntilMs = nowMs + BALANCE_REST_DEFAULT_MS;
     this.diagnostics.balance.restCount++;
     this.transition('balance_rest', nowMs, reason);
     this.attemptEpochId = this.nextAttemptEpoch('balance-rest');
@@ -2173,6 +2173,7 @@ function isActiveMeasurementStage(stage: MovementProfileV2LiveStage): boolean {
 function isHandsFreeWaitingStage(stage: MovementProfileV2LiveStage): boolean {
   return stage === 'standing_frame_check' ||
     stage === 'chair_setup' ||
+    stage === 'chair_practice' ||
     stage === 'balance_setup' ||
     stage === 'balance_ready' ||
     stage === 'shoulder_setup' ||

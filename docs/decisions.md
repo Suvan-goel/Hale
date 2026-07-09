@@ -5360,3 +5360,78 @@ should re-verify: one full real check-up end to end (results page appears,
 Progress history row appears, second check-up anchors the standing leg and
 unlocks the comparison affordance), and a mid-check-up tracking loss
 (notice returns to the stage instruction after recovery).
+
+## 2026-07-09 — Check-up UX fix pass: permission priming, sequence-true chair intro, practice fallback, legacy voice path retired
+
+Follow-up to the full check-up/pose/voice analysis (same day). Five fixes,
+one deliberate reversal, all pinned by tests. Suite: 173 suites / 1,482
+tests green; tsc + expo config clean.
+
+1. **Camera permission is requested at the Check-up #0 intro, never
+   mid-battery.** The battery used to mount the camera with permission
+   still undetermined — a first-time user got the cold OS dialog while the
+   intro voice line was already speaking over it (the pre-production
+   audit's "cold permission prompt", unfixed through promotion).
+   `ProgrammeCheckupZeroScreen` now takes `cameraPermissionGranted` +
+   `onRequestCameraPermission` (root-owned single seam,
+   `ensureCameraPermission`); "Start with the warm-up" awaits the grant
+   over the static intro. Denial gets an honest panel — privacy line ("a
+   simple outline, nothing leaves your phone"), re-request, phone-settings
+   link (`Linking.openSettings`), and a penalty-free "Not now". The intro
+   panel copy now names the camera so the ask is primed.
+   `CameraSetupScreen`'s stale "four short movements" copy → "a few short
+   movements" (the shipped battery is two).
+2. **The chair item no longer announces itself as first when it runs
+   second.** Check-up #0 is balance → chair, but the mid-battery handoff
+   played `checkup-chair-stand-intro-v21` ("We'll start with the chair
+   stand…"). The runtime now swaps in the bundled `chair-stand-intro`
+   ("Next, the thirty second chair stand…") on mid-battery handoffs only —
+   cold starts and frame-check entries keep the v21 line, and no new audio
+   generation was needed. (`cuesForChairSetup` in voiceRuntime, mirroring
+   the hinge-setup pattern; the resolver stays mpv2-typed.)
+3. **`chair_practice` got the hands-free fallback every other stage already
+   had.** If the practice stand never credited (dim room, occluded knee,
+   too-shallow stand) the user was stranded with only Cancel — no timeout,
+   no voice re-prompt. It is now a hands-free waiting stage; after the 10s
+   timeout the shell offers "I did the practice stand"
+   (`complete_chair_practice_fallback`, voice-gated, stage-guarded).
+   Honest by construction: the practice rep is teach-only, diagnostics
+   record `practiceCompleted` without a camera-credited practice rep, and
+   the official window still requires camera-verified reps.
+4. **Back with a completed battery exits FORWARD.** `requestClose` treated
+   a non-null checkUp as "nothing to lose" and called `onCancel` — the
+   user-triggerable version of the documented crash gap: record saved (raw-
+   ready), placement never applied, results never shown. It now routes
+   through `finishNow` → `onComplete`, so leaving during the outro applies
+   placement and shows results.
+5. **The voice-runtime foundation flag and the legacy sequencer path are
+   RETIRED** (`EXPO_PUBLIC_ENABLE_MPV2_VOICE_RUNTIME_FOUNDATION` deleted).
+   The flag-off path was not a working fallback: the coordinator's
+   voice-completed prerequisites (practice/attempt/countdown/go) were only
+   ever dispatched by the runtime, so flag-off stranded at chair practice
+   and could never start a balance trial — and its hardcoded chair-first
+   intro predated sequenced batteries. The screen is runtime-only and
+   hands-free-only now; `MovementProfileV2VoiceSequencer`,
+   `movementProfileV2VisibleCueForStage`, and
+   `latestPendingMovementProfileV2RawCheckUp` (superseded by
+   materialize-at-save) are deleted.
+6. **Balance rest is codified as auto-advance at the 30s minimum**, and the
+   dead user-paced plumbing is gone: the unreachable `balance_ready` user
+   action, `canContinueAfterRest`, `restDefaultRemainingMs`, the 60s
+   default-rest clock, and the `balance_default_rest_elapsed` resolver
+   branch. This REVERSES the 2026-07-09 bug-pass note that kept the
+   after-60 hook "as the intended future hook" — the hook was unreachable
+   by construction (ticks auto-advance at min rest) and a real 30–60s
+   user-paced window would need coordinator changes anyway. The
+   `mpv2_balance_ready_after_60` cue DEFINITION and its bundled audio are
+   deliberately kept: removing a definition changes the cue-policy
+   fingerprint and would force a full mpv2 audio regeneration; drop it on
+   the next real generation run (commented at the definition).
+
+Also: `PosePipeline.reset()` now resets the display smoother too (was
+measurement-smoother only; production never calls reset — fresh pipeline
+per screen — so display-only and theoretical).
+
+Device pass addition: first-install flow should show the permission ask on
+the check-up intro, and a Check-up #0 run should speak "Next, the thirty
+second chair stand…" after the balance item.

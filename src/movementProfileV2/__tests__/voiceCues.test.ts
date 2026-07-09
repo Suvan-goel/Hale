@@ -7,34 +7,14 @@ import type {
 import {
   MOVEMENT_PROFILE_V2_CUE_DEFINITIONS,
   MOVEMENT_PROFILE_V2_CUE_POLICY_FINGERPRINT,
-  MovementProfileV2VoiceSequencer,
   initialMovementProfileV2VoiceEvent,
   movementProfileV2CueDefinition,
   movementProfileV2CueIds,
-  movementProfileV2VisibleCueForStage,
   resolveMovementProfileV2CueIdsForTransition,
 } from '../voiceCues';
 
-const STAGES: readonly MovementProfileV2LiveStage[] = [
-  'chair_setup',
-  'chair_practice',
-  'chair_countdown',
-  'chair_active',
-  'balance_setup',
-  'balance_ready',
-  'balance_trial',
-  'balance_rest',
-  'shoulder_setup',
-  'shoulder_ready',
-  'shoulder_active',
-  'shoulder_retry_ready',
-  'hinge_setup',
-  'hinge_active',
-  'raw_complete',
-];
-
 describe('Movement Profile V2 voice cues', () => {
-  it('defines a unique, fingerprinted cue matrix with visible copy for every live stage', () => {
+  it('defines a unique, fingerprinted cue matrix', () => {
     const ids = movementProfileV2CueIds();
 
     expect(new Set(ids).size).toBe(ids.length);
@@ -46,15 +26,9 @@ describe('Movement Profile V2 voice cues', () => {
         voiceRequired: true,
       });
     }
-    for (const stage of STAGES) {
-      expect(movementProfileV2VisibleCueForStage(stage).text.length).toBeGreaterThan(0);
-    }
-    expect(movementProfileV2VisibleCueForStage('shoulder_setup', 'left').id).toBe(
-      'checkup-shoulder-turn-left-v21'
-    );
   });
 
-  it('provides an initial intro event and suppresses duplicate transition events', () => {
+  it('provides an initial intro event for cold chair starts', () => {
     const intro = initialMovementProfileV2VoiceEvent();
     expect(intro.cues).toEqual([
       'mpv2_checkup_intro',
@@ -62,14 +36,6 @@ describe('Movement Profile V2 voice cues', () => {
       'checkup-chair-stand-setup-v21',
     ]);
     expect(intro.visibleText).toContain('Welcome to your Movement Check-Up');
-
-    const sequencer = new MovementProfileV2VoiceSequencer();
-    const live = snapshot({
-      lastTransition: transition('chair_setup', 'chair_practice', 'chair_setup_confirmed', 100),
-    });
-
-    expect(sequencer.next(live)?.cues).toEqual(['mpv2_chair_practice_start']);
-    expect(sequencer.next(live)).toBeNull();
   });
 
   it('maps balance, shoulder, and final transitions to canonical V2 cue chains', () => {
@@ -82,9 +48,6 @@ describe('Movement Profile V2 voice cues', () => {
     ]);
     expect(cuesFor('balance_rest', 'balance_ready', 'balance_rest_ready')).toEqual([
       'mpv2_balance_ready_after_30',
-    ]);
-    expect(cuesFor('balance_rest', 'balance_ready', 'balance_default_rest_elapsed')).toEqual([
-      'mpv2_balance_ready_after_60',
     ]);
     expect(
       cuesFor('balance_trial', 'shoulder_setup', 'balance_section_complete', {

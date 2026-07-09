@@ -26,7 +26,6 @@ import {
   createCapturedHingeReachResult,
   createCapturedOneLegBalanceV2Result,
   createMovementProfileV2InternalFlow,
-  latestPendingMovementProfileV2RawCheckUp,
   movementProfileV2InternalFlowReducer,
   movementProfileV2RawCheckUpFromFlow,
 } from '../internalCheckupFlow';
@@ -118,25 +117,6 @@ describe('internal Movement Profile V2 flow', () => {
     expect(checkUp?.items.some((item) => item.movementId === ONE_LEG_BALANCE_V2_ID)).toBe(false);
   });
 
-  it('selects the latest raw-complete V2 record for auto-finalization', () => {
-    const pending = storedRawV2(makeV2CheckUp('2026-06-24T09:00:00.000Z'), 'baseline');
-    const materialized = storedV2Assessment(makeV2CheckUp('2026-06-01T09:00:00.000Z'), 'baseline');
-
-    const resumed = latestPendingMovementProfileV2RawCheckUp([materialized, pending]);
-
-    expect(resumed?.record.checkUp.startedAt).toBe('2026-06-24T09:00:00.000Z');
-    expect(resumed?.sourceType).toBe('baseline');
-  });
-
-  it('recovers a stranded official-retest raw check-up for auto-finalization', () => {
-    const pendingRetest = storedRawV2(makeV2CheckUp('2026-06-29T09:00:00.000Z'), 'official_retest');
-    const materialized = storedV2Assessment(makeV2CheckUp('2026-06-01T09:00:00.000Z'), 'baseline');
-
-    const resumed = latestPendingMovementProfileV2RawCheckUp([materialized, pendingRetest]);
-
-    expect(resumed?.record.checkUp.startedAt).toBe('2026-06-29T09:00:00.000Z');
-    expect(resumed?.sourceType).toBe('official_retest');
-  });
 });
 
 const REFERENCE_PROFILE = {
@@ -155,18 +135,6 @@ function makeV2CheckUp(startedAt: string): CheckUp {
       { movementId: ONE_LEG_BALANCE_V2_ID, status: 'measured', result: balanceResult() },
       { movementId: ACTIVE_SHOULDER_REACH_V2_ID, status: 'measured', result: shoulderResult() },
     ],
-  };
-}
-
-function storedRawV2(
-  checkUp: CheckUp,
-  checkupType: 'baseline' | 'baseline_retake' | 'official_retest'
-): StoredCheckUp {
-  return {
-    schemaVersion: HISTORY_SCHEMA_VERSION,
-    checkUp,
-    checkupType,
-    scoreSnapshotCompatibility: 'unsupported_checkup_protocol',
   };
 }
 

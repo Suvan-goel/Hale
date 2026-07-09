@@ -281,38 +281,6 @@ function movementMatchesItem(movement: MovementProfileV2BatteryMovement, movemen
   }
 }
 
-export type PendingMovementProfileV2SourceType = Extract<
-  CheckupType,
-  'baseline' | 'baseline_retake' | 'official_retest'
->;
-
-export function latestPendingMovementProfileV2RawCheckUp(
-  history: readonly StoredCheckUp[] | null | undefined
-): { record: StoredCheckUp; sourceType: PendingMovementProfileV2SourceType } | null {
-  const sorted = (history ?? [])
-    .slice()
-    .sort((a, b) => b.checkUp.startedAt.localeCompare(a.checkUp.startedAt));
-  for (const record of sorted) {
-    if (
-      record.checkupType !== 'baseline' &&
-      record.checkupType !== 'baseline_retake' &&
-      record.checkupType !== 'official_retest'
-    ) {
-      continue;
-    }
-    if (record.movementProfileV2Assessment || record.movementProfileV2Snapshot) continue;
-    if (record.checkUp.protocolPolicy?.id !== MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID) continue;
-    const checkUp = record.checkUp;
-    const hasAllHeadline = MOVEMENT_PROFILE_V2_HEADLINE_MOVEMENT_IDS.every((movementId) =>
-      checkUp.items.some((item) => item.movementId === movementId && item.status === 'measured' && item.result)
-    ) || MOVEMENT_PROFILE_V2_HEADLINE_MOVEMENT_IDS_V2.every((movementId) =>
-      checkUp.items.some((item) => item.movementId === movementId && item.status === 'measured' && item.result)
-    );
-    if (hasAllHeadline) return { record, sourceType: record.checkupType };
-  }
-  return null;
-}
-
 export function latestMaterializedMovementProfileV2Result(
   history: readonly StoredCheckUp[] | null | undefined
 ) {

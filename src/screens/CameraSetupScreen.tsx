@@ -79,7 +79,7 @@ export function CameraSetupScreen({
         <View style={styles.expectCopy}>
           <Text style={styles.expectTitle}>What to expect</Text>
           <Text style={styles.expectBody}>
-            When {BRAND.appName} can see you clearly, the check-up starts on its own. You will do four short movements, and {BRAND.appName} tells you when to move, rest, and continue. You can pause or stop whenever you want.
+            When {BRAND.appName} can see you clearly, the check-up starts on its own. You will do a few short movements, and {BRAND.appName} tells you when to move, rest, and continue. You can pause or stop whenever you want.
           </Text>
         </View>
       </View>
