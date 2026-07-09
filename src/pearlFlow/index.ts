@@ -11,7 +11,6 @@ export * from './clarityEscalation';
 export * from './clarityTrend';
 export * from './ghostCurve';
 export * from './equipmentPositioning';
-export * from './exploreViewModel';
 export * from './movementProfileV2Block';
 export * from './movementProfileV2BlockReport';
 export * from './movementProfileV2RetestComparison';

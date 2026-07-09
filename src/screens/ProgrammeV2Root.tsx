@@ -3,9 +3,7 @@
  * build became the default and its flag was retired): mounted unconditionally
  * by App.tsx inside AuthProvider. Owns store loading (auth-scoped,
  * guest-adopting), the merged onboarding flow, the session/check-up phases,
- * and the three-tab shell (Home / Progress / Learn — the Plan tab merged into
- * Home and Explore's extra-practice catalogue was removed in the
- * founder-directed simplification pass, 2026-07-08) with the Settings flow —
+ * and the two-tab shell (Home / Progress) with the Settings flow —
  * all rendered by the SHARED app screens.
  *
  * Coupling rules: programme STATE stays zero-coupled to the old engine (no
@@ -96,8 +94,6 @@ import { useAuth } from '../services/backend';
 import type { TrainingSessionResult } from '../training/sessionPlayer';
 import { DEFAULT_VOICE_SETUP_PREFS, type VoiceSetupPrefs } from '../voice/voicePermissionGate';
 import { CameraSetupScreen } from './CameraSetupScreen';
-import { LearnDetailScreen } from './ExploreDetailScreens';
-import { ExploreScreen } from './ExploreScreen';
 import { MovementProfileV2UnifiedResultsScreen } from './MovementProfileV2UnifiedResultsScreen';
 import { ProgressScreen } from './ProgressScreen';
 import { ProgrammeCheckupZeroScreen } from './ProgrammeCheckupZeroScreen';
@@ -148,7 +144,6 @@ export function ProgrammeV2Root() {
   const [phase, setPhase] = React.useState<ShellPhase>('loading');
   const [tab, setTab] = React.useState<TabKey>('today');
   const [flow, setFlow] = React.useState<ShellFlow>(null);
-  const [learnId, setLearnId] = React.useState<string | null>(null);
   // The per-check-up results page (restored 2026-07-08, founder direction):
   // fresh results right after a check-up ('standard' / 'onboarding' for the
   // first-ever), and read-only saved results from Progress ('history'). The
@@ -239,7 +234,7 @@ export function ProgrammeV2Root() {
 
   // Android navigation bar: visible only on the tab shell — sessions,
   // check-ups, and full-screen flows run immersive (old-shell behavior).
-  const showTabBar = phase === 'home' && flow === null && learnId === null && resultsView === null;
+  const showTabBar = phase === 'home' && flow === null && resultsView === null;
   React.useEffect(() => {
     void setAndroidNavigationBarVisibleAsync(showTabBar);
   }, [showTabBar]);
@@ -906,10 +901,6 @@ export function ProgrammeV2Root() {
     );
   }
 
-  if (learnId) {
-    return <LearnDetailScreen articleId={learnId} onDone={() => setLearnId(null)} />;
-  }
-
   if (flow === 'settings') {
     return (
       <SettingsScreen
@@ -989,12 +980,6 @@ export function ProgrammeV2Root() {
                 setResultsView({ sourceCheckUpId, variant: 'history' })
               }
               programmeLevels={easedLevels}
-              onOpenSettings={openSettings}
-            />
-          ) : tab === 'explore' ? (
-            <ExploreScreen
-              menopauseStage={prefs.profile.menopauseStage}
-              onOpenLearn={setLearnId}
               onOpenSettings={openSettings}
             />
           ) : (

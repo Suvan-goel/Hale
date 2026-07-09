@@ -5473,3 +5473,46 @@ Verification: TypeScript clean; Expo public config resolves
 tests green. iOS simulator build and Android debug Kotlin compilation both
 succeeded, followed by visual checks of onboarding and populated Home,
 Progress, Learn, and Settings surfaces.
+
+## 2026-07-09 — Pearl MVP product contract: twelve-week proof loop
+
+Founder-approved direction after a whole-product PMF review:
+
+- **Customer:** women roughly 45–60 in perimenopause or early postmenopause
+  who understand that strength matters, are not training consistently, and
+  want a private structured programme at home.
+- **Journey:** one visible 12-week journey, presented as Foundations (weeks
+  1–4), Build (weeks 5–8), and Progress (weeks 9–12). Three sessions are
+  planned per week; two is still a successful minimum. Official check-ups are
+  baseline, week 4, week 8, and week 12.
+- **Comparable check-ups:** the official baseline and every official retest
+  use the same frozen core protocol. Early value may be revealed partway
+  through and the flow may resume, but a shorter protocol must never be
+  presented as a comparable baseline.
+- **Prescription boundary:** Strength and Balance alone determine physical
+  training emphasis. Clarity is observational and can never alter exercise
+  selection, dose, progression, session pace, cueing, or guidance. Results
+  must make the Strength/Balance prescription change visible.
+- **Clarity:** every official check-up includes the complete Everyday Clarity
+  self-report and a same-session matched solo/dual movement pair. Series stay
+  separate; no combined Clarity score, population comparison, diagnostic
+  interpretation, or guaranteed cognitive outcome. Verbal fluency remains
+  unmounted/dev-gated until a defensible 12-week repeated-form protocol
+  exists. Product copy may say regular physical activity supports brain
+  health and that Pearl tracks Clarity alongside training; it may not claim
+  Pearl caused a cognitive change.
+- **Workout interaction:** voice-paced control is core — Pearl waits for the
+  user and continues when she says she is ready. Every command retains full
+  tap parity. First exposure to an exercise includes a brief visual
+  demonstration; later exposures can replay it on request.
+- **Scope reduction:** the Learn tab and its bundled article library are
+  removed from the MVP. Necessary education remains contextual. Discoverable
+  account/sign-in/backup surfaces are hidden until accounts work end to end;
+  auth scoping remains internally for existing local data compatibility.
+- **Brand:** Pearl is the product name. A separate availability/trademark
+  preflight remains required before public launch.
+
+Implementation is incremental and test-gated. Dual-task camera/microphone
+coexistence, speech/cognitive-task validity, real-human measurement noise,
+and professional protocol review remain release gates rather than claims of
+the implementation.

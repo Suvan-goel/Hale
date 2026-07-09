@@ -2,7 +2,6 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { controlledBetaEquipmentPositioning } from '../equipmentPositioning';
-import { getHealthInsightCards, getLearnDetail } from '../exploreViewModel';
 import {
   PELVIC_PHYSIO_SIGNPOST_COPY,
   PROGRAMME_EFFORT_CHECKIN_COPY,
@@ -80,27 +79,6 @@ function productionSourceText(file: string): string {
 }
 
 describe('Pearl V1 copy guardrails', () => {
-  it('keeps Learn view-model copy warm and non-medical', () => {
-    // The old engine's Today/Plan/micro-check view models retired with the
-    // shell (promotion commit 2, 2026-07-08), and the extra-session catalogue
-    // with the simplification pass (same day); the programme adapter block
-    // below owns the Today/Plan copy scans.
-    assertCleanCopy(
-      getHealthInsightCards().flatMap((card) => {
-        const detail = getLearnDetail(card.id);
-        return [
-          card.title,
-          card.body,
-          card.categoryLabel,
-          card.authorName,
-          card.authorCredential,
-          card.reviewedLabel,
-          ...(detail?.sections.flatMap((section) => [section.title, section.body]) ?? []),
-        ];
-      })
-    );
-  });
-
   it('keeps programme v2 app-lifecycle copy warm and non-medical across every state', () => {
     // The promotion-integration adapter (src/programme/appLifecycle.ts) owns
     // all programme shell copy — exercise every state it can emit.
@@ -175,31 +153,19 @@ describe('Pearl V1 copy guardrails', () => {
   it('keeps menopause positioning wellness-side: no bone, hormone, or treatment claims', () => {
     const sourceText = [
       ...RESULT_COPY_FILES.map(productionSourceText),
-      productionSourceText('src/pearlFlow/exploreViewModel.ts'),
       productionSourceText('src/adherence/goalDomainMapping.ts'),
       productionSourceText('src/programme/onboarding/content.ts'),
     ].join(' ');
     expect(sourceText).not.toMatch(MENOPAUSE_CLAIM_COPY);
-    expect(
-      getHealthInsightCards()
-        .flatMap((card) => {
-          const detail = getLearnDetail(card.id);
-          return [card.title, card.body, ...(detail?.sections.flatMap((s) => [s.title, s.body]) ?? [])];
-        })
-        .join(' ')
-    ).not.toMatch(MENOPAUSE_CLAIM_COPY);
 
-    // The repositioning itself is pinned: the onboarding welcome leads with
-    // the menopause frame, and the flagship article carries the
-    // founder-directed review label (2026-07-05 decision).
+    // The positioning itself is pinned: onboarding leads with the menopause
+    // frame even though the MVP no longer carries a generic article library.
     expect(productionSourceText('src/programme/onboarding/content.ts')).toMatch(/menopause/i);
-    expect(getLearnDetail('insight-menopause-muscle')?.reviewedLabel).toBe('Reviewed Jul 2026');
   });
 
   it('keeps every product surface clear of cognitive disease and fog-treatment claims', () => {
     const sourceText = [
       ...RESULT_COPY_FILES.map(productionSourceText),
-      productionSourceText('src/pearlFlow/exploreViewModel.ts'),
       productionSourceText('src/programme/appLifecycle.ts'),
       productionSourceText('src/programme/onboarding/content.ts'),
       productionSourceText('src/adherence/goalDomainMapping.ts'),
@@ -212,14 +178,6 @@ describe('Pearl V1 copy guardrails', () => {
     ].join(' ');
     expect(sourceText).not.toMatch(COGNITIVE_CLAIM_COPY);
 
-    expect(
-      getHealthInsightCards()
-        .flatMap((card) => {
-          const detail = getLearnDetail(card.id);
-          return [card.title, card.body, ...(detail?.sections.flatMap((s) => [s.title, s.body]) ?? [])];
-        })
-        .join(' ')
-    ).not.toMatch(COGNITIVE_CLAIM_COPY);
   });
 
   it('keeps Clarity self-report surfaces honest: self-reported tracking, never "validated"', () => {

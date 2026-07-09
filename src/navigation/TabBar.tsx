@@ -2,7 +2,7 @@
  * Lightweight floating bottom tab bar. The app navigates with a small amount of state in
  * App.tsx (no heavy navigation dependency — consistent with the existing
  * hand-rolled screen switching and CLAUDE.md's caution on native deps). The bar
- * shows only on the three primary tabs; hands-free session flows take the
+ * shows only on the two primary tabs; hands-free session flows take the
  * whole screen and hide it. (The Plan tab merged into Home in the
  * founder-directed simplification pass, 2026-07-08 — it duplicated the levels
  * card, session CTA, and check-up offer already on Home.)
@@ -12,11 +12,11 @@ import * as React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
-import { ExploreIcon, HomeIcon, IconProps, ProgressIcon } from './icons';
+import { HomeIcon, IconProps, ProgressIcon } from './icons';
 
-export type TabKey = 'today' | 'progress' | 'explore';
-export type TabScreenName = 'TodayScreen' | 'ProgressScreen' | 'ExploreScreen';
-export type TabIconName = 'HomeIcon' | 'ProgressIcon' | 'ExploreIcon';
+export type TabKey = 'today' | 'progress';
+export type TabScreenName = 'TodayScreen' | 'ProgressScreen';
+export type TabIconName = 'HomeIcon' | 'ProgressIcon';
 
 export interface TabDef {
   key: TabKey;
@@ -29,10 +29,6 @@ export interface TabDef {
 export const TAB_DEFS: readonly TabDef[] = [
   { key: 'today', label: 'Home', screen: 'TodayScreen', iconName: 'HomeIcon', Icon: HomeIcon },
   { key: 'progress', label: 'Progress', screen: 'ProgressScreen', iconName: 'ProgressIcon', Icon: ProgressIcon },
-  // Label "Learn": the tab carries the articles only since the extra-practice
-  // catalogue was removed (simplification pass, 2026-07-08). The stable route
-  // key stays 'explore' so persisted/telemetry references keep resolving.
-  { key: 'explore', label: 'Learn', screen: 'ExploreScreen', iconName: 'ExploreIcon', Icon: ExploreIcon },
 ];
 
 export const DEFAULT_TAB_KEY: TabKey = 'today';

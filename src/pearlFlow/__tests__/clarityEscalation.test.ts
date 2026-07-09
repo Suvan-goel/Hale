@@ -165,7 +165,6 @@ describe('the ONLY escalation path (guardrail)', () => {
     ];
     const scanned = [
       'src/pearlFlow/clarityTrend.ts',
-      'src/pearlFlow/exploreViewModel.ts',
       'src/screens/ProgressScreen.tsx',
       'src/screens/TodayScreen.tsx',
       'src/screens/SettingsScreen.tsx',

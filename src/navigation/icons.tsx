@@ -82,30 +82,6 @@ export function BellIcon({ size, color, strokeWidth = 1.8 }: IconProps) {
   );
 }
 
-export function ExploreIcon({ size, color, strokeWidth = 1.8 }: IconProps) {
-  const s = common(color, strokeWidth);
-  return (
-    <Frame size={size}>
-      <Circle cx={12} cy={12} r={7.4} {...s} />
-      <Path d="M9.2 14.8 L11.1 10.7 L14.8 9.2 L12.9 13.3 Z" {...s} />
-      <Circle cx={12} cy={12} r={0.9} fill={color} stroke="none" />
-    </Frame>
-  );
-}
-
-export function LearnIcon({ size, color, strokeWidth = 1.8 }: IconProps) {
-  const s = common(color, strokeWidth);
-  return (
-    <Frame size={size}>
-      <Path
-        d="M12 6.5 C10 5, 6.5 5, 4.5 5.8 V18 C6.5 17.2, 10 17.2, 12 18.7 C14 17.2, 17.5 17.2, 19.5 18 V5.8 C17.5 5, 14 5, 12 6.5 Z"
-        {...s}
-      />
-      <Path d="M12 6.5 V18.7" {...s} />
-    </Frame>
-  );
-}
-
 export function FamilyIcon({ size, color, strokeWidth = 1.8 }: IconProps) {
   const s = common(color, strokeWidth);
   return (

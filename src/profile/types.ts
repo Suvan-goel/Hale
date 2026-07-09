@@ -19,7 +19,7 @@ export type ProfileReferenceSex = 'female' | 'male';
  * 'neither_or_unsure' is the stored token behind the "Not sure" label (kept so
  * v9 records parse unchanged). Rules of record: "Not sure" is a first-class
  * answer treated as a personalization signal (gentle educational content
- * leads — see exploreViewModel) and is NEVER re-asked or nagged about;
+ * leads — see the programme onboarding adapter) and is NEVER re-asked or nagged about;
  * 'prefer_not_to_say' is an explicit stored decline (F1) — required-before-
  * Continue is satisfied by it, and null never masquerades as answered.
  */

@@ -120,7 +120,7 @@ function AuthLoadingScreen() {
         <HeaderLogo size={28} />
         <Text style={styles.splashBrand}>{BRAND.appName}</Text>
       </View>
-      <Text style={styles.splashText}>Preparing your account...</Text>
+      <Text style={styles.splashText}>Preparing Pearl...</Text>
     </View>
   );
 }

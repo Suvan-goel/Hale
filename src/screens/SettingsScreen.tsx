@@ -1,6 +1,6 @@
 /**
  * Settings screen: compact local profile hub, plan preferences, safety setup,
- * equipment, account actions, privacy, and help.
+ * equipment, privacy, and help. Accounts remain deferred for the MVP.
  */
 
 import * as React from 'react';
@@ -10,7 +10,6 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import type { ActivityLevel, AvailableEquipment } from '../adherence';
 import { getLifeGoalDisplayText, normalizeLifeGoalDisplayText } from '../adherence';
 import { VoiceChannel } from '../audio/voicePlayer';
-import { AccountAuthCard } from '../components/AccountAuthCard';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { DateOfBirthPickerModal } from '../components/DateOfBirthPickerModal';
 import { HeaderLogo } from '../components/HeaderLogo';
@@ -49,7 +48,6 @@ type ProfileSection =
   | 'plan'
   | 'voice'
   | 'equipment'
-  | 'account'
   | 'privacy';
 
 type VoiceCatalogOption = (typeof VOICE_OPTIONS)[number];
@@ -74,10 +72,6 @@ const SECTION_COPY: Record<ProfileSection, { title: string; subtitle: string }> 
   equipment: {
     title: 'Equipment',
     subtitle: 'Choose what you have at home.',
-  },
-  account: {
-    title: 'Account & data',
-    subtitle: `Manage sign-in and your ${BRAND.appName} data.`,
   },
   privacy: {
     title: 'Privacy & data',
@@ -362,10 +356,6 @@ function SettingsScreenContent({
       );
     }
 
-    if (openSection === 'account') {
-      return <AccountAuthCard context="settings" />;
-    }
-
     if (openSection === 'privacy') {
       return (
         <>
@@ -503,14 +493,6 @@ function SettingsScreenContent({
           title={SECTION_COPY.privacy.title}
           icon="lock"
           onPress={() => openProfileSection('privacy')}
-        />
-      </SettingsSection>
-
-      <SettingsSection title="Account & data">
-        <ProfileMenuRow
-          title={SECTION_COPY.account.title}
-          icon="account"
-          onPress={() => openProfileSection('account')}
         />
       </SettingsSection>
 
@@ -1024,8 +1006,6 @@ function PrivacyStorageCard() {
           body="Support, comfort, equipment, and camera setup."
           value="Saved"
         />
-        {/* Two mic uses, honestly distinguished (FL1 privacy model, 2026-07-06).
-            The global commands/safety promise is restated, never weakened. */}
         <PrivacyLedgerRow
           icon="shield"
           label="Microphone — session and safety words"
@@ -1034,9 +1014,9 @@ function PrivacyStorageCard() {
         />
         <PrivacyLedgerRow
           icon="shield"
-          label="Microphone — optional word-finding check"
-          body="Only during the optional 60-second check-up task, and only after you agree each time: speech becomes words on your phone to count them. The count is saved; the words and audio never are."
-          value="Count only"
+          label="Microphone — steadiness while thinking"
+          body="During the optional check-up task, Pearl detects whether you are speaking while you balance. Your words and audio are never saved."
+          value="Activity only"
         />
       </View>
     </DetailCard>
