@@ -457,7 +457,7 @@ export function getMovementProfileV2SnapshotEligibility(
     eligible: true,
     sourceType: checkupType,
     rawCompleteness: {
-      missingDomains: [],
+      missingDomains: canonical.missingDomains,
       evidenceStatusByMovementId: canonical.evidenceStatusByMovementId,
     },
     sourceCheckUpFingerprint: canonical.fingerprint as string,
@@ -911,7 +911,16 @@ function canonicalMovementProfileV2Source(
     resultForItem<BalanceEyesOpenV2Result>(checkUp, BALANCE_EYES_OPEN_V2_ID) ??
       resultForItem<OneLegBalanceV2Result>(checkUp, ONE_LEG_BALANCE_V2_ID)
   );
-  const shoulder = canonicalShoulderResult(resultForItem<ActiveShoulderReachV2Result>(checkUp, ACTIVE_SHOULDER_REACH_V2_ID));
+  // The shoulder item is OPTIONAL at the source level (2026-07-09): the
+  // two-protocol official battery (Check-up #0 scope — balance + chair) never
+  // runs it. An ABSENT shoulder item canonicalizes as "mobility not measured
+  // this check-up"; a PRESENT-but-unusable one still fails canonicalization
+  // exactly as before. Chair and balance remain hard requirements.
+  const shoulderItem = resultForItem<ActiveShoulderReachV2Result>(checkUp, ACTIVE_SHOULDER_REACH_V2_ID);
+  const shoulderAbsent = shoulderItem === null;
+  const shoulder = shoulderAbsent
+    ? { ok: true as const, canonical: null, evidenceStatus: undefined }
+    : canonicalShoulderResult(shoulderItem);
   const missingDomains: MovementProfileV2DomainKey[] = [];
   if (!chair.ok) missingDomains.push('chair');
   if (!balance.ok) missingDomains.push('balance');
@@ -937,6 +946,7 @@ function canonicalMovementProfileV2Source(
       }),
     };
   }
+  const notMeasuredDomains: MovementProfileV2DomainKey[] = shoulderAbsent ? ['shoulder'] : [];
 
   const canonical = {
     checkUpId: checkUp.startedAt,
@@ -951,9 +961,14 @@ function canonicalMovementProfileV2Source(
       ...(balance.movementId === BALANCE_EYES_OPEN_V2_ID
         ? MOVEMENT_PROFILE_V2_HEADLINE_MOVEMENT_IDS_V2
         : MOVEMENT_PROFILE_V2_HEADLINE_MOVEMENT_IDS),
-    ].sort(),
+    ]
+      .filter((movementId) => !(shoulderAbsent && movementId === ACTIVE_SHOULDER_REACH_V2_ID))
+      .sort(),
     rawCompleteness: {
-      missingDomains: [],
+      // Honest scope record: domains the battery never ran (never a failure —
+      // those were rejected above). Feeds the source fingerprint, so a
+      // narrower battery can never collide with a full one.
+      missingDomains: notMeasuredDomains,
       evidenceStatusByMovementId,
     },
     results: {
@@ -966,7 +981,7 @@ function canonicalMovementProfileV2Source(
     ok: true,
     canonical,
     fingerprint: deterministicFingerprint('mpv2-source-checkup-v1', canonical),
-    missingDomains: [],
+    missingDomains: notMeasuredDomains,
     evidenceStatusByMovementId,
   };
 }

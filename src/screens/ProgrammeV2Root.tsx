@@ -31,8 +31,13 @@ import { LOCAL_USER_ID, type AvailableEquipment } from '../adherence';
 import { configureSessionAudio } from '../audio/voicePlayer';
 import { Screen, ScreenScrollClearanceProvider } from '../components/ui';
 import { useSystemInsets } from '../components/SystemInsetsProvider';
+import type { CheckUp } from '../checkup';
 import { adoptGuestLocalFiles, createExpoHistoryFs } from '../history/fsAdapter';
-import { HistoryStore, type StoredCheckUp } from '../history';
+import { HistoryStore, type StoredCheckUp, type StoredCheckUpType } from '../history';
+import {
+  materializeOfficialMovementProfileV2Artifacts,
+  type MovementProfileV2ReferenceProfile,
+} from '../reference/movementProfileV2';
 import {
   buildMovementProfileV2ProgressViewModel,
   movementProfileV2ProgressProfileBySourceCheckUpId,
@@ -49,6 +54,7 @@ import {
   markSurfaceShown,
   completeOnboarding,
   currentOnboardingStep,
+  defaultProgrammeState,
   effortFromRpe,
   generateProgrammeSession,
   initialOnboardingFlowState,
@@ -105,6 +111,7 @@ import {
   programmeResultsFromVoiceSession,
   voiceSessionInputsFromPlan,
 } from '../programme';
+import { generateMockJourney } from '../dev/mockData';
 
 type ShellPhase =
   | 'loading'
@@ -253,6 +260,55 @@ export function ProgrammeV2Root() {
       .then(setHistory)
       .catch(() => {});
   }, [historyStore]);
+
+  // Real check-ups are the OFFICIAL record (2026-07-09 ruling): the first ever
+  // saves as 'baseline', every later one as 'official_retest', and the
+  // snapshot + assessment are materialized AT SAVE so the results page and
+  // Progress history accept the record. The reference profile carries only
+  // what the user actually provided — absent age/sex degrade comparison
+  // claims to raw-only, nothing is ever fabricated. Materialization failure
+  // falls back to saving the raw battery under the same official type (an
+  // honest raw record; the results page simply skips).
+  const saveOfficialCheckUp = React.useCallback(
+    (checkUp: CheckUp): StoredCheckUpType => {
+      const priorHistory = history.filter(
+        (record) => record.checkUp.startedAt !== checkUp.startedAt
+      );
+      const checkupType: StoredCheckUpType =
+        validOfficialMovementProfileV2Assessments(priorHistory).length === 0
+          ? 'baseline'
+          : 'official_retest';
+      const profile = prefs?.profile;
+      const ageAtTest = profile?.exactAge ?? profile?.age ?? null;
+      const referenceProfile: MovementProfileV2ReferenceProfile = {
+        ...(typeof ageAtTest === 'number' ? { ageAtTest } : {}),
+        ageBasis: typeof ageAtTest === 'number' ? 'exact_age_at_test' : 'unknown',
+        referenceSex: profile?.referenceSex ?? 'unknown',
+      };
+      const nowIso = new Date().toISOString();
+      const result = materializeOfficialMovementProfileV2Artifacts({
+        checkUp,
+        checkupType,
+        referenceProfile,
+        lifeGoal: profile?.lifeGoal ?? null,
+        acceptedHistory: priorHistory,
+        snapshotCreatedAt: nowIso,
+        assessmentCreatedAt: nowIso,
+      });
+      if (result.ok) {
+        historyStore.save(result.checkUp, {
+          checkupType,
+          movementProfileV2Snapshot: result.snapshot,
+          movementProfileV2Assessment: result.assessment,
+        });
+      } else {
+        console.warn('[programme-v2] check-up materialization failed', result.reason);
+        historyStore.save(checkUp, { checkupType });
+      }
+      return checkupType;
+    },
+    [history, historyStore, prefs]
+  );
 
   // What happens once fresh results are dismissed (or could not be shown):
   // the onboarding CTA's promised first session, or home. Consumes the
@@ -446,6 +502,58 @@ export function ProgrammeV2Root() {
     },
     [prefs, persistPrefs]
   );
+
+  // ── DEV-only mock data (gated by __DEV__ at the Settings render site) ──────
+  // Seeds a months-long journey — several completed voice sessions plus a
+  // series of official check-ups — so Home, Progress, and the Results screens
+  // can be viewed populated without a camera-graded battery. Built through the
+  // production reducers/materializers so it renders like real data.
+  const handleFillSampleData = React.useCallback(() => {
+    if (!programmeState || !prefs) return;
+    try {
+      const journey = generateMockJourney({ profile: prefs.profile, programmeState });
+      // Clear any existing check-ups first so the seeded series stands alone
+      // and re-running produces a clean, consistent demo.
+      for (const name of localFs.list()) {
+        if (name.startsWith('checkup-') && name.endsWith('.json')) localFs.delete?.(name);
+      }
+      for (const { checkUp, checkupType } of journey.checkUps) {
+        historyStore.save(checkUp, { checkupType });
+      }
+      persist(journey.programmeState);
+      refreshHistory();
+      setFlow(null);
+      setTab('progress');
+    } catch (error) {
+      console.warn('[programme-v2] fill sample data failed', error);
+    }
+  }, [programmeState, prefs, localFs, historyStore, persist, refreshHistory]);
+
+  const handleResetSampleData = React.useCallback(() => {
+    if (!programmeState) return;
+    try {
+      for (const name of localFs.list()) {
+        if (name.startsWith('checkup-') && name.endsWith('.json')) localFs.delete?.(name);
+      }
+      persist({
+        ...defaultProgrammeState(),
+        onboardingCompletedAtIso: programmeState.onboardingCompletedAtIso,
+        profile: {
+          ...programmeState.profile,
+          placement: {},
+          assessmentStatus: null,
+          lastAssessmentAtIso: null,
+          firstSessionStarted: false,
+          oneTimeSurfacesShown: [],
+        },
+      });
+      refreshHistory();
+      setFlow(null);
+      setTab('today');
+    } catch (error) {
+      console.warn('[programme-v2] reset sample data failed', error);
+    }
+  }, [programmeState, localFs, persist, refreshHistory]);
 
   const systemInsets = useSystemInsets();
 
@@ -680,18 +788,20 @@ export function ProgrammeV2Root() {
     // Abandonment applies nothing, burns no once-only surface, and the home
     // button remains the permanent way back.
     //
-    // Persistence ruling 2026-07-07: the measured record is saved to check-up
-    // history like every other check-up — raw at raw-ready (crash-safe),
-    // overwritten in place (same startedAt key) with the finalized record on
-    // complete. Known limitation, recorded in decisions.md: a crash between
-    // raw-save and placement leaves the record saved but placement unapplied;
-    // the home-screen movement-check button remains the way back.
+    // Persistence ruling 2026-07-07, amended 2026-07-09: the measured record
+    // is the OFFICIAL check-up of record — materialized (snapshot+assessment)
+    // and saved at raw-ready (crash-safe), overwritten in place (same
+    // startedAt key) with the finalized record on complete. Known limitation,
+    // recorded in decisions.md: a crash between raw-save and placement leaves
+    // the record saved but placement unapplied; the home-screen movement-check
+    // button remains the way back.
     return (
       <ProgrammeCheckupZeroScreen
         voiceId={prefs.settings.voiceId}
+        history={history}
         onRawCheckUpReady={(checkUp) => {
           try {
-            historyStore.save(checkUp, { checkupType: 'manual_extra_v2' });
+            saveOfficialCheckUp(checkUp);
             refreshHistory();
           } catch (error) {
             console.warn('[programme-v2] early raw check-up save failed', error);
@@ -699,7 +809,7 @@ export function ProgrammeV2Root() {
         }}
         onComplete={(checkUp) => {
           try {
-            historyStore.save(checkUp, { checkupType: 'manual_extra_v2' });
+            saveOfficialCheckUp(checkUp);
           } catch (error) {
             console.warn('[programme-v2] final check-up save failed', error);
           }
@@ -813,6 +923,8 @@ export function ProgrammeV2Root() {
         }
         onOpenSafetyProfile={() => setFlow('safety-profile')}
         onOpenCameraSetup={() => setFlow('camera-setup')}
+        onFillSampleData={handleFillSampleData}
+        onResetSampleData={handleResetSampleData}
         // No pain-exclusion rows in v2 by the Pain A ruling (2026-07-07):
         // the §12 pain regression is v1's answer to exercise pain. The
         // life-goal review flow retired in the simplification pass
@@ -864,6 +976,7 @@ export function ProgrammeV2Root() {
               onViewMovementProfileV2Profile={(sourceCheckUpId) =>
                 setResultsView({ sourceCheckUpId, variant: 'history' })
               }
+              programmeLevels={easedLevels}
               onOpenSettings={openSettings}
             />
           ) : tab === 'explore' ? (
@@ -877,7 +990,6 @@ export function ProgrammeV2Root() {
               profile={prefs.profile}
               programme={{
                 today: todayVm,
-                levelRows: easedLevels,
                 onStartCheckup: todayVm.checkupOffer ? goAssessment : undefined,
               }}
               onPrimaryAction={() => startSessionFromHome()}

@@ -98,6 +98,12 @@ type SettingsScreenProps = {
   onOpenSafetyProfile: () => void;
   onOpenCameraSetup: () => void;
   onBack?: () => void;
+  /** DEV-only (gated on `__DEV__` by the caller): seed a mock multi-session,
+   * multi-check-up journey so the screens can be viewed populated. */
+  onFillSampleData?: () => void;
+  /** DEV-only: clear check-up history and reset the programme to a fresh,
+   * still-onboarded state. */
+  onResetSampleData?: () => void;
 };
 
 export function SettingsScreen(props: SettingsScreenProps) {
@@ -117,6 +123,8 @@ function SettingsScreenContent({
   onOpenSafetyProfile,
   onOpenCameraSetup,
   onBack,
+  onFillSampleData,
+  onResetSampleData,
 }: SettingsScreenProps) {
   const responsive = useResponsiveLayout();
   const [openSection, setOpenSection] = React.useState<ProfileSection | null>(null);
@@ -505,6 +513,26 @@ function SettingsScreenContent({
           onPress={() => openProfileSection('account')}
         />
       </SettingsSection>
+
+      {__DEV__ && onFillSampleData ? (
+        <SettingsSection title="Developer">
+          <ProfileMenuRow
+            title="Fill with sample data"
+            subtitle="Seed months of sessions and check-ups to preview every screen."
+            icon="sliders"
+            onPress={onFillSampleData}
+            showDivider={!!onResetSampleData}
+          />
+          {onResetSampleData ? (
+            <ProfileMenuRow
+              title="Reset to fresh"
+              subtitle="Clear check-ups and reset the programme to a clean start."
+              icon="bell"
+              onPress={onResetSampleData}
+            />
+          ) : null}
+        </SettingsSection>
+      ) : null}
     </Screen>
   );
 }

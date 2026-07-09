@@ -462,6 +462,9 @@ export class MovementProfileV2LiveCoordinator {
     nowMs: number,
     reason: string
   ): void {
+    // The item is over — any recovery episode it carried is resolved, even if
+    // its voice never completed (e.g. retry-limit recorded a partial result).
+    this.activeRecoveryEpisode = null;
     const index = this.batterySequence.indexOf(movement);
     const next = index >= 0 ? this.batterySequence[index + 1] : undefined;
     if (next) {
@@ -1572,6 +1575,19 @@ export class MovementProfileV2LiveCoordinator {
       return;
     }
     this.stage = to;
+    // A recovery episode is resolved once measurement actually restarts (a
+    // fresh attempt enters an active stage), or once its voice has completed
+    // and the flow moves past the recovery target (rest over, countdown done).
+    // Without this the episode lingered for the rest of the check-up, pinning
+    // the guidance/notice in the "Tracking reset" state.
+    if (
+      this.activeRecoveryEpisode &&
+      (isActiveMeasurementStage(to) ||
+        (this.activeRecoveryEpisode.phase === 'voice_completed' &&
+          to !== this.activeRecoveryEpisode.targetStage))
+    ) {
+      this.activeRecoveryEpisode = null;
+    }
     this.resetVoicePrerequisitesForStage(to);
     this.clearHandsFreeReadiness();
     this.diagnostics.stateTransitions = boundedAppend(this.diagnostics.stateTransitions, {
@@ -1864,7 +1880,9 @@ function buildMovementProfileV2RecordingVisualGuidance(
     });
   }
 
-  if (input.recoveryEpisode) {
+  // A voice_completed episode is resolved guidance-wise: the recovery line has
+  // played and the stage's own guidance (countdown, rest, ready) should show.
+  if (input.recoveryEpisode && input.recoveryEpisode.phase !== 'voice_completed') {
     return mpv2RecordingVisualGuidance({
       visualState: 'recovery',
       statusText: input.statusText,
@@ -2143,6 +2161,13 @@ function standingLegFromAnkleLift(frame: PoseFrame, bodyUnit: number): BodySide 
   if (leftLowerThanRightBu > BALANCE_LIFT_BU) return 'left';
   if (leftLowerThanRightBu < -BALANCE_LIFT_BU) return 'right';
   return null;
+}
+
+function isActiveMeasurementStage(stage: MovementProfileV2LiveStage): boolean {
+  return stage === 'chair_active' ||
+    stage === 'balance_trial' ||
+    stage === 'shoulder_active' ||
+    stage === 'hinge_active';
 }
 
 function isHandsFreeWaitingStage(stage: MovementProfileV2LiveStage): boolean {

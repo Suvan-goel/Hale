@@ -11,6 +11,8 @@ import { MPV2_VOICE_RUNTIME_FOUNDATION_ENABLED } from '../config/movementProfile
 import { defaultNowMs } from '../diagnostics/poseLatencyDiagnostics';
 import {
   createMovementProfileV2InternalFlow,
+  movementProfileV2FlowBatterySequence,
+  type MovementProfileV2BatteryMovement,
   type MovementProfileV2InternalFlowState,
 } from '../movementProfileV2/internalCheckupFlow';
 import { isMovementProfileV2DiagnosticsEnabled } from '../movementProfileV2/liveDiagnostics';
@@ -53,7 +55,6 @@ import {
 } from './CheckUpRecordingShell';
 
 const LIVE_TIMER_TICK_MS = 250;
-const TOTAL_V2_ITEMS = 4;
 /**
  * iOS fires 'inactive' for transient overlays (call banner, control centre,
  * app switcher). Only treat it as a real backgrounding — which invalidates the
@@ -391,13 +392,16 @@ export function MovementProfileV2UnifiedCheckUpScreen({
   }, []);
 
   /** Leaving mid-battery discards completed tests; confirm unless there is
-   * nothing to lose (untouched first setup, or the raw check-up is already
-   * saved via onRawCheckUpReady). */
+   * nothing to lose (nothing measured yet at a pre-measurement stage — frame
+   * check or any first setup, whichever movement the sequence starts with —
+   * or the raw check-up is already saved via onRawCheckUpReady). */
   const requestClose = React.useCallback(() => {
     const snapshot = liveRef.current;
+    const atPreMeasurementStage =
+      snapshot.stage === 'standing_frame_check' || snapshot.stage.endsWith('_setup');
     const nothingToLose =
       snapshot.checkUp !== null ||
-      (snapshot.stage === 'chair_setup' && snapshot.flow.items.length === 0);
+      (atPreMeasurementStage && snapshot.flow.items.length === 0);
     if (nothingToLose) {
       onCancel();
       return;
@@ -598,7 +602,7 @@ export function MovementProfileV2UnifiedCheckUpScreen({
       })}
       modalMode={modalMode}
       setupIssue={false}
-      footerMeta={movementProfileV2FooterMeta(live.stage)}
+      footerMeta={movementProfileV2FooterMeta(live)}
       stageDisplay={movementProfileV2StageDisplay(live, cameraAvailability)}
       controls={controls}
       onRequestBack={requestClose}
@@ -972,18 +976,54 @@ function movementProfileV2ShellTitle(stage: MovementProfileV2LiveStage): string 
   }
 }
 
-function movementProfileV2FooterMeta(stage: MovementProfileV2LiveStage): CheckUpShellFooterMeta {
+/** Test numbering derives from the battery sequence the flow actually runs
+ * (default four-item battery OR the two-protocol Check-up #0), never from a
+ * hardcoded battery shape. */
+function movementProfileV2FooterMeta(live: MovementProfileV2LiveSnapshot): CheckUpShellFooterMeta {
+  const stage = live.stage;
   if (stage === 'standing_frame_check') {
     return { progress: null, context: 'Camera setup' };
   }
-  const itemNumber = movementProfileV2ItemNumber(stage);
+  const sequence = movementProfileV2FlowBatterySequence(live.flow);
   if (stage === 'raw_complete') {
-    return { progress: null, context: `${TOTAL_V2_ITEMS} tests complete` };
+    return {
+      progress: null,
+      context: `${sequence.length} ${sequence.length === 1 ? 'test' : 'tests'} complete`,
+    };
   }
+  const movement = movementProfileV2MovementForStage(stage);
+  const index = movement ? sequence.indexOf(movement) : -1;
   return {
-    progress: `Test ${itemNumber} of ${TOTAL_V2_ITEMS}`,
+    progress: index >= 0 ? `Test ${index + 1} of ${sequence.length}` : null,
     context: movementProfileV2DomainLabel(stage),
   };
+}
+
+function movementProfileV2MovementForStage(
+  stage: MovementProfileV2LiveStage
+): MovementProfileV2BatteryMovement | null {
+  switch (stage) {
+    case 'chair_setup':
+    case 'chair_practice':
+    case 'chair_countdown':
+    case 'chair_active':
+      return 'chair';
+    case 'balance_setup':
+    case 'balance_ready':
+    case 'balance_trial':
+    case 'balance_rest':
+      return 'balance';
+    case 'shoulder_setup':
+    case 'shoulder_ready':
+    case 'shoulder_active':
+    case 'shoulder_retry_ready':
+      return 'shoulder';
+    case 'hinge_setup':
+    case 'hinge_active':
+      return 'hinge';
+    default:
+      return null;
+  }
 }
 
 function movementProfileV2StageDisplay(
@@ -1037,7 +1077,9 @@ function movementProfileV2ShellNotice({
   if (live.backgrounded) {
     return { text: 'Capture interrupted', action: null };
   }
-  if (live.recoveryEpisode) {
+  // Only while the recovery is actually in progress (voice not yet done) —
+  // afterwards the stage's own instruction is the honest notice.
+  if (live.recoveryEpisode && live.recoveryEpisode.phase !== 'voice_completed') {
     return { text: 'Tracking reset', action: 'help' };
   }
   if (pendingOfficialFallback) {
@@ -1070,19 +1112,6 @@ function movementProfileV2AvatarDomain(stage: MovementProfileV2LiveStage): PoseA
       return 'mobility';
     default:
       return null;
-  }
-}
-
-function movementProfileV2ItemNumber(stage: MovementProfileV2LiveStage): number {
-  switch (movementProfileV2AvatarDomain(stage)) {
-    case 'strength_power':
-      return 1;
-    case 'balance':
-      return 2;
-    case 'mobility':
-      return stage === 'hinge_setup' || stage === 'hinge_active' ? 4 : 3;
-    default:
-      return TOTAL_V2_ITEMS;
   }
 }
 

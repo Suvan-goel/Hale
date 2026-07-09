@@ -51,12 +51,14 @@ const REFERENCE_PROFILE = {
 
 describe('Movement Profile V2 assessment contract', () => {
   it('exposes independent V2 policy versions and deterministic fingerprints', () => {
-    expect(MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_VERSION).toBe(2);
-    expect(MOVEMENT_PROFILE_V2_FOCUS_POLICY_VERSION).toBe(3);
+    // v3/v4 (2026-07-09): two-protocol official batteries — absent shoulder
+    // derives 'not_measured' evidence, excluded from focus and needs-retake.
+    expect(MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_VERSION).toBe(3);
+    expect(MOVEMENT_PROFILE_V2_FOCUS_POLICY_VERSION).toBe(4);
     expect(MOVEMENT_PROFILE_V2_ASSESSMENT_SCHEMA_VERSION).toBe(1);
     expect(MOVEMENT_PROFILE_V2_LIFE_GOAL_ADAPTER_VERSION).toBe(1);
-    expect(MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_FINGERPRINT).toMatch(/^mpv2-domain-evidence-policy-v2-/);
-    expect(MOVEMENT_PROFILE_V2_FOCUS_POLICY_FINGERPRINT).toMatch(/^mpv2-focus-policy-v3-/);
+    expect(MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_FINGERPRINT).toMatch(/^mpv2-domain-evidence-policy-v3-/);
+    expect(MOVEMENT_PROFILE_V2_FOCUS_POLICY_FINGERPRINT).toMatch(/^mpv2-focus-policy-v4-/);
     expect(MOVEMENT_PROFILE_V2_LIFE_GOAL_MAPPING_FINGERPRINT).toBe(movementProfileV2LifeGoalMappingFingerprint());
   });
 

@@ -204,12 +204,29 @@ export function resolveMovementProfileV2CueIdsForTransition(input: {
 }): readonly MovementProfileV2CueId[] {
   const { transition, snapshot } = input;
   switch (transition.to) {
+    case 'chair_setup':
+      // The frame-check entry is owned by the runtime (it prefixes the
+      // non-mpv2 'framing-ready' cue); anything else reaching chair_setup via
+      // a transition is a mid-battery handoff (non-default sequences) — bridge
+      // generically instead of replaying the whole check-up intro.
+      if (transition.from === 'standing_frame_check') return [];
+      return [
+        ...terminalCuesForPrecedingItem(transition, snapshot),
+        'item-complete-v21',
+        'checkup-chair-stand-intro-v21',
+        'checkup-chair-stand-setup-v21',
+      ];
     case 'chair_practice':
       return ['mpv2_chair_practice_start'];
     case 'chair_countdown':
       return ['mpv2_chair_official_ready'];
     case 'balance_setup':
-      return ['times-up-v21', 'checkup-balance-intro-v21', 'checkup-balance-single-leg-v21'];
+      // "Time. Stop there and rest." belongs to the 30-second chair timer —
+      // only speak it when balance actually follows the chair item. In
+      // balance-first sequences (Check-up #0) the intro stands alone.
+      return transition.from === 'chair_active'
+        ? ['times-up-v21', 'checkup-balance-intro-v21', 'checkup-balance-single-leg-v21']
+        : ['checkup-balance-intro-v21', 'checkup-balance-single-leg-v21'];
     case 'balance_ready':
       if (transition.reason === 'balance_default_rest_elapsed') return ['mpv2_balance_ready_after_60'];
       if (transition.reason === 'balance_rest_ready') return ['mpv2_balance_ready_after_30'];
@@ -240,13 +257,42 @@ export function resolveMovementProfileV2CueIdsForTransition(input: {
     case 'hinge_active':
       return [];
     case 'raw_complete':
-      return [
-        snapshot.diagnostics.hinge.captureValid ? 'mpv2_hinge_complete' : 'mpv2_hinge_no_measurement',
-        'checkup-complete-v21',
-      ];
+      // The completion line depends on which item finished LAST — the hinge
+      // wording only makes sense when the hinge actually ran (default
+      // battery). Chair-last sequences (Check-up #0) end on the 30-second
+      // timer; anything else gets the generic item acknowledgement.
+      if (transition.from === 'chair_active') {
+        return transition.reason === 'chair_deadline'
+          ? ['times-up-v21', 'checkup-complete-v21']
+          : ['item-complete-v21', 'checkup-complete-v21'];
+      }
+      if (transition.from === 'hinge_active' || transition.from === 'hinge_setup') {
+        return [
+          snapshot.diagnostics.hinge.captureValid ? 'mpv2_hinge_complete' : 'mpv2_hinge_no_measurement',
+          'checkup-complete-v21',
+        ];
+      }
+      return [...terminalCuesForPrecedingItem(transition, snapshot), 'item-complete-v21', 'checkup-complete-v21'];
     default:
       return [];
   }
+}
+
+/**
+ * Result acknowledgement owed by the item that just finished, when its own
+ * transition target does not carry one (mid-battery handoffs in non-default
+ * sequences). Mirrors the balance acknowledgements the shoulder_setup entry
+ * plays in the default battery.
+ */
+function terminalCuesForPrecedingItem(
+  transition: MovementProfileV2LiveTransitionSummary,
+  snapshot: MovementProfileV2LiveSnapshot
+): readonly MovementProfileV2CueId[] {
+  if (transition.reason === 'balance_user_accepted_best') return ['mpv2_balance_use_best'];
+  if (transition.reason === 'balance_section_complete' && snapshot.diagnostics.balance.ceilingReached) {
+    return ['mpv2_balance_full_hold'];
+  }
+  return [];
 }
 
 function definition(

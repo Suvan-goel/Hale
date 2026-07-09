@@ -342,7 +342,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/global_pause_if_tracking_lost.mp3",
-      "fingerprint": "safety-audio-v1-enjyzx"
+      "fingerprint": "safety-audio-v1-p1nk37"
     },
     "global_stop_dizzy_or_lightheaded": {
       "schemaVersion": 1,
@@ -498,7 +498,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/clara/tracking_keep_full_body_in_view.mp3",
-      "fingerprint": "safety-audio-v1-1ucjmk"
+      "fingerprint": "safety-audio-v1-1n676xi"
     },
     "tracking_move_when_cued": {
       "schemaVersion": 1,
@@ -872,7 +872,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/global_pause_if_tracking_lost.mp3",
-      "fingerprint": "safety-audio-v1-1f8rz5r"
+      "fingerprint": "safety-audio-v1-1tm2g5t"
     },
     "global_stop_dizzy_or_lightheaded": {
       "schemaVersion": 1,
@@ -1028,7 +1028,7 @@ export const SAFETY_AUDIO_ASSET_METADATA: SafetyAudioMetadataByVoice = {
       "model": "eleven_multilingual_v2",
       "outputFormat": "mp3_44100_128",
       "path": "assets/audio/voice/marcus/tracking_keep_full_body_in_view.mp3",
-      "fingerprint": "safety-audio-v1-uaf22c"
+      "fingerprint": "safety-audio-v1-1skq9wa"
     },
     "tracking_move_when_cued": {
       "schemaVersion": 1,

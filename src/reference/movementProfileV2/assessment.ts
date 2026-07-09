@@ -8,6 +8,7 @@ import type {
   LifeGoalCategory,
   MovementDomain,
 } from '../../adherence/types';
+import { ACTIVE_SHOULDER_REACH_V2_ID } from '../../movements/activeShoulderReachV2';
 import { deterministicFingerprint } from './fingerprint';
 import {
   parseStoredMovementProfileV2Snapshot,
@@ -22,8 +23,12 @@ import type {
   ShoulderInterpretation,
 } from './types';
 
-export const MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_VERSION = 2 as const;
-export const MOVEMENT_PROFILE_V2_FOCUS_POLICY_VERSION = 3 as const;
+// v3 (2026-07-09): two-protocol official batteries — an absent shoulder item
+// derives 'not_measured' mobility evidence instead of 'invalid_or_missing'.
+export const MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_VERSION = 3 as const;
+// v4 (2026-07-09): 'not_measured' domains are excluded from focus candidates
+// and never trigger needs_retake (they were not attempted).
+export const MOVEMENT_PROFILE_V2_FOCUS_POLICY_VERSION = 4 as const;
 export const MOVEMENT_PROFILE_V2_ASSESSMENT_SCHEMA_VERSION = 1 as const;
 export const MOVEMENT_PROFILE_V2_LIFE_GOAL_ADAPTER_VERSION = 1 as const;
 export const MOVEMENT_PROFILE_V2_ASSESSMENT_KIND = 'movement_profile_v2_assessment' as const;
@@ -41,7 +46,11 @@ export type MovementProfileV2DomainEvidenceCategory =
   | 'pearl_starting_point'
   | 'pearl_building'
   | 'raw_only_valid'
-  | 'invalid_or_missing';
+  | 'invalid_or_missing'
+  /** The battery never ran this domain (two-protocol official check-up):
+   * excluded from focus candidates and never a needs-retake trigger —
+   * distinct from a measurement that was attempted and failed. */
+  | 'not_measured';
 
 export type MovementProfileV2DomainEvidenceSource =
   | 'published_reference'
@@ -224,7 +233,7 @@ export interface CreateMovementProfileV2AssessmentInput {
 }
 
 export const MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_FINGERPRINT = deterministicFingerprint(
-  'mpv2-domain-evidence-policy-v2',
+  'mpv2-domain-evidence-policy-v3',
   {
     version: MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_VERSION,
     domainOrder: MOVEMENT_PROFILE_V2_DOMAIN_ORDER,
@@ -249,15 +258,17 @@ export const MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_FINGERPRINT = determinis
       within_published_middle_range: 'within_reference',
       above_published_middle_range: 'above_reference_or_ceiling',
     },
+    shoulderAbsentFromBattery: 'not_measured',
   }
 );
 
 export const MOVEMENT_PROFILE_V2_FOCUS_POLICY_FINGERPRINT = deterministicFingerprint(
-  'mpv2-focus-policy-v3',
+  'mpv2-focus-policy-v4',
   {
     version: MOVEMENT_PROFILE_V2_FOCUS_POLICY_VERSION,
     domainOrder: MOVEMENT_PROFILE_V2_DOMAIN_ORDER,
     priority: [
+      'not_measured_domains_excluded_from_focus',
       'invalid_or_missing_needs_retake',
       'single_below_reference',
       'multiple_below_reference_prior_then_goal_then_balanced',
@@ -664,9 +675,10 @@ export function selectMovementProfileV2SuggestedFocus({
     });
   }
 
-  const validDomains = MOVEMENT_PROFILE_V2_DOMAIN_ORDER.filter(
-    (domain) => evidence.find((item) => item.domain === domain)?.category !== 'invalid_or_missing'
-  );
+  const validDomains = MOVEMENT_PROFILE_V2_DOMAIN_ORDER.filter((domain) => {
+    const category = evidence.find((item) => item.domain === domain)?.category;
+    return category !== 'invalid_or_missing' && category !== 'not_measured';
+  });
   if (officialRetest && priorFocusContext.kind === 'domain' && validDomains.includes(priorFocusContext.focusDomain)) {
     return focusResult({
       focus: domainFocus({
@@ -955,6 +967,19 @@ function balanceDomainEvidence(balance: BalanceInterpretation): MovementProfileV
 }
 
 function shoulderDomainEvidence(shoulder: ShoulderInterpretation): MovementProfileV2DomainEvidence {
+  // No shoulder item at all = the battery's scope excluded mobility
+  // (two-protocol official check-up). Not a failed measurement: it must not
+  // suggest a retake, and it can never be a focus candidate.
+  if (!shoulder.rawMetric && shoulder.rawInvalidReasons.includes('missing_result')) {
+    return domainEvidence({
+      domain: 'mobility',
+      category: 'not_measured',
+      evidenceSource: 'invalid',
+      sourceResultKind: shoulder.resultKind,
+      claimEligibility: shoulder.claimEligibility,
+      reasons: ['shoulder_not_measured_by_battery', ...reasonCodes(shoulder)],
+    });
+  }
   if (!shoulder.rawMetric || shoulder.claimEligibility === 'invalid_measurement') {
     return domainEvidence({
       domain: 'mobility',
@@ -1179,12 +1204,24 @@ function mappedDomainsForGoalCategory(category: LifeGoalCategory): readonly Move
 }
 
 function snapshotRawComplete(snapshot: StoredMovementProfileV2Snapshot): boolean {
+  const completeness = snapshot.interpretation.rawCompleteness;
+  const chairOk = snapshot.interpretation.chair.rawMetric !== null;
+  const balanceOk = snapshot.interpretation.balance.rawMetric !== null;
+  if (completeness.referenceComplete === true && completeness.missingHeadlineMovementIds.length === 0) {
+    // Full battery: unchanged — every headline domain must have measured.
+    return chairOk && balanceOk && snapshot.interpretation.shoulder.rawMetric !== null;
+  }
+  // Two-protocol battery (Check-up #0 scope): complete when every RUN domain
+  // measured and the only absent headline is the shoulder item, which the
+  // battery never attempted ('missing_result' — a failed attempt still fails).
   return (
-    snapshot.interpretation.rawCompleteness.referenceComplete === true &&
-    snapshot.interpretation.rawCompleteness.missingHeadlineMovementIds.length === 0 &&
-    snapshot.interpretation.chair.rawMetric !== null &&
-    snapshot.interpretation.balance.rawMetric !== null &&
-    snapshot.interpretation.shoulder.rawMetric !== null
+    chairOk &&
+    balanceOk &&
+    snapshot.interpretation.shoulder.rawMetric === null &&
+    snapshot.interpretation.shoulder.rawInvalidReasons.includes('missing_result') &&
+    completeness.missingHeadlineMovementIds.every(
+      (movementId) => movementId === ACTIVE_SHOULDER_REACH_V2_ID
+    )
   );
 }
 
@@ -1489,7 +1526,8 @@ function isDomainEvidenceCategory(value: unknown): value is MovementProfileV2Dom
     value === 'pearl_starting_point' ||
     value === 'pearl_building' ||
     value === 'raw_only_valid' ||
-    value === 'invalid_or_missing'
+    value === 'invalid_or_missing' ||
+    value === 'not_measured'
   );
 }
 

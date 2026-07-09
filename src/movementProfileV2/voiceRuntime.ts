@@ -10,6 +10,7 @@ import {
 import { BodySide } from '../checkup/protocolSetup';
 import { DEFAULT_VOICE_ID } from '../profile/voices';
 import { movementProfileV2InstructionCueIdsForStage } from '../training/instructionProfiles';
+import { movementProfileV2FlowBatterySequence } from './internalCheckupFlow';
 import { MPV2_CHAIR_COUNTDOWN_CADENCE_MS } from './liveCoordinator';
 import type {
   Mpv2RecoveryEpisode,
@@ -741,8 +742,10 @@ function baseVoicePlanForSnapshot(
           { type: 'chair_setup_voice_completed' },
         ]);
       }
+      // Mid-battery handoffs (non-default sequences) resolve to the generic
+      // bridge + chair intro; only a cold start replays the full welcome.
       const intro = initialMovementProfileV2VoiceEvent();
-      return plan(scopeId, 'blocking_prerequisite', intro.cues, [
+      return plan(scopeId, 'blocking_prerequisite', cuesForCurrentTransition(snapshot, intro.cues), [
         { type: 'chair_setup_voice_completed' },
       ]);
     }
@@ -757,12 +760,24 @@ function baseVoicePlanForSnapshot(
         ]),
         startsChairCountdown: true,
       };
-    case 'balance_setup':
+    case 'balance_setup': {
+      // Balance-first sequences (Check-up #0) enter from the frame check:
+      // confirm the framing, then the balance intro — never "Time." (that
+      // line belongs to the chair timer and is resolved per-transition).
+      if (snapshot.lastTransition?.to === 'balance_setup' && snapshot.lastTransition.from === 'standing_frame_check') {
+        const framedCues: VoiceCueKey[] =
+          snapshot.lastTransition.reason === 'frame_check_passed'
+            ? ['framing-ready', 'checkup-balance-intro-v21', 'checkup-balance-single-leg-v21']
+            : ['checkup-balance-intro-v21', 'checkup-balance-single-leg-v21'];
+        return plan(scopeId, 'blocking_transition', framedCues, [
+          { type: 'balance_setup_voice_completed' },
+        ]);
+      }
       return plan(scopeId, 'blocking_transition', cuesForCurrentTransition(snapshot, [
-        'times-up-v21',
         'checkup-balance-intro-v21',
         'checkup-balance-single-leg-v21',
       ]), [{ type: 'balance_setup_voice_completed' }]);
+    }
     case 'balance_ready':
       return plan(scopeId, 'blocking_prerequisite', cuesForCurrentTransition(snapshot, [
         'mpv2_balance_attempt_start',
@@ -894,11 +909,17 @@ function appendVoiceCue(cues: readonly VoiceCueKey[], cue: VoiceCueKey): readonl
 }
 
 function cuesForRawComplete(snapshot: MovementProfileV2LiveSnapshot): readonly VoiceCueKey[] {
-  const cues = cuesForCurrentTransition(snapshot, [
-    snapshot.diagnostics.hinge.captureValid ? 'mpv2_hinge_complete' : 'mpv2_hinge_no_measurement',
-    'checkup-complete-v21',
-  ]);
-  if (!snapshot.diagnostics.hinge.captureValid) return cues;
+  // The stale-transition fallback must not claim a hinge measurement in
+  // sequences that never ran the hinge (Check-up #0 ends on the chair timer).
+  const sequenceHasHinge = movementProfileV2FlowBatterySequence(snapshot.flow).includes('hinge');
+  const fallback: readonly MovementProfileV2CueId[] = sequenceHasHinge
+    ? [
+        snapshot.diagnostics.hinge.captureValid ? 'mpv2_hinge_complete' : 'mpv2_hinge_no_measurement',
+        'checkup-complete-v21',
+      ]
+    : ['item-complete-v21', 'checkup-complete-v21'];
+  const cues = cuesForCurrentTransition(snapshot, fallback);
+  if (!sequenceHasHinge || !snapshot.diagnostics.hinge.captureValid) return cues;
   return ['stand-tall', ...cues.filter((cue) => cue !== 'mpv2_hinge_complete')];
 }
 

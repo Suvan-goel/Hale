@@ -930,6 +930,101 @@ describe('MovementProfileV2LiveCoordinator', () => {
     expect(snapshot.lastTransition?.reason).toBe('balance_section_complete');
   });
 
+  it('clears the recovery episode once the recovered attempt starts measuring', () => {
+    const coordinator = new MovementProfileV2LiveCoordinator({
+      ...createMovementProfileV2InternalFlow({ startedAt: STARTED_AT, batterySequence: ['shoulder'] }),
+      sourceType: 'baseline',
+    });
+    const nowMs = 1000;
+    expect(coordinator.receiveUserAction({ type: 'confirm_shoulder_setup', shoulderSide: 'right' }, nowMs)).toBe(true);
+    expect(coordinator.receiveUserAction({ type: 'shoulder_setup_voice_completed' }, nowMs + 1)).toBe(true);
+    expect(coordinator.receiveUserAction({ type: 'start_shoulder_capture' }, nowMs + 100)).toBe(true);
+
+    // Backgrounding mid-capture invalidates the attempt like tracking loss.
+    coordinator.receiveUserAction({ type: 'backgrounded' }, nowMs + 500);
+    coordinator.receiveUserAction({ type: 'resumed' }, nowMs + 600);
+    let snapshot = coordinator.snapshot(nowMs + 600);
+    expect(snapshot.stage).toBe('shoulder_retry_ready');
+    expect(snapshot.recoveryEpisode?.phase).toBe('attempt_invalidated');
+    expect(snapshot.recordingVisualGuidance.visualState).toBe('recovery');
+
+    // Recovery voice done: guidance/notice stop claiming recovery even though
+    // the episode is tracked until the fresh attempt starts.
+    expect(
+      coordinator.receiveUserAction(
+        { type: 'recovery_voice_completed', recoveryId: snapshot.recoveryEpisode!.id },
+        nowMs + 700
+      )
+    ).toBe(true);
+    snapshot = coordinator.snapshot(nowMs + 700);
+    expect(snapshot.recoveryEpisode?.phase).toBe('voice_completed');
+    expect(snapshot.recordingVisualGuidance.visualState).not.toBe('recovery');
+
+    // The fresh attempt starts measuring → the episode is resolved.
+    expect(coordinator.receiveUserAction({ type: 'shoulder_setup_voice_completed' }, nowMs + 800)).toBe(true);
+    expect(coordinator.receiveUserAction({ type: 'start_shoulder_capture' }, nowMs + 900)).toBe(true);
+    expect(coordinator.snapshot(nowMs + 900).recoveryEpisode).toBeNull();
+  });
+
+  it('does not leak a recovery episode whose voice never completed past the item that owned it', () => {
+    const coordinator = new MovementProfileV2LiveCoordinator({
+      ...createMovementProfileV2InternalFlow({ startedAt: STARTED_AT, batterySequence: ['shoulder'] }),
+      sourceType: 'baseline',
+    });
+    const nowMs = 1000;
+    expect(coordinator.receiveUserAction({ type: 'confirm_shoulder_setup', shoulderSide: 'right' }, nowMs)).toBe(true);
+    expect(coordinator.receiveUserAction({ type: 'shoulder_setup_voice_completed' }, nowMs + 1)).toBe(true);
+    expect(coordinator.receiveUserAction({ type: 'start_shoulder_capture' }, nowMs + 100)).toBe(true);
+    coordinator.receiveUserAction({ type: 'backgrounded' }, nowMs + 500);
+    coordinator.receiveUserAction({ type: 'resumed' }, nowMs + 600);
+    expect(coordinator.snapshot(nowMs + 600).recoveryEpisode?.phase).toBe('attempt_invalidated');
+
+    // Retry starts without the recovery voice ever completing (failure path):
+    // entering an active stage still resolves the episode.
+    expect(coordinator.receiveUserAction({ type: 'shoulder_setup_voice_completed' }, nowMs + 700)).toBe(true);
+    expect(coordinator.receiveUserAction({ type: 'start_shoulder_capture' }, nowMs + 800)).toBe(true);
+    expect(coordinator.snapshot(nowMs + 800).recoveryEpisode).toBeNull();
+
+    // Retry runs to its deadline with no capture → retries exhausted → the
+    // flagged result records and the completed check-up carries no episode.
+    coordinator.receiveTimerTick(nowMs + 800 + 9100);
+    const snapshot = coordinator.snapshot(nowMs + 800 + 9100);
+    expect(snapshot.stage).toBe('raw_complete');
+    expect(snapshot.recoveryEpisode).toBeNull();
+    expect(snapshot.recordingVisualGuidance.visualState).not.toBe('recovery');
+  });
+
+  it('resolves a balance recovery episode when the post-recovery rest ends', () => {
+    const coordinator = createCoordinator();
+    let nowMs = advanceThroughChair(coordinator, 0) + 100;
+    nowMs = startBalanceTrial(coordinator, nowMs, 'left');
+
+    // Lose tracking mid-trial (consecutive lost frames confirm the loss).
+    let lossMs = nowMs + 1000;
+    for (let index = 0; index < 4; index++) {
+      lossMs += 33;
+      feedOutput(coordinator, lostOutput(lossMs), lossMs);
+    }
+    let snapshot = coordinator.snapshot(lossMs);
+    expect(snapshot.stage).toBe('balance_rest');
+    expect(snapshot.recoveryEpisode?.item).toBe('balance');
+
+    expect(
+      coordinator.receiveUserAction(
+        { type: 'recovery_voice_completed', recoveryId: snapshot.recoveryEpisode!.id },
+        lossMs + 100
+      )
+    ).toBe(true);
+    // The episode survives its own target stage (the recovery rest) ...
+    expect(coordinator.snapshot(lossMs + 200).recoveryEpisode?.phase).toBe('voice_completed');
+
+    // ... and resolves when the minimum rest elapses into balance_ready.
+    coordinator.receiveTimerTick(lossMs + 31000);
+    snapshot = coordinator.snapshot(lossMs + 31000);
+    expect(snapshot.stage).toBe('balance_ready');
+    expect(snapshot.recoveryEpisode).toBeNull();
+  });
+
   it('bounds shoulder retries and records the retry capture from live selected-side frames', () => {
     const coordinator = createCoordinator();
     let nowMs = advanceThroughShoulderSetup(coordinator, 0);

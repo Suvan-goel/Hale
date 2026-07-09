@@ -111,6 +111,53 @@ describe('Movement Profile V2 voice cues', () => {
     ).toEqual(['mpv2_hinge_no_measurement', 'checkup-complete-v21']);
   });
 
+  it('keeps the chair-timer "Time." line out of balance-first entries (Check-up #0 sequence)', () => {
+    // Default battery: balance follows the 30-second chair timer — times-up leads.
+    expect(cuesFor('chair_active', 'balance_setup', 'chair_deadline')).toEqual([
+      'times-up-v21',
+      'checkup-balance-intro-v21',
+      'checkup-balance-single-leg-v21',
+    ]);
+    // Balance-first: nothing timed preceded — the intro stands alone.
+    expect(cuesFor('standing_frame_check', 'balance_setup', 'frame_check_passed')).toEqual([
+      'checkup-balance-intro-v21',
+      'checkup-balance-single-leg-v21',
+    ]);
+  });
+
+  it('bridges mid-battery chair entries generically instead of replaying the check-up intro', () => {
+    // Check-up #0: balance → chair. The welcome intro must never replay here.
+    expect(cuesFor('balance_ready', 'chair_setup', 'balance_user_accepted_best')).toEqual([
+      'mpv2_balance_use_best',
+      'item-complete-v21',
+      'checkup-chair-stand-intro-v21',
+      'checkup-chair-stand-setup-v21',
+    ]);
+    expect(
+      cuesFor('balance_trial', 'chair_setup', 'balance_section_complete', { balanceCeilingReached: true })
+    ).toEqual([
+      'mpv2_balance_full_hold',
+      'item-complete-v21',
+      'checkup-chair-stand-intro-v21',
+      'checkup-chair-stand-setup-v21',
+    ]);
+    // The frame-check entry stays owned by the runtime (framing-ready prefix).
+    expect(cuesFor('standing_frame_check', 'chair_setup', 'frame_check_passed')).toEqual([]);
+  });
+
+  it('ends chair-last sequences on the timer line, never the hinge wording', () => {
+    expect(cuesFor('chair_active', 'raw_complete', 'chair_deadline', { hingeCaptureValid: false })).toEqual([
+      'times-up-v21',
+      'checkup-complete-v21',
+    ]);
+    expect(
+      cuesFor('chair_active', 'raw_complete', 'chair_tracking_loss_retry_limit', { hingeCaptureValid: false })
+    ).toEqual(['item-complete-v21', 'checkup-complete-v21']);
+    expect(
+      cuesFor('balance_ready', 'raw_complete', 'balance_user_accepted_best', { hingeCaptureValid: false })
+    ).toEqual(['mpv2_balance_use_best', 'item-complete-v21', 'checkup-complete-v21']);
+  });
+
   it('keeps balance lift instructions in the final pre-lift cue', () => {
     const liftInstruction =
       "When you're ready, lift your foot high off the floor. The timer starts when I see your foot lift.";

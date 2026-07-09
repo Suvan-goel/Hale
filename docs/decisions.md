@@ -5276,3 +5276,87 @@ Founder-approved follow-up to the old-engine excision; polish work comes next.
   explicit product decision), record/replay + diagnostics infrastructure,
   workoutGeneration (runtime-live), and the legacy local-file store layers.
 - Suite: 171 suites / 1,469 tests green; tsc + expo config clean.
+
+## 2026-07-09 — Check-up flow bug pass: real check-ups become the OFFICIAL record; recovery/voice/UI fixes
+
+A full review of the check-up flow found the promoted shell's real check-ups
+were structurally invisible to the results/Progress pipeline, plus four
+smaller live-coordinator/voice/UI defects. All fixed this session.
+
+**The critical finding (runtime-verified before the fix):** every real
+check-up runs the two-protocol Check-up #0 battery and was saved as
+`manual_extra_v2` with no materialized snapshot/assessment — but the
+results/Progress selection accepts only official types (`baseline` /
+`baseline_retake` / `official_retest`) WITH materialized artifacts, and the
+snapshot canonicalization hard-required chair+balance+shoulder. Three stacked
+gates meant: the restored per-check-up results page silently never showed for
+real data, Progress check-up history stayed empty forever, the population
+comparison could never unlock, and prior-side anchoring never engaged. The
+dev "Fill sample data" path worked (it materializes full batteries with
+official types), which masked all of it. No test pinned the real save path.
+
+**Ruling (founder direction: full fix):** real check-ups ARE the official
+record.
+
+- **Reference layer accepts the two-protocol battery.** Snapshot
+  canonicalization now treats an ABSENT shoulder item as "mobility not
+  measured this check-up" (`rawCompleteness.missingDomains: ['shoulder']`,
+  headline ids narrowed, fingerprint reflects scope); a PRESENT-but-unusable
+  shoulder still fails exactly as before, and chair+balance remain hard
+  requirements. Domain evidence gains a `not_measured` category (distinct
+  from `invalid_or_missing`): never a needs-retake trigger, never a focus
+  candidate. Policy versions bumped (domain-evidence v3, focus v4) with the
+  new rules in the fingerprint payloads — no production data existed under
+  the old fingerprints (that was the bug), so nothing real invalidates.
+- **The root saves officially and materializes at save.**
+  `ProgrammeV2Root.saveOfficialCheckUp`: first official record = `baseline`,
+  every later one = `official_retest`; snapshot+assessment materialized via
+  `materializeOfficialMovementProfileV2Artifacts` at BOTH raw-ready
+  (crash-safe, now fully materialized) and complete (overwrite in place,
+  same startedAt key). The reference profile carries only what the user
+  provided — absent age/sex degrade comparison claims to raw-only, never
+  fabricated (the dev seeder's age-55/female fallback stays dev-only).
+  Materialization failure falls back to saving the raw battery under the
+  same official type. Check-up #0 now also receives stored history, so the
+  standing-leg/shoulder-side anchoring (side-consistency measurement
+  hygiene) engages from the second check-up.
+- **Honest presentation for the narrower battery.** Results mobility card:
+  metric "Not measured", new status tier `Not measured`, body says the reach
+  check isn't part of this check-up (never a fabricated "saved starting
+  point"); informational tone in the shell. The strongest-asset ranking and
+  the Progress change card already excluded unmeasured domains by
+  construction. Pinned end-to-end by
+  `pearlFlow/__tests__/officialCheckupZeroPipeline.test.ts` — the test that
+  was missing: raw battery → official save → selection → results view model,
+  plus baseline→official_retest typing and prior-leg anchoring.
+
+**The other fixes from the same review:**
+
+1. **Recovery episodes now resolve.** `activeRecoveryEpisode` was never
+   cleared — after one tracking loss the UI showed "Tracking reset" and the
+   recovery visual for the REST of the check-up (runtime-verified to persist
+   through `raw_complete`). Now: an episode clears when measurement actually
+   restarts (any active stage) or when its voice completed and the flow moves
+   past the recovery target; item advance clears unconditionally. Guidance
+   and the shell notice treat `voice_completed` episodes as inactive. Three
+   coordinator tests pin it.
+2. **Voice cues are sequence-aware.** Balance-first entry no longer opens
+   with the chair timer's "Time. Stop there and rest."; mid-battery chair
+   entry bridges generically (item-complete + chair intro) instead of
+   replaying the full check-up welcome; chair-last completion ends on
+   times-up + check-up-complete, never the hinge "couldn't get a clear
+   forward reach" line. Default-battery cues byte-identical (pinned).
+   `balance_default_rest_elapsed` → after-60 cue kept as the intended
+   (test-pinned) future hook.
+3. **Footer numbering derives from the battery sequence** ("Test 1 of 2",
+   "2 tests complete") instead of the hardcoded 4-item battery, which showed
+   "Test 2 of 4" then "Test 1 of 4" on every real check-up.
+4. **Leave-confirmation honesty:** backing out at any pre-measurement stage
+   (frame check or the sequence's first setup) with nothing measured no
+   longer shows the "discard completed tests?" modal.
+
+Suite: 173 suites / 1,480 tests green (9 new); tsc clean. The device pass
+should re-verify: one full real check-up end to end (results page appears,
+Progress history row appears, second check-up anchors the standing leg and
+unlocks the comparison affordance), and a mid-check-up tracking loss
+(notice returns to the stage instruction after recovery).

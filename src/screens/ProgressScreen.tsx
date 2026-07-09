@@ -13,6 +13,7 @@ import {
   type MovementProfileV2ProgressViewModel,
 } from '../pearlFlow';
 import { type MovementProfileV2Domain } from '../movementProfileV2/viewModel';
+import type { ProgrammeLevelRow } from '../programme';
 import { type Domain } from '../scoring';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
@@ -27,6 +28,7 @@ export function ProgressScreen({
   onStartMovementProfileV2CheckUp,
   movementProfileV2Progress,
   onViewMovementProfileV2Profile,
+  programmeLevels,
   onOpenSettings,
 }: ProgressScreenProps) {
   const responsive = useResponsiveLayout();
@@ -57,6 +59,12 @@ export function ProgressScreen({
         onViewProfile={onViewMovementProfileV2Profile}
         onBeginExtraCheckUp={onBeginAdditionalCheckUp}
       />
+
+      {/* Reported training levels sit BELOW the measured check-up content and
+          under their own heading — the ladder moves session to session and is
+          the reported counterpart to the monthly camera reading, never a
+          measurement (moved off Home 2026-07-08 so Home stays action-first). */}
+      <ProgrammeTrainingLevelsCard levels={programmeLevels ?? []} />
     </Screen>
   );
 }
@@ -421,6 +429,38 @@ function MovementProfileV2ExtraCheckUpCard({ onPress }: { onPress: () => void })
   );
 }
 
+// Reported training ladder — one row per movement pattern. Lives on Progress
+// (moved off Home 2026-07-08) so Home stays action-first. Framed as reported
+// progression, deliberately distinct from the measured check-up card above:
+// the movement name leads and the step reads as a quiet "Level N of M"
+// caption rather than a scoreboard, keeping clear of the no-gamification law.
+function ProgrammeTrainingLevelsCard({ levels }: { levels: readonly ProgrammeLevelRow[] }) {
+  if (levels.length === 0) return null;
+  return (
+    <Card style={styles.progressCard}>
+      <Text style={styles.sectionTitle}>Your training levels</Text>
+      <Text style={styles.sectionIntro}>Levels rise as you train. They track your sessions, not your check-up.</Text>
+      <View style={styles.trainingLevelRows}>
+        {levels.map((row, index) => (
+          <View
+            key={row.pattern}
+            style={[styles.trainingLevelRow, index > 0 && styles.rowDivider]}
+            accessibilityLabel={`${row.patternTitle}: ${row.levelDisplayName}. Level ${row.currentLevel} of ${row.maxLevel}.`}
+          >
+            <View style={styles.trainingLevelText}>
+              <Text style={styles.trainingLevelPattern} numberOfLines={1}>{row.patternTitle}</Text>
+              <Text style={styles.trainingLevelName} numberOfLines={1}>{row.levelDisplayName}</Text>
+            </View>
+            <Text style={styles.trainingLevelStep} numberOfLines={1}>
+              Level {row.currentLevel} of {row.maxLevel}
+            </Text>
+          </View>
+        ))}
+      </View>
+    </Card>
+  );
+}
+
 // A simple list of saved check-ups, newest first — a way back to any past result.
 // The former "4-week block reports" subsection was dropped: it was cryptic
 // ("Strength / Power to Balance") and not what this tab is for.
@@ -542,6 +582,8 @@ interface ProgressScreenProps {
   movementProfileV2Progress?: MovementProfileV2ProgressViewModel | null;
   /** Opens the saved read-only results page (restored 2026-07-08). */
   onViewMovementProfileV2Profile?: (sourceCheckUpId: string) => void;
+  /** Per-pattern reported training ladder (moved off Home 2026-07-08). */
+  programmeLevels?: readonly ProgrammeLevelRow[];
   onOpenSettings: () => void;
 }
 
@@ -1125,6 +1167,44 @@ const styles = StyleSheet.create({
   rowDivider: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.divider,
+  },
+  trainingLevelRows: {
+    marginTop: 14,
+  },
+  trainingLevelRow: {
+    minHeight: 60,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  trainingLevelText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  trainingLevelPattern: {
+    color: colors.textSecondary,
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    lineHeight: 17,
+    letterSpacing: 0,
+  },
+  trainingLevelName: {
+    color: colors.textPrimary,
+    fontFamily: fonts.sansMedium,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: 0,
+    marginTop: 2,
+  },
+  trainingLevelStep: {
+    flexShrink: 0,
+    color: colors.textSecondary,
+    fontFamily: fonts.sansRegular,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0,
+    fontVariant: ['tabular-nums'],
   },
   recordRow: {
     minHeight: 70,

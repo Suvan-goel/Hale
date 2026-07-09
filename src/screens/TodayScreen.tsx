@@ -13,7 +13,7 @@ const HERO_IMAGE = require('../../assets/images/pearl-home-hero-botanical.png');
 
 import { HeaderLogo } from '../components/HeaderLogo';
 import { useScreenScrollClearance } from '../components/ui';
-import type { ProgrammeLevelRow, ProgrammeTodayViewModel } from '../programme';
+import type { ProgrammeTodayViewModel } from '../programme';
 // The hero copy (title/subtitle/CTA) comes straight from the programme
 // adapter's primary action — src/programme/appLifecycle.ts is the single
 // source for that copy.
@@ -25,15 +25,16 @@ import { useResponsiveLayout } from '../theme/responsive';
 /**
  * The Today tab (programme engine v2 — the only data source since the old
  * engine's decommission, promotion commit 2, 2026-07-08): greeting header,
- * the levels card (v2 has no measured domain bands until an official
- * check-up exists — level rows are the honest equivalent), the hero focus
- * card, and the persistent check-up offer when one is due. Since the Plan
- * tab merged into Home (simplification pass, 2026-07-08) this is the one
- * place the plan lives; training days stay editable in Settings.
+ * the hero focus card carrying today's session and its Start CTA, and the
+ * persistent check-up offer when one is due. Action-first by design — the
+ * session CTA leads, nothing passive sits above it (2026-07-08: the "Your
+ * levels" readout moved to Progress, where the reported training ladder
+ * lives alongside the measured check-up). Since the Plan tab merged into
+ * Home (simplification pass, 2026-07-08) this is the one place the plan
+ * lives; training days stay editable in Settings.
  */
 export interface TodayProgrammeMode {
   today: ProgrammeTodayViewModel;
-  levelRows: readonly ProgrammeLevelRow[];
   onStartCheckup?: () => void;
 }
 
@@ -93,8 +94,6 @@ export function TodayScreen({
           ) : null}
         </View>
 
-        <ProgrammeLevelsCard compact={compact} levelRows={programme.levelRows} />
-
         <DailyFocusCard
           compact={compact}
           label="Today"
@@ -114,35 +113,6 @@ export function TodayScreen({
           />
         ) : null}
       </ScrollView>
-    </View>
-  );
-}
-
-/** Per-pattern level rows — the v2 stand-in for the measured snapshot card. */
-function ProgrammeLevelsCard({
-  compact,
-  levelRows,
-}: {
-  compact: boolean;
-  levelRows: readonly ProgrammeLevelRow[];
-}) {
-  return (
-    <View style={[styles.snapshotCard, compact && styles.compactCardPadding]}>
-      <Text style={styles.snapshotTitle}>Your levels</Text>
-      <View style={styles.levelRows}>
-        {levelRows.map((row) => (
-          <View key={row.pattern} style={styles.levelRow}>
-            <View style={styles.metricCopy}>
-              <Text style={styles.metricLabel}>{row.patternTitle}</Text>
-              <Text style={styles.metricValue}>{row.levelDisplayName}</Text>
-            </View>
-            <Text style={styles.levelValue}>
-              {row.currentLevel}
-              <Text style={styles.levelValueTotal}> / {row.maxLevel}</Text>
-            </Text>
-          </View>
-        ))}
-      </View>
     </View>
   );
 }
@@ -338,66 +308,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.serifMedium,
     fontSize: 18,
     lineHeight: 24,
-    letterSpacing: 0,
-  },
-  snapshotCard: {
-    borderRadius: radius.card,
-    paddingHorizontal: 22,
-    paddingVertical: 22,
-    backgroundColor: todayHomeColors.card,
-    ...shadow.card,
-  },
-  snapshotTitle: {
-    // Matches contextTitle — one card-title style on this screen.
-    color: todayHomeColors.primaryText,
-    fontFamily: fonts.serifMedium,
-    fontSize: 18,
-    lineHeight: 24,
-    letterSpacing: 0,
-  },
-  metricCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  metricLabel: {
-    color: todayHomeColors.primaryText,
-    fontFamily: fonts.sansMedium,
-    fontSize: 14,
-    lineHeight: 18,
-    letterSpacing: 0,
-  },
-  metricValue: {
-    color: todayHomeColors.secondaryText,
-    fontFamily: fonts.sansRegular,
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 0,
-    marginTop: 2,
-  },
-  levelRows: {
-    marginTop: 14,
-    gap: 2,
-  },
-  levelRow: {
-    minHeight: 52,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 8,
-  },
-  levelValue: {
-    color: todayHomeColors.headingGreen,
-    fontFamily: fonts.serifMedium,
-    fontSize: 20,
-    lineHeight: 25,
-    letterSpacing: 0,
-    fontVariant: ['tabular-nums'],
-  },
-  levelValueTotal: {
-    color: todayHomeColors.secondaryText,
-    fontFamily: fonts.sansRegular,
-    fontSize: 13,
-    lineHeight: 18,
     letterSpacing: 0,
   },
   checkupButton: {

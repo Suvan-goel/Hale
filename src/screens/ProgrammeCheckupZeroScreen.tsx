@@ -24,6 +24,7 @@ import { GhostButton, PrimaryButton, Screen, ScreenHeader, SecondaryButton } fro
 import { checkupZeroBatterySequence } from '../programme';
 import { createMovementProfileV2InternalFlow } from '../movementProfileV2/internalCheckupFlow';
 import type { CheckUp } from '../checkup';
+import type { StoredCheckUp } from '../history';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 import { MovementProfileV2UnifiedCheckUpScreen } from './MovementProfileV2UnifiedCheckUpScreen';
@@ -35,12 +36,16 @@ export function ProgrammeCheckupZeroScreen({
   onRawCheckUpReady,
   onCancel,
   voiceId,
+  history,
 }: {
   onComplete: (checkUp: CheckUp) => void;
   /** Fired the moment the measured battery exists — persist here (crash-safe). */
   onRawCheckUpReady?: (checkUp: CheckUp) => void;
   onCancel: () => void;
   voiceId?: string;
+  /** Stored check-up history: anchors the standing leg / shoulder side to the
+   * prior official record (side-consistency is measurement hygiene). */
+  history?: readonly StoredCheckUp[];
 }) {
   const [phase, setPhase] = React.useState<'intro' | 'warmup' | 'battery'>('intro');
   const [warmupRemaining, setWarmupRemaining] = React.useState(WARM_UP_SECONDS);
@@ -88,17 +93,18 @@ export function ProgrammeCheckupZeroScreen({
   }
 
   if (!startedAtRef.current) startedAtRef.current = new Date().toISOString();
+  // Source type derives from history (baseline vs retake) — these ARE the
+  // official check-ups of record; the host saves them as such (2026-07-09).
+  const initialFlow = createMovementProfileV2InternalFlow({
+    startedAt: startedAtRef.current,
+    history,
+    batterySequence: checkupZeroBatterySequence(),
+  });
   return (
     <MovementProfileV2UnifiedCheckUpScreen
       startedAt={startedAtRef.current}
-      sourceType="manual_extra_v2"
-      initialFlow={{
-        ...createMovementProfileV2InternalFlow({
-          startedAt: startedAtRef.current,
-          batterySequence: checkupZeroBatterySequence(),
-        }),
-        sourceType: 'manual_extra_v2',
-      }}
+      sourceType={initialFlow.sourceType}
+      initialFlow={initialFlow}
       voiceId={voiceId}
       onRawCheckUpReady={onRawCheckUpReady ? ({ checkUp }) => onRawCheckUpReady(checkUp) : undefined}
       onComplete={({ checkUp }) => onComplete(checkUp)}

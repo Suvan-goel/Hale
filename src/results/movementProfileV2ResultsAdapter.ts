@@ -137,7 +137,7 @@ function domainCardToPresentation(
 
 function toneForCard(card: MovementProfileV2ResultsViewModel['domainCards'][number]): UnifiedDomainResultCard['tone'] {
   if (card.status === 'Starting point') return 'attention';
-  if (card.status === 'Saved result') return 'informational';
+  if (card.status === 'Saved result' || card.status === 'Not measured') return 'informational';
   return 'neutral';
 }
 

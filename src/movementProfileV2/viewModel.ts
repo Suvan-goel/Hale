@@ -31,7 +31,9 @@ export type MovementProfileV2StatusTier =
   | 'Building'
   | 'On track'
   | 'Strong'
-  | 'Saved result';
+  | 'Saved result'
+  /** The battery never ran this domain (two-protocol check-up scope). */
+  | 'Not measured';
 
 export interface MovementProfileV2DomainCardViewModel {
   domain: MovementProfileV2Domain;
@@ -194,6 +196,17 @@ function balanceTier(balance: BalanceInterpretation): MovementProfileV2StatusTie
 }
 
 function shoulderCard(shoulder: ShoulderInterpretation, comparisonOptIn: boolean): MovementProfileV2DomainCardViewModel {
+  // The two-protocol check-up never runs the reach item: say so honestly
+  // instead of implying a saved starting point (never false precision).
+  if (!shoulder.rawMetric && shoulder.rawInvalidReasons.includes('missing_result')) {
+    return {
+      domain: 'mobility',
+      title: 'Mobility',
+      metric: 'Not measured',
+      status: 'Not measured',
+      body: "This check-up measures strength and balance — the reach check isn't part of it.",
+    };
+  }
   const degrees = shoulder.rawMetric?.value;
   return {
     domain: 'mobility',
