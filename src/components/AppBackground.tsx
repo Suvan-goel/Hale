@@ -17,10 +17,10 @@ export function AppBackground() {
       style={styles.canvas}
     >
       <Defs>
-        <LinearGradient id="appBackgroundGradient" x1="0%" y1="0%" x2="18%" y2="100%">
+        <LinearGradient id="appBackgroundGradient" x1="0%" y1="0%" x2="32%" y2="100%">
           <Stop offset="0%" stopColor={colors.bgGradientStart} />
-          <Stop offset="18%" stopColor={colors.bgGradientWarm} />
-          <Stop offset="52%" stopColor={colors.bgGradientMid} />
+          <Stop offset="22%" stopColor={colors.bgGradientWarm} />
+          <Stop offset="58%" stopColor={colors.bgGradientMid} />
           <Stop offset="100%" stopColor={colors.bgGradientEnd} />
         </LinearGradient>
       </Defs>

@@ -20,29 +20,29 @@ import { Platform, StyleSheet, TextStyle, ViewStyle } from 'react-native';
  * ------------------------------------------------------------------------- */
 
 export const palette = {
-  appBackground: '#171719',
-  appBackgroundWarm: '#24201F',
-  appBackgroundMid: '#1D1B1B',
-  cardSurface: '#232326',
-  elevatedSurface: '#2A292C',
-  warmSurface: '#29262A',
+  appBackground: '#111316',
+  appBackgroundWarm: '#292524',
+  appBackgroundMid: '#1A1A1D',
+  cardSurface: '#1D1F22',
+  elevatedSurface: '#24262A',
+  warmSurface: '#252326',
   focusCanvas: '#101114',
-  focusSurface: '#191B1E',
-  focusElevated: '#222428',
-  ink: '#F3ECE8',
-  secondaryText: '#B8B0AC',
-  tertiaryText: '#94908D',
-  pearl: '#EEE2DC',
-  pearlPressed: '#E2D1C9',
-  blush: '#CBA89D',
-  softBlushFill: 'rgba(226,209,201,0.10)',
-  verySoftBlushFill: 'rgba(226,209,201,0.06)',
-  border: 'rgba(243,236,232,0.10)',
-  strongBorder: 'rgba(243,236,232,0.18)',
-  warmPremiumAccent: '#C9A77D',
-  softGoldFill: 'rgba(201,167,125,0.12)',
+  focusSurface: '#181A1D',
+  focusElevated: '#202226',
+  ink: '#F1E8E4',
+  secondaryText: '#C4BAB6',
+  tertiaryText: '#97908D',
+  pearl: '#EADAD4',
+  pearlPressed: '#DECBC4',
+  blush: '#D0A296',
+  softBlushFill: 'rgba(234,218,212,0.10)',
+  verySoftBlushFill: 'rgba(234,218,212,0.055)',
+  border: 'rgba(241,232,228,0.075)',
+  strongBorder: 'rgba(241,232,228,0.15)',
+  warmPremiumAccent: '#C3A17C',
+  softGoldFill: 'rgba(195,161,124,0.12)',
   restorativeSage: '#9BAB94',
-  softShadow: 'rgba(0,0,0,0.30)',
+  softShadow: 'rgba(0,0,0,0.24)',
 } as const;
 
 export const colors = {
@@ -117,15 +117,15 @@ export const colors = {
   error: '#D48686',
   debugOverlay: 'rgba(8,9,11,0.92)',
   imageScrim: 'rgba(8,9,11,0.58)',
-  overlaySurface: 'rgba(16,17,20,0.88)',
+  overlaySurface: 'rgba(17,19,22,0.96)',
   modalBackdrop: 'rgba(0,0,0,0.76)',
   shadowSoft: palette.softShadow,
   onAccent: palette.focusCanvas,
 } as const;
 
 export const imageOverlayControl = {
-  background: 'rgba(16,17,20,0.62)',
-  border: 'rgba(243,236,232,0.24)',
+  background: 'rgba(15,17,20,0.68)',
+  border: 'rgba(241,232,228,0.20)',
   text: colors.textPrimary,
 } as const;
 
@@ -202,8 +202,8 @@ export const spacing = {
   xl: 24,
   xxl: 32,
   xxxl: 40,
-  pageTop: 40,
-  pageHorizontal: 18,
+  pageTop: 32,
+  pageHorizontal: 16,
   pageMaxWidth: 430,
   huge: 56,
 } as const;
@@ -228,26 +228,26 @@ export const minTapTarget = 48;
 
 export const shadow = {
   card: {
-    boxShadow: '0 12px 30px rgba(0,0,0,0.22)',
+    boxShadow: '0 1px 0 rgba(255,255,255,0.018), 0 7px 20px rgba(0,0,0,0.22)',
     shadowColor: '#000000',
-    shadowOpacity: 0.22,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2,
   } satisfies ViewStyle,
   soft: {
     shadowColor: '#000000',
-    shadowOpacity: 0.14,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
     elevation: 1,
   } satisfies ViewStyle,
   lifted: {
     shadowColor: '#000000',
-    shadowOpacity: 0.28,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 4,
+    shadowOpacity: 0.22,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 7 },
+    elevation: 3,
   } satisfies ViewStyle,
 } as const;
 
@@ -258,8 +258,8 @@ export const shadow = {
 export const componentStyles = {
   card: {
     base: {
-      paddingHorizontal: 18,
-      paddingVertical: 18,
+      paddingHorizontal: 16,
+      paddingVertical: 16,
       borderRadius: radius.card,
       backgroundColor: colors.card,
       borderWidth: StyleSheet.hairlineWidth,
@@ -267,8 +267,8 @@ export const componentStyles = {
       ...shadow.card,
     } satisfies ViewStyle,
     elevated: {
-      paddingHorizontal: 18,
-      paddingVertical: 18,
+      paddingHorizontal: 16,
+      paddingVertical: 16,
       borderRadius: radius.card,
       backgroundColor: colors.elevatedCard,
       borderWidth: StyleSheet.hairlineWidth,
@@ -276,16 +276,16 @@ export const componentStyles = {
       ...shadow.card,
     } satisfies ViewStyle,
     flat: {
-      paddingHorizontal: 18,
-      paddingVertical: 18,
+      paddingHorizontal: 16,
+      paddingVertical: 16,
       borderRadius: radius.card,
       backgroundColor: colors.card,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.borderHairline,
     } satisfies ViewStyle,
     feature: {
-      paddingHorizontal: 18,
-      paddingVertical: 18,
+      paddingHorizontal: 16,
+      paddingVertical: 16,
       borderRadius: radius.panel,
       backgroundColor: colors.accent,
       borderWidth: StyleSheet.hairlineWidth,
@@ -295,7 +295,7 @@ export const componentStyles = {
   },
   button: {
     base: {
-      minHeight: 56,
+      minHeight: 52,
       borderRadius: radius.button,
       paddingHorizontal: 20,
       paddingVertical: 14,
@@ -327,7 +327,7 @@ export const componentStyles = {
       gap: spacing.xs,
     } satisfies ViewStyle,
     base: {
-      minHeight: 56,
+      minHeight: 52,
       borderRadius: radius.input,
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.md,

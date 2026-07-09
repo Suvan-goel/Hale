@@ -1,5 +1,5 @@
 /**
- * Lightweight floating bottom tab bar. The app navigates with a small amount of state in
+ * Lightweight bottom navigation dock. The app navigates with a small amount of state in
  * App.tsx (no heavy navigation dependency — consistent with the existing
  * hand-rolled screen switching and CLAUDE.md's caution on native deps). The bar
  * shows only on the two primary tabs; hands-free session flows take the
@@ -11,7 +11,7 @@
 import * as React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, fonts, radius, shadow, spacing, type } from '../theme';
+import { colors, fonts, spacing, type } from '../theme';
 import { HomeIcon, IconProps, ProgressIcon } from './icons';
 
 export type TabKey = 'today' | 'progress';
@@ -32,10 +32,10 @@ export const TAB_DEFS: readonly TabDef[] = [
 ];
 
 export const DEFAULT_TAB_KEY: TabKey = 'today';
-export const TAB_BAR_MIN_HEIGHT = 74;
-export const TAB_BAR_CONTENT_GAP = 6;
+export const TAB_BAR_MIN_HEIGHT = 62;
+export const TAB_BAR_CONTENT_GAP = 0;
 export const TAB_BAR_SCROLL_CLEARANCE =
-  spacing.md + TAB_BAR_MIN_HEIGHT + spacing.lg + TAB_BAR_CONTENT_GAP;
+  TAB_BAR_MIN_HEIGHT + spacing.lg + TAB_BAR_CONTENT_GAP;
 
 export function isTabKey(value: unknown): value is TabKey {
   return typeof value === 'string' && TAB_DEFS.some((tab) => tab.key === value);
@@ -60,12 +60,14 @@ export function TabBar({
 }) {
   const activeKey = normalizeTabKey(active);
   return (
-    <View style={[styles.tray, bottomInset > 0 && { paddingBottom: spacing.lg + bottomInset }]}>
+    <View
+      style={[styles.tray, bottomInset > 0 && { paddingBottom: spacing.sm + bottomInset }]}
+    >
       <View style={styles.contentRail}>
         <View style={styles.bar}>
           {TAB_DEFS.map((tab) => {
             const selected = tab.key === activeKey;
-            const tint = selected ? colors.accentDeep : colors.textSecondary;
+            const tint = selected ? colors.accentDeep : colors.textTertiary;
             return (
               <Pressable
                 key={tab.key}
@@ -95,42 +97,38 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 20,
-    backgroundColor: 'transparent',
+    backgroundColor: colors.overlaySurface,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.borderHairline,
     alignItems: 'center',
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.md,
+    paddingTop: 6,
+    paddingBottom: spacing.sm,
   },
   contentRail: {
     width: '100%',
     maxWidth: spacing.pageMaxWidth,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
   bar: {
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
     minHeight: TAB_BAR_MIN_HEIGHT,
-    backgroundColor: colors.bgSurface,
-    borderRadius: radius.card,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    ...shadow.lifted,
+    backgroundColor: 'transparent',
+    paddingHorizontal: spacing.xs,
   },
   tab: {
     flex: 1,
-    minHeight: 58,
+    minHeight: 54,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 6,
     gap: spacing.xs,
     paddingHorizontal: 2,
-    paddingVertical: spacing.xs,
+    paddingVertical: 3,
   },
   tabActive: {
-    backgroundColor: colors.bgElevated,
+    opacity: 1,
   },
   tabPressed: {
     opacity: 0.76,
@@ -143,13 +141,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconWrapActive: {
-    transform: [{ translateY: -1 }],
+    transform: [{ translateY: -1 }, { scale: 1.03 }],
   },
   label: {
     ...type.cardCaption,
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 15,
+    color: colors.textTertiary,
+    fontSize: 11,
+    lineHeight: 14,
     textTransform: 'none',
   },
   labelActive: {

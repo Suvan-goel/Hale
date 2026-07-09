@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
     justifyContent: 'flex-start',
-    gap: spacing.lg,
+    gap: spacing.md,
   },
   header: {
     flexDirection: 'row',
@@ -291,14 +291,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
   },
   iconButton: {
-    // Comfortable tap target for the 50+ audience (matches minTapTarget);
-    // stays transparent-on-warm rather than the shared chip-style button.
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    // Compact but comfortable target for the 50+ audience.
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
+    backgroundColor: colors.bgElevated,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
   },
   contextStrip: {
     minHeight: 92,
@@ -384,8 +385,8 @@ const styles = StyleSheet.create({
   },
   focusContent: {
     minHeight: 274,
-    paddingVertical: 26,
-    paddingHorizontal: 24,
+    paddingVertical: 22,
+    paddingHorizontal: 20,
     justifyContent: 'flex-start',
     zIndex: 2,
   },

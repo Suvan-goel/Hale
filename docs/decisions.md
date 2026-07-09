@@ -5481,6 +5481,26 @@ tests green. iOS simulator build and Android debug Kotlin compilation both
 succeeded, followed by visual checks of onboarding and populated Home,
 Progress, Learn, and Settings surfaces.
 
+## 2026-07-09 — Reference refinement keeps the product structure intact
+
+Founder-directed visual refinement against the supplied Pearl reference. The
+information architecture, routes, page sections, actions, workout flow, and
+Movement Check-Up flow remain unchanged.
+
+- Everyday pages now use a deeper neutral canvas (`#111316`) with a restrained
+  warm graphite gradient (`#292524` / `#1A1A1D`). Cards use neutral graphite
+  surfaces (`#1D1F22` / `#24262A`), a finer warm-white edge, and shorter shadows
+  rather than floating-panel depth.
+- Pearl actions move slightly warmer (`#EADAD4`) and the dusty-blush emphasis
+  becomes `#D0A296`. Secondary text is brighter for comfortable reading while
+  retaining a clear hierarchy.
+- Shared page spacing and card padding are tighter, but tap targets remain at
+  least 48 points. The existing two-tab navigation is presented as a quiet,
+  full-width bottom dock with no route or behavior changes.
+- Active workout and check-up screens retain their solid `focusCanvas`; the
+  native camera renderer, measurement pipeline, audio runtime, and session
+  controllers are untouched.
+
 ## 2026-07-09 — Pearl MVP product contract: twelve-week proof loop
 
 Founder-approved direction after a whole-product PMF review:
