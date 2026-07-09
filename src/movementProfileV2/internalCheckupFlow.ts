@@ -40,7 +40,7 @@ import type { StoredCheckUp } from '../history';
 import {
   latestOfficialMovementProfileV2Assessment,
   validOfficialMovementProfileV2Assessments,
-} from '../haleFlow/checkupHistory';
+} from '../pearlFlow/checkupHistory';
 
 export type MovementProfileV2InternalStep =
   | 'chair_setup'

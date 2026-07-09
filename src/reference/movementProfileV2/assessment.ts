@@ -38,14 +38,14 @@ export type MovementProfileV2DomainEvidenceCategory =
   | 'below_reference'
   | 'within_reference'
   | 'above_reference_or_ceiling'
-  | 'hale_starting_point'
-  | 'hale_building'
+  | 'pearl_starting_point'
+  | 'pearl_building'
   | 'raw_only_valid'
   | 'invalid_or_missing';
 
 export type MovementProfileV2DomainEvidenceSource =
   | 'published_reference'
-  | 'hale_task_band'
+  | 'pearl_task_band'
   | 'raw_only'
   | 'invalid';
 
@@ -104,7 +104,7 @@ export type MovementProfileV2SuggestedFocus =
       focusDomain: MovementDomain;
       planMode:
         | 'checkup_reference_focus'
-        | 'checkup_hale_band_focus'
+        | 'checkup_pearl_band_focus'
         | 'prior_focus_reference_supported';
       reason: MovementProfileV2FocusDecisionReason;
       candidateDomains: readonly MovementDomain[];
@@ -127,7 +127,7 @@ export type MovementProfileV2FocusDecisionReason =
   | 'v2_focus_multiple_below_preserve_current'
   | 'v2_focus_multiple_below_goal_tiebreak'
   | 'v2_focus_multiple_below_balanced'
-  | 'v2_focus_single_hale_starting_point'
+  | 'v2_focus_single_pearl_starting_point'
   | 'v2_focus_starting_point_preserve_current'
   | 'v2_focus_starting_point_goal_tiebreak'
   | 'v2_focus_starting_point_balanced'
@@ -233,15 +233,15 @@ export const MOVEMENT_PROFILE_V2_DOMAIN_EVIDENCE_POLICY_FINGERPRINT = determinis
       percentileRangeFocusThresholdApproved: true,
       below10Category: 'below_reference',
       percentileRangeUsesUpperBoundForSeverity: true,
-      rangeUpTo25Category: 'hale_starting_point',
-      rangeUpTo40Category: 'hale_building',
+      rangeUpTo25Category: 'pearl_starting_point',
+      rangeUpTo40Category: 'pearl_building',
       rangeAbove40Category: 'within_reference',
       above90Category: 'above_reference_or_ceiling',
     },
     balanceTaskBands: {
-      starting_point_low: 'hale_starting_point',
-      starting_point: 'hale_starting_point',
-      building: 'hale_building',
+      starting_point_low: 'pearl_starting_point',
+      starting_point: 'pearl_starting_point',
+      building: 'pearl_building',
       ceiling_complete: 'above_reference_or_ceiling',
     },
     shoulderIqr: {
@@ -261,13 +261,13 @@ export const MOVEMENT_PROFILE_V2_FOCUS_POLICY_FINGERPRINT = deterministicFingerp
       'invalid_or_missing_needs_retake',
       'single_below_reference',
       'multiple_below_reference_prior_then_goal_then_balanced',
-      'single_hale_starting_point',
-      'multiple_hale_starting_point_prior_then_goal_then_balanced',
+      'single_pearl_starting_point',
+      'multiple_pearl_starting_point_prior_then_goal_then_balanced',
       'no_clear_candidate_prior_then_balanced',
     ],
     balancedFallback: true,
     priorV2FocusOfficialRetestOnly: true,
-    chairPercentileRangesCanProduceHaleBands: true,
+    chairPercentileRangesCanProducePearlBands: true,
   }
 );
 
@@ -589,13 +589,13 @@ export function selectMovementProfileV2SuggestedFocus({
     });
   }
 
-  const startingPoint = domainsForCategory(evidence, 'hale_starting_point');
+  const startingPoint = domainsForCategory(evidence, 'pearl_starting_point');
   if (startingPoint.length === 1) {
     return focusResult({
       focus: domainFocus({
         focusDomain: startingPoint[0],
-        planMode: 'checkup_hale_band_focus',
-        reason: 'v2_focus_single_hale_starting_point',
+        planMode: 'checkup_pearl_band_focus',
+        reason: 'v2_focus_single_pearl_starting_point',
         candidateDomains: startingPoint,
       }),
       sourceSnapshotId,
@@ -606,7 +606,7 @@ export function selectMovementProfileV2SuggestedFocus({
       lifeGoalContext,
       priorFocusContext,
       candidateDomains: startingPoint,
-      decisionReason: 'v2_focus_single_hale_starting_point',
+      decisionReason: 'v2_focus_single_pearl_starting_point',
     });
   }
   if (startingPoint.length > 1) {
@@ -615,7 +615,7 @@ export function selectMovementProfileV2SuggestedFocus({
       return focusResult({
         focus: domainFocus({
           focusDomain: priorDomain,
-          planMode: 'checkup_hale_band_focus',
+          planMode: 'checkup_pearl_band_focus',
           reason: 'v2_focus_starting_point_preserve_current',
           candidateDomains: startingPoint,
         }),
@@ -635,7 +635,7 @@ export function selectMovementProfileV2SuggestedFocus({
       return focusResult({
         focus: domainFocus({
           focusDomain: goalDomain,
-          planMode: 'checkup_hale_band_focus',
+          planMode: 'checkup_pearl_band_focus',
           reason: 'v2_focus_starting_point_goal_tiebreak',
           candidateDomains: startingPoint,
         }),
@@ -845,7 +845,7 @@ function chairDomainEvidence(chair: ChairInterpretation): MovementProfileV2Domai
     if (chairBand === 'starting_point') {
       return domainEvidence({
         domain: 'strength_power',
-        category: 'hale_starting_point',
+        category: 'pearl_starting_point',
         evidenceSource: 'published_reference',
         sourceResultKind: chair.resultKind,
         claimEligibility: chair.claimEligibility,
@@ -856,7 +856,7 @@ function chairDomainEvidence(chair: ChairInterpretation): MovementProfileV2Domai
     if (chairBand === 'building') {
       return domainEvidence({
         domain: 'strength_power',
-        category: 'hale_building',
+        category: 'pearl_building',
         evidenceSource: 'published_reference',
         sourceResultKind: chair.resultKind,
         claimEligibility: chair.claimEligibility,
@@ -916,32 +916,32 @@ function balanceDomainEvidence(balance: BalanceInterpretation): MovementProfileV
   if (balance.taskBand === 'starting_point' || balance.taskBand === 'starting_point_low') {
     return domainEvidence({
       domain: 'balance',
-      category: 'hale_starting_point',
-      evidenceSource: 'hale_task_band',
+      category: 'pearl_starting_point',
+      evidenceSource: 'pearl_task_band',
       sourceResultKind: balance.resultKind,
       claimEligibility: balance.claimEligibility,
       focusEligible: true,
-      reasons: ['balance_hale_starting_point_band', 'balance_springer_benchmark_not_focus_severity', ...reasonCodes(balance)],
+      reasons: ['balance_pearl_starting_point_band', 'balance_springer_benchmark_not_focus_severity', ...reasonCodes(balance)],
     });
   }
   if (balance.taskBand === 'building') {
     return domainEvidence({
       domain: 'balance',
-      category: 'hale_building',
-      evidenceSource: 'hale_task_band',
+      category: 'pearl_building',
+      evidenceSource: 'pearl_task_band',
       sourceResultKind: balance.resultKind,
       claimEligibility: balance.claimEligibility,
-      reasons: ['balance_hale_building_band', 'balance_springer_benchmark_not_focus_severity', ...reasonCodes(balance)],
+      reasons: ['balance_pearl_building_band', 'balance_springer_benchmark_not_focus_severity', ...reasonCodes(balance)],
     });
   }
   if (balance.taskBand === 'ceiling_complete') {
     return domainEvidence({
       domain: 'balance',
       category: 'above_reference_or_ceiling',
-      evidenceSource: 'hale_task_band',
+      evidenceSource: 'pearl_task_band',
       sourceResultKind: balance.resultKind,
       claimEligibility: balance.claimEligibility,
-      reasons: ['balance_hale_ceiling_complete', 'balance_springer_benchmark_not_focus_severity', ...reasonCodes(balance)],
+      reasons: ['balance_pearl_ceiling_complete', 'balance_springer_benchmark_not_focus_severity', ...reasonCodes(balance)],
     });
   }
   return domainEvidence({
@@ -1194,7 +1194,7 @@ function parseFocus(value: unknown): MovementProfileV2SuggestedFocus | null {
     if (!isMovementDomain(value.focusDomain)) return null;
     if (
       value.planMode !== 'checkup_reference_focus' &&
-      value.planMode !== 'checkup_hale_band_focus' &&
+      value.planMode !== 'checkup_pearl_band_focus' &&
       value.planMode !== 'prior_focus_reference_supported'
     ) {
       return null;
@@ -1486,15 +1486,15 @@ function isDomainEvidenceCategory(value: unknown): value is MovementProfileV2Dom
     value === 'below_reference' ||
     value === 'within_reference' ||
     value === 'above_reference_or_ceiling' ||
-    value === 'hale_starting_point' ||
-    value === 'hale_building' ||
+    value === 'pearl_starting_point' ||
+    value === 'pearl_building' ||
     value === 'raw_only_valid' ||
     value === 'invalid_or_missing'
   );
 }
 
 function isDomainEvidenceSource(value: unknown): value is MovementProfileV2DomainEvidenceSource {
-  return value === 'published_reference' || value === 'hale_task_band' || value === 'raw_only' || value === 'invalid';
+  return value === 'published_reference' || value === 'pearl_task_band' || value === 'raw_only' || value === 'invalid';
 }
 
 function isFocusDecisionReason(value: unknown): value is MovementProfileV2FocusDecisionReason {
@@ -1503,7 +1503,7 @@ function isFocusDecisionReason(value: unknown): value is MovementProfileV2FocusD
     value === 'v2_focus_multiple_below_preserve_current' ||
     value === 'v2_focus_multiple_below_goal_tiebreak' ||
     value === 'v2_focus_multiple_below_balanced' ||
-    value === 'v2_focus_single_hale_starting_point' ||
+    value === 'v2_focus_single_pearl_starting_point' ||
     value === 'v2_focus_starting_point_preserve_current' ||
     value === 'v2_focus_starting_point_goal_tiebreak' ||
     value === 'v2_focus_starting_point_balanced' ||

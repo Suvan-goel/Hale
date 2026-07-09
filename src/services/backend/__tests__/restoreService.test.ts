@@ -20,10 +20,10 @@ import { createCurrentVersionedScoreSnapshot } from '../../../scoring';
 
 import {
   isLocalStateEmptyForRestore,
-  mapRemoteHaleSnapshotToLocal,
+  mapRemotePearlSnapshotToLocal,
   restoreRemoteStateIfLocalEmpty,
-  type LocalHaleStateForRestore,
-  type RemoteHaleSnapshot,
+  type LocalPearlStateForRestore,
+  type RemotePearlSnapshot,
 } from '../restoreService';
 
 // Trimmed with the old-engine cleanup (2026-07-08, founder direction): the
@@ -103,7 +103,7 @@ function storedCheckUp(): StoredCheckUp {
   };
 }
 
-function emptyLocal(): LocalHaleStateForRestore {
+function emptyLocal(): LocalPearlStateForRestore {
   return {
     preferences: defaultPreferences(),
     history: [],
@@ -114,7 +114,7 @@ function backendJson(value: unknown): never {
   return JSON.parse(JSON.stringify(value)) as never;
 }
 
-function remoteSnapshot(): RemoteHaleSnapshot {
+function remoteSnapshot(): RemotePearlSnapshot {
   const localCheckUp = checkUp();
   const scored = createCurrentVersionedScoreSnapshot(localCheckUp);
 
@@ -175,8 +175,8 @@ function remoteSnapshot(): RemoteHaleSnapshot {
 }
 
 function remoteSnapshotWithCheckups(
-  movementCheckups: RemoteHaleSnapshot['movementCheckups']
-): RemoteHaleSnapshot {
+  movementCheckups: RemotePearlSnapshot['movementCheckups']
+): RemotePearlSnapshot {
   return {
     profile: null,
     movementCheckups,
@@ -314,7 +314,7 @@ describe('remote restore service', () => {
   });
 
   it('maps sanitized remote rows back into local store shapes', () => {
-    const mapped = mapRemoteHaleSnapshotToLocal(remoteSnapshot(), emptyLocal());
+    const mapped = mapRemotePearlSnapshotToLocal(remoteSnapshot(), emptyLocal());
 
     expect(mapped.state.preferences.profile.name).toBe('Asha Rao');
     expect(mapped.state.preferences.onboarding.currentStep).toBe('complete');
@@ -336,7 +336,7 @@ describe('remote restore service', () => {
       }),
     } as never;
 
-    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
+    const mapped = mapRemotePearlSnapshotToLocal(snapshot, emptyLocal());
 
     expect(mapped.state.preferences.profile.safetyProfile ?? null).toBeNull();
     expect(JSON.stringify(mapped.state.preferences)).not.toContain('remote-safety');
@@ -345,7 +345,7 @@ describe('remote restore service', () => {
   it('restores Movement Profile V2 snapshots as history evidence', () => {
     const rawCheckUp = v2CheckUp(startedAt);
     const movementProfileV2Snapshot = movementProfileV2SnapshotFor(rawCheckUp);
-    const mapped = mapRemoteHaleSnapshotToLocal(
+    const mapped = mapRemotePearlSnapshotToLocal(
       remoteSnapshotWithCheckups([
         {
           id: 'remote-v2-checkup',
@@ -385,7 +385,7 @@ describe('remote restore service', () => {
     const rawCheckUp = v2CheckUp(startedAt);
     const movementProfileV2Snapshot = movementProfileV2SnapshotFor(rawCheckUp);
     const movementProfileV2Assessment = movementProfileV2AssessmentFor(rawCheckUp, movementProfileV2Snapshot);
-    const mapped = mapRemoteHaleSnapshotToLocal(
+    const mapped = mapRemotePearlSnapshotToLocal(
       remoteSnapshotWithCheckups([
         {
           id: 'remote-v2-checkup',
@@ -430,7 +430,7 @@ describe('remote restore service', () => {
       ...movementProfileV2SnapshotFor(rawCheckUp),
       snapshotFingerprint: 'tampered',
     };
-    const mapped = mapRemoteHaleSnapshotToLocal(
+    const mapped = mapRemotePearlSnapshotToLocal(
       remoteSnapshotWithCheckups([
         {
           id: 'remote-v2-checkup',
@@ -467,7 +467,7 @@ describe('remote restore service', () => {
     const otherCheckUp = v2CheckUp(startedAt, { chair: chairV2Result({ reps: 13 }) });
     const otherSnapshot = movementProfileV2SnapshotFor(otherCheckUp);
     const otherAssessment = movementProfileV2AssessmentFor(otherCheckUp, otherSnapshot);
-    const mapped = mapRemoteHaleSnapshotToLocal(
+    const mapped = mapRemotePearlSnapshotToLocal(
       remoteSnapshotWithCheckups([
         {
           id: 'remote-v2-checkup',
@@ -505,7 +505,7 @@ describe('remote restore service', () => {
   it('prefers a valid restored V2 snapshot over a duplicate raw-only remote row', () => {
     const rawCheckUp = v2CheckUp(startedAt);
     const movementProfileV2Snapshot = movementProfileV2SnapshotFor(rawCheckUp);
-    const mapped = mapRemoteHaleSnapshotToLocal(
+    const mapped = mapRemotePearlSnapshotToLocal(
       remoteSnapshotWithCheckups([
         {
           id: 'remote-v2-missing',
@@ -550,7 +550,7 @@ describe('remote restore service', () => {
     const rawCheckUp = v2CheckUp(startedAt);
     const movementProfileV2Snapshot = movementProfileV2SnapshotFor(rawCheckUp);
     const movementProfileV2Assessment = movementProfileV2AssessmentFor(rawCheckUp, movementProfileV2Snapshot);
-    const mapped = mapRemoteHaleSnapshotToLocal(
+    const mapped = mapRemotePearlSnapshotToLocal(
       remoteSnapshotWithCheckups([
         {
           id: 'remote-v2-snapshot-only',
@@ -610,7 +610,7 @@ describe('remote restore service', () => {
       }),
     };
 
-    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, emptyLocal());
+    const mapped = mapRemotePearlSnapshotToLocal(snapshot, emptyLocal());
 
     expect(mapped.state.history[0].checkupType).toBe('legacy_unknown');
   });

@@ -349,7 +349,7 @@ describe('MovementProfileV2LiveCoordinator', () => {
     let snapshot = coordinator.snapshot(nowMs + 1400);
     expect(snapshot.stage).toBe('balance_ready');
     expect(snapshot.flow.standingLeg).toBe('left');
-    expect(snapshot.statusText).toBe("Lift your foot high when you're ready. The timer starts when Hale sees the lift.");
+    expect(snapshot.statusText).toBe("Lift your foot high when you're ready. The timer starts when Pearl sees the lift.");
     expect(snapshot.balanceTimerKind).toBe('none');
     expect(snapshot.timerRemainingMs).toBeNull();
 

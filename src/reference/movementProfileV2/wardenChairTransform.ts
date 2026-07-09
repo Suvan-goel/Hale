@@ -2,7 +2,7 @@ import { deterministicFingerprint } from './fingerprint';
 import type { ApprovedChairPercentileTransform } from './types';
 
 export const WARDEN_CHAIR_TRANSFORMATION_ID = 'warden_2022_30s_sts_percentile_v1' as const;
-export const WARDEN_CHAIR_APPROVAL_ID = 'hale-warden-official-calculator-2026-06-27' as const;
+export const WARDEN_CHAIR_APPROVAL_ID = 'pearl-warden-official-calculator-2026-06-27' as const;
 
 export const WARDEN_30S_STS_FEMALE_MIN_AGE = 18 as const;
 export const WARDEN_30S_STS_FEMALE_MAX_AGE = 80 as const;

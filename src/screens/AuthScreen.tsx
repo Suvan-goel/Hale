@@ -9,7 +9,7 @@ import { colors, fonts, spacing } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 
 import { BRAND } from '../brand';
-const AUTH_HERO_IMAGE = require('../../assets/images/hale-auth-hero-generated.png');
+const AUTH_HERO_IMAGE = require('../../assets/images/pearl-auth-hero-generated.png');
 const AUTH_CARD_OVERLAP = spacing.huge + spacing.xxxl + spacing.sm;
 
 export function AuthScreen() {

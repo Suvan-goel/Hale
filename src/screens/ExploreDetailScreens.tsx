@@ -3,7 +3,7 @@ import { Image, StyleSheet, Text, View, type ImageSourcePropType } from 'react-n
 
 import { BackArrowButton } from '../components/BackArrowButton';
 import { Screen } from '../components/ui';
-import { getLearnDetail } from '../haleFlow';
+import { getLearnDetail } from '../pearlFlow';
 import { colors, fonts, radius, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 import { articleImageFor } from './exploreImages';

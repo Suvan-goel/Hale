@@ -5,7 +5,7 @@ import Svg, { Path } from 'react-native-svg';
 import type { MenopauseStage } from '../profile';
 import { Screen } from '../components/ui';
 import { HeaderLogo } from '../components/HeaderLogo';
-import { getHealthInsightCards, type HealthInsightCard } from '../haleFlow';
+import { getHealthInsightCards, type HealthInsightCard } from '../pearlFlow';
 import { colors, fonts, radius, shadow, spacing, todayHomeColors, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 import { SettingsIcon } from '../navigation/icons';

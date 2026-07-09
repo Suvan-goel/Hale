@@ -57,7 +57,7 @@ describe('Sentry observability helper', () => {
     expect(Sentry.setUser).not.toHaveBeenCalled();
   });
 
-  it('scrubs sensitive keys and values while keeping safe Hale JSON fields', () => {
+  it('scrubs sensitive keys and values while keeping safe Pearl JSON fields', () => {
     const sanitized = sanitizeForObservability({
       profile_json: { name: 'Asha' },
       video: 'raw-video',
@@ -113,7 +113,7 @@ describe('Sentry observability helper', () => {
     }));
     expect(mockScope.setTag).toHaveBeenCalledWith('area', 'auth');
     expect(mockScope.setTag).toHaveBeenCalledWith('action', 'sign_in_email');
-    expect(mockScope.setContext).toHaveBeenCalledWith('hale', {
+    expect(mockScope.setContext).toHaveBeenCalledWith('pearl', {
       area: 'auth',
       action: 'sign_in_email',
       profile_json: { safe: true },

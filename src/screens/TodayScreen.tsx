@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
-const HERO_IMAGE = require('../../assets/images/hale-home-hero-botanical.png');
+const HERO_IMAGE = require('../../assets/images/pearl-home-hero-botanical.png');
 
 import { HeaderLogo } from '../components/HeaderLogo';
 import { useScreenScrollClearance } from '../components/ui';

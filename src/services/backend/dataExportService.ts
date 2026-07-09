@@ -7,15 +7,15 @@ import type { AuthUser, BackendJson } from './types';
 
 type JsonRecord = Record<string, BackendJson>;
 
-export interface HaleDataExport {
+export interface PearlDataExport {
   exportVersion: 1;
   /**
-   * Stable machine format id — frozen at 'Hale' forever, independent of the
+   * Stable machine format id — frozen at 'Pearl' forever, independent of the
    * brand token (founder decision 2026-07-06): a future rename must leave old
    * backups restorable, so format identity never follows display identity.
    * Pinned by dataExportService.test.ts.
    */
-  app: 'Hale';
+  app: 'Pearl';
   /** Human-facing app name at export time (brand token). */
   appDisplayName: string;
   appVersion: string;
@@ -35,15 +35,15 @@ export interface HaleDataExport {
   };
 }
 
-export interface BuildHaleDataExportInput {
+export interface BuildPearlDataExportInput {
   user: Pick<AuthUser, 'id' | 'email'>;
   exportedAt?: string;
   appVersion?: string;
-  data: HaleDataExport['data'];
+  data: PearlDataExport['data'];
 }
 
-export interface ShareHaleDataExportResult {
-  exportData: HaleDataExport;
+export interface SharePearlDataExportResult {
+  exportData: PearlDataExport;
   filename: string;
   fileUri: string;
   shareAction?: string;
@@ -95,7 +95,7 @@ const HEALTH_FREE_TEXT_KEY_EXACT = new Set([
 ]);
 const MAX_EXPORT_SANITIZE_DEPTH = 32;
 
-export async function exportCurrentUserData(): Promise<HaleDataExport> {
+export async function exportCurrentUserData(): Promise<PearlDataExport> {
   const session = await getCurrentSession();
   const user = session?.user;
   if (!user) {
@@ -122,7 +122,7 @@ export async function exportCurrentUserData(): Promise<HaleDataExport> {
     fetchUserRows('movement_block_reports', user.id, ['created_at']),
   ]);
 
-  const exportData = buildHaleDataExport({
+  const exportData = buildPearlDataExport({
     user,
     data: {
       profile,
@@ -146,12 +146,12 @@ export async function exportCurrentUserData(): Promise<HaleDataExport> {
   return exportData;
 }
 
-export function buildHaleDataExport(input: BuildHaleDataExportInput): HaleDataExport {
+export function buildPearlDataExport(input: BuildPearlDataExportInput): PearlDataExport {
   const exportedAt = validIsoLike(input.exportedAt) ?? new Date().toISOString();
 
   return {
     exportVersion: EXPORT_VERSION,
-    app: 'Hale', // machine format id — never the brand token (see HaleDataExport)
+    app: 'Pearl', // machine format id — never the brand token (see PearlDataExport)
     appDisplayName: BRAND.appName,
     appVersion: input.appVersion ?? APP_VERSION,
     exportedAt,
@@ -171,11 +171,11 @@ export function buildHaleDataExport(input: BuildHaleDataExportInput): HaleDataEx
   };
 }
 
-export async function shareHaleDataExport(exportData?: HaleDataExport): Promise<ShareHaleDataExportResult> {
+export async function sharePearlDataExport(exportData?: PearlDataExport): Promise<SharePearlDataExportResult> {
   try {
     const nextExport = exportData ?? await exportCurrentUserData();
     const filename = exportFilenameFor(nextExport.exportedAt);
-    const fileUri = await writeHaleDataExportFile(nextExport, filename);
+    const fileUri = await writePearlDataExportFile(nextExport, filename);
 
     const { Share, Platform } = await import('react-native');
     const message = `${BRAND.appName} data export created: ${filename}`;
@@ -196,7 +196,7 @@ export async function shareHaleDataExport(exportData?: HaleDataExport): Promise<
     };
   } catch (error) {
     addBreadcrumb('export failed');
-    captureError(error, { area: 'export', action: 'share_hale_data_export' });
+    captureError(error, { area: 'export', action: 'share_pearl_data_export' });
     throw error;
   }
 }
@@ -229,7 +229,7 @@ export function sanitizeForDataExport(
 
 export function exportFilenameFor(exportedAt: string): string {
   const date = validIsoLike(exportedAt)?.slice(0, 10) || new Date().toISOString().slice(0, 10);
-  return `hale-data-export-${date}.json`;
+  return `pearl-data-export-${date}.json`;
 }
 
 async function fetchProfile(userId: string): Promise<BackendJson> {
@@ -273,7 +273,7 @@ async function fetchUserRows(
   return sanitizeExportArray(Array.isArray(data) ? data : []);
 }
 
-async function writeHaleDataExportFile(exportData: HaleDataExport, filename: string): Promise<string> {
+async function writePearlDataExportFile(exportData: PearlDataExport, filename: string): Promise<string> {
   const { Directory, File, Paths } = await import('expo-file-system');
   const dir = new Directory(Paths.document, 'exports');
   dir.create({ intermediates: true, idempotent: true });

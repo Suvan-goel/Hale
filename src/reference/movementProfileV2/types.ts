@@ -49,7 +49,7 @@ export interface MovementProfileV2InterpretationInput {
 export type ReferenceResultKind =
   | 'raw_only'
   | 'percentile_range'
-  | 'hale_task_band'
+  | 'pearl_task_band'
   | 'published_age_group_benchmark'
   | 'published_iqr_category';
 

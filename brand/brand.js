@@ -9,9 +9,9 @@
  * be forgotten), swap logo/icon art, and sweep website/. Deliberately NOT
  * tokenized (separate founder decisions, see REPOSITION_TDD §3.2): slug,
  * scheme, bundle identifiers, EAS/Supabase project identity, storage
- * filenames, and the data-export machine id ('Hale' forever — old backups
+ * filenames, and the data-export machine id ('Pearl' forever — old backups
  * must always restore).
  */
 module.exports = {
-  appName: 'Hale',
+  appName: 'Pearl',
 };

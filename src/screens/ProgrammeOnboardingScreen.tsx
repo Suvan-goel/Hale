@@ -36,7 +36,7 @@ import {
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 
-const WELCOME_HERO_IMAGE = require('../../assets/images/hale-welcome-hero-v3.png');
+const WELCOME_HERO_IMAGE = require('../../assets/images/pearl-welcome-hero-v3.png');
 
 export function ProgrammeOnboardingScreen({
   flowState,

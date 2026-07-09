@@ -8,7 +8,7 @@ describe('unified check-up results architecture', () => {
   it('keeps the shared shell presentation-only', () => {
     const source = readSource('src/results/CheckUpResultsShell.tsx');
 
-    expect(source).not.toMatch(/from ['"]\.\.\/(?:checkup|haleFlow|history|movementProfileV2|reference|scoring|services)\b/);
+    expect(source).not.toMatch(/from ['"]\.\.\/(?:checkup|pearlFlow|history|movementProfileV2|reference|scoring|services)\b/);
     expect(source).not.toMatch(/computeTrends|getAssessmentResultState|materializeMovementProfileV2Block|interpretMovementProfileV2/);
   });
 

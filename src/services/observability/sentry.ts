@@ -71,7 +71,7 @@ export function captureError(
     if (area) scope.setTag('area', area);
     if (action) scope.setTag('action', action);
     if (category) scope.setTag('category', category);
-    scope.setContext('hale', asContextObject(sanitizedContext));
+    scope.setContext('pearl', asContextObject(sanitizedContext));
     Sentry.captureException(error);
   });
 }
@@ -84,7 +84,7 @@ export function addBreadcrumb(
   if (!ensureStarted(env)) return;
 
   Sentry.addBreadcrumb({
-    category: 'hale',
+    category: 'pearl',
     level: 'info',
     message,
     data: asContextObject(sanitizeForObservability(data)),

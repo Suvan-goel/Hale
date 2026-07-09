@@ -4,7 +4,7 @@
  * The block-assignment/session-resolution LOGIC that used to live here
  * (buildBlock, resolveSession, equipment substitution, …) was removed
  * 2026-07-04: the live plan path is `MovementBlock` +
- * `haleFlow/sessionPlanning` + the exercise-ladder system. These types survive
+ * `pearlFlow/sessionPlanning` + the exercise-ladder system. These types survive
  * only because `TrainingState` still serialises `block`/`equipment` for
  * backward-compatible reads of older on-device/synced state (see
  * `training/serialize.ts`). Do not re-add planning logic here.

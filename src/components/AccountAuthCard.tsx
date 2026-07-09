@@ -4,8 +4,8 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import {
-  clearLocalHaleData,
-  shareHaleDataExport,
+  clearLocalPearlData,
+  sharePearlDataExport,
   useAuth,
 } from '../services/backend';
 import { colors, radius, shadow, spacing, type } from '../theme';
@@ -208,7 +208,7 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
     setNotice(null);
 
     try {
-      const result = await shareHaleDataExport();
+      const result = await sharePearlDataExport();
       setNotice(`Export ready: ${result.filename}`);
     } catch (err) {
       setLocalError(messageFromError(err));
@@ -239,7 +239,7 @@ export function AccountAuthCard({ context }: { context: 'required' | 'settings' 
     setNotice(null);
 
     try {
-      const result = await clearLocalHaleData();
+      const result = await clearLocalPearlData();
       if (result.failures.length > 0) {
         throw new Error(`Some local ${BRAND.appName} data could not be deleted. Please try again.`);
       }

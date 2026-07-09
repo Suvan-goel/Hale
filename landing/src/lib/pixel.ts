@@ -4,8 +4,8 @@
  * successful waitlist submit.
  */
 
-/** ← Replace with your Meta Pixel ID (digits only), e.g. "1234567890123456". */
-export const PIXEL_ID = "REPLACE_WITH_PIXEL_ID";
+/** Meta Pixel ID, digits only. Leave unset for local/dev previews. */
+export const PIXEL_ID = import.meta.env.VITE_META_PIXEL_ID?.trim() || "";
 
 type Fbq = {
   (...args: unknown[]): void;
@@ -28,8 +28,12 @@ let pixelLoaded = false;
 /** Injects fbevents.js and fires PageView. Call only after consent. */
 export function loadPixel(): void {
   if (pixelLoaded || typeof window === "undefined") return;
+  if (!PIXEL_ID) {
+    console.info("[elegant] Meta Pixel not loaded — VITE_META_PIXEL_ID is not set.");
+    return;
+  }
   if (!/^\d+$/.test(PIXEL_ID)) {
-    console.info("[elegant] Meta Pixel not loaded — PIXEL_ID is still the placeholder.");
+    console.info("[elegant] Meta Pixel not loaded — VITE_META_PIXEL_ID must be digits only.");
     return;
   }
   if (!window.fbq) {

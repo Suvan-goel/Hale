@@ -3,7 +3,7 @@ import type { StoredCheckUp } from '../history';
 import {
   latestOfficialMovementProfileV2Assessment,
   type OfficialMovementProfileV2AssessmentRecord,
-} from '../haleFlow/checkupHistory';
+} from '../pearlFlow/checkupHistory';
 import type {
   BalanceInterpretation,
   ChairInterpretation,
@@ -53,7 +53,7 @@ export interface MovementProfileV2ResultsViewModel {
     domain?: MovementProfileV2Domain;
     planMode:
       | 'checkup_reference_focus'
-      | 'checkup_hale_band_focus'
+      | 'checkup_pearl_band_focus'
       | 'prior_focus_reference_supported'
       | 'balanced_insufficient_reference'
       | 'needs_retake';
@@ -286,7 +286,7 @@ function strongestAssetBody(assessment: MovementProfileV2Assessment, focusDomain
 // evidence never rank (never a fabricated ranking).
 function assetTier(category: MovementProfileV2DomainEvidence['category']): 2 | 1 | 0 {
   if (category === 'above_reference_or_ceiling') return 2;
-  if (category === 'within_reference' || category === 'hale_building') return 1;
+  if (category === 'within_reference' || category === 'pearl_building') return 1;
   return 0;
 }
 

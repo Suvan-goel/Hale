@@ -1,30 +1,36 @@
 /**
- * Form backend. Every submission — the waitlist email AND the thank-you-page
- * micro-survey — goes through submitLead(), so swapping the backend is a
- * one-file change.
+ * Form backend. Waitlist submissions go through submitLead(), so swapping the
+ * backend is a one-file change.
  */
 
-/** ← Point this at your form backend (Vercel function, Formspree, worker, …). */
-export const LEAD_ENDPOINT = "https://example.com/api/leads";
+/** Point this at your form backend (Vercel function, Formspree, worker, ...). */
+export const LEAD_ENDPOINT = import.meta.env.VITE_LEAD_ENDPOINT?.trim() || "";
 
 export interface LeadPayload {
-  kind: "lead" | "survey";
+  kind: "lead";
   email: string;
   /** ISO 8601 timestamp, set at submit time. */
   submittedAt: string;
   /** utm_source / utm_medium / utm_campaign / utm_term / utm_content / fbclid captured from the landing URL. */
   utm: Record<string, string>;
-  /** Micro-survey answer — present when kind === "survey". */
-  answer?: string;
 }
 
 export async function submitLead(payload: LeadPayload): Promise<void> {
+  if (!LEAD_ENDPOINT) {
+    if (!import.meta.env.PROD) {
+      // Local dev convenience: the form can still be tested before a real
+      // endpoint exists. Production fails rather than pretending to save leads.
+      console.info("[elegant] lead captured (no endpoint configured):", payload);
+      return;
+    }
+    throw new Error("Lead endpoint is not configured.");
+  }
   if (LEAD_ENDPOINT.includes("example.com")) {
-    // No backend configured yet: log and succeed so the whole flow can be
-    // exercised end-to-end. Point LEAD_ENDPOINT at a real backend before
-    // sending any traffic.
-    console.info("[elegant] lead captured (no endpoint configured):", payload);
-    return;
+    if (!import.meta.env.PROD) {
+      console.info("[elegant] lead captured (placeholder endpoint):", payload);
+      return;
+    }
+    throw new Error("Lead endpoint is still the placeholder.");
   }
   const res = await fetch(LEAD_ENDPOINT, {
     method: "POST",

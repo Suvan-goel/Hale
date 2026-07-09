@@ -11,7 +11,7 @@ import {
   tryCreateMovementBlockFromAssessment,
 } from '../index';
 import type { MovementAssessment } from '../types';
-import { createMovementAssessment } from '../../haleFlow';
+import { createMovementAssessment } from '../../pearlFlow';
 
 const START = '2026-06-19T08:00:00.000Z';
 

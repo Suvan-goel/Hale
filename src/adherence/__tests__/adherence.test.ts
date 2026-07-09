@@ -22,7 +22,7 @@ import {
   deserializeAdherenceState,
 } from '../index';
 import type { MovementBlock, TrainingFocusStimulusEvidenceSummary, TrainingSessionCompletion } from '../types';
-import { BLOCK_SCHEDULE_POLICY_VERSION, createMovementAssessment } from '../../haleFlow';
+import { BLOCK_SCHEDULE_POLICY_VERSION, createMovementAssessment } from '../../pearlFlow';
 
 const START = '2026-06-01T08:00:00.000Z';
 

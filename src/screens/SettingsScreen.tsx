@@ -15,7 +15,7 @@ import { BackArrowButton } from '../components/BackArrowButton';
 import { DateOfBirthPickerModal } from '../components/DateOfBirthPickerModal';
 import { HeaderLogo } from '../components/HeaderLogo';
 import { Screen, ToggleRow } from '../components/ui';
-import { controlledBetaEquipmentPositioning } from '../haleFlow';
+import { controlledBetaEquipmentPositioning } from '../pearlFlow';
 import {
   AppSettings,
   MENOPAUSE_STAGE_OPTIONS,

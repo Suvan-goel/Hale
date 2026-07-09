@@ -37,7 +37,7 @@ import {
   buildMovementProfileV2ProgressViewModel,
   movementProfileV2ProgressProfileBySourceCheckUpId,
   validOfficialMovementProfileV2Assessments,
-} from '../haleFlow';
+} from '../pearlFlow';
 import { movementProfileV2ResultsViewModelForRecord } from '../movementProfileV2/viewModel';
 import { TAB_BAR_SCROLL_CLEARANCE, TabBar, type TabKey } from '../navigation/TabBar';
 import {

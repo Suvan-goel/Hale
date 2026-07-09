@@ -1,7 +1,8 @@
 # Elegant — waitlist landing page
 
 Cold-traffic landing page for the Meta ads test. Single job: waitlist email
-capture. Vite + React + TypeScript + Tailwind CSS 4, no other runtime
+capture. This is the only active marketing site; the old Pearl website app has
+been retired. Vite + React + TypeScript + Tailwind CSS 4, no other runtime
 dependencies, deployable to Vercel as a static site.
 
 ## Run locally
@@ -25,20 +26,19 @@ npm run preview    # serve the production build
 
 | What | Where |
 |---|---|
-| **Meta Pixel ID** | `PIXEL_ID` constant at the top of [`src/lib/pixel.ts`](src/lib/pixel.ts). Digits only. Until it's set, the pixel is a no-op. |
-| **Form endpoint** | `LEAD_ENDPOINT` constant at the top of [`src/lib/leads.ts`](src/lib/leads.ts). All submissions (waitlist **and** the thank-you micro-survey) POST JSON there via the single `submitLead()` function. While it's still the placeholder, submissions succeed locally and log to the console so the flow can be tested. A commented-out Supabase implementation (table SQL + insert) is in the same file. |
-| **Contact email** | `CONTACT_EMAIL` in [`src/config.ts`](src/config.ts) — used in the footer, the legal pages, and the founding-chat mailto. |
-| **Legal copy** | [`src/pages/Legal.tsx`](src/pages/Legal.tsx) is sensible placeholder text — have it reviewed before a real launch. |
+| **Meta Pixel ID** | `VITE_META_PIXEL_ID` environment variable. Digits only. Until it is set, the pixel is a no-op. |
+| **Form endpoint** | `VITE_LEAD_ENDPOINT` environment variable. Waitlist submissions POST JSON via `submitLead()`. Missing/placeholder endpoints log locally in dev but fail in production so ad traffic cannot silently lose leads. |
+| **Contact email** | Defaults to `suvangoel@gmail.com`; override with `VITE_CONTACT_EMAIL` if needed. Used in the footer, legal pages, and thank-you confirmation. |
+| **Legal copy** | [`src/pages/Legal.tsx`](src/pages/Legal.tsx) now contains formal draft Privacy and Terms copy. It should still be owner-reviewed before real paid traffic. |
 
 ### Lead payload
 
 ```json
 {
-  "kind": "lead" | "survey",
+  "kind": "lead",
   "email": "…",
   "submittedAt": "ISO 8601",
-  "utm": { "utm_source": "…", "utm_medium": "…", "…": "…", "fbclid": "…" },
-  "answer": "micro-survey text (kind=survey only)"
+  "utm": { "utm_source": "…", "utm_medium": "…", "…": "…", "fbclid": "…" }
 }
 ```
 
@@ -54,18 +54,24 @@ UTM parameters and `fbclid` are captured from the URL on first load, kept in
 
 ## Headline options considered
 
-1. **"Track strength. Track clarity. *Train what changes.*"** — implemented
-   after the cognitive/Clarity reframe. Clarity is the emotional doorway,
-   strength training is the intervention engine, and measurement is the proof.
-2. "You don't need another workout app. You need proof." — strong for
+1. **"Measure what menopause changes. *Train what you can change.*"** —
+   implemented (restructure pass). Names the audience, carries the
+   measure→train loop in two calm beats, and the changes/change echo pairs
+   with the why-strength heading "Muscle is the part you can train." The
+   eyebrow above lists the four dimensions (Strength · Balance · Mobility ·
+   Clarity).
+2. "Track strength. Track clarity. Train what changes." — the tracker-led
+   variant from the Clarity reframe; clear, but three imperatives in a row
+   read hurried.
+3. "You don't need another workout app. You need proof." — strong for
    tried-things-already category fatigue; useful as retargeting or section copy.
-3. "Strength through menopause. Measured." — the original launch headline;
+4. "Strength through menopause. Measured." — the original launch headline;
    cleaner and more product-led, worth A/B testing against #1 once traffic
    flows.
-4. "Menopause changes your strength. See exactly where you stand." — more
+5. "Menopause changes your strength. See exactly where you stand." — more
    explanatory; the first clause spends the opening beat on the problem rather
    than the promise.
-5. "The only menopause fitness app that proves it's working." — the hardest
+6. "The only menopause fitness app that proves it's working." — the hardest
    differentiation claim; strong for retargeting, but on cold traffic it names
    the category before the visitor knows she's in the market. (It's used as the
    section-4 heading instead.)
@@ -103,10 +109,10 @@ If you edit copy, keep to: "track functional strength/balance/mobility",
 training is widely recommended during menopause".
 
 **Brain fog rules (2026-07-06 cognitive reframe):** marketing may say "brain
-fog" (in-product the dimension is "Clarity" — the mockup uses that). Allowed:
-"track/measure your fog", "see how it changes as you train", mechanism-via-
-mediators ("exercise supports sleep, mood and symptom load — the known drivers
-of menopausal brain fog"). Banned: fights/treats/cures/reverses fog, any
+fog" sparingly, but in-product and result copy uses "Clarity". Allowed:
+"track Clarity patterns", "see how your own pattern changes", and conservative
+mechanism language ("exercise can support sleep and mood, which many people
+notice alongside foggier days"). Banned: fights/treats/cures/reverses fog, any
 guaranteed cognitive outcome, any diagnostic or rule-out implication (never
 "it's menopause, not dementia"), disease-risk scare copy, dementia/Alzheimer's
 language anywhere. Cognitive results are always framed against the visitor's
@@ -117,14 +123,14 @@ this commits speech scoring to on-device processing.
 
 ## Performance notes
 
-No images (all visuals are inline SVG/CSS), no animation or UI libraries,
-~70 KB gzipped JS. The LCP element is the hero headline text. Scroll reveals
-are IntersectionObserver + CSS and are disabled under `prefers-reduced-motion`.
+Three optimized JPEGs plus code-built UI/SVG visuals; no animation or UI
+libraries. Scroll reveals are IntersectionObserver + CSS and are disabled under
+`prefers-reduced-motion`. The Open Graph image lives at
+`public/og/elegant-og.jpg`.
 
 ## Before launch checklist
 
-- [ ] Set `PIXEL_ID`
-- [ ] Point `LEAD_ENDPOINT` at a real backend (or swap in the Supabase variant)
-- [ ] Replace `CONTACT_EMAIL`
-- [ ] Review legal pages
-- [ ] Add an `og:image` (there is none yet; the meta tags are in `index.html`)
+- [ ] Set `VITE_META_PIXEL_ID`
+- [ ] Point `VITE_LEAD_ENDPOINT` at a real backend
+- [ ] Review legal pages and confirm `suvangoel@gmail.com` is the final public contact
+- [ ] Confirm final public domain so social-card URLs can be tested in Meta's Sharing Debugger

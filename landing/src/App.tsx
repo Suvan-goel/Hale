@@ -44,9 +44,11 @@ function Footer({ onNavigate }: { onNavigate: (route: Route) => void }) {
             <button onClick={() => onNavigate("terms")} className="hover:text-bone">
               Terms
             </button>
-            <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-bone">
-              {CONTACT_EMAIL}
-            </a>
+            {CONTACT_EMAIL ? (
+              <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-bone">
+                {CONTACT_EMAIL}
+              </a>
+            ) : null}
           </nav>
         </div>
         <p className="mt-8 max-w-2xl text-xs leading-relaxed text-bone/45">

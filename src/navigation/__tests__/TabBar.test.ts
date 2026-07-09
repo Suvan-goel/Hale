@@ -36,7 +36,7 @@ function collectElements(
 }
 
 describe('TabBar V1 navigation', () => {
-  it('exposes the three main Hale V1 tabs', () => {
+  it('exposes the three main Pearl V1 tabs', () => {
     expect(TAB_DEFS.map((tab) => tab.key)).toEqual(CANONICAL_KEYS);
     expect(TAB_DEFS.map((tab) => tab.label)).toEqual(CANONICAL_LABELS);
   });

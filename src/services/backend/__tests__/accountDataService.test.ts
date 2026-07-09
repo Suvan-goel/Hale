@@ -4,7 +4,7 @@ import path from 'node:path';
 import { createMemoryFs } from '../../../history';
 
 import {
-  clearLocalHaleData,
+  clearLocalPearlData,
   getLocalDataSummary,
   type LocalFileArea,
 } from '../accountDataService';
@@ -18,12 +18,12 @@ function memoryArea(files: Set<string>): LocalFileArea {
   };
 }
 
-describe('local Hale account data service', () => {
+describe('local Pearl account data service', () => {
   it('handles missing files idempotently', async () => {
     const fsArea = createMemoryFs();
     const recordings = memoryArea(new Set());
 
-    const result = await clearLocalHaleData({ fs: fsArea, recordings });
+    const result = await clearLocalPearlData({ fs: fsArea, recordings });
 
     expect(result.failures).toEqual([]);
     expect(result.deletedFiles).toEqual([]);
@@ -57,7 +57,7 @@ describe('local Hale account data service', () => {
     ]);
     const recordings = new Set(['rec-2026-06-18.jsonl', 'debug.txt']);
 
-    const result = await clearLocalHaleData({
+    const result = await clearLocalPearlData({
       fs: createMemoryFs(files),
       recordings: memoryArea(recordings),
     });
@@ -65,11 +65,11 @@ describe('local Hale account data service', () => {
     expect(result.failures).toEqual([]);
     expect(result.deletedFiles).toEqual(
       expect.arrayContaining([
-        'local Hale files/preferences.json',
-        'local Hale files/checkup-2026-06-18T10-00-00-000Z.json',
-        'local Hale files/training-state.json',
-        'local Hale files/microcheck-2026-06-25T10-00-00-000Z.json',
-        'local Hale files/adherence-state.json',
+        'local Pearl files/preferences.json',
+        'local Pearl files/checkup-2026-06-18T10-00-00-000Z.json',
+        'local Pearl files/training-state.json',
+        'local Pearl files/microcheck-2026-06-25T10-00-00-000Z.json',
+        'local Pearl files/adherence-state.json',
         'recordings/rec-2026-06-18.jsonl',
       ])
     );
@@ -78,7 +78,7 @@ describe('local Hale account data service', () => {
     expect(Array.from(recordings)).toEqual([]);
   });
 
-  it('summarizes local Hale data before deletion', async () => {
+  it('summarizes local Pearl data before deletion', async () => {
     const files = new Map<string, string>([
       ['preferences.json', '{}'],
       ['checkup-a.json', '{}'],

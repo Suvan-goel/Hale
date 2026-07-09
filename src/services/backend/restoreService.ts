@@ -28,13 +28,13 @@ type JsonRecord = Record<string, unknown>;
 
 type RemoteTableName = 'profiles' | 'movement_checkups';
 
-export interface RemoteHaleSnapshot {
+export interface RemotePearlSnapshot {
   profile: BackendProfile | null;
   movementCheckups: RemoteMovementCheckupRow[];
   fetchErrors: Partial<Record<RemoteTableName, unknown>>;
 }
 
-export interface LocalHaleStateForRestore {
+export interface LocalPearlStateForRestore {
   preferences: Preferences;
   history: StoredCheckUp[];
 }
@@ -70,9 +70,9 @@ export interface RestoreResult {
 }
 
 export interface RestoreRemoteStateInput {
-  local: LocalHaleStateForRestore;
+  local: LocalPearlStateForRestore;
   stores?: RestoreStores;
-  snapshot?: RemoteHaleSnapshot;
+  snapshot?: RemotePearlSnapshot;
   timeoutMs?: number;
 }
 
@@ -116,13 +116,13 @@ export async function restoreRemoteStateIfLocalEmpty(input: RestoreRemoteStateIn
   try {
     const snapshot =
       input.snapshot ??
-      (await withTimeout(fetchRemoteHaleSnapshot(), input.timeoutMs ?? RESTORE_TIMEOUT_MS, `remote ${BRAND.appName} restore`));
+      (await withTimeout(fetchRemotePearlSnapshot(), input.timeoutMs ?? RESTORE_TIMEOUT_MS, `remote ${BRAND.appName} restore`));
 
     if (!snapshot) {
       return { status: 'signed_out', gaps: [] };
     }
 
-    const mapped = mapRemoteHaleSnapshotToLocal(snapshot, input.local);
+    const mapped = mapRemotePearlSnapshotToLocal(snapshot, input.local);
     const counts = restoredCounts(mapped, input.local);
     const restoredAnything = Object.values(counts).some((count) => count > 0);
 
@@ -156,7 +156,7 @@ export async function restoreRemoteStateIfLocalEmpty(input: RestoreRemoteStateIn
   }
 }
 
-export async function fetchRemoteHaleSnapshot(): Promise<RemoteHaleSnapshot | null> {
+export async function fetchRemotePearlSnapshot(): Promise<RemotePearlSnapshot | null> {
   const session = await getCurrentSession();
   const userId = session?.user.id;
   if (!userId) return null;
@@ -179,13 +179,13 @@ export async function fetchRemoteHaleSnapshot(): Promise<RemoteHaleSnapshot | nu
   };
 }
 
-export function isLocalStateEmptyForRestore(local: LocalHaleStateForRestore): boolean {
+export function isLocalStateEmptyForRestore(local: LocalPearlStateForRestore): boolean {
   return !hasMeaningfulPreferences(local.preferences) && local.history.length === 0;
 }
 
-export function mapRemoteHaleSnapshotToLocal(
-  snapshot: RemoteHaleSnapshot,
-  local: LocalHaleStateForRestore
+export function mapRemotePearlSnapshotToLocal(
+  snapshot: RemotePearlSnapshot,
+  local: LocalPearlStateForRestore
 ): { state: RestoredLocalState; gaps: string[] } {
   const preferences = mapRemoteProfileToLocal(snapshot.profile) ?? local.preferences;
   const history = mapRemoteCheckupsToLocal(snapshot.movementCheckups);
@@ -303,7 +303,7 @@ interface RemoteQueryBuilder extends PromiseLike<{ data: unknown; error: unknown
 
 function persistRestoredLocalState(
   restored: RestoredLocalState,
-  previous: LocalHaleStateForRestore,
+  previous: LocalPearlStateForRestore,
   stores: RestoreStores
 ): void {
   if (hasMeaningfulPreferences(restored.preferences)) {
@@ -365,7 +365,7 @@ function movementProfileV2AssessmentCandidateFromRemoteRow(row: RemoteMovementCh
   return derived.movementProfileV2Assessment ?? raw.movementProfileV2Assessment ?? null;
 }
 
-function restoredCounts(mapped: { state: RestoredLocalState }, previous: LocalHaleStateForRestore): NonNullable<RestoreResult['restoredCounts']> {
+function restoredCounts(mapped: { state: RestoredLocalState }, previous: LocalPearlStateForRestore): NonNullable<RestoreResult['restoredCounts']> {
   return {
     profile: hasMeaningfulPreferences(mapped.state.preferences) && !hasMeaningfulPreferences(previous.preferences) ? 1 : 0,
     checkups: mapped.state.history.length,

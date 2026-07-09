@@ -7,7 +7,7 @@ import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 
 import { BRAND } from '../brand';
-const SETUP_HERO_IMAGE = require('../../assets/images/hale-camera-setup-hero-v4.png');
+const SETUP_HERO_IMAGE = require('../../assets/images/pearl-camera-setup-hero-v4.png');
 
 const SETUP_STEPS = [
   'Set your phone somewhere steady. A shelf, table, phone stand, wall, or sturdy bottle is fine.',

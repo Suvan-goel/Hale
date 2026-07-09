@@ -3,7 +3,7 @@ import { supabase } from '../../../lib/supabase';
 
 import { getCurrentSession } from '../authService';
 import {
-  buildHaleDataExport,
+  buildPearlDataExport,
   exportCurrentUserData,
   exportFilenameFor,
   sanitizeForDataExport,
@@ -34,13 +34,13 @@ function queryBuilder(data: unknown, error: unknown = null) {
   return builder;
 }
 
-describe('Hale data export service', () => {
+describe('Pearl data export service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('builds the versioned export object shape and keeps profile_json', () => {
-    const exported = buildHaleDataExport({
+    const exported = buildPearlDataExport({
       exportedAt: '2026-06-18T12:00:00.000Z',
       appVersion: '0.1.0-test',
       user: { id: 'user-123', email: 'asha@example.com' },
@@ -77,7 +77,7 @@ describe('Hale data export service', () => {
 
     expect(exported).toEqual({
       exportVersion: 1,
-      app: 'Hale',
+      app: 'Pearl',
       appDisplayName: BRAND.appName,
       appVersion: '0.1.0-test',
       exportedAt: '2026-06-18T12:00:00.000Z',
@@ -113,10 +113,10 @@ describe('Hale data export service', () => {
     });
   });
 
-  it("keeps app: 'Hale' as the frozen machine format id, independent of the brand token", () => {
+  it("keeps app: 'Pearl' as the frozen machine format id, independent of the brand token", () => {
     // Founder decision 2026-07-06: old backups must always restore regardless
     // of any future rename — the format id never follows display identity.
-    const exported = buildHaleDataExport({
+    const exported = buildPearlDataExport({
       user: { id: 'user-123', email: undefined },
       data: {
         profile: {},
@@ -128,14 +128,14 @@ describe('Hale data export service', () => {
         movementBlockReports: [],
       },
     });
-    expect(exported.app).toBe('Hale');
+    expect(exported.app).toBe('Pearl');
     expect(exported.appDisplayName).toBe(BRAND.appName);
     // Source-level pin: the literal machine id must not be derived from BRAND.
     const source = require('node:fs').readFileSync(
       require('node:path').join(process.cwd(), 'src/services/backend/dataExportService.ts'),
       'utf8'
     );
-    expect(source).toMatch(/app: 'Hale', \/\/ machine format id/);
+    expect(source).toMatch(/app: 'Pearl', \/\/ machine format id/);
   });
 
   it('sanitizes media, local paths, blobs, and credential-like keys', () => {
@@ -146,7 +146,7 @@ describe('Hale data export service', () => {
       frames: [{ x: 1 }],
       poseLandmarks: [{ x: 1 }],
       payloadBase64: 'abc123',
-      localFilePath: '/private/hale.json',
+      localFilePath: '/private/pearl.json',
       nested: {
         refresh_token: 'secret',
         accessToken: 'secret',
@@ -173,7 +173,7 @@ describe('Hale data export service', () => {
   });
 
   it('omits legacy free-text health notes recursively while preserving structured beta export data', () => {
-    const exported = buildHaleDataExport({
+    const exported = buildPearlDataExport({
       exportedAt: '2026-06-28T12:00:00.000Z',
       user: { id: 'user-123', email: undefined },
       data: {
@@ -320,7 +320,7 @@ describe('Hale data export service', () => {
   it('fails clearly when signed out', async () => {
     (getCurrentSession as jest.Mock).mockResolvedValue(null);
 
-    await expect(exportCurrentUserData()).rejects.toThrow('Sign in to export your Hale data.');
+    await expect(exportCurrentUserData()).rejects.toThrow('Sign in to export your Pearl data.');
   });
 
   it('fetches all user-owned export tables with sensible ordering', async () => {
@@ -368,6 +368,6 @@ describe('Hale data export service', () => {
   });
 
   it('uses a readable dated export filename', () => {
-    expect(exportFilenameFor('2026-06-18T12:00:00.000Z')).toBe('hale-data-export-2026-06-18.json');
+    expect(exportFilenameFor('2026-06-18T12:00:00.000Z')).toBe('pearl-data-export-2026-06-18.json');
   });
 });

@@ -53,7 +53,7 @@ function assertSafeBetaReleaseFlags() {
   if (reasons.length === 0) return;
 
   throw new Error(
-    `[hale-release-flag-audit] Unsafe beta/release build profile "${buildProfile}" has enabled internal/diagnostic flags: ${reasons.join(', ')}. Set safe beta overrides to 0 or use a development diagnostics build.`
+    `[pearl-release-flag-audit] Unsafe beta/release build profile "${buildProfile}" has enabled internal/diagnostic flags: ${reasons.join(', ')}. Set safe beta overrides to 0 or use a development diagnostics build.`
   );
 }
 

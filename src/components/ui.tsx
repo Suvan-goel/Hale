@@ -131,7 +131,7 @@ function compactTypographyForVariant(variant: TypographyVariant): TextStyle | nu
   return null;
 }
 
-export const HaleText = Typography;
+export const PearlText = Typography;
 
 export type CardVariant = 'base' | 'elevated' | 'flat' | 'feature';
 
@@ -152,7 +152,7 @@ export function Card({
 }
 
 export const PremiumCard = Card;
-export const HaleCard = Card;
+export const PearlCard = Card;
 
 export function MaterialCard({
   children,
@@ -315,7 +315,7 @@ export function GhostButton({ title, onPress }: { title: string; onPress: () => 
   return <Button title={title} onPress={onPress} variant="ghost" />;
 }
 
-export function HaleButton({
+export function PearlButton({
   title,
   onPress,
   variant = 'primary',

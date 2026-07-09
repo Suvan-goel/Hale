@@ -2,6 +2,11 @@
 
 Date: 2026-06-21
 
+> Superseded 2026-07-06: the old Hale `website/` landing app has been retired.
+> Current paid-traffic work targets `landing/` only, under the Elegant public
+> framing. This file is retained as historical design context, not launch
+> guidance.
+
 ## Sources Inspected
 
 - `src/theme/index.ts`: canonical active colour, typography, spacing, radius, shadow, and component recipes.

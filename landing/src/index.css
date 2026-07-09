@@ -53,6 +53,12 @@ summary::-webkit-details-marker {
   display: none;
 }
 
+.waitlist-input {
+  height: 52px;
+  min-height: 52px;
+  padding-block: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

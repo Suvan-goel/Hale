@@ -4,7 +4,7 @@
 # docs/noise-floor-report.md).
 set -euo pipefail
 
-PKG="com.suvangoel.hale"
+PKG="com.suvangoel.pearl"
 DEST="$(dirname "$0")/../recordings"
 mkdir -p "$DEST"
 

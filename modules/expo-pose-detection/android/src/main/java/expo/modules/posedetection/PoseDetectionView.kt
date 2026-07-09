@@ -564,7 +564,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
       val currentFrameId = ++frameId
       acceptedFrameRate.record(nowMs)
       val preprocessingStartMs = if (diagnosticsEnabled) nativeNowMs() else 0.0
-      if (diagnosticsEnabled) Trace.beginSection("HalePose.preprocess")
+      if (diagnosticsEnabled) Trace.beginSection("PearlPose.preprocess")
       // Camera timestamps are boottime-monotonic; VIDEO mode requires
       // strictly increasing values.
       var timestampMs = imageProxy.imageInfo.timestamp / 1_000_000L
@@ -622,7 +622,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
             diagnostics = diagnostics,
           )
         }
-        if (diagnosticsEnabled) Trace.beginSection("HalePose.mediapipe")
+        if (diagnosticsEnabled) Trace.beginSection("PearlPose.mediapipe")
         try {
           if (prepared.imageProcessingOptions != null) {
             landmarker.detectAsync(
@@ -639,7 +639,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
         return
       }
 
-      if (diagnosticsEnabled) Trace.beginSection("HalePose.mediapipe")
+      if (diagnosticsEnabled) Trace.beginSection("PearlPose.mediapipe")
       val start = SystemClock.elapsedRealtime()
       val result = if (prepared.imageProcessingOptions != null) {
         landmarker.detectForVideo(prepared.mpImage, prepared.imageProcessingOptions, timestampMs)
@@ -796,7 +796,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
     landmarkRotationDegrees: Int,
     diagnostics: PoseLatencyDiagnostics?,
   ) {
-    if (diagnostics != null) Trace.beginSection("HalePose.nativeResultConversion")
+    if (diagnostics != null) Trace.beginSection("PearlPose.nativeResultConversion")
     val flattenStartMs = if (diagnostics != null) nativeNowMs() else 0.0
     val poses = result.landmarks()
     val flat: DoubleArray
@@ -814,7 +814,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
         val x = lm.x().toDouble()
         val y = lm.y().toDouble()
         // Metadata rotation orients MediaPipe inference, but landmarks are still
-        // normalized in MPImage space. Hale emits upright, unmirrored x/y.
+        // normalized in MPImage space. Pearl emits upright, unmirrored x/y.
         flat[base] = uprightNormalizedX(x, y, landmarkRotationDegrees)
         flat[base + 1] = uprightNormalizedY(x, y, landmarkRotationDegrees)
         flat[base + 2] = lm.z().toDouble()
@@ -868,7 +868,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
 
   private fun emitNativePoseEvent(event: NativePoseEvent) {
     val diagnostics = event.diagnostics
-    if (diagnostics != null) Trace.beginSection("HalePose.eventEmit")
+    if (diagnostics != null) Trace.beginSection("PearlPose.eventEmit")
     val payloadStartMs = if (diagnostics != null) nativeNowMs() else 0.0
     val payload = mutableMapOf<String, Any>(
       "timestampMs" to event.timestampMs.toDouble(),

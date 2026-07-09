@@ -13,7 +13,7 @@ import type { AuthSession, AuthState, AuthUser, BackendProfile } from './types';
 import { BRAND } from '../../brand';
 export type AuthChangeCallback = (state: AuthState) => void;
 
-const OAUTH_REDIRECT_SCHEME = 'hale';
+const OAUTH_REDIRECT_SCHEME = 'pearl';
 const OAUTH_REDIRECT_PATH = 'auth/callback';
 const OAUTH_REDIRECT_URL = `${OAUTH_REDIRECT_SCHEME}://${OAUTH_REDIRECT_PATH}`;
 const GOOGLE_PROVIDER = 'google';
@@ -64,7 +64,7 @@ function socialAuthRedirectUrl(): string {
   return redirectUrl === OAUTH_REDIRECT_URL ? redirectUrl : OAUTH_REDIRECT_URL;
 }
 
-// Supabase dashboard setup: add hale://auth/callback under Auth URL Configuration
+// Supabase dashboard setup: add pearl://auth/callback under Auth URL Configuration
 // redirect URLs, and keep password-reset emails using the Supabase confirmation URL.
 function passwordResetRedirectUrl(): string {
   return OAUTH_REDIRECT_URL;

@@ -160,7 +160,7 @@ export type PoseDetectionViewProps = {
   active?: boolean;
   /** Default 'front' — the user props the phone facing themselves. */
   cameraFacing?: CameraFacing;
-  /** Default 'full' — Hale's production assessment model. */
+  /** Default 'full' — Pearl's production assessment model. */
   modelVariant?: ModelVariant;
   /** Default 0.35 — the 0.5 MediaPipe default misses side-on poses. */
   minDetectionConfidence?: number;

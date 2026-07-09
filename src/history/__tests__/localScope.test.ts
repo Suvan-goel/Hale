@@ -6,7 +6,7 @@ describe('local history account scope', () => {
     expect(historyDirectorySegments({ userId: null })).toEqual(['checkups']);
   });
 
-  it('scopes local Hale data by authenticated user id', () => {
+  it('scopes local Pearl data by authenticated user id', () => {
     expect(historyDirectorySegments({ userId: 'user-a' })).toEqual(['checkups', 'users', 'user-a']);
     expect(historyDirectorySegments({ userId: 'user-b' })).toEqual(['checkups', 'users', 'user-b']);
   });

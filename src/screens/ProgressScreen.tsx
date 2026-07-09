@@ -11,7 +11,7 @@ import {
   type MovementProfileV2ProgressChange,
   type MovementProfileV2ProgressChangeDomain,
   type MovementProfileV2ProgressViewModel,
-} from '../haleFlow';
+} from '../pearlFlow';
 import { type MovementProfileV2Domain } from '../movementProfileV2/viewModel';
 import { type Domain } from '../scoring';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';

@@ -9,21 +9,21 @@ import { BRAND } from '..';
  * user-facing mention interpolates BRAND.appName so the rename is one edit to
  * brand/brand.js (plus the asset work listed there).
  *
- * Case-sensitive \bHale\b on purpose: lowercase infra identity (slug, scheme,
+ * Case-sensitive \bPearl\b on purpose: lowercase infra identity (slug, scheme,
  * storage keys, asset filenames) is deliberately not brand-tokenized, and
- * identifiers like HaleLifecycleState/HaleDataExport have no word boundary so
+ * identifiers like PearlLifecycleState/PearlDataExport have no word boundary so
  * they never match. Comments are stripped before scanning.
  */
 
 const ROOT = process.cwd();
-const BRAND_WORD = /\bHale\b/;
+const BRAND_WORD = /\bPearl\b/;
 
 // The one permitted production literal: the frozen data-export machine format
 // id (founder decision 2026-07-06 — old backups must always restore). The
 // type-literal declaration plus the single value assignment.
 const ALLOWLIST: Record<string, { pattern: RegExp; maxOccurrences: number }> = {
   'src/services/backend/dataExportService.ts': {
-    pattern: /app: 'Hale'/,
+    pattern: /app: 'Pearl'/,
     maxOccurrences: 2,
   },
 };
@@ -61,7 +61,7 @@ describe('brand token', () => {
     };
     const config = configFn({ config: {} });
     expect(config.name).toBe(BRAND.appName);
-    expect(config.slug).toBe('hale'); // infra identity, deliberately not tokenized
+    expect(config.slug).toBe('pearl'); // infra identity, deliberately not tokenized
   });
 
   it('finds no hardcoded brand name in production string source outside the allowlist', () => {

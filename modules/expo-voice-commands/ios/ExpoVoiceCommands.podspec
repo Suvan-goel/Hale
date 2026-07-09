@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
   s.name           = 'ExpoVoiceCommands'
   s.version        = '0.1.0'
-  s.summary        = 'On-device windowed voice-command recognition for Hale voice-guided sessions'
+  s.summary        = 'On-device windowed voice-command recognition for Pearl voice-guided sessions'
   s.description    = 'SFSpeechRecognizer with requiresOnDeviceRecognition; windowed listening only; no audio stored, nothing leaves the device.'
   s.author         = ''
   s.homepage       = 'https://docs.expo.dev/modules/'

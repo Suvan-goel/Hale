@@ -6,7 +6,7 @@ import type {
   TrainingSessionCompletion,
 } from './types';
 import { isMovementDomain } from './blockFocus';
-import { parseMovementProfileV2BlockReport } from '../haleFlow/movementProfileV2BlockReport';
+import { parseMovementProfileV2BlockReport } from '../pearlFlow/movementProfileV2BlockReport';
 
 export const ADHERENCE_SCHEMA_VERSION = 3;
 

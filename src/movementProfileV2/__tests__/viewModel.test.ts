@@ -118,7 +118,7 @@ describe('Movement Profile V2 view model', () => {
         focusBodyFor([
           { domain: 'strength_power', category: 'within_reference' },
           { domain: 'balance', category: 'below_reference' },
-          { domain: 'mobility', category: 'hale_building' },
+          { domain: 'mobility', category: 'pearl_building' },
         ])
       ).toBe(
         'Strength and Mobility are your strongest assets. Balance is your biggest opportunity — your plan starts there.'

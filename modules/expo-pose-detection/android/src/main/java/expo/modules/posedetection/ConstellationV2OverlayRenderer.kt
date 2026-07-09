@@ -153,7 +153,7 @@ internal class ConstellationV2OverlayRenderer(
     }
     if (viewWidth <= 0 || viewHeight <= 0) return
 
-    Trace.beginSection("HalePose.constellationV2Transform")
+    Trace.beginSection("PearlPose.constellationV2Transform")
     val transformStartMs = nowMs()
     val stats = transformConstellationV2(
       topology = selectedTopology,
@@ -171,7 +171,7 @@ internal class ConstellationV2OverlayRenderer(
     val transformEndMs = nowMs()
     Trace.endSection()
 
-    Trace.beginSection("HalePose.constellationV2Draw")
+    Trace.beginSection("PearlPose.constellationV2Draw")
     val drawStartMs = nowMs()
     for (i in 0 until CONSTELLATION_V2_BATCH_COUNT) {
       val pointCount = batches.counts[i]

@@ -270,7 +270,7 @@ const EVIDENCE_STATUSES: readonly MovementProfileV2EvidenceStatus[] = [
 const RESULT_KINDS: readonly ReferenceResultKind[] = [
   'raw_only',
   'percentile_range',
-  'hale_task_band',
+  'pearl_task_band',
   'published_age_group_benchmark',
   'published_iqr_category',
 ] as const;

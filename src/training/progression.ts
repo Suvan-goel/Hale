@@ -4,7 +4,7 @@
  * The deterministic decide/promote/demote LOGIC that used to live here was
  * removed 2026-07-04: the live progression path is the ladder system
  * (`workoutGeneration.updateLadderProgressAfterSession` applied via
- * `haleFlow/progressionEvidence`). `ProgressionState` + `initialProgressionState`
+ * `pearlFlow/progressionEvidence`). `ProgressionState` + `initialProgressionState`
  * survive only because `TrainingState` still serialises a `progression` field
  * for backward-compatible reads of older on-device/synced state (see
  * `training/serialize.ts`). Do not re-add rules here.

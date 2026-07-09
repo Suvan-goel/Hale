@@ -272,7 +272,7 @@ function interpretBalance({
         };
   return {
     movementId: result?.movementId === BALANCE_EYES_OPEN_V2_ID ? BALANCE_EYES_OPEN_V2_ID : ONE_LEG_BALANCE_V2_ID,
-    resultKind: interpreted.sourceBenchmark ? 'published_age_group_benchmark' : taskBand ? 'hale_task_band' : 'raw_only',
+    resultKind: interpreted.sourceBenchmark ? 'published_age_group_benchmark' : taskBand ? 'pearl_task_band' : 'raw_only',
     rawMetric: raw.metric,
     taskBand,
     protocolEvidence: result?.evidenceStatus ?? null,

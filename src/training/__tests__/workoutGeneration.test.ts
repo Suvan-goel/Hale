@@ -267,7 +267,7 @@ describe('dynamic workout generation', () => {
 
     expect(session.painAreas).toEqual(['knee']);
     expect(session.exercises.map((exercise) => exercise.ladderId)).not.toContain('step-up');
-    expect(session.guidance.join(' ')).toContain('Hale used gentler options around the area you marked in setup.');
+    expect(session.guidance.join(' ')).toContain('Pearl used gentler options around the area you marked in setup.');
     expect(session.adjustmentReasons).toContain('setup_discomfort_reported');
   });
 
@@ -1000,7 +1000,7 @@ describe('dynamic workout generation', () => {
       'Chair + Wall Strength',
       'Band Upper-Back',
       'Stairs Confidence',
-      'Quick Full-Body Hale Session',
+      'Quick Full-Body Pearl Session',
     ]);
 
     const withBand = generatePresetSession({

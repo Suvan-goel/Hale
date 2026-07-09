@@ -71,17 +71,17 @@ describe('Movement Profile V2 assessment contract', () => {
     expect(evidence).toEqual([
       expect.objectContaining({
         domain: 'strength_power',
-        category: 'hale_building',
+        category: 'pearl_building',
         evidenceSource: 'published_reference',
         focusEligible: false,
         reasons: expect.arrayContaining(['chair_percentile_range_below_40_conservative']),
       }),
       expect.objectContaining({
         domain: 'balance',
-        category: 'hale_starting_point',
-        evidenceSource: 'hale_task_band',
+        category: 'pearl_starting_point',
+        evidenceSource: 'pearl_task_band',
         focusEligible: true,
-        reasons: expect.arrayContaining(['balance_hale_starting_point_band', 'balance_springer_benchmark_not_focus_severity']),
+        reasons: expect.arrayContaining(['balance_pearl_starting_point_band', 'balance_springer_benchmark_not_focus_severity']),
       }),
       expect.objectContaining({
         domain: 'mobility',
@@ -108,13 +108,13 @@ describe('Movement Profile V2 assessment contract', () => {
       focusEligible: false,
     });
     expect(chairEvidence(base, { kind: 'range', low: 0, high: 20 })).toMatchObject({
-      category: 'hale_starting_point',
+      category: 'pearl_starting_point',
       evidenceSource: 'published_reference',
       focusEligible: true,
       reasons: expect.arrayContaining(['chair_percentile_range_below_25_conservative']),
     });
     expect(chairEvidence(base, { kind: 'range', low: 20, high: 40 })).toMatchObject({
-      category: 'hale_building',
+      category: 'pearl_building',
       evidenceSource: 'published_reference',
       focusEligible: false,
       reasons: expect.arrayContaining(['chair_percentile_range_below_40_conservative']),
@@ -129,18 +129,18 @@ describe('Movement Profile V2 assessment contract', () => {
 
   it('maps balance bands, pain-limited evidence, and shoulder IQR categories without benchmark arithmetic', () => {
     expect(evidenceFor({ balance: balanceResult({ bestHoldSec: 8 }) }).balance).toMatchObject({
-      category: 'hale_starting_point',
-      evidenceSource: 'hale_task_band',
+      category: 'pearl_starting_point',
+      evidenceSource: 'pearl_task_band',
       focusEligible: true,
     });
     expect(evidenceFor({ balance: balanceResult({ bestHoldSec: 30 }) }).balance).toMatchObject({
-      category: 'hale_building',
-      evidenceSource: 'hale_task_band',
+      category: 'pearl_building',
+      evidenceSource: 'pearl_task_band',
       focusEligible: false,
     });
     expect(evidenceFor({ balance: balanceResult({ bestHoldSec: 45 }) }).balance).toMatchObject({
       category: 'above_reference_or_ceiling',
-      evidenceSource: 'hale_task_band',
+      evidenceSource: 'pearl_task_band',
       focusEligible: false,
     });
     expect(evidenceFor({ balance: balanceResult({ evidenceStatus: 'raw_only_pain_limited' }) }).balance).toMatchObject({
@@ -203,7 +203,7 @@ describe('Movement Profile V2 assessment contract', () => {
     const multipleBelow = selectFromEvidence({
       domainEvidence: [
         evidence('strength_power', 'below_reference', true),
-        evidence('balance', 'hale_building'),
+        evidence('balance', 'pearl_building'),
         evidence('mobility', 'below_reference', true),
       ],
       lifeGoalContext: normalizeMovementProfileV2LifeGoalContext(goal('stairs_walks')),
@@ -217,7 +217,7 @@ describe('Movement Profile V2 assessment contract', () => {
     const ambiguousBelow = selectFromEvidence({
       domainEvidence: [
         evidence('strength_power', 'below_reference', true),
-        evidence('balance', 'hale_building'),
+        evidence('balance', 'pearl_building'),
         evidence('mobility', 'below_reference', true),
       ],
       lifeGoalContext: normalizeMovementProfileV2LifeGoalContext(goal('grandchildren')),
@@ -236,8 +236,8 @@ describe('Movement Profile V2 assessment contract', () => {
     expect(startingPoint.focus).toMatchObject({
       kind: 'domain',
       focusDomain: 'balance',
-      planMode: 'checkup_hale_band_focus',
-      reason: 'v2_focus_single_hale_starting_point',
+      planMode: 'checkup_pearl_band_focus',
+      reason: 'v2_focus_single_pearl_starting_point',
     });
 
     const goalWithoutSignal = mustAssess({ lifeGoal: goal('stairs_walks') });
@@ -268,8 +268,8 @@ describe('Movement Profile V2 assessment contract', () => {
 
     const startingPointGoal = selectFromEvidence({
       domainEvidence: [
-        evidence('strength_power', 'hale_starting_point', true),
-        evidence('balance', 'hale_starting_point', true),
+        evidence('strength_power', 'pearl_starting_point', true),
+        evidence('balance', 'pearl_starting_point', true),
         evidence('mobility', 'within_reference'),
       ],
       lifeGoalContext: normalizeMovementProfileV2LifeGoalContext(goal('grandchildren')),
@@ -282,8 +282,8 @@ describe('Movement Profile V2 assessment contract', () => {
 
     const startingPointBalanced = selectFromEvidence({
       domainEvidence: [
-        evidence('strength_power', 'hale_starting_point', true),
-        evidence('balance', 'hale_starting_point', true),
+        evidence('strength_power', 'pearl_starting_point', true),
+        evidence('balance', 'pearl_starting_point', true),
         evidence('mobility', 'within_reference'),
       ],
     });
@@ -305,7 +305,7 @@ describe('Movement Profile V2 assessment contract', () => {
         sourceCheckUpType: 'official_retest',
         domainEvidence: [
           evidence('strength_power', 'below_reference', true),
-          evidence('balance', 'hale_building'),
+          evidence('balance', 'pearl_building'),
           evidence('mobility', 'below_reference', true),
         ],
         priorFocusContext: normalizeMovementProfileV2PriorFocusContext(priorMobility),
@@ -321,7 +321,7 @@ describe('Movement Profile V2 assessment contract', () => {
         sourceCheckUpType: 'official_retest',
         domainEvidence: [
           evidence('strength_power', 'below_reference', true),
-          evidence('balance', 'hale_building'),
+          evidence('balance', 'pearl_building'),
           evidence('mobility', 'within_reference'),
         ],
         priorFocusContext: normalizeMovementProfileV2PriorFocusContext(priorMobility),
@@ -337,7 +337,7 @@ describe('Movement Profile V2 assessment contract', () => {
         sourceCheckUpType: 'official_retest',
         domainEvidence: [
           evidence('strength_power', 'raw_only_valid'),
-          evidence('balance', 'hale_building'),
+          evidence('balance', 'pearl_building'),
           evidence('mobility', 'within_reference'),
         ],
         priorFocusContext: normalizeMovementProfileV2PriorFocusContext(priorMobility),
@@ -353,7 +353,7 @@ describe('Movement Profile V2 assessment contract', () => {
         sourceCheckUpType: 'official_retest',
         domainEvidence: [
           evidence('strength_power', 'raw_only_valid'),
-          evidence('balance', 'hale_building'),
+          evidence('balance', 'pearl_building'),
           evidence('mobility', 'within_reference'),
         ],
         priorFocusContext: normalizeMovementProfileV2PriorFocusContext(priorBalanced),
@@ -368,7 +368,7 @@ describe('Movement Profile V2 assessment contract', () => {
         sourceCheckUpType: 'baseline',
         domainEvidence: [
           evidence('strength_power', 'below_reference', true),
-          evidence('balance', 'hale_building'),
+          evidence('balance', 'pearl_building'),
           evidence('mobility', 'below_reference', true),
         ],
         priorFocusContext: normalizeMovementProfileV2PriorFocusContext(priorMobility),
@@ -485,7 +485,7 @@ describe('Movement Profile V2 assessment contract', () => {
         focus: {
           kind: 'domain',
           focusDomain: 'balance',
-          reason: 'v2_focus_single_hale_starting_point',
+          reason: 'v2_focus_single_pearl_starting_point',
         },
       },
     });
@@ -738,8 +738,8 @@ function evidence(
     evidenceSource:
       category === 'below_reference' || category === 'within_reference' || category === 'above_reference_or_ceiling'
         ? 'published_reference'
-        : category === 'hale_starting_point' || category === 'hale_building'
-          ? 'hale_task_band'
+        : category === 'pearl_starting_point' || category === 'pearl_building'
+          ? 'pearl_task_band'
           : category === 'invalid_or_missing'
             ? 'invalid'
             : 'raw_only',

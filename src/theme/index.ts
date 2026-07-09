@@ -1,5 +1,5 @@
 /**
- * Hale design system — the single source of truth for colour, type, spacing,
+ * Pearl design system — the single source of truth for colour, type, spacing,
  * radii and depth. Screens and shared components reference these tokens rather
  * than hardcoding repeated visual values.
  *

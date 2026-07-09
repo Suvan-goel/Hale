@@ -11,7 +11,7 @@ export interface LocalDataSummary {
   recordings: number;
 }
 
-export interface ClearLocalHaleDataResult extends LocalDataSummary {
+export interface ClearLocalPearlDataResult extends LocalDataSummary {
   deletedFiles: string[];
   failures: Array<{ area: string; name: string; error: unknown }>;
 }
@@ -21,7 +21,7 @@ export interface LocalFileArea {
   delete(name: string): void;
 }
 
-export interface ClearLocalHaleDataOptions {
+export interface ClearLocalPearlDataOptions {
   fs?: HistoryFs;
   recordings?: LocalFileArea;
   userId?: string | null;
@@ -33,7 +33,7 @@ const ADHERENCE_STATE_FILE = 'adherence-state.json';
 const CHECKUP_PREFIX = 'checkup-';
 const MICROCHECK_PREFIX = 'microcheck-';
 
-export async function getLocalDataSummary(options: ClearLocalHaleDataOptions = {}): Promise<LocalDataSummary> {
+export async function getLocalDataSummary(options: ClearLocalPearlDataOptions = {}): Promise<LocalDataSummary> {
   const fs = options.fs ?? await defaultHistoryFs(options.userId);
   const recordings = options.recordings ?? await defaultRecordingArea();
   const names = safeList(`local ${BRAND.appName} files`, fs);
@@ -49,10 +49,10 @@ export async function getLocalDataSummary(options: ClearLocalHaleDataOptions = {
   };
 }
 
-export async function clearLocalHaleData(options: ClearLocalHaleDataOptions = {}): Promise<ClearLocalHaleDataResult> {
+export async function clearLocalPearlData(options: ClearLocalPearlDataOptions = {}): Promise<ClearLocalPearlDataResult> {
   const fs = options.fs ?? await defaultHistoryFs(options.userId);
   const recordings = options.recordings ?? await defaultRecordingArea();
-  const failures: ClearLocalHaleDataResult['failures'] = [];
+  const failures: ClearLocalPearlDataResult['failures'] = [];
   const deletedFiles: string[] = [];
   const summary = await getLocalDataSummary({ fs, recordings });
 
@@ -79,7 +79,7 @@ export async function clearLocalHaleData(options: ClearLocalHaleDataOptions = {}
   if (failures.length > 0) {
     captureError(new Error(`Local ${BRAND.appName} data deletion had failures.`), {
       area: 'account_data',
-      action: 'clear_local_hale_data',
+      action: 'clear_local_pearl_data',
       failures: failures.map((failure) => ({
         area: failure.area,
         message: failure.error instanceof Error ? failure.error.message : String(failure.error),
@@ -96,9 +96,9 @@ export async function clearLocalHaleData(options: ClearLocalHaleDataOptions = {}
 }
 
 export async function signOutAndClearLocalData(
-  options: ClearLocalHaleDataOptions = {}
-): Promise<ClearLocalHaleDataResult> {
-  const result = await clearLocalHaleData(options);
+  options: ClearLocalPearlDataOptions = {}
+): Promise<ClearLocalPearlDataResult> {
+  const result = await clearLocalPearlData(options);
   if (result.failures.length > 0) return result;
 
   const { signOut } = await import('./authService');
@@ -139,7 +139,7 @@ function tryDelete(
   name: string,
   files: { delete?: (name: string) => void },
   deletedFiles: string[],
-  failures: ClearLocalHaleDataResult['failures']
+  failures: ClearLocalPearlDataResult['failures']
 ): void {
   if (!files.delete) {
     failures.push({ area, name, error: new Error('File adapter does not support delete.') });

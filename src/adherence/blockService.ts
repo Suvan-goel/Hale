@@ -4,7 +4,7 @@ import {
   movementDomainFromScoreDomainStrict,
   type BlockCreationEligibility,
   type BlockCreationIneligibilityReason,
-} from '../haleFlow/assessmentEligibility';
+} from '../pearlFlow/assessmentEligibility';
 import { addDaysIso } from './dateUtils';
 import { getLifeGoalTrainingRelevance, getLifeGoalWorkoutBias } from './goalDomainMapping';
 import type { AssessmentForBlock, LifeGoal, MovementBlock, MovementDomain } from './types';

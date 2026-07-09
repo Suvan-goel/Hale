@@ -23,7 +23,7 @@ describe('AccountAuthCard auth hardening', () => {
 
     expect(copy).toMatch(/Clear this device/i);
     expect(copy).toMatch(/does not delete your cloud account/i);
-    expect(copy).toMatch(/contact Hale support/i);
+    expect(copy).toMatch(/contact Pearl support/i);
     expect(copy).not.toMatch(/will delete synced account data|request account deletion/i);
   });
 });

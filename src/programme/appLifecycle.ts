@@ -12,7 +12,7 @@
  *   session start (the established shell pattern).
  * - Zero old-engine coupling (C4): imports stay inside src/programme.
  * - All user-facing copy lives HERE, not in screens, and is scanned by
- *   src/haleFlow/__tests__/copyGuardrails.test.ts. Voice lines are NOT owned
+ *   src/pearlFlow/__tests__/copyGuardrails.test.ts. Voice lines are NOT owned
  *   here — this file is silent UI copy only.
  * - Callers gate on onboarding: these projections assume
  *   onboardingCompletedAtIso is set (AppGate owns the onboarding staging).

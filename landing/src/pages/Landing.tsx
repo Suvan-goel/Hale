@@ -1,6 +1,7 @@
-import { ScoreDial } from "../components/ScoreDial";
+import { PhoneMockup } from "../components/PhoneMockup";
 import { Reveal } from "../components/Reveal";
 import { WaitlistForm } from "../components/WaitlistForm";
+import { CONTACT_EMAIL } from "../config";
 import heroImage from "../assets/landing/hero-home-checkup.jpg";
 import monthlyCheckupImage from "../assets/landing/monthly-checkup.jpg";
 import strengthEngineImage from "../assets/landing/strength-engine.jpg";
@@ -100,16 +101,10 @@ const FEATURES = [
   },
 ];
 
-const TREND = [
-  { v: 54, l: "Check-up 1" },
-  { v: 61, l: "Check-up 2" },
-  { v: 66, l: "Check-up 3" },
-];
-
 const FAQS = [
   {
-    q: "Can Elegant really measure brain fog?",
-    a: "Not like a diagnosis or a lab test. Elegant tracks Clarity signals: how fluently words come, how thinking load affects balance, and how those signals change against your own baseline. It shows your pattern, not a cause or condition.",
+    q: "What does Clarity mean?",
+    a: "Clarity is Elegant's name for simple brain-fog signals tracked against your own baseline: how fluently words come, how thinking load affects balance, and how those patterns change over time. It is not a diagnosis, a cause, or a lab test.",
   },
   {
     q: "How long does the check-up take?",
@@ -118,6 +113,10 @@ const FAQS = [
   {
     q: "Do I need any equipment?",
     a: "No. The check-up needs your phone and a sturdy chair. Training uses your bodyweight and things already in your home — a chair, a wall, a bottom stair. Every exercise has a no-equipment version.",
+  },
+  {
+    q: "What phone do I need?",
+    a: "Any reasonably recent iPhone or Android phone. The camera and mic it already has are the only sensors involved — no wearable, no extra hardware.",
   },
   {
     q: "Is my camera and mic data private?",
@@ -152,18 +151,20 @@ export function Landing({
     <main>
       {/* ── Hero ──────────────────────────────────────────────────────── */}
       <section id="hero" className="relative overflow-hidden bg-ink text-bone">
+        {/* Desktop: photographic backdrop; y-position keeps the subject's head clear of the crop */}
         <img
           src={heroImage}
           alt=""
           aria-hidden="true"
-          className="absolute inset-0 h-full w-full object-cover object-[62%_center]"
+          fetchPriority="high"
+          className="absolute inset-0 hidden h-full w-full object-cover object-[62%_18%] md:block"
         />
         <div
-          className="absolute inset-0 bg-[linear-gradient(90deg,rgba(26,36,32,0.96)_0%,rgba(26,36,32,0.88)_42%,rgba(26,36,32,0.56)_70%,rgba(26,36,32,0.24)_100%)]"
+          className="absolute inset-0 hidden bg-[linear-gradient(90deg,rgba(26,36,32,0.97)_0%,rgba(26,36,32,0.9)_44%,rgba(26,36,32,0.55)_72%,rgba(26,36,32,0.22)_100%)] md:block"
           aria-hidden="true"
         />
         <div
-          className="absolute inset-0 bg-[linear-gradient(180deg,rgba(26,36,32,0.18)_0%,rgba(26,36,32,0.02)_44%,rgba(26,36,32,0.70)_100%)]"
+          className="absolute inset-0 hidden bg-[linear-gradient(180deg,rgba(26,36,32,0.2)_0%,rgba(26,36,32,0.02)_44%,rgba(26,36,32,0.6)_100%)] md:block"
           aria-hidden="true"
         />
         <div className="relative mx-auto max-w-6xl px-5 md:px-8">
@@ -179,18 +180,18 @@ export function Landing({
             </button>
           </header>
 
-          <div className="max-w-[590px] pb-12 pt-6 md:pb-14 md:pt-8">
+          <div className="max-w-[590px] pb-12 pt-8 md:pb-28 md:pt-16">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-bone/55">
-              For perimenopause &amp; menopause
+              Strength · Balance · Mobility · Clarity
             </p>
-            <h1 className="mt-4 font-display text-[2.4rem] leading-[1.06] md:text-[3.25rem]">
-              Track strength. Track clarity.{" "}
-              <em className="italic text-brass">Train what changes.</em>
+            <h1 className="mt-4 font-display text-[2.4rem] leading-[1.06] md:text-[3.4rem]">
+              Measure what menopause changes.{" "}
+              <em className="italic text-brass">Train what you can change.</em>
             </h1>
             <p className="mt-6 max-w-[34rem] text-[17px] leading-relaxed text-bone/80">
-              Elegant uses one short monthly phone check-up to track strength, balance, mobility
-              and Clarity signals. Then it builds short strength-based sessions at home and
-              re-tests you, so you can see what is changing.
+              One ten-minute phone check-up a month tracks your strength, balance, mobility and
+              Clarity patterns. Elegant builds short home sessions from your results — and shows
+              you, in your own numbers, what's changing.
             </p>
             <div className="mt-7">
               <button
@@ -210,6 +211,12 @@ export function Landing({
               All analysis happens on your phone — video and audio never leave it.
             </p>
           </div>
+        </div>
+        {/* Mobile: the photo gets its own full-bleed strip below the copy instead of
+            fighting the text as a background */}
+        <div className="relative md:hidden" aria-hidden="true">
+          <img src={heroImage} alt="" className="h-60 w-full object-cover object-[62%_16%]" />
+          <div className="absolute inset-x-0 top-0 h-20 bg-[linear-gradient(180deg,rgba(26,36,32,1)_0%,rgba(26,36,32,0)_100%)]" />
         </div>
       </section>
 
@@ -239,14 +246,12 @@ export function Landing({
             <div className="mt-9 space-y-5 text-[17px] leading-relaxed text-ink/80">
               <p>
                 Perimenopause and menopause can make strength feel harder to keep and clarity
-                harder to trust. Sleep, symptoms, stress and energy all blur together. The stage of
-                life where training matters most is often the stage with the least room for trial
-                and error.
+                harder to trust. Sleep, symptoms, stress and energy blur together. The stage of
+                life where training matters most leaves the least room for trial and error.
               </p>
               <p>
-                Most apps answer with videos, streaks and minutes. Elegant starts with measurement:
-                body numbers, a personal Clarity trend, and a strength plan aimed at the changes
-                you can actually train.
+                Most apps answer with videos, streaks and minutes — more effort in, no evidence
+                out. And you can't work on what nobody will measure.
               </p>
             </div>
           </Reveal>
@@ -261,7 +266,7 @@ export function Landing({
                 <p>Is it working?</p>
               </div>
               <p className="mx-auto mt-7 max-w-xl text-[17px] leading-relaxed text-ink/70">
-                Elegant keeps the loop that simple.
+                Elegant answers those three. Nothing else.
               </p>
             </div>
           </Reveal>
@@ -277,14 +282,14 @@ export function Landing({
               Test. Train. Re-test.
             </h2>
           </Reveal>
-          <div className="mt-12 grid items-start gap-10 lg:grid-cols-[0.92fr_1.08fr] lg:gap-14">
-            <Reveal>
-              <figure>
+          <div className="mt-12 grid items-stretch gap-10 lg:grid-cols-[0.92fr_1.08fr] lg:gap-14">
+            <Reveal className="h-full">
+              <figure className="flex h-full flex-col">
                 <img
                   src={monthlyCheckupImage}
                   alt="A woman doing a controlled sit-to-stand at home while her phone is propped nearby for a monthly check-up."
                   loading="lazy"
-                  className="aspect-[4/3] w-full rounded-lg object-cover object-[58%_center] shadow-[0_26px_70px_-42px_rgba(26,36,32,0.75)]"
+                  className="aspect-[4/3] w-full rounded-2xl object-cover object-[58%_center] shadow-[0_26px_70px_-42px_rgba(26,36,32,0.75)] lg:aspect-auto lg:min-h-0 lg:flex-1"
                 />
                 <figcaption className="mt-3 text-sm leading-relaxed text-ink/60">
                   The phone works like a measuring instrument: propped up, hands-free, and private.
@@ -321,11 +326,58 @@ export function Landing({
               ))}
             </div>
           </div>
+
+          <Reveal className="mt-16">
+            <div className="rounded-2xl border border-line bg-bone px-6 py-9 text-center md:px-12 md:py-11">
+              <p className="font-display text-[1.5rem] leading-snug md:text-[1.8rem]">
+                The tests aren't ours. <em className="italic text-brass">The convenience is.</em>
+              </p>
+              <p className="mx-auto mt-4 max-w-2xl leading-relaxed text-ink/70">
+                Elegant's movement check-up is built on functional tests used in clinical research
+                and physiotherapy for decades — sit-to-stand capacity, timed balance holds, the
+                timed up-and-go — with published reference values behind them. The Clarity checks
+                use short spoken prompts to track your own pattern over time. Your phone doesn't
+                invent the measurements; it just makes them easier to repeat.
+              </p>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── Why strength training ─────────────────────────────────────── */}
+      <section className="bg-bone">
+        <div className="mx-auto grid max-w-6xl items-stretch gap-10 px-5 py-20 md:grid-cols-2 md:gap-14 md:px-8 md:py-28">
+          <Reveal className="h-full">
+            <img
+              src={strengthEngineImage}
+              alt="A woman doing a safe low step-up at home with one hand lightly on the rail."
+              loading="lazy"
+              className="aspect-[4/3] w-full rounded-2xl object-cover object-[46%_center] shadow-[0_26px_70px_-42px_rgba(26,36,32,0.75)] md:aspect-auto md:h-full"
+            />
+          </Reveal>
+          <Reveal delay={120} className="md:py-2">
+            <Eyebrow>Why strength is the engine</Eyebrow>
+            <h2 className="mt-6 font-display text-[2rem] leading-[1.15] md:text-[2.6rem]">
+              Muscle is the part you can train.
+            </h2>
+            <div className="mt-6 max-w-xl space-y-4 text-[17px] leading-relaxed text-ink/75">
+              <p>
+                Strength training is widely recommended during menopause for one plain reason:
+                working muscle is how you keep it. Regular exercise can also support sleep and
+                mood, two things many people notice alongside foggier days.
+              </p>
+              <p>
+                Elegant does not promise to cure brain fog. It helps you train consistently, start
+                at the right level, and track whether your own strength and Clarity patterns are
+                shifting.
+              </p>
+            </div>
+          </Reveal>
         </div>
       </section>
 
       {/* ── The differentiator ────────────────────────────────────────── */}
-      <section className="bg-ink text-bone">
+      <section className="overflow-hidden bg-ink text-bone">
         <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
           <Reveal className="max-w-2xl">
             <Eyebrow dark>Why Elegant</Eyebrow>
@@ -342,34 +394,10 @@ export function Landing({
 
           <div className="mt-14 grid items-center gap-12 md:grid-cols-2">
             <Reveal className="min-w-0">
-              <div className="rounded-lg border border-bone/12 bg-[#212d27] p-5 sm:p-8">
-                {/* Two sizes so the three dials never force the card past a 375px viewport */}
-                <div className="hidden items-end justify-around gap-2 sm:flex">
-                  {TREND.map((d, i) => (
-                    <ScoreDial
-                      key={d.l}
-                      value={d.v}
-                      label={d.l}
-                      size={i === 2 ? 108 : 92}
-                      tone="dark"
-                      surface="#212d27"
-                    />
-                  ))}
-                </div>
-                <div className="flex items-end justify-around gap-1 sm:hidden">
-                  {TREND.map((d, i) => (
-                    <ScoreDial
-                      key={d.l}
-                      value={d.v}
-                      label={d.l}
-                      size={i === 2 ? 94 : 80}
-                      tone="dark"
-                      surface="#212d27"
-                    />
-                  ))}
-                </div>
+              <div className="mx-auto max-w-[340px]">
+                <PhoneMockup />
                 <p className="mt-6 text-center text-xs tracking-wide text-bone/50">
-                  Example monthly check-up trend · not a diagnosis
+                  Example check-up · illustrative data, not a diagnosis
                 </p>
               </div>
             </Reveal>
@@ -410,35 +438,52 @@ export function Landing({
         </div>
       </section>
 
-      {/* ── Why strength training ─────────────────────────────────────── */}
+      {/* ── Founder note ──────────────────────────────────────────────── */}
       <section className="bg-bone">
-        <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 py-20 md:grid-cols-2 md:gap-14 md:px-8 md:py-28">
+        <div className="mx-auto max-w-2xl px-5 py-20 md:px-8 md:py-28">
           <Reveal>
-            <img
-              src={strengthEngineImage}
-              alt="A woman doing a safe low step-up at home with one hand lightly on the rail."
-              loading="lazy"
-              className="aspect-[4/3] w-full rounded-lg object-cover object-[46%_center] shadow-[0_26px_70px_-42px_rgba(26,36,32,0.75)]"
-            />
-          </Reveal>
-          <Reveal delay={120}>
-            <Eyebrow>Why strength is the engine</Eyebrow>
-            <h2 className="mt-6 font-display text-[1.9rem] leading-[1.2] md:text-[2.4rem]">
-              Strength training is the core habit because muscle is one of the things you can train.
+            <Eyebrow>From the founder</Eyebrow>
+            <h2 className="mt-5 font-display text-[2rem] leading-[1.12] md:text-[2.6rem]">
+              Built for my mum.
             </h2>
-            <div className="mt-6 max-w-xl space-y-4 text-[17px] leading-relaxed text-ink/75">
+            <div className="mt-7 space-y-5 text-[17px] leading-relaxed text-ink/80">
               <p>
-                Not because it is fashionable — because working muscle is how you keep it.
-                Strength training is widely recommended during menopause, and regular exercise also
-                supports the sleep, mood and symptom load that many people recognise in foggier
-                days.
+                I've been obsessed with health and fitness for years. When I finally convinced my
+                parents to take their own health seriously, the change in their quality of life
+                was profound — and it left me wanting to help more adults take their health into
+                their own hands.
               </p>
               <p>
-                Elegant does not promise to cure brain fog. It helps you train consistently, start
-                at the right level, and track whether your own strength and Clarity patterns are
-                shifting.
+                Then I started noticing changes in my mum. Anxiety, mood swings, forgetfulness —
+                she didn't quite seem herself. It led to one of the most honest conversations
+                we've ever had: about menopause, how much it asks of women, and how little clear
+                help they're given.
+              </p>
+              <p>
+                I'm a student at Imperial College London, and building software and AI systems is
+                what I know how to do. So I built what I wished existed for her: a way to see
+                clearly what's changing — strength, balance, clarity — and whether the work she
+                puts in is paying her back.
+              </p>
+              <p>
+                {CONTACT_EMAIL ? (
+                  <>
+                    Elegant is that answer. If it ever overpromises,{" "}
+                    <a
+                      href={`mailto:${CONTACT_EMAIL}`}
+                      className="underline underline-offset-4 hover:text-ink"
+                    >
+                      email me
+                    </a>{" "}
+                    and tell me.
+                  </>
+                ) : (
+                  "Elegant is that answer. It should never need to overpromise."
+                )}
               </p>
             </div>
+            <p className="mt-8 font-display text-2xl italic">— Suvan</p>
+            <p className="mt-1 text-sm text-ink/60">Founder, Elegant</p>
           </Reveal>
         </div>
       </section>
@@ -500,14 +545,51 @@ export function Landing({
         <div className="relative mx-auto max-w-2xl px-5 py-20 text-center md:px-8 md:py-28">
           <Reveal>
             <h2 className="font-display text-[2.1rem] leading-[1.1] md:text-[2.8rem]">
-              See strength and clarity <em className="italic text-[#d8b071]">in numbers.</em>
+              See strength and Clarity <em className="italic text-[#d8b071]">in numbers.</em>
             </h2>
             <p className="mt-4 text-[17px] text-bone/80">
               You've guessed long enough. Join the waitlist for early access.
             </p>
-            <div className="mt-8">
+            <div className="mx-auto mt-9 max-w-md text-left">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-bone/60">
+                After your first ten-minute check-up, you'll know
+              </p>
+              <ul className="mt-4 space-y-3">
+                {[
+                  "Where you stand in all four dimensions",
+                  "Which one deserves your next four weeks",
+                  "The baseline every month after is measured against",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-[16px] text-bone/90">
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      aria-hidden="true"
+                      className="mt-0.5 shrink-0 text-[#d8b071]"
+                    >
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+                      <path
+                        d="M8 12.5l2.6 2.6L16 9.5"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="mt-9">
               <WaitlistForm onSubmit={onJoin} />
             </div>
+            <p className="mx-auto mt-5 max-w-md text-sm leading-relaxed text-bone/65">
+              You're on the list the moment you join. Invites go out in waves — the earlier you
+              join, the earlier your wave.
+            </p>
           </Reveal>
         </div>
       </section>
