@@ -6,6 +6,11 @@ import {
 import { defaultProgrammeState } from '../serialize';
 import { freshPatternLadderState } from '../promotion';
 import { DEFAULT_REQUIRED_REHEARSAL_EXPOSURES, HINGE_REHEARSAL_DRILL_ID } from '../ladders';
+import type {
+  PhysicalTrainingFocus,
+  ProgrammePhaseNumber,
+  ProgrammePhasePrescription,
+} from '../prescription';
 import type { ProgrammePattern, ProgrammeState } from '../types';
 
 function onboardedState(overrides: Partial<ProgrammeState['profile']> = {}): ProgrammeState {
@@ -17,6 +22,70 @@ function onboardedState(overrides: Partial<ProgrammeState['profile']> = {}): Pro
     ...overrides,
   };
   state.onboardingCompletedAtIso = '2026-07-06T09:00:00.000Z';
+  return state;
+}
+
+function activePhaseState(
+  physicalFocus: PhysicalTrainingFocus,
+  phase: ProgrammePhaseNumber = 1,
+  completedInPhase = 0,
+  profileOverrides: Partial<ProgrammeState['profile']> = {}
+): ProgrammeState {
+  const state = onboardedState(profileOverrides);
+  state.completedSessionCount = completedInPhase;
+  const prescription: ProgrammePhasePrescription = {
+    schemaVersion: 1,
+    policyVersion: 1,
+    policyFingerprint: 'focus-policy-test',
+    prescriptionId: `phase-${phase}-${physicalFocus}`,
+    phase,
+    physicalFocus,
+    dosePolicy: {
+      plannedFocusBlocksPerWeek: 3,
+      focusBlockStrategy:
+        physicalFocus === 'strength'
+          ? 'strength_each_session'
+          : physicalFocus === 'balance'
+            ? 'balance_each_session'
+            : 'alternate_strength_balance',
+    },
+    canonicalFocus:
+      physicalFocus === 'balanced'
+        ? {
+            kind: 'balanced',
+            domain: null,
+            planMode: 'balanced_insufficient_reference',
+            decisionReason: 'v2_focus_balanced_no_unique_signal',
+          }
+        : {
+            kind: 'domain',
+            domain: physicalFocus === 'strength' ? 'strength_power' : 'balance',
+            planMode: 'checkup_reference_focus',
+            decisionReason: 'v2_focus_single_below_reference',
+          },
+    sourceAssessmentId: `assessment-${phase}`,
+    sourceAssessmentFingerprint: `assessment-fingerprint-${phase}`,
+    sourceCheckUpId: `checkup-${phase}`,
+    sourceCheckUpType: phase === 1 ? 'baseline' : 'official_retest',
+    createdAtIso: '2026-07-06T09:00:00.000Z',
+  };
+  state.journey = {
+    ...state.journey,
+    status: 'active',
+    startedAtIso: '2026-07-06T09:00:00.000Z',
+    currentPhase: phase,
+    currentPhaseStartedAtIso: '2026-07-06T09:00:00.000Z',
+    phasePrescriptions: { ...state.journey.phasePrescriptions, [phase]: prescription },
+    sessionCredits: Array.from({ length: completedInPhase }, (_, index) => ({
+      creditId: `credit-${phase}-${index}`,
+      sessionId: `session-${phase}-${index}`,
+      completedAtIso: `2026-07-${String(7 + index).padStart(2, '0')}T09:00:00.000Z`,
+      localDateKey: `2026-07-${String(7 + index).padStart(2, '0')}`,
+      phase,
+      phaseWeek: 1,
+      templateId: index % 2 === 0 ? 'A' : 'B',
+    })),
+  };
   return state;
 }
 
@@ -98,6 +167,118 @@ describe('time budget (duration-parameterised solver)', () => {
     expect(shortA.main.map((e) => e.pattern)).toEqual(['squat', 'push']);
     const shortB = generateProgrammeSession({ state: onboardedState(), template: 'B', preset: 'starter' });
     expect(shortB.main.map((e) => e.pattern)).toEqual(['hinge', 'pull']);
+  });
+});
+
+describe('personalised phase focus blocks', () => {
+  it('keeps the pre-baseline starter generic', () => {
+    const plan = generateProgrammeSession({
+      state: onboardedState(),
+      template: 'A',
+      preset: 'starter',
+    });
+    expect(plan.focusBlock).toBeNull();
+  });
+
+  it('folds a Strength focus into one lower-body voice item as an extra set', () => {
+    for (const template of ['A', 'B'] as const) {
+      const plan = generateProgrammeSession({
+        state: activePhaseState('strength'),
+        template,
+        preset: 'standard',
+      });
+      expect(plan.focusBlock).toMatchObject({
+        kind: 'strength',
+        pattern: template === 'A' ? 'squat' : 'hinge',
+        addedSets: 1,
+        integratedIntoMain: true,
+      });
+      const focus = plan.focusBlock!;
+      const matches = plan.main.filter((exercise) => exercise.exerciseId === focus.exerciseId);
+      expect(matches).toHaveLength(1);
+      expect(matches[0].sets).toBe(3);
+      expect(plan.estimatedMinutes).toBeLessThanOrEqual(plan.targetMinutes);
+    }
+  });
+
+  it('uses conservative supported Balance rungs at official phase boundaries', () => {
+    const expected = [
+      'balance-feet-together-hold',
+      'balance-tandem-hold',
+      'balance-single-leg-hold',
+    ];
+    for (const phase of [1, 2, 3] as const) {
+      const plan = generateProgrammeSession({
+        state: activePhaseState('balance', phase),
+        template: 'A',
+        preset: 'standard',
+      });
+      expect(plan.focusBlock).toMatchObject({
+        kind: 'balance',
+        exerciseId: expected[phase - 1],
+        useSupportVariant: true,
+      });
+      expect(plan.estimatedMinutes).toBeLessThanOrEqual(plan.targetMinutes);
+    }
+
+    const supportedPhaseThree = generateProgrammeSession({
+      state: activePhaseState('balance', 3, 0, { balanceSupportDefault: true }),
+      template: 'A',
+      preset: 'standard',
+    });
+    expect(supportedPhaseThree.focusBlock).toMatchObject({
+      kind: 'balance',
+      exerciseId: 'balance-tandem-hold',
+    });
+  });
+
+  it('alternates a Balanced phase by completed personalised-session parity', () => {
+    const first = generateProgrammeSession({
+      state: activePhaseState('balanced', 1, 0),
+      template: 'A',
+      preset: 'standard',
+    });
+    const second = generateProgrammeSession({
+      state: activePhaseState('balanced', 1, 1),
+      template: 'B',
+      preset: 'standard',
+    });
+    expect(first.focusBlock?.kind).toBe('strength');
+    expect(second.focusBlock?.kind).toBe('balance');
+  });
+
+  it('keeps all personalised presets inside their duration promises', () => {
+    for (const physicalFocus of ['strength', 'balance', 'balanced'] as const) {
+      for (const preset of ['standard', 'first_session', 'starter'] as const) {
+        const plan = generateProgrammeSession({
+          state: activePhaseState(physicalFocus, 1, physicalFocus === 'balanced' ? 1 : 0),
+          template: 'A',
+          preset,
+        });
+        expect(plan.focusBlock).not.toBeNull();
+        expect(plan.estimatedMinutes).toBeLessThanOrEqual(
+          SESSION_PRESET_TARGET_MINUTES[preset]
+        );
+      }
+    }
+  });
+
+  it('keeps the 10-minute promise at advanced unilateral ladder levels', () => {
+    for (const physicalFocus of ['strength', 'balance'] as const) {
+      for (const template of ['A', 'B'] as const) {
+        const state = activePhaseState(physicalFocus, 3);
+        state.ladders.squat = freshPatternLadderState('squat', 9);
+        state.ladders.hinge = freshPatternLadderState('hinge', 8);
+        state.ladders.push = freshPatternLadderState('push', 7);
+        state.ladders.pull = freshPatternLadderState('pull', 6);
+        state.ladders.core = freshPatternLadderState('core', 8);
+        const plan = generateProgrammeSession({ state, template, preset: 'starter' });
+        expect(plan.focusBlock).not.toBeNull();
+        expect(plan.estimatedMinutes).toBeLessThanOrEqual(
+          SESSION_PRESET_TARGET_MINUTES.starter
+        );
+      }
+    }
   });
 });
 

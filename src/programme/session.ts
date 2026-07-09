@@ -33,6 +33,11 @@ import {
   QUIET_FINISHER_ITEMS,
 } from './ladders';
 import { programmeDisplayName } from './naming';
+import type {
+  PhysicalTrainingFocus,
+  ProgrammePhaseNumber,
+  ProgrammePhasePrescription,
+} from './prescription';
 import { evaluatePatternOutcome, recordRehearsalExposure } from './promotion';
 import { resolveSessionRouting, type SessionRouting } from './routing';
 import type {
@@ -95,6 +100,25 @@ const PREP_MINUTES: Record<SessionDurationPreset, number> = {
 };
 const FINISHER_MINUTES_PER_ITEM = 1.25;
 const FINISHER_ITEM_COUNT_FULL = 2;
+const BALANCE_FOCUS_REST_SEC = 30;
+
+const BALANCE_FOCUS_EXERCISES = {
+  feet_together: {
+    exerciseId: 'balance-feet-together-hold',
+    displayName: 'Feet-Together Hold',
+    holdSec: 20,
+  },
+  tandem: {
+    exerciseId: 'balance-tandem-hold',
+    displayName: 'Tandem Hold',
+    holdSec: 20,
+  },
+  single_leg: {
+    exerciseId: 'balance-single-leg-hold',
+    displayName: 'Single-Leg Hold',
+    holdSec: 15,
+  },
+} as const;
 
 // ---------------------------------------------------------------------------
 // Plan shapes
@@ -134,6 +158,35 @@ export interface ProgrammeFinisherPlanItem {
   contacts?: number;
 }
 
+/**
+ * The phase-specific physical emphasis. Strength is deliberately folded into
+ * an existing lower-body item as one extra set: the player sees one exercise
+ * id, gives one setup, and returns one ladder outcome. Balance is a distinct
+ * supported hold and therefore never enters a strength-pattern ladder.
+ */
+export type ProgrammeSessionFocusBlock =
+  | {
+      kind: 'strength';
+      phase: ProgrammePhaseNumber;
+      prescriptionId: string;
+      exerciseId: string;
+      displayName: string;
+      pattern: 'squat' | 'hinge';
+      addedSets: 1;
+      integratedIntoMain: true;
+    }
+  | {
+      kind: 'balance';
+      phase: ProgrammePhaseNumber;
+      prescriptionId: string;
+      exerciseId: (typeof BALANCE_FOCUS_EXERCISES)[keyof typeof BALANCE_FOCUS_EXERCISES]['exerciseId'];
+      displayName: string;
+      sets: number;
+      holdSec: number;
+      restSec: number;
+      useSupportVariant: true;
+    };
+
 export interface ProgrammeSessionPlan {
   template: SessionTemplateId;
   preset: SessionDurationPreset;
@@ -147,6 +200,8 @@ export interface ProgrammeSessionPlan {
     rehearsalDrillIds: readonly string[];
   };
   main: readonly ProgrammeSessionExercise[];
+  /** Null before an official baseline has started a personalised phase. */
+  focusBlock: ProgrammeSessionFocusBlock | null;
   finisher: readonly ProgrammeFinisherPlanItem[];
   /**
    * Patterns eligible for the one offered bonus set this session (never
@@ -175,9 +230,18 @@ export function generateProgrammeSession(input: GenerateSessionInput): Programme
   const routing = resolveSessionRouting(state.profile).routing;
   const targetMinutes = SESSION_PRESET_TARGET_MINUTES[preset];
 
-  const fullMain = TEMPLATE_ORDER[template].map((pattern) =>
+  let fullMain = TEMPLATE_ORDER[template].map((pattern) =>
     planExerciseFor(pattern, template, state, routing)
   );
+  let focusBlock = focusBlockFor(state, template, preset, fullMain);
+  if (focusBlock?.kind === 'strength') {
+    const strengthBlock = focusBlock;
+    fullMain = fullMain.map((exercise) =>
+      exercise.pattern === strengthBlock.pattern
+        ? { ...exercise, sets: exercise.sets + strengthBlock.addedSets }
+        : exercise
+    );
+  }
   const fullFinisher = finisherItems(state, routing, FINISHER_ITEM_COUNT_FULL);
 
   // Trim ladder, applied in order until the plan fits (see module header).
@@ -186,7 +250,13 @@ export function generateProgrammeSession(input: GenerateSessionInput): Programme
   let finisher = fullFinisher;
 
   const fits = () =>
-    estimateMinutes({ preset, main, restSec, finisherCount: finisher.length }) <= targetMinutes;
+    estimateMinutes({
+      preset,
+      main,
+      focusBlock,
+      restSec,
+      finisherCount: finisher.length,
+    }) <= targetMinutes;
 
   if (!fits()) restSec = REST_TIERS_SEC[1];
   if (!fits()) finisher = finisherItems(state, routing, 1);
@@ -195,11 +265,33 @@ export function generateProgrammeSession(input: GenerateSessionInput): Programme
     main = main.filter((exercise) => exercise.pattern !== drop);
   }
   if (!fits()) restSec = REST_TIERS_SEC[2];
+  // A personalised focus block is the phase's promised dose. On the shortest
+  // preset, trim the generic finisher before weakening that dose. Strength's
+  // extra lower-body set still carries the session's power emphasis.
+  if (!fits() && focusBlock !== null) finisher = [];
+  // Balance keeps at least one complete supported attempt on a tight budget.
+  if (!fits() && focusBlock?.kind === 'balance' && focusBlock.sets > 1) {
+    focusBlock = { ...focusBlock, sets: 1 };
+  }
+  // High-rung unilateral work can make the 10-minute option mathematically
+  // impossible at two sets per item. The starter-only floor is therefore one
+  // set, while a Strength focus keeps two sets on its lower-body item so the
+  // phase emphasis remains an extra set relative to the time-boxed base.
+  if (!fits() && preset === 'starter' && focusBlock !== null) {
+    main = main.map((exercise) => ({
+      ...exercise,
+      sets:
+        focusBlock?.kind === 'strength' && exercise.pattern === focusBlock.pattern
+          ? Math.min(exercise.sets, 2)
+          : 1,
+    }));
+  }
 
   const mainWithRest = main.map((exercise) => ({ ...exercise, restSec }));
   const estimatedMinutes = estimateMinutes({
     preset,
     main: mainWithRest,
+    focusBlock,
     restSec,
     finisherCount: finisher.length,
   });
@@ -236,11 +328,84 @@ export function generateProgrammeSession(input: GenerateSessionInput): Programme
       rehearsalDrillIds: [HINGE_REHEARSAL_DRILL_ID],
     },
     main: mainWithRest,
+    focusBlock,
     finisher,
     bonusSetEligible,
     activeBranches,
     routing,
   };
+}
+
+function activePhasePrescription(state: ProgrammeState): ProgrammePhasePrescription | null {
+  const journey = state.journey;
+  if (journey?.status !== 'active' || journey.currentPhase === null) return null;
+  return journey.phasePrescriptions[journey.currentPhase] ?? null;
+}
+
+function effectiveFocusForSession(
+  state: ProgrammeState,
+  prescription: ProgrammePhasePrescription
+): Exclude<PhysicalTrainingFocus, 'balanced'> {
+  if (prescription.physicalFocus !== 'balanced') return prescription.physicalFocus;
+  return state.completedSessionCount % 2 === 0 ? 'strength' : 'balance';
+}
+
+function focusBlockFor(
+  state: ProgrammeState,
+  template: SessionTemplateId,
+  preset: SessionDurationPreset,
+  main: readonly ProgrammeSessionExercise[]
+): ProgrammeSessionFocusBlock | null {
+  const prescription = activePhasePrescription(state);
+  if (!prescription) return null;
+  const focus = effectiveFocusForSession(state, prescription);
+  if (focus === 'strength') {
+    // Both are already placement- and routing-aware. The template's leading
+    // lower-body pattern is also retained by every short-session trim order.
+    const pattern = template === 'A' ? 'squat' : 'hinge';
+    const exercise = main.find((candidate) => candidate.pattern === pattern);
+    if (!exercise) return null;
+    return {
+      kind: 'strength',
+      phase: prescription.phase,
+      prescriptionId: prescription.prescriptionId,
+      exerciseId: exercise.exerciseId,
+      displayName: exercise.displayName,
+      pattern,
+      addedSets: 1,
+      integratedIntoMain: true,
+    };
+  }
+
+  const rung = balanceFocusExercise(state, prescription.phase);
+  return {
+    kind: 'balance',
+    phase: prescription.phase,
+    prescriptionId: prescription.prescriptionId,
+    ...rung,
+    sets: preset === 'standard' ? 2 : 1,
+    restSec: BALANCE_FOCUS_REST_SEC,
+    useSupportVariant: true,
+  };
+}
+
+/**
+ * Official phase boundaries are the only automatic progression points. A
+ * support-default user stays one rung behind and is never prescribed the
+ * single-leg item automatically; every rung still keeps sturdy support close.
+ */
+function balanceFocusExercise(
+  state: ProgrammeState,
+  phase: ProgrammePhaseNumber
+): (typeof BALANCE_FOCUS_EXERCISES)[keyof typeof BALANCE_FOCUS_EXERCISES] {
+  if (state.profile.balanceSupportDefault) {
+    return phase === 3
+      ? BALANCE_FOCUS_EXERCISES.tandem
+      : BALANCE_FOCUS_EXERCISES.feet_together;
+  }
+  if (phase === 1) return BALANCE_FOCUS_EXERCISES.feet_together;
+  if (phase === 2) return BALANCE_FOCUS_EXERCISES.tandem;
+  return BALANCE_FOCUS_EXERCISES.single_leg;
 }
 
 function planExerciseFor(
@@ -371,6 +536,7 @@ function setSeconds(scheme: RepScheme): number {
 function estimateMinutes(input: {
   preset: SessionDurationPreset;
   main: readonly ProgrammeSessionExercise[];
+  focusBlock: ProgrammeSessionFocusBlock | null;
   restSec: number;
   finisherCount: number;
 }): number {
@@ -379,6 +545,11 @@ function estimateMinutes(input: {
     seconds += TRANSITION_SEC;
     seconds += exercise.sets * setSeconds(exercise.scheme);
     seconds += (exercise.sets - 1) * input.restSec;
+  }
+  if (input.focusBlock?.kind === 'balance') {
+    seconds += TRANSITION_SEC;
+    seconds += input.focusBlock.sets * input.focusBlock.holdSec;
+    seconds += (input.focusBlock.sets - 1) * input.focusBlock.restSec;
   }
   seconds += input.finisherCount * FINISHER_MINUTES_PER_ITEM * 60;
   return seconds / 60;
@@ -399,6 +570,8 @@ export interface ProgrammeSessionResults {
   /** Movement prep completed → gateway rehearsals credit (spec §4). */
   prepCompleted: boolean;
   finisherCompleted: boolean;
+  /** Optional for compatibility; mapped voice results always populate it. */
+  focusBlockCompleted?: boolean;
   completedAtIso: string;
   /**
    * Session-level effort (C9: RPE-mapped, same value the caller stamped on

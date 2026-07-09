@@ -11,6 +11,7 @@ import type { TrainingSessionResult } from '../../training/sessionPlayer';
 import { VoiceSessionController } from '../../voice/voiceSessionController';
 import { defaultProgrammeState } from '../serialize';
 import { generateProgrammeSession, type ProgrammeSessionPlan } from '../session';
+import type { PhysicalTrainingFocus, ProgrammePhasePrescription } from '../prescription';
 import type { ProgrammeState } from '../types';
 import { PROGRAMME_PREP_ITEM_ID } from '../voiceCatalog';
 import { programmeResultsFromVoiceSession, voiceSessionInputsFromPlan } from '../voiceSession';
@@ -19,6 +20,55 @@ function onboardedState(overrides: Partial<ProgrammeState['profile']> = {}): Pro
   const state = defaultProgrammeState();
   state.profile = { ...state.profile, consentHealthData: true, hasStairs: true, ...overrides };
   state.onboardingCompletedAtIso = '2026-07-06T09:00:00.000Z';
+  return state;
+}
+
+function activeFocusState(physicalFocus: PhysicalTrainingFocus): ProgrammeState {
+  const state = onboardedState();
+  const prescription: ProgrammePhasePrescription = {
+    schemaVersion: 1,
+    policyVersion: 1,
+    policyFingerprint: 'focus-policy-test',
+    prescriptionId: `phase-1-${physicalFocus}`,
+    phase: 1,
+    physicalFocus,
+    dosePolicy: {
+      plannedFocusBlocksPerWeek: 3,
+      focusBlockStrategy:
+        physicalFocus === 'strength'
+          ? 'strength_each_session'
+          : physicalFocus === 'balance'
+            ? 'balance_each_session'
+            : 'alternate_strength_balance',
+    },
+    canonicalFocus:
+      physicalFocus === 'balanced'
+        ? {
+            kind: 'balanced',
+            domain: null,
+            planMode: 'balanced_insufficient_reference',
+            decisionReason: 'v2_focus_balanced_no_unique_signal',
+          }
+        : {
+            kind: 'domain',
+            domain: physicalFocus === 'strength' ? 'strength_power' : 'balance',
+            planMode: 'checkup_reference_focus',
+            decisionReason: 'v2_focus_single_below_reference',
+          },
+    sourceAssessmentId: 'assessment-1',
+    sourceAssessmentFingerprint: 'assessment-fingerprint-1',
+    sourceCheckUpId: 'checkup-1',
+    sourceCheckUpType: 'baseline',
+    createdAtIso: '2026-07-06T09:00:00.000Z',
+  };
+  state.journey = {
+    ...state.journey,
+    status: 'active',
+    startedAtIso: '2026-07-06T09:00:00.000Z',
+    currentPhase: 1,
+    currentPhaseStartedAtIso: '2026-07-06T09:00:00.000Z',
+    phasePrescriptions: { 1: prescription },
+  };
   return state;
 }
 
@@ -195,6 +245,49 @@ describe('plan → voice-player inputs', () => {
       );
     }
   });
+
+  it('folds a Strength block into one voice item and carries the extra-set dose', () => {
+    const plan = generateProgrammeSession({
+      state: activeFocusState('strength'),
+      template: 'A',
+      preset: 'standard',
+    });
+    expect(plan.focusBlock?.kind).toBe('strength');
+    const focusId = plan.focusBlock!.exerciseId;
+    const inputs = voiceSessionInputsFromPlan(plan);
+    expect(inputs.exerciseIds.filter((id) => id === focusId)).toHaveLength(1);
+    expect(inputs.generatedExercises.filter((dose) => dose.exerciseId === focusId)).toHaveLength(1);
+    expect(inputs.generatedExercises.find((dose) => dose.exerciseId === focusId)?.sets).toBe(3);
+  });
+
+  it('places a distinct supported Balance block between main work and the finisher', () => {
+    const plan = generateProgrammeSession({
+      state: activeFocusState('balance'),
+      template: 'A',
+      preset: 'standard',
+    });
+    expect(plan.focusBlock?.kind).toBe('balance');
+    const focus = plan.focusBlock!;
+    const inputs = voiceSessionInputsFromPlan(plan);
+    expect(inputs.exerciseIds).toEqual([
+      PROGRAMME_PREP_ITEM_ID,
+      ...plan.main.map((exercise) => exercise.exerciseId),
+      focus.exerciseId,
+      ...plan.finisher.map((item) => item.id),
+    ]);
+    expect(inputs.generatedExercises.find((dose) => dose.exerciseId === focus.exerciseId)).toMatchObject({
+      sets: 2,
+      secondsPerSet: 20,
+      restSeconds: 30,
+    });
+    expect(inputs.resolveExercise(focus.exerciseId).family).toBe('balance');
+    const safety = inputs.resolveSafetyProfile(focus.exerciseId);
+    expect(safety.setupCueIds).toContain('balance_support_within_reach');
+    expect(safety.activeCueIds).toContain('balance_stop_if_unsteady');
+    expect([...safety.setupCueIds, ...safety.activeCueIds, ...safety.recoveryCueIds]).not.toEqual(
+      expect.arrayContaining([expect.stringMatching(/^tracking_/)]),
+    );
+  });
 });
 
 describe('real voice session → programme results (reported-only, C10/N5)', () => {
@@ -255,5 +348,42 @@ describe('real voice session → programme results (reported-only, C10/N5)', () 
     expect(mapped.prepCompleted).toBe(false);
     expect(mapped.finisherCompleted).toBe(false);
     expect(mapped.outcomes).toHaveLength(plan.main.length);
+  });
+
+  it('records Balance-block completion without creating a strength-ladder outcome', () => {
+    const plan = generateProgrammeSession({
+      state: activeFocusState('balance'),
+      template: 'A',
+      preset: 'standard',
+    });
+    const result = runVoiceSession(plan);
+    const mapped = programmeResultsFromVoiceSession(
+      plan,
+      result,
+      '2026-07-06T09:40:00.000Z'
+    );
+    expect(mapped.focusBlockCompleted).toBe(true);
+    expect(mapped.outcomes.map((outcome) => outcome.pattern)).toEqual(
+      plan.main.map((exercise) => exercise.pattern)
+    );
+    expect(mapped.outcomes).toHaveLength(plan.main.length);
+  });
+
+  it('does not turn a painful Balance-block stop into a pattern regression', () => {
+    const plan = generateProgrammeSession({
+      state: activeFocusState('balance'),
+      template: 'A',
+      preset: 'standard',
+    });
+    const focusId = plan.focusBlock!.exerciseId;
+    const result = runVoiceSession(plan, { painOn: new Set([focusId]) });
+    const mapped = programmeResultsFromVoiceSession(
+      plan,
+      result,
+      '2026-07-06T09:40:00.000Z'
+    );
+    expect(mapped.focusBlockCompleted).toBe(false);
+    expect(mapped.outcomes).toHaveLength(plan.main.length);
+    expect(mapped.outcomes.every((outcome) => outcome.painFlag === false)).toBe(true);
   });
 });

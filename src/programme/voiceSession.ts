@@ -24,8 +24,15 @@
 
 import type { TrainingSetRuntimeGeneratedExercise } from '../training/setRuntime';
 import type { TrainingItemResult, TrainingSessionResult } from '../training/sessionPlayer';
-import type { ExerciseDefinition } from '../exercises';
+import {
+  BALANCE_FEET_TOGETHER_ID,
+  BALANCE_SINGLE_LEG_ID,
+  BALANCE_TANDEM_ID,
+  getExercise,
+  type ExerciseDefinition,
+} from '../exercises';
 import type { PlannedExerciseSafetyCueProfile } from '../training/safetyCueDefinitions';
+import { requireExerciseSafetyCueProfile } from '../training/safetyCues';
 import type {
   PatternSessionOutcome,
   ProgrammePattern,
@@ -42,6 +49,11 @@ import type { VoiceCueKey } from '../audio/cues';
 
 /** Seconds allowed for the side swap inside a per-side timed window. */
 const PER_SIDE_SWITCH_BUFFER_SEC = 10;
+const BALANCE_FOCUS_IDS = new Set<string>([
+  BALANCE_FEET_TOGETHER_ID,
+  BALANCE_TANDEM_ID,
+  BALANCE_SINGLE_LEG_ID,
+]);
 
 export interface ProgrammeVoiceSessionInputs {
   exerciseIds: string[];
@@ -103,10 +115,49 @@ function finisherDose(
   }
 }
 
+function balanceFocusDose(
+  plan: ProgrammeSessionPlan
+): TrainingSetRuntimeGeneratedExercise | null {
+  const block = plan.focusBlock;
+  if (block?.kind !== 'balance') return null;
+  return {
+    exerciseId: block.exerciseId,
+    sets: block.sets,
+    secondsPerSet: block.holdSec,
+    restSeconds: block.restSec,
+  };
+}
+
+function exerciseDefinitionForPlan(exerciseId: string): ExerciseDefinition {
+  return BALANCE_FOCUS_IDS.has(exerciseId)
+    ? getExercise(exerciseId)
+    : programmeVoiceExerciseDefinition(exerciseId);
+}
+
+function safetyProfileForPlan(exerciseId: string): PlannedExerciseSafetyCueProfile {
+  if (!BALANCE_FOCUS_IDS.has(exerciseId)) return programmeVoiceSafetyProfile(exerciseId);
+  const profile = requireExerciseSafetyCueProfile(exerciseId);
+  // The shared balance profile also serves camera-conducted sessions. This
+  // programme path is voice-only, so keep its support/steadiness guidance and
+  // strip camera-tracking recovery cues.
+  const withoutTracking = (cueIds: PlannedExerciseSafetyCueProfile['activeCueIds']) =>
+    cueIds.filter((cueId) => !cueId.startsWith('tracking_'));
+  return {
+    ...profile,
+    setupCueIds: withoutTracking(profile.setupCueIds),
+    activeCueIds: withoutTracking(profile.activeCueIds),
+    repeatedSetCueIds: withoutTracking(profile.repeatedSetCueIds),
+    recoveryCueIds: [],
+  };
+}
+
 export function voiceSessionInputsFromPlan(plan: ProgrammeSessionPlan): ProgrammeVoiceSessionInputs {
+  const distinctBalanceFocus = plan.focusBlock?.kind === 'balance' ? plan.focusBlock : null;
+  const focusDose = balanceFocusDose(plan);
   const exerciseIds = [
     PROGRAMME_PREP_ITEM_ID,
     ...plan.main.map((exercise) => exercise.exerciseId),
+    ...(distinctBalanceFocus ? [distinctBalanceFocus.exerciseId] : []),
     ...plan.finisher.map((item) => item.id),
   ];
   const generatedExercises: TrainingSetRuntimeGeneratedExercise[] = [
@@ -117,10 +168,16 @@ export function voiceSessionInputsFromPlan(plan: ProgrammeSessionPlan): Programm
       restSeconds: 0,
     },
     ...plan.main.map(mainDose),
+    ...(focusDose ? [focusDose] : []),
     ...plan.finisher.map(finisherDose),
   ];
   const supportVariantIds = new Set(
-    plan.main.filter((exercise) => exercise.useSupportVariant).map((exercise) => exercise.exerciseId)
+    [
+      ...plan.main
+        .filter((exercise) => exercise.useSupportVariant)
+        .map((exercise) => exercise.exerciseId),
+      ...(distinctBalanceFocus ? [distinctBalanceFocus.exerciseId] : []),
+    ]
   );
   const bonusIds = plan.main
     .filter((exercise) => plan.bonusSetEligible.includes(exercise.pattern))
@@ -128,9 +185,9 @@ export function voiceSessionInputsFromPlan(plan: ProgrammeSessionPlan): Programm
   return {
     exerciseIds,
     generatedExercises,
-    resolveExercise: programmeVoiceExerciseDefinition,
+    resolveExercise: exerciseDefinitionForPlan,
     resolveSafetyProfile: (exerciseId) => {
-      const profile = programmeVoiceSafetyProfile(exerciseId);
+      const profile = safetyProfileForPlan(exerciseId);
       return supportVariantIds.has(exerciseId) ? withSupportCues(profile) : profile;
     },
     ...(bonusIds.length > 0
@@ -187,9 +244,13 @@ export function programmeResultsFromVoiceSession(
 
   const prepItem = itemsById.get(PROGRAMME_PREP_ITEM_ID);
   const finisherItems = plan.finisher.map((item) => itemsById.get(item.id));
+  const focusItem = plan.focusBlock ? itemsById.get(plan.focusBlock.exerciseId) : undefined;
   return {
     outcomes,
     prepCompleted: prepItem?.status === 'completed',
+    ...(plan.focusBlock
+      ? { focusBlockCompleted: focusItem?.status === 'completed' }
+      : {}),
     finisherCompleted:
       plan.finisher.length > 0 &&
       finisherItems.every((item) => item?.status === 'completed'),
