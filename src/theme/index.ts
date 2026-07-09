@@ -21,6 +21,8 @@ import { Platform, StyleSheet, TextStyle, ViewStyle } from 'react-native';
 
 export const palette = {
   appBackground: '#171719',
+  appBackgroundWarm: '#24201F',
+  appBackgroundMid: '#1D1B1B',
   cardSurface: '#232326',
   elevatedSurface: '#2A292C',
   warmSurface: '#29262A',
@@ -88,6 +90,10 @@ export const colors = {
 
   // Compatibility aliases used across the current app.
   bgBase: palette.appBackground,
+  bgGradientStart: palette.appBackground,
+  bgGradientWarm: palette.appBackgroundWarm,
+  bgGradientMid: palette.appBackgroundMid,
+  bgGradientEnd: palette.appBackground,
   bgSurface: palette.cardSurface,
   bgElevated: palette.elevatedSurface,
   bgMaterial: palette.elevatedSurface,

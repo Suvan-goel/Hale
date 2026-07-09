@@ -3,6 +3,7 @@ import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 import { AccountAuthCard } from '../components/AccountAuthCard';
+import { AppBackground } from '../components/AppBackground';
 import { HeaderLogo } from '../components/HeaderLogo';
 import { useSystemInsets } from '../components/SystemInsetsProvider';
 import { colors, fonts, spacing } from '../theme';
@@ -19,6 +20,7 @@ export function AuthScreen() {
 
   return (
     <View style={styles.container}>
+      <AppBackground />
       <StatusBar style="light" />
       <ScrollView
         contentContainerStyle={[

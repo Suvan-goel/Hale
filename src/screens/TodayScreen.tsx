@@ -11,6 +11,7 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 const HERO_IMAGE = require('../../assets/images/pearl-home-hero-botanical.png');
 
+import { AppBackground } from '../components/AppBackground';
 import { HeaderLogo } from '../components/HeaderLogo';
 import { useScreenScrollClearance } from '../components/ui';
 import type { ProgrammeTodayViewModel } from '../programme';
@@ -56,6 +57,7 @@ export function TodayScreen({
 
   return (
     <View style={styles.background}>
+      <AppBackground />
       <ScrollView
         style={styles.scroller}
         contentContainerStyle={[
@@ -251,6 +253,7 @@ const styles = StyleSheet.create({
   },
   scroller: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
   content: {
     flexGrow: 1,

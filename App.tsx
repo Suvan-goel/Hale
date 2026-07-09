@@ -17,6 +17,7 @@ import { Platform, StatusBar as NativeStatusBar, StyleSheet, Text, View } from '
 
 import { setAndroidNavigationBarVisibleAsync } from './modules/expo-pose-detection';
 import { BRAND } from './src/brand';
+import { AppBackground } from './src/components/AppBackground';
 import { HeaderLogo } from './src/components/HeaderLogo';
 import { SystemInsetsProvider, useSystemInsets } from './src/components/SystemInsetsProvider';
 import { AuthProvider, useAuth } from './src/services/backend';
@@ -115,12 +116,13 @@ function StatusBarBackdrop({ children }: { children: React.ReactNode }) {
 function AuthLoadingScreen() {
   return (
     <View style={[styles.container, styles.splash]}>
+      <AppBackground />
       <StatusBar style="light" />
       <View style={styles.splashBrandRow}>
         <HeaderLogo size={28} />
         <Text style={styles.splashBrand}>{BRAND.appName}</Text>
       </View>
-      <Text style={styles.splashText}>Preparing Pearl...</Text>
+      <Text style={styles.splashText}>Preparing {BRAND.appName}...</Text>
     </View>
   );
 }

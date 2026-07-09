@@ -21,6 +21,7 @@ import {
 } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
+import { AppBackground } from './AppBackground';
 import { HeaderLogo } from './HeaderLogo';
 import { useSystemInsets } from './SystemInsetsProvider';
 import { SettingsIcon } from '../navigation/icons';
@@ -65,24 +66,27 @@ export function Screen({
       : responsive.pageBottom + systemInsets.bottom;
 
   return (
-    <ScrollView
-      style={[styles.screen, tone === 'focus' && styles.focusScreen]}
-      contentContainerStyle={[
-        styles.screenContent,
-        {
-          maxWidth: responsive.maxContentWidth,
-          paddingHorizontal: responsive.horizontalPadding,
-          paddingTop: responsive.pageTop,
-          paddingBottom,
-          gap: responsive.screenGap,
-        },
-        contentStyle,
-      ]}
-      contentInsetAdjustmentBehavior="automatic"
-      showsVerticalScrollIndicator={false}
-    >
-      {children}
-    </ScrollView>
+    <View style={[styles.screen, tone === 'focus' && styles.focusScreen]}>
+      {tone === 'default' ? <AppBackground /> : null}
+      <ScrollView
+        style={styles.screenScroll}
+        contentContainerStyle={[
+          styles.screenContent,
+          {
+            maxWidth: responsive.maxContentWidth,
+            paddingHorizontal: responsive.horizontalPadding,
+            paddingTop: responsive.pageTop,
+            paddingBottom,
+            gap: responsive.screenGap,
+          },
+          contentStyle,
+        ]}
+        contentInsetAdjustmentBehavior="automatic"
+        showsVerticalScrollIndicator={false}
+      >
+        {children}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -823,6 +827,7 @@ export function ToggleRow({
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bgBase },
   focusScreen: { backgroundColor: colors.focusCanvas },
+  screenScroll: { flex: 1, backgroundColor: 'transparent' },
   screenContent: {
     width: '100%',
     maxWidth: spacing.pageMaxWidth,

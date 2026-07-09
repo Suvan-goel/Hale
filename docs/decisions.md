@@ -5467,6 +5467,13 @@ five tabs, readiness score, or daily charts.
   preview mirror `focusCanvas`, and the shared `Screen` primitive owns the
   focus/background distinction. No dependency was added; Reanimated remains
   absent.
+- Everyday screens now render a restrained, fixed warm-charcoal gradient from
+  the launch-safe `#171719` base into `#24201F`, through `#1D1B1B`, and back to
+  `#171719`. This removes any status-bar seam while preserving the warmth. It
+  is owned by the shared `AppBackground` component and rendered with the
+  existing `react-native-svg` dependency. Cards remain neutral graphite, while
+  workout and Movement Check-Up focus screens deliberately keep their solid
+  near-black canvas. The gradient is static and presentation-only.
 
 Verification: TypeScript clean; Expo public config resolves
 `userInterfaceStyle: dark` and `backgroundColor: #171719`; 173 Jest suites / 1,482
