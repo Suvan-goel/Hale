@@ -9,6 +9,8 @@
  */
 
 export * from './types';
+export * from './journey';
+export * from './prescription';
 export {
   PELVIC_PHYSIO_SIGNPOST_COPY,
   PROGRAMME_EFFORT_CHECKIN_COPY,

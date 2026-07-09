@@ -24,6 +24,7 @@
 
 import type { ActivityLevel } from '../adherence';
 import type { EquipmentTag } from '../movements';
+import type { ProgrammeJourneyState } from './journey';
 
 // ---------------------------------------------------------------------------
 // Patterns, tracks, and schemes
@@ -298,6 +299,8 @@ export interface ProgrammeState {
   profile: ProgrammeProfile;
   ladders: Record<ProgrammePattern, PatternLadderState>;
   finisher: FinisherState;
+  /** The persisted 12-week, three-phase journey and its frozen prescriptions. */
+  journey: ProgrammeJourneyState;
   /** Set by completeOnboarding; null = the flow has not finished on this device. */
   onboardingCompletedAtIso: string | null;
   /** Completed training sessions (drives the §8 re-offer timing). */

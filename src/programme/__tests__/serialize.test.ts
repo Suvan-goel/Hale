@@ -5,6 +5,15 @@ import {
   PROGRAMME_STATE_SCHEMA_VERSION,
   serializeProgrammeState,
 } from '../serialize';
+import {
+  PROGRAMME_JOURNEY_POLICY_FINGERPRINT,
+  createEmptyProgrammeJourneyState,
+  type ProgrammeJourneyState,
+} from '../journey';
+import {
+  PROGRAMME_PHASE_PRESCRIPTION_POLICY_FINGERPRINT,
+  type ProgrammePhasePrescription,
+} from '../prescription';
 import { programmePolicyFingerprint, validateProgrammePolicyFingerprint } from '../policy';
 import { freshPatternLadderState, recordGatewayDemoWatched } from '../promotion';
 
@@ -33,6 +42,7 @@ describe('conservative defaults', () => {
       currentContacts: 20,
     });
     expect(state.policyFingerprint).toBe(programmePolicyFingerprint());
+    expect(state.journey).toEqual(createEmptyProgrammeJourneyState());
   });
 });
 
@@ -112,8 +122,131 @@ describe('defensive parsing', () => {
     expect(state?.finisher.completedSessions).toBe(0);
     expect(state?.finisher.currentContacts).toBe(50); // clamped into 20–50
     expect(state?.lastSessionEffort).toBeNull();
+    expect(state?.journey).toEqual(createEmptyProgrammeJourneyState());
   });
+
+  it('migrates v1 without losing valid programme progress', () => {
+    const v1 = JSON.parse(serializeProgrammeState(defaultProgrammeState()));
+    v1.schemaVersion = 1;
+    delete v1.journey;
+    v1.completedSessionCount = 7;
+    v1.profile.chosenDays = ['mon', 'thu'];
+    v1.ladders.squat.currentLevel = 4;
+
+    const migrated = deserializeProgrammeState(JSON.stringify(v1));
+    expect(migrated?.completedSessionCount).toBe(7);
+    expect(migrated?.profile.chosenDays).toEqual(['mon', 'thu']);
+    expect(migrated?.ladders.squat.currentLevel).toBe(4);
+    expect(migrated?.journey).toEqual(createEmptyProgrammeJourneyState());
+  });
+
+  it('round-trips a structurally valid active journey and its nested records', () => {
+    const state = defaultProgrammeState();
+    state.journey = activeJourneyFixture();
+    expect(deserializeProgrammeState(serializeProgrammeState(state))).toEqual(state);
+  });
+
+  it.each([
+    [
+      'checkpoint',
+      (raw: any) => {
+        raw.journey.checkpoints.baseline.completedAtIso = 'soon';
+      },
+    ],
+    [
+      'prescription',
+      (raw: any) => {
+        raw.journey.phasePrescriptions['1'].canonicalFocus.domain = 'mobility';
+      },
+    ],
+    [
+      'session credit',
+      (raw: any) => {
+        raw.journey.sessionCredits[0].phaseWeek = 5;
+      },
+    ],
+  ])(
+    'resets the whole journey for a malformed nested %s without discarding programme data',
+    (_label, corrupt) => {
+      const state = defaultProgrammeState();
+      state.completedSessionCount = 11;
+      state.profile.chosenDays = ['tue', 'fri'];
+      state.ladders.hinge.currentLevel = 3;
+      state.journey = activeJourneyFixture();
+      const raw = JSON.parse(serializeProgrammeState(state));
+      corrupt(raw);
+
+      const parsed = deserializeProgrammeState(JSON.stringify(raw));
+      expect(parsed?.journey).toEqual(createEmptyProgrammeJourneyState());
+      expect(parsed?.completedSessionCount).toBe(11);
+      expect(parsed?.profile.chosenDays).toEqual(['tue', 'fri']);
+      expect(parsed?.ladders.hinge.currentLevel).toBe(3);
+    }
+  );
 });
+
+function activeJourneyFixture(): ProgrammeJourneyState {
+  const completedAtIso = '2026-07-09T09:00:00.000Z';
+  const prescription: ProgrammePhasePrescription = {
+    schemaVersion: 1,
+    policyVersion: 1,
+    policyFingerprint: PROGRAMME_PHASE_PRESCRIPTION_POLICY_FINGERPRINT,
+    prescriptionId: 'prescription-phase-1',
+    phase: 1,
+    physicalFocus: 'strength',
+    dosePolicy: {
+      plannedFocusBlocksPerWeek: 3,
+      focusBlockStrategy: 'strength_each_session',
+    },
+    canonicalFocus: {
+      kind: 'domain',
+      domain: 'strength_power',
+      planMode: 'checkup_reference_focus',
+      decisionReason: 'v2_focus_single_below_reference',
+    },
+    sourceAssessmentId: 'assessment-1',
+    sourceAssessmentFingerprint: 'assessment-fingerprint-1',
+    sourceCheckUpId: 'checkup-1',
+    sourceCheckUpType: 'baseline',
+    createdAtIso: completedAtIso,
+  };
+  return {
+    schemaVersion: 1,
+    policyVersion: 1,
+    policyFingerprint: PROGRAMME_JOURNEY_POLICY_FINGERPRINT,
+    status: 'active',
+    startedAtIso: completedAtIso,
+    completedAtIso: null,
+    currentPhase: 1,
+    currentPhaseStartedAtIso: completedAtIso,
+    checkpoints: {
+      baseline: {
+        checkpointId: 'checkpoint-baseline',
+        kind: 'baseline',
+        completedAtIso,
+        sourceCheckUpId: 'checkup-1',
+        sourceCheckUpType: 'baseline',
+        sourceAssessmentId: 'assessment-1',
+        sourceAssessmentFingerprint: 'assessment-fingerprint-1',
+        physicalFocus: 'strength',
+        startedPhase: 1,
+        prescriptionId: prescription.prescriptionId,
+      },
+    },
+    phasePrescriptions: { 1: prescription },
+    sessionCredits: [
+      {
+        creditId: 'credit-1',
+        sessionId: 'session-1',
+        completedAtIso: '2026-07-10T09:00:00.000Z',
+        localDateKey: '2026-07-10',
+        phase: 1,
+        phaseWeek: 1,
+        templateId: 'A',
+      },
+    ],
+  };
+}
 
 describe('policy fingerprint (reviewed-snapshot discipline, C4)', () => {
   it('is stable across calls and validates as current', () => {
