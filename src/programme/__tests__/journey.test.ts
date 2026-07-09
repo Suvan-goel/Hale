@@ -89,6 +89,28 @@ describe('12-week programme journey', () => {
     expect(result.state).toBe(empty);
   });
 
+  it('migrates a legacy Mobility focus into a neutral Strength + Balance phase', () => {
+    const empty = createEmptyProgrammeJourneyState();
+    const source = assessment({
+      sourceCheckUpId: 'legacy-mobility-baseline',
+      sourceCheckUpType: 'baseline',
+      focus: domainFocus('mobility'),
+    });
+    const result = applyOfficialAssessmentToProgrammeJourney(empty, {
+      assessment: source,
+      completedAtIso: BASELINE_AT,
+    });
+    expect(result).toMatchObject({
+      kind: 'advanced',
+      startedPhase: 1,
+      state: {
+        phasePrescriptions: {
+          1: { physicalFocus: 'balanced', canonicalFocus: { kind: 'balanced' } },
+        },
+      },
+    });
+  });
+
   it('credits at most once per local day and caps a week at its three planned sessions', () => {
     let state = activeJourney();
     const firstInput = session('session-1', localIso(2026, 6, 1, 9), 'A');
@@ -319,7 +341,7 @@ function localIso(year: number, month1: number, day: number, hour: number): stri
 }
 
 function domainFocus(
-  focusDomain: 'strength_power' | 'balance'
+  focusDomain: 'strength_power' | 'balance' | 'mobility'
 ): MovementProfileV2SuggestedFocus {
   return {
     kind: 'domain',

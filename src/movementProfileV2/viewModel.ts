@@ -242,12 +242,20 @@ function shoulderEvidence(shoulder: ShoulderInterpretation): string {
 function focusDisplay(assessment: MovementProfileV2Assessment): MovementProfileV2ResultsViewModel['focus'] {
   const focus = assessment.focus;
   if (focus.kind === 'domain') {
+    if (focus.focusDomain === 'mobility') {
+      return {
+        kind: 'balanced',
+        title: 'Balanced',
+        body: 'This older check-up included Mobility. Pearl keeps the result in your history, while current programmes use Strength and Balance.',
+        planMode: 'balanced_insufficient_reference',
+      };
+    }
     return {
       kind: 'domain',
       domain: focus.focusDomain,
       title: domainTitle(focus.focusDomain),
       body: focus.planMode === 'prior_focus_reference_supported'
-        ? `Your results were broadly matched, so ${BRAND.appName} kept the focus from your last block.`
+        ? `Your results were broadly matched, so ${BRAND.appName} kept the focus from your last phase.`
         : strongestAssetBody(assessment, focus.focusDomain),
       planMode: focus.planMode,
     };

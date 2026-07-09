@@ -113,7 +113,7 @@ export const PROGRAMME_PHASE_PRESCRIPTION_POLICY_FINGERPRINT = deterministicFing
       strength_power: 'strength',
       balance: 'balance',
       balanced: 'balanced',
-      mobility: 'unsupported',
+      mobility: 'balanced_strength_balance_fallback',
       needs_retake: 'reject',
     },
     dosePolicyByFocus: PHASE_DOSE_POLICY_BY_FOCUS,
@@ -144,9 +144,14 @@ export function derivePhysicalTrainingFocus(
 
   if (focus.focusDomain === 'mobility') {
     return {
-      ok: false,
-      reason: 'unsupported_focus_domain',
-      unsupportedDomain: 'mobility',
+      ok: true,
+      physicalFocus: 'balanced',
+      canonicalFocus: {
+        kind: 'balanced',
+        domain: null,
+        planMode: 'balanced_insufficient_reference',
+        decisionReason: focus.reason,
+      },
     };
   }
 

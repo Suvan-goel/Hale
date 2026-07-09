@@ -132,6 +132,20 @@ describe('Movement Profile V2 view model', () => {
         ])
       ).toBe("This was the clearest area to build from today's Check-Up.");
     });
+
+    it('keeps a legacy Mobility focus out of the active Strength + Balance framing', () => {
+      const assessment = {
+        focus: {
+          kind: 'domain',
+          focusDomain: 'mobility',
+          planMode: 'checkup_reference_focus',
+        },
+        focusProvenance: { domainEvidence: [] },
+      } as unknown as Parameters<typeof buildMovementProfileV2ResultsViewModel>[0]['assessment'];
+      const focus = buildMovementProfileV2ResultsViewModel({ snapshot, assessment }).focus;
+      expect(focus).toMatchObject({ kind: 'balanced', title: 'Balanced' });
+      expect(focus.body).toContain('current programmes use Strength and Balance');
+    });
   });
 });
 

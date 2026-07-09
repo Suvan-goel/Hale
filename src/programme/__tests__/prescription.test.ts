@@ -58,7 +58,7 @@ describe('programme phase prescription', () => {
     });
   });
 
-  it('fails closed for needs-retake and unsupported mobility decisions', () => {
+  it('fails closed for needs-retake and maps legacy Mobility to a neutral physical plan', () => {
     const needsRetake = assessment({
       kind: 'needs_retake',
       planMode: 'needs_retake',
@@ -75,10 +75,13 @@ describe('programme phase prescription', () => {
       ok: false,
       reason: 'needs_retake',
     });
-    expect(createProgrammePhasePrescription(mobility, 1)).toEqual({
-      ok: false,
-      reason: 'unsupported_focus_domain',
-      unsupportedDomain: 'mobility',
+    expect(createProgrammePhasePrescription(mobility, 1)).toMatchObject({
+      ok: true,
+      prescription: {
+        physicalFocus: 'balanced',
+        canonicalFocus: { kind: 'balanced', domain: null },
+        dosePolicy: { focusBlockStrategy: 'alternate_strength_balance' },
+      },
     });
   });
 
