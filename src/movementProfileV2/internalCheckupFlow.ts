@@ -8,6 +8,11 @@ import {
 } from '../checkup/movementProfileV2';
 import { MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID, createCheckUpProtocolPolicy } from '../checkup/protocolPolicy';
 import {
+  MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID,
+  MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1,
+  PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT,
+} from '../checkup/measurementProtocolRegistry';
+import {
   type BodySide,
   createBalanceEyesOpenV2Setup,
   createActiveShoulderReachV2Setup,
@@ -263,9 +268,24 @@ export function movementProfileV2RawCheckUpFromFlow(
   return {
     startedAt: state.startedAt,
     protocolPolicy: createCheckUpProtocolPolicy(MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID, state.startedAt),
+    ...(isPearlMonthlyStrengthBalanceSequence(state.batterySequence)
+      ? {
+          measurementProtocol: {
+            protocolId: MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID,
+            protocolVersion: MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1,
+            protocolVariant: PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT,
+          },
+        }
+      : {}),
     bodyUnit: state.bodyUnit,
     items: ordered,
   };
+}
+
+function isPearlMonthlyStrengthBalanceSequence(
+  sequence: readonly MovementProfileV2BatteryMovement[] | null | undefined
+): boolean {
+  return sequence?.length === 2 && sequence[0] === 'balance' && sequence[1] === 'chair';
 }
 
 function movementMatchesItem(movement: MovementProfileV2BatteryMovement, movementId: string): boolean {

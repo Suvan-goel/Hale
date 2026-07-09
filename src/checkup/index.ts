@@ -34,11 +34,14 @@ export type {
 export {
   CLARITY_INSTRUMENTS_SCHEMA_VERSION,
   DUAL_TASK_RESULT_SCHEMA_VERSION,
+  PAIRED_CLARITY_RESULT_SCHEMA_VERSION,
   FLUENCY_CATEGORY_IDS,
   FLUENCY_RESULT_SCHEMA_VERSION,
   computeDualTaskCostPercent,
   dualTaskReadingValue,
+  pairedClarityReadingValue,
   validClarityInstruments,
+  validPairedClarityResult,
 } from './clarityInstruments';
 export type {
   ClarityInstrumentsRecord,
@@ -49,6 +52,16 @@ export type {
   FluencyInvalidReason,
   FluencyResult,
   FluencyStatus,
+  PairedClarityCognitiveRecord,
+  PairedClarityIneligibleReason,
+  PairedClarityInvalidReason,
+  PairedClarityProtocolRecord,
+  PairedClarityResponseProtocolRecord,
+  PairedClarityResultRecord,
+  PairedClarityStatus,
+  PairedClarityTrialRecord,
+  PairedClarityUnavailableReason,
+  PairedClarityValidityPolicyRecord,
 } from './clarityInstruments';
 export {
   LEGACY_MOVEMENT_AGE_PROTOCOL_POLICY_ID,
@@ -99,6 +112,7 @@ export {
   MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID,
   MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1,
   MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V2,
+  PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT,
   batteryProtocolRefForPolicy,
   descriptorForMicroCheck,
   descriptorForMovementMeasurement,

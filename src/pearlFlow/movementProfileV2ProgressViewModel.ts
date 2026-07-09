@@ -315,6 +315,7 @@ export function buildMovementProfileV2ProgressChange(
   if (profiles.length < 2) return null;
   const baselineProfile = profiles[0];
   const latestProfile = profiles[profiles.length - 1];
+  if (!profilesShareMeasurementProtocol(baselineProfile, latestProfile)) return null;
   const domains: MovementProfileV2ProgressChangeDomain[] = [];
   for (const domain of CHANGE_DOMAIN_ORDER) {
     const baseline = domainReading(domain, baselineProfile.snapshot);
@@ -327,6 +328,23 @@ export function buildMovementProfileV2ProgressChange(
     headline: `Since your first check-up · ${formatDate(baselineProfile.snapshot.sourceCheckUpId)}`,
     domains,
   };
+}
+
+function profilesShareMeasurementProtocol(
+  baseline: AcceptedProfile,
+  latest: AcceptedProfile
+): boolean {
+  const a = baseline.record.checkUp.measurementProtocol;
+  const b = latest.record.checkUp.measurementProtocol;
+  // Preserve comparison among imported legacy records, but never bridge a
+  // known frozen protocol to an unknown or different one.
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  return (
+    a.protocolId === b.protocolId &&
+    a.protocolVersion === b.protocolVersion &&
+    (a.protocolVariant ?? '') === (b.protocolVariant ?? '')
+  );
 }
 
 function domainReading(

@@ -24,6 +24,7 @@
 
 export const CLARITY_INSTRUMENTS_SCHEMA_VERSION = 1 as const;
 export const DUAL_TASK_RESULT_SCHEMA_VERSION = 1 as const;
+export const PAIRED_CLARITY_RESULT_SCHEMA_VERSION = 1 as const;
 
 export type DualTaskStatus = 'measured' | 'invalid' | 'skipped' | 'unavailable';
 
@@ -52,6 +53,121 @@ export interface DualTaskResult {
   /** VAD aggregate — speech PRESENCE evidence only, never content. */
   speechActiveMs?: number;
 }
+
+/**
+ * Versioned storage shape for the matched solo/dual balance pair.
+ *
+ * This is intentionally distinct from legacy `DualTaskResult`: the legacy
+ * record compared an official best hold with one appendix attempt, while this
+ * record describes a purpose-built same-side, same-stance pair. The two must
+ * never be interpreted as interchangeable measurements.
+ */
+export type PairedClarityStatus = 'measured' | 'ineligible' | 'invalid' | 'unavailable';
+
+export type PairedClarityIneligibleReason =
+  | 'solo_below_floor'
+  | 'solo_at_or_near_ceiling';
+
+export type PairedClarityInvalidReason =
+  | 'solo_setup_timed_out'
+  | 'dual_setup_timed_out'
+  | 'solo_tracking_interrupted'
+  | 'dual_tracking_interrupted'
+  | 'app_backgrounded'
+  | 'cognitive_aggregate_invalid'
+  | 'cognitive_participation_below_floor'
+  | 'cognitive_accuracy_below_floor'
+  | 'cognitive_unavailable'
+  | 'cognitive_interrupted';
+
+export type PairedClarityUnavailableReason =
+  | 'speech_presence_unavailable'
+  | 'camera_microphone_coexistence_unavailable'
+  | 'response_task_unavailable';
+
+export interface PairedClarityValidityPolicyRecord {
+  readonly minSoloHoldMs: number;
+  readonly ceilingExclusionMarginMs: number;
+  readonly minCognitiveAttempts: number;
+  readonly minCognitiveAccuracy: number;
+}
+
+export interface PairedClarityProtocolRecord {
+  readonly protocolId: 'pearl_paired_clarity_balance_v1';
+  readonly protocolVersion: 1;
+  readonly movementId: 'one-leg-balance-45s-v2';
+  readonly stanceId: 'single_leg_eyes_open_v1';
+  readonly standingSide: 'left' | 'right';
+  readonly order: 'solo_then_dual';
+  readonly trialCapMs: number;
+  readonly standardizedRestMs: number;
+  readonly liftConfirmMs: number;
+  readonly touchdownDebounceFrames: number;
+  readonly trackingLossConfirmFrames: number;
+  readonly validityPolicy: PairedClarityValidityPolicyRecord;
+}
+
+export interface PairedClarityResponseProtocolRecord {
+  readonly protocolId: 'pearl_visual_go_no_go_v1';
+  readonly protocolVersion: 1;
+  readonly sequenceAlgorithmId: 'fixed_balanced_forms_v1';
+  readonly sequenceSeedId: 'pearl_vgng_form_a_v1' | 'pearl_vgng_form_b_v1';
+  readonly responseSignal: 'speech_presence_boolean';
+  readonly responseRule: 'respond_on_target_only';
+  readonly leadInMs: number;
+  readonly promptVisibleMs: number;
+  readonly responseWindowMs: number;
+  readonly promptCadenceMs: number;
+  readonly promptCount: number;
+  readonly minimumPresentedCount: number;
+}
+
+export interface PairedClarityTrialRecord {
+  readonly kind: 'solo' | 'dual';
+  readonly durationMs: number;
+  readonly durationSec: number;
+  readonly termination: 'touchdown' | 'ceiling';
+}
+
+/** Counts only; correctness is never inferred from or stored as content. */
+export interface PairedClarityCognitiveRecord {
+  readonly attempts: number;
+  readonly correct: number;
+  readonly errors: number;
+}
+
+interface PairedClarityResultBase {
+  readonly schemaVersion: typeof PAIRED_CLARITY_RESULT_SCHEMA_VERSION;
+  readonly protocol: PairedClarityProtocolRecord;
+  readonly responseProtocol: PairedClarityResponseProtocolRecord;
+}
+
+export type PairedClarityResultRecord =
+  | (PairedClarityResultBase & {
+      readonly status: 'measured';
+      readonly solo: PairedClarityTrialRecord & { readonly kind: 'solo' };
+      readonly dual: PairedClarityTrialRecord & { readonly kind: 'dual' };
+      readonly cognitive: PairedClarityCognitiveRecord;
+      /** (solo - dual) / solo * 100; negative values are retained. */
+      readonly motorCostPercent: number;
+      readonly ceilingLimited: boolean;
+    })
+  | (PairedClarityResultBase & {
+      readonly status: 'ineligible';
+      readonly reason: PairedClarityIneligibleReason;
+      readonly solo: PairedClarityTrialRecord & { readonly kind: 'solo' };
+    })
+  | (PairedClarityResultBase & {
+      readonly status: 'invalid';
+      readonly reason: PairedClarityInvalidReason;
+      readonly solo?: PairedClarityTrialRecord & { readonly kind: 'solo' };
+      readonly dual?: PairedClarityTrialRecord & { readonly kind: 'dual' };
+      readonly cognitive?: PairedClarityCognitiveRecord;
+    })
+  | (PairedClarityResultBase & {
+      readonly status: 'unavailable';
+      readonly reason: PairedClarityUnavailableReason;
+    });
 
 export const FLUENCY_RESULT_SCHEMA_VERSION = 1 as const;
 
@@ -83,6 +199,9 @@ export interface FluencyResult {
 
 export interface ClarityInstrumentsRecord {
   schemaVersion: typeof CLARITY_INSTRUMENTS_SCHEMA_VERSION;
+  /** Current matched-pair instrument. Kept distinct from legacy `dualTask`. */
+  pairedTask?: PairedClarityResultRecord;
+  /** Legacy appendix retained for already-stored check-ups. */
   dualTask?: DualTaskResult;
   fluency?: FluencyResult;
 }
@@ -119,6 +238,23 @@ export function computeDualTaskCostPercent(input: {
 export function dualTaskReadingValue(result: DualTaskResult | undefined): number | null {
   if (!result || result.status !== 'measured' || !Number.isFinite(result.costPercent)) return null;
   return 100 - (result.costPercent as number);
+}
+
+/**
+ * Current matched-pair trend value. Higher means steadier under the response
+ * task; invalid/ineligible/unavailable pairs never enter a user-facing trend.
+ */
+export function pairedClarityReadingValue(
+  result: PairedClarityResultRecord | undefined
+): number | null {
+  if (
+    !result ||
+    result.status !== 'measured' ||
+    !Number.isFinite(result.motorCostPercent)
+  ) {
+    return null;
+  }
+  return 100 - result.motorCostPercent;
 }
 
 function finitePositive(value: unknown): value is number {
@@ -172,6 +308,327 @@ function validDualTaskResult(value: unknown): DualTaskResult | undefined {
   };
 }
 
+const PAIRED_CLARITY_STATUSES: readonly PairedClarityStatus[] = [
+  'measured',
+  'ineligible',
+  'invalid',
+  'unavailable',
+];
+const PAIRED_CLARITY_INELIGIBLE_REASONS: readonly PairedClarityIneligibleReason[] = [
+  'solo_below_floor',
+  'solo_at_or_near_ceiling',
+];
+const PAIRED_CLARITY_INVALID_REASONS: readonly PairedClarityInvalidReason[] = [
+  'solo_setup_timed_out',
+  'dual_setup_timed_out',
+  'solo_tracking_interrupted',
+  'dual_tracking_interrupted',
+  'app_backgrounded',
+  'cognitive_aggregate_invalid',
+  'cognitive_participation_below_floor',
+  'cognitive_accuracy_below_floor',
+  'cognitive_unavailable',
+  'cognitive_interrupted',
+];
+const PAIRED_CLARITY_UNAVAILABLE_REASONS: readonly PairedClarityUnavailableReason[] = [
+  'speech_presence_unavailable',
+  'camera_microphone_coexistence_unavailable',
+  'response_task_unavailable',
+];
+const PAIRED_CLARITY_RESPONSE_SEEDS: readonly PairedClarityResponseProtocolRecord['sequenceSeedId'][] = [
+  'pearl_vgng_form_a_v1',
+  'pearl_vgng_form_b_v1',
+];
+
+function objectRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : undefined;
+}
+
+function finiteStrictPositive(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0;
+}
+
+function nonNegativeInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0;
+}
+
+function positiveInteger(value: unknown): value is number {
+  return nonNegativeInteger(value) && value > 0;
+}
+
+function validPairedClarityProtocol(value: unknown): PairedClarityProtocolRecord | undefined {
+  const raw = objectRecord(value);
+  const policy = objectRecord(raw?.validityPolicy);
+  if (!raw || !policy) return undefined;
+  if (
+    raw.protocolId !== 'pearl_paired_clarity_balance_v1' ||
+    raw.protocolVersion !== 1 ||
+    raw.movementId !== 'one-leg-balance-45s-v2' ||
+    raw.stanceId !== 'single_leg_eyes_open_v1' ||
+    (raw.standingSide !== 'left' && raw.standingSide !== 'right') ||
+    raw.order !== 'solo_then_dual' ||
+    !finiteStrictPositive(raw.trialCapMs) ||
+    !finitePositive(raw.standardizedRestMs) ||
+    !finiteStrictPositive(raw.liftConfirmMs) ||
+    !positiveInteger(raw.touchdownDebounceFrames) ||
+    !positiveInteger(raw.trackingLossConfirmFrames) ||
+    !finiteStrictPositive(policy.minSoloHoldMs) ||
+    !finitePositive(policy.ceilingExclusionMarginMs) ||
+    !positiveInteger(policy.minCognitiveAttempts) ||
+    typeof policy.minCognitiveAccuracy !== 'number' ||
+    !Number.isFinite(policy.minCognitiveAccuracy) ||
+    policy.minCognitiveAccuracy < 0 ||
+    policy.minCognitiveAccuracy > 1 ||
+    policy.minSoloHoldMs >= raw.trialCapMs ||
+    policy.ceilingExclusionMarginMs >= raw.trialCapMs - policy.minSoloHoldMs
+  ) {
+    return undefined;
+  }
+  return {
+    protocolId: 'pearl_paired_clarity_balance_v1',
+    protocolVersion: 1,
+    movementId: 'one-leg-balance-45s-v2',
+    stanceId: 'single_leg_eyes_open_v1',
+    standingSide: raw.standingSide,
+    order: 'solo_then_dual',
+    trialCapMs: raw.trialCapMs,
+    standardizedRestMs: raw.standardizedRestMs,
+    liftConfirmMs: raw.liftConfirmMs,
+    touchdownDebounceFrames: raw.touchdownDebounceFrames,
+    trackingLossConfirmFrames: raw.trackingLossConfirmFrames,
+    validityPolicy: {
+      minSoloHoldMs: policy.minSoloHoldMs,
+      ceilingExclusionMarginMs: policy.ceilingExclusionMarginMs,
+      minCognitiveAttempts: policy.minCognitiveAttempts,
+      minCognitiveAccuracy: policy.minCognitiveAccuracy,
+    },
+  };
+}
+
+function validPairedClarityResponseProtocol(
+  value: unknown
+): PairedClarityResponseProtocolRecord | undefined {
+  const raw = objectRecord(value);
+  if (!raw) return undefined;
+  if (
+    raw.protocolId !== 'pearl_visual_go_no_go_v1' ||
+    raw.protocolVersion !== 1 ||
+    raw.sequenceAlgorithmId !== 'fixed_balanced_forms_v1' ||
+    !PAIRED_CLARITY_RESPONSE_SEEDS.includes(
+      raw.sequenceSeedId as PairedClarityResponseProtocolRecord['sequenceSeedId']
+    ) ||
+    raw.responseSignal !== 'speech_presence_boolean' ||
+    raw.responseRule !== 'respond_on_target_only' ||
+    !finitePositive(raw.leadInMs) ||
+    !finiteStrictPositive(raw.promptVisibleMs) ||
+    !finiteStrictPositive(raw.responseWindowMs) ||
+    !finiteStrictPositive(raw.promptCadenceMs) ||
+    !positiveInteger(raw.promptCount) ||
+    !positiveInteger(raw.minimumPresentedCount) ||
+    raw.promptVisibleMs > raw.responseWindowMs ||
+    raw.responseWindowMs > raw.promptCadenceMs ||
+    raw.minimumPresentedCount > raw.promptCount
+  ) {
+    return undefined;
+  }
+  return {
+    protocolId: 'pearl_visual_go_no_go_v1',
+    protocolVersion: 1,
+    sequenceAlgorithmId: 'fixed_balanced_forms_v1',
+    sequenceSeedId:
+      raw.sequenceSeedId as PairedClarityResponseProtocolRecord['sequenceSeedId'],
+    responseSignal: 'speech_presence_boolean',
+    responseRule: 'respond_on_target_only',
+    leadInMs: raw.leadInMs,
+    promptVisibleMs: raw.promptVisibleMs,
+    responseWindowMs: raw.responseWindowMs,
+    promptCadenceMs: raw.promptCadenceMs,
+    promptCount: raw.promptCount,
+    minimumPresentedCount: raw.minimumPresentedCount,
+  };
+}
+
+function validPairedClarityTrial(
+  value: unknown,
+  kind: 'solo' | 'dual',
+  trialCapMs: number
+): PairedClarityTrialRecord | undefined {
+  const raw = objectRecord(value);
+  if (
+    !raw ||
+    raw.kind !== kind ||
+    !finitePositive(raw.durationMs) ||
+    !finitePositive(raw.durationSec) ||
+    (raw.termination !== 'touchdown' && raw.termination !== 'ceiling') ||
+    raw.durationMs > trialCapMs ||
+    Math.abs(raw.durationSec - raw.durationMs / 1000) > 1e-9 ||
+    (raw.termination === 'ceiling' && raw.durationMs !== trialCapMs) ||
+    (raw.termination === 'touchdown' && raw.durationMs >= trialCapMs)
+  ) {
+    return undefined;
+  }
+  return {
+    kind,
+    durationMs: raw.durationMs,
+    durationSec: raw.durationMs / 1000,
+    termination: raw.termination,
+  };
+}
+
+function validPairedClarityCognitive(
+  value: unknown
+): PairedClarityCognitiveRecord | undefined {
+  const raw = objectRecord(value);
+  if (
+    !raw ||
+    !nonNegativeInteger(raw.attempts) ||
+    !nonNegativeInteger(raw.correct) ||
+    !nonNegativeInteger(raw.errors) ||
+    raw.correct + raw.errors !== raw.attempts
+  ) {
+    return undefined;
+  }
+  return { attempts: raw.attempts, correct: raw.correct, errors: raw.errors };
+}
+
+function completedPairedClarityPromptCount(
+  durationMs: number,
+  protocol: PairedClarityResponseProtocolRecord
+): number {
+  const firstWindowEndsAtMs = protocol.leadInMs + protocol.responseWindowMs;
+  if (durationMs < firstWindowEndsAtMs) return 0;
+  return Math.min(
+    protocol.promptCount,
+    1 + Math.floor((durationMs - firstWindowEndsAtMs) / protocol.promptCadenceMs)
+  );
+}
+
+function costValuesMatch(stored: number, computed: number): boolean {
+  const tolerance = Math.max(1e-7, Math.abs(computed) * 1e-9);
+  return Math.abs(stored - computed) <= tolerance;
+}
+
+/** Defensive parser for the current matched-pair record only. */
+export function validPairedClarityResult(
+  value: unknown
+): PairedClarityResultRecord | undefined {
+  const raw = objectRecord(value);
+  if (!raw || raw.schemaVersion !== PAIRED_CLARITY_RESULT_SCHEMA_VERSION) return undefined;
+  if (!PAIRED_CLARITY_STATUSES.includes(raw.status as PairedClarityStatus)) return undefined;
+  const protocol = validPairedClarityProtocol(raw.protocol);
+  const responseProtocol = validPairedClarityResponseProtocol(raw.responseProtocol);
+  if (!protocol || !responseProtocol) return undefined;
+
+  const base = {
+    schemaVersion: PAIRED_CLARITY_RESULT_SCHEMA_VERSION,
+    protocol,
+    responseProtocol,
+  } as const;
+
+  if (raw.status === 'unavailable') {
+    if (
+      !PAIRED_CLARITY_UNAVAILABLE_REASONS.includes(
+        raw.reason as PairedClarityUnavailableReason
+      )
+    ) {
+      return undefined;
+    }
+    return { ...base, status: 'unavailable', reason: raw.reason as PairedClarityUnavailableReason };
+  }
+
+  const solo = validPairedClarityTrial(raw.solo, 'solo', protocol.trialCapMs);
+  if (raw.status === 'ineligible') {
+    if (
+      !solo ||
+      !PAIRED_CLARITY_INELIGIBLE_REASONS.includes(raw.reason as PairedClarityIneligibleReason)
+    ) {
+      return undefined;
+    }
+    const reason = raw.reason as PairedClarityIneligibleReason;
+    const policy = protocol.validityPolicy;
+    if (
+      (reason === 'solo_below_floor' && solo.durationMs >= policy.minSoloHoldMs) ||
+      (reason === 'solo_at_or_near_ceiling' &&
+        solo.durationMs < protocol.trialCapMs - policy.ceilingExclusionMarginMs)
+    ) {
+      return undefined;
+    }
+    return { ...base, status: 'ineligible', reason, solo: { ...solo, kind: 'solo' } };
+  }
+
+  const dual = validPairedClarityTrial(raw.dual, 'dual', protocol.trialCapMs);
+  const cognitive = validPairedClarityCognitive(raw.cognitive);
+  if (raw.status === 'invalid') {
+    if (!PAIRED_CLARITY_INVALID_REASONS.includes(raw.reason as PairedClarityInvalidReason)) {
+      return undefined;
+    }
+    const hasSolo = Object.prototype.hasOwnProperty.call(raw, 'solo');
+    const hasDual = Object.prototype.hasOwnProperty.call(raw, 'dual');
+    const hasCognitive = Object.prototype.hasOwnProperty.call(raw, 'cognitive');
+    if ((hasSolo && !solo) || (hasDual && !dual) || (hasCognitive && !cognitive)) return undefined;
+    if ((dual && !solo) || (cognitive && !dual)) return undefined;
+    if (
+      cognitive &&
+      dual &&
+      cognitive.attempts !== completedPairedClarityPromptCount(dual.durationMs, responseProtocol)
+    ) {
+      return undefined;
+    }
+    const reason = raw.reason as PairedClarityInvalidReason;
+    if (
+      (reason === 'cognitive_participation_below_floor' &&
+        (!cognitive || cognitive.attempts >= protocol.validityPolicy.minCognitiveAttempts)) ||
+      (reason === 'cognitive_accuracy_below_floor' &&
+        (!cognitive ||
+          cognitive.attempts < protocol.validityPolicy.minCognitiveAttempts ||
+          cognitive.correct / cognitive.attempts >= protocol.validityPolicy.minCognitiveAccuracy))
+    ) {
+      return undefined;
+    }
+    return {
+      ...base,
+      status: 'invalid',
+      reason,
+      ...(solo ? { solo: { ...solo, kind: 'solo' as const } } : {}),
+      ...(dual ? { dual: { ...dual, kind: 'dual' as const } } : {}),
+      ...(cognitive ? { cognitive } : {}),
+    };
+  }
+
+  if (!solo || !dual || !cognitive) return undefined;
+  if (typeof raw.motorCostPercent !== 'number' || !Number.isFinite(raw.motorCostPercent)) {
+    return undefined;
+  }
+  if (typeof raw.ceilingLimited !== 'boolean') return undefined;
+  const policy = protocol.validityPolicy;
+  const expectedCost = computeDualTaskCostPercent({
+    singleTaskSeconds: solo.durationSec,
+    dualTaskSeconds: dual.durationSec,
+  });
+  const cognitiveAccuracy = cognitive.attempts > 0 ? cognitive.correct / cognitive.attempts : 0;
+  if (
+    solo.durationMs < policy.minSoloHoldMs ||
+    solo.durationMs >= protocol.trialCapMs - policy.ceilingExclusionMarginMs ||
+    cognitive.attempts < policy.minCognitiveAttempts ||
+    cognitive.attempts < responseProtocol.minimumPresentedCount ||
+    cognitive.attempts !== completedPairedClarityPromptCount(dual.durationMs, responseProtocol) ||
+    cognitiveAccuracy < policy.minCognitiveAccuracy ||
+    !costValuesMatch(raw.motorCostPercent, expectedCost) ||
+    raw.ceilingLimited !== (dual.termination === 'ceiling')
+  ) {
+    return undefined;
+  }
+  return {
+    ...base,
+    status: 'measured',
+    solo: { ...solo, kind: 'solo' },
+    dual: { ...dual, kind: 'dual' },
+    cognitive,
+    motorCostPercent: raw.motorCostPercent,
+    ceilingLimited: raw.ceilingLimited,
+  };
+}
+
 const FLUENCY_STATUSES: readonly FluencyStatus[] = ['measured', 'invalid', 'skipped', 'unavailable'];
 const FLUENCY_INVALID_REASONS: readonly FluencyInvalidReason[] = [
   'no_speech_detected',
@@ -220,11 +677,13 @@ export function validClarityInstruments(value: unknown): ClarityInstrumentsRecor
   if (!value || typeof value !== 'object') return undefined;
   const raw = value as Partial<ClarityInstrumentsRecord>;
   if (raw.schemaVersion !== CLARITY_INSTRUMENTS_SCHEMA_VERSION) return undefined;
+  const pairedTask = validPairedClarityResult(raw.pairedTask);
   const dualTask = validDualTaskResult(raw.dualTask);
   const fluency = validFluencyResult(raw.fluency);
-  if (!dualTask && !fluency) return undefined;
+  if (!pairedTask && !dualTask && !fluency) return undefined;
   return {
     schemaVersion: CLARITY_INSTRUMENTS_SCHEMA_VERSION,
+    ...(pairedTask ? { pairedTask } : {}),
     ...(dualTask ? { dualTask } : {}),
     ...(fluency ? { fluency } : {}),
   };

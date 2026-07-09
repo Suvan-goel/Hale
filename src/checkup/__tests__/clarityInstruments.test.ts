@@ -1,9 +1,14 @@
 import {
   CLARITY_INSTRUMENTS_SCHEMA_VERSION,
+  PAIRED_CLARITY_RESULT_SCHEMA_VERSION,
   computeDualTaskCostPercent,
   dualTaskReadingValue,
   validClarityInstruments,
+  validPairedClarityResult,
   type DualTaskResult,
+  type PairedClarityProtocolRecord,
+  type PairedClarityResponseProtocolRecord,
+  type PairedClarityResultRecord,
 } from '../clarityInstruments';
 
 const measured = (overrides: Partial<DualTaskResult> = {}): DualTaskResult => ({
@@ -16,6 +21,57 @@ const measured = (overrides: Partial<DualTaskResult> = {}): DualTaskResult => ({
   speechActiveMs: 12000,
   ...overrides,
 });
+
+const pairedProtocol: PairedClarityProtocolRecord = {
+  protocolId: 'pearl_paired_clarity_balance_v1',
+  protocolVersion: 1,
+  movementId: 'one-leg-balance-45s-v2',
+  stanceId: 'single_leg_eyes_open_v1',
+  standingSide: 'left',
+  order: 'solo_then_dual',
+  trialCapMs: 45000,
+  standardizedRestMs: 30000,
+  liftConfirmMs: 150,
+  touchdownDebounceFrames: 4,
+  trackingLossConfirmFrames: 4,
+  validityPolicy: {
+    minSoloHoldMs: 5000,
+    ceilingExclusionMarginMs: 0,
+    minCognitiveAttempts: 4,
+    minCognitiveAccuracy: 0.5,
+  },
+};
+
+const pairedResponseProtocol: PairedClarityResponseProtocolRecord = {
+  protocolId: 'pearl_visual_go_no_go_v1',
+  protocolVersion: 1,
+  sequenceAlgorithmId: 'fixed_balanced_forms_v1',
+  sequenceSeedId: 'pearl_vgng_form_a_v1',
+  responseSignal: 'speech_presence_boolean',
+  responseRule: 'respond_on_target_only',
+  leadInMs: 750,
+  promptVisibleMs: 600,
+  responseWindowMs: 1500,
+  promptCadenceMs: 2400,
+  promptCount: 16,
+  minimumPresentedCount: 4,
+};
+
+type MeasuredPairedClarity = Extract<PairedClarityResultRecord, { status: 'measured' }>;
+
+function pairedMeasured(): MeasuredPairedClarity {
+  return {
+    schemaVersion: PAIRED_CLARITY_RESULT_SCHEMA_VERSION,
+    status: 'measured',
+    protocol: pairedProtocol,
+    responseProtocol: pairedResponseProtocol,
+    solo: { kind: 'solo', durationMs: 10000, durationSec: 10, termination: 'touchdown' },
+    dual: { kind: 'dual', durationMs: 12000, durationSec: 12, termination: 'touchdown' },
+    cognitive: { attempts: 5, correct: 4, errors: 1 },
+    motorCostPercent: -20,
+    ceilingLimited: false,
+  };
+}
 
 describe('dual-task cost (CLARITY_INSTRUMENTS_TDD §4.2)', () => {
   it('computes within-session % degradation', () => {
@@ -94,5 +150,148 @@ describe('clarityInstruments defensive parse (boundary rules mirror selfReport)'
       dualTask: { ...measured(), transcript: 'ninety seven, ninety four' } as never,
     });
     expect(JSON.stringify(parsed)).not.toContain('ninety');
+  });
+});
+
+describe('matched-pair Clarity persistence', () => {
+  it('round-trips the complete frozen protocol and preserves negative motor cost', () => {
+    const pairedTask = pairedMeasured();
+    const record = {
+      schemaVersion: CLARITY_INSTRUMENTS_SCHEMA_VERSION,
+      pairedTask,
+    };
+
+    expect(validClarityInstruments(record)).toEqual(record);
+    expect(validPairedClarityResult(pairedTask)).toEqual(pairedTask);
+    expect(validPairedClarityResult(pairedTask)?.status).toBe('measured');
+    if (pairedTask.status !== 'measured') throw new Error('fixture must be measured');
+    expect(pairedTask.motorCostPercent).toBe(-20);
+  });
+
+  it('keeps the matched pair distinct from a stored legacy dual-task result', () => {
+    const record = {
+      schemaVersion: 1,
+      pairedTask: pairedMeasured(),
+      dualTask: measured(),
+    };
+    const parsed = validClarityInstruments(record);
+    expect(parsed?.pairedTask).toEqual(record.pairedTask);
+    expect(parsed?.dualTask).toEqual(record.dualTask);
+
+    // A malformed new record does not erase a valid legacy reading.
+    const legacySurvives = validClarityInstruments({
+      ...record,
+      pairedTask: { ...pairedMeasured(), schemaVersion: 99 },
+    });
+    expect(legacySurvives?.pairedTask).toBeUndefined();
+    expect(legacySurvives?.dualTask).toEqual(record.dualTask);
+  });
+
+  it('persists ineligible, invalid, and unavailable states without fabricating a measurement', () => {
+    const ineligible: PairedClarityResultRecord = {
+      schemaVersion: 1,
+      status: 'ineligible',
+      protocol: pairedProtocol,
+      responseProtocol: pairedResponseProtocol,
+      reason: 'solo_below_floor',
+      solo: { kind: 'solo', durationMs: 4000, durationSec: 4, termination: 'touchdown' },
+    };
+    expect(validPairedClarityResult(ineligible)).toEqual(ineligible);
+
+    const invalid: PairedClarityResultRecord = {
+      schemaVersion: 1,
+      status: 'invalid',
+      protocol: pairedProtocol,
+      responseProtocol: pairedResponseProtocol,
+      reason: 'cognitive_accuracy_below_floor',
+      solo: { kind: 'solo', durationMs: 10000, durationSec: 10, termination: 'touchdown' },
+      dual: { kind: 'dual', durationMs: 12000, durationSec: 12, termination: 'touchdown' },
+      cognitive: { attempts: 5, correct: 1, errors: 4 },
+    };
+    expect(validPairedClarityResult(invalid)).toEqual(invalid);
+
+    const participationBelowFloor: PairedClarityResultRecord = {
+      schemaVersion: 1,
+      status: 'invalid',
+      protocol: pairedProtocol,
+      responseProtocol: pairedResponseProtocol,
+      reason: 'cognitive_participation_below_floor',
+      solo: { kind: 'solo', durationMs: 10000, durationSec: 10, termination: 'touchdown' },
+      dual: { kind: 'dual', durationMs: 5000, durationSec: 5, termination: 'touchdown' },
+      cognitive: { attempts: 2, correct: 2, errors: 0 },
+    };
+    expect(validPairedClarityResult(participationBelowFloor)).toEqual(
+      participationBelowFloor
+    );
+
+    const unavailable: PairedClarityResultRecord = {
+      schemaVersion: 1,
+      status: 'unavailable',
+      protocol: pairedProtocol,
+      responseProtocol: pairedResponseProtocol,
+      reason: 'speech_presence_unavailable',
+    };
+    expect(validPairedClarityResult(unavailable)).toEqual(unavailable);
+  });
+
+  it('rejects incoherent measurements rather than repairing or relabelling them', () => {
+    const valid = pairedMeasured();
+    const corruptions: unknown[] = [
+      { ...valid, schemaVersion: 99 },
+      { ...valid, protocol: { ...pairedProtocol, order: 'dual_then_solo' } },
+      {
+        ...valid,
+        responseProtocol: { ...pairedResponseProtocol, sequenceSeedId: 'free-text-seed' },
+      },
+      { ...valid, cognitive: { attempts: 5, correct: 4, errors: 0 } },
+      { ...valid, cognitive: { attempts: 4, correct: 3, errors: 1 } },
+      { ...valid, motorCostPercent: 20 },
+      { ...valid, dual: { ...valid.dual, durationSec: 13 } },
+      { ...valid, ceilingLimited: true },
+      {
+        ...valid,
+        solo: { kind: 'solo', durationMs: 4000, durationSec: 4, termination: 'touchdown' },
+        motorCostPercent: -200,
+      },
+    ];
+    for (const corrupted of corruptions) {
+      expect(validPairedClarityResult(corrupted)).toBeUndefined();
+    }
+
+    expect(
+      validPairedClarityResult({
+        schemaVersion: 1,
+        status: 'ineligible',
+        protocol: pairedProtocol,
+        responseProtocol: pairedResponseProtocol,
+        reason: 'solo_below_floor',
+        solo: { kind: 'solo', durationMs: 8000, durationSec: 8, termination: 'touchdown' },
+      })
+    ).toBeUndefined();
+  });
+
+  it('strips content-bearing and unknown fields at every persisted boundary', () => {
+    const canary = 'private spoken response';
+    const measuredWithContent = {
+      ...pairedMeasured(),
+      transcript: canary,
+      audio: canary,
+      protocol: {
+        ...pairedProtocol,
+        notes: canary,
+        validityPolicy: { ...pairedProtocol.validityPolicy, rawResponse: canary },
+      },
+      responseProtocol: { ...pairedResponseProtocol, responseWord: canary },
+      solo: { ...pairedMeasured().solo, videoPath: canary },
+      dual: { ...pairedMeasured().dual, speechEvents: [canary] },
+      cognitive: { ...pairedMeasured().cognitive, tokens: [canary] },
+    };
+    const parsed = validPairedClarityResult(measuredWithContent);
+    expect(parsed).toEqual(pairedMeasured());
+    expect(JSON.stringify(parsed)).not.toContain(canary);
+    if (!parsed || parsed.status !== 'measured') throw new Error('fixture should parse');
+    expect(Object.keys(parsed.cognitive)).toEqual(['attempts', 'correct', 'errors']);
+    expect(Object.keys(parsed.solo)).toEqual(['kind', 'durationMs', 'durationSec', 'termination']);
+    expect(Object.keys(parsed.responseProtocol)).not.toContain('responseWord');
   });
 });

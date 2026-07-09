@@ -43,6 +43,9 @@ export const LEGACY_MOVEMENT_AGE_BATTERY_PROTOCOL_ID = 'legacy_movement_age_batt
 export const MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID = 'movement_profile_v2_battery';
 export const MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1 = 1;
 export const MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V2 = 2;
+/** Frozen top-level identity for Pearl's repeated monthly Strength/Balance battery. */
+export const PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT =
+  'pearl_monthly_strength_balance_v1' as const;
 
 export const MEASUREMENT_PROTOCOLS = [
   {
@@ -66,6 +69,7 @@ export const MEASUREMENT_PROTOCOLS = [
     officialEvidenceEligible: true,
     comparisonGroup: 'movement_profile_v2_battery',
     kind: 'battery',
+    variants: [PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT],
   },
   {
     protocolId: MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID,

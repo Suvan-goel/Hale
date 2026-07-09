@@ -13,7 +13,7 @@
  */
 
 import { clarityReadingValue } from '../checkup/selfReport';
-import { dualTaskReadingValue } from '../checkup/clarityInstruments';
+import { pairedClarityReadingValue } from '../checkup/clarityInstruments';
 import {
   relativeToBand,
   rollingBaseline,
@@ -113,12 +113,14 @@ export function dualTaskReadingsFromHistory(
 ): DimensionReading[] {
   return officialRecords(history)
     .flatMap((record): DimensionReading[] => {
-      const value = dualTaskReadingValue(record.checkUp.clarityInstruments?.dualTask);
+      // Legacy VAD-only dualTask records are intentionally quarantined: they
+      // did not include the current matched-pair correctness gate.
+      const value = pairedClarityReadingValue(record.checkUp.clarityInstruments?.pairedTask);
       if (value === null) return [];
       return [
         {
           dimensionId: 'clarity',
-          metricId: 'dual_task_cost_balance_v1',
+          metricId: 'paired_clarity_motor_cost_v1',
           value,
           unit: 'score',
           atIso: record.checkUp.startedAt,
@@ -224,16 +226,26 @@ export function buildClarityTrendViewModel(
   options?: {
     /** Legacy/development inspection only. Fluency is not an MVP surface. */
     includeFluency?: boolean;
+    /**
+     * Production authority: only check-ups accepted as 12-week journey
+     * checkpoints may contribute. Omit only for legacy/dev inspection.
+     */
+    acceptedSourceCheckUpIds?: readonly string[];
   }
 ): ClarityTrendViewModel {
-  const subjective = seriesTrend(clarityReadingsFromHistory(history), {
+  const scopedHistory = options?.acceptedSourceCheckUpIds
+    ? (history ?? []).filter((record) =>
+        options.acceptedSourceCheckUpIds?.includes(record.checkUp.startedAt)
+      )
+    : history;
+  const subjective = seriesTrend(clarityReadingsFromHistory(scopedHistory), {
     buildingNoun: 'check-in',
     clearer: 'Clearer than your usual range',
     usual: 'In your usual range',
     clouded: 'More clouded than your usual range',
     support: CLARITY_DRIVERS_SUPPORT,
   });
-  const dualTask = seriesTrend(dualTaskReadingsFromHistory(history), {
+  const dualTask = seriesTrend(dualTaskReadingsFromHistory(scopedHistory), {
     buildingNoun: 'level-2 hold',
     clearer: 'Steadier under load than usual',
     usual: 'Your usual steadiness under load',
@@ -249,7 +261,7 @@ export function buildClarityTrendViewModel(
     series.push({ id: 'dual_task', label: 'Steadiness while thinking', trend: dualTask });
   }
   if (options?.includeFluency === true) {
-    const fluency = seriesTrend(fluencyRelativeReadingsFromHistory(history), {
+    const fluency = seriesTrend(fluencyRelativeReadingsFromHistory(scopedHistory), {
       buildingNoun: 'word-finding run',
       clearer: 'More words than your usual',
       usual: 'Your usual word-finding',
@@ -266,7 +278,7 @@ export function buildClarityTrendViewModel(
   return {
     status: 'ready',
     series,
-    ...covariateContext(history, series),
+    ...covariateContext(scopedHistory, series),
     fluctuationNote: CLARITY_FLUCTUATION_NOTE,
     activityNote: CLARITY_ACTIVITY_NOTE,
   };
@@ -294,19 +306,19 @@ function covariateContext(
   if (roughSleep && heavySymptoms) {
     return {
       covariateContext:
-        'This dip lines up with a rough night and a heavy symptom week — clarity usually tracks sleep, symptoms, and stress.',
+        'Alongside this reading, you also logged a rough night and a heavy symptom week. Clarity can vary alongside sleep, symptoms, and stress; this does not establish a cause.',
     };
   }
   if (roughSleep) {
     return {
       covariateContext:
-        "This dip lines up with a rough night's sleep — clarity usually tracks sleep, symptoms, and stress.",
+        "Alongside this reading, you also logged a rough night's sleep. Clarity can vary alongside sleep and stress; this does not establish a cause.",
     };
   }
   if (heavySymptoms) {
     return {
       covariateContext:
-        'This dip lines up with a heavy symptom week — clarity usually tracks sleep, symptoms, and stress.',
+        'Alongside this reading, you also logged a heavy symptom week. Clarity can vary alongside symptoms and stress; this does not establish a cause.',
     };
   }
   return {};

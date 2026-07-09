@@ -4,11 +4,58 @@ import {
   dualTaskReadingsFromHistory,
   fluencyRelativeReadingsFromHistory,
 } from '../clarityTrend';
-import type { FluencyCategoryId } from '../../checkup';
+import type { FluencyCategoryId, PairedClarityResultRecord } from '../../checkup';
 import { bareDownwardChanges } from '../testing/copyInvariants';
 import type { StoredCheckUp } from '../../history';
 
 const CLARITY_BANNED = /validated|percentile|age group|typical of age|dementia|alzheimer/i;
+
+function pairedTask(costPercent: number): PairedClarityResultRecord {
+  const soloMs = 20_000;
+  const dualMs = soloMs * (1 - costPercent / 100);
+  return {
+    schemaVersion: 1,
+    status: 'measured',
+    protocol: {
+      protocolId: 'pearl_paired_clarity_balance_v1',
+      protocolVersion: 1,
+      movementId: 'one-leg-balance-45s-v2',
+      stanceId: 'single_leg_eyes_open_v1',
+      standingSide: 'left',
+      order: 'solo_then_dual',
+      trialCapMs: 45_000,
+      standardizedRestMs: 30_000,
+      liftConfirmMs: 300,
+      touchdownDebounceFrames: 3,
+      trackingLossConfirmFrames: 4,
+      validityPolicy: {
+        minSoloHoldMs: 5_000,
+        ceilingExclusionMarginMs: 3_000,
+        minCognitiveAttempts: 4,
+        minCognitiveAccuracy: 0.5,
+      },
+    },
+    responseProtocol: {
+      protocolId: 'pearl_visual_go_no_go_v1',
+      protocolVersion: 1,
+      sequenceAlgorithmId: 'fixed_balanced_forms_v1',
+      sequenceSeedId: 'pearl_vgng_form_a_v1',
+      responseSignal: 'speech_presence_boolean',
+      responseRule: 'respond_on_target_only',
+      leadInMs: 750,
+      promptVisibleMs: 600,
+      responseWindowMs: 1_500,
+      promptCadenceMs: 2_400,
+      promptCount: 16,
+      minimumPresentedCount: 4,
+    },
+    solo: { kind: 'solo', durationMs: soloMs, durationSec: soloMs / 1000, termination: 'touchdown' },
+    dual: { kind: 'dual', durationMs: dualMs, durationSec: dualMs / 1000, termination: 'touchdown' },
+    cognitive: { attempts: 6, correct: 5, errors: 1 },
+    motorCostPercent: costPercent,
+    ceilingLimited: false,
+  };
+}
 
 function record(
   atIso: string,
@@ -52,14 +99,7 @@ function record(
               schemaVersion: 1 as const,
               ...(dualTaskCost !== null
                 ? {
-                    dualTask: {
-                      schemaVersion: 1 as const,
-                      movementId: 'one-leg-balance-45s-v2',
-                      status: 'measured' as const,
-                      singleTaskSeconds: 30,
-                      dualTaskSeconds: 30 * (1 - dualTaskCost / 100),
-                      costPercent: dualTaskCost,
-                    },
+                    pairedTask: pairedTask(dualTaskCost),
                   }
                 : {}),
               ...(fluency
@@ -94,17 +134,52 @@ describe('Clarity trend view model (multi-series, DT3)', () => {
     expect(readings[0]).toMatchObject({ dimensionId: 'clarity', basis: 'self_report', value: 3 });
   });
 
-  it('derives dual-task readings as measured, inverted (higher = steadier)', () => {
+  it('derives matched-pair readings as measured, inverted (higher = steadier)', () => {
     const readings = dualTaskReadingsFromHistory([
       record('2026-01-01T09:00:00.000Z', { dualTaskCost: 30 }),
       record('2026-02-01T09:00:00.000Z', {}), // no level 2 this month
     ]);
     expect(readings).toHaveLength(1);
     expect(readings[0]).toMatchObject({
-      metricId: 'dual_task_cost_balance_v1',
+      metricId: 'paired_clarity_motor_cost_v1',
       basis: 'measured',
       value: 70,
     });
+  });
+
+  it('quarantines the legacy VAD-only dual-task shape from the current trend', () => {
+    const legacy = record('2026-01-01T09:00:00.000Z');
+    legacy.checkUp.clarityInstruments = {
+      schemaVersion: 1,
+      dualTask: {
+        schemaVersion: 1,
+        movementId: 'one-leg-balance-45s-v2',
+        status: 'measured',
+        singleTaskSeconds: 20,
+        dualTaskSeconds: 15,
+        costPercent: 25,
+      },
+    };
+    expect(dualTaskReadingsFromHistory([legacy])).toEqual([]);
+  });
+
+  it('can scope every series to accepted 12-week checkpoint ids', () => {
+    const accepted = record('2026-01-01T09:00:00.000Z', {
+      itemScores: steady,
+      dualTaskCost: 10,
+    });
+    const failedAttempt = record('2026-01-15T09:00:00.000Z', {
+      itemScores: clouded,
+      dualTaskCost: 40,
+    });
+    const trend = buildClarityTrendViewModel([accepted, failedAttempt], {
+      acceptedSourceCheckUpIds: [accepted.checkUp.startedAt],
+    });
+    if (trend.status !== 'ready') throw new Error(trend.status);
+    expect(trend.series).toHaveLength(2);
+    for (const series of trend.series) {
+      expect(series.trend.status === 'building' && series.trend.checkInCount).toBe(1);
+    }
   });
 
   it('is honest before a baseline exists: building state, no band, no relation', () => {
@@ -153,7 +228,7 @@ describe('Clarity trend view model (multi-series, DT3)', () => {
     ]);
     if (dippedWithRoughSleep.status !== 'ready') throw new Error(dippedWithRoughSleep.status);
     expect(dippedWithRoughSleep.covariateContext).toContain("rough night's sleep");
-    expect(dippedWithRoughSleep.covariateContext).toContain('clarity usually tracks');
+    expect(dippedWithRoughSleep.covariateContext).toContain('does not establish a cause');
 
     // No dip → no context line, even with rough covariates.
     const steadyMonth = buildClarityTrendViewModel([
