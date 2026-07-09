@@ -264,7 +264,7 @@ internal class ConstellationV2OverlayRenderer(
     )
     configurePaint(
       ConstellationV2Batch.ACCENT,
-      Color.parseColor("#414C34"),
+      Color.parseColor("#CBA89D"),
       standardRadius,
     )
   }

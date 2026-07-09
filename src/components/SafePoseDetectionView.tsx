@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.xl,
     borderRadius: radius.card,
-    backgroundColor: colors.bgBase,
+    backgroundColor: colors.focusCanvas,
   },
   noticeCompact: {
     minHeight: 0,

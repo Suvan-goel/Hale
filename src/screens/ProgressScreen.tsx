@@ -772,18 +772,22 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     ...shadow.card,
   },
   profileCard: {
     overflow: 'hidden',
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     ...shadow.card,
   },
   profileBanner: {
     minHeight: 132,
     justifyContent: 'flex-end',
-    backgroundColor: colors.accent,
+    backgroundColor: colors.bgElevated,
   },
   profileBannerImage: {
     // Image bleeds to the card edges; the card's own overflow:hidden clips it.
@@ -794,7 +798,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: 'rgba(17,20,18,0.30)',
+    backgroundColor: colors.imageScrim,
   },
   profileBannerContent: {
     paddingHorizontal: 18,
@@ -803,7 +807,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   profileBannerEyebrow: {
-    color: colors.onAccent,
+    color: colors.accentDeep,
     fontFamily: fonts.sansMedium,
     fontSize: 13,
     lineHeight: 18,
@@ -811,7 +815,7 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   profileBannerTitle: {
-    color: colors.onAccent,
+    color: colors.textPrimary,
     fontFamily: fonts.serifMedium,
     fontSize: 29,
     lineHeight: 34,
@@ -839,14 +843,14 @@ const styles = StyleSheet.create({
   },
   emptyProgressCard: {
     overflow: 'hidden',
-    borderRadius: 24,
-    paddingHorizontal: 24,
-    paddingTop: 26,
-    paddingBottom: 22,
+    borderRadius: radius.card,
+    paddingHorizontal: 18,
+    paddingTop: 20,
+    paddingBottom: 18,
     backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
-    boxShadow: '0 18px 40px rgba(17,20,18,0.045)',
+    ...shadow.card,
   },
   emptyProgressHeader: {
     flexDirection: 'row',
@@ -895,12 +899,9 @@ const styles = StyleSheet.create({
   },
   emptyProgressSteps: {
     marginTop: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderRadius: 18,
-    backgroundColor: colors.bgBase,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
+    paddingTop: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.borderHairline,
   },
   emptyProgressStep: {
     flexDirection: 'row',
@@ -971,7 +972,7 @@ const styles = StyleSheet.create({
   emptyProgressButton: {
     minHeight: 58,
     marginTop: 24,
-    borderRadius: 20,
+    borderRadius: radius.button,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1041,7 +1042,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.sm,
     borderRadius: 17,
-    backgroundColor: colors.bgSurface,
+    backgroundColor: colors.bgElevated,
   },
   profileStatusText: {
     color: colors.sageDeep,

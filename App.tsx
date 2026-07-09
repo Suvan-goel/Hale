@@ -83,11 +83,11 @@ function StatusBarBackdrop({ children }: { children: React.ReactNode }) {
   return (
     <View style={styles.appChrome}>
       <NativeStatusBar
-        barStyle="dark-content"
+        barStyle="light-content"
         backgroundColor={colors.bgBase}
         translucent={false}
       />
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <View style={styles.appChromeContent}>{children}</View>
       {Platform.OS === 'ios' ? (
         <View
@@ -115,7 +115,7 @@ function StatusBarBackdrop({ children }: { children: React.ReactNode }) {
 function AuthLoadingScreen() {
   return (
     <View style={[styles.container, styles.splash]}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <View style={styles.splashBrandRow}>
         <HeaderLogo size={28} />
         <Text style={styles.splashBrand}>{BRAND.appName}</Text>

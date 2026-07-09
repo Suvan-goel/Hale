@@ -54,6 +54,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     ...shadow.card,
   },
   compactCardPadding: {
@@ -61,16 +63,17 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   optionSelected: {
-    backgroundColor: colors.bgGold,
+    backgroundColor: colors.bgElevated,
+    borderColor: colors.accentDeep,
   },
   optionRail: {
     width: 4,
     alignSelf: 'stretch',
     borderRadius: radius.pill,
-    backgroundColor: colors.background,
+    backgroundColor: colors.borderHairline,
   },
   optionRailSelected: {
-    backgroundColor: colors.accentDeep,
+    backgroundColor: colors.accent,
   },
   optionCopy: {
     flex: 1,
@@ -85,7 +88,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   optionTitleSelected: {
-    color: colors.accentDeep,
+    color: colors.textPrimary,
   },
   optionDetail: {
     ...type.cardBody,

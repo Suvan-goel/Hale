@@ -45,7 +45,7 @@ internal class SegmentationMaskFigureRenderer(
   private var visible = false
   private var extractionFailures = 0
   private var extractionUnavailableReported = false
-  private var tintRgb = 0x414C34
+  private var tintRgb = 0xCBA89D
   private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
   private val dstRect = RectF()
 

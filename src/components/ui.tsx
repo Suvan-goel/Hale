@@ -50,9 +50,11 @@ export function useScreenScrollClearance(): number {
 export function Screen({
   children,
   contentStyle,
+  tone = 'default',
 }: {
   children: React.ReactNode;
   contentStyle?: StyleProp<ViewStyle>;
+  tone?: 'default' | 'focus';
 }) {
   const responsive = useResponsiveLayout();
   const systemInsets = useSystemInsets();
@@ -64,7 +66,7 @@ export function Screen({
 
   return (
     <ScrollView
-      style={styles.screen}
+      style={[styles.screen, tone === 'focus' && styles.focusScreen]}
       contentContainerStyle={[
         styles.screenContent,
         {
@@ -213,7 +215,6 @@ export function Button({
       style={({ pressed }) => [
         componentStyles.button.base,
         componentStyles.button[variant],
-        isPrimary && styles.primaryPillButton,
         disabled && styles.disabled,
         pressed && !disabled && (isPrimary ? styles.primaryPressed : styles.pressed),
         style,
@@ -810,7 +811,7 @@ export function ToggleRow({
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: colors.borderHairline, true: colors.sage }}
+        trackColor={{ false: colors.borderHairline, true: colors.accentDeep }}
         thumbColor={value ? colors.accent : colors.bgSurface}
         ios_backgroundColor={colors.borderHairline}
         accessibilityLabel={label}
@@ -821,6 +822,7 @@ export function ToggleRow({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bgBase },
+  focusScreen: { backgroundColor: colors.focusCanvas },
   screenContent: {
     width: '100%',
     maxWidth: spacing.pageMaxWidth,
@@ -828,12 +830,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.pageHorizontal,
     paddingTop: spacing.pageTop,
     paddingBottom: spacing.xxxl,
-    gap: spacing.xl,
+    gap: 20,
   },
   compactHorizontalPadding: {
     paddingHorizontal: 16,
   },
-  header: { gap: spacing.xs },
+  header: { gap: spacing.sm },
   stepProgress: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -869,10 +871,10 @@ const styles = StyleSheet.create({
   iconButton: {
     width: minTapTarget,
     height: minTapTarget,
-    borderRadius: radius.button,
+    borderRadius: radius.input,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.elevatedCard,
+    backgroundColor: colors.bgSurface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.warmBorder,
   },
@@ -917,9 +919,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.accent,
   },
-  primaryPillButton: {
-    borderRadius: radius.pill,
-  },
   primaryButtonContent: {
     maxWidth: '100%',
     minWidth: 0,
@@ -935,7 +934,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.xl,
     minHeight: minTapTarget,
-    borderRadius: radius.pill,
+    borderRadius: radius.button,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -952,23 +951,27 @@ const styles = StyleSheet.create({
   ghostText: { ...type.bodySmall, color: colors.accentDeep },
   segmentedTabs: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: spacing.lg,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.borderSubtle,
+    alignItems: 'center',
+    gap: spacing.xs,
+    padding: spacing.xs,
+    borderRadius: radius.input,
+    backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderSubtle,
   },
   segmentedTab: {
-    minHeight: 42,
+    flex: 1,
+    minHeight: 40,
+    alignItems: 'center',
     justifyContent: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-    marginBottom: -StyleSheet.hairlineWidth,
+    borderRadius: 6,
+    paddingHorizontal: spacing.sm,
   },
   segmentedTabActive: {
-    borderBottomColor: colors.accent,
+    backgroundColor: colors.accent,
   },
   segmentedTabText: { ...type.bodySmall, fontFamily: fonts.sansMedium, color: colors.textMuted },
-  segmentedTabTextActive: { color: colors.accent },
+  segmentedTabTextActive: { color: colors.onAccent },
   badge: {
     alignSelf: 'flex-start',
     borderRadius: radius.sm,
@@ -992,6 +995,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: radius.input,
     backgroundColor: colors.bgMaterial,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     gap: spacing.sm,
   },
   metricLabel: { ...type.cardCaption },

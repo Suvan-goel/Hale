@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    backgroundColor: 'rgba(17,20,18,0.28)',
+    backgroundColor: colors.modalBackdrop,
   },
   sheet: {
     width: '100%',

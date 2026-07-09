@@ -11,7 +11,7 @@
 import * as React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, fonts, radius, spacing, type } from '../theme';
+import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { ExploreIcon, HomeIcon, IconProps, ProgressIcon } from './icons';
 
 export type TabKey = 'today' | 'progress' | 'explore';
@@ -101,40 +101,40 @@ const styles = StyleSheet.create({
     zIndex: 20,
     backgroundColor: 'transparent',
     alignItems: 'center',
-    paddingTop: spacing.md,
-    paddingBottom: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
   },
   contentRail: {
     width: '100%',
     maxWidth: spacing.pageMaxWidth,
-    paddingHorizontal: spacing.pageHorizontal,
+    paddingHorizontal: spacing.md,
   },
   bar: {
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: spacing.sm,
     minHeight: TAB_BAR_MIN_HEIGHT,
     backgroundColor: colors.bgSurface,
-    borderRadius: radius.panel,
+    borderRadius: radius.card,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.accentDeep,
+    borderColor: colors.borderHairline,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
-    boxShadow: '0 0 42px rgba(17,20,18,0.22)',
+    ...shadow.lifted,
   },
   tab: {
     flex: 1,
     minHeight: 58,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radius.input,
+    borderRadius: 6,
     gap: spacing.xs,
     paddingHorizontal: 2,
     paddingVertical: spacing.xs,
   },
   tabActive: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.bgElevated,
   },
   tabPressed: {
     opacity: 0.76,

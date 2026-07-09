@@ -538,6 +538,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     ...shadow.card,
   },
   compactCardPadding: {
@@ -638,9 +640,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     backgroundColor: colors.background,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
   },
   choiceSelected: {
-    backgroundColor: colors.bgGold,
+    backgroundColor: colors.bgElevated,
+    borderColor: colors.accentDeep,
   },
   choiceLabel: {
     ...type.bodySmall,

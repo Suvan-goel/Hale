@@ -19,7 +19,7 @@ export function AuthScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <ScrollView
         contentContainerStyle={[
           styles.content,
@@ -37,6 +37,7 @@ export function AuthScreen() {
             style={[styles.heroImage, isCompactPhone && styles.heroImageCompact]}
             resizeMode="cover"
           />
+          <View pointerEvents="none" style={styles.heroScrim} />
           <View
             style={[
               styles.heroContent,
@@ -106,6 +107,14 @@ const styles = StyleSheet.create({
   heroImageCompact: {
     width: '104%',
     left: -6,
+  },
+  heroScrim: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: colors.imageScrim,
   },
   heroContent: {
     flex: 1,

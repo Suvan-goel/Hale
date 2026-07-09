@@ -35,7 +35,7 @@ import { expoSessionFunnelFs } from '../telemetry/fsAdapter';
 import type { TrainingSetRuntimeGeneratedExercise } from '../training/setRuntime';
 import { getExercise } from '../exercises';
 import type { TrainingItemResult, TrainingPhase, TrainingSessionResult } from '../training/sessionPlayer';
-import { colors, spacing, type } from '../theme';
+import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { matchIntent } from '../voice/intents';
 import {
   decideVoiceGate,
@@ -237,7 +237,7 @@ export function VoiceSessionScreen({
   const wantsEndConfirm = confirmEnd || snapshot.stopRequested;
 
   return (
-    <Screen>
+    <Screen tone="focus" contentStyle={styles.screen}>
       <ScreenHeader
         title={sessionTitle ?? 'Your session'}
         subtitle={listening ? 'Listening — on your phone only' : 'Tap the buttons whenever you like'}
@@ -258,16 +258,22 @@ export function VoiceSessionScreen({
           </View>
         ) : null}
 
-        {exerciseName ? (
-          <>
-            <Text style={styles.exerciseName}>{exerciseName}</Text>
-            <Text style={styles.setLabel}>
-              {snapshot.totalSets > 0 ? `Set ${Math.min(snapshot.setIndex + 1, snapshot.totalSets)} of ${snapshot.totalSets}` : ''}
-            </Text>
-          </>
-        ) : null}
-        {Number.isFinite(snapshot.remainingSec) ? (
-          <Text style={styles.timer}>{Math.max(0, snapshot.remainingSec)}s</Text>
+        {exerciseName || Number.isFinite(snapshot.remainingSec) ? (
+          <View style={styles.stage}>
+            {exerciseName ? (
+              <>
+                <Text style={styles.exerciseName}>{exerciseName}</Text>
+                <Text style={styles.setLabel}>
+                  {snapshot.totalSets > 0
+                    ? `Set ${Math.min(snapshot.setIndex + 1, snapshot.totalSets)} of ${snapshot.totalSets}`
+                    : ''}
+                </Text>
+              </>
+            ) : null}
+            {Number.isFinite(snapshot.remainingSec) ? (
+              <Text style={styles.timer}>{Math.max(0, snapshot.remainingSec)}s</Text>
+            ) : null}
+          </View>
         ) : null}
 
         <View style={styles.controls}>
@@ -293,9 +299,9 @@ export function VoiceSessionScreen({
                 onPress={() => controller.handleTap('skip_rest', Date.now())}
               />
               <View style={styles.adjustRow}>
-                <SecondaryButton title="− rep" onPress={() => controller.handleTap('adjust_reps_down')} />
+                <SecondaryButton style={styles.adjustButton} title="− rep" onPress={() => controller.handleTap('adjust_reps_down')} />
                 <Text style={styles.adjustLabel}>Adjust last set</Text>
-                <SecondaryButton title="+ rep" onPress={() => controller.handleTap('adjust_reps_up')} />
+                <SecondaryButton style={styles.adjustButton} title="+ rep" onPress={() => controller.handleTap('adjust_reps_up')} />
               </View>
             </>
           ) : null}
@@ -339,40 +345,93 @@ export function VoiceSessionScreen({
 }
 
 const styles = StyleSheet.create({
+  screen: { gap: spacing.lg },
   body: { gap: spacing.md, paddingBottom: spacing.xxl },
   gateCard: {
-    backgroundColor: colors.surface ?? '#FBF5EF',
-    borderRadius: 16,
+    backgroundColor: colors.focusSurface,
+    borderRadius: radius.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     padding: spacing.lg,
-    gap: spacing.sm,
+    gap: spacing.md,
+    ...shadow.soft,
   },
   gateText: { ...type.body },
-  safetyLine: { ...type.caption },
-  micRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  micDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent },
+  safetyLine: {
+    ...type.caption,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.input,
+    backgroundColor: colors.focusElevated,
+  },
+  micRow: {
+    alignSelf: 'flex-start',
+    minHeight: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accentSoft,
+  },
+  micDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accentDeep },
   micText: { ...type.caption },
-  exerciseName: { ...type.h2, marginTop: spacing.lg },
-  setLabel: { ...type.caption },
-  timer: { ...type.display },
-  controls: { gap: spacing.sm, marginTop: spacing.lg },
+  stage: {
+    minHeight: 220,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xl,
+    borderRadius: radius.card,
+    backgroundColor: colors.focusSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+  },
+  exerciseName: {
+    fontFamily: fonts.serifRegular,
+    fontSize: 32,
+    lineHeight: 38,
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+  setLabel: { ...type.label, color: colors.accentDeep, textAlign: 'center' },
+  timer: {
+    fontFamily: fonts.sansRegular,
+    fontSize: 68,
+    lineHeight: 76,
+    color: colors.textPrimary,
+    fontVariant: ['tabular-nums'],
+    textAlign: 'center',
+  },
+  controls: {
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+    paddingTop: spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.borderHairline,
+  },
   adjustRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  adjustButton: { flex: 1, minWidth: 0, paddingHorizontal: spacing.sm },
   adjustLabel: { ...type.caption, flex: 1, textAlign: 'center' },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(17,20,18,0.45)',
+    backgroundColor: colors.modalBackdrop,
     justifyContent: 'center',
     padding: spacing.xl,
   },
   modalCard: {
-    backgroundColor: colors.surface ?? '#FBF5EF',
-    borderRadius: 20,
+    backgroundColor: colors.focusElevated,
+    borderRadius: radius.modal,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     padding: spacing.xl,
     gap: spacing.md,
   },
   modalTitle: { ...type.h3 },
   modalBody: { ...type.body },
   modalKeep: { alignSelf: 'center', padding: spacing.sm },
-  modalKeepText: { ...type.body, color: colors.accent },
+  modalKeepText: { ...type.body, color: colors.accentDeep },
 });
 
 export default VoiceSessionScreen;

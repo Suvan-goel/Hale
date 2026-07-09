@@ -27,8 +27,8 @@
       "expo-apple-authentication",
       "@sentry/react-native/expo"
     ],
-    "userInterfaceStyle": "light",
-    "backgroundColor": "#F9F5EF",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#171719",
     "ios": {
       "supportsTablet": false,
       "icon": "./assets/ios-icon.png",
@@ -46,7 +46,7 @@
     "android": {
       "icon": "./assets/android-icon.png",
       "adaptiveIcon": {
-        "backgroundColor": "#F9F5EF",
+        "backgroundColor": "#171719",
         "backgroundImage": "./assets/android-icon-background.png",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"

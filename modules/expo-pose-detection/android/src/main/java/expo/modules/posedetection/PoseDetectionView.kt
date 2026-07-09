@@ -46,7 +46,7 @@ private const val LANDMARK_COUNT = 33
 private const val LANDMARK_STRIDE = 5
 private const val DEFAULT_SKELETON_CONFIDENCE = 0.35
 private const val NUM_POSES = 1
-private const val DEFAULT_MASK_FIGURE_COLOR = "#414C34"
+private const val DEFAULT_MASK_FIGURE_COLOR = "#CBA89D"
 private const val DEFAULT_MODEL_VARIANT = "full"
 private const val DEFAULT_MODEL_ASSET = "pose_landmarker_full.task"
 private const val DEFAULT_PIPELINE_MODE = "full-video-sync"
@@ -259,7 +259,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
     style = Paint.Style.STROKE
     strokeCap = Paint.Cap.ROUND
     strokeJoin = Paint.Join.ROUND
-    color = Color.BLACK
+    color = Color.parseColor("#EEE2DC")
   }
   private val constellationV2OverlayRenderer = ConstellationV2OverlayRenderer(
     context = context,
@@ -294,8 +294,8 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
   private var androidAnalysisResolution = DEFAULT_ANALYSIS_RESOLUTION
 
   init {
-    // bg-base (#F9F5EF) - keep in sync with the JS theme token (src/theme).
-    setBackgroundColor(Color.parseColor("#F9F5EF"))
+    // focus-canvas (#101114) - keep in sync with the JS theme token (src/theme).
+    setBackgroundColor(Color.parseColor("#101114"))
     setWillNotDraw(false)
     lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
   }
@@ -394,7 +394,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
   }
 
   fun setNativeSkeletonColorProp(value: String) {
-    skeletonPaint.color = parseColorOr(value, Color.BLACK)
+    skeletonPaint.color = parseColorOr(value, Color.parseColor("#EEE2DC"))
     invalidate()
   }
 
@@ -416,7 +416,7 @@ class PoseDetectionView(context: Context, appContext: AppContext) :
   }
 
   fun setCanvasColorProp(value: String) {
-    setBackgroundColor(parseColorOr(value, Color.parseColor("#F9F5EF")))
+    setBackgroundColor(parseColorOr(value, Color.parseColor("#101114")))
   }
 
   override fun onDraw(canvas: Canvas) {

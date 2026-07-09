@@ -677,7 +677,7 @@ const onboardingStyles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.goldBorder,
     overflow: 'hidden',
-    boxShadow: '0 18px 40px rgba(17,20,18,0.055)',
+    ...shadow.card,
   },
   compactCardPadding: {
     paddingHorizontal: 14,
@@ -751,7 +751,7 @@ const onboardingStyles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
-    boxShadow: '0 10px 26px rgba(17,20,18,0.035)',
+    ...shadow.soft,
   },
   domainCardFeatured: {
     borderColor: colors.goldBorder,
@@ -853,7 +853,7 @@ const onboardingStyles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
-    boxShadow: '0 10px 26px rgba(17,20,18,0.032)',
+    ...shadow.soft,
   },
   nextTopRow: {
     flexDirection: 'row',

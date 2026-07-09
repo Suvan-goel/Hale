@@ -597,7 +597,7 @@ function recordingScreenTopPadding(): number {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgBase },
+  container: { flex: 1, backgroundColor: colors.focusCanvas },
   layout: {
     flex: 1,
   },
@@ -621,17 +621,16 @@ const styles = StyleSheet.create({
   topBar: {
     width: '100%',
     maxWidth: spacing.pageMaxWidth,
-    minHeight: 36,
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
     paddingHorizontal: spacing.xs,
   },
   topBarBackButton: {
-    width: 18,
-    height: 36,
     marginBottom: 0,
     alignSelf: 'center',
+    flexShrink: 0,
   },
   topBarTitle: {
     ...type.pageTitle,
@@ -650,7 +649,9 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
     borderRadius: radius.card,
-    backgroundColor: colors.card,
+    backgroundColor: colors.focusSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     ...shadow.card,
   },
   recordingCameraUnavailableNotice: {
@@ -689,7 +690,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
-    boxShadow: '0 0 18px rgba(17,20,18,0.055)',
+    ...shadow.soft,
   },
   recordingSetupNoticeSignal: {
     width: 18,
@@ -721,13 +722,15 @@ const styles = StyleSheet.create({
   helpIconButton: {
     width: 38,
     height: 38,
-    borderRadius: radius.pill,
+    borderRadius: radius.input,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
+    backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
   },
   helpIconButtonSelected: {
-    backgroundColor: 'transparent',
+    backgroundColor: colors.bgElevated,
   },
   helpIconText: {
     ...type.cardRowTitle,
@@ -750,6 +753,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.md,
     paddingBottom: spacing.md,
+    backgroundColor: colors.overlaySurface,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.borderHairline,
   },
   recordingFooterMovement: {
     flex: 1,
@@ -846,7 +852,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.xl,
-    backgroundColor: 'rgba(17,20,18,0.24)',
+    backgroundColor: colors.modalBackdrop,
   },
   discardModal: {
     width: '100%',
@@ -855,7 +861,9 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     borderRadius: radius.panel,
     backgroundColor: colors.surface,
-    boxShadow: '0 0 28px rgba(17,20,18,0.12)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+    ...shadow.lifted,
   },
   helpModal: {
     width: '100%',
@@ -867,7 +875,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
-    boxShadow: '0 0 34px rgba(17,20,18,0.13)',
+    ...shadow.lifted,
   },
   helpModalHeader: {
     flexDirection: 'row',

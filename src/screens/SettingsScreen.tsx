@@ -1410,7 +1410,7 @@ const styles = StyleSheet.create({
     paddingLeft: 30 + spacing.sm,
   },
   profileCard: {
-    minHeight: 132,
+    minHeight: 116,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.lg,
@@ -1418,15 +1418,17 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     ...shadow.card,
   },
   avatar: {
-    width: 82,
-    height: 82,
-    borderRadius: 41,
+    width: 64,
+    height: 64,
+    borderRadius: radius.input,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.bgBase,
+    backgroundColor: colors.bgElevated,
   },
   profileCopy: {
     flex: 1,
@@ -1461,6 +1463,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     ...shadow.card,
   },
   settingsSection: {
@@ -1471,6 +1475,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontFamily: fonts.sansMedium,
     paddingHorizontal: spacing.xs,
+    textTransform: 'uppercase',
   },
   menuRow: {
     minHeight: 70,
@@ -1557,6 +1562,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     ...shadow.card,
   },
   compactCardPadding: {
@@ -1596,6 +1603,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     ...shadow.card,
   },
   detailCardTitle: {
@@ -1615,6 +1624,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     ...shadow.card,
   },
   voiceSelectorHeader: {
@@ -1688,6 +1699,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     ...shadow.card,
   },
   safetyCardHeader: {
@@ -1755,6 +1768,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     ...shadow.card,
   },
   personalCardIntro: {
@@ -1950,6 +1965,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     ...shadow.card,
   },
   preferenceHeader: {

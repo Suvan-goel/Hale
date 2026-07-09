@@ -48,8 +48,8 @@ const EMPTY_PATHS: MediaPipeSkeletonPaths = {
   pointRadius: 2,
   labels: [],
 };
-const SKELETON_STROKE = '#000000';
-const SKELETON_POINT = '#000000';
+const SKELETON_STROKE = '#EEE2DC';
+const SKELETON_POINT = '#CBA89D';
 
 const MEDIAPIPE_POSE_CONNECTIONS: readonly (readonly [LM, LM])[] = [
   [LM.NOSE, LM.LEFT_EYE_INNER],

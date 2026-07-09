@@ -19,7 +19,7 @@ import type { ProgrammeTodayViewModel } from '../programme';
 // source for that copy.
 import { SettingsIcon } from '../navigation/icons';
 import type { UserProfile } from '../profile';
-import { colors, fonts, imageOverlayControl, radius, shadow, spacing, todayHomeColors } from '../theme';
+import { colors, fonts, radius, shadow, spacing, todayHomeColors } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 
 /**
@@ -164,6 +164,7 @@ function DailyFocusCard({
 }) {
   const responsive = useResponsiveLayout();
   const heroMinHeightStyle = { minHeight: responsive.todayHeroHeight };
+  const showDetail = detail && normalizedHeroMeta(detail) !== normalizedHeroMeta(subtitle);
 
   return (
     <View style={[styles.focusCard, compact && styles.focusCardCompact, heroMinHeightStyle]}>
@@ -175,7 +176,7 @@ function DailyFocusCard({
           <Text style={[styles.focusTitle, compact && styles.focusTitleCompact]}>{title}</Text>
           <View style={styles.focusMeta}>
             <Text style={styles.focusSubtitle}>{subtitle}</Text>
-            {detail ? <Text style={styles.focusDetail}>{detail}</Text> : null}
+            {showDetail ? <Text style={styles.focusDetail}>{detail}</Text> : null}
           </View>
         </View>
         {ctaLabel ? (
@@ -196,22 +197,30 @@ function DailyFocusCard({
   );
 }
 
+function normalizedHeroMeta(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/\btoday\b/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
 function HomeHeroScrim() {
   return (
     <Svg pointerEvents="none" style={styles.focusScrim}>
       <Defs>
         <LinearGradient id="homeHeroScrimH" x1="0" y1="0" x2="1" y2="0">
-          <Stop offset="0" stopColor={colors.accentDeep} stopOpacity={0.52} />
-          <Stop offset="0.58" stopColor={colors.accentDeep} stopOpacity={0.16} />
-          <Stop offset="1" stopColor={colors.accentDeep} stopOpacity={0} />
+          <Stop offset="0" stopColor={colors.bgBase} stopOpacity={0.9} />
+          <Stop offset="0.58" stopColor={colors.bgBase} stopOpacity={0.46} />
+          <Stop offset="1" stopColor={colors.bgBase} stopOpacity={0.08} />
         </LinearGradient>
         <LinearGradient id="homeHeroScrimV" x1="0" y1="1" x2="0" y2="0">
-          <Stop offset="0" stopColor={colors.accentDeep} stopOpacity={0.32} />
-          <Stop offset="0.5" stopColor={colors.accentDeep} stopOpacity={0.08} />
-          <Stop offset="1" stopColor={colors.accentDeep} stopOpacity={0} />
+          <Stop offset="0" stopColor={colors.bgBase} stopOpacity={0.72} />
+          <Stop offset="0.5" stopColor={colors.bgBase} stopOpacity={0.18} />
+          <Stop offset="1" stopColor={colors.bgBase} stopOpacity={0} />
         </LinearGradient>
       </Defs>
-      <Rect x="0" y="0" width="100%" height="100%" fill={colors.accentDeep} opacity={0.04} />
+      <Rect x="0" y="0" width="100%" height="100%" fill={colors.bgBase} opacity={0.08} />
       <Rect x="0" y="0" width="100%" height="100%" fill="url(#homeHeroScrimH)" />
       <Rect x="0" y="0" width="100%" height="100%" fill="url(#homeHeroScrimV)" />
     </Svg>
@@ -248,7 +257,7 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
     justifyContent: 'flex-start',
-    gap: 14,
+    gap: spacing.lg,
   },
   header: {
     flexDirection: 'row',
@@ -274,8 +283,8 @@ const styles = StyleSheet.create({
   headerName: {
     color: colors.primaryText,
     fontFamily: fonts.serifRegular,
-    fontSize: 23,
-    lineHeight: 26,
+    fontSize: 28,
+    lineHeight: 33,
     letterSpacing: 0,
   },
   iconButton: {
@@ -289,11 +298,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   contextStrip: {
-    minHeight: 102,
+    minHeight: 92,
     borderRadius: radius.card,
-    paddingHorizontal: 22,
-    paddingVertical: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
     backgroundColor: todayHomeColors.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: todayHomeColors.border,
     ...shadow.card,
   },
   compactCardPadding: {
@@ -316,10 +327,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    borderRadius: 24,
-    paddingHorizontal: 22,
+    borderRadius: radius.button,
+    paddingHorizontal: 18,
     paddingVertical: 10,
-    backgroundColor: colors.accentDeep,
+    backgroundColor: colors.accent,
     marginTop: 13,
   },
   checkupButtonText: {
@@ -341,6 +352,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: radius.card,
     backgroundColor: todayHomeColors.hero,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     ...shadow.card,
   },
   focusCardCompact: {
@@ -390,14 +403,15 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   focusLabel: {
-    color: colors.onAccent,
+    color: colors.accentDeep,
     fontFamily: fonts.sansMedium,
     fontSize: 13,
     lineHeight: 18,
     letterSpacing: 0,
+    textTransform: 'uppercase',
   },
   focusTitle: {
-    color: colors.onAccent,
+    color: colors.textPrimary,
     fontFamily: fonts.serifMedium,
     fontSize: 25,
     lineHeight: 31,
@@ -409,7 +423,7 @@ const styles = StyleSheet.create({
     lineHeight: 31,
   },
   focusSubtitle: {
-    color: colors.onAccent,
+    color: colors.textPrimary,
     fontFamily: fonts.sansRegular,
     fontSize: 13,
     lineHeight: 18,
@@ -417,7 +431,7 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   focusDetail: {
-    color: colors.onAccent,
+    color: colors.textSecondary,
     fontFamily: fonts.sansRegular,
     fontSize: 13,
     lineHeight: 18,
@@ -438,26 +452,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    borderRadius: 24,
+    borderRadius: radius.button,
     paddingHorizontal: 22,
     paddingVertical: 10,
-    backgroundColor: imageOverlayControl.background,
+    backgroundColor: colors.accent,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: imageOverlayControl.border,
+    borderColor: colors.accent,
   },
   focusButtonPressed: {
     opacity: 0.9,
     transform: [{ scale: 0.99 }],
   },
   focusButtonText: {
-    color: imageOverlayControl.text,
+    color: colors.onAccent,
     fontFamily: fonts.sansMedium,
     fontSize: 14,
     lineHeight: 19,
     letterSpacing: 0,
   },
   focusButtonArrow: {
-    color: imageOverlayControl.text,
+    color: colors.onAccent,
     fontFamily: fonts.sansMedium,
     fontSize: 21,
     lineHeight: 22,

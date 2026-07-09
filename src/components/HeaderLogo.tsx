@@ -1,5 +1,7 @@
 import { Image, StyleSheet, type ImageStyle, type StyleProp } from 'react-native';
 
+import { colors } from '../theme';
+
 const PEARL_LOGO_MARK = require('../../assets/pearl-logo-mark.png');
 
 export function HeaderLogo({
@@ -23,5 +25,6 @@ export function HeaderLogo({
 const styles = StyleSheet.create({
   logo: {
     flexShrink: 0,
+    tintColor: colors.accentDeep,
   },
 });

@@ -29,6 +29,8 @@ export function ExploreScreen({
 }) {
   const responsive = useResponsiveLayout();
   const insights = React.useMemo(() => getHealthInsightCards({ menopauseStage }), [menopauseStage]);
+  const featured = insights[0];
+  const remaining = insights.slice(1);
 
   return (
     <Screen contentStyle={styles.screenContent}>
@@ -49,18 +51,41 @@ export function ExploreScreen({
 
       <View style={styles.section}>
         <SectionCopy body="Simple articles about movement, recovery, and staying strong through menopause." />
-        <View style={[styles.listPanel, styles.rowListPanel, responsive.isCompactPhone && styles.compactListPanel]}>
-          {insights.map((article, index) => (
-            <InsightRow
-              key={article.id}
-              article={article}
-              showDivider={index < insights.length - 1}
-              onOpen={() => onOpenLearn(article.id)}
-            />
-          ))}
-        </View>
+        {featured ? <FeaturedInsight article={featured} onOpen={() => onOpenLearn(featured.id)} /> : null}
+        {remaining.length > 0 ? (
+          <View style={[styles.listPanel, styles.rowListPanel, responsive.isCompactPhone && styles.compactListPanel]}>
+            {remaining.map((article, index) => (
+              <InsightRow
+                key={article.id}
+                article={article}
+                showDivider={index < remaining.length - 1}
+                onOpen={() => onOpenLearn(article.id)}
+              />
+            ))}
+          </View>
+        ) : null}
       </View>
     </Screen>
+  );
+}
+
+function FeaturedInsight({ article, onOpen }: { article: HealthInsightCard; onOpen: () => void }) {
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.featuredCard, pressed && styles.pressed]}
+      onPress={onOpen}
+      accessibilityRole="button"
+      accessibilityLabel={`Featured article: ${article.title}`}
+    >
+      <Image source={INSIGHT_IMAGES[article.id]} style={styles.featuredImage} resizeMode="cover" />
+      <View style={styles.featuredCopy}>
+        <Text style={styles.featuredEyebrow}>{article.categoryLabel} · {article.readTimeLabel}</Text>
+        <View style={styles.featuredTitleRow}>
+          <Text style={styles.featuredTitle}>{article.title}</Text>
+          <ChevronIcon />
+        </View>
+      </View>
+    </Pressable>
   );
 }
 
@@ -165,6 +190,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     backgroundColor: todayHomeColors.card,
     paddingHorizontal: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: todayHomeColors.border,
     ...shadow.card,
   },
   compactListPanel: {
@@ -206,7 +233,7 @@ const styles = StyleSheet.create({
   rowThumb: {
     width: 100,
     height: 80,
-    borderRadius: 13,
+    borderRadius: radius.card,
     backgroundColor: todayHomeColors.iconFill,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: todayHomeColors.border,
@@ -214,5 +241,41 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.86,
     transform: [{ scale: 0.99 }],
+  },
+  featuredCard: {
+    overflow: 'hidden',
+    borderRadius: radius.card,
+    backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+    ...shadow.card,
+  },
+  featuredImage: {
+    width: '100%',
+    height: 178,
+    backgroundColor: colors.bgElevated,
+  },
+  featuredCopy: {
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+  },
+  featuredEyebrow: {
+    ...type.label,
+    color: colors.accentDeep,
+  },
+  featuredTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  featuredTitle: {
+    flex: 1,
+    minWidth: 0,
+    color: colors.textPrimary,
+    fontFamily: fonts.serifMedium,
+    fontSize: 22,
+    lineHeight: 28,
+    letterSpacing: 0,
   },
 });

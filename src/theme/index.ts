@@ -3,13 +3,14 @@
  * radii and depth. Screens and shared components reference these tokens rather
  * than hardcoding repeated visual values.
  *
- * The aesthetic: clean premium longevity. Light warm canvas, soft ivory
- * surfaces, inky green action colour, and quiet stone dividers. The
- * product should feel calm, trustworthy, readable, and daily-use friendly for
- * adults 50+, never clinical, toy-like, or fitness-gimmicky.
+ * The aesthetic: quiet, modern longevity. A charcoal canvas, layered graphite
+ * surfaces, warm pearl actions, and restrained blush details create a calm,
+ * premium interface that remains readable and daily-use friendly for adults
+ * 50+, never clinical, toy-like, or fitness-gimmicky.
  *
- * Single light theme. `bgBase` is mirrored in the native camera view, app.json,
- * and the skeleton preview script, so keep those values in sync when it changes.
+ * Single warm-dark theme with a deeper focus canvas for active sessions.
+ * `bgBase` is mirrored in app.json; `focusCanvas` is mirrored in the native
+ * camera view and skeleton preview. Keep each pair in sync when it changes.
  */
 
 import { Platform, StyleSheet, TextStyle, ViewStyle } from 'react-native';
@@ -19,62 +20,67 @@ import { Platform, StyleSheet, TextStyle, ViewStyle } from 'react-native';
  * ------------------------------------------------------------------------- */
 
 export const palette = {
-  appBackground: '#F9F5EF',
-  cardSurface: '#FFFDF9',
-  elevatedSurface: '#FFFDF9',
-  ink: '#111412',
-  secondaryText: '#68706A',
-  tertiaryText: '#8A908A',
-  brandGreen: '#414C34',
-  brandGreenPressed: '#414C34',
-  emeraldAccent: '#414C34',
-  softGreenFill: 'transparent',
-  verySoftGreenFill: 'transparent',
-  border: '#E4E0D6',
-  strongBorder: '#D8D3C8',
-  warmPremiumAccent: '#A98243',
-  softGoldFill: '#F4EFE4',
-  softShadow: 'rgba(17,20,18,0.05)',
+  appBackground: '#171719',
+  cardSurface: '#232326',
+  elevatedSurface: '#2A292C',
+  warmSurface: '#29262A',
+  focusCanvas: '#101114',
+  focusSurface: '#191B1E',
+  focusElevated: '#222428',
+  ink: '#F3ECE8',
+  secondaryText: '#B8B0AC',
+  tertiaryText: '#94908D',
+  pearl: '#EEE2DC',
+  pearlPressed: '#E2D1C9',
+  blush: '#CBA89D',
+  softBlushFill: 'rgba(226,209,201,0.10)',
+  verySoftBlushFill: 'rgba(226,209,201,0.06)',
+  border: 'rgba(243,236,232,0.10)',
+  strongBorder: 'rgba(243,236,232,0.18)',
+  warmPremiumAccent: '#C9A77D',
+  softGoldFill: 'rgba(201,167,125,0.12)',
+  restorativeSage: '#9BAB94',
+  softShadow: 'rgba(0,0,0,0.30)',
 } as const;
 
 export const colors = {
-  // Premium warm-stone + inky-green palette.
+  // Premium charcoal + pearl palette.
   background: palette.appBackground,
   backgroundAlt: palette.elevatedSurface,
   surface: palette.cardSurface,
-  surfaceWarm: palette.elevatedSurface,
+  surfaceWarm: palette.warmSurface,
   card: palette.cardSurface,
   cardSubtle: palette.elevatedSurface,
   elevatedCard: palette.elevatedSurface,
   primaryText: palette.ink,
   secondaryText: palette.secondaryText,
   mutedText: palette.tertiaryText,
-  accent: palette.brandGreen,
-  accentHover: palette.brandGreenPressed,
-  accentDark: palette.brandGreenPressed,
-  accentSoft: palette.softGreenFill,
+  accent: palette.pearl,
+  accentHover: palette.pearlPressed,
+  accentDark: palette.blush,
+  accentSoft: palette.softBlushFill,
   accentBorder: palette.strongBorder,
   border: palette.border,
   borderSubtle: palette.border,
   subtleBorder: palette.border,
   inputBorder: palette.strongBorder,
-  buttonText: palette.cardSurface,
+  buttonText: palette.focusCanvas,
   warningClay: palette.warmPremiumAccent,
-  success: palette.emeraldAccent,
+  success: palette.restorativeSage,
 
   // Descriptive legacy names retained for existing call sites.
   warmMineralCream: palette.appBackground,
   warmStone: palette.border,
-  softIvory: palette.appBackground,
-  porcelain: palette.cardSurface,
-  oliveSage: palette.brandGreen,
-  oliveSageDark: palette.brandGreenPressed,
-  sageMist: palette.softGreenFill,
-  restorativeGreen: palette.brandGreen,
+  softIvory: palette.ink,
+  porcelain: palette.pearl,
+  oliveSage: palette.restorativeSage,
+  oliveSageDark: palette.restorativeSage,
+  sageMist: palette.softBlushFill,
+  restorativeGreen: palette.restorativeSage,
   textPrimary: palette.ink,
   textSecondary: palette.secondaryText,
   textMuted: palette.tertiaryText,
-  textOnDark: palette.cardSurface,
+  textOnDark: palette.ink,
   warmBorder: palette.border,
   amberClay: palette.warmPremiumAccent,
   appBackground: palette.appBackground,
@@ -85,49 +91,55 @@ export const colors = {
   bgSurface: palette.cardSurface,
   bgElevated: palette.elevatedSurface,
   bgMaterial: palette.elevatedSurface,
-  bgSage: palette.verySoftGreenFill,
+  focusCanvas: palette.focusCanvas,
+  focusSurface: palette.focusSurface,
+  focusElevated: palette.focusElevated,
+  bgSage: palette.verySoftBlushFill,
   bgGold: palette.softGoldFill,
   borderHairline: palette.border,
   divider: palette.border,
   textTertiary: palette.tertiaryText,
-  accentDeep: palette.brandGreenPressed,
+  accentDeep: palette.blush,
   sage: palette.strongBorder,
-  sageDeep: palette.brandGreen,
+  sageDeep: palette.restorativeSage,
   accentGold: palette.warmPremiumAccent,
   goldBorder: palette.strongBorder,
-  positive: palette.emeraldAccent,
+  positive: palette.restorativeSage,
   caution: palette.warmPremiumAccent,
   cautionSoft: palette.softGoldFill,
   cautionBorder: palette.strongBorder,
-  error: '#B85C50',
-  debugOverlay: 'rgba(17,20,18,0.86)',
+  error: '#D48686',
+  debugOverlay: 'rgba(8,9,11,0.92)',
+  imageScrim: 'rgba(8,9,11,0.58)',
+  overlaySurface: 'rgba(16,17,20,0.88)',
+  modalBackdrop: 'rgba(0,0,0,0.76)',
   shadowSoft: palette.softShadow,
-  onAccent: palette.cardSurface,
+  onAccent: palette.focusCanvas,
 } as const;
 
 export const imageOverlayControl = {
-  background: 'rgba(255,253,249,0.25)',
-  border: 'rgba(255,253,249,0.28)',
-  text: colors.onAccent,
+  background: 'rgba(16,17,20,0.62)',
+  border: 'rgba(243,236,232,0.24)',
+  text: colors.textPrimary,
 } as const;
 
 export const todayHomeColors = {
-  background: '#F9F5EF',
-  card: '#FFFDF9',
-  cardAlt: '#FFFDF9',
-  iconFill: 'transparent',
-  ringTrack: '#ECE7DA',
-  border: '#E5DED2',
-  shadow: 'rgba(17,20,18,0.04)',
-  primaryText: '#142019',
-  headingGreen: '#414C34',
-  secondaryText: '#62685F',
-  mutedText: '#7B8178',
-  primary: '#414C34',
-  hero: '#414C34',
-  heroDeep: '#414C34',
-  tabActive: '#414C34',
-  warmWhite: '#FFFDF9',
+  background: palette.appBackground,
+  card: palette.cardSurface,
+  cardAlt: palette.elevatedSurface,
+  iconFill: palette.verySoftBlushFill,
+  ringTrack: palette.strongBorder,
+  border: palette.border,
+  shadow: palette.softShadow,
+  primaryText: palette.ink,
+  headingGreen: palette.blush,
+  secondaryText: palette.secondaryText,
+  mutedText: palette.tertiaryText,
+  primary: palette.pearl,
+  hero: palette.cardSurface,
+  heroDeep: palette.appBackground,
+  tabActive: palette.blush,
+  warmWhite: palette.ink,
 } as const;
 
 /* ----------------------------------------------------------------------------
@@ -142,15 +154,15 @@ export const fonts = {
 } as const;
 
 export const type = {
-  display: { fontFamily: fonts.sansMedium, fontSize: 36, lineHeight: 43, letterSpacing: 0, color: colors.textPrimary },
-  h1: { fontFamily: fonts.sansMedium, fontSize: 30, lineHeight: 36, letterSpacing: 0, color: colors.textPrimary },
+  display: { fontFamily: fonts.serifRegular, fontSize: 36, lineHeight: 43, letterSpacing: 0, color: colors.textPrimary },
+  h1: { fontFamily: fonts.serifRegular, fontSize: 30, lineHeight: 36, letterSpacing: 0, color: colors.textPrimary },
   h2: { fontFamily: fonts.sansMedium, fontSize: 22, lineHeight: 29, letterSpacing: 0, color: colors.textPrimary },
   h3: { fontFamily: fonts.sansMedium, fontSize: 18, lineHeight: 25, letterSpacing: 0, color: colors.textPrimary },
 
   body: { fontFamily: fonts.sansRegular, fontSize: 17, lineHeight: 27, letterSpacing: 0, color: colors.textPrimary },
   bodySmall: { fontFamily: fonts.sansRegular, fontSize: 15, lineHeight: 23, letterSpacing: 0, color: colors.textPrimary },
   caption: { fontFamily: fonts.sansRegular, fontSize: 14, lineHeight: 20, letterSpacing: 0, color: colors.textSecondary },
-  pageTitle: { fontFamily: fonts.serifRegular, fontSize: 28, lineHeight: 34, letterSpacing: 0, color: colors.textPrimary },
+  pageTitle: { fontFamily: fonts.serifRegular, fontSize: 30, lineHeight: 36, letterSpacing: 0, color: colors.textPrimary },
   pageSubtitle: { fontFamily: fonts.sansRegular, fontSize: 14, lineHeight: 20, letterSpacing: 0, color: colors.textSecondary },
   cardTitle: { fontFamily: fonts.serifMedium, fontSize: 18, lineHeight: 24, letterSpacing: 0, color: colors.textPrimary },
   cardBody: { fontFamily: fonts.sansRegular, fontSize: 14, lineHeight: 20, letterSpacing: 0, color: colors.textSecondary },
@@ -195,12 +207,12 @@ export const spacing = {
  * ------------------------------------------------------------------------- */
 
 export const radius = {
-  input: 14,
-  button: 999,
-  card: 16,
-  panel: 20,
-  xl: 22,
-  modal: 28,
+  input: 8,
+  button: 8,
+  card: 8,
+  panel: 8,
+  xl: 8,
+  modal: 8,
   pill: 999,
   sm: 8,
 } as const;
@@ -210,30 +222,26 @@ export const minTapTarget = 48;
 
 export const shadow = {
   card: {
-    // Soft but perceptible lift so a card reads as a distinct surface against
-    // the near-identical warm background (bgBase #F9F5EF vs card #FFFDF9).
-    // Kept quiet to preserve the calm aesthetic; a real downward offset does
-    // the work a 0-offset near-zero shadow could not.
-    boxShadow: '0 1px 2px rgba(17,20,18,0.05), 0 4px 14px rgba(17,20,18,0.05)',
-    shadowColor: 'rgba(17,20,18,1)',
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 1,
+    boxShadow: '0 12px 30px rgba(0,0,0,0.22)',
+    shadowColor: '#000000',
+    shadowOpacity: 0.22,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
   } satisfies ViewStyle,
   soft: {
-    shadowColor: 'rgba(17,20,18,1)',
-    shadowOpacity: 0.025,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 0,
+    shadowColor: '#000000',
+    shadowOpacity: 0.14,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1,
   } satisfies ViewStyle,
   lifted: {
-    shadowColor: 'rgba(17,20,18,1)',
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 0,
+    shadowColor: '#000000',
+    shadowOpacity: 0.28,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 4,
   } satisfies ViewStyle,
 } as const;
 
@@ -248,6 +256,8 @@ export const componentStyles = {
       paddingVertical: 18,
       borderRadius: radius.card,
       backgroundColor: colors.card,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.borderHairline,
       ...shadow.card,
     } satisfies ViewStyle,
     elevated: {
@@ -255,6 +265,8 @@ export const componentStyles = {
       paddingVertical: 18,
       borderRadius: radius.card,
       backgroundColor: colors.elevatedCard,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.borderHairline,
       ...shadow.card,
     } satisfies ViewStyle,
     flat: {
@@ -262,13 +274,16 @@ export const componentStyles = {
       paddingVertical: 18,
       borderRadius: radius.card,
       backgroundColor: colors.card,
-      ...shadow.card,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.borderHairline,
     } satisfies ViewStyle,
     feature: {
       paddingHorizontal: 18,
       paddingVertical: 18,
       borderRadius: radius.panel,
       backgroundColor: colors.accent,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.accentBorder,
       ...shadow.card,
     } satisfies ViewStyle,
   },
@@ -367,9 +382,9 @@ export const componentStyles = {
  * ------------------------------------------------------------------------- */
 
 export const skeleton = {
-  background: colors.bgBase,
-  figureTop: palette.brandGreen,
-  figureBottom: palette.brandGreenPressed,
+  background: colors.focusCanvas,
+  figureTop: palette.pearl,
+  figureBottom: palette.blush,
   bright: colors.textPrimary,
   dim: colors.textTertiary,
 } as const;

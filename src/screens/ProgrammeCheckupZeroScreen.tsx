@@ -26,7 +26,7 @@ import { checkupZeroBatterySequence } from '../programme';
 import { createMovementProfileV2InternalFlow } from '../movementProfileV2/internalCheckupFlow';
 import type { CheckUp } from '../checkup';
 import type { StoredCheckUp } from '../history';
-import { colors, fonts, radius, spacing, type } from '../theme';
+import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 import { MovementProfileV2UnifiedCheckUpScreen } from './MovementProfileV2UnifiedCheckUpScreen';
 
@@ -161,7 +161,7 @@ function CheckupZeroMessage({
 }) {
   const responsive = useResponsiveLayout();
   return (
-    <Screen contentStyle={checkupStyles.screen}>
+    <Screen tone="focus" contentStyle={checkupStyles.screen}>
       <ScreenHeader eyebrow="Movement check" title={title} subtitle={subtitle} />
       {countdownSeconds !== undefined ? (
         <View style={[checkupStyles.panel, checkupStyles.countdownPanel]}>
@@ -195,10 +195,10 @@ const checkupStyles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.xl,
     borderRadius: radius.sm,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.focusSurface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
-    boxShadow: '0 10px 26px rgba(17,20,18,0.032)',
+    ...shadow.soft,
   },
   compactCardPadding: {
     paddingHorizontal: 14,

@@ -5435,3 +5435,41 @@ per screen — so display-only and theoretical).
 Device pass addition: first-install flow should show the permission ask on
 the check-up intro, and a Check-up #0 run should speak "Next, the thirty
 second chair stand…" after the balance item.
+
+## 2026-07-09 — Pearl UI adopts a charcoal, pearl, and blush visual system
+
+Founder-directed visual redesign. The supplied reference is a design-language
+reference, not a screen specification: Pearl keeps its existing three-tab
+information architecture and product data instead of copying the reference's
+five tabs, readiness score, or daily charts.
+
+- `src/theme` remains the single source of truth. After a target-demographic
+  review, everyday screens use a warmer charcoal canvas (`#171719`) with
+  visibly separated card (`#232326`) and elevated (`#2A292C`) surfaces. Active
+  workouts and Movement Check-Ups retain the deeper `focusCanvas #101114` for
+  privacy and concentration. Warm pearl actions, blush emphasis, warm-white
+  text, and restrained sage/amber semantic states complete the palette.
+  Serif type is reserved for editorial headings and important result/session
+  names; interaction copy remains sans-serif. Cards and controls use compact
+  8-point geometry, quiet borders, and dark-surface depth.
+- Home remains action-first, Progress remains measurement-led, and Learn is
+  now editorially structured with one featured article and a compact list.
+  Settings remains a grouped menu. No route, programme state, data contract,
+  or callback changed.
+- Workout and Movement Check-Up changes are presentation-only. Their
+  controllers, phase machines, voice timing, measurement reducers, camera
+  ownership, and completion/abandonment contracts are unchanged. The native
+  camera canvas and skeleton/figure defaults were recoloured to match the dark
+  shell; camera video is still never rendered.
+- App launch, browsing surfaces, auth, onboarding, camera setup, results,
+  moment screens, empty/error states, and modals share the warm-dark canvas so
+  there are no light-theme flashes. Native pose canvases and the skeleton
+  preview mirror `focusCanvas`, and the shared `Screen` primitive owns the
+  focus/background distinction. No dependency was added; Reanimated remains
+  absent.
+
+Verification: TypeScript clean; Expo public config resolves
+`userInterfaceStyle: dark` and `backgroundColor: #171719`; 173 Jest suites / 1,482
+tests green. iOS simulator build and Android debug Kotlin compilation both
+succeeded, followed by visual checks of onboarding and populated Home,
+Progress, Learn, and Settings surfaces.

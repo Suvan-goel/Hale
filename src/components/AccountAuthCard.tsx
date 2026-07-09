@@ -630,6 +630,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     ...shadow.card,
   },
   compactAccountIcon: {
@@ -658,7 +660,7 @@ const styles = StyleSheet.create({
   },
   exportButton: {
     minHeight: 54,
-    borderRadius: radius.pill,
+    borderRadius: radius.button,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -675,7 +677,7 @@ const styles = StyleSheet.create({
   },
   signOutButton: {
     minHeight: 54,
-    borderRadius: radius.pill,
+    borderRadius: radius.button,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -705,6 +707,8 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
   },
   compactActionDisabled: {
     opacity: 0.55,
@@ -715,6 +719,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xxl,
     backgroundColor: colors.bgSurface,
     borderRadius: radius.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     ...shadow.card,
   },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
@@ -744,7 +750,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderRadius: radius.pill,
+    borderRadius: radius.button,
     backgroundColor: colors.bgSurface,
     borderWidth: 1,
     borderColor: colors.border,

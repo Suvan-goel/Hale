@@ -16,12 +16,12 @@ import { buildSkeletonPaths, emptySkeletonPaths } from '../src/render/skeletonGe
 // Theme literals inlined (importing src/theme would pull in react-native, which
 // the tsx/esbuild runner can't transform). Keep in sync with src/theme tokens.
 const skeleton = {
-  background: '#F9F5EF',
-  figureTop: '#414C34', // inky brand green at the top
-  figureBottom: '#414C34', // unified green base
-  dim: '#8B938D', // muted stone grey for occluded parts
+  background: '#101114',
+  figureTop: '#EEE2DC',
+  figureBottom: '#CBA89D',
+  dim: '#85807E',
 };
-const colors = { bgBase: '#F9F5EF' };
+const colors = { focusCanvas: '#101114' };
 
 const WIDTH = 390;
 const HEIGHT = 844;
@@ -40,7 +40,7 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${
       <stop offset="1" stop-color="${skeleton.figureBottom}"/>
     </linearGradient>
   </defs>
-  <rect width="${WIDTH}" height="${HEIGHT}" fill="${colors.bgBase}"/>
+  <rect width="${WIDTH}" height="${HEIGHT}" fill="${colors.focusCanvas}"/>
   <path d="${paths.dim || 'M-9 -9'}" fill="${skeleton.dim}"/>
   <path d="${paths.bright || 'M-9 -9'}" fill="url(#figure)"/>
   <path d="${paths.head || 'M-9 -9'}" fill="url(#figure)"/>

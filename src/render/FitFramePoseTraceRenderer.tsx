@@ -47,20 +47,20 @@ export interface FitFramePoseTraceRendererProps {
 }
 
 const EMPTY_PATHS = emptyFitFramePoseTracePaths();
-const TRACE_STROKE = 'rgba(65,76,52,0.72)';
-const TRACE_STROKE_FAINT = 'rgba(65,76,52,0.28)';
-const TRACE_STROKE_GHOST = 'rgba(65,76,52,0.12)';
-const TRACE_POINT = 'rgba(17,20,18,0.44)';
-const TRACE_POINT_MINOR_HALO = 'rgba(65,76,52,0.07)';
-const TRACE_POINT_MAJOR_HALO = 'rgba(65,76,52,0.13)';
-const TRACE_POINT_MAJOR = 'rgba(65,76,52,0.66)';
-const TRACE_POINT_FAINT = 'rgba(65,76,52,0.18)';
-const TRACE_POINT_GHOST = 'rgba(65,76,52,0.08)';
-const TRACE_POINT_HEAD_HALO = 'rgba(65,76,52,0.12)';
-const TRACE_POINT_HEAD = 'rgba(65,76,52,0.72)';
+const TRACE_STROKE = 'rgba(238,226,220,0.76)';
+const TRACE_STROKE_FAINT = 'rgba(203,168,157,0.34)';
+const TRACE_STROKE_GHOST = 'rgba(203,168,157,0.15)';
+const TRACE_POINT = 'rgba(238,226,220,0.50)';
+const TRACE_POINT_MINOR_HALO = 'rgba(203,168,157,0.10)';
+const TRACE_POINT_MAJOR_HALO = 'rgba(203,168,157,0.18)';
+const TRACE_POINT_MAJOR = 'rgba(238,226,220,0.72)';
+const TRACE_POINT_FAINT = 'rgba(203,168,157,0.24)';
+const TRACE_POINT_GHOST = 'rgba(203,168,157,0.11)';
+const TRACE_POINT_HEAD_HALO = 'rgba(203,168,157,0.18)';
+const TRACE_POINT_HEAD = 'rgba(238,226,220,0.82)';
 const DEFAULT_SOURCE_ASPECT = 3 / 4;
-const FRAME_BORDER = 'rgba(65,76,52,0.48)';
-const EDGE_CAUTION = '#F26A1B';
+const FRAME_BORDER = 'rgba(243,236,232,0.24)';
+const EDGE_CAUTION = '#C9A77D';
 const CONFIDENCE_ATTACK_MS = 70;
 const CONFIDENCE_RELEASE_MS = 260;
 const CONFIDENCE_RESET_GAP_MS = 700;
@@ -79,7 +79,7 @@ const EDGE_OVERLAY_GRADIENT_IDS = {
 const EMPTY_D = 'M-9-9';
 // When the native segmentation-mask figure is on, it renders BEHIND this SVG;
 // an opaque card fill would hide it entirely.
-const CARD_FILL = fitFrameCanvasFill(resolveSegmentationMaskFigureEnabled(), colors.bgBase);
+const CARD_FILL = fitFrameCanvasFill(resolveSegmentationMaskFigureEnabled(), colors.focusCanvas);
 const NO_EDGE_FLAGS: FitFrameTraceEdgeFlags = {
   left: false,
   right: false,

@@ -216,6 +216,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: radius.card,
     backgroundColor: colors.bgMaterial,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     ...shadow.card,
   },
   heroImage: {
@@ -230,7 +232,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
-    boxShadow: '0 10px 26px rgba(17,20,18,0.032)',
+    ...shadow.soft,
   },
   panelBody: {
     ...type.bodySmall,
@@ -248,7 +250,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     borderRadius: radius.sm,
-    backgroundColor: colors.bgBase,
+    backgroundColor: colors.bgElevated,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
   },

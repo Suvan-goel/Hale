@@ -19,7 +19,7 @@ import {
   PROGRAMME_SESSION_RPE_OPTIONS,
   type SessionRpe,
 } from '../programme';
-import { colors, radius, spacing, type } from '../theme';
+import { colors, radius, shadow, spacing, type } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 
 export interface ProgrammeMomentAction {
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
-    boxShadow: '0 10px 26px rgba(17,20,18,0.032)',
+    ...shadow.soft,
   },
   panelBody: {
     ...type.bodySmall,

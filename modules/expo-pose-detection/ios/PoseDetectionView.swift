@@ -86,10 +86,10 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
 
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
-    // bg-base (#F9F5EF) - keep in sync with the JS theme token (src/theme).
-    backgroundColor = UIColor(red: 0xF9 / 255.0, green: 0xF5 / 255.0, blue: 0xEF / 255.0, alpha: 1.0)
+    // focus-canvas (#101114) - keep in sync with the JS theme token (src/theme).
+    backgroundColor = UIColor(red: 0x10 / 255.0, green: 0x11 / 255.0, blue: 0x14 / 255.0, alpha: 1.0)
     skeletonLayer.fillColor = nil
-    skeletonLayer.strokeColor = UIColor.black.cgColor
+    skeletonLayer.strokeColor = UIColor(red: 0xEE / 255.0, green: 0xE2 / 255.0, blue: 0xDC / 255.0, alpha: 1.0).cgColor
     skeletonLayer.lineCap = .round
     skeletonLayer.lineJoin = .round
     skeletonLayer.contentsScale = UIScreen.main.scale
@@ -155,7 +155,7 @@ class PoseDetectionView: ExpoView, AVCaptureVideoDataOutputSampleBufferDelegate 
   }
 
   func setNativeSkeletonColorProp(_ value: String) {
-    skeletonLayer.strokeColor = UIColor(hexString: value)?.cgColor ?? UIColor.black.cgColor
+    skeletonLayer.strokeColor = UIColor(hexString: value)?.cgColor ?? UIColor(red: 0xEE / 255.0, green: 0xE2 / 255.0, blue: 0xDC / 255.0, alpha: 1.0).cgColor
   }
 
   func setNativeBenchmarkOverlayModeProp(_ value: String) {}

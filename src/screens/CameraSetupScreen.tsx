@@ -144,6 +144,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: radius.card,
     backgroundColor: colors.bgMaterial,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     ...shadow.card,
   },
   setupImage: {
@@ -156,6 +158,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     ...shadow.card,
   },
   compactCardPadding: {
@@ -193,17 +197,17 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   stepList: {
-    gap: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.borderHairline,
   },
   step: {
     minHeight: 72,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.lg,
-    borderRadius: radius.input,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.background,
+    paddingVertical: spacing.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.borderHairline,
   },
   stepMark: {
     width: 34,
@@ -211,7 +215,7 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.bgSurface,
+    backgroundColor: colors.bgElevated,
   },
   stepMarkText: {
     ...type.cardCaption,
@@ -235,6 +239,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
     borderRadius: radius.card,
     backgroundColor: colors.bgSurface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
     ...shadow.card,
   },
   expectMark: {
