@@ -16,6 +16,13 @@ const screenSource = readFileSync(
 const shellSource = readFileSync(join(process.cwd(), 'src/screens/ProgrammeV2Root.tsx'), 'utf8');
 
 describe('VoiceSessionScreen side-contract wiring', () => {
+  it('shows the instructional graphic before the user starts each movement', () => {
+    expect(screenSource).toContain("import { ExerciseDemoGraphic }");
+    expect(screenSource).toContain("snapshot.phase === 'instructions'");
+    expect(screenSource).toContain("snapshot.phase === 'waiting_ready'");
+    expect(screenSource).toContain('<ExerciseDemoGraphic');
+  });
+
   it('records abandonment on unmount via the controller (idempotent path)', () => {
     expect(screenSource).toMatch(/return \(\) => \{[^}]*controller\.recordAbandonment\(\)/s);
   });

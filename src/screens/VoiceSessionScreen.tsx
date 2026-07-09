@@ -28,6 +28,7 @@ import {
   type VoicePermissionResponse,
 } from '../../modules/expo-voice-commands';
 import { VoiceChannel } from '../audio/voicePlayer';
+import { ExerciseDemoGraphic } from '../components/ExerciseDemoGraphic';
 import { PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../components/ui';
 import { addBreadcrumb, captureError } from '../services/observability/sentry';
 import { SessionFunnelStore } from '../telemetry/sessionFunnelStore';
@@ -235,6 +236,10 @@ export function VoiceSessionScreen({
   const showSafetyLine =
     gate.kind === 'listen' && (gate.showSafetyLine || safetyLineShownThisSession.current);
   const wantsEndConfirm = confirmEnd || snapshot.stopRequested;
+  const showInstructionalDemo =
+    !!snapshot.exerciseId &&
+    !!exerciseName &&
+    (snapshot.phase === 'instructions' || snapshot.phase === 'waiting_ready');
 
   return (
     <Screen tone="focus" contentStyle={styles.screen}>
@@ -258,7 +263,12 @@ export function VoiceSessionScreen({
           </View>
         ) : null}
 
-        {exerciseName || Number.isFinite(snapshot.remainingSec) ? (
+        {showInstructionalDemo ? (
+          <ExerciseDemoGraphic
+            exerciseId={snapshot.exerciseId as string}
+            displayName={exerciseName as string}
+          />
+        ) : exerciseName || Number.isFinite(snapshot.remainingSec) ? (
           <View style={styles.stage}>
             {exerciseName ? (
               <>
