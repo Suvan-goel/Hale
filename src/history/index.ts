@@ -8,3 +8,12 @@ export { HISTORY_SCHEMA_VERSION, deserializeCheckUp, migrate, serializeCheckUp }
 export type { StoredCheckUp, StoredCheckUpMetadata, StoredCheckUpType } from './serialize';
 export { HistoryStore, createMemoryFs } from './store';
 export type { HistoryFs } from './store';
+export {
+  OFFICIAL_CHECKUP_DRAFT_FILE,
+  OFFICIAL_CHECKUP_DRAFT_SCHEMA_VERSION,
+  OfficialCheckUpDraftStore,
+} from './officialCheckUpDraftStore';
+export type {
+  OfficialCheckUpDraft,
+  OfficialCheckUpDraftType,
+} from './officialCheckUpDraftStore';
