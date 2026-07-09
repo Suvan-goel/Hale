@@ -338,8 +338,14 @@ export function generateProgrammeSession(input: GenerateSessionInput): Programme
 
 function activePhasePrescription(state: ProgrammeState): ProgrammePhasePrescription | null {
   const journey = state.journey;
-  if (journey?.status !== 'active' || journey.currentPhase === null) return null;
-  return journey.phasePrescriptions[journey.currentPhase] ?? null;
+  if (journey?.status === 'active' && journey.currentPhase !== null) {
+    return journey.phasePrescriptions[journey.currentPhase] ?? null;
+  }
+  // Completing week 12 closes the measurement journey, not the value of its
+  // latest prescription. Continuing workouts retain Phase 3 as a calm
+  // maintenance focus until a future, explicit next-cycle product exists.
+  if (journey?.status === 'completed') return journey.phasePrescriptions[3] ?? null;
+  return null;
 }
 
 function effectiveFocusForSession(

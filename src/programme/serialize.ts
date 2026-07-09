@@ -13,6 +13,7 @@
 import type { ActivityLevel } from '../adherence';
 import {
   PROGRAMME_JOURNEY_CHECKPOINT_KINDS,
+  PROGRAMME_JOURNEY_POLICY_FINGERPRINT,
   PROGRAMME_JOURNEY_POLICY_VERSION,
   PROGRAMME_JOURNEY_SCHEMA_VERSION,
   createEmptyProgrammeJourneyState,
@@ -24,6 +25,7 @@ import {
 } from './journey';
 import {
   PHYSICAL_TRAINING_FOCI,
+  PROGRAMME_PHASE_PRESCRIPTION_POLICY_FINGERPRINT,
   PROGRAMME_PHASE_NUMBERS,
   PROGRAMME_PHASE_PRESCRIPTION_POLICY_VERSION,
   PROGRAMME_PHASE_PRESCRIPTION_SCHEMA_VERSION,
@@ -288,7 +290,7 @@ function validProgrammeJourney(v: unknown): ProgrammeJourneyState | null {
   if (
     v.schemaVersion !== PROGRAMME_JOURNEY_SCHEMA_VERSION ||
     v.policyVersion !== PROGRAMME_JOURNEY_POLICY_VERSION ||
-    !nonEmptyString(v.policyFingerprint)
+    v.policyFingerprint !== PROGRAMME_JOURNEY_POLICY_FINGERPRINT
   ) {
     return null;
   }
@@ -330,7 +332,7 @@ function validProgrammeJourney(v: unknown): ProgrammeJourneyState | null {
   const sessionCredits = validJourneySessionCredits(v.sessionCredits);
   if (!checkpoints || !phasePrescriptions || !sessionCredits) return null;
 
-  return {
+  const journey: ProgrammeJourneyState = {
     schemaVersion: PROGRAMME_JOURNEY_SCHEMA_VERSION,
     policyVersion: PROGRAMME_JOURNEY_POLICY_VERSION,
     policyFingerprint: v.policyFingerprint,
@@ -343,6 +345,182 @@ function validProgrammeJourney(v: unknown): ProgrammeJourneyState | null {
     phasePrescriptions,
     sessionCredits,
   };
+  return validProgrammeJourneyTopology(journey) ? journey : null;
+}
+
+/**
+ * Structural parsing above proves each record is safe to read. This second
+ * pass proves the records describe one journey that the state machine could
+ * actually have produced. Journey persistence remains all-or-nothing: a
+ * relational mismatch must never leave a plausible-looking partial phase.
+ */
+function validProgrammeJourneyTopology(journey: ProgrammeJourneyState): boolean {
+  if (journey.status === 'awaiting_baseline') {
+    return (
+      knownCheckpointKinds(journey).length === 0 &&
+      knownPrescriptionPhases(journey).length === 0 &&
+      journey.sessionCredits.length === 0
+    );
+  }
+
+  const expectedCheckpointKinds: readonly ProgrammeJourneyCheckpointKind[] =
+    journey.status === 'completed'
+      ? PROGRAMME_JOURNEY_CHECKPOINT_KINDS
+      : PROGRAMME_JOURNEY_CHECKPOINT_KINDS.slice(0, journey.currentPhase ?? 0);
+  const expectedPrescriptionPhases: readonly ProgrammePhaseNumber[] =
+    journey.status === 'completed'
+      ? PROGRAMME_PHASE_NUMBERS
+      : PROGRAMME_PHASE_NUMBERS.slice(0, journey.currentPhase ?? 0);
+
+  if (
+    !sameOrderedValues(knownCheckpointKinds(journey), expectedCheckpointKinds) ||
+    !sameOrderedValues(knownPrescriptionPhases(journey), expectedPrescriptionPhases)
+  ) {
+    return false;
+  }
+
+  const checkpointIds = new Set<string>();
+  const sourceCheckUpIds = new Set<string>();
+  const sourceAssessmentIds = new Set<string>();
+  let priorCheckpointTime = Number.NEGATIVE_INFINITY;
+
+  for (const kind of expectedCheckpointKinds) {
+    const checkpoint = journey.checkpoints[kind];
+    if (!checkpoint) return false;
+
+    const expectedStartedPhase = phaseStartedByPersistedCheckpoint(kind);
+    const expectedSourceType =
+      kind === 'baseline'
+        ? checkpoint.sourceCheckUpType === 'baseline' ||
+          checkpoint.sourceCheckUpType === 'baseline_retake'
+        : checkpoint.sourceCheckUpType === 'official_retest';
+    const checkpointTime = Date.parse(checkpoint.completedAtIso);
+    if (
+      checkpoint.startedPhase !== expectedStartedPhase ||
+      !expectedSourceType ||
+      checkpointTime <= priorCheckpointTime ||
+      checkpointIds.has(checkpoint.checkpointId) ||
+      sourceCheckUpIds.has(checkpoint.sourceCheckUpId) ||
+      sourceAssessmentIds.has(checkpoint.sourceAssessmentId)
+    ) {
+      return false;
+    }
+    priorCheckpointTime = checkpointTime;
+    checkpointIds.add(checkpoint.checkpointId);
+    sourceCheckUpIds.add(checkpoint.sourceCheckUpId);
+    sourceAssessmentIds.add(checkpoint.sourceAssessmentId);
+
+    if (expectedStartedPhase === null) {
+      if (checkpoint.prescriptionId !== null) return false;
+      continue;
+    }
+
+    const prescription = journey.phasePrescriptions[expectedStartedPhase];
+    if (!prescription || !checkpointMatchesPrescription(checkpoint, prescription)) {
+      return false;
+    }
+  }
+
+  const baseline = journey.checkpoints.baseline;
+  if (!baseline || journey.startedAtIso !== baseline.completedAtIso) return false;
+
+  if (journey.status === 'active') {
+    const currentPhase = journey.currentPhase;
+    if (currentPhase === null) return false;
+    const phaseCheckpoint = journey.checkpoints[checkpointStartingPhase(currentPhase)];
+    if (
+      !phaseCheckpoint ||
+      journey.currentPhaseStartedAtIso !== phaseCheckpoint.completedAtIso
+    ) {
+      return false;
+    }
+  } else {
+    const finalCheckpoint = journey.checkpoints.week12;
+    if (!finalCheckpoint || journey.completedAtIso !== finalCheckpoint.completedAtIso) {
+      return false;
+    }
+  }
+
+  const startedPhases = new Set(expectedPrescriptionPhases);
+  return journey.sessionCredits.every((credit) => startedPhases.has(credit.phase));
+}
+
+function knownCheckpointKinds(
+  journey: ProgrammeJourneyState
+): ProgrammeJourneyCheckpointKind[] {
+  return PROGRAMME_JOURNEY_CHECKPOINT_KINDS.filter(
+    (kind) => journey.checkpoints[kind] !== undefined
+  );
+}
+
+function knownPrescriptionPhases(journey: ProgrammeJourneyState): ProgrammePhaseNumber[] {
+  return PROGRAMME_PHASE_NUMBERS.filter(
+    (phase) => journey.phasePrescriptions[phase] !== undefined
+  );
+}
+
+function sameOrderedValues<T>(actual: readonly T[], expected: readonly T[]): boolean {
+  return (
+    actual.length === expected.length &&
+    actual.every((value, index) => value === expected[index])
+  );
+}
+
+function phaseStartedByPersistedCheckpoint(
+  kind: ProgrammeJourneyCheckpointKind
+): ProgrammePhaseNumber | null {
+  if (kind === 'baseline') return 1;
+  if (kind === 'week4') return 2;
+  if (kind === 'week8') return 3;
+  return null;
+}
+
+function checkpointStartingPhase(
+  phase: ProgrammePhaseNumber
+): ProgrammeJourneyCheckpointKind {
+  if (phase === 1) return 'baseline';
+  if (phase === 2) return 'week4';
+  return 'week8';
+}
+
+function checkpointMatchesPrescription(
+  checkpoint: ProgrammeJourneyCheckpoint,
+  prescription: ProgrammePhasePrescription
+): boolean {
+  return (
+    checkpoint.prescriptionId === prescription.prescriptionId &&
+    checkpoint.startedPhase === prescription.phase &&
+    checkpoint.sourceCheckUpId === prescription.sourceCheckUpId &&
+    checkpoint.sourceCheckUpType === prescription.sourceCheckUpType &&
+    checkpoint.sourceAssessmentId === prescription.sourceAssessmentId &&
+    checkpoint.sourceAssessmentFingerprint === prescription.sourceAssessmentFingerprint &&
+    checkpoint.physicalFocus === prescription.physicalFocus &&
+    validPrescriptionFocusTopology(prescription)
+  );
+}
+
+function validPrescriptionFocusTopology(
+  prescription: ProgrammePhasePrescription
+): boolean {
+  if (prescription.physicalFocus === 'strength') {
+    return (
+      prescription.canonicalFocus.kind === 'domain' &&
+      prescription.canonicalFocus.domain === 'strength_power' &&
+      prescription.dosePolicy.focusBlockStrategy === 'strength_each_session'
+    );
+  }
+  if (prescription.physicalFocus === 'balance') {
+    return (
+      prescription.canonicalFocus.kind === 'domain' &&
+      prescription.canonicalFocus.domain === 'balance' &&
+      prescription.dosePolicy.focusBlockStrategy === 'balance_each_session'
+    );
+  }
+  return (
+    prescription.canonicalFocus.kind === 'balanced' &&
+    prescription.canonicalFocus.domain === null &&
+    prescription.dosePolicy.focusBlockStrategy === 'alternate_strength_balance'
+  );
 }
 
 function validJourneyCheckpoints(
@@ -428,7 +606,7 @@ function validPhasePrescription(
   if (
     v.schemaVersion !== PROGRAMME_PHASE_PRESCRIPTION_SCHEMA_VERSION ||
     v.policyVersion !== PROGRAMME_PHASE_PRESCRIPTION_POLICY_VERSION ||
-    !nonEmptyString(v.policyFingerprint) ||
+    v.policyFingerprint !== PROGRAMME_PHASE_PRESCRIPTION_POLICY_FINGERPRINT ||
     !nonEmptyString(v.prescriptionId) ||
     v.phase !== expectedPhase ||
     physicalFocus === undefined ||

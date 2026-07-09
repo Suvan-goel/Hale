@@ -29,6 +29,7 @@ import {
   surfaceAlreadyShown,
 } from './postOnboarding';
 import { applyInactivityRegressionIfDue } from './promotion';
+import { isProgrammeJourneyRetestDue } from './journey';
 import {
   generateProgrammeSession,
   type ProgrammeSessionPlan,
@@ -73,15 +74,39 @@ export function nextProgrammeSessionInput(state: ProgrammeState): NextProgrammeS
 export type ProgrammeTodayStateId =
   | 'first_session_ready'
   | 'session_ready'
-  | 'returning_after_break';
+  | 'returning_after_break'
+  | 'baseline_due';
 
 /** Mirrors the old lifecycle's action vocabulary so TodayScreen ports cleanly. */
 export interface ProgrammeTodayAction {
-  type: 'start_first_session' | 'start_today_session' | 'start_gentle_restart';
+  type:
+    | 'start_first_session'
+    | 'start_today_session'
+    | 'start_gentle_restart'
+    | 'start_baseline_checkup';
   title: string;
   subtitle: string;
   ctaLabel: string;
   tone: 'default' | 'gentle';
+}
+
+/**
+ * The baseline can be deferred for one generic starter, but never becomes an
+ * open-ended generic programme. Legacy `skipped` installs and an interrupted
+ * "do it now" path follow the same rule when health-data consent is present.
+ * The B1 gentle-start safety gate remains authoritative.
+ */
+export function baselineCheckupDueAfterStarter(state: ProgrammeState): boolean {
+  if (
+    state.journey.status !== 'awaiting_baseline' ||
+    state.completedSessionCount < 1 ||
+    !state.profile.consentHealthData ||
+    state.profile.assessmentStatus === 'done'
+  ) {
+    return false;
+  }
+  if (state.profile.gentleStartActive && !state.profile.gpConfirmed) return false;
+  return state.profile.assessmentStatus !== 'bypassed_b1' || state.profile.gpConfirmed;
 }
 
 export interface ProgrammeSessionPreview {
@@ -127,14 +152,26 @@ export function programmeTodayViewModel(
   const minutes = Math.round(plan.estimatedMinutes);
   const patternList = listSentence(plan.main.map((exercise) => patternTitle(exercise.pattern).toLowerCase()));
 
-  const stateId: ProgrammeTodayStateId = !effective.profile.firstSessionStarted
-    ? 'first_session_ready'
-    : regression.applied
-      ? 'returning_after_break'
-      : 'session_ready';
+  const baselineDue = baselineCheckupDueAfterStarter(effective);
+  const stateId: ProgrammeTodayStateId = baselineDue
+    ? 'baseline_due'
+    : !effective.profile.firstSessionStarted
+      ? 'first_session_ready'
+      : regression.applied
+        ? 'returning_after_break'
+        : 'session_ready';
 
   const primaryAction: ProgrammeTodayAction =
-    stateId === 'first_session_ready'
+    stateId === 'baseline_due'
+      ? {
+          type: 'start_baseline_checkup',
+          title: 'Build your 12-week plan',
+          subtitle:
+            'Your starter is done. Complete your private Movement Check-Up to begin Phase 1 with a measured Strength or Balance focus.',
+          ctaLabel: 'Continue to check-up',
+          tone: 'default',
+        }
+      : stateId === 'first_session_ready'
       ? {
           type: 'start_first_session',
           title: 'Your first session is ready',
@@ -167,8 +204,10 @@ export function programmeTodayViewModel(
       estimatedMinutes: plan.estimatedMinutes,
       mainPatternTitles: plan.main.map((exercise) => patternTitle(exercise.pattern)),
     },
-    sessionDetail: `Today: ${patternList} — about ${minutes} minutes.`,
-    checkupOffer: checkupOfferFor(effective, nowIso),
+    sessionDetail: baselineDue
+      ? 'About eight minutes · Strength, Balance, then optional Everyday Clarity.'
+      : `Today: ${patternList} — about ${minutes} minutes.`,
+    checkupOffer: baselineDue ? null : checkupOfferFor(effective, nowIso),
     easedAfterBreak: regression.applied,
   };
 }
@@ -184,18 +223,32 @@ export function checkupOfferFor(
   state: ProgrammeState,
   nowIso: string
 ): ProgrammeCheckupOffer | null {
-  if (routineCheckupDue(state, nowIso)) {
+  if (state.journey.status === 'completed') return null;
+  if (isProgrammeJourneyRetestDue(state.journey, nowIso)) {
     return {
       kind: 'routine_due',
-      title: 'Time for your movement check — two minutes',
-      ctaLabel: 'Start movement check',
+      title: 'Your next monthly Movement Check-Up is ready',
+      ctaLabel: 'Start check-up',
     };
   }
-  if (state.profile.assessmentStatus !== 'done' && assessmentReoffer(state, nowIso) !== 'none') {
+  // Compatibility fallback for pre-journey programme files that have a
+  // completed placement but no reconstructed official assessment artifact.
+  if (state.journey.status === 'awaiting_baseline' && routineCheckupDue(state, nowIso)) {
+    return {
+      kind: 'routine_due',
+      title: 'Your next monthly Movement Check-Up is ready',
+      ctaLabel: 'Start check-up',
+    };
+  }
+  if (
+    state.journey.status === 'awaiting_baseline' &&
+    state.profile.assessmentStatus !== 'done' &&
+    assessmentReoffer(state, nowIso) !== 'none'
+  ) {
     return {
       kind: 'standing_entry',
-      title: 'Do the two-minute movement check',
-      ctaLabel: 'Start movement check',
+      title: 'Complete your Movement Check-Up when you are ready',
+      ctaLabel: 'Start check-up',
     };
   }
   return null;
@@ -349,8 +402,8 @@ export function postSessionSurface(
   if (reoffer === 'deferred_reoffer') {
     return {
       kind: 'deferred_reoffer',
-      title: 'Ready for that two-minute movement check?',
-      body: 'It makes your levels exact. No one sees it but you, and it never leaves your phone.',
+      title: 'Ready for your Movement Check-Up?',
+      body: 'It takes about eight minutes at your pace, stays private on your phone, and starts your personalised 12-week plan.',
       startLabel: "Let's do it",
       laterLabel: 'Sounds good — later',
     };

@@ -50,8 +50,9 @@ export function assessmentInputsFromV2Results(input: {
 /**
  * Check-up #0 protocol scope (founder ruling 2026-07-06): TWO protocols only,
  * gentle-first — single-leg balance, then the 30-second chair rise (max
- * effort last), behind a brief guided warm-up moment (spec §5). ~2 minutes,
- * matching the "two minutes of moving" copy. The FULL battery is never
+ * effort last), behind a fixed guided warm-up and followed by the optional
+ * Everyday Clarity appendix. The same core protocol is used at baseline and
+ * every four-week re-test. The legacy full battery is never
  * presented at Check-up #0 or the routine programme-v2 check-ups; it may
  * return later only as an explicit opt-in "full movement check". Any
  * assessment host MUST consume this sequence — pinned by test.

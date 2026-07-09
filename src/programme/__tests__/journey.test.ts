@@ -130,6 +130,60 @@ describe('12-week programme journey', () => {
     expect(fourth.state.sessionCredits).toHaveLength(3);
   });
 
+  it('opens a fresh weekly allowance in delayed-retest weeks without changing the week-4 UI', () => {
+    let state = activeJourney();
+
+    state = mustCredit(state, session('week4-1', localIso(2026, 6, 22, 9), 'A'));
+    state = mustCredit(state, session('week4-2', localIso(2026, 6, 23, 9), 'B'));
+    state = mustCredit(state, session('week4-3', localIso(2026, 6, 24, 9), 'A'));
+    expect(
+      recordProgrammeJourneySession(
+        state,
+        session('week4-4', localIso(2026, 6, 25, 9), 'B')
+      )
+    ).toMatchObject({ kind: 'rejected', reason: 'weekly_plan_complete' });
+
+    const week5FirstInput = session('week5-1', localIso(2026, 6, 29, 9), 'A');
+    const week5First = recordProgrammeJourneySession(state, week5FirstInput);
+    expect(week5First.kind).toBe('credited');
+    if (week5First.kind !== 'credited') return;
+    state = week5First.state;
+    // The persisted v1 field remains a four-week display bucket. Enforcement
+    // uses the timestamp-derived, unbounded week index.
+    expect(week5First.credit.phaseWeek).toBe(4);
+
+    const replay = recordProgrammeJourneySession(state, week5FirstInput);
+    expect(replay.kind).toBe('already_recorded');
+    expect(replay.state).toBe(state);
+    expect(
+      recordProgrammeJourneySession(
+        state,
+        session('week5-same-day', localIso(2026, 6, 29, 20), 'B')
+      )
+    ).toMatchObject({ kind: 'rejected', reason: 'daily_credit_already_used' });
+
+    state = mustCredit(state, session('week5-2', localIso(2026, 6, 30, 9), 'B'));
+    state = mustCredit(state, session('week5-3', localIso(2026, 7, 1, 9), 'A'));
+    expect(
+      recordProgrammeJourneySession(
+        state,
+        session('week5-4', localIso(2026, 7, 2, 9), 'B')
+      )
+    ).toMatchObject({ kind: 'rejected', reason: 'weekly_plan_complete' });
+
+    state = mustCredit(state, session('week6-1', localIso(2026, 7, 6, 9), 'A'));
+    expect(programmeJourneyWeekSummaries(state, 1)[3]).toMatchObject({
+      week: 4,
+      creditedSessions: 3,
+    });
+    expect(programmeJourneyProgressAt(state, localIso(2026, 7, 6, 12))).toMatchObject({
+      currentWeek: 4,
+      currentWeekSummary: { week: 4, creditedSessions: 1, plannedComplete: false },
+      phaseCreditedSessions: 7,
+      retestDue: true,
+    });
+  });
+
   it('advances baseline → phase 1 → phase 2 → phase 3 → complete on 28-day checkpoints', () => {
     let state = activeJourney();
     expect(programmeJourneyRetestDueAtIso(state)).toBe('2026-06-29T08:00:00.000Z');

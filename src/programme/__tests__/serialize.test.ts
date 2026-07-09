@@ -8,6 +8,8 @@ import {
 import {
   PROGRAMME_JOURNEY_POLICY_FINGERPRINT,
   createEmptyProgrammeJourneyState,
+  type ProgrammeJourneyCheckpoint,
+  type ProgrammeJourneySessionCredit,
   type ProgrammeJourneyState,
 } from '../journey';
 import {
@@ -140,9 +142,35 @@ describe('defensive parsing', () => {
     expect(migrated?.journey).toEqual(createEmptyProgrammeJourneyState());
   });
 
-  it('round-trips a structurally valid active journey and its nested records', () => {
+  it.each([1, 2, 3, 'completed'] as const)(
+    'round-trips a coherent journey through %s',
+    (stage) => {
+      const state = defaultProgrammeState();
+      state.journey = journeyFixture(stage);
+      expect(deserializeProgrammeState(serializeProgrammeState(state))).toEqual(state);
+    }
+  );
+
+  it('preserves a baseline-retake journey when checkpoint and prescription provenance agree', () => {
     const state = defaultProgrammeState();
-    state.journey = activeJourneyFixture();
+    const journey = journeyFixture(1);
+    state.journey = {
+      ...journey,
+      checkpoints: {
+        ...journey.checkpoints,
+        baseline: {
+          ...journey.checkpoints.baseline!,
+          sourceCheckUpType: 'baseline_retake',
+        },
+      },
+      phasePrescriptions: {
+        ...journey.phasePrescriptions,
+        1: {
+          ...journey.phasePrescriptions[1]!,
+          sourceCheckUpType: 'baseline_retake',
+        },
+      },
+    };
     expect(deserializeProgrammeState(serializeProgrammeState(state))).toEqual(state);
   });
 
@@ -165,6 +193,18 @@ describe('defensive parsing', () => {
         raw.journey.sessionCredits[0].phaseWeek = 5;
       },
     ],
+    [
+      'journey policy fingerprint',
+      (raw: any) => {
+        raw.journey.policyFingerprint = 'foreign-journey-policy';
+      },
+    ],
+    [
+      'prescription policy fingerprint',
+      (raw: any) => {
+        raw.journey.phasePrescriptions['1'].policyFingerprint = 'foreign-focus-policy';
+      },
+    ],
   ])(
     'resets the whole journey for a malformed nested %s without discarding programme data',
     (_label, corrupt) => {
@@ -183,16 +223,231 @@ describe('defensive parsing', () => {
       expect(parsed?.ladders.hinge.currentLevel).toBe(3);
     }
   );
+
+  it.each([
+    [
+      'awaiting-baseline state retaining phase records',
+      (raw: any) => {
+        const active = activeJourneyFixture();
+        raw.journey = {
+          ...active,
+          status: 'awaiting_baseline',
+          startedAtIso: null,
+          currentPhase: null,
+          currentPhaseStartedAtIso: null,
+          completedAtIso: null,
+        };
+      },
+    ],
+    [
+      'missing earlier checkpoint',
+      (raw: any) => {
+        raw.journey = journeyFixture(2);
+        delete raw.journey.checkpoints.baseline;
+      },
+    ],
+    [
+      'future checkpoint and prescription',
+      (raw: any) => {
+        const phaseTwo = journeyFixture(2) as any;
+        raw.journey.checkpoints.week4 = phaseTwo.checkpoints.week4;
+        raw.journey.phasePrescriptions['2'] = phaseTwo.phasePrescriptions['2'];
+      },
+    ],
+    [
+      'missing required phase prescription',
+      (raw: any) => {
+        raw.journey = journeyFixture(2);
+        delete raw.journey.phasePrescriptions['2'];
+      },
+    ],
+    [
+      'future phase prescription without its checkpoint',
+      (raw: any) => {
+        raw.journey.phasePrescriptions['2'] = (journeyFixture(2) as any)
+          .phasePrescriptions['2'];
+      },
+    ],
+    [
+      'checkpoint starting the wrong phase',
+      (raw: any) => {
+        raw.journey.checkpoints.baseline.startedPhase = 2;
+      },
+    ],
+    [
+      'checkpoint linked to a different prescription id',
+      (raw: any) => {
+        raw.journey.checkpoints.baseline.prescriptionId = 'other-prescription';
+      },
+    ],
+    [
+      'checkpoint and prescription source mismatch',
+      (raw: any) => {
+        raw.journey.phasePrescriptions['1'].sourceAssessmentFingerprint =
+          'other-assessment-fingerprint';
+      },
+    ],
+    [
+      'checkpoint and prescription physical-focus mismatch',
+      (raw: any) => {
+        raw.journey.checkpoints.baseline.physicalFocus = 'balance';
+      },
+    ],
+    [
+      'internally inconsistent prescription focus',
+      (raw: any) => {
+        raw.journey.phasePrescriptions['1'].canonicalFocus.domain = 'balance';
+      },
+    ],
+    [
+      'wrong source type for checkpoint position',
+      (raw: any) => {
+        raw.journey.checkpoints.baseline.sourceCheckUpType = 'official_retest';
+        raw.journey.phasePrescriptions['1'].sourceCheckUpType = 'official_retest';
+      },
+    ],
+    [
+      'started-at timestamp not anchored to baseline',
+      (raw: any) => {
+        raw.journey.startedAtIso = '2026-01-02T09:00:00.000Z';
+      },
+    ],
+    [
+      'current-phase timestamp not anchored to its checkpoint',
+      (raw: any) => {
+        raw.journey.currentPhaseStartedAtIso = '2026-01-02T09:00:00.000Z';
+      },
+    ],
+    [
+      'out-of-order checkpoint timestamps',
+      (raw: any) => {
+        raw.journey = journeyFixture(2);
+        raw.journey.checkpoints.week4.completedAtIso = '2025-12-01T09:00:00.000Z';
+        raw.journey.currentPhaseStartedAtIso = '2025-12-01T09:00:00.000Z';
+      },
+    ],
+    [
+      'completed-at timestamp not anchored to week 12',
+      (raw: any) => {
+        raw.journey = journeyFixture('completed');
+        raw.journey.completedAtIso = '2026-03-27T09:00:00.000Z';
+      },
+    ],
+    [
+      'week-12 checkpoint attempting to start another phase',
+      (raw: any) => {
+        raw.journey = journeyFixture('completed');
+        raw.journey.checkpoints.week12.startedPhase = 3;
+      },
+    ],
+    [
+      'session credit for a phase that has not started',
+      (raw: any) => {
+        raw.journey.sessionCredits[0].phase = 2;
+      },
+    ],
+  ])('resets the whole journey for relationally invalid topology: %s', (_label, corrupt) => {
+    const state = defaultProgrammeState();
+    state.completedSessionCount = 11;
+    state.journey = activeJourneyFixture();
+    const raw = JSON.parse(serializeProgrammeState(state));
+    corrupt(raw);
+
+    const parsed = deserializeProgrammeState(JSON.stringify(raw));
+    expect(parsed?.journey).toEqual(createEmptyProgrammeJourneyState());
+    expect(parsed?.completedSessionCount).toBe(11);
+  });
 });
 
 function activeJourneyFixture(): ProgrammeJourneyState {
-  const completedAtIso = '2026-07-09T09:00:00.000Z';
+  return journeyFixture(1);
+}
+
+function journeyFixture(stage: 1 | 2 | 3 | 'completed'): ProgrammeJourneyState {
+  const phaseCount = stage === 'completed' ? 3 : stage;
+  const checkpointKinds = ['baseline', 'week4', 'week8'] as const;
+  const checkpointTimes = [
+    '2026-01-01T09:00:00.000Z',
+    '2026-01-29T09:00:00.000Z',
+    '2026-02-26T09:00:00.000Z',
+  ] as const;
+  const checkpoints: Record<string, ProgrammeJourneyCheckpoint> = {};
+  const phasePrescriptions: Record<string, ProgrammePhasePrescription> = {};
+  const sessionCredits: ProgrammeJourneySessionCredit[] = [];
+
+  for (let index = 0; index < phaseCount; index += 1) {
+    const phase = (index + 1) as 1 | 2 | 3;
+    const kind = checkpointKinds[index];
+    const completedAtIso = checkpointTimes[index];
+    const prescription = prescriptionFixture(phase, completedAtIso);
+    phasePrescriptions[String(phase)] = prescription;
+    checkpoints[kind] = {
+      checkpointId: `checkpoint-${kind}`,
+      kind,
+      completedAtIso,
+      sourceCheckUpId: prescription.sourceCheckUpId,
+      sourceCheckUpType: prescription.sourceCheckUpType,
+      sourceAssessmentId: prescription.sourceAssessmentId,
+      sourceAssessmentFingerprint: prescription.sourceAssessmentFingerprint,
+      physicalFocus: prescription.physicalFocus,
+      startedPhase: phase,
+      prescriptionId: prescription.prescriptionId,
+    };
+    sessionCredits.push({
+      creditId: `credit-${phase}`,
+      sessionId: `session-${phase}`,
+      completedAtIso: `${completedAtIso.slice(0, 8)}${String(Number(completedAtIso.slice(8, 10)) + 1).padStart(2, '0')}T09:00:00.000Z`,
+      localDateKey: `${completedAtIso.slice(0, 8)}${String(Number(completedAtIso.slice(8, 10)) + 1).padStart(2, '0')}`,
+      phase,
+      phaseWeek: 1,
+      templateId: 'A',
+    });
+  }
+
+  if (stage === 'completed') {
+    checkpoints.week12 = {
+      checkpointId: 'checkpoint-week12',
+      kind: 'week12',
+      completedAtIso: '2026-03-26T09:00:00.000Z',
+      sourceCheckUpId: 'checkup-week12',
+      sourceCheckUpType: 'official_retest',
+      sourceAssessmentId: 'assessment-week12',
+      sourceAssessmentFingerprint: 'assessment-fingerprint-week12',
+      physicalFocus: 'strength',
+      startedPhase: null,
+      prescriptionId: null,
+    };
+  }
+
+  const currentPhase = stage === 'completed' ? null : stage;
+  return {
+    schemaVersion: 1,
+    policyVersion: 1,
+    policyFingerprint: PROGRAMME_JOURNEY_POLICY_FINGERPRINT,
+    status: stage === 'completed' ? 'completed' : 'active',
+    startedAtIso: checkpointTimes[0],
+    completedAtIso: stage === 'completed' ? '2026-03-26T09:00:00.000Z' : null,
+    currentPhase,
+    currentPhaseStartedAtIso:
+      currentPhase === null ? null : checkpointTimes[currentPhase - 1],
+    checkpoints,
+    phasePrescriptions,
+    sessionCredits,
+  };
+}
+
+function prescriptionFixture(
+  phase: 1 | 2 | 3,
+  completedAtIso: string
+): ProgrammePhasePrescription {
+  const kind = (['baseline', 'week4', 'week8'] as const)[phase - 1];
+  const sourceCheckUpType = phase === 1 ? 'baseline' : 'official_retest';
   const prescription: ProgrammePhasePrescription = {
     schemaVersion: 1,
     policyVersion: 1,
     policyFingerprint: PROGRAMME_PHASE_PRESCRIPTION_POLICY_FINGERPRINT,
-    prescriptionId: 'prescription-phase-1',
-    phase: 1,
+    prescriptionId: `prescription-phase-${phase}`,
+    phase,
     physicalFocus: 'strength',
     dosePolicy: {
       plannedFocusBlocksPerWeek: 3,
@@ -204,48 +459,13 @@ function activeJourneyFixture(): ProgrammeJourneyState {
       planMode: 'checkup_reference_focus',
       decisionReason: 'v2_focus_single_below_reference',
     },
-    sourceAssessmentId: 'assessment-1',
-    sourceAssessmentFingerprint: 'assessment-fingerprint-1',
-    sourceCheckUpId: 'checkup-1',
-    sourceCheckUpType: 'baseline',
+    sourceAssessmentId: `assessment-${kind}`,
+    sourceAssessmentFingerprint: `assessment-fingerprint-${kind}`,
+    sourceCheckUpId: `checkup-${kind}`,
+    sourceCheckUpType,
     createdAtIso: completedAtIso,
   };
-  return {
-    schemaVersion: 1,
-    policyVersion: 1,
-    policyFingerprint: PROGRAMME_JOURNEY_POLICY_FINGERPRINT,
-    status: 'active',
-    startedAtIso: completedAtIso,
-    completedAtIso: null,
-    currentPhase: 1,
-    currentPhaseStartedAtIso: completedAtIso,
-    checkpoints: {
-      baseline: {
-        checkpointId: 'checkpoint-baseline',
-        kind: 'baseline',
-        completedAtIso,
-        sourceCheckUpId: 'checkup-1',
-        sourceCheckUpType: 'baseline',
-        sourceAssessmentId: 'assessment-1',
-        sourceAssessmentFingerprint: 'assessment-fingerprint-1',
-        physicalFocus: 'strength',
-        startedPhase: 1,
-        prescriptionId: prescription.prescriptionId,
-      },
-    },
-    phasePrescriptions: { 1: prescription },
-    sessionCredits: [
-      {
-        creditId: 'credit-1',
-        sessionId: 'session-1',
-        completedAtIso: '2026-07-10T09:00:00.000Z',
-        localDateKey: '2026-07-10',
-        phase: 1,
-        phaseWeek: 1,
-        templateId: 'A',
-      },
-    ],
-  };
+  return prescription;
 }
 
 describe('policy fingerprint (reviewed-snapshot discipline, C4)', () => {

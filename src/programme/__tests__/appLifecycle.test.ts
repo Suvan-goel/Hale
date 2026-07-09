@@ -30,7 +30,7 @@ function onboarded(overrides: Partial<ProgrammeState['profile']> = {}): Programm
 
 /** A returning user: first session behind them, training normally. */
 function training(overrides: Partial<ProgrammeState> = {}): ProgrammeState {
-  const state = onboarded({ firstSessionStarted: true });
+  const state = onboarded({ firstSessionStarted: true, assessmentStatus: 'done' });
   state.completedSessionCount = 1;
   state.lastSessionAtIso = daysBeforeNow(2);
   return { ...state, ...overrides };
@@ -111,6 +111,49 @@ describe('programmeTodayViewModel', () => {
     expect(vm.state).toBe('session_ready');
     expect(vm.easedAfterBreak).toBe(false);
   });
+
+  it('after one deferred starter, Home leads with the baseline instead of another generic session', () => {
+    const state = training();
+    state.profile = { ...state.profile, assessmentStatus: 'deferred' };
+    const vm = programmeTodayViewModel(state, NOW);
+    expect(vm.state).toBe('baseline_due');
+    expect(vm.primaryAction).toMatchObject({
+      type: 'start_baseline_checkup',
+      ctaLabel: 'Continue to check-up',
+    });
+    expect(vm.primaryAction.subtitle).toContain('Phase 1');
+    expect(vm.sessionDetail).toContain('Strength, Balance');
+    expect(vm.sessionDetail).not.toContain('Today:');
+    expect(vm.checkupOffer).toBeNull();
+  });
+
+  it.each(['skipped', null] as const)(
+    'legacy/interrupted %p state also stops at one generic starter',
+    (assessmentStatus) => {
+      const state = training();
+      state.profile = { ...state.profile, assessmentStatus };
+      expect(programmeTodayViewModel(state, NOW).state).toBe('baseline_due');
+    }
+  );
+
+  it('never forces the baseline through a declined-consent or active B1 safety gate', () => {
+    const declined = training();
+    declined.profile = {
+      ...declined.profile,
+      assessmentStatus: 'skipped',
+      consentHealthData: false,
+    };
+    expect(programmeTodayViewModel(declined, NOW).state).toBe('session_ready');
+
+    const gentle = training();
+    gentle.profile = {
+      ...gentle.profile,
+      assessmentStatus: 'bypassed_b1',
+      gentleStartActive: true,
+      gpConfirmed: false,
+    };
+    expect(programmeTodayViewModel(gentle, NOW).state).toBe('session_ready');
+  });
 });
 
 describe('checkupOfferFor (dev-shell home semantics preserved)', () => {
@@ -119,8 +162,8 @@ describe('checkupOfferFor (dev-shell home semantics preserved)', () => {
     due.profile = { ...due.profile, assessmentStatus: 'done', lastAssessmentAtIso: daysBeforeNow(29) };
     expect(checkupOfferFor(due, NOW)).toEqual({
       kind: 'routine_due',
-      title: 'Time for your movement check — two minutes',
-      ctaLabel: 'Start movement check',
+      title: 'Your next monthly Movement Check-Up is ready',
+      ctaLabel: 'Start check-up',
     });
 
     const fresh = training();
@@ -146,6 +189,24 @@ describe('checkupOfferFor (dev-shell home semantics preserved)', () => {
       gpConfirmed: false,
     };
     expect(checkupOfferFor(bypassed, NOW)).toBeNull();
+  });
+
+  it('does not silently start a fifth checkpoint after the 12-week journey completes', () => {
+    const completed = training();
+    completed.profile = {
+      ...completed.profile,
+      assessmentStatus: 'done',
+      lastAssessmentAtIso: daysBeforeNow(40),
+    };
+    completed.journey = {
+      ...completed.journey,
+      status: 'completed',
+      startedAtIso: daysBeforeNow(120),
+      completedAtIso: daysBeforeNow(40),
+      currentPhase: null,
+      currentPhaseStartedAtIso: null,
+    };
+    expect(checkupOfferFor(completed, NOW)).toBeNull();
   });
 });
 

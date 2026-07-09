@@ -59,6 +59,12 @@ export interface ProgrammeJourneySessionCredit {
   readonly completedAtIso: string;
   readonly localDateKey: string;
   readonly phase: ProgrammePhaseNumber;
+  /**
+   * The four-week UI/reporting bucket. A phase may remain active while its
+   * re-test is delayed, so weekly credit enforcement derives an unbounded
+   * week index from completedAtIso instead of using this persisted value.
+   * Keeping this clamped preserves the v1 on-device schema and old credits.
+   */
   readonly phaseWeek: 1 | 2 | 3 | 4;
   readonly templateId: string;
 }
@@ -322,7 +328,10 @@ export function applyOfficialAssessmentToProgrammeJourney(
   };
 }
 
-/** Record at most one journey credit per local calendar day and three/week. */
+/**
+ * Record at most one journey credit per local calendar day and three per
+ * real seven-day phase week, including week 5+ while a re-test is delayed.
+ */
 export function recordProgrammeJourneySession(
   state: ProgrammeJourneyState,
   input: ProgrammeJourneySessionInput
@@ -356,12 +365,15 @@ export function recordProgrammeJourneySession(
     return rejectedSession(state, 'daily_credit_already_used');
   }
 
+  const creditWeekIndex = Math.floor(elapsedLocalDays / 7) + 1;
   const phaseWeek = Math.min(
     PROGRAMME_JOURNEY_WEEKS_PER_PHASE,
-    Math.floor(elapsedLocalDays / 7) + 1
+    creditWeekIndex
   ) as 1 | 2 | 3 | 4;
   const weekCredits = state.sessionCredits.filter(
-    (credit) => credit.phase === state.currentPhase && credit.phaseWeek === phaseWeek
+    (credit) =>
+      credit.phase === state.currentPhase &&
+      creditWeekIndexFor(phaseStart, credit) === creditWeekIndex
   ).length;
   if (weekCredits >= PROGRAMME_JOURNEY_PLANNED_SESSIONS_PER_WEEK) {
     return rejectedSession(state, 'weekly_plan_complete');
@@ -429,20 +441,10 @@ export function programmeJourneyWeekSummaries(
   state: ProgrammeJourneyState,
   phase: ProgrammePhaseNumber
 ): readonly ProgrammeJourneyWeekSummary[] {
-  return ([1, 2, 3, 4] as const).map((week) => {
-    const creditedSessions = state.sessionCredits.filter(
-      (credit) => credit.phase === phase && credit.phaseWeek === week
-    ).length;
-    return {
-      phase,
-      week,
-      creditedSessions,
-      plannedSessions: PROGRAMME_JOURNEY_PLANNED_SESSIONS_PER_WEEK,
-      sufficientSessions: PROGRAMME_JOURNEY_SUFFICIENT_SESSIONS_PER_WEEK,
-      sufficient: creditedSessions >= PROGRAMME_JOURNEY_SUFFICIENT_SESSIONS_PER_WEEK,
-      plannedComplete: creditedSessions >= PROGRAMME_JOURNEY_PLANNED_SESSIONS_PER_WEEK,
-    };
-  });
+  const phaseStart = phaseStartedAt(state, phase);
+  return ([1, 2, 3, 4] as const).map((week) =>
+    weekSummary(state, phase, phaseStart, week, week)
+  );
 }
 
 export function programmeJourneyProgressAt(
@@ -450,10 +452,26 @@ export function programmeJourneyProgressAt(
   atIso: string
 ): ProgrammeJourneyProgress {
   const currentWeek = programmeJourneyPhaseWeekAt(state, atIso);
+  const phaseStart =
+    state.currentPhase === null ? null : phaseStartedAt(state, state.currentPhase);
+  const at = validDate(atIso);
+  const actualCurrentWeek =
+    phaseStart === null || at === null ? null : phaseWeekIndex(phaseStart, at);
   const summaries =
     state.currentPhase === null ? [] : programmeJourneyWeekSummaries(state, state.currentPhase);
   const currentWeekSummary =
-    currentWeek === null ? null : summaries.find((summary) => summary.week === currentWeek) ?? null;
+    currentWeek === null ||
+    state.currentPhase === null ||
+    phaseStart === null ||
+    actualCurrentWeek === null
+      ? null
+      : weekSummary(
+          state,
+          state.currentPhase,
+          phaseStart,
+          actualCurrentWeek,
+          currentWeek
+        );
   return {
     status: state.status,
     currentPhase: state.currentPhase,
@@ -462,10 +480,10 @@ export function programmeJourneyProgressAt(
     retestDueAtIso: programmeJourneyRetestDueAtIso(state),
     retestDue: isProgrammeJourneyRetestDue(state, atIso),
     currentWeekSummary,
-    phaseCreditedSessions: summaries.reduce(
-      (total, summary) => total + summary.creditedSessions,
-      0
-    ),
+    phaseCreditedSessions:
+      state.currentPhase === null
+        ? 0
+        : state.sessionCredits.filter((credit) => credit.phase === state.currentPhase).length,
     phaseSufficientWeeks: summaries.filter((summary) => summary.sufficient).length,
     totalCreditedSessions: state.sessionCredits.length,
   };
@@ -524,6 +542,62 @@ function localCalendarDayDifference(start: Date, end: Date): number {
   const startOrdinal = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
   const endOrdinal = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
   return Math.floor((endOrdinal - startOrdinal) / 86_400_000);
+}
+
+/** Unbounded, one-based week within a phase; null means before phase start. */
+function phaseWeekIndex(phaseStart: Date, at: Date): number | null {
+  const elapsedLocalDays = localCalendarDayDifference(phaseStart, at);
+  return elapsedLocalDays < 0 ? null : Math.floor(elapsedLocalDays / 7) + 1;
+}
+
+function creditWeekIndexFor(
+  phaseStart: Date,
+  credit: ProgrammeJourneySessionCredit
+): number | null {
+  const completedAt = validDate(credit.completedAtIso);
+  return completedAt === null ? null : phaseWeekIndex(phaseStart, completedAt);
+}
+
+function phaseStartedAt(
+  state: ProgrammeJourneyState,
+  phase: ProgrammePhaseNumber
+): Date | null {
+  for (const kind of PROGRAMME_JOURNEY_CHECKPOINT_KINDS) {
+    const checkpoint = state.checkpoints[kind];
+    if (checkpoint?.startedPhase === phase) {
+      return validDate(checkpoint.completedAtIso);
+    }
+  }
+  if (state.currentPhase === phase && state.currentPhaseStartedAtIso !== null) {
+    return validDate(state.currentPhaseStartedAtIso);
+  }
+  return null;
+}
+
+function weekSummary(
+  state: ProgrammeJourneyState,
+  phase: ProgrammePhaseNumber,
+  phaseStart: Date | null,
+  creditWeekIndex: number,
+  displayWeek: 1 | 2 | 3 | 4
+): ProgrammeJourneyWeekSummary {
+  const creditedSessions = state.sessionCredits.filter((credit) => {
+    if (credit.phase !== phase) return false;
+    // The fallback keeps manually constructed/legacy state useful if its
+    // phase checkpoint is absent; normal persisted state always has a start.
+    return phaseStart === null
+      ? credit.phaseWeek === displayWeek
+      : creditWeekIndexFor(phaseStart, credit) === creditWeekIndex;
+  }).length;
+  return {
+    phase,
+    week: displayWeek,
+    creditedSessions,
+    plannedSessions: PROGRAMME_JOURNEY_PLANNED_SESSIONS_PER_WEEK,
+    sufficientSessions: PROGRAMME_JOURNEY_SUFFICIENT_SESSIONS_PER_WEEK,
+    sufficient: creditedSessions >= PROGRAMME_JOURNEY_SUFFICIENT_SESSIONS_PER_WEEK,
+    plannedComplete: creditedSessions >= PROGRAMME_JOURNEY_PLANNED_SESSIONS_PER_WEEK,
+  };
 }
 
 function rejectedAssessment(

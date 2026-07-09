@@ -247,6 +247,19 @@ describe('personalised phase focus blocks', () => {
     expect(second.focusBlock?.kind).toBe('balance');
   });
 
+  it('keeps the frozen Phase 3 focus for maintenance after week 12', () => {
+    const state = activePhaseState('balance', 3);
+    state.journey = {
+      ...state.journey,
+      status: 'completed',
+      completedAtIso: '2026-10-01T09:00:00.000Z',
+      currentPhase: null,
+      currentPhaseStartedAtIso: null,
+    };
+    const plan = generateProgrammeSession({ state, template: 'A', preset: 'standard' });
+    expect(plan.focusBlock).toMatchObject({ kind: 'balance', phase: 3 });
+  });
+
   it('keeps all personalised presets inside their duration promises', () => {
     for (const physicalFocus of ['strength', 'balance', 'balanced'] as const) {
       for (const preset of ['standard', 'first_session', 'starter'] as const) {

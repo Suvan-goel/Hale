@@ -61,7 +61,7 @@ describe('content structure', () => {
 
   it('the assessment offer keeps all three first-class options and the on-device promise', () => {
     const offer = onboardingQuestionContent('assessment_offer');
-    expect(offer.options.map((o) => o.value)).toEqual(['now', 'after_first_workout', 'skip']);
+    expect(offer.options.map((o) => o.value)).toEqual(['now', 'after_first_workout']);
     expect(offer.note).toMatch(/never leaves/i);
   });
 

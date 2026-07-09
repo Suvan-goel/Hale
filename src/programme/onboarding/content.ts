@@ -246,8 +246,8 @@ const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
     // Honesty ruling 2026-07-07: nothing schedules around these days yet, so
     // the "why" claims only the rhythm; scheduling copy returns with the
     // local-notifications proposal.
-    question: 'Which three days usually suit a short workout?',
-    whyWeAsk: 'Three short sessions a week is the rhythm — picking days makes it real.',
+    question: 'Which days usually suit a short workout?',
+    whyWeAsk: 'Three sessions are planned and two is enough. Pick any days that make that rhythm feel realistic.',
     multiSelect: true,
     options: [
       { value: 'mon', label: 'Monday' },
@@ -262,13 +262,12 @@ const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
   assessment_offer: {
     id: 'assessment_offer',
     eyebrow: 'Movement check',
-    question: 'Two minutes of moving so your programme fits you exactly?',
-    whyWeAsk: 'It sets your starting levels precisely — and it’s entirely optional.',
+    question: 'About eight minutes to set your Strength and Balance starting point?',
+    whyWeAsk: 'It starts your personalised 12-week plan. You can do one gentle starter session first.',
     note: 'No one sees this but you. It’s processed on your phone and never leaves it.',
     options: [
       { value: 'now', label: 'Let’s do it' },
-      { value: 'after_first_workout', label: 'After my first workout' },
-      { value: 'skip', label: 'Skip for now' },
+      { value: 'after_first_workout', label: 'After one starter session' },
     ],
   },
 };
@@ -284,13 +283,13 @@ const MESSAGES: Record<OnboardingMessageStepId, OnboardingMessageContent> = {
     title: 'Strength that fits your life',
     body: [
       'Voice-guided strength workouts for the menopause years — 20 to 25 minutes, at home, no equipment to start.',
-      'A few quick taps and your first session is ready.',
+      'A few short questions and your first session is ready.',
     ],
     continueLabel: 'Let’s get started',
     facts: [
       { value: '15 min', detail: 'First session' },
       { value: '3 days', detail: 'A week' },
-      { value: '2 min', detail: 'Movement check' },
+      { value: '8 min', detail: 'Movement check' },
     ],
   },
   b_intro: {
@@ -306,7 +305,7 @@ const MESSAGES: Record<OnboardingMessageStepId, OnboardingMessageContent> = {
     title: 'We’ll begin very gently',
     body: [
       'Worth a quick chat with your GP before ramping up — meanwhile we’ll begin very gently.',
-      'Everything stays available; we simply pace the first weeks with extra care.',
+      'The effort-based Movement Check-Up stays off while Gentle Start is active. Your gentle workouts remain available.',
     ],
     continueLabel: 'Got it — start gently',
   },
@@ -320,9 +319,9 @@ const MESSAGES: Record<OnboardingMessageStepId, OnboardingMessageContent> = {
   placement_reveal: {
     id: 'placement_reveal',
     eyebrow: 'Your plan',
-    title: 'Your starting levels are set',
+    title: 'Your gentle starting levels are ready',
     body: [
-      'Every movement starts at a level chosen for you — deliberately comfortable, ready to build.',
+      'Every movement starts deliberately comfortable. Your Strength and Balance check-up can make each four-week phase more specific.',
     ],
     continueLabel: 'Show me',
   },
@@ -331,12 +330,12 @@ const MESSAGES: Record<OnboardingMessageStepId, OnboardingMessageContent> = {
     eyebrow: 'Your plan',
     title: 'Here’s how this works',
     body: [
-      'We start gently on purpose. Your only job this month is showing up.',
+      'We start gently on purpose. Three sessions are planned each week, and two is enough.',
       'Sessions are 20–25 minutes, voice-guided — prop your phone anywhere and just move.',
-      'Every few weeks, a two-minute movement check shows you exactly how much stronger you’re getting.',
+      'If the private Movement Check-Up is available to you, it repeats every four weeks. It compares Strength and Balance, with an optional Everyday Clarity check-in alongside them.',
     ],
     continueLabel: 'Start your first session now — 15 minutes',
-    secondaryLabel: 'Schedule it instead',
+    secondaryLabel: 'Do this later',
   },
 };
 
