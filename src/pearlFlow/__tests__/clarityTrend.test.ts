@@ -117,6 +117,7 @@ describe('Clarity trend view model (multi-series, DT3)', () => {
     const subjective = building.series.find((series) => series.id === 'subjective');
     expect(subjective?.trend.status).toBe('building');
     expect(building.fluctuationNote).toContain('trend over months');
+    expect(building.activityNote).toContain('never change your training plan');
   });
 
   it('reads each series against her own usual range — clouded months never bare', () => {
@@ -136,7 +137,7 @@ describe('Clarity trend view model (multi-series, DT3)', () => {
       expect(
         bareDownwardChanges([{ id: series.id, direction: 'down', supportCopy: series.trend.supportCopy }])
       ).toEqual([]);
-      expect(series.trend.supportCopy).toContain('sleep, symptom load, and stress');
+      expect(series.trend.supportCopy).toContain('sleep, symptom load, or stress');
     }
     expect(trend.series[1].trend.status === 'ready' && trend.series[1].trend.headline).toBe(
       'Less steady under load than usual this month.'
@@ -189,7 +190,7 @@ describe('Clarity trend view model (multi-series, DT3)', () => {
     expect(twoPoints[1]).toMatchObject({ value: 120 });
   });
 
-  it('surfaces the word-finding series once relative readings exist', () => {
+  it('keeps word-finding out of the MVP surface while preserving an explicit legacy inspection option', () => {
     const months = ['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'];
     const categories: FluencyCategoryId[] = ['animals', 'foods', 'countries', 'kitchen_things', 'animals', 'foods'];
     const history = months.map((month, index) =>
@@ -198,9 +199,13 @@ describe('Clarity trend view model (multi-series, DT3)', () => {
         fluency: { categoryId: categories[index], count: 20 },
       })
     );
-    const trend = buildClarityTrendViewModel(history);
-    if (trend.status !== 'ready') throw new Error(trend.status);
-    const fluencySeries = trend.series.find((series) => series.id === 'fluency');
+    const mvpTrend = buildClarityTrendViewModel(history);
+    if (mvpTrend.status !== 'ready') throw new Error(mvpTrend.status);
+    expect(mvpTrend.series.find((series) => series.id === 'fluency')).toBeUndefined();
+
+    const legacyInspection = buildClarityTrendViewModel(history, { includeFluency: true });
+    if (legacyInspection.status !== 'ready') throw new Error(legacyInspection.status);
+    const fluencySeries = legacyInspection.series.find((series) => series.id === 'fluency');
     expect(fluencySeries?.label).toBe('Word-finding');
     // Two relative points (months 5–6): building honestly, no band claimed.
     expect(fluencySeries?.trend.status).toBe('building');

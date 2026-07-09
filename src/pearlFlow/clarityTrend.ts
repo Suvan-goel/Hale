@@ -1,15 +1,15 @@
 /**
  * Clarity trend view model (REPOSITION_TDD §5.4; multi-series per
  * CLARITY_INSTRUMENTS_TDD §6.1, DT3) — the dimension's own surface, behind
- * the clarity flag. One row per series (subjective check-in; dual-task
- * steadiness; fluency joins after its own checkpoint), each read against HER
+ * the clarity flag. One row per active MVP series (Everyday Clarity check-in
+ * and paired-task steadiness), each read against HER
  * OWN rolling "usual range" — never population values, never age, never a raw
  * score in isolation. Series are NEVER fused into a single Clarity number in
  * beta (mini-composite — deferred recorded decision). A clouded reading is
- * never bare: known drivers (sleep, symptom load, stress) + the trainable
- * path ride every below-band row, and the covariate context line names HER
- * OWN covariates when they line up. Fluctuation is stated honestly on every
- * render. Self-reported tracking; never "validated".
+ * never bare: known sources of day-to-day variation (sleep, symptom load,
+ * stress) ride every below-band row, and the covariate context line names HER
+ * OWN covariates when they line up. Fluctuation and programme isolation are
+ * stated honestly on every render. Self-reported tracking; never "validated".
  */
 
 import { clarityReadingValue } from '../checkup/selfReport';
@@ -25,11 +25,14 @@ import type { StoredCheckUp } from '../history';
 export const CLARITY_FLUCTUATION_NOTE =
   'Check-ins fluctuate — sleep, symptom load, and stress all show up here. The trend over months is what matters, never one reading.';
 
+export const CLARITY_ACTIVITY_NOTE =
+  'Regular physical activity supports brain health. These personal signals are for tracking only and never change your training plan.';
+
 const CLARITY_DRIVERS_SUPPORT =
-  'Clouded stretches often track with sleep, symptom load, and stress — and the same training that rebuilds strength supports all three. Keep going; next month adds the fuller picture.';
+  'One cloudier check-in can line up with sleep, symptom load, or stress. Keep tracking monthly; this signal never changes your programme.';
 
 const DUAL_TASK_DRIVERS_SUPPORT =
-  'Steadiness under load dips with sleep, symptom load, and stress too — the same training works that gap. Next month adds the fuller picture.';
+  'One less-steady hold can line up with sleep, symptom load, or stress. Keep tracking monthly; this signal never changes your programme.';
 
 export type ClaritySeriesId = 'subjective' | 'dual_task' | 'fluency';
 
@@ -72,6 +75,7 @@ export type ClarityTrendViewModel =
       /** Her own covariates, when a dip lines up with them (§6.1). */
       covariateContext?: string;
       fluctuationNote: string;
+      activityNote: string;
     };
 
 function officialRecords(history: readonly StoredCheckUp[] | null | undefined): StoredCheckUp[] {
@@ -216,7 +220,11 @@ function seriesTrend(
 }
 
 export function buildClarityTrendViewModel(
-  history: readonly StoredCheckUp[] | null | undefined
+  history: readonly StoredCheckUp[] | null | undefined,
+  options?: {
+    /** Legacy/development inspection only. Fluency is not an MVP surface. */
+    includeFluency?: boolean;
+  }
 ): ClarityTrendViewModel {
   const subjective = seriesTrend(clarityReadingsFromHistory(history), {
     buildingNoun: 'check-in',
@@ -233,22 +241,25 @@ export function buildClarityTrendViewModel(
     support: DUAL_TASK_DRIVERS_SUPPORT,
   });
 
-  const fluency = seriesTrend(fluencyRelativeReadingsFromHistory(history), {
-    buildingNoun: 'word-finding run',
-    clearer: 'More words than your usual',
-    usual: 'Your usual word-finding',
-    clouded: 'Fewer words than your usual',
-    support:
-      'Word-finding dips with sleep, symptom load, and stress — and the same training supports all three. This measure swings more than the others; the months-long trend is the story.',
-  });
-
   const series: ClaritySeries[] = [];
-  if (subjective.status !== 'no_data') series.push({ id: 'subjective', label: 'Check-in', trend: subjective });
-  if (dualTask.status !== 'no_data') {
-    series.push({ id: 'dual_task', label: 'Steadiness under load', trend: dualTask });
+  if (subjective.status !== 'no_data') {
+    series.push({ id: 'subjective', label: 'Everyday Clarity', trend: subjective });
   }
-  if (fluency.status !== 'no_data') {
-    series.push({ id: 'fluency', label: 'Word-finding', trend: fluency });
+  if (dualTask.status !== 'no_data') {
+    series.push({ id: 'dual_task', label: 'Steadiness while thinking', trend: dualTask });
+  }
+  if (options?.includeFluency === true) {
+    const fluency = seriesTrend(fluencyRelativeReadingsFromHistory(history), {
+      buildingNoun: 'word-finding run',
+      clearer: 'More words than your usual',
+      usual: 'Your usual word-finding',
+      clouded: 'Fewer words than your usual',
+      support:
+        'Word-finding can shift with sleep, symptom load, and stress. This measure is noisy, so only a months-long personal pattern is useful.',
+    });
+    if (fluency.status !== 'no_data') {
+      series.push({ id: 'fluency', label: 'Word-finding', trend: fluency });
+    }
   }
   if (series.length === 0) return { status: 'no_data' };
 
@@ -257,6 +268,7 @@ export function buildClarityTrendViewModel(
     series,
     ...covariateContext(history, series),
     fluctuationNote: CLARITY_FLUCTUATION_NOTE,
+    activityNote: CLARITY_ACTIVITY_NOTE,
   };
 }
 
