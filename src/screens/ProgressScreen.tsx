@@ -90,7 +90,7 @@ interface ProgressEmptyStateCopy {
 
 const PROGRESS_EMPTY_STATE_COPY: ProgressEmptyStateCopy = {
   kicker: 'Set your starting point',
-  metaLabel: '~10 min',
+  metaLabel: 'Your baseline',
   title: 'Start with your check-up',
   body: `A short guided check-up gives ${BRAND.appName} what it needs to build your first plan.`,
   stepsAccessibilityLabel: 'Plan preparation steps',
@@ -98,7 +98,7 @@ const PROGRESS_EMPTY_STATE_COPY: ProgressEmptyStateCopy = {
     {
       index: '1',
       title: 'Check-up',
-      body: `${BRAND.appName} checks strength, balance, and mobility at home.`,
+      body: `${BRAND.appName} checks Strength and Balance, then saves your Everyday Clarity check-in.`,
       state: 'current',
     },
     {

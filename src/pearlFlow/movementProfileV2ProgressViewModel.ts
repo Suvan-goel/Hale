@@ -22,7 +22,6 @@ import {
 } from './movementProfileV2BlockReport';
 
 import { BRAND } from '../brand';
-import { objectiveMovementDomains } from '../dimensions';
 export type MovementProfileV2ProgressStatus =
   | 'ready'
   | 'no_profile'
@@ -285,9 +284,9 @@ export function buildMovementProfileV2ProgressViewModel(
   };
 }
 
-// Registry-derived (REPOSITION_TDD §4): camera-measured dimensions in surface
-// order; Clarity never appears in measurement change rows.
-const CHANGE_DOMAIN_ORDER: readonly MovementProfileV2Domain[] = objectiveMovementDomains();
+// Only the two movement domains in Pearl's official MVP protocol. Clarity has
+// its own observational trend; legacy Mobility data is preserved but hidden.
+const CHANGE_DOMAIN_ORDER: readonly MovementProfileV2Domain[] = ['strength_power', 'balance'];
 
 // Minimum change (in each domain's own raw unit) worth calling a move rather than
 // noise. Between-session setup variance is the product's #1 measurement threat, so
@@ -377,15 +376,11 @@ function downSupportCopy(domain: MovementProfileV2Domain): string {
   if (domain === 'balance') {
     return 'Balance responds to steady practice — your plan keeps it in every week, and next check-up shows the fuller picture.';
   }
-  if (domain === 'mobility') {
-    return 'Reach rebuilds with the gentle mobility work already in your plan — next check-up shows the fuller picture.';
-  }
   return 'Strength rebuilds with the same sessions that measured this — your plan keeps working it, and next check-up shows the fuller picture.';
 }
 
 function changeDomainTitle(domain: MovementProfileV2Domain): string {
   if (domain === 'balance') return 'Balance';
-  if (domain === 'mobility') return 'Mobility';
   return 'Strength / Power';
 }
 

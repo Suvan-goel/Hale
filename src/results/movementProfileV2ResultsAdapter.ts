@@ -11,9 +11,8 @@ import type {
 
 /**
  * Results adapter, restored 2026-07-08 (founder direction) in a v2 trim: the
- * old engine's plan states ('view my 4-week plan', block-report actions) and
- * the block-bound retest comparison did not return — v2 has levels, not
- * 4-week blocks, and Progress's change-over-time card owns improvement. The
+ * old engine's plan states and block-bound retest comparison did not return;
+ * Progress owns the twelve-week journey and change-over-time view. The
  * adapter stays downstream of the frozen view model only (architecture pin).
  */
 export interface MovementProfileV2PopulationComparisonInput {
@@ -49,11 +48,11 @@ export function buildMovementProfileV2UnifiedResultsPresentation(input: {
           : historyMode
             ? 'Saved check-up'
             : 'Movement Check-Up',
-      title: 'Your Strength Profile',
+      title: 'Your Movement Check-Up',
       completedAtLabel: input.viewModel.dateLabel,
       subtitle: historyMode
         ? 'A saved check-up from your history. Opening it does not change your plan.'
-        : 'Your Strength Profile is saved.',
+        : 'Your Strength and Balance results are saved.',
     },
     focus: {
       kicker: historyMode ? 'Focus at the time' : 'Where to focus',
@@ -61,7 +60,7 @@ export function buildMovementProfileV2UnifiedResultsPresentation(input: {
       body: input.viewModel.focus.body,
     },
     domainSection: {
-      title: 'The three areas',
+      title: 'Strength and Balance',
     },
     domains: toDomainCards(domains),
     plan: { status: 'hidden' },
@@ -76,7 +75,7 @@ export function buildMovementProfileV2UnifiedResultsPresentation(input: {
       },
     ],
     accessibility: {
-      screenSummary: 'Strength Profile results',
+      screenSummary: 'Movement Check-Up results',
     },
   };
 }

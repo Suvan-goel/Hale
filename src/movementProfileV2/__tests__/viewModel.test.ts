@@ -42,7 +42,7 @@ describe('Movement Profile V2 view model', () => {
     });
     const text = JSON.stringify(model);
 
-    expect(model.domainCards.map((card) => card.domain)).toEqual(['strength_power', 'balance', 'mobility']);
+    expect(model.domainCards.map((card) => card.domain)).toEqual(['strength_power', 'balance']);
     expect(model.focusTitle).toMatch(/^Suggested focus:/);
     expect(text).not.toMatch(/movement age|improved|declined|fingerprint|v2_|reason|published comparison|published middle range|diagnos|fall risk/i);
 
@@ -103,26 +103,24 @@ describe('Movement Profile V2 view model', () => {
       ).toBe('Strength is your strongest asset. Balance is your biggest opportunity — your plan starts there.');
     });
 
-    it('a unique higher tier wins over a solid one', () => {
+    it('ignores legacy Mobility evidence when naming the active product asset', () => {
       expect(
         focusBodyFor([
           { domain: 'strength_power', category: 'within_reference' },
           { domain: 'balance', category: 'below_reference' },
           { domain: 'mobility', category: 'above_reference_or_ceiling' },
         ])
-      ).toBe('Mobility is your strongest asset. Balance is your biggest opportunity — your plan starts there.');
+      ).toBe('Strength is your strongest asset. Balance is your biggest opportunity — your plan starts there.');
     });
 
-    it('names ties honestly in the plural rather than fabricating an order', () => {
+    it('does not pull a legacy Mobility tie into Strength + Balance framing', () => {
       expect(
         focusBodyFor([
           { domain: 'strength_power', category: 'within_reference' },
           { domain: 'balance', category: 'below_reference' },
           { domain: 'mobility', category: 'pearl_building' },
         ])
-      ).toBe(
-        'Strength and Mobility are your strongest assets. Balance is your biggest opportunity — your plan starts there.'
-      );
+      ).toBe('Strength is your strongest asset. Balance is your biggest opportunity — your plan starts there.');
     });
 
     it('falls back to the honest focus line when no reference-supported asset exists', () => {

@@ -15,7 +15,6 @@ import type {
 } from '../reference/movementProfileV2';
 
 import { BRAND } from '../brand';
-import { objectiveMovementDomains } from '../dimensions';
 
 export type MovementProfileV2Domain = MovementDomain;
 
@@ -65,10 +64,11 @@ export interface MovementProfileV2ResultsViewModel {
   domainCards: MovementProfileV2DomainCardViewModel[];
 }
 
-// Registry-derived (REPOSITION_TDD §4): camera-measured dimensions in surface
-// order. Clarity is structurally excluded — self-report never renders as a
-// measurement card.
-const DOMAIN_ORDER: readonly MovementProfileV2Domain[] = objectiveMovementDomains();
+// Pearl's official MVP protocol trains and reports Strength + Balance. Legacy
+// full-battery records may still contain Mobility data, but the active product
+// must not render an empty or unprescribed Mobility card. Clarity is presented
+// separately as observational personal signals.
+const DOMAIN_ORDER: readonly MovementProfileV2Domain[] = ['strength_power', 'balance'];
 
 export interface MovementProfileV2ResultsViewModelOptions {
   /**
@@ -92,8 +92,8 @@ export function buildMovementProfileV2ResultsViewModel(input: {
   return {
     checkUpId: input.snapshot.sourceCheckUpId,
     dateLabel: formatDate(input.snapshot.sourceCheckUpId),
-    title: 'Your Movement Profile',
-    summary: 'Camera results are beta estimates to help you track your movement at home.',
+    title: 'Your Movement Check-Up',
+    summary: 'Camera results are beta estimates to help you track Strength and Balance at home.',
     focus,
     focusTitle: focus.kind === 'balanced' ? 'Suggested focus: Balanced plan' : `Suggested focus: ${focus.title}`,
     focusBody: focus.body,
@@ -309,7 +309,7 @@ function strongestAssets(
 ): MovementProfileV2Domain[] {
   const evidence = assessment.focusProvenance?.domainEvidence ?? [];
   const candidates = evidence
-    .filter((item) => item.domain !== focusDomain)
+    .filter((item) => item.domain !== focusDomain && DOMAIN_ORDER.includes(item.domain))
     .map((item) => ({ domain: item.domain, tier: assetTier(item.category) }))
     .filter((item) => item.tier > 0);
   if (candidates.length === 0) return [];

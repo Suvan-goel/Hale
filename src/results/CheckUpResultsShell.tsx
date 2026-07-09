@@ -180,8 +180,12 @@ function OnboardingResultsVariant({
       </View>
 
       <View style={onboardingStyles.sectionIntro}>
-        <Text style={onboardingStyles.sectionTitle}>Your three areas</Text>
-        <Text style={onboardingStyles.sectionBody}>The measurements saved from today's check-up.</Text>
+        <Text style={onboardingStyles.sectionTitle}>
+          {presentation.domainSection?.title ?? 'Strength and Balance'}
+        </Text>
+        <Text style={onboardingStyles.sectionBody}>
+          {presentation.domainSection?.subtitle ?? "The movement measurements saved from today's check-up."}
+        </Text>
       </View>
 
       <View style={onboardingStyles.domainStack}>
