@@ -78,7 +78,6 @@ import {
   type ProgrammeState,
   type PromotionDecision,
   type SessionRpe,
-  type Weekday,
 } from '../programme';
 import type { OnboardingQuestionStepId } from '../programme';
 import {
@@ -90,7 +89,7 @@ import {
   type Preferences,
   type UserProfile,
 } from '../profile';
-import { useAuth } from '../services/backend';
+import { clearLocalPearlData, useAuth } from '../services/backend';
 import type { TrainingSessionResult } from '../training/sessionPlayer';
 import { DEFAULT_VOICE_SETUP_PREFS, type VoiceSetupPrefs } from '../voice/voicePermissionGate';
 import { CameraSetupScreen } from './CameraSetupScreen';
@@ -121,12 +120,6 @@ type ShellPhase =
 type ShellFlow = 'settings' | 'safety-profile' | 'camera-setup' | null;
 
 type CameraPermission = 'checking' | 'granted' | 'undetermined' | 'denied';
-
-const WEEKDAY_VALUES: readonly Weekday[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-
-function isWeekday(value: string): value is Weekday {
-  return (WEEKDAY_VALUES as readonly string[]).includes(value);
-}
 
 export function ProgrammeV2Root() {
   // Auth-scoped local stores, same discipline as the old shell: each backend
@@ -507,6 +500,34 @@ export function ProgrammeV2Root() {
     },
     [prefs, persistPrefs]
   );
+
+  const handleClearDeviceData = React.useCallback(async () => {
+    const result = await clearLocalPearlData({ fs: localFs });
+    if (result.failures.length > 0) {
+      throw new Error(`Could not clear ${result.failures.length} local data item(s).`);
+    }
+
+    // Keep the current auth scope intact, but reset every in-memory owner to
+    // the same fresh state a relaunch would load from the now-empty directory.
+    const freshPreferences = await profileStore.load();
+    setProgrammeState(defaultProgrammeState());
+    setPrefs(freshPreferences);
+    setHistory([]);
+    setFlowState(initialOnboardingFlowState());
+    setPlan(null);
+    setSessionResult(null);
+    setLastDecisions({});
+    setPhysioSignpostVisible(false);
+    setResultsView(null);
+    setTab('today');
+    sessionStartRef.current = null;
+    pendingFirstSessionRef.current = false;
+  }, [localFs, profileStore]);
+
+  const handleDataCleared = React.useCallback(() => {
+    setFlow(null);
+    setPhase('onboarding');
+  }, []);
 
   // ── DEV-only mock data (gated by __DEV__ at the Settings render site) ──────
   // Seeds a months-long journey — several completed voice sessions plus a
@@ -914,7 +935,7 @@ export function ProgrammeV2Root() {
         onPreferredDaysChange={(days) =>
           persist({
             ...programmeState,
-            profile: { ...programmeState.profile, chosenDays: days.filter(isWeekday) },
+            profile: { ...programmeState.profile, chosenDays: days },
           })
         }
         onStartingEffortChange={(level) =>
@@ -926,6 +947,8 @@ export function ProgrammeV2Root() {
         }
         onOpenSafetyProfile={() => setFlow('safety-profile')}
         onOpenCameraSetup={() => setFlow('camera-setup')}
+        onClearDeviceData={handleClearDeviceData}
+        onDataCleared={handleDataCleared}
         onFillSampleData={handleFillSampleData}
         onResetSampleData={handleResetSampleData}
         // No pain-exclusion rows in v2 by the Pain A ruling (2026-07-07):
@@ -933,7 +956,10 @@ export function ProgrammeV2Root() {
         // life-goal review flow retired in the simplification pass
         // (2026-07-08): the goal is set once in onboarding and shown
         // read-only in the profile details.
-        onBack={() => setFlow(null)}
+        onBack={() => {
+          setFlow(null);
+          if (!programmeState.onboardingCompletedAtIso) setPhase('onboarding');
+        }}
       />
     );
   }

@@ -5,6 +5,7 @@ import { BRAND } from '../../brand';
 export interface LocalDataSummary {
   preferences: boolean;
   checkups: number;
+  programmeState: boolean;
   trainingState: boolean;
   microChecks: number;
   adherenceState: boolean;
@@ -28,6 +29,7 @@ export interface ClearLocalPearlDataOptions {
 }
 
 const PREFERENCES_FILE = 'preferences.json';
+const PROGRAMME_STATE_FILE = 'programme.json';
 const TRAINING_STATE_FILE = 'training-state.json';
 const ADHERENCE_STATE_FILE = 'adherence-state.json';
 const CHECKUP_PREFIX = 'checkup-';
@@ -42,6 +44,7 @@ export async function getLocalDataSummary(options: ClearLocalPearlDataOptions = 
   return {
     preferences: names.includes(PREFERENCES_FILE),
     checkups: names.filter(isCheckupFile).length,
+    programmeState: names.includes(PROGRAMME_STATE_FILE),
     trainingState: names.includes(TRAINING_STATE_FILE),
     microChecks: names.filter(isMicroCheckFile).length,
     adherenceState: names.includes(ADHERENCE_STATE_FILE),
@@ -58,6 +61,7 @@ export async function clearLocalPearlData(options: ClearLocalPearlDataOptions = 
 
   addBreadcrumb('local data deletion started', {
     checkups: summary.checkups,
+    programmeState: summary.programmeState,
     microChecks: summary.microChecks,
     recordings: summary.recordings,
   });
@@ -109,6 +113,7 @@ export async function signOutAndClearLocalData(
 function isMainStoreClearTarget(name: string): boolean {
   return (
     name === PREFERENCES_FILE ||
+    name === PROGRAMME_STATE_FILE ||
     name === TRAINING_STATE_FILE ||
     name === ADHERENCE_STATE_FILE ||
     isCheckupFile(name) ||

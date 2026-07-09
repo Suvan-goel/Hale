@@ -31,6 +31,7 @@ describe('local Pearl account data service', () => {
       expect.objectContaining({
         preferences: false,
         checkups: 0,
+        programmeState: false,
         trainingState: false,
         microChecks: 0,
         adherenceState: false,
@@ -50,6 +51,7 @@ describe('local Pearl account data service', () => {
         },
       })],
       ['checkup-2026-06-18T10-00-00-000Z.json', '{}'],
+      ['programme.json', '{}'],
       ['training-state.json', '{}'],
       ['microcheck-2026-06-25T10-00-00-000Z.json', '{}'],
       ['adherence-state.json', '{}'],
@@ -67,6 +69,7 @@ describe('local Pearl account data service', () => {
       expect.arrayContaining([
         'local Pearl files/preferences.json',
         'local Pearl files/checkup-2026-06-18T10-00-00-000Z.json',
+        'local Pearl files/programme.json',
         'local Pearl files/training-state.json',
         'local Pearl files/microcheck-2026-06-25T10-00-00-000Z.json',
         'local Pearl files/adherence-state.json',
@@ -83,6 +86,7 @@ describe('local Pearl account data service', () => {
       ['preferences.json', '{}'],
       ['checkup-a.json', '{}'],
       ['checkup-b.json', '{}'],
+      ['programme.json', '{}'],
       ['training-state.json', '{}'],
       ['microcheck-a.json', '{}'],
       ['adherence-state.json', '{}'],
@@ -96,11 +100,34 @@ describe('local Pearl account data service', () => {
     expect(summary).toEqual({
       preferences: true,
       checkups: 2,
+      programmeState: true,
       trainingState: true,
       microChecks: 1,
       adherenceState: true,
       recordings: 1,
     });
+  });
+
+  it('reports a deletion failure instead of claiming the programme state was removed', async () => {
+    const files = new Map([['programme.json', '{}']]);
+    const failingFs = {
+      ...createMemoryFs(files),
+      delete: () => {
+        throw new Error('delete failed');
+      },
+    };
+
+    const result = await clearLocalPearlData({
+      fs: failingFs,
+      recordings: memoryArea(new Set()),
+    });
+
+    expect(result.programmeState).toBe(true);
+    expect(result.deletedFiles).not.toContain('local Pearl files/programme.json');
+    expect(result.failures).toEqual([
+      expect.objectContaining({ area: 'local Pearl files', name: 'programme.json' }),
+    ]);
+    expect(Array.from(files.keys())).toEqual(['programme.json']);
   });
 
   it('does not reference service-role key names in app source', () => {

@@ -13,8 +13,9 @@ import { VoiceChannel } from '../audio/voicePlayer';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { DateOfBirthPickerModal } from '../components/DateOfBirthPickerModal';
 import { HeaderLogo } from '../components/HeaderLogo';
-import { Screen, ToggleRow } from '../components/ui';
+import { Button, Screen, ToggleRow } from '../components/ui';
 import { controlledBetaEquipmentPositioning } from '../pearlFlow';
+import type { Weekday } from '../programme';
 import {
   AppSettings,
   MENOPAUSE_STAGE_OPTIONS,
@@ -39,7 +40,15 @@ import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 
 import { BRAND } from '../brand';
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+const DAYS: readonly { value: Weekday; label: string }[] = [
+  { value: 'mon', label: 'Mon' },
+  { value: 'tue', label: 'Tue' },
+  { value: 'wed', label: 'Wed' },
+  { value: 'thu', label: 'Thu' },
+  { value: 'fri', label: 'Fri' },
+  { value: 'sat', label: 'Sat' },
+  { value: 'sun', label: 'Sun' },
+];
 const VOICE_PREVIEW_CUE = 'voice-preview' as const;
 
 type ProfileSection =
@@ -82,15 +91,17 @@ const SECTION_COPY: Record<ProfileSection, { title: string; subtitle: string }> 
 type SettingsScreenProps = {
   profile: UserProfile;
   settings: AppSettings;
-  preferredDays: readonly string[];
+  preferredDays: readonly Weekday[];
   startingEffort: ActivityLevel;
   onProfileChange: (next: UserProfile) => void;
   onSettingsChange: (next: AppSettings) => void;
   onToggleAvailableEquipment: (item: AvailableEquipment) => void;
-  onPreferredDaysChange: (days: string[]) => void;
+  onPreferredDaysChange: (days: Weekday[]) => void;
   onStartingEffortChange: (startingEffort: ActivityLevel) => void;
   onOpenSafetyProfile: () => void;
   onOpenCameraSetup: () => void;
+  onClearDeviceData: () => Promise<void>;
+  onDataCleared: () => void;
   onBack?: () => void;
   /** DEV-only (gated on `__DEV__` by the caller): seed a mock multi-session,
    * multi-check-up journey so the screens can be viewed populated. */
@@ -116,6 +127,8 @@ function SettingsScreenContent({
   onStartingEffortChange,
   onOpenSafetyProfile,
   onOpenCameraSetup,
+  onClearDeviceData,
+  onDataCleared,
   onBack,
   onFillSampleData,
   onResetSampleData,
@@ -219,7 +232,7 @@ function SettingsScreenContent({
     commitReferenceDetails(dateOfBirthText, referenceSex, menopauseStage, next);
   };
 
-  const toggleDay = (day: string) => {
+  const toggleDay = (day: Weekday) => {
     const next = preferredDays.includes(day)
       ? preferredDays.filter((item) => item !== day)
       : [...preferredDays, day];
@@ -365,6 +378,11 @@ function SettingsScreenContent({
           />
 
           <PrivacyStorageCard />
+
+          <ClearDeviceDataCard
+            onClearDeviceData={onClearDeviceData}
+            onDataCleared={onDataCleared}
+          />
 
           {/* Population-comparison switch (reposition slice 5, condition 3):
               the results screen is the front door; this is where the switch
@@ -1015,10 +1033,97 @@ function PrivacyStorageCard() {
         <PrivacyLedgerRow
           icon="shield"
           label="Microphone — steadiness while thinking"
-          body="During the optional check-up task, Pearl detects whether you are speaking while you balance. Your words and audio are never saved."
+          body={`During the optional check-up task, ${BRAND.appName} detects whether you are speaking while you balance. Your words and audio are never saved.`}
           value="Activity only"
         />
       </View>
+    </DetailCard>
+  );
+}
+
+function ClearDeviceDataCard({
+  onClearDeviceData,
+  onDataCleared,
+}: {
+  onClearDeviceData: () => Promise<void>;
+  onDataCleared: () => void;
+}) {
+  const [confirming, setConfirming] = React.useState(false);
+  const [clearing, setClearing] = React.useState(false);
+  const [cleared, setCleared] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const clearDeviceData = async () => {
+    if (clearing) return;
+    setClearing(true);
+    setError(null);
+    try {
+      await onClearDeviceData();
+      setCleared(true);
+      setConfirming(false);
+    } catch {
+      setError(
+        `${BRAND.appName} could not clear all data. Some items may already have been removed. Please try again.`
+      );
+    } finally {
+      setClearing(false);
+    }
+  };
+
+  if (cleared) {
+    return (
+      <DetailCard
+        title="Data cleared"
+        body={`${BRAND.appName} removed your profile, check-ups, workout progress, and settings from this device.`}
+      >
+        <Button title="Start again" onPress={onDataCleared} />
+      </DetailCard>
+    );
+  }
+
+  return (
+    <DetailCard
+      title={confirming ? 'Clear all data from this device?' : 'Data on this device'}
+      body={
+        confirming
+          ? 'This permanently removes your profile, check-ups, workout progress, and settings from this device. It cannot be undone. It does not sign you out or change an account.'
+          : `Your ${BRAND.appName} profile, check-ups, workout progress, and settings are stored on this device.`
+      }
+    >
+      {error ? (
+        <Text style={styles.clearDataError} accessibilityLiveRegion="polite">
+          {error}
+        </Text>
+      ) : null}
+      {confirming ? (
+        <View style={styles.clearDataActions}>
+          <Button
+            title={clearing ? 'Clearing data...' : 'Clear all data'}
+            variant="danger"
+            disabled={clearing}
+            accessibilityLabel={`Permanently clear all ${BRAND.appName} data from this device`}
+            onPress={() => void clearDeviceData()}
+          />
+          <Button
+            title="Keep my data"
+            variant="secondary"
+            disabled={clearing}
+            onPress={() => {
+              setConfirming(false);
+              setError(null);
+            }}
+          />
+        </View>
+      ) : (
+        <Button
+          title="Clear data on this device"
+          variant="danger"
+          onPress={() => {
+            setConfirming(true);
+            setError(null);
+          }}
+        />
+      )}
     </DetailCard>
   );
 }
@@ -1088,17 +1193,17 @@ function DayPreferencePicker({
   selectedDays,
   onToggleDay,
 }: {
-  selectedDays: readonly string[];
-  onToggleDay: (day: string) => void;
+  selectedDays: readonly Weekday[];
+  onToggleDay: (day: Weekday) => void;
 }) {
   return (
     <View style={styles.dayPickerRow}>
       {DAYS.map((day) => (
         <DayPreferenceChip
-          key={day}
-          day={day}
-          selected={selectedDays.includes(day)}
-          onPress={() => onToggleDay(day)}
+          key={day.value}
+          label={day.label}
+          selected={selectedDays.includes(day.value)}
+          onPress={() => onToggleDay(day.value)}
         />
       ))}
     </View>
@@ -1106,11 +1211,11 @@ function DayPreferencePicker({
 }
 
 function DayPreferenceChip({
-  day,
+  label,
   selected,
   onPress,
 }: {
-  day: string;
+  label: string;
   selected: boolean;
   onPress: () => void;
 }) {
@@ -1124,10 +1229,10 @@ function DayPreferenceChip({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected }}
-      accessibilityLabel={`${day}${selected ? ', selected' : ''}`}
+      accessibilityLabel={`${label}${selected ? ', selected' : ''}`}
       hitSlop={{ top: 4, bottom: 4 }}
     >
-      <Text style={[styles.dayChipText, selected && styles.dayChipTextSelected]}>{day}</Text>
+      <Text style={[styles.dayChipText, selected && styles.dayChipTextSelected]}>{label}</Text>
     </Pressable>
   );
 }
@@ -1209,13 +1314,13 @@ function SelectionIndicator({ selected }: { selected: boolean }) {
   );
 }
 
-function preferredDaysSummary(days: readonly string[]): string {
+function preferredDaysSummary(days: readonly Weekday[]): string {
   if (days.length === 0) return 'No preferred days';
   if (days.length >= 6) return 'Most days';
-  return days.join(', ');
+  return days.map((day) => DAYS.find((option) => option.value === day)?.label ?? day).join(', ');
 }
 
-function trainingDayMeta(days: readonly string[]): string {
+function trainingDayMeta(days: readonly Weekday[]): string {
   if (days.length === 0) return 'None set';
   if (days.length === 1) return '1 day';
   return `${days.length} days`;
@@ -2125,6 +2230,14 @@ const styles = StyleSheet.create({
     color: colors.accentDeep,
     fontFamily: fonts.sansMedium,
     textAlign: 'right',
+  },
+  clearDataActions: {
+    gap: spacing.sm,
+  },
+  clearDataError: {
+    ...type.caption,
+    color: colors.error,
+    marginBottom: spacing.md,
   },
   pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
 });
