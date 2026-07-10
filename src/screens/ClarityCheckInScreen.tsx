@@ -14,7 +14,6 @@ import {
   type SleepQuality,
   type SymptomLoad,
 } from '../checkup';
-import { BRAND } from '../brand';
 import { PrimaryButton, Screen, ScreenHeader } from '../components/ui';
 import { colors, fonts, minTapTarget, radius, spacing, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
@@ -49,10 +48,17 @@ export function ClarityCheckInScreen({
   const [symptomLoad, setSymptomLoad] = React.useState<SymptomLoad | null>(
     () => initialValue?.covariates?.symptomLoad ?? null
   );
+  const [optionalContextOpen, setOptionalContextOpen] = React.useState(
+    () =>
+      initialValue?.covariates?.sleepQuality !== undefined ||
+      (showSymptomLoad && initialValue?.covariates?.symptomLoad !== undefined)
+  );
 
   const answeredCount = itemScores.filter((score) => score !== null).length;
   const clarityComplete = answeredCount === CLARITY_ITEMS.length;
   const clarityPartial = answeredCount > 0 && !clarityComplete;
+  const hasOptionalContext =
+    sleepQuality !== null || (showSymptomLoad && symptomLoad !== null);
 
   const setScore = (index: number, score: ClarityItemScore) => {
     setItemScores((current) =>
@@ -91,17 +97,8 @@ export function ClarityCheckInScreen({
       <ScreenHeader
         eyebrow="Everyday Clarity · optional"
         title="How has your thinking felt?"
-        subtitle="This check-in is for your personal monthly trend. It never changes your workouts, guidance, or Strength and Balance results."
+        subtitle="Five quick questions for your personal monthly trend; they never suggest a cause or change your workouts or movement results."
       />
-
-      <View style={styles.contextCard}>
-        <Text style={styles.contextTitle}>A note about your trend</Text>
-        <Text style={styles.contextText}>
-          Clarity can fluctuate with sleep, symptoms, stress, and other day-to-day factors. Regular
-          physical activity supports brain health, but {BRAND.appName} does not use this check-in to infer a
-          cause or change your plan.
-        </Text>
-      </View>
 
       <View style={styles.section}>
         <Text style={[styles.recall, responsive.isCompactPhone && compactTypography.pageTitle]}>
@@ -131,51 +128,86 @@ export function ClarityCheckInScreen({
         ) : null}
       </View>
 
-      <View style={styles.section}>
-        <View style={styles.optionalHeading}>
-          <Text style={styles.itemText}>How did you sleep last night?</Text>
-          <Text style={styles.optionalLabel}>Optional context</Text>
-        </View>
-        <View style={styles.chipRow}>
-          {SLEEP_QUALITY_OPTIONS.map((option) => (
-            <Chip
-              key={option.value}
-              label={option.label}
-              accessibilityLabel={`Sleep — ${option.label}`}
-              selected={sleepQuality === option.value}
-              onPress={() =>
-                setSleepQuality((current) => (current === option.value ? null : option.value))
-              }
-            />
-          ))}
-        </View>
+      <View style={styles.optionalContextCard}>
+        <Pressable
+          onPress={() => setOptionalContextOpen((current) => !current)}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: optionalContextOpen }}
+          accessibilityLabel={`${optionalContextOpen ? 'Hide' : 'Show'} optional context`}
+          style={({ pressed }) => [styles.contextDisclosure, pressed && styles.pressed]}
+        >
+          <View style={styles.contextDisclosureCopy}>
+            <Text style={styles.contextDisclosureTitle}>Add context</Text>
+            <Text style={styles.contextDisclosureBody}>
+              {hasOptionalContext
+                ? 'Context added. Tap to review or change it.'
+                : showSymptomLoad
+                  ? 'Optional sleep and symptom details can help explain changes later.'
+                  : 'Optional sleep details can help explain changes later.'}
+            </Text>
+          </View>
+          <Text
+            style={[
+              styles.contextDisclosureChevron,
+              optionalContextOpen && styles.contextDisclosureChevronOpen,
+            ]}
+          >
+            ›
+          </Text>
+        </Pressable>
+
+        {optionalContextOpen ? (
+          <View style={styles.optionalContextFields}>
+            <View style={styles.section}>
+              <View style={styles.optionalHeading}>
+                <Text style={styles.itemText}>How did you sleep last night?</Text>
+                <Text style={styles.optionalLabel}>Optional</Text>
+              </View>
+              <View style={styles.chipRow}>
+                {SLEEP_QUALITY_OPTIONS.map((option) => (
+                  <Chip
+                    key={option.value}
+                    label={option.label}
+                    accessibilityLabel={`Sleep — ${option.label}`}
+                    selected={sleepQuality === option.value}
+                    onPress={() =>
+                      setSleepQuality((current) =>
+                        current === option.value ? null : option.value
+                      )
+                    }
+                  />
+                ))}
+              </View>
+            </View>
+
+            {showSymptomLoad ? (
+              <View style={styles.section}>
+                <View style={styles.optionalHeading}>
+                  <Text style={styles.itemText}>
+                    How heavy have your menopause symptoms felt this week?
+                  </Text>
+                  <Text style={styles.optionalLabel}>Optional</Text>
+                </View>
+                <View style={styles.chipRow}>
+                  {SYMPTOM_LOAD_OPTIONS.map((option) => (
+                    <Chip
+                      key={String(option.value)}
+                      label={option.label}
+                      accessibilityLabel={`Symptoms — ${option.label}`}
+                      selected={symptomLoad === option.value}
+                      onPress={() =>
+                        setSymptomLoad((current) =>
+                          current === option.value ? null : option.value
+                        )
+                      }
+                    />
+                  ))}
+                </View>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
       </View>
-
-      {showSymptomLoad ? (
-        <View style={styles.section}>
-          <View style={styles.optionalHeading}>
-            <Text style={styles.itemText}>How heavy have your menopause symptoms felt this week?</Text>
-            <Text style={styles.optionalLabel}>Optional context</Text>
-          </View>
-          <View style={styles.chipRow}>
-            {SYMPTOM_LOAD_OPTIONS.map((option) => (
-              <Chip
-                key={String(option.value)}
-                label={option.label}
-                accessibilityLabel={`Symptoms — ${option.label}`}
-                selected={symptomLoad === option.value}
-                onPress={() =>
-                  setSymptomLoad((current) => (current === option.value ? null : option.value))
-                }
-              />
-            ))}
-          </View>
-        </View>
-      ) : null}
-
-      <Text style={styles.gentle}>
-        One check-in can move around. Your own pattern across monthly check-ups is the useful view.
-      </Text>
 
       <View style={styles.actions}>
         <PrimaryButton title="Save and continue" onPress={() => onDone(buildSelfReport())} />
@@ -221,21 +253,46 @@ const styles = StyleSheet.create({
     gap: spacing.xl,
     paddingBottom: spacing.xl,
   },
-  contextCard: {
-    gap: spacing.sm,
-    padding: spacing.lg,
+  optionalContextCard: {
+    overflow: 'hidden',
     borderRadius: radius.card,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.accentSoft,
+    backgroundColor: colors.surface,
   },
-  contextTitle: {
+  contextDisclosure: {
+    minHeight: 76,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.lg,
+  },
+  contextDisclosureCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  contextDisclosureTitle: {
     ...type.cardRowTitle,
     color: colors.textPrimary,
   },
-  contextText: {
-    ...type.cardBody,
+  contextDisclosureBody: {
+    ...type.cardCaption,
     color: colors.textSecondary,
+    marginTop: spacing.xs,
+  },
+  contextDisclosureChevron: {
+    ...type.h2,
+    color: colors.textSecondary,
+    transform: [{ rotate: '0deg' }],
+  },
+  contextDisclosureChevronOpen: {
+    transform: [{ rotate: '90deg' }],
+  },
+  optionalContextFields: {
+    gap: spacing.xl,
+    padding: spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
   },
   section: {
     gap: spacing.md,

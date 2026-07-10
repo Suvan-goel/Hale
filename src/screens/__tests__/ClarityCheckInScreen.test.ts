@@ -16,8 +16,10 @@ describe('Everyday Clarity self-report screen', () => {
     expect(screen).toContain('Your five Clarity answers save only as a complete set.');
   });
 
-  it('keeps sleep and relevant symptom load optional and independently saveable', () => {
-    expect(screen).toContain('Optional context');
+  it('keeps sleep and relevant symptom load optional, collapsed, and independently saveable', () => {
+    expect(screen).toContain('<Text style={styles.contextDisclosureTitle}>Add context</Text>');
+    expect(screen).toContain('accessibilityState={{ expanded: optionalContextOpen }}');
+    expect(screen).toContain('optionalContextOpen ? (');
     expect(screen).toContain('{showSymptomLoad ? (');
     expect(screen).toContain('const symptomContext = showSymptomLoad ? symptomLoad : null;');
     expect(screen).toContain('sleepQuality !== null || symptomContext !== null');
@@ -28,25 +30,23 @@ describe('Everyday Clarity self-report screen', () => {
     expect(screen).toContain('initialValue?.clarity?.itemScores');
     expect(screen).toContain('initialValue?.covariates?.sleepQuality ?? null');
     expect(screen).toContain('initialValue?.covariates?.symptomLoad ?? null');
+    expect(screen).toContain('initialValue?.covariates?.sleepQuality !== undefined');
+    expect(screen).toContain('initialValue?.covariates?.symptomLoad !== undefined');
     expect(screen).not.toContain('disabled={!clarityComplete}');
   });
 
   it('is clearly optional and observational, with no effect on the plan or physical results', () => {
     expect(screen).toContain('Everyday Clarity · optional');
-    expect(screen).toContain(
-      'It never changes your workouts, guidance, or Strength and Balance results.'
-    );
-    expect(screen).toContain('does not use this check-in to infer a');
-    expect(screen).toContain('cause or change your plan.');
+    expect(screen).toContain('they never suggest a cause or change your workouts or movement results.');
     expect(screen).toContain('onPress={() => onDone(null)}');
     expect(screen).toContain('Skip this time');
   });
 
-  it('frames readings as a fluctuating personal monthly trend and makes only the support claim', () => {
-    expect(screen).toContain('Clarity can fluctuate with sleep, symptoms, stress');
-    expect(screen).toContain('Regular');
-    expect(screen).toContain('physical activity supports brain health');
-    expect(screen).toContain('Your own pattern across monthly check-ups is the useful view.');
+  it('uses one concise trend explanation instead of repeated context cards', () => {
+    expect(screen).toContain('Five quick questions for your personal monthly trend');
+    expect(screen).not.toContain('A note about your trend');
+    expect(screen).not.toContain('Clarity can fluctuate with sleep, symptoms, stress');
+    expect(screen).not.toContain('Your own pattern across monthly check-ups is the useful view.');
     expect(screen).not.toMatch(/validated|diagnos|Pearl improves|exercise improves|improve cognition/i);
   });
 });

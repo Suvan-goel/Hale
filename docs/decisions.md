@@ -5658,3 +5658,18 @@ the implementation.
   expand in place. The newest check-up is excluded from that list because it is
   already the primary profile above. History stays local and each older result
   remains available read-only.
+
+## 2026-07-10 — Everyday Clarity keeps its measure and loses default clutter
+
+- The five frozen Everyday Clarity questions remain the complete, comparable
+  monthly measure and continue to save only as a full set. "Skip this time"
+  remains immediately available, and Clarity still never changes workouts or
+  physical results.
+- The separate trend-explanation card and repeated closing explanation are
+  replaced by one concise header sentence: the check-in is a personal trend,
+  does not suggest a cause, and does not affect the plan.
+- Sleep quality and relevant symptom load remain optional covariates because
+  they can add honest context to later trends, but they are collapsed behind
+  one "Add context" disclosure by default. Existing saved context opens the
+  disclosure automatically when a draft is restored. Persistence and scoring
+  schemas are unchanged.
