@@ -22,9 +22,10 @@ describe('unified check-up results architecture', () => {
   it('routes every results surface through the one shared shell, without old-engine actions', () => {
     const unifiedScreen = readSource('src/screens/MovementProfileV2UnifiedResultsScreen.tsx');
     const adapter = readSource('src/results/movementProfileV2ResultsAdapter.ts');
+    const shell = readSource('src/results/CheckUpResultsShell.tsx');
 
     expect(unifiedScreen).toContain('CheckUpResultsShell');
-    expect(readSource('src/results/CheckUpResultsShell.tsx')).not.toContain('view_domain_detail');
+    expect(shell).not.toContain('view_domain_detail');
     // Both surfaces (fresh + saved) are variants of the one presentation.
     expect(adapter).toContain("'history'");
     expect(adapter).toContain("'onboarding'");
@@ -33,6 +34,37 @@ describe('unified check-up results architecture', () => {
     expect(adapter).not.toContain("'view_block_report'");
     expect(unifiedScreen).not.toContain('onViewPlan');
     expect(unifiedScreen).not.toContain('onViewBlockReport');
+  });
+
+  it('keeps fresh completion concise and saved history detailed', () => {
+    const shell = readSource('src/results/CheckUpResultsShell.tsx');
+    const adapter = readSource('src/results/movementProfileV2ResultsAdapter.ts');
+
+    expect(shell).toContain("presentation.variant === 'history'");
+    expect(shell).toContain('<FreshResultsVariant');
+    expect(shell).toContain('<HistoryResultsVariant');
+    expect(shell).toContain('<FreshDomainResultRow');
+    expect(shell).toContain('<DomainAreaRow');
+    expect(shell).not.toContain('Plan ready');
+    expect(shell).not.toContain('presentation.domainSection');
+    expect(adapter).toContain("? 'Continue'");
+    expect(adapter).toContain(": 'Return Home'");
+    expect(adapter).toContain("? 'Done'");
+  });
+
+  it('keeps Clarity on Progress and population comparison control in Settings', () => {
+    const unifiedScreen = readSource('src/screens/MovementProfileV2UnifiedResultsScreen.tsx');
+    const shell = readSource('src/results/CheckUpResultsShell.tsx');
+    const adapter = readSource('src/results/movementProfileV2ResultsAdapter.ts');
+    const root = readSource('src/screens/ProgrammeV2Root.tsx');
+    const settings = readSource('src/screens/SettingsScreen.tsx');
+
+    expect(unifiedScreen).not.toContain('ClarityProgressCard');
+    expect(unifiedScreen).not.toContain('populationComparison');
+    expect(shell).not.toContain('toggle_population_comparison');
+    expect(adapter).not.toContain('See how you compare');
+    expect(root).toContain('comparisonOptIn: prefs?.settings.comparisonOptIn');
+    expect(settings).toContain('settings.comparisonOptIn');
   });
 });
 

@@ -5,33 +5,24 @@ import type {
 import type {
   UnifiedCheckUpResultsPresentation,
   UnifiedDomainResultCard,
-  UnifiedPopulationComparisonPresentation,
   UnifiedResultDomainId,
 } from './types';
 
 /**
- * Results adapter, restored 2026-07-08 (founder direction) in a v2 trim: the
- * old engine's plan states and block-bound retest comparison did not return;
- * Progress owns the twelve-week journey and change-over-time view. The
+ * Fresh check-ups use one concise completion presentation; saved history keeps
+ * the detailed read-only breakdown. Progress owns Clarity and change over time,
+ * while Settings owns the optional published-value comparison preference. The
  * adapter stays downstream of the frozen view model only (architecture pin).
  */
-export interface MovementProfileV2PopulationComparisonInput {
-  /** True from the second stored official check-up onward (condition 1: the
-   * first assessment stays purely diagnosis-shaped — no affordance). */
-  available: boolean;
-  optedIn: boolean;
-}
-
 export function buildMovementProfileV2UnifiedResultsPresentation(input: {
   viewModel: MovementProfileV2ResultsViewModel;
   variant?: 'standard' | 'onboarding' | 'history';
-  populationComparison?: MovementProfileV2PopulationComparisonInput;
 }): UnifiedCheckUpResultsPresentation {
-  // A saved profile opened later from Progress: same layout as fresh results,
-  // but read-only — honest "saved" copy.
+  // A saved profile opened later from Progress uses honest read-only copy and
+  // the shell's detailed history layout.
   const historyMode = input.variant === 'history';
   const domains = input.viewModel.domainCards.map((card) =>
-    domainCardToPresentation(card, input.viewModel.focus.domain, {
+    domainCardToPresentation(card, {
       // Founder decision 2026-07-06: the FIRST-EVER results stay purely
       // diagnosis-shaped — no tier chip, consistent with the comparison
       // affordance being gated off there. Tiers remain the app-wide band
@@ -42,13 +33,8 @@ export function buildMovementProfileV2UnifiedResultsPresentation(input: {
   return {
     variant: input.variant ?? 'standard',
     header: {
-      eyebrow:
-        input.variant === 'onboarding'
-          ? 'Check-up complete'
-          : historyMode
-            ? 'Saved check-up'
-            : 'Movement Check-Up',
-      title: 'Your Movement Check-Up',
+      eyebrow: historyMode ? 'Saved check-up' : 'Movement Check-Up',
+      title: historyMode ? 'Your Movement Check-Up' : 'Check-up complete',
       completedAtLabel: input.viewModel.dateLabel,
       subtitle: historyMode
         ? 'A saved check-up from your history. Opening it does not change your plan.'
@@ -59,17 +45,17 @@ export function buildMovementProfileV2UnifiedResultsPresentation(input: {
       title: input.viewModel.focus.title,
       body: input.viewModel.focus.body,
     },
-    domainSection: {
-      title: 'Strength and Balance',
-    },
     domains: toDomainCards(domains),
-    plan: { status: 'hidden' },
     caveat: input.viewModel.summary,
-    populationComparison: populationComparisonPresentation(input.variant, input.populationComparison),
     actions: [
       {
         id: 'done',
-        label: 'Done',
+        label:
+          input.variant === 'onboarding'
+            ? 'Continue'
+            : historyMode
+              ? 'Done'
+              : 'Return Home',
         action: { type: 'done' },
         button: 'primary',
       },
@@ -80,39 +66,8 @@ export function buildMovementProfileV2UnifiedResultsPresentation(input: {
   };
 }
 
-// Founder conditions of record (2026-07-06): never on the first-ever results
-// (onboarding variant); quiet and subordinate — the invitation must not imply
-// the comparison is the fuller or more real answer; reversible in place, with
-// Settings as the always-findable switch. History (saved profiles) shows no
-// affordance either — it is a read-only surface.
-function populationComparisonPresentation(
-  variant: 'standard' | 'onboarding' | 'history' | undefined,
-  input?: MovementProfileV2PopulationComparisonInput
-): UnifiedPopulationComparisonPresentation | undefined {
-  if (!input || !input.available) return undefined;
-  if (variant === 'onboarding' || variant === 'history') return undefined;
-  if (!input.optedIn) {
-    return {
-      state: 'invite',
-      title: 'See how you compare',
-      body: 'Optional: view results next to published values for your age and sex, where a result supports it. Your own trend stays the main story.',
-      toggleLabel: 'Show comparisons',
-      accessibilityLabel:
-        'See how you compare. Optional: view results next to published values for your age and sex. Your own trend stays the main story.',
-    };
-  }
-  return {
-    state: 'active',
-    title: 'Comparing with published values',
-    body: 'Shown only where a result can be read against published values for your age and sex. You can turn this off any time, here or in Settings.',
-    toggleLabel: 'Hide comparisons',
-    accessibilityLabel: 'Comparing with published values. You can turn this off any time, here or in Settings.',
-  };
-}
-
 function domainCardToPresentation(
   card: MovementProfileV2ResultsViewModel['domainCards'][number],
-  focusDomain?: MovementProfileV2Domain,
   options?: { suppressStatusTier?: boolean }
 ): UnifiedDomainResultCard {
   const id = domainId(card.domain);
@@ -122,10 +77,8 @@ function domainCardToPresentation(
     title: card.title,
     metricLabel: 'Result',
     metricValue: card.metric,
-    ...(suppressTier ? {} : { interpretation: card.status, statusLabel: card.status }),
+    ...(suppressTier ? {} : { interpretation: card.status }),
     body: card.body,
-    bandLabel: card.metric,
-    featured: card.domain === focusDomain,
     tone: toneForCard(card),
     iconToken: iconToken(card.domain),
     accessibilityLabel: suppressTier

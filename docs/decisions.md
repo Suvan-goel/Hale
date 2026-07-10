@@ -5673,3 +5673,22 @@ the implementation.
   one "Add context" disclosure by default. Existing saved context opens the
   disclosure automatically when a draft is restored. Persistence and scoring
   schemas are unchanged.
+
+## 2026-07-10 — Fresh results confirm; Progress retains depth
+
+- Fresh first and routine check-up results now share one concise completion
+  layout: "Check-up complete", the measured Strength-or-Balance focus, two
+  compact result rows, the beta-estimate caveat, and one primary continuation.
+  The first result says "Continue" because it chains into the promised first
+  session; later results say "Return Home".
+- The redundant "Plan ready" badge and Strength-and-Balance section preamble
+  are removed. Plan remains the owner of programme structure and Home remains
+  the owner of the next action.
+- Everyday Clarity no longer repeats on the Results screen; its personal trend
+  lives on Progress. The population-comparison invitation is also removed from
+  completion. The effectful preference remains in Settings, and eligible
+  published-value context still appears in result copy when already enabled.
+- A saved check-up opened from Progress keeps the detailed read-only focus and
+  domain breakdown with its date and camera-estimate caveat. The detailed view
+  continues to use the same presentation adapter and shared shell as fresh
+  results.

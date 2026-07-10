@@ -473,7 +473,8 @@ export function ProgrammeV2Root() {
   }, [programmeState]);
 
   // Results derive from stored history so fresh and saved views share one
-  // path; rebuilt when the population-comparison preference flips.
+  // path. The low-frequency comparison preference stays in Settings; when it
+  // is enabled, the result copy includes eligible published-value context.
   const resultsViewModel = React.useMemo(() => {
     if (!resultsView) return null;
     const record = movementProfileV2ProgressProfileBySourceCheckUpId(
@@ -485,13 +486,6 @@ export function ProgrammeV2Root() {
       comparisonOptIn: prefs?.settings.comparisonOptIn,
     });
   }, [history, resultsView, prefs]);
-
-  // Condition 1 of record (2026-07-06): the comparison affordance exists only
-  // from the second stored official check-up onward.
-  const officialCheckUpCount = React.useMemo(
-    () => validOfficialMovementProfileV2Assessments(history).length,
-    [history]
-  );
 
   const voiceSetup: VoiceSetupPrefs = prefs?.settings.voiceSetup ?? DEFAULT_VOICE_SETUP_PREFS;
   const handleVoiceSetupChange = React.useCallback(
@@ -1254,17 +1248,6 @@ export function ProgrammeV2Root() {
       <MovementProfileV2UnifiedResultsScreen
         viewModel={resultsViewModel}
         variant={resultsView.variant}
-        clarityTrend={clarityTrend}
-        populationComparison={{
-          available: officialCheckUpCount >= 2,
-          optedIn: prefs.settings.comparisonOptIn,
-        }}
-        onTogglePopulationComparison={() =>
-          persistPrefs({
-            ...prefs,
-            settings: { ...prefs.settings, comparisonOptIn: !prefs.settings.comparisonOptIn },
-          })
-        }
         onDone={() => {
           const fresh = resultsView.variant !== 'history';
           setResultsView(null);

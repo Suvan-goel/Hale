@@ -1,12 +1,10 @@
-import * as React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { BackArrowButton } from '../components/BackArrowButton';
-import { HeaderLogo } from '../components/HeaderLogo';
 import { Card, PrimaryButton, Screen, ScreenHeader, SecondaryButton } from '../components/ui';
-import { colors, fonts, radius, shadow, spacing, type } from '../theme';
-import { compactTypography, useResponsiveLayout } from '../theme/responsive';
+import { colors, fonts, radius, spacing, type } from '../theme';
+import { useResponsiveLayout } from '../theme/responsive';
 import type {
   UnifiedCheckUpResultsAction,
   UnifiedCheckUpResultsPresentation,
@@ -17,72 +15,88 @@ import type {
 export function CheckUpResultsShell({
   presentation,
   onAction,
-  supplementary,
 }: {
   presentation: UnifiedCheckUpResultsPresentation;
   onAction: (action: UnifiedCheckUpResultsAction) => void;
-  supplementary?: React.ReactNode;
 }) {
-  if (presentation.variant === 'onboarding') {
-    return <OnboardingResultsVariant presentation={presentation} onAction={onAction} supplementary={supplementary} />;
+  if (presentation.variant === 'history') {
+    return <HistoryResultsVariant presentation={presentation} onAction={onAction} />;
   }
-  return <StandardResultsVariant presentation={presentation} onAction={onAction} supplementary={supplementary} />;
+  return <FreshResultsVariant presentation={presentation} onAction={onAction} />;
 }
 
-function StandardResultsVariant({
+function FreshResultsVariant({
   presentation,
   onAction,
-  supplementary,
 }: {
   presentation: UnifiedCheckUpResultsPresentation;
   onAction: (action: UnifiedCheckUpResultsAction) => void;
-  supplementary?: React.ReactNode;
+}) {
+  const responsive = useResponsiveLayout();
+
+  return (
+    <Screen contentStyle={styles.freshScreenContent}>
+      <ScreenHeader
+        eyebrow={presentation.header.eyebrow ?? 'Movement Check-Up'}
+        title={presentation.header.title}
+        subtitle={presentation.header.subtitle}
+      />
+
+      <View style={[styles.freshFocusCard, responsive.isCompactPhone && styles.compactCardPadding]}>
+        <Text style={styles.focusKicker}>{presentation.focus.kicker}</Text>
+        <Text style={styles.freshFocusValue}>{presentation.focus.title}</Text>
+        <Text style={styles.focusBody}>{presentation.focus.body}</Text>
+      </View>
+
+      <Card style={styles.freshAreasPanel}>
+        {presentation.domains.map((domain, index) => (
+          <FreshDomainResultRow
+            key={domain.id}
+            domain={domain}
+            isLast={index === presentation.domains.length - 1}
+          />
+        ))}
+      </Card>
+
+      {presentation.caveat ? <Text style={styles.caveat}>{presentation.caveat}</Text> : null}
+
+      <ActionStack actions={presentation.actions} onAction={onAction} />
+    </Screen>
+  );
+}
+
+function HistoryResultsVariant({
+  presentation,
+  onAction,
+}: {
+  presentation: UnifiedCheckUpResultsPresentation;
+  onAction: (action: UnifiedCheckUpResultsAction) => void;
 }) {
   const responsive = useResponsiveLayout();
   const backAction = presentation.actions.find((action) => action.action.type === 'done');
 
   return (
-    <Screen contentStyle={styles.screenContent}>
+    <Screen contentStyle={styles.historyScreenContent}>
       {presentation.header.showBackButton && backAction ? (
         <BackArrowButton
           accessibilityLabel={presentation.header.backAccessibilityLabel ?? 'Back'}
           onPress={() => onAction(backAction.action)}
         />
       ) : null}
-      <View style={styles.header}>
-        {presentation.header.eyebrow ? <Text style={styles.eyebrow}>{presentation.header.eyebrow}</Text> : null}
-        <View style={styles.titleGroup}>
-          <HeaderLogo size={30} />
-          <Text style={[styles.title, responsive.isCompactPhone && compactTypography.pageTitle]}>
-            {presentation.header.title}
-          </Text>
-        </View>
-        {presentation.header.completedAtLabel ? (
-          <Text style={styles.dateLabel}>{presentation.header.completedAtLabel}</Text>
-        ) : null}
-        {presentation.header.subtitle ? (
-          <Text style={styles.subtitle}>{presentation.header.subtitle}</Text>
-        ) : null}
-      </View>
+      <ScreenHeader
+        eyebrow={presentation.header.eyebrow ?? 'Saved check-up'}
+        title={presentation.header.title}
+        subtitle={presentation.header.subtitle}
+      />
+      {presentation.header.completedAtLabel ? (
+        <Text style={styles.dateLabel}>{presentation.header.completedAtLabel}</Text>
+      ) : null}
 
       <View style={[styles.focusOverviewCard, responsive.isCompactPhone && styles.compactCardPadding]}>
-        <View style={styles.focusTopRow}>
-          <Text style={styles.focusKicker}>{presentation.focus.kicker}</Text>
-        </View>
+        <Text style={styles.focusKicker}>{presentation.focus.kicker}</Text>
         <Text style={styles.focusValue}>{presentation.focus.title}</Text>
         <Text style={styles.focusBody}>{presentation.focus.body}</Text>
       </View>
-
-      {presentation.domainSection?.title || presentation.domainSection?.subtitle ? (
-        <View style={styles.resultsIntro}>
-          {presentation.domainSection.title ? (
-            <Text style={styles.sectionTitle}>{presentation.domainSection.title}</Text>
-          ) : null}
-          {presentation.domainSection.subtitle ? (
-            <Text style={styles.sectionSubtle}>{presentation.domainSection.subtitle}</Text>
-          ) : null}
-        </View>
-      ) : null}
 
       <Card style={styles.areasPanel}>
         {presentation.domains.map((domain, index) => (
@@ -94,61 +108,6 @@ function StandardResultsVariant({
         ))}
       </Card>
 
-      {presentation.comparison ? (
-        <Card style={styles.comparisonCard}>
-          <Text style={styles.sectionTitle}>{presentation.comparison.title}</Text>
-          {presentation.comparison.subtitle ? (
-            <Text style={styles.sectionSubtle}>{presentation.comparison.subtitle}</Text>
-          ) : null}
-          <View style={styles.comparisonRows}>
-            {presentation.comparison.rows.map((row, index) => (
-              <View
-                key={row.id}
-                style={[
-                  styles.comparisonRow,
-                  index === presentation.comparison!.rows.length - 1 && styles.comparisonRowLast,
-                ]}
-              >
-                <Text style={styles.comparisonTitle}>{row.title}</Text>
-                {row.previousLabel || row.currentLabel ? (
-                  <View style={styles.comparisonValues}>
-                    {row.previousLabel ? (
-                      <Text style={styles.comparisonValue}>{row.previousLabel}</Text>
-                    ) : null}
-                    {row.currentLabel ? (
-                      <Text style={styles.comparisonValue}>{row.currentLabel}</Text>
-                    ) : null}
-                  </View>
-                ) : null}
-                {row.note ? <Text style={styles.comparisonNote}>{row.note}</Text> : null}
-              </View>
-            ))}
-          </View>
-        </Card>
-      ) : null}
-
-      {presentation.trend ? (
-        <Card style={styles.trendCard}>
-          <Text style={styles.sectionTitle}>{presentation.trend.title}</Text>
-          <Text style={styles.sectionSubtle}>{presentation.trend.body}</Text>
-        </Card>
-      ) : null}
-
-      {supplementary}
-
-      {presentation.populationComparison ? (
-        // Quiet, subordinate entry below her own trend (founder condition 2) —
-        // deliberately plainer than the result cards above it.
-        <View style={styles.populationComparison} accessibilityLabel={presentation.populationComparison.accessibilityLabel}>
-          <Text style={styles.populationComparisonTitle}>{presentation.populationComparison.title}</Text>
-          <Text style={styles.populationComparisonBody}>{presentation.populationComparison.body}</Text>
-          <SecondaryButton
-            title={presentation.populationComparison.toggleLabel}
-            onPress={() => onAction({ type: 'toggle_population_comparison' })}
-          />
-        </View>
-      ) : null}
-
       {presentation.caveat ? <Text style={styles.caveat}>{presentation.caveat}</Text> : null}
 
       <ActionStack actions={presentation.actions} onAction={onAction} />
@@ -156,71 +115,41 @@ function StandardResultsVariant({
   );
 }
 
-function OnboardingResultsVariant({
-  presentation,
-  onAction,
-  supplementary,
+function FreshDomainResultRow({
+  domain,
+  isLast,
 }: {
-  presentation: UnifiedCheckUpResultsPresentation;
-  onAction: (action: UnifiedCheckUpResultsAction) => void;
-  supplementary?: React.ReactNode;
+  domain: UnifiedDomainResultCard;
+  isLast: boolean;
 }) {
-  const responsive = useResponsiveLayout();
+  const metricDisplay = splitMetricDisplay(domain.metricValue);
   return (
-    <Screen contentStyle={onboardingStyles.screenContent}>
-      <View style={onboardingStyles.header}>
-        <ScreenHeader
-          eyebrow={presentation.header.eyebrow ?? ''}
-          title={presentation.header.title}
-          subtitle={presentation.header.subtitle}
-        />
+    <View style={[styles.freshDomainRow, isLast && styles.freshDomainRowLast]}>
+      <View style={styles.freshDomainIcon}>
+        <DomainGlyph iconToken={domain.iconToken} flush />
       </View>
-
-      <View style={[onboardingStyles.heroCard, responsive.isCompactPhone && onboardingStyles.compactHeroPadding]}>
-        <View style={onboardingStyles.heroTopRow}>
-          <Text style={onboardingStyles.eyebrow}>{presentation.focus.kicker}</Text>
-          <View style={onboardingStyles.heroPill}>
-            <Text style={onboardingStyles.heroPillText}>Plan ready</Text>
-          </View>
-        </View>
-        <Text style={onboardingStyles.heroTitle}>{presentation.focus.title}</Text>
-        <Text style={onboardingStyles.heroBody}>{presentation.focus.body}</Text>
-      </View>
-
-      <View style={onboardingStyles.sectionIntro}>
-        <Text style={onboardingStyles.sectionTitle}>
-          {presentation.domainSection?.title ?? 'Strength and Balance'}
-        </Text>
-        <Text style={onboardingStyles.sectionBody}>
-          {presentation.domainSection?.subtitle ?? "The movement measurements saved from today's check-up."}
+      <View style={styles.freshDomainCopy}>
+        <Text style={styles.freshDomainTitle}>{domain.title}</Text>
+        {domain.interpretation ? (
+          <Text style={styles.freshDomainStatus}>{domain.interpretation}</Text>
+        ) : null}
+        <Text style={styles.freshDomainMetric} accessibilityLabel={domain.metricValue}>
+          {metricDisplay ? (
+            <>
+              <Text style={styles.freshDomainMetricNumber}>{metricDisplay.value}</Text>
+              {metricDisplay.unit ? (
+                <Text style={styles.freshDomainMetricUnit}>
+                  {metricDisplay.separator}
+                  {metricDisplay.unit}
+                </Text>
+              ) : null}
+            </>
+          ) : (
+            domain.metricValue
+          )}
         </Text>
       </View>
-
-      <View style={onboardingStyles.domainStack}>
-        {presentation.domains.map((domain) => (
-          <OnboardingDomainSummaryCard key={domain.id} domain={domain} />
-        ))}
-      </View>
-
-      {supplementary}
-
-      {presentation.plan.status !== 'hidden' && presentation.plan.title && presentation.plan.body ? (
-        <View style={[onboardingStyles.nextCard, responsive.isCompactPhone && onboardingStyles.compactCardPadding]}>
-          <View style={onboardingStyles.nextTopRow}>
-            <Text style={onboardingStyles.nextKicker}>Next</Text>
-            <View style={onboardingStyles.nextStatusPill}>
-              <Text style={onboardingStyles.nextStatusText}>Ready</Text>
-            </View>
-          </View>
-          <Text style={onboardingStyles.nextTitle}>{presentation.plan.title}</Text>
-          <Text style={onboardingStyles.nextBody}>{presentation.plan.body}</Text>
-        </View>
-      ) : null}
-
-      {presentation.caveat ? <Text style={styles.caveat}>{presentation.caveat}</Text> : null}
-
-      <ActionStack actions={presentation.actions} onAction={onAction} />
-    </Screen>
+    </View>
   );
 }
 
@@ -310,59 +239,6 @@ function DomainAreaRow({
   );
 }
 
-function OnboardingDomainSummaryCard({ domain }: { domain: UnifiedDomainResultCard }) {
-  const responsive = useResponsiveLayout();
-  const metricDisplay = splitMetricDisplay(domain.bandLabel ?? domain.metricValue);
-  return (
-    <View
-      style={[
-        onboardingStyles.domainCard,
-        responsive.isCompactPhone && onboardingStyles.compactCardPadding,
-        domain.featured && onboardingStyles.domainCardFeatured,
-      ]}
-    >
-      <View style={onboardingStyles.domainCopy}>
-        <View style={onboardingStyles.domainTitleRow}>
-          <View style={[onboardingStyles.domainMark, domain.featured && onboardingStyles.domainMarkFeatured]}>
-            <DomainGlyph iconToken={domain.iconToken} flush />
-          </View>
-          <View style={onboardingStyles.domainTitleCopy}>
-            <View style={onboardingStyles.domainNameRow}>
-              <Text style={onboardingStyles.domainTitle}>{domain.title}</Text>
-              {domain.featured ? (
-                <View style={onboardingStyles.focusPill}>
-                  <Text style={onboardingStyles.focusPillText}>Focus</Text>
-                </View>
-              ) : null}
-            </View>
-            {domain.statusLabel ?? domain.interpretation ? (
-              <Text style={onboardingStyles.domainStatus}>{domain.statusLabel ?? domain.interpretation}</Text>
-            ) : null}
-          </View>
-        </View>
-      </View>
-      <View style={onboardingStyles.domainBandWrap}>
-        <Text style={onboardingStyles.domainBandLabel}>Result</Text>
-        <Text style={onboardingStyles.domainBand} numberOfLines={2}>
-          {metricDisplay ? (
-            <>
-              <Text style={onboardingStyles.domainBandNumber}>{metricDisplay.value}</Text>
-              {metricDisplay.unit ? (
-                <Text style={onboardingStyles.domainBandUnit}>
-                  {metricDisplay.separator}
-                  {metricDisplay.unit}
-                </Text>
-              ) : null}
-            </>
-          ) : (
-            domain.bandLabel ?? domain.metricValue
-          )}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
 function splitMetricDisplay(display: string): { value: string; separator: string; unit: string } | null {
   const match = display.trim().match(/^(-?\d+(?:\.\d+)?)(\s*)(.*)$/);
   if (!match) return null;
@@ -375,16 +251,14 @@ function splitMetricDisplay(display: string): { value: string; separator: string
 
 function DomainGlyph({
   iconToken,
-  emphasized,
   flush,
 }: {
   iconToken: UnifiedDomainResultCard['iconToken'];
-  emphasized?: boolean;
   flush?: boolean;
 }) {
-  const stroke = emphasized ? colors.onAccent : colors.accentDeep;
+  const stroke = colors.accentDeep;
   return (
-    <View style={[styles.domainIcon, flush && styles.domainIconFlush, emphasized && styles.domainIconEmphasized]}>
+    <View style={[styles.domainIcon, flush && styles.domainIconFlush]}>
       <Svg width={25} height={25} viewBox="0 0 24 24" accessibilityElementsHidden>
         {iconToken === 'strength' ? (
           <>
@@ -411,37 +285,23 @@ function DomainGlyph({
 }
 
 const styles = StyleSheet.create({
-  screenContent: {
-    gap: 20,
-  },
-  header: { gap: spacing.sm, paddingTop: spacing.xs },
-  eyebrow: {
-    ...type.label,
-    color: colors.accentDeep,
-    fontSize: 11,
-    lineHeight: 16,
-  },
-  titleGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    minWidth: 0,
-  },
-  title: {
-    ...type.pageTitle,
-    flexShrink: 1,
-    fontSize: 30,
-    lineHeight: 36,
-  },
+  freshScreenContent: { gap: spacing.lg },
+  historyScreenContent: { gap: 20 },
   dateLabel: {
     ...type.cardCaption,
     color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0,
   },
-  subtitle: {
-    ...type.pageSubtitle,
-    maxWidth: 340,
+  freshFocusCard: {
+    gap: spacing.sm,
+    paddingHorizontal: 22,
+    paddingVertical: 22,
+    borderRadius: radius.panel,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderSubtle,
+    overflow: 'hidden',
   },
   focusOverviewCard: {
     gap: spacing.md,
@@ -458,17 +318,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 16,
   },
-  focusTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    gap: spacing.md,
-  },
   focusKicker: {
     ...type.label,
     color: colors.accentDeep,
     fontSize: 11,
     lineHeight: 16,
+  },
+  freshFocusValue: {
+    fontFamily: fonts.serifMedium,
+    fontSize: 31,
+    lineHeight: 37,
+    letterSpacing: 0,
+    color: colors.textPrimary,
   },
   focusValue: {
     fontFamily: fonts.serifMedium,
@@ -482,10 +343,62 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     maxWidth: 340,
   },
-  resultsIntro: {
-    gap: spacing.xs,
-    paddingTop: spacing.sm,
-    paddingHorizontal: 2,
+  freshAreasPanel: {
+    paddingHorizontal: 18,
+    paddingVertical: 0,
+  },
+  freshDomainRow: {
+    minHeight: 84,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.divider,
+  },
+  freshDomainRowLast: {
+    borderBottomWidth: 0,
+  },
+  freshDomainIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bgElevated,
+  },
+  freshDomainCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 3,
+  },
+  freshDomainTitle: {
+    ...type.cardRowTitle,
+    color: colors.textPrimary,
+  },
+  freshDomainStatus: {
+    ...type.cardCaption,
+    color: colors.textSecondary,
+  },
+  freshDomainMetric: {
+    color: colors.textPrimary,
+    fontVariant: ['tabular-nums'],
+    marginTop: 2,
+  },
+  freshDomainMetricNumber: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 22,
+    lineHeight: 27,
+    letterSpacing: 0,
+    color: colors.textPrimary,
+    fontVariant: ['tabular-nums'],
+  },
+  freshDomainMetricUnit: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0,
+    color: colors.textSecondary,
   },
   areasPanel: {
     paddingHorizontal: 24,
@@ -505,9 +418,6 @@ const styles = StyleSheet.create({
   },
   domainIconFlush: {
     marginTop: 0,
-  },
-  domainIconEmphasized: {
-    backgroundColor: 'transparent',
   },
   domainAreaRow: {
     gap: 10,
@@ -597,312 +507,9 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     flex: 1,
   },
-  populationComparison: {
-    gap: spacing.sm,
-    paddingHorizontal: 24,
-    paddingVertical: spacing.md,
-  },
-  populationComparisonTitle: {
-    ...type.cardTitle,
-    color: colors.textSecondary,
-  },
-  populationComparisonBody: {
-    ...type.caption,
-    color: colors.textSecondary,
-  },
-  trendCard: {
-    gap: spacing.sm,
-    paddingHorizontal: 24,
-    paddingVertical: 24,
-    borderRadius: radius.panel,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    backgroundColor: colors.surface,
-    ...shadow.card,
-  },
-  comparisonCard: {
-    gap: spacing.sm,
-    paddingHorizontal: 24,
-    paddingVertical: 24,
-    borderRadius: radius.panel,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    backgroundColor: colors.surface,
-    ...shadow.card,
-  },
-  comparisonRows: {
-    marginTop: spacing.sm,
-  },
-  comparisonRow: {
-    gap: spacing.xs,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.divider,
-  },
-  comparisonRowLast: {
-    borderBottomWidth: 0,
-  },
-  comparisonTitle: {
-    ...type.cardBody,
-    fontFamily: fonts.sansMedium,
-    color: colors.textPrimary,
-  },
-  comparisonValues: {
-    gap: 2,
-  },
-  comparisonValue: {
-    ...type.cardCaption,
-    color: colors.textSecondary,
-  },
-  comparisonNote: {
-    ...type.cardCaption,
-    color: colors.textSecondary,
-  },
-  sectionTitle: {
-    ...type.cardTitle,
-    fontSize: 22,
-    lineHeight: 28,
-  },
-  sectionSubtle: {
-    ...type.cardBody,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
-  },
   caveat: {
     ...type.cardCaption,
     color: colors.textSecondary,
   },
   actions: { gap: spacing.md },
-});
-
-const onboardingStyles = StyleSheet.create({
-  screenContent: {
-    gap: spacing.lg,
-  },
-  header: {
-    gap: spacing.xs,
-  },
-  heroCard: {
-    gap: spacing.lg,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl,
-    borderRadius: radius.panel,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.goldBorder,
-    overflow: 'hidden',
-    ...shadow.card,
-  },
-  compactCardPadding: {
-    paddingHorizontal: 14,
-    paddingVertical: 16,
-  },
-  compactHeroPadding: {
-    paddingHorizontal: 18,
-    paddingVertical: 20,
-  },
-  heroTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  eyebrow: {
-    ...type.label,
-    color: colors.textSecondary,
-    flexShrink: 1,
-  },
-  heroPill: {
-    minHeight: 30,
-    justifyContent: 'center',
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.md,
-    backgroundColor: colors.bgGold,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.goldBorder,
-  },
-  heroPillText: {
-    ...type.cardCaption,
-    color: colors.accentDeep,
-    fontFamily: fonts.sansMedium,
-  },
-  heroTitle: {
-    fontFamily: fonts.serifMedium,
-    fontSize: 40,
-    lineHeight: 46,
-    letterSpacing: 0,
-    color: colors.accentDeep,
-  },
-  heroBody: {
-    ...type.bodySmall,
-    color: colors.textSecondary,
-    maxWidth: 340,
-  },
-  sectionIntro: {
-    gap: spacing.xs,
-    paddingTop: spacing.xs,
-  },
-  sectionTitle: {
-    ...type.cardTitle,
-    fontSize: 22,
-    lineHeight: 28,
-  },
-  sectionBody: {
-    ...type.caption,
-    color: colors.textSecondary,
-  },
-  domainStack: {
-    gap: spacing.sm,
-  },
-  domainCard: {
-    minHeight: 104,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.lg,
-    borderRadius: radius.card,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    ...shadow.soft,
-  },
-  domainCardFeatured: {
-    borderColor: colors.goldBorder,
-    backgroundColor: colors.bgGold,
-  },
-  domainMark: {
-    width: 46,
-    height: 46,
-    borderRadius: radius.input,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.bgSurface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-  },
-  domainMarkFeatured: {
-    backgroundColor: colors.surface,
-    borderColor: colors.goldBorder,
-  },
-  domainCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  domainTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    minWidth: 0,
-  },
-  domainTitleCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  domainNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  domainTitle: {
-    ...type.cardRowTitle,
-    fontSize: 16,
-    lineHeight: 21,
-  },
-  domainStatus: {
-    ...type.caption,
-    color: colors.textSecondary,
-  },
-  focusPill: {
-    minHeight: 24,
-    justifyContent: 'center',
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.sm,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.goldBorder,
-  },
-  focusPillText: {
-    ...type.cardCaption,
-    color: colors.accentDeep,
-    fontFamily: fonts.sansMedium,
-  },
-  domainBandWrap: {
-    maxWidth: 118,
-    alignItems: 'flex-end',
-    gap: 2,
-  },
-  domainBandLabel: {
-    ...type.cardCaption,
-    color: colors.textSecondary,
-    textTransform: 'uppercase',
-  },
-  domainBand: {
-    textAlign: 'right',
-    color: colors.textPrimary,
-    flexShrink: 1,
-  },
-  domainBandNumber: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 24,
-    lineHeight: 29,
-    letterSpacing: 0,
-    color: colors.textPrimary,
-    fontVariant: ['tabular-nums'],
-  },
-  domainBandUnit: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 13,
-    lineHeight: 18,
-    letterSpacing: 0,
-    color: colors.textSecondary,
-  },
-  nextCard: {
-    gap: spacing.sm,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl,
-    borderRadius: radius.panel,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    ...shadow.soft,
-  },
-  nextTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  nextKicker: {
-    ...type.label,
-    color: colors.textSecondary,
-  },
-  nextStatusPill: {
-    minHeight: 28,
-    justifyContent: 'center',
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.md,
-    backgroundColor: colors.bgGold,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.goldBorder,
-  },
-  nextStatusText: {
-    ...type.cardCaption,
-    fontFamily: fonts.sansMedium,
-    color: colors.accentDeep,
-  },
-  nextTitle: {
-    fontFamily: fonts.serifMedium,
-    fontSize: 25,
-    lineHeight: 31,
-    letterSpacing: 0,
-    color: colors.textPrimary,
-    flexShrink: 1,
-  },
-  nextBody: {
-    ...type.bodySmall,
-    color: colors.textSecondary,
-  },
 });

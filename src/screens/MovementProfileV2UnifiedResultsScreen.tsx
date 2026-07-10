@@ -1,35 +1,24 @@
 import * as React from 'react';
 
 import { CheckUpResultsShell } from '../results/CheckUpResultsShell';
-import { ClarityProgressCard } from '../components/ClarityProgressCard';
-import {
-  buildMovementProfileV2UnifiedResultsPresentation,
-  type MovementProfileV2PopulationComparisonInput,
-} from '../results/movementProfileV2ResultsAdapter';
+import { buildMovementProfileV2UnifiedResultsPresentation } from '../results/movementProfileV2ResultsAdapter';
 import type { UnifiedCheckUpResultsAction } from '../results/types';
 import type { MovementProfileV2ResultsViewModel } from '../movementProfileV2/viewModel';
-import type { ClarityTrendViewModel } from '../pearlFlow/clarityTrend';
 
 /**
  * The per-check-up results page, restored 2026-07-08 (founder direction) in a
  * v2 trim: fresh results after a check-up ('standard' / 'onboarding' for the
- * first-ever) and saved history from Progress (read-only 'history' variant)
- * render through the same shared shell. The old engine's plan and
- * block-report actions did not return.
+ * first-ever) are concise, while saved history from Progress keeps the detailed
+ * read-only variant. Clarity lives on Progress and comparison preferences live
+ * in Settings, so neither adds controls to this completion path.
  */
 export function MovementProfileV2UnifiedResultsScreen({
   viewModel,
   variant = 'standard',
-  populationComparison,
-  clarityTrend,
-  onTogglePopulationComparison,
   onDone,
 }: {
   viewModel: MovementProfileV2ResultsViewModel;
   variant?: 'standard' | 'onboarding' | 'history';
-  populationComparison?: MovementProfileV2PopulationComparisonInput;
-  clarityTrend?: ClarityTrendViewModel | null;
-  onTogglePopulationComparison?: () => void;
   onDone: () => void;
 }) {
   const presentation = React.useMemo(
@@ -37,31 +26,18 @@ export function MovementProfileV2UnifiedResultsScreen({
       buildMovementProfileV2UnifiedResultsPresentation({
         viewModel,
         variant,
-        populationComparison,
       }),
-    [populationComparison, variant, viewModel]
+    [variant, viewModel]
   );
 
   const handleAction = React.useCallback(
     (action: UnifiedCheckUpResultsAction) => {
-      if (action.type === 'toggle_population_comparison') {
-        onTogglePopulationComparison?.();
-        return;
-      }
       if (action.type === 'done') {
         onDone();
       }
     },
-    [onDone, onTogglePopulationComparison]
+    [onDone]
   );
 
-  return (
-    <CheckUpResultsShell
-      presentation={presentation}
-      onAction={handleAction}
-      supplementary={
-        clarityTrend ? <ClarityProgressCard viewModel={clarityTrend} /> : undefined
-      }
-    />
-  );
+  return <CheckUpResultsShell presentation={presentation} onAction={handleAction} />;
 }

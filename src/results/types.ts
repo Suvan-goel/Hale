@@ -1,8 +1,7 @@
 /**
- * 'standard'  — fresh results right after a check-up.
- * 'onboarding' — the first-ever results, with onboarding framing.
- * 'history'   — a saved profile opened later from Progress; read-only, no plan
- *               actions. Renders through the standard layout.
+ * 'standard'   — concise fresh results after a routine check-up.
+ * 'onboarding' — the same concise completion layout after the first check-up.
+ * 'history'    — a detailed saved profile opened read-only from Progress.
  */
 export type UnifiedCheckUpResultsVariant = 'standard' | 'onboarding' | 'history';
 
@@ -17,30 +16,7 @@ export type UnifiedResultDomainId =
 
 export type UnifiedResultDomainTone = 'neutral' | 'attention' | 'informational';
 
-export type UnifiedCheckUpResultsAction =
-  | { type: 'view_plan' }
-  | { type: 'view_block_report' }
-  | { type: 'done' }
-  | { type: 'retry_checkup' }
-  | { type: 'complete_onboarding' }
-  | { type: 'finish_movement_profile' }
-  | { type: 'view_saved_profile' }
-  | { type: 'toggle_population_comparison' };
-
-/**
- * Optional population-comparison entry (REPOSITION_TDD slice 5, founder
- * conditions of record 2026-07-06): never on the first-ever results screen;
- * rendered as a QUIET, subordinate entry below her own baseline-relative
- * trend; reversible; the Settings toggle is the always-findable switch and
- * this is only the front door.
- */
-export interface UnifiedPopulationComparisonPresentation {
-  state: 'invite' | 'active';
-  title: string;
-  body: string;
-  toggleLabel: string;
-  accessibilityLabel: string;
-}
+export type UnifiedCheckUpResultsAction = { type: 'done' };
 
 export interface UnifiedResultsActionViewModel {
   id: string;
@@ -58,9 +34,6 @@ export interface UnifiedDomainResultCard {
   metricValue: string;
   interpretation?: string;
   body?: string;
-  statusLabel?: string;
-  bandLabel?: string;
-  featured?: boolean;
   tone: UnifiedResultDomainTone;
   iconToken: 'strength' | 'balance' | 'mobility' | 'clarity';
   accessibilityLabel?: string;
@@ -75,29 +48,9 @@ export interface UnifiedFocusPresentation {
   body: string;
 }
 
-export interface UnifiedPlanPresentation {
-  status: 'hidden' | 'ready' | 'conflict' | 'unavailable';
-  title?: string;
-  body?: string;
-}
-
 export interface UnifiedResultsRecoveryPresentation {
   title: string;
   body: string;
-}
-
-export interface UnifiedRetestComparisonRow {
-  id: string;
-  title: string;
-  previousLabel?: string;
-  currentLabel?: string;
-  note?: string;
-}
-
-export interface UnifiedRetestComparisonPresentation {
-  title: string;
-  subtitle?: string;
-  rows: readonly UnifiedRetestComparisonRow[];
 }
 
 export interface UnifiedCheckUpResultsPresentation {
@@ -115,19 +68,8 @@ export interface UnifiedCheckUpResultsPresentation {
    * dimension, in registry surface order — no longer a fixed 3-tuple.
    */
   domains: readonly UnifiedDomainResultCard[];
-  domainSection?: {
-    title?: string;
-    subtitle?: string;
-  };
   focus: UnifiedFocusPresentation;
-  plan: UnifiedPlanPresentation;
   caveat?: string;
-  trend?: {
-    title: string;
-    body: string;
-  };
-  comparison?: UnifiedRetestComparisonPresentation;
-  populationComparison?: UnifiedPopulationComparisonPresentation;
   actions: readonly UnifiedResultsActionViewModel[];
   recovery?: UnifiedResultsRecoveryPresentation;
   accessibility: {
