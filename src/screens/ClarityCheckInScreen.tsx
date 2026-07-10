@@ -14,6 +14,7 @@ import {
   type SleepQuality,
   type SymptomLoad,
 } from '../checkup';
+import { BRAND } from '../brand';
 import { PrimaryButton, Screen, ScreenHeader } from '../components/ui';
 import { colors, fonts, minTapTarget, radius, spacing, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
@@ -97,7 +98,7 @@ export function ClarityCheckInScreen({
         <Text style={styles.contextTitle}>A note about your trend</Text>
         <Text style={styles.contextText}>
           Clarity can fluctuate with sleep, symptoms, stress, and other day-to-day factors. Regular
-          physical activity supports brain health, but Pearl does not use this check-in to infer a
+          physical activity supports brain health, but {BRAND.appName} does not use this check-in to infer a
           cause or change your plan.
         </Text>
       </View>

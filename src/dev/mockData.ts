@@ -2,8 +2,8 @@
  * DEV-ONLY mock journey generator.
  *
  * Produces the on-device state of a user who has been in the app for a few
- * months — several completed voice sessions (advanced ladder levels, session
- * count) and a series of official Movement Check-Ups (a longitudinal Movement
+ * months — several completed voice sessions (advanced ladder levels, journey
+ * credits) and a series of official Movement Check-Ups (a longitudinal Movement
  * Profile with an improving trend). Lets you look at Home, Progress, and the
  * per-check-up Results screens fully populated without performing a single
  * camera-graded battery (which can't run on an emulator anyway — see
@@ -23,9 +23,7 @@
 import type { CheckUp } from '../checkup/types';
 import type { StoredCheckUpType } from '../history';
 import {
-  createCapturedActiveShoulderReachV2Result,
   createCapturedChairRiseV2Result,
-  createCapturedHingeReachResult,
   createCapturedOneLegBalanceV2Result,
   createMovementProfileV2InternalFlow,
   movementProfileV2InternalFlowReducer,
@@ -33,10 +31,12 @@ import {
 } from '../movementProfileV2/internalCheckupFlow';
 import {
   applyAssessmentPlacement,
+  applyOfficialAssessmentToProgrammeJourney,
   applyProgrammeSessionResults,
   assessmentInputsFromCheckUp,
   generateProgrammeSession,
   markFirstSessionStarted,
+  recordProgrammeJourneySession,
   type EffortAnswer,
   type PatternSessionOutcome,
   type ProgrammeState,
@@ -67,9 +67,9 @@ export interface GenerateMockJourneyInput {
   profile: UserProfile;
   /** The current (post-onboarding) programme state to build on. */
   programmeState: ProgrammeState;
-  /** Number of official check-ups, one per month back from now. Default 3. */
+  /** Number of official check-ups, one per month back from now. Default 4. */
   checkUpCount?: number;
-  /** Number of completed voice sessions to simulate. Default 9. */
+  /** Number of completed voice sessions to simulate. Default 18. */
   sessionCount?: number;
   /** Clock injection for deterministic tests. Defaults to now. */
   now?: Date;
@@ -86,15 +86,21 @@ function checkUpSample(index: number) {
     meanVelocity: 0.9 + index * 0.08,
     peakVelocity: 1.15 + index * 0.1,
     holdsSec: [clampHold(6 + index * 3), clampHold(5 + index * 3), clampHold(5 + index * 2)],
-    shoulderDeg: Math.min(178, 150 + index * 6),
-    // Hinge reach is wrist-to-floor distance in body units: smaller is deeper.
-    hingeBu: Math.max(0.05, 0.35 - index * 0.08),
+    clarityItemScore: Math.max(0, 2 - Math.floor(index / 2)) as 0 | 1 | 2,
   };
 }
 
 function buildRawCheckUp(startedAt: string, index: number): CheckUp {
   const sample = checkUpSample(index);
-  let flow = createMovementProfileV2InternalFlow({ startedAt });
+  let flow = createMovementProfileV2InternalFlow({
+    startedAt,
+    batterySequence: ['balance', 'chair'],
+  });
+  flow = movementProfileV2InternalFlowReducer(flow, { type: 'confirm_balance_setup', standingLeg: 'left' });
+  flow = movementProfileV2InternalFlowReducer(flow, {
+    type: 'record_balance',
+    result: createCapturedOneLegBalanceV2Result({ standingLeg: 'left', holdsSec: sample.holdsSec }),
+  });
   flow = movementProfileV2InternalFlowReducer(flow, { type: 'confirm_chair_setup' });
   flow = movementProfileV2InternalFlowReducer(flow, { type: 'complete_chair_practice' });
   flow = movementProfileV2InternalFlowReducer(flow, {
@@ -105,23 +111,21 @@ function buildRawCheckUp(startedAt: string, index: number): CheckUp {
       peakVelocity: sample.peakVelocity,
     }),
   });
-  flow = movementProfileV2InternalFlowReducer(flow, { type: 'confirm_balance_setup', standingLeg: 'left' });
-  flow = movementProfileV2InternalFlowReducer(flow, {
-    type: 'record_balance',
-    result: createCapturedOneLegBalanceV2Result({ standingLeg: 'left', holdsSec: sample.holdsSec }),
-  });
-  flow = movementProfileV2InternalFlowReducer(flow, { type: 'confirm_shoulder_setup', shoulderSide: 'right' });
-  flow = movementProfileV2InternalFlowReducer(flow, {
-    type: 'record_shoulder',
-    result: createCapturedActiveShoulderReachV2Result({ selectedSide: 'right', peakFlexionDeg: sample.shoulderDeg }),
-  });
-  flow = movementProfileV2InternalFlowReducer(flow, {
-    type: 'record_hinge',
-    result: createCapturedHingeReachResult(sample.hingeBu),
-  });
   const checkUp = movementProfileV2RawCheckUpFromFlow(flow);
   if (!checkUp) throw new Error('[mockData] synthetic check-up did not complete');
-  return checkUp;
+  return {
+    ...checkUp,
+    selfReport: {
+      schemaVersion: 1,
+      clarity: {
+        itemSetId: 'clarity_items_v1',
+        itemScores: Array.from({ length: 5 }, () => sample.clarityItemScore),
+      },
+      covariates: {
+        sleepQuality: index % 3 === 0 ? 2 : 3,
+      },
+    },
+  };
 }
 
 function referenceProfileFor(profile: UserProfile): MovementProfileV2ReferenceProfile {
@@ -137,12 +141,15 @@ function referenceProfileFor(profile: UserProfile): MovementProfileV2ReferencePr
 /** Build the improving series of official, materialized check-ups. */
 function buildCheckUps(input: GenerateMockJourneyInput): MockCheckUp[] {
   const now = input.now ?? new Date();
-  const count = Math.max(1, input.checkUpCount ?? 3);
+  const count = Math.max(1, input.checkUpCount ?? 4);
   const referenceProfile = referenceProfileFor(input.profile);
   const acceptedHistory: MovementProfileV2AssessmentHistoryRecord[] = [];
   const checkUps: MockCheckUp[] = [];
+  const latestOffset = count < 4 ? 14 * DAY_MS : 0;
   for (let index = 0; index < count; index++) {
-    const startedAt = new Date(now.getTime() - (count - 1 - index) * MONTH_MS).toISOString();
+    const startedAt = new Date(
+      now.getTime() - latestOffset - (count - 1 - index) * MONTH_MS
+    ).toISOString();
     const raw = buildRawCheckUp(startedAt, index);
     const checkupType: StoredCheckUpType = index === 0 ? 'baseline' : 'official_retest';
     const result = materializeOfficialMovementProfileV2Artifacts({
@@ -172,7 +179,8 @@ function buildCheckUps(input: GenerateMockJourneyInput): MockCheckUp[] {
 function simulateSessions(
   base: ProgrammeState,
   sessionCount: number,
-  now: Date
+  phaseStartedAt: Date,
+  phase: number
 ): ProgrammeState {
   let state = markFirstSessionStarted(base);
   // Alternate 'lots'/'a_few' so ladders climb without every pattern pinning
@@ -186,7 +194,7 @@ function simulateSessions(
       lastSessionEffort: state.lastSessionEffort,
     });
     const completedAtIso = new Date(
-      now.getTime() - (sessionCount - session) * 3 * DAY_MS
+      phaseStartedAt.getTime() + (2 + session * 3) * DAY_MS
     ).toISOString();
     const effort: EffortAnswer = session % 3 === 2 ? 'lots' : 'a_few';
     const outcomes: PatternSessionOutcome[] = plan.main.map((exercise) => ({
@@ -204,7 +212,15 @@ function simulateSessions(
       completedAtIso,
       sessionEffort: effort,
     });
-    state = applied.state;
+    const credit = recordProgrammeJourneySession(applied.state.journey, {
+      sessionId: `mock-phase-${phase}-session-${session + 1}`,
+      completedAtIso,
+      templateId: template,
+    });
+    state =
+      credit.kind === 'credited' || credit.kind === 'already_recorded'
+        ? { ...applied.state, journey: credit.state }
+        : applied.state;
   }
   return state;
 }
@@ -216,7 +232,7 @@ function simulateSessions(
 export function generateMockJourney(input: GenerateMockJourneyInput): MockJourney {
   const now = input.now ?? new Date();
   const checkUps = buildCheckUps(input);
-  const sessionCount = Math.max(0, input.sessionCount ?? 9);
+  const sessionCount = Math.max(0, input.sessionCount ?? 18);
 
   // Place off the first (oldest) check-up, exactly like the shell does for a
   // fresh check-up (`deferred: false` → exact placement), then run sessions.
@@ -226,7 +242,32 @@ export function generateMockJourney(input: GenerateMockJourneyInput): MockJourne
     assessmentInputsFromCheckUp(firstCheckUp),
     { deferred: false, completedAtIso: firstCheckUp.startedAt }
   );
-  let programmeState = simulateSessions(placed, sessionCount, now);
+  let programmeState = placed;
+  const phaseCount = Math.min(3, checkUps.length);
+  let remainingSessions = sessionCount;
+  for (let index = 0; index < checkUps.length; index++) {
+    const assessment = checkUps[index].checkUp.movementProfileV2Assessment;
+    if (!assessment) throw new Error('[mockData] materialized assessment missing');
+    const advanced = applyOfficialAssessmentToProgrammeJourney(programmeState.journey, {
+      assessment,
+      completedAtIso: checkUps[index].checkUp.startedAt,
+    });
+    if (advanced.kind !== 'advanced' && advanced.kind !== 'completed') {
+      throw new Error(`[mockData] journey checkpoint rejected: ${advanced.kind}`);
+    }
+    programmeState = { ...programmeState, journey: advanced.state };
+    if (advanced.kind === 'advanced') {
+      const phasesRemaining = phaseCount - index;
+      const phaseSessions = Math.ceil(remainingSessions / Math.max(1, phasesRemaining));
+      remainingSessions -= phaseSessions;
+      programmeState = simulateSessions(
+        programmeState,
+        phaseSessions,
+        new Date(checkUps[index].checkUp.startedAt),
+        advanced.startedPhase
+      );
+    }
+  }
 
   // Reflect the most recent check-up as the one that resets the cadence clock.
   const latestCheckUp = checkUps[checkUps.length - 1].checkUp;

@@ -138,7 +138,11 @@ export function assessmentReoffer(state: ProgrammeState, nowIso: string): Assess
   if (assessmentStatus === 'bypassed_b1' || (gentleStartActive && !gpConfirmed)) {
     return assessmentStatus === 'bypassed_b1' && gpConfirmed ? 'post_gp_reoffer' : 'none';
   }
-  if (assessmentStatus === 'deferred' && state.completedSessionCount >= 1) {
+  if (
+    assessmentStatus === 'deferred' &&
+    state.profile.consentHealthData &&
+    state.completedSessionCount >= 1
+  ) {
     return 'deferred_reoffer';
   }
   if (assessmentStatus === 'skipped' && state.profile.consentHealthData) {

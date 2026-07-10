@@ -305,7 +305,7 @@ export function SafetyProfileScreen({
                 ))}
               </View>
               <Text style={styles.gentle}>
-                This shapes {BRAND.appName}'s guidance — it never changes how your results are measured.
+                Saved as profile context. It does not change your results or workouts yet.
               </Text>
               <View style={styles.questionCopy}>
                 <Text style={styles.subsectionTitle}>Your symptom picture</Text>
@@ -325,8 +325,7 @@ export function SafetyProfileScreen({
                 ))}
               </View>
               <Text style={styles.gentle}>
-                Helps {BRAND.appName} shape guidance and content — never how your results are
-                measured.
+                Saved as optional profile context. It does not change your results or workouts yet.
               </Text>
             </View>
           ) : null}
@@ -346,7 +345,7 @@ export function SafetyProfileScreen({
             ))}
           </View>
           <Text style={styles.gentle}>
-            You can change this later in Settings. Your check-up, pain notes, and safety setup still decide which movements {BRAND.appName} uses.
+            You can change this later in Settings. During a workout, use support or stop whenever you need to.
           </Text>
         </ChoiceSection>
       ) : null}
@@ -364,14 +363,14 @@ export function SafetyProfileScreen({
             ))}
           </View>
           <Text style={styles.gentle}>
-            {BRAND.appName} may choose easier options around this area. You can still stop or use support at any time.
+            Saved as optional context. It does not automatically change exercise selection yet; you can still stop or use support at any time.
           </Text>
         </ChoiceSection>
       ) : null}
 
       <ChoiceSection title="Movements to include">
         <Text style={styles.gentle}>
-          {BRAND.appName} uses alternatives for any exercise that does not work for you.
+          Save what feels practical for you. These review settings do not automatically rebuild your current programme yet.
         </Text>
         <YesNoQuestion
           title="Floor exercises"

@@ -3,6 +3,13 @@ import {
   MOVEMENT_PROFILE_V2_HEADLINE_MOVEMENT_IDS_V2,
   type MovementProfileV2HeadlineMovementId,
 } from '../../checkup/movementProfileV2';
+import type { MeasurementProtocolRef } from '../../checkup/measurementContext';
+import { normalizeCheckUpMeasurementMetadata } from '../../checkup/measurementMetadata';
+import {
+  MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID,
+  MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1,
+  PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT,
+} from '../../checkup/measurementProtocolRegistry';
 import {
   MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID,
   normalizeCheckUpRecordProtocolPolicy,
@@ -911,14 +918,15 @@ function canonicalMovementProfileV2Source(
     resultForItem<BalanceEyesOpenV2Result>(checkUp, BALANCE_EYES_OPEN_V2_ID) ??
       resultForItem<OneLegBalanceV2Result>(checkUp, ONE_LEG_BALANCE_V2_ID)
   );
-  // The shoulder item is OPTIONAL at the source level (2026-07-09): the
-  // two-protocol official battery (Check-up #0 scope — balance + chair) never
-  // runs it. An ABSENT shoulder item canonicalizes as "mobility not measured
-  // this check-up"; a PRESENT-but-unusable one still fails canonicalization
-  // exactly as before. Chair and balance remain hard requirements.
+  const measurementProtocol = canonicalTopLevelMeasurementProtocol(checkUp);
+  // Missing shoulder evidence is valid only for Pearl's exact frozen monthly
+  // Strength/Balance battery. Older full batteries and any unknown/new
+  // variants must still fail closed rather than silently becoming a narrower
+  // official protocol. A present-but-unusable shoulder result also fails as
+  // before. Chair and balance remain hard requirements.
   const shoulderItem = resultForItem<ActiveShoulderReachV2Result>(checkUp, ACTIVE_SHOULDER_REACH_V2_ID);
   const shoulderAbsent = shoulderItem === null;
-  const shoulder = shoulderAbsent
+  const shoulder = shoulderAbsent && isPearlMonthlyStrengthBalanceProtocol(measurementProtocol)
     ? { ok: true as const, canonical: null, evidenceStatus: undefined }
     : canonicalShoulderResult(shoulderItem);
   const missingDomains: MovementProfileV2DomainKey[] = [];
@@ -956,6 +964,10 @@ function canonicalMovementProfileV2Source(
       version: protocol.policy.version,
       frozenAt: protocol.policy.frozenAt,
     },
+    // Battery identity is source material, not display metadata. Keeping the
+    // normalized top-level ref inside the canonical source makes a protocol
+    // mutation invalidate an attached snapshot even when raw results match.
+    measurementProtocol,
     bodyUnit: jsonSafeValue(checkUp.bodyUnit),
     headlineMovementIds: [
       ...(balance.movementId === BALANCE_EYES_OPEN_V2_ID
@@ -984,6 +996,26 @@ function canonicalMovementProfileV2Source(
     missingDomains: notMeasuredDomains,
     evidenceStatusByMovementId,
   };
+}
+
+function canonicalTopLevelMeasurementProtocol(
+  checkUp: CheckUp
+): MeasurementProtocolRef | null {
+  // Use the same boundary normalization as history serialization. Older V2
+  // producers omitted this field and history deterministically supplied the
+  // base battery ref; deriving it here keeps their frozen snapshots bound
+  // across that lossless enrichment while preserving explicit variants.
+  return normalizeCheckUpMeasurementMetadata(checkUp).measurementProtocol ?? null;
+}
+
+function isPearlMonthlyStrengthBalanceProtocol(
+  value: MeasurementProtocolRef | null
+): boolean {
+  return (
+    value?.protocolId === MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID &&
+    value.protocolVersion === MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1 &&
+    value.protocolVariant === PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT
+  );
 }
 
 function canonicalChairResult(result: ChairRiseV2Result | null): {

@@ -246,7 +246,7 @@ function focusDisplay(assessment: MovementProfileV2Assessment): MovementProfileV
       return {
         kind: 'balanced',
         title: 'Balanced',
-        body: 'This older check-up included Mobility. Pearl keeps the result in your history, while current programmes use Strength and Balance.',
+        body: `This older check-up included Mobility. ${BRAND.appName} keeps the result in your history, while current programmes use Strength and Balance.`,
         planMode: 'balanced_insufficient_reference',
       };
     }

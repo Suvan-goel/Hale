@@ -52,10 +52,10 @@ export function AuthScreen() {
               <Text style={[styles.wordmark, isCompactPhone && styles.wordmarkCompact]}>{BRAND.appName}</Text>
             </View>
             <View style={[styles.heroCopy, isCompactPhone && styles.heroCopyCompact]}>
-              <Text style={[styles.title, isCompactPhone && styles.titleCompact]}>Age better, at home</Text>
+              <Text style={[styles.title, isCompactPhone && styles.titleCompact]}>Strength for this chapter</Text>
               <View style={[styles.titleRule, isCompactPhone && styles.titleRuleCompact]} />
               <Text style={[styles.subtitle, isCompactPhone && styles.subtitleCompact]}>
-                {BRAND.appName} helps you understand your strength, balance, and mobility, then guides you through a simple plan around where to start.
+                {BRAND.appName} pairs private Strength and Balance check-ups with a voice-guided home programme for the menopause years.
               </Text>
             </View>
           </View>

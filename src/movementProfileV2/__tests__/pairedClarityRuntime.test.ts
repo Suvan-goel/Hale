@@ -14,10 +14,11 @@ const LEFT_ANKLE = 27;
 const RIGHT_ANKLE = 28;
 
 const VALIDITY_POLICY: PairedClarityValidityPolicy = {
-  minSoloHoldMs: 5000,
+  minSoloHoldMs: 10000,
   ceilingExclusionMarginMs: 0,
-  minCognitiveAttempts: 3,
-  minCognitiveAccuracy: 0.5,
+  minCognitiveAttempts: 4,
+  minCognitiveResponses: 1,
+  minCognitiveAccuracy: 0.6,
 };
 
 function sample(input: {
@@ -49,6 +50,7 @@ function driveHold(
   runtime.update(raised, input.startedAtMs);
   runtime.update(raised, input.startedAtMs + 200);
   expect(runtime.phase).toBe(input.kind === 'solo' ? 'solo_hold' : 'dual_hold');
+  expect(runtime.activeHoldStartedAtMs).toBe(input.startedAtMs);
   runtime.update(raised, input.startedAtMs + input.durationMs - 1);
   for (let frame = 0; frame < 4; frame++) {
     runtime.update(down, input.startedAtMs + input.durationMs + frame * 33);
@@ -86,21 +88,23 @@ describe('PairedClarityRuntime', () => {
       validityPolicy: VALIDITY_POLICY,
     });
 
-    driveHold(runtime, { kind: 'solo', startedAtMs: 1000, durationMs: 12000 });
+    driveHold(runtime, { kind: 'solo', startedAtMs: 1000, durationMs: 16000 });
     expect(runtime.phase).toBe('standardized_rest');
     const dualSetupAt = advanceStandardizedRest(runtime);
-    driveHold(runtime, { kind: 'dual', startedAtMs: dualSetupAt + 1000, durationMs: 9000 });
+    driveHold(runtime, { kind: 'dual', startedAtMs: dualSetupAt + 1000, durationMs: 12000 });
     expect(runtime.phase).toBe('awaiting_cognitive_outcome');
     expect(runtime.result).toBeNull();
 
-    expect(runtime.completeCognitiveOutcome({ attempts: 6, correct: 5, errors: 1 })).toBe(true);
+    expect(
+      runtime.completeCognitiveOutcome({ attempts: 5, responses: 3, correct: 4, errors: 1 })
+    ).toBe(true);
     expect(runtime.result).toMatchObject({
       status: 'measured',
       motorCostPercent: 25,
       ceilingLimited: false,
-      solo: { kind: 'solo', durationMs: 12000, termination: 'touchdown' },
-      dual: { kind: 'dual', durationMs: 9000, termination: 'touchdown' },
-      cognitive: { attempts: 6, correct: 5, errors: 1, accuracy: 5 / 6 },
+      solo: { kind: 'solo', durationMs: 16000, termination: 'touchdown' },
+      dual: { kind: 'dual', durationMs: 12000, termination: 'touchdown' },
+      cognitive: { attempts: 5, responses: 3, correct: 4, errors: 1, accuracy: 0.8 },
     });
   });
 
@@ -119,7 +123,12 @@ describe('PairedClarityRuntime', () => {
       durationMs: 12000,
       standingSide: 'right',
     });
-    runtime.completeCognitiveOutcome({ attempts: 5, correct: 5, errors: 0 });
+    runtime.completeCognitiveOutcome({
+      attempts: 5,
+      responses: 3,
+      correct: 5,
+      errors: 0,
+    });
 
     expect(runtime.result).toMatchObject({
       status: 'measured',
@@ -174,28 +183,40 @@ describe('PairedClarityRuntime', () => {
   });
 
   it('requires coherent participation and correctness aggregates before measuring motor cost', () => {
-    const paired = () => {
+    const paired = (dualDurationMs = 12000) => {
       const runtime = new PairedClarityRuntime({ standingSide: 'left', validityPolicy: VALIDITY_POLICY });
       driveHold(runtime, { kind: 'solo', startedAtMs: 0, durationMs: 10000 });
       const dualSetupAt = advanceStandardizedRest(runtime);
-      driveHold(runtime, { kind: 'dual', startedAtMs: dualSetupAt + 1000, durationMs: 8000 });
+      driveHold(runtime, {
+        kind: 'dual',
+        startedAtMs: dualSetupAt + 1000,
+        durationMs: dualDurationMs,
+      });
       return runtime;
     };
 
     const incoherent = paired();
-    incoherent.completeCognitiveOutcome({ attempts: 5, correct: 4, errors: 0 });
+    incoherent.completeCognitiveOutcome({ attempts: 5, responses: 3, correct: 4, errors: 0 });
     expect(incoherent.result).toMatchObject({ status: 'invalid', reason: 'cognitive_aggregate_invalid' });
 
-    const tooFew = paired();
-    tooFew.completeCognitiveOutcome({ attempts: 2, correct: 2, errors: 0 });
+    const tooFew = paired(5000);
+    tooFew.completeCognitiveOutcome({ attempts: 2, responses: 1, correct: 2, errors: 0 });
     expect(tooFew.result).toMatchObject({
       status: 'invalid',
       reason: 'cognitive_participation_below_floor',
     });
     expect(tooFew.result).not.toHaveProperty('motorCostPercent');
 
+    const disengaged = paired();
+    disengaged.completeCognitiveOutcome({ attempts: 5, responses: 0, correct: 3, errors: 2 });
+    expect(disengaged.result).toMatchObject({
+      status: 'invalid',
+      reason: 'cognitive_response_engagement_below_floor',
+    });
+    expect(disengaged.result).not.toHaveProperty('motorCostPercent');
+
     const inaccurate = paired();
-    inaccurate.completeCognitiveOutcome({ attempts: 4, correct: 1, errors: 3 });
+    inaccurate.completeCognitiveOutcome({ attempts: 5, responses: 2, correct: 1, errors: 4 });
     expect(inaccurate.result).toMatchObject({
       status: 'invalid',
       reason: 'cognitive_accuracy_below_floor',
@@ -207,21 +228,22 @@ describe('PairedClarityRuntime', () => {
     const runtime = new PairedClarityRuntime({ standingSide: 'left', validityPolicy: VALIDITY_POLICY });
     driveHold(runtime, { kind: 'solo', startedAtMs: 0, durationMs: 10000 });
     const dualSetupAt = advanceStandardizedRest(runtime);
-    driveHold(runtime, { kind: 'dual', startedAtMs: dualSetupAt + 1000, durationMs: 8000 });
+    driveHold(runtime, { kind: 'dual', startedAtMs: dualSetupAt + 1000, durationMs: 12000 });
     runtime.completeCognitiveOutcome({
-      attempts: 4,
-      correct: 3,
+      attempts: 5,
+      responses: 2,
+      correct: 4,
       errors: 1,
       transcript: 'ninety seven ninety four',
       audio: 'canary',
       tokens: ['ninety'],
-    } as unknown as { attempts: number; correct: number; errors: number });
+    } as unknown as { attempts: number; responses: number; correct: number; errors: number });
 
     const serialized = JSON.stringify(runtime.result);
     expect(serialized).not.toMatch(/ninety|canary|transcript|audio|tokens/);
     expect(runtime.result).toMatchObject({
       status: 'measured',
-      cognitive: { attempts: 4, correct: 3, errors: 1, accuracy: 0.75 },
+      cognitive: { attempts: 5, responses: 2, correct: 4, errors: 1, accuracy: 0.8 },
     });
 
     const source = readFileSync(
@@ -238,7 +260,21 @@ describe('PairedClarityRuntime', () => {
       () =>
         new PairedClarityRuntime({
           standingSide: 'left',
-          validityPolicy: { ...VALIDITY_POLICY, minCognitiveAccuracy: 1.1 },
+          validityPolicy: { ...VALIDITY_POLICY, minCognitiveAccuracy: 0.5 },
+        })
+    ).toThrow('invalid paired Clarity validity policy');
+    expect(
+      () =>
+        new PairedClarityRuntime({
+          standingSide: 'left',
+          validityPolicy: { ...VALIDITY_POLICY, minCognitiveResponses: 0 },
+        })
+    ).toThrow('invalid paired Clarity validity policy');
+    expect(
+      () =>
+        new PairedClarityRuntime({
+          standingSide: 'left',
+          validityPolicy: { ...VALIDITY_POLICY, minSoloHoldMs: 9000 },
         })
     ).toThrow('invalid paired Clarity validity policy');
     expect(

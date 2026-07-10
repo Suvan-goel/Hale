@@ -1,12 +1,14 @@
 import * as React from 'react';
 
 import { CheckUpResultsShell } from '../results/CheckUpResultsShell';
+import { ClarityProgressCard } from '../components/ClarityProgressCard';
 import {
   buildMovementProfileV2UnifiedResultsPresentation,
   type MovementProfileV2PopulationComparisonInput,
 } from '../results/movementProfileV2ResultsAdapter';
 import type { UnifiedCheckUpResultsAction } from '../results/types';
 import type { MovementProfileV2ResultsViewModel } from '../movementProfileV2/viewModel';
+import type { ClarityTrendViewModel } from '../pearlFlow/clarityTrend';
 
 /**
  * The per-check-up results page, restored 2026-07-08 (founder direction) in a
@@ -19,12 +21,14 @@ export function MovementProfileV2UnifiedResultsScreen({
   viewModel,
   variant = 'standard',
   populationComparison,
+  clarityTrend,
   onTogglePopulationComparison,
   onDone,
 }: {
   viewModel: MovementProfileV2ResultsViewModel;
   variant?: 'standard' | 'onboarding' | 'history';
   populationComparison?: MovementProfileV2PopulationComparisonInput;
+  clarityTrend?: ClarityTrendViewModel | null;
   onTogglePopulationComparison?: () => void;
   onDone: () => void;
 }) {
@@ -51,5 +55,13 @@ export function MovementProfileV2UnifiedResultsScreen({
     [onDone, onTogglePopulationComparison]
   );
 
-  return <CheckUpResultsShell presentation={presentation} onAction={handleAction} />;
+  return (
+    <CheckUpResultsShell
+      presentation={presentation}
+      onAction={handleAction}
+      supplementary={
+        clarityTrend ? <ClarityProgressCard viewModel={clarityTrend} /> : undefined
+      }
+    />
+  );
 }

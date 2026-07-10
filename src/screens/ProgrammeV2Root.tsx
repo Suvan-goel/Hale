@@ -29,15 +29,27 @@ import { LOCAL_USER_ID, type AvailableEquipment } from '../adherence';
 import { configureSessionAudio } from '../audio/voicePlayer';
 import { Screen, ScreenScrollClearanceProvider } from '../components/ui';
 import { useSystemInsets } from '../components/SystemInsetsProvider';
-import type { CheckUp } from '../checkup';
+import {
+  MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID,
+  MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1,
+  PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT,
+  type CheckUp,
+} from '../checkup';
 import { adoptGuestLocalFiles, createExpoHistoryFs } from '../history/fsAdapter';
-import { HistoryStore, type StoredCheckUp, type StoredCheckUpType } from '../history';
+import {
+  HistoryStore,
+  OfficialCheckUpDraftStore,
+  type OfficialCheckUpDraft,
+  type StoredCheckUp,
+  type StoredCheckUpType,
+} from '../history';
 import {
   materializeOfficialMovementProfileV2Artifacts,
   type MovementProfileV2ReferenceProfile,
 } from '../reference/movementProfileV2';
 import {
   buildMovementProfileV2ProgressViewModel,
+  buildClarityTrendViewModel,
   movementProfileV2ProgressProfileBySourceCheckUpId,
   validOfficialMovementProfileV2Assessments,
 } from '../pearlFlow';
@@ -48,7 +60,10 @@ import {
   applyAssessmentPlacement,
   applyInactivityRegressionIfDue,
   applyProgrammeSessionResults,
+  applyOfficialAssessmentToProgrammeJourney,
   assessmentInputsFromCheckUp,
+  baselineCheckupDueAfterStarter,
+  officialCheckUpAccess,
   markSurfaceShown,
   completeOnboarding,
   currentOnboardingStep,
@@ -63,11 +78,13 @@ import {
   preSessionPrompt,
   ProgrammeStore,
   programmeLevelRows,
+  programmeJourneyProgressAt,
   programmeTodayViewModel,
   recordBandAnswer,
   recordDomingCheck,
   recordGatewayDemoWatched,
   recordGatewaySelfConfirmation,
+  recordProgrammeJourneySession,
   recordOnboardingAnswer,
   SKIPPED,
   undoLastOnboardingStep,
@@ -76,6 +93,7 @@ import {
   type ProgrammeSessionPlan,
   type ProgrammeSessionResults,
   type ProgrammeState,
+  type ProgrammeTodayViewModel,
   type PromotionDecision,
   type SessionRpe,
 } from '../programme';
@@ -133,6 +151,10 @@ export function ProgrammeV2Root() {
   const store = React.useMemo(() => new ProgrammeStore(localFs), [localFs]);
   const profileStore = React.useMemo(() => new ProfileStore(localFs), [localFs]);
   const historyStore = React.useMemo(() => new HistoryStore(localFs), [localFs]);
+  const checkUpDraftStore = React.useMemo(
+    () => new OfficialCheckUpDraftStore(localFs),
+    [localFs]
+  );
 
   const [phase, setPhase] = React.useState<ShellPhase>('loading');
   const [tab, setTab] = React.useState<TabKey>('today');
@@ -149,6 +171,7 @@ export function ProgrammeV2Root() {
   const [programmeState, setProgrammeState] = React.useState<ProgrammeState | null>(null);
   const [prefs, setPrefs] = React.useState<Preferences | null>(null);
   const [history, setHistory] = React.useState<readonly StoredCheckUp[]>([]);
+  const [checkUpDraft, setCheckUpDraft] = React.useState<OfficialCheckUpDraft | null>(null);
   const [flowState, setFlowState] = React.useState(initialOnboardingFlowState());
   const [plan, setPlan] = React.useState<ProgrammeSessionPlan | null>(null);
   const [sessionResult, setSessionResult] = React.useState<TrainingSessionResult | null>(null);
@@ -162,14 +185,16 @@ export function ProgrammeV2Root() {
   // check-up chains into the first session (abandoning it lands home — the
   // home CTA remains the unsurprising way in).
   const pendingFirstSessionRef = React.useRef(false);
+  const assessmentContinuationStateRef = React.useRef<ProgrammeState | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
     const run = async () => {
-      let [loaded, loadedPrefs, storedHistory] = await Promise.all([
+      let [loaded, loadedPrefs, storedHistory, storedDraft] = await Promise.all([
         store.load(),
         profileStore.load(),
         historyStore.loadAll(),
+        checkUpDraftStore.load(),
       ]);
       if (
         backendUserId &&
@@ -180,10 +205,11 @@ export function ProgrammeV2Root() {
         try {
           const { moved } = await adoptGuestLocalFiles(backendUserId);
           if (moved > 0) {
-            [loaded, loadedPrefs, storedHistory] = await Promise.all([
+            [loaded, loadedPrefs, storedHistory, storedDraft] = await Promise.all([
               store.load(),
               profileStore.load(),
               historyStore.loadAll(),
+              checkUpDraftStore.load(),
             ]);
           }
         } catch (error) {
@@ -193,17 +219,109 @@ export function ProgrammeV2Root() {
       if (cancelled) return;
       // 14+ days away → one level down everywhere, once per gap (§12).
       const regression = applyInactivityRegressionIfDue(loaded, new Date().toISOString());
-      if (regression.applied) store.save(regression.state);
-      setProgrammeState(regression.state);
+      let reconciledState = regression.state;
+      let journeyReconciled = false;
+      // Schema-v1 installs already have frozen official assessments but no
+      // journey field. Replay those accepted artifacts in date order so an
+      // upgrade never asks an established user for a second "baseline".
+      const acceptedAssessments = validOfficialMovementProfileV2Assessments(storedHistory);
+      for (const record of acceptedAssessments) {
+        const applied = applyOfficialAssessmentToProgrammeJourney(
+          reconciledState.journey,
+          {
+            assessment: record.assessment,
+            completedAtIso: record.assessment.createdAt,
+          }
+        );
+        if (applied.kind === 'advanced' || applied.kind === 'completed') {
+          let nextState = reconciledState;
+          if (
+            applied.kind === 'advanced' &&
+            applied.startedPhase === 1 &&
+            reconciledState.profile.assessmentStatus !== 'done'
+          ) {
+            nextState = applyAssessmentPlacement(
+              reconciledState,
+              assessmentInputsFromCheckUp(record.record.checkUp),
+              {
+                // Established users keep every earned ladder step; a missing
+                // legacy baseline placement may only move them upward.
+                deferred: reconciledState.completedSessionCount > 0,
+                completedAtIso: record.assessment.createdAt,
+              }
+            );
+          }
+          reconciledState = {
+            ...nextState,
+            profile: {
+              ...nextState.profile,
+              assessmentStatus: 'done',
+              lastAssessmentAtIso: record.assessment.createdAt,
+            },
+            journey: applied.state,
+          };
+          journeyReconciled = true;
+        }
+      }
+      const acceptedCheckpoints = Object.values(reconciledState.journey.checkpoints)
+        .filter((checkpoint): checkpoint is NonNullable<typeof checkpoint> => checkpoint !== undefined)
+        .sort((a, b) => Date.parse(a.completedAtIso) - Date.parse(b.completedAtIso));
+      if (acceptedCheckpoints.length > 0) {
+        let companionState = reconciledState;
+        if (companionState.profile.assessmentStatus !== 'done') {
+          const baselineRecord = acceptedAssessments.find(
+            (record) =>
+              record.assessment.sourceCheckUpId ===
+              companionState.journey.checkpoints.baseline?.sourceCheckUpId
+          );
+          if (baselineRecord) {
+            companionState = applyAssessmentPlacement(
+              companionState,
+              assessmentInputsFromCheckUp(baselineRecord.record.checkUp),
+              {
+                deferred: companionState.completedSessionCount > 0,
+                completedAtIso: baselineRecord.assessment.createdAt,
+              }
+            );
+          }
+        }
+        const latestCheckpoint = acceptedCheckpoints[acceptedCheckpoints.length - 1];
+        if (
+          companionState.profile.assessmentStatus !== 'done' ||
+          companionState.profile.lastAssessmentAtIso !== latestCheckpoint.completedAtIso
+        ) {
+          companionState = {
+            ...companionState,
+            profile: {
+              ...companionState.profile,
+              assessmentStatus: 'done',
+              lastAssessmentAtIso: latestCheckpoint.completedAtIso,
+            },
+          };
+          journeyReconciled = true;
+        }
+        reconciledState = companionState;
+      }
+      if (regression.applied || journeyReconciled) store.save(reconciledState);
+      setProgrammeState(reconciledState);
       setPrefs(loadedPrefs);
       setHistory(storedHistory);
-      setPhase(regression.state.onboardingCompletedAtIso ? 'home' : 'onboarding');
+      if (
+        storedDraft &&
+        storedHistory.some((record) => record.checkUp.startedAt === storedDraft.checkUp.startedAt)
+      ) {
+        checkUpDraftStore.clear();
+        setCheckUpDraft(null);
+      } else {
+        setCheckUpDraft(storedDraft);
+      }
+      setPhase(reconciledState.onboardingCompletedAtIso ? 'home' : 'onboarding');
     };
     void run();
     return () => {
       cancelled = true;
     };
-  }, [store, profileStore, historyStore, backendUserId]);
+  }, [store, profileStore, historyStore, checkUpDraftStore, backendUserId]);
 
   React.useEffect(() => {
     getCameraPermissionsAsync()
@@ -264,18 +382,43 @@ export function ProgrammeV2Root() {
   // snapshot + assessment are materialized AT SAVE so the results page and
   // Progress history accept the record. The reference profile carries only
   // what the user actually provided — absent age/sex degrade comparison
-  // claims to raw-only, nothing is ever fabricated. Materialization failure
-  // falls back to saving the raw battery under the same official type (an
-  // honest raw record; the results page simply skips).
-  const saveOfficialCheckUp = React.useCallback(
-    (checkUp: CheckUp): StoredCheckUpType => {
+  // claims to raw-only, nothing is ever fabricated. A battery only enters
+  // official history after materialization succeeds; otherwise it is kept as
+  // a non-official local attempt and Home leads back to a baseline retake.
+  const officialCheckUpTypeFor = React.useCallback(
+    (checkUp: CheckUp): Extract<
+      StoredCheckUpType,
+      'baseline' | 'baseline_retake' | 'official_retest'
+    > => {
       const priorHistory = history.filter(
         (record) => record.checkUp.startedAt !== checkUp.startedAt
       );
-      const checkupType: StoredCheckUpType =
-        validOfficialMovementProfileV2Assessments(priorHistory).length === 0
-          ? 'baseline'
-          : 'official_retest';
+      if (programmeState?.journey.status === 'awaiting_baseline') {
+        const hasPriorBaselineAttempt = priorHistory.some(
+          (record) =>
+            record.checkupType === 'baseline' ||
+            record.checkupType === 'baseline_retake' ||
+            (record.checkupType === 'manual_extra_v2' &&
+              record.checkUp.measurementProtocol?.protocolId ===
+                MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID &&
+              record.checkUp.measurementProtocol?.protocolVersion ===
+                MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1 &&
+              record.checkUp.measurementProtocol?.protocolVariant ===
+                PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT)
+        );
+        return hasPriorBaselineAttempt ? 'baseline_retake' : 'baseline';
+      }
+      return 'official_retest';
+    },
+    [history, programmeState]
+  );
+
+  const prepareOfficialCheckUp = React.useCallback(
+    (checkUp: CheckUp) => {
+      const priorHistory = history.filter(
+        (record) => record.checkUp.startedAt !== checkUp.startedAt
+      );
+      const checkupType = officialCheckUpTypeFor(checkUp);
       const profile = prefs?.profile;
       const ageAtTest = profile?.exactAge ?? profile?.age ?? null;
       const referenceProfile: MovementProfileV2ReferenceProfile = {
@@ -294,35 +437,42 @@ export function ProgrammeV2Root() {
         assessmentCreatedAt: nowIso,
       });
       if (result.ok) {
-        historyStore.save(result.checkUp, {
+        return {
+          ok: true as const,
           checkupType,
-          movementProfileV2Snapshot: result.snapshot,
-          movementProfileV2Assessment: result.assessment,
-        });
-      } else {
-        console.warn('[programme-v2] check-up materialization failed', result.reason);
-        historyStore.save(checkUp, { checkupType });
+          checkUp: result.checkUp,
+          snapshot: result.snapshot,
+          assessment: result.assessment,
+        };
       }
-      return checkupType;
+      console.warn('[programme-v2] check-up materialization failed', result.reason);
+      return { ok: false as const, checkupType };
     },
-    [history, historyStore, prefs]
+    [history, officialCheckUpTypeFor, prefs]
   );
 
   // What happens once fresh results are dismissed (or could not be shown):
   // the onboarding CTA's promised first session, or home. Consumes the
   // pending-first-session promise exactly once.
   const proceedAfterAssessment = React.useCallback(() => {
-    if (pendingFirstSessionRef.current && programmeState) {
+    const continuationState = assessmentContinuationStateRef.current ?? programmeState;
+    if (pendingFirstSessionRef.current && continuationState) {
       // The onboarding CTA promised a first session; the check-up ran
       // first, so generate it from the freshly exact placement.
       pendingFirstSessionRef.current = false;
       setPlan(
-        generateProgrammeSession({ state: programmeState, template: 'A', preset: 'first_session' })
+        generateProgrammeSession({
+          state: continuationState,
+          template: 'A',
+          preset: 'first_session',
+        })
       );
+      assessmentContinuationStateRef.current = null;
       setPhase('session');
       return;
     }
     pendingFirstSessionRef.current = false;
+    assessmentContinuationStateRef.current = null;
     setPhase('home');
   }, [programmeState]);
 
@@ -405,9 +555,30 @@ export function ProgrammeV2Root() {
       if (route.assessmentFirst) {
         // assessment_offer answered 'now' → Check-up #0 runs first (flow.ts
         // completion contract); the freshly exact placement then shapes the
-        // first session when the CTA also asked for one.
-        pendingFirstSessionRef.current = route.startFirstSession;
-        setPhase('assessment');
+        // first session when the CTA also asked for one. Enforce the same
+        // consent/safety/cadence policy here against the freshly completed
+        // state; the render boundary remains a second fail-closed guard.
+        const access = officialCheckUpAccess(
+          completion.programmeState,
+          nowIso
+        );
+        if (access.allowed) {
+          pendingFirstSessionRef.current = route.startFirstSession;
+          setPhase('assessment');
+        } else if (route.startFirstSession) {
+          pendingFirstSessionRef.current = false;
+          setPlan(
+            generateProgrammeSession({
+              state: completion.programmeState,
+              template: 'A',
+              preset: 'first_session',
+            })
+          );
+          setPhase('session');
+        } else {
+          pendingFirstSessionRef.current = false;
+          setPhase('home');
+        }
       } else if (route.startFirstSession) {
         // First session defaults to the 15-minute minimum-dose preset (§7).
         setPlan(
@@ -425,8 +596,30 @@ export function ProgrammeV2Root() {
     [flowState, persist, persistPrefs, prefs, profileStore]
   );
 
+  const startOfficialCheckUp = React.useCallback(() => {
+    if (!programmeState) return;
+    const access = officialCheckUpAccess(programmeState, new Date().toISOString(), {
+      hasDraft: checkUpDraft !== null,
+    });
+    if (access.allowed) setPhase('assessment');
+  }, [programmeState, checkUpDraft]);
+
   const startSessionFromHome = React.useCallback(() => {
     if (!programmeState) return;
+    if (
+      checkUpDraft &&
+      officialCheckUpAccess(programmeState, new Date().toISOString(), { hasDraft: true }).allowed
+    ) {
+      setPhase('assessment');
+      return;
+    }
+    // A deferred baseline permits one low-friction generic starter, not an
+    // unlimited unpersonalized programme. The next Home action resumes the
+    // official check-up so Phase 1 can start from measured Strength/Balance.
+    if (baselineCheckupDueAfterStarter(programmeState)) {
+      setPhase('assessment');
+      return;
+    }
     // Re-check the inactivity gap at generation time — the app may have sat
     // open (or backgrounded) across the 14-day boundary since load.
     const regression = applyInactivityRegressionIfDue(programmeState, new Date().toISOString());
@@ -443,7 +636,7 @@ export function ProgrammeV2Root() {
       })
     );
     setPhase('session');
-  }, [programmeState, persist]);
+  }, [programmeState, checkUpDraft, persist]);
 
   const handleSessionStart = React.useCallback(() => {
     if (!programmeState || sessionStartRef.current) return;
@@ -464,7 +657,16 @@ export function ProgrammeV2Root() {
         outcomes: results.outcomes.map((outcome) => ({ ...outcome, effort })),
         sessionEffort: effort,
       });
-      persist(applied.state);
+      const credit = recordProgrammeJourneySession(applied.state.journey, {
+        sessionId: sessionStartRef.current?.startedAtIso ?? results.completedAtIso,
+        completedAtIso: results.completedAtIso,
+        templateId: plan.template,
+      });
+      const stateWithJourney =
+        credit.kind === 'credited' || credit.kind === 'already_recorded'
+          ? { ...applied.state, journey: credit.state }
+          : applied.state;
+      persist(stateWithJourney);
       setLastDecisions(applied.decisions);
       sessionStartRef.current = null;
       setSessionResult(null);
@@ -513,6 +715,7 @@ export function ProgrammeV2Root() {
     setProgrammeState(defaultProgrammeState());
     setPrefs(freshPreferences);
     setHistory([]);
+    setCheckUpDraft(null);
     setFlowState(initialOnboardingFlowState());
     setPlan(null);
     setSessionResult(null);
@@ -522,6 +725,7 @@ export function ProgrammeV2Root() {
     setTab('today');
     sessionStartRef.current = null;
     pendingFirstSessionRef.current = false;
+    assessmentContinuationStateRef.current = null;
   }, [localFs, profileStore]);
 
   const handleDataCleared = React.useCallback(() => {
@@ -543,6 +747,7 @@ export function ProgrammeV2Root() {
       for (const name of localFs.list()) {
         if (name.startsWith('checkup-') && name.endsWith('.json')) localFs.delete?.(name);
       }
+      setCheckUpDraft(null);
       for (const { checkUp, checkupType } of journey.checkUps) {
         historyStore.save(checkUp, { checkupType });
       }
@@ -561,6 +766,7 @@ export function ProgrammeV2Root() {
       for (const name of localFs.list()) {
         if (name.startsWith('checkup-') && name.endsWith('.json')) localFs.delete?.(name);
       }
+      setCheckUpDraft(null);
       persist({
         ...defaultProgrammeState(),
         onboardingCompletedAtIso: programmeState.onboardingCompletedAtIso,
@@ -759,7 +965,7 @@ export function ProgrammeV2Root() {
           title={surface.title}
           body={surface.body}
           actions={[
-            { label: surface.startLabel, onPress: () => setPhase('assessment') },
+            { label: surface.startLabel, onPress: startOfficialCheckUp },
             {
               label: surface.laterLabel,
               variant: 'ghost',
@@ -785,7 +991,7 @@ export function ProgrammeV2Root() {
           title={surface.title}
           body={surface.body}
           actions={[
-            { label: surface.startLabel, onPress: () => setPhase('assessment') },
+            { label: surface.startLabel, onPress: startOfficialCheckUp },
             {
               label: surface.laterLabel,
               variant: 'ghost',
@@ -806,46 +1012,180 @@ export function ProgrammeV2Root() {
   }
 
   if (phase === 'assessment') {
-    // The two-protocol Check-up #0 host (Option 1 build): warm-up →
-    // single-side balance (T1 ruling 2026-07-06) → 30 s chair rise, run by
-    // the real unified machinery with the batterySequence derived from the
-    // pinned scope constant. 'Now' path (nothing trained) REPLACES placement
-    // with the −1 easy start; any post-training-history path is upward-only.
-    // Abandonment applies nothing, burns no once-only surface, and the home
-    // button remains the permanent way back.
-    //
-    // Persistence ruling 2026-07-07, amended 2026-07-09: the measured record
-    // is the OFFICIAL check-up of record — materialized (snapshot+assessment)
-    // and saved at raw-ready (crash-safe), overwritten in place (same
-    // startedAt key) with the finalized record on complete. Known limitation,
-    // recorded in decisions.md: a crash between raw-save and placement leaves
-    // the record saved but placement unapplied; the home-screen movement-check
-    // button remains the way back.
+    const access = officialCheckUpAccess(programmeState, new Date().toISOString(), {
+      hasDraft: checkUpDraft !== null,
+    });
+    if (!access.allowed) {
+      return (
+        <ProgrammeMomentScreen
+          eyebrow="Movement Check-Up"
+          title="This check-up is not available right now"
+          body="Your current consent, safety, or four-week programme state does not allow an official check-up. No measurement has started or been saved."
+          actions={[{ label: 'Back to Home', onPress: () => setPhase('home') }]}
+        />
+      );
+    }
+    // The movement battery is staged as a recoverable draft first. Only after
+    // Everyday Clarity has been offered does the assembled record enter
+    // official history and advance the 12-week journey. Monthly checks refresh
+    // the next phase prescription but never mechanically demote ladder levels
+    // from one noisy day.
     return (
       <ProgrammeCheckupZeroScreen
         voiceId={prefs.settings.voiceId}
         history={history}
+        initialDraft={checkUpDraft?.checkUp}
+        showSymptomLoad={
+          prefs.profile.menopauseStage !== null &&
+          prefs.profile.menopauseStage !== 'prefer_not_to_say'
+        }
         cameraPermissionGranted={cameraPermission === 'granted'}
         onRequestCameraPermission={ensureCameraPermission}
         onRawCheckUpReady={(checkUp) => {
           try {
-            saveOfficialCheckUp(checkUp);
-            refreshHistory();
+            const checkupType = officialCheckUpTypeFor(checkUp);
+            const updatedAtIso = new Date().toISOString();
+            checkUpDraftStore.save(checkUp, checkupType, updatedAtIso);
+            setCheckUpDraft({
+              schemaVersion: 1,
+              checkupType,
+              updatedAtIso,
+              checkUp,
+            });
           } catch (error) {
-            console.warn('[programme-v2] early raw check-up save failed', error);
+            console.warn('[programme-v2] check-up draft save failed', error);
           }
         }}
         onComplete={(checkUp) => {
+          const completedAtIso = new Date().toISOString();
+          let prepared: ReturnType<typeof prepareOfficialCheckUp>;
           try {
-            saveOfficialCheckUp(checkUp);
+            prepared = prepareOfficialCheckUp(checkUp);
           } catch (error) {
-            console.warn('[programme-v2] final check-up save failed', error);
+            console.warn('[programme-v2] final check-up preparation failed', error);
+            return;
           }
-          const inputs = assessmentInputsFromCheckUp(checkUp);
-          const applied = applyAssessmentPlacement(programmeState, inputs, {
-            deferred: programmeState.completedSessionCount > 0,
-          });
-          persist(applied);
+
+          let nextProgrammeState = programmeState;
+          let showOfficialResults = false;
+          let saveAsOfficial = false;
+
+          if (!prepared.ok) {
+            if (programmeState.journey.status === 'awaiting_baseline') {
+              nextProgrammeState = {
+                ...programmeState,
+                profile: {
+                  ...programmeState.profile,
+                  assessmentStatus: 'deferred',
+                },
+              };
+            }
+          } else {
+            const journeyResult = applyOfficialAssessmentToProgrammeJourney(
+              programmeState.journey,
+              { assessment: prepared.assessment, completedAtIso }
+            );
+            if (journeyResult.kind === 'advanced' || journeyResult.kind === 'completed') {
+              saveAsOfficial = true;
+              if (journeyResult.kind === 'advanced' && journeyResult.startedPhase === 1) {
+                const inputs = assessmentInputsFromCheckUp(checkUp);
+                nextProgrammeState = applyAssessmentPlacement(programmeState, inputs, {
+                  // One generic starter may precede baseline; measured placement
+                  // can then move her up but never erase reported progress.
+                  deferred: programmeState.completedSessionCount > 0,
+                  completedAtIso,
+                });
+              } else {
+                // Retests choose the next phase's focus. Exercise ladders remain
+                // governed by reported sessions, not one camera reading.
+                nextProgrammeState = {
+                  ...programmeState,
+                  profile: {
+                    ...programmeState.profile,
+                    assessmentStatus: 'done',
+                    lastAssessmentAtIso: completedAtIso,
+                  },
+                };
+              }
+              nextProgrammeState = {
+                ...nextProgrammeState,
+                journey: journeyResult.state,
+              };
+            } else if (journeyResult.kind === 'already_applied') {
+              // Idempotent recovery path: the checkpoint may already have
+              // reached programme state while the final draft clear did not.
+              saveAsOfficial = true;
+              nextProgrammeState = {
+                ...programmeState,
+                journey: journeyResult.state,
+              };
+            } else if (
+              journeyResult.kind === 'rejected' &&
+              journeyResult.reason === 'needs_retake'
+            ) {
+              // This is still a valid official measurement and belongs in
+              // history, but it must not start or advance a phase. At baseline
+              // one gentle starter remains available before a measured retake.
+              saveAsOfficial = true;
+              if (programmeState.journey.status === 'awaiting_baseline') {
+                nextProgrammeState = {
+                  ...programmeState,
+                  profile: {
+                    ...programmeState.profile,
+                    assessmentStatus: 'deferred',
+                  },
+                };
+              }
+            } else if (journeyResult.kind === 'rejected') {
+              // A route, cadence, or source mismatch must never enter official
+              // comparisons merely because its measurements materialized.
+              if (programmeState.journey.status === 'awaiting_baseline') {
+                nextProgrammeState = {
+                  ...programmeState,
+                  profile: {
+                    ...programmeState.profile,
+                    assessmentStatus: 'deferred',
+                  },
+                };
+              }
+            }
+          }
+
+          try {
+            if (prepared.ok && saveAsOfficial) {
+              // Commit the accepted official artifact only after the journey
+              // decision is known. It is written before programme state so a
+              // crash can be reconciled from immutable history on next load.
+              historyStore.save(prepared.checkUp, {
+                checkupType: prepared.checkupType,
+                movementProfileV2Snapshot: prepared.snapshot,
+                movementProfileV2Assessment: prepared.assessment,
+              });
+              showOfficialResults = true;
+            } else {
+              // Preserve an unusable or out-of-sequence attempt locally while
+              // keeping it out of official progress and checkpoint history.
+              historyStore.save(checkUp, { checkupType: 'manual_extra_v2' });
+            }
+            checkUpDraftStore.clear();
+            setCheckUpDraft(null);
+          } catch (error) {
+            console.warn('[programme-v2] final check-up commit failed', error);
+            return;
+          }
+
+          assessmentContinuationStateRef.current = nextProgrammeState;
+          persist(nextProgrammeState);
+          if (!showOfficialResults) {
+            historyStore
+              .loadAll()
+              .then((stored) => {
+                setHistory(stored);
+                proceedAfterAssessment();
+              })
+              .catch(() => proceedAfterAssessment());
+            return;
+          }
           // Show fresh results before continuing (restored page, 2026-07-08).
           // Placement is already applied — the page is purely presentational;
           // its Done runs the promised chain (first session or home). If the
@@ -875,9 +1215,10 @@ export function ProgrammeV2Root() {
             .catch(() => proceedAfterAssessment());
         }}
         onCancel={() => {
-          // Abandonment is penalty-free and unsurprising: land home, where
-          // the first-session CTA remains the way in.
+          // A completed movement battery remains a local draft; otherwise
+          // cancellation is penalty-free and applies nothing.
           pendingFirstSessionRef.current = false;
+          assessmentContinuationStateRef.current = null;
           setPhase('home');
         }}
       />
@@ -885,17 +1226,49 @@ export function ProgrammeV2Root() {
   }
 
   // ── Tab shell (phase 'home') ───────────────────────────────────────────
-  // Flows and the ephemeral explore session take the whole screen; the four
+  // Flows and the ephemeral explore session take the whole screen; the two
   // tabs render underneath the shared TabBar. Level rows show the
   // post-easing levels so what the user sees is what the next session runs;
   // the easing itself persists at session start (startSessionFromHome
   // re-checks).
   const nowIso = new Date().toISOString();
-  const todayVm = programmeTodayViewModel(programmeState, nowIso);
+  const baseTodayVm = programmeTodayViewModel(programmeState, nowIso);
+  const checkUpAccess = officialCheckUpAccess(programmeState, nowIso, {
+    hasDraft: checkUpDraft !== null,
+  });
+  const todayVm: ProgrammeTodayViewModel = checkUpDraft && checkUpAccess.allowed
+    ? {
+        ...baseTodayVm,
+        state: 'baseline_due',
+        primaryAction: {
+          type: 'start_baseline_checkup',
+          title: 'Finish your Movement Check-Up',
+          subtitle:
+            'Your movement measurements are safely saved on this device. Continue with Everyday Clarity, or skip it, to finish.',
+          ctaLabel: 'Continue check-up',
+          tone: 'default',
+        },
+        sessionDetail: 'Your Strength and Balance measurements are already saved.',
+        checkupOffer: null,
+      }
+    : baseTodayVm;
+  const journeyProgress = programmeJourneyProgressAt(programmeState.journey, nowIso);
+  const acceptedClarityCheckUpIds = Object.values(programmeState.journey.checkpoints)
+    .filter((checkpoint): checkpoint is NonNullable<typeof checkpoint> => checkpoint !== undefined)
+    .map((checkpoint) => checkpoint.sourceCheckUpId);
+  const clarityTrend = buildClarityTrendViewModel(history, {
+    acceptedSourceCheckUpIds: acceptedClarityCheckUpIds,
+  });
+  const currentPrescription =
+    programmeState.journey.currentPhase !== null
+      ? programmeState.journey.phasePrescriptions[programmeState.journey.currentPhase] ?? null
+      : programmeState.journey.status === 'completed'
+        ? programmeState.journey.phasePrescriptions[3] ?? null
+        : null;
   const easedLevels = programmeLevelRows(
     applyInactivityRegressionIfDue(programmeState, nowIso).state
   );
-  const goAssessment = () => setPhase('assessment');
+  const goAssessment = startOfficialCheckUp;
   const openSettings = () => setFlow('settings');
 
   if (resultsView && resultsViewModel) {
@@ -903,6 +1276,7 @@ export function ProgrammeV2Root() {
       <MovementProfileV2UnifiedResultsScreen
         viewModel={resultsViewModel}
         variant={resultsView.variant}
+        clarityTrend={clarityTrend}
         populationComparison={{
           available: officialCheckUpCount >= 2,
           optedIn: prefs.settings.comparisonOptIn,
@@ -993,9 +1367,9 @@ export function ProgrammeV2Root() {
         <View style={styles.tabContent}>
           {tab === 'progress' ? (
             <ProgressScreen
-              onBeginFirstCheckUp={goAssessment}
-              onBeginAdditionalCheckUp={goAssessment}
-              onStartMovementProfileV2CheckUp={goAssessment}
+              onBeginFirstCheckUp={checkUpAccess.allowed ? goAssessment : undefined}
+              onStartMovementProfileV2CheckUp={checkUpAccess.allowed ? goAssessment : undefined}
+              checkUpBlockedReason={checkUpAccess.allowed ? undefined : checkUpAccess.reason}
               movementProfileV2Progress={buildMovementProfileV2ProgressViewModel({
                 history,
                 blocks: [],
@@ -1006,6 +1380,11 @@ export function ProgrammeV2Root() {
                 setResultsView({ sourceCheckUpId, variant: 'history' })
               }
               programmeLevels={easedLevels}
+              journey={{
+                progress: journeyProgress,
+                physicalFocus: currentPrescription?.physicalFocus ?? null,
+              }}
+              clarityTrend={clarityTrend}
               onOpenSettings={openSettings}
             />
           ) : (
@@ -1014,6 +1393,10 @@ export function ProgrammeV2Root() {
               programme={{
                 today: todayVm,
                 onStartCheckup: todayVm.checkupOffer ? goAssessment : undefined,
+              }}
+              journey={{
+                progress: journeyProgress,
+                physicalFocus: currentPrescription?.physicalFocus ?? null,
               }}
               onPrimaryAction={() => startSessionFromHome()}
               onOpenSettings={openSettings}

@@ -12,8 +12,8 @@ describe('Progress UI restoration', () => {
     expect(progress).toContain('<ProgressEmptyState onBeginCheckUp={onStartCheckUp} />');
     expect(progress).toContain('Set your starting point');
     expect(progress).toContain('Start with your check-up');
-    expect(progress).toContain('A short guided check-up gives ${BRAND.appName} what it needs to build your first plan.');
-    expect(progress).toContain('Three calm sessions appear here when your plan is ready.');
+    expect(progress).toContain('An about-eight-minute guided check-up sets the Strength and Balance focus');
+    expect(progress).toContain('Your sessions are waiting on Home. Three are planned each week, and two is enough.');
     expect(progress).toContain('Start check-up');
     expect(progress).toContain('Your camera view stays private. ${BRAND.appName} never shows a live camera view.');
     expect(progress).not.toContain('Progress is based on repeat check-ups, not one-day changes.');
@@ -31,16 +31,16 @@ describe('Progress UI restoration', () => {
     );
 
     // The simplified Progress tab: one merged profile card, the change-over-time
-    // card, a merged history card, and the quiet extra check-up. The
-    // next-check-up card retired with the founder-directed deletion pass
-    // (2026-07-08) — it could only render from old-engine blocks the promoted
-    // shell never produces. "See full results" RETURNED the same day with the
-    // restored per-check-up results page (founder direction).
+    // card, merged history, 12-week journey context, and observational
+    // Clarity. Unscheduled extra official check-ups are deliberately absent:
+    // they would break the frozen monthly comparison cadence.
     expect(progress).toContain('<MovementProfileCard');
     expect(progress).toContain('<MovementProfileV2ChangeCard');
     expect(progress).not.toContain('<MovementProfileV2NextCheckUpCard');
     expect(progress).toContain('<MovementProfileV2HistoryCard');
-    expect(progress).toContain('<MovementProfileV2ExtraCheckUpCard');
+    expect(progress).not.toContain('<MovementProfileV2ExtraCheckUpCard');
+    expect(progress).toContain('<ProgrammeJourneyCard');
+    expect(progress).toContain('<ClarityProgressCard');
     expect(progress).toContain('viewModel.officialHistory.length >= 2');
     // The plan summary and practice-ladder cards moved off Progress — they duplicated the Plan tab.
     expect(progress).not.toContain('<MovementProfileV2PlanSummaryCard');

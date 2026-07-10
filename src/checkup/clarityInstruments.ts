@@ -76,6 +76,7 @@ export type PairedClarityInvalidReason =
   | 'app_backgrounded'
   | 'cognitive_aggregate_invalid'
   | 'cognitive_participation_below_floor'
+  | 'cognitive_response_engagement_below_floor'
   | 'cognitive_accuracy_below_floor'
   | 'cognitive_unavailable'
   | 'cognitive_interrupted';
@@ -89,6 +90,7 @@ export interface PairedClarityValidityPolicyRecord {
   readonly minSoloHoldMs: number;
   readonly ceilingExclusionMarginMs: number;
   readonly minCognitiveAttempts: number;
+  readonly minCognitiveResponses: number;
   readonly minCognitiveAccuracy: number;
 }
 
@@ -132,6 +134,7 @@ export interface PairedClarityTrialRecord {
 /** Counts only; correctness is never inferred from or stored as content. */
 export interface PairedClarityCognitiveRecord {
   readonly attempts: number;
+  readonly responses: number;
   readonly correct: number;
   readonly errors: number;
 }
@@ -250,6 +253,7 @@ export function pairedClarityReadingValue(
   if (
     !result ||
     result.status !== 'measured' ||
+    result.ceilingLimited ||
     !Number.isFinite(result.motorCostPercent)
   ) {
     return null;
@@ -326,6 +330,7 @@ const PAIRED_CLARITY_INVALID_REASONS: readonly PairedClarityInvalidReason[] = [
   'app_backgrounded',
   'cognitive_aggregate_invalid',
   'cognitive_participation_below_floor',
+  'cognitive_response_engagement_below_floor',
   'cognitive_accuracy_below_floor',
   'cognitive_unavailable',
   'cognitive_interrupted',
@@ -339,6 +344,7 @@ const PAIRED_CLARITY_RESPONSE_SEEDS: readonly PairedClarityResponseProtocolRecor
   'pearl_vgng_form_a_v1',
   'pearl_vgng_form_b_v1',
 ];
+const PAIRED_CLARITY_BINARY_CHANCE_ACCURACY = 0.5;
 
 function objectRecord(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === 'object' ? (value as Record<string, unknown>) : undefined;
@@ -375,9 +381,11 @@ function validPairedClarityProtocol(value: unknown): PairedClarityProtocolRecord
     !finiteStrictPositive(policy.minSoloHoldMs) ||
     !finitePositive(policy.ceilingExclusionMarginMs) ||
     !positiveInteger(policy.minCognitiveAttempts) ||
+    !positiveInteger(policy.minCognitiveResponses) ||
+    policy.minCognitiveResponses > policy.minCognitiveAttempts ||
     typeof policy.minCognitiveAccuracy !== 'number' ||
     !Number.isFinite(policy.minCognitiveAccuracy) ||
-    policy.minCognitiveAccuracy < 0 ||
+    policy.minCognitiveAccuracy <= PAIRED_CLARITY_BINARY_CHANCE_ACCURACY ||
     policy.minCognitiveAccuracy > 1 ||
     policy.minSoloHoldMs >= raw.trialCapMs ||
     policy.ceilingExclusionMarginMs >= raw.trialCapMs - policy.minSoloHoldMs
@@ -400,6 +408,7 @@ function validPairedClarityProtocol(value: unknown): PairedClarityProtocolRecord
       minSoloHoldMs: policy.minSoloHoldMs,
       ceilingExclusionMarginMs: policy.ceilingExclusionMarginMs,
       minCognitiveAttempts: policy.minCognitiveAttempts,
+      minCognitiveResponses: policy.minCognitiveResponses,
       minCognitiveAccuracy: policy.minCognitiveAccuracy,
     },
   };
@@ -482,13 +491,20 @@ function validPairedClarityCognitive(
   if (
     !raw ||
     !nonNegativeInteger(raw.attempts) ||
+    !nonNegativeInteger(raw.responses) ||
     !nonNegativeInteger(raw.correct) ||
     !nonNegativeInteger(raw.errors) ||
+    raw.responses > raw.attempts ||
     raw.correct + raw.errors !== raw.attempts
   ) {
     return undefined;
   }
-  return { attempts: raw.attempts, correct: raw.correct, errors: raw.errors };
+  return {
+    attempts: raw.attempts,
+    responses: raw.responses,
+    correct: raw.correct,
+    errors: raw.errors,
+  };
 }
 
 function completedPairedClarityPromptCount(
@@ -518,6 +534,18 @@ export function validPairedClarityResult(
   const protocol = validPairedClarityProtocol(raw.protocol);
   const responseProtocol = validPairedClarityResponseProtocol(raw.responseProtocol);
   if (!protocol || !responseProtocol) return undefined;
+  const policy = protocol.validityPolicy;
+  const minimumScorableDurationMs =
+    responseProtocol.leadInMs +
+    responseProtocol.responseWindowMs +
+    (policy.minCognitiveAttempts - 1) * responseProtocol.promptCadenceMs;
+  if (
+    policy.minCognitiveAttempts < responseProtocol.minimumPresentedCount ||
+    policy.minCognitiveAttempts > responseProtocol.promptCount ||
+    policy.minSoloHoldMs < minimumScorableDurationMs
+  ) {
+    return undefined;
+  }
 
   const base = {
     schemaVersion: PAIRED_CLARITY_RESULT_SCHEMA_VERSION,
@@ -578,9 +606,14 @@ export function validPairedClarityResult(
     if (
       (reason === 'cognitive_participation_below_floor' &&
         (!cognitive || cognitive.attempts >= protocol.validityPolicy.minCognitiveAttempts)) ||
+      (reason === 'cognitive_response_engagement_below_floor' &&
+        (!cognitive ||
+          cognitive.attempts < protocol.validityPolicy.minCognitiveAttempts ||
+          cognitive.responses >= protocol.validityPolicy.minCognitiveResponses)) ||
       (reason === 'cognitive_accuracy_below_floor' &&
         (!cognitive ||
           cognitive.attempts < protocol.validityPolicy.minCognitiveAttempts ||
+          cognitive.responses < protocol.validityPolicy.minCognitiveResponses ||
           cognitive.correct / cognitive.attempts >= protocol.validityPolicy.minCognitiveAccuracy))
     ) {
       return undefined;
@@ -600,7 +633,6 @@ export function validPairedClarityResult(
     return undefined;
   }
   if (typeof raw.ceilingLimited !== 'boolean') return undefined;
-  const policy = protocol.validityPolicy;
   const expectedCost = computeDualTaskCostPercent({
     singleTaskSeconds: solo.durationSec,
     dualTaskSeconds: dual.durationSec,
@@ -612,6 +644,7 @@ export function validPairedClarityResult(
     cognitive.attempts < policy.minCognitiveAttempts ||
     cognitive.attempts < responseProtocol.minimumPresentedCount ||
     cognitive.attempts !== completedPairedClarityPromptCount(dual.durationMs, responseProtocol) ||
+    cognitive.responses < policy.minCognitiveResponses ||
     cognitiveAccuracy < policy.minCognitiveAccuracy ||
     !costValuesMatch(raw.motorCostPercent, expectedCost) ||
     raw.ceilingLimited !== (dual.termination === 'ceiling')

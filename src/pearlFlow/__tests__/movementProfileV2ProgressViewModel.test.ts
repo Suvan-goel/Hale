@@ -10,6 +10,12 @@ import {
   createOneLegBalanceV2Setup,
 } from '../../checkup/protocolSetup';
 import type { CheckUp } from '../../checkup/types';
+import type { MeasurementProtocolRef } from '../../checkup/measurementContext';
+import {
+  MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID,
+  MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1,
+  PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT,
+} from '../../checkup/measurementProtocolRegistry';
 import { bareDownwardChanges } from '../testing/copyInvariants';
 import { HISTORY_SCHEMA_VERSION, type StoredCheckUp } from '../../history';
 import {
@@ -115,6 +121,58 @@ describe('Movement Profile V2 Progress view model', () => {
     expect(
       paired.change?.domains.find((domain) => domain.domain === 'strength_power')?.supportCopy
     ).toBeUndefined();
+  });
+
+  it('starts a new comparison series when the measurement protocol changes', () => {
+    const legacy = artifacts('baseline', BASELINE_AT, { chair: chairResult({ reps: 8 }) });
+    const monthlyProtocol: MeasurementProtocolRef = {
+      protocolId: MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID,
+      protocolVersion: MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1,
+      protocolVariant: PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT,
+    };
+    const firstMonthly = artifacts('baseline_retake', RETAKE_AT, {
+      chair: chairResult({ reps: 12 }),
+      measurementProtocol: monthlyProtocol,
+    });
+    const latestMonthly = artifacts('official_retest', RETEST_AT, {
+      chair: chairResult({ reps: 16 }),
+      measurementProtocol: monthlyProtocol,
+    });
+
+    const viewModel = buildMovementProfileV2ProgressViewModel({
+      history: [legacy.record, firstMonthly.record, latestMonthly.record],
+      blocks: [],
+      reports: [],
+      today: RETEST_AT,
+    });
+    if (viewModel.status !== 'ready') throw new Error(viewModel.status);
+    expect(viewModel.change?.headline).toBe('Since this check-up method began · Jun 10, 2026');
+    expect(viewModel.change?.domains.find((domain) => domain.domain === 'strength_power')).toMatchObject({
+      direction: 'up',
+      value: '12 → 16 rises',
+      caption: 'Up 4 rises',
+    });
+  });
+
+  it('treats small absolute changes as measurement noise', () => {
+    const baseline = artifacts('baseline', BASELINE_AT, {
+      balance: balanceResult({ bestHoldSec: 32 }),
+    });
+    const retake = artifacts('baseline_retake', RETAKE_AT, {
+      balance: balanceResult({ bestHoldSec: 34 }),
+    });
+    const viewModel = buildMovementProfileV2ProgressViewModel({
+      history: [baseline.record, retake.record],
+      blocks: [],
+      reports: [],
+      today: RETAKE_AT,
+    });
+    if (viewModel.status !== 'ready') throw new Error(viewModel.status);
+    expect(viewModel.change?.domains.find((domain) => domain.domain === 'balance')).toMatchObject({
+      direction: 'steady',
+      value: '32 → 34 sec',
+      caption: 'Holding steady',
+    });
   });
 
   it('never presents a lower reading bare: every down row pairs the trainable path (§2.4)', () => {
@@ -227,6 +285,7 @@ function artifacts(
     chair?: ChairRiseV2Result;
     balance?: OneLegBalanceV2Result;
     shoulder?: ActiveShoulderReachV2Result;
+    measurementProtocol?: MeasurementProtocolRef;
   } = {}
 ): {
   checkUp: CheckUp;
@@ -340,10 +399,12 @@ function v2CheckUp(input: {
   chair?: ChairRiseV2Result;
   balance?: OneLegBalanceV2Result;
   shoulder?: ActiveShoulderReachV2Result;
+  measurementProtocol?: MeasurementProtocolRef;
 }): CheckUp {
   return {
     startedAt: input.startedAt,
     protocolPolicy: createCheckUpProtocolPolicy(MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID, input.startedAt),
+    ...(input.measurementProtocol ? { measurementProtocol: input.measurementProtocol } : {}),
     bodyUnit: 1,
     items: [
       { movementId: CHAIR_RISE_V2_ID, status: 'measured', result: input.chair ?? chairResult() },

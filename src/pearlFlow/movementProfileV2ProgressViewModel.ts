@@ -304,18 +304,25 @@ interface DomainReading {
 }
 
 /**
- * Builds the "am I improving?" comparison from the first saved Check-Up to the
- * latest. A domain only appears when both endpoints measured it the same way
- * (same metricId) — a changed balance ladder, for example, is not a comparable
- * series and is silently dropped rather than shown as a false change.
+ * Builds the "am I improving?" comparison from the earliest saved Check-Up in
+ * the latest exact protocol series. A domain only appears when both endpoints
+ * measured it the same way (same metricId) — a changed balance ladder, for
+ * example, is not a comparable series and is silently dropped rather than
+ * shown as a false change.
  */
 export function buildMovementProfileV2ProgressChange(
   profiles: readonly AcceptedProfile[]
 ): MovementProfileV2ProgressChange | null {
   if (profiles.length < 2) return null;
-  const baselineProfile = profiles[0];
   const latestProfile = profiles[profiles.length - 1];
-  if (!profilesShareMeasurementProtocol(baselineProfile, latestProfile)) return null;
+  // A protocol change establishes a new personal series. Find the earliest
+  // accepted profile that is genuinely comparable with the latest rather than
+  // letting one older legacy/different-protocol record suppress progress
+  // forever.
+  const baselineProfile = profiles.find((profile) =>
+    profilesShareMeasurementProtocol(profile, latestProfile)
+  );
+  if (!baselineProfile || baselineProfile === latestProfile) return null;
   const domains: MovementProfileV2ProgressChangeDomain[] = [];
   for (const domain of CHANGE_DOMAIN_ORDER) {
     const baseline = domainReading(domain, baselineProfile.snapshot);
@@ -324,8 +331,11 @@ export function buildMovementProfileV2ProgressChange(
     domains.push(changeDomain(domain, baseline, latest));
   }
   if (domains.length === 0) return null;
+  const beganAfterEarlierHistory = baselineProfile !== profiles[0];
   return {
-    headline: `Since your first check-up · ${formatDate(baselineProfile.snapshot.sourceCheckUpId)}`,
+    headline: `${
+      beganAfterEarlierHistory ? 'Since this check-up method began' : 'Since your first check-up'
+    } · ${formatDate(baselineProfile.snapshot.sourceCheckUpId)}`,
     domains,
   };
 }

@@ -17,22 +17,26 @@ import type {
 export function CheckUpResultsShell({
   presentation,
   onAction,
+  supplementary,
 }: {
   presentation: UnifiedCheckUpResultsPresentation;
   onAction: (action: UnifiedCheckUpResultsAction) => void;
+  supplementary?: React.ReactNode;
 }) {
   if (presentation.variant === 'onboarding') {
-    return <OnboardingResultsVariant presentation={presentation} onAction={onAction} />;
+    return <OnboardingResultsVariant presentation={presentation} onAction={onAction} supplementary={supplementary} />;
   }
-  return <StandardResultsVariant presentation={presentation} onAction={onAction} />;
+  return <StandardResultsVariant presentation={presentation} onAction={onAction} supplementary={supplementary} />;
 }
 
 function StandardResultsVariant({
   presentation,
   onAction,
+  supplementary,
 }: {
   presentation: UnifiedCheckUpResultsPresentation;
   onAction: (action: UnifiedCheckUpResultsAction) => void;
+  supplementary?: React.ReactNode;
 }) {
   const responsive = useResponsiveLayout();
   const backAction = presentation.actions.find((action) => action.action.type === 'done');
@@ -130,6 +134,8 @@ function StandardResultsVariant({
         </Card>
       ) : null}
 
+      {supplementary}
+
       {presentation.populationComparison ? (
         // Quiet, subordinate entry below her own trend (founder condition 2) —
         // deliberately plainer than the result cards above it.
@@ -153,9 +159,11 @@ function StandardResultsVariant({
 function OnboardingResultsVariant({
   presentation,
   onAction,
+  supplementary,
 }: {
   presentation: UnifiedCheckUpResultsPresentation;
   onAction: (action: UnifiedCheckUpResultsAction) => void;
+  supplementary?: React.ReactNode;
 }) {
   const responsive = useResponsiveLayout();
   return (
@@ -193,6 +201,8 @@ function OnboardingResultsVariant({
           <OnboardingDomainSummaryCard key={domain.id} domain={domain} />
         ))}
       </View>
+
+      {supplementary}
 
       {presentation.plan.status !== 'hidden' && presentation.plan.title && presentation.plan.body ? (
         <View style={[onboardingStyles.nextCard, responsive.isCompactPhone && onboardingStyles.compactCardPadding]}>

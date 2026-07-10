@@ -937,6 +937,13 @@ function cuesForRawComplete(snapshot: MovementProfileV2LiveSnapshot): readonly V
       ]
     : ['item-complete-v21', 'checkup-complete-v21'];
   const cues = cuesForCurrentTransition(snapshot, fallback);
+  if (!sequenceHasHinge) {
+    // Pearl's monthly host offers optional Everyday Clarity after the movement
+    // battery, so the bundled full-battery "results are ready" line would be
+    // premature here. The generic completion cue already says guidance
+    // continues and requires no new generated audio.
+    return cues.filter((cue) => cue !== 'checkup-complete-v21');
+  }
   if (!sequenceHasHinge || !snapshot.diagnostics.hinge.captureValid) return cues;
   return ['stand-tall', ...cues.filter((cue) => cue !== 'mpv2_hinge_complete')];
 }

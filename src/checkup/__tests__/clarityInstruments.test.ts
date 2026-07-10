@@ -3,6 +3,7 @@ import {
   PAIRED_CLARITY_RESULT_SCHEMA_VERSION,
   computeDualTaskCostPercent,
   dualTaskReadingValue,
+  pairedClarityReadingValue,
   validClarityInstruments,
   validPairedClarityResult,
   type DualTaskResult,
@@ -35,10 +36,11 @@ const pairedProtocol: PairedClarityProtocolRecord = {
   touchdownDebounceFrames: 4,
   trackingLossConfirmFrames: 4,
   validityPolicy: {
-    minSoloHoldMs: 5000,
+    minSoloHoldMs: 10000,
     ceilingExclusionMarginMs: 0,
     minCognitiveAttempts: 4,
-    minCognitiveAccuracy: 0.5,
+    minCognitiveResponses: 1,
+    minCognitiveAccuracy: 0.6,
   },
 };
 
@@ -53,7 +55,7 @@ const pairedResponseProtocol: PairedClarityResponseProtocolRecord = {
   promptVisibleMs: 600,
   responseWindowMs: 1500,
   promptCadenceMs: 2400,
-  promptCount: 16,
+  promptCount: 19,
   minimumPresentedCount: 4,
 };
 
@@ -67,7 +69,7 @@ function pairedMeasured(): MeasuredPairedClarity {
     responseProtocol: pairedResponseProtocol,
     solo: { kind: 'solo', durationMs: 10000, durationSec: 10, termination: 'touchdown' },
     dual: { kind: 'dual', durationMs: 12000, durationSec: 12, termination: 'touchdown' },
-    cognitive: { attempts: 5, correct: 4, errors: 1 },
+    cognitive: { attempts: 5, responses: 2, correct: 4, errors: 1 },
     motorCostPercent: -20,
     ceilingLimited: false,
   };
@@ -166,6 +168,8 @@ describe('matched-pair Clarity persistence', () => {
     expect(validPairedClarityResult(pairedTask)?.status).toBe('measured');
     if (pairedTask.status !== 'measured') throw new Error('fixture must be measured');
     expect(pairedTask.motorCostPercent).toBe(-20);
+    expect(pairedClarityReadingValue(pairedTask)).toBe(120);
+    expect(pairedClarityReadingValue({ ...pairedTask, ceilingLimited: true })).toBeNull();
   });
 
   it('keeps the matched pair distinct from a stored legacy dual-task result', () => {
@@ -206,7 +210,7 @@ describe('matched-pair Clarity persistence', () => {
       reason: 'cognitive_accuracy_below_floor',
       solo: { kind: 'solo', durationMs: 10000, durationSec: 10, termination: 'touchdown' },
       dual: { kind: 'dual', durationMs: 12000, durationSec: 12, termination: 'touchdown' },
-      cognitive: { attempts: 5, correct: 1, errors: 4 },
+      cognitive: { attempts: 5, responses: 2, correct: 1, errors: 4 },
     };
     expect(validPairedClarityResult(invalid)).toEqual(invalid);
 
@@ -218,11 +222,23 @@ describe('matched-pair Clarity persistence', () => {
       reason: 'cognitive_participation_below_floor',
       solo: { kind: 'solo', durationMs: 10000, durationSec: 10, termination: 'touchdown' },
       dual: { kind: 'dual', durationMs: 5000, durationSec: 5, termination: 'touchdown' },
-      cognitive: { attempts: 2, correct: 2, errors: 0 },
+      cognitive: { attempts: 2, responses: 1, correct: 2, errors: 0 },
     };
     expect(validPairedClarityResult(participationBelowFloor)).toEqual(
       participationBelowFloor
     );
+
+    const engagementBelowFloor: PairedClarityResultRecord = {
+      schemaVersion: 1,
+      status: 'invalid',
+      protocol: pairedProtocol,
+      responseProtocol: pairedResponseProtocol,
+      reason: 'cognitive_response_engagement_below_floor',
+      solo: { kind: 'solo', durationMs: 10000, durationSec: 10, termination: 'touchdown' },
+      dual: { kind: 'dual', durationMs: 12000, durationSec: 12, termination: 'touchdown' },
+      cognitive: { attempts: 5, responses: 0, correct: 3, errors: 2 },
+    };
+    expect(validPairedClarityResult(engagementBelowFloor)).toEqual(engagementBelowFloor);
 
     const unavailable: PairedClarityResultRecord = {
       schemaVersion: 1,
@@ -243,8 +259,23 @@ describe('matched-pair Clarity persistence', () => {
         ...valid,
         responseProtocol: { ...pairedResponseProtocol, sequenceSeedId: 'free-text-seed' },
       },
-      { ...valid, cognitive: { attempts: 5, correct: 4, errors: 0 } },
-      { ...valid, cognitive: { attempts: 4, correct: 3, errors: 1 } },
+      { ...valid, cognitive: { attempts: 5, responses: 2, correct: 4, errors: 0 } },
+      { ...valid, cognitive: { attempts: 4, responses: 2, correct: 3, errors: 1 } },
+      { ...valid, cognitive: { attempts: 5, responses: 6, correct: 4, errors: 1 } },
+      {
+        ...valid,
+        protocol: {
+          ...pairedProtocol,
+          validityPolicy: { ...pairedProtocol.validityPolicy, minCognitiveAccuracy: 0.5 },
+        },
+      },
+      {
+        ...valid,
+        protocol: {
+          ...pairedProtocol,
+          validityPolicy: { ...pairedProtocol.validityPolicy, minSoloHoldMs: 9000 },
+        },
+      },
       { ...valid, motorCostPercent: 20 },
       { ...valid, dual: { ...valid.dual, durationSec: 13 } },
       { ...valid, ceilingLimited: true },
@@ -265,7 +296,7 @@ describe('matched-pair Clarity persistence', () => {
         protocol: pairedProtocol,
         responseProtocol: pairedResponseProtocol,
         reason: 'solo_below_floor',
-        solo: { kind: 'solo', durationMs: 8000, durationSec: 8, termination: 'touchdown' },
+        solo: { kind: 'solo', durationMs: 12000, durationSec: 12, termination: 'touchdown' },
       })
     ).toBeUndefined();
   });
@@ -290,7 +321,12 @@ describe('matched-pair Clarity persistence', () => {
     expect(parsed).toEqual(pairedMeasured());
     expect(JSON.stringify(parsed)).not.toContain(canary);
     if (!parsed || parsed.status !== 'measured') throw new Error('fixture should parse');
-    expect(Object.keys(parsed.cognitive)).toEqual(['attempts', 'correct', 'errors']);
+    expect(Object.keys(parsed.cognitive)).toEqual([
+      'attempts',
+      'responses',
+      'correct',
+      'errors',
+    ]);
     expect(Object.keys(parsed.solo)).toEqual(['kind', 'durationMs', 'durationSec', 'termination']);
     expect(Object.keys(parsed.responseProtocol)).not.toContain('responseWord');
   });

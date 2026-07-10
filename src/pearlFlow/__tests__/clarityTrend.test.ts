@@ -3,6 +3,7 @@ import {
   clarityReadingsFromHistory,
   dualTaskReadingsFromHistory,
   fluencyRelativeReadingsFromHistory,
+  pairedClarityMetricId,
 } from '../clarityTrend';
 import type { FluencyCategoryId, PairedClarityResultRecord } from '../../checkup';
 import { bareDownwardChanges } from '../testing/copyInvariants';
@@ -13,6 +14,7 @@ const CLARITY_BANNED = /validated|percentile|age group|typical of age|dementia|a
 function pairedTask(costPercent: number): PairedClarityResultRecord {
   const soloMs = 20_000;
   const dualMs = soloMs * (1 - costPercent / 100);
+  const attempts = Math.min(19, Math.max(0, 1 + Math.floor((dualMs - 2250) / 2400)));
   return {
     schemaVersion: 1,
     status: 'measured',
@@ -29,10 +31,11 @@ function pairedTask(costPercent: number): PairedClarityResultRecord {
       touchdownDebounceFrames: 3,
       trackingLossConfirmFrames: 4,
       validityPolicy: {
-        minSoloHoldMs: 5_000,
+        minSoloHoldMs: 10_000,
         ceilingExclusionMarginMs: 3_000,
         minCognitiveAttempts: 4,
-        minCognitiveAccuracy: 0.5,
+        minCognitiveResponses: 1,
+        minCognitiveAccuracy: 0.6,
       },
     },
     responseProtocol: {
@@ -46,12 +49,17 @@ function pairedTask(costPercent: number): PairedClarityResultRecord {
       promptVisibleMs: 600,
       responseWindowMs: 1_500,
       promptCadenceMs: 2_400,
-      promptCount: 16,
+      promptCount: 19,
       minimumPresentedCount: 4,
     },
     solo: { kind: 'solo', durationMs: soloMs, durationSec: soloMs / 1000, termination: 'touchdown' },
     dual: { kind: 'dual', durationMs: dualMs, durationSec: dualMs / 1000, termination: 'touchdown' },
-    cognitive: { attempts: 6, correct: 5, errors: 1 },
+    cognitive: {
+      attempts,
+      responses: Math.max(1, Math.floor(attempts / 2)),
+      correct: attempts - 1,
+      errors: 1,
+    },
     motorCostPercent: costPercent,
     ceilingLimited: false,
   };
@@ -121,6 +129,7 @@ function record(
 }
 
 const steady: (0 | 1 | 2 | 3 | 4)[] = [1, 1, 1, 1, 1]; // reading 3
+const minimallyClearer: (0 | 1 | 2 | 3 | 4)[] = [0, 1, 1, 1, 1]; // reading 3.2
 const clouded: (0 | 1 | 2 | 3 | 4)[] = [4, 4, 3, 4, 4]; // reading ~0.2
 
 describe('Clarity trend view model (multi-series, DT3)', () => {
@@ -141,10 +150,41 @@ describe('Clarity trend view model (multi-series, DT3)', () => {
     ]);
     expect(readings).toHaveLength(1);
     expect(readings[0]).toMatchObject({
-      metricId: 'paired_clarity_motor_cost_v1',
+      metricId: pairedClarityMetricId(pairedTask(30)),
       basis: 'measured',
       value: 70,
     });
+  });
+
+  it('keeps exact pair protocols in separate series and excludes ceiling-limited holds', () => {
+    const first = record('2026-01-01T09:00:00.000Z', { dualTaskCost: 10 });
+    const changedSide = record('2026-02-01T09:00:00.000Z', { dualTaskCost: 20 });
+    const changedPair = changedSide.checkUp.clarityInstruments?.pairedTask;
+    if (!changedPair) throw new Error('fixture must include paired task');
+    const changedExactPair: PairedClarityResultRecord = {
+      ...changedPair,
+      protocol: { ...changedPair.protocol, standingSide: 'right' },
+    };
+    changedSide.checkUp.clarityInstruments = {
+      schemaVersion: 1,
+      pairedTask: changedExactPair,
+    };
+
+    const split = dualTaskReadingsFromHistory([first, changedSide]);
+    expect(split).toHaveLength(1);
+    expect(split[0].atIso).toBe('2026-02-01T09:00:00.000Z');
+    expect(split[0].metricId).toBe(pairedClarityMetricId(changedExactPair));
+
+    const ceiling = record('2026-03-01T09:00:00.000Z', { dualTaskCost: 0 });
+    const ceilingPair = ceiling.checkUp.clarityInstruments?.pairedTask;
+    if (!ceilingPair || ceilingPair.status !== 'measured') {
+      throw new Error('fixture must include measured paired task');
+    }
+    ceiling.checkUp.clarityInstruments = {
+      schemaVersion: 1,
+      pairedTask: { ...ceilingPair, ceilingLimited: true },
+    };
+    expect(dualTaskReadingsFromHistory([ceiling])).toEqual([]);
   });
 
   it('quarantines the legacy VAD-only dual-task shape from the current trend', () => {
@@ -174,6 +214,7 @@ describe('Clarity trend view model (multi-series, DT3)', () => {
     });
     const trend = buildClarityTrendViewModel([accepted, failedAttempt], {
       acceptedSourceCheckUpIds: [accepted.checkUp.startedAt],
+      includePairedTask: true,
     });
     if (trend.status !== 'ready') throw new Error(trend.status);
     expect(trend.series).toHaveLength(2);
@@ -202,7 +243,7 @@ describe('Clarity trend view model (multi-series, DT3)', () => {
       record('2026-03-01T09:00:00.000Z', { itemScores: steady, dualTaskCost: 8 }),
       record('2026-04-01T09:00:00.000Z', { itemScores: clouded, dualTaskCost: 40 }),
     ];
-    const trend = buildClarityTrendViewModel(history);
+    const trend = buildClarityTrendViewModel(history, { includePairedTask: true });
     if (trend.status !== 'ready') throw new Error(trend.status);
     expect(trend.series.map((series) => series.id)).toEqual(['subjective', 'dual_task']);
 
@@ -217,6 +258,22 @@ describe('Clarity trend view model (multi-series, DT3)', () => {
     expect(trend.series[1].trend.status === 'ready' && trend.series[1].trend.headline).toBe(
       'Less steady under load than usual this month.'
     );
+  });
+
+  it('keeps the smallest possible subjective item shift inside the usual range', () => {
+    const trend = buildClarityTrendViewModel([
+      record('2026-01-01T09:00:00.000Z', { itemScores: steady }),
+      record('2026-02-01T09:00:00.000Z', { itemScores: steady }),
+      record('2026-03-01T09:00:00.000Z', { itemScores: steady }),
+      record('2026-04-01T09:00:00.000Z', { itemScores: minimallyClearer }),
+    ]);
+    if (trend.status !== 'ready') throw new Error(trend.status);
+    const subjective = trend.series.find((series) => series.id === 'subjective');
+    if (!subjective || subjective.trend.status !== 'ready') {
+      throw new Error('expected ready subjective trend');
+    }
+    expect(subjective.trend.latestRelation).toBe('within');
+    expect(subjective.trend.headline).toBe('In your usual range this month.');
   });
 
   it('names her own covariates when a dip lines up with them (§6.1) — never diagnostic', () => {
@@ -239,6 +296,25 @@ describe('Clarity trend view model (multi-series, DT3)', () => {
     ]);
     if (steadyMonth.status !== 'ready') throw new Error(steadyMonth.status);
     expect(steadyMonth.covariateContext).toBeUndefined();
+  });
+
+  it('binds dip context to the latest entry in the displayed comparable series', () => {
+    const history = [
+      record('2026-01-01T09:00:00.000Z', { itemScores: steady }),
+      record('2026-02-01T09:00:00.000Z', { itemScores: steady }),
+      record('2026-03-01T09:00:00.000Z', { itemScores: steady }),
+      record('2026-04-01T09:00:00.000Z', {
+        itemScores: clouded,
+        covariates: { sleepQuality: 1 },
+      }),
+      // A later official Check-Up skipped the subjective check-in. Its
+      // covariates must not be attributed to April's displayed reading.
+      record('2026-05-01T09:00:00.000Z', { covariates: { symptomLoad: 3 } }),
+    ];
+    const trend = buildClarityTrendViewModel(history);
+    if (trend.status !== 'ready') throw new Error(trend.status);
+    expect(trend.covariateContext).toContain("rough night's sleep");
+    expect(trend.covariateContext).not.toContain('heavy symptom week');
   });
 
   it('fluency: raw counts never cross categories — each run reads against its own category anchor (F3)', () => {
@@ -286,13 +362,23 @@ describe('Clarity trend view model (multi-series, DT3)', () => {
     expect(fluencySeries?.trend.status).toBe('building');
   });
 
+  it('keeps the paired-task series behind its explicit release gate', () => {
+    const history = [
+      record('2026-01-01T09:00:00.000Z', { dualTaskCost: 10 }),
+    ];
+    expect(buildClarityTrendViewModel(history)).toEqual({ status: 'no_data' });
+    const enabled = buildClarityTrendViewModel(history, { includePairedTask: true });
+    if (enabled.status !== 'ready') throw new Error(enabled.status);
+    expect(enabled.series.map((series) => series.id)).toEqual(['dual_task']);
+  });
+
   it('never shows population comparison, raw scores, or banned cognitive language', () => {
     const trend = buildClarityTrendViewModel([
       record('2026-01-01T09:00:00.000Z', { itemScores: steady, dualTaskCost: 10 }),
       record('2026-02-01T09:00:00.000Z', { itemScores: steady, dualTaskCost: 12 }),
       record('2026-03-01T09:00:00.000Z', { itemScores: steady, dualTaskCost: 8 }),
       record('2026-04-01T09:00:00.000Z', { itemScores: clouded, dualTaskCost: 40 }),
-    ]);
+    ], { includePairedTask: true });
     expect(JSON.stringify(trend)).not.toMatch(CLARITY_BANNED);
     if (trend.status !== 'ready') throw new Error(trend.status);
     for (const series of trend.series) {

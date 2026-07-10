@@ -34,6 +34,14 @@ describe('generateMockJourney', () => {
     expect(journey.checkUps).toHaveLength(3);
     expect(journey.checkUps[0].checkupType).toBe('baseline');
     expect(journey.checkUps[1].checkupType).toBe('official_retest');
+    expect(journey.checkUps.every(({ checkUp }) => checkUp.items.length === 2)).toBe(true);
+    expect(
+      journey.checkUps.every(
+        ({ checkUp }) =>
+          checkUp.measurementProtocol?.protocolVariant ===
+          'pearl_monthly_strength_balance_v1'
+      )
+    ).toBe(true);
 
     // Persist through the production store + serializer, then read back.
     const store = new HistoryStore(createMemoryFs());
@@ -74,6 +82,9 @@ describe('generateMockJourney', () => {
     expect(journey.programmeState.completedSessionCount).toBe(9);
     expect(journey.programmeState.profile.firstSessionStarted).toBe(true);
     expect(journey.programmeState.profile.assessmentStatus).toBe('done');
+    expect(journey.programmeState.journey.status).toBe('active');
+    expect(journey.programmeState.journey.currentPhase).toBe(3);
+    expect(journey.programmeState.journey.sessionCredits).toHaveLength(9);
     // At least one ladder climbed above the fresh entry level.
     const climbed = Object.values(journey.programmeState.ladders).some((l) => l.currentLevel > 1);
     expect(climbed).toBe(true);

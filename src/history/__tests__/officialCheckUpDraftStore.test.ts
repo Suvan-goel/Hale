@@ -8,6 +8,7 @@ import {
 import { createMemoryFs } from '../store';
 import {
   OFFICIAL_CHECKUP_DRAFT_FILE,
+  OFFICIAL_CHECKUP_DRAFT_MAX_AGE_MS,
   OfficialCheckUpDraftStore,
 } from '../officialCheckUpDraftStore';
 
@@ -37,7 +38,7 @@ describe('OfficialCheckUpDraftStore', () => {
     const store = new OfficialCheckUpDraftStore(createMemoryFs(files));
     store.save(checkUp(), 'baseline', '2026-07-09T09:10:00.000Z');
 
-    await expect(store.load()).resolves.toMatchObject({
+    await expect(store.load('2026-07-09T09:11:00.000Z')).resolves.toMatchObject({
       checkupType: 'baseline',
       updatedAtIso: '2026-07-09T09:10:00.000Z',
       checkUp: {
@@ -55,5 +56,25 @@ describe('OfficialCheckUpDraftStore', () => {
     store.clear();
     store.clear();
     await expect(store.load()).resolves.toBeNull();
+  });
+
+  it.each(['baseline_retake', 'official_retest'] as const)(
+    'preserves the recoverable %s type',
+    async (checkupType) => {
+      const store = new OfficialCheckUpDraftStore(createMemoryFs());
+      store.save(checkUp(), checkupType, '2026-07-09T09:10:00.000Z');
+      await expect(store.load('2026-07-09T09:11:00.000Z')).resolves.toMatchObject({ checkupType });
+    }
+  );
+
+  it('expires a draft before a later-day Clarity answer can be attached', async () => {
+    const files = new Map<string, string>();
+    const store = new OfficialCheckUpDraftStore(createMemoryFs(files));
+    store.save(checkUp(), 'baseline', '2026-07-09T09:10:00.000Z');
+    const afterExpiry = new Date(
+      Date.parse('2026-07-09T09:10:00.000Z') + OFFICIAL_CHECKUP_DRAFT_MAX_AGE_MS + 1
+    ).toISOString();
+    await expect(store.load(afterExpiry)).resolves.toBeNull();
+    expect(files.has(OFFICIAL_CHECKUP_DRAFT_FILE)).toBe(false);
   });
 });

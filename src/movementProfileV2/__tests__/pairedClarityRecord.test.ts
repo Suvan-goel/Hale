@@ -10,10 +10,11 @@ import {
 } from '../pairedClarityRuntime';
 
 const policy: PairedClarityValidityPolicy = {
-  minSoloHoldMs: 5000,
+  minSoloHoldMs: 10000,
   ceilingExclusionMarginMs: 0,
   minCognitiveAttempts: 4,
-  minCognitiveAccuracy: 0.5,
+  minCognitiveResponses: 1,
+  minCognitiveAccuracy: 0.6,
 };
 
 type MeasuredLivePair = Extract<PairedClarityResult, { status: 'measured' }>;
@@ -42,7 +43,7 @@ function measuredResult(): MeasuredLivePair {
       durationSec: 12,
       termination: 'touchdown',
     },
-    cognitive: { attempts: 5, correct: 4, errors: 1, accuracy: 0.8 },
+    cognitive: { attempts: 5, responses: 2, correct: 4, errors: 1, accuracy: 0.8 },
     motorCostPercent: -20,
     ceilingLimited: false,
   };
@@ -68,7 +69,7 @@ describe('createPairedClarityResultRecord', () => {
       },
       solo: { kind: 'solo', durationMs: 10000, durationSec: 10, termination: 'touchdown' },
       dual: { kind: 'dual', durationMs: 12000, durationSec: 12, termination: 'touchdown' },
-      cognitive: { attempts: 5, correct: 4, errors: 1 },
+      cognitive: { attempts: 5, responses: 2, correct: 4, errors: 1 },
       motorCostPercent: -20,
       ceilingLimited: false,
     });
@@ -117,7 +118,12 @@ describe('createPairedClarityResultRecord', () => {
     const record = createPairedClarityResultRecord({ result, responseProtocol });
     expect(JSON.stringify(record)).not.toContain(canary);
     if (record.status !== 'measured') throw new Error('fixture should remain measured');
-    expect(Object.keys(record.cognitive)).toEqual(['attempts', 'correct', 'errors']);
+    expect(Object.keys(record.cognitive)).toEqual([
+      'attempts',
+      'responses',
+      'correct',
+      'errors',
+    ]);
   });
 
   it('refuses an internally incoherent live result at the persistence boundary', () => {

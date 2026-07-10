@@ -77,6 +77,12 @@ describe('no health data in backup shapes', () => {
     ];
     for (const { file, code } of sources) {
       for (const token of banned) {
+        // The local deletion service must know the filename in order to erase
+        // it. This is device cleanup, not a backup/sync shape; every other
+        // programme or health token remains banned there too.
+        if (token === 'programme.json' && file.endsWith('accountDataService.ts')) {
+          continue;
+        }
         expect({ file, token, present: code.includes(token) }).toEqual({
           file,
           token,

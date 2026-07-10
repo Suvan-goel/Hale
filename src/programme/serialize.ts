@@ -11,7 +11,9 @@
  */
 
 import type { ActivityLevel } from '../adherence';
+import { deterministicFingerprint } from '../reference/movementProfileV2/fingerprint';
 import {
+  PROGRAMME_JOURNEY_PHASE_CALENDAR_DAYS,
   PROGRAMME_JOURNEY_CHECKPOINT_KINDS,
   PROGRAMME_JOURNEY_POLICY_FINGERPRINT,
   PROGRAMME_JOURNEY_POLICY_VERSION,
@@ -395,10 +397,20 @@ function validProgrammeJourneyTopology(journey: ProgrammeJourneyState): boolean 
           checkpoint.sourceCheckUpType === 'baseline_retake'
         : checkpoint.sourceCheckUpType === 'official_retest';
     const checkpointTime = Date.parse(checkpoint.completedAtIso);
+    const expectedCheckpointId = deterministicFingerprint(
+      'programme-journey-checkpoint-v1',
+      {
+        kind,
+        sourceCheckUpId: checkpoint.sourceCheckUpId,
+      }
+    );
     if (
       checkpoint.startedPhase !== expectedStartedPhase ||
       !expectedSourceType ||
       checkpointTime <= priorCheckpointTime ||
+      (priorCheckpointTime !== Number.NEGATIVE_INFINITY &&
+        !checkpointIsAtOrAfterPhaseDue(priorCheckpointTime, checkpointTime)) ||
+      checkpoint.checkpointId !== expectedCheckpointId ||
       checkpointIds.has(checkpoint.checkpointId) ||
       sourceCheckUpIds.has(checkpoint.sourceCheckUpId) ||
       sourceAssessmentIds.has(checkpoint.sourceAssessmentId)
@@ -442,7 +454,71 @@ function validProgrammeJourneyTopology(journey: ProgrammeJourneyState): boolean 
   }
 
   const startedPhases = new Set(expectedPrescriptionPhases);
-  return journey.sessionCredits.every((credit) => startedPhases.has(credit.phase));
+  return journey.sessionCredits.every(
+    (credit) =>
+      startedPhases.has(credit.phase) &&
+      validJourneySessionCreditTopology(journey, credit)
+  );
+}
+
+/**
+ * Mirrors the journey runtime's local-calendar `Date#setDate` cadence. The
+ * comparison is minimum-only: a delayed re-test remains valid and starts the
+ * next phase at its actual accepted time.
+ */
+function checkpointIsAtOrAfterPhaseDue(
+  priorCheckpointTime: number,
+  checkpointTime: number
+): boolean {
+  const due = new Date(priorCheckpointTime);
+  due.setDate(due.getDate() + PROGRAMME_JOURNEY_PHASE_CALENDAR_DAYS);
+  return checkpointTime >= due.getTime();
+}
+
+function validJourneySessionCreditTopology(
+  journey: ProgrammeJourneyState,
+  credit: ProgrammeJourneySessionCredit
+): boolean {
+  const expectedCreditId = deterministicFingerprint(
+    'programme-journey-session-credit-v1',
+    { sessionId: credit.sessionId }
+  );
+  if (credit.creditId !== expectedCreditId) return false;
+
+  const phaseStart = journey.checkpoints[checkpointStartingPhase(credit.phase)];
+  if (!phaseStart) return false;
+  const creditTime = Date.parse(credit.completedAtIso);
+  if (creditTime < Date.parse(phaseStart.completedAtIso)) return false;
+
+  const nextCheckpointKind = checkpointAfterPhase(credit.phase);
+  const nextCheckpoint = journey.checkpoints[nextCheckpointKind];
+  if (nextCheckpoint && creditTime > Date.parse(nextCheckpoint.completedAtIso)) {
+    return false;
+  }
+
+  return localDateKeyCouldDescribeInstant(credit.localDateKey, creditTime);
+}
+
+function checkpointAfterPhase(
+  phase: ProgrammePhaseNumber
+): ProgrammeJourneyCheckpointKind {
+  if (phase === 1) return 'week4';
+  if (phase === 2) return 'week8';
+  return 'week12';
+}
+
+/**
+ * The originating UTC offset is intentionally not persisted. Any real-world
+ * offset can move an instant's local date by at most one day from its UTC
+ * date, so this catches impossible/tampered keys without breaking travellers.
+ */
+function localDateKeyCouldDescribeInstant(
+  localDateKey: string,
+  instantTime: number
+): boolean {
+  const localDay = Date.parse(`${localDateKey}T00:00:00.000Z`);
+  const utcDay = Date.parse(new Date(instantTime).toISOString().slice(0, 10));
+  return Math.abs(localDay - utcDay) <= 86_400_000;
 }
 
 function knownCheckpointKinds(
@@ -495,7 +571,28 @@ function checkpointMatchesPrescription(
     checkpoint.sourceAssessmentId === prescription.sourceAssessmentId &&
     checkpoint.sourceAssessmentFingerprint === prescription.sourceAssessmentFingerprint &&
     checkpoint.physicalFocus === prescription.physicalFocus &&
+    validPrescriptionId(prescription) &&
     validPrescriptionFocusTopology(prescription)
+  );
+}
+
+function validPrescriptionId(prescription: ProgrammePhasePrescription): boolean {
+  return (
+    prescription.prescriptionId ===
+    deterministicFingerprint('programme-phase-prescription-v1', {
+      schemaVersion: prescription.schemaVersion,
+      policyVersion: prescription.policyVersion,
+      policyFingerprint: prescription.policyFingerprint,
+      phase: prescription.phase,
+      physicalFocus: prescription.physicalFocus,
+      dosePolicy: prescription.dosePolicy,
+      canonicalFocus: prescription.canonicalFocus,
+      sourceAssessmentId: prescription.sourceAssessmentId,
+      sourceAssessmentFingerprint: prescription.sourceAssessmentFingerprint,
+      sourceCheckUpId: prescription.sourceCheckUpId,
+      sourceCheckUpType: prescription.sourceCheckUpType,
+      createdAtIso: prescription.createdAtIso,
+    })
   );
 }
 

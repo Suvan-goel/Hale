@@ -343,6 +343,32 @@ describe('MovementProfileV2VoiceRuntime', () => {
     expect(runtime.state.completionReady).toBe(true);
   });
 
+  it('does not play the full-battery results-ready line before the monthly Clarity appendix', async () => {
+    const runtime = createRuntime();
+    const base = snapshot('raw_complete');
+    const monthly: MovementProfileV2LiveSnapshot = {
+      ...base,
+      flow: {
+        ...base.flow,
+        batterySequence: ['balance', 'chair'],
+      },
+      lastTransition: {
+        atMs: 0,
+        from: 'chair_active',
+        to: 'raw_complete',
+        reason: 'chair_official_complete',
+      },
+    };
+    runtime.sync(monthly);
+    players[0].finish();
+    await flushAsync();
+    const started = runtime.state.diagnostics
+      .filter((event) => event.event === 'cue_playback_start_evidence')
+      .map((event) => event.cueKey);
+    expect(started).not.toContain('checkup-complete-v21');
+    expect(runtime.state.completionReady).toBe(true);
+  });
+
   it('keeps the no-measurement final reach completion on the no-measurement cue', async () => {
     const runtime = createRuntime();
     runtime.sync(snapshot('raw_complete', {

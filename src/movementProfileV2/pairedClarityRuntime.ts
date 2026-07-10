@@ -15,6 +15,12 @@ import {
   ONE_LEG_BALANCE_V2_ID,
 } from '../movements/oneLegBalanceV2';
 import { computeDualTaskCostPercent } from '../checkup/clarityInstruments';
+import {
+  CLARITY_RESPONSE_CHANCE_ACCURACY,
+  CLARITY_RESPONSE_TIMING,
+  clarityResponseDurationForAttemptCount,
+  completedClarityResponseWindowCount,
+} from './clarityResponseScorer';
 import { DUAL_TASK_RUNTIME_DEFAULTS } from './dualTaskRuntime';
 import {
   BALANCE_LIFT_CONFIRM_MS,
@@ -47,9 +53,11 @@ export interface PairedClarityValidityPolicy {
   readonly minSoloHoldMs: number;
   /** Solo holds within this distance of the cap are treated as saturated. */
   readonly ceilingExclusionMarginMs: number;
-  /** Minimum number of scorable cognitive responses during the dual hold. */
+  /** Minimum number of fully scorable prompt windows during the dual hold. */
   readonly minCognitiveAttempts: number;
-  /** Inclusive correct / attempted threshold, from 0 to 1. */
+  /** Minimum speech-presence responses proving the response task was engaged. */
+  readonly minCognitiveResponses: number;
+  /** Inclusive correct / attempted threshold, strictly above binary chance. */
   readonly minCognitiveAccuracy: number;
 }
 
@@ -70,12 +78,14 @@ export interface PairedClarityProtocolMetadata {
 
 export interface PairedClarityCognitiveAggregateInput {
   readonly attempts: number;
+  readonly responses: number;
   readonly correct: number;
   readonly errors: number;
 }
 
 export interface PairedClarityCognitiveAggregate {
   readonly attempts: number;
+  readonly responses: number;
   readonly correct: number;
   readonly errors: number;
   readonly accuracy: number;
@@ -104,6 +114,7 @@ export type PairedClarityInvalidReason =
   | 'app_backgrounded'
   | 'cognitive_aggregate_invalid'
   | 'cognitive_participation_below_floor'
+  | 'cognitive_response_engagement_below_floor'
   | 'cognitive_accuracy_below_floor'
   | 'cognitive_unavailable'
   | 'cognitive_interrupted';
@@ -188,6 +199,13 @@ export class PairedClarityRuntime {
     return this.result_;
   }
 
+  /** Exact monotonic start for constructing/aligning the live response scorer. */
+  get activeHoldStartedAtMs(): number | null {
+    return this.phase_ === 'solo_hold' || this.phase_ === 'dual_hold'
+      ? this.holdStartedAtMs
+      : null;
+  }
+
   restRemainingMs(nowMs: number): number {
     if (this.phase_ !== 'standardized_rest' || this.restUntilMs === null) return 0;
     return Math.max(0, this.restUntilMs - nowMs);
@@ -236,7 +254,7 @@ export class PairedClarityRuntime {
 
   /**
    * Finalize the dual run with an already-sanitized numeric aggregate.
-   * Unknown properties on a runtime object are ignored: only these three
+   * Unknown properties on a runtime object are ignored: only these four
    * numbers are copied into the persisted local result.
    */
   completeCognitiveOutcome(input: PairedClarityCognitiveAggregateInput): boolean {
@@ -246,8 +264,14 @@ export class PairedClarityRuntime {
       return true;
     }
 
+    if (input.attempts !== completedClarityResponseWindowCount(this.dual_.durationMs)) {
+      this.finishInvalid('cognitive_aggregate_invalid');
+      return true;
+    }
+
     const cognitive: PairedClarityCognitiveAggregate = {
       attempts: input.attempts,
+      responses: input.responses,
       correct: input.correct,
       errors: input.errors,
       accuracy: input.attempts > 0 ? input.correct / input.attempts : 0,
@@ -255,6 +279,10 @@ export class PairedClarityRuntime {
     const policy = this.protocol.validityPolicy;
     if (cognitive.attempts < policy.minCognitiveAttempts) {
       this.finishInvalid('cognitive_participation_below_floor', cognitive);
+      return true;
+    }
+    if (cognitive.responses < policy.minCognitiveResponses) {
+      this.finishInvalid('cognitive_response_engagement_below_floor', cognitive);
       return true;
     }
     if (cognitive.accuracy < policy.minCognitiveAccuracy) {
@@ -451,12 +479,29 @@ function assertValidityPolicy(policy: PairedClarityValidityPolicy, trialCapMs: n
     policy.ceilingExclusionMarginMs >= 0 &&
     policy.ceilingExclusionMarginMs < trialCapMs - policy.minSoloHoldMs;
   const attemptsValid =
-    Number.isInteger(policy.minCognitiveAttempts) && policy.minCognitiveAttempts > 0;
+    Number.isInteger(policy.minCognitiveAttempts) &&
+    policy.minCognitiveAttempts >= CLARITY_RESPONSE_TIMING.minimumPresentedCount &&
+    policy.minCognitiveAttempts <= CLARITY_RESPONSE_TIMING.promptCount;
+  const responsesValid =
+    Number.isInteger(policy.minCognitiveResponses) &&
+    policy.minCognitiveResponses > 0 &&
+    policy.minCognitiveResponses <= policy.minCognitiveAttempts;
   const accuracyValid =
     Number.isFinite(policy.minCognitiveAccuracy) &&
-    policy.minCognitiveAccuracy >= 0 &&
+    policy.minCognitiveAccuracy > CLARITY_RESPONSE_CHANCE_ACCURACY &&
     policy.minCognitiveAccuracy <= 1;
-  if (!floorValid || !ceilingValid || !attemptsValid || !accuracyValid) {
+  const durationBoundValid =
+    attemptsValid &&
+    policy.minSoloHoldMs >=
+      clarityResponseDurationForAttemptCount(policy.minCognitiveAttempts);
+  if (
+    !floorValid ||
+    !ceilingValid ||
+    !attemptsValid ||
+    !responsesValid ||
+    !accuracyValid ||
+    !durationBoundValid
+  ) {
     throw new Error('invalid paired Clarity validity policy');
   }
 }
@@ -466,9 +511,12 @@ function validCognitiveAggregateInput(input: PairedClarityCognitiveAggregateInpu
     !!input &&
     typeof input === 'object' &&
     Number.isInteger(input.attempts) &&
+    Number.isInteger(input.responses) &&
     Number.isInteger(input.correct) &&
     Number.isInteger(input.errors) &&
     input.attempts >= 0 &&
+    input.responses >= 0 &&
+    input.responses <= input.attempts &&
     input.correct >= 0 &&
     input.errors >= 0 &&
     input.correct + input.errors === input.attempts

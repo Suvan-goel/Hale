@@ -59,6 +59,7 @@ export function createPairedClarityResultRecord(
       dual: copyTrial(result.dual, 'dual'),
       cognitive: {
         attempts: result.cognitive.attempts,
+        responses: result.cognitive.responses,
         correct: result.cognitive.correct,
         errors: result.cognitive.errors,
       },
@@ -88,6 +89,7 @@ export function createPairedClarityResultRecord(
       ? {
           cognitive: {
             attempts: result.cognitive.attempts,
+            responses: result.cognitive.responses,
             correct: result.cognitive.correct,
             errors: result.cognitive.errors,
           },
@@ -113,6 +115,7 @@ function copyPairProtocol(protocol: PairedClarityProtocolMetadata): PairedClarit
       minSoloHoldMs: protocol.validityPolicy.minSoloHoldMs,
       ceilingExclusionMarginMs: protocol.validityPolicy.ceilingExclusionMarginMs,
       minCognitiveAttempts: protocol.validityPolicy.minCognitiveAttempts,
+      minCognitiveResponses: protocol.validityPolicy.minCognitiveResponses,
       minCognitiveAccuracy: protocol.validityPolicy.minCognitiveAccuracy,
     },
   };

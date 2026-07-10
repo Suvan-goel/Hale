@@ -7,6 +7,8 @@ import {
   CLARITY_RESPONSE_SEQUENCE_ALGORITHM_ID,
   CLARITY_RESPONSE_TIMING,
   ClarityResponseScorer,
+  clarityResponseDurationForAttemptCount,
+  completedClarityResponseWindowCount,
   createClarityResponseSequence,
   type ClarityResponseAggregate,
   type ClarityVisualPrompt,
@@ -34,8 +36,10 @@ describe('ClarityResponseScorer', () => {
       alternate.map((prompt) => prompt.kind)
     );
     expect(first).toHaveLength(CLARITY_RESPONSE_TIMING.promptCount);
-    expect(first.filter((prompt) => prompt.kind === 'target')).toHaveLength(8);
-    expect(first.filter((prompt) => prompt.kind === 'non_target')).toHaveLength(8);
+    expect(first.filter((prompt) => prompt.kind === 'target')).toHaveLength(10);
+    expect(first.filter((prompt) => prompt.kind === 'non_target')).toHaveLength(9);
+    expect(alternate.filter((prompt) => prompt.kind === 'target')).toHaveLength(9);
+    expect(alternate.filter((prompt) => prompt.kind === 'non_target')).toHaveLength(10);
     expect(first[0]).toEqual({
       index: 0,
       kind: 'target',
@@ -44,6 +48,9 @@ describe('ClarityResponseScorer', () => {
       responseEndsAtMs: 3250,
     });
     expect(first[1].startsAtMs - first[0].startsAtMs).toBe(2400);
+    const finalPrompt = first[first.length - 1];
+    expect(finalPrompt.startsAtMs - 1000).toBeLessThan(45000);
+    expect(finalPrompt.responseEndsAtMs - 1000).toBeGreaterThanOrEqual(45000);
     expect(Object.isFrozen(first)).toBe(true);
     expect(Object.isFrozen(first[0])).toBe(true);
 
@@ -72,7 +79,7 @@ describe('ClarityResponseScorer', () => {
     const aggregate = scorer.complete(
       scorer.prompts[scorer.prompts.length - 1].responseEndsAtMs
     );
-    expect(aggregate).toEqual({ attempts: 16, correct: 16, errors: 0 });
+    expect(aggregate).toEqual({ attempts: 19, responses: 10, correct: 19, errors: 0 });
     expect(assertAcceptedByPairedRuntime(aggregate as ClarityResponseAggregate)).toBe(aggregate);
     expect((aggregate as ClarityResponseAggregate).attempts).toBe(
       (aggregate as ClarityResponseAggregate).correct +
@@ -97,7 +104,7 @@ describe('ClarityResponseScorer', () => {
 
     expect(
       scorer.complete(scorer.prompts[scorer.prompts.length - 1].responseEndsAtMs)
-    ).toEqual({ attempts: 16, correct: 14, errors: 2 });
+    ).toEqual({ attempts: 19, responses: 10, correct: 17, errors: 2 });
   });
 
   it('scores only fully completed windows when the balance hold ends early', () => {
@@ -111,6 +118,7 @@ describe('ClarityResponseScorer', () => {
 
     expect(scorer.complete(firstFive[4].responseEndsAtMs)).toEqual({
       attempts: 5,
+      responses: 2,
       correct: 5,
       errors: 0,
     });
@@ -150,6 +158,7 @@ describe('ClarityResponseScorer', () => {
     }
     expect(fourPromptScorer.complete(fourPromptScorer.prompts[3].responseEndsAtMs)).toEqual({
       attempts: 4,
+      responses: 2,
       correct: 4,
       errors: 0,
     });
@@ -169,7 +178,12 @@ describe('ClarityResponseScorer', () => {
     scorer.recordSpeechPresence({ timestampMs: target.startsAtMs + 200, speaking: false });
 
     const aggregate = scorer.complete(scorer.prompts[3].responseEndsAtMs);
-    expect(Object.keys(aggregate ?? {})).toEqual(['attempts', 'correct', 'errors']);
+    expect(Object.keys(aggregate ?? {})).toEqual([
+      'attempts',
+      'responses',
+      'correct',
+      'errors',
+    ]);
     expect(JSON.stringify({ protocol: scorer.protocol, aggregate })).not.toContain('private-canary');
 
     const source = readFileSync(
@@ -197,8 +211,25 @@ describe('ClarityResponseScorer', () => {
     respond(scorer, scorer.prompts[3]);
     expect(scorer.complete(scorer.prompts[3].responseEndsAtMs)).toEqual({
       attempts: 4,
+      responses: 1,
       correct: 3,
       errors: 1,
+    });
+  });
+
+  it('reports zero response engagement for silence and binds counts to hold duration', () => {
+    const scorer = new ClarityResponseScorer({ trialStartedAtMs: 0 });
+    const minimumDuration = clarityResponseDurationForAttemptCount(
+      CLARITY_RESPONSE_TIMING.minimumPresentedCount
+    );
+    expect(completedClarityResponseWindowCount(minimumDuration - 1)).toBe(3);
+    expect(completedClarityResponseWindowCount(minimumDuration)).toBe(4);
+
+    expect(scorer.complete(minimumDuration)).toEqual({
+      attempts: 4,
+      responses: 0,
+      correct: 2,
+      errors: 2,
     });
   });
 });

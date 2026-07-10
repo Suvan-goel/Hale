@@ -16,6 +16,7 @@
  */
 
 import type { LifeGoalCategory, ActivityLevel } from '../../adherence';
+import { BRAND } from '../../brand';
 import type { MenopauseStage } from '../../profile';
 import type { JointFlag, Weekday } from '../types';
 
@@ -279,7 +280,7 @@ const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
 const MESSAGES: Record<OnboardingMessageStepId, OnboardingMessageContent> = {
   welcome: {
     id: 'welcome',
-    eyebrow: 'Welcome',
+    eyebrow: `Welcome to ${BRAND.appName}`,
     title: 'Strength that fits your life',
     body: [
       'Voice-guided strength workouts for the menopause years — 20 to 25 minutes, at home, no equipment to start.',
@@ -288,7 +289,7 @@ const MESSAGES: Record<OnboardingMessageStepId, OnboardingMessageContent> = {
     continueLabel: 'Let’s get started',
     facts: [
       { value: '15 min', detail: 'First session' },
-      { value: '3 days', detail: 'A week' },
+      { value: '3 planned', detail: '2 is enough' },
       { value: '8 min', detail: 'Movement check' },
     ],
   },

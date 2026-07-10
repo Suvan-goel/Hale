@@ -1,3 +1,4 @@
+import { deterministicFingerprint } from '../../reference/movementProfileV2/fingerprint';
 import {
   defaultProgrammeProfile,
   defaultProgrammeState,
@@ -151,24 +152,53 @@ describe('defensive parsing', () => {
     }
   );
 
+  it('preserves delayed official checkpoints beyond the 28-day minimum', () => {
+    const state = defaultProgrammeState();
+    const journey = journeyFixture(2);
+    const delayedAtIso = '2026-02-05T09:00:00.000Z';
+    const delayedPrescription = prescriptionFixture(2, delayedAtIso);
+    state.journey = {
+      ...journey,
+      currentPhaseStartedAtIso: delayedAtIso,
+      checkpoints: {
+        ...journey.checkpoints,
+        week4: checkpointFixture('week4', delayedAtIso, delayedPrescription),
+      },
+      phasePrescriptions: {
+        ...journey.phasePrescriptions,
+        2: delayedPrescription,
+      },
+      sessionCredits: journey.sessionCredits.map((credit) =>
+        credit.phase === 2
+          ? sessionCreditFixture(2, '2026-02-06T09:00:00.000Z')
+          : credit
+      ),
+    };
+
+    expect(deserializeProgrammeState(serializeProgrammeState(state))).toEqual(state);
+  });
+
   it('preserves a baseline-retake journey when checkpoint and prescription provenance agree', () => {
     const state = defaultProgrammeState();
     const journey = journeyFixture(1);
+    const retakePrescription = prescriptionFixture(
+      1,
+      journey.startedAtIso!,
+      'baseline_retake'
+    );
     state.journey = {
       ...journey,
       checkpoints: {
         ...journey.checkpoints,
-        baseline: {
-          ...journey.checkpoints.baseline!,
-          sourceCheckUpType: 'baseline_retake',
-        },
+        baseline: checkpointFixture(
+          'baseline',
+          journey.startedAtIso!,
+          retakePrescription
+        ),
       },
       phasePrescriptions: {
         ...journey.phasePrescriptions,
-        1: {
-          ...journey.phasePrescriptions[1]!,
-          sourceCheckUpType: 'baseline_retake',
-        },
+        1: retakePrescription,
       },
     };
     expect(deserializeProgrammeState(serializeProgrammeState(state))).toEqual(state);
@@ -327,6 +357,40 @@ describe('defensive parsing', () => {
       },
     ],
     [
+      'checkpoint before its 28-day phase minimum',
+      (raw: any) => {
+        raw.journey = journeyFixture(2);
+        const tooEarlyAtIso = '2026-01-28T09:00:00.000Z';
+        const prescription = prescriptionFixture(2, tooEarlyAtIso);
+        raw.journey.checkpoints.week4 = checkpointFixture(
+          'week4',
+          tooEarlyAtIso,
+          prescription
+        );
+        raw.journey.phasePrescriptions['2'] = prescription;
+        raw.journey.currentPhaseStartedAtIso = tooEarlyAtIso;
+        raw.journey.sessionCredits = raw.journey.sessionCredits.filter(
+          (credit: ProgrammeJourneySessionCredit) => credit.phase === 1
+        );
+      },
+    ],
+    [
+      'checkpoint with a forged deterministic id',
+      (raw: any) => {
+        raw.journey.checkpoints.baseline.checkpointId =
+          'programme-journey-checkpoint-v1-forged';
+      },
+    ],
+    [
+      'prescription with a forged deterministic id',
+      (raw: any) => {
+        raw.journey.phasePrescriptions['1'].prescriptionId =
+          'programme-phase-prescription-v1-forged';
+        raw.journey.checkpoints.baseline.prescriptionId =
+          'programme-phase-prescription-v1-forged';
+      },
+    ],
+    [
       'completed-at timestamp not anchored to week 12',
       (raw: any) => {
         raw.journey = journeyFixture('completed');
@@ -344,6 +408,38 @@ describe('defensive parsing', () => {
       'session credit for a phase that has not started',
       (raw: any) => {
         raw.journey.sessionCredits[0].phase = 2;
+      },
+    ],
+    [
+      'session credit with a forged deterministic id',
+      (raw: any) => {
+        raw.journey.sessionCredits[0].creditId =
+          'programme-journey-session-credit-v1-forged';
+      },
+    ],
+    [
+      'session credit before its phase started',
+      (raw: any) => {
+        raw.journey.sessionCredits[0] = sessionCreditFixture(
+          1,
+          '2025-12-31T09:00:00.000Z'
+        );
+      },
+    ],
+    [
+      'session credit after its phase ended',
+      (raw: any) => {
+        raw.journey = journeyFixture(2);
+        raw.journey.sessionCredits[0] = sessionCreditFixture(
+          1,
+          '2026-01-30T09:00:00.000Z'
+        );
+      },
+    ],
+    [
+      'session credit with a local date impossible for its instant',
+      (raw: any) => {
+        raw.journey.sessionCredits[0].localDateKey = '2026-02-01';
       },
     ],
   ])('resets the whole journey for relationally invalid topology: %s', (_label, corrupt) => {
@@ -381,32 +477,21 @@ function journeyFixture(stage: 1 | 2 | 3 | 'completed'): ProgrammeJourneyState {
     const completedAtIso = checkpointTimes[index];
     const prescription = prescriptionFixture(phase, completedAtIso);
     phasePrescriptions[String(phase)] = prescription;
-    checkpoints[kind] = {
-      checkpointId: `checkpoint-${kind}`,
-      kind,
-      completedAtIso,
-      sourceCheckUpId: prescription.sourceCheckUpId,
-      sourceCheckUpType: prescription.sourceCheckUpType,
-      sourceAssessmentId: prescription.sourceAssessmentId,
-      sourceAssessmentFingerprint: prescription.sourceAssessmentFingerprint,
-      physicalFocus: prescription.physicalFocus,
-      startedPhase: phase,
-      prescriptionId: prescription.prescriptionId,
-    };
-    sessionCredits.push({
-      creditId: `credit-${phase}`,
-      sessionId: `session-${phase}`,
-      completedAtIso: `${completedAtIso.slice(0, 8)}${String(Number(completedAtIso.slice(8, 10)) + 1).padStart(2, '0')}T09:00:00.000Z`,
-      localDateKey: `${completedAtIso.slice(0, 8)}${String(Number(completedAtIso.slice(8, 10)) + 1).padStart(2, '0')}`,
-      phase,
-      phaseWeek: 1,
-      templateId: 'A',
-    });
+    checkpoints[kind] = checkpointFixture(kind, completedAtIso, prescription);
+    sessionCredits.push(
+      sessionCreditFixture(
+        phase,
+        `${completedAtIso.slice(0, 8)}${String(Number(completedAtIso.slice(8, 10)) + 1).padStart(2, '0')}T09:00:00.000Z`
+      )
+    );
   }
 
   if (stage === 'completed') {
     checkpoints.week12 = {
-      checkpointId: 'checkpoint-week12',
+      checkpointId: deterministicFingerprint('programme-journey-checkpoint-v1', {
+        kind: 'week12',
+        sourceCheckUpId: 'checkup-week12',
+      }),
       kind: 'week12',
       completedAtIso: '2026-03-26T09:00:00.000Z',
       sourceCheckUpId: 'checkup-week12',
@@ -438,15 +523,16 @@ function journeyFixture(stage: 1 | 2 | 3 | 'completed'): ProgrammeJourneyState {
 
 function prescriptionFixture(
   phase: 1 | 2 | 3,
-  completedAtIso: string
+  completedAtIso: string,
+  sourceCheckUpTypeOverride?: 'baseline_retake'
 ): ProgrammePhasePrescription {
   const kind = (['baseline', 'week4', 'week8'] as const)[phase - 1];
-  const sourceCheckUpType = phase === 1 ? 'baseline' : 'official_retest';
-  const prescription: ProgrammePhasePrescription = {
+  const sourceCheckUpType =
+    sourceCheckUpTypeOverride ?? (phase === 1 ? 'baseline' : 'official_retest');
+  const fingerprintInput = {
     schemaVersion: 1,
     policyVersion: 1,
     policyFingerprint: PROGRAMME_PHASE_PRESCRIPTION_POLICY_FINGERPRINT,
-    prescriptionId: `prescription-phase-${phase}`,
     phase,
     physicalFocus: 'strength',
     dosePolicy: {
@@ -464,8 +550,54 @@ function prescriptionFixture(
     sourceCheckUpId: `checkup-${kind}`,
     sourceCheckUpType,
     createdAtIso: completedAtIso,
+  } as const;
+  return {
+    ...fingerprintInput,
+    prescriptionId: deterministicFingerprint(
+      'programme-phase-prescription-v1',
+      fingerprintInput
+    ),
   };
-  return prescription;
+}
+
+function checkpointFixture(
+  kind: 'baseline' | 'week4' | 'week8',
+  completedAtIso: string,
+  prescription: ProgrammePhasePrescription
+): ProgrammeJourneyCheckpoint {
+  return {
+    checkpointId: deterministicFingerprint('programme-journey-checkpoint-v1', {
+      kind,
+      sourceCheckUpId: prescription.sourceCheckUpId,
+    }),
+    kind,
+    completedAtIso,
+    sourceCheckUpId: prescription.sourceCheckUpId,
+    sourceCheckUpType: prescription.sourceCheckUpType,
+    sourceAssessmentId: prescription.sourceAssessmentId,
+    sourceAssessmentFingerprint: prescription.sourceAssessmentFingerprint,
+    physicalFocus: prescription.physicalFocus,
+    startedPhase: prescription.phase,
+    prescriptionId: prescription.prescriptionId,
+  };
+}
+
+function sessionCreditFixture(
+  phase: 1 | 2 | 3,
+  completedAtIso: string
+): ProgrammeJourneySessionCredit {
+  const sessionId = `session-${phase}`;
+  return {
+    creditId: deterministicFingerprint('programme-journey-session-credit-v1', {
+      sessionId,
+    }),
+    sessionId,
+    completedAtIso,
+    localDateKey: completedAtIso.slice(0, 10),
+    phase,
+    phaseWeek: 1,
+    templateId: 'A',
+  };
 }
 
 describe('policy fingerprint (reviewed-snapshot discipline, C4)', () => {

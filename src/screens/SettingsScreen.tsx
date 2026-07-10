@@ -71,8 +71,8 @@ const SECTION_COPY: Record<ProfileSection, { title: string; subtitle: string }> 
     subtitle: 'Review privacy and phone placement.',
   },
   plan: {
-    title: 'Workout days & effort',
-    subtitle: 'Choose your workout days and starting effort.',
+    title: 'Preferred rhythm & effort',
+    subtitle: 'Choose the days that usually suit you and your starting effort.',
   },
   voice: {
     title: 'Trainer voice',
@@ -279,13 +279,13 @@ function SettingsScreenContent({
         <>
           <DetailOverview
             title={planSummary}
-            body={`${BRAND.appName} uses these preferences for future workouts, then adjusts for safety and comfort.`}
-            meta="Used for future workouts"
+            body="These preferences describe the rhythm you would like. Workouts remain available whenever you are ready."
+            meta="Your preferred rhythm"
           />
 
           <PreferenceCard
-            title="Training days"
-            subtitle="Pick the days that fit your week."
+            title="Preferred workout days"
+            subtitle="Pick any days that usually fit your week."
             meta={trainingDayMeta(preferredDays)}
           >
             <DayPreferencePicker selectedDays={preferredDays} onToggleDay={toggleDay} />
@@ -317,13 +317,13 @@ function SettingsScreenContent({
         <>
           <DetailOverview
             title="Basic setup"
-            body={`${BRAND.appName} starts with a chair and nearby support, then adds optional items you turn on.`}
+            body={`${BRAND.appName} starts with a chair and nearby support. Save other items here as a reference for future programme options.`}
             meta={controlledBetaEquipmentPositioning.shortLabel}
           />
 
           <DetailCard
             title="Optional items"
-            body={`Turn on only items you have and feel safe using. ${BRAND.appName} will adapt when something is off.`}
+            body="Turn on only items you have and feel safe using. These settings do not automatically change your current programme yet."
           >
             <View style={styles.toggleStack}>
               <ToggleRow
@@ -957,7 +957,7 @@ function PersonalDetailsCard({
                 })}
               </View>
               <Text style={styles.personalFieldHint}>
-                Helps {BRAND.appName} shape guidance and content — never how your results are measured.
+                Saved as optional context in your profile. It does not change your results or workouts yet.
               </Text>
             </>
           ) : null}
@@ -1027,14 +1027,8 @@ function PrivacyStorageCard() {
         <PrivacyLedgerRow
           icon="shield"
           label="Microphone — session and safety words"
-          body="Listens for a few words during workouts. Processed on your phone as intents only — nothing you say is ever transcribed."
+          body="Listens for a few words during workouts and converts them on your phone into short commands. Nothing you say is saved or uploaded."
           value="Never saved"
-        />
-        <PrivacyLedgerRow
-          icon="shield"
-          label="Microphone — steadiness while thinking"
-          body={`During the optional check-up task, ${BRAND.appName} detects whether you are speaking while you balance. Your words and audio are never saved.`}
-          value="Activity only"
         />
       </View>
     </DetailCard>
@@ -1086,7 +1080,7 @@ function ClearDeviceDataCard({
       title={confirming ? 'Clear all data from this device?' : 'Data on this device'}
       body={
         confirming
-          ? 'This permanently removes your profile, check-ups, workout progress, and settings from this device. It cannot be undone. It does not sign you out or change an account.'
+          ? 'This permanently removes your profile, check-ups, workout progress, and settings from this device. It cannot be undone.'
           : `Your ${BRAND.appName} profile, check-ups, workout progress, and settings are stored on this device.`
       }
     >

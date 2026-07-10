@@ -14,7 +14,11 @@ const HERO_IMAGE = require('../../assets/images/pearl-home-hero-botanical.png');
 import { AppBackground } from '../components/AppBackground';
 import { HeaderLogo } from '../components/HeaderLogo';
 import { useScreenScrollClearance } from '../components/ui';
-import type { ProgrammeTodayViewModel } from '../programme';
+import type {
+  PhysicalTrainingFocus,
+  ProgrammeJourneyProgress,
+  ProgrammeTodayViewModel,
+} from '../programme';
 // The hero copy (title/subtitle/CTA) comes straight from the programme
 // adapter's primary action — src/programme/appLifecycle.ts is the single
 // source for that copy.
@@ -39,14 +43,21 @@ export interface TodayProgrammeMode {
   onStartCheckup?: () => void;
 }
 
+export interface TodayJourneySummary {
+  progress: ProgrammeJourneyProgress;
+  physicalFocus: PhysicalTrainingFocus | null;
+}
+
 export function TodayScreen({
   profile,
   programme,
+  journey,
   onPrimaryAction,
   onOpenSettings,
 }: {
   profile: UserProfile;
   programme: TodayProgrammeMode;
+  journey?: TodayJourneySummary | null;
   onPrimaryAction: () => void;
   onOpenSettings?: () => void;
 }) {
@@ -106,6 +117,23 @@ export function TodayScreen({
           onPress={onPrimaryAction}
         />
 
+        {journey?.progress.status === 'active' ? (
+          <JourneyContextCard journey={journey} />
+        ) : journey?.progress.status === 'completed' ? (
+          <View style={[styles.contextStrip, compact && styles.compactCardPadding]}>
+            <Text style={styles.contextEyebrow}>YOUR 12-WEEK JOURNEY</Text>
+            <Text style={styles.contextTitle}>All three phases complete</Text>
+            <Text style={styles.contextBody}>
+              Your baseline and three monthly check-ups are saved in Progress. Keep using your
+              final {journey.physicalFocus === 'strength'
+                ? 'Strength'
+                : journey.physicalFocus === 'balance'
+                  ? 'Balance'
+                  : 'balanced'} focus whenever you continue training.
+            </Text>
+          </View>
+        ) : null}
+
         {programme.today.checkupOffer && programme.onStartCheckup ? (
           <CheckupOfferCard
             compact={compact}
@@ -115,6 +143,30 @@ export function TodayScreen({
           />
         ) : null}
       </ScrollView>
+    </View>
+  );
+}
+
+function JourneyContextCard({ journey }: { journey: TodayJourneySummary }) {
+  const { progress, physicalFocus } = journey;
+  const week = progress.currentWeek ?? 1;
+  const sessions = progress.currentWeekSummary?.creditedSessions ?? 0;
+  const focusLabel =
+    physicalFocus === 'strength'
+      ? 'Strength focus'
+      : physicalFocus === 'balance'
+        ? 'Balance focus'
+        : 'Balanced focus';
+  return (
+    <View style={styles.contextStrip} accessible accessibilityLabel={`Phase ${progress.currentPhase} of 3. Week ${week} of 4. ${sessions} of 3 sessions this week. Two sessions is enough. ${focusLabel}.`}>
+      <Text style={styles.contextEyebrow}>YOUR 12-WEEK JOURNEY</Text>
+      <Text style={styles.contextTitle}>
+        Phase {progress.currentPhase} of 3 · Week {week} of 4
+      </Text>
+      <Text style={styles.contextBody}>
+        {sessions} of 3 sessions this week · 2 is enough
+      </Text>
+      <Text style={styles.contextFocus}>{focusLabel}</Text>
     </View>
   );
 }
@@ -292,9 +344,9 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     // Compact but comfortable target for the 50+ audience.
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.bgElevated,
@@ -324,6 +376,25 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 24,
     letterSpacing: 0,
+  },
+  contextEyebrow: {
+    color: todayHomeColors.secondaryText,
+    fontFamily: fonts.sansMedium,
+    fontSize: 11,
+    lineHeight: 14,
+    letterSpacing: 0.8,
+  },
+  contextBody: {
+    color: todayHomeColors.secondaryText,
+    fontFamily: fonts.sansRegular,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  contextFocus: {
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    lineHeight: 18,
   },
   checkupButton: {
     alignSelf: 'flex-start',

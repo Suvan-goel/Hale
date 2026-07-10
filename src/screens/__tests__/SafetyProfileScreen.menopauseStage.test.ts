@@ -21,8 +21,10 @@ describe('SafetyProfileScreen menopause-stage question (2026-07-05 repositioning
     expect(text).toContain("menopauseStage: draft.referenceSex === 'female' ? draft.menopauseStage : null");
   });
 
-  it('says the stage shapes guidance, never measurements', () => {
-    expect(text).toContain("This shapes {BRAND.appName}'s guidance — it never changes how your results are measured.");
+  it('says the stage is context and does not currently alter results or workouts', () => {
+    expect(text).toContain(
+      'Saved as profile context. It does not change your results or workouts yet.'
+    );
   });
 
   it('offers honest opt-outs and no medical language', () => {
@@ -44,6 +46,8 @@ describe('SafetyProfileScreen menopause-stage question (2026-07-05 repositioning
     expect(text).not.toMatch(/symptomPicture !== null\)/);
     expect(text).toContain("symptomPicture: draft.referenceSex === 'female' ? draft.symptomPicture : null");
     expect(text).toContain('Optional — pick any');
-    expect(text).toContain('never how your results are');
+    expect(text).toContain(
+      'Saved as optional profile context. It does not change your results or workouts yet.'
+    );
   });
 });

@@ -10,6 +10,9 @@ export const CLARITY_RESPONSE_PROTOCOL_ID = 'pearl_visual_go_no_go_v1' as const;
 export const CLARITY_RESPONSE_PROTOCOL_VERSION = 1 as const;
 export const CLARITY_RESPONSE_SEQUENCE_ALGORITHM_ID = 'fixed_balanced_forms_v1' as const;
 
+/** Binary go/no-go chance level; release policies must require more than this. */
+export const CLARITY_RESPONSE_CHANCE_ACCURACY = 0.5 as const;
+
 export const CLARITY_RESPONSE_SEQUENCE_SEED_IDS = [
   'pearl_vgng_form_a_v1',
   'pearl_vgng_form_b_v1',
@@ -27,7 +30,9 @@ export const CLARITY_RESPONSE_TIMING = Object.freeze({
   promptVisibleMs: 600,
   responseWindowMs: 1500,
   promptCadenceMs: 2400,
-  promptCount: 16,
+  // Nineteen prompts keep the response task active through a 45-second hold.
+  // The final window straddles the cap and is correctly excluded if incomplete.
+  promptCount: 19,
   minimumPresentedCount: 4,
 });
 
@@ -64,6 +69,8 @@ export interface ClaritySpeechPresenceEvent {
 /** Structurally accepted by PairedClarityRuntime.completeCognitiveOutcome(). */
 export interface ClarityResponseAggregate {
   readonly attempts: number;
+  /** Count of completed prompt windows containing a speech-presence response. */
+  readonly responses: number;
   readonly correct: number;
   readonly errors: number;
 }
@@ -79,8 +86,9 @@ type PromptResponse = 0 | 1;
 type PromptScore = 'correct_hit' | 'correct_inhibition' | 'error' | 'miss';
 
 /*
- * Frozen, balanced forms: eight targets and eight non-targets in each. The
- * identity, rather than the array itself, is the persisted protocol field.
+ * Frozen, complementary near-balanced forms. Across the pair there are equal
+ * target and non-target counts; each individual 19-prompt form differs by one.
+ * The identity, rather than the array itself, is the persisted protocol field.
  */
 const FIXED_SEQUENCE_FORMS: Readonly<
   Record<ClarityResponseSequenceSeedId, readonly ClarityVisualPromptKind[]>
@@ -102,6 +110,9 @@ const FIXED_SEQUENCE_FORMS: Readonly<
     'non_target',
     'target',
     'non_target',
+    'target',
+    'non_target',
+    'target',
   ]),
   pearl_vgng_form_b_v1: Object.freeze<ClarityVisualPromptKind[]>([
     'non_target',
@@ -120,8 +131,42 @@ const FIXED_SEQUENCE_FORMS: Readonly<
     'target',
     'non_target',
     'target',
+    'non_target',
+    'target',
+    'non_target',
   ]),
 });
+
+/** Full response windows completed by a hold of `durationMs`. */
+export function completedClarityResponseWindowCount(durationMs: number): number {
+  if (!Number.isFinite(durationMs) || durationMs < 0) return 0;
+  const firstWindowEndsAtMs =
+    CLARITY_RESPONSE_TIMING.leadInMs + CLARITY_RESPONSE_TIMING.responseWindowMs;
+  if (durationMs < firstWindowEndsAtMs) return 0;
+  return Math.min(
+    CLARITY_RESPONSE_TIMING.promptCount,
+    1 +
+      Math.floor(
+        (durationMs - firstWindowEndsAtMs) / CLARITY_RESPONSE_TIMING.promptCadenceMs
+      )
+  );
+}
+
+/** Minimum hold duration needed to yield exactly `attemptCount` full windows. */
+export function clarityResponseDurationForAttemptCount(attemptCount: number): number {
+  if (
+    !Number.isInteger(attemptCount) ||
+    attemptCount < 1 ||
+    attemptCount > CLARITY_RESPONSE_TIMING.promptCount
+  ) {
+    throw new Error('invalid Clarity response attempt count');
+  }
+  return (
+    CLARITY_RESPONSE_TIMING.leadInMs +
+    CLARITY_RESPONSE_TIMING.responseWindowMs +
+    (attemptCount - 1) * CLARITY_RESPONSE_TIMING.promptCadenceMs
+  );
+}
 
 /** Build the immutable schedule the visual layer renders during the hold. */
 export function createClarityResponseSequence(
@@ -248,6 +293,7 @@ export class ClarityResponseScorer {
     if (!Number.isFinite(trialEndedAtMs)) return null;
 
     let attempts = 0;
+    let responses = 0;
     let correct = 0;
     let errors = 0;
     for (let index = 0; index < this.prompts.length; index++) {
@@ -255,13 +301,14 @@ export class ClarityResponseScorer {
       if (prompt.responseEndsAtMs > trialEndedAtMs) break;
       attempts++;
       const responded = this.responses[index] === 1;
+      if (responded) responses++;
       const score = classifyPrompt(prompt.kind, responded);
       if (score === 'correct_hit' || score === 'correct_inhibition') correct++;
       else errors++;
     }
 
     if (attempts < this.protocol.minimumPresentedCount) return null;
-    this.aggregate_ = Object.freeze({ attempts, correct, errors });
+    this.aggregate_ = Object.freeze({ attempts, responses, correct, errors });
     return this.aggregate_;
   }
 }

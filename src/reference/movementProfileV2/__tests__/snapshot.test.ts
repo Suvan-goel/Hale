@@ -1,5 +1,10 @@
 import { createCheckUpProtocolPolicy, MOVEMENT_PROFILE_V2_PROTOCOL_POLICY_ID } from '../../../checkup/protocolPolicy';
 import {
+  MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID,
+  MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1,
+  PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT,
+} from '../../../checkup/measurementProtocolRegistry';
+import {
   createActiveShoulderReachV2Setup,
   createChairRiseV2Setup,
   createOneLegBalanceV2Setup,
@@ -93,6 +98,37 @@ describe('Movement Profile V2 snapshots', () => {
     });
   });
 
+  it('allows a missing shoulder only for the exact frozen Pearl monthly battery', () => {
+    const withoutShoulder = (measurementProtocol?: CheckUp['measurementProtocol']): CheckUp => ({
+      ...v2CheckUp(),
+      ...(measurementProtocol ? { measurementProtocol } : {}),
+      items: v2CheckUp().items.filter((item) => item.movementId !== ACTIVE_SHOULDER_REACH_V2_ID),
+    });
+    const monthlyProtocol = {
+      protocolId: MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID,
+      protocolVersion: MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1,
+      protocolVariant: PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT,
+    } as const;
+
+    expect(getMovementProfileV2SnapshotEligibility(withoutShoulder(monthlyProtocol), 'baseline')).toMatchObject({
+      eligible: true,
+      rawCompleteness: { missingDomains: ['shoulder'] },
+    });
+
+    for (const nearMiss of [
+      undefined,
+      { ...monthlyProtocol, protocolId: 'some_other_battery' },
+      { ...monthlyProtocol, protocolVersion: 2 },
+      { ...monthlyProtocol, protocolVariant: 'some_other_variant' },
+    ]) {
+      expect(getMovementProfileV2SnapshotEligibility(withoutShoulder(nearMiss), 'baseline')).toMatchObject({
+        eligible: false,
+        reason: 'v2_snapshot_raw_incomplete',
+        missingDomains: ['shoulder'],
+      });
+    }
+  });
+
   it('binds snapshots to the exact source check-up and rejects mutated raw records', () => {
     const checkUp = v2CheckUp();
     const snapshot = mustCreateSnapshot(checkUp);
@@ -109,6 +145,30 @@ describe('Movement Profile V2 snapshots', () => {
       validMovementProfileV2SnapshotForCheckUp({
         snapshot,
         checkUp: mutated,
+        checkupType: 'baseline',
+      })
+    ).toBeNull();
+  });
+
+  it('binds the source fingerprint to the normalized top-level measurement protocol', () => {
+    const measurementProtocol = {
+      protocolId: MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_ID,
+      protocolVersion: MOVEMENT_PROFILE_V2_BATTERY_PROTOCOL_VERSION_V1,
+      protocolVariant: PEARL_MONTHLY_STRENGTH_BALANCE_PROTOCOL_VARIANT,
+    } as const;
+    const checkUp = { ...v2CheckUp(), measurementProtocol };
+    const snapshot = mustCreateSnapshot(checkUp);
+
+    expect(
+      validMovementProfileV2SnapshotForCheckUp({ snapshot, checkUp, checkupType: 'baseline' })
+    ).not.toBeNull();
+    expect(
+      validMovementProfileV2SnapshotForCheckUp({
+        snapshot,
+        checkUp: {
+          ...checkUp,
+          measurementProtocol: { ...measurementProtocol, protocolVariant: 'changed_variant' },
+        },
         checkupType: 'baseline',
       })
     ).toBeNull();

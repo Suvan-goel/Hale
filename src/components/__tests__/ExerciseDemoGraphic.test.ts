@@ -24,6 +24,12 @@ describe('ExerciseDemoGraphic guidance', () => {
     ['programme.prep', 'prep_finisher'],
     ['finisher.power_march', 'prep_finisher'],
     ['finisher.explosive_sit_to_stands', 'prep_finisher'],
+    ['prog-squat-supported', 'chair_squat'],
+    ['prog-hinge-wall', 'hinge_bridge'],
+    ['prog-push-wall', 'push'],
+    ['prog-pull-band-row', 'pull'],
+    ['prog-core-suitcase-carry', 'core_carry'],
+    ['prog-finisher-explosive-sit-to-stands', 'prep_finisher'],
     ['unknown.future-movement', 'prep_finisher'],
   ])('maps %s to the stable %s demonstration family', (exerciseId, expected) => {
     expect(exerciseDemoFamily(exerciseId)).toBe(expected);

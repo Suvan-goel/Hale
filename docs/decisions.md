@@ -5543,3 +5543,38 @@ Implementation is incremental and test-gated. Dual-task camera/microphone
 coexistence, speech/cognitive-task validity, real-human measurement noise,
 and professional protocol review remain release gates rather than claims of
 the implementation.
+
+## 2026-07-09 — Twelve-week contract implementation boundaries
+
+- The baseline may be deferred for exactly one generic starter session. New
+  onboarding no longer offers an indefinite skip; legacy skipped and
+  interrupted-now states follow the same one-starter rule. Health-data
+  consent and the B1 Gentle Start gate remain authoritative exemptions.
+- One access policy now guards every official check-up route. An active phase
+  can only retest when its 28-day checkpoint is due; Progress cannot bypass
+  consent, B1 safety, cadence, or the completed week-12 state. Delayed retests
+  start a full new phase when accepted, while each real late calendar week
+  still receives its own three-session allowance.
+- The repeated physical battery is explicitly persisted as
+  `pearl_monthly_strength_balance_v1`. Longitudinal movement deltas never
+  bridge that known protocol to an unknown or different protocol.
+- A legacy full-battery assessment whose frozen focus was Mobility migrates
+  to a neutral Balanced physical prescription. Mobility is preserved in the
+  historical artifact but cannot choose a Strength-versus-Balance emphasis or
+  strand an established user outside the new journey.
+- Check-up movement data is staged as a recoverable draft. A record enters
+  official history only after materialization succeeds; failed materializing
+  attempts are retained locally as non-official attempts and lead back to a
+  retake. Observational Clarity trends are scoped to check-ups accepted as
+  journey checkpoints.
+- The matched solo/rest/dual Clarity runtime, privacy-preserving visual
+  response scorer, and versioned persistence record are implemented and
+  headless-tested. They are deliberately not mounted or promised in the live
+  check-up until the real-device camera + microphone coexistence and target-
+  user validity gates pass. The live check-up currently offers the optional
+  Everyday Clarity self-report only; legacy VAD-only dual-task records are
+  quarantined from the new trend.
+- Completing week 12 closes the initial measurement journey and prevents a
+  fifth unscheduled checkpoint. If the user continues training, Pearl retains
+  the frozen Phase 3 prescription as maintenance rather than silently
+  reverting to a generic workout or inventing an unapproved next cycle.

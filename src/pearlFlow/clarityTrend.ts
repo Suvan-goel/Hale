@@ -13,7 +13,10 @@
  */
 
 import { clarityReadingValue } from '../checkup/selfReport';
-import { pairedClarityReadingValue } from '../checkup/clarityInstruments';
+import {
+  pairedClarityReadingValue,
+  type PairedClarityResultRecord,
+} from '../checkup/clarityInstruments';
 import {
   relativeToBand,
   rollingBaseline,
@@ -111,16 +114,18 @@ export function clarityReadingsFromHistory(
 export function dualTaskReadingsFromHistory(
   history: readonly StoredCheckUp[] | null | undefined
 ): DimensionReading[] {
-  return officialRecords(history)
+  const readings = officialRecords(history)
     .flatMap((record): DimensionReading[] => {
       // Legacy VAD-only dualTask records are intentionally quarantined: they
       // did not include the current matched-pair correctness gate.
-      const value = pairedClarityReadingValue(record.checkUp.clarityInstruments?.pairedTask);
+      const pairedTask = record.checkUp.clarityInstruments?.pairedTask;
+      if (!pairedTask) return [];
+      const value = pairedClarityReadingValue(pairedTask);
       if (value === null) return [];
       return [
         {
           dimensionId: 'clarity',
-          metricId: 'paired_clarity_motor_cost_v1',
+          metricId: pairedClarityMetricId(pairedTask),
           value,
           unit: 'score',
           atIso: record.checkUp.startedAt,
@@ -129,6 +134,51 @@ export function dualTaskReadingsFromHistory(
       ];
     })
     .sort((a, b) => Date.parse(a.atIso) - Date.parse(b.atIso));
+  const latestMetricId = readings[readings.length - 1]?.metricId;
+  return latestMetricId
+    ? readings.filter((reading) => reading.metricId === latestMetricId)
+    : [];
+}
+
+/**
+ * Internal series identity. Every frozen pair and response parameter is part
+ * of the key, including standing side and form, so protocol changes restart a
+ * personal baseline instead of silently mixing unlike measurements.
+ */
+export function pairedClarityMetricId(result: PairedClarityResultRecord): string {
+  const pair = result.protocol;
+  const response = result.responseProtocol;
+  const policy = pair.validityPolicy;
+  return `paired_clarity_motor_cost_v1:${JSON.stringify([
+    pair.protocolId,
+    pair.protocolVersion,
+    pair.movementId,
+    pair.stanceId,
+    pair.standingSide,
+    pair.order,
+    pair.trialCapMs,
+    pair.standardizedRestMs,
+    pair.liftConfirmMs,
+    pair.touchdownDebounceFrames,
+    pair.trackingLossConfirmFrames,
+    policy.minSoloHoldMs,
+    policy.ceilingExclusionMarginMs,
+    policy.minCognitiveAttempts,
+    policy.minCognitiveResponses,
+    policy.minCognitiveAccuracy,
+    response.protocolId,
+    response.protocolVersion,
+    response.sequenceAlgorithmId,
+    response.sequenceSeedId,
+    response.responseSignal,
+    response.responseRule,
+    response.leadInMs,
+    response.promptVisibleMs,
+    response.responseWindowMs,
+    response.promptCadenceMs,
+    response.promptCount,
+    response.minimumPresentedCount,
+  ])}`;
 }
 
 /**
@@ -185,7 +235,15 @@ export function fluencyRelativeReadingsFromHistory(
 
 function seriesTrend(
   readings: readonly DimensionReading[],
-  copy: { buildingNoun: string; clearer: string; usual: string; clouded: string; support: string }
+  copy: {
+    buildingNoun: string;
+    clearer: string;
+    usual: string;
+    clouded: string;
+    support: string;
+    /** Small changes inside this margin remain "usual", even with a flat IQR. */
+    minimumMeaningfulDelta: number;
+  }
 ): ClaritySeriesTrend {
   if (readings.length === 0) return { status: 'no_data' };
   // Her usual range is built from everything BEFORE the latest reading, so
@@ -204,7 +262,11 @@ function seriesTrend(
     };
   }
   const latest = readings[readings.length - 1];
-  const latestRelation = relativeToBand(latest.value, band);
+  const latestRelation = relativeToBandWithNoiseFloor(
+    latest.value,
+    band,
+    copy.minimumMeaningfulDelta
+  );
   const relationLabel =
     latestRelation === 'above' ? copy.clearer : latestRelation === 'below' ? copy.clouded : copy.usual;
   return {
@@ -226,6 +288,8 @@ export function buildClarityTrendViewModel(
   options?: {
     /** Legacy/development inspection only. Fluency is not an MVP surface. */
     includeFluency?: boolean;
+    /** Release-gated until the real-device paired-task validity review passes. */
+    includePairedTask?: boolean;
     /**
      * Production authority: only check-ups accepted as 12-week journey
      * checkpoints may contribute. Omit only for legacy/dev inspection.
@@ -244,6 +308,9 @@ export function buildClarityTrendViewModel(
     usual: 'In your usual range',
     clouded: 'More clouded than your usual range',
     support: CLARITY_DRIVERS_SUPPORT,
+    // One point on one of five response items moves the mean by 0.2; do not
+    // turn that smallest possible change into a directional claim.
+    minimumMeaningfulDelta: 0.2,
   });
   const dualTask = seriesTrend(dualTaskReadingsFromHistory(scopedHistory), {
     buildingNoun: 'level-2 hold',
@@ -251,13 +318,16 @@ export function buildClarityTrendViewModel(
     usual: 'Your usual steadiness under load',
     clouded: 'Less steady under load than usual',
     support: DUAL_TASK_DRIVERS_SUPPORT,
+    // Objective paired-task series remains gated; this conservative margin
+    // also prevents tiny setup/timing variation from becoming a trend claim.
+    minimumMeaningfulDelta: 5,
   });
 
   const series: ClaritySeries[] = [];
   if (subjective.status !== 'no_data') {
     series.push({ id: 'subjective', label: 'Everyday Clarity', trend: subjective });
   }
-  if (dualTask.status !== 'no_data') {
+  if (options?.includePairedTask === true && dualTask.status !== 'no_data') {
     series.push({ id: 'dual_task', label: 'Steadiness while thinking', trend: dualTask });
   }
   if (options?.includeFluency === true) {
@@ -268,6 +338,7 @@ export function buildClarityTrendViewModel(
       clouded: 'Fewer words than your usual',
       support:
         'Word-finding can shift with sleep, symptom load, and stress. This measure is noisy, so only a months-long personal pattern is useful.',
+      minimumMeaningfulDelta: 5,
     });
     if (fluency.status !== 'no_data') {
       series.push({ id: 'fluency', label: 'Word-finding', trend: fluency });
@@ -284,6 +355,28 @@ export function buildClarityTrendViewModel(
   };
 }
 
+function relativeToBandWithNoiseFloor(
+  value: number,
+  band: Parameters<typeof relativeToBand>[1],
+  minimumMeaningfulDelta: number
+): BandRelation {
+  const relation = relativeToBand(value, band);
+  const epsilon = 1e-9;
+  if (
+    relation === 'below' &&
+    band.low - value <= minimumMeaningfulDelta + epsilon
+  ) {
+    return 'within';
+  }
+  if (
+    relation === 'above' &&
+    value - band.high <= minimumMeaningfulDelta + epsilon
+  ) {
+    return 'within';
+  }
+  return relation;
+}
+
 /**
  * §6.1: when a series dips AND that session's covariates show load, name her
  * own covariates — baseline-relative, mechanism-shaped, never diagnostic.
@@ -292,15 +385,23 @@ function covariateContext(
   history: readonly StoredCheckUp[] | null | undefined,
   series: readonly ClaritySeries[]
 ): { covariateContext?: string } {
-  const anyBelow = series.some(
-    (entry) => entry.trend.status === 'ready' && entry.trend.latestRelation === 'below'
-  );
-  if (!anyBelow) return {};
-  const latest = officialRecords(history)
-    .slice()
-    .sort((a, b) => Date.parse(a.checkUp.startedAt) - Date.parse(b.checkUp.startedAt))
+  // Series can have different endpoints (for example, a skipped subjective
+  // check-in after the last comparable subjective reading). Bind context to
+  // the actual latest below-series entry, never merely to the newest official
+  // record in history.
+  const belowReadingAt = series
+    .flatMap((entry) => {
+      if (entry.trend.status !== 'ready' || entry.trend.latestRelation !== 'below') return [];
+      const latestEntry = entry.trend.entries[entry.trend.entries.length - 1];
+      return latestEntry ? [latestEntry.atIso] : [];
+    })
+    .sort((a, b) => Date.parse(a) - Date.parse(b))
     .pop();
-  const covariates = latest?.checkUp.selfReport?.covariates;
+  if (!belowReadingAt) return {};
+  const matchingRecord = officialRecords(history).find(
+    (record) => record.checkUp.startedAt === belowReadingAt
+  );
+  const covariates = matchingRecord?.checkUp.selfReport?.covariates;
   const roughSleep = covariates?.sleepQuality === 1;
   const heavySymptoms = covariates?.symptomLoad === 3;
   if (roughSleep && heavySymptoms) {

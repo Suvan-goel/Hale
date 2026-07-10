@@ -2,6 +2,7 @@ import * as React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, G, Line, Path, Rect } from 'react-native-svg';
 
+import { BRAND } from '../brand';
 import { colors, radius, spacing, type } from '../theme';
 
 export type ExerciseDemoFamily =
@@ -24,13 +25,13 @@ const DEMO_SPECS: Readonly<Record<ExerciseDemoFamily, ExerciseDemoSpec>> = {
     cues: [
       'Use the chair, step, or support named in your session.',
       'Stand tall, then bend through your hips and knees.',
-      'Follow Pearl’s pace and use a comfortable range.',
+      `Follow ${BRAND.appName}’s pace and use a comfortable range.`,
     ],
   },
   hinge_bridge: {
     family: 'hinge_bridge',
     cues: [
-      'Take the standing or floor position Pearl describes.',
+      `Take the standing or floor position ${BRAND.appName} describes.`,
       'Keep the movement centred at your hips.',
       'Move smoothly and keep breathing throughout.',
     ],
@@ -38,9 +39,9 @@ const DEMO_SPECS: Readonly<Record<ExerciseDemoFamily, ExerciseDemoSpec>> = {
   push: {
     family: 'push',
     cues: [
-      'Place your hands on the steady surface Pearl names.',
+      `Place your hands on the steady surface ${BRAND.appName} names.`,
       'Make one comfortable line through your body.',
-      'Press away, then return at Pearl’s pace.',
+      `Press away, then return at ${BRAND.appName}’s pace.`,
     ],
   },
   pull: {
@@ -54,7 +55,7 @@ const DEMO_SPECS: Readonly<Record<ExerciseDemoFamily, ExerciseDemoSpec>> = {
   core_carry: {
     family: 'core_carry',
     cues: [
-      'Take the floor or standing position Pearl describes.',
+      `Take the floor or standing position ${BRAND.appName} describes.`,
       'Make your middle gently firm before you move.',
       'Keep breathing as you reach, hold, or carry.',
     ],
@@ -63,7 +64,7 @@ const DEMO_SPECS: Readonly<Record<ExerciseDemoFamily, ExerciseDemoSpec>> = {
     family: 'balance',
     cues: [
       'Keep a wall or sturdy chair within fingertip reach.',
-      'Set your feet in the position Pearl describes.',
+      `Set your feet in the position ${BRAND.appName} describes.`,
       'Look ahead and breathe while you hold or reach.',
     ],
   },
@@ -71,7 +72,7 @@ const DEMO_SPECS: Readonly<Record<ExerciseDemoFamily, ExerciseDemoSpec>> = {
     family: 'prep_finisher',
     cues: [
       'Stand near support if you would like it.',
-      'Follow Pearl’s pace for this short movement.',
+      `Follow ${BRAND.appName}’s pace for this short movement.`,
       'Use a comfortable range and keep breathing.',
     ],
   },
@@ -83,9 +84,10 @@ const DEMO_SPECS: Readonly<Record<ExerciseDemoFamily, ExerciseDemoSpec>> = {
  * swap the guidance shown to a user.
  */
 export function exerciseDemoFamily(exerciseId: string): ExerciseDemoFamily {
-  const id = exerciseId.trim().toLowerCase().replace(/-/g, '_');
+  const normalized = exerciseId.trim().toLowerCase().replace(/-/g, '_');
+  const id = normalized.replace(/^(?:prog|programme)_/, '');
 
-  if (/^(?:programme[._]prep|prep|finisher)(?:[._]|$)/.test(id)) return 'prep_finisher';
+  if (/^(?:prep|finisher)(?:[._]|$)/.test(id)) return 'prep_finisher';
   if (/^balance(?:[._]|$)/.test(id)) return 'balance';
   if (
     /^(?:squat|sts)(?:[._]|$)/.test(id) ||
