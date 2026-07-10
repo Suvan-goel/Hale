@@ -9,6 +9,7 @@ import {
   recordOnboardingAnswer,
   SKIPPED,
   undoLastOnboardingStep,
+  visibleOnboardingScreens,
   visibleOnboardingSteps,
   type OnboardingAnswerValue,
   type ProgrammeOnboardingFlowState,
@@ -41,16 +42,44 @@ const HAPPY_PATH: OnboardingAnswerValue[] = [
   { step: 'a3_activity', value: 'moderately_active' },
   { step: 'consent_health', value: 'agree' },
   { step: 'b1_heart', value: 'no' },
-  { step: 'b3_joints', value: ['knee'] },
+  { step: 'b3_joints', value: [] },
   { step: 'b4_pelvic', value: 'never' },
   { step: 'b5_balance', value: 'no' },
   { step: 'c1_stairs', value: 'yes' },
   { step: 'c2_quiet', value: 'no' },
-  { step: 'd1_days', value: ['mon', 'wed', 'sat'] },
   { step: 'assessment_offer', value: 'now' },
 ];
 
 describe('step sequence', () => {
+  it('presents seven core screens, with an eighth only for the conditional heart advisory', () => {
+    const normal = runFlow(HAPPY_PATH);
+    expect(visibleOnboardingScreens(normal.answers)).toEqual([
+      'welcome',
+      'about_you',
+      'health_consent',
+      'heart_safety',
+      'movement_comfort',
+      'setup',
+      'finish',
+    ]);
+
+    const heartFlag = HAPPY_PATH.map((answer) =>
+      answer.step === 'b1_heart'
+        ? ({ step: 'b1_heart', value: 'yes' } as const)
+        : answer
+    );
+    expect(visibleOnboardingScreens(runFlow(heartFlag).answers)).toEqual([
+      'welcome',
+      'about_you',
+      'health_consent',
+      'heart_safety',
+      'heart_advisory',
+      'movement_comfort',
+      'setup',
+      'finish',
+    ]);
+  });
+
   it('walks the full consented flow in spec order and completes', () => {
     const state = runFlow(HAPPY_PATH);
     expect(currentOnboardingStep(state)).toBe('complete');
@@ -60,34 +89,30 @@ describe('step sequence', () => {
       'a2_menopause_journey',
       'a3_activity',
       'consent_health',
-      'b_intro',
       'b1_heart',
       'b3_joints',
       'b4_pelvic',
       'b5_balance',
-      'b_exit',
       'c1_stairs',
       'c2_quiet',
-      'd1_days',
       'assessment_offer',
-      'placement_reveal',
-      'expectation_cta',
     ]);
   });
 
-  it('consent decline removes Stage B AND the assessment offer (§4 decline row)', () => {
+  it('consent decline removes health questions but keeps one final start screen', () => {
     const answers = HAPPY_PATH.map((a) =>
       a.step === 'consent_health' ? ({ step: 'consent_health', value: 'decline' } as const) : a
     );
     const state = runFlow(answers);
     const steps = visibleOnboardingSteps(state.answers);
-    for (const gone of ['b_intro', 'b1_heart', 'b3_joints', 'b4_pelvic', 'b5_balance', 'b_exit', 'assessment_offer']) {
+    for (const gone of ['b1_heart', 'b3_joints', 'b4_pelvic', 'b5_balance']) {
       expect(steps).not.toContain(gone);
     }
+    expect(steps).toContain('assessment_offer');
     expect(currentOnboardingStep(state)).toBe('complete');
   });
 
-  it('B1 = yes inserts the required advisory acknowledgement and bypasses the assessment offer', () => {
+  it('B1 = yes inserts the required advisory and leaves the final screen in Gentle Start mode', () => {
     const answers = HAPPY_PATH.map((a) =>
       a.step === 'b1_heart' ? ({ step: 'b1_heart', value: 'yes' } as const) : a
     );
@@ -97,18 +122,18 @@ describe('step sequence', () => {
     const finished = runFlow(answers);
     const steps = visibleOnboardingSteps(finished.answers);
     expect(steps).toContain('b1_advisory');
-    expect(steps).not.toContain('assessment_offer');
+    expect(steps).toContain('assessment_offer');
     expect(currentOnboardingStep(finished)).toBe('complete');
   });
 
-  it('B1 skipped also bypasses the assessment (conservative) but shows no GP advisory', () => {
+  it('B1 skipped activates Gentle Start but shows no GP advisory', () => {
     const answers = HAPPY_PATH.map((a) =>
       a.step === 'b1_heart' ? ({ step: 'b1_heart', value: SKIPPED } as const) : a
     );
     const state = runFlow(answers);
     const steps = visibleOnboardingSteps(state.answers);
     expect(steps).not.toContain('b1_advisory');
-    expect(steps).not.toContain('assessment_offer');
+    expect(steps).toContain('assessment_offer');
     expect(gentleStartFromAnswers(state.answers)).toBe(true);
   });
 
@@ -124,7 +149,7 @@ describe('step sequence', () => {
       { step: 'b5_balance', value: SKIPPED },
       { step: 'c1_stairs', value: SKIPPED },
       { step: 'c2_quiet', value: SKIPPED },
-      { step: 'd1_days', value: ['mon', 'tue', 'thu'] },
+      { step: 'assessment_offer', value: 'skip' },
     ];
     expect(currentOnboardingStep(runFlow(allSkips))).toBe('complete');
   });
@@ -138,12 +163,12 @@ describe('completion → programme state (gate table §4 + conservative skips)',
     expect(profile.consentHealthData).toBe(true);
     expect(profile.gentleStartActive).toBe(false);
     expect(profile.pelvicRouting).toBe('none'); // explicit "never"
-    expect(profile.jointFlags).toEqual(['knee']);
+    expect(profile.jointFlags).toEqual([]);
     expect(profile.balanceSupportDefault).toBe(false);
     expect(profile.quietMode).toBe(false);
     expect(profile.hasStairs).toBe(true);
     expect(profile.hasBand).toBeNull(); // asked in-context at Pull L4, never here
-    expect(profile.chosenDays).toEqual(['mon', 'wed', 'sat']);
+    expect(profile.chosenDays).toEqual([]);
     expect(profile.firstSessionStarted).toBe(false);
     // moderately_active (prior 2): squat 2, push 2, hinge 1, pull 2, core 2.
     expect(profile.placement).toEqual({ squat: 2, push: 2, hinge: 1, pull: 2, core: 2 });
@@ -154,6 +179,32 @@ describe('completion → programme state (gate table §4 + conservative skips)',
     expect(completion.assessmentIntent).toBe('start_now');
     expect(completion.menopauseStage).toBe('perimenopausal');
     expect(completion.lifeGoalCategory).toBe('stairs_walks');
+  });
+
+  it('every retained comfort area makes the related starting ladder gentler', () => {
+    const answers = HAPPY_PATH.map((answer) =>
+      answer.step === 'b3_joints'
+        ? ({
+            step: 'b3_joints',
+            value: ['knee', 'hip', 'shoulder', 'wrist', 'low_back'],
+          } as const)
+        : answer
+    );
+    const completion = completeOnboarding(runFlow(answers));
+    expect(completion.programmeState.profile.jointFlags).toEqual([
+      'knee',
+      'hip',
+      'shoulder',
+      'wrist',
+      'low_back',
+    ]);
+    expect(completion.programmeState.profile.placement).toEqual({
+      squat: 1,
+      push: 1,
+      hinge: 1,
+      pull: 1,
+      core: 1,
+    });
   });
 
   it('B1 = yes → Gentle Start preset: all ladders L1, bypassed_b1, no assessment intent', () => {
@@ -179,7 +230,7 @@ describe('completion → programme state (gate table §4 + conservative skips)',
       { step: 'consent_health', value: 'decline' },
       { step: 'c1_stairs', value: 'yes' },
       { step: 'c2_quiet', value: 'no' },
-      { step: 'd1_days', value: ['tue', 'thu', 'sun'] },
+      { step: 'assessment_offer', value: 'skip' },
     ];
     const completion = completeOnboarding(runFlow(answers));
     const { profile } = completion.programmeState;
@@ -286,15 +337,18 @@ describe('the activation event', () => {
   });
 });
 
-describe('step-wise back (undoLastOnboardingStep)', () => {
-  it('clears the most recent answer so the flow returns to that question', () => {
+describe('screen-wise back (undoLastOnboardingStep)', () => {
+  it('returns from consent to the grouped About You screen in one tap', () => {
     const atConsent = runFlow(HAPPY_PATH, 'consent_health');
     expect(currentOnboardingStep(atConsent)).toBe('consent_health');
     const undone = undoLastOnboardingStep(atConsent);
-    expect(currentOnboardingStep(undone)).toBe('a3_activity');
+    expect(currentOnboardingStep(undone)).toBe('a1_life_goal');
+    expect(undone.answers.lifeGoal).toBeNull();
+    expect(undone.answers.menopauseStage).toBeNull();
     expect(undone.answers.activityLevel).toBeNull();
-    // Re-answering moves forward again — nothing else was lost.
-    const forward = recordOnboardingAnswer(undone, { step: 'a3_activity', value: 'very_active' });
+    let forward = recordOnboardingAnswer(undone, { step: 'a1_life_goal', value: 'stairs_walks' });
+    forward = recordOnboardingAnswer(forward, { step: 'a2_menopause_journey', value: 'perimenopausal' });
+    forward = recordOnboardingAnswer(forward, { step: 'a3_activity', value: 'very_active' });
     expect(currentOnboardingStep(forward)).toBe('consent_health');
     expect(forward.answers.lifeGoal).toBe('stairs_walks');
   });
@@ -315,38 +369,39 @@ describe('step-wise back (undoLastOnboardingStep)', () => {
     expect(visibleOnboardingSteps(two.answers)).not.toContain('b1_advisory');
   });
 
-  it('undoes a skip like any answer and is a no-op at the first step', () => {
+  it('returns from a partially answered About You screen to Welcome in one tap', () => {
     let state = initialOnboardingFlowState();
     state = acknowledgeOnboardingStep(state, 'welcome');
     state = recordOnboardingAnswer(state, { step: 'a1_life_goal', value: SKIPPED });
     expect(currentOnboardingStep(state)).toBe('a2_menopause_journey');
     const undone = undoLastOnboardingStep(state);
-    expect(currentOnboardingStep(undone)).toBe('a1_life_goal');
-    expect(undone.answers.lifeGoal).toBeNull();
-    // Back past a1 returns to welcome; back at welcome is a no-op.
-    const atWelcome = undoLastOnboardingStep(undone);
-    expect(currentOnboardingStep(atWelcome)).toBe('welcome');
-    expect(undoLastOnboardingStep(atWelcome)).toBe(atWelcome);
+    expect(currentOnboardingStep(undone)).toBe('welcome');
+    expect(undone.answers.lifeGoal).toBe(SKIPPED);
+    expect(undoLastOnboardingStep(undone)).toBe(undone);
   });
 
-  it('an empty multi-select answer ("none of these") undoes back to the question', () => {
-    const noneJoints: OnboardingAnswerValue[] = HAPPY_PATH.map((a) =>
-      a.step === 'b3_joints' ? { step: 'b3_joints', value: [] } : a
-    );
-    const atB4 = runFlow(noneJoints, 'b4_pelvic');
-    const undone = undoLastOnboardingStep(atB4);
+  it('returns from Setup to the grouped Movement Comfort screen in one tap', () => {
+    const atSetup = runFlow(HAPPY_PATH, 'c1_stairs');
+    const undone = undoLastOnboardingStep(atSetup);
     expect(currentOnboardingStep(undone)).toBe('b3_joints');
     expect(undone.answers.b3Joints).toBeNull();
+    expect(undone.answers.b4Pelvic).toBeNull();
+    expect(undone.answers.b5Balance).toBeNull();
   });
 });
 
 describe('consent integrity with back-navigation', () => {
   it('joint flags answered under consent are NEVER used after consent is retracted', () => {
     // Answer the whole consented flow, then back up and retract consent.
-    let state = runFlow(HAPPY_PATH, 'c1_stairs');
+    const withJointFlag = HAPPY_PATH.map((answer) =>
+      answer.step === 'b3_joints'
+        ? ({ step: 'b3_joints', value: ['knee'] } as const)
+        : answer
+    );
+    let state = runFlow(withJointFlag, 'c1_stairs');
     expect(state.answers.b3Joints).toEqual(['knee']);
-    // Walk back to consent (c-block start → b_exit ack → b5 → b4 → b3 → b1 → b_intro ack → consent).
-    for (let i = 0; i < 12 && currentOnboardingStep(state) !== 'consent_health'; i++) {
+    // Screen-wise back: Setup → Movement Comfort → Heart → Consent.
+    for (let i = 0; i < 4 && currentOnboardingStep(state) !== 'consent_health'; i++) {
       state = undoLastOnboardingStep(state);
     }
     expect(currentOnboardingStep(state)).toBe('consent_health');
@@ -357,7 +412,7 @@ describe('consent integrity with back-navigation', () => {
       const step = currentOnboardingStep(declined);
       if (step === 'c1_stairs') declined = recordOnboardingAnswer(declined, { step, value: 'yes' });
       else if (step === 'c2_quiet') declined = recordOnboardingAnswer(declined, { step, value: 'no' });
-      else if (step === 'd1_days') declined = recordOnboardingAnswer(declined, { step, value: ['mon'] });
+      else if (step === 'assessment_offer') declined = recordOnboardingAnswer(declined, { step, value: 'skip' });
       else declined = acknowledgeOnboardingStep(declined, step as OnboardingStepId);
     }
     expect(currentOnboardingStep(declined)).toBe('complete');

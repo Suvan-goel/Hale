@@ -98,7 +98,6 @@ export { ProgrammeStore } from './store';
 export {
   ONBOARDING_MESSAGE_STEPS,
   ONBOARDING_QUESTION_STEPS,
-  STAGE_B_QUESTION_COUNT,
   allOnboardingCopyStrings,
   isOnboardingQuestionStep,
   onboardingMessageContent,
@@ -122,14 +121,17 @@ export {
   gentleStartFromAnswers,
   initialOnboardingFlowState,
   markFirstSessionStarted,
+  onboardingScreenForStep,
   recordOnboardingAnswer,
   undoLastOnboardingStep,
+  visibleOnboardingScreens,
   visibleOnboardingSteps,
 } from './onboarding/flow';
 export type {
   OnboardingAnswerValue,
   OnboardingAnswers,
   OnboardingCompletion,
+  OnboardingScreenId,
   ProgrammeOnboardingFlowState,
 } from './onboarding/flow';
 export {

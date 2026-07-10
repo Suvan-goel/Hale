@@ -66,7 +66,6 @@ import {
   officialCheckUpAccess,
   markSurfaceShown,
   completeOnboarding,
-  currentOnboardingStep,
   defaultProgrammeState,
   effortFromRpe,
   generateProgrammeSession,
@@ -527,8 +526,11 @@ export function ProgrammeV2Root() {
   );
 
   const finishOnboarding = React.useCallback(
-    async (action: 'start_first_session' | 'schedule') => {
-      const completion = completeOnboarding(flowState);
+    async (
+      action: 'start_first_session' | 'schedule',
+      completedFlowState: typeof flowState = flowState
+    ) => {
+      const completion = completeOnboarding(completedFlowState);
       const route = onboardingCompletionRoute(completion, action);
       persist(completion.programmeState);
       // Hand off to the EXISTING profile surfaces (C6/C8).
@@ -796,26 +798,39 @@ export function ProgrammeV2Root() {
       <ProgrammeOnboardingScreen
         flowState={flowState}
         onSelectOption={(step, value) =>
-          setFlowState(recordOnboardingAnswer(flowState, { step, value } as OnboardingAnswerValue))
+          setFlowState((current) =>
+            recordOnboardingAnswer(current, { step, value } as OnboardingAnswerValue)
+          )
         }
         onSelectMany={(step, values) =>
-          setFlowState(
-            recordOnboardingAnswer(flowState, {
+          setFlowState((current) =>
+            recordOnboardingAnswer(current, {
               step,
               value: step === 'b3_joints' ? values.filter((v) => v !== 'none') : values,
             } as OnboardingAnswerValue)
           )
         }
         onSkipQuestion={(step: OnboardingQuestionStepId) =>
-          setFlowState(recordOnboardingAnswer(flowState, { step, value: SKIPPED } as OnboardingAnswerValue))
+          setFlowState((current) =>
+            recordOnboardingAnswer(current, {
+              step,
+              value: SKIPPED,
+            } as OnboardingAnswerValue)
+          )
         }
         onAcknowledge={(step) => {
           const next = acknowledgeOnboardingStep(flowState, step);
           setFlowState(next);
-          if (currentOnboardingStep(next) === 'complete') void finishOnboarding('schedule');
         }}
-        onComplete={(action) => void finishOnboarding(action)}
-        onBack={() => setFlowState(undoLastOnboardingStep(flowState))}
+        onComplete={({ assessmentChoice, action }) => {
+          const next = recordOnboardingAnswer(flowState, {
+            step: 'assessment_offer',
+            value: assessmentChoice,
+          });
+          setFlowState(next);
+          void finishOnboarding(action, next);
+        }}
+        onBack={() => setFlowState((current) => undoLastOnboardingStep(current))}
       />
     );
   }

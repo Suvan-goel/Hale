@@ -5578,3 +5578,26 @@ the implementation.
   fifth unscheduled checkpoint. If the user continues training, Pearl retains
   the frozen Phase 3 prescription as maintenance rather than silently
   reverting to a generic workout or inventing an unapproved next cycle.
+
+## 2026-07-10 — MVP onboarding reduced to seven core screens
+
+- Everyday Clarity remains part of the official check-up; the simplification
+  removes onboarding friction, not a measurement domain.
+- The normal onboarding route is now seven screens: Welcome, About You,
+  Health Consent, Heart Safety, Movement Comfort, Setup, and Start. A heart
+  advisory appears only after a disclosed heart concern. Related questions
+  share one screen instead of appearing as separate steps.
+- Goal, activity, optional menopause context, consent, heart safety, joint
+  comfort, pelvic-floor impact routing, balance support, safe-step access,
+  quiet-mode needs, and check-up timing stay because they affect safety,
+  starting level, session content, or meaningful personal context. Preferred
+  workout days are removed from onboarding and remain editable in Settings.
+- Joint comfort answers now have an immediate, truthful effect: each related
+  movement ladder starts at level 1, including after the initial check-up.
+  Successful sessions can still progress it normally. Step and quiet answers
+  continue to substitute unsafe or noisy finishers rather than blocking a
+  session.
+- The final screen combines check-up timing and the next action. Consented
+  users may check now or defer for one starter session; going Home records the
+  same one-session deferral. Gentle Start and consent-declined routes continue
+  without the camera check-up under their existing conservative policies.

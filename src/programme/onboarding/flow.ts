@@ -8,13 +8,16 @@
  *   capped L2, conservative finisher routing, no assessment offer bypass —
  *   but explicitly NOT Gentle Start: a privacy choice is never a health flag).
  * - B1 yes → advisory with required acknowledgement, Gentle Start preset,
- *   movement assessment BYPASSED (offer step never shown; re-offered once
- *   gp_confirmed). B1 skipped → conservative: same preset and bypass, no
+ *   movement assessment BYPASSED (the final screen explains that it stays
+ *   off; re-offered once gp_confirmed). B1 skipped → conservative: same preset and bypass, no
  *   GP advisory (nothing was disclosed); B1 is re-asked at the first check-up
  *   (§8 re-asks unanswered Stage B items) and answering No lifts the preset.
  * - Every skip routes to the CONSERVATIVE default (non-negotiable):
  *   B5 skip → support variants on; C1 skip → treated as no stairs;
  *   C2 skip → quiet mode on; A3 skip → activity prior 0.
+ * - Related answers share one visual screen: About You, Movement Comfort,
+ *   and Setup. Preferred days are no longer collected here because the app
+ *   does not schedule around them.
  * - Nothing in onboarding ever blocks access to the app.
  */
 
@@ -36,7 +39,6 @@ import {
   type ProgrammePattern,
   type ProgrammeProfile,
   type ProgrammeState,
-  type Weekday,
 } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -58,7 +60,6 @@ export interface OnboardingAnswers {
   b5Balance: 'yes' | 'no' | Skipped | null;
   c1Stairs: 'yes' | 'no' | Skipped | null;
   c2Quiet: 'yes' | 'no' | Skipped | null;
-  d1Days: readonly Weekday[] | null;
   assessmentChoice: 'now' | 'after_first_workout' | 'skip' | null;
 }
 
@@ -74,7 +75,6 @@ export function emptyOnboardingAnswers(): OnboardingAnswers {
     b5Balance: null,
     c1Stairs: null,
     c2Quiet: null,
-    d1Days: null,
     assessmentChoice: null,
   };
 }
@@ -101,21 +101,63 @@ export function gentleStartFromAnswers(answers: OnboardingAnswers): boolean {
 export function visibleOnboardingSteps(answers: OnboardingAnswers): OnboardingStepId[] {
   const steps: OnboardingStepId[] = ['welcome', 'a1_life_goal', 'a2_menopause_journey', 'a3_activity', 'consent_health'];
   if (answers.consent === 'agree' || answers.consent === null) {
-    // Until consent is answered we optimistically include Stage B so progress
-    // reads stably; a decline removes it (§4 decline row, normal tone).
-    steps.push('b_intro', 'b1_heart');
+    // Until consent is answered we optimistically include the safety screens;
+    // a decline removes them (§4 decline row, normal tone).
+    steps.push('b1_heart');
     if (answers.b1Heart === 'yes') steps.push('b1_advisory');
-    steps.push('b3_joints', 'b4_pelvic', 'b5_balance', 'b_exit');
+    steps.push('b3_joints', 'b4_pelvic', 'b5_balance');
   }
-  steps.push('c1_stairs', 'c2_quiet', 'd1_days');
-  // B1 = yes/skip bypasses the movement assessment entirely (max-effort
-  // testing contradicts the flag; re-offered once gp_confirmed), and the §4
-  // consent-decline row includes "no assessment".
-  if (!gentleStartFromAnswers(answers) && answers.consent !== 'decline') {
-    steps.push('assessment_offer');
-  }
-  steps.push('placement_reveal', 'expectation_cta');
+  // Everyone reaches one final start screen. That screen offers the check-up
+  // only when consent + B1 policy allow it; Gentle Start / consent-declined
+  // paths record a conservative skip before completing.
+  steps.push('c1_stairs', 'c2_quiet', 'assessment_offer');
   return steps;
+}
+
+export type OnboardingScreenId =
+  | 'welcome'
+  | 'about_you'
+  | 'health_consent'
+  | 'heart_safety'
+  | 'heart_advisory'
+  | 'movement_comfort'
+  | 'setup'
+  | 'finish';
+
+/** Maps machine-level answer steps onto the seven core user-visible screens. */
+export function onboardingScreenForStep(step: OnboardingStepId): OnboardingScreenId {
+  switch (step) {
+    case 'welcome':
+      return 'welcome';
+    case 'a1_life_goal':
+    case 'a2_menopause_journey':
+    case 'a3_activity':
+      return 'about_you';
+    case 'consent_health':
+      return 'health_consent';
+    case 'b1_heart':
+      return 'heart_safety';
+    case 'b1_advisory':
+      return 'heart_advisory';
+    case 'b3_joints':
+    case 'b4_pelvic':
+    case 'b5_balance':
+      return 'movement_comfort';
+    case 'c1_stairs':
+    case 'c2_quiet':
+      return 'setup';
+    case 'assessment_offer':
+      return 'finish';
+  }
+}
+
+export function visibleOnboardingScreens(answers: OnboardingAnswers): OnboardingScreenId[] {
+  const screens: OnboardingScreenId[] = [];
+  for (const step of visibleOnboardingSteps(answers)) {
+    const screen = onboardingScreenForStep(step);
+    if (screens[screens.length - 1] !== screen) screens.push(screen);
+  }
+  return screens;
 }
 
 function stepAnswered(answers: OnboardingAnswers, step: OnboardingQuestionStepId): boolean {
@@ -140,8 +182,6 @@ function stepAnswered(answers: OnboardingAnswers, step: OnboardingQuestionStepId
       return answers.c1Stairs !== null;
     case 'c2_quiet':
       return answers.c2Quiet !== null;
-    case 'd1_days':
-      return answers.d1Days !== null;
     case 'assessment_offer':
       return answers.assessmentChoice !== null;
   }
@@ -170,74 +210,59 @@ export function acknowledgeOnboardingStep(
 /**
  * Step-wise back (promotion integration Phase 2): clears the most recent
  * answered/acknowledged step so `currentOnboardingStep` returns to it. The
- * visible-steps list recomputes from the cleared answers, so conditional
- * steps (b1_advisory, the Stage B block, assessment_offer) appear and
- * disappear consistently — undoing past b1_advisory first un-acknowledges
- * the advisory, then a second undo clears the B1 answer itself. No-op at the
- * first step. Skips recorded as answers (SKIPPED) undo like any answer;
- * conservative-default routing is a completion-time mapping, so clearing the
- * answer fully restores the question.
+ * Back navigation follows user-visible screens rather than individual fields
+ * inside a grouped screen. It clears the previous screen's answers so the
+ * machine returns to that screen in one tap. No-op at Welcome.
  */
 export function undoLastOnboardingStep(
   state: ProgrammeOnboardingFlowState
 ): ProgrammeOnboardingFlowState {
-  const steps = visibleOnboardingSteps(state.answers);
   const current = currentOnboardingStep(state);
-  const currentIndex = current === 'complete' ? steps.length : steps.indexOf(current);
-  for (let index = currentIndex - 1; index >= 0; index--) {
-    const step = steps[index];
-    if (isOnboardingQuestionStep(step)) {
-      if (stepAnswered(state.answers, step)) {
-        return { ...state, answers: clearAnswer(state.answers, step) };
-      }
-    } else if (state.acknowledged.includes(step)) {
-      return { ...state, acknowledged: state.acknowledged.filter((s) => s !== step) };
-    }
-  }
-  return state;
+  const screens = visibleOnboardingScreens(state.answers);
+  const currentScreen = current === 'complete' ? null : onboardingScreenForStep(current);
+  const currentIndex = currentScreen === null ? screens.length : screens.indexOf(currentScreen);
+  if (currentIndex <= 0) return state;
+  return clearOnboardingScreen(state, screens[currentIndex - 1]);
 }
 
-function clearAnswer(answers: OnboardingAnswers, step: OnboardingQuestionStepId): OnboardingAnswers {
-  const next = { ...answers };
-  switch (step) {
-    case 'a1_life_goal':
-      next.lifeGoal = null;
+function clearOnboardingScreen(
+  state: ProgrammeOnboardingFlowState,
+  screen: OnboardingScreenId
+): ProgrammeOnboardingFlowState {
+  const answers = { ...state.answers };
+  let acknowledged = state.acknowledged;
+  switch (screen) {
+    case 'welcome':
+      acknowledged = acknowledged.filter((step) => step !== 'welcome');
       break;
-    case 'a2_menopause_journey':
-      next.menopauseStage = null;
+    case 'about_you':
+      answers.lifeGoal = null;
+      answers.menopauseStage = null;
+      answers.activityLevel = null;
       break;
-    case 'a3_activity':
-      next.activityLevel = null;
+    case 'health_consent':
+      answers.consent = null;
       break;
-    case 'consent_health':
-      next.consent = null;
+    case 'heart_safety':
+      answers.b1Heart = null;
       break;
-    case 'b1_heart':
-      next.b1Heart = null;
+    case 'heart_advisory':
+      acknowledged = acknowledged.filter((step) => step !== 'b1_advisory');
       break;
-    case 'b3_joints':
-      next.b3Joints = null;
+    case 'movement_comfort':
+      answers.b3Joints = null;
+      answers.b4Pelvic = null;
+      answers.b5Balance = null;
       break;
-    case 'b4_pelvic':
-      next.b4Pelvic = null;
+    case 'setup':
+      answers.c1Stairs = null;
+      answers.c2Quiet = null;
       break;
-    case 'b5_balance':
-      next.b5Balance = null;
-      break;
-    case 'c1_stairs':
-      next.c1Stairs = null;
-      break;
-    case 'c2_quiet':
-      next.c2Quiet = null;
-      break;
-    case 'd1_days':
-      next.d1Days = null;
-      break;
-    case 'assessment_offer':
-      next.assessmentChoice = null;
+    case 'finish':
+      answers.assessmentChoice = null;
       break;
   }
-  return next;
+  return { ...state, answers, acknowledged };
 }
 
 export type OnboardingAnswerValue =
@@ -251,7 +276,6 @@ export type OnboardingAnswerValue =
   | { step: 'b5_balance'; value: 'yes' | 'no' | Skipped }
   | { step: 'c1_stairs'; value: 'yes' | 'no' | Skipped }
   | { step: 'c2_quiet'; value: 'yes' | 'no' | Skipped }
-  | { step: 'd1_days'; value: readonly Weekday[] }
   | { step: 'assessment_offer'; value: 'now' | 'after_first_workout' | 'skip' };
 
 export function recordOnboardingAnswer(
@@ -289,9 +313,6 @@ export function recordOnboardingAnswer(
       break;
     case 'c2_quiet':
       answers.c2Quiet = answer.value;
-      break;
-    case 'd1_days':
-      answers.d1Days = [...answer.value];
       break;
     case 'assessment_offer':
       answers.assessmentChoice = answer.value;
@@ -332,6 +353,12 @@ export function completeOnboarding(
     gentleStart,
   });
 
+  const jointFlags = answers.consent === 'agree' ? (answers.b3Joints ?? []) : [];
+  const startingPlacement = jointSensitiveStartingPlacement(
+    placementResult.placement,
+    jointFlags
+  );
+
   const profile: ProgrammeProfile = {
     consentHealthData: answers.consent === 'agree',
     activityLevel: answers.activityLevel === SKIPPED ? null : answers.activityLevel,
@@ -349,13 +376,13 @@ export function completeOnboarding(
     // Consent-gated like every Stage B mapping: with back-navigation a user
     // can answer B3 and THEN retract consent — stale special-category answers
     // must never be used (§4 decline row).
-    jointFlags: answers.consent === 'agree' ? (answers.b3Joints ?? []) : [],
+    jointFlags,
     balanceSupportDefault:
       answers.consent === 'agree' && (answers.b5Balance === 'yes' || answers.b5Balance === SKIPPED),
     hasStairs: answers.c1Stairs === 'yes' ? true : answers.c1Stairs === 'no' ? false : null,
     hasBand: null,
     diastasisFlag: false,
-    placement: placementResult.placement,
+    placement: startingPlacement,
     assessmentStatus: gentleStart
       ? 'bypassed_b1'
       : answers.assessmentChoice === 'after_first_workout'
@@ -364,14 +391,14 @@ export function completeOnboarding(
           ? 'skipped'
           : null, // 'now' → set to 'done' when Check-up #0 completes
     lastAssessmentAtIso: null,
-    chosenDays: answers.d1Days ?? [],
+    chosenDays: [],
     firstSessionStarted: false,
     oneTimeSurfacesShown: [],
   };
 
   const ladders = {} as Record<ProgrammePattern, PatternLadderState>;
   for (const pattern of PROGRAMME_PATTERNS) {
-    ladders[pattern] = freshPatternLadderState(pattern, placementResult.placement[pattern]);
+    ladders[pattern] = freshPatternLadderState(pattern, startingPlacement[pattern]);
   }
 
   const programmeState: ProgrammeState = {
@@ -391,15 +418,56 @@ export function completeOnboarding(
     programmeState,
     menopauseStage: answers.menopauseStage,
     lifeGoalCategory: answers.lifeGoal === SKIPPED ? null : answers.lifeGoal,
-    assessmentIntent: !gentleStart && answers.assessmentChoice === 'now' ? 'start_now' : null,
+    assessmentIntent:
+      answers.consent === 'agree' && !gentleStart && answers.assessmentChoice === 'now'
+        ? 'start_now'
+        : null,
   };
 }
 
 /**
+ * Every retained comfort answer has a concrete day-one effect. The intake
+ * does not claim to diagnose or permanently lock progression; it simply
+ * starts the related ladder at its gentlest level. Successful, comfortable
+ * sessions can still progress normally from there.
+ */
+function jointSensitiveStartingPlacement(
+  placement: Readonly<Record<ProgrammePattern, number>>,
+  flags: readonly JointFlag[]
+): Record<ProgrammePattern, number> {
+  const next = { ...placement };
+  for (const flag of flags) {
+    switch (flag) {
+      case 'knee':
+        next.squat = 1;
+        break;
+      case 'hip':
+        next.squat = 1;
+        next.hinge = 1;
+        break;
+      case 'shoulder':
+        next.push = 1;
+        next.pull = 1;
+        break;
+      case 'wrist':
+        next.push = 1;
+        next.core = 1;
+        break;
+      case 'low_back':
+        next.hinge = 1;
+        next.core = 1;
+        break;
+    }
+  }
+  return next;
+}
+
+/**
  * Applies a completed Check-up #0 to an onboarded state. The immediate 'now'
- * path replaces placement outright (nothing trained yet to protect); the
- * deferred path re-places UPWARD ONLY (spec §6). T1 under 10 s forces
- * balance-support-default on even when B5 said No — never the reverse.
+ * path derives fresh placement (nothing trained yet to protect), then keeps
+ * any disclosed joint-sensitive starts at L1; the deferred path re-places
+ * UPWARD ONLY (spec §6) within the same safety constraint. T1 under 10 s
+ * forces balance-support-default on even when B5 said No — never the reverse.
  */
 export function applyAssessmentPlacement(
   state: ProgrammeState,
@@ -412,9 +480,13 @@ export function applyAssessmentPlacement(
     consentDeclined: !state.profile.consentHealthData,
     gentleStart: state.profile.gentleStartActive && !state.profile.gpConfirmed,
   });
+  const targetPlacement = jointSensitiveStartingPlacement(
+    result.placement,
+    state.profile.jointFlags
+  );
   const ladders = { ...state.ladders };
   for (const pattern of PROGRAMME_PATTERNS) {
-    const target = result.placement[pattern];
+    const target = targetPlacement[pattern];
     const nextLevel = options.deferred ? Math.max(ladders[pattern].currentLevel, target) : target;
     if (nextLevel !== ladders[pattern].currentLevel) {
       ladders[pattern] = {
@@ -431,7 +503,7 @@ export function applyAssessmentPlacement(
     ladders,
     profile: {
       ...state.profile,
-      placement: result.placement,
+      placement: targetPlacement,
       assessmentStatus: 'done',
       // Starts (and restarts) the routine check-up cadence clock.
       lastAssessmentAtIso: options.completedAtIso ?? new Date().toISOString(),

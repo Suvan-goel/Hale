@@ -51,7 +51,7 @@ const BASE_ANSWERS: OnboardingAnswerValue[] = [
   { step: 'b5_balance', value: 'no' },
   { step: 'c1_stairs', value: 'yes' },
   { step: 'c2_quiet', value: 'no' },
-  { step: 'd1_days', value: ['mon', 'wed', 'fri'] },
+  { step: 'assessment_offer', value: 'skip' },
 ];
 
 function runOnboarding(extra: readonly OnboardingAnswerValue[], completedAtIso: string) {

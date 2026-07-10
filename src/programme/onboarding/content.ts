@@ -1,14 +1,13 @@
 /**
- * Onboarding content layer — onboarding-spec v0.2 §2–§3 under the 2026-07-06
- * rulings. EVERY user-facing string of the flow lives here, not in screens:
- * Stage B wording may get clinical-review edits and the whole flow gets a
- * brand-voice pass (both known open flags), so copy changes must never touch
- * flow or screen logic.
+ * Onboarding field content — onboarding-spec v0.2 §2–§3 under the 2026-07-06
+ * rulings and the seven-screen MVP consolidation (2026-07-10). Safety-field
+ * wording stays centralized here for clinical review; grouped-screen framing
+ * and CTA copy live with the presentation that composes these fields.
  *
- * Structure per rulings: A1 replaced by the existing LifeGoal question (C8);
- * B2 deferred with the C1/C2 package (Stage B = B1, B3, B4, B5); D1 keeps the
- * day picker with NO notification opt-in (C7); the assessment offer is
- * bypassed when Gentle Start is active (B1 yes/skipped).
+ * Structure: A1 uses the existing LifeGoal question (C8); B2 remains
+ * deferred; B1/B3/B4/B5 retain their safety effects; preferred days are no
+ * longer collected before scheduling exists. Every route reaches one final
+ * start surface, which conditionally offers the check-up.
  *
  * Claims discipline: nothing here may use fracture/osteoporosis/bone-density
  * language or any banned claim shape — pinned by content.test.ts with the
@@ -18,7 +17,7 @@
 import type { LifeGoalCategory, ActivityLevel } from '../../adherence';
 import { BRAND } from '../../brand';
 import type { MenopauseStage } from '../../profile';
-import type { JointFlag, Weekday } from '../types';
+import type { JointFlag } from '../types';
 
 // ---------------------------------------------------------------------------
 // Step ids
@@ -35,18 +34,13 @@ export const ONBOARDING_QUESTION_STEPS = [
   'b5_balance',
   'c1_stairs',
   'c2_quiet',
-  'd1_days',
   'assessment_offer',
 ] as const;
 export type OnboardingQuestionStepId = (typeof ONBOARDING_QUESTION_STEPS)[number];
 
 export const ONBOARDING_MESSAGE_STEPS = [
   'welcome',
-  'b_intro',
   'b1_advisory',
-  'b_exit',
-  'placement_reveal',
-  'expectation_cta',
 ] as const;
 export type OnboardingMessageStepId = (typeof ONBOARDING_MESSAGE_STEPS)[number];
 
@@ -81,8 +75,6 @@ export interface OnboardingQuestionContent {
   skipLabel?: string;
   /** Extra line under the question (normalising microcopy etc.). */
   note?: string;
-  /** Member of the Stage B block: shows progress dots (spec §3 scaffolding). */
-  stageBIndex?: number;
 }
 
 export interface OnboardingMessageContent {
@@ -98,10 +90,8 @@ export interface OnboardingMessageContent {
 }
 
 // ---------------------------------------------------------------------------
-// Questions (all copy placeholder pending brand-voice pass)
+// Questions
 // ---------------------------------------------------------------------------
-
-export const STAGE_B_QUESTION_COUNT = 4; // B1, B3, B4, B5 (B2 deferred)
 
 const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
   a1_life_goal: {
@@ -170,13 +160,13 @@ const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
     ],
     skippable: true,
     skipLabel: 'Prefer not to say',
-    stageBIndex: 1,
   },
   b3_joints: {
     id: 'b3_joints',
     eyebrow: 'Health check',
-    question: 'Any joints that regularly hurt or feel unreliable?',
-    whyWeAsk: 'We’ll pick kinder variations for those joints from day one.',
+    question: 'Any areas that regularly hurt or feel unreliable?',
+    whyWeAsk:
+      'We’ll start the related movements at their gentlest level. You can still stop or skip any move.',
     multiSelect: true,
     noneValue: 'none',
     options: [
@@ -187,14 +177,13 @@ const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
       { value: 'low_back', label: 'Lower back' },
       { value: 'none', label: 'None of these' },
     ] satisfies readonly { value: JointFlag | 'none'; label: string }[],
-    stageBIndex: 2,
   },
   b4_pelvic: {
     id: 'b4_pelvic',
     eyebrow: 'Health check',
     question:
       'Do you ever leak a little when you cough, sneeze, laugh or jump — or feel a heaviness in your pelvic area?',
-    whyWeAsk: 'We’ll choose a gentler finisher and point you to help that works.',
+    whyWeAsk: 'We’ll leave out the stomping finisher and keep your start low impact.',
     note: 'About half of women at this stage do — nothing to be embarrassed about.',
     options: [
       { value: 'often', label: 'Often' },
@@ -202,7 +191,6 @@ const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
       { value: 'never', label: 'Never' },
       { value: 'prefer_not_to_say', label: 'Prefer not to say' },
     ],
-    stageBIndex: 3,
   },
   b5_balance: {
     id: 'b5_balance',
@@ -215,13 +203,12 @@ const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
     ],
     skippable: true,
     skipLabel: 'Prefer not to say',
-    stageBIndex: 4,
   },
   c1_stairs: {
     id: 'c1_stairs',
     eyebrow: 'Your setup',
-    question: 'Do you have stairs where you’ll work out?',
-    whyWeAsk: 'A few exercises use the bottom step — we’ll swap them if not.',
+    question: 'Do you have a low, stable bottom step with fixed support nearby?',
+    whyWeAsk: 'We’ll use step exercises only when that setup is available; otherwise we swap them.',
     options: [
       { value: 'yes', label: 'Yes' },
       { value: 'no', label: 'No' },
@@ -232,39 +219,20 @@ const QUESTIONS: Record<OnboardingQuestionStepId, OnboardingQuestionContent> = {
   c2_quiet: {
     id: 'c2_quiet',
     eyebrow: 'Your setup',
-    question: 'Do your workouts need to be quiet — downstairs neighbours, sleeping family?',
-    whyWeAsk: 'We’ll keep every move neighbour-friendly.',
+    question: 'Would you like to avoid stomping or impact sounds?',
+    whyWeAsk: 'If so, we leave the stomping finisher out of your sessions.',
     options: [
-      { value: 'yes', label: 'Yes, keep it quiet' },
-      { value: 'no', label: 'No, sound is fine' },
+      { value: 'yes', label: 'Yes, avoid stomping' },
+      { value: 'no', label: 'No, moderate sound is fine' },
     ],
     skippable: true,
     skipLabel: 'Not sure yet',
   },
-  d1_days: {
-    id: 'd1_days',
-    eyebrow: 'Your week',
-    // Honesty ruling 2026-07-07: nothing schedules around these days yet, so
-    // the "why" claims only the rhythm; scheduling copy returns with the
-    // local-notifications proposal.
-    question: 'Which days usually suit a short workout?',
-    whyWeAsk: 'Three sessions are planned and two is enough. Pick any days that make that rhythm feel realistic.',
-    multiSelect: true,
-    options: [
-      { value: 'mon', label: 'Monday' },
-      { value: 'tue', label: 'Tuesday' },
-      { value: 'wed', label: 'Wednesday' },
-      { value: 'thu', label: 'Thursday' },
-      { value: 'fri', label: 'Friday' },
-      { value: 'sat', label: 'Saturday' },
-      { value: 'sun', label: 'Sunday' },
-    ] satisfies readonly { value: Weekday; label: string }[],
-  },
   assessment_offer: {
     id: 'assessment_offer',
-    eyebrow: 'Movement check',
-    question: 'About eight minutes to set your Strength and Balance starting point?',
-    whyWeAsk: 'It starts your personalised 12-week plan. You can do one gentle starter session first.',
+    eyebrow: 'Your start',
+    question: 'How would you like to begin?',
+    whyWeAsk: 'Choose the start that feels right. You can stop or change your mind at any time.',
     note: 'No one sees this but you. It’s processed on your phone and never leaves it.',
     options: [
       { value: 'now', label: 'Let’s do it' },
@@ -293,13 +261,6 @@ const MESSAGES: Record<OnboardingMessageStepId, OnboardingMessageContent> = {
       { value: '8 min', detail: 'Movement check' },
     ],
   },
-  b_intro: {
-    id: 'b_intro',
-    eyebrow: 'Health check',
-    title: 'Quick safety tune-up',
-    body: ['Four taps, about 30 seconds. This is how we make the programme yours.'],
-    continueLabel: 'OK',
-  },
   b1_advisory: {
     id: 'b1_advisory',
     eyebrow: 'Health check',
@@ -309,34 +270,6 @@ const MESSAGES: Record<OnboardingMessageStepId, OnboardingMessageContent> = {
       'The effort-based Movement Check-Up stays off while Gentle Start is active. Your gentle workouts remain available.',
     ],
     continueLabel: 'Got it — start gently',
-  },
-  b_exit: {
-    id: 'b_exit',
-    eyebrow: 'Health check',
-    title: 'That’s the health stuff done',
-    body: ['Everything from here is about what you can do.'],
-    continueLabel: 'Continue',
-  },
-  placement_reveal: {
-    id: 'placement_reveal',
-    eyebrow: 'Your plan',
-    title: 'Your gentle starting levels are ready',
-    body: [
-      'Every movement starts deliberately comfortable. Your Strength and Balance check-up can make each four-week phase more specific.',
-    ],
-    continueLabel: 'Show me',
-  },
-  expectation_cta: {
-    id: 'expectation_cta',
-    eyebrow: 'Your plan',
-    title: 'Here’s how this works',
-    body: [
-      'We start gently on purpose. Three sessions are planned each week, and two is enough.',
-      'Sessions are 20–25 minutes, voice-guided — prop your phone anywhere and just move.',
-      'If the private Movement Check-Up is available to you, it repeats every four weeks. It compares Strength and Balance, with an optional Everyday Clarity check-in alongside them.',
-    ],
-    continueLabel: 'Start your first session now — 15 minutes',
-    secondaryLabel: 'Do this later',
   },
 };
 
