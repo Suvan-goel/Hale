@@ -5,22 +5,20 @@ import { join } from 'node:path';
 // A smaller informational Plan returned on 2026-07-10; these pins keep
 // Progress focused on measured results rather than programme structure.
 describe('Progress UI restoration', () => {
-  it('renders the founder Progress empty state for a no-profile V2 Progress model', () => {
+  it('keeps the no-profile state informational so Home owns the check-up action', () => {
     const progress = readFileSync(join(process.cwd(), 'src/screens/ProgressScreen.tsx'), 'utf8');
 
     expect(progress).toContain("viewModel.status === 'no_profile'");
-    expect(progress).toContain('<ProgressEmptyState onBeginCheckUp={onStartCheckUp} />');
-    expect(progress).toContain('Set your starting point');
-    expect(progress).toContain('Start with your check-up');
-    expect(progress).toContain('An about-eight-minute guided check-up sets the Strength and Balance focus');
-    expect(progress).toContain('Your sessions are waiting on Home. Three are planned each week, and two is enough.');
-    expect(progress).toContain('Start check-up');
-    expect(progress).toContain('Your camera view stays private. ${BRAND.appName} never shows a live camera view.');
-    expect(progress).not.toContain('Progress is based on repeat check-ups, not one-day changes.');
+    expect(progress).toContain('if (onStartCheckUp) return <ProgressEmptyState />');
+    expect(progress).toContain('Your progress will appear here');
+    expect(progress).toContain('After your first Movement Check-Up');
+    expect(progress).toContain('Everyday Clarity will appear too if you choose to answer it.');
+    expect(progress).toContain('Start your check-up from Home when you’re ready.');
+    expect(progress).not.toContain('Set your starting point');
+    expect(progress).not.toContain('Plan preparation steps');
+    expect(progress).not.toContain('<ProgressEmptyStep');
+    expect(progress).not.toContain('actionLabel: \'Start check-up\'');
     expect(progress).toContain('Opens camera setup for your Movement Check-Up.');
-    expect(progress).not.toContain(
-      'Opens saved read-only Movement Profile content or the next safe continuation step.'
-    );
   });
 
   it('restores the simplified V2 Progress dashboard cards without technical summary copy', () => {
@@ -31,7 +29,7 @@ describe('Progress UI restoration', () => {
     );
 
     // The simplified Progress tab: one merged profile card, comparable change,
-    // merged history, and observational Clarity. Plan owns journey structure;
+    // collapsed history, and observational Clarity. Plan owns journey structure;
     // unscheduled extra official check-ups are deliberately absent:
     // they would break the frozen monthly comparison cadence.
     expect(progress).toContain('<MovementProfileCard');
@@ -42,7 +40,13 @@ describe('Progress UI restoration', () => {
     expect(progress).not.toContain('<ProgrammeJourneyCard');
     expect(progress).not.toContain('<ProgrammeTrainingLevelsCard');
     expect(progress).toContain('<ClarityProgressCard');
-    expect(progress).toContain('viewModel.officialHistory.length >= 2');
+    expect(progress).toContain("progress?.status === 'ready' && progress.officialHistory.length >= 2");
+    expect(progress).toContain("history.slice(1)");
+    expect(progress).toContain("expanded ? 'Hide check-up history' : 'See check-up history'");
+    expect(progress).toContain('accessibilityState={{ expanded }}');
+    expect(progress.indexOf('<ClarityProgressCard')).toBeLessThan(
+      progress.indexOf('<MovementProfileV2HistoryCard')
+    );
     // Programme structure and practice-ladder mechanics stay off Progress.
     expect(progress).not.toContain('<MovementProfileV2PlanSummaryCard');
     expect(progress).not.toContain('<TrainingProgressCard');

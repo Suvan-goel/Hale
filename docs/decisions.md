@@ -5644,3 +5644,17 @@ the implementation.
   the local-storage explanation, optional published-value comparison, and the
   confirmed delete-all-data control. No reminder, account, backup, or sync
   affordance is exposed without a working capability behind it.
+
+## 2026-07-10 — Progress reports change; Home owns action
+
+- Before the first official check-up, Progress shows one calm informational
+  card. It no longer repeats Plan's three-step programme explanation, offers a
+  second check-up CTA, or restates camera privacy before measurement begins.
+  Home remains the single place to start the next session or check-up.
+- Once measurements exist, Progress keeps the latest Strength and Balance
+  profile, comparable change over time, and optional Everyday Clarity trend.
+  Full individual results remain available from the latest profile.
+- Earlier check-ups are collapsed behind one "See check-up history" row and
+  expand in place. The newest check-up is excluded from that list because it is
+  already the primary profile above. History stays local and each older result
+  remains available read-only.

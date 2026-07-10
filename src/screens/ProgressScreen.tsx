@@ -34,6 +34,11 @@ export function ProgressScreen({
   onOpenSettings,
 }: ProgressScreenProps) {
   const responsive = useResponsiveLayout();
+  const progress = movementProfileV2Progress ?? null;
+  const checkUpHistory =
+    progress?.status === 'ready' && progress.officialHistory.length >= 2
+      ? progress.officialHistory
+      : null;
 
   return (
     <Screen contentStyle={styles.screenContent}>
@@ -55,7 +60,7 @@ export function ProgressScreen({
       </View>
 
       <MovementProfileV2ProgressContent
-        viewModel={movementProfileV2Progress ?? null}
+        viewModel={progress}
         onStartCheckUp={onStartMovementProfileV2CheckUp ?? onBeginFirstCheckUp}
         onContinue={onBeginFirstCheckUp}
         onViewProfile={onViewMovementProfileV2Profile}
@@ -63,141 +68,31 @@ export function ProgressScreen({
       />
 
       {clarityTrend ? <ClarityProgressCard viewModel={clarityTrend} /> : null}
+      {checkUpHistory ? (
+        <MovementProfileV2HistoryCard
+          history={checkUpHistory}
+          onViewProfile={onViewMovementProfileV2Profile}
+        />
+      ) : null}
     </Screen>
   );
 }
 
-interface ProgressEmptyStateStepCopy {
-  index: string;
-  title: string;
-  body: string;
-  state: 'current' | 'upcoming';
-}
-
-interface ProgressEmptyStateCopy {
-  kicker: string;
-  metaLabel: string;
-  title: string;
-  body: string;
-  stepsAccessibilityLabel: string;
-  steps: readonly ProgressEmptyStateStepCopy[];
-  actionLabel: string;
-  actionAccessibilityLabel: string;
-  note: string;
-}
-
-const PROGRESS_EMPTY_STATE_COPY: ProgressEmptyStateCopy = {
-  kicker: 'Set your starting point',
-  metaLabel: 'Your baseline',
-  title: 'Start with your check-up',
-  body: `An about-eight-minute guided check-up sets the Strength and Balance focus for your first four-week phase in a 12-week journey.`,
-  stepsAccessibilityLabel: 'Plan preparation steps',
-  steps: [
-    {
-      index: '1',
-      title: 'Check-up',
-      body: `${BRAND.appName} checks Strength and Balance, then offers an optional Everyday Clarity check-in.`,
-      state: 'current',
-    },
-    {
-      index: '2',
-      title: 'Preparation',
-      body: `${BRAND.appName} uses your Strength and Balance results to shape your first plan.`,
-      state: 'upcoming',
-    },
-    {
-      index: '3',
-      title: 'First week',
-      body: 'Your sessions are waiting on Home. Three are planned each week, and two is enough.',
-      state: 'upcoming',
-    },
-  ],
-  actionLabel: 'Start check-up',
-  actionAccessibilityLabel: 'Start check-up',
-  note: `Your camera view stays private. ${BRAND.appName} never shows a live camera view.`,
-};
-
-function ProgressEmptyState({ onBeginCheckUp }: { onBeginCheckUp: () => void }) {
-  return <ProgressStructuredState copy={PROGRESS_EMPTY_STATE_COPY} onPress={onBeginCheckUp} />;
-}
-
-function ProgressStructuredState({ copy, onPress }: { copy: ProgressEmptyStateCopy; onPress: () => void }) {
-  const responsive = useResponsiveLayout();
+function ProgressEmptyState() {
   return (
-    <View style={styles.emptyProgressWrap}>
-      <View style={[styles.emptyProgressCard, responsive.isCompactPhone && styles.compactCardPadding]}>
-        <View style={styles.emptyProgressHeader}>
-          <Text style={styles.emptyProgressKicker}>{copy.kicker}</Text>
-          <View style={styles.emptyProgressMetaPill}>
-            <Text style={styles.emptyProgressMetaText}>{copy.metaLabel}</Text>
-          </View>
-        </View>
-
-        <Text style={styles.emptyProgressTitle}>{copy.title}</Text>
-        <Text style={styles.emptyProgressBody}>{copy.body}</Text>
-
-        <View style={[styles.emptyProgressSteps, responsive.isCompactPhone && styles.compactCardPadding]} accessibilityLabel={copy.stepsAccessibilityLabel}>
-          {copy.steps.map((step, index) => (
-            <ProgressEmptyStep
-              key={step.index}
-              index={step.index}
-              title={step.title}
-              body={step.body}
-              state={step.state}
-              last={index === copy.steps.length - 1}
-            />
-          ))}
-        </View>
-
-        <Pressable
-          style={({ pressed }) => [
-            styles.emptyProgressButton,
-            responsive.isCompactPhone && styles.compactCardPadding,
-            pressed && styles.pressed,
-          ]}
-          onPress={onPress}
-          accessibilityRole="button"
-          accessibilityLabel={copy.actionAccessibilityLabel}
-        >
-          <Text style={styles.emptyProgressButtonText}>{copy.actionLabel}</Text>
-          <Text style={styles.emptyProgressButtonArrow}>›</Text>
-        </Pressable>
+    <Card style={styles.emptyProgressCard}>
+      <View style={styles.emptyProgressIcon}>
+        <ProgressPictogram name="calendar" size={24} color={colors.accent} />
       </View>
-
-      <View style={styles.emptyProgressNote}>
-        <Text style={styles.emptyProgressNoteText}>{copy.note}</Text>
+      <View style={styles.emptyProgressCopy}>
+        <Text style={styles.emptyProgressTitle}>Your progress will appear here</Text>
+        <Text style={styles.emptyProgressBody}>
+          After your first Movement Check-Up, you’ll see your Strength and Balance results here.
+          Everyday Clarity will appear too if you choose to answer it.
+        </Text>
+        <Text style={styles.emptyProgressHint}>Start your check-up from Home when you’re ready.</Text>
       </View>
-    </View>
-  );
-}
-
-function ProgressEmptyStep({
-  index,
-  title,
-  body,
-  state,
-  last = false,
-}: {
-  index: string;
-  title: string;
-  body: string;
-  state: 'current' | 'upcoming';
-  last?: boolean;
-}) {
-  const active = state === 'current';
-  return (
-    <View style={[styles.emptyProgressStep, last && styles.emptyProgressStepLast]}>
-      <View style={styles.emptyProgressStepMarkerCol}>
-        <View style={[styles.emptyProgressStepMarker, active && styles.emptyProgressStepMarkerActive]}>
-          <Text style={[styles.emptyProgressStepMarkerText, active && styles.emptyProgressStepMarkerTextActive]}>{index}</Text>
-        </View>
-        {!last ? <View style={[styles.emptyProgressStepLine, active && styles.emptyProgressStepLineActive]} /> : null}
-      </View>
-      <View style={styles.emptyProgressStepCopy}>
-        <Text style={styles.emptyProgressStepTitle}>{title}</Text>
-        <Text style={styles.emptyProgressStepBody}>{body}</Text>
-      </View>
-    </View>
+    </Card>
   );
 }
 
@@ -225,7 +120,7 @@ function MovementProfileV2ProgressContent({
 
   if (viewModel.status !== 'ready') {
     if (viewModel.status === 'no_profile') {
-      if (onStartCheckUp) return <ProgressEmptyState onBeginCheckUp={onStartCheckUp} />;
+      if (onStartCheckUp) return <ProgressEmptyState />;
       const blocked = blockedCheckUpCopy(checkUpBlockedReason);
       return <MovementProfileV2RecoveryCard title={blocked.title} body={blocked.body} />;
     }
@@ -250,9 +145,6 @@ function MovementProfileV2ProgressContent({
     <>
       <MovementProfileCard viewModel={viewModel} onViewProfile={onViewProfile} />
       {viewModel.change ? <MovementProfileV2ChangeCard change={viewModel.change} /> : null}
-      {viewModel.officialHistory.length >= 2 ? (
-        <MovementProfileV2HistoryCard history={viewModel.officialHistory} onViewProfile={onViewProfile} />
-      ) : null}
     </>
   );
 }
@@ -414,9 +306,8 @@ function MovementProfileV2ProgressRow({
   );
 }
 
-// A simple list of saved check-ups, newest first — a way back to any past result.
-// The former "4-week block reports" subsection was dropped: it was cryptic
-// ("Strength / Power to Balance") and not what this tab is for.
+// Older check-ups stay available without making the default Progress page a
+// long archive. The latest result already has a full-results link above.
 function MovementProfileV2HistoryCard({
   history,
   onViewProfile,
@@ -424,21 +315,43 @@ function MovementProfileV2HistoryCard({
   history: Extract<MovementProfileV2ProgressViewModel, { status: 'ready' }>['officialHistory'];
   onViewProfile?: (sourceCheckUpId: string) => void;
 }) {
+  const [expanded, setExpanded] = React.useState(false);
+  const earlierCheckUps = history.slice(1);
+  const countLabel = `${earlierCheckUps.length} earlier ${earlierCheckUps.length === 1 ? 'check-up' : 'check-ups'}`;
+
   return (
-    <Card style={styles.progressCard}>
-      <Text style={styles.sectionTitle}>History</Text>
-      <Text style={styles.sectionIntro}>Your saved check-ups, newest first.</Text>
-      <View style={styles.historyList}>
-        {history.map((entry, index) => (
-          <MovementProfileV2HistoryRow
-            key={entry.id}
-            entry={entry}
-            latest={index === 0}
-            showDivider={index > 0}
-            onPress={onViewProfile ? () => onViewProfile(entry.id) : undefined}
-          />
-        ))}
-      </View>
+    <Card style={styles.historyDisclosureCard}>
+      <Pressable
+        style={({ pressed }) => [styles.historyDisclosure, pressed && styles.pressed]}
+        onPress={() => setExpanded((current) => !current)}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+        accessibilityLabel={`${expanded ? 'Hide' : 'See'} check-up history. ${countLabel} saved on this device.`}
+      >
+        <View style={styles.latestResultsIconWell}>
+          <ProgressPictogram name="calendar" size={20} color={colors.accent} />
+        </View>
+        <View style={styles.latestResultsCopy}>
+          <Text style={styles.latestResultsTitle}>
+            {expanded ? 'Hide check-up history' : 'See check-up history'}
+          </Text>
+          <Text style={styles.latestResultsBody}>{countLabel} saved on this device.</Text>
+        </View>
+        <Text style={[styles.historyDisclosureChevron, expanded && styles.historyDisclosureChevronOpen]}>›</Text>
+      </Pressable>
+
+      {expanded ? (
+        <View style={styles.historyList}>
+          {earlierCheckUps.map((entry, index) => (
+            <MovementProfileV2HistoryRow
+              key={entry.id}
+              entry={entry}
+              showDivider={index > 0}
+              onPress={onViewProfile ? () => onViewProfile(entry.id) : undefined}
+            />
+          ))}
+        </View>
+      ) : null}
     </Card>
   );
 }
@@ -447,26 +360,17 @@ function MovementProfileV2HistoryCard({
 // handler they degrade to informational rows rather than no-op pressables.
 function MovementProfileV2HistoryRow({
   entry,
-  latest,
   showDivider,
   onPress,
 }: {
   entry: Extract<MovementProfileV2ProgressViewModel, { status: 'ready' }>['officialHistory'][number];
-  latest: boolean;
   showDivider: boolean;
   onPress?: () => void;
 }) {
   const body = (
     <>
       <View style={styles.historyRowText}>
-        <View style={styles.historyTitleRow}>
-          <Text style={styles.historyRowTitle} numberOfLines={1}>{entry.dateLabel}</Text>
-          {latest ? (
-            <View style={styles.historyLatestPill}>
-              <Text style={styles.historyLatestText}>Latest</Text>
-            </View>
-          ) : null}
-        </View>
+        <Text style={styles.historyRowTitle} numberOfLines={1}>{entry.dateLabel}</Text>
         <Text style={styles.historyRowMeta} numberOfLines={2}>
           {entry.sourceLabel} · {entry.focusTitle}
         </Text>
@@ -758,177 +662,48 @@ const styles = StyleSheet.create({
     ...type.cardBody,
     marginTop: spacing.xs,
   },
-  compactCardPadding: {
-    paddingHorizontal: 14,
-    paddingVertical: 16,
-  },
-  emptyProgressWrap: {
-    gap: spacing.md,
-  },
   emptyProgressCard: {
-    overflow: 'hidden',
-    borderRadius: radius.card,
+    minHeight: 196,
     paddingHorizontal: 18,
-    paddingTop: 20,
-    paddingBottom: 18,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    ...shadow.card,
-  },
-  emptyProgressHeader: {
+    paddingVertical: 22,
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
+    alignItems: 'flex-start',
+    gap: spacing.lg,
   },
-  emptyProgressKicker: {
-    ...type.label,
-    color: colors.accentDeep,
+  emptyProgressIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bgElevated,
+  },
+  emptyProgressCopy: {
     flex: 1,
     minWidth: 0,
-  },
-  emptyProgressMetaPill: {
-    minHeight: 32,
-    justifyContent: 'center',
-    borderRadius: radius.pill,
-    paddingHorizontal: 12,
-    backgroundColor: colors.bgBase,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-  },
-  emptyProgressMetaText: {
-    color: colors.accentDeep,
-    fontFamily: fonts.sansMedium,
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 0,
-    fontVariant: ['tabular-nums'],
   },
   emptyProgressTitle: {
     color: colors.textPrimary,
     fontFamily: fonts.serifMedium,
-    fontSize: 31,
-    lineHeight: 37,
+    fontSize: 24,
+    lineHeight: 29,
     letterSpacing: 0,
-    marginTop: 22,
   },
   emptyProgressBody: {
     color: colors.textSecondary,
     fontFamily: fonts.sansRegular,
-    fontSize: 16,
-    lineHeight: 25,
+    fontSize: 15,
+    lineHeight: 22,
     letterSpacing: 0,
-    marginTop: 18,
+    marginTop: spacing.sm,
   },
-  emptyProgressSteps: {
-    marginTop: 24,
-    paddingTop: 16,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.borderHairline,
-  },
-  emptyProgressStep: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    minHeight: 72,
-  },
-  emptyProgressStepLast: {
-    minHeight: 44,
-  },
-  emptyProgressStepMarkerCol: {
-    width: 28,
-    alignItems: 'center',
-  },
-  emptyProgressStepMarker: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-  },
-  emptyProgressStepMarkerActive: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-  },
-  emptyProgressStepMarkerText: {
-    color: colors.textSecondary,
-    fontFamily: fonts.sansMedium,
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 0,
-    fontVariant: ['tabular-nums'],
-  },
-  emptyProgressStepMarkerTextActive: {
-    color: colors.onAccent,
-  },
-  emptyProgressStepLine: {
-    flex: 1,
-    width: StyleSheet.hairlineWidth,
-    marginVertical: 7,
-    backgroundColor: colors.borderHairline,
-  },
-  emptyProgressStepLineActive: {
-    backgroundColor: colors.accentBorder,
-  },
-  emptyProgressStepCopy: {
-    flex: 1,
-    minWidth: 0,
-    paddingBottom: 18,
-  },
-  emptyProgressStepTitle: {
+  emptyProgressHint: {
     color: colors.textPrimary,
     fontFamily: fonts.sansMedium,
-    fontSize: 15,
+    fontSize: 14,
     lineHeight: 20,
     letterSpacing: 0,
-  },
-  emptyProgressStepBody: {
-    color: colors.textSecondary,
-    fontFamily: fonts.sansRegular,
-    fontSize: 13,
-    lineHeight: 19,
-    letterSpacing: 0,
-    marginTop: 3,
-  },
-  emptyProgressButton: {
-    minHeight: 58,
-    marginTop: 24,
-    borderRadius: radius.button,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.accent,
-  },
-  emptyProgressButtonText: {
-    color: colors.onAccent,
-    fontFamily: fonts.sansMedium,
-    fontSize: 16,
-    lineHeight: 21,
-    letterSpacing: 0,
-    textAlign: 'center',
-  },
-  emptyProgressButtonArrow: {
-    color: colors.onAccent,
-    fontFamily: fonts.sansMedium,
-    fontSize: 22,
-    lineHeight: 23,
-    letterSpacing: 0,
-    marginTop: -1,
-  },
-  emptyProgressNote: {
-    paddingHorizontal: 16,
-  },
-  emptyProgressNoteText: {
-    color: colors.textSecondary,
-    fontFamily: fonts.sansRegular,
-    fontSize: 13,
-    lineHeight: 19,
-    letterSpacing: 0,
+    marginTop: spacing.md,
   },
   sectionText: {
     flex: 1,
@@ -1093,8 +868,28 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.divider,
   },
+  historyDisclosureCard: {
+    paddingHorizontal: 18,
+    paddingVertical: 0,
+  },
+  historyDisclosure: {
+    minHeight: 78,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  historyDisclosureChevron: {
+    ...type.h2,
+    color: colors.textSecondary,
+    transform: [{ rotate: '0deg' }],
+  },
+  historyDisclosureChevronOpen: {
+    transform: [{ rotate: '90deg' }],
+  },
   historyList: {
-    marginTop: -spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.divider,
   },
   historyRow: {
     minHeight: 76,
@@ -1107,11 +902,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
-  historyTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
   historyRowTitle: {
     color: colors.textPrimary,
     fontFamily: fonts.sansMedium,
@@ -1123,21 +913,6 @@ const styles = StyleSheet.create({
   historyRowMeta: {
     ...type.cardCaption,
     marginTop: 3,
-  },
-  historyLatestPill: {
-    minHeight: 24,
-    flexShrink: 0,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.sm,
-    borderRadius: 12,
-    backgroundColor: colors.bgElevated,
-  },
-  historyLatestText: {
-    color: colors.sageDeep,
-    fontFamily: fonts.sansMedium,
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 0,
   },
   chevron: { ...type.h2, color: colors.textSecondary },
   pressed: { opacity: 0.86, transform: [{ scale: 0.995 }] },
