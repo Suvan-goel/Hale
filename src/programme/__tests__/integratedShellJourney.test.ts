@@ -2,11 +2,9 @@
  * Integrated-shell journey simulation (promotion integration Phase 5): whole
  * journeys driven through the SAME pure functions the v2 app shell calls, in
  * the order it calls them — onboarding flow machine → completion route →
- * today view model → session generation → results → post-session moment loop
- * → check-up offers and the routine cadence. Both shell bugs found during
- * the integration (the dropped 'now' assessment intent; the deferred
- * re-offer dismissal loop) were invisible to unit tests — this suite pins
- * the integrated behavior end to end, including loop termination.
+ * today view model → session generation → results → optional technique gateway
+ * → Home-owned check-up offers and the routine cadence. This suite pins the
+ * integrated behavior end to end, including the direct post-session return.
  */
 
 import {
@@ -19,7 +17,6 @@ import {
   generateProgrammeSession,
   initialOnboardingFlowState,
   markFirstSessionStarted,
-  markSurfaceShown,
   nextProgrammeSessionInput,
   onboardingCompletionRoute,
   postSessionSurface,
@@ -98,69 +95,25 @@ function runSession(state: ProgrammeState, nowIso: string, effort: EffortAnswer)
   return { state: applied.state, decisions: applied.decisions, plan };
 }
 
-type MomentBehavior = 'accept_reoffer' | 'dismiss';
-
 interface MomentOutcome {
   state: ProgrammeState;
   surfacesSeen: string[];
-  checkupAccepted: boolean;
 }
 
-/** The shell's post-session moment loop, driven to termination. Mirrors the
- * button handlers: gateway demo+confirm then Later (clears decisions);
- * re-offer accept runs the check-up; re-offer dismissal leaves the loop
- * (deferred) or marks the once-only card (skipped warm). */
+/** The only post-session interruption is a technique gateway. */
 function resolvePostSession(
   state: ProgrammeState,
-  decisions: Partial<Record<ProgrammePattern, PromotionDecision>>,
-  nowIso: string,
-  behavior: MomentBehavior
+  decisions: Partial<Record<ProgrammePattern, PromotionDecision>>
 ): MomentOutcome {
-  let current = state;
-  let currentDecisions = decisions;
-  const surfacesSeen: string[] = [];
-  let checkupAccepted = false;
-  for (let guard = 0; guard < 10; guard++) {
-    const surface = postSessionSurface(current, currentDecisions, nowIso);
-    surfacesSeen.push(surface.kind);
-    if (surface.kind === 'gateway_teach') {
-      let ladder = current.ladders[surface.pattern];
-      ladder = recordGatewayDemoWatched(ladder, surface.toLevel);
-      ladder = recordGatewaySelfConfirmation(ladder, surface.toLevel);
-      current = { ...current, ladders: { ...current.ladders, [surface.pattern]: ladder } };
-      currentDecisions = {}; // the shell's 'Later' after completing both steps
-      continue;
-    }
-    if (surface.kind === 'deferred_reoffer') {
-      if (behavior === 'accept_reoffer') {
-        current = applyAssessmentPlacement(
-          current,
-          { t3: { reps: 16, handsUsed: false }, t1: { worseSideSeconds: 24 } },
-          { deferred: current.completedSessionCount > 0, completedAtIso: nowIso }
-        );
-        checkupAccepted = true;
-        return { state: current, surfacesSeen, checkupAccepted };
-      }
-      // Dismissal LEAVES the loop (the fixed shell behavior — the policy is
-      // pure over state, so looping here would re-render forever).
-      return { state: current, surfacesSeen, checkupAccepted };
-    }
-    if (surface.kind === 'skipped_warm_reoffer') {
-      if (behavior === 'accept_reoffer') {
-        current = applyAssessmentPlacement(
-          current,
-          { t3: { reps: 16, handsUsed: false }, t1: { worseSideSeconds: 24 } },
-          { deferred: current.completedSessionCount > 0, completedAtIso: nowIso }
-        );
-        checkupAccepted = true;
-        return { state: current, surfacesSeen, checkupAccepted };
-      }
-      current = markSurfaceShown(current, 'skipped_warm_reoffer_card');
-      continue;
-    }
-    return { state: current, surfacesSeen, checkupAccepted }; // session_logged
-  }
-  throw new Error(`post-session moment loop did not terminate: ${surfacesSeen.join(' → ')}`);
+  const surface = postSessionSurface(state, decisions);
+  if (!surface) return { state, surfacesSeen: [] };
+  let ladder = state.ladders[surface.pattern];
+  ladder = recordGatewayDemoWatched(ladder, surface.toLevel);
+  ladder = recordGatewaySelfConfirmation(ladder, surface.toLevel);
+  return {
+    state: { ...state, ladders: { ...state.ladders, [surface.pattern]: ladder } },
+    surfacesSeen: [surface.kind],
+  };
 }
 
 describe("the 'now' assessment path (fixed intent contract)", () => {
@@ -227,31 +180,33 @@ describe('the deferred path', () => {
     return { state: after, decisions };
   }
 
-  it('accepting the post-session re-offer completes placement and clears every offer', () => {
+  it('returns directly Home, where accepting the standing check-up clears the offer', () => {
     const { state, decisions } = deferredAfterFirstSession();
-    const outcome = resolvePostSession(state, decisions, dayIso(0), 'accept_reoffer');
-    expect(outcome.surfacesSeen).toContain('deferred_reoffer');
-    expect(outcome.checkupAccepted).toBe(true);
-    expect(outcome.state.profile.assessmentStatus).toBe('done');
-    expect(checkupOfferFor(outcome.state, dayIso(1))).toBeNull();
+    const outcome = resolvePostSession(state, decisions);
+    expect(outcome.surfacesSeen).toEqual([]);
+    expect(checkupOfferFor(outcome.state, dayIso(1))?.kind).toBe('standing_entry');
+    const assessed = applyAssessmentPlacement(
+      outcome.state,
+      { t3: { reps: 16, handsUsed: false }, t1: { worseSideSeconds: 24 } },
+      { deferred: true, completedAtIso: dayIso(1) }
+    );
+    expect(assessed.profile.assessmentStatus).toBe('done');
+    expect(checkupOfferFor(assessed, dayIso(2))).toBeNull();
   });
 
-  it('dismissing the re-offer terminates the moment loop and home keeps the standing entry', () => {
+  it('keeps the standing entry on Home across further sessions', () => {
     const { state, decisions } = deferredAfterFirstSession();
-    const outcome = resolvePostSession(state, decisions, dayIso(0), 'dismiss');
-    expect(outcome.surfacesSeen).toContain('deferred_reoffer');
-    expect(outcome.checkupAccepted).toBe(false);
-    // The permanent way back (recorded rule): the home movement-check entry.
+    const outcome = resolvePostSession(state, decisions);
     expect(checkupOfferFor(outcome.state, dayIso(1))?.kind).toBe('standing_entry');
-    // And it persists across further sessions and dismissals.
     const again = runSession(outcome.state, dayIso(2), 'a_few');
-    const dismissedAgain = resolvePostSession(again.state, again.decisions, dayIso(2), 'dismiss');
-    expect(checkupOfferFor(dismissedAgain.state, dayIso(3))?.kind).toBe('standing_entry');
+    const completedAgain = resolvePostSession(again.state, again.decisions);
+    expect(completedAgain.surfacesSeen).toEqual([]);
+    expect(checkupOfferFor(completedAgain.state, dayIso(3))?.kind).toBe('standing_entry');
   });
 });
 
 describe('the skipped path', () => {
-  it('warm re-offer renders exactly once; the standing entry is permanent', () => {
+  it('keeps the standing check-up entry on Home without a post-session reminder', () => {
     const completion = runOnboarding([{ step: 'assessment_offer', value: 'skip' }], dayIso(0));
     let state = completion.programmeState;
     expect(state.profile.assessmentStatus).toBe('skipped');
@@ -259,16 +214,12 @@ describe('the skipped path', () => {
     let decisions: Partial<Record<ProgrammePattern, PromotionDecision>>;
     ({ state, decisions } = runSession(state, dayIso(0), 'a_few'));
     ({ state, decisions } = runSession(state, dayIso(2), 'a_few'));
-    // Two completed sessions → the once-only warm card appears...
-    const first = resolvePostSession(state, decisions, dayIso(2), 'dismiss');
-    expect(first.surfacesSeen).toContain('skipped_warm_reoffer');
-    // ...and ends on the logged card in the same loop (dismissal marks it).
-    expect(first.surfacesSeen[first.surfacesSeen.length - 1]).toBe('session_logged');
-
-    // Never again — but home keeps the permanent entry.
+    const first = resolvePostSession(state, decisions);
+    expect(first.surfacesSeen).toEqual([]);
+    expect(checkupOfferFor(first.state, dayIso(3))?.kind).toBe('standing_entry');
     const third = runSession(first.state, dayIso(4), 'a_few');
-    const after = resolvePostSession(third.state, third.decisions, dayIso(4), 'dismiss');
-    expect(after.surfacesSeen).not.toContain('skipped_warm_reoffer');
+    const after = resolvePostSession(third.state, third.decisions);
+    expect(after.surfacesSeen).toEqual([]);
     expect(checkupOfferFor(after.state, dayIso(5))?.kind).toBe('standing_entry');
   });
 });
@@ -286,10 +237,9 @@ describe('the B1 gentle-start journey', () => {
       const nowIso = dayIso(Math.floor(session / 3) * 7 + (session % 3) * 2);
       expect(checkupOfferFor(state, nowIso)).toBeNull();
       const run = runSession(state, nowIso, 'a_few');
-      const outcome = resolvePostSession(run.state, run.decisions, nowIso, 'dismiss');
+      const outcome = resolvePostSession(run.state, run.decisions);
       // Conformance Q1: no assessment surface until gp_confirmed.
-      expect(outcome.surfacesSeen).not.toContain('deferred_reoffer');
-      expect(outcome.surfacesSeen).not.toContain('skipped_warm_reoffer');
+      expect(outcome.surfacesSeen).toEqual([]);
       state = outcome.state;
     }
     expect(checkupOfferFor(state, dayIso(60))).toBeNull();
@@ -309,7 +259,7 @@ describe('the break-and-return journey', () => {
     );
     for (const day of [0, 2, 4]) {
       const run = runSession(state, dayIso(day), 'lots');
-      state = resolvePostSession(run.state, run.decisions, dayIso(day), 'dismiss').state;
+      state = resolvePostSession(run.state, run.decisions).state;
     }
 
     const back = dayIso(4 + 20);
@@ -325,7 +275,7 @@ describe('the break-and-return journey', () => {
     // The session itself persists the easing exactly once; the next day is a
     // normal session day again.
     const run = runSession(state, back, 'a_few');
-    state = resolvePostSession(run.state, run.decisions, back, 'dismiss').state;
+    state = resolvePostSession(run.state, run.decisions).state;
     expect(programmeTodayViewModel(state, dayIso(4 + 22)).state).toBe('session_ready');
     expect(applyInactivityRegressionIfDue(state, dayIso(4 + 22)).applied).toBe(false);
   });

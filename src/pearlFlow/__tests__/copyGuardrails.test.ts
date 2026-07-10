@@ -122,8 +122,8 @@ describe('Pearl V1 copy guardrails', () => {
           vm.sessionDetail,
           ...Object.values(vm.checkupOffer ?? {}),
           ...Object.values(checkupOfferFor(state, NOW) ?? {}),
-          ...Object.values(postSessionSurface(state, lockedHinge, NOW)),
-          ...Object.values(postSessionSurface(state, {}, NOW)),
+          ...Object.values(postSessionSurface(state, lockedHinge) ?? {}),
+          ...Object.values(postSessionSurface(state, {}) ?? {}),
         ];
       })
     );

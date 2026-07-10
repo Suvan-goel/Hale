@@ -80,4 +80,12 @@ describe('v2 shell session-mode wiring', () => {
     expect(shellSource).toContain('voiceSetup={voiceSetup}');
     expect(shellSource).toMatch(/settings: \{ \.\.\.current\.settings, voiceSetup: next \}/);
   });
+
+  it('returns routine completion Home and interrupts only for a technique gateway', () => {
+    expect(shellSource).toContain("setPhase(gatewaySurface ? 'session_done' : 'home')");
+    expect(shellSource).toContain('Only a technique');
+    expect(shellSource).not.toContain("surface.kind === 'deferred_reoffer'");
+    expect(shellSource).not.toContain("surface.kind === 'skipped_warm_reoffer'");
+    expect(shellSource).not.toContain("surface.kind === 'session_logged'");
+  });
 });

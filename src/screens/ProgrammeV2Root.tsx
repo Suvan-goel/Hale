@@ -64,7 +64,6 @@ import {
   assessmentInputsFromCheckUp,
   baselineCheckupDueAfterStarter,
   officialCheckUpAccess,
-  markSurfaceShown,
   completeOnboarding,
   defaultProgrammeState,
   effortFromRpe,
@@ -659,11 +658,13 @@ export function ProgrammeV2Root() {
         credit.kind === 'credited' || credit.kind === 'already_recorded'
           ? { ...applied.state, journey: credit.state }
           : applied.state;
+      const gatewaySurface = postSessionSurface(stateWithJourney, applied.decisions);
       persist(stateWithJourney);
-      setLastDecisions(applied.decisions);
+      setLastDecisions(gatewaySurface ? applied.decisions : {});
       sessionStartRef.current = null;
       setSessionResult(null);
-      setPhase('session_done');
+      setPlan(null);
+      setPhase(gatewaySurface ? 'session_done' : 'home');
     },
     [programmeState, plan, persist]
   );
@@ -889,102 +890,67 @@ export function ProgrammeV2Root() {
   }
 
   if (phase === 'session_done') {
-    // Precedence and copy come from the adapter: gateway teach card (C3 —
-    // teach-only, never a camera verdict) > deferred re-offer > once-only
-    // skipped warm re-offer > the session-logged card.
-    const surface = postSessionSurface(programmeState, lastDecisions, new Date().toISOString());
-    if (surface.kind === 'gateway_teach') {
-      const ladder = programmeState.ladders[surface.pattern];
+    // Routine completion returns Home from the effort answer. Only a technique
+    // gateway may interrupt that path because it gates safe progression.
+    const surface = postSessionSurface(programmeState, lastDecisions);
+    if (!surface) {
       return (
         <ProgrammeMomentScreen
           eyebrow="Session done"
-          title={surface.title}
-          body={surface.body}
-          actions={[
-            ...(!surface.demoWatched
-              ? [
-                  {
-                    label: surface.demoLabel,
-                    onPress: () =>
-                      persist({
-                        ...programmeState,
-                        ladders: {
-                          ...programmeState.ladders,
-                          [surface.pattern]: recordGatewayDemoWatched(ladder, surface.toLevel),
-                        },
-                      }),
-                  },
-                ]
-              : []),
-            ...(surface.demoWatched && !surface.selfConfirmed
-              ? [
-                  {
-                    label: surface.confirmLabel,
-                    onPress: () =>
-                      persist({
-                        ...programmeState,
-                        ladders: {
-                          ...programmeState.ladders,
-                          [surface.pattern]: recordGatewaySelfConfirmation(ladder, surface.toLevel),
-                        },
-                      }),
-                  },
-                ]
-              : []),
-            { label: surface.laterLabel, variant: 'ghost' as const, onPress: () => setLastDecisions({}) },
-          ]}
+          title="Your session is saved"
+          actions={[{ label: 'Back to Home', onPress: () => setPhase('home') }]}
         />
       );
     }
-    if (surface.kind === 'deferred_reoffer') {
-      return (
-        <ProgrammeMomentScreen
-          eyebrow="Session done"
-          title={surface.title}
-          body={surface.body}
-          actions={[
-            { label: surface.startLabel, onPress: startOfficialCheckUp },
-            {
-              label: surface.laterLabel,
-              variant: 'ghost',
-              // Dismissing must LEAVE this surface — the re-offer policy is
-              // pure over state, so re-rendering would show the same card
-              // forever (dev-shell bug fixed here). Home keeps the standing
-              // movement-check entry.
-              onPress: () => {
-                setLastDecisions({});
-                setPhase('home');
-              },
-            },
-          ]}
-        />
-      );
-    }
-    if (surface.kind === 'skipped_warm_reoffer') {
-      // Softer than the deferred card; renders exactly once — the home
-      // screen's movement-check entry remains the permanent path.
-      return (
-        <ProgrammeMomentScreen
-          eyebrow="Session done"
-          title={surface.title}
-          body={surface.body}
-          actions={[
-            { label: surface.startLabel, onPress: startOfficialCheckUp },
-            {
-              label: surface.laterLabel,
-              variant: 'ghost',
-              onPress: () => persist(markSurfaceShown(programmeState, 'skipped_warm_reoffer_card')),
-            },
-          ]}
-        />
-      );
-    }
+    const ladder = programmeState.ladders[surface.pattern];
     return (
       <ProgrammeMomentScreen
         eyebrow="Session done"
         title={surface.title}
         body={surface.body}
-        actions={[{ label: surface.doneLabel, onPress: () => setPhase('home') }]}
+        actions={[
+          ...(!surface.demoWatched
+            ? [
+                {
+                  label: surface.demoLabel,
+                  onPress: () =>
+                    persist({
+                      ...programmeState,
+                      ladders: {
+                        ...programmeState.ladders,
+                        [surface.pattern]: recordGatewayDemoWatched(ladder, surface.toLevel),
+                      },
+                    }),
+                },
+              ]
+            : []),
+          ...(surface.demoWatched && !surface.selfConfirmed
+            ? [
+                {
+                  label: surface.confirmLabel,
+                  onPress: () => {
+                    persist({
+                      ...programmeState,
+                      ladders: {
+                        ...programmeState.ladders,
+                        [surface.pattern]: recordGatewaySelfConfirmation(ladder, surface.toLevel),
+                      },
+                    });
+                    setLastDecisions({});
+                    setPhase('home');
+                  },
+                },
+              ]
+            : []),
+          {
+            label: surface.laterLabel,
+            variant: 'ghost' as const,
+            onPress: () => {
+              setLastDecisions({});
+              setPhase('home');
+            },
+          },
+        ]}
       />
     );
   }

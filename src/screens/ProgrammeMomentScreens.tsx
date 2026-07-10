@@ -1,8 +1,8 @@
 /**
  * Programme v2 moment surfaces (promotion integration Phase 3): the styled
  * replacements for the dev shell's bare PromptCards — gateway teach card,
- * check-up re-offers, session-logged, band/doming prompts, physio signpost,
- * and the C9 effort check-in. Presentation only: copy and precedence come
+ * band/doming prompts, physio signpost, and the C9 effort check-in.
+ * Presentation only: copy and precedence come
  * from the programme adapter (postSessionSurface, preSessionPrompt,
  * PROGRAMME_EFFORT_CHECKIN_COPY, PROGRAMME_SESSION_RPE_OPTIONS); actions are
  * the caller's. Design language: ScreenHeader + surface panel + the shared

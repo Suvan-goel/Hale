@@ -26,7 +26,6 @@ import {
   routineCheckupDue,
   shouldAskBandQuestion,
   shouldShowDomingCheck,
-  surfaceAlreadyShown,
 } from './postOnboarding';
 import { applyInactivityRegressionIfDue } from './promotion';
 import { isProgrammeJourneyRetestDue } from './journey';
@@ -346,10 +345,8 @@ export const PROGRAMME_EFFORT_CHECKIN_COPY = {
 } as const;
 
 export const PROGRAMME_SESSION_RPE_OPTIONS: readonly { value: SessionRpe; label: string }[] = [
-  { value: 1, label: 'Easy — I had lots more in me' },
-  { value: 2, label: 'Fairly easy' },
-  { value: 3, label: 'Worked, with a few left in the tank' },
-  { value: 4, label: 'Hard, but a couple left' },
+  { value: 1, label: 'I could do lots more' },
+  { value: 3, label: 'I could do a few more' },
   { value: 5, label: 'Nothing left' },
 ];
 
@@ -357,35 +354,30 @@ export const PROGRAMME_SESSION_RPE_OPTIONS: readonly { value: SessionRpe; label:
 // Post-session moment
 // ---------------------------------------------------------------------------
 
-export type ProgrammePostSessionSurface =
-  | {
-      kind: 'gateway_teach';
-      pattern: ProgrammePattern;
-      toLevel: number;
-      levelDisplayName: string;
-      demoWatched: boolean;
-      selfConfirmed: boolean;
-      title: string;
-      body: string;
-      demoLabel: string;
-      confirmLabel: string;
-      laterLabel: string;
-    }
-  | { kind: 'deferred_reoffer'; title: string; body: string; startLabel: string; laterLabel: string }
-  | { kind: 'skipped_warm_reoffer'; title: string; body: string; startLabel: string; laterLabel: string }
-  | { kind: 'session_logged'; title: string; body: string; doneLabel: string };
+export interface ProgrammePostSessionSurface {
+  kind: 'gateway_teach';
+  pattern: ProgrammePattern;
+  toLevel: number;
+  levelDisplayName: string;
+  demoWatched: boolean;
+  selfConfirmed: boolean;
+  title: string;
+  body: string;
+  demoLabel: string;
+  confirmLabel: string;
+  laterLabel: string;
+}
 
 /**
- * Dev-shell precedence preserved: a gateway-locked promotion (teach-only, C3
- * — never a camera verdict) wins, then the deferred re-offer, then the
- * once-only skipped warm re-offer, else the plain session-logged card.
- * Gateway locks are scanned in PROGRAMME_PATTERNS order for determinism.
+ * The only post-session interruption is a gateway-locked promotion
+ * (teach-only, C3 — never a camera verdict). Check-up offers belong on Home,
+ * and routine completion returns there directly. Gateway locks are scanned in
+ * PROGRAMME_PATTERNS order for determinism.
  */
 export function postSessionSurface(
   state: ProgrammeState,
-  decisions: Partial<Record<ProgrammePattern, PromotionDecision>>,
-  nowIso: string
-): ProgrammePostSessionSurface {
+  decisions: Partial<Record<ProgrammePattern, PromotionDecision>>
+): ProgrammePostSessionSurface | null {
   for (const pattern of PROGRAMME_PATTERNS) {
     const decision = decisions[pattern];
     if (!decision || decision.kind !== 'promotion_locked' || decision.reason !== 'gateway_incomplete') {
@@ -409,31 +401,7 @@ export function postSessionSurface(
       laterLabel: 'Later',
     };
   }
-  const reoffer = assessmentReoffer(state, nowIso);
-  if (reoffer === 'deferred_reoffer') {
-    return {
-      kind: 'deferred_reoffer',
-      title: 'Ready for your Movement Check-Up?',
-      body: 'It takes about eight minutes at your pace, stays private on your phone, and starts your personalised 12-week plan.',
-      startLabel: "Let's do it",
-      laterLabel: 'Sounds good — later',
-    };
-  }
-  if (reoffer === 'skipped_warm_reoffer' && !surfaceAlreadyShown(state, 'skipped_warm_reoffer_card')) {
-    return {
-      kind: 'skipped_warm_reoffer',
-      title: "Whenever you're ready",
-      body: "Your workouts get smarter if we do a quick movement check whenever you're ready. It's always waiting on your home screen.",
-      startLabel: "Let's do it now",
-      laterLabel: 'Maybe later',
-    };
-  }
-  return {
-    kind: 'session_logged',
-    title: 'Done — that counts',
-    body: 'Session logged. Showing up is the whole job this month.',
-    doneLabel: 'Back to home',
-  };
+  return null;
 }
 
 // ---------------------------------------------------------------------------

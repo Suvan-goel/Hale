@@ -5692,3 +5692,20 @@ the implementation.
   domain breakdown with its date and camera-estimate caveat. The detailed view
   continues to use the same presentation adapter and shared shell as fresh
   results.
+
+## 2026-07-10 — Workout completion returns Home after one useful answer
+
+- The post-session effort check now exposes the three signals progression
+  actually consumes: "I could do lots more", "I could do a few more", and
+  "Nothing left". They use the existing RPE-compatible values 1, 3, and 5, so
+  promotion behavior is unchanged; legacy values 2 and 4 remain accepted.
+- After an effort answer or Skip, the session is saved and routine completion
+  returns directly Home. The generic session-logged card and deferred/skipped
+  check-up re-offer cards are removed from the workout exit path. Home's
+  existing dynamic hero remains the single owner of a due check-up.
+- A technique-gateway promotion remains the only post-session interruption
+  because its demo and self-confirmation genuinely gate safe movement
+  progression. Confirming it returns Home immediately; choosing Later also
+  returns Home without losing completed session credit.
+- Pain, pause, skip-exercise, repeat-instruction, rep-adjustment, and leave
+  controls inside the voice-guided workout are unchanged.

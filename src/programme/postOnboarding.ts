@@ -165,8 +165,7 @@ export function assessmentReoffer(state: ProgrammeState, nowIso: string): Assess
 export type OneTimeSurfaceId =
   | 'doming_check'
   | 'pelvic_physio_signpost'
-  | 'band_question'
-  | 'skipped_warm_reoffer_card';
+  | 'band_question';
 
 export function surfaceAlreadyShown(state: ProgrammeState, surface: OneTimeSurfaceId): boolean {
   return state.profile.oneTimeSurfacesShown.includes(surface);

@@ -1,9 +1,10 @@
 /**
  * Effort signal (C9 ruling — tap-first, existing machinery).
  *
- * v1 reuses the existing post-session RPE (1–5) feedback channel as the
- * effort signal: the session-level RPE maps to the spec's effort answer and
- * applies to every pattern in that session. Per-exercise capture (and the
+ * v1 keeps the existing RPE-compatible channel but presents only the three
+ * answers progression actually consumes: values 1, 3, and 5 map to lots, a
+ * few, and none. Legacy values 2 and 4 remain accepted for saved compatibility.
+ * The session-level answer applies to every pattern. Per-exercise capture (and the
  * 3-intent voice slice — distinct words, phonetic-collision reviewed, e.g.
  * "easy / okay / all out"; never "none", which collides with "done") is the
  * FIRST post-v1 vocabulary change, queued under the full safety-word

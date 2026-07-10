@@ -244,10 +244,10 @@ export interface PatternSessionOutcome {
   levelPerformed: number;
   sets: readonly PatternSetOutcome[];
   /**
-   * Effort for this exercise. v1 falls back to the session-level RPE mapped
-   * via effortFromRpe() (C9 ruling); per-exercise capture arrives with the
-   * queued voice slice. Null = unanswered → treated conservatively (no
-   * promotion on unknown effort).
+   * Effort for this exercise. v1 falls back to the three-choice session effort
+   * mapped through the RPE-compatible effortFromRpe() seam (C9 ruling);
+   * per-exercise capture arrives with the queued voice slice. Null =
+   * unanswered → treated conservatively (no promotion on unknown effort).
    */
   effort: EffortAnswer | null;
   painFlag: boolean;

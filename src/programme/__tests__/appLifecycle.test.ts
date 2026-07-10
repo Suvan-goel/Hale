@@ -255,9 +255,9 @@ describe('postSessionSurface (precedence pinned)', () => {
   it('a gateway-locked promotion wins over every re-offer', () => {
     const state = training();
     state.profile = { ...state.profile, assessmentStatus: 'deferred' };
-    const surface = postSessionSurface(state, lockedHinge, NOW);
-    expect(surface.kind).toBe('gateway_teach');
-    if (surface.kind !== 'gateway_teach') return;
+    const surface = postSessionSurface(state, lockedHinge);
+    expect(surface?.kind).toBe('gateway_teach');
+    if (!surface) return;
     expect(surface.pattern).toBe('hinge');
     expect(surface.toLevel).toBe(2);
     // Naming law: the teach card names the level in plain language.
@@ -268,29 +268,26 @@ describe('postSessionSurface (precedence pinned)', () => {
     expect(surface.selfConfirmed).toBe(false);
   });
 
-  it('non-gateway decisions fall through to the re-offer policy', () => {
+  it('non-gateway decisions return directly Home even when a Home check-up offer is due', () => {
     const state = training();
     state.profile = { ...state.profile, assessmentStatus: 'deferred' };
     const decisions: Partial<Record<(typeof PROGRAMME_PATTERNS)[number], PromotionDecision>> = {
       squat: { kind: 'promote', toLevel: 2, reason: 'standard' },
       hinge: { kind: 'hold' },
     };
-    expect(postSessionSurface(state, decisions, NOW).kind).toBe('deferred_reoffer');
+    expect(postSessionSurface(state, decisions)).toBeNull();
+    expect(checkupOfferFor(state, NOW)?.kind).toBe('standing_entry');
   });
 
-  it('the skipped warm re-offer renders exactly once (once-only registry honoured)', () => {
+  it('skipped check-ups stay on Home rather than interrupting session completion', () => {
     const state = training({ completedSessionCount: 2 });
     state.profile = { ...state.profile, assessmentStatus: 'skipped' };
-    expect(postSessionSurface(state, {}, NOW).kind).toBe('skipped_warm_reoffer');
-    const shown = markSurfaceShown(state, 'skipped_warm_reoffer_card');
-    expect(postSessionSurface(shown, {}, NOW).kind).toBe('session_logged');
+    expect(postSessionSurface(state, {})).toBeNull();
+    expect(checkupOfferFor(state, NOW)?.kind).toBe('standing_entry');
   });
 
-  it('quiet default: the session-logged card', () => {
-    const surface = postSessionSurface(training(), {}, NOW);
-    expect(surface.kind).toBe('session_logged');
-    if (surface.kind !== 'session_logged') return;
-    expect(surface.title).toBe('Done — that counts');
+  it('quiet default: no extra post-session surface', () => {
+    expect(postSessionSurface(training(), {})).toBeNull();
   });
 });
 
@@ -309,8 +306,12 @@ describe('programmeLevelRows', () => {
 });
 
 describe('effort check-in options (C9)', () => {
-  it('covers the full RPE 1–5 scale exactly once each', () => {
-    expect(PROGRAMME_SESSION_RPE_OPTIONS.map((option) => option.value)).toEqual([1, 2, 3, 4, 5]);
+  it('shows the three progression signals directly', () => {
+    expect(PROGRAMME_SESSION_RPE_OPTIONS).toEqual([
+      { value: 1, label: 'I could do lots more' },
+      { value: 3, label: 'I could do a few more' },
+      { value: 5, label: 'Nothing left' },
+    ]);
   });
 });
 
