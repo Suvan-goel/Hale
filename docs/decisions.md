@@ -5591,7 +5591,7 @@ the implementation.
   comfort, pelvic-floor impact routing, balance support, safe-step access,
   quiet-mode needs, and check-up timing stay because they affect safety,
   starting level, session content, or meaningful personal context. Preferred
-  workout days are removed from onboarding and remain editable in Settings.
+  workout days are removed until real scheduling exists.
 - Joint comfort answers now have an immediate, truthful effect: each related
   movement ladder starts at level 1, including after the initial check-up.
   Successful sessions can still progress it normally. Step and quiet answers
@@ -5621,3 +5621,26 @@ the implementation.
 - Settings remains available from page headers rather than becoming a tab.
   Workout and Learn tabs are excluded: Workouts duplicated Home’s action and
   Learn remains an explicit MVP non-goal.
+
+## 2026-07-10 — Settings reduced to four effectful sections
+
+- The Settings landing page now has four destinations: Your Profile, Workout
+  & Voice, Safety & Camera, and Privacy & Data. Low-frequency detail remains
+  available without presenting every control at once.
+- Preferred workout days are removed from Settings because the app does not
+  schedule sessions or notifications around them. The legacy persisted field
+  remains schema-compatible but is not collected or presented.
+- The standalone equipment picker is removed because it explicitly did not
+  alter the promoted programme. Equipment is asked in context when it can
+  change an exercise; zero-equipment substitutions remain authoritative.
+- Starting effort and trainer voice share one section because both affect the
+  real session experience. Movement support and camera setup share another;
+  balance support, low-impact routing, quiet mode, and safe-step availability
+  now update the promoted programme directly. The legacy review with duplicate
+  profile, effort, and no-effect pain rows is no longer mounted. Balance
+  support is one-way in Settings because a check-up may require it; users can
+  enable support but cannot override a measurement-forced protection there.
+- Profile details no longer repeat the read-only movement goal. Privacy keeps
+  the local-storage explanation, optional published-value comparison, and the
+  confirmed delete-all-data control. No reminder, account, backup, or sync
+  affordance is exposed without a working capability behind it.

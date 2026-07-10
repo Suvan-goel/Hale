@@ -211,7 +211,7 @@ export interface ProgrammeProfile {
    * check-up) completed — the clock the 4–6-week routine cadence reads.
    */
   lastAssessmentAtIso: string | null;
-  /** D1 day picker (kept per C7; the notification opt-in is NOT built). */
+  /** Legacy-compatible only; MVP does not collect days until real scheduling exists. */
   chosenDays: readonly Weekday[];
   /** The activation event — mirrored into local telemetry (ruling: ambiguity 4). */
   firstSessionStarted: boolean;

@@ -1,21 +1,19 @@
 /**
- * Settings screen: compact local profile hub, plan preferences, safety setup,
- * equipment, privacy, and help. Accounts remain deferred for the MVP.
+ * Settings screen: four MVP sections — details, workout and voice, safety and
+ * camera, privacy and data. Accounts, fake scheduling, and no-effect equipment
+ * controls remain out of the product surface.
  */
 
 import * as React from 'react';
-import { BackHandler, Platform, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { BackHandler, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-import type { ActivityLevel, AvailableEquipment } from '../adherence';
-import { getLifeGoalDisplayText, normalizeLifeGoalDisplayText } from '../adherence';
+import type { ActivityLevel } from '../adherence';
 import { VoiceChannel } from '../audio/voicePlayer';
 import { BackArrowButton } from '../components/BackArrowButton';
 import { DateOfBirthPickerModal } from '../components/DateOfBirthPickerModal';
 import { HeaderLogo } from '../components/HeaderLogo';
 import { Button, Screen, ToggleRow } from '../components/ui';
-import { controlledBetaEquipmentPositioning } from '../pearlFlow';
-import type { Weekday } from '../programme';
 import {
   AppSettings,
   MENOPAUSE_STAGE_OPTIONS,
@@ -40,23 +38,12 @@ import { colors, fonts, radius, shadow, spacing, type } from '../theme';
 import { compactTypography, useResponsiveLayout } from '../theme/responsive';
 
 import { BRAND } from '../brand';
-const DAYS: readonly { value: Weekday; label: string }[] = [
-  { value: 'mon', label: 'Mon' },
-  { value: 'tue', label: 'Tue' },
-  { value: 'wed', label: 'Wed' },
-  { value: 'thu', label: 'Thu' },
-  { value: 'fri', label: 'Fri' },
-  { value: 'sat', label: 'Sat' },
-  { value: 'sun', label: 'Sun' },
-];
 const VOICE_PREVIEW_CUE = 'voice-preview' as const;
 
 type ProfileSection =
   | 'details'
   | 'safety'
-  | 'plan'
-  | 'voice'
-  | 'equipment'
+  | 'workout'
   | 'privacy';
 
 type VoiceCatalogOption = (typeof VOICE_OPTIONS)[number];
@@ -64,23 +51,15 @@ type VoiceCatalogOption = (typeof VOICE_OPTIONS)[number];
 const SECTION_COPY: Record<ProfileSection, { title: string; subtitle: string }> = {
   details: {
     title: 'Your profile',
-    subtitle: 'Update your name, reference details, and movement goal.',
+    subtitle: 'Update your name and reference details.',
   },
   safety: {
-    title: 'Camera setup',
-    subtitle: 'Review privacy and phone placement.',
+    title: 'Safety & camera',
+    subtitle: 'Review movement support and private camera setup.',
   },
-  plan: {
-    title: 'Preferred rhythm & effort',
-    subtitle: 'Choose the days that usually suit you and your starting effort.',
-  },
-  voice: {
-    title: 'Trainer voice',
-    subtitle: 'Choose the voice for check-ups and workouts.',
-  },
-  equipment: {
-    title: 'Equipment',
-    subtitle: 'Choose what you have at home.',
+  workout: {
+    title: 'Workout & voice',
+    subtitle: 'Choose your starting effort and trainer voice.',
   },
   privacy: {
     title: 'Privacy & data',
@@ -88,17 +67,23 @@ const SECTION_COPY: Record<ProfileSection, { title: string; subtitle: string }> 
   },
 };
 
+export interface SettingsSafetyPreferences {
+  balanceSupportDefault: boolean;
+  lowImpact: boolean;
+  quietMode: boolean;
+  hasStairs: boolean | null;
+  consentHealthData: boolean;
+}
+
 type SettingsScreenProps = {
   profile: UserProfile;
   settings: AppSettings;
-  preferredDays: readonly Weekday[];
   startingEffort: ActivityLevel;
+  safetyPreferences: SettingsSafetyPreferences;
   onProfileChange: (next: UserProfile) => void;
   onSettingsChange: (next: AppSettings) => void;
-  onToggleAvailableEquipment: (item: AvailableEquipment) => void;
-  onPreferredDaysChange: (days: Weekday[]) => void;
   onStartingEffortChange: (startingEffort: ActivityLevel) => void;
-  onOpenSafetyProfile: () => void;
+  onSafetyPreferencesChange: (next: SettingsSafetyPreferences) => void;
   onOpenCameraSetup: () => void;
   onClearDeviceData: () => Promise<void>;
   onDataCleared: () => void;
@@ -118,14 +103,12 @@ export function SettingsScreen(props: SettingsScreenProps) {
 function SettingsScreenContent({
   profile,
   settings,
-  preferredDays,
   startingEffort,
+  safetyPreferences,
   onProfileChange,
   onSettingsChange,
-  onToggleAvailableEquipment,
-  onPreferredDaysChange,
   onStartingEffortChange,
-  onOpenSafetyProfile,
+  onSafetyPreferencesChange,
   onOpenCameraSetup,
   onClearDeviceData,
   onDataCleared,
@@ -146,15 +129,10 @@ function SettingsScreenContent({
     profile.symptomPicture
   );
   const voicePreviewRef = React.useRef<VoiceChannel | null>(null);
-  const available = profile.safetyProfile?.availableEquipment ?? ['chair', 'wall'];
   const displayName = profile.name.trim() || 'Your details';
-  const goalText = profile.lifeGoal
-    ? getLifeGoalDisplayText(profile.lifeGoal)
-    : normalizeLifeGoalDisplayText(profile.goal) || 'Set a movement goal';
-  const profileGoalText = goalContinuationText(goalText);
   const effortLabel = startingEffortLabel(startingEffort);
-  const planSummary = `${preferredDaysSummary(preferredDays)} · ${effortLabel}`;
   const selectedVoiceLabel = getVoice(settings.voiceId).label;
+  const profileSummary = profileReferenceSummary(profile);
 
   React.useEffect(() => setName(profile.name), [profile.name]);
   React.useEffect(() => {
@@ -232,13 +210,6 @@ function SettingsScreenContent({
     commitReferenceDetails(dateOfBirthText, referenceSex, menopauseStage, next);
   };
 
-  const toggleDay = (day: Weekday) => {
-    const next = preferredDays.includes(day)
-      ? preferredDays.filter((item) => item !== day)
-      : [...preferredDays, day];
-    onPreferredDaysChange(next);
-  };
-
   const renderSectionContent = () => {
     if (openSection === 'details') {
       return (
@@ -255,7 +226,6 @@ function SettingsScreenContent({
             onMenopauseStageChange={updateMenopauseStage}
             symptomPicture={symptomPicture}
             onSymptomPictureChange={updateSymptomPicture}
-            movementGoal={goalText}
           />
         </>
       );
@@ -265,8 +235,14 @@ function SettingsScreenContent({
       return (
         <>
           <DetailOverview
-            title="Private camera use"
-            body={`${BRAND.appName} checks your position without showing your video.`}
+            title="Safe support, private camera"
+            body="Review movement support choices and how to place your phone securely. Camera video is never shown or saved."
+            meta={safetyPreferences.consentHealthData ? 'Health answers used on this device' : 'Health answers are off'}
+          />
+
+          <SafetyPreferencesCard
+            value={safetyPreferences}
+            onChange={onSafetyPreferencesChange}
           />
 
           <SafetyReadinessCard onOpenCameraSetup={onOpenCameraSetup} />
@@ -274,97 +250,28 @@ function SettingsScreenContent({
       );
     }
 
-    if (openSection === 'plan') {
+    if (openSection === 'workout') {
       return (
         <>
           <DetailOverview
-            title={planSummary}
-            body="These preferences describe the rhythm you would like. Workouts remain available whenever you are ready."
-            meta="Your preferred rhythm"
+            title={`${effortLabel} · ${selectedVoiceLabel}`}
+            body="Starting effort shapes programme placement. Your trainer voice guides both workouts and check-ups."
+            meta="Workout preferences"
           />
 
           <PreferenceCard
-            title="Preferred workout days"
-            subtitle="Pick any days that usually fit your week."
-            meta={trainingDayMeta(preferredDays)}
-          >
-            <DayPreferencePicker selectedDays={preferredDays} onToggleDay={toggleDay} />
-          </PreferenceCard>
-
-          <PreferenceCard
-            title="Workout effort"
-            subtitle="Choose how hard workouts should feel at the start."
+            title="Starting effort"
+            subtitle="Used when your programme sets or refreshes starting levels."
             meta={effortLabel}
           >
             <SessionFeelPicker selected={startingEffort} onSelect={onStartingEffortChange} />
           </PreferenceCard>
-        </>
-      );
-    }
 
-    if (openSection === 'voice') {
-      return (
-        <VoiceSelectorCard
-          selectedVoiceId={settings.voiceId}
-          onSelectVoice={(voiceId) => onSettingsChange({ ...settings, voiceId })}
-          onPreviewVoice={previewVoice}
-        />
-      );
-    }
-
-    if (openSection === 'equipment') {
-      return (
-        <>
-          <DetailOverview
-            title="Basic setup"
-            body={`${BRAND.appName} starts with a chair and nearby support. Save other items here as a reference for future programme options.`}
-            meta={controlledBetaEquipmentPositioning.shortLabel}
+          <VoiceSelectorCard
+            selectedVoiceId={settings.voiceId}
+            onSelectVoice={(voiceId) => onSettingsChange({ ...settings, voiceId })}
+            onPreviewVoice={previewVoice}
           />
-
-          <DetailCard
-            title="Optional items"
-            body="Turn on only items you have and feel safe using. These settings do not automatically change your current programme yet."
-          >
-            <View style={styles.toggleStack}>
-              <ToggleRow
-                label="Bottom stair"
-                description="Use only if it is low, stable, and near support."
-                value={available.includes('stairs')}
-                onValueChange={() => onToggleAvailableEquipment('stairs')}
-              />
-              <ToggleRow
-                label="Resistance band"
-                description="Used for some upper-body pulling exercises."
-                value={available.includes('resistance_band')}
-                onValueChange={() => onToggleAvailableEquipment('resistance_band')}
-              />
-              <ToggleRow
-                label="Door anchor for band rows"
-                description="Only turn this on if you have a proper band door anchor."
-                value={available.includes('door_anchor')}
-                onValueChange={() => onToggleAvailableEquipment('door_anchor')}
-              />
-              <ToggleRow
-                label="Mini band"
-                description="Used for some hip and side-step exercises."
-                value={available.includes('mini_band')}
-                onValueChange={() => onToggleAvailableEquipment('mini_band')}
-              />
-              <ToggleRow
-                label="Backpack or light weight"
-                description="Used only for gentle added load."
-                value={available.includes('backpack')}
-                onValueChange={() => onToggleAvailableEquipment('backpack')}
-              />
-              <ToggleRow
-                label="Floor space for mat exercises"
-                description="Enough clear space to lie down safely."
-                value={available.includes('floor_space')}
-                onValueChange={() => onToggleAvailableEquipment('floor_space')}
-              />
-            </View>
-          </DetailCard>
-
         </>
       );
     }
@@ -463,52 +370,32 @@ function SettingsScreenContent({
           <Text style={styles.profileName} numberOfLines={1}>
             {displayName}
           </Text>
-          <View style={styles.profileGoalBlock}>
-            <Text style={styles.profileGoalPrompt}>In the future, I want to be able to</Text>
-            <Text style={styles.profileGoalText} numberOfLines={2}>
-              {profileGoalText}
-            </Text>
-          </View>
+          <Text style={styles.profileSummary} numberOfLines={2}>{profileSummary}</Text>
         </View>
       </Pressable>
 
-      <SettingsSection title="Workouts">
+      <SettingsSection title="Workout">
         <ProfileMenuRow
-          title={SECTION_COPY.plan.title}
+          title={SECTION_COPY.workout.title}
+          subtitle={`${effortLabel} · ${selectedVoiceLabel}`}
           icon="sliders"
-          onPress={() => openProfileSection('plan')}
-          showDivider
-        />
-        <ProfileMenuRow
-          title={SECTION_COPY.equipment.title}
-          icon="dumbbell"
-          onPress={() => openProfileSection('equipment')}
-          showDivider
-        />
-        <ProfileMenuRow
-          title="Safety profile"
-          subtitle="Support, comfort, and pain details."
-          icon="shield"
-          onPress={onOpenSafetyProfile}
-          showDivider
-        />
-        <ProfileMenuRow
-          title={SECTION_COPY.voice.title}
-          subtitle={selectedVoiceLabel}
-          icon="volume"
-          onPress={() => openProfileSection('voice')}
+          onPress={() => openProfileSection('workout')}
         />
       </SettingsSection>
 
-      <SettingsSection title="Camera & privacy">
+      <SettingsSection title="Safety">
         <ProfileMenuRow
           title={SECTION_COPY.safety.title}
-          icon="camera"
+          subtitle="Movement support and private camera setup."
+          icon="shield"
           onPress={() => openProfileSection('safety')}
-          showDivider
         />
+      </SettingsSection>
+
+      <SettingsSection title="Privacy">
         <ProfileMenuRow
           title={SECTION_COPY.privacy.title}
+          subtitle="Local storage, comparisons, and delete data."
           icon="lock"
           onPress={() => openProfileSection('privacy')}
         />
@@ -717,6 +604,81 @@ function VoiceOptionRow({
   );
 }
 
+function SafetyPreferencesCard({
+  value,
+  onChange,
+}: {
+  value: SettingsSafetyPreferences;
+  onChange: (next: SettingsSafetyPreferences) => void;
+}) {
+  return (
+    <DetailCard
+      title="Movement support"
+      body="These choices change upcoming sessions immediately. You can still stop or skip any movement."
+    >
+      <View style={styles.safetyPreferenceStack}>
+        <ConservativeSafetyRow
+          label="Keep support nearby for balance"
+          description="Uses supported balance variations by default. Once enabled, this protection stays on."
+          enabled={value.balanceSupportDefault}
+          onEnable={() => onChange({ ...value, balanceSupportDefault: true })}
+        />
+        <ToggleRow
+          label="Keep sessions low impact"
+          description="Leaves out the stomping finisher and uses the low-impact route."
+          value={value.lowImpact}
+          onValueChange={(lowImpact) => onChange({ ...value, lowImpact })}
+        />
+        <ToggleRow
+          label="Avoid stomping sounds"
+          description="Keeps the quiet finisher route on."
+          value={value.quietMode}
+          onValueChange={(quietMode) => onChange({ ...value, quietMode })}
+        />
+        <ToggleRow
+          label="Use my low, stable step"
+          description="Only enable this when fixed support is nearby."
+          value={value.hasStairs === true}
+          onValueChange={(hasStairs) => onChange({ ...value, hasStairs })}
+        />
+      </View>
+    </DetailCard>
+  );
+}
+
+function ConservativeSafetyRow({
+  label,
+  description,
+  enabled,
+  onEnable,
+}: {
+  label: string;
+  description: string;
+  enabled: boolean;
+  onEnable: () => void;
+}) {
+  return (
+    <View style={styles.conservativeSafetyRow}>
+      <View style={styles.conservativeSafetyCopy}>
+        <Text style={styles.conservativeSafetyLabel}>{label}</Text>
+        <Text style={styles.conservativeSafetyDescription}>{description}</Text>
+      </View>
+      {enabled ? (
+        <Text style={styles.conservativeSafetyStatus}>On</Text>
+      ) : (
+        <Pressable
+          style={({ pressed }) => [styles.conservativeSafetyButton, pressed && styles.pressed]}
+          onPress={onEnable}
+          accessibilityRole="button"
+          accessibilityLabel={`Turn on ${label}`}
+        >
+          <Text style={styles.conservativeSafetyButtonText}>Turn on</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
 function SafetyReadinessCard({ onOpenCameraSetup }: { onOpenCameraSetup: () => void }) {
   const responsive = useResponsiveLayout();
   return (
@@ -734,6 +696,7 @@ function SafetyReadinessCard({ onOpenCameraSetup }: { onOpenCameraSetup: () => v
         <SafetyActionRow
           icon="camera"
           title="See camera setup tips"
+          body="Use a steady stand, shelf, or stack of books."
           onPress={onOpenCameraSetup}
           first
         />
@@ -790,7 +753,6 @@ function PersonalDetailsCard({
   onMenopauseStageChange,
   symptomPicture,
   onSymptomPictureChange,
-  movementGoal,
 }: {
   name: string;
   onNameChange: (value: string) => void;
@@ -803,7 +765,6 @@ function PersonalDetailsCard({
   onMenopauseStageChange: (value: MenopauseStage) => void;
   symptomPicture: MenopauseSymptomPicture | null;
   onSymptomPictureChange: (value: MenopauseSymptomPicture | null) => void;
-  movementGoal: string;
 }) {
   const responsive = useResponsiveLayout();
   const dateOfBirth = normalizeDateOfBirth(dateOfBirthText);
@@ -962,24 +923,6 @@ function PersonalDetailsCard({
             </>
           ) : null}
         </View>
-
-        {/* Read-only since the simplification pass (2026-07-08): the goal is
-            set once in onboarding; the dedicated review screen was removed. */}
-        <View
-          style={[styles.personalGoalPanel, responsive.isCompactPhone && styles.compactCardPadding]}
-          accessibilityLabel={`Movement goal: ${movementGoal}`}
-        >
-          <View style={styles.personalGoalRow}>
-            <View style={styles.personalGoalCopy}>
-              <Text style={styles.personalFieldLabel}>Movement goal</Text>
-              <View style={styles.personalGoalValueRow}>
-                <Text style={styles.personalGoalValue} numberOfLines={2}>
-                  {movementGoal}
-                </Text>
-              </View>
-            </View>
-          </View>
-        </View>
       </View>
     </View>
   );
@@ -987,15 +930,6 @@ function PersonalDetailsCard({
 
 function referenceSexSummary(referenceSex: ProfileReferenceSex): string {
   return referenceSex === 'female' ? 'Female' : 'Male';
-}
-
-function InfoRow({ label, value, first }: { label: string; value: string; first?: boolean }) {
-  return (
-    <View style={[styles.infoRow, first && styles.infoRowFirst]}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
-    </View>
-  );
 }
 
 function PrivacyStorageCard() {
@@ -1021,7 +955,7 @@ function PrivacyStorageCard() {
         <PrivacyLedgerRow
           icon="shield"
           label="Safety preferences"
-          body="Support, comfort, equipment, and camera setup."
+          body="Support, comfort, and camera setup."
           value="Saved"
         />
         <PrivacyLedgerRow
@@ -1183,54 +1117,6 @@ function PreferenceCard({
   );
 }
 
-function DayPreferencePicker({
-  selectedDays,
-  onToggleDay,
-}: {
-  selectedDays: readonly Weekday[];
-  onToggleDay: (day: Weekday) => void;
-}) {
-  return (
-    <View style={styles.dayPickerRow}>
-      {DAYS.map((day) => (
-        <DayPreferenceChip
-          key={day.value}
-          label={day.label}
-          selected={selectedDays.includes(day.value)}
-          onPress={() => onToggleDay(day.value)}
-        />
-      ))}
-    </View>
-  );
-}
-
-function DayPreferenceChip({
-  label,
-  selected,
-  onPress,
-}: {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.dayChip,
-        selected && styles.dayChipSelected,
-        pressed && styles.pressed,
-      ]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      accessibilityLabel={`${label}${selected ? ', selected' : ''}`}
-      hitSlop={{ top: 4, bottom: 4 }}
-    >
-      <Text style={[styles.dayChipText, selected && styles.dayChipTextSelected]}>{label}</Text>
-    </Pressable>
-  );
-}
-
 function SessionFeelPicker({
   selected,
   onSelect,
@@ -1308,28 +1194,13 @@ function SelectionIndicator({ selected }: { selected: boolean }) {
   );
 }
 
-function preferredDaysSummary(days: readonly Weekday[]): string {
-  if (days.length === 0) return 'No preferred days';
-  if (days.length >= 6) return 'Most days';
-  return days.map((day) => DAYS.find((option) => option.value === day)?.label ?? day).join(', ');
-}
-
-function trainingDayMeta(days: readonly Weekday[]): string {
-  if (days.length === 0) return 'None set';
-  if (days.length === 1) return '1 day';
-  return `${days.length} days`;
-}
-
-function goalContinuationText(goal: string): string {
-  const trimmed = goal.trim();
-  const withoutPrompt = trimmed
-    .replace(/^in\s+the\s+future,\s+i\s+want\s+to\s+be\s+able\s+to\s+/i, '')
-    .replace(/^i\s+want\s+to\s+be\s+able\s+to\s+/i, '')
-    .replace(/^my\s+goal\s+is\s+to\s+/i, '')
-    .replace(/^i\s+want\s+to\s+/i, '')
-    .replace(/^to\s+/i, '');
-  if (!withoutPrompt) return trimmed;
-  return withoutPrompt.charAt(0).toLocaleLowerCase() + withoutPrompt.slice(1);
+function profileReferenceSummary(profile: UserProfile): string {
+  const parts: string[] = [];
+  if (profile.exactAge !== null && profile.exactAge !== undefined) {
+    parts.push(`Age ${profile.exactAge}`);
+  }
+  if (profile.referenceSex) parts.push(`${referenceSexSummary(profile.referenceSex)} reference`);
+  return parts.length > 0 ? parts.join(' · ') : 'Review your profile details';
 }
 
 function ProfileDetailsGlyph() {
@@ -1359,7 +1230,6 @@ type MenuIconName =
   | 'sliders'
   | 'camera'
   | 'volume'
-  | 'dumbbell'
   | 'bell'
   | 'account'
   | 'lock';
@@ -1410,15 +1280,6 @@ function MenuIcon({ name }: { name: MenuIconName }) {
             <Path d="M4.5 10 V14 H8 L12 17 V7 L8 10 Z" {...common} />
             <Path d="M15 9 C16 10, 16.5 11, 16.5 12 C16.5 13, 16 14, 15 15" {...common} />
             <Path d="M17.5 6.8 C19 8.3, 20 10, 20 12 C20 14, 19 15.7, 17.5 17.2" {...common} />
-          </>
-        ) : null}
-        {name === 'dumbbell' ? (
-          <>
-            <Path d="M8 12 H16" {...common} />
-            <Path d="M5.2 8.5 V15.5" {...common} />
-            <Path d="M7.4 9.8 V14.2" {...common} />
-            <Path d="M16.6 9.8 V14.2" {...common} />
-            <Path d="M18.8 8.5 V15.5" {...common} />
           </>
         ) : null}
         {name === 'lock' ? (
@@ -1521,17 +1382,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     color: colors.primaryText,
   },
-  profileGoalBlock: {
-    gap: 2,
-  },
-  profileGoalPrompt: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 0,
-    color: colors.accentDeep,
-  },
-  profileGoalText: {
+  profileSummary: {
     fontFamily: fonts.sansRegular,
     fontSize: 14,
     lineHeight: 20,
@@ -1696,6 +1547,47 @@ const styles = StyleSheet.create({
   },
   detailCardContent: {
     marginTop: spacing.lg,
+  },
+  safetyPreferenceStack: {
+    gap: spacing.md,
+  },
+  conservativeSafetyRow: {
+    minHeight: 62,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+  },
+  conservativeSafetyCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  conservativeSafetyLabel: {
+    ...type.bodySmall,
+    color: colors.primaryText,
+    fontFamily: fonts.sansMedium,
+  },
+  conservativeSafetyDescription: {
+    ...type.caption,
+    color: colors.textSecondary,
+  },
+  conservativeSafetyStatus: {
+    ...type.cardBody,
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
+  },
+  conservativeSafetyButton: {
+    minHeight: 44,
+    justifyContent: 'center',
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.accentBorder,
+  },
+  conservativeSafetyButtonText: {
+    ...type.cardBody,
+    color: colors.accentDeep,
+    fontFamily: fonts.sansMedium,
   },
   voiceSelectorCard: {
     gap: spacing.lg,
@@ -1999,45 +1891,6 @@ const styles = StyleSheet.create({
     color: colors.onAccent,
     fontFamily: fonts.sansMedium,
   },
-  personalGoalPanel: {
-    minHeight: 104,
-    borderRadius: radius.panel,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.goldBorder,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.lg,
-    backgroundColor: 'transparent',
-    justifyContent: 'center',
-  },
-  personalGoalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  personalGoalCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 6,
-  },
-  personalGoalValueRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  personalGoalValue: {
-    flex: 1,
-    minWidth: 0,
-    fontFamily: fonts.serifMedium,
-    fontSize: 18,
-    lineHeight: 24,
-    letterSpacing: 0,
-    color: colors.primaryText,
-  },
-  personalGoalChevron: {
-    ...type.h2,
-    color: colors.textSecondary,
-    lineHeight: 27,
-    flexShrink: 0,
-  },
   preferenceCard: {
     gap: spacing.lg,
     paddingHorizontal: spacing.xl,
@@ -2081,30 +1934,6 @@ const styles = StyleSheet.create({
     color: colors.accentDeep,
     fontFamily: fonts.sansMedium,
     lineHeight: 18,
-  },
-  dayPickerRow: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  dayChip: {
-    flex: 1,
-    minHeight: 44,
-    borderRadius: radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.subtleBorder,
-    backgroundColor: colors.bgSurface,
-  },
-  dayChipSelected: {
-    borderColor: colors.accent,
-  },
-  dayChipText: {
-    ...type.cardRowTitle,
-    color: colors.primaryText,
-  },
-  dayChipTextSelected: {
-    color: colors.accentDeep,
   },
   sessionFeelList: {
     borderRadius: radius.input,
@@ -2156,28 +1985,6 @@ const styles = StyleSheet.create({
   },
   selectionIndicatorSelected: {
     borderColor: colors.accent,
-  },
-  toggleStack: { gap: spacing.md },
-  infoRow: {
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-    paddingVertical: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.divider,
-  },
-  infoRowFirst: {
-    borderTopWidth: 0,
-    paddingTop: 0,
-  },
-  infoLabel: { ...type.bodySmall, color: colors.textSecondary, flex: 1 },
-  infoValue: {
-    ...type.bodySmall,
-    color: colors.accentDeep,
-    textAlign: 'right',
-    flex: 1,
   },
   privacyLedger: {
     marginTop: -spacing.xs,

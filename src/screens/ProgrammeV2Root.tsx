@@ -25,7 +25,7 @@ import {
   requestCameraPermissionsAsync,
   setAndroidNavigationBarVisibleAsync,
 } from '../../modules/expo-pose-detection';
-import { LOCAL_USER_ID, type AvailableEquipment } from '../adherence';
+import { LOCAL_USER_ID } from '../adherence';
 import { configureSessionAudio } from '../audio/voicePlayer';
 import { Screen, ScreenScrollClearanceProvider } from '../components/ui';
 import { useSystemInsets } from '../components/SystemInsetsProvider';
@@ -99,8 +99,6 @@ import type { OnboardingQuestionStepId } from '../programme';
 import {
   onboardingActivityLevel,
   ProfileStore,
-  safetyProfileWithCanonicalEquipment,
-  canonicalEquipmentFromSafetyProfile,
   type AppSettings,
   type Preferences,
   type UserProfile,
@@ -115,7 +113,6 @@ import { ProgressScreen } from './ProgressScreen';
 import { ProgrammeCheckupZeroScreen } from './ProgrammeCheckupZeroScreen';
 import { ProgrammeEffortScreen, ProgrammeMomentScreen } from './ProgrammeMomentScreens';
 import { ProgrammeOnboardingScreen } from './ProgrammeOnboardingScreen';
-import { SafetyProfileScreen } from './SafetyProfileScreen';
 import { SettingsScreen } from './SettingsScreen';
 import { TodayScreen } from './TodayScreen';
 import { VoiceSessionScreen } from './VoiceSessionScreen';
@@ -134,7 +131,7 @@ type ShellPhase =
   | 'session_done'
   | 'assessment';
 
-type ShellFlow = 'settings' | 'safety-profile' | 'camera-setup' | null;
+type ShellFlow = 'settings' | 'camera-setup' | null;
 
 type CameraPermission = 'checking' | 'granted' | 'undetermined' | 'denied';
 
@@ -675,34 +672,6 @@ export function ProgrammeV2Root() {
       setPhase('session_done');
     },
     [programmeState, plan, persist]
-  );
-
-  const toggleAvailableEquipment = React.useCallback(
-    (item: AvailableEquipment) => {
-      if (!prefs) return;
-      const safetyProfile = prefs.profile.safetyProfile;
-      if (!safetyProfile) return;
-      const now = new Date().toISOString();
-      const canonical = canonicalEquipmentFromSafetyProfile(safetyProfile);
-      const set = new Set(canonical.status === 'confirmed' ? canonical.capabilities : []);
-      if (item === 'none') {
-        set.clear();
-      } else if (set.has(item)) {
-        set.delete(item);
-      } else {
-        set.add(item);
-      }
-      const nextSafetyProfile = safetyProfileWithCanonicalEquipment(safetyProfile, Array.from(set), {
-        status: 'confirmed',
-        updatedAt: now,
-        revision: safetyProfile.equipmentRevision,
-      });
-      persistPrefs({
-        ...prefs,
-        profile: { ...prefs.profile, safetyProfile: nextSafetyProfile },
-      });
-    },
-    [prefs, persistPrefs]
   );
 
   const handleClearDeviceData = React.useCallback(async () => {
@@ -1310,17 +1279,16 @@ export function ProgrammeV2Root() {
       <SettingsScreen
         profile={prefs.profile}
         settings={prefs.settings}
-        preferredDays={programmeState.profile.chosenDays}
         startingEffort={onboardingActivityLevel(programmeState.profile.activityLevel)}
+        safetyPreferences={{
+          balanceSupportDefault: programmeState.profile.balanceSupportDefault,
+          lowImpact: programmeState.profile.pelvicRouting === 'low_impact',
+          quietMode: programmeState.profile.quietMode,
+          hasStairs: programmeState.profile.hasStairs,
+          consentHealthData: programmeState.profile.consentHealthData,
+        }}
         onProfileChange={(next: UserProfile) => persistPrefs({ ...prefs, profile: next })}
         onSettingsChange={(next: AppSettings) => persistPrefs({ ...prefs, settings: next })}
-        onToggleAvailableEquipment={toggleAvailableEquipment}
-        onPreferredDaysChange={(days) =>
-          persist({
-            ...programmeState,
-            profile: { ...programmeState.profile, chosenDays: days },
-          })
-        }
         onStartingEffortChange={(level) =>
           // Read by every future check-up re-placement (activity prior).
           persist({
@@ -1328,7 +1296,18 @@ export function ProgrammeV2Root() {
             profile: { ...programmeState.profile, activityLevel: level },
           })
         }
-        onOpenSafetyProfile={() => setFlow('safety-profile')}
+        onSafetyPreferencesChange={(next) =>
+          persist({
+            ...programmeState,
+            profile: {
+              ...programmeState.profile,
+              balanceSupportDefault: next.balanceSupportDefault,
+              pelvicRouting: next.lowImpact ? 'low_impact' : 'none',
+              quietMode: next.quietMode,
+              hasStairs: next.hasStairs,
+            },
+          })
+        }
         onOpenCameraSetup={() => setFlow('camera-setup')}
         onClearDeviceData={handleClearDeviceData}
         onDataCleared={handleDataCleared}
@@ -1343,16 +1322,6 @@ export function ProgrammeV2Root() {
           setFlow(null);
           if (!programmeState.onboardingCompletedAtIso) setPhase('onboarding');
         }}
-      />
-    );
-  }
-
-  if (flow === 'safety-profile') {
-    return (
-      <SafetyProfileReview
-        prefs={prefs}
-        onSave={persistPrefs}
-        onClose={() => setFlow('settings')}
       />
     );
   }
@@ -1417,58 +1386,6 @@ export function ProgrammeV2Root() {
       </ScreenScrollClearanceProvider>
       <TabBar active={tab} onChange={setTab} bottomInset={systemInsets.bottom} />
     </View>
-  );
-}
-
-/** Safety-profile review (Settings): reference details + equipment, saved to
- * the shared profile store — the same handoff shape the old shell used. */
-function SafetyProfileReview({
-  prefs,
-  onSave,
-  onClose,
-}: {
-  prefs: Preferences;
-  onSave: (next: Preferences) => void;
-  onClose: () => void;
-}) {
-  return (
-    <SafetyProfileScreen
-      profile={prefs.profile}
-      showContinueAction={false}
-      showStartingDetails
-      onSave={(safetyProfile, referenceDetails, options) => {
-        const now = new Date().toISOString();
-        const nextSafetyProfile = safetyProfileWithCanonicalEquipment(
-          {
-            ...safetyProfile,
-            age: referenceDetails.exactAge,
-            ageBand: referenceDetails.ageBand ?? undefined,
-          },
-          safetyProfile.availableEquipment,
-          {
-            status: safetyProfile.equipmentStatus ?? 'confirmed',
-            updatedAt: now,
-            revision: safetyProfile.equipmentRevision,
-          }
-        );
-        onSave({
-          ...prefs,
-          profile: {
-            ...prefs.profile,
-            dateOfBirth: referenceDetails.dateOfBirth,
-            exactAge: referenceDetails.exactAge,
-            referenceSex: referenceDetails.referenceSex,
-            menopauseStage: referenceDetails.menopauseStage,
-            symptomPicture: referenceDetails.symptomPicture,
-            age: referenceDetails.exactAge,
-            ageBand: referenceDetails.ageBand,
-            safetyProfile: nextSafetyProfile,
-          },
-        });
-        if (!options?.stayOnScreen) onClose();
-      }}
-      onCancel={onClose}
-    />
   );
 }
 
