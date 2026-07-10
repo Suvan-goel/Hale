@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-// Plan/manual-check-up pins retired with the old shell (promotion commit 2,
-// 2026-07-08): PlanScreen and ManualCheckupStartScreen were decommissioned;
-// the ProgressScreen pins below remain live surfaces.
+// The old Plan/manual-check-up surfaces retired with promotion commit 2.
+// A smaller informational Plan returned on 2026-07-10; these pins keep
+// Progress focused on measured results rather than programme structure.
 describe('Progress UI restoration', () => {
   it('renders the founder Progress empty state for a no-profile V2 Progress model', () => {
     const progress = readFileSync(join(process.cwd(), 'src/screens/ProgressScreen.tsx'), 'utf8');
@@ -30,19 +30,20 @@ describe('Progress UI restoration', () => {
       progress.indexOf('function MovementProfileV2ChangeCard')
     );
 
-    // The simplified Progress tab: one merged profile card, the change-over-time
-    // card, merged history, 12-week journey context, and observational
-    // Clarity. Unscheduled extra official check-ups are deliberately absent:
+    // The simplified Progress tab: one merged profile card, comparable change,
+    // merged history, and observational Clarity. Plan owns journey structure;
+    // unscheduled extra official check-ups are deliberately absent:
     // they would break the frozen monthly comparison cadence.
     expect(progress).toContain('<MovementProfileCard');
     expect(progress).toContain('<MovementProfileV2ChangeCard');
     expect(progress).not.toContain('<MovementProfileV2NextCheckUpCard');
     expect(progress).toContain('<MovementProfileV2HistoryCard');
     expect(progress).not.toContain('<MovementProfileV2ExtraCheckUpCard');
-    expect(progress).toContain('<ProgrammeJourneyCard');
+    expect(progress).not.toContain('<ProgrammeJourneyCard');
+    expect(progress).not.toContain('<ProgrammeTrainingLevelsCard');
     expect(progress).toContain('<ClarityProgressCard');
     expect(progress).toContain('viewModel.officialHistory.length >= 2');
-    // The plan summary and practice-ladder cards moved off Progress — they duplicated the Plan tab.
+    // Programme structure and practice-ladder mechanics stay off Progress.
     expect(progress).not.toContain('<MovementProfileV2PlanSummaryCard');
     expect(progress).not.toContain('<TrainingProgressCard');
     expect(profileCard).toContain('See full results');

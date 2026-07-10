@@ -153,7 +153,9 @@ export function programmeTodayViewModel(
   const patternList = listSentence(plan.main.map((exercise) => patternTitle(exercise.pattern).toLowerCase()));
 
   const baselineDue = baselineCheckupDueAfterStarter(effective);
-  const stateId: ProgrammeTodayStateId = baselineDue
+  const checkupOffer = baselineDue ? null : checkupOfferFor(effective, nowIso);
+  const routineCheckupDue = checkupOffer?.kind === 'routine_due';
+  const stateId: ProgrammeTodayStateId = baselineDue || routineCheckupDue
     ? 'baseline_due'
     : !effective.profile.firstSessionStarted
       ? 'first_session_ready'
@@ -162,7 +164,7 @@ export function programmeTodayViewModel(
         : 'session_ready';
 
   const primaryAction: ProgrammeTodayAction =
-    stateId === 'baseline_due'
+    baselineDue
       ? {
           type: 'start_baseline_checkup',
           title: 'Build your 12-week plan',
@@ -171,6 +173,15 @@ export function programmeTodayViewModel(
           ctaLabel: 'Continue to check-up',
           tone: 'default',
         }
+      : routineCheckupDue
+        ? {
+            type: 'start_baseline_checkup',
+            title: 'Your monthly check-up is ready',
+            subtitle:
+              'Repeat the same private Strength and Balance check, then optional Everyday Clarity, to see what changed and set your next focus.',
+            ctaLabel: 'Start check-up',
+            tone: 'default',
+          }
       : stateId === 'first_session_ready'
       ? {
           type: 'start_first_session',
@@ -204,10 +215,10 @@ export function programmeTodayViewModel(
       estimatedMinutes: plan.estimatedMinutes,
       mainPatternTitles: plan.main.map((exercise) => patternTitle(exercise.pattern)),
     },
-    sessionDetail: baselineDue
+    sessionDetail: baselineDue || routineCheckupDue
       ? 'About eight minutes · Strength, Balance, then optional Everyday Clarity.'
       : `Today: ${patternList} — about ${minutes} minutes.`,
-    checkupOffer: baselineDue ? null : checkupOfferFor(effective, nowIso),
+    checkupOffer,
     easedAfterBreak: regression.applied,
   };
 }

@@ -67,6 +67,19 @@ export function ProgressIcon({ size, color, strokeWidth = 1.8 }: IconProps) {
   );
 }
 
+export function PlanIcon({ size, color, strokeWidth = 1.8 }: IconProps) {
+  const s = common(color, strokeWidth);
+  return (
+    <Frame size={size}>
+      <Rect x={5} y={4.5} width={14} height={15} rx={3} {...s} />
+      <Path d="M8.2 9.2 L9.4 10.4 L11.4 7.9" {...s} />
+      <Path d="M13.2 9.2 H16" {...s} />
+      <Circle cx={9.4} cy={14.6} r={1.2} {...s} />
+      <Path d="M13.2 14.6 H16" {...s} />
+    </Frame>
+  );
+}
+
 export function CalendarIcon(props: IconProps) {
   return <TodayIcon {...props} />;
 }

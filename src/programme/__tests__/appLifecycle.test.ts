@@ -127,6 +127,24 @@ describe('programmeTodayViewModel', () => {
     expect(vm.checkupOffer).toBeNull();
   });
 
+  it('makes a due monthly check-up the single Home hero action', () => {
+    const due = training();
+    due.profile = {
+      ...due.profile,
+      assessmentStatus: 'done',
+      lastAssessmentAtIso: daysBeforeNow(29),
+    };
+    const vm = programmeTodayViewModel(due, NOW);
+    expect(vm.state).toBe('baseline_due');
+    expect(vm.primaryAction).toMatchObject({
+      type: 'start_baseline_checkup',
+      title: 'Your monthly check-up is ready',
+      ctaLabel: 'Start check-up',
+    });
+    expect(vm.primaryAction.subtitle).toContain('Everyday Clarity');
+    expect(vm.checkupOffer?.kind).toBe('routine_due');
+  });
+
   it.each(['skipped', null] as const)(
     'legacy/interrupted %p state also stops at one generic starter',
     (assessmentStatus) => {

@@ -3,7 +3,7 @@
  * build became the default and its flag was retired): mounted unconditionally
  * by App.tsx inside AuthProvider. Owns store loading (auth-scoped,
  * guest-adopting), the merged onboarding flow, the session/check-up phases,
- * and the two-tab shell (Home / Progress) with the Settings flow —
+ * and the three-tab shell (Home / Plan / Progress) with the Settings flow —
  * all rendered by the SHARED app screens.
  *
  * Coupling rules: programme STATE stays zero-coupled to the old engine (no
@@ -76,7 +76,6 @@ import {
   postSessionSurface,
   preSessionPrompt,
   ProgrammeStore,
-  programmeLevelRows,
   programmeJourneyProgressAt,
   programmeTodayViewModel,
   recordBandAnswer,
@@ -111,6 +110,7 @@ import type { TrainingSessionResult } from '../training/sessionPlayer';
 import { DEFAULT_VOICE_SETUP_PREFS, type VoiceSetupPrefs } from '../voice/voicePermissionGate';
 import { CameraSetupScreen } from './CameraSetupScreen';
 import { MovementProfileV2UnifiedResultsScreen } from './MovementProfileV2UnifiedResultsScreen';
+import { PlanScreen } from './PlanScreen';
 import { ProgressScreen } from './ProgressScreen';
 import { ProgrammeCheckupZeroScreen } from './ProgrammeCheckupZeroScreen';
 import { ProgrammeEffortScreen, ProgrammeMomentScreen } from './ProgrammeMomentScreens';
@@ -1241,11 +1241,8 @@ export function ProgrammeV2Root() {
   }
 
   // ── Tab shell (phase 'home') ───────────────────────────────────────────
-  // Flows and the ephemeral explore session take the whole screen; the two
-  // tabs render underneath the shared TabBar. Level rows show the
-  // post-easing levels so what the user sees is what the next session runs;
-  // the easing itself persists at session start (startSessionFromHome
-  // re-checks).
+  // Full-screen flows sit above the three-tab shell. Home owns the next
+  // action, Plan owns programme structure, and Progress owns measurement.
   const nowIso = new Date().toISOString();
   const baseTodayVm = programmeTodayViewModel(programmeState, nowIso);
   const checkUpAccess = officialCheckUpAccess(programmeState, nowIso, {
@@ -1280,9 +1277,6 @@ export function ProgrammeV2Root() {
       : programmeState.journey.status === 'completed'
         ? programmeState.journey.phasePrescriptions[3] ?? null
         : null;
-  const easedLevels = programmeLevelRows(
-    applyInactivityRegressionIfDue(programmeState, nowIso).state
-  );
   const goAssessment = startOfficialCheckUp;
   const openSettings = () => setFlow('settings');
 
@@ -1394,26 +1388,28 @@ export function ProgrammeV2Root() {
               onViewMovementProfileV2Profile={(sourceCheckUpId) =>
                 setResultsView({ sourceCheckUpId, variant: 'history' })
               }
-              programmeLevels={easedLevels}
+              clarityTrend={clarityTrend}
+              onOpenSettings={openSettings}
+            />
+          ) : tab === 'plan' ? (
+            <PlanScreen
+              today={todayVm}
               journey={{
                 progress: journeyProgress,
                 physicalFocus: currentPrescription?.physicalFocus ?? null,
               }}
-              clarityTrend={clarityTrend}
+              checkUpBlockedReason={checkUpAccess.allowed ? undefined : checkUpAccess.reason}
               onOpenSettings={openSettings}
             />
           ) : (
             <TodayScreen
               profile={prefs.profile}
-              programme={{
-                today: todayVm,
-                onStartCheckup: todayVm.checkupOffer ? goAssessment : undefined,
-              }}
-              journey={{
-                progress: journeyProgress,
-                physicalFocus: currentPrescription?.physicalFocus ?? null,
-              }}
-              onPrimaryAction={() => startSessionFromHome()}
+              programme={{ today: todayVm }}
+              onPrimaryAction={() =>
+                todayVm.primaryAction.type === 'start_baseline_checkup'
+                  ? goAssessment()
+                  : startSessionFromHome()
+              }
               onOpenSettings={openSettings}
             />
           )}

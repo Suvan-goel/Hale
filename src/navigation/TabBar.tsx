@@ -2,21 +2,21 @@
  * Lightweight bottom navigation dock. The app navigates with a small amount of state in
  * App.tsx (no heavy navigation dependency — consistent with the existing
  * hand-rolled screen switching and CLAUDE.md's caution on native deps). The bar
- * shows only on the two primary tabs; hands-free session flows take the
- * whole screen and hide it. (The Plan tab merged into Home in the
- * founder-directed simplification pass, 2026-07-08 — it duplicated the levels
- * card, session CTA, and check-up offer already on Home.)
+ * shows only on the primary tabs; hands-free session flows take the whole
+ * screen and hide it. The three-item shell has one clear job per tab: act on
+ * Home, understand the programme on
+ * Plan, and review measured change on Progress.
  */
 
 import * as React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, fonts, spacing, type } from '../theme';
-import { HomeIcon, IconProps, ProgressIcon } from './icons';
+import { HomeIcon, IconProps, PlanIcon, ProgressIcon } from './icons';
 
-export type TabKey = 'today' | 'progress';
-export type TabScreenName = 'TodayScreen' | 'ProgressScreen';
-export type TabIconName = 'HomeIcon' | 'ProgressIcon';
+export type TabKey = 'today' | 'plan' | 'progress';
+export type TabScreenName = 'TodayScreen' | 'PlanScreen' | 'ProgressScreen';
+export type TabIconName = 'HomeIcon' | 'PlanIcon' | 'ProgressIcon';
 
 export interface TabDef {
   key: TabKey;
@@ -28,6 +28,7 @@ export interface TabDef {
 
 export const TAB_DEFS: readonly TabDef[] = [
   { key: 'today', label: 'Home', screen: 'TodayScreen', iconName: 'HomeIcon', Icon: HomeIcon },
+  { key: 'plan', label: 'Plan', screen: 'PlanScreen', iconName: 'PlanIcon', Icon: PlanIcon },
   { key: 'progress', label: 'Progress', screen: 'ProgressScreen', iconName: 'ProgressIcon', Icon: ProgressIcon },
 ];
 

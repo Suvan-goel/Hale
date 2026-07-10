@@ -1,12 +1,10 @@
 import * as React from 'react';
 
-import { HomeIcon, ProgressIcon } from '../icons';
+import { HomeIcon, PlanIcon, ProgressIcon } from '../icons';
 import { DEFAULT_TAB_KEY, TAB_DEFS, TabBar, getTabDef, normalizeTabKey, type TabKey } from '../TabBar';
 
-// The MVP navigation mirrors the core loop only: train on Home, review
-// measured change on Progress. Settings remains a full-screen flow.
-const CANONICAL_KEYS: readonly TabKey[] = ['today', 'progress'];
-const CANONICAL_LABELS = ['Home', 'Progress'];
+const CANONICAL_KEYS: readonly TabKey[] = ['today', 'plan', 'progress'];
+const CANONICAL_LABELS = ['Home', 'Plan', 'Progress'];
 
 function collectElements(
   node: React.ReactNode,
@@ -34,21 +32,20 @@ function collectElements(
 }
 
 describe('TabBar V1 navigation', () => {
-  it('exposes the two core Pearl MVP tabs', () => {
+  it('exposes the three-part MVP shell', () => {
     expect(TAB_DEFS.map((tab) => tab.key)).toEqual(CANONICAL_KEYS);
     expect(TAB_DEFS.map((tab) => tab.label)).toEqual(CANONICAL_LABELS);
   });
 
-  it('keeps settings and the merged plan surface out of the bottom tab bar', () => {
+  it('keeps settings out of the bottom tab bar', () => {
     expect(TAB_DEFS.map((tab) => tab.key)).not.toContain('settings');
     expect(TAB_DEFS.map((tab) => tab.label)).not.toContain('Settings');
-    expect(TAB_DEFS.map((tab) => tab.key)).not.toContain('plan');
-    expect(TAB_DEFS.map((tab) => tab.label)).not.toContain('Plan');
   });
 
   it('maps each route to its intended screen identity', () => {
     expect(TAB_DEFS.map((tab) => [tab.key, tab.screen])).toEqual([
       ['today', 'TodayScreen'],
+      ['plan', 'PlanScreen'],
       ['progress', 'ProgressScreen'],
     ]);
   });
@@ -56,9 +53,11 @@ describe('TabBar V1 navigation', () => {
   it('maps each route to its intended icon identity', () => {
     expect(TAB_DEFS.map((tab) => [tab.key, tab.iconName])).toEqual([
       ['today', 'HomeIcon'],
+      ['plan', 'PlanIcon'],
       ['progress', 'ProgressIcon'],
     ]);
     expect(getTabDef('today').Icon).toBe(HomeIcon);
+    expect(getTabDef('plan').Icon).toBe(PlanIcon);
     expect(getTabDef('progress').Icon).toBe(ProgressIcon);
   });
 
@@ -72,10 +71,13 @@ describe('TabBar V1 navigation', () => {
   it('uses Home as the default while preserving the stable today route key', () => {
     expect(DEFAULT_TAB_KEY).toBe('today');
     expect(normalizeTabKey('today')).toBe('today');
+    expect(normalizeTabKey('plan')).toBe('plan');
     expect(normalizeTabKey('progress')).toBe('progress');
+    expect(normalizeTabKey('workout')).toBe('today');
+    expect(normalizeTabKey('learn')).toBe('today');
+    expect(normalizeTabKey('profile')).toBe('today');
     expect(normalizeTabKey('explore')).toBe('today');
     expect(normalizeTabKey('settings')).toBe('today');
-    expect(normalizeTabKey('plan')).toBe('today');
     expect(normalizeTabKey(2)).toBe('today');
     expect(getTabDef(DEFAULT_TAB_KEY).screen).toBe('TodayScreen');
   });
@@ -93,6 +95,7 @@ describe('TabBar V1 navigation', () => {
     expect(
       tabs.map((tab) => (tab.props as { accessibilityState?: { selected?: boolean } }).accessibilityState)
     ).toEqual([
+      { selected: false },
       { selected: false },
       { selected: true },
     ]);

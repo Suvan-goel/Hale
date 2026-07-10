@@ -5601,3 +5601,23 @@ the implementation.
   users may check now or defer for one starter session; going Home records the
   same one-session deferral. Gentle Start and consent-declined routes continue
   without the camera check-up under their existing conservative policies.
+
+## 2026-07-10 — Home acts, Plan explains, Progress reflects
+
+- The primary shell is Home / Plan / Progress. This explicitly supersedes the
+  2026-07-08 decision to merge Plan into Home and the uncommitted five-tab
+  Home / Workouts / Progress / Learn / Me experiment.
+- Home is a landing page with one greeting and one dynamic hero. Its single
+  action starts today’s session, resumes a saved check-up, or starts a due
+  baseline/monthly check-up. Weekly counters, domain summaries, motivational
+  notes, and separate check-up cards do not compete with that action.
+- Plan owns the 12-week structure: phase, week, Strength/Balance focus, three
+  weekly session states, the “two is enough” minimum, and next check-up timing.
+  It explains that future exercises adapt rather than presenting a false fixed
+  calendar. Technical ladder levels are not user-facing MVP information.
+- Progress contains measured Strength and Balance results, comparable change,
+  saved check-ups, and Everyday Clarity as a separate observational measure.
+  Journey structure and session levels move out of Progress.
+- Settings remains available from page headers rather than becoming a tab.
+  Workout and Learn tabs are excluded: Workouts duplicated Home’s action and
+  Learn remains an explicit MVP non-goal.

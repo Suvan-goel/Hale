@@ -1,70 +1,42 @@
 import * as React from 'react';
-import {
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
-
-const HERO_IMAGE = require('../../assets/images/pearl-home-hero-botanical.png');
 
 import { AppBackground } from '../components/AppBackground';
 import { HeaderLogo } from '../components/HeaderLogo';
 import { useScreenScrollClearance } from '../components/ui';
-import type {
-  PhysicalTrainingFocus,
-  ProgrammeJourneyProgress,
-  ProgrammeTodayViewModel,
-} from '../programme';
-// The hero copy (title/subtitle/CTA) comes straight from the programme
-// adapter's primary action — src/programme/appLifecycle.ts is the single
-// source for that copy.
 import { SettingsIcon } from '../navigation/icons';
+import type { ProgrammeTodayViewModel } from '../programme';
 import type { UserProfile } from '../profile';
 import { colors, fonts, radius, shadow, spacing, todayHomeColors } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 
-/**
- * The Today tab (programme engine v2 — the only data source since the old
- * engine's decommission, promotion commit 2, 2026-07-08): greeting header,
- * the hero focus card carrying today's session and its Start CTA, and the
- * persistent check-up offer when one is due. Action-first by design — the
- * session CTA leads, nothing passive sits above it (2026-07-08: the "Your
- * levels" readout moved to Progress, where the reported training ladder
- * lives alongside the measured check-up). Since the Plan tab merged into
- * Home (simplification pass, 2026-07-08) this is the one place the plan
- * lives; training days stay editable in Settings.
- */
+const HERO_IMAGE = require('../../assets/images/pearl-home-hero-botanical.png');
+
 export interface TodayProgrammeMode {
   today: ProgrammeTodayViewModel;
-  onStartCheckup?: () => void;
 }
 
-export interface TodayJourneySummary {
-  progress: ProgrammeJourneyProgress;
-  physicalFocus: PhysicalTrainingFocus | null;
-}
-
+/**
+ * Home is the action surface: one greeting and one dynamic hero. Programme
+ * structure lives on Plan; measured change and Everyday Clarity live on
+ * Progress. No secondary card competes with the next required action here.
+ */
 export function TodayScreen({
   profile,
   programme,
-  journey,
   onPrimaryAction,
   onOpenSettings,
 }: {
   profile: UserProfile;
   programme: TodayProgrammeMode;
-  journey?: TodayJourneySummary | null;
   onPrimaryAction: () => void;
   onOpenSettings?: () => void;
 }) {
   const responsive = useResponsiveLayout();
   const bottomScrollClearance = useScreenScrollClearance();
-  const compact = responsive.isCompactPhone;
-  const primaryAction = programme.today.primaryAction;
+  const action = programme.today.primaryAction;
+  const checkUpAction = action.type === 'start_baseline_checkup';
 
   return (
     <View style={styles.background}>
@@ -84,199 +56,74 @@ export function TodayScreen({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <View style={styles.headerIdentity}>
-            <HeaderLogo />
-            <View style={styles.headerCopy}>
-              <Text style={styles.greeting}>
-                {timeOfDayGreeting()}
-              </Text>
-              <Text style={styles.headerName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>
-                {headerName(profile.name)}
+          <View style={styles.identity}>
+            <HeaderLogo size={44} />
+            <View style={styles.greetingCopy}>
+              <Text style={styles.greeting}>{timeOfDayGreeting()}</Text>
+              <Text
+                style={styles.name}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.82}
+              >
+                {firstName(profile.name) ?? 'Welcome'}
               </Text>
             </View>
           </View>
           {onOpenSettings ? (
             <Pressable
-              style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.settingsButton, pressed && styles.pressed]}
               onPress={onOpenSettings}
               accessibilityRole="button"
               accessibilityLabel="Open settings"
             >
-              <SettingsIcon size={24} color={todayHomeColors.headingGreen} strokeWidth={1.8} />
+              <SettingsIcon size={24} color={colors.textSecondary} strokeWidth={1.8} />
             </Pressable>
           ) : null}
         </View>
 
-        <DailyFocusCard
-          compact={compact}
-          label="Today"
-          title={primaryAction.title}
-          subtitle={primaryAction.subtitle}
-          detail={programme.today.sessionDetail}
-          ctaLabel={primaryAction.ctaLabel}
+        <Pressable
+          style={({ pressed }) => [
+            styles.hero,
+            { minHeight: Math.max(390, responsive.todayHeroHeight) },
+            pressed && styles.heroPressed,
+          ]}
           onPress={onPrimaryAction}
-        />
-
-        {journey?.progress.status === 'active' ? (
-          <JourneyContextCard journey={journey} />
-        ) : journey?.progress.status === 'completed' ? (
-          <View style={[styles.contextStrip, compact && styles.compactCardPadding]}>
-            <Text style={styles.contextEyebrow}>YOUR 12-WEEK JOURNEY</Text>
-            <Text style={styles.contextTitle}>All three phases complete</Text>
-            <Text style={styles.contextBody}>
-              Your baseline and three monthly check-ups are saved in Progress. Keep using your
-              final {journey.physicalFocus === 'strength'
-                ? 'Strength'
-                : journey.physicalFocus === 'balance'
-                  ? 'Balance'
-                  : 'balanced'} focus whenever you continue training.
-            </Text>
+          accessibilityRole="button"
+          accessibilityLabel={`${action.ctaLabel}. ${action.title}. ${action.subtitle}`}
+        >
+          <Image source={HERO_IMAGE} style={styles.heroImage} resizeMode="cover" accessible={false} />
+          <HeroScrim />
+          <View style={styles.heroContent}>
+            <View style={styles.heroCopy}>
+              <Text style={styles.heroEyebrow}>
+                {checkUpAction ? 'MOVEMENT CHECK-UP' : 'TODAY'}
+              </Text>
+              <Text style={styles.heroTitle}>{action.title}</Text>
+              <Text style={styles.heroSubtitle}>{action.subtitle}</Text>
+            </View>
+            <View style={styles.heroButton}>
+              <Text style={styles.heroButtonText}>{action.ctaLabel}</Text>
+              <Text style={styles.heroButtonArrow}>›</Text>
+            </View>
           </View>
-        ) : null}
-
-        {programme.today.checkupOffer && programme.onStartCheckup ? (
-          <CheckupOfferCard
-            compact={compact}
-            title={programme.today.checkupOffer.title}
-            ctaLabel={programme.today.checkupOffer.ctaLabel}
-            onPress={programme.onStartCheckup}
-          />
-        ) : null}
+        </Pressable>
       </ScrollView>
     </View>
   );
 }
 
-function JourneyContextCard({ journey }: { journey: TodayJourneySummary }) {
-  const { progress, physicalFocus } = journey;
-  const week = progress.currentWeek ?? 1;
-  const sessions = progress.currentWeekSummary?.creditedSessions ?? 0;
-  const focusLabel =
-    physicalFocus === 'strength'
-      ? 'Strength focus'
-      : physicalFocus === 'balance'
-        ? 'Balance focus'
-        : 'Balanced focus';
+function HeroScrim() {
   return (
-    <View style={styles.contextStrip} accessible accessibilityLabel={`Phase ${progress.currentPhase} of 3. Week ${week} of 4. ${sessions} of 3 sessions this week. Two sessions is enough. ${focusLabel}.`}>
-      <Text style={styles.contextEyebrow}>YOUR 12-WEEK JOURNEY</Text>
-      <Text style={styles.contextTitle}>
-        Phase {progress.currentPhase} of 3 · Week {week} of 4
-      </Text>
-      <Text style={styles.contextBody}>
-        {sessions} of 3 sessions this week · 2 is enough
-      </Text>
-      <Text style={styles.contextFocus}>{focusLabel}</Text>
-    </View>
-  );
-}
-
-/** The persistent movement-check affordance (routine cadence / standing entry). */
-function CheckupOfferCard({
-  compact,
-  title,
-  ctaLabel,
-  onPress,
-}: {
-  compact: boolean;
-  title: string;
-  ctaLabel: string;
-  onPress: () => void;
-}) {
-  return (
-    <View style={[styles.contextStrip, compact && styles.compactCardPadding]}>
-      <Text style={styles.contextTitle}>{title}</Text>
-      <Pressable
-        style={({ pressed }) => [styles.checkupButton, pressed && styles.pressed]}
-        onPress={onPress}
-        accessibilityRole="button"
-        accessibilityLabel={ctaLabel}
-      >
-        <Text style={styles.checkupButtonText}>{ctaLabel}</Text>
-        <Text style={styles.checkupButtonArrow}>›</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-function DailyFocusCard({
-  compact,
-  label,
-  title,
-  subtitle,
-  detail,
-  ctaLabel,
-  onPress,
-}: {
-  compact?: boolean;
-  label: string;
-  title: string;
-  subtitle: string;
-  detail?: string;
-  ctaLabel: string;
-  onPress: () => void;
-}) {
-  const responsive = useResponsiveLayout();
-  const heroMinHeightStyle = { minHeight: responsive.todayHeroHeight };
-  const showDetail = detail && normalizedHeroMeta(detail) !== normalizedHeroMeta(subtitle);
-
-  return (
-    <View style={[styles.focusCard, compact && styles.focusCardCompact, heroMinHeightStyle]}>
-      <Image source={HERO_IMAGE} style={[styles.focusImage, compact && styles.focusImageCompact]} resizeMode="cover" accessible={false} />
-      <HomeHeroScrim />
-      <View style={[styles.focusContent, compact && styles.focusContentCompact, heroMinHeightStyle]}>
-        <View style={[styles.focusCopy, compact && styles.focusCopyCompact]}>
-          <Text style={styles.focusLabel}>{label}</Text>
-          <Text style={[styles.focusTitle, compact && styles.focusTitleCompact]}>{title}</Text>
-          <View style={styles.focusMeta}>
-            <Text style={styles.focusSubtitle}>{subtitle}</Text>
-            {showDetail ? <Text style={styles.focusDetail}>{detail}</Text> : null}
-          </View>
-        </View>
-        {ctaLabel ? (
-          <View style={[styles.focusAction, compact && styles.focusActionCompact]}>
-            <Pressable
-              style={({ pressed }) => [styles.focusButton, compact && styles.compactControlPadding, pressed && styles.focusButtonPressed]}
-              onPress={onPress}
-              accessibilityRole="button"
-              accessibilityLabel={ctaLabel}
-            >
-              <Text style={styles.focusButtonText}>{ctaLabel}</Text>
-              <Text style={styles.focusButtonArrow}>›</Text>
-            </Pressable>
-          </View>
-        ) : null}
-      </View>
-    </View>
-  );
-}
-
-function normalizedHeroMeta(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/\btoday\b/g, '')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim();
-}
-
-function HomeHeroScrim() {
-  return (
-    <Svg pointerEvents="none" style={styles.focusScrim}>
+    <Svg pointerEvents="none" style={styles.scrim}>
       <Defs>
-        <LinearGradient id="homeHeroScrimH" x1="0" y1="0" x2="1" y2="0">
-          <Stop offset="0" stopColor={colors.bgBase} stopOpacity={0.9} />
-          <Stop offset="0.58" stopColor={colors.bgBase} stopOpacity={0.46} />
-          <Stop offset="1" stopColor={colors.bgBase} stopOpacity={0.08} />
-        </LinearGradient>
-        <LinearGradient id="homeHeroScrimV" x1="0" y1="1" x2="0" y2="0">
-          <Stop offset="0" stopColor={colors.bgBase} stopOpacity={0.72} />
-          <Stop offset="0.5" stopColor={colors.bgBase} stopOpacity={0.18} />
-          <Stop offset="1" stopColor={colors.bgBase} stopOpacity={0} />
+        <LinearGradient id="homeActionScrimV" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={colors.bgBase} stopOpacity={0.08} />
+          <Stop offset="0.46" stopColor={colors.bgBase} stopOpacity={0.35} />
+          <Stop offset="1" stopColor={colors.bgBase} stopOpacity={0.96} />
         </LinearGradient>
       </Defs>
-      <Rect x="0" y="0" width="100%" height="100%" fill={colors.bgBase} opacity={0.08} />
-      <Rect x="0" y="0" width="100%" height="100%" fill="url(#homeHeroScrimH)" />
-      <Rect x="0" y="0" width="100%" height="100%" fill="url(#homeHeroScrimV)" />
+      <Rect width="100%" height="100%" fill="url(#homeActionScrimV)" />
     </Svg>
   );
 }
@@ -285,10 +132,6 @@ function firstName(name?: string | null): string | null {
   const trimmed = name?.trim();
   if (!trimmed) return null;
   return trimmed.split(/\s+/)[0] ?? trimmed;
-}
-
-function headerName(name?: string | null): string {
-  return firstName(name) ?? 'Welcome';
 }
 
 function timeOfDayGreeting(): string {
@@ -311,246 +154,127 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     width: '100%',
     alignSelf: 'center',
-    justifyContent: 'flex-start',
-    gap: spacing.md,
+    gap: spacing.xl,
   },
   header: {
+    minHeight: 58,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: spacing.md,
+    gap: spacing.lg,
   },
-  headerIdentity: {
+  identity: {
     flex: 1,
     minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.md,
   },
-  headerCopy: { flex: 1, minWidth: 0, gap: 0, justifyContent: 'center' },
+  greetingCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
   greeting: {
-    color: todayHomeColors.secondaryText,
-    fontFamily: fonts.sansMedium,
-    fontSize: 12,
-    lineHeight: 15,
-    letterSpacing: 0,
+    color: colors.textSecondary,
+    fontFamily: fonts.sansRegular,
+    fontSize: 13,
+    lineHeight: 17,
   },
-  headerName: {
-    color: colors.primaryText,
+  name: {
+    color: colors.textPrimary,
     fontFamily: fonts.serifRegular,
     fontSize: 28,
-    lineHeight: 33,
-    letterSpacing: 0,
+    lineHeight: 34,
   },
-  iconButton: {
-    // Compact but comfortable target for the 50+ audience.
+  settingsButton: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.bgElevated,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
   },
-  contextStrip: {
-    minHeight: 92,
-    borderRadius: radius.card,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    backgroundColor: todayHomeColors.card,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: todayHomeColors.border,
-    ...shadow.card,
-  },
-  compactCardPadding: {
-    paddingHorizontal: 14,
-    paddingVertical: 16,
-  },
-  compactControlPadding: {
-    paddingHorizontal: 16,
-  },
-  contextTitle: {
-    color: todayHomeColors.primaryText,
-    fontFamily: fonts.serifMedium,
-    fontSize: 18,
-    lineHeight: 24,
-    letterSpacing: 0,
-  },
-  contextEyebrow: {
-    color: todayHomeColors.secondaryText,
-    fontFamily: fonts.sansMedium,
-    fontSize: 11,
-    lineHeight: 14,
-    letterSpacing: 0.8,
-  },
-  contextBody: {
-    color: todayHomeColors.secondaryText,
-    fontFamily: fonts.sansRegular,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  contextFocus: {
-    color: colors.accentDeep,
-    fontFamily: fonts.sansMedium,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  checkupButton: {
-    alignSelf: 'flex-start',
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    borderRadius: radius.button,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    backgroundColor: colors.accent,
-    marginTop: 13,
-  },
-  checkupButtonText: {
-    color: colors.onAccent,
-    fontFamily: fonts.sansMedium,
-    fontSize: 14,
-    lineHeight: 19,
-    letterSpacing: 0,
-  },
-  checkupButtonArrow: {
-    color: colors.onAccent,
-    fontFamily: fonts.sansMedium,
-    fontSize: 21,
-    lineHeight: 22,
-    marginTop: -1,
-  },
-  focusCard: {
-    minHeight: 274,
+  hero: {
+    flex: 1,
     overflow: 'hidden',
     borderRadius: radius.card,
-    backgroundColor: todayHomeColors.hero,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    ...shadow.card,
+    backgroundColor: colors.bgElevated,
+    ...shadow.lifted,
   },
-  focusCardCompact: {
-    minHeight: 286,
-    borderRadius: radius.card,
+  heroPressed: {
+    opacity: 0.94,
+    transform: [{ scale: 0.995 }],
   },
-  focusImage: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    width: '118%',
-    height: '100%',
-  },
-  focusImageCompact: {
-    width: '124%',
-  },
-  focusScrim: {
+  heroImage: {
     position: 'absolute',
     top: 0,
     right: 0,
     bottom: 0,
     left: 0,
-    zIndex: 1,
+    width: '100%',
+    height: '100%',
   },
-  focusContent: {
-    minHeight: 274,
-    paddingVertical: 22,
-    paddingHorizontal: 20,
-    justifyContent: 'flex-start',
-    zIndex: 2,
+  scrim: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
   },
-  focusContentCompact: {
-    minHeight: 286,
-    paddingVertical: 18,
-    paddingHorizontal: 16,
+  heroContent: {
+    flex: 1,
+    minHeight: 390,
+    justifyContent: 'flex-end',
+    gap: spacing.xl,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xxl,
   },
-  focusCopy: {
-    width: '72%',
-    gap: 12,
+  heroCopy: {
+    gap: spacing.sm,
+    maxWidth: 360,
   },
-  focusCopyCompact: {
-    width: '70%',
-    gap: 11,
-  },
-  focusMeta: {
-    gap: 3,
-  },
-  focusLabel: {
-    color: colors.accentDeep,
+  heroEyebrow: {
+    color: colors.accent,
     fontFamily: fonts.sansMedium,
-    fontSize: 13,
-    lineHeight: 18,
-    letterSpacing: 0,
-    textTransform: 'uppercase',
+    fontSize: 10,
+    lineHeight: 14,
+    letterSpacing: 1.1,
   },
-  focusTitle: {
+  heroTitle: {
     color: colors.textPrimary,
-    fontFamily: fonts.serifMedium,
-    fontSize: 25,
-    lineHeight: 31,
-    letterSpacing: 0,
-    maxWidth: '100%',
+    fontFamily: fonts.serifRegular,
+    fontSize: 31,
+    lineHeight: 38,
   },
-  focusTitleCompact: {
-    fontSize: 25,
-    lineHeight: 31,
-  },
-  focusSubtitle: {
-    color: colors.textPrimary,
-    fontFamily: fonts.sansRegular,
-    fontSize: 13,
-    lineHeight: 18,
-    letterSpacing: 0,
-    maxWidth: '100%',
-  },
-  focusDetail: {
+  heroSubtitle: {
     color: colors.textSecondary,
     fontFamily: fonts.sansRegular,
-    fontSize: 13,
-    lineHeight: 18,
-    letterSpacing: 0,
-    maxWidth: '100%',
+    fontSize: 14,
+    lineHeight: 21,
   },
-  focusAction: {
-    marginTop: 'auto',
-    alignSelf: 'flex-start',
-    paddingTop: 16,
-  },
-  focusActionCompact: {
-    paddingTop: 16,
-  },
-  focusButton: {
-    alignSelf: 'flex-start',
-    minHeight: 48,
+  heroButton: {
+    minHeight: 52,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: spacing.sm,
-    borderRadius: radius.button,
-    paddingHorizontal: 22,
-    paddingVertical: 10,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.xl,
     backgroundColor: colors.accent,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.accent,
   },
-  focusButtonPressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.99 }],
-  },
-  focusButtonText: {
+  heroButtonText: {
     color: colors.onAccent,
     fontFamily: fonts.sansMedium,
-    fontSize: 14,
-    lineHeight: 19,
-    letterSpacing: 0,
+    fontSize: 15,
+    lineHeight: 20,
   },
-  focusButtonArrow: {
+  heroButtonArrow: {
     color: colors.onAccent,
     fontFamily: fonts.sansMedium,
-    fontSize: 21,
+    fontSize: 22,
     lineHeight: 22,
     marginTop: -1,
   },
-  pressed: { opacity: 0.86, transform: [{ scale: 0.99 }] },
+  pressed: {
+    opacity: 0.78,
+  },
 });

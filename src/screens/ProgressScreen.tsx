@@ -14,12 +14,7 @@ import {
   type MovementProfileV2ProgressViewModel,
 } from '../pearlFlow';
 import { type MovementProfileV2Domain } from '../movementProfileV2/viewModel';
-import type { ProgrammeLevelRow } from '../programme';
-import type {
-  OfficialCheckUpBlockedReason,
-  PhysicalTrainingFocus,
-  ProgrammeJourneyProgress,
-} from '../programme';
+import type { OfficialCheckUpBlockedReason } from '../programme';
 import type { ClarityTrendViewModel } from '../pearlFlow/clarityTrend';
 import { type Domain } from '../scoring';
 import { colors, fonts, radius, shadow, spacing, type } from '../theme';
@@ -34,8 +29,6 @@ export function ProgressScreen({
   onStartMovementProfileV2CheckUp,
   movementProfileV2Progress,
   onViewMovementProfileV2Profile,
-  programmeLevels,
-  journey,
   clarityTrend,
   checkUpBlockedReason,
   onOpenSettings,
@@ -69,15 +62,7 @@ export function ProgressScreen({
         checkUpBlockedReason={checkUpBlockedReason}
       />
 
-      {journey ? <ProgrammeJourneyCard journey={journey} /> : null}
-
       {clarityTrend ? <ClarityProgressCard viewModel={clarityTrend} /> : null}
-
-      {/* Reported training levels sit BELOW the measured check-up content and
-          under their own heading — the ladder moves session to session and is
-          the reported counterpart to the monthly camera reading, never a
-          measurement (moved off Home 2026-07-08 so Home stays action-first). */}
-      <ProgrammeTrainingLevelsCard levels={programmeLevels ?? []} />
     </Screen>
   );
 }
@@ -429,131 +414,6 @@ function MovementProfileV2ProgressRow({
   );
 }
 
-function ProgrammeJourneyCard({ journey }: { journey: ProgressJourneySummary }) {
-  const { progress, physicalFocus } = journey;
-  if (progress.status === 'awaiting_baseline') return null;
-  if (progress.status === 'completed') {
-    const focus =
-      physicalFocus === 'strength'
-        ? 'Strength'
-        : physicalFocus === 'balance'
-          ? 'Balance'
-          : 'balanced';
-    return (
-      <Card style={styles.progressCard}>
-        <Text style={styles.sectionTitle}>Your 12-week journey</Text>
-        <Text style={styles.sectionIntro}>
-          All three four-week phases and the week-12 check-up are complete. Continuing sessions
-          keep your final {focus} focus.
-        </Text>
-      </Card>
-    );
-  }
-
-  const week = progress.currentWeek ?? 1;
-  const credited = progress.currentWeekSummary?.creditedSessions ?? 0;
-  const focus =
-    physicalFocus === 'strength'
-      ? 'Strength'
-      : physicalFocus === 'balance'
-        ? 'Balance'
-        : 'Balanced';
-  const dueLabel = progress.retestDue
-    ? 'Your monthly check-up is ready'
-    : progress.retestDueAtIso
-      ? `Next check-up ${formatJourneyDate(progress.retestDueAtIso)}`
-      : 'Next check-up after this phase';
-
-  return (
-    <Card style={styles.progressCard}>
-      <View
-        accessible
-        accessibilityLabel={`12-week journey. Phase ${progress.currentPhase} of 3. Week ${week} of 4. ${credited} of 3 planned sessions this week. Two sessions is enough. ${focus} focus. ${dueLabel}.`}
-      >
-      <Text style={styles.sectionTitle}>Your 12-week journey</Text>
-      <Text style={styles.sectionIntro}>
-        Three four-week phases, with the same Movement Check-Up between each one.
-      </Text>
-      <View style={styles.journeyPhaseRow}>
-        {[1, 2, 3].map((phase) => {
-          const active = phase === progress.currentPhase;
-          const complete = (progress.currentPhase ?? 1) > phase;
-          return (
-            <View
-              key={phase}
-              style={[
-                styles.journeyPhase,
-                active && styles.journeyPhaseActive,
-                complete && styles.journeyPhaseComplete,
-              ]}
-            >
-              <Text style={[styles.journeyPhaseText, active && styles.journeyPhaseTextActive]}>
-                Phase {phase}
-              </Text>
-            </View>
-          );
-        })}
-      </View>
-      <View style={styles.journeySummaryRows}>
-        <JourneySummaryRow label="Now" value={`Week ${week} of 4 · ${focus} focus`} />
-        <JourneySummaryRow
-          label="This week"
-          value={`${credited} of 3 planned · 2 is enough`}
-        />
-        <JourneySummaryRow label="Check-up" value={dueLabel} />
-      </View>
-      </View>
-    </Card>
-  );
-}
-
-function JourneySummaryRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.journeySummaryRow}>
-      <Text style={styles.journeySummaryLabel}>{label}</Text>
-      <Text style={styles.journeySummaryValue}>{value}</Text>
-    </View>
-  );
-}
-
-function formatJourneyDate(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return 'after this phase';
-  return new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short' }).format(date);
-}
-
-// Reported training ladder — one row per movement pattern. Lives on Progress
-// (moved off Home 2026-07-08) so Home stays action-first. Framed as reported
-// progression, deliberately distinct from the measured check-up card above:
-// the movement name leads and the step reads as a quiet "Level N of M"
-// caption rather than a scoreboard, keeping clear of the no-gamification law.
-function ProgrammeTrainingLevelsCard({ levels }: { levels: readonly ProgrammeLevelRow[] }) {
-  if (levels.length === 0) return null;
-  return (
-    <Card style={styles.progressCard}>
-      <Text style={styles.sectionTitle}>Your training levels</Text>
-      <Text style={styles.sectionIntro}>Levels rise as you train. They track your sessions, not your check-up.</Text>
-      <View style={styles.trainingLevelRows}>
-        {levels.map((row, index) => (
-          <View
-            key={row.pattern}
-            style={[styles.trainingLevelRow, index > 0 && styles.rowDivider]}
-            accessibilityLabel={`${row.patternTitle}: ${row.levelDisplayName}. Level ${row.currentLevel} of ${row.maxLevel}.`}
-          >
-            <View style={styles.trainingLevelText}>
-              <Text style={styles.trainingLevelPattern} numberOfLines={1}>{row.patternTitle}</Text>
-              <Text style={styles.trainingLevelName} numberOfLines={1}>{row.levelDisplayName}</Text>
-            </View>
-            <Text style={styles.trainingLevelStep} numberOfLines={1}>
-              Level {row.currentLevel} of {row.maxLevel}
-            </Text>
-          </View>
-        ))}
-      </View>
-    </Card>
-  );
-}
-
 // A simple list of saved check-ups, newest first — a way back to any past result.
 // The former "4-week block reports" subsection was dropped: it was cryptic
 // ("Strength / Power to Balance") and not what this tab is for.
@@ -674,9 +534,6 @@ interface ProgressScreenProps {
   movementProfileV2Progress?: MovementProfileV2ProgressViewModel | null;
   /** Opens the saved read-only results page (restored 2026-07-08). */
   onViewMovementProfileV2Profile?: (sourceCheckUpId: string) => void;
-  /** Per-pattern reported training ladder (moved off Home 2026-07-08). */
-  programmeLevels?: readonly ProgrammeLevelRow[];
-  journey?: ProgressJourneySummary | null;
   clarityTrend?: ClarityTrendViewModel | null;
   checkUpBlockedReason?: OfficialCheckUpBlockedReason;
   onOpenSettings: () => void;
@@ -708,11 +565,6 @@ function blockedCheckUpCopy(reason?: OfficialCheckUpBlockedReason): {
     title: 'Your next check-up is not due yet',
     body: `${BRAND.appName} uses the same official check-up at each four-week checkpoint so your comparisons stay meaningful.`,
   };
-}
-
-export interface ProgressJourneySummary {
-  progress: ProgrammeJourneyProgress;
-  physicalFocus: PhysicalTrainingFocus | null;
 }
 
 function domainIconForMovementProfileV2(domain: MovementProfileV2Domain): Domain {
@@ -847,57 +699,6 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.borderHairline,
     ...shadow.card,
-  },
-  journeyPhaseRow: {
-    flexDirection: 'row',
-    gap: spacing.xs,
-    marginTop: spacing.lg,
-  },
-  journeyPhase: {
-    flex: 1,
-    minHeight: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderHairline,
-    backgroundColor: colors.bgElevated,
-  },
-  journeyPhaseActive: {
-    borderColor: colors.accentBorder,
-    backgroundColor: colors.accentSoft,
-  },
-  journeyPhaseComplete: {
-    opacity: 0.72,
-  },
-  journeyPhaseText: {
-    ...type.cardCaption,
-    color: colors.textMuted,
-  },
-  journeyPhaseTextActive: {
-    color: colors.accentDeep,
-  },
-  journeySummaryRows: {
-    marginTop: spacing.md,
-  },
-  journeySummaryRow: {
-    minHeight: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.divider,
-  },
-  journeySummaryLabel: {
-    ...type.cardCaption,
-    color: colors.textMuted,
-  },
-  journeySummaryValue: {
-    ...type.cardCaption,
-    color: colors.textPrimary,
-    flex: 1,
-    textAlign: 'right',
   },
   profileCard: {
     overflow: 'hidden',
@@ -1291,44 +1092,6 @@ const styles = StyleSheet.create({
   rowDivider: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.divider,
-  },
-  trainingLevelRows: {
-    marginTop: 14,
-  },
-  trainingLevelRow: {
-    minHeight: 60,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  trainingLevelText: {
-    flex: 1,
-    minWidth: 0,
-  },
-  trainingLevelPattern: {
-    color: colors.textSecondary,
-    fontFamily: fonts.sansMedium,
-    fontSize: 13,
-    lineHeight: 17,
-    letterSpacing: 0,
-  },
-  trainingLevelName: {
-    color: colors.textPrimary,
-    fontFamily: fonts.sansMedium,
-    fontSize: 15,
-    lineHeight: 20,
-    letterSpacing: 0,
-    marginTop: 2,
-  },
-  trainingLevelStep: {
-    flexShrink: 0,
-    color: colors.textSecondary,
-    fontFamily: fonts.sansRegular,
-    fontSize: 13,
-    lineHeight: 18,
-    letterSpacing: 0,
-    fontVariant: ['tabular-nums'],
   },
   historyList: {
     marginTop: -spacing.sm,
