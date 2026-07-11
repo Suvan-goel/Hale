@@ -8,9 +8,12 @@ const planSource = readFileSync(join(process.cwd(), 'src/screens/PlanScreen.tsx'
 const progressSource = readFileSync(join(process.cwd(), 'src/screens/ProgressScreen.tsx'), 'utf8');
 
 describe('Home / Plan / Progress information architecture', () => {
-  it('keeps Home to one dynamic action hero without plan-summary cards', () => {
+  it('keeps Home to one centered action without imagery or plan-summary cards', () => {
     expect(homeSource).toContain("action.type === 'start_baseline_checkup'");
     expect(homeSource).toContain('onPress={onPrimaryAction}');
+    expect(homeSource).toContain('styles.actionStage');
+    expect(homeSource).not.toContain('HERO_IMAGE');
+    expect(homeSource).not.toContain('<Image');
     expect(homeSource).not.toContain('WeeklyPulseCard');
     expect(homeSource).not.toContain('TodayFocusCard');
     expect(homeSource).not.toContain('DailyNoteCard');

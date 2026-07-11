@@ -493,7 +493,7 @@ export function SettingsIconButton({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
     >
-      <SettingsIcon size={22} color={colors.accentDeep} />
+      <SettingsIcon size={22} color={colors.textSecondary} />
     </Pressable>
   );
 }

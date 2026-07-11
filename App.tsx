@@ -13,20 +13,18 @@ import { Fraunces_400Regular, Fraunces_500Medium } from '@expo-google-fonts/frau
 import { Inter_400Regular, Inter_500Medium, useFonts } from '@expo-google-fonts/inter';
 import { StatusBar } from 'expo-status-bar';
 import * as React from 'react';
-import { Platform, StatusBar as NativeStatusBar, StyleSheet, Text, View } from 'react-native';
+import { StatusBar as NativeStatusBar, StyleSheet, Text, View } from 'react-native';
 
 import { setAndroidNavigationBarVisibleAsync } from './modules/expo-pose-detection';
 import { BRAND } from './src/brand';
 import { AppBackground } from './src/components/AppBackground';
 import { HeaderLogo } from './src/components/HeaderLogo';
-import { SystemInsetsProvider, useSystemInsets } from './src/components/SystemInsetsProvider';
+import { SystemInsetsProvider } from './src/components/SystemInsetsProvider';
 import { AuthProvider, useAuth } from './src/services/backend';
 import { initObservability, wrapWithObservability } from './src/services/observability/sentry';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { ProgrammeV2Root } from './src/screens/ProgrammeV2Root';
 import { colors, spacing } from './src/theme';
-
-const STATUS_BAR_BACKDROP_EXTRA_HEIGHT = 8;
 
 initObservability();
 
@@ -80,35 +78,16 @@ function AppGate() {
 }
 
 function StatusBarBackdrop({ children }: { children: React.ReactNode }) {
-  const systemInsets = useSystemInsets();
   return (
     <View style={styles.appChrome}>
+      <AppBackground />
       <NativeStatusBar
         barStyle="light-content"
-        backgroundColor={colors.bgBase}
-        translucent={false}
+        backgroundColor="transparent"
+        translucent
       />
       <StatusBar style="light" />
       <View style={styles.appChromeContent}>{children}</View>
-      {Platform.OS === 'ios' ? (
-        <View
-          pointerEvents="none"
-          style={[
-            styles.statusBarSafeAreaStrip,
-            { height: systemInsets.top + STATUS_BAR_BACKDROP_EXTRA_HEIGHT },
-          ]}
-        />
-      ) : (
-        <View
-          pointerEvents="none"
-          style={[
-            styles.statusBarAndroidStrip,
-            {
-              height: (NativeStatusBar.currentHeight ?? 0) + STATUS_BAR_BACKDROP_EXTRA_HEIGHT,
-            },
-          ]}
-        />
-      )}
     </View>
   );
 }
@@ -134,24 +113,7 @@ const styles = StyleSheet.create({
   },
   appChromeContent: {
     flex: 1,
-    backgroundColor: colors.bgBase,
-  },
-  statusBarSafeAreaStrip: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 1000,
-    backgroundColor: colors.bgBase,
-  },
-  statusBarAndroidStrip: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 1000,
-    elevation: 1000,
-    backgroundColor: colors.bgBase,
+    backgroundColor: 'transparent',
   },
   container: {
     flex: 1,

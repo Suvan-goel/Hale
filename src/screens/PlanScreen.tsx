@@ -68,7 +68,7 @@ export function PlanScreen({
           accessibilityRole="button"
           accessibilityLabel="Open settings"
         >
-          <SettingsIcon size={25} color={colors.accentDeep} strokeWidth={1.8} />
+          <SettingsIcon size={25} color={colors.textSecondary} strokeWidth={1.8} />
         </Pressable>
       </View>
 

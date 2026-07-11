@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AppBackground } from '../components/AppBackground';
 import { HeaderLogo } from '../components/HeaderLogo';
@@ -11,16 +10,14 @@ import type { UserProfile } from '../profile';
 import { colors, fonts, radius, shadow, spacing, todayHomeColors } from '../theme';
 import { useResponsiveLayout } from '../theme/responsive';
 
-const HERO_IMAGE = require('../../assets/images/pearl-home-hero-botanical.png');
-
 export interface TodayProgrammeMode {
   today: ProgrammeTodayViewModel;
 }
 
 /**
- * Home is the action surface: one greeting and one dynamic hero. Programme
+ * Home is the action surface: one greeting and one centered action. Programme
  * structure lives on Plan; measured change and Everyday Clarity live on
- * Progress. No secondary card competes with the next required action here.
+ * Progress. No image or secondary card competes with the next required action.
  */
 export function TodayScreen({
   profile,
@@ -82,49 +79,26 @@ export function TodayScreen({
           ) : null}
         </View>
 
-        <Pressable
-          style={({ pressed }) => [
-            styles.hero,
-            { minHeight: Math.max(390, responsive.todayHeroHeight) },
-            pressed && styles.heroPressed,
-          ]}
-          onPress={onPrimaryAction}
-          accessibilityRole="button"
-          accessibilityLabel={`${action.ctaLabel}. ${action.title}. ${action.subtitle}`}
-        >
-          <Image source={HERO_IMAGE} style={styles.heroImage} resizeMode="cover" accessible={false} />
-          <HeroScrim />
-          <View style={styles.heroContent}>
-            <View style={styles.heroCopy}>
-              <Text style={styles.heroEyebrow}>
-                {checkUpAction ? 'MOVEMENT CHECK-UP' : 'TODAY'}
-              </Text>
-              <Text style={styles.heroTitle}>{action.title}</Text>
-              <Text style={styles.heroSubtitle}>{action.subtitle}</Text>
-            </View>
-            <View style={styles.heroButton}>
-              <Text style={styles.heroButtonText}>{action.ctaLabel}</Text>
-              <Text style={styles.heroButtonArrow}>›</Text>
-            </View>
+        <View style={styles.actionStage}>
+          <View style={styles.actionCopy}>
+            <Text style={styles.actionEyebrow}>
+              {checkUpAction ? 'MOVEMENT CHECK-UP' : 'TODAY'}
+            </Text>
+            <Text style={styles.actionTitle}>{action.title}</Text>
+            <Text style={styles.actionSubtitle}>{action.subtitle}</Text>
           </View>
-        </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.actionButton, pressed && styles.actionButtonPressed]}
+            onPress={onPrimaryAction}
+            accessibilityRole="button"
+            accessibilityLabel={`${action.ctaLabel}. ${action.title}. ${action.subtitle}`}
+          >
+            <Text style={styles.actionButtonText}>{action.ctaLabel}</Text>
+            <Text style={styles.actionButtonArrow}>›</Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </View>
-  );
-}
-
-function HeroScrim() {
-  return (
-    <Svg pointerEvents="none" style={styles.scrim}>
-      <Defs>
-        <LinearGradient id="homeActionScrimV" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={colors.bgBase} stopOpacity={0.08} />
-          <Stop offset="0.46" stopColor={colors.bgBase} stopOpacity={0.35} />
-          <Stop offset="1" stopColor={colors.bgBase} stopOpacity={0.96} />
-        </LinearGradient>
-      </Defs>
-      <Rect width="100%" height="100%" fill="url(#homeActionScrimV)" />
-    </Svg>
   );
 }
 
@@ -193,66 +167,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  hero: {
+  actionStage: {
     flex: 1,
-    overflow: 'hidden',
-    borderRadius: radius.card,
-    backgroundColor: colors.bgElevated,
-    ...shadow.lifted,
-  },
-  heroPressed: {
-    opacity: 0.94,
-    transform: [{ scale: 0.995 }],
-  },
-  heroImage: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-  },
-  scrim: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-  },
-  heroContent: {
-    flex: 1,
-    minHeight: 390,
-    justifyContent: 'flex-end',
-    gap: spacing.xl,
+    minHeight: 360,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xxl,
     paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xxl,
+    paddingVertical: spacing.xxxl,
   },
-  heroCopy: {
-    gap: spacing.sm,
-    maxWidth: 360,
+  actionCopy: {
+    width: '100%',
+    maxWidth: 380,
+    alignItems: 'center',
+    gap: spacing.md,
   },
-  heroEyebrow: {
-    color: colors.accent,
+  actionEyebrow: {
+    color: colors.accentDeep,
     fontFamily: fonts.sansMedium,
-    fontSize: 10,
-    lineHeight: 14,
-    letterSpacing: 1.1,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 1.2,
+    textAlign: 'center',
   },
-  heroTitle: {
+  actionTitle: {
     color: colors.textPrimary,
     fontFamily: fonts.serifRegular,
-    fontSize: 31,
-    lineHeight: 38,
+    fontSize: 34,
+    lineHeight: 41,
+    textAlign: 'center',
   },
-  heroSubtitle: {
+  actionSubtitle: {
     color: colors.textSecondary,
     fontFamily: fonts.sansRegular,
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 16,
+    lineHeight: 24,
+    textAlign: 'center',
   },
-  heroButton: {
-    minHeight: 52,
+  actionButton: {
+    width: '100%',
+    maxWidth: 320,
+    minHeight: 58,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -260,14 +215,19 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     paddingHorizontal: spacing.xl,
     backgroundColor: colors.accent,
+    ...shadow.soft,
   },
-  heroButtonText: {
+  actionButtonPressed: {
+    backgroundColor: colors.accentHover,
+    transform: [{ scale: 0.99 }],
+  },
+  actionButtonText: {
     color: colors.onAccent,
     fontFamily: fonts.sansMedium,
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 21,
   },
-  heroButtonArrow: {
+  actionButtonArrow: {
     color: colors.onAccent,
     fontFamily: fonts.sansMedium,
     fontSize: 22,

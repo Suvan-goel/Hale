@@ -5544,6 +5544,82 @@ coexistence, speech/cognitive-task validity, real-human measurement noise,
 and professional protocol review remain release gates rather than claims of
 the implementation.
 
+## 2026-07-10 — Everyday dark palette gains warm tonal separation
+
+The premium dark direction remains, but everyday pages no longer compress the
+canvas, cards and navigation into one near-black tone. A second product-owner
+reference supplied on 2026-07-10 was sampled directly: its everyday canvas sits
+around `#1B1A1A`, its card interiors around `#252524`, and its navigation around
+`#191919`. The shared palette now targets those values with `bgBase #191919`, a
+subtle `#1F1F1E` → `#1B1A1A` → `#161616` canvas, and neutral graphite card
+surfaces `#252524`.
+
+Cards use a low-contrast hairline edge and soft low shadow rather than an
+interior SVG wash. The wash was removed after device inspection showed that an
+absolutely positioned SVG could resolve against the padded content box and
+produce a visible vertical seam. Card corners remain at 12dp, matching the
+compact editorial cards in the approved reference. The bottom navigation uses
+the sampled `#191919` charcoal with a restrained pearl divider. Home's
+photographic scrim preserves upper and middle image detail while retaining the
+stronger bottom fade needed for readable action copy.
+
+Everyday text and accents also match the sampled hierarchy: warm ivory
+`#F0E8E4`, quieter stone secondary text `#B8B3B0`, pearl actions `#E8D1C9`,
+and blush emphasis `#D7B3A8`. These remain centralized in `src/theme`; screens
+do not hardcode palette values.
+
+This is an everyday-surface change only. Active voice sessions and camera
+measurement keep the deeper `focusCanvas #101114`, so the no-self-view figure
+renderer and native camera canvas remain unchanged.
+
+The shared status bar is edge-to-edge and transparent on both platforms. The
+root app gradient paints behind system status icons while existing screen safe
+insets continue to keep headers and controls clear of cutouts and the clock.
+
+## 2026-07-10 — Home becomes a centered text-and-action surface
+
+Home no longer uses workout photography or a full-card action. The greeting and
+Settings access remain in the header; the remaining canvas centers the current
+action eyebrow, title, supporting sentence, and one pearl pill button. The
+programme still supplies the action and copy, so baseline, training, and retest
+states remain dynamic without adding competing controls or summary cards.
+
+This is a presentation-only simplification. Plan still explains programme
+structure, Progress still owns measured change, and the Home action continues
+to route through the existing `onPrimaryAction` contract.
+
+## 2026-07-11 — Spotify-like black, graphite, white, and Pearl purple palette
+
+A product-owner-supplied Spotify desktop reference supersedes the previous
+warm charcoal/blush everyday palette. The sampled hierarchy is now explicit:
+true-black `#000000` everyday canvas and bottom navigation, `#181818` cards,
+`#242424` elevated controls, white `#FFFFFF` primary text and actions,
+`#B3B3B3` secondary text, and `#7A7A7A` tertiary content.
+
+Pearl's secondary brand accent is dusty-orchid `#B77BC3`. The initially tested
+`#D66BE8` was rejected on-device as too neon for the clean, professional tone.
+Purple and its muted tints now carry eyebrows, selection details,
+progress/status emphasis, and brand moments; white carries primary buttons and
+selected navigation. Ordinary menu, back, and Settings icons stay neutral gray
+so the purple remains deliberate rather than decorative noise. The
+everyday `AppBackground` is solid black instead of a warm diagonal gradient.
+Active camera and voice-session focus surfaces retain their separately managed
+focus palette, so this decision does not change no-self-view rendering.
+
+## 2026-07-10 — Realistic pearl becomes the shared brand mark
+
+Founder-selected image-generation concept. Pearl now uses one realistic ivory
+pearl on the deep-charcoal brand canvas as its launcher and primary in-app
+mark. The selected full composition is preserved at
+`assets/pearl-logo-realistic.png`; deterministic derivatives supply iOS,
+legacy Android, adaptive Android, monochrome Android, and the shared
+`HeaderLogo` surface.
+
+The in-app and adaptive-icon versions use a transparent, tighter crop so the
+pearl remains legible at small sizes. The launcher versions retain the selected
+negative space. This is a brand-asset change only: navigation, training,
+Movement Check-Up, storage, and measurement behavior are unchanged.
+
 ## 2026-07-09 — Twelve-week contract implementation boundaries
 
 - The baseline may be deferred for exactly one generic starter session. New

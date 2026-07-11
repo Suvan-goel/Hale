@@ -29,7 +29,13 @@ notes are the transfer.
    surfaces, green buttons and accent surfaces unified to `#414C34`,
    transparent soft fills with stone outlines, text `#111412/#68706A/#8A908A`, stone borders
    `#E4E0D6/#D8D3C8`, restrained `#A98243` milestone accents, and an inky green figure gradient.
-   All tokens live in `src/theme`; no screen hardcodes colour. See docs/decisions.md.)*
+   On 2026-07-10, a product-owner-supplied dark editorial app reference superseded that
+   everyday warm-stone appearance. On 2026-07-11, a Spotify UI reference refined the system
+   again: everyday screens now use a true-black canvas, `#181818` graphite cards, white as
+   the primary action/text accent, and dusty-orchid `#B77BC3` as Pearl's secondary brand
+   accent. Active camera/session focus surfaces remain separately
+   controlled, and the no-self-view rule is unchanged. All tokens live in `src/theme`; no
+   screen hardcodes colour. See docs/decisions.md.)*
 2. **Audio-first.** Voice guides everything; after propping the phone, the user never touches
    the screen until the session ends. Auto-start when framed, auto-advance between items, rest
    timers spoken.

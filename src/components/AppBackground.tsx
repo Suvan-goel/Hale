@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { StyleSheet } from 'react-native';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Rect } from 'react-native-svg';
 
 import { colors } from '../theme';
 
-/** Fixed everyday canvas; active sessions use the solid focus canvas instead. */
+/** Spotify-like true-black everyday canvas; active sessions keep their separate focus canvas. */
 export function AppBackground() {
   return (
     <Svg
@@ -16,15 +16,7 @@ export function AppBackground() {
       preserveAspectRatio="none"
       style={styles.canvas}
     >
-      <Defs>
-        <LinearGradient id="appBackgroundGradient" x1="0%" y1="0%" x2="32%" y2="100%">
-          <Stop offset="0%" stopColor={colors.bgGradientStart} />
-          <Stop offset="22%" stopColor={colors.bgGradientWarm} />
-          <Stop offset="58%" stopColor={colors.bgGradientMid} />
-          <Stop offset="100%" stopColor={colors.bgGradientEnd} />
-        </LinearGradient>
-      </Defs>
-      <Rect width="100%" height="100%" fill="url(#appBackgroundGradient)" />
+      <Rect width="100%" height="100%" fill={colors.bgBase} />
     </Svg>
   );
 }

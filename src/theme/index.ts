@@ -3,8 +3,8 @@
  * radii and depth. Screens and shared components reference these tokens rather
  * than hardcoding repeated visual values.
  *
- * The aesthetic: quiet, modern longevity. A charcoal canvas, layered graphite
- * surfaces, warm pearl actions, and restrained blush details create a calm,
+ * The aesthetic: quiet, modern longevity. A true-black canvas, layered
+ * graphite surfaces, crisp white actions, and a focused pink-purple Pearl accent create a calm,
  * premium interface that remains readable and daily-use friendly for adults
  * 50+, never clinical, toy-like, or fitness-gimmicky.
  *
@@ -20,29 +20,30 @@ import { Platform, StyleSheet, TextStyle, ViewStyle } from 'react-native';
  * ------------------------------------------------------------------------- */
 
 export const palette = {
-  appBackground: '#111316',
-  appBackgroundWarm: '#292524',
-  appBackgroundMid: '#1A1A1D',
-  cardSurface: '#1D1F22',
-  elevatedSurface: '#24262A',
-  warmSurface: '#252326',
+  appBackground: '#000000',
+  appBackgroundDeep: '#000000',
+  appBackgroundWarm: '#000000',
+  appBackgroundMid: '#000000',
+  cardSurface: '#181818',
+  elevatedSurface: '#242424',
+  warmSurface: '#211A23',
   focusCanvas: '#101114',
-  focusSurface: '#181A1D',
-  focusElevated: '#202226',
-  ink: '#F1E8E4',
-  secondaryText: '#C4BAB6',
-  tertiaryText: '#97908D',
-  pearl: '#EADAD4',
-  pearlPressed: '#DECBC4',
-  blush: '#D0A296',
-  softBlushFill: 'rgba(234,218,212,0.10)',
-  verySoftBlushFill: 'rgba(234,218,212,0.055)',
-  border: 'rgba(241,232,228,0.075)',
-  strongBorder: 'rgba(241,232,228,0.15)',
-  warmPremiumAccent: '#C3A17C',
-  softGoldFill: 'rgba(195,161,124,0.12)',
-  restorativeSage: '#9BAB94',
-  softShadow: 'rgba(0,0,0,0.24)',
+  focusSurface: '#171819',
+  focusElevated: '#202122',
+  ink: '#FFFFFF',
+  secondaryText: '#B3B3B3',
+  tertiaryText: '#7A7A7A',
+  pearl: '#FFFFFF',
+  pearlPressed: '#E6E6E6',
+  blush: '#B77BC3',
+  softBlushFill: 'rgba(183,123,195,0.14)',
+  verySoftBlushFill: 'rgba(183,123,195,0.08)',
+  border: 'rgba(255,255,255,0.055)',
+  strongBorder: 'rgba(183,123,195,0.34)',
+  warmPremiumAccent: '#A96FB5',
+  softGoldFill: 'rgba(169,111,181,0.14)',
+  restorativeSage: '#B792BF',
+  softShadow: 'rgba(0,0,0,0.44)',
 } as const;
 
 export const colors = {
@@ -93,7 +94,7 @@ export const colors = {
   bgGradientStart: palette.appBackground,
   bgGradientWarm: palette.appBackgroundWarm,
   bgGradientMid: palette.appBackgroundMid,
-  bgGradientEnd: palette.appBackground,
+  bgGradientEnd: palette.appBackgroundDeep,
   bgSurface: palette.cardSurface,
   bgElevated: palette.elevatedSurface,
   bgMaterial: palette.elevatedSurface,
@@ -117,15 +118,16 @@ export const colors = {
   error: '#D48686',
   debugOverlay: 'rgba(8,9,11,0.92)',
   imageScrim: 'rgba(8,9,11,0.58)',
-  overlaySurface: 'rgba(17,19,22,0.96)',
+  overlaySurface: 'rgba(0,0,0,0.98)',
+  navigationDivider: 'rgba(255,255,255,0.08)',
   modalBackdrop: 'rgba(0,0,0,0.76)',
   shadowSoft: palette.softShadow,
   onAccent: palette.focusCanvas,
 } as const;
 
 export const imageOverlayControl = {
-  background: 'rgba(15,17,20,0.68)',
-  border: 'rgba(241,232,228,0.20)',
+  background: 'rgba(0,0,0,0.72)',
+  border: 'rgba(255,255,255,0.18)',
   text: colors.textPrimary,
 } as const;
 
@@ -202,7 +204,7 @@ export const spacing = {
   xl: 24,
   xxl: 32,
   xxxl: 40,
-  pageTop: 32,
+  pageTop: 24,
   pageHorizontal: 16,
   pageMaxWidth: 430,
   huge: 56,
@@ -213,14 +215,14 @@ export const spacing = {
  * ------------------------------------------------------------------------- */
 
 export const radius = {
-  input: 8,
-  button: 8,
-  card: 8,
-  panel: 8,
-  xl: 8,
-  modal: 8,
+  input: 12,
+  button: 16,
+  card: 12,
+  panel: 16,
+  xl: 18,
+  modal: 20,
   pill: 999,
-  sm: 8,
+  sm: 10,
 } as const;
 
 /** Minimum comfortable tap target for the 50+ audience. */
@@ -228,11 +230,11 @@ export const minTapTarget = 48;
 
 export const shadow = {
   card: {
-    boxShadow: '0 1px 0 rgba(255,255,255,0.018), 0 7px 20px rgba(0,0,0,0.22)',
+    boxShadow: '0 1px 0 rgba(255,255,255,0.018), 0 8px 22px rgba(0,0,0,0.38)',
     shadowColor: '#000000',
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.38,
+    shadowRadius: 11,
+    shadowOffset: { width: 0, height: 6 },
     elevation: 2,
   } satisfies ViewStyle,
   soft: {

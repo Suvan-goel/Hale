@@ -1235,7 +1235,7 @@ type MenuIconName =
   | 'lock';
 
 function MenuIcon({ name }: { name: MenuIconName }) {
-  const stroke = colors.accentDeep;
+  const stroke = colors.textSecondary;
   const common = {
     stroke,
     strokeWidth: 1.8,

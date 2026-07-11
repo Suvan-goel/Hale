@@ -6,7 +6,7 @@ import { colors, radius } from '../theme';
 
 export function BackArrowButton({
   accessibilityLabel = 'Back',
-  color = colors.accentDeep,
+  color = colors.textSecondary,
   onPress,
   style,
 }: {

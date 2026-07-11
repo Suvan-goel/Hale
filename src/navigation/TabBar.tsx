@@ -68,7 +68,7 @@ export function TabBar({
         <View style={styles.bar}>
           {TAB_DEFS.map((tab) => {
             const selected = tab.key === activeKey;
-            const tint = selected ? colors.accentDeep : colors.textTertiary;
+            const tint = selected ? colors.accent : colors.textTertiary;
             return (
               <Pressable
                 key={tab.key}
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     zIndex: 20,
     backgroundColor: colors.overlaySurface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.borderHairline,
+    borderTopColor: colors.navigationDivider,
     alignItems: 'center',
     paddingTop: 6,
     paddingBottom: spacing.sm,
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     textTransform: 'none',
   },
   labelActive: {
-    color: colors.accentDeep,
+    color: colors.accent,
     fontFamily: fonts.sansMedium,
   },
 });
