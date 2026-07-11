@@ -1370,7 +1370,6 @@ function ProgrammeVoiceSession({
       generatedExercises={inputs.generatedExercises}
       resolveExercise={inputs.resolveExercise}
       resolveSafetyProfile={inputs.resolveSafetyProfile}
-      bonusSetOffer={inputs.bonusSetOffer}
       sessionTitle="Your session"
       voiceId={voiceId}
       firstSessionStarted={firstSessionStarted}

@@ -5709,3 +5709,21 @@ the implementation.
   returns Home without losing completed session credit.
 - Pain, pause, skip-exercise, repeat-instruction, rep-adjustment, and leave
   controls inside the voice-guided workout are unchanged.
+
+## 2026-07-11 — Live workout shows the current action, not every escape
+
+- The promoted MVP programme no longer passes bonus-set offers into the voice
+  player. Planned sets plus the three-choice effort answer remain sufficient
+  for session credit and progression. The generic player capability stays
+  dormant and tested, but no production session exposes "One more set".
+- Each phase keeps its immediate action visible: Ready, Done and Pause, Skip
+  rest, or Resume. "Something hurts" remains visible throughout the active
+  session and continues to trigger the same pain halt and regression path.
+- Rep correction remains available during rest because reported reps affect
+  progression, but the minus/plus controls now sit behind "Adjust last set".
+  Repeat instructions, Skip exercise, and Leave/End session sit behind "More
+  options". Only one disclosure can be open, and both reset at exercise or
+  phase boundaries.
+- The local-only "Voice on" indicator, permission explanation, end-session
+  confirmation, abandonment recording, and all voice/tap parity contracts are
+  unchanged.

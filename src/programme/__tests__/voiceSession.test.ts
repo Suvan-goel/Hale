@@ -201,12 +201,7 @@ describe('plan → voice-player inputs', () => {
     }
   });
 
-  it('passes the bonus-set offer through only when the plan has eligible patterns', () => {
-    const noBonus = voiceSessionInputsFromPlan(
-      generateProgrammeSession({ state: onboardedState(), template: 'A', preset: 'standard' })
-    );
-    expect(noBonus.bonusSetOffer).toBeUndefined();
-
+  it('keeps bonus-set machinery out of the promoted MVP session', () => {
     const plan = generateProgrammeSession({
       state: onboardedState(),
       template: 'A',
@@ -214,16 +209,7 @@ describe('plan → voice-player inputs', () => {
       lastSessionEffort: 'lots',
     });
     const inputs = voiceSessionInputsFromPlan(plan);
-    if (plan.bonusSetEligible.length > 0) {
-      expect(inputs.bonusSetOffer?.offerCue).toBe('prog-bonus-set-offer');
-      expect(inputs.bonusSetOffer?.exerciseIds).toEqual(
-        plan.main
-          .filter((exercise) => plan.bonusSetEligible.includes(exercise.pattern))
-          .map((exercise) => exercise.exerciseId)
-      );
-    } else {
-      expect(inputs.bonusSetOffer).toBeUndefined();
-    }
+    expect('bonusSetOffer' in inputs).toBe(false);
   });
 
   it('support-variant exercises get the balance cues; others stay unchanged', () => {

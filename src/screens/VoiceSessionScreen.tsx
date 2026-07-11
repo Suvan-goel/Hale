@@ -55,7 +55,6 @@ interface Snapshot {
   remainingSec: number;
   tapPromptHighlighted: boolean;
   stopRequested: boolean;
-  bonusOfferPending: boolean;
 }
 
 function sameSnapshot(a: Snapshot, b: Snapshot): boolean {
@@ -66,8 +65,7 @@ function sameSnapshot(a: Snapshot, b: Snapshot): boolean {
     a.totalSets === b.totalSets &&
     a.remainingSec === b.remainingSec &&
     a.tapPromptHighlighted === b.tapPromptHighlighted &&
-    a.stopRequested === b.stopRequested &&
-    a.bonusOfferPending === b.bonusOfferPending
+    a.stopRequested === b.stopRequested
   );
 }
 
@@ -81,7 +79,6 @@ export function VoiceSessionScreen({
   generatedExercises,
   resolveExercise,
   resolveSafetyProfile,
-  bonusSetOffer,
   firstSessionStarted,
   voiceSetup,
   onVoiceSetupChange,
@@ -97,8 +94,6 @@ export function VoiceSessionScreen({
   /** Injectable catalogue seams (programme v2 bridge); defaults = registry. */
   resolveExercise?: (exerciseId: string) => ReturnType<typeof getExercise>;
   resolveSafetyProfile?: VoiceSessionControllerOptions['resolveSafetyProfile'];
-  /** Once-per-item bonus-set offer (programme v2); rides the rest window. */
-  bonusSetOffer?: VoiceSessionControllerOptions['bonusSetOffer'];
   /** Activation stamp for the funnel record (programme v2 first session). */
   firstSessionStarted?: boolean;
   voiceSetup: VoiceSetupPrefs;
@@ -115,7 +110,6 @@ export function VoiceSessionScreen({
         generatedExercises,
         resolveExercise,
         resolveSafetyProfile,
-        bonusSetOffer,
         firstSessionStarted,
         funnelStore: new SessionFunnelStore(expoSessionFunnelFs),
         onComplete: (result) => {
@@ -136,12 +130,13 @@ export function VoiceSessionScreen({
     remainingSec: NaN,
     tapPromptHighlighted: false,
     stopRequested: false,
-    bonusOfferPending: false,
   });
   const [permission, setPermission] = React.useState<VoicePermissionResponse | null>(null);
   const [availability, setAvailability] = React.useState<OnDeviceAvailability | null>(null);
   const [listening, setListening] = React.useState(false);
   const [confirmEnd, setConfirmEnd] = React.useState(false);
+  const [adjustOpen, setAdjustOpen] = React.useState(false);
+  const [moreOptionsOpen, setMoreOptionsOpen] = React.useState(false);
   const safetyLineShownThisSession = React.useRef(false);
 
   const gate = decideVoiceGate({ prefs: voiceSetup, permission, availability });
@@ -159,12 +154,17 @@ export function VoiceSessionScreen({
         remainingSec: Number.isFinite(u.remainingMs) ? Math.ceil(u.remainingMs / 1000) : NaN,
         tapPromptHighlighted: u.tapPromptHighlighted,
         stopRequested: u.stopRequested,
-        bonusOfferPending: u.bonusOfferPending,
       };
       setSnapshot((prev) => (sameSnapshot(prev, next) ? prev : next));
     }, TICK_MS);
     return () => clearInterval(id);
   }, [controller, voice]);
+
+  // Low-frequency controls collapse again at each meaningful session boundary.
+  React.useEffect(() => {
+    setAdjustOpen(false);
+    setMoreOptionsOpen(false);
+  }, [snapshot.exerciseId, snapshot.phase]);
 
   // Permission + availability (module fallback reports unavailable → tap mode).
   React.useEffect(() => {
@@ -288,10 +288,7 @@ export function VoiceSessionScreen({
 
         <View style={styles.controls}>
           {snapshot.phase === 'waiting_ready' ? (
-            <>
-              <PrimaryButton title="I'm ready" onPress={() => controller.handleTap('ready', Date.now())} />
-              <SecondaryButton title="Repeat instructions" onPress={() => controller.handleTap('repeat', Date.now())} />
-            </>
+            <PrimaryButton title="I'm ready" onPress={() => controller.handleTap('ready', Date.now())} />
           ) : null}
           {snapshot.phase === 'set' ? (
             <>
@@ -301,31 +298,60 @@ export function VoiceSessionScreen({
           ) : null}
           {snapshot.phase === 'rest' ? (
             <>
-              {snapshot.bonusOfferPending ? (
-                <PrimaryButton title="One more set" onPress={() => controller.handleTap('ready', Date.now())} />
-              ) : null}
-              <PrimaryButton
-                title={snapshot.bonusOfferPending ? 'No thanks — move on' : 'Skip rest'}
-                onPress={() => controller.handleTap('skip_rest', Date.now())}
-              />
-              <View style={styles.adjustRow}>
-                <SecondaryButton style={styles.adjustButton} title="− rep" onPress={() => controller.handleTap('adjust_reps_down')} />
-                <Text style={styles.adjustLabel}>Adjust last set</Text>
-                <SecondaryButton style={styles.adjustButton} title="+ rep" onPress={() => controller.handleTap('adjust_reps_up')} />
-              </View>
+              <PrimaryButton title="Skip rest" onPress={() => controller.handleTap('skip_rest', Date.now())} />
+              <SessionDisclosure
+                title="Adjust last set"
+                open={adjustOpen}
+                onToggle={() => {
+                  setAdjustOpen((current) => !current);
+                  setMoreOptionsOpen(false);
+                }}
+              >
+                <Text style={styles.disclosureHelp}>Correct the reps you just completed.</Text>
+                <View style={styles.adjustRow}>
+                  <SecondaryButton
+                    style={styles.adjustButton}
+                    title="− rep"
+                    onPress={() => controller.handleTap('adjust_reps_down')}
+                  />
+                  <SecondaryButton
+                    style={styles.adjustButton}
+                    title="+ rep"
+                    onPress={() => controller.handleTap('adjust_reps_up')}
+                  />
+                </View>
+              </SessionDisclosure>
             </>
           ) : null}
           {snapshot.phase === 'voice_paused' ? (
-            <>
-              <PrimaryButton title="Resume" onPress={() => controller.handleTap('resume', Date.now())} />
-              <SecondaryButton title="End workout" onPress={() => setConfirmEnd(true)} />
-            </>
+            <PrimaryButton title="Resume" onPress={() => controller.handleTap('resume', Date.now())} />
           ) : null}
           {snapshot.phase !== 'complete' && snapshot.phase !== 'done' ? (
             <>
               <SecondaryButton title="Something hurts" onPress={() => controller.handleTap('pain', Date.now())} />
-              <SecondaryButton title="Skip exercise" onPress={() => controller.handleTap('skip', Date.now())} />
-              <SecondaryButton title="Leave session" onPress={() => setConfirmEnd(true)} />
+              <SessionDisclosure
+                title="More options"
+                open={moreOptionsOpen}
+                onToggle={() => {
+                  setMoreOptionsOpen((current) => !current);
+                  setAdjustOpen(false);
+                }}
+              >
+                {snapshot.phase === 'waiting_ready' ? (
+                  <SecondaryButton
+                    title="Repeat instructions"
+                    onPress={() => controller.handleTap('repeat', Date.now())}
+                  />
+                ) : null}
+                <SecondaryButton
+                  title="Skip exercise"
+                  onPress={() => controller.handleTap('skip', Date.now())}
+                />
+                <SecondaryButton
+                  title={snapshot.phase === 'voice_paused' ? 'End workout' : 'Leave session'}
+                  onPress={() => setConfirmEnd(true)}
+                />
+              </SessionDisclosure>
             </>
           ) : null}
         </View>
@@ -351,6 +377,34 @@ export function VoiceSessionScreen({
         </View>
       </Modal>
     </Screen>
+  );
+}
+
+function SessionDisclosure({
+  title,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.disclosureCard}>
+      <Pressable
+        onPress={onToggle}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        accessibilityLabel={`${open ? 'Hide' : 'Show'} ${title.toLowerCase()}`}
+        style={({ pressed }) => [styles.disclosureHeader, pressed && styles.disclosurePressed]}
+      >
+        <Text style={styles.disclosureTitle}>{title}</Text>
+        <Text style={[styles.disclosureChevron, open && styles.disclosureChevronOpen]}>›</Text>
+      </Pressable>
+      {open ? <View style={styles.disclosureBody}>{children}</View> : null}
+    </View>
   );
 }
 
@@ -421,9 +475,52 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.borderHairline,
   },
+  disclosureCard: {
+    overflow: 'hidden',
+    borderRadius: radius.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderHairline,
+    backgroundColor: colors.focusSurface,
+  },
+  disclosureHeader: {
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  disclosureTitle: {
+    ...type.body,
+    color: colors.textPrimary,
+  },
+  disclosureChevron: {
+    ...type.h3,
+    color: colors.textSecondary,
+    transform: [{ rotate: '0deg' }],
+  },
+  disclosureChevronOpen: {
+    transform: [{ rotate: '90deg' }],
+  },
+  disclosureBody: {
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.borderHairline,
+  },
+  disclosureHelp: {
+    ...type.caption,
+    color: colors.textSecondary,
+    paddingHorizontal: spacing.xs,
+  },
+  disclosurePressed: {
+    opacity: 0.82,
+  },
   adjustRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   adjustButton: { flex: 1, minWidth: 0, paddingHorizontal: spacing.sm },
-  adjustLabel: { ...type.caption, flex: 1, textAlign: 'center' },
   modalBackdrop: {
     flex: 1,
     backgroundColor: colors.modalBackdrop,

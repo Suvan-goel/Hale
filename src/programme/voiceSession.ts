@@ -44,8 +44,6 @@ import {
   programmeVoiceSafetyProfile,
   withSupportCues,
 } from './voiceCatalog';
-import { PROGRAMME_BONUS_OFFER_CUE } from './voiceScripts';
-import type { VoiceCueKey } from '../audio/cues';
 
 /** Seconds allowed for the side swap inside a per-side timed window. */
 const PER_SIDE_SWITCH_BUFFER_SEC = 10;
@@ -60,8 +58,6 @@ export interface ProgrammeVoiceSessionInputs {
   generatedExercises: TrainingSetRuntimeGeneratedExercise[];
   resolveExercise: (exerciseId: string) => ExerciseDefinition;
   resolveSafetyProfile: (exerciseId: string) => PlannedExerciseSafetyCueProfile;
-  /** Present when the plan has bonus-eligible patterns (routing + effort + clock headroom). */
-  bonusSetOffer?: { exerciseIds: readonly string[]; offerCue: VoiceCueKey };
 }
 
 function mainDose(exercise: ProgrammeSessionExercise): TrainingSetRuntimeGeneratedExercise {
@@ -179,9 +175,6 @@ export function voiceSessionInputsFromPlan(plan: ProgrammeSessionPlan): Programm
       ...(distinctBalanceFocus ? [distinctBalanceFocus.exerciseId] : []),
     ]
   );
-  const bonusIds = plan.main
-    .filter((exercise) => plan.bonusSetEligible.includes(exercise.pattern))
-    .map((exercise) => exercise.exerciseId);
   return {
     exerciseIds,
     generatedExercises,
@@ -190,9 +183,6 @@ export function voiceSessionInputsFromPlan(plan: ProgrammeSessionPlan): Programm
       const profile = safetyProfileForPlan(exerciseId);
       return supportVariantIds.has(exerciseId) ? withSupportCues(profile) : profile;
     },
-    ...(bonusIds.length > 0
-      ? { bonusSetOffer: { exerciseIds: bonusIds, offerCue: PROGRAMME_BONUS_OFFER_CUE } }
-      : {}),
   };
 }
 

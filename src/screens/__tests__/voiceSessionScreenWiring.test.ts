@@ -61,6 +61,16 @@ describe('VoiceSessionScreen side-contract wiring', () => {
     expect(screenSource).toContain('snapshot.stopRequested');
     expect(screenSource).toContain('End this workout?');
   });
+
+  it('keeps pain visible while lower-frequency controls are disclosed', () => {
+    expect(screenSource).toContain('title="Something hurts"');
+    expect(screenSource).toContain('title="Adjust last set"');
+    expect(screenSource).toContain('title="More options"');
+    expect(screenSource).toContain('accessibilityState={{ expanded: open }}');
+    expect(screenSource).not.toContain('bonusOfferPending');
+    expect(screenSource).not.toContain('title="One more set"');
+    expect(screenSource).not.toContain("'No thanks — move on'");
+  });
 });
 
 describe('v2 shell session-mode wiring', () => {
@@ -74,6 +84,7 @@ describe('v2 shell session-mode wiring', () => {
   it('voice is the only mounted session surface (conductor deleted)', () => {
     expect(shellSource).toContain('<VoiceSessionScreen');
     expect(shellSource).not.toContain('TrainingSessionScreen');
+    expect(shellSource).not.toContain('bonusSetOffer={inputs.bonusSetOffer}');
   });
 
   it('voiceSetup prefs persist through the profile store', () => {
